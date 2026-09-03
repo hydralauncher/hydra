@@ -1557,6 +1557,7 @@
     "setup_run_in_background": "Run in background",
     "scanning_system_label": "Scanning {{system}}…",
     "setup_done_title": "{{system}} is ready!",
+    "setup_done_title_plural": "{{system}} are ready!",
     "setup_done_body_one": "We added {{count, number}} game to your library and matched it to LaunchBox covers and metadata.",
     "setup_done_body_other": "We added {{count, number}} games to your library and matched them to LaunchBox covers and metadata.",
     "setup_done_browse": "Browse Games",

@@ -79,25 +79,16 @@ export function EmulatorSetupModal({
   const previewFolder = useCallback(
     async (folderPath: string, scanSubfolders: boolean) => {
       if (!system) return null;
-      const { requestId } = await window.electron.startRomScan(
-        system,
-        folderPath,
-        scanSubfolders
-      );
-      return new Promise<number>((resolve) => {
-        const unsub = window.electron.onRomScanProgress(
-          requestId,
-          (payload) => {
-            if (payload.type === "done" || payload.type === "cancelled") {
-              unsub();
-              resolve(payload.fileCount);
-            } else if (payload.type === "error") {
-              unsub();
-              resolve(0);
-            }
-          }
+      try {
+        const { fileCount } = await window.electron.previewRomFolder(
+          system,
+          folderPath,
+          scanSubfolders
         );
-      });
+        return fileCount;
+      } catch {
+        return 0;
+      }
     },
     [system]
   );
@@ -531,6 +522,7 @@ export function EmulatorSetupModal({
           {currentStep === "done" && (
             <SetupStepDone
               systemLabel={systemLabel}
+              multipleSystems={system === "dolphin"}
               gamesAdded={gamesAdded}
               onBrowse={() => onComplete(system)}
               onManage={() => onManage(system)}

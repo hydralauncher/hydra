@@ -1499,6 +1499,7 @@
     "setup_scan_keep_open": "Puedes dejar esto abierto, te avisaremos cuando termine.",
     "setup_cancel_scan": "Cancelar",
     "setup_done_title": "¡{{system}} está listo!",
+    "setup_done_title_plural": "¡{{system}} están listos!",
     "setup_done_body_one": "Añadimos {{count, number}} juego a tu librería y lo emparejamos con las carátulas y metadatos de LaunchBox.",
     "setup_done_body_other": "Añadimos {{count, number}} juegos a tu librería y los emparejamos con las carátulas y metadatos de LaunchBox.",
     "setup_done_browse": "Explorar juegos",

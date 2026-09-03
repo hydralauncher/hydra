@@ -1295,6 +1295,7 @@
     "setup_run_in_background": "Chạy nền",
     "scanning_system_label": "Đang quét {{system}}…",
     "setup_done_title": "{{system}} đã sẵn sàng!",
+    "setup_done_title_plural": "{{system}} đã sẵn sàng!",
     "setup_done_body_one": "Chúng tôi đã thêm {{count}} game vào thư viện của bạn và đối chiếu với ảnh bìa cùng metadata từ LaunchBox.",
     "setup_done_body_other": "Chúng tôi đã thêm {{count}} game vào thư viện của bạn và đối chiếu với ảnh bìa cùng metadata từ LaunchBox.",
     "setup_done_browse": "Duyệt game",

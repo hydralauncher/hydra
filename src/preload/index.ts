@@ -604,13 +604,12 @@ contextBridge.exposeInMainWorld("electron", {
     ipcRenderer.on(channel, listener);
     return () => ipcRenderer.removeListener(channel, listener);
   },
-  startRomScan: (
+  previewRomFolder: (
     system: EmulatorSystem,
     folderPath: string,
     scanSubfolders: boolean
-  ) => ipcRenderer.invoke("startRomScan", system, folderPath, scanSubfolders),
-  cancelRomScan: (requestId: string) =>
-    ipcRenderer.invoke("cancelRomScan", requestId),
+  ) =>
+    ipcRenderer.invoke("previewRomFolder", system, folderPath, scanSubfolders),
   getEmulatorRomPaths: (system: EmulatorSystem) =>
     ipcRenderer.invoke("getEmulatorRomPaths", system),
   addEmulatorRomPath: (system: EmulatorSystem, folderPath: string) =>
@@ -620,27 +619,6 @@ contextBridge.exposeInMainWorld("electron", {
     ipcRenderer.invoke("removeEmulator", system),
   checkEmulatorExecutable: (system: EmulatorSystem) =>
     ipcRenderer.invoke("checkEmulatorExecutable", system),
-  onRomScanProgress: (
-    requestId: string,
-    cb: (
-      payload:
-        | {
-            type: "progress";
-            processed: number;
-            total: number;
-            currentFile: string | null;
-          }
-        | { type: "done"; fileCount: number; sizeBytes: number }
-        | { type: "cancelled"; fileCount: number; sizeBytes: number }
-        | { type: "error"; message: string }
-    ) => void
-  ) => {
-    const channel = `on-rom-scan-progress-${requestId}`;
-    const listener = (_event: Electron.IpcRendererEvent, payload: unknown) =>
-      cb(payload as Parameters<typeof cb>[0]);
-    ipcRenderer.on(channel, listener);
-    return () => ipcRenderer.removeListener(channel, listener);
-  },
   importLaunchboxRoms: (
     system: EmulatorSystem,
     folders: { path: string; scanSubfolders: boolean }[],

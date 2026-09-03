@@ -15,7 +15,7 @@ import "./check-ps3-firmware";
 import "./check-emulator-bios";
 import "./get-emulator-install-options";
 import "./install-emulator";
-import "./rom-scan-progress";
+import "./preview-rom-folder";
 import "./emulator-rom-paths";
 import "./list-emulator-roms";
 import "./remove-emulator";

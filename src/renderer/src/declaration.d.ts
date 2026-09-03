@@ -715,12 +715,11 @@ declare global {
       folderId: string,
       scanSubfolders: boolean
     ) => Promise<RetroArchConfig>;
-    startRomScan: (
+    previewRomFolder: (
       system: EmulatorSystem,
       folderPath: string,
       scanSubfolders: boolean
-    ) => Promise<{ requestId: string }>;
-    cancelRomScan: (requestId: string) => Promise<void>;
+    ) => Promise<{ fileCount: number; sizeBytes: number }>;
     getEmulatorRomPaths: (system: EmulatorSystem) => Promise<string[]>;
     addEmulatorRomPath: (
       system: EmulatorSystem,
@@ -735,21 +734,6 @@ declare global {
     checkEmulatorExecutable: (
       system: EmulatorSystem
     ) => Promise<{ exists: boolean }>;
-    onRomScanProgress: (
-      requestId: string,
-      cb: (
-        payload:
-          | {
-              type: "progress";
-              processed: number;
-              total: number;
-              currentFile: string | null;
-            }
-          | { type: "done"; fileCount: number; sizeBytes: number }
-          | { type: "cancelled"; fileCount: number; sizeBytes: number }
-          | { type: "error"; message: string }
-      ) => void
-    ) => () => Electron.IpcRenderer;
     importLaunchboxRoms: (
       system: EmulatorSystem,
       folders: { path: string; scanSubfolders: boolean }[],

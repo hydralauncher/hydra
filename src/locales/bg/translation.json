@@ -1188,6 +1188,7 @@
     "setup_run_in_background": "Пусни във фонов режим",
     "scanning_system_label": "Сканиране на {{system}}…",
     "setup_done_title": "{{system}} е готово!",
+    "setup_done_title_plural": "{{system}} са готови!",
     "setup_done_body_one": "Добавихме {{count}} игра в библиотеката ти и я съпоставихме с обложки и метаданни от LaunchBox.",
     "setup_done_body_other": "Добавихме {{count}} игри в библиотеката ти и ги съпоставихме с обложки и метаданни от LaunchBox.",
     "setup_done_browse": "Прегледай игрите",

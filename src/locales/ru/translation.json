@@ -1541,6 +1541,7 @@
     "setup_scan_keep_open": "Можете оставить это окно открытым, мы уведомим вас по завершении.",
     "setup_cancel_scan": "Отменить",
     "setup_done_title": "{{system}} готов!",
+    "setup_done_title_plural": "{{system}} готовы!",
     "setup_done_body_one": "Мы добавили {{count, number}} игру в вашу библиотеку и сопоставили её с обложками и метаданными LaunchBox.",
     "setup_done_body_other": "Мы добавили {{count, number}} игр в вашу библиотеку и сопоставили их с обложками и метаданными LaunchBox.",
     "setup_done_browse": "Просмотреть игры",

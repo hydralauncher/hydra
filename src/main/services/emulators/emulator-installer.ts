@@ -19,14 +19,11 @@ import { SystemPath } from "../system-path";
 import { WindowManager } from "../window-manager";
 import { downloadToFile, removeFileQuietly } from "../download-to-file";
 import { resolveInstallOptions } from "./emulator-install-sources";
-import { getEmulatorVersion } from "./get-emulator-version";
 import {
   findManagedEmulatorExecutable,
   requireManagedEmulatorExecutable,
 } from "./find-managed-emulator-executable";
 import { KNOWN_BINARIES, isKnownEmulatorBinary } from "./known-binaries";
-import { updateEmulatorConfig } from "./emulators-repository";
-import { assertValidEmulatorExecutable } from "./validate-emulator-executable";
 
 const execFileAsync = promisify(execFile);
 
@@ -126,8 +123,6 @@ const installMacosDmg = async (
       recursive: true,
       preserveTimestamps: true,
     });
-    await autoConfigureEmulator(system, destinationBundle);
-
     return destinationBundle;
   } finally {
     if (mounted) {
@@ -139,21 +134,6 @@ const installMacosDmg = async (
     }
     await fs.promises.rm(mountDirectory, { recursive: true, force: true });
   }
-};
-
-const autoConfigureEmulator = async (
-  system: EmulatorSystem,
-  executablePath: string
-): Promise<void> => {
-  assertValidEmulatorExecutable(executablePath);
-
-  const version = getEmulatorVersion(executablePath, KNOWN_BINARIES[system]);
-  await updateEmulatorConfig(system, (current) => ({
-    ...current,
-    executablePath,
-    detectedVersion: version,
-    detectedAt: Date.now(),
-  }));
 };
 
 /**
@@ -220,7 +200,6 @@ export const downloadAndInstallEmulator = async (
     if (option.kind === "linux-appimage") {
       const { mode } = await fs.promises.stat(dest);
       await fs.promises.chmod(dest, mode | 0o100);
-      await autoConfigureEmulator(BINARY_TO_SYSTEM[binary], dest);
       shell.showItemInFolder(dest);
       sendProgress({ binary, optionId, phase: "done", path: dest });
       return { ok: true, path: dest };
@@ -244,7 +223,6 @@ export const downloadAndInstallEmulator = async (
       extractDir,
       KNOWN_BINARIES[system]
     );
-    await autoConfigureEmulator(system, executable);
     await removeTempDownload();
     shell.showItemInFolder(executable);
     sendProgress({ binary, optionId, phase: "done", path: extractDir });

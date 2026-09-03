@@ -131,18 +131,23 @@ const safeStatSize = async (p: string): Promise<number | null> => {
 const safeFileSize = async (p: string): Promise<number> =>
   (await safeStatSize(p)) ?? 0;
 
-const computeDirSize = async (root: string): Promise<number> => {
+const computeDirSize = async (
+  root: string,
+  signal?: { cancelled: boolean }
+): Promise<number> => {
   let total = 0;
   let visited = 0;
   const queue: string[] = [root];
   const seen = new Set<string>();
   for (let dir = queue.shift(); dir !== undefined; dir = queue.shift()) {
+    if (signal?.cancelled) break;
     const real = await safeRealpath(dir);
     if (real === null || seen.has(real)) continue;
     seen.add(real);
     const entries = await safeReaddirTypes(dir);
     if (!entries) continue;
     for (const entry of entries) {
+      if (signal?.cancelled) break;
       if (visited++ > DIR_SIZE_ENTRY_CAP) return total;
       const full = path.join(dir, entry.name);
       if (entry.isDirectory()) queue.push(full);
@@ -335,13 +340,15 @@ const collectEntry = (
 const collectCandidates = async (
   rootPath: string,
   binary: KnownBinary,
-  scanSubfolders: boolean
+  scanSubfolders: boolean,
+  signal?: { cancelled: boolean }
 ): Promise<Candidate[]> => {
   const candidates: Candidate[] = [];
   const queue: string[] = [rootPath];
   const seen = new Set<string>();
 
   for (let dir = queue.shift(); dir !== undefined; dir = queue.shift()) {
+    if (signal?.cancelled) break;
     if (candidates.length >= MAX_COLLECTED_FILES) {
       logger.warn("ROM scan stopped at file cap", {
         rootPath,
@@ -358,6 +365,7 @@ const collectCandidates = async (
     if (!entries) continue;
 
     for (const entry of entries) {
+      if (signal?.cancelled) break;
       collectEntry(entry, dir, binary, scanSubfolders, candidates, queue);
     }
   }
@@ -366,13 +374,14 @@ const collectCandidates = async (
 };
 
 const sizeGame = async (
-  game: GameGroup
+  game: GameGroup,
+  signal?: { cancelled: boolean }
 ): Promise<{ countedFiles: number; sizeBytes: number }> => {
   let gameSize = 0;
   let countedFiles = 0;
 
   if (game.primary.isMarkerDir) {
-    gameSize += await computeDirSize(game.primary.fullPath);
+    gameSize += await computeDirSize(game.primary.fullPath, signal);
     countedFiles = 1;
   } else {
     const size = await safeStatSize(game.primary.fullPath);
@@ -383,6 +392,7 @@ const sizeGame = async (
   }
 
   for (const sidecar of game.sidecars) {
+    if (signal?.cancelled) break;
     gameSize += await safeFileSize(sidecar.fullPath);
   }
 
@@ -395,7 +405,12 @@ export const scanRomFolder = async (
   scanSubfolders: boolean,
   options?: ScanOptions
 ): Promise<ScanResult> => {
-  const raw = await collectCandidates(rootPath, binary, scanSubfolders);
+  const raw = await collectCandidates(
+    rootPath,
+    binary,
+    scanSubfolders,
+    options?.signal
+  );
   const games = dedupGames(binary, raw);
   const total = games.length;
 
@@ -411,7 +426,7 @@ export const scanRomFolder = async (
 
     const classification = await classifyForSystem(game.primary, binary.system);
     if (classification !== "skip") {
-      const sized = await sizeGame(game);
+      const sized = await sizeGame(game, options?.signal);
       if (classification === "ok") {
         fileCount += sized.countedFiles;
         sizeBytes += sized.sizeBytes;
@@ -439,9 +454,10 @@ export const scanRomFolder = async (
 export const countRomGroups = async (
   rootPath: string,
   binary: KnownBinary,
-  scanSubfolders: boolean
+  scanSubfolders: boolean,
+  signal?: { cancelled: boolean }
 ): Promise<number> => {
-  const raw = await collectCandidates(rootPath, binary, scanSubfolders);
+  const raw = await collectCandidates(rootPath, binary, scanSubfolders, signal);
   return dedupGames(binary, raw).length;
 };
 

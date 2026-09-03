@@ -112,7 +112,7 @@ export {
 } from "@shared";
 
 export const RETROARCH_EMULATION_SETTINGS_PATH =
-  "/settings?tab=emulation&system=retroarch";
+  "/settings?tab=emulation&system=retroarch&section=emulator";
 
 export const retroarchLaunchErrorToastKey = (
   code: "RETROARCH_NOT_CONFIGURED" | "CORE_NOT_INSTALLED"
@@ -200,7 +200,7 @@ export const handleClassicsLaunchError = (
   const code = getClassicsLaunchErrorCode(error);
   const system = getClassicsLaunchErrorSystem(error);
   const emulationPath = system
-    ? `/settings?tab=emulation&system=${system}`
+    ? `/settings?tab=emulation&system=${system}&section=emulator`
     : "/settings?tab=emulation";
 
   if (code === "EMULATOR_NOT_CONFIGURED") {

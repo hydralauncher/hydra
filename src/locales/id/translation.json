@@ -1248,6 +1248,7 @@
     "setup_run_in_background": "Jalankan di latar belakang",
     "scanning_system_label": "Memindai {{system}}…",
     "setup_done_title": "{{system}} siap!",
+    "setup_done_title_plural": "{{system}} siap!",
     "setup_done_body_one": "Kami menambahkan {{count}} game ke pustaka kamu dan mencocokkannya dengan cover serta metadata LaunchBox.",
     "setup_done_body_other": "Kami menambahkan {{count}} game ke pustaka kamu dan mencocokkannya dengan cover serta metadata LaunchBox.",
     "setup_done_browse": "Jelajahi Game",

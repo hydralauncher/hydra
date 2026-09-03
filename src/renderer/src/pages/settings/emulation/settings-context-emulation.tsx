@@ -31,7 +31,11 @@ import {
   hasDismissedClassicsOnboarding,
 } from "@renderer/components/classics-onboarding-modal/classics-onboarding-modal";
 
-import { SETTINGS_EMULATION_VIEW_STORAGE_KEY } from "@renderer/session-state";
+import {
+  SETTINGS_EMULATION_VIEW_STORAGE_KEY,
+  SETTINGS_EMULATOR_TAB_STORAGE_KEY,
+  SETTINGS_RETROARCH_TAB_STORAGE_KEY,
+} from "@renderer/session-state";
 
 import "./settings-context-emulation.scss";
 
@@ -95,7 +99,7 @@ export function SettingsContextEmulation() {
   const [configsNonce, setConfigsNonce] = useState(0);
   const [setupSystem, setSetupSystem] = useState<EmulatorSystem | null>(null);
   const [retroArchSetupOpen, setRetroArchSetupOpen] = useState(false);
-  const deepLinkAppliedRef = useRef(false);
+  const deepLinkAppliedRef = useRef<string | null>(null);
 
   const [showClassicsOnboarding, setShowClassicsOnboarding] = useState(false);
   const classicsOnboardingTriggeredRef = useRef(false);
@@ -188,20 +192,30 @@ export function SettingsContextEmulation() {
   }, [refresh, refreshRetroArch]);
 
   useEffect(() => {
-    if (deepLinkAppliedRef.current || !configs || !retroArchConfig) return;
+    if (!configs || !retroArchConfig) return;
     const system = searchParams.get("system");
+    if (!system) return;
+    const section = searchParams.get("section");
+    const deepLinkKey = `${system}:${section ?? ""}`;
+    if (deepLinkAppliedRef.current === deepLinkKey) return;
+
     if (system === "retroarch") {
-      deepLinkAppliedRef.current = true;
-      if (retroArchConfig.executablePath) {
-        setView({ kind: "retroarch-detail" });
+      deepLinkAppliedRef.current = deepLinkKey;
+      if (section === "emulator") {
+        localStorage.setItem(SETTINGS_RETROARCH_TAB_STORAGE_KEY, "emulator");
       }
+      setView({ kind: "retroarch-detail" });
       return;
     }
     if (system && SYSTEMS.includes(system as EmulatorSystem)) {
-      deepLinkAppliedRef.current = true;
-      if (configs[system as EmulatorSystem].executablePath) {
-        setView({ kind: "detail", system: system as EmulatorSystem });
+      deepLinkAppliedRef.current = deepLinkKey;
+      if (section === "emulator") {
+        localStorage.setItem(
+          `${SETTINGS_EMULATOR_TAB_STORAGE_KEY}-${system}`,
+          "emulator"
+        );
       }
+      setView({ kind: "detail", system: system as EmulatorSystem });
     }
   }, [configs, retroArchConfig, searchParams]);
 
@@ -251,6 +265,7 @@ export function SettingsContextEmulation() {
   if (view.kind === "detail" && detailConfig) {
     return (
       <EmulatorDetail
+        key={`${view.system}:${searchParams.get("section") ?? ""}`}
         config={detailConfig}
         systemLabel={SYSTEM_LABELS[view.system]}
         onBack={handleBack}
@@ -265,6 +280,7 @@ export function SettingsContextEmulation() {
   if (view.kind === "retroarch-detail") {
     return (
       <RetroArchDetail
+        key={`retroarch:${searchParams.get("section") ?? ""}`}
         config={retroArchConfig}
         onBack={handleBack}
         onChange={setRetroArchConfig}
