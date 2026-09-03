@@ -41,6 +41,12 @@
     }
   }
 
+  &__connected-container {
+    display: flex;
+    flex-direction: column;
+    gap: calc(globals.$spacing-unit * 2);
+  }
+
   &__connected {
     display: flex;
     align-items: center;

@@ -64,6 +64,7 @@ import type {
   LegacySaveExportIpcProgress,
   LegacySaveExportProgress,
   LegacySaveExportResult,
+  OpenCheckoutOptions,
   AchievementSouvenirSyncStatus,
 } from "@types";
 import type { AuthPage } from "@shared";
@@ -447,6 +448,12 @@ contextBridge.exposeInMainWorld("electron", {
       scanSubfolders,
       language
     ),
+  registerRomFolder: (
+    system: EmulatorSystem,
+    folderPath: string,
+    scanSubfolders: boolean
+  ) =>
+    ipcRenderer.invoke("registerRomFolder", system, folderPath, scanSubfolders),
   removeRomFolder: (system: EmulatorSystem, folderId: string) =>
     ipcRenderer.invoke("removeRomFolder", system, folderId),
   listEmulatorRoms: (system: EmulatorSystem) =>
@@ -1338,10 +1345,14 @@ contextBridge.exposeInMainWorld("electron", {
   },
   openFolder: (folderPath: string) =>
     ipcRenderer.invoke("openFolder", folderPath),
+  getAppSessionId: () => ipcRenderer.invoke("getAppSessionId"),
   isStaging: () => ipcRenderer.invoke("isStaging"),
-  isPortableVersion: () => ipcRenderer.invoke("isPortableVersion"),
+  isPortableVersion: Boolean(process.env.PORTABLE_EXECUTABLE_FILE),
   openExternal: (src: string) => ipcRenderer.invoke("openExternal", src),
-  openCheckout: () => ipcRenderer.invoke("openCheckout"),
+  openCheckout: (options?: OpenCheckoutOptions) =>
+    ipcRenderer.invoke("openCheckout", options),
+  notifyCloudGiftResolved: (giftId: string) =>
+    ipcRenderer.invoke("notifyCloudGiftResolved", giftId),
   getCloudIframeUrl: () => ipcRenderer.invoke("getCloudIframeUrl"),
   showOpenDialog: (options: Electron.OpenDialogOptions) =>
     ipcRenderer.invoke("showOpenDialog", options),
@@ -1350,10 +1361,10 @@ contextBridge.exposeInMainWorld("electron", {
     ipcRenderer.invoke("showItemInFolder", path),
   getImageDataUrl: (imageUrl: string) =>
     ipcRenderer.invoke("getImageDataUrl", imageUrl),
-  getProcessedFriendImage: (
+  getProcessedImage: (
     imageUrl: string | null,
     options: { width: number; height: number; preserveAnimation?: boolean }
-  ) => ipcRenderer.invoke("getProcessedFriendImage", imageUrl, options),
+  ) => ipcRenderer.invoke("getProcessedImage", imageUrl, options),
   hydraApi: {
     get: (
       url: string,
@@ -1558,6 +1569,13 @@ contextBridge.exposeInMainWorld("electron", {
   },
   syncFriendRequests: (friendRequestCount: number) =>
     ipcRenderer.invoke("syncFriendRequests", friendRequestCount),
+
+  onCloudGiftResolved: (cb: (giftId: string) => void) => {
+    const listener = (_event: Electron.IpcRendererEvent, giftId: string) =>
+      cb(giftId);
+    ipcRenderer.on("on-cloud-gift-resolved", listener);
+    return () => ipcRenderer.removeListener("on-cloud-gift-resolved", listener);
+  },
 
   /* User */
   getComparedUnlockedAchievements: (

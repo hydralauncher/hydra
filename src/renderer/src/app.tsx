@@ -45,6 +45,7 @@ import { CloudSubscriptionModal } from "./pages/shared-modals/hydra-cloud/cloud-
 import { AddFriendModal } from "./pages/profile/profile-content/add-friend-modal";
 import { ClassicsScanModal } from "./pages/settings/emulation/classics-scan-modal";
 import { RetroArchScanModal } from "./pages/settings/emulation/retroarch-scan-modal";
+import { CloudGiftNotificationModal } from "./pages/shared-modals/cloud-gift-notification-modal";
 
 import type { UserPreferences } from "@types";
 import "./app.scss";
@@ -664,6 +665,8 @@ export function App() {
         onClose={hideHydraCloudModal}
         feature={hydraCloudFeature || undefined}
       />
+
+      <CloudGiftNotificationModal />
 
       <ArchiveDeletionModal
         visible={showArchiveDeletionModal}
