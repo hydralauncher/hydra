@@ -64,4 +64,14 @@ describe("findManagedEmulatorExecutable", () => {
       /No Dolphin executable found/
     );
   });
+
+  it("rejects an invalid file with the expected executable name", async () => {
+    const root = await createTemporaryDirectory();
+    await fs.promises.writeFile(path.join(root, "Dolphin.exe"), "invalid");
+
+    assert.throws(
+      () => requireManagedEmulatorExecutable(root, KNOWN_BINARIES.dolphin),
+      /Invalid emulator executable/
+    );
+  });
 });

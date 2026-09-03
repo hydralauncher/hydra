@@ -2,6 +2,7 @@ import fs from "node:fs";
 import path from "node:path";
 
 import type { KnownBinary } from "./known-binaries";
+import { assertValidEmulatorExecutable } from "./validate-emulator-executable.js";
 
 type ManagedExecutableBinary = Pick<
   KnownBinary,
@@ -79,5 +80,6 @@ export const requireManagedEmulatorExecutable = (
   if (!executable) {
     throw new Error(`No ${binary.displayName} executable found in archive`);
   }
+  assertValidEmulatorExecutable(executable);
   return executable;
 };
