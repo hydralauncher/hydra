@@ -63,6 +63,19 @@ const DOS_HEADER_SIZE = 64;
 const PE_HEADER_OFFSET_POSITION = 0x3c;
 const DOS_SIGNATURE = "MZ";
 const PE_SIGNATURE = Buffer.from([0x50, 0x45, 0, 0]);
+const EXECUTABLE_PREFIX_SIZE = 4;
+const ELF_SIGNATURE = Buffer.from([0x7f, 0x45, 0x4c, 0x46]);
+const SCRIPT_SIGNATURE = Buffer.from([0x23, 0x21]);
+const MACH_O_SIGNATURES = new Set([
+  "feedface",
+  "cefaedfe",
+  "feedfacf",
+  "cffaedfe",
+  "cafebabe",
+  "bebafeca",
+  "cafebabf",
+  "bfbafeca",
+]);
 
 const hasPortableExecutableHeader = (executablePath: string): boolean => {
   let fileDescriptor: number | null = null;
@@ -97,6 +110,33 @@ const hasPortableExecutableHeader = (executablePath: string): boolean => {
   }
 };
 
+const hasExecutableFileHeader = (executablePath: string): boolean => {
+  let fileDescriptor: number | null = null;
+
+  try {
+    fileDescriptor = openSync(executablePath, "r");
+    const prefix = Buffer.alloc(EXECUTABLE_PREFIX_SIZE);
+    const bytesRead = readSync(fileDescriptor, prefix, 0, prefix.length, 0);
+    if (
+      bytesRead >= SCRIPT_SIGNATURE.length &&
+      prefix.subarray(0, SCRIPT_SIGNATURE.length).equals(SCRIPT_SIGNATURE)
+    ) {
+      return true;
+    }
+    if (bytesRead < EXECUTABLE_PREFIX_SIZE) return false;
+    if (prefix.equals(ELF_SIGNATURE)) return true;
+    if (MACH_O_SIGNATURES.has(prefix.toString("hex"))) return true;
+    return (
+      prefix.subarray(0, DOS_SIGNATURE.length).toString("ascii") ===
+        DOS_SIGNATURE && hasPortableExecutableHeader(executablePath)
+    );
+  } catch {
+    return false;
+  } finally {
+    if (fileDescriptor !== null) closeSync(fileDescriptor);
+  }
+};
+
 export const isValidEmulatorExecutable = (
   executablePath: string,
   platform: NodeJS.Platform = process.platform
@@ -111,8 +151,10 @@ export const isValidEmulatorExecutable = (
   const appBundlePath = findMacAppBundleRoot(normalizedPath);
 
   if (appBundlePath) {
+    if (ext !== ".app") return false;
+    const bundleExecutable = resolveMacAppBundleExecutable(appBundlePath);
     return (
-      ext === ".app" && resolveMacAppBundleExecutable(appBundlePath) !== null
+      bundleExecutable !== null && hasExecutableFileHeader(bundleExecutable)
     );
   }
 
@@ -133,7 +175,7 @@ export const isValidEmulatorExecutable = (
 
   try {
     accessSync(normalizedPath, constants.X_OK);
-    return true;
+    return hasExecutableFileHeader(normalizedPath);
   } catch {
     return false;
   }

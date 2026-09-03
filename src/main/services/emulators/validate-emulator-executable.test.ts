@@ -58,6 +58,31 @@ describe("assertValidEmulatorExecutable", () => {
 
     assert.equal(isValidEmulatorExecutable(executable, "win32"), true);
   });
+
+  it("rejects a corrupt AppImage even when it is executable", async () => {
+    const directory = await createTemporaryDirectory();
+    const executable = path.join(directory, "PPSSPP.AppImage");
+    await fs.promises.writeFile(executable, "not an AppImage");
+    await fs.promises.chmod(executable, 0o755);
+
+    assert.equal(isValidEmulatorExecutable(executable, "linux"), false);
+  });
+
+  it("accepts executable ELF files and script wrappers", async () => {
+    const directory = await createTemporaryDirectory();
+    const elfExecutable = path.join(directory, "PPSSPP.AppImage");
+    const scriptExecutable = path.join(directory, "dolphin-emu");
+    await fs.promises.writeFile(
+      elfExecutable,
+      Buffer.from([0x7f, 0x45, 0x4c, 0x46])
+    );
+    await fs.promises.writeFile(scriptExecutable, "#!/bin/sh\nexit 0\n");
+    await fs.promises.chmod(elfExecutable, 0o755);
+    await fs.promises.chmod(scriptExecutable, 0o755);
+
+    assert.equal(isValidEmulatorExecutable(elfExecutable, "linux"), true);
+    assert.equal(isValidEmulatorExecutable(scriptExecutable, "linux"), true);
+  });
 });
 
 describe("isExecutableNameExpectedForBinary", () => {

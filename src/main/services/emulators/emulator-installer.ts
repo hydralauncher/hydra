@@ -24,6 +24,7 @@ import {
   requireManagedEmulatorExecutable,
 } from "./find-managed-emulator-executable";
 import { KNOWN_BINARIES, isKnownEmulatorBinary } from "./known-binaries";
+import { assertValidEmulatorExecutable } from "./validate-emulator-executable";
 
 const execFileAsync = promisify(execFile);
 
@@ -112,6 +113,7 @@ const installMacosDmg = async (
     if (!sourceBundle || path.extname(sourceBundle).toLowerCase() !== ".app") {
       throw new Error(`No ${binary} app bundle found in disk image`);
     }
+    assertValidEmulatorExecutable(sourceBundle);
 
     const destinationBundle = path.join(
       installDirectory,
@@ -123,6 +125,7 @@ const installMacosDmg = async (
       recursive: true,
       preserveTimestamps: true,
     });
+    assertValidEmulatorExecutable(destinationBundle);
     return destinationBundle;
   } finally {
     if (mounted) {
@@ -200,6 +203,7 @@ export const downloadAndInstallEmulator = async (
     if (option.kind === "linux-appimage") {
       const { mode } = await fs.promises.stat(dest);
       await fs.promises.chmod(dest, mode | 0o100);
+      assertValidEmulatorExecutable(dest);
       shell.showItemInFolder(dest);
       sendProgress({ binary, optionId, phase: "done", path: dest });
       return { ok: true, path: dest };
@@ -229,7 +233,7 @@ export const downloadAndInstallEmulator = async (
     return { ok: true, path: extractDir };
   } catch (error) {
     logger.error("Failed to install emulator", error);
-    await removeTempDownload();
+    await removeFileQuietly(dest);
     sendProgress({
       binary,
       optionId,
