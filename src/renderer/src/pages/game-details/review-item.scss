@@ -9,21 +9,76 @@
   &__review-header {
     display: flex;
     flex-direction: column;
+    justify-content: center;
     gap: calc(globals.$spacing-unit * 1);
     margin-bottom: calc(globals.$spacing-unit * 1.5);
+    position: relative;
+
+    &--has-bg {
+      aspect-ratio: 388 / 56;
+      min-height: 76px;
+      max-height: 132px;
+      padding: calc(globals.$spacing-unit * 1.5)
+        calc(globals.$spacing-unit * 1.25);
+      border-radius: 8px;
+
+      &::after {
+        content: "";
+        position: absolute;
+        inset: 0;
+        z-index: 1;
+        border-radius: inherit;
+        background: linear-gradient(135deg, rgb(0 0 0 / 25%), rgb(0 0 0 / 18%));
+        pointer-events: none;
+      }
+
+      .game-details__review-display-name,
+      .game-details__review-date {
+        color: #ffffff;
+        text-shadow: 0 0 5px rgb(0 0 0 / 60%);
+      }
+
+      .game-details__review-date {
+        padding-right: calc(globals.$spacing-unit * 0.5);
+      }
+
+      .game-details__review-score-stars,
+      .game-details__review-playtime {
+        background: rgb(0 0 0 / 35%);
+        border-color: rgba(255, 255, 255, 0.2);
+        color: #ffffff;
+
+        svg {
+          color: rgba(255, 255, 255, 0.9);
+        }
+      }
+    }
+  }
+
+  &__review-banner {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    border-radius: inherit;
+    z-index: 0;
+    pointer-events: none;
   }
 
   &__review-header-top {
     display: flex;
-    justify-content: space-between;
-    align-items: flex-start;
+    justify-content: flex-start;
+    align-items: center;
     gap: calc(globals.$spacing-unit * 1);
+    position: relative;
+    z-index: 2;
   }
 
   &__review-user {
     display: flex;
-    align-items: flex-start;
-    gap: calc(globals.$spacing-unit * 1);
+    align-items: center;
+    gap: calc(globals.$spacing-unit * 1.5);
     flex: 1;
     min-width: 0;
   }
@@ -31,7 +86,7 @@
   &__review-user-info {
     display: flex;
     flex-direction: column;
-    gap: calc(globals.$spacing-unit * 0.45);
+    gap: calc(globals.$spacing-unit * 0.75);
     flex: 1;
     min-width: 0;
   }
@@ -50,11 +105,22 @@
     min-height: 22px;
   }
 
+  &__review-name-row {
+    display: flex;
+    align-items: center;
+    min-width: 0;
+  }
+
   &__review-display-name {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    display: block;
+    text-align: left;
     color: rgba(255, 255, 255, 0.9);
-    font-size: globals.$small-font-size;
+    font-size: globals.$body-font-size;
     font-weight: 600;
-    display: inline-flex;
 
     &--clickable {
       cursor: pointer;
@@ -226,9 +292,11 @@
   &__review-date {
     display: flex;
     align-items: center;
+    align-self: flex-start;
+    flex-shrink: 0;
+    padding-right: calc(globals.$spacing-unit * 1.75);
     gap: 4px;
     white-space: nowrap;
-    height: 22px;
     line-height: 1;
     color: rgba(255, 255, 255, 0.6);
     font-size: globals.$small-font-size;

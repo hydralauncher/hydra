@@ -223,7 +223,6 @@
     align-items: center;
     justify-content: center;
     overflow: hidden;
-    background: globals.$border-color;
     color: globals.$body-color;
 
     img {
@@ -432,14 +431,27 @@
   }
 
   &__game-link {
-    overflow: hidden;
+    display: flex;
+    min-width: 0;
+    align-items: center;
+    gap: globals.$spacing-unit;
     color: globals.$body-color;
+
+    &.link:hover {
+      color: globals.$muted-color;
+      text-decoration: none;
+    }
+
+    &:hover .profile-souvenir-lightbox__game-name {
+      border-bottom-color: currentColor;
+    }
+  }
+
+  &__game-name {
+    overflow: hidden;
+    border-bottom: 1px solid transparent;
     text-overflow: ellipsis;
     white-space: nowrap;
-
-    &:hover {
-      color: globals.$muted-color;
-    }
   }
 
   &__rarity {
@@ -491,12 +503,8 @@
       opacity: globals.$disabled-opacity;
     }
 
-    &--pending:disabled {
-      opacity: 1;
-    }
-
     &--active {
-      color: globals.$error-color;
+      color: #fff;
     }
 
     &--icon {
@@ -511,6 +519,7 @@
 
       &:hover:not(:disabled) {
         background: rgba(225, 29, 72, 0.22);
+        color: globals.$error-color;
       }
     }
   }
