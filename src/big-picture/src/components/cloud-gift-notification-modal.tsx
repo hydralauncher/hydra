@@ -116,6 +116,30 @@ const createRingTransition = (scaleEase: (value: number) => number) => ({
   },
 });
 
+interface CloudGiftModalNavigationActionsProps {
+  messageFocused: boolean;
+  scrollMessageStep: (direction: "up" | "down") => void;
+}
+
+function CloudGiftModalNavigationActions({
+  messageFocused,
+  scrollMessageStep,
+}: CloudGiftModalNavigationActionsProps) {
+  useNavigationScreenActions({
+    press: {
+      b: () => {},
+    },
+    direction: messageFocused
+      ? {
+          down: () => scrollMessageStep("down"),
+          up: () => scrollMessageStep("up"),
+        }
+      : {},
+  });
+
+  return null;
+}
+
 export function CloudGiftNotificationModal() {
   const { t } = useTranslation("notifications_page");
   const { userDetails, fetchUserDetails } = useUserDetails();
@@ -368,20 +392,6 @@ export function CloudGiftNotificationModal() {
     [moveFocus]
   );
 
-  useNavigationScreenActions(
-    isVisible
-      ? {
-          press: { b: () => {} },
-          direction: messageFocused
-            ? {
-                down: () => scrollMessageStep("down"),
-                up: () => scrollMessageStep("up"),
-              }
-            : {},
-        }
-      : {}
-  );
-
   useEffect(() => {
     if (!isVisible) {
       setIsRevealComplete(false);
@@ -429,6 +439,10 @@ export function CloudGiftNotificationModal() {
           exit={{ opacity: 0 }}
           transition={{ duration: shouldReduceMotion ? 0 : 0.2 }}
         >
+          <CloudGiftModalNavigationActions
+            messageFocused={messageFocused}
+            scrollMessageStep={scrollMessageStep}
+          />
           <NavigationLayer
             rootRegionId={CONTENT_REGION_ID}
             initialFocusId={ACCEPT_GIFT_FOCUS_ID}
