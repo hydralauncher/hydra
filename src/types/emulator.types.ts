@@ -1,6 +1,11 @@
-export type EmulatorSystem = "ps1" | "ps2" | "ps3";
+export type EmulatorSystem = "ps1" | "ps2" | "ps3" | "psp" | "dolphin";
 
-export type EmulatorBinary = "duckstation" | "pcsx2" | "rpcs3";
+export type EmulatorBinary =
+  | "duckstation"
+  | "pcsx2"
+  | "rpcs3"
+  | "ppsspp"
+  | "dolphin";
 
 export interface RomFolder {
   id: string;
@@ -49,6 +54,7 @@ export interface ClassicsDisc {
 export interface Ps2MemoryCardSaveRecord {
   cardFilePath: string; // absolute path to the .ps2 file
   cardLabel: string; // basename, e.g. "Mcd001.ps2"
+  hostname?: string; // current device, populated when records are listed
   folderName: string; // on-card save folder, e.g. "BESLES-50009"
   sku: string | null; // normalized "SLES-50009", or null if unrecognized
   objectId: string | null; // resolved LaunchBox objectId, or null if unmatched
@@ -117,8 +123,34 @@ export type MemcardExportResult = Ps2ExportResult;
 
 /* ── Cloud emulation saves (`/profile/emulation-saves`) ───────────────────── */
 
-export type EmulationSavePlatform = "ps1" | "ps2";
-export type EmulationSaveEmulator = "duckstation" | "pcsx2";
+export type EmulationSavePlatform = "ps1" | "ps2" | "psp" | "gamecube" | "wii";
+export type EmulationSaveEmulator =
+  | "duckstation"
+  | "pcsx2"
+  | "ppsspp"
+  | "dolphin";
+
+export type EmulationSaveMetadata =
+  | {
+      schemaVersion: 1;
+      artifactFormat: "ppsspp-savedata-zip";
+      discId: string;
+      savedataDirectory: string;
+    }
+  | {
+      schemaVersion: 1;
+      artifactFormat: "dolphin-gci";
+      gameId: string;
+      slot: "A" | "B";
+      region: "USA" | "JPN" | "EUR" | "KOR" | "DEV" | "unknown";
+      internalFileName: string;
+    }
+  | {
+      schemaVersion: 1;
+      artifactFormat: "dolphin-wii-data-bin";
+      titleId: string;
+      gameId?: string;
+    };
 
 export interface EmulationBackupProgress {
   platform: EmulationSavePlatform;
@@ -142,7 +174,7 @@ export interface EmulationCloudSave {
   hostname: string | null;
   localLastModifiedAt: string | null;
   label: string | null;
-  metadata: Record<string, unknown> | null;
+  metadata: EmulationSaveMetadata | Record<string, unknown> | null;
   shop: "launchbox" | "steam" | null;
   objectId: string | null;
   lastUploadedAt: string | null;
@@ -152,13 +184,16 @@ export interface EmulationCloudSave {
 
 export type MemcardFormatState = "formatted" | "unformatted" | "unreadable";
 
-export type MemcardRestoreErrorReason = "unformatted";
+export type MemcardRestoreErrorReason =
+  | "unformatted"
+  | "manual-import-required";
 
 /** Result of writing a downloaded cloud save back into a local card. */
 export interface MemcardRestoreResult {
   ok: boolean;
   error?: string;
   reason?: MemcardRestoreErrorReason;
+  location?: string;
 }
 
 /** A local memory card a cloud save can be restored into. */
@@ -173,6 +208,8 @@ export type EmulatorInstallKind =
   | "windows-installer"
   | "linux-appimage"
   | "windows-archive"
+  | "portable-archive"
+  | "macos-dmg"
   | "link";
 
 export type EmulatorInstallChannel = "release" | "prerelease";
