@@ -327,22 +327,6 @@ export function CloudGiftNotificationModal() {
     }
   }, [dismissCurrentGift, fetchUserDetails, isAccepting, notification]);
 
-  const isTopMostDialog = useCallback(() => {
-    const openDialogs = document.querySelectorAll<HTMLElement>(
-      '[role="dialog"]:not([aria-hidden="true"])'
-    );
-
-    return (
-      openDialogs.length > 0 &&
-      openDialogs[openDialogs.length - 1] === dialogRef.current
-    );
-  }, []);
-
-  const closeTopMostDialog = useCallback(() => {
-    if (!isTopMostDialog()) return;
-    dismissCurrentGift();
-  }, [dismissCurrentGift, isTopMostDialog]);
-
   const scrollMessageStep = useCallback(
     (direction: "up" | "down") => {
       const element = messageRef.current;
@@ -387,7 +371,6 @@ export function CloudGiftNotificationModal() {
   useNavigationScreenActions(
     isVisible
       ? {
-          press: { b: closeTopMostDialog },
           direction: messageFocused
             ? {
                 down: () => scrollMessageStep("down"),
@@ -397,23 +380,6 @@ export function CloudGiftNotificationModal() {
         }
       : {}
   );
-
-  useEffect(() => {
-    if (!isVisible) return;
-
-    const previouslyFocusedElement = document.activeElement as HTMLElement;
-    const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key !== "Escape" || event.defaultPrevented) return;
-      closeTopMostDialog();
-    };
-
-    globalThis.window.addEventListener("keydown", onKeyDown);
-
-    return () => {
-      globalThis.window.removeEventListener("keydown", onKeyDown);
-      previouslyFocusedElement?.focus();
-    };
-  }, [closeTopMostDialog, isVisible]);
 
   useEffect(() => {
     if (!isVisible) {
@@ -461,9 +427,6 @@ export function CloudGiftNotificationModal() {
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
           transition={{ duration: shouldReduceMotion ? 0 : 0.2 }}
-          onPointerDown={(event) => {
-            if (event.target === event.currentTarget) closeTopMostDialog();
-          }}
         >
           <NavigationLayer
             rootRegionId={CONTENT_REGION_ID}

@@ -317,35 +317,6 @@ export function CloudGiftNotificationModal() {
 
   const isVisible = Boolean(notification && gift);
 
-  const isTopMostDialog = useCallback(() => {
-    const openDialogs = document.querySelectorAll<HTMLElement>(
-      '[role="dialog"]:not([aria-hidden="true"])'
-    );
-
-    return (
-      openDialogs.length > 0 &&
-      openDialogs[openDialogs.length - 1] === dialogRef.current
-    );
-  }, []);
-
-  useEffect(() => {
-    if (!isVisible) return;
-
-    const previouslyFocusedElement = document.activeElement as HTMLElement;
-    const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key === "Escape" && isTopMostDialog()) {
-        dismissCurrentGift();
-      }
-    };
-
-    window.addEventListener("keydown", onKeyDown);
-
-    return () => {
-      window.removeEventListener("keydown", onKeyDown);
-      previouslyFocusedElement?.focus();
-    };
-  }, [dismissCurrentGift, isTopMostDialog, isVisible]);
-
   useEffect(() => {
     setIsRevealComplete(Boolean(isVisible && shouldReduceMotion));
   }, [isVisible, shouldReduceMotion]);
@@ -378,11 +349,6 @@ export function CloudGiftNotificationModal() {
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
           transition={{ duration: shouldReduceMotion ? 0 : 0.2 }}
-          onPointerDown={(event) => {
-            if (event.target === event.currentTarget && isTopMostDialog()) {
-              dismissCurrentGift();
-            }
-          }}
         >
           <div
             ref={dialogRef}
