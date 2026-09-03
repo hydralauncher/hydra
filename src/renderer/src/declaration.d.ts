@@ -12,6 +12,7 @@ import type {
   AllDebridUser,
   UserProfile,
   UpdateProfileRequest,
+  OpenCheckoutOptions,
   GameStats,
   UserDetails,
   FriendRequestSync,
@@ -965,7 +966,7 @@ declare global {
 
     /* Misc */
     openExternal: (src: string) => Promise<void>;
-    openCheckout: () => Promise<void>;
+    openCheckout: (options?: OpenCheckoutOptions) => Promise<void>;
     getCloudIframeUrl: () => Promise<string>;
     getVersion: () => Promise<string>;
     getAppSessionId: () => Promise<string>;
@@ -996,7 +997,7 @@ declare global {
     listDrives: () => Promise<string[]>;
     showItemInFolder: (path: string) => Promise<void>;
     getImageDataUrl: (imageUrl: string) => Promise<string | null>;
-    getProcessedFriendImage: (
+    getProcessedImage: (
       imageUrl: string | null,
       options: { width: number; height: number; preserveAnimation?: boolean }
     ) => Promise<string | null>;
@@ -1153,6 +1154,8 @@ declare global {
     onSyncNotificationCount: (
       cb: (notification: NotificationSync) => void
     ) => () => Electron.IpcRenderer;
+    onCloudGiftResolved: (cb: (giftId: string) => void) => () => Electron.IpcRenderer;
+    notifyCloudGiftResolved: (giftId: string) => Promise<void>;
     syncFriendRequests: (friendRequestCount: number) => Promise<void>;
 
     /* Notifications */
