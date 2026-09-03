@@ -10,6 +10,7 @@ import type {
   MemcardRestoreTarget,
 } from "@types";
 
+import { getRestoreModalCopyKeys } from "./emulation-save-modal-copy";
 import "./emulation-save-modals.scss";
 
 export const PICK_FILTERS: Record<
@@ -63,6 +64,7 @@ export function RestoreModal({
     useState<MemcardFormatState | null>(null);
   const [busy, setBusy] = useState(false);
   const isMemoryCardPlatform = platform === "ps1" || platform === "ps2";
+  const copyKeys = getRestoreModalCopyKeys(platform);
 
   useEffect(() => {
     if (!save) return;
@@ -108,10 +110,6 @@ export function RestoreModal({
     platform === "ps2"
       ? "cloud_restore_unformatted_ps2"
       : "cloud_restore_unformatted";
-  const restoreButtonLabel = isMemoryCardPlatform
-    ? "cloud_restore_confirm"
-    : "cloud_restore_emulator_confirm";
-
   const handlePickFile = useCallback(async () => {
     if (!isMemoryCardPlatform) return;
     const filter = platform === "ps2" ? PICK_FILTERS.ps2 : PICK_FILTERS.ps1;
@@ -177,16 +175,8 @@ export function RestoreModal({
   return (
     <Modal
       visible={save !== null}
-      title={t(
-        isMemoryCardPlatform
-          ? "cloud_restore_title"
-          : "cloud_restore_emulator_title"
-      )}
-      description={t(
-        isMemoryCardPlatform
-          ? "cloud_restore_description"
-          : "cloud_restore_emulator_description"
-      )}
+      title={t(copyKeys.title)}
+      description={t(copyKeys.description)}
       onClose={onClose}
     >
       <div className="emu-save-modal__restore">
@@ -242,7 +232,7 @@ export function RestoreModal({
               selectedFormat === "unformatted"
             }
           >
-            {busy ? t("cloud_restoring") : t(restoreButtonLabel)}
+            {busy ? t("cloud_restoring") : t(copyKeys.confirm)}
           </Button>
         </div>
       </div>

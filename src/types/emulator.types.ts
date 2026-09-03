@@ -54,6 +54,7 @@ export interface ClassicsDisc {
 export interface Ps2MemoryCardSaveRecord {
   cardFilePath: string; // absolute path to the .ps2 file
   cardLabel: string; // basename, e.g. "Mcd001.ps2"
+  hostname?: string; // current device, populated when records are listed
   folderName: string; // on-card save folder, e.g. "BESLES-50009"
   sku: string | null; // normalized "SLES-50009", or null if unrecognized
   objectId: string | null; // resolved LaunchBox objectId, or null if unmatched

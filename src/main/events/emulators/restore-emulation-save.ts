@@ -123,7 +123,7 @@ const restoreTargets = async (
 
   if (platform === "wii" && isWiiMetadata(metadata)) {
     const cardFilePath = path.join(await getDownloadsPath(), "Hydra Wii Saves");
-    return [{ cardFilePath, cardLabel: "Dolphin Wii save export" }];
+    return [{ cardFilePath, cardLabel: "Wii data.bin export" }];
   }
 
   return [];

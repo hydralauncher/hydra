@@ -36,6 +36,7 @@ import {
   formatBytes,
   formatDate,
 } from "../../settings/emulation/emulation-save-modals";
+import { getLocalSaveDeviceLabel } from "./game-emulation-save-presentation";
 
 import "./game-emulation-saves.scss";
 
@@ -254,6 +255,7 @@ export function GameEmulationSaves({
                   const key = recordKey(record);
                   const uploading = uploadingKey === key;
                   const region = record.sku ? getSkuRegion(record.sku) : null;
+                  const deviceLabel = getLocalSaveDeviceLabel(record);
                   return (
                     <li key={key} className="game-emulation-saves__card">
                       <div className="game-emulation-saves__card-head">
@@ -283,9 +285,9 @@ export function GameEmulationSaves({
 
                       <div className="game-emulation-saves__card-body">
                         <div className="game-emulation-saves__card-meta">
-                          <span title={record.cardLabel}>
+                          <span title={deviceLabel}>
                             <DeviceDesktopIcon size={14} />
-                            {record.cardLabel}
+                            {deviceLabel}
                           </span>
                           <span>
                             <ClockIcon size={14} />

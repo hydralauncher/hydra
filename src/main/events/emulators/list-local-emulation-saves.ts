@@ -1,3 +1,5 @@
+import os from "node:os";
+
 import { registerEvent } from "../register-event";
 import { emulators, logger } from "@main/services";
 import type { EmulationSavePlatform, MemoryCardSaveRecord } from "@types";
@@ -63,6 +65,7 @@ const discoverAndMapFileSaves = async (
     )
   );
   const remoteAssets = await emulators.fetchShopDetailsForSkus(unresolvedSkus);
+  const hostname = os.hostname() || undefined;
 
   return discovered.map((save) => {
     const normalizedSku = emulators.normalizeSku(save.sku);
@@ -74,6 +77,7 @@ const discoverAndMapFileSaves = async (
     return {
       cardFilePath: save.sourcePath,
       cardLabel: save.sourceLabel,
+      hostname,
       folderName: save.saveIdentity,
       sku: local.assets ? local.sku : save.sku,
       objectId: assets?.objectId ?? null,
