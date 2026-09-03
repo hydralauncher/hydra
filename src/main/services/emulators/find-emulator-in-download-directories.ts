@@ -14,6 +14,11 @@ interface DownloadDetectableBinary {
 const MAX_SEARCH_DEPTH = 4;
 const MAX_SEARCHED_DIRECTORIES = 2_000;
 
+interface PendingDirectory {
+  directory: string;
+  depth: number;
+}
+
 const findDirect = (directory: string, names: string[]): string | null => {
   for (const name of names) {
     const candidate = path.join(directory, name);
@@ -47,46 +52,56 @@ const findAppImage = (
   return appImage ? path.join(directory, appImage) : null;
 };
 
+const findExecutableInDirectory = (
+  directory: string,
+  names: string[],
+  binary: DownloadDetectableBinary,
+  platform: NodeJS.Platform
+): string | null => {
+  const executable = findDirect(directory, names);
+  if (executable || platform !== "linux") return executable;
+  return findAppImage(directory, binary);
+};
+
+const getChildDirectories = (current: PendingDirectory): PendingDirectory[] => {
+  if (current.depth >= MAX_SEARCH_DEPTH) return [];
+
+  let entries: Dirent[];
+  try {
+    entries = readdirSync(current.directory, { withFileTypes: true });
+  } catch {
+    return [];
+  }
+
+  return entries
+    .filter((entry) => entry.isDirectory())
+    .map((entry) => ({
+      directory: path.join(current.directory, entry.name),
+      depth: current.depth + 1,
+    }));
+};
+
 const findInNestedDirectories = (
   directory: string,
   names: string[],
   binary: DownloadDetectableBinary,
   platform: NodeJS.Platform
 ): string | null => {
-  const pending: { directory: string; depth: number }[] = [
-    { directory, depth: 0 },
-  ];
+  const pending: PendingDirectory[] = [{ directory, depth: 0 }];
   let searchedDirectories = 0;
 
-  for (let index = 0; index < pending.length; index++) {
+  for (const current of pending) {
     if (searchedDirectories >= MAX_SEARCHED_DIRECTORIES) break;
     searchedDirectories += 1;
 
-    const current = pending[index];
-    if (!current) continue;
-
-    const executable = findDirect(current.directory, names);
+    const executable = findExecutableInDirectory(
+      current.directory,
+      names,
+      binary,
+      platform
+    );
     if (executable) return executable;
-    const appImage =
-      platform === "linux" ? findAppImage(current.directory, binary) : null;
-    if (appImage) return appImage;
-
-    if (current.depth >= MAX_SEARCH_DEPTH) continue;
-
-    let entries: Dirent[];
-    try {
-      entries = readdirSync(current.directory, { withFileTypes: true });
-    } catch {
-      continue;
-    }
-
-    for (const entry of entries) {
-      if (!entry.isDirectory()) continue;
-      pending.push({
-        directory: path.join(current.directory, entry.name),
-        depth: current.depth + 1,
-      });
-    }
+    pending.push(...getChildDirectories(current));
   }
 
   return null;

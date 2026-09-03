@@ -19,7 +19,7 @@ export function usePendingRomFolders({
   previewFolder,
   onFolderAdded,
 }: UsePendingRomFoldersOptions) {
-  const [folders, setFoldersState] = useState<PendingFolder[]>([]);
+  const [folders, setFolders] = useState<PendingFolder[]>([]);
   const foldersRef = useRef<PendingFolder[]>([]);
   const nextPreviewRequestIdRef = useRef(1);
 
@@ -27,14 +27,14 @@ export function usePendingRomFolders({
     (update: (current: PendingFolder[]) => PendingFolder[]) => {
       const next = update(foldersRef.current);
       foldersRef.current = next;
-      setFoldersState(next);
+      setFolders(next);
     },
     []
   );
 
-  const setFolders = useCallback((next: PendingFolder[]) => {
+  const replaceFolders = useCallback((next: PendingFolder[]) => {
     foldersRef.current = next;
-    setFoldersState(next);
+    setFolders(next);
   }, []);
 
   const runPreview = useCallback(
@@ -56,10 +56,10 @@ export function usePendingRomFolders({
       );
       if (!prepared) return;
 
-      setFolders(prepared.folders);
+      replaceFolders(prepared.folders);
       await runPreview(prepared.request);
     },
-    [runPreview, setFolders]
+    [replaceFolders, runPreview]
   );
 
   const handleAddFolder = useCallback(async () => {
@@ -107,10 +107,10 @@ export function usePendingRomFolders({
       );
       if (!prepared) return;
 
-      setFolders(prepared.folders);
+      replaceFolders(prepared.folders);
       await runPreview(prepared.request);
     },
-    [runPreview, setFolders]
+    [replaceFolders, runPreview]
   );
 
   const handleRemoveFolder = useCallback(
@@ -135,15 +135,15 @@ export function usePendingRomFolders({
       );
       if (!prepared) return;
 
-      setFolders(prepared.folders);
+      replaceFolders(prepared.folders);
       await runPreview(prepared.request);
     },
-    [runPreview, setFolders]
+    [replaceFolders, runPreview]
   );
 
   return {
     folders,
-    setFolders,
+    setFolders: replaceFolders,
     handleAddFolder,
     handleChangeFolder,
     handleRemoveFolder,

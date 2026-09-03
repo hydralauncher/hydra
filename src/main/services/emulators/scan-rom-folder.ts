@@ -131,30 +131,63 @@ const safeStatSize = async (p: string): Promise<number | null> => {
 const safeFileSize = async (p: string): Promise<number> =>
   (await safeStatSize(p)) ?? 0;
 
+interface DirectorySizeState {
+  total: number;
+  visited: number;
+  queue: string[];
+}
+
+const addDirectoryEntries = async (
+  directory: string,
+  entries: Dirent[],
+  state: DirectorySizeState,
+  signal?: { cancelled: boolean }
+): Promise<boolean> => {
+  for (const entry of entries) {
+    if (signal?.cancelled) return false;
+    if (state.visited++ > DIR_SIZE_ENTRY_CAP) return true;
+
+    const fullPath = path.join(directory, entry.name);
+    if (entry.isDirectory()) {
+      state.queue.push(fullPath);
+      continue;
+    }
+    if (entry.isFile()) state.total += await safeFileSize(fullPath);
+  }
+
+  return false;
+};
+
 const computeDirSize = async (
   root: string,
   signal?: { cancelled: boolean }
 ): Promise<number> => {
-  let total = 0;
-  let visited = 0;
-  const queue: string[] = [root];
+  const state: DirectorySizeState = {
+    total: 0,
+    visited: 0,
+    queue: [root],
+  };
   const seen = new Set<string>();
-  for (let dir = queue.shift(); dir !== undefined; dir = queue.shift()) {
+  for (
+    let directory = state.queue.shift();
+    directory !== undefined;
+    directory = state.queue.shift()
+  ) {
     if (signal?.cancelled) break;
-    const real = await safeRealpath(dir);
+    const real = await safeRealpath(directory);
     if (real === null || seen.has(real)) continue;
     seen.add(real);
-    const entries = await safeReaddirTypes(dir);
+    const entries = await safeReaddirTypes(directory);
     if (!entries) continue;
-    for (const entry of entries) {
-      if (signal?.cancelled) break;
-      if (visited++ > DIR_SIZE_ENTRY_CAP) return total;
-      const full = path.join(dir, entry.name);
-      if (entry.isDirectory()) queue.push(full);
-      else if (entry.isFile()) total += await safeFileSize(full);
-    }
+    const reachedEntryCap = await addDirectoryEntries(
+      directory,
+      entries,
+      state,
+      signal
+    );
+    if (reachedEntryCap) return state.total;
   }
-  return total;
+  return state.total;
 };
 
 type GameClassification = "ok" | "wrong-platform" | "skip";
