@@ -12,6 +12,7 @@ export interface PendingFolder {
   path: string;
   scanSubfolders: boolean;
   previewCount: number | null;
+  previewRequestId: number;
 }
 
 export const stepListForSystem = (system: EmulatorSystem): StepKind[] => {

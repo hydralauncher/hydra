@@ -109,6 +109,7 @@ export function EmulatorSetupModal({
     handleChangeFolder,
     handleRemoveFolder,
     handleToggleSubfolders,
+    refreshFolderPreview,
   } = usePendingRomFolders({ previewFolder, onFolderAdded });
 
   useEffect(() => {
@@ -324,14 +325,14 @@ export function EmulatorSetupModal({
         const gamesDir = sources.gamesDir;
         if (gamesDir) {
           setFolders([
-            { path: gamesDir, scanSubfolders: true, previewCount: null },
+            {
+              path: gamesDir,
+              scanSubfolders: true,
+              previewCount: null,
+              previewRequestId: 0,
+            },
           ]);
-          const count = await previewFolder(gamesDir, true);
-          setFolders((prev) =>
-            prev.map((x) =>
-              x.path === gamesDir ? { ...x, previewCount: count } : x
-            )
-          );
+          await refreshFolderPreview(0);
         }
         return;
       }
@@ -344,15 +345,11 @@ export function EmulatorSetupModal({
         path: p,
         scanSubfolders: true,
         previewCount: null,
+        previewRequestId: 0,
       }));
       setFolders(initial);
-      for (const f of initial) {
-        const count = await previewFolder(f.path, true);
-        setFolders((prev) =>
-          prev.map((x) =>
-            x.path === f.path ? { ...x, previewCount: count } : x
-          )
-        );
+      for (let index = 0; index < initial.length; index += 1) {
+        await refreshFolderPreview(index);
       }
     })();
   }, [
@@ -361,7 +358,7 @@ export function EmulatorSetupModal({
     steps,
     stepIndex,
     folders.length,
-    previewFolder,
+    refreshFolderPreview,
     setFolders,
   ]);
 
