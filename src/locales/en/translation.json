@@ -2016,7 +2016,7 @@
     "cloud_gift_received_title": "You received Hydra Cloud",
     "cloud_gift_received_title_one": "You received {{count}} month of Hydra Cloud",
     "cloud_gift_received_title_other": "You received {{count}} months of Hydra Cloud",
-    "cloud_gift_received_description": "{{displayName}} sent you a gift. Open it to accept or decline.",
+    "cloud_gift_received_description": "{{displayName}} sent you a gift. Open it to accept.",
     "cloud_gift_modal_title": "You received a gift!",
     "cloud_gift_modal_description_one": "{{displayName}} gifted you {{count}} month of Hydra Cloud.",
     "cloud_gift_modal_description_other": "{{displayName}} gifted you {{count}} months of Hydra Cloud.",

@@ -1571,13 +1571,10 @@ contextBridge.exposeInMainWorld("electron", {
     ipcRenderer.invoke("syncFriendRequests", friendRequestCount),
 
   onCloudGiftResolved: (cb: (giftId: string) => void) => {
-    const listener = (
-      _event: Electron.IpcRendererEvent,
-      giftId: string
-    ) => cb(giftId);
+    const listener = (_event: Electron.IpcRendererEvent, giftId: string) =>
+      cb(giftId);
     ipcRenderer.on("on-cloud-gift-resolved", listener);
-    return () =>
-      ipcRenderer.removeListener("on-cloud-gift-resolved", listener);
+    return () => ipcRenderer.removeListener("on-cloud-gift-resolved", listener);
   },
 
   /* User */
