@@ -20,7 +20,6 @@ import {
   TrashIcon,
   XIcon,
 } from "@primer/octicons-react";
-import { FilterDropdown, type FilterDropdownOption } from "./filter-dropdown";
 import type {
   AchievementSouvenirSyncItem,
   AchievementSouvenirSyncStatus,
@@ -50,6 +49,10 @@ import { useSubscription } from "@renderer/hooks/use-subscription";
 import { LockedProfile } from "./locked-profile";
 import { SouvenirSyncCleanupModal } from "./souvenir-sync-cleanup-modal";
 import "./profile-content.scss";
+import {
+  FilterDropdown,
+  FilterDropdownOption,
+} from "@renderer/components/filter-dropdown/filter-dropdown";
 
 const souvenirKey = (souvenir: ProfileSouvenir) => getSouvenirKey(souvenir.id);
 const LIKE_ANIMATION_DURATION_MS = 400;

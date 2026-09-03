@@ -1896,7 +1896,12 @@
     "how_to_earn_achievements_points": "Как заработать очки достижений?",
     "achievements_not_sync": "Ваши достижения не будут синхронизированы с вашей учётной записью.",
     "view_souvenir": "Посмотреть сувенир",
-    "souvenir_alt": "Скриншот, сделанный при получении достижения {{achievement}}"
+    "souvenir_alt": "Скриншот, сделанный при получении достижения {{achievement}}",
+    "sort_by": "Сортировать",
+    "sort_option_default": "По умолчанию",
+    "sort_option_date": "Дата получения",
+    "sort_option_easiest_first": "Сначала лёгкие",
+    "sort_option_name": "Название"
   },
   "hydra_cloud": {
     "subscription_tour_title": "Подписка Hydra Cloud",

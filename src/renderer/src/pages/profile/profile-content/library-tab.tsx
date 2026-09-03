@@ -17,9 +17,12 @@ import { useCollectionContextMenu } from "@renderer/context";
 import { GameContextMenu } from "@renderer/components";
 import type { GameContextMenuGame } from "@renderer/components/game-context-menu/game-context-menu.types";
 import { ClassicsIcon } from "@renderer/pages/library/category-filter";
-import { FilterDropdown, type FilterDropdownOption } from "./filter-dropdown";
 import { UserLibraryGameCard } from "./user-library-game-card";
 import "./profile-content.scss";
+import {
+  FilterDropdown,
+  FilterDropdownOption,
+} from "@renderer/components/filter-dropdown/filter-dropdown";
 
 type SortOption = "playtime" | "achievementCount" | "playedRecently";
 export type ProfilePlatform = "all" | "pc" | "classics";

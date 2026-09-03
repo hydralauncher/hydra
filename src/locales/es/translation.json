@@ -1769,7 +1769,12 @@
     "available_points": "Puntos disponibles:",
     "how_to_earn_achievements_points": "¿Como conseguir puntos por logros?",
     "view_souvenir": "Ver recuerdo",
-    "souvenir_alt": "Captura tomada al desbloquear {{achievement}}"
+    "souvenir_alt": "Captura tomada al desbloquear {{achievement}}",
+    "sort_by": "Ordenar por",
+    "sort_option_default": "Predeterminado",
+    "sort_option_date": "Fecha de obtención",
+    "sort_option_easiest_first": "Más fácil primero",
+    "sort_option_name": "Nombre"
   },
   "hydra_cloud": {
     "subscription_tour_title": "Suscripción Hydra Cloud",
