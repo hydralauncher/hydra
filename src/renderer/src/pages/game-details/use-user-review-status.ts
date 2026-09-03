@@ -7,24 +7,32 @@ export interface UseUserReviewStatusParams {
   userDetailsId?: string;
 }
 
+interface UserReviewStatusResult {
+  identity: string;
+  hasReviewed: boolean;
+}
+
+const buildIdentity = (
+  shop?: GameShop,
+  objectId?: string,
+  userDetailsId?: string
+) => `${shop ?? ""}:${objectId ?? ""}:${userDetailsId ?? ""}`;
+
 export function useUserReviewStatus({
   shop,
   objectId,
   userDetailsId,
 }: Readonly<UseUserReviewStatusParams>) {
-  const [hasUserReviewed, setHasUserReviewed] = useState(false);
-  const [isCheckingUserReview, setIsCheckingUserReview] = useState(true);
+  const identity = buildIdentity(shop, objectId, userDetailsId);
+  const [result, setResult] = useState<UserReviewStatusResult | null>(null);
 
   useEffect(() => {
-    setHasUserReviewed(false);
-
     if (!shop || !objectId || shop === "custom" || !userDetailsId) {
-      setIsCheckingUserReview(false);
+      setResult({ identity, hasReviewed: false });
       return;
     }
 
     let cancelled = false;
-    setIsCheckingUserReview(true);
 
     window.electron.hydraApi
       .get<{ hasReviewed: boolean }>(
@@ -33,25 +41,31 @@ export function useUserReviewStatus({
       )
       .then((response) => {
         if (cancelled) return;
-        setHasUserReviewed(response?.hasReviewed || false);
+        setResult({ identity, hasReviewed: response?.hasReviewed || false });
       })
       .catch((error) => {
         if (cancelled) return;
         console.error("Failed to check user review:", error);
-      })
-      .finally(() => {
-        if (cancelled) return;
-        setIsCheckingUserReview(false);
+        setResult({ identity, hasReviewed: false });
       });
 
     return () => {
       cancelled = true;
     };
-  }, [shop, objectId, userDetailsId]);
+  }, [identity, shop, objectId, userDetailsId]);
 
-  const updateHasUserReviewed = useCallback((hasReviewed: boolean) => {
-    setHasUserReviewed(hasReviewed);
-  }, []);
+  const currentResult = result?.identity === identity ? result : null;
 
-  return { hasUserReviewed, isCheckingUserReview, updateHasUserReviewed };
+  const updateHasUserReviewed = useCallback(
+    (hasReviewed: boolean) => {
+      setResult({ identity, hasReviewed });
+    },
+    [identity]
+  );
+
+  return {
+    hasUserReviewed: currentResult?.hasReviewed ?? false,
+    isCheckingUserReview: currentResult === null,
+    updateHasUserReviewed,
+  };
 }
