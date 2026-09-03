@@ -1361,10 +1361,10 @@ contextBridge.exposeInMainWorld("electron", {
     ipcRenderer.invoke("showItemInFolder", path),
   getImageDataUrl: (imageUrl: string) =>
     ipcRenderer.invoke("getImageDataUrl", imageUrl),
-  getProcessedFriendImage: (
+  getProcessedImage: (
     imageUrl: string | null,
     options: { width: number; height: number; preserveAnimation?: boolean }
-  ) => ipcRenderer.invoke("getProcessedFriendImage", imageUrl, options),
+  ) => ipcRenderer.invoke("getProcessedImage", imageUrl, options),
   hydraApi: {
     get: (
       url: string,
