@@ -1,23 +1,12 @@
-import type {
-  ArtworkAssetType,
-  Game,
-  GameArtworkSelection,
-  SelectedArtwork,
-  ShopAssets,
-} from "@types";
+import type { Game, ShopAssets } from "@types";
 import { HydraApi } from "../hydra-api";
-import { saveSteamGridDbArtwork } from "../game-artwork-cloud";
 import {
   gamesArtworkSelectionSublevel,
   gamesShopAssetsSublevel,
   gamesSublevel,
   levelKeys,
-  markArtworkSelectionSynced,
 } from "@main/level";
-import {
-  CUSTOM_ASSET_FIELD_BY_TYPE,
-  reconcileRemoteArtworkSelection,
-} from "./reconcile-remote-artwork-selection";
+import { reconcileRemoteArtworkSelection } from "./reconcile-remote-artwork-selection";
 import type { CustomArtworkUrls } from "./reconcile-remote-artwork-selection";
 
 type ProfileGame = {
@@ -57,36 +46,6 @@ const getRemoteCustomAssets = (game: ProfileGame): CustomArtworkUrls => ({
   customCoverImageUrl: game.customLibraryImageUrl,
 });
 
-const uploadUnsyncedArtworkSelection = async (
-  gameKey: string,
-  selection: GameArtworkSelection,
-  localGame: Game | undefined,
-  remoteAssets: CustomArtworkUrls
-) => {
-  const entries = Object.entries(selection.selected) as Array<
-    [ArtworkAssetType, SelectedArtwork]
-  >;
-
-  for (const [type, selected] of entries) {
-    if (selected.syncedAt) continue;
-
-    const field = CUSTOM_ASSET_FIELD_BY_TYPE[type];
-    if (localGame?.[field]?.startsWith("local:")) continue;
-    if (remoteAssets[field] === selected.url) continue;
-
-    const synced = await saveSteamGridDbArtwork(
-      selection.shop,
-      selection.objectId,
-      type,
-      selected.url
-    );
-
-    if (synced) {
-      await markArtworkSelectionSynced(gameKey, type, selected.url);
-    }
-  }
-};
-
 const syncArtworkSelectionWithRemote = async (
   gameKey: string,
   localGame: Game | undefined,
@@ -95,31 +54,22 @@ const syncArtworkSelectionWithRemote = async (
   const selection = await gamesArtworkSelectionSublevel.get(gameKey);
   if (!selection) return;
 
-  const remoteAssets = getRemoteCustomAssets(remoteGame);
   const { selected, changed } = reconcileRemoteArtworkSelection(
     selection.selected,
     localGame ?? {},
-    remoteAssets
+    getRemoteCustomAssets(remoteGame)
   );
+  if (!changed) return;
 
-  let current = selection;
-
-  if (changed) {
-    if (!Object.keys(selected).length) {
-      await gamesArtworkSelectionSublevel.del(gameKey);
-      return;
-    }
-
-    current = { ...selection, selected, updatedAt: Date.now() };
-    await gamesArtworkSelectionSublevel.put(gameKey, current);
+  if (Object.keys(selected).length) {
+    await gamesArtworkSelectionSublevel.put(gameKey, {
+      ...selection,
+      selected,
+      updatedAt: Date.now(),
+    });
+  } else {
+    await gamesArtworkSelectionSublevel.del(gameKey);
   }
-
-  await uploadUnsyncedArtworkSelection(
-    gameKey,
-    current,
-    localGame,
-    remoteAssets
-  );
 };
 
 interface CollectionSource {

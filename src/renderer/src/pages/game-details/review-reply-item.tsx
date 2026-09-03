@@ -7,10 +7,9 @@ import { useTranslation } from "react-i18next";
 import type { GameReviewAnswer } from "@types";
 
 import { getReviewTranslationLanguage, sanitizeHtml } from "@shared";
-import { useDate, useProcessedImage } from "@renderer/hooks";
+import { useDate } from "@renderer/hooks";
 import { formatNumber } from "@renderer/helpers";
 import { Avatar } from "@renderer/components";
-import { REVIEW_BANNER_IMAGE_SIZE } from "@renderer/constants";
 
 interface ReviewReplyItemProps {
   reply: GameReviewAnswer;
@@ -34,11 +33,6 @@ export function ReviewReplyItem({
   const [showOriginal, setShowOriginal] = useState(false);
 
   const isOwnReply = userDetailsId === reply.user.id;
-
-  const bannerImageUrl = useProcessedImage(
-    reply.user.backgroundImageUrl,
-    REVIEW_BANNER_IMAGE_SIZE
-  );
 
   const getBaseLanguage = (lang: string | null) => lang?.split("-")[0] || "";
 
@@ -77,51 +71,31 @@ export function ReviewReplyItem({
 
   return (
     <div className="game-details__reply-item">
-      <div
-        className={`game-details__reply-header${
-          bannerImageUrl ? " game-details__reply-header--has-bg" : ""
-        }`}
-      >
-        {bannerImageUrl && (
-          <img
-            src={bannerImageUrl}
-            alt=""
-            loading="lazy"
-            decoding="async"
-            className="game-details__reply-banner"
+      <div className="game-details__reply-header">
+        <button
+          onClick={() => navigate(`/profile/${reply.user.id}`)}
+          title={reply.user.displayName}
+        >
+          <Avatar
+            src={reply.user.profileImageUrl}
+            alt={reply.user.displayName || "User"}
+            size={28}
           />
-        )}
-        <div className="game-details__reply-header-top">
-          <button
-            onClick={() => navigate(`/profile/${reply.user.id}`)}
-            title={reply.user.displayName}
-          >
-            <Avatar
-              src={reply.user.profileImageUrl}
-              alt={reply.user.displayName || "User"}
-              size={44}
-            />
-          </button>
-          <div className="game-details__reply-name-row">
-            <button
-              className="game-details__review-display-name game-details__review-display-name--clickable"
-              onClick={() =>
-                reply.user.id && navigate(`/profile/${reply.user.id}`)
-              }
-            >
-              {reply.user.displayName || "Anonymous"}
-            </button>
-          </div>
-
-          <span
-            className="game-details__reply-date"
-            title={formatDateTime(new Date(reply.createdAt))}
-          >
-            {formatDistance(new Date(reply.createdAt), new Date(), {
-              addSuffix: true,
-            })}
-          </span>
-        </div>
+        </button>
+        <button
+          className="game-details__review-display-name game-details__review-display-name--clickable"
+          onClick={() => reply.user.id && navigate(`/profile/${reply.user.id}`)}
+        >
+          {reply.user.displayName || "Anonymous"}
+        </button>
+        <span
+          className="game-details__reply-date"
+          title={formatDateTime(new Date(reply.createdAt))}
+        >
+          {formatDistance(new Date(reply.createdAt), new Date(), {
+            addSuffix: true,
+          })}
+        </span>
       </div>
 
       <div

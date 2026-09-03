@@ -90,40 +90,38 @@ export function AchievementList({
               </button>
             )}
 
-            <div className="achievements__item-meta-details">
-              {achievement.points != undefined ? (
-                <div
-                  className="achievements__item-points"
-                  title={t("achievement_earn_points", {
-                    points: achievement.points,
-                  })}
-                >
-                  <HydraIcon className="achievements__item-points-icon" />
-                  <p className="achievements__item-points-value">
-                    {achievement.points}
-                  </p>
-                </div>
-              ) : (
-                <button
-                  onClick={() => showHydraCloudModal("achievements")}
-                  className="achievements__item-points achievements__item-points--locked"
-                  title={t("achievement_earn_points", { points: "???" })}
-                >
-                  <HydraIcon className="achievements__item-points-icon" />
-                  <p className="achievements__item-points-value">???</p>
-                </button>
-              )}
-              {achievement.unlockTime != null && (
-                <div
-                  className="achievements__item-unlock-time"
-                  title={t("unlocked_at", {
-                    date: formatDateTime(achievement.unlockTime),
-                  })}
-                >
-                  <small>{formatDateTime(achievement.unlockTime)}</small>
-                </div>
-              )}
-            </div>
+            {achievement.points != undefined ? (
+              <div
+                className="achievements__item-points"
+                title={t("achievement_earn_points", {
+                  points: achievement.points,
+                })}
+              >
+                <HydraIcon className="achievements__item-points-icon" />
+                <p className="achievements__item-points-value">
+                  {achievement.points}
+                </p>
+              </div>
+            ) : (
+              <button
+                onClick={() => showHydraCloudModal("achievements")}
+                className="achievements__item-points achievements__item-points--locked"
+                title={t("achievement_earn_points", { points: "???" })}
+              >
+                <HydraIcon className="achievements__item-points-icon" />
+                <p className="achievements__item-points-value">???</p>
+              </button>
+            )}
+            {achievement.unlockTime != null && (
+              <div
+                className="achievements__item-unlock-time"
+                title={t("unlocked_at", {
+                  date: formatDateTime(achievement.unlockTime),
+                })}
+              >
+                <small>{formatDateTime(achievement.unlockTime)}</small>
+              </div>
+            )}
           </div>
         </li>
       ))}
@@ -132,7 +130,6 @@ export function AchievementList({
         visible={souvenir !== null}
         src={souvenir?.src}
         alt={souvenir?.alt}
-        upscale
         onClose={() => setSouvenir(null)}
       />
     </ul>

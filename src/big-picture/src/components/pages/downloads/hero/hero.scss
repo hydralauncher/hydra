@@ -40,7 +40,14 @@
   inset: 0;
   z-index: 2;
   pointer-events: none;
-  background: linear-gradient(transparent 0%, 44%, var(--background) 97%);
+  background:
+    linear-gradient(
+      90deg,
+      var(--background) 0%,
+      transparent 25% 75%,
+      var(--background) 99.53%
+    ),
+    linear-gradient(transparent 0%, var(--background) 97%);
 }
 
 .downloads-hero__content {

@@ -1,5 +1,5 @@
-import type { GameShop, UserAchievement } from "@types";
-import { useCallback, useMemo, useState } from "react";
+import type { GameShop } from "@types";
+import { useMemo } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { VerticalFocusGroup } from "../../components";
 import {
@@ -7,11 +7,8 @@ import {
   AvailablePointsBar,
   GAME_ACHIEVEMENTS_LIST_REGION_ID,
   GAME_ACHIEVEMENTS_PAGE_REGION_ID,
-  GAME_ACHIEVEMENTS_SUMMARY_FOCUS_ID,
   GameAchievementsHero,
-  GameAchievementsSouvenirViewer,
   UserAchievementsSummary,
-  getAchievementRowId,
 } from "../../components/pages/game-achievements";
 import {
   useGameDetails,
@@ -29,7 +26,6 @@ export default function GameAchievements() {
     shop!
   );
   const { userDetails } = useUserDetails();
-  const [souvenir, setSouvenir] = useState<UserAchievement | null>(null);
 
   const unlockedCount = useMemo(
     () => achievements.filter((a) => a.unlocked).length,
@@ -40,10 +36,6 @@ export default function GameAchievements() {
     () => achievements.reduce((sum, a) => sum + (a.points ?? 0), 0),
     [achievements]
   );
-
-  const firstAchievementRowId = achievements[0]
-    ? getAchievementRowId(achievements[0].name)
-    : null;
 
   const earnedPoints = useMemo(
     () =>
@@ -56,28 +48,13 @@ export default function GameAchievements() {
 
   useHeaderTitle(shopDetails?.assets?.title);
 
-  const handleSouvenirActivate = useCallback(
-    (achievement: UserAchievement) => setSouvenir(achievement),
-    []
-  );
-
-  const screenActions = useMemo(
-    () => ({
-      press: {
-        b: () => {
-          if (souvenir) {
-            setSouvenir(null);
-            return;
-          }
-
-          navigate(-1);
-        },
+  useNavigationScreenActions({
+    press: {
+      b: () => {
+        navigate(-1);
       },
-    }),
-    [navigate, souvenir]
-  );
-
-  useNavigationScreenActions(screenActions);
+    },
+  });
 
   if (isLoading || !shopDetails) {
     return (
@@ -99,13 +76,6 @@ export default function GameAchievements() {
             userDetails={userDetails}
             unlockedCount={unlockedCount}
             totalCount={achievements.length}
-            stealFocusOnAppear
-            navigationOverrides={{
-              up: { type: "block" },
-              down: firstAchievementRowId
-                ? { type: "item", itemId: firstAchievementRowId }
-                : { type: "block" },
-            }}
           />
 
           <section className="game-achievements-page__list-section">
@@ -123,31 +93,13 @@ export default function GameAchievements() {
                   <AchievementRow
                     key={achievement.name}
                     achievement={achievement}
-                    navigationOverrides={
-                      index === 0
-                        ? {
-                            up: {
-                              type: "item",
-                              itemId: GAME_ACHIEVEMENTS_SUMMARY_FOCUS_ID,
-                            },
-                          }
-                        : undefined
-                    }
-                    onSouvenirActivate={handleSouvenirActivate}
+                    stealFocusOnAppear={index === 0}
                   />
                 ))}
               </ul>
             </VerticalFocusGroup>
           </section>
         </div>
-
-        {souvenir?.imageUrl ? (
-          <GameAchievementsSouvenirViewer
-            src={souvenir.imageUrl}
-            alt={`${souvenir.displayName} souvenir`}
-            onClose={() => setSouvenir(null)}
-          />
-        ) : null}
       </div>
     </VerticalFocusGroup>
   );

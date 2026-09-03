@@ -66,8 +66,6 @@ export function useUserDetails() {
         subscription: userDetails?.subscription || null,
         workwondersJwt: userDetails?.workwondersJwt || "",
         karma: userDetails?.karma || 0,
-        allowCloudGifts:
-          response.allowCloudGifts ?? userDetails?.allowCloudGifts ?? true,
       });
     },
     [
@@ -76,7 +74,6 @@ export function useUserDetails() {
       userDetails?.subscription,
       userDetails?.workwondersJwt,
       userDetails?.karma,
-      userDetails?.allowCloudGifts,
     ]
   );
 

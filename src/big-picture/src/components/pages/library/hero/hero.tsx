@@ -96,12 +96,10 @@ export function LibraryHero({
     };
   }, [lastPlayedGames]);
 
-  const unlockedAchievementCount = featuredGame?.unlockedAchievementCount ?? 0;
-  const totalAchievementCount = featuredGame?.achievementCount ?? 0;
   const achievementCount =
-    totalAchievementCount > 0
-      ? `${unlockedAchievementCount} / ${totalAchievementCount}`
-      : `${unlockedAchievementCount}`;
+    featuredGame?.unlockedAchievementCount ??
+    featuredGame?.achievementCount ??
+    0;
   const playtime = getHeroPlaytimeLabel(featuredGame?.playTimeInMilliseconds);
   const lastPlayedLabel = getLastPlayedLabel(
     featuredGame?.lastTimePlayed,

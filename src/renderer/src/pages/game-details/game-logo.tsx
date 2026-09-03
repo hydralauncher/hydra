@@ -23,13 +23,27 @@ export function GameLogo({ game, shopDetails }: Readonly<GameLogoProps>) {
         shopDetails?.assets?.logoImageUrl
       );
 
-  const title = game?.title || shopDetails?.name || "";
-
-  if (logoImage) {
-    return (
-      <img src={logoImage} className="game-details__game-logo" alt={title} />
-    );
+  if (isCustomGame) {
+    // For custom games, show logo image if available, otherwise show game title as text
+    if (logoImage) {
+      return (
+        <img
+          src={logoImage}
+          className="game-details__game-logo"
+          alt={game?.title}
+        />
+      );
+    } else {
+      return <div className="game-details__game-logo-text">{game?.title}</div>;
+    }
+  } else {
+    // For non-custom games, show logo image if available
+    return logoImage ? (
+      <img
+        src={logoImage}
+        className="game-details__game-logo"
+        alt={game?.title}
+      />
+    ) : null;
   }
-
-  return <div className="game-details__game-logo-text">{title}</div>;
 }

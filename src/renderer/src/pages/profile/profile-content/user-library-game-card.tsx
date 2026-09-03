@@ -4,8 +4,6 @@ import {
   useFormat,
   useCoverPoster,
   isAnimatedCoverCandidate,
-  useAppSelector,
-  useAnimatedSourceWarmup,
 } from "@renderer/hooks";
 import { useNavigate } from "react-router-dom";
 import { useCallback, useContext, useEffect, useState } from "react";
@@ -43,29 +41,18 @@ export function UserLibraryGameCard({
   const { t } = useTranslation("user_profile");
   const { numberFormatter } = useFormat();
   const navigate = useNavigate();
+  const [isTooltipHovered, setIsTooltipHovered] = useState(false);
   const [imageError, setImageError] = useState(false);
 
   const coverImageUrl = game.customLibraryImageUrl ?? game.coverImageUrl;
 
-  const userPreferences = useAppSelector(
-    (state) => state.userPreferences.value
-  );
-  const autoplayAnimatedArtwork =
-    userPreferences?.autoplayAnimatedArtwork ?? false;
-
   const isAnimatedCover = isAnimatedCoverCandidate(coverImageUrl);
   const coverPoster = useCoverPoster(coverImageUrl, isAnimatedCover);
   const [isCoverHovered, setIsCoverHovered] = useState(false);
-  const shouldHoldFrame =
-    isAnimatedCover && !isCoverHovered && !autoplayAnimatedArtwork;
-  const isAwaitingPoster = shouldHoldFrame && coverPoster === undefined;
-
-  useAnimatedSourceWarmup(
-    coverImageUrl,
-    isAnimatedCover && !autoplayAnimatedArtwork && Boolean(coverPoster)
-  );
   const displayCoverUrl =
-    (shouldHoldFrame && coverPoster ? coverPoster : coverImageUrl) ?? undefined;
+    (isAnimatedCover && !isCoverHovered && coverPoster
+      ? coverPoster
+      : coverImageUrl) ?? undefined;
 
   useEffect(() => {
     setImageError(false);
@@ -153,10 +140,6 @@ export function UserLibraryGameCard({
       );
     }
 
-    if (isAwaitingPoster) {
-      return <div className="user-library-game__cover-placeholder" />;
-    }
-
     if (game.shop === "launchbox" && !game.customLibraryImageUrl) {
       return (
         <div className="user-library-game__classics-cover">
@@ -195,7 +178,10 @@ export function UserLibraryGameCard({
 
   return (
     <>
-      <li className="user-library-game__wrapper">
+      <li
+        className="user-library-game__wrapper"
+        title={isTooltipHovered ? undefined : game.title}
+      >
         <button
           type="button"
           className="user-library-game__cover"
@@ -300,6 +286,8 @@ export function UserLibraryGameCard({
           zIndex: 9999,
         }}
         openOnClick={false}
+        afterShow={() => setIsTooltipHovered(true)}
+        afterHide={() => setIsTooltipHovered(false)}
       />
     </>
   );

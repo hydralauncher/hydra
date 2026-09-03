@@ -24,10 +24,10 @@ export function SettingsTorBox() {
   const { updateUserPreferences } = useContext(settingsContext);
 
   const [isLoading, setIsLoading] = useState(false);
-  const [form, setForm] = useState(() => ({
-    useTorBox: Boolean(userPreferences?.torBoxApiToken),
-    torBoxApiToken: userPreferences?.torBoxApiToken ?? null,
-  }));
+  const [form, setForm] = useState({
+    useTorBox: false,
+    torBoxApiToken: null as string | null,
+  });
 
   const { showSuccessToast, showErrorToast } = useToast();
 

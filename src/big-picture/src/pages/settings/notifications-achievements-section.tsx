@@ -1,9 +1,6 @@
 import "./notifications-achievements-section.scss";
 
-import type {
-  AchievementCustomNotificationPosition,
-  UserPreferences,
-} from "@types";
+import type { AchievementCustomNotificationPosition } from "@types";
 import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 
@@ -52,20 +49,6 @@ const DEFAULT_FORM: NotificationsAchievementsForm = {
   achievementCustomNotificationsEnabled: true,
   achievementCustomNotificationPosition: "top-left",
 };
-
-const buildForm = (
-  preferences: UserPreferences | null
-): NotificationsAchievementsForm =>
-  preferences
-    ? {
-        achievementNotificationsEnabled:
-          preferences.achievementNotificationsEnabled ?? true,
-        achievementCustomNotificationsEnabled:
-          preferences.achievementCustomNotificationsEnabled ?? true,
-        achievementCustomNotificationPosition:
-          preferences.achievementCustomNotificationPosition ?? "top-left",
-      }
-    : DEFAULT_FORM;
 const SETTINGS_TOAST_OPTIONS = {
   fallbackVisual: "settings" as const,
 };
@@ -84,14 +67,19 @@ export function NotificationsAchievementsSection({
   const { t } = useTranslation("big_picture");
   const userPreferences = useUserPreferences();
   const { showErrorToast, showSuccessToast } = useBigPictureToast();
-  const [form, setForm] = useState<NotificationsAchievementsForm>(() =>
-    buildForm(userPreferences)
-  );
+  const [form, setForm] = useState<NotificationsAchievementsForm>(DEFAULT_FORM);
 
   useEffect(() => {
     if (!userPreferences) return;
 
-    setForm(buildForm(userPreferences));
+    setForm({
+      achievementNotificationsEnabled:
+        userPreferences.achievementNotificationsEnabled ?? true,
+      achievementCustomNotificationsEnabled:
+        userPreferences.achievementCustomNotificationsEnabled ?? true,
+      achievementCustomNotificationPosition:
+        userPreferences.achievementCustomNotificationPosition ?? "top-left",
+    });
   }, [userPreferences]);
 
   const updateUserPreferences = async (

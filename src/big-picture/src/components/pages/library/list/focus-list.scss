@@ -17,13 +17,29 @@
 .library-focus-list__card--classics {
   --library-classics-rainbow: conic-gradient(
     from 0deg,
-    #fb0026 5deg,
-    #c80078 70deg,
-    #7300a4 145deg,
-    #f8c802 220deg,
-    #fc5812 290deg,
-    #fb0026 365deg
+    #fcdc33 5deg,
+    #4cbd47 70deg,
+    #13aceb 145deg,
+    #ee473b 220deg,
+    #ef833a 290deg,
+    #fcdc33 365deg
   );
+
+  .horizontal-library-game-card__logo {
+    left: 50%;
+    justify-content: center;
+    width: min(72%, 360px);
+    max-width: min(72%, 360px);
+    transform: translate(-50%, -50%);
+  }
+
+  .horizontal-library-game-card__logo-image {
+    object-position: center;
+  }
+
+  .horizontal-library-game-card__logo-fallback {
+    text-align: center;
+  }
 
   .library-classics-badges {
     position: absolute;

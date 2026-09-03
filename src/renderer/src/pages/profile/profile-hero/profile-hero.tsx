@@ -4,12 +4,10 @@ import {
   BlockedIcon,
   CheckCircleFillIcon,
   CopyIcon,
-  GiftIcon,
   PencilIcon,
   PersonAddIcon,
   SignOutIcon,
   XCircleFillIcon,
-  XCircleIcon,
 } from "@primer/octicons-react";
 import { buildGameDetailsPath } from "@renderer/helpers";
 import {
@@ -133,31 +131,6 @@ export function ProfileHero() {
     ]
   );
 
-  const giftAction = useMemo(() => {
-    if (!userProfile || isMe || !userProfile.canReceiveCloudGift) return null;
-
-    return (
-      <Button
-        theme="cloud"
-        onClick={() => {
-          if (!userDetails) {
-            window.electron.openAuthWindow(AuthPage.SignIn);
-            return;
-          }
-
-          window.electron.openCheckout({
-            path: "/gift",
-            recipientId: userProfile.id,
-          });
-        }}
-        disabled={isPerformingAction}
-      >
-        <GiftIcon size={16} className="profile-hero__gift-icon" />
-        {t("gift_cloud")}
-      </Button>
-    );
-  }, [isMe, isPerformingAction, t, userDetails, userProfile]);
-
   const profileActions = useMemo(() => {
     if (!userProfile) return null;
 
@@ -216,22 +189,22 @@ export function ProfileHero() {
         <>
           <Button
             theme="danger"
-            onClick={() =>
-              handleFriendAction(userProfile.id, "UNDO_FRIENDSHIP")
-            }
-            disabled={isPerformingAction}
-          >
-            <XCircleIcon />
-            {t("undo_friendship")}
-          </Button>
-
-          <Button
-            theme="danger"
             onClick={() => handleFriendAction(userProfile.id, "BLOCK")}
             disabled={isPerformingAction}
           >
             <BlockedIcon />
             {t("block_user")}
+          </Button>
+          <Button
+            theme="outline"
+            onClick={() =>
+              handleFriendAction(userProfile.id, "UNDO_FRIENDSHIP")
+            }
+            disabled={isPerformingAction}
+            className="profile-hero__button--outline"
+          >
+            <XCircleFillIcon />
+            {t("undo_friendship")}
           </Button>
         </>
       );
@@ -345,10 +318,6 @@ export function ProfileHero() {
         className="profile-hero__content-box"
         style={{ background: !backgroundImage ? heroBackground : undefined }}
       >
-        {giftAction && (
-          <div className="profile-hero__gift-action">{giftAction}</div>
-        )}
-
         {backgroundImage && (
           <img
             src={backgroundImage}

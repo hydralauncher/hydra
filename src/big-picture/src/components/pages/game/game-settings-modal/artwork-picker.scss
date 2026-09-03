@@ -50,11 +50,6 @@
     cursor: pointer;
     overflow: hidden;
 
-    &:focus,
-    &:focus-visible {
-      outline: none;
-    }
-
     img,
     video {
       position: absolute;
@@ -85,7 +80,7 @@
     }
 
     &[data-focus-visible="true"]::after {
-      border-color: rgba(255, 255, 255, 0.9);
+      border-color: var(--primary);
     }
 
     &--hero {

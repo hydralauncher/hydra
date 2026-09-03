@@ -14,7 +14,6 @@ const SOUVENIR_SYNC_ERROR_TRANSLATION_KEYS: Record<string, string> = {
     "souvenir_sync_error_upload_length_mismatch",
   "achievements/souvenir-upload-incomplete":
     "souvenir_sync_error_upload_incomplete",
-  "achievements/souvenir-limit-reached": "souvenir_sync_error_limit_reached",
 };
 
 export const getSouvenirSyncErrorTranslationKeys = (errorCodes: string[]) =>

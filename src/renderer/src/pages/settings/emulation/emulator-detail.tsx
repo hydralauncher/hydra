@@ -6,8 +6,7 @@ import { Button, ClassicsScanIndicator } from "@renderer/components";
 import { showExecutableOpenDialog } from "@renderer/helpers";
 import { useClassicsScan, useToast } from "@renderer/hooks";
 import { formatBytes } from "@shared";
-import type { EmulatorConfig, EmulatorSystem, RomFolder } from "@types";
-import { SETTINGS_EMULATOR_TAB_STORAGE_KEY } from "@renderer/session-state";
+import type { EmulatorConfig, RomFolder } from "@types";
 
 import { KNOWN_BINARY_LABELS } from "./known-binary-labels";
 import { EMULATOR_ICONS } from "./emulator-icons";
@@ -39,33 +38,6 @@ interface EmulatorDetailProps {
 
 type EmulatorTab = "emulator" | "rom-folders" | "memory-cards" | "library";
 
-const EMULATOR_TABS: EmulatorTab[] = [
-  "emulator",
-  "rom-folders",
-  "memory-cards",
-  "library",
-];
-
-const emulatorTabStorageKey = (system: EmulatorSystem) =>
-  `${SETTINGS_EMULATOR_TAB_STORAGE_KEY}-${system}`;
-
-const availableEmulatorTabs = (supportsMemoryCards: boolean): EmulatorTab[] =>
-  supportsMemoryCards
-    ? EMULATOR_TABS
-    : EMULATOR_TABS.filter((tab) => tab !== "memory-cards");
-
-const readStoredTab = (
-  system: EmulatorSystem,
-  supportsMemoryCards: boolean
-): EmulatorTab => {
-  const stored = localStorage.getItem(emulatorTabStorageKey(system));
-  const available = availableEmulatorTabs(supportsMemoryCards) as string[];
-
-  return stored && available.includes(stored)
-    ? (stored as EmulatorTab)
-    : "emulator";
-};
-
 export function EmulatorDetail({
   config,
   systemLabel,
@@ -92,17 +64,7 @@ export function EmulatorDetail({
   const supportsBios = supportsMemoryCards;
   const supportsFirmware = config.system === "ps3";
 
-  const [activeTab, setActiveTab] = useState<EmulatorTab>(() =>
-    readStoredTab(config.system, supportsMemoryCards)
-  );
-
-  useEffect(() => {
-    setActiveTab(readStoredTab(config.system, supportsMemoryCards));
-  }, [config.system, supportsMemoryCards]);
-
-  useEffect(() => {
-    localStorage.setItem(emulatorTabStorageKey(config.system), activeTab);
-  }, [config.system, activeTab]);
+  const [activeTab, setActiveTab] = useState<EmulatorTab>("emulator");
 
   useEffect(() => {
     let cancelled = false;
@@ -205,21 +167,10 @@ export function EmulatorDetail({
       return;
     }
 
-    try {
-      const next = await window.electron.registerRomFolder(
-        config.system,
-        folderPath,
-        true
-      );
-      onChange(next);
-    } catch (error) {
-      console.error("Failed to register ROM folder:", error);
-    }
-
     await start(config.system, [{ path: folderPath, scanSubfolders: true }], {
       openModal: true,
     });
-  }, [config.romFolders, config.system, onChange, start, showErrorToast, t]);
+  }, [config.romFolders, config.system, start, showErrorToast, t]);
 
   const handleToggleSubfolders = useCallback(
     async (folder: RomFolder) => {
@@ -268,20 +219,13 @@ export function EmulatorDetail({
     );
   }, [config.romFolders, config.system, start, showErrorToast, t]);
 
-  const lastSettledNonceRef = useRef(scan.settledNonce);
-  useEffect(() => {
-    if (scan.settledNonce === lastSettledNonceRef.current) return;
-    lastSettledNonceRef.current = scan.settledNonce;
-    if (scan.settledSystem !== config.system) return;
-    void refresh();
-    setRomsNonce((n) => n + 1);
-  }, [scan.settledNonce, scan.settledSystem, config.system, refresh]);
-
   const lastScanNonceRef = useRef(scan.completedNonce);
   useEffect(() => {
     if (scan.completedNonce === lastScanNonceRef.current) return;
     lastScanNonceRef.current = scan.completedNonce;
     if (scan.completedSystem !== config.system) return;
+    void refresh();
+    setRomsNonce((n) => n + 1);
     showSuccessToast(
       t("scan_complete_toast", {
         matched: scan.result?.matched ?? 0,
@@ -293,6 +237,7 @@ export function EmulatorDetail({
     scan.completedSystem,
     scan.result,
     config.system,
+    refresh,
     showSuccessToast,
     t,
   ]);
@@ -329,7 +274,12 @@ export function EmulatorDetail({
         onRescan={handleRescan}
       />
 
-      <ClassicsScanIndicator variant="section" />
+      {!supportsFirmware && (
+        <p className="emulator-detail__bios-note">
+          <InfoIcon size={14} />
+          <span>{t("bios_note", { name: binaryName })}</span>
+        </p>
+      )}
 
       <DetailTabBar tabs={tabs} activeTab={activeTab} onChange={setActiveTab} />
 
@@ -345,13 +295,6 @@ export function EmulatorDetail({
 
           {supportsBios && (
             <BiosSection config={config} disabled={busy} onChange={onChange} />
-          )}
-
-          {!supportsFirmware && (
-            <p className="emulator-detail__bios-note">
-              <InfoIcon size={14} />
-              <span>{t("bios_note", { name: binaryName })}</span>
-            </p>
           )}
 
           {supportsFirmware && (
@@ -412,6 +355,8 @@ export function EmulatorDetail({
                 <span>{t("rescan")}</span>
               </Button>
             </header>
+
+            <ClassicsScanIndicator variant="section" />
 
             <LibraryStatsGrid
               systemLabel={systemLabel}

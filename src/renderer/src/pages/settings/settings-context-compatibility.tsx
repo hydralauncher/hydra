@@ -19,8 +19,6 @@ import { Tooltip } from "react-tooltip";
 import "./settings-behavior.scss";
 import "./settings-general.scss";
 
-let lastKnownCanInstallCommonRedist = false;
-
 export function SettingsContextCompatibility() {
   const { t } = useTranslation("settings");
   const { t: tGameDetails } = useTranslation("game_details");
@@ -31,42 +29,32 @@ export function SettingsContextCompatibility() {
     (state) => state.userPreferences.value
   );
 
-  const [canInstallCommonRedist, setCanInstallCommonRedist] = useState(
-    () => lastKnownCanInstallCommonRedist
-  );
+  const [canInstallCommonRedist, setCanInstallCommonRedist] = useState(false);
   const [installingCommonRedist, setInstallingCommonRedist] = useState(false);
   const [protonVersions, setProtonVersions] = useState<ProtonVersion[]>([]);
   const [protonVersionsLoaded, setProtonVersionsLoaded] = useState(false);
-  const [selectedDefaultProtonPath, setSelectedDefaultProtonPath] = useState(
-    () => userPreferences?.defaultProtonPath ?? ""
-  );
+  const [selectedDefaultProtonPath, setSelectedDefaultProtonPath] =
+    useState("");
   const [defaultWinePrefixBasePath, setDefaultWinePrefixBasePath] =
     useState("");
-  const [defaultWinePrefixPath, setDefaultWinePrefixPath] = useState(
-    () => userPreferences?.defaultWinePrefixPath ?? ""
-  );
+  const [defaultWinePrefixPath, setDefaultWinePrefixPath] = useState("");
 
-  const [autoRunMangohud, setAutoRunMangohud] = useState(
-    () => userPreferences?.autoRunMangohud ?? false
-  );
-  const [autoRunGamemode, setAutoRunGamemode] = useState(
-    () => userPreferences?.autoRunGamemode ?? false
-  );
+  const [autoRunMangohud, setAutoRunMangohud] = useState(false);
+  const [autoRunGamemode, setAutoRunGamemode] = useState(false);
   const [gamemodeAvailable, setGamemodeAvailable] = useState(false);
   const [mangohudAvailable, setMangohudAvailable] = useState(false);
 
   useEffect(() => {
     if (!shouldShowCommonRedist) return;
 
-    const applyCanInstall = (canInstall: boolean) => {
-      lastKnownCanInstallCommonRedist = canInstall;
+    window.electron.canInstallCommonRedist().then((canInstall) => {
       setCanInstallCommonRedist(canInstall);
-    };
-
-    window.electron.canInstallCommonRedist().then(applyCanInstall);
+    });
 
     const interval = setInterval(() => {
-      window.electron.canInstallCommonRedist().then(applyCanInstall);
+      window.electron.canInstallCommonRedist().then((canInstall) => {
+        setCanInstallCommonRedist(canInstall);
+      });
     }, 1000 * 5);
 
     return () => {

@@ -36,7 +36,6 @@ export interface ArtworkPage {
 export interface SelectedArtwork {
   url: string;
   artworkId: number;
-  syncedAt?: number;
 }
 
 export interface GameArtworkSelection {

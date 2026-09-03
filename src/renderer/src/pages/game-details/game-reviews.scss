@@ -18,19 +18,6 @@
     }
   }
 
-  &__reviews-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: calc(globals.$spacing-unit * 2);
-
-    @media (max-width: 768px) {
-      flex-direction: column;
-      align-items: flex-start;
-      gap: calc(globals.$spacing-unit * 1.5);
-    }
-  }
-
   &__reviews-title {
     font-size: 1.25rem;
     font-weight: 600;

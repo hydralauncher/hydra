@@ -23,7 +23,6 @@ import {
   useState,
 } from "react";
 import { useNavigate } from "react-router-dom";
-import { useTranslation } from "react-i18next";
 import {
   ContextMenu,
   FocusItem,
@@ -32,7 +31,6 @@ import {
   ScrollArea,
   VerticalFocusGroup,
 } from "../../components";
-import { openBigPictureCloudGiftModal } from "../../components/cloud-gift-modal.events";
 import { FocusRegionContext } from "../../components/context";
 import { IS_DESKTOP } from "../../constants";
 import {
@@ -51,13 +49,7 @@ import type {
   NotificationCountResponse,
   NotificationsResponse,
 } from "@types";
-import {
-  buildSouvenirNotificationTarget,
-  CLOUD_GIFT_ID_VARIABLE,
-  CLOUD_GIFT_RECEIVED_NOTIFICATION,
-  NOTIFICATIONS_FETCH_FILTER,
-  NOTIFICATIONS_FETCH_TAKE,
-} from "@shared";
+import { buildSouvenirNotificationTarget } from "@shared";
 
 const hydraIconUrl = new URL("../../assets/hydra-icon.svg", import.meta.url)
   .href;
@@ -116,10 +108,7 @@ function resolveBigPicturePath(path: string) {
   return `/big-picture${path}`;
 }
 
-function getApiNotificationContent(
-  notification: Notification,
-  t: (key: string, options?: Record<string, unknown>) => string
-) {
+function getApiNotificationContent(notification: Notification) {
   switch (notification.type) {
     case "FRIEND_REQUEST_RECEIVED":
       return {
@@ -151,18 +140,6 @@ function getApiNotificationContent(
         title: `Your reply for ${notification.variables.gameTitle ?? "a review"} got an upvote`,
         description: `${notification.variables.upvoteCount ?? "1"} upvotes on your reply.`,
       };
-    case CLOUD_GIFT_RECEIVED_NOTIFICATION: {
-      const durationMonths = Number(notification.variables.durationMonths);
-
-      return {
-        title: Number.isFinite(durationMonths)
-          ? t("cloud_gift_received_title", { count: durationMonths })
-          : t("cloud_gift_received_title"),
-        description: t("cloud_gift_received_description", {
-          displayName: notification.variables.buyerDisplayName,
-        }),
-      };
-    }
     case "SOUVENIR_LIKE": {
       const likeCount = Number(notification.variables.likeCount ?? 1);
       return {
@@ -178,10 +155,7 @@ function getApiNotificationContent(
   }
 }
 
-function getNotificationContent(
-  notification: MergedNotification,
-  t: (key: string, options?: Record<string, unknown>) => string
-) {
+function getNotificationContent(notification: MergedNotification) {
   if (notification.source === "local") {
     return {
       title: notification.title,
@@ -189,7 +163,7 @@ function getNotificationContent(
     };
   }
 
-  return getApiNotificationContent(notification, t);
+  return getApiNotificationContent(notification);
 }
 
 function isHydraNotification(notification: MergedNotification) {
@@ -285,7 +259,6 @@ export function SidebarNotificationsDropdown({
   restoreFocusId,
 }: Readonly<SidebarNotificationsDropdownProps>) {
   const navigate = useNavigate();
-  const { t } = useTranslation("notifications_page");
   const { formatDistance } = useDate();
   const { library } = useLibrary();
   const { setFocus } = useNavigationActions();
@@ -321,11 +294,7 @@ export function SidebarNotificationsDropdown({
         globalThis.window.electron.hydraApi.get<NotificationsResponse>(
           "/profile/notifications",
           {
-            params: {
-              filter: NOTIFICATIONS_FETCH_FILTER,
-              take: NOTIFICATIONS_FETCH_TAKE,
-              skip: 0,
-            },
+            params: { filter: "all", take: 20, skip: 0 },
             needsAuth: true,
           }
         ),
@@ -404,19 +373,10 @@ export function SidebarNotificationsDropdown({
       source: "local" as const,
     }));
 
-    const sortByDate = (a: MergedNotification, b: MergedNotification) =>
-      new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
-
-    const highPriority: MergedNotification[] = apiWithSource.filter(
-      (notification) => notification.priority === 1
+    return [...apiWithSource, ...localWithSource].sort(
+      (a, b) =>
+        new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
     );
-
-    const lowPriority: MergedNotification[] = [
-      ...apiWithSource.filter((notification) => notification.priority !== 1),
-      ...localWithSource,
-    ].sort(sortByDate);
-
-    return [...highPriority, ...lowPriority];
   }, [apiNotifications, apiUnreadOverrides, localNotifications]);
 
   const unreadCount = useMemo(() => {
@@ -588,16 +548,6 @@ export function SidebarNotificationsDropdown({
   const openNotification = async (notification: MergedNotification) => {
     if (!notification.isRead) {
       await markAsRead(notification);
-    }
-
-    if (
-      notification.source === "api" &&
-      notification.type === CLOUD_GIFT_RECEIVED_NOTIFICATION &&
-      notification.variables[CLOUD_GIFT_ID_VARIABLE]
-    ) {
-      openBigPictureCloudGiftModal(notification);
-      closeAndRestoreFocus();
-      return;
     }
 
     const url = getNotificationUrl(notification);
@@ -846,7 +796,7 @@ export function SidebarNotificationsDropdown({
                   </div>
                 ) : (
                   mergedNotifications.map((notification, index) => {
-                    const content = getNotificationContent(notification, t);
+                    const content = getNotificationContent(notification);
                     const createdAt = new Date(notification.createdAt);
                     const itemFocusId =
                       getNotificationItemFocusId(notification);

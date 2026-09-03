@@ -11,7 +11,6 @@ import {
   SETTINGS_HEADER_RETURN_TARGET,
 } from "./settings-navigation";
 import { SettingsSection } from "./settings-section";
-import type { UserPreferences } from "@types";
 
 interface NotificationsLibrarySectionProps {
   className?: string;
@@ -40,35 +39,26 @@ const DEFAULT_FORM: NotificationsLibraryForm = {
   friendStartGameNotificationsEnabled: true,
 };
 
-const buildForm = (
-  preferences: UserPreferences | null
-): NotificationsLibraryForm =>
-  preferences
-    ? {
-        downloadNotificationsEnabled:
-          preferences.downloadNotificationsEnabled ?? false,
-        repackUpdatesNotificationsEnabled:
-          preferences.repackUpdatesNotificationsEnabled ?? false,
-        friendRequestNotificationsEnabled:
-          preferences.friendRequestNotificationsEnabled ?? false,
-        friendStartGameNotificationsEnabled:
-          preferences.friendStartGameNotificationsEnabled ?? true,
-      }
-    : DEFAULT_FORM;
-
 export function NotificationsLibrarySection({
   className,
   lastItemDownTarget,
 }: Readonly<NotificationsLibrarySectionProps>) {
   const userPreferences = useUserPreferences();
-  const [form, setForm] = useState<NotificationsLibraryForm>(() =>
-    buildForm(userPreferences)
-  );
+  const [form, setForm] = useState<NotificationsLibraryForm>(DEFAULT_FORM);
 
   useEffect(() => {
     if (!userPreferences) return;
 
-    setForm(buildForm(userPreferences));
+    setForm({
+      downloadNotificationsEnabled:
+        userPreferences.downloadNotificationsEnabled ?? false,
+      repackUpdatesNotificationsEnabled:
+        userPreferences.repackUpdatesNotificationsEnabled ?? false,
+      friendRequestNotificationsEnabled:
+        userPreferences.friendRequestNotificationsEnabled ?? false,
+      friendStartGameNotificationsEnabled:
+        userPreferences.friendStartGameNotificationsEnabled ?? true,
+    });
   }, [userPreferences]);
 
   const updateUserPreferences = async (

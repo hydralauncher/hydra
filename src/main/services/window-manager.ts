@@ -476,11 +476,9 @@ export class WindowManager {
       this.bigPicture.webContents.openDevTools();
     }
 
-    const bigPictureInitialHash =
-      (userPreferences?.bigPictureLaunchToLibraryPage ??
-      userPreferences?.launchToLibraryPage)
-        ? "big-picture/library"
-        : "big-picture";
+    const bigPictureInitialHash = userPreferences?.launchToLibraryPage
+      ? "big-picture/library"
+      : "big-picture";
 
     this.loadWindowURL(this.bigPicture, bigPictureInitialHash);
 

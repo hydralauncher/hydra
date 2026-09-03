@@ -38,7 +38,6 @@ interface Props {
   initialConfig: RetroArchConfig | null;
   onClose: () => void;
   onComplete: () => void;
-  onManage: () => void;
 }
 
 export function RetroArchSetupModal({
@@ -46,7 +45,6 @@ export function RetroArchSetupModal({
   initialConfig,
   onClose,
   onComplete,
-  onManage,
 }: Readonly<Props>) {
   const { t } = useTranslation("settings");
   const { showErrorToast } = useToast();
@@ -353,7 +351,6 @@ export function RetroArchSetupModal({
               systemLabel={RETROARCH_LABEL}
               gamesAdded={gamesAdded}
               onBrowse={onComplete}
-              onManage={onManage}
             />
           )}
         </div>
@@ -361,12 +358,13 @@ export function RetroArchSetupModal({
         {showDownloadHelp ? (
           <div className="setup-modal__footer">
             <div className="setup-modal__footer-side">
-              <Button
-                theme="outline"
+              <button
+                type="button"
+                className="setup-modal__ghost-button"
                 onClick={() => setShowDownloadHelp(false)}
               >
                 {t("setup_back")}
-              </Button>
+              </button>
             </div>
             <div className="setup-modal__dots" />
             <div className="setup-modal__footer-side setup-modal__footer-side--end">
@@ -384,6 +382,7 @@ export function RetroArchSetupModal({
               currentStep !== "scanning" &&
               currentStep !== "done"
             }
+            showCancel={currentStep === "find_emulator"}
             showSkip={currentStep === "cores" || currentStep === "rom_folder"}
             continueDisabled={continueDisabled}
             continueHidden={continueHidden}
@@ -399,6 +398,7 @@ export function RetroArchSetupModal({
                 : null
             }
             onBack={goBack}
+            onCancel={handleClose}
             onSkip={handleSkip}
             onContinue={handleContinue}
           />

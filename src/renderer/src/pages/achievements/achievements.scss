@@ -205,17 +205,9 @@ $logo-max-width: 200px;
 
     &-meta {
       display: flex;
-      flex-shrink: 0;
-      align-items: center;
-      justify-content: flex-end;
-      gap: globals.$spacing-unit * 2;
-
-      &-details {
-        display: flex;
-        flex-direction: column;
-        align-items: flex-end;
-        gap: 8px;
-      }
+      flex-direction: column;
+      align-items: flex-end;
+      gap: 8px;
     }
 
     &-points {

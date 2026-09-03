@@ -36,7 +36,6 @@ import {
   retroArchCoreStatusText,
 } from "./retroarch-meta";
 import { formatRelativeShort } from "./relative-time";
-import { SETTINGS_RETROARCH_TAB_STORAGE_KEY } from "@renderer/session-state";
 
 import "./emulator-detail.scss";
 
@@ -48,15 +47,6 @@ interface RetroArchDetailProps {
 }
 
 type RetroArchTab = "emulator" | "rom-folders" | "library";
-
-const RETROARCH_TABS: RetroArchTab[] = ["emulator", "rom-folders", "library"];
-
-const readStoredTab = (): RetroArchTab => {
-  const stored = localStorage.getItem(SETTINGS_RETROARCH_TAB_STORAGE_KEY);
-  return stored && (RETROARCH_TABS as string[]).includes(stored)
-    ? (stored as RetroArchTab)
-    : "emulator";
-};
 
 export function RetroArchDetail({
   config,
@@ -81,11 +71,7 @@ export function RetroArchDetail({
   >({});
   const [installingCores, setInstallingCores] = useState(false);
 
-  const [activeTab, setActiveTab] = useState<RetroArchTab>(readStoredTab);
-
-  useEffect(() => {
-    localStorage.setItem(SETTINGS_RETROARCH_TAB_STORAGE_KEY, activeTab);
-  }, [activeTab]);
+  const [activeTab, setActiveTab] = useState<RetroArchTab>("emulator");
 
   useEffect(() => {
     let cancelled = false;
@@ -345,25 +331,19 @@ export function RetroArchDetail({
     );
   }, [config.romFolders, start, showErrorToast, t]);
 
-  const lastSettledNonceRef = useRef(scan.settledNonce);
-  useEffect(() => {
-    if (scan.settledNonce === lastSettledNonceRef.current) return;
-    lastSettledNonceRef.current = scan.settledNonce;
-    void refresh();
-    setRomsNonce((n) => n + 1);
-  }, [scan.settledNonce, refresh]);
-
   const lastScanNonceRef = useRef(scan.completedNonce);
   useEffect(() => {
     if (scan.completedNonce === lastScanNonceRef.current) return;
     lastScanNonceRef.current = scan.completedNonce;
+    void refresh();
+    setRomsNonce((n) => n + 1);
     showSuccessToast(
       t("scan_complete_toast", {
         matched: scan.result?.matched ?? 0,
         unmatched: scan.result?.unmatched ?? 0,
       })
     );
-  }, [scan.completedNonce, scan.result, showSuccessToast, t]);
+  }, [scan.completedNonce, scan.result, refresh, showSuccessToast, t]);
 
   const lastScanErrorRef = useRef(scan.error);
   useEffect(() => {
@@ -433,8 +413,6 @@ export function RetroArchDetail({
         onBack={onBack}
         onRescan={handleRescan}
       />
-
-      <RetroArchScanIndicator variant="section" />
 
       <DetailTabBar tabs={tabs} activeTab={activeTab} onChange={setActiveTab} />
 
@@ -548,6 +526,8 @@ export function RetroArchDetail({
                 <span>{t("rescan")}</span>
               </Button>
             </header>
+
+            <RetroArchScanIndicator variant="section" />
 
             <LibraryStatsGrid
               systemLabel={RETROARCH_LABEL}

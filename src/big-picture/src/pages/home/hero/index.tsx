@@ -7,7 +7,6 @@ import {
   useCallback,
   useEffect,
   useMemo,
-  useRef,
   useState,
   type ReactNode,
 } from "react";
@@ -23,7 +22,6 @@ import {
 import { useLibraryLaunchGame } from "../../../components/pages/library/use-library-launch-game";
 import { useHeroBackgroundLayers } from "../../../components/pages/library/hero/use-hero-background-layers";
 import {
-  animateNavigationScrollForElement,
   buildLibraryToastOptions,
   resolvePreferredGameAssets,
   getBigPictureGameDetailsPath,
@@ -36,7 +34,6 @@ import {
 } from "../../../hooks";
 import { BIG_PICTURE_SIDEBAR_ITEM_IDS } from "../../../layout";
 import type { FocusOverrideTarget, FocusOverrides } from "../../../services";
-import { useNavigationStore } from "../../../stores";
 import {
   HOME_HERO_ACTIONS_REGION_ID,
   HOME_HERO_ADD_TO_LIBRARY_ID,
@@ -78,25 +75,6 @@ export function HomePageHero({
     preferredAssets.heroSrc || null
   );
   const dominantColor = useDominantColor(preferredAssets.heroSrc || null);
-  const heroRef = useRef<HTMLElement | null>(null);
-  const currentFocusId = useNavigationStore((state) => state.currentFocusId);
-
-  // The hero sits at the very top of the page, so returning to any of its
-  // actions should show the whole thing rather than stopping part-way. The
-  // generic auto-scroll is suppressed for this subtree, otherwise it would
-  // overwrite this on the next frame.
-  useEffect(() => {
-    const hero = heroRef.current;
-
-    if (!hero || !currentFocusId) return;
-
-    const focusedElement = document.getElementById(currentFocusId);
-
-    if (!focusedElement || !hero.contains(focusedElement)) return;
-
-    animateNavigationScrollForElement(hero, { top: 0 });
-  }, [currentFocusId]);
-
   const isInLibrary = gameState.isInLibrary;
   const secondActionFocusId = isInLibrary
     ? HOME_HERO_DOWNLOAD_ID
@@ -238,12 +216,7 @@ export function HomePageHero({
   }
 
   return (
-    <section
-      ref={heroRef}
-      className="home-page-hero"
-      aria-label={featuredGame.title}
-      data-suppress-navigation-autoscroll="true"
-    >
+    <section className="home-page-hero" aria-label={featuredGame.title}>
       {backgroundLayers.map((layer) => {
         const layerHandlers = getLayerEventHandlers(layer);
 
@@ -302,7 +275,6 @@ export function HomePageHero({
               onClick={openGamePage}
               size="large"
               variant="primary"
-              stealFocusOnAppear
             >
               View Details
             </Button>

@@ -9,16 +9,8 @@
 
   border-color: globals.$body-color;
   box-shadow: 0px 0px 10px 0px rgba(0, 0, 0, 0.8);
-  background-color: rgba(0, 0, 0, 0.3);
+  background-color: rgba(0, 0, 0, 0.1);
   backdrop-filter: blur(20px);
-
-  &.button:hover {
-    background-color: rgba(0, 0, 0, 0.26);
-  }
-
-  &.button:disabled {
-    background-color: rgba(0, 0, 0, 0.4);
-  }
 
   &__menu {
     background-color: rgba(0, 0, 0, 0.4);

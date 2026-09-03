@@ -16,30 +16,17 @@ import {
   getGameAchievementProgress,
   resolveImageSource,
 } from "../../../helpers";
-import {
-  useDominantColor,
-  useFormat,
-  useUserPreferences,
-} from "../../../hooks";
+import { useDominantColor, useFormat } from "../../../hooks";
 
 export function useFocusAnimatedCover(
   coverUrl: string | null | undefined,
   isFocused: boolean
 ): string {
-  const userPreferences = useUserPreferences();
-  const autoplay = userPreferences?.autoplayAnimatedArtwork ?? false;
-
   const isAnimated = isAnimatedCoverCandidate(coverUrl);
   const poster = useCoverPoster(coverUrl, isAnimated);
 
-  const shouldHoldFrame = isAnimated && !isFocused && !autoplay;
-
-  if (shouldHoldFrame && poster) {
+  if (isAnimated && poster && !isFocused) {
     return resolveImageSource(poster);
-  }
-
-  if (shouldHoldFrame && poster === undefined) {
-    return "";
   }
 
   return coverUrl ?? "";
@@ -156,9 +143,6 @@ export function useLibraryGameCardPresentation(
   );
   const dominantColor = useDominantColor(activeImageSource);
   const achievementProgress = getGameAchievementProgress(game);
-  const userPreferences = useUserPreferences();
-  const hideClassicsBadges =
-    userPreferences?.hideLibraryClassicsBadges ?? false;
   const { label: classicsPlatformLabel, icon: classicsEmulatorIcon } =
     resolveClassicsBadge(game.shop, game.platform, PLATFORM_LABELS, {
       emulatorIcons: EMULATOR_ICONS,
@@ -182,7 +166,7 @@ export function useLibraryGameCardPresentation(
     isChosenCoverActive,
     achievementProgress,
     classicsEmulatorIcon,
-    classicsPlatformLabel: hideClassicsBadges ? null : classicsPlatformLabel,
+    classicsPlatformLabel,
     dominantColor,
     handleCoverImageError,
     logoImageUrl,

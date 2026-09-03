@@ -141,7 +141,7 @@ $margin-bottom: 28px;
 
 .achievement-notification {
   width: 360px;
-  height: 180px;
+  height: 140px;
   display: flex;
   position: relative;
 
@@ -366,12 +366,9 @@ $margin-bottom: 28px;
   &__title {
     font-size: 14px;
     font-weight: 700;
+    white-space: nowrap;
     overflow: hidden;
-    -webkit-line-clamp: 3;
-    line-clamp: 3;
-    display: -webkit-box;
-    -webkit-box-orient: vertical;
-    overflow-wrap: anywhere;
+    text-overflow: ellipsis;
     color: globals.$muted-color;
     animation: title-in 450ms ease-in-out 900ms;
   }

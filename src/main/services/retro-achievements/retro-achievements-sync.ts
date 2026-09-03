@@ -16,8 +16,6 @@ import {
   type RetroAchievementsGameInfoAndUserProgress,
 } from "./retro-achievements-client";
 import { AchievementMemoryStore } from "../achievements/achievement-memory-store";
-import { AchievementSouvenirStore } from "../achievements/achievement-souvenir-store";
-import { getAchievementSouvenirs } from "../achievements/get-achievement-souvenirs";
 
 const toMillis = (date?: string) => {
   if (!date) return null;
@@ -34,25 +32,6 @@ const sortAchievements = (a: UserAchievement, b: UserAchievement) => {
   return Number(a.hidden) - Number(b.hidden);
 };
 
-const buildRetroAchievement = (
-  achievementData: SteamAchievement,
-  unlockedByName: Map<string, UnlockedAchievement>,
-  souvenirs: Map<string, string>
-): UserAchievement => {
-  const unlocked = unlockedByName.get(achievementData.name.toUpperCase());
-
-  return {
-    ...achievementData,
-    unlocked: Boolean(unlocked),
-    unlockTime: unlocked?.unlockTime ?? null,
-    hardcoreUnlockTime: unlocked?.hardcoreUnlockTime ?? null,
-    imageUrl: unlocked
-      ? (souvenirs.get(achievementData.name.toUpperCase()) ?? null)
-      : null,
-    source: "retroachievements" as const,
-  };
-};
-
 const buildAchievementsFromCache = async (
   objectId: string,
   shop: GameShop
@@ -66,12 +45,18 @@ const buildAchievementsFromCache = async (
     unlockedByName.set(unlocked.name.toUpperCase(), unlocked);
   }
 
-  const souvenirs = await getAchievementSouvenirs(objectId, shop);
-
   return (cached.achievements ?? [])
-    .map((achievementData) =>
-      buildRetroAchievement(achievementData, unlockedByName, souvenirs)
-    )
+    .map((achievementData) => {
+      const unlocked = unlockedByName.get(achievementData.name.toUpperCase());
+
+      return {
+        ...achievementData,
+        unlocked: Boolean(unlocked),
+        unlockTime: unlocked?.unlockTime ?? null,
+        hardcoreUnlockTime: unlocked?.hardcoreUnlockTime ?? null,
+        source: "retroachievements" as const,
+      };
+    })
     .sort(sortAchievements);
 };
 
@@ -139,13 +124,20 @@ interface RetroAchievementsSyncResult {
 
 const buildRetroAchievementsView = (
   catalogue: SteamAchievement[],
-  unlockedByName: Map<string, UnlockedAchievement>,
-  souvenirs: Map<string, string>
+  unlockedByName: Map<string, UnlockedAchievement>
 ) => {
   return catalogue
-    .map((achievementData) =>
-      buildRetroAchievement(achievementData, unlockedByName, souvenirs)
-    )
+    .map((achievementData) => {
+      const unlocked = unlockedByName.get(achievementData.name.toUpperCase());
+
+      return {
+        ...achievementData,
+        unlocked: Boolean(unlocked),
+        unlockTime: unlocked?.unlockTime ?? null,
+        hardcoreUnlockTime: unlocked?.hardcoreUnlockTime ?? null,
+        source: "retroachievements" as const,
+      };
+    })
     .sort(sortAchievements);
 };
 
@@ -269,14 +261,7 @@ export const syncRetroAchievements = async ({
     }
   }
 
-  AchievementSouvenirStore.invalidate(shop, objectId);
-
-  const souvenirs = await getAchievementSouvenirs(objectId, shop);
-  const achievements = buildRetroAchievementsView(
-    catalogue,
-    unlockedByName,
-    souvenirs
-  );
+  const achievements = buildRetroAchievementsView(catalogue, unlockedByName);
 
   AchievementMemoryStore.set(shop, objectId, {
     achievements: catalogue,

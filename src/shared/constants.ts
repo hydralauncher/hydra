@@ -144,11 +144,3 @@ export const getGameExecutableFilters = (
 
 export const GAMEMODE_SITE_URL = "https://github.com/FeralInteractive/gamemode";
 export const MANGOHUD_SITE_URL = "https://github.com/flightlessmango/MangoHud";
-
-export const CLOUD_GIFT_RECEIVED_NOTIFICATION = "CLOUD_GIFT_RECEIVED";
-export const CLOUD_GIFT_STATUS_PENDING_ACCEPTANCE = "PENDING_ACCEPTANCE";
-export const CLOUD_GIFT_ID_VARIABLE = "giftId";
-
-export const NOTIFICATIONS_FETCH_FILTER = "all";
-export const NOTIFICATIONS_FETCH_TAKE = 20;
-export const NOTIFICATIONS_FETCH_SKIP = 0;

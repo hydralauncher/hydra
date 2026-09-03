@@ -7,7 +7,6 @@ import type {
   HowLongToBeatCategory,
   LibraryGame,
   ProtonDBData,
-  ShopAssets,
   ShopDetailsWithAssets,
   UserAchievement,
 } from "@types";
@@ -20,29 +19,6 @@ import { useBigPictureToast } from "./use-big-picture-toast.hook";
 import { NavigationAudioService } from "../services";
 import { useBigPictureRunningGame } from "./use-big-picture-running-games.hook";
 import { useUserPreferences } from "./use-user-preferences.hook";
-
-const buildFallbackShopDetails = (
-  objectId: string,
-  assets: ShopAssets | null
-): ShopDetailsWithAssets => ({
-  objectId,
-  name: assets?.title ?? "",
-  steam_appid: 0,
-  detailed_description: "",
-  about_the_game: "",
-  short_description: "",
-  developers: [],
-  publishers: [],
-  genres: [],
-  supported_languages: "",
-  screenshots: [],
-  pc_requirements: { minimum: "", recommended: "" },
-  mac_requirements: { minimum: "", recommended: "" },
-  linux_requirements: { minimum: "", recommended: "" },
-  release_date: { coming_soon: false, date: "" },
-  content_descriptors: { ids: [] },
-  assets,
-});
 
 export function useGameDetails(objectId: string, shop: GameShop) {
   const { i18n } = useTranslation();
@@ -110,10 +86,7 @@ export function useGameDetails(objectId: string, shop: GameShop) {
           shopDetailsResult.assets = assets ?? shopDetailsResult.assets;
         }
 
-        setShopDetails(
-          shopDetailsResult ??
-            buildFallbackShopDetails(objectId, assets ?? null)
-        );
+        setShopDetails(shopDetailsResult);
         setStats(statsResult);
       } finally {
         setIsLoading(false);

@@ -10,7 +10,6 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { IS_DESKTOP } from "../../../../constants";
 import { getItemFocusTarget } from "../../../../helpers";
-import { BIG_PICTURE_SIDEBAR_ITEM_IDS } from "../../../../layout/navigation";
 import { useDate, useFormat } from "../../../../hooks";
 import type { FocusOverrideTarget } from "../../../../services";
 import {
@@ -26,10 +25,6 @@ import {
   Typography,
   VerticalFocusGroup,
 } from "../../../common";
-
-const SIDEBAR_RETURN_TARGET = getItemFocusTarget(
-  BIG_PICTURE_SIDEBAR_ITEM_IDS.home
-);
 
 interface GameReviewsProps {
   shop: GameShop;
@@ -326,7 +321,7 @@ export function GameReviews({
                                         GAME_COMMENTS_LOAD_MORE_ID
                                       )
                                     : { type: "block" },
-                                left: SIDEBAR_RETURN_TARGET,
+                                left: { type: "block" },
                                 right: getItemFocusTarget(dislikeFocusId),
                               }}
                               asChild
@@ -434,7 +429,7 @@ export function GameReviews({
                       preferRememberedFocus: true,
                     },
                     down: { type: "block" },
-                    left: SIDEBAR_RETURN_TARGET,
+                    left: { type: "block" },
                     right: { type: "block" },
                   }}
                   variant="rounded"

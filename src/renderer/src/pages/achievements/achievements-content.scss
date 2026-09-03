@@ -165,7 +165,6 @@ $logo-max-width: 200px;
           overflow: hidden;
           display: flex;
           flex-direction: column;
-          background: linear-gradient(180deg, #101010 0%, #0a0a0a 100%);
 
           &-background {
             position: absolute;
@@ -222,27 +221,6 @@ $logo-max-width: 200px;
               &:hover {
                 transform: scale(1.05);
               }
-            }
-
-            &__game-title {
-              display: flex;
-              align-items: center;
-              max-width: $logo-max-width;
-              min-height: $logo-height;
-              font-size: 32px;
-              font-weight: 700;
-              line-height: 1.1;
-              color: #fff;
-              text-shadow: 0 2px 8px rgba(0, 0, 0, 0.6);
-              transition: all ease 0.2s;
-
-              &:hover {
-                transform: scale(1.05);
-              }
-            }
-
-            .link:hover {
-              text-decoration: none;
             }
           }
         }

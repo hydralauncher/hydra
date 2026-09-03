@@ -29,17 +29,19 @@ const showAchievementTestNotification = async (
     }),
   ];
 
-  if (process.platform === "linux") {
-    WindowManager.sendAchievementToFocusedWindow(position, testAchievements);
-    return;
-  }
+  setTimeout(() => {
+    if (process.platform === "linux") {
+      WindowManager.sendAchievementToFocusedWindow(position, testAchievements);
+      return;
+    }
 
-  if (process.platform === "win32") {
-    achievementNotificationPresenter.enqueueAchievements(
-      position,
-      testAchievements
-    );
-  }
+    if (process.platform === "win32") {
+      achievementNotificationPresenter.enqueueAchievements(
+        position,
+        testAchievements
+      );
+    }
+  }, 1000);
 };
 
 registerEvent(

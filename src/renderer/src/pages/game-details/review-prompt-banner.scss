@@ -4,18 +4,8 @@
   background: rgba(255, 255, 255, 0.02);
   border-radius: 8px;
   padding: calc(globals.$spacing-unit * 2);
+  margin-bottom: calc(globals.$spacing-unit * 1.5);
   border: 1px solid rgba(255, 255, 255, 0.05);
-  width: 100%;
-  margin-left: auto;
-  margin-right: auto;
-
-  @media (min-width: 1280px) {
-    width: 60%;
-  }
-
-  @media (min-width: 1536px) {
-    width: 50%;
-  }
 
   &__content {
     display: flex;

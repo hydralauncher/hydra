@@ -1147,20 +1147,6 @@
     min-width: 0;
     flex-shrink: 0;
     max-width: 70%;
-    background: none;
-    border: none;
-    padding: 0;
-    margin: 0;
-    font: inherit;
-    text-align: left;
-    color: inherit;
-    cursor: pointer;
-
-    &:hover .emulator-detail__rom-title,
-    &:focus-visible .emulator-detail__rom-title {
-      opacity: 1;
-      text-decoration: underline;
-    }
   }
 
   &__rom-cover {
@@ -1169,6 +1155,9 @@
     flex-shrink: 0;
     border-radius: 4px;
     overflow: hidden;
+    background: #050505;
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
 
     img {
       width: 100%;

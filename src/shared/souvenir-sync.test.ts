@@ -20,13 +20,4 @@ describe("souvenir sync messages", () => {
       []
     );
   });
-
-  it("explains when the souvenir collection is full", () => {
-    assert.deepEqual(
-      getSouvenirSyncErrorTranslationKeys([
-        "achievements/souvenir-limit-reached",
-      ]),
-      ["souvenir_sync_error_limit_reached"]
-    );
-  });
 });

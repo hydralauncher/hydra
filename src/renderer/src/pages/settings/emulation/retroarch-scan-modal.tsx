@@ -46,14 +46,18 @@ export function RetroArchScanModal() {
           />
         </div>
 
-        <div className="setup-modal__footer setup-modal__footer--single-line">
+        <div className="setup-modal__footer">
           <div className="setup-modal__footer-side" />
           <div className="setup-modal__footer-side setup-modal__footer-side--end">
             {scan.active && (
               <>
-                <Button theme="outline" onClick={cancel}>
+                <button
+                  type="button"
+                  className="setup-modal__ghost-button"
+                  onClick={cancel}
+                >
                   {t("setup_cancel_scan")}
-                </Button>
+                </button>
                 <Button theme="outline" onClick={closeModal}>
                   {t("setup_run_in_background")}
                 </Button>

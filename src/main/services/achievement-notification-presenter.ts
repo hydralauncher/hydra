@@ -181,7 +181,6 @@ export class AchievementNotificationPresenter {
     try {
       host.showInactive();
       this.stage = "visible";
-      this.dependencies.log(`Achievement notification started: ${requestId}`);
       host.send("start-achievement-notification", requestId);
       this.startWatchdog(
         ACHIEVEMENT_NOTIFICATION_COMPLETION_TIMEOUT,
@@ -195,9 +194,6 @@ export class AchievementNotificationPresenter {
   private handleFinishedEvent(host: AchievementNotificationHost): void {
     if (this.stage !== "visible") return;
 
-    this.dependencies.log(
-      `Achievement notification finished: ${this.activeItem?.request.id}`
-    );
     this.clearWatchdog();
     try {
       host.hide();
@@ -300,9 +296,6 @@ export class AchievementNotificationPresenter {
         }
 
         this.stage = "preparing";
-        this.dependencies.log(
-          `Achievement notification prepared: ${requestId} (${nextItem.request.type}, ${this.queue.length} queued)`
-        );
         host.send("prepare-achievement-notification", nextItem.request);
         this.startWatchdog(
           ACHIEVEMENT_NOTIFICATION_CONTENT_READY_TIMEOUT,

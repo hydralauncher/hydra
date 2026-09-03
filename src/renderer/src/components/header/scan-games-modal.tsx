@@ -53,19 +53,6 @@ export interface ScanGamesModalProps {
   onClearResult: () => void;
 }
 
-const resolveResultSummary = (
-  addedCount: number,
-  linkedCount: number,
-  addedText: string,
-  linkedText: string,
-  combinedText: string
-) => {
-  if (addedCount === 0) return linkedText;
-  if (linkedCount === 0) return addedText;
-
-  return combinedText;
-};
-
 export function ScanGamesModal({
   visible,
   onClose,
@@ -94,23 +81,8 @@ export function ScanGamesModal({
 
   const addedGames = [...(scanResult?.addedGames ?? []), ...resolvedGames];
 
-  const linkedGames = scanResult?.linkedGames ?? [];
-
   const hasResults = Boolean(
-    scanResult && addedGames.length + linkedGames.length > 0
-  );
-
-  const addedText = t("scan_games_result_added", { count: addedGames.length });
-  const linkedText = t("scan_games_result_linked", {
-    count: linkedGames.length,
-  });
-
-  const resultSummary = resolveResultSummary(
-    addedGames.length,
-    linkedGames.length,
-    addedText,
-    linkedText,
-    t("scan_games_result_summary", { added: addedText, linked: linkedText })
+    scanResult && addedGames.length + scanResult.linkedGames.length > 0
   );
 
   useEffect(() => {
@@ -365,10 +337,29 @@ export function ScanGamesModal({
             </div>
 
             {hasResults ? (
-              <div className="scan-games-modal__result-section">
-                <p className="scan-games-modal__result">{resultSummary}</p>
-                {renderGamesList([...addedGames, ...linkedGames])}
-              </div>
+              <>
+                {addedGames.length > 0 && (
+                  <div className="scan-games-modal__result-section">
+                    <p className="scan-games-modal__result">
+                      {t("scan_games_result_added", {
+                        count: addedGames.length,
+                      })}
+                    </p>
+                    {renderGamesList(addedGames)}
+                  </div>
+                )}
+
+                {scanResult.linkedGames.length > 0 && (
+                  <div className="scan-games-modal__result-section">
+                    <p className="scan-games-modal__result">
+                      {t("scan_games_result_linked", {
+                        count: scanResult.linkedGames.length,
+                      })}
+                    </p>
+                    {renderGamesList(scanResult.linkedGames)}
+                  </div>
+                )}
+              </>
             ) : (
               <p className="scan-games-modal__no-results">
                 {t("scan_games_no_results")}

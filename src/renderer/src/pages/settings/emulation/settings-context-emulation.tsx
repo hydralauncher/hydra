@@ -13,11 +13,7 @@ import { EmulatorDetail } from "./emulator-detail";
 import { EmulatorSetupModal } from "./setup/emulator-setup-modal";
 import { KNOWN_BINARY_LABELS } from "./known-binary-labels";
 import { RETROARCH_EMULATOR_ICON } from "./emulator-icons";
-import {
-  RETROARCH_LABEL,
-  RETROARCH_CORE_LIST,
-  RETROARCH_CORES_LINE,
-} from "./retroarch-meta";
+import { RETROARCH_LABEL, RETROARCH_CORES_TAGLINE } from "./retroarch-meta";
 import { RetroArchDetail } from "./retroarch-detail";
 import { RetroArchSetupModal } from "./setup/retroarch/retroarch-setup-modal";
 import ps1Art from "@renderer/assets/emulation/ps1.png";
@@ -28,33 +24,9 @@ import {
   hasDismissedClassicsOnboarding,
 } from "@renderer/components/classics-onboarding-modal/classics-onboarding-modal";
 
-import { SETTINGS_EMULATION_VIEW_STORAGE_KEY } from "@renderer/session-state";
-
 import "./settings-context-emulation.scss";
 
 const SYSTEMS: EmulatorSystem[] = ["ps1", "ps2", "ps3"];
-
-type EmulationView =
-  | { kind: "grid" }
-  | { kind: "detail"; system: EmulatorSystem }
-  | { kind: "retroarch-detail" };
-
-const readStoredEmulationView = (): EmulationView => {
-  const stored = localStorage.getItem(SETTINGS_EMULATION_VIEW_STORAGE_KEY);
-  if (!stored) return { kind: "grid" };
-
-  try {
-    const parsed = JSON.parse(stored) as EmulationView;
-    if (parsed?.kind === "retroarch-detail") return parsed;
-    if (parsed?.kind === "detail" && SYSTEMS.includes(parsed.system)) {
-      return parsed;
-    }
-  } catch {
-    return { kind: "grid" };
-  }
-
-  return { kind: "grid" };
-};
 
 const SYSTEM_LABELS: Record<EmulatorSystem, string> = {
   ps1: "PlayStation 1",
@@ -76,8 +48,11 @@ export function SettingsContextEmulation() {
   const [configs, setConfigs] = useState<EmulatorConfigMap | null>(null);
   const [retroArchConfig, setRetroArchConfig] =
     useState<RetroArchConfig | null>(null);
-  const [view, setView] = useState<EmulationView>(readStoredEmulationView);
-  const [configsNonce, setConfigsNonce] = useState(0);
+  const [view, setView] = useState<
+    | { kind: "grid" }
+    | { kind: "detail"; system: EmulatorSystem }
+    | { kind: "retroarch-detail" }
+  >({ kind: "grid" });
   const [setupSystem, setSetupSystem] = useState<EmulatorSystem | null>(null);
   const [retroArchSetupOpen, setRetroArchSetupOpen] = useState(false);
   const deepLinkAppliedRef = useRef(false);
@@ -95,24 +70,15 @@ export function SettingsContextEmulation() {
     }
   }, []);
 
-  useEffect(() => {
-    localStorage.setItem(
-      SETTINGS_EMULATION_VIEW_STORAGE_KEY,
-      JSON.stringify(view)
-    );
-  }, [view]);
-
   const refresh = useCallback(async () => {
     const next = await window.electron.getEmulatorConfigs();
     setConfigs(next);
-    setConfigsNonce((nonce) => nonce + 1);
     return next;
   }, []);
 
   const refreshRetroArch = useCallback(async () => {
     const next = await window.electron.getRetroArchConfig();
     setRetroArchConfig(next);
-    setConfigsNonce((nonce) => nonce + 1);
     return next;
   }, []);
 
@@ -289,25 +255,6 @@ export function SettingsContextEmulation() {
             checkExecutable={() =>
               window.electron.checkEmulatorExecutable(system)
             }
-            requirement={system === "ps3" ? "firmware" : "bios"}
-            requirementKey={configsNonce}
-            checkRequirement={async () => {
-              const config = configs[system];
-
-              if (system === "ps3") {
-                const { installed } = await window.electron.checkPs3Firmware(
-                  config.executablePath
-                );
-                return installed;
-              }
-
-              const { installed } = await window.electron.checkEmulatorBios(
-                system,
-                config.executablePath,
-                config.biosPath
-              );
-              return installed;
-            }}
             onConfigure={() => handleConfigure(system)}
             onStartSetup={() => handleStartSetup(system)}
           />
@@ -315,21 +262,13 @@ export function SettingsContextEmulation() {
         <ConsoleCard
           art={RETROARCH_EMULATOR_ICON}
           title={RETROARCH_LABEL}
-          emulatorName={t("retroarch_supported_cores", {
-            count: RETROARCH_CORE_LIST.length,
-          })}
-          emulatorNameTooltip={RETROARCH_CORES_LINE}
+          emulatorName={RETROARCH_CORES_TAGLINE}
           detectedVersion={retroArchConfig.detectedVersion}
           executablePath={retroArchConfig.executablePath}
           romFoldersCount={retroArchConfig.romFolders.length}
           totalFiles={retroArchConfig.totalFiles}
           lastScanAt={retroArchConfig.lastScanAt}
           checkExecutable={() => window.electron.checkRetroArchExecutable()}
-          requirement="cores"
-          requirementKey={configsNonce}
-          checkRequirement={async () =>
-            Object.values(retroArchConfig.cores).some((core) => core.installed)
-          }
           onConfigure={() => setView({ kind: "retroarch-detail" })}
           onStartSetup={() => setRetroArchSetupOpen(true)}
         />
@@ -342,10 +281,6 @@ export function SettingsContextEmulation() {
         initialConfig={setupSystem ? configs[setupSystem] : null}
         onClose={handleSetupClose}
         onComplete={handleSetupComplete}
-        onManage={async (system) => {
-          await handleSetupClose();
-          handleConfigure(system);
-        }}
       />
 
       <RetroArchSetupModal
@@ -353,10 +288,6 @@ export function SettingsContextEmulation() {
         initialConfig={retroArchConfig}
         onClose={handleRetroArchSetupClose}
         onComplete={handleRetroArchSetupComplete}
-        onManage={async () => {
-          await handleRetroArchSetupClose();
-          setView({ kind: "retroarch-detail" });
-        }}
       />
     </div>
   );

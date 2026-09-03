@@ -7,7 +7,7 @@ import { logger } from "./logger";
 import { WindowManager } from "./window-manager";
 
 const NOTIFICATION_WINDOW_WIDTH = 360;
-const NOTIFICATION_WINDOW_HEIGHT = 180;
+const NOTIFICATION_WINDOW_HEIGHT = 140;
 
 const getNotificationWindowPosition = (
   position: AchievementCustomNotificationPosition
@@ -98,10 +98,6 @@ export const achievementNotificationPresenter =
         webPreferences: {
           preload: path.join(__dirname, "../preload/index.mjs"),
           sandbox: false,
-          // The window stays hidden until its content reports ready, and that
-          // handshake runs on requestAnimationFrame, which Chromium throttles
-          // for hidden windows.
-          backgroundThrottling: false,
         },
       });
 

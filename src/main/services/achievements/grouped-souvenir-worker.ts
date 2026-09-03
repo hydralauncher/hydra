@@ -41,7 +41,6 @@ import {
   prepareAchievementSouvenirForRetry,
 } from "./grouped-souvenir-sync-status";
 import { getGameAchievementData } from "./get-game-achievement-data";
-import { mergeUnlockedAchievementLists } from "./merge-unlocked-achievements";
 import { buildGroupedSouvenirSyncPayload } from "./grouped-souvenir-payload";
 
 const CONCURRENT_UPDATE_ATTEMPTS = 3;
@@ -186,10 +185,7 @@ const reconcileAchievementMemory = async (
   const current = AchievementMemoryStore.get(response.shop, response.objectId);
   AchievementMemoryStore.set(response.shop, response.objectId, {
     achievements: current?.achievements ?? [],
-    unlockedAchievements: mergeUnlockedAchievementLists(
-      response.achievements,
-      current?.unlockedAchievements ?? []
-    ),
+    unlockedAchievements: response.achievements,
     language: current?.language,
     catalogueValidator: current?.catalogueValidator,
   });

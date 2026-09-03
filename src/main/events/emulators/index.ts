@@ -5,7 +5,6 @@ import "./preview-emulator-executable";
 import "./set-emulator-executable-path";
 import "./set-emulator-bios-path";
 import "./add-rom-folder";
-import "./register-rom-folder";
 import "./remove-rom-folder";
 import "./toggle-rom-folder-subfolders";
 import "./rescan-emulator";

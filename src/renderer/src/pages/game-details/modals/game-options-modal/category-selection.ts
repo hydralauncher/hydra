@@ -6,7 +6,6 @@ export interface GameSettingsCategoryAvailability {
   cloudSaveAccessAction: CloudSaveAccessAction;
   showCloudSaveV2Settings: boolean;
   showLegacyCloudSaveSettings: boolean;
-  showDownloadSettings: boolean;
 }
 
 export interface GameSettingsCategoryInitializationState {
@@ -39,10 +38,6 @@ export const getAvailableGameSettingsCategory = (
     (!availability.showLegacyCloudSaveSettings ||
       availability.cloudSaveAccessAction !== "open")
   ) {
-    return "general";
-  }
-
-  if (category === "downloads" && !availability.showDownloadSettings) {
     return "general";
   }
 

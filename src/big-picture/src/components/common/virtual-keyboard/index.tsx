@@ -11,7 +11,7 @@ import { IS_BROWSER } from "../../../constants";
 import type { FocusDirection, FocusOverrides } from "../../../services";
 import {
   GAMEPAD_REPEAT_INITIAL_DELAY,
-  getGamepadRepeatInterval,
+  getAcceleratedGamepadRepeatInterval,
 } from "../../../helpers";
 import {
   useGamepad,
@@ -375,17 +375,6 @@ function isEditableTarget(element: Element | null): element is EditableTarget {
   return element.isContentEditable;
 }
 
-function isPhysicalTypingEvent(event: KeyboardEvent) {
-  if (!event.isTrusted) return false;
-  if (event.ctrlKey || event.metaKey || event.altKey) return false;
-
-  return (
-    event.key.length === 1 ||
-    event.key === "Backspace" ||
-    event.key === "Delete"
-  );
-}
-
 function focusEditableTarget(target: EditableTarget) {
   try {
     target.focus({ preventScroll: true });
@@ -641,6 +630,7 @@ function useAcceleratedHoldAction({
   useEffect(() => {
     if (!enabled || !isPressed) return;
 
+    let repeatCount = 0;
     let timerId: number | null = null;
 
     const clearTimer = () => {
@@ -654,7 +644,9 @@ function useAcceleratedHoldAction({
       timerId = globalThis.window.setTimeout(() => {
         onActionRef.current();
 
-        scheduleRepeat(getGamepadRepeatInterval());
+        const nextDelay = getAcceleratedGamepadRepeatInterval(repeatCount);
+        repeatCount += 1;
+        scheduleRepeat(nextDelay);
       }, delay);
     };
 
@@ -1206,11 +1198,6 @@ export function VirtualKeyboardProvider() {
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.key === "Escape") {
         event.preventDefault();
-        closeKeyboard();
-        return;
-      }
-
-      if (isPhysicalTypingEvent(event)) {
         closeKeyboard();
       }
     };

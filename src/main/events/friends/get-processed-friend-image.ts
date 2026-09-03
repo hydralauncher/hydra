@@ -6,7 +6,7 @@ import { registerEvent } from "../register-event";
 import { logger, NativeAddon } from "@main/services";
 import { SystemPath } from "@main/services/system-path";
 
-type ProcessedImageOptions = {
+type FriendImageOptions = {
   width: number;
   height: number;
   preserveAnimation?: boolean;
@@ -19,7 +19,7 @@ const inFlight = new Map<string, Promise<string>>();
 const isHttpUrl = (url: string) =>
   url.startsWith("http://") || url.startsWith("https://");
 
-const validateOptions = ({ width, height }: ProcessedImageOptions) => {
+const validateOptions = ({ width, height }: FriendImageOptions) => {
   return (
     Number.isInteger(width) &&
     Number.isInteger(height) &&
@@ -31,31 +31,12 @@ const validateOptions = ({ width, height }: ProcessedImageOptions) => {
 };
 
 const getCacheDir = () => {
-  return path.join(SystemPath.getPath("userData"), "image-cache", "processed");
-};
-
-let hasRemovedLegacyCache = false;
-
-const removeLegacyCacheDir = async () => {
-  if (hasRemovedLegacyCache) return;
-  hasRemovedLegacyCache = true;
-
-  const legacyCacheDir = path.join(
-    SystemPath.getPath("userData"),
-    "image-cache",
-    "friends"
-  );
-
-  try {
-    await fs.promises.rm(legacyCacheDir, { recursive: true, force: true });
-  } catch (error) {
-    logger.error("Failed to remove legacy friend image cache", error);
-  }
+  return path.join(SystemPath.getPath("userData"), "image-cache", "friends");
 };
 
 const getCacheKey = (
   imageUrl: string,
-  options: Required<ProcessedImageOptions>
+  options: Required<FriendImageOptions>
 ) => {
   return crypto
     .createHash("sha256")
@@ -102,11 +83,10 @@ const downloadImage = async (imageUrl: string, outputPath: string) => {
 
 const processAndCacheImage = async (
   imageUrl: string,
-  options: Required<ProcessedImageOptions>
+  options: Required<FriendImageOptions>
 ) => {
   const cacheDir = getCacheDir();
   await fs.promises.mkdir(cacheDir, { recursive: true });
-  void removeLegacyCacheDir();
 
   const cacheKey = getCacheKey(imageUrl, options);
   const outputBase = path.join(cacheDir, cacheKey);
@@ -123,7 +103,7 @@ const processAndCacheImage = async (
   try {
     await downloadImage(imageUrl, downloadPath);
 
-    const processedImage = await NativeAddon.processImage(
+    const processedImage = await NativeAddon.processFriendImage(
       downloadPath,
       tempBase,
       options.width,
@@ -146,10 +126,10 @@ const processAndCacheImage = async (
   }
 };
 
-const getProcessedImage = async (
+const getProcessedFriendImage = async (
   _event: Electron.IpcMainInvokeEvent,
   imageUrl: string | null,
-  options: ProcessedImageOptions
+  options: FriendImageOptions
 ): Promise<string | null> => {
   if (!imageUrl || !isHttpUrl(imageUrl)) return imageUrl;
   if (!validateOptions(options)) return imageUrl;
@@ -165,18 +145,18 @@ const getProcessedImage = async (
   try {
     const existingRequest = inFlight.get(inFlightKey);
 
-    if (existingRequest !== undefined) return await existingRequest;
+    if (existingRequest) return await existingRequest;
 
     const request = processAndCacheImage(sourceUrl, normalizedOptions);
     inFlight.set(inFlightKey, request);
 
     return await request;
   } catch (error) {
-    logger.error("Failed to process image", { imageUrl, error });
+    logger.error("Failed to process friend image", { imageUrl, error });
     return imageUrl;
   } finally {
     inFlight.delete(inFlightKey);
   }
 };
 
-registerEvent("getProcessedImage", getProcessedImage);
+registerEvent("getProcessedFriendImage", getProcessedFriendImage);

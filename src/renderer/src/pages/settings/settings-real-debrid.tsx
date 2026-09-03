@@ -25,10 +25,10 @@ export function SettingsRealDebrid() {
   const { updateUserPreferences } = useContext(settingsContext);
 
   const [isLoading, setIsLoading] = useState(false);
-  const [form, setForm] = useState(() => ({
-    useRealDebrid: Boolean(userPreferences?.realDebridApiToken),
-    realDebridApiToken: userPreferences?.realDebridApiToken ?? null,
-  }));
+  const [form, setForm] = useState({
+    useRealDebrid: false,
+    realDebridApiToken: null as string | null,
+  });
 
   const { showSuccessToast, showErrorToast } = useToast();
 

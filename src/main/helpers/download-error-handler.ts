@@ -256,16 +256,6 @@ const HOST_NAMES: Partial<Record<Downloader, string>> = {
   [Downloader.FuckingFast]: "FuckingFast",
 };
 
-// Gofile reports a deleted, expired or emptied link through several different
-// internal messages, none of which are meant to reach the user.
-const GOFILE_FILE_GONE_PATTERNS = [
-  "content not found",
-  "has expired",
-  "no file links found",
-  "failed to validate download url: 404",
-  "failed to validate download url: 410",
-];
-
 const handleHostSpecificError = (
   message: string,
   downloader: Downloader
@@ -275,18 +265,6 @@ const handleHostSpecificError = (
     (message.includes("RATE_LIMIT:") || message.includes("error-rateLimit"))
   ) {
     return { ok: false, error: DownloadError.GofileQuotaExceeded };
-  }
-
-  if (downloader === Downloader.Gofile) {
-    const normalizedMessage = message.toLowerCase();
-
-    if (
-      GOFILE_FILE_GONE_PATTERNS.some((pattern) =>
-        normalizedMessage.includes(pattern)
-      )
-    ) {
-      return { ok: false, error: DownloadError.HosterUnlockFileNotFound };
-    }
   }
 
   const hostName = HOST_NAMES[downloader];

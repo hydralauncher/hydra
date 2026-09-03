@@ -545,7 +545,6 @@ export default function Game() {
     (shopDetails?.movies?.length ?? 0) > 0 ||
     (shopDetails?.screenshots?.length ?? 0) > 0;
   const isLaunchboxGame = shop === "launchbox";
-  const isCustomGame = shop === "custom";
   const developer = shopDetails?.developers?.[0] ?? "";
   const publisher = shopDetails?.publishers?.[0] ?? "";
   const releaseDate = shopDetails?.release_date?.date ?? "";
@@ -1374,74 +1373,68 @@ export default function Game() {
                 </VerticalFocusGroup>
               )}
 
-              {!isCustomGame && (
-                <>
-                  <Divider />
+              <Divider />
 
-                  <GameReviews
-                    shop={shop!}
-                    objectId={objectId!}
-                    topNavigationTarget={commentsTopNavigationTarget}
-                    onHasNavigableActionsChange={setHasNavigableComments}
-                  />
-                </>
-              )}
+              <GameReviews
+                shop={shop!}
+                objectId={objectId!}
+                topNavigationTarget={commentsTopNavigationTarget}
+                onHasNavigableActionsChange={setHasNavigableComments}
+              />
             </div>
 
             <VerticalFocusGroup regionId={GAME_SIDEBAR_REGION_ID} asChild>
               <div className="game-page__sidebar">
-                {!isCustomGame && (
-                  <FocusItem
-                    id={GAME_SIDEBAR_STATS_ID}
-                    navigationOrder={0}
-                    navigationOverrides={sidebarStatsNavigationOverrides}
-                    asChild
+                <FocusItem
+                  id={GAME_SIDEBAR_STATS_ID}
+                  navigationOrder={0}
+                  navigationOverrides={sidebarStatsNavigationOverrides}
+                  asChild
+                >
+                  <section
+                    className="game-page__sidebar-section game-page__stats"
+                    aria-label="Game stats"
                   >
-                    <section
-                      className="game-page__sidebar-section game-page__stats"
-                      aria-label="Game stats"
-                    >
-                      <div className="game-page__stats-title">
-                        <Typography>Game Stats</Typography>
-                      </div>
+                    <div className="game-page__stats-title">
+                      <Typography>Game Stats</Typography>
+                    </div>
 
-                      <div className="game-page__stats-row">
-                        <Typography className="game-page__stats-label">
-                          Rating
-                        </Typography>
-                        <div className="game-page__stats-rating-value">
-                          <StarIcon
-                            size={16}
-                            weight="fill"
-                            aria-hidden="true"
-                            className="game-page__stats-rating-icon"
-                          />
-                          <Typography className="game-page__stats-value">
-                            {formatNumber(stats?.averageScore ?? 0)}
-                          </Typography>
-                        </div>
-                      </div>
-
-                      <div className="game-page__stats-row">
-                        <Typography className="game-page__stats-label">
-                          Downloads
-                        </Typography>
+                    <div className="game-page__stats-row">
+                      <Typography className="game-page__stats-label">
+                        Rating
+                      </Typography>
+                      <div className="game-page__stats-rating-value">
+                        <StarIcon
+                          size={16}
+                          weight="fill"
+                          aria-hidden="true"
+                          className="game-page__stats-rating-icon"
+                        />
                         <Typography className="game-page__stats-value">
-                          {formatNumber(stats?.downloadCount ?? 0)}
+                          {formatNumber(stats?.averageScore ?? 0)}
                         </Typography>
                       </div>
+                    </div>
 
-                      <div className="game-page__stats-row">
-                        <Typography className="game-page__stats-label">
-                          Playing now
-                        </Typography>
-                        <Typography className="game-page__stats-value">
-                          {formatNumber(stats?.playerCount ?? 0)}
-                        </Typography>
-                      </div>
-                    </section>
-                  </FocusItem>
-                )}
+                    <div className="game-page__stats-row">
+                      <Typography className="game-page__stats-label">
+                        Downloads
+                      </Typography>
+                      <Typography className="game-page__stats-value">
+                        {formatNumber(stats?.downloadCount ?? 0)}
+                      </Typography>
+                    </div>
+
+                    <div className="game-page__stats-row">
+                      <Typography className="game-page__stats-label">
+                        Playing now
+                      </Typography>
+                      <Typography className="game-page__stats-value">
+                        {formatNumber(stats?.playerCount ?? 0)}
+                      </Typography>
+                    </div>
+                  </section>
+                </FocusItem>
 
                 {(howLongToBeat?.length ?? 0) > 0 && (
                   <HowLongToBeatBox
@@ -1570,7 +1563,7 @@ export default function Game() {
                   </section>
                 </FocusItem>
 
-                {!isLaunchboxGame && !isCustomGame ? ( // NOSONAR
+                {!isLaunchboxGame ? ( // NOSONAR
                   <RequirementsToPlay
                     shopDetails={shopDetails}
                     focusId={GAME_SIDEBAR_REQUIREMENTS_ID}

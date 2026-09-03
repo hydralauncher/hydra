@@ -11,11 +11,13 @@ interface SetupFooterProps {
   currentStepIndex: number;
   totalSteps: number;
   showBack: boolean;
+  showCancel: boolean;
   showSkip: boolean;
   continueDisabled: boolean;
   continueHidden?: boolean;
   endAction?: FooterEndAction | null;
   onBack: () => void;
+  onCancel: () => void;
   onSkip: () => void;
   onContinue: () => void;
 }
@@ -24,29 +26,46 @@ export function SetupFooter({
   currentStepIndex,
   totalSteps,
   showBack,
+  showCancel,
   showSkip,
   continueDisabled,
   continueHidden,
   endAction,
   onBack,
+  onCancel,
   onSkip,
   onContinue,
 }: Readonly<SetupFooterProps>) {
   const { t } = useTranslation("settings");
 
-  const backAction: FooterEndAction | null = showBack
-    ? { label: t("setup_back"), onClick: onBack }
-    : null;
-  const leadingAction = endAction ?? backAction;
-
   return (
     <div className="setup-modal__footer">
       <div className="setup-modal__footer-side">
-        {leadingAction && (
-          <Button theme="outline" onClick={leadingAction.onClick}>
-            {leadingAction.label}
-          </Button>
-        )}
+        {showBack ? (
+          <button
+            type="button"
+            className="setup-modal__ghost-button"
+            onClick={onBack}
+          >
+            {t("setup_back")}
+          </button>
+        ) : showCancel ? (
+          <button
+            type="button"
+            className="setup-modal__ghost-button"
+            onClick={onCancel}
+          >
+            {t("setup_cancel")}
+          </button>
+        ) : endAction ? (
+          <button
+            type="button"
+            className="setup-modal__ghost-button"
+            onClick={endAction.onClick}
+          >
+            {endAction.label}
+          </button>
+        ) : null}
       </div>
 
       <div className="setup-modal__dots">
@@ -62,9 +81,13 @@ export function SetupFooter({
 
       <div className="setup-modal__footer-side setup-modal__footer-side--end">
         {showSkip && (
-          <Button theme="outline" onClick={onSkip}>
+          <button
+            type="button"
+            className="setup-modal__ghost-button"
+            onClick={onSkip}
+          >
             {t("setup_skip")}
-          </Button>
+          </button>
         )}
         {!continueHidden && (
           <Button

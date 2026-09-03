@@ -98,7 +98,7 @@ export function VerticalLibraryGameCard({
   const displayCover = useFocusAnimatedCover(activeImageSource, isFocused);
   const gameDetailsPath = getBigPictureGameDetailsPath(game);
   const coverMedia =
-    game.shop === "launchbox" && displayCover && !isChosenCoverActive ? (
+    game.shop === "launchbox" && activeImageSource && !isChosenCoverActive ? (
       <ClassicsVerticalCoverMedia
         imageUrl={displayCover}
         gameTitle={game.title}
@@ -213,9 +213,6 @@ export function HorizontalLibraryGameListCard({
     playtimeLabel,
   } = useLibraryGameCardPresentation(game, "horizontal");
   const focusId = getLibraryFocusListItemId(game.id);
-  const isFocused = useNavigationIsFocused(focusId);
-  const displayCover = useFocusAnimatedCover(activeImageSource, isFocused);
-  const displayLogo = useFocusAnimatedCover(logoImageUrl, isFocused);
   const gameDetailsPath = getBigPictureGameDetailsPath(game);
   const coverOverlay =
     classicsPlatformLabel != null ? (
@@ -265,8 +262,8 @@ export function HorizontalLibraryGameListCard({
             ? "library-focus-list__card library-focus-list__card--classics"
             : "library-focus-list__card"
         }
-        coverImageUrl={displayCover}
-        logoImageUrl={displayLogo || null}
+        coverImageUrl={activeImageSource}
+        logoImageUrl={logoImageUrl || null}
         coverOverlay={coverOverlay}
         gameTitle={game.title}
         subtitle={playtimeLabel}

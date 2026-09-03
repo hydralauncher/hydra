@@ -70,7 +70,6 @@ export interface GameDetailsContextProps {
   objectId: string;
   gameTitle: string;
   shop: GameShop;
-  syncHeaderTitle?: boolean;
 }
 
 export function GameDetailsContextProvider({
@@ -78,7 +77,6 @@ export function GameDetailsContextProvider({
   objectId,
   gameTitle,
   shop,
-  syncHeaderTitle = true,
 }: Readonly<GameDetailsContextProps>) {
   const [shopDetails, setShopDetails] = useState<ShopDetailsWithAssets | null>(
     null
@@ -286,8 +284,8 @@ export function GameDetailsContextProvider({
     setIsGameRunning(false);
     setAchievements(null);
     setGameOptionsInitialCategory("general");
-    if (syncHeaderTitle) dispatch(setHeaderTitle(gameTitle));
-  }, [objectId, gameTitle, syncHeaderTitle, dispatch]);
+    dispatch(setHeaderTitle(gameTitle));
+  }, [objectId, gameTitle, dispatch]);
 
   useEffect(() => {
     const state =
@@ -303,10 +301,10 @@ export function GameDetailsContextProvider({
   }, [location]);
 
   useEffect(() => {
-    if (syncHeaderTitle && game?.title) {
+    if (game?.title) {
       dispatch(setHeaderTitle(game.title));
     }
-  }, [game?.title, syncHeaderTitle, dispatch]);
+  }, [game?.title, dispatch]);
 
   useEffect(() => {
     const unsubscribe = window.electron.onGamesRunning((gamesIds) => {

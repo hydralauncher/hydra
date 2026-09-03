@@ -53,13 +53,6 @@ const resetGameAchievements = async (
       });
     }
 
-    if (game.reportedUnlockedAchievementCount !== undefined) {
-      await gamesSublevel.put(levelKey, {
-        ...game,
-        reportedUnlockedAchievementCount: undefined,
-      });
-    }
-
     await HydraApi.delete(`/profile/games/achievements/${game.remoteId}`).then(
       async () => {
         await deleteLocalSouvenirAssetsForGame(levelKey);

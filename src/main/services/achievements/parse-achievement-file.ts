@@ -88,9 +88,7 @@ export const parseAchievementFile = (
   }
 
   try {
-    return parseAchievements(filePath).filter((achievement) =>
-      Boolean(achievement.name?.trim())
-    );
+    return parseAchievements(filePath);
   } catch (err) {
     achievementsLogger.error(`Error parsing ${type} - ${filePath}`, err);
     return [];

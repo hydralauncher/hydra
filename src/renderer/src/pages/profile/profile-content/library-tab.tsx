@@ -1,4 +1,3 @@
-import Skeleton from "react-loading-skeleton";
 import { useTranslation } from "react-i18next";
 import {
   TelescopeIcon,
@@ -32,7 +31,6 @@ interface LibraryTabProps {
   pinnedGames: UserGame[];
   libraryGames: UserGame[];
   hasMoreLibraryGames: boolean;
-  isAwaitingInitialLibrary: boolean;
   statsIndex: number;
   userStats: { libraryCount: number } | null;
   onLoadMore: () => void;
@@ -51,7 +49,6 @@ export function LibraryTab({
   pinnedGames,
   libraryGames,
   hasMoreLibraryGames,
-  isAwaitingInitialLibrary,
   statsIndex,
   userStats,
   onLoadMore,
@@ -195,17 +192,7 @@ export function LibraryTab({
         )}
       </div>
 
-      {isAwaitingInitialLibrary && (
-        <ul className="profile-content__games-grid">
-          {Array.from({ length: 12 }).map((_, index) => (
-            <li key={index} style={{ listStyle: "none" }}>
-              <Skeleton className="profile-content__game-skeleton" />
-            </li>
-          ))}
-        </ul>
-      )}
-
-      {!isAwaitingInitialLibrary && !hasAnyGames && (
+      {!hasAnyGames && (
         <div className="profile-content__no-games">
           <div className="profile-content__telescope-icon">
             <TelescopeIcon size={24} />
@@ -215,7 +202,7 @@ export function LibraryTab({
         </div>
       )}
 
-      {!isAwaitingInitialLibrary && hasAnyGames && (
+      {hasAnyGames && (
         <div>
           {hasPinnedGames && (
             <div style={{ marginBottom: "2rem" }}>

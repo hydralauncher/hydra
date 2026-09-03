@@ -11,7 +11,7 @@ export interface ButtonProps
   > {
   tooltip?: string;
   tooltipPlace?: PlacesType;
-  theme?: "primary" | "outline" | "dark" | "danger" | "cloud";
+  theme?: "primary" | "outline" | "dark" | "danger";
 }
 
 export function Button({

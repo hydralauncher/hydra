@@ -1,9 +1,5 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useMemo } from "react";
 import { useFeature, useAppSelector } from "@renderer/hooks";
-import {
-  readStoredSectionCollapsed,
-  storeSectionCollapsed,
-} from "./collapsed-sections";
 import { SettingsTorBox } from "./settings-torbox";
 import { SettingsRealDebrid } from "./settings-real-debrid";
 import { SettingsPremiumize } from "./settings-premiumize";
@@ -30,37 +26,24 @@ export function SettingsDebrid() {
     (state) => state.userPreferences.value
   );
 
-  const [collapseState, setCollapseState] = useState<CollapseState>(() => ({
-    torbox: readStoredSectionCollapsed(
-      "torbox",
-      !userPreferences?.torBoxApiToken
-    ),
-    realDebrid: readStoredSectionCollapsed(
-      "realDebrid",
-      !userPreferences?.realDebridApiToken
-    ),
-    premiumize: readStoredSectionCollapsed(
-      "premiumize",
-      !userPreferences?.premiumizeApiToken
-    ),
-    allDebrid: readStoredSectionCollapsed(
-      "allDebrid",
-      !userPreferences?.allDebridApiToken
-    ),
-  }));
+  const initialCollapseState = useMemo<CollapseState>(() => {
+    return {
+      torbox: !userPreferences?.torBoxApiToken,
+      realDebrid: !userPreferences?.realDebridApiToken,
+      premiumize: !userPreferences?.premiumizeApiToken,
+      allDebrid: !userPreferences?.allDebridApiToken,
+    };
+  }, [userPreferences]);
 
-  const toggleSection = useCallback(
-    (section: keyof CollapseState) => {
-      const nextCollapsed = !collapseState[section];
+  const [collapseState, setCollapseState] =
+    useState<CollapseState>(initialCollapseState);
 
-      storeSectionCollapsed(section, nextCollapsed);
-      setCollapseState((prevState) => ({
-        ...prevState,
-        [section]: nextCollapsed,
-      }));
-    },
-    [collapseState]
-  );
+  const toggleSection = useCallback((section: keyof CollapseState) => {
+    setCollapseState((prevState) => ({
+      ...prevState,
+      [section]: !prevState[section],
+    }));
+  }, []);
 
   return (
     <div className="settings-debrid">

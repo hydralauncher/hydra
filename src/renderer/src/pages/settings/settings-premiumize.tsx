@@ -18,10 +18,10 @@ export function SettingsPremiumize() {
   const { t } = useTranslation("settings");
 
   const [isLoading, setIsLoading] = useState(false);
-  const [form, setForm] = useState(() => ({
-    usePremiumize: Boolean(userPreferences?.premiumizeApiToken),
-    premiumizeApiToken: userPreferences?.premiumizeApiToken ?? null,
-  }));
+  const [form, setForm] = useState({
+    usePremiumize: false,
+    premiumizeApiToken: null as string | null,
+  });
 
   useEffect(() => {
     if (userPreferences) {

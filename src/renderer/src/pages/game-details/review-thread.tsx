@@ -1,14 +1,9 @@
-import { useId, useState } from "react";
+import { useState } from "react";
 import { ReplyIcon } from "@primer/octicons-react";
-import { Tooltip } from "react-tooltip";
 import { useTranslation } from "react-i18next";
 import type { GameReview, GameReviewAnswer, GameShop } from "@types";
 
 import { useToast } from "@renderer/hooks";
-import {
-  MILLISECONDS_IN_HOUR,
-  REVIEW_MIN_PLAYTIME_IN_MS,
-} from "@renderer/constants";
 
 import { ReviewItem } from "./review-item";
 import { ReviewReplyItem } from "./review-reply-item";
@@ -20,7 +15,6 @@ interface ReviewThreadProps {
   objectId: string;
   review: GameReview;
   userDetailsId?: string;
-  canReply: boolean;
   isVisible: boolean;
   isVoting: boolean;
   previousVotes: { upvotes: number; downvotes: number };
@@ -35,8 +29,6 @@ interface ReviewThreadProps {
   onComposerOpenChange: (open: boolean) => void;
 }
 
-const REPLY_MIN_PLAYTIME_IN_HOURS =
-  REVIEW_MIN_PLAYTIME_IN_MS / MILLISECONDS_IN_HOUR;
 const REPLIES_TAKE = 10;
 const PREVIEW_LIMIT = 5;
 const VOTE_FEEDBACK_MS = 500;
@@ -82,17 +74,7 @@ const mergeReplies = (
   incoming: GameReviewAnswer[]
 ) => {
   const seen = new Set(existing.map((reply) => reply.id));
-  const merged = [
-    ...existing,
-    ...incoming.filter((reply) => !seen.has(reply.id)),
-  ];
-
-  return merged.toSorted((a, b) => {
-    const difference =
-      new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
-
-    return difference !== 0 ? difference : a.id.localeCompare(b.id);
-  });
+  return [...existing, ...incoming.filter((reply) => !seen.has(reply.id))];
 };
 
 export function ReviewThread({
@@ -100,7 +82,6 @@ export function ReviewThread({
   objectId,
   review,
   userDetailsId,
-  canReply,
   isVisible,
   isVoting,
   previousVotes,
@@ -124,7 +105,6 @@ export function ReviewThread({
   const [serverLoaded, setServerLoaded] = useState(0);
   const [votingAnswers, setVotingAnswers] = useState<Set<string>>(new Set());
   const [prefill, setPrefill] = useState("");
-  const replyTooltipId = useId();
   const [submitting, setSubmitting] = useState(false);
 
   const baseUrl = `/games/${shop}/${objectId}/reviews/${review.id}/answers`;
@@ -189,8 +169,6 @@ export function ReviewThread({
   };
 
   const handleReplyTo = (displayName: string) => {
-    if (!canReply) return;
-
     setPrefill(displayName ? `@${displayName} ` : "");
     onComposerOpenChange(true);
   };
@@ -271,44 +249,30 @@ export function ReviewThread({
       return;
     }
 
-    if (submitting || !canReply) return;
+    if (submitting) return;
 
     setSubmitting(true);
 
     try {
-      await electron.hydraApi.post(`${baseUrl}`, {
+      const response = await electron.hydraApi.post<
+        GameReviewAnswer | undefined
+      >(`${baseUrl}`, {
         data: { answerHtml },
       });
+
+      if (response) {
+        setReplies((prev) => mergeReplies(prev, [response]));
+        setTotalCount((prev) => prev + 1);
+        setHidden(false);
+        setExpanded(true);
+      }
+
+      onComposerOpenChange(false);
+      setPrefill("");
+      showSuccessToast(t("reply_submitted_successfully"));
     } catch (error) {
       console.error("Failed to submit reply:", error);
       showErrorToast(t("reply_submission_failed"));
-      setSubmitting(false);
-      return;
-    }
-
-    onComposerOpenChange(false);
-    setPrefill("");
-    setTotalCount((prev) => prev + 1);
-    setHidden(false);
-    setExpanded(true);
-    showSuccessToast(t("reply_submitted_successfully"));
-
-    try {
-      const params = new URLSearchParams({
-        take: REPLIES_TAKE.toString(),
-        skip: totalCount.toString(),
-      });
-
-      const response = await electron.hydraApi.get<
-        { answers: GameReviewAnswer[]; totalCount: number } | undefined
-      >(`${baseUrl}?${params.toString()}`, { needsAuth: false });
-
-      if (response) {
-        setTotalCount(response.totalCount);
-        setReplies((prev) => mergeReplies(prev, response.answers));
-      }
-    } catch (error) {
-      console.error("Failed to refresh replies after posting:", error);
     } finally {
       setSubmitting(false);
     }
@@ -345,23 +309,14 @@ export function ReviewThread({
         onAnimationComplete={onAnimationComplete}
         replyAction={
           showInlineReply ? (
-            <>
-              <button
-                className="game-details__reply-action-link"
-                onClick={() => handleReplyTo("")}
-                aria-disabled={!canReply}
-                data-tooltip-id={canReply ? undefined : replyTooltipId}
-                data-tooltip-place="top"
-                data-tooltip-content={t("reply_requires_playtime", {
-                  count: REPLY_MIN_PLAYTIME_IN_HOURS,
-                })}
-              >
-                <ReplyIcon size={14} />
-                <span>{t("reply")}</span>
-              </button>
-
-              {!canReply && <Tooltip id={replyTooltipId} place="top" />}
-            </>
+            <button
+              className="game-details__reply-action-link"
+              onClick={() => handleReplyTo("")}
+              title={t("reply")}
+            >
+              <ReplyIcon size={14} />
+              <span>{t("reply")}</span>
+            </button>
           ) : undefined
         }
       />

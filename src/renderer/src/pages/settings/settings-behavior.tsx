@@ -13,7 +13,7 @@ export function SettingsBehavior() {
     (state) => state.userPreferences.value
   );
 
-  const showRunAtStartup = !window.electron.isPortableVersion;
+  const [showRunAtStartup, setShowRunAtStartup] = useState(false);
   const [protonVersions, setProtonVersions] = useState<ProtonVersion[]>([]);
   const [protonVersionsLoaded, setProtonVersionsLoaded] = useState(false);
   const [selectedDefaultProtonPath, setSelectedDefaultProtonPath] =
@@ -112,6 +112,12 @@ export function SettingsBehavior() {
       setSelectedDefaultProtonPath("");
     }
   }, [protonVersions, protonVersionsLoaded, selectedDefaultProtonPath]);
+
+  useEffect(() => {
+    window.electron.isPortableVersion().then((isPortableVersion) => {
+      setShowRunAtStartup(!isPortableVersion);
+    });
+  }, []);
 
   const handleChange = (values: Partial<typeof form>) => {
     setForm((prev) => ({ ...prev, ...values }));

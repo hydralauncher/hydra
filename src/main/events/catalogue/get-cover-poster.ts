@@ -10,9 +10,9 @@ import { logger } from "@main/services";
 import { parseCoverPosterRemoteUrl } from "./cover-poster-url";
 
 const POSTER_DIR = path.join(ASSETS_PATH, "cover-posters");
-const POSTER_VERSION = "v3";
-const POSTER_MAX_SIZE = 600;
-const MAX_SOURCE_BYTES = 1024 * 1024 * 64;
+const POSTER_WIDTH = 400;
+const POSTER_HEIGHT = 600;
+const MAX_SOURCE_BYTES = 1024 * 1024 * 30;
 const MAX_REDIRECTS = 3;
 const TRUSTED_REMOTE_URL_PATTERN =
   /^https:\/\/(?:[a-z0-9-]+\.)*(?:steamgriddb\.com|losbroxas\.org|steamstatic\.com|akamaihd\.net|launchbox-app\.com)(?::443)?\/[^\s]*$/i;
@@ -147,10 +147,7 @@ const isAnimatedSource = async (source: AnimatedSource): Promise<boolean> => {
 };
 
 const buildCoverPoster = async (url: string): Promise<string | null> => {
-  const posterPath = path.join(
-    POSTER_DIR,
-    `${hashUrl(url)}-${POSTER_VERSION}.webp`
-  );
+  const posterPath = path.join(POSTER_DIR, `${hashUrl(url)}.webp`);
 
   if (fs.existsSync(posterPath)) {
     return `local:${posterPath}`;
@@ -166,12 +163,7 @@ const buildCoverPoster = async (url: string): Promise<string | null> => {
   await fs.promises.mkdir(POSTER_DIR, { recursive: true });
 
   const poster = await sharp(source.buffer, { pages: 1 })
-    .resize({
-      width: POSTER_MAX_SIZE,
-      height: POSTER_MAX_SIZE,
-      fit: "inside",
-      withoutEnlargement: true,
-    })
+    .resize(POSTER_WIDTH, POSTER_HEIGHT, { fit: "cover" })
     .webp({ quality: 82 })
     .toBuffer();
 

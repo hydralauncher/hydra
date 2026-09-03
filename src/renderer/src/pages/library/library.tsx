@@ -1,7 +1,6 @@
 import {
   useDeferredValue,
   useEffect,
-  useLayoutEffect,
   useMemo,
   useState,
   useCallback,
@@ -156,12 +155,9 @@ export default function Library() {
     return () => el.removeEventListener("wheel", handleWheel);
   }, [setHeaderHidden]);
 
-  useLayoutEffect(() => {
+  useEffect(() => {
     const el = gamesScrollRef.current;
     if (!el) return;
-
-    setContainerWidth(el.getBoundingClientRect().width);
-
     const ro = new ResizeObserver(([entry]) =>
       setContainerWidth(entry.contentRect.width)
     );
@@ -201,32 +197,14 @@ export default function Library() {
 
       if (collectionId) {
         params.set("collection", collectionId);
-        localStorage.setItem("library-collection", collectionId);
       } else {
         params.delete("collection");
-        localStorage.removeItem("library-collection");
       }
 
       setSearchParams(params, { replace: true });
     },
     [searchParams, setSearchParams]
   );
-
-  const hasRestoredCollection = useRef(false);
-
-  useLayoutEffect(() => {
-    if (hasRestoredCollection.current) return;
-    hasRestoredCollection.current = true;
-
-    if (searchParams.get("collection")) return;
-
-    const savedCollectionId = localStorage.getItem("library-collection");
-    if (!savedCollectionId) return;
-
-    const params = new URLSearchParams(searchParams);
-    params.set("collection", savedCollectionId);
-    setSearchParams(params, { replace: true });
-  }, [searchParams, setSearchParams]);
 
   const handleViewModeChange = useCallback((mode: ViewMode) => {
     setViewMode(mode);
@@ -575,8 +553,7 @@ export default function Library() {
         <div
           className={`library__scroll-shadow${isGamesScrolled && isHeaderHidden ? " library__scroll-shadow--visible" : ""}`}
         />
-        {containerWidth > 0 &&
-          hasGames &&
+        {hasGames &&
           !shouldShowFavoritesEmptyState &&
           !shouldShowCollectionEmptyState &&
           !shouldShowClassicsImporting &&

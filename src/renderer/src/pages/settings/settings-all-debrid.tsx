@@ -18,10 +18,10 @@ export function SettingsAllDebrid() {
   const { t } = useTranslation("settings");
 
   const [isLoading, setIsLoading] = useState(false);
-  const [form, setForm] = useState(() => ({
-    useAllDebrid: Boolean(userPreferences?.allDebridApiToken),
-    allDebridApiToken: userPreferences?.allDebridApiToken ?? null,
-  }));
+  const [form, setForm] = useState({
+    useAllDebrid: false,
+    allDebridApiToken: null as string | null,
+  });
 
   useEffect(() => {
     if (userPreferences) {

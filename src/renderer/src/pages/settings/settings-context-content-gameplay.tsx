@@ -17,30 +17,8 @@ import {
 } from "@primer/octicons-react";
 import { useLocation } from "react-router-dom";
 import { isAchievementSouvenirsEnabled } from "@shared";
-import type { UserPreferences } from "@types";
 
 import "./settings-behavior.scss";
-
-const buildForm = (preferences: UserPreferences | null) => ({
-  autoplayGameTrailers: preferences?.autoplayGameTrailers ?? true,
-  disableNsfwAlert: preferences?.disableNsfwAlert ?? false,
-  showHiddenAchievementsDescription:
-    preferences?.showHiddenAchievementsDescription ?? false,
-  enableSteamAchievements: preferences?.enableSteamAchievements ?? false,
-  enableAchievementSouvenirs: isAchievementSouvenirsEnabled(
-    preferences?.enableAchievementSouvenirs,
-    window.electron.platform
-  ),
-  enableNewDownloadOptionsBadges:
-    preferences?.enableNewDownloadOptionsBadges ?? true,
-  hideClassicsBookmark: preferences?.hideClassicsBookmark ?? false,
-  classicsUseHeroLayout: preferences?.classicsUseHeroLayout ?? false,
-  hideLibraryGameBadges: preferences?.hideLibraryGameBadges ?? false,
-  hideLibraryClassicsBadges: preferences?.hideLibraryClassicsBadges ?? false,
-  hideLibraryAchievementProgress:
-    preferences?.hideLibraryAchievementProgress ?? false,
-  autoplayAnimatedArtwork: preferences?.autoplayAnimatedArtwork ?? false,
-});
 
 export function SettingsContextContentGameplay() {
   const { t } = useTranslation("settings");
@@ -53,7 +31,19 @@ export function SettingsContextContentGameplay() {
     (state) => state.userPreferences.value
   );
 
-  const [form, setForm] = useState(() => buildForm(userPreferences));
+  const [form, setForm] = useState({
+    autoplayGameTrailers: true,
+    disableNsfwAlert: false,
+    showHiddenAchievementsDescription: false,
+    enableSteamAchievements: false,
+    enableAchievementSouvenirs: isAchievementSouvenirsEnabled(
+      undefined,
+      window.electron.platform
+    ),
+    enableNewDownloadOptionsBadges: true,
+    hideClassicsBookmark: false,
+    classicsUseHeroLayout: false,
+  });
   const [showWaylandSouvenirsWarning, setShowWaylandSouvenirsWarning] =
     useState(false);
   const [screenshotsPath, setScreenshotsPath] = useState("");
@@ -67,7 +57,21 @@ export function SettingsContextContentGameplay() {
   useEffect(() => {
     if (!userPreferences) return;
 
-    setForm(buildForm(userPreferences));
+    setForm({
+      autoplayGameTrailers: userPreferences.autoplayGameTrailers ?? true,
+      disableNsfwAlert: userPreferences.disableNsfwAlert ?? false,
+      showHiddenAchievementsDescription:
+        userPreferences.showHiddenAchievementsDescription ?? false,
+      enableSteamAchievements: userPreferences.enableSteamAchievements ?? false,
+      enableAchievementSouvenirs: isAchievementSouvenirsEnabled(
+        userPreferences.enableAchievementSouvenirs,
+        window.electron.platform
+      ),
+      enableNewDownloadOptionsBadges:
+        userPreferences.enableNewDownloadOptionsBadges ?? true,
+      hideClassicsBookmark: userPreferences.hideClassicsBookmark ?? false,
+      classicsUseHeroLayout: userPreferences.classicsUseHeroLayout ?? false,
+    });
   }, [userPreferences]);
 
   useEffect(() => {
@@ -175,17 +179,6 @@ export function SettingsContextContentGameplay() {
             })
           }
         />
-
-        <CheckboxField
-          label={t("enable_new_download_options_badges")}
-          checked={form.enableNewDownloadOptionsBadges}
-          onChange={() =>
-            handleChange({
-              enableNewDownloadOptionsBadges:
-                !form.enableNewDownloadOptionsBadges,
-            })
-          }
-        />
       </div>
 
       <div className="settings-context-panel__group">
@@ -279,48 +272,14 @@ export function SettingsContextContentGameplay() {
             {t("open_screenshots_directory")}
           </Button>
         </div>
-      </div>
-
-      <div className="settings-context-panel__group">
-        <h3>{t("library_appearance")}</h3>
 
         <CheckboxField
-          label={t("hide_library_game_badges")}
-          checked={form.hideLibraryGameBadges}
+          label={t("enable_new_download_options_badges")}
+          checked={form.enableNewDownloadOptionsBadges}
           onChange={() =>
             handleChange({
-              hideLibraryGameBadges: !form.hideLibraryGameBadges,
-            })
-          }
-        />
-
-        <CheckboxField
-          label={t("hide_library_classics_badges")}
-          checked={form.hideLibraryClassicsBadges}
-          onChange={() =>
-            handleChange({
-              hideLibraryClassicsBadges: !form.hideLibraryClassicsBadges,
-            })
-          }
-        />
-
-        <CheckboxField
-          label={t("hide_library_achievement_progress")}
-          checked={form.hideLibraryAchievementProgress}
-          onChange={() =>
-            handleChange({
-              hideLibraryAchievementProgress:
-                !form.hideLibraryAchievementProgress,
-            })
-          }
-        />
-
-        <CheckboxField
-          label={t("autoplay_animated_artwork")}
-          checked={form.autoplayAnimatedArtwork}
-          onChange={() =>
-            handleChange({
-              autoplayAnimatedArtwork: !form.autoplayAnimatedArtwork,
+              enableNewDownloadOptionsBadges:
+                !form.enableNewDownloadOptionsBadges,
             })
           }
         />

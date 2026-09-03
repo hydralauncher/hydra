@@ -35,8 +35,6 @@ export function SettingsDownloadSources() {
   const [showAddDownloadSourceModal, setShowAddDownloadSourceModal] =
     useState(false);
   const [downloadSources, setDownloadSources] = useState<DownloadSource[]>([]);
-  const [hasLoadedDownloadSources, setHasLoadedDownloadSources] =
-    useState(false);
   const [isSyncingDownloadSources, setIsSyncingDownloadSources] =
     useState(false);
   const [isRemovingDownloadSource, setIsRemovingDownloadSource] =
@@ -63,7 +61,6 @@ export function SettingsDownloadSources() {
       )) as DownloadSource[];
       const sorted = orderBy(sources, "createdAt", "desc");
       setDownloadSources(sorted);
-      setHasLoadedDownloadSources(true);
     };
 
     fetchDownloadSources();
@@ -213,7 +210,7 @@ export function SettingsDownloadSources() {
           type="button"
           theme="outline"
           disabled={
-            (hasLoadedDownloadSources && !downloadSources.length) ||
+            !downloadSources.length ||
             isSyncingDownloadSources ||
             isRemovingDownloadSource
           }
@@ -231,7 +228,7 @@ export function SettingsDownloadSources() {
             disabled={
               isRemovingDownloadSource ||
               isSyncingDownloadSources ||
-              (hasLoadedDownloadSources && !downloadSources.length)
+              !downloadSources.length
             }
           >
             <TrashIcon />

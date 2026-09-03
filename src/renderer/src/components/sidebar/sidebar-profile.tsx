@@ -7,12 +7,11 @@ import {
   SignOutIcon,
 } from "@primer/octicons-react";
 import { useAppSelector, useToast, useUserDetails } from "@renderer/hooks";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import SteamLogo from "@renderer/assets/steam-logo.svg?react";
 import { Avatar } from "../avatar/avatar";
 import { AuthPage } from "@shared";
-import { platformToSystem } from "@renderer/helpers";
 import { logger } from "@renderer/logger";
 import type {
   NotificationCountResponse,
@@ -81,20 +80,29 @@ const CLASSIC_DISC_OVERLAY = (
 );
 
 interface ClassicGameDiscProps {
+  coverImageUrl?: string | null;
   iconUrl: string | null;
 }
 
-function ClassicGameDisc({ iconUrl }: Readonly<ClassicGameDiscProps>) {
-  const [hasArtworkError, setHasArtworkError] = useState(false);
+function ClassicGameDisc({
+  coverImageUrl,
+  iconUrl,
+}: Readonly<ClassicGameDiscProps>) {
+  const artworkSources = [coverImageUrl, iconUrl].filter(
+    (source, index, sources): source is string =>
+      Boolean(source) && sources.indexOf(source) === index
+  );
+  const [artworkIndex, setArtworkIndex] = useState(0);
+  const artworkUrl = artworkSources[artworkIndex];
 
   return (
     <span className="sidebar-profile__classic-disc" aria-hidden="true">
-      {iconUrl && !hasArtworkError ? (
+      {artworkUrl ? (
         <img
           className="sidebar-profile__classic-disc-artwork"
-          src={iconUrl}
+          src={artworkUrl}
           alt=""
-          onError={() => setHasArtworkError(true)}
+          onError={() => setArtworkIndex((index) => index + 1)}
         />
       ) : null}
       {CLASSIC_DISC_OVERLAY}
@@ -112,18 +120,6 @@ export function SidebarProfile() {
   const { showSuccessToast } = useToast();
 
   const { gameRunning } = useAppSelector((state) => state.gameRunning);
-  const library = useAppSelector((state) => state.library.value);
-
-  const isPlayStationGameRunning = useMemo(() => {
-    if (gameRunning?.shop !== "launchbox") return false;
-
-    const runningGame = library.find(
-      (game) =>
-        game.shop === gameRunning.shop && game.objectId === gameRunning.objectId
-    );
-
-    return platformToSystem(runningGame?.platform) !== null;
-  }, [gameRunning, library]);
 
   const [notificationCount, setNotificationCount] = useState(0);
   const [onlineFriendsCount, setOnlineFriendsCount] = useState(0);
@@ -334,11 +330,12 @@ export function SidebarProfile() {
   const gameRunningDetails = () => {
     if (!userDetails || !gameRunning) return null;
 
-    if (isPlayStationGameRunning) {
+    if (gameRunning.shop === "launchbox") {
       return (
         <ClassicGameDisc
           key={`${gameRunning.shop}:${gameRunning.objectId}`}
-          iconUrl={gameRunning.customIconUrl ?? gameRunning.iconUrl}
+          coverImageUrl={gameRunning.coverImageUrl}
+          iconUrl={gameRunning.iconUrl}
         />
       );
     }

@@ -1,11 +1,63 @@
-import type { GameShop, UserAchievement, UserPreferences } from "@types";
+import type { GameShop, User, UserAchievement, UserPreferences } from "@types";
 import { registerEvent } from "../register-event";
 import { getGameAchievementData } from "@main/services/achievements/get-game-achievement-data";
 import { db, levelKeys } from "@main/level";
 import { AchievementWatcherManager } from "@main/services/achievements/achievement-watcher-manager";
 import { AchievementMemoryStore } from "@main/services/achievements/achievement-memory-store";
 import { AchievementSouvenirStore } from "@main/services/achievements/achievement-souvenir-store";
-import { getAchievementSouvenirs } from "@main/services/achievements/get-achievement-souvenirs";
+import { HydraApi } from "@main/services/hydra-api";
+import { achievementsLogger } from "@main/services/logger";
+
+const fetchAchievementSouvenirs = async (
+  objectId: string,
+  shop: GameShop,
+  language: string
+) => {
+  const user = await db.get<string, User>(levelKeys.user, {
+    valueEncoding: "json",
+  });
+
+  if (!user?.id) return new Map<string, string>();
+
+  const remoteAchievements = await HydraApi.get<UserAchievement[]>(
+    `/users/${user.id}/games/achievements`,
+    { shop, objectId, language }
+  );
+
+  return new Map(
+    remoteAchievements
+      .filter((achievement) => achievement.imageUrl)
+      .map((achievement) => [
+        achievement.name.toUpperCase(),
+        achievement.imageUrl!,
+      ])
+  );
+};
+
+const getAchievementSouvenirs = async (
+  objectId: string,
+  shop: GameShop,
+  language: string
+) => {
+  const cachedSouvenirs = AchievementSouvenirStore.get(shop, objectId);
+
+  if (cachedSouvenirs) return cachedSouvenirs;
+
+  try {
+    const souvenirs = await fetchAchievementSouvenirs(objectId, shop, language);
+    AchievementSouvenirStore.set(shop, objectId, souvenirs);
+
+    return souvenirs;
+  } catch (error) {
+    achievementsLogger.error(
+      "Failed to fetch achievement souvenirs",
+      objectId,
+      error
+    );
+
+    return new Map<string, string>();
+  }
+};
 
 export const getUnlockedAchievements = async (
   objectId: string,

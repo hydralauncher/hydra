@@ -9,7 +9,7 @@ import {
   SelectField,
   TextField,
 } from "@renderer/components";
-import type { DownloadDirectoryPreference, UserPreferences } from "@types";
+import type { DownloadDirectoryPreference } from "@types";
 import { settingsContext } from "@renderer/context";
 import { useAppSelector } from "@renderer/hooks";
 import languageResources from "@locales";
@@ -25,15 +25,6 @@ interface LanguageOption {
   nativeName: string;
 }
 
-const LANGUAGE_OPTIONS: LanguageOption[] = orderBy(
-  Object.entries(languageResources).map(([language, value]) => ({
-    nativeName: value.language_name,
-    option: language,
-  })),
-  ["nativeName"],
-  "asc"
-);
-
 interface SettingsContextGeneralProps {
   appearance: {
     theme: string | null;
@@ -48,32 +39,6 @@ interface DownloadDirectoryReplacementState {
   selectedReplacementPath: string;
 }
 
-const resolveLanguage = (language: string | undefined) => {
-  const languageKeys = Object.keys(languageResources);
-
-  return (
-    languageKeys.find((languageKey) => languageKey === language) ??
-    languageKeys.find((languageKey) =>
-      languageKey.startsWith(language?.split("-")[0] ?? "en")
-    ) ??
-    "en"
-  );
-};
-
-const buildForm = (
-  preferences: UserPreferences | null,
-  defaultDownloadsPath: string
-) => ({
-  downloadsPath: preferences?.downloadsPath ?? defaultDownloadsPath,
-  language: resolveLanguage(preferences?.language),
-  preferQuitInsteadOfHiding: preferences?.preferQuitInsteadOfHiding ?? false,
-  runAtStartup: preferences?.runAtStartup ?? false,
-  startMinimized: preferences?.startMinimized ?? false,
-  hideToTrayOnGameStart: preferences?.hideToTrayOnGameStart ?? false,
-  launchToLibraryPage: preferences?.launchToLibraryPage ?? false,
-  enableAutoInstall: preferences?.enableAutoInstall ?? false,
-});
-
 export function SettingsContextGeneral({
   appearance,
 }: Readonly<SettingsContextGeneralProps>) {
@@ -84,23 +49,67 @@ export function SettingsContextGeneral({
     (state) => state.userPreferences.value
   );
 
+  const [languageOptions, setLanguageOptions] = useState<LanguageOption[]>([]);
   const [defaultDownloadsPath, setDefaultDownloadsPath] = useState("");
-  const showRunAtStartup = !window.electron.isPortableVersion;
+  const [showRunAtStartup, setShowRunAtStartup] = useState(false);
   const [downloadDirectoryReplacement, setDownloadDirectoryReplacement] =
     useState<DownloadDirectoryReplacementState | null>(null);
 
-  const [form, setForm] = useState(() => buildForm(userPreferences, ""));
+  const [form, setForm] = useState({
+    downloadsPath: "",
+    language: "",
+    preferQuitInsteadOfHiding: false,
+    runAtStartup: false,
+    startMinimized: false,
+    hideToTrayOnGameStart: false,
+    launchToLibraryPage: false,
+    enableAutoInstall: false,
+  });
 
   useEffect(() => {
     window.electron.getDefaultDownloadsPath().then((path) => {
       setDefaultDownloadsPath(path);
     });
+
+    window.electron.isPortableVersion().then((isPortableVersion) => {
+      setShowRunAtStartup(!isPortableVersion);
+    });
+
+    setLanguageOptions(
+      orderBy(
+        Object.entries(languageResources).map(([language, value]) => ({
+          nativeName: value.language_name,
+          option: language,
+        })),
+        ["nativeName"],
+        "asc"
+      )
+    );
   }, []);
 
   useEffect(() => {
     if (!userPreferences) return;
 
-    setForm(buildForm(userPreferences, defaultDownloadsPath));
+    const languageKeys = Object.keys(languageResources);
+    const language =
+      languageKeys.find((language) => language === userPreferences.language) ??
+      languageKeys.find((language) => {
+        return language.startsWith(
+          userPreferences.language?.split("-")[0] ?? "en"
+        );
+      });
+
+    setForm({
+      downloadsPath: userPreferences.downloadsPath ?? defaultDownloadsPath,
+      language: language ?? "en",
+      preferQuitInsteadOfHiding:
+        userPreferences.preferQuitInsteadOfHiding ?? false,
+      runAtStartup: userPreferences.runAtStartup ?? false,
+      startMinimized: userPreferences.startMinimized ?? false,
+      hideToTrayOnGameStart: userPreferences.hideToTrayOnGameStart ?? false,
+      launchToLibraryPage: userPreferences.launchToLibraryPage ?? false,
+      enableAutoInstall: userPreferences.enableAutoInstall ?? false,
+    });
   }, [userPreferences, defaultDownloadsPath]);
 
   const handleChange = (values: Partial<typeof form>) => {
@@ -198,7 +207,7 @@ export function SettingsContextGeneral({
           label={t("language")}
           value={form.language}
           onChange={handleLanguageChange}
-          options={LANGUAGE_OPTIONS.map((language) => ({
+          options={languageOptions.map((language) => ({
             key: language.option,
             value: language.option,
             label: language.nativeName,

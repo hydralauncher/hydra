@@ -12,18 +12,15 @@ import {
   handleClassicsLaunchError,
 } from "@renderer/helpers";
 import { logger } from "@renderer/logger";
-import { useGameOptionsModal } from "@renderer/context/game-options-modal/game-options-modal.context";
-import type { GameSettingsCategoryId } from "@renderer/pages/game-details/modals/game-options-modal/types";
 import type { GameContextMenuGame } from "./game-context-menu.types";
 
 export function useGameActions(game: GameContextMenuGame) {
   const { t } = useTranslation("game_details");
   const { showSuccessToast, showErrorToast } = useToast();
-  const { library, updateLibrary } = useLibrary();
+  const { updateLibrary } = useLibrary();
   const { loadCollections } = useGameCollections();
   const navigate = useNavigate();
   const location = useLocation();
-  const { openGameOptionsModal } = useGameOptionsModal();
   const {
     removeGameInstaller,
     removeGameFromLibrary,
@@ -258,16 +255,7 @@ export function useGameActions(game: GameContextMenuGame) {
     }
   };
 
-  const handleOpenGameOptions = (initialCategory?: GameSettingsCategoryId) => {
-    const libraryGame = library.find(
-      (item) => item.objectId === game.objectId && item.shop === game.shop
-    );
-
-    if (libraryGame) {
-      openGameOptionsModal(libraryGame, initialCategory);
-      return;
-    }
-
+  const handleOpenGameOptions = () => {
     const path = buildGameDetailsPath({
       ...game,
       objectId: game.objectId,

@@ -490,9 +490,6 @@ export class NavigationService {
     if (
       !resolvedPendingInitialFocus &&
       !resolvedPendingRequestedFocus &&
-      // An explicit focus request is still waiting for its node to appear;
-      // a node registering meanwhile must not claim focus ahead of it.
-      !this.pendingRequestedFocusId &&
       layerId === this.getActiveLayerId() &&
       this.isNodeActive(node.id) &&
       !this.hasValidCurrentFocus() &&
@@ -589,7 +586,6 @@ export class NavigationService {
     } else if (
       !resolvedPendingInitialFocus &&
       !resolvedPendingRequestedFocus &&
-      !this.pendingRequestedFocusId &&
       this.isNodeActive(nodeId) &&
       registeredNode.layerId === this.getActiveLayerId() &&
       !this.hasValidCurrentFocus() &&

@@ -12,7 +12,6 @@ import type {
   AllDebridUser,
   UserProfile,
   UpdateProfileRequest,
-  OpenCheckoutOptions,
   GameStats,
   UserDetails,
   FriendRequestSync,
@@ -585,11 +584,6 @@ declare global {
       scanSubfolders: boolean,
       language?: string
     ) => Promise<EmulatorConfig>;
-    registerRomFolder: (
-      system: EmulatorSystem,
-      folderPath: string,
-      scanSubfolders: boolean
-    ) => Promise<EmulatorConfig>;
     removeRomFolder: (
       system: EmulatorSystem,
       folderId: string
@@ -963,10 +957,9 @@ declare global {
 
     /* Misc */
     openExternal: (src: string) => Promise<void>;
-    openCheckout: (options?: OpenCheckoutOptions) => Promise<void>;
+    openCheckout: () => Promise<void>;
     getCloudIframeUrl: () => Promise<string>;
     getVersion: () => Promise<string>;
-    getAppSessionId: () => Promise<string>;
     isStaging: () => Promise<boolean>;
     ping: () => string;
     getDefaultDownloadsPath: () => Promise<string>;
@@ -985,7 +978,7 @@ declare global {
       cb: (count: number) => void
     ) => () => Electron.IpcRenderer;
     openFolder: (folderPath: string) => Promise<string>;
-    isPortableVersion: boolean;
+    isPortableVersion: () => Promise<boolean>;
     showOpenDialog: (
       options: Electron.OpenDialogOptions
     ) => Promise<Electron.OpenDialogReturnValue>;
@@ -994,7 +987,7 @@ declare global {
     listDrives: () => Promise<string[]>;
     showItemInFolder: (path: string) => Promise<void>;
     getImageDataUrl: (imageUrl: string) => Promise<string | null>;
-    getProcessedImage: (
+    getProcessedFriendImage: (
       imageUrl: string | null,
       options: { width: number; height: number; preserveAnimation?: boolean }
     ) => Promise<string | null>;
@@ -1151,8 +1144,6 @@ declare global {
     onSyncNotificationCount: (
       cb: (notification: NotificationSync) => void
     ) => () => Electron.IpcRenderer;
-    onCloudGiftResolved: (cb: (giftId: string) => void) => () => Electron.IpcRenderer;
-    notifyCloudGiftResolved: (giftId: string) => Promise<void>;
     syncFriendRequests: (friendRequestCount: number) => Promise<void>;
 
     /* Notifications */

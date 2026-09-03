@@ -33,28 +33,19 @@
   &__frame {
     position: relative;
     aspect-ratio: 1536 / 836;
-    // Never wider than the remote page's design width: above it the iframe
-    // would be scaled up and the text resampled for no benefit.
-    width: min(96vw, calc(94vh * 1536 / 836), 1536px);
+    width: min(96vw, calc(94vh * 1536 / 836));
     max-height: 94vh;
     border-radius: 12px;
     overflow: hidden;
     box-shadow: 0 24px 64px rgba(0, 0, 0, 0.55);
   }
 
-  // Pinned to the remote page's design viewport and scaled to fit the frame,
-  // so the fixed-width layout always gets the width it was built for.
   &__iframe {
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 1536px;
-    height: 836px;
+    width: 100%;
+    height: 100%;
     border: none;
     display: block;
     background-color: #080808;
-    transform: scale(var(--cloud-iframe-scale, 1));
-    transform-origin: top left;
   }
 
   &__fallback {
