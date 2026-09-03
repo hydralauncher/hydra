@@ -1144,7 +1144,9 @@ declare global {
     onSyncNotificationCount: (
       cb: (notification: NotificationSync) => void
     ) => () => Electron.IpcRenderer;
-    onCloudGiftResolved: (cb: (giftId: string) => void) => () => Electron.IpcRenderer;
+    onCloudGiftResolved: (
+      cb: (giftId: string) => void
+    ) => () => Electron.IpcRenderer;
     notifyCloudGiftResolved: (giftId: string) => Promise<void>;
     syncFriendRequests: (friendRequestCount: number) => Promise<void>;
 
