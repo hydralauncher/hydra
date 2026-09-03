@@ -29,6 +29,44 @@ describe("findEmulatorInDownloadDirectories", () => {
     return directory;
   };
 
+  const writeValidExecutable = async (
+    executablePath: string,
+    platform: NodeJS.Platform
+  ) => {
+    if (platform === "win32") {
+      const data = Buffer.alloc(68);
+      data.write("MZ", 0, "ascii");
+      data.writeUInt32LE(64, 0x3c);
+      data.set([0x50, 0x45, 0, 0], 64);
+      await fs.promises.writeFile(executablePath, data);
+      return;
+    }
+
+    if (platform === "darwin" && executablePath.endsWith(".app")) {
+      const bundleExecutable = path.join(
+        executablePath,
+        "Contents",
+        "MacOS",
+        path.basename(executablePath, ".app")
+      );
+      await fs.promises.mkdir(path.dirname(bundleExecutable), {
+        recursive: true,
+      });
+      await fs.promises.writeFile(
+        bundleExecutable,
+        Buffer.from([0xfe, 0xed, 0xfa, 0xcf])
+      );
+      await fs.promises.chmod(bundleExecutable, 0o755);
+      return;
+    }
+
+    await fs.promises.writeFile(
+      executablePath,
+      Buffer.from([0x7f, 0x45, 0x4c, 0x46])
+    );
+    await fs.promises.chmod(executablePath, 0o755);
+  };
+
   it("finds Dolphin in Hydra's emulator folder under a download root", async () => {
     const emptyDownloads = await createTemporaryDirectory();
     const downloads = await createTemporaryDirectory();
@@ -38,17 +76,15 @@ describe("findEmulatorInDownloadDirectories", () => {
     let executablePath: string;
     if (process.platform === "win32") {
       executablePath = path.join(dolphinDirectory, "Dolphin.exe");
-      await fs.promises.writeFile(executablePath, "");
     } else if (process.platform === "darwin") {
       executablePath = path.join(dolphinDirectory, "Dolphin.app");
-      await fs.promises.mkdir(executablePath);
     } else {
       executablePath = path.join(
         dolphinDirectory,
         "Dolphin-2606-x86_64.AppImage"
       );
-      await fs.promises.writeFile(executablePath, "");
     }
+    await writeValidExecutable(executablePath, process.platform);
 
     assert.equal(
       findEmulatorInDownloadDirectories(KNOWN_BINARIES.dolphin, [
@@ -72,14 +108,12 @@ describe("findEmulatorInDownloadDirectories", () => {
     let executablePath: string;
     if (process.platform === "win32") {
       executablePath = path.join(portableDirectory, "Dolphin.exe");
-      await fs.promises.writeFile(executablePath, "");
     } else if (process.platform === "darwin") {
       executablePath = path.join(portableDirectory, "Dolphin.app");
-      await fs.promises.mkdir(executablePath);
     } else {
       executablePath = path.join(portableDirectory, "dolphin-emu");
-      await fs.promises.writeFile(executablePath, "");
     }
+    await writeValidExecutable(executablePath, process.platform);
 
     assert.equal(
       findEmulatorInDownloadDirectories(KNOWN_BINARIES.dolphin, [downloads]),
@@ -95,7 +129,7 @@ describe("findEmulatorInDownloadDirectories", () => {
       portableDirectory,
       "PPSSPP-v1.20.4-x86_64.AppImage"
     );
-    await fs.promises.writeFile(executablePath, "");
+    await writeValidExecutable(executablePath, "linux");
 
     assert.equal(
       findEmulatorInDownloadDirectories(
@@ -104,6 +138,75 @@ describe("findEmulatorInDownloadDirectories", () => {
         "linux"
       ),
       executablePath
+    );
+  });
+
+  it("rejects a corrupt Windows executable with the expected name", async () => {
+    const downloads = await createTemporaryDirectory();
+    await fs.promises.writeFile(
+      path.join(downloads, "Dolphin.exe"),
+      "not a Windows executable"
+    );
+
+    assert.equal(
+      findEmulatorInDownloadDirectories(
+        KNOWN_BINARIES.dolphin,
+        [downloads],
+        "win32"
+      ),
+      null
+    );
+  });
+
+  it("skips a corrupt AppImage and finds a valid nested candidate", async () => {
+    const downloads = await createTemporaryDirectory();
+    const corrupt = path.join(downloads, "PPSSPP-broken.AppImage");
+    const valid = path.join(
+      downloads,
+      "portable",
+      "PPSSPP-v1.20.4-x86_64.AppImage"
+    );
+    await fs.promises.writeFile(corrupt, "not an AppImage");
+    await fs.promises.chmod(corrupt, 0o755);
+    await fs.promises.mkdir(path.dirname(valid), { recursive: true });
+    await writeValidExecutable(valid, "linux");
+
+    assert.equal(
+      findEmulatorInDownloadDirectories(
+        KNOWN_BINARIES.psp,
+        [downloads],
+        "linux"
+      ),
+      valid
+    );
+  });
+
+  it("rejects a macOS bundle without a valid executable", async () => {
+    const downloads = await createTemporaryDirectory();
+    await fs.promises.mkdir(path.join(downloads, "Dolphin.app"));
+
+    assert.equal(
+      findEmulatorInDownloadDirectories(
+        KNOWN_BINARIES.dolphin,
+        [downloads],
+        "darwin"
+      ),
+      null
+    );
+  });
+
+  it("accepts a macOS bundle with a valid executable", async () => {
+    const downloads = await createTemporaryDirectory();
+    const bundle = path.join(downloads, "Dolphin.app");
+    await writeValidExecutable(bundle, "darwin");
+
+    assert.equal(
+      findEmulatorInDownloadDirectories(
+        KNOWN_BINARIES.dolphin,
+        [downloads],
+        "darwin"
+      ),
+      bundle
     );
   });
 });

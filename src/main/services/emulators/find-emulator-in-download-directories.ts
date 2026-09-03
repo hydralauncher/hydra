@@ -2,6 +2,7 @@ import { existsSync, readdirSync, type Dirent } from "node:fs";
 import path from "node:path";
 
 import { findManagedEmulatorExecutable } from "./find-managed-emulator-executable.js";
+import { isValidEmulatorExecutableForBinary } from "./validate-emulator-executable.js";
 
 interface DownloadDetectableBinary {
   binary: string;
@@ -19,10 +20,20 @@ interface PendingDirectory {
   depth: number;
 }
 
-const findDirect = (directory: string, names: string[]): string | null => {
+const findDirect = (
+  directory: string,
+  names: string[],
+  binary: DownloadDetectableBinary,
+  platform: NodeJS.Platform
+): string | null => {
   for (const name of names) {
     const candidate = path.join(directory, name);
-    if (existsSync(candidate)) return candidate;
+    if (
+      existsSync(candidate) &&
+      isValidEmulatorExecutableForBinary(candidate, binary, platform)
+    ) {
+      return candidate;
+    }
   }
   return null;
 };
@@ -45,7 +56,12 @@ const findAppImage = (
     const lower = entry.toLowerCase();
     return (
       lower.endsWith(".appimage") &&
-      keywords.some((keyword) => lower.includes(keyword))
+      keywords.some((keyword) => lower.includes(keyword)) &&
+      isValidEmulatorExecutableForBinary(
+        path.join(directory, entry),
+        binary,
+        "linux"
+      )
     );
   });
 
@@ -58,7 +74,7 @@ const findExecutableInDirectory = (
   binary: DownloadDetectableBinary,
   platform: NodeJS.Platform
 ): string | null => {
-  const executable = findDirect(directory, names);
+  const executable = findDirect(directory, names, binary, platform);
   if (executable || platform !== "linux") return executable;
   return findAppImage(directory, binary);
 };
@@ -110,6 +126,7 @@ const findInNestedDirectories = (
 const findInNamedEmulatorDirectories = (
   downloadDirectory: string,
   binary: DownloadDetectableBinary,
+  executableNames: string[],
   platform: NodeJS.Platform
 ): string | null => {
   const emulatorDirectories = new Set([
@@ -119,17 +136,20 @@ const findInNamedEmulatorDirectories = (
 
   for (const emulatorDirectory of emulatorDirectories) {
     const managed = findManagedEmulatorExecutable(emulatorDirectory, binary);
-    if (managed) return managed;
-
-    if (platform === "linux") {
-      const nestedAppImage = findInNestedDirectories(
-        emulatorDirectory,
-        [],
-        binary,
-        platform
-      );
-      if (nestedAppImage) return nestedAppImage;
+    if (
+      managed &&
+      isValidEmulatorExecutableForBinary(managed, binary, platform)
+    ) {
+      return managed;
     }
+
+    const nestedExecutable = findInNestedDirectories(
+      emulatorDirectory,
+      [...executableNames, ...binary.macosBundleNames],
+      binary,
+      platform
+    );
+    if (nestedExecutable) return nestedExecutable;
   }
   return null;
 };
@@ -140,15 +160,18 @@ const findInDownloadDirectory = (
   executableNames: string[],
   platform: NodeJS.Platform
 ): string | null => {
-  const direct = findDirect(downloadDirectory, [
-    ...executableNames,
-    ...binary.macosBundleNames,
-  ]);
+  const direct = findDirect(
+    downloadDirectory,
+    [...executableNames, ...binary.macosBundleNames],
+    binary,
+    platform
+  );
   if (direct) return direct;
 
   const managed = findInNamedEmulatorDirectories(
     downloadDirectory,
     binary,
+    executableNames,
     platform
   );
   if (managed) return managed;

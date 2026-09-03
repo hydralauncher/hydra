@@ -24,8 +24,11 @@ export const isMacAppBundlePath = (targetPath: string): boolean =>
   path.extname(path.normalize(targetPath)).toLowerCase() ===
     MACOS_APP_EXTENSION;
 
-export const findMacAppBundleRoot = (targetPath: string): string | null => {
-  if (process.platform !== "darwin" || !targetPath) return null;
+export const findMacAppBundleRoot = (
+  targetPath: string,
+  platform: NodeJS.Platform = process.platform
+): string | null => {
+  if (platform !== "darwin" || !targetPath) return null;
 
   const normalizedPath = path.normalize(targetPath);
   const parts = normalizedPath.split(path.sep);
@@ -94,9 +97,10 @@ const findFallbackBundleExecutable = (
 };
 
 export const resolveMacAppBundleExecutable = (
-  targetPath: string
+  targetPath: string,
+  platform: NodeJS.Platform = process.platform
 ): string | null => {
-  const appBundlePath = findMacAppBundleRoot(targetPath);
+  const appBundlePath = findMacAppBundleRoot(targetPath, platform);
   if (!appBundlePath) return null;
 
   const contentsMacOsPath = path.join(appBundlePath, "Contents", "MacOS");

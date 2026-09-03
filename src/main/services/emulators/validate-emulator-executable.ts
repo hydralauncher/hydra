@@ -148,11 +148,14 @@ export const isValidEmulatorExecutable = (
   if (!existsSync(normalizedPath)) return false;
 
   const ext = path.extname(normalizedPath).toLowerCase();
-  const appBundlePath = findMacAppBundleRoot(normalizedPath);
+  const appBundlePath = findMacAppBundleRoot(normalizedPath, platform);
 
   if (appBundlePath) {
     if (ext !== ".app") return false;
-    const bundleExecutable = resolveMacAppBundleExecutable(appBundlePath);
+    const bundleExecutable = resolveMacAppBundleExecutable(
+      appBundlePath,
+      platform
+    );
     return (
       bundleExecutable !== null && hasExecutableFileHeader(bundleExecutable)
     );
@@ -189,7 +192,8 @@ export const assertValidEmulatorExecutable = (executablePath: string): void => {
 
 export const isValidEmulatorExecutableForBinary = (
   executablePath: string,
-  binary: { binary: string }
+  binary: { binary: string },
+  platform: NodeJS.Platform = process.platform
 ): boolean =>
-  isValidEmulatorExecutable(executablePath) &&
-  isExecutableNameExpectedForBinary(executablePath, binary);
+  isValidEmulatorExecutable(executablePath, platform) &&
+  isExecutableNameExpectedForBinary(executablePath, binary, platform);
