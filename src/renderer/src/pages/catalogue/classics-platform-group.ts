@@ -1,4 +1,4 @@
-export type ClassicsPlatformGroup = "sony" | "nintendo" | "other";
+type ClassicsPlatformGroup = "sony" | "nintendo" | "other";
 
 export const getClassicsPlatformGroup = (
   platform: string

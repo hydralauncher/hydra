@@ -127,7 +127,7 @@ export const KNOWN_BINARIES: Record<EmulatorSystem, KnownBinary> = {
   },
 };
 
-export const EMULATOR_BINARIES: readonly EmulatorBinary[] = Array.from(
+const EMULATOR_BINARIES: readonly EmulatorBinary[] = Array.from(
   new Set(Object.values(KNOWN_BINARIES).map((entry) => entry.binary))
 );
 

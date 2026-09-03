@@ -223,7 +223,7 @@ export const readPpssppSavedataDiscId = async (
   }
 };
 
-export const discoverPpssppSaves = async (
+const discoverPpssppSaves = async (
   executablePath: string
 ): Promise<DiscoveredEmulationFileSave[]> => {
   const discovered: DiscoveredEmulationFileSave[] = [];
@@ -370,7 +370,7 @@ const inspectGciSave = async (
   };
 };
 
-export const discoverDolphinGamecubeSaves = async (
+const discoverDolphinGamecubeSaves = async (
   executablePath: string
 ): Promise<DiscoveredEmulationFileSave[]> => {
   const discovered: DiscoveredEmulationFileSave[] = [];
@@ -466,7 +466,7 @@ const discoverDolphinWiiSavesInRoot = async (
   return discovered;
 };
 
-export const discoverDolphinWiiSaves = async (
+const discoverDolphinWiiSaves = async (
   executablePath: string
 ): Promise<DiscoveredEmulationFileSave[]> => {
   const discovered: DiscoveredEmulationFileSave[] = [];
@@ -621,7 +621,7 @@ export const buildDolphinWiiDataBin = async (
   ]);
 };
 
-export const isSafeEmulationSaveArchiveEntry = (entry: string): boolean => {
+const isSafeEmulationSaveArchiveEntry = (entry: string): boolean => {
   const normalized = entry.replaceAll("\\", "/");
   return (
     normalized.length > 0 &&

@@ -120,7 +120,7 @@ export interface LaunchClassicsGameOptions {
   system: EmulatorSystem;
 }
 
-export const buildEmulatorArgs = (
+const buildEmulatorArgs = (
   binary: EmulatorBinary,
   discPath: string
 ): string[] => {

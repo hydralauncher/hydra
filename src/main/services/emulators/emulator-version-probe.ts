@@ -4,8 +4,7 @@ export interface EmulatorVersionProbe {
 }
 
 export const isEmulatorVersionProbeEnabled = (
-  binary: EmulatorVersionProbe,
-  platform: NodeJS.Platform = process.platform
+  binary: EmulatorVersionProbe
 ): boolean =>
   binary.versionFlags.length > 0 &&
-  !binary.versionProbeDisabledPlatforms?.includes(platform);
+  !binary.versionProbeDisabledPlatforms?.includes(process.platform);

@@ -1,6 +1,6 @@
 import type { EmulatorSessionSystem } from "./emulator-session-tracker";
 
-export interface EmulatorAchievementLogFormat {
+interface EmulatorAchievementLogFormat {
   pattern: RegExp;
   titleFirst: boolean;
 }
@@ -29,19 +29,3 @@ const LOG_FORMATS: Partial<
 export const getEmulatorAchievementLogFormat = (
   system: EmulatorSessionSystem
 ) => LOG_FORMATS[system] ?? null;
-
-export const parseEmulatorAchievementLogLine = (
-  system: EmulatorSessionSystem,
-  line: string
-) => {
-  const format = getEmulatorAchievementLogFormat(system);
-  if (!format) return null;
-
-  const match = format.pattern.exec(line);
-  if (!match) return null;
-
-  return {
-    id: format.titleFirst ? match[2] : match[1],
-    title: format.titleFirst ? match[1] : match[2],
-  };
-};

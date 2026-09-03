@@ -1,4 +1,4 @@
-import { existsSync, readdirSync, type Dirent } from "node:fs";
+import { readdirSync, type Dirent } from "node:fs";
 import path from "node:path";
 
 import { findManagedEmulatorExecutable } from "./find-managed-emulator-executable.js";
@@ -23,15 +23,11 @@ interface PendingDirectory {
 const findDirect = (
   directory: string,
   names: string[],
-  binary: DownloadDetectableBinary,
-  platform: NodeJS.Platform
+  binary: DownloadDetectableBinary
 ): string | null => {
   for (const name of names) {
     const candidate = path.join(directory, name);
-    if (
-      existsSync(candidate) &&
-      isValidEmulatorExecutableForBinary(candidate, binary, platform)
-    ) {
+    if (isValidEmulatorExecutableForBinary(candidate, binary)) {
       return candidate;
     }
   }
@@ -57,11 +53,7 @@ const findAppImage = (
     return (
       lower.endsWith(".appimage") &&
       keywords.some((keyword) => lower.includes(keyword)) &&
-      isValidEmulatorExecutableForBinary(
-        path.join(directory, entry),
-        binary,
-        "linux"
-      )
+      isValidEmulatorExecutableForBinary(path.join(directory, entry), binary)
     );
   });
 
@@ -74,7 +66,7 @@ const findExecutableInDirectory = (
   binary: DownloadDetectableBinary,
   platform: NodeJS.Platform
 ): string | null => {
-  const executable = findDirect(directory, names, binary, platform);
+  const executable = findDirect(directory, names, binary);
   if (executable || platform !== "linux") return executable;
   return findAppImage(directory, binary);
 };
@@ -136,10 +128,7 @@ const findInNamedEmulatorDirectories = (
 
   for (const emulatorDirectory of emulatorDirectories) {
     const managed = findManagedEmulatorExecutable(emulatorDirectory, binary);
-    if (
-      managed &&
-      isValidEmulatorExecutableForBinary(managed, binary, platform)
-    ) {
+    if (managed && isValidEmulatorExecutableForBinary(managed, binary)) {
       return managed;
     }
 
@@ -163,8 +152,7 @@ const findInDownloadDirectory = (
   const direct = findDirect(
     downloadDirectory,
     [...executableNames, ...binary.macosBundleNames],
-    binary,
-    platform
+    binary
   );
   if (direct) return direct;
 
@@ -188,9 +176,9 @@ const findInDownloadDirectory = (
 
 export const findEmulatorInDownloadDirectories = (
   binary: DownloadDetectableBinary,
-  downloadDirectories: string[],
-  platform: NodeJS.Platform = process.platform
+  downloadDirectories: string[]
 ): string | null => {
+  const platform = process.platform;
   const executableNames =
     platform === "win32" ? binary.windowsNames : binary.linuxNames;
 

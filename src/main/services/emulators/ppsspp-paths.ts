@@ -1,19 +1,10 @@
 import os from "node:os";
 import path from "node:path";
 
-interface PpssppPathEnvironment {
-  platform?: NodeJS.Platform;
-  home?: string;
-  environment?: NodeJS.ProcessEnv;
-}
-
-export const ppssppConfigCandidates = (
-  executablePath: string,
-  options: PpssppPathEnvironment = {}
-): string[] => {
-  const platform = options.platform ?? process.platform;
-  const home = options.home ?? os.homedir();
-  const environment = options.environment ?? process.env;
+export const ppssppConfigCandidates = (executablePath: string): string[] => {
+  const platform = process.platform;
+  const home = os.homedir();
+  const environment = process.env;
   const executableDirectory = path.dirname(executablePath);
   const portableCandidates = [
     path.join(executableDirectory, "memstick", "PSP", "SYSTEM", "ppsspp.ini"),

@@ -4,13 +4,7 @@ import { readDolphinDiscHeader } from "./dolphin-disc-reader.js";
 
 const SNIFF_BYTES = 16 * 1024 * 1024;
 
-export type DiscPlatform =
-  | "ps1"
-  | "ps2"
-  | "ps3"
-  | "gamecube"
-  | "wii"
-  | "unknown";
+type DiscPlatform = "ps1" | "ps2" | "ps3" | "gamecube" | "wii" | "unknown";
 
 const BOOT2_RE = /BOOT2\s*=/;
 const BOOT_RE = /BOOT\s*=/;

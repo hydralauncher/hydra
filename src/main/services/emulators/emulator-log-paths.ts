@@ -28,19 +28,12 @@ export const pcsx2LogPath = (executablePath: string | null) => {
   );
 };
 
-interface DolphinLogPathEnvironment {
-  platform?: NodeJS.Platform;
-  home?: string;
-  environment?: NodeJS.ProcessEnv;
-}
-
 export const dolphinUserDirectoryCandidates = (
-  executablePath: string,
-  options: DolphinLogPathEnvironment = {}
+  executablePath: string
 ): string[] => {
-  const platform = options.platform ?? process.platform;
-  const home = options.home ?? os.homedir();
-  const environment = options.environment ?? process.env;
+  const platform = process.platform;
+  const home = os.homedir();
+  const environment = process.env;
   const executableDirectory = path.dirname(executablePath);
   const userDirectories: string[] = [];
 
@@ -88,12 +81,9 @@ export const dolphinUserDirectoryCandidates = (
   return Array.from(new Set(userDirectories));
 };
 
-export const dolphinLogCandidates = (
-  executablePath: string,
-  options: DolphinLogPathEnvironment = {}
-): string[] => {
-  return dolphinUserDirectoryCandidates(executablePath, options).map(
-    (userDirectory) => path.join(userDirectory, "Logs", "dolphin.log")
+const dolphinLogCandidates = (executablePath: string): string[] => {
+  return dolphinUserDirectoryCandidates(executablePath).map((userDirectory) =>
+    path.join(userDirectory, "Logs", "dolphin.log")
   );
 };
 

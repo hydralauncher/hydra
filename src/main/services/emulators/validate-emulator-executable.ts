@@ -137,10 +137,7 @@ const hasExecutableFileHeader = (executablePath: string): boolean => {
   }
 };
 
-export const isValidEmulatorExecutable = (
-  executablePath: string,
-  platform: NodeJS.Platform = process.platform
-): boolean => {
+export const isValidEmulatorExecutable = (executablePath: string): boolean => {
   if (!executablePath) return false;
 
   const normalizedPath = path.normalize(executablePath);
@@ -148,14 +145,11 @@ export const isValidEmulatorExecutable = (
   if (!existsSync(normalizedPath)) return false;
 
   const ext = path.extname(normalizedPath).toLowerCase();
-  const appBundlePath = findMacAppBundleRoot(normalizedPath, platform);
+  const appBundlePath = findMacAppBundleRoot(normalizedPath);
 
   if (appBundlePath) {
     if (ext !== ".app") return false;
-    const bundleExecutable = resolveMacAppBundleExecutable(
-      appBundlePath,
-      platform
-    );
+    const bundleExecutable = resolveMacAppBundleExecutable(appBundlePath);
     return (
       bundleExecutable !== null && hasExecutableFileHeader(bundleExecutable)
     );
@@ -171,7 +165,7 @@ export const isValidEmulatorExecutable = (
 
   if (NON_EXECUTABLE_EXTENSIONS.has(ext)) return false;
 
-  if (platform === "win32") {
+  if (process.platform === "win32") {
     if (ext === ".exe") return hasPortableExecutableHeader(normalizedPath);
     return ext === ".bat" || ext === ".cmd";
   }
@@ -192,8 +186,7 @@ export const assertValidEmulatorExecutable = (executablePath: string): void => {
 
 export const isValidEmulatorExecutableForBinary = (
   executablePath: string,
-  binary: { binary: string },
-  platform: NodeJS.Platform = process.platform
+  binary: { binary: string }
 ): boolean =>
-  isValidEmulatorExecutable(executablePath, platform) &&
-  isExecutableNameExpectedForBinary(executablePath, binary, platform);
+  isValidEmulatorExecutable(executablePath) &&
+  isExecutableNameExpectedForBinary(executablePath, binary);

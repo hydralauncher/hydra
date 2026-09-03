@@ -1,6 +1,6 @@
 import type { EmulationSavePlatform } from "@types";
 
-export interface RestoreModalCopyKeys {
+interface RestoreModalCopyKeys {
   title: string;
   description: string;
   confirm: string;
