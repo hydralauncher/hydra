@@ -80,7 +80,7 @@ describe("emulator file saves", () => {
     await fs.writeFile(path.join(systemPath, "ppsspp.ini"), "[General]\n");
     await fs.writeFile(
       path.join(savedataPath, "PARAM.SFO"),
-      buildParamSfo("DISC_ID", "ULUS10567")
+      buildParamSfo("SAVEDATA_DIRECTORY", "ULUS105670000")
     );
     await fs.writeFile(path.join(savedataPath, "DATA.BIN"), "save");
 

@@ -205,10 +205,19 @@ export const readPpssppSavedataDiscId = async (
 ): Promise<string | null> => {
   try {
     const sfo = await fs.readFile(path.join(savedataDirectory, "PARAM.SFO"));
-    const discId = parseParamSfoValue(sfo, "DISC_ID")
-      ?.replace(/[^A-Za-z0-9]/g, "")
-      .toUpperCase();
-    return discId && PSP_DISC_ID_RE.test(discId) ? discId : null;
+    const candidates = [
+      parseParamSfoValue(sfo, "DISC_ID"),
+      parseParamSfoValue(sfo, "SAVEDATA_DIRECTORY"),
+      path.basename(savedataDirectory),
+    ];
+
+    for (const candidate of candidates) {
+      const normalized = candidate?.replace(/[^A-Za-z0-9]/g, "").toUpperCase();
+      const discId = normalized?.slice(0, 9);
+      if (discId && PSP_DISC_ID_RE.test(discId)) return discId;
+    }
+
+    return null;
   } catch {
     return null;
   }
