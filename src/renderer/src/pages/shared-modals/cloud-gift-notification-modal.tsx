@@ -318,6 +318,17 @@ export function CloudGiftNotificationModal() {
   const isVisible = Boolean(notification && gift);
 
   useEffect(() => {
+    if (!isVisible) return;
+
+    const previouslyFocusedElement =
+      document.activeElement as HTMLElement | null;
+
+    return () => {
+      previouslyFocusedElement?.focus();
+    };
+  }, [isVisible]);
+
+  useEffect(() => {
     setIsRevealComplete(Boolean(isVisible && shouldReduceMotion));
   }, [isVisible, shouldReduceMotion]);
 

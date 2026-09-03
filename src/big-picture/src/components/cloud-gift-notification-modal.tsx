@@ -371,6 +371,7 @@ export function CloudGiftNotificationModal() {
   useNavigationScreenActions(
     isVisible
       ? {
+          press: { b: () => {} },
           direction: messageFocused
             ? {
                 down: () => scrollMessageStep("down"),
