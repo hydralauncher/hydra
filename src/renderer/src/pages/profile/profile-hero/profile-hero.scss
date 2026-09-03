@@ -63,6 +63,17 @@
     gap: calc(globals.$spacing-unit * 2);
   }
 
+  &__gift-action {
+    position: absolute;
+    top: calc(globals.$spacing-unit * 2);
+    right: calc(globals.$spacing-unit * 3);
+    z-index: 2;
+  }
+
+  &__gift-icon {
+    color: #ffffff;
+  }
+
   &__avatar-button {
     width: 96px;
     min-width: 96px;
