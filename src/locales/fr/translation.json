@@ -1748,6 +1748,8 @@
     "sort_by": "Trier par",
     "sort_title_asc": "Titre (A-Z)",
     "sort_title_desc": "Titre (Z-A)",
+    "sort_release_date": "Date de sortie",
+    "sort_new_updates": "Nouvelles mises à jour",
     "sort_most_played": "Les plus joués",
     "sort_installed_first": "Installés en premier",
     "rename_collection": "Renommer la collection",

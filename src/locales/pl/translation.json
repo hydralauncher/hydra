@@ -1552,6 +1552,8 @@
     "sort_title": "Tytuł",
     "sort_title_asc": "Tytuł (A–Z)",
     "sort_title_desc": "Tytuł (Z–A)",
+    "sort_release_date": "Data premiery",
+    "sort_new_updates": "Nowe aktualizacje",
     "sort_most_played": "Najczęściej grane",
     "sort_achievements": "Osiągnięcia",
     "sort_installed_first": "Najpierw zainstalowane",
