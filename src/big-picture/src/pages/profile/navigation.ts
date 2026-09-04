@@ -5,6 +5,8 @@ export const PROFILE_HERO_EXTERNAL_PRIMARY_ACTION_ID =
   "profile-hero-external-primary";
 export const PROFILE_HERO_EXTERNAL_SECONDARY_ACTION_ID =
   "profile-hero-external-secondary";
+export const PROFILE_HERO_EXTERNAL_TERTIARY_ACTION_ID =
+  "profile-hero-external-tertiary";
 export const PROFILE_RECENT_ACTIVITY_REGION_ID = "profile-recent-activity";
 export const PROFILE_LIBRARY_CAROUSEL_REGION_ID = "profile-library-carousel";
 export const PROFILE_SOCIAL_REGION_ID = "profile-social";
