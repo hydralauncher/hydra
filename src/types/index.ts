@@ -253,6 +253,7 @@ export interface UserDetails {
   quirks?: {
     backupsPerGameLimit: number;
   };
+  allowCloudGifts?: boolean;
 }
 
 export interface ProfileAchievement {
@@ -337,6 +338,8 @@ export interface UserProfile {
   badges: string[];
   badgesDetails?: { badge: string; unlockedAt: string }[];
   hasCompletedWrapped2025: boolean;
+  canReceiveCloudGift?: boolean;
+  allowCloudGifts?: boolean;
 }
 
 export interface UpdateProfileRequest {
@@ -347,6 +350,7 @@ export interface UpdateProfileRequest {
   backgroundImageUrl?: string | null;
   bio?: string;
   language?: string;
+  allowCloudGifts?: boolean;
 }
 
 export interface DownloadSourceDownload {
@@ -528,7 +532,8 @@ export type NotificationType =
   | "SOUVENIR_LIKE"
   | "RETROACHIEVEMENTS_CREDENTIALS_RESTORED"
   | "RETROACHIEVEMENTS_CREDENTIALS_INVALID"
-  | "RETROACHIEVEMENTS_SYNC_FAILED";
+  | "RETROACHIEVEMENTS_SYNC_FAILED"
+  | "CLOUD_GIFT_RECEIVED";
 
 export type LocalNotificationType =
   | "EXTRACTION_COMPLETE"

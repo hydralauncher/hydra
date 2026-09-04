@@ -1610,7 +1610,10 @@
     "wayland_souvenirs_warning_title": "Recuerdos en Wayland",
     "wayland_souvenirs_warning_description": "Por las características de Wayland, Hydra debe preguntarte qué ventana debe capturar cada vez que abres un juego. Selecciona la ventana del juego para que Hydra pueda crear recuerdos cuando desbloquees logros. Sin una ventana seleccionada, no es posible crear recuerdos.",
     "wayland_souvenirs_warning_cancel": "Cancelar",
-    "wayland_souvenirs_warning_confirm": "Aceptar"
+    "wayland_souvenirs_warning_confirm": "Aceptar",
+    "cloud_gifts": "Regalos de Hydra Cloud",
+    "allow_cloud_gifts": "Permitir que otros usuarios me regalen Hydra Cloud",
+    "allow_cloud_gifts_description": "Al desactivar esta opción, no podrás recibir nuevos regalos. Los regalos que ya recibiste no se verán afectados."
   },
   "notifications": {
     "download_complete": "Descarga completada",
@@ -1853,7 +1856,8 @@
     "souvenirs_visibility_public_description": "Todo el mundo puede ver tus recuerdos.",
     "dismiss_souvenirs_visibility_notice": "Cerrar el aviso de privacidad",
     "souvenirs_visibility_updated": "Visibilidad de los recuerdos actualizada",
-    "souvenirs_visibility_updated_description": "Tus recuerdos ahora tienen visibilidad {{visibility}}."
+    "souvenirs_visibility_updated_description": "Tus recuerdos ahora tienen visibilidad {{visibility}}.",
+    "gift_cloud": "Regalar Hydra Cloud"
   },
   "achievement": {
     "achievement_unlocked": "Logro desbloqueado",
@@ -2004,7 +2008,13 @@
     "friend_request_refused": "Solicitud de amistad rechazada",
     "souvenir_like_title": "¡Tu recuerdo de {{gameTitle}} recibió un Me gusta!",
     "souvenir_like_description_one": "Tu recuerdo recibió {{count}} nuevo Me gusta",
-    "souvenir_like_description_other": "Tu recuerdo recibió {{count}} nuevos Me gusta"
+    "souvenir_like_description_other": "Tu recuerdo recibió {{count}} nuevos Me gusta",
+    "cloud_gift_received_title": "Has recibido Hydra Cloud",
+    "cloud_gift_received_title_one": "Has recibido {{count}} mes de Hydra Cloud",
+    "cloud_gift_received_title_other": "Has recibido {{count}} meses de Hydra Cloud",
+    "cloud_gift_received_description": "{{displayName}} te envió un regalo. Ábrelo para aceptarlo o rechazarlo.",
+    "cloud_gift_launcher_accept": "Aceptar regalo",
+    "cloud_gift_launcher_decide_later": "Decidir más tarde"
   },
   "game_launcher": {
     "launching": "Iniciando...",
