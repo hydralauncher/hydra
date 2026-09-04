@@ -291,11 +291,7 @@ const handleDeepLinkPath = (uri?: string) => {
     }
 
     if (url.host === "bigpicture") {
-      if (WindowManager.mainWindow) {
-        WindowManager.openBigPictureWindow();
-      } else {
-        WindowManager.createMainWindow({ forceBigPicture: true });
-      }
+      WindowManager.openBigPictureWindow();
       return;
     }
 
@@ -336,10 +332,12 @@ app.on("second-instance", (_event, commandLine) => {
   );
   const forceBigPicture = commandLine.includes("--big-picture");
 
-  // Check if this is a "run" deep link - don't show main window in that case
   const isRunDeepLink = deepLink?.startsWith("hydralauncher://run");
+  const isBigPictureDeepLink = deepLink?.startsWith(
+    "hydralauncher://bigpicture"
+  );
 
-  if (!isRunDeepLink) {
+  if (!isRunDeepLink && !isBigPictureDeepLink) {
     if (WindowManager.mainWindow) {
       if (WindowManager.mainWindow.isMinimized())
         WindowManager.mainWindow.restore();
