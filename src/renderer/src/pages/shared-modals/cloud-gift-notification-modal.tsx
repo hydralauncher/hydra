@@ -103,6 +103,7 @@ export function CloudGiftNotificationModal() {
   const dialogRef = useRef<HTMLDivElement | null>(null);
   const messageRef = useRef<HTMLDivElement | null>(null);
   const acceptButtonRef = useRef<HTMLButtonElement | null>(null);
+  const activeGiftIdRef = useRef<string | null>(null);
   const [notification, setNotification] = useState<Notification | null>(null);
   const [gift, setGift] = useState<CloudGiftDetails | null>(null);
   const [isAccepting, setIsAccepting] = useState(false);
@@ -125,6 +126,7 @@ export function CloudGiftNotificationModal() {
         return;
       }
 
+      activeGiftIdRef.current = giftId;
       setGift(null);
       setNotification(requestedNotification);
 
@@ -133,11 +135,14 @@ export function CloudGiftNotificationModal() {
           needsAuth: true,
         })
         .then((giftDetails) => {
+          if (activeGiftIdRef.current !== giftId) return;
+
           if (giftDetails.status === CLOUD_GIFT_STATUS_PENDING_ACCEPTANCE) {
             setGift(giftDetails);
             return;
           }
 
+          activeGiftIdRef.current = null;
           setNotification(null);
 
           void (async () => {
@@ -156,6 +161,8 @@ export function CloudGiftNotificationModal() {
           })();
         })
         .catch((error) => {
+          if (activeGiftIdRef.current !== giftId) return;
+          activeGiftIdRef.current = null;
           logger.error("Failed to open Cloud Gift modal", error);
           setNotification(null);
         });
@@ -169,6 +176,7 @@ export function CloudGiftNotificationModal() {
   }, []);
 
   const dismissCurrentGift = useCallback(() => {
+    activeGiftIdRef.current = null;
     setNotification(null);
     setGift(null);
   }, []);
