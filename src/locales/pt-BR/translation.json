@@ -1570,7 +1570,10 @@
     "wayland_souvenirs_warning_title": "Lembranças no Wayland",
     "wayland_souvenirs_warning_description": "Devido à natureza do Wayland, o Hydra precisa perguntar qual janela deve ser capturada toda vez que você abrir um jogo. Selecione a janela do jogo para que o Hydra possa capturar lembranças quando você desbloquear conquistas. Sem selecionar uma janela, não é possível capturar lembranças.",
     "wayland_souvenirs_warning_cancel": "Cancelar",
-    "wayland_souvenirs_warning_confirm": "OK"
+    "wayland_souvenirs_warning_confirm": "OK",
+    "cloud_gifts": "Presentes Hydra Cloud",
+    "allow_cloud_gifts": "Permitir que outros usuários me presenteiem com Hydra Cloud",
+    "allow_cloud_gifts_description": "Ao desativar, você deixa de poder receber novos presentes. Presentes já recebidos não são afetados."
   },
   "notifications": {
     "download_complete": "Download concluído",
@@ -1853,7 +1856,8 @@
     "souvenir_visibility_failed": "Não foi possível atualizar a visibilidade da lembrança",
     "souvenirs_visibility_updated": "Visibilidade das lembranças atualizada",
     "souvenirs_visibility_updated_description": "Suas lembranças agora estão como {{visibility}}.",
-    "loading_souvenirs": "Carregando lembranças..."
+    "loading_souvenirs": "Carregando lembranças...",
+    "gift_cloud": "Presentear Hydra Cloud"
   },
   "achievement": {
     "achievement_unlocked": "Conquista desbloqueada",
@@ -2004,7 +2008,13 @@
     "failed_to_load": "Falha ao carregar notificações",
     "failed_to_dismiss": "Falha ao descartar notificação",
     "friend_request_accepted": "Solicitação de amizade aceita",
-    "friend_request_refused": "Solicitação de amizade recusada"
+    "friend_request_refused": "Solicitação de amizade recusada",
+    "cloud_gift_received_title": "Você recebeu Hydra Cloud",
+    "cloud_gift_received_title_one": "Você recebeu {{count}} mês de Hydra Cloud",
+    "cloud_gift_received_title_other": "Você recebeu {{count}} meses de Hydra Cloud",
+    "cloud_gift_received_description": "{{displayName}} enviou um presente. Abra para aceitar.",
+    "cloud_gift_launcher_accept": "Aceitar presente",
+    "cloud_gift_launcher_decide_later": "Decidir depois"
   },
   "game_launcher": {
     "launching": "Iniciando...",

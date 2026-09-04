@@ -1599,7 +1599,10 @@
     "wayland_souvenirs_warning_title": "Souvenirs on Wayland",
     "wayland_souvenirs_warning_description": "Due to the nature of Wayland, Hydra needs to ask which window it should capture every time you open a game. Select the game window so Hydra can capture souvenirs when you unlock achievements. Without selecting a window, capturing souvenirs is impossible.",
     "wayland_souvenirs_warning_cancel": "Cancel",
-    "wayland_souvenirs_warning_confirm": "OK"
+    "wayland_souvenirs_warning_confirm": "OK",
+    "cloud_gifts": "Hydra Cloud gifts",
+    "allow_cloud_gifts": "Allow other users to gift me Hydra Cloud",
+    "allow_cloud_gifts_description": "Turning this off prevents you from receiving new gifts. Gifts already received are not affected."
   },
   "notifications": {
     "download_complete": "Download complete",
@@ -1853,7 +1856,8 @@
     "souvenir_visibility_failed": "Could not update souvenir visibility",
     "souvenirs_visibility_updated": "Souvenir visibility updated",
     "souvenirs_visibility_updated_description": "Your souvenirs are now {{visibility}}.",
-    "loading_souvenirs": "Loading souvenirs..."
+    "loading_souvenirs": "Loading souvenirs...",
+    "gift_cloud": "Gift Hydra Cloud"
   },
   "library": {
     "library": "Library",
@@ -2021,7 +2025,13 @@
     "failed_to_load": "Failed to load notifications",
     "failed_to_dismiss": "Failed to dismiss notification",
     "friend_request_accepted": "Friend request accepted",
-    "friend_request_refused": "Friend request refused"
+    "friend_request_refused": "Friend request refused",
+    "cloud_gift_received_title": "You received Hydra Cloud",
+    "cloud_gift_received_title_one": "You received {{count}} month of Hydra Cloud",
+    "cloud_gift_received_title_other": "You received {{count}} months of Hydra Cloud",
+    "cloud_gift_received_description": "{{displayName}} sent you a gift. Open it to accept.",
+    "cloud_gift_launcher_accept": "Accept Gift",
+    "cloud_gift_launcher_decide_later": "Decide Later"
   },
   "friends_window": {
     "title": "Friends",

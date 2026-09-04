@@ -1628,7 +1628,10 @@
     "wayland_souvenirs_warning_title": "Сувениры в Wayland",
     "wayland_souvenirs_warning_description": "Из-за особенностей Wayland Hydra должна запрашивать окно для захвата при каждом запуске игры. Выберите окно игры, чтобы Hydra могла создавать сувениры при открытии достижений. Без выбранного окна создавать сувениры невозможно.",
     "wayland_souvenirs_warning_cancel": "Отмена",
-    "wayland_souvenirs_warning_confirm": "ОК"
+    "wayland_souvenirs_warning_confirm": "ОК",
+    "cloud_gifts": "Подарки Hydra Cloud",
+    "allow_cloud_gifts": "Разрешить другим пользователям дарить мне Hydra Cloud",
+    "allow_cloud_gifts_description": "Если отключить эту настройку, вы не сможете получать новые подарки. Уже полученные подарки останутся без изменений."
   },
   "notifications": {
     "download_complete": "Загрузка завершена",
@@ -1885,7 +1888,8 @@
     "souvenirs_visibility_public_description": "Ваши сувениры видны всем.",
     "dismiss_souvenirs_visibility_notice": "Закрыть уведомление о приватности",
     "souvenirs_visibility_updated": "Видимость сувениров обновлена",
-    "souvenirs_visibility_updated_description": "Новый уровень видимости сувениров: {{visibility}}."
+    "souvenirs_visibility_updated_description": "Новый уровень видимости сувениров: {{visibility}}.",
+    "gift_cloud": "Подарить Hydra Cloud"
   },
   "library": {
     "library": "Библиотека",
@@ -2056,7 +2060,15 @@
     "souvenir_like_description_one": "Ваш сувенир получил {{count}} новую отметку «Нравится»",
     "souvenir_like_description_few": "Ваш сувенир получил {{count}} новые отметки «Нравится»",
     "souvenir_like_description_many": "Ваш сувенир получил {{count}} новых отметок «Нравится»",
-    "souvenir_like_description_other": "Ваш сувенир получил {{count}} новой отметки «Нравится»"
+    "souvenir_like_description_other": "Ваш сувенир получил {{count}} новой отметки «Нравится»",
+    "cloud_gift_received_title": "Вам подарили Hydra Cloud",
+    "cloud_gift_received_title_one": "Вам подарили Hydra Cloud на {{count}} месяц",
+    "cloud_gift_received_title_few": "Вам подарили Hydra Cloud на {{count}} месяца",
+    "cloud_gift_received_title_many": "Вам подарили Hydra Cloud на {{count}} месяцев",
+    "cloud_gift_received_title_other": "Вам подарили Hydra Cloud на {{count}} мес.",
+    "cloud_gift_received_description": "Вы получили подарок от {{displayName}}. Откройте его, чтобы принять или отклонить.",
+    "cloud_gift_launcher_accept": "Принять подарок",
+    "cloud_gift_launcher_decide_later": "Решить позже"
   },
   "friends_window": {
     "title": "Друзья",
