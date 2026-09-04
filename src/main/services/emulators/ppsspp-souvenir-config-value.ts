@@ -9,3 +9,8 @@ export const enablePPSSPPAchievementLog = (content: string) => {
 
   return setIniValue(withChannelEnabled, SECTION, LEVEL_KEY, "4");
 };
+
+export const buildPPSSPPSouvenirLaunchArguments = (
+  configName: string,
+  logPath: string
+) => [`--config=${configName}`, "--loglevel=4", `--log=${logPath}`];
