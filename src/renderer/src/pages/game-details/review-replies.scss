@@ -63,6 +63,8 @@
     }
 
     &--has-bg {
+      width: 100%;
+      box-sizing: border-box;
       aspect-ratio: 388 / 56;
       min-height: 64px;
       max-height: 110px;
