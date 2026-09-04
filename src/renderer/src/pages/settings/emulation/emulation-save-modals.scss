@@ -64,6 +64,26 @@
     line-height: 1.4;
   }
 
+  &__guide-link {
+    padding: 0;
+    border: 0;
+    background: transparent;
+    color: inherit;
+    font: inherit;
+    cursor: pointer;
+
+    &:hover {
+      text-decoration: underline;
+      text-underline-offset: 2px;
+    }
+
+    &:focus-visible {
+      outline: 2px solid var(--primary);
+      outline-offset: 2px;
+      border-radius: 2px;
+    }
+  }
+
   &__actions {
     display: flex;
     justify-content: flex-end;
