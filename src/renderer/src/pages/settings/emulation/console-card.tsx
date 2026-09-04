@@ -10,7 +10,7 @@ import "./console-card.scss";
 export type ConsoleCardRequirement = "bios" | "firmware" | "cores";
 
 interface ConsoleCardProps {
-  art: string;
+  art: string | readonly string[];
   title: string;
   emulatorName: string;
   emulatorNameTooltip?: string;
@@ -98,12 +98,27 @@ export function ConsoleCard({
   const isReady = isConfigured && executableExists && !requirementMissing;
   const relative =
     lastScanAt !== null ? formatRelativeShort(lastScanAt, i18n.language) : null;
+  const artItems = typeof art === "string" ? [art] : art;
 
   return (
     <div
       className={`console-card ${isConfigured ? "" : "console-card--unconfigured"}`}
     >
-      <img src={art} alt="" className="console-card__art" aria-hidden="true" />
+      <div
+        className={`console-card__art ${
+          artItems.length > 1 ? "console-card__art--multiple" : ""
+        }`}
+        aria-hidden="true"
+      >
+        {artItems.map((artItem) => (
+          <img
+            key={artItem}
+            src={artItem}
+            alt=""
+            className="console-card__art-image"
+          />
+        ))}
+      </div>
 
       <div className="console-card__heading">
         <h3 className="console-card__title">{title}</h3>

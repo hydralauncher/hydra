@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import { useTranslation } from "react-i18next";
+import { Trans, useTranslation } from "react-i18next";
 
 import { Button, Modal, TextField } from "@renderer/components";
 import { useToast } from "@renderer/hooks";
@@ -10,10 +10,11 @@ import type {
   MemcardRestoreTarget,
 } from "@types";
 
+import { getRestoreModalCopyKeys } from "./emulation-save-modal-copy";
 import "./emulation-save-modals.scss";
 
 export const PICK_FILTERS: Record<
-  EmulationSavePlatform,
+  Extract<EmulationSavePlatform, "ps1" | "ps2">,
   { name: string; extensions: string[] }
 > = {
   ps1: {
@@ -62,15 +63,39 @@ export function RestoreModal({
   const [selectedFormat, setSelectedFormat] =
     useState<MemcardFormatState | null>(null);
   const [busy, setBusy] = useState(false);
+  const isMemoryCardPlatform = platform === "ps1" || platform === "ps2";
+  const copyKeys = getRestoreModalCopyKeys(platform);
+  const description =
+    platform === "wii" ? (
+      <Trans
+        t={t}
+        i18nKey={copyKeys.description}
+        components={{
+          guide: (
+            <button
+              type="button"
+              className="emu-save-modal__guide-link"
+              data-open-article="wii-saves"
+              title={t("wii_saves_guide")}
+            />
+          ),
+        }}
+      />
+    ) : (
+      t(copyKeys.description)
+    );
 
   useEffect(() => {
     if (!save) return;
     let cancelled = false;
-    window.electron.getMemcardRestoreTargets(platform).then((found) => {
-      if (cancelled) return;
-      setTargets(found);
-      setSelected((prev) => prev ?? found[0]?.cardFilePath ?? null);
-    });
+    setSelected(null);
+    window.electron
+      .getMemcardRestoreTargets(platform, save.metadata)
+      .then((found) => {
+        if (cancelled) return;
+        setTargets(found);
+        setSelected(found[0]?.cardFilePath ?? null);
+      });
     return () => {
       cancelled = true;
     };
@@ -79,6 +104,10 @@ export function RestoreModal({
   useEffect(() => {
     if (!selected) {
       setSelectedFormat(null);
+      return;
+    }
+    if (!isMemoryCardPlatform) {
+      setSelectedFormat("formatted");
       return;
     }
     let cancelled = false;
@@ -94,17 +123,18 @@ export function RestoreModal({
     return () => {
       cancelled = true;
     };
-  }, [selected, platform]);
+  }, [selected, isMemoryCardPlatform, platform]);
 
   const unformattedKey =
     platform === "ps2"
       ? "cloud_restore_unformatted_ps2"
       : "cloud_restore_unformatted";
-
   const handlePickFile = useCallback(async () => {
+    if (!isMemoryCardPlatform) return;
+    const filter = platform === "ps2" ? PICK_FILTERS.ps2 : PICK_FILTERS.ps1;
     const result = await window.electron.showOpenDialog({
       properties: ["openFile"],
-      filters: [PICK_FILTERS[platform]],
+      filters: [filter],
     });
     if (result.canceled || result.filePaths.length === 0) return;
     const chosen = result.filePaths[0];
@@ -114,7 +144,7 @@ export function RestoreModal({
         : [...prev, { cardFilePath: chosen, cardLabel: basename(chosen) }]
     );
     setSelected(chosen);
-  }, [platform]);
+  }, [isMemoryCardPlatform, platform]);
 
   const handleRestore = useCallback(async () => {
     if (!save || !selected) return;
@@ -123,10 +153,18 @@ export function RestoreModal({
       const res = await window.electron.restoreEmulationSave(
         platform,
         save.id,
-        selected
+        selected,
+        save.metadata,
+        save.fileName
       );
       if (res.ok) {
-        showSuccessToast(t("cloud_restore_success"));
+        showSuccessToast(
+          t(
+            res.reason === "manual-import-required"
+              ? "cloud_restore_wii_downloaded"
+              : "cloud_restore_success"
+          )
+        );
         onRestored();
         onClose();
       } else {
@@ -156,8 +194,8 @@ export function RestoreModal({
   return (
     <Modal
       visible={save !== null}
-      title={t("cloud_restore_title")}
-      description={t("cloud_restore_description")}
+      title={t(copyKeys.title)}
+      description={description}
       onClose={onClose}
     >
       <div className="emu-save-modal__restore">
@@ -184,7 +222,11 @@ export function RestoreModal({
           ))}
           {targets.length === 0 && (
             <li className="emu-save-modal__empty">
-              {t("cloud_restore_no_cards")}
+              {t(
+                isMemoryCardPlatform
+                  ? "cloud_restore_no_cards"
+                  : "cloud_restore_no_destination"
+              )}
             </li>
           )}
         </ul>
@@ -194,9 +236,11 @@ export function RestoreModal({
         )}
 
         <div className="emu-save-modal__actions">
-          <Button theme="outline" onClick={handlePickFile} disabled={busy}>
-            {t("cloud_restore_pick_file")}
-          </Button>
+          {isMemoryCardPlatform && (
+            <Button theme="outline" onClick={handlePickFile} disabled={busy}>
+              {t("cloud_restore_pick_file")}
+            </Button>
+          )}
           <Button
             theme="primary"
             onClick={handleRestore}
@@ -207,7 +251,7 @@ export function RestoreModal({
               selectedFormat === "unformatted"
             }
           >
-            {busy ? t("cloud_restoring") : t("cloud_restore_confirm")}
+            {busy ? t("cloud_restoring") : t(copyKeys.confirm)}
           </Button>
         </div>
       </div>

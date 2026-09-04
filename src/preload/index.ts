@@ -37,6 +37,7 @@ import type {
   Ps2ExportResult,
   EmulationBackupProgress,
   EmulationCloudSave,
+  EmulationSaveMetadata,
   EmulationSavePlatform,
   MemcardFormatState,
   MemcardRestoreResult,
@@ -604,13 +605,12 @@ contextBridge.exposeInMainWorld("electron", {
     ipcRenderer.on(channel, listener);
     return () => ipcRenderer.removeListener(channel, listener);
   },
-  startRomScan: (
+  previewRomFolder: (
     system: EmulatorSystem,
     folderPath: string,
     scanSubfolders: boolean
-  ) => ipcRenderer.invoke("startRomScan", system, folderPath, scanSubfolders),
-  cancelRomScan: (requestId: string) =>
-    ipcRenderer.invoke("cancelRomScan", requestId),
+  ) =>
+    ipcRenderer.invoke("previewRomFolder", system, folderPath, scanSubfolders),
   getEmulatorRomPaths: (system: EmulatorSystem) =>
     ipcRenderer.invoke("getEmulatorRomPaths", system),
   addEmulatorRomPath: (system: EmulatorSystem, folderPath: string) =>
@@ -620,27 +620,6 @@ contextBridge.exposeInMainWorld("electron", {
     ipcRenderer.invoke("removeEmulator", system),
   checkEmulatorExecutable: (system: EmulatorSystem) =>
     ipcRenderer.invoke("checkEmulatorExecutable", system),
-  onRomScanProgress: (
-    requestId: string,
-    cb: (
-      payload:
-        | {
-            type: "progress";
-            processed: number;
-            total: number;
-            currentFile: string | null;
-          }
-        | { type: "done"; fileCount: number; sizeBytes: number }
-        | { type: "cancelled"; fileCount: number; sizeBytes: number }
-        | { type: "error"; message: string }
-    ) => void
-  ) => {
-    const channel = `on-rom-scan-progress-${requestId}`;
-    const listener = (_event: Electron.IpcRendererEvent, payload: unknown) =>
-      cb(payload as Parameters<typeof cb>[0]);
-    ipcRenderer.on(channel, listener);
-    return () => ipcRenderer.removeListener(channel, listener);
-  },
   importLaunchboxRoms: (
     system: EmulatorSystem,
     folders: { path: string; scanSubfolders: boolean }[],
@@ -721,6 +700,11 @@ contextBridge.exposeInMainWorld("electron", {
       cardFilePath,
       folderName
     ),
+  uploadWiiEmulationSave: (
+    dataBinPath: string,
+    objectId: string
+  ): Promise<EmulationCloudSave> =>
+    ipcRenderer.invoke("uploadWiiEmulationSave", dataBinPath, objectId),
   uploadEmulationSavesForCard: (
     platform: EmulationSavePlatform,
     cardFilePath: string
@@ -742,10 +726,15 @@ contextBridge.exposeInMainWorld("electron", {
     objectId?: string | null
   ): Promise<EmulationCloudSave[]> =>
     ipcRenderer.invoke("listEmulationSaves", platform, objectId),
-  getMemcardRestoreTargets: (
+  listLocalEmulationSaves: (
     platform: EmulationSavePlatform
+  ): Promise<Ps2MemoryCardSaveRecord[]> =>
+    ipcRenderer.invoke("listLocalEmulationSaves", platform),
+  getMemcardRestoreTargets: (
+    platform: EmulationSavePlatform,
+    metadata?: EmulationSaveMetadata | Record<string, unknown> | null
   ): Promise<MemcardRestoreTarget[]> =>
-    ipcRenderer.invoke("getMemcardRestoreTargets", platform),
+    ipcRenderer.invoke("getMemcardRestoreTargets", platform, metadata),
   inspectMemcard: (
     platform: EmulationSavePlatform,
     cardFilePath: string
@@ -754,13 +743,17 @@ contextBridge.exposeInMainWorld("electron", {
   restoreEmulationSave: (
     platform: EmulationSavePlatform,
     saveId: string,
-    targetCardFilePath: string
+    targetCardFilePath: string,
+    metadata?: EmulationSaveMetadata | Record<string, unknown> | null,
+    sourceFileName?: string
   ): Promise<MemcardRestoreResult> =>
     ipcRenderer.invoke(
       "restoreEmulationSave",
       platform,
       saveId,
-      targetCardFilePath
+      targetCardFilePath,
+      metadata,
+      sourceFileName
     ),
   deleteEmulationSave: (saveId: string): Promise<void> =>
     ipcRenderer.invoke("deleteEmulationSave", saveId),
@@ -1087,7 +1080,7 @@ contextBridge.exposeInMainWorld("electron", {
       removeDiscPath?: string;
     }
   ) => ipcRenderer.invoke("updateClassicsDisc", shop, objectId, patch),
-  getEmulatorRomExtensions: (system: "ps1" | "ps2" | "ps3") =>
+  getEmulatorRomExtensions: (system: EmulatorSystem) =>
     ipcRenderer.invoke("getEmulatorRomExtensions", system),
   closeGame: (shop: GameShop, objectId: string) =>
     ipcRenderer.invoke("closeGame", shop, objectId),
@@ -1571,13 +1564,10 @@ contextBridge.exposeInMainWorld("electron", {
     ipcRenderer.invoke("syncFriendRequests", friendRequestCount),
 
   onCloudGiftResolved: (cb: (giftId: string) => void) => {
-    const listener = (
-      _event: Electron.IpcRendererEvent,
-      giftId: string
-    ) => cb(giftId);
+    const listener = (_event: Electron.IpcRendererEvent, giftId: string) =>
+      cb(giftId);
     ipcRenderer.on("on-cloud-gift-resolved", listener);
-    return () =>
-      ipcRenderer.removeListener("on-cloud-gift-resolved", listener);
+    return () => ipcRenderer.removeListener("on-cloud-gift-resolved", listener);
   },
 
   /* User */
