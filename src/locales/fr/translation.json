@@ -326,6 +326,7 @@
     "download_count": "Téléchargements",
     "player_count": "Joueurs actifs",
     "download_error": "Cette option de téléchargement n'est pas disponible",
+    "invalid_repack": "Aucun lien de téléchargement n'est disponible pour le téléchargeur sélectionné.",
     "download": "Télécharger",
     "executable_path_in_use": "Exécutable déjà utilisé par \"{{game}}\"",
     "warning": "Attention :",

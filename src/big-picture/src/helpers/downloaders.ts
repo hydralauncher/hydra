@@ -116,7 +116,7 @@ export function getDownloaderAvailabilityOptions(
     (value) => typeof value === "number"
   ) as Downloader[];
 
-  for (const uri of repack.uris) {
+  for (const uri of Array.isArray(repack.uris) ? repack.uris : []) {
     const uriDownloaders = getDownloadersForUri(uri);
     const isAvailable = !unavailableUrisSet.has(uri);
 
