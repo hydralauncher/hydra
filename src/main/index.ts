@@ -291,7 +291,11 @@ const handleDeepLinkPath = (uri?: string) => {
     }
 
     if (url.host === "bigpicture") {
-      WindowManager.openBigPictureWindow();
+      if (WindowManager.mainWindow) {
+        WindowManager.openBigPictureWindow();
+      } else {
+        WindowManager.createMainWindow({ forceBigPicture: true });
+      }
       return;
     }
 
