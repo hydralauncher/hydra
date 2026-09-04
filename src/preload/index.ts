@@ -1,6 +1,6 @@
 // See the Electron documentation for details on how to use preload scripts:
 // https://www.electronjs.org/docs/latest/tutorial/process-model#preload-scripts
-import { contextBridge, ipcRenderer } from "electron";
+import { contextBridge, ipcRenderer, webUtils } from "electron";
 import { randomUUID } from "node:crypto";
 
 import type {
@@ -1349,6 +1349,7 @@ contextBridge.exposeInMainWorld("electron", {
   getCloudIframeUrl: () => ipcRenderer.invoke("getCloudIframeUrl"),
   showOpenDialog: (options: Electron.OpenDialogOptions) =>
     ipcRenderer.invoke("showOpenDialog", options),
+  getPathForFile: (file: File) => webUtils.getPathForFile(file),
   ...fileExplorerApi,
   showItemInFolder: (path: string) =>
     ipcRenderer.invoke("showItemInFolder", path),
