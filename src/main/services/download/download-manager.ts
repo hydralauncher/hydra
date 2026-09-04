@@ -18,6 +18,7 @@ import {
   FuckingFastApi,
   VikingFileApi,
   RootzApi,
+  BzzhrApi,
 } from "../hosters";
 import { PythonRPC } from "../python-rpc";
 import {
@@ -1255,6 +1256,8 @@ export class DownloadManager {
         return this.getVikingFileDownloadOptions(download, resumingFilename);
       case Downloader.Rootz:
         return this.getRootzDownloadOptions(download, resumingFilename);
+      case Downloader.Bzzhr:
+        return this.getBzzhrDownloadOptions(download, resumingFilename);
       case Downloader.ArchiveOrg:
         return this.getArchiveOrgDownloadOptions(download, resumingFilename);
       default:
@@ -1621,6 +1624,23 @@ export class DownloadManager {
     );
   }
 
+  private static async getBzzhrDownloadOptions(
+    download: Download,
+    resumingFilename?: string
+  ) {
+    const downloadUrl = await BzzhrApi.getDownloadUrl(download.uri);
+    const filename = this.resolveFilename(
+      resumingFilename,
+      download.uri,
+      downloadUrl
+    );
+    return this.buildDownloadOptions(
+      downloadUrl,
+      download.downloadPath,
+      filename
+    );
+  }
+
   private static async getDownloadPayload(download: Download) {
     const downloadId = levelKeys.game(download.shop, download.objectId);
 
@@ -1788,6 +1808,15 @@ export class DownloadManager {
       }
       case Downloader.Rootz: {
         const downloadUrl = await RootzApi.getDownloadUrl(download.uri);
+        return {
+          action: "start",
+          game_id: downloadId,
+          url: downloadUrl,
+          save_path: download.downloadPath,
+        };
+      }
+      case Downloader.Bzzhr: {
+        const downloadUrl = await BzzhrApi.getDownloadUrl(download.uri);
         return {
           action: "start",
           game_id: downloadId,
