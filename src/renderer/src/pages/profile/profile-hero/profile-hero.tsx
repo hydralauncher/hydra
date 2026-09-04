@@ -4,6 +4,7 @@ import {
   BlockedIcon,
   CheckCircleFillIcon,
   CopyIcon,
+  GiftIcon,
   PencilIcon,
   PersonAddIcon,
   SignOutIcon,
@@ -27,6 +28,7 @@ import { addSeconds } from "date-fns";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { AuthPage } from "@shared";
+import { logger } from "@renderer/logger";
 
 import type { FriendRequestAction } from "@types";
 import { EditProfileModal } from "../edit-profile-modal/edit-profile-modal";
@@ -130,6 +132,38 @@ export function ProfileHero() {
       userDetails,
     ]
   );
+
+  const giftAction = useMemo(() => {
+    if (!userProfile || isMe || !userProfile.canReceiveCloudGift) return null;
+
+    return (
+      <Button
+        theme="cloud"
+        onClick={() => {
+          if (!userDetails) {
+            window.electron.openAuthWindow(AuthPage.SignIn);
+            return;
+          }
+
+          void (async () => {
+            try {
+              const cloudIframeUrl = await window.electron.getCloudIframeUrl();
+              const giftPageUrl = new URL("/gift", cloudIframeUrl);
+              giftPageUrl.searchParams.set("recipientId", userProfile.id);
+              await window.electron.openExternal(giftPageUrl.toString());
+            } catch (error) {
+              logger.error("Failed to open Gift page", error);
+              await window.electron.openCheckout();
+            }
+          })();
+        }}
+        disabled={isPerformingAction}
+      >
+        <GiftIcon size={16} className="profile-hero__gift-icon" />
+        {t("gift_cloud")}
+      </Button>
+    );
+  }, [isMe, isPerformingAction, t, userDetails, userProfile]);
 
   const profileActions = useMemo(() => {
     if (!userProfile) return null;
@@ -318,6 +352,10 @@ export function ProfileHero() {
         className="profile-hero__content-box"
         style={{ background: !backgroundImage ? heroBackground : undefined }}
       >
+        {giftAction && (
+          <div className="profile-hero__gift-action">{giftAction}</div>
+        )}
+
         {backgroundImage && (
           <img
             src={backgroundImage}
