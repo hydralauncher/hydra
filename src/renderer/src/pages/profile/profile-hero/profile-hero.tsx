@@ -341,6 +341,10 @@ export function ProfileHero() {
         className="profile-hero__content-box"
         style={{ background: !backgroundImage ? heroBackground : undefined }}
       >
+        {giftAction && (
+          <div className="profile-hero__gift-action">{giftAction}</div>
+        )}
+
         {backgroundImage && (
           <img
             src={backgroundImage}
@@ -447,10 +451,7 @@ export function ProfileHero() {
             background: !backgroundImage ? heroBackground : undefined,
           }}
         >
-          <div className="profile-hero__actions">
-            {giftAction}
-            {profileActions}
-          </div>
+          <div className="profile-hero__actions">{profileActions}</div>
         </div>
       </section>
     </>
