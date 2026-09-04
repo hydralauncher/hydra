@@ -93,7 +93,7 @@ export function NotificationItem({
       onMarkAsRead(notification.id);
     }
 
-if (
+    if (
       notification.type === "CLOUD_GIFT_RECEIVED" &&
       notification.variables.giftId
     ) {
@@ -277,7 +277,7 @@ if (
     if (isReviewAnswer) {
       return <CommentDiscussionIcon size={24} />;
     }
-if (isSouvenirLike) {
+    if (isSouvenirLike) {
       return <HeartFillIcon size={24} />;
     }
     if (notification.type === "CLOUD_GIFT_RECEIVED") {

@@ -28,6 +28,7 @@ import { addSeconds } from "date-fns";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { AuthPage } from "@shared";
+import { logger } from "@renderer/logger";
 
 import type { FriendRequestAction } from "@types";
 import { EditProfileModal } from "../edit-profile-modal/edit-profile-modal";
@@ -144,7 +145,17 @@ export function ProfileHero() {
             return;
           }
 
-          window.electron.openCheckout();
+          void (async () => {
+            try {
+              const cloudIframeUrl = await window.electron.getCloudIframeUrl();
+              const giftPageUrl = new URL("/gift", cloudIframeUrl);
+              giftPageUrl.searchParams.set("recipientId", userProfile.id);
+              await window.electron.openExternal(giftPageUrl.toString());
+            } catch (error) {
+              logger.error("Failed to open Gift page", error);
+              await window.electron.openCheckout();
+            }
+          })();
         }}
         disabled={isPerformingAction}
       >
