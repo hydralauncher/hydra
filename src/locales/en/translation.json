@@ -1994,7 +1994,12 @@
     "available_points": "Available points:",
     "how_to_earn_achievements_points": "How to earn achievement points?",
     "view_souvenir": "View souvenir",
-    "souvenir_alt": "Screenshot taken when {{achievement}} was unlocked"
+    "souvenir_alt": "Screenshot taken when {{achievement}} was unlocked",
+    "sort_by": "Sort by",
+    "sort_option_default": "Default",
+    "sort_option_date": "Last unlocked",
+    "sort_option_easiest_first": "Easiest first",
+    "sort_option_name": "Name"
   },
   "hydra_cloud": {
     "subscription_tour_title": "Hydra Cloud Subscription",
