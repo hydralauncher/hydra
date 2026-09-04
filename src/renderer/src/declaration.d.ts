@@ -12,6 +12,7 @@ import type {
   AllDebridUser,
   UserProfile,
   UpdateProfileRequest,
+  OpenCheckoutOptions,
   GameStats,
   UserDetails,
   FriendRequestSync,
@@ -64,6 +65,7 @@ import type {
   RetroArchInstallProgress,
   RetroArchInstallResult,
   EmulationCloudSave,
+  EmulationSaveMetadata,
   EmulationSavePlatform,
   MemcardFormatState,
   MemcardRestoreResult,
@@ -467,9 +469,7 @@ declare global {
         removeDiscPath?: string;
       }
     ) => Promise<LibraryGame>;
-    getEmulatorRomExtensions: (
-      system: "ps1" | "ps2" | "ps3"
-    ) => Promise<string[]>;
+    getEmulatorRomExtensions: (system: EmulatorSystem) => Promise<string[]>;
     closeGame: (shop: GameShop, objectId: string) => Promise<boolean>;
     removeGameFromLibrary: (shop: GameShop, objectId: string) => Promise<void>;
     removeGame: (shop: GameShop, objectId: string) => Promise<void>;
@@ -573,7 +573,7 @@ declare global {
     setEmulatorExecutablePath: (
       system: EmulatorSystem,
       executablePath: string | null
-    ) => Promise<EmulatorConfig>;
+    ) => Promise<EmulatorConfig | null>;
     setEmulatorBiosPath: (
       system: EmulatorSystem,
       biosPath: string | null
@@ -716,12 +716,11 @@ declare global {
       folderId: string,
       scanSubfolders: boolean
     ) => Promise<RetroArchConfig>;
-    startRomScan: (
+    previewRomFolder: (
       system: EmulatorSystem,
       folderPath: string,
       scanSubfolders: boolean
-    ) => Promise<{ requestId: string }>;
-    cancelRomScan: (requestId: string) => Promise<void>;
+    ) => Promise<{ fileCount: number; sizeBytes: number }>;
     getEmulatorRomPaths: (system: EmulatorSystem) => Promise<string[]>;
     addEmulatorRomPath: (
       system: EmulatorSystem,
@@ -736,21 +735,6 @@ declare global {
     checkEmulatorExecutable: (
       system: EmulatorSystem
     ) => Promise<{ exists: boolean }>;
-    onRomScanProgress: (
-      requestId: string,
-      cb: (
-        payload:
-          | {
-              type: "progress";
-              processed: number;
-              total: number;
-              currentFile: string | null;
-            }
-          | { type: "done"; fileCount: number; sizeBytes: number }
-          | { type: "cancelled"; fileCount: number; sizeBytes: number }
-          | { type: "error"; message: string }
-      ) => void
-    ) => () => Electron.IpcRenderer;
     importLaunchboxRoms: (
       system: EmulatorSystem,
       folders: { path: string; scanSubfolders: boolean }[],
@@ -800,6 +784,10 @@ declare global {
       cardFilePath: string,
       folderName: string
     ) => Promise<EmulationCloudSave>;
+    uploadWiiEmulationSave: (
+      dataBinPath: string,
+      objectId: string
+    ) => Promise<EmulationCloudSave>;
     uploadEmulationSavesForCard: (
       platform: EmulationSavePlatform,
       cardFilePath: string
@@ -812,8 +800,12 @@ declare global {
       platform: EmulationSavePlatform,
       objectId?: string | null
     ) => Promise<EmulationCloudSave[]>;
-    getMemcardRestoreTargets: (
+    listLocalEmulationSaves: (
       platform: EmulationSavePlatform
+    ) => Promise<Ps2MemoryCardSaveRecord[]>;
+    getMemcardRestoreTargets: (
+      platform: EmulationSavePlatform,
+      metadata?: EmulationSaveMetadata | Record<string, unknown> | null
     ) => Promise<MemcardRestoreTarget[]>;
     inspectMemcard: (
       platform: EmulationSavePlatform,
@@ -822,7 +814,9 @@ declare global {
     restoreEmulationSave: (
       platform: EmulationSavePlatform,
       saveId: string,
-      targetCardFilePath: string
+      targetCardFilePath: string,
+      metadata?: EmulationSaveMetadata | Record<string, unknown> | null,
+      sourceFileName?: string
     ) => Promise<MemcardRestoreResult>;
     deleteEmulationSave: (saveId: string) => Promise<void>;
     updateEmulationSaveLabel: (
@@ -962,7 +956,7 @@ declare global {
 
     /* Misc */
     openExternal: (src: string) => Promise<void>;
-    openCheckout: () => Promise<void>;
+    openCheckout: (options?: OpenCheckoutOptions) => Promise<void>;
     getCloudIframeUrl: () => Promise<string>;
     getVersion: () => Promise<string>;
     getAppSessionId: () => Promise<string>;
@@ -993,7 +987,7 @@ declare global {
     listDrives: () => Promise<string[]>;
     showItemInFolder: (path: string) => Promise<void>;
     getImageDataUrl: (imageUrl: string) => Promise<string | null>;
-    getProcessedFriendImage: (
+    getProcessedImage: (
       imageUrl: string | null,
       options: { width: number; height: number; preserveAnimation?: boolean }
     ) => Promise<string | null>;
@@ -1150,6 +1144,10 @@ declare global {
     onSyncNotificationCount: (
       cb: (notification: NotificationSync) => void
     ) => () => Electron.IpcRenderer;
+    onCloudGiftResolved: (
+      cb: (giftId: string) => void
+    ) => () => Electron.IpcRenderer;
+    notifyCloudGiftResolved: (giftId: string) => Promise<void>;
     syncFriendRequests: (friendRequestCount: number) => Promise<void>;
 
     /* Notifications */

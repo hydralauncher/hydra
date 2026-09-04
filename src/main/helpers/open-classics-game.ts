@@ -2,7 +2,7 @@ import { existsSync } from "node:fs";
 
 import { gamesSublevel, levelKeys } from "@main/level";
 import { logger, NativeAddon } from "@main/services";
-import type { GameShop, RetroArchPlatform } from "@types";
+import type { EmulatorSystem, GameShop, RetroArchPlatform } from "@types";
 import { launchClassicsGame } from "./launch-classics-game";
 import { launchRetroArchGame } from "./launch-retroarch-game";
 import { platformToRetroArchPlatform } from "./platform-to-retroarch-platform";
@@ -82,7 +82,7 @@ const stopRunningRpcs3 = async (
 const translateLaunchError = (
   error: unknown,
   objectId: string,
-  system: "ps1" | "ps2" | "ps3"
+  system: EmulatorSystem
 ) => {
   const code =
     error && typeof error === "object" && "code" in error ? error.code : null;

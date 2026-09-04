@@ -249,6 +249,7 @@ export interface UserDetails {
   profileImageUrl: string | null;
   backgroundImageUrl: string | null;
   profileVisibility: ProfileVisibility;
+  allowCloudGifts: boolean;
   souvenirsVisibility: ProfileVisibility;
   bio: string;
   workwondersJwt: string;
@@ -335,6 +336,8 @@ export interface UserProfile {
   currentGame: UserProfileCurrentGame | null;
   bio: string;
   hasActiveSubscription: boolean;
+  canReceiveCloudGift: boolean;
+  allowCloudGifts?: boolean;
   karma: number;
   quirks: {
     backupsPerGameLimit: number;
@@ -352,6 +355,12 @@ export interface UpdateProfileRequest {
   backgroundImageUrl?: string | null;
   bio?: string;
   language?: string;
+  allowCloudGifts?: boolean;
+}
+
+export interface OpenCheckoutOptions {
+  path?: "/" | "/gift" | `/gifts/${string}`;
+  recipientId?: string;
 }
 
 export interface DownloadSourceDownload {
@@ -382,6 +391,7 @@ export interface GameReviewAnswer {
     id: string;
     displayName: string;
     profileImageUrl: string | null;
+    backgroundImageUrl?: string | null;
   };
   translations: {
     [key: string]: string;
@@ -407,6 +417,7 @@ export interface GameReview {
     id: string;
     displayName: string;
     profileImageUrl: string | null;
+    backgroundImageUrl?: string | null;
   };
   translations: {
     [key: string]: string;
@@ -533,7 +544,8 @@ export type NotificationType =
   | "SOUVENIR_LIKE"
   | "RETROACHIEVEMENTS_CREDENTIALS_RESTORED"
   | "RETROACHIEVEMENTS_CREDENTIALS_INVALID"
-  | "RETROACHIEVEMENTS_SYNC_FAILED";
+  | "RETROACHIEVEMENTS_SYNC_FAILED"
+  | "CLOUD_GIFT_RECEIVED";
 
 export type LocalNotificationType =
   | "EXTRACTION_COMPLETE"

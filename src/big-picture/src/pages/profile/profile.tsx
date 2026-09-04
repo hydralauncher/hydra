@@ -6,6 +6,7 @@ import {
   ClockIcon,
   EyeClosedIcon,
   GameControllerIcon,
+  GiftIcon,
   HeartIcon,
   ImageIcon,
   ProhibitIcon,
@@ -85,6 +86,7 @@ import {
   PROFILE_HERO_ACTIONS_REGION_ID,
   PROFILE_HERO_EXTERNAL_PRIMARY_ACTION_ID,
   PROFILE_HERO_EXTERNAL_SECONDARY_ACTION_ID,
+  PROFILE_HERO_EXTERNAL_TERTIARY_ACTION_ID,
   PROFILE_HERO_SIGN_OUT_BUTTON_ID,
   PROFILE_ACHIEVEMENTS_REGION_ID,
   PROFILE_FRIENDS_REGION_ID,
@@ -565,8 +567,25 @@ function getExternalProfileActions(
 ): ProfileHeroAction[] {
   if (!profile) return [];
 
+  const giftActions: ProfileHeroAction[] = profile.canReceiveCloudGift
+    ? [
+        {
+          label: "Gift Hydra Cloud",
+          variant: "secondary",
+          icon: <GiftIcon size={20} />,
+          onClick: () => {
+            void globalThis.window.electron.openCheckout({
+              path: "/gift",
+              recipientId: profile.id,
+            });
+          },
+        },
+      ]
+    : [];
+
   if (profile.relation === null) {
     return [
+      ...giftActions,
       {
         label: "Add Friend",
         variant: "secondary",
@@ -581,6 +600,7 @@ function getExternalProfileActions(
 
   if (relation.status === "ACCEPTED") {
     return [
+      ...giftActions,
       {
         label: "Remove Friend",
         variant: "secondary",
@@ -593,6 +613,7 @@ function getExternalProfileActions(
 
   if (relation.BId === profile.id) {
     return [
+      ...giftActions,
       {
         label: "Cancel Request",
         variant: "secondary",
@@ -603,6 +624,7 @@ function getExternalProfileActions(
   }
 
   return [
+    ...giftActions,
     {
       label: "Accept Request",
       variant: "secondary",
@@ -675,6 +697,20 @@ function ProfileHero({
     left: {
       type: "item",
       itemId: PROFILE_HERO_EXTERNAL_PRIMARY_ACTION_ID,
+    },
+    right:
+      externalActions.length > 2
+        ? {
+            type: "item",
+            itemId: PROFILE_HERO_EXTERNAL_TERTIARY_ACTION_ID,
+          }
+        : { type: "block" },
+    ...downNavigation,
+  };
+  const tertiaryNavigationOverrides: FocusOverrides = {
+    left: {
+      type: "item",
+      itemId: PROFILE_HERO_EXTERNAL_SECONDARY_ACTION_ID,
     },
     right: { type: "block" },
     ...downNavigation,
@@ -764,6 +800,7 @@ function ProfileHero({
           signOutNavigationOverrides={signOutNavigationOverrides}
           primaryNavigationOverrides={primaryNavigationOverrides}
           secondaryNavigationOverrides={secondaryNavigationOverrides}
+          tertiaryNavigationOverrides={tertiaryNavigationOverrides}
           onSignOut={onSignOut}
         />
 
@@ -785,6 +822,7 @@ interface ProfileHeroActionsProps {
   signOutNavigationOverrides: FocusOverrides;
   primaryNavigationOverrides: FocusOverrides;
   secondaryNavigationOverrides: FocusOverrides;
+  tertiaryNavigationOverrides: FocusOverrides;
   onSignOut: () => void;
 }
 
@@ -795,6 +833,7 @@ function ProfileHeroActions({
   signOutNavigationOverrides,
   primaryNavigationOverrides,
   secondaryNavigationOverrides,
+  tertiaryNavigationOverrides,
   onSignOut,
 }: Readonly<ProfileHeroActionsProps>) {
   if (profileUser?.isOwnProfile) {
@@ -825,6 +864,7 @@ function ProfileHeroActions({
     >
       {externalActions.map((action, index) => {
         const isPrimary = index === 0;
+        const isSecondary = index === 1;
 
         return (
           <Button
@@ -834,12 +874,16 @@ function ProfileHeroActions({
             focusId={
               isPrimary
                 ? PROFILE_HERO_EXTERNAL_PRIMARY_ACTION_ID
-                : PROFILE_HERO_EXTERNAL_SECONDARY_ACTION_ID
+                : isSecondary
+                  ? PROFILE_HERO_EXTERNAL_SECONDARY_ACTION_ID
+                  : PROFILE_HERO_EXTERNAL_TERTIARY_ACTION_ID
             }
             focusNavigationOverrides={
               isPrimary
                 ? primaryNavigationOverrides
-                : secondaryNavigationOverrides
+                : isSecondary
+                  ? secondaryNavigationOverrides
+                  : tertiaryNavigationOverrides
             }
             loading={isPerformingAction}
             onClick={action.onClick}
