@@ -1547,7 +1547,10 @@
     "big_picture_enable_sounds": "Включить звуки Big Picture",
     "big_picture_enable_virtual_keyboard": "Включить виртуальную клавиатуру",
     "big_picture_enable_diagnostics": "Включить диагностику",
-    "big_picture_diagnostics_position": "Положение диагностики"
+    "big_picture_diagnostics_position": "Положение диагностики",
+    "cloud_gifts": "Подарки Hydra Cloud",
+    "allow_cloud_gifts": "Разрешить другим пользователям дарить мне Hydra Cloud",
+    "allow_cloud_gifts_description": "Если отключить эту настройку, вы не сможете получать новые подарки. Уже полученные подарки останутся без изменений."
   },
   "notifications": {
     "download_complete": "Загрузка завершена",
@@ -1738,7 +1741,8 @@
     "user_reviews": "Отзывы",
     "delete_review": "Удалить отзыв",
     "loading_reviews": "Загрузка отзывов...",
-    "wrapped_2025": "Wrapped 2025"
+    "wrapped_2025": "Wrapped 2025",
+    "gift_cloud": "Подарить Hydra Cloud"
   },
   "library": {
     "library": "Библиотека",
@@ -1899,7 +1903,15 @@
     "failed_to_load": "Не удалось загрузить уведомления",
     "failed_to_dismiss": "Не удалось отклонить уведомление",
     "friend_request_accepted": "Запрос в друзья принят",
-    "friend_request_refused": "Запрос в друзья отклонен"
+    "friend_request_refused": "Запрос в друзья отклонен",
+    "cloud_gift_received_title": "Вам подарили Hydra Cloud",
+    "cloud_gift_received_title_one": "Вам подарили Hydra Cloud на {{count}} месяц",
+    "cloud_gift_received_title_few": "Вам подарили Hydra Cloud на {{count}} месяца",
+    "cloud_gift_received_title_many": "Вам подарили Hydra Cloud на {{count}} месяцев",
+    "cloud_gift_received_title_other": "Вам подарили Hydra Cloud на {{count}} мес.",
+    "cloud_gift_received_description": "Вы получили подарок от {{displayName}}. Откройте его, чтобы принять или отклонить.",
+    "cloud_gift_launcher_accept": "Принять подарок",
+    "cloud_gift_launcher_decide_later": "Решить позже"
   },
   "friends_window": {
     "title": "Друзья",
