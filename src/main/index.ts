@@ -290,6 +290,11 @@ const handleDeepLinkPath = (uri?: string) => {
       return;
     }
 
+    if (url.host === "bigpicture") {
+      WindowManager.openBigPictureWindow();
+      return;
+    }
+
     if (url.host === "install-source") {
       WindowManager.redirect(`settings${url.search}`);
       return;
