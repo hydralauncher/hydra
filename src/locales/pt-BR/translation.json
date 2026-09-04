@@ -1973,6 +1973,8 @@
     "sort_title": "Título",
     "sort_title_asc": "Título (A-Z)",
     "sort_title_desc": "Título (Z-A)",
+    "sort_release_date": "Data de Lançamento",
+    "sort_new_updates": "Novas Atualizações",
     "sort_most_played": "Mais jogados",
     "sort_achievements": "Conquistas",
     "sort_installed_first": "Instalados primeiro",

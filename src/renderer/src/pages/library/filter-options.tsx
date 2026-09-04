@@ -8,7 +8,9 @@ export type SortOption =
   | "most_played"
   | "achievements"
   | "installed_first"
-  | "title_desc";
+  | "title_desc"
+  | "release_date"
+  | "new_updates";
 
 interface FilterOptionsProps {
   sortBy: SortOption;
@@ -35,6 +37,8 @@ export function FilterOptions({
           { value: "achievements", label: t("sort_achievements") },
           { value: "installed_first", label: t("sort_installed_first") },
           { value: "title_desc", label: t("sort_title_desc") },
+          { value: "release_date", label: t("sort_release_date") },
+          { value: "new_updates", label: t("sort_new_updates") },
         ]}
       />
     </div>

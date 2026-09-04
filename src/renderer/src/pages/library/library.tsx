@@ -66,6 +66,8 @@ const SORT_OPTIONS: SortOption[] = [
   "achievements",
   "installed_first",
   "title_desc",
+  "release_date",
+  "new_updates",
 ];
 
 export default function Library() {
@@ -237,6 +239,15 @@ export default function Library() {
     setSortBy(nextSortBy);
     localStorage.setItem("library-sort-by", nextSortBy);
   }, []);
+
+  useEffect(() => {
+    if (sortBy === "release_date") {
+      window.electron.refreshLibraryReleaseDates?.().catch(() => {});
+    } else if (sortBy === "new_updates") {
+      window.electron.refreshLibraryUpdateDates?.().catch(() => {});
+      window.electron.checkForNewUpdates?.().catch(() => {});
+    }
+  }, [sortBy]);
 
   useEffect(() => {
     dispatch(setHeaderTitle(t("library")));
