@@ -1,35 +1,50 @@
 import { promises as fs } from "node:fs";
 import path from "node:path";
+import { readDolphinDiscHeader } from "./dolphin-disc-reader.js";
 
 const SNIFF_BYTES = 16 * 1024 * 1024;
 
-export type DiscPlatform = "ps1" | "ps2" | "ps3" | "unknown";
+type DiscPlatform = "ps1" | "ps2" | "ps3" | "gamecube" | "wii" | "unknown";
 
 const BOOT2_RE = /BOOT2\s*=/;
 const BOOT_RE = /BOOT\s*=/;
 const PS3_MARKERS = ["PS3_GAME", "PS3_DISC.SFB", "PARAM.SFO", "EBOOT.BIN"];
 
+const classifyDolphinHeader = (data: Buffer): DiscPlatform => {
+  if (data.length < 0x20) return "unknown";
+  if (data.readUInt32BE(0x18) === 0x5d1c9ea3) return "wii";
+  if (data.readUInt32BE(0x1c) === 0xc2339f3d) return "gamecube";
+  return "unknown";
+};
+
+const classifyPlayStationData = (data: Buffer): DiscPlatform => {
+  const text = data.toString("latin1");
+  const ps3Hits = PS3_MARKERS.reduce(
+    (hits, marker) => hits + Number(text.includes(marker)),
+    0
+  );
+
+  if (ps3Hits >= 2) return "ps3";
+  if (BOOT2_RE.test(text)) return "ps2";
+  if (BOOT_RE.test(text)) return "ps1";
+  return ps3Hits === 1 ? "ps3" : "unknown";
+};
+
 export const sniffDiscImage = async (
   filePath: string
 ): Promise<DiscPlatform> => {
+  const dolphinHeader = await readDolphinDiscHeader(filePath);
+  const dolphinPlatform = dolphinHeader
+    ? classifyDolphinHeader(dolphinHeader)
+    : "unknown";
+  if (dolphinPlatform !== "unknown") return dolphinPlatform;
+
   let fh: import("node:fs/promises").FileHandle | null = null;
   try {
     fh = await fs.open(filePath, "r");
     const buffer = Buffer.alloc(SNIFF_BYTES);
     const { bytesRead } = await fh.read(buffer, 0, SNIFF_BYTES, 0);
-    const text = buffer.subarray(0, bytesRead).toString("latin1");
-
-    let ps3Hits = 0;
-    for (const marker of PS3_MARKERS) {
-      if (text.includes(marker)) ps3Hits += 1;
-    }
-    if (ps3Hits >= 2) return "ps3";
-
-    if (BOOT2_RE.test(text)) return "ps2";
-    if (BOOT_RE.test(text)) return "ps1";
-
-    if (ps3Hits >= 1) return "ps3";
-    return "unknown";
+    return classifyPlayStationData(buffer.subarray(0, bytesRead));
   } catch {
     return "unknown";
   } finally {
@@ -112,7 +127,11 @@ export const resolveSniffTarget = async (
     lower.endsWith(".iso") ||
     lower.endsWith(".img") ||
     lower.endsWith(".bin") ||
-    lower.endsWith(".mdf")
+    lower.endsWith(".mdf") ||
+    lower.endsWith(".gcm") ||
+    lower.endsWith(".rvz") ||
+    lower.endsWith(".wia") ||
+    lower.endsWith(".tgc")
   ) {
     return filePath;
   }

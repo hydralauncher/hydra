@@ -42,6 +42,8 @@ import { SouvenirReportModal } from "./souvenir-report-modal";
 
 import "./souvenir-lightbox.scss";
 
+const LIKE_ANIMATION_DURATION_MS = 400;
+
 interface SouvenirLightboxProps {
   souvenir: ProfileSouvenir | null;
   items: ProfileSouvenir[];
@@ -257,23 +259,25 @@ function SouvenirSummary({
 
         <div className="profile-souvenir-lightbox__meta">
           <span className="profile-souvenir-lightbox__game">
-            <span className="profile-souvenir-lightbox__game-icon">
-              {hasGameIcon ? (
-                <img
-                  src={souvenir.gameIconUrl ?? undefined}
-                  alt=""
-                  onError={() => setFailedGameIconUrl(souvenir.gameIconUrl)}
-                />
-              ) : (
-                <ImageIcon size={14} />
-              )}
-            </span>
             <Link
               className="profile-souvenir-lightbox__game-link"
               to={gamePath}
               onClick={onGameClick}
             >
-              {gameTitle}
+              <span className="profile-souvenir-lightbox__game-icon">
+                {hasGameIcon ? (
+                  <img
+                    src={souvenir.gameIconUrl ?? undefined}
+                    alt=""
+                    onError={() => setFailedGameIconUrl(souvenir.gameIconUrl)}
+                  />
+                ) : (
+                  <ImageIcon size={14} />
+                )}
+              </span>
+              <span className="profile-souvenir-lightbox__game-name">
+                {gameTitle}
+              </span>
             </Link>
           </span>
 
@@ -358,6 +362,7 @@ function SouvenirActions({
   onRequestReport,
 }: Readonly<SouvenirActionsProps>) {
   const { t } = useTranslation("user_profile");
+  const [isLikeAnimating, setIsLikeAnimating] = useState(false);
   const isPrivate = souvenir.visibility === "PRIVATE";
   const visibilityTitleKey = isPrivate
     ? "show_souvenir_on_profile"
@@ -365,27 +370,56 @@ function SouvenirActions({
   const visibilityLabelKey = isPrivate ? "show_souvenir" : "hide_souvenir";
   const LikeIcon = souvenir.likedByMe ? HeartFillIcon : HeartIcon;
   const VisibilityIcon = isPrivate ? EyeClosedIcon : EyeIcon;
+  const isLikeDisabled = isLiking || isLikeAnimating;
   const likeButtonClassName = [
     "profile-souvenir-lightbox__action",
     souvenir.likedByMe ? "profile-souvenir-lightbox__action--active" : "",
-    isLiking ? "profile-souvenir-lightbox__action--pending" : "",
   ]
     .filter(Boolean)
     .join(" ");
 
+  useEffect(() => {
+    if (!isLikeAnimating) return;
+
+    const timeoutId = window.setTimeout(
+      () => setIsLikeAnimating(false),
+      LIKE_ANIMATION_DURATION_MS
+    );
+
+    return () => window.clearTimeout(timeoutId);
+  }, [isLikeAnimating]);
+
+  const handleLikeClick = () => {
+    if (isLikeDisabled) return;
+    setIsLikeAnimating(true);
+    onLike(souvenir);
+  };
+
   return (
     <div className="profile-souvenir-lightbox__actions">
-      <button
+      <motion.button
         type="button"
         className={likeButtonClassName}
-        onClick={() => onLike(souvenir)}
-        disabled={isLiking}
+        onClick={handleLikeClick}
+        disabled={isLikeDisabled}
         title={canLike ? t("like_souvenir") : t("sign_in_to_like_souvenir")}
         aria-pressed={souvenir.likedByMe}
+        whileHover={{ scale: 1.05 }}
+        whileTap={{ scale: 0.95 }}
       >
         <LikeIcon size={16} />
-        <span>{souvenir.likeCount}</span>
-      </button>
+        <AnimatePresence mode="wait">
+          <motion.span
+            key={souvenir.likeCount}
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 10 }}
+            transition={{ duration: 0.2 }}
+          >
+            {souvenir.likeCount}
+          </motion.span>
+        </AnimatePresence>
+      </motion.button>
 
       {isOwner ? (
         <>

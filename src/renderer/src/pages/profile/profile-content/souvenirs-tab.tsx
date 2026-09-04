@@ -38,7 +38,13 @@ import {
   shouldShowSouvenirContentWarning,
 } from "@shared";
 import InfiniteScroll from "react-infinite-scroll-component";
-import { Button } from "@renderer/components";
+import { Button, Link } from "@renderer/components";
+import {
+  buildGameDetailsPath,
+  readStoredSouvenirGrouping,
+  readStoredSouvenirSort,
+  type SouvenirGrouping,
+} from "@renderer/helpers";
 import HydraIcon from "@renderer/assets/icons/hydra.svg?react";
 import { useSubscription } from "@renderer/hooks/use-subscription";
 import { LockedProfile } from "./locked-profile";
@@ -60,7 +66,6 @@ const getSouvenirCardClassName = (
     ? `profile-content__souvenir profile-content__souvenir--${visualVariant}`
     : "profile-content__souvenir";
 
-type SouvenirGrouping = "game" | "none";
 interface SouvenirCardProps {
   achievement: ProfileSouvenir;
   isLiking: boolean;
@@ -94,6 +99,9 @@ function SouvenirCard({
   const [failedAchievementIconUrl, setFailedAchievementIconUrl] = useState<
     string | null
   >(null);
+  const [failedGameIconUrl, setFailedGameIconUrl] = useState<string | null>(
+    null
+  );
   const [isLikeAnimating, setIsLikeAnimating] = useState(false);
   const hasThumbnail = Boolean(
     achievement.imageUrl && achievement.imageUrl !== failedThumbnailUrl
@@ -101,6 +109,9 @@ function SouvenirCard({
   const hasAchievementIcon = Boolean(
     primaryAchievement.achievementIcon &&
       primaryAchievement.achievementIcon !== failedAchievementIconUrl
+  );
+  const hasGameIcon = Boolean(
+    achievement.gameIconUrl && achievement.gameIconUrl !== failedGameIconUrl
   );
   const shouldBlurThumbnail = shouldShowSouvenirContentWarning(
     achievement,
@@ -224,15 +235,44 @@ function SouvenirCard({
             ) : null}
           </span>
           <small className="profile-content__souvenir-unlock-time">
-            {showGame
-              ? (achievement.gameTitle ?? t("unknown_game"))
-              : formatDistance(
-                  new Date(primaryAchievement.unlockTime),
-                  new Date(),
-                  {
-                    addSuffix: true,
-                  }
-                )}
+            {showGame ? (
+              <Link
+                className="profile-content__souvenir-game-link"
+                to={buildGameDetailsPath({
+                  shop: achievement.shop,
+                  objectId: achievement.objectId,
+                  title: achievement.gameTitle ?? t("unknown_game"),
+                })}
+              >
+                <span className="profile-content__souvenir-game-icon">
+                  {hasGameIcon ? (
+                    <img
+                      className="profile-content__souvenir-game-icon-image"
+                      src={achievement.gameIconUrl ?? undefined}
+                      alt=""
+                      loading="lazy"
+                      onError={() =>
+                        setFailedGameIconUrl(achievement.gameIconUrl)
+                      }
+                    />
+                  ) : (
+                    <ImageIcon size={12} />
+                  )}
+                </span>
+
+                <span className="profile-content__souvenir-game-name">
+                  {achievement.gameTitle ?? t("unknown_game")}
+                </span>
+              </Link>
+            ) : (
+              formatDistance(
+                new Date(primaryAchievement.unlockTime),
+                new Date(),
+                {
+                  addSuffix: true,
+                }
+              )
+            )}
           </small>
         </div>
       </div>
@@ -265,38 +305,42 @@ function SouvenirGameGroup({
 
   const [{ gameTitle, gameIconUrl }] = achievements;
   const hasGameIcon = Boolean(gameIconUrl && gameIconUrl !== failedGameIconUrl);
+  const resolvedGameTitle = gameTitle ?? t("unknown_game");
 
   return (
     <div className="profile-content__souvenirs-group">
-      <button
-        type="button"
-        className="profile-content__souvenirs-group-header"
-        onClick={() => setIsExpanded(!isExpanded)}
-      >
-        {isExpanded ? <ChevronDownIcon /> : <ChevronRightIcon />}
+      <div className="profile-content__souvenirs-group-header">
+        <button
+          type="button"
+          className="profile-content__souvenirs-group-toggle"
+          onClick={() => setIsExpanded(!isExpanded)}
+          aria-expanded={isExpanded}
+        >
+          {isExpanded ? <ChevronDownIcon /> : <ChevronRightIcon />}
 
-        <span className="profile-content__souvenirs-group-icon">
-          {hasGameIcon ? (
-            <img
-              className="profile-content__souvenirs-group-icon-image"
-              src={gameIconUrl ?? undefined}
-              alt=""
-              loading="lazy"
-              onError={() => setFailedGameIconUrl(gameIconUrl)}
-            />
-          ) : (
-            <ImageIcon size={14} />
-          )}
-        </span>
+          <span className="profile-content__souvenirs-group-icon">
+            {hasGameIcon ? (
+              <img
+                className="profile-content__souvenirs-group-icon-image"
+                src={gameIconUrl ?? undefined}
+                alt=""
+                loading="lazy"
+                onError={() => setFailedGameIconUrl(gameIconUrl)}
+              />
+            ) : (
+              <ImageIcon size={14} />
+            )}
+          </span>
 
-        <h3 className="profile-content__souvenirs-group-title">
-          {gameTitle ?? t("unknown_game")}
-        </h3>
+          <span className="profile-content__souvenirs-group-title">
+            {resolvedGameTitle}
+          </span>
+        </button>
 
         <span className="profile-content__souvenirs-group-count">
           {achievements.length}
         </span>
-      </button>
+      </div>
 
       {isExpanded && (
         <ul className="profile-content__souvenirs-grid">
@@ -408,6 +452,7 @@ function SouvenirsEmptyState({
 
 interface SouvenirsTabProps {
   achievements: ProfileSouvenir[];
+  hasReachedLimit: boolean;
   hiddenReason: SouvenirsHiddenReason;
   canLike: boolean;
   disableNsfwAlert: boolean;
@@ -428,6 +473,7 @@ interface SouvenirsTabProps {
 
 export function SouvenirsTab({
   achievements,
+  hasReachedLimit,
   hiddenReason,
   canLike,
   disableNsfwAlert,
@@ -447,8 +493,10 @@ export function SouvenirsTab({
 }: Readonly<SouvenirsTabProps>) {
   const { t } = useTranslation("user_profile");
   const { t: tSettings } = useTranslation("settings");
-  const [grouping, setGrouping] = useState<SouvenirGrouping>("none");
-  const [sortBy, setSortBy] = useState<SouvenirSort>("recent");
+  const [grouping, setGrouping] = useState<SouvenirGrouping>(
+    readStoredSouvenirGrouping
+  );
+  const [sortBy, setSortBy] = useState<SouvenirSort>(readStoredSouvenirSort);
   const [isPrivacyNoticeVisible, setIsPrivacyNoticeVisible] = useState(false);
   const [syncStatus, setSyncStatus] = useState<AchievementSouvenirSyncStatus>({
     pendingCount: 0,
@@ -676,11 +724,11 @@ export function SouvenirsTab({
       transition={{ duration: 0.2 }}
     >
       {isMe && isPrivacyNoticeVisible ? (
-        <aside className="profile-content__souvenirs-privacy-notice">
-          <span className="profile-content__souvenirs-privacy-notice-icon">
+        <aside className="profile-content__souvenirs-notice">
+          <span className="profile-content__souvenirs-notice-icon">
             <PrivacyIcon size={18} />
           </span>
-          <div className="profile-content__souvenirs-privacy-notice-copy">
+          <div className="profile-content__souvenirs-notice-copy">
             <strong>{privacyNotice.title}</strong>
             <span>{privacyNotice.description}</span>
           </div>
@@ -693,6 +741,18 @@ export function SouvenirsTab({
           >
             <XIcon size={16} />
           </button>
+        </aside>
+      ) : null}
+
+      {isMe && hasReachedLimit ? (
+        <aside className="profile-content__souvenirs-notice">
+          <span className="profile-content__souvenirs-notice-icon">
+            <AlertIcon size={18} />
+          </span>
+          <div className="profile-content__souvenirs-notice-copy">
+            <strong>{t("souvenir_limit_reached_title")}</strong>
+            <span>{t("souvenir_limit_reached_description")}</span>
+          </div>
         </aside>
       ) : null}
 
@@ -759,7 +819,10 @@ export function SouvenirsTab({
               placeholder={t("group_by")}
               value={grouping}
               options={groupingOptions}
-              onChange={setGrouping}
+              onChange={(value) => {
+                setGrouping(value);
+                localStorage.setItem("profile-souvenir-grouping", value);
+              }}
             />
 
             <FilterDropdown
@@ -768,6 +831,7 @@ export function SouvenirsTab({
               options={sortOptions}
               onChange={(value) => {
                 setSortBy(value);
+                localStorage.setItem("profile-souvenir-sort-by", value);
                 void onReload(value);
               }}
             />

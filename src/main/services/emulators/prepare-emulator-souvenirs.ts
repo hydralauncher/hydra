@@ -4,6 +4,8 @@ import { isAchievementSouvenirsEnabled } from "@shared";
 import { db, levelKeys } from "@main/level";
 import { HydraApi } from "../hydra-api";
 import {
+  createDolphinSouvenirSession,
+  createPPSSPPSouvenirSession,
   createRetroArchSouvenirSession,
   enableDuckStationFileLogging,
 } from "./emulator-souvenir-config";
@@ -34,7 +36,17 @@ export const prepareEmulatorSouvenirs = async (
     return null;
   }
 
-  if (system === "ps2" || system === "ps3") return null;
+  if (system === "ps2" || system === "ps3") {
+    return null;
+  }
+
+  if (system === "psp" && executablePath) {
+    return createPPSSPPSouvenirSession(executablePath);
+  }
+
+  if (system === "dolphin" && executablePath) {
+    return createDolphinSouvenirSession(executablePath);
+  }
 
   if (executablePath) {
     return createRetroArchSouvenirSession();

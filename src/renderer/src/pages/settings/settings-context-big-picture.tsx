@@ -4,7 +4,22 @@ import { useTranslation } from "react-i18next";
 import { CheckboxField, SelectField } from "@renderer/components";
 import { settingsContext } from "@renderer/context";
 import { useAppSelector } from "@renderer/hooks";
-import type { BigPictureDiagnosticsPosition } from "@types";
+import type { BigPictureDiagnosticsPosition, UserPreferences } from "@types";
+
+const buildForm = (preferences: UserPreferences | null) => ({
+  launchInBigPicture: preferences?.launchInBigPicture ?? false,
+  bigPictureLaunchToLibraryPage:
+    preferences?.bigPictureLaunchToLibraryPage ??
+    preferences?.launchToLibraryPage ??
+    false,
+  bigPictureSoundsEnabled: preferences?.bigPictureSoundsEnabled ?? true,
+  bigPictureVirtualKeyboardEnabled:
+    preferences?.bigPictureVirtualKeyboardEnabled ?? true,
+  bigPictureDiagnosticsEnabled:
+    preferences?.bigPictureDiagnosticsEnabled ?? false,
+  bigPictureDiagnosticsPosition: (preferences?.bigPictureDiagnosticsPosition ??
+    "bottom-center") as BigPictureDiagnosticsPosition,
+});
 
 export function SettingsContextBigPicture() {
   const { t } = useTranslation("settings");
@@ -14,28 +29,12 @@ export function SettingsContextBigPicture() {
     (state) => state.userPreferences.value
   );
 
-  const [form, setForm] = useState({
-    launchInBigPicture: false,
-    bigPictureSoundsEnabled: true,
-    bigPictureVirtualKeyboardEnabled: true,
-    bigPictureDiagnosticsEnabled: false,
-    bigPictureDiagnosticsPosition:
-      "bottom-center" as BigPictureDiagnosticsPosition,
-  });
+  const [form, setForm] = useState(() => buildForm(userPreferences));
 
   useEffect(() => {
     if (!userPreferences) return;
 
-    setForm({
-      launchInBigPicture: userPreferences.launchInBigPicture ?? false,
-      bigPictureSoundsEnabled: userPreferences.bigPictureSoundsEnabled ?? true,
-      bigPictureVirtualKeyboardEnabled:
-        userPreferences.bigPictureVirtualKeyboardEnabled ?? true,
-      bigPictureDiagnosticsEnabled:
-        userPreferences.bigPictureDiagnosticsEnabled ?? false,
-      bigPictureDiagnosticsPosition:
-        userPreferences.bigPictureDiagnosticsPosition ?? "bottom-center",
-    });
+    setForm(buildForm(userPreferences));
   }, [userPreferences]);
 
   const handleChange = (values: Partial<typeof form>) => {
@@ -73,6 +72,17 @@ export function SettingsContextBigPicture() {
           onChange={() =>
             handleChange({
               launchInBigPicture: !form.launchInBigPicture,
+            })
+          }
+        />
+
+        <CheckboxField
+          label={t("launch_big_picture_in_library_page")}
+          checked={form.bigPictureLaunchToLibraryPage}
+          onChange={() =>
+            handleChange({
+              bigPictureLaunchToLibraryPage:
+                !form.bigPictureLaunchToLibraryPage,
             })
           }
         />
