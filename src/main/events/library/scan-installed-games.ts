@@ -28,9 +28,19 @@ import type { Game, GameShop } from "@types";
 const SCAN_DIRECTORIES = [
   String.raw`C:\Games`,
   String.raw`D:\Games`,
+  String.raw`E:\Games`,
+  String.raw`F:\Games`,
+  String.raw`G:\Games`,
+  String.raw`H:\Games`,
+  String.raw`I:\Games`,
   String.raw`C:\Program Files (x86)\Steam\steamapps\common`,
   String.raw`C:\Program Files\Steam\steamapps\common`,
   String.raw`D:\SteamLibrary\steamapps\common`,
+  String.raw`E:\SteamLibrary\steamapps\common`,
+  String.raw`F:\SteamLibrary\steamapps\common`,
+  String.raw`G:\SteamLibrary\steamapps\common`,
+  String.raw`H:\SteamLibrary\steamapps\common`,
+  String.raw`I:\SteamLibrary\steamapps\common`,
 ];
 
 const DISCOVERED_GAMES_SHOP: GameShop = "steam";
