@@ -290,6 +290,11 @@ const handleDeepLinkPath = (uri?: string) => {
       return;
     }
 
+    if (url.host === "bigpicture") {
+      WindowManager.openBigPictureWindow();
+      return;
+    }
+
     if (url.host === "install-source") {
       WindowManager.redirect(`settings${url.search}`);
       return;
@@ -327,10 +332,12 @@ app.on("second-instance", (_event, commandLine) => {
   );
   const forceBigPicture = commandLine.includes("--big-picture");
 
-  // Check if this is a "run" deep link - don't show main window in that case
   const isRunDeepLink = deepLink?.startsWith("hydralauncher://run");
+  const isBigPictureDeepLink = deepLink?.startsWith(
+    "hydralauncher://bigpicture"
+  );
 
-  if (!isRunDeepLink) {
+  if (!isRunDeepLink && !isBigPictureDeepLink) {
     if (WindowManager.mainWindow) {
       if (WindowManager.mainWindow.isMinimized())
         WindowManager.mainWindow.restore();
