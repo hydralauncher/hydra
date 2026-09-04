@@ -5,6 +5,7 @@ import {
   ClockIcon,
   StarFillIcon,
   CommentDiscussionIcon,
+  GiftIcon,
 } from "@primer/octicons-react";
 import retroAchievementsLogo from "@renderer/assets/icons/retroachievements.png";
 import { useTranslation } from "react-i18next";
@@ -14,6 +15,7 @@ import { useDate, useUserDetails } from "@renderer/hooks";
 import cn from "classnames";
 
 import type { Notification, Badge } from "@types";
+import { openCloudGiftModal } from "../shared-modals/cloud-gift-modal.events";
 import "./notification-item.scss";
 
 const parseNotificationUrl = (notificationUrl: string): string => {
@@ -78,6 +80,14 @@ export function NotificationItem({
   const handleClick = useCallback(() => {
     if (!notification.isRead) {
       onMarkAsRead(notification.id);
+    }
+
+    if (
+      notification.type === "CLOUD_GIFT_RECEIVED" &&
+      notification.variables.giftId
+    ) {
+      openCloudGiftModal(notification);
+      return;
     }
 
     if (notification.url) {
@@ -199,6 +209,19 @@ export function NotificationItem({
           }),
           showActions: false,
         };
+      case "CLOUD_GIFT_RECEIVED": {
+        const durationMonths = Number(notification.variables.durationMonths);
+
+        return {
+          title: Number.isFinite(durationMonths)
+            ? t("cloud_gift_received_title", { count: durationMonths })
+            : t("cloud_gift_received_title"),
+          description: t("cloud_gift_received_description", {
+            displayName: notification.variables.buyerDisplayName,
+          }),
+          showActions: false,
+        };
+      }
       default:
         return {
           title: t("notification"),
@@ -232,6 +255,9 @@ export function NotificationItem({
     }
     if (isReviewAnswer) {
       return <CommentDiscussionIcon size={24} />;
+    }
+    if (notification.type === "CLOUD_GIFT_RECEIVED") {
+      return <GiftIcon size={24} />;
     }
     return <PersonIcon size={24} />;
   };

@@ -1505,7 +1505,10 @@
     "big_picture_enable_sounds": "Activar sonidos de Big Picture",
     "big_picture_enable_virtual_keyboard": "Activar teclado virtual",
     "big_picture_enable_diagnostics": "Activar diagnóstico de navegación",
-    "big_picture_diagnostics_position": "Posición del diagnóstico"
+    "big_picture_diagnostics_position": "Posición del diagnóstico",
+    "cloud_gifts": "Regalos de Hydra Cloud",
+    "allow_cloud_gifts": "Permitir que otros usuarios me regalen Hydra Cloud",
+    "allow_cloud_gifts_description": "Al desactivar esta opción, no podrás recibir nuevos regalos. Los regalos que ya recibiste no se verán afectados."
   },
   "notifications": {
     "download_complete": "Descarga completada",
@@ -1684,7 +1687,8 @@
     "platform": "Plataformas",
     "platform_all": "Todas",
     "platform_pc": "PC",
-    "platform_classics": "Clásicos"
+    "platform_classics": "Clásicos",
+    "gift_cloud": "Regalar Hydra Cloud"
   },
   "achievement": {
     "achievement_unlocked": "Logro desbloqueado",
@@ -1817,7 +1821,13 @@
     "failed_to_load": "Error al cargar las notificaciones",
     "failed_to_dismiss": "Error al descartar la notificación",
     "friend_request_accepted": "Solicitud de amistad aceptada",
-    "friend_request_refused": "Solicitud de amistad rechazada"
+    "friend_request_refused": "Solicitud de amistad rechazada",
+    "cloud_gift_received_title": "Has recibido Hydra Cloud",
+    "cloud_gift_received_title_one": "Has recibido {{count}} mes de Hydra Cloud",
+    "cloud_gift_received_title_other": "Has recibido {{count}} meses de Hydra Cloud",
+    "cloud_gift_received_description": "{{displayName}} te envió un regalo. Ábrelo para aceptarlo o rechazarlo.",
+    "cloud_gift_launcher_accept": "Aceptar regalo",
+    "cloud_gift_launcher_decide_later": "Decidir más tarde"
   },
   "game_launcher": {
     "launching": "Iniciando...",
