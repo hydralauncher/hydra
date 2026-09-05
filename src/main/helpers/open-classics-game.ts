@@ -1,6 +1,13 @@
 import { existsSync } from "node:fs";
 
 import { gamesSublevel, levelKeys } from "@main/level";
+import {
+  DisplayManager,
+  logger,
+  NativeAddon,
+  WindowManager,
+} from "@main/services";
+import type { GameShop, LaunchSource, RetroArchPlatform } from "@types";
 import { logger, NativeAddon } from "@main/services";
 import type { EmulatorSystem, GameShop, RetroArchPlatform } from "@types";
 import { launchClassicsGame } from "./launch-classics-game";
@@ -136,12 +143,18 @@ const launchRetroArchWithErrors = async (
   shop: GameShop,
   objectId: string,
   romPath: string,
-  platform: RetroArchPlatform
+  platform: RetroArchPlatform,
+  launchSource: LaunchSource
 ): Promise<void> => {
   const code = (error: unknown) =>
     error && typeof error === "object" && "code" in error ? error.code : null;
 
   try {
+    if (launchSource === "big-picture") {
+      await DisplayManager.prepareBigPictureDisplayForLaunch();
+      await WindowManager.reapplyBigPictureUiScalePreference();
+    }
+
     await launchRetroArchGame({ shop, objectId, romPath, platform });
   } catch (error) {
     if (code(error) === "RETROARCH_NOT_CONFIGURED") {
@@ -175,7 +188,8 @@ export const openClassicsGame = async (
   shop: GameShop,
   objectId: string,
   discPath?: string,
-  force?: boolean
+  force?: boolean,
+  launchSource: LaunchSource = "default"
 ) => {
   if (shop !== "launchbox") {
     throw new Error("openClassicsGame called for non-launchbox shop");
@@ -201,7 +215,8 @@ export const openClassicsGame = async (
       shop,
       objectId,
       resolvedRomPath,
-      retroArchPlatform
+      retroArchPlatform,
+      launchSource
     );
     return;
   }
@@ -233,6 +248,7 @@ export const openClassicsGame = async (
       objectId,
       discPath: resolvedDiscPath,
       system,
+      launchSource,
     });
   } catch (error) {
     throw translateLaunchError(error, objectId, system);
