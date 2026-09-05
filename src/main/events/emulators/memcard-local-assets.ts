@@ -8,7 +8,7 @@ import { gamesShopAssetsSublevel, gamesShopCacheSublevel } from "@main/level";
  * The remote shop-details endpoint occasionally misses a serial the user has
  * already imported (its art is cached locally from a prior ROM scan), so memory
  * card scans fall back to this index before marking a save unmatched. Shared by
- * the PS1 and PS2 scanners. Lives in the events layer because it joins the level
+ * the local save scanners. Lives in the events layer because it joins the level
  * sublevels with the emulators service — keeping it out of `@main/services`
  * avoids a services↔level import cycle.
  */
@@ -52,4 +52,22 @@ export const buildLocalLaunchboxAssetIndex = async (): Promise<
     });
   }
   return index;
+};
+
+export const findUniqueLocalAssetBySkuPrefix = (
+  index: Map<string, LaunchboxShopDetailsAssetsResponse>,
+  prefix: string,
+  skuLength: number
+): { sku: string; assets: LaunchboxShopDetailsAssetsResponse } | null => {
+  const candidates = Array.from(index.entries()).filter(
+    ([sku]) => sku.length === skuLength && sku.startsWith(prefix)
+  );
+  if (
+    candidates.length === 0 ||
+    new Set(candidates.map(([, assets]) => assets.objectId)).size !== 1
+  ) {
+    return null;
+  }
+
+  return { sku: candidates[0][0], assets: candidates[0][1] };
 };

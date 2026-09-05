@@ -17,6 +17,7 @@ export const RETROARCH_DETECTABLE: DetectableBinary = {
   displayName: "RetroArch",
   linuxNames: ["retroarch", "RetroArch"],
   windowsNames: ["retroarch.exe"],
+  macosBundleNames: ["RetroArch.app"],
   flatpakIds: ["org.libretro.RetroArch"],
   versionFlags: ["--version"],
 };

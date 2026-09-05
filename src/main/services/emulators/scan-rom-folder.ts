@@ -131,25 +131,63 @@ const safeStatSize = async (p: string): Promise<number | null> => {
 const safeFileSize = async (p: string): Promise<number> =>
   (await safeStatSize(p)) ?? 0;
 
-const computeDirSize = async (root: string): Promise<number> => {
-  let total = 0;
-  let visited = 0;
-  const queue: string[] = [root];
+interface DirectorySizeState {
+  total: number;
+  visited: number;
+  queue: string[];
+}
+
+const addDirectoryEntries = async (
+  directory: string,
+  entries: Dirent[],
+  state: DirectorySizeState,
+  signal?: { cancelled: boolean }
+): Promise<boolean> => {
+  for (const entry of entries) {
+    if (signal?.cancelled) return false;
+    if (state.visited++ > DIR_SIZE_ENTRY_CAP) return true;
+
+    const fullPath = path.join(directory, entry.name);
+    if (entry.isDirectory()) {
+      state.queue.push(fullPath);
+      continue;
+    }
+    if (entry.isFile()) state.total += await safeFileSize(fullPath);
+  }
+
+  return false;
+};
+
+const computeDirSize = async (
+  root: string,
+  signal?: { cancelled: boolean }
+): Promise<number> => {
+  const state: DirectorySizeState = {
+    total: 0,
+    visited: 0,
+    queue: [root],
+  };
   const seen = new Set<string>();
-  for (let dir = queue.shift(); dir !== undefined; dir = queue.shift()) {
-    const real = await safeRealpath(dir);
+  for (
+    let directory = state.queue.shift();
+    directory !== undefined;
+    directory = state.queue.shift()
+  ) {
+    if (signal?.cancelled) break;
+    const real = await safeRealpath(directory);
     if (real === null || seen.has(real)) continue;
     seen.add(real);
-    const entries = await safeReaddirTypes(dir);
+    const entries = await safeReaddirTypes(directory);
     if (!entries) continue;
-    for (const entry of entries) {
-      if (visited++ > DIR_SIZE_ENTRY_CAP) return total;
-      const full = path.join(dir, entry.name);
-      if (entry.isDirectory()) queue.push(full);
-      else if (entry.isFile()) total += await safeFileSize(full);
-    }
+    const reachedEntryCap = await addDirectoryEntries(
+      directory,
+      entries,
+      state,
+      signal
+    );
+    if (reachedEntryCap) return state.total;
   }
-  return total;
+  return state.total;
 };
 
 type GameClassification = "ok" | "wrong-platform" | "skip";
@@ -171,6 +209,19 @@ const classifyForSystem = async (
       return "wrong-platform";
     }
     return ext === ".pkg" || ext === ".elf" || ext === ".self" ? "ok" : "skip";
+  }
+
+  if (system === "psp") return "ok";
+
+  if (system === "dolphin") {
+    if (ext === ".wad" || ext === ".wbfs") return "ok";
+    const target = await resolveSniffTarget(candidate.fullPath);
+    if (!target) return "ok";
+    const detected = await sniffDiscImage(target);
+    if (detected === "unknown") return "ok";
+    return detected === "gamecube" || detected === "wii"
+      ? "ok"
+      : "wrong-platform";
   }
 
   if (!SNIFFABLE_EXTS.has(ext)) return "ok";
@@ -248,6 +299,9 @@ const applyPs3Rules = (group: Candidate[]): GameGroup[] =>
     .filter((f) => PS3_LAUNCHABLE_EXTS.has(extOf(f.name)))
     .map((primary) => ({ primary, sidecars: [] }));
 
+const applySimpleRules = (group: Candidate[]): GameGroup[] =>
+  group.map((primary) => ({ primary, sidecars: [] }));
+
 const dedupGames = (binary: KnownBinary, files: Candidate[]): GameGroup[] => {
   const markerDirs = files.filter((f) => f.isMarkerDir);
   const regular = files.filter((f) => !f.isMarkerDir);
@@ -265,12 +319,24 @@ const dedupGames = (binary: KnownBinary, files: Candidate[]): GameGroup[] => {
     sidecars: [],
   }));
   for (const [, group] of byDir) {
-    if (binary.system === "ps3") {
-      games.push(...applyPs3Rules(group));
-    } else if (binary.system === "ps2") {
-      games.push(...applyPairedRules(group, PS2_PRIMARY_EXTS, PS2_PAIR_RULES));
-    } else {
-      games.push(...applyPairedRules(group, PS1_PRIMARY_EXTS, PS1_PAIR_RULES));
+    switch (binary.system) {
+      case "ps1":
+        games.push(
+          ...applyPairedRules(group, PS1_PRIMARY_EXTS, PS1_PAIR_RULES)
+        );
+        break;
+      case "ps2":
+        games.push(
+          ...applyPairedRules(group, PS2_PRIMARY_EXTS, PS2_PAIR_RULES)
+        );
+        break;
+      case "ps3":
+        games.push(...applyPs3Rules(group));
+        break;
+      case "psp":
+      case "dolphin":
+        games.push(...applySimpleRules(group));
+        break;
     }
   }
   return games;
@@ -287,7 +353,12 @@ const collectEntry = (
   const full = path.join(dir, entry.name);
   if (entry.isDirectory()) {
     if (isDirectoryMarker(entry.name, binary.romDirectoryMarkers)) {
-      candidates.push({ fullPath: full, name: entry.name, isMarkerDir: true });
+      const launchPath = binary.system === "psp" ? dir : full;
+      candidates.push({
+        fullPath: launchPath,
+        name: path.basename(launchPath),
+        isMarkerDir: true,
+      });
     } else if (scanSubfolders) {
       queue.push(full);
     }
@@ -302,13 +373,15 @@ const collectEntry = (
 const collectCandidates = async (
   rootPath: string,
   binary: KnownBinary,
-  scanSubfolders: boolean
+  scanSubfolders: boolean,
+  signal?: { cancelled: boolean }
 ): Promise<Candidate[]> => {
   const candidates: Candidate[] = [];
   const queue: string[] = [rootPath];
   const seen = new Set<string>();
 
   for (let dir = queue.shift(); dir !== undefined; dir = queue.shift()) {
+    if (signal?.cancelled) break;
     if (candidates.length >= MAX_COLLECTED_FILES) {
       logger.warn("ROM scan stopped at file cap", {
         rootPath,
@@ -325,6 +398,7 @@ const collectCandidates = async (
     if (!entries) continue;
 
     for (const entry of entries) {
+      if (signal?.cancelled) break;
       collectEntry(entry, dir, binary, scanSubfolders, candidates, queue);
     }
   }
@@ -333,13 +407,14 @@ const collectCandidates = async (
 };
 
 const sizeGame = async (
-  game: GameGroup
+  game: GameGroup,
+  signal?: { cancelled: boolean }
 ): Promise<{ countedFiles: number; sizeBytes: number }> => {
   let gameSize = 0;
   let countedFiles = 0;
 
   if (game.primary.isMarkerDir) {
-    gameSize += await computeDirSize(game.primary.fullPath);
+    gameSize += await computeDirSize(game.primary.fullPath, signal);
     countedFiles = 1;
   } else {
     const size = await safeStatSize(game.primary.fullPath);
@@ -350,6 +425,7 @@ const sizeGame = async (
   }
 
   for (const sidecar of game.sidecars) {
+    if (signal?.cancelled) break;
     gameSize += await safeFileSize(sidecar.fullPath);
   }
 
@@ -362,7 +438,12 @@ export const scanRomFolder = async (
   scanSubfolders: boolean,
   options?: ScanOptions
 ): Promise<ScanResult> => {
-  const raw = await collectCandidates(rootPath, binary, scanSubfolders);
+  const raw = await collectCandidates(
+    rootPath,
+    binary,
+    scanSubfolders,
+    options?.signal
+  );
   const games = dedupGames(binary, raw);
   const total = games.length;
 
@@ -378,7 +459,7 @@ export const scanRomFolder = async (
 
     const classification = await classifyForSystem(game.primary, binary.system);
     if (classification !== "skip") {
-      const sized = await sizeGame(game);
+      const sized = await sizeGame(game, options?.signal);
       if (classification === "ok") {
         fileCount += sized.countedFiles;
         sizeBytes += sized.sizeBytes;
@@ -406,9 +487,10 @@ export const scanRomFolder = async (
 export const countRomGroups = async (
   rootPath: string,
   binary: KnownBinary,
-  scanSubfolders: boolean
+  scanSubfolders: boolean,
+  signal?: { cancelled: boolean }
 ): Promise<number> => {
-  const raw = await collectCandidates(rootPath, binary, scanSubfolders);
+  const raw = await collectCandidates(rootPath, binary, scanSubfolders, signal);
   return dedupGames(binary, raw).length;
 };
 
