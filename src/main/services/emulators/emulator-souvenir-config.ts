@@ -21,7 +21,10 @@ import {
   restoreIniValue,
   setIniValue,
 } from "./duckstation-souvenir-config-value";
-import { enablePPSSPPAchievementLog } from "./ppsspp-souvenir-config-value";
+import {
+  buildPPSSPPSouvenirLaunchArguments,
+  enablePPSSPPAchievementLog,
+} from "./ppsspp-souvenir-config-value";
 import { ppssppConfigCandidates } from "./ppsspp-paths";
 
 interface RetroArchSouvenirConfigBackup {
@@ -398,7 +401,10 @@ export const createPPSSPPSouvenirSession = async (
 
     return {
       kind: "ppsspp",
-      launchArguments: [`--config=${sessionConfigName}`, `--log=${logPath}`],
+      launchArguments: buildPPSSPPSouvenirLaunchArguments(
+        sessionConfigName,
+        logPath
+      ),
       logPath,
       logOffset: 0,
       screenshotDirectory: null,
