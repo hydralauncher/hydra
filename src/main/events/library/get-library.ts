@@ -1,7 +1,7 @@
 import path from "node:path";
 import fs from "node:fs";
 
-import type { LibraryGame, UserPreferences } from "@types";
+import type { Download, Game, LibraryGame, UserPreferences } from "@types";
 import { registerEvent } from "../register-event";
 import {
   db,
@@ -122,6 +122,91 @@ const classifyPendingSteamContentWarnings = async (
   }
 };
 
+// Verify the installer still exists on disk, clearing the recorded size if
+// it was deleted externally.
+const reconcileInstallerSize = async (
+  key: string,
+  game: Game,
+  download: Download | null | undefined
+): Promise<number | null | undefined> => {
+  let installerSizeInBytes = game.installerSizeInBytes;
+  if (!installerSizeInBytes || !download?.folderName) {
+    return installerSizeInBytes;
+  }
+
+  const installerPath = path.join(download.downloadPath, download.folderName);
+  if (!fs.existsSync(installerPath)) {
+    installerSizeInBytes = null;
+    gamesSublevel.put(key, { ...game, installerSizeInBytes: null });
+  }
+
+  return installerSizeInBytes;
+};
+
+// Backfills a classics game's platform from a previously cached shop-details
+// lookup, same as before this only ever ran for launchbox games missing one.
+const reconcileClassicsPlatform = async (
+  key: string,
+  game: Game
+): Promise<void> => {
+  if (game.shop !== "launchbox" || game.platform) return;
+
+  const cachedPlatform = await lookupCachedPlatform(key);
+  if (cachedPlatform) {
+    game.platform = cachedPlatform;
+    gamesSublevel.put(key, game).catch(() => {});
+  }
+};
+
+// Backfills a Steam game's contentWarning from cached descriptors, or queues
+// a live classification when the filter is on and nothing is cached yet.
+const reconcileSteamContentWarning = async (
+  key: string,
+  game: Game,
+  hideAdultContent: boolean | undefined,
+  pendingSteamObjectIds: string[]
+): Promise<void> => {
+  if (game.shop !== "steam" || game.contentWarning) return;
+
+  const cachedDescriptorIds = await lookupCachedContentDescriptorIds(key);
+  if (cachedDescriptorIds) {
+    game.contentWarning = getSteamContentWarning(cachedDescriptorIds);
+    gamesSublevel.put(key, game).catch(() => {});
+    return;
+  }
+
+  if (hideAdultContent) {
+    // No cached Steam details either - queue a live classification so this
+    // game stops silently bypassing the library filter.
+    pendingSteamObjectIds.push(game.objectId);
+  }
+};
+
+// Verify the installed folder still exists on disk, clearing the recorded
+// size if it was deleted externally.
+const reconcileInstalledSize = async (
+  key: string,
+  game: Game,
+  installerSizeInBytes: number | null | undefined
+): Promise<number | null | undefined> => {
+  let installedSizeInBytes = game.installedSizeInBytes;
+  if (!installedSizeInBytes || !game.executablePath) {
+    return installedSizeInBytes;
+  }
+
+  const executableDir = path.dirname(game.executablePath);
+  if (!fs.existsSync(executableDir)) {
+    installedSizeInBytes = null;
+    gamesSublevel.put(key, {
+      ...game,
+      installerSizeInBytes,
+      installedSizeInBytes: null,
+    });
+  }
+
+  return installedSizeInBytes;
+};
+
 const getLibrary = async (): Promise<LibraryGame[]> => {
   const userPreferences = await db.get<string, UserPreferences | null>(
     levelKeys.userPreferences,
@@ -166,59 +251,23 @@ const getLibrary = async (): Promise<LibraryGame[]> => {
               game.unlockedAchievementCount ??
               0;
 
-            // Verify installer still exists, clear if deleted externally
-            let installerSizeInBytes = game.installerSizeInBytes;
-            if (installerSizeInBytes && download?.folderName) {
-              const installerPath = path.join(
-                download.downloadPath,
-                download.folderName
-              );
-
-              if (!fs.existsSync(installerPath)) {
-                installerSizeInBytes = null;
-                gamesSublevel.put(key, { ...game, installerSizeInBytes: null });
-              }
-            }
-
-            if (
-              game.shop === "launchbox" &&
-              (!game.platform || game.platform === null)
-            ) {
-              const cachedPlatform = await lookupCachedPlatform(key);
-              if (cachedPlatform) {
-                game.platform = cachedPlatform;
-                gamesSublevel.put(key, game).catch(() => {});
-              }
-            }
-
-            if (game.shop === "steam" && !game.contentWarning) {
-              const cachedDescriptorIds =
-                await lookupCachedContentDescriptorIds(key);
-              if (cachedDescriptorIds) {
-                game.contentWarning =
-                  getSteamContentWarning(cachedDescriptorIds);
-                gamesSublevel.put(key, game).catch(() => {});
-              } else if (userPreferences?.hideAdultContent) {
-                // No cached Steam details either - queue a live classification
-                // so this game stops silently bypassing the library filter.
-                pendingSteamObjectIds.push(game.objectId);
-              }
-            }
-
-            // Verify installed folder still exists, clear if deleted externally
-            let installedSizeInBytes = game.installedSizeInBytes;
-            if (installedSizeInBytes && game.executablePath) {
-              const executableDir = path.dirname(game.executablePath);
-
-              if (!fs.existsSync(executableDir)) {
-                installedSizeInBytes = null;
-                gamesSublevel.put(key, {
-                  ...game,
-                  installerSizeInBytes,
-                  installedSizeInBytes: null,
-                });
-              }
-            }
+            const installerSizeInBytes = await reconcileInstallerSize(
+              key,
+              game,
+              download
+            );
+            await reconcileClassicsPlatform(key, game);
+            await reconcileSteamContentWarning(
+              key,
+              game,
+              userPreferences?.hideAdultContent,
+              pendingSteamObjectIds
+            );
+            const installedSizeInBytes = await reconcileInstalledSize(
+              key,
+              game,
+              installerSizeInBytes
+            );
 
             return {
               id: key,
