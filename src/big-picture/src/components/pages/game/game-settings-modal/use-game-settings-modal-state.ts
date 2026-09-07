@@ -130,11 +130,13 @@ export function useGameSettingsModalState({
     const loadDiscFilters = async () => {
       const system = platformToSystem(game.platform);
       const retroArchPlatform = platformToRetroArchPlatform(game.platform);
-      const extensions = retroArchPlatform
-        ? getRetroArchRomExtensions(retroArchPlatform)
-        : system
-          ? await globalThis.window.electron.getEmulatorRomExtensions(system)
-          : ["*"];
+      let extensions = ["*"];
+      if (retroArchPlatform) {
+        extensions = getRetroArchRomExtensions(retroArchPlatform);
+      } else if (system) {
+        extensions =
+          await globalThis.window.electron.getEmulatorRomExtensions(system);
+      }
 
       if (!cancelled) {
         setDiscPickerFilters([

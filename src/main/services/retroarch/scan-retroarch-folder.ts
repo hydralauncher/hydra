@@ -2,7 +2,7 @@ import type { RetroArchPlatform } from "@types";
 import { promises as fs } from "node:fs";
 import path from "node:path";
 import { RETROARCH_ARCHIVE_EXTENSIONS } from "../../../shared/retroarch-platform";
-import { inspectRomArchive, isRetroArchArchive } from "./rom-archive";
+import { inspectRomArchives } from "./rom-archive";
 
 import { collectFilesByExtension } from "../emulators/scan-rom-folder";
 import {
@@ -26,8 +26,10 @@ export interface RetroArchFolderInput {
 }
 
 export const scanRetroArchFolder = async (
-  folder: RetroArchFolderInput
+  folder: RetroArchFolderInput,
+  signal?: AbortSignal
 ): Promise<ScannedRetroArchRom[]> => {
+  if (signal?.aborted) return [];
   const stats = await fs.stat(folder.path).catch(() => null);
   const files = stats?.isFile()
     ? [
@@ -40,14 +42,18 @@ export const scanRetroArchFolder = async (
     : await collectFilesByExtension(
         folder.path,
         [...ALL_RETROARCH_ROM_EXTENSIONS, ...RETROARCH_ARCHIVE_EXTENSIONS],
-        folder.scanSubfolders
+        folder.scanSubfolders,
+        signal
       );
 
+  const archives = await inspectRomArchives(
+    files.map((file) => file.fullPath),
+    signal
+  );
   const roms: ScannedRetroArchRom[] = [];
-  for (const file of files) {
-    const archived = isRetroArchArchive(file.name)
-      ? await inspectRomArchive(file.fullPath)
-      : null;
+  for (const [index, file] of files.entries()) {
+    if (signal?.aborted) break;
+    const archived = archives[index];
     const platform = archived?.platform ?? extensionToPlatform(file.name);
     if (!platform) continue;
     roms.push({
@@ -67,14 +73,15 @@ export const scanRetroArchFolder = async (
 
 export const scanRetroArchFolders = async (
   folders: RetroArchFolderInput[],
-  signal?: { cancelled: boolean },
+  signal?: AbortSignal,
   onFolderScanned?: (scanned: number, total: number, kept: number) => void
 ): Promise<ScannedRetroArchRom[]> => {
   const collected: ScannedRetroArchRom[] = [];
   const seen = new Set<string>();
   for (let i = 0; i < folders.length; i++) {
-    if (signal?.cancelled) break;
-    const roms = await scanRetroArchFolder(folders[i]);
+    if (signal?.aborted) break;
+    const roms = await scanRetroArchFolder(folders[i], signal);
+    if (signal?.aborted) break;
     for (const rom of roms) {
       if (seen.has(rom.primaryPath)) continue;
       seen.add(rom.primaryPath);

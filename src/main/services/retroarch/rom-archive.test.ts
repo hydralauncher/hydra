@@ -5,12 +5,14 @@ import { mkdtemp, mkdir, readdir, rm, writeFile } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import { it } from "node:test";
+import { setImmediate } from "node:timers/promises";
 import { promisify } from "node:util";
 import { listArchiveEntries, readArchiveEntry } from "../archive-entry.js";
 import { crc32, hashRomBuffer, hashRomFile } from "./rom-hash.js";
 import { extensionToPlatform } from "./retroarch-cores.js";
 import {
   isRetroArchArchive,
+  inspectRomArchives,
   MAX_ARCHIVED_ROM_BYTES,
   selectArchivedRom,
 } from "./rom-archive.js";
@@ -142,6 +144,24 @@ for (const format of ["zip", "7z"]) {
           MAX_ARCHIVED_ROM_BYTES
         );
         assert.deepEqual(bytes, content);
+        const listingController = new AbortController();
+        const listing = listArchiveEntries(
+          binaryPath,
+          archivePath,
+          listingController.signal
+        );
+        listingController.abort();
+        await assert.rejects(listing, { name: "AbortError" });
+        const readingController = new AbortController();
+        const reading = readArchiveEntry(
+          binaryPath,
+          archivePath,
+          name,
+          MAX_ARCHIVED_ROM_BYTES,
+          readingController.signal
+        );
+        readingController.abort();
+        await assert.rejects(reading, { name: "AbortError" });
         assert.equal(hashRomBuffer(bytes, "nes"), "CBF43926");
         assert.deepEqual(await readdir(root), [`misleading.gba.${format}`]);
         await assert.rejects(
@@ -194,3 +214,60 @@ it(
     }
   }
 );
+
+it("bounds archive inspection concurrency and preserves file order", async () => {
+  let active = 0;
+  let peak = 0;
+  const files = Array.from({ length: 12 }, (_, index) => `${index}.zip`);
+  const results = await inspectRomArchives(files, undefined, async (file) => {
+    active += 1;
+    peak = Math.max(peak, active);
+    await setImmediate();
+    active -= 1;
+    return { name: file, size: 32, platform: "nes" };
+  });
+  assert.equal(peak, 4);
+  assert.deepEqual(
+    results.map((rom) => rom?.name),
+    files
+  );
+});
+
+it("cancels active inspections without opening queued archives", async () => {
+  const controller = new AbortController();
+  const started: string[] = [];
+  const files = Array.from({ length: 12 }, (_, index) => `${index}.zip`);
+  const pending = inspectRomArchives(
+    files,
+    controller.signal,
+    async (file, signal) => {
+      assert.equal(signal, controller.signal);
+      started.push(file);
+      await new Promise<void>((resolve) =>
+        signal!.addEventListener("abort", () => resolve(), { once: true })
+      );
+      return { name: file, size: 32, platform: "nes" };
+    }
+  );
+  assert.equal(started.length, 4);
+  controller.abort();
+  assert.deepEqual(
+    await pending,
+    files.map(() => null)
+  );
+  assert.equal(started.length, 4);
+});
+
+it("skips plain files and already-cancelled archive scans", async () => {
+  const inspect = async () => {
+    assert.fail("Archive inspection should not start");
+  };
+  assert.deepEqual(await inspectRomArchives(["game.nes"], undefined, inspect), [
+    null,
+  ]);
+  assert.deepEqual(
+    await inspectRomArchives(["game.zip"], AbortSignal.abort(), inspect),
+    [null]
+  );
+  assert.equal(await hashRomFile("game.zip", "nes", AbortSignal.abort()), null);
+});

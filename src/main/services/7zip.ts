@@ -34,16 +34,23 @@ export class SevenZip {
         binaryName[process.platform]
       );
 
-  public static listEntries(filePath: string) {
-    return listArchiveEntries(this.binaryPath, filePath);
+  public static listEntries(filePath: string, signal?: AbortSignal) {
+    return listArchiveEntries(this.binaryPath, filePath, signal);
   }
 
   public static readEntry(
     filePath: string,
     entryName: string,
-    maxBytes: number
+    maxBytes: number,
+    signal?: AbortSignal
   ) {
-    return readArchiveEntry(this.binaryPath, filePath, entryName, maxBytes);
+    return readArchiveEntry(
+      this.binaryPath,
+      filePath,
+      entryName,
+      maxBytes,
+      signal
+    );
   }
 
   private static isPasswordRelatedError(error: unknown): boolean {

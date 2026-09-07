@@ -89,11 +89,12 @@ function ClassicsDiscSection({ game }: Readonly<ClassicsDiscSectionProps>) {
 
   const handleAddDiscFile = async () => {
     const retroArchPlatform = platformToRetroArchPlatform(game.platform);
-    const extensions = retroArchPlatform
-      ? getRetroArchRomExtensions(retroArchPlatform)
-      : system
-        ? await window.electron.getEmulatorRomExtensions(system)
-        : ["*"];
+    let extensions = ["*"];
+    if (retroArchPlatform) {
+      extensions = getRetroArchRomExtensions(retroArchPlatform);
+    } else if (system) {
+      extensions = await window.electron.getEmulatorRomExtensions(system);
+    }
     const res = await window.electron.showOpenDialog({
       properties: ["openFile"],
       filters: [
