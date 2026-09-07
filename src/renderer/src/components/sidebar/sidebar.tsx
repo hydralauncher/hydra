@@ -27,6 +27,7 @@ import cn from "classnames";
 import { SidebarFilterMenu } from "./sidebar-filter-menu";
 import { SidebarGameItem } from "./sidebar-game-item";
 import { SidebarProfile } from "./sidebar-profile";
+import { UsersThree } from "@phosphor-icons/react";
 
 const SIDEBAR_MIN_WIDTH = 200;
 const SIDEBAR_INITIAL_WIDTH = 250;
@@ -377,6 +378,9 @@ export function Sidebar() {
     }
   };
 
+  // 👇 Função adicionada para verificar a rota ativa do botão Party
+  const isActive = (path: string) => location.pathname.startsWith(path);
+
   return (
     <aside
       ref={sidebarRef}
@@ -425,6 +429,22 @@ export function Sidebar() {
                 </li>
               ))}
 
+              {/* 👇 BOTÃO PARTY ADICIONADO AQUI */}
+              <li
+                className={cn("sidebar__menu-item", {
+                  "sidebar__menu-item--active": isActive("/party"),
+                })}
+              >
+                <button
+                  type="button"
+                  className="sidebar__menu-item-button"
+                  onClick={() => handleSidebarItemClick("/party")}
+                >
+                  <UsersThree size={24} />
+                  <span>Party</span>
+                </button>
+              </li>
+
               {window.electron.platform === "linux" && homebrewFolderExists && (
                 <li className="sidebar__menu-item sidebar__menu-item--decky">
                   <button
@@ -440,8 +460,8 @@ export function Sidebar() {
                     <span>
                       {deckyPluginInfo.installed && !deckyPluginInfo.outdated
                         ? t("decky_plugin_installed_version", {
-                            version: deckyPluginInfo.version,
-                          })
+                          version: deckyPluginInfo.version,
+                        })
                         : deckyPluginInfo.installed && deckyPluginInfo.outdated
                           ? t("update_decky_plugin")
                           : t("install_decky_plugin")}
