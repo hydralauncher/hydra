@@ -1,6 +1,11 @@
 import { promises as fs } from "node:fs";
 
 import type { RetroArchPlatform } from "@types";
+import {
+  inspectRomArchive,
+  isRetroArchArchive,
+  MAX_ARCHIVED_ROM_BYTES,
+} from "./rom-archive.js";
 
 const CRC_TABLE = (() => {
   const table = new Uint32Array(256);
@@ -118,10 +123,45 @@ const readExact = async (
   return filled;
 };
 
+export const hashRomBuffer = (
+  buffer: Buffer,
+  platform: RetroArchPlatform
+): string => {
+  const { skip, n64Order } = resolveNormalization(
+    buffer,
+    buffer.length,
+    buffer.length,
+    platform
+  );
+  const content =
+    platform === "n64" && n64Order !== "z64"
+      ? Buffer.from(buffer.subarray(skip))
+      : buffer.subarray(skip);
+  if (platform === "n64") swapChunkInPlace(content, n64Order);
+  return crc32(content);
+};
+
 export const hashRomFile = async (
   filePath: string,
   platform: RetroArchPlatform
 ): Promise<string | null> => {
+  if (isRetroArchArchive(filePath)) {
+    try {
+      const rom = await inspectRomArchive(filePath);
+      if (!rom || rom.platform !== platform) return null;
+      const { SevenZip } = await import("../7zip");
+      const content = await SevenZip.readEntry(
+        filePath,
+        rom.name,
+        MAX_ARCHIVED_ROM_BYTES
+      );
+      if (content.length !== rom.size) return null;
+      return hashRomBuffer(content, platform);
+    } catch {
+      return null;
+    }
+  }
+
   let handle: fs.FileHandle | null = null;
   try {
     handle = await fs.open(filePath, "r");

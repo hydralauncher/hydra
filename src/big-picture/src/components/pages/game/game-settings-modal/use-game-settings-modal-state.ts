@@ -3,7 +3,11 @@ import type { ChangeEvent } from "react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { platformToSystem } from "@renderer/helpers";
-import { getGameExecutableFilters } from "@shared";
+import {
+  getGameExecutableFilters,
+  getRetroArchRomExtensions,
+  platformToRetroArchPlatform,
+} from "@shared";
 import type { FileFilter } from "../../../common";
 import { useBigPictureToast } from "../../../../hooks";
 import {
@@ -125,9 +129,12 @@ export function useGameSettingsModalState({
 
     const loadDiscFilters = async () => {
       const system = platformToSystem(game.platform);
-      const extensions = system
-        ? await globalThis.window.electron.getEmulatorRomExtensions(system)
-        : ["*"];
+      const retroArchPlatform = platformToRetroArchPlatform(game.platform);
+      const extensions = retroArchPlatform
+        ? getRetroArchRomExtensions(retroArchPlatform)
+        : system
+          ? await globalThis.window.electron.getEmulatorRomExtensions(system)
+          : ["*"];
 
       if (!cancelled) {
         setDiscPickerFilters([

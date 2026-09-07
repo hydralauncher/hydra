@@ -4,6 +4,7 @@ import { spawn } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
 import { logger } from "./logger";
+import { listArchiveEntries, readArchiveEntry } from "./archive-entry";
 
 export const binaryName = {
   linux: "7zzs",
@@ -32,6 +33,18 @@ export class SevenZip {
         "binaries",
         binaryName[process.platform]
       );
+
+  public static listEntries(filePath: string) {
+    return listArchiveEntries(this.binaryPath, filePath);
+  }
+
+  public static readEntry(
+    filePath: string,
+    entryName: string,
+    maxBytes: number
+  ) {
+    return readArchiveEntry(this.binaryPath, filePath, entryName, maxBytes);
+  }
 
   private static isPasswordRelatedError(error: unknown): boolean {
     const errorMessage =

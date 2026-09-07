@@ -1,5 +1,9 @@
 import { Trans, useTranslation } from "react-i18next";
 import {
+  getRetroArchRomExtensions,
+  platformToRetroArchPlatform,
+} from "@shared";
+import {
   type ReactNode,
   useContext,
   useEffect,
@@ -84,9 +88,12 @@ function ClassicsDiscSection({ game }: Readonly<ClassicsDiscSectionProps>) {
   };
 
   const handleAddDiscFile = async () => {
-    const extensions = system
-      ? await window.electron.getEmulatorRomExtensions(system)
-      : ["*"];
+    const retroArchPlatform = platformToRetroArchPlatform(game.platform);
+    const extensions = retroArchPlatform
+      ? getRetroArchRomExtensions(retroArchPlatform)
+      : system
+        ? await window.electron.getEmulatorRomExtensions(system)
+        : ["*"];
     const res = await window.electron.showOpenDialog({
       properties: ["openFile"],
       filters: [

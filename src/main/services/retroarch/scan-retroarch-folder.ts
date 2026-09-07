@@ -1,4 +1,8 @@
 import type { RetroArchPlatform } from "@types";
+import { promises as fs } from "node:fs";
+import path from "node:path";
+import { RETROARCH_ARCHIVE_EXTENSIONS } from "../../../shared/retroarch-platform";
+import { inspectRomArchive, isRetroArchArchive } from "./rom-archive";
 
 import { collectFilesByExtension } from "../emulators/scan-rom-folder";
 import {
@@ -12,6 +16,8 @@ export interface ScannedRetroArchRom {
   name: string;
   sizeBytes: number;
   platform: RetroArchPlatform;
+  archiveEntry?: string;
+  romSizeBytes?: number;
 }
 
 export interface RetroArchFolderInput {
@@ -22,15 +28,27 @@ export interface RetroArchFolderInput {
 export const scanRetroArchFolder = async (
   folder: RetroArchFolderInput
 ): Promise<ScannedRetroArchRom[]> => {
-  const files = await collectFilesByExtension(
-    folder.path,
-    [...ALL_RETROARCH_ROM_EXTENSIONS],
-    folder.scanSubfolders
-  );
+  const stats = await fs.stat(folder.path).catch(() => null);
+  const files = stats?.isFile()
+    ? [
+        {
+          fullPath: folder.path,
+          name: path.basename(folder.path),
+          sizeBytes: stats.size,
+        },
+      ]
+    : await collectFilesByExtension(
+        folder.path,
+        [...ALL_RETROARCH_ROM_EXTENSIONS, ...RETROARCH_ARCHIVE_EXTENSIONS],
+        folder.scanSubfolders
+      );
 
   const roms: ScannedRetroArchRom[] = [];
   for (const file of files) {
-    const platform = extensionToPlatform(file.name);
+    const archived = isRetroArchArchive(file.name)
+      ? await inspectRomArchive(file.fullPath)
+      : null;
+    const platform = archived?.platform ?? extensionToPlatform(file.name);
     if (!platform) continue;
     roms.push({
       folderPath: folder.path,
@@ -38,6 +56,9 @@ export const scanRetroArchFolder = async (
       name: file.name,
       sizeBytes: file.sizeBytes,
       platform,
+      ...(archived
+        ? { archiveEntry: archived.name, romSizeBytes: archived.size }
+        : {}),
     });
   }
 

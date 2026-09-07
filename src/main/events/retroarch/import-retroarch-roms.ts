@@ -145,8 +145,8 @@ const matchRoms = async (
       platform,
       roms.map((rom) => ({
         crc32: rom.crc32!,
-        fileName: rom.name,
-        sizeBytes: rom.sizeBytes,
+        fileName: rom.archiveEntry ?? rom.name,
+        sizeBytes: rom.romSizeBytes ?? rom.sizeBytes,
         serial: null,
       })),
       language
