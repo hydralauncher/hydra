@@ -1,24 +1,10 @@
 import { isAxiosError } from "axios";
 
-export const STEAM_SOURCE_429_MAX_ATTEMPTS = 5;
 export const STEAM_SOURCE_502_MAX_ATTEMPTS = 3;
-const STEAM_SOURCE_429_DELAY_CAP_MS = 30_000;
 
 export const getSteamSourceHttpStatus = (error: unknown): number | null => {
   if (!isAxiosError(error)) return null;
   return error.response?.status ?? null;
-};
-
-export const getSteamSourceRetryAfterMs = (error: unknown): number | null => {
-  if (!isAxiosError(error)) return null;
-
-  const header = error.response?.headers?.["retry-after"];
-  if (header == null) return null;
-
-  const seconds = Number.parseInt(String(header), 10);
-  if (!Number.isFinite(seconds) || seconds < 0) return null;
-
-  return seconds * 1000;
 };
 
 export const getSteamSourceRetryDelayMs = (
@@ -27,13 +13,6 @@ export const getSteamSourceRetryDelayMs = (
 ): number => {
   const status = getSteamSourceHttpStatus(error);
   const exponent = Math.max(0, failedAttempt - 1);
-
-  if (status === 429) {
-    return (
-      getSteamSourceRetryAfterMs(error) ??
-      Math.min(STEAM_SOURCE_429_DELAY_CAP_MS, 1000 * 2 ** exponent)
-    );
-  }
 
   if (status === 502) {
     return 500 * 2 ** exponent;
@@ -47,10 +26,6 @@ export const shouldRetrySteamSource = (
   failedAttempt: number
 ): boolean => {
   const status = getSteamSourceHttpStatus(error);
-
-  if (status === 429) {
-    return failedAttempt < STEAM_SOURCE_429_MAX_ATTEMPTS;
-  }
 
   if (status === 502) {
     return failedAttempt < STEAM_SOURCE_502_MAX_ATTEMPTS;
@@ -97,6 +72,27 @@ export const isSteamSourceLibraryFatal = (error: unknown) => {
 export const isSteamSourceAchievementSkippable = (error: unknown) => {
   const status = getSteamSourceHttpStatus(error);
   return status === 403 || status === 409 || status === 429 || status === 502;
+};
+
+export const isSteamRateLimitedPayload = (payload: unknown): boolean => {
+  const message = readErrorMessage(payload);
+  if (!message) return false;
+
+  return (
+    message === "steam-rate-limited" ||
+    message.includes("profile/steam-rate-limited")
+  );
+};
+
+export const isSteamSourceRateLimited = (error: unknown) => {
+  if (getSteamSourceHttpStatus(error) === 429) return true;
+  if (isSteamRateLimitedPayload(error)) return true;
+
+  if (isAxiosError(error)) {
+    return isSteamRateLimitedPayload(error.response?.data);
+  }
+
+  return false;
 };
 
 const throwIfAborted = (signal?: AbortSignal) => {

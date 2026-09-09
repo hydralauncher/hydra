@@ -19,10 +19,10 @@ export class SteamPrivateProfileError extends Error {
   }
 }
 
-export class SteamSyncRunNotPendingError extends Error {
+export class SteamRateLimitedError extends Error {
   constructor() {
-    super("profile/steam-sync-run-not-pending");
-    this.name = "SteamSyncRunNotPendingError";
+    super("profile/steam-rate-limited");
+    this.name = "SteamRateLimitedError";
   }
 }
 

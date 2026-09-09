@@ -20,11 +20,13 @@ import {
   isSteamPrivateProfilePayload,
   isSteamSourceAchievementSkippable,
   isSteamSourceLibraryFatal,
+  isSteamSourceRateLimited,
   isSteamSyncConflict,
   withSteamSourceRetry,
 } from "./steam-source-retry";
 import {
   SteamPrivateProfileError,
+  SteamRateLimitedError,
   SteamSyncAbortedError,
   SteamSyncInProgressError,
   SteamSyncRunNotPendingError,
@@ -125,6 +127,7 @@ class SteamSyncOrchestrator {
   private state: SteamSyncState = idleState();
   private abortController: AbortController | null = null;
   private runPromise: Promise<void> | null = null;
+  private hasEmittedFinished = false;
 
   getState() {
     return this.state;
@@ -140,6 +143,7 @@ class SteamSyncOrchestrator {
       return this.state;
     }
 
+    this.hasEmittedFinished = false;
     this.abortController = new AbortController();
     this.setState({
       status: "running",
@@ -177,6 +181,9 @@ class SteamSyncOrchestrator {
   }
 
   private emitFinished(payload: SteamSyncFinishedPayload) {
+    if (this.hasEmittedFinished) return;
+
+    this.hasEmittedFinished = true;
     WindowManager.sendToAppWindows("on-steam-sync-finished", payload);
   }
 
@@ -344,6 +351,11 @@ class SteamSyncOrchestrator {
 
             if (status === 429) {
               rateLimited = true;
+              this.setState(idleState());
+              this.emitFinished({
+                ok: false,
+                message: "profile/steam-rate-limited",
+              });
             }
 
             if (status === 409) {
@@ -372,6 +384,10 @@ class SteamSyncOrchestrator {
 
     if (runGone) {
       throw new SteamSyncRunNotPendingError();
+    }
+
+    if (rateLimited) {
+      throw new SteamRateLimitedError();
     }
 
     return achievementsByAppId;
@@ -500,11 +516,16 @@ class SteamSyncOrchestrator {
 
       const message =
         error instanceof SteamPrivateProfileError ||
+        error instanceof SteamRateLimitedError ||
         error instanceof SteamSyncRunNotPendingError
           ? error.message
-          : (getHydraApiErrorMessage(error) ?? "steam-sync-failed");
+          : isSteamSourceRateLimited(error)
+            ? "profile/steam-rate-limited"
+            : (getHydraApiErrorMessage(error) ?? "steam-sync-failed");
 
       steamSyncLogger.error("Steam sync failed", message);
+      this.setState(idleState());
+      this.emitFinished({ ok: false, message });
       if (
         !snapshotPublished &&
         !(error instanceof SteamSyncRunNotPendingError)
@@ -512,8 +533,6 @@ class SteamSyncOrchestrator {
         await this.cancelPendingRun(syncRunId);
       }
       await clearPersistedSyncRunId();
-      this.setState(idleState());
-      this.emitFinished({ ok: false, message });
     }
   }
 }

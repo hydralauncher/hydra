@@ -1273,6 +1273,7 @@
     "steam_sync_in_progress": "A Steam import is already running.",
     "steam_error_private_profile": "Your Steam profile is private.",
     "steam_error_steam_unavailable": "Your Steam library is temporarily unavailable. Try again in a moment.",
+    "steam_error_rate_limited": "You're importing too quickly. Wait a minute and try again.",
     "name_min_length": "Theme name must be at least 3 characters long",
     "import_theme": "Import theme",
     "import_theme_description": "You will import {{theme}} from the theme store",

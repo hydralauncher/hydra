@@ -6,8 +6,10 @@ import { AxiosError } from "axios";
 import {
   getSteamSourceRetryDelayMs,
   isSteamPrivateProfilePayload,
+  isSteamRateLimitedPayload,
   isSteamSourceAchievementSkippable,
   isSteamSourceLibraryFatal,
+  isSteamSourceRateLimited,
   isSteamSyncConflict,
   shouldRetrySteamSource,
 } from "./steam-source-retry.ts";
@@ -25,21 +27,11 @@ const axiosError = (status: number, headers: Record<string, string> = {}) => {
 };
 
 describe("Steam source retry policy", () => {
-  it("retries 429 up to 5 attempts and uses Retry-After seconds", () => {
+  it("does not retry 429", () => {
     const error = axiosError(429, { "retry-after": "7" });
 
-    assert.equal(shouldRetrySteamSource(error, 1), true);
-    assert.equal(shouldRetrySteamSource(error, 4), true);
-    assert.equal(shouldRetrySteamSource(error, 5), false);
-    assert.equal(getSteamSourceRetryDelayMs(error, 1), 7000);
-  });
-
-  it("falls back to exponential delay for 429 without Retry-After", () => {
-    const error = axiosError(429);
-
-    assert.equal(getSteamSourceRetryDelayMs(error, 1), 1000);
-    assert.equal(getSteamSourceRetryDelayMs(error, 2), 2000);
-    assert.equal(getSteamSourceRetryDelayMs(error, 4), 8000);
+    assert.equal(shouldRetrySteamSource(error, 1), false);
+    assert.equal(getSteamSourceRetryDelayMs(error, 1), 0);
   });
 
   it("retries 502 three times with short backoff", () => {
@@ -93,5 +85,14 @@ describe("Steam source retry policy", () => {
     assert.equal(isSteamSourceLibraryFatal(payload), true);
     assert.equal(isSteamPrivateProfilePayload({ games: [] }), false);
     assert.equal(isSteamPrivateProfilePayload({}), false);
+  });
+
+  it("detects Steam rate-limit payloads and HTTP 429", () => {
+    const error = axiosError(429);
+
+    assert.equal(isSteamSourceRateLimited(error), true);
+    assert.equal(isSteamRateLimitedPayload({ message: "profile/steam-rate-limited" }), true);
+    assert.equal(isSteamRateLimitedPayload({ message: "steam-rate-limited" }), true);
+    assert.equal(isSteamRateLimitedPayload({ message: "profile/steam-upstream-unavailable" }), false);
   });
 });

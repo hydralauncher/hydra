@@ -117,6 +117,13 @@ export function SettingsSteam() {
         return t("steam_error_steam_unavailable");
       }
 
+      if (
+        message === "steam-rate-limited" ||
+        message === "profile/steam-rate-limited"
+      ) {
+        return t("steam_error_rate_limited");
+      }
+
       return t("steam_sync_failed");
     },
     [t]
