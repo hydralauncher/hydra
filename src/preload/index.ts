@@ -1602,6 +1602,7 @@ contextBridge.exposeInMainWorld("electron", {
       "resetRetroAchievementsAchievements",
       pendingSouvenirsOnly
     ),
+  startSteamOAuth: (lng: string) => ipcRenderer.invoke("startSteamOAuth", lng),
 
   /* Auth */
   getAuth: () => ipcRenderer.invoke("getAuth"),
@@ -1620,6 +1621,11 @@ contextBridge.exposeInMainWorld("electron", {
     const listener = (_event: Electron.IpcRendererEvent) => cb();
     ipcRenderer.on("on-account-updated", listener);
     return () => ipcRenderer.removeListener("on-account-updated", listener);
+  },
+  onSteamConnected: (cb: () => void) => {
+    const listener = (_event: Electron.IpcRendererEvent) => cb();
+    ipcRenderer.on("on-steam-connected", listener);
+    return () => ipcRenderer.removeListener("on-steam-connected", listener);
   },
   onSignOut: (cb: () => void) => {
     const listener = (_event: Electron.IpcRendererEvent) => cb();

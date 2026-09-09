@@ -1090,6 +1090,7 @@ declare global {
     getSessionHash: () => Promise<string | null>;
     onSignIn: (cb: () => void) => () => Electron.IpcRenderer;
     onAccountUpdated: (cb: () => void) => () => Electron.IpcRenderer;
+    onSteamConnected: (cb: () => void) => () => Electron.IpcRenderer;
     onSignOut: (cb: () => void) => () => Electron.IpcRenderer;
 
     /* User */
@@ -1113,6 +1114,7 @@ declare global {
     resetRetroAchievementsAchievements: (
       pendingSouvenirsOnly?: boolean
     ) => Promise<void>;
+    startSteamOAuth: (lng: string) => Promise<void>;
 
     /* Profile */
     getMe: () => Promise<UserDetails | null>;

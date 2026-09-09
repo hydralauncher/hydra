@@ -1,0 +1,114 @@
+@use "../../scss/globals.scss";
+
+.settings-steam {
+  &__submit-button {
+    align-self: flex-end;
+  }
+
+  &__description-container {
+    display: flex;
+    flex-direction: column;
+    gap: calc(globals.$spacing-unit * 2);
+    align-items: flex-start;
+  }
+
+  &__description {
+    margin: 0;
+    color: var(--text-secondary);
+    line-height: 1.6;
+  }
+
+  &__connected-container {
+    display: flex;
+    flex-direction: column;
+    gap: calc(globals.$spacing-unit * 2);
+  }
+
+  &__connected {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: calc(globals.$spacing-unit * 2);
+  }
+
+  &__profile {
+    display: flex;
+    align-items: center;
+    gap: calc(globals.$spacing-unit * 2);
+  }
+
+  &__avatar {
+    width: 72px;
+    height: 72px;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    border-radius: 8px;
+    border: 1px solid globals.$border-color;
+    background: rgba(255, 255, 255, 0.04);
+    color: var(--text-secondary);
+
+    img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+  }
+
+  &__account {
+    display: flex;
+    flex-direction: column;
+    gap: calc(globals.$spacing-unit / 2);
+  }
+
+  &__username {
+    font-weight: bold;
+    font-size: 1rem;
+  }
+
+  &__status {
+    display: flex;
+    align-items: center;
+    gap: globals.$spacing-unit;
+    color: #c0c1c7;
+    font-size: globals.$small-font-size;
+
+    &--preserved {
+      color: var(--text-secondary);
+    }
+  }
+
+  &__actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: globals.$spacing-unit;
+  }
+
+  &__title-logo {
+    width: 18px;
+    height: 18px;
+    flex-shrink: 0;
+  }
+
+  &__modal {
+    display: flex;
+    flex-direction: column;
+    gap: calc(globals.$spacing-unit * 2);
+  }
+
+  &__modal-note {
+    margin: 0;
+    color: var(--text-secondary);
+    line-height: 1.5;
+  }
+
+  &__modal-actions {
+    display: flex;
+    justify-content: flex-end;
+    align-items: center;
+    gap: globals.$spacing-unit;
+  }
+}

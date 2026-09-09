@@ -315,6 +315,13 @@ const handleDeepLinkPath = (uri?: string) => {
           `settings?theme=${themeName}&authorId=${authorId}&authorName=${authorName}`
         );
       }
+
+      return;
+    }
+
+    if (url.host === "steam-connected") {
+      WindowManager.sendToAppWindows("on-steam-connected");
+      WindowManager.redirect("settings?tab=integrations");
     }
   } catch (error) {
     logger.error("Error handling deep link", uri, error);
