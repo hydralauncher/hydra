@@ -67,6 +67,8 @@ import type {
   LegacySaveExportResult,
   OpenCheckoutOptions,
   AchievementSouvenirSyncStatus,
+  SteamSyncState,
+  SteamSyncFinishedPayload,
 } from "@types";
 import type { AuthPage } from "@shared";
 import type { AxiosProgressEvent } from "axios";
@@ -1603,6 +1605,27 @@ contextBridge.exposeInMainWorld("electron", {
       pendingSouvenirsOnly
     ),
   startSteamOAuth: (lng: string) => ipcRenderer.invoke("startSteamOAuth", lng),
+  disconnectSteam: (deleteImportedData: boolean) =>
+    ipcRenderer.invoke("disconnectSteam", deleteImportedData),
+  startSteamSync: () => ipcRenderer.invoke("startSteamSync"),
+  cancelSteamSync: () => ipcRenderer.invoke("cancelSteamSync"),
+  getSteamSyncState: () => ipcRenderer.invoke("getSteamSyncState"),
+  onSteamSyncProgress: (cb: (state: SteamSyncState) => void) => {
+    const listener = (
+      _event: Electron.IpcRendererEvent,
+      state: SteamSyncState
+    ) => cb(state);
+    ipcRenderer.on("on-steam-sync-progress", listener);
+    return () => ipcRenderer.removeListener("on-steam-sync-progress", listener);
+  },
+  onSteamSyncFinished: (cb: (payload: SteamSyncFinishedPayload) => void) => {
+    const listener = (
+      _event: Electron.IpcRendererEvent,
+      payload: SteamSyncFinishedPayload
+    ) => cb(payload);
+    ipcRenderer.on("on-steam-sync-finished", listener);
+    return () => ipcRenderer.removeListener("on-steam-sync-finished", listener);
+  },
 
   /* Auth */
   getAuth: () => ipcRenderer.invoke("getAuth"),

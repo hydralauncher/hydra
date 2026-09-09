@@ -69,6 +69,17 @@
     font-size: 1rem;
   }
 
+  &__last-synced {
+    color: var(--text-secondary);
+    font-size: globals.$small-font-size;
+  }
+
+  &__sync-progress {
+    margin: 0;
+    color: var(--text-secondary);
+    font-size: globals.$small-font-size;
+  }
+
   &__status {
     display: flex;
     align-items: center;

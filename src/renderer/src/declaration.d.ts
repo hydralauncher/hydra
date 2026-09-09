@@ -95,6 +95,8 @@ import type {
   ConfirmCloudSaveCustomPathRebindApprovalResult,
   LegacySaveExportProgress,
   LegacySaveExportResult,
+  SteamSyncState,
+  SteamSyncFinishedPayload,
 } from "@types";
 import type { AxiosProgressEvent } from "axios";
 
@@ -1115,6 +1117,16 @@ declare global {
       pendingSouvenirsOnly?: boolean
     ) => Promise<void>;
     startSteamOAuth: (lng: string) => Promise<void>;
+    disconnectSteam: (deleteImportedData: boolean) => Promise<void>;
+    startSteamSync: () => Promise<SteamSyncState>;
+    cancelSteamSync: () => Promise<void>;
+    getSteamSyncState: () => Promise<SteamSyncState>;
+    onSteamSyncProgress: (
+      cb: (state: SteamSyncState) => void
+    ) => () => Electron.IpcRenderer;
+    onSteamSyncFinished: (
+      cb: (payload: SteamSyncFinishedPayload) => void
+    ) => () => Electron.IpcRenderer;
 
     /* Profile */
     getMe: () => Promise<UserDetails | null>;

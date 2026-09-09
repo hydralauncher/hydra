@@ -24,6 +24,10 @@ import {
   mergeImportedProfileGame,
   type ImportedProfileGame,
 } from "./merge-imported-profile-game";
+import {
+  resolveLibraryIsDeleted,
+  resolveLibrarySource,
+} from "./resolve-library-source";
 
 type ProfileGame = {
   id: string;
@@ -38,6 +42,7 @@ type ProfileGame = {
   achievementCount: number;
   unlockedAchievementCount: number;
   platform?: string | null;
+  source?: string | null;
   customLibraryImageUrl?: string | null;
   customLibraryHeroImageUrl?: string | null;
   customLogoImageUrl?: string | null;
@@ -197,6 +202,8 @@ const fetchRemoteGames = async (): Promise<ProfileGame[]> => {
   return [...defaultGames, ...classicsGames];
 };
 
+export const fetchRemoteProfileGames = fetchRemoteGames;
+
 const mergeExistingGame = (
   localGame: Game,
   remoteGame: ProfileGame,
@@ -218,6 +225,8 @@ const mergeExistingGame = (
   achievementCount: remoteGame.achievementCount,
   unlockedAchievementCount: remoteGame.unlockedAchievementCount,
   platform: remoteGame.platform ?? localGame.platform,
+  source: resolveLibrarySource(localGame.source, remoteGame.source),
+  isDeleted: resolveLibraryIsDeleted(localGame.isDeleted, remoteGame.source),
   ...(canReconcileCustomArtwork
     ? {
         customIconUrl: reconcileCustomAsset(
@@ -263,6 +272,7 @@ const createLocalGame = (
   achievementCount: remoteGame.achievementCount,
   unlockedAchievementCount: remoteGame.unlockedAchievementCount,
   platform: remoteGame.platform ?? null,
+  source: resolveLibrarySource(undefined, remoteGame.source),
   customIconUrl: remoteGame.customIconUrl ?? null,
   customLogoImageUrl: remoteGame.customLogoImageUrl ?? null,
   customHeroImageUrl: remoteGame.customLibraryHeroImageUrl ?? null,

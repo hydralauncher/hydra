@@ -44,3 +44,54 @@ export type SteamIntegrationStatus =
   | SteamDisconnectedStatus
   | SteamConnectedStatus
   | SteamPreservedSnapshotStatus;
+
+export interface SteamSourceLibraryGame {
+  steamAppId: string;
+  name: string;
+  playTimeInSeconds: number;
+  lastPlayedAt: string | null;
+}
+
+export interface SteamSourceAchievement {
+  name: string;
+  unlocked: boolean;
+  unlockTime: string | null;
+}
+
+export interface SteamSnapshotAchievement {
+  name: string;
+  unlockTime: string;
+}
+
+export interface SteamSnapshotGame {
+  steamAppId: string;
+  name: string;
+  playTimeInSeconds: number;
+  lastPlayedAt: string | null;
+  achievements: SteamSnapshotAchievement[];
+}
+
+export interface SteamSnapshotPayload {
+  games: SteamSnapshotGame[];
+}
+
+export type SteamSyncPhase =
+  | "starting"
+  | "library"
+  | "achievements"
+  | "publishing";
+
+export type SteamSyncState =
+  | { status: "idle" }
+  | {
+      status: "running";
+      syncRunId: string;
+      phase: SteamSyncPhase;
+      gamesFound: number;
+      gamesProcessed: number;
+    }
+  | { status: "cancelling"; syncRunId: string };
+
+export type SteamSyncFinishedPayload =
+  | { ok: true; status: SteamIntegrationStatus }
+  | { ok: false; message: string };

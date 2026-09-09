@@ -2,16 +2,21 @@ import { useCallback, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 
 import { Button, CheckboxField, Modal } from "@renderer/components";
-import { useToast, useUserDetails } from "@renderer/hooks";
+import { useDate, useToast, useUserDetails } from "@renderer/hooks";
 import {
   CheckCircleFillIcon,
   ChevronRightIcon,
   LinkExternalIcon,
   PersonIcon,
+  SyncIcon,
 } from "@primer/octicons-react";
 import { AuthPage } from "@shared";
 import { logger } from "@renderer/logger";
-import type { SteamIntegrationStatus } from "@types";
+import type {
+  SteamIntegrationStatus,
+  SteamSyncFinishedPayload,
+  SteamSyncState,
+} from "@types";
 import SteamLogo from "@renderer/assets/steam-logo.svg?react";
 
 import {
@@ -23,7 +28,6 @@ import "./settings-debrid.scss";
 import "./settings-steam.scss";
 
 const INTEGRATION_ENDPOINT = "/profile/integrations/steam";
-const OAUTH_ENDPOINT = "/profile/oauth/steam";
 
 const DISCONNECTED_STATUS: SteamIntegrationStatus = {
   connected: false,
@@ -50,6 +54,7 @@ const isLastAuthMethodError = (message?: string) => {
 export function SettingsSteam() {
   const { userDetails } = useUserDetails();
   const { showSuccessToast, showErrorToast } = useToast();
+  const { formatDateTime } = useDate();
   const { t, i18n } = useTranslation("settings");
 
   const [isLoading, setIsLoading] = useState(() => Boolean(userDetails));
@@ -60,12 +65,17 @@ export function SettingsSteam() {
   const [showDisconnectModal, setShowDisconnectModal] = useState(false);
   const [showDeleteDataModal, setShowDeleteDataModal] = useState(false);
   const [deleteImportedData, setDeleteImportedData] = useState(true);
+  const [syncState, setSyncState] = useState<SteamSyncState>({
+    status: "idle",
+  });
   const [isCollapsed, setIsCollapsed] = useState(() =>
     readStoredSectionCollapsed("steam", !userDetails)
   );
 
   const steamAccount =
     integration.connected || integration.snapshotPreserved ? integration : null;
+  const isSyncing =
+    syncState.status === "running" || syncState.status === "cancelling";
 
   useEffect(() => {
     setAvatarError(false);
@@ -83,6 +93,31 @@ export function SettingsSteam() {
       }
 
       return t(fallbackKey);
+    },
+    [t]
+  );
+
+  const getSteamSyncErrorMessage = useCallback(
+    (message?: string) => {
+      if (message === "steam-sync-in-progress") {
+        return t("steam_sync_in_progress");
+      }
+
+      if (
+        message === "steam-profile-private" ||
+        message === "profile/steam-profile-private"
+      ) {
+        return t("steam_error_private_profile");
+      }
+
+      if (
+        message === "steam-upstream-unavailable" ||
+        message === "profile/steam-upstream-unavailable"
+      ) {
+        return t("steam_error_steam_unavailable");
+      }
+
+      return t("steam_sync_failed");
     },
     [t]
   );
@@ -147,6 +182,46 @@ export function SettingsSteam() {
     };
   }, [refreshStatus]);
 
+  useEffect(() => {
+    void globalThis.window.electron.getSteamSyncState().then(setSyncState);
+  }, []);
+
+  useEffect(() => {
+    const unsubscribeProgress = globalThis.window.electron.onSteamSyncProgress(
+      (state) => {
+        setSyncState(state);
+      }
+    );
+    const unsubscribeFinished = globalThis.window.electron.onSteamSyncFinished(
+      (payload: SteamSyncFinishedPayload) => {
+        setSyncState({ status: "idle" });
+
+        if (payload.ok) {
+          setIntegration(payload.status);
+          showSuccessToast(t("steam_sync_success"));
+          return;
+        }
+
+        if (payload.message !== "steam-sync-aborted") {
+          showErrorToast(getSteamSyncErrorMessage(payload.message));
+        }
+
+        void refreshStatus({ silent: true });
+      }
+    );
+
+    return () => {
+      unsubscribeProgress();
+      unsubscribeFinished();
+    };
+  }, [
+    getSteamSyncErrorMessage,
+    refreshStatus,
+    showErrorToast,
+    showSuccessToast,
+    t,
+  ]);
+
   const handleConnect = async () => {
     setIsSubmitting(true);
 
@@ -158,6 +233,20 @@ export function SettingsSteam() {
     } finally {
       setIsSubmitting(false);
     }
+  };
+
+  const handleSync = async () => {
+    try {
+      const state = await globalThis.window.electron.startSteamSync();
+      setSyncState(state);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : undefined;
+      showErrorToast(getSteamSyncErrorMessage(message));
+    }
+  };
+
+  const handleCancelSync = async () => {
+    await globalThis.window.electron.cancelSteamSync();
   };
 
   const closeDisconnectModal = () => {
@@ -182,8 +271,8 @@ export function SettingsSteam() {
     setIsSubmitting(true);
 
     try {
-      await globalThis.window.electron.hydraApi.delete(
-        `${OAUTH_ENDPOINT}?deleteImportedData=${shouldDeleteImportedData}`
+      await globalThis.window.electron.disconnectSteam(
+        shouldDeleteImportedData
       );
 
       showSuccessToast(t("steam_account_unlinked"));
@@ -261,6 +350,15 @@ export function SettingsSteam() {
                     ? t("steam_status_connected")
                     : t("steam_status_snapshot_preserved")}
                 </span>
+                {integration.connected ? (
+                  <span className="settings-steam__last-synced">
+                    {steamAccount.lastSyncedAt
+                      ? t("steam_last_synced", {
+                          date: formatDateTime(steamAccount.lastSyncedAt),
+                        })
+                      : t("steam_never_synced")}
+                  </span>
+                ) : null}
               </div>
             </div>
 
@@ -270,7 +368,7 @@ export function SettingsSteam() {
                   <Button
                     theme="outline"
                     onClick={handleConnect}
-                    disabled={isSubmitting}
+                    disabled={isSubmitting || isSyncing}
                   >
                     <LinkExternalIcon size={STATUS_ICON_SIZE} />
                     {t("steam_reconnect")}
@@ -278,25 +376,58 @@ export function SettingsSteam() {
                   <Button
                     theme="danger"
                     onClick={() => setShowDeleteDataModal(true)}
-                    disabled={isSubmitting}
+                    disabled={isSubmitting || isSyncing}
                   >
                     {t("steam_remove_imported_data")}
                   </Button>
                 </>
               ) : (
-                <Button
-                  theme="danger"
-                  onClick={() => {
-                    setDeleteImportedData(true);
-                    setShowDisconnectModal(true);
-                  }}
-                  disabled={isSubmitting}
-                >
-                  {t("steam_disconnect")}
-                </Button>
+                <>
+                  {isSyncing ? (
+                    <Button
+                      theme="outline"
+                      onClick={handleCancelSync}
+                      disabled={syncState.status === "cancelling"}
+                    >
+                      {t("steam_sync_cancel")}
+                    </Button>
+                  ) : (
+                    <Button
+                      theme="outline"
+                      onClick={handleSync}
+                      disabled={isSubmitting}
+                    >
+                      <SyncIcon size={STATUS_ICON_SIZE} />
+                      {t("steam_sync")}
+                    </Button>
+                  )}
+                  <Button
+                    theme="danger"
+                    onClick={() => {
+                      setDeleteImportedData(true);
+                      setShowDisconnectModal(true);
+                    }}
+                    disabled={isSubmitting || isSyncing}
+                  >
+                    {t("steam_disconnect")}
+                  </Button>
+                </>
               )}
             </div>
           </div>
+          {integration.connected && isSyncing ? (
+            <p className="settings-steam__sync-progress">
+              {t("steam_syncing")}
+              {syncState.status === "running" &&
+              syncState.phase === "achievements" &&
+              syncState.gamesFound > 0
+                ? ` ${t("steam_sync_progress", {
+                    processed: syncState.gamesProcessed,
+                    found: syncState.gamesFound,
+                  })}`
+                : null}
+            </p>
+          ) : null}
         </div>
       );
     }

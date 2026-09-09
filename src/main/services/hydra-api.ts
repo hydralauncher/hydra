@@ -426,7 +426,9 @@ export class HydraApi {
         params,
         ...this.getAxiosConfig(),
         headers,
-        validateStatus: options?.validateStatus,
+        ...(options?.validateStatus
+          ? { validateStatus: options.validateStatus }
+          : {}),
         signal: options?.signal,
       })
       .then((response) => response.data)
@@ -451,7 +453,9 @@ export class HydraApi {
         params,
         ...this.getAxiosConfig(),
         headers,
-        validateStatus: options?.validateStatus,
+        ...(options?.validateStatus
+          ? { validateStatus: options.validateStatus }
+          : {}),
         signal: options?.signal,
       })
       .then((response) => ({
@@ -488,7 +492,9 @@ export class HydraApi {
     return this.instance
       .post<T>(url, data, {
         ...this.getAxiosConfig(),
-        validateStatus: options?.validateStatus,
+        ...(options?.validateStatus
+          ? { validateStatus: options.validateStatus }
+          : {}),
         signal: options?.signal,
       })
       .then((response) => ({
