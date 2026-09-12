@@ -8,8 +8,8 @@ const WINEDLLOVERRIDES_TOKEN_REGEX = /\bWINEDLLOVERRIDES=\S+/i;
 // umu-run only picks up WINEDLLOVERRIDES correctly when it's the first env
 // token, so it always gets moved to the front after merging.
 const moveWineDllOverridesToFront = (value: string): string => {
-  const match = value.match(WINEDLLOVERRIDES_TOKEN_REGEX);
-  if (!match || match.index === undefined) return value;
+  const match = WINEDLLOVERRIDES_TOKEN_REGEX.exec(value);
+  if (match?.index === undefined) return value;
 
   const token = match[0];
   const rest = (
@@ -30,14 +30,19 @@ export const mergeLaunchOptionEnvVars = (
 
   let result = launchOptions.trim();
 
-  for (const [name, value] of entries.reverse()) {
+  const reversedEntries = entries.toReversed();
+
+  for (const [name, value] of reversedEntries) {
     const rawToken = `${name}=${value}`;
     // Quote the whole "NAME=value" token when the value has whitespace
     // (e.g. a Wine prefix or Steam path) — the launch-options parser only
     // strips quotes that wrap an entire token, not ones around just the
     // value, so `NAME="a b"` would otherwise be split at the space.
     const token = /\s/.test(value) ? `"${rawToken}"` : rawToken;
-    const tokenRegex = new RegExp(`"${name}=[^"]*"|\\b${name}=\\S+`, "i");
+    const tokenRegex = new RegExp(
+      String.raw`"${name}=[^"]*"|\b${name}=\S+`,
+      "i"
+    );
 
     if (tokenRegex.test(result)) {
       result = result.replace(tokenRegex, token);
