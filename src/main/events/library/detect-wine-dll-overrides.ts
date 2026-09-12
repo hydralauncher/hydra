@@ -81,7 +81,7 @@ export const detectWineDllOverridesForGame = async (
       if (!trimmed.toLowerCase().endsWith(".dll")) continue;
 
       namesFromListFiles.push(
-        path.basename(trimmed.replaceAll("\\", "/"), ".dll").toLowerCase()
+        path.basename(trimmed.toLowerCase().replaceAll("\\", "/"), ".dll")
       );
     }
   }

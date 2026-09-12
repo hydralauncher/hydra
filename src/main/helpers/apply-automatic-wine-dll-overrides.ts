@@ -21,13 +21,17 @@ export const applyAutomaticWineDllOverrides = async (
 
     if (dllNames.length === 0) return;
 
-    const merged = mergeLaunchOptionEnvVars(game.launchOptions ?? "", {
+    const gameKey = levelKeys.game(game.shop, game.objectId);
+    const currentGame = await gamesSublevel.get(gameKey);
+    if (!currentGame) return;
+
+    const merged = mergeLaunchOptionEnvVars(currentGame.launchOptions ?? "", {
       WINEDLLOVERRIDES: buildWineDllOverridesValue(dllNames),
       ...steamOverlayEnv,
     });
 
-    await gamesSublevel.put(levelKeys.game(game.shop, game.objectId), {
-      ...game,
+    await gamesSublevel.put(gameKey, {
+      ...currentGame,
       launchOptions: merged,
     });
   } catch (error) {

@@ -31,8 +31,13 @@ export const mergeLaunchOptionEnvVars = (
   let result = launchOptions.trim();
 
   for (const [name, value] of entries.reverse()) {
-    const token = `${name}=${value}`;
-    const tokenRegex = new RegExp(`\\b${name}=\\S+`, "i");
+    const rawToken = `${name}=${value}`;
+    // Quote the whole "NAME=value" token when the value has whitespace
+    // (e.g. a Wine prefix or Steam path) — the launch-options parser only
+    // strips quotes that wrap an entire token, not ones around just the
+    // value, so `NAME="a b"` would otherwise be split at the space.
+    const token = /\s/.test(value) ? `"${rawToken}"` : rawToken;
+    const tokenRegex = new RegExp(`"${name}=[^"]*"|\\b${name}=\\S+`, "i");
 
     if (tokenRegex.test(result)) {
       result = result.replace(tokenRegex, token);
