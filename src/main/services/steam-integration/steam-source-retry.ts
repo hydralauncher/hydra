@@ -1,8 +1,27 @@
 import { isAxiosError } from "axios";
 
 export const STEAM_SOURCE_502_MAX_ATTEMPTS = 3;
+export const STEAM_SOURCE_429_MAX_ATTEMPTS = 3;
+
+const readSteamWebApiHttpStatus = (error: unknown): number | null => {
+  if (
+    typeof error === "object" &&
+    error !== null &&
+    "name" in error &&
+    error.name === "SteamWebApiHttpError" &&
+    "status" in error &&
+    typeof error.status === "number"
+  ) {
+    return error.status;
+  }
+
+  return null;
+};
 
 export const getSteamSourceHttpStatus = (error: unknown): number | null => {
+  const steamStatus = readSteamWebApiHttpStatus(error);
+  if (steamStatus != null) return steamStatus;
+
   if (!isAxiosError(error)) return null;
   return error.response?.status ?? null;
 };
@@ -14,7 +33,7 @@ export const getSteamSourceRetryDelayMs = (
   const status = getSteamSourceHttpStatus(error);
   const exponent = Math.max(0, failedAttempt - 1);
 
-  if (status === 502) {
+  if (status === 429 || status === 502) {
     return 500 * 2 ** exponent;
   }
 
@@ -26,6 +45,10 @@ export const shouldRetrySteamSource = (
   failedAttempt: number
 ): boolean => {
   const status = getSteamSourceHttpStatus(error);
+
+  if (status === 429) {
+    return failedAttempt < STEAM_SOURCE_429_MAX_ATTEMPTS;
+  }
 
   if (status === 502) {
     return failedAttempt < STEAM_SOURCE_502_MAX_ATTEMPTS;
@@ -71,7 +94,13 @@ export const isSteamSourceLibraryFatal = (error: unknown) => {
 
 export const isSteamSourceAchievementSkippable = (error: unknown) => {
   const status = getSteamSourceHttpStatus(error);
-  return status === 403 || status === 409 || status === 429 || status === 502;
+  return (
+    status === 400 ||
+    status === 403 ||
+    status === 409 ||
+    status === 429 ||
+    status === 502
+  );
 };
 
 export const isSteamRateLimitedPayload = (payload: unknown): boolean => {

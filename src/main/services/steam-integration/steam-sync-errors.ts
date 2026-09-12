@@ -26,6 +26,23 @@ export class SteamRateLimitedError extends Error {
   }
 }
 
+export class SteamSyncRunNotPendingError extends Error {
+  constructor() {
+    super("steam-sync-run-not-pending");
+    this.name = "SteamSyncRunNotPendingError";
+  }
+}
+
+export { SteamSessionRequiredError } from "./steam-store-session-config";
+export { SteamWebApiHttpError } from "./steam-web-api";
+
+export class SteamAccountMismatchError extends Error {
+  constructor() {
+    super("steam-account-mismatch");
+    this.name = "SteamAccountMismatchError";
+  }
+}
+
 export const isSteamSyncAbortError = (error: unknown) => {
   if (error instanceof SteamSyncAbortedError) return true;
   if (error instanceof Error && error.name === "AbortError") return true;

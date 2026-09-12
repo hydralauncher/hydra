@@ -14,7 +14,7 @@ import {
   resolveClassicsBadge,
 } from "@renderer/helpers";
 import { AchievementProgress } from "@renderer/components";
-import { formatBytes } from "@shared";
+import { formatBytes, getDisplayedPlayTimeInMilliseconds } from "@shared";
 import {
   ClockIcon,
   AlertFillIcon,
@@ -337,9 +337,10 @@ export const LibraryGameCardLarge = memo(function LibraryGameCardLarge({
           loading="lazy"
         />
       )}
-      {!hideAchievementProgress && (game.achievementCount ?? 0) > 0 && (
-        <div className="library-game-card-large__gradient" />
-      )}
+      {!hideAchievementProgress &&
+        ((game.achievementCount ?? 0) > 0 || unlockedAchievementsCount > 0) && (
+          <div className="library-game-card-large__gradient" />
+        )}
 
       <div className="library-game-card-large__overlay">
         <div className="library-game-card-large__top-section">
@@ -376,7 +377,7 @@ export const LibraryGameCardLarge = memo(function LibraryGameCardLarge({
                   <ClockIcon size={11} />
                 )}
                 <span className="library-game-card-large__playtime-text">
-                  {formatPlayTime(game.playTimeInMilliseconds)}
+                  {formatPlayTime(getDisplayedPlayTimeInMilliseconds(game))}
                 </span>
               </div>
             )}
@@ -406,15 +407,20 @@ export const LibraryGameCardLarge = memo(function LibraryGameCardLarge({
         </div>
 
         <div className="library-game-card-large__info-bar">
-          {!hideAchievementProgress && (game.achievementCount ?? 0) > 0 && (
-            <AchievementProgress
-              achievementCount={game.achievementCount ?? 0}
-              unlockedAchievementCount={unlockedAchievementsCount}
-              classNamePrefix="library-game-card-large"
-              label={`${game.title} achievements`}
-              trophyIconSize={14}
-            />
-          )}
+          {!hideAchievementProgress &&
+            ((game.achievementCount ?? 0) > 0 ||
+              unlockedAchievementsCount > 0) && (
+              <AchievementProgress
+                achievementCount={Math.max(
+                  game.achievementCount ?? 0,
+                  unlockedAchievementsCount
+                )}
+                unlockedAchievementCount={unlockedAchievementsCount}
+                classNamePrefix="library-game-card-large"
+                label={`${game.title} achievements`}
+                trophyIconSize={14}
+              />
+            )}
         </div>
       </div>
     </button>

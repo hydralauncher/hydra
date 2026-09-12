@@ -1,4 +1,4 @@
-import { db, levelKeys } from "@main/level";
+import { db, gamesSublevel, levelKeys } from "@main/level";
 import { HydraApi } from "../hydra-api";
 import { mergeWithRemoteGames } from "../library-sync";
 import { steamSyncLogger } from "../logger";
@@ -9,6 +9,7 @@ import type {
   SteamSourceLibraryGame,
   SteamSnapshotPayload,
   SteamSyncFinishedPayload,
+  SteamSyncRunStatus,
   SteamSyncState,
 } from "@types";
 import {
@@ -25,17 +26,50 @@ import {
   withSteamSourceRetry,
 } from "./steam-source-retry";
 import {
+  SteamAccountMismatchError,
   SteamPrivateProfileError,
   SteamRateLimitedError,
+  SteamSessionRequiredError,
   SteamSyncAbortedError,
   SteamSyncInProgressError,
   SteamSyncRunNotPendingError,
+  SteamWebApiHttpError,
   isSteamSyncAbortError,
 } from "./steam-sync-errors";
+import type { SteamWebApiToken } from "./steam-store-session-config";
+import {
+  getSteamWebApiToken,
+  readSteamCommunitySession,
+  type SteamCommunitySession,
+} from "./steam-store-session";
+import {
+  catalogueFromSteamSchema,
+  fetchSteamCommunityPlayerAchievements,
+  shouldFetchSteamCommunityAchievements,
+} from "./steam-community-achievements";
+import { AchievementMemoryStore } from "../achievements/achievement-memory-store";
+import {
+  fetchSteamFamilyGroupForUser,
+  fetchSteamFamilyPlaytimeSummary,
+  fetchSteamGameAchievementSchema,
+  fetchSteamLastPlayedTimes,
+  fetchSteamOwnedGames,
+  fetchSteamSharedLibraryApps,
+} from "./steam-web-api";
+import {
+  countSteamFamilyPlaytimeEntries,
+  mergeSteamFamilyPlaytimeMaps,
+  mergeSteamOwnedAndFamilyGames,
+  parseSteamFamilyGroupId,
+  parseSteamFamilyPlaytimeByAppId,
+  parseSteamLastPlayedTimes,
+  parseSteamSharedLibraryApps,
+  playtimeMapFromSharedApps,
+} from "./steam-family-library";
 import { buildSteamSnapshot } from "./steam-sync-snapshot";
 
 const INTEGRATION_ENDPOINT = "/profile/integrations/steam";
-const ACHIEVEMENT_FETCH_CONCURRENCY = 3;
+const ACHIEVEMENT_FETCH_CONCURRENCY = 8;
 
 const idleState = (): SteamSyncState => ({ status: "idle" });
 
@@ -55,6 +89,27 @@ const getHydraApiErrorMessage = (error: unknown): string | null => {
   }
 
   return null;
+};
+
+const steamWebApiErrorBody = (error: unknown): string | null => {
+  const body =
+    error instanceof SteamWebApiHttpError
+      ? error.body
+      : typeof error === "object" && error !== null && "body" in error
+        ? (error as { body: unknown }).body
+        : null;
+
+  if (body == null) return null;
+
+  return typeof body === "string" ? body : JSON.stringify(body);
+};
+
+const formatAchievementHttpDetail = (error: unknown, status: number | null) => {
+  const message = getHydraApiErrorMessage(error);
+  const body = steamWebApiErrorBody(error);
+  const extras = [message, body].filter(Boolean);
+
+  return `HTTP ${status}${extras.length ? `, ${extras.join(", ")}` : ""}`;
 };
 
 const throwIfAborted = (signal: AbortSignal) => {
@@ -131,6 +186,14 @@ class SteamSyncOrchestrator {
 
   getState() {
     return this.state;
+  }
+
+  async reconcilePersistedRun(latestSyncRunStatus?: SteamSyncRunStatus | null) {
+    if (latestSyncRunStatus === "PENDING") {
+      return;
+    }
+
+    await clearPersistedSyncRunId();
   }
 
   async start() {
@@ -247,14 +310,37 @@ class SteamSyncOrchestrator {
     }
   }
 
-  private async fetchLibrary(syncRunId: string, signal: AbortSignal) {
-    const path = `${INTEGRATION_ENDPOINT}/sync/${syncRunId}/source/library`;
-    steamSyncLogger.log("GET library", path);
+  private async resolveSteamSession(signal: AbortSignal) {
+    const status = await HydraApi.get<SteamIntegrationStatus>(
+      INTEGRATION_ENDPOINT,
+      undefined,
+      { signal }
+    );
+
+    if (!status.connected) {
+      throw new SteamSessionRequiredError();
+    }
+
+    const token = await getSteamWebApiToken(signal);
+    if (token.steamId64 !== status.steamId64) {
+      steamSyncLogger.error(
+        "Steam store session does not match linked SteamID64",
+        token.steamId64,
+        status.steamId64
+      );
+      throw new SteamAccountMismatchError();
+    }
+
+    return token;
+  }
+
+  private async fetchLibrary(token: SteamWebApiToken, signal: AbortSignal) {
+    steamSyncLogger.log("GET Steam GetOwnedGames");
 
     try {
       const response = await fetchWithRetry(
         "library",
-        () => HydraApi.get<unknown>(path, undefined, { signal }),
+        () => fetchSteamOwnedGames(token, signal),
         signal
       );
 
@@ -269,10 +355,18 @@ class SteamSyncOrchestrator {
         throw new SteamPrivateProfileError();
       }
 
-      const games = parseSteamSourceLibrary(response);
+      const ownedGames = parseSteamSourceLibrary(response);
+      const games = await this.mergeFamilyLibrary(ownedGames, token, signal);
       steamSyncLogger.log("Library games found", games.length);
       return games;
     } catch (error) {
+      if (
+        error instanceof SteamWebApiHttpError &&
+        (error.status === 401 || error.status === 403)
+      ) {
+        throw new SteamSessionRequiredError();
+      }
+
       if (isSteamSourceLibraryFatal(error)) {
         steamSyncLogger.error("Steam library is private");
         throw new SteamPrivateProfileError();
@@ -282,8 +376,114 @@ class SteamSyncOrchestrator {
     }
   }
 
+  private async mergeFamilyLibrary(
+    ownedGames: SteamSourceLibraryGame[],
+    token: SteamWebApiToken,
+    signal: AbortSignal
+  ) {
+    try {
+      steamSyncLogger.log("GET Steam GetFamilyGroupForUser");
+      const groupPayload = await fetchWithRetry(
+        "family group",
+        () => fetchSteamFamilyGroupForUser(token, signal),
+        signal
+      );
+      const familyGroupId = parseSteamFamilyGroupId(groupPayload);
+      if (!familyGroupId) {
+        steamSyncLogger.log("Steam family group not found");
+        return ownedGames;
+      }
+
+      steamSyncLogger.log("GET Steam GetSharedLibraryApps");
+      const sharedPayload = await fetchWithRetry(
+        "family library",
+        () => fetchSteamSharedLibraryApps(token, familyGroupId, signal),
+        signal
+      );
+      const familyApps = parseSteamSharedLibraryApps(sharedPayload);
+      const playtimeSources = [playtimeMapFromSharedApps(familyApps)];
+
+      try {
+        steamSyncLogger.log("GET Steam ClientGetLastPlayedTimes");
+        const lastPlayedPayload = await fetchWithRetry(
+          "last played times",
+          () => fetchSteamLastPlayedTimes(token, signal),
+          signal
+        );
+        playtimeSources.push(parseSteamLastPlayedTimes(lastPlayedPayload));
+      } catch (error) {
+        if (isSteamSyncAbortError(error)) {
+          throw error;
+        }
+
+        steamSyncLogger.log("Steam last played times unavailable", error);
+      }
+
+      try {
+        steamSyncLogger.log("GET Steam GetPlaytimeSummary");
+        const playtimePayload = await fetchWithRetry(
+          "family playtime",
+          () => fetchSteamFamilyPlaytimeSummary(token, familyGroupId, signal),
+          signal
+        );
+        playtimeSources.push(
+          parseSteamFamilyPlaytimeByAppId(playtimePayload, token.steamId64)
+        );
+      } catch (error) {
+        if (isSteamSyncAbortError(error)) {
+          throw error;
+        }
+
+        steamSyncLogger.log("Steam family playtime unavailable", error);
+      }
+
+      const playtimeByAppId = mergeSteamFamilyPlaytimeMaps(...playtimeSources);
+      const games = mergeSteamOwnedAndFamilyGames(
+        ownedGames,
+        familyApps,
+        playtimeByAppId
+      );
+      steamSyncLogger.log(
+        "Family library games found",
+        familyApps.length,
+        "merged total",
+        games.length,
+        "with playtime",
+        countSteamFamilyPlaytimeEntries(playtimeByAppId)
+      );
+      return games;
+    } catch (error) {
+      if (isSteamSyncAbortError(error)) {
+        throw error;
+      }
+
+      steamSyncLogger.log("Steam family library unavailable", error);
+      return ownedGames;
+    }
+  }
+
+  private async persistLocalAchievementCounts(
+    steamAppId: string,
+    schemaCount: number,
+    unlockedCount: number
+  ) {
+    const gameKey = levelKeys.game("steam", steamAppId);
+    const localGame = await gamesSublevel.get(gameKey).catch(() => undefined);
+    if (!localGame) return;
+
+    await gamesSublevel.put(gameKey, {
+      ...localGame,
+      achievementCount: Math.max(localGame.achievementCount ?? 0, schemaCount),
+      unlockedAchievementCount: Math.max(
+        localGame.unlockedAchievementCount ?? 0,
+        unlockedCount
+      ),
+    });
+  }
+
   private async fetchAchievements(
-    syncRunId: string,
+    token: SteamWebApiToken,
+    communitySession: SteamCommunitySession,
     games: SteamSourceLibraryGame[],
     signal: AbortSignal
   ) {
@@ -311,16 +511,54 @@ class SteamSyncOrchestrator {
             return;
           }
 
-          const path = `${INTEGRATION_ENDPOINT}/sync/${syncRunId}/source/games/${game.steamAppId}/achievements`;
-          steamSyncLogger.log(
-            `GET achievements ${index + 1}/${games.length}`,
-            game.steamAppId,
-            game.name
+          const scrapeCommunity = shouldFetchSteamCommunityAchievements(
+            game.playTimeInSeconds
           );
 
-          const response = await HydraApi.get<unknown>(path, undefined, {
-            signal,
-          });
+          steamSyncLogger.log(
+            `GET Steam achievements ${index + 1}/${games.length}`,
+            game.steamAppId,
+            game.name,
+            scrapeCommunity ? "community" : "schema only"
+          );
+
+          let schemaPayload: unknown;
+          const loadSchema = async (steamAppId: string) => {
+            schemaPayload = await fetchSteamGameAchievementSchema(
+              token,
+              steamAppId,
+              signal
+            );
+            return schemaPayload;
+          };
+
+          const response = scrapeCommunity
+            ? await fetchWithRetry(
+                `achievements ${game.steamAppId}`,
+                () =>
+                  fetchSteamCommunityPlayerAchievements({
+                    steamId64: token.steamId64,
+                    steamAppId: game.steamAppId,
+                    signal,
+                    communityFetch: communitySession.fetch,
+                    timeZoneOffsetSeconds:
+                      communitySession.timeZoneOffsetSeconds,
+                    loadSchema,
+                  }),
+                signal
+              )
+            : { achievements: [] };
+
+          if (schemaPayload == null) {
+            try {
+              schemaPayload = await loadSchema(game.steamAppId);
+            } catch (schemaError) {
+              steamSyncLogger.log(
+                `Schema unavailable for ${game.steamAppId} ${game.name}`,
+                schemaError
+              );
+            }
+          }
 
           if (response != null && typeof response !== "object") {
             steamSyncLogger.log(
@@ -331,21 +569,67 @@ class SteamSyncOrchestrator {
           }
 
           const achievements = parseSteamSourceAchievements(response);
+          const catalogue =
+            schemaPayload != null
+              ? catalogueFromSteamSchema(game.steamAppId, schemaPayload)
+              : [];
           const unlocked = achievements.filter(
             (achievement) => achievement.unlocked
           ).length;
+          const schemaCount =
+            catalogue.length > 0 ? catalogue.length : achievements.length;
 
           steamSyncLogger.log(
-            `Achievements for ${game.steamAppId} ${game.name}: ${unlocked} unlocked / ${achievements.length}`
+            `Achievements for ${game.steamAppId} ${game.name}: ${unlocked} unlocked / ${schemaCount}`
           );
+
+          const current = AchievementMemoryStore.get("steam", game.steamAppId);
+          AchievementMemoryStore.set("steam", game.steamAppId, {
+            achievements:
+              catalogue.length > 0 ? catalogue : (current?.achievements ?? []),
+            unlockedAchievements: achievements.flatMap((achievement) => {
+              if (!achievement.unlocked || !achievement.unlockTime) {
+                return [];
+              }
+              return [
+                {
+                  name: achievement.name,
+                  unlockTime: Date.parse(achievement.unlockTime),
+                },
+              ];
+            }),
+            language: current?.language,
+            catalogueValidator: current?.catalogueValidator,
+          });
+
+          await this.persistLocalAchievementCounts(
+            game.steamAppId,
+            schemaCount,
+            unlocked
+          );
+
           achievementsByAppId.set(game.steamAppId, achievements);
         } catch (error) {
+          if (
+            error instanceof SteamSessionRequiredError ||
+            (error instanceof Error &&
+              error.name === "SteamSessionRequiredError")
+          ) {
+            throw error instanceof SteamSessionRequiredError
+              ? error
+              : new SteamSessionRequiredError();
+          }
+
           const status = getSteamSourceHttpStatus(error);
-          const message = getHydraApiErrorMessage(error);
+          const detail = formatAchievementHttpDetail(error, status);
+
+          if (status === 401) {
+            throw new SteamSessionRequiredError();
+          }
 
           if (isSteamSourceAchievementSkippable(error)) {
             steamSyncLogger.log(
-              `Skipping achievements for ${game.steamAppId} ${game.name} (HTTP ${status}${message ? `, ${message}` : ""})`
+              `Skipping achievements for ${game.steamAppId} ${game.name} (${detail})`
             );
             achievementsByAppId.set(game.steamAppId, undefined);
 
@@ -363,7 +647,7 @@ class SteamSyncOrchestrator {
             }
           } else {
             steamSyncLogger.error(
-              `Failed achievements for ${game.steamAppId} ${game.name} (HTTP ${status}${message ? `, ${message}` : ""})`
+              `Failed achievements for ${game.steamAppId} ${game.name} (${detail})`
             );
             throw error;
           }
@@ -441,7 +725,15 @@ class SteamSyncOrchestrator {
         gamesProcessed: 0,
       });
 
-      const games = await this.fetchLibrary(syncRunId, signal);
+      const token = await this.resolveSteamSession(signal);
+      throwIfAborted(signal);
+
+      const communitySession = await readSteamCommunitySession();
+      if (!communitySession.hasLoginCookie) {
+        throw new SteamSessionRequiredError();
+      }
+
+      const games = await this.fetchLibrary(token, signal);
       throwIfAborted(signal);
 
       this.setState({
@@ -453,7 +745,8 @@ class SteamSyncOrchestrator {
       });
 
       const achievementsByAppId = await this.fetchAchievements(
-        syncRunId,
+        token,
+        communitySession,
         games,
         signal
       );
@@ -517,7 +810,9 @@ class SteamSyncOrchestrator {
       const message =
         error instanceof SteamPrivateProfileError ||
         error instanceof SteamRateLimitedError ||
-        error instanceof SteamSyncRunNotPendingError
+        error instanceof SteamSyncRunNotPendingError ||
+        error instanceof SteamSessionRequiredError ||
+        error instanceof SteamAccountMismatchError
           ? error.message
           : isSteamSourceRateLimited(error)
             ? "profile/steam-rate-limited"

@@ -28,6 +28,8 @@ import {
   resolveLibraryIsDeleted,
   resolveLibrarySource,
 } from "./resolve-library-source";
+import { mergeLocalAndRemotePlayTime } from "@shared";
+import { mergePersistedAchievementTotals } from "../achievements/achievement-memory-store";
 
 type ProfileGame = {
   id: string;
@@ -36,6 +38,8 @@ type ProfileGame = {
   collectionId?: string | null;
   lastTimePlayed: Date | null;
   playTimeInMilliseconds: number;
+  playTimeInSeconds?: number;
+  runtimeByPlatform?: { hydra?: number; steam?: number } | null;
   hasManuallyUpdatedPlaytime: boolean;
   isFavorite?: boolean;
   isPinned?: boolean;
@@ -215,15 +219,16 @@ const mergeExistingGame = (
   remoteId: remoteGame.id,
   addedToLibraryAt: localGame.addedToLibraryAt ?? remoteAddedToLibraryAt,
   lastTimePlayed: getLatestLastTimePlayed(localGame, remoteGame),
-  playTimeInMilliseconds: Math.max(
-    localGame.playTimeInMilliseconds,
-    remoteGame.playTimeInMilliseconds
-  ),
+  ...mergeLocalAndRemotePlayTime(localGame, remoteGame),
   favorite: remoteGame.isFavorite ?? localGame.favorite,
   isPinned: remoteGame.isPinned ?? localGame.isPinned,
   collectionIds,
-  achievementCount: remoteGame.achievementCount,
-  unlockedAchievementCount: remoteGame.unlockedAchievementCount,
+  ...mergePersistedAchievementTotals(
+    remoteGame.shop,
+    remoteGame.objectId,
+    localGame,
+    remoteGame
+  ),
   platform: remoteGame.platform ?? localGame.platform,
   source: resolveLibrarySource(localGame.source, remoteGame.source),
   isDeleted: resolveLibraryIsDeleted(localGame.isDeleted, remoteGame.source),
@@ -263,14 +268,18 @@ const createLocalGame = (
   logoImageUrl: remoteGame.logoImageUrl,
   addedToLibraryAt,
   lastTimePlayed: remoteGame.lastTimePlayed,
-  playTimeInMilliseconds: remoteGame.playTimeInMilliseconds,
+  ...mergeLocalAndRemotePlayTime({ playTimeInMilliseconds: 0 }, remoteGame),
   hasManuallyUpdatedPlaytime: remoteGame.hasManuallyUpdatedPlaytime,
   isDeleted: false,
   favorite: remoteGame.isFavorite ?? false,
   isPinned: remoteGame.isPinned ?? false,
   collectionIds,
-  achievementCount: remoteGame.achievementCount,
-  unlockedAchievementCount: remoteGame.unlockedAchievementCount,
+  ...mergePersistedAchievementTotals(
+    remoteGame.shop,
+    remoteGame.objectId,
+    {},
+    remoteGame
+  ),
   platform: remoteGame.platform ?? null,
   source: resolveLibrarySource(undefined, remoteGame.source),
   customIconUrl: remoteGame.customIconUrl ?? null,

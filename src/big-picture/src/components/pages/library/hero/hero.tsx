@@ -31,6 +31,7 @@ import {
   LIBRARY_HERO_OPEN_SETTINGS_BUTTON_ID,
 } from "../navigation";
 import { getHeroPlaytimeLabel, isLibraryGamePlayable } from "../library-data";
+import { getDisplayedPlayTimeInMilliseconds } from "@shared";
 import { useHeroBackgroundLayers } from "./use-hero-background-layers";
 
 import "./hero.scss";
@@ -102,7 +103,9 @@ export function LibraryHero({
     totalAchievementCount > 0
       ? `${unlockedAchievementCount} / ${totalAchievementCount}`
       : `${unlockedAchievementCount}`;
-  const playtime = getHeroPlaytimeLabel(featuredGame?.playTimeInMilliseconds);
+  const playtime = getHeroPlaytimeLabel(
+    featuredGame ? getDisplayedPlayTimeInMilliseconds(featuredGame) : null
+  );
   const lastPlayedLabel = getLastPlayedLabel(
     featuredGame?.lastTimePlayed,
     i18n.resolvedLanguage ?? i18n.language ?? "en",

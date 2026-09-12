@@ -1,6 +1,6 @@
 # Integração Steam no cliente
 
-O tag `profile-steam` da API (Hydra API 1.0) deixa o **cliente** orquestrar o import da biblioteca Steam. O servidor não puxa a Steam sozinho. Ele só faz proxy allowlisted, valida o snapshot e publica.
+O tag `profile-steam` da API (Hydra API 1.0) deixa o **cliente** orquestrar o import da biblioteca Steam. O launcher busca a library na Steam Web API com o token da sessão e as conquistas na community (`persist:steam`). A API só valida o snapshot e publica.
 
 Isso não cria sessão Lerna e não muda membership. É uma integração de perfil, no mesmo espírito do RetroAchievements.
 
@@ -10,7 +10,7 @@ Este doc é o plano de implementação no hydra-2. Desktop (renderer + main) pri
 
 1. **Orquestrador no main, não no renderer.** `window.electron.hydraApi` descarta o status HTTP e devolve só `error.message`. Sync precisa de `429`/`502`/`409`/`403` de verdade, `AbortSignal`, e tem que sobreviver o usuário saindo de Settings. RetroAchievements pode viver no renderer porque é um POST. Steam não.
 2. **Não chamar `.../schema` no v1.** O PUT do snapshot só manda achievements desbloqueados (`name` + `unlockTime`). Schema é GetSchemaForGame em inglês, cacheado, e não entra no payload. Se no futuro a UI quiser mostrar nomes durante o sync, aí busca.
-3. **Steam OpenID no browser do sistema, não no `BrowserWindow` de auth.** Steam costuma recusar webview. `GET /profile/oauth/steam/start` → `shell.openExternal(authorizationUrl)`.
+3. **Steam OpenID no `BrowserWindow` `persist:steam`.** O mesmo login deixa cookies da loja e da community no partition. Sync lê `webapi_token` em `store.steampowered.com` para `GetOwnedGames` e usa a sessão da community para conquistas. Sem `STEAM_API_KEY` e sem `source/*`.
 4. **Um sync por vez.** Se a API devolver `409`, reusar `latestSyncRun.id` quando estiver `PENDING`. Não abrir outra run.
 5. **Não escrever playtime/unlocks locais a partir do snapshot.** O PUT não é autoritativo sobre runtime Hydra. Depois do `204`, puxar a verdade com `mergeWithRemoteGames()`.
 6. **Sem feature flag** até o backend ter uma. Mostrar a seção só com usuário logado na Hydra. Sem login, CTA de sign-in (`openAuthWindow(AuthPage.SignIn)`).
@@ -19,17 +19,15 @@ Este doc é o plano de implementação no hydra-2. Desktop (renderer + main) pri
 
 Todos autenticados com bearer.
 
-| Método | Path | O que faz |
-| --- | --- | --- |
-| `GET` | `/profile/oauth/steam/start` | Query opcional `return_to`, `lng`. Resposta `{ authorizationUrl }`. |
-| `DELETE` | `/profile/oauth/steam` | Query `deleteImportedData` (default `true`). `204`. `400` se Steam for o último método de auth. |
-| `GET` | `/profile/integrations/steam` | Status discriminado. Ver abaixo. |
-| `POST` | `/profile/integrations/steam/sync` | `202 { syncRunId }`. Não publica nada. |
-| `GET` | `/profile/integrations/steam/sync/{syncRunId}` | Estado da run. |
-| `DELETE` | `/profile/integrations/steam/sync/{syncRunId}` | Cancela só `PENDING`. Snapshot antigo fica. |
-| `GET` | `.../source/library` | Jogos da Steam daquela run. |
-| `GET` | `.../source/games/{steamAppId}/achievements` | Unlock state. |
-| `PUT` | `.../snapshot` | Publica. `204`. |
+| Método   | Path                                           | O que faz                                                                                       |
+| -------- | ---------------------------------------------- | ----------------------------------------------------------------------------------------------- |
+| `GET`    | `/profile/oauth/steam/start`                   | Query opcional `return_to`, `lng`. Resposta `{ authorizationUrl }`.                             |
+| `DELETE` | `/profile/oauth/steam`                         | Query `deleteImportedData` (default `true`). `204`. `400` se Steam for o último método de auth. |
+| `GET`    | `/profile/integrations/steam`                  | Status discriminado. Ver abaixo.                                                                |
+| `POST`   | `/profile/integrations/steam/sync`             | `202 { syncRunId }`. Não publica nada.                                                          |
+| `GET`    | `/profile/integrations/steam/sync/{syncRunId}` | Estado da run.                                                                                  |
+| `DELETE` | `/profile/integrations/steam/sync/{syncRunId}` | Cancela só `PENDING`. Snapshot antigo fica.                                                     |
+| `PUT`    | `.../snapshot`                                 | Publica. `204`.                                                                                 |
 
 `steamAppId` é **string** `^[1-9][0-9]{0,9}$`. Não converter pra number.
 
@@ -67,8 +65,13 @@ União de três objetos. Discriminar por `connected` + `snapshotPreserved`:
     name: string;
     playTimeInSeconds: number;
     lastPlayedAt: string | null; // ISO
-    achievements: { name: string; unlockTime: string }[]; // só unlocked
-  }[];
+    achievements: {
+      name: string;
+      unlockTime: string;
+    }
+    []; // só unlocked
+  }
+  [];
 }
 ```
 
@@ -78,15 +81,15 @@ Source achievements vêm com `{ name, unlocked, unlockTime }`. `unlockTime` é n
 
 O OpenAPI copia o mesmo example (`profile/steam-sync-run-not-found`) em quase todo 4xx/5xx. **Não confiar nos examples.** Mapear primeiro por HTTP status, depois por `message` quando o backend confirmar os códigos reais.
 
-| Status | Onde | O que o cliente faz |
-| --- | --- | --- |
-| `400` | snapshot / cancel / ids | Payload inválido, UUID ruim, ou Steam é último auth. |
-| `403` | source | Perfil Steam privado, ou app fora da library da run. |
-| `404` | sync / oauth | Sem conexão ativa, ou run inexistente. |
-| `409` | POST sync | Já tem run `PENDING`/`RUNNING`. Reusar. |
-| `409` | source / snapshot / cancel | Run não está mais `PENDING`. |
-| `429` | source | Backoff. Ver `Retry-After` se vier. |
-| `502` | source | Proxy/Steam fora. Retry curto, depois falha a run. |
+| Status | Onde                    | O que o cliente faz                                  |
+| ------ | ----------------------- | ---------------------------------------------------- |
+| `400`  | snapshot / cancel / ids | Payload inválido, UUID ruim, ou Steam é último auth. |
+| `403`  | Steam direto            | Token inválido / sessão expirada. Pedir reconnect.   |
+| `404`  | sync / oauth            | Sem conexão ativa, ou run inexistente.               |
+| `409`  | POST sync               | Já tem run `PENDING`/`RUNNING`. Reusar.              |
+| `409`  | snapshot / cancel       | Run não está mais `PENDING`.                         |
+| `429`  | Steam direto            | Backoff curto no launcher.                           |
+| `502`  | Steam direto            | Retry curto, depois falha a run.                     |
 
 ## Arquitetura
 
@@ -97,7 +100,8 @@ Settings (renderer)
   onSteamSyncProgress / onSteamSyncFinished
 
 main/services/steam-integration
-  POST sync, GET library, GET achievements (pool), monta snapshot, PUT
+  POST sync, lê webapi_token no partition persist:steam,
+  GetOwnedGames + community HTML/XML via axios + cookies persist:steam (pool), monta snapshot, PUT
   DELETE run se o usuário cancelar ou se a orquestração falhar
   depois do 204: mergeWithRemoteGames()
 ```
@@ -161,8 +165,8 @@ Estados:
 1. `GET /profile/oauth/steam/start` com:
    - `lng`: `i18n.language`
    - `return_to`: `hydralauncher://steam-connected`
-2. `window.electron.openExternal(authorizationUrl)`
-3. Toast "Abra o Steam no browser para confirmar"
+2. Main abre `authorizationUrl` num `BrowserWindow` `persist:steam`
+3. Toast "Complete the Steam login in the window that opened"
 4. Quando o protocolo voltar, ou quando a janela da Hydra ganhar foco, `GET /profile/integrations/steam` de novo
 
 Deep link em `src/main/index.ts` (`handleDeepLinkPath`):
@@ -191,11 +195,11 @@ Modal no molde do RA:
 
 ### IPC vs hydraApi no renderer
 
-GET status, start OAuth e DELETE oauth são request/response curtos. Podem ir pelo `hydraApi` do renderer, **ou** por IPC fino se quiser esconder a URL. Prefira IPC só se o main precisar interceptar (deep link, abrir browser). Start OAuth combina bem com um evento `startSteamOAuth` que já chama a API e o `shell.openExternal`. Disconnect e GET status podem ficar no renderer.
+GET status, start OAuth e DELETE oauth são request/response curtos. Podem ir pelo `hydraApi` do renderer, **ou** por IPC fino se quiser esconder a URL. Prefira IPC só se o main precisar interceptar (deep link, abrir a janela Steam). Start OAuth combina bem com um evento `startSteamOAuth` que já chama a API e abre o `BrowserWindow` `persist:steam`. Disconnect e GET status podem ficar no renderer.
 
 Sugestão mínima:
 
-- `startSteamOAuth(): Promise<void>` no main (GET start + openExternal)
+- `startSteamOAuth(): Promise<void>` no main (GET start + janela `persist:steam`)
 - GET status e DELETE no renderer via `hydraApi`
 
 ### Traduções (en, namespace `settings`)
@@ -223,7 +227,7 @@ Chaves novas, no estilo `retroachievements_*`:
 - Disconnect com delete some com a conexão e volta ao estado vazio.
 - Disconnect sem delete cai no estado `snapshotPreserved`.
 - Sem login Hydra, não dispara 401 no GET.
-- Nenhuma chamada a `/sync` ou `source/*`.
+- Nenhuma chamada a `/sync`.
 
 ---
 
@@ -242,13 +246,14 @@ Fluxo:
    - `latestSyncRun.status === "PENDING"` → usar esse `id`
    - `RUNNING` → não começar outro. Emitir progresso "já em andamento" (no M2, se não temos progresso interno, só recusar com toast)
    - outro status → erro
-3. `GET .../source/library` → `{ games }`
-4. Emitir progresso `{ phase: "library", gamesFound: n }`
-5. Para cada jogo, `GET .../source/games/{steamAppId}/achievements` com **pool de 3**
-6. Montar snapshot (`steam-sync-snapshot.ts`)
-7. `PUT .../snapshot`
-8. `mergeWithRemoteGames()`
-9. `GET /profile/integrations/steam` e emitir finished com o status novo
+3. Offscreen `store.steampowered.com` → `webapi_token`. Conferir steamid com o status.
+4. `GetOwnedGames` na Steam → `{ games }`
+5. Emitir progresso `{ phase: "library", gamesFound: n }`
+6. Para cada jogo, conquistas com **pool de 3** na community. O Chromium `fetch` do Electron descarta `Cookie`; o cliente lê os cookies de `persist:steam` e chama a community com axios (`node:https`, IPv4). Ordem: HTML `profiles/{steamid}/stats/{appid}/achievements?l=english` → se não mapear unlock, HTML do dono `/my/stats/{appid}` → XML público só se nenhuma das páginas tiver `.achieveRow`. Casa os unlocks com `IPlayerService/GetGameAchievements` (`access_token`) para obter o `apiname`. Sem `steamLoginSecure` na community, falha com sessão expirada — não publica snapshot vazio. Snapshot com 0 unlocks não apaga unlocks já publicados.
+7. Montar snapshot (`steam-sync-snapshot.ts`)
+8. `PUT .../snapshot`
+9. `mergeWithRemoteGames()`
+10. `GET /profile/integrations/steam` e emitir finished com o status novo
 
 `AbortController` no singleton. Cancel do usuário aborta fetches e dá `DELETE .../sync/{id}`. **Não** dar PUT parcial.
 
@@ -268,12 +273,12 @@ Não incluir schema.
 
 ### Retry (`steam-source-retry.ts`)
 
-Só nos GET `source/*`.
+Nos GETs da Steam Web API (library e achievements).
 
 - `429`: esperar `Retry-After` (segundos) se for número. Senão 1s, 2s, 4s, 8s, cap 30s. Máximo 5 tentativas por request.
 - `502`: 3 tentativas, backoff curto
 - `403` na **library**: falha a run inteira (perfil privado)
-- `403` em **achievements de um app**: pular o jogo (achievements `[]`), seguir os outros
+- `400`/`403`/`409`/`429`/`502` em **achievements de um app**: pular o jogo (achievements `[]`), seguir os outros. `400` inclui "Requested app has no stats" e auth recusada nesse endpoint.
 - resto: falha a run
 
 Testes com `AxiosError` de verdade, no estilo de `cloud-save/snapshot-retry-policy.test.ts`.

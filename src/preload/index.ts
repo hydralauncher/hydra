@@ -69,6 +69,7 @@ import type {
   AchievementSouvenirSyncStatus,
   SteamSyncState,
   SteamSyncFinishedPayload,
+  SteamSyncRunStatus,
 } from "@types";
 import type { AuthPage } from "@shared";
 import type { AxiosProgressEvent } from "axios";
@@ -1610,6 +1611,8 @@ contextBridge.exposeInMainWorld("electron", {
   startSteamSync: () => ipcRenderer.invoke("startSteamSync"),
   cancelSteamSync: () => ipcRenderer.invoke("cancelSteamSync"),
   getSteamSyncState: () => ipcRenderer.invoke("getSteamSyncState"),
+  reconcileSteamSyncRun: (latestSyncRunStatus: SteamSyncRunStatus | null) =>
+    ipcRenderer.invoke("reconcileSteamSyncRun", latestSyncRunStatus),
   onSteamSyncProgress: (cb: (state: SteamSyncState) => void) => {
     const listener = (
       _event: Electron.IpcRendererEvent,

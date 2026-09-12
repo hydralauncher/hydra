@@ -1,4 +1,5 @@
 import type { Game, GameShop } from "@types";
+import { mergeLocalAndRemotePlayTime } from "@shared";
 
 export interface ImportedProfileGame {
   id: string;
@@ -7,7 +8,9 @@ export interface ImportedProfileGame {
   createdAt?: Date | string | null;
   lastTimePlayed?: Date | string | null;
   playTimeInSeconds?: number | null;
+  playTimeInMilliseconds?: number | null;
   runtime?: number | null;
+  runtimeByPlatform?: { hydra?: number | null; steam?: number | null } | null;
   hasManuallyUpdatedPlaytime?: boolean;
   isFavorite?: boolean;
   isPinned?: boolean;
@@ -30,14 +33,6 @@ const latestDate = (
   return local;
 };
 
-const remotePlayTimeInMilliseconds = (
-  remoteGame: ImportedProfileGame
-): number => {
-  const seconds = remoteGame.runtime ?? remoteGame.playTimeInSeconds ?? 0;
-  if (!Number.isFinite(seconds) || seconds < 0) return 0;
-  return seconds * 1000;
-};
-
 export const mergeImportedProfileGame = (
   localGame: Game,
   remoteGame: ImportedProfileGame
@@ -50,10 +45,7 @@ export const mergeImportedProfileGame = (
     localGame.lastTimePlayed,
     remoteGame.lastTimePlayed
   ),
-  playTimeInMilliseconds: Math.max(
-    localGame.playTimeInMilliseconds,
-    remotePlayTimeInMilliseconds(remoteGame)
-  ),
+  ...mergeLocalAndRemotePlayTime(localGame, remoteGame),
   hasManuallyUpdatedPlaytime:
     remoteGame.hasManuallyUpdatedPlaytime ??
     localGame.hasManuallyUpdatedPlaytime,

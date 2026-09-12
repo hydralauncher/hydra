@@ -11,6 +11,7 @@ import type {
 import {
   platformToRetroArchPlatform,
   RETROARCH_PLATFORM_LABELS,
+  getDisplayedPlayTimeInMilliseconds,
 } from "@shared";
 
 import Color from "color";
@@ -440,7 +441,8 @@ const getPlayTimeDifference = (a: LibraryGame, b: LibraryGame): number => {
 };
 
 const getMostPlayedDifference = (a: LibraryGame, b: LibraryGame): number =>
-  b.playTimeInMilliseconds - a.playTimeInMilliseconds;
+  getDisplayedPlayTimeInMilliseconds(b) -
+  getDisplayedPlayTimeInMilliseconds(a);
 
 export const isGameInstalled = (game: LibraryGame): boolean =>
   Boolean(game.executablePath) ||

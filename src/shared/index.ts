@@ -25,6 +25,11 @@ import { AchievementNotificationInfo, GameRepack } from "@types";
 
 export * from "./archive-org";
 export * from "./constants";
+export { shouldAutoStartSteamSync } from "./should-auto-start-steam-sync";
+export {
+  getDisplayedPlayTimeInMilliseconds,
+  mergeLocalAndRemotePlayTime,
+} from "./playtime";
 export * from "./cloud-save-access";
 export * from "./controller-support";
 export * from "./artwork-resolver";

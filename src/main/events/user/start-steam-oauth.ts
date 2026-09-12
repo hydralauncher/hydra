@@ -1,5 +1,5 @@
-import { shell } from "electron";
 import { HydraApi, logger } from "@main/services";
+import { openSteamOpenIdWindow } from "@main/services/steam-integration/steam-store-session";
 import { registerEvent } from "../register-event";
 
 const STEAM_OAUTH_RETURN_TO = "hydralauncher://steam-connected";
@@ -34,8 +34,8 @@ const startSteamOAuth = async (
       lng,
     });
 
-    logger.log("Opening Steam OpenID authorization URL");
-    await shell.openExternal(authorizationUrl);
+    logger.log("Opening Steam OpenID authorization window");
+    openSteamOpenIdWindow(authorizationUrl);
   } catch (error) {
     const message = getErrorMessage(error);
     logger.error("Failed to start Steam OAuth", error);

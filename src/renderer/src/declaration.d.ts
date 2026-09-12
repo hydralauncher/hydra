@@ -97,6 +97,7 @@ import type {
   LegacySaveExportResult,
   SteamSyncState,
   SteamSyncFinishedPayload,
+  SteamSyncRunStatus,
 } from "@types";
 import type { AxiosProgressEvent } from "axios";
 
@@ -1121,6 +1122,9 @@ declare global {
     startSteamSync: () => Promise<SteamSyncState>;
     cancelSteamSync: () => Promise<void>;
     getSteamSyncState: () => Promise<SteamSyncState>;
+    reconcileSteamSyncRun: (
+      latestSyncRunStatus: SteamSyncRunStatus | null
+    ) => Promise<void>;
     onSteamSyncProgress: (
       cb: (state: SteamSyncState) => void
     ) => () => Electron.IpcRenderer;

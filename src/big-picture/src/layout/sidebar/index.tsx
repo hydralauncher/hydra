@@ -11,7 +11,7 @@ import {
   SquaresFourIcon,
   StarIcon,
 } from "@phosphor-icons/react";
-import { AuthPage } from "@shared";
+import { AuthPage, getDisplayedPlayTimeInMilliseconds } from "@shared";
 import {
   type FocusEvent,
   forwardRef,
@@ -204,7 +204,8 @@ function compareGamesByExecutablePathUpdatedAt(a: LibraryGame, b: LibraryGame) {
 
 function compareGamesByPlaytime(a: LibraryGame, b: LibraryGame) {
   const playtimeDifference =
-    (b.playTimeInMilliseconds ?? 0) - (a.playTimeInMilliseconds ?? 0);
+    getDisplayedPlayTimeInMilliseconds(b) -
+    getDisplayedPlayTimeInMilliseconds(a);
 
   if (playtimeDifference !== 0) return playtimeDifference;
 

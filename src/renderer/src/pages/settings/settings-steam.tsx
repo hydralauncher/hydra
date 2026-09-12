@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 
 import { Button, CheckboxField, Modal } from "@renderer/components";
@@ -10,7 +10,7 @@ import {
   PersonIcon,
   SyncIcon,
 } from "@primer/octicons-react";
-import { AuthPage } from "@shared";
+import { AuthPage, shouldAutoStartSteamSync } from "@shared";
 import { logger } from "@renderer/logger";
 import type {
   SteamIntegrationStatus,
@@ -37,6 +37,11 @@ const DISCONNECTED_STATUS: SteamIntegrationStatus = {
 const STATUS_ICON_SIZE = 14;
 const CHEVRON_ICON_SIZE = 16;
 const AVATAR_FALLBACK_ICON_SIZE = 28;
+
+const getLatestSyncRunStatus = (status: SteamIntegrationStatus) =>
+  status.connected || status.snapshotPreserved
+    ? (status.latestSyncRun?.status ?? null)
+    : null;
 
 const isLastAuthMethodError = (message?: string) => {
   if (!message) return false;
@@ -71,6 +76,8 @@ export function SettingsSteam() {
   const [isCollapsed, setIsCollapsed] = useState(() =>
     readStoredSectionCollapsed("steam", !userDetails)
   );
+  const didAutoStart = useRef(false);
+  const wasConnectedRef = useRef(false);
 
   const steamAccount =
     integration.connected || integration.snapshotPreserved ? integration : null;
@@ -124,16 +131,64 @@ export function SettingsSteam() {
         return t("steam_error_rate_limited");
       }
 
+      if (message === "steam-session-required") {
+        return t("steam_error_session_required");
+      }
+
+      if (message === "steam-account-mismatch") {
+        return t("steam_error_account_mismatch");
+      }
+
       return t("steam_sync_failed");
     },
     [t]
   );
 
+  const tryAutoStart = useCallback(
+    async (status: SteamIntegrationStatus) => {
+      if (didAutoStart.current) {
+        return;
+      }
+
+      const localState = await globalThis.window.electron.getSteamSyncState();
+      setSyncState(localState);
+
+      if (
+        !shouldAutoStartSteamSync({
+          connected: status.connected,
+          lastSyncedAt: status.connected ? status.lastSyncedAt : null,
+          latestSyncRunStatus: getLatestSyncRunStatus(status),
+          localOrchestratorIdle: localState.status === "idle",
+        })
+      ) {
+        return;
+      }
+
+      didAutoStart.current = true;
+
+      try {
+        const state = await globalThis.window.electron.startSteamSync();
+        setSyncState(state);
+      } catch (error) {
+        const message = error instanceof Error ? error.message : undefined;
+        showErrorToast(getSteamSyncErrorMessage(message));
+      }
+    },
+    [getSteamSyncErrorMessage, showErrorToast]
+  );
+
   const refreshStatus = useCallback(
-    async (options?: { silent?: boolean; toastOnConnect?: boolean }) => {
+    async (options?: {
+      silent?: boolean;
+      toastOnConnect?: boolean;
+      fromMount?: boolean;
+      fromFocus?: boolean;
+    }) => {
       if (!userDetails) {
         setIntegration(DISCONNECTED_STATUS);
         setIsLoading(false);
+        didAutoStart.current = false;
+        wasConnectedRef.current = false;
         return;
       }
 
@@ -149,8 +204,30 @@ export function SettingsSteam() {
 
         setIntegration(status);
 
+        const latestSyncRunStatus = getLatestSyncRunStatus(status);
+
+        await globalThis.window.electron.reconcileSteamSyncRun(
+          latestSyncRunStatus
+        );
+
+        if (!status.connected) {
+          didAutoStart.current = false;
+        }
+
         if (options?.toastOnConnect && status.connected) {
           showSuccessToast(t("steam_account_linked"));
+        }
+
+        const becameConnected = !wasConnectedRef.current && status.connected;
+        const shouldAttemptAutoStart =
+          Boolean(options?.fromMount) ||
+          Boolean(options?.toastOnConnect) ||
+          (Boolean(options?.fromFocus) && becameConnected);
+
+        wasConnectedRef.current = status.connected;
+
+        if (shouldAttemptAutoStart) {
+          void tryAutoStart(status);
         }
       } catch (error) {
         logger.error(error);
@@ -162,11 +239,11 @@ export function SettingsSteam() {
         setIsLoading(false);
       }
     },
-    [showSuccessToast, t, userDetails]
+    [showSuccessToast, t, tryAutoStart, userDetails]
   );
 
   useEffect(() => {
-    void refreshStatus();
+    void refreshStatus({ fromMount: true });
   }, [refreshStatus]);
 
   useEffect(() => {
@@ -179,7 +256,7 @@ export function SettingsSteam() {
 
   useEffect(() => {
     const onFocus = () => {
-      void refreshStatus({ silent: true });
+      void refreshStatus({ silent: true, fromFocus: true });
     };
 
     globalThis.window.addEventListener("focus", onFocus);
@@ -190,7 +267,9 @@ export function SettingsSteam() {
   }, [refreshStatus]);
 
   useEffect(() => {
-    void globalThis.window.electron.getSteamSyncState().then(setSyncState);
+    void globalThis.window.electron.getSteamSyncState().then((state) => {
+      setSyncState((current) => (current.status === "idle" ? state : current));
+    });
   }, []);
 
   useEffect(() => {
@@ -234,7 +313,6 @@ export function SettingsSteam() {
 
     try {
       await globalThis.window.electron.startSteamOAuth(i18n.language);
-      showSuccessToast(t("steam_connect_opened"));
     } catch (error) {
       showErrorToast(getSteamErrorMessage(error, "steam_connect_error"));
     } finally {
