@@ -20,6 +20,7 @@ export * from "./screenshot";
 export * from "./system-path";
 export * from "./disk-usage";
 export * from "./library-sync";
+export * from "./game-installations";
 export * from "./wine";
 export * from "./umu";
 export * from "./lock";

@@ -34,6 +34,7 @@ import { logger } from "../logger";
 import { db, downloadsSublevel, gamesSublevel, levelKeys } from "@main/level";
 import { TorBoxClient } from "./torbox";
 import { GameFilesManager } from "../game-files-manager";
+import { updateGameInstallation } from "@main/services/game-installations";
 import { PremiumizeClient } from "./premiumize";
 import { AllDebridClient } from "./all-debrid";
 import {
@@ -825,8 +826,7 @@ export class DownloadManager {
         const currentGame = await gamesSublevel.get(gameId);
         if (!currentGame) return;
 
-        await gamesSublevel.put(gameId, {
-          ...currentGame,
+        await updateGameInstallation(currentGame, {
           installerSizeInBytes,
         });
       });

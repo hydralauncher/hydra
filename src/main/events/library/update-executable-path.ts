@@ -8,6 +8,7 @@ import {
   updateGameTrackingExecutablePaths,
 } from "@main/helpers/update-executable-path";
 import { logger } from "@main/services";
+import { updateGameInstallation } from "@main/services/game-installations";
 import { runAutomaticCloudSaveSync } from "@main/services/cloud-save";
 import { AchievementWatcherManager } from "@main/services/achievements/achievement-watcher-manager";
 import type { GameShop } from "@types";
@@ -30,11 +31,10 @@ const updateExecutablePath = async (
     parsedPath !== null && game.executablePath !== parsedPath;
 
   // Update immediately without size so UI responds fast
-  await gamesSublevel.put(gameKey, {
-    ...updateGameExecutablePath(game, parsedPath),
-    installedSizeInBytes: parsedPath ? game.installedSizeInBytes : null,
-    automaticCloudSync:
-      executablePath === null ? false : game.automaticCloudSync,
+  const updatedGame = updateGameExecutablePath(game, parsedPath);
+  await updateGameInstallation(updatedGame, {
+    executablePath: updatedGame.executablePath ?? null,
+    executablePathUpdatedAt: updatedGame.executablePathUpdatedAt ?? null,
   });
 
   if (environmentChanged) {
@@ -61,10 +61,7 @@ const updateExecutablePath = async (
         const currentGame = await gamesSublevel.get(gameKey);
         if (!currentGame) return;
 
-        await gamesSublevel.put(gameKey, {
-          ...currentGame,
-          installedSizeInBytes,
-        });
+        await updateGameInstallation(currentGame, { installedSizeInBytes });
       })
       .catch((err) => {
         logger.error(`Failed to calculate game size: ${err}`);
@@ -89,10 +86,12 @@ const updateTrackingExecutablePaths = async (
   const game = await gamesSublevel.get(gameKey);
   if (!game) return;
 
-  await gamesSublevel.put(
-    gameKey,
-    updateGameTrackingExecutablePaths(game, parsedPaths)
-  );
+  const updatedGame = updateGameTrackingExecutablePaths(game, parsedPaths);
+  await updateGameInstallation(updatedGame, {
+    trackingExecutablePaths: updatedGame.trackingExecutablePaths ?? null,
+    trackingExecutablePathsUpdatedAt:
+      updatedGame.trackingExecutablePathsUpdatedAt ?? null,
+  });
 };
 
 registerEvent("updateTrackingExecutablePaths", updateTrackingExecutablePaths);

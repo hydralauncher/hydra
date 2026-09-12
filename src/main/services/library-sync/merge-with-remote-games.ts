@@ -15,6 +15,7 @@ import {
   levelKeys,
   markArtworkSelectionSynced,
 } from "@main/level";
+import { ensureGameInstallation } from "../game-installations";
 import {
   CUSTOM_ASSET_FIELD_BY_TYPE,
   reconcileRemoteArtworkSelection,
@@ -42,6 +43,8 @@ type ProfileGame = {
   customLibraryHeroImageUrl?: string | null;
   customLogoImageUrl?: string | null;
   customIconUrl?: string | null;
+  canonicalGameId?: string | null;
+  selectedStoreMappingId?: string | null;
 } & ShopAssets;
 
 const reconcileCustomAsset = (
@@ -218,6 +221,8 @@ const mergeExistingGame = (
   achievementCount: remoteGame.achievementCount,
   unlockedAchievementCount: remoteGame.unlockedAchievementCount,
   platform: remoteGame.platform ?? localGame.platform,
+  canonicalGameId: remoteGame.canonicalGameId ?? localGame.canonicalGameId,
+  storeMappingId: remoteGame.selectedStoreMappingId ?? localGame.storeMappingId,
   ...(canReconcileCustomArtwork
     ? {
         customIconUrl: reconcileCustomAsset(
@@ -263,6 +268,8 @@ const createLocalGame = (
   achievementCount: remoteGame.achievementCount,
   unlockedAchievementCount: remoteGame.unlockedAchievementCount,
   platform: remoteGame.platform ?? null,
+  canonicalGameId: remoteGame.canonicalGameId ?? null,
+  storeMappingId: remoteGame.selectedStoreMappingId ?? null,
   customIconUrl: remoteGame.customIconUrl ?? null,
   customLogoImageUrl: remoteGame.customLogoImageUrl ?? null,
   customHeroImageUrl: remoteGame.customLibraryHeroImageUrl ?? null,
@@ -294,7 +301,7 @@ const mergeRemoteGame = async (
       )
     : createLocalGame(remoteGame, collectionIds, remoteAddedToLibraryAt);
 
-  await gamesSublevel.put(gameKey, mergedGame);
+  await gamesSublevel.put(gameKey, await ensureGameInstallation(mergedGame));
 
   if (canReconcileCustomArtwork) {
     await syncArtworkSelectionWithRemote(gameKey, localGame, remoteGame);

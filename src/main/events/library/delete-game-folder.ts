@@ -6,6 +6,7 @@ import { DownloadOrchestrator, logger } from "@main/services";
 import { registerEvent } from "../register-event";
 import { GameShop } from "@types";
 import { downloadsSublevel, gamesSublevel, levelKeys } from "@main/level";
+import { updateGameInstallation } from "@main/services/game-installations";
 
 const deleteGameFolder = async (
   _event: Electron.IpcMainInvokeEvent,
@@ -57,8 +58,7 @@ const deleteGameFolder = async (
 
   const game = await gamesSublevel.get(gameKey);
   if (game) {
-    await gamesSublevel.put(gameKey, {
-      ...game,
+    await updateGameInstallation(game, {
       installerSizeInBytes: null,
       executablePath: null,
       installedSizeInBytes: null,

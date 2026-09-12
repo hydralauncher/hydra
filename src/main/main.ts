@@ -28,6 +28,7 @@ import {
   logger,
   migrateCloudSaveAutomaticSyncDefaults,
   groupedSouvenirWorker,
+  migrateLegacyGameInstallations,
 } from "@main/services";
 import { migrateDownloadSources } from "./helpers/migrate-download-sources";
 import { getDirSize } from "./services/download/helpers";
@@ -60,6 +61,7 @@ export const loadState = async () => {
   await Lock.acquireLock();
   await clearLegacyAchievementPersistence();
   await migrateCloudSaveAutomaticSyncDefaults();
+  await migrateLegacyGameInstallations();
 
   const userPreferences = await db.get<string, UserPreferences | null>(
     levelKeys.userPreferences,

@@ -12,6 +12,7 @@ import {
 } from "@main/level";
 import { composeAssetsWithArtwork } from "@shared";
 import { AchievementMemoryStore } from "@main/services/achievements/achievement-memory-store";
+import { updateGameInstallation } from "@main/services/game-installations";
 
 export const lookupCachedPlatform = async (
   gameKey: string
@@ -82,7 +83,9 @@ const getLibrary = async (): Promise<LibraryGame[]> => {
 
               if (!fs.existsSync(installerPath)) {
                 installerSizeInBytes = null;
-                gamesSublevel.put(key, { ...game, installerSizeInBytes: null });
+                updateGameInstallation(game, {
+                  installerSizeInBytes: null,
+                }).catch(() => {});
               }
             }
 
@@ -104,11 +107,10 @@ const getLibrary = async (): Promise<LibraryGame[]> => {
 
               if (!fs.existsSync(executableDir)) {
                 installedSizeInBytes = null;
-                gamesSublevel.put(key, {
-                  ...game,
+                updateGameInstallation(game, {
                   installerSizeInBytes,
                   installedSizeInBytes: null,
-                });
+                }).catch(() => {});
               }
             }
 

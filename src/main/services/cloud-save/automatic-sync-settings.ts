@@ -1,6 +1,5 @@
 import {
   cloudSaveAutomaticSyncSettingsSublevel,
-  db,
   gamesSublevel,
   levelKeys,
 } from "@main/level";
@@ -11,6 +10,7 @@ import type {
 } from "@types";
 
 import { WindowManager } from "../window-manager";
+import { updateGameInstallation } from "../game-installations";
 import { assertCloudSaveSubscription } from "./cloud-save-access";
 import {
   getCloudSaveAutomaticSyncStateForMode,
@@ -65,24 +65,13 @@ const persistCloudSaveAutomaticSyncMode = async (
   const key = getAutomaticSyncKey(shop, objectId);
   const game = await gamesSublevel.get(key);
   const state = getCloudSaveAutomaticSyncStateForMode(mode);
-  const batch = db.batch();
-
   if (game && game.automaticCloudSync !== state.legacyEnabled) {
-    batch.put(
-      key,
-      {
-        ...game,
-        automaticCloudSync: state.legacyEnabled,
-      },
-      { sublevel: gamesSublevel }
-    );
+    await updateGameInstallation(game, {
+      automaticCloudSync: state.legacyEnabled,
+    });
   }
 
-  batch.put(key, state.v2Enabled, {
-    sublevel: cloudSaveAutomaticSyncSettingsSublevel,
-  });
-
-  await batch.write();
+  await cloudSaveAutomaticSyncSettingsSublevel.put(key, state.v2Enabled);
   notifyAutomaticSyncModeChanged(objectId, shop, mode);
 };
 

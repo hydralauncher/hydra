@@ -26,6 +26,7 @@ import { PythonRPC } from "./services/python-rpc";
 import { db, gamesSublevel, levelKeys } from "./level";
 import { GameShop, UserPreferences } from "@types";
 import { launchGame, openClassicsGame } from "./helpers";
+import { ensureGameInstallation } from "./services/game-installations";
 import { refreshPortableShortcutLauncher } from "./helpers/shortcut-launch";
 import { lookupCachedPlatform } from "./events/library/get-library";
 import { loadState } from "./main";
@@ -228,7 +229,8 @@ app.on("render-process-gone", (_event, _webContents, details) => {
 
 const handleRunGame = async (shop: GameShop, objectId: string) => {
   const gameKey = levelKeys.game(shop, objectId);
-  const game = await gamesSublevel.get(gameKey);
+  const legacyGame = await gamesSublevel.get(gameKey);
+  const game = legacyGame ? await ensureGameInstallation(legacyGame) : null;
 
   if (!game) {
     logger.error("Game not found", { shop, objectId });

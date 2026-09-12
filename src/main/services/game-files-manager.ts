@@ -37,6 +37,7 @@ import { publishExtractionCompleteNotification } from "./notifications";
 import { SystemPath } from "./system-path";
 import { WindowManager } from "./window-manager";
 import { runAutomaticCloudSaveSync } from "./cloud-save";
+import { updateGameInstallation } from "@main/services/game-installations";
 
 const PROGRESS_THROTTLE_MS = 1000;
 
@@ -246,8 +247,7 @@ export class GameFilesManager {
       const gamePath = path.join(download.downloadPath, download.folderName);
       const installedSizeInBytes = await getDirectorySize(gamePath);
 
-      await gamesSublevel.put(this.gameKey, {
-        ...game,
+      await updateGameInstallation(game, {
         installedSizeInBytes,
       });
     }
@@ -433,7 +433,10 @@ export class GameFilesManager {
 
         const updatedGame = updateGameExecutablePath(game, foundExePath);
 
-        await gamesSublevel.put(this.gameKey, { ...updatedGame });
+        await updateGameInstallation(updatedGame, {
+          executablePath: updatedGame.executablePath ?? null,
+          executablePathUpdatedAt: updatedGame.executablePathUpdatedAt ?? null,
+        });
         void runAutomaticCloudSaveSync(
           this.objectId,
           this.shop,

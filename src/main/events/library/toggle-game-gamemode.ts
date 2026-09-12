@@ -1,6 +1,7 @@
 import { gamesSublevel, levelKeys } from "@main/level";
 import type { GameShop } from "@types";
 import { registerEvent } from "../register-event";
+import { updateGameInstallation } from "@main/services/game-installations";
 
 const toggleGameGamemode = async (
   _event: Electron.IpcMainInvokeEvent,
@@ -13,8 +14,7 @@ const toggleGameGamemode = async (
 
   if (!game) return;
 
-  await gamesSublevel.put(gameKey, {
-    ...game,
+  await updateGameInstallation(game, {
     autoRunGamemode,
   });
 };

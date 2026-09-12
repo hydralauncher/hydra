@@ -5,6 +5,8 @@ import path from "node:path";
 import { GameShop, type Game, type UserPreferences } from "@types";
 import { db, gamesSublevel, levelKeys } from "@main/level";
 import { updateGameExecutablePath } from "./update-executable-path";
+import { ensureGameInstallation } from "@main/services/game-installations";
+import { updateGameInstallation } from "@main/services/game-installations";
 import {
   clearCloudSaveLaunchGuard,
   canRunAutomaticCloudSaveSync,
@@ -576,7 +578,8 @@ const launchGameWithCloudSaveChecks = async (
   const parsedPath = parseExecutablePath(executablePath);
 
   const gameKey = levelKeys.game(shop, objectId);
-  const game = await gamesSublevel.get(gameKey);
+  const legacyGame = await gamesSublevel.get(gameKey);
+  const game = legacyGame ? await ensureGameInstallation(legacyGame) : null;
   clearCloudSaveLaunchGuard(objectId, shop);
 
   const userPreferences = await db
@@ -600,7 +603,11 @@ const launchGameWithCloudSaveChecks = async (
     : null;
 
   if (updatedGame) {
-    await gamesSublevel.put(gameKey, updatedGame);
+    await updateGameInstallation(updatedGame, {
+      executablePath: updatedGame.executablePath ?? null,
+      executablePathUpdatedAt: updatedGame.executablePathUpdatedAt ?? null,
+      launchOptions: updatedGame.launchOptions ?? null,
+    });
   }
 
   await WindowManager.createGameLauncherWindow(shop, objectId);
@@ -616,7 +623,7 @@ const launchGameWithCloudSaveChecks = async (
     prefixGenerationOverride,
   } = await prepareLinuxCompatibilityForLaunch(
     parsedPath,
-    game,
+    game ?? undefined,
     objectId,
     shop,
     shouldRunV2AutomaticSync

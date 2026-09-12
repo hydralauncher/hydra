@@ -2,6 +2,7 @@ import fs from "node:fs";
 import { registerEvent } from "../register-event";
 import { gamesSublevel, levelKeys } from "@main/level";
 import { Umu } from "@main/services";
+import { updateGameInstallation } from "@main/services/game-installations";
 import type { GameShop } from "@types";
 
 const selectGameProtonPath = async (
@@ -17,8 +18,7 @@ const selectGameProtonPath = async (
   if (!game) return;
 
   if (!protonPath) {
-    await gamesSublevel.put(gameKey, {
-      ...game,
+    await updateGameInstallation(game, {
       protonPath: null,
     });
 
@@ -31,8 +31,7 @@ const selectGameProtonPath = async (
     throw new Error("Invalid proton path");
   }
 
-  await gamesSublevel.put(gameKey, {
-    ...game,
+  await updateGameInstallation(game, {
     protonPath: realProtonPath,
   });
 };

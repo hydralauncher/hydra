@@ -3,6 +3,7 @@ import fs from "node:fs";
 import { levelKeys, gamesSublevel } from "@main/level";
 import { Wine } from "@main/services";
 import { runAutomaticCloudSaveSync } from "@main/services/cloud-save";
+import { updateGameInstallation } from "@main/services/game-installations";
 import type { GameShop } from "@types";
 
 const selectGameWinePrefix = async (
@@ -20,8 +21,7 @@ const selectGameWinePrefix = async (
   if (!winePrefixPath) {
     const environmentChanged = Boolean(game.winePrefixPath);
 
-    await gamesSublevel.put(gameKey, {
-      ...game,
+    await updateGameInstallation(game, {
       winePrefixPath: null,
     });
 
@@ -38,8 +38,7 @@ const selectGameWinePrefix = async (
     throw new Error("Invalid wine prefix path");
   }
 
-  await gamesSublevel.put(gameKey, {
-    ...game,
+  await updateGameInstallation(game, {
     winePrefixPath: realWinePrefixPath,
   });
 

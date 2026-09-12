@@ -8,6 +8,7 @@ import { db, gamesSublevel, levelKeys } from "@main/level";
 import { patchUserProfile } from "../profile/update-profile";
 import { DownloadManager, Wine } from "@main/services";
 import { WindowManager } from "@main/services/window-manager";
+import { updateGameInstallation } from "@main/services/game-installations";
 import { getDownloadDirectoryPreferences } from "@shared";
 import {
   restoreDuckStationFileLogging,
@@ -38,8 +39,7 @@ const pinGameWinePrefix = async (game: Game) => {
   );
   if (!resolvedWinePrefixPath) return;
 
-  await gamesSublevel.put(levelKeys.game(game.shop, game.objectId), {
-    ...game,
+  await updateGameInstallation(game, {
     winePrefixPath: resolvedWinePrefixPath,
   });
 };

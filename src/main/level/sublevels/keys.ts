@@ -2,7 +2,9 @@ import type { GameShop } from "@types";
 
 export const levelKeys = {
   games: "games",
+  installations: "installations",
   game: (shop: GameShop, objectId: string) => `${shop}:${objectId}`,
+  installation: (installationId: string) => `installation:${installationId}`,
   user: "user",
   auth: "auth",
   themes: "themes",

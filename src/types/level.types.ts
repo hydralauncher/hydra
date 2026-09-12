@@ -50,6 +50,9 @@ export interface Game {
   addedToLibraryAt?: Date | null;
   objectId: string;
   shop: GameShop;
+  canonicalGameId?: string | null;
+  storeMappingId?: string | null;
+  installationId?: string | null;
   remoteId: string | null;
   collectionIds?: string[];
   isDeleted: boolean;
@@ -79,6 +82,26 @@ export interface Game {
   selectedDiscPath?: string | null;
   dontAskDiscSelection?: boolean;
   romSizeBytes?: number | null;
+}
+
+export interface GameInstallation {
+  installationId: string;
+  canonicalGameId: string | null;
+  storeMappingId: string | null;
+  shop: GameShop;
+  objectId: string;
+  executablePath: string | null;
+  executablePathUpdatedAt: Date | null;
+  trackingExecutablePaths: string[] | null;
+  trackingExecutablePathsUpdatedAt: Date | null;
+  winePrefixPath: string | null;
+  protonPath: string | null;
+  launchOptions: string | null;
+  autoRunMangohud: boolean | null;
+  autoRunGamemode: boolean | null;
+  automaticCloudSync: boolean | null;
+  installedSizeInBytes: number | null;
+  installerSizeInBytes: number | null;
 }
 
 export interface Download {
