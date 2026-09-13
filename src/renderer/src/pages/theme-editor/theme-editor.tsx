@@ -1,4 +1,11 @@
-import { useCallback, useEffect, useId, useMemo, useRef, useState } from "react";
+import {
+  useCallback,
+  useEffect,
+  useId,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import "./theme-editor.scss";
 import Editor, { type OnMount } from "@monaco-editor/react";
 import { Theme } from "@types";
@@ -89,7 +96,9 @@ const defaultDocument = (): EditorDocument => ({
   discoveredTargets: [],
 });
 
-const decorationColor = (status: "recognized" | "partial" | "unknown"): string => {
+const decorationColor = (
+  status: "recognized" | "partial" | "unknown"
+): string => {
   switch (status) {
     case "recognized":
       return "#35e3a0";
@@ -100,7 +109,9 @@ const decorationColor = (status: "recognized" | "partial" | "unknown"): string =
   }
 };
 
-const decorationHoverMessage = (change: ReturnType<typeof importCommunityCss>["changes"][number]): string => {
+const decorationHoverMessage = (
+  change: ReturnType<typeof importCommunityCss>["changes"][number]
+): string => {
   const conditions = change.conditions?.length
     ? `\n\nCondições: ${change.conditions.join(" | ")}`
     : "";
@@ -286,7 +297,6 @@ export default function ThemeEditor() {
       hidePreview();
     };
   }, [themeId, mode, previewEnabled]);
-
 
   const updatePreview = useCallback(
     (nextDocument: EditorDocument, nextBaseCode = baseCode) => {
@@ -514,7 +524,7 @@ export default function ThemeEditor() {
     const unknown = result.unknownSelectors.length;
     setCssImportMessage(
       `${result.recognizedRules} regras · ${result.recognizedDeclarations} propriedades convertidas para a engine` +
-      (unknown ? ` · ${unknown} seletores mantidos como CSS bruto` : "")
+        (unknown ? ` · ${unknown} seletores mantidos como CSS bruto` : "")
     );
     setMode("visual");
 
@@ -1193,7 +1203,9 @@ export default function ThemeEditor() {
                     placeholder="no-repeat"
                   />
                   <div className="inspector-section">
-                    <span className="inspector-label">Propriedades CSS detectadas</span>
+                    <span className="inspector-label">
+                      Propriedades CSS detectadas
+                    </span>
                     <div className="custom-properties-list">
                       {Object.entries(currentStyle.customProperties ?? {}).map(
                         ([property, value]) => (
@@ -1211,11 +1223,11 @@ export default function ThemeEditor() {
                       )}
                       {Object.keys(currentStyle.customProperties ?? {})
                         .length === 0 && (
-                          <small>
-                            Nenhuma propriedade adicional detectada neste
-                            elemento.
-                          </small>
-                        )}
+                        <small>
+                          Nenhuma propriedade adicional detectada neste
+                          elemento.
+                        </small>
+                      )}
                     </div>
                   </div>
                   <div className="inspector-section">
@@ -1244,7 +1256,9 @@ export default function ThemeEditor() {
                     </div>
                   </div>
                   <div className="inspector-section">
-                    <span className="inspector-label">Condições detectadas</span>
+                    <span className="inspector-label">
+                      Condições detectadas
+                    </span>
                     <div className="condition-list">
                       {(
                         importChanges.find(

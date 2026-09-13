@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import type { CSSProperties } from "react";
+import type { CSSProperties, ReactNode } from "react";
 import { useParty } from "../../context/PartyContext";
 import type { LobbyInfo } from "../../context/PartyContext";
 import { useUserDetails, useAppSelector } from "@renderer/hooks";
@@ -36,12 +36,12 @@ const isRecord = (value: unknown): value is Record<string, unknown> =>
 const isPartyFriend = (value: unknown): value is PartyFriend => {
   if (!isRecord(value) || typeof value.id !== "string") return false;
   return (
-    value.profileImageUrl === undefined || typeof value.profileImageUrl === "string"
-  ) && (
-      value.displayName === undefined || typeof value.displayName === "string"
-    ) && (
-      value.username === undefined || typeof value.username === "string"
-    );
+    (value.profileImageUrl === undefined ||
+      typeof value.profileImageUrl === "string") &&
+    (value.displayName === undefined ||
+      typeof value.displayName === "string") &&
+    (value.username === undefined || typeof value.username === "string")
+  );
 };
 
 const getFriends = (value: unknown): PartyFriend[] => {
@@ -49,7 +49,10 @@ const getFriends = (value: unknown): PartyFriend[] => {
   return value.friends.filter(isPartyFriend);
 };
 
-const getMyFriends = (fullState: unknown, userDetails: unknown): PartyFriend[] => {
+const getMyFriends = (
+  fullState: unknown,
+  userDetails: unknown
+): PartyFriend[] => {
   if (!isRecord(fullState) || !isRecord(fullState.userDetails)) {
     return getFriends(userDetails);
   }
@@ -74,7 +77,8 @@ const getStatusColor = (status: string): string => {
 
 const getStatusIcon = (status: string) => {
   if (status === "Online") return <WifiHighIcon weight="bold" />;
-  if (status.includes("Reconectando")) return <WarningCircleIcon weight="bold" />;
+  if (status.includes("Reconectando"))
+    return <WarningCircleIcon weight="bold" />;
   return <WifiSlashIcon weight="bold" />;
 };
 
@@ -116,13 +120,148 @@ const MicTestButton = ({ isActive, onClick }: MicTestButtonProps) => (
       fontSize: "12px",
     }}
   >
-    {isActive ? (
-      <SpeakerHighIcon size={16} />
-    ) : (
-      <SpeakerSlashIcon size={16} />
-    )}{" "}
+    {isActive ? <SpeakerHighIcon size={16} /> : <SpeakerSlashIcon size={16} />}{" "}
     {isActive ? "Parar" : "Testar Mic"}
   </button>
+);
+
+
+const glassCardStyle: CSSProperties = {
+  width: "100%",
+  maxWidth: "600px",
+  background: "rgba(0, 0, 0, 0.6)",
+  backdropFilter: "blur(20px)",
+  borderRadius: "16px",
+  border: "1px solid rgba(255, 255, 255, 0.1)",
+  padding: "30px",
+  display: "flex",
+  flexDirection: "column",
+  alignItems: "center",
+  justifyContent: "center",
+  boxShadow: "0 20px 50px rgba(0,0,0,0.5)",
+  animation: "fadeIn 0.3s ease-in-out",
+  zIndex: 10,
+  maxHeight: "80vh",
+};
+
+const textInputStyle: CSSProperties = {
+  width: "100%",
+  padding: "12px",
+  borderRadius: "8px",
+  border: "1px solid rgba(255,255,255,0.2)",
+  background: "rgba(0,0,0,0.3)",
+  color: "white",
+  marginBottom: "10px",
+  fontSize: "14px",
+  outline: "none",
+};
+
+const passwordInputStyle: CSSProperties = {
+  flex: 1,
+  padding: "12px",
+  borderRadius: "8px",
+  border: "1px solid rgba(255,255,255,0.2)",
+  background: "rgba(0,0,0,0.3)",
+  color: "white",
+  fontSize: "14px",
+  outline: "none",
+};
+
+const passwordRowStyle: CSSProperties = {
+  display: "flex",
+  alignItems: "center",
+  gap: "10px",
+  width: "100%",
+  marginBottom: "20px",
+};
+
+const actionsRowStyle: CSSProperties = {
+  display: "flex",
+  gap: "10px",
+  width: "100%",
+};
+
+const cancelButtonStyle: CSSProperties = {
+  flex: 1,
+  padding: "12px",
+  background: "transparent",
+  border: "1px solid rgba(255,255,255,0.2)",
+  color: "#aaa",
+  borderRadius: "8px",
+  cursor: "pointer",
+};
+
+const primaryButtonStyle = (enabled: boolean): CSSProperties => ({
+  flex: 1,
+  padding: "12px",
+  background: enabled ? "#00cc66" : "#444",
+  border: "none",
+  color: "white",
+  borderRadius: "8px",
+  cursor: "pointer",
+  fontWeight: "bold",
+});
+
+interface RoomFormCardProps {
+  title: string;
+  mainValue: string;
+  onMainChange: (value: string) => void;
+  mainPlaceholder: string;
+  passwordValue: string;
+  onPasswordChange: (value: string) => void;
+  passwordPlaceholder: string;
+  passwordIcon: ReactNode;
+  submitLabel: string;
+  submitDisabled: boolean;
+  onCancel: () => void;
+  onSubmit: () => void;
+}
+
+const RoomFormCard = ({
+  title,
+  mainValue,
+  onMainChange,
+  mainPlaceholder,
+  passwordValue,
+  onPasswordChange,
+  passwordPlaceholder,
+  passwordIcon,
+  submitLabel,
+  submitDisabled,
+  onCancel,
+  onSubmit,
+}: RoomFormCardProps) => (
+  <div style={glassCardStyle}>
+    <h2 style={{ marginBottom: "20px", fontSize: "20px" }}>{title}</h2>
+    <input
+      value={mainValue}
+      onChange={(event) => onMainChange(event.target.value)}
+      placeholder={mainPlaceholder}
+      style={textInputStyle}
+    />
+    <div style={passwordRowStyle}>
+      {passwordIcon}
+      <input
+        value={passwordValue}
+        onChange={(event) => onPasswordChange(event.target.value)}
+        placeholder={passwordPlaceholder}
+        type="password"
+        style={passwordInputStyle}
+      />
+    </div>
+    <div style={actionsRowStyle}>
+      <button onClick={onCancel} style={cancelButtonStyle}>
+        Cancelar
+      </button>
+      <button
+        disabled={submitDisabled}
+        onClick={onSubmit}
+        style={primaryButtonStyle(!submitDisabled)}
+      >
+        {submitLabel}
+      </button>
+    </div>
+  </div>
 );
 
 export default function PartyPage() {
@@ -224,24 +363,6 @@ export default function PartyPage() {
   useEffect(() => {
     if (players.length > 0) setIsMicTestActive(false);
   }, [players]);
-
-  const glassCardStyle: CSSProperties = {
-    width: "100%",
-    maxWidth: "600px",
-    background: "rgba(0, 0, 0, 0.6)",
-    backdropFilter: "blur(20px)",
-    borderRadius: "16px",
-    border: "1px solid rgba(255, 255, 255, 0.1)",
-    padding: "30px",
-    display: "flex",
-    flexDirection: "column",
-    alignItems: "center",
-    justifyContent: "center",
-    boxShadow: "0 20px 50px rgba(0,0,0,0.5)",
-    animation: "fadeIn 0.3s ease-in-out",
-    zIndex: 10,
-    maxHeight: "80vh",
-  };
 
   if (players.length > 0) {
     return (
@@ -422,7 +543,9 @@ export default function PartyPage() {
               </button>
             )}
             <button
-              onClick={() => { handleCopyHostId(); }}
+              onClick={() => {
+                handleCopyHostId();
+              }}
               style={{
                 background: "rgba(255,255,255,0.1)",
                 border: "none",
@@ -628,7 +751,11 @@ export default function PartyPage() {
               textShadow: `0 0 15px ${getStatusColor(connectionStatus)}80`,
             }}
           >
-            <UsersThreeIcon color={getStatusColor(connectionStatus)} weight="fill" /> Hydra Party
+            <UsersThreeIcon
+              color={getStatusColor(connectionStatus)}
+              weight="fill"
+            />{" "}
+            Hydra Party
           </h1>
           <div
             style={{
@@ -658,10 +785,7 @@ export default function PartyPage() {
           </div>
         </div>
         <div style={{ display: "flex", gap: "10px", alignItems: "center" }}>
-          <MicTestButton
-            isActive={isMicTestActive}
-            onClick={handleTestMic}
-          />
+          <MicTestButton isActive={isMicTestActive} onClick={handleTestMic} />
           <button
             onClick={() => setView("create")}
             style={{
@@ -729,168 +853,36 @@ export default function PartyPage() {
         )}
 
         {view === "create" && (
-          <div style={glassCardStyle}>
-            <h2 style={{ marginBottom: "20px", fontSize: "20px" }}>
-              Criar Nova Sala
-            </h2>
-            <input
-              value={newRoomName}
-              onChange={(e) => setNewRoomName(e.target.value)}
-              placeholder="Nome da Sala"
-              style={{
-                width: "100%",
-                padding: "12px",
-                borderRadius: "8px",
-                border: "1px solid rgba(255,255,255,0.2)",
-                background: "rgba(0,0,0,0.3)",
-                color: "white",
-                marginBottom: "10px",
-                fontSize: "14px",
-                outline: "none",
-              }}
-            />
-            <div
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: "10px",
-                width: "100%",
-                marginBottom: "20px",
-              }}
-            >
-              <LockIcon size={24} color="#aaa" />
-              <input
-                value={roomPassword}
-                onChange={(e) => setRoomPassword(e.target.value)}
-                placeholder="Senha (Opcional)"
-                type="password"
-                style={{
-                  flex: 1,
-                  padding: "12px",
-                  borderRadius: "8px",
-                  border: "1px solid rgba(255,255,255,0.2)",
-                  background: "rgba(0,0,0,0.3)",
-                  color: "white",
-                  fontSize: "14px",
-                  outline: "none",
-                }}
-              />
-            </div>
-            <div style={{ display: "flex", gap: "10px", width: "100%" }}>
-              <button
-                onClick={() => setView("lobby")}
-                style={{
-                  flex: 1,
-                  padding: "12px",
-                  background: "transparent",
-                  border: "1px solid rgba(255,255,255,0.2)",
-                  color: "#aaa",
-                  borderRadius: "8px",
-                  cursor: "pointer",
-                }}
-              >
-                Cancelar
-              </button>
-              <button
-                disabled={!myId}
-                onClick={() => createParty(newRoomName, roomPassword)}
-                style={{
-                  flex: 1,
-                  padding: "12px",
-                  background: myId ? "#00cc66" : "#444",
-                  border: "none",
-                  color: "white",
-                  borderRadius: "8px",
-                  cursor: "pointer",
-                  fontWeight: "bold",
-                }}
-              >
-                {myId ? "Iniciar" : "Sem Rede"}
-              </button>
-            </div>
-          </div>
+          <RoomFormCard
+            title="Criar Nova Sala"
+            mainValue={newRoomName}
+            onMainChange={setNewRoomName}
+            mainPlaceholder="Nome da Sala"
+            passwordValue={roomPassword}
+            onPasswordChange={setRoomPassword}
+            passwordPlaceholder="Senha (Opcional)"
+            passwordIcon={<LockIcon size={24} color="#aaa" />}
+            submitLabel={myId ? "Iniciar" : "Sem Rede"}
+            submitDisabled={!myId}
+            onCancel={() => setView("lobby")}
+            onSubmit={() => createParty(newRoomName, roomPassword)}
+          />
         )}
         {view === "join" && (
-          <div style={glassCardStyle}>
-            <h2 style={{ marginBottom: "20px", fontSize: "20px" }}>
-              Entrar em Sala
-            </h2>
-            <input
-              value={inputHostId}
-              onChange={(e) => setInputHostId(e.target.value)}
-              placeholder="Cole o ID da Sala..."
-              style={{
-                width: "100%",
-                padding: "12px",
-                borderRadius: "8px",
-                border: "1px solid rgba(255,255,255,0.2)",
-                background: "rgba(0,0,0,0.3)",
-                color: "white",
-                marginBottom: "10px",
-                fontSize: "14px",
-                outline: "none",
-              }}
-            />
-            <div
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: "10px",
-                width: "100%",
-                marginBottom: "20px",
-              }}
-            >
-              <LockKeyIcon size={24} color="#aaa" />
-              <input
-                value={inputPassword}
-                onChange={(e) => setInputPassword(e.target.value)}
-                placeholder="Senha da Sala (Se houver)"
-                type="password"
-                style={{
-                  flex: 1,
-                  padding: "12px",
-                  borderRadius: "8px",
-                  border: "1px solid rgba(255,255,255,0.2)",
-                  background: "rgba(0,0,0,0.3)",
-                  color: "white",
-                  fontSize: "14px",
-                  outline: "none",
-                }}
-              />
-            </div>
-            <div style={{ display: "flex", gap: "10px", width: "100%" }}>
-              <button
-                onClick={() => setView("lobby")}
-                style={{
-                  flex: 1,
-                  padding: "12px",
-                  background: "transparent",
-                  border: "1px solid rgba(255,255,255,0.2)",
-                  color: "#aaa",
-                  borderRadius: "8px",
-                  cursor: "pointer",
-                }}
-              >
-                Cancelar
-              </button>
-              <button
-                disabled={!myId}
-                onClick={() => joinParty(inputHostId, myNick, inputPassword)}
-                style={{
-                  flex: 1,
-                  padding: "12px",
-                  background: myId ? "#00cc66" : "#444",
-                  border: "none",
-                  color: "white",
-                  borderRadius: "8px",
-                  cursor: "pointer",
-                  fontWeight: "bold",
-                }}
-              >
-                Conectar
-              </button>
-            </div>
-          </div>
+          <RoomFormCard
+            title="Entrar em Sala"
+            mainValue={inputHostId}
+            onMainChange={setInputHostId}
+            mainPlaceholder="Cole o ID da Sala..."
+            passwordValue={inputPassword}
+            onPasswordChange={setInputPassword}
+            passwordPlaceholder="Senha da Sala (Se houver)"
+            passwordIcon={<LockKeyIcon size={24} color="#aaa" />}
+            submitLabel="Conectar"
+            submitDisabled={!myId}
+            onCancel={() => setView("lobby")}
+            onSubmit={() => joinParty(inputHostId, myNick, inputPassword)}
+          />
         )}
 
         {view === "lobby" && (

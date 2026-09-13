@@ -100,20 +100,20 @@ export class WindowManager {
       show: false,
       ...(process.platform === "linux"
         ? {
-          frame: false,
-          ...(isLinuxWayland
-            ? { transparent: true, backgroundColor: "#00000000" }
-            : { backgroundColor: "#1c1c1c" }),
-        }
+            frame: false,
+            ...(isLinuxWayland
+              ? { transparent: true, backgroundColor: "#00000000" }
+              : { backgroundColor: "#1c1c1c" }),
+          }
         : {
-          backgroundColor: "#1c1c1c",
-          titleBarStyle: "hidden",
-          titleBarOverlay: {
-            symbolColor: "#DADBE1",
-            color: "#00000000",
-            height: 34,
-          },
-        }),
+            backgroundColor: "#1c1c1c",
+            titleBarStyle: "hidden",
+            titleBarOverlay: {
+              symbolColor: "#DADBE1",
+              color: "#00000000",
+              height: 34,
+            },
+          }),
     };
 
   private static formatVersionNumber(version: string) {
@@ -241,11 +241,11 @@ export class WindowManager {
 
     const { workArea } = hasSavedPosition
       ? screen.getDisplayMatching({
-        x: savedX,
-        y: savedY,
-        width: savedWidth,
-        height: savedHeight,
-      })
+          x: savedX,
+          y: savedY,
+          width: savedWidth,
+          height: savedHeight,
+        })
       : screen.getPrimaryDisplay();
 
     const minWidth = Math.min(this.MIN_WINDOW_WIDTH, workArea.width);
@@ -434,16 +434,16 @@ export class WindowManager {
       const isMaximized = mainWindow.isMaximized() ?? false;
       const screenConfig = isMaximized
         ? {
-          x: undefined,
-          y: undefined,
-          height:
-            this.initialConfigInitializationMainWindow.height ??
-            this.DEFAULT_WINDOW_HEIGHT,
-          width:
-            this.initialConfigInitializationMainWindow.width ??
-            this.DEFAULT_WINDOW_WIDTH,
-          isMaximized: true,
-        }
+            x: undefined,
+            y: undefined,
+            height:
+              this.initialConfigInitializationMainWindow.height ??
+              this.DEFAULT_WINDOW_HEIGHT,
+            width:
+              this.initialConfigInitializationMainWindow.width ??
+              this.DEFAULT_WINDOW_WIDTH,
+            isMaximized: true,
+          }
         : { ...lastBounds, isMaximized };
 
       await this.saveScreenConfig(screenConfig);
@@ -501,7 +501,7 @@ export class WindowManager {
 
     const bigPictureInitialHash =
       (userPreferences?.bigPictureLaunchToLibraryPage ??
-        userPreferences?.launchToLibraryPage)
+      userPreferences?.launchToLibraryPage)
         ? "big-picture/library"
         : "big-picture";
 
