@@ -24,7 +24,11 @@ import {
   SyncIcon,
 } from "@primer/octicons-react";
 import { useTranslation } from "react-i18next";
-import { AuthPage, removeDiacritics } from "@shared";
+import {
+  AuthPage,
+  removeDiacritics,
+  shouldHideGameForAdultContent,
+} from "@shared";
 import { GameCollection, LibraryGame } from "@types";
 import { CreateCollectionModal, GameContextMenu } from "@renderer/components";
 import { useCollectionContextMenu } from "@renderer/context";
@@ -190,6 +194,9 @@ export default function Library() {
 
   const searchQuery = useAppSelector((state) => state.library.searchQuery);
   const deferredSearchQuery = useDeferredValue(searchQuery);
+  const hideAdultContent = useAppSelector(
+    (state) => state.userPreferences.value?.hideAdultContent
+  );
   const dispatch = useAppDispatch();
   const { t } = useTranslation(["library", "sidebar"]);
 
@@ -353,6 +360,12 @@ export default function Library() {
       );
     }
 
+    if (hideAdultContent) {
+      filtered = filtered.filter(
+        (game) => !shouldHideGameForAdultContent(game, hideAdultContent)
+      );
+    }
+
     const queryLower = removeDiacritics(deferredSearchQuery).toLowerCase();
 
     if (!queryLower.trim()) return filtered;
@@ -379,6 +392,7 @@ export default function Library() {
     selectedCollectionId,
     effectiveCategory,
     selectedPlatform,
+    hideAdultContent,
   ]);
 
   const uniquePlatforms = useMemo(() => {

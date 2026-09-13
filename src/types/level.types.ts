@@ -1,5 +1,5 @@
 import type { Downloader } from "@shared";
-import type { GameShop } from "./game.types";
+import type { GameContentWarning, GameShop } from "./game.types";
 import type { DownloadStatus } from "./download.types";
 import type { ClassicsDisc } from "./emulator.types";
 
@@ -79,6 +79,7 @@ export interface Game {
   selectedDiscPath?: string | null;
   dontAskDiscSelection?: boolean;
   romSizeBytes?: number | null;
+  contentWarning?: GameContentWarning;
 }
 
 export interface Download {
@@ -153,6 +154,7 @@ export interface UserPreferences {
   bigPictureLaunchToLibraryPage?: boolean;
   launchInBigPicture?: boolean;
   disableNsfwAlert?: boolean;
+  hideAdultContent?: boolean;
   enableAutoInstall?: boolean;
   seedAfterDownloadComplete?: boolean;
   showHiddenAchievementsDescription?: boolean;
