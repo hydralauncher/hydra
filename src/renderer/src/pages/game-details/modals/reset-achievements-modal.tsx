@@ -48,7 +48,7 @@ export function ResetAchievementsModal({
       visible={visible}
       onClose={handleClose}
       title={t("reset_achievements_title")}
-      description={t("reset_achievements_description", {
+      description={t("reset_achievements_souvenirs_description", {
         game: game.title,
       })}
     >

@@ -46,6 +46,7 @@ describe("game options category selection", () => {
         cloudSaveAccessAction: "open",
         showCloudSaveV2Settings: true,
         showLegacyCloudSaveSettings: false,
+        showDownloadSettings: true,
       }),
       "assets"
     );
@@ -57,6 +58,7 @@ describe("game options category selection", () => {
         cloudSaveAccessAction: "open",
         showCloudSaveV2Settings: false,
         showLegacyCloudSaveSettings: true,
+        showDownloadSettings: true,
       }),
       "general"
     );
@@ -65,6 +67,7 @@ describe("game options category selection", () => {
         cloudSaveAccessAction: "open",
         showCloudSaveV2Settings: true,
         showLegacyCloudSaveSettings: false,
+        showDownloadSettings: true,
       }),
       "general"
     );
@@ -76,6 +79,19 @@ describe("game options category selection", () => {
         cloudSaveAccessAction: "paywall",
         showCloudSaveV2Settings: true,
         showLegacyCloudSaveSettings: true,
+        showDownloadSettings: true,
+      }),
+      "general"
+    );
+  });
+
+  it("falls back when downloads are unavailable", () => {
+    assert.equal(
+      getAvailableGameSettingsCategory("downloads", {
+        cloudSaveAccessAction: "open",
+        showCloudSaveV2Settings: true,
+        showLegacyCloudSaveSettings: true,
+        showDownloadSettings: false,
       }),
       "general"
     );

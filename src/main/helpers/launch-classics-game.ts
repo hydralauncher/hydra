@@ -15,6 +15,8 @@ import { isGamemodeAvailable } from "./is-gamemode-available";
 import { isMangohudAvailable } from "./is-mangohud-available";
 import { resolveLaunchCommand } from "./resolve-launch-command";
 import { spawnDetachedEmulator } from "./spawn-detached-emulator";
+import { prepareEmulatorSouvenirs } from "@main/services/emulators/prepare-emulator-souvenirs";
+import { cleanupEmulatorSouvenirSession } from "@main/services/emulators/emulator-souvenir-config";
 
 export class EmulatorNotConfiguredError extends Error {
   code = "EMULATOR_NOT_CONFIGURED" as const;
@@ -129,6 +131,10 @@ const buildEmulatorArgs = (
       return ["-batch", "-fullscreen", "--", discPath];
     case "rpcs3":
       return ["--no-gui", discPath];
+    case "ppsspp":
+      return ["--pause-menu-exit", "--fullscreen", discPath];
+    case "dolphin":
+      return ["--batch", "--exec", discPath];
   }
 };
 
@@ -234,7 +240,13 @@ export const launchClassicsGame = async (
     });
   }
 
-  const baseArgs = buildEmulatorArgs(config.binary, bootTarget);
+  const souvenirSession = game
+    ? await prepareEmulatorSouvenirs(system, executableTarget)
+    : null;
+  const baseArgs = [
+    ...(souvenirSession?.launchArguments ?? []),
+    ...buildEmulatorArgs(config.binary, bootTarget),
+  ];
 
   const resolvedLaunchCommand = resolveLaunchCommand({
     baseCommand: executableTarget,
@@ -244,6 +256,8 @@ export const launchClassicsGame = async (
   });
 
   const workingDirectory = path.dirname(executableTarget);
+
+  let sessionStarted = false;
 
   try {
     const processRef = await spawnDetachedEmulator(
@@ -259,11 +273,16 @@ export const launchClassicsGame = async (
         executablePath: config.executablePath,
         sku: selectedDisc?.sku ?? null,
         child: processRef,
+        souvenirSession,
       });
+      sessionStarted = true;
     }
 
     processRef.unref();
   } catch (error) {
+    if (!sessionStarted) {
+      await cleanupEmulatorSouvenirSession(souvenirSession);
+    }
     logger.error("Failed to spawn classics emulator", error);
     throw error;
   }

@@ -6,7 +6,8 @@ import { Button, ClassicsScanIndicator } from "@renderer/components";
 import { showExecutableOpenDialog } from "@renderer/helpers";
 import { useClassicsScan, useToast } from "@renderer/hooks";
 import { formatBytes } from "@shared";
-import type { EmulatorConfig, RomFolder } from "@types";
+import type { EmulatorConfig, EmulatorSystem, RomFolder } from "@types";
+import { SETTINGS_EMULATOR_TAB_STORAGE_KEY } from "@renderer/session-state";
 
 import { KNOWN_BINARY_LABELS } from "./known-binary-labels";
 import { EMULATOR_ICONS } from "./emulator-icons";
@@ -23,8 +24,15 @@ import {
 } from "./emulation-detail-sections";
 import { MemoryCardsSection } from "./memory-cards-section";
 import { CloudSavesSection } from "./cloud-saves-section";
+import { LocalEmulatorSavesSection } from "./local-emulator-saves-section";
 import { RomsDetectedSection } from "./roms-detected-section";
 import { formatRelativeShort } from "./relative-time";
+import {
+  availableEmulatorTabs,
+  supportsEmulatorSaves,
+  supportsMemoryCards,
+  type EmulatorTab,
+} from "./emulator-detail-tabs";
 
 import "./emulator-detail.scss";
 
@@ -36,7 +44,17 @@ interface EmulatorDetailProps {
   refresh: () => Promise<EmulatorConfig | unknown>;
 }
 
-type EmulatorTab = "emulator" | "rom-folders" | "memory-cards" | "library";
+const emulatorTabStorageKey = (system: EmulatorSystem) =>
+  `${SETTINGS_EMULATOR_TAB_STORAGE_KEY}-${system}`;
+
+const readStoredTab = (system: EmulatorSystem): EmulatorTab => {
+  const stored = localStorage.getItem(emulatorTabStorageKey(system));
+  const available = availableEmulatorTabs(system) as string[];
+
+  return stored && available.includes(stored)
+    ? (stored as EmulatorTab)
+    : "emulator";
+};
 
 export function EmulatorDetail({
   config,
@@ -59,12 +77,22 @@ export function EmulatorDetail({
   const [removeOpen, setRemoveOpen] = useState(false);
   const [executableExists, setExecutableExists] = useState<boolean>(true);
 
-  const supportsMemoryCards =
-    config.system === "ps2" || config.system === "ps1";
-  const supportsBios = supportsMemoryCards;
+  const hasMemoryCards = supportsMemoryCards(config.system);
+  const hasEmulatorSaves = supportsEmulatorSaves(config.system);
+  const supportsBios = hasMemoryCards;
   const supportsFirmware = config.system === "ps3";
 
-  const [activeTab, setActiveTab] = useState<EmulatorTab>("emulator");
+  const [activeTab, setActiveTab] = useState<EmulatorTab>(() =>
+    readStoredTab(config.system)
+  );
+
+  useEffect(() => {
+    setActiveTab(readStoredTab(config.system));
+  }, [config.system]);
+
+  useEffect(() => {
+    localStorage.setItem(emulatorTabStorageKey(config.system), activeTab);
+  }, [config.system, activeTab]);
 
   useEffect(() => {
     let cancelled = false;
@@ -149,6 +177,10 @@ export function EmulatorDetail({
         config.system,
         result.filePaths[0]
       );
+      if (!next) {
+        showErrorToast(t("emulator_invalid_executable"));
+        return;
+      }
       onChange(next);
     } finally {
       setBusy(false);
@@ -167,10 +199,21 @@ export function EmulatorDetail({
       return;
     }
 
+    try {
+      const next = await window.electron.registerRomFolder(
+        config.system,
+        folderPath,
+        true
+      );
+      onChange(next);
+    } catch (error) {
+      console.error("Failed to register ROM folder:", error);
+    }
+
     await start(config.system, [{ path: folderPath, scanSubfolders: true }], {
       openModal: true,
     });
-  }, [config.romFolders, config.system, start, showErrorToast, t]);
+  }, [config.romFolders, config.system, onChange, start, showErrorToast, t]);
 
   const handleToggleSubfolders = useCallback(
     async (folder: RomFolder) => {
@@ -219,13 +262,20 @@ export function EmulatorDetail({
     );
   }, [config.romFolders, config.system, start, showErrorToast, t]);
 
+  const lastSettledNonceRef = useRef(scan.settledNonce);
+  useEffect(() => {
+    if (scan.settledNonce === lastSettledNonceRef.current) return;
+    lastSettledNonceRef.current = scan.settledNonce;
+    if (scan.settledSystem !== config.system) return;
+    void refresh();
+    setRomsNonce((n) => n + 1);
+  }, [scan.settledNonce, scan.settledSystem, config.system, refresh]);
+
   const lastScanNonceRef = useRef(scan.completedNonce);
   useEffect(() => {
     if (scan.completedNonce === lastScanNonceRef.current) return;
     lastScanNonceRef.current = scan.completedNonce;
     if (scan.completedSystem !== config.system) return;
-    void refresh();
-    setRomsNonce((n) => n + 1);
     showSuccessToast(
       t("scan_complete_toast", {
         matched: scan.result?.matched ?? 0,
@@ -237,7 +287,6 @@ export function EmulatorDetail({
     scan.completedSystem,
     scan.result,
     config.system,
-    refresh,
     showSuccessToast,
     t,
   ]);
@@ -253,8 +302,11 @@ export function EmulatorDetail({
   const tabs: { id: EmulatorTab; label: string }[] = [
     { id: "emulator", label: t("tab_emulator") },
     { id: "rom-folders", label: t("tab_rom_folders") },
-    ...(supportsMemoryCards
+    ...(hasMemoryCards
       ? [{ id: "memory-cards" as const, label: t("tab_memory_card_backups") }]
+      : []),
+    ...(hasEmulatorSaves
+      ? [{ id: "saves" as const, label: t("tab_saves") }]
       : []),
     { id: "library", label: t("tab_library") },
   ];
@@ -274,12 +326,7 @@ export function EmulatorDetail({
         onRescan={handleRescan}
       />
 
-      {!supportsFirmware && (
-        <p className="emulator-detail__bios-note">
-          <InfoIcon size={14} />
-          <span>{t("bios_note", { name: binaryName })}</span>
-        </p>
-      )}
+      <ClassicsScanIndicator variant="section" />
 
       <DetailTabBar tabs={tabs} activeTab={activeTab} onChange={setActiveTab} />
 
@@ -295,6 +342,13 @@ export function EmulatorDetail({
 
           {supportsBios && (
             <BiosSection config={config} disabled={busy} onChange={onChange} />
+          )}
+
+          {supportsBios && (
+            <p className="emulator-detail__bios-note">
+              <InfoIcon size={14} />
+              <span>{t("bios_note", { name: binaryName })}</span>
+            </p>
           )}
 
           {supportsFirmware && (
@@ -326,11 +380,21 @@ export function EmulatorDetail({
         />
       )}
 
-      {activeTab === "memory-cards" && supportsMemoryCards && (
+      {activeTab === "memory-cards" && hasMemoryCards && (
         <>
           <MemoryCardsSection
             config={config}
             onUploaded={() => setCloudNonce((n) => n + 1)}
+          />
+          <CloudSavesSection config={config} refreshKey={cloudNonce} />
+        </>
+      )}
+
+      {activeTab === "saves" && hasEmulatorSaves && (
+        <>
+          <LocalEmulatorSavesSection
+            config={config}
+            onUploaded={() => setCloudNonce((nonce) => nonce + 1)}
           />
           <CloudSavesSection config={config} refreshKey={cloudNonce} />
         </>
@@ -355,8 +419,6 @@ export function EmulatorDetail({
                 <span>{t("rescan")}</span>
               </Button>
             </header>
-
-            <ClassicsScanIndicator variant="section" />
 
             <LibraryStatsGrid
               systemLabel={systemLabel}

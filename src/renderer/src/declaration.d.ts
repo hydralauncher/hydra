@@ -12,6 +12,7 @@ import type {
   AllDebridUser,
   UserProfile,
   UpdateProfileRequest,
+  OpenCheckoutOptions,
   GameStats,
   UserDetails,
   FriendRequestSync,
@@ -64,6 +65,7 @@ import type {
   RetroArchInstallProgress,
   RetroArchInstallResult,
   EmulationCloudSave,
+  EmulationSaveMetadata,
   EmulationSavePlatform,
   MemcardFormatState,
   MemcardRestoreResult,
@@ -72,11 +74,16 @@ import type {
   ArtworkKind,
   ArtworkPage,
   GameArtworkSelection,
+  GameLauncherStatusPayload,
   CloudSaveAutomaticSyncModeChangedEvent,
   CloudSaveAutomaticSyncEvent,
   CloudSaveConflictResolution,
   CloudSaveOverview,
   CloudSaveV2FileDetails,
+  AchievementSouvenirSyncCleanupResult,
+  AchievementSouvenirSyncDetails,
+  AchievementSouvenirSyncRetryResult,
+  AchievementSouvenirSyncStatus,
   CloudSaveSyncProgressPayload,
   SyncCloudSaveOnGamePageResult,
   SyncGameCloudSaveResult,
@@ -462,9 +469,7 @@ declare global {
         removeDiscPath?: string;
       }
     ) => Promise<LibraryGame>;
-    getEmulatorRomExtensions: (
-      system: "ps1" | "ps2" | "ps3"
-    ) => Promise<string[]>;
+    getEmulatorRomExtensions: (system: EmulatorSystem) => Promise<string[]>;
     closeGame: (shop: GameShop, objectId: string) => Promise<boolean>;
     removeGameFromLibrary: (shop: GameShop, objectId: string) => Promise<void>;
     removeGame: (shop: GameShop, objectId: string) => Promise<void>;
@@ -568,7 +573,7 @@ declare global {
     setEmulatorExecutablePath: (
       system: EmulatorSystem,
       executablePath: string | null
-    ) => Promise<EmulatorConfig>;
+    ) => Promise<EmulatorConfig | null>;
     setEmulatorBiosPath: (
       system: EmulatorSystem,
       biosPath: string | null
@@ -578,6 +583,11 @@ declare global {
       folderPath: string,
       scanSubfolders: boolean,
       language?: string
+    ) => Promise<EmulatorConfig>;
+    registerRomFolder: (
+      system: EmulatorSystem,
+      folderPath: string,
+      scanSubfolders: boolean
     ) => Promise<EmulatorConfig>;
     removeRomFolder: (
       system: EmulatorSystem,
@@ -706,12 +716,11 @@ declare global {
       folderId: string,
       scanSubfolders: boolean
     ) => Promise<RetroArchConfig>;
-    startRomScan: (
+    previewRomFolder: (
       system: EmulatorSystem,
       folderPath: string,
       scanSubfolders: boolean
-    ) => Promise<{ requestId: string }>;
-    cancelRomScan: (requestId: string) => Promise<void>;
+    ) => Promise<{ fileCount: number; sizeBytes: number }>;
     getEmulatorRomPaths: (system: EmulatorSystem) => Promise<string[]>;
     addEmulatorRomPath: (
       system: EmulatorSystem,
@@ -726,21 +735,6 @@ declare global {
     checkEmulatorExecutable: (
       system: EmulatorSystem
     ) => Promise<{ exists: boolean }>;
-    onRomScanProgress: (
-      requestId: string,
-      cb: (
-        payload:
-          | {
-              type: "progress";
-              processed: number;
-              total: number;
-              currentFile: string | null;
-            }
-          | { type: "done"; fileCount: number; sizeBytes: number }
-          | { type: "cancelled"; fileCount: number; sizeBytes: number }
-          | { type: "error"; message: string }
-      ) => void
-    ) => () => Electron.IpcRenderer;
     importLaunchboxRoms: (
       system: EmulatorSystem,
       folders: { path: string; scanSubfolders: boolean }[],
@@ -790,6 +784,10 @@ declare global {
       cardFilePath: string,
       folderName: string
     ) => Promise<EmulationCloudSave>;
+    uploadWiiEmulationSave: (
+      dataBinPath: string,
+      objectId: string
+    ) => Promise<EmulationCloudSave>;
     uploadEmulationSavesForCard: (
       platform: EmulationSavePlatform,
       cardFilePath: string
@@ -802,8 +800,12 @@ declare global {
       platform: EmulationSavePlatform,
       objectId?: string | null
     ) => Promise<EmulationCloudSave[]>;
-    getMemcardRestoreTargets: (
+    listLocalEmulationSaves: (
       platform: EmulationSavePlatform
+    ) => Promise<Ps2MemoryCardSaveRecord[]>;
+    getMemcardRestoreTargets: (
+      platform: EmulationSavePlatform,
+      metadata?: EmulationSaveMetadata | Record<string, unknown> | null
     ) => Promise<MemcardRestoreTarget[]>;
     inspectMemcard: (
       platform: EmulationSavePlatform,
@@ -812,7 +814,9 @@ declare global {
     restoreEmulationSave: (
       platform: EmulationSavePlatform,
       saveId: string,
-      targetCardFilePath: string
+      targetCardFilePath: string,
+      metadata?: EmulationSaveMetadata | Record<string, unknown> | null,
+      sourceFileName?: string
     ) => Promise<MemcardRestoreResult>;
     deleteEmulationSave: (saveId: string) => Promise<void>;
     updateEmulationSaveLabel: (
@@ -952,13 +956,29 @@ declare global {
 
     /* Misc */
     openExternal: (src: string) => Promise<void>;
-    openCheckout: () => Promise<void>;
+    openCheckout: (options?: OpenCheckoutOptions) => Promise<void>;
     getCloudIframeUrl: () => Promise<string>;
     getVersion: () => Promise<string>;
+    getAppSessionId: () => Promise<string>;
     isStaging: () => Promise<boolean>;
     ping: () => string;
     getDefaultDownloadsPath: () => Promise<string>;
-    isPortableVersion: () => Promise<boolean>;
+    getScreenshotsPath: () => Promise<string>;
+    getAchievementSouvenirSyncStatus: () => Promise<AchievementSouvenirSyncStatus>;
+    getAchievementSouvenirSyncDetails: () => Promise<AchievementSouvenirSyncDetails>;
+    retryAchievementSouvenirSync: () => Promise<AchievementSouvenirSyncRetryResult>;
+    cleanupAchievementSouvenirSync: () => Promise<AchievementSouvenirSyncCleanupResult>;
+    onAchievementSouvenirSyncStatus: (
+      cb: (status: AchievementSouvenirSyncStatus) => void
+    ) => () => Electron.IpcRenderer;
+    onAchievementSouvenirSyncCompleted: (
+      cb: (syncedCount: number) => void
+    ) => () => Electron.IpcRenderer;
+    onAchievementSouvenirScreenshotsMissing: (
+      cb: (count: number) => void
+    ) => () => Electron.IpcRenderer;
+    openFolder: (folderPath: string) => Promise<string>;
+    isPortableVersion: boolean;
     showOpenDialog: (
       options: Electron.OpenDialogOptions
     ) => Promise<Electron.OpenDialogReturnValue>;
@@ -967,7 +987,7 @@ declare global {
     listDrives: () => Promise<string[]>;
     showItemInFolder: (path: string) => Promise<void>;
     getImageDataUrl: (imageUrl: string) => Promise<string | null>;
-    getProcessedFriendImage: (
+    getProcessedImage: (
       imageUrl: string | null,
       options: { width: number; height: number; preserveAnimation?: boolean }
     ) => Promise<string | null>;
@@ -989,6 +1009,15 @@ declare global {
           needsSubscription?: boolean;
         }
       ) => Promise<T>;
+      postResponse: <T = unknown>(
+        url: string,
+        options?: {
+          data?: unknown;
+          needsAuth?: boolean;
+          needsSubscription?: boolean;
+          acceptedStatuses?: number[];
+        }
+      ) => Promise<{ status: number; data: T }>;
       put: <T = unknown>(
         url: string,
         options?: {
@@ -1036,6 +1065,9 @@ declare global {
     onPreflightProgress: (
       cb: (value: { status: string; detail: string | null }) => void
     ) => () => Electron.IpcRenderer;
+    onGameLauncherStatus: (
+      cb: (value: GameLauncherStatusPayload) => void
+    ) => () => Electron.IpcRenderer;
     resetCommonRedistPreflight: () => Promise<void>;
     saveTempFile: (fileName: string, fileData: Uint8Array) => Promise<string>;
     deleteTempFile: (filePath: string) => Promise<void>;
@@ -1070,12 +1102,17 @@ declare global {
       objectId: string,
       shop: GameShop
     ) => Promise<UserAchievement[]>;
+    deleteAchievementSouvenir: (payload: {
+      souvenirId: string;
+    }) => Promise<void>;
     getRetroAchievementsAchievements: (
       objectId: string,
       shop: GameShop,
       raGameId?: number
     ) => Promise<UserAchievement[] | null>;
-    resetRetroAchievementsAchievements: () => Promise<void>;
+    resetRetroAchievementsAchievements: (
+      pendingSouvenirsOnly?: boolean
+    ) => Promise<void>;
 
     /* Profile */
     getMe: () => Promise<UserDetails | null>;
@@ -1107,6 +1144,10 @@ declare global {
     onSyncNotificationCount: (
       cb: (notification: NotificationSync) => void
     ) => () => Electron.IpcRenderer;
+    onCloudGiftResolved: (
+      cb: (giftId: string) => void
+    ) => () => Electron.IpcRenderer;
+    notifyCloudGiftResolved: (giftId: string) => Promise<void>;
     syncFriendRequests: (friendRequestCount: number) => Promise<void>;
 
     /* Notifications */

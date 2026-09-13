@@ -35,6 +35,9 @@ walkdir = "=2.5.0"
 known-folders = "=1.2.0"
 windows-sys = { version = "=0.61.2", features = ["Win32_Foundation", "Win32_Storage_FileSystem"] }
 
+[target.'cfg(target_os = "linux")'.dependencies]
+x11rb = { version = "0.13.2", default-features = false }
+
 [dev-dependencies]
 tempfile = "3.27"
 

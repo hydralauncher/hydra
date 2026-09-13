@@ -15,6 +15,9 @@ import { DescriptionHeader } from "./description-header/description-header";
 import { GallerySlider } from "./gallery-slider/gallery-slider";
 import { Sidebar } from "./sidebar/sidebar";
 import { GameReviews } from "./game-reviews";
+import { ReviewPromptBanner } from "./review-prompt-banner";
+import { useReviewPrompt } from "./use-review-prompt";
+import { useUserReviewStatus } from "./use-user-review-status";
 import { GameLogo } from "./game-logo";
 import { CloudSaveWidget } from "./cloud-save-v2";
 import { getCloudSaveVisibility } from "./cloud-save-visibility";
@@ -116,7 +119,6 @@ export function GameDetailsContent() {
   const [isDescriptionExpanded, setIsDescriptionExpanded] = useState(false);
   const [isDescriptionOverflowing, setIsDescriptionOverflowing] =
     useState(false);
-  const [hasUserReviewed, setHasUserReviewed] = useState(false);
   const descriptionRef = useRef<HTMLDivElement>(null);
 
   // Check if the current game is in the user's library
@@ -126,6 +128,32 @@ export function GameDetailsContent() {
       (libItem) => libItem.shop === shop && libItem.objectId === objectId
     );
   }, [library, shop, objectId]);
+
+  const { hasUserReviewed, isCheckingUserReview, updateHasUserReviewed } =
+    useUserReviewStatus({
+      shop,
+      objectId,
+      userDetailsId: userDetails?.id,
+    });
+
+  const { showPrompt, dismissPrompt } = useReviewPrompt({
+    shop,
+    objectId,
+    playTimeInMilliseconds: game?.playTimeInMilliseconds ?? 0,
+    userDetailsId: userDetails?.id,
+    isGameInLibrary,
+    hasUserReviewed,
+    isCheckingUserReview,
+  });
+
+  const handleReviewPromptYes = () => {
+    dismissPrompt({ persist: false });
+    reviewsRef.current?.scrollIntoView({ behavior: "smooth" });
+  };
+
+  const handleReviewPromptLater = () => {
+    dismissPrompt({ persist: true });
+  };
 
   useEffect(() => {
     setBackdropOpacity(1);
@@ -216,6 +244,10 @@ export function GameDetailsContent() {
       ""
     : "";
 
+  const resolvedHeroImage = isLaunchboxGame
+    ? heroImage || launchboxCover
+    : heroImage;
+
   const launchboxPlatform = isLaunchboxGame
     ? (game?.platform ?? shopDetails?.platform ?? null)
     : null;
@@ -250,6 +282,16 @@ export function GameDetailsContent() {
       </div>
     ) : null;
 
+  const heroImageContent = resolvedHeroImage ? (
+    <img
+      src={resolvedHeroImage}
+      className="game-details__hero-image"
+      alt={game?.title}
+    />
+  ) : (
+    <div className="game-details__hero-image game-details__hero-image--placeholder" />
+  );
+
   return (
     <div
       className={`game-details__wrapper ${hasNSFWContentBlocked ? "game-details__wrapper--blurred" : ""}`}
@@ -283,11 +325,7 @@ export function GameDetailsContent() {
               </div>
             </>
           ) : (
-            <img
-              src={isLaunchboxGame ? heroImage || launchboxCover : heroImage}
-              className="game-details__hero-image"
-              alt={game?.title}
-            />
+            heroImageContent
           )}
 
           {isLaunchboxGame && !hideClassicsBookmark && (
@@ -424,6 +462,14 @@ export function GameDetailsContent() {
         <div className="game-details__description-container">
           <div className="game-details__description-content">
             <DescriptionHeader />
+
+            {showPrompt && (
+              <ReviewPromptBanner
+                onYesClick={handleReviewPromptYes}
+                onLaterClick={handleReviewPromptLater}
+              />
+            )}
+
             <GallerySlider />
 
             <div
@@ -461,9 +507,9 @@ export function GameDetailsContent() {
                   objectId={objectId}
                   game={game}
                   userDetailsId={userDetails?.id}
-                  isGameInLibrary={isGameInLibrary}
                   hasUserReviewed={hasUserReviewed}
-                  onUserReviewedChange={setHasUserReviewed}
+                  isCheckingUserReview={isCheckingUserReview}
+                  onUserReviewedChange={updateHasUserReviewed}
                 />
               </div>
             )}

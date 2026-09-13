@@ -20,6 +20,7 @@ export interface ModalProps {
   description?: string;
   children: ReactNode;
   className?: string;
+  backdropClassName?: string;
   coverImage?: string;
   closeOnBackdrop?: boolean;
   closeOnEscape?: boolean;
@@ -41,6 +42,7 @@ export function Modal({
   children,
   coverImage,
   className,
+  backdropClassName,
   closeOnBackdrop = true,
   closeOnEscape = true,
   closeOnB = true,
@@ -135,7 +137,7 @@ export function Modal({
     <FocusRegionContext.Provider value={null}>
       <AnimatePresence>
         {visible && (
-          <Backdrop>
+          <Backdrop className={backdropClassName}>
             <motion.aside
               role="dialog"
               aria-modal="true"

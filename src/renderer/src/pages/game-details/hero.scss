@@ -405,6 +405,11 @@ $hero-height: 350px;
       transform: scale(1.15);
       opacity: 0.6;
     }
+
+    &--placeholder {
+      width: 100%;
+      background: linear-gradient(180deg, #101010 0%, #0a0a0a 100%);
+    }
   }
 
   &__game-logo {

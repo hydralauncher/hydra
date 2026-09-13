@@ -32,9 +32,16 @@ type NativeProcessProfileImageResponse = {
   mime_type?: string;
 };
 
-type NativeProcessFriendImageResponse = NativeProcessProfileImageResponse & {
+type NativeProcessSizedImageResponse = NativeProcessProfileImageResponse & {
   isAnimated?: boolean;
   is_animated?: boolean;
+};
+
+type NativeActiveWindowResponse = {
+  windowId?: string;
+  window_id?: string;
+  processId?: number;
+  process_id?: number;
 };
 
 type HydraNativeModule = {
@@ -42,14 +49,15 @@ type HydraNativeModule = {
     imagePath: string,
     targetExtension?: string
   ) => NativeProcessProfileImageResponse;
-  processFriendImage: (
+  processImage: (
     imagePath: string,
     outputPathBase: string,
     width: number,
     height: number,
     preserveAnimation: boolean
-  ) => Promise<NativeProcessFriendImageResponse>;
+  ) => Promise<NativeProcessSizedImageResponse>;
   listProcesses: () => ProcessPayload[];
+  getLinuxActiveWindow: () => NativeActiveWindowResponse | null;
   buildLocalGameSnapshotPipeline: (
     input: BuildLocalGameSnapshotPipelineInput
   ) => Promise<NativeLocalGameSnapshotPipelineResult>;
@@ -300,7 +308,7 @@ export class NativeAddon {
     }
   }
 
-  public static async processFriendImage(
+  public static async processImage(
     imagePath: string,
     outputPathBase: string,
     width: number,
@@ -308,7 +316,7 @@ export class NativeAddon {
     preserveAnimation: boolean
   ) {
     try {
-      const response = await this.load().processFriendImage(
+      const response = await this.load().processImage(
         imagePath,
         outputPathBase,
         width,
@@ -354,6 +362,26 @@ export class NativeAddon {
         resolve([]);
       }
     });
+  }
+
+  public static getLinuxActiveWindow() {
+    if (process.platform !== "linux") return null;
+
+    try {
+      const response = this.load().getLinuxActiveWindow();
+      if (!response) return null;
+
+      const windowId = response.windowId ?? response.window_id;
+      if (!windowId) return null;
+
+      return {
+        windowId,
+        processId: response.processId ?? response.process_id ?? null,
+      };
+    } catch (error) {
+      logger.error("Failed to identify active Linux window", error);
+      return null;
+    }
   }
 
   public static getSystemProcessMap(): Promise<SystemProcessMap | null> {

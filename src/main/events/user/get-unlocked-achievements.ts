@@ -4,6 +4,8 @@ import { getGameAchievementData } from "@main/services/achievements/get-game-ach
 import { db, levelKeys } from "@main/level";
 import { AchievementWatcherManager } from "@main/services/achievements/achievement-watcher-manager";
 import { AchievementMemoryStore } from "@main/services/achievements/achievement-memory-store";
+import { AchievementSouvenirStore } from "@main/services/achievements/achievement-souvenir-store";
+import { getAchievementSouvenirs } from "@main/services/achievements/get-achievement-souvenirs";
 
 export const getUnlockedAchievements = async (
   objectId: string,
@@ -30,6 +32,14 @@ export const getUnlockedAchievements = async (
 
   const unlockedAchievements = cachedAchievements?.unlockedAchievements ?? [];
 
+  if (!useCachedData) AchievementSouvenirStore.invalidate(shop, objectId);
+
+  const souvenirs = await getAchievementSouvenirs(
+    objectId,
+    shop,
+    userPreferences?.language ?? "en"
+  );
+
   return achievementsData
     .map((achievementData) => {
       const unlockedAchievementData = unlockedAchievements.find(
@@ -50,6 +60,7 @@ export const getUnlockedAchievements = async (
           ...achievementData,
           unlocked: true,
           unlockTime: unlockedAchievementData.unlockTime,
+          imageUrl: souvenirs.get(achievementData.name.toUpperCase()) ?? null,
         };
       }
 

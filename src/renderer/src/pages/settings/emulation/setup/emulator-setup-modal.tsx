@@ -27,6 +27,7 @@ interface Props {
   initialConfig: EmulatorConfig | null;
   onClose: () => void;
   onComplete: (system: EmulatorSystem) => void;
+  onManage: (system: EmulatorSystem) => void;
 }
 
 export function EmulatorSetupModal({
@@ -36,6 +37,7 @@ export function EmulatorSetupModal({
   initialConfig,
   onClose,
   onComplete,
+  onManage,
 }: Readonly<Props>) {
   const { t } = useTranslation("settings");
   const { showErrorToast } = useToast();
@@ -54,29 +56,39 @@ export function EmulatorSetupModal({
   const autoDetectRef = useRef(false);
   const scanStartedRef = useRef(false);
   const persistedExecutableRef = useRef(false);
+  const wasVisibleRef = useRef(false);
+  const openedExecutablePathRef = useRef<string | null>(null);
+
+  const previewAvailableExecutable = useCallback(
+    async (preferredPath?: string | null) => {
+      if (!system) return null;
+
+      if (preferredPath) {
+        const preferred = await window.electron.previewEmulatorExecutable(
+          system,
+          preferredPath
+        );
+        if (preferred) return preferred;
+      }
+
+      return window.electron.previewEmulatorExecutable(system);
+    },
+    [system]
+  );
 
   const previewFolder = useCallback(
     async (folderPath: string, scanSubfolders: boolean) => {
       if (!system) return null;
-      const { requestId } = await window.electron.startRomScan(
-        system,
-        folderPath,
-        scanSubfolders
-      );
-      return new Promise<number>((resolve) => {
-        const unsub = window.electron.onRomScanProgress(
-          requestId,
-          (payload) => {
-            if (payload.type === "done" || payload.type === "cancelled") {
-              unsub();
-              resolve(payload.fileCount);
-            } else if (payload.type === "error") {
-              unsub();
-              resolve(0);
-            }
-          }
+      try {
+        const { fileCount } = await window.electron.previewRomFolder(
+          system,
+          folderPath,
+          scanSubfolders
         );
-      });
+        return fileCount;
+      } catch {
+        return 0;
+      }
     },
     [system]
   );
@@ -97,10 +109,18 @@ export function EmulatorSetupModal({
     handleChangeFolder,
     handleRemoveFolder,
     handleToggleSubfolders,
+    refreshFolderPreview,
   } = usePendingRomFolders({ previewFolder, onFolderAdded });
 
   useEffect(() => {
-    if (visible) {
+    if (!visible) {
+      wasVisibleRef.current = false;
+      return;
+    }
+
+    if (!wasVisibleRef.current) {
+      wasVisibleRef.current = true;
+      openedExecutablePathRef.current = initialConfig?.executablePath ?? null;
       setConfig(initialConfig);
       setStepIndex(0);
       setFolders([]);
@@ -119,22 +139,24 @@ export function EmulatorSetupModal({
   useEffect(() => {
     if (!visible || !system) return;
     if (autoDetectRef.current) return;
-    if (initialConfig?.executablePath) return;
     autoDetectRef.current = true;
 
     let cancelled = false;
     setDetecting(true);
     (async () => {
       try {
-        const preview = await window.electron.previewEmulatorExecutable(system);
-        if (cancelled || !preview) return;
+        const preview = await previewAvailableExecutable(
+          initialConfig?.executablePath
+        );
+        if (cancelled) return;
         setConfig((curr) => {
-          if (curr?.executablePath) return curr;
           if (!curr) return curr;
+          if (curr.executablePath !== initialConfig?.executablePath)
+            return curr;
           return {
             ...curr,
-            executablePath: preview.executablePath,
-            detectedVersion: preview.detectedVersion,
+            executablePath: preview?.executablePath ?? null,
+            detectedVersion: preview?.detectedVersion ?? null,
           };
         });
       } finally {
@@ -144,7 +166,12 @@ export function EmulatorSetupModal({
     return () => {
       cancelled = true;
     };
-  }, [visible, system, initialConfig?.executablePath]);
+  }, [
+    visible,
+    system,
+    initialConfig?.executablePath,
+    previewAvailableExecutable,
+  ]);
 
   const prefilledRef = useRef(false);
 
@@ -156,24 +183,75 @@ export function EmulatorSetupModal({
   const systemShort = system ? system.toUpperCase() : "";
 
   const goNext = useCallback(() => setStepIndex((i) => i + 1), []);
-  const goBack = useCallback(() => setStepIndex((i) => Math.max(0, i - 1)), []);
+
+  const refreshExecutablePreview = useCallback(async () => {
+    if (!system) return;
+
+    setDetecting(true);
+    try {
+      const preview = await previewAvailableExecutable(config?.executablePath);
+      setConfig((current) => {
+        const base = current ?? initialConfig;
+        if (!base) return null;
+
+        return {
+          ...base,
+          executablePath: preview?.executablePath ?? null,
+          detectedVersion: preview?.detectedVersion ?? null,
+        };
+      });
+    } finally {
+      setDetecting(false);
+    }
+  }, [
+    system,
+    config?.executablePath,
+    initialConfig,
+    previewAvailableExecutable,
+  ]);
+
+  const goBack = useCallback(() => {
+    const previousStepIndex = Math.max(0, stepIndex - 1);
+    setStepIndex(previousStepIndex);
+    if (steps[previousStepIndex] === "find_emulator") {
+      void refreshExecutablePreview();
+    }
+  }, [refreshExecutablePreview, stepIndex, steps]);
 
   const handleContinue = useCallback(async () => {
-    if (
-      currentStep === "find_emulator" &&
-      system &&
-      config?.executablePath &&
-      config.executablePath !== initialConfig?.executablePath
-    ) {
+    if (currentStep === "find_emulator" && system && config?.executablePath) {
+      const executableChanged =
+        config.executablePath !== initialConfig?.executablePath;
       const next = await window.electron.setEmulatorExecutablePath(
         system,
         config.executablePath
       );
+      if (!next) {
+        setConfig((current) =>
+          current
+            ? {
+                ...current,
+                executablePath: null,
+                detectedVersion: null,
+              }
+            : current
+        );
+        showErrorToast(t("emulator_invalid_executable"));
+        return;
+      }
       setConfig(next);
-      persistedExecutableRef.current = true;
+      persistedExecutableRef.current = executableChanged;
     }
     goNext();
-  }, [currentStep, system, config, initialConfig?.executablePath, goNext]);
+  }, [
+    currentStep,
+    system,
+    config,
+    initialConfig?.executablePath,
+    goNext,
+    showErrorToast,
+    t,
+  ]);
 
   const refreshConfig = useCallback(async () => {
     if (!system) return null;
@@ -187,26 +265,23 @@ export function EmulatorSetupModal({
     if (!system) return;
     setDetecting(true);
     try {
-      const refreshed = await refreshConfig();
-      if (refreshed?.executablePath) {
+      const configs = await window.electron.getEmulatorConfigs();
+      const refreshed = configs[system];
+      if (refreshed.executablePath) {
         persistedExecutableRef.current = true;
-        return;
       }
-      const preview = await window.electron.previewEmulatorExecutable(system);
-      if (!preview) return;
-      setConfig((curr) =>
-        curr
-          ? {
-              ...curr,
-              executablePath: preview.executablePath,
-              detectedVersion: preview.detectedVersion,
-            }
-          : curr
+      const preview = await previewAvailableExecutable(
+        refreshed.executablePath
       );
+      setConfig({
+        ...refreshed,
+        executablePath: preview?.executablePath ?? null,
+        detectedVersion: preview?.detectedVersion ?? null,
+      });
     } finally {
       setDetecting(false);
     }
-  }, [system, refreshConfig]);
+  }, [system, previewAvailableExecutable]);
 
   const handleBrowseExecutable = useCallback(async () => {
     if (!system) return;
@@ -250,14 +325,14 @@ export function EmulatorSetupModal({
         const gamesDir = sources.gamesDir;
         if (gamesDir) {
           setFolders([
-            { path: gamesDir, scanSubfolders: true, previewCount: null },
+            {
+              path: gamesDir,
+              scanSubfolders: true,
+              previewCount: null,
+              previewRequestId: 0,
+            },
           ]);
-          const count = await previewFolder(gamesDir, true);
-          setFolders((prev) =>
-            prev.map((x) =>
-              x.path === gamesDir ? { ...x, previewCount: count } : x
-            )
-          );
+          await refreshFolderPreview(0);
         }
         return;
       }
@@ -270,15 +345,11 @@ export function EmulatorSetupModal({
         path: p,
         scanSubfolders: true,
         previewCount: null,
+        previewRequestId: 0,
       }));
       setFolders(initial);
-      for (const f of initial) {
-        const count = await previewFolder(f.path, true);
-        setFolders((prev) =>
-          prev.map((x) =>
-            x.path === f.path ? { ...x, previewCount: count } : x
-          )
-        );
+      for (let index = 0; index < initial.length; index += 1) {
+        await refreshFolderPreview(index);
       }
     })();
   }, [
@@ -287,7 +358,7 @@ export function EmulatorSetupModal({
     steps,
     stepIndex,
     folders.length,
-    previewFolder,
+    refreshFolderPreview,
     setFolders,
   ]);
 
@@ -316,13 +387,28 @@ export function EmulatorSetupModal({
   }, [scan.phase, scan.result, scan.system, currentStep]);
 
   const continueDisabled = useMemo(() => {
-    if (currentStep === "find_emulator") return config?.executablePath === null;
+    if (currentStep === "find_emulator") {
+      return detecting || !config?.executablePath;
+    }
     if (currentStep === "firmware") return !firmwareOk;
     if (currentStep === "bios") return !biosOk;
-    if (currentStep === "rom_folder") return folders.length === 0;
+    if (currentStep === "rom_folder") {
+      return (
+        folders.length === 0 ||
+        folders.some((folder) => folder.previewCount === null)
+      );
+    }
     if (currentStep === "scanning") return !scanComplete;
     return true;
-  }, [currentStep, config, firmwareOk, biosOk, folders, scanComplete]);
+  }, [
+    currentStep,
+    detecting,
+    config,
+    firmwareOk,
+    biosOk,
+    folders,
+    scanComplete,
+  ]);
 
   const continueHidden = currentStep === "done";
 
@@ -334,9 +420,9 @@ export function EmulatorSetupModal({
     persistedExecutableRef.current = false;
     await window.electron.setEmulatorExecutablePath(
       system,
-      initialConfig?.executablePath ?? null
+      openedExecutablePathRef.current
     );
-  }, [system, currentStep, initialConfig?.executablePath]);
+  }, [system, currentStep]);
 
   if (!visible || !system) return null;
 
@@ -350,7 +436,8 @@ export function EmulatorSetupModal({
       goNext();
     } else if (currentStep === "rom_folder") {
       refreshConfig();
-      onComplete(system);
+      const doneIndex = steps.indexOf("done");
+      if (doneIndex >= 0) setStepIndex(doneIndex);
     }
   };
 
@@ -392,7 +479,6 @@ export function EmulatorSetupModal({
               config={config}
               systemLabel={systemShort}
               onFirmwareStatusChange={setFirmwareOk}
-              onSkip={handleSkip}
             />
           )}
           {currentStep === "bios" && config && (
@@ -402,7 +488,6 @@ export function EmulatorSetupModal({
               systemLabel={systemShort}
               onBiosStatusChange={setBiosOk}
               onConfigChange={setConfig}
-              onSkip={handleSkip}
             />
           )}
           {currentStep === "rom_folder" && (
@@ -434,8 +519,10 @@ export function EmulatorSetupModal({
           {currentStep === "done" && (
             <SetupStepDone
               systemLabel={systemLabel}
+              multipleSystems={system === "dolphin"}
               gamesAdded={gamesAdded}
               onBrowse={() => onComplete(system)}
+              onManage={() => onManage(system)}
             />
           )}
         </div>
@@ -443,13 +530,12 @@ export function EmulatorSetupModal({
         {showDownloadHelp ? (
           <div className="setup-modal__footer">
             <div className="setup-modal__footer-side">
-              <button
-                type="button"
-                className="setup-modal__ghost-button"
+              <Button
+                theme="outline"
                 onClick={() => setShowDownloadHelp(false)}
               >
                 {t("setup_back")}
-              </button>
+              </Button>
             </div>
             <div className="setup-modal__dots" />
             <div className="setup-modal__footer-side setup-modal__footer-side--end">
@@ -467,8 +553,11 @@ export function EmulatorSetupModal({
               currentStep !== "scanning" &&
               currentStep !== "done"
             }
-            showCancel={currentStep === "find_emulator"}
-            showSkip={currentStep === "rom_folder"}
+            showSkip={
+              currentStep === "rom_folder" ||
+              (currentStep === "bios" && !biosOk) ||
+              (currentStep === "firmware" && !firmwareOk)
+            }
             continueDisabled={continueDisabled}
             continueHidden={continueHidden}
             endAction={
@@ -483,7 +572,6 @@ export function EmulatorSetupModal({
                 : null
             }
             onBack={goBack}
-            onCancel={handleClose}
             onSkip={handleSkip}
             onContinue={handleContinue}
           />

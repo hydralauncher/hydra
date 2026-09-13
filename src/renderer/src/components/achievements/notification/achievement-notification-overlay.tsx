@@ -37,6 +37,7 @@ export function AchievementNotificationOverlay() {
 
   const achievementAnimation = useRef(-1);
   const closingAnimation = useRef(-1);
+  const pendingCount = useRef(0);
 
   const playAudio = useCallback(async () => {
     const soundUrl = await getAchievementSoundUrl();
@@ -59,8 +60,12 @@ export function AchievementNotificationOverlay() {
       (nextPosition, nextAchievements) => {
         if (!nextAchievements?.length) return;
         if (nextPosition) setPosition(nextPosition);
+
+        const startsNewRun = pendingCount.current === 0;
+        pendingCount.current += nextAchievements.length;
+
         setAchievements((current) => current.concat(nextAchievements));
-        playAudio();
+        if (startsNewRun) playAudio();
       }
     );
 
@@ -109,6 +114,8 @@ export function AchievementNotificationOverlay() {
   }, [hasAchievementsPending, startAnimateClosing, currentAchievement]);
 
   useEffect(() => {
+    pendingCount.current = achievements.length;
+
     if (achievements.length) {
       setCurrentAchievement(achievements[0]);
     }

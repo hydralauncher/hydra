@@ -59,7 +59,7 @@ export function UserStatsBox() {
                 onClick={() => showHydraCloudModal("achievements")}
                 className="user-stats__link"
               >
-                <small style={{ color: "var(--color-warning)" }}>
+                <small className="user-stats__link--warning">
                   {t("show_achievements_on_profile")}
                 </small>
               </button>

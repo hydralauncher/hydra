@@ -88,6 +88,7 @@ export function GameSettingsModal({
   const isDev = import.meta.env.DEV;
   const shouldShowCompatibilityTab =
     globalThis.window.electron.platform === "linux" || isDev;
+  const shouldShowDownloadsTab = game.shop !== "custom";
   const settingsLabel = t("settings", { ns: "header" });
 
   useEffect(() => {
@@ -145,14 +146,20 @@ export function GameSettingsModal({
   );
 
   useEffect(() => {
-    const isUnavailableCloudTab =
+    const isUnavailableTab =
       (activeTabId === "hydra_cloud" && !shouldShowCloudV2Tab) ||
-      (activeTabId === "hydra_cloud_legacy" && !shouldShowLegacyCloudTab);
+      (activeTabId === "hydra_cloud_legacy" && !shouldShowLegacyCloudTab) ||
+      (activeTabId === "downloads" && !shouldShowDownloadsTab);
 
-    if (isUnavailableCloudTab) {
+    if (isUnavailableTab) {
       setActiveTabId("launch");
     }
-  }, [activeTabId, shouldShowCloudV2Tab, shouldShowLegacyCloudTab]);
+  }, [
+    activeTabId,
+    shouldShowCloudV2Tab,
+    shouldShowLegacyCloudTab,
+    shouldShowDownloadsTab,
+  ]);
 
   const tabs = useMemo<SidebarModalTab<GameSettingsTabId>[]>(
     () => [
@@ -193,11 +200,15 @@ export function GameSettingsModal({
             } satisfies SidebarModalTab<GameSettingsTabId>,
           ]
         : []),
-      {
-        id: "downloads",
-        label: t("settings_category_downloads"),
-        content: downloadContent,
-      },
+      ...(shouldShowDownloadsTab
+        ? [
+            {
+              id: "downloads",
+              label: t("settings_category_downloads"),
+              content: downloadContent,
+            } satisfies SidebarModalTab<GameSettingsTabId>,
+          ]
+        : []),
       {
         id: "danger_zone",
         label: t("settings_category_danger_zone"),
@@ -215,6 +226,7 @@ export function GameSettingsModal({
       shouldShowCloudV2Tab,
       shouldShowLegacyCloudTab,
       shouldShowCompatibilityTab,
+      shouldShowDownloadsTab,
       t,
     ]
   );

@@ -2,7 +2,12 @@ import { ImageIcon } from "@primer/octicons-react";
 import type { ButtonHTMLAttributes, ReactNode } from "react";
 import { useEffect, useRef, useState } from "react";
 
-import { isAnimatedCoverCandidate, useCoverPoster } from "@renderer/hooks";
+import {
+  isAnimatedCoverCandidate,
+  useAnimatedSourceWarmup,
+  useAppSelector,
+  useCoverPoster,
+} from "@renderer/hooks";
 import { getVerticalCoverCardImageSources } from "./vertical-cover-card-image-sources";
 
 import "./vertical-cover-card.scss";
@@ -33,12 +38,23 @@ export function VerticalCoverCard({
   const [isHovered, setIsHovered] = useState(false);
   const failedImageSourcesRef = useRef(new Set<string>());
   const coverImageUrl = imageSources[imageIndex];
+  const userPreferences = useAppSelector(
+    (state) => state.userPreferences.value
+  );
+  const autoplayAnimatedArtwork =
+    userPreferences?.autoplayAnimatedArtwork ?? false;
   const isAnimatedCover = isAnimatedCoverCandidate(coverImageUrl);
   const coverPoster = useCoverPoster(coverImageUrl, isAnimatedCover);
+  const shouldHoldFrame =
+    isAnimatedCover && !isHovered && !autoplayAnimatedArtwork;
+  const isAwaitingPoster = shouldHoldFrame && coverPoster === undefined;
+
+  useAnimatedSourceWarmup(
+    coverImageUrl,
+    isAnimatedCover && !autoplayAnimatedArtwork && Boolean(coverPoster)
+  );
   const displayCoverUrl =
-    (isAnimatedCover && !isHovered && coverPoster
-      ? coverPoster
-      : coverImageUrl) ?? undefined;
+    (shouldHoldFrame && coverPoster ? coverPoster : coverImageUrl) ?? undefined;
 
   useEffect(() => {
     failedImageSourcesRef.current.clear();
@@ -55,6 +71,10 @@ export function VerticalCoverCard({
   };
 
   const renderCoverMedia = () => {
+    if (isAwaitingPoster) {
+      return <div className="vertical-cover-card__placeholder" />;
+    }
+
     if (!displayCoverUrl) {
       return (
         <div className="vertical-cover-card__placeholder">

@@ -2,6 +2,7 @@ import { useTranslation } from "react-i18next";
 import {
   CheckCircleFillIcon,
   AlertIcon,
+  DownloadIcon,
   SyncIcon,
 } from "@primer/octicons-react";
 
@@ -89,7 +90,8 @@ export function SetupStepFindEmulator({
           className="setup-modal__link-button"
           onClick={onShowDownloadHelp}
         >
-          {t("setup_no_emulator_q", { name })}
+          <DownloadIcon size={13} />
+          <span>{t("setup_no_emulator_q", { name })}</span>
         </button>
       </div>
     </>

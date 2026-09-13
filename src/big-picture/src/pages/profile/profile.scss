@@ -14,7 +14,7 @@
 .profile-page__hero {
   position: relative;
   width: 100%;
-  height: 500px;
+  height: 540px;
   overflow: visible;
   border: none;
   background: var(--background);
@@ -73,14 +73,15 @@
   inset: 0;
   z-index: 2;
   pointer-events: none;
-  background:
-    linear-gradient(
-      90deg,
-      var(--background) 0%,
-      transparent 25% 75%,
-      var(--background) 99.53%
-    ),
-    linear-gradient(transparent 0%, var(--background) 97%);
+  // Only a short fade at the bottom, so the banner stays readable edge to edge
+  // while still blending into the page behind the profile identity row.
+  background: linear-gradient(
+    180deg,
+    transparent 0%,
+    transparent 60%,
+    78%,
+    var(--background) 100%
+  );
 }
 
 .profile-page__hero-content {
@@ -1089,4 +1090,445 @@
   .profile-page__stat-card--favorite {
     grid-column: span 2;
   }
+}
+
+.profile-page__souvenirs-section {
+  display: flex;
+  flex-direction: column;
+  gap: calc(var(--spacing-unit) * 3);
+  min-width: 0;
+  padding: 0 calc(var(--spacing-unit) * 16);
+}
+
+.profile-page__souvenirs-header {
+  display: flex;
+  align-items: center;
+  gap: calc(var(--spacing-unit) * 2);
+}
+
+.profile-page__souvenirs-title {
+  font-size: 24px;
+  font-weight: 600;
+}
+
+.profile-page__souvenirs-count {
+  padding: calc(var(--spacing-unit) / 2) calc(var(--spacing-unit) * 1.5);
+  border-radius: 6px;
+  background: var(--secondary);
+  color: var(--text-secondary);
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.profile-page__souvenirs-sync-status {
+  display: flex;
+  align-items: center;
+  gap: calc(var(--spacing-unit) * 3);
+  padding: calc(var(--spacing-unit) * 3);
+  border: 1px solid var(--secondary-border);
+  border-radius: calc(var(--spacing-unit) * 2);
+  background: var(--surface);
+
+  > svg {
+    flex-shrink: 0;
+    color: var(--text-secondary);
+  }
+}
+
+.profile-page__souvenirs-sync-copy {
+  display: flex;
+  flex: 1;
+  min-width: 0;
+  flex-direction: column;
+  gap: var(--spacing-unit);
+
+  span {
+    color: var(--text-secondary);
+    font-size: 14px;
+  }
+}
+
+.profile-page__souvenirs-sync-actions {
+  display: flex;
+  flex-shrink: 0;
+  gap: calc(var(--spacing-unit) * 2);
+}
+
+.profile-page__souvenirs-cleanup-modal {
+  width: min(760px, calc(100vw - calc(var(--spacing-unit) * 16)));
+}
+
+.profile-page__souvenirs-cleanup-content {
+  display: flex;
+  flex-direction: column;
+  gap: calc(var(--spacing-unit) * 3);
+
+  > p {
+    color: var(--text-secondary);
+    font-size: 16px;
+    line-height: 1.5;
+  }
+}
+
+.profile-page__souvenirs-cleanup-list {
+  display: flex;
+  max-height: min(400px, 45vh);
+  margin: 0;
+  padding: 0;
+  flex-direction: column;
+  gap: calc(var(--spacing-unit) * 2);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-gutter: stable;
+  list-style: none;
+
+  > li {
+    display: flex;
+    padding: calc(var(--spacing-unit) * 2);
+    border: 1px solid var(--secondary-border);
+    border-radius: calc(var(--spacing-unit) * 1.5);
+    background: var(--surface);
+    flex-direction: column;
+    gap: var(--spacing-unit);
+    flex-shrink: 0;
+
+    &[data-focus-visible] {
+      outline: 2px solid var(--primary);
+      outline-offset: -2px;
+    }
+
+    p {
+      display: -webkit-box;
+      overflow: hidden;
+      color: var(--text-secondary);
+      font-size: 14px;
+      line-height: 1.4;
+      -webkit-box-orient: vertical;
+      -webkit-line-clamp: 2;
+    }
+  }
+}
+
+.profile-page__souvenirs-cleanup-item-header {
+  display: flex;
+  align-items: center;
+  gap: calc(var(--spacing-unit) * 2);
+
+  strong {
+    overflow: hidden;
+    color: var(--text);
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+}
+
+.profile-page__souvenirs-cleanup-warning {
+  color: var(--text-secondary) !important;
+}
+
+.profile-page__souvenirs-cleanup-actions {
+  display: flex;
+  align-self: flex-end;
+  gap: calc(var(--spacing-unit) * 2);
+}
+
+.profile-page__souvenirs-empty-state {
+  display: flex;
+  align-items: center;
+  gap: calc(var(--spacing-unit) * 3);
+  min-height: 112px;
+  padding: calc(var(--spacing-unit) * 4);
+  border: 1px solid var(--secondary-border);
+  border-radius: calc(var(--spacing-unit) * 2);
+  background: var(--surface);
+  color: var(--text-secondary);
+
+  > svg {
+    flex-shrink: 0;
+  }
+}
+
+.profile-page__souvenirs-empty-title {
+  color: var(--text);
+  font-size: 18px;
+  font-weight: 600;
+}
+
+.profile-page__souvenirs-empty-description {
+  margin-top: var(--spacing-unit);
+  color: var(--text-secondary);
+  font-size: 14px;
+}
+
+.profile-page__souvenirs-viewport {
+  position: relative;
+  min-width: 0;
+}
+
+.profile-page__souvenirs-viewport::after {
+  content: "";
+  position: absolute;
+  inset: 0 0 0 auto;
+  width: clamp(120px, 18vw, 240px);
+  pointer-events: none;
+  background: linear-gradient(
+    90deg,
+    rgba(8, 8, 8, 0) 0%,
+    var(--background) 100%
+  );
+}
+
+.profile-page__souvenirs-row {
+  display: flex;
+  gap: calc(var(--spacing-unit) * 3);
+  margin: 0;
+  padding: calc(var(--spacing-unit) * 2);
+  list-style: none;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.profile-page__souvenirs-row::-webkit-scrollbar {
+  display: none;
+}
+
+.profile-page__souvenirs-load-more-sentinel {
+  width: 1px;
+  flex: 0 0 1px;
+}
+
+.profile-page__souvenir {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  flex-shrink: 0;
+  gap: calc(var(--spacing-unit) * 1.5);
+  width: clamp(360px, 32vw, 440px);
+  outline: none;
+}
+
+.profile-page__souvenir-open-button {
+  position: absolute;
+  z-index: 1;
+  inset: 0;
+  border-radius: 12px;
+  cursor: pointer;
+}
+
+.profile-page__souvenir:hover,
+.profile-page__souvenir[data-focused="true"] {
+  outline: 2px solid #fff;
+  outline-offset: 4px;
+  border-radius: 12px;
+}
+
+.profile-page__souvenir-image-frame {
+  position: relative;
+  aspect-ratio: 16 / 9;
+  overflow: hidden;
+  border-radius: 12px;
+  background: var(--surface);
+}
+
+.profile-page__souvenir-image {
+  position: absolute;
+  inset: 0;
+  display: block;
+  width: 100%;
+  height: 100%;
+  border-radius: 12px;
+  object-fit: cover;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.35);
+  transition:
+    filter 0.2s ease,
+    transform 0.2s ease;
+}
+
+.profile-page__souvenir-image--content-warning {
+  filter: blur(18px) brightness(0.55);
+  transform: scale(1.12);
+}
+
+.profile-page__souvenir-image-placeholder {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-secondary);
+  opacity: 0.55;
+}
+
+.profile-page__souvenir--rare .profile-page__souvenir-image-frame {
+  border: 1px solid #f4a510;
+  box-shadow:
+    0 4px 12px rgba(0, 0, 0, 0.35),
+    0 0 16px rgba(244, 165, 16, 0.28);
+}
+
+.profile-page__souvenir--platinum .profile-page__souvenir-image-frame {
+  border: 1px solid #0cf1ca;
+  box-shadow:
+    0 4px 12px rgba(0, 0, 0, 0.35),
+    0 0 16px rgba(12, 241, 202, 0.28);
+}
+
+.profile-page__souvenir-copy {
+  display: flex;
+  align-items: center;
+  gap: calc(var(--spacing-unit) * 2);
+  min-width: 0;
+  padding: 0 calc(var(--spacing-unit) / 2);
+}
+
+.profile-page__souvenir-achievement-icon {
+  position: relative;
+  display: flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 6px;
+  overflow: hidden;
+  background: var(--surface);
+  color: var(--text-secondary);
+}
+
+.profile-page__souvenir-achievement-icon-image {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.profile-page__souvenir-text {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: calc(var(--spacing-unit) / 4);
+  min-width: 0;
+}
+
+.profile-page__souvenir-actions {
+  position: absolute;
+  top: calc(var(--spacing-unit) * 1.5);
+  right: calc(var(--spacing-unit) * 1.5);
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  gap: calc(var(--spacing-unit) / 2);
+  flex-shrink: 0;
+}
+
+.profile-page__souvenir-action {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: calc(var(--spacing-unit) / 2);
+  min-width: 32px;
+  height: 32px;
+  padding: 0 calc(var(--spacing-unit));
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 6px;
+  background: rgba(0, 0, 0, 0.4);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  color: rgba(255, 255, 255, 0.9);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+  cursor: pointer;
+  transition: all ease 0.2s;
+}
+
+.profile-page__souvenir-private-indicator {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 6px;
+  background: rgba(0, 0, 0, 0.4);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  color: rgba(255, 255, 255, 0.9);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.profile-page__souvenir-action:hover:not(:disabled) {
+  color: var(--text);
+  background: rgba(0, 0, 0, 0.6);
+}
+
+.profile-page__souvenir-action:disabled {
+  cursor: default;
+  opacity: 0.5;
+}
+
+.profile-page__souvenir-action--pending:disabled {
+  opacity: 1;
+}
+
+.profile-page__souvenir-game-line {
+  display: flex;
+  align-items: center;
+  gap: calc(var(--spacing-unit) * 1.5);
+  min-width: 0;
+}
+
+.profile-page__souvenir-game-icon {
+  position: relative;
+  display: flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  border-radius: 4px;
+  overflow: hidden;
+  color: var(--text-secondary);
+}
+
+.profile-page__souvenir-game-icon-image {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.profile-page__souvenir-name {
+  display: flex;
+  min-width: 0;
+  align-items: flex-start;
+  overflow: hidden;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.profile-page__souvenir-title {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.profile-page__souvenir-other-count {
+  position: relative;
+  top: 0;
+  flex-shrink: 0;
+  margin-left: 3px;
+  color: var(--text-secondary);
+  font-size: 14px;
+  font-weight: 400;
+  line-height: 1;
+}
+
+.profile-page__souvenir-game {
+  overflow: hidden;
+  color: var(--text-secondary);
+  font-size: 14px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }

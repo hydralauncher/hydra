@@ -3,18 +3,22 @@ import { existsSync, readdirSync, statSync } from "node:fs";
 import { homedir } from "node:os";
 import path from "node:path";
 
-import { getEmulatorVersion } from "./get-emulator-version";
+import { findEmulatorInDownloadDirectories } from "./find-emulator-in-download-directories.js";
+import { getEmulatorVersion } from "./get-emulator-version.js";
 
 export interface DetectableBinary {
   binary: string;
   displayName: string;
   linuxNames: string[];
   windowsNames: string[];
+  macosBundleNames: string[];
   flatpakIds: string[];
   versionFlags: string[];
+  versionProbeDisabledPlatforms?: NodeJS.Platform[];
 }
 
 const isWindows = process.platform === "win32";
+const isMac = process.platform === "darwin";
 
 const lookupOnPath = (name: string): string | null => {
   const cmd = isWindows ? "where" : "which";
@@ -209,53 +213,88 @@ export interface DetectionResult {
   detectedVersion: string | null;
 }
 
+const executableNamesForPlatform = (binary: DetectableBinary): string[] =>
+  isWindows ? binary.windowsNames : binary.linuxNames;
+
+const findOnPath = (names: string[]): string | null => {
+  for (const name of names) {
+    const executable = lookupOnPath(name);
+    if (executable) return executable;
+  }
+  return null;
+};
+
+const platformSearchDirs = (): string[] => {
+  if (isWindows) return windowsSearchDirs();
+  if (isMac) return [];
+  return linuxSearchDirs();
+};
+
+const findPlatformInstall = (
+  binary: DetectableBinary,
+  names: string[],
+  downloadDirectories: string[]
+): string | null => {
+  const installed = searchInDirs(names, platformSearchDirs());
+  if (installed) return installed;
+
+  const downloaded = findEmulatorInDownloadDirectories(
+    binary,
+    downloadDirectories
+  );
+  if (downloaded) return downloaded;
+
+  if (isWindows) {
+    return searchPortableWindows(names, windowsPortableDirs());
+  }
+  if (isMac) return null;
+
+  return findAppImage([binary.binary, binary.displayName], linuxAppImageDirs());
+};
+
+const findMacAppBundle = (binary: DetectableBinary): string | null => {
+  if (!isMac) return null;
+  return searchInDirs(binary.macosBundleNames, [
+    "/Applications",
+    path.join(homedir(), "Applications"),
+  ]);
+};
+
 export const detectEmulator = (
   binary: DetectableBinary,
-  options?: { resolveVersion?: boolean }
+  options?: {
+    resolveVersion?: boolean;
+    downloadDirectories?: string[];
+  }
 ): DetectionResult | null => {
-  const names = isWindows ? binary.windowsNames : binary.linuxNames;
+  const names = executableNamesForPlatform(binary);
   const resolveVersion = options?.resolveVersion ?? false;
   const versionFor = (executablePath: string): string | null =>
     resolveVersion ? getEmulatorVersion(executablePath, binary) : null;
 
-  for (const name of names) {
-    const onPath = lookupOnPath(name);
-    if (onPath) {
-      return {
-        executablePath: onPath,
-        detectedVersion: versionFor(onPath),
-      };
-    }
+  const app = findMacAppBundle(binary);
+  if (app) {
+    return { executablePath: app, detectedVersion: versionFor(app) };
   }
 
-  const dirs = isWindows ? windowsSearchDirs() : linuxSearchDirs();
-  const found = searchInDirs(names, dirs);
-  if (found) {
+  const onPath = findOnPath(names);
+  if (onPath) {
     return {
-      executablePath: found,
-      detectedVersion: versionFor(found),
+      executablePath: onPath,
+      detectedVersion: versionFor(onPath),
     };
   }
 
-  if (isWindows) {
-    const portable = searchPortableWindows(names, windowsPortableDirs());
-    if (portable) {
-      return {
-        executablePath: portable,
-        detectedVersion: versionFor(portable),
-      };
-    }
-  } else {
-    const appImage = findAppImage(
-      [binary.binary, binary.displayName],
-      linuxAppImageDirs()
-    );
-    if (appImage) {
-      return {
-        executablePath: appImage,
-        detectedVersion: versionFor(appImage),
-      };
-    }
+  const installed = findPlatformInstall(
+    binary,
+    names,
+    options?.downloadDirectories ?? []
+  );
+  if (installed) {
+    return {
+      executablePath: installed,
+      detectedVersion: versionFor(installed),
+    };
   }
 
   const flatpak = tryFlatpak(binary.flatpakIds);
