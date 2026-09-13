@@ -67,6 +67,7 @@ import type {
   LegacySaveExportResult,
   OpenCheckoutOptions,
   AchievementSouvenirSyncStatus,
+  WineDllOverridesDetectionResult,
 } from "@types";
 import type { AuthPage } from "@shared";
 import type { AxiosProgressEvent } from "axios";
@@ -996,6 +997,12 @@ contextBridge.exposeInMainWorld("electron", {
     objectId: string,
     launchOptions: string | null
   ) => ipcRenderer.invoke("updateLaunchOptions", shop, objectId, launchOptions),
+  detectWineDllOverrides: (shop: GameShop, objectId: string) =>
+    ipcRenderer.invoke(
+      "detectWineDllOverrides",
+      shop,
+      objectId
+    ) as Promise<WineDllOverridesDetectionResult>,
 
   selectGameWinePrefix: (
     shop: GameShop,

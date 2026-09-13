@@ -43,6 +43,7 @@ import type {
   DownloadSource,
   LocalNotification,
   ProtonVersion,
+  WineDllOverridesDetectionResult,
   CreateSteamShortcutOptions,
   TorrentFilesResponse,
   DownloadLayoutState,
@@ -411,6 +412,10 @@ declare global {
       objectId: string,
       launchOptions: string | null
     ) => Promise<void>;
+    detectWineDllOverrides: (
+      shop: GameShop,
+      objectId: string
+    ) => Promise<WineDllOverridesDetectionResult>;
     selectGameWinePrefix: (
       shop: GameShop,
       objectId: string,

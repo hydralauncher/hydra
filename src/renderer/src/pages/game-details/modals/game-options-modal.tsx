@@ -9,10 +9,12 @@ import {
 import { useTranslation } from "react-i18next";
 import { Modal } from "@renderer/components";
 import {
+  buildWineDllOverridesValue,
   formatBytes,
   GAMEMODE_SITE_URL,
   getCloudSaveAccessAction,
   getGameExecutableFilters,
+  mergeLaunchOptionEnvVars,
   MANGOHUD_SITE_URL,
 } from "@shared";
 
@@ -832,6 +834,47 @@ export function GameOptionsModal({
     updateGame();
   };
 
+  const handleDetectWineDllOverrides = async () => {
+    const { dllNames, steamOverlayEnv } =
+      await globalThis.window.electron.detectWineDllOverrides(
+        game.shop,
+        game.objectId
+      );
+
+    if (dllNames.length === 0) {
+      showErrorToast(t("no_dlls_found_in_game_folder"));
+      return;
+    }
+
+    const merged = mergeLaunchOptionEnvVars(launchOptions, {
+      WINEDLLOVERRIDES: buildWineDllOverridesValue(dllNames),
+      ...steamOverlayEnv,
+    });
+    setLaunchOptions(merged);
+
+    const gameKey = getGameKey(game.shop, game.objectId);
+    const gameData = (await levelDBService.get(
+      gameKey,
+      "games"
+    )) as Game | null;
+    if (gameData) {
+      await levelDBService.put(
+        gameKey,
+        { ...gameData, launchOptions: merged },
+        "games"
+      );
+    }
+    updateGame();
+    showSuccessToast(
+      t(
+        steamOverlayEnv
+          ? "dll_overrides_and_overlay_detected"
+          : "dll_overrides_detected",
+        { count: dllNames.length }
+      )
+    );
+  };
+
   const isLaunchbox = game.shop === "launchbox";
   const showDownloadSettings = game.shop !== "custom";
   const shouldShowWinePrefixConfiguration =
@@ -1092,6 +1135,7 @@ export function GameOptionsModal({
       onResetGameTitle: handleResetGameTitle,
       onChangeLaunchOptions: handleChangeLaunchOptions,
       onClearLaunchOptions: handleClearLaunchOptions,
+      onDetectWineDllOverrides: handleDetectWineDllOverrides,
       isTransferring,
       transferProgress,
       drives,
@@ -1126,6 +1170,7 @@ export function GameOptionsModal({
       handleResetGameTitle,
       handleChangeLaunchOptions,
       handleClearLaunchOptions,
+      handleDetectWineDllOverrides,
       isTransferring,
       transferProgress,
       drives,

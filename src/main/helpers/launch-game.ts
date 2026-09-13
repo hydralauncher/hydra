@@ -571,13 +571,15 @@ const launchResolvedGame = async (
 const launchGameWithCloudSaveChecks = async (
   options: LaunchGameOptions
 ): Promise<number | null> => {
-  const { shop, objectId, executablePath, launchOptions } = options;
+  const { shop, objectId, executablePath } = options;
 
   const parsedPath = parseExecutablePath(executablePath);
 
   const gameKey = levelKeys.game(shop, objectId);
   const game = await gamesSublevel.get(gameKey);
   clearCloudSaveLaunchGuard(objectId, shop);
+
+  const launchOptions = game?.launchOptions;
 
   const userPreferences = await db
     .get<string, UserPreferences | null>(levelKeys.userPreferences, {
@@ -595,9 +597,7 @@ const launchGameWithCloudSaveChecks = async (
       game?.autoRunGamemode === true) &&
     isGamemodeAvailable();
 
-  const updatedGame = game
-    ? { ...updateGameExecutablePath(game, parsedPath), launchOptions }
-    : null;
+  const updatedGame = game ? updateGameExecutablePath(game, parsedPath) : null;
 
   if (updatedGame) {
     await gamesSublevel.put(gameKey, updatedGame);
