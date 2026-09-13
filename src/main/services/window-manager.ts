@@ -65,7 +65,8 @@ export class WindowManager {
   }
 
   private static readonly editorWindows: Map<string, BrowserWindow> = new Map();
-  private static readonly themePreviewViews: Map<string, WebContentsView> = new Map();
+  private static readonly themePreviewViews: Map<string, WebContentsView> =
+    new Map();
 
   public static get mainWindow(): Electron.BrowserWindow | null {
     return this.mainWindowInstance;
@@ -99,20 +100,20 @@ export class WindowManager {
       show: false,
       ...(process.platform === "linux"
         ? {
-          frame: false,
-          ...(isLinuxWayland
-            ? { transparent: true, backgroundColor: "#00000000" }
-            : { backgroundColor: "#1c1c1c" }),
-        }
+            frame: false,
+            ...(isLinuxWayland
+              ? { transparent: true, backgroundColor: "#00000000" }
+              : { backgroundColor: "#1c1c1c" }),
+          }
         : {
-          backgroundColor: "#1c1c1c",
-          titleBarStyle: "hidden",
-          titleBarOverlay: {
-            symbolColor: "#DADBE1",
-            color: "#00000000",
-            height: 34,
-          },
-        }),
+            backgroundColor: "#1c1c1c",
+            titleBarStyle: "hidden",
+            titleBarOverlay: {
+              symbolColor: "#DADBE1",
+              color: "#00000000",
+              height: 34,
+            },
+          }),
     };
 
   private static formatVersionNumber(version: string) {
@@ -121,7 +122,9 @@ export class WindowManager {
 
   private static async loadWindowURLForView(view: WebContentsView) {
     if (is.dev && process.env["ELECTRON_RENDERER_URL"]) {
-      await view.webContents.loadURL(`${process.env["ELECTRON_RENDERER_URL"]}#/`);
+      await view.webContents.loadURL(
+        `${process.env["ELECTRON_RENDERER_URL"]}#/`
+      );
     } else if (import.meta.env.MAIN_VITE_LAUNCHER_SUBDOMAIN) {
       try {
         await view.webContents.loadURL(
@@ -238,11 +241,11 @@ export class WindowManager {
 
     const { workArea } = hasSavedPosition
       ? screen.getDisplayMatching({
-        x: savedX,
-        y: savedY,
-        width: savedWidth,
-        height: savedHeight,
-      })
+          x: savedX,
+          y: savedY,
+          width: savedWidth,
+          height: savedHeight,
+        })
       : screen.getPrimaryDisplay();
 
     const minWidth = Math.min(this.MIN_WINDOW_WIDTH, workArea.width);
@@ -431,16 +434,16 @@ export class WindowManager {
       const isMaximized = mainWindow.isMaximized() ?? false;
       const screenConfig = isMaximized
         ? {
-          x: undefined,
-          y: undefined,
-          height:
-            this.initialConfigInitializationMainWindow.height ??
-            this.DEFAULT_WINDOW_HEIGHT,
-          width:
-            this.initialConfigInitializationMainWindow.width ??
-            this.DEFAULT_WINDOW_WIDTH,
-          isMaximized: true,
-        }
+            x: undefined,
+            y: undefined,
+            height:
+              this.initialConfigInitializationMainWindow.height ??
+              this.DEFAULT_WINDOW_HEIGHT,
+            width:
+              this.initialConfigInitializationMainWindow.width ??
+              this.DEFAULT_WINDOW_WIDTH,
+            isMaximized: true,
+          }
         : { ...lastBounds, isMaximized };
 
       await this.saveScreenConfig(screenConfig);
@@ -498,7 +501,7 @@ export class WindowManager {
 
     const bigPictureInitialHash =
       (userPreferences?.bigPictureLaunchToLibraryPage ??
-        userPreferences?.launchToLibraryPage)
+      userPreferences?.launchToLibraryPage)
         ? "big-picture/library"
         : "big-picture";
 
@@ -812,7 +815,10 @@ export class WindowManager {
       if (view.webContents.id !== webContentsId) continue;
       const editorWindow = this.editorWindows.get(themeId);
       if (editorWindow && !editorWindow.isDestroyed()) {
-        editorWindow.webContents.send("on-theme-preview-element-clicked", selectors);
+        editorWindow.webContents.send(
+          "on-theme-preview-element-clicked",
+          selectors
+        );
       }
       return;
     }
@@ -824,8 +830,15 @@ export class WindowManager {
   ) {
     const view = this.themePreviewViews.get(themeId);
     const editorWindow = this.editorWindows.get(themeId);
-    if (!view || view.webContents.isDestroyed() || !editorWindow || editorWindow.isDestroyed()) return;
-    const { width: windowWidth, height: windowHeight } = editorWindow.getContentBounds();
+    if (
+      !view ||
+      view.webContents.isDestroyed() ||
+      !editorWindow ||
+      editorWindow.isDestroyed()
+    )
+      return;
+    const { width: windowWidth, height: windowHeight } =
+      editorWindow.getContentBounds();
 
     // width/height <= 0 é o sinal do renderer de que o Hydra real
     // NÃO deve aparecer. Isso acontece em Código CSS e Assets.
@@ -1139,7 +1152,8 @@ export class WindowManager {
       editorWindow.on("close", () => {
         this.mainWindow?.webContents.closeDevTools();
         editorWindow.removeListener("resize", layoutPreview);
-        if (!previewView.webContents.isDestroyed()) previewView.webContents.close();
+        if (!previewView.webContents.isDestroyed())
+          previewView.webContents.close();
         this.themePreviewViews.delete(themeId);
         this.editorWindows.delete(themeId);
       });

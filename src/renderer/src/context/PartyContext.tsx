@@ -129,13 +129,15 @@ export const PartyProvider = ({ children }: { children: React.ReactNode }) => {
   const fetchLobbies = async () => {
     setGlobalLobbies([]);
   };
+
+  // Variáveis com "_" na frente para o TypeScript ignorar
   const publishLobby = async (
-    name: string,
-    hId: string,
-    hasPassword: boolean
-  ) => {};
-  const removeLobby = async (hId: string) => {};
-  const sendInvite = async (friendId: string, myName: string) => {};
+    _name: string,
+    _hId: string,
+    _hasPassword: boolean
+  ) => { };
+  const removeLobby = async (_hId: string) => { };
+  const sendInvite = async (_friendId: string, _myName: string) => { };
 
   const handleIncomingCall = (call: MediaConnection) => {
     // Só atende se o chamador estiver na nossa lista de jogadores (evita chamadas anônimas)
