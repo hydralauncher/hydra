@@ -733,6 +733,7 @@
     "download_sources_removed_one": "{{count}} fonte de download foi removida",
     "download_sources_removed_other": "{{count}} fontes de download foram removidas",
     "similar_games": "Ver similares",
+    "no_similar_games": "Nenhum jogo similar encontrado",
     "edit_game_modal_section_title": "Título do Jogo",
     "edit_game_modal_section_title_description": "Edite o título exibido para este jogo na sua biblioteca.",
     "edit_game_modal_section_assets_description": "Escolha qual arte você quer personalizar para este jogo.",

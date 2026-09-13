@@ -717,6 +717,7 @@
   },
   "format": {
     "similar_games": "Похожие игры",
+    "no_similar_games": "Похожие игры не найдены",
     "playtime_hours_one": "{{count}} час",
     "playtime_hours_few": "{{count}} часа",
     "playtime_hours_many": "{{count}} часов",

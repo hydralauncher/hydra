@@ -712,6 +712,7 @@
   },
   "format": {
     "similar_games": "Juegos similares",
+    "no_similar_games": "No se encontraron juegos similares",
     "playtime_hours_one": "{{count}} hora",
     "playtime_hours_other": "{{count}} horas",
     "playtime_minutes_one": "{{count}} minuto",
