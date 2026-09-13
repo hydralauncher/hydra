@@ -21,6 +21,7 @@ import { useUserReviewStatus } from "./use-user-review-status";
 import { GameLogo } from "./game-logo";
 import { CloudSaveWidget } from "./cloud-save-v2";
 import { getCloudSaveVisibility } from "./cloud-save-visibility";
+import { SimilarGames } from "./similar-games/similar-games";
 
 import { AuthPage } from "@shared";
 import { cloudSyncContext, gameDetailsContext } from "@renderer/context";
@@ -493,6 +494,10 @@ export function GameDetailsContent() {
               >
                 {isDescriptionExpanded ? t("show_less") : t("show_more")}
               </button>
+            )}
+
+            {shop && objectId && (
+              <SimilarGames objectId={objectId} shop={shop} />
             )}
 
             {shop !== "custom" && shop && objectId && (
