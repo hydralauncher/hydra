@@ -37,7 +37,7 @@ Please, refer to our Documentation pages: [docs.hydralauncher.gg](https://docs.h
 
 After installing dependencies, `postinstall` now builds the Rust native addon automatically (`hydra-native/hydra-native.node`).
 
-The native build includes a Rust wrapper around pinned libtorrent. Development and packaged torrenting no longer require Python. See [native torrenting](docs/native-torrenting.md) for build prerequisites and compatibility tests.
+The native build includes a Rust wrapper around pinned libtorrent. Development and packaged torrenting no longer require Python.
 
 ## Contributors
 
