@@ -1,6 +1,6 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useId, useMemo, useRef, useState } from "react";
 import "./theme-editor.scss";
-import Editor from "@monaco-editor/react";
+import Editor, { type OnMount } from "@monaco-editor/react";
 import { Theme } from "@types";
 import { useSearchParams } from "react-router-dom";
 import { Button } from "@renderer/components";
@@ -79,8 +79,7 @@ const STATES: { id: EditorState; label: string }[] = [
   { id: "selected", label: "Selecionado" },
 ];
 
-const makeId = () =>
-  `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
+const makeId = () => crypto.randomUUID();
 
 const defaultDocument = (): EditorDocument => ({
   rules: [],
@@ -89,6 +88,54 @@ const defaultDocument = (): EditorDocument => ({
   conditions: [],
   discoveredTargets: [],
 });
+
+const decorationColor = (status: "recognized" | "partial" | "unknown"): string => {
+  switch (status) {
+    case "recognized":
+      return "#35e3a0";
+    case "partial":
+      return "#f4c84c";
+    default:
+      return "#ef5555";
+  }
+};
+
+const decorationHoverMessage = (change: ReturnType<typeof importCommunityCss>["changes"][number]): string => {
+  const conditions = change.conditions?.length
+    ? `\n\nCondições: ${change.conditions.join(" | ")}`
+    : "";
+  return `**${change.targetLabel}**\n\n\`${change.selector}\`\n\nPropriedades: ${change.properties.join(", ")}${conditions}`;
+};
+
+const createDecorations = (
+  editor: Parameters<OnMount>[0],
+  code: string,
+  changes: ReturnType<typeof importCommunityCss>["changes"]
+) => {
+  const model = editor.getModel();
+  if (!model) return [];
+
+  return changes.slice(0, 500).map((change) => {
+    const index = Math.max(0, code.indexOf(change.selector));
+    const line = model.getPositionAt(index).lineNumber;
+    const color = decorationColor(change.status);
+    return {
+      range: {
+        startLineNumber: line,
+        startColumn: 1,
+        endLineNumber: line,
+        endColumn: 1,
+      },
+      options: {
+        isWholeLine: true,
+        className: `theme-editor-source-line--${change.status}`,
+        overviewRuler: { color, position: 4 },
+        minimap: { color, position: 2 },
+        hoverMessage: { value: decorationHoverMessage(change) },
+      },
+    };
+  });
+};
 
 export default function ThemeEditor() {
   const [searchParams] = useSearchParams();
@@ -114,7 +161,6 @@ export default function ThemeEditor() {
   const [inspectorTab, setInspectorTab] = useState<
     "style" | "layout" | "effects" | "advanced"
   >("style");
-  const [previewSelection, setPreviewSelection] = useState<string | null>(null);
   const [fontScope, setFontScope] = useState<
     | "global"
     | "sidebar"
@@ -125,7 +171,7 @@ export default function ThemeEditor() {
     | "body"
     | "inputs"
   >("global");
-  const editorRef = useRef<any>(null);
+  const editorRef = useRef<Parameters<OnMount>[0] | null>(null);
   const decorationRef = useRef<string[]>([]);
   const previewHostRef = useRef<HTMLDivElement>(null);
 
@@ -169,7 +215,6 @@ export default function ThemeEditor() {
 
         if (hit) {
           selectTarget(hit.id);
-          setPreviewSelection(hit.id);
         }
       }
     );
@@ -242,7 +287,6 @@ export default function ThemeEditor() {
     };
   }, [themeId, mode, previewEnabled]);
 
-  const _visualCss = useMemo(() => generateVisualCss(document), [document]);
 
   const updatePreview = useCallback(
     (nextDocument: EditorDocument, nextBaseCode = baseCode) => {
@@ -378,23 +422,16 @@ export default function ThemeEditor() {
   }, [allTargets, category, search]);
 
   const currentRule = getRule(selectedTarget, selectedState);
-  const currentStyle = { ...EMPTY_STYLE, ...(currentRule?.style ?? {}) };
+  const currentStyle = currentRule
+    ? { ...EMPTY_STYLE, ...currentRule.style }
+    : EMPTY_STYLE;
   const selectTarget = (id: string, state: EditorState = "normal") => {
     const item = findTarget(id);
     if (!item) return;
     setSelectedTarget(id);
     setSelectedState(state);
     setCategory(item.category);
-    setPreviewSelection(id);
   };
-  const _previewTarget = (selectors: string[]) =>
-    findTargetBySelector(selectors, document.discoveredTargets ?? []);
-  const _selectedPreviewStyle = (id?: string): React.CSSProperties => ({
-    outline: id && previewSelection === id ? "2px solid #4cc2ff" : undefined,
-    outlineOffset: id && previewSelection === id ? "2px" : undefined,
-    position: "relative",
-    zIndex: id && previewSelection === id ? 20 : undefined,
-  });
   const visibleImportChanges = useMemo(
     () =>
       importChanges.filter(
@@ -412,10 +449,9 @@ export default function ThemeEditor() {
         ...existing,
         style: {
           ...existing.style,
-          customProperties: {
-            ...(existing.style.customProperties ?? {}),
-            [property]: value,
-          },
+          customProperties: existing.style.customProperties
+            ? { ...existing.style.customProperties, [property]: value }
+            : { [property]: value },
         },
       };
     } else {
@@ -432,10 +468,10 @@ export default function ThemeEditor() {
   };
 
   const updateVariable = (name: string, value: string) => {
-    const next = {
-      ...document,
-      variables: { ...(document.variables ?? {}), [name]: value },
-    };
+    const variables = document.variables
+      ? { ...document.variables, [name]: value }
+      : { [name]: value };
+    const next = { ...document, variables };
     setDocument(next);
     setHasUnsavedChanges(true);
     updatePreview(next);
@@ -521,54 +557,9 @@ export default function ThemeEditor() {
 
   useEffect(() => {
     const editor = editorRef.current;
-    if (!editor || !importChanges.length) {
-      if (editor)
-        decorationRef.current = editor.deltaDecorations(
-          decorationRef.current,
-          []
-        );
-      return;
-    }
-    const model = editor.getModel();
-    if (!model) return;
-    const decorations = importChanges.slice(0, 500).map((change) => {
-      const index = Math.max(0, code.indexOf(change.selector));
-      const line = model.getPositionAt(index).lineNumber;
-      const className = `theme-editor-source-line--${change.status}`;
-      return {
-        range: {
-          startLineNumber: line,
-          startColumn: 1,
-          endLineNumber: line,
-          endColumn: 1,
-        },
-        options: {
-          isWholeLine: true,
-          className,
-          overviewRuler: {
-            color:
-              change.status === "recognized"
-                ? "#35e3a0"
-                : change.status === "partial"
-                  ? "#f4c84c"
-                  : "#ef5555",
-            position: 4,
-          },
-          minimap: {
-            color:
-              change.status === "recognized"
-                ? "#35e3a0"
-                : change.status === "partial"
-                  ? "#f4c84c"
-                  : "#ef5555",
-            position: 2,
-          },
-          hoverMessage: {
-            value: `**${change.targetLabel}**\n\n\`${change.selector}\`\n\nPropriedades: ${change.properties.join(", ")}${change.conditions?.length ? `\n\nCondições: ${change.conditions.join(" | ")}` : ""}`,
-          },
-        },
-      };
-    });
+    if (!editor) return;
+
+    const decorations = createDecorations(editor, code, importChanges);
     decorationRef.current = editor.deltaDecorations(
       decorationRef.current,
       decorations
@@ -646,8 +637,10 @@ export default function ThemeEditor() {
             <option value="hydra">Hydra (Principal)</option>
             <option value="big-picture">Big Picture</option>
           </select>
-          <label className="switch">
+          <label className="switch" htmlFor="theme-preview-enabled">
             <input
+              id="theme-preview-enabled"
+              aria-label="Ativar preview em tempo real"
               checked={previewEnabled}
               onChange={(e) => setPreviewEnabled(e.target.checked)}
               type="checkbox"
@@ -889,8 +882,9 @@ export default function ThemeEditor() {
                         <strong>EDITOR DE FONTES</strong>
                         <span className="font-scope-badge">{fontScope}</span>
                       </div>
-                      <label>Área que será alterada</label>
+                      <label htmlFor="font-scope">Área que será alterada</label>
                       <select
+                        id="font-scope"
                         className="wide-input"
                         value={fontScope}
                         onChange={(e) => {
@@ -919,8 +913,9 @@ export default function ThemeEditor() {
                         <option value="body">Textos</option>
                         <option value="inputs">Campos / formulários</option>
                       </select>
-                      <label>Modelo de fonte</label>
+                      <label htmlFor="font-model">Modelo de fonte</label>
                       <select
+                        id="font-model"
                         className="wide-input"
                         value={
                           currentStyle.fontFamily ??
@@ -1035,8 +1030,9 @@ export default function ThemeEditor() {
                     onChange={(v) => updateStyle({ fontSize: v })}
                   />
                   <div className="inspector-section">
-                    <label>Família da fonte</label>
+                    <label htmlFor="font-family">Família da fonte</label>
                     <select
+                      id="font-family"
                       className="wide-input"
                       value={currentStyle.fontFamily ?? "Noto Sans"}
                       onChange={(e) =>
@@ -1197,7 +1193,7 @@ export default function ThemeEditor() {
                     placeholder="no-repeat"
                   />
                   <div className="inspector-section">
-                    <label>Propriedades CSS detectadas</label>
+                    <span className="inspector-label">Propriedades CSS detectadas</span>
                     <div className="custom-properties-list">
                       {Object.entries(currentStyle.customProperties ?? {}).map(
                         ([property, value]) => (
@@ -1224,7 +1220,7 @@ export default function ThemeEditor() {
                   </div>
                   <div className="inspector-section">
                     <div className="section-heading-row">
-                      <label>Variáveis CSS</label>
+                      <span className="inspector-label">Variáveis CSS</span>
                       <button onClick={addVariable}>＋</button>
                     </div>
                     <div className="custom-properties-list">
@@ -1248,7 +1244,7 @@ export default function ThemeEditor() {
                     </div>
                   </div>
                   <div className="inspector-section">
-                    <label>Condições detectadas</label>
+                    <span className="inspector-label">Condições detectadas</span>
                     <div className="condition-list">
                       {(
                         importChanges.find(
@@ -1267,8 +1263,9 @@ export default function ThemeEditor() {
                     </div>
                   </div>
                   <div className="inspector-section">
-                    <label>Estado / condição</label>
+                    <label htmlFor="editor-state">Estado / condição</label>
                     <select
+                      id="editor-state"
                       className="wide-input"
                       value={selectedState}
                       onChange={(e) =>
@@ -1285,7 +1282,7 @@ export default function ThemeEditor() {
                 </>
               )}
               <div className="inspector-section">
-                <label>Textura / Overlay</label>
+                <span className="inspector-label">Textura / Overlay</span>
                 <div className="layer-actions">
                   <button onClick={addLayer}>＋ Nova camada</button>
                 </div>
@@ -1367,25 +1364,31 @@ function InspectorField({
   onChange,
   type = "text",
   placeholder,
-}: {
+}: Readonly<{
   label: string;
   value: string;
   onChange: (value: string) => void;
   type?: "text" | "color";
   placeholder?: string;
-}) {
+}>) {
+  const inputId = useId();
+  const colorId = `${inputId}-color`;
+
   return (
     <div className="inspector-section">
-      <label>{label}</label>
+      <label htmlFor={inputId}>{label}</label>
       <div className="field-row">
         {type === "color" && (
           <input
+            id={colorId}
             type="color"
+            aria-label={`${label} — seletor de cor`}
             value={/^#[0-9a-f]{6}$/i.test(value) ? value : "#000000"}
             onChange={(e) => onChange(e.target.value)}
           />
         )}
         <input
+          id={inputId}
           className="wide-input"
           value={value}
           onChange={(e) => onChange(e.target.value)}
@@ -1404,7 +1407,7 @@ function RangeField({
   max,
   step = 1,
   onChange,
-}: {
+}: Readonly<{
   label: string;
   value: number;
   suffix: string;
@@ -1412,17 +1415,20 @@ function RangeField({
   max: number;
   step?: number;
   onChange: (value: number) => void;
-}) {
+}>) {
+  const inputId = useId();
+
   return (
     <div className="range-field">
       <div>
-        <label>{label}</label>
+        <label htmlFor={inputId}>{label}</label>
         <output>
           {value.toFixed(step < 1 ? 1 : 0)}
           {suffix}
         </output>
       </div>
       <input
+        id={inputId}
         type="range"
         min={min}
         max={max}

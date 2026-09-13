@@ -5432,30 +5432,54 @@ export const HYDRA_TARGETS: VisualTarget[] = [
 ];
 
 const esc = (value: string) =>
-  value.replaceAll("\\", "\\\\").replaceAll('"', '\\"');
+  value
+    .replaceAll("\\", String.raw`\\`)
+    .replaceAll('"', String.fromCodePoint(92, 34));
+
+const isAsciiLetter = (value: string | undefined): boolean => {
+  if (!value) return false;
+  const code = value.codePointAt(0) ?? 0;
+  return (code >= 65 && code <= 90) || (code >= 97 && code <= 122);
+};
+
+const isWindowsPath = (value: string): boolean =>
+  value.length >= 3 &&
+  isAsciiLetter(value[0]) &&
+  value[1] === ":" &&
+  (value[2] === "\\" || value[2] === "/");
 
 const normalizeImageSource = (value: string) => {
   const v = value.trim();
-  if (/^(https?:|data:|file:|blob:|url\()/i.test(v)) return v;
-  if (/^[A-Za-z]:[\\/]/.test(v)) return `file:///${v.replaceAll("\\", "/")}`;
+  const lower = v.toLowerCase();
+  const isReadySource = ["http:", "https:", "data:", "file:", "blob:", "url("]
+    .some((prefix) => lower.startsWith(prefix));
+
+  if (isReadySource) return v;
+  if (isWindowsPath(v)) return `file:///${v.replaceAll("\\", "/")}`;
   return v;
 };
 
+const hasStateSelector = (selector: string, state: EditorState): boolean => {
+  const lower = selector.toLowerCase();
+  switch (state) {
+    case "hover":
+      return lower.includes(":hover");
+    case "active":
+      return lower.includes(":active");
+    case "focus":
+      return lower.includes(":focus");
+    case "disabled":
+      return lower.includes(":disabled") || lower.includes("[disabled]");
+    case "selected":
+      return lower.includes(".selected") || lower.includes("aria-selected");
+    default:
+      return false;
+  }
+};
+
 const stateSelector = (selector: string, state: EditorState) => {
-  if (state === "normal") return selector;
-  if (state === "hover" && /:hover\b/i.test(selector)) return selector;
-  if (state === "active" && /:active\b/i.test(selector)) return selector;
-  if (state === "focus" && /:focus\b/i.test(selector)) return selector;
-  if (
-    state === "disabled" &&
-    (/:disabled\b/i.test(selector) || /\[disabled\]/i.test(selector))
-  )
-    return selector;
-  if (
-    state === "selected" &&
-    (/\.selected\b/i.test(selector) || /aria-selected/i.test(selector))
-  )
-    return selector;
+  if (state === "normal" || hasStateSelector(selector, state)) return selector;
+
   switch (state) {
     case "hover":
       return `${selector}:hover`;
@@ -5472,9 +5496,21 @@ const stateSelector = (selector: string, state: EditorState) => {
   }
 };
 
+const isRawBackgroundImage = (value: string): boolean => {
+  const lower = value.toLowerCase();
+  return (
+    lower === "none" ||
+    ["url(", "linear-gradient(", "radial-gradient(", "conic-gradient("]
+      .some((prefix) => lower.startsWith(prefix))
+  );
+};
+
+const toBackgroundImageValue = (value: string): string =>
+  isRawBackgroundImage(value) ? value : `url("${esc(value)}")`;
+
 const declarations = (style: TargetStyle) => {
   const lines: string[] = [];
-  const add = (name: string, value: unknown) => {
+  const add = (name: string, value: string | number | undefined) => {
     if (value !== undefined && value !== null && value !== "")
       lines.push(`  ${name}: ${value};`);
   };
@@ -5483,14 +5519,7 @@ const declarations = (style: TargetStyle) => {
   add("background-color", style.backgroundColor);
   if (style.backgroundImage) {
     const bg = normalizeImageSource(style.backgroundImage.trim());
-    add(
-      "background-image",
-      /^(url\(|linear-gradient\(|radial-gradient\(|conic-gradient\(|none$)/i.test(
-        bg
-      )
-        ? bg
-        : `url("${esc(bg)}")`
-    );
+    add("background-image", toBackgroundImageValue(bg));
   }
   add("background-size", style.backgroundSize);
   add("background-position", style.backgroundPosition);
@@ -5519,69 +5548,89 @@ const declarations = (style: TargetStyle) => {
   add("text-transform", style.textTransform);
   add("border-style", style.borderStyle);
   if (style.zIndex !== undefined) add("z-index", style.zIndex);
-  for (const [property, value] of Object.entries(
-    style.customProperties ?? {}
-  )) {
-    if (
-      value &&
-      !lines.some((line) => line.trimStart().startsWith(`${property}:`))
-    )
-      add(property, value);
+  const customProperties = style.customProperties;
+  if (customProperties) {
+    for (const [property, value] of Object.entries(customProperties)) {
+      if (
+        value &&
+        !lines.some((line) => line.trimStart().startsWith(`${property}:`))
+      ) {
+        add(property, value);
+      }
+    }
   }
   return lines;
 };
 
+const renderVariables = (variables: Record<string, string>): string[] => [
+  "\n:root {",
+  ...Object.entries(variables).map(([name, value]) => `  ${name}: ${value};`),
+  "}",
+];
+
+const findVisualTarget = (
+  targetId: string,
+  discoveredTargets: VisualTarget[] = []
+): VisualTarget | undefined =>
+  [...HYDRA_TARGETS, ...discoveredTargets].find((item) => item.id === targetId);
+
+const renderRule = (
+  rule: VisualRule,
+  discoveredTargets: VisualTarget[]
+): string[] => {
+  const target = findVisualTarget(rule.targetId, discoveredTargets);
+  if (!target) return [];
+
+  const lines = declarations(rule.style);
+  if (!lines.length) return [];
+
+  return [
+    `\n/* ${target.label} — ${rule.state} */`,
+    `${stateSelector(target.selector, rule.state)} {`,
+    lines.join("\n"),
+    "}",
+  ];
+};
+
+const renderLayer = (
+  layer: VisualLayer,
+  discoveredTargets: VisualTarget[]
+): string[] => {
+  if (!layer.enabled || !layer.image) return [];
+
+  const target = findVisualTarget(layer.targetId, discoveredTargets);
+  if (!target) return [];
+
+  const pseudo = layer.kind === "overlay" ? "::after" : "::before";
+  return [
+    `\n/* ${layer.name} */`,
+    `${target.selector} { position: relative; }`,
+    `${target.selector}${pseudo} {`,
+    '  content: "";',
+    "  position: absolute;",
+    "  inset: 0;",
+    "  pointer-events: none;",
+    `  background-image: url("${esc(layer.image)}");`,
+    `  background-size: ${layer.size};`,
+    `  background-position: ${layer.position};`,
+    `  background-repeat: ${layer.repeat};`,
+    `  opacity: ${Math.max(0, Math.min(1, layer.opacity))};`,
+    `  mix-blend-mode: ${layer.blendMode};`,
+    "}",
+  ];
+};
+
 export function generateVisualCss(document: EditorDocument): string {
-  const output: string[] = [
+  const discoveredTargets = document.discoveredTargets ?? [];
+  const variables = document.variables;
+
+  return [
     "/* HYDRA THEME EDITOR — VISUAL RULES */",
     "/* Generated automatically. Manual CSS outside this block is preserved. */",
-  ];
-
-  if (document.variables && Object.keys(document.variables).length) {
-    output.push("\n:root {");
-    for (const [name, value] of Object.entries(document.variables))
-      output.push(`  ${name}: ${value};`);
-    output.push("}");
-  }
-
-  for (const rule of document.rules) {
-    const target = [
-      ...HYDRA_TARGETS,
-      ...(document.discoveredTargets ?? []),
-    ].find((item) => item.id === rule.targetId);
-    if (!target) continue;
-    const lines = declarations(rule.style);
-    if (!lines.length) continue;
-
-    output.push(`\n/* ${target.label} — ${rule.state} */`);
-    output.push(`${stateSelector(target.selector, rule.state)} {`);
-    output.push(lines.join("\n"));
-    output.push("}");
-  }
-
-  for (const layer of document.layers) {
-    if (!layer.enabled || !layer.image) continue;
-    const target = HYDRA_TARGETS.find((item) => item.id === layer.targetId);
-    if (!target) continue;
-
-    const pseudo = layer.kind === "overlay" ? "::after" : "::before";
-    output.push(`\n/* ${layer.name} */`);
-    output.push(`${target.selector} { position: relative; }`);
-    output.push(`${target.selector}${pseudo} {`);
-    output.push('  content: "";');
-    output.push("  position: absolute;");
-    output.push("  inset: 0;");
-    output.push("  pointer-events: none;");
-    output.push(`  background-image: url("${esc(layer.image)}");`);
-    output.push(`  background-size: ${layer.size};`);
-    output.push(`  background-position: ${layer.position};`);
-    output.push(`  background-repeat: ${layer.repeat};`);
-    output.push(`  opacity: ${Math.max(0, Math.min(1, layer.opacity))};`);
-    output.push(`  mix-blend-mode: ${layer.blendMode};`);
-    output.push("}");
-  }
-
-  return output.join("\n");
+    ...(variables && Object.keys(variables).length ? renderVariables(variables) : []),
+    ...document.rules.flatMap((rule) => renderRule(rule, discoveredTargets)),
+    ...document.layers.flatMap((layer) => renderLayer(layer, discoveredTargets)),
+  ].join("\n");
 }
 
 export const VISUAL_BLOCK_START = "/* HYDRA THEME EDITOR — VISUAL RULES */";
@@ -5657,122 +5706,211 @@ function normalizeSelector(selector: string) {
   return selector.replace(/\s+/g, " ").trim();
 }
 
+function extractCssUrl(value: string): string | undefined {
+  if (!value.toLowerCase().startsWith("url(") || !value.endsWith(")")) {
+    return undefined;
+  }
+
+  const inner = value.slice(4, -1).trim();
+  if (inner.length >= 2) {
+    const first = inner.at(0);
+    const last = inner.at(-1);
+    if ((first === '"' || first === "'") && first === last) {
+      return inner.slice(1, -1);
+    }
+  }
+  return inner;
+}
+
+function stripImportantSuffix(value: string): string {
+  const suffix = "!important";
+  const lower = value.toLowerCase();
+  const suffixStart = lower.lastIndexOf(suffix);
+  if (suffixStart < 0 || value.slice(suffixStart + suffix.length).trim() !== "") {
+    return value;
+  }
+  return value.slice(0, suffixStart).trimEnd();
+}
+
 function parseCssValue(property: string, value: string): unknown {
-  const v = value.trim().replace(/\s*!important\s*$/i, "");
+  const v = stripImportantSuffix(value.trim());
   if (property === "opacity") {
     const n = Number(v);
     return Number.isFinite(n) ? n : v;
   }
-  if (
-    [
-      "borderWidth",
-      "borderRadius",
-      "fontSize",
-      "fontWeight",
-      "letterSpacing",
-      "gap",
-      "zIndex",
-    ].includes(property)
-  ) {
+
+  const numericProperties = new Set([
+    "borderWidth",
+    "borderRadius",
+    "fontSize",
+    "fontWeight",
+    "letterSpacing",
+    "gap",
+    "zIndex",
+  ]);
+  if (numericProperties.has(property)) {
     const n = Number.parseFloat(v);
     return Number.isFinite(n) ? n : v;
   }
+
   if (property === "backgroundImage") {
-    const match = v.match(/^url\(\s*["']?(.*?)["']?\s*\)$/i);
-    const inner = match ? match[1] : v;
-    if (/^[A-Za-z]:[\\/]/.test(inner))
-      return `file:///${inner.replaceAll("\\", "/")}`;
-    return inner;
+    const inner = extractCssUrl(v) ?? v;
+    return isWindowsPath(inner)
+      ? `file:///${inner.replaceAll("\\", "/")}`
+      : inner;
   }
   return v;
 }
 
 function detectState(selector: string): EditorState {
-  if (/:hover\b/i.test(selector)) return "hover";
-  if (/:active\b/i.test(selector)) return "active";
-  if (/:focus\b/i.test(selector)) return "focus";
-  if (/:disabled\b/i.test(selector) || /\[disabled\]/i.test(selector))
+  const lower = selector.toLowerCase();
+  if (lower.includes(":hover")) return "hover";
+  if (lower.includes(":active")) return "active";
+  if (lower.includes(":focus")) return "focus";
+  if (lower.includes(":disabled") || lower.includes("[disabled]")) {
     return "disabled";
-  if (/\.selected\b/i.test(selector) || /aria-selected/i.test(selector))
+  }
+  if (lower.includes(".selected") || lower.includes("aria-selected")) {
     return "selected";
+  }
   return "normal";
 }
 
-function stripCssComments(css: string) {
-  return css.replace(/\/\*[\s\S]*?\*\//g, "");
+function stripCssComments(css: string): string {
+  let result = "";
+  let cursor = 0;
+
+  while (cursor < css.length) {
+    const start = css.indexOf("/*", cursor);
+    if (start < 0) {
+      result += css.slice(cursor);
+      break;
+    }
+
+    result += css.slice(cursor, start);
+    const end = css.indexOf("*/", start + 2);
+    if (end < 0) break;
+    cursor = end + 2;
+  }
+
+  return result;
+}
+
+function updateQuoteState(
+  quote: string,
+  character: string | undefined,
+  previousCharacter: string | undefined
+): string {
+  if (quote && character === quote && previousCharacter !== "\\") return "";
+  return quote;
+}
+
+function getQuoteStart(character: string | undefined): string {
+  return character === '"' || character === "'" ? character : "";
+}
+
+function parseDeclarationPiece(
+  piece: string
+): { property: string; value: string } | undefined {
+  const colon = piece.indexOf(":");
+  if (colon <= 0) return undefined;
+  return {
+    property: piece.slice(0, colon).trim().toLowerCase(),
+    value: piece.slice(colon + 1).trim(),
+  };
 }
 
 function splitDeclarations(body: string) {
   const out: Array<{ property: string; value: string }> = [];
-  let start = 0,
-    quote = "",
-    paren = 0;
+  let start = 0;
+  let quote = "";
+  let paren = 0;
+
   for (let i = 0; i <= body.length; i++) {
     const ch = body[i];
     if (quote) {
-      if (ch === quote && body[i - 1] !== "\\") quote = "";
+      quote = updateQuoteState(quote, ch, body[i - 1]);
       continue;
     }
-    if (ch === '"' || ch === "'") {
-      quote = ch;
+
+    const quoteStart = getQuoteStart(ch);
+    if (quoteStart) {
+      quote = quoteStart;
       continue;
     }
-    if (ch === "(") paren++;
-    else if (ch === ")") paren--;
-    else if ((ch === ";" || i === body.length) && paren === 0) {
-      const piece = body.slice(start, i).trim();
-      start = i + 1;
-      const colon = piece.indexOf(":");
-      if (colon > 0)
-        out.push({
-          property: piece.slice(0, colon).trim().toLowerCase(),
-          value: piece.slice(colon + 1).trim(),
-        });
+
+    if (ch === "(") {
+      paren++;
+      continue;
     }
+    if (ch === ")") {
+      paren--;
+      continue;
+    }
+    if ((ch !== ";" && i !== body.length) || paren !== 0) continue;
+
+    const declaration = parseDeclarationPiece(body.slice(start, i).trim());
+    start = i + 1;
+    if (declaration) out.push(declaration);
   }
   return out;
 }
 
 function findMatchingBrace(css: string, open: number) {
-  let depth = 0,
-    quote = "";
+  let depth = 0;
+  let quote = "";
+
   for (let i = open; i < css.length; i++) {
     const ch = css[i];
     if (quote) {
-      if (ch === quote && css[i - 1] !== "\\") quote = "";
+      quote = updateQuoteState(quote, ch, css[i - 1]);
       continue;
     }
-    if (ch === '"' || ch === "'") {
-      quote = ch;
+
+    const quoteStart = getQuoteStart(ch);
+    if (quoteStart) {
+      quote = quoteStart;
       continue;
     }
-    if (ch === "{") depth++;
-    if (ch === "}") {
-      depth--;
-      if (depth === 0) return i;
+
+    if (ch === "{") {
+      depth++;
+      continue;
     }
+    if (ch !== "}") continue;
+
+    depth--;
+    if (depth === 0) return i;
   }
   return -1;
+}
+
+function targetMatchesSelector(selector: string, targetSelector: string): boolean {
+  return (
+    selector === targetSelector ||
+    selector.startsWith(`${targetSelector}:`) ||
+    selector.startsWith(`${targetSelector}.`) ||
+    selector.startsWith(`${targetSelector}[`) ||
+    selector.includes(` ${targetSelector}:`) ||
+    selector.includes(` ${targetSelector}.`)
+  );
 }
 
 function targetForSelector(
   selector: string,
   dynamicTargets: VisualTarget[]
 ): VisualTarget | undefined {
-  const s = normalizeSelector(selector);
-  return [...HYDRA_TARGETS, ...dynamicTargets]
-    .sort((a, b) => b.selector.length - a.selector.length)
-    .find((target) => {
-      const base = normalizeSelector(target.selector);
-      return (
-        s === base ||
-        s.startsWith(`${base}:`) ||
-        s.startsWith(`${base}.`) ||
-        s.startsWith(`${base}[`) ||
-        s.includes(` ${base}:`) ||
-        s.includes(` ${base}.`)
-      );
-    });
+  const normalized = normalizeSelector(selector);
+  const targets = [...HYDRA_TARGETS, ...dynamicTargets];
+  let best: VisualTarget | undefined;
+
+  for (const target of targets) {
+    const base = normalizeSelector(target.selector);
+    if (!targetMatchesSelector(normalized, base)) continue;
+    if (!best || base.length > best.selector.length) best = target;
+  }
+
+  return best;
 }
 
 function makeDynamicTarget(selector: string, index: number): VisualTarget {
@@ -5786,153 +5924,308 @@ function makeDynamicTarget(selector: string, index: number): VisualTarget {
   };
 }
 
-export function importCommunityCss(css: string): CssImportResult {
-  const document: EditorDocument = {
-    rules: [],
-    layers: [],
-    variables: {},
-    conditions: [],
-    discoveredTargets: [],
-  };
-  const changes: CssChange[] = [];
-  const unknownSelectors = new Set<string>();
-  const clean = stripCssComments(css);
-  const dynamicTargets: VisualTarget[] = [];
-  let recognizedRules = 0,
-    recognizedDeclarations = 0,
-    dynamicIndex = 0;
+interface CssImportContext {
+  document: EditorDocument;
+  changes: CssChange[];
+  dynamicTargets: VisualTarget[];
+  unknownSelectors: Set<string>;
+  dynamicIndex: number;
+  recognizedRules: number;
+  recognizedDeclarations: number;
+  clean: string;
+}
 
-  const variableMatches = clean.matchAll(
+function isConditionalAtRule(header: string): boolean {
+  const lower = header.toLowerCase();
+  return [
+    "@media",
+    "@supports",
+    "@container",
+    "@layer",
+    "@scope",
+    "@document",
+    "@starting-style",
+  ].some((prefix) => lower.startsWith(prefix));
+}
+
+function isFontFaceRule(header: string): boolean {
+  return header.toLowerCase().startsWith("@font-face");
+}
+
+function isKeyframesRule(header: string): boolean {
+  const lower = header.toLowerCase();
+  return lower.startsWith("@keyframes") || lower.startsWith("@-webkit-keyframes");
+}
+
+function recordAtRule(
+  _context: CssImportContext,
+  header: string,
+  body: string
+): string | undefined {
+  if (isFontFaceRule(header)) {
+    const family = splitDeclarations(body).find(
+      (declaration) => declaration.property === "font-family"
+    );
+    return family ? `@font-face ${family.value}` : undefined;
+  }
+  if (isConditionalAtRule(header) || isKeyframesRule(header)) return header;
+  return undefined;
+}
+
+function mapDeclarations(declarations: Array<{ property: string; value: string }>) {
+  const mapped: TargetStyle = {};
+  const properties: string[] = [];
+  const values: Record<string, string> = {};
+  let mappedCount = 0;
+
+  for (const declaration of declarations) {
+    const { property, value } = declaration;
+    if (!property || !value) continue;
+
+    properties.push(property);
+    values[property] = value;
+    const visualProperty = CSS_PROPERTY_MAP[property];
+    if (visualProperty) {
+      (mapped as Record<string, unknown>)[visualProperty] =
+        parseCssValue(property, value);
+    } else {
+      mapped.customProperties = mapped.customProperties
+        ? { ...mapped.customProperties, [property]: value }
+        : { [property]: value };
+    }
+    mappedCount++;
+  }
+
+  return { mapped, properties, values, mappedCount };
+}
+
+function upsertImportedRule(
+  context: CssImportContext,
+  target: VisualTarget,
+  state: EditorState,
+  mapped: TargetStyle
+): void {
+  const existing = context.document.rules.find(
+    (rule) => rule.targetId === target.id && rule.state === state
+  );
+
+  if (!existing) {
+    context.document.rules.push({ targetId: target.id, state, style: mapped });
+    return;
+  }
+
+  const existingCustomProperties = existing.style.customProperties;
+  const mappedCustomProperties = mapped.customProperties;
+  let customProperties = mappedCustomProperties;
+  if (existingCustomProperties) {
+    customProperties = mappedCustomProperties
+      ? { ...existingCustomProperties, ...mappedCustomProperties }
+      : existingCustomProperties;
+  }
+
+  existing.style = {
+    ...existing.style,
+    ...mapped,
+    customProperties,
+  };
+}
+
+function ensureImportTarget(
+  context: CssImportContext,
+  selector: string
+): VisualTarget {
+  const existing = targetForSelector(selector, context.dynamicTargets);
+  if (existing) return existing;
+
+  const target = makeDynamicTarget(selector, context.dynamicIndex++);
+  context.dynamicTargets.push(target);
+  context.document.discoveredTargets?.push(target);
+  return target;
+}
+
+const getImportStatus = (
+  mappedCount: number,
+  propertyCount: number
+): CssChange["status"] => {
+  if (mappedCount === propertyCount) return "recognized";
+  if (mappedCount > 0) return "partial";
+  return "unknown";
+};
+
+function processCssRule(
+  context: CssImportContext,
+  header: string,
+  body: string,
+  cursor: number,
+  close: number,
+  conditions: string[]
+): void {
+  const declarations = splitDeclarations(body);
+  if (!declarations.length) return;
+
+  for (const selector of header.split(",").map(normalizeSelector).filter(Boolean)) {
+    const target = ensureImportTarget(context, selector);
+    const result = mapDeclarations(declarations);
+    if (!result.properties.length) continue;
+
+    const state = detectState(selector);
+    upsertImportedRule(context, target, state, result.mapped);
+    context.recognizedRules++;
+    context.recognizedDeclarations += result.mappedCount;
+
+    const status = getImportStatus(
+      result.mappedCount,
+      result.properties.length
+    );
+    context.changes.push({
+      targetId: target.id,
+      targetLabel: target.label,
+      selector,
+      state,
+      properties: result.properties,
+      propertyValues: result.values,
+      source: context.clean.slice(cursor, close + 1),
+      status,
+      conditions: [...conditions],
+      lineStart: context.clean.slice(0, cursor).split("\n").length,
+      lineEnd: context.clean.slice(0, close + 1).split("\n").length,
+    });
+  }
+}
+
+function skipCssWhitespace(css: string, start: number, end: number): number {
+  let cursor = start;
+  while (cursor < end && " \n\r\t;".includes(css[cursor])) {
+    cursor++;
+  }
+  return cursor;
+}
+
+function processCssBlockEntry(
+  context: CssImportContext,
+  cursor: number,
+  end: number,
+  conditions: string[]
+): number {
+  const open = context.clean.indexOf("{", cursor);
+  if (open < 0 || open >= end) return -1;
+
+  const close = findMatchingBrace(context.clean, open);
+  if (close < 0 || close > end) return -1;
+
+  const header = context.clean.slice(cursor, open).trim();
+  const body = context.clean.slice(open + 1, close);
+
+  if (header.startsWith("@")) {
+    const condition = recordAtRule(context, header, body);
+    if (condition) context.document.conditions?.push(condition);
+    if (isConditionalAtRule(header)) {
+      parseCssBlock(context, open + 1, close, [...conditions, header]);
+    }
+  } else {
+    processCssRule(context, header, body, cursor, close, conditions);
+  }
+
+  return close + 1;
+}
+
+function parseCssBlock(
+  context: CssImportContext,
+  start: number,
+  end: number,
+  conditions: string[]
+): void {
+  let cursor = start;
+  while (cursor < end) {
+    cursor = skipCssWhitespace(context.clean, cursor, end);
+    if (cursor >= end) return;
+
+    const nextCursor = processCssBlockEntry(context, cursor, end, conditions);
+    if (nextCursor < 0) return;
+    cursor = nextCursor;
+  }
+}
+
+export function importCommunityCss(css: string): CssImportResult {
+  const variables: Record<string, string> = {};
+  const conditions: string[] = [];
+  const discoveredTargets: VisualTarget[] = [];
+  const context: CssImportContext = {
+    document: {
+      rules: [],
+      layers: [],
+      variables,
+      conditions,
+      discoveredTargets,
+    },
+    changes: [],
+    dynamicTargets: [],
+    unknownSelectors: new Set<string>(),
+    dynamicIndex: 0,
+    recognizedRules: 0,
+    recognizedDeclarations: 0,
+    clean: stripCssComments(css),
+  };
+
+  const variableMatches = context.clean.matchAll(
     /(?:^|[,{]\s*)(--[\w-]+)\s*:\s*([^;}]+)/g
   );
-  for (const m of variableMatches) document.variables![m[1]] = m[2].trim();
+  for (const match of variableMatches) {
+    variables[match[1]] = match[2].trim();
+  }
 
-  const parseBlock = (start: number, end: number, conditions: string[]) => {
-    let cursor = start;
-    while (cursor < end) {
-      while (cursor < end && /[\s;]/.test(clean[cursor])) cursor++;
-      if (cursor >= end) return;
-      const open = clean.indexOf("{", cursor);
-      if (open < 0 || open >= end) return;
-      const close = findMatchingBrace(clean, open);
-      if (close < 0 || close > end) return;
-      const header = clean.slice(cursor, open).trim();
-      const body = clean.slice(open + 1, close);
-      if (header.startsWith("@")) {
-        const nextConditions = [...conditions, header];
-        if (
-          /^@(media|supports|container|layer|scope|document|starting-style)/i.test(
-            header
-          )
-        ) {
-          document.conditions!.push(header);
-          parseBlock(open + 1, close, nextConditions);
-        } else if (/^@font-face/i.test(header)) {
-          // Font faces are preserved in the original CSS; collect their declarations as conditions metadata.
-          const face = splitDeclarations(body);
-          if (face.some((d) => d.property === "font-family"))
-            document.conditions!.push(
-              `@font-face ${face.find((d) => d.property === "font-family")?.value ?? ""}`
-            );
-        } else if (/^@keyframes|^@-webkit-keyframes/i.test(header)) {
-          // Keyframes remain in the original CSS source. We register the condition
-          // but do not turn `from`/`to` into fake DOM targets.
-          document.conditions!.push(header);
-        }
-      } else {
-        const declarations = splitDeclarations(body);
-        if (declarations.length) {
-          for (const selector of header
-            .split(",")
-            .map(normalizeSelector)
-            .filter(Boolean)) {
-            let target = targetForSelector(selector, dynamicTargets);
-            if (!target) {
-              target = makeDynamicTarget(selector, dynamicIndex++);
-              dynamicTargets.push(target);
-              document.discoveredTargets!.push(target);
-            }
-            const mapped: TargetStyle = { customProperties: {} };
-            const properties: string[] = [];
-            const values: Record<string, string> = {};
-            let mappedCount = 0;
-            for (const declaration of declarations) {
-              const { property, value } = declaration;
-              if (!property || !value) continue;
-              properties.push(property);
-              values[property] = value;
-              const visualProperty = CSS_PROPERTY_MAP[property];
-              if (visualProperty) {
-                (mapped as Record<string, unknown>)[visualProperty] =
-                  parseCssValue(property, value);
-                mappedCount++;
-              } else {
-                mapped.customProperties![property] = value;
-                mappedCount++;
-              }
-            }
-            if (!properties.length) continue;
-            const state = detectState(selector);
-            const existing = document.rules.find(
-              (r) => r.targetId === target!.id && r.state === state
-            );
-            if (existing)
-              existing.style = {
-                ...existing.style,
-                ...mapped,
-                customProperties: {
-                  ...(existing.style.customProperties ?? {}),
-                  ...(mapped.customProperties ?? {}),
-                },
-              };
-            else
-              document.rules.push({
-                targetId: target.id,
-                state,
-                style: mapped,
-              });
-            recognizedRules++;
-            recognizedDeclarations += mappedCount;
-            const allMapped = mappedCount === properties.length;
-            const lineStart = clean.slice(0, cursor).split("\n").length;
-            const lineEnd = clean.slice(0, close + 1).split("\n").length;
-            changes.push({
-              targetId: target.id,
-              targetLabel: target.label,
-              selector,
-              state,
-              properties,
-              propertyValues: values,
-              source: clean.slice(cursor, close + 1),
-              status: allMapped
-                ? "recognized"
-                : mappedCount
-                  ? "partial"
-                  : "unknown",
-              conditions: conditions.length ? [...conditions] : [],
-              lineStart,
-              lineEnd,
-            } as CssChange);
-          }
-        }
-      }
-      cursor = close + 1;
-    }
-  };
-  parseBlock(0, clean.length, []);
+  parseCssBlock(context, 0, context.clean.length, []);
   return {
-    document,
-    changes,
+    document: context.document,
+    changes: context.changes,
     unrecognizedCss: css,
-    recognizedRules,
-    recognizedDeclarations,
-    unknownSelectors: [...unknownSelectors],
+    recognizedRules: context.recognizedRules,
+    recognizedDeclarations: context.recognizedDeclarations,
+    unknownSelectors: [...context.unknownSelectors],
   };
 }
 
 export function findTarget(id: string, extraTargets: VisualTarget[] = []) {
   return [...HYDRA_TARGETS, ...extraTargets].find((target) => target.id === id);
 }
+const extractClassNames = (selector: string): string[] => {
+  const classes: string[] = [];
+  const expression = /\.[A-Za-z0-9_-]+/g;
+  let match = expression.exec(selector);
+  while (match) {
+    classes.push(match[0]);
+    match = expression.exec(selector);
+  }
+  return classes;
+};
+
+const extractTargetId = (selector: string): string | undefined =>
+  /^#[A-Za-z0-9_-]+/.exec(selector)?.[0];
+
+const scoreTargetCandidate = (
+  targetSelector: string,
+  candidate: string,
+  candidatePriority: number
+): number => {
+  const targetClasses = extractClassNames(targetSelector);
+  const targetId = extractTargetId(targetSelector);
+  const candidateClasses = new Set(extractClassNames(candidate));
+  let score = candidatePriority * 1000;
+
+  if (targetSelector === candidate) score += 100000;
+  if (targetId && candidate.includes(targetId)) score += 50000;
+
+  for (const className of targetClasses) {
+    if (candidateClasses.has(className)) score += 3000;
+  }
+
+  score += Math.min(targetClasses.length, candidateClasses.size) * 100;
+  if ([".sidebar", ".header", ".container__content"].includes(targetSelector)) {
+    score -= 2500;
+  }
+  return score;
+};
+
 export function findTargetBySelector(
   selectors: string | string[],
   extraTargets: VisualTarget[] = []
@@ -5942,54 +6235,16 @@ export function findTargetBySelector(
     : [selectors].filter(Boolean);
   const targets = [...HYDRA_TARGETS, ...extraTargets];
 
-  // O primeiro selector recebido representa o ponto mais preciso do clique.
-  // Não usamos mais a ordem do catálogo (ex.: ".sidebar" antes de
-  // ".sidebar__menu-item-button"), pois isso fazia um container ganhar de
-  // um elemento filho que realmente foi clicado.
   for (const selector of list) {
     const exact = targets.find((target) => target.selector === selector);
     if (exact) return exact;
   }
 
-  // Fallback: quando o DOM possui um seletor estrutural mais específico que
-  // não existe literalmente no inventário, procura a classe/ID mais específica.
   let best: { target: VisualTarget; score: number } | undefined;
-
   for (const target of targets) {
-    const targetSelector = target.selector;
-    const targetClasses = targetSelector.match(/\.[A-Za-z0-9_-]+/g) ?? [];
-    const targetId = targetSelector.match(/^#[A-Za-z0-9_-]+/);
-
     for (let i = 0; i < list.length; i++) {
-      const candidate = list[i];
-      let score = (list.length - i) * 1000;
-
-      if (targetSelector === candidate) score += 100000;
-
-      if (targetId && candidate.includes(targetId[0])) score += 50000;
-
-      const candidateClasses = new Set(
-        candidate.match(/\.[A-Za-z0-9_-]+/g) ?? []
-      );
-      for (const cls of targetClasses) {
-        if (candidateClasses.has(cls)) score += 3000;
-      }
-
-      // Quanto mais classes o alvo compartilha, mais específico ele é.
-      score += Math.min(targetClasses.length, candidateClasses.size) * 100;
-
-      // Containers genéricos perdem para componentes específicos.
-      if (
-        targetSelector === ".sidebar" ||
-        targetSelector === ".header" ||
-        targetSelector === ".container__content"
-      ) {
-        score -= 2500;
-      }
-
-      if (!best || score > best.score) {
-        best = { target, score };
-      }
+      const score = scoreTargetCandidate(target.selector, list[i], list.length - i);
+      if (!best || score > best.score) best = { target, score };
     }
   }
 

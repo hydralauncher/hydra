@@ -1,33 +1,129 @@
 import { useState, useEffect, useRef } from "react";
+import type { CSSProperties } from "react";
 import { useParty } from "../../context/PartyContext";
+import type { LobbyInfo } from "../../context/PartyContext";
 import { useUserDetails, useAppSelector } from "@renderer/hooks";
 import {
-  UsersThree,
-  Microphone,
-  MicrophoneSlash,
-  SignOut,
-  Plus,
-  Link as LinkIcon,
-  WifiHigh,
-  WifiSlash,
-  SpeakerHigh,
-  SpeakerSlash,
-  WarningCircle,
-  Lock,
-  LockKey,
-  GameController,
-  PaperPlaneRight,
-  X,
+  UsersThreeIcon,
+  MicrophoneIcon,
+  MicrophoneSlashIcon,
+  SignOutIcon,
+  PlusIcon,
+  LinkIcon,
+  WifiHighIcon,
+  WifiSlashIcon,
+  SpeakerHighIcon,
+  SpeakerSlashIcon,
+  WarningCircleIcon,
+  LockIcon,
+  LockKeyIcon,
+  GameControllerIcon,
+  PaperPlaneRightIcon,
+  XIcon,
 } from "@phosphor-icons/react";
 import { Avatar } from "@renderer/components";
 
-const AudioPlayer = ({ stream }: { stream: MediaStream }) => {
-  const audioRef = useRef<HTMLAudioElement>(null);
-  useEffect(() => {
-    if (audioRef.current) audioRef.current.srcObject = stream;
-  }, [stream]);
-  return <audio ref={audioRef} autoPlay />;
+interface PartyFriend {
+  id: string;
+  profileImageUrl?: string;
+  displayName?: string;
+  username?: string;
+}
+
+const isRecord = (value: unknown): value is Record<string, unknown> =>
+  typeof value === "object" && value !== null;
+
+const isPartyFriend = (value: unknown): value is PartyFriend => {
+  if (!isRecord(value) || typeof value.id !== "string") return false;
+  return (
+    value.profileImageUrl === undefined || typeof value.profileImageUrl === "string"
+  ) && (
+      value.displayName === undefined || typeof value.displayName === "string"
+    ) && (
+      value.username === undefined || typeof value.username === "string"
+    );
 };
+
+const getFriends = (value: unknown): PartyFriend[] => {
+  if (!isRecord(value) || !Array.isArray(value.friends)) return [];
+  return value.friends.filter(isPartyFriend);
+};
+
+const getMyFriends = (fullState: unknown, userDetails: unknown): PartyFriend[] => {
+  if (!isRecord(fullState) || !isRecord(fullState.userDetails)) {
+    return getFriends(userDetails);
+  }
+
+  const stateUserDetails = fullState.userDetails;
+  if (isRecord(stateUserDetails.userDetails)) {
+    const nestedFriends = getFriends(stateUserDetails.userDetails);
+    if (nestedFriends.length > 0) return nestedFriends;
+  }
+
+  const stateFriends = getFriends(stateUserDetails);
+  return stateFriends.length > 0 ? stateFriends : getFriends(userDetails);
+};
+
+const getStatusColor = (status: string): string => {
+  if (status === "Online") return "#4caf50";
+  if (status.includes("Reconectando") || status.includes("Iniciando")) {
+    return "#ffeb3b";
+  }
+  return "#f44336";
+};
+
+const getStatusIcon = (status: string) => {
+  if (status === "Online") return <WifiHighIcon weight="bold" />;
+  if (status.includes("Reconectando")) return <WarningCircleIcon weight="bold" />;
+  return <WifiSlashIcon weight="bold" />;
+};
+
+const AudioPlayer = ({ stream }: { stream: MediaStream }) => {
+  useEffect(() => {
+    const audio = new Audio();
+    audio.autoplay = true;
+    audio.srcObject = stream;
+    audio.play().catch(() => null);
+
+    return () => {
+      audio.pause();
+      audio.srcObject = null;
+    };
+  }, [stream]);
+
+  return null;
+};
+
+interface MicTestButtonProps {
+  isActive: boolean;
+  onClick: () => void;
+}
+
+const MicTestButton = ({ isActive, onClick }: MicTestButtonProps) => (
+  <button
+    onClick={onClick}
+    style={{
+      display: "flex",
+      alignItems: "center",
+      gap: "6px",
+      padding: "8px 12px",
+      background: isActive ? "#ff9800" : "rgba(255,255,255,0.08)",
+      border: "1px solid rgba(255,255,255,0.1)",
+      color: "white",
+      borderRadius: "6px",
+      cursor: "pointer",
+      transition: "0.2s",
+      fontSize: "12px",
+    }}
+  >
+    {isActive ? (
+      <SpeakerHighIcon size={16} />
+    ) : (
+      <SpeakerSlashIcon size={16} />
+    )}{" "}
+    {isActive ? "Parar" : "Testar Mic"}
+  </button>
+);
 
 export default function PartyPage() {
   const {
@@ -53,21 +149,12 @@ export default function PartyPage() {
 
   const { userDetails } = useUserDetails();
 
-  const fullState = useAppSelector((state: any) => state);
-
-  const myFriends =
-    fullState?.userDetails?.userDetails?.friends ||
-    fullState?.userDetails?.friends ||
-    (userDetails as any)?.friends ||
-    [];
-
-  useEffect(() => {
-    console.log("Party Debug - Estado Completo:", fullState);
-    console.log("Party Debug - Amigos Encontrados:", myFriends);
-  }, [fullState, myFriends]);
+  const fullState = useAppSelector((state) => state);
+  const myFriends = getMyFriends(fullState, userDetails);
 
   const myNick =
-    userDetails?.displayName || `Player ${Math.floor(Math.random() * 999)}`;
+    userDetails?.displayName?.trim() ||
+    (myId ? `Player ${myId.slice(0, 6)}` : "Player");
 
   const [view, setView] = useState<"lobby" | "create" | "join">("lobby");
   const [inputHostId, setInputHostId] = useState("");
@@ -79,14 +166,14 @@ export default function PartyPage() {
   const [showInviteModal, setShowInviteModal] = useState(false);
 
   const [isMicTestActive, setIsMicTestActive] = useState(false);
-  const micTestRef = useRef<HTMLAudioElement>(null);
+  const micTestRef = useRef<HTMLAudioElement | null>(null);
   const chatEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [chat]);
 
-  const handleJoinFromList = (lobby: any) => {
+  const handleJoinFromList = (lobby: LobbyInfo) => {
     setInputHostId(lobby.host_id);
     if (lobby.is_private) {
       setView("join");
@@ -96,46 +183,49 @@ export default function PartyPage() {
     }
   };
 
-  const handleSendInvite = async (friendId: string) => {
-    await sendInvite(friendId, myNick);
-    alert("Convite enviado!");
+  const handleCopyHostId = async () => {
+    if (!hostId) return;
+
+    try {
+      await navigator.clipboard.writeText(hostId);
+    } catch {
+      alert("Não foi possível copiar o ID da sala.");
+    }
   };
 
-  const getStatusColor = () => {
-    if (connectionStatus === "Online") return "#4caf50";
-    if (
-      connectionStatus.includes("Reconectando") ||
-      connectionStatus.includes("Iniciando")
-    )
-      return "#ffeb3b";
-    return "#f44336";
-  };
-
-  const getStatusIcon = () => {
-    if (connectionStatus === "Online") return <WifiHigh weight="bold" />;
-    if (connectionStatus.includes("Reconectando"))
-      return <WarningCircle weight="bold" />;
-    return <WifiSlash weight="bold" />;
+  const handleSendInvite = (friendId: string) => {
+    sendInvite(friendId, myNick)
+      .then(() => alert("Convite enviado!"))
+      .catch(() => alert("Não foi possível enviar o convite."));
   };
 
   const handleTestMic = async () => {
     if (isMicTestActive) {
       setIsMicTestActive(false);
-      if (micTestRef.current) micTestRef.current.srcObject = null;
-    } else {
-      const stream = await getMic();
-      if (stream && micTestRef.current) {
-        micTestRef.current.srcObject = stream;
-        setIsMicTestActive(true);
+      if (micTestRef.current) {
+        micTestRef.current.pause();
+        micTestRef.current.srcObject = null;
+        micTestRef.current = null;
       }
+      return;
     }
+
+    const stream = await getMic();
+    if (!stream) return;
+
+    const audio = new Audio();
+    audio.autoplay = true;
+    audio.srcObject = stream;
+    micTestRef.current = audio;
+    audio.play().catch(() => null);
+    setIsMicTestActive(true);
   };
 
   useEffect(() => {
     if (players.length > 0) setIsMicTestActive(false);
   }, [players]);
 
-  const glassCardStyle: React.CSSProperties = {
+  const glassCardStyle: CSSProperties = {
     width: "100%",
     maxWidth: "600px",
     background: "rgba(0, 0, 0, 0.6)",
@@ -165,8 +255,8 @@ export default function PartyPage() {
           position: "relative",
         }}
       >
-        {incomingStreams.map((s, i) => (
-          <AudioPlayer key={i} stream={s} />
+        {incomingStreams.map((s) => (
+          <AudioPlayer key={s.id} stream={s} />
         ))}
 
         {/* MODAL DE CONVITE */}
@@ -213,7 +303,7 @@ export default function PartyPage() {
                     cursor: "pointer",
                   }}
                 >
-                  <X size={20} />
+                  <XIcon size={20} />
                 </button>
               </div>
 
@@ -235,7 +325,7 @@ export default function PartyPage() {
                     </small>
                   </div>
                 ) : (
-                  myFriends.map((friend: any) => (
+                  myFriends.map((friend) => (
                     <div
                       key={friend.id}
                       style={{
@@ -281,7 +371,7 @@ export default function PartyPage() {
                           fontSize: "12px",
                         }}
                       >
-                        <PaperPlaneRight size={14} /> Enviar
+                        <PaperPlaneRightIcon size={14} /> Enviar
                       </button>
                     </div>
                   ))
@@ -328,11 +418,11 @@ export default function PartyPage() {
                   fontSize: "12px",
                 }}
               >
-                <Plus size={16} weight="bold" /> Convidar
+                <PlusIcon size={16} weight="bold" /> Convidar
               </button>
             )}
             <button
-              onClick={() => navigator.clipboard.writeText(hostId)}
+              onClick={() => { handleCopyHostId(); }}
               style={{
                 background: "rgba(255,255,255,0.1)",
                 border: "none",
@@ -357,9 +447,9 @@ export default function PartyPage() {
               }}
             >
               {isMuted ? (
-                <MicrophoneSlash size={18} />
+                <MicrophoneSlashIcon size={18} />
               ) : (
-                <Microphone size={18} />
+                <MicrophoneIcon size={18} />
               )}
             </button>
             <button
@@ -374,7 +464,7 @@ export default function PartyPage() {
               }}
               title="Sair"
             >
-              <SignOut size={18} />
+              <SignOutIcon size={18} />
             </button>
           </div>
         </div>
@@ -440,9 +530,9 @@ export default function PartyPage() {
             }}
           >
             <div style={{ flex: 1, padding: "15px", overflowY: "auto" }}>
-              {chat.map((c, i) => (
+              {chat.map((c) => (
                 <div
-                  key={i}
+                  key={`${c.sender}-${c.message}`}
                   style={{
                     marginBottom: "8px",
                     textAlign:
@@ -474,9 +564,11 @@ export default function PartyPage() {
               <input
                 value={msgInput}
                 onChange={(e) => setMsgInput(e.target.value)}
-                onKeyDown={(e) =>
-                  e.key === "Enter" && (sendMessage(msgInput), setMsgInput(""))
-                }
+                onKeyDown={(e) => {
+                  if (e.key !== "Enter") return;
+                  sendMessage(msgInput);
+                  setMsgInput("");
+                }}
                 placeholder="Enviar mensagem..."
                 style={{
                   width: "100%",
@@ -533,10 +625,10 @@ export default function PartyPage() {
               gap: "8px",
               fontSize: "24px",
               color: "white",
-              textShadow: `0 0 15px ${getStatusColor()}80`,
+              textShadow: `0 0 15px ${getStatusColor(connectionStatus)}80`,
             }}
           >
-            <UsersThree color={getStatusColor()} weight="fill" /> Hydra Party
+            <UsersThreeIcon color={getStatusColor(connectionStatus)} weight="fill" /> Hydra Party
           </h1>
           <div
             style={{
@@ -545,15 +637,15 @@ export default function PartyPage() {
               gap: "6px",
               fontSize: "11px",
               marginTop: "6px",
-              color: getStatusColor(),
-              border: `1px solid ${getStatusColor()}`,
+              color: getStatusColor(connectionStatus),
+              border: `1px solid ${getStatusColor(connectionStatus)}`,
               padding: "4px 10px",
               borderRadius: "12px",
               background: "rgba(0,0,0,0.4)",
-              boxShadow: `0 0 10px ${getStatusColor()}30`,
+              boxShadow: `0 0 10px ${getStatusColor(connectionStatus)}30`,
             }}
           >
-            {getStatusIcon()}{" "}
+            {getStatusIcon(connectionStatus)}{" "}
             <span
               style={{
                 fontWeight: 600,
@@ -566,32 +658,10 @@ export default function PartyPage() {
           </div>
         </div>
         <div style={{ display: "flex", gap: "10px", alignItems: "center" }}>
-          <button
+          <MicTestButton
+            isActive={isMicTestActive}
             onClick={handleTestMic}
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: "6px",
-              padding: "8px 12px",
-              background: isMicTestActive
-                ? "#ff9800"
-                : "rgba(255,255,255,0.08)",
-              border: "1px solid rgba(255,255,255,0.1)",
-              color: "white",
-              borderRadius: "6px",
-              cursor: "pointer",
-              transition: "0.2s",
-              fontSize: "12px",
-            }}
-          >
-            {isMicTestActive ? (
-              <SpeakerHigh size={16} />
-            ) : (
-              <SpeakerSlash size={16} />
-            )}{" "}
-            {isMicTestActive ? "Parar" : "Testar Mic"}
-          </button>
-          <audio ref={micTestRef} autoPlay muted={false} />
+          />
           <button
             onClick={() => setView("create")}
             style={{
@@ -609,7 +679,7 @@ export default function PartyPage() {
               fontWeight: 600,
             }}
           >
-            <Plus size={16} weight="bold" /> Criar Sala
+            <PlusIcon size={16} weight="bold" /> Criar Sala
           </button>
           <button
             onClick={() => setView("join")}
@@ -688,7 +758,7 @@ export default function PartyPage() {
                 marginBottom: "20px",
               }}
             >
-              <Lock size={24} color="#aaa" />
+              <LockIcon size={24} color="#aaa" />
               <input
                 value={roomPassword}
                 onChange={(e) => setRoomPassword(e.target.value)}
@@ -770,7 +840,7 @@ export default function PartyPage() {
                 marginBottom: "20px",
               }}
             >
-              <LockKey size={24} color="#aaa" />
+              <LockKeyIcon size={24} color="#aaa" />
               <input
                 value={inputPassword}
                 onChange={(e) => setInputPassword(e.target.value)}
@@ -833,7 +903,7 @@ export default function PartyPage() {
                 marginBottom: "20px",
               }}
             >
-              <UsersThree size={32} color="#00FF00" />
+              <UsersThreeIcon size={32} color="#00FF00" />
               <h3 style={{ margin: 0, fontSize: "22px" }}>Salas Públicas</h3>
             </div>
 
@@ -856,7 +926,7 @@ export default function PartyPage() {
                     color: "#888",
                   }}
                 >
-                  <GameController
+                  <GameControllerIcon
                     size={40}
                     style={{ opacity: 0.3, marginBottom: "10px" }}
                   />
@@ -891,7 +961,7 @@ export default function PartyPage() {
                     >
                       {lobby.room_name}{" "}
                       {lobby.is_private && (
-                        <LockKey size={14} color="#ff9800" />
+                        <LockKeyIcon size={14} color="#ff9800" />
                       )}
                     </span>
                     <span style={{ fontSize: "11px", color: "#888" }}>
