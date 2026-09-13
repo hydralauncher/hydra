@@ -247,6 +247,7 @@
     "platforms": "Plateformes"
   },
   "game_details": {
+    "similar_games": "Jeux similaires",
     "open_download_options": "Ouvrir les options de téléchargement",
     "download_options_zero": "Aucune option de téléchargement",
     "download_options_one": "{{count}} option de téléchargement",
