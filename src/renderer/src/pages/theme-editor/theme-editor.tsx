@@ -242,7 +242,7 @@ export default function ThemeEditor() {
     };
   }, [themeId, mode, previewEnabled]);
 
-  const visualCss = useMemo(() => generateVisualCss(document), [document]);
+  const _visualCss = useMemo(() => generateVisualCss(document), [document]);
 
   const updatePreview = useCallback(
     (nextDocument: EditorDocument, nextBaseCode = baseCode) => {
@@ -387,9 +387,9 @@ export default function ThemeEditor() {
     setCategory(item.category);
     setPreviewSelection(id);
   };
-  const previewTarget = (selectors: string[]) =>
+  const _previewTarget = (selectors: string[]) =>
     findTargetBySelector(selectors, document.discoveredTargets ?? []);
-  const selectedPreviewStyle = (id?: string): React.CSSProperties => ({
+  const _selectedPreviewStyle = (id?: string): React.CSSProperties => ({
     outline: id && previewSelection === id ? "2px solid #4cc2ff" : undefined,
     outlineOffset: id && previewSelection === id ? "2px" : undefined,
     position: "relative",
@@ -478,7 +478,7 @@ export default function ThemeEditor() {
     const unknown = result.unknownSelectors.length;
     setCssImportMessage(
       `${result.recognizedRules} regras · ${result.recognizedDeclarations} propriedades convertidas para a engine` +
-        (unknown ? ` · ${unknown} seletores mantidos como CSS bruto` : "")
+      (unknown ? ` · ${unknown} seletores mantidos como CSS bruto` : "")
     );
     setMode("visual");
 
@@ -1215,11 +1215,11 @@ export default function ThemeEditor() {
                       )}
                       {Object.keys(currentStyle.customProperties ?? {})
                         .length === 0 && (
-                        <small>
-                          Nenhuma propriedade adicional detectada neste
-                          elemento.
-                        </small>
-                      )}
+                          <small>
+                            Nenhuma propriedade adicional detectada neste
+                            elemento.
+                          </small>
+                        )}
                     </div>
                   </div>
                   <div className="inspector-section">

@@ -135,9 +135,9 @@ export const PartyProvider = ({ children }: { children: React.ReactNode }) => {
     _name: string,
     _hId: string,
     _hasPassword: boolean
-  ) => { };
-  const removeLobby = async (_hId: string) => { };
-  const sendInvite = async (_friendId: string, _myName: string) => { };
+  ) => {};
+  const removeLobby = async (_hId: string) => {};
+  const sendInvite = async (_friendId: string, _myName: string) => {};
 
   const handleIncomingCall = (call: MediaConnection) => {
     // Só atende se o chamador estiver na nossa lista de jogadores (evita chamadas anônimas)
