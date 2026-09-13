@@ -35,25 +35,25 @@ interface ChatMessage {
 
 type PartyMessage =
   | {
-    type: "MY_INFO";
-    name: string;
-    password: string;
-  }
+      type: "MY_INFO";
+      name: string;
+      password: string;
+    }
   | {
-    type: "ERROR";
-    message: string;
-  }
+      type: "ERROR";
+      message: string;
+    }
   | {
-    type: "UPDATE_PLAYERS";
-    payload: {
-      list: Player[];
-      roomName: string;
+      type: "UPDATE_PLAYERS";
+      payload: {
+        list: Player[];
+        roomName: string;
+      };
+    }
+  | {
+      type: "CHAT";
+      payload: ChatMessage;
     };
-  }
-  | {
-    type: "CHAT";
-    payload: ChatMessage;
-  };
 
 interface PartyContextType {
   myId: string;
@@ -64,11 +64,7 @@ interface PartyContextType {
   myStream: MediaStream | null;
   globalLobbies: LobbyInfo[];
   createParty: (name: string, password?: string) => Promise<void>;
-  joinParty: (
-    hostId: string,
-    name: string,
-    password?: string
-  ) => Promise<void>;
+  joinParty: (hostId: string, name: string, password?: string) => Promise<void>;
   leaveParty: () => void;
   sendMessage: (msg: string) => void;
   sendInvite: (friendId: string, myName: string) => Promise<void>;
@@ -107,8 +103,7 @@ const isPartyMessage = (value: unknown): value is PartyMessage => {
   switch (value.type) {
     case "MY_INFO":
       return (
-        typeof value.name === "string" &&
-        typeof value.password === "string"
+        typeof value.name === "string" && typeof value.password === "string"
       );
 
     case "ERROR":
@@ -143,11 +138,7 @@ const createMicrophoneStream = (): Promise<MediaStream> =>
     },
   });
 
-export const PartyProvider = ({
-  children,
-}: {
-  children: React.ReactNode;
-}) => {
+export const PartyProvider = ({ children }: { children: React.ReactNode }) => {
   const [myId, setMyId] = useState("");
   const [hostId, setHostId] = useState("");
   const [roomName, setRoomName] = useState(DEFAULT_ROOM_NAME);
@@ -199,9 +190,7 @@ export const PartyProvider = ({
   const addIncomingStream = useCallback((stream: MediaStream) => {
     setIncomingStreams((currentStreams) => {
       if (
-        currentStreams.some(
-          (currentStream) => currentStream.id === stream.id
-        )
+        currentStreams.some((currentStream) => currentStream.id === stream.id)
       ) {
         return currentStreams;
       }
@@ -240,17 +229,11 @@ export const PartyProvider = ({
   }, []);
 
   const isCurrentHost = useCallback(() => {
-    return (
-      myIdRef.current !== "" &&
-      myIdRef.current === hostIdRef.current
-    );
+    return myIdRef.current !== "" && myIdRef.current === hostIdRef.current;
   }, []);
 
   const broadcastData = useCallback(
-    (
-      data: PartyMessage,
-      connections: Record<string, DataConnection>
-    ) => {
+    (data: PartyMessage, connections: Record<string, DataConnection>) => {
       Object.values(connections).forEach((connection) => {
         if (connection.open) {
           connection.send(data);
@@ -265,11 +248,8 @@ export const PartyProvider = ({
   }, []);
 
   const publishLobby = useCallback(
-    (
-      _name: string,
-      _hostId: string,
-      _hasPassword: boolean
-    ): Promise<void> => Promise.resolve(),
+    (_name: string, _hostId: string, _hasPassword: boolean): Promise<void> =>
+      Promise.resolve(),
     []
   );
 
@@ -279,8 +259,7 @@ export const PartyProvider = ({
   );
 
   const sendInvite = useCallback(
-    (_friendId: string, _myName: string): Promise<void> =>
-      Promise.resolve(),
+    (_friendId: string, _myName: string): Promise<void> => Promise.resolve(),
     []
   );
 
@@ -355,10 +334,7 @@ export const PartyProvider = ({
   );
 
   const handleChatMessage = useCallback(
-    (
-      connection: DataConnection,
-      message: ChatMessage
-    ) => {
+    (connection: DataConnection, message: ChatMessage) => {
       const safeMessage = sanitizeText(message.message);
       const safeSender = sanitizeText(message.sender);
 
@@ -393,20 +369,14 @@ export const PartyProvider = ({
   );
 
   const handlePartyMessage = useCallback(
-    (
-      connection: DataConnection,
-      message: PartyMessage
-    ) => {
+    (connection: DataConnection, message: PartyMessage) => {
       switch (message.type) {
         case "MY_INFO": {
           if (!isCurrentHost()) {
             return;
           }
 
-          if (
-            passwordRef.current &&
-            message.password !== passwordRef.current
-          ) {
+          if (passwordRef.current && message.password !== passwordRef.current) {
             connection.send({
               type: "ERROR",
               message: "Senha Incorreta",
@@ -456,10 +426,7 @@ export const PartyProvider = ({
           const currentPeer = peerRef.current;
 
           if (stream && currentPeer) {
-            const call = currentPeer.call(
-              connection.peer,
-              stream
-            );
+            const call = currentPeer.call(connection.peer, stream);
 
             activeCallsRef.current.push(call);
 
@@ -484,15 +451,12 @@ export const PartyProvider = ({
           updatePlayers(nextPlayers);
 
           updateRoomName(
-            sanitizeText(message.payload.roomName) ||
-            DEFAULT_ROOM_NAME
+            sanitizeText(message.payload.roomName) || DEFAULT_ROOM_NAME
           );
 
           setRoomError(null);
 
-          const currentHost = nextPlayers.find(
-            (player) => player.isHost
-          );
+          const currentHost = nextPlayers.find((player) => player.isHost);
 
           updateHostId(currentHost?.id ?? "");
 
@@ -526,10 +490,7 @@ export const PartyProvider = ({
         try {
           handlePartyMessage(connection, raw);
         } catch (error: unknown) {
-          console.error(
-            "Erro ao processar dados da Party:",
-            error
-          );
+          console.error("Erro ao processar dados da Party:", error);
         }
       });
 
@@ -558,12 +519,7 @@ export const PartyProvider = ({
         );
       });
     },
-    [
-      broadcastData,
-      handlePartyMessage,
-      isCurrentHost,
-      updatePlayers,
-    ]
+    [broadcastData, handlePartyMessage, isCurrentHost, updatePlayers]
   );
 
   const connectVoiceCall = useCallback(
@@ -574,10 +530,7 @@ export const PartyProvider = ({
         return;
       }
 
-      const call = currentPeer.call(
-        targetPeerId,
-        stream
-      );
+      const call = currentPeer.call(targetPeerId, stream);
 
       activeCallsRef.current.push(call);
 
@@ -587,18 +540,14 @@ export const PartyProvider = ({
   );
 
   const createParty = useCallback(
-    async (
-      name: string,
-      password?: string
-    ): Promise<void> => {
+    async (name: string, password?: string): Promise<void> => {
       if (!myIdRef.current) {
         return;
       }
 
       const stream = await getMic();
 
-      const safeName =
-        sanitizeText(name) || DEFAULT_ROOM_NAME;
+      const safeName = sanitizeText(name) || DEFAULT_ROOM_NAME;
 
       const safePassword = password?.trim() ?? "";
 
@@ -615,23 +564,13 @@ export const PartyProvider = ({
         },
       ]);
 
-      await publishLobby(
-        safeName,
-        myIdRef.current,
-        Boolean(safePassword)
-      );
+      await publishLobby(safeName, myIdRef.current, Boolean(safePassword));
 
       if (stream) {
         myStreamRef.current = stream;
       }
     },
-    [
-      getMic,
-      publishLobby,
-      updateHostId,
-      updatePlayers,
-      updateRoomName,
-    ]
+    [getMic, publishLobby, updateHostId, updatePlayers, updateRoomName]
   );
 
   const joinParty = useCallback(
@@ -649,8 +588,7 @@ export const PartyProvider = ({
 
       setRoomError(null);
 
-      myNameRef.current =
-        sanitizeText(myName) || DEFAULT_PLAYER_NAME;
+      myNameRef.current = sanitizeText(myName) || DEFAULT_PLAYER_NAME;
 
       const stream = await getMic();
 
@@ -707,15 +645,11 @@ export const PartyProvider = ({
       }
 
       const payload: ChatMessage = {
-        sender:
-          sanitizeText(myNameRef.current) || "Eu",
+        sender: sanitizeText(myNameRef.current) || "Eu",
         message: safeMessage,
       };
 
-      setChat((currentChat) => [
-        ...currentChat,
-        payload,
-      ]);
+      setChat((currentChat) => [...currentChat, payload]);
 
       if (isCurrentHost()) {
         broadcastData(
@@ -742,8 +676,7 @@ export const PartyProvider = ({
   );
 
   const toggleMic = useCallback(() => {
-    const audioTrack =
-      myStreamRef.current?.getAudioTracks()[0];
+    const audioTrack = myStreamRef.current?.getAudioTracks()[0];
 
     if (!audioTrack) {
       return;
@@ -801,12 +734,7 @@ export const PartyProvider = ({
 
       peerRef.current = null;
     };
-  }, [
-    fetchLobbies,
-    handleDataConnection,
-    handleIncomingCall,
-    updateMyId,
-  ]);
+  }, [fetchLobbies, handleDataConnection, handleIncomingCall, updateMyId]);
 
   useEffect(() => {
     hostIdRef.current = hostId;
@@ -841,8 +769,7 @@ export const PartyProvider = ({
       toggleMic,
       getMic,
       isMuted,
-      isHost:
-        myId !== "" && myId === hostId,
+      isHost: myId !== "" && myId === hostId,
       roomName,
       connectionStatus,
       roomError,
@@ -880,9 +807,7 @@ export const useParty = (): PartyContextType => {
   const context = useContext(PartyContext);
 
   if (!context) {
-    throw new Error(
-      "useParty must be used inside a PartyProvider"
-    );
+    throw new Error("useParty must be used inside a PartyProvider");
   }
 
   return context;

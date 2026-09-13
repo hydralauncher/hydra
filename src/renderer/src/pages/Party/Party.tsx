@@ -125,7 +125,6 @@ const MicTestButton = ({ isActive, onClick }: MicTestButtonProps) => (
   </button>
 );
 
-
 const glassCardStyle: CSSProperties = {
   width: "100%",
   maxWidth: "600px",
