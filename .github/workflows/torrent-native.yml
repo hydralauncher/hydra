@@ -1,0 +1,35 @@
+name: Native torrent tests
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+jobs:
+  native:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-2022, ubuntu-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22.21.0
+          cache: yarn
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Install Linux build tools
+        if: runner.os == 'Linux'
+        run: sudo apt-get update && sudo apt-get install -y build-essential cmake ninja-build pkg-config curl zip unzip tar autoconf automake libtool
+      - name: Install and build native addon
+        run: yarn --frozen-lockfile
+      - name: Adapter lifecycle tests
+        run: node --import ./scripts/register-ts-node.mjs --test src/main/services/torrent-client.test.ts
+      - name: Build an unpacked application
+        run: yarn build:unpack --publish never
+      - name: Check native bridge memory ownership
+        if: runner.os == 'Linux'
+        env:
+          HYDRA_TORRENT_SANITIZE: "1"
+        run: node scripts/build-torrent-bridge.cjs

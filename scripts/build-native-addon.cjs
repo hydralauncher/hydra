@@ -2,6 +2,7 @@ const fs = require("node:fs");
 const path = require("node:path");
 const util = require("node:util");
 const childProcess = require("node:child_process");
+const { buildTorrentBridge } = require("./build-torrent-bridge.cjs");
 
 const execFile = util.promisify(childProcess.execFile);
 
@@ -50,25 +51,40 @@ const ensureDepsResolvableOnLinux = async () => {
   }
 };
 
-const copySidecarLibrariesOnWindows = async (sourceDirectory) => {
+const copySidecarLibrariesOnWindows = async () => {
   if (process.platform !== "win32") return;
 
-  const candidateDlls = [
-    "libgcc_s_seh-1.dll",
-    "libstdc++-6.dll",
-    "libwinpthread-1.dll",
-    "vcruntime140.dll",
-    "vcruntime140_1.dll",
-    "msvcp140.dll",
-  ];
-
-  for (const dll of candidateDlls) {
-    const sourcePath = path.join(sourceDirectory, dll);
-    if (!fs.existsSync(sourcePath)) continue;
-    const targetPath = path.join(outputDir, dll);
-    if (!fs.existsSync(targetPath)) {
-      fs.copyFileSync(sourcePath, targetPath);
-    }
+  const vswhere = path.join(
+    process.env["ProgramFiles(x86)"] || "C:\\Program Files (x86)",
+    "Microsoft Visual Studio",
+    "Installer",
+    "vswhere.exe"
+  );
+  const { stdout } = await execFile(
+    vswhere,
+    [
+      "-latest",
+      "-products",
+      "*",
+      "-requires",
+      "Microsoft.VisualStudio.Component.VC.Tools.x86.x64",
+      "-find",
+      `VC/Redist/MSVC/*/${process.arch}/Microsoft.VC*.CRT/*.dll`,
+    ],
+    { windowsHide: true }
+  );
+  const redist = stdout.trim().split(/\r?\n/).filter(Boolean);
+  if (
+    !redist.some(
+      (file) => path.basename(file).toLowerCase() === "vcruntime140.dll"
+    )
+  ) {
+    throw new Error(
+      "Visual C++ redistributable DLLs were not found in Build Tools; repair the C++ workload before packaging."
+    );
+  }
+  for (const file of redist) {
+    fs.copyFileSync(file, path.join(outputDir, path.basename(file)));
   }
 };
 
@@ -81,21 +97,36 @@ const build = async () => {
     );
   }
 
+  const target =
+    process.platform === "win32"
+      ? { x64: "x86_64-pc-windows-msvc", arm64: "aarch64-pc-windows-msvc" }[
+          process.arch
+        ]
+      : undefined;
+  if (process.platform === "win32" && !target) {
+    throw new Error(`Unsupported Windows architecture: ${process.arch}`);
+  }
+
   console.log("Building hydra-native Rust addon...");
+  const torrentLibraryDir = buildTorrentBridge();
 
   const cargoArgs = [
     "build",
     "--release",
+    ...(target ? ["--target", target] : []),
     "--manifest-path",
     manifestPath,
     "--target-dir",
     cargoTargetDir,
   ];
 
-  await run("cargo", cargoArgs);
+  await run("cargo", cargoArgs, {
+    env: { ...process.env, HYDRA_TORRENT_LIB_DIR: torrentLibraryDir },
+  });
 
   const sourceLibraryPath = path.join(
     cargoTargetDir,
+    ...(target ? [target] : []),
     "release",
     sourceLibraryName
   );
@@ -107,8 +138,24 @@ const build = async () => {
   fs.mkdirSync(outputDir, { recursive: true });
   fs.copyFileSync(sourceLibraryPath, outputNodePath);
 
-  await copySidecarLibrariesOnWindows(path.dirname(sourceLibraryPath));
+  await copySidecarLibrariesOnWindows();
   await ensureDepsResolvableOnLinux();
+
+  // Verify with the actual application runtime, not a potentially incompatible
+  // system Node.js. Fail installation before the user opens the download UI.
+  await run(
+    require("electron"),
+    [
+      "-e",
+      "try { require(process.argv[1]); } catch (error) { console.error('Electron cannot load the native addon:', error.message); process.exit(1); }",
+      outputNodePath,
+    ],
+    {
+      env: { ...process.env, ELECTRON_RUN_AS_NODE: "1" },
+      timeout: 30000,
+      windowsHide: true,
+    }
+  );
 
   console.log(`Hydra native addon ready at ${outputNodePath}`);
 };
