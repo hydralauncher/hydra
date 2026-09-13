@@ -1,0 +1,22 @@
+version = 1
+name = "Hydra"
+
+[setup]
+script = '''
+git_dir=$(git rev-parse --path-format=absolute --git-common-dir) || exit 1
+source_env="$(dirname "$git_dir")/.env"
+if [ ! -e .env ] && [ -f "$source_env" ]; then
+  cp -n "$source_env" .env
+fi
+'''
+
+[setup.win32]
+script = '''
+$ErrorActionPreference = 'Stop'
+$gitDir = git rev-parse --path-format=absolute --git-common-dir
+if ($LASTEXITCODE -ne 0) { throw 'Could not locate the main Git checkout.' }
+$sourceEnv = Join-Path (Split-Path -Parent $gitDir) '.env'
+if (!(Test-Path -LiteralPath '.env') -and (Test-Path -LiteralPath $sourceEnv -PathType Leaf)) {
+  [System.IO.File]::Copy($sourceEnv, (Join-Path (Get-Location).Path '.env'), $false)
+}
+'''
