@@ -65,7 +65,8 @@ export class WindowManager {
   }
 
   private static readonly editorWindows: Map<string, BrowserWindow> = new Map();
-  private static readonly themePreviewViews: Map<string, WebContentsView> = new Map();
+  private static readonly themePreviewViews: Map<string, WebContentsView> =
+    new Map();
 
   public static get mainWindow(): Electron.BrowserWindow | null {
     return this.mainWindowInstance;
@@ -121,7 +122,9 @@ export class WindowManager {
 
   private static async loadWindowURLForView(view: WebContentsView) {
     if (is.dev && process.env["ELECTRON_RENDERER_URL"]) {
-      await view.webContents.loadURL(`${process.env["ELECTRON_RENDERER_URL"]}#/`);
+      await view.webContents.loadURL(
+        `${process.env["ELECTRON_RENDERER_URL"]}#/`
+      );
     } else if (import.meta.env.MAIN_VITE_LAUNCHER_SUBDOMAIN) {
       try {
         await view.webContents.loadURL(
@@ -812,7 +815,10 @@ export class WindowManager {
       if (view.webContents.id !== webContentsId) continue;
       const editorWindow = this.editorWindows.get(themeId);
       if (editorWindow && !editorWindow.isDestroyed()) {
-        editorWindow.webContents.send("on-theme-preview-element-clicked", selectors);
+        editorWindow.webContents.send(
+          "on-theme-preview-element-clicked",
+          selectors
+        );
       }
       return;
     }
@@ -824,8 +830,15 @@ export class WindowManager {
   ) {
     const view = this.themePreviewViews.get(themeId);
     const editorWindow = this.editorWindows.get(themeId);
-    if (!view || view.webContents.isDestroyed() || !editorWindow || editorWindow.isDestroyed()) return;
-    const { width: windowWidth, height: windowHeight } = editorWindow.getContentBounds();
+    if (
+      !view ||
+      view.webContents.isDestroyed() ||
+      !editorWindow ||
+      editorWindow.isDestroyed()
+    )
+      return;
+    const { width: windowWidth, height: windowHeight } =
+      editorWindow.getContentBounds();
 
     // width/height <= 0 é o sinal do renderer de que o Hydra real
     // NÃO deve aparecer. Isso acontece em Código CSS e Assets.
@@ -869,7 +882,10 @@ export class WindowManager {
     })()`);
   }
 
-  private static installThemePreviewClickBridge(themeId: string, view: WebContentsView) {
+  private static installThemePreviewClickBridge(
+    themeId: string,
+    view: WebContentsView
+  ) {
     view.webContents.executeJavaScript(`(() => {
       // Reinstala o bridge depois de cada navegação, mas nunca instala duas
       // cópias na mesma página.
@@ -1139,7 +1155,8 @@ export class WindowManager {
       editorWindow.on("close", () => {
         this.mainWindow?.webContents.closeDevTools();
         editorWindow.removeListener("resize", layoutPreview);
-        if (!previewView.webContents.isDestroyed()) previewView.webContents.close();
+        if (!previewView.webContents.isDestroyed())
+          previewView.webContents.close();
         this.themePreviewViews.delete(themeId);
         this.editorWindows.delete(themeId);
       });

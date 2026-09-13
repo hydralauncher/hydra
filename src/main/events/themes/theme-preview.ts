@@ -11,7 +11,10 @@ const reportThemePreviewElementClicked = async (
   );
 };
 
-registerEvent("reportThemePreviewElementClicked", reportThemePreviewElementClicked);
+registerEvent(
+  "reportThemePreviewElementClicked",
+  reportThemePreviewElementClicked
+);
 
 const updateThemePreviewCss = async (
   _event: Electron.IpcMainInvokeEvent,
@@ -32,4 +35,3 @@ const updateThemePreviewBounds = async (
   WindowManager.updateThemePreviewBounds(themeId, bounds);
 };
 registerEvent("updateThemePreviewBounds", updateThemePreviewBounds);
-

@@ -1,22 +1,52 @@
-import React, { createContext, useContext, useEffect, useState, useRef } from "react";
+import React, {
+  createContext,
+  useContext,
+  useEffect,
+  useState,
+  useRef,
+} from "react";
 import Peer, { DataConnection, MediaConnection } from "peerjs";
 
 const MAX_TEXT_LENGTH = 200;
 const ERROR_CLOSE_DELAY_MS = 500;
 
-export interface Player { id: string; isHost: boolean; name: string; }
-export interface LobbyInfo { id: number; room_name: string; host_id: string; is_private: boolean; created_at: string; }
-interface ChatMessage { sender: string; message: string; }
+export interface Player {
+  id: string;
+  isHost: boolean;
+  name: string;
+}
+export interface LobbyInfo {
+  id: number;
+  room_name: string;
+  host_id: string;
+  is_private: boolean;
+  created_at: string;
+}
+interface ChatMessage {
+  sender: string;
+  message: string;
+}
 
 interface PartyContextType {
-  myId: string; hostId: string; players: Player[]; chat: ChatMessage[];
-  incomingStreams: MediaStream[]; myStream: MediaStream | null; globalLobbies: LobbyInfo[];
+  myId: string;
+  hostId: string;
+  players: Player[];
+  chat: ChatMessage[];
+  incomingStreams: MediaStream[];
+  myStream: MediaStream | null;
+  globalLobbies: LobbyInfo[];
   createParty: (name: string, password?: string) => void;
   joinParty: (hostId: string, name: string, password?: string) => void;
-  leaveParty: () => void; sendMessage: (msg: string) => void;
+  leaveParty: () => void;
+  sendMessage: (msg: string) => void;
   sendInvite: (friendId: string, myName: string) => Promise<void>;
-  toggleMic: () => void; getMic: () => Promise<MediaStream | null>;
-  isMuted: boolean; isHost: boolean; roomName: string; connectionStatus: string; roomError: string | null;
+  toggleMic: () => void;
+  getMic: () => Promise<MediaStream | null>;
+  isMuted: boolean;
+  isHost: boolean;
+  roomName: string;
+  connectionStatus: string;
+  roomError: string | null;
 }
 
 const PartyContext = createContext<PartyContextType>({} as PartyContextType);
@@ -44,21 +74,33 @@ export const PartyProvider = ({ children }: { children: React.ReactNode }) => {
   const isHostRef = useRef<boolean>(false);
   const roomNameRef = useRef<string>("Lobby");
 
-  useEffect(() => { isHostRef.current = myId !== "" && myId === hostId; }, [myId, hostId]);
-  useEffect(() => { roomNameRef.current = roomName; }, [roomName]);
-  useEffect(() => { playersRef.current = players; }, [players]);
+  useEffect(() => {
+    isHostRef.current = myId !== "" && myId === hostId;
+  }, [myId, hostId]);
+  useEffect(() => {
+    roomNameRef.current = roomName;
+  }, [roomName]);
+  useEffect(() => {
+    playersRef.current = players;
+  }, [players]);
 
   const sanitizeText = (text: string): string => {
     if (!text) return "";
     let clean = text.trim(); // Remove apenas espaços vazios nas pontas
-    if (clean.length > MAX_TEXT_LENGTH) clean = clean.substring(0, MAX_TEXT_LENGTH);
+    if (clean.length > MAX_TEXT_LENGTH)
+      clean = clean.substring(0, MAX_TEXT_LENGTH);
     return clean;
   };
 
   useEffect(() => {
     const newPeer = new Peer(undefined as unknown as string, {
       debug: 1,
-      config: { iceServers: [{ urls: "stun:stun.l.google.com:19302" }, { urls: "stun:global.stun.twilio.com:3478" }] },
+      config: {
+        iceServers: [
+          { urls: "stun:stun.l.google.com:19302" },
+          { urls: "stun:global.stun.twilio.com:3478" },
+        ],
+      },
     });
 
     newPeer.on("open", (id) => {
@@ -72,46 +114,76 @@ export const PartyProvider = ({ children }: { children: React.ReactNode }) => {
       newPeer.reconnect();
     });
 
-    newPeer.on("error", (err) => { setConnectionStatus(`Erro: ${err.type}`); });
+    newPeer.on("error", (err) => {
+      setConnectionStatus(`Erro: ${err.type}`);
+    });
     newPeer.on("connection", handleDataConnection);
     newPeer.on("call", handleIncomingCall);
 
     fetchLobbies();
-    return () => { newPeer.destroy(); };
+    return () => {
+      newPeer.destroy();
+    };
   }, []);
 
-  const fetchLobbies = async () => { setGlobalLobbies([]); };
-  const publishLobby = async (name: string, hId: string, hasPassword: boolean) => {};
+  const fetchLobbies = async () => {
+    setGlobalLobbies([]);
+  };
+  const publishLobby = async (
+    name: string,
+    hId: string,
+    hasPassword: boolean
+  ) => {};
   const removeLobby = async (hId: string) => {};
   const sendInvite = async (friendId: string, myName: string) => {};
 
   const handleIncomingCall = (call: MediaConnection) => {
     // Só atende se o chamador estiver na nossa lista de jogadores (evita chamadas anônimas)
-    const isPlayerInRoom = playersRef.current.some(p => p.id === call.peer);
+    const isPlayerInRoom = playersRef.current.some((p) => p.id === call.peer);
     if (!isPlayerInRoom && !isHostRef.current) {
-        call.close();
-        return;
+      call.close();
+      return;
     }
 
     activeCallsRef.current.push(call);
-    navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true } })
+    navigator.mediaDevices
+      .getUserMedia({
+        audio: {
+          echoCancellation: true,
+          noiseSuppression: true,
+          autoGainControl: true,
+        },
+      })
       .then((stream) => {
         call.answer(stream);
-        call.on("stream", (remoteStream: MediaStream) => addIncomingStream(remoteStream));
-      }).catch(() => call.answer());
+        call.on("stream", (remoteStream: MediaStream) =>
+          addIncomingStream(remoteStream)
+        );
+      })
+      .catch(() => call.answer());
   };
 
   const addIncomingStream = (stream: MediaStream) => {
-    setIncomingStreams((prev) => prev.find((s) => s.id === stream.id) ? prev : [...prev, stream]);
+    setIncomingStreams((prev) =>
+      prev.find((s) => s.id === stream.id) ? prev : [...prev, stream]
+    );
   };
 
   const getMic = async (): Promise<MediaStream | null> => {
     try {
       if (myStream) return myStream;
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true } });
+      const stream = await navigator.mediaDevices.getUserMedia({
+        audio: {
+          echoCancellation: true,
+          noiseSuppression: true,
+          autoGainControl: true,
+        },
+      });
       setMyStream(stream);
       return stream;
-    } catch (err) { return null; }
+    } catch (err) {
+      return null;
+    }
   };
 
   const toggleMic = () => {
@@ -145,12 +217,20 @@ export const PartyProvider = ({ children }: { children: React.ReactNode }) => {
             setPlayers(newList);
           }
           connectionsRef.current[conn.peer] = conn;
-          broadcastData({ type: "UPDATE_PLAYERS", payload: { list: newList, roomName: roomNameRef.current } }, connectionsRef.current);
-          
+          broadcastData(
+            {
+              type: "UPDATE_PLAYERS",
+              payload: { list: newList, roomName: roomNameRef.current },
+            },
+            connectionsRef.current
+          );
+
           if (myStream && peer) {
             const call = peer.call(conn.peer, myStream);
             activeCallsRef.current.push(call);
-            call.on("stream", (remoteStream) => addIncomingStream(remoteStream));
+            call.on("stream", (remoteStream) =>
+              addIncomingStream(remoteStream)
+            );
           }
         }
 
@@ -175,16 +255,21 @@ export const PartyProvider = ({ children }: { children: React.ReactNode }) => {
           if (safeMsg.trim().length > 0) {
             const newMsg = { sender: safeSender, message: safeMsg };
             setChat((prev) => [...prev, newMsg]);
-            
+
             // Retransmite a mensagem para os outros se eu for o Host
             if (isHostRef.current) {
               const otherConnections = { ...connectionsRef.current };
-              delete otherConnections[conn.peer]; 
-              broadcastData({ type: "CHAT", payload: newMsg }, otherConnections);
+              delete otherConnections[conn.peer];
+              broadcastData(
+                { type: "CHAT", payload: newMsg },
+                otherConnections
+              );
             }
           }
         }
-      } catch (error) { console.error("Erro dados:", error); }
+      } catch (error) {
+        console.error("Erro dados:", error);
+      }
     });
 
     conn.on("close", () => {
@@ -192,13 +277,24 @@ export const PartyProvider = ({ children }: { children: React.ReactNode }) => {
         const newList = playersRef.current.filter((p) => p.id !== conn.peer);
         setPlayers(newList);
         delete connectionsRef.current[conn.peer];
-        broadcastData({ type: "UPDATE_PLAYERS", payload: { list: newList, roomName: roomNameRef.current } }, connectionsRef.current);
+        broadcastData(
+          {
+            type: "UPDATE_PLAYERS",
+            payload: { list: newList, roomName: roomNameRef.current },
+          },
+          connectionsRef.current
+        );
       }
     });
   };
 
-  const broadcastData = (data: any, connections: { [key: string]: DataConnection }) => {
-    Object.values(connections).forEach((conn) => { if (conn.open) conn.send(data); });
+  const broadcastData = (
+    data: any,
+    connections: { [key: string]: DataConnection }
+  ) => {
+    Object.values(connections).forEach((conn) => {
+      if (conn.open) conn.send(data);
+    });
   };
 
   const createParty = async (name: string, password?: string) => {
@@ -212,7 +308,11 @@ export const PartyProvider = ({ children }: { children: React.ReactNode }) => {
     publishLobby(safeName, myId, !!password);
   };
 
-  const joinParty = async (targetHostId: string, myName: string, password?: string) => {
+  const joinParty = async (
+    targetHostId: string,
+    myName: string,
+    password?: string
+  ) => {
     if (!peer) return;
     setRoomError(null);
     myNameRef.current = sanitizeText(myName);
@@ -222,7 +322,11 @@ export const PartyProvider = ({ children }: { children: React.ReactNode }) => {
 
     conn.on("open", () => {
       setHostId(targetHostId);
-      conn.send({ type: "MY_INFO", name: myNameRef.current, password: password || "" });
+      conn.send({
+        type: "MY_INFO",
+        name: myNameRef.current,
+        password: password || "",
+      });
       if (stream) {
         const call = peer.call(targetHostId, stream);
         activeCallsRef.current.push(call);
@@ -232,21 +336,30 @@ export const PartyProvider = ({ children }: { children: React.ReactNode }) => {
 
     conn.on("error", () => setConnectionStatus("Erro ao conectar"));
     conn.on("close", () => setHostId(""));
-    conn.on("data", (raw: any) => { if (raw?.type === "ERROR") { setRoomError(raw.message); conn.close(); } });
+    conn.on("data", (raw: any) => {
+      if (raw?.type === "ERROR") {
+        setRoomError(raw.message);
+        conn.close();
+      }
+    });
   };
 
   const leaveParty = () => {
     if (myId === hostId) removeLobby(myId);
-    setPlayers([]); setChat([]); setIncomingStreams([]); setRoomError(null); passwordRef.current = "";
-    
+    setPlayers([]);
+    setChat([]);
+    setIncomingStreams([]);
+    setRoomError(null);
+    passwordRef.current = "";
+
     if (myStream) {
       myStream.getTracks().forEach((track) => track.stop());
       setMyStream(null);
     }
-    
-    activeCallsRef.current.forEach(call => call.close());
+
+    activeCallsRef.current.forEach((call) => call.close());
     activeCallsRef.current = [];
-    
+
     hostConnRef.current?.close();
     Object.values(connectionsRef.current).forEach((c) => c.close());
     connectionsRef.current = {};
@@ -258,12 +371,35 @@ export const PartyProvider = ({ children }: { children: React.ReactNode }) => {
     if (!safeMsg) return;
     const payload = { sender: myNameRef.current || "Eu", message: safeMsg };
     setChat((prev) => [...prev, payload]);
-    if (isHostRef.current) broadcastData({ type: "CHAT", payload }, connectionsRef.current);
+    if (isHostRef.current)
+      broadcastData({ type: "CHAT", payload }, connectionsRef.current);
     else hostConnRef.current?.send({ type: "CHAT", payload });
   };
 
   return (
-    <PartyContext.Provider value={{ myId, hostId, players, chat, incomingStreams, myStream, globalLobbies, createParty, joinParty, leaveParty, sendMessage, sendInvite, toggleMic, getMic, isMuted, isHost: myId === hostId, roomName, connectionStatus, roomError }}>
+    <PartyContext.Provider
+      value={{
+        myId,
+        hostId,
+        players,
+        chat,
+        incomingStreams,
+        myStream,
+        globalLobbies,
+        createParty,
+        joinParty,
+        leaveParty,
+        sendMessage,
+        sendInvite,
+        toggleMic,
+        getMic,
+        isMuted,
+        isHost: myId === hostId,
+        roomName,
+        connectionStatus,
+        roomError,
+      }}
+    >
       {children}
     </PartyContext.Provider>
   );

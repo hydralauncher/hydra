@@ -460,8 +460,8 @@ export function Sidebar() {
                     <span>
                       {deckyPluginInfo.installed && !deckyPluginInfo.outdated
                         ? t("decky_plugin_installed_version", {
-                          version: deckyPluginInfo.version,
-                        })
+                            version: deckyPluginInfo.version,
+                          })
                         : deckyPluginInfo.installed && deckyPluginInfo.outdated
                           ? t("update_decky_plugin")
                           : t("install_decky_plugin")}
