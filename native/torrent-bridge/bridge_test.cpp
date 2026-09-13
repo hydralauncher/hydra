@@ -3,11 +3,13 @@
 #include <cstdlib>
 #include <cstring>
 
+constexpr int OWNERSHIP_TEST_ITERATIONS = 10;
+
 static void require(bool ok) {
   if (!ok) { auto e = ht_error(); std::fprintf(stderr, "Bridge test failed: %s\n", e ? e : "unknown"); ht_string_free(e); std::exit(1); }
 }
 int main() {
-  for (int iteration = 0; iteration < 10; ++iteration) {
+  for (int iteration = 0; iteration < OWNERSHIP_TEST_ITERATIONS; ++iteration) {
     ht_session* session = nullptr;
     require(ht_session_new(0, &session) == 0);
     ht_params* params = nullptr;

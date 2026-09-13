@@ -39,14 +39,12 @@ export class TorrentClient {
   public async initialize(): Promise<void> {
     if (this.shutdownPromise !== null) await this.shutdownPromise;
     this.closing = false;
-    if (this.initialization === null) {
-      this.initialization = this.backend
-        .initialize(DEFAULT_TORRENT_PORT)
-        .catch((error) => {
-          this.initialization = null;
-          throw error;
-        });
-    }
+    this.initialization ??= this.backend
+      .initialize(DEFAULT_TORRENT_PORT)
+      .catch((error) => {
+        this.initialization = null;
+        throw error;
+      });
     await this.initialization;
   }
 

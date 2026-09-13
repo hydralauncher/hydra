@@ -5,6 +5,8 @@ const childProcess = require("node:child_process");
 const { buildTorrentBridge } = require("./build-torrent-bridge.cjs");
 
 const execFile = util.promisify(childProcess.execFile);
+const MAX_COMMAND_OUTPUT_BYTES = 10 * 1024 * 1024;
+const NATIVE_LOAD_TIMEOUT_MS = 30_000;
 
 const projectRoot = process.cwd();
 const manifestPath = path.join(
@@ -31,7 +33,7 @@ const sourceLibraryNameByPlatform = {
 const run = async (command, args, options = {}) => {
   await execFile(command, args, {
     cwd: projectRoot,
-    maxBuffer: 1024 * 1024 * 10,
+    maxBuffer: MAX_COMMAND_OUTPUT_BYTES,
     ...options,
   });
 };
@@ -41,7 +43,7 @@ const ensureDepsResolvableOnLinux = async () => {
 
   const { stdout } = await execFile("ldd", [outputNodePath], {
     cwd: projectRoot,
-    maxBuffer: 1024 * 1024 * 10,
+    maxBuffer: MAX_COMMAND_OUTPUT_BYTES,
   });
 
   if (stdout.includes("not found")) {
@@ -152,7 +154,7 @@ const build = async () => {
     ],
     {
       env: { ...process.env, ELECTRON_RUN_AS_NODE: "1" },
-      timeout: 30000,
+      timeout: NATIVE_LOAD_TIMEOUT_MS,
       windowsHide: true,
     }
   );
