@@ -50,7 +50,7 @@ export const PartyProvider = ({ children }: { children: React.ReactNode }) => {
 
   const sanitizeText = (text: string): string => {
     if (!text) return "";
-    let clean = text.replace(/<\/?[^>]+(>|$)/g, "");
+    let clean = text.trim(); // Remove apenas espaços vazios nas pontas
     if (clean.length > MAX_TEXT_LENGTH) clean = clean.substring(0, MAX_TEXT_LENGTH);
     return clean;
   };
