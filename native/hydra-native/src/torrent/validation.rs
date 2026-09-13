@@ -2,6 +2,13 @@ use super::ffi::Result;
 use serde_json::Value;
 use std::collections::HashSet;
 
+const DEFAULT_METADATA_TIMEOUT_MS: i64 = 30_000;
+const MIN_METADATA_TIMEOUT_MS: i64 = 5_000;
+const MAX_METADATA_TIMEOUT_MS: i64 = 120_000;
+const MAX_MAGNET_LENGTH: usize = 8192;
+const HEX_INFO_HASH_LENGTH: usize = 40;
+const BASE32_INFO_HASH_LENGTH: usize = 32;
+
 pub fn additional_trackers(
     existing: &[(String, i32)],
     custom: &[String],
@@ -72,11 +79,13 @@ pub fn integer(v: &Value) -> Option<i64> {
         .or_else(|| v.as_str().and_then(|s| s.trim().parse().ok()))
 }
 pub fn timeout(v: &Value) -> u64 {
-    integer(v).unwrap_or(30_000).clamp(5_000, 120_000) as u64
+    integer(v)
+        .unwrap_or(DEFAULT_METADATA_TIMEOUT_MS)
+        .clamp(MIN_METADATA_TIMEOUT_MS, MAX_METADATA_TIMEOUT_MS) as u64
 }
 pub fn magnet(value: &Value) -> Result<(String, String)> {
     let s = value.as_str().ok_or("invalid_magnet")?.trim();
-    if !s.starts_with("magnet:") || s.chars().count() > 8192 {
+    if !s.starts_with("magnet:") || s.chars().count() > MAX_MAGNET_LENGTH {
         return Err("invalid_magnet".into());
     }
     let parsed = reqwest::Url::parse(s).map_err(|_| "invalid_magnet")?;
@@ -86,8 +95,8 @@ pub fn magnet(value: &Value) -> Result<(String, String)> {
         }
         if let Some(hash) = value.strip_prefix("urn:btih:") {
             let hash = hash.trim();
-            if (hash.len() == 40 && hash.bytes().all(|b| b.is_ascii_hexdigit()))
-                || (hash.len() == 32
+            if (hash.len() == HEX_INFO_HASH_LENGTH && hash.bytes().all(|b| b.is_ascii_hexdigit()))
+                || (hash.len() == BASE32_INFO_HASH_LENGTH
                     && hash
                         .bytes()
                         .all(|b| b.is_ascii_alphabetic() || (b'2'..=b'7').contains(&b)))

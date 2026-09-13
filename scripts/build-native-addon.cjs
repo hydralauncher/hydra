@@ -55,7 +55,7 @@ const copySidecarLibrariesOnWindows = async () => {
   if (process.platform !== "win32") return;
 
   const vswhere = path.join(
-    process.env["ProgramFiles(x86)"] || "C:\\Program Files (x86)",
+    process.env["ProgramFiles(x86)"] || String.raw`C:\Program Files (x86)`,
     "Microsoft Visual Studio",
     "Installer",
     "vswhere.exe"

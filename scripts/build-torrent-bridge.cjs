@@ -30,9 +30,9 @@ function resolveCmakeTools(vcpkgExecutable) {
     windowsHide: true,
   });
   if (result.error || result.status !== 0) {
-    throw new Error(
-      `Unable to obtain CMake through vcpkg: ${result.error?.message || result.stdout?.trim() || `exit ${result.status}`}`
-    );
+    const reason =
+      result.error?.message || result.stdout?.trim() || `exit ${result.status}`;
+    throw new Error(`Unable to obtain CMake through vcpkg: ${reason}`);
   }
   const cmake = result.stdout.trim().split(/\r?\n/).at(-1);
   const ctest = path.join(
@@ -52,23 +52,43 @@ function resolveCmakeTools(vcpkgExecutable) {
   return { cmake, ctest };
 }
 
-function buildTorrentBridge() {
-  // Never use an unpinned system libtorrent. Cache the package manager itself
-  // at the manifest baseline, which also locks Boost, OpenSSL and WebRTC.
-  const cache =
-    process.env.HYDRA_NATIVE_CACHE ||
-    path.join(os.homedir(), ".cache", "hydra");
+function resolveGitExecutable() {
+  const configured = process.env.HYDRA_GIT_EXECUTABLE;
+  const candidates =
+    process.platform === "win32"
+      ? [
+          path.join(
+            process.env.ProgramFiles || String.raw`C:\Program Files`,
+            "Git",
+            "cmd",
+            "git.exe"
+          ),
+        ]
+      : ["/usr/bin/git", "/usr/local/bin/git", "/opt/homebrew/bin/git"];
+  const executable = (configured ? [configured] : candidates).find(
+    (candidate) => path.isAbsolute(candidate) && fs.existsSync(candidate)
+  );
+  if (!executable) {
+    throw new Error(
+      "Git was not found in a standard installation directory. Set HYDRA_GIT_EXECUTABLE to its absolute executable path."
+    );
+  }
+  return executable;
+}
+
+function ensureVcpkg(cache) {
+  const git = resolveGitExecutable();
   const vcpkg = path.join(cache, `v-${baseline.slice(0, 8)}`);
   if (!fs.existsSync(path.join(vcpkg, ".git"))) {
     fs.mkdirSync(vcpkg, { recursive: true });
-    run("git", ["init", vcpkg]);
+    run(git, ["init", vcpkg]);
   }
-  const current = cp.spawnSync("git", ["-C", vcpkg, "rev-parse", "HEAD"], {
+  const current = cp.spawnSync(git, ["-C", vcpkg, "rev-parse", "HEAD"], {
     encoding: "utf8",
     windowsHide: true,
   });
   if (current.status !== 0 || current.stdout.trim() !== baseline) {
-    run("git", [
+    run(git, [
       "-C",
       vcpkg,
       "fetch",
@@ -76,7 +96,7 @@ function buildTorrentBridge() {
       "https://github.com/microsoft/vcpkg.git",
       baseline,
     ]);
-    run("git", ["-C", vcpkg, "checkout", "--detach", baseline]);
+    run(git, ["-C", vcpkg, "checkout", "--detach", baseline]);
   }
   const executable = path.join(
     vcpkg,
@@ -84,64 +104,108 @@ function buildTorrentBridge() {
   );
   if (!fs.existsSync(executable)) {
     if (process.platform === "win32") {
-      run("cmd.exe", ["/d", "/c", "bootstrap-vcpkg.bat", "-disableMetrics"], {
+      const cmd = path.join(
+        process.env.SystemRoot || String.raw`C:\Windows`,
+        "System32",
+        "cmd.exe"
+      );
+      run(cmd, ["/d", "/c", "bootstrap-vcpkg.bat", "-disableMetrics"], {
         cwd: vcpkg,
       });
     } else {
       run(path.join(vcpkg, "bootstrap-vcpkg.sh"), ["-disableMetrics"]);
     }
   }
-  const { cmake, ctest } = resolveCmakeTools(executable);
-  const arch = process.arch === "arm64" ? "arm64" : "x64";
+  return { vcpkg, executable };
+}
+
+function discoverVisualStudioGenerator() {
+  const vswhere = path.join(
+    process.env["ProgramFiles(x86)"] || String.raw`C:\Program Files (x86)`,
+    "Microsoft Visual Studio",
+    "Installer",
+    "vswhere.exe"
+  );
+  const discovery = cp.spawnSync(
+    vswhere,
+    [
+      "-latest",
+      "-products",
+      "*",
+      "-requires",
+      "Microsoft.VisualStudio.Component.VC.Tools.x86.x64",
+      "-format",
+      "json",
+    ],
+    { encoding: "utf8", windowsHide: true }
+  );
+  if (discovery.error || discovery.status !== 0) {
+    throw new Error(
+      "Install Visual Studio C++ Build Tools with the Desktop development with C++ workload."
+    );
+  }
+  const installation = JSON.parse(discovery.stdout)[0];
+  if (!installation?.catalog?.productLineVersion) {
+    throw new Error(
+      "No Visual Studio C++ toolchain found. Install the Desktop development with C++ workload."
+    );
+  }
+  return `Visual Studio ${installation.installationVersion.split(".")[0]} ${installation.catalog.productLineVersion}`;
+}
+
+function getGeneratorArgs(arch) {
+  if (process.platform !== "win32") return [];
+  const generator =
+    process.env.CMAKE_GENERATOR || discoverVisualStudioGenerator();
+  const args = ["-G", generator];
+  if (generator.startsWith("Visual Studio ")) {
+    args.push("-A", arch === "arm64" ? "ARM64" : "x64");
+  }
+  return args;
+}
+
+function copyRuntimeLibraries(stage, output) {
+  for (const dir of ["bin", "lib"]) {
+    const location = path.join(stage, dir);
+    if (!fs.existsSync(location)) continue;
+    for (const name of fs.readdirSync(location)) {
+      if (/\.(dll|dylib|so)(\.\d+)*$/.test(name))
+        fs.copyFileSync(path.join(location, name), path.join(output, name));
+    }
+  }
+}
+
+function copyDependencyNotices(installed, triplet, output) {
+  const share = path.join(installed, triplet, "share");
+  const licenses = path.join(output, "licenses");
+  fs.mkdirSync(licenses, { recursive: true });
+  for (const name of fs.readdirSync(share)) {
+    const copyright = path.join(share, name, "copyright");
+    if (fs.existsSync(copyright))
+      fs.copyFileSync(copyright, path.join(licenses, `${name}.txt`));
+  }
+  fs.copyFileSync(
+    path.join(source, "vcpkg.json"),
+    path.join(output, "torrent-dependencies.json")
+  );
+}
+
+function buildTorrentBridge() {
   if (!["x64", "arm64"].includes(process.arch))
     throw new Error(`Unsupported architecture: ${process.arch}`);
+  const arch = process.arch;
   const platform = {
     win32: "windows-static",
     linux: "linux",
     darwin: "osx",
   }[process.platform];
   if (!platform) throw new Error(`Unsupported platform: ${process.platform}`);
-  const generatorArgs = [];
-  if (process.platform === "win32") {
-    let generator = process.env.CMAKE_GENERATOR;
-    if (!generator) {
-      const vswhere = path.join(
-        process.env["ProgramFiles(x86)"] || "C:\\Program Files (x86)",
-        "Microsoft Visual Studio",
-        "Installer",
-        "vswhere.exe"
-      );
-      const discovery = cp.spawnSync(
-        vswhere,
-        [
-          "-latest",
-          "-products",
-          "*",
-          "-requires",
-          "Microsoft.VisualStudio.Component.VC.Tools.x86.x64",
-          "-format",
-          "json",
-        ],
-        { encoding: "utf8", windowsHide: true }
-      );
-      if (discovery.error || discovery.status !== 0) {
-        throw new Error(
-          "Install Visual Studio C++ Build Tools with the Desktop development with C++ workload."
-        );
-      }
-      const installation = JSON.parse(discovery.stdout)[0];
-      if (!installation?.catalog?.productLineVersion) {
-        throw new Error(
-          "No Visual Studio C++ toolchain found. Install the Desktop development with C++ workload."
-        );
-      }
-      generator = `Visual Studio ${installation.installationVersion.split(".")[0]} ${installation.catalog.productLineVersion}`;
-    }
-    generatorArgs.push("-G", generator);
-    if (generator.startsWith("Visual Studio ")) {
-      generatorArgs.push("-A", arch === "arm64" ? "ARM64" : "x64");
-    }
-  }
+  // The manifest baseline pins libtorrent, Boost, OpenSSL and WebRTC.
+  const cache =
+    process.env.HYDRA_NATIVE_CACHE ||
+    path.join(os.homedir(), ".cache", "hydra");
+  const { vcpkg, executable } = ensureVcpkg(cache);
+  const { cmake, ctest } = resolveCmakeTools(executable);
   const triplet = `${arch}-${platform}`;
   const build = path.join(
     source,
@@ -156,7 +220,7 @@ function buildTorrentBridge() {
     source,
     "-B",
     build,
-    ...generatorArgs,
+    ...getGeneratorArgs(arch),
     `-DCMAKE_TOOLCHAIN_FILE=${path.join(vcpkg, "scripts", "buildsystems", "vcpkg.cmake")}`,
     `-DVCPKG_INSTALLED_DIR=${installed}`,
     `-DVCPKG_TARGET_TRIPLET=${triplet}`,
@@ -170,26 +234,8 @@ function buildTorrentBridge() {
 
   const output = path.join(root, "hydra-native");
   fs.mkdirSync(output, { recursive: true });
-  for (const dir of ["bin", "lib"]) {
-    const location = path.join(stage, dir);
-    if (!fs.existsSync(location)) continue;
-    for (const name of fs.readdirSync(location)) {
-      if (/\.(dll|dylib|so)(\.\d+)*$/.test(name))
-        fs.copyFileSync(path.join(location, name), path.join(output, name));
-    }
-  }
-  const share = path.join(installed, triplet, "share");
-  const licenses = path.join(output, "licenses");
-  fs.mkdirSync(licenses, { recursive: true });
-  for (const name of fs.readdirSync(share)) {
-    const copyright = path.join(share, name, "copyright");
-    if (fs.existsSync(copyright))
-      fs.copyFileSync(copyright, path.join(licenses, `${name}.txt`));
-  }
-  fs.copyFileSync(
-    path.join(source, "vcpkg.json"),
-    path.join(output, "torrent-dependencies.json")
-  );
+  copyRuntimeLibraries(stage, output);
+  copyDependencyNotices(installed, triplet, output);
   return path.join(stage, "lib");
 }
 

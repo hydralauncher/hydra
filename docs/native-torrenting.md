@@ -27,6 +27,10 @@ progress uses libtorrent's `total_wanted` and `total_wanted_done`, including
 shared boundary pieces, as the Python implementation did. No download database
 or partial-file format is migrated.
 
+An info hash can be owned by only one game record at a time. Starting or seeding
+the same torrent for another game returns `torrent_in_use` until its owner is
+cancelled or removed from seeding. Metadata lookups may share an owned handle.
+
 ## Building
 
 Install Rust, Git and a C++ toolchain (Visual Studio C++ Build Tools
@@ -44,6 +48,9 @@ short on Windows. CMake's imported libtorrent target propagates matching ABI
 definitions to the bridge. Windows C++ dependencies use a static runtime;
 Linux/macOS use their system C++ runtime. Dependency notices are copied into
 `hydra-native/licenses` and included with the addon resources.
+
+Git is resolved from standard installation directories rather than PATH. For
+a custom installation, set `HYDRA_GIT_EXECUTABLE` to its absolute executable path.
 
 For direct Cargo builds, first build the bridge and set
 `HYDRA_TORRENT_LIB_DIR` to its installed `stage/lib` directory. For native tests,

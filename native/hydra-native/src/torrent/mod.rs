@@ -11,11 +11,84 @@ use std::thread;
 use std::time::{Duration, Instant};
 use tokio::sync::{oneshot, Mutex};
 
+const CONTROL_POLL_INTERVAL: Duration = Duration::from_millis(25);
+const METADATA_CACHE_TTL: Duration = Duration::from_secs(300);
+const METADATA_QUEUE_TIMEOUT: Duration = Duration::from_secs(5);
+const PRIORITY_APPLY_TIMEOUT: Duration = Duration::from_secs(3);
+const MAX_METADATA_JOBS: usize = 2;
+const MAX_METADATA_CACHE_ENTRIES: usize = 128;
+const MAX_TORRENT_FILES: i32 = 100_000;
+const DEFAULT_FILE_PRIORITY: u8 = 4;
+const SEEDING_STATE: i32 = 5;
+
 type Reply = oneshot::Sender<Result<Value>>;
 struct Request {
     method: String,
     params: Value,
     reply: Reply,
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn action(engine: &mut Engine, params: Value) -> Result<Value> {
+        let (reply, mut result) = oneshot::channel();
+        engine.action(Request {
+            method: "action".into(),
+            params,
+            reply,
+        });
+        result
+            .try_recv()
+            .expect("non-selective actions reply immediately")
+    }
+
+    #[test]
+    fn duplicate_game_cannot_acquire_or_control_an_owned_torrent() {
+        let mut engine = Engine::new(0).unwrap();
+        let directory = tempfile::tempdir().unwrap();
+        let magnet = "magnet:?xt=urn:btih:0000000000000000000000000000000000000001";
+        let start = |game: &str, kind: &str| {
+            json!({
+                "action": kind, "game_id": game, "url": magnet,
+                "save_path": directory.path().to_str().unwrap()
+            })
+        };
+
+        action(&mut engine, start("owner", "start")).unwrap();
+        for kind in ["start", "resume_seeding"] {
+            assert_eq!(
+                action(&mut engine, start("duplicate", kind)),
+                Err("torrent_in_use".into())
+            );
+        }
+        assert_eq!(engine.downloads.len(), 1);
+        for kind in ["pause", "cancel", "pause_seeding"] {
+            action(&mut engine, json!({"action": kind, "game_id": "duplicate"})).unwrap();
+            assert_eq!(engine.active.as_deref(), Some("owner"));
+            assert!(engine.downloads.contains_key("owner"));
+        }
+        // A metadata borrower must not introduce a second game owner.
+        let metadata = engine
+            .add(
+                magnet,
+                directory.path().to_str().unwrap(),
+                true,
+                false,
+                &[],
+                None,
+            )
+            .unwrap();
+        assert!(Rc::ptr_eq(&metadata, &engine.downloads["owner"].handle));
+        drop(metadata);
+        action(&mut engine, start("owner", "start")).unwrap();
+        action(&mut engine, json!({"action": "cancel", "game_id": "owner"})).unwrap();
+        engine.collect_handles();
+        action(&mut engine, start("duplicate", "start")).unwrap();
+        assert_eq!(engine.downloads.len(), 1);
+        assert_eq!(engine.active.as_deref(), Some("duplicate"));
+    }
 }
 enum Command {
     Request(Request),
@@ -172,7 +245,7 @@ impl Engine {
     }
     fn run(&mut self, receiver: mpsc::Receiver<Command>) {
         loop {
-            match receiver.recv_timeout(Duration::from_millis(25)) {
+            match receiver.recv_timeout(CONTROL_POLL_INTERVAL) {
                 Ok(Command::Request(request)) => self.dispatch(request),
                 Ok(Command::Shutdown) | Err(mpsc::RecvTimeoutError::Disconnected) => break,
                 Err(mpsc::RecvTimeoutError::Timeout) => (),
@@ -200,6 +273,7 @@ impl Engine {
         seed: bool,
         selective: bool,
         trackers: &[String],
+        game: Option<&str>,
     ) -> Result<Rc<Handle>> {
         let params = Params::new(magnet, path, seed, selective)?;
         let existing = params.trackers()?;
@@ -213,6 +287,15 @@ impl Engine {
         // Metadata lookup must not remove or change the active download.
         for entry in &self.pool {
             if handle.same(&entry.handle)? {
+                // Metadata jobs may borrow an owned handle, but two game IDs
+                // cannot independently pause/cancel the same libtorrent torrent.
+                if let Some(game) = game {
+                    if self.downloads.iter().any(|(owner, download)| {
+                        owner != game && Rc::ptr_eq(&download.handle, &entry.handle)
+                    }) {
+                        return Err("torrent_in_use".into());
+                    }
+                }
                 for tracker in trackers {
                     if let Err(error) = entry.handle.add_tracker(tracker) {
                         eprintln!("Tracker: {error}");
@@ -226,9 +309,14 @@ impl Engine {
                     entry.handle.pause()?;
                     if entry.handle.status()?.metadata != 0 {
                         let (_, _, count) = entry.handle.info()?;
-                        entry
-                            .handle
-                            .prioritize(&vec![if selective { 0 } else { 4 }; count as usize])?;
+                        entry.handle.prioritize(&vec![
+                            if selective {
+                                0
+                            } else {
+                                DEFAULT_FILE_PRIORITY
+                            };
+                            count as usize
+                        ])?;
                     }
                     entry.handle.download_mode(selective)?;
                     entry.handle.resume()?;
@@ -299,7 +387,7 @@ impl Engine {
                     .iter()
                     .filter_map(|(id, d)| {
                         let mut status = Self::status(d).ok()?;
-                        if status["status"] != 5 {
+                        if status["status"] != SEEDING_STATE {
                             return None;
                         }
                         status["gameId"] = json!(id);
@@ -332,7 +420,7 @@ impl Engine {
             }
         };
         if let Some(cached) = self.cache.get(&hash) {
-            if cached.created.elapsed() < Duration::from_secs(300) {
+            if cached.created.elapsed() < METADATA_CACHE_TTL {
                 let _ = request.reply.send(Ok(cached.value.clone()));
                 return;
             }
@@ -349,17 +437,17 @@ impl Engine {
             .iter()
             .filter(|j| matches!(j.kind, JobKind::Files { .. }))
             .count()
-            >= 2
+            >= MAX_METADATA_JOBS
         {
             self.waiting.push_back(Waiting {
                 request,
-                deadline: Instant::now() + Duration::from_secs(5),
+                deadline: Instant::now() + METADATA_QUEUE_TIMEOUT,
             });
             return;
         }
         let timeout = validation::timeout(&request.params["timeout_ms"]);
         let temp = std::env::temp_dir().to_string_lossy().into_owned();
-        match self.add(&magnet, &temp, true, false, &trackers) {
+        match self.add(&magnet, &temp, true, false, &trackers, None) {
             Ok(handle) => self.jobs.push(Job {
                 handle,
                 kind: JobKind::Files { hash },
@@ -480,7 +568,14 @@ impl Engine {
                 self.collect_handles();
             }
             self.session.limit(self.limit)?;
-            let handle = self.add(magnet, path, seed, indices.is_some(), &trackers)?;
+            let handle = self.add(
+                magnet,
+                path,
+                seed,
+                indices.is_some(),
+                &trackers,
+                Some(&game),
+            )?;
             self.downloads.insert(
                 game.clone(),
                 Download {
@@ -535,7 +630,7 @@ impl Engine {
         match &mut job.kind {
             JobKind::Files { hash } => {
                 let (name, size, count) = job.handle.info()?;
-                if count > 100_000 {
+                if count > MAX_TORRENT_FILES {
                     return Err("too_many_files".into());
                 }
                 let mut files = Vec::with_capacity(count as usize);
@@ -545,7 +640,7 @@ impl Engine {
                 }
                 let value =
                     json!({"infoHash": hash, "name": name, "totalSize": size, "files": files});
-                if self.cache.len() >= 128 {
+                if self.cache.len() >= MAX_METADATA_CACHE_ENTRIES {
                     if let Some(oldest) = self
                         .cache
                         .iter()
@@ -590,7 +685,7 @@ impl Engine {
                         d.selected_size = Some(selected_size);
                     }
                     *priorities = Some(values);
-                    job.deadline = Instant::now() + Duration::from_secs(3);
+                    job.deadline = Instant::now() + PRIORITY_APPLY_TIMEOUT;
                 }
                 if !job.handle.priorities_match(priorities.as_ref().unwrap())?
                     && Instant::now() < job.deadline
@@ -630,7 +725,7 @@ impl Engine {
                 .iter()
                 .filter(|j| matches!(j.kind, JobKind::Files { .. }))
                 .count()
-                < 2
+                < MAX_METADATA_JOBS
             {
                 self.files(w.request);
             } else {

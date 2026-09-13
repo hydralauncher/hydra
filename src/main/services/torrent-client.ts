@@ -1,3 +1,7 @@
+const DEFAULT_TORRENT_PORT = 5881;
+const DEFAULT_REQUEST_TIMEOUT_MS = 10_000;
+const MIN_REQUEST_TIMEOUT_MS = 1_000;
+
 export type TorrentMethod =
   | "status"
   | "seed_status"
@@ -28,18 +32,20 @@ export class TorrentClient {
   private shutdownPromise: Promise<void> | null = null;
   private closing = false;
   private generation = 0;
-  private pending = new Set<(error: Error) => void>();
+  private readonly pending = new Set<(error: Error) => void>();
 
   constructor(private readonly backend: TorrentBackend) {}
 
   public async initialize(): Promise<void> {
-    if (this.shutdownPromise) await this.shutdownPromise;
+    if (this.shutdownPromise !== null) await this.shutdownPromise;
     this.closing = false;
-    if (!this.initialization) {
-      this.initialization = this.backend.initialize(5881).catch((error) => {
-        this.initialization = null;
-        throw error;
-      });
+    if (this.initialization === null) {
+      this.initialization = this.backend
+        .initialize(DEFAULT_TORRENT_PORT)
+        .catch((error) => {
+          this.initialization = null;
+          throw error;
+        });
     }
     await this.initialization;
   }
@@ -69,7 +75,10 @@ export class TorrentClient {
               `Torrent timeout for method '${method}'`
             )
           ),
-        Math.max(config?.timeout ?? 10_000, 1_000)
+        Math.max(
+          config?.timeout ?? DEFAULT_REQUEST_TIMEOUT_MS,
+          MIN_REQUEST_TIMEOUT_MS
+        )
       );
       this.pending.add(fail);
       Promise.resolve()
@@ -92,7 +101,7 @@ export class TorrentClient {
   }
 
   public shutdown(): Promise<void> {
-    if (this.shutdownPromise) return this.shutdownPromise;
+    if (this.shutdownPromise !== null) return this.shutdownPromise;
     this.closing = true;
     this.generation += 1;
     for (const fail of this.pending) fail(new TorrentError("torrent_shutdown"));
