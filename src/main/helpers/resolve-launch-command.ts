@@ -99,10 +99,12 @@ export const resolveLaunchCommand = ({
   }
 
   if (!launchOptionTokens.includes(commandPlaceholder)) {
+    const { env, remainingTokens } =
+      extractLeadingEnvAssignments(launchOptionTokens);
     const resolved = {
       command: baseCommand,
-      args: [...baseArgs, ...launchOptionTokens],
-      env: {},
+      args: [...baseArgs, ...remainingTokens],
+      env,
     };
 
     return applyWrappers(resolved);
