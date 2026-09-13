@@ -33,6 +33,9 @@ jobs:
       - name: Adapter lifecycle tests
         run: node --import ./scripts/register-ts-node.mjs --test src/main/services/torrent-client.test.ts
       - name: Build an unpacked application
+        env:
+          # Match the renderer workflow; the macOS default heap is too small.
+          NODE_OPTIONS: --max-old-space-size=4096
         run: yarn build:unpack --publish never
       - name: Check native bridge memory ownership
         if: runner.os == 'Linux'
