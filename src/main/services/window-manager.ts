@@ -65,6 +65,7 @@ export class WindowManager {
   }
 
   private static readonly editorWindows: Map<string, BrowserWindow> = new Map();
+  private static readonly themePreviewViews: Map<string, WebContentsView> = new Map();
 
   public static get mainWindow(): Electron.BrowserWindow | null {
     return this.mainWindowInstance;
@@ -116,6 +117,25 @@ export class WindowManager {
 
   private static formatVersionNumber(version: string) {
     return version.replaceAll(".", "-");
+  }
+
+  private static async loadWindowURLForView(view: WebContentsView) {
+    if (is.dev && process.env["ELECTRON_RENDERER_URL"]) {
+      await view.webContents.loadURL(`${process.env["ELECTRON_RENDERER_URL"]}#/`);
+    } else if (import.meta.env.MAIN_VITE_LAUNCHER_SUBDOMAIN) {
+      try {
+        await view.webContents.loadURL(
+          `https://release-v${this.formatVersionNumber(app.getVersion())}.${import.meta.env.MAIN_VITE_LAUNCHER_SUBDOMAIN}#/`
+        );
+      } catch (error) {
+        logger.error(error);
+      }
+    } else {
+      await view.webContents.loadFile(
+        path.join(__dirname, "../renderer/index.html"),
+        { hash: "/" }
+      );
+    }
   }
 
   public static async loadWindowURL(window: BrowserWindow, hash: string = "") {
@@ -784,6 +804,253 @@ export class WindowManager {
     return false;
   }
 
+  public static handleThemePreviewElementClicked(
+    webContentsId: number,
+    selectors: string[]
+  ) {
+    for (const [themeId, view] of this.themePreviewViews) {
+      if (view.webContents.id !== webContentsId) continue;
+      const editorWindow = this.editorWindows.get(themeId);
+      if (editorWindow && !editorWindow.isDestroyed()) {
+        editorWindow.webContents.send("on-theme-preview-element-clicked", selectors);
+      }
+      return;
+    }
+  }
+
+  public static updateThemePreviewBounds(
+    themeId: string,
+    bounds: { x: number; y: number; width: number; height: number }
+  ) {
+    const view = this.themePreviewViews.get(themeId);
+    const editorWindow = this.editorWindows.get(themeId);
+    if (!view || view.webContents.isDestroyed() || !editorWindow || editorWindow.isDestroyed()) return;
+    const { width: windowWidth, height: windowHeight } = editorWindow.getContentBounds();
+
+    // width/height <= 0 é o sinal do renderer de que o Hydra real
+    // NÃO deve aparecer. Isso acontece em Código CSS e Assets.
+    if (bounds.width <= 0 || bounds.height <= 0) {
+      view.setBounds({
+        x: 0,
+        y: 0,
+        width: 0,
+        height: 0,
+      });
+      return;
+    }
+
+    const x = Math.max(0, Math.round(bounds.x));
+    const y = Math.max(0, Math.round(bounds.y));
+
+    const maxWidth = Math.max(1, windowWidth - x);
+    const maxHeight = Math.max(1, windowHeight - y);
+
+    view.setBounds({
+      x,
+      y,
+      width: Math.min(Math.max(1, Math.round(bounds.width)), maxWidth),
+      height: Math.min(Math.max(1, Math.round(bounds.height)), maxHeight),
+    });
+  }
+
+  public static async updateThemePreviewCss(themeId: string, code: string) {
+    const view = this.themePreviewViews.get(themeId);
+    if (!view || view.webContents.isDestroyed()) return;
+    const css = JSON.stringify(code);
+    await view.webContents.executeJavaScript(`(() => {
+      const id = "theme-editor-live-preview";
+      let style = document.getElementById(id);
+      if (!style) {
+        style = document.createElement("style");
+        style.id = id;
+        document.head.appendChild(style);
+      }
+      style.textContent = ${css};
+    })()`);
+  }
+
+  private static installThemePreviewClickBridge(themeId: string, view: WebContentsView) {
+    view.webContents.executeJavaScript(`(() => {
+      // Reinstala o bridge depois de cada navegação, mas nunca instala duas
+      // cópias na mesma página.
+      if (window.__hydraThemeEditorBridgeInstalled) return;
+      window.__hydraThemeEditorBridgeInstalled = true;
+
+      const escape = (value) => {
+        try {
+          return CSS.escape(String(value));
+        } catch {
+          return String(value).replace(/[^a-zA-Z0-9_-]/g, "\\\\$&");
+        }
+      };
+
+      const unique = (items) => [...new Set(items.filter(Boolean))];
+
+      const getElementSelector = (node) => {
+        if (!(node instanceof Element)) return [];
+
+        const result = [];
+
+        // 1) ID é a referência mais precisa.
+        if (node.id) {
+          result.push("#" + escape(node.id));
+        }
+
+        // 2) Classes completas do elemento clicado.
+        const classes = Array.from(node.classList || []).filter(Boolean);
+        if (classes.length) {
+          result.push("." + classes.map(escape).join("."));
+        }
+
+        // 3) Elementos interativos recebem prioridade.
+        const tag = node.tagName.toLowerCase();
+        if (["button", "a", "input", "select", "textarea", "label"].includes(tag)) {
+          if (classes.length) {
+            result.push(tag + "." + classes.map(escape).join("."));
+          } else {
+            result.push(tag);
+          }
+        }
+
+        // 4) Atributos semânticos ajudam muito em ícones/botões e itens
+        // que possuem classes genéricas.
+        for (const attr of ["data-testid", "data-action", "data-state", "data-selected", "aria-label", "role"]) {
+          const value = node.getAttribute(attr);
+          if (value) {
+            result.push("[" + attr + '="' + String(value).replace(/"/g, '\\"') + '"]');
+          }
+        }
+
+        // 5) Seletor estrutural do elemento, preservando a posição exata.
+        if (node.parentElement) {
+          const siblings = Array.from(node.parentElement.children);
+          const index = siblings.indexOf(node);
+          if (index >= 0) {
+            result.push(tag + ":nth-child(" + (index + 1) + ")");
+            const sameTag = siblings.filter((child) => child.tagName === node.tagName);
+            const tagIndex = sameTag.indexOf(node);
+            if (tagIndex >= 0) {
+              result.push(tag + ":nth-of-type(" + (tagIndex + 1) + ")");
+            }
+            if (classes.length) {
+              result.push("." + classes.map(escape).join(".") + ":nth-child(" + (index + 1) + ")");
+            }
+          }
+        }
+
+        return unique(result);
+      };
+
+      const collectCandidates = (event) => {
+        const candidates = [];
+        const seen = new Set();
+
+        // O elemento físico que está exatamente debaixo do cursor.
+        const underPointer = document.elementsFromPoint(event.clientX, event.clientY) || [];
+
+        // composedPath inclui SVG/path e shadow DOM quando disponível.
+        const path = typeof event.composedPath === "function"
+          ? event.composedPath().filter((item) => item instanceof Element)
+          : [];
+
+        const roots = unique([...underPointer, ...path, event.target instanceof Element ? event.target : null]);
+
+        // Primeiro: elemento mais específico/interativo sob o ponteiro.
+        for (const node of roots) {
+          const selectors = getElementSelector(node);
+
+          // Botões e links devem ser preferidos ao SVG/path interno.
+          const tag = node.tagName.toLowerCase();
+          const interactive = ["button", "a", "input", "select", "textarea", "label"].includes(tag);
+
+          if (interactive) {
+            for (const selector of selectors) {
+              if (!seen.has(selector)) {
+                seen.add(selector);
+                candidates.push(selector);
+              }
+            }
+          }
+        }
+
+        // Segundo: o elemento exato e seus pais, do mais específico para o
+        // mais geral. Isso evita selecionar .sidebar quando o clique foi no
+        // .sidebar__menu-item-button.
+        for (const node of roots) {
+          let current = node;
+          let depth = 0;
+
+          while (current && depth < 16) {
+            for (const selector of getElementSelector(current)) {
+              if (!seen.has(selector)) {
+                seen.add(selector);
+                candidates.push(selector);
+              }
+            }
+
+            // Quando o clique foi dentro de SVG/path, subimos até BUTTON/A
+            // antes de aceitar containers genéricos.
+            if (current.tagName === "BUTTON" || current.tagName === "A") {
+              break;
+            }
+
+            current = current.parentElement;
+            depth++;
+          }
+        }
+
+        // Terceiro: caminho CSS completo do ponto clicado, útil para linhas,
+        // divisores e elementos que não têm classe.
+        const exactNode = roots.find((node) => node instanceof Element);
+        if (exactNode) {
+          const chain = [];
+          let current = exactNode;
+          let depth = 0;
+
+          while (current && current.parentElement && depth < 8) {
+            const tag = current.tagName.toLowerCase();
+            const siblings = Array.from(current.parentElement.children);
+            const index = siblings.indexOf(current);
+            chain.unshift(
+              tag + (index >= 0 ? ":nth-child(" + (index + 1) + ")" : "")
+            );
+            current = current.parentElement;
+            depth++;
+          }
+
+          if (chain.length) {
+            const fullPath = chain.join(" > ");
+            if (!seen.has(fullPath)) candidates.push(fullPath);
+          }
+        }
+
+        return candidates;
+      };
+
+      const report = (event) => {
+        if (!event.ctrlKey) return;
+
+        const target = event.target;
+        if (!(target instanceof Element)) return;
+
+        event.preventDefault();
+        event.stopPropagation();
+        if (typeof event.stopImmediatePropagation === "function") {
+          event.stopImmediatePropagation();
+        }
+
+        const selectors = collectCandidates(event);
+
+        window.electron.reportThemePreviewElementClicked(selectors);
+      };
+
+      // capture=true garante que o Ctrl+click seja interceptado antes de
+      // handlers de navegação do Hydra.
+      document.addEventListener("pointerdown", report, true);
+      document.addEventListener("click", report, true);
+    })()`);
+  }
+
   public static openEditorWindow(themeId: string) {
     if (this.mainWindow) {
       const existingWindow = this.editorWindows.get(themeId);
@@ -796,12 +1063,12 @@ export class WindowManager {
       }
 
       const editorWindow = new BrowserWindow({
-        width: 720,
-        height: 720,
-        minWidth: 600,
-        minHeight: 540,
+        width: 1500,
+        height: 900,
+        minWidth: 1200,
+        minHeight: 700,
         backgroundColor: "#1c1c1c",
-        titleBarStyle: process.platform === "linux" ? "default" : "hidden",
+        titleBarStyle: "hidden",
         icon,
         trafficLightPosition: { x: 16, y: 16 },
         titleBarOverlay: {
@@ -822,6 +1089,39 @@ export class WindowManager {
 
       this.loadWindowURL(editorWindow, `theme-editor?themeId=${themeId}`);
 
+      const previewView = new WebContentsView({
+        webPreferences: {
+          preload: path.join(__dirname, "../preload/index.mjs"),
+          sandbox: false,
+        },
+      });
+      this.themePreviewViews.set(themeId, previewView);
+      editorWindow.contentView.addChildView(previewView);
+
+      const layoutPreview = () => {
+        if (editorWindow.isDestroyed()) return;
+        const { width, height } = editorWindow.getContentBounds();
+        previewView.setBounds({
+          x: 255,
+          y: 100,
+          width: Math.max(500, width - 610),
+          height: Math.max(430, height - 180),
+        });
+      };
+      editorWindow.on("resize", layoutPreview);
+      layoutPreview();
+
+      previewView.webContents.on("did-finish-load", () => {
+        this.installThemePreviewClickBridge(themeId, previewView);
+      });
+      previewView.webContents.on("did-navigate", () => {
+        this.installThemePreviewClickBridge(themeId, previewView);
+      });
+      previewView.webContents.on("did-navigate-in-page", () => {
+        this.installThemePreviewClickBridge(themeId, previewView);
+      });
+      this.loadWindowURLForView(previewView);
+
       editorWindow.once("ready-to-show", () => {
         editorWindow.show();
         this.mainWindow?.webContents.openDevTools();
@@ -838,6 +1138,9 @@ export class WindowManager {
 
       editorWindow.on("close", () => {
         this.mainWindow?.webContents.closeDevTools();
+        editorWindow.removeListener("resize", layoutPreview);
+        if (!previewView.webContents.isDestroyed()) previewView.webContents.close();
+        this.themePreviewViews.delete(themeId);
         this.editorWindows.delete(themeId);
       });
     }

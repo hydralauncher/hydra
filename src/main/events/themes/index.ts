@@ -13,3 +13,4 @@ import "./open-editor-window";
 import "./remove-theme-achievement-sound";
 import "./toggle-custom-theme";
 import "./update-custom-theme";
+import "./theme-preview";
