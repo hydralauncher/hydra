@@ -5,6 +5,14 @@ import path from "node:path";
 import { streamSidecarLogger } from "./logger";
 import { Readable } from "node:stream";
 import { app } from "electron";
+import {
+  createStdoutLineBuffer,
+  logReadable,
+  ReadyState,
+  rejectPendingRequests,
+  type PendingRpcRequest,
+  type RpcResponseEnvelope,
+} from "./child-process-rpc";
 
 const binaryNameByPlatform: Partial<Record<NodeJS.Platform, string>> = {
   darwin: "hydra-stream",
@@ -50,38 +58,24 @@ export type StreamSidecarEvent =
     };
 
 type StreamRpcResponse<T = unknown> =
-  | {
-      id: number;
-      result: T;
-    }
-  | {
-      id: number;
-      error: {
-        code: string;
-        message: string;
-      };
-    }
+  | RpcResponseEnvelope<T>
   | StreamSidecarEvent;
-
-type PendingRpcRequest = {
-  resolve: (value: unknown) => void;
-  reject: (reason?: unknown) => void;
-  timer: NodeJS.Timeout;
-};
 
 export class StreamSidecar {
   private static childProcess: cp.ChildProcess | null = null;
-  private static pendingRequests = new Map<number, PendingRpcRequest>();
+  private static readonly pendingRequests = new Map<
+    number,
+    PendingRpcRequest
+  >();
   private static nextRequestId = 1;
-  private static stdoutBuffer = "";
-  private static ready = false;
-  private static readyPromise: Promise<void> | null = null;
-  private static readyResolver: (() => void) | null = null;
-  private static readyRejecter: ((error: unknown) => void) | null = null;
-  private static eventListeners = new Set<
+  private static readonly stdoutLines = createStdoutLineBuffer((line) =>
+    this.handleStdoutLine(line)
+  );
+  private static readonly readyState = new ReadyState();
+  private static readonly eventListeners = new Set<
     (event: StreamSidecarEvent) => void
   >();
-  private static exitListeners = new Set<(reason: string) => void>();
+  private static readonly exitListeners = new Set<(reason: string) => void>();
 
   private static resolveBinaryPath() {
     const binaryName = binaryNameByPlatform[process.platform];
@@ -98,31 +92,11 @@ export class StreamSidecar {
   }
 
   private static logStderr(readable: Readable | null) {
-    if (!readable) return;
-
-    readable.setEncoding("utf-8");
-    readable.on("data", streamSidecarLogger.log);
+    logReadable(readable, streamSidecarLogger.log);
   }
 
   private static logStdout(readable: Readable | null) {
-    if (!readable) return;
-
-    readable.setEncoding("utf-8");
-    readable.on("data", (chunk: string) => {
-      this.stdoutBuffer += chunk;
-      this.processStdoutBuffer();
-    });
-  }
-
-  private static processStdoutBuffer() {
-    let newlineIndex = this.stdoutBuffer.indexOf("\n");
-
-    while (newlineIndex >= 0) {
-      const rawLine = this.stdoutBuffer.slice(0, newlineIndex);
-      this.stdoutBuffer = this.stdoutBuffer.slice(newlineIndex + 1);
-      this.handleStdoutLine(rawLine);
-      newlineIndex = this.stdoutBuffer.indexOf("\n");
-    }
+    logReadable(readable, (chunk) => this.stdoutLines.append(chunk));
   }
 
   private static handleStdoutLine(line: string) {
@@ -158,7 +132,7 @@ export class StreamSidecar {
 
     if ("event" in parsed) {
       if (parsed.event === "ready") {
-        this.markReady();
+        this.readyState.markReady();
         return;
       }
 
@@ -171,49 +145,13 @@ export class StreamSidecar {
     streamSidecarLogger.error(`Unexpected RPC message: ${payload}`);
   }
 
-  private static markReady() {
-    if (this.ready) return;
-
-    this.ready = true;
-    if (this.readyResolver) {
-      this.readyResolver();
-    }
-
-    this.readyResolver = null;
-    this.readyRejecter = null;
-  }
-
-  private static resetReadyState() {
-    this.ready = false;
-    this.readyPromise = new Promise<void>((resolve, reject) => {
-      this.readyResolver = resolve;
-      this.readyRejecter = reject;
-    });
-  }
-
-  private static rejectAllPendingRequests(error: unknown) {
-    for (const pending of this.pendingRequests.values()) {
-      clearTimeout(pending.timer);
-      pending.reject(error);
-    }
-
-    this.pendingRequests.clear();
-  }
-
   private static handleProcessExit(reason: string) {
     const error = new Error(`Stream sidecar exited: ${reason}`);
 
-    this.rejectAllPendingRequests(error);
-
-    if (this.readyRejecter && !this.ready) {
-      this.readyRejecter(error);
-    }
-
-    this.readyPromise = null;
-    this.readyResolver = null;
-    this.readyRejecter = null;
-    this.ready = false;
-    this.stdoutBuffer = "";
+    rejectPendingRequests(this.pendingRequests, error);
+    this.readyState.rejectIfNotReady(error);
+    this.readyState.clear();
+    this.stdoutLines.reset();
     this.childProcess = null;
 
     // unexpected exits (not an explicit kill) notify subscribers so the
@@ -231,21 +169,11 @@ export class StreamSidecar {
   }
 
   private static async ensureReady(timeoutMs = 10_000): Promise<void> {
-    if (this.ready) return;
-
-    if (!this.readyPromise) {
-      throw new Error("Stream sidecar process is not running");
-    }
-
-    await Promise.race([
-      this.readyPromise,
-      new Promise<void>((_, reject) => {
-        setTimeout(
-          () => reject(new Error("Stream sidecar startup timeout")),
-          timeoutMs
-        );
-      }),
-    ]);
+    return this.readyState.wait(
+      timeoutMs,
+      "Stream sidecar process is not running",
+      "Stream sidecar startup timeout"
+    );
   }
 
   public static onEvent(listener: (event: StreamSidecarEvent) => void) {
@@ -256,8 +184,8 @@ export class StreamSidecar {
   public static async spawn() {
     if (this.childProcess) return;
 
-    this.resetReadyState();
-    this.stdoutBuffer = "";
+    this.readyState.reset();
+    this.stdoutLines.reset();
 
     const binaryPath = this.resolveBinaryPath();
 
@@ -311,7 +239,7 @@ export class StreamSidecar {
       await this.spawn();
     }
 
-    if (!this.childProcess || !this.childProcess.stdin) {
+    if (!this.childProcess?.stdin) {
       throw new Error("Stream sidecar process is not available");
     }
 

@@ -3,10 +3,12 @@ import path from "node:path";
 
 import type { Game, GameShop, UserPreferences } from "@types";
 
-import { db, gamesSublevel, levelKeys } from "@main/level";
 import {
+  db,
   gamesArtworkSelectionSublevel,
   gamesShopAssetsSublevel,
+  gamesSublevel,
+  levelKeys,
 } from "@main/level";
 import { launchGame } from "@main/helpers";
 import { launchedGamePids } from "@main/services/launched-game-pids";

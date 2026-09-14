@@ -254,6 +254,38 @@ const H264_MAX_REF_FRAMES: usize = 60;
 const H264_SLICE_MODE: usize = 64;
 const H264_SLICE_MODE_DATA: usize = 68;
 const H264_CHROMA_FORMAT: usize = 192; // 1 = 4:2:0, 0 is invalid
+/// offsetof(NV_ENC_CONFIG_H264, h264VUIParameters) relative to
+/// encodeCodecConfig start (verified with the C probe against
+/// nvEncodeAPI.h). The header typedefs NV_ENC_CONFIG_HEVC_VUI_PARAMETERS
+/// to the same struct, so the VUI_* offsets below serve both codecs.
+const H264_VUI_PARAMETERS: usize = 72;
+/// offsetof(NV_ENC_CONFIG_HEVC, hevcVUIParameters) — verified the same way;
+/// ready for the HEVC path (the branch currently encodes H.264 only).
+const HEVC_VUI_PARAMETERS: usize = 64;
+
+// NV_ENC_CONFIG_H264_VUI_PARAMETERS field offsets relative to the VUI
+// struct start (verified with the C probe against nvEncodeAPI.h; applies
+// to the HEVC VUI too, see above).
+const VUI_VIDEO_SIGNAL_TYPE_PRESENT: usize = 8;
+const VUI_VIDEO_FORMAT: usize = 12;
+const VUI_VIDEO_FULL_RANGE_FLAG: usize = 16;
+const VUI_COLOUR_DESCRIPTION_PRESENT: usize = 20;
+const VUI_COLOR_PRIMARIES: usize = 24;
+const VUI_TRANSFER_CHARACTERISTICS: usize = 28;
+const VUI_COLOR_MATRIX: usize = 32;
+const VUI_CHROMA_SAMPLE_LOCATION_FLAG: usize = 36;
+const VUI_CHROMA_SAMPLE_LOCATION_TOP: usize = 40;
+const VUI_CHROMA_SAMPLE_LOCATION_BOT: usize = 44;
+const VUI_BITSTREAM_RESTRICTION: usize = 48;
+
+// NV_ENC_CONFIG_H264_VUI_PARAMETERS values for SDR BT.709 (verified with
+// the C probe against nvEncodeAPI.h: every *_BT709 enumerator is 1,
+// NV_ENC_VUI_VIDEO_FORMAT_UNSPECIFIED is 5). Sunshine's SDR colourspace
+// (nvenc_utils.cpp: nvenc_colorspace_from_sunshine_colorspace).
+const VUI_VIDEO_FORMAT_UNSPECIFIED: u32 = 5;
+const VUI_COLOR_PRIMARIES_BT709: u32 = 1;
+const VUI_TRANSFER_CHARACTERISTICS_BT709: u32 = 1;
+const VUI_COLOR_MATRIX_BT709: u32 = 1;
 
 // NV_ENC_REGISTER_RESOURCE offsets (verified).
 const REG_VERSION: usize = 0;
@@ -426,6 +458,37 @@ const RECONFIG_BITFIELD: usize = 1808;
 /// resetEncoder only together with an IDR.
 const RECONFIG_RESET_AND_FORCE_IDR: u32 = 0b11;
 
+/// Sunshine's configure_h264_hevc_metadata for SDR BT.709
+/// (nvenc_base.cpp:307-321). NVENC converts our BGRA texture to YUV
+/// itself; without VUI colour metadata the decoder assumes the wrong
+/// range/matrix and the picture decodes uniformly too bright.
+/// `vui_offset` is the codec's VUI struct offset inside
+/// encodeCodecConfig (H264_VUI_PARAMETERS or HEVC_VUI_PARAMETERS) — the
+/// header typedefs both VUI structs to the same layout.
+fn configure_sdr_colour_metadata(config: &mut EncoderConfig, vui_offset: usize) {
+    let vui = CFG_CODEC_CONFIG + vui_offset;
+    // limited (MPEG) range: videoFullRangeFlag = 0, i.e. Sunshine's
+    // colorRange = NV_ENC_COLOR_RANGE_MPEG expressed through the H.264 /
+    // HEVC VUI (those configs carry no colour fields of their own; the
+    // direct colourPrimaries/... fields exist on the AV1 config only).
+    config.set_u32(vui + VUI_VIDEO_SIGNAL_TYPE_PRESENT, 1);
+    config.set_u32(vui + VUI_VIDEO_FORMAT, VUI_VIDEO_FORMAT_UNSPECIFIED);
+    config.set_u32(vui + VUI_VIDEO_FULL_RANGE_FLAG, 0);
+    config.set_u32(vui + VUI_COLOUR_DESCRIPTION_PRESENT, 1);
+    config.set_u32(vui + VUI_COLOR_PRIMARIES, VUI_COLOR_PRIMARIES_BT709);
+    config.set_u32(
+        vui + VUI_TRANSFER_CHARACTERISTICS,
+        VUI_TRANSFER_CHARACTERISTICS_BT709,
+    );
+    config.set_u32(vui + VUI_COLOR_MATRIX, VUI_COLOR_MATRIX_BT709);
+    // 4:2:0 output, so the chroma-sample-location fields are present
+    // (Sunshine passes 0 here only for yuv444 buffers)
+    config.set_u32(vui + VUI_CHROMA_SAMPLE_LOCATION_FLAG, 1);
+    config.set_u32(vui + VUI_CHROMA_SAMPLE_LOCATION_TOP, 0);
+    config.set_u32(vui + VUI_CHROMA_SAMPLE_LOCATION_BOT, 0);
+    config.set_u32(vui + VUI_BITSTREAM_RESTRICTION, 1);
+}
+
 /// Builds the low-latency H.264 NV_ENC_INITIALIZE_PARAMS (zeroed
 /// NV_ENC_CONFIG plus Sunshine's nvenc_base.cpp settings: CBR at the
 /// negotiated bitrate, no B-frames, infinite GOP with repeatSPSPPS,
@@ -481,6 +544,10 @@ fn build_init_params(
     // a zeroed chromaFormatIDC is rejected by the driver; 4:2:0 for
     // standard clients (NVENC converts the BGRA input)
     config.set_u32(CFG_CODEC_CONFIG + H264_CHROMA_FORMAT, 1);
+    // BT.709 primaries/transfer/matrix, limited range, so the decoder
+    // applies the same conversion NVENC used (fixes the uniformly
+    // too-bright picture; Sunshine configure_h264_hevc_metadata)
+    configure_sdr_colour_metadata(&mut config, H264_VUI_PARAMETERS);
 
     let mut init = InitializeParams::zeroed();
     init.set_u32(INIT_VERSION, ver_initialize);
@@ -1428,6 +1495,86 @@ mod tests {
         assert_eq!(depth(3), 3);
         assert_eq!(depth(0), 1);
         assert_eq!(depth(99), REF_FRAMES_MAX);
+    }
+
+    /// The encoder feeds NVENC a BGRA texture, so the driver does the
+    /// RGB->YUV conversion; the VUI must describe it (Sunshine
+    /// configure_h264_hevc_metadata, nvenc_base.cpp:307-321) or the
+    /// client decodes with the wrong range/matrix and the picture is
+    /// uniformly too bright. Asserts every VUI field byte for the H.264
+    /// config built here, the same bytes via the verified HEVC VUI
+    /// offset (the header typedefs both VUI structs to one layout), and
+    /// that nothing outside the VUI region moved.
+    #[test]
+    fn init_params_carry_bt709_vui_metadata() {
+        let params = EncoderConfigParams {
+            width: 1920,
+            height: 1080,
+            fps: 60,
+            bitrate_kbps: 42_000,
+            slices_per_frame: 4,
+            max_ref_frames: REF_FRAMES_DEFAULT,
+        };
+        let (_, keepalive) = build_init_params(NVENCAPI_VERSION, &params, false);
+
+        // expected VUI bytes, keyed by offset relative to the VUI struct
+        let expected: &[(usize, u32)] = &[
+            (VUI_VIDEO_SIGNAL_TYPE_PRESENT, 1),
+            (VUI_VIDEO_FORMAT, VUI_VIDEO_FORMAT_UNSPECIFIED),
+            (VUI_VIDEO_FULL_RANGE_FLAG, 0), // limited (MPEG) range
+            (VUI_COLOUR_DESCRIPTION_PRESENT, 1),
+            (VUI_COLOR_PRIMARIES, VUI_COLOR_PRIMARIES_BT709),
+            (
+                VUI_TRANSFER_CHARACTERISTICS,
+                VUI_TRANSFER_CHARACTERISTICS_BT709,
+            ),
+            (VUI_COLOR_MATRIX, VUI_COLOR_MATRIX_BT709),
+            (VUI_CHROMA_SAMPLE_LOCATION_FLAG, 1),
+            (VUI_CHROMA_SAMPLE_LOCATION_TOP, 0),
+            (VUI_CHROMA_SAMPLE_LOCATION_BOT, 0),
+            (VUI_BITSTREAM_RESTRICTION, 1),
+        ];
+
+        let assert_vui = |config: &EncoderConfig, vui_offset: usize| {
+            let vui = CFG_CODEC_CONFIG + vui_offset;
+            for (field, value) in expected {
+                assert_eq!(
+                    config.u32_at(vui + field),
+                    *value,
+                    "VUI field at +{field}"
+                );
+            }
+            // untouched VUI neighbours: overscan info (0..8), timing info
+            // (52..64) and the reserved tail (64..112) stay zero
+            assert!(config.0[vui..vui + VUI_VIDEO_SIGNAL_TYPE_PRESENT]
+                .iter()
+                .all(|byte| *byte == 0));
+            assert!(config.0[vui + VUI_BITSTREAM_RESTRICTION + 4..vui + 112]
+                .iter()
+                .all(|byte| *byte == 0));
+        };
+
+        assert_vui(&keepalive, H264_VUI_PARAMETERS);
+
+        // HEVC: same routine at the C-probe-verified hevcVUIParameters
+        // offset writes the same bytes (used by the future HEVC path)
+        let mut hevc_config = EncoderConfig::zeroed();
+        configure_sdr_colour_metadata(&mut hevc_config, HEVC_VUI_PARAMETERS);
+        assert_vui(&hevc_config, HEVC_VUI_PARAMETERS);
+
+        // nothing else in the H.264 config moved: the VUI struct ends at
+        // 72 + 112 = 184, and only chromaFormatIDC (192) follows before
+        // the tail — assert that gap stays zero and the known fields are
+        // still where the other layout tests pin them
+        let tail = CFG_CODEC_CONFIG + H264_VUI_PARAMETERS + 112;
+        assert!(keepalive.0[tail..CFG_CODEC_CONFIG + H264_CHROMA_FORMAT]
+            .iter()
+            .all(|byte| *byte == 0));
+        assert_eq!(keepalive.u32_at(CFG_CODEC_CONFIG + H264_CHROMA_FORMAT), 1);
+        assert_eq!(
+            keepalive.u32_at(CFG_VERSION),
+            struct_version(NVENCAPI_VERSION, 9) | (1 << 31)
+        );
     }
 
     /// LIVE NVENC probe — run explicitly on the streaming host (needs the

@@ -7,13 +7,13 @@ import { settingsContext } from "@renderer/context";
 import "./settings-behavior.scss";
 import { QuestionIcon } from "@primer/octicons-react";
 import type { ProtonVersion } from "@types";
+import { StartupBehaviorFields } from "./startup-behavior-fields";
 
 export function SettingsBehavior() {
   const userPreferences = useAppSelector(
     (state) => state.userPreferences.value
   );
 
-  const showRunAtStartup = !window.electron.isPortableVersion;
   const [protonVersions, setProtonVersions] = useState<ProtonVersion[]>([]);
   const [protonVersionsLoaded, setProtonVersionsLoaded] = useState(false);
   const [selectedDefaultProtonPath, setSelectedDefaultProtonPath] =
@@ -120,59 +120,15 @@ export function SettingsBehavior() {
 
   return (
     <>
-      <CheckboxField
-        label={t("quit_app_instead_hiding")}
-        checked={form.preferQuitInsteadOfHiding}
-        onChange={() =>
-          handleChange({
-            preferQuitInsteadOfHiding: !form.preferQuitInsteadOfHiding,
-          })
-        }
+      <StartupBehaviorFields
+        form={form}
+        onChange={handleChange}
+        launchMinimizedContainerClassName={`settings-behavior__checkbox-container ${
+          form.runAtStartup
+            ? "settings-behavior__checkbox-container--enabled"
+            : ""
+        }`}
       />
-
-      <CheckboxField
-        label={t("hide_to_tray_on_game_start")}
-        checked={form.hideToTrayOnGameStart}
-        onChange={() =>
-          handleChange({
-            hideToTrayOnGameStart: !form.hideToTrayOnGameStart,
-          })
-        }
-      />
-
-      {showRunAtStartup && (
-        <CheckboxField
-          label={t("launch_with_system")}
-          onChange={() => {
-            handleChange({ runAtStartup: !form.runAtStartup });
-            window.electron.autoLaunch({
-              enabled: !form.runAtStartup,
-              minimized: form.startMinimized,
-            });
-          }}
-          checked={form.runAtStartup}
-        />
-      )}
-
-      {showRunAtStartup && (
-        <div
-          className={`settings-behavior__checkbox-container ${form.runAtStartup ? "settings-behavior__checkbox-container--enabled" : ""}`}
-        >
-          <CheckboxField
-            label={t("launch_minimized")}
-            style={{ cursor: form.runAtStartup ? "pointer" : "not-allowed" }}
-            checked={form.runAtStartup && form.startMinimized}
-            disabled={!form.runAtStartup}
-            onChange={() => {
-              handleChange({ startMinimized: !form.startMinimized });
-              window.electron.autoLaunch({
-                minimized: !form.startMinimized,
-                enabled: form.runAtStartup,
-              });
-            }}
-          />
-        </div>
-      )}
 
       <CheckboxField
         label={t("launch_hydra_in_library_page")}

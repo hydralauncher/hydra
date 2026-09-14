@@ -1,9 +1,6 @@
-const fs = require("node:fs");
 const path = require("node:path");
-const util = require("node:util");
-const childProcess = require("node:child_process");
 
-const execFile = util.promisify(childProcess.execFile);
+const { buildCargoRelease } = require("./lib/native-build.cjs");
 
 const projectRoot = process.cwd();
 const manifestPath = path.join(
@@ -26,51 +23,6 @@ const sourceBinaryNameByPlatform = {
   win32: "hydra-stream.exe",
 };
 
-const run = async (command, args, options = {}) => {
-  await execFile(command, args, {
-    cwd: projectRoot,
-    maxBuffer: 1024 * 1024 * 10,
-    ...options,
-  });
-};
-
-const ensureDepsResolvableOnLinux = async (outputBinaryPath) => {
-  if (process.platform !== "linux") return;
-
-  const { stdout } = await execFile("ldd", [outputBinaryPath], {
-    cwd: projectRoot,
-    maxBuffer: 1024 * 1024 * 10,
-  });
-
-  if (stdout.includes("not found")) {
-    throw new Error(
-      `Unresolved dynamic dependencies found for ${outputBinaryPath}\n${stdout}`
-    );
-  }
-};
-
-const copySidecarLibrariesOnWindows = async (sourceDirectory) => {
-  if (process.platform !== "win32") return;
-
-  const candidateDlls = [
-    "libgcc_s_seh-1.dll",
-    "libstdc++-6.dll",
-    "libwinpthread-1.dll",
-    "vcruntime140.dll",
-    "vcruntime140_1.dll",
-    "msvcp140.dll",
-  ];
-
-  for (const dll of candidateDlls) {
-    const sourcePath = path.join(sourceDirectory, dll);
-    if (!fs.existsSync(sourcePath)) continue;
-    const targetPath = path.join(outputDir, dll);
-    if (!fs.existsSync(targetPath)) {
-      fs.copyFileSync(sourcePath, targetPath);
-    }
-  }
-};
-
 const build = async () => {
   // The stream sidecar is Windows-only for now (DXGI/NVENC/WASAPI).
   if (process.platform !== "win32") {
@@ -88,33 +40,12 @@ const build = async () => {
 
   console.log("Building hydra-stream Rust sidecar...");
 
-  const cargoArgs = [
-    "build",
-    "--release",
-    "--manifest-path",
+  const outputBinaryPath = await buildCargoRelease({
     manifestPath,
-    "--target-dir",
-    cargoTargetDir,
-  ];
-
-  await run("cargo", cargoArgs);
-
-  const sourceBinaryPath = path.join(
-    cargoTargetDir,
-    "release",
-    sourceBinaryName
-  );
-
-  if (!fs.existsSync(sourceBinaryPath)) {
-    throw new Error(`Native build output not found at ${sourceBinaryPath}`);
-  }
-
-  fs.mkdirSync(outputDir, { recursive: true });
-  const outputBinaryPath = path.join(outputDir, sourceBinaryName);
-  fs.copyFileSync(sourceBinaryPath, outputBinaryPath);
-
-  await copySidecarLibrariesOnWindows(path.dirname(sourceBinaryPath));
-  await ensureDepsResolvableOnLinux(outputBinaryPath);
+    targetDirectory: cargoTargetDir,
+    sourceBinaryName,
+    outputDirectory: outputDir,
+  });
 
   console.log(`Hydra stream sidecar ready at ${outputBinaryPath}`);
 };
