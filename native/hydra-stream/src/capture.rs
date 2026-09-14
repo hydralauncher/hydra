@@ -401,49 +401,14 @@ const RECREATE_BACKOFF: Duration = Duration::from_millis(500);
 /// (~30s at the backoff cadence) and lets the session tear down.
 const MAX_RECREATE_FAILURES: u32 = 60;
 
-/// Idle-desktop duplicate gate: a fresh desktop frame acquired within
-/// the last frame interval + this grace means the desktop is LIVE, so a
-/// timed-out acquire is jitter (the next present is moments away), not
-/// idleness — never emit a duplicate into a live stream. The grace
-/// covers the DXGI queue lag between a present and the frame becoming
-/// acquirable; without it the wall-clock threshold used to fire in the
-/// window between "frame interval elapsed" and "frame actually
-/// acquirable", emitting duplicate P-frames mid-game (measured as
-/// ~0.0ms acquire→encode p50 — an impossible value for a real encode —
-/// and a ~30fps stream at a 60Hz desktop).
-const IDLE_PRESENT_GRACE: Duration = Duration::from_millis(4);
-
 /// Pause after an idle acquire-timeout when the loop will retry without
 /// emitting anything (Sunshine display_base.cpp:315-324 sleeps 10ms the
-/// same way). NEVER call this before a duplicate emission or on the
-/// present-grace skip: the idle 60fps cadence is the pacer's slot
-/// schedule, which the duplicate admission stamps from the clock BEFORE
-/// the pause — a pause on the emission path would compound into the next
-/// slot and drift the cadence, and a pause on the grace skip makes a
-/// live desktop's next frame wait behind a sleep.
+/// same way). NEVER call this before a duplicate emission: the idle 60fps
+/// cadence is the pacer's slot schedule, which the duplicate admission
+/// stamps from the clock BEFORE the pause — a pause on the emission path
+/// would compound into the next slot and drift the cadence.
 fn idle_acquire_pause() {
     std::thread::sleep(Duration::from_millis(10));
-}
-
-/// Millisecond acquire wait for the pacing loop, rounded UP: the
-/// deadline must end no earlier than `until_due`, never a fraction of a
-/// millisecond short. The previous truncation (as_millis) cut up to
-/// 0.999ms off, and in the steady state the next presentation lands
-/// exactly at the pacer's slot — so during active content every acquire
-/// timed out just BEFORE the vsync and fell into the idle path. Zero
-/// stays zero (the caller is already past the deadline and polls);
-/// capped at 100ms like before.
-pub(crate) fn acquire_wait_ms(until_due: Duration) -> u32 {
-    if until_due.is_zero() {
-        return 0;
-    }
-    let whole = until_due.as_millis() as u32;
-    let ceil = if until_due.subsec_nanos() % 1_000_000 == 0 {
-        whole
-    } else {
-        whole.saturating_add(1)
-    };
-    ceil.clamp(1, 100)
 }
 
 /// Pure pacing predicate: is a frame due at `now`? `next_slot` is the
@@ -451,14 +416,13 @@ pub(crate) fn acquire_wait_ms(until_due: Duration) -> u32 {
 /// admitted frame's slot — the frame interval has elapsed, in the
 /// schedule's own terms, exactly when `now` reaches it.
 ///
-/// The comparison is exact (no early admission): a captured frame that
-/// presents *before* its slot is surplus, and admitting it would be the
-/// whole bug back. This is not the wall-clock threshold that phase-locked
-/// a ~30fps stream on a 60Hz desktop (see `IDLE_PRESENT_GRACE`): that
-/// misfire re-anchored the cadence clock from the emission, so every
-/// later deadline inherited the same offset. Here a rejected present is
-/// simply not emitted and the slot schedule keeps its own phase, so the
-/// next present is admitted normally.
+/// The comparison is exact (no early admission): an emission made before
+/// its slot would be the whole bug back, since the wire rate would then
+/// follow whatever the desktop presents. The misfire this guards against
+/// is a wall-clock threshold re-anchored from the emission, where every
+/// later deadline inherited the same offset (the ~30fps stream at a 60Hz
+/// desktop): here nothing moves the schedule but the slot itself, so it
+/// keeps its own phase.
 fn frame_due(now: Instant, next_slot: Instant) -> bool {
     now >= next_slot
 }
@@ -480,14 +444,16 @@ fn frame_due(now: Instant, next_slot: Instant) -> bool {
 /// the slot it was admitted for, so an emitted frame that lands late (or
 /// early, inside the schedule) never drags the following slots with it —
 /// a cadence re-anchored to the emission instant is what compounds into
-/// the ~30fps phase lock `IDLE_PRESENT_GRACE` documents. It is clamped to
+/// the ~30fps phase lock this schedule replaced. It is clamped to
 /// the admission instant instead, so a stall (idle desktop, a paused
 /// game, an encoder that fell behind) cannot bank slots and release them
 /// as a burst: the worst a stall costs is one frame that is due
 /// immediately.
 ///
-/// A frame that presents before its slot is dropped at the acquire
-/// boundary, so the surplus never costs a scale or a 4K encode.
+/// The duplicator is not touched before a slot is due: the image a slot
+/// takes is the newest the desktop has at that instant, so a present that
+/// arrives early is folded into it (the duplication coalesces) and costs
+/// neither a scale nor a 4K encode on its own.
 pub(crate) struct FramePacer {
     interval: Duration,
     /// Next instant a frame may be admitted. Advanced one `interval` per
@@ -1398,17 +1364,14 @@ pub struct NvencPipeline {
     /// Whether the last `encode_next` call computed its acquire wait as
     /// zero, i.e. the pacing budget was already spent (frames have been
     /// emitted and the frame interval elapsed with nothing out of the
-    /// encoder): the sender loop reads it through
-    /// `VideoPipeline::pacing_budget_spent` for the empty-iteration
-    /// backoff. False on every path that returned before the wait was
-    /// computed, and on a re-anchored emit.
+    /// encoder), or is waiting for a slot it may not take yet: the sender
+    /// loop reads it through `VideoPipeline::pacing_budget_spent` for the
+    /// empty-iteration backoff — that backoff is what carries the wait to
+    /// the slot, since the duplicator must not be touched before it. False
+    /// on every path that returned before the schedule was consulted, and
+    /// on a re-anchored emit.
     pacing_spent: bool,
-    /// instant the most recent desktop frame was acquired: the
-    /// desktop-idle detector for the duplicate path (a timed-out
-    /// acquire means "idle" only when no frame was acquired for a full
-    /// frame interval + IDLE_PRESENT_GRACE)
-    last_acquire: Option<Instant>,
-    frame_interval: std::time::Duration,
+
     /// Freshness budget the pre-encode gate below judges against: the
     /// sender loop installs its own through `set_frame_age_budget` before
     /// the first frame, and that value is the authoritative one (it is the
@@ -1448,12 +1411,13 @@ pub struct NvencPipeline {
     stale_submission_skips: u64,
     cross_busy_drops: u64,
     scaler_busy_drops: u64,
-    /// Presents the negotiated-fps pacer refused as surplus: real desktop
-    /// frames acquired before their slot, dropped before the scaler. Read
-    /// by the sender loop (`FrameSupply`) as proof the desktop is
-    /// presenting faster than the client asked — the supply counter that
-    /// separates "the compositor delivers 44/s" from "the wire carries
-    /// 60/s of repeats".
+    /// Presents the negotiated-fps pacer refused as surplus. It stands at
+    /// zero by construction now: a slot takes the newest image the
+    /// duplicator has instead of trying to take one early and refusing it,
+    /// so nothing is refused (an early present is folded into the image
+    /// the slot does take). Kept reported because the sender loop's supply
+    /// line reads it; the desktop's true present rate is what
+    /// `live_present_rate_probe` measures directly.
     pacer_surplus: u64,
     /// Frames dropped at an encoder/ring busy gate while a forced IDR was
     /// pending: the IDR request itself survives (idr_pending stays armed)
@@ -1746,8 +1710,6 @@ impl NvencPipeline {
             last_texture: None,
             pacing: FramePacer::new(frame_interval, Instant::now()),
             pacing_spent: false,
-            last_acquire: None,
-            frame_interval,
             max_frame_age,
             // seeded at the frame interval: a session's first frames have no
             // measurement yet, and one frame interval is the floor of what
@@ -2202,21 +2164,6 @@ impl NvencPipeline {
         }
     }
 
-    /// How long this iteration may block in the duplicator's acquire
-    /// before the pacer's next slot — the whole pacing wait of the loop.
-    /// It is the acquire timeout, not a sleep, so a present that lands
-    /// during the wait still wakes it at once (and the gate then decides:
-    /// admitted at its slot, dropped as surplus before it reaches the
-    /// scaler). 100ms until the first frame has ever been acquired — the
-    /// pre-existing startup wait, since the slot schedule says nothing
-    /// about a desktop that has not presented yet.
-    fn pacing_wait_ms(&self, now: Instant) -> u32 {
-        if self.last_texture.is_some() || self.bridge_last.is_some() {
-            acquire_wait_ms(self.pacing.wait(now))
-        } else {
-            100
-        }
-    }
 }
 
 /// Hands a cross-adapter ring slot back to the producer when the frame
@@ -2236,7 +2183,6 @@ fn bridge_finish_consume(
 
 impl VideoPipeline for NvencPipeline {
     fn encode_next(&mut self, force_idr: bool) -> Result<Option<EncodedFrame>, String> {
-        let now0 = Instant::now();
         // pessimistic default: every early return below leaves the sender
         // loop without a backoff (nothing was polled on a spent budget)
         self.pacing_spent = false;
@@ -2249,114 +2195,70 @@ impl VideoPipeline for NvencPipeline {
         if let Some(frame) = self.reap()? {
             return Ok(Some(frame));
         }
-        // Negotiated-fps gate at the acquire boundary (see [`FramePacer`]).
-        // A present that arrives before its slot is surplus — the desktop
-        // is presenting faster than the client negotiated — and is
-        // dropped HERE, before the scaler and the encoder: it never costs
-        // a scale or a 4K encode, which is why the gate sits at the
-        // acquire rather than on the encoded frames. The acquire is then
-        // re-issued for the next present, so the admitted frame is the
-        // newest one available at its slot and no captured frame is ever
-        // held across slots: the duplication carries a single current
-        // desktop image whose updates coalesce (MSDN "Desktop Duplication
-        // API"; `AcquireNextFrame` reports "a new desktop image is not
-        // available" when nothing was presented, and Sunshine reads
-        // `frame_info.LastPresentTime`, display_base.cpp:1364-1370, to
-        // tell whether the image it got is new), so this gate can delay
-        // an emission but can never re-issue an older frame.
+        // Negotiated-fps gate: a slot takes whatever the duplicator has at
+        // the slot instant, and nothing at all is asked of it before then.
+        // An image is not carried across the interval: `AcquireNextFrame`
+        // refuses to hand out the next image while one is outstanding
+        // (DXGI_ERROR_INVALID_CALL, which `live_present_rate_probe` probes
+        // for directly), so a present taken early could not be replaced by
+        // a newer one at the slot — it would pin the image the slot sends
+        // a full interval before that slot. The duplication carries a
+        // single current desktop image whose updates coalesce (MSDN
+        // "Desktop Duplication API"; `AcquireNextFrame` reports "a new
+        // desktop image is not available" when nothing was presented, and
+        // Sunshine reads `frame_info.LastPresentTime`,
+        // display_base.cpp:1364-1370, to tell whether the image it got is
+        // new), so the image a slot takes is the newest the desktop has, at
+        // most one interval old — and a present that lands between two
+        // slots is folded into the next one instead of costing a scale and
+        // a 4K encode on its own.
         //
-        // Idle-desktop pacing: when the last frame is being re-encoded at
-        // the frame rate, block in acquire only until the next re-encode
-        // is due — never a full timeout past it — so duplicate frames
-        // keep the negotiated fps instead of degrading to ~10fps
-        // (Sunshine display_base.cpp paces duplicates the same way).
-        // The wait is ROUNDED UP to whole milliseconds: a truncated
-        // deadline lands a fraction of a millisecond before the next
-        // vsync, and in the steady state (encode+send shorter than the
-        // frame interval) every acquire then times out just before the
-        // real frame instead of catching it.
-        let mut wait_ms = self.pacing_wait_ms(now0);
-        // a zero wait is the spent-budget state (acquire_wait_ms only
-        // collapses to zero when the deadline has already passed): this
-        // iteration polls the duplicator and the encoder without waiting,
-        // so the sender loop's empty-iteration backoff keys on it
-        self.pacing_spent = wait_ms == 0;
-        // telemetry: the instant each acquire attempt began, so the wait
-        // that produced the admitted frame can be reported (the loop
-        // re-issues the acquire for every surplus present it drops).
-        // Assigned on every path through the loop below before its first
-        // read, so it needs no initial value.
-        let mut acquire_started: Instant;
-        let acquired = loop {
-            acquire_started = Instant::now();
-            let acquired = match self
-                .capture
-                .as_ref()
-                .expect("capture set")
-                .acquire(wait_ms)
-            {
-                Ok(acquired) => acquired,
-                Err(error) => {
-                    self.acquire_error += 1;
-                    self.last_acquire_error = error.clone();
-                    eprintln!("video: capture error ({error}), re-creating duplication");
-                    self.begin_capture_recreate();
-                    return Ok(None);
-                }
-            };
-            let Some(frame) = acquired else { break None };
-            let now = Instant::now();
-            if self.pacing.due(now) {
-                // the slot is spent here, before the scaler/encoder gates:
-                // a frame one of those refuses costs cadence, never rate
-                self.pacing.note_emitted(now);
-                break Some(frame);
-            }
-            // surplus: released on drop (DXGI requires the frame back
-            // before the next acquire), never scaled, never encoded.
-            // `last_acquire` still records it: the idle detector reads
-            // that as proof the desktop is presenting.
-            //
-            // Counted (telemetry): a present the pacer threw away is still
-            // proof the compositor delivered one, and the sender loop needs
-            // it to report the desktop's present rate as a proxy rather
-            // than as the rate new frames reached the wire.
-            self.pacer_surplus += 1;
-            self.last_acquire = Some(frame.acquired);
-            drop(frame);
-            wait_ms = self.pacing_wait_ms(Instant::now());
-            self.pacing_spent = wait_ms == 0;
-        };
+        // The wait for the slot is spent without touching the duplicator
+        // (the sender loop's spent-budget backoff re-enters this call until
+        // the deadline): acquiring early cannot be undone — DXGI hands out
+        // only new frames, so a released one is gone for good, which is
+        // what used to lose the slot the refused image was going to fill.
         let now = Instant::now();
+        if !self.pacing.wait(now).is_zero() {
+            self.pacing_spent = true;
+            return Ok(None);
+        }
+        // telemetry: the instant the acquire attempt that produced the
+        // emitted frame began, so its own duration can be reported
+        let acquire_started = Instant::now();
+        let acquired = match self
+            .capture
+            .as_ref()
+            .expect("capture set")
+            .acquire(0)
+        {
+            Ok(acquired) => acquired,
+            Err(error) => {
+                self.acquire_error += 1;
+                self.last_acquire_error = error.clone();
+                eprintln!("video: capture error ({error}), re-creating duplication");
+                self.begin_capture_recreate();
+                return Ok(None);
+            }
+        };
         let Some(mut frame) = acquired else {
             self.acquire_timeout += 1;
             if self.acquire_ok == 0 && self.acquire_timeout == 1 {
                 eprintln!("video: duplicated output idle, waiting for first desktop frame");
             }
-            // Idle-duplicate keepalive, admitted on the slot itself: the
-            // duplicate is what holds the client's cadence when the
-            // desktop is not presenting, so it goes through the same
-            // `due` rule as a captured frame and the acquired slot is
-            // spent on admission below. A duplicate that is not due is
+            // Idle-duplicate keepalive, admitted on the slot itself: with
+            // nothing newer from the desktop and the slot due, the previous
+            // frame is re-encoded rather than the slot left empty, so the
+            // wire rate is the negotiated rate whatever the content does
+            // (Sunshine display_base.cpp paces duplicates the same way).
+            // Reaching this path means the duplicator had no new desktop
+            // image for this slot at all. A repeat that is not due is
             // dropped here and retried, so an idle desktop still receives
             // ~fps frames and never more.
             if !self.pacing.due(now) {
                 return Ok(None);
             }
-            // idle desktop: re-encode the previous frame at the frame
-            // rate. The gate is present-aware, not a bare wall-clock
-            // threshold: a frame acquired within the last frame interval
-            // + IDLE_PRESENT_GRACE means the desktop is LIVE (the next
-            // present is moments away; DXGI hands the frame out a short
-            // moment after the vsync), so this must skip instead of
-            // emitting a duplicate of the previous texture. The old
-            // threshold fired inside that vsync queue-lag window during
-            // active gameplay — every misfire re-anchored the pacing
-            // clock and the loop phase-locked away from the present
-            // cadence (the ~30fps stream with 0.0ms encode samples).
-            let desktop_idle = self.last_acquire.is_none_or(|at| {
-                now.duration_since(at) >= self.frame_interval + IDLE_PRESENT_GRACE
-            });
+            //
             // cross-adapter duplicates re-encode the last ring slot: its
             // content is unchanged, so only the consumer-side sync round
             // trip is needed before the encoder sees it again
@@ -2364,13 +2266,10 @@ impl VideoPipeline for NvencPipeline {
                 let Some(slot) = self.bridge_last else {
                     // no frame ever submitted: the duplicated desktop has
                     // been completely idle since the stream started
+                    self.idle_skips += 1;
                     idle_acquire_pause();
                     return Ok(None);
                 };
-                if !desktop_idle {
-                    self.idle_skips += 1;
-                    return Ok(None);
-                }
                 // the encoder may still be reading the slot from its
                 // previous submission: wait for that bitstream instead of
                 // overwriting a texture under the encode
@@ -2379,7 +2278,11 @@ impl VideoPipeline for NvencPipeline {
                     .values()
                     .any(|meta| matches!(meta.source, PendingSource::Bridge(s) if s == slot))
                 {
-                    idle_acquire_pause();
+                    // as above: the slot stays due, the ring slot frees with
+                    // the bitstream, so retry on the 1ms backoff rather than
+                    // pausing the emission path
+                    self.idle_skips += 1;
+                    self.pacing_spent = true;
                     return Ok(None);
                 }
                 self.pacing.note_emitted(now);
@@ -2425,20 +2328,26 @@ impl VideoPipeline for NvencPipeline {
             let Some(texture) = self.last_texture.clone() else {
                 // no frame ever acquired: the duplicated desktop has been
                 // completely idle since the stream started
+                self.idle_skips += 1;
                 idle_acquire_pause();
                 return Ok(None);
             };
-            if !desktop_idle {
-                self.idle_skips += 1;
-                return Ok(None);
-            }
             let Some(slot) = self.last_scaler_slot else {
+                self.idle_skips += 1;
                 idle_acquire_pause();
                 return Ok(None);
             };
             if self.scaler_slot_busy[slot] {
-                // the previous encode of this texture is still in flight
-                idle_acquire_pause();
+                // The previous encode of this texture is still in flight, so
+                // this one cannot re-encode it yet. Not a pause: the slot is
+                // still due and the target frees with the bitstream, so the
+                // sender loop's spent-budget backoff retries at 1ms and the
+                // repeat lands as soon as the encoder is done with it (a
+                // 10ms pause here drifts the cadence off the pacer's slot
+                // schedule, which the pause's own contract forbids on the
+                // emission path).
+                self.idle_skips += 1;
+                self.pacing_spent = true;
                 return Ok(None);
             }
             self.pacing.note_emitted(now);
@@ -2464,6 +2373,9 @@ impl VideoPipeline for NvencPipeline {
             }
             return self.reap();
         };
+        // the slot is spent here, before the scaler/encoder gates: a frame
+        // one of those refuses costs cadence, never rate
+        self.pacing.note_emitted(now);
         self.acquire_ok += 1;
         if self.acquire_ok == 1 {
             eprintln!(
@@ -2569,12 +2481,12 @@ impl VideoPipeline for NvencPipeline {
             }
         }
 
-        self.last_acquire = Some(frame.acquired);
-        // telemetry: how long the acquire that produced this texture
-        // blocked before a new desktop image was available. Measured from
-        // the attempt that returned it — after a stale drain that is the
-        // newest frame's wait, which is the same question asked of the
-        // texture actually being encoded.
+        // telemetry: how long the acquire that produced this texture took.
+        // It is a non-blocking poll at the slot (the wait for the slot
+        // itself is the sender loop's spent-budget backoff), so this is
+        // the duplicator's own handover cost; after a stale drain it is
+        // the newest frame's poll, the same question asked of the texture
+        // actually being encoded.
         let acquire_wait = frame.acquired.saturating_duration_since(acquire_started);
         // render the frame into the texture the encoder reads: the
         // scaler's owned targets (every same-adapter path), or the
@@ -2777,9 +2689,9 @@ impl VideoPipeline for NvencPipeline {
     }
 
     /// See [`VideoPipeline::pacing_budget_spent`]: the flag recorded by
-    /// the last `encode_next` (a zero acquire wait means the frame
-    /// interval already elapsed with the encoder still holding the
-    /// frame).
+    /// the last `encode_next` (true on the iteration that waited for a
+    /// slot it may not take yet, and on one that found the frame interval
+    /// already elapsed).
     fn pacing_budget_spent(&self) -> bool {
         self.pacing_spent
     }
@@ -2821,7 +2733,10 @@ impl VideoPipeline for NvencPipeline {
     /// See [`VideoPipeline::supply`]: the capture side's frame-supply
     /// counters. Every DXGI frame this pipeline saw is in exactly one of
     /// `new_frames`, `pacer_surplus` or `stale_drained`, so the sender loop
-    /// can read their sum as the present rate as far as this side sees it.
+    /// can read their sum as the content rate the slots consumed (the
+    /// desktop's own present rate is what `live_present_rate_probe`
+    /// measures — a slot takes the newest image in one acquisition, so
+    /// DXGI coalesces the presents between two slots into it).
     fn supply(&self) -> FrameSupply {
         FrameSupply {
             new_frames: self.acquire_ok,
@@ -2940,32 +2855,14 @@ mod tests {
     use std::time::{Duration, Instant};
 
     #[test]
-    fn acquire_wait_rounds_up_never_truncates() {
-        // zero stays zero: the caller is already past the deadline and
-        // polls without blocking
-        assert_eq!(acquire_wait_ms(Duration::ZERO), 0);
-        // a whole number of milliseconds is unchanged
-        assert_eq!(acquire_wait_ms(Duration::from_millis(16)), 16);
-        // the 60fps frame-interval remainder (16.666...ms) must round UP:
-        // truncating to 16 made every steady-state acquire time out a
-        // fraction of a millisecond before the next vsync
-        assert_eq!(acquire_wait_ms(Duration::from_secs_f64(1.0 / 60.0)), 17);
-        // sub-millisecond waits become a 1ms poll, never a block
-        assert_eq!(acquire_wait_ms(Duration::from_micros(400)), 1);
-        // cap preserved
-        assert_eq!(acquire_wait_ms(Duration::from_millis(150)), 100);
-        assert_eq!(acquire_wait_ms(Duration::from_secs(2)), 100);
-    }
-
-    #[test]
     fn frame_due_is_exact_at_the_slot_and_never_early() {
         let t = Instant::now();
         let interval = Duration::from_millis(16);
         let slot = t + interval; // one frame interval after the last slot
         // due exactly at the interval
         assert!(frame_due(slot, slot));
-        // not due just before it: an early present is surplus (the desktop
-        // presenting faster than the client asked for) and is dropped
+        // not due just before it: nothing is asked of the duplicator before
+        // the slot, so an emission can never run ahead of the schedule
         assert!(!frame_due(slot - Duration::from_millis(1), slot));
         assert!(!frame_due(slot - interval, slot));
         // and a slot already passed is due
@@ -3027,12 +2924,12 @@ mod tests {
     fn frame_pacer_jitter_around_the_slot_costs_one_frame_not_a_phase_lock() {
         // A present can land just before the slot the schedule put it in
         // (the duplicator hands the image over a moment after the vsync,
-        // and the lag moves). That present is surplus and is dropped — the
-        // next one, a full interval later, is admitted. What must NOT
-        // happen is what `IDLE_PRESENT_GRACE` records: every later slot
-        // inheriting that offset, halving the rate. Here 60Hz presents
-        // with a 3ms lag drift are admitted at the negotiated rate after
-        // the single drop the drift costs.
+        // and the lag moves). It is surplus for that slot — nothing is
+        // asked of the duplicator before the slot — and the next present,
+        // a full interval later, is admitted. What must NOT happen is the
+        // old misfire: every later slot inheriting that offset, halving
+        // the rate. Here 60Hz presents with a 3ms lag drift are admitted
+        // at the negotiated rate after the single drop the drift costs.
         let interval = Duration::from_millis(16);
         let start = Instant::now();
         let mut pacer = FramePacer::new(interval, start);
@@ -3082,6 +2979,41 @@ mod tests {
             }
         }
         assert_eq!(duplicates, 5 * 60);
+    }
+
+    #[test]
+    fn frame_pacer_holds_the_target_rate_below_the_content_rate() {
+        // The rule the shortfall turned on, against the real FramePacer: a
+        // desktop presenting 47/s to a 60 fps target must still get 60
+        // emissions/s — the slots the content does not fill are repeats,
+        // never dropped slots. Letting the content drive the cadence (the
+        // old behavior) is what showed up as `sent 52.4/s of 60` with
+        // `surplus` collapsing to 6.4/s in the short windows of the 526s
+        // session.
+        let start = Instant::now();
+        let interval = Duration::from_secs_f64(1.0 / 60.0);
+        let present_interval = Duration::from_secs_f64(1.0 / 47.0);
+        let mut pacer = FramePacer::new(interval, start);
+        let mut present_at = start + present_interval;
+        let mut now = start;
+        let mut fresh = 0u32;
+        let mut repeats = 0u32;
+        for _ in 0..300 {
+            // every slot emits: the newest desktop image when one arrived
+            // since the last slot, the previous frame re-encoded otherwise
+            let slot = now + pacer.wait(now);
+            pacer.note_emitted(slot);
+            if present_at <= slot {
+                fresh += 1;
+                present_at += present_interval;
+            } else {
+                repeats += 1;
+            }
+            now = slot;
+        }
+        assert_eq!(fresh + repeats, 300, "5s of 60 fps slots");
+        assert_eq!(fresh, 234, "the desktop's own 47/s: {fresh}");
+        assert_eq!(repeats, 66, "the rest is repeats: {repeats}");
     }
 
     #[test]
@@ -3630,11 +3562,27 @@ mod tests {
             std::env::set_var(crate::config::MAX_FRAME_AGE_ENV, "100");
         }
         let selection = encoder_selection();
+        // env overrides so the same harness can be pointed at the target
+        // the measurement is about (HYDRA_LIVE_WIDTH/HEIGHT/FPS/KBPS/
+        // SECONDS; 1280x720@60 for 15s by default)
+        let live_u32 = |name: &str, default: u32| -> u32 {
+            std::env::var(name)
+                .ok()
+                .and_then(|value| value.parse().ok())
+                .unwrap_or(default)
+        };
+        let (width, height) = (
+            live_u32("HYDRA_LIVE_WIDTH", 1280),
+            live_u32("HYDRA_LIVE_HEIGHT", 720),
+        );
+        let fps = live_u32("HYDRA_LIVE_FPS", 60);
+        let bitrate_kbps = live_u32("HYDRA_LIVE_KBPS", 15_000);
+        let seconds = live_u32("HYDRA_LIVE_SECONDS", 15);
         let config = EncoderConfigParams {
-            width: 1280,
-            height: 720,
-            fps: 60,
-            bitrate_kbps: 15_000,
+            width,
+            height,
+            fps,
+            bitrate_kbps,
             slices_per_frame: 1,
             max_ref_frames: crate::nvenc::REF_FRAMES_DEFAULT,
         };
@@ -3686,16 +3634,16 @@ mod tests {
                 1392,
                 10,
                 0,
-                Duration::from_millis(16),
-                1280,
-                720,
-                60,
-                15_000,
+                Duration::from_secs_f64(1.0 / fps as f64),
+                width,
+                height,
+                fps,
+                bitrate_kbps,
                 None,
             )
         });
 
-        let deadline = Instant::now() + Duration::from_secs(15);
+        let deadline = Instant::now() + Duration::from_secs(seconds as u64);
         let mut received = 0u64;
         let mut buffer = [0u8; 2048];
         while Instant::now() < deadline {
@@ -3715,5 +3663,166 @@ mod tests {
         video.join().expect("video loop").expect("video loop result");
         eprintln!("live smoke: client received {received} video datagrams (encoder={backend})");
         assert!(received > 0, "no video datagrams reached the client");
+    }
+
+    /// LIVE diagnostic — the compositor's own present rate, measured with
+    /// no scaling, no encoding, and no pacing in the way (ignored by
+    /// default, needs the real desktop):
+    ///
+    ///   cargo test --release -- --ignored live_present_rate_probe --nocapture --exact
+    ///
+    /// `AcquireNextFrame(0)` in a tight loop for a few seconds, with the
+    /// cursor wiggled at 60Hz exactly like `live_cross_adapter_smoke`, and
+    /// reports what DXGI says the desktop delivered: the sum of
+    /// `AccumulatedFrames` (every image the compositor presented since the
+    /// previous acquire, which an acquire-per-frame loop cannot shadow)
+    /// beside the acquire rate this loop could sustain. That separates
+    /// "the desktop really handed us 55-66/s" from "the desktop presented
+    /// ~100/s and the pipeline only looked ~55 times a second".
+    #[test]
+    #[ignore]
+    fn live_present_rate_probe() {
+        use std::sync::atomic::{AtomicBool, Ordering};
+        use std::sync::Arc;
+        use windows::Win32::Graphics::Dxgi::DXGI_OUTDUPL_FRAME_INFO;
+
+        let adapters = DxgiCapture::candidate_adapters().expect("adapters");
+        let capture = unsafe { try_adapter(&adapters[0]) }.expect("capture");
+        eprintln!(
+            "present-rate probe: desktop {}x{} @ {}Hz",
+            capture.width, capture.height, capture.refresh_hz
+        );
+        // the live smoke's cursor wiggle, so the number is comparable to a
+        // live run's `desktop≈N/s` proxy
+        let wiggle_stop = Arc::new(AtomicBool::new(false));
+        {
+            let wiggle_stop = wiggle_stop.clone();
+            std::thread::spawn(move || {
+                use windows::Win32::UI::WindowsAndMessaging::SetCursorPos;
+                let mut left = true;
+                while !wiggle_stop.load(Ordering::Relaxed) {
+                    left = !left;
+                    let x = if left { 300 } else { 340 };
+                    unsafe {
+                        let _ = SetCursorPos(x, 300);
+                    }
+                    std::thread::sleep(Duration::from_millis(16));
+                }
+            });
+        }
+
+        let span = Duration::from_secs(5);
+        let started = Instant::now();
+        let mut acquires = 0u64;
+        let mut presents = 0u64;
+        let mut present_frames = 0u64;
+        let mut timeouts = 0u64;
+        let mut last_present_time = i64::MIN;
+        // whether a frame may stay outstanding while the next one is asked
+        // for decides if a held present could ever be replaced by a newer
+        // one at the slot; DXGI's own answer is reported rather than
+        // assumed
+        let mut hold_probe: Option<String> = None;
+        while started.elapsed() < span {
+            let mut info = DXGI_OUTDUPL_FRAME_INFO::default();
+            let mut resource = None;
+            let status = unsafe {
+                capture
+                    .duplication
+                    .AcquireNextFrame(0, &mut info, &mut resource)
+            };
+            match status {
+                Ok(()) => {
+                    acquires += 1;
+                    // a pointer-only update is handed over as a frame with
+                    // no present behind it (LastPresentTime 0), so the two
+                    // are counted apart: `presents` is the compositor's own
+                    // count of images it put up, `present_frames` the
+                    // acquires that carried one
+                    presents += u64::from(info.AccumulatedFrames);
+                    if info.LastPresentTime != 0 {
+                        present_frames += 1;
+                        last_present_time = info.LastPresentTime;
+                    }
+                    if hold_probe.is_none() {
+                        // still holding this frame: can the duplicator hand
+                        // out the next one while a frame is outstanding?
+                        let mut next_info = DXGI_OUTDUPL_FRAME_INFO::default();
+                        let mut next_resource = None;
+                        let held = unsafe {
+                            capture.duplication.AcquireNextFrame(
+                                5,
+                                &mut next_info,
+                                &mut next_resource,
+                            )
+                        };
+                        hold_probe = Some(match &held {
+                            Ok(()) => "acquire while holding a frame: OK".to_string(),
+                            Err(error) => format!("acquire while holding a frame: {error}"),
+                        });
+                        if held.is_ok() {
+                            let _ = unsafe { capture.duplication.ReleaseFrame() };
+                        }
+                    }
+                    let _ = unsafe { capture.duplication.ReleaseFrame() };
+                }
+                Err(error) if error.code() == DXGI_ERROR_WAIT_TIMEOUT => timeouts += 1,
+                Err(error) => panic!("AcquireNextFrame: {error}"),
+            }
+        }
+        let seconds = started.elapsed().as_secs_f64();
+        // Phase B: the same loop with each frame held for one frame
+        // interval before it is released. Read its PRESENT rate against
+        // phase A's (they are the same loop, so the only difference is the
+        // hold): the frame handover rate is ours and drops to ~1/16ms by
+        // construction. Measured on this machine the two ran at the same
+        // rate in one run (100.4 against 100.3/s) but 84.6 against 20.8/s
+        // in another, so the desktop's present rate is not stable enough
+        // here to attribute a collapse to the hold — which is moot anyway:
+        // `AcquireNextFrame` refuses to hand out a frame while one is
+        // outstanding, and the pipeline does not hold one.
+        let held_started = Instant::now();
+        let mut held_presents = 0u64;
+        let mut held_frames = 0u64;
+        while held_started.elapsed() < span {
+            let mut info = DXGI_OUTDUPL_FRAME_INFO::default();
+            let mut resource = None;
+            match unsafe {
+                capture
+                    .duplication
+                    .AcquireNextFrame(0, &mut info, &mut resource)
+            } {
+                Ok(()) => {
+                    held_frames += 1;
+                    held_presents += u64::from(info.AccumulatedFrames);
+                    std::thread::sleep(Duration::from_millis(16));
+                    let _ = unsafe { capture.duplication.ReleaseFrame() };
+                }
+                Err(error) if error.code() == DXGI_ERROR_WAIT_TIMEOUT => {
+                    std::thread::sleep(Duration::from_millis(1));
+                }
+                Err(error) => panic!("AcquireNextFrame: {error}"),
+            }
+        }
+        let held_seconds = held_started.elapsed().as_secs_f64();
+        wiggle_stop.store(true, Ordering::Relaxed);
+        eprintln!(
+            "present-rate probe (frame held ~16ms): {:.1} presents/s, {:.1} frame handovers/s over {:.1}s",
+            held_presents as f64 / held_seconds,
+            held_frames as f64 / held_seconds,
+            held_seconds
+        );
+        eprintln!(
+            "present-rate probe: {:.1} presents/s (AccumulatedFrames sum), {:.1} present frames/s \
+             (LastPresentTime set), {:.1} frame handovers/s, {:.1} million polls/s, over {:.1}s; \
+             last LastPresentTime={last_present_time}",
+            presents as f64 / seconds,
+            present_frames as f64 / seconds,
+            acquires as f64 / seconds,
+            (acquires + timeouts) as f64 / seconds / 1e6,
+            seconds
+        );
+        eprintln!("present-rate probe: {}", hold_probe.unwrap_or_default());
+        assert!(presents > 0, "no desktop presents observed");
     }
 }

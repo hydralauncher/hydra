@@ -646,9 +646,11 @@ impl PeriodicKeyframe {
 /// the question the `sent N/s` rate alone cannot: whether the wire is
 /// carrying new desktop frames or repeats. Every DXGI frame the capture
 /// side saw is counted in exactly one of `new_frames`, `pacer_surplus` or
-/// `stale_drained`, so their sum is the desktop present rate as far as
-/// this side can observe it — a LOWER BOUND: DXGI coalesces updates, so a
-/// compositor that presented twice between two acquires shows up once.
+/// `stale_drained` — and since a slot now takes the newest image the
+/// duplicator has instead of polling for one early, that sum is the
+/// content rate the slots consumed, not the desktop's present rate: DXGI
+/// coalesces every update between two acquisitions into the image the
+/// next slot takes (see `live_present_rate_probe` for the rate itself).
 #[derive(Clone, Copy, Default)]
 pub struct FrameSupply {
     /// `acquire ok`: desktop frames acquired that were NEW (a fresh
@@ -658,13 +660,16 @@ pub struct FrameSupply {
     /// Acquire calls that timed out. Per call, not per frame: the loop
     /// re-issues the acquire when it still owes an emission.
     pub acquire_timeouts: u64,
-    /// Presents the negotiated-fps pacer refused as surplus (a desktop
-    /// presenting faster than the client negotiated). Never scaled, never
-    /// encoded.
+    /// Presents the negotiated-fps pacer refused as surplus. Zero by
+    /// construction with the held-present path — an early present is held
+    /// for its slot, not refused — so `(new + surplus + drained)` is no
+    /// longer a lower bound on the desktop's present rate: the present
+    /// rate is what `live_present_rate_probe` measures directly.
     pub pacer_surplus: u64,
-    /// Present-grace skips: the acquire timed out but a frame was acquired
-    /// within the frame interval + grace, so the desktop is live and the
-    /// idle-duplicate path stood down (see `IDLE_PRESENT_GRACE`).
+    /// Times the idle-duplicate path stood down on a due slot: no desktop
+    /// frame to re-encode yet (or its texture is still inside the
+    /// encoder). A repeat is the last resort, so these are the slots a
+    /// repeat could not cover either.
     pub idle_skips: u64,
     /// Frames drained while skipping ahead to the newest texture (the
     /// first half of the pre-encode age gate): real presents that were
@@ -771,10 +776,11 @@ pub trait VideoPipeline: Send {
     }
 
     /// Cumulative frame-supply counters ([`FrameSupply`]): new desktop
-    /// frames, acquire timeouts, presents refused as surplus, present-grace
-    /// skips, stale drains. The sender loop reports the window deltas beside
-    /// `sent N/s` so a rate carried by repeats rather than new frames is
-    /// visible as such. All zero for sources without a capture side.
+    /// frames, acquire timeouts, presents refused as surplus, slots an
+    /// idle duplicate stood down on, stale drains. The sender loop reports
+    /// the window deltas beside `sent N/s` so a rate carried by repeats
+    /// rather than new frames is visible as such. All zero for sources
+    /// without a capture side.
     fn supply(&self) -> FrameSupply {
         FrameSupply::default()
     }
@@ -1027,12 +1033,13 @@ fn report_latencies(
     };
     // The box that explains what the capture side was doing instead: the
     // supply counters as window deltas, beside a sent rate that can be
-    // carried by repeats. `desktop≈N/s` is the presents those counters
-    // account for — new + refused surplus + stale drains, i.e. every DXGI
-    // frame the capture side saw, and a LOWER bound on the compositor's
-    // real present rate because DXGI coalesces updates between acquires.
-    // Printed whenever the window spans real time, even with no frames
-    // sent (a starved window is exactly when it matters).
+    // carried by repeats. `desktop≈N/s` is the content rate those counters
+    // account for — new + refused surplus + stale drains. It is NOT the
+    // compositor's present rate: a slot takes the newest image the
+    // duplicator has, so DXGI coalesces every update between two slots into
+    // it (`live_present_rate_probe` measures the rate itself). Printed
+    // whenever the window spans real time, even with no frames sent (a
+    // starved window is exactly when it matters).
     let supply_clause = if span < Duration::from_secs(1) {
         String::new()
     } else {
@@ -1843,13 +1850,13 @@ pub fn run_video_loop(
         );
     }
     // loop-period probe: time between sender-loop iterations, the
-    // health metric for inter-iteration stalls (a healthy loop now
-    // iterates at the negotiated frame cadence — the pipeline drops the
-    // surplus presents at its acquire boundary, so the desktop's present
-    // rate no longer sets the loop period — plus one re-poll per
-    // pipelined frame; an iteration that produced no frame with the
-    // pacing budget already spent carries the `empty_poll_backoff` sleep,
-    // so its period floors at ~1ms instead of spinning)
+    // health metric for inter-iteration stalls (a healthy loop iterates
+    // at the negotiated frame cadence plus one re-poll per pipelined
+    // frame: the pipeline only touches the duplicator on a slot, so
+    // neither the desktop's present rate nor a present arriving mid-slot
+    // sets the loop period; the iterations spent waiting for a slot carry
+    // the `empty_poll_backoff` sleep, so the period floors at ~1ms
+    // instead of spinning)
     let mut last_loop_iteration = Instant::now();
     let mut loop_periods: Vec<Duration> = Vec::new();
     // Forced-IDR lifecycle numbering: the GOP is infinite, so every IDR is
