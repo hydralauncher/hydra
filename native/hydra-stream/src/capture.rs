@@ -1086,6 +1086,51 @@ struct TextureScaler {
 
 unsafe impl Send for TextureScaler {}
 
+/// The frame-scaling stage of the pipeline: the D3D11 video processor for SDR
+/// sessions, or the HDR shader converter (`hdr::HdrConverter`) when the
+/// session encodes HDR10 — the video processor cannot ingest the FP16 scRGB
+/// surface HDR capture produces. Both offer the three operations the pipeline
+/// uses, and each produces exactly the input format its session's encoder
+/// registered: 8-bit BGRA for SDR, P010 for HDR.
+enum Scaler {
+    Sdr(TextureScaler),
+    Hdr(crate::hdr::HdrConverter),
+}
+
+impl Scaler {
+    /// The encoder-side size this scaler renders at.
+    fn target_size(&self) -> (u32, u32) {
+        match self {
+            Scaler::Sdr(scaler) => scaler.target_size(),
+            Scaler::Hdr(converter) => converter.target_size(),
+        }
+    }
+
+    /// Scales (SDR) or converts (HDR) `source` into this scaler's own target
+    /// for `slot`.
+    fn scale(&mut self, source: &ID3D11Texture2D, slot: usize) -> Result<ID3D11Texture2D, String> {
+        match self {
+            Scaler::Sdr(scaler) => scaler.scale(source, slot),
+            Scaler::Hdr(converter) => converter.convert(source, slot),
+        }
+    }
+
+    /// Same, into a caller-provided target (a cross-adapter ring slot). The
+    /// HDR converter has no cross-adapter path — the bridge's shared textures
+    /// are 8-bit BGRA — and `create_capture` keeps HDR sessions off it, so
+    /// this arm only exists to keep the two scalers interchangeable.
+    fn scale_into(
+        &mut self,
+        source: &ID3D11Texture2D,
+        target: &ID3D11Texture2D,
+    ) -> Result<(), String> {
+        match self {
+            Scaler::Sdr(scaler) => scaler.scale_into(source, target),
+            Scaler::Hdr(_) => Err("HDR sessions have no cross-adapter scaling path".to_string()),
+        }
+    }
+}
+
 impl TextureScaler {
     fn new(
         device: &ID3D11Device,
@@ -1424,7 +1469,7 @@ pub struct NvencPipeline {
     /// same-resolution fast-path comparison).
     recreate_pending: bool,
     encoder: Option<Box<dyn TextureEncoder>>,
-    scaler: Option<TextureScaler>,
+    scaler: Option<Scaler>,
     /// Cross-adapter shared-texture ring; the encoder reads the ring's
     /// consumer-side textures on a second GPU. None = the encoder reads
     /// capture-device textures directly.
@@ -1592,7 +1637,7 @@ fn create_capture(
         DxgiCapture,
         Box<dyn TextureEncoder>,
         EncoderBackend,
-        Option<TextureScaler>,
+        Option<Scaler>,
         Option<CrossAdapterBridge>,
     ),
     String,
@@ -1618,8 +1663,10 @@ fn create_capture(
 
         // Cross-adapter encode (auto and amf-cross): the scaler renders
         // into shared textures and the AMF session runs on a second GPU,
-        // leaving the display adapter to the game.
-        if !skip_cross && attempts_cross(selection) {
+        // leaving the display adapter to the game. Not for HDR sessions:
+        // the bridge's shared textures are 8-bit BGRA, so the P010 the HDR
+        // encoder needs has nowhere to go.
+        if !skip_cross && attempts_cross(selection) && !crate::nvenc::is_hdr_session(&config) {
             match try_cross_encoder(&capture, &config, &adapters) {
                 Ok((encoder, bridge, offload_name)) => {
                     // the cross-adapter path always runs through the
@@ -1632,7 +1679,7 @@ fn create_capture(
                         config.height,
                         config.fps,
                     ) {
-                        Ok(scaler) => scaler,
+                        Ok(scaler) => Scaler::Sdr(scaler),
                         Err(error) => {
                             eprintln!("adapter {name} unusable: scaling init failed: {error}");
                             errors.push(format!("{name}: scaler: {error}"));
@@ -1702,14 +1749,38 @@ fn create_capture(
         // overwrite a texture NVENC is still reading (torn frames). The
         // owned-target copy also gives idle-desktop duplicates a stable
         // re-encode source.
-        let scaler = match TextureScaler::new(
-            &capture.device(),
-            capture.width,
-            capture.height,
-            config.width,
-            config.height,
-            config.fps,
-        ) {
+        //
+        // An HDR10 session takes the shader converter instead: it consumes
+        // the FP16 scRGB duplication surface and emits the P010 the encoder
+        // session was configured for. The two are chosen together with the
+        // encoder's buffer format (`nvenc::is_hdr_session`), so a scaler can
+        // never disagree with the format its encoder registered.
+        let scaler = if crate::nvenc::is_hdr_session(&config) {
+            eprintln!(
+                "capture adapter: {name} HDR10 conversion: scRGB FP16 {}x{} -> BT.2020/PQ P010 \
+                 {}x{}",
+                capture.width, capture.height, config.width, config.height
+            );
+            crate::hdr::HdrConverter::new(
+                &capture.device(),
+                capture.width,
+                capture.height,
+                config.width,
+                config.height,
+            )
+            .map(Scaler::Hdr)
+        } else {
+            TextureScaler::new(
+                &capture.device(),
+                capture.width,
+                capture.height,
+                config.width,
+                config.height,
+                config.fps,
+            )
+            .map(Scaler::Sdr)
+        };
+        let scaler = match scaler {
             Ok(scaler) => Some(scaler),
             Err(error) => {
                 eprintln!("adapter {name} unusable: scaling init failed: {error}");
@@ -1791,7 +1862,7 @@ impl NvencPipeline {
         let source_size = (capture.width, capture.height);
         let encode_size = scaler
             .as_ref()
-            .map(TextureScaler::target_size)
+            .map(Scaler::target_size)
             .unwrap_or(source_size);
         // fallback freshness budget for the frame-age drop policy: the
         // sender loop installs its own (3x the frame interval, clamped to
@@ -1961,7 +2032,7 @@ impl NvencPipeline {
                 let source_size = (capture.width, capture.height);
                 let encode_size = scaler
                     .as_ref()
-                    .map(TextureScaler::target_size)
+                    .map(Scaler::target_size)
                     .unwrap_or(self.encode_size);
                 let reverted = std::mem::take(&mut self.resize_reverted);
                 match self.resize_from.take() {
@@ -3705,8 +3776,14 @@ mod tests {
         let bitrate_kbps = live_u32("HYDRA_LIVE_KBPS", 15_000);
         let seconds = live_u32("HYDRA_LIVE_SECONDS", 15);
         let config = EncoderConfigParams {
-            codec: crate::video::VideoCodec::H264,
-            hdr: false,
+            // HYDRA_LIVE_CODEC=hevc (with HYDRA_STREAM_HDR=1) drives the HDR10
+            // path through this harness: the same loop then captures the FP16
+            // scRGB desktop, converts it to P010 and encodes Main10.
+            codec: match std::env::var("HYDRA_LIVE_CODEC").ok().as_deref() {
+                Some("hevc") | Some("h265") => crate::video::VideoCodec::Hevc,
+                _ => crate::video::VideoCodec::H264,
+            },
+            hdr: crate::config::hdr_enabled(),
             width,
             height,
             fps,

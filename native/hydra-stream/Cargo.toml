@@ -12,7 +12,7 @@ tokio = { version = "1", features = ["io-std", "io-util", "macros", "net", "rt-m
 tokio-rustls = { version = "0.26", default-features = false, features = ["logging", "tls12", "ring"] }
 ring = { version = "0.17", default-features = false, features = ["alloc"] }
 rustls = { version = "0.23", default-features = false, features = ["std", "logging", "tls12", "ring"] }
-windows = { version = "0.58", features = ["Win32_Foundation", "Win32_Security", "Win32_System_LibraryLoader", "Win32_System_Power", "Win32_System_Threading", "Win32_Graphics_Dxgi", "Win32_Graphics_Dxgi_Common", "Win32_Graphics_Direct3D", "Win32_Graphics_Direct3D11", "Win32_Graphics_Gdi", "Win32_UI_WindowsAndMessaging", "Win32_UI_Input_KeyboardAndMouse", "Win32_Media_Audio", "Win32_Media_Audio_Endpoints", "Win32_Media_Multimedia", "Win32_System_Com", "Win32_Networking_WinSock"] }
+windows = { version = "0.58", features = ["Win32_Foundation", "Win32_Security", "Win32_System_LibraryLoader", "Win32_System_Power", "Win32_System_Threading", "Win32_Graphics_Dxgi", "Win32_Graphics_Dxgi_Common", "Win32_Graphics_Direct3D", "Win32_Graphics_Direct3D11", "Win32_Graphics_Direct3D_Fxc", "Win32_Graphics_Gdi", "Win32_UI_WindowsAndMessaging", "Win32_UI_Input_KeyboardAndMouse", "Win32_Media_Audio", "Win32_Media_Audio_Endpoints", "Win32_Media_Multimedia", "Win32_System_Com", "Win32_Networking_WinSock"] }
 rcgen = { version = "0.13", features = ["pem"] }
 sha2 = "0.10"
 aes = "0.8"

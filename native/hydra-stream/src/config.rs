@@ -159,13 +159,13 @@ pub const HDR_ENV: &str = "HYDRA_STREAM_HDR";
 /// surface the legacy `IDXGIOutput1::DuplicateOutput` can only return, and
 /// the encoder selects HEVC Main10 with the Rec. 2020 / ST 2084 (PQ) VUI.
 ///
-/// Off by default, deliberately. The flag exists so each slice of the HDR
-/// work can be exercised before the next lands — and turning it on streams
-/// nothing until the scRGB -> PQ conversion is in place, because the
-/// duplication surface's format is fixed when the duplication is created and
-/// the scaler still produces 8-bit BGRA. It is a stand-in for the session's
-/// negotiated HDR state (`hdrMode` in `/launch`,
-/// `x-nv-video[0].dynamicRangeMode` in the ANNOUNCE). Read once per process.
+/// Off by default, deliberately: it stands in for the session's negotiated
+/// HDR state (`hdrMode` in `/launch`, `x-nv-video[0].dynamicRangeMode` in the
+/// ANNOUNCE), which is the slice still to come. On an HEVC session the whole
+/// path is in place — FP16 scRGB capture, the BT.2020/PQ conversion into
+/// P010, and a Main10 encode with the PQ VUI — so turning this on streams
+/// real HDR10 today; on the H.264 sessions the negotiation still allows it
+/// degrades to SDR end to end. Read once per process.
 pub fn hdr_enabled() -> bool {
     static ENABLED: OnceLock<bool> = OnceLock::new();
     *ENABLED.get_or_init(|| {

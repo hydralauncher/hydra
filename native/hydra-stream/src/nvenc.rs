@@ -153,7 +153,10 @@ fn profile_guid(codec: VideoCodec, hdr: bool) -> NvGuid {
 /// Whether a session really encodes HDR10. HDR is HEVC-only (Main10), so a
 /// flag on an H.264 session degrades to SDR everywhere — profile, VUI *and*
 /// input buffer format have to agree, and this is the one place that decides.
-fn is_hdr_session(params: &EncoderConfigParams) -> bool {
+/// The capture pipeline asks the same function to choose its scaler, so the
+/// encoder's registered format and the scaler's output format cannot
+/// disagree.
+pub(crate) fn is_hdr_session(params: &EncoderConfigParams) -> bool {
     params.hdr && matches!(params.codec, VideoCodec::Hevc)
 }
 
@@ -499,13 +502,14 @@ pub struct EncoderConfigParams {
     /// the profile GUID and the codec-specific config block — everything
     /// else (rate control, GOP, low latency) is identical for both.
     pub codec: VideoCodec,
-    /// Whether this session streams HDR10. Selects the HEVC Main10 profile
-    /// and the Rec. 2020 / ST 2084 (PQ) VUI instead of Main + BT.709. HDR is
-    /// HEVC-only, so on an H.264 session this degrades to SDR in
-    /// [`build_init_params`] rather than declaring BT.2020 over an 8-bit
-    /// High-profile stream. The 10-bit input surface is *not* implied here
-    /// yet: the scaler still feeds 8-bit BGRA until the scRGB -> PQ
-    /// conversion lands, and NVENC's input format is chosen at submission.
+    /// Whether this session streams HDR10. Selects the HEVC Main10 profile,
+    /// the Rec. 2020 / ST 2084 (PQ) VUI instead of Main + BT.709, and the
+    /// 10-bit input/output declaration that makes the coded samples 10-bit
+    /// rather than just the profile label. HDR is HEVC-only, so on an H.264
+    /// session this degrades to SDR in [`build_init_params`] rather than
+    /// declaring BT.2020 over an 8-bit High-profile stream. [`is_hdr_session`]
+    /// is the single predicate for all of it, and the capture pipeline asks
+    /// the same function to build the matching P010 converter.
     pub hdr: bool,
     pub width: u32,
     pub height: u32,

@@ -10,6 +10,7 @@ pub mod control;
 pub mod crypto;
 pub mod enet;
 pub mod fec;
+pub mod hdr;
 pub mod http;
 pub mod input;
 pub mod input_windows;
