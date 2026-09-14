@@ -141,6 +141,28 @@ export const hashRomBuffer = (
   return crc32(content);
 };
 
+const hashArchivedRom = async (
+  filePath: string,
+  platform: RetroArchPlatform,
+  signal?: AbortSignal
+): Promise<string | null> => {
+  try {
+    const rom = await inspectRomArchive(filePath, signal);
+    if (rom?.platform !== platform) return null;
+    const { SevenZip } = await import("../7zip");
+    const content = await SevenZip.readEntry(
+      filePath,
+      rom.name,
+      MAX_ARCHIVED_ROM_BYTES,
+      signal
+    );
+    if (content.length !== rom.size) return null;
+    return hashRomBuffer(content, platform);
+  } catch {
+    return null;
+  }
+};
+
 export const hashRomFile = async (
   filePath: string,
   platform: RetroArchPlatform,
@@ -148,21 +170,7 @@ export const hashRomFile = async (
 ): Promise<string | null> => {
   if (signal?.aborted) return null;
   if (isRetroArchArchive(filePath)) {
-    try {
-      const rom = await inspectRomArchive(filePath, signal);
-      if (rom?.platform !== platform) return null;
-      const { SevenZip } = await import("../7zip");
-      const content = await SevenZip.readEntry(
-        filePath,
-        rom.name,
-        MAX_ARCHIVED_ROM_BYTES,
-        signal
-      );
-      if (content.length !== rom.size) return null;
-      return hashRomBuffer(content, platform);
-    } catch {
-      return null;
-    }
+    return hashArchivedRom(filePath, platform, signal);
   }
 
   let handle: fs.FileHandle | null = null;
