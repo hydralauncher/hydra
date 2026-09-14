@@ -17,7 +17,7 @@ const getKillCommand = (pid: number) => {
   return `kill -9 ${pid}`;
 };
 
-const closeGame = async (
+export const closeGame = async (
   _event: Electron.IpcMainInvokeEvent,
   shop: GameShop,
   objectId: string

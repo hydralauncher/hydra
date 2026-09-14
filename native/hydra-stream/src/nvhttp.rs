@@ -1,0 +1,1835 @@
+use std::collections::HashMap;
+use std::net::IpAddr;
+use std::sync::Mutex;
+use std::time::{Duration, Instant};
+
+use serde::{Deserialize, Serialize};
+use serde_json::json;
+use tokio::sync::mpsc;
+
+use crate::certs;
+use crate::config;
+use crate::crypto;
+use crate::store::Store;
+
+pub const HTTPS_PORT: u16 = 47984;
+pub const HTTP_PORT: u16 = 47989;
+pub const HOSTNAME: &str = "Hydra";
+
+const APPVERSION: &str = "7.1.431.-1";
+const GFE_VERSION: &str = "3.23.0.74";
+pub(crate) const PAIR_TIMEOUT: Duration = Duration::from_secs(300);
+const DESKTOP_APPID: u32 = 1;
+
+#[derive(Serialize, Deserialize, Clone)]
+pub struct PairedClient {
+    pub uniqueid: String,
+    pub name: String,
+    pub cert: String,
+}
+
+pub struct State {
+    pub store: Store,
+    pub uuid: String,
+    pub identity: certs::Identity,
+    pub cert_signature: Vec<u8>,
+    pub paired: Mutex<HashMap<String, PairedClient>>,
+    pub sessions: Mutex<HashMap<String, PairSession>>,
+    pub game_session: Mutex<GameSession>,
+    pub stream: Mutex<Option<crate::stream::StreamHandle>>,
+    /// Starvation-aware gate for client IDR requests (REQUEST_IDR
+    /// floods): one applied request per 200ms at most (~5/s) while a
+    /// client is starving, slowing to one per 500ms (2/s) once eight
+    /// applied requests in one episode are still drawing more —
+    /// persistent begging is evidence that keyframes are not the fix, so
+    /// it slows the response instead of speeding it up (see
+    /// `stream::IdrRequestGate`).
+    pub idr_gate: Mutex<crate::stream::IdrRequestGate>,
+    /// Host-originated control message sequence number (for the 0x0001
+    /// AES-GCM envelope of encrypted termination messages).
+    pub control_out_seq: std::sync::atomic::AtomicU32,
+    /// App catalog pushed by the Electron host (Hydra game library).
+    /// Desktop (appid 1) is always served in addition to these.
+    pub app_list: Mutex<Vec<StreamApp>>,
+    /// Media (video/audio) UDP sockets bound ONCE for the life of the
+    /// process, like Sunshine's stream sockets. Per-session binds created
+    /// a dead window between sessions: the client's hole-punch pings
+    /// arrived while nothing was bound (or were consumed by the dying
+    /// session's drain loop), so a relaunched session never learned the
+    /// client endpoint and dropped every frame. With one long-lived
+    /// socket the kernel queues pings across the gap and the next
+    /// session's first drain learns the endpoint.
+    pub media: Mutex<Option<(std::net::UdpSocket, std::net::UdpSocket)>>,
+    pub events: mpsc::UnboundedSender<String>,
+}
+
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+pub enum GamePhase {
+    Idle,
+    Launching,
+    WaitingForClient,
+    Streaming,
+    Quitting,
+}
+
+impl GamePhase {
+    pub fn as_str(self) -> &'static str {
+        match self {
+            GamePhase::Idle => "idle",
+            GamePhase::Launching => "launching",
+            GamePhase::WaitingForClient => "waiting-for-client",
+            GamePhase::Streaming => "streaming",
+            GamePhase::Quitting => "quitting",
+        }
+    }
+}
+
+#[derive(Clone)]
+pub struct LaunchParams {
+    pub uniqueid: String,
+    pub appid: u32,
+    pub width: u32,
+    pub height: u32,
+    pub fps: u32,
+    pub rikey: [u8; 16],
+    pub encrypted_rtsp: bool,
+    pub av_ping_payload: String,
+    pub control_connect_data: u32,
+    pub activity: Instant,
+    /// `x-nv-video[0].packetSize` from ANNOUNCE (Moonlight default 1392).
+    pub packet_size: u32,
+    /// `x-nv-vqos[0].bw.maximumBitrateKbps` from ANNOUNCE.
+    pub bitrate_kbps: u32,
+    /// `x-nv-video[0].videoEncoderSlicesPerFrame` from ANNOUNCE.
+    pub slices_per_frame: u32,
+    /// `x-nv-video[0].maxNumReferenceFrames` from ANNOUNCE: the DPB depth
+    /// the client asks for. `Some(0)` = "host picks" (only an RFI-aware
+    /// client sends it), `Some(n > 0)` = that many reference frames, `None`
+    /// = attribute absent (an older client). Resolved against the startup
+    /// probe in `capture::resolve_ref_frames`.
+    pub max_ref_frames: Option<i32>,
+    /// `localAudioPlayMode` from /launch: host plays the audio (higher
+    /// Opus bitrate, matching Sunshine's stream configs).
+    pub host_audio: bool,
+    /// `x-nv-aqos.packetDuration` from ANNOUNCE (milliseconds per Opus
+    /// packet, Moonlight default 5).
+    pub packet_duration_ms: u32,
+    /// `x-nv-vqos[0].fec.minRequiredFecPackets` from ANNOUNCE: the minimum
+    /// recovery packets the client needs in every FEC block (0 = none).
+    /// Sunshine defaults the attribute to 0 (`rtsp.cpp:1132`) and hands it
+    /// to the encoder as `stream::config_t::minRequiredFecPackets`
+    /// (`rtsp.cpp:1157`, `stream.cpp:852-859` raises a block's parity to
+    /// it). Sunshine ignores a neighbouring `x-nv-vqos[0].fec.enable`
+    /// entirely, so a literal 0 there is not treated as "no FEC required".
+    pub min_required_fec_packets: u32,
+    /// Channel count the client asked for via `surroundAudioInfo`; the
+    /// Opus layout is selected from this (stereo when surround is off).
+    pub requested_channels: u32,
+    /// `x-nv-audio.surround.AudioQuality` from ANNOUNCE: the client's Opus
+    /// quality tier (0 = normal, 1 = high quality; Sunshine reads the same
+    /// attribute, `rtsp.cpp:1152-1153`). None = attribute absent, in which
+    /// case the host-audio rule stands in.
+    pub audio_quality: Option<bool>,
+    /// `x-nv-audio.surround.enable`: an explicit 0 pins the stream to
+    /// stereo. Absent (or any other value) leaves the requested layout.
+    pub surround_enabled: bool,
+    /// `x-nv-vqos[0].qosTrafficType` from ANNOUNCE: the client
+    /// authorizes QoS marking of the video (and control) socket when
+    /// present and non-zero (Sunshine rtsp.cpp:1160,
+    /// stream.cpp:2147). None = attribute absent, no marking.
+    pub video_qos_type: Option<i32>,
+    /// `x-nv-aqos.qosTrafficType` from ANNOUNCE: the same for the audio
+    /// socket (Sunshine rtsp.cpp:1159, stream.cpp:2174).
+    pub audio_qos_type: Option<i32>,
+}
+
+pub struct GameSession {
+    pub phase: GamePhase,
+    pub launch: Option<LaunchParams>,
+    pub rtsp_seq: u32,
+}
+
+pub struct StreamApp {
+    pub appid: u32,
+    pub title: String,
+    /// Local box-art file resolved by the Electron host; served by
+    /// /appasset (read at request time so art changes are picked up).
+    pub cover: Option<std::path::PathBuf>,
+}
+
+pub struct PairSession {
+    created: Instant,
+    phase: Phase,
+    /// Client salt from getservercert; the AES key is derived once the
+    /// user submits the PIN shown on the client (Sunshine semantics: the
+    /// client generates and displays the PIN, the host learns it from UI
+    /// input while the getservercert request is held open).
+    salt: [u8; 16],
+    aes_key: Option<[u8; 16]>,
+    client_cert: Vec<u8>,
+    devicename: String,
+    server_secret: [u8; 16],
+    server_challenge: [u8; 16],
+    client_hash: Vec<u8>,
+    /// Held getservercert HTTP response, resolved when the PIN arrives.
+    response_tx: Option<tokio::sync::oneshot::Sender<String>>,
+    /// getservercert body produced by a PIN that arrived before the HTTP
+    /// side registered its waiter.
+    pending_body: Option<String>,
+}
+
+#[derive(PartialEq, Clone, Copy)]
+enum Phase {
+    GetServerCert,
+    ClientChallenge,
+    ServerChallengeResp,
+}
+
+impl State {
+    pub fn load(events: mpsc::UnboundedSender<String>) -> Result<State, String> {
+        let store = Store::load().map_err(|error| format!("stream store: {error}"))?;
+        State::with_store(store, events)
+    }
+
+    pub fn with_store(store: Store, events: mpsc::UnboundedSender<String>) -> Result<State, String> {
+        let uuid = store.uuid().map_err(|error| error.to_string())?;
+        let identity = certs::load_or_generate(&store)?;
+        let cert_signature = crypto::cert_signature(&identity.cert_der)?;
+        let paired: Vec<PairedClient> = store.read_json("clients.json").unwrap_or_default();
+
+        Ok(State {
+            store,
+            uuid,
+            identity,
+            cert_signature,
+            paired: Mutex::new(paired.into_iter().map(|client| (client.uniqueid.clone(), client)).collect()),
+            sessions: Mutex::new(HashMap::new()),
+            game_session: Mutex::new(GameSession {
+                phase: GamePhase::Idle,
+                launch: None,
+                rtsp_seq: 0,
+            }),
+            stream: Mutex::new(None),
+            idr_gate: Mutex::new(crate::stream::IdrRequestGate::new()),
+            control_out_seq: std::sync::atomic::AtomicU32::new(0),
+            app_list: Mutex::new(Vec::new()),
+            media: Mutex::new(None),
+            events,
+        })
+    }
+
+    pub fn session_phase(&self) -> GamePhase {
+        self.game_session.lock().expect("game session lock").phase
+    }
+
+    fn emit_session_state(&self, phase: GamePhase) {
+        let _ = self.events.send(
+            json!({ "event": "session-state", "state": phase.as_str() }).to_string(),
+        );
+    }
+
+    /// Raises a pending session for a validated /launch. Fails while another
+    /// session is still active.
+    pub fn begin_launch(&self, params: LaunchParams) -> Result<(), ()> {
+        {
+            let mut session = self.game_session.lock().expect("game session lock");
+            if session.phase != GamePhase::Idle {
+                return Err(());
+            }
+            session.launch = Some(params);
+            session.rtsp_seq = 0;
+            session.phase = GamePhase::Launching;
+        }
+        self.emit_session_state(GamePhase::Launching);
+        Ok(())
+    }
+
+    /// Re-raises the pending session for a validated /resume so the client can
+    /// redo the RTSP handshake against the still-running app.
+    /// Re-raises the pending session with fresh params: Sunshine applies a
+    /// /resume's new rikey/rikeyid/mode to the pending session (launching
+    /// or waiting-for-client) so the client can redo the RTSP handshake
+    /// against the new keys; while streaming it restarts the handshake
+    /// window from scratch.
+    pub fn resume_launch(&self, params: LaunchParams) -> Result<(), ()> {
+        let mut session = self.game_session.lock().expect("game session lock");
+        match session.phase {
+            GamePhase::Idle => Err(()),
+            GamePhase::Launching | GamePhase::WaitingForClient => {
+                // apply the new launch params to the pending session
+                session.launch = Some(params);
+                session.rtsp_seq = 0;
+                if let Some(launch) = session.launch.as_mut() {
+                    launch.activity = Instant::now();
+                }
+                Ok(())
+            }
+            GamePhase::Streaming | GamePhase::Quitting => {
+                session.launch = Some(params);
+                session.rtsp_seq = 0;
+                session.phase = GamePhase::Launching;
+                let phase = session.phase;
+                drop(session);
+                self.emit_session_state(phase);
+                Ok(())
+            }
+        }
+    }
+
+    /// Gates an incoming RTSP connection. Returns false (connection must be
+    /// dropped) when no session is pending, otherwise records client activity
+    /// and moves launching -> waiting-for-client on first contact.
+    pub fn rtsp_contact(&self) -> bool {
+        let mut session = self.game_session.lock().expect("game session lock");
+        match session.phase {
+            GamePhase::Idle | GamePhase::Quitting => false,
+            GamePhase::Launching => {
+                session.phase = GamePhase::WaitingForClient;
+                if let Some(launch) = session.launch.as_mut() {
+                    launch.activity = Instant::now();
+                }
+                let phase = session.phase;
+                drop(session);
+                self.emit_session_state(phase);
+                true
+            }
+            GamePhase::WaitingForClient | GamePhase::Streaming => {
+                if let Some(launch) = session.launch.as_mut() {
+                    launch.activity = Instant::now();
+                }
+                true
+            }
+        }
+    }
+
+    pub fn launch_params(&self) -> Option<LaunchParams> {
+        self.game_session
+            .lock()
+            .expect("game session lock")
+            .launch
+            .clone()
+    }
+
+    pub fn next_rtsp_seq(&self) -> u32 {
+        let mut session = self.game_session.lock().expect("game session lock");
+        session.rtsp_seq += 1;
+        session.rtsp_seq
+    }
+
+    /// PLAY received: the client is fully connected and the placeholder
+    /// streaming phase begins. Only promotes a live session
+    /// (waiting-for-client/streaming): a PLAY racing a session end must
+    /// not resurrect from Idle with no launch params. Returns true when
+    /// the promotion happened.
+    pub fn mark_streaming(&self) -> bool {
+        let launch = {
+            let mut session = self.game_session.lock().expect("game session lock");
+            if session.phase != GamePhase::WaitingForClient && session.phase != GamePhase::Streaming
+            {
+                eprintln!(
+                    "nvhttp: PLAY ignored in phase {} (session ended?)",
+                    session.phase.as_str()
+                );
+                return false;
+            }
+            if session.phase == GamePhase::Streaming {
+                return true;
+            }
+            session.phase = GamePhase::Streaming;
+            if let Some(launch) = session.launch.as_mut() {
+                launch.activity = Instant::now();
+            }
+            session.launch.clone()
+        };
+        self.emit_session_state(GamePhase::Streaming);
+        if let Some(launch) = launch {
+            let _ = self.events.send(
+                json!({
+                    "event": "client-connected",
+                    "appid": launch.appid,
+                    "uniqueid": launch.uniqueid,
+                    "width": launch.width,
+                    "height": launch.height,
+                    "fps": launch.fps,
+                })
+                .to_string(),
+            );
+        }
+        true
+    }
+
+    /// Ends the active session (cancel, teardown, or timeout) and emits the
+    /// quitting / client-disconnected / idle event sequence.
+    pub fn end_session(&self, reason: &str) {
+        self.stop_streaming();
+        {
+            let mut session = self.game_session.lock().expect("game session lock");
+            if session.phase == GamePhase::Idle {
+                return;
+            }
+            session.phase = GamePhase::Quitting;
+        }
+        self.emit_session_state(GamePhase::Quitting);
+        let _ = self.events.send(
+            json!({ "event": "client-disconnected", "reason": reason }).to_string(),
+        );
+        {
+            let mut session = self.game_session.lock().expect("game session lock");
+            if let Some(launch) = session.launch.take() {
+                if launch.appid != DESKTOP_APPID {
+                    let _ = self.events.send(
+                        json!({ "event": "stream-ended", "appid": launch.appid }).to_string(),
+                    );
+                }
+            }
+            session.phase = GamePhase::Idle;
+        }
+        self.emit_session_state(GamePhase::Idle);
+    }
+
+    /// Long-lived media (video/audio) sender sockets. Created lazily on
+    /// first use and reused by every session; each caller gets its own
+    /// cloned handle, so concurrent sessions never rebind the ports.
+    pub fn media_sockets(&self) -> Result<(std::net::UdpSocket, std::net::UdpSocket), String> {
+        let mut guard = self.media.lock().expect("media sockets lock");
+        if guard.is_none() {
+            let video = bind_media_socket(config::ports().video)?;
+            let audio = bind_media_socket(config::ports().audio)?;
+            *guard = Some((video, audio));
+        }
+        let (video, audio) = guard.as_ref().expect("media sockets initialized");
+        Ok((
+            video
+                .try_clone()
+                .map_err(|error| format!("video socket clone: {error}"))?,
+            audio
+                .try_clone()
+                .map_err(|error| format!("audio socket clone: {error}"))?,
+        ))
+    }
+
+    /// Replaces the advertised app catalog (Hydra game library, pushed by
+    /// the Electron host via the setAppList RPC). Desktop (appid 1) is
+    /// reserved and duplicates are dropped.
+    pub fn set_app_list(&self, apps: Vec<(u32, String, Option<String>)>) {
+        let mut list = self.app_list.lock().expect("app list lock");
+        list.clear();
+        for (appid, title, cover) in apps {
+            if appid == DESKTOP_APPID || list.iter().any(|app| app.appid == appid) {
+                eprintln!("nvhttp: ignoring appid {appid} (reserved or duplicate)");
+                continue;
+            }
+            list.push(StreamApp {
+                appid,
+                title,
+                cover: cover.map(std::path::PathBuf::from),
+            });
+        }
+        eprintln!("nvhttp: app list updated ({} apps)", list.len());
+    }
+
+    fn is_known_appid(&self, appid: u32) -> bool {
+        appid == DESKTOP_APPID
+            || self
+                .app_list
+                .lock()
+                .expect("app list lock")
+                .iter()
+                .any(|app| app.appid == appid)
+    }
+
+    /// Stores the streaming parameters the client negotiates in the RTSP
+    /// ANNOUNCE SDP (`x-nv-*` attributes) into the pending launch.
+    pub fn update_announcement(&self, attrs: &HashMap<String, String>) {
+        let mut session = self.game_session.lock().expect("game session lock");
+        let Some(launch) = session.launch.as_mut() else {
+            return;
+        };
+        if let Some(value) = attrs.get("x-nv-video[0].packetSize") {
+            if let Ok(packet_size) = value.parse() {
+                launch.packet_size = packet_size;
+            }
+        }
+        if let Some(value) = attrs.get("x-nv-vqos[0].bw.maximumBitrateKbps") {
+            if let Ok(bitrate) = value.parse() {
+                launch.bitrate_kbps = bitrate;
+            }
+        }
+        if let Some(value) = attrs.get("x-nv-video[0].videoEncoderSlicesPerFrame") {
+            if let Ok(slices) = value.parse() {
+                launch.slices_per_frame = slices;
+            }
+        }
+        if let Some(value) = attrs.get("x-nv-video[0].maxNumReferenceFrames") {
+            // 0 means "host picks" (moonlight-common-c only sends 0 when it
+            // saw the RFI attribute in DESCRIBE); a positive value is the
+            // client's DPB-depth request. Clamping happens at pipeline build.
+            match value.parse::<i32>() {
+                Ok(count) => launch.max_ref_frames = Some(count),
+                Err(_) => {
+                    eprintln!("nvhttp: ignoring invalid maxNumReferenceFrames {value:?}")
+                }
+            }
+        }
+        if let Some(value) = attrs.get("x-nv-aqos.packetDuration") {
+            if let Ok(duration) = value.parse::<u32>() {
+                // only Opus-valid frame durations are legal (48kHz frame
+                // sizes); clamp the rest to the Moonlight default
+                launch.packet_duration_ms = match duration {
+                    5 | 10 | 20 | 40 | 60 => duration,
+                    other => {
+                        eprintln!("nvhttp: ignoring invalid packetDuration {other}ms, using 5ms");
+                        5
+                    }
+                };
+            }
+        }
+        // Sunshine reads the FEC minimum only from its own try_emplace
+        // default of 0 (rtsp.cpp:1132/1157) — a `fec.enable` in the same
+        // ANNOUNCE is never consulted — and rises a frame's parity count
+        // to it before encoding (stream.cpp:852-859).
+        if let Some(value) = attrs.get("x-nv-vqos[0].fec.minRequiredFecPackets") {
+            match value.trim().parse::<u32>() {
+                Ok(minimum) => launch.min_required_fec_packets = minimum,
+                Err(_) => eprintln!(
+                    "nvhttp: ignoring invalid fec minRequiredFecPackets {value:?}"
+                ),
+            }
+        }
+        // QoS authorization (0 means "do not mark"; absent means the
+        // same here — unlike Sunshine's try_emplace defaults we skip
+        // marking for clients that never sent the attribute)
+        if let Some(value) = attrs.get("x-nv-vqos[0].qosTrafficType") {
+            match value.parse::<i32>() {
+                Ok(qos_type) => launch.video_qos_type = Some(qos_type),
+                Err(_) => eprintln!("nvhttp: ignoring invalid video qosTrafficType {value:?}"),
+            }
+        }
+        if let Some(value) = attrs.get("x-nv-aqos.qosTrafficType") {
+            match value.parse::<i32>() {
+                Ok(qos_type) => launch.audio_qos_type = Some(qos_type),
+                Err(_) => eprintln!("nvhttp: ignoring invalid audio qosTrafficType {value:?}"),
+            }
+        }
+        if let Some(value) = attrs.get("x-nv-audio.surround.AudioQuality") {
+            match value.trim().parse::<i32>() {
+                Ok(quality) => launch.audio_quality = Some(quality != 0),
+                Err(_) => eprintln!("nvhttp: ignoring invalid surround AudioQuality {value:?}"),
+            }
+        }
+        if let Some(value) = attrs.get("x-nv-audio.surround.enable") {
+            launch.surround_enabled = value.trim() != "0";
+        }
+        if launch.requested_channels > 2 {
+            let layout = crate::audio::select_layout(
+                launch.requested_channels,
+                launch.audio_quality,
+                launch.surround_enabled,
+                launch.host_audio,
+            );
+            eprintln!(
+                "nvhttp: client requested {} audio channels; Opus layout {} channels, {} streams, {} coupled, {} kbps",
+                launch.requested_channels,
+                layout.channel_count,
+                layout.streams,
+                layout.coupled_streams,
+                layout.bitrate_bps / 1000
+            );
+        }
+    }
+
+    /// Discards a session whose client stopped progressing: covers the
+    /// pre-RTSP launch window AND the waiting-for-client phase (a stray
+    /// TCP connect or aborted handshake must not leave the host BUSY
+    /// forever) — matching Sunshine, which arms the ping_timeout at
+    /// session_raise and cancels it only when the stream is up
+    /// (rtsp.cpp:594-616). Activity is refreshed by every RTSP request,
+    /// so a slow-but-alive handshake is never cut. Once streaming, the
+    /// control channel's silence timeout is the sole liveness killer.
+    /// Returns true when it expired.
+    pub fn expire_session(&self, window_timeout: Duration) -> bool {
+        let expired = {
+            let session = self.game_session.lock().expect("game session lock");
+            matches!(session.phase, GamePhase::Launching | GamePhase::WaitingForClient)
+                && session
+                    .launch
+                    .as_ref()
+                    .is_some_and(|launch| launch.activity.elapsed() >= window_timeout)
+        };
+        if expired {
+            eprintln!("nvhttp: session expired before the stream started (RTSP went silent)");
+            self.end_session("timeout");
+        }
+        expired
+    }
+}
+
+pub enum RouteOutcome {
+    Ready(String),
+    ReadyBinary {
+        body: Vec<u8>,
+        content_type: &'static str,
+    },
+    /// getservercert created a pairing session and the HTTP response is
+    /// held until `submit_pairing_pin` resolves it (or it expires).
+    AwaitPairingPin { uniqueid: String },
+}
+
+pub fn route(
+    state: &State,
+    path: &str,
+    params: &HashMap<String, String>,
+    is_https: bool,
+    local_ip: IpAddr,
+    peer_cert: Option<&[u8]>,
+) -> RouteOutcome {
+    if matches!(
+        path,
+        "/pair" | "/launch" | "/resume" | "/cancel" | "/appasset"
+    ) {
+        eprintln!(
+            "nvhttp: {} {} uniqueid={:?} phrase={:?} salt={:?} updateState={:?}",
+            if is_https { "https" } else { "http" },
+            path,
+            params.get("uniqueid"),
+            params.get("phrase"),
+            params.get("salt").map(|s| s.chars().take(8).collect::<String>()),
+            params.get("updateState").map(|s| s.as_str()),
+        );
+    }
+    let outcome = match path {
+        "/serverinfo" => serverinfo(state, is_https, params.contains_key("uniqueid"), local_ip),
+        "/pair" => return pair(state, params),
+        "/applist" if is_https => applist(state),
+        "/appasset" if is_https => {
+            let appid = params.get("appid").and_then(|value| value.parse().ok());
+            return appasset(state, appid);
+        }
+        "/launch" if is_https => launch(state, params, local_ip, peer_cert),
+        "/resume" if is_https => resume(state, params, local_ip, peer_cert),
+        "/cancel" if is_https => cancel(state, params, peer_cert),
+        _ => not_found(),
+    };
+    RouteOutcome::Ready(outcome)
+}
+
+fn serverinfo(state: &State, is_https: bool, has_uniqueid: bool, local_ip: IpAddr) -> String {
+    let pair_status = if is_https && has_uniqueid { 1 } else { 0 };
+    let local_ip = match local_ip {
+        std::net::IpAddr::V6(v6) if v6.to_ipv4_mapped().is_none() => "127.0.0.1".to_string(),
+        other => other.to_string(),
+    };
+    // Sunshine mirrors the running app into serverinfo: clients poll this
+    // after /launch and only start RTSP once the host reports BUSY with the
+    // launched appid as currentgame (Moonlight-Android's AppView flow).
+    let (currentgame, server_state) = {
+        let session = state.game_session.lock().expect("game session lock");
+        match session.phase {
+            GamePhase::Idle => (0, "SUNSHINE_SERVER_FREE"),
+            _ => (
+                session
+                    .launch
+                    .as_ref()
+                    .map(|launch| launch.appid)
+                    .unwrap_or(0),
+                "SUNSHINE_SERVER_BUSY",
+            ),
+        }
+    };
+
+    format!(
+        concat!(
+            "<?xml version=\"1.0\" encoding=\"utf-8\"?>\n",
+            "<root status_code=\"200\">\n",
+            "  <hostname>{hostname}</hostname>\n",
+            "  <appversion>{appversion}</appversion>\n",
+            "  <GfeVersion>{gfe_version}</GfeVersion>\n",
+            "  <uniqueid>{uuid}</uniqueid>\n",
+            "  <HttpsPort>{https_port}</HttpsPort>\n",
+            "  <ExternalPort>{http_port}</ExternalPort>\n",
+            "  <MaxLumaPixelsHEVC>0</MaxLumaPixelsHEVC>\n",
+            "  <mac>00:00:00:00:00:00</mac>\n",
+            "  <LocalIP>{local_ip}</LocalIP>\n",
+            // moonlight-common-c hard-fails LiStartConnection when this is 0
+            // ("serverCodecModeSupport field in SERVER_INFORMATION must be
+            // set!"), before the RTSP stage ever runs. Bit 1 = H.264 High,
+            // our only encoder.
+            "  <ServerCodecModeSupport>2</ServerCodecModeSupport>\n",
+            "  <PairStatus>{pair_status}</PairStatus>\n",
+            "  <currentgame>{currentgame}</currentgame>\n",
+            "  <state>{server_state}</state>\n",
+            "</root>\n",
+        ),
+        hostname = HOSTNAME,
+        appversion = APPVERSION,
+        gfe_version = GFE_VERSION,
+        uuid = state.uuid,
+        https_port = HTTPS_PORT,
+        http_port = HTTP_PORT,
+        local_ip = local_ip,
+        pair_status = pair_status,
+        currentgame = currentgame,
+        server_state = server_state,
+    )
+}
+
+fn xml_escape(text: &str) -> String {
+    // boost encode_char_entities equivalents
+    text.replace('&', "&amp;")
+        .replace('<', "&lt;")
+        .replace('>', "&gt;")
+        .replace('\"', "&quot;")
+        .replace('\'', "&apos;")
+}
+
+fn app_entry(title: &str, appid: u32) -> String {
+    format!(
+        "<App><IsHdrSupported>0</IsHdrSupported><AppTitle>{}</AppTitle><ID>{}</ID></App>",
+        xml_escape(title),
+        appid
+    )
+}
+
+fn applist(state: &State) -> String {
+    // Single line with zero whitespace anywhere (not even after the XML
+    // declaration): Moonlight-Android's pull parser calls appList.getLast()
+    // on every TEXT event, so ANY whitespace text node (including one before
+    // the root element, depending on the parser build) makes it crash or
+    // drop the whole list while "loading app list".
+    let mut body = String::from("<root status_code=\"200\">");
+    body.push_str(&app_entry("Desktop", DESKTOP_APPID));
+    for app in state.app_list.lock().expect("app list lock").iter() {
+        body.push_str(&app_entry(&app.title, app.appid));
+    }
+    body.push_str("</root>");
+    format!("<?xml version=\"1.0\" encoding=\"utf-8\"?>{body}")
+}
+
+/// Sunshine serves the app's box art here as image/png (an empty/failed
+/// stream still gets a 200 with image/png). Hydra games map to cover
+/// files resolved by the Electron host; anything else (Desktop, unknown
+/// appid, unreadable file) falls back to a 1x1 transparent PNG.
+fn appasset(state: &State, appid: Option<u32>) -> RouteOutcome {
+    if let Some(appid) = appid {
+        let cover = state
+            .app_list
+            .lock()
+            .expect("app list lock")
+            .iter()
+            .find(|app| app.appid == appid)
+            .and_then(|app| app.cover.clone());
+        if let Some(cover) = cover {
+            match std::fs::read(&cover) {
+                Ok(bytes) => {
+                    return RouteOutcome::ReadyBinary {
+                        body: bytes,
+                        content_type: "image/png",
+                    };
+                }
+                Err(error) => {
+                    eprintln!("nvhttp: unreadable cover {}: {error}", cover.display());
+                }
+            }
+        }
+    }
+
+    const ONE_BY_ONE_TRANSPARENT_PNG: &[u8] = &[
+        0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A, 0x00, 0x00, 0x00, 0x0D, 0x49, 0x48, 0x44,
+        0x52, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x01, 0x08, 0x06, 0x00, 0x00, 0x00, 0x1F,
+        0x15, 0xC4, 0x89, 0x00, 0x00, 0x00, 0x0A, 0x49, 0x44, 0x41, 0x54, 0x78, 0x9C, 0x63, 0x00,
+        0x01, 0x00, 0x00, 0x05, 0x00, 0x01, 0x0D, 0x0A, 0x2D, 0xB4, 0x00, 0x00, 0x00, 0x00, 0x49,
+        0x45, 0x4E, 0x44, 0xAE, 0x42, 0x60, 0x82,
+    ];
+    RouteOutcome::ReadyBinary {
+        body: ONE_BY_ONE_TRANSPARENT_PNG.to_vec(),
+        content_type: "image/png",
+    }
+}
+
+/// A request is authorized when it carries a paired uniqueid (legacy GFE
+/// behavior) or presents a client certificate that matches a paired client
+/// (Moonlight-Qt sends no uniqueid on /launch; it identifies by TLS cert).
+fn client_authorized(state: &State, uniqueid: &str, peer_cert: Option<&[u8]>) -> bool {
+    let paired = state.paired.lock().expect("paired clients lock");
+    if !uniqueid.is_empty() && paired.contains_key(uniqueid) {
+        return true;
+    }
+    if let Some(presented) = peer_cert {
+        return paired
+            .values()
+            .any(|client| crypto::parse_cert(client.cert.as_bytes()).ok().as_deref() == Some(presented));
+    }
+    false
+}
+
+fn unauthorized(path: &str) -> String {
+    format!(
+        concat!(
+            "<?xml version=\"1.0\" encoding=\"utf-8\"?>\n",
+            "<root status_code=\"401\" query=\"{path}\" ",
+            "status_message=\"The client is not authorized. Certificate verification failed.\"/>\n",
+        ),
+        path = path,
+    )
+}
+
+fn launch(state: &State, params: &HashMap<String, String>, local_ip: IpAddr, peer_cert: Option<&[u8]>) -> String {
+    let uniqueid = params.get("uniqueid").map(String::as_str).unwrap_or("");
+    if !client_authorized(state, uniqueid, peer_cert) {
+        return unauthorized("/launch");
+    }
+
+    for required in ["rikey", "rikeyid", "localAudioPlayMode", "appid"] {
+        if !params.contains_key(required) {
+            return launch_error(400, "Missing a required launch parameter", "gamesession", 0);
+        }
+    }
+
+    if state.session_phase() != GamePhase::Idle {
+        return launch_error(400, "An app is already running on this host", "gamesession", 0);
+    }
+
+    let Some(params) = make_launch_params(params, uniqueid) else {
+        return launch_error(400, "Invalid launch parameters", "gamesession", 0);
+    };
+    if !state.is_known_appid(params.appid) {
+        return launch_error(404, "Failed to start the specified application", "gamesession", 0);
+    }
+
+    if state.begin_launch(params.clone()).is_err() {
+        return launch_error(400, "An app is already running on this host", "gamesession", 0);
+    }
+
+    // Only AFTER the session is raised: emitting before begin_launch is a
+    // TOCTOU (a racing launch can make the Electron host start the game
+    // for a session that then fails with 400).
+    if params.appid != DESKTOP_APPID {
+        // The Electron host starts the game and ends it when the stream
+        // stops; the stream itself shows whatever is on screen.
+        let _ = state.events.send(
+            json!({ "event": "launch-requested", "appid": params.appid }).to_string(),
+        );
+    }
+
+    let body = match session_started_xml(state, local_ip, "gamesession", 1) {
+        Some(body) => body,
+        // /cancel raced us between begin_launch and the XML build
+        None => return launch_error(503, "Session ended before the response was built", "gamesession", 0),
+    };
+    eprintln!("nvhttp: /launch response:\n{body}");
+    body
+}
+
+fn resume(state: &State, params: &HashMap<String, String>, local_ip: IpAddr, peer_cert: Option<&[u8]>) -> String {
+    let uniqueid = params.get("uniqueid").map(String::as_str).unwrap_or("");
+    if !client_authorized(state, uniqueid, peer_cert) {
+        return unauthorized("/resume");
+    }
+
+    if state.session_phase() == GamePhase::Idle {
+        return launch_error(503, "No running app to resume", "resume", 0);
+    }
+    if !params.contains_key("rikey") || !params.contains_key("rikeyid") {
+        return launch_error(400, "Missing a required resume parameter", "resume", 0);
+    }
+
+    let Some(launch) = make_launch_params(params, uniqueid) else {
+        return launch_error(400, "Invalid resume parameters", "resume", 0);
+    };
+    // /resume must target the running app, like Sunshine
+    if state
+        .launch_params()
+        .is_some_and(|current| current.appid != launch.appid)
+    {
+        return launch_error(404, "Failed to start the specified application", "resume", 0);
+    }
+    if state.resume_launch(launch).is_err() {
+        return launch_error(503, "No running app to resume", "resume", 0);
+    }
+
+    match session_started_xml(state, local_ip, "resume", 1) {
+        Some(body) => body,
+        None => launch_error(503, "No running app to resume", "resume", 0),
+    }
+}
+
+fn cancel(state: &State, params: &HashMap<String, String>, peer_cert: Option<&[u8]>) -> String {
+    // Moonlight sends /cancel with no query string at all (identified by its
+    // TLS client certificate); a uniqueid parameter is honored when present.
+    let uniqueid = params.get("uniqueid").map(String::as_str).unwrap_or("");
+    if !client_authorized(state, uniqueid, peer_cert) {
+        return unauthorized("/cancel");
+    }
+
+    state.end_session("cancel");
+
+    concat!(
+        "<?xml version=\"1.0\" encoding=\"utf-8\"?>\n",
+        "<root status_code=\"200\">\n",
+        "  <cancel>1</cancel>\n",
+        "</root>\n",
+    )
+    .to_string()
+}
+
+fn make_launch_params(params: &HashMap<String, String>, uniqueid: &str) -> Option<LaunchParams> {
+    let rikey_vec = crypto::hex_decode(params.get("rikey")?)?;
+    let rikey: [u8; 16] = rikey_vec.as_slice().try_into().ok()?;
+
+    let (width, height, fps) = params
+        .get("mode")
+        .map(|mode| {
+            let mut parts = mode.split('x');
+            let number = |part: Option<&str>| part.and_then(|part| part.parse().ok()).unwrap_or(0);
+            (
+                number(parts.next()),
+                number(parts.next()),
+                number(parts.next()),
+            )
+        })
+        .unwrap_or((0, 0, 0));
+
+    let corever: u32 = params.get("corever").and_then(|value| value.parse().ok()).unwrap_or(0);
+
+    Some(LaunchParams {
+        uniqueid: uniqueid.to_string(),
+        appid: params.get("appid")?.parse().ok()?,
+        width,
+        height,
+        fps,
+        rikey,
+        encrypted_rtsp: corever >= 1,
+        av_ping_payload: crypto::hex_encode(&crypto::random_bytes(16)),
+        control_connect_data: u32::from_le_bytes(
+            crypto::random_bytes(4).try_into().expect("4 bytes"),
+        ),
+        activity: Instant::now(),
+        packet_size: crate::video::DEFAULT_PACKET_SIZE,
+        bitrate_kbps: 10_000,
+        slices_per_frame: 1,
+        max_ref_frames: None,
+        host_audio: params.get("localAudioPlayMode").is_some_and(|value| value == "1"),
+        packet_duration_ms: crate::audio::DEFAULT_PACKET_DURATION_MS,
+        min_required_fec_packets: 0,
+        requested_channels: params
+            .get("surroundAudioInfo")
+            .and_then(|value| value.parse::<u32>().ok())
+            .map(|info| info & 0xFFFF)
+            .filter(|channels| *channels > 0)
+            .unwrap_or(2),
+        audio_quality: None,
+        surround_enabled: true,
+        video_qos_type: None,
+        audio_qos_type: None,
+    })
+}
+
+fn launch_error(status: u32, message: &str, child: &str, child_value: u32) -> String {
+    format!(
+        concat!(
+            "<?xml version=\"1.0\" encoding=\"utf-8\"?>\n",
+            "<root status_code=\"{status}\" status_message=\"{message}\">\n",
+            "  <{child}>{child_value}</{child}>\n",
+            "</root>\n",
+        ),
+        status = status,
+        message = message,
+        child = child,
+        child_value = child_value,
+    )
+}
+
+/// Builds the session XML. Returns None when the session vanished
+/// between raising it and building the response (/cancel race) — the
+/// caller must answer with an error instead of panicking.
+fn session_started_xml(
+    state: &State,
+    local_ip: IpAddr,
+    child: &str,
+    child_value: u32,
+) -> Option<String> {
+    let launch = state.launch_params()?;
+    let scheme = if launch.encrypted_rtsp { "rtspenc" } else { "rtsp" };
+    Some(format!(
+        concat!(
+            "<?xml version=\"1.0\" encoding=\"utf-8\"?>\n",
+            "<root status_code=\"200\">\n",
+            "  <sessionUrl0>{scheme}://{local_ip}:{rtsp_port}</sessionUrl0>\n",
+            "  <{child}>{child_value}</{child}>\n",
+            "</root>\n",
+        ),
+        scheme = scheme,
+        local_ip = local_ip,
+        rtsp_port = crate::config::ports().rtsp,
+        child = child,
+        child_value = child_value,
+    ))
+}
+
+fn not_found() -> String {
+    concat!(
+        "<?xml version=\"1.0\" encoding=\"utf-8\"?>\n",
+        "<root status_code=\"404\"/>\n",
+    )
+    .to_string()
+}
+
+fn pair(state: &State, params: &HashMap<String, String>) -> RouteOutcome {
+    let Some(uniqueid) = params.get("uniqueid") else {
+        return RouteOutcome::Ready(pair_fail(400, "Missing uniqueid parameter"));
+    };
+
+    match params.get("phrase").map(String::as_str) {
+        Some("getservercert") => getservercert(state, uniqueid, params),
+        Some("pairchallenge") => RouteOutcome::Ready(pair_ok("")),
+        _ => RouteOutcome::Ready(pair_phases(state, uniqueid, params)),
+    }
+}
+
+fn getservercert(state: &State, uniqueid: &str, params: &HashMap<String, String>) -> RouteOutcome {
+    let mut sessions = state.sessions.lock().expect("pair sessions lock");
+    expire_pair_sessions(state, &mut sessions);
+
+    if sessions.contains_key(uniqueid) {
+        // Re-pair escape: if the previous session's getservercert request
+        // already completed or timed out (its held response is gone and
+        // no PIN raced ahead), the client is starting over — replace the
+        // abandoned session instead of 409ing for the rest of the
+        // 5-minute lifetime. A session whose HTTP request is still held
+        // open (user mid-PIN-entry) still conflicts.
+        let replaceable = sessions.get(uniqueid).is_some_and(|session| {
+            session.response_tx.is_none() && session.pending_body.is_none()
+        });
+        if replaceable {
+            eprintln!("nvhttp: replacing abandoned pairing session for {uniqueid}");
+            sessions.remove(uniqueid);
+        } else {
+            return RouteOutcome::Ready(pair_fail(
+                409,
+                "A pairing session with this uniqueid already exists",
+            ));
+        }
+    }
+
+    let Some(salt) = params.get("salt") else {
+        return RouteOutcome::Ready(pair_fail(400, "Salt too short"));
+    };
+    let Some(salt_hex) = salt.get(..32) else {
+        return RouteOutcome::Ready(pair_fail(400, "Salt too short"));
+    };
+    let Some(salt_vec) = crypto::hex_decode(salt_hex) else {
+        return RouteOutcome::Ready(pair_fail(400, "Salt too short"));
+    };
+    let Ok(salt) = <[u8; 16]>::try_from(salt_vec.as_slice()) else {
+        return RouteOutcome::Ready(pair_fail(400, "Salt too short"));
+    };
+
+    // The client generated the PIN and is showing it to the user; the
+    // host learns it later via submit_pairing_pin (JSON-RPC from the UI).
+    let _ = state.events.send(json!({ "event": "pairing-requested" }).to_string());
+
+    let client_cert = params
+        .get("clientcert")
+        .and_then(|hex| crypto::hex_decode(hex))
+        .unwrap_or_default();
+
+    sessions.insert(
+        uniqueid.to_string(),
+        PairSession {
+            created: Instant::now(),
+            phase: Phase::GetServerCert,
+            salt,
+            aes_key: None,
+            client_cert,
+            devicename: params.get("devicename").cloned().unwrap_or_default(),
+            server_secret: [0; 16],
+            server_challenge: [0; 16],
+            client_hash: Vec::new(),
+            response_tx: None,
+            pending_body: None,
+        },
+    );
+
+    eprintln!("pairing started for uniqueid {uniqueid}, waiting for PIN");
+    RouteOutcome::AwaitPairingPin {
+        uniqueid: uniqueid.to_string(),
+    }
+}
+
+#[derive(Debug, PartialEq, Eq)]
+pub enum SubmitPinError {
+    InvalidPin,
+    NoSession,
+}
+
+impl State {
+    /// Applies the user-entered PIN to the newest pairing session that is
+    /// still waiting for it, deriving the AES key and producing the held
+    /// getservercert response. Mirrors Sunshine: a session only accepts a
+    /// PIN while it has no cipher key yet.
+    pub fn submit_pairing_pin(&self, pin: &str) -> Result<String, SubmitPinError> {
+        if pin.len() != 4 || !pin.bytes().all(|byte| byte.is_ascii_digit()) {
+            return Err(SubmitPinError::InvalidPin);
+        }
+
+        let mut sessions = self.sessions.lock().expect("pair sessions lock");
+        expire_pair_sessions(self, &mut sessions);
+
+        let Some(session) = sessions
+            .values_mut()
+            .filter(|session| session.aes_key.is_none())
+            .max_by_key(|session| session.created)
+        else {
+            return Err(SubmitPinError::NoSession);
+        };
+
+        let aes_key = crypto::derive_aes_key(&session.salt, pin);
+        session.aes_key = Some(aes_key);
+        let body = getservercert_response(self);
+        session.pending_body = Some(body.clone());
+        if let Some(tx) = session.response_tx.take() {
+            let _ = tx.send(body.clone());
+        }
+        eprintln!("pairing PIN submitted, session unlocked");
+        Ok(body)
+    }
+
+    /// Hooks a held getservercert HTTP response up to its pairing
+    /// session; resolves immediately if the PIN already arrived.
+    pub fn register_pair_response(&self, uniqueid: &str, tx: tokio::sync::oneshot::Sender<String>) {
+        let mut sessions = self.sessions.lock().expect("pair sessions lock");
+        if let Some(session) = sessions.get_mut(uniqueid) {
+            if let Some(body) = session.pending_body.take() {
+                let _ = tx.send(body);
+            } else if session.aes_key.is_none() {
+                session.response_tx = Some(tx);
+            }
+        }
+    }
+
+    /// Removes a pairing session (timeout or terminal failure) and emits
+    /// pairing-finished(false).
+    pub fn expire_pairing_session(&self, uniqueid: &str) {
+        let mut sessions = self.sessions.lock().expect("pair sessions lock");
+        if let Some(mut session) = sessions.remove(uniqueid) {
+            if let Some(tx) = session.response_tx.take() {
+                let _ = tx.send(pair_fail(400, "Pairing session expired"));
+            }
+            eprintln!("nvhttp: pairing session {uniqueid} expired");
+            emit_pairing_finished(self, false);
+        }
+    }
+}
+
+fn getservercert_response(state: &State) -> String {
+    pair_ok(&format!(
+        "  <plaincert>{}</plaincert>
+",
+        crypto::hex_encode_upper(state.identity.cert_pem.as_bytes())
+    ))
+}
+
+/// Drops expired sessions, completing any held HTTP response with a 400
+/// and emitting pairing-finished(false) for each.
+fn expire_pair_sessions(state: &State, sessions: &mut HashMap<String, PairSession>) {
+    let expired: Vec<(String, PairSession)> = sessions
+        .extract_if(|_, session| session.created.elapsed() >= PAIR_TIMEOUT)
+        .collect();
+    for (uniqueid, mut session) in expired {
+        if let Some(tx) = session.response_tx.take() {
+            let _ = tx.send(pair_fail(400, "Pairing session expired"));
+        }
+        eprintln!("nvhttp: pairing session {uniqueid} expired");
+        emit_pairing_finished(state, false);
+    }
+}
+
+fn emit_pairing_finished(state: &State, success: bool) {
+    let _ = state
+        .events
+        .send(json!({ "event": "pairing-finished", "success": success }).to_string());
+}
+
+fn pair_phases(state: &State, uniqueid: &str, params: &HashMap<String, String>) -> String {
+    let mut sessions = state.sessions.lock().expect("pair sessions lock");
+    expire_pair_sessions(state, &mut sessions);
+
+    let Some(session) = sessions.get_mut(uniqueid) else {
+        return pair_fail(400, "Invalid uniqueid");
+    };
+
+    let is_fail = |response: &str| !response.contains("<paired>1</paired>");
+
+    let response = if let Some(challenge) = params.get("clientchallenge") {
+        let response = client_challenge(state, session, challenge);
+        if is_fail(&response) {
+            // Sunshine marks the session failed and erases it
+            sessions.remove(uniqueid);
+            emit_pairing_finished(state, false);
+        }
+        response
+    } else if let Some(encrypted_response) = params.get("serverchallengeresp") {
+        let response = server_challenge_response(state, session, encrypted_response);
+        if is_fail(&response) {
+            sessions.remove(uniqueid);
+            emit_pairing_finished(state, false);
+        }
+        response
+    } else if let Some(pairing_secret) = params.get("clientpairingsecret") {
+        let (response, success) = client_pairing_secret(state, session, uniqueid, pairing_secret);
+        sessions.remove(uniqueid);
+        emit_pairing_finished(state, success);
+        response
+    } else {
+        pair_fail(400, "Invalid pairing request")
+    };
+
+    response
+}
+
+fn client_challenge(state: &State, session: &mut PairSession, challenge: &str) -> String {
+    if session.phase != Phase::GetServerCert {
+        return pair_fail(400, "Out of order call to clientchallenge");
+    }
+
+    let Some(aes_key) = session.aes_key else {
+        return pair_fail(400, "Cipher key not set");
+    };
+    session.phase = Phase::ClientChallenge;
+
+    let Some(ciphertext) = crypto::hex_decode(challenge) else {
+        return pair_fail(400, "Invalid pairing request");
+    };
+    let decrypted = crypto::aes128_ecb_decrypt(&aes_key, &ciphertext);
+
+    let server_secret: [u8; 16] = crypto::random_bytes(16).try_into().expect("16 bytes");
+    let server_challenge: [u8; 16] = crypto::random_bytes(16).try_into().expect("16 bytes");
+
+    let mut hash_input = decrypted;
+    hash_input.extend_from_slice(&state.cert_signature);
+    hash_input.extend_from_slice(&server_secret);
+    let hash = crypto::sha256(&hash_input);
+
+    let mut plaintext = hash.to_vec();
+    plaintext.extend_from_slice(&server_challenge);
+    let encrypted = crypto::aes128_ecb_encrypt(&aes_key, &plaintext);
+
+    session.server_secret = server_secret;
+    session.server_challenge = server_challenge;
+
+    pair_ok(&format!(
+        "  <challengeresponse>{}</challengeresponse>\n",
+        crypto::hex_encode_upper(&encrypted)
+    ))
+}
+
+fn server_challenge_response(state: &State, session: &mut PairSession, encrypted_response: &str) -> String {
+    if session.phase != Phase::ClientChallenge {
+        return pair_fail(400, "Out of order call to serverchallengeresp");
+    }
+    session.phase = Phase::ServerChallengeResp;
+
+    let aes_key = session.aes_key.unwrap_or([0; 16]);
+
+    let Some(ciphertext) = crypto::hex_decode(encrypted_response) else {
+        return pair_fail(400, "Invalid pairing request");
+    };
+    session.client_hash = crypto::aes128_ecb_decrypt(&aes_key, &ciphertext);
+
+    let Ok(signature) = crypto::sign_sha256(&state.identity.key_pkcs8_der, &session.server_secret) else {
+        return pair_fail(400, "Invalid pairing request");
+    };
+    let mut pairing_secret = session.server_secret.to_vec();
+    pairing_secret.extend_from_slice(&signature);
+
+    pair_ok(&format!(
+        "  <pairingsecret>{}</pairingsecret>\n",
+        crypto::hex_encode_upper(&pairing_secret)
+    ))
+}
+
+fn client_pairing_secret(
+    state: &State,
+    session: &PairSession,
+    uniqueid: &str,
+    pairing_secret: &str,
+) -> (String, bool) {
+    if session.phase != Phase::ServerChallengeResp {
+        return (pair_fail(400, "Out of order call to clientpairingsecret"), false);
+    }
+
+    let Some(secret_data) = crypto::hex_decode(pairing_secret) else {
+        return (pair_fail(400, "Client pairing secret too short"), false);
+    };
+    if secret_data.len() <= 16 {
+        return (pair_fail(400, "Client pairing secret too short"), false);
+    }
+    let (secret, signature) = secret_data.split_at(16);
+
+    let Ok(client_cert_der) = crypto::parse_cert(&session.client_cert) else {
+        return (pair_fail(400, "Invalid client certificate"), false);
+    };
+    let Ok(client_cert_signature) = crypto::cert_signature(&client_cert_der) else {
+        return (pair_fail(400, "Invalid client certificate"), false);
+    };
+
+    let mut hash_input = session.server_challenge.to_vec();
+    hash_input.extend_from_slice(&client_cert_signature);
+    hash_input.extend_from_slice(secret);
+    let same_hash = crypto::sha256(&hash_input) == session.client_hash.as_slice();
+
+    let verified = crypto::verify_sha256(&client_cert_der, secret, signature).unwrap_or(false);
+
+    let paired = same_hash && verified;
+    if paired {
+        let client = PairedClient {
+            uniqueid: uniqueid.to_string(),
+            name: session.devicename.clone(),
+            cert: String::from_utf8_lossy(&session.client_cert).into_owned(),
+        };
+        let mut clients = state.paired.lock().expect("paired clients lock");
+        clients.insert(uniqueid.to_string(), client);
+        let clients: Vec<PairedClient> = clients.values().cloned().collect();
+        if let Err(error) = state.store.write_json("clients.json", &clients) {
+            eprintln!("failed to persist paired clients: {error}");
+        }
+        eprintln!("paired client {uniqueid} ({})", session.devicename);
+    }
+
+    (pair_ok(""), paired)
+}
+
+fn pair_ok(extra: &str) -> String {
+    format!(
+        concat!(
+            "<?xml version=\"1.0\" encoding=\"utf-8\"?>\n",
+            "<root status_code=\"200\">\n",
+            "  <paired>1</paired>\n",
+            "{extra}",
+            "</root>\n",
+        ),
+        extra = extra,
+    )
+}
+
+pub(crate) fn pair_fail(status: u32, message: &str) -> String {
+    eprintln!("nvhttp: pair_fail status={status} message={message}");
+    format!(
+        concat!(
+            "<?xml version=\"1.0\" encoding=\"utf-8\"?>\n",
+            "<root status_code=\"{status}\" status_message=\"{message}\">\n",
+            "  <paired>0</paired>\n",
+            "</root>\n",
+        ),
+        status = status,
+        message = message,
+    )
+}
+
+#[cfg(test)]
+pub(crate) mod tests {
+    use super::*;
+    use std::sync::{Arc, Mutex, OnceLock};
+
+    static STATE: OnceLock<(Arc<State>, Mutex<mpsc::UnboundedReceiver<String>>)> = OnceLock::new();
+
+    pub(crate) fn test_state() -> Arc<State> {
+        STATE
+            .get_or_init(|| {
+                let store = Store::at(std::env::temp_dir().join("hydra-stream-nvhttp-test"))
+                    .expect("temp store");
+                std::fs::remove_file(store.path("clients.json")).ok();
+                let (tx, rx) = mpsc::unbounded_channel::<String>();
+                (
+                    Arc::new(State::with_store(store, tx).expect("state")),
+                    Mutex::new(rx),
+                )
+            })
+            .0
+            .clone()
+    }
+
+    fn next_event() -> String {
+        STATE
+            .get()
+            .expect("test state")
+            .1
+            .lock()
+            .expect("event receiver lock")
+            .blocking_recv()
+            .expect("stdio event")
+    }
+
+    fn params(pairs: &[(&str, &str)]) -> HashMap<String, String> {
+        pairs
+            .iter()
+            .map(|(key, value)| (key.to_string(), value.to_string()))
+            .collect()
+    }
+
+    fn tag<'a>(xml: &'a str, tag: &str) -> &'a str {
+        let open = format!("<{tag}>");
+        let start = xml.find(&open).map(|index| index + open.len()).expect(tag);
+        let end = xml[start..].find(&format!("</{tag}>")).expect(tag) + start;
+        &xml[start..end]
+    }
+
+    #[test]
+    fn serverinfo_xml_shape() {
+        let state = test_state();
+        let xml = serverinfo(&state, true, true, "192.168.1.10".parse().unwrap());
+
+        assert!(xml.starts_with("<?xml version=\"1.0\" encoding=\"utf-8\"?>\n<root status_code=\"200\">"));
+        assert!(xml.ends_with("</root>\n"));
+        assert_eq!(tag(&xml, "hostname"), "Hydra");
+        assert_eq!(tag(&xml, "appversion"), "7.1.431.-1");
+        assert_eq!(tag(&xml, "uniqueid"), state.uuid);
+        assert_eq!(tag(&xml, "HttpsPort"), "47984");
+        assert_eq!(tag(&xml, "ExternalPort"), "47989");
+        assert_eq!(tag(&xml, "LocalIP"), "192.168.1.10");
+        assert_eq!(tag(&xml, "PairStatus"), "1");
+        assert_eq!(tag(&xml, "state"), "SUNSHINE_SERVER_FREE");
+        // http without uniqueid reports unpaired
+        let http_xml = serverinfo(&state, false, false, "10.0.0.5".parse().unwrap());
+        assert_eq!(tag(&http_xml, "PairStatus"), "0");
+        assert_eq!(tag(&http_xml, "LocalIP"), "10.0.0.5");
+    }
+
+    #[test]
+    fn pairing_state_machine_happy_path() {
+        let state = test_state();
+        let uniqueid = "testclient0123";
+
+        // generate a client identity for this test run
+        let client_store = Store::at(std::env::temp_dir().join("hydra-stream-test-client"))
+            .expect("temp store");
+        let client_identity = certs::load_or_generate(&client_store).expect("client identity");
+        let client_cert_signature = crypto::cert_signature(&client_identity.cert_der).unwrap();
+
+        // phase 1: getservercert creates the session and HOLDS the
+        // response until the user submits the PIN shown on the client
+        let salt = crypto::random_bytes(16);
+        let salt_hex = crypto::hex_encode_upper(&salt);
+        let client_cert_hex = crypto::hex_encode_upper(client_identity.cert_pem.as_bytes());
+        let outcome = pair(
+            &state,
+            &params(&[
+                ("uniqueid", uniqueid),
+                ("phrase", "getservercert"),
+                ("salt", &salt_hex),
+                ("devicename", "test-device"),
+                ("clientcert", &client_cert_hex),
+            ]),
+        );
+        let RouteOutcome::AwaitPairingPin { uniqueid: held } = outcome else {
+            panic!("getservercert must hold the response");
+        };
+        assert_eq!(held, uniqueid);
+
+        // the UI is asked for the PIN (the client shows it to the user);
+        // no PIN is generated host-side
+        let event: serde_json::Value = serde_json::from_str(&next_event()).unwrap();
+        assert_eq!(event["event"], "pairing-requested");
+        assert!(event.get("pin").is_none(), "host must not generate a PIN");
+
+        // the user enters the PIN from the client; the held response body
+        // is produced and the key is derived
+        let pin = "1234".to_string();
+        let response = state.submit_pairing_pin(&pin).expect("pin applies");
+        assert!(response.contains("status_code=\"200\""), "{response}");
+        assert_eq!(tag(&response, "paired"), "1");
+        let plaincert_hex = tag(&response, "plaincert");
+        let server_cert_pem = crypto::hex_decode(plaincert_hex).expect("plaincert hex");
+        assert_eq!(server_cert_pem, state.identity.cert_pem.as_bytes());
+
+        // phase 2: clientchallenge
+        let aes_key = crypto::derive_aes_key(&salt.try_into().unwrap(), &pin);
+        let client_challenge = crypto::random_bytes(16);
+        let encrypted_challenge = crypto::aes128_ecb_encrypt(&aes_key, &client_challenge);
+        let RouteOutcome::Ready(response) = pair(
+            &state,
+            &params(&[
+                ("uniqueid", uniqueid),
+                ("clientchallenge", &crypto::hex_encode_upper(&encrypted_challenge)),
+            ]),
+        ) else {
+            panic!("phases must not hold");
+        };
+        assert!(response.contains("status_code=\"200\""), "{response}");
+        let challenge_response = crypto::hex_decode(tag(&response, "challengeresponse")).unwrap();
+        let decrypted = crypto::aes128_ecb_decrypt(&aes_key, &challenge_response);
+        assert_eq!(decrypted.len(), 48);
+        let server_hash = &decrypted[..32];
+        let server_challenge = &decrypted[32..];
+
+        // phase 3: serverchallengeresp
+        let client_secret = crypto::random_bytes(16);
+        let mut hash_input = server_challenge.to_vec();
+        hash_input.extend_from_slice(&client_cert_signature);
+        hash_input.extend_from_slice(&client_secret);
+        let hash = crypto::sha256(&hash_input);
+        let encrypted_hash = crypto::aes128_ecb_encrypt(&aes_key, &hash);
+        let RouteOutcome::Ready(response) = pair(
+            &state,
+            &params(&[
+                ("uniqueid", uniqueid),
+                ("serverchallengeresp", &crypto::hex_encode_upper(&encrypted_hash)),
+            ]),
+        ) else {
+            panic!("phases must not hold");
+        };
+        assert!(response.contains("status_code=\"200\""), "{response}");
+        let pairing_secret = crypto::hex_decode(tag(&response, "pairingsecret")).unwrap();
+        let (server_secret, server_signature) = pairing_secret.split_at(16);
+
+        // server signature must verify against the advertised server cert
+        let (_, server_cert) =
+            x509_parser::parse_x509_certificate(&state.identity.cert_der).unwrap();
+        let spki = server_cert.public_key();
+        assert!(crypto::verify_sha256_with_public_key(
+            spki.subject_public_key.data.as_ref(),
+            server_secret,
+            server_signature
+        )
+        .unwrap());
+
+        // the hash the server returned must match what we expect from the challenge
+        let mut expected_input = client_challenge.clone();
+        expected_input.extend_from_slice(&state.cert_signature);
+        expected_input.extend_from_slice(server_secret);
+        assert_eq!(server_hash, &crypto::sha256(&expected_input)[..]);
+
+        // phase 4: clientpairingsecret
+        let signature =
+            crypto::sign_sha256(&client_identity.key_pkcs8_der, &client_secret).unwrap();
+        let mut pairing_secret = client_secret.clone();
+        pairing_secret.extend_from_slice(&signature);
+        let RouteOutcome::Ready(response) = pair(
+            &state,
+            &params(&[
+                ("uniqueid", uniqueid),
+                ("clientpairingsecret", &crypto::hex_encode_upper(&pairing_secret)),
+            ]),
+        ) else {
+            panic!("phases must not hold");
+        };
+        assert!(response.contains("status_code=\"200\""), "{response}");
+        assert_eq!(tag(&response, "paired"), "1");
+
+        // pairing completion is broadcast so the UI can close the prompt
+        let event: serde_json::Value = serde_json::from_str(&next_event()).unwrap();
+        assert_eq!(event["event"], "pairing-finished");
+        assert_eq!(event["success"], true);
+
+        // client must be persisted
+        let paired = state.paired.lock().unwrap();
+        let client = paired.get(uniqueid).expect("paired client");
+        assert_eq!(client.name, "test-device");
+        assert_eq!(client.cert.as_bytes(), client_identity.cert_pem.as_bytes());
+        let persisted: Vec<PairedClient> = state.store.read_json("clients.json").unwrap();
+        assert!(persisted.iter().any(|client| client.uniqueid == uniqueid));
+    }
+
+    #[test]
+    fn applist_has_zero_whitespace() {
+        // Moonlight-Android's pull parser calls appList.getLast() on every
+        // TEXT event, so ANY whitespace text node (even before the root
+        // element, depending on the parser build) kills the app list.
+        let (state, _rx) = local_state("applist-shape");
+        let body = applist(&state);
+        assert!(!body.contains([' ', '\n', '\t', '\r'].as_slice()) || body.starts_with("<?xml"));
+        assert_eq!(
+            body,
+            concat!(
+                "<?xml version=\"1.0\" encoding=\"utf-8\"?>",
+                "<root status_code=\"200\"><App><IsHdrSupported>0</IsHdrSupported><AppTitle>Desktop</AppTitle><ID>1</ID></App></root>",
+            )
+        );
+    }
+
+    #[test]
+    fn applist_includes_pushed_library_apps() {
+        let (state, _rx) = local_state("applist-apps");
+        state.set_app_list(vec![
+            (100, "Hollow & Knight".to_string(), None),
+            (200, "Celeste".to_string(), None),
+        ]);
+        let body = applist(&state);
+        assert_eq!(
+            body,
+            concat!(
+                "<?xml version=\"1.0\" encoding=\"utf-8\"?>",
+                "<root status_code=\"200\">",
+                "<App><IsHdrSupported>0</IsHdrSupported><AppTitle>Desktop</AppTitle><ID>1</ID></App>",
+                "<App><IsHdrSupported>0</IsHdrSupported><AppTitle>Hollow &amp; Knight</AppTitle><ID>100</ID></App>",
+                "<App><IsHdrSupported>0</IsHdrSupported><AppTitle>Celeste</AppTitle><ID>200</ID></App>",
+                "</root>",
+            )
+        );
+    }
+
+    #[test]
+    fn set_app_list_drops_reserved_and_duplicate_appids() {
+        let (state, _rx) = local_state("applist-dupes");
+        state.set_app_list(vec![
+            (1, "Fake Desktop".to_string(), None),
+            (42, "Game A".to_string(), None),
+            (42, "Game B".to_string(), None),
+        ]);
+        let list = state.app_list.lock().unwrap();
+        assert_eq!(list.len(), 1);
+        assert_eq!(list[0].appid, 42);
+        assert_eq!(list[0].title, "Game A");
+        assert!(list[0].cover.is_none());
+    }
+
+    fn png_fallback(body: &[u8]) {
+        assert!(body.starts_with(&[0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A]));
+        assert!(body.ends_with(b"IEND\xAE\x42\x60\x82"));
+    }
+
+    #[test]
+    fn appasset_serves_a_tiny_png() {
+        let (state, _rx) = local_state("appasset-png");
+        let RouteOutcome::ReadyBinary { body, content_type } = appasset(&state, None) else {
+            panic!("appasset must be a binary response");
+        };
+        assert_eq!(content_type, "image/png");
+        png_fallback(&body);
+    }
+
+    #[test]
+    fn appasset_serves_mapped_cover_file_bytes() {
+        let (state, _rx) = local_state("appasset-cover");
+        let cover_path = std::env::temp_dir().join(format!(
+            "hydra-stream-cover-{}.webp",
+            std::process::id()
+        ));
+        std::fs::write(&cover_path, b"RIFF-TEST-COVER-BYTES").unwrap();
+
+        state.set_app_list(vec![(
+            42,
+            "Game A".to_string(),
+            Some(cover_path.to_string_lossy().into_owned()),
+        )]);
+
+        let RouteOutcome::ReadyBinary { body, content_type } = appasset(&state, Some(42)) else {
+            panic!("appasset must be a binary response");
+        };
+        assert_eq!(content_type, "image/png"); // Sunshine labels all art image/png
+        assert_eq!(body, b"RIFF-TEST-COVER-BYTES");
+
+        std::fs::remove_file(&cover_path).ok();
+
+        // unreadable file after deletion falls back to the PNG
+        let RouteOutcome::ReadyBinary { body, .. } = appasset(&state, Some(42)) else {
+            panic!("appasset must be a binary response");
+        };
+        png_fallback(&body);
+    }
+
+    #[test]
+    fn appasset_falls_back_for_unknown_or_desktop_appids() {
+        let (state, _rx) = local_state("appasset-fallback");
+        state.set_app_list(vec![(42, "Game A".to_string(), None)]);
+        for appid in [None, Some(1), Some(99)] {
+            let RouteOutcome::ReadyBinary { body, .. } = appasset(&state, appid) else {
+                panic!("appasset must be a binary response");
+            };
+            png_fallback(&body);
+        }
+    }
+
+    #[test]
+    fn pairing_rejects_unknown_uniqueid_and_bad_order() {
+        let state = test_state();
+        let RouteOutcome::Ready(response) = pair(
+            &state,
+            &params(&[("uniqueid", "nobody"), ("clientchallenge", "00")]),
+        ) else {
+            panic!("phases must not hold");
+        };
+        assert!(response.contains("status_code=\"400\""));
+        assert!(response.contains("Invalid uniqueid"));
+    }
+
+    fn local_state(name: &str) -> (Arc<State>, mpsc::UnboundedReceiver<String>) {
+        let dir = std::env::temp_dir().join(format!(
+            "hydra-stream-pairing-{name}-{}",
+            std::process::id()
+        ));
+        std::fs::remove_dir_all(&dir).ok();
+        let store = Store::at(dir).expect("temp store");
+        let (tx, rx) = mpsc::unbounded_channel::<String>();
+        (Arc::new(State::with_store(store, tx).expect("state")), rx)
+    }
+
+    fn start_pairing(state: &State, uniqueid: &str) -> [u8; 16] {
+        let salt: [u8; 16] = crypto::random_bytes(16).try_into().unwrap();
+        let salt_hex = crypto::hex_encode_upper(&salt);
+        let outcome = pair(
+            state,
+            &params(&[
+                ("uniqueid", uniqueid),
+                ("phrase", "getservercert"),
+                ("salt", &salt_hex),
+                ("devicename", "tester"),
+            ]),
+        );
+        assert!(matches!(outcome, RouteOutcome::AwaitPairingPin { .. }));
+        salt
+    }
+
+    #[test]
+    fn clientchallenge_before_pin_fails_like_sunshine() {
+        let (state, mut rx) = local_state("early-challenge");
+        let uniqueid = "earlybird";
+        let _salt = start_pairing(&state, uniqueid);
+
+        // the client must not reach phase 2 while the PIN is missing
+        let RouteOutcome::Ready(response) = pair(
+            &state,
+            &params(&[
+                ("uniqueid", uniqueid),
+                ("clientchallenge", &crypto::hex_encode_upper(&[0xAB; 32])),
+            ]),
+        ) else {
+            panic!("phases must not hold");
+        };
+        assert!(response.contains("status_code=\"400\""), "{response}");
+        assert!(response.contains("Cipher key not set"), "{response}");
+
+        // the failure is terminal and broadcast
+        let event: serde_json::Value = serde_json::from_str(&rx.try_recv().unwrap()).unwrap();
+        assert_eq!(event["event"], "pairing-requested");
+        let event: serde_json::Value = serde_json::from_str(&rx.try_recv().unwrap()).unwrap();
+        assert_eq!(event["event"], "pairing-finished");
+        assert_eq!(event["success"], false);
+
+        // a later PIN has no session to apply to
+        assert_eq!(
+            state.submit_pairing_pin("1234"),
+            Err(SubmitPinError::NoSession)
+        );
+    }
+
+    #[test]
+    fn submit_pairing_pin_validation() {
+        let (state, _rx) = local_state("pin-validation");
+
+        // no session at all
+        assert_eq!(
+            state.submit_pairing_pin("1234"),
+            Err(SubmitPinError::NoSession)
+        );
+
+        // malformed PINs
+        let _salt = start_pairing(&state, "pinclient");
+        assert_eq!(
+            state.submit_pairing_pin("12"),
+            Err(SubmitPinError::InvalidPin)
+        );
+        assert_eq!(
+            state.submit_pairing_pin("12ab"),
+            Err(SubmitPinError::InvalidPin)
+        );
+        assert!(state.submit_pairing_pin("1234").is_ok());
+
+        // the session consumed its PIN; re-submission finds no awaiting
+        // session (mirrors Sunshine: PINs only apply pre-key)
+        assert_eq!(
+            state.submit_pairing_pin("5678"),
+            Err(SubmitPinError::NoSession)
+        );
+    }
+
+    #[test]
+    fn pairing_expiry_emits_finished_false_and_responds_400() {
+        let (state, mut rx) = local_state("expiry");
+        let uniqueid = "slowpoke";
+        let _salt = start_pairing(&state, uniqueid);
+
+        // an HTTP waiter registers on the held session
+        let (tx, rx_http) = tokio::sync::oneshot::channel();
+        state.register_pair_response(uniqueid, tx);
+
+        // timeout fires: the session is expired, the waiter gets a 400,
+        // and the UI is told pairing finished without success
+        state.expire_pairing_session(uniqueid);
+        let body = rx_http.blocking_recv().expect("held response");
+        assert!(body.contains("status_code=\"400\""), "{body}");
+
+        let event: serde_json::Value = serde_json::from_str(&rx.blocking_recv().unwrap()).unwrap();
+        assert_eq!(event["event"], "pairing-requested");
+        let event: serde_json::Value = serde_json::from_str(&rx.blocking_recv().unwrap()).unwrap();
+        assert_eq!(event["event"], "pairing-finished");
+        assert_eq!(event["success"], false);
+    }
+
+    #[test]
+    fn pin_arriving_before_http_waiter_resolves_it() {
+        let (state, _rx) = local_state("pin-first");
+        let uniqueid = "fastpin";
+        let _salt = start_pairing(&state, uniqueid);
+
+        // PIN submitted before the held HTTP response registered
+        assert!(state.submit_pairing_pin("4321").is_ok());
+
+        // the late waiter still gets the response immediately
+        let (tx, rx_http) = tokio::sync::oneshot::channel();
+        state.register_pair_response(uniqueid, tx);
+        let body = rx_http.blocking_recv().expect("held response");
+        assert!(body.contains("plaincert"), "{body}");
+    }
+
+    /// The client's ANNOUNCE carries the minimum recovery packets it needs
+    /// in every FEC block (the live client sends 2); the launch must hand
+    /// it to the packetizer, absent or unparsable values leaving it at 0.
+    #[test]
+    fn announcement_parses_the_clients_fec_minimum() {
+        let (state, _rx) = local_state("fec-min");
+        let launch = make_launch_params(
+            &params(&[
+                ("appid", "1"),
+                ("rikey", "00112233445566778899aabbccddeeff"),
+            ]),
+            "tester",
+        )
+        .expect("launch");
+        state.begin_launch(launch).expect("begin launch");
+        let minimum = |state: &State| {
+            state
+                .launch_params()
+                .expect("launch params")
+                .min_required_fec_packets
+        };
+        assert_eq!(minimum(&state), 0, "absent attribute: no minimum");
+
+        state.update_announcement(&params(&[
+            ("x-nv-vqos[0].fec.enable", "1"),
+            ("x-nv-vqos[0].fec.minRequiredFecPackets", "2"),
+        ]));
+        assert_eq!(minimum(&state), 2);
+
+        // an invalid value leaves the parsed minimum in place
+        state.update_announcement(&params(&[(
+            "x-nv-vqos[0].fec.minRequiredFecPackets",
+            "two",
+        )]));
+        assert_eq!(minimum(&state), 2);
+    }
+}
+
+/// Binds one media UDP port for the life of the process: nonblocking, with
+/// enlarged kernel buffers so an IDR burst does not would-block the sender
+/// (a full send buffer on relaunch starved the client's decoder and spun
+/// it into an IDR-request flood).
+fn bind_media_socket(port: u16) -> Result<std::net::UdpSocket, String> {
+    let socket = std::net::UdpSocket::bind(("0.0.0.0", port))
+        .map_err(|error| format!("media port {port} bind: {error}"))?;
+    socket
+        .set_nonblocking(true)
+        .map_err(|error| format!("media port {port} nonblocking: {error}"))?;
+    crate::stream::enlarge_udp_buffers(&socket, port);
+    Ok(socket)
+}

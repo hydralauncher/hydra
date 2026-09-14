@@ -39,6 +39,7 @@ log.errorHandler.startCatching({
 log.initialize();
 
 export const pythonRpcLogger = log.scope("python-rpc");
+export const streamSidecarLogger = log.scope("stream-sidecar");
 export const logger = log.scope("main");
 export const achievementsLogger = log.scope("achievements");
 export const networkLogger = networkLog.scope("network");

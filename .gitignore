@@ -13,6 +13,8 @@ ludusavi/**
 hydra-python-rpc/
 /hydra-native/
 native/hydra-native/target/
+/hydra-stream/
+native/hydra-stream/target/
 .python-version
 
 # Sentry Config File

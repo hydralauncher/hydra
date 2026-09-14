@@ -146,11 +146,12 @@ const isAnimatedSource = async (source: AnimatedSource): Promise<boolean> => {
   return Boolean(metadata.pages && metadata.pages > 1);
 };
 
+/** Absolute path of the cached animated-cover poster for a remote URL. */
+export const getCoverPosterPath = (url: string): string =>
+  path.join(POSTER_DIR, `${hashUrl(url)}-${POSTER_VERSION}.webp`);
+
 const buildCoverPoster = async (url: string): Promise<string | null> => {
-  const posterPath = path.join(
-    POSTER_DIR,
-    `${hashUrl(url)}-${POSTER_VERSION}.webp`
-  );
+  const posterPath = getCoverPosterPath(url);
 
   if (fs.existsSync(posterPath)) {
     return `local:${posterPath}`;

@@ -1067,6 +1067,7 @@
     "behavior": "Behavior",
     "app_basics": "App basics",
     "startup_behavior": "Startup behavior",
+    "console_streaming": "Console streaming",
     "download_behavior": "Download behavior",
     "network_interface": "Network adapter for torrents",
     "network_interface_default": "Default (all adapters)",
@@ -1643,7 +1644,8 @@
     "wayland_souvenirs_warning_title": "Souvenirs on Wayland",
     "wayland_souvenirs_warning_description": "Due to the nature of Wayland, Hydra needs to ask which window it should capture every time you open a game. Select the game window so Hydra can capture souvenirs when you unlock achievements. Without selecting a window, capturing souvenirs is impossible.",
     "wayland_souvenirs_warning_cancel": "Cancel",
-    "wayland_souvenirs_warning_confirm": "OK"
+    "wayland_souvenirs_warning_confirm": "OK",
+    "enable_console_streaming": "Enable console streaming (Moonlight)"
   },
   "notifications": {
     "download_complete": "Download complete",
@@ -1688,7 +1690,13 @@
     "instructions": "Install umu-run or Wine on your Linux distro so the game installer can run"
   },
   "modal": {
-    "close": "Close button"
+    "close": "Close button",
+    "stream_pairing_title": "Pair your streaming device",
+    "stream_pairing_description": "Enter the PIN shown on your Moonlight device to pair it with Hydra.",
+    "stream_pairing_placeholder": "PIN",
+    "stream_pairing_submit": "Confirm",
+    "stream_pairing_error_invalid_pin": "Incorrect PIN. Check the PIN on your device and try again.",
+    "stream_pairing_error_no_session": "The pairing session expired. Start pairing again from your device."
   },
   "classics_onboarding": {
     "title": "Welcome to Hydra Classics",

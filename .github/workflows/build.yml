@@ -35,6 +35,10 @@ jobs:
       - name: Install dependencies
         run: yarn --frozen-lockfile
 
+      - name: Build stream sidecar
+        if: matrix.os == 'windows-2022'
+        run: yarn build:stream
+
       - name: Install Python
         uses: actions/setup-python@v5
         with:

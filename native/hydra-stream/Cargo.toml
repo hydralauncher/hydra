@@ -1,0 +1,29 @@
+[package]
+name = "hydra-stream"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "hydra-stream"
+path = "src/main.rs"
+
+[dependencies]
+tokio = { version = "1", features = ["io-std", "io-util", "macros", "net", "rt-multi-thread", "sync", "time"] }
+tokio-rustls = { version = "0.26", default-features = false, features = ["logging", "tls12", "ring"] }
+ring = { version = "0.17", default-features = false, features = ["alloc"] }
+rustls = { version = "0.23", default-features = false, features = ["std", "logging", "tls12", "ring"] }
+windows = { version = "0.58", features = ["Win32_Foundation", "Win32_Security", "Win32_System_LibraryLoader", "Win32_System_Power", "Win32_System_Threading", "Win32_Graphics_Dxgi", "Win32_Graphics_Dxgi_Common", "Win32_Graphics_Direct3D", "Win32_Graphics_Direct3D11", "Win32_Graphics_Gdi", "Win32_UI_WindowsAndMessaging", "Win32_UI_Input_KeyboardAndMouse", "Win32_Media_Audio", "Win32_Media_Multimedia", "Win32_System_Com", "Win32_Networking_WinSock"] }
+rcgen = { version = "0.13", features = ["pem"] }
+sha2 = "0.10"
+aes = "0.8"
+rsa = { version = "0.9", features = ["sha2"] }
+x509-parser = "0.16"
+mdns-sd = "0.13"
+if-addrs = "0.13"
+getrandom = "0.3"
+serde = { version = "1.0.228", features = ["derive"] }
+serde_json = "1.0.150"
+vigem-client = "0.1"
+
+[build-dependencies]
+cc = "1"

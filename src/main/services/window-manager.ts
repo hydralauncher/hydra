@@ -436,6 +436,16 @@ export class WindowManager {
     });
   }
 
+  public static hasBigPictureWindow() {
+    return !!this.bigPicture && !this.bigPicture.isDestroyed();
+  }
+
+  public static closeBigPictureWindow() {
+    if (this.hasBigPictureWindow()) {
+      this.bigPicture?.close();
+    }
+  }
+
   public static async openBigPictureWindow() {
     if (this.bigPicture) {
       this.bigPicture.focus();

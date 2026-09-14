@@ -44,6 +44,7 @@ import { ArchiveDeletionModal } from "./pages/downloads/archive-deletion-error-m
 import { CloudSubscriptionModal } from "./pages/shared-modals/hydra-cloud/cloud-subscription-modal";
 import { AddFriendModal } from "./pages/profile/profile-content/add-friend-modal";
 import { ClassicsScanModal } from "./pages/settings/emulation/classics-scan-modal";
+import { StreamPairingModal } from "./pages/shared-modals/stream-pairing-modal";
 import { RetroArchScanModal } from "./pages/settings/emulation/retroarch-scan-modal";
 import { CloudGiftNotificationModal } from "./pages/shared-modals/cloud-gift-notification-modal";
 
@@ -693,6 +694,7 @@ export function App() {
 
       <ClassicsScanModal />
       <RetroArchScanModal />
+      <StreamPairingModal />
 
       <main>
         <Sidebar />

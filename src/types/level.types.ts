@@ -173,6 +173,8 @@ export interface UserPreferences {
   achievementScreenshotsPath?: string;
   autoplayGameTrailers?: boolean;
   hideToTrayOnGameStart?: boolean;
+  streamingEnabled?: boolean;
+  streamingServerName?: string;
   enableNewDownloadOptionsBadges?: boolean;
   createStartMenuShortcut?: boolean;
   bigPictureSoundsEnabled?: boolean;
