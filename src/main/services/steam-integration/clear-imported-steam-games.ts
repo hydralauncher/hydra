@@ -1,5 +1,6 @@
 import type { Game } from "@types";
 import {
+  downloadsSublevel,
   gamesArtworkSelectionSublevel,
   gamesShopAssetsSublevel,
   gamesSublevel,
@@ -35,6 +36,7 @@ export const clearImportedSteamGames = async (steamOnlyObjectIds: string[]) => {
 
   for (const [key, game] of await gamesSublevel.iterator().all()) {
     if (!shouldRemoveImportedSteamGame(game, ids)) continue;
+    if (await downloadsSublevel.get(key).catch(() => undefined)) continue;
 
     await markGameDeleted(game, key);
     removed += 1;

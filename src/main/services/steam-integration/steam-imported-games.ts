@@ -1,10 +1,27 @@
 import type { Game } from "@types";
 
+type ImportedSteamGame = Pick<
+  Game,
+  | "shop"
+  | "isDeleted"
+  | "objectId"
+  | "source"
+  | "executablePath"
+  | "installedSizeInBytes"
+  | "trackingExecutablePaths"
+>;
+
+const hasLocalSteamInstall = (game: ImportedSteamGame): boolean =>
+  Boolean(game.executablePath) ||
+  Boolean(game.installedSizeInBytes) ||
+  Boolean(game.trackingExecutablePaths?.length);
+
 export const shouldRemoveImportedSteamGame = (
-  game: Pick<Game, "shop" | "isDeleted" | "objectId" | "source">,
+  game: ImportedSteamGame,
   steamOnlyObjectIds: Set<string>
 ): boolean => {
   if (game.shop !== "steam" || game.isDeleted) return false;
+  if (hasLocalSteamInstall(game)) return false;
   if (game.source === "steam") return true;
   return steamOnlyObjectIds.has(game.objectId);
 };

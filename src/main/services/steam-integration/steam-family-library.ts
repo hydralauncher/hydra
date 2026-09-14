@@ -1,6 +1,6 @@
 import type { SteamSourceLibraryGame } from "@types";
 
-const STEAM_APP_ID_PATTERN = /^[1-9][0-9]{0,9}$/;
+const STEAM_APP_ID_PATTERN = /^[1-9]\d{0,9}$/;
 const STEAM_FAMILY_GAME_APP_TYPE = 1;
 
 export type SteamFamilySharedApp = {

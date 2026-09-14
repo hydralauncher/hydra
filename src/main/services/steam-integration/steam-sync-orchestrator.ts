@@ -11,6 +11,7 @@ import type {
   SteamSyncFinishedPayload,
   SteamSyncRunStatus,
   SteamSyncState,
+  UnlockedAchievement,
 } from "@types";
 import {
   parseSteamSourceAchievements,
@@ -48,6 +49,7 @@ import {
   shouldFetchSteamCommunityAchievements,
 } from "./steam-community-achievements";
 import { AchievementMemoryStore } from "../achievements/achievement-memory-store";
+import { mergeUnlockedAchievementLists } from "../achievements/merge-unlocked-achievements";
 import {
   fetchSteamFamilyGroupForUser,
   fetchSteamFamilyPlaytimeSummary,
@@ -92,12 +94,13 @@ const getHydraApiErrorMessage = (error: unknown): string | null => {
 };
 
 const steamWebApiErrorBody = (error: unknown): string | null => {
-  const body =
-    error instanceof SteamWebApiHttpError
-      ? error.body
-      : typeof error === "object" && error !== null && "body" in error
-        ? (error as { body: unknown }).body
-        : null;
+  let body: unknown = null;
+
+  if (error instanceof SteamWebApiHttpError) {
+    body = error.body;
+  } else if (typeof error === "object" && error !== null && "body" in error) {
+    body = (error as { body: unknown }).body;
+  }
 
   if (body == null) return null;
 
@@ -109,7 +112,45 @@ const formatAchievementHttpDetail = (error: unknown, status: number | null) => {
   const body = steamWebApiErrorBody(error);
   const extras = [message, body].filter(Boolean);
 
-  return `HTTP ${status}${extras.length ? `, ${extras.join(", ")}` : ""}`;
+  if (extras.length === 0) {
+    return `HTTP ${status}`;
+  }
+
+  return `HTTP ${status}, ${extras.join(", ")}`;
+};
+
+const steamUnlocksToLocal = (
+  achievements: SteamSourceAchievement[]
+): UnlockedAchievement[] =>
+  achievements.flatMap((achievement) => {
+    if (!achievement.unlocked || !achievement.unlockTime) {
+      return [];
+    }
+
+    return [
+      {
+        name: achievement.name,
+        unlockTime: Date.parse(achievement.unlockTime),
+      },
+    ];
+  });
+
+const getSteamSyncFailureMessage = (error: unknown): string => {
+  if (
+    error instanceof SteamPrivateProfileError ||
+    error instanceof SteamRateLimitedError ||
+    error instanceof SteamSyncRunNotPendingError ||
+    error instanceof SteamSessionRequiredError ||
+    error instanceof SteamAccountMismatchError
+  ) {
+    return error.message;
+  }
+
+  if (isSteamSourceRateLimited(error)) {
+    return "profile/steam-rate-limited";
+  }
+
+  return getHydraApiErrorMessage(error) ?? "steam-sync-failed";
 };
 
 const throwIfAborted = (signal: AbortSignal) => {
@@ -573,31 +614,23 @@ class SteamSyncOrchestrator {
             schemaPayload != null
               ? catalogueFromSteamSchema(game.steamAppId, schemaPayload)
               : [];
-          const unlocked = achievements.filter(
-            (achievement) => achievement.unlocked
-          ).length;
           const schemaCount =
             catalogue.length > 0 ? catalogue.length : achievements.length;
 
-          steamSyncLogger.log(
-            `Achievements for ${game.steamAppId} ${game.name}: ${unlocked} unlocked / ${schemaCount}`
+          const current = AchievementMemoryStore.get("steam", game.steamAppId);
+          const unlockedAchievements = mergeUnlockedAchievementLists(
+            steamUnlocksToLocal(achievements),
+            current?.unlockedAchievements ?? []
           );
 
-          const current = AchievementMemoryStore.get("steam", game.steamAppId);
+          steamSyncLogger.log(
+            `Achievements for ${game.steamAppId} ${game.name}: ${unlockedAchievements.length} unlocked / ${schemaCount}`
+          );
+
           AchievementMemoryStore.set("steam", game.steamAppId, {
             achievements:
               catalogue.length > 0 ? catalogue : (current?.achievements ?? []),
-            unlockedAchievements: achievements.flatMap((achievement) => {
-              if (!achievement.unlocked || !achievement.unlockTime) {
-                return [];
-              }
-              return [
-                {
-                  name: achievement.name,
-                  unlockTime: Date.parse(achievement.unlockTime),
-                },
-              ];
-            }),
+            unlockedAchievements,
             language: current?.language,
             catalogueValidator: current?.catalogueValidator,
           });
@@ -605,7 +638,7 @@ class SteamSyncOrchestrator {
           await this.persistLocalAchievementCounts(
             game.steamAppId,
             schemaCount,
-            unlocked
+            unlockedAchievements.length
           );
 
           achievementsByAppId.set(game.steamAppId, achievements);
@@ -807,16 +840,7 @@ class SteamSyncOrchestrator {
         return;
       }
 
-      const message =
-        error instanceof SteamPrivateProfileError ||
-        error instanceof SteamRateLimitedError ||
-        error instanceof SteamSyncRunNotPendingError ||
-        error instanceof SteamSessionRequiredError ||
-        error instanceof SteamAccountMismatchError
-          ? error.message
-          : isSteamSourceRateLimited(error)
-            ? "profile/steam-rate-limited"
-            : (getHydraApiErrorMessage(error) ?? "steam-sync-failed");
+      const message = getSteamSyncFailureMessage(error);
 
       steamSyncLogger.error("Steam sync failed", message);
       this.setState(idleState());

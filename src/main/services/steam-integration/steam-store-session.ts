@@ -19,25 +19,52 @@ export type { SteamWebApiToken } from "./steam-store-session-config";
 export const STEAM_SESSION_PARTITION = "persist:steam";
 export const STEAM_STORE_EXPLORE_URL =
   "https://store.steampowered.com/explore/";
+export const STEAM_STORE_MAX_REDIRECTS = 5;
 
 const STEAM_CHROME_USER_AGENT =
   "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36";
 
 const communityHttpsAgent = new https.Agent({ family: 4 });
 
-const requestUrl = (input: RequestInfo | URL) =>
-  typeof input === "string"
-    ? input
-    : input instanceof URL
-      ? input.toString()
-      : input.url;
+const requestUrl = (input: RequestInfo | URL) => {
+  if (typeof input === "string") return input;
+  if (input instanceof URL) return input.toString();
+  return input.url;
+};
+
+const readAxiosResponseBody = (data: unknown): string => {
+  if (typeof data === "string") return data;
+  if (data == null) return "";
+  return JSON.stringify(data);
+};
+
+const axiosHeaderValue = (
+  headers: unknown,
+  name: string
+): string | undefined => {
+  if (!headers || typeof headers !== "object") return undefined;
+
+  const withGet = headers as { get?: (key: string) => unknown };
+  if (typeof withGet.get === "function") {
+    const fromGet = withGet.get(name);
+    if (typeof fromGet === "string") return fromGet;
+  }
+
+  const record = headers as Record<string, unknown>;
+  const value = record[name] ?? record[name.toLowerCase()];
+  if (Array.isArray(value)) {
+    return typeof value[0] === "string" ? value[0] : undefined;
+  }
+
+  return typeof value === "string" ? value : undefined;
+};
 
 export const createSteamCommunityCookieFetch = (
   cookieHeader: string
 ): typeof fetch => {
   const client = axios.create({
     httpsAgent: communityHttpsAgent,
-    maxRedirects: 5,
+    maxRedirects: STEAM_STORE_MAX_REDIRECTS,
     responseType: "text",
     transitional: { clarifyTimeoutError: true },
     validateStatus: () => true,
@@ -58,13 +85,16 @@ export const createSteamCommunityCookieFetch = (
     const finalUrl =
       (response.request as { res?: { responseUrl?: string } } | undefined)?.res
         ?.responseUrl ?? url;
-    const body =
-      typeof response.data === "string"
-        ? response.data
-        : response.data == null
-          ? ""
-          : JSON.stringify(response.data);
-    const webResponse = new Response(body, { status: response.status });
+    const headers = new Headers();
+    const retryAfter = axiosHeaderValue(response.headers, "retry-after");
+    if (retryAfter) {
+      headers.set("retry-after", retryAfter);
+    }
+
+    const webResponse = new Response(readAxiosResponseBody(response.data), {
+      status: response.status,
+      headers,
+    });
     Object.defineProperty(webResponse, "url", { value: finalUrl });
     return webResponse;
   }) as typeof fetch;
@@ -188,7 +218,7 @@ export const readSteamCommunitySession =
       steamSession.cookies.get({ url: "https://steamcommunity.com/" }),
       steamSession.cookies.get({ url: "https://store.steampowered.com/" }),
     ]);
-    const login = communityCookies.find(
+    const hasLoginCookie = communityCookies.some(
       (cookie) => cookie.name === "steamLoginSecure" && cookie.value.length > 0
     );
     const timezone =
@@ -201,7 +231,7 @@ export const readSteamCommunitySession =
 
     return {
       fetch: createSteamCommunityCookieFetch(cookieHeader),
-      hasLoginCookie: Boolean(login),
+      hasLoginCookie,
       timeZoneOffsetSeconds: parseSteamTimezoneOffsetSeconds(timezone?.value),
     };
   };

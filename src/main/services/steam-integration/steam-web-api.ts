@@ -3,7 +3,8 @@ import type { SteamWebApiToken } from "./steam-store-session-config";
 export class SteamWebApiHttpError extends Error {
   constructor(
     public readonly status: number,
-    public readonly body: unknown = null
+    public readonly body: unknown = null,
+    public readonly retryAfterSeconds: number | null = null
   ) {
     super(`steam-web-api-http-${status}`);
     this.name = "SteamWebApiHttpError";
@@ -55,7 +56,13 @@ export const steamWebApiGet = async ({
   const body = await readJsonBody(response);
 
   if (!response.ok) {
-    throw new SteamWebApiHttpError(response.status, body);
+    const retryAfter = response.headers.get("retry-after")?.trim();
+    const retryAfterSeconds =
+      retryAfter && /^\d+$/.test(retryAfter)
+        ? Number.parseInt(retryAfter, 10)
+        : null;
+
+    throw new SteamWebApiHttpError(response.status, body, retryAfterSeconds);
   }
 
   return body;

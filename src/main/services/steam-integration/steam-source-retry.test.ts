@@ -30,14 +30,30 @@ const axiosError = (status: number, headers: Record<string, string> = {}) => {
 };
 
 describe("Steam source retry policy", () => {
-  it("retries 429 three times with short backoff", () => {
+  it("retries 429 five times and honors a numeric Retry-After header", () => {
     const error = axiosError(429, { "retry-after": "7" });
 
     assert.equal(shouldRetrySteamSource(error, 1), true);
-    assert.equal(shouldRetrySteamSource(error, 2), true);
-    assert.equal(shouldRetrySteamSource(error, 3), false);
-    assert.equal(getSteamSourceRetryDelayMs(error, 1), 500);
-    assert.equal(getSteamSourceRetryDelayMs(error, 2), 1000);
+    assert.equal(shouldRetrySteamSource(error, 4), true);
+    assert.equal(shouldRetrySteamSource(error, 5), false);
+    assert.equal(getSteamSourceRetryDelayMs(error, 1), 7000);
+    assert.equal(getSteamSourceRetryDelayMs(error, 2), 7000);
+  });
+
+  it("uses 1s, 2s, 4s, 8s backoff for 429 without Retry-After", () => {
+    const error = axiosError(429);
+
+    assert.equal(getSteamSourceRetryDelayMs(error, 1), 1000);
+    assert.equal(getSteamSourceRetryDelayMs(error, 2), 2000);
+    assert.equal(getSteamSourceRetryDelayMs(error, 3), 4000);
+    assert.equal(getSteamSourceRetryDelayMs(error, 4), 8000);
+  });
+
+  it("reads Retry-After from SteamWebApiHttpError", () => {
+    const error = new SteamWebApiHttpError(429, null, 12);
+
+    assert.equal(shouldRetrySteamSource(error, 4), true);
+    assert.equal(getSteamSourceRetryDelayMs(error, 1), 12_000);
   });
 
   it("retries 502 three times with short backoff", () => {

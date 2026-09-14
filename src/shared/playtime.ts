@@ -1,5 +1,5 @@
 export type PlayTimeParts = {
-  playTimeInMilliseconds: number;
+  playTimeInMilliseconds?: number | null;
   steamPlayTimeInMilliseconds?: number | null;
 };
 
@@ -54,7 +54,10 @@ export const mergeLocalAndRemotePlayTime = (
   const { hydraMs, steamMs } = getRemotePlayTimeParts(remote);
 
   return {
-    playTimeInMilliseconds: Math.max(local.playTimeInMilliseconds, hydraMs),
+    playTimeInMilliseconds: Math.max(
+      local.playTimeInMilliseconds ?? 0,
+      hydraMs
+    ),
     steamPlayTimeInMilliseconds: steamMs,
   };
 };

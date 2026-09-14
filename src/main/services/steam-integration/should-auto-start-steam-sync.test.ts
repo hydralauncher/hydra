@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 
 // @ts-ignore The Node ESM test runner requires the source extension.
-import { shouldAutoStartSteamSync } from "./should-auto-start-steam-sync.ts";
+import { shouldAutoStartSteamSync } from "../../../shared/should-auto-start-steam-sync.ts";
 
 describe("shouldAutoStartSteamSync", () => {
   it("resumes a PENDING run while the local orchestrator is idle", () => {

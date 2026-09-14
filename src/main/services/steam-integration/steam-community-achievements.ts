@@ -4,14 +4,20 @@ export const shouldFetchSteamCommunityAchievements = (
   playTimeInSeconds: number
 ) => playTimeInSeconds > 0;
 
-const throwCommunityHttpError = (status: number, body: unknown) => {
+const throwCommunityHttpError = (
+  status: number,
+  body: unknown,
+  retryAfterSeconds: number | null = null
+) => {
   const error = new Error(`steam-web-api-http-${status}`) as Error & {
     status: number;
     body: unknown;
+    retryAfterSeconds: number | null;
   };
   error.name = "SteamWebApiHttpError";
   error.status = status;
   error.body = body;
+  error.retryAfterSeconds = retryAfterSeconds;
   throw error;
 };
 
@@ -55,18 +61,28 @@ type SteamGameAchievementSchemaItem = {
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === "object" && value !== null && !Array.isArray(value);
 
+const asTrimmedString = (value: unknown): string => {
+  if (typeof value === "string") return value.trim();
+  if (typeof value === "number" && Number.isFinite(value)) {
+    return String(value).trim();
+  }
+  return "";
+};
+
 const decodeXmlText = (value: string) =>
   value
-    .replace(/<!\[CDATA\[([\s\S]*?)\]\]>/g, "$1")
-    .replace(/&quot;/g, '"')
-    .replace(/&#39;/g, "'")
-    .replace(/&lt;/g, "<")
-    .replace(/&gt;/g, ">")
-    .replace(/&amp;/g, "&")
+    .replaceAll(/<!\[CDATA\[([\s\S]*?)\]\]>/g, "$1")
+    .replaceAll("&quot;", '"')
+    .replaceAll("&#39;", "'")
+    .replaceAll("&lt;", "<")
+    .replaceAll("&gt;", ">")
+    .replaceAll("&amp;", "&")
     .trim();
 
 const xmlTagValue = (block: string, tag: string) => {
-  const match = new RegExp(`<${tag}>([\\s\\S]*?)</${tag}>`, "i").exec(block);
+  const match = new RegExp(String.raw`<${tag}>([\s\S]*?)</${tag}>`, "i").exec(
+    block
+  );
   return match ? decodeXmlText(match[1]) : "";
 };
 
@@ -210,7 +226,7 @@ export const parseSteamCommunityAchievementHtml = (
     if (!displayName || !unlockText) return [];
 
     const unlockTime = parseSteamUnlockTimeText(
-      unlockText.replace(/<br\s*\/?>/gi, " "),
+      unlockText.replaceAll(/<br\s*\/?>/gi, " "),
       timeZoneOffsetSeconds
     );
     if (!unlockTime) return [];
@@ -233,25 +249,24 @@ export const parseSteamCommunityAchievementHtml = (
 export const parseSteamGameAchievementSchema = (
   payload: unknown
 ): SteamGameAchievementSchemaItem[] => {
-  const root = isRecord(payload)
-    ? isRecord(payload.response)
-      ? payload.response
-      : payload
-    : null;
+  let root: Record<string, unknown> | null = null;
+  if (isRecord(payload)) {
+    root = isRecord(payload.response) ? payload.response : payload;
+  }
   const achievements =
     root && Array.isArray(root.achievements) ? root.achievements : [];
 
   return achievements.flatMap((item) => {
     if (!isRecord(item)) return [];
-    const internalName = String(item.internal_name ?? "").trim();
+    const internalName = asTrimmedString(item.internal_name);
     if (!internalName) return [];
 
-    const icon = String(item.icon ?? item.icon_gray ?? "").trim();
+    const icon = asTrimmedString(item.icon) || asTrimmedString(item.icon_gray);
     return [
       {
         internalName,
-        localizedName: String(item.localized_name ?? "").trim(),
-        localizedDesc: String(item.localized_desc ?? "").trim(),
+        localizedName: asTrimmedString(item.localized_name),
+        localizedDesc: asTrimmedString(item.localized_desc),
         icon,
         iconHash: iconHashFromUrl(icon),
         hidden: Boolean(item.hidden),
@@ -308,7 +323,13 @@ export const mapCommunityHtmlToPlayerstats = (
 const readResponseText = async (response: Response) => {
   const body = await response.text();
   if (!response.ok) {
-    throwCommunityHttpError(response.status, body);
+    const retryAfter = response.headers.get("retry-after")?.trim();
+    const retryAfterSeconds =
+      retryAfter && /^\d+$/.test(retryAfter)
+        ? Number.parseInt(retryAfter, 10)
+        : null;
+
+    throwCommunityHttpError(response.status, body, retryAfterSeconds);
   }
   return body;
 };

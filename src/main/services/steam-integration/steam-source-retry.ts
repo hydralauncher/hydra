@@ -1,7 +1,29 @@
 import { isAxiosError } from "axios";
 
 export const STEAM_SOURCE_502_MAX_ATTEMPTS = 3;
-export const STEAM_SOURCE_429_MAX_ATTEMPTS = 3;
+export const STEAM_SOURCE_502_BASE_DELAY_MS = 500;
+export const STEAM_SOURCE_502_DELAY_MULTIPLIER = 2;
+
+export const STEAM_SOURCE_429_MAX_ATTEMPTS = 5;
+export const STEAM_SOURCE_429_BASE_DELAY_MS = 1000;
+export const STEAM_SOURCE_429_DELAY_MULTIPLIER = 2;
+export const STEAM_SOURCE_429_MAX_DELAY_MS = 30_000;
+
+export const parseNumericRetryAfterSeconds = (
+  value: unknown
+): number | null => {
+  const raw = Array.isArray(value) ? value[0] : value;
+  if (typeof raw === "number" && Number.isFinite(raw) && raw >= 0) {
+    return Math.trunc(raw);
+  }
+
+  if (typeof raw !== "string") return null;
+
+  const trimmed = raw.trim();
+  if (!/^\d+$/.test(trimmed)) return null;
+
+  return Number.parseInt(trimmed, 10);
+};
 
 const readSteamWebApiHttpStatus = (error: unknown): number | null => {
   if (
@@ -26,6 +48,25 @@ export const getSteamSourceHttpStatus = (error: unknown): number | null => {
   return error.response?.status ?? null;
 };
 
+const readRetryAfterSeconds = (error: unknown): number | null => {
+  if (
+    typeof error === "object" &&
+    error !== null &&
+    "retryAfterSeconds" in error
+  ) {
+    const retryAfterSeconds = parseNumericRetryAfterSeconds(
+      (error as { retryAfterSeconds: unknown }).retryAfterSeconds
+    );
+    if (retryAfterSeconds != null) return retryAfterSeconds;
+  }
+
+  if (!isAxiosError(error)) return null;
+
+  return parseNumericRetryAfterSeconds(
+    error.response?.headers?.["retry-after"]
+  );
+};
+
 export const getSteamSourceRetryDelayMs = (
   error: unknown,
   failedAttempt: number
@@ -33,8 +74,24 @@ export const getSteamSourceRetryDelayMs = (
   const status = getSteamSourceHttpStatus(error);
   const exponent = Math.max(0, failedAttempt - 1);
 
-  if (status === 429 || status === 502) {
-    return 500 * 2 ** exponent;
+  if (status === 429) {
+    const retryAfterSeconds = readRetryAfterSeconds(error);
+    if (retryAfterSeconds != null) {
+      return retryAfterSeconds * 1000;
+    }
+
+    return Math.min(
+      STEAM_SOURCE_429_BASE_DELAY_MS *
+        STEAM_SOURCE_429_DELAY_MULTIPLIER ** exponent,
+      STEAM_SOURCE_429_MAX_DELAY_MS
+    );
+  }
+
+  if (status === 502) {
+    return (
+      STEAM_SOURCE_502_BASE_DELAY_MS *
+      STEAM_SOURCE_502_DELAY_MULTIPLIER ** exponent
+    );
   }
 
   return 0;

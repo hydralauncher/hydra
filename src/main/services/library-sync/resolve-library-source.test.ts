@@ -2,7 +2,10 @@ import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 
 // @ts-ignore The Node ESM test runner requires the source extension.
-import { resolveLibraryIsDeleted, resolveLibrarySource } from "./resolve-library-source.ts";
+import {
+  resolveLibraryIsDeleted,
+  resolveLibrarySource,
+} from "./resolve-library-source.ts";
 
 describe("resolveLibrarySource", () => {
   it("never downgrades hydra to steam", () => {

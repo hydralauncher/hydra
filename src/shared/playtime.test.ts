@@ -1,11 +1,10 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 
-// @ts-ignore The Node ESM test runner requires the source extension.
 import {
   getDisplayedPlayTimeInMilliseconds,
   mergeLocalAndRemotePlayTime,
-} from "./playtime.ts";
+} from "./playtime.js";
 
 describe("getDisplayedPlayTimeInMilliseconds", () => {
   it("sums Hydra and Steam playtime", () => {

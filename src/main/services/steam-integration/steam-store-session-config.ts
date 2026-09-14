@@ -21,6 +21,14 @@ export type SteamStoreConfigAttributes = {
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === "object" && value !== null && !Array.isArray(value);
 
+const asTrimmedString = (value: unknown): string => {
+  if (typeof value === "string") return value.trim();
+  if (typeof value === "number" && Number.isFinite(value)) {
+    return String(value).trim();
+  }
+  return "";
+};
+
 export const parseSteamStoreSessionConfig = (
   input: SteamStoreConfigAttributes
 ): SteamWebApiToken => {
@@ -50,8 +58,8 @@ export const parseSteamStoreSessionConfig = (
     throw new SteamSessionRequiredError();
   }
 
-  const steamId64 = String(userInfo.steamid ?? "");
-  const accessToken = String(storeConfig.webapi_token ?? "");
+  const steamId64 = asTrimmedString(userInfo.steamid);
+  const accessToken = asTrimmedString(storeConfig.webapi_token);
 
   if (!STEAM_ID_64_PATTERN.test(steamId64) || !accessToken) {
     throw new SteamSessionRequiredError();

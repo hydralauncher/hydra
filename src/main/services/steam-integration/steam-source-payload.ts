@@ -1,6 +1,6 @@
 import type { SteamSourceAchievement, SteamSourceLibraryGame } from "@types";
 
-const STEAM_APP_ID_PATTERN = /^[1-9][0-9]{0,9}$/;
+const STEAM_APP_ID_PATTERN = /^[1-9]\d{0,9}$/;
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === "object" && value !== null && !Array.isArray(value);
@@ -53,6 +53,18 @@ const unixSecondsToIso = (value: unknown): string | null => {
   return new Date(unix * 1000).toISOString();
 };
 
+const parseLastPlayedAt = (item: Record<string, unknown>): string | null => {
+  if (typeof item.lastPlayedAt === "string") return item.lastPlayedAt;
+  if (item.lastPlayedAt === null) return null;
+  return unixSecondsToIso(item.rtime_last_played);
+};
+
+const parseUnlockTime = (item: Record<string, unknown>): string | null => {
+  if (typeof item.unlockTime === "string") return item.unlockTime;
+  if (item.unlockTime === null) return null;
+  return unixSecondsToIso(item.unlocktime);
+};
+
 const parseLibraryGame = (item: unknown): SteamSourceLibraryGame | null => {
   if (!isRecord(item)) return null;
 
@@ -65,12 +77,7 @@ const parseLibraryGame = (item: unknown): SteamSourceLibraryGame | null => {
     readNonNegativeInt(item.playTimeInSeconds) ??
     (readNonNegativeInt(item.playtime_forever) ?? 0) * 60;
 
-  const lastPlayedAt =
-    typeof item.lastPlayedAt === "string"
-      ? item.lastPlayedAt
-      : item.lastPlayedAt === null
-        ? null
-        : unixSecondsToIso(item.rtime_last_played);
+  const lastPlayedAt = parseLastPlayedAt(item);
 
   return {
     steamAppId,
@@ -91,12 +98,7 @@ const parseAchievement = (item: unknown): SteamSourceAchievement | null => {
       ? item.unlocked
       : item.achieved === 1 || item.achieved === true;
 
-  const unlockTime =
-    typeof item.unlockTime === "string"
-      ? item.unlockTime
-      : item.unlockTime === null
-        ? null
-        : unixSecondsToIso(item.unlocktime);
+  const unlockTime = parseUnlockTime(item);
 
   return { name, unlocked, unlockTime };
 };

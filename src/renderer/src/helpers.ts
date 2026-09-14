@@ -441,8 +441,7 @@ const getPlayTimeDifference = (a: LibraryGame, b: LibraryGame): number => {
 };
 
 const getMostPlayedDifference = (a: LibraryGame, b: LibraryGame): number =>
-  getDisplayedPlayTimeInMilliseconds(b) -
-  getDisplayedPlayTimeInMilliseconds(a);
+  getDisplayedPlayTimeInMilliseconds(b) - getDisplayedPlayTimeInMilliseconds(a);
 
 export const isGameInstalled = (game: LibraryGame): boolean =>
   Boolean(game.executablePath) ||

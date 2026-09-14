@@ -40,6 +40,48 @@ describe("shouldRemoveImportedSteamGame", () => {
     );
   });
 
+  it("keeps steam-imported games that were later installed locally", () => {
+    assert.equal(
+      shouldRemoveImportedSteamGame(
+        {
+          shop: "steam",
+          isDeleted: false,
+          objectId: "620",
+          source: "steam",
+          executablePath: "/games/portal.exe",
+        },
+        steamOnly
+      ),
+      false
+    );
+    assert.equal(
+      shouldRemoveImportedSteamGame(
+        {
+          shop: "steam",
+          isDeleted: false,
+          objectId: "620",
+          source: "steam",
+          installedSizeInBytes: 12_000_000_000,
+        },
+        steamOnly
+      ),
+      false
+    );
+    assert.equal(
+      shouldRemoveImportedSteamGame(
+        {
+          shop: "steam",
+          isDeleted: false,
+          objectId: "620",
+          source: "steam",
+          trackingExecutablePaths: ["/games/portal.exe"],
+        },
+        steamOnly
+      ),
+      false
+    );
+  });
+
   it("keeps launchbox and already deleted games", () => {
     assert.equal(
       shouldRemoveImportedSteamGame(
