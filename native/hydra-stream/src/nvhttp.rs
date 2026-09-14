@@ -20,6 +20,14 @@ const APPVERSION: &str = "7.1.431.-1";
 const GFE_VERSION: &str = "3.23.0.74";
 pub(crate) const PAIR_TIMEOUT: Duration = Duration::from_secs(300);
 const DESKTOP_APPID: u32 = 1;
+/// `x-nv-general.featureFlags` bit 0x20 (NVFF_AUDIO_ENCRYPTION): a client
+/// raises it in its ANNOUNCE exactly when it will decrypt every audio
+/// payload with AES-128-CBC, so the host must encrypt the payloads then.
+/// `moonlight-common-c SdpGenerator.c:195-197` sets the bit and
+/// `AudioEncryptionEnabled` in the same branch, and Sunshine ORs the bit
+/// into `SS_ENC_AUDIO` ("Legacy clients use nvFeatureFlags to indicate
+/// support for audio encryption", `src/rtsp.cpp:1164-1165`).
+const NVFF_AUDIO_ENCRYPTION: u32 = 0x20;
 
 #[derive(Serialize, Deserialize, Clone)]
 pub struct PairedClient {
@@ -92,7 +100,15 @@ pub struct LaunchParams {
     pub height: u32,
     pub fps: u32,
     pub rikey: [u8; 16],
+    /// `/launch`'s `rikeyid`: the AV key identifier the client puts (big
+    /// endian) in the first 4 bytes of every audio packet's IV
+    /// (`AudioStream.c:81-82,188`; Sunshine builds the identical IV from
+    /// its `launch_session.iv`, `nvhttp.cpp:523`, `stream.cpp:2372`).
+    pub rikeyid: u32,
     pub encrypted_rtsp: bool,
+    /// `X-SS-Ping-Payload` from SETUP: the hex of 8 random bytes, i.e. the
+    /// 16 characters the client's SS_PING payload field holds and echoes
+    /// back in its ping datagrams (moonlight-common-c RtspConnection.c:1204).
     pub av_ping_payload: String,
     pub control_connect_data: u32,
     pub activity: Instant,
@@ -141,12 +157,27 @@ pub struct LaunchParams {
     /// `x-nv-aqos.qosTrafficType` from ANNOUNCE: the same for the audio
     /// socket (Sunshine rtsp.cpp:1159, stream.cpp:2174).
     pub audio_qos_type: Option<i32>,
+    /// `x-nv-general.featureFlags` from ANNOUNCE has bit 0x20
+    /// (NVFF_AUDIO_ENCRYPTION, `SdpGenerator.c:178`): the client set it
+    /// exactly when it will AES-CBC decrypt every audio payload
+    /// (`SdpGenerator.c:195-197` raises the bit and `AudioEncryptionEnabled`
+    /// together), so the host must encrypt then. Sunshine reads the same bit
+    /// (`rtsp.cpp:1164-1165`). `false` (attribute absent included) sends
+    /// plaintext.
+    pub audio_encryption: bool,
 }
 
 pub struct GameSession {
     pub phase: GamePhase,
     pub launch: Option<LaunchParams>,
     pub rtsp_seq: u32,
+    /// The client this session was negotiated with: the source IP of the
+    /// RTSP connection that carried its handshake (`note_rtsp_client`),
+    /// cleared whenever a session is raised or resumed. It is the
+    /// authoritative media destination — the audio sender accepts that IP
+    /// and nothing else, so a second device on the network cannot take the
+    /// stream's audio over.
+    pub client_ip: Option<IpAddr>,
 }
 
 pub struct StreamApp {
@@ -208,6 +239,7 @@ impl State {
                 phase: GamePhase::Idle,
                 launch: None,
                 rtsp_seq: 0,
+                client_ip: None,
             }),
             stream: Mutex::new(None),
             idr_gate: Mutex::new(crate::stream::IdrRequestGate::new()),
@@ -238,6 +270,7 @@ impl State {
             }
             session.launch = Some(params);
             session.rtsp_seq = 0;
+            session.client_ip = None;
             session.phase = GamePhase::Launching;
         }
         self.emit_session_state(GamePhase::Launching);
@@ -259,6 +292,8 @@ impl State {
                 // apply the new launch params to the pending session
                 session.launch = Some(params);
                 session.rtsp_seq = 0;
+                // the handshake is redone: re-learn who the client is
+                session.client_ip = None;
                 if let Some(launch) = session.launch.as_mut() {
                     launch.activity = Instant::now();
                 }
@@ -267,6 +302,7 @@ impl State {
             GamePhase::Streaming | GamePhase::Quitting => {
                 session.launch = Some(params);
                 session.rtsp_seq = 0;
+                session.client_ip = None;
                 session.phase = GamePhase::Launching;
                 let phase = session.phase;
                 drop(session);
@@ -300,6 +336,31 @@ impl State {
                 true
             }
         }
+    }
+
+    /// Records the client this session is being negotiated with: the source
+    /// IP of its RTSP connection. The first connection of a session wins —
+    /// a later RTSP connection from another host must not swing the
+    /// session's media destination to itself. Cleared by `begin_launch` and
+    /// `resume_launch`, so every handshake learns its own client.
+    pub fn note_rtsp_client(&self, ip: IpAddr) {
+        let mut session = self.game_session.lock().expect("game session lock");
+        if matches!(session.phase, GamePhase::Idle | GamePhase::Quitting) {
+            return;
+        }
+        if session.client_ip.is_none() {
+            session.client_ip = Some(ip);
+            eprintln!("rtsp: session client is {ip} (the media destination)");
+        }
+    }
+
+    /// The client IP this session was negotiated with, or `None` when no
+    /// RTSP connection has been seen yet (`note_rtsp_client`).
+    pub fn session_client_ip(&self) -> Option<IpAddr> {
+        self.game_session
+            .lock()
+            .expect("game session lock")
+            .client_ip
     }
 
     pub fn launch_params(&self) -> Option<LaunchParams> {
@@ -511,6 +572,14 @@ impl State {
                 Err(_) => eprintln!("nvhttp: ignoring invalid audio qosTrafficType {value:?}"),
             }
         }
+        if let Some(value) = attrs.get("x-nv-general.featureFlags") {
+            match value.trim().parse::<u32>() {
+                Ok(flags) => launch.audio_encryption = flags & NVFF_AUDIO_ENCRYPTION != 0,
+                Err(_) => {
+                    eprintln!("nvhttp: ignoring invalid general featureFlags {value:?}")
+                }
+            }
+        }
         if let Some(value) = attrs.get("x-nv-audio.surround.AudioQuality") {
             match value.trim().parse::<i32>() {
                 Ok(quality) => launch.audio_quality = Some(quality != 0),
@@ -705,10 +774,15 @@ fn applist(state: &State) -> String {
     format!("<?xml version=\"1.0\" encoding=\"utf-8\"?>{body}")
 }
 
+/// 600x900 cover for the Desktop tile. `include_bytes!` keeps dev and
+/// packaged builds identical: the sidecar ships as a single .exe.
+const DESKTOP_COVER_PNG: &[u8] = include_bytes!("../assets/desktop-app.png");
+
 /// Sunshine serves the app's box art here as image/png (an empty/failed
 /// stream still gets a 200 with image/png). Hydra games map to cover
-/// files resolved by the Electron host; anything else (Desktop, unknown
-/// appid, unreadable file) falls back to a 1x1 transparent PNG.
+/// files resolved by the Electron host, Desktop gets a bundled cover, and
+/// anything else (unknown appid, unreadable file) falls back to a 1x1
+/// transparent PNG so a missing cover stays a visible gap.
 fn appasset(state: &State, appid: Option<u32>) -> RouteOutcome {
     if let Some(appid) = appid {
         let cover = state
@@ -730,6 +804,13 @@ fn appasset(state: &State, appid: Option<u32>) -> RouteOutcome {
                     eprintln!("nvhttp: unreadable cover {}: {error}", cover.display());
                 }
             }
+        }
+
+        if appid == DESKTOP_APPID {
+            return RouteOutcome::ReadyBinary {
+                body: DESKTOP_COVER_PNG.to_vec(),
+                content_type: "image/png",
+            };
         }
     }
 
@@ -891,6 +972,22 @@ fn make_launch_params(params: &HashMap<String, String>, uniqueid: &str) -> Optio
 
     let corever: u32 = params.get("corever").and_then(|value| value.parse().ok()).unwrap_or(0);
 
+    // rikeyid: the client's own AV key id — a random 32-bit value, sent as a
+    // SIGNED decimal (Moonlight generates a random int32, so roughly half of
+    // all sessions carry a negative one), and the value the client writes
+    // big endian into remoteInputAesIv (`AudioStream.c:81-82`). Sunshine
+    // parses it the same way: `(int) util::from_view(...)` truncated into
+    // the u32 the IV needs (`nvhttp.cpp:523`; `from_view` returns a signed
+    // `std::int64_t`, `utility.h:820-822`). Parsing it as unsigned reads a
+    // negative id as unparsable and silently leaves 0 — every audio IV is
+    // then built from the wrong key id and the client cannot recover a
+    // single payload. A value that does not parse at all still leaves 0.
+    let rikeyid: u32 = params
+        .get("rikeyid")
+        .and_then(|value| value.trim().parse::<i64>().ok())
+        .map(|value| value as i32 as u32)
+        .unwrap_or(0);
+
     Some(LaunchParams {
         uniqueid: uniqueid.to_string(),
         appid: params.get("appid")?.parse().ok()?,
@@ -898,8 +995,18 @@ fn make_launch_params(params: &HashMap<String, String>, uniqueid: &str) -> Optio
         height,
         fps,
         rikey,
+        rikeyid,
         encrypted_rtsp: corever >= 1,
-        av_ping_payload: crypto::hex_encode(&crypto::random_bytes(16)),
+        // X-SS-Ping-Payload: Sunshine hex-encodes EIGHT random bytes here
+        // (`nvhttp.cpp:517-519`, `unsigned char raw_payload[8]`), and the
+        // client only adopts the payload when its length is exactly the
+        // 16-byte SS_PING payload field — `strlen(pingPayload) ==
+        // sizeof(AudioPingPayload.payload)` (moonlight-common-c
+        // RtspConnection.c:1204-1207). A 32-character hex string made that
+        // check fail, so the client silently fell back to the 4-byte legacy
+        // ping and the payload handshake was never exercised. Sunshine
+        // emits uppercase hex (`util::hex_vec`), matched here.
+        av_ping_payload: crypto::hex_encode_upper(&crypto::random_bytes(8)),
         control_connect_data: u32::from_le_bytes(
             crypto::random_bytes(4).try_into().expect("4 bytes"),
         ),
@@ -921,6 +1028,9 @@ fn make_launch_params(params: &HashMap<String, String>, uniqueid: &str) -> Optio
         surround_enabled: true,
         video_qos_type: None,
         audio_qos_type: None,
+        // the ANNOUNCE that carries x-nv-general.featureFlags follows the
+        // launch; until then nothing asks for encrypted audio
+        audio_encryption: false,
     })
 }
 
@@ -1629,10 +1739,23 @@ pub(crate) mod tests {
     }
 
     #[test]
-    fn appasset_falls_back_for_unknown_or_desktop_appids() {
+    fn appasset_serves_bundled_desktop_cover() {
+        let (state, _rx) = local_state("appasset-desktop");
+        let RouteOutcome::ReadyBinary { body, content_type } =
+            appasset(&state, Some(DESKTOP_APPID))
+        else {
+            panic!("appasset must be a binary response");
+        };
+        assert_eq!(content_type, "image/png");
+        png_fallback(&body);
+        assert!(body.len() > 4096, "desktop cover is {} bytes", body.len());
+    }
+
+    #[test]
+    fn appasset_falls_back_for_unknown_appids() {
         let (state, _rx) = local_state("appasset-fallback");
         state.set_app_list(vec![(42, "Game A".to_string(), None)]);
-        for appid in [None, Some(1), Some(99)] {
+        for appid in [None, Some(99)] {
             let RouteOutcome::ReadyBinary { body, .. } = appasset(&state, appid) else {
                 panic!("appasset must be a binary response");
             };
@@ -1817,6 +1940,109 @@ pub(crate) mod tests {
             "two",
         )]));
         assert_eq!(minimum(&state), 2);
+    }
+
+    /// Audio payload encryption is gated on exactly one thing: bit 0x20
+    /// (NVFF_AUDIO_ENCRYPTION) of the client's `x-nv-general.featureFlags`.
+    /// The client sets that bit in the same branch that makes it AES-CBC
+    /// decrypt every audio payload (`SdpGenerator.c:195-197`), and both of
+    /// the clients that hit the silent-audio bug send 167 = 0xA7.
+    #[test]
+    fn announcement_gates_audio_encryption_on_the_feature_flags_bit() {
+        let (state, _rx) = local_state("audio-encryption");
+        let launch = make_launch_params(
+            &params(&[
+                ("appid", "1"),
+                ("rikey", "00112233445566778899aabbccddeeff"),
+                ("rikeyid", "305419896"),
+            ]),
+            "tester",
+        )
+        .expect("launch");
+        state.begin_launch(launch).expect("begin launch");
+        // the rikeyid the audio IV is built from rides the same /launch
+        assert_eq!(state.launch_params().expect("launch").rikeyid, 305419896);
+
+        let encrypted = |state: &State| state.launch_params().expect("launch").audio_encryption;
+        assert!(!encrypted(&state), "absent attribute: plaintext");
+
+        state.update_announcement(&params(&[("x-nv-general.featureFlags", "167")]));
+        assert!(encrypted(&state), "0xA7 asks for NVFF_AUDIO_ENCRYPTION");
+
+        // a client that keeps the bit clear keeps plaintext Opus
+        state.update_announcement(&params(&[("x-nv-general.featureFlags", "135")]));
+        assert!(!encrypted(&state), "0x87 does not ask for encrypted audio");
+
+        // and an unparsable value is not a request either (it leaves the
+        // previous state, like the FEC minimum above)
+        state.update_announcement(&params(&[("x-nv-general.featureFlags", "0x20")]));
+        assert!(!encrypted(&state));
+    }
+
+    fn launch_with_rikeyid(rikeyid: &str) -> LaunchParams {
+        let mut pairs = vec![
+            ("appid", "1"),
+            ("rikey", "00112233445566778899aabbccddeeff"),
+        ];
+        pairs.push(("rikeyid", rikeyid));
+        make_launch_params(&params(&pairs), "tester").expect("launch")
+    }
+
+    /// `rikeyid` is a SIGNED decimal: Moonlight generates a random int32 for
+    /// it, so about half of all sessions carry a negative one (twelve
+    /// distinct negative values in a single evening's logs, e.g.
+    /// -1721505449). Sunshine parses it signed and truncates to the u32 the
+    /// audio IV needs (`nvhttp.cpp:523`; `from_view` is an `std::int64_t`,
+    /// `utility.h:820-822`). An unsigned parse read every negative id as
+    /// "no value" and left 0, which built every audio IV from the wrong key
+    /// id.
+    #[test]
+    fn launch_parses_rikeyid_as_a_signed_decimal() {
+        assert_eq!(launch_with_rikeyid("-1721505449").rikeyid, 2_573_461_847);
+        assert_eq!(launch_with_rikeyid("305419896").rikeyid, 305_419_896);
+        assert_eq!(launch_with_rikeyid("-1").rikeyid, u32::MAX);
+        assert_eq!(launch_with_rikeyid(" 42 ").rikeyid, 42);
+        // genuinely unparsable: 0, as Sunshine's from_chars leaves it
+        assert_eq!(launch_with_rikeyid("abc").rikeyid, 0);
+        assert_eq!(launch_with_rikeyid("0x20").rikeyid, 0);
+    }
+
+    /// The same value end to end: the /launch query string of a real
+    /// session, through the audio cipher, to a packet the client's own
+    /// decrypt path (IV `BE32(rikeyid + sequence)`, then PKCS#7-stripping
+    /// AES-128-CBC) recovers byte for byte. The IV asserted for packet 0 is
+    /// `BE32(0x9963E957)`, the two's complement of -1721505449.
+    #[test]
+    fn negative_rikeyid_reaches_the_client_audio_decrypt() {
+        let launch = launch_with_rikeyid("-1721505449");
+        let frame = crate::crypto::hex_decode("5d0102030405060708090a0b0c0d0e0f1011121314").unwrap();
+        let expected_iv: [u8; 16] = crate::crypto::hex_decode("9963e957000000000000000000000000")
+            .unwrap()
+            .try_into()
+            .unwrap();
+
+        let cipher = crate::audio::AudioCipher::new(launch.rikey, launch.rikeyid);
+        assert_eq!(cipher.iv(0), expected_iv);
+        let packet = crate::audio::AudioPacketizer::new(5)
+            .with_cipher(Some(cipher))
+            .packetize(&frame);
+        assert_eq!(
+            crate::crypto::client_audio_decrypt(&launch.rikey, &expected_iv, &packet[12..])
+                .expect("the client decrypts"),
+            frame
+        );
+
+        // the 0 the unsigned parse substituted never matches; note the pad
+        // is still legal there (it lives in the last block, which the IV
+        // does not touch), so the client plays noise rather than logging
+        // "Failed to decrypt audio packet"
+        let buggy = crate::audio::AudioCipher::new(launch.rikey, 0);
+        assert_ne!(buggy.iv(0), expected_iv);
+        assert_ne!(
+            crate::crypto::client_audio_decrypt(&launch.rikey, &buggy.iv(0), &packet[12..])
+                .expect("still unpads"),
+            frame
+        );
     }
 }
 

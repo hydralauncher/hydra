@@ -23,7 +23,7 @@ use windows::Win32::Media::Multimedia::WAVE_FORMAT_IEEE_FLOAT;
 const WAVE_FORMAT_EXTENSIBLE: u32 = 0xFFFE;
 use windows::Win32::System::Com::{CoCreateInstance, CoInitializeEx, CLSCTX_ALL, COINIT_MULTITHREADED};
 
-use crate::audio::{AudioLayout, AudioPipeline, EncodedAudio, SAMPLE_RATE};
+use crate::audio::{AudioLayout, AudioPipeline, BufferFlags, EncodedAudio, PcmLevels, SAMPLE_RATE};
 use crate::audio_encode::OpusEncoder;
 
 const WAVE_FORMAT_EXTL_FLOAT_GUID: windows::core::GUID =
@@ -161,6 +161,9 @@ struct WasapiLoopback {
     /// `WAVEFORMATEXTENSIBLE.dwChannelMask`, when the mix format is
     /// extensible and carries one.
     mask: Option<u32>,
+    /// `dwFlags` census of every buffer `read_chunk` was handed (see
+    /// [`BufferFlags`]) — the engine's own account of the silence.
+    flags: BufferFlags,
     /// Windows stops the audio engine (and loopback data) when nothing
     /// renders to the device; this silent render stream keeps it mixing.
     _silence: Option<SilenceKeeper>,
@@ -253,6 +256,91 @@ struct DeclaredFormat {
     resampling: bool,
 }
 
+/// The mixer format fields the capture start reads out of `GetMixFormat`:
+/// a packed `WAVEFORMATEX` and, when the tag is `WAVE_FORMAT_EXTENSIBLE`, the
+/// `WAVEFORMATEXTENSIBLE` tail (`wValidBitsPerSample`, `dwChannelMask`,
+/// `SubFormat`).
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+struct MixFormat {
+    tag: u32,
+    channels: u16,
+    rate: u32,
+    bits: u16,
+    block_align: u16,
+    cb_size: u16,
+    /// `SubFormat`, when the tag is extensible.
+    sub_format: Option<windows::core::GUID>,
+    mask: Option<u32>,
+}
+
+/// The stream flags the production capture opens with: loopback (the host
+/// stays audible; Windows may set `AUDCLNT_BUFFERFLAGS_SILENT` on what it
+/// hands us) plus the conversion pair that hands a rate mismatch to Windows'
+/// SRC (`audio.cpp:391-399`). The ignored `live_loopback_capture_probe` test
+/// opens with this same constant, so what it measures is this stream.
+const CAPTURE_FLAGS: u32 = AUDCLNT_STREAMFLAGS_LOOPBACK
+    | AUDCLNT_STREAMFLAGS_AUTOCONVERTPCM
+    | AUDCLNT_STREAMFLAGS_SRC_DEFAULT_QUALITY;
+
+/// Buffer duration the capture asks for: 20 ms, in 100 ns units.
+const CAPTURE_BUFFER_DURATION: i64 = 200_000;
+
+/// The startup format line: the device's mix format beside the descriptor the
+/// capture hands to `Initialize` (that same descriptor with the rate and
+/// `nAvgBytesPerSec` patched to what we declare, `new()` below).
+///
+/// It exists because a capture that is silent while the endpoint is provably
+/// loud has to have the descriptor ruled out: a malformed
+/// `WAVEFORMATEXTENSIBLE`, or one the engine quietly ignores, is invisible
+/// everywhere else — silent packets, an exact packet rate, no error — and the
+/// log used to say nothing about what the engine was given. Pure, so the
+/// rendering is testable without an audio device.
+fn format_line(mix: &MixFormat, declared: &DeclaredFormat, float: bool) -> String {
+    let sub_format = mix
+        .sub_format
+        .map(guid_text)
+        .unwrap_or_else(|| "none".to_string());
+    let mask = mix
+        .mask
+        .map(|mask| format!("{mask:#x}"))
+        .unwrap_or_else(|| "none".to_string());
+    format!(
+        "audio loopback: mix tag={tag:#06x} channels={channels} rate={rate} bits={bits} \
+         block-align={block_align} cb-size={cb_size} sub-format={sub_format} mask={mask} \
+         ({kind}) | declared tag={tag:#06x} channels={channels} rate={declared_rate} \
+         bits={bits} block-align={block_align} avg-bytes={avg_bytes_per_sec} \
+         cb-size={cb_size} sub-format={sub_format} mask={mask} ({resampling})",
+        tag = mix.tag,
+        channels = mix.channels,
+        rate = mix.rate,
+        bits = mix.bits,
+        block_align = mix.block_align,
+        cb_size = mix.cb_size,
+        kind = if float { "IEEE float" } else { "pcm16" },
+        declared_rate = declared.sample_rate,
+        avg_bytes_per_sec = declared.avg_bytes_per_sec,
+        resampling = if declared.resampling {
+            "will be resampled to 48000 by Windows"
+        } else {
+            "no resampling needed"
+        },
+    )
+}
+
+/// A GUID as its canonical 8-4-4-4-12 hex text: the sub-format is the field
+/// that says whether the engine is being handed float or PCM, and it is
+/// unreadable in a log line any other way.
+fn guid_text(guid: windows::core::GUID) -> String {
+    let mut text = format!("{:08x}-{:04x}-{:04x}-", guid.data1, guid.data2, guid.data3);
+    for (index, byte) in guid.data4.iter().enumerate() {
+        if index == 2 {
+            text.push('-');
+        }
+        text.push_str(&format!("{byte:02x}"));
+    }
+    text
+}
+
 /// Decides what to declare for a detected mixer format. `block_align` is the
 /// mixer's `nBlockAlign` (channels x bytes per sample): only the rate is
 /// replaced, so `nAvgBytesPerSec` must follow the declared rate or
@@ -272,6 +360,12 @@ impl WasapiLoopback {
     /// the descriptor declares 48 kHz and Windows resamples the device mix
     /// into it.
     fn new() -> Result<WasapiLoopback, String> {
+        WasapiLoopback::open(true)
+    }
+
+    /// [`WasapiLoopback::new`], with the silence keeper optional so
+    /// `live_loopback_capture_probe` can measure the capture without it.
+    fn open(keep_silence: bool) -> Result<WasapiLoopback, String> {
         unsafe {
             // S_FALSE means COM is already initialized on this thread — fine.
             CoInitializeEx(None, COINIT_MULTITHREADED)
@@ -303,36 +397,48 @@ impl WasapiLoopback {
             let channels = read_u16(2);
             let sample_rate = read_u32(4);
             let block_align = read_u16(12);
+            let bits = read_u16(14);
             // WAVEFORMATEXTENSIBLE (packed) is WAVEFORMATEX (18 bytes) +
             // wValidBitsPerSample (u16) + dwChannelMask (u32) + SubFormat
             // (GUID), so the mask sits at byte 20 and the sub-format GUID the
             // code below reads at byte 24 is the final field (40 bytes
             // total); cbSize is the last WAVEFORMATEX word, at byte 16.
-            let mask = (format_tag == WAVE_FORMAT_EXTENSIBLE && read_u16(16) >= 22)
+            let cb_size = read_u16(16);
+            let mask = (format_tag == WAVE_FORMAT_EXTENSIBLE && cb_size >= 22)
                 .then(|| read_u32(20));
+            let sub_format = (format_tag == WAVE_FORMAT_EXTENSIBLE).then(|| {
+                // SubFormat GUID follows the WAVEFORMATEX header (offset 24).
+                std::ptr::read_unaligned(
+                    (mix_format_ptr as *const u8)
+                        .add(24)
+                        .cast::<windows::core::GUID>(),
+                )
+            });
             let float = match format_tag {
                 WAVE_FORMAT_IEEE_FLOAT => true,
                 WAVE_FORMAT_PCM => false,
-                WAVE_FORMAT_EXTENSIBLE => {
-                    // SubFormat GUID follows the WAVEFORMATEX header (offset 24).
-                    let sub_format = std::ptr::read_unaligned(
-                        (mix_format_ptr as *const u8)
-                            .add(24)
-                            .cast::<windows::core::GUID>(),
-                    );
-                    sub_format == WAVE_FORMAT_EXTL_FLOAT_GUID
-                }
+                WAVE_FORMAT_EXTENSIBLE => sub_format == Some(WAVE_FORMAT_EXTL_FLOAT_GUID),
                 tag => return Err(format!("unsupported mix format tag {tag}")),
             };
             let declared = declared_format(sample_rate, block_align);
+            // The descriptor we are about to hand to Initialize, beside the
+            // device's own mix format (see `format_line`).
             eprintln!(
-                "audio loopback: {channels} channels, {sample_rate} Hz, {}, {}",
-                if float { "float" } else { "pcm16" },
-                if declared.resampling {
-                    "will be resampled to 48000 by Windows"
-                } else {
-                    "no resampling needed"
-                }
+                "{}",
+                format_line(
+                    &MixFormat {
+                        tag: format_tag,
+                        channels,
+                        rate: sample_rate,
+                        bits,
+                        block_align,
+                        cb_size,
+                        sub_format,
+                        mask,
+                    },
+                    &declared,
+                    float,
+                )
             );
             // Sunshine builds its own 48 kHz format and lets Windows do the
             // conversion (audio.cpp:391-399), so only nSamplesPerSec (offset
@@ -356,10 +462,8 @@ impl WasapiLoopback {
             client
                 .Initialize(
                     AUDCLNT_SHAREMODE_SHARED,
-                    AUDCLNT_STREAMFLAGS_LOOPBACK
-                        | AUDCLNT_STREAMFLAGS_AUTOCONVERTPCM
-                        | AUDCLNT_STREAMFLAGS_SRC_DEFAULT_QUALITY,
-                    200_000, // 20 ms in 100 ns units
+                    CAPTURE_FLAGS,
+                    CAPTURE_BUFFER_DURATION,
                     0,
                     mix_format_ptr,
                     None,
@@ -380,9 +484,19 @@ impl WasapiLoopback {
                 .Start()
                 .map_err(|error| format!("IAudioClient::Start: {error}"))?;
 
-            let silence = SilenceKeeper::start(&device, mix_format_ptr);
-            if silence.is_some() {
-                eprintln!("audio: silence keeper active");
+            let silence = keep_silence
+                .then(|| SilenceKeeper::start(&device, mix_format_ptr))
+                .flatten();
+            match &silence {
+                Some(_) => eprintln!("audio: silence keeper active"),
+                // Measured: without a render stream the loopback hands over
+                // no buffers at all (not silent ones), so the sender loop
+                // emits nothing and the silent-capture report never fires —
+                // a session with no audio and no explanation.
+                None => eprintln!(
+                    "audio: silence keeper UNAVAILABLE — WASAPI loopback only delivers buffers while the \
+                     endpoint is mixing, so a quiet endpoint will hand this capture nothing at all"
+                ),
             }
             Ok(WasapiLoopback {
                 _device: device,
@@ -391,6 +505,7 @@ impl WasapiLoopback {
                 channels,
                 float,
                 mask,
+                flags: BufferFlags::default(),
                 _silence: silence,
             })
         }
@@ -417,6 +532,9 @@ impl WasapiLoopback {
             if frames == 0 {
                 return Ok(Vec::new());
             }
+            // One census entry per buffer that carried frames: the empty
+            // polls above are not buffers and would drown the histogram.
+            self.flags.observe(flags, frames);
 
             let silent = flags & AUDCLNT_BUFFERFLAGS_SILENT.0 as u32 != 0;
             let count = frames as usize;
@@ -467,6 +585,8 @@ pub struct WasapiAudioPipeline {
     device_channels: usize,
     sources: [ChannelSource; 8],
     pending: Vec<f32>,
+    /// Level of the frames handed to the encoder (see [`PcmLevels`]).
+    levels: PcmLevels,
 }
 
 impl WasapiAudioPipeline {
@@ -501,6 +621,7 @@ impl WasapiAudioPipeline {
             device_channels,
             sources,
             pending: Vec::with_capacity(SAMPLE_RATE / 10 * channel_count),
+            levels: PcmLevels::default(),
         })
     }
 }
@@ -531,15 +652,289 @@ impl AudioPipeline for WasapiAudioPipeline {
         }
 
         let frame: Vec<f32> = self.pending.drain(..samples_per_frame).collect();
+        // the level of exactly what the encoder is handed: encoded silence
+        // and encoded sound produce the same packet rate, so this is the
+        // only place that can tell them apart
+        self.levels.observe_frame(&frame);
         Ok(Some(EncodedAudio {
             payload: self.encoder.encode_float(&frame, self.frame_size)?,
         }))
+    }
+
+    fn take_levels(&mut self) -> PcmLevels {
+        self.levels.take()
+    }
+
+    fn take_buffer_flags(&mut self) -> BufferFlags {
+        self.capture.flags.take()
     }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    /// The startup format line names every field that decides whether the
+    /// engine honours the descriptor we hand to `Initialize` — and the one
+    /// field that says whether the silence could be a format mismatch at all.
+    #[test]
+    fn format_line_names_the_mix_and_declared_fields() {
+        let float = windows::core::GUID::from_u128(0x00000003_0000_0010_8000_00aa00389b71);
+        let mix = MixFormat {
+            tag: WAVE_FORMAT_EXTENSIBLE,
+            channels: 2,
+            rate: 48_000,
+            bits: 32,
+            block_align: 8,
+            cb_size: 22,
+            sub_format: Some(float),
+            mask: Some(0x3),
+        };
+        let line = format_line(&mix, &declared_format(48_000, 8), true);
+        assert!(line.contains("tag=0xfffe"), "{line}");
+        assert!(line.contains("channels=2"), "{line}");
+        assert!(line.contains("rate=48000"), "{line}");
+        assert!(line.contains("bits=32"), "{line}");
+        assert!(line.contains("block-align=8"), "{line}");
+        assert!(line.contains("cb-size=22"), "{line}");
+        assert!(line.contains("avg-bytes=384000"), "{line}");
+        assert!(line.contains("IEEE float"), "{line}");
+        assert!(line.contains("no resampling needed"), "{line}");
+        assert!(
+            line.contains("00000003-0000-0010-8000-00aa00389b71"),
+            "the sub-format GUID has to be readable: {line}"
+        );
+        assert!(line.contains("mask=0x3"), "{line}");
+
+        // a 44.1 kHz mixer: the declared rate is still 48 kHz and the line
+        // says Windows will resample
+        let mix44 = MixFormat { rate: 44_100, ..mix };
+        let line = format_line(&mix44, &declared_format(44_100, 8), true);
+        assert!(line.contains("rate=44100"), "{line}");
+        assert!(line.contains("rate=48000"), "{line}");
+        assert!(line.contains("will be resampled to 48000"), "{line}");
+
+        // a non-extensible pcm16 mixer has no sub-format and no mask
+        let pcm = MixFormat {
+            tag: WAVE_FORMAT_PCM,
+            bits: 16,
+            block_align: 4,
+            sub_format: None,
+            mask: None,
+            ..mix44
+        };
+        let line = format_line(&pcm, &declared_format(44_100, 4), false);
+        assert!(line.contains("tag=0x0001"), "{line}");
+        assert!(line.contains("sub-format=none"), "{line}");
+        assert!(line.contains("mask=none"), "{line}");
+        assert!(line.contains("pcm16"), "{line}");
+    }
+
+    /// The GUID text is the canonical 8-4-4-4-12 form, byte order included.
+    #[test]
+    fn guid_text_is_canonical() {
+        assert_eq!(
+            guid_text(WAVE_FORMAT_EXTL_FLOAT_GUID),
+            "00000003-0000-0010-8000-00aa00389b71"
+        );
+        assert_eq!(
+            guid_text(windows::core::GUID::from_u128(0xdead1234_beef_5678_9abc_def012345678)),
+            "dead1234-beef-5678-9abc-def012345678"
+        );
+    }
+
+    /// LIVE diagnostic — the WASAPI loopback on its own, with no pipeline, no
+    /// encoder, no sender loop and (unless asked) no silence keeper in the
+    /// way, so "the capture call hands back silence" can be told apart from
+    /// "the sidecar wires the capture wrong" (ignored by default: it needs
+    /// the real audio device):
+    ///
+    /// ```text
+    /// cargo test --release --lib -- --ignored live_loopback_capture_probe --nocapture
+    /// ```
+    ///
+    /// It opens the default console render endpoint exactly as production does
+    /// (same `Initialize` flags, buffer duration and descriptor patch) and
+    /// reports per second what `GetBuffer` handed over: audio frames, the
+    /// `dwFlags` census, and the peak/mean/zero count of the samples
+    /// themselves. A `0x2` in the census is the engine saying
+    /// `AUDCLNT_BUFFERFLAGS_SILENT` (it had nothing for us); unflagged zeros
+    /// mean the silence is ours. Play something on the host while it runs:
+    ///
+    /// ```text
+    /// $p = New-Object System.Media.SoundPlayer 'C:\Windows\Media\Ring01.wav'; $p.PlayLooping()
+    /// ```
+    ///
+    /// `HYDRA_AUDIO_PROBE_SECONDS` (default 5) is the window and
+    /// `HYDRA_AUDIO_PROBE_KEEPER=1` adds the production silence keeper — the
+    /// one stream production holds that this probe does not.
+    #[test]
+    #[ignore]
+    fn live_loopback_capture_probe() {
+        use std::time::Instant;
+        use windows::Win32::Media::Audio::Endpoints::IAudioMeterInformation;
+
+        let span = Duration::from_secs(
+            std::env::var("HYDRA_AUDIO_PROBE_SECONDS")
+                .ok()
+                .and_then(|value| value.parse().ok())
+                .unwrap_or(5),
+        );
+        let keeper = std::env::var("HYDRA_AUDIO_PROBE_KEEPER").ok().as_deref() == Some("1");
+        let mut capture = WasapiLoopback::open(keeper).expect("open loopback capture");
+        // The engine's own meter for the same endpoint, read beside the
+        // capture: it is the independent sensor that says whether anything
+        // was rendering at all, so a silent measurement cannot be mistaken
+        // for a capture fault (the meter the failure was paired against).
+        let meter = unsafe {
+            let _ = CoInitializeEx(None, COINIT_MULTITHREADED);
+            let enumerator: IMMDeviceEnumerator =
+                CoCreateInstance(&MMDeviceEnumerator, None, CLSCTX_ALL).expect("enumerator");
+            let device: IMMDevice = enumerator
+                .GetDefaultAudioEndpoint(eRender, eConsole)
+                .expect("default endpoint");
+            device.Activate::<IAudioMeterInformation>(CLSCTX_ALL, None).ok()
+        };
+        eprintln!(
+            "loopback probe: {span:?} window, keeper={keeper}, {} device channels, {}, mask={}, endpoint meter={}",
+            capture.channels,
+            if capture.float { "float" } else { "pcm16" },
+            capture
+                .mask
+                .map(|mask| format!("{mask:#x}"))
+                .unwrap_or_else(|| "none".to_string()),
+            if meter.is_some() { "on" } else { "unavailable" }
+        );
+
+        let started = Instant::now();
+        let mut last_report = started;
+        let mut window = BufferFlags::default();
+        let mut session = BufferFlags::default();
+        let mut peak = 0f32;
+        let mut abs_sum = 0f64;
+        let mut samples = 0u64;
+        let mut zero_samples = 0u64;
+        let mut zero_buffers = 0u64;
+        let mut empty_reads = 0u64;
+        while started.elapsed() < span {
+            let chunk = capture.read_chunk().expect("read_chunk");
+            if chunk.is_empty() {
+                empty_reads += 1;
+                std::thread::sleep(Duration::from_millis(2));
+                continue;
+            }
+            let mut buffer_peak = 0f32;
+            for sample in &chunk {
+                let magnitude = sample.abs();
+                if magnitude > buffer_peak {
+                    buffer_peak = magnitude;
+                }
+                abs_sum += magnitude as f64;
+                if *sample == 0.0 {
+                    zero_samples += 1;
+                }
+            }
+            if buffer_peak > peak {
+                peak = buffer_peak;
+            }
+            if buffer_peak == 0.0 {
+                zero_buffers += 1;
+            }
+            samples += chunk.len() as u64;
+            window.fold(capture.flags.take());
+
+            let now = Instant::now();
+            if now.duration_since(last_report) >= Duration::from_secs(1) {
+                let census = window.take();
+                session.fold(census);
+                let meter_peak = meter
+                    .as_ref()
+                    .and_then(|meter| unsafe { meter.GetPeakValue().ok() })
+                    .unwrap_or(f32::NAN);
+                eprintln!(
+                    "loopback probe: t={}s capture peak={:.1}dBFS mean={:.1}dBFS zero-buffers={zero_buffers} meter={meter_peak:.4} | {}",
+                    started.elapsed().as_secs(),
+                    probe_dbfs(peak),
+                    probe_dbfs((abs_sum / samples.max(1) as f64) as f32),
+                    census.summary()
+                );
+                last_report = now;
+            }
+        }
+        session.fold(window.take());
+        let meter_peak = meter
+            .as_ref()
+            .and_then(|meter| unsafe { meter.GetPeakValue().ok() })
+            .unwrap_or(f32::NAN);
+        let verdict = match (session.buffers(), peak > 0.5 / 32768.0) {
+            (0, _) => "NO BUFFERS AT ALL (nothing was rendering to the endpoint)",
+            (_, true) => "AN AUDIBLE CAPTURE",
+            (_, false) => "AN ALL-ZERO CAPTURE",
+        };
+        eprintln!(
+            "loopback probe: {verdict} over {:?}: peak={:.1}dBFS mean={:.1}dBFS, {zero_samples}/{samples} zero samples, \
+             {zero_buffers} all-zero buffers, {empty_reads} empty reads, endpoint meter={meter_peak:.4} | {}",
+            started.elapsed(),
+            probe_dbfs(peak),
+            probe_dbfs((abs_sum / samples.max(1) as f64) as f32),
+            session.summary()
+        );
+    }
+
+    /// dBFS of a sample magnitude, floored at -120 so digital silence does
+    /// not print as -inf (the same floor the PCM telemetry uses).
+    fn probe_dbfs(magnitude: f32) -> f64 {
+        if magnitude <= 0.0 {
+            return -120.0;
+        }
+        20.0 * (magnitude as f64).log10()
+    }
+
+    /// LIVE diagnostic — the production pipeline itself, with the sender loop
+    /// and the socket out of the way, printing the telemetry a real session
+    /// logs (`PcmLevels` + the buffer census). It is the other half of
+    /// `live_loopback_capture_probe`: the raw capture proves what
+    /// `GetBuffer` hands over, this proves what the pipeline does with it
+    /// (mapping, padding, encoder) — ignored by default:
+    ///
+    /// ```text
+    /// cargo test --release --lib -- --ignored live_wasapi_pipeline_probe --nocapture
+    /// ```
+    ///
+    /// `HYDRA_AUDIO_PROBE_SECONDS` (default 5) is the window.
+    #[test]
+    #[ignore]
+    fn live_wasapi_pipeline_probe() {
+        use std::time::Instant;
+
+        let span = Duration::from_secs(
+            std::env::var("HYDRA_AUDIO_PROBE_SECONDS")
+                .ok()
+                .and_then(|value| value.parse().ok())
+                .unwrap_or(5),
+        );
+        let layout = crate::audio::layout_for(crate::audio::STEREO);
+        let mut pipeline =
+            WasapiAudioPipeline::new(layout, crate::audio::DEFAULT_PACKET_DURATION_MS)
+                .expect("wasapi pipeline");
+        let started = Instant::now();
+        let mut frames = 0u64;
+        let mut session = PcmLevels::default();
+        let mut census = BufferFlags::default();
+        while started.elapsed() < span {
+            if pipeline.encode_next().expect("encode_next").is_some() {
+                frames += 1;
+                session.fold(pipeline.take_levels());
+                census.fold(pipeline.take_buffer_flags());
+            }
+        }
+        eprintln!(
+            "pipeline probe: {frames} opus frames in {:?} | {} | {}",
+            started.elapsed(),
+            session.session_summary(),
+            census.summary()
+        );
+    }
 
     /// The mixer rates that used to hard-fail the pipeline (44.1, 88.2, 96
     /// kHz) must now declare 48 kHz and let Windows resample; a 48 kHz

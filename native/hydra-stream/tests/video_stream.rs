@@ -11,7 +11,7 @@ use hydra_stream::enet;
 use hydra_stream::nvhttp::{GamePhase, LaunchParams, State};
 use hydra_stream::store::Store;
 use hydra_stream::stream::termination_payload;
-use hydra_stream::audio::{run_audio_loop, AudioPacketizer, SyntheticAudioPipeline, AUDIO_PAYLOAD_TYPE};
+use hydra_stream::audio::{run_audio_loop, AudioCipher, AudioPacketizer, SyntheticAudioPipeline, AUDIO_PAYLOAD_TYPE};
 use hydra_stream::video::{
     run_video_loop, StreamShared, SyntheticPipeline, FLAG_CONTAINS_PIC_DATA, FLAG_EOF, FLAG_SOF,
     VIDEO_PAYLOAD_TYPE,
@@ -258,8 +258,19 @@ fn synthetic_audio_flows_over_loopback_udp() {
 
     let task_shared = shared.clone();
     let thread = std::thread::spawn(move || {
-        let pipeline = Box::new(SyntheticAudioPipeline::new(20).unwrap());
-        run_audio_loop(socket, task_shared, pipeline, 5, None).unwrap();
+        let pipeline = Box::new(SyntheticAudioPipeline::new(20, 5).unwrap());
+        // the loop only accepts the session's own client: this test's
+        // client is on loopback
+        run_audio_loop(
+            socket,
+            task_shared,
+            pipeline,
+            5,
+            None,
+            Some(std::net::IpAddr::V4(std::net::Ipv4Addr::LOCALHOST)),
+            None,
+        )
+        .unwrap();
     });
 
     // establish the client endpoint like Moonlight's audio ping does
@@ -317,6 +328,220 @@ fn synthetic_audio_flows_over_loopback_udp() {
     let mut packetizer = AudioPacketizer::new(5);
     let packet = packetizer.packetize(&[0xAA]);
     assert_eq!(packet.len(), 13);
+}
+
+/// The confirmed bug this covers: a client whose ANNOUNCE carries
+/// `x-nv-general.featureFlags` bit 0x20 (both of the reported clients send
+/// 167 = 0xA7) decrypts every audio payload with AES-128-CBC + PKCS#7 under
+/// the session's AV key and the IV `BE(rikeyid + sequenceNumber)`
+/// (`moonlight-common-c AudioStream.c:178-205`), and discards what does not
+/// decrypt — its logcat then repeats "Failed to decrypt audio packet" for
+/// the rest of the stream while plaintext Opus played as silence. What the
+/// loop puts on the wire must satisfy that decrypt, with the RTP header —
+/// payload type, sequence, timestamp cadence — exactly as in the plaintext
+/// case.
+#[test]
+fn encrypted_audio_flows_over_loopback_udp_and_decrypts() {
+    // the client's decrypt path, reimplemented: EVP_aes_128_cbc under the
+    // per-packet IV, PKCS#7 stripped by EVP_DecryptFinal_ex (which is what
+    // fails there and prints the log line)
+    fn client_decrypt(key: &[u8; 16], iv: &[u8; 16], ciphertext: &[u8]) -> Option<Vec<u8>> {
+        use aes::cipher::{BlockDecrypt, KeyInit};
+        use aes::Aes128;
+        use aes::cipher::generic_array::GenericArray;
+
+        if ciphertext.is_empty() || ciphertext.len() % 16 != 0 {
+            return None;
+        }
+        let cipher = Aes128::new_from_slice(key).unwrap();
+        let mut previous = *iv;
+        let mut plaintext = Vec::with_capacity(ciphertext.len());
+        for chunk in ciphertext.chunks_exact(16) {
+            let mut block = GenericArray::clone_from_slice(chunk);
+            cipher.decrypt_block(&mut block);
+            for index in 0..16 {
+                plaintext.push(block[index] ^ previous[index]);
+            }
+            previous.copy_from_slice(chunk);
+        }
+        let pad = *plaintext.last()? as usize;
+        if pad == 0 || pad > 16 {
+            return None;
+        }
+        if plaintext[plaintext.len() - pad..]
+            .iter()
+            .any(|b| *b as usize != pad)
+        {
+            return None;
+        }
+        plaintext.truncate(plaintext.len() - pad);
+        Some(plaintext)
+    }
+
+    let (_state, _events) = test_state("audio-encrypted");
+    let shared = StreamShared::new();
+
+    let socket = UdpSocket::bind("127.0.0.1:0").unwrap();
+    let server_addr = socket.local_addr().unwrap();
+    let client = UdpSocket::bind("127.0.0.1:0").unwrap();
+    client.connect(server_addr).unwrap();
+
+    let key = [0x5Au8; 16];
+    let key_id = 0x1234_5678u32;
+    // Establish the client endpoint like Moonlight's audio ping does, and
+    // queue the ping BEFORE the loop starts: the loop drops frames until it
+    // has a peer, and the synthetic source emits only 20 of them. The
+    // datagram waits in the socket's receive buffer, so the loop's first
+    // drain finds it and every frame reaches this socket.
+    client.send(b"PING").unwrap();
+
+    let task_shared = shared.clone();
+    let thread = std::thread::spawn(move || {
+        let pipeline = Box::new(SyntheticAudioPipeline::new(20, 5).unwrap());
+        run_audio_loop(
+            socket,
+            task_shared,
+            pipeline,
+            5,
+            None,
+            Some(std::net::IpAddr::V4(std::net::Ipv4Addr::LOCALHOST)),
+            Some(AudioCipher::new(key, key_id)),
+        )
+        .unwrap();
+    });
+
+    client.set_read_timeout(Some(Duration::from_secs(5))).unwrap();
+    let mut received: Vec<Vec<u8>> = Vec::new();
+    let deadline = Instant::now() + Duration::from_secs(15);
+    while Instant::now() < deadline && received.len() < 20 {
+        let mut buffer = [0u8; 2048];
+        match client.recv(&mut buffer) {
+            Ok(length) => received.push(buffer[..length].to_vec()),
+            Err(_) => break,
+        }
+    }
+
+    shared.stop.store(true, Ordering::Relaxed);
+    client.send(b"PING").unwrap();
+    thread.join().unwrap();
+
+    assert!(received.len() >= 15, "expected audio packets, got {}", received.len());
+
+    let layout = hydra_stream::audio::layout_for(hydra_stream::audio::STEREO);
+    let mut decoder = hydra_stream::audio_encode::OpusDecoder::new(layout).unwrap();
+    let frame_size = hydra_stream::audio::SAMPLE_RATE * 5 / 1000;
+
+    let mut expected_sequence = 0u16;
+    let mut expected_timestamp = 0u32;
+    for packet in &received {
+        assert_eq!(packet[0], 0x80, "RTP header byte");
+        assert_eq!(packet[1], AUDIO_PAYLOAD_TYPE, "audio payload type");
+        assert_eq!(
+            u16::from_be_bytes(packet[2..4].try_into().unwrap()),
+            expected_sequence,
+            "sequence continuity (encryption must not change it)"
+        );
+        assert_eq!(
+            u32::from_be_bytes(packet[4..8].try_into().unwrap()),
+            expected_timestamp,
+            "timestamp advances by packetDuration"
+        );
+        assert_eq!(&packet[8..12], &[0; 4], "ssrc");
+        assert_eq!(
+            (packet.len() - 12) % 16,
+            0,
+            "AES-CBC payload is a whole number of blocks"
+        );
+
+        // what the client does with this datagram, in its own order: build
+        // the IV from the sequence it just read out of the header, decrypt,
+        // then hand the frame to Opus
+        let mut iv = [0u8; 16];
+        iv[..4].copy_from_slice(&key_id.wrapping_add(expected_sequence as u32).to_be_bytes());
+        let frame = client_decrypt(&key, &iv, &packet[12..])
+            .expect("the client's AES-128-CBC/PKCS#7 decrypt");
+        let decoded = decoder
+            .decode_float(&frame, frame_size)
+            .expect("the decrypted frame is decodable Opus");
+        assert_eq!(decoded.len(), frame_size * 2, "stereo samples per frame");
+
+        expected_sequence = expected_sequence.wrapping_add(1);
+        expected_timestamp = expected_timestamp.wrapping_add(5);
+    }
+
+    // sender learned the client endpoint from the ping datagram
+    assert_eq!(*shared.audio_peer.lock().unwrap(), Some(client.local_addr().unwrap()));
+}
+
+/// The audio destination belongs to the session's own client. A second
+/// device on the network — the logged session had one, and its pings flipped
+/// the destination between two clients 64 times in 60s — must not be able to
+/// take the stream over, while a new port from the session client itself is
+/// a legitimate rebind and must move the destination.
+#[test]
+fn audio_peer_ignores_a_second_client_and_follows_a_rebind() {
+    let (_state, _events) = test_state("audio-peer-filter");
+    let shared = StreamShared::new();
+
+    let socket = UdpSocket::bind("127.0.0.1:0").unwrap();
+    let server_addr = socket.local_addr().unwrap();
+
+    // the session's own client, and a second device on another loopback IP
+    let session_client = UdpSocket::bind("127.0.0.1:0").unwrap();
+    let session_client_addr = session_client.local_addr().unwrap();
+    let other_device = UdpSocket::bind("127.0.0.2:0").unwrap();
+
+    let task_shared = shared.clone();
+    let thread = std::thread::spawn(move || {
+        // no frames are needed: this test is about which datagrams the loop
+        // accepts, so a source that never produces audio is enough
+        let pipeline = Box::new(SyntheticAudioPipeline::new(0, 5).unwrap());
+        run_audio_loop(
+            socket,
+            task_shared,
+            pipeline,
+            5,
+            None,
+            Some(std::net::IpAddr::V4(std::net::Ipv4Addr::LOCALHOST)),
+            None,
+        )
+        .unwrap();
+    });
+    std::thread::sleep(Duration::from_millis(50));
+
+    // the second device pinged first and must be ignored
+    other_device.send_to(b"PING", server_addr).unwrap();
+    std::thread::sleep(Duration::from_millis(100));
+    assert_eq!(
+        *shared.audio_peer.lock().unwrap(),
+        None,
+        "a ping from another host must never become the destination"
+    );
+
+    // the session client's own ping is taken
+    session_client.send_to(b"PING", server_addr).unwrap();
+    std::thread::sleep(Duration::from_millis(100));
+    assert_eq!(
+        *shared.audio_peer.lock().unwrap(),
+        Some(session_client_addr)
+    );
+
+    // a rebind on the same IP (new port) moves the destination
+    let rebound = UdpSocket::bind("127.0.0.1:0").unwrap();
+    let rebound_addr = rebound.local_addr().unwrap();
+    assert_ne!(rebound_addr, session_client_addr);
+    rebound.send_to(b"PING", server_addr).unwrap();
+    std::thread::sleep(Duration::from_millis(100));
+    assert_eq!(*shared.audio_peer.lock().unwrap(), Some(rebound_addr));
+
+    // ... and the second device still cannot take it back
+    other_device.send_to(b"PING", server_addr).unwrap();
+    std::thread::sleep(Duration::from_millis(100));
+    assert_eq!(*shared.audio_peer.lock().unwrap(), Some(rebound_addr));
+
+    shared.stop.store(true, Ordering::Relaxed);
+    session_client.send_to(b"PING", server_addr).unwrap();
+    thread.join().unwrap();
 }
 
 // ---- ENet control client (test-side raw protocol driver) ----
@@ -466,6 +691,7 @@ fn enet_control_handshake_and_session_lifecycle() {
             height: 1080,
             fps: 60,
             rikey: [0xAB; 16],
+            rikeyid: 0x12345678,
             encrypted_rtsp: false,
             av_ping_payload: "00".repeat(16),
             control_connect_data: 0x1234,
@@ -482,6 +708,7 @@ fn enet_control_handshake_and_session_lifecycle() {
             surround_enabled: true,
             video_qos_type: None,
             audio_qos_type: None,
+            audio_encryption: false,
         })
         .unwrap();
 

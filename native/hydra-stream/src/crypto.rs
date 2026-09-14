@@ -37,6 +37,88 @@ pub fn aes128_ecb_decrypt(key: &[u8; 16], ciphertext: &[u8]) -> Vec<u8> {
     output
 }
 
+// --- AES-128-CBC with PKCS#7 padding -------------------------------------
+//
+// The GameStream audio channel. GFE (and Sunshine, `encode_audio` in
+// `stream.cpp:352-360`) PKCS#7-pads an Opus frame to the AES block size and
+// encrypts it in CBC mode under a per-packet IV; the client strips the
+// padding again because `PltDecryptMessage(ALGORITHM_AES_CBC,
+// CIPHER_FLAG_FINISH)` ends in `EVP_DecryptFinal_ex`, whose default padding
+// is PKCS#7 (`moonlight-common-c AudioStream.c:192`, `PlatformCrypto.c:484`).
+
+/// PKCS#7 padding to the next 16-byte AES block (RFC 5652 §6.3): always
+/// pads, so an input that is already block-aligned gains a whole block.
+pub fn pkcs7_pad(data: &[u8]) -> Vec<u8> {
+    let pad = 16 - data.len() % 16;
+    let mut padded = Vec::with_capacity(data.len() + pad);
+    padded.extend_from_slice(data);
+    padded.resize(padded.len() + pad, pad as u8);
+    padded
+}
+
+/// AES-128-CBC encryption with PKCS#7 padding. `iv` is a full block (the
+/// audio channel's IV is 16 bytes, only the first 4 carrying the key id and
+/// sequence), and the output is `pkcs7_pad(plaintext))` long — a block more
+/// than the plaintext when that is already block-aligned.
+pub fn aes128_cbc_encrypt(key: &[u8; 16], iv: &[u8; 16], plaintext: &[u8]) -> Vec<u8> {
+    let cipher = Aes128::new_from_slice(key).expect("16 byte key");
+    let padded = pkcs7_pad(plaintext);
+    let mut output = Vec::with_capacity(padded.len());
+    let mut previous = *iv;
+    for chunk in padded.chunks_exact(16) {
+        let mut xored = [0u8; 16];
+        for index in 0..16 {
+            xored[index] = chunk[index] ^ previous[index];
+        }
+        let mut block = GenericArray::clone_from_slice(&xored);
+        cipher.encrypt_block(&mut block);
+        previous.copy_from_slice(&block);
+        output.extend_from_slice(&block);
+    }
+    output
+}
+
+/// The client's audio decrypt path, mirrored for the tests that assert our
+/// packets decrypt: `PltDecryptMessage(audioDecryptionCtx,
+/// ALGORITHM_AES_CBC, CIPHER_FLAG_RESET_IV | CIPHER_FLAG_FINISH, …)`
+/// (`moonlight-common-c AudioStream.c:192`) is `EVP_aes_128_cbc` with the
+/// per-packet IV plus `EVP_DecryptFinal_ex`, which strips PKCS#7 padding and
+/// fails on an illegal pad byte — the branch that prints "Failed to decrypt
+/// audio packet".
+#[cfg(test)]
+pub(crate) fn client_audio_decrypt(
+    key: &[u8; 16],
+    iv: &[u8; 16],
+    ciphertext: &[u8],
+) -> Option<Vec<u8>> {
+    if ciphertext.is_empty() || ciphertext.len() % 16 != 0 {
+        return None;
+    }
+    let cipher = Aes128::new_from_slice(key).expect("16 byte key");
+    let mut previous = *iv;
+    let mut plaintext = Vec::with_capacity(ciphertext.len());
+    for chunk in ciphertext.chunks_exact(16) {
+        let mut block = GenericArray::clone_from_slice(chunk);
+        cipher.decrypt_block(&mut block);
+        for index in 0..16 {
+            plaintext.push(block[index] ^ previous[index]);
+        }
+        previous.copy_from_slice(chunk);
+    }
+    let pad = *plaintext.last()? as usize;
+    if pad == 0 || pad > 16 || plaintext.len() % 16 != 0 {
+        return None;
+    }
+    if plaintext[plaintext.len() - pad..]
+        .iter()
+        .any(|byte| *byte as usize != pad)
+    {
+        return None;
+    }
+    plaintext.truncate(plaintext.len() - pad);
+    Some(plaintext)
+}
+
 // --- AES-128-GCM with 12- or 16-byte IVs ----------------------------------
 //
 // ring's AES_128_GCM only accepts 12-byte nonces, but Nvidia's legacy
@@ -440,6 +522,91 @@ mod tests {
         let ciphertext = aes128_ecb_encrypt(&key, &plaintext);
         assert_eq!(ciphertext, expected);
         assert_eq!(aes128_ecb_decrypt(&key, &ciphertext), plaintext);
+    }
+
+    // Known-answer vectors generated with Node.js 26 / OpenSSL
+    // (`crypto.createCipheriv('aes-128-cbc', key, iv)`, whose default
+    // padding is PKCS#7 — the same construction Sunshine's
+    // `crypto::cipher::cbc_t` uses for the audio channel). Embedded as hex
+    // constants — the tests must not shell out.
+    #[test]
+    fn cbc_pkcs7_known_answers_match_openssl() {
+        let key: [u8; 16] = hex("00112233445566778899aabbccddeeff")
+            .try_into()
+            .unwrap();
+        // the audio IV: BE32(rikeyid 0x12345678 + sequence 7), zeros after
+        let iv: [u8; 16] = hex("1234567f000000000000000000000000").try_into().unwrap();
+
+        // a 21-byte Opus frame gains 11 bytes of padding
+        let frame = hex("5d0102030405060708090a0b0c0d0e0f1011121314");
+        assert_eq!(frame.len(), 21);
+        let sealed = aes128_cbc_encrypt(&key, &iv, &frame);
+        assert_eq!(sealed.len(), 32);
+        assert_eq!(
+            sealed,
+            hex("95aa7e6f3775abccd4bb4390d4e533c3de9920d1b413b80742d6176e7860d1ff")
+        );
+
+        // a frame that is already block-aligned gains a whole block: 16
+        // bytes in, 32 bytes out (never 16 — the client's unpad would strip
+        // the frame's own last byte)
+        let aligned = hex("5d0f0e0d0c0b0a090807060504030201");
+        assert_eq!(aligned.len(), 16);
+        let sealed = aes128_cbc_encrypt(&key, &iv, &aligned);
+        assert_eq!(sealed.len(), 32);
+        assert_eq!(
+            sealed,
+            hex("8f5e7bf6e595c9d3b6febbaced172a628343ddc98a32db7ebc0c1cd826da5b3e")
+        );
+
+        // and the padding is PKCS#7 of the missing length, not zeros
+        assert_eq!(pkcs7_pad(&frame).len(), 32);
+        assert_eq!(&pkcs7_pad(&frame)[21..], &[11u8; 11]);
+        assert_eq!(pkcs7_pad(&aligned), {
+            let mut padded = aligned.clone();
+            padded.extend_from_slice(&[16u8; 16]);
+            padded
+        });
+    }
+
+    #[test]
+    fn cbc_ciphertext_decrypts_back_to_the_pkcs7_padded_plaintext() {
+        let key: [u8; 16] = hex("00112233445566778899aabbccddeeff")
+            .try_into()
+            .unwrap();
+        let iv: [u8; 16] = hex("1234567f000000000000000000000000").try_into().unwrap();
+        let frame = hex("5d0102030405060708090a0b0c0d0e0f1011121314");
+
+        // what the client's PltDecryptMessage(ALGORITHM_AES_CBC,
+        // CIPHER_FLAG_FINISH) yields for our packet: the frame, padding
+        // stripped
+        let sealed = aes128_cbc_encrypt(&key, &iv, &frame);
+        assert_eq!(
+            client_audio_decrypt(&key, &iv, &sealed).expect("client decrypt"),
+            frame
+        );
+
+        // The IV is load-bearing: CBC XORs it into the first plaintext
+        // block only, so a packet decrypted under a sequence the host did
+        // not encrypt with yields the frame's tail but garbage in front.
+        // (The pad byte lives in the LAST block, which the IV never
+        // touches, so the client still gets a legal unpad there — a wrong
+        // sequence number plays noise, not a log line.)
+        let mut wrong_iv = iv;
+        wrong_iv[3] ^= 1;
+        let mangled = client_audio_decrypt(&key, &wrong_iv, &sealed).expect("still unpads");
+        assert_eq!(mangled.len(), frame.len());
+        assert_ne!(&mangled[..16], &frame[..16]);
+        assert_eq!(&mangled[16..], &frame[16..]);
+
+        // a corrupted packet, on the other hand, is rejected there — the
+        // branch that prints "Failed to decrypt audio packet". Flipping the
+        // last ciphertext byte turns the frame's pad byte (11) into 0xF4,
+        // an illegal pad length, so the rejection is deterministic.
+        let mut corrupted = sealed.clone();
+        let last = corrupted.len() - 1;
+        corrupted[last] ^= 0xff;
+        assert!(client_audio_decrypt(&key, &iv, &corrupted).is_none());
     }
 
     #[test]

@@ -115,6 +115,12 @@ async fn handle_request(state: &State, stream: &mut TcpStream, peer: &str) -> io
         eprintln!("rtsp: dropping {peer}: no launch params");
         return Ok(());
     };
+    // The handshake tells us WHO the session's client is: its source IP is
+    // the authoritative media destination (the audio sender accepts that IP
+    // and no other). Recorded on the first connection of the session only.
+    if let Ok(address) = stream.peer_addr() {
+        state.note_rtsp_client(address.ip());
+    }
 
     let Some(plaintext) = read_message(stream, &launch).await? else {
         return Ok(());
@@ -609,6 +615,7 @@ mod tests {
             height: 0,
             fps: 0,
             rikey: [0; 16],
+            rikeyid: 0,
             encrypted_rtsp: false,
             av_ping_payload: "aabb".to_string(),
             control_connect_data: 42,
@@ -625,6 +632,7 @@ mod tests {
             surround_enabled: true,
             video_qos_type: None,
             audio_qos_type: None,
+            audio_encryption: false,
         };
         let response = setup_response(&launch, &request);
         assert_eq!(response.code, 200);

@@ -133,6 +133,26 @@ pub fn video_dump_path() -> Option<&'static str> {
     .as_deref()
 }
 
+pub const AUDIO_DUMP_ENV: &str = "HYDRA_STREAM_AUDIO_DUMP";
+
+/// Diagnostic dump target for the audio sender loop: one record per Opus
+/// payload the loop puts on the wire, in send order. The exact counterpart
+/// of [`video_dump_path`], and for the same reason — the audio bytes had
+/// never been validated against the client's queue
+/// (moonlight-common-c `RtpAudioQueue.c`), so a stream that reaches the
+/// client at the right rate but plays nothing could not be told from a
+/// payload the client's decoder rejects. Unset/empty: inert (no file, no
+/// per-packet work in the loop). Read once per process.
+pub fn audio_dump_path() -> Option<&'static str> {
+    static DUMP: OnceLock<Option<String>> = OnceLock::new();
+    DUMP.get_or_init(|| {
+        std::env::var(AUDIO_DUMP_ENV)
+            .ok()
+            .filter(|value| !value.trim().is_empty())
+    })
+    .as_deref()
+}
+
 pub const IDR_QUIET_ENV: &str = "HYDRA_STREAM_IDR_QUIET_MS";
 pub const IDR_QUIET_DEFAULT_MS: u64 = 1000;
 

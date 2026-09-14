@@ -273,6 +273,18 @@ impl State {
                     eprintln!("stream: audio task spawned (port {})", config::ports().audio);
                     let shared_for_task = shared.clone();
                     let launch = launch.clone();
+                    // The audio destination is this session's own client:
+                    // the IP its RTSP handshake came from (any port of it
+                    // is a legitimate rebind, nothing else re-targets the
+                    // stream).
+                    let session_client = self.session_client_ip();
+                    // Encrypted audio: the client's ANNOUNCE asked for it, so
+                    // every payload is AES-128-CBC under the session's AV key
+                    // (the same rikey the control channel decrypts input
+                    // with) and the /launch rikeyid the IV is built from.
+                    let audio_cipher = launch
+                        .audio_encryption
+                        .then(|| crate::audio::AudioCipher::new(launch.rikey, launch.rikeyid));
                     std::thread::spawn(move || {
                         // A WASAPI/Opus failure must not silently kill
                         // audio for the rest of the stream: rebuild the
@@ -289,6 +301,8 @@ impl State {
                                         pipeline,
                                         launch.packet_duration_ms,
                                         launch.audio_qos_type,
+                                        session_client,
+                                        audio_cipher,
                                     ) {
                                         Ok(()) => return,
                                         Err(error) => {
@@ -407,13 +421,16 @@ fn build_audio_pipeline(launch: &LaunchParams) -> Result<Box<dyn crate::audio::A
     // HYDRA_STREAM_VIDEO_SOURCE=testpattern, so a session that receives no
     // audio can be pinned on the capture side without touching the
     // transport or the client's decoder. The synthetic source always
-    // encodes the stereo layout, so a 5.1/7.1 client cannot decode it.
+    // encodes the stereo layout, so a 5.1/7.1 client cannot decode it; it
+    // does pace itself at the negotiated packet duration, one frame per
+    // interval, so the packet rate is the real one.
     if std::env::var("HYDRA_STREAM_AUDIO_SOURCE").ok().as_deref() == Some("tone") {
         eprintln!(
             "audio: HYDRA_STREAM_AUDIO_SOURCE=tone, synthetic 440Hz source (WASAPI capture bypassed)"
         );
         return Ok(Box::new(crate::audio::SyntheticAudioPipeline::new(
             u32::MAX,
+            launch.packet_duration_ms,
         )?));
     }
     // Sunshine selects the Opus stream config from the ANNOUNCE attributes
@@ -1199,6 +1216,7 @@ mod tests {
                 height: 720,
                 fps: 60,
                 rikey: [0x42; 16],
+                rikeyid: 1,
                 encrypted_rtsp: true,
                 av_ping_payload: "aabb".to_string(),
                 control_connect_data: 1,
@@ -1215,6 +1233,7 @@ mod tests {
                 surround_enabled: true,
                 video_qos_type: None,
                 audio_qos_type: None,
+                audio_encryption: false,
             })
             .unwrap();
 
@@ -1248,6 +1267,7 @@ mod tests {
                 height: 720,
                 fps: 60,
                 rikey: [0x42; 16],
+                rikeyid: 1,
                 encrypted_rtsp: true,
                 av_ping_payload: "aabb".to_string(),
                 control_connect_data: 1,
@@ -1264,6 +1284,7 @@ mod tests {
                 surround_enabled: true,
                 video_qos_type: None,
                 audio_qos_type: None,
+                audio_encryption: false,
             })
             .unwrap();
 

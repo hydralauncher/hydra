@@ -417,7 +417,12 @@ async fn plaintext_rtsp_handshake_matches_moonlight_sequence() {
         .lines()
         .find_map(|line| line.strip_prefix("X-SS-Ping-Payload: "))
         .expect("ping payload");
-    assert_eq!(ping_payload.len(), 32);
+    // Moonlight copies the payload only when it is exactly the 16 bytes of
+    // its SS_PING payload field (moonlight-common-c RtspConnection.c:1204-1207,
+    // `strlen(pingPayload) == sizeof(AudioPingPayload.payload)`); anything
+    // else silently falls back to the 4-byte legacy ping. Sunshine hex-encodes
+    // eight random bytes here, so the wire value is 16 characters.
+    assert_eq!(ping_payload.len(), 16);
     assert!(ping_payload.chars().all(|c| c.is_ascii_hexdigit()));
 
     let response = rtsp_roundtrip(rtsp_port, &setup(4, "streamid=video/0/0")).await;
