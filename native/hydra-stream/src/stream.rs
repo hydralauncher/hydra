@@ -484,6 +484,10 @@ fn build_pipeline(launch: &LaunchParams) -> Result<Box<dyn VideoPipeline>, Strin
         // for HEVC and the startup probe found an HEVC session); it selects
         // the NVENC GUIDs and the codec config block, nothing else
         codec: launch.codec,
+        // HDR10 for this session: HEVC Main10 plus the Rec. 2020 / PQ VUI.
+        // Driven by the temporary process-wide flag until the client
+        // negotiation lands (it will come from `hdrMode`/`dynamicRangeMode`).
+        hdr: crate::config::hdr_enabled(),
         // negotiated client mode from /launch; the pipeline letterbox-fits
         // the desktop into this size (0 = encode at the native desktop
         // resolution)

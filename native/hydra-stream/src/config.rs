@@ -133,6 +133,49 @@ pub fn video_dump_path() -> Option<&'static str> {
     .as_deref()
 }
 
+pub const BUFFER_FORMAT_ENV: &str = "HYDRA_STREAM_BUFFER_FORMAT";
+
+/// Diagnostic override for the NVENC *input* buffer format, so the driver's
+/// registration requirements can be probed without rebuilding
+/// (`tests/hdr_encode_probe.rs` drives it): `argb` (8-bit packed BGRA),
+/// `nv12` (8-bit planar), `p010` (`NV_ENC_BUFFER_FORMAT_YUV420_10BIT`). Unset
+/// means the session decides — ARGB, or P010 for an HDR session. Read once per
+/// process.
+pub fn buffer_format_override() -> Option<&'static str> {
+    static OVERRIDE: OnceLock<Option<String>> = OnceLock::new();
+    OVERRIDE
+        .get_or_init(|| {
+            std::env::var(BUFFER_FORMAT_ENV)
+                .ok()
+                .filter(|value| !value.trim().is_empty())
+        })
+        .as_deref()
+}
+
+pub const HDR_ENV: &str = "HYDRA_STREAM_HDR";
+
+/// Whether this session streams HDR10: the capture path asks DXGI for the
+/// FP16 scRGB desktop (`R16G16B16A16_FLOAT`) instead of the 8-bit BGRA
+/// surface the legacy `IDXGIOutput1::DuplicateOutput` can only return, and
+/// the encoder selects HEVC Main10 with the Rec. 2020 / ST 2084 (PQ) VUI.
+///
+/// Off by default, deliberately. The flag exists so each slice of the HDR
+/// work can be exercised before the next lands — and turning it on streams
+/// nothing until the scRGB -> PQ conversion is in place, because the
+/// duplication surface's format is fixed when the duplication is created and
+/// the scaler still produces 8-bit BGRA. It is a stand-in for the session's
+/// negotiated HDR state (`hdrMode` in `/launch`,
+/// `x-nv-video[0].dynamicRangeMode` in the ANNOUNCE). Read once per process.
+pub fn hdr_enabled() -> bool {
+    static ENABLED: OnceLock<bool> = OnceLock::new();
+    *ENABLED.get_or_init(|| {
+        matches!(
+            std::env::var(HDR_ENV).ok().as_deref(),
+            Some("1") | Some("true") | Some("yes")
+        )
+    })
+}
+
 pub const AUDIO_DUMP_ENV: &str = "HYDRA_STREAM_AUDIO_DUMP";
 
 /// Diagnostic dump target for the audio sender loop: one record per Opus

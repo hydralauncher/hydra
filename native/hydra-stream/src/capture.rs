@@ -21,11 +21,13 @@ use windows::Win32::Graphics::Direct3D11::{
     D3D11_VPOV_DIMENSION_TEXTURE2D,
 };
 use windows::Win32::Graphics::Dxgi::Common::{
-    DXGI_FORMAT_B8G8R8A8_UNORM, DXGI_RATIONAL, DXGI_SAMPLE_DESC,
+    DXGI_FORMAT, DXGI_FORMAT_B8G8R8A8_UNORM, DXGI_FORMAT_R16G16B16A16_FLOAT, DXGI_RATIONAL,
+    DXGI_SAMPLE_DESC,
 };
 use windows::Win32::Graphics::Dxgi::{
-    CreateDXGIFactory1, IDXGIAdapter, IDXGIDevice, IDXGIDevice1, IDXGIFactory1, IDXGIOutput1,
-    IDXGIOutputDuplication, DXGI_ERROR_ACCESS_LOST, DXGI_ERROR_WAIT_TIMEOUT,
+    CreateDXGIFactory1, IDXGIAdapter, IDXGIDevice, IDXGIDevice1, IDXGIFactory1, IDXGIOutput,
+    IDXGIOutput1, IDXGIOutput5, IDXGIOutputDuplication, DXGI_ERROR_ACCESS_LOST,
+    DXGI_ERROR_WAIT_TIMEOUT,
 };
 use windows::Win32::Security::{
     AdjustTokenPrivileges, LookupPrivilegeValueW, SE_INC_BASE_PRIORITY_NAME, SE_PRIVILEGE_ENABLED,
@@ -311,6 +313,7 @@ fn run_recovery_probe() -> RecoveryCapability {
         for ref_frames in [crate::nvenc::REF_FRAMES_DEFAULT, 1] {
             let params = EncoderConfigParams {
                 codec: crate::video::VideoCodec::H264,
+                hdr: false,
                 width: PROBE_WIDTH,
                 height: PROBE_HEIGHT,
                 fps: PROBE_FPS,
@@ -347,6 +350,7 @@ fn run_recovery_probe() -> RecoveryCapability {
 fn probe_hevc(device: *mut c_void, ref_frames: u32) -> bool {
     let params = EncoderConfigParams {
         codec: crate::video::VideoCodec::Hevc,
+        hdr: false,
         width: PROBE_WIDTH,
         height: PROBE_HEIGHT,
         fps: PROBE_FPS,
@@ -916,13 +920,10 @@ unsafe fn try_adapter(adapter: &IDXGIAdapter) -> Result<DxgiCapture, String> {
         let Ok(output) = adapter.EnumOutputs(output_index) else {
             break;
         };
-        let Ok(output1) = output.cast::<IDXGIOutput1>() else {
-            continue;
-        };
-        let duplication = match output1.DuplicateOutput(&device) {
+        let duplication = match duplicate_output(&output, &device) {
             Ok(duplication) => duplication,
             Err(error) => {
-                eprintln!("DuplicateOutput: {error}");
+                eprintln!("{error}");
                 continue;
             }
         };
@@ -943,6 +944,60 @@ unsafe fn try_adapter(adapter: &IDXGIAdapter) -> Result<DxgiCapture, String> {
         });
     }
     Err("no duplicatable output".to_string())
+}
+
+/// Formats offered to `IDXGIOutput5::DuplicateOutput1`, in preference order.
+///
+/// The legacy `IDXGIOutput1::DuplicateOutput` can only ever return the 8-bit
+/// BGRA surface — including on an HDR output, where that surface is an
+/// over-bright, clipped *rendition* of the desktop rather than the desktop
+/// itself (measured: mean luma ~1.7x the SDR picture the monitor shows).
+/// Naming `R16G16B16A16_FLOAT` — the FP16 scRGB desktop HDR encoding needs —
+/// is what makes DXGI hand it over, which is why the HDR list is only
+/// requested while the HDR capture path is enabled: the SDR path keeps
+/// exactly the format and behaviour it has today.
+const SDR_DUPLICATION_FORMATS: [DXGI_FORMAT; 1] = [DXGI_FORMAT_B8G8R8A8_UNORM];
+const HDR_DUPLICATION_FORMATS: [DXGI_FORMAT; 2] = [
+    DXGI_FORMAT_R16G16B16A16_FLOAT,
+    DXGI_FORMAT_B8G8R8A8_UNORM,
+];
+
+/// Creates the desktop duplication, preferring the HDR-capable
+/// `IDXGIOutput5::DuplicateOutput1` overload (the only one that can return
+/// anything but BGRA) and falling back to `IDXGIOutput1::DuplicateOutput` on
+/// an output or driver that predates it.
+unsafe fn duplicate_output(
+    output: &IDXGIOutput,
+    device: &ID3D11Device,
+) -> Result<IDXGIOutputDuplication, String> {
+    let hdr = crate::config::hdr_enabled();
+    let formats: &[DXGI_FORMAT] = if hdr {
+        &HDR_DUPLICATION_FORMATS
+    } else {
+        &SDR_DUPLICATION_FORMATS
+    };
+    if let Ok(output5) = output.cast::<IDXGIOutput5>() {
+        match output5.DuplicateOutput1(device, 0, formats) {
+            Ok(duplication) => {
+                eprintln!(
+                    "desktop duplication: requested formats {:?} (HDR {}), actual format logged \
+                     with the first frame",
+                    formats.iter().map(|format| format.0).collect::<Vec<_>>(),
+                    if hdr { "enabled" } else { "off" }
+                );
+                return Ok(duplication);
+            }
+            Err(error) => {
+                eprintln!("DuplicateOutput1: {error}; falling back to DuplicateOutput");
+            }
+        }
+    }
+    let output1 = output
+        .cast::<IDXGIOutput1>()
+        .map_err(|error| format!("IDXGIOutput1: {error}"))?;
+    output1
+        .DuplicateOutput(device)
+        .map_err(|error| format!("DuplicateOutput: {error}"))
 }
 
 /// Re-creates the desktop duplication on an existing capture device —
@@ -967,13 +1022,10 @@ unsafe fn recreate_duplication(device: &ID3D11Device) -> Result<DxgiCapture, Str
         let Ok(output) = adapter.EnumOutputs(output_index) else {
             break;
         };
-        let Ok(output1) = output.cast::<IDXGIOutput1>() else {
-            continue;
-        };
-        let duplication = match output1.DuplicateOutput(device) {
+        let duplication = match duplicate_output(&output, device) {
             Ok(duplication) => duplication,
             Err(error) => {
-                eprintln!("DuplicateOutput: {error}");
+                eprintln!("{error}");
                 continue;
             }
         };
@@ -3555,6 +3607,7 @@ mod tests {
 
         let config = crate::nvenc::EncoderConfigParams {
             codec: crate::video::VideoCodec::H264,
+            hdr: false,
             width: 1280,
             height: 720,
             fps: 60,
@@ -3653,6 +3706,7 @@ mod tests {
         let seconds = live_u32("HYDRA_LIVE_SECONDS", 15);
         let config = EncoderConfigParams {
             codec: crate::video::VideoCodec::H264,
+            hdr: false,
             width,
             height,
             fps,
@@ -3898,5 +3952,221 @@ mod tests {
         );
         eprintln!("present-rate probe: {}", hold_probe.unwrap_or_default());
         assert!(presents > 0, "no desktop presents observed");
+    }
+
+    /// Hardware probe (run with --ignored): what does an HDR output actually
+    /// hand the duplication, and does that surface carry data?
+    ///
+    /// HDR streaming needs the FP16 scRGB desktop. If the driver only ever
+    /// returns 8-bit BGRA (an over-bright SDR rendition), HDR capture has no
+    /// source and the feature is blocked at the capture boundary. Reports the
+    /// colour space of every output, then per acquired frame the surface
+    /// format and its content. A synthetic FP16 round-trip runs first so an
+    /// all-zero reading can be told apart from a broken readback path, and the
+    /// duplication is then torn down and rebuilt to test whether the *first*
+    /// duplicator gets a different format from the second.
+    #[test]
+    #[ignore]
+    fn probe_hdr_duplication_surface() {
+        use windows::core::Interface;
+        use windows::Win32::Graphics::Direct3D11::{
+            ID3D11Resource, ID3D11Texture2D, D3D11_CPU_ACCESS_READ, D3D11_MAPPED_SUBRESOURCE,
+            D3D11_MAP_READ, D3D11_TEXTURE2D_DESC, D3D11_USAGE, D3D11_USAGE_DEFAULT,
+            D3D11_USAGE_STAGING,
+        };
+        use windows::Win32::Graphics::Dxgi::Common::{
+            DXGI_FORMAT_R16G16B16A16_FLOAT, DXGI_SAMPLE_DESC,
+        };
+
+        let half_to_f32 = |bits: u16| -> f32 {
+            let sign = if bits & 0x8000 != 0 { -1.0f32 } else { 1.0 };
+            let exponent = ((bits >> 10) & 0x1f) as i32;
+            let mantissa = (bits & 0x3ff) as f32;
+            match exponent {
+                0 => sign * mantissa * 2f32.powi(-24),
+                31 => f32::NAN,
+                _ => sign * (1.0 + mantissa / 1024.0) * 2f32.powi(exponent - 15),
+            }
+        };
+
+        unsafe {
+            let adapters = DxgiCapture::candidate_adapters().expect("adapters");
+            // 12 = RGB_FULL_G2084_NONE_P2020 (HDR10), 13 = RGB_FULL_G10_NONE_P709 (scRGB), 0 = SDR
+            for adapter in &adapters {
+                for index in 0..4u32 {
+                    let Ok(output) = adapter.EnumOutputs(index) else {
+                        break;
+                    };
+                    let Ok(output6) =
+                        output.cast::<windows::Win32::Graphics::Dxgi::IDXGIOutput6>()
+                    else {
+                        continue;
+                    };
+                    let Ok(desc) = output6.GetDesc1() else {
+                        continue;
+                    };
+                    eprintln!(
+                        "output {index}: colour_space={} max_luminance={:.1} \
+                         max_full_frame={:.1} min_luminance={:.4}",
+                        desc.ColorSpace.0,
+                        desc.MaxLuminance,
+                        desc.MaxFullFrameLuminance,
+                        desc.MinLuminance
+                    );
+                }
+            }
+
+            for round in 1..=2 {
+                let mut capture = None;
+                for adapter in &adapters {
+                    if let Ok(candidate) = try_adapter(adapter) {
+                        capture = Some(candidate);
+                        break;
+                    }
+                }
+                let Some(capture) = capture else {
+                    eprintln!("round {round}: no capture");
+                    continue;
+                };
+                let device = capture.device();
+                let context = device.GetImmediateContext().expect("context");
+
+                // duplication surfaces cannot be copied straight into a
+                // CPU-readable staging texture: land them in an owned DEFAULT
+                // texture of the same format first.
+                let describe = |texture: &ID3D11Texture2D| -> String {
+                    let mut source = D3D11_TEXTURE2D_DESC::default();
+                    texture.GetDesc(&mut source);
+
+                    let make = |usage: D3D11_USAGE, cpu: u32| -> ID3D11Texture2D {
+                        let mut desc = D3D11_TEXTURE2D_DESC::default();
+                        desc.Width = source.Width;
+                        desc.Height = source.Height;
+                        desc.MipLevels = 1;
+                        desc.ArraySize = 1;
+                        desc.Format = source.Format;
+                        desc.SampleDesc = DXGI_SAMPLE_DESC {
+                            Count: 1,
+                            Quality: 0,
+                        };
+                        desc.Usage = usage;
+                        desc.CPUAccessFlags = cpu;
+                        let mut texture = None;
+                        device
+                            .CreateTexture2D(&desc, None, Some(&mut texture))
+                            .expect("CreateTexture2D");
+                        texture.expect("texture")
+                    };
+
+                    let owned = make(D3D11_USAGE_DEFAULT, 0);
+                    context.CopyResource(
+                        &owned.cast::<ID3D11Resource>().expect("owned"),
+                        &texture.cast::<ID3D11Resource>().expect("source"),
+                    );
+                    let staging = make(D3D11_USAGE_STAGING, D3D11_CPU_ACCESS_READ.0 as u32);
+                    context.CopyResource(
+                        &staging.cast::<ID3D11Resource>().expect("staging"),
+                        &owned.cast::<ID3D11Resource>().expect("owned"),
+                    );
+
+                    let mut mapped = D3D11_MAPPED_SUBRESOURCE::default();
+                    context
+                        .Map(
+                            &staging.cast::<ID3D11Resource>().expect("staging"),
+                            0,
+                            D3D11_MAP_READ,
+                            0,
+                            Some(&mut mapped),
+                        )
+                        .expect("map");
+                    let base = mapped.pData as *const u8;
+                    let pitch = mapped.RowPitch as usize;
+                    let (mut low, mut high, mut total, mut count) =
+                        (f32::MAX, f32::MIN, 0f64, 0u64);
+                    let mut y = 0usize;
+                    while y < source.Height as usize {
+                        let mut x = 0usize;
+                        while x < source.Width as usize {
+                            let value = if source.Format == DXGI_FORMAT_R16G16B16A16_FLOAT {
+                                let pixel = std::slice::from_raw_parts(
+                                    base.add(y * pitch + x * 8) as *const u16,
+                                    3,
+                                );
+                                half_to_f32(pixel[1])
+                            } else {
+                                let pixel =
+                                    std::slice::from_raw_parts(base.add(y * pitch + x * 4), 3);
+                                pixel[1] as f32 / 255.0
+                            };
+                            low = low.min(value);
+                            high = high.max(value);
+                            total += value as f64;
+                            count += 1;
+                            x += 37;
+                        }
+                        y += 13;
+                    }
+                    context.Unmap(&staging, 0);
+                    format!(
+                        "format={} {}x{} min={low:.4} mean={:.4} max={high:.4}",
+                        source.Format.0,
+                        source.Width,
+                        source.Height,
+                        total / count.max(1) as f64
+                    )
+                };
+
+                if round == 1 {
+                    let mut desc = D3D11_TEXTURE2D_DESC::default();
+                    desc.Width = 4;
+                    desc.Height = 1;
+                    desc.MipLevels = 1;
+                    desc.ArraySize = 1;
+                    desc.Format = DXGI_FORMAT_R16G16B16A16_FLOAT;
+                    desc.SampleDesc = DXGI_SAMPLE_DESC {
+                        Count: 1,
+                        Quality: 0,
+                    };
+                    desc.Usage = D3D11_USAGE_DEFAULT;
+                    let mut synthetic = None;
+                    device
+                        .CreateTexture2D(&desc, None, Some(&mut synthetic))
+                        .expect("CreateTexture2D");
+                    let synthetic = synthetic.expect("synthetic");
+                    let mut pixels: Vec<u16> = Vec::new();
+                    for value in [0x3C00u16, 0x3800, 0x4100, 0x3400] {
+                        pixels.extend_from_slice(&[value, value, value, 0x3C00]);
+                    }
+                    context.UpdateSubresource(
+                        &synthetic.cast::<ID3D11Resource>().expect("synthetic"),
+                        0,
+                        None,
+                        pixels.as_ptr() as *const _,
+                        4 * 8,
+                        0,
+                    );
+                    eprintln!(
+                        "readback sanity (synthetic fp16 green=1.0): {}",
+                        describe(&synthetic)
+                    );
+                }
+
+                let mut held = None;
+                for attempt in 1..=8 {
+                    // DXGI refuses AcquireNextFrame while a frame is held
+                    held = None;
+                    match capture.acquire(700) {
+                        Ok(Some(frame)) => {
+                            eprintln!("round {round} frame {attempt}: {}", describe(&frame.texture));
+                            held = Some(frame);
+                        }
+                        Ok(None) => eprintln!("round {round} frame {attempt}: timeout"),
+                        Err(error) => eprintln!("round {round} frame {attempt}: {error}"),
+                    }
+                    std::thread::sleep(std::time::Duration::from_millis(250));
+                }
+                drop(held);
+            }
+        }
     }
 }
