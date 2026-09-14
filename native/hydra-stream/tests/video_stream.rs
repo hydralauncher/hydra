@@ -709,6 +709,7 @@ fn enet_control_handshake_and_session_lifecycle() {
             video_qos_type: None,
             audio_qos_type: None,
             audio_encryption: false,
+            codec: hydra_stream::video::VideoCodec::H264,
         })
         .unwrap();
 

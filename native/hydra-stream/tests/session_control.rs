@@ -366,8 +366,11 @@ async fn plaintext_rtsp_handshake_matches_moonlight_sequence() {
     assert_eq!(event["event"], "session-state");
     assert_eq!(event["state"], "waiting-for-client");
 
-    // DESCRIBE must carry an SDP payload (Moonlight fails without one) and
-    // must not advertise HEVC/AV1 so the client settles on H.264
+    // DESCRIBE must carry an SDP payload (Moonlight fails without one), and
+    // the codec markers it advertises must track the probed encoder: no AV1
+    // (this host has none) and the HEVC VPS marker exactly when the probe
+    // opened an HEVC session — that marker is the only signal the client
+    // uses to decide whether to offer HEVC at all
     let response = rtsp_roundtrip(
         rtsp_port,
         &rtsp_request(
@@ -396,7 +399,15 @@ async fn plaintext_rtsp_handshake_matches_moonlight_sequence() {
         recovery_capability().rfi,
         "RFI advertisement must track the probed capability: {payload}"
     );
-    assert!(!payload.contains("sprop-parameter-sets=AAAAAU"), "{payload}");
+    // the HEVC capability marker, same rule as RFI above: present exactly
+    // when the probed encoder can produce the codec the client would then
+    // ask for in ANNOUNCE (moonlight-common-c RtspConnection.c:1104
+    // substring-matches it)
+    assert_eq!(
+        payload.contains("sprop-parameter-sets=AAAAAU"),
+        recovery_capability().hevc,
+        "HEVC advertisement must track the probed capability: {payload}"
+    );
     assert!(!payload.contains("AV1/90000"), "{payload}");
 
     // SETUP audio -> 48000, video -> 47998, control -> 47999

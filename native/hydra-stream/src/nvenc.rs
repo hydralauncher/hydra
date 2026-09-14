@@ -1,18 +1,23 @@
-//! NVENC encoder for H.264, loaded at runtime from `nvEncodeAPI64.dll`
-//! (LoadLibrary/GetProcAddress — the driver ships the DLL, no import lib).
+//! NVENC encoder for H.264 and HEVC, loaded at runtime from
+//! `nvEncodeAPI64.dll` (LoadLibrary/GetProcAddress — the driver ships the
+//! DLL, no import lib).
 //!
 //! Struct layouts are modeled as zeroed byte buffers with accessors at
 //! offsets verified against the real `nvEncodeAPI.h` (compiled with the
 //! project toolchain to dump sizes/offsets) — the C structs are versioned
-//! and padding-heavy, so offsets are the contract, not field names.
+//! and padding-heavy, so offsets are the contract, not field names. The
+//! codec configs are members of one union and have different layouts, so
+//! each codec carries its own offset block.
 //!
-//! Settings mirror Sunshine's low-latency H.264 configuration
+//! Settings mirror Sunshine's low-latency configuration
 //! (`nvenc_base.cpp`): P4 preset + ULTRA_LOW_LATENCY tuning info, CBR at the
 //! bitrate negotiated in the RTSP ANNOUNCE, no B-frames
 //! (`frameIntervalP = 1`, `zeroReorderDelay`), infinite GOP with
-//! `repeatSPSPPS` and IDR only on demand, CABAC, and `sliceMode = 3`
-//! with the client-requested slice count. Input is the DXGI desktop
-//! duplication texture registered zero-copy as a DIRECTX resource.
+//! `repeatSPSPPS` and IDR only on demand, CABAC (H.264), and `sliceMode = 3`
+//! with the client-requested slice count. HEVC adds only its GUIDs and its
+//! codec config block — same rate control, same VBV, same low-latency
+//! tuning. Input is the DXGI desktop duplication texture registered
+//! zero-copy as a DIRECTX resource.
 //! Encoding runs in asynchronous mode (`enableEncodeAsync = 1`) with a
 //! registered completion event, exactly like Sunshine: each frame waits
 //! on its completion event (100ms cap) and then locks the bitstream with
@@ -30,6 +35,7 @@ use windows::Win32::System::LibraryLoader::{GetProcAddress, LoadLibraryW};
 use windows::Win32::System::Threading::{CreateEventW, WaitForSingleObject};
 
 use crate::capture::{SubmitHandle, SubmitState, TextureEncoder};
+use crate::video::VideoCodec;
 
 pub type NvEncStatus = u32;
 pub const NV_ENC_SUCCESS: NvEncStatus = 0;
@@ -76,6 +82,14 @@ const GUID_H264: NvGuid = NvGuid::new(
     0x4ca4,
     [0xaa, 0x85, 0x1e, 0x50, 0xf3, 0x21, 0xf6, 0xbf],
 );
+/// `NV_ENC_CODEC_HEVC_GUID`, `{790CDC88-4522-4d7b-9425-BDA9975F7603}`
+/// (nvEncodeAPI.h:148, cross-checked against FFmpeg's nv-codec-headers).
+const GUID_HEVC: NvGuid = NvGuid::new(
+    0x790cdc88,
+    0x4522,
+    0x4d7b,
+    [0x94, 0x25, 0xbd, 0xa9, 0x97, 0x5f, 0x76, 0x03],
+);
 const GUID_PRESET_P4: NvGuid = NvGuid::new(
     0x90a7b826,
     0xdf06,
@@ -88,6 +102,34 @@ const GUID_PROFILE_HIGH: NvGuid = NvGuid::new(
     0x4b89,
     [0xaf, 0x2a, 0xd5, 0x37, 0xc9, 0x2b, 0xe3, 0x10],
 );
+/// `NV_ENC_HEVC_PROFILE_MAIN_GUID`,
+/// `{b514c39a-b55b-40fa-878f-f1253b4dfdec}` (nvEncodeAPI.h:202). Main
+/// (8-bit 4:2:0) is the profile HEVC SDR clients negotiate; the 10-bit
+/// Main10 profile this host will need for HDR carries a different GUID.
+const GUID_PROFILE_HEVC_MAIN: NvGuid = NvGuid::new(
+    0xb514c39a,
+    0xb55b,
+    0x40fa,
+    [0x87, 0x8f, 0xf1, 0x25, 0x3b, 0x4d, 0xfd, 0xec],
+);
+
+/// The NVENC codec GUID for a session's negotiated codec.
+fn encode_guid(codec: VideoCodec) -> NvGuid {
+    match codec {
+        VideoCodec::H264 => GUID_H264,
+        VideoCodec::Hevc => GUID_HEVC,
+    }
+}
+
+/// The profile GUID the config is initialized with (Sunshine's
+/// `profileGUID` in `nvenc_base.cpp:346/385`: High for H.264, Main for
+/// HEVC — the 4:4:4 variants are only selected for a 4:4:4 buffer).
+fn profile_guid(codec: VideoCodec) -> NvGuid {
+    match codec {
+        VideoCodec::H264 => GUID_PROFILE_HIGH,
+        VideoCodec::Hevc => GUID_PROFILE_HEVC_MAIN,
+    }
+}
 
 const RC_MODE_CBR: u32 = 2;
 /// `NV_ENC_TUNING_INFO_ULTRA_LOW_LATENCY` (the tuning value right after
@@ -255,6 +297,23 @@ const H264_SLICE_MODE: usize = 64;
 const H264_SLICE_MODE_DATA: usize = 68;
 const H264_CHROMA_FORMAT: usize = 192; // 1 = 4:2:0, 0 is invalid
 
+// NV_ENC_CONFIG_HEVC offsets relative to encodeCodecConfig start. The two
+// codec configs are members of the same NV_ENC_CODEC_CONFIG union, so both
+// start at CFG_CODEC_CONFIG — but the layouts differ, which is why these
+// numbers cannot be reused from the H.264 block. Verified with the same
+// compiled C probe as the H.264 offsets, against nvEncodeAPI.h.
+const HEVC_WORD0: usize = 16; // bitfield word: repeatSPSPPS = bit 7, chromaFormatIDC = bits 9-10
+const HEVC_IDR_PERIOD: usize = 20;
+const HEVC_MAX_REF_FRAMES: usize = 32; // maxNumRefFramesInDPB
+const HEVC_SLICE_MODE: usize = 52;
+const HEVC_SLICE_MODE_DATA: usize = 56;
+/// repeatSPSPPS in the HEVC bitfield word is bit 7 (H.264's is bit 12).
+const HEVC_REPEAT_SPS_PPS_BIT: u32 = 1 << 7;
+/// chromaFormatIDC is a 2-bit field at bits 9-10 of the HEVC bitfield word
+/// (H.264's is a whole u32 field at offset 192). 1 = 4:2:0; leaving the
+/// field zero is rejected by the driver.
+const HEVC_CHROMA_FORMAT_IDC_420: u32 = 1 << 9;
+
 // NV_ENC_REGISTER_RESOURCE offsets (verified).
 const REG_VERSION: usize = 0;
 const REG_RESOURCE_TYPE: usize = 4;
@@ -310,6 +369,11 @@ const SESS_API_VERSION: usize = 24;
 
 #[derive(Clone, Copy)]
 pub struct EncoderConfigParams {
+    /// The codec this session encodes, from the client's ANNOUNCE (see
+    /// [`crate::video::VideoCodec`]). It selects the NVENC encode GUID,
+    /// the profile GUID and the codec-specific config block — everything
+    /// else (rate control, GOP, low latency) is identical for both.
+    pub codec: VideoCodec,
     pub width: u32,
     pub height: u32,
     pub fps: u32,
@@ -426,15 +490,18 @@ const RECONFIG_BITFIELD: usize = 1808;
 /// resetEncoder only together with an IDR.
 const RECONFIG_RESET_AND_FORCE_IDR: u32 = 0b11;
 
-/// Builds the low-latency H.264 NV_ENC_INITIALIZE_PARAMS (zeroed
-/// NV_ENC_CONFIG plus Sunshine's nvenc_base.cpp settings: CBR at the
-/// negotiated bitrate, no B-frames, infinite GOP with repeatSPSPPS,
-/// CABAC, sliceMode = 3). Shared by session creation and the adaptive
-/// reconfigure; struct offsets verified against nvEncodeAPI.h with the
-/// compiled C probe. Returns the embedded config too: the init params
-/// point INTO it, so the caller must keep it alive across the NVENC
-/// call. `custom_vbv_cap` is the probed SUPPORT_CUSTOM_VBV_BUF_SIZE: the
-/// VBV buffer may only be client-sized when the driver allows it.
+/// Builds the low-latency NV_ENC_INITIALIZE_PARAMS for the session's
+/// codec (zeroed NV_ENC_CONFIG plus Sunshine's nvenc_base.cpp settings:
+/// CBR at the negotiated bitrate, no B-frames, infinite GOP with
+/// repeatSPSPPS, CABAC for H.264, sliceMode = 3). Everything the two
+/// codecs share is written once; only the profile GUID, the codec config
+/// block and the encode GUID are codec-specific. Shared by session
+/// creation and the adaptive reconfigure; struct offsets verified against
+/// nvEncodeAPI.h with the compiled C probe. Returns the embedded config
+/// too: the init params point INTO it, so the caller must keep it alive
+/// across the NVENC call. `custom_vbv_cap` is the probed
+/// SUPPORT_CUSTOM_VBV_BUF_SIZE: the VBV buffer may only be client-sized
+/// when the driver allows it.
 fn build_init_params(
     api_version: u32,
     params: &EncoderConfigParams,
@@ -446,7 +513,7 @@ fn build_init_params(
 
     let mut config = EncoderConfig::zeroed();
     config.set_u32(CFG_VERSION, ver_config);
-    config.set_guid(CFG_PROFILE_GUID, GUID_PROFILE_HIGH);
+    config.set_guid(CFG_PROFILE_GUID, profile_guid(params.codec));
     config.set_u32(CFG_FRAME_FIELD_MODE, 1);
     config.set_u32(CFG_GOP_LENGTH, INFINITE_GOP);
     config.set_i32(CFG_FRAME_INTERVAL_P, 1); // no B-frames
@@ -466,25 +533,45 @@ fn build_init_params(
     }
     config.or_u32(CFG_RC_PARAMS + RC_BITFIELD, ZERO_REORDER_DELAY_BIT);
     config.set_u32(CFG_RC_PARAMS + RC_MULTI_PASS, MULTI_PASS_DISABLED);
-    config.or_u32(CFG_CODEC_CONFIG + H264_WORD0, REPEAT_SPS_PPS_BIT);
-    config.set_u32(CFG_CODEC_CONFIG + H264_IDR_PERIOD, INFINITE_GOP);
-    config.set_u32(CFG_CODEC_CONFIG + H264_ENTROPY_CODING, ENTROPY_CABAC);
-    config.set_u32(
-        CFG_CODEC_CONFIG + H264_MAX_REF_FRAMES,
-        params.max_ref_frames.clamp(1, REF_FRAMES_MAX),
-    );
-    config.set_u32(CFG_CODEC_CONFIG + H264_SLICE_MODE, 3);
-    config.set_u32(
-        CFG_CODEC_CONFIG + H264_SLICE_MODE_DATA,
-        params.slices_per_frame.max(1),
-    );
-    // a zeroed chromaFormatIDC is rejected by the driver; 4:2:0 for
-    // standard clients (NVENC converts the BGRA input)
-    config.set_u32(CFG_CODEC_CONFIG + H264_CHROMA_FORMAT, 1);
+    let ref_frames = params.max_ref_frames.clamp(1, REF_FRAMES_MAX);
+    match params.codec {
+        VideoCodec::H264 => {
+            config.or_u32(CFG_CODEC_CONFIG + H264_WORD0, REPEAT_SPS_PPS_BIT);
+            config.set_u32(CFG_CODEC_CONFIG + H264_IDR_PERIOD, INFINITE_GOP);
+            config.set_u32(CFG_CODEC_CONFIG + H264_ENTROPY_CODING, ENTROPY_CABAC);
+            config.set_u32(CFG_CODEC_CONFIG + H264_MAX_REF_FRAMES, ref_frames);
+            config.set_u32(CFG_CODEC_CONFIG + H264_SLICE_MODE, 3);
+            config.set_u32(
+                CFG_CODEC_CONFIG + H264_SLICE_MODE_DATA,
+                params.slices_per_frame.max(1),
+            );
+            // a zeroed chromaFormatIDC is rejected by the driver; 4:2:0 for
+            // standard clients (NVENC converts the BGRA input)
+            config.set_u32(CFG_CODEC_CONFIG + H264_CHROMA_FORMAT, 1);
+        }
+        VideoCodec::Hevc => {
+            // Sunshine's configure_hevc (nvenc_base.cpp:385-397) sets
+            // exactly the same three codec options as configure_h264:
+            // repeatSPSPPS + infinite idrPeriod (so every parameter set the
+            // client needs rides with an IDR and no IDR ever comes
+            // spontaneously), sliceMode 3 with the client's slice count.
+            config.or_u32(
+                CFG_CODEC_CONFIG + HEVC_WORD0,
+                HEVC_REPEAT_SPS_PPS_BIT | HEVC_CHROMA_FORMAT_IDC_420,
+            );
+            config.set_u32(CFG_CODEC_CONFIG + HEVC_IDR_PERIOD, INFINITE_GOP);
+            config.set_u32(CFG_CODEC_CONFIG + HEVC_MAX_REF_FRAMES, ref_frames);
+            config.set_u32(CFG_CODEC_CONFIG + HEVC_SLICE_MODE, 3);
+            config.set_u32(
+                CFG_CODEC_CONFIG + HEVC_SLICE_MODE_DATA,
+                params.slices_per_frame.max(1),
+            );
+        }
+    }
 
     let mut init = InitializeParams::zeroed();
     init.set_u32(INIT_VERSION, ver_initialize);
-    init.set_guid(INIT_ENCODE_GUID, GUID_H264);
+    init.set_guid(INIT_ENCODE_GUID, encode_guid(params.codec));
     init.set_guid(INIT_PRESET_GUID, GUID_PRESET_P4);
     init.set_u32(INIT_ENCODE_WIDTH, params.width);
     init.set_u32(INIT_ENCODE_HEIGHT, params.height);
@@ -501,7 +588,8 @@ fn build_init_params(
 
 impl NvencEncoder {
     /// Opens an encode session on a D3D11 device pointer
-    /// (`ID3D11Device` as `*mut c_void`) and configures H.264.
+    /// (`ID3D11Device` as `*mut c_void`) and configures the codec
+    /// `params.codec` selects.
     pub fn new(device: *mut c_void, params: &EncoderConfigParams) -> Result<Self, String> {
         if device.is_null() {
             return Err("no D3D11 device".to_string());
@@ -586,20 +674,25 @@ impl NvencEncoder {
 
         // Probe the two session capabilities that shape config and the
         // control-channel handling (Sunshine get_encoder_cap,
-        // nvenc_base.cpp:195-203).
+        // nvenc_base.cpp:195-203). The probe is made with THIS session's
+        // codec GUID: NVENC advertises per-codec caps, so the H.264
+        // answers are not carried over to an HEVC session.
         this.supports_custom_vbv =
-            this.encoder_cap(GUID_H264, CAPS_SUPPORT_CUSTOM_VBV_BUF_SIZE) != 0;
+            this.encoder_cap(encode_guid(params.codec), CAPS_SUPPORT_CUSTOM_VBV_BUF_SIZE) != 0;
         this.supports_ref_invalidation = this
-            .encoder_cap(GUID_H264, CAPS_SUPPORT_REF_PIC_INVALIDATION)
+            .encoder_cap(encode_guid(params.codec), CAPS_SUPPORT_REF_PIC_INVALIDATION)
             != 0
             && this.ref_frames_in_dpb > 1;
         eprintln!(
-            "nvenc: caps custom-vbv={} ref-pic-invalidation={} (ref frames in DPB={})",
-            this.supports_custom_vbv, this.supports_ref_invalidation, this.ref_frames_in_dpb
+            "nvenc: caps custom-vbv={} ref-pic-invalidation={} (codec {}, ref frames in DPB={})",
+            this.supports_custom_vbv,
+            this.supports_ref_invalidation,
+            params.codec.name(),
+            this.ref_frames_in_dpb
         );
 
-        // Hand-build the low-latency H.264 init params (shared with the
-        // adaptive reconfigure path).
+        // Hand-build the low-latency init params for this session's codec
+        // (shared with the adaptive reconfigure path).
         let (mut init, mut init_config) =
             build_init_params(api_version, params, this.supports_custom_vbv);
         // build_init_params stores a pointer to its own stack-local config;
@@ -1375,6 +1468,7 @@ mod tests {
     #[test]
     fn init_params_carry_bitrate_at_verified_offsets() {
         let params = EncoderConfigParams {
+            codec: VideoCodec::H264,
             width: 1920,
             height: 1080,
             fps: 60,
@@ -1414,6 +1508,7 @@ mod tests {
         let offset = CFG_CODEC_CONFIG + H264_MAX_REF_FRAMES;
         let depth = |count: u32| {
             let params = EncoderConfigParams {
+                codec: VideoCodec::H264,
                 width: 1280,
                 height: 720,
                 fps: 60,
@@ -1428,6 +1523,113 @@ mod tests {
         assert_eq!(depth(3), 3);
         assert_eq!(depth(0), 1);
         assert_eq!(depth(99), REF_FRAMES_MAX);
+    }
+
+    /// The HEVC session config, at the offsets the compiled C probe
+    /// verified against `NV_ENC_CONFIG_HEVC` (target/hevc_offsets_probe.c):
+    /// the codec configs share the NV_ENC_CODEC_CONFIG union, so the HEVC
+    /// bitfield word sits at 16 — not at H.264's offset 0 — with
+    /// repeatSPSPPS at bit 7 (H.264's is bit 12) and chromaFormatIDC at
+    /// bits 9-10 (H.264's is a whole u32 at 192). Everything outside the
+    /// codec block must be identical to the H.264 build: the codec choice
+    /// changes GUIDs and the codec config, nothing about rate control, GOP
+    /// or low-latency tuning.
+    #[test]
+    fn init_params_configure_hevc_main_at_verified_offsets() {
+        let params = |codec, max_ref_frames| EncoderConfigParams {
+            codec,
+            width: 1920,
+            height: 1080,
+            fps: 60,
+            bitrate_kbps: 30_000,
+            slices_per_frame: 2,
+            max_ref_frames,
+        };
+        let (h264_init, h264_config) =
+            build_init_params(NVENCAPI_VERSION, &params(VideoCodec::H264, 4), true);
+        let (hevc_init, hevc_config) =
+            build_init_params(NVENCAPI_VERSION, &params(VideoCodec::Hevc, 4), true);
+        // the encode GUID and the profile GUID are the HEVC ones
+        assert_eq!(&hevc_init.0[INIT_ENCODE_GUID..INIT_ENCODE_GUID + 16], GUID_HEVC.to_bytes());
+        assert_eq!(
+            &hevc_config.0[CFG_PROFILE_GUID..CFG_PROFILE_GUID + 16],
+            GUID_PROFILE_HEVC_MAIN.to_bytes()
+        );
+        assert_eq!(
+            &h264_config.0[CFG_PROFILE_GUID..CFG_PROFILE_GUID + 16],
+            GUID_PROFILE_HIGH.to_bytes()
+        );
+
+        // repeatSPSPPS (bit 7) + chromaFormatIDC = 1 (bits 9-10), in the
+        // HEVC word at offset 16 — and NOT the H.264 word at offset 0,
+        // which stays the zeroed `level` field
+        let hevc_word0 = u32::from_le_bytes(
+            hevc_config.0[CFG_CODEC_CONFIG + HEVC_WORD0..CFG_CODEC_CONFIG + HEVC_WORD0 + 4]
+                .try_into()
+                .unwrap(),
+        );
+        assert_eq!(hevc_word0, HEVC_REPEAT_SPS_PPS_BIT | HEVC_CHROMA_FORMAT_IDC_420);
+        assert_eq!(hevc_word0 & REPEAT_SPS_PPS_BIT, 0, "not H.264's bit 12");
+        let level_word = u32::from_le_bytes(
+            hevc_config.0[CFG_CODEC_CONFIG..CFG_CODEC_CONFIG + 4].try_into().unwrap(),
+        );
+        assert_eq!(
+            level_word, 0,
+            "the H.264 bitfield word (level) must stay untouched"
+        );
+
+        // infinite IDR period, the negotiated DPB depth and the client's
+        // slice count land at the probe-verified HEVC offsets
+        let u32_at = |config: &EncoderConfig, offset: usize| {
+            u32::from_le_bytes(config.0[offset..offset + 4].try_into().unwrap())
+        };
+        assert_eq!(
+            u32_at(&hevc_config, CFG_CODEC_CONFIG + HEVC_IDR_PERIOD),
+            INFINITE_GOP
+        );
+        assert_eq!(
+            u32_at(&hevc_config, CFG_CODEC_CONFIG + HEVC_MAX_REF_FRAMES),
+            4
+        );
+        assert_eq!(u32_at(&hevc_config, CFG_CODEC_CONFIG + HEVC_SLICE_MODE), 3);
+        assert_eq!(
+            u32_at(&hevc_config, CFG_CODEC_CONFIG + HEVC_SLICE_MODE_DATA),
+            2
+        );
+
+        // everything the codecs share is byte-identical
+        for offset in [
+            CFG_GOP_LENGTH,
+            CFG_FRAME_INTERVAL_P,
+            CFG_RC_PARAMS + RC_RATE_CONTROL_MODE,
+            CFG_RC_PARAMS + RC_AVERAGE_BITRATE,
+            CFG_RC_PARAMS + RC_MAX_BITRATE,
+            CFG_RC_PARAMS + RC_VBV_BUFFER_SIZE,
+            CFG_RC_PARAMS + RC_BITFIELD,
+            CFG_RC_PARAMS + RC_MULTI_PASS,
+        ] {
+            assert_eq!(
+                hevc_config.0[offset..offset + 4],
+                h264_config.0[offset..offset + 4],
+                "shared config at offset {offset} must not depend on the codec"
+            );
+        }
+        for offset in [INIT_TUNING_INFO, INIT_FLAGS, INIT_FRAME_RATE_NUM] {
+            assert_eq!(
+                hevc_init.0[offset..offset + 4],
+                h264_init.0[offset..offset + 4],
+                "shared init param at offset {offset} must not depend on the codec"
+            );
+        }
+
+        // the HEVC encode GUID is what the caps probe is asked about, so
+        // the config builder and the probe cannot disagree about the codec
+        assert_eq!(encode_guid(VideoCodec::Hevc).to_bytes(), GUID_HEVC.to_bytes());
+        assert_eq!(encode_guid(VideoCodec::H264).to_bytes(), GUID_H264.to_bytes());
+        assert_ne!(
+            encode_guid(VideoCodec::H264).to_bytes(),
+            encode_guid(VideoCodec::Hevc).to_bytes()
+        );
     }
 
     /// LIVE NVENC probe — run explicitly on the streaming host (needs the
@@ -1503,6 +1705,7 @@ mod tests {
             };
 
             let config = EncoderConfigParams {
+                codec: VideoCodec::H264,
                 width: WIDTH,
                 height: HEIGHT,
                 fps: 60,

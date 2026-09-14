@@ -1,5 +1,5 @@
 //! DXGI desktop duplication capture and the production video pipeline
-//! (capture -> NVENC -> annex-B H.264 frames).
+//! (capture -> NVENC -> annex-B H.264 or HEVC frames).
 
 use std::ffi::c_void;
 use std::ptr;
@@ -192,9 +192,10 @@ pub fn preferred_backend(nvenc_works: bool) -> EncoderBackend {
     }
 }
 
-/// Probed recovery capability: whether the encoder the session will use can
-/// invalidate reference frames (RFI) and how deep a decoded-picture buffer
-/// it accepted. DESCRIBE runs before the session's encoder exists, so the
+/// Probed encoder capability: whether the encoder the session will use can
+/// invalidate reference frames (RFI), how deep a decoded-picture buffer
+/// it accepted, and whether it can encode HEVC at all. DESCRIBE runs
+/// before the session's encoder exists, so the
 /// capability is advertised from this probe (Sunshine probes its encoders
 /// at startup too: `video::probe_encoders` →
 /// `last_encoder_probe_supported_ref_frames_invalidation`, emitted in
@@ -212,13 +213,22 @@ pub struct RecoveryCapability {
     /// The ref count the probe's session was created with: the depth the
     /// driver accepted, and the ceiling every session may configure.
     pub ref_frames: u32,
+    /// A real HEVC Main session opened on the probe's adapter. HEVC is
+    /// advertised (serverinfo's `MaxLumaPixelsHEVC`/`ServerCodecModeSupport`
+    /// and the VPS marker in the RTSP DESCRIBE body) only when this is set,
+    /// and only then can a client's `x-nv-vqos[0].bitStreamFormat=1` be
+    /// honored — advertising a codec the session cannot encode would leave
+    /// the client decoding HEVC from an H.264 bitstream. The AMF fallback
+    /// is H.264-only (`AMFVideoEncoderVCE_AVC`), so it reports false.
+    pub hevc: bool,
 }
 
 /// No session could be created (or the selected backend has no RFI): the
-/// IDR-only recovery mode with a single reference frame.
+/// IDR-only recovery mode with a single reference frame and no HEVC.
 pub const NO_RECOVERY: RecoveryCapability = RecoveryCapability {
     rfi: false,
     ref_frames: 1,
+    hevc: false,
 };
 
 /// Probe session shape: tiny, so the throwaway session costs nothing
@@ -267,13 +277,18 @@ unsafe fn probe_device(adapter: &IDXGIAdapter) -> Result<ID3D11Device, String> {
 /// default ref count first: the capability and depth we advertise must match
 /// what the session will really be configured with. A driver that rejects
 /// the default depth still accepts 1 — reported as `rfi: false,
-/// ref_frames: 1`, the depth that makes the IDR fallback honest.
+/// ref_frames: 1`, the depth that makes the IDR fallback honest. Once the
+/// H.264 session is up, an HEVC Main session is opened on the same device:
+/// that is the whole HEVC advertisement gate.
 fn run_recovery_probe() -> RecoveryCapability {
     if matches!(
         encoder_selection(),
         EncoderSelection::Amf | EncoderSelection::AmfCross
     ) {
-        eprintln!("video: recovery probe: amf encoder, no ref invalidation (IDR recovery)");
+        eprintln!(
+            "video: recovery probe: amf encoder, no ref invalidation (IDR recovery), \
+             no HEVC (AMF is H.264-only)"
+        );
         return NO_RECOVERY;
     }
     let adapters = match DxgiCapture::candidate_adapters() {
@@ -295,6 +310,7 @@ fn run_recovery_probe() -> RecoveryCapability {
         };
         for ref_frames in [crate::nvenc::REF_FRAMES_DEFAULT, 1] {
             let params = EncoderConfigParams {
+                codec: crate::video::VideoCodec::H264,
                 width: PROBE_WIDTH,
                 height: PROBE_HEIGHT,
                 fps: PROBE_FPS,
@@ -305,11 +321,12 @@ fn run_recovery_probe() -> RecoveryCapability {
             match NvencEncoder::new(device.as_raw(), &params) {
                 Ok(encoder) => {
                     let rfi = encoder.supports_ref_invalidation();
+                    let hevc = probe_hevc(device.as_raw(), ref_frames);
                     eprintln!(
                         "video: recovery probe: {name} {ref_frames} ref frames, \
-                         ref-pic-invalidation={rfi}"
+                         ref-pic-invalidation={rfi}, hevc={hevc}"
                     );
-                    return RecoveryCapability { rfi, ref_frames };
+                    return RecoveryCapability { rfi, ref_frames, hevc };
                 }
                 Err(error) => {
                     eprintln!("video: recovery probe: {name} {ref_frames} ref frames: {error}");
@@ -320,6 +337,30 @@ fn run_recovery_probe() -> RecoveryCapability {
     }
     eprintln!("video: recovery probe: no encoder session ({last_error}), IDR recovery");
     NO_RECOVERY
+}
+
+/// Opens one throwaway HEVC Main session on the probe's device, with the
+/// same shape as the H.264 half. A driver without HEVC encoding (or a GPU
+/// older than Maxwell 2nd gen) fails here and the host then advertises
+/// H.264 only, so no client is ever offered a codec the session cannot
+/// produce.
+fn probe_hevc(device: *mut c_void, ref_frames: u32) -> bool {
+    let params = EncoderConfigParams {
+        codec: crate::video::VideoCodec::Hevc,
+        width: PROBE_WIDTH,
+        height: PROBE_HEIGHT,
+        fps: PROBE_FPS,
+        bitrate_kbps: PROBE_BITRATE_KBPS,
+        slices_per_frame: 1,
+        max_ref_frames: ref_frames,
+    };
+    match NvencEncoder::new(device, &params) {
+        Ok(_) => true,
+        Err(error) => {
+            eprintln!("video: recovery probe: no HEVC session ({error})");
+            false
+        }
+    }
 }
 
 /// Resolves the DPB depth for a session from the client's
@@ -363,6 +404,10 @@ fn can_fast_recreate(
 
 /// Probes encoder backends for one adapter's D3D device: NVENC first,
 /// then AMF on the same device. Only the working backend is constructed.
+/// AMF is H.264-only, so an HEVC session never falls back to it: silently
+/// encoding H.264 for a client that negotiated HEVC would be a black
+/// screen with no diagnostic, and the probe that let the client ask for
+/// HEVC in the first place only succeeds on NVENC.
 fn create_encoder(
     device: *mut c_void,
     config: &EncoderConfigParams,
@@ -370,6 +415,12 @@ fn create_encoder(
     match NvencEncoder::new(device, config) {
         Ok(encoder) => Ok((Box::new(encoder), EncoderBackend::Nvenc)),
         Err(nvenc_error) => {
+            if config.codec != crate::video::VideoCodec::H264 {
+                return Err(format!(
+                    "nvenc unavailable for {} ({nvenc_error}); the amf fallback cannot encode it",
+                    config.codec.name()
+                ));
+            }
             eprintln!("nvenc unavailable on this adapter ({nvenc_error}); trying amf");
             match AmfEncoder::new(device, config) {
                 Ok(encoder) => Ok((Box::new(encoder), EncoderBackend::Amf)),
@@ -1243,6 +1294,12 @@ impl TextureScaler {
 
 /// Finds the first H.264 SPS NAL in an annex-B stream and returns
 /// (profile_idc, constraint flags, level_idc).
+///
+/// H.264 only, by construction: it matches NAL type 7 through the 1-byte
+/// header mask. An HEVC access unit cannot match (an HEVC header's low five
+/// bits are even, so 0x67 never occurs), so the first-frame log simply
+/// omits the profile for an HEVC session rather than misreporting one —
+/// parsing HEVC's profile_tier_level is what the HDR slice will need.
 fn sps_info(data: &[u8]) -> Option<(u8, u8, u8)> {
     let mut index = 0;
     while index + 5 < data.len() {
@@ -1271,7 +1328,8 @@ fn sps_info(data: &[u8]) -> Option<(u8, u8, u8)> {
     None
 }
 
-/// Production pipeline: DXGI desktop duplication + NVENC H.264.
+/// Production pipeline: DXGI desktop duplication + NVENC (H.264 or HEVC,
+/// whichever the session negotiated).
 ///
 /// When the desktop is idle, duplication waits time out without a new
 /// frame; the previous texture is then re-encoded (paced to the frame
@@ -2182,6 +2240,10 @@ fn bridge_finish_consume(
 }
 
 impl VideoPipeline for NvencPipeline {
+    fn codec(&self) -> crate::video::VideoCodec {
+        self.config.codec
+    }
+
     fn encode_next(&mut self, force_idr: bool) -> Result<Option<EncodedFrame>, String> {
         // pessimistic default: every early return below leaves the sender
         // loop without a backoff (nothing was polled on a spent budget)
@@ -3162,6 +3224,7 @@ mod tests {
         const RFI: RecoveryCapability = RecoveryCapability {
             rfi: true,
             ref_frames: 5,
+            hevc: false,
         };
         // absent attribute (a client that predates it) and 0 ("host picks",
         // which only an RFI-aware client sends) both mean the default
@@ -3182,6 +3245,7 @@ mod tests {
         const NO_RFI: RecoveryCapability = RecoveryCapability {
             rfi: false,
             ref_frames: 5,
+            hevc: false,
         };
         assert_eq!(resolve_ref_frames(Some(8), NO_RFI), 5);
         assert_eq!(resolve_ref_frames(Some(0), NO_RFI), 5);
@@ -3191,11 +3255,19 @@ mod tests {
         const DEEP: RecoveryCapability = RecoveryCapability {
             rfi: true,
             ref_frames: 30,
+            hevc: false,
         };
         assert_eq!(resolve_ref_frames(Some(30), DEEP), crate::nvenc::REF_FRAMES_MAX);
         // never zero, whatever the probe reported
         assert_eq!(
-            resolve_ref_frames(Some(0), RecoveryCapability { rfi: true, ref_frames: 0 }),
+            resolve_ref_frames(
+                Some(0),
+                RecoveryCapability {
+                    rfi: true,
+                    ref_frames: 0,
+                    hevc: false,
+                }
+            ),
             1
         );
     }
@@ -3482,6 +3554,7 @@ mod tests {
         );
 
         let config = crate::nvenc::EncoderConfigParams {
+            codec: crate::video::VideoCodec::H264,
             width: 1280,
             height: 720,
             fps: 60,
@@ -3579,6 +3652,7 @@ mod tests {
         let bitrate_kbps = live_u32("HYDRA_LIVE_KBPS", 15_000);
         let seconds = live_u32("HYDRA_LIVE_SECONDS", 15);
         let config = EncoderConfigParams {
+            codec: crate::video::VideoCodec::H264,
             width,
             height,
             fps,

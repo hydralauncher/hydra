@@ -31,7 +31,8 @@ fn stream_port(kind: &str) -> u16 {
 
 /// SDP advertised in DESCRIBE responses. Feature flags 0 (no Sunshine
 /// extensions) and stereo/5.1/7.1 Opus layouts with GFE's channel ordering,
-/// so Moonlight negotiates H.264 + Opus without surround hardcoded fallback.
+/// so Moonlight negotiates H.264/HEVC + Opus without surround hardcoded
+/// fallback.
 ///
 /// The five `surround-params` lines are Sunshine's `stream_configs` in order
 /// (`audio.cpp:51-100`): stereo 2/1/1, 5.1 6/4/2, 5.1 6/6/0, 7.1 8/5/3,
@@ -60,7 +61,28 @@ fn stream_port(kind: &str) -> u16 {
 /// host's frameType-5 recovery frame (VideoDepacketizer.c). Sunshine emits
 /// exactly this line when its encoder probe supports RFI (rtsp.cpp). The
 /// remaining lines are byte-identical to the pre-RFI SDP.
+///
+/// The HEVC marker is the `sprop-parameter-sets=AAAAAU` line Sunshine emits
+/// when its probe found an HEVC encoder (`rtsp.cpp:955-956`). It is NOT
+/// SDP: there is no `a=` prefix, and the payload is the base64 of the
+/// annex-B start code `00 00 00 01`, not a parameter set. It is the only
+/// signal the client uses to decide whether this host can do HEVC —
+/// `RtspConnection.c:1104-1119` substring-matches it because the host (GFE,
+/// and Sunshine in its wake) keeps the HEVC format's MIME type as H264, so
+/// the client cannot look for an HEVC MIME type instead. Without it a
+/// client that supports HEVC never offers it, however much the serverinfo
+/// advertises.
+///
+/// The marker is a host capability, not a session choice: DESCRIBE arrives
+/// before ANNOUNCE, and it is what makes the client offer HEVC there.
 fn describe_sdp() -> String {
+    let capability = crate::capture::recovery_capability();
+    describe_sdp_for(capability.rfi, capability.hevc)
+}
+
+/// The SDP for a given probed capability pair. Pure, so both the RFI and
+/// the HEVC advertisements are testable without a GPU.
+fn describe_sdp_for(rfi: bool, hevc: bool) -> String {
     let mut sdp = String::from(concat!(
         "a=x-ss-general.featureFlags:0\n",
         "a=fmtp:97 surround-params=21101\n",
@@ -69,11 +91,18 @@ fn describe_sdp() -> String {
         "a=fmtp:97 surround-params=85301245673\n",
         "a=fmtp:97 surround-params=88001234567\n",
     ));
-    if crate::capture::recovery_capability().rfi {
+    if rfi {
         sdp.push_str("a=x-nv-video[0].refPicInvalidation:1\n");
+    }
+    if hevc {
+        sdp.push_str(HEVC_SDP_MARKER);
     }
     sdp
 }
+
+/// Sunshine's HEVC capability marker (`rtsp.cpp:956`), verbatim: no `a=`
+/// prefix, no trailing attribute name. The client's `strstr` is exact.
+pub const HEVC_SDP_MARKER: &str = "sprop-parameter-sets=AAAAAU\n";
 
 pub async fn serve(state: Arc<State>, port: u16) -> io::Result<()> {
     let listener = TcpListener::bind(("0.0.0.0", port)).await?;
@@ -573,6 +602,42 @@ mod tests {
         );
     }
 
+    /// The HEVC capability marker: exactly Sunshine's line, no `a=`
+    /// prefix, and only when the probe found an HEVC session. The client
+    /// substring-matches `sprop-parameter-sets=AAAAAU`
+    /// (`RtspConnection.c:1104`), so the marker is also asserted as a
+    /// substring of the emitted body, not as an SDP attribute.
+    #[test]
+    fn describe_sdp_advertises_hevc_only_when_the_probe_did() {
+        let with_hevc = describe_sdp_for(true, true);
+        assert!(
+            with_hevc.contains("sprop-parameter-sets=AAAAAU"),
+            "the client's strstr must match: {with_hevc:?}"
+        );
+        assert!(
+            with_hevc.lines().any(|line| line == "sprop-parameter-sets=AAAAAU"),
+            "the marker is its own line, verbatim and without an a= prefix: {with_hevc:?}"
+        );
+        assert!(!with_hevc.contains("a=sprop-parameter-sets"), "{with_hevc:?}");
+        // the RFI attribute keeps its place before it (Sunshine's order:
+        // rtsp.cpp emits refPicInvalidation, then the HEVC marker)
+        let rfi_at = with_hevc.find("a=x-nv-video[0].refPicInvalidation:1").expect("rfi");
+        let hevc_at = with_hevc.find("sprop-parameter-sets").expect("hevc");
+        assert!(rfi_at < hevc_at, "{with_hevc:?}");
+
+        // no HEVC session: not a byte of it, and the H.264 SDP is the one
+        // the pre-HEVC host sent
+        let h264_only = describe_sdp_for(true, false);
+        assert!(!h264_only.contains("sprop-parameter-sets"), "{h264_only:?}");
+        assert!(!h264_only.contains("AAAAAU"), "{h264_only:?}");
+
+        // and the live call tracks the same probe the serverinfo uses
+        assert_eq!(
+            describe_sdp().contains(HEVC_SDP_MARKER),
+            crate::capture::recovery_capability().hevc,
+        );
+    }
+
     /// The five surround-params lines, in Sunshine's `stream_configs` order
     /// (`audio.cpp:51-100`), as GFE advertises them (`rtsp.cpp:975-993`):
     /// only the normal-quality 5.1 and 7.1 rows carry the rotated channel
@@ -633,6 +698,7 @@ mod tests {
             video_qos_type: None,
             audio_qos_type: None,
             audio_encryption: false,
+            codec: crate::video::VideoCodec::H264,
         };
         let response = setup_response(&launch, &request);
         assert_eq!(response.code, 200);

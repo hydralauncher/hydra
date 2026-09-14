@@ -480,6 +480,10 @@ fn build_pipeline(launch: &LaunchParams) -> Result<Box<dyn VideoPipeline>, Strin
         crate::capture::recovery_capability(),
     );
     let config = EncoderConfigParams {
+        // the codec the client's ANNOUNCE negotiated (H.264 unless it asked
+        // for HEVC and the startup probe found an HEVC session); it selects
+        // the NVENC GUIDs and the codec config block, nothing else
+        codec: launch.codec,
         // negotiated client mode from /launch; the pipeline letterbox-fits
         // the desktop into this size (0 = encode at the native desktop
         // resolution)
@@ -1234,6 +1238,7 @@ mod tests {
                 video_qos_type: None,
                 audio_qos_type: None,
                 audio_encryption: false,
+                codec: crate::video::VideoCodec::H264,
             })
             .unwrap();
 
@@ -1285,6 +1290,7 @@ mod tests {
                 video_qos_type: None,
                 audio_qos_type: None,
                 audio_encryption: false,
+                codec: crate::video::VideoCodec::H264,
             })
             .unwrap();
 

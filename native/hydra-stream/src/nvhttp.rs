@@ -165,6 +165,12 @@ pub struct LaunchParams {
     /// (`rtsp.cpp:1164-1165`). `false` (attribute absent included) sends
     /// plaintext.
     pub audio_encryption: bool,
+    /// The codec this session encodes — H.264 unless the client's ANNOUNCE
+    /// asked for HEVC with `x-nv-vqos[0].bitStreamFormat=1`
+    /// (`SdpGenerator.c:433-451`) and the host's startup probe found a
+    /// working HEVC session (`capture::RecoveryCapability::hevc`). Resolved
+    /// once, by [`negotiate_codec`], when the ANNOUNCE is parsed.
+    pub codec: crate::video::VideoCodec,
 }
 
 pub struct GameSession {
@@ -178,6 +184,24 @@ pub struct GameSession {
     /// and nothing else, so a second device on the network cannot take the
     /// stream's audio over.
     pub client_ip: Option<IpAddr>,
+}
+
+/// The codec a session encodes, from the client's ANNOUNCE and the host's
+/// probed HEVC support. The client states its choice with
+/// `x-nv-vqos[0].bitStreamFormat` (`SdpGenerator.c:433-451`: 0 = H.264,
+/// 1 = HEVC, 2 = AV1) — the same attribute Sunshine reads into
+/// `config.monitor.videoFormat` (`rtsp.cpp:1203`). HEVC is selected only
+/// when the client asks for it AND the host can encode it; every other
+/// combination (attribute absent, 0, 2/AV1, or a host without an HEVC
+/// session) keeps H.264. Pure.
+pub fn negotiate_codec(
+    bit_stream_format: Option<u32>,
+    hevc_available: bool,
+) -> crate::video::VideoCodec {
+    match bit_stream_format {
+        Some(1) if hevc_available => crate::video::VideoCodec::Hevc,
+        _ => crate::video::VideoCodec::H264,
+    }
 }
 
 pub struct StreamApp {
@@ -586,6 +610,47 @@ impl State {
                 Err(_) => eprintln!("nvhttp: ignoring invalid surround AudioQuality {value:?}"),
             }
         }
+        // The codec decision, once per session: the client names its
+        // choice with x-nv-vqos[0].bitStreamFormat (moonlight-common-c
+        // raises it to 1 together with x-nv-clientSupportHevc when its
+        // decoder is HEVC and the DESCRIBE body carried the VPS marker,
+        // SdpGenerator.c:433-451). The host side of the decision is the
+        // startup probe: without a working HEVC session no client is ever
+        // offered the marker, and a client that asks anyway is answered
+        // H.264 rather than left with a decoder the bitstream cannot feed.
+        let hevc_available = crate::capture::recovery_capability().hevc;
+        let requested = attrs
+            .get("x-nv-vqos[0].bitStreamFormat")
+            .and_then(|value| match value.trim().parse::<u32>() {
+                Ok(format) => Some(format),
+                Err(_) => {
+                    eprintln!("nvhttp: ignoring invalid bitStreamFormat {value:?}");
+                    None
+                }
+            });
+        launch.codec = negotiate_codec(requested, hevc_available);
+        let client_hevc = attrs.get("x-nv-clientSupportHevc").map(String::as_str);
+        // State the decision and its evidence: the attribute the client
+        // sent (absent, 0/1/2) and whether the host could honor it.
+        match (launch.codec, requested) {
+            (crate::video::VideoCodec::Hevc, _) => eprintln!(
+                "nvhttp: codec HEVC: the client's x-nv-vqos[0].bitStreamFormat asked for it \
+                 (={}, x-nv-clientSupportHevc={}) and the encoder probe has an HEVC session",
+                requested.unwrap_or_default(),
+                client_hevc.unwrap_or("absent")
+            ),
+            (crate::video::VideoCodec::H264, Some(1)) => eprintln!(
+                "nvhttp: codec H.264: the client asked for HEVC \
+                 (x-nv-vqos[0].bitStreamFormat=1, x-nv-clientSupportHevc={}) but the encoder \
+                 probe has no HEVC session",
+                client_hevc.unwrap_or("absent")
+            ),
+            (crate::video::VideoCodec::H264, other) => eprintln!(
+                "nvhttp: codec H.264: the client did not ask for HEVC \
+                 (x-nv-vqos[0].bitStreamFormat={})",
+                other.map(|value| value.to_string()).unwrap_or_else(|| "absent".to_string())
+            ),
+        }
         if let Some(value) = attrs.get("x-nv-audio.surround.enable") {
             launch.surround_enabled = value.trim() != "0";
         }
@@ -688,6 +753,7 @@ fn serverinfo(state: &State, is_https: bool, has_uniqueid: bool, local_ip: IpAdd
         std::net::IpAddr::V6(v6) if v6.to_ipv4_mapped().is_none() => "127.0.0.1".to_string(),
         other => other.to_string(),
     };
+    let hevc = crate::capture::recovery_capability().hevc;
     // Sunshine mirrors the running app into serverinfo: clients poll this
     // after /launch and only start RTSP once the host reports BUSY with the
     // launched appid as currentgame (Moonlight-Android's AppView flow).
@@ -716,14 +782,15 @@ fn serverinfo(state: &State, is_https: bool, has_uniqueid: bool, local_ip: IpAdd
             "  <uniqueid>{uuid}</uniqueid>\n",
             "  <HttpsPort>{https_port}</HttpsPort>\n",
             "  <ExternalPort>{http_port}</ExternalPort>\n",
-            "  <MaxLumaPixelsHEVC>0</MaxLumaPixelsHEVC>\n",
+            "  <MaxLumaPixelsHEVC>{max_luma_pixels_hevc}</MaxLumaPixelsHEVC>\n",
             "  <mac>00:00:00:00:00:00</mac>\n",
             "  <LocalIP>{local_ip}</LocalIP>\n",
             // moonlight-common-c hard-fails LiStartConnection when this is 0
             // ("serverCodecModeSupport field in SERVER_INFORMATION must be
-            // set!"), before the RTSP stage ever runs. Bit 1 = H.264 High,
-            // our only encoder.
-            "  <ServerCodecModeSupport>2</ServerCodecModeSupport>\n",
+            // set!"), before the RTSP stage ever runs. Sunshine advertises
+            // SCM_H264 always and ORs in SCM_HEVC when HEVC is available
+            // (nvhttp.cpp:1166-1190).
+            "  <ServerCodecModeSupport>{server_codec_mode_support}</ServerCodecModeSupport>\n",
             "  <PairStatus>{pair_status}</PairStatus>\n",
             "  <currentgame>{currentgame}</currentgame>\n",
             "  <state>{server_state}</state>\n",
@@ -735,11 +802,34 @@ fn serverinfo(state: &State, is_https: bool, has_uniqueid: bool, local_ip: IpAdd
         uuid = state.uuid,
         https_port = HTTPS_PORT,
         http_port = HTTP_PORT,
+        max_luma_pixels_hevc = max_luma_pixels_hevc(hevc),
+        server_codec_mode_support = server_codec_mode_support(hevc),
         local_ip = local_ip,
         pair_status = pair_status,
         currentgame = currentgame,
         server_state = server_state,
     )
+}
+
+/// `root.ServerCodecModeSupport` bits the client reads
+/// (moonlight-common-c Limelight.h:506-513). Only the two the host can
+/// actually encode are ever advertised; the 4:4:4 and 10-bit extension bits
+/// stay clear, because nothing here produces those bitstreams.
+const SCM_H264: u32 = 0x0000_0001;
+const SCM_HEVC: u32 = 0x0000_0100;
+
+/// The `MaxLumaPixelsHEVC` value Sunshine reports when HEVC is available
+/// (`nvhttp.cpp:1232`); 0 when it is not. It is a fixed budget, not a
+/// computed luma count. Pure.
+fn max_luma_pixels_hevc(hevc: bool) -> &'static str {
+    if hevc { "1869449984" } else { "0" }
+}
+
+/// The codec-capability bitmask for this host (Sunshine's
+/// `get_codec_mode_flags`, nvhttp.cpp:1166-1190, reduced to the codecs this
+/// host has). Pure.
+fn server_codec_mode_support(hevc: bool) -> u32 {
+    SCM_H264 | if hevc { SCM_HEVC } else { 0 }
 }
 
 fn xml_escape(text: &str) -> String {
@@ -1031,6 +1121,9 @@ fn make_launch_params(params: &HashMap<String, String>, uniqueid: &str) -> Optio
         // the ANNOUNCE that carries x-nv-general.featureFlags follows the
         // launch; until then nothing asks for encrypted audio
         audio_encryption: false,
+        // ...nor asks for HEVC: every session starts H.264 and only the
+        // ANNOUNCE's bitStreamFormat can move it (negotiate_codec)
+        codec: crate::video::VideoCodec::H264,
     })
 }
 
@@ -1499,6 +1592,14 @@ pub(crate) mod tests {
         assert_eq!(tag(&xml, "LocalIP"), "192.168.1.10");
         assert_eq!(tag(&xml, "PairStatus"), "1");
         assert_eq!(tag(&xml, "state"), "SUNSHINE_SERVER_FREE");
+        // the codec advertisement tracks the startup probe, the same one
+        // the RTSP DESCRIBE marker and the codec negotiation use
+        let hevc = crate::capture::recovery_capability().hevc;
+        assert_eq!(tag(&xml, "MaxLumaPixelsHEVC"), max_luma_pixels_hevc(hevc));
+        assert_eq!(
+            tag(&xml, "ServerCodecModeSupport"),
+            server_codec_mode_support(hevc).to_string()
+        );
         // http without uniqueid reports unpaired
         let http_xml = serverinfo(&state, false, false, "10.0.0.5".parse().unwrap());
         assert_eq!(tag(&http_xml, "PairStatus"), "0");
@@ -1977,6 +2078,84 @@ pub(crate) mod tests {
         // previous state, like the FEC minimum above)
         state.update_announcement(&params(&[("x-nv-general.featureFlags", "0x20")]));
         assert!(!encrypted(&state));
+    }
+
+    /// The codec rule, exhaustively: HEVC only when the client asked for it
+    /// with `x-nv-vqos[0].bitStreamFormat=1` AND the host's probe found an
+    /// HEVC session. Everything else — attribute absent, 0 (H.264), 2 (AV1,
+    /// which this host does not encode) or a host without HEVC — stays
+    /// H.264, which is the pre-HEVC behavior byte for byte.
+    #[test]
+    fn codec_is_hevc_only_when_requested_and_available() {
+        use crate::video::VideoCodec::{H264, Hevc};
+        assert_eq!(negotiate_codec(Some(1), true), Hevc);
+        assert_eq!(negotiate_codec(Some(1), false), H264, "host cannot encode it");
+        assert_eq!(negotiate_codec(Some(0), true), H264);
+        assert_eq!(negotiate_codec(Some(2), true), H264, "AV1 is not ours");
+        assert_eq!(negotiate_codec(Some(7), true), H264, "unknown format");
+        assert_eq!(negotiate_codec(None, true), H264, "absent attribute");
+        assert_eq!(negotiate_codec(None, false), H264);
+    }
+
+    /// ...and the ANNOUNCE plumbing that feeds it: the attribute moves the
+    /// pending launch's codec, an absent attribute leaves the H.264 default
+    /// the launch was raised with.
+    #[test]
+    fn announcement_moves_the_session_codec() {
+        let (state, _rx) = local_state("codec-negotiation");
+        let launch = make_launch_params(
+            &params(&[
+                ("appid", "1"),
+                ("rikey", "00112233445566778899aabbccddeeff"),
+                ("rikeyid", "305419896"),
+            ]),
+            "tester",
+        )
+        .expect("launch");
+        state.begin_launch(launch).expect("begin launch");
+
+        let codec = |state: &State| state.launch_params().expect("launch").codec;
+        assert_eq!(
+            codec(&state),
+            crate::video::VideoCodec::H264,
+            "a launch starts H.264, before any ANNOUNCE"
+        );
+
+        // the client asks for HEVC: honored exactly when this host has the
+        // session the probe opened
+        state.update_announcement(&params(&[(
+            "x-nv-vqos[0].bitStreamFormat",
+            "1",
+        )]));
+        assert_eq!(
+            codec(&state),
+            negotiate_codec(Some(1), crate::capture::recovery_capability().hevc)
+        );
+
+        // asking for H.264 (or for nothing) is H.264
+        state.update_announcement(&params(&[(
+            "x-nv-vqos[0].bitStreamFormat",
+            "0",
+        )]));
+        assert_eq!(codec(&state), crate::video::VideoCodec::H264);
+        state.update_announcement(&params(&[("x-nv-video[0].maxFPS", "60")]));
+        assert_eq!(codec(&state), crate::video::VideoCodec::H264);
+    }
+
+    /// The serverinfo codec fields, both ways: `MaxLumaPixelsHEVC` is
+    /// Sunshine's fixed budget when the probe found an HEVC session and 0
+    /// when it did not, and `ServerCodecModeSupport` carries SCM_H264
+    /// always plus SCM_HEVC when it can (Sunshine's `get_codec_mode_flags`,
+    /// nvhttp.cpp:1166-1190).
+    #[test]
+    fn serverinfo_codec_fields_follow_the_probe() {
+        assert_eq!(max_luma_pixels_hevc(false), "0");
+        assert_eq!(max_luma_pixels_hevc(true), "1869449984");
+        // the bits the client reads (moonlight-common-c Limelight.h:506-513)
+        assert_eq!(server_codec_mode_support(false), 0x1);
+        assert_eq!(server_codec_mode_support(true), 0x101);
+        assert_eq!(server_codec_mode_support(false) & SCM_HEVC, 0);
+        assert_ne!(server_codec_mode_support(false), 0, "the client hard-fails on 0");
     }
 
     fn launch_with_rikeyid(rikeyid: &str) -> LaunchParams {
