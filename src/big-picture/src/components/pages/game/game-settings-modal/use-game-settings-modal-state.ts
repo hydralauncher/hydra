@@ -75,6 +75,21 @@ export function useGameSettingsModalState({
     setAutomaticCloudSync(game?.automaticCloudSync ?? false);
   }, [game?.automaticCloudSync]);
 
+  useEffect(
+    () =>
+      globalThis.window.electron.onCloudSaveAutomaticSyncModeChanged(
+        (event) => {
+          if (
+            event.gameId.objectId === game?.objectId &&
+            event.gameId.shop === game?.shop
+          ) {
+            setAutomaticCloudSync(event.mode === "legacy");
+          }
+        }
+      ),
+    [game?.objectId, game?.shop]
+  );
+
   const getDownloadsPath = useCallback(async () => {
     const userPreferences = await globalThis.window.electron
       .getUserPreferences()

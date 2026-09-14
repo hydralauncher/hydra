@@ -8,12 +8,22 @@ type CustomAssetField =
 
 export type CustomArtworkUrls = Partial<Pick<Game, CustomAssetField>>;
 
-const CUSTOM_ASSET_TYPES: Record<CustomAssetField, ArtworkAssetType> = {
-  customIconUrl: "icon",
-  customLogoImageUrl: "logo",
-  customHeroImageUrl: "hero",
-  customCoverImageUrl: "grid",
+export const CUSTOM_ASSET_FIELD_BY_TYPE: Record<
+  ArtworkAssetType,
+  CustomAssetField
+> = {
+  icon: "customIconUrl",
+  logo: "customLogoImageUrl",
+  hero: "customHeroImageUrl",
+  grid: "customCoverImageUrl",
 };
+
+const CUSTOM_ASSET_TYPES = Object.fromEntries(
+  Object.entries(CUSTOM_ASSET_FIELD_BY_TYPE).map(([type, field]) => [
+    field,
+    type,
+  ])
+) as Record<CustomAssetField, ArtworkAssetType>;
 
 export const reconcileRemoteArtworkSelection = (
   current: GameArtworkSelection["selected"],
@@ -36,10 +46,17 @@ export const reconcileRemoteArtworkSelection = (
       continue;
     }
 
-    if (selected[type] && selected[type]?.url !== remoteValue) {
-      delete selected[type];
-      changed = true;
+    const selection = selected[type];
+    if (!selection || selection.url === remoteValue) {
+      continue;
     }
+
+    if (!selection.syncedAt) {
+      continue;
+    }
+
+    delete selected[type];
+    changed = true;
   }
 
   return { selected, changed };

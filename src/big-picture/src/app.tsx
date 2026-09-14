@@ -1,5 +1,5 @@
 import { Fragment, useEffect, useState } from "react";
-import { Outlet, useLocation } from "react-router-dom";
+import { Outlet, useLocation, useNavigate } from "react-router-dom";
 import {
   BIG_PICTURE_APP_LAYER_ID,
   BIG_PICTURE_CONTENT_REGION_ID,
@@ -25,6 +25,7 @@ import {
   NavigationDiagnostics,
   VerticalFocusGroup,
   BigPictureToastHost,
+  CloudGiftNotificationModal,
   VirtualKeyboardProvider,
 } from "./components";
 import { getItemFocusTarget } from "./helpers";
@@ -41,6 +42,7 @@ export default function App() {
   ensureBigPictureI18nResources();
 
   const { pathname } = useLocation();
+  const navigate = useNavigate();
   const { nodes, regions, setFocusRegion } = useNavigation();
   const userPreferences = useUserPreferences();
   const inputMode = useInputModeStore((state) => state.mode);
@@ -64,6 +66,16 @@ export default function App() {
 
     initializeBigPictureRunningGamesStore();
   }, []);
+
+  useEffect(() => {
+    if (!IS_DESKTOP) return;
+
+    return globalThis.window.electron.onNavigate((path) => {
+      if (path.startsWith("/big-picture")) {
+        navigate(path);
+      }
+    });
+  }, [navigate]);
 
   useEffect(() => {
     setPendingRouteFocusPathname(pathname);
@@ -148,6 +160,7 @@ export default function App() {
           <InputModeProvider />
           <NavigationDiagnostics />
           <BigPictureToastHost />
+          <CloudGiftNotificationModal />
         </div>
       </NavigationInputProvider>
     </Fragment>

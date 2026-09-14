@@ -4,6 +4,7 @@ import { useTranslation } from "react-i18next";
 import { useLocation, useNavigate } from "react-router-dom";
 
 import type { LibraryGame } from "@types";
+import { removeDiacritics } from "@shared";
 
 import { ConfirmationModal, TextField } from "@renderer/components";
 import { useDownload, useLibrary, useToast } from "@renderer/hooks";
@@ -186,12 +187,21 @@ export function Sidebar() {
   }, []);
 
   const handleFilter: React.ChangeEventHandler<HTMLInputElement> = (event) => {
-    setFilterQuery(event.target.value);
+    const query = event.target.value;
+    const normalizedQuery = removeDiacritics(query).toLowerCase();
+
+    setFilterQuery(query);
+
+    if (!normalizedQuery.trim()) {
+      setFilteredLibrary(sortedLibrary);
+      return;
+    }
+
     setFilteredLibrary(
       sortedLibrary.filter((game) =>
-        (game.title ?? "")
+        removeDiacritics(game.title ?? "")
           .toLowerCase()
-          .includes(event.target.value.toLocaleLowerCase())
+          .includes(normalizedQuery)
       )
     );
   };

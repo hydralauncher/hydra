@@ -1,4 +1,11 @@
-import { app, BrowserWindow, net, powerMonitor, protocol } from "electron";
+import {
+  app,
+  BrowserWindow,
+  crashReporter,
+  net,
+  powerMonitor,
+  protocol,
+} from "electron";
 import updater from "electron-updater";
 import i18n from "i18next";
 import path from "node:path";
@@ -12,6 +19,7 @@ import {
   PowerSaveBlockerManager,
   DownloadOrchestrator,
   SSEClient,
+  emulators,
 } from "@main/services";
 import resources from "@locales";
 import { PythonRPC } from "./services/python-rpc";
@@ -19,7 +27,12 @@ import { db, gamesSublevel, levelKeys } from "./level";
 import { GameShop, UserPreferences } from "@types";
 import { launchGame, openClassicsGame } from "./helpers";
 import { refreshPortableShortcutLauncher } from "./helpers/shortcut-launch";
+import { lookupCachedPlatform } from "./events/library/get-library";
 import { loadState } from "./main";
+
+crashReporter.start({
+  uploadToServer: false,
+});
 
 const { autoUpdater } = updater;
 
@@ -78,6 +91,8 @@ if (process.defaultApp) {
 const initializeApp = async () => {
   refreshPortableShortcutLauncher();
   electronApp.setAppUserModelId("gg.hydralauncher.hydra");
+
+  logger.info("Crash dumps directory", app.getPath("crashDumps"));
 
   protocol.handle("local", (request) => {
     const filePath = request.url.slice("local:".length);
@@ -149,7 +164,11 @@ const initializeApp = async () => {
     });
   });
 
-  await loadState();
+  try {
+    await loadState();
+  } catch (error) {
+    logger.error("Failed to load app state during startup", error);
+  }
 
   // Suspend can outlive the 60s stall watchdog; reconnect right away instead
   powerMonitor.on("resume", () => {
@@ -190,6 +209,23 @@ app.on("browser-window-created", (_, window) => {
   optimizer.watchWindowShortcuts(window);
 });
 
+app.on("child-process-gone", (_event, details) => {
+  logger.error("Child process gone", {
+    type: details.type,
+    reason: details.reason,
+    exitCode: details.exitCode,
+    serviceName: details.serviceName,
+    name: details.name,
+  });
+});
+
+app.on("render-process-gone", (_event, _webContents, details) => {
+  logger.error("Render process gone", {
+    reason: details.reason,
+    exitCode: details.exitCode,
+  });
+});
+
 const handleRunGame = async (shop: GameShop, objectId: string) => {
   const gameKey = levelKeys.game(shop, objectId);
   const game = await gamesSublevel.get(gameKey);
@@ -210,6 +246,13 @@ const handleRunGame = async (shop: GameShop, objectId: string) => {
   }
 
   if (shop === "launchbox") {
+    if (!game.platform) {
+      const cachedPlatform = await lookupCachedPlatform(gameKey);
+      if (cachedPlatform) {
+        game.platform = cachedPlatform;
+        await gamesSublevel.put(gameKey, game).catch(() => {});
+      }
+    }
     await openClassicsGame(shop, objectId);
     return;
   }
@@ -240,6 +283,7 @@ const handleDeepLinkPath = (uri?: string) => {
       if (shop && objectId) {
         void handleRunGame(shop, objectId).catch((error) => {
           logger.error("Failed to launch game from deep link", error);
+          WindowManager.createMainWindow();
         });
       }
 
@@ -324,10 +368,17 @@ app.on("before-quit", async (e) => {
     PowerSaveBlockerManager.reset();
     /* Disconnects Python RPC */
     PythonRPC.kill();
-    await clearGamesPlaytime();
+    await Promise.all([
+      clearGamesPlaytime(),
+      emulators.stopAllEmulatorSouvenirCaptureSessions(),
+    ]);
     canAppBeClosed = true;
     app.quit();
   }
+});
+
+app.on("will-quit", () => {
+  logger.info("Application will quit");
 });
 
 app.on("activate", () => {

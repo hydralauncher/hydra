@@ -73,6 +73,8 @@ export interface TorBoxTorrentInfo {
     | "cached"
     | "metaDL"
     | "checkingResumeData";
+  download_finished: boolean;
+  download_present: boolean;
   seeds: number;
   ratio: number;
   progress: number;

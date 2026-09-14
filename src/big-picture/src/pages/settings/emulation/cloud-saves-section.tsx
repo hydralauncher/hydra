@@ -1,5 +1,6 @@
 import {
   ClockIcon,
+  CpuIcon,
   DeviceDesktopIcon,
   HistoryIcon,
   KebabHorizontalIcon,
@@ -12,7 +13,7 @@ import type {
   EmulationSavePlatform,
   EmulatorConfig,
 } from "@types";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 
 import {
@@ -48,6 +49,14 @@ interface CloudSavesSectionProps {
   refreshKey: number;
   upTargetId: string;
 }
+
+const getDolphinSavePlatformLabel = (
+  platform: EmulationSavePlatform
+): string | null => {
+  if (platform === "gamecube") return "GameCube";
+  if (platform === "wii") return "Wii";
+  return null;
+};
 
 interface RestoreModalProps {
   save: EmulationCloudSave | null;
@@ -96,8 +105,15 @@ function RestoreModal({
       platform={platform}
       onClose={onClose}
       onRestored={onRestored}
-      onRestoreSuccess={() =>
-        showSuccessToast(t("cloud_restore_success"), SETTINGS_TOAST_OPTIONS)
+      onRestoreSuccess={(result) =>
+        showSuccessToast(
+          t(
+            result.reason === "manual-import-required"
+              ? "cloud_restore_wii_downloaded"
+              : "cloud_restore_success"
+          ),
+          SETTINGS_TOAST_OPTIONS
+        )
       }
       onRestoreError={(reason) =>
         showErrorToast(
@@ -207,7 +223,13 @@ export function CloudSavesSection({
   const { t } = useTranslation("settings");
   const { hasActiveSubscription } = useUserDetails();
   const { showSuccessToast } = useBigPictureToast();
-  const platform = config.system as EmulationSavePlatform;
+  const platforms = useMemo<EmulationSavePlatform[]>(
+    () =>
+      config.system === "dolphin"
+        ? ["gamecube", "wii"]
+        : [config.system as EmulationSavePlatform],
+    [config.system]
+  );
   const [saves, setSaves] = useState<EmulationCloudSave[]>([]);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [restoreTarget, setRestoreTarget] = useState<EmulationCloudSave | null>(
@@ -235,11 +257,16 @@ export function CloudSavesSection({
     setIsRefreshing(true);
 
     try {
-      setSaves(await globalThis.window.electron.listEmulationSaves(platform));
+      const groups = await Promise.all(
+        platforms.map((platform) =>
+          globalThis.window.electron.listEmulationSaves(platform)
+        )
+      );
+      setSaves(groups.flat());
     } finally {
       setIsRefreshing(false);
     }
-  }, [hasActiveSubscription, platform]);
+  }, [hasActiveSubscription, platforms]);
 
   useEffect(() => {
     void loadSaves();
@@ -329,12 +356,23 @@ export function CloudSavesSection({
           <div className="emulator-detail__cloud-grid" ref={gridRef}>
             {saves.map((save, index) => {
               const saveName = save.label ?? save.fileName;
+              const platformLabel =
+                config.system === "dolphin"
+                  ? getDolphinSavePlatformLabel(save.platform)
+                  : null;
               const menuId = getEmulationCloudMenuFocusId(save.id);
               const previousSave = saves[index - 1];
               const nextSave = saves[index + 1];
 
               return (
-                <div key={save.id} className="emulator-detail__cloud-card">
+                <div
+                  key={save.id}
+                  className={`emulator-detail__cloud-card${
+                    platformLabel
+                      ? " emulator-detail__cloud-card--with-platform"
+                      : ""
+                  }`}
+                >
                   <div className="emulator-detail__cloud-card-top">
                     <img
                       className="emulator-detail__cloud-card-art"
@@ -423,18 +461,26 @@ export function CloudSavesSection({
                     />
                   </div>
 
-                  <span
-                    className="emulator-detail__cloud-card-title"
-                    title={saveName}
-                  >
-                    {saveName}
-                  </span>
+                  <div className="emulator-detail__cloud-card-title-row">
+                    <span
+                      className="emulator-detail__cloud-card-title"
+                      title={saveName}
+                    >
+                      {saveName}
+                    </span>
+                  </div>
 
                   <div className="emulator-detail__cloud-card-info">
                     <span title={save.hostname ?? undefined}>
                       <DeviceDesktopIcon size={16} />
                       {save.hostname ?? "—"}
                     </span>
+                    {platformLabel && (
+                      <span>
+                        <CpuIcon size={16} />
+                        {platformLabel}
+                      </span>
+                    )}
                     <span>
                       <ClockIcon size={16} />
                       {formatDate(save.localLastModifiedAt)}
@@ -449,7 +495,7 @@ export function CloudSavesSection({
 
       <RestoreModal
         save={restoreTarget}
-        platform={platform}
+        platform={restoreTarget?.platform ?? platforms[0]}
         onClose={() => setRestoreTarget(null)}
         onRestored={() => {
           void loadSaves();

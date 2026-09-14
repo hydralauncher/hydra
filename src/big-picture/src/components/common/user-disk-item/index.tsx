@@ -19,8 +19,8 @@ import type { FocusItemActions } from "../../../types";
 export interface UserDiskItemProps {
   title: string;
   path: string;
-  freeBytes: number;
-  totalBytes: number;
+  freeBytes: number | null;
+  totalBytes: number | null;
   isSelected?: boolean;
   showSelectedIndicator?: boolean;
   onClick?: () => void;
@@ -52,8 +52,9 @@ export function UserDiskItem({
   className,
   topRightContent,
 }: Readonly<UserDiskItemProps>) {
-  const safeFreeBytes = Math.max(freeBytes, 0);
-  const safeTotalBytes = Math.max(totalBytes, 0);
+  const hasUsage = freeBytes !== null && totalBytes !== null;
+  const safeFreeBytes = Math.max(freeBytes ?? 0, 0);
+  const safeTotalBytes = Math.max(totalBytes ?? 0, 0);
   const usedBytes = Math.max(safeTotalBytes - safeFreeBytes, 0);
   const usedRatio =
     safeTotalBytes > 0 ? clamp(usedBytes / safeTotalBytes, 0, 1) : 0;
@@ -150,26 +151,28 @@ export function UserDiskItem({
         </div>
       </div>
 
-      <div className="user-disk-item__usage">
-        <div className="user-disk-item__track" aria-hidden="true">
-          <div
-            className="user-disk-item__fill"
-            style={{ width: `${usedRatio * 100}%` }}
-          />
-        </div>
+      {hasUsage && (
+        <div className="user-disk-item__usage">
+          <div className="user-disk-item__track" aria-hidden="true">
+            <div
+              className="user-disk-item__fill"
+              style={{ width: `${usedRatio * 100}%` }}
+            />
+          </div>
 
-        <div className="user-disk-item__metrics">
-          <p className="user-disk-item__metric">
-            <span>{formatBytes(safeFreeBytes)}</span>
-            <span>Free</span>
-          </p>
+          <div className="user-disk-item__metrics">
+            <p className="user-disk-item__metric">
+              <span>{formatBytes(safeFreeBytes)}</span>
+              <span>Free</span>
+            </p>
 
-          <p className="user-disk-item__metric user-disk-item__metric--secondary">
-            <span>{formatBytes(safeTotalBytes)}</span>
-            <span>Total</span>
-          </p>
+            <p className="user-disk-item__metric user-disk-item__metric--secondary">
+              <span>{formatBytes(safeTotalBytes)}</span>
+              <span>Total</span>
+            </p>
+          </div>
         </div>
-      </div>
+      )}
     </>
   );
 

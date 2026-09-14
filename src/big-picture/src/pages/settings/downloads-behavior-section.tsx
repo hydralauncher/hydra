@@ -11,6 +11,7 @@ import {
   SETTINGS_HEADER_RETURN_TARGET,
 } from "./settings-navigation";
 import { SettingsSection } from "./settings-section";
+import type { UserPreferences } from "@types";
 
 interface DownloadsBehaviorSectionProps {
   className?: string;
@@ -41,29 +42,39 @@ const DEFAULT_FORM: DownloadsBehaviorForm = {
   createStartMenuShortcut: true,
 };
 
+const buildForm = (
+  preferences: UserPreferences | null
+): DownloadsBehaviorForm =>
+  preferences
+    ? {
+        seedAfterDownloadComplete:
+          preferences.seedAfterDownloadComplete ?? false,
+        showDownloadSpeedInMegabytes:
+          preferences.showDownloadSpeedInMegabytes ?? false,
+        extractFilesByDefault: preferences.extractFilesByDefault ?? true,
+        deleteArchiveFilesAfterExtractionByDefault:
+          preferences.deleteArchiveFilesAfterExtractionByDefault ?? false,
+        createStartMenuShortcut: preferences.createStartMenuShortcut ?? true,
+      }
+    : DEFAULT_FORM;
+
 export function DownloadsBehaviorSection({
   className,
   lastItemDownTarget,
 }: Readonly<DownloadsBehaviorSectionProps>) {
   const userPreferences = useUserPreferences();
-  const [form, setForm] = useState<DownloadsBehaviorForm>(DEFAULT_FORM);
+  const [form, setForm] = useState<DownloadsBehaviorForm>(() =>
+    buildForm(userPreferences)
+  );
 
   useEffect(() => {
     if (!userPreferences) return;
 
-    setForm({
-      seedAfterDownloadComplete:
-        userPreferences.seedAfterDownloadComplete ?? false,
-      showDownloadSpeedInMegabytes:
-        userPreferences.showDownloadSpeedInMegabytes ?? false,
-      extractFilesByDefault: userPreferences.extractFilesByDefault ?? true,
-      deleteArchiveFilesAfterExtractionByDefault:
-        userPreferences.deleteArchiveFilesAfterExtractionByDefault ?? false,
-      createStartMenuShortcut: userPreferences.createStartMenuShortcut ?? true,
-    });
+    setForm(buildForm(userPreferences));
   }, [userPreferences]);
 
   const isWindows = globalThis.window.electron.platform === "win32";
+  const isLinux = globalThis.window.electron.platform === "linux";
 
   const updateUserPreferences = async (
     values: Partial<DownloadsBehaviorForm>
@@ -113,7 +124,7 @@ export function DownloadsBehaviorSection({
       },
     ];
 
-    if (isWindows) {
+    if (isWindows || isLinux) {
       baseItems.push({
         id: "create-start-menu-shortcut",
         focusId: DOWNLOADS_BEHAVIOR_ITEM_FOCUS_IDS.createStartMenuShortcut,
@@ -125,7 +136,7 @@ export function DownloadsBehaviorSection({
     }
 
     return baseItems;
-  }, [form, isWindows]);
+  }, [form, isWindows, isLinux]);
 
   const navigationOverridesByFocusId = useMemo<
     Record<string, FocusOverrides>

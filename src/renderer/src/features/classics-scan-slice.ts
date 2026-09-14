@@ -29,6 +29,8 @@ export interface ClassicsScanState {
   error: string | null;
   completedSystem: EmulatorSystem | null;
   completedNonce: number;
+  settledSystem: EmulatorSystem | null;
+  settledNonce: number;
 }
 
 const baseState = {
@@ -53,6 +55,8 @@ const initialState: ClassicsScanState = {
   ...baseState,
   completedSystem: null,
   completedNonce: 0,
+  settledSystem: null,
+  settledNonce: 0,
 };
 
 interface ProgressPayload {
@@ -156,6 +160,8 @@ export const classicsScanSlice = createSlice({
       state.matched = action.payload.result.matched;
       state.sizeBytes = action.payload.result.sizeBytes;
       state.result = action.payload.result;
+      state.settledSystem = action.payload.system;
+      state.settledNonce += 1;
       if (!action.payload.cancelled) {
         state.completedSystem = action.payload.system;
         state.completedNonce += 1;
@@ -167,6 +173,8 @@ export const classicsScanSlice = createSlice({
     failClassicsScan: (state, action: PayloadAction<string>) => {
       state.active = false;
       state.error = action.payload;
+      state.settledSystem = state.system;
+      state.settledNonce += 1;
       state.modalVisible = false;
       const { completedSystem, completedNonce } = state;
       Object.assign(state, baseState);

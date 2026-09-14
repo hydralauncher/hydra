@@ -6,6 +6,7 @@ import {
   gamesArtworkSelectionSublevel,
   gamesSublevel,
   levelKeys,
+  markArtworkSelectionSynced,
 } from "@main/level";
 import {
   WindowManager,
@@ -101,11 +102,17 @@ const setGameArtworkSelection = async (
 
   const manualAssetClear = await prepareManualCustomAssetClear(gameKey, type);
 
-  const syncToCloud = () => {
+  const syncToCloud = async () => {
     if (isClearing) {
-      deleteCustomArtwork(shop, objectId, type).catch(() => {});
-    } else if (url) {
-      saveSteamGridDbArtwork(shop, objectId, type, url).catch(() => {});
+      await deleteCustomArtwork(shop, objectId, type);
+      return;
+    }
+
+    if (!url) return;
+
+    const synced = await saveSteamGridDbArtwork(shop, objectId, type, url);
+    if (synced) {
+      await markArtworkSelectionSynced(gameKey, type, url);
     }
   };
 
@@ -140,7 +147,7 @@ const setGameArtworkSelection = async (
   }
 
   WindowManager.sendToAppWindows("on-library-batch-complete");
-  syncToCloud();
+  syncToCloud().catch(() => {});
 
   return record;
 };

@@ -16,6 +16,7 @@ import {
 
 import { Button, ConfirmationModal } from "@renderer/components";
 import {
+  getEmulationSaveMetadataSku,
   getSkuRegion,
   getSkuRegionFlag,
   getSkuRegionFromSaveIdentity,
@@ -35,6 +36,8 @@ import {
   formatBytes,
   formatDate,
 } from "../../settings/emulation/emulation-save-modals";
+import { getLocalSaveDeviceLabel } from "./game-emulation-save-presentation";
+import { WiiSavesGuideButton } from "../../settings/emulation/wii-saves-guide-button";
 
 import "./game-emulation-saves.scss";
 
@@ -45,6 +48,14 @@ interface GameEmulationSavesProps {
 
 const recordKey = (record: MemoryCardSaveRecord): string =>
   `${record.cardFilePath}::${record.folderName}`;
+
+const listLocalSaves = (
+  platform: EmulationSavePlatform
+): Promise<MemoryCardSaveRecord[]> => {
+  if (platform === "ps2") return window.electron.listPs2MemcardSaves();
+  if (platform === "ps1") return window.electron.listPs1MemcardSaves();
+  return window.electron.listLocalEmulationSaves(platform);
+};
 
 export function GameEmulationSaves({
   platform,
@@ -63,6 +74,7 @@ export function GameEmulationSaves({
   const [restoreFor, setRestoreFor] = useState<EmulationCloudSave | null>(null);
   const [renameFor, setRenameFor] = useState<EmulationCloudSave | null>(null);
   const [deleteFor, setDeleteFor] = useState<EmulationCloudSave | null>(null);
+  const isMemoryCardPlatform = platform === "ps1" || platform === "ps2";
 
   const load = useCallback(async () => {
     if (!hasActiveSubscription) {
@@ -72,13 +84,9 @@ export function GameEmulationSaves({
     }
     setLoading(true);
     try {
-      const localPromise =
-        platform === "ps2"
-          ? window.electron.listPs2MemcardSaves()
-          : window.electron.listPs1MemcardSaves();
       const [cloud, local] = await Promise.all([
         window.electron.listEmulationSaves(platform, objectId),
-        localPromise,
+        listLocalSaves(platform),
       ]);
       setCloudSaves(cloud.filter((save) => save.objectId === objectId));
       setRecords(local);
@@ -91,7 +99,7 @@ export function GameEmulationSaves({
     load();
   }, [load]);
 
-  const hasAnyCards = useMemo(
+  const hasAnyLocalStorage = useMemo(
     () => new Set(records.map((r) => r.cardFilePath)).size > 0,
     [records]
   );
@@ -122,6 +130,29 @@ export function GameEmulationSaves({
     [platform, showSuccessToast, showErrorToast, t, load]
   );
 
+  const handleWiiUpload = useCallback(async () => {
+    const result = await window.electron.showOpenDialog({
+      properties: ["openFile"],
+      filters: [{ name: "Dolphin Wii Save", extensions: ["bin"] }],
+    });
+    if (result.canceled || result.filePaths.length === 0) return;
+    setUploadingKey("wii-data-bin");
+    try {
+      await window.electron.uploadWiiEmulationSave(
+        result.filePaths[0],
+        objectId
+      );
+      showSuccessToast(t("cloud_backup_success"));
+      load();
+    } catch (error) {
+      showErrorToast(
+        error instanceof Error ? error.message : t("cloud_backup_failed")
+      );
+    } finally {
+      setUploadingKey(null);
+    }
+  }, [load, objectId, showErrorToast, showSuccessToast, t]);
+
   const handleDelete = useCallback(async () => {
     if (!deleteFor) return;
     await window.electron.deleteEmulationSave(deleteFor.id);
@@ -145,21 +176,45 @@ export function GameEmulationSaves({
     <>
       <div className="game-emulation-saves__header">
         <div className="game-emulation-saves__header-text">
-          <h2>{t("cloud_saves_section_title")}</h2>
+          <div className="game-emulation-saves__header-title-row">
+            <h2>{t("cloud_saves_section_title")}</h2>
+            {platform === "wii" && <WiiSavesGuideButton />}
+          </div>
           <p>{t("cloud_saves_section_description")}</p>
         </div>
-        {hasAnyCards && (
-          <Button theme="outline" onClick={load} disabled={loading}>
-            <SyncIcon
-              size={13}
-              className={loading ? "game-emulation-saves__sync-icon" : ""}
-            />
-            <span>{t("cloud_refresh")}</span>
-          </Button>
-        )}
+        <div className="game-emulation-saves__header-actions">
+          {platform === "wii" && (
+            <Button
+              theme="outline"
+              onClick={handleWiiUpload}
+              disabled={uploadingKey === "wii-data-bin"}
+            >
+              {uploadingKey === "wii-data-bin" ? (
+                <SyncIcon
+                  size={14}
+                  className="game-emulation-saves__sync-icon"
+                />
+              ) : (
+                <UploadIcon size={14} />
+              )}
+              <span>{t("browse_files")}</span>
+            </Button>
+          )}
+          {(hasAnyLocalStorage || !isMemoryCardPlatform) && (
+            <Button theme="outline" onClick={load} disabled={loading}>
+              <SyncIcon
+                size={13}
+                className={loading ? "game-emulation-saves__sync-icon" : ""}
+              />
+              <span>{t("cloud_refresh")}</span>
+            </Button>
+          )}
+        </div>
       </div>
 
-      {!hasAnyCards ? (
+      {isMemoryCardPlatform &&
+      !hasAnyLocalStorage &&
+      cloudSaves.length === 0 ? (
         <div className="game-emulation-saves__prompt">
           <img
             className="game-emulation-saves__prompt-icon"
@@ -184,7 +239,13 @@ export function GameEmulationSaves({
             <SearchIcon size={40} />
           </span>
           <h3>{t("game_no_saves_title")}</h3>
-          <p>{t("game_no_saves_found")}</p>
+          <p>
+            {t(
+              isMemoryCardPlatform
+                ? "game_no_saves_found"
+                : "game_no_emulator_saves_found"
+            )}
+          </p>
         </div>
       ) : (
         <div className="game-emulation-saves__groups">
@@ -198,6 +259,7 @@ export function GameEmulationSaves({
                   const key = recordKey(record);
                   const uploading = uploadingKey === key;
                   const region = record.sku ? getSkuRegion(record.sku) : null;
+                  const deviceLabel = getLocalSaveDeviceLabel(record);
                   return (
                     <li key={key} className="game-emulation-saves__card">
                       <div className="game-emulation-saves__card-head">
@@ -227,9 +289,9 @@ export function GameEmulationSaves({
 
                       <div className="game-emulation-saves__card-body">
                         <div className="game-emulation-saves__card-meta">
-                          <span title={record.cardLabel}>
+                          <span title={deviceLabel}>
                             <DeviceDesktopIcon size={14} />
-                            {record.cardLabel}
+                            {deviceLabel}
                           </span>
                           <span>
                             <ClockIcon size={14} />
@@ -277,9 +339,11 @@ export function GameEmulationSaves({
               </h3>
               <ul className="game-emulation-saves__list">
                 {cloudSaves.map((save) => {
-                  const region = getSkuRegionFromSaveIdentity(
-                    save.saveIdentity
-                  );
+                  const metadataSku = getEmulationSaveMetadataSku(save);
+                  const region =
+                    typeof metadataSku === "string"
+                      ? getSkuRegion(metadataSku)
+                      : getSkuRegionFromSaveIdentity(save.saveIdentity);
                   return (
                     <li key={save.id} className="game-emulation-saves__card">
                       <div className="game-emulation-saves__card-head">

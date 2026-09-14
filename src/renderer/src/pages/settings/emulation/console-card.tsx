@@ -1,48 +1,62 @@
-import { useEffect, useState } from "react";
+import { useEffect, useId, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { ChevronRightIcon, GearIcon, AlertIcon } from "@primer/octicons-react";
+import { Tooltip } from "react-tooltip";
 
-import type { EmulatorConfig } from "@types";
-
-import { KNOWN_BINARY_LABELS } from "./known-binary-labels";
 import { formatRelativeShort } from "./relative-time";
-import ps1Art from "@renderer/assets/emulation/ps1.png";
-import ps2Art from "@renderer/assets/emulation/ps2.png";
-import ps3Art from "@renderer/assets/emulation/ps3.png";
 
 import "./console-card.scss";
 
-const ART: Record<string, string> = {
-  ps1: ps1Art,
-  ps2: ps2Art,
-  ps3: ps3Art,
-};
+export type ConsoleCardRequirement = "bios" | "firmware" | "cores";
 
 interface ConsoleCardProps {
-  config: EmulatorConfig;
-  systemLabel: string;
+  art: string | readonly string[];
+  title: string;
+  emulatorName: string;
+  emulatorNameTooltip?: string;
+  detectedVersion: string | null;
+  executablePath: string | null;
+  romFoldersCount: number;
+  totalFiles: number;
+  lastScanAt: number | null;
+  requirement?: ConsoleCardRequirement;
+  checkExecutable: () => Promise<{ exists: boolean }>;
+  checkRequirement?: () => Promise<boolean>;
+  requirementKey?: unknown;
   onConfigure: () => void;
   onStartSetup: () => void;
 }
 
 export function ConsoleCard({
-  config,
-  systemLabel,
+  art,
+  title,
+  emulatorName,
+  emulatorNameTooltip,
+  detectedVersion,
+  executablePath,
+  romFoldersCount,
+  totalFiles,
+  lastScanAt,
+  requirement,
+  checkExecutable,
+  checkRequirement,
+  requirementKey,
   onConfigure,
   onStartSetup,
 }: Readonly<ConsoleCardProps>) {
   const { t, i18n } = useTranslation("settings");
+  const tooltipId = useId();
 
   const [executableExists, setExecutableExists] = useState(true);
+  const [requirementMet, setRequirementMet] = useState(true);
 
   useEffect(() => {
     let cancelled = false;
-    if (!config.executablePath) {
+    if (!executablePath) {
       setExecutableExists(false);
       return;
     }
-    window.electron
-      .checkEmulatorExecutable(config.system)
+    checkExecutable()
       .then(({ exists }) => {
         if (!cancelled) setExecutableExists(exists);
       })
@@ -52,42 +66,79 @@ export function ConsoleCard({
     return () => {
       cancelled = true;
     };
-  }, [config.system, config.executablePath]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [executablePath]);
 
-  const binaryName = KNOWN_BINARY_LABELS[config.binary];
-  const isConfigured = config.executablePath !== null;
+  useEffect(() => {
+    let cancelled = false;
+
+    if (!requirement || !checkRequirement || !executablePath) {
+      setRequirementMet(true);
+      return;
+    }
+
+    checkRequirement()
+      .then((satisfied) => {
+        if (!cancelled) setRequirementMet(satisfied);
+      })
+      .catch(() => {
+        if (!cancelled) setRequirementMet(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [executablePath, requirement, requirementKey]);
+
+  const isConfigured = executablePath !== null;
   const pathMissing = isConfigured && !executableExists;
-  const hasRomFolders = config.romFolders.length > 0;
-  const hasRoms = hasRomFolders && config.totalFiles > 0;
-  const isReady = isConfigured && executableExists && hasRomFolders;
+  const hasRomFolders = romFoldersCount > 0;
+  const requirementMissing = Boolean(requirement) && !requirementMet;
+  const isReady = isConfigured && executableExists && !requirementMissing;
   const relative =
-    config.lastScanAt !== null
-      ? formatRelativeShort(config.lastScanAt, i18n.language)
-      : null;
+    lastScanAt !== null ? formatRelativeShort(lastScanAt, i18n.language) : null;
+  const artItems = typeof art === "string" ? [art] : art;
 
   return (
     <div
       className={`console-card ${isConfigured ? "" : "console-card--unconfigured"}`}
     >
-      <img
-        src={ART[config.system]}
-        alt=""
-        className="console-card__art"
+      <div
+        className={`console-card__art ${
+          artItems.length > 1 ? "console-card__art--multiple" : ""
+        }`}
         aria-hidden="true"
-      />
+      >
+        {artItems.map((artItem) => (
+          <img
+            key={artItem}
+            src={artItem}
+            alt=""
+            className="console-card__art-image"
+          />
+        ))}
+      </div>
 
       <div className="console-card__heading">
-        <h3 className="console-card__title">{systemLabel}</h3>
+        <h3 className="console-card__title">{title}</h3>
         <div className="console-card__subline">
-          <span className="console-card__emulator">{binaryName}</span>
-          {config.detectedVersion && (
+          <span
+            className="console-card__emulator"
+            data-tooltip-id={emulatorNameTooltip ? tooltipId : undefined}
+            data-tooltip-content={emulatorNameTooltip}
+            data-tooltip-place="bottom"
+          >
+            {emulatorName}
+          </span>
+          {detectedVersion && (
             <>
               <span className="console-card__dot" />
               <span
                 className="console-card__version"
-                title={`v${config.detectedVersion}`}
+                title={`v${detectedVersion}`}
               >
-                v{config.detectedVersion}
+                v{detectedVersion}
               </span>
             </>
           )}
@@ -95,35 +146,37 @@ export function ConsoleCard({
       </div>
 
       <div className="console-card__body">
-        {isConfigured && executableExists && hasRoms && (
+        {isConfigured && executableExists && !requirementMissing && (
           <div className="console-card__stats">
             <div className="console-card__stat-row">
               <span className="console-card__stat-dot" />
-              <span className="console-card__stat-number">
-                {config.totalFiles}
-              </span>
+              <span className="console-card__stat-number">{totalFiles}</span>
               <span className="console-card__stat-label">
-                {t("games_found_other", { count: config.totalFiles })
-                  .replace(`${config.totalFiles}`, "")
+                {t("games_found_other", { count: totalFiles })
+                  .replace(`${totalFiles}`, "")
                   .trim()}
               </span>
             </div>
-            {relative && (
+            {hasRomFolders && relative ? (
               <p className="console-card__last-scan">
                 {t("last_scan_relative", { value: relative })}
+              </p>
+            ) : (
+              <p className="console-card__last-scan">
+                {t("no_rom_folder_hint", { system: title })}
               </p>
             )}
           </div>
         )}
 
-        {isConfigured && executableExists && !hasRoms && (
+        {isConfigured && executableExists && requirementMissing && (
           <div className="console-card__hint-box">
             <div className="console-card__hint-title">
               <AlertIcon size={14} />
-              <span>{t("not_detected")}</span>
+              <span>{t(`${requirement}_missing`)}</span>
             </div>
             <p className="console-card__hint-text">
-              {t("no_rom_folder_hint", { system: systemLabel })}
+              {t(`${requirement}_missing_hint`, { name: emulatorName })}
             </p>
           </div>
         )}
@@ -135,7 +188,7 @@ export function ConsoleCard({
               <span>{t("executable_missing")}</span>
             </div>
             <p className="console-card__hint-text">
-              {t("executable_missing_hint", { name: binaryName })}
+              {t("executable_missing_hint", { name: emulatorName })}
             </p>
           </div>
         )}
@@ -147,7 +200,7 @@ export function ConsoleCard({
               <span>{t("setup_required")}</span>
             </div>
             <p className="console-card__hint-text">
-              {t("setup_required_hint", { system: systemLabel })}
+              {t("setup_required_hint", { system: title })}
             </p>
           </div>
         )}
@@ -175,7 +228,7 @@ export function ConsoleCard({
             onClick={onConfigure}
           >
             <GearIcon size={14} />
-            <span>{t("configure_emulator")}</span>
+            <span>{t(isReady ? "manage_emulator" : "configure_emulator")}</span>
             <ChevronRightIcon size={12} />
           </button>
         ) : (
@@ -190,6 +243,10 @@ export function ConsoleCard({
           </button>
         )}
       </div>
+
+      {emulatorNameTooltip && (
+        <Tooltip id={tooltipId} style={{ zIndex: 9999 }} openOnClick={false} />
+      )}
     </div>
   );
 }

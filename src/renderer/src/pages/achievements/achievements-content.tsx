@@ -151,6 +151,9 @@ export function AchievementsContent({
   const heroImage =
     game?.customHeroImageUrl || shopDetails?.assets?.libraryHeroImageUrl || "";
 
+  const logoImage =
+    game?.customLogoImageUrl || shopDetails?.assets?.logoImageUrl || "";
+
   const onScroll: React.UIEventHandler<HTMLElement> = (event) => {
     const heroHeight = heroRef.current?.clientHeight ?? 150;
 
@@ -214,15 +217,17 @@ export function AchievementsContent({
                     title: gameTitle,
                   })}
                 >
-                  <img
-                    src={
-                      game?.customLogoImageUrl ||
-                      shopDetails?.assets?.logoImageUrl ||
-                      ""
-                    }
-                    className="achievements-content__achievements-list__section__container__hero__content__game-logo"
-                    alt={gameTitle}
-                  />
+                  {logoImage ? (
+                    <img
+                      src={logoImage}
+                      className="achievements-content__achievements-list__section__container__hero__content__game-logo"
+                      alt={gameTitle}
+                    />
+                  ) : (
+                    <span className="achievements-content__achievements-list__section__container__hero__content__game-title">
+                      {gameTitle}
+                    </span>
+                  )}
                 </Link>
               </div>
             </div>

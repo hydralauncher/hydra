@@ -63,8 +63,16 @@
     display: flex;
     align-items: center;
     gap: 8px;
+    /* Both sides share the leftover space equally so the dots land on the exact
+       centre of the footer no matter which buttons are rendered. `max-content`
+       keeps that split from shrinking a side past its buttons, which would let
+       them overflow backwards and overlap the dots. */
     flex: 1 1 0;
-    min-width: 0;
+    min-width: max-content;
+
+    .button {
+      white-space: nowrap;
+    }
 
     &--end {
       justify-content: flex-end;
@@ -404,6 +412,9 @@
   }
 
   &__link-button {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
     background: transparent;
     border: 0;
     color: #c0c1c7;
@@ -412,7 +423,7 @@
     cursor: pointer;
     padding: 0;
 
-    &:hover {
+    &:hover span {
       text-decoration: underline;
     }
   }
@@ -677,11 +688,21 @@
 
   &__done {
     display: flex;
+    flex: 1;
     flex-direction: column;
     align-items: center;
+    justify-content: center;
     gap: 16px;
     padding: 24px 0;
     text-align: center;
+  }
+
+  &__done-actions {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    flex-wrap: wrap;
   }
 
   &__done-check {
@@ -720,14 +741,8 @@
     font-size: 14px;
     color: #a1a1aa;
     margin: 0;
-    max-width: 360px;
+    max-width: 440px;
     line-height: 22px;
-  }
-
-  &__done-tip {
-    font-size: 12px;
-    color: #71717a;
-    margin: 0;
   }
 
   &__folder-list {

@@ -9,6 +9,7 @@ import {
   HeartFillIcon,
   PlusIcon,
   GearIcon,
+  ImageIcon,
   PencilIcon,
   FileDirectoryIcon,
   FileDirectoryFillIcon,
@@ -321,6 +322,13 @@ export function GameContextMenu({
               <PinIcon size={16} />
             ),
           onClick: onPinToggle ?? handleTogglePin,
+          disabled: isDeleting,
+        },
+        {
+          id: "customize",
+          label: t("customize_game"),
+          icon: <ImageIcon size={16} />,
+          onClick: () => handleOpenGameOptions("assets"),
           disabled: isDeleting,
         },
         ...(game.executablePath

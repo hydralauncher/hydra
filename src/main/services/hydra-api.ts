@@ -5,13 +5,13 @@ import { uploadGamesBatch } from "./library-sync";
 import { clearGamesRemoteIds } from "./library-sync/clear-games-remote-id";
 import { networkLogger as logger } from "./logger";
 import { UserNotLoggedInError, SubscriptionRequiredError } from "@shared";
-import { omit } from "lodash-es";
 import { appVersion } from "@main/constants";
 import { getUserData } from "./user/get-user-data";
 import { db } from "@main/level";
 import { levelKeys } from "@main/level/sublevels";
 import type { Auth, User } from "@types";
 import { SSEClient } from "./sse";
+import { sanitizeNetworkLogPayload } from "./network-log-payload";
 
 export interface HydraApiOptions {
   needsAuth?: boolean;
@@ -61,6 +61,22 @@ export class HydraApi {
     this.userAuth.subscription = subscription
       ? { expiresAt: subscription.expiresAt }
       : null;
+
+    if (process.platform === "linux" && !this.hasActiveSubscription()) {
+      void import("./linux-game-capture-session").then(
+        ({ stopAllLinuxGameCaptureSessions }) => {
+          if (!this.hasActiveSubscription()) {
+            stopAllLinuxGameCaptureSessions();
+          }
+        }
+      );
+    }
+
+    if (this.isLoggedIn() && this.hasActiveSubscription()) {
+      void import("./achievements/grouped-souvenir-worker").then(
+        ({ groupedSouvenirWorker }) => groupedSouvenirWorker.trigger()
+      );
+    }
   }
 
   static async handleExternalAuth(uri: string) {
@@ -116,6 +132,11 @@ export class HydraApi {
       }
     });
 
+    const { groupedSouvenirWorker } = await import(
+      "./achievements/grouped-souvenir-worker"
+    );
+    void groupedSouvenirWorker.trigger();
+
     if (WindowManager.mainWindow) {
       WindowManager.mainWindow.webContents.send("on-signin");
       await clearGamesRemoteIds();
@@ -141,6 +162,14 @@ export class HydraApi {
       "./achievements/achievement-watcher-manager"
     );
     AchievementWatcherManager.resetSessionState();
+    const { stopAllLinuxGameCaptureSessions } = await import(
+      "./linux-game-capture-session"
+    );
+    stopAllLinuxGameCaptureSessions();
+    const { groupedSouvenirWorker } = await import(
+      "./achievements/grouped-souvenir-worker"
+    );
+    groupedSouvenirWorker.stop();
 
     this.sendSignOutEvent();
     this.post("/auth/logout", {}, { needsAuth: false }).catch(() => {});
@@ -156,10 +185,14 @@ export class HydraApi {
       this.instance.interceptors.request.use(
         (request) => {
           logger.log(" ---- REQUEST -----");
-          const data = Array.isArray(request.data)
-            ? request.data
-            : omit(request.data, ["token", "accessToken", "refreshToken"]);
-          logger.log(request.method, request.url, request.params, data);
+          logger.log(
+            request.method,
+            request.url,
+            sanitizeNetworkLogPayload({
+              params: request.params ?? null,
+              data: request.data ?? null,
+            })
+          );
           return request;
         },
         (error) => {
@@ -170,46 +203,32 @@ export class HydraApi {
       this.instance.interceptors.response.use(
         (response) => {
           logger.log(" ---- RESPONSE -----");
-          const data = Array.isArray(response.data)
-            ? response.data
-            : omit(response.data, [
-                "username",
-                "token",
-                "accessToken",
-                "refreshToken",
-              ]);
           logger.log(
             response.status,
             response.config.method,
             response.config.url,
-            data
+            sanitizeNetworkLogPayload(response.data)
           );
           return response;
         },
         (error) => {
           logger.error(" ---- RESPONSE ERROR -----");
-          const { config } = error;
-
-          const data = JSON.parse(config.data ?? null);
+          const config = error.config ?? {};
 
           logger.error(
             config.method,
             config.baseURL,
             config.url,
-            omit(config.headers, [
-              "accessToken",
-              "refreshToken",
-              "Authorization",
-            ]),
-            Array.isArray(data)
-              ? data
-              : omit(data, ["accessToken", "refreshToken"])
+            sanitizeNetworkLogPayload({
+              headers: config.headers ?? null,
+              data: config.data ?? null,
+            })
           );
           if (error.response) {
             logger.error(
               "Response error:",
               error.response.status,
-              error.response.data
+              sanitizeNetworkLogPayload(error.response.data)
             );
 
             return Promise.reject(error as Error);
@@ -315,8 +334,10 @@ export class HydraApi {
     if (err instanceof AxiosError && err.response?.status === 401) {
       logger.error(
         "401 - Current credentials:",
-        this.userAuth,
-        err.response?.data
+        sanitizeNetworkLogPayload({
+          credentials: this.userAuth,
+          response: err.response?.data,
+        })
       );
 
       this.userAuth = {
@@ -330,6 +351,15 @@ export class HydraApi {
         "./achievements/achievement-watcher-manager"
       );
       AchievementWatcherManager.resetSessionState();
+
+      const { stopAllLinuxGameCaptureSessions } = await import(
+        "./linux-game-capture-session"
+      );
+      stopAllLinuxGameCaptureSessions();
+      const { groupedSouvenirWorker } = await import(
+        "./achievements/grouped-souvenir-worker"
+      );
+      groupedSouvenirWorker.stop();
 
       db.batch([
         {
@@ -445,6 +475,26 @@ export class HydraApi {
         signal: options?.signal,
       })
       .then((response) => response.data)
+      .catch(this.handleUnauthorizedError);
+  }
+
+  static async postResponse<T = unknown>(
+    url: string,
+    data?: unknown,
+    options?: HydraApiOptions
+  ) {
+    await this.validateOptions(options);
+
+    return this.instance
+      .post<T>(url, data, {
+        ...this.getAxiosConfig(),
+        validateStatus: options?.validateStatus,
+        signal: options?.signal,
+      })
+      .then((response) => ({
+        status: response.status,
+        data: response.data,
+      }))
       .catch(this.handleUnauthorizedError);
   }
 

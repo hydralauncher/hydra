@@ -32,9 +32,9 @@ const requestPoster = (url: string): Promise<string | null> => {
 export function useCoverPoster(
   url: string | null | undefined,
   enabled: boolean
-): string | null {
-  const [poster, setPoster] = useState<string | null>(() =>
-    url ? (posterCache.get(url) ?? null) : null
+): string | null | undefined {
+  const [poster, setPoster] = useState<string | null | undefined>(() =>
+    url && posterCache.has(url) ? posterCache.get(url) : undefined
   );
 
   useEffect(() => {
@@ -48,6 +48,8 @@ export function useCoverPoster(
       return;
     }
 
+    setPoster(undefined);
+
     let cancelled = false;
     requestPoster(url).then((resolved) => {
       if (!cancelled) setPoster(resolved);
@@ -59,4 +61,45 @@ export function useCoverPoster(
   }, [enabled, url]);
 
   return enabled ? poster : null;
+}
+
+const warmedSources = new Map<string, HTMLImageElement>();
+
+export function useAnimatedSourceWarmup(
+  source: string | null | undefined,
+  enabled: boolean
+) {
+  useEffect(() => {
+    if (!enabled || !source || warmedSources.has(source)) return;
+
+    let cancelled = false;
+
+    const warm = () => {
+      if (cancelled || warmedSources.has(source)) return;
+
+      const image = new Image();
+      image.decoding = "async";
+      image.src = source;
+
+      warmedSources.set(source, image);
+    };
+
+    const requestIdle = globalThis.window.requestIdleCallback;
+
+    if (typeof requestIdle === "function") {
+      const handle = requestIdle(warm, { timeout: 3000 });
+
+      return () => {
+        cancelled = true;
+        globalThis.window.cancelIdleCallback?.(handle);
+      };
+    }
+
+    const handle = window.setTimeout(warm, 500);
+
+    return () => {
+      cancelled = true;
+      window.clearTimeout(handle);
+    };
+  }, [enabled, source]);
 }

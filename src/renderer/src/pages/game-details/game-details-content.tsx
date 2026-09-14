@@ -15,7 +15,13 @@ import { DescriptionHeader } from "./description-header/description-header";
 import { GallerySlider } from "./gallery-slider/gallery-slider";
 import { Sidebar } from "./sidebar/sidebar";
 import { GameReviews } from "./game-reviews";
+import { ReviewPromptBanner } from "./review-prompt-banner";
+import { useReviewPrompt } from "./use-review-prompt";
+import { useUserReviewStatus } from "./use-user-review-status";
 import { GameLogo } from "./game-logo";
+import { CloudSaveWidget } from "./cloud-save-v2";
+import { getCloudSaveVisibility } from "./cloud-save-visibility";
+import { SimilarGames } from "./similar-games/similar-games";
 
 import { AuthPage } from "@shared";
 import { cloudSyncContext, gameDetailsContext } from "@renderer/context";
@@ -23,8 +29,14 @@ import { cloudSyncContext, gameDetailsContext } from "@renderer/context";
 import cloudIconAnimated from "@renderer/assets/icons/cloud-animated.gif";
 import tvEffectVideo from "@renderer/assets/emulation/tv-effect.mp4";
 import { useUserDetails, useLibrary, useAppSelector } from "@renderer/hooks";
-import { platformToSystem, SYSTEM_TO_BINARY } from "@renderer/helpers";
-import { EMULATOR_ICONS } from "@renderer/pages/settings/emulation/emulator-icons";
+import {
+  CLASSICS_PS_PLATFORM_LABELS,
+  resolveClassicsBadge,
+} from "@renderer/helpers";
+import {
+  EMULATOR_ICONS,
+  RETROARCH_EMULATOR_ICON,
+} from "@renderer/pages/settings/emulation/emulator-icons";
 import "./game-details.scss";
 import "./hero.scss";
 
@@ -77,10 +89,11 @@ export function GameDetailsContent() {
     setGameOptionsInitialCategory,
   } = useContext(gameDetailsContext);
 
-  const { userDetails, hasActiveSubscription } = useUserDetails();
+  const { userDetails } = useUserDetails();
   const { library } = useLibrary();
 
   const { getGameArtifacts } = useContext(cloudSyncContext);
+  const cloudSaveVisibility = game ? getCloudSaveVisibility(game.shop) : null;
 
   const aboutTheGame = useMemo(() => {
     const aboutTheGame = shopDetails?.about_the_game;
@@ -106,7 +119,6 @@ export function GameDetailsContent() {
   const [isDescriptionExpanded, setIsDescriptionExpanded] = useState(false);
   const [isDescriptionOverflowing, setIsDescriptionOverflowing] =
     useState(false);
-  const [hasUserReviewed, setHasUserReviewed] = useState(false);
   const descriptionRef = useRef<HTMLDivElement>(null);
 
   // Check if the current game is in the user's library
@@ -116,6 +128,32 @@ export function GameDetailsContent() {
       (libItem) => libItem.shop === shop && libItem.objectId === objectId
     );
   }, [library, shop, objectId]);
+
+  const { hasUserReviewed, isCheckingUserReview, updateHasUserReviewed } =
+    useUserReviewStatus({
+      shop,
+      objectId,
+      userDetailsId: userDetails?.id,
+    });
+
+  const { showPrompt, dismissPrompt } = useReviewPrompt({
+    shop,
+    objectId,
+    playTimeInMilliseconds: game?.playTimeInMilliseconds ?? 0,
+    userDetailsId: userDetails?.id,
+    isGameInLibrary,
+    hasUserReviewed,
+    isCheckingUserReview,
+  });
+
+  const handleReviewPromptYes = () => {
+    dismissPrompt({ persist: false });
+    reviewsRef.current?.scrollIntoView({ behavior: "smooth" });
+  };
+
+  const handleReviewPromptLater = () => {
+    dismissPrompt({ persist: true });
+  };
 
   useEffect(() => {
     setBackdropOpacity(1);
@@ -150,19 +188,13 @@ export function GameDetailsContent() {
     };
   }, [aboutTheGame]);
 
-  const handleCloudSaveButtonClick = () => {
+  const handleLegacyCloudSaveButtonClick = () => {
     if (!userDetails) {
-      window.electron.openAuthWindow(AuthPage.SignIn);
+      globalThis.window.electron.openAuthWindow(AuthPage.SignIn);
       return;
     }
 
-    if (!hasActiveSubscription) {
-      setGameOptionsInitialCategory("hydra_cloud");
-      setShowGameOptionsModal(true);
-      return;
-    }
-
-    setGameOptionsInitialCategory("hydra_cloud");
+    setGameOptionsInitialCategory("hydra_cloud_legacy");
     setShowGameOptionsModal(true);
   };
 
@@ -212,21 +244,53 @@ export function GameDetailsContent() {
       ""
     : "";
 
+  const resolvedHeroImage = isLaunchboxGame
+    ? heroImage || launchboxCover
+    : heroImage;
+
   const launchboxPlatform = isLaunchboxGame
     ? (game?.platform ?? shopDetails?.platform ?? null)
-    : null;
-
-  const launchboxSystem = isLaunchboxGame
-    ? platformToSystem(launchboxPlatform)
     : null;
 
   const launchboxTitle = isLaunchboxGame
     ? (game?.title ?? shopDetails?.name ?? "")
     : "";
 
-  const launchboxEmulatorIcon = launchboxSystem
-    ? EMULATOR_ICONS[SYSTEM_TO_BINARY[launchboxSystem]]
-    : undefined;
+  const classicsBadge = resolveClassicsBadge(
+    "launchbox",
+    isLaunchboxGame ? launchboxPlatform : null,
+    CLASSICS_PS_PLATFORM_LABELS,
+    {
+      emulatorIcons: EMULATOR_ICONS,
+      retroarchIcon: RETROARCH_EMULATOR_ICON,
+    }
+  );
+
+  const classicsChipLabel = classicsBadge.label ?? launchboxPlatform;
+
+  const classicsChips =
+    isLaunchboxGame && classicsChipLabel ? (
+      <div className="game-details__hero-classics-chips">
+        <span className="game-details__hero-classics-chip">
+          {classicsChipLabel}
+        </span>
+        {classicsBadge.icon && (
+          <span className="game-details__hero-classics-chip game-details__hero-classics-chip--icon">
+            <img src={classicsBadge.icon} alt="" />
+          </span>
+        )}
+      </div>
+    ) : null;
+
+  const heroImageContent = resolvedHeroImage ? (
+    <img
+      src={resolvedHeroImage}
+      className="game-details__hero-image"
+      alt={game?.title}
+    />
+  ) : (
+    <div className="game-details__hero-image game-details__hero-image--placeholder" />
+  );
 
   return (
     <div
@@ -256,27 +320,12 @@ export function GameDetailsContent() {
                   <h1 className="game-details__hero-classics-title">
                     {launchboxTitle}
                   </h1>
-                  {launchboxPlatform && (
-                    <div className="game-details__hero-classics-chips">
-                      <span className="game-details__hero-classics-chip">
-                        {launchboxPlatform}
-                      </span>
-                      {launchboxEmulatorIcon && (
-                        <span className="game-details__hero-classics-chip game-details__hero-classics-chip--icon">
-                          <img src={launchboxEmulatorIcon} alt="" />
-                        </span>
-                      )}
-                    </div>
-                  )}
+                  {classicsChips}
                 </div>
               </div>
             </>
           ) : (
-            <img
-              src={isLaunchboxGame ? heroImage || launchboxCover : heroImage}
-              className="game-details__hero-image"
-              alt={game?.title}
-            />
+            heroImageContent
           )}
 
           {isLaunchboxGame && !hideClassicsBookmark && (
@@ -363,7 +412,10 @@ export function GameDetailsContent() {
           >
             <div className="game-details__hero-content">
               {!renderClassicsHero && (
-                <GameLogo game={game} shopDetails={shopDetails} />
+                <div className="game-details__hero-standard-meta">
+                  <GameLogo game={game} shopDetails={shopDetails} />
+                  {classicsChips}
+                </div>
               )}
 
               <div className="game-details__hero-buttons game-details__hero-buttons--right">
@@ -378,11 +430,11 @@ export function GameDetailsContent() {
                   </button>
                 )}
 
-                {game && game.shop !== "custom" && (
+                {game && cloudSaveVisibility?.hero === "legacy" && (
                   <button
                     type="button"
                     className="game-details__cloud-sync-button"
-                    onClick={handleCloudSaveButtonClick}
+                    onClick={handleLegacyCloudSaveButtonClick}
                   >
                     <div className="game-details__cloud-icon-container">
                       <img
@@ -393,6 +445,10 @@ export function GameDetailsContent() {
                     </div>
                     {t("cloud_save")}
                   </button>
+                )}
+
+                {game && objectId && cloudSaveVisibility?.hero === "v2" && (
+                  <CloudSaveWidget />
                 )}
               </div>
             </div>
@@ -406,6 +462,14 @@ export function GameDetailsContent() {
         <div className="game-details__description-container">
           <div className="game-details__description-content">
             <DescriptionHeader />
+
+            {showPrompt && (
+              <ReviewPromptBanner
+                onYesClick={handleReviewPromptYes}
+                onLaterClick={handleReviewPromptLater}
+              />
+            )}
+
             <GallerySlider />
 
             <div
@@ -432,6 +496,10 @@ export function GameDetailsContent() {
               </button>
             )}
 
+            {shop && objectId && (
+              <SimilarGames objectId={objectId} shop={shop} />
+            )}
+
             {shop !== "custom" && shop && objectId && (
               <div ref={reviewsRef}>
                 <GameReviews
@@ -439,9 +507,9 @@ export function GameDetailsContent() {
                   objectId={objectId}
                   game={game}
                   userDetailsId={userDetails?.id}
-                  isGameInLibrary={isGameInLibrary}
                   hasUserReviewed={hasUserReviewed}
-                  onUserReviewedChange={setHasUserReviewed}
+                  isCheckingUserReview={isCheckingUserReview}
+                  onUserReviewedChange={updateHasUserReviewed}
                 />
               </div>
             )}

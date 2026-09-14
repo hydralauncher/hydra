@@ -6,16 +6,29 @@ import {
   getSkuRegionFlag,
   type SkuRegion,
 } from "@renderer/helpers";
-import type { GameShop } from "@types";
+import type { GameShop, ShopAssets } from "@types";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { useNavigate, useParams } from "react-router-dom";
-import { buildLibraryToastOptions, getItemFocusTarget } from "../../helpers";
+import {
+  buildLibraryToastOptions,
+  getBigPictureGameDetailsPath,
+  getItemFocusTarget,
+} from "../../helpers";
+import {
+  getSimilarGamesSectionState,
+  SIMILAR_GAMES_LIMIT,
+} from "@renderer/hooks/similar-games";
+import { useSimilarGames } from "@renderer/hooks/use-similar-games";
 import type { LibraryToastSource } from "../../helpers/library-toast";
 import {
   Typography,
   VerticalFocusGroup,
   Divider,
   FocusItem,
+  FocusCarousel,
+  Skeleton,
+  EmptyState,
 } from "../../components";
 import {
   ConfirmationModal,
@@ -36,6 +49,7 @@ import {
   SupportedLanguages,
 } from "../../components/pages/game";
 import { useGameSettingsModalState } from "../../components/pages/game/game-settings-modal/use-game-settings-modal-state";
+import { BigPictureCloudSaveProvider } from "../../components/pages/game/cloud-save-v2";
 import {
   useBigPictureToast,
   useGameDetails,
@@ -54,6 +68,7 @@ import {
   GAME_HERO_ACTIONS_REGION_ID,
   GAME_MEDIA_CAROUSEL_REGION_ID,
   GAME_PAGE_REGION_ID,
+  GAME_SIMILAR_GAMES_REGION_ID,
   GAME_SIDEBAR_ACHIEVEMENTS_ID,
   GAME_SIDEBAR_CONTROLLER_SUPPORT_ID,
   GAME_SIDEBAR_HLTB_ID,
@@ -63,9 +78,11 @@ import {
   GAME_SIDEBAR_REGION_ID,
   GAME_SIDEBAR_REQUIREMENTS_ID,
   GAME_SIDEBAR_STATS_ID,
+  getGameSimilarGameItemId,
 } from "../../components/pages/game/navigation";
 import { NavigationService, type FocusOverrideTarget } from "../../services";
 import { useNavigationStore } from "../../stores";
+import { extractGenreNames } from "./game-metadata";
 import "./game.scss";
 
 const DESCRIPTION_HEADING_SELECTOR = "h1, h2, h3, h4, h5, h6";
@@ -91,11 +108,80 @@ const DESCRIPTION_DISALLOWED_SELECTORS = [
   "link",
   "meta",
 ].join(", ");
+const DESCRIPTION_PARAGRAPH_BREAK = /(?:\r?\n){2,}/;
+const DESCRIPTION_LINE_BREAK = /\r?\n/;
 const DESCRIPTION_SCROLL_STEP = 180;
 const DESCRIPTION_SCROLL_EDGE_TOLERANCE = 4;
 const DESCRIPTION_FOCUS_ENTRY_MARGIN = 32;
 const DESCRIPTION_SCROLL_ANIMATION_DURATION = 220;
 const DESCRIPTION_RETURN_MIN_VISIBLE_RATIO = 0.5;
+type ClassicsLaunchErrorCode = NonNullable<
+  ReturnType<typeof getClassicsLaunchErrorCode>
+>;
+
+interface ClassicsLaunchNotice {
+  title: string;
+  message: string;
+  kind: "error" | "success";
+  opensSettings?: boolean;
+}
+
+const CLASSICS_LAUNCH_FALLBACK: ClassicsLaunchNotice = {
+  title: "Launch failed",
+  message: "Hydra could not launch this Classics game.",
+  kind: "error",
+};
+
+const CLASSICS_LAUNCH_NOTICES: Partial<
+  Record<ClassicsLaunchErrorCode, ClassicsLaunchNotice>
+> = {
+  EMULATOR_NOT_CONFIGURED: {
+    title: "Emulator not configured",
+    message: "Configure the emulator for this platform before launching.",
+    kind: "error",
+    opensSettings: true,
+  },
+  BIOS_NOT_CONFIGURED: {
+    title: "BIOS not configured",
+    message: "Add the BIOS files for this platform before launching.",
+    kind: "error",
+    opensSettings: true,
+  },
+  RETROARCH_NOT_CONFIGURED: {
+    title: "RetroArch not configured",
+    message: "Configure RetroArch before launching this game.",
+    kind: "error",
+    opensSettings: true,
+  },
+  CORE_NOT_INSTALLED: {
+    title: "Core not installed",
+    message: "Download the RetroArch core for this platform before launching.",
+    kind: "error",
+    opensSettings: true,
+  },
+  PLATFORM_UNKNOWN: {
+    title: "Platform not supported",
+    message: "Hydra could not identify an emulator for this platform.",
+    kind: "error",
+  },
+  NO_DISC: {
+    title: "No disc found",
+    message: "Add or rescan discs for this Classics game before launching.",
+    kind: "error",
+  },
+  PKG_INSTALLING: {
+    title: "Installing PKG",
+    message:
+      "Installing the package in RPCS3. Once it finishes, press Play again to launch the game.",
+    kind: "success",
+  },
+  PKG_UNREADABLE: {
+    title: "Unsupported PKG",
+    message:
+      "Hydra could not read this package. Install and launch it from RPCS3 directly.",
+    kind: "error",
+  },
+};
 
 const REGION_LABELS: Record<SkuRegion, string> = {
   US: "United States",
@@ -154,6 +240,56 @@ function normalizeDescriptionMediaElement(
   mediaElement.style.boxSizing = "border-box";
 }
 
+function appendDescriptionParagraph(
+  document: Document,
+  fragment: DocumentFragment,
+  block: string
+) {
+  const lines = block
+    .split(DESCRIPTION_LINE_BREAK)
+    .map((line) => line.trim())
+    .filter((line) => line.length > 0);
+
+  if (lines.length === 0) {
+    return;
+  }
+
+  const paragraph = document.createElement("p");
+
+  lines.forEach((line, index) => {
+    if (index > 0) {
+      paragraph.appendChild(document.createElement("br"));
+    }
+
+    paragraph.appendChild(document.createTextNode(line));
+  });
+
+  fragment.appendChild(paragraph);
+}
+
+function wrapLooseDescriptionText(document: Document) {
+  const looseTextNodes = Array.from(document.body.childNodes).filter(
+    (node) =>
+      node.nodeType === Node.TEXT_NODE && Boolean(node.textContent?.trim())
+  );
+
+  for (const textNode of looseTextNodes) {
+    const fragment = document.createDocumentFragment();
+
+    for (const block of (textNode.textContent ?? "").split(
+      DESCRIPTION_PARAGRAPH_BREAK
+    )) {
+      appendDescriptionParagraph(document, fragment, block);
+    }
+
+    if (fragment.childNodes.length === 0) {
+      continue;
+    }
+
+    textNode.replaceWith(fragment);
+  }
+}
+
 function preprocessSteamDescriptionDocument(html: string) {
   if (!html) {
     return null;
@@ -193,6 +329,8 @@ function preprocessSteamDescriptionDocument(html: string) {
     video.setAttribute("playsinline", "");
     normalizeDescriptionMediaElement(video);
   });
+
+  wrapLooseDescriptionText(document);
 
   return document;
 }
@@ -292,7 +430,69 @@ function buildDescriptionSections(document: Document | null) {
   return sections;
 }
 
+function SimilarGamesSkeleton({ title }: Readonly<{ title: string }>) {
+  return (
+    <section
+      className="focus-carousel game-page__similar-games-skeleton"
+      data-card-variant="vertical"
+      aria-label={title}
+      aria-busy="true"
+    >
+      <div className="focus-carousel__header">
+        <h2 className="focus-carousel__title">{title}</h2>
+        <div
+          className="game-page__similar-games-skeleton-actions"
+          aria-hidden="true"
+        >
+          <Skeleton />
+          <Skeleton />
+        </div>
+      </div>
+
+      <div className="focus-carousel__viewport-wrapper">
+        <div className="focus-carousel__viewport">
+          <div className="focus-carousel__container">
+            {Array.from({ length: SIMILAR_GAMES_LIMIT }, (_, index) => (
+              <article
+                className="focus-carousel__slide"
+                key={`similar-game-skeleton-${index}`}
+              >
+                <div className="game-page__similar-games-skeleton-card">
+                  <Skeleton className="game-page__similar-games-skeleton-cover" />
+                  <div className="game-page__similar-games-skeleton-body">
+                    <Skeleton className="game-page__similar-games-skeleton-title" />
+                    <Skeleton className="game-page__similar-games-skeleton-subtitle" />
+                  </div>
+                </div>
+              </article>
+            ))}
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function SimilarGamesEmptyState({
+  title,
+  message,
+}: Readonly<{ title: string; message: string }>) {
+  return (
+    <section className="focus-carousel game-page__similar-games-empty">
+      <div className="focus-carousel__header">
+        <h2 className="focus-carousel__title">{title}</h2>
+      </div>
+
+      <EmptyState
+        className="game-page__similar-games-empty-state"
+        title={message}
+      />
+    </section>
+  );
+}
+
 export default function Game() {
+  const { t } = useTranslation("big_picture");
   const { showErrorToast, showSuccessToast } = useBigPictureToast();
   const { shop, objectId } = useParams<{ shop: GameShop; objectId: string }>();
   const navigate = useNavigate();
@@ -422,22 +622,44 @@ export default function Game() {
     (shopDetails?.movies?.length ?? 0) > 0 ||
     (shopDetails?.screenshots?.length ?? 0) > 0;
   const isLaunchboxGame = shop === "launchbox";
+  const isCustomGame = shop === "custom";
   const developer = shopDetails?.developers?.[0] ?? "";
   const publisher = shopDetails?.publishers?.[0] ?? "";
   const releaseDate = shopDetails?.release_date?.date ?? "";
-  const launchboxGenres = useMemo(() => {
-    return ((shopDetails?.genres ?? []) as unknown[])
-      .map((genre) => {
-        if (typeof genre === "string") return genre;
-        if (genre && typeof genre === "object" && "name" in genre) {
-          const { name } = genre as { name?: unknown };
-          return typeof name === "string" ? name : "";
-        }
-
-        return "";
-      })
-      .filter((genre) => genre.trim().length > 0);
+  const shopGenres = useMemo(() => {
+    return extractGenreNames(shopDetails?.genres ?? []);
   }, [shopDetails?.genres]);
+  const {
+    games: similarGames,
+    isLoading: areSimilarGamesLoading,
+    isEligible: areSimilarGamesEligible,
+  } = useSimilarGames({
+    objectId: objectId ?? "",
+    shop: shop ?? "custom",
+  });
+  const similarCarouselGames = useMemo<ShopAssets[]>(
+    () =>
+      similarGames.map((similarGame) => ({
+        objectId: similarGame.objectId,
+        shop: similarGame.shop,
+        title: similarGame.title,
+        iconUrl: similarGame.iconUrl,
+        libraryHeroImageUrl: similarGame.libraryHeroImageUrl,
+        libraryImageUrl: similarGame.libraryImageUrl,
+        logoImageUrl: similarGame.logoImageUrl,
+        logoPosition: null,
+        coverImageUrl: similarGame.coverImageUrl,
+        downloadSources: similarGame.downloadSources,
+      })),
+    [similarGames]
+  );
+  const similarGamesSectionState = getSimilarGamesSectionState(
+    areSimilarGamesEligible,
+    areSimilarGamesLoading,
+    similarCarouselGames.length
+  );
+  const hasSimilarGames = similarGamesSectionState === "ready";
+  const shouldRenderSimilarGames = similarGamesSectionState !== "hidden";
   const launchboxRegions = useMemo(
     () =>
       shopDetails?.skus && shopDetails.skus.length > 0
@@ -469,6 +691,16 @@ export default function Game() {
       preferRememberedFocus: true,
     };
   }, [hasNavigableComments]);
+  const similarGamesEntryTarget = useMemo(() => {
+    if (!hasSimilarGames) return undefined;
+
+    return {
+      type: "region" as const,
+      regionId: GAME_SIMILAR_GAMES_REGION_ID,
+      entryDirection: "down" as const,
+      preferRememberedFocus: true,
+    };
+  }, [hasSimilarGames]);
   const bodyUpNavigationTarget = useMemo<FocusOverrideTarget>(() => {
     if (activeMediaItemId) {
       return getItemFocusTarget(activeMediaItemId);
@@ -512,12 +744,15 @@ export default function Game() {
       };
     }
 
-    return descriptionEntryTarget ?? commentsEntryTarget;
+    return (
+      descriptionEntryTarget ?? similarGamesEntryTarget ?? commentsEntryTarget
+    );
   }, [
     activeMediaItemId,
     commentsEntryTarget,
     descriptionEntryTarget,
     hasMedia,
+    similarGamesEntryTarget,
   ]);
   const sidebarEntryTarget = useMemo(
     () => sidebarStatsEntryTarget,
@@ -533,6 +768,13 @@ export default function Game() {
     []
   );
   const commentsTopNavigationTarget = useMemo(() => {
+    if (similarGamesEntryTarget) {
+      return {
+        ...similarGamesEntryTarget,
+        entryDirection: "up" as const,
+      };
+    }
+
     if (descriptionBottomEntryTarget) {
       return descriptionBottomEntryTarget;
     }
@@ -547,7 +789,53 @@ export default function Game() {
     descriptionBottomEntryTarget,
     hasMedia,
     heroActionsLeftNavigationTarget,
+    similarGamesEntryTarget,
   ]);
+
+  const similarGamesTopNavigationTarget = useMemo<FocusOverrideTarget>(() => {
+    if (descriptionBottomEntryTarget) return descriptionBottomEntryTarget;
+    if (activeMediaItemId) return getItemFocusTarget(activeMediaItemId);
+
+    if (hasMedia) {
+      return {
+        type: "region",
+        regionId: GAME_MEDIA_CAROUSEL_REGION_ID,
+        entryDirection: "up",
+        preferRememberedFocus: true,
+      };
+    }
+
+    return heroActionsLeftNavigationTarget;
+  }, [
+    activeMediaItemId,
+    descriptionBottomEntryTarget,
+    hasMedia,
+    heroActionsLeftNavigationTarget,
+  ]);
+
+  const getSimilarGameNavigationOverrides = useCallback(
+    (_similarGame: ShopAssets, index: number, games: ShopAssets[]) => ({
+      up: similarGamesTopNavigationTarget,
+      down: commentsEntryTarget ?? ({ type: "block" } as const),
+      ...(index === 0
+        ? { left: getItemFocusTarget(BIG_PICTURE_SIDEBAR_ITEM_IDS.home) }
+        : {}),
+      ...(index === games.length - 1
+        ? { right: { type: "block" as const } }
+        : {}),
+    }),
+    [commentsEntryTarget, similarGamesTopNavigationTarget]
+  );
+  const getSimilarGameItemId = useCallback(
+    (similarGame: ShopAssets) =>
+      getGameSimilarGameItemId(
+        shop!,
+        objectId!,
+        similarGame.shop,
+        similarGame.objectId
+      ),
+    [objectId, shop]
+  );
   useHeaderTitle(resolvedGameTitle);
 
   const handleOpenDownloadModal = useCallback(() => {
@@ -614,59 +902,32 @@ export default function Game() {
       } catch (error) {
         const code = getClassicsLaunchErrorCode(error);
 
-        if (code === "EMULATOR_NOT_CONFIGURED") {
-          showErrorToast("Emulator not configured", {
-            message:
-              "Configure the emulator for this platform before launching.",
-            fallbackVisual: "settings",
-            action: {
-              label: "Open Settings",
-              onClick: () => navigate("/settings"),
-            },
-          });
-          navigate("/settings");
-          return;
-        }
-
-        if (code === "PLATFORM_UNKNOWN") {
-          showErrorToast("Platform not supported", {
-            message: "Hydra could not identify an emulator for this platform.",
-          });
-          return;
-        }
-
-        if (code === "NO_DISC") {
-          showErrorToast("No disc found", {
-            message:
-              "Add or rescan discs for this Classics game before launching.",
-          });
-          return;
-        }
-
-        if (code === "PKG_INSTALLING") {
-          showSuccessToast("Installing PKG", {
-            message:
-              "Installing the package in RPCS3. Once it finishes, press Play again to launch the game.",
-          });
-          return;
-        }
-
-        if (code === "PKG_UNREADABLE") {
-          showErrorToast("Unsupported PKG", {
-            message:
-              "Hydra could not read this package. Install and launch it from RPCS3 directly.",
-          });
-          return;
-        }
-
         if (code === "EMULATOR_ALREADY_RUNNING") {
           setPendingClassicsLaunch({ discPath });
           return;
         }
 
-        showErrorToast("Launch failed", {
-          message: "Hydra could not launch this Classics game.",
-        });
+        const notice =
+          (code && CLASSICS_LAUNCH_NOTICES[code]) ?? CLASSICS_LAUNCH_FALLBACK;
+
+        const options = notice.opensSettings
+          ? {
+              message: notice.message,
+              fallbackVisual: "settings" as const,
+              action: {
+                label: "Open Settings",
+                onClick: () => navigate("/settings"),
+              },
+            }
+          : { message: notice.message };
+
+        if (notice.kind === "success") {
+          showSuccessToast(notice.title, options);
+        } else {
+          showErrorToast(notice.title, options);
+        }
+
+        if (notice.opensSettings) navigate("/settings");
       }
     },
     [game, navigate, openGame, showErrorToast, showSuccessToast, updateGame]
@@ -950,7 +1211,9 @@ export default function Game() {
                 return;
               }
 
-              focusNavigationTarget(commentsEntryTarget);
+              focusNavigationTarget(
+                similarGamesEntryTarget ?? commentsEntryTarget
+              );
             },
             left: () => {
               navigation.setFocus(BIG_PICTURE_SIDEBAR_ITEM_IDS.home);
@@ -1025,6 +1288,10 @@ export default function Game() {
       previousRegionId,
       GAME_COMMENTS_ACTION_ROWS_REGION_ID
     );
+    const enteredFromSimilarGames = isRegionWithinTree(
+      previousRegionId,
+      GAME_SIMILAR_GAMES_REGION_ID
+    );
     const enteredFromSidebar = isRegionWithinTree(
       previousRegionId,
       GAME_SIDEBAR_REGION_ID
@@ -1038,11 +1305,12 @@ export default function Game() {
       return;
     }
 
-    const targetScrollTop = enteredFromComments
-      ? bounds.descriptionBottom -
-        bounds.pageClientHeight +
-        DESCRIPTION_FOCUS_ENTRY_MARGIN
-      : bounds.descriptionTop - DESCRIPTION_FOCUS_ENTRY_MARGIN;
+    const targetScrollTop =
+      enteredFromComments || enteredFromSimilarGames
+        ? bounds.descriptionBottom -
+          bounds.pageClientHeight +
+          DESCRIPTION_FOCUS_ENTRY_MARGIN
+        : bounds.descriptionTop - DESCRIPTION_FOCUS_ENTRY_MARGIN;
     const nextScrollTop = Math.min(
       Math.max(0, targetScrollTop),
       bounds.maxScrollTop
@@ -1163,33 +1431,41 @@ export default function Game() {
   return (
     <VerticalFocusGroup regionId={GAME_PAGE_REGION_ID} asChild>
       <div ref={pageRef} className="game-page">
-        <Hero
-          shopDetails={shopDetails}
-          game={game}
+        <BigPictureCloudSaveProvider
+          objectId={objectId!}
+          shop={shop!}
+          hasExecutablePath={Boolean(game?.executablePath)}
           isGameRunning={isGameRunning}
-          isFavorite={game?.favorite ?? false}
-          toggleFavorite={toggleFavorite}
-          onPlay={handlePlayGame}
-          onDownload={handleOpenDownloadModal}
-          onAddToLibrary={handleAddToLibrary}
-          onOpenDownloadOptions={handleOpenDownloadModal}
-          onOpenSettings={() => setIsGameSettingsModalOpen(true)}
-          onClose={closeGame}
-          isAddingToLibrary={isAddingToLibrary}
-          canAddToLibrary={canAddToLibrary}
-          downNavigationTarget={contentBelowHeroTarget}
-          sidebarEntryTarget={sidebarEntryTarget}
-        />
-        {game && launchSettings && customizationSettings && cloudSettings && (
-          <GameSettingsModal
-            visible={isGameSettingsModalOpen}
+          onSelectExecutable={() => setIsGameSettingsModalOpen(true)}
+        >
+          <Hero
+            shopDetails={shopDetails}
             game={game}
-            launchSettings={launchSettings}
-            customizationSettings={customizationSettings}
-            cloudSettings={cloudSettings}
-            onClose={() => setIsGameSettingsModalOpen(false)}
+            isGameRunning={isGameRunning}
+            isFavorite={game?.favorite ?? false}
+            toggleFavorite={toggleFavorite}
+            onPlay={handlePlayGame}
+            onDownload={handleOpenDownloadModal}
+            onAddToLibrary={handleAddToLibrary}
+            onOpenDownloadOptions={handleOpenDownloadModal}
+            onOpenSettings={() => setIsGameSettingsModalOpen(true)}
+            onClose={closeGame}
+            isAddingToLibrary={isAddingToLibrary}
+            canAddToLibrary={canAddToLibrary}
+            downNavigationTarget={contentBelowHeroTarget}
+            sidebarEntryTarget={sidebarEntryTarget}
           />
-        )}
+          {game && launchSettings && customizationSettings && cloudSettings && (
+            <GameSettingsModal
+              visible={isGameSettingsModalOpen}
+              game={game}
+              launchSettings={launchSettings}
+              customizationSettings={customizationSettings}
+              cloudSettings={cloudSettings}
+              onClose={() => setIsGameSettingsModalOpen(false)}
+            />
+          )}
+        </BigPictureCloudSaveProvider>
 
         <section className="game-page__content">
           <PlaytimeBar
@@ -1205,7 +1481,9 @@ export default function Game() {
                 screenshots={shopDetails.screenshots ?? []}
                 onActiveItemChange={setActiveMediaItemId}
                 nextContentEntryTarget={
-                  descriptionEntryTarget ?? commentsEntryTarget
+                  descriptionEntryTarget ??
+                  similarGamesEntryTarget ??
+                  commentsEntryTarget
                 }
                 sidebarEntryTarget={sidebarStatsEntryTarget}
               />
@@ -1269,70 +1547,109 @@ export default function Game() {
                 </VerticalFocusGroup>
               )}
 
-              <Divider />
+              {shouldRenderSimilarGames ? (
+                <>
+                  <Divider />
+                  <div className="game-page__similar-games">
+                    {similarGamesSectionState === "loading" ? (
+                      <SimilarGamesSkeleton title={t("similar_games")} />
+                    ) : null}
+                    {similarGamesSectionState === "empty" ? (
+                      <SimilarGamesEmptyState
+                        title={t("similar_games")}
+                        message={t("no_similar_games")}
+                      />
+                    ) : null}
+                    {similarGamesSectionState === "ready" ? (
+                      <FocusCarousel
+                        title={t("similar_games")}
+                        cardVariant="vertical"
+                        games={similarCarouselGames}
+                        regionId={GAME_SIMILAR_GAMES_REGION_ID}
+                        getItemId={getSimilarGameItemId}
+                        getItemNavigationOverrides={
+                          getSimilarGameNavigationOverrides
+                        }
+                        onItemActivate={(similarGame) =>
+                          navigate(getBigPictureGameDetailsPath(similarGame))
+                        }
+                        showRightFade
+                      />
+                    ) : null}
+                  </div>
+                </>
+              ) : null}
 
-              <GameReviews
-                shop={shop!}
-                objectId={objectId!}
-                topNavigationTarget={commentsTopNavigationTarget}
-                onHasNavigableActionsChange={setHasNavigableComments}
-              />
+              {!isCustomGame && (
+                <>
+                  <Divider />
+
+                  <GameReviews
+                    shop={shop!}
+                    objectId={objectId!}
+                    topNavigationTarget={commentsTopNavigationTarget}
+                    onHasNavigableActionsChange={setHasNavigableComments}
+                  />
+                </>
+              )}
             </div>
 
             <VerticalFocusGroup regionId={GAME_SIDEBAR_REGION_ID} asChild>
               <div className="game-page__sidebar">
-                <FocusItem
-                  id={GAME_SIDEBAR_STATS_ID}
-                  navigationOrder={0}
-                  navigationOverrides={sidebarStatsNavigationOverrides}
-                  asChild
-                >
-                  <section
-                    className="game-page__sidebar-section game-page__stats"
-                    aria-label="Game stats"
+                {!isCustomGame && (
+                  <FocusItem
+                    id={GAME_SIDEBAR_STATS_ID}
+                    navigationOrder={0}
+                    navigationOverrides={sidebarStatsNavigationOverrides}
+                    asChild
                   >
-                    <div className="game-page__stats-title">
-                      <Typography>Game Stats</Typography>
-                    </div>
+                    <section
+                      className="game-page__sidebar-section game-page__stats"
+                      aria-label="Game stats"
+                    >
+                      <div className="game-page__stats-title">
+                        <Typography>Game Stats</Typography>
+                      </div>
 
-                    <div className="game-page__stats-row">
-                      <Typography className="game-page__stats-label">
-                        Rating
-                      </Typography>
-                      <div className="game-page__stats-rating-value">
-                        <StarIcon
-                          size={16}
-                          weight="fill"
-                          aria-hidden="true"
-                          className="game-page__stats-rating-icon"
-                        />
+                      <div className="game-page__stats-row">
+                        <Typography className="game-page__stats-label">
+                          Rating
+                        </Typography>
+                        <div className="game-page__stats-rating-value">
+                          <StarIcon
+                            size={16}
+                            weight="fill"
+                            aria-hidden="true"
+                            className="game-page__stats-rating-icon"
+                          />
+                          <Typography className="game-page__stats-value">
+                            {formatNumber(stats?.averageScore ?? 0)}
+                          </Typography>
+                        </div>
+                      </div>
+
+                      <div className="game-page__stats-row">
+                        <Typography className="game-page__stats-label">
+                          Downloads
+                        </Typography>
                         <Typography className="game-page__stats-value">
-                          {formatNumber(stats?.averageScore ?? 0)}
+                          {formatNumber(stats?.downloadCount ?? 0)}
                         </Typography>
                       </div>
-                    </div>
 
-                    <div className="game-page__stats-row">
-                      <Typography className="game-page__stats-label">
-                        Downloads
-                      </Typography>
-                      <Typography className="game-page__stats-value">
-                        {formatNumber(stats?.downloadCount ?? 0)}
-                      </Typography>
-                    </div>
+                      <div className="game-page__stats-row">
+                        <Typography className="game-page__stats-label">
+                          Playing now
+                        </Typography>
+                        <Typography className="game-page__stats-value">
+                          {formatNumber(stats?.playerCount ?? 0)}
+                        </Typography>
+                      </div>
+                    </section>
+                  </FocusItem>
+                )}
 
-                    <div className="game-page__stats-row">
-                      <Typography className="game-page__stats-label">
-                        Playing now
-                      </Typography>
-                      <Typography className="game-page__stats-value">
-                        {formatNumber(stats?.playerCount ?? 0)}
-                      </Typography>
-                    </div>
-                  </section>
-                </FocusItem>
-
-                {!isLaunchboxGame && (howLongToBeat?.length ?? 0) > 0 && (
+                {(howLongToBeat?.length ?? 0) > 0 && (
                   <HowLongToBeatBox
                     howLongToBeat={howLongToBeat ?? []}
                     focusId={GAME_SIDEBAR_HLTB_ID}
@@ -1362,7 +1679,7 @@ export default function Game() {
                   focusNavigationOverrides={sidebarCarouselNavigationOverrides}
                 />
 
-                {!isLaunchboxGame && (game?.achievementCount ?? 0) > 0 && (
+                {achievements.length > 0 && (
                   <AchievementsBox
                     achievements={achievements ?? []}
                     focusId={GAME_SIDEBAR_ACHIEVEMENTS_ID}
@@ -1394,13 +1711,13 @@ export default function Game() {
                       </div>
                     ) : null}
 
-                    {isLaunchboxGame && launchboxGenres.length > 0 ? (
+                    {isLaunchboxGame && shopGenres.length > 0 ? (
                       <div className="game-page__metadata-row">
                         <Typography className="game-page__metadata-label">
                           Genres
                         </Typography>
                         <Typography className="game-page__metadata-value">
-                          {launchboxGenres.join(", ")}
+                          {shopGenres.join(", ")}
                         </Typography>
                       </div>
                     ) : null}
@@ -1459,7 +1776,7 @@ export default function Game() {
                   </section>
                 </FocusItem>
 
-                {!isLaunchboxGame ? ( // NOSONAR
+                {!isLaunchboxGame && !isCustomGame ? ( // NOSONAR
                   <RequirementsToPlay
                     shopDetails={shopDetails}
                     focusId={GAME_SIDEBAR_REQUIREMENTS_ID}

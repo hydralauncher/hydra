@@ -14,4 +14,8 @@ export class GameExecutables {
       name: executable.name,
     }));
   }
+
+  static getAllObjectIds(): string[] {
+    return Object.keys(gameExecutables);
+  }
 }

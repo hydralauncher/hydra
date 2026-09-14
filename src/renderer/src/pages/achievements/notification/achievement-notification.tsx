@@ -26,6 +26,7 @@ import root from "react-shadow";
 const NOTIFICATION_TIMEOUT = 4_000;
 const CLOSING_TIMEOUT = 450;
 const IMAGE_PREPARATION_TIMEOUT = 2_000;
+const VISIBILITY_TIMEOUT = 1_000;
 
 type NotificationPhase = "idle" | "prepared" | "playing" | "closing";
 
@@ -38,6 +39,49 @@ const getErrorMessage = (error: unknown) => {
   } catch {
     return "unknown error";
   }
+};
+
+const waitForVisibleFrame = (): Promise<void> => {
+  return new Promise((resolve) => {
+    let settled = false;
+    let frame = -1;
+    let timeout = 0;
+    let removeListener = () => {};
+
+    const finish = () => {
+      if (settled) return;
+      settled = true;
+      window.clearTimeout(timeout);
+      cancelAnimationFrame(frame);
+      removeListener();
+      resolve();
+    };
+
+    const waitForFrames = () => {
+      frame = requestAnimationFrame(() => {
+        frame = requestAnimationFrame(finish);
+      });
+    };
+
+    timeout = window.setTimeout(finish, VISIBILITY_TIMEOUT);
+
+    if (document.visibilityState === "visible") {
+      waitForFrames();
+      return;
+    }
+
+    const listener = () => {
+      if (document.visibilityState !== "visible") return;
+      removeListener();
+      waitForFrames();
+    };
+
+    document.addEventListener("visibilitychange", listener);
+    removeListener = () => {
+      document.removeEventListener("visibilitychange", listener);
+      removeListener = () => {};
+    };
+  });
 };
 
 const resolveImageUrl = (source: string): Promise<string> => {
@@ -80,6 +124,7 @@ export function AchievementNotification() {
   const hostReadyReported = useRef(false);
   const displayTimer = useRef<number | null>(null);
   const closingTimer = useRef<number | null>(null);
+  const hasPlayedSound = useRef(false);
 
   const clearAnimationTimers = useCallback(() => {
     if (displayTimer.current !== null) {
@@ -180,9 +225,14 @@ export function AchievementNotification() {
               nextRequest.type === "achievement"
                 ? { ...nextRequest.achievement, iconUrl: resolvedIcon }
                 : {
-                    title: t("new_achievements_unlocked", {
-                      gameCount: nextRequest.gameCount,
-                      achievementCount: nextRequest.achievementCount,
+                    title: t("new_achievements"),
+                    description: t("new_achievements_description", {
+                      achievements: t("new_achievements_achievement_count", {
+                        count: nextRequest.achievementCount,
+                      }),
+                      games: t("new_achievements_game_count", {
+                        count: nextRequest.gameCount,
+                      }),
                     }),
                     isHidden: false,
                     isRare: false,
@@ -261,15 +311,23 @@ export function AchievementNotification() {
       (requestId) => {
         if (requestRef.current?.id !== requestId) return;
 
-        setPhase("playing");
-        void playAudio();
         clearAnimationTimers();
 
-        displayTimer.current = window.setTimeout(() => {
+        void waitForVisibleFrame().then(() => {
           if (requestRef.current?.id !== requestId) return;
-          setPhase("closing");
-          scheduleClosing(requestId);
-        }, NOTIFICATION_TIMEOUT);
+
+          setPhase("playing");
+          if (!hasPlayedSound.current) {
+            hasPlayedSound.current = true;
+            void playAudio();
+          }
+
+          displayTimer.current = window.setTimeout(() => {
+            if (requestRef.current?.id !== requestId) return;
+            setPhase("closing");
+            scheduleClosing(requestId);
+          }, NOTIFICATION_TIMEOUT);
+        });
       }
     );
 

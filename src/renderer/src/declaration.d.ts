@@ -12,6 +12,7 @@ import type {
   AllDebridUser,
   UserProfile,
   UpdateProfileRequest,
+  OpenCheckoutOptions,
   GameStats,
   UserDetails,
   FriendRequestSync,
@@ -55,7 +56,17 @@ import type {
   EmulatorInstallResult,
   ResolvedInstallOption,
   DetectedRom,
+  RetroArchConfig,
+  RetroArchCoreName,
+  RetroArchPlatform,
+  RetroArchCoreInstallProgress,
+  RetroArchCoreInstallResult,
+  RetroArchExecutablePreview,
+  RetroArchInstallOption,
+  RetroArchInstallProgress,
+  RetroArchInstallResult,
   EmulationCloudSave,
+  EmulationSaveMetadata,
   EmulationSavePlatform,
   MemcardFormatState,
   MemcardRestoreResult,
@@ -64,6 +75,27 @@ import type {
   ArtworkKind,
   ArtworkPage,
   GameArtworkSelection,
+  GameLauncherStatusPayload,
+  CloudSaveAutomaticSyncModeChangedEvent,
+  CloudSaveAutomaticSyncEvent,
+  CloudSaveConflictResolution,
+  CloudSaveOverview,
+  CloudSaveV2FileDetails,
+  AchievementSouvenirSyncCleanupResult,
+  AchievementSouvenirSyncDetails,
+  AchievementSouvenirSyncRetryResult,
+  AchievementSouvenirSyncStatus,
+  CloudSaveSyncProgressPayload,
+  SyncCloudSaveOnGamePageResult,
+  SyncGameCloudSaveResult,
+  SelectCloudSaveCustomPathResult,
+  CloudSaveCustomPathApproval,
+  CloudSaveModalSyncResult,
+  SelectCloudSaveCustomPathApprovalResult,
+  ConfirmCloudSaveCustomPathApprovalResult,
+  ConfirmCloudSaveCustomPathRebindApprovalResult,
+  LegacySaveExportProgress,
+  LegacySaveExportResult,
 } from "@types";
 import type { AxiosProgressEvent } from "axios";
 
@@ -96,6 +128,87 @@ declare global {
   };
 
   interface Electron {
+    onCloudSaveAutomaticSyncModeChanged: (
+      callback: (event: CloudSaveAutomaticSyncModeChangedEvent) => void
+    ) => () => void;
+    onCloudSaveAutomaticSync: (
+      callback: (event: CloudSaveAutomaticSyncEvent) => void
+    ) => () => void;
+    getCloudSaveOverview: (
+      objectId: string,
+      shop: GameShop
+    ) => Promise<CloudSaveOverview>;
+    getCloudSaveV2FileDetails: (
+      objectId: string,
+      shop: GameShop
+    ) => Promise<CloudSaveV2FileDetails>;
+    deleteGameCloudSaveData: (
+      objectId: string,
+      shop: GameShop
+    ) => Promise<void>;
+    selectCloudSaveCustomPath: (
+      objectId: string,
+      shop: GameShop
+    ) => Promise<SelectCloudSaveCustomPathResult>;
+    createCloudSaveCustomPathRebindApproval: (
+      objectId: string,
+      shop: GameShop,
+      rawPath: string
+    ) => Promise<CloudSaveCustomPathApproval>;
+    confirmCloudSaveCustomPathRebindApproval: (
+      approvalId: string,
+      objectId: string,
+      shop: GameShop
+    ) => Promise<ConfirmCloudSaveCustomPathRebindApprovalResult>;
+    getPendingCloudSaveCustomPathApproval: (
+      objectId: string,
+      shop: GameShop
+    ) => Promise<CloudSaveCustomPathApproval | null>;
+    selectCloudSaveCustomPathApproval: (
+      approvalId: string,
+      selectedPath?: string
+    ) => Promise<SelectCloudSaveCustomPathApprovalResult>;
+    confirmCloudSaveCustomPathApproval: (
+      approvalId: string
+    ) => Promise<ConfirmCloudSaveCustomPathApprovalResult>;
+    dismissCloudSaveCustomPathApproval: (approvalId: string) => Promise<void>;
+    removeCloudSaveCustomPath: (
+      objectId: string,
+      shop: GameShop,
+      rawPath: string
+    ) => Promise<void>;
+    setCloudSaveAutomaticSyncEnabled: (
+      objectId: string,
+      shop: GameShop,
+      enabled: boolean
+    ) => Promise<boolean>;
+    syncCloudSaveOnGamePage: (
+      objectId: string,
+      shop: GameShop
+    ) => Promise<SyncCloudSaveOnGamePageResult>;
+    syncGameCloudSave: (
+      objectId: string,
+      shop: GameShop,
+      onProgress?: (progress: CloudSaveSyncProgressPayload) => void
+    ) => Promise<SyncGameCloudSaveResult>;
+    syncGameCloudSaveFromModal: (
+      objectId: string,
+      shop: GameShop,
+      approvalId: string | null,
+      onProgress?: (progress: CloudSaveSyncProgressPayload) => void
+    ) => Promise<CloudSaveModalSyncResult>;
+    syncCloudSaveAfterCustomPathRebind: (
+      objectId: string,
+      shop: GameShop,
+      rawPath: string,
+      onProgress?: (progress: CloudSaveSyncProgressPayload) => void
+    ) => Promise<SyncGameCloudSaveResult>;
+    resolveCloudSaveConflict: (
+      objectId: string,
+      shop: GameShop,
+      resolution: CloudSaveConflictResolution,
+      onProgress?: (progress: CloudSaveSyncProgressPayload) => void
+    ) => Promise<SyncGameCloudSaveResult>;
     /* Torrenting */
     startGameDownload: (
       payload: StartGameDownloadPayload
@@ -357,9 +470,7 @@ declare global {
         removeDiscPath?: string;
       }
     ) => Promise<LibraryGame>;
-    getEmulatorRomExtensions: (
-      system: "ps1" | "ps2" | "ps3"
-    ) => Promise<string[]>;
+    getEmulatorRomExtensions: (system: EmulatorSystem) => Promise<string[]>;
     closeGame: (shop: GameShop, objectId: string) => Promise<boolean>;
     removeGameFromLibrary: (shop: GameShop, objectId: string) => Promise<void>;
     removeGame: (shop: GameShop, objectId: string) => Promise<void>;
@@ -463,7 +574,7 @@ declare global {
     setEmulatorExecutablePath: (
       system: EmulatorSystem,
       executablePath: string | null
-    ) => Promise<EmulatorConfig>;
+    ) => Promise<EmulatorConfig | null>;
     setEmulatorBiosPath: (
       system: EmulatorSystem,
       biosPath: string | null
@@ -473,6 +584,11 @@ declare global {
       folderPath: string,
       scanSubfolders: boolean,
       language?: string
+    ) => Promise<EmulatorConfig>;
+    registerRomFolder: (
+      system: EmulatorSystem,
+      folderPath: string,
+      scanSubfolders: boolean
     ) => Promise<EmulatorConfig>;
     removeRomFolder: (
       system: EmulatorSystem,
@@ -506,12 +622,106 @@ declare global {
     onEmulatorInstallProgress: (
       cb: (payload: EmulatorInstallProgress) => void
     ) => () => void;
-    startRomScan: (
+    /* RetroArch */
+    getRetroArchConfig: () => Promise<RetroArchConfig>;
+    detectRetroArch: () => Promise<RetroArchConfig>;
+    previewRetroArchExecutable: (
+      executablePath?: string | null
+    ) => Promise<RetroArchExecutablePreview | null>;
+    setRetroArchExecutablePath: (
+      executablePath: string | null
+    ) => Promise<RetroArchConfig | null>;
+    setRetroArchCoresDir: (coresDir: string | null) => Promise<RetroArchConfig>;
+    getRetroArchInstallOptions: () => Promise<RetroArchInstallOption[]>;
+    installRetroArch: (optionId: string) => Promise<RetroArchInstallResult>;
+    installRetroArchCore: (
+      core: RetroArchCoreName
+    ) => Promise<RetroArchCoreInstallResult>;
+    installAllRetroArchCores: () => Promise<RetroArchCoreInstallResult[]>;
+    onRetroArchCoreInstallProgress: (
+      cb: (payload: RetroArchCoreInstallProgress) => void
+    ) => () => void;
+    onRetroArchInstallProgress: (
+      cb: (payload: RetroArchInstallProgress) => void
+    ) => () => void;
+    importRetroArchRoms: (
+      folders: { path: string; scanSubfolders: boolean }[],
+      language: string
+    ) => Promise<{ requestId: string }>;
+    cancelRetroArchImport: (requestId: string) => Promise<void>;
+    rescanRetroArch: (language?: string) => Promise<RetroArchConfig>;
+    listRetroArchRoms: () => Promise<
+      (DetectedRom & { platform: RetroArchPlatform })[]
+    >;
+    getActiveRetroArchImport: () => Promise<{
+      requestId: string;
+      phase: "scanning" | "matching" | "done";
+      processed: number;
+      total: number;
+      percent: number;
+      currentFile: string | null;
+      status: "matched" | "unmatched" | null;
+      discovered: number;
+      matched: number;
+      sizeBytes: number;
+    } | null>;
+    onRetroArchImportProgress: (
+      cb: (
+        payload:
+          | {
+              type: "progress";
+              requestId: string;
+              phase: "scanning" | "matching";
+              processed: number;
+              total: number;
+              percent: number;
+              currentFile: string | null;
+              status: "matched" | "unmatched" | null;
+              discovered: number;
+              matched: number;
+              sizeBytes: number;
+            }
+          | {
+              type: "done" | "cancelled";
+              requestId: string;
+              fileCount: number;
+              sizeBytes: number;
+              matched: number;
+              unmatched: number;
+              unmatchedFiles: { name: string; reason: "unmatched" }[];
+            }
+          | {
+              type: "error";
+              requestId: string;
+              message: string;
+            }
+      ) => void
+    ) => () => void;
+    onRetroArchImportStatus: (cb: (importing: boolean) => void) => () => void;
+    previewRetroArchRomFolder: (
+      folderPath: string,
+      scanSubfolders: boolean
+    ) => Promise<{ fileCount: number }>;
+    checkRetroArchExecutable: () => Promise<{ exists: boolean }>;
+    removeRetroArch: () => Promise<RetroArchConfig>;
+    addRetroArchRomFolder: (
+      folderPath: string,
+      scanSubfolders: boolean
+    ) => Promise<RetroArchConfig>;
+    changeRetroArchRomFolder: (
+      folderId: string,
+      newPath: string
+    ) => Promise<RetroArchConfig>;
+    removeRetroArchRomFolder: (folderId: string) => Promise<RetroArchConfig>;
+    toggleRetroArchSubfolders: (
+      folderId: string,
+      scanSubfolders: boolean
+    ) => Promise<RetroArchConfig>;
+    previewRomFolder: (
       system: EmulatorSystem,
       folderPath: string,
       scanSubfolders: boolean
-    ) => Promise<{ requestId: string }>;
-    cancelRomScan: (requestId: string) => Promise<void>;
+    ) => Promise<{ fileCount: number; sizeBytes: number }>;
     getEmulatorRomPaths: (system: EmulatorSystem) => Promise<string[]>;
     addEmulatorRomPath: (
       system: EmulatorSystem,
@@ -526,21 +736,6 @@ declare global {
     checkEmulatorExecutable: (
       system: EmulatorSystem
     ) => Promise<{ exists: boolean }>;
-    onRomScanProgress: (
-      requestId: string,
-      cb: (
-        payload:
-          | {
-              type: "progress";
-              processed: number;
-              total: number;
-              currentFile: string | null;
-            }
-          | { type: "done"; fileCount: number; sizeBytes: number }
-          | { type: "cancelled"; fileCount: number; sizeBytes: number }
-          | { type: "error"; message: string }
-      ) => void
-    ) => () => Electron.IpcRenderer;
     importLaunchboxRoms: (
       system: EmulatorSystem,
       folders: { path: string; scanSubfolders: boolean }[],
@@ -590,6 +785,10 @@ declare global {
       cardFilePath: string,
       folderName: string
     ) => Promise<EmulationCloudSave>;
+    uploadWiiEmulationSave: (
+      dataBinPath: string,
+      objectId: string
+    ) => Promise<EmulationCloudSave>;
     uploadEmulationSavesForCard: (
       platform: EmulationSavePlatform,
       cardFilePath: string
@@ -602,8 +801,12 @@ declare global {
       platform: EmulationSavePlatform,
       objectId?: string | null
     ) => Promise<EmulationCloudSave[]>;
-    getMemcardRestoreTargets: (
+    listLocalEmulationSaves: (
       platform: EmulationSavePlatform
+    ) => Promise<Ps2MemoryCardSaveRecord[]>;
+    getMemcardRestoreTargets: (
+      platform: EmulationSavePlatform,
+      metadata?: EmulationSaveMetadata | Record<string, unknown> | null
     ) => Promise<MemcardRestoreTarget[]>;
     inspectMemcard: (
       platform: EmulationSavePlatform,
@@ -612,7 +815,9 @@ declare global {
     restoreEmulationSave: (
       platform: EmulationSavePlatform,
       saveId: string,
-      targetCardFilePath: string
+      targetCardFilePath: string,
+      metadata?: EmulationSaveMetadata | Record<string, unknown> | null,
+      sourceFileName?: string
     ) => Promise<MemcardRestoreResult>;
     deleteEmulationSave: (saveId: string) => Promise<void>;
     updateEmulationSaveLabel: (
@@ -629,11 +834,35 @@ declare global {
     extractGameDownload: (shop: GameShop, objectId: string) => Promise<boolean>;
     scanInstalledGames: (
       additionalDirectories?: string[],
-      includeDefaultDirectories?: boolean
+      includeDefaultDirectories?: boolean,
+      addGamesToLibrary?: boolean,
+      requestId?: string
     ) => Promise<{
-      foundGames: { title: string; executablePath: string }[];
+      linkedGames: {
+        title: string;
+        executablePath: string;
+        iconUrl: string | null;
+      }[];
+      addedGames: {
+        title: string;
+        executablePath: string;
+        iconUrl: string | null;
+      }[];
+      ambiguousMatches: {
+        executablePath: string;
+        choices: { objectId: string; title: string; iconUrl: string | null }[];
+      }[];
       total: number;
     }>;
+    cancelScanInstalledGames: (requestId: string) => Promise<void>;
+    addScannedGame: (
+      objectId: string,
+      executablePath: string
+    ) => Promise<{
+      title: string;
+      executablePath: string;
+      iconUrl: string | null;
+    } | null>;
     onExtractionComplete: (
       cb: (shop: GameShop, objectId: string) => void
     ) => () => Electron.IpcRenderer;
@@ -673,7 +902,7 @@ declare global {
     getDownloadSourcesSinceValue: () => Promise<string | null>;
 
     /* Hardware */
-    getDiskFreeSpace: (path: string) => Promise<DiskUsage>;
+    getDiskFreeSpace: (path: string) => Promise<DiskUsage | null>;
     checkFolderWritePermission: (path: string) => Promise<boolean>;
     getNetworkInterfaces: () => Promise<NetworkInterface[]>;
 
@@ -688,6 +917,12 @@ declare global {
       shop: GameShop,
       gameArtifactId: string
     ) => Promise<void>;
+    exportGameArtifact: (
+      gameArtifactId: string,
+      suggestedName: string,
+      onProgress?: (progress: LegacySaveExportProgress) => void
+    ) => Promise<LegacySaveExportResult>;
+    cancelGameArtifactExport: () => Promise<boolean>;
     getGameArtifacts: (
       objectId: string,
       shop: GameShop
@@ -724,13 +959,29 @@ declare global {
 
     /* Misc */
     openExternal: (src: string) => Promise<void>;
-    openCheckout: () => Promise<void>;
+    openCheckout: (options?: OpenCheckoutOptions) => Promise<void>;
     getCloudIframeUrl: () => Promise<string>;
     getVersion: () => Promise<string>;
+    getAppSessionId: () => Promise<string>;
     isStaging: () => Promise<boolean>;
     ping: () => string;
     getDefaultDownloadsPath: () => Promise<string>;
-    isPortableVersion: () => Promise<boolean>;
+    getScreenshotsPath: () => Promise<string>;
+    getAchievementSouvenirSyncStatus: () => Promise<AchievementSouvenirSyncStatus>;
+    getAchievementSouvenirSyncDetails: () => Promise<AchievementSouvenirSyncDetails>;
+    retryAchievementSouvenirSync: () => Promise<AchievementSouvenirSyncRetryResult>;
+    cleanupAchievementSouvenirSync: () => Promise<AchievementSouvenirSyncCleanupResult>;
+    onAchievementSouvenirSyncStatus: (
+      cb: (status: AchievementSouvenirSyncStatus) => void
+    ) => () => Electron.IpcRenderer;
+    onAchievementSouvenirSyncCompleted: (
+      cb: (syncedCount: number) => void
+    ) => () => Electron.IpcRenderer;
+    onAchievementSouvenirScreenshotsMissing: (
+      cb: (count: number) => void
+    ) => () => Electron.IpcRenderer;
+    openFolder: (folderPath: string) => Promise<string>;
+    isPortableVersion: boolean;
     showOpenDialog: (
       options: Electron.OpenDialogOptions
     ) => Promise<Electron.OpenDialogReturnValue>;
@@ -739,7 +990,7 @@ declare global {
     listDrives: () => Promise<string[]>;
     showItemInFolder: (path: string) => Promise<void>;
     getImageDataUrl: (imageUrl: string) => Promise<string | null>;
-    getProcessedFriendImage: (
+    getProcessedImage: (
       imageUrl: string | null,
       options: { width: number; height: number; preserveAnimation?: boolean }
     ) => Promise<string | null>;
@@ -761,6 +1012,15 @@ declare global {
           needsSubscription?: boolean;
         }
       ) => Promise<T>;
+      postResponse: <T = unknown>(
+        url: string,
+        options?: {
+          data?: unknown;
+          needsAuth?: boolean;
+          needsSubscription?: boolean;
+          acceptedStatuses?: number[];
+        }
+      ) => Promise<{ status: number; data: T }>;
       put: <T = unknown>(
         url: string,
         options?: {
@@ -808,6 +1068,9 @@ declare global {
     onPreflightProgress: (
       cb: (value: { status: string; detail: string | null }) => void
     ) => () => Electron.IpcRenderer;
+    onGameLauncherStatus: (
+      cb: (value: GameLauncherStatusPayload) => void
+    ) => () => Electron.IpcRenderer;
     resetCommonRedistPreflight: () => Promise<void>;
     saveTempFile: (fileName: string, fileData: Uint8Array) => Promise<string>;
     deleteTempFile: (filePath: string) => Promise<void>;
@@ -842,12 +1105,17 @@ declare global {
       objectId: string,
       shop: GameShop
     ) => Promise<UserAchievement[]>;
+    deleteAchievementSouvenir: (payload: {
+      souvenirId: string;
+    }) => Promise<void>;
     getRetroAchievementsAchievements: (
       objectId: string,
       shop: GameShop,
       raGameId?: number
     ) => Promise<UserAchievement[] | null>;
-    resetRetroAchievementsAchievements: () => Promise<void>;
+    resetRetroAchievementsAchievements: (
+      pendingSouvenirsOnly?: boolean
+    ) => Promise<void>;
 
     /* Profile */
     getMe: () => Promise<UserDetails | null>;
@@ -879,6 +1147,10 @@ declare global {
     onSyncNotificationCount: (
       cb: (notification: NotificationSync) => void
     ) => () => Electron.IpcRenderer;
+    onCloudGiftResolved: (
+      cb: (giftId: string) => void
+    ) => () => Electron.IpcRenderer;
+    notifyCloudGiftResolved: (giftId: string) => Promise<void>;
     syncFriendRequests: (friendRequestCount: number) => Promise<void>;
 
     /* Notifications */

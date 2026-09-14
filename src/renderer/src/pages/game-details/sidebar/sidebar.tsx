@@ -153,7 +153,10 @@ export function Sidebar() {
           }
         )
         .then((howLongToBeatData) => {
-          setHowLongToBeat({ isLoading: false, data: howLongToBeatData });
+          setHowLongToBeat({
+            isLoading: false,
+            data: Array.isArray(howLongToBeatData) ? howLongToBeatData : null,
+          });
         })
         .catch(() => {
           setHowLongToBeat({ isLoading: false, data: null });

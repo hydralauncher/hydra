@@ -1,24 +1,42 @@
 import type { ChildProcess } from "node:child_process";
 
 import { gamesSublevel, levelKeys } from "@main/level";
-import type { EmulatorSystem, Game, GameShop } from "@types";
+import { EMULATOR_SYSTEMS } from "@shared";
+import type { EmulatorSystem, Game, GameShop, RetroArchPlatform } from "@types";
 
 import { trackGamePlaytime } from "../library-sync";
 import { logger } from "../logger";
 import { syncRetroAchievements } from "../retro-achievements/retro-achievements-sync";
+import {
+  startEmulatorSouvenirWatcher,
+  stopEmulatorSouvenirWatcher,
+} from "./emulator-souvenir-watcher";
 import { WindowManager } from "../window-manager";
 import { readEmulatorPlaytimeSeconds } from "./playtime-files";
+import { stopLinuxGameCaptureSession } from "../linux-game-capture-session";
+import {
+  cleanupEmulatorSouvenirSession,
+  type EmulatorSouvenirSession,
+} from "./emulator-souvenir-config";
+
+export type EmulatorSessionSystem = EmulatorSystem | RetroArchPlatform;
+
+const isEmulatorSystem = (
+  system: EmulatorSessionSystem
+): system is EmulatorSystem =>
+  EMULATOR_SYSTEMS.includes(system as EmulatorSystem);
 
 export interface EmulatorSession {
   shop: GameShop;
   objectId: string;
-  system: EmulatorSystem;
+  system: EmulatorSessionSystem;
   executablePath: string;
   sku: string | null;
   beforeTotalSeconds: number | null;
   startedAt: number;
   heartbeat: ReturnType<typeof setInterval> | null;
   child: ChildProcess;
+  souvenirSession: EmulatorSouvenirSession | null;
 }
 
 export const emulatorSessions = new Map<string, EmulatorSession>();
@@ -36,10 +54,11 @@ const sendPresencePing = async (gameKey: string): Promise<void> => {
 
 interface StartEmulatorSessionOptions {
   game: Game;
-  system: EmulatorSystem;
+  system: EmulatorSessionSystem;
   executablePath: string;
   sku: string | null;
   child: ChildProcess;
+  souvenirSession?: EmulatorSouvenirSession | null;
 }
 
 export const startEmulatorSession = async ({
@@ -48,12 +67,14 @@ export const startEmulatorSession = async ({
   executablePath,
   sku,
   child,
+  souvenirSession = null,
 }: StartEmulatorSessionOptions): Promise<void> => {
   const gameKey = levelKeys.game(game.shop, game.objectId);
 
-  const before = sku
-    ? await readEmulatorPlaytimeSeconds(system, executablePath, sku)
-    : null;
+  const before =
+    sku && isEmulatorSystem(system)
+      ? await readEmulatorPlaytimeSeconds(system, executablePath, sku)
+      : null;
 
   const session: EmulatorSession = {
     shop: game.shop,
@@ -65,6 +86,7 @@ export const startEmulatorSession = async ({
     startedAt: performance.now(),
     heartbeat: null,
     child,
+    souvenirSession,
   };
 
   emulatorSessions.set(gameKey, session);
@@ -77,8 +99,36 @@ export const startEmulatorSession = async ({
     session.heartbeat.unref?.();
   }
 
+  if (game.shop === "launchbox") {
+    const souvenirWatcherToken = {};
+
+    void startEmulatorSouvenirWatcher({
+      gameKey,
+      game,
+      system,
+      executablePath,
+      processId: child.pid ?? 0,
+      watcherToken: souvenirWatcherToken,
+      logPath: souvenirSession?.logPath ?? undefined,
+      logOffset: souvenirSession?.logOffset ?? undefined,
+      screenshotDirectories: souvenirSession
+        ? [souvenirSession.screenshotDirectory].filter(
+            (directory): directory is string => !!directory
+          )
+        : undefined,
+    })
+      .then(() => {
+        if (emulatorSessions.get(gameKey) !== session) {
+          stopEmulatorSouvenirWatcher(gameKey, souvenirWatcherToken);
+        }
+      })
+      .catch((error) => {
+        logger.error("Failed to start emulator souvenir watcher", error);
+      });
+  }
+
   const finalize = () => {
-    if (!emulatorSessions.has(gameKey)) return;
+    if (emulatorSessions.get(gameKey) !== session) return;
     void finalizeEmulatorSession(gameKey);
   };
 
@@ -114,17 +164,28 @@ export const closeEmulatorSession = (gameKey: string): boolean => {
   return true;
 };
 
+export const stopAllEmulatorSouvenirCaptureSessions = async () => {
+  for (const [gameKey, session] of emulatorSessions) {
+    stopEmulatorSouvenirWatcher(gameKey);
+    await cleanupEmulatorSouvenirSession(session.souvenirSession);
+    session.souvenirSession = null;
+  }
+};
+
 const finalizeEmulatorSession = async (gameKey: string): Promise<void> => {
   const session = emulatorSessions.get(gameKey);
   if (!session) return;
   emulatorSessions.delete(gameKey);
+  stopLinuxGameCaptureSession(gameKey);
   if (session.heartbeat) clearInterval(session.heartbeat);
+  stopEmulatorSouvenirWatcher(gameKey);
+  await cleanupEmulatorSouvenirSession(session.souvenirSession);
 
   const game = await gamesSublevel.get(gameKey);
   if (!game) return;
 
   let deltaSeconds = 0;
-  if (session.sku) {
+  if (session.sku && isEmulatorSystem(session.system)) {
     const after = await readEmulatorPlaytimeSeconds(
       session.system,
       session.executablePath,

@@ -14,6 +14,9 @@ import type {
 import { isGamemodeAvailable } from "./is-gamemode-available";
 import { isMangohudAvailable } from "./is-mangohud-available";
 import { resolveLaunchCommand } from "./resolve-launch-command";
+import { spawnDetachedEmulator } from "./spawn-detached-emulator";
+import { prepareEmulatorSouvenirs } from "@main/services/emulators/prepare-emulator-souvenirs";
+import { cleanupEmulatorSouvenirSession } from "@main/services/emulators/emulator-souvenir-config";
 
 export class EmulatorNotConfiguredError extends Error {
   code = "EMULATOR_NOT_CONFIGURED" as const;
@@ -128,6 +131,10 @@ const buildEmulatorArgs = (
       return ["-batch", "-fullscreen", "--", discPath];
     case "rpcs3":
       return ["--no-gui", discPath];
+    case "ppsspp":
+      return ["--pause-menu-exit", "--fullscreen", discPath];
+    case "dolphin":
+      return ["--batch", "--exec", discPath];
   }
 };
 
@@ -153,7 +160,7 @@ const assertBiosInstalled = async (
   }
 };
 
-const resolveEmulatorWrappers = (
+export const resolveEmulatorWrappers = (
   preferences: UserPreferences | null,
   game: Game | undefined
 ): string[] => {
@@ -233,7 +240,13 @@ export const launchClassicsGame = async (
     });
   }
 
-  const baseArgs = buildEmulatorArgs(config.binary, bootTarget);
+  const souvenirSession = game
+    ? await prepareEmulatorSouvenirs(system, executableTarget)
+    : null;
+  const baseArgs = [
+    ...(souvenirSession?.launchArguments ?? []),
+    ...buildEmulatorArgs(config.binary, bootTarget),
+  ];
 
   const resolvedLaunchCommand = resolveLaunchCommand({
     baseCommand: executableTarget,
@@ -244,34 +257,14 @@ export const launchClassicsGame = async (
 
   const workingDirectory = path.dirname(executableTarget);
 
-  try {
-    const processRef = spawn(
-      resolvedLaunchCommand.command,
-      resolvedLaunchCommand.args,
-      {
-        shell: false,
-        detached: true,
-        stdio: "ignore",
-        cwd: workingDirectory,
-        env: {
-          ...process.env,
-          ...resolvedLaunchCommand.env,
-        },
-      }
-    );
+  let sessionStarted = false;
 
-    await new Promise<void>((resolve, reject) => {
-      const onSpawn = () => {
-        processRef.off("error", onError);
-        resolve();
-      };
-      const onError = () => {
-        processRef.off("spawn", onSpawn);
-        reject(new EmulatorNotConfiguredError(system));
-      };
-      processRef.once("spawn", onSpawn);
-      processRef.once("error", onError);
-    });
+  try {
+    const processRef = await spawnDetachedEmulator(
+      resolvedLaunchCommand,
+      workingDirectory,
+      () => new EmulatorNotConfiguredError(system)
+    );
 
     if (game) {
       await emulators.startEmulatorSession({
@@ -280,11 +273,16 @@ export const launchClassicsGame = async (
         executablePath: config.executablePath,
         sku: selectedDisc?.sku ?? null,
         child: processRef,
+        souvenirSession,
       });
+      sessionStarted = true;
     }
 
     processRef.unref();
   } catch (error) {
+    if (!sessionStarted) {
+      await cleanupEmulatorSouvenirSession(souvenirSession);
+    }
     logger.error("Failed to spawn classics emulator", error);
     throw error;
   }

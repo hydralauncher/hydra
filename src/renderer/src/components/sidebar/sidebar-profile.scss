@@ -85,7 +85,7 @@
       0 2px 5px rgba(0, 0, 0, 0.45),
       inset 0 0 0 1px rgba(255, 255, 255, 0.12);
     transform-origin: center;
-    animation: sidebar-profile-classic-disc-spin 4s linear infinite;
+    animation: sidebar-profile-classic-disc-spin 8s linear infinite;
     will-change: transform;
   }
 
@@ -123,7 +123,7 @@
     backdrop-filter: blur(20px);
     border: 1px solid rgba(255, 255, 255, 0.08);
     border-radius: 6px;
-    padding: calc(globals.$spacing-unit / 2) 0;
+    padding: calc(globals.$spacing-unit / 2);
     z-index: 100;
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
     will-change: transform, opacity;
@@ -141,20 +141,24 @@
     align-items: center;
     gap: calc(globals.$spacing-unit + globals.$spacing-unit / 2);
     width: 100%;
-    padding: calc(globals.$spacing-unit * 1.25) calc(globals.$spacing-unit * 2);
+    padding: calc(globals.$spacing-unit * 1.25)
+      calc(globals.$spacing-unit * 1.5);
+    border-radius: 4px;
     color: globals.$muted-color;
     cursor: pointer;
     transition: background-color ease 0.1s;
     font-size: globals.$body-font-size;
 
     &:hover {
-      background-color: rgba(255, 255, 255, 0.08);
+      background-color: rgba(255, 255, 255, 0.15);
       color: globals.$body-color;
     }
 
     &--danger {
+      color: globals.$error-color;
+
       &:hover {
-        background-color: rgba(255, 255, 255, 0.08);
+        background-color: rgba(225, 29, 72, 0.18);
         color: globals.$error-color;
       }
     }

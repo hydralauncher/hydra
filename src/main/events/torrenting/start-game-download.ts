@@ -8,6 +8,7 @@ import {
 } from "@main/services";
 import { createGame } from "@main/services/library-sync";
 import { downloadsSublevel, gamesSublevel, levelKeys } from "@main/level";
+import { parseBytes } from "@shared";
 import {
   getGlobalTrackers,
   handleDownloadError,
@@ -28,10 +29,12 @@ const startGameDownload = async (
     uri,
     automaticallyExtract,
     automaticallyDeleteArchiveFiles,
+    fileSize,
     fileIndices,
     selectedFilesSize,
   } = payload;
 
+  const parsedFileSize = parseBytes(fileSize ?? null);
   const gameKey = levelKeys.game(shop, objectId);
 
   logger.log(
@@ -62,7 +65,7 @@ const startGameDownload = async (
       automaticallyDeleteArchiveFiles,
       fileIndices,
       selectedFilesSize,
-      fileSize: selectedFilesSize ?? null,
+      fileSize: selectedFilesSize ?? parsedFileSize,
       customTrackers: globalTrackers,
     };
     await DownloadManager.validateDownloadUrl(download);

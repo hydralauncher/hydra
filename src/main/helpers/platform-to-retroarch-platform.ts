@@ -1,0 +1,1 @@
+export { platformToRetroArchPlatform } from "@shared";

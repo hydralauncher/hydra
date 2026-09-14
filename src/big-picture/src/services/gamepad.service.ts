@@ -1,6 +1,6 @@
 import {
   GAMEPAD_REPEAT_INITIAL_DELAY,
-  getAcceleratedGamepadRepeatInterval,
+  getGamepadRepeatInterval,
   GamepadLayout,
   getGamepadLayout,
 } from "../helpers";
@@ -585,15 +585,13 @@ export class GamepadService {
       button: type,
     };
     const timers = this.getButtonRepeatTimers(gamepadIndex);
-    let repeatCount = 0;
 
     const scheduleRepeat = (callback: () => void) => {
       const timer = globalThis.window.setTimeout(
         callback,
-        getAcceleratedGamepadRepeatInterval(repeatCount)
+        getGamepadRepeatInterval()
       );
 
-      repeatCount += 1;
       timers.set(type, timer);
     };
 
@@ -1050,15 +1048,11 @@ export class GamepadService {
       side,
       direction,
     };
-    let repeatCount = 0;
-
     const scheduleRepeat = (callback: () => void) => {
       stickState.repeatTimer = globalThis.window.setTimeout(
         callback,
-        getAcceleratedGamepadRepeatInterval(repeatCount)
+        getGamepadRepeatInterval()
       );
-
-      repeatCount += 1;
     };
 
     const repeat = () => {

@@ -1,3 +1,20 @@
+mod active_window;
+mod cloud_save;
+mod constants;
+
+pub use cloud_save::hashing::{build_snapshot_aggregate_hash, hash_local_save_file};
+pub use cloud_save::local_snapshot::build_local_game_snapshot;
+pub use cloud_save::manifest::get_save_rules_for_game;
+pub use cloud_save::path_resolution::resolve_save_rules;
+pub use cloud_save::pipeline::build_local_game_snapshot_pipeline;
+pub use cloud_save::restore::{
+    cleanup_restore_temp_snapshot, delete_local_save_targets, download_restore_blob_to_temp,
+    replace_restore_targets, resolve_restore_targets, should_skip_restore_file,
+    verify_downloaded_restore_file,
+};
+pub use cloud_save::save_scanner::scan_resolved_save_rules;
+pub use cloud_save::upload::upload_local_save_blob;
+
 use std::fs::File;
 use std::io::{BufReader, BufWriter};
 use std::path::{Path, PathBuf};
@@ -20,7 +37,7 @@ pub struct ProcessedImageData {
 }
 
 #[napi(object)]
-pub struct ProcessedFriendImageData {
+pub struct ProcessedSizedImageData {
     pub image_path: String,
     pub mime_type: String,
     pub is_animated: bool,
@@ -30,9 +47,24 @@ pub struct ProcessedFriendImageData {
 pub struct NativeProcessPayload {
     pub exe: Option<String>,
     pub pid: u32,
+    pub parent_pid: Option<u32>,
     pub name: String,
     pub environ: Option<HashMap<String, String>>,
     pub cwd: Option<String>,
+}
+
+#[napi(object)]
+pub struct NativeActiveWindow {
+    pub window_id: String,
+    pub process_id: Option<u32>,
+}
+
+#[napi]
+pub fn get_linux_active_window() -> Option<NativeActiveWindow> {
+    active_window::get_active_window().map(|(window_id, process_id)| NativeActiveWindow {
+        window_id: window_id.to_string(),
+        process_id,
+    })
 }
 
 #[napi]
@@ -81,15 +113,15 @@ pub fn process_profile_image(
 }
 
 #[napi]
-pub async fn process_friend_image(
+pub async fn process_image(
     image_path: String,
     output_path_base: String,
     width: u32,
     height: u32,
     preserve_animation: bool,
-) -> napi::Result<ProcessedFriendImageData> {
+) -> napi::Result<ProcessedSizedImageData> {
     tokio::task::spawn_blocking(move || {
-        process_friend_image_sync(
+        process_image_sync(
             image_path,
             output_path_base,
             width,
@@ -101,13 +133,13 @@ pub async fn process_friend_image(
     .map_err(|err| Error::from_reason(err.to_string()))?
 }
 
-fn process_friend_image_sync(
+fn process_image_sync(
     image_path: String,
     output_path_base: String,
     width: u32,
     height: u32,
     preserve_animation: bool,
-) -> napi::Result<ProcessedFriendImageData> {
+) -> napi::Result<ProcessedSizedImageData> {
     if width == 0 || height == 0 {
         return Err(Error::from_reason("Invalid output dimensions"));
     }
@@ -125,7 +157,7 @@ fn process_friend_image_sync(
         let output_path = with_extension(&output_path_base, "gif");
         resize_animated_image(&input_path, format, &output_path, width, height)?;
 
-        return Ok(ProcessedFriendImageData {
+        return Ok(ProcessedSizedImageData {
             image_path: output_path.to_string_lossy().to_string(),
             mime_type: "image/gif".to_string(),
             is_animated: true,
@@ -135,7 +167,7 @@ fn process_friend_image_sync(
     let output_path = with_extension(&output_path_base, "webp");
     resize_static_image(&input_path, &output_path, width, height)?;
 
-    Ok(ProcessedFriendImageData {
+    Ok(ProcessedSizedImageData {
         image_path: output_path.to_string_lossy().to_string(),
         mime_type: "image/webp".to_string(),
         is_animated: false,
@@ -158,6 +190,7 @@ pub fn list_processes() -> Vec<NativeProcessPayload> {
                     .exe()
                     .map(|value| value.to_string_lossy().to_string()),
                 pid: process.pid().as_u32(),
+                parent_pid: process.parent().map(|pid| pid.as_u32()),
                 name: process.name().to_string_lossy().to_string(),
                 cwd: if include_linux_extras {
                     process
@@ -297,7 +330,8 @@ fn encode_animation_frames_to_gif<I>(
 where
     I: IntoIterator<Item = ImageResult<Frame>>,
 {
-    let output_file = File::create(output_path).map_err(|err| Error::from_reason(err.to_string()))?;
+    let output_file =
+        File::create(output_path).map_err(|err| Error::from_reason(err.to_string()))?;
     let mut encoder = GifEncoder::new(BufWriter::new(output_file));
     encoder
         .set_repeat(Repeat::Infinite)
@@ -350,12 +384,7 @@ fn resize_cover_rgba(image: &RgbaImage, width: u32, height: u32) -> napi::Result
 
     let resized_width = ((source_width as f32 * scale).ceil() as u32).max(width);
     let resized_height = ((source_height as f32 * scale).ceil() as u32).max(height);
-    let resized = resize(
-        image,
-        resized_width,
-        resized_height,
-        FilterType::Lanczos3,
-    );
+    let resized = resize(image, resized_width, resized_height, FilterType::Lanczos3);
 
     let left = (resized_width.saturating_sub(width)) / 2;
     let top = (resized_height.saturating_sub(height)) / 2;

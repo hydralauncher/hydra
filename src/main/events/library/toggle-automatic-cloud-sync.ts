@@ -1,5 +1,5 @@
 import { registerEvent } from "../register-event";
-import { levelKeys, gamesSublevel } from "@main/level";
+import { setLegacyCloudSaveAutomaticSyncEnabled } from "@main/services/cloud-save";
 import type { GameShop } from "@types";
 
 const toggleAutomaticCloudSync = async (
@@ -8,16 +8,11 @@ const toggleAutomaticCloudSync = async (
   objectId: string,
   automaticCloudSync: boolean
 ) => {
-  const gameKey = levelKeys.game(shop, objectId);
-
-  const game = await gamesSublevel.get(gameKey);
-
-  if (!game) return;
-
-  await gamesSublevel.put(gameKey, {
-    ...game,
-    automaticCloudSync,
-  });
+  return setLegacyCloudSaveAutomaticSyncEnabled(
+    objectId,
+    shop,
+    automaticCloudSync
+  );
 };
 
 registerEvent("toggleAutomaticCloudSync", toggleAutomaticCloudSync);

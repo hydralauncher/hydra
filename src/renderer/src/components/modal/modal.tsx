@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useId, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { XIcon } from "@primer/octicons-react";
 
@@ -11,12 +11,14 @@ import cn from "classnames";
 export interface ModalProps {
   visible: boolean;
   title: React.ReactNode;
-  description?: string;
+  description?: React.ReactNode;
   onClose: () => void;
+  onCloseStart?: () => void;
   large?: boolean;
   noContentPadding?: boolean;
   children: React.ReactNode;
   clickOutsideToClose?: boolean;
+  className?: string;
 }
 
 export function Modal({
@@ -24,17 +26,21 @@ export function Modal({
   title,
   description,
   onClose,
+  onCloseStart,
   large,
   noContentPadding,
   children,
   clickOutsideToClose = true,
+  className,
 }: ModalProps) {
   const [isClosing, setIsClosing] = useState(false);
   const modalContentRef = useRef<HTMLDivElement | null>(null);
+  const descriptionId = useId();
 
   const { t } = useTranslation("modal");
 
   const handleCloseClick = useCallback(() => {
+    onCloseStart?.();
     setIsClosing(true);
     const zero = performance.now();
 
@@ -46,7 +52,7 @@ export function Modal({
         setIsClosing(false);
       }
     });
-  }, [onClose]);
+  }, [onClose, onCloseStart]);
 
   const isTopMostModal = () => {
     if (
@@ -121,19 +127,23 @@ export function Modal({
   return createPortal(
     <Backdrop isClosing={isClosing}>
       <div
-        className={cn("modal", {
-          "modal--closing": isClosing,
-          "modal--large": large,
-        })}
+        className={cn(
+          "modal",
+          {
+            "modal--closing": isClosing,
+            "modal--large": large,
+          },
+          className
+        )}
         role="dialog"
-        aria-describedby={description}
+        aria-describedby={description ? descriptionId : undefined}
         ref={modalContentRef}
         data-hydra-dialog
       >
         <div className="modal__header">
           <div className="modal__header-title">
             <h3>{title}</h3>
-            {description && <p>{description}</p>}
+            {description && <p id={descriptionId}>{description}</p>}
           </div>
 
           <button

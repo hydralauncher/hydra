@@ -11,6 +11,7 @@ import { useTranslation } from "react-i18next";
 
 import {
   Button,
+  Checkbox,
   DropdownSelect,
   type DropdownSelectOption,
 } from "../../components";
@@ -23,7 +24,9 @@ import {
 import type { FocusOverrides } from "../../services";
 import {
   ACCOUNT_PRIVACY_HYDRA_CLOUD_BUTTON_ID,
+  ACCOUNT_PRIVACY_CLOUD_GIFTS_CHECKBOX_ID,
   ACCOUNT_PRIVACY_PRIVACY_SELECT_ID,
+  ACCOUNT_PRIVACY_SOUVENIRS_SELECT_ID,
   getAccountPrivacyBlockedUserButtonFocusId,
   SETTINGS_HEADER_RETURN_TARGET,
 } from "./settings-navigation";
@@ -37,14 +40,17 @@ const SETTINGS_TOAST_OPTIONS = {
   fallbackVisual: "settings" as const,
 };
 
-function getProfileVisibilityLabel(value: ProfileVisibility) {
+function getProfileVisibilityLabel(
+  value: ProfileVisibility,
+  t: (key: string) => string
+) {
   switch (value) {
     case "FRIENDS":
-      return "Friends Only";
+      return t("friends_only");
     case "PRIVATE":
-      return "Private";
+      return t("private");
     default:
-      return "Public";
+      return t("public");
   }
 }
 
@@ -104,8 +110,11 @@ export function AccountPrivacySettingsSection({
     useUserDetails();
   const [profileVisibility, setProfileVisibility] =
     useState<ProfileVisibility>("PUBLIC");
+  const [souvenirsVisibility, setSouvenirsVisibility] =
+    useState<ProfileVisibility>("PRIVATE");
   const [blockedUsers, setBlockedUsers] = useState<UserFriend[]>([]);
   const [isSavingVisibility, setIsSavingVisibility] = useState(false);
+  const [isSavingCloudGifts, setIsSavingCloudGifts] = useState(false);
   const [unblockingUserId, setUnblockingUserId] = useState<string | null>(null);
 
   useEffect(() => {
@@ -113,6 +122,12 @@ export function AccountPrivacySettingsSection({
 
     setProfileVisibility(userDetails.profileVisibility);
   }, [userDetails?.profileVisibility]);
+
+  useEffect(() => {
+    if (!userDetails?.souvenirsVisibility) return;
+
+    setSouvenirsVisibility(userDetails.souvenirsVisibility);
+  }, [userDetails?.souvenirsVisibility]);
 
   const fetchBlockedUsers = useCallback(async () => {
     if (!userDetails) {
@@ -139,11 +154,11 @@ export function AccountPrivacySettingsSection({
     Array<DropdownSelectOption<ProfileVisibility>>
   >(
     () => [
-      { value: "PUBLIC", label: "Public" },
-      { value: "FRIENDS", label: "Friends Only" },
-      { value: "PRIVATE", label: "Private" },
+      { value: "PUBLIC", label: t("public") },
+      { value: "FRIENDS", label: t("friends_only") },
+      { value: "PRIVATE", label: t("private") },
     ],
-    []
+    [t]
   );
 
   const hydraCloudContent = useMemo(() => {
@@ -177,7 +192,7 @@ export function AccountPrivacySettingsSection({
         await patchUser({ profileVisibility: value });
         showSuccessToast("Profile visibility updated", {
           ...SETTINGS_TOAST_OPTIONS,
-          message: `Your profile is now ${getProfileVisibilityLabel(value)}.`,
+          message: `Your profile is now ${getProfileVisibilityLabel(value, t)}.`,
         });
       } catch {
         setProfileVisibility(previousValue);
@@ -195,6 +210,42 @@ export function AccountPrivacySettingsSection({
       profileVisibility,
       showErrorToast,
       showSuccessToast,
+      t,
+      userDetails,
+    ]
+  );
+
+  const handleSouvenirsVisibilityChange = useCallback(
+    async (value: ProfileVisibility) => {
+      if (!userDetails || isSavingVisibility) return;
+
+      const previousValue = souvenirsVisibility;
+
+      setSouvenirsVisibility(value);
+      setIsSavingVisibility(true);
+
+      try {
+        await patchUser({ souvenirsVisibility: value });
+        showSuccessToast(t("souvenirs_visibility_updated"), {
+          ...SETTINGS_TOAST_OPTIONS,
+          message: t("souvenirs_visibility_updated_description", {
+            visibility: getProfileVisibilityLabel(value, t),
+          }),
+        });
+      } catch {
+        setSouvenirsVisibility(previousValue);
+        showErrorToast(t("souvenir_visibility_failed"), SETTINGS_TOAST_OPTIONS);
+      } finally {
+        setIsSavingVisibility(false);
+      }
+    },
+    [
+      isSavingVisibility,
+      patchUser,
+      showErrorToast,
+      showSuccessToast,
+      souvenirsVisibility,
+      t,
       userDetails,
     ]
   );
@@ -225,9 +276,37 @@ export function AccountPrivacySettingsSection({
     [blockedUsers, fetchBlockedUsers, setFocus, unblockUser]
   );
 
+  const handleAllowCloudGiftsChange = useCallback(
+    async (allowCloudGifts: boolean) => {
+      if (!userDetails || isSavingCloudGifts) return;
+
+      setIsSavingCloudGifts(true);
+
+      try {
+        await patchUser({ allowCloudGifts });
+        showSuccessToast(t("changes_saved"), SETTINGS_TOAST_OPTIONS);
+      } catch {
+        showErrorToast(t("try_again"), SETTINGS_TOAST_OPTIONS);
+      } finally {
+        setIsSavingCloudGifts(false);
+      }
+    },
+    [
+      isSavingCloudGifts,
+      patchUser,
+      showErrorToast,
+      showSuccessToast,
+      t,
+      userDetails,
+    ]
+  );
+
   const hydraCloudButtonOverrides = useMemo<FocusOverrides>(
     () => ({
-      up: { type: "item", itemId: ACCOUNT_PRIVACY_PRIVACY_SELECT_ID },
+      up: {
+        type: "item",
+        itemId: ACCOUNT_PRIVACY_CLOUD_GIFTS_CHECKBOX_ID,
+      },
       down: blockedUserFocusIds[0]
         ? {
             type: "item",
@@ -275,25 +354,70 @@ export function AccountPrivacySettingsSection({
       }
     >
       <SettingsSection
-        title="Privacy"
-        description="Choose who can see your profile and library."
+        title={t("privacy")}
+        description={t("profile_visibility_description")}
       >
         <div className="account-privacy-settings-section__section-content">
           <DropdownSelect
             className="account-privacy-settings-section__select"
-            label="Profile Visibility"
+            label={t("profile_visibility")}
             value={profileVisibility}
             options={visibilityOptions}
+            disabled={isSavingVisibility}
             focusId={ACCOUNT_PRIVACY_PRIVACY_SELECT_ID}
             focusNavigationOverrides={{
               up: SETTINGS_HEADER_RETURN_TARGET,
               down: {
                 type: "item",
-                itemId: ACCOUNT_PRIVACY_HYDRA_CLOUD_BUTTON_ID,
+                itemId: ACCOUNT_PRIVACY_SOUVENIRS_SELECT_ID,
               },
             }}
             onValueChange={(value) => {
               void handleProfileVisibilityChange(value);
+            }}
+          />
+
+          <DropdownSelect
+            className="account-privacy-settings-section__select"
+            label={t("souvenirs_visibility")}
+            value={souvenirsVisibility}
+            options={visibilityOptions}
+            disabled={isSavingVisibility}
+            focusId={ACCOUNT_PRIVACY_SOUVENIRS_SELECT_ID}
+            focusNavigationOverrides={{
+              up: {
+                type: "item",
+                itemId: ACCOUNT_PRIVACY_PRIVACY_SELECT_ID,
+              },
+              down: {
+                type: "item",
+                itemId: ACCOUNT_PRIVACY_CLOUD_GIFTS_CHECKBOX_ID,
+              },
+            }}
+            onValueChange={(value) => {
+              void handleSouvenirsVisibilityChange(value);
+            }}
+          />
+
+          <Checkbox
+            block
+            checked={userDetails.allowCloudGifts}
+            disabled={isSavingCloudGifts}
+            focusId={ACCOUNT_PRIVACY_CLOUD_GIFTS_CHECKBOX_ID}
+            navigationOverrides={{
+              up: {
+                type: "item",
+                itemId: ACCOUNT_PRIVACY_SOUVENIRS_SELECT_ID,
+              },
+              down: {
+                type: "item",
+                itemId: ACCOUNT_PRIVACY_HYDRA_CLOUD_BUTTON_ID,
+              },
+            }}
+            label={t("allow_cloud_gifts")}
+            secondaryText={t("allow_cloud_gifts_description")}
+            onChange={(checked) => {
+              void handleAllowCloudGiftsChange(checked);
             }}
           />
         </div>

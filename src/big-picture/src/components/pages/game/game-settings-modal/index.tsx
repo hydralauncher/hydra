@@ -1,5 +1,5 @@
 import type { LibraryGame } from "@types";
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { SidebarModal, type SidebarModalTab } from "../../../common";
 import { resolvePreferredGameAssets } from "../../../../helpers";
@@ -22,6 +22,10 @@ import {
   GAME_CLOUD_SETTINGS_PRIMARY_CONTROL_ID,
 } from "./cloud-tab";
 import {
+  GameCloudV2SettingsTab,
+  GAME_CLOUD_V2_SETTINGS_PRIMARY_CONTROL_ID,
+} from "./cloud-v2-tab";
+import {
   GameDownloadsSettingsTab,
   GAME_DOWNLOADS_SETTINGS_PRIMARY_CONTROL_ID,
 } from "./downloads-tab";
@@ -33,11 +37,16 @@ import {
   GameCompatibilitySettingsTab,
   GAME_COMPATIBILITY_SETTINGS_PRIMARY_CONTROL_ID,
 } from "./compatibility-tab";
+import {
+  shouldShowCloudSaveV2Tab,
+  shouldShowLegacyCloudSaveTab,
+} from "./cloud-tab-visibility";
 
 type GameSettingsTabId =
   | "launch"
   | "customization"
   | "hydra_cloud"
+  | "hydra_cloud_legacy"
   | "compatibility"
   | "downloads"
   | "danger_zone";
@@ -45,7 +54,8 @@ type GameSettingsTabId =
 const GAME_SETTINGS_TAB_FOCUS_IDS: Record<GameSettingsTabId, string> = {
   launch: GAME_LAUNCH_SETTINGS_PRIMARY_CONTROL_ID,
   customization: GAME_CUSTOMIZATION_SETTINGS_PRIMARY_CONTROL_ID,
-  hydra_cloud: GAME_CLOUD_SETTINGS_PRIMARY_CONTROL_ID,
+  hydra_cloud: GAME_CLOUD_V2_SETTINGS_PRIMARY_CONTROL_ID,
+  hydra_cloud_legacy: GAME_CLOUD_SETTINGS_PRIMARY_CONTROL_ID,
   downloads: GAME_DOWNLOADS_SETTINGS_PRIMARY_CONTROL_ID,
   danger_zone: GAME_DANGER_ZONE_PRIMARY_CONTROL_ID,
   compatibility: GAME_COMPATIBILITY_SETTINGS_PRIMARY_CONTROL_ID,
@@ -78,6 +88,7 @@ export function GameSettingsModal({
   const isDev = import.meta.env.DEV;
   const shouldShowCompatibilityTab =
     globalThis.window.electron.platform === "linux" || isDev;
+  const shouldShowDownloadsTab = game.shop !== "custom";
   const settingsLabel = t("settings", { ns: "header" });
 
   useEffect(() => {
@@ -98,6 +109,17 @@ export function GameSettingsModal({
     () => <GameCloudSettingsTab {...cloudSettings} />,
     [cloudSettings]
   );
+  const handleSelectExecutableFromCloudV2 = useCallback(() => {
+    setActiveTabId("launch");
+  }, []);
+  const cloudV2Content = useMemo(
+    () => (
+      <GameCloudV2SettingsTab
+        onSelectExecutable={handleSelectExecutableFromCloudV2}
+      />
+    ),
+    [handleSelectExecutableFromCloudV2]
+  );
   const downloadContent = useMemo(
     () => <GameDownloadsSettingsTab game={game} />,
     [game]
@@ -111,13 +133,33 @@ export function GameSettingsModal({
     [game]
   );
 
-  const shouldShowCloudTab = userDetails !== null && hasActiveSubscription;
+  const isSignedIn = userDetails !== null;
+  const shouldShowCloudV2Tab = shouldShowCloudSaveV2Tab(
+    game.shop,
+    isSignedIn,
+    hasActiveSubscription
+  );
+  const shouldShowLegacyCloudTab = shouldShowLegacyCloudSaveTab(
+    game.shop,
+    isSignedIn,
+    hasActiveSubscription
+  );
 
   useEffect(() => {
-    if (!shouldShowCloudTab && activeTabId === "hydra_cloud") {
+    const isUnavailableTab =
+      (activeTabId === "hydra_cloud" && !shouldShowCloudV2Tab) ||
+      (activeTabId === "hydra_cloud_legacy" && !shouldShowLegacyCloudTab) ||
+      (activeTabId === "downloads" && !shouldShowDownloadsTab);
+
+    if (isUnavailableTab) {
       setActiveTabId("launch");
     }
-  }, [shouldShowCloudTab, activeTabId]);
+  }, [
+    activeTabId,
+    shouldShowCloudV2Tab,
+    shouldShowLegacyCloudTab,
+    shouldShowDownloadsTab,
+  ]);
 
   const tabs = useMemo<SidebarModalTab<GameSettingsTabId>[]>(
     () => [
@@ -131,10 +173,19 @@ export function GameSettingsModal({
         label: t("settings_category_customization"),
         content: customizationContent,
       },
-      ...(shouldShowCloudTab
+      ...(shouldShowCloudV2Tab
         ? [
             {
               id: "hydra_cloud",
+              label: t("settings_category_hydra_cloud"),
+              content: cloudV2Content,
+            } satisfies SidebarModalTab<GameSettingsTabId>,
+          ]
+        : []),
+      ...(shouldShowLegacyCloudTab
+        ? [
+            {
+              id: "hydra_cloud_legacy",
               label: t("settings_category_hydra_cloud"),
               content: cloudContent,
             } satisfies SidebarModalTab<GameSettingsTabId>,
@@ -149,11 +200,15 @@ export function GameSettingsModal({
             } satisfies SidebarModalTab<GameSettingsTabId>,
           ]
         : []),
-      {
-        id: "downloads",
-        label: t("settings_category_downloads"),
-        content: downloadContent,
-      },
+      ...(shouldShowDownloadsTab
+        ? [
+            {
+              id: "downloads",
+              label: t("settings_category_downloads"),
+              content: downloadContent,
+            } satisfies SidebarModalTab<GameSettingsTabId>,
+          ]
+        : []),
       {
         id: "danger_zone",
         label: t("settings_category_danger_zone"),
@@ -162,13 +217,16 @@ export function GameSettingsModal({
     ],
     [
       cloudContent,
+      cloudV2Content,
       compatibilityContent,
       customizationContent,
       dangerContent,
       downloadContent,
       launchContent,
-      shouldShowCloudTab,
+      shouldShowCloudV2Tab,
+      shouldShowLegacyCloudTab,
       shouldShowCompatibilityTab,
+      shouldShowDownloadsTab,
       t,
     ]
   );

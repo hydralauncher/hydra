@@ -1,5 +1,6 @@
 import type { LibraryGame } from "@types";
 import { GameSettingsModal } from "../game";
+import { BigPictureCloudSaveProvider } from "../game/cloud-save-v2";
 import { useGameSettingsModalState } from "../game/game-settings-modal/use-game-settings-modal-state";
 import { useGameDetails } from "../../../hooks";
 
@@ -18,6 +19,7 @@ export function LibraryGameSettingsModal({
   const shop = game?.shop ?? "steam";
   const {
     game: detailedGame,
+    isGameRunning,
     updateGame,
     refreshGameDetails,
   } = useGameDetails(objectId, shop);
@@ -41,13 +43,22 @@ export function LibraryGameSettingsModal({
   }
 
   return (
-    <GameSettingsModal
-      visible={visible}
-      game={modalGame}
-      launchSettings={launchSettings}
-      customizationSettings={customizationSettings}
-      cloudSettings={cloudSettings}
-      onClose={onClose}
-    />
+    <BigPictureCloudSaveProvider
+      objectId={modalGame.objectId}
+      shop={modalGame.shop}
+      hasExecutablePath={Boolean(modalGame.executablePath)}
+      isGameRunning={isGameRunning}
+      enableGamePageSync={false}
+      onSelectExecutable={() => undefined}
+    >
+      <GameSettingsModal
+        visible={visible}
+        game={modalGame}
+        launchSettings={launchSettings}
+        customizationSettings={customizationSettings}
+        cloudSettings={cloudSettings}
+        onClose={onClose}
+      />
+    </BigPictureCloudSaveProvider>
   );
 }

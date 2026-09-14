@@ -1,0 +1,14 @@
+@use "../../../scss/globals.scss";
+
+.souvenir-report-modal {
+  &__form {
+    display: flex;
+    flex-direction: column;
+    gap: calc(globals.$spacing-unit * 2);
+  }
+
+  &__submit {
+    align-self: flex-end;
+    margin-top: globals.$spacing-unit;
+  }
+}

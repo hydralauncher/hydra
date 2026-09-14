@@ -1,34 +1,44 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
+import { useNavigate } from "react-router-dom";
 import { ChevronLeftIcon, ChevronRightIcon } from "@primer/octicons-react";
 
 import { TextField } from "@renderer/components";
-import { getRegionsFromSkus, getSkuRegionFlag } from "@renderer/helpers";
+import {
+  buildGameDetailsPath,
+  getRegionsFromSkus,
+  getSkuRegionFlag,
+  resolveImageSource,
+} from "@renderer/helpers";
 import { formatBytes } from "@shared";
 import type { DetectedRom, EmulatorSystem } from "@types";
 
-interface Props {
-  system: EmulatorSystem;
-  systemLabel: string;
-  refreshKey?: number;
-}
-
 const PAGE_SIZE = 12;
 
-export function RomsDetectedSection({
-  system,
+export interface RomsSectionProps<T extends DetectedRom> {
+  systemLabel: string;
+  refreshKey?: number;
+  loadRoms: () => Promise<T[]>;
+  romMatchesQuery: (rom: T, query: string) => boolean;
+  renderRowExtra?: (rom: T) => ReactNode;
+}
+
+export function RomsSection<T extends DetectedRom>({
   systemLabel,
   refreshKey,
-}: Readonly<Props>) {
+  loadRoms,
+  romMatchesQuery,
+  renderRowExtra,
+}: Readonly<RomsSectionProps<T>>) {
   const { t } = useTranslation("settings");
-  const [roms, setRoms] = useState<DetectedRom[]>([]);
+  const navigate = useNavigate();
+  const [roms, setRoms] = useState<T[]>([]);
   const [query, setQuery] = useState("");
   const [page, setPage] = useState(0);
 
   useEffect(() => {
     let cancelled = false;
-    window.electron
-      .listEmulatorRoms(system)
+    loadRoms()
       .then((list) => {
         if (!cancelled) setRoms(list);
       })
@@ -38,7 +48,8 @@ export function RomsDetectedSection({
     return () => {
       cancelled = true;
     };
-  }, [system, refreshKey]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [refreshKey]);
 
   useEffect(() => {
     setPage(0);
@@ -47,13 +58,8 @@ export function RomsDetectedSection({
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
     if (!q) return roms;
-    return roms.filter((rom) => {
-      const title = rom.title.toLowerCase();
-      return (
-        title.includes(q) ||
-        rom.skus.some((sku) => sku.toLowerCase().includes(q))
-      );
-    });
+    return roms.filter((rom) => romMatchesQuery(rom, q));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [roms, query]);
 
   const pageCount = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
@@ -91,16 +97,28 @@ export function RomsDetectedSection({
             <>
               <div className="emulator-detail__roms">
                 {pageSlice.map((rom) => {
-                  const cover =
-                    rom.customCoverImageUrl ??
+                  const cover = resolveImageSource(
                     rom.customIconUrl ??
-                    rom.coverImageUrl ??
-                    rom.libraryImageUrl ??
-                    rom.iconUrl;
-                  const regions = getRegionsFromSkus(rom.skus);
+                      rom.iconUrl ??
+                      rom.customCoverImageUrl ??
+                      rom.coverImageUrl ??
+                      rom.libraryImageUrl
+                  );
                   return (
                     <div className="emulator-detail__rom" key={rom.objectId}>
-                      <div className="emulator-detail__rom-game">
+                      <button
+                        type="button"
+                        className="emulator-detail__rom-game"
+                        onClick={() =>
+                          navigate(
+                            buildGameDetailsPath({
+                              shop: "launchbox",
+                              objectId: rom.objectId,
+                              title: rom.title,
+                            })
+                          )
+                        }
+                      >
                         <div className="emulator-detail__rom-cover">
                           {cover && (
                             <img
@@ -111,13 +129,10 @@ export function RomsDetectedSection({
                             />
                           )}
                         </div>
-                        <span
-                          className="emulator-detail__rom-title"
-                          title={rom.title}
-                        >
+                        <span className="emulator-detail__rom-title">
                           {rom.title}
                         </span>
-                      </div>
+                      </button>
                       <span
                         className="emulator-detail__rom-leader"
                         aria-hidden="true"
@@ -127,19 +142,7 @@ export function RomsDetectedSection({
                           {formatBytes(rom.sizeBytes)}
                         </span>
                       )}
-                      {regions.length > 0 && (
-                        <span className="emulator-detail__rom-regions">
-                          {regions.map((region) => (
-                            <img
-                              key={region}
-                              className="emulator-detail__rom-flag"
-                              src={getSkuRegionFlag(region)}
-                              alt={region}
-                              title={region}
-                            />
-                          ))}
-                        </span>
-                      )}
+                      {renderRowExtra?.(rom)}
                     </div>
                   );
                 })}
@@ -180,5 +183,46 @@ export function RomsDetectedSection({
         </>
       )}
     </section>
+  );
+}
+
+interface Props {
+  system: EmulatorSystem;
+  systemLabel: string;
+  refreshKey?: number;
+}
+
+export function RomsDetectedSection({
+  system,
+  systemLabel,
+  refreshKey,
+}: Readonly<Props>) {
+  return (
+    <RomsSection<DetectedRom>
+      systemLabel={systemLabel}
+      refreshKey={refreshKey}
+      loadRoms={() => window.electron.listEmulatorRoms(system)}
+      romMatchesQuery={(rom, q) =>
+        rom.title.toLowerCase().includes(q) ||
+        rom.skus.some((sku) => sku.toLowerCase().includes(q))
+      }
+      renderRowExtra={(rom) => {
+        const regions = getRegionsFromSkus(rom.skus);
+        if (regions.length === 0) return null;
+        return (
+          <span className="emulator-detail__rom-regions">
+            {regions.map((region) => (
+              <img
+                key={region}
+                className="emulator-detail__rom-flag"
+                src={getSkuRegionFlag(region)}
+                alt={region}
+                title={region}
+              />
+            ))}
+          </span>
+        );
+      }}
+    />
   );
 }

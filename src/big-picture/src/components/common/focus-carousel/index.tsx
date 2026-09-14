@@ -518,7 +518,7 @@ function FocusCarouselCard({
   if (cardMode === "library") {
     const coverMedia =
       isClassicsGame &&
-      libraryPresentation.activeImageSource &&
+      displayLibraryCover &&
       !libraryPresentation.isChosenCoverActive ? (
         <ClassicsVerticalCoverMedia
           imageUrl={displayLibraryCover}

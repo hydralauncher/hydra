@@ -13,7 +13,7 @@ import {
 import { composeAssetsWithArtwork } from "@shared";
 import { AchievementMemoryStore } from "@main/services/achievements/achievement-memory-store";
 
-const lookupCachedPlatform = async (
+export const lookupCachedPlatform = async (
   gameKey: string
 ): Promise<string | null> => {
   const prefix = `${gameKey}:`;
@@ -123,6 +123,7 @@ const getLibrary = async (): Promise<LibraryGame[]> => {
               // Spread composed assets last to ensure all image URLs are properly set
               ...composedAssets,
               title: composedAssets?.title || game.title,
+              platform: game.platform ?? null,
               // Preserve custom image URLs from game if they exist
               customIconUrl: game.customIconUrl,
               customLogoImageUrl: game.customLogoImageUrl,

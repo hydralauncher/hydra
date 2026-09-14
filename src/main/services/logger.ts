@@ -2,16 +2,19 @@ import { logsPath } from "@main/constants";
 import log from "electron-log";
 import path from "path";
 
+type DepthAwareTransport = log.Transport & { depth: number };
+
+const networkLog = log.create({ logId: "network" });
+(networkLog.transports.ipc as DepthAwareTransport).depth = 12;
+networkLog.transports.file.resolvePathFn = () =>
+  path.join(logsPath, "network.txt");
+
 log.transports.file.resolvePathFn = (
   _: log.PathVariables,
   message?: log.LogMessage | undefined
 ) => {
   if (message?.scope === "python-rpc") {
     return path.join(logsPath, "pythonrpc.txt");
-  }
-
-  if (message?.scope === "network") {
-    return path.join(logsPath, "network.txt");
   }
 
   if (message?.scope == "achievements") {
@@ -38,4 +41,4 @@ log.initialize();
 export const pythonRpcLogger = log.scope("python-rpc");
 export const logger = log.scope("main");
 export const achievementsLogger = log.scope("achievements");
-export const networkLogger = log.scope("network");
+export const networkLogger = networkLog.scope("network");

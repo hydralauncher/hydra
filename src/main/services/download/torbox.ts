@@ -2,11 +2,19 @@ import axios, { AxiosInstance } from "axios";
 import parseTorrent from "parse-torrent";
 import type {
   TorBoxUserRequest,
+  TorBoxTorrentInfo,
   TorBoxTorrentInfoRequest,
   TorBoxAddTorrentRequest,
   TorBoxRequestLinkRequest,
 } from "@types";
 import { appVersion } from "@main/constants";
+import { DownloadError } from "@shared";
+import { logger } from "../logger";
+
+const READINESS_POLL_ATTEMPTS = 6;
+const READINESS_POLL_DELAY_MS = 1000;
+const MY_LIST_PAGE_SIZE = 1000;
+const MY_LIST_MAX_PAGES = 10;
 
 export class TorBoxClient {
   private static instance: AxiosInstance;
@@ -41,17 +49,26 @@ export class TorBoxClient {
   }
 
   static async getTorrentInfo(id: number) {
-    const response =
-      await this.instance.get<TorBoxTorrentInfoRequest>("/torrents/mylist");
-    const data = response.data.data;
+    const searchParams = new URLSearchParams({
+      id: id.toString(),
+      bypass_cache: "true",
+    });
 
-    const info = data.find((item) => item.id === id);
+    const response = await this.instance.get<
+      Omit<TorBoxTorrentInfoRequest, "data"> & {
+        data: TorBoxTorrentInfo | TorBoxTorrentInfo[] | null;
+      }
+    >("/torrents/mylist?" + searchParams.toString());
 
-    if (!info) {
-      return null;
+    const { data } = response.data;
+
+    if (!data) return null;
+
+    if (Array.isArray(data)) {
+      return data.find((item) => item.id === id) ?? null;
     }
 
-    return info;
+    return data;
   }
 
   static async getUser() {
@@ -70,28 +87,91 @@ export class TorBoxClient {
       "/torrents/requestdl?" + searchParams.toString()
     );
 
-    return response.data.data;
+    const { success, detail, data } = response.data;
+
+    if (!success || typeof data !== "string" || !data) {
+      logger.error(
+        `[TorBox] requestdl did not return a link for torrent ${id}: ${detail}`
+      );
+
+      throw new Error(DownloadError.TorBoxLinkUnavailable);
+    }
+
+    return data;
   }
 
   private static async getAllTorrentsFromUser() {
-    const response =
-      await this.instance.get<TorBoxTorrentInfoRequest>("/torrents/mylist");
+    const torrents: TorBoxTorrentInfo[] = [];
 
-    return response.data.data;
+    for (let page = 0; page < MY_LIST_MAX_PAGES; page++) {
+      const searchParams = new URLSearchParams({
+        bypass_cache: "true",
+        offset: (page * MY_LIST_PAGE_SIZE).toString(),
+        limit: MY_LIST_PAGE_SIZE.toString(),
+      });
+
+      const response = await this.instance.get<TorBoxTorrentInfoRequest>(
+        "/torrents/mylist?" + searchParams.toString()
+      );
+
+      const entries = response.data.data ?? [];
+      torrents.push(...entries);
+
+      if (entries.length < MY_LIST_PAGE_SIZE) break;
+    }
+
+    return torrents;
+  }
+
+  private static isReady(torrent: TorBoxTorrentInfo) {
+    return Boolean(torrent.download_finished && torrent.download_present);
+  }
+
+  private static async waitForTorrentReady(id: number) {
+    for (let attempt = 1; attempt <= READINESS_POLL_ATTEMPTS; attempt++) {
+      const torrent = await this.getTorrentInfo(id);
+
+      if (torrent && this.isReady(torrent)) return torrent;
+
+      logger.log(
+        `[TorBox] Torrent ${id} not downloadable yet (state=${torrent?.download_state ?? "unknown"}, finished=${torrent?.download_finished}, present=${torrent?.download_present}, attempt ${attempt}/${READINESS_POLL_ATTEMPTS})`
+      );
+
+      if (attempt < READINESS_POLL_ATTEMPTS) {
+        await new Promise((resolve) =>
+          setTimeout(resolve, READINESS_POLL_DELAY_MS)
+        );
+      }
+    }
+
+    throw new Error(DownloadError.TorBoxTorrentNotReady);
   }
 
   private static async getTorrentIdAndName(magnetUri: string) {
+    const { infoHash } = await parseTorrent(magnetUri);
+
+    if (!infoHash) throw new Error(DownloadError.InvalidMagnet);
+
+    const normalizedInfoHash = infoHash.toLowerCase();
     const userTorrents = await this.getAllTorrentsFromUser();
 
-    const { infoHash } = await parseTorrent(magnetUri);
     const userTorrent = userTorrents.find(
-      (userTorrent) => userTorrent.hash === infoHash
+      (userTorrent) => userTorrent.hash?.toLowerCase() === normalizedInfoHash
     );
 
-    if (userTorrent) return { id: userTorrent.id, name: userTorrent.name };
+    if (userTorrent) {
+      if (this.isReady(userTorrent)) {
+        return { id: userTorrent.id, name: userTorrent.name };
+      }
+
+      const readyTorrent = await this.waitForTorrentReady(userTorrent.id);
+      return { id: readyTorrent.id, name: readyTorrent.name };
+    }
 
     const torrent = await this.addMagnet(magnetUri);
-    return { id: torrent.torrent_id, name: torrent.name };
+    const readyTorrent = await this.waitForTorrentReady(torrent.torrent_id);
+
+    return { id: readyTorrent.id, name: readyTorrent.name || torrent.name };
   }
 
   static async getDownloadInfo(uri: string) {

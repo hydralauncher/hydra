@@ -25,6 +25,12 @@ export const levelKeys = {
   localNotifications: "localNotifications",
   commonRedistPassed: "commonRedistPassed", // Whether common redistributables preflight has passed
   emulators: "emulators",
+  retroarch: "retroarch",
+  retroArchSouvenirConfigBackups: "retroarch-souvenir-config-backups",
+  duckStationSouvenirConfigBackups: "duckstation-souvenir-config-backups",
+  pendingAchievementSouvenirs: "pending-achievement-souvenirs",
+  pendingGroupedAchievementSouvenirs: "pending-grouped-achievement-souvenirs",
+  localSouvenirAssets: "local-souvenir-assets",
   globalTrackersUrlCache: "globalTrackersUrlCache",
   ps2MemoryCardSaves: "ps2MemoryCardSaves",
   ps2MemoryCardSave: (cardFilePath: string, folderName: string) =>
@@ -32,4 +38,11 @@ export const levelKeys = {
   ps1MemoryCardSaves: "ps1MemoryCardSaves",
   ps1MemoryCardSave: (cardFilePath: string, identifier: string) =>
     `${cardFilePath}::${identifier}`,
+  cloudSaveLocalHashCache: "cloud-save-local-hash-cache",
+  cloudSavePrefixGenerations: "cloud-save-prefix-generations",
+  cloudSaveSyncAnchors: "cloud-save-sync-anchors",
+  cloudSaveAutomaticSyncSettings: "cloud-save-automatic-sync-settings",
+  cloudSaveV2DefaultMigration: "cloud-save-v2-default-migration",
+  cloudSaveCustomPaths: "cloud-save-custom-paths",
+  cloudSavePendingDeletions: "cloud-save-pending-deletions",
 };

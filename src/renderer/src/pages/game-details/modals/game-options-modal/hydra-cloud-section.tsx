@@ -1,11 +1,11 @@
 import { useTranslation } from "react-i18next";
 
 import type { LibraryGame } from "@types";
-import { platformToSystem } from "@renderer/helpers";
+import { platformToEmulationSavePlatform } from "@renderer/helpers";
 import { CloudSyncPanel } from "../../cloud-sync/cloud-sync-panel";
 import { GameEmulationSaves } from "../../cloud-sync/game-emulation-saves";
 
-interface HydraCloudSettingsSectionProps {
+interface HydraCloudLegacySettingsSectionProps {
   game: LibraryGame;
   automaticCloudSync: boolean;
   onToggleAutomaticCloudSync: (
@@ -13,11 +13,11 @@ interface HydraCloudSettingsSectionProps {
   ) => Promise<void>;
 }
 
-export function HydraCloudSettingsSection({
+export function HydraCloudLegacySettingsSection({
   game,
   automaticCloudSync,
   onToggleAutomaticCloudSync,
-}: Readonly<HydraCloudSettingsSectionProps>) {
+}: Readonly<HydraCloudLegacySettingsSectionProps>) {
   const { t } = useTranslation("game_details");
 
   if (game.shop === "custom") {
@@ -28,12 +28,14 @@ export function HydraCloudSettingsSection({
     );
   }
 
-  const system =
-    game.shop === "launchbox" ? platformToSystem(game.platform) : null;
-  if (system === "ps1" || system === "ps2") {
+  const platform =
+    game.shop === "launchbox"
+      ? platformToEmulationSavePlatform(game.platform)
+      : null;
+  if (platform) {
     return (
       <div className="game-options-modal__cloud-panel">
-        <GameEmulationSaves platform={system} objectId={game.objectId} />
+        <GameEmulationSaves platform={platform} objectId={game.objectId} />
       </div>
     );
   }

@@ -1,0 +1,12 @@
+.game-cloud-v2-settings-tab {
+  width: 100%;
+  min-width: 0;
+  min-height: 100%;
+  height: 100%;
+  padding: calc(var(--spacing-unit) * 6);
+  overflow-y: auto;
+}
+
+.game-cloud-v2-settings-tab .settings-section__content {
+  min-width: 0;
+}

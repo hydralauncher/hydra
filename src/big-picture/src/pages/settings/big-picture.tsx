@@ -1,6 +1,6 @@
 import "./big-picture.scss";
 
-import type { BigPictureDiagnosticsPosition } from "@types";
+import type { BigPictureDiagnosticsPosition, UserPreferences } from "@types";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 
@@ -25,6 +25,7 @@ interface BigPictureSettingsSectionProps {
 
 interface BigPictureForm {
   launchInBigPicture: boolean;
+  bigPictureLaunchToLibraryPage: boolean;
   bigPictureSoundsEnabled: boolean;
   bigPictureVirtualKeyboardEnabled: boolean;
   bigPictureDiagnosticsEnabled: boolean;
@@ -41,11 +42,30 @@ interface BigPictureItem {
 
 const DEFAULT_FORM: BigPictureForm = {
   launchInBigPicture: false,
+  bigPictureLaunchToLibraryPage: false,
   bigPictureSoundsEnabled: true,
   bigPictureVirtualKeyboardEnabled: true,
   bigPictureDiagnosticsEnabled: false,
   bigPictureDiagnosticsPosition: "bottom-center",
 };
+
+const buildForm = (preferences: UserPreferences | null): BigPictureForm =>
+  preferences
+    ? {
+        launchInBigPicture: preferences.launchInBigPicture ?? false,
+        bigPictureLaunchToLibraryPage:
+          preferences.bigPictureLaunchToLibraryPage ??
+          preferences.launchToLibraryPage ??
+          false,
+        bigPictureSoundsEnabled: preferences.bigPictureSoundsEnabled ?? true,
+        bigPictureVirtualKeyboardEnabled:
+          preferences.bigPictureVirtualKeyboardEnabled ?? true,
+        bigPictureDiagnosticsEnabled:
+          preferences.bigPictureDiagnosticsEnabled ?? false,
+        bigPictureDiagnosticsPosition:
+          preferences.bigPictureDiagnosticsPosition ?? "bottom-center",
+      }
+    : DEFAULT_FORM;
 
 function getPositionLabel(
   position: BigPictureDiagnosticsPosition,
@@ -59,21 +79,14 @@ export function BigPictureSettingsSection({
 }: Readonly<BigPictureSettingsSectionProps>) {
   const { t } = useTranslation("big_picture");
   const userPreferences = useUserPreferences();
-  const [form, setForm] = useState<BigPictureForm>(DEFAULT_FORM);
+  const [form, setForm] = useState<BigPictureForm>(() =>
+    buildForm(userPreferences)
+  );
 
   useEffect(() => {
     if (!userPreferences) return;
 
-    setForm({
-      launchInBigPicture: userPreferences.launchInBigPicture ?? false,
-      bigPictureSoundsEnabled: userPreferences.bigPictureSoundsEnabled ?? true,
-      bigPictureVirtualKeyboardEnabled:
-        userPreferences.bigPictureVirtualKeyboardEnabled ?? true,
-      bigPictureDiagnosticsEnabled:
-        userPreferences.bigPictureDiagnosticsEnabled ?? false,
-      bigPictureDiagnosticsPosition:
-        userPreferences.bigPictureDiagnosticsPosition ?? "bottom-center",
-    });
+    setForm(buildForm(userPreferences));
   }, [userPreferences]);
 
   const updateUserPreferences = useCallback(
@@ -88,6 +101,13 @@ export function BigPictureSettingsSection({
   const handleLaunchInBigPictureChange = useCallback(
     (checked: boolean) => {
       updateUserPreferences({ launchInBigPicture: checked });
+    },
+    [updateUserPreferences]
+  );
+
+  const handleLaunchToLibraryPageChange = useCallback(
+    (checked: boolean) => {
+      updateUserPreferences({ bigPictureLaunchToLibraryPage: checked });
     },
     [updateUserPreferences]
   );
@@ -129,8 +149,20 @@ export function BigPictureSettingsSection({
         checked: form.launchInBigPicture,
         onChange: handleLaunchInBigPictureChange,
       },
+      {
+        id: "launch-to-library-page",
+        focusId: BIG_PICTURE_ITEM_FOCUS_IDS.launchToLibraryPage,
+        label: t("settings_launch_big_picture_in_library_page"),
+        checked: form.bigPictureLaunchToLibraryPage,
+        onChange: handleLaunchToLibraryPageChange,
+      },
     ];
-  }, [form.launchInBigPicture, handleLaunchInBigPictureChange]);
+  }, [
+    form.launchInBigPicture,
+    form.bigPictureLaunchToLibraryPage,
+    handleLaunchInBigPictureChange,
+    handleLaunchToLibraryPageChange,
+  ]);
 
   const inputItems = useMemo<BigPictureItem[]>(() => {
     return [
@@ -228,7 +260,7 @@ export function BigPictureSettingsSection({
   >(() => {
     const previousFallback: FocusOverrideTarget = {
       type: "item",
-      itemId: BIG_PICTURE_ITEM_FOCUS_IDS.launchInBigPicture,
+      itemId: BIG_PICTURE_ITEM_FOCUS_IDS.launchToLibraryPage,
     };
 
     return Object.fromEntries(

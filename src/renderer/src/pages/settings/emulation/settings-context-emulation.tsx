@@ -2,24 +2,89 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useNavigate, useSearchParams } from "react-router-dom";
 
-import type { EmulatorConfigMap, EmulatorSystem } from "@types";
+import type {
+  EmulatorConfigMap,
+  EmulatorSystem,
+  RetroArchConfig,
+} from "@types";
 
-import { ConsoleCard } from "./console-card";
+import { ConsoleCard, type ConsoleCardRequirement } from "./console-card";
 import { EmulatorDetail } from "./emulator-detail";
 import { EmulatorSetupModal } from "./setup/emulator-setup-modal";
+import { KNOWN_BINARY_LABELS } from "./known-binary-labels";
+import {
+  RETROARCH_LABEL,
+  RETROARCH_CORE_LIST,
+  RETROARCH_CORES_LINE,
+} from "./retroarch-meta";
+import { RetroArchDetail } from "./retroarch-detail";
+import { RetroArchSetupModal } from "./setup/retroarch/retroarch-setup-modal";
+import ps1Art from "@renderer/assets/emulation/ps1.png";
+import ps2Art from "@renderer/assets/emulation/ps2.png";
+import ps3Art from "@renderer/assets/emulation/ps3.png";
+import pspArt from "@renderer/assets/emulation/psp.png";
+import gameCubeArt from "@renderer/assets/emulation/gamecube.png";
+import wiiArt from "@renderer/assets/emulation/wii.png";
+import retroArchArt from "@renderer/assets/emulation/retroarch.png";
 import {
   ClassicsOnboardingModal,
   hasDismissedClassicsOnboarding,
 } from "@renderer/components/classics-onboarding-modal/classics-onboarding-modal";
 
+import {
+  SETTINGS_EMULATION_VIEW_STORAGE_KEY,
+  SETTINGS_EMULATOR_TAB_STORAGE_KEY,
+  SETTINGS_RETROARCH_TAB_STORAGE_KEY,
+} from "@renderer/session-state";
+
 import "./settings-context-emulation.scss";
 
-const SYSTEMS: EmulatorSystem[] = ["ps1", "ps2", "ps3"];
+const SYSTEMS: EmulatorSystem[] = ["ps1", "ps2", "ps3", "psp", "dolphin"];
+
+type EmulationView =
+  | { kind: "grid" }
+  | { kind: "detail"; system: EmulatorSystem }
+  | { kind: "retroarch-detail" };
+
+const readStoredEmulationView = (): EmulationView => {
+  const stored = localStorage.getItem(SETTINGS_EMULATION_VIEW_STORAGE_KEY);
+  if (!stored) return { kind: "grid" };
+
+  try {
+    const parsed = JSON.parse(stored) as EmulationView;
+    if (parsed?.kind === "retroarch-detail") return parsed;
+    if (parsed?.kind === "detail" && SYSTEMS.includes(parsed.system)) {
+      return parsed;
+    }
+  } catch {
+    return { kind: "grid" };
+  }
+
+  return { kind: "grid" };
+};
 
 const SYSTEM_LABELS: Record<EmulatorSystem, string> = {
   ps1: "PlayStation 1",
   ps2: "PlayStation 2",
   ps3: "PlayStation 3",
+  psp: "PlayStation Portable",
+  dolphin: "GameCube & Wii",
+};
+
+const SYSTEM_ART: Record<EmulatorSystem, string | readonly string[]> = {
+  ps1: ps1Art,
+  ps2: ps2Art,
+  ps3: ps3Art,
+  psp: pspArt,
+  dolphin: [gameCubeArt, wiiArt],
+};
+
+const SYSTEM_REQUIREMENTS: Partial<
+  Record<EmulatorSystem, ConsoleCardRequirement>
+> = {
+  ps1: "bios",
+  ps2: "bios",
+  ps3: "firmware",
 };
 
 export function SettingsContextEmulation() {
@@ -28,11 +93,13 @@ export function SettingsContextEmulation() {
   const [searchParams] = useSearchParams();
 
   const [configs, setConfigs] = useState<EmulatorConfigMap | null>(null);
-  const [view, setView] = useState<
-    { kind: "grid" } | { kind: "detail"; system: EmulatorSystem }
-  >({ kind: "grid" });
+  const [retroArchConfig, setRetroArchConfig] =
+    useState<RetroArchConfig | null>(null);
+  const [view, setView] = useState<EmulationView>(readStoredEmulationView);
+  const [configsNonce, setConfigsNonce] = useState(0);
   const [setupSystem, setSetupSystem] = useState<EmulatorSystem | null>(null);
-  const deepLinkAppliedRef = useRef(false);
+  const [retroArchSetupOpen, setRetroArchSetupOpen] = useState(false);
+  const deepLinkAppliedRef = useRef<string | null>(null);
 
   const [showClassicsOnboarding, setShowClassicsOnboarding] = useState(false);
   const classicsOnboardingTriggeredRef = useRef(false);
@@ -47,9 +114,24 @@ export function SettingsContextEmulation() {
     }
   }, []);
 
+  useEffect(() => {
+    localStorage.setItem(
+      SETTINGS_EMULATION_VIEW_STORAGE_KEY,
+      JSON.stringify(view)
+    );
+  }, [view]);
+
   const refresh = useCallback(async () => {
     const next = await window.electron.getEmulatorConfigs();
     setConfigs(next);
+    setConfigsNonce((nonce) => nonce + 1);
+    return next;
+  }, []);
+
+  const refreshRetroArch = useCallback(async () => {
+    const next = await window.electron.getRetroArchConfig();
+    setRetroArchConfig(next);
+    setConfigsNonce((nonce) => nonce + 1);
     return next;
   }, []);
 
@@ -77,15 +159,65 @@ export function SettingsContextEmulation() {
   }, []);
 
   useEffect(() => {
-    if (deepLinkAppliedRef.current || !configs) return;
-    const system = searchParams.get("system");
-    if (system && SYSTEMS.includes(system as EmulatorSystem)) {
-      deepLinkAppliedRef.current = true;
-      if (configs[system as EmulatorSystem].executablePath) {
-        setView({ kind: "detail", system: system as EmulatorSystem });
+    let cancelled = false;
+
+    (async () => {
+      const initial = await window.electron.getRetroArchConfig();
+      if (cancelled) return;
+
+      if (initial.detectedAt === null) {
+        const detected = await window.electron.detectRetroArch();
+        if (cancelled) return;
+        setRetroArchConfig(detected);
+        return;
       }
+
+      setRetroArchConfig(initial);
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  useEffect(() => {
+    const unsubscribe = window.electron.onLibraryBatchComplete(() => {
+      void refresh();
+      void refreshRetroArch();
+    });
+
+    return () => {
+      unsubscribe();
+    };
+  }, [refresh, refreshRetroArch]);
+
+  useEffect(() => {
+    if (!configs || !retroArchConfig) return;
+    const system = searchParams.get("system");
+    if (!system) return;
+    const section = searchParams.get("section");
+    const deepLinkKey = `${system}:${section ?? ""}`;
+    if (deepLinkAppliedRef.current === deepLinkKey) return;
+
+    if (system === "retroarch") {
+      deepLinkAppliedRef.current = deepLinkKey;
+      if (section === "emulator") {
+        localStorage.setItem(SETTINGS_RETROARCH_TAB_STORAGE_KEY, "emulator");
+      }
+      setView({ kind: "retroarch-detail" });
+      return;
     }
-  }, [configs, searchParams]);
+    if (system && SYSTEMS.includes(system as EmulatorSystem)) {
+      deepLinkAppliedRef.current = deepLinkKey;
+      if (section === "emulator") {
+        localStorage.setItem(
+          `${SETTINGS_EMULATOR_TAB_STORAGE_KEY}-${system}`,
+          "emulator"
+        );
+      }
+      setView({ kind: "detail", system: system as EmulatorSystem });
+    }
+  }, [configs, retroArchConfig, searchParams]);
 
   const handleConfigure = useCallback((system: EmulatorSystem) => {
     setView({ kind: "detail", system });
@@ -106,6 +238,17 @@ export function SettingsContextEmulation() {
     await refresh();
   }, [refresh]);
 
+  const handleRetroArchSetupComplete = useCallback(() => {
+    setRetroArchSetupOpen(false);
+    localStorage.setItem("library-category", "classics");
+    navigate("/library");
+  }, [navigate]);
+
+  const handleRetroArchSetupClose = useCallback(async () => {
+    setRetroArchSetupOpen(false);
+    await refreshRetroArch();
+  }, [refreshRetroArch]);
+
   const handleBack = useCallback(() => {
     setView({ kind: "grid" });
   }, []);
@@ -115,13 +258,14 @@ export function SettingsContextEmulation() {
     return configs[view.system];
   }, [configs, view]);
 
-  if (!configs) {
+  if (!configs || !retroArchConfig) {
     return <div className="settings-emulation__loading">…</div>;
   }
 
   if (view.kind === "detail" && detailConfig) {
     return (
       <EmulatorDetail
+        key={`${view.system}:${searchParams.get("section") ?? ""}`}
         config={detailConfig}
         systemLabel={SYSTEM_LABELS[view.system]}
         onBack={handleBack}
@@ -129,6 +273,18 @@ export function SettingsContextEmulation() {
           setConfigs((prev) => (prev ? { ...prev, [next.system]: next } : prev))
         }
         refresh={refresh}
+      />
+    );
+  }
+
+  if (view.kind === "retroarch-detail") {
+    return (
+      <RetroArchDetail
+        key={`retroarch:${searchParams.get("section") ?? ""}`}
+        config={retroArchConfig}
+        onBack={handleBack}
+        onChange={setRetroArchConfig}
+        refresh={refreshRetroArch}
       />
     );
   }
@@ -153,12 +309,61 @@ export function SettingsContextEmulation() {
         {SYSTEMS.map((system) => (
           <ConsoleCard
             key={system}
-            config={configs[system]}
-            systemLabel={SYSTEM_LABELS[system]}
+            art={SYSTEM_ART[system]}
+            title={SYSTEM_LABELS[system]}
+            emulatorName={KNOWN_BINARY_LABELS[configs[system].binary]}
+            detectedVersion={configs[system].detectedVersion}
+            executablePath={configs[system].executablePath}
+            romFoldersCount={configs[system].romFolders.length}
+            totalFiles={configs[system].totalFiles}
+            lastScanAt={configs[system].lastScanAt}
+            checkExecutable={() =>
+              window.electron.checkEmulatorExecutable(system)
+            }
+            requirement={SYSTEM_REQUIREMENTS[system]}
+            requirementKey={configsNonce}
+            checkRequirement={async () => {
+              const config = configs[system];
+
+              if (system === "ps3") {
+                const { installed } = await window.electron.checkPs3Firmware(
+                  config.executablePath
+                );
+                return installed;
+              }
+
+              const { installed } = await window.electron.checkEmulatorBios(
+                system,
+                config.executablePath,
+                config.biosPath
+              );
+              return installed;
+            }}
             onConfigure={() => handleConfigure(system)}
             onStartSetup={() => handleStartSetup(system)}
           />
         ))}
+        <ConsoleCard
+          art={retroArchArt}
+          title={RETROARCH_LABEL}
+          emulatorName={t("retroarch_supported_cores", {
+            count: RETROARCH_CORE_LIST.length,
+          })}
+          emulatorNameTooltip={RETROARCH_CORES_LINE}
+          detectedVersion={retroArchConfig.detectedVersion}
+          executablePath={retroArchConfig.executablePath}
+          romFoldersCount={retroArchConfig.romFolders.length}
+          totalFiles={retroArchConfig.totalFiles}
+          lastScanAt={retroArchConfig.lastScanAt}
+          checkExecutable={() => window.electron.checkRetroArchExecutable()}
+          requirement="cores"
+          requirementKey={configsNonce}
+          checkRequirement={async () =>
+            Object.values(retroArchConfig.cores).some((core) => core.installed)
+          }
+          onConfigure={() => setView({ kind: "retroarch-detail" })}
+          onStartSetup={() => setRetroArchSetupOpen(true)}
+        />
       </div>
 
       <EmulatorSetupModal
@@ -168,6 +373,21 @@ export function SettingsContextEmulation() {
         initialConfig={setupSystem ? configs[setupSystem] : null}
         onClose={handleSetupClose}
         onComplete={handleSetupComplete}
+        onManage={async (system) => {
+          await handleSetupClose();
+          handleConfigure(system);
+        }}
+      />
+
+      <RetroArchSetupModal
+        visible={retroArchSetupOpen}
+        initialConfig={retroArchConfig}
+        onClose={handleRetroArchSetupClose}
+        onComplete={handleRetroArchSetupComplete}
+        onManage={async () => {
+          await handleRetroArchSetupClose();
+          setView({ kind: "retroarch-detail" });
+        }}
       />
     </div>
   );
