@@ -812,6 +812,10 @@
     overflow: visible;
   }
 
+  &__cloud-card--with-platform {
+    height: 178px;
+  }
+
   &__cloud-card-top {
     flex-shrink: 0;
     display: flex;

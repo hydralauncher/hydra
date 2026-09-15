@@ -334,10 +334,18 @@ export function EmulationSettingsSection({
       },
       ps3: {
         left: getItemFocusTarget(EMULATION_OVERVIEW_CARD_FOCUS_IDS.ps2),
+        right: getItemFocusTarget(EMULATION_OVERVIEW_CARD_FOCUS_IDS.psp),
+      },
+      psp: {
+        left: getItemFocusTarget(EMULATION_OVERVIEW_CARD_FOCUS_IDS.ps3),
+        right: getItemFocusTarget(EMULATION_OVERVIEW_CARD_FOCUS_IDS.dolphin),
+      },
+      dolphin: {
+        left: getItemFocusTarget(EMULATION_OVERVIEW_CARD_FOCUS_IDS.psp),
         right: getItemFocusTarget(EMULATION_OVERVIEW_CARD_FOCUS_IDS.retroarch),
       },
       retroarch: {
-        left: getItemFocusTarget(EMULATION_OVERVIEW_CARD_FOCUS_IDS.ps3),
+        left: getItemFocusTarget(EMULATION_OVERVIEW_CARD_FOCUS_IDS.dolphin),
         right: { type: "block" },
       },
     }),

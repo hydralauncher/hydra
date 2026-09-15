@@ -37,7 +37,7 @@ pub struct ProcessedImageData {
 }
 
 #[napi(object)]
-pub struct ProcessedFriendImageData {
+pub struct ProcessedSizedImageData {
     pub image_path: String,
     pub mime_type: String,
     pub is_animated: bool,
@@ -113,15 +113,15 @@ pub fn process_profile_image(
 }
 
 #[napi]
-pub async fn process_friend_image(
+pub async fn process_image(
     image_path: String,
     output_path_base: String,
     width: u32,
     height: u32,
     preserve_animation: bool,
-) -> napi::Result<ProcessedFriendImageData> {
+) -> napi::Result<ProcessedSizedImageData> {
     tokio::task::spawn_blocking(move || {
-        process_friend_image_sync(
+        process_image_sync(
             image_path,
             output_path_base,
             width,
@@ -133,13 +133,13 @@ pub async fn process_friend_image(
     .map_err(|err| Error::from_reason(err.to_string()))?
 }
 
-fn process_friend_image_sync(
+fn process_image_sync(
     image_path: String,
     output_path_base: String,
     width: u32,
     height: u32,
     preserve_animation: bool,
-) -> napi::Result<ProcessedFriendImageData> {
+) -> napi::Result<ProcessedSizedImageData> {
     if width == 0 || height == 0 {
         return Err(Error::from_reason("Invalid output dimensions"));
     }
@@ -157,7 +157,7 @@ fn process_friend_image_sync(
         let output_path = with_extension(&output_path_base, "gif");
         resize_animated_image(&input_path, format, &output_path, width, height)?;
 
-        return Ok(ProcessedFriendImageData {
+        return Ok(ProcessedSizedImageData {
             image_path: output_path.to_string_lossy().to_string(),
             mime_type: "image/gif".to_string(),
             is_animated: true,
@@ -167,7 +167,7 @@ fn process_friend_image_sync(
     let output_path = with_extension(&output_path_base, "webp");
     resize_static_image(&input_path, &output_path, width, height)?;
 
-    Ok(ProcessedFriendImageData {
+    Ok(ProcessedSizedImageData {
         image_path: output_path.to_string_lossy().to_string(),
         mime_type: "image/webp".to_string(),
         is_animated: false,
