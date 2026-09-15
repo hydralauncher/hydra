@@ -4,6 +4,7 @@ import { describe, it } from "node:test";
 // @ts-ignore The Node ESM test runner requires the source extension.
 import {
   isSteamOpenIdSuccessUrl,
+  parseSteamOpenIdErrorBody,
   parseSteamOpenIdReturn,
 } from "./steam-openid-return.ts";
 import {
@@ -78,6 +79,25 @@ describe("parseSteamOpenIdReturn", () => {
     assert.deepEqual(
       parseSteamOpenIdReturn("hydralauncher://steam-connected?error=timeout"),
       { kind: "error", code: "generic" }
+    );
+  });
+});
+
+describe("parseSteamOpenIdErrorBody", () => {
+  it("reads already-linked from the Hydra API JSON body", () => {
+    assert.deepEqual(
+      parseSteamOpenIdErrorBody(
+        '{"message":"auth/oauth-provider-already-linked"}'
+      ),
+      { kind: "error", code: "already-linked" }
+    );
+  });
+
+  it("ignores HTML and unrelated JSON", () => {
+    assert.equal(parseSteamOpenIdErrorBody("<html>Steam login</html>"), null);
+    assert.equal(
+      parseSteamOpenIdErrorBody('{"message":"auth/invalid-token"}'),
+      null
     );
   });
 });

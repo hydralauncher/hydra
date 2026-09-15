@@ -161,10 +161,15 @@ describe("parseSteamSourceAchievements", () => {
 describe("isSkippedSteamLibraryTitle", () => {
   it("skips demos and playtests without matching ordinary titles", () => {
     assert.equal(isSkippedSteamLibraryTitle("FINAL FANTASY XVI Demo"), true);
+    assert.equal(isSkippedSteamLibraryTitle("Game (Demo)"), true);
     assert.equal(isSkippedSteamLibraryTitle("Game Name Playtest"), true);
     assert.equal(isSkippedSteamLibraryTitle("Game Name Play Test"), true);
+    assert.equal(isSkippedSteamLibraryTitle("Game Name Play-Test"), true);
     assert.equal(isSkippedSteamLibraryTitle("Playtest"), true);
+    assert.equal(isSkippedSteamLibraryTitle("Battlefield™ Open Beta"), true);
+    assert.equal(isSkippedSteamLibraryTitle("Game PTB"), true);
     assert.equal(isSkippedSteamLibraryTitle("Portal 2"), false);
     assert.equal(isSkippedSteamLibraryTitle("Demolition Derby"), false);
+    assert.equal(isSkippedSteamLibraryTitle("Bethesda"), false);
   });
 });

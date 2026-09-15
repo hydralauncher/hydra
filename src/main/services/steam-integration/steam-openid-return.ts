@@ -15,6 +15,24 @@ const readErrorParam = (url: URL): string | null => {
   return value && value.length > 0 ? value : null;
 };
 
+export const parseSteamOpenIdErrorBody = (
+  text: string
+): SteamOpenIdReturn | null => {
+  try {
+    const parsed = JSON.parse(text) as { message?: unknown };
+    if (
+      typeof parsed.message === "string" &&
+      parsed.message.toLowerCase().includes("already-linked")
+    ) {
+      return { kind: "error", code: "already-linked" };
+    }
+  } catch {
+    return null;
+  }
+
+  return null;
+};
+
 export const parseSteamOpenIdReturn = (
   href: string
 ): SteamOpenIdReturn | null => {

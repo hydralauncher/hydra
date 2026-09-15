@@ -5,7 +5,10 @@ import { BrowserWindow, session } from "electron";
 import { steamSyncLogger } from "../logger";
 import { WindowManager } from "../window-manager";
 import type { SteamConnectErrorCode } from "@types";
-import { parseSteamOpenIdReturn } from "./steam-openid-return";
+import {
+  parseSteamOpenIdErrorBody,
+  parseSteamOpenIdReturn,
+} from "./steam-openid-return";
 import {
   parseSteamStoreSessionConfig,
   type SteamWebApiToken,
@@ -202,6 +205,26 @@ export const openSteamOpenIdWindow = (authorizationUrl: string) => {
 
   window.webContents.on("did-navigate", (_event, url) => {
     interceptSteamReturn(url);
+  });
+
+  window.webContents.on("did-finish-load", () => {
+    if (finished || window.isDestroyed()) return;
+
+    void window.webContents
+      .executeJavaScript('document.body?.innerText ?? ""')
+      .then((text: unknown) => {
+        if (finished || window.isDestroyed()) return;
+
+        const result = parseSteamOpenIdErrorBody(
+          typeof text === "string" ? text : ""
+        );
+        if (result?.kind === "error") {
+          finishError(result.code, window.webContents.getURL());
+        }
+      })
+      .catch((error) => {
+        steamSyncLogger.error("Steam OpenID body parse failed", error);
+      });
   });
 
   window.webContents.setWindowOpenHandler(({ url }) => {
