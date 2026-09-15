@@ -303,6 +303,7 @@
     "deleting": "Deleting installer…",
     "close": "Close",
     "playing_now": "Playing now",
+    "streaming_now": "Streaming now",
     "change": "Change",
     "repacks_modal_description": "Choose the repack you want to download",
     "select_folder_hint": "To change the default folder, go to the <0>Settings</0>",
