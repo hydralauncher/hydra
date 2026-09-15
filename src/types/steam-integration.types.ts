@@ -77,6 +77,14 @@ export interface SteamSnapshotPayload {
   games: SteamSnapshotGame[];
 }
 
+export interface SteamGameSyncPayload {
+  playTimeInSeconds: number;
+  lastPlayedAt: string | null;
+  achievements?: SteamSnapshotAchievement[];
+}
+
+export type SteamSyncOrigin = "manual" | "startup";
+
 export type SteamSyncPhase =
   | "starting"
   | "library"
@@ -95,5 +103,9 @@ export type SteamSyncState =
   | { status: "cancelling"; syncRunId: string };
 
 export type SteamSyncFinishedPayload =
-  | { ok: true; status: SteamIntegrationStatus }
-  | { ok: false; message: string };
+  | {
+      ok: true;
+      status: SteamIntegrationStatus;
+      origin: SteamSyncOrigin;
+    }
+  | { ok: false; message: string; origin: SteamSyncOrigin };

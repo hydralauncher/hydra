@@ -47,6 +47,7 @@ type ProfileGame = {
   unlockedAchievementCount: number;
   platform?: string | null;
   source?: string | null;
+  hasActiveSteamImport?: boolean;
   customLibraryImageUrl?: string | null;
   customLibraryHeroImageUrl?: string | null;
   customLogoImageUrl?: string | null;
@@ -231,6 +232,7 @@ const mergeExistingGame = (
   ),
   platform: remoteGame.platform ?? localGame.platform,
   source: resolveLibrarySource(localGame.source, remoteGame.source),
+  hasActiveSteamImport: remoteGame.hasActiveSteamImport === true,
   isDeleted: resolveLibraryIsDeleted(localGame.isDeleted, remoteGame.source),
   ...(canReconcileCustomArtwork
     ? {
@@ -282,6 +284,7 @@ const createLocalGame = (
   ),
   platform: remoteGame.platform ?? null,
   source: resolveLibrarySource(undefined, remoteGame.source),
+  hasActiveSteamImport: remoteGame.hasActiveSteamImport === true,
   customIconUrl: remoteGame.customIconUrl ?? null,
   customLogoImageUrl: remoteGame.customLogoImageUrl ?? null,
   customHeroImageUrl: remoteGame.customLibraryHeroImageUrl ?? null,
@@ -343,6 +346,20 @@ export const mergeWithRemoteGames = async () => {
     const remoteGames = await fetchRemoteGames();
     for (const game of remoteGames) {
       await mergeRemoteGame(game, canReconcileCustomArtwork);
+    }
+
+    // A removed Steam-only row may still have a local installation.
+    const remoteKeys = new Set(
+      remoteGames.map((game) => levelKeys.game(game.shop, game.objectId))
+    );
+    for (const [key, game] of await gamesSublevel.iterator().all()) {
+      if (
+        game.shop === "steam" &&
+        game.hasActiveSteamImport &&
+        !remoteKeys.has(key)
+      ) {
+        await gamesSublevel.put(key, { ...game, hasActiveSteamImport: false });
+      }
     }
   } catch {
     // Keep local library available when remote sync fails.

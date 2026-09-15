@@ -303,11 +303,16 @@ export function SettingsSteam() {
 
         if (payload.ok) {
           setIntegration(payload.status);
-          showSuccessToast(t("steam_sync_success"));
+          if (payload.origin === "manual") {
+            showSuccessToast(t("steam_sync_success"));
+          }
           return;
         }
 
-        if (payload.message !== "steam-sync-aborted") {
+        if (
+          payload.origin === "manual" &&
+          payload.message !== "steam-sync-aborted"
+        ) {
           showErrorToast(getSteamSyncErrorMessage(payload.message));
         }
 

@@ -7,6 +7,7 @@ import {
 } from "@main/services/library-sync";
 import { collectSteamOnlyObjectIds } from "@main/services/steam-integration/steam-imported-games";
 import { clearImportedSteamGames } from "@main/services/steam-integration/clear-imported-steam-games";
+import { gamesSublevel } from "@main/level";
 
 const OAUTH_ENDPOINT = "/profile/oauth/steam";
 
@@ -51,6 +52,12 @@ const disconnectSteam = async (
     const message = getErrorMessage(error);
     steamSyncLogger.error("Failed to disconnect Steam", error);
     throw new Error(message ?? "steam-disconnect-failed");
+  }
+
+  for (const [key, game] of await gamesSublevel.iterator().all()) {
+    if (game.hasActiveSteamImport) {
+      await gamesSublevel.put(key, { ...game, hasActiveSteamImport: false });
+    }
   }
 
   if (!deleteImportedData) {

@@ -137,6 +137,11 @@ export class HydraApi {
     );
     void groupedSouvenirWorker.trigger();
 
+    const { startSteamSyncOnStartup } = await import(
+      "./steam-integration/steam-startup-sync"
+    );
+    void startSteamSyncOnStartup();
+
     if (WindowManager.mainWindow) {
       WindowManager.mainWindow.webContents.send("on-signin");
       await clearGamesRemoteIds();
@@ -170,6 +175,11 @@ export class HydraApi {
       "./achievements/grouped-souvenir-worker"
     );
     groupedSouvenirWorker.stop();
+
+    const { resetSteamStartupSync } = await import(
+      "./steam-integration/steam-startup-sync"
+    );
+    resetSteamStartupSync();
 
     this.sendSignOutEvent();
     this.post("/auth/logout", {}, { needsAuth: false }).catch(() => {});

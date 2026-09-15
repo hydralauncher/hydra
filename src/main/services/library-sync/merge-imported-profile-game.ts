@@ -12,6 +12,7 @@ export interface ImportedProfileGame {
   runtime?: number | null;
   runtimeByPlatform?: { hydra?: number | null; steam?: number | null } | null;
   hasManuallyUpdatedPlaytime?: boolean;
+  hasActiveSteamImport?: boolean;
   isFavorite?: boolean;
   isPinned?: boolean;
   collectionIds?: string[];
@@ -46,6 +47,7 @@ export const mergeImportedProfileGame = (
     remoteGame.lastTimePlayed
   ),
   ...mergeLocalAndRemotePlayTime(localGame, remoteGame),
+  hasActiveSteamImport: remoteGame.hasActiveSteamImport === true,
   hasManuallyUpdatedPlaytime:
     remoteGame.hasManuallyUpdatedPlaytime ??
     localGame.hasManuallyUpdatedPlaytime,

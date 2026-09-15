@@ -5,11 +5,13 @@ import { steamSyncLogger } from "../logger";
 import { WindowManager } from "../window-manager";
 import type {
   SteamIntegrationStatus,
+  SteamGameSyncPayload,
   SteamSourceAchievement,
   SteamSourceLibraryGame,
   SteamSnapshotPayload,
   SteamSyncFinishedPayload,
   SteamSyncRunStatus,
+  SteamSyncOrigin,
   SteamSyncState,
   UnlockedAchievement,
 } from "@types";
@@ -57,6 +59,7 @@ import {
   fetchSteamGameAchievementSchema,
   fetchSteamLastPlayedTimes,
   fetchSteamOwnedGames,
+  fetchSteamOwnedGame,
   fetchSteamSharedLibraryApps,
 } from "./steam-web-api";
 import {
@@ -227,6 +230,7 @@ class SteamSyncOrchestrator {
   private abortController: AbortController | null = null;
   private runPromise: Promise<void> | null = null;
   private hasEmittedFinished = false;
+  private origin: SteamSyncOrigin = "manual";
 
   getState() {
     return this.state;
@@ -240,7 +244,7 @@ class SteamSyncOrchestrator {
     await clearPersistedSyncRunId();
   }
 
-  async start() {
+  async start(origin: SteamSyncOrigin = "manual") {
     if (this.state.status === "running" || this.state.status === "cancelling") {
       steamSyncLogger.log(
         "Start ignored, sync already",
@@ -251,6 +255,7 @@ class SteamSyncOrchestrator {
     }
 
     this.hasEmittedFinished = false;
+    this.origin = origin;
     this.abortController = new AbortController();
     this.setState({
       status: "running",
@@ -267,6 +272,108 @@ class SteamSyncOrchestrator {
     });
 
     return this.state;
+  }
+
+  async waitForCurrentRun() {
+    while (this.runPromise) {
+      await this.runPromise;
+    }
+  }
+
+  async collectGameSyncPayload(
+    steamAppId: string,
+    signal: AbortSignal
+  ): Promise<SteamGameSyncPayload> {
+    const token = await this.resolveSteamSession(signal);
+    throwIfAborted(signal);
+
+    const ownedPayload = await fetchWithRetry(
+      `game ${steamAppId}`,
+      () => fetchSteamOwnedGame(token, steamAppId, signal),
+      signal
+    );
+    const ownedGames = parseSteamSourceLibrary(ownedPayload).filter(
+      (game) => game.steamAppId === steamAppId
+    );
+    const playtimeSources = [
+      await this.fetchLastPlayedPlaytimeMap(token, signal),
+    ];
+    let familyApps: SteamFamilySharedApp[] = [];
+
+    if (ownedGames.length === 0) {
+      const groupPayload = await fetchWithRetry(
+        "family group",
+        () => fetchSteamFamilyGroupForUser(token, signal),
+        signal
+      );
+      const familyGroupId = parseSteamFamilyGroupId(groupPayload);
+
+      if (familyGroupId) {
+        const sharedPayload = await fetchWithRetry(
+          `family game ${steamAppId}`,
+          () => fetchSteamSharedLibraryApps(token, familyGroupId, signal),
+          signal
+        );
+        familyApps = parseSteamSharedLibraryApps(sharedPayload).filter(
+          (game) => game.steamAppId === steamAppId
+        );
+        playtimeSources.push(playtimeMapFromSharedApps(familyApps));
+
+        try {
+          const playtimePayload = await fetchWithRetry(
+            `family playtime ${steamAppId}`,
+            () => fetchSteamFamilyPlaytimeSummary(token, familyGroupId, signal),
+            signal
+          );
+          playtimeSources.push(
+            parseSteamFamilyPlaytimeByAppId(playtimePayload, token.steamId64)
+          );
+        } catch (error) {
+          if (isSteamSyncAbortError(error)) throw error;
+          steamSyncLogger.log("Steam family playtime unavailable", error);
+        }
+      }
+    }
+
+    const [game] = mergeSteamOwnedAndFamilyGames(
+      ownedGames,
+      familyApps,
+      mergeSteamFamilyPlaytimeMaps(...playtimeSources)
+    ).filter((candidate) => candidate.steamAppId === steamAppId);
+
+    if (!game) {
+      throw new Error(`steam-game-not-found:${steamAppId}`);
+    }
+
+    let achievements:
+      | SteamSnapshotPayload["games"][number]["achievements"]
+      | undefined;
+    try {
+      const communitySession = await readSteamCommunitySession();
+      if (communitySession.hasLoginCookie) {
+        const achievementsByAppId = await this.fetchAchievements(
+          token,
+          communitySession,
+          [game],
+          signal,
+          false
+        );
+        achievements = buildSteamSnapshot([game], achievementsByAppId).games[0]
+          ?.achievements;
+      }
+    } catch (error) {
+      if (isSteamSyncAbortError(error)) throw error;
+      steamSyncLogger.log(
+        `Steam achievements unavailable for ${steamAppId}`,
+        error
+      );
+    }
+
+    return {
+      playTimeInSeconds: game.playTimeInSeconds,
+      lastPlayedAt: game.lastPlayedAt,
+      ...(achievements ? { achievements } : {}),
+    };
   }
 
   async cancel() {
@@ -550,7 +657,8 @@ class SteamSyncOrchestrator {
     token: SteamWebApiToken,
     communitySession: SteamCommunitySession,
     games: SteamSourceLibraryGame[],
-    signal: AbortSignal
+    signal: AbortSignal,
+    trackProgress = true
   ) {
     const achievementsByAppId = new Map<
       string,
@@ -692,11 +800,14 @@ class SteamSyncOrchestrator {
 
             if (status === 429) {
               rateLimited = true;
-              this.setState(idleState());
-              this.emitFinished({
-                ok: false,
-                message: "profile/steam-rate-limited",
-              });
+              if (trackProgress) {
+                this.setState(idleState());
+                this.emitFinished({
+                  ok: false,
+                  message: "profile/steam-rate-limited",
+                  origin: this.origin,
+                });
+              }
             }
 
             if (status === 409) {
@@ -711,7 +822,7 @@ class SteamSyncOrchestrator {
         } finally {
           gamesProcessed += 1;
 
-          if (this.state.status === "running") {
+          if (trackProgress && this.state.status === "running") {
             this.setState({
               ...this.state,
               phase: "achievements",
@@ -842,7 +953,7 @@ class SteamSyncOrchestrator {
 
       await clearPersistedSyncRunId();
       this.setState(idleState());
-      this.emitFinished({ ok: true, status });
+      this.emitFinished({ ok: true, status, origin: this.origin });
     } catch (error) {
       const aborted = isSteamSyncAbortError(error);
 
@@ -853,14 +964,22 @@ class SteamSyncOrchestrator {
         }
         await clearPersistedSyncRunId();
         this.setState(idleState());
-        this.emitFinished({ ok: false, message: "steam-sync-aborted" });
+        this.emitFinished({
+          ok: false,
+          message: "steam-sync-aborted",
+          origin: this.origin,
+        });
         return;
       }
 
       if (error instanceof SteamSyncInProgressError) {
         steamSyncLogger.error("Steam sync already running on the server");
         this.setState(idleState());
-        this.emitFinished({ ok: false, message: error.message });
+        this.emitFinished({
+          ok: false,
+          message: error.message,
+          origin: this.origin,
+        });
         return;
       }
 
@@ -868,7 +987,7 @@ class SteamSyncOrchestrator {
 
       steamSyncLogger.error("Steam sync failed", message);
       this.setState(idleState());
-      this.emitFinished({ ok: false, message });
+      this.emitFinished({ ok: false, message, origin: this.origin });
       if (
         !snapshotPublished &&
         !(error instanceof SteamSyncRunNotPendingError)

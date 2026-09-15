@@ -9,6 +9,7 @@ import {
   fetchSteamGameAchievementSchema,
   fetchSteamLastPlayedTimes,
   fetchSteamOwnedGames,
+  fetchSteamOwnedGame,
   fetchSteamSharedLibraryApps,
 } from "./steam-web-api.ts";
 
@@ -46,6 +47,18 @@ describe("Steam Web API client", () => {
     });
 
     assert.deepEqual(response, envelope);
+  });
+
+  it("filters GetOwnedGames to one app for incremental sync", async () => {
+    await fetchSteamOwnedGame(token, "620", undefined, (input) => {
+      const url = new URL(String(input));
+      assert.deepEqual(JSON.parse(url.searchParams.get("input_json")!), {
+        include_appinfo: true,
+        include_played_free_games: true,
+        appids_filter: [620],
+      });
+      return Promise.resolve(jsonResponse(200, { response: { games: [] } }));
+    });
   });
 
   it("calls GetGameAchievements with the store access token and no steamid", async () => {

@@ -46,6 +46,7 @@ export interface Game {
   customOriginalCoverPath?: string | null;
   playTimeInMilliseconds: number;
   steamPlayTimeInMilliseconds?: number;
+  hasActiveSteamImport?: boolean;
   unsyncedDeltaPlayTimeInMilliseconds?: number;
   lastTimePlayed: Date | null;
   addedToLibraryAt?: Date | null;

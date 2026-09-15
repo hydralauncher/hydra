@@ -84,6 +84,26 @@ export const fetchSteamOwnedGames = (
     fetchImpl,
   });
 
+export const fetchSteamOwnedGame = (
+  token: SteamWebApiToken,
+  steamAppId: string,
+  signal?: AbortSignal,
+  fetchImpl?: typeof fetch
+) =>
+  steamWebApiGet({
+    path: "IPlayerService/GetOwnedGames/v1/",
+    token,
+    params: {
+      input_json: JSON.stringify({
+        include_appinfo: true,
+        include_played_free_games: true,
+        appids_filter: [Number.parseInt(steamAppId, 10)],
+      }),
+    },
+    signal,
+    fetchImpl,
+  });
+
 export const fetchSteamGameAchievementSchema = (
   token: SteamWebApiToken,
   steamAppId: string,
