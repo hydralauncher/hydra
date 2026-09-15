@@ -1032,6 +1032,68 @@ unsafe fn duplicate_output(
         .map_err(|error| format!("DuplicateOutput: {error}"))
 }
 
+/// Keeps the display powered on for as long as it lives, so a stream can start
+/// (and keep running) with the panel off.
+///
+/// Measured on the RTX 5070 with the display in DPMS standby — what a monitor's
+/// standby leaves behind, and what the Windows power plan produces — the
+/// duplication is created fine but delivers **zero** frames, and GDI still sees
+/// a composed desktop; `SetThreadExecutionState(ES_CONTINUOUS |
+/// ES_DISPLAY_REQUIRED)` brings capture back to full rate (530 frames in 4 s)
+/// *while the panel stays dark*. That is Sunshine's mechanism too
+/// (`display_base.cpp:245`, with the wait-and-retry at `:550-554`).
+///
+/// `SetThreadExecutionState` is per-thread and a thread's state dies with it,
+/// so this owns a thread that holds the state and parks until dropped. The
+/// sender loop sets the same state for its own lifetime (`video.rs`), but it
+/// only starts *after* the capture exists — too late for a session that begins
+/// with the display already off, which is exactly the case that used to end in
+/// a silent black screen.
+pub struct DisplayKeeper {
+    stop: std::sync::Arc<std::sync::atomic::AtomicBool>,
+    thread: Option<std::thread::JoinHandle<()>>,
+}
+
+impl DisplayKeeper {
+    /// Starts holding the display on. Returns once the state is set, not once
+    /// the display has physically come back: the caller retries its own
+    /// enumeration when that first attempt fails.
+    pub fn start() -> Self {
+        use windows::Win32::System::Power::{
+            SetThreadExecutionState, ES_CONTINUOUS, ES_DISPLAY_REQUIRED,
+        };
+        let stop = std::sync::Arc::new(std::sync::atomic::AtomicBool::new(false));
+        let thread_stop = stop.clone();
+        let thread = std::thread::spawn(move || {
+            unsafe {
+                SetThreadExecutionState(ES_CONTINUOUS | ES_DISPLAY_REQUIRED);
+            }
+            while !thread_stop.load(std::sync::atomic::Ordering::Relaxed) {
+                std::thread::sleep(Duration::from_millis(200));
+            }
+            // Dropping the thread would clear this anyway; clearing it here
+            // documents the pairing and covers an explicit stop.
+            unsafe {
+                SetThreadExecutionState(ES_CONTINUOUS);
+            }
+        });
+        Self {
+            stop,
+            thread: Some(thread),
+        }
+    }
+}
+
+impl Drop for DisplayKeeper {
+    fn drop(&mut self) {
+        self.stop.store(true, std::sync::atomic::Ordering::Relaxed);
+        if let Some(thread) = self.thread.take() {
+            let _ = thread.join();
+        }
+    }
+}
+
+
 /// The display's HDR10 metadata in the form the Moonlight HDR control
 /// message carries it (`SS_HDR_METADATA`, moonlight-common-c
 /// `Limelight.h:976-997`): Rec.2020 primaries and the D65 white point scaled
@@ -1568,6 +1630,11 @@ fn sps_info(data: &[u8]) -> Option<(u8, u8, u8)> {
 /// reference for the frame behind it. Forced IDRs are exempt — they are
 /// the client's loss-recovery mechanism and are always decodable.
 pub struct NvencPipeline {
+    /// Holds the display on for this pipeline's lifetime. Without it a session
+    /// that starts with the panel off gets no frames at all (see
+    /// [`DisplayKeeper`]); it is started before the capture exists and lives
+    /// across the display-mode recreations. Held for its `Drop`, never read.
+    _display: DisplayKeeper,
     capture: Option<DxgiCapture>,
     /// The desktop duplication died (display mode change, TDR) and the
     /// recreation tick has not resumed yet: encode_next stays out of the
@@ -1739,6 +1806,7 @@ enum PendingSource {
 fn create_capture(
     target: &EncoderConfigParams,
     skip_cross: bool,
+    allow_retry: bool,
 ) -> Result<
     (
         DxgiCapture,
@@ -1907,6 +1975,19 @@ fn create_capture(
         );
         return Ok((capture, encoder, backend, scaler, None));
     }
+    // A stream that starts while the panel is off can find nothing to
+    // duplicate on the first pass: `DisplayKeeper` has just asked Windows for
+    // the display, and the output needs a moment before it is really back.
+    // Sunshine waits and retries the same way (`display_base.cpp:550-554`);
+    // the single retry keeps a genuinely absent output failing promptly.
+    if allow_retry {
+        eprintln!(
+            "capture: no usable capture adapter ({}); waiting for the display and retrying once",
+            errors.join("; ")
+        );
+        std::thread::sleep(Duration::from_millis(1500));
+        return create_capture(target, skip_cross, false);
+    }
     Err(format!("no usable capture adapter ({})", errors.join("; ")))
 }
 
@@ -1961,7 +2042,13 @@ fn try_cross_encoder(
 
 impl NvencPipeline {
     pub fn new(config: EncoderConfigParams) -> Result<Self, String> {
-        let (capture, encoder, backend, scaler, bridge) = create_capture(&config, false)?;
+        // Ask Windows for the display *before* the duplication exists: with the
+        // panel off the duplication either cannot be created or delivers
+        // nothing at all, and the sender loop's own wake (video.rs) only runs
+        // once the pipeline is already up.
+        let display = DisplayKeeper::start();
+        let (capture, encoder, backend, scaler, bridge) =
+            create_capture(&config, false, true)?;
         let frame_interval = Duration::from_secs_f64(1.0 / config.fps.max(1) as f64);
         // the geometry the session really runs at: a zero width/height in
         // the config means "encode at the desktop size", which only the
@@ -1980,6 +2067,7 @@ impl NvencPipeline {
             .map(Duration::from_millis)
             .unwrap_or(frame_interval * 5 / 4);
         Ok(NvencPipeline {
+            _display: display,
             capture: Some(capture),
             recreate_pending: false,
             encoder: Some(encoder),
@@ -2133,7 +2221,7 @@ impl NvencPipeline {
         }
 
         let started = Instant::now();
-        match create_capture(&self.config, self.cross_broken) {
+        match create_capture(&self.config, self.cross_broken, true) {
             Ok((capture, encoder, backend, scaler, bridge)) => {
                 self.recreate_count += 1;
                 let source_size = (capture.width, capture.height);
@@ -3830,7 +3918,7 @@ mod tests {
             for _ in 0..5 {
                 let started = Instant::now();
                 let (capture, encoder, _backend, scaler, _bridge) =
-                    create_capture(&config, skip_cross).expect("full create_capture");
+                    create_capture(&config, skip_cross, true).expect("full create_capture");
                 full_ms.push(started.elapsed().as_millis());
                 drop(encoder);
                 drop(scaler);
