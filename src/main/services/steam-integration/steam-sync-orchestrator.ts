@@ -14,6 +14,7 @@ import type {
   UnlockedAchievement,
 } from "@types";
 import {
+  isSkippedSteamLibraryTitle,
   parseSteamSourceAchievements,
   parseSteamSourceLibrary,
 } from "./steam-source-payload";
@@ -67,6 +68,8 @@ import {
   parseSteamLastPlayedTimes,
   parseSteamSharedLibraryApps,
   playtimeMapFromSharedApps,
+  type SteamFamilyPlaytime,
+  type SteamFamilySharedApp,
 } from "./steam-family-library";
 import { buildSteamSnapshot } from "./steam-sync-snapshot";
 
@@ -397,8 +400,20 @@ class SteamSyncOrchestrator {
       }
 
       const ownedGames = parseSteamSourceLibrary(response);
-      const games = await this.mergeFamilyLibrary(ownedGames, token, signal);
-      steamSyncLogger.log("Library games found", games.length);
+      const mergedGames = await this.mergeFamilyLibrary(
+        ownedGames,
+        token,
+        signal
+      );
+      const games = mergedGames.filter(
+        (game) => !isSkippedSteamLibraryTitle(game.name)
+      );
+      steamSyncLogger.log(
+        "Library games found",
+        games.length,
+        "skipped titles",
+        mergedGames.length - games.length
+      );
       return games;
     } catch (error) {
       if (
@@ -417,11 +432,38 @@ class SteamSyncOrchestrator {
     }
   }
 
+  private async fetchLastPlayedPlaytimeMap(
+    token: SteamWebApiToken,
+    signal: AbortSignal
+  ) {
+    try {
+      steamSyncLogger.log("GET Steam ClientGetLastPlayedTimes");
+      const lastPlayedPayload = await fetchWithRetry(
+        "last played times",
+        () => fetchSteamLastPlayedTimes(token, signal),
+        signal
+      );
+      return parseSteamLastPlayedTimes(lastPlayedPayload);
+    } catch (error) {
+      if (isSteamSyncAbortError(error)) {
+        throw error;
+      }
+
+      steamSyncLogger.log("Steam last played times unavailable", error);
+      return new Map<string, SteamFamilyPlaytime>();
+    }
+  }
+
   private async mergeFamilyLibrary(
     ownedGames: SteamSourceLibraryGame[],
     token: SteamWebApiToken,
     signal: AbortSignal
   ) {
+    const playtimeSources = [
+      await this.fetchLastPlayedPlaytimeMap(token, signal),
+    ];
+    let familyApps: SteamFamilySharedApp[] = [];
+
     try {
       steamSyncLogger.log("GET Steam GetFamilyGroupForUser");
       const groupPayload = await fetchWithRetry(
@@ -432,75 +474,57 @@ class SteamSyncOrchestrator {
       const familyGroupId = parseSteamFamilyGroupId(groupPayload);
       if (!familyGroupId) {
         steamSyncLogger.log("Steam family group not found");
-        return ownedGames;
-      }
-
-      steamSyncLogger.log("GET Steam GetSharedLibraryApps");
-      const sharedPayload = await fetchWithRetry(
-        "family library",
-        () => fetchSteamSharedLibraryApps(token, familyGroupId, signal),
-        signal
-      );
-      const familyApps = parseSteamSharedLibraryApps(sharedPayload);
-      const playtimeSources = [playtimeMapFromSharedApps(familyApps)];
-
-      try {
-        steamSyncLogger.log("GET Steam ClientGetLastPlayedTimes");
-        const lastPlayedPayload = await fetchWithRetry(
-          "last played times",
-          () => fetchSteamLastPlayedTimes(token, signal),
+      } else {
+        steamSyncLogger.log("GET Steam GetSharedLibraryApps");
+        const sharedPayload = await fetchWithRetry(
+          "family library",
+          () => fetchSteamSharedLibraryApps(token, familyGroupId, signal),
           signal
         );
-        playtimeSources.push(parseSteamLastPlayedTimes(lastPlayedPayload));
-      } catch (error) {
-        if (isSteamSyncAbortError(error)) {
-          throw error;
+        familyApps = parseSteamSharedLibraryApps(sharedPayload);
+        playtimeSources.push(playtimeMapFromSharedApps(familyApps));
+
+        try {
+          steamSyncLogger.log("GET Steam GetPlaytimeSummary");
+          const playtimePayload = await fetchWithRetry(
+            "family playtime",
+            () => fetchSteamFamilyPlaytimeSummary(token, familyGroupId, signal),
+            signal
+          );
+          playtimeSources.push(
+            parseSteamFamilyPlaytimeByAppId(playtimePayload, token.steamId64)
+          );
+        } catch (error) {
+          if (isSteamSyncAbortError(error)) {
+            throw error;
+          }
+
+          steamSyncLogger.log("Steam family playtime unavailable", error);
         }
-
-        steamSyncLogger.log("Steam last played times unavailable", error);
       }
-
-      try {
-        steamSyncLogger.log("GET Steam GetPlaytimeSummary");
-        const playtimePayload = await fetchWithRetry(
-          "family playtime",
-          () => fetchSteamFamilyPlaytimeSummary(token, familyGroupId, signal),
-          signal
-        );
-        playtimeSources.push(
-          parseSteamFamilyPlaytimeByAppId(playtimePayload, token.steamId64)
-        );
-      } catch (error) {
-        if (isSteamSyncAbortError(error)) {
-          throw error;
-        }
-
-        steamSyncLogger.log("Steam family playtime unavailable", error);
-      }
-
-      const playtimeByAppId = mergeSteamFamilyPlaytimeMaps(...playtimeSources);
-      const games = mergeSteamOwnedAndFamilyGames(
-        ownedGames,
-        familyApps,
-        playtimeByAppId
-      );
-      steamSyncLogger.log(
-        "Family library games found",
-        familyApps.length,
-        "merged total",
-        games.length,
-        "with playtime",
-        countSteamFamilyPlaytimeEntries(playtimeByAppId)
-      );
-      return games;
     } catch (error) {
       if (isSteamSyncAbortError(error)) {
         throw error;
       }
 
       steamSyncLogger.log("Steam family library unavailable", error);
-      return ownedGames;
     }
+
+    const playtimeByAppId = mergeSteamFamilyPlaytimeMaps(...playtimeSources);
+    const games = mergeSteamOwnedAndFamilyGames(
+      ownedGames,
+      familyApps,
+      playtimeByAppId
+    );
+    steamSyncLogger.log(
+      "Family library games found",
+      familyApps.length,
+      "merged total",
+      games.length,
+      "with playtime",
+      countSteamFamilyPlaytimeEntries(playtimeByAppId)
+    );
+    return games;
   }
 
   private async persistLocalAchievementCounts(

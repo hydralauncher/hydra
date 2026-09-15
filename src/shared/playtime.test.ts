@@ -3,6 +3,7 @@ import { describe, it } from "node:test";
 
 import {
   getDisplayedPlayTimeInMilliseconds,
+  getPlayTimeHoursAndMinutes,
   mergeLocalAndRemotePlayTime,
 } from "./playtime.js";
 
@@ -24,6 +25,19 @@ describe("getDisplayedPlayTimeInMilliseconds", () => {
       }),
       1_000
     );
+  });
+});
+
+describe("getPlayTimeHoursAndMinutes", () => {
+  it("splits milliseconds into hours and leftover minutes", () => {
+    assert.deepEqual(getPlayTimeHoursAndMinutes(7_800_000), {
+      hours: 2,
+      minutes: 10,
+    });
+    assert.deepEqual(getPlayTimeHoursAndMinutes(-1), {
+      hours: 0,
+      minutes: 0,
+    });
   });
 });
 

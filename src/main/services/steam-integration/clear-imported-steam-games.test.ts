@@ -82,6 +82,22 @@ describe("shouldRemoveImportedSteamGame", () => {
     );
   });
 
+  it("keeps steam-imported games that later gained Hydra playtime", () => {
+    assert.equal(
+      shouldRemoveImportedSteamGame(
+        {
+          shop: "steam",
+          isDeleted: false,
+          objectId: "620",
+          source: "steam",
+          playTimeInMilliseconds: 20 * 60 * 1000,
+        },
+        steamOnly
+      ),
+      false
+    );
+  });
+
   it("keeps launchbox and already deleted games", () => {
     assert.equal(
       shouldRemoveImportedSteamGame(

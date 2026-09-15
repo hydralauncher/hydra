@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 
-import { Button, CheckboxField, Modal } from "@renderer/components";
+import { Button, Modal } from "@renderer/components";
 import { useDate, useToast, useUserDetails } from "@renderer/hooks";
 import {
   CheckCircleFillIcon,
@@ -56,6 +56,9 @@ const isLastAuthMethodError = (message?: string) => {
   );
 };
 
+const isSteamAlreadyLinkedError = (message?: string) =>
+  Boolean(message?.toLowerCase().includes("already-linked"));
+
 export function SettingsSteam() {
   const { userDetails } = useUserDetails();
   const { showSuccessToast, showErrorToast } = useToast();
@@ -67,9 +70,7 @@ export function SettingsSteam() {
   const [integration, setIntegration] =
     useState<SteamIntegrationStatus>(DISCONNECTED_STATUS);
   const [avatarError, setAvatarError] = useState(false);
-  const [showDisconnectModal, setShowDisconnectModal] = useState(false);
   const [showDeleteDataModal, setShowDeleteDataModal] = useState(false);
-  const [deleteImportedData, setDeleteImportedData] = useState(true);
   const [syncState, setSyncState] = useState<SteamSyncState>({
     status: "idle",
   });
@@ -97,6 +98,10 @@ export function SettingsSteam() {
 
       if (isLastAuthMethodError(message)) {
         return t("steam_last_auth_method");
+      }
+
+      if (isSteamAlreadyLinkedError(message)) {
+        return t("steam_account_already_linked");
       }
 
       return t(fallbackKey);
@@ -255,6 +260,20 @@ export function SettingsSteam() {
   }, [refreshStatus]);
 
   useEffect(() => {
+    const unsubscribe = globalThis.window.electron.onSteamConnectError(
+      (code) => {
+        showErrorToast(
+          code === "already-linked"
+            ? t("steam_account_already_linked")
+            : t("steam_connect_error")
+        );
+      }
+    );
+
+    return unsubscribe;
+  }, [showErrorToast, t]);
+
+  useEffect(() => {
     const onFocus = () => {
       void refreshStatus({ silent: true, fromFocus: true });
     };
@@ -334,31 +353,12 @@ export function SettingsSteam() {
     await globalThis.window.electron.cancelSteamSync();
   };
 
-  const closeDisconnectModal = () => {
-    setShowDisconnectModal(false);
-    setDeleteImportedData(true);
-  };
-
-  const handleConfirmDisconnect = () => {
-    if (deleteImportedData) {
-      setShowDisconnectModal(false);
-      setShowDeleteDataModal(true);
-      return;
-    }
-
-    void handleDisconnect(false);
-  };
-
-  const handleDisconnect = async (shouldDeleteImportedData: boolean) => {
-    setShowDisconnectModal(false);
+  const handleDisconnect = async () => {
     setShowDeleteDataModal(false);
-    setDeleteImportedData(true);
     setIsSubmitting(true);
 
     try {
-      await globalThis.window.electron.disconnectSteam(
-        shouldDeleteImportedData
-      );
+      await globalThis.window.electron.disconnectSteam(true);
 
       showSuccessToast(t("steam_account_unlinked"));
       await refreshStatus({ silent: true });
@@ -488,10 +488,7 @@ export function SettingsSteam() {
                   )}
                   <Button
                     theme="danger"
-                    onClick={() => {
-                      setDeleteImportedData(true);
-                      setShowDisconnectModal(true);
-                    }}
+                    onClick={() => setShowDeleteDataModal(true)}
                     disabled={isSubmitting || isSyncing}
                   >
                     {t("steam_disconnect")}
@@ -574,44 +571,13 @@ export function SettingsSteam() {
       </div>
 
       <Modal
-        visible={showDisconnectModal}
-        onClose={closeDisconnectModal}
-        title={t("steam_disconnect_title")}
-      >
-        <div className="settings-steam__modal">
-          <p className="settings-steam__modal-note">
-            {t("steam_disconnect_description")}
-          </p>
-
-          <CheckboxField
-            label={t("steam_delete_on_disconnect")}
-            checked={deleteImportedData}
-            onChange={() => setDeleteImportedData((prev) => !prev)}
-          />
-
-          <div className="settings-steam__modal-actions">
-            <Button
-              theme="outline"
-              onClick={closeDisconnectModal}
-              disabled={isSubmitting}
-            >
-              {t("cancel")}
-            </Button>
-            <Button
-              theme="danger"
-              onClick={handleConfirmDisconnect}
-              disabled={isSubmitting}
-            >
-              {t("steam_disconnect")}
-            </Button>
-          </div>
-        </div>
-      </Modal>
-
-      <Modal
         visible={showDeleteDataModal}
         onClose={() => setShowDeleteDataModal(false)}
-        title={t("steam_delete_confirm_title")}
+        title={
+          integration.connected
+            ? t("steam_delete_confirm_title")
+            : t("steam_remove_imported_data")
+        }
         description={t("steam_delete_confirm_description")}
       >
         <div className="settings-steam__modal-actions">
@@ -624,10 +590,12 @@ export function SettingsSteam() {
           </Button>
           <Button
             theme="danger"
-            onClick={() => void handleDisconnect(true)}
+            onClick={() => void handleDisconnect()}
             disabled={isSubmitting}
           >
-            {t("steam_delete_confirm_button")}
+            {integration.connected
+              ? t("steam_delete_confirm_button")
+              : t("steam_remove_imported_data")}
           </Button>
         </div>
       </Modal>

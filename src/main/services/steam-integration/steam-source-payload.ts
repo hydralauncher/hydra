@@ -65,6 +65,23 @@ const parseUnlockTime = (item: Record<string, unknown>): string | null => {
   return unixSecondsToIso(item.unlocktime);
 };
 
+const STEAM_SKIP_TITLE_PATTERN = /\b(?:demo|playtest|play test)\b/i;
+
+export const isSkippedSteamLibraryTitle = (name: string): boolean =>
+  STEAM_SKIP_TITLE_PATTERN.test(name.trim());
+
+const readSteamPlayTimeInSeconds = (item: Record<string, unknown>): number => {
+  const explicitSeconds = readNonNegativeInt(item.playTimeInSeconds);
+  if (explicitSeconds != null) {
+    return explicitSeconds;
+  }
+
+  const foreverMinutes = readNonNegativeInt(item.playtime_forever) ?? 0;
+  const disconnectedMinutes =
+    readNonNegativeInt(item.playtime_disconnected) ?? 0;
+  return (foreverMinutes + disconnectedMinutes) * 60;
+};
+
 const parseLibraryGame = (item: unknown): SteamSourceLibraryGame | null => {
   if (!isRecord(item)) return null;
 
@@ -73,16 +90,12 @@ const parseLibraryGame = (item: unknown): SteamSourceLibraryGame | null => {
     return null;
   }
 
-  const playTimeInSeconds =
-    readNonNegativeInt(item.playTimeInSeconds) ??
-    (readNonNegativeInt(item.playtime_forever) ?? 0) * 60;
-
   const lastPlayedAt = parseLastPlayedAt(item);
 
   return {
     steamAppId,
     name: typeof item.name === "string" ? item.name : "",
-    playTimeInSeconds,
+    playTimeInSeconds: readSteamPlayTimeInSeconds(item),
     lastPlayedAt,
   };
 };

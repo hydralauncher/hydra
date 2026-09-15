@@ -278,7 +278,9 @@ export const parseSteamLastPlayedTimes = (
     playtimeByAppId.set(
       steamAppId,
       pickPreferredPlaytime(playtimeByAppId.get(steamAppId), {
-        playTimeInSeconds: minutesToSeconds(item.playtime_forever),
+        playTimeInSeconds:
+          minutesToSeconds(item.playtime_forever) +
+          minutesToSeconds(item.playtime_disconnected),
         lastPlayedAt:
           unixSecondsToIso(item.last_playtime) ??
           unixSecondsToIso(item.first_playtime),
@@ -342,7 +344,26 @@ export const mergeSteamOwnedAndFamilyGames = (
   for (const game of owned) {
     if (seenAppIds.has(game.steamAppId)) continue;
     seenAppIds.add(game.steamAppId);
-    games.push(game);
+
+    const extra = playtimeByAppId.get(game.steamAppId);
+    if (!extra) {
+      games.push(game);
+      continue;
+    }
+
+    const merged = pickPreferredPlaytime(
+      {
+        playTimeInSeconds: game.playTimeInSeconds,
+        lastPlayedAt: game.lastPlayedAt,
+      },
+      extra
+    );
+
+    games.push({
+      ...game,
+      playTimeInSeconds: merged.playTimeInSeconds,
+      lastPlayedAt: merged.lastPlayedAt,
+    });
   }
 
   for (const app of familyApps) {

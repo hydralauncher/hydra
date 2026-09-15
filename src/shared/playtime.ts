@@ -21,6 +21,14 @@ export const getDisplayedPlayTimeInMilliseconds = (
   Math.max(0, game.playTimeInMilliseconds ?? 0) +
   Math.max(0, game.steamPlayTimeInMilliseconds ?? 0);
 
+export const getPlayTimeHoursAndMinutes = (milliseconds: number) => {
+  const totalMinutes = Math.floor(Math.max(0, milliseconds) / 60_000);
+  return {
+    hours: Math.floor(totalMinutes / 60),
+    minutes: totalMinutes % 60,
+  };
+};
+
 export const getRemotePlayTimeParts = (
   remote: RemotePlayTimeInput
 ): { hydraMs: number; steamMs: number } => {

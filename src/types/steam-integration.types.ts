@@ -1,3 +1,5 @@
+export type SteamConnectErrorCode = "already-linked" | "generic";
+
 export type SteamSyncRunTrigger = "FIRST_LINK" | "MANUAL";
 
 export type SteamSyncRunStatus = "PENDING" | "RUNNING" | "SUCCEEDED" | "FAILED";

@@ -4,7 +4,8 @@ import { BrowserWindow, session } from "electron";
 
 import { steamSyncLogger } from "../logger";
 import { WindowManager } from "../window-manager";
-import { isSteamOpenIdSuccessUrl } from "./steam-openid-return";
+import type { SteamConnectErrorCode } from "@types";
+import { parseSteamOpenIdReturn } from "./steam-openid-return";
 import {
   parseSteamStoreSessionConfig,
   type SteamWebApiToken,
@@ -113,6 +114,11 @@ export const notifySteamConnected = () => {
   WindowManager.redirect("settings?tab=integrations");
 };
 
+export const notifySteamConnectError = (code: SteamConnectErrorCode) => {
+  WindowManager.sendToAppWindows("on-steam-connect-error", code);
+  WindowManager.redirect("settings?tab=integrations");
+};
+
 export const closeSteamOpenIdWindow = () => {
   if (steamOpenIdWindow && !steamOpenIdWindow.isDestroyed()) {
     steamOpenIdWindow.close();
@@ -159,30 +165,47 @@ export const openSteamOpenIdWindow = (authorizationUrl: string) => {
     }
   };
 
-  const interceptSteamConnected = (url: string) => {
-    if (!isSteamOpenIdSuccessUrl(url)) return false;
-    finishConnected(url);
+  const finishError = (code: SteamConnectErrorCode, url: string) => {
+    if (finished) return;
+    finished = true;
+    steamSyncLogger.error("Steam OpenID failed", code, url);
+    notifySteamConnectError(code);
+    if (!window.isDestroyed()) {
+      window.close();
+    }
+  };
+
+  const interceptSteamReturn = (url: string) => {
+    const result = parseSteamOpenIdReturn(url);
+    if (!result) return false;
+
+    if (result.kind === "success") {
+      finishConnected(url);
+      return true;
+    }
+
+    finishError(result.code, url);
     return true;
   };
 
   window.webContents.on("will-navigate", (event, url) => {
-    if (interceptSteamConnected(url)) {
+    if (interceptSteamReturn(url)) {
       event.preventDefault();
     }
   });
 
   window.webContents.on("will-redirect", (event, url) => {
-    if (interceptSteamConnected(url)) {
+    if (interceptSteamReturn(url)) {
       event.preventDefault();
     }
   });
 
   window.webContents.on("did-navigate", (_event, url) => {
-    interceptSteamConnected(url);
+    interceptSteamReturn(url);
   });
 
   window.webContents.setWindowOpenHandler(({ url }) => {
-    if (interceptSteamConnected(url)) {
+    if (interceptSteamReturn(url)) {
       return { action: "deny" };
     }
 

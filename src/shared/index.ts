@@ -31,6 +31,7 @@ export {
 } from "./should-auto-start-steam-sync";
 export {
   getDisplayedPlayTimeInMilliseconds,
+  getPlayTimeHoursAndMinutes,
   mergeLocalAndRemotePlayTime,
 } from "./playtime";
 export * from "./cloud-save-access";

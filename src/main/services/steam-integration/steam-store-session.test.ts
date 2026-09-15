@@ -2,7 +2,10 @@ import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 
 // @ts-ignore The Node ESM test runner requires the source extension.
-import { isSteamOpenIdSuccessUrl } from "./steam-openid-return.ts";
+import {
+  isSteamOpenIdSuccessUrl,
+  parseSteamOpenIdReturn,
+} from "./steam-openid-return.ts";
 import {
   parseSteamStoreSessionConfig,
   SteamSessionRequiredError,
@@ -42,6 +45,39 @@ describe("isSteamOpenIdSuccessUrl", () => {
         "http://localhost:5173/?oauth_linked_provider=discord"
       ),
       false
+    );
+  });
+});
+
+describe("parseSteamOpenIdReturn", () => {
+  it("treats an already-linked Steam account as an error, not a success", () => {
+    assert.deepEqual(
+      parseSteamOpenIdReturn(
+        "hydralauncher://steam-connected?error=oauth-provider-already-linked"
+      ),
+      { kind: "error", code: "already-linked" }
+    );
+    assert.equal(
+      isSteamOpenIdSuccessUrl(
+        "hydralauncher://steam-connected?error=oauth-provider-already-linked"
+      ),
+      false
+    );
+  });
+
+  it("reads already-linked from a Hydra API error page", () => {
+    assert.deepEqual(
+      parseSteamOpenIdReturn(
+        "https://hydra-api.hydralauncher.gg/profile/oauth/steam/callback?error=oauth-provider-already-linked"
+      ),
+      { kind: "error", code: "already-linked" }
+    );
+  });
+
+  it("treats a steam-connected deep link with another error as generic", () => {
+    assert.deepEqual(
+      parseSteamOpenIdReturn("hydralauncher://steam-connected?error=timeout"),
+      { kind: "error", code: "generic" }
     );
   });
 });

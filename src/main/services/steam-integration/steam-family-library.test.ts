@@ -237,6 +237,23 @@ describe("parseSteamLastPlayedTimes", () => {
       lastPlayedAt: new Date(lastPlayedUnix * 1000).toISOString(),
     });
   });
+
+  it("adds playtime_disconnected minutes to playtime_forever", () => {
+    const playtimeByAppId = parseSteamLastPlayedTimes({
+      games: [
+        {
+          appid: 2947610,
+          playtime_forever: 7740,
+          playtime_disconnected: 2400,
+        },
+      ],
+    });
+
+    assert.deepEqual(playtimeByAppId.get("2947610"), {
+      playTimeInSeconds: (7740 + 2400) * 60,
+      lastPlayedAt: null,
+    });
+  });
 });
 
 describe("mergeSteamFamilyPlaytimeMaps", () => {
@@ -371,5 +388,35 @@ describe("mergeSteamOwnedAndFamilyGames", () => {
     assert.deepEqual(mergeSteamOwnedAndFamilyGames([portal], [], new Map()), [
       portal,
     ]);
+  });
+
+  it("raises owned playtime when last-played times are higher", () => {
+    assert.deepEqual(
+      mergeSteamOwnedAndFamilyGames(
+        [
+          {
+            ...portal,
+            playTimeInSeconds: 0,
+            lastPlayedAt: null,
+          },
+        ],
+        [],
+        new Map([
+          [
+            "620",
+            {
+              playTimeInSeconds: 5400,
+              lastPlayedAt: "2026-09-08T18:00:00.000Z",
+            },
+          ],
+        ])
+      ),
+      [
+        {
+          ...portal,
+          playTimeInSeconds: 5400,
+        },
+      ]
+    );
   });
 });

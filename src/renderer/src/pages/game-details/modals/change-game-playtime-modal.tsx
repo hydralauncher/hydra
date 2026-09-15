@@ -3,6 +3,7 @@ import { Button, Modal, TextField } from "@renderer/components";
 import type { Game } from "@types";
 import { useState, useEffect } from "react";
 import { AlertIcon } from "@primer/octicons-react";
+import { getPlayTimeHoursAndMinutes } from "@shared";
 import "./change-game-playtime-modal.scss";
 
 export interface ChangeGamePlaytimeModalProps {
@@ -107,6 +108,11 @@ export function ChangeGamePlaytimeModal({
   };
 
   const isValid = hours !== "" || minutes !== "";
+  const steamPlayTimeInMilliseconds = game.steamPlayTimeInMilliseconds ?? 0;
+  const hydraPlayTimeInMilliseconds =
+    ((parseInt(hours) || 0) * 3600 + (parseInt(minutes) || 0) * 60) * 1000;
+  const combinedPlayTimeInMilliseconds =
+    hydraPlayTimeInMilliseconds + steamPlayTimeInMilliseconds;
 
   return (
     <Modal
@@ -124,6 +130,21 @@ export function ChangeGamePlaytimeModal({
             <span>{t("manual_playtime_warning")}</span>
           </div>
         )}
+
+        {steamPlayTimeInMilliseconds > 0 ? (
+          <p className="change-game-playtime-modal__note">
+            {t("update_playtime_steam_note", {
+              steam: t(
+                "playtime_hours_and_minutes",
+                getPlayTimeHoursAndMinutes(steamPlayTimeInMilliseconds)
+              ),
+              total: t(
+                "playtime_hours_and_minutes",
+                getPlayTimeHoursAndMinutes(combinedPlayTimeInMilliseconds)
+              ),
+            })}
+          </p>
+        ) : null}
 
         <div className="change-game-playtime-modal__inputs">
           <TextField

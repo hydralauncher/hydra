@@ -98,6 +98,7 @@ import type {
   SteamSyncState,
   SteamSyncFinishedPayload,
   SteamSyncRunStatus,
+  SteamConnectErrorCode,
 } from "@types";
 import type { AxiosProgressEvent } from "axios";
 
@@ -1094,6 +1095,9 @@ declare global {
     onSignIn: (cb: () => void) => () => Electron.IpcRenderer;
     onAccountUpdated: (cb: () => void) => () => Electron.IpcRenderer;
     onSteamConnected: (cb: () => void) => () => Electron.IpcRenderer;
+    onSteamConnectError: (
+      cb: (code: SteamConnectErrorCode) => void
+    ) => () => Electron.IpcRenderer;
     onSignOut: (cb: () => void) => () => Electron.IpcRenderer;
 
     /* User */

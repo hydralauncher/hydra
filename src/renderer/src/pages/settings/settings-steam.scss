@@ -2,18 +2,21 @@
 
 .settings-steam {
   &__submit-button {
-    align-self: flex-end;
+    flex-shrink: 0;
   }
 
   &__description-container {
     display: flex;
-    flex-direction: column;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
     gap: calc(globals.$spacing-unit * 2);
-    align-items: flex-start;
   }
 
   &__description {
     margin: 0;
+    flex: 1;
+    min-width: 12rem;
     color: var(--text-secondary);
     line-height: 1.6;
   }
@@ -102,18 +105,6 @@
     width: 18px;
     height: 18px;
     flex-shrink: 0;
-  }
-
-  &__modal {
-    display: flex;
-    flex-direction: column;
-    gap: calc(globals.$spacing-unit * 2);
-  }
-
-  &__modal-note {
-    margin: 0;
-    color: var(--text-secondary);
-    line-height: 1.5;
   }
 
   &__modal-actions {

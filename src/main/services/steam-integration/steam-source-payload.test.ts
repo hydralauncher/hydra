@@ -3,6 +3,7 @@ import { describe, it } from "node:test";
 
 // @ts-ignore The Node ESM test runner requires the source extension.
 import {
+  isSkippedSteamLibraryTitle,
   parseSteamSourceAchievements,
   parseSteamSourceLibrary,
 } from "./steam-source-payload.ts";
@@ -54,6 +55,31 @@ describe("parseSteamSourceLibrary", () => {
           name: "Portal 2",
           playTimeInSeconds: 3600,
           lastPlayedAt: new Date(lastPlayedUnix * 1000).toISOString(),
+        },
+      ]
+    );
+  });
+
+  it("adds playtime_disconnected minutes to playtime_forever", () => {
+    assert.deepEqual(
+      parseSteamSourceLibrary({
+        response: {
+          games: [
+            {
+              appid: 620,
+              name: "Portal 2",
+              playtime_forever: 7740,
+              playtime_disconnected: 2400,
+            },
+          ],
+        },
+      }),
+      [
+        {
+          steamAppId: "620",
+          name: "Portal 2",
+          playTimeInSeconds: (7740 + 2400) * 60,
+          lastPlayedAt: null,
         },
       ]
     );
@@ -129,5 +155,16 @@ describe("parseSteamSourceAchievements", () => {
   it("returns an empty list when achievements are missing", () => {
     assert.deepEqual(parseSteamSourceAchievements({}), []);
     assert.deepEqual(parseSteamSourceAchievements({ achievements: null }), []);
+  });
+});
+
+describe("isSkippedSteamLibraryTitle", () => {
+  it("skips demos and playtests without matching ordinary titles", () => {
+    assert.equal(isSkippedSteamLibraryTitle("FINAL FANTASY XVI Demo"), true);
+    assert.equal(isSkippedSteamLibraryTitle("Game Name Playtest"), true);
+    assert.equal(isSkippedSteamLibraryTitle("Game Name Play Test"), true);
+    assert.equal(isSkippedSteamLibraryTitle("Playtest"), true);
+    assert.equal(isSkippedSteamLibraryTitle("Portal 2"), false);
+    assert.equal(isSkippedSteamLibraryTitle("Demolition Derby"), false);
   });
 });
