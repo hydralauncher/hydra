@@ -70,6 +70,62 @@ export const createSteamGameExitSyncScheduler = (
   dependencies: ExitSyncDependencies
 ) => {
   const pendingByGameKey = new Map<string, PendingExitSync>();
+  const isCurrent = (gameKey: string, pending: PendingExitSync) =>
+    pendingByGameKey.get(gameKey) === pending;
+
+  const waitForFirstAttempt = async (
+    attempt: 0 | 1,
+    pending: PendingExitSync
+  ) => {
+    if (attempt !== 1) return;
+
+    const firstAttemptPromise = pending.firstAttemptPromise;
+    if (firstAttemptPromise !== null) await firstAttemptPromise;
+  };
+
+  const publishIfNeeded = async (
+    steamAppId: string,
+    payload: SteamGameSyncPayload,
+    attempt: 0 | 1,
+    pending: PendingExitSync
+  ) => {
+    const shouldPublish =
+      attempt === 0 ||
+      !pending.firstSucceeded ||
+      !pending.lastPublishedPayload ||
+      hasChanged(pending.lastPublishedPayload, payload);
+
+    if (!shouldPublish) return false;
+
+    await dependencies.publish(
+      steamAppId,
+      payload,
+      pending.abortController.signal
+    );
+    pending.lastPublishedPayload = payload;
+    return true;
+  };
+
+  const handleAttemptFailure = (
+    gameKey: string,
+    attempt: 0 | 1,
+    pending: PendingExitSync,
+    error: unknown
+  ) => {
+    if (pending.abortController.signal.aborted) return;
+
+    if (attempt === 0) {
+      pending.firstSucceeded = false;
+      dependencies.log("First Steam game exit sync failed", gameKey, error);
+      return;
+    }
+
+    dependencies.logError(
+      "Steam game exit sync failed after both attempts",
+      gameKey,
+      error
+    );
+  };
 
   const cancel = (gameKey: string) => {
     const pending = pendingByGameKey.get(gameKey);
@@ -87,55 +143,34 @@ export const createSteamGameExitSyncScheduler = (
     attempt: 0 | 1,
     pending: PendingExitSync
   ) => {
-    if (pendingByGameKey.get(gameKey) !== pending) return;
+    if (!isCurrent(gameKey, pending)) return;
 
     try {
       await dependencies.waitForFullSync();
-      if (pendingByGameKey.get(gameKey) !== pending) return;
+      if (!isCurrent(gameKey, pending)) return;
 
       const payload = await dependencies.collect(
         steamAppId,
         pending.abortController.signal
       );
-      if (pendingByGameKey.get(gameKey) !== pending) return;
+      if (!isCurrent(gameKey, pending)) return;
 
-      if (attempt === 1 && pending.firstAttemptPromise) {
-        await pending.firstAttemptPromise;
-        if (pendingByGameKey.get(gameKey) !== pending) return;
-      }
+      await waitForFirstAttempt(attempt, pending);
+      if (!isCurrent(gameKey, pending)) return;
 
-      const shouldPublish =
-        attempt === 0 ||
-        !pending.firstSucceeded ||
-        !pending.lastPublishedPayload ||
-        hasChanged(pending.lastPublishedPayload, payload);
-
-      if (shouldPublish) {
-        await dependencies.publish(
-          steamAppId,
-          payload,
-          pending.abortController.signal
-        );
-        pending.lastPublishedPayload = payload;
-      }
+      const published = await publishIfNeeded(
+        steamAppId,
+        payload,
+        attempt,
+        pending
+      );
 
       if (attempt === 0) pending.firstSucceeded = true;
       dependencies.log("Steam game exit sync finished", gameKey, attempt + 1, {
-        published: shouldPublish,
+        published,
       });
     } catch (error) {
-      if (pending.abortController.signal.aborted) return;
-
-      if (attempt === 0) {
-        pending.firstSucceeded = false;
-        dependencies.log("First Steam game exit sync failed", gameKey, error);
-      } else {
-        dependencies.logError(
-          "Steam game exit sync failed after both attempts",
-          gameKey,
-          error
-        );
-      }
+      handleAttemptFailure(gameKey, attempt, pending, error);
     } finally {
       if (attempt === 1) pending.secondFinished = true;
     }
@@ -170,7 +205,7 @@ export const createSteamGameExitSyncScheduler = (
           if (
             pending.secondFinished &&
             pending.attempts.size === 0 &&
-            pendingByGameKey.get(gameKey) === pending
+            isCurrent(gameKey, pending)
           ) {
             pendingByGameKey.delete(gameKey);
           }
@@ -191,7 +226,7 @@ export const createSteamGameExitSyncScheduler = (
     waitForPending: (gameKey: string) => {
       const pending = pendingByGameKey.get(gameKey);
       return pending
-        ? Promise.all([...pending.attempts]).then(() => undefined)
+        ? Promise.all(pending.attempts).then(() => undefined)
         : Promise.resolve();
     },
   };

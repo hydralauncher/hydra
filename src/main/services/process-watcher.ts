@@ -598,7 +598,7 @@ function onTickGame(game: Game) {
         const current = gamesPlaytime.get(
           levelKeys.game(game.shop, game.objectId)
         );
-        if (!current || current.firstTick !== gamePlaytime.firstTick) return;
+        if (current?.firstTick !== gamePlaytime.firstTick) return;
         setGamePlaytime(levelKeys.game(game.shop, game.objectId), {
           ...current,
           lastSyncTick: now,

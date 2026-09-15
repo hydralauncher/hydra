@@ -275,9 +275,56 @@ class SteamSyncOrchestrator {
   }
 
   async waitForCurrentRun() {
-    while (this.runPromise) {
-      await this.runPromise;
+    for (;;) {
+      const currentRun = this.runPromise;
+      if (currentRun === null) return;
+      await currentRun;
     }
+  }
+
+  private async fetchFamilyGame(
+    token: SteamWebApiToken,
+    steamAppId: string,
+    signal: AbortSignal
+  ) {
+    const groupPayload = await fetchWithRetry(
+      "family group",
+      () => fetchSteamFamilyGroupForUser(token, signal),
+      signal
+    );
+    const familyGroupId = parseSteamFamilyGroupId(groupPayload);
+    if (!familyGroupId) {
+      return {
+        apps: [] as SteamFamilySharedApp[],
+        playtimeSources: [] as Map<string, SteamFamilyPlaytime>[],
+      };
+    }
+
+    const sharedPayload = await fetchWithRetry(
+      `family game ${steamAppId}`,
+      () => fetchSteamSharedLibraryApps(token, familyGroupId, signal),
+      signal
+    );
+    const apps = parseSteamSharedLibraryApps(sharedPayload).filter(
+      (game) => game.steamAppId === steamAppId
+    );
+    const playtimeSources = [playtimeMapFromSharedApps(apps)];
+
+    try {
+      const playtimePayload = await fetchWithRetry(
+        `family playtime ${steamAppId}`,
+        () => fetchSteamFamilyPlaytimeSummary(token, familyGroupId, signal),
+        signal
+      );
+      playtimeSources.push(
+        parseSteamFamilyPlaytimeByAppId(playtimePayload, token.steamId64)
+      );
+    } catch (error) {
+      if (isSteamSyncAbortError(error)) throw error;
+      steamSyncLogger.log("Steam family playtime unavailable", error);
+    }
+
+    return { apps, playtimeSources };
   }
 
   async collectGameSyncPayload(
@@ -298,48 +345,17 @@ class SteamSyncOrchestrator {
     const playtimeSources = [
       await this.fetchLastPlayedPlaytimeMap(token, signal),
     ];
-    let familyApps: SteamFamilySharedApp[] = [];
+    const family =
+      ownedGames.length === 0
+        ? await this.fetchFamilyGame(token, steamAppId, signal)
+        : { apps: [], playtimeSources: [] };
+    playtimeSources.push(...family.playtimeSources);
 
-    if (ownedGames.length === 0) {
-      const groupPayload = await fetchWithRetry(
-        "family group",
-        () => fetchSteamFamilyGroupForUser(token, signal),
-        signal
-      );
-      const familyGroupId = parseSteamFamilyGroupId(groupPayload);
-
-      if (familyGroupId) {
-        const sharedPayload = await fetchWithRetry(
-          `family game ${steamAppId}`,
-          () => fetchSteamSharedLibraryApps(token, familyGroupId, signal),
-          signal
-        );
-        familyApps = parseSteamSharedLibraryApps(sharedPayload).filter(
-          (game) => game.steamAppId === steamAppId
-        );
-        playtimeSources.push(playtimeMapFromSharedApps(familyApps));
-
-        try {
-          const playtimePayload = await fetchWithRetry(
-            `family playtime ${steamAppId}`,
-            () => fetchSteamFamilyPlaytimeSummary(token, familyGroupId, signal),
-            signal
-          );
-          playtimeSources.push(
-            parseSteamFamilyPlaytimeByAppId(playtimePayload, token.steamId64)
-          );
-        } catch (error) {
-          if (isSteamSyncAbortError(error)) throw error;
-          steamSyncLogger.log("Steam family playtime unavailable", error);
-        }
-      }
-    }
-
-    const [game] = mergeSteamOwnedAndFamilyGames(
+    const game = mergeSteamOwnedAndFamilyGames(
       ownedGames,
-      familyApps,
+      family.apps,
       mergeSteamFamilyPlaytimeMaps(...playtimeSources)
-    ).filter((candidate) => candidate.steamAppId === steamAppId);
+    ).find((candidate) => candidate.steamAppId === steamAppId);
 
     if (!game) {
       throw new Error(`steam-game-not-found:${steamAppId}`);
