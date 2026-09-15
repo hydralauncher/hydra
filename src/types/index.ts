@@ -45,6 +45,7 @@ export interface DownloadSource {
   downloadCount: number;
   fingerprint?: string;
   isRemote?: true;
+  isLocal?: boolean;
   createdAt: string;
 }
 

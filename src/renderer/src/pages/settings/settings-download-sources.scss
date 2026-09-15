@@ -18,6 +18,15 @@
     flex-direction: column;
   }
 
+  &__count-static {
+    color: globals.$muted-color;
+  }
+
+  &__badges {
+    display: flex;
+    gap: globals.$spacing-unit;
+  }
+
   &__item {
     display: flex;
     flex-direction: column;

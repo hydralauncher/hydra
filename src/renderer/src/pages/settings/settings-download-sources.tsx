@@ -264,7 +264,8 @@ export function SettingsDownloadSources() {
               <div className="settings-download-sources__item-header">
                 <h2>{downloadSource.name}</h2>
 
-                <div style={{ display: "flex" }}>
+                <div className="settings-download-sources__badges">
+                  {downloadSource.isLocal && <Badge>{t("local_source")}</Badge>}
                   <Badge>
                     {isPendingOrMatching && (
                       <SyncIcon className="settings-download-sources__spinner" />
@@ -273,25 +274,36 @@ export function SettingsDownloadSources() {
                   </Badge>
                 </div>
 
-                <button
-                  type="button"
-                  className="settings-download-sources__navigate-button"
-                  disabled={!downloadSource.fingerprint}
-                  onClick={() =>
-                    navigateToCatalogue(downloadSource.fingerprint)
-                  }
-                >
-                  <small>
-                    {isPendingOrMatching
-                      ? t("download_source_no_information")
-                      : t("download_count", {
-                          count: downloadSource.downloadCount,
-                          countFormatted: numberFormatter.format(
-                            downloadSource.downloadCount
-                          ),
-                        })}
+                {downloadSource.isLocal ? (
+                  <small className="settings-download-sources__count-static">
+                    {t("download_count", {
+                      count: downloadSource.downloadCount,
+                      countFormatted: numberFormatter.format(
+                        downloadSource.downloadCount
+                      ),
+                    })}
                   </small>
-                </button>
+                ) : (
+                  <button
+                    type="button"
+                    className="settings-download-sources__navigate-button"
+                    disabled={!downloadSource.fingerprint}
+                    onClick={() =>
+                      navigateToCatalogue(downloadSource.fingerprint)
+                    }
+                  >
+                    <small>
+                      {isPendingOrMatching
+                        ? t("download_source_no_information")
+                        : t("download_count", {
+                            count: downloadSource.downloadCount,
+                            countFormatted: numberFormatter.format(
+                              downloadSource.downloadCount
+                            ),
+                          })}
+                    </small>
+                  </button>
+                )}
               </div>
 
               <TextField

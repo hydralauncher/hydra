@@ -19,6 +19,7 @@ export const levelKeys = {
   screenState: "screenState",
   rpcPassword: "rpcPassword",
   downloadSources: "downloadSources",
+  localDownloads: "localDownloads", // Downloads parsed from local (file-based) sources
   downloadSourcesCheckBaseline: "downloadSourcesCheckBaseline", // When we last started the app
   downloadSourcesSinceValue: "downloadSourcesSinceValue", // The 'since' value API used (for modal comparison)
   localNotifications: "localNotifications",
