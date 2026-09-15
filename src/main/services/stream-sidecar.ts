@@ -43,6 +43,8 @@ export type StreamSidecarEvent =
   | {
       event: "stream-ended";
       appid: number;
+      /** Why the session ended: only "cancel" means the client quit. */
+      reason: string;
     }
   | {
       event: "client-connected";
@@ -179,6 +181,11 @@ export class StreamSidecar {
   public static onEvent(listener: (event: StreamSidecarEvent) => void) {
     this.eventListeners.add(listener);
     return () => this.eventListeners.delete(listener);
+  }
+
+  /** Whether a sidecar process is alive (request() would spawn otherwise). */
+  public static isRunning() {
+    return this.childProcess !== null;
   }
 
   public static async spawn() {

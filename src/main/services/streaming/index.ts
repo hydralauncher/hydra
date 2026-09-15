@@ -11,8 +11,8 @@ import {
   levelKeys,
 } from "@main/level";
 import { launchGame } from "@main/helpers";
-import { launchedGamePids } from "@main/services/launched-game-pids";
-import { NativeAddon } from "@main/services/native-addon";
+import { setRunningGamesListener } from "@main/services/process-watcher";
+import { closeRunningGame } from "@main/events/library/close-game";
 import { getCoverPosterPath } from "@main/events/catalogue/get-cover-poster";
 import { composeAssetsWithArtwork } from "@shared";
 import { streamSidecarLogger } from "../logger";
@@ -48,6 +48,10 @@ export class StreamingManager {
   private static libraryUnsubscribe: (() => void) | null = null;
   private static syncTimer: NodeJS.Timeout | null = null;
   private static coverCache: StreamCoverCache | null = null;
+  /** Running games last reported by the process watcher, oldest first. */
+  private static runningGames: StreamAppEntry[] = [];
+  /** Last appid pushed over setRunningGame; null forces a re-send. */
+  private static pushedRunningAppid: number | null = null;
 
   public static async start() {
     const userPreferences = await db
@@ -84,6 +88,10 @@ export class StreamingManager {
       this.handleSidecarExit(reason)
     );
     this.watchLibrary();
+    // The process watcher reports its open/close decisions through this
+    // callback instead of importing StreamingManager, which would close an
+    // import cycle (streaming -> @main/helpers -> @main/services).
+    setRunningGamesListener((games) => this.setRunningGames(games));
     this.coverCache = new StreamCoverCache(
       path.join(SystemPath.getPath("userData"), "stream-covers")
     );
@@ -91,6 +99,9 @@ export class StreamingManager {
     try {
       await StreamSidecar.spawn();
       await this.syncAppList();
+      // a fresh process has no running-game state: report it again
+      this.pushedRunningAppid = null;
+      this.pushRunningGame();
     } catch (error) {
       streamSidecarLogger.error("Failed to spawn stream sidecar", error);
     }
@@ -115,6 +126,9 @@ export class StreamingManager {
     this.coverCache = null;
     this.apps.clear();
     this.activeGameAppid = null;
+    setRunningGamesListener(null);
+    this.runningGames = [];
+    this.pushedRunningAppid = null;
 
     StreamSidecar.kill();
     this.closeStreamingBigPicture();
@@ -306,7 +320,7 @@ export class StreamingManager {
         this.closeStreamingBigPicture();
         break;
       case "stream-ended":
-        this.handleStreamEnded(event.appid);
+        this.handleStreamEnded(event.appid, event.reason);
         break;
       case "session-state":
         break;
@@ -318,8 +332,61 @@ export class StreamingManager {
       event.event !== "pairing-requested" &&
       event.event !== "pairing-finished"
     ) {
-      WindowManager.sendToAppWindows("on-stream-session-event", event);
+      WindowManager.sendToAppWindows(
+        "on-stream-session-event",
+        this.withGameEntry(event)
+      );
     }
+  }
+
+  /**
+   * The renderer matches a stream event to a library game, not to an appid:
+   * attach the catalog entry for the events that carry one.
+   */
+  private static withGameEntry(event: StreamSidecarEvent) {
+    if (!("appid" in event)) return event;
+
+    const entry = this.apps.get(event.appid);
+    return entry
+      ? { ...event, shop: entry.shop, objectId: entry.objectId }
+      : event;
+  }
+
+  /**
+   * Reports the games the process watcher sees running, "most recently
+   * opened last". Moonlight carries a single `currentgame`, so the last one
+   * wins; an empty list clears it. This is how a game started from Hydra's
+   * own UI becomes visible to a client.
+   */
+  public static setRunningGames(games: { shop: GameShop; objectId: string }[]) {
+    this.runningGames = games;
+    this.pushRunningGame();
+  }
+
+  private static pushRunningGame() {
+    const lastGame = this.runningGames[this.runningGames.length - 1];
+    this.pushRunningAppid(
+      lastGame ? this.appIdFor(lastGame.shop, lastGame.objectId) : 0
+    );
+  }
+
+  /**
+   * Pushes the running appid over setRunningGame, skipping identical values
+   * (`pushedRunningAppid` is cleared when the sidecar respawns, so the value
+   * is re-sent to a fresh process) and logging failures instead of throwing:
+   * reporting the running game must never break the process watcher.
+   */
+  private static pushRunningAppid(appid: number) {
+    if (!this.enabled || !StreamSidecar.isRunning()) return;
+    if (this.pushedRunningAppid === appid) return;
+
+    this.pushedRunningAppid = appid;
+    StreamSidecar.request("setRunningGame", { appid }).catch((error) => {
+      streamSidecarLogger.error(
+        `Failed to report running appid ${appid}`,
+        error
+      );
+    });
   }
 
   private static handleLaunchRequested(appid: number) {
@@ -354,66 +421,30 @@ export class StreamingManager {
       });
   }
 
-  private static handleStreamEnded(appid: number) {
+  private static handleStreamEnded(appid: number, reason: string) {
     if (this.activeGameAppid === appid) this.activeGameAppid = null;
 
     const entry = this.apps.get(appid);
     if (!entry) return;
 
-    this.killStreamedGame(entry.shop, entry.objectId).catch((error) => {
+    // Only an explicit client /cancel stops the game (Sunshine-exact,
+    // nvhttp.cpp:1546-1569). Every other teardown — enet disconnect,
+    // control-channel silence, RTSP TEARDOWN, pre-RTSP expiry, client
+    // TERMINATION — leaves it running so reopening Moonlight finds it
+    // (and /resume works).
+    if (reason !== "cancel") {
+      streamSidecarLogger.log(
+        `Stream ended for appid ${appid} (reason: ${reason}); leaving the game running`
+      );
+      return;
+    }
+
+    closeRunningGame(entry.shop, entry.objectId).catch((error) => {
       streamSidecarLogger.error(
         `Failed to stop game for appid ${appid}`,
         error
       );
     });
-  }
-
-  /**
-   * M3: kill ONLY the pid this app recorded when it launched the game
-   * (launchedGamePids, set by the launch flow) — never scan-and-kill by
-   * executable path. Before killing, the pid's exe is verified against
-   * the game's executable/tracking paths; if the pid was reused by an
-   * unrelated process, it is left alone.
-   */
-  private static async killStreamedGame(shop: GameShop, objectId: string) {
-    const gameKey = levelKeys.game(shop, objectId);
-    const pid = launchedGamePids.get(gameKey);
-    if (pid == null) {
-      streamSidecarLogger.log(
-        `No tracked pid for ${gameKey}; leaving the process running`
-      );
-      return;
-    }
-
-    const [game, processes] = await Promise.all([
-      gamesSublevel.get(gameKey),
-      NativeAddon.listProcesses(),
-    ]);
-
-    const running = processes.find((process) => process.pid === pid);
-    launchedGamePids.delete(gameKey);
-
-    if (!running) return;
-
-    const trackedPaths = [
-      ...(game?.executablePath ? [game.executablePath] : []),
-      ...(game?.trackingExecutablePaths ?? []).filter(Boolean),
-    ];
-    if (running.exe == null || !trackedPaths.includes(running.exe)) {
-      streamSidecarLogger.error(
-        `Tracked pid ${pid} no longer maps to ${gameKey} (exe: ${running.exe}); not killing it`
-      );
-      return;
-    }
-
-    try {
-      process.kill(pid);
-    } catch (error) {
-      streamSidecarLogger.error(
-        `Failed to kill streamed game pid ${pid}`,
-        error
-      );
-    }
   }
 
   /**
@@ -449,8 +480,13 @@ export class StreamingManager {
       this.respawnTimer = null;
       if (!this.enabled) return;
       StreamSidecar.spawn()
-        .then(() => this.syncAppList())
         .then(() => {
+          // a fresh process has no running-game state: report it again
+          this.pushedRunningAppid = null;
+          return this.syncAppList();
+        })
+        .then(() => {
+          this.pushRunningGame();
           // healthy again: reset the backoff
           this.respawnAttempts = 0;
         })

@@ -156,6 +156,21 @@ async fn main() {
                         state.set_app_list(apps);
                         "ok".to_string()
                     }
+                    "setRunningGame" => {
+                        // The launcher's process watcher owns this value: the
+                        // appid of the game process it sees running (absent,
+                        // null or 0 clears it). It is deliberately not
+                        // validated against the catalog, which may still be
+                        // syncing.
+                        let appid = request
+                            .params
+                            .as_ref()
+                            .and_then(|params| params.get("appid"))
+                            .and_then(|appid| appid.as_u64())
+                            .unwrap_or(0) as u32;
+                        state.set_running_appid(appid);
+                        "ok".to_string()
+                    }
                     "submitPairingPin" => {
                         let pin = request
                             .params
