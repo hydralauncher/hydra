@@ -694,7 +694,8 @@
     "create_steam_shortcut_modal_cancel_button": "Batal",
     "delete_shortcut_success": "Pintasan Steam berhasil dihapus",
     "delete_shortcut_error": "Gagal menghapus pintasan Steam",
-    "delete_steam_shortcut": "Hapus pintasan Steam"
+    "delete_steam_shortcut": "Hapus pintasan Steam",
+    "streaming_now": "Sedang streaming"
   },
   "activation": {
     "title": "Aktifkan Hydra",
@@ -1272,7 +1273,9 @@
     "big_picture_enable_sounds": "Aktifkan suara Big Picture",
     "big_picture_enable_virtual_keyboard": "Aktifkan keyboard virtual Big Picture",
     "big_picture_enable_diagnostics": "Aktifkan diagnostik navigasi",
-    "big_picture_diagnostics_position": "Posisi diagnostik"
+    "big_picture_diagnostics_position": "Posisi diagnostik",
+    "console_streaming": "Streaming konsol",
+    "enable_console_streaming": "Aktifkan streaming konsol (Moonlight)"
   },
   "notifications": {
     "download_complete": "Unduhan selesai!",
@@ -1312,7 +1315,13 @@
     "instructions": "Instal umu-run atau Wine di distro Linux kamu agar installer game dapat berjalan"
   },
   "modal": {
-    "close": "Tombol tutup"
+    "close": "Tombol tutup",
+    "stream_pairing_title": "Pasangkan perangkat streaming kamu",
+    "stream_pairing_description": "Masukkan PIN yang ditampilkan di perangkat Moonlight kamu untuk memasangkannya dengan Hydra.",
+    "stream_pairing_placeholder": "PIN",
+    "stream_pairing_submit": "Konfirmasi",
+    "stream_pairing_error_invalid_pin": "PIN salah. Periksa PIN di perangkat kamu dan coba lagi.",
+    "stream_pairing_error_no_session": "Sesi pemasangan berakhir. Mulai pemasangan lagi dari perangkat kamu."
   },
   "classics_onboarding": {
     "title": "Selamat datang di Hydra Klasik!",

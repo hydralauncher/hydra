@@ -957,7 +957,8 @@
     "download_error_torbox_torrent_not_ready": "TorBox ещё готовит этот торрент. Подождите немного и попробуйте снова.",
     "download_error_torbox_link_unavailable": "TorBox не смог создать ссылку для скачивания этого торрента. Попробуйте позже.",
     "download_error_network_unreachable": "Не удалось связаться с сервером загрузки. Проверьте подключение к интернету и попробуйте снова.",
-    "download_error_network_certificate_rejected": "Не удалось проверить соединение с сервером загрузки. Антивирус или прокси может перехватывать HTTPS-трафик."
+    "download_error_network_certificate_rejected": "Не удалось проверить соединение с сервером загрузки. Антивирус или прокси может перехватывать HTTPS-трафик.",
+    "streaming_now": "Идёт трансляция"
   },
   "activation": {
     "title": "Активировать Hydra",
@@ -1663,7 +1664,9 @@
     "wayland_souvenirs_warning_title": "Сувениры в Wayland",
     "wayland_souvenirs_warning_description": "Из-за особенностей Wayland Hydra должна спрашивать, какое окно захватывать, при каждом запуске игры. Выберите окно игры, чтобы Hydra могла создавать сувениры при получении достижений. Без выбора окна создавать сувениры невозможно.",
     "wayland_souvenirs_warning_cancel": "Отмена",
-    "wayland_souvenirs_warning_confirm": "ОК"
+    "wayland_souvenirs_warning_confirm": "ОК",
+    "console_streaming": "Стриминг консоли",
+    "enable_console_streaming": "Включить стриминг консоли (Moonlight)"
   },
   "notifications": {
     "download_complete": "Загрузка завершена",
@@ -1708,7 +1711,13 @@
     "instructions": "Узнайте правильный способ установить любой из них на ваш дистрибутив Linux, чтобы игра могла нормально работать"
   },
   "modal": {
-    "close": "Закрыть"
+    "close": "Закрыть",
+    "stream_pairing_title": "Сопряжение устройства стриминга",
+    "stream_pairing_description": "Введите PIN-код, отображаемый на устройстве Moonlight, чтобы сопрязить его с Hydra.",
+    "stream_pairing_placeholder": "PIN",
+    "stream_pairing_submit": "Подтвердить",
+    "stream_pairing_error_invalid_pin": "Неверный PIN-код. Проверьте PIN-код на вашем устройстве и попробуйте снова.",
+    "stream_pairing_error_no_session": "Сеанс сопряжения истёк. Начните сопряжение заново с вашего устройства."
   },
   "classics_onboarding": {
     "title": "Добро пожаловать в Hydra Classics",

@@ -3,22 +3,14 @@ import { useTranslation } from "react-i18next";
 import { changeLanguage } from "i18next";
 import { orderBy } from "lodash-es";
 
-import {
-  Button,
-  CheckboxField,
-  SelectField,
-  TextField,
-} from "@renderer/components";
-import type { DownloadDirectoryPreference, UserPreferences } from "@types";
+import { CheckboxField, SelectField } from "@renderer/components";
+import type { UserPreferences } from "@types";
 import { settingsContext } from "@renderer/context";
 import { useAppSelector } from "@renderer/hooks";
 import languageResources from "@locales";
-import {
-  prepareDefaultDownloadPathSync,
-  replaceSavedDownloadDirectoryAndSetDefault,
-} from "@shared";
 import { SettingsAppearance } from "./appearance/settings-appearance";
-import { DownloadDirectoryReplacementModal } from "./download-directory-replacement-modal";
+import { DownloadsPathSetting } from "./downloads-path-setting";
+import { StartupBehaviorFields } from "./startup-behavior-fields";
 
 interface LanguageOption {
   option: string;
@@ -40,12 +32,6 @@ interface SettingsContextGeneralProps {
     authorId: string | null;
     authorName: string | null;
   };
-}
-
-interface DownloadDirectoryReplacementState {
-  nextPath: string;
-  replaceableDirectories: DownloadDirectoryPreference[];
-  selectedReplacementPath: string;
 }
 
 const resolveLanguage = (language: string | undefined) => {
@@ -72,6 +58,7 @@ const buildForm = (
   hideToTrayOnGameStart: preferences?.hideToTrayOnGameStart ?? false,
   launchToLibraryPage: preferences?.launchToLibraryPage ?? false,
   enableAutoInstall: preferences?.enableAutoInstall ?? false,
+  streamingEnabled: preferences?.streamingEnabled ?? false,
 });
 
 export function SettingsContextGeneral({
@@ -85,9 +72,6 @@ export function SettingsContextGeneral({
   );
 
   const [defaultDownloadsPath, setDefaultDownloadsPath] = useState("");
-  const showRunAtStartup = !window.electron.isPortableVersion;
-  const [downloadDirectoryReplacement, setDownloadDirectoryReplacement] =
-    useState<DownloadDirectoryReplacementState | null>(null);
 
   const [form, setForm] = useState(() => buildForm(userPreferences, ""));
 
@@ -116,81 +100,16 @@ export function SettingsContextGeneral({
     changeLanguage(value);
   };
 
-  const handleChooseDownloadsPath = async () => {
-    const { filePaths } = await window.electron.showOpenDialog({
-      defaultPath: form.downloadsPath,
-      properties: ["openDirectory"],
-    });
-
-    const path = filePaths?.[0];
-
-    if (!path || !defaultDownloadsPath) {
-      return;
-    }
-
-    const nextAction = prepareDefaultDownloadPathSync(
-      userPreferences,
-      path,
-      defaultDownloadsPath
-    );
-
-    if (nextAction.type === "noop") {
-      return;
-    }
-
-    if (
-      nextAction.type === "set-existing" ||
-      nextAction.type === "add-and-set"
-    ) {
-      setForm((prev) => ({
-        ...prev,
-        downloadsPath: nextAction.nextDefaultPath,
-      }));
-      await updateUserPreferences(nextAction.nextPreferences);
-      return;
-    }
-
-    setDownloadDirectoryReplacement({
-      nextPath: nextAction.nextPath,
-      replaceableDirectories: nextAction.replaceableDirectories,
-      selectedReplacementPath: nextAction.recommendedReplacementPath,
-    });
-  };
-
-  const handleConfirmDownloadDirectoryReplacement = async () => {
-    if (!downloadDirectoryReplacement || !defaultDownloadsPath) {
-      return;
-    }
-
-    const replacement = replaceSavedDownloadDirectoryAndSetDefault(
-      userPreferences,
-      downloadDirectoryReplacement.nextPath,
-      downloadDirectoryReplacement.selectedReplacementPath,
-      defaultDownloadsPath
-    );
-
-    setForm((prev) => ({
-      ...prev,
-      downloadsPath: replacement.nextDefaultPath,
-    }));
-    setDownloadDirectoryReplacement(null);
-    await updateUserPreferences(replacement.nextPreferences);
-  };
-
   return (
     <div className="settings-context-panel">
       <div className="settings-context-panel__group">
         <h3>{t("app_basics")}</h3>
 
-        <TextField
-          label={t("downloads_path")}
-          value={form.downloadsPath}
-          readOnly
-          disabled
-          rightContent={
-            <Button theme="outline" onClick={handleChooseDownloadsPath}>
-              {t("change")}
-            </Button>
+        <DownloadsPathSetting
+          downloadsPath={form.downloadsPath}
+          defaultDownloadsPath={defaultDownloadsPath}
+          onDownloadsPathChange={(downloadsPath) =>
+            setForm((prev) => ({ ...prev, downloadsPath }))
           }
         />
 
@@ -209,55 +128,7 @@ export function SettingsContextGeneral({
       <div className="settings-context-panel__group">
         <h3>{t("startup_behavior")}</h3>
 
-        <CheckboxField
-          label={t("quit_app_instead_hiding")}
-          checked={form.preferQuitInsteadOfHiding}
-          onChange={() =>
-            handleChange({
-              preferQuitInsteadOfHiding: !form.preferQuitInsteadOfHiding,
-            })
-          }
-        />
-
-        <CheckboxField
-          label={t("hide_to_tray_on_game_start")}
-          checked={form.hideToTrayOnGameStart}
-          onChange={() =>
-            handleChange({
-              hideToTrayOnGameStart: !form.hideToTrayOnGameStart,
-            })
-          }
-        />
-
-        {showRunAtStartup && (
-          <CheckboxField
-            label={t("launch_with_system")}
-            onChange={() => {
-              handleChange({ runAtStartup: !form.runAtStartup });
-              window.electron.autoLaunch({
-                enabled: !form.runAtStartup,
-                minimized: form.startMinimized,
-              });
-            }}
-            checked={form.runAtStartup}
-          />
-        )}
-
-        {showRunAtStartup && (
-          <CheckboxField
-            label={t("launch_minimized")}
-            style={{ cursor: form.runAtStartup ? "pointer" : "not-allowed" }}
-            checked={form.runAtStartup && form.startMinimized}
-            disabled={!form.runAtStartup}
-            onChange={() => {
-              handleChange({ startMinimized: !form.startMinimized });
-              window.electron.autoLaunch({
-                minimized: !form.startMinimized,
-                enabled: form.runAtStartup,
-              });
-            }}
-          />
-        )}
+        <StartupBehaviorFields form={form} onChange={handleChange} />
 
         <CheckboxField
           label={t("launch_hydra_in_library_page")}
@@ -266,6 +137,18 @@ export function SettingsContextGeneral({
             handleChange({
               launchToLibraryPage: !form.launchToLibraryPage,
             })
+          }
+        />
+      </div>
+
+      <div className="settings-context-panel__group">
+        <h3>{t("console_streaming")}</h3>
+
+        <CheckboxField
+          label={t("enable_console_streaming")}
+          checked={form.streamingEnabled}
+          onChange={() =>
+            handleChange({ streamingEnabled: !form.streamingEnabled })
           }
         />
       </div>
@@ -288,27 +171,6 @@ export function SettingsContextGeneral({
         <h3>{t("appearance")}</h3>
         <SettingsAppearance appearance={appearance} />
       </div>
-
-      <DownloadDirectoryReplacementModal
-        visible={downloadDirectoryReplacement !== null}
-        nextPath={downloadDirectoryReplacement?.nextPath ?? ""}
-        directories={downloadDirectoryReplacement?.replaceableDirectories ?? []}
-        selectedReplacementPath={
-          downloadDirectoryReplacement?.selectedReplacementPath ?? ""
-        }
-        onSelectedReplacementPathChange={(path) => {
-          setDownloadDirectoryReplacement((current) =>
-            current
-              ? {
-                  ...current,
-                  selectedReplacementPath: path,
-                }
-              : current
-          );
-        }}
-        onClose={() => setDownloadDirectoryReplacement(null)}
-        onConfirm={handleConfirmDownloadDirectoryReplacement}
-      />
     </div>
   );
 }

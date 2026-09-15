@@ -723,7 +723,8 @@
     "create_steam_shortcut_modal_cancel_button": "Ακύρωση",
     "delete_shortcut_success": "Η συντόμευση του Steam διαγράφηκε με επιτυχία",
     "delete_shortcut_error": "Δεν κατέστη δυνατή η διαγραφή της συντόμευσης του Steam",
-    "delete_steam_shortcut": "Διαγραφή της συντόμευσης του Steam"
+    "delete_steam_shortcut": "Διαγραφή της συντόμευσης του Steam",
+    "streaming_now": "Γίνεται μετάδοση τώρα"
   },
   "activation": {
     "title": "Ενεργοποίηση του Hydra",
@@ -1310,7 +1311,9 @@
     "big_picture_enable_sounds": "Ενεργοποίηση ήχων Big Picture",
     "big_picture_enable_virtual_keyboard": "Ενεργοποίηση του εικονικού πληκτρολογίου «Big Picture»",
     "big_picture_enable_diagnostics": "Ενεργοποίηση διαγνωστικών πλοήγησης",
-    "big_picture_diagnostics_position": "Θέση διαγνωστικών"
+    "big_picture_diagnostics_position": "Θέση διαγνωστικών",
+    "console_streaming": "Ροή κονσόλας",
+    "enable_console_streaming": "Ενεργοποίηση ροής κονσόλας (Moonlight)"
   },
   "notifications": {
     "download_complete": "Η λήψη ολοκληρώθηκε",
@@ -1352,7 +1355,13 @@
     "instructions": "Εγκαταστήστε το umu-run ή το Wine στη διανομή Linux που χρησιμοποιείτε, ώστε να μπορεί να εκτελεστεί το πρόγραμμα εγκατάστασης του παιχνιδιού"
   },
   "modal": {
-    "close": "Κουμπί κλεισίματος"
+    "close": "Κουμπί κλεισίματος",
+    "stream_pairing_title": "Σύζευξη συσκευής ροής",
+    "stream_pairing_description": "Εισαγάγετε το PIN που εμφανίζεται στη συσκευή Moonlight για να τη συζεύξετε με το Hydra.",
+    "stream_pairing_placeholder": "PIN",
+    "stream_pairing_submit": "Επιβεβαίωση",
+    "stream_pairing_error_invalid_pin": "Λανθασμένο PIN. Ελέγξτε το PIN στη συσκευή σας και δοκιμάστε ξανά.",
+    "stream_pairing_error_no_session": "Η συνεδρία σύζευξης έληξε. Ξεκινήστε ξανά τη σύζευξη από τη συσκευή σας."
   },
   "classics_onboarding": {
     "title": "Καλώς ήρθατε στην Hydra Classics",

@@ -23,6 +23,8 @@ import {
 } from "@main/services";
 import resources from "@locales";
 import { PythonRPC } from "./services/python-rpc";
+import { StreamSidecar } from "./services/stream-sidecar";
+import { StreamingManager } from "./services/streaming";
 import { db, gamesSublevel, levelKeys } from "./level";
 import { GameShop, UserPreferences } from "@types";
 import { launchGame, openClassicsGame } from "./helpers";
@@ -200,6 +202,10 @@ const initializeApp = async () => {
 
   WindowManager.createSystemTray(language || "en");
 
+  StreamingManager.start().catch((error) => {
+    logger.error("Failed to start streaming manager", error);
+  });
+
   if (deepLinkArg) {
     handleDeepLinkPath(deepLinkArg);
   }
@@ -368,6 +374,7 @@ app.on("before-quit", async (e) => {
     PowerSaveBlockerManager.reset();
     /* Disconnects Python RPC */
     PythonRPC.kill();
+    StreamSidecar.kill();
     await Promise.all([
       clearGamesPlaytime(),
       emulators.stopAllEmulatorSouvenirCaptureSessions(),

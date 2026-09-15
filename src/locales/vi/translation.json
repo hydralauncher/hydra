@@ -732,7 +732,8 @@
     "create_steam_shortcut_modal_cancel_button": "Hủy",
     "delete_shortcut_success": "Đã xóa lối tắt Steam thành công",
     "delete_shortcut_error": "Không thể xóa lối tắt Steam",
-    "delete_steam_shortcut": "Xóa lối tắt Steam"
+    "delete_steam_shortcut": "Xóa lối tắt Steam",
+    "streaming_now": "Đang phát trực tuyến"
   },
   "activation": {
     "title": "Kích hoạt Hydra",
@@ -1319,7 +1320,9 @@
     "big_picture_enable_sounds": "Bật âm thanh Big Picture",
     "big_picture_enable_virtual_keyboard": "Bật bàn phím ảo Big Picture",
     "big_picture_enable_diagnostics": "Bật chẩn đoán điều hướng",
-    "big_picture_diagnostics_position": "Vị trí bảng chẩn đoán"
+    "big_picture_diagnostics_position": "Vị trí bảng chẩn đoán",
+    "console_streaming": "Phát trực tuyến máy chơi game",
+    "enable_console_streaming": "Bật phát trực tuyến máy chơi game (Moonlight)"
   },
   "notifications": {
     "download_complete": "Tải về hoàn tất",
@@ -1364,7 +1367,13 @@
     "instructions": "Hãy cài đặt umu-run hoặc Wine trên bản phân phối Linux của bạn để trình cài đặt game có thể chạy"
   },
   "modal": {
-    "close": "Nút đóng"
+    "close": "Nút đóng",
+    "stream_pairing_title": "Ghép nối thiết bị phát trực tuyến",
+    "stream_pairing_description": "Nhập mã PIN hiển thị trên thiết bị Moonlight của bạn để ghép nối với Hydra.",
+    "stream_pairing_placeholder": "PIN",
+    "stream_pairing_submit": "Xác nhận",
+    "stream_pairing_error_invalid_pin": "Mã PIN không đúng. Kiểm tra mã PIN trên thiết bị của bạn và thử lại.",
+    "stream_pairing_error_no_session": "Phiên ghép nối đã hết hạn. Hãy bắt đầu ghép nối lại từ thiết bị của bạn."
   },
   "classics_onboarding": {
     "title": "Chào mừng đến với Hydra Classics",
