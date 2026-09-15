@@ -58,7 +58,6 @@ const buildForm = (
   hideToTrayOnGameStart: preferences?.hideToTrayOnGameStart ?? false,
   launchToLibraryPage: preferences?.launchToLibraryPage ?? false,
   enableAutoInstall: preferences?.enableAutoInstall ?? false,
-  streamingEnabled: preferences?.streamingEnabled ?? false,
 });
 
 export function SettingsContextGeneral({
@@ -137,18 +136,6 @@ export function SettingsContextGeneral({
             handleChange({
               launchToLibraryPage: !form.launchToLibraryPage,
             })
-          }
-        />
-      </div>
-
-      <div className="settings-context-panel__group">
-        <h3>{t("console_streaming")}</h3>
-
-        <CheckboxField
-          label={t("enable_console_streaming")}
-          checked={form.streamingEnabled}
-          onChange={() =>
-            handleChange({ streamingEnabled: !form.streamingEnabled })
           }
         />
       </div>
