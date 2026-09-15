@@ -20,7 +20,9 @@ const previewEmulatorExecutable = async (
     const resolvedPath =
       emulators.findMacAppBundleRoot(normalizedPath) ?? normalizedPath;
 
-    if (!emulators.isValidEmulatorExecutable(resolvedPath)) return null;
+    if (!emulators.isValidEmulatorExecutableForBinary(resolvedPath, binary)) {
+      return null;
+    }
 
     return {
       executablePath: resolvedPath,
@@ -28,7 +30,9 @@ const previewEmulatorExecutable = async (
     };
   }
 
-  const result = emulators.detectEmulator(binary, { resolveVersion: true });
+  const result = await emulators.detectEmulatorWithDownloads(binary, {
+    resolveVersion: true,
+  });
   if (!result) return null;
 
   return {

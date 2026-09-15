@@ -8,11 +8,10 @@ import type {
   RetroArchConfig,
 } from "@types";
 
-import { ConsoleCard } from "./console-card";
+import { ConsoleCard, type ConsoleCardRequirement } from "./console-card";
 import { EmulatorDetail } from "./emulator-detail";
 import { EmulatorSetupModal } from "./setup/emulator-setup-modal";
 import { KNOWN_BINARY_LABELS } from "./known-binary-labels";
-import { RETROARCH_EMULATOR_ICON } from "./emulator-icons";
 import {
   RETROARCH_LABEL,
   RETROARCH_CORE_LIST,
@@ -23,16 +22,24 @@ import { RetroArchSetupModal } from "./setup/retroarch/retroarch-setup-modal";
 import ps1Art from "@renderer/assets/emulation/ps1.png";
 import ps2Art from "@renderer/assets/emulation/ps2.png";
 import ps3Art from "@renderer/assets/emulation/ps3.png";
+import pspArt from "@renderer/assets/emulation/psp.png";
+import gameCubeArt from "@renderer/assets/emulation/gamecube.png";
+import wiiArt from "@renderer/assets/emulation/wii.png";
+import retroArchArt from "@renderer/assets/emulation/retroarch.png";
 import {
   ClassicsOnboardingModal,
   hasDismissedClassicsOnboarding,
 } from "@renderer/components/classics-onboarding-modal/classics-onboarding-modal";
 
-import { SETTINGS_EMULATION_VIEW_STORAGE_KEY } from "@renderer/session-state";
+import {
+  SETTINGS_EMULATION_VIEW_STORAGE_KEY,
+  SETTINGS_EMULATOR_TAB_STORAGE_KEY,
+  SETTINGS_RETROARCH_TAB_STORAGE_KEY,
+} from "@renderer/session-state";
 
 import "./settings-context-emulation.scss";
 
-const SYSTEMS: EmulatorSystem[] = ["ps1", "ps2", "ps3"];
+const SYSTEMS: EmulatorSystem[] = ["ps1", "ps2", "ps3", "psp", "dolphin"];
 
 type EmulationView =
   | { kind: "grid" }
@@ -60,12 +67,24 @@ const SYSTEM_LABELS: Record<EmulatorSystem, string> = {
   ps1: "PlayStation 1",
   ps2: "PlayStation 2",
   ps3: "PlayStation 3",
+  psp: "PlayStation Portable",
+  dolphin: "GameCube & Wii",
 };
 
-const SYSTEM_ART: Record<EmulatorSystem, string> = {
+const SYSTEM_ART: Record<EmulatorSystem, string | readonly string[]> = {
   ps1: ps1Art,
   ps2: ps2Art,
   ps3: ps3Art,
+  psp: pspArt,
+  dolphin: [gameCubeArt, wiiArt],
+};
+
+const SYSTEM_REQUIREMENTS: Partial<
+  Record<EmulatorSystem, ConsoleCardRequirement>
+> = {
+  ps1: "bios",
+  ps2: "bios",
+  ps3: "firmware",
 };
 
 export function SettingsContextEmulation() {
@@ -80,7 +99,7 @@ export function SettingsContextEmulation() {
   const [configsNonce, setConfigsNonce] = useState(0);
   const [setupSystem, setSetupSystem] = useState<EmulatorSystem | null>(null);
   const [retroArchSetupOpen, setRetroArchSetupOpen] = useState(false);
-  const deepLinkAppliedRef = useRef(false);
+  const deepLinkAppliedRef = useRef<string | null>(null);
 
   const [showClassicsOnboarding, setShowClassicsOnboarding] = useState(false);
   const classicsOnboardingTriggeredRef = useRef(false);
@@ -173,20 +192,30 @@ export function SettingsContextEmulation() {
   }, [refresh, refreshRetroArch]);
 
   useEffect(() => {
-    if (deepLinkAppliedRef.current || !configs || !retroArchConfig) return;
+    if (!configs || !retroArchConfig) return;
     const system = searchParams.get("system");
+    if (!system) return;
+    const section = searchParams.get("section");
+    const deepLinkKey = `${system}:${section ?? ""}`;
+    if (deepLinkAppliedRef.current === deepLinkKey) return;
+
     if (system === "retroarch") {
-      deepLinkAppliedRef.current = true;
-      if (retroArchConfig.executablePath) {
-        setView({ kind: "retroarch-detail" });
+      deepLinkAppliedRef.current = deepLinkKey;
+      if (section === "emulator") {
+        localStorage.setItem(SETTINGS_RETROARCH_TAB_STORAGE_KEY, "emulator");
       }
+      setView({ kind: "retroarch-detail" });
       return;
     }
     if (system && SYSTEMS.includes(system as EmulatorSystem)) {
-      deepLinkAppliedRef.current = true;
-      if (configs[system as EmulatorSystem].executablePath) {
-        setView({ kind: "detail", system: system as EmulatorSystem });
+      deepLinkAppliedRef.current = deepLinkKey;
+      if (section === "emulator") {
+        localStorage.setItem(
+          `${SETTINGS_EMULATOR_TAB_STORAGE_KEY}-${system}`,
+          "emulator"
+        );
       }
+      setView({ kind: "detail", system: system as EmulatorSystem });
     }
   }, [configs, retroArchConfig, searchParams]);
 
@@ -236,6 +265,7 @@ export function SettingsContextEmulation() {
   if (view.kind === "detail" && detailConfig) {
     return (
       <EmulatorDetail
+        key={`${view.system}:${searchParams.get("section") ?? ""}`}
         config={detailConfig}
         systemLabel={SYSTEM_LABELS[view.system]}
         onBack={handleBack}
@@ -250,6 +280,7 @@ export function SettingsContextEmulation() {
   if (view.kind === "retroarch-detail") {
     return (
       <RetroArchDetail
+        key={`retroarch:${searchParams.get("section") ?? ""}`}
         config={retroArchConfig}
         onBack={handleBack}
         onChange={setRetroArchConfig}
@@ -289,7 +320,7 @@ export function SettingsContextEmulation() {
             checkExecutable={() =>
               window.electron.checkEmulatorExecutable(system)
             }
-            requirement={system === "ps3" ? "firmware" : "bios"}
+            requirement={SYSTEM_REQUIREMENTS[system]}
             requirementKey={configsNonce}
             checkRequirement={async () => {
               const config = configs[system];
@@ -313,7 +344,7 @@ export function SettingsContextEmulation() {
           />
         ))}
         <ConsoleCard
-          art={RETROARCH_EMULATOR_ICON}
+          art={retroArchArt}
           title={RETROARCH_LABEL}
           emulatorName={t("retroarch_supported_cores", {
             count: RETROARCH_CORE_LIST.length,

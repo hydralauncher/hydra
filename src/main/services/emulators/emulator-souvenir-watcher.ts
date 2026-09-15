@@ -21,10 +21,8 @@ import {
   partitionHandledRetroArchSouvenirs,
   type RetroArchSouvenirAchievement,
 } from "./retroarch-souvenir-achievement-group";
+import { getEmulatorAchievementLogFormat } from "./emulator-achievement-log";
 
-const DUCKSTATION_UNLOCK = /Achievement (\d+) \((.*?)\) for game \d+ unlocked/;
-const PCSX2_UNLOCK =
-  /Achievements: Achievement (.*?) \((\d+)\) for game \d+ unlocked/;
 const RETROARCH_SOUVENIR = /-cheevo-(\d+)\.[a-z]+$/i;
 const RETROARCH_SCREENSHOT_STABILITY_ATTEMPTS = 5;
 const RETROARCH_SCREENSHOT_STABILITY_DELAY_MS = 100;
@@ -317,9 +315,11 @@ const collectNewRetroArchSouvenirs = async (
 const createLogTail = (
   logPath: string,
   pattern: RegExp,
-  titleFirst: boolean
+  titleFirst: boolean,
+  initialOffset?: number
 ) => {
-  let offset = fs.existsSync(logPath) ? fs.statSync(logPath).size : 0;
+  let offset =
+    initialOffset ?? (fs.existsSync(logPath) ? fs.statSync(logPath).size : 0);
   let remainder = "";
 
   return async (): Promise<UnlockedAchievement[]> => {
@@ -356,16 +356,33 @@ const createLogTail = (
   };
 };
 
-const startLogWatcher = (
-  gameKey: string,
-  watcherToken: object,
-  game: Game,
-  processId: number,
-  logPath: string,
-  pattern: RegExp,
-  titleFirst: boolean
-) => {
-  const readNewUnlocks = createLogTail(logPath, pattern, titleFirst);
+interface StartLogWatcherOptions {
+  gameKey: string;
+  watcherToken: object;
+  game: Game;
+  processId: number;
+  logPath: string;
+  pattern: RegExp;
+  titleFirst: boolean;
+  initialOffset?: number;
+}
+
+const startLogWatcher = ({
+  gameKey,
+  watcherToken,
+  game,
+  processId,
+  logPath,
+  pattern,
+  titleFirst,
+  initialOffset,
+}: StartLogWatcherOptions) => {
+  const readNewUnlocks = createLogTail(
+    logPath,
+    pattern,
+    titleFirst,
+    initialOffset
+  );
   let isProcessing = false;
 
   const watcher = setInterval(() => {
@@ -566,17 +583,14 @@ interface StartEmulatorSouvenirWatcherOptions {
   executablePath: string;
   processId: number;
   watcherToken: object;
+  logPath?: string;
+  logOffset?: number;
   screenshotDirectories?: string[];
 }
 
-interface StartConfiguredLogWatcherOptions {
-  gameKey: string;
-  watcherToken: object;
-  game: Game;
-  processId: number;
+interface StartConfiguredLogWatcherOptions
+  extends Omit<StartLogWatcherOptions, "logPath"> {
   logPath: string | null;
-  pattern: RegExp;
-  titleFirst: boolean;
 }
 
 const startConfiguredLogWatcher = ({
@@ -587,21 +601,32 @@ const startConfiguredLogWatcher = ({
   logPath,
   pattern,
   titleFirst,
+  initialOffset,
 }: StartConfiguredLogWatcherOptions) => {
   if (!logPath) {
     stopEmulatorSouvenirWatcher(gameKey, watcherToken);
     return;
   }
 
-  startLogWatcher(
+  startLogWatcher({
     gameKey,
     watcherToken,
     game,
     processId,
     logPath,
     pattern,
-    titleFirst
-  );
+    titleFirst,
+    initialOffset,
+  });
+};
+
+const configuredLogPathForSystem = (
+  system: EmulatorSessionSystem,
+  executablePath: string
+): string | null => {
+  if (system === "ps1") return duckstationLogPath();
+  if (system === "ps2") return pcsx2LogPath(executablePath);
+  return null;
 };
 
 export const startEmulatorSouvenirWatcher = async ({
@@ -611,6 +636,8 @@ export const startEmulatorSouvenirWatcher = async ({
   executablePath,
   processId,
   watcherToken,
+  logPath: sessionLogPath,
+  logOffset: sessionLogOffset,
   screenshotDirectories,
 }: StartEmulatorSouvenirWatcherOptions) => {
   const previousWatcher = watchers.get(gameKey);
@@ -636,31 +663,20 @@ export const startEmulatorSouvenirWatcher = async ({
     return;
   }
 
-  if (system === "ps1") {
+  const logFormat = getEmulatorAchievementLogFormat(system);
+  if (logFormat) {
+    const configuredLogPath =
+      sessionLogPath ?? configuredLogPathForSystem(system, executablePath);
     const capturePreparation = prepareLinuxGameCaptureSession(gameKey);
     startConfiguredLogWatcher({
       gameKey,
       watcherToken,
       game,
       processId,
-      logPath: duckstationLogPath(),
-      pattern: DUCKSTATION_UNLOCK,
-      titleFirst: false,
-    });
-    await capturePreparation;
-    return;
-  }
-
-  if (system === "ps2") {
-    const capturePreparation = prepareLinuxGameCaptureSession(gameKey);
-    startConfiguredLogWatcher({
-      gameKey,
-      watcherToken,
-      game,
-      processId,
-      logPath: pcsx2LogPath(executablePath),
-      pattern: PCSX2_UNLOCK,
-      titleFirst: true,
+      logPath: configuredLogPath,
+      pattern: logFormat.pattern,
+      titleFirst: logFormat.titleFirst,
+      initialOffset: sessionLogOffset,
     });
     await capturePreparation;
     return;

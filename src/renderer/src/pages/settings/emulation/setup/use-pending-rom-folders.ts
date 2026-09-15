@@ -1,6 +1,11 @@
-import { useCallback, useState } from "react";
+import { useCallback, useRef, useState } from "react";
 
 import type { PendingFolder } from "./types";
+import {
+  applyPendingFolderPreview,
+  preparePendingFolderPreview,
+  type PendingFolderPreviewRequest,
+} from "./pending-rom-folder-preview";
 
 interface UsePendingRomFoldersOptions {
   previewFolder: (
@@ -15,6 +20,47 @@ export function usePendingRomFolders({
   onFolderAdded,
 }: UsePendingRomFoldersOptions) {
   const [folders, setFolders] = useState<PendingFolder[]>([]);
+  const foldersRef = useRef<PendingFolder[]>([]);
+  const nextPreviewRequestIdRef = useRef(1);
+
+  const updateFolders = useCallback(
+    (update: (current: PendingFolder[]) => PendingFolder[]) => {
+      const next = update(foldersRef.current);
+      foldersRef.current = next;
+      setFolders(next);
+    },
+    []
+  );
+
+  const replaceFolders = useCallback((next: PendingFolder[]) => {
+    foldersRef.current = next;
+    setFolders(next);
+  }, []);
+
+  const runPreview = useCallback(
+    async (request: PendingFolderPreviewRequest) => {
+      const count = await previewFolder(request.path, request.scanSubfolders);
+      updateFolders((current) =>
+        applyPendingFolderPreview(current, request, count)
+      );
+    },
+    [previewFolder, updateFolders]
+  );
+
+  const refreshFolderPreview = useCallback(
+    async (index: number) => {
+      const prepared = preparePendingFolderPreview(
+        foldersRef.current,
+        index,
+        nextPreviewRequestIdRef.current++
+      );
+      if (!prepared) return;
+
+      replaceFolders(prepared.folders);
+      await runPreview(prepared.request);
+    },
+    [replaceFolders, runPreview]
+  );
 
   const handleAddFolder = useCallback(async () => {
     const result = await window.electron.showOpenDialog({
@@ -23,28 +69,27 @@ export function usePendingRomFolders({
     if (result.canceled || result.filePaths.length === 0) return;
     const folderPath = result.filePaths[0];
 
-    let alreadyAdded = false;
-    setFolders((prev) => {
-      if (prev.some((f) => f.path === folderPath)) {
-        alreadyAdded = true;
-        return prev;
-      }
-      return [
-        ...prev,
-        { path: folderPath, scanSubfolders: true, previewCount: null },
-      ];
-    });
-    if (alreadyAdded) return;
+    if (foldersRef.current.some((folder) => folder.path === folderPath)) return;
+
+    const requestId = nextPreviewRequestIdRef.current++;
+    const request: PendingFolderPreviewRequest = {
+      path: folderPath,
+      scanSubfolders: true,
+      requestId,
+    };
+    updateFolders((current) => [
+      ...current,
+      {
+        path: folderPath,
+        scanSubfolders: true,
+        previewCount: null,
+        previewRequestId: requestId,
+      },
+    ]);
 
     onFolderAdded?.(folderPath);
-
-    const count = await previewFolder(folderPath, true);
-    setFolders((prev) =>
-      prev.map((f) =>
-        f.path === folderPath ? { ...f, previewCount: count } : f
-      )
-    );
-  }, [previewFolder, onFolderAdded]);
+    await runPreview(request);
+  }, [onFolderAdded, runPreview, updateFolders]);
 
   const handleChangeFolder = useCallback(
     async (index: number) => {
@@ -54,55 +99,55 @@ export function usePendingRomFolders({
       if (result.canceled || result.filePaths.length === 0) return;
       const newPath = result.filePaths[0];
 
-      let scanSubfolders = true;
-      setFolders((prev) => {
-        scanSubfolders = prev[index]?.scanSubfolders ?? true;
-        return prev.map((f, i) =>
-          i === index ? { ...f, path: newPath, previewCount: null } : f
-        );
-      });
-
-      const count = await previewFolder(newPath, scanSubfolders);
-      setFolders((prev) =>
-        prev.map((f, i) => (i === index ? { ...f, previewCount: count } : f))
+      const prepared = preparePendingFolderPreview(
+        foldersRef.current,
+        index,
+        nextPreviewRequestIdRef.current++,
+        { path: newPath }
       );
+      if (!prepared) return;
+
+      replaceFolders(prepared.folders);
+      await runPreview(prepared.request);
     },
-    [previewFolder]
+    [replaceFolders, runPreview]
   );
 
-  const handleRemoveFolder = useCallback((index: number) => {
-    setFolders((prev) => prev.filter((_, i) => i !== index));
-  }, []);
+  const handleRemoveFolder = useCallback(
+    (index: number) => {
+      updateFolders((current) =>
+        current.filter((_, folderIndex) => folderIndex !== index)
+      );
+    },
+    [updateFolders]
+  );
 
   const handleToggleSubfolders = useCallback(
     async (index: number) => {
-      let folderPath: string | null = null;
-      let next = true;
-      setFolders((prev) => {
-        const folder = prev[index];
-        if (!folder) return prev;
-        folderPath = folder.path;
-        next = !folder.scanSubfolders;
-        return prev.map((f, i) =>
-          i === index ? { ...f, scanSubfolders: next, previewCount: null } : f
-        );
-      });
-      if (folderPath === null) return;
+      const current = foldersRef.current[index];
+      if (!current) return;
 
-      const count = await previewFolder(folderPath, next);
-      setFolders((prev) =>
-        prev.map((f, i) => (i === index ? { ...f, previewCount: count } : f))
+      const prepared = preparePendingFolderPreview(
+        foldersRef.current,
+        index,
+        nextPreviewRequestIdRef.current++,
+        { scanSubfolders: !current.scanSubfolders }
       );
+      if (!prepared) return;
+
+      replaceFolders(prepared.folders);
+      await runPreview(prepared.request);
     },
-    [previewFolder]
+    [replaceFolders, runPreview]
   );
 
   return {
     folders,
-    setFolders,
+    setFolders: replaceFolders,
     handleAddFolder,
     handleChangeFolder,
     handleRemoveFolder,
     handleToggleSubfolders,
+    refreshFolderPreview,
   };
 }
