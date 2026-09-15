@@ -104,29 +104,32 @@ impl rustls::client::danger::ServerCertVerifier for PinnedCertVerifier {
     }
 }
 
-fn tls_connector(pinned_cert: &[u8]) -> TlsConnector {
+/// The paired client's own connection: it presents the certificate it
+/// registered during pairing, which is what authorizes its uniqueid.
+fn tls_connector_as_client(pinned_cert: &[u8], client: &certs::Identity) -> TlsConnector {
+    use rustls::pki_types::{PrivateKeyDer, PrivatePkcs8KeyDer};
+
     let verifier = PinnedCertVerifier {
         pinned: pinned_cert.to_vec(),
     };
     let config = rustls::ClientConfig::builder()
         .dangerous()
         .with_custom_certificate_verifier(Arc::new(verifier))
-        .with_no_client_auth();
+        .with_client_auth_cert(
+            vec![client.cert_der.clone().into()],
+            PrivateKeyDer::Pkcs8(PrivatePkcs8KeyDer::from(client.key_pkcs8_der.clone())),
+        )
+        .unwrap();
     TlsConnector::from(Arc::new(config))
 }
 
-async fn read_body(stream: &mut (impl tokio::io::AsyncRead + Unpin)) -> String {
-    let mut response = Vec::new();
-    stream.read_to_end(&mut response).await.unwrap();
-    String::from_utf8_lossy(&response)
-        .split("\r\n\r\n")
-        .nth(1)
-        .expect("HTTP body")
-        .to_string()
-}
-
-async fn tls_get(port: u16, target: &str, pinned_cert: &[u8]) -> String {
-    let mut tls = tls_connector(pinned_cert)
+async fn tls_get_as_client(
+    port: u16,
+    target: &str,
+    pinned_cert: &[u8],
+    client: &certs::Identity,
+) -> String {
+    let mut tls = tls_connector_as_client(pinned_cert, client)
         .connect(
             rustls::pki_types::ServerName::try_from("localhost").unwrap(),
             TcpStream::connect(("127.0.0.1", port)).await.unwrap(),
@@ -139,6 +142,16 @@ async fn tls_get(port: u16, target: &str, pinned_cert: &[u8]) -> String {
     .await
     .unwrap();
     read_body(&mut tls).await
+}
+
+async fn read_body(stream: &mut (impl tokio::io::AsyncRead + Unpin)) -> String {
+    let mut response = Vec::new();
+    stream.read_to_end(&mut response).await.unwrap();
+    String::from_utf8_lossy(&response)
+        .split("\r\n\r\n")
+        .nth(1)
+        .expect("HTTP body")
+        .to_string()
 }
 
 async fn spawn_servers(state: Arc<State>) -> (u16, u16, u16) {
@@ -241,11 +254,12 @@ async fn stream_once(
     https_port: u16,
     rtsp_port: u16,
     pinned: &[u8],
+    identity: &certs::Identity,
     client: &std::net::UdpSocket,
     punch: &[u8],
     video_port: u16,
 ) {
-    let response = tls_get(https_port, &launch_query("tester"), pinned).await;
+    let response = tls_get_as_client(https_port, &launch_query("tester"), pinned, identity).await;
     assert!(response.contains("status_code=\"200\""), "{response}");
     assert_eq!(tag(&response, "gamesession"), "1");
 
@@ -324,7 +338,7 @@ async fn relaunch_learns_endpoint_from_gap_punch() {
     let punch = [0xABu8; 16];
 
     // session 1: ordinary stream, endpoint learned from the punch
-    stream_once(https_port, rtsp_port, &pinned, &media, &punch, 48398).await;
+    stream_once(https_port, rtsp_port, &pinned, &client, &media, &punch, 48398).await;
     teardown(rtsp_port).await;
 
     // wait for the video loop of session 1 to exit (one acquire timeout)
@@ -339,6 +353,6 @@ async fn relaunch_learns_endpoint_from_gap_punch() {
     }
 
     // session 2: NO punch after PLAY — the queued gap punch must seed it
-    stream_once(https_port, rtsp_port, &pinned, &media, &[], 48398).await;
+    stream_once(https_port, rtsp_port, &pinned, &client, &media, &[], 48398).await;
     teardown(rtsp_port).await;
 }

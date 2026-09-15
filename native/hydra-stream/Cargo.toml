@@ -18,6 +18,7 @@ sha2 = "0.10"
 aes = "0.8"
 rsa = { version = "0.9", features = ["sha2"] }
 x509-parser = "0.16"
+subtle = "2"
 mdns-sd = "0.13"
 if-addrs = "0.13"
 getrandom = "0.3"

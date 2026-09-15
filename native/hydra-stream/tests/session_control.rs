@@ -346,7 +346,7 @@ async fn plaintext_rtsp_handshake_matches_moonlight_sequence() {
     pair_client(&state, "tester", &client);
 
     // /launch over HTTPS raises the session and reports the RTSP url
-    let response = tls_get(https_port, &launch_query("tester", ""), &pinned).await;
+    let response = tls_get_as_client(https_port, &launch_query("tester", ""), &pinned, &client).await;
     assert!(response.contains("status_code=\"200\""), "{response}");
     assert_eq!(tag(&response, "gamesession"), "1");
     assert_eq!(tag(&response, "sessionUrl0"), "rtsp://127.0.0.1:48010");
@@ -613,10 +613,11 @@ async fn launch_resume_cancel_validation_and_events() {
     assert!(response.contains("The client is not authorized"), "{response}");
 
     // missing required launch parameters
-    let response = tls_get(
+    let response = tls_get_as_client(
         https_port,
         "/launch?uniqueid=tester&appid=1&rikeyid=1&localAudioPlayMode=0",
         &pinned,
+        &client,
     )
     .await;
     assert!(response.contains("status_code=\"400\""), "{response}");
@@ -624,10 +625,11 @@ async fn launch_resume_cancel_validation_and_events() {
 
     // unknown appid, Sunshine-style
     let rikey = crypto::hex_encode(&crypto::random_bytes(16));
-    let response = tls_get(
+    let response = tls_get_as_client(
         https_port,
         &format!("/launch?uniqueid=tester&appid=99&mode=0x0x0&rikey={rikey}&rikeyid=1&localAudioPlayMode=0"),
         &pinned,
+        &client,
     )
     .await;
     assert!(response.contains("status_code=\"404\""), "{response}");
@@ -637,13 +639,13 @@ async fn launch_resume_cancel_validation_and_events() {
     );
 
     // valid launch
-    let response = tls_get(https_port, &launch_query("tester", ""), &pinned).await;
+    let response = tls_get_as_client(https_port, &launch_query("tester", ""), &pinned, &client).await;
     assert!(response.contains("status_code=\"200\""), "{response}");
     let event = next_event(&mut events).await;
     assert_eq!(event["state"], "launching");
 
     // a second launch while the session is active is rejected
-    let response = tls_get(https_port, &launch_query("tester", ""), &pinned).await;
+    let response = tls_get_as_client(https_port, &launch_query("tester", ""), &pinned, &client).await;
     assert!(response.contains("status_code=\"400\""), "{response}");
     assert!(
         response.contains("An app is already running on this host"),
@@ -655,12 +657,13 @@ async fn launch_resume_cancel_validation_and_events() {
     // it was actually applied (M2: the old silent no-op arm kept the
     // stale key and the client's next RTSP used the wrong one)
     let resume_rikey = crypto::hex_encode(&crypto::random_bytes(16));
-    let response = tls_get(
+    let response = tls_get_as_client(
         https_port,
         &format!(
             "/resume?uniqueid=tester&appid=1&mode=1920x1080x60&rikey={resume_rikey}&rikeyid=9&localAudioPlayMode=0"
         ),
         &pinned,
+        &client,
     )
     .await;
     assert!(response.contains("status_code=\"200\""), "{response}");
@@ -673,10 +676,11 @@ async fn launch_resume_cancel_validation_and_events() {
     );
 
     // missing rikey on resume (session still pending)
-    let response = tls_get(
+    let response = tls_get_as_client(
         https_port,
         "/resume?uniqueid=tester&appid=1&rikeyid=9",
         &pinned,
+        &client,
     )
     .await;
     assert!(response.contains("status_code=\"400\""), "{response}");
@@ -687,12 +691,13 @@ async fn launch_resume_cancel_validation_and_events() {
 
     // resume is still allowed while the session is pending
     let second_rikey = crypto::hex_encode(&crypto::random_bytes(16));
-    let response = tls_get(
+    let response = tls_get_as_client(
         https_port,
         &format!(
             "/resume?uniqueid=tester&appid=1&mode=1920x1080x60&rikey={second_rikey}&rikeyid=9&localAudioPlayMode=0"
         ),
         &pinned,
+        &client,
     )
     .await;
     assert!(response.contains("status_code=\"200\""), "{response}");
@@ -711,19 +716,58 @@ async fn launch_resume_cancel_validation_and_events() {
 
     // resume is rejected once the session is gone
     let late_rikey = crypto::hex_encode(&crypto::random_bytes(16));
-    let response = tls_get(
+    let response = tls_get_as_client(
         https_port,
         &format!(
             "/resume?uniqueid=tester&appid=1&mode=1920x1080x60&rikey={late_rikey}&rikeyid=9&localAudioPlayMode=0"
         ),
         &pinned,
+        &client,
     )
     .await;
     assert!(response.contains("status_code=\"503\""), "{response}");
     assert!(response.contains("No running app to resume"), "{response}");
 
     // /cancel with no active session still succeeds and emits no events
+    let response = tls_get_as_client(https_port, "/cancel?uniqueid=tester", &pinned, &client).await;
+    assert!(response.contains("status_code=\"200\""), "{response}");
+    assert_eq!(tag(&response, "cancel"), "1");
+}
+
+/// Moonlight-Android sends a fixed, public uniqueid, so a paired uniqueid
+/// must not authorize by itself: the request also has to present the
+/// certificate stored for that uniqueid during pairing.
+#[tokio::test]
+async fn paired_uniqueid_without_the_paired_certificate_is_rejected() {
+    let (state, _events, _http_port, https_port, _rtsp_port, pinned) = setup("uniqueid-only").await;
+    let client = generate_client_identity();
+    pair_client(&state, "tester", &client);
+
+    // /launch with the known paired uniqueid but no client certificate
+    let response = tls_get(https_port, &launch_query("tester", ""), &pinned).await;
+    assert!(response.contains("status_code=\"401\""), "{response}");
+    assert!(response.contains("The client is not authorized"), "{response}");
+    assert_eq!(state.session_phase(), GamePhase::Idle);
+
+    // another paired client's certificate does not authorize that uniqueid
+    let other = generate_client_identity();
+    pair_client(&state, "other", &other);
+    let response = tls_get_as_client(https_port, &launch_query("tester", ""), &pinned, &other).await;
+    assert!(response.contains("status_code=\"401\""), "{response}");
+    assert_eq!(state.session_phase(), GamePhase::Idle);
+
+    // /cancel is gated the same way
     let response = tls_get(https_port, "/cancel?uniqueid=tester", &pinned).await;
+    assert!(response.contains("status_code=\"401\""), "{response}");
+
+    // the stored certificate is what authorizes the uniqueid
+    let response = tls_get_as_client(https_port, &launch_query("tester", ""), &pinned, &client).await;
+    assert!(response.contains("status_code=\"200\""), "{response}");
+    assert_eq!(tag(&response, "gamesession"), "1");
+    assert_eq!(state.session_phase(), GamePhase::Launching);
+
+    // and /cancel still works for the certificate that owns the uniqueid
+    let response = tls_get_as_client(https_port, "/cancel?uniqueid=tester", &pinned, &client).await;
     assert!(response.contains("status_code=\"200\""), "{response}");
     assert_eq!(tag(&response, "cancel"), "1");
 }
@@ -770,7 +814,7 @@ async fn session_expires_when_client_never_connects() {
     let client = generate_client_identity();
     pair_client(&state, "tester", &client);
 
-    let response = tls_get(https_port, &launch_query("tester", ""), &pinned).await;
+    let response = tls_get_as_client(https_port, &launch_query("tester", ""), &pinned, &client).await;
     assert!(response.contains("status_code=\"200\""), "{response}");
     let event = next_event(&mut events).await;
     assert_eq!(event["state"], "launching");
@@ -824,7 +868,7 @@ async fn play_after_session_end_is_ignored() {
     let client = generate_client_identity();
     pair_client(&state, "tester", &client);
 
-    let response = tls_get(https_port, &launch_query("tester", ""), &pinned).await;
+    let response = tls_get_as_client(https_port, &launch_query("tester", ""), &pinned, &client).await;
     assert!(response.contains("status_code=\"200\""), "{response}");
     let _ = next_event(&mut events).await; // launching
 
@@ -849,7 +893,7 @@ async fn streaming_session_never_expires_via_nvhttp() {
     let client = generate_client_identity();
     pair_client(&state, "tester", &client);
 
-    let response = tls_get(https_port, &launch_query("tester", ""), &pinned).await;
+    let response = tls_get_as_client(https_port, &launch_query("tester", ""), &pinned, &client).await;
     assert!(response.contains("status_code=\"200\""), "{response}");
     let event = next_event(&mut events).await;
     assert_eq!(event["state"], "launching");

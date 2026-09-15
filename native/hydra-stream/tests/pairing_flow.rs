@@ -163,6 +163,43 @@ fn tls_connector(pinned_cert: &[u8]) -> TlsConnector {
     TlsConnector::from(Arc::new(config))
 }
 
+/// The paired client's own connection: it presents the certificate it
+/// registered during pairing, which is what authorizes its uniqueid.
+fn tls_connector_as_client(pinned_cert: &[u8], client: &certs::Identity) -> TlsConnector {
+    use rustls::pki_types::{PrivateKeyDer, PrivatePkcs8KeyDer};
+
+    let verifier = PinnedCertVerifier {
+        pinned: pinned_cert.to_vec(),
+    };
+    let config = rustls::ClientConfig::builder()
+        .dangerous()
+        .with_custom_certificate_verifier(Arc::new(verifier))
+        .with_client_auth_cert(
+            vec![client.cert_der.clone().into()],
+            PrivateKeyDer::Pkcs8(PrivatePkcs8KeyDer::from(client.key_pkcs8_der.clone())),
+        )
+        .unwrap();
+    TlsConnector::from(Arc::new(config))
+}
+
+async fn tls_get_as_client(
+    port: u16,
+    target: &str,
+    pinned_cert: &[u8],
+    client: &certs::Identity,
+) -> String {
+    let connector = tls_connector_as_client(pinned_cert, client);
+    let stream = TcpStream::connect(("127.0.0.1", port)).await.unwrap();
+    let server_name = rustls::pki_types::ServerName::try_from("localhost").unwrap();
+    let mut tls = connector.connect(server_name, stream).await.unwrap();
+    tls.write_all(
+        format!("GET {target} HTTP/1.1\r\nHost: localhost\r\nConnection: close\r\n\r\n").as_bytes(),
+    )
+    .await
+    .unwrap();
+    read_body(&mut tls).await
+}
+
 async fn tls_get(port: u16, target: &str, pinned_cert: &[u8]) -> String {
     tls_try_get(port, target, pinned_cert)
         .await
@@ -410,12 +447,13 @@ async fn moonlight_client_pairing_flow() {
     // launching a pushed game appid works and requests the game launch;
     // unknown appids get the Sunshine error
     let rikey = crypto::hex_encode(&crypto::random_bytes(16));
-    let response = tls_get(
+    let response = tls_get_as_client(
         https_port,
         &format!(
             "/launch?uniqueid={uniqueid}&appid=100&mode=1280x720x60&rikey={rikey}&rikeyid=1&localAudioPlayMode=0"
         ),
         &server_cert_der,
+        &client,
     )
     .await;
     assert!(response.contains("status_code=\"200\""), "{response}");
@@ -447,12 +485,13 @@ async fn moonlight_client_pairing_flow() {
     assert_eq!(event["appid"], 100);
     next_event_named(&mut event_rx, "session-state").await; // idle
 
-    let response = tls_get(
+    let response = tls_get_as_client(
         https_port,
         &format!(
             "/launch?uniqueid={uniqueid}&appid=999&mode=1280x720x60&rikey={rikey}&rikeyid=1&localAudioPlayMode=0"
         ),
         &server_cert_der,
+        &client,
     )
     .await;
     assert!(response.contains("status_code=\"404\""), "{response}");

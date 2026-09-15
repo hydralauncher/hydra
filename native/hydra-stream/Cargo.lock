@@ -279,6 +279,7 @@ dependencies = [
  "serde",
  "serde_json",
  "sha2",
+ "subtle",
  "tokio",
  "tokio-rustls",
  "vigem-client",

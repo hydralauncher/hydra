@@ -1055,20 +1055,52 @@ fn appasset(state: &State, appid: Option<u32>) -> RouteOutcome {
     }
 }
 
-/// A request is authorized when it carries a paired uniqueid (legacy GFE
-/// behavior) or presents a client certificate that matches a paired client
-/// (Moonlight-Qt sends no uniqueid on /launch; it identifies by TLS cert).
+/// A request is authorized when it presents a client certificate that matches
+/// a paired client (Moonlight-Qt sends no uniqueid on /launch; it identifies
+/// by TLS cert), or when it carries a paired uniqueid *and* the very
+/// certificate stored for that uniqueid. The uniqueid alone must not
+/// authorize: it is a fixed public constant in Moonlight-Android
+/// (`docs/console-streaming.md`), so any LAN host could name a paired client
+/// and launch, resume or cancel its stream.
 fn client_authorized(state: &State, uniqueid: &str, peer_cert: Option<&[u8]>) -> bool {
     let paired = state.paired.lock().expect("paired clients lock");
-    if !uniqueid.is_empty() && paired.contains_key(uniqueid) {
-        return true;
+    if !uniqueid.is_empty() {
+        if let Some(client) = paired.get(uniqueid) {
+            match peer_cert {
+                Some(presented) if cert_matches(&client.cert, presented) => return true,
+                // A certificate that is missing or belongs to another client
+                // is a rejected identity claim, never a fallback.
+                other => {
+                    eprintln!(
+                        "nvhttp: rejecting uniqueid {uniqueid}: {}",
+                        if other.is_some() {
+                            "presented client certificate does not match the paired certificate"
+                        } else {
+                            "no TLS client certificate presented"
+                        }
+                    );
+                    return false;
+                }
+            }
+        }
     }
     if let Some(presented) = peer_cert {
-        return paired
-            .values()
-            .any(|client| crypto::parse_cert(client.cert.as_bytes()).ok().as_deref() == Some(presented));
+        return paired.values().any(|client| cert_matches(&client.cert, presented));
     }
     false
+}
+
+/// Constant-time comparison of the paired client's stored certificate (PEM or
+/// DER) against the DER the TLS peer presented. A different length fails
+/// first; length is part of a certificate's public shape, so it reveals
+/// nothing, and the bytes themselves are never compared with an early exit.
+fn cert_matches(stored: &str, presented: &[u8]) -> bool {
+    use subtle::ConstantTimeEq;
+
+    let Ok(stored_der) = crypto::parse_cert(stored.as_bytes()) else {
+        return false;
+    };
+    stored_der.ct_eq(presented).into()
 }
 
 fn unauthorized(path: &str) -> String {
@@ -2415,8 +2447,13 @@ pub(crate) mod tests {
         );
     }
 
+    /// The certificate `authorize` stores: any non-PEM bytes stand in for the
+    /// DER the TLS peer presents (`crypto::parse_cert` passes those through).
+    const PEER_CERT: &[u8] = b"paired-client-der";
+
     /// A paired client, so /launch and /resume pass the authorization gate
-    /// without a full pairing handshake.
+    /// without a full pairing handshake. The uniqueid alone is not enough:
+    /// requests must also present `PEER_CERT`.
     fn authorize(state: &State, uniqueid: &str) {
         let mut paired = state.paired.lock().expect("paired clients lock");
         paired.insert(
@@ -2424,7 +2461,7 @@ pub(crate) mod tests {
             PairedClient {
                 uniqueid: uniqueid.to_string(),
                 name: "tester".to_string(),
-                cert: String::new(),
+                cert: String::from_utf8_lossy(PEER_CERT).into_owned(),
             },
         );
     }
@@ -2466,6 +2503,45 @@ pub(crate) mod tests {
         assert_eq!(tag(&xml, "currentgame"), "7");
     }
 
+    /// The uniqueid is a public constant on some clients, so a paired
+    /// uniqueid authorizes only together with that client's stored
+    /// certificate.
+    #[test]
+    fn paired_uniqueid_requires_the_stored_client_certificate() {
+        let (state, _rx) = local_state("uniqueid-cert");
+        authorize(&state, "tester");
+        state.set_app_list(vec![(7, "Test Game".to_string(), None)]);
+
+        // the uniqueid alone (no peer certificate) is not authorization
+        let response = launch(&state, &session_params(7), "127.0.0.1".parse().unwrap(), None);
+        assert!(response.contains("status_code=\"401\""), "{response}");
+        assert!(
+            response.contains("The client is not authorized"),
+            "{response}"
+        );
+        assert_eq!(state.session_phase(), GamePhase::Idle);
+
+        // nor is another client's certificate
+        let response = launch(
+            &state,
+            &session_params(7),
+            "127.0.0.1".parse().unwrap(),
+            Some(b"some-other-client-der"),
+        );
+        assert!(response.contains("status_code=\"401\""), "{response}");
+        assert_eq!(state.session_phase(), GamePhase::Idle);
+
+        // the stored certificate is
+        let response = launch(
+            &state,
+            &session_params(7),
+            "127.0.0.1".parse().unwrap(),
+            Some(PEER_CERT),
+        );
+        assert!(response.contains("status_code=\"200\""), "{response}");
+        assert_eq!(state.session_phase(), GamePhase::Launching);
+    }
+
     /// A game running outside the client flow: the same appid attaches (no
     /// second instance, no `launch-requested`), any other 400s like Sunshine.
     #[test]
@@ -2478,7 +2554,12 @@ pub(crate) mod tests {
         ]);
 
         state.set_running_appid(9);
-        let response = launch(&state, &session_params(7), "127.0.0.1".parse().unwrap(), None);
+        let response = launch(
+            &state,
+            &session_params(7),
+            "127.0.0.1".parse().unwrap(),
+            Some(PEER_CERT),
+        );
         assert!(response.contains("status_code=\"400\""), "{response}");
         assert!(
             response.contains("An app is already running on this host"),
@@ -2488,7 +2569,12 @@ pub(crate) mod tests {
         assert_eq!(state.session_phase(), GamePhase::Idle);
 
         state.set_running_appid(7);
-        let response = launch(&state, &session_params(7), "127.0.0.1".parse().unwrap(), None);
+        let response = launch(
+            &state,
+            &session_params(7),
+            "127.0.0.1".parse().unwrap(),
+            Some(PEER_CERT),
+        );
         assert!(response.contains("status_code=\"200\""), "{response}");
         assert!(response.contains("<gamesession>1</gamesession>"), "{response}");
         assert_eq!(state.session_phase(), GamePhase::Launching);
@@ -2508,12 +2594,22 @@ pub(crate) mod tests {
         let (state, _rx) = local_state("resume-running");
         authorize(&state, "tester");
 
-        let response = resume(&state, &session_params(7), "127.0.0.1".parse().unwrap(), None);
+        let response = resume(
+            &state,
+            &session_params(7),
+            "127.0.0.1".parse().unwrap(),
+            Some(PEER_CERT),
+        );
         assert!(response.contains("status_code=\"503\""), "{response}");
         assert!(response.contains("No running app to resume"), "{response}");
 
         state.set_running_appid(9);
-        let response = resume(&state, &session_params(7), "127.0.0.1".parse().unwrap(), None);
+        let response = resume(
+            &state,
+            &session_params(7),
+            "127.0.0.1".parse().unwrap(),
+            Some(PEER_CERT),
+        );
         assert!(response.contains("status_code=\"404\""), "{response}");
         assert!(
             response.contains("Failed to start the specified application"),
@@ -2521,7 +2617,12 @@ pub(crate) mod tests {
         );
 
         state.set_running_appid(7);
-        let response = resume(&state, &session_params(7), "127.0.0.1".parse().unwrap(), None);
+        let response = resume(
+            &state,
+            &session_params(7),
+            "127.0.0.1".parse().unwrap(),
+            Some(PEER_CERT),
+        );
         assert!(response.contains("status_code=\"200\""), "{response}");
         assert!(response.contains("<resume>1</resume>"), "{response}");
         assert_eq!(state.session_phase(), GamePhase::Launching);
