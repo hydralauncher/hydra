@@ -977,6 +977,8 @@
     "sort_by": "Sort by",
     "sort_title_asc": "Title (A-Z)",
     "sort_title_desc": "Title (Z-A)",
+    "sort_release_date": "Datum izdaje",
+    "sort_new_updates": "Nove posodobitve",
     "sort_most_played": "Most played",
     "sort_installed_first": "Installed first",
     "rename_collection": "Rename collection",

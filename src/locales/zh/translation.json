@@ -1002,6 +1002,8 @@
     "sort_by": "Sort by",
     "sort_title_asc": "Title (A-Z)",
     "sort_title_desc": "Title (Z-A)",
+    "sort_release_date": "发行日期",
+    "sort_new_updates": "最新更新",
     "sort_most_played": "Most played",
     "sort_installed_first": "Installed first",
     "rename_collection": "Rename collection",
