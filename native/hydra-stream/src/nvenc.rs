@@ -441,6 +441,64 @@ const HEVC_INPUT_BIT_DEPTH: usize = 204;
 /// (`NV_ENC_BIT_DEPTH_8` is 8, `_10` is 10), not ordinals.
 const NV_ENC_BIT_DEPTH_10: u32 = 10;
 
+/// `outputMaxCll` and `outputMasteringDisplay` in the same HEVC bitfield
+/// word (bits 23 and 24). HDR10's static metadata is *per picture* — the two
+/// pointers in `NV_ENC_PIC_PARAMS_HEVC` — and the driver ignores them (writing
+/// no SEI at all) unless the codec config asks for the output first.
+const HEVC_OUTPUT_MAX_CLL_BIT: u32 = 1 << 23;
+const HEVC_OUTPUT_MASTERING_DISPLAY_BIT: u32 = 1 << 24;
+
+/// `CONTENT_LIGHT_LEVEL` (nvEncodeAPI.h:1728-1732): MaxCLL and MaxFALL in
+/// cd/m², i.e. the SEI's own units.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+struct ContentLightLevel {
+    max_content_light_level: u16,
+    max_pic_average_light_level: u16,
+}
+
+/// `MASTERING_DISPLAY_INFO` (nvEncodeAPI.h:1715-1722), in the SEI's units:
+/// chromaticities in 0.00002 (value * 50000) and luminances in
+/// 0.0001 cd/m². The member order is **g, b, r**, white point — not RGB,
+/// which is why the display reader's RGB triples are permuted here.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+struct MasteringDisplayInfo {
+    g: (u16, u16),
+    b: (u16, u16),
+    r: (u16, u16),
+    white_point: (u16, u16),
+    max_luma: u32,
+    min_luma: u32,
+}
+
+/// The static metadata NVENC writes into the stream for a display, from the
+/// values [`crate::capture::display_hdr_metadata`] read out of
+/// `DXGI_OUTPUT_DESC1`. Content light levels stay 0 for the same reason
+/// Sunshine leaves them 0 (`display_base.cpp:820-821`): the interface does
+/// not report them.
+///
+/// The luminance units are the SEI's: `max_display_mastering_luminance` is in
+/// 0.0001 cd/m² steps, which is why the nits go in multiplied by 10,000 —
+/// verified by reading the SEI back out of a real dump with ffprobe.
+fn hdr_sei_from_display(
+    display: &crate::capture::DisplayHdr,
+) -> (ContentLightLevel, MasteringDisplayInfo) {
+    let [(r_x, r_y), (g_x, g_y), (b_x, b_y)] = display.primaries;
+    (
+        ContentLightLevel {
+            max_content_light_level: 0,
+            max_pic_average_light_level: 0,
+        },
+        MasteringDisplayInfo {
+            g: (g_x, g_y),
+            b: (b_x, b_y),
+            r: (r_x, r_y),
+            white_point: display.white_point,
+            max_luma: display.max_luminance as u32 * 10_000,
+            min_luma: display.min_luminance as u32,
+        },
+    )
+}
+
 
 // NV_ENC_REGISTER_RESOURCE offsets (verified).
 const REG_VERSION: usize = 0;
@@ -471,6 +529,15 @@ const PIC_OUTPUT_BITSTREAM: usize = 48;
 const PIC_COMPLETION_EVENT: usize = 56;
 const PIC_BUFFER_FMT: usize = 64;
 const PIC_PICTURE_STRUCT: usize = 68;
+/// `NV_ENC_PIC_PARAMS::codecPicParams`, the union whose first arm is
+/// `NV_ENC_PIC_PARAMS_HEVC`. The HDR static metadata rides in that arm as two
+/// pointers, which the driver only reads when the codec config asked for the
+/// SEI (see [`HEVC_OUTPUT_MAX_CLL_BIT`]).
+const PIC_CODEC_PIC_PARAMS: usize = 80;
+/// `NV_ENC_PIC_PARAMS_HEVC::pMaxCll` / `pMasteringDisplay`, relative to
+/// `codecPicParams` (verified with the C probe against the 13.1 header).
+const HEVC_PIC_MAX_CLL: usize = 120;
+const HEVC_PIC_MASTERING_DISPLAY: usize = 128;
 
 // NV_ENC_LOCK_BITSTREAM offsets (verified).
 const LOCK_VERSION: usize = 0;
@@ -592,6 +659,11 @@ pub struct NvencEncoder {
     /// NV_ENC_CAPS_SUPPORT_10BIT_ENCODE for this session's codec: 10-bit
     /// samples need HEVC Main10, so HDR is gated on this.
     supports_10bit_encode: bool,
+    /// HDR10 static metadata for this session's display (content light level
+    /// and mastering display), pointed at from every picture so the driver
+    /// writes the SEI. `None` for an SDR session or one with no display to
+    /// describe; the codec config's SEI request is cleared to match.
+    hdr_sei: Option<(ContentLightLevel, MasteringDisplayInfo)>,
     /// The DPB depth this session was configured with (numRefFrames); the
     /// invalidation range check compares against it (Sunshine's
     /// encoder_params.ref_frames_in_dpb).
@@ -761,6 +833,14 @@ fn build_init_params(
                 // attempt did while still reporting Main 10.
                 config.set_u32(CFG_CODEC_CONFIG + HEVC_OUTPUT_BIT_DEPTH, NV_ENC_BIT_DEPTH_10);
                 config.set_u32(CFG_CODEC_CONFIG + HEVC_INPUT_BIT_DEPTH, NV_ENC_BIT_DEPTH_10);
+                // Ask for the HDR10 static metadata SEIs. The values are
+                // per picture (the pointers in `encode_picture`), so this only
+                // opens the door; `NvencEncoder::new` closes it again when the
+                // session has no display metadata to send.
+                config.or_u32(
+                    CFG_CODEC_CONFIG + HEVC_WORD0,
+                    HEVC_OUTPUT_MAX_CLL_BIT | HEVC_OUTPUT_MASTERING_DISPLAY_BIT,
+                );
             }
             config.set_u32(CFG_CODEC_CONFIG + HEVC_IDR_PERIOD, INFINITE_GOP);
             config.set_u32(CFG_CODEC_CONFIG + HEVC_MAX_REF_FRAMES, ref_frames);
@@ -898,6 +978,7 @@ impl NvencEncoder {
             supports_custom_vbv: false,
             supports_ref_invalidation: false,
             supports_10bit_encode: false,
+            hdr_sei: None,
             ref_frames_in_dpb: params.max_ref_frames.clamp(1, REF_FRAMES_MAX),
             rfi_pending: false,
             last_rfi_range: (0, -1),
@@ -926,10 +1007,32 @@ impl NvencEncoder {
             this.ref_frames_in_dpb
         );
 
+        // HDR10's static metadata for this session's display: the mastering
+        // display and content light level the driver writes into the stream.
+        // Read here, once per session, from the same DXGI description the
+        // client was told about in the HDR mode message.
+        this.hdr_sei = if is_hdr_session(params) {
+            crate::capture::display_hdr_metadata()
+                .map(|display| hdr_sei_from_display(&display))
+        } else {
+            None
+        };
+
         // Hand-build the low-latency init params for this session's codec
         // (shared with the adaptive reconfigure path).
         let (mut init, mut init_config) =
             build_init_params(api_version, params, this.supports_custom_vbv);
+        // `build_init_params` asks the driver for the HDR10 SEIs on any HDR
+        // session; with no display to describe there are no values to write,
+        // so the request has to come back off rather than have the driver
+        // emit an SEI from a null pointer.
+        if this.hdr_sei.is_none() {
+            let word = init_config.u32_at(CFG_CODEC_CONFIG + HEVC_WORD0);
+            init_config.set_u32(
+                CFG_CODEC_CONFIG + HEVC_WORD0,
+                word & !(HEVC_OUTPUT_MAX_CLL_BIT | HEVC_OUTPUT_MASTERING_DISPLAY_BIT),
+            );
+        }
         // build_init_params stores a pointer to its own stack-local config;
         // re-point encodeConfig at the returned config so it stays valid
         // for the whole initialize call
@@ -1319,6 +1422,21 @@ impl NvencEncoder {
         pic.set_ptr(PIC_COMPLETION_EVENT, event.0 as *mut c_void);
         pic.set_u32(PIC_BUFFER_FMT, self.buffer_format());
         pic.set_u32(PIC_PICTURE_STRUCT, PIC_STRUCT_FRAME);
+        // HDR10 static metadata: with the SEI enabled in the codec config, the
+        // driver writes the mastering-display and content-light-level messages
+        // for this picture from these two structs. They live in the encoder
+        // (stable for the duration of the call) and are only pointed at, never
+        // copied, so the encoder must outlive the driver's read — it does.
+        if let Some((cll, mdi)) = self.hdr_sei.as_ref() {
+            pic.set_ptr(
+                PIC_CODEC_PIC_PARAMS + HEVC_PIC_MAX_CLL,
+                cll as *const ContentLightLevel as *mut c_void,
+            );
+            pic.set_ptr(
+                PIC_CODEC_PIC_PARAMS + HEVC_PIC_MASTERING_DISPLAY,
+                mdi as *const MasteringDisplayInfo as *mut c_void,
+            );
+        }
         let encode: FnHandleParam =
             unsafe { std::mem::transmute(self.function_list.ptr_at(OFF_ENCODE_PICTURE)) };
         let status = unsafe { encode(self.encoder, pic.as_mut_ptr()) };
@@ -1878,6 +1996,35 @@ mod tests {
         );
     }
 
+    /// The static metadata the driver writes has to be in the SEI's units and
+    /// member order: chromaticities ×50000, luminances in 0.0001 cd/m², and
+    /// the mastering-display struct ordered g, b, r (not RGB).
+    #[test]
+    fn hdr_sei_units_follow_the_display() {
+        let display = crate::capture::DisplayHdr {
+            primaries: [(35400, 14600), (8500, 39850), (6550, 2300)],
+            white_point: (15635, 16450),
+            max_luminance: 302,
+            min_luminance: 979,
+            max_full_frame_luminance: 302,
+            hdr: true,
+        };
+        let (cll, mdi) = hdr_sei_from_display(&display);
+        assert_eq!(
+            cll,
+            ContentLightLevel {
+                max_content_light_level: 0,
+                max_pic_average_light_level: 0,
+            }
+        );
+        assert_eq!(mdi.r, (35400, 14600), "R keeps its own pair");
+        assert_eq!(mdi.g, (8500, 39850), "G keeps its own pair");
+        assert_eq!(mdi.b, (6550, 2300), "B keeps its own pair");
+        assert_eq!(mdi.white_point, (15635, 16450));
+        assert_eq!(mdi.max_luma, 3_020_000, "302 nits in 0.0001 cd/m² steps");
+        assert_eq!(mdi.min_luma, 979, "already 1/10000 nit");
+    }
+
     /// An HDR session must build a real HDR10 elementary stream: the HEVC
     /// Main10 profile (HEVC has no separate HDR profile, so Main10 plus the
     /// Rec. 2020 / ST 2084 VUI *is* HDR10) and a VUI that says so, or the
@@ -1962,6 +2109,18 @@ mod tests {
             HEVC_CHROMA_FORMAT_IDC_420
         );
         assert_eq!(hdr_word0 & (0b111 << 11), 0, "reserved3 must stay zero");
+        // The HDR10 static metadata SEIs are requested on an HDR session and
+        // never on an SDR one (the per-picture pointers are filled in by the
+        // encoder; asking for an SEI with no values would be worse than none).
+        assert_eq!(
+            hdr_word0 & (HEVC_OUTPUT_MAX_CLL_BIT | HEVC_OUTPUT_MASTERING_DISPLAY_BIT),
+            HEVC_OUTPUT_MAX_CLL_BIT | HEVC_OUTPUT_MASTERING_DISPLAY_BIT
+        );
+        assert_eq!(
+            sdr_config.u32_at(CFG_CODEC_CONFIG + HEVC_WORD0)
+                & (HEVC_OUTPUT_MAX_CLL_BIT | HEVC_OUTPUT_MASTERING_DISPLAY_BIT),
+            0
+        );
         assert_eq!(
             sdr_config.u32_at(CFG_CODEC_CONFIG + HEVC_OUTPUT_BIT_DEPTH),
             0
