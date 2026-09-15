@@ -94,8 +94,9 @@ export function BehaviorSection({ className }: Readonly<BehaviorSectionProps>) {
         label: "Don't hide Hydra when closing",
         checked: form.preferQuitInsteadOfHiding,
         disabled: false,
-        onChange: (checked: boolean) =>
-          void updateUserPreferences({ preferQuitInsteadOfHiding: checked }),
+        onChange: async (checked: boolean) => {
+          await updateUserPreferences({ preferQuitInsteadOfHiding: checked });
+        },
       },
       {
         id: "hide-to-tray-on-game-start",
@@ -103,8 +104,9 @@ export function BehaviorSection({ className }: Readonly<BehaviorSectionProps>) {
         label: "Hide Hydra to tray on game startup",
         checked: form.hideToTrayOnGameStart,
         disabled: false,
-        onChange: (checked: boolean) =>
-          void updateUserPreferences({ hideToTrayOnGameStart: checked }),
+        onChange: async (checked: boolean) => {
+          await updateUserPreferences({ hideToTrayOnGameStart: checked });
+        },
       },
       ...(showRunAtStartup
         ? [
@@ -114,14 +116,15 @@ export function BehaviorSection({ className }: Readonly<BehaviorSectionProps>) {
               label: "Launch Hydra on system start-up",
               checked: form.runAtStartup,
               disabled: false,
-              onChange: (checked: boolean) =>
-                void updateUserPreferences(
+              onChange: async (checked: boolean) => {
+                await updateUserPreferences(
                   { runAtStartup: checked },
                   {
                     enabled: checked,
                     minimized: form.startMinimized,
                   }
-                ),
+                );
+              },
             },
             {
               id: "launch-minimized",
@@ -129,14 +132,15 @@ export function BehaviorSection({ className }: Readonly<BehaviorSectionProps>) {
               label: "Launch Hydra minimized",
               checked: form.runAtStartup && form.startMinimized,
               disabled: !form.runAtStartup,
-              onChange: (checked: boolean) =>
-                void updateUserPreferences(
+              onChange: async (checked: boolean) => {
+                await updateUserPreferences(
                   { startMinimized: checked },
                   {
                     enabled: form.runAtStartup,
                     minimized: checked,
                   }
-                ),
+                );
+              },
             },
           ]
         : []),
@@ -146,8 +150,9 @@ export function BehaviorSection({ className }: Readonly<BehaviorSectionProps>) {
         label: "Launch Hydra in the Library page",
         checked: form.launchToLibraryPage,
         disabled: false,
-        onChange: (checked: boolean) =>
-          void updateUserPreferences({ launchToLibraryPage: checked }),
+        onChange: async (checked: boolean) => {
+          await updateUserPreferences({ launchToLibraryPage: checked });
+        },
       },
       ...(isLinux
         ? [
@@ -157,8 +162,9 @@ export function BehaviorSection({ className }: Readonly<BehaviorSectionProps>) {
               label: "Download updates automatically",
               checked: form.enableAutoInstall,
               disabled: false,
-              onChange: (checked: boolean) =>
-                void updateUserPreferences({ enableAutoInstall: checked }),
+              onChange: async (checked: boolean) => {
+                await updateUserPreferences({ enableAutoInstall: checked });
+              },
             },
           ]
         : []),

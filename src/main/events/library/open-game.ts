@@ -1,5 +1,5 @@
 import { registerEvent } from "../register-event";
-import { GameShop } from "@types";
+import { GameShop, type LaunchSource } from "@types";
 import { launchGame } from "@main/helpers";
 
 const openGame = async (
@@ -7,9 +7,16 @@ const openGame = async (
   shop: GameShop,
   objectId: string,
   executablePath: string,
-  launchOptions?: string | null
+  launchOptions?: string | null,
+  launchSource: LaunchSource = "default"
 ) => {
-  await launchGame({ shop, objectId, executablePath, launchOptions });
+  await launchGame({
+    shop,
+    objectId,
+    executablePath,
+    launchOptions,
+    launchSource,
+  });
 };
 
 registerEvent("openGame", openGame);
