@@ -23,6 +23,10 @@ const sourceLibraryNameByPlatform = {
   win32: "hydra_native.dll",
 };
 
+// The loader (src/main/services/native-addon.ts) requires a `.node` module at
+// hydra-native/hydra-native.node, so the cargo artifact must be renamed on copy.
+const outputLibraryName = "hydra-native.node";
+
 const build = async () => {
   const sourceLibraryName = sourceLibraryNameByPlatform[process.platform];
 
@@ -38,6 +42,7 @@ const build = async () => {
     manifestPath,
     targetDirectory: cargoTargetDir,
     sourceBinaryName: sourceLibraryName,
+    outputBinaryName: outputLibraryName,
     outputDirectory: outputDir,
   });
 

@@ -47,6 +47,7 @@ const buildCargoRelease = async ({
   manifestPath,
   targetDirectory,
   sourceBinaryName,
+  outputBinaryName = sourceBinaryName,
   outputDirectory,
 }) => {
   await execFile(
@@ -76,7 +77,7 @@ const buildCargoRelease = async ({
   }
 
   fs.mkdirSync(outputDirectory, { recursive: true });
-  const outputBinaryPath = path.join(outputDirectory, sourceBinaryName);
+  const outputBinaryPath = path.join(outputDirectory, outputBinaryName);
   fs.copyFileSync(sourceBinaryPath, outputBinaryPath);
 
   copyWindowsRuntimeDlls(path.dirname(sourceBinaryPath), outputDirectory);
