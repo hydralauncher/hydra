@@ -223,6 +223,12 @@ pub struct RecoveryCapability {
     /// the client decoding HEVC from an H.264 bitstream. The AMF fallback
     /// is H.264-only (`AMFVideoEncoderVCE_AVC`), so it reports false.
     pub hevc: bool,
+    /// A real HEVC **Main10** session opened on the probe's adapter (and the
+    /// driver advertises `NV_ENC_CAPS_SUPPORT_10BIT_ENCODE` for HEVC). This
+    /// is the HDR gate: it adds `SCM_HEVC_MAIN10` to the serverinfo
+    /// advertisement, which is what makes a Moonlight client offer HDR at
+    /// all — and it is only claimed when a 10-bit session really opens.
+    pub hevc_main10: bool,
 }
 
 /// No session could be created (or the selected backend has no RFI): the
@@ -231,6 +237,7 @@ pub const NO_RECOVERY: RecoveryCapability = RecoveryCapability {
     rfi: false,
     ref_frames: 1,
     hevc: false,
+    hevc_main10: false,
 };
 
 /// Probe session shape: tiny, so the throwaway session costs nothing
@@ -324,12 +331,17 @@ fn run_recovery_probe() -> RecoveryCapability {
             match NvencEncoder::new(device.as_raw(), &params) {
                 Ok(encoder) => {
                     let rfi = encoder.supports_ref_invalidation();
-                    let hevc = probe_hevc(device.as_raw(), ref_frames);
+                    let (hevc, hevc_main10) = probe_hevc(device.as_raw(), ref_frames);
                     eprintln!(
                         "video: recovery probe: {name} {ref_frames} ref frames, \
-                         ref-pic-invalidation={rfi}, hevc={hevc}"
+                         ref-pic-invalidation={rfi}, hevc={hevc}, hevc-main10={hevc_main10}"
                     );
-                    return RecoveryCapability { rfi, ref_frames, hevc };
+                    return RecoveryCapability {
+            rfi,
+            ref_frames,
+            hevc,
+            hevc_main10,
+        };
                 }
                 Err(error) => {
                     eprintln!("video: recovery probe: {name} {ref_frames} ref frames: {error}");
@@ -346,11 +358,18 @@ fn run_recovery_probe() -> RecoveryCapability {
 /// same shape as the H.264 half. A driver without HEVC encoding (or a GPU
 /// older than Maxwell 2nd gen) fails here and the host then advertises
 /// H.264 only, so no client is ever offered a codec the session cannot
-/// produce.
-fn probe_hevc(device: *mut c_void, ref_frames: u32) -> bool {
-    let params = EncoderConfigParams {
+/// produce. Reports `(hevc, hevc_main10)`.
+///
+/// The second answer gates the `SCM_HEVC_MAIN10` advertisement and therefore
+/// HDR. It needs both the driver's `NV_ENC_CAPS_SUPPORT_10BIT_ENCODE` for
+/// HEVC (read from the session that just opened — NVENC answers caps per
+/// codec) *and* a 10-bit session that really opens, since that is exactly
+/// what an HDR session asks of the driver. A driver without HEVC pays for
+/// one session, not two.
+fn probe_hevc(device: *mut c_void, ref_frames: u32) -> (bool, bool) {
+    let params = |hdr| EncoderConfigParams {
         codec: crate::video::VideoCodec::Hevc,
-        hdr: false,
+        hdr,
         width: PROBE_WIDTH,
         height: PROBE_HEIGHT,
         fps: PROBE_FPS,
@@ -358,13 +377,26 @@ fn probe_hevc(device: *mut c_void, ref_frames: u32) -> bool {
         slices_per_frame: 1,
         max_ref_frames: ref_frames,
     };
-    match NvencEncoder::new(device, &params) {
-        Ok(_) => true,
+    let encoder = match NvencEncoder::new(device, &params(false)) {
+        Ok(encoder) => encoder,
         Err(error) => {
             eprintln!("video: recovery probe: no HEVC session ({error})");
+            return (false, false);
+        }
+    };
+    let caps = encoder.supports_10bit_encode();
+    drop(encoder);
+    if !caps {
+        return (true, false);
+    }
+    let main10 = match NvencEncoder::new(device, &params(true)) {
+        Ok(_) => true,
+        Err(error) => {
+            eprintln!("video: recovery probe: no HEVC Main10 session ({error})");
             false
         }
-    }
+    };
+    (true, main10)
 }
 
 /// Resolves the DPB depth for a session from the client's
@@ -998,6 +1030,81 @@ unsafe fn duplicate_output(
     output1
         .DuplicateOutput(device)
         .map_err(|error| format!("DuplicateOutput: {error}"))
+}
+
+/// The display's HDR10 metadata in the form the Moonlight HDR control
+/// message carries it (`SS_HDR_METADATA`, moonlight-common-c
+/// `Limelight.h:976-997`): Rec.2020 primaries and the D65 white point scaled
+/// by 50,000, luminance in nits with the minimum in 1/10,000 nit.
+///
+/// Sunshine's Windows backend (`display_base.cpp:775-826`) hardcodes the
+/// primaries — DXGI reports the panel's *measured* primaries, which are not
+/// what the stream was graded against — and reads the luminances from
+/// `DXGI_OUTPUT_DESC1`, which is what this does. Content light levels are
+/// left at 0 for the same reason Sunshine does: the interface does not
+/// report them. `hdr` is Sunshine's `is_hdr()`
+/// (`ColorSpace == DXGI_COLOR_SPACE_RGB_FULL_G2084_NONE_P2020`), i.e. the
+/// only desktop state an HDR stream can be captured from.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct DisplayHdr {
+    /// Rec.2020 primaries, RGB order, each component `value * 50000`.
+    pub primaries: [(u16, u16); 3],
+    /// D65 white point, `value * 50000`.
+    pub white_point: (u16, u16),
+    /// `DXGI_OUTPUT_DESC1::MaxLuminance`, nits.
+    pub max_luminance: u16,
+    /// `MinLuminance` in 1/10,000 nit.
+    pub min_luminance: u16,
+    /// `MaxFullFrameLuminance`, nits (the third content-light field the
+    /// client reads; Sunshine forwards it the same way).
+    pub max_full_frame_luminance: u16,
+    /// The chosen output is running the HDR10 colour space.
+    pub hdr: bool,
+}
+
+/// Reads [`DisplayHdr`] for the first HDR output, falling back to the first
+/// output at all (with `hdr == false`) so the caller always has luminances to
+/// report. `None` means no output could be described.
+pub fn display_hdr_metadata() -> Option<DisplayHdr> {
+    let scale = |value: f32| (value * 50_000.0).round().clamp(0.0, 65_535.0) as u16;
+    let nits = |value: f32| value.round().clamp(0.0, 65_535.0) as u16;
+    let mut fallback = None;
+    unsafe {
+        let adapters = DxgiCapture::candidate_adapters().ok()?;
+        for adapter in &adapters {
+            for index in 0..4u32 {
+                let Ok(output) = adapter.EnumOutputs(index) else {
+                    break;
+                };
+                let Ok(output6) =
+                    output.cast::<windows::Win32::Graphics::Dxgi::IDXGIOutput6>()
+                else {
+                    continue;
+                };
+                let Ok(desc) = output6.GetDesc1() else {
+                    continue;
+                };
+                let metadata = DisplayHdr {
+                    primaries: [
+                        (scale(0.708), scale(0.292)),
+                        (scale(0.170), scale(0.797)),
+                        (scale(0.131), scale(0.046)),
+                    ],
+                    white_point: (scale(0.3127), scale(0.3290)),
+                    max_luminance: nits(desc.MaxLuminance),
+                    min_luminance: nits(desc.MinLuminance * 10_000.0),
+                    max_full_frame_luminance: nits(desc.MaxFullFrameLuminance),
+                    hdr: desc.ColorSpace
+                        == windows::Win32::Graphics::Dxgi::Common::DXGI_COLOR_SPACE_RGB_FULL_G2084_NONE_P2020,
+                };
+                if metadata.hdr {
+                    return Some(metadata);
+                }
+                fallback.get_or_insert(metadata);
+            }
+        }
+    }
+    fallback
 }
 
 /// Re-creates the desktop duplication on an existing capture device —
@@ -3348,6 +3455,7 @@ mod tests {
             rfi: true,
             ref_frames: 5,
             hevc: false,
+            hevc_main10: false,
         };
         // absent attribute (a client that predates it) and 0 ("host picks",
         // which only an RFI-aware client sends) both mean the default
@@ -3369,6 +3477,7 @@ mod tests {
             rfi: false,
             ref_frames: 5,
             hevc: false,
+            hevc_main10: false,
         };
         assert_eq!(resolve_ref_frames(Some(8), NO_RFI), 5);
         assert_eq!(resolve_ref_frames(Some(0), NO_RFI), 5);
@@ -3379,6 +3488,7 @@ mod tests {
             rfi: true,
             ref_frames: 30,
             hevc: false,
+            hevc_main10: false,
         };
         assert_eq!(resolve_ref_frames(Some(30), DEEP), crate::nvenc::REF_FRAMES_MAX);
         // never zero, whatever the probe reported
@@ -3389,6 +3499,7 @@ mod tests {
                     rfi: true,
                     ref_frames: 0,
                     hevc: false,
+                    hevc_main10: false,
                 }
             ),
             1
@@ -4244,6 +4355,292 @@ mod tests {
                 }
                 drop(held);
             }
+        }
+    }
+
+    /// Hardware probe (run with --ignored): what desktop duplication does
+    /// while the display is in standby, measured in the shape of the user's
+    /// report ("turn the display off, then start the stream").
+    ///
+    /// The display is switched off through the same DPMS path Windows' power
+    /// plan uses (`WM_SYSCOMMAND` / `SC_MONITORPOWER`) and switched back on by
+    /// a guard that also runs on unwind. Each phase reports how many acquires
+    /// returned a frame, timed out or errored, and the mean luma of the frames
+    /// it did get — plus the same statistic sampled through GDI, so "the
+    /// stream is black" can be attributed to the surface DXGI hands over or to
+    /// the desktop behind it. The phase that matters is the *fresh* duplication
+    /// created while the display is already off: that is exactly what starting
+    /// a stream with the monitor off does.
+    #[test]
+    #[ignore]
+    #[allow(unused_unsafe)] // the probe's nested blocks sit in its own unsafe scope
+    fn probe_display_standby_capture() {
+        use windows::Win32::Foundation::{LPARAM, WPARAM};
+        use windows::Win32::Graphics::Direct3D11::{
+            D3D11_CPU_ACCESS_READ, D3D11_MAPPED_SUBRESOURCE, D3D11_MAP_READ, D3D11_USAGE_STAGING,
+        };
+        use windows::Win32::System::Power::{
+            SetThreadExecutionState, ES_CONTINUOUS, ES_DISPLAY_REQUIRED,
+        };
+        use windows::Win32::Graphics::Gdi::{GetDC, GetPixel, ReleaseDC};
+        use windows::Win32::UI::WindowsAndMessaging::{
+            GetSystemMetrics, SendMessageW, HWND_BROADCAST, SM_CXSCREEN, SM_CYSCREEN, WM_SYSCOMMAND,
+        };
+
+        /// `SC_MONITORPOWER` (winuser.h): lparam 2 = off, -1 = on.
+        const SC_MONITORPOWER_CODE: usize = 0xf170;
+
+        /// Switches the display back on even if the probe panics.
+        struct DisplayBackOn;
+        impl Drop for DisplayBackOn {
+            fn drop(&mut self) {
+                unsafe {
+                    SendMessageW(
+                        HWND_BROADCAST,
+                        WM_SYSCOMMAND,
+                        WPARAM(SC_MONITORPOWER_CODE),
+                        LPARAM(-1),
+                    );
+                }
+            }
+        }
+
+        let set_display = |power: isize| unsafe {
+            SendMessageW(
+                HWND_BROADCAST,
+                WM_SYSCOMMAND,
+                WPARAM(SC_MONITORPOWER_CODE),
+                LPARAM(power),
+            );
+        };
+
+        // A static desktop delivers no frames at all, display on or off (the
+        // first run of this probe measured 1 frame in 2s with the display on),
+        // so the probe needs a change source: cursor movement is what makes the
+        // duplication deliver, the same trick `tests/live_smoke.rs` uses.
+        let wiggle_stop = std::sync::Arc::new(std::sync::atomic::AtomicBool::new(false));
+        let stop = wiggle_stop.clone();
+        let wiggler = std::thread::spawn(move || {
+            use std::sync::atomic::Ordering;
+            use windows::Win32::UI::WindowsAndMessaging::{GetCursorPos, SetCursorPos};
+            let mut left = true;
+            while !stop.load(Ordering::Relaxed) {
+                unsafe {
+                    let mut point = windows::Win32::Foundation::POINT { x: 0, y: 0 };
+                    let _ = GetCursorPos(&mut point);
+                    let _ = SetCursorPos(point.x + if left { 1 } else { -1 }, point.y);
+                }
+                left = !left;
+                std::thread::sleep(Duration::from_millis(30));
+            }
+        });
+
+        // GDI sampling of the primary screen: 48x27 points, cheap enough to run
+        // inside a phase and independent of DXGI.
+        let gdi_luma = || unsafe {
+            let screen_w = GetSystemMetrics(SM_CXSCREEN).max(1);
+            let screen_h = GetSystemMetrics(SM_CYSCREEN).max(1);
+            let dc = GetDC(None);
+            let (mut sum, mut min, mut max, mut count) = (0.0f64, f64::MAX, 0.0f64, 0u32);
+            for gy in 0..27 {
+                for gx in 0..48 {
+                    let pixel = GetPixel(dc, gx * screen_w / 48, gy * screen_h / 27).0;
+                    let (b, g, r) = (
+                        (pixel & 0xff) as f64,
+                        ((pixel >> 8) & 0xff) as f64,
+                        ((pixel >> 16) & 0xff) as f64,
+                    );
+                    let luma = 0.114 * b + 0.587 * g + 0.299 * r;
+                    sum += luma;
+                    min = min.min(luma);
+                    max = max.max(luma);
+                    count += 1;
+                }
+            }
+            ReleaseDC(None, dc);
+            (sum / count as f64, min, max)
+        };
+
+        unsafe {
+            let adapters = DxgiCapture::candidate_adapters().expect("adapters");
+            let capture = try_adapter(&adapters[0]).expect("capture");
+            eprintln!(
+                "display standby probe: {}x{}, desktop duplication over BGRA",
+                capture.width, capture.height
+            );
+
+            fn frame_luma(device: &ID3D11Device, frame: &DxgiFrame) -> String {
+                unsafe {
+                    let mut desc = D3D11_TEXTURE2D_DESC::default();
+                    frame.texture.GetDesc(&mut desc);
+                    let mut staging = desc;
+                    staging.Usage = D3D11_USAGE_STAGING;
+                    staging.BindFlags = 0;
+                    staging.CPUAccessFlags = D3D11_CPU_ACCESS_READ.0 as u32;
+                    staging.MiscFlags = 0;
+                    let mut copy = None;
+                    if device
+                        .CreateTexture2D(&staging, None, Some(&mut copy))
+                        .is_err()
+                    {
+                        return "staging texture failed".to_string();
+                    }
+                    let copy = copy.expect("staging");
+                    let context = device.GetImmediateContext().expect("context");
+                    context.CopyResource(&copy, &frame.texture);
+                    let mut mapped = D3D11_MAPPED_SUBRESOURCE::default();
+                    if context
+                        .Map(&copy, 0, D3D11_MAP_READ, 0, Some(&mut mapped))
+                        .is_err()
+                    {
+                        return "map failed".to_string();
+                    }
+                    let pitch = mapped.RowPitch as usize;
+                    let rows = (desc.Height as usize).min(64);
+                    let cols = (desc.Width as usize).min(256);
+                    let (mut sum, mut min, mut max, mut count) = (0.0f64, f64::MAX, 0.0f64, 0u64);
+                    if desc.Format == DXGI_FORMAT_B8G8R8A8_UNORM {
+                        for row in 0..rows {
+                            let row_ptr = (mapped.pData as *const u8).add(row * pitch);
+                            for col in 0..cols {
+                                let pixel = row_ptr.add(col * 4);
+                                let (b, g, r) = (
+                                    *pixel as f64,
+                                    *pixel.add(1) as f64,
+                                    *pixel.add(2) as f64,
+                                );
+                                let luma = 0.114 * b + 0.587 * g + 0.299 * r;
+                                sum += luma;
+                                min = min.min(luma);
+                                max = max.max(luma);
+                                count += 1;
+                            }
+                        }
+                    }
+                    context.Unmap(&copy, 0);
+                    if count == 0 {
+                        return format!("frame format={} (no luma read)", desc.Format.0);
+                    }
+                    format!(
+                        "frame {}x{} format={} mean={:.1} min={:.0} max={:.0}",
+                        desc.Width,
+                        desc.Height,
+                        desc.Format.0,
+                        sum / count as f64,
+                        min,
+                        max
+                    )
+                }
+            }
+
+            let phase = |label: &str, seconds: u32, capture: &DxgiCapture| {
+                let (mut frames, mut timeouts, mut errors) = (0u32, 0u32, 0u32);
+                let mut samples: Vec<String> = Vec::new();
+                let mut error_text = String::new();
+                let deadline = Instant::now() + Duration::from_secs(seconds as u64);
+                while Instant::now() < deadline {
+                    match capture.acquire(250) {
+                        Ok(Some(frame)) => {
+                            frames += 1;
+                            if samples.len() < 2 {
+                                samples.push(frame_luma(&capture.device(), &frame));
+                            }
+                        }
+                        Ok(None) => timeouts += 1,
+                        Err(error) => {
+                            errors += 1;
+                            if error_text.is_empty() {
+                                error_text = error;
+                            }
+                        }
+                    }
+                }
+                let (mean, min, max) = gdi_luma();
+                eprintln!(
+                    "{label}: frames={frames} timeouts={timeouts} errors={errors} | GDI luma \
+                     mean={mean:.1} min={min:.0} max={max:.0}"
+                );
+                if !error_text.is_empty() {
+                    eprintln!("  first acquire error: {error_text}");
+                }
+                for sample in &samples {
+                    eprintln!("  {sample}");
+                }
+            };
+
+            phase("display ON (baseline)", 2, &capture);
+
+            set_display(2);
+            let _restore = DisplayBackOn;
+            std::thread::sleep(Duration::from_millis(2000));
+            phase("display STANDBY (panel off, desktop still composed)", 4, &capture);
+
+            // Does asking Windows to keep the display on bring the frames back
+            // with the panel still dark? This is the mechanism a fix would use
+            // (Sunshine's ES_DISPLAY_REQUIRED + retry, display_base.cpp:550).
+            unsafe {
+                SetThreadExecutionState(ES_CONTINUOUS | ES_DISPLAY_REQUIRED);
+            }
+            std::thread::sleep(Duration::from_millis(2000));
+            phase("display STANDBY + ES_DISPLAY_REQUIRED", 4, &capture);
+            unsafe {
+                SetThreadExecutionState(ES_CONTINUOUS);
+            }
+            std::thread::sleep(Duration::from_millis(2000));
+            phase("display STANDBY after releasing it", 3, &capture);
+
+            // The user's case: the stream starts *after* the display went off.
+            // DXGI allows one duplication per output, so the old duplicator has
+            // to go first — as it does when the sidecar starts fresh.
+            drop(capture);
+            match try_adapter(&adapters[0]) {
+                Ok(fresh) => phase("display STANDBY, fresh duplication", 3, &fresh),
+                Err(error) => {
+                    eprintln!("display STANDBY, fresh duplication: FAILED: {error}");
+                    // Sunshine's move for an output that cannot be duplicated:
+                    // ask Windows to power the display back on and retry
+                    // (display_base.cpp:550-554). The panel may stay dark; the
+                    // question is whether the *desktop* comes back.
+                    let mut woken = None;
+                    for attempt in 1..=4 {
+                        unsafe {
+                            SetThreadExecutionState(ES_CONTINUOUS | ES_DISPLAY_REQUIRED);
+                        }
+                        std::thread::sleep(Duration::from_millis(1500));
+                        match try_adapter(&adapters[0]) {
+                            Ok(fresh) => {
+                                eprintln!(
+                                    "display STANDBY after wake attempt {attempt}: duplication \
+                                     created"
+                                );
+                                woken = Some(fresh);
+                                break;
+                            }
+                            Err(error) => {
+                                eprintln!("display STANDBY after wake attempt {attempt}: {error}")
+                            }
+                        }
+                    }
+                    if let Some(fresh) = woken {
+                        phase("display STANDBY + ES_DISPLAY_REQUIRED", 3, &fresh);
+                    } else {
+                        eprintln!("display STANDBY: never became duplicatable");
+                    }
+                    unsafe {
+                        SetThreadExecutionState(ES_CONTINUOUS);
+                    }
+                }
+            }
+
+            set_display(-1);
+            std::thread::sleep(Duration::from_millis(2000));
+            match try_adapter(&adapters[0]) {
+                Ok(after) => phase("display back ON", 3, &after),
+                Err(error) => eprintln!("display back ON: {error}"),
+            }
+
+            wiggle_stop.store(true, std::sync::atomic::Ordering::Relaxed);
+            let _ = wiggler.join();
         }
     }
 }

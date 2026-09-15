@@ -453,7 +453,19 @@ fn live_video_and_control_smoke() {
     ));
     assert!(response.contains(&format!("Transport: server_port={VIDEO_PORT}\r\n")), "{response}");
 
-    let sdp = "v=0\r\ns=Moonlight\r\na=x-nv-video[0].packetSize:1392\r\na=x-nv-vqos[0].bw.maximumBitrateKbps:15000\r\na=x-nv-video[0].videoEncoderSlicesPerFrame:1\r\n";
+    // HYDRA_LIVE_HDR=1 announces what a Moonlight client sends after it saw
+    // `SCM_HEVC_MAIN10` in serverinfo: HEVC (`bitStreamFormat:1`) plus the
+    // 10-bit request (`dynamicRangeMode:1`). That drives the *negotiated* HDR
+    // path — no `HYDRA_STREAM_HDR` override — so the sidecar's own decision is
+    // what gets tested.
+    let hdr_announce = std::env::var("HYDRA_LIVE_HDR").ok().as_deref() == Some("1");
+    let mut sdp = String::from(
+        "v=0\r\ns=Moonlight\r\na=x-nv-video[0].packetSize:1392\r\na=x-nv-vqos[0].bw.maximumBitrateKbps:15000\r\na=x-nv-video[0].videoEncoderSlicesPerFrame:1\r\n",
+    );
+    if hdr_announce {
+        sdp.push_str("a=x-nv-vqos[0].bitStreamFormat:1\r\n");
+        sdp.push_str("a=x-nv-video[0].dynamicRangeMode:1\r\n");
+    }
     let announce = format!(
         "ANNOUNCE streamid=control/13/0 RTSP/1.0\r\nCSeq: 3\r\nContent-type: application/sdp\r\nContent-length: {}\r\n\r\n{sdp}",
         sdp.len()
@@ -650,8 +662,17 @@ fn live_video_and_control_smoke() {
                         assert_eq!(nv[8] & 0x5, 0x5, "first packet must have SOF");
                     }
                     if !saw_sps {
+                        // HEVC's NAL header is two bytes and its type sits in
+                        // bits 1..6 of the first one (SPS = 33); H.264's is one
+                        // byte with the type in the low five bits (SPS = 7).
                         for window in packet.windows(5) {
-                            if window[..4] == [0, 0, 0, 1] && window[4] & 0x1F == 7 {
+                            let hevc_sps = hdr_announce
+                                && window[..3] == [0, 0, 1]
+                                && (window[3] >> 1) & 0x3F == 33;
+                            let h264_sps = !hdr_announce
+                                && window[..4] == [0, 0, 0, 1]
+                                && window[4] & 0x1F == 7;
+                            if hevc_sps || h264_sps {
                                 saw_sps = true;
                                 break;
                             }
@@ -749,6 +770,21 @@ fn live_video_and_control_smoke() {
         assert!(packet.len() > 12, "Opus payload present");
         expected_sequence = expected_sequence.wrapping_add(1);
         expected_timestamp = expected_timestamp.wrapping_add(5);
+    }
+
+    // The negotiated HDR path, end to end and without any env override: the
+    // sidecar has to have decided HDR10 from the announcement alone, and told
+    // the client so (the HDR mode control message Moonlight switches its
+    // display on).
+    if hdr_announce {
+        let session = log
+            .wait_for("HDR10 session", Duration::from_secs(5))
+            .expect("sidecar did not build an HDR10 session from the announcement");
+        println!("live smoke: {session}");
+        let told = log
+            .wait_for("told the client the stream is HDR10", Duration::from_secs(5))
+            .expect("sidecar did not send the HDR mode control message");
+        println!("live smoke: {told}");
     }
 
     println!(

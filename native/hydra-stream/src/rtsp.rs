@@ -679,6 +679,8 @@ mod tests {
             width: 0,
             height: 0,
             fps: 0,
+            hdr_mode: false,
+            dynamic_range: 0,
             rikey: [0; 16],
             rikeyid: 0,
             encrypted_rtsp: false,

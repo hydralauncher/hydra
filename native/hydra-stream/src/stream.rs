@@ -459,6 +459,189 @@ fn build_audio_pipeline(launch: &LaunchParams) -> Result<Box<dyn crate::audio::A
     )?))
 }
 
+/// Whether this session streams HDR10.
+///
+/// Three facts from the negotiation have to line up:
+///
+/// * the client asked for 10-bit encoding — `x-nv-video[0].dynamicRangeMode`
+///   from the ANNOUNCE, `> 0`. That, and not `/launch`'s `hdrMode`, is the
+///   request that decides the stream: Sunshine builds its colourspace the
+///   same way (`video_colorspace.cpp:33-35`) and uses `hdrMode` only to drive
+///   the host's virtual display device (`nvhttp.cpp:501`), and Moonlight
+///   only ever sends a 10-bit format after it saw `SCM_HEVC_MAIN10` in
+///   serverinfo (`SdpGenerator.c:456-457`).
+/// * the negotiated codec is HEVC: HDR is never H.264 (Sunshine disables the
+///   dynamic range outright for it, `video.cpp:3240-3242`), and Main10 is the
+///   only profile here that carries it.
+/// * the display the capture comes from is in an HDR colour space. The HDR
+///   path *is* the display's FP16 scRGB surface, so an SDR desktop has no HDR
+///   content to carry: the client's 10-bit request would then mean 10-bit
+///   BT.709, which this host does not encode, and the session stays SDR —
+///   the same downgrade Sunshine makes (`video.cpp:179-187`).
+///
+/// `HYDRA_STREAM_HDR` overrides the whole decision; the hardware probes and
+/// the live smoke harness drive the HDR path through it.
+fn session_hdr(launch: &LaunchParams) -> bool {
+    let display = crate::capture::display_hdr_metadata();
+    let display_is_hdr = display.as_ref().is_some_and(|metadata| metadata.hdr);
+    if let Some(forced) = crate::config::hdr_override() {
+        eprintln!(
+            "video: HDR {} by {} (client asked for {}10-bit, codec {}, hdrMode={}, display {})",
+            if forced { "enabled" } else { "disabled" },
+            crate::config::HDR_ENV,
+            if launch.dynamic_range > 0 { "" } else { "no " },
+            launch.codec.name(),
+            launch.hdr_mode,
+            if display_is_hdr { "HDR" } else { "SDR" }
+        );
+        return forced;
+    }
+    if launch.dynamic_range == 0 {
+        return false;
+    }
+    if launch.codec != crate::video::VideoCodec::Hevc {
+        eprintln!(
+            "video: client asked for 10-bit but the session codec is {}; streaming SDR (HDR is \
+             HEVC Main10 only)",
+            launch.codec.name()
+        );
+        return false;
+    }
+    if !display_is_hdr {
+        eprintln!(
+            "video: client asked for 10-bit (dynamicRangeMode={}) but the display is in SDR; \
+             streaming SDR — HDR10 captures the display's FP16 scRGB surface and an SDR desktop \
+             has none",
+            launch.dynamic_range
+        );
+        return false;
+    }
+    eprintln!(
+        "video: HDR10 session (client dynamicRangeMode={}, hdrMode={}, HEVC Main10, HDR display: \
+         max {} nits, min {} nits)",
+        launch.dynamic_range,
+        launch.hdr_mode,
+        display.as_ref().map(|value| value.max_luminance).unwrap_or(0),
+        display.as_ref().map(|value| value.min_luminance).unwrap_or(0)
+    );
+    true
+}
+
+/// The host -> client HDR mode message in its packed form, as Sunshine
+/// builds it (`control_hdr_mode_t`, `stream.cpp:279-286`, under
+/// `#pragma pack(push, 1)`): a 4-byte control header
+/// (`{type u16, payloadLength u16}`), the enabled byte, then
+/// `SS_HDR_METADATA` — three primaries and the white point scaled by 50,000,
+/// then max/min luminance, the two content-light levels and
+/// `maxFullFrameLuminance` (moonlight-common-c `Limelight.h:976-997`, parsed
+/// little-endian in that order at `ControlStream.c:1271-1289`).
+///
+/// 31 bytes total; `payloadLength` counts everything after the header
+/// (`stream.cpp:1139`), i.e. 27.
+pub fn hdr_mode_message(enabled: bool, metadata: &crate::capture::DisplayHdr) -> Vec<u8> {
+    let mut message = Vec::with_capacity(31);
+    message.extend_from_slice(&control_messages::HDR_MODE.to_le_bytes());
+    message.extend_from_slice(&27u16.to_le_bytes());
+    message.push(u8::from(enabled));
+    for (x, y) in metadata.primaries {
+        message.extend_from_slice(&x.to_le_bytes());
+        message.extend_from_slice(&y.to_le_bytes());
+    }
+    message.extend_from_slice(&metadata.white_point.0.to_le_bytes());
+    message.extend_from_slice(&metadata.white_point.1.to_le_bytes());
+    message.extend_from_slice(&metadata.max_luminance.to_le_bytes());
+    message.extend_from_slice(&metadata.min_luminance.to_le_bytes());
+    // Content light levels: DXGI does not report them, and Sunshine sends
+    // zeros for the same reason (`display_base.cpp:820-821`).
+    message.extend_from_slice(&0u16.to_le_bytes());
+    message.extend_from_slice(&0u16.to_le_bytes());
+    message.extend_from_slice(&metadata.max_full_frame_luminance.to_le_bytes());
+    message
+}
+
+/// [`hdr_mode_message`] as it goes on the wire: inside the AES-GCM control
+/// envelope for an encrypted-control session, bare otherwise.
+///
+/// Without this message a Moonlight client never learns the host is sending
+/// HDR10 — it decodes the PQ stream as if it were SDR — so it is sent as soon
+/// as the control channel is up (`control.rs`), not per frame.
+pub fn hdr_mode_payload(state: &State, metadata: &crate::capture::DisplayHdr) -> Vec<u8> {
+    let enabled = crate::config::hdr_enabled();
+    let message = hdr_mode_message(enabled, metadata);
+    let Some(launch) = state.launch_params() else {
+        return Vec::new();
+    };
+    if !launch.encrypted_rtsp {
+        return message;
+    }
+    let seq = state
+        .control_out_seq
+        .fetch_add(1, std::sync::atomic::Ordering::Relaxed);
+    let mut iv = [0u8; 16];
+    iv[0] = seq as u8;
+    let Ok((tag, ciphertext)) = crate::crypto::aes128_gcm_encrypt(&launch.rikey, &iv, &message) else {
+        return Vec::new();
+    };
+    let mut envelope = Vec::with_capacity(8 + 16 + ciphertext.len());
+    envelope.extend_from_slice(&control_messages::ENCRYPTED.to_le_bytes());
+    envelope.extend_from_slice(&((4 + 16 + ciphertext.len()) as u16).to_le_bytes());
+    envelope.extend_from_slice(&seq.to_le_bytes());
+    envelope.extend_from_slice(&tag);
+    envelope.extend_from_slice(&ciphertext);
+    envelope
+}
+
+#[cfg(test)]
+mod hdr_message_tests {
+    use super::*;
+    use crate::capture::DisplayHdr;
+
+    fn sample() -> DisplayHdr {
+        DisplayHdr {
+            // Rec.2020 + D65 as the ×50,000 wire form
+            primaries: [(35400, 14600), (8500, 39850), (6550, 2300)],
+            white_point: (15635, 16450),
+            max_luminance: 302,
+            min_luminance: 979,
+            max_full_frame_luminance: 302,
+            hdr: true,
+        }
+    }
+
+    /// The byte layout has to match what a Moonlight client parses: 31 packed
+    /// bytes, the control header, then the metadata field by field.
+    #[test]
+    fn hdr_mode_message_matches_the_client_layout() {
+        let message = hdr_mode_message(true, &sample());
+        assert_eq!(message.len(), 31, "packed control_hdr_mode_t");
+        let word = |at: usize| u16::from_le_bytes(message[at..at + 2].try_into().unwrap());
+        assert_eq!(word(0), control_messages::HDR_MODE);
+        assert_eq!(word(2), 27, "payloadLength counts everything after the header");
+        assert_eq!(message[4], 1, "enabled");
+        assert_eq!(word(5), 35400, "red x");
+        assert_eq!(word(7), 14600, "red y");
+        assert_eq!(word(9), 8500, "green x");
+        assert_eq!(word(11), 39850, "green y");
+        assert_eq!(word(13), 6550, "blue x");
+        assert_eq!(word(15), 2300, "blue y");
+        assert_eq!(word(17), 15635, "white x");
+        assert_eq!(word(19), 16450, "white y");
+        assert_eq!(word(21), 302, "maxDisplayLuminance (nits)");
+        assert_eq!(word(23), 979, "minDisplayLuminance (1/10000 nit)");
+        assert_eq!(word(25), 0, "maxContentLightLevel");
+        assert_eq!(word(27), 0, "maxFrameAverageLightLevel");
+        assert_eq!(word(29), 302, "maxFullFrameLuminance");
+        // the disabled form is the same message with a zero byte
+        let disabled = hdr_mode_message(false, &sample());
+        assert_eq!(disabled.len(), 31);
+        assert_eq!(disabled[4], 0);
+        assert_eq!(&disabled[5..], &message[5..]);
+    }
+}
+
+/// Builds the session's video pipeline (DXGI capture + NVENC): the geometry
+/// the client negotiated, the codec its ANNOUNCE selected, and whether the
+/// session streams HDR10 (see [`session_hdr`]).
 fn build_pipeline(launch: &LaunchParams) -> Result<Box<dyn VideoPipeline>, String> {
     // Diagnostic override: feed the sender loop the synthetic pattern
     // source, bypassing DXGI capture AND NVENC, to isolate sender-side
@@ -479,15 +662,20 @@ fn build_pipeline(launch: &LaunchParams) -> Result<Box<dyn VideoPipeline>, Strin
             .and_then(|count| u32::try_from(count).ok()),
         crate::capture::recovery_capability(),
     );
+    // Fix the session's HDR state *before* anything capture-shaped is built:
+    // the duplication's format list, the scaler and the encoder's input
+    // format all read it, and all three have to agree.
+    let hdr = session_hdr(launch);
+    crate::config::set_session_hdr(hdr);
     let config = EncoderConfigParams {
         // the codec the client's ANNOUNCE negotiated (H.264 unless it asked
         // for HEVC and the startup probe found an HEVC session); it selects
         // the NVENC GUIDs and the codec config block, nothing else
         codec: launch.codec,
-        // HDR10 for this session: HEVC Main10 plus the Rec. 2020 / PQ VUI.
-        // Driven by the temporary process-wide flag until the client
-        // negotiation lands (it will come from `hdrMode`/`dynamicRangeMode`).
-        hdr: crate::config::hdr_enabled(),
+        // HDR10 for this session: HEVC Main10 plus the Rec. 2020 / PQ VUI,
+        // and the P010 encoder input the scaler converts the FP16 desktop
+        // into. See `session_hdr` for what the client has to have asked for.
+        hdr,
         // negotiated client mode from /launch; the pipeline letterbox-fits
         // the desktop into this size (0 = encode at the native desktop
         // resolution)
@@ -1223,6 +1411,8 @@ mod tests {
                 width: 1280,
                 height: 720,
                 fps: 60,
+                hdr_mode: false,
+                dynamic_range: 0,
                 rikey: [0x42; 16],
                 rikeyid: 1,
                 encrypted_rtsp: true,
@@ -1275,6 +1465,8 @@ mod tests {
                 width: 1280,
                 height: 720,
                 fps: 60,
+                hdr_mode: false,
+                dynamic_range: 0,
                 rikey: [0x42; 16],
                 rikeyid: 1,
                 encrypted_rtsp: true,

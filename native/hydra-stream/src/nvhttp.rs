@@ -99,6 +99,27 @@ pub struct LaunchParams {
     pub width: u32,
     pub height: u32,
     pub fps: u32,
+    /// `/launch`'s `hdrMode` (Moonlight's client-side HDR switch).
+    ///
+    /// Recorded, but *not* what decides the stream: Sunshine parses the same
+    /// argument (`nvhttp.cpp:501`) and uses it only to switch the host's
+    /// virtual display device, never the encoder — the encoder-side decision
+    /// is driven by the RTSP `x-nv-video[0].dynamicRangeMode` the client
+    /// sends once it has negotiated a 10-bit format
+    /// (`video_colorspace.cpp:33-35`). This host has no virtual display, so
+    /// it is reported in logs and the session banner only; see
+    /// [`LaunchParams::dynamic_range`].
+    pub hdr_mode: bool,
+    /// `x-nv-video[0].dynamicRangeMode` from ANNOUNCE: the client's encoding
+    /// *depth* request, 0 = 8-bit and >= 1 = 10-bit (`video.h:39`,
+    /// `video_colorspace.cpp:62-75`; Moonlight sends 1 only when the
+    /// negotiated video format is 10-bit, `SdpGenerator.c:456-457`).
+    ///
+    /// This is the request an HDR session is built from, together with the
+    /// HEVC codec and an HDR desktop: 10-bit plus a PQ/BT.2020 display is
+    /// HDR10, 10-bit on an SDR desktop would be 10-bit BT.709, which this
+    /// host does not produce and therefore downgrades to SDR.
+    pub dynamic_range: u32,
     pub rikey: [u8; 16],
     /// `/launch`'s `rikeyid`: the AV key identifier the client puts (big
     /// endian) in the first 4 bytes of every audio packet's IV
@@ -545,6 +566,16 @@ impl State {
                 launch.slices_per_frame = slices;
             }
         }
+        // The client's encoding-depth request: 0 = 8-bit, anything else =
+        // 10-bit (Sunshine defaults the attribute to "0" and treats every
+        // non-zero value as 10-bit, `rtsp.cpp:1129,1204`,
+        // `video_colorspace.cpp:62-75`). It only ever says 10-bit when the
+        // client saw SCM_HEVC_MAIN10 and negotiated a 10-bit format.
+        if let Some(value) = attrs.get("x-nv-video[0].dynamicRangeMode") {
+            if let Ok(range) = value.parse() {
+                launch.dynamic_range = range;
+            }
+        }
         if let Some(value) = attrs.get("x-nv-video[0].maxNumReferenceFrames") {
             // 0 means "host picks" (moonlight-common-c only sends 0 when it
             // saw the RFI attribute in DESCRIBE); a positive value is the
@@ -754,6 +785,7 @@ fn serverinfo(state: &State, is_https: bool, has_uniqueid: bool, local_ip: IpAdd
         other => other.to_string(),
     };
     let hevc = crate::capture::recovery_capability().hevc;
+    let hevc_main10 = crate::capture::recovery_capability().hevc_main10;
     // Sunshine mirrors the running app into serverinfo: clients poll this
     // after /launch and only start RTSP once the host reports BUSY with the
     // launched appid as currentgame (Moonlight-Android's AppView flow).
@@ -803,7 +835,7 @@ fn serverinfo(state: &State, is_https: bool, has_uniqueid: bool, local_ip: IpAdd
         https_port = HTTPS_PORT,
         http_port = HTTP_PORT,
         max_luma_pixels_hevc = max_luma_pixels_hevc(hevc),
-        server_codec_mode_support = server_codec_mode_support(hevc),
+        server_codec_mode_support = server_codec_mode_support(hevc, hevc_main10),
         local_ip = local_ip,
         pair_status = pair_status,
         currentgame = currentgame,
@@ -812,11 +844,16 @@ fn serverinfo(state: &State, is_https: bool, has_uniqueid: bool, local_ip: IpAdd
 }
 
 /// `root.ServerCodecModeSupport` bits the client reads
-/// (moonlight-common-c Limelight.h:506-513). Only the two the host can
-/// actually encode are ever advertised; the 4:4:4 and 10-bit extension bits
-/// stay clear, because nothing here produces those bitstreams.
+/// (moonlight-common-c Limelight.h:506-513). Only the codecs this host can
+/// actually encode are advertised: the 4:4:4 extension bits stay clear
+/// because nothing here produces those bitstreams. `SCM_HEVC_MAIN10` is what
+/// makes a Moonlight client offer HDR at all — without it the client never
+/// sends `dynamicRangeMode=1`, so the HDR stream would exist but never be
+/// requested (Sunshine gates the same bit on its DYNAMIC_RANGE probe flag,
+/// `nvhttp.cpp:1178`).
 const SCM_H264: u32 = 0x0000_0001;
 const SCM_HEVC: u32 = 0x0000_0100;
+const SCM_HEVC_MAIN10: u32 = 0x0000_0200;
 
 /// The `MaxLumaPixelsHEVC` value Sunshine reports when HEVC is available
 /// (`nvhttp.cpp:1232`); 0 when it is not. It is a fixed budget, not a
@@ -827,9 +864,13 @@ fn max_luma_pixels_hevc(hevc: bool) -> &'static str {
 
 /// The codec-capability bitmask for this host (Sunshine's
 /// `get_codec_mode_flags`, nvhttp.cpp:1166-1190, reduced to the codecs this
-/// host has). Pure.
-fn server_codec_mode_support(hevc: bool) -> u32 {
-    SCM_H264 | if hevc { SCM_HEVC } else { 0 }
+/// host has). `hevc_main10` is the startup probe's HEVC Main10 answer; the
+/// HDR bit is never advertised without it, so a client is never offered a
+/// stream this driver cannot produce. Pure.
+fn server_codec_mode_support(hevc: bool, hevc_main10: bool) -> u32 {
+    SCM_H264
+        | if hevc { SCM_HEVC } else { 0 }
+        | if hevc && hevc_main10 { SCM_HEVC_MAIN10 } else { 0 }
 }
 
 fn xml_escape(text: &str) -> String {
@@ -1084,6 +1125,11 @@ fn make_launch_params(params: &HashMap<String, String>, uniqueid: &str) -> Optio
         width,
         height,
         fps,
+        // Sunshine reads the same argument with a "0" default
+        // (`nvhttp.cpp:501`); Moonlight sends "1" when its HDR switch is on.
+        hdr_mode: params.get("hdrMode").is_some_and(|value| value.trim() == "1"),
+        // filled in from the ANNOUNCE (see `update_announcement`)
+        dynamic_range: 0,
         rikey,
         rikeyid,
         encrypted_rtsp: corever >= 1,
@@ -1595,10 +1641,11 @@ pub(crate) mod tests {
         // the codec advertisement tracks the startup probe, the same one
         // the RTSP DESCRIBE marker and the codec negotiation use
         let hevc = crate::capture::recovery_capability().hevc;
+    let hevc_main10 = crate::capture::recovery_capability().hevc_main10;
         assert_eq!(tag(&xml, "MaxLumaPixelsHEVC"), max_luma_pixels_hevc(hevc));
         assert_eq!(
             tag(&xml, "ServerCodecModeSupport"),
-            server_codec_mode_support(hevc).to_string()
+            server_codec_mode_support(hevc, hevc_main10).to_string()
         );
         // http without uniqueid reports unpaired
         let http_xml = serverinfo(&state, false, false, "10.0.0.5".parse().unwrap());
@@ -2145,17 +2192,22 @@ pub(crate) mod tests {
     /// The serverinfo codec fields, both ways: `MaxLumaPixelsHEVC` is
     /// Sunshine's fixed budget when the probe found an HEVC session and 0
     /// when it did not, and `ServerCodecModeSupport` carries SCM_H264
-    /// always plus SCM_HEVC when it can (Sunshine's `get_codec_mode_flags`,
+    /// always plus SCM_HEVC when it can and SCM_HEVC_MAIN10 when a 10-bit
+    /// session also opened (Sunshine's `get_codec_mode_flags`,
     /// nvhttp.cpp:1166-1190).
     #[test]
     fn serverinfo_codec_fields_follow_the_probe() {
         assert_eq!(max_luma_pixels_hevc(false), "0");
         assert_eq!(max_luma_pixels_hevc(true), "1869449984");
         // the bits the client reads (moonlight-common-c Limelight.h:506-513)
-        assert_eq!(server_codec_mode_support(false), 0x1);
-        assert_eq!(server_codec_mode_support(true), 0x101);
-        assert_eq!(server_codec_mode_support(false) & SCM_HEVC, 0);
-        assert_ne!(server_codec_mode_support(false), 0, "the client hard-fails on 0");
+        assert_eq!(server_codec_mode_support(false, false), 0x1);
+        assert_eq!(server_codec_mode_support(true, false), 0x101);
+        assert_eq!(server_codec_mode_support(true, true), 0x301);
+        assert_eq!(server_codec_mode_support(false, false) & SCM_HEVC, 0);
+        // the HDR bit is never advertised without HEVC, whatever the probe
+        // says about 10-bit (a client must not be offered Main10 over H.264)
+        assert_eq!(server_codec_mode_support(false, true) & SCM_HEVC_MAIN10, 0);
+        assert_ne!(server_codec_mode_support(false, false), 0, "the client hard-fails on 0");
     }
 
     fn launch_with_rikeyid(rikeyid: &str) -> LaunchParams {

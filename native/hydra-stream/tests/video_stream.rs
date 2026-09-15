@@ -690,6 +690,8 @@ fn enet_control_handshake_and_session_lifecycle() {
             width: 1920,
             height: 1080,
             fps: 60,
+            hdr_mode: false,
+            dynamic_range: 0,
             rikey: [0xAB; 16],
             rikeyid: 0x12345678,
             encrypted_rtsp: false,

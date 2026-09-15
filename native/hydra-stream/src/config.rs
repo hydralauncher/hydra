@@ -2,7 +2,12 @@
 //! development machines, so every port can be overridden via the
 //! environment (tests use ephemeral ports; the live smoke uses overrides).
 
+use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::OnceLock;
+
+/// The HDR state the current session negotiated (see [`set_session_hdr`]).
+/// One sidecar process serves one session at a time.
+static SESSION_HDR: AtomicBool = AtomicBool::new(false);
 
 #[derive(Clone, Copy, Debug)]
 pub struct Ports {
@@ -156,24 +161,48 @@ pub const HDR_ENV: &str = "HYDRA_STREAM_HDR";
 
 /// Whether this session streams HDR10: the capture path asks DXGI for the
 /// FP16 scRGB desktop (`R16G16B16A16_FLOAT`) instead of the 8-bit BGRA
-/// surface the legacy `IDXGIOutput1::DuplicateOutput` can only return, and
-/// the encoder selects HEVC Main10 with the Rec. 2020 / ST 2084 (PQ) VUI.
+/// surface the legacy `IDXGIOutput1::DuplicateOutput` can only return, the
+/// scaler converts it to BT.2020/PQ P010, and the encoder selects HEVC
+/// Main10 with the PQ VUI.
 ///
-/// Off by default, deliberately: it stands in for the session's negotiated
-/// HDR state (`hdrMode` in `/launch`, `x-nv-video[0].dynamicRangeMode` in the
-/// ANNOUNCE), which is the slice still to come. On an HEVC session the whole
-/// path is in place — FP16 scRGB capture, the BT.2020/PQ conversion into
-/// P010, and a Main10 encode with the PQ VUI — so turning this on streams
-/// real HDR10 today; on the H.264 sessions the negotiation still allows it
-/// degrades to SDR end to end. Read once per process.
+/// The value is the session's negotiated state (see
+/// [`set_session_hdr`]), i.e. what the client actually negotiated, unless
+/// [`hdr_override`] says otherwise.
 pub fn hdr_enabled() -> bool {
-    static ENABLED: OnceLock<bool> = OnceLock::new();
-    *ENABLED.get_or_init(|| {
-        matches!(
-            std::env::var(HDR_ENV).ok().as_deref(),
-            Some("1") | Some("true") | Some("yes")
-        )
+    hdr_override().unwrap_or_else(|| SESSION_HDR.load(Ordering::Relaxed))
+}
+
+/// Explicit HDR on/off from `HYDRA_STREAM_HDR`, when set: an override that
+/// beats the session's own negotiation, so the hardware probes can drive the
+/// HDR path with a client (or test) that does not ask for it. `Some(false)`
+/// forces SDR even for a client that asked for 10-bit.
+pub fn hdr_override() -> Option<bool> {
+    static OVERRIDE: OnceLock<Option<bool>> = OnceLock::new();
+    *OVERRIDE.get_or_init(|| {
+        match std::env::var(HDR_ENV).ok().as_deref().map(str::trim) {
+            Some("1") | Some("true") | Some("yes") => Some(true),
+            Some("0") | Some("false") | Some("no") => Some(false),
+            _ => None,
+        }
     })
+}
+
+/// The HDR state this session settled on, installed by the session setup
+/// before the capture is created.
+///
+/// Process-wide rather than a parameter because every stage that has to agree
+/// — the duplication's requested format list, the scaler choice, the
+/// encoder's input buffer format — is reached through code that does not
+/// carry the session's parameters, and one sidecar process serves one
+/// session at a time. It is set before the pipeline is built and only read
+/// while that session lives.
+pub fn set_session_hdr(enabled: bool) {
+    SESSION_HDR.store(enabled, Ordering::Relaxed);
+}
+
+/// The session's negotiated HDR state, before any override.
+pub fn session_hdr() -> bool {
+    SESSION_HDR.load(Ordering::Relaxed)
 }
 
 pub const AUDIO_DUMP_ENV: &str = "HYDRA_STREAM_AUDIO_DUMP";
