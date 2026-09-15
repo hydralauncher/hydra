@@ -22,7 +22,7 @@ import {
   emulators,
 } from "@main/services";
 import resources from "@locales";
-import { PythonRPC } from "./services/python-rpc";
+import { TorrentService } from "./services/torrent-service";
 import { db, gamesSublevel, levelKeys } from "./level";
 import { GameShop, UserPreferences } from "@types";
 import { launchGame, openClassicsGame } from "./helpers";
@@ -359,19 +359,25 @@ app.on("window-all-closed", () => {
 });
 
 let canAppBeClosed = false;
+let isAppClosing = false;
 
 app.on("before-quit", async (e) => {
-  await Lock.releaseLock();
-
   if (!canAppBeClosed) {
     e.preventDefault();
+    if (isAppClosing) return;
+    isAppClosing = true;
     PowerSaveBlockerManager.reset();
-    /* Disconnects Python RPC */
-    PythonRPC.kill();
-    await Promise.all([
+    const results = await Promise.allSettled([
+      Lock.releaseLock(),
+      TorrentService.shutdown(),
       clearGamesPlaytime(),
       emulators.stopAllEmulatorSouvenirCaptureSessions(),
     ]);
+    for (const result of results) {
+      if (result.status === "rejected") {
+        logger.error("Application shutdown cleanup failed", result.reason);
+      }
+    }
     canAppBeClosed = true;
     app.quit();
   }
