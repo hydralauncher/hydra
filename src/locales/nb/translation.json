@@ -521,7 +521,8 @@
     "hide": "Hide",
     "create_steam_shortcut_modal_vr_flag": "VR Game (In Steam: update the VR flag or delete/recreate the shortcut)",
     "create_steam_shortcut_modal_create_button": "Create",
-    "create_steam_shortcut_modal_cancel_button": "Cancel"
+    "create_steam_shortcut_modal_cancel_button": "Cancel",
+    "streaming_now": "Strømmer nå"
   },
   "activation": {
     "title": "Aktivér Hydra",
@@ -774,7 +775,9 @@
     "proton_version_auto": "Auto (global default or umu default)",
     "proton_source_umu_default": "umu default selection",
     "proton_source_steam": "Installed by Steam",
-    "proton_source_compatibility_tools": "Installed in Steam compatibilitytools.d"
+    "proton_source_compatibility_tools": "Installed in Steam compatibilitytools.d",
+    "console_streaming": "Konsoll-streaming",
+    "enable_console_streaming": "Aktiver konsoll-streaming (Moonlight)"
   },
   "notifications": {
     "download_complete": "Nedlasting ferdig",
@@ -814,7 +817,13 @@
     "instructions": "Sjekk den korrekte måten å installere noen av de, på Linux distributionen din, så spillet kan kjøre på vanlig måte"
   },
   "modal": {
-    "close": "Lukk knapp"
+    "close": "Lukk knapp",
+    "stream_pairing_title": "Sammenkoble strømmeenheten",
+    "stream_pairing_description": "Skriv inn PIN-koden som vises på Moonlight-enheten, for å koble den sammen med Hydra.",
+    "stream_pairing_placeholder": "PIN",
+    "stream_pairing_submit": "Bekreft",
+    "stream_pairing_error_invalid_pin": "Feil PIN. Sjekk PIN-koden på enheten din og prøv igjen.",
+    "stream_pairing_error_no_session": "Sammenkoblingen er utløpt. Start sammenkoblingen på nytt fra enheten din."
   },
   "forms": {
     "toggle_password_visibility": "Skift synlighet af passord"

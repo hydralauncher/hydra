@@ -710,7 +710,8 @@
     "download_error_alldebrid_unavailable": "AllDebrid is temporarily unavailable. Please try again later.",
     "create_steam_shortcut_modal_vr_flag": "VR Game (In Steam: update the VR flag or delete/recreate the shortcut)",
     "create_steam_shortcut_modal_create_button": "Create",
-    "create_steam_shortcut_modal_cancel_button": "Cancel"
+    "create_steam_shortcut_modal_cancel_button": "Cancel",
+    "streaming_now": "Streaming in corso"
   },
   "activation": {
     "title": "Attiva Hydra",
@@ -963,7 +964,9 @@
     "proton_version_auto": "Auto (global default or umu default)",
     "proton_source_umu_default": "umu default selection",
     "proton_source_steam": "Installed by Steam",
-    "proton_source_compatibility_tools": "Installed in Steam compatibilitytools.d"
+    "proton_source_compatibility_tools": "Installed in Steam compatibilitytools.d",
+    "console_streaming": "Streaming su console",
+    "enable_console_streaming": "Abilita streaming su console (Moonlight)"
   },
   "notifications": {
     "download_complete": "Download completato",
@@ -1003,7 +1006,13 @@
     "instructions": "Verifica il modo corretto di installare uno di essi sulla tua distribuzione Linux in modo che il gioco possa funzionare normalmente"
   },
   "modal": {
-    "close": "Pulsante Chiudi"
+    "close": "Pulsante Chiudi",
+    "stream_pairing_title": "Associa il tuo dispositivo di streaming",
+    "stream_pairing_description": "Inserisci il PIN mostrato sul tuo dispositivo Moonlight per associarlo a Hydra.",
+    "stream_pairing_placeholder": "PIN",
+    "stream_pairing_submit": "Conferma",
+    "stream_pairing_error_invalid_pin": "PIN errato. Controlla il PIN sul tuo dispositivo e riprova.",
+    "stream_pairing_error_no_session": "La sessione di associazione è scaduta. Avvia di nuovo l'associazione dal tuo dispositivo."
   },
   "forms": {
     "toggle_password_visibility": "Mostra/Nascondi password"

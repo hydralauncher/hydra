@@ -521,7 +521,8 @@
     "hide": "Hide",
     "create_steam_shortcut_modal_vr_flag": "VR Game (In Steam: update the VR flag or delete/recreate the shortcut)",
     "create_steam_shortcut_modal_create_button": "Create",
-    "create_steam_shortcut_modal_cancel_button": "Cancel"
+    "create_steam_shortcut_modal_cancel_button": "Cancel",
+    "streaming_now": "Právě streamováno"
   },
   "activation": {
     "title": "Aktivovat hydru",
@@ -774,7 +775,9 @@
     "proton_version_auto": "Auto (global default or umu default)",
     "proton_source_umu_default": "umu default selection",
     "proton_source_steam": "Installed by Steam",
-    "proton_source_compatibility_tools": "Installed in Steam compatibilitytools.d"
+    "proton_source_compatibility_tools": "Installed in Steam compatibilitytools.d",
+    "console_streaming": "Streamování konzole",
+    "enable_console_streaming": "Zapnout streamování konzole (Moonlight)"
   },
   "notifications": {
     "download_complete": "Stahování dokončeno",
@@ -814,7 +817,13 @@
     "instructions": "Zkonstroluj oficiální cestu jak je nainstalovat na tvoji Linux Distribuci, aby hry mohly běžet normálně"
   },
   "modal": {
-    "close": "Tlačítko zavřít"
+    "close": "Tlačítko zavřít",
+    "stream_pairing_title": "Spárovat streamovací zařízení",
+    "stream_pairing_description": "Zadejte PIN zobrazený na zařízení Moonlight a spárujte jej s aplikací Hydra.",
+    "stream_pairing_placeholder": "PIN",
+    "stream_pairing_submit": "Potvrdit",
+    "stream_pairing_error_invalid_pin": "Nesprávný PIN. Zkontrolujte PIN na svém zařízení a zkuste to znovu.",
+    "stream_pairing_error_no_session": "Relace párování vypršela. Spusťte párování znovu ze svého zařízení."
   },
   "forms": {
     "toggle_password_visibility": "Přepnout viditelnost hesla"

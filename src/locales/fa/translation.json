@@ -518,7 +518,8 @@
     "hide": "Hide",
     "create_steam_shortcut_modal_vr_flag": "VR Game (In Steam: update the VR flag or delete/recreate the shortcut)",
     "create_steam_shortcut_modal_create_button": "Create",
-    "create_steam_shortcut_modal_cancel_button": "Cancel"
+    "create_steam_shortcut_modal_cancel_button": "Cancel",
+    "streaming_now": "در حال استریم"
   },
   "activation": {
     "title": "فعال کردن هایدرا",
@@ -771,7 +772,9 @@
     "proton_version_auto": "Auto (global default or umu default)",
     "proton_source_umu_default": "umu default selection",
     "proton_source_steam": "Installed by Steam",
-    "proton_source_compatibility_tools": "Installed in Steam compatibilitytools.d"
+    "proton_source_compatibility_tools": "Installed in Steam compatibilitytools.d",
+    "console_streaming": "استریم کنسول",
+    "enable_console_streaming": "فعال‌کردن استریم کنسول (Moonlight)"
   },
   "notifications": {
     "download_complete": "دانلود تمام شد",
@@ -811,7 +814,13 @@
     "instructions": "روش صحیح نصب هر کدام از آن‌ها رو روی لینوکس خود چک کنید تا بازی بتواند به درستی اجرا شود"
   },
   "modal": {
-    "close": "دکمه‌ی خروج"
+    "close": "دکمه‌ی خروج",
+    "stream_pairing_title": "جفت‌سازی دستگاه استریم",
+    "stream_pairing_description": "کد PIN نمایش‌داده‌شده روی دستگاه Moonlight را برای جفت‌سازی با Hydra وارد کنید.",
+    "stream_pairing_placeholder": "PIN",
+    "stream_pairing_submit": "تأیید",
+    "stream_pairing_error_invalid_pin": "کد PIN نادرست است. کد PIN روی دستگاهتان را بررسی کنید و دوباره تلاش کنید.",
+    "stream_pairing_error_no_session": "نشست جفت‌سازی منقضی شد. جفت‌سازی را دوباره از دستگاهتان آغاز کنید."
   },
   "app": {
     "successfully_signed_in": "Successfully signed in"
