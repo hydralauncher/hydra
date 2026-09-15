@@ -43,9 +43,30 @@ const getGameInstallerActionType = async (
 
   // Check if there's exactly one .exe file
   const gamePathFileNames = fs.readdirSync(gamePath);
+
+  if (process.platform === "linux") {
+    const hasSetupSh = gamePathFileNames.some(
+      (fileName: string) => fileName.toLowerCase() === "setup.sh"
+    );
+
+    if (hasSetupSh) {
+      return "install";
+    }
+  }
+
   const gamePathExecutableFiles = gamePathFileNames.filter(
     (fileName: string) => path.extname(fileName).toLowerCase() === ".exe"
   );
+
+  if (process.platform === "linux") {
+    const shellFiles = gamePathFileNames.filter(
+      (fileName: string) => path.extname(fileName).toLowerCase() === ".sh"
+    );
+
+    if (shellFiles.length === 1) {
+      return "install";
+    }
+  }
 
   if (gamePathExecutableFiles.length === 1) {
     return "install";

@@ -32,6 +32,7 @@ import { parseExecutablePath } from "../events/helpers/parse-executable-path";
 import { isGamemodeAvailable } from "./is-gamemode-available";
 import { isMangohudAvailable } from "./is-mangohud-available";
 import { resolveLaunchCommand } from "./resolve-launch-command";
+import { isLinuxShellScript } from "./linux-native-executable";
 import {
   buildWindowsBatchCommand,
   isWindowsBatchFile,
@@ -72,8 +73,11 @@ const launchNatively = (
   useGamemode = false
 ): number | null => {
   const workingDirectory = path.dirname(executablePath);
+  const useBash =
+    process.platform === "linux" && isLinuxShellScript(executablePath);
   const resolvedLaunchCommand = resolveLaunchCommand({
-    baseCommand: executablePath,
+    baseCommand: useBash ? "bash" : executablePath,
+    baseArgs: useBash ? [executablePath] : [],
     launchOptions,
     wrapperCommands: [
       ...(useGamemode ? ["gamemoderun"] : []),

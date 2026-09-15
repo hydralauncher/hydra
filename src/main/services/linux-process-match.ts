@@ -47,6 +47,16 @@ export const processReferencesExecutable = (
   );
 };
 
+const isInGameDirectoryTree = (cwd: string, gameDirectory: string) => {
+  if (cwd === gameDirectory) return true;
+
+  const relative = path.relative(gameDirectory, cwd);
+
+  return (
+    relative !== "" && !relative.startsWith("..") && !path.isAbsolute(relative)
+  );
+};
+
 export const hasLaunchedPidMatch = (
   launchedPid: number | undefined,
   executablePath: string,
@@ -57,7 +67,15 @@ export const hasLaunchedPidMatch = (
   const matchedProcess = pidToProcess.get(launchedPid);
   if (!matchedProcess) return false;
 
-  return processReferencesExecutable(matchedProcess, executablePath);
+  if (processReferencesExecutable(matchedProcess, executablePath)) return true;
+
+  // Only the pid Hydra itself launched may match by subtree: wrapper scripts
+  // often cd into a game subdirectory. Window matching stays exact-cwd so an
+  // unrelated window merely sitting under the game tree is never accepted.
+  return isInGameDirectoryTree(
+    (matchedProcess.cwd ?? "").toLowerCase(),
+    path.dirname(executablePath).toLowerCase()
+  );
 };
 
 const processMatchesWinePrefix = (

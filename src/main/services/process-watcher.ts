@@ -22,6 +22,7 @@ import {
   type LinuxProcessInfo,
 } from "./linux-process-match";
 import { isWindowsBatchFile } from "@main/helpers/windows-batch-command";
+import { isLinuxNativeExecutable } from "@main/helpers/linux-native-executable";
 import {
   getCloudSaveAutomaticSyncMode,
   runAutomaticCloudSavePostExit,
@@ -384,8 +385,13 @@ function onOpenGame(game: Game) {
     performanceNow: now,
   });
 
-  // On Linux, keep the launcher visible briefly and let it auto-close itself.
-  if (process.platform !== "linux") {
+  // On Linux the launcher auto-closes itself, except for native executables
+  // which start instantly and close it as soon as the game is detected.
+  if (
+    process.platform !== "linux" ||
+    (game.executablePath != null &&
+      isLinuxNativeExecutable(game.executablePath))
+  ) {
     WindowManager.closeGameLauncherWindow();
   }
 
