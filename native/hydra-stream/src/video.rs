@@ -2030,7 +2030,13 @@ pub fn run_video_loop(
     // policies below (P-frame suppression, short keyframe cadence) are
     // neither needed nor helpful there. Read before the loop because the
     // encoder backend is fixed for the session.
-    let rfi_live = pipeline.supports_ref_invalidation();
+    // `rfi` mode assumes the client resumes at the next after-invalidation
+    // frame, which is only true when the host advertised RFI *and* the client's
+    // decoder accepted it — and the marker is withheld whenever HEVC is offered
+    // (`rtsp::describe_sdp_for`). Without that condition this session would run
+    // an RFI-assuming policy (no P-frame suppression, the long hygiene cadence)
+    // against a client that is waiting strictly for an IDR.
+    let rfi_live = pipeline.supports_ref_invalidation() && !crate::capture::hevc_offered();
     // P-frame suppression while an applied client IDR request is still
     // unanswered (see PSuppression): the request opens an episode, the loop
     // forces the IDR it asked for, and the episode closes as soon as that

@@ -98,7 +98,18 @@ fn describe_sdp_for(rfi: bool, hevc: bool) -> String {
         "a=fmtp:97 surround-params=85301245673\n",
         "a=fmtp:97 surround-params=88001234567\n",
     ));
-    if rfi {
+    // RFI is advertised only when HEVC is *not* being offered here. The client
+    // decides whether to use reference-frame invalidation while parsing this
+    // same DESCRIBE — per codec, from this marker plus its own decoder
+    // capability (moonlight-common-c `RtspConnection.c:1139`, `Misc.c:122-124`)
+    // — and never re-evaluates it after the ANNOUNCE, so this is the only place
+    // the host can influence it. HEVC is the case that must not have it:
+    // Amlogic Android TV decoders are whitelisted for HEVC RFI yet hang or
+    // artifact when it is used after packet loss (moonlight-android#1546, and
+    // the still-unmerged #1565), while the client's AVC whitelist does not
+    // contain Amlogic at all — so keeping the marker for H.264 costs those
+    // clients nothing and leaves RFI working for clients whose HEVC handles it.
+    if rfi && !hevc {
         sdp.push_str("a=x-nv-video[0].refPicInvalidation:1\n");
     }
     if hevc {
@@ -602,10 +613,13 @@ mod tests {
         ] {
             assert!(sdp.contains(line), "missing {line:?} in {sdp:?}");
         }
+        // The marker tracks the probe *and* the codec offer: it is withheld
+        // whenever HEVC is advertised, because the client would otherwise put
+        // an Amlogic-class HEVC decoder into the RFI path that hangs it.
         assert_eq!(
             sdp.contains("a=x-nv-video[0].refPicInvalidation:1\n"),
-            crate::capture::recovery_capability().rfi,
-            "the attribute must track the probed capability: {sdp:?}"
+            crate::capture::recovery_capability().rfi && !crate::capture::hevc_offered(),
+            "the attribute must track the probed capability and the codec offer: {sdp:?}"
         );
     }
 
@@ -626,17 +640,23 @@ mod tests {
             "the marker is its own line, verbatim and without an a= prefix: {with_hevc:?}"
         );
         assert!(!with_hevc.contains("a=sprop-parameter-sets"), "{with_hevc:?}");
-        // the RFI attribute keeps its place before it (Sunshine's order:
-        // rtsp.cpp emits refPicInvalidation, then the HEVC marker)
-        let rfi_at = with_hevc.find("a=x-nv-video[0].refPicInvalidation:1").expect("rfi");
-        let hevc_at = with_hevc.find("sprop-parameter-sets").expect("hevc");
-        assert!(rfi_at < hevc_at, "{with_hevc:?}");
+        // The two markers are mutually exclusive now: RFI is withheld exactly
+        // when HEVC is offered, so the old "refPicInvalidation comes first"
+        // ordering assertion no longer has a case to describe.
+        assert!(
+            !with_hevc.contains("a=x-nv-video[0].refPicInvalidation:1"),
+            "RFI must not be advertised alongside HEVC: {with_hevc:?}"
+        );
 
-        // no HEVC session: not a byte of it, and the H.264 SDP is the one
-        // the pre-HEVC host sent
+        // no HEVC session: not a byte of it, and RFI stays advertised for the
+        // H.264 clients whose decoders accept it
         let h264_only = describe_sdp_for(true, false);
         assert!(!h264_only.contains("sprop-parameter-sets"), "{h264_only:?}");
         assert!(!h264_only.contains("AAAAAU"), "{h264_only:?}");
+        assert!(
+            h264_only.contains("a=x-nv-video[0].refPicInvalidation:1"),
+            "the H.264 SDP keeps the RFI marker: {h264_only:?}"
+        );
 
         // and the live call tracks the same probe the serverinfo uses
         assert_eq!(
