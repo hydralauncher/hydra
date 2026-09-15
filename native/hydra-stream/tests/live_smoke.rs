@@ -666,11 +666,9 @@ fn live_video_and_control_smoke() {
                         // bits 1..6 of the first one (SPS = 33); H.264's is one
                         // byte with the type in the low five bits (SPS = 7).
                         for window in packet.windows(5) {
-                            let hevc_sps = hdr_announce
-                                && window[..3] == [0, 0, 1]
+                            let hevc_sps = window[..3] == [0, 0, 1]
                                 && (window[3] >> 1) & 0x3F == 33;
-                            let h264_sps = !hdr_announce
-                                && window[..4] == [0, 0, 0, 1]
+                            let h264_sps = window[..4] == [0, 0, 0, 1]
                                 && window[4] & 0x1F == 7;
                             if hevc_sps || h264_sps {
                                 saw_sps = true;

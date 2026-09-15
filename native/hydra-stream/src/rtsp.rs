@@ -77,7 +77,14 @@ fn stream_port(kind: &str) -> u16 {
 /// before ANNOUNCE, and it is what makes the client offer HEVC there.
 fn describe_sdp() -> String {
     let capability = crate::capture::recovery_capability();
-    describe_sdp_for(capability.rfi, capability.hevc)
+    // `HYDRA_STREAM_CODECS=h264` removes the marker as well: it is what makes
+    // the client offer HEVC in its ANNOUNCE, so leaving it in while the
+    // negotiation refuses HEVC would only make the client ask for something it
+    // cannot have.
+    describe_sdp_for(
+        capability.rfi,
+        capability.hevc && crate::capture::hevc_offered(),
+    )
 }
 
 /// The SDP for a given probed capability pair. Pure, so both the RFI and
@@ -634,7 +641,7 @@ mod tests {
         // and the live call tracks the same probe the serverinfo uses
         assert_eq!(
             describe_sdp().contains(HEVC_SDP_MARKER),
-            crate::capture::recovery_capability().hevc,
+            crate::capture::recovery_capability().hevc && crate::capture::hevc_offered(),
         );
     }
 

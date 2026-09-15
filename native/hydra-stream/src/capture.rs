@@ -1151,6 +1151,26 @@ pub struct DisplayHdr {
     pub hdr: bool,
 }
 
+/// Whether HEVC may be advertised and negotiated: only when this desktop can
+/// actually be captured as HDR.
+///
+/// H.264 is the safe codec everywhere; HEVC is here for HDR10 (Main10), and
+/// HDR is the one thing H.264 cannot carry. So a host with an SDR desktop
+/// offers H.264 alone, and a client left on "Auto" — including one whose HEVC
+/// decode is far worse than its H.264, measured on an Android TV as six
+/// reconnects and 139 forced IDRs in nine minutes against one clean H.264
+/// session — is never pushed onto HEVC just to stream SDR. With the desktop in
+/// HDR mode the HEVC advertisement comes back, and the client's own HDR/10-bit
+/// request is what selects it (`stream::session_hdr`).
+///
+/// `HYDRA_STREAM_CODECS=h264` ([`crate::config::hevc_advertised`]) still pins a
+/// host to H.264 outright, and `HYDRA_STREAM_HDR=1` forces the HDR path (and
+/// therefore HEVC) for the hardware probes.
+pub fn hevc_offered() -> bool {
+    crate::config::hevc_advertised()
+        && (desktop_is_hdr() || crate::config::hdr_override() == Some(true))
+}
+
 /// Whether the duplicated desktop is in an HDR colour space right now, cached
 /// for a second.
 ///

@@ -649,7 +649,8 @@ impl State {
         // startup probe: without a working HEVC session no client is ever
         // offered the marker, and a client that asks anyway is answered
         // H.264 rather than left with a decoder the bitstream cannot feed.
-        let hevc_available = crate::capture::recovery_capability().hevc;
+        let hevc_available =
+            crate::capture::recovery_capability().hevc && crate::capture::hevc_offered();
         let requested = attrs
             .get("x-nv-vqos[0].bitStreamFormat")
             .and_then(|value| match value.trim().parse::<u32>() {
@@ -784,8 +785,13 @@ fn serverinfo(state: &State, is_https: bool, has_uniqueid: bool, local_ip: IpAdd
         std::net::IpAddr::V6(v6) if v6.to_ipv4_mapped().is_none() => "127.0.0.1".to_string(),
         other => other.to_string(),
     };
-    let hevc = crate::capture::recovery_capability().hevc;
-    let hevc_main10 = crate::capture::recovery_capability().hevc_main10;
+    // HYDRA_STREAM_CODECS=h264 (`config::hevc_advertised`) pins the host to
+    // H.264 for clients whose HEVC decode is worse than their H.264. Every
+    // place that decides the codec has to agree on this, or the client asks
+    // for something the DESCRIBE never offered.
+    let hevc = crate::capture::recovery_capability().hevc && crate::capture::hevc_offered();
+    let hevc_main10 =
+        crate::capture::recovery_capability().hevc_main10 && crate::capture::hevc_offered();
     // What the client is actually offered, and why: the HDR bit goes out only
     // when this desktop can be *captured* as HDR, so a client never negotiates
     // 10-bit against a host that would have to degrade it to 8-bit (see
@@ -912,9 +918,13 @@ fn server_codec_mode_support(hevc: bool, hevc_main10: bool) -> u32 {
 /// client asks for 8-bit and the bitrate it picks matches the stream it gets.
 fn advertised_codec_mode_support() -> u32 {
     let capability = crate::capture::recovery_capability();
+    // The probe's answer, narrowed by the codec policy and then by the
+    // desktop: H.264-only means no HEVC bit at all, and no HDR bit without an
+    // HDR desktop to capture.
+    let hevc = capability.hevc && crate::capture::hevc_offered();
     server_codec_mode_support(
-        capability.hevc,
-        capability.hevc_main10 && crate::capture::desktop_is_hdr(),
+        hevc,
+        capability.hevc_main10 && crate::capture::hevc_offered(),
     )
 }
 
@@ -1685,8 +1695,13 @@ pub(crate) mod tests {
         assert_eq!(tag(&xml, "state"), "SUNSHINE_SERVER_FREE");
         // the codec advertisement tracks the startup probe, the same one
         // the RTSP DESCRIBE marker and the codec negotiation use
-        let hevc = crate::capture::recovery_capability().hevc;
-    let hevc_main10 = crate::capture::recovery_capability().hevc_main10;
+        // HYDRA_STREAM_CODECS=h264 (`config::hevc_advertised`) pins the host to
+    // H.264 for clients whose HEVC decode is worse than their H.264. Every
+    // place that decides the codec has to agree on this, or the client asks
+    // for something the DESCRIBE never offered.
+    let hevc = crate::capture::recovery_capability().hevc && crate::capture::hevc_offered();
+    let hevc_main10 =
+        crate::capture::recovery_capability().hevc_main10 && crate::capture::hevc_offered();
         assert_eq!(tag(&xml, "MaxLumaPixelsHEVC"), max_luma_pixels_hevc(hevc));
         // The advertised mask is the probe's codecs *and* the desktop's current
         // HDR state (the capture path can only deliver HDR from an HDR
@@ -2229,7 +2244,7 @@ pub(crate) mod tests {
         )]));
         assert_eq!(
             codec(&state),
-            negotiate_codec(Some(1), crate::capture::recovery_capability().hevc)
+            negotiate_codec(Some(1), crate::capture::recovery_capability().hevc && crate::capture::hevc_offered())
         );
 
         // asking for H.264 (or for nothing) is H.264

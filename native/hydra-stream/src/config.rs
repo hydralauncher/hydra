@@ -205,6 +205,31 @@ pub fn session_hdr() -> bool {
     SESSION_HDR.load(Ordering::Relaxed)
 }
 
+pub const CODECS_ENV: &str = "HYDRA_STREAM_CODECS";
+
+/// Whether HEVC may be advertised and negotiated at all.
+///
+/// `HYDRA_STREAM_CODECS=h264` (also `avc`) pins the host to H.264: the HEVC
+/// advertisement then drops out of DESCRIBE and `ServerCodecModeSupport`, so a
+/// client — including one left on "Auto" — negotiates H.264 instead of HEVC.
+///
+/// It exists because HEVC decode is not uniformly good on the client side.
+/// Measured on an Android TV with otherwise identical settings (same client,
+/// `initialBitrateKbps=100000`, same 2608x1200 mode request, same FEC): a HEVC
+/// session reconnected six times in nine minutes with 139 forced IDRs, where
+/// H.264 held a single session with 22. HDR needs HEVC Main10, so such a
+/// client cannot have HDR either way — the switch is for choosing smooth SDR
+/// over unusable HEVC. Read once per process.
+pub fn hevc_advertised() -> bool {
+    static VALUE: OnceLock<bool> = OnceLock::new();
+    *VALUE.get_or_init(|| {
+        !matches!(
+            std::env::var(CODECS_ENV).ok().as_deref().map(str::trim),
+            Some("h264") | Some("avc")
+        )
+    })
+}
+
 pub const AUDIO_DUMP_ENV: &str = "HYDRA_STREAM_AUDIO_DUMP";
 
 /// Diagnostic dump target for the audio sender loop: one record per Opus
