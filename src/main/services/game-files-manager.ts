@@ -295,22 +295,22 @@ export class GameFilesManager {
     gameFolderPath: string,
     platform: RetroArchPlatform
   ): Promise<void> {
-    const files = await emulators.collectFilesByExtension(
-      gameFolderPath,
-      retroarch.PLATFORM_ROM_EXTENSIONS[platform],
-      true
-    );
+    const files = await retroarch.scanRetroArchFolder({
+      path: gameFolderPath,
+      scanSubfolders: true,
+    });
 
     const roms = [...(game.discs ?? [])];
     let linked = 0;
 
     for (const entry of files) {
-      if (roms.some((disc) => disc.path === entry.fullPath)) continue;
+      if (entry.platform !== platform) continue;
+      if (roms.some((disc) => disc.path === entry.primaryPath)) continue;
 
       roms.push({
-        path: entry.fullPath,
+        path: entry.primaryPath,
         label: `Disc ${roms.length + 1}`,
-        fileName: path.basename(entry.fullPath),
+        fileName: path.basename(entry.primaryPath),
         sku: null,
       });
       linked += 1;
