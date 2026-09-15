@@ -1,8 +1,7 @@
 import { emulatorsSublevel } from "@main/level";
+import { EMULATOR_SYSTEMS } from "@shared";
 import type { EmulatorConfig, EmulatorConfigMap, EmulatorSystem } from "@types";
-import { KNOWN_BINARIES } from "./known-binaries";
-
-const SYSTEMS: EmulatorSystem[] = ["ps1", "ps2", "ps3"];
+import { KNOWN_BINARIES, systemsForBinary } from "./known-binaries";
 
 const emptyConfig = (system: EmulatorSystem): EmulatorConfig => ({
   system,
@@ -21,12 +20,28 @@ export const getEmulatorConfig = async (
   system: EmulatorSystem
 ): Promise<EmulatorConfig> => {
   const existing = await emulatorsSublevel.get(system);
-  return existing ?? emptyConfig(system);
+  const config = existing ?? emptyConfig(system);
+
+  if (config.executablePath) return config;
+
+  for (const sibling of systemsForBinary(config.binary)) {
+    if (sibling === system) continue;
+    const siblingConfig = await emulatorsSublevel.get(sibling);
+    if (!siblingConfig?.executablePath) continue;
+    return {
+      ...config,
+      executablePath: siblingConfig.executablePath,
+      detectedVersion: siblingConfig.detectedVersion,
+      detectedAt: siblingConfig.detectedAt,
+    };
+  }
+
+  return config;
 };
 
 export const getAllEmulatorConfigs = async (): Promise<EmulatorConfigMap> => {
   const entries = await Promise.all(
-    SYSTEMS.map(async (s) => [s, await getEmulatorConfig(s)] as const)
+    EMULATOR_SYSTEMS.map(async (s) => [s, await getEmulatorConfig(s)] as const)
   );
   return Object.fromEntries(entries) as EmulatorConfigMap;
 };
@@ -35,6 +50,19 @@ export const setEmulatorConfig = async (
   config: EmulatorConfig
 ): Promise<EmulatorConfig> => {
   await emulatorsSublevel.put(config.system, config);
+
+  for (const sibling of systemsForBinary(config.binary)) {
+    if (sibling === config.system) continue;
+    const siblingConfig =
+      (await emulatorsSublevel.get(sibling)) ?? emptyConfig(sibling);
+    await emulatorsSublevel.put(sibling, {
+      ...siblingConfig,
+      executablePath: config.executablePath,
+      detectedVersion: config.detectedVersion,
+      detectedAt: config.detectedAt,
+    });
+  }
+
   return config;
 };
 
@@ -44,8 +72,7 @@ export const updateEmulatorConfig = async (
 ): Promise<EmulatorConfig> => {
   const current = await getEmulatorConfig(system);
   const next = patch(current);
-  await emulatorsSublevel.put(system, next);
-  return next;
+  return setEmulatorConfig(next);
 };
 
 export const recomputeTotals = (config: EmulatorConfig): EmulatorConfig => {
@@ -59,7 +86,7 @@ export const recomputeTotals = (config: EmulatorConfig): EmulatorConfig => {
 };
 
 export const resetEmulatorScanData = async (): Promise<void> => {
-  for (const system of SYSTEMS) {
+  for (const system of EMULATOR_SYSTEMS) {
     const existing = await emulatorsSublevel.get(system);
     if (!existing) continue;
     await emulatorsSublevel.put(system, {

@@ -45,6 +45,7 @@ import { CloudSubscriptionModal } from "./pages/shared-modals/hydra-cloud/cloud-
 import { AddFriendModal } from "./pages/profile/profile-content/add-friend-modal";
 import { ClassicsScanModal } from "./pages/settings/emulation/classics-scan-modal";
 import { RetroArchScanModal } from "./pages/settings/emulation/retroarch-scan-modal";
+import { CloudGiftNotificationModal } from "./pages/shared-modals/cloud-gift-notification-modal";
 
 import type { UserPreferences } from "@types";
 import "./app.scss";
@@ -234,6 +235,9 @@ export function App() {
           "install-pcsx2": 6192,
           "install-rpcs3": 6510,
           "install-retroarch": 7108,
+          "install-ppsspp": 7315,
+          "install-dolphin": 7268,
+          "wii-saves": 7384,
           "retroachievements-emulators": 6629,
         },
         en: {
@@ -245,6 +249,9 @@ export function App() {
           "install-pcsx2": 6390,
           "install-rpcs3": 6524,
           "install-retroarch": 7120,
+          "install-ppsspp": 7328,
+          "install-dolphin": 7281,
+          "wii-saves": 7406,
           "retroachievements-emulators": 6692,
         },
         ru: {
@@ -252,6 +259,9 @@ export function App() {
           "install-pcsx2": 6429,
           "install-rpcs3": 6541,
           "install-retroarch": 7135,
+          "install-ppsspp": 7338,
+          "install-dolphin": 7292,
+          "wii-saves": 7422,
           "retroachievements-emulators": 6717,
         },
         es: {
@@ -259,6 +269,9 @@ export function App() {
           "install-pcsx2": 6410,
           "install-rpcs3": 6552,
           "install-retroarch": 7142,
+          "install-ppsspp": 7375,
+          "install-dolphin": 7303,
+          "wii-saves": 7431,
           "retroachievements-emulators": 6743,
         },
       };
@@ -664,6 +677,8 @@ export function App() {
         onClose={hideHydraCloudModal}
         feature={hydraCloudFeature || undefined}
       />
+
+      <CloudGiftNotificationModal />
 
       <ArchiveDeletionModal
         visible={showArchiveDeletionModal}

@@ -26,9 +26,28 @@
     left: 12px;
     width: 140px;
     height: 94px;
-    object-fit: contain;
-    object-position: bottom left;
+    display: flex;
+    align-items: flex-end;
     pointer-events: none;
+
+    &-image {
+      width: 140px;
+      height: 94px;
+      object-fit: contain;
+      object-position: bottom left;
+    }
+
+    &--multiple {
+      width: 190px;
+      gap: 2px;
+
+      .console-card__art-image {
+        width: auto;
+        max-width: 110px;
+        height: 78px;
+        object-position: bottom center;
+      }
+    }
   }
 
   &__heading {

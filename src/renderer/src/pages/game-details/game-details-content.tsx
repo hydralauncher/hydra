@@ -15,9 +15,13 @@ import { DescriptionHeader } from "./description-header/description-header";
 import { GallerySlider } from "./gallery-slider/gallery-slider";
 import { Sidebar } from "./sidebar/sidebar";
 import { GameReviews } from "./game-reviews";
+import { ReviewPromptBanner } from "./review-prompt-banner";
+import { useReviewPrompt } from "./use-review-prompt";
+import { useUserReviewStatus } from "./use-user-review-status";
 import { GameLogo } from "./game-logo";
 import { CloudSaveWidget } from "./cloud-save-v2";
 import { getCloudSaveVisibility } from "./cloud-save-visibility";
+import { SimilarGames } from "./similar-games/similar-games";
 
 import { AuthPage } from "@shared";
 import { cloudSyncContext, gameDetailsContext } from "@renderer/context";
@@ -115,7 +119,6 @@ export function GameDetailsContent() {
   const [isDescriptionExpanded, setIsDescriptionExpanded] = useState(false);
   const [isDescriptionOverflowing, setIsDescriptionOverflowing] =
     useState(false);
-  const [hasUserReviewed, setHasUserReviewed] = useState(false);
   const descriptionRef = useRef<HTMLDivElement>(null);
 
   // Check if the current game is in the user's library
@@ -125,6 +128,32 @@ export function GameDetailsContent() {
       (libItem) => libItem.shop === shop && libItem.objectId === objectId
     );
   }, [library, shop, objectId]);
+
+  const { hasUserReviewed, isCheckingUserReview, updateHasUserReviewed } =
+    useUserReviewStatus({
+      shop,
+      objectId,
+      userDetailsId: userDetails?.id,
+    });
+
+  const { showPrompt, dismissPrompt } = useReviewPrompt({
+    shop,
+    objectId,
+    playTimeInMilliseconds: game?.playTimeInMilliseconds ?? 0,
+    userDetailsId: userDetails?.id,
+    isGameInLibrary,
+    hasUserReviewed,
+    isCheckingUserReview,
+  });
+
+  const handleReviewPromptYes = () => {
+    dismissPrompt({ persist: false });
+    reviewsRef.current?.scrollIntoView({ behavior: "smooth" });
+  };
+
+  const handleReviewPromptLater = () => {
+    dismissPrompt({ persist: true });
+  };
 
   useEffect(() => {
     setBackdropOpacity(1);
@@ -433,6 +462,14 @@ export function GameDetailsContent() {
         <div className="game-details__description-container">
           <div className="game-details__description-content">
             <DescriptionHeader />
+
+            {showPrompt && (
+              <ReviewPromptBanner
+                onYesClick={handleReviewPromptYes}
+                onLaterClick={handleReviewPromptLater}
+              />
+            )}
+
             <GallerySlider />
 
             <div
@@ -459,6 +496,10 @@ export function GameDetailsContent() {
               </button>
             )}
 
+            {shop && objectId && (
+              <SimilarGames objectId={objectId} shop={shop} />
+            )}
+
             {shop !== "custom" && shop && objectId && (
               <div ref={reviewsRef}>
                 <GameReviews
@@ -466,9 +507,9 @@ export function GameDetailsContent() {
                   objectId={objectId}
                   game={game}
                   userDetailsId={userDetails?.id}
-                  isGameInLibrary={isGameInLibrary}
                   hasUserReviewed={hasUserReviewed}
-                  onUserReviewedChange={setHasUserReviewed}
+                  isCheckingUserReview={isCheckingUserReview}
+                  onUserReviewedChange={updateHasUserReviewed}
                 />
               </div>
             )}

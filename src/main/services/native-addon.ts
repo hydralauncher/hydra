@@ -32,7 +32,7 @@ type NativeProcessProfileImageResponse = {
   mime_type?: string;
 };
 
-type NativeProcessFriendImageResponse = NativeProcessProfileImageResponse & {
+type NativeProcessSizedImageResponse = NativeProcessProfileImageResponse & {
   isAnimated?: boolean;
   is_animated?: boolean;
 };
@@ -49,13 +49,13 @@ type HydraNativeModule = {
     imagePath: string,
     targetExtension?: string
   ) => NativeProcessProfileImageResponse;
-  processFriendImage: (
+  processImage: (
     imagePath: string,
     outputPathBase: string,
     width: number,
     height: number,
     preserveAnimation: boolean
-  ) => Promise<NativeProcessFriendImageResponse>;
+  ) => Promise<NativeProcessSizedImageResponse>;
   listProcesses: () => ProcessPayload[];
   getLinuxActiveWindow: () => NativeActiveWindowResponse | null;
   buildLocalGameSnapshotPipeline: (
@@ -308,7 +308,7 @@ export class NativeAddon {
     }
   }
 
-  public static async processFriendImage(
+  public static async processImage(
     imagePath: string,
     outputPathBase: string,
     width: number,
@@ -316,7 +316,7 @@ export class NativeAddon {
     preserveAnimation: boolean
   ) {
     try {
-      const response = await this.load().processFriendImage(
+      const response = await this.load().processImage(
         imagePath,
         outputPathBase,
         width,

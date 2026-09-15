@@ -27,12 +27,16 @@ const OFFICIAL_WEBSITES: Record<EmulatorBinary, string> = {
   duckstation: "https://www.duckstation.org/",
   pcsx2: "https://pcsx2.net/",
   rpcs3: "https://rpcs3.net/",
+  ppsspp: "https://www.ppsspp.org/",
+  dolphin: "https://dolphin-emu.org/",
 };
 
-const ARTICLE_KEYS: Record<EmulatorBinary, string> = {
+const ARTICLE_KEYS: Partial<Record<EmulatorBinary, string>> = {
   duckstation: "install-duckstation",
   pcsx2: "install-pcsx2",
   rpcs3: "install-rpcs3",
+  ppsspp: "install-ppsspp",
+  dolphin: "install-dolphin",
 };
 
 const SEMVER_RE = /v?\d{1,9}\.\d{1,9}(?:\.\d{1,9})?/;
@@ -178,7 +182,11 @@ export function SetupStepDownload({ binary }: Readonly<Props>) {
                 disabled={Boolean(installingId) && !isInstalling}
               >
                 <div className="setup-modal__download-card-badge">
-                  <GitHubIcon size={20} />
+                  {binary === "dolphin" ? (
+                    <GlobeIcon size={20} />
+                  ) : (
+                    <GitHubIcon size={20} />
+                  )}
                 </div>
                 <div className="setup-modal__download-card-main">
                   <span className="setup-modal__download-card-title">
@@ -201,7 +209,11 @@ export function SetupStepDownload({ binary }: Readonly<Props>) {
                   type="button"
                   className="setup-modal__download-card-visit"
                   onClick={() => option.htmlUrl && openUrl(option.htmlUrl)}
-                  title={t("setup_view_on_github")}
+                  title={
+                    binary === "dolphin"
+                      ? t("setup_install_open_releases")
+                      : t("setup_view_on_github")
+                  }
                 >
                   <span className="setup-modal__download-card-url">
                     {visitLabel(option)}
@@ -256,25 +268,29 @@ export function SetupStepDownload({ binary }: Readonly<Props>) {
           </button>
         )}
 
-        <hr className="setup-modal__download-divider" />
+        {ARTICLE_KEYS[binary] && (
+          <>
+            <hr className="setup-modal__download-divider" />
 
-        <button
-          type="button"
-          className="setup-modal__download-card setup-modal__download-card--guide"
-          data-open-article={ARTICLE_KEYS[binary]}
-        >
-          <div className="setup-modal__download-card-badge">
-            <BookIcon size={20} />
-          </div>
-          <div className="setup-modal__download-card-main">
-            <span className="setup-modal__download-card-title">
-              {t("setup_install_guide_workwonders")}
-            </span>
-            <span className="setup-modal__download-card-desc">
-              {t("setup_install_guide_desc", { name })}
-            </span>
-          </div>
-        </button>
+            <button
+              type="button"
+              className="setup-modal__download-card setup-modal__download-card--guide"
+              data-open-article={ARTICLE_KEYS[binary]}
+            >
+              <div className="setup-modal__download-card-badge">
+                <BookIcon size={20} />
+              </div>
+              <div className="setup-modal__download-card-main">
+                <span className="setup-modal__download-card-title">
+                  {t("setup_install_guide_workwonders")}
+                </span>
+                <span className="setup-modal__download-card-desc">
+                  {t("setup_install_guide_desc", { name })}
+                </span>
+              </div>
+            </button>
+          </>
+        )}
       </div>
     </>
   );

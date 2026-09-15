@@ -213,7 +213,7 @@ export default function FriendsWindow() {
   const profile = userDetails;
 
   useEffect(() => {
-    if (typeof electron.getProcessedFriendImage !== "function") return;
+    if (typeof electron.getProcessedImage !== "function") return;
 
     const pendingImages = new Map<
       string,
@@ -269,7 +269,7 @@ export default function FriendsWindow() {
         await Promise.all(
           batch.map(async ([key, { imageUrl, size }]) => {
             const processedImageUrl = await electron
-              .getProcessedFriendImage(imageUrl, {
+              .getProcessedImage(imageUrl, {
                 width: size.width,
                 height: size.height,
                 preserveAnimation: true,

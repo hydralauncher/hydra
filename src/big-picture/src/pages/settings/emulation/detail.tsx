@@ -125,6 +125,10 @@ export function EmulationDetail({
         config.system,
         result.filePaths[0]
       );
+      if (!next) {
+        showErrorToast("Invalid emulator executable", SETTINGS_TOAST_OPTIONS);
+        return;
+      }
       onChange(next);
       showSuccessToast("Executable path updated", SETTINGS_TOAST_OPTIONS);
     } catch {
@@ -328,10 +332,12 @@ export function EmulationDetail({
         onRemove={() => setRemoveEmulatorOpen(true)}
       />
 
-      <p className="emulator-detail__bios-note">
-        <InfoIcon size={14} />
-        <span>{t("bios_note", { name: binaryName })}</span>
-      </p>
+      {(config.system === "ps1" || config.system === "ps2") && (
+        <p className="emulator-detail__bios-note">
+          <InfoIcon size={14} />
+          <span>{t("bios_note", { name: binaryName })}</span>
+        </p>
+      )}
 
       <ExecSection
         icon={binaryIcon ?? null}
@@ -389,7 +395,9 @@ export function EmulationDetail({
         }}
       />
 
-      {hasMemoryCardsSection ? (
+      {hasMemoryCardsSection ||
+      config.system === "psp" ||
+      config.system === "dolphin" ? (
         <CloudSavesSection
           config={config}
           refreshKey={cloudRefreshKey}
