@@ -2,7 +2,7 @@ import { parseLaunchOptions } from "@main/events/helpers/parse-launch-options";
 import path from "node:path";
 
 const commandPlaceholder = "%command%";
-const envVariableNameRegex = /^[A-Za-z_][A-Za-z0-9_]*$/;
+export const envVariableNameRegex = /^[A-Za-z_]\w*$/;
 
 export interface ResolveLaunchCommandOptions {
   baseCommand: string;
