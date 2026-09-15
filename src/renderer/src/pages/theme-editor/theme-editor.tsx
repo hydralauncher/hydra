@@ -1,338 +1,1455 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
-import "./theme-editor.scss";
-import Editor from "@monaco-editor/react";
-import { AchievementCustomNotificationPosition, Theme } from "@types";
-import { useSearchParams } from "react-router-dom";
-import { Button, SelectField, TextField } from "@renderer/components";
 import {
-  CheckIcon,
-  UploadIcon,
-  TrashIcon,
-  PlayIcon,
-} from "@primer/octicons-react";
-import { useTranslation } from "react-i18next";
-import cn from "classnames";
-import { injectCustomCss, getAchievementSoundVolume } from "@renderer/helpers";
-import { AchievementNotificationItem } from "@renderer/components/achievements/notification/achievement-notification";
-import { generateAchievementCustomNotificationTest } from "@shared";
-import { CollapsedMenu } from "@renderer/components/collapsed-menu/collapsed-menu";
+  useCallback,
+  useEffect,
+  useId,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
+import "./theme-editor.scss";
+import Editor, { type OnMount } from "@monaco-editor/react";
+import { Theme } from "@types";
+import { useSearchParams } from "react-router-dom";
+import { Button } from "@renderer/components";
+import { CheckIcon, UploadIcon } from "@primer/octicons-react";
+import { injectCustomCss } from "@renderer/helpers";
 import { levelDBService } from "@renderer/services/leveldb.service";
-import app from "../../app.scss?inline";
-import styles from "../../components/achievements/notification/achievement-notification.scss?inline";
-import root from "react-shadow";
+import {
+  EditorDocument,
+  EditorState,
+  HYDRA_TARGETS,
+  HYDRA_FONT_PRESETS,
+  TargetStyle,
+  VisualLayer,
+  findTarget,
+  findTargetBySelector,
+  getAllTargets,
+  generateVisualCss,
+  mergeVisualCss,
+  importCommunityCss,
+} from "./theme-editor-engine";
 
-const notificationVariations = {
-  default: "default",
-  rare: "rare",
-  platinum: "platinum",
-  hidden: "hidden",
+const EMPTY_STYLE: TargetStyle = {
+  color: "",
+  backgroundColor: "",
+  backgroundImage: "",
+  backgroundSize: "cover",
+  backgroundPosition: "center",
+  backgroundRepeat: "no-repeat",
+  opacity: 1,
+  borderColor: "",
+  borderWidth: 0,
+  borderRadius: 0,
+  boxShadow: "",
+  fontSize: 16,
+  fontWeight: 400,
+  letterSpacing: 0,
+  padding: "",
+  margin: "",
+  gap: 0,
+  transform: "",
+  transition: "all .2s ease",
+  backdropFilter: "",
+  filter: "",
+  fontFamily: "Noto Sans",
+  fontStyle: "normal",
+  lineHeight: "normal",
+  textTransform: "none",
+  borderStyle: "solid",
+  zIndex: 0,
+  customProperties: {},
+};
+
+const CATEGORIES = [
+  "Global",
+  "Navegação",
+  "Controles",
+  "Formulários",
+  "Cards",
+  "Páginas",
+  "Janelas",
+  "Menus",
+  "Notificações",
+  "Imagens e mídia",
+  "Estados",
+  "Componentes",
+  "Tipografia",
+  "CSS detectado",
+];
+
+const STATES: { id: EditorState; label: string }[] = [
+  { id: "normal", label: "Normal" },
+  { id: "hover", label: "Hover" },
+  { id: "active", label: "Ativo" },
+  { id: "focus", label: "Foco" },
+  { id: "disabled", label: "Desabilitado" },
+  { id: "selected", label: "Selecionado" },
+];
+
+const makeId = () => crypto.randomUUID();
+
+const defaultDocument = (): EditorDocument => ({
+  rules: [],
+  layers: [],
+  variables: {},
+  conditions: [],
+  discoveredTargets: [],
+});
+
+const decorationColor = (
+  status: "recognized" | "partial" | "unknown"
+): string => {
+  switch (status) {
+    case "recognized":
+      return "#35e3a0";
+    case "partial":
+      return "#f4c84c";
+    default:
+      return "#ef5555";
+  }
+};
+
+const decorationHoverMessage = (
+  change: ReturnType<typeof importCommunityCss>["changes"][number]
+): string => {
+  const conditions = change.conditions?.length
+    ? `\n\nCondições: ${change.conditions.join(" | ")}`
+    : "";
+  return `**${change.targetLabel}**\n\n\`${change.selector}\`\n\nPropriedades: ${change.properties.join(", ")}${conditions}`;
+};
+
+const createDecorations = (
+  editor: Parameters<OnMount>[0],
+  code: string,
+  changes: ReturnType<typeof importCommunityCss>["changes"]
+) => {
+  const model = editor.getModel();
+  if (!model) return [];
+
+  return changes.slice(0, 500).map((change) => {
+    const index = Math.max(0, code.indexOf(change.selector));
+    const line = model.getPositionAt(index).lineNumber;
+    const color = decorationColor(change.status);
+    return {
+      range: {
+        startLineNumber: line,
+        startColumn: 1,
+        endLineNumber: line,
+        endColumn: 1,
+      },
+      options: {
+        isWholeLine: true,
+        className: `theme-editor-source-line--${change.status}`,
+        overviewRuler: { color, position: 4 },
+        minimap: { color, position: 2 },
+        hoverMessage: { value: decorationHoverMessage(change) },
+      },
+    };
+  });
 };
 
 export default function ThemeEditor() {
   const [searchParams] = useSearchParams();
-  const [theme, setTheme] = useState<Theme | null>(null);
-  const [code, setCode] = useState("");
-  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
-  const [soundPath, setSoundPath] = useState<string>("");
-
-  const [isClosingNotifications, setIsClosingNotifications] = useState(false);
-
   const themeId = searchParams.get("themeId");
 
-  const { t, i18n } = useTranslation("settings");
+  const [theme, setTheme] = useState<Theme | null>(null);
+  const [document, setDocument] = useState<EditorDocument>(defaultDocument);
+  const [baseCode, setBaseCode] = useState("");
+  const [code, setCode] = useState("");
+  const [mode, setMode] = useState<"visual" | "css" | "assets">("visual");
+  const [category, setCategory] = useState("Global");
+  const [selectedTarget, setSelectedTarget] = useState(HYDRA_TARGETS[0].id);
+  const [selectedState, setSelectedState] = useState<EditorState>("normal");
+  const [search, setSearch] = useState("");
+  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
+  const [previewEnabled, setPreviewEnabled] = useState(true);
+  const [cssImportMessage, setCssImportMessage] = useState("");
+  const [importChanges, setImportChanges] = useState<
+    ReturnType<typeof importCommunityCss>["changes"]
+  >([]);
+  const [communityCss, setCommunityCss] = useState("");
+  const [previewCss, setPreviewCss] = useState("");
+  const [inspectorTab, setInspectorTab] = useState<
+    "style" | "layout" | "effects" | "advanced"
+  >("style");
+  const [fontScope, setFontScope] = useState<
+    | "global"
+    | "sidebar"
+    | "header"
+    | "buttons"
+    | "cards"
+    | "titles"
+    | "body"
+    | "inputs"
+  >("global");
+  const editorRef = useRef<Parameters<OnMount>[0] | null>(null);
+  const decorationRef = useRef<string[]>([]);
+  const previewHostRef = useRef<HTMLDivElement>(null);
 
-  const [notificationVariation, setNotificationVariation] =
-    useState<keyof typeof notificationVariations>("default");
-  const [notificationAlignment, setNotificationAlignment] =
-    useState<AchievementCustomNotificationPosition>("top-left");
-
-  const [shadowRootRef, setShadowRootRef] = useState<HTMLElement | null>(null);
-
-  const achievementPreview = useMemo(() => {
-    return {
-      achievement: generateAchievementCustomNotificationTest(t, i18n.language, {
-        isRare: notificationVariation === "rare",
-        isHidden: notificationVariation === "hidden",
-        isPlatinum: notificationVariation === "platinum",
-      }),
-      position: notificationAlignment,
-    };
-  }, [t, i18n.language, notificationVariation, notificationAlignment]);
+  const allTargets = useMemo(
+    () => getAllTargets(document.discoveredTargets ?? []),
+    [document.discoveredTargets]
+  );
+  const target =
+    findTarget(selectedTarget, document.discoveredTargets ?? []) ??
+    allTargets[0] ??
+    HYDRA_TARGETS[0];
 
   useEffect(() => {
     window.document.title = "Hydra - Theme Editor";
   }, []);
 
   useEffect(() => {
-    if (themeId) {
-      levelDBService.get(themeId, "themes").then((loadedTheme) => {
-        const theme = loadedTheme as Theme | null;
-        if (theme) {
-          setTheme(theme);
-          setCode(theme.code);
-          if (theme.originalSoundPath) {
-            setSoundPath(theme.originalSoundPath);
-          }
-          if (shadowRootRef) {
-            injectCustomCss(theme.code, shadowRootRef);
-          }
-        }
-      });
-    }
-  }, [themeId, shadowRootRef]);
-
-  const handleSave = useCallback(async () => {
-    if (theme) {
-      await window.electron.updateCustomTheme(theme.id, code);
-      setHasUnsavedChanges(false);
-      setIsClosingNotifications(true);
-      setTimeout(() => {
-        if (shadowRootRef) {
-          injectCustomCss(code, shadowRootRef);
-        }
-
-        setIsClosingNotifications(false);
-      }, 450);
-    }
-  }, [code, theme, shadowRootRef]);
+    if (!themeId) return;
+    levelDBService.get(themeId, "themes").then((loadedTheme) => {
+      const loaded = loadedTheme as Theme | null;
+      if (!loaded) return;
+      setTheme(loaded);
+      setBaseCode(loaded.code || "");
+      setCode(loaded.code || "");
+      injectCustomCss(loaded.code || "");
+    });
+  }, [themeId]);
 
   useEffect(() => {
-    const handleKeyDown = (event: KeyboardEvent) => {
-      if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "s") {
-        event.preventDefault();
-        handleSave();
+    const unsubscribe = window.electron.onThemePreviewElementClicked(
+      (selectors) => {
+        const candidates = Array.isArray(selectors) ? selectors : [selectors];
+        const hit = candidates
+          .map((selector) =>
+            findTargetBySelector(
+              [selector],
+              [...(document.discoveredTargets ?? []), ...allTargets]
+            )
+          )
+          .find(Boolean);
+
+        if (hit) {
+          selectTarget(hit.id);
+        }
       }
+    );
+
+    return unsubscribe;
+  }, [document.discoveredTargets, allTargets]);
+
+  useEffect(() => {
+    if (!previewEnabled || !previewCss) return;
+    void window.electron.updateThemePreviewCss(themeId ?? "", previewCss);
+  }, [previewCss, previewEnabled, themeId]);
+
+  useEffect(() => {
+    if (!themeId) return;
+
+    const hidePreview = () => {
+      void window.electron.updateThemePreviewBounds(themeId, {
+        x: 0,
+        y: 0,
+        width: 0,
+        height: 0,
+      });
     };
 
-    window.addEventListener("keydown", handleKeyDown);
+    // O Hydra real pertence exclusivamente ao Editor Visual.
+    // Em CSS/Assets ele precisa ficar completamente fora da área útil.
+    if (!previewEnabled || mode !== "visual" || !previewHostRef.current) {
+      hidePreview();
+      return;
+    }
+
+    const sendBounds = () => {
+      const host = previewHostRef.current;
+      if (!host) {
+        hidePreview();
+        return;
+      }
+
+      const rect = host.getBoundingClientRect();
+
+      // O retângulo é relativo à janela do editor. Só enviamos
+      // dimensões válidas para o WebContentsView.
+      if (rect.width <= 0 || rect.height <= 0) {
+        hidePreview();
+        return;
+      }
+
+      void window.electron.updateThemePreviewBounds(themeId, {
+        x: Math.round(rect.left),
+        y: Math.round(rect.top),
+        width: Math.round(rect.width),
+        height: Math.round(rect.height),
+      });
+    };
+
+    sendBounds();
+
+    const observer = new ResizeObserver(sendBounds);
+    observer.observe(previewHostRef.current);
+
+    window.addEventListener("resize", sendBounds);
 
     return () => {
-      window.removeEventListener("keydown", handleKeyDown);
-    };
-  }, [code, handleSave, theme]);
+      observer.disconnect();
+      window.removeEventListener("resize", sendBounds);
 
-  const handleEditorChange = (value: string | undefined) => {
-    if (value !== undefined) {
-      setCode(value);
-      setHasUnsavedChanges(true);
+      // Sempre que o modo mudar, o preview anterior é escondido antes
+      // de o novo layout assumir a tela.
+      hidePreview();
+    };
+  }, [themeId, mode, previewEnabled]);
+
+  const updatePreview = useCallback(
+    (nextDocument: EditorDocument, nextBaseCode = baseCode) => {
+      const nextCss = generateVisualCss(nextDocument);
+      const merged = mergeVisualCss(nextBaseCode, nextCss);
+      setCode(merged);
+      setPreviewCss(merged);
+      if (previewEnabled) injectCustomCss(merged);
+    },
+    [baseCode, previewEnabled]
+  );
+
+  const getRule = (targetId: string, state: EditorState) =>
+    document.rules.find(
+      (rule) => rule.targetId === targetId && rule.state === state
+    );
+
+  const updateStyle = (patch: Partial<TargetStyle>) => {
+    const existing = getRule(selectedTarget, selectedState);
+    const rules = [...document.rules];
+
+    if (existing) {
+      const index = rules.indexOf(existing);
+      rules[index] = {
+        ...existing,
+        style: { ...existing.style, ...patch },
+      };
+    } else {
+      rules.push({
+        targetId: selectedTarget,
+        state: selectedState,
+        style: { ...EMPTY_STYLE, ...patch },
+      });
     }
+
+    const next = { ...document, rules };
+    setDocument(next);
+    setHasUnsavedChanges(true);
+    updatePreview(next);
   };
 
-  const handleSelectSound = useCallback(async () => {
-    if (!theme) return;
+  const updateLayer = (id: string, patch: Partial<VisualLayer>) => {
+    const next = {
+      ...document,
+      layers: document.layers.map((layer) =>
+        layer.id === id ? { ...layer, ...patch } : layer
+      ),
+    };
+    setDocument(next);
+    setHasUnsavedChanges(true);
+    updatePreview(next);
+  };
 
+  const removeLayer = (id: string) => {
+    const next = {
+      ...document,
+      layers: document.layers.filter((layer) => layer.id !== id),
+    };
+    setDocument(next);
+    setHasUnsavedChanges(true);
+    updatePreview(next);
+  };
+
+  const addLayer = async () => {
     const { filePaths } = await window.electron.showOpenDialog({
       properties: ["openFile"],
       filters: [
         {
-          name: "Audio",
-          extensions: ["wav", "mp3", "ogg", "m4a"],
+          name: "Imagens",
+          extensions: ["png", "jpg", "jpeg", "webp", "gif", "svg"],
         },
       ],
     });
 
-    if (filePaths && filePaths.length > 0) {
-      const originalPath = filePaths[0];
-      await window.electron.copyThemeAchievementSound(theme.id, originalPath);
-      const updatedTheme = (await levelDBService.get(
-        theme.id,
-        "themes"
-      )) as Theme | null;
-      if (updatedTheme) {
-        setTheme(updatedTheme);
-        if (updatedTheme.originalSoundPath) {
-          setSoundPath(updatedTheme.originalSoundPath);
-        }
-      }
-    }
-  }, [theme]);
+    if (!filePaths?.[0]) return;
 
-  const handleRemoveSound = useCallback(async () => {
+    const layer: VisualLayer = {
+      id: makeId(),
+      name: "Nova textura",
+      kind: "texture",
+      targetId: selectedTarget,
+      image: filePaths[0],
+      opacity: 0.15,
+      size: "cover",
+      position: "center",
+      repeat: "no-repeat",
+      blendMode: "overlay",
+      enabled: true,
+    };
+
+    const next = { ...document, layers: [...document.layers, layer] };
+    setDocument(next);
+    setHasUnsavedChanges(true);
+    updatePreview(next);
+  };
+
+  const save = async () => {
     if (!theme) return;
-
-    await window.electron.removeThemeAchievementSound(theme.id);
-    const updatedTheme = (await levelDBService.get(
+    await window.electron.updateCustomTheme(theme.id, code);
+    setBaseCode(code);
+    setHasUnsavedChanges(false);
+    const refreshed = (await levelDBService.get(
       theme.id,
       "themes"
     )) as Theme | null;
-    if (updatedTheme) {
-      setTheme(updatedTheme);
-    }
-    setSoundPath("");
-  }, [theme]);
+    if (refreshed) setTheme(refreshed);
+  };
 
-  const handlePreviewSound = useCallback(async () => {
-    if (!theme) return;
+  useEffect(() => {
+    if (previewEnabled && previewCss) injectCustomCss(previewCss);
+  }, [previewEnabled, previewCss]);
 
-    let soundUrl: string;
-
-    if (theme.hasCustomSound) {
-      const themeSoundUrl = await window.electron.getThemeSoundDataUrl(
-        theme.id
-      );
-      if (themeSoundUrl) {
-        soundUrl = themeSoundUrl;
-      } else {
-        const defaultSound = (
-          await import("@renderer/assets/audio/achievement.wav")
-        ).default;
-        soundUrl = defaultSound;
+  useEffect(() => {
+    const key = (event: KeyboardEvent) => {
+      if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "s") {
+        event.preventDefault();
+        void save();
       }
+    };
+    window.addEventListener("keydown", key);
+    return () => window.removeEventListener("keydown", key);
+  });
+
+  const filteredTargets = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    return allTargets.filter(
+      (item) =>
+        item.category === category &&
+        (!q ||
+          item.label.toLowerCase().includes(q) ||
+          item.selector.toLowerCase().includes(q))
+    );
+  }, [allTargets, category, search]);
+
+  const currentRule = getRule(selectedTarget, selectedState);
+  const currentStyle = currentRule
+    ? { ...EMPTY_STYLE, ...currentRule.style }
+    : EMPTY_STYLE;
+  const selectTarget = (id: string, state: EditorState = "normal") => {
+    const item = findTarget(id);
+    if (!item) return;
+    setSelectedTarget(id);
+    setSelectedState(state);
+    setCategory(item.category);
+  };
+  const visibleImportChanges = useMemo(
+    () =>
+      importChanges.filter(
+        (change) => !change.targetId || change.targetId === selectedTarget
+      ),
+    [importChanges, selectedTarget]
+  );
+
+  const updateCustomProperty = (property: string, value: string) => {
+    const existing = getRule(selectedTarget, selectedState);
+    const rules = [...document.rules];
+    if (existing) {
+      const index = rules.indexOf(existing);
+      rules[index] = {
+        ...existing,
+        style: {
+          ...existing.style,
+          customProperties: existing.style.customProperties
+            ? { ...existing.style.customProperties, [property]: value }
+            : { [property]: value },
+        },
+      };
     } else {
-      const defaultSound = (
-        await import("@renderer/assets/audio/achievement.wav")
-      ).default;
-      soundUrl = defaultSound;
+      rules.push({
+        targetId: selectedTarget,
+        state: selectedState,
+        style: { ...EMPTY_STYLE, customProperties: { [property]: value } },
+      });
+    }
+    const next = { ...document, rules };
+    setDocument(next);
+    setHasUnsavedChanges(true);
+    updatePreview(next);
+  };
+
+  const updateVariable = (name: string, value: string) => {
+    const variables = document.variables
+      ? { ...document.variables, [name]: value }
+      : { [name]: value };
+    const next = { ...document, variables };
+    setDocument(next);
+    setHasUnsavedChanges(true);
+    updatePreview(next);
+  };
+
+  const addVariable = () => {
+    const name = `--theme-${Object.keys(document.variables ?? {}).length + 1}`;
+    updateVariable(name, "#ffffff");
+  };
+
+  const readCssIntoEditor = () => {
+    const result = importCommunityCss(code);
+
+    if (
+      !result.recognizedRules &&
+      !Object.keys(result.document.variables ?? {}).length &&
+      !result.document.discoveredTargets?.length
+    ) {
+      setImportChanges(result.changes);
+      setCommunityCss(code);
+      setCssImportMessage(
+        "O CSS foi carregado, mas nenhum seletor conhecido foi convertido para o editor visual."
+      );
+      setPreviewCss(code);
+      if (previewEnabled) injectCustomCss(code);
+      return;
     }
 
-    const volume = await getAchievementSoundVolume();
-    const audio = new Audio(soundUrl);
-    audio.volume = volume;
-    audio.play();
-  }, [theme]);
+    setDocument(result.document);
+    setImportChanges(result.changes);
+    setCommunityCss(code);
+    setHasUnsavedChanges(true);
 
-  const achievementCustomNotificationPositionOptions = useMemo(() => {
-    return [
-      "top-left",
-      "top-center",
-      "top-right",
-      "bottom-left",
-      "bottom-center",
-      "bottom-right",
-    ].map((position) => ({
-      key: position,
-      value: position,
-      label: t(position),
-    }));
-  }, [t]);
+    // Critical: imported CSS is immediately applied to the real Hydra preview.
+    // The visual model is also populated from the imported declarations.
+    setBaseCode(code);
+    setPreviewCss(code);
+    if (previewEnabled) injectCustomCss(code);
+
+    const unknown = result.unknownSelectors.length;
+    setCssImportMessage(
+      `${result.recognizedRules} regras · ${result.recognizedDeclarations} propriedades convertidas para a engine` +
+        (unknown ? ` · ${unknown} seletores mantidos como CSS bruto` : "")
+    );
+    setMode("visual");
+
+    // Focus first recognized target, making the imported modifications visible.
+    const first = result.changes.find((change) => change.status !== "unknown");
+    if (first) {
+      setSelectedTarget(first.targetId);
+      setSelectedState(first.state);
+      setCategory(
+        findTarget(first.targetId, result.document.discoveredTargets ?? [])
+          ?.category ?? "Global"
+      );
+    }
+  };
+
+  const updateCode = (next: string) => {
+    setCode(next);
+    setBaseCode(next);
+    setPreviewCss(next);
+    setHasUnsavedChanges(true);
+    if (previewEnabled) injectCustomCss(next);
+  };
+
+  // Monaco CSS is a live source of truth. Persisting the active theme after a
+  // short debounce makes Hydra reload the complete CSS, not just visual edits.
+  useEffect(() => {
+    if (!theme || !hasUnsavedChanges) return;
+
+    const timer = window.setTimeout(async () => {
+      try {
+        await window.electron.updateCustomTheme(theme.id, code);
+        if (previewEnabled) injectCustomCss(code);
+      } catch (error) {
+        console.error("failed to live-preview custom theme:", error);
+      }
+    }, 500);
+
+    return () => window.clearTimeout(timer);
+  }, [code, hasUnsavedChanges, theme, previewEnabled]);
+
+  useEffect(() => {
+    const editor = editorRef.current;
+    if (!editor) return;
+
+    const decorations = createDecorations(editor, code, importChanges);
+    decorationRef.current = editor.deltaDecorations(
+      decorationRef.current,
+      decorations
+    );
+  }, [code, importChanges]);
 
   return (
-    <div className="theme-editor">
-      <div
-        className={cn("theme-editor__header", {
-          "theme-editor__header--darwin": window.electron.platform === "darwin",
-        })}
-      >
-        <h1>{theme?.name}</h1>
-        {hasUnsavedChanges && (
-          <div className="theme-editor__header__status"></div>
-        )}
+    <div
+      className={`theme-editor-pro ${window.electron.platform === "darwin" ? "theme-editor-pro--darwin" : ""}`}
+    >
+      <header className="theme-editor-pro__topbar">
+        <div className="brand">
+          <div className="brand__mark">H</div>
+          <div>
+            <strong>HYDRA</strong>
+            <span>THEME EDITOR</span>
+          </div>
+        </div>
+
+        <div className="topbar-title">
+          <strong>Personalize tudo. Do seu jeito.</strong>
+          <span>Editor visual completo para temas do Hydra.</span>
+        </div>
+
+        <div className="topbar-actions">
+          <Button
+            theme="outline"
+            onClick={() => setDocument(defaultDocument())}
+          >
+            Novo
+          </Button>
+          <Button theme="outline" onClick={() => setMode("css")}>
+            Código CSS
+          </Button>
+          <Button theme="outline" onClick={addLayer}>
+            <UploadIcon /> Assets
+          </Button>
+          <Button
+            theme="outline"
+            onClick={() => void save()}
+            disabled={!hasUnsavedChanges}
+          >
+            <CheckIcon /> Salvar
+          </Button>
+          <Button theme="primary" onClick={() => void save()}>
+            Aplicar no Hydra
+          </Button>
+        </div>
+      </header>
+
+      <div className="theme-editor-pro__toolbar">
+        <div className="mode-tabs">
+          <button
+            className={mode === "visual" ? "active" : ""}
+            onClick={() => setMode("visual")}
+          >
+            ▣ Editor Visual
+          </button>
+          <button
+            className={mode === "css" ? "active" : ""}
+            onClick={() => setMode("css")}
+          >
+            {"</>"} Código CSS
+          </button>
+          <button
+            className={mode === "assets" ? "active" : ""}
+            onClick={() => setMode("assets")}
+          >
+            ▧ Assets
+          </button>
+        </div>
+        <div className="toolbar-right">
+          <span>Modo de visualização</span>
+          <select defaultValue="hydra">
+            <option value="hydra">Hydra (Principal)</option>
+            <option value="big-picture">Big Picture</option>
+          </select>
+          <label className="switch" htmlFor="theme-preview-enabled">
+            <input
+              id="theme-preview-enabled"
+              aria-label="Ativar preview em tempo real"
+              checked={previewEnabled}
+              onChange={(e) => setPreviewEnabled(e.target.checked)}
+              type="checkbox"
+            />
+            <span />
+          </label>
+          <small>Preview em tempo real</small>
+        </div>
       </div>
 
-      <div className="theme-editor__editor">
-        <div
-          style={{
-            position: "absolute",
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
-          }}
-        >
+      {mode === "css" ? (
+        <section className="css-mode">
+          <div className="css-import-bar css-import-bar--compact">
+            <strong>CSS da comunidade</strong>
+            <button className="css-read-button" onClick={readCssIntoEditor}>
+              ⚡ Ler CSS
+            </button>
+            {cssImportMessage && <small>{cssImportMessage}</small>}
+          </div>
           <Editor
             theme="vs-dark"
-            defaultLanguage="css"
+            onMount={(editor) => {
+              editorRef.current = editor;
+            }}
+            language="css"
             value={code}
-            onChange={handleEditorChange}
+            onChange={(value) => updateCode(value ?? "")}
             options={{
               minimap: { enabled: false },
               fontSize: 14,
-              lineNumbers: "on",
               wordWrap: "on",
               automaticLayout: true,
+              padding: { top: 18 },
             }}
           />
-        </div>
-      </div>
+        </section>
+      ) : (
+        <>
+          {communityCss && (
+            <div className="imported-theme-strip">
+              <div>
+                <strong>Tema da comunidade carregado</strong>
+                <span>
+                  {importChanges.filter((c) => c.status !== "unknown").length}{" "}
+                  modificações detectadas · o CSS original permanece como base.
+                </span>
+              </div>
+              <button
+                onClick={() => {
+                  setMode("css");
+                }}
+              >
+                Ver CSS original
+              </button>
+            </div>
+          )}
+          <main className="theme-editor-pro__workspace">
+            <aside className="panel navigation">
+              <div className="panel-title">NAVEGAÇÃO</div>
+              <div className="search-box">
+                <input
+                  placeholder="Buscar componente..."
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                />
+              </div>
+              <div className="category-list">
+                {CATEGORIES.map((item) => (
+                  <button
+                    key={item}
+                    className={category === item ? "active" : ""}
+                    onClick={() => setCategory(item)}
+                  >
+                    <span>{category === item ? "▸" : "·"}</span>
+                    {item}
+                  </button>
+                ))}
+              </div>
+              <div className="target-list">
+                {filteredTargets.map((item) => (
+                  <button
+                    key={item.id}
+                    className={selectedTarget === item.id ? "selected" : ""}
+                    onClick={() => {
+                      setSelectedTarget(item.id);
+                      setSelectedState("normal");
+                    }}
+                  >
+                    <span>□</span>
+                    {item.label}
+                  </button>
+                ))}
+              </div>
+            </aside>
 
-      <div className="theme-editor__footer">
-        <CollapsedMenu title={t("notification_preview")}>
-          <div className="theme-editor__notification-preview">
-            <div className="theme-editor__notification-preview-controls">
-              <div className="theme-editor__notification-controls">
-                <SelectField
-                  className="theme-editor__notification-preview__select-variation"
-                  label={t("variation")}
-                  options={Object.values(notificationVariations).map(
-                    (variation) => {
-                      return {
-                        key: variation,
-                        value: variation,
-                        label: t(variation),
-                      };
-                    }
+            <section className="center">
+              <div className="panel-title center-title">
+                PREVIEW — HYDRA (PRINCIPAL) — {target.label.toUpperCase()}
+                <span className="live-dot">● LIVE</span>
+              </div>
+              <div
+                ref={previewHostRef}
+                className="hydra-preview theme-editor-preview theme-editor-preview-host"
+              >
+                <div className="real-preview-placeholder">
+                  <div className="real-preview-placeholder__title">
+                    HYDRA REAL — PREVIEW
+                  </div>
+                  <div className="real-preview-placeholder__text">
+                    Navegue normalmente. Segure <kbd>Ctrl</kbd> e clique em
+                    qualquer elemento para selecioná-lo no editor.
+                  </div>
+                </div>
+              </div>
+              <div className="bottom-panels">
+                <div className="mini-panel states">
+                  <div className="panel-title">ESTADOS DO ELEMENTO</div>
+                  {STATES.map((item) => (
+                    <button
+                      key={item.id}
+                      className={selectedState === item.id ? "active" : ""}
+                      onClick={() => setSelectedState(item.id)}
+                    >
+                      ● {item.label}
+                    </button>
+                  ))}
+                </div>
+                <div className="mini-panel assets">
+                  <div className="panel-title">
+                    ASSETS DO TEMA{" "}
+                    <button onClick={addLayer}>＋ Adicionar</button>
+                  </div>
+                  <div className="asset-grid">
+                    {document.layers.length === 0 && (
+                      <div className="empty-assets">
+                        Adicione imagens, texturas e overlays.
+                      </div>
+                    )}
+                    {document.layers.map((layer) => (
+                      <div className="asset" key={layer.id}>
+                        <div className="asset-thumb">▧</div>
+                        <span>{layer.name}</span>
+                        <button
+                          title="Remover camada"
+                          onClick={() => removeLayer(layer.id)}
+                        >
+                          ×
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+                <div className="mini-panel generated">
+                  <div className="panel-title">ALTERAÇÕES DETECTADAS</div>
+                  <div className="change-list">
+                    {visibleImportChanges.length === 0 && (
+                      <div className="empty-assets">
+                        Importe um tema CSS para identificar as variáveis e
+                        condições modificadas.
+                      </div>
+                    )}
+                    {visibleImportChanges.slice(0, 80).map((change, index) => (
+                      <button
+                        key={`${change.selector}-${index}`}
+                        className={`change-row ${change.status}`}
+                        onClick={() => {
+                          if (change.targetId) {
+                            setSelectedTarget(change.targetId);
+                            setSelectedState(change.state);
+                            setCategory(
+                              findTarget(
+                                change.targetId,
+                                document.discoveredTargets ?? []
+                              )?.category ?? "Global"
+                            );
+                          }
+                        }}
+                      >
+                        <span className="change-marker" />
+                        <span className="change-main">
+                          <strong>{change.targetLabel}</strong>
+                          <code>{change.selector}</code>
+                        </span>
+                        <span className="change-properties">
+                          {change.properties.join(", ")}
+                          {change.conditions?.length
+                            ? ` · ${change.conditions.join(" | ")}`
+                            : ""}
+                        </span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </section>
+
+            <aside className="panel inspector">
+              <div className="panel-title">PROPRIEDADES DO ELEMENTO</div>
+              <div className="element-name">
+                <span>{target.label}</span>
+                <code>{target.selector}</code>
+              </div>
+
+              <div className="inspector-tabs">
+                {(
+                  [
+                    ["style", "Estilo"],
+                    ["layout", "Layout"],
+                    ["effects", "Efeitos"],
+                    ["advanced", "Avançado"],
+                  ] as const
+                ).map(([id, label]) => (
+                  <button
+                    key={id}
+                    className={inspectorTab === id ? "active" : ""}
+                    onClick={() => setInspectorTab(id)}
+                  >
+                    {label}
+                  </button>
+                ))}
+              </div>
+              <div className="inspector-change-summary">
+                <span className="summary-marker" />
+                <div>
+                  <strong>{target.label}</strong>
+                  <code>{target.selector}</code>
+                </div>
+                <small>
+                  {currentRule
+                    ? `${Object.keys(currentRule.style).length} propriedades alteradas`
+                    : "Sem alterações ainda"}
+                </small>
+              </div>
+              {inspectorTab === "style" && (
+                <>
+                  {category === "Tipografia" && (
+                    <div className="font-editor-card">
+                      <div className="section-heading-row">
+                        <strong>EDITOR DE FONTES</strong>
+                        <span className="font-scope-badge">{fontScope}</span>
+                      </div>
+                      <label htmlFor="font-scope">Área que será alterada</label>
+                      <select
+                        id="font-scope"
+                        className="wide-input"
+                        value={fontScope}
+                        onChange={(e) => {
+                          const scope = e.target.value as typeof fontScope;
+                          setFontScope(scope);
+                          const map: Record<typeof fontScope, string> = {
+                            global: "font-global",
+                            sidebar: "font-sidebar",
+                            header: "font-header",
+                            buttons: "font-button",
+                            cards: "font-game-card",
+                            titles: "font-title",
+                            body: "font-body-text",
+                            inputs: "font-input",
+                          };
+                          const id = map[scope];
+                          if (id) selectTarget(id);
+                        }}
+                      >
+                        <option value="global">Hydra inteiro</option>
+                        <option value="sidebar">Somente Sidebar</option>
+                        <option value="header">Somente Header</option>
+                        <option value="buttons">Todos os botões</option>
+                        <option value="cards">Cards / jogos</option>
+                        <option value="titles">Títulos</option>
+                        <option value="body">Textos</option>
+                        <option value="inputs">Campos / formulários</option>
+                      </select>
+                      <label htmlFor="font-model">Modelo de fonte</label>
+                      <select
+                        id="font-model"
+                        className="wide-input"
+                        value={
+                          currentStyle.fontFamily ??
+                          HYDRA_FONT_PRESETS[0].family
+                        }
+                        onChange={(e) =>
+                          updateStyle({ fontFamily: e.target.value })
+                        }
+                      >
+                        {HYDRA_FONT_PRESETS.map((font) => (
+                          <option key={font.id} value={font.family}>
+                            {font.label}
+                          </option>
+                        ))}
+                      </select>
+                      <div
+                        className="font-preview-sample"
+                        style={{
+                          fontFamily:
+                            currentStyle.fontFamily ??
+                            HYDRA_FONT_PRESETS[0].family,
+                        }}
+                      >
+                        Aa — Hydra Theme Editor
+                      </div>
+                      <InspectorField
+                        label="Estilo"
+                        value={currentStyle.fontStyle ?? "normal"}
+                        onChange={(v) => updateStyle({ fontStyle: v })}
+                        placeholder="normal / italic / oblique"
+                      />
+                      <InspectorField
+                        label="Altura da linha"
+                        value={currentStyle.lineHeight ?? "normal"}
+                        onChange={(v) => updateStyle({ lineHeight: v })}
+                        placeholder="1.4 / 20px"
+                      />
+                      <InspectorField
+                        label="Transformação"
+                        value={currentStyle.textTransform ?? "none"}
+                        onChange={(v) => updateStyle({ textTransform: v })}
+                        placeholder="none / uppercase / lowercase"
+                      />
+                      <RangeField
+                        label="Peso"
+                        value={Number(currentStyle.fontWeight ?? 400)}
+                        suffix=""
+                        min={100}
+                        max={900}
+                        step={100}
+                        onChange={(v) => updateStyle({ fontWeight: v })}
+                      />
+                      <RangeField
+                        label="Tamanho"
+                        value={Number(currentStyle.fontSize ?? 16)}
+                        suffix="px"
+                        min={8}
+                        max={72}
+                        onChange={(v) => updateStyle({ fontSize: v })}
+                      />
+                      <RangeField
+                        label="Espaçamento"
+                        value={Number(currentStyle.letterSpacing ?? 0)}
+                        suffix="px"
+                        min={-3}
+                        max={12}
+                        step={0.5}
+                        onChange={(v) => updateStyle({ letterSpacing: v })}
+                      />
+                    </div>
                   )}
-                  onChange={(value) =>
-                    setNotificationVariation(
-                      value.target.value as keyof typeof notificationVariations
-                    )
-                  }
-                />
-
-                <SelectField
-                  label={t("alignment")}
-                  value={notificationAlignment}
-                  onChange={(e) =>
-                    setNotificationAlignment(
-                      e.target.value as AchievementCustomNotificationPosition
-                    )
-                  }
-                  options={achievementCustomNotificationPositionOptions}
-                />
-              </div>
-            </div>
-
-            <TextField
-              label={t("select_achievement_sound")}
-              value={soundPath || ""}
-              placeholder={soundPath ? undefined : t("no_sound_file_selected")}
-              readOnly
-              disabled
-              rightContent={
-                <Button theme="outline" onClick={handleSelectSound}>
-                  <UploadIcon />
-                  {t("select")}
-                </Button>
-              }
-            />
-
-            {theme?.hasCustomSound && (
-              <div className="theme-editor__sound-actions-row">
-                <Button theme="outline" onClick={handleRemoveSound}>
-                  <TrashIcon />
-                  {t("remove")}
-                </Button>
-                <Button theme="outline" onClick={handlePreviewSound}>
-                  <PlayIcon />
-                  {t("preview")}
-                </Button>
-              </div>
-            )}
-
-            <div className="theme-editor__notification-preview-wrapper">
-              <root.div>
-                <style type="text/css">
-                  {app} {styles}
-                </style>
-                <section ref={setShadowRootRef}>
-                  <AchievementNotificationItem
-                    position={achievementPreview.position}
-                    achievement={achievementPreview.achievement}
-                    isClosing={isClosingNotifications}
+                  <InspectorField
+                    label="Cor de fundo"
+                    value={currentStyle.backgroundColor ?? ""}
+                    onChange={(v) => updateStyle({ backgroundColor: v })}
+                    type="color"
                   />
-                </section>
-              </root.div>
-            </div>
-          </div>
-        </CollapsedMenu>
+                  <InspectorField
+                    label="Cor do texto"
+                    value={currentStyle.color ?? ""}
+                    onChange={(v) => updateStyle({ color: v })}
+                    type="color"
+                  />
+                  <InspectorField
+                    label="Imagem de fundo"
+                    value={currentStyle.backgroundImage ?? ""}
+                    onChange={(v) => updateStyle({ backgroundImage: v })}
+                    placeholder="url(...)"
+                  />
+                  <RangeField
+                    label="Opacidade"
+                    value={Number(currentStyle.opacity ?? 1) * 100}
+                    suffix="%"
+                    min={0}
+                    max={100}
+                    onChange={(v) => updateStyle({ opacity: v / 100 })}
+                  />
+                  <RangeField
+                    label="Raio da borda"
+                    value={Number(currentStyle.borderRadius ?? 0)}
+                    suffix="px"
+                    min={0}
+                    max={50}
+                    onChange={(v) => updateStyle({ borderRadius: v })}
+                  />
+                  <RangeField
+                    label="Tamanho da fonte"
+                    value={Number(currentStyle.fontSize ?? 16)}
+                    suffix="px"
+                    min={8}
+                    max={72}
+                    onChange={(v) => updateStyle({ fontSize: v })}
+                  />
+                  <div className="inspector-section">
+                    <label htmlFor="font-family">Família da fonte</label>
+                    <select
+                      id="font-family"
+                      className="wide-input"
+                      value={currentStyle.fontFamily ?? "Noto Sans"}
+                      onChange={(e) =>
+                        updateStyle({ fontFamily: e.target.value })
+                      }
+                    >
+                      {[
+                        "Noto Sans",
+                        "Inter",
+                        "Roboto",
+                        "Open Sans",
+                        "Montserrat",
+                        "Poppins",
+                        "Space Grotesk",
+                        "Rubik",
+                        "Oswald",
+                        "Lato",
+                        "Nunito",
+                        "Ubuntu",
+                        "JetBrains Mono",
+                        "Fira Code",
+                        "Cascadia Code",
+                        "Arial",
+                        "Helvetica",
+                        "Georgia",
+                        "serif",
+                        "sans-serif",
+                        "monospace",
+                      ].map((font) => (
+                        <option key={font} value={font}>
+                          {font}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <InspectorField
+                    label="Estilo da fonte"
+                    value={currentStyle.fontStyle ?? "normal"}
+                    onChange={(v) => updateStyle({ fontStyle: v })}
+                    placeholder="normal / italic"
+                  />
+                  <InspectorField
+                    label="Altura da linha"
+                    value={currentStyle.lineHeight ?? "normal"}
+                    onChange={(v) => updateStyle({ lineHeight: v })}
+                    placeholder="1.4 / 20px"
+                  />
+                  <InspectorField
+                    label="Transformação do texto"
+                    value={currentStyle.textTransform ?? "none"}
+                    onChange={(v) => updateStyle({ textTransform: v })}
+                    placeholder="none / uppercase"
+                  />
+                  <RangeField
+                    label="Peso da fonte"
+                    value={Number(currentStyle.fontWeight ?? 400)}
+                    suffix=""
+                    min={100}
+                    max={900}
+                    step={100}
+                    onChange={(v) => updateStyle({ fontWeight: v })}
+                  />
+                  <RangeField
+                    label="Espaçamento"
+                    value={Number(currentStyle.letterSpacing ?? 0)}
+                    suffix="px"
+                    min={-3}
+                    max={10}
+                    step={0.5}
+                    onChange={(v) => updateStyle({ letterSpacing: v })}
+                  />
+                </>
+              )}
+              {inspectorTab === "layout" && (
+                <>
+                  <InspectorField
+                    label="Padding"
+                    value={currentStyle.padding ?? ""}
+                    onChange={(v) => updateStyle({ padding: v })}
+                    placeholder="12px 16px"
+                  />
+                  <InspectorField
+                    label="Margin"
+                    value={currentStyle.margin ?? ""}
+                    onChange={(v) => updateStyle({ margin: v })}
+                    placeholder="0 8px"
+                  />
+                  <RangeField
+                    label="Gap"
+                    value={Number(currentStyle.gap ?? 0)}
+                    suffix="px"
+                    min={0}
+                    max={80}
+                    onChange={(v) => updateStyle({ gap: v })}
+                  />
+                  <RangeField
+                    label="Largura da borda"
+                    value={Number(currentStyle.borderWidth ?? 0)}
+                    suffix="px"
+                    min={0}
+                    max={20}
+                    onChange={(v) => updateStyle({ borderWidth: v })}
+                  />
+                  <InspectorField
+                    label="Transform"
+                    value={currentStyle.transform ?? ""}
+                    onChange={(v) => updateStyle({ transform: v })}
+                    placeholder="scale(1.02)"
+                  />
+                </>
+              )}
+              {inspectorTab === "effects" && (
+                <>
+                  <InspectorField
+                    label="Box Shadow"
+                    value={currentStyle.boxShadow ?? ""}
+                    onChange={(v) => updateStyle({ boxShadow: v })}
+                    placeholder="0 8px 24px #0008"
+                  />
+                  <InspectorField
+                    label="Backdrop Filter"
+                    value={currentStyle.backdropFilter ?? ""}
+                    onChange={(v) => updateStyle({ backdropFilter: v })}
+                    placeholder="blur(12px)"
+                  />
+                  <InspectorField
+                    label="Filter"
+                    value={currentStyle.filter ?? ""}
+                    onChange={(v) => updateStyle({ filter: v })}
+                    placeholder="brightness(1.1)"
+                  />
+                  <InspectorField
+                    label="Transition"
+                    value={currentStyle.transition ?? ""}
+                    onChange={(v) => updateStyle({ transition: v })}
+                    placeholder="all .2s ease"
+                  />
+                </>
+              )}
+              {inspectorTab === "advanced" && (
+                <>
+                  <InspectorField
+                    label="Background Size"
+                    value={currentStyle.backgroundSize ?? ""}
+                    onChange={(v) => updateStyle({ backgroundSize: v })}
+                    placeholder="cover"
+                  />
+                  <InspectorField
+                    label="Background Position"
+                    value={currentStyle.backgroundPosition ?? ""}
+                    onChange={(v) => updateStyle({ backgroundPosition: v })}
+                    placeholder="center"
+                  />
+                  <InspectorField
+                    label="Background Repeat"
+                    value={currentStyle.backgroundRepeat ?? ""}
+                    onChange={(v) => updateStyle({ backgroundRepeat: v })}
+                    placeholder="no-repeat"
+                  />
+                  <div className="inspector-section">
+                    <span className="inspector-label">
+                      Propriedades CSS detectadas
+                    </span>
+                    <div className="custom-properties-list">
+                      {Object.entries(currentStyle.customProperties ?? {}).map(
+                        ([property, value]) => (
+                          <div className="custom-property-row" key={property}>
+                            <code>{property}</code>
+                            <input
+                              className="wide-input"
+                              value={value}
+                              onChange={(e) =>
+                                updateCustomProperty(property, e.target.value)
+                              }
+                            />
+                          </div>
+                        )
+                      )}
+                      {Object.keys(currentStyle.customProperties ?? {})
+                        .length === 0 && (
+                        <small>
+                          Nenhuma propriedade adicional detectada neste
+                          elemento.
+                        </small>
+                      )}
+                    </div>
+                  </div>
+                  <div className="inspector-section">
+                    <div className="section-heading-row">
+                      <span className="inspector-label">Variáveis CSS</span>
+                      <button onClick={addVariable}>＋</button>
+                    </div>
+                    <div className="custom-properties-list">
+                      {Object.entries(document.variables ?? {}).map(
+                        ([name, value]) => (
+                          <div className="custom-property-row" key={name}>
+                            <code>{name}</code>
+                            <input
+                              className="wide-input"
+                              value={value}
+                              onChange={(e) =>
+                                updateVariable(name, e.target.value)
+                              }
+                            />
+                          </div>
+                        )
+                      )}
+                      {Object.keys(document.variables ?? {}).length === 0 && (
+                        <small>Nenhuma variável importada.</small>
+                      )}
+                    </div>
+                  </div>
+                  <div className="inspector-section">
+                    <span className="inspector-label">
+                      Condições detectadas
+                    </span>
+                    <div className="condition-list">
+                      {(
+                        importChanges.find(
+                          (c) =>
+                            c.targetId === selectedTarget &&
+                            c.state === selectedState
+                        )?.conditions ??
+                        document.conditions ??
+                        []
+                      ).map((condition, index) => (
+                        <code key={`${condition}-${index}`}>{condition}</code>
+                      ))}
+                      {!document.conditions?.length && (
+                        <small>Nenhuma condição detectada.</small>
+                      )}
+                    </div>
+                  </div>
+                  <div className="inspector-section">
+                    <label htmlFor="editor-state">Estado / condição</label>
+                    <select
+                      id="editor-state"
+                      className="wide-input"
+                      value={selectedState}
+                      onChange={(e) =>
+                        setSelectedState(e.target.value as EditorState)
+                      }
+                    >
+                      {STATES.map((st) => (
+                        <option key={st.id} value={st.id}>
+                          {st.label}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                </>
+              )}
+              <div className="inspector-section">
+                <span className="inspector-label">Textura / Overlay</span>
+                <div className="layer-actions">
+                  <button onClick={addLayer}>＋ Nova camada</button>
+                </div>
+                {document.layers
+                  .filter((layer) => layer.targetId === selectedTarget)
+                  .map((layer) => (
+                    <div className="layer-card" key={layer.id}>
+                      <div className="layer-card__header">
+                        <strong>{layer.name}</strong>
+                        <button
+                          className="layer-delete"
+                          title="Remover camada"
+                          onClick={() => removeLayer(layer.id)}
+                        >
+                          ×
+                        </button>
+                      </div>
+                      <input
+                        value={layer.image}
+                        onChange={(e) =>
+                          updateLayer(layer.id, { image: e.target.value })
+                        }
+                      />
+                      <RangeField
+                        label="Opacidade"
+                        value={layer.opacity * 100}
+                        suffix="%"
+                        min={0}
+                        max={100}
+                        onChange={(v) =>
+                          updateLayer(layer.id, { opacity: v / 100 })
+                        }
+                      />
+                      <select
+                        value={layer.blendMode}
+                        onChange={(e) =>
+                          updateLayer(layer.id, { blendMode: e.target.value })
+                        }
+                      >
+                        {[
+                          "normal",
+                          "multiply",
+                          "screen",
+                          "overlay",
+                          "soft-light",
+                          "hard-light",
+                          "difference",
+                        ].map((v) => (
+                          <option key={v}>{v}</option>
+                        ))}
+                      </select>
+                    </div>
+                  ))}
+              </div>
+            </aside>
+          </main>
+        </>
+      )}
 
-        <div className="theme-editor__footer-actions">
-          <Button onClick={handleSave}>
-            <CheckIcon />
-            {t("editor_tab_save")}
-          </Button>
-        </div>
+      <footer className="theme-editor-pro__footer">
+        <span>
+          Tema: <strong>{theme?.name ?? "Novo Tema"}</strong>
+        </span>
+        <span className="footer-status">
+          {hasUnsavedChanges ? "● Alterações não salvas" : "● Tudo salvo"}
+        </span>
+        <span>
+          CSS visual: {document.rules.length} regras · Camadas:{" "}
+          {document.layers.length}
+        </span>
+      </footer>
+    </div>
+  );
+}
+
+function InspectorField({
+  label,
+  value,
+  onChange,
+  type = "text",
+  placeholder,
+}: Readonly<{
+  label: string;
+  value: string;
+  onChange: (value: string) => void;
+  type?: "text" | "color";
+  placeholder?: string;
+}>) {
+  const inputId = useId();
+  const colorId = `${inputId}-color`;
+
+  return (
+    <div className="inspector-section">
+      <label htmlFor={inputId}>{label}</label>
+      <div className="field-row">
+        {type === "color" && (
+          <input
+            id={colorId}
+            type="color"
+            aria-label={`${label} — seletor de cor`}
+            value={/^#[0-9a-f]{6}$/i.test(value) ? value : "#000000"}
+            onChange={(e) => onChange(e.target.value)}
+          />
+        )}
+        <input
+          id={inputId}
+          className="wide-input"
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          placeholder={placeholder}
+        />
       </div>
+    </div>
+  );
+}
+
+function RangeField({
+  label,
+  value,
+  suffix,
+  min,
+  max,
+  step = 1,
+  onChange,
+}: Readonly<{
+  label: string;
+  value: number;
+  suffix: string;
+  min: number;
+  max: number;
+  step?: number;
+  onChange: (value: number) => void;
+}>) {
+  const inputId = useId();
+
+  return (
+    <div className="range-field">
+      <div>
+        <label htmlFor={inputId}>{label}</label>
+        <output>
+          {value.toFixed(step < 1 ? 1 : 0)}
+          {suffix}
+        </output>
+      </div>
+      <input
+        id={inputId}
+        type="range"
+        min={min}
+        max={max}
+        step={step}
+        value={value}
+        onChange={(e) => onChange(Number(e.target.value))}
+      />
     </div>
   );
 }

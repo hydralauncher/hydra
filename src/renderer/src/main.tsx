@@ -53,6 +53,7 @@ import BigPictureLibrary from "../../big-picture/src/pages/library/page";
 import BigPictureGame from "../../big-picture/src/pages/game/game";
 import BigPictureGameAchievements from "../../big-picture/src/pages/game-achievements/game-achievements";
 import BigPictureProfile from "../../big-picture/src/pages/profile/profile";
+import PartyPage from "./pages/Party/Party";
 
 console.log = logger.log;
 
@@ -146,6 +147,9 @@ ReactDOM.createRoot(document.getElementById("root")!).render(
                   <Route path="/profile/:userId" element={<Profile />} />
                   <Route path="/achievements" element={<Achievements />} />
                   <Route path="/notifications" element={<Notifications />} />
+
+                  {/* 👇 Rota da Party adicionada aqui */}
+                  <Route path="/party" element={<PartyPage />} />
                 </Route>
 
                 <Route path="/theme-editor" element={<ThemeEditor />} />

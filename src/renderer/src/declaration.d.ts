@@ -1216,6 +1216,15 @@ declare global {
     openEditorWindow: (themeId: string) => Promise<void>;
     onCustomThemeUpdated: (cb: () => void) => () => Electron.IpcRenderer;
     closeEditorWindow: (themeId?: string) => Promise<void>;
+    reportThemePreviewElementClicked: (selectors: string[]) => Promise<void>;
+    updateThemePreviewCss: (themeId: string, code: string) => Promise<void>;
+    updateThemePreviewBounds: (
+      themeId: string,
+      bounds: { x: number; y: number; width: number; height: number }
+    ) => Promise<void>;
+    onThemePreviewElementClicked: (
+      cb: (selectors: string[]) => void
+    ) => () => Electron.IpcRenderer;
 
     /* Game Launcher Window */
     showGameLauncherWindow: () => Promise<void>;

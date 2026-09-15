@@ -1768,6 +1768,21 @@ contextBridge.exposeInMainWorld("electron", {
   },
   closeEditorWindow: (themeId?: string) =>
     ipcRenderer.invoke("closeEditorWindow", themeId),
+  reportThemePreviewElementClicked: (selectors: string[]) =>
+    ipcRenderer.invoke("reportThemePreviewElementClicked", selectors),
+  updateThemePreviewCss: (themeId: string, code: string) =>
+    ipcRenderer.invoke("updateThemePreviewCss", themeId, code),
+  updateThemePreviewBounds: (
+    themeId: string,
+    bounds: { x: number; y: number; width: number; height: number }
+  ) => ipcRenderer.invoke("updateThemePreviewBounds", themeId, bounds),
+  onThemePreviewElementClicked: (cb: (selectors: string[]) => void) => {
+    const listener = (_event: Electron.IpcRendererEvent, selectors: string[]) =>
+      cb(selectors);
+    ipcRenderer.on("on-theme-preview-element-clicked", listener);
+    return () =>
+      ipcRenderer.removeListener("on-theme-preview-element-clicked", listener);
+  },
 
   /* Main Window Controls */
   minimizeMainWindow: () => ipcRenderer.invoke("minimizeMainWindow"),
