@@ -488,6 +488,8 @@ const RECREATE_BACKOFF: Duration = Duration::from_millis(500);
 /// (~30s at the backoff cadence) and lets the session tear down.
 const MAX_RECREATE_FAILURES: u32 = 60;
 
+const IDLE_ACQUIRE_PAUSE: Duration = Duration::from_millis(10);
+
 /// Pause after an idle acquire-timeout when the loop will retry without
 /// emitting anything (Sunshine display_base.cpp:315-324 sleeps 10ms the
 /// same way). NEVER call this before a duplicate emission: the idle 60fps
@@ -495,7 +497,7 @@ const MAX_RECREATE_FAILURES: u32 = 60;
 /// stamps from the clock BEFORE the pause — a pause on the emission path
 /// would compound into the next slot and drift the cadence.
 fn idle_acquire_pause() {
-    std::thread::sleep(Duration::from_millis(10));
+    std::thread::sleep(IDLE_ACQUIRE_PAUSE);
 }
 
 /// Pure pacing predicate: is a frame due at `now`? `next_slot` is the
@@ -1247,6 +1249,10 @@ pub struct DisplayKeeper {
     thread: Option<std::thread::JoinHandle<()>>,
 }
 
+/// How often `ES_DISPLAY_REQUIRED` is re-asserted to keep the power plan's
+/// display idle timer from firing mid-stream (see [`DisplayKeeper`]).
+const DISPLAY_KEEPALIVE_INTERVAL: Duration = Duration::from_millis(500);
+
 impl DisplayKeeper {
     /// Starts holding the display on. Returns once the state is set, not once
     /// the display has physically come back: the caller retries its own
@@ -1278,7 +1284,7 @@ impl DisplayKeeper {
                 unsafe {
                     SetThreadExecutionState(ES_CONTINUOUS | ES_DISPLAY_REQUIRED);
                 }
-                std::thread::sleep(Duration::from_millis(500));
+                std::thread::sleep(DISPLAY_KEEPALIVE_INTERVAL);
             }
             // Dropping the thread would clear this anyway; clearing it here
             // documents the pairing and covers an explicit stop.
@@ -1353,6 +1359,11 @@ pub fn hevc_offered() -> bool {
         && (desktop_is_hdr() || crate::config::hdr_override() == Some(true))
 }
 
+/// Cache lifetime for the desktop HDR state, so the DXGI enumeration stays
+/// off the client's several-times-a-second `serverinfo` poll while a
+/// mid-session HDR toggle is still followed within a second.
+const HDR_CACHE_TTL: Duration = Duration::from_secs(1);
+
 /// Whether the duplicated desktop is in an HDR colour space right now, cached
 /// for a second.
 ///
@@ -1370,7 +1381,7 @@ pub fn desktop_is_hdr() -> bool {
     static CACHE: std::sync::Mutex<Option<(Instant, bool)>> = std::sync::Mutex::new(None);
     if let Ok(cache) = CACHE.lock() {
         if let Some((at, value)) = *cache {
-            if at.elapsed() < Duration::from_secs(1) {
+            if at.elapsed() < HDR_CACHE_TTL {
                 return value;
             }
         }
@@ -2089,6 +2100,10 @@ enum PendingSource {
     Bridge(usize),
 }
 
+/// How long the single retry below waits for a display that is not
+/// enumerated yet on the first pass to appear.
+const DISPLAY_RETRY_DELAY: Duration = Duration::from_millis(1500);
+
 /// Creates a capture + encoder (+ scaler when the negotiated client mode
 /// differs from the desktop, or always for the cross-adapter path where
 /// the encoder input must be a shared texture): picks the first adapter
@@ -2281,7 +2296,7 @@ fn create_capture(
             "capture: no usable capture adapter ({}); waiting for the display and retrying once",
             errors.join("; ")
         );
-        std::thread::sleep(Duration::from_millis(1500));
+        std::thread::sleep(DISPLAY_RETRY_DELAY);
         return create_capture(target, skip_cross, false);
     }
     Err(format!("no usable capture adapter ({})", errors.join("; ")))

@@ -26,6 +26,12 @@ interface StreamAppEntry {
   objectId: string;
 }
 
+/** Debounce before a burst of LevelDB library changes is pushed to the sidecar. */
+const LIBRARY_SYNC_DEBOUNCE_MS = 500;
+/** Respawn budget and linear backoff for a sidecar that exited unexpectedly. */
+const MAX_SIDECAR_RESPAWN_ATTEMPTS = 3;
+const SIDECAR_RESPAWN_BACKOFF_MS = 1_000;
+
 /**
  * Owns the lifecycle of the Moonlight-compatible streaming sidecar:
  * spawns it while the `streamingEnabled` preference is on, forwards its
@@ -284,7 +290,7 @@ export class StreamingManager {
       this.syncTimer = setTimeout(() => {
         this.syncTimer = null;
         void this.syncAppList();
-      }, 500);
+      }, LIBRARY_SYNC_DEBOUNCE_MS);
     };
 
     gamesSublevel.on("put", onChange);
@@ -464,7 +470,7 @@ export class StreamingManager {
     } as StreamSidecarEvent);
 
     if (!this.enabled) return;
-    if (this.respawnAttempts >= 3) {
+    if (this.respawnAttempts >= MAX_SIDECAR_RESPAWN_ATTEMPTS) {
       streamSidecarLogger.error(
         "Stream sidecar kept exiting; giving up until streaming is toggled or the library changes"
       );
@@ -472,9 +478,9 @@ export class StreamingManager {
     }
 
     this.respawnAttempts += 1;
-    const delayMs = 1000 * this.respawnAttempts;
+    const delayMs = SIDECAR_RESPAWN_BACKOFF_MS * this.respawnAttempts;
     streamSidecarLogger.log(
-      `Respawning stream sidecar in ${delayMs}ms (attempt ${this.respawnAttempts}/3)`
+      `Respawning stream sidecar in ${delayMs}ms (attempt ${this.respawnAttempts}/${MAX_SIDECAR_RESPAWN_ATTEMPTS})`
     );
     this.respawnTimer = setTimeout(() => {
       this.respawnTimer = null;

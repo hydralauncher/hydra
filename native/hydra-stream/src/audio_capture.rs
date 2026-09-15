@@ -181,6 +181,8 @@ unsafe impl Send for SharedRender {}
 
 unsafe impl Send for SilenceKeeper {}
 
+const SILENCE_WRITE_INTERVAL: Duration = Duration::from_millis(10);
+
 /// Writes silence into the render buffer forever (keeps the audio engine
 /// mixing so loopback capture yields data even when the host is quiet).
 fn silence_writer_loop(
@@ -203,7 +205,7 @@ fn silence_writer_loop(
                 let _ = render.ReleaseBuffer(chunk, 0);
             }
         }
-        std::thread::sleep(Duration::from_millis(10));
+        std::thread::sleep(SILENCE_WRITE_INTERVAL);
     }
 }
 
@@ -626,6 +628,10 @@ impl WasapiAudioPipeline {
     }
 }
 
+/// Pace for a caller polling `encode_next` before anything was captured:
+/// without it the caller spins on `read_chunk`.
+const EMPTY_CAPTURE_PACE: Duration = Duration::from_millis(2);
+
 impl AudioPipeline for WasapiAudioPipeline {
     fn encode_next(&mut self) -> Result<Option<EncodedAudio>, String> {
         // Accumulate captured samples until a full Opus frame is ready.
@@ -636,7 +642,7 @@ impl AudioPipeline for WasapiAudioPipeline {
             if chunk.is_empty() {
                 if self.pending.is_empty() {
                     // nothing captured yet: pace the caller
-                    sleep(Duration::from_millis(2));
+                    sleep(EMPTY_CAPTURE_PACE);
                     return Ok(None);
                 }
                 // pad a partial frame with silence to avoid drift

@@ -20,6 +20,12 @@ const binaryNameByPlatform: Partial<Record<NodeJS.Platform, string>> = {
   win32: "hydra-stream.exe",
 };
 
+/** Startup handshake budget: a child that never reports ready is killed. */
+const SIDECAR_READY_TIMEOUT_MS = 10_000;
+/** Default RPC timeout, and the floor any caller-supplied value is raised to. */
+const SIDECAR_REQUEST_TIMEOUT_MS = 10_000;
+const SIDECAR_MIN_REQUEST_TIMEOUT_MS = 1_000;
+
 export type StreamSidecarEvent =
   | {
       event: "ready";
@@ -178,7 +184,9 @@ export class StreamSidecar {
     return () => this.exitListeners.delete(listener);
   }
 
-  private static async ensureReady(timeoutMs = 10_000): Promise<void> {
+  private static async ensureReady(
+    timeoutMs = SIDECAR_READY_TIMEOUT_MS
+  ): Promise<void> {
     return this.readyState.wait(
       timeoutMs,
       "Stream sidecar process is not running",
@@ -249,7 +257,7 @@ export class StreamSidecar {
   public static async request<T>(
     method: string,
     params?: unknown,
-    timeoutMs = 10_000
+    timeoutMs = SIDECAR_REQUEST_TIMEOUT_MS
   ): Promise<T> {
     if (!this.childProcess) {
       await this.spawn();
@@ -272,7 +280,7 @@ export class StreamSidecar {
           this.pendingRequests.delete(id);
           reject(new Error(`Stream sidecar timeout for method '${method}'`));
         },
-        Math.max(timeoutMs, 1_000)
+        Math.max(timeoutMs, SIDECAR_MIN_REQUEST_TIMEOUT_MS)
       );
 
       this.pendingRequests.set(id, {

@@ -80,6 +80,14 @@ const CONSUME_ACQUIRE_TIMEOUT_MS: u32 = 2000;
 const WAIT_ABANDONED: u32 = 0x80;
 const WAIT_TIMEOUT: u32 = 0x102;
 
+/// One-shot handshake budget for the D3D11.3 shared-fence fallback: the
+/// producer signals once, and a fence that has not completed by then is
+/// broken at setup rather than silently stalling every frame.
+const FENCE_PROBE_TIMEOUT: Duration = Duration::from_secs(2);
+/// Poll cadence while waiting on [`FENCE_PROBE_TIMEOUT`]: `GetCompletedValue`
+/// is a cheap user-mode read, not a blocking wait.
+const FENCE_PROBE_POLL: Duration = Duration::from_millis(1);
+
 pub enum BeginProduceError {
     /// Every ring slot is still inside the encoder; the caller should drop
     /// this frame instead of blocking the sender thread.
@@ -562,12 +570,12 @@ impl CrossAdapterBridge {
             .GetImmediateContext()
             .map_err(|error| format!("producer GetImmediateContext: {error}"))?
             .Flush();
-        let deadline = Instant::now() + Duration::from_secs(2);
+        let deadline = Instant::now() + FENCE_PROBE_TIMEOUT;
         while opened.GetCompletedValue() < 1 {
             if Instant::now() >= deadline {
                 return Err("shared fence probe timed out (cross-device signal never completed)".to_string());
             }
-            std::thread::sleep(Duration::from_millis(1));
+            std::thread::sleep(FENCE_PROBE_POLL);
         }
         Ok(FenceSync {
             fence,

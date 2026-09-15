@@ -20,6 +20,11 @@ struct RpcRequest {
     params: Option<Value>,
 }
 
+/// How often the session-expiry sweep runs: `expire_session` compares
+/// against the launch timeout, so the tick only decides how late a launch
+/// that timed out is noticed.
+const SESSION_EXPIRY_TICK: std::time::Duration = std::time::Duration::from_millis(500);
+
 #[tokio::main]
 async fn main() {
     let mut out = tokio::io::stdout();
@@ -100,7 +105,7 @@ async fn main() {
                 .and_then(|value| value.parse().ok())
                 .unwrap_or(config::LAUNCH_TIMEOUT_DEFAULT_MS);
             let launch_timeout = std::time::Duration::from_millis(launch_timeout_ms);
-            let mut interval = tokio::time::interval(std::time::Duration::from_millis(500));
+            let mut interval = tokio::time::interval(SESSION_EXPIRY_TICK);
             loop {
                 interval.tick().await;
                 state.expire_session(launch_timeout);

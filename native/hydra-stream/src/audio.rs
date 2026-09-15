@@ -561,13 +561,15 @@ impl AudioPacketizer {
 /// reports the worst case it saw.
 const AUDIO_RAMP_REPORT_SECS: u64 = 10;
 const AUDIO_STEADY_REPORT_SECS: u64 = 5;
+/// Cadence of the ramp above: one line per second, then the steady one.
+const AUDIO_RAMP_TICK_SECS: u64 = 1;
 
 /// Reporting cadence for the interval that starts `since_epoch` into the
 /// session: the per-second ramp, then the steady interval. Pure, so the
 /// schedule is testable without a stream.
 fn report_cadence(since_epoch: Duration) -> Duration {
     if since_epoch < Duration::from_secs(AUDIO_RAMP_REPORT_SECS) {
-        Duration::from_secs(1)
+        Duration::from_secs(AUDIO_RAMP_TICK_SECS)
     } else {
         Duration::from_secs(AUDIO_STEADY_REPORT_SECS)
     }

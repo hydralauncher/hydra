@@ -917,6 +917,11 @@ fn pair(sorted: &[Duration]) -> String {
     )
 }
 
+/// Shortest window [`report_latencies`] will render a rate over: a report
+/// flushed by the sample bound, or one taken right after a flush, can cover
+/// a few milliseconds, where a ratio says nothing.
+const MIN_RATE_WINDOW: Duration = Duration::from_secs(1);
+
 /// Logs p50/p95/p99 for every stage plus end-to-end (plus the adaptive
 /// bitrate currently in effect, both frame-age counters — submissions the
 /// pre-encode gate skipped (`stale-skipped`: the intended degradation,
@@ -1043,7 +1048,7 @@ fn report_latencies(
     // Sent frame rate: only over a window long enough to mean anything
     // (a report flushed by the 300-sample bound, or a stop right after a
     // flush, can cover a few milliseconds).
-    let sent_clause = if window.is_empty() || span < Duration::from_secs(1) {
+    let sent_clause = if window.is_empty() || span < MIN_RATE_WINDOW {
         String::new()
     } else {
         format!(
@@ -1060,7 +1065,7 @@ fn report_latencies(
     // it (`live_present_rate_probe` measures the rate itself). Printed
     // whenever the window spans real time, even with no frames sent (a
     // starved window is exactly when it matters).
-    let supply_clause = if span < Duration::from_secs(1) {
+    let supply_clause = if span < MIN_RATE_WINDOW {
         String::new()
     } else {
         format!(
@@ -1793,6 +1798,22 @@ impl VideoDump {
     }
 }
 
+/// Upper clamp of the frame-age freshness budget below (the budget is 3x
+/// the frame interval clamped to [1.25x, this]).
+const FRAME_AGE_BUDGET_CEILING: Duration = Duration::from_millis(100);
+
+/// The latency window line's cadence, and the label it prints beside it.
+const LATENCY_REPORT_INTERVAL: Duration = Duration::from_secs(5);
+
+/// First-seconds packet reporting: one "built N packets" line per interval
+/// for the window below, then reporting stops.
+const PACKET_REPORT_INTERVAL: Duration = Duration::from_secs(1);
+const PACKET_REPORT_WINDOW: Duration = Duration::from_secs(10);
+
+/// How often the control-thread signals and the local send pressure are
+/// folded into the adaptive controller.
+const ADAPTIVE_CHECK_INTERVAL: Duration = Duration::from_secs(1);
+
 /// Blocking sender loop. Runs in `spawn_blocking`: captures and encodes
 /// frames, drops everything when the client falls behind (no queues), and
 /// drains each frame through the sender rate limiter in small batches —
@@ -1894,7 +1915,7 @@ pub fn run_video_loop(
     // stays a tight relief valve, just one sized for contention.
     let max_frame_age = crate::config::max_frame_age_ms()
         .map(Duration::from_millis)
-        .unwrap_or_else(|| (frame_pacing * 3).clamp(frame_pacing * 5 / 4, Duration::from_millis(100)));
+        .unwrap_or_else(|| (frame_pacing * 3).clamp(frame_pacing * 5 / 4, FRAME_AGE_BUDGET_CEILING));
     eprintln!(
         "video: freshness budget {:.1}ms ({})",
         ms(max_frame_age),
@@ -2517,7 +2538,7 @@ pub fn run_video_loop(
             });
             previous_frame_sent_at = Some(last_send_at);
             if latencies.len() >= 300
-                || last_send_at.duration_since(last_latency_report) >= Duration::from_secs(5)
+                || last_send_at.duration_since(last_latency_report) >= LATENCY_REPORT_INTERVAL
             {
                 let supply = pipeline.supply();
                 report_latencies(
@@ -2553,7 +2574,7 @@ pub fn run_video_loop(
         if reporting {
             let now = Instant::now();
             let elapsed = now.duration_since(last_report);
-            if elapsed >= Duration::from_secs(1) {
+            if elapsed >= PACKET_REPORT_INTERVAL {
                 eprintln!(
                     "video: built {packets_sent} packets in {}ms (frame {frame_index}; {})",
                     elapsed.as_millis(),
@@ -2561,7 +2582,7 @@ pub fn run_video_loop(
                 );
                 packets_sent = 0;
                 last_report = now;
-                if now.duration_since(epoch) >= Duration::from_secs(10) {
+                if now.duration_since(epoch) >= PACKET_REPORT_WINDOW {
                     reporting = false;
                     eprintln!("video: first-10s packet reporting done, stream continuing");
                 }
@@ -2575,7 +2596,7 @@ pub fn run_video_loop(
         // not change again for the rest of the session (see the resolution
         // above the loop).
         let now = Instant::now();
-        if now.duration_since(last_adaptive_check) >= Duration::from_secs(1) {
+        if now.duration_since(last_adaptive_check) >= ADAPTIVE_CHECK_INTERVAL {
             last_adaptive_check = now;
             // The geometry the pipeline really encodes: a client that
             // negotiated 0x0 carries none in its launch parameters (the

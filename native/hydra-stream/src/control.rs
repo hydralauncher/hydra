@@ -20,6 +20,9 @@ use crate::stream::{
 
 const CONTROL_SILENCE_TIMEOUT: Duration = Duration::from_secs(10);
 const FLUSH_INTERVAL: Duration = Duration::from_millis(20);
+/// Cadence of the control-channel stats line (the deltas the comment below
+/// the use site reads are per this interval).
+const STATS_LOG_INTERVAL: Duration = Duration::from_secs(5);
 
 pub fn serve(state: Arc<State>, port: u16) -> io::Result<u16> {
     let socket = UdpSocket::bind(("0.0.0.0", port))?;
@@ -298,7 +301,7 @@ fn run(state: Arc<State>, socket: UdpSocket) -> io::Result<()> {
                 eprintln!("control: peer stopped acknowledging our commands, ending session");
                 state.end_session("control-ack-timeout");
             }
-            if now.duration_since(last_stats_log) >= Duration::from_secs(5) {
+            if now.duration_since(last_stats_log) >= STATS_LOG_INTERVAL {
                 last_stats_log = now;
                 if server.peer_address().is_some() || control_acceptable(&state) {
                     let depths: Vec<String> = server

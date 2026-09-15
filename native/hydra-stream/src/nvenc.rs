@@ -1675,6 +1675,10 @@ fn run_encoder_teardown(parts: TeardownParts) {
     }
 }
 
+/// How long the detached encoder teardown may run before it is reported as
+/// a possible driver hang; the video thread is unaffected either way.
+const TEARDOWN_WATCHDOG: std::time::Duration = std::time::Duration::from_secs(2);
+
 impl Drop for NvencEncoder {
     fn drop(&mut self) {
         if self.encoder.is_null() {
@@ -1711,7 +1715,7 @@ impl Drop for NvencEncoder {
             });
         }
         std::thread::spawn(move || {
-            std::thread::sleep(std::time::Duration::from_secs(2));
+            std::thread::sleep(TEARDOWN_WATCHDOG);
             if !done.load(std::sync::atomic::Ordering::SeqCst) {
                 eprintln!(
                     "nvenc: encoder teardown still running after 2s (possible NVENC driver hang); the video thread is unaffected"

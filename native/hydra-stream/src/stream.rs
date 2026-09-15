@@ -291,6 +291,7 @@ impl State {
                         // pipeline (re-opens the default device) up to 5
                         // times before giving up loudly.
                         const MAX_AUDIO_RETRIES: u32 = 5;
+                        const AUDIO_REINIT_BACKOFF: Duration = Duration::from_secs(1);
                         let mut attempts = 0;
                         loop {
                             match build_audio_pipeline(&launch) {
@@ -316,7 +317,7 @@ impl State {
                                             eprintln!(
                                                 "audio: pipeline failed ({error}), re-init attempt {attempts}/{MAX_AUDIO_RETRIES}"
                                             );
-                                            std::thread::sleep(Duration::from_secs(1));
+                                            std::thread::sleep(AUDIO_REINIT_BACKOFF);
                                         }
                                     }
                                 }
@@ -331,7 +332,7 @@ impl State {
                                     eprintln!(
                                         "audio: pipeline unavailable ({error}), retry {attempts}/{MAX_AUDIO_RETRIES}"
                                     );
-                                    std::thread::sleep(Duration::from_secs(1));
+                                    std::thread::sleep(AUDIO_REINIT_BACKOFF);
                                 }
                             }
                         }

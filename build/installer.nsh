@@ -12,13 +12,15 @@
 ; the PowerShell reached from a 32-bit NSIS installer (module auto-loading
 ; finds CommandNotFound for both). certutil and findstr always are.
 !define VIGEM_SETUP_SHA256 "89220A7865076B342892F98865F3499FB7C4CFD673159E89D352C360FD014C6A"
+; How long NSISdl waits on the pinned asset before giving up, in milliseconds.
+!define VIGEM_DOWNLOAD_TIMEOUT_MS 30000
 
 !macro customInstall
   ${ifNot} ${isUpdated}
     IfFileExists "$SYSDIR\drivers\ViGEmBus.sys" vigemDone 0
 
     DetailPrint "Downloading ViGEmBus driver for gamepad support..."
-    NSISdl::download /TIMEOUT=30000 "${VIGEM_SETUP_URL}" "$PLUGINSDIR\ViGEmBus-setup.exe"
+    NSISdl::download /TIMEOUT=${VIGEM_DOWNLOAD_TIMEOUT_MS} "${VIGEM_SETUP_URL}" "$PLUGINSDIR\ViGEmBus-setup.exe"
     Pop $0
     StrCmp $0 "success" 0 vigemSkip
 
