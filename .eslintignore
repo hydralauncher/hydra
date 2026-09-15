@@ -5,3 +5,4 @@ out
 migration.stub
 hydra-python-rpc/
 hydra-native/
+**/target/**

@@ -7,3 +7,9 @@ export type GameSettingsCategoryId =
   | "compatibility"
   | "downloads"
   | "danger_zone";
+
+export type GamescopeSettingKey =
+  | "gamescopeResolution"
+  | "gamescopeOutputResolution"
+  | "gamescopeUpscaler"
+  | "gamescopeFramerateLimit";

@@ -1,0 +1,1071 @@
+diff --git a/src/main/helpers/launch-game.ts b/src/main/helpers/launch-game.ts
+index a61913932c..03a3e1415f 100644
+--- a/src/main/helpers/launch-game.ts
++++ b/src/main/helpers/launch-game.ts
+@@ -15,6 +15,8 @@ import {
+   launchedGamePids,
+ } from "@main/services";
+ import { CommonRedistManager } from "@main/services/common-redist-manager";
++import { SystemPath } from "@main/services/system-path";
++import { detectCompatibilityPatch } from "@main/services/compatibility-patch-detector";
+ import { parseExecutablePath } from "../events/helpers/parse-executable-path";
+ import { isGamemodeAvailable } from "./is-gamemode-available";
+ import { isMangohudAvailable } from "./is-mangohud-available";
+@@ -242,6 +244,328 @@ const cleanupStaleCompatibilityProcesses = async (
+   }
+ };
+ 
++const ensureSteamOverlayDependency = async (
++  winePrefixPath: string | null,
++  detectedFiles: string[]
++): Promise<void> => {
++  if (!winePrefixPath) return;
++
++  const needsSteamOverlay = detectedFiles.some(
++    (file) => path.basename(file).toLowerCase() === "steamoverlay64.dll"
++  );
++
++  if (!needsSteamOverlay) return;
++
++  const targetDirectory = path.join(
++    winePrefixPath,
++    "drive_c",
++    "Program Files (x86)",
++    "Steam"
++  );
++
++  const targetPath = path.join(targetDirectory, "GameOverlayRenderer64.dll");
++
++  try {
++    await fs.promises.access(targetPath);
++    return;
++  } catch {
++    // Dependency is not provisioned yet.
++  }
++
++  const homePath = SystemPath.getPath("home");
++
++  const sourceCandidates = [
++    path.join(
++      homePath,
++      ".local",
++      "share",
++      "Steam",
++      "GameOverlayRenderer64.dll"
++    ),
++    path.join(homePath, ".steam", "steam", "GameOverlayRenderer64.dll"),
++  ];
++
++  let sourcePath: string | null = null;
++
++  for (const candidate of sourceCandidates) {
++    try {
++      await fs.promises.access(candidate);
++      sourcePath = candidate;
++      break;
++    } catch {
++      // Try the next Steam installation path.
++    }
++  }
++
++  if (!sourcePath) {
++    logger.warn("Steam overlay dependency was detected but not found", {
++      targetPath,
++      sourceCandidates,
++    });
++    return;
++  }
++
++  try {
++    await fs.promises.mkdir(targetDirectory, { recursive: true });
++    await fs.promises.copyFile(sourcePath, targetPath);
++
++    logger.info("Provisioned Steam overlay dependency", {
++      source: sourcePath,
++      destination: targetPath,
++    });
++  } catch (error) {
++    logger.error("Failed to provision Steam overlay dependency", error);
++  }
++};
++
++const steamShortcutRecordMatchesExecutable = (
++  record: Buffer,
++  normalizedTarget: string
++): boolean => {
++  const strings = record
++    .toString("latin1")
++    .split("\0")
++    .map((value) => value.trim())
++    .filter(Boolean);
++
++  return strings.some((value) => {
++    let candidate = value;
++
++    if (
++      candidate.length >= 2 &&
++      candidate.startsWith('"') &&
++      candidate.endsWith('"')
++    ) {
++      candidate = candidate.slice(1, -1);
++    }
++
++    if (!candidate.startsWith("/")) return false;
++
++    try {
++      return path.resolve(candidate) === normalizedTarget;
++    } catch {
++      return false;
++    }
++  });
++};
++
++const findSteamShortcutGameIdInData = (
++  data: Buffer,
++  normalizedTarget: string,
++  shortcutsPath: string
++): bigint | null => {
++  const marker = Buffer.from([0x02, 0x61, 0x70, 0x70, 0x69, 0x64, 0x00]);
++  let offset = 0;
++
++  while (offset < data.length) {
++    const start = data.indexOf(marker, offset);
++    if (start === -1) break;
++
++    const appIdOffset = start + marker.length;
++    if (appIdOffset + 4 > data.length) break;
++
++    const next = data.indexOf(marker, appIdOffset + 4);
++    const end = next === -1 ? data.length : next;
++    const record = data.subarray(start, end);
++    const shortcutAppId = data.readUInt32LE(appIdOffset);
++
++    if (steamShortcutRecordMatchesExecutable(record, normalizedTarget)) {
++      const gameId = (BigInt(shortcutAppId) << 32n) | 0x02000000n;
++
++      logger.info("Matched Steam non-Steam shortcut", {
++        executable: normalizedTarget,
++        shortcutsPath,
++        shortcutAppId,
++        gameId: gameId.toString(),
++      });
++
++      return gameId;
++    }
++
++    offset = appIdOffset + 4;
++  }
++
++  return null;
++};
++
++/**
++ * Calculate Steam's 64-bit game id for a non-Steam shortcut.
++ *
++ * shortcuts.vdf stores a uint32 appid. Steam represents a non-Steam game
++ * internally as:
++ *
++ *   (shortcutAppId << 32) | 0x02000000
++ */
++const getSteamShortcutGameId = async (
++  executablePath: string
++): Promise<bigint | null> => {
++  const homePath = SystemPath.getPath("home");
++
++  const userdataRoots = [
++    path.join(homePath, ".local", "share", "Steam", "userdata"),
++    path.join(homePath, ".steam", "steam", "userdata"),
++  ];
++
++  const normalizedTarget = path.resolve(executablePath);
++
++  for (const userdataRoot of userdataRoots) {
++    let users: fs.Dirent[];
++
++    try {
++      users = await fs.promises.readdir(userdataRoot, { withFileTypes: true });
++    } catch (error) {
++      if (
++        error instanceof Error &&
++        "code" in error &&
++        error.code === "ENOENT"
++      ) {
++        continue;
++      }
++      logger.warn("Could not inspect Steam userdata", {
++        userdataRoot,
++        error,
++      });
++      continue;
++    }
++
++    for (const user of users) {
++      if (!user.isDirectory()) continue;
++
++      const shortcutsPath = path.join(
++        userdataRoot,
++        user.name,
++        "config",
++        "shortcuts.vdf"
++      );
++
++      let data: Buffer;
++
++      try {
++        data = await fs.promises.readFile(shortcutsPath);
++      } catch (error) {
++        if (
++          error instanceof Error &&
++          "code" in error &&
++          error.code === "ENOENT"
++        ) {
++          continue;
++        }
++        logger.warn("Could not read Steam shortcuts", {
++          shortcutsPath,
++          error,
++        });
++        continue;
++      }
++
++      const gameId = findSteamShortcutGameIdInData(
++        data,
++        normalizedTarget,
++        shortcutsPath
++      );
++
++      if (gameId !== null) return gameId;
++    }
++  }
++
++  return null;
++};
++
++const getSteamLaunchCommand = async (): Promise<{
++  command: string;
++  args: string[];
++} | null> => {
++  const nativeCandidates = ["/usr/bin/steam", "/usr/local/bin/steam"];
++
++  for (const candidate of nativeCandidates) {
++    try {
++      await fs.promises.access(candidate, fs.constants.X_OK);
++      return { command: candidate, args: [] };
++    } catch {
++      // Try the next trusted installation path.
++    }
++  }
++
++  const flatpakPath = "/usr/bin/flatpak";
++
++  try {
++    await fs.promises.access(flatpakPath, fs.constants.X_OK);
++    return {
++      command: flatpakPath,
++      args: ["run", "com.valvesoftware.Steam"],
++    };
++  } catch {
++    return null;
++  }
++};
++
++/**
++ * Ask the running Steam client to perform the launch itself.
++ *
++ * This deliberately does not attempt to reproduce Steam's pressure-vessel,
++ * overlay or IPC environment. Steam owns creation of that environment.
++ */
++const launchThroughSteamShortcut = async (
++  executablePath: string
++): Promise<boolean> => {
++  const gameId = await getSteamShortcutGameId(executablePath);
++
++  if (gameId === null) {
++    logger.info("No matching Steam shortcut found", {
++      executable: executablePath,
++    });
++
++    return false;
++  }
++
++  const uri = `steam://rungameid/${gameId.toString()}`;
++  const steamLaunch = await getSteamLaunchCommand();
++
++  if (!steamLaunch) {
++    logger.warn("Could not find a trusted Steam launcher", {
++      executable: executablePath,
++    });
++    return false;
++  }
++
++  try {
++    const steamProcess = spawn(
++      steamLaunch.command,
++      [...steamLaunch.args, uri],
++      {
++        shell: false,
++        detached: true,
++        stdio: "ignore",
++      }
++    );
++
++    steamProcess.on("error", (error) => {
++      logger.error("Steam shortcut launch failed", {
++        executable: executablePath,
++        uri,
++        error,
++      });
++    });
++
++    steamProcess.unref();
++
++    logger.info("Delegated compatibility launch to Steam", {
++      executable: executablePath,
++      gameId: gameId.toString(),
++      uri,
++    });
++
++    return true;
++  } catch (error) {
++    logger.error("Could not delegate compatibility launch to Steam", {
++      executable: executablePath,
++      uri,
++      error,
++    });
++
++    return false;
++  }
++};
++
+ const launchWindowsBinaryOnLinux = async (
+   gameKey: string,
+   objectId: string,
+@@ -259,6 +583,54 @@ const launchWindowsBinaryOnLinux = async (
+ 
+   await cleanupStaleCompatibilityProcesses(objectId, winePrefixPath);
+ 
++  const compatibilityResult = await detectCompatibilityPatch(
++    path.dirname(parsedPath)
++  );
++
++  const detectedWineDllOverrides =
++    compatibilityResult.requiresCompatibilityMode &&
++    compatibilityResult.overrides
++      ? compatibilityResult.overrides
++      : null;
++
++  if (compatibilityResult.requiresCompatibilityMode) {
++    await ensureSteamOverlayDependency(
++      winePrefixPath,
++      compatibilityResult.detectedFiles
++    );
++
++    logger.info("Detected Windows compatibility files", {
++      executable: parsedPath,
++      provider: compatibilityResult.provider,
++      overrides: detectedWineDllOverrides,
++      detectedFiles: compatibilityResult.detectedFiles,
++      managedEntries: compatibilityResult.managedEntries,
++    });
++
++    for (const warning of compatibilityResult.warnings) {
++      logger.warn("Windows compatibility detection warning", {
++        executable: parsedPath,
++        warning,
++      });
++    }
++  }
++
++  /*
++   * Some Windows compatibility setups require a launch that is genuinely
++   * owned by the Steam client. If the exact executable already exists as a
++   * non-Steam shortcut, delegate to Steam before attempting UMU.
++   *
++   * Exact-path matching prevents selecting another shortcut with the same
++   * executable filename.
++   */
++  if (
++    compatibilityResult.requiresCompatibilityMode &&
++    (await launchThroughSteamShortcut(parsedPath))
++  ) {
++    PowerSaveBlockerManager.markCompatibilityLaunchStarted(gameKey);
++    return true;
++  }
++
+   try {
+     await Umu.launchExecutable(parsedPath, [], {
+       winePrefixPath,
+@@ -267,6 +639,8 @@ const launchWindowsBinaryOnLinux = async (
+       launchOptions,
+       useGamemode,
+       useMangohud,
++      wineDllOverrides: detectedWineDllOverrides,
++      compatibilityMode: compatibilityResult.requiresCompatibilityMode,
+     });
+     PowerSaveBlockerManager.markCompatibilityLaunchStarted(gameKey);
+     return true;
+diff --git a/src/main/services/compatibility-patch-detector.test.ts b/src/main/services/compatibility-patch-detector.test.ts
+new file mode 100644
+index 0000000000..d4b8210d19
+--- /dev/null
++++ b/src/main/services/compatibility-patch-detector.test.ts
+@@ -0,0 +1,110 @@
++import assert from "node:assert/strict";
++import fs from "node:fs/promises";
++import os from "node:os";
++import path from "node:path";
++import { afterEach, beforeEach, describe, it } from "node:test";
++
++import { detectCompatibilityPatch } from "./compatibility-patch-detector.ts";
++
++describe("compatibility-patch-detector", () => {
++  let root: string;
++
++  beforeEach(async () => {
++    root = await fs.mkdtemp(
++      path.join(os.tmpdir(), "hydra-compatibility-patch-")
++    );
++  });
++
++  afterEach(async () => {
++    await fs.rm(root, { recursive: true, force: true });
++  });
++
++  it("detects known compatibility patch files recursively", async () => {
++    const nested = path.join(root, "Bin", "Win64");
++    await fs.mkdir(nested, { recursive: true });
++    await fs.writeFile(path.join(nested, "OnlineFix64.dll"), "");
++
++    const result = await detectCompatibilityPatch(root);
++
++    assert.equal(result.requiresCompatibilityMode, true);
++    assert.equal(result.provider, "primary");
++    assert.ok(result.overrides.toLowerCase().includes("onlinefix64=n"));
++  });
++
++  it("parses manifests but rejects traversal paths", async () => {
++    await fs.writeFile(
++      path.join(root, "dlllist.txt"),
++      "winmm.dll\nSteamOverlay64.dll\n../../evil.dll\n"
++    );
++
++    const result = await detectCompatibilityPatch(root);
++    const overrides = result.overrides.toLowerCase();
++
++    assert.equal(result.requiresCompatibilityMode, true);
++    assert.ok(overrides.includes("winmm=n,b"));
++    assert.ok(overrides.includes("steamoverlay64=n"));
++    assert.equal(overrides.includes("evil=n"), false);
++  });
++
++  it("does not use winmm.dll alone as proof of a compatibility setup", async () => {
++    await fs.writeFile(path.join(root, "winmm.dll"), "");
++
++    const result = await detectCompatibilityPatch(root);
++
++    assert.equal(result.requiresCompatibilityMode, false);
++    assert.equal(result.overrides, "");
++  });
++
++  it("does not use version.dll alone as proof of a compatibility setup", async () => {
++    await fs.writeFile(path.join(root, "version.dll"), "");
++
++    const result = await detectCompatibilityPatch(root);
++
++    assert.equal(result.requiresCompatibilityMode, false);
++    assert.equal(result.overrides, "");
++  });
++
++  it("does not use an EOS DLL alone as proof of a compatibility patch", async () => {
++    await fs.writeFile(path.join(root, "EOSSDK-Win64-Shipping.dll"), "");
++
++    const result = await detectCompatibilityPatch(root);
++
++    assert.equal(result.requiresCompatibilityMode, false);
++    assert.equal(result.overrides, "");
++  });
++
++  it("detects a managed dependency without downloading it", async () => {
++    await fs.writeFile(path.join(root, "Launcher.exe"), "");
++    await fs.writeFile(path.join(root, "onlinefix.json"), "{}");
++
++    const result = await detectCompatibilityPatch(root);
++
++    assert.equal(result.provider, "dependency");
++    assert.deepEqual(result.missingDependencies, [
++      path.join(root, "Newtonsoft.Json.dll"),
++    ]);
++  });
++
++  it("detects a Steam emulator configuration without treating steam_api64.dll alone as proof", async () => {
++    await fs.writeFile(path.join(root, "steam_api64.dll"), "");
++    await fs.writeFile(path.join(root, "steam_appid.txt"), "480");
++    await fs.writeFile(path.join(root, "steam_emu.ini"), "[Settings]\n");
++
++    const result = await detectCompatibilityPatch(root);
++
++    assert.equal(result.requiresCompatibilityMode, true);
++    assert.ok(
++      result.detectedFiles.some(
++        (file) => path.basename(file).toLowerCase() === "steam_emu.ini"
++      )
++    );
++  });
++
++  it("does not use steam_api64.dll alone as proof of a compatibility setup", async () => {
++    await fs.writeFile(path.join(root, "steam_api64.dll"), "");
++
++    const result = await detectCompatibilityPatch(root);
++
++    assert.equal(result.requiresCompatibilityMode, false);
++  });
++});
+diff --git a/src/main/services/compatibility-patch-detector.ts b/src/main/services/compatibility-patch-detector.ts
+new file mode 100644
+index 0000000000..7794a51a4a
+--- /dev/null
++++ b/src/main/services/compatibility-patch-detector.ts
+@@ -0,0 +1,353 @@
++import fs from "node:fs/promises";
++import path from "node:path";
++
++export type CompatibilityPatchProvider =
++  | "primary"
++  | "secondary"
++  | "dependency"
++  | "unknown";
++
++export interface CompatibilityPatchDetectionResult {
++  requiresCompatibilityMode: boolean;
++  provider: CompatibilityPatchProvider;
++  overrides: string;
++  detectedFiles: string[];
++  managedEntries: string[];
++  configurationPaths: string[];
++  missingDependencies: string[];
++  warnings: string[];
++}
++
++const MAX_DEPTH = 3;
++
++const KNOWN_COMPATIBILITY_DLLS = new Map<string, string>([
++  ["onlinefix64.dll", "OnlineFix64=n"],
++  ["onlinefix.dll", "OnlineFix=n"],
++  ["steamoverlay64.dll", "SteamOverlay64=n"],
++  ["steamoverlay.dll", "SteamOverlay=n"],
++  ["emp.dll", "emp=n"],
++]);
++
++const IGNORED_DIRS = new Set([
++  ".git",
++  "assets",
++  "audio",
++  "content",
++  "data",
++  "engine",
++  "movies",
++  "music",
++  "node_modules",
++  "sound",
++]);
++
++const MANIFEST_NAMES = new Set(["winmm.txt", "dlllist.txt"]);
++
++type ScanState = {
++  detectedFiles: Set<string>;
++  managedEntries: Set<string>;
++  overrides: Map<string, string>;
++  configurationPaths: Set<string>;
++  dependencyDirectories: Set<string>;
++  eosCandidates: Map<string, string>;
++  hasStrongSignature: boolean;
++  hasPrimaryPatchSignature: boolean;
++  hasSecondaryPatchSignature: boolean;
++  hasDependencyPatchSignature: boolean;
++  warnings: string[];
++};
++
++function canonicalDllKey(name: string): string {
++  return path.parse(path.basename(name)).name.toLowerCase();
++}
++
++function addOverride(state: ScanState, dllName: string, value = "n") {
++  const key = canonicalDllKey(dllName);
++  if (!key) return;
++  if (!state.overrides.has(key)) {
++    state.overrides.set(
++      key,
++      `${path.parse(path.basename(dllName)).name}=${value}`
++    );
++  }
++}
++
++function normalizeManifestDll(line: string): string | null {
++  const noComment = line.split(/[;#]/, 1)[0]?.trim() ?? "";
++  if (!noComment) return null;
++
++  const unquoted = noComment.replace(/^["']|["']$/g, "");
++  if (unquoted.includes("/") || unquoted.includes("\\")) return null;
++
++  const base = path.basename(unquoted);
++  if (!base.toLowerCase().endsWith(".dll")) return null;
++  return base;
++}
++
++async function parseManifest(manifestPath: string, state: ScanState) {
++  try {
++    const content = await fs.readFile(manifestPath, "utf-8");
++    for (const rawLine of content.split(/\r?\n/)) {
++      const trimmed = rawLine.split(/[;#]/, 1)[0]?.trim() ?? "";
++      if (!trimmed) continue;
++
++      const unquoted = trimmed.replace(/^["']|["']$/g, "");
++      const lower = unquoted.toLowerCase();
++
++      if (lower.endsWith(".net") || lower.endsWith(".net.org")) {
++        state.managedEntries.add(unquoted);
++        continue;
++      }
++
++      const dll = normalizeManifestDll(unquoted);
++      if (!dll) continue;
++
++      addOverride(state, dll, dll.toLowerCase() === "winmm.dll" ? "n,b" : "n");
++    }
++  } catch (error) {
++    state.warnings.push(
++      `Could not read ${manifestPath}: ${
++        error instanceof Error ? error.message : String(error)
++      }`
++    );
++  }
++}
++
++async function processCompatibilityFile(
++  fullPath: string,
++  lower: string,
++  fileName: string,
++  state: ScanState
++): Promise<{ hasLauncherExe: boolean; hasLaunchMetadata: boolean }> {
++  if (
++    lower === "steam_api.dll" ||
++    lower === "steam_api64.dll" ||
++    lower === "steam_appid.txt" ||
++    lower === "steam_emu.ini" ||
++    lower === "sovereign.ini"
++  ) {
++    state.detectedFiles.add(fullPath);
++  }
++
++  const knownOverride = KNOWN_COMPATIBILITY_DLLS.get(lower);
++  if (knownOverride) {
++    state.detectedFiles.add(fullPath);
++    state.hasStrongSignature = true;
++    state.hasPrimaryPatchSignature = true;
++    const [dllName, value] = knownOverride.split("=");
++    addOverride(state, `${dllName}.dll`, value);
++    return { hasLauncherExe: false, hasLaunchMetadata: false };
++  }
++
++  if (MANIFEST_NAMES.has(lower)) {
++    state.detectedFiles.add(fullPath);
++    state.hasStrongSignature = true;
++    await parseManifest(fullPath, state);
++    return { hasLauncherExe: false, hasLaunchMetadata: false };
++  }
++
++  if (lower === "steamfix.ini") {
++    state.detectedFiles.add(fullPath);
++    state.configurationPaths.add(fullPath);
++    state.hasStrongSignature = true;
++    state.hasSecondaryPatchSignature = true;
++    return { hasLauncherExe: false, hasLaunchMetadata: false };
++  }
++
++  if (
++    lower.endsWith(".dll") &&
++    (lower.startsWith("eos") || lower.startsWith("epicfix"))
++  ) {
++    state.eosCandidates.set(fullPath, fileName);
++  }
++
++  return {
++    hasLauncherExe: lower === "launcher.exe",
++    hasLaunchMetadata:
++      lower === "onlinefix.json" || lower.startsWith("launch_data.of"),
++  };
++}
++
++async function scanDirectory(
++  currentPath: string,
++  depth: number,
++  state: ScanState
++): Promise<void> {
++  if (depth > MAX_DEPTH) return;
++
++  let entries;
++  try {
++    entries = await fs.readdir(currentPath, { withFileTypes: true });
++  } catch (error) {
++    state.warnings.push(
++      `Could not scan ${currentPath}: ${
++        error instanceof Error ? error.message : String(error)
++      }`
++    );
++    return;
++  }
++
++  let hasLauncherExe = false;
++  let hasLaunchMetadata = false;
++
++  for (const entry of entries) {
++    const fullPath = path.join(currentPath, entry.name);
++    const lower = entry.name.toLowerCase();
++
++    if (entry.isDirectory()) {
++      if (!IGNORED_DIRS.has(lower)) {
++        await scanDirectory(fullPath, depth + 1, state);
++      }
++      continue;
++    }
++
++    if (!entry.isFile()) continue;
++
++    const result = await processCompatibilityFile(
++      fullPath,
++      lower,
++      entry.name,
++      state
++    );
++
++    hasLauncherExe ||= result.hasLauncherExe;
++    hasLaunchMetadata ||= result.hasLaunchMetadata;
++  }
++
++  if (hasLauncherExe && hasLaunchMetadata) {
++    state.hasStrongSignature = true;
++    state.hasDependencyPatchSignature = true;
++    state.dependencyDirectories.add(currentPath);
++    state.detectedFiles.add(path.join(currentPath, "Launcher.exe"));
++  }
++}
++
++function chooseProvider(state: ScanState): CompatibilityPatchProvider {
++  if (state.hasDependencyPatchSignature) return "dependency";
++  if (state.hasSecondaryPatchSignature) return "secondary";
++  if (state.hasPrimaryPatchSignature) return "primary";
++  return "unknown";
++}
++
++const STEAM_EMULATOR_CONFIG_NAMES = new Set(["steam_emu.ini", "sovereign.ini"]);
++
++const hasSteamEmulatorConfiguration = (
++  fileNames: Iterable<string>
++): boolean => {
++  const names = new Set(
++    Array.from(fileNames, (fileName) => path.basename(fileName).toLowerCase())
++  );
++
++  const hasEmulatorConfig = [...STEAM_EMULATOR_CONFIG_NAMES].some((name) =>
++    names.has(name)
++  );
++
++  if (!hasEmulatorConfig) return false;
++
++  // steam_api*.dll is common in ordinary Steam games, so it is not
++  // sufficient by itself. Require an emulator configuration plus
++  // Steam API/app-id evidence.
++  return (
++    names.has("steam_api.dll") ||
++    names.has("steam_api64.dll") ||
++    names.has("steam_appid.txt")
++  );
++};
++
++export async function detectCompatibilityPatch(
++  gameFolder: string
++): Promise<CompatibilityPatchDetectionResult> {
++  if (!gameFolder) {
++    return {
++      requiresCompatibilityMode: false,
++      provider: "unknown",
++      overrides: "",
++      detectedFiles: [],
++      managedEntries: [],
++      configurationPaths: [],
++      missingDependencies: [],
++      warnings: ["Game folder was empty"],
++    };
++  }
++
++  try {
++    const stat = await fs.stat(gameFolder);
++    if (!stat.isDirectory()) throw new Error("not a directory");
++  } catch {
++    return {
++      requiresCompatibilityMode: false,
++      provider: "unknown",
++      overrides: "",
++      detectedFiles: [],
++      managedEntries: [],
++      configurationPaths: [],
++      missingDependencies: [],
++      warnings: [`Game folder is unavailable: ${gameFolder}`],
++    };
++  }
++
++  const state: ScanState = {
++    detectedFiles: new Set(),
++    managedEntries: new Set(),
++    overrides: new Map(),
++    configurationPaths: new Set(),
++    dependencyDirectories: new Set(),
++    eosCandidates: new Map(),
++    hasStrongSignature: false,
++    hasPrimaryPatchSignature: false,
++    hasSecondaryPatchSignature: false,
++    hasDependencyPatchSignature: false,
++    warnings: [],
++  };
++
++  await scanDirectory(gameFolder, 0, state);
++
++  if (state.hasStrongSignature) {
++    for (const [fullPath, name] of state.eosCandidates) {
++      state.detectedFiles.add(fullPath);
++      addOverride(state, name);
++    }
++  }
++
++  const missingDependencies: string[] = [];
++  for (const dependencyDirectory of state.dependencyDirectories) {
++    const newtonsoft = path.join(dependencyDirectory, "Newtonsoft.Json.dll");
++    try {
++      await fs.access(newtonsoft);
++    } catch {
++      missingDependencies.push(newtonsoft);
++    }
++  }
++  /*
++   * Some Steam-emulator configurations still require
++   * a genuine Steam-owned Proton launch for Steam IPC to function correctly.
++   *
++   * Keep this deliberately conservative: steam_api*.dll alone is common in
++   * legitimate Steam games and must not be treated as proof.
++   */
++  const steamEmulatorDetected = hasSteamEmulatorConfiguration(
++    state.detectedFiles
++  );
++
++  if (steamEmulatorDetected) {
++    state.warnings.push(
++      "Detected Steam-emulator configuration; Steam-owned launch may be required"
++    );
++  }
++
++  return {
++    requiresCompatibilityMode:
++      state.hasStrongSignature || steamEmulatorDetected,
++    provider: chooseProvider(state),
++    overrides: [...state.overrides.values()].join(";"),
++    detectedFiles: [...state.detectedFiles].sort((a, b) => a.localeCompare(b)),
++    managedEntries: [...state.managedEntries].sort((a, b) =>
++      a.localeCompare(b)
++    ),
++    configurationPaths: [...state.configurationPaths].sort((a, b) =>
++      a.localeCompare(b)
++    ),
++    missingDependencies,
++    warnings: state.warnings,
++  };
++}
+diff --git a/src/main/services/umu.ts b/src/main/services/umu.ts
+index 16c1f30967..e7337a230d 100644
+--- a/src/main/services/umu.ts
++++ b/src/main/services/umu.ts
+@@ -97,6 +97,121 @@ const ensureExecutablePermission = (binaryPath: string) => {
+ 
+ const shellQuote = (value: string) => `'${value.replaceAll("'", "'\\''")}'`;
+ 
++const findExistingPath = async (
++  candidates: string[]
++): Promise<string | null> => {
++  for (const candidate of candidates) {
++    try {
++      await fs.promises.access(candidate);
++      return candidate;
++    } catch {
++      // Try the next candidate.
++    }
++  }
++
++  return null;
++};
++
++const provisionCompatibilitySteamClient = async (
++  winePrefixPath: string | null | undefined,
++  protonPath: string | null | undefined
++): Promise<{
++  steamCompatClientInstallPath: string | null;
++}> => {
++  const homePath = SystemPath.getPath("home");
++
++  const steamCompatClientInstallPath = await findExistingPath([
++    path.join(homePath, ".steam", "steam"),
++    path.join(homePath, ".local", "share", "Steam"),
++  ]);
++
++  if (!winePrefixPath || !steamCompatClientInstallPath) {
++    return { steamCompatClientInstallPath };
++  }
++
++  const destinationDirectory = path.join(
++    winePrefixPath,
++    "drive_c",
++    "Program Files (x86)",
++    "Steam"
++  );
++
++  await fs.promises.mkdir(destinationDirectory, { recursive: true });
++
++  const requiredSources: Record<string, string[]> = {
++    "steamclient64.dll": [
++      path.join(steamCompatClientInstallPath, "steamclient64.dll"),
++      path.join(
++        steamCompatClientInstallPath,
++        "legacycompat",
++        "steamclient64.dll"
++      ),
++    ],
++    "steamclient.dll": [
++      path.join(steamCompatClientInstallPath, "steamclient.dll"),
++      path.join(
++        steamCompatClientInstallPath,
++        "legacycompat",
++        "steamclient.dll"
++      ),
++    ],
++    "Steam.dll": [
++      path.join(steamCompatClientInstallPath, "legacycompat", "Steam.dll"),
++      path.join(steamCompatClientInstallPath, "Steam.dll"),
++    ],
++    "steam.exe": protonPath
++      ? [
++          path.join(
++            protonPath,
++            "files",
++            "lib",
++            "wine",
++            "x86_64-windows",
++            "steam.exe"
++          ),
++          path.join(
++            protonPath,
++            "files",
++            "lib",
++            "wine",
++            "i386-windows",
++            "steam.exe"
++          ),
++        ]
++      : [],
++  };
++
++  const provisionedFiles: string[] = [];
++
++  for (const [fileName, sourceCandidates] of Object.entries(requiredSources)) {
++    const destination = path.join(destinationDirectory, fileName);
++
++    if ((await findExistingPath([destination])) !== null) continue;
++
++    const source = await findExistingPath(sourceCandidates);
++
++    if (!source) {
++      logger.warn("Could not provision compatibility Steam client file", {
++        fileName,
++        sourceCandidates,
++      });
++      continue;
++    }
++
++    await fs.promises.copyFile(source, destination);
++    provisionedFiles.push(fileName);
++  }
++
++  if (provisionedFiles.length > 0) {
++    logger.info("Provisioned compatibility Steam client files", {
++      destination: destinationDirectory,
++      files: provisionedFiles,
++    });
++  }
++
++  return { steamCompatClientInstallPath };
++};
++
+ export class Umu {
+   public static isValidProtonPath(protonPath: string) {
+     return isValidProtonDirectory(protonPath);
+@@ -212,6 +327,8 @@ export class Umu {
+       launchOptions?: string | null;
+       useMangohud?: boolean;
+       useGamemode?: boolean;
++      wineDllOverrides?: string | null;
++      compatibilityMode?: boolean;
+     }
+   ): Promise<void> {
+     const QUICK_EXIT_THRESHOLD_MS = 3000;
+@@ -233,14 +350,53 @@ export class Umu {
+     fs.mkdirSync(path.dirname(umuLogPath), { recursive: true });
+     ensureExecutablePermission(umuBinaryPath);
+ 
++    const COMPATIBILITY_GAME_ID = "umu-480";
++
++    const compatibilityMode = options?.compatibilityMode ?? false;
++
++    const { steamCompatClientInstallPath } = compatibilityMode
++      ? await provisionCompatibilitySteamClient(
++          options?.winePrefixPath,
++          options?.protonPath
++        )
++      : { steamCompatClientInstallPath: null };
++
+     const launchEnv = {
+       PROTON_LOG: "1",
+-      ...(options?.gameId ? { GAMEID: `umu-${options.gameId}` } : {}),
++
++      ...(options?.gameId
++        ? {
++            GAMEID: compatibilityMode
++              ? COMPATIBILITY_GAME_ID
++              : `umu-${options.gameId}`,
++          }
++        : {}),
++
+       ...(options?.winePrefixPath
+         ? { WINEPREFIX: options.winePrefixPath }
+         : {}),
++
+       ...(options?.protonPath ? { PROTONPATH: options.protonPath } : {}),
+       ...(options?.useMangohud ? { MANGOHUD: "1" } : {}),
++
++      ...(compatibilityMode
++        ? {
++            GAMEID: COMPATIBILITY_GAME_ID,
++            ...(options?.winePrefixPath
++              ? { WINEPREFIX: options.winePrefixPath }
++              : {}),
++            ...(steamCompatClientInstallPath
++              ? {
++                  STEAM_COMPAT_CLIENT_INSTALL_PATH:
++                    steamCompatClientInstallPath,
++                }
++              : {}),
++            ...(options?.wineDllOverrides
++              ? { WINEDLLOVERRIDES: options.wineDllOverrides }
++              : {}),
++          }
++        : {}),
++
+       ...resolvedLaunchCommand.env,
+     };
+ 
