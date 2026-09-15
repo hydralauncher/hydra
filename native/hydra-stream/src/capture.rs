@@ -1032,23 +1032,34 @@ unsafe fn duplicate_output(
         .map_err(|error| format!("DuplicateOutput: {error}"))
 }
 
-/// Keeps the display powered on for as long as it lives, so a stream can start
-/// (and keep running) with the panel off.
+/// Keeps the display from being switched off while a stream is running, by
+/// holding `ES_DISPLAY_REQUIRED` (re-asserted every 500 ms) for its lifetime.
 ///
-/// Measured on the RTX 5070 with the display in DPMS standby — what a monitor's
-/// standby leaves behind, and what the Windows power plan produces — the
-/// duplication is created fine but delivers **zero** frames, and GDI still sees
-/// a composed desktop; `SetThreadExecutionState(ES_CONTINUOUS |
-/// ES_DISPLAY_REQUIRED)` brings capture back to full rate (530 frames in 4 s)
-/// *while the panel stays dark*. That is Sunshine's mechanism too
-/// (`display_base.cpp:245`, with the wait-and-retry at `:550-554`).
+/// Measured on the RTX 5070, and the reason this type is scoped narrowly:
+///
+/// * with the output in DPMS standby the duplication is created fine but
+///   delivers **zero** frames, while the desktop stays composed enough for GDI
+///   to still read it (`probe_display_standby_capture`);
+/// * calling `ES_DISPLAY_REQUIRED` again while the display is off does **not**
+///   bring capture back — 0 frames across ten seconds of two-second retries —
+///   so "switch the display off mid-stream" is not something this can fix. An
+///   earlier version of this comment claimed a 530-frame recovery; that
+///   measurement was an artefact of the probe's cursor wiggler, whose
+///   `SetCursorPos` is user input and wakes a display on its own;
+/// * what the flag *does* do, and why it is still held, is stop the Windows
+///   power plan's display idle timer from turning the display off in the first
+///   place — Sunshine's use of the same call (`display_base.cpp:245`).
+///
+/// The `create_capture` retry that accompanies it covers the case where the
+/// output is not enumerated yet on the first pass. Neither helps when the
+/// display is off at the OS level: the desktop stops being composed, nothing
+/// presents, and there is nothing to duplicate — that needs a display that
+/// stays on (a virtual one) rather than a flag.
 ///
 /// `SetThreadExecutionState` is per-thread and a thread's state dies with it,
-/// so this owns a thread that holds the state and parks until dropped. The
-/// sender loop sets the same state for its own lifetime (`video.rs`), but it
-/// only starts *after* the capture exists — too late for a session that begins
-/// with the display already off, which is exactly the case that used to end in
-/// a silent black screen.
+/// so this owns a thread that holds the state, re-asserts it, and parks until
+/// dropped. The sender loop sets the same state for its own lifetime
+/// (`video.rs`), but it only starts *after* the capture exists.
 pub struct DisplayKeeper {
     stop: std::sync::Arc<std::sync::atomic::AtomicBool>,
     thread: Option<std::thread::JoinHandle<()>>,
@@ -1065,11 +1076,27 @@ impl DisplayKeeper {
         let stop = std::sync::Arc::new(std::sync::atomic::AtomicBool::new(false));
         let thread_stop = stop.clone();
         let thread = std::thread::spawn(move || {
-            unsafe {
-                SetThreadExecutionState(ES_CONTINUOUS | ES_DISPLAY_REQUIRED);
-            }
+            // Re-asserted every 500 ms rather than set once, which is what
+            // keeps the *display idle timer* (the Windows power plan's "turn
+            // off the display after N minutes") from firing mid-stream —
+            // `ES_DISPLAY_REQUIRED`'s documented job, and Sunshine's use of it
+            // (`display_base.cpp:245`).
+            //
+            // Measured, and worth knowing before trusting it for more: this
+            // does **not** bring capture back once the display is actually
+            // off. With the output in DPMS standby the duplication returns 0
+            // frames, and calling this again every 2 s for 10 s returns 0
+            // frames too (`probe_display_standby_capture`, keep-alive
+            // buckets). Switching the display off underneath a stream
+            // therefore cannot be papered over here: the desktop stops being
+            // composed and there is nothing to duplicate. See the note on
+            // `DisplayKeeper` — that case needs a display that stays on (a
+            // virtual one) rather than a flag.
             while !thread_stop.load(std::sync::atomic::Ordering::Relaxed) {
-                std::thread::sleep(Duration::from_millis(200));
+                unsafe {
+                    SetThreadExecutionState(ES_CONTINUOUS | ES_DISPLAY_REQUIRED);
+                }
+                std::thread::sleep(Duration::from_millis(500));
             }
             // Dropping the thread would clear this anyway; clearing it here
             // documents the pairing and covers an explicit stop.
@@ -4671,6 +4698,33 @@ mod tests {
             }
             std::thread::sleep(Duration::from_millis(2000));
             phase("display STANDBY + ES_DISPLAY_REQUIRED", 4, &capture);
+
+            // Does *keeping* the flag set — what a running stream does, and
+            // what the keeper now re-asserts every 500 ms — hold capture up,
+            // or does the display win after a while? Re-assert every 2 s and
+            // count frames per bucket: if the later buckets collapse, a
+            // repeated call is not enough and the answer is a virtual display.
+            for bucket in 1..=5 {
+                unsafe {
+                    SetThreadExecutionState(ES_CONTINUOUS | ES_DISPLAY_REQUIRED);
+                }
+                let (mut frames, mut timeouts, mut errors) = (0u32, 0u32, 0u32);
+                let deadline = Instant::now() + Duration::from_secs(2);
+                while Instant::now() < deadline {
+                    match capture.acquire(250) {
+                        Ok(Some(frame)) => {
+                            frames += 1;
+                            drop(frame);
+                        }
+                        Ok(None) => timeouts += 1,
+                        Err(_) => errors += 1,
+                    }
+                }
+                eprintln!(
+                    "standby keep-alive bucket {bucket} (2s): frames={frames} timeouts={timeouts} \
+                     errors={errors}"
+                );
+            }
             unsafe {
                 SetThreadExecutionState(ES_CONTINUOUS);
             }
