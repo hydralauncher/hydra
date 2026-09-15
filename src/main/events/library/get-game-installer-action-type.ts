@@ -3,7 +3,7 @@ import fs from "node:fs";
 
 import { getDownloadsPath } from "../helpers/get-downloads-path";
 import { registerEvent } from "../register-event";
-import { downloadsSublevel, levelKeys } from "@main/level";
+import { downloadsSublevel, gamesSublevel, levelKeys } from "@main/level";
 import { GameShop } from "@types";
 
 const getGameInstallerActionType = async (
@@ -15,6 +15,11 @@ const getGameInstallerActionType = async (
   const download = await downloadsSublevel.get(downloadKey);
 
   if (!download?.folderName) return "open-folder";
+
+  const game = await gamesSublevel.get(downloadKey);
+  if (game?.executablePath && fs.existsSync(game.executablePath)) {
+    return "open-folder";
+  }
 
   const gamePath = path.join(
     download.downloadPath ?? (await getDownloadsPath()),
