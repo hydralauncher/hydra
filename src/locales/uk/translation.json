@@ -238,6 +238,7 @@
     "download_paused": "Завантаження призупинено",
     "download_settings": "Налаштування завантаження",
     "download_error": "Цей варіант завантаження не доступний",
+    "invalid_repack": "Немає доступних посилань для вибраного завантажувача.",
     "downloader": "Завантажувач",
     "downloads_section_title": "Завантаження",
     "downloads_section_description": "Перевірити наявність оновлень або інших версій гри",
