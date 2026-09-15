@@ -123,21 +123,30 @@ fn run(state: Arc<State>, socket: UdpSocket) -> io::Result<()> {
     // peer to send it to.
     let mut hdr_sent = false;
 
-    /// Tells the client this session is HDR10, once its control channel is
-    /// up: a Moonlight client switches its display on this message and it is
-    /// the only route by which the display's HDR metadata reaches the client
-    /// (Sunshine's `send_hdr_mode`, `stream.cpp:1130-1157`, which logs the
-    /// same "still waiting for PING" case when there is no peer yet).
+    /// Tells the client what the HDR state of this session is, once its control
+    /// channel is up: a Moonlight client switches its display on this message
+    /// and it is the only route by which the display's HDR metadata reaches the
+    /// client (Sunshine's `send_hdr_mode`, `stream.cpp:1130-1157`, which logs
+    /// the same "still waiting for PING" case when there is no peer yet).
     ///
-    /// Sent once, not per frame. An SDR session announces nothing: a client
-    /// that never negotiated 10-bit is not listening for the message.
+    /// Sent once, not per frame, and sent whenever the client *asked* for
+    /// 10-bit — including when the answer is "no". Sunshine raises the same
+    /// message with `enabled = false` when the display cannot produce HDR
+    /// (`video.cpp:2650-2658`), and leaving that out is worse than it sounds:
+    /// the client has already negotiated a 10-bit format, so a silent 8-bit
+    /// stream leaves it in HDR10 mode against SDR content. A session the client
+    /// never asked HDR for announces nothing.
     fn send_hdr_mode(
         state: &crate::nvhttp::State,
         socket: &std::net::UdpSocket,
         server: &mut crate::enet::EnetServer,
         now: Instant,
     ) {
-        if !crate::config::session_hdr() {
+        let asked = state
+            .launch_params()
+            .is_some_and(|launch| launch.dynamic_range > 0 || launch.hdr_mode);
+        let enabled = crate::config::session_hdr();
+        if !asked && !enabled {
             return;
         }
         let Some(metadata) = crate::capture::display_hdr_metadata() else {
@@ -151,6 +160,16 @@ fn run(state: Arc<State>, socket: UdpSocket) -> io::Result<()> {
         }
         let _ = server.send_reliable(0, &payload);
         send_flush(socket, server, now);
+        if !enabled {
+            eprintln!(
+                "control: told the client HDR is unavailable (client asked for 10-bit, streaming \
+                 SDR; max {} nits, min {} nits, {}-byte message)",
+                metadata.max_luminance,
+                metadata.min_luminance,
+                payload.len()
+            );
+            return;
+        }
         eprintln!(
             "control: told the client the stream is HDR10 (max {} nits, min {} nits, {}-byte \
              message)",

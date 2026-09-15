@@ -776,14 +776,30 @@ fn live_video_and_control_smoke() {
     // sidecar has to have decided HDR10 from the announcement alone, and told
     // the client so (the HDR mode control message Moonlight switches its
     // display on).
+    // With the client asking for 10-bit, the host must land in one of exactly
+    // two states, and must say which: an HDR10 session, or an SDR stream the
+    // client is *told* about (the silent degrade is what left a client in HDR
+    // mode against SDR content). Which one depends on the desktop's HDR state
+    // at this moment, so the test follows the host rather than forcing a state.
     if hdr_announce {
-        let session = log
-            .wait_for("HDR10 session", Duration::from_secs(5))
-            .expect("sidecar did not build an HDR10 session from the announcement");
+        let (session, told_needle, told_expectation) =
+            match log.wait_for("HDR10 session", Duration::from_secs(3)) {
+                Some(session) => (session, "told the client the stream is HDR10", "HDR10 notice"),
+                None => {
+                    let session = log
+                        .wait_for("streaming SDR", Duration::from_secs(5))
+                        .expect("host neither built an HDR10 session nor reported an SDR degrade");
+                    (
+                        session,
+                        "told the client HDR is unavailable",
+                        "unavailable notice",
+                    )
+                }
+            };
         println!("live smoke: {session}");
         let told = log
-            .wait_for("told the client the stream is HDR10", Duration::from_secs(5))
-            .expect("sidecar did not send the HDR mode control message");
+            .wait_for(told_needle, Duration::from_secs(5))
+            .unwrap_or_else(|| panic!("sidecar did not send the {told_expectation}"));
         println!("live smoke: {told}");
     }
 

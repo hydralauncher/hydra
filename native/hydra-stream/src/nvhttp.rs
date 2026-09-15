@@ -786,6 +786,23 @@ fn serverinfo(state: &State, is_https: bool, has_uniqueid: bool, local_ip: IpAdd
     };
     let hevc = crate::capture::recovery_capability().hevc;
     let hevc_main10 = crate::capture::recovery_capability().hevc_main10;
+    // What the client is actually offered, and why: the HDR bit goes out only
+    // when this desktop can be *captured* as HDR, so a client never negotiates
+    // 10-bit against a host that would have to degrade it to 8-bit (see
+    // `advertised_codec_mode_support`). Logged once per process, because "the
+    // client behaves differently than before" is the symptom of getting this
+    // wrong.
+    let codec_mode_support = advertised_codec_mode_support();
+    {
+        static LOGGED: std::sync::atomic::AtomicBool = std::sync::atomic::AtomicBool::new(false);
+        if !LOGGED.swap(true, std::sync::atomic::Ordering::Relaxed) {
+            eprintln!(
+                "nvhttp: advertising ServerCodecModeSupport={codec_mode_support:#x} (hevc={hevc}, \
+                 hevc-main10={hevc_main10}, desktop HDR={})",
+                crate::capture::desktop_is_hdr()
+            );
+        }
+    }
     // Sunshine mirrors the running app into serverinfo: clients poll this
     // after /launch and only start RTSP once the host reports BUSY with the
     // launched appid as currentgame (Moonlight-Android's AppView flow).
@@ -835,7 +852,7 @@ fn serverinfo(state: &State, is_https: bool, has_uniqueid: bool, local_ip: IpAdd
         https_port = HTTPS_PORT,
         http_port = HTTP_PORT,
         max_luma_pixels_hevc = max_luma_pixels_hevc(hevc),
-        server_codec_mode_support = server_codec_mode_support(hevc, hevc_main10),
+        server_codec_mode_support = codec_mode_support,
         local_ip = local_ip,
         pair_status = pair_status,
         currentgame = currentgame,
@@ -862,7 +879,7 @@ fn max_luma_pixels_hevc(hevc: bool) -> &'static str {
     if hevc { "1869449984" } else { "0" }
 }
 
-/// The codec-capability bitmask for this host (Sunshine's
+/// The codec-capability bitmask to advertise (Sunshine's
 /// `get_codec_mode_flags`, nvhttp.cpp:1166-1190, reduced to the codecs this
 /// host has). `hevc_main10` is the startup probe's HEVC Main10 answer; the
 /// HDR bit is never advertised without it, so a client is never offered a
@@ -871,6 +888,34 @@ fn server_codec_mode_support(hevc: bool, hevc_main10: bool) -> u32 {
     SCM_H264
         | if hevc { SCM_HEVC } else { 0 }
         | if hevc && hevc_main10 { SCM_HEVC_MAIN10 } else { 0 }
+}
+
+/// [`server_codec_mode_support`] for the current state of this host, which is
+/// what `/serverinfo` reports.
+///
+/// The HDR bit additionally requires the desktop to be in an HDR colour space
+/// *right now*. That is stricter than Sunshine, which gates only on the
+/// encoder's DYNAMIC_RANGE probe, and it is deliberate here for two reasons:
+///
+/// * this host's HDR path *is* the display's FP16 scRGB surface — an SDR
+///   desktop has no HDR content to carry, so a 10-bit request can only be
+///   answered with 8-bit (the downgrade in `stream::session_hdr`);
+/// * advertising the bit changes what the client does: Moonlight negotiates a
+///   10-bit format and aims its bitrate at 10-bit levels. In this machine's
+///   session logs the same client asks for 100 Mbps (configured 150 Mbps) on a
+///   Main10-negotiated session and 32 Mbps on an 8-bit one, and it was never
+///   told when the 10-bit request was answered with 8-bit — which is what
+///   "HDR off is broken too" looked like from the outside.
+///
+/// With the desktop HDR the bit goes out, the client negotiates 10-bit, and
+/// `session_hdr` serves it. With the desktop SDR the bit stays clear, so the
+/// client asks for 8-bit and the bitrate it picks matches the stream it gets.
+fn advertised_codec_mode_support() -> u32 {
+    let capability = crate::capture::recovery_capability();
+    server_codec_mode_support(
+        capability.hevc,
+        capability.hevc_main10 && crate::capture::desktop_is_hdr(),
+    )
 }
 
 fn xml_escape(text: &str) -> String {
@@ -1643,9 +1688,17 @@ pub(crate) mod tests {
         let hevc = crate::capture::recovery_capability().hevc;
     let hevc_main10 = crate::capture::recovery_capability().hevc_main10;
         assert_eq!(tag(&xml, "MaxLumaPixelsHEVC"), max_luma_pixels_hevc(hevc));
+        // The advertised mask is the probe's codecs *and* the desktop's current
+        // HDR state (the capture path can only deliver HDR from an HDR
+        // desktop), so the assertion goes through the same helper the response
+        // does.
         assert_eq!(
             tag(&xml, "ServerCodecModeSupport"),
-            server_codec_mode_support(hevc, hevc_main10).to_string()
+            advertised_codec_mode_support().to_string()
+        );
+        assert_eq!(
+            advertised_codec_mode_support() & SCM_HEVC_MAIN10 != 0,
+            hevc_main10 && crate::capture::desktop_is_hdr()
         );
         // http without uniqueid reports unpaired
         let http_xml = serverinfo(&state, false, false, "10.0.0.5".parse().unwrap());

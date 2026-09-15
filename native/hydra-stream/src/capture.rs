@@ -1151,6 +1151,35 @@ pub struct DisplayHdr {
     pub hdr: bool,
 }
 
+/// Whether the duplicated desktop is in an HDR colour space right now, cached
+/// for a second.
+///
+/// `serverinfo` is polled by the client several times a second, and the answer
+/// decides whether `SCM_HEVC_MAIN10` may be advertised. It has to be the
+/// *desktop's* state and not just the driver's capability: advertising the bit
+/// makes a Moonlight client negotiate a 10-bit format — and aim its bitrate at
+/// 10-bit levels, which the sessions here show as 100 Mbps against 32 Mbps for
+/// the same client at 8-bit — while this host can only produce HDR10 from an
+/// HDR desktop. With Windows HDR off the client would commit to 10-bit and then
+/// silently receive 8-bit SDR, which is what "HDR off is broken too" looked
+/// like. The cache keeps the DXGI enumeration off the serverinfo poll path
+/// while still following a mid-session HDR toggle within a second.
+pub fn desktop_is_hdr() -> bool {
+    static CACHE: std::sync::Mutex<Option<(Instant, bool)>> = std::sync::Mutex::new(None);
+    if let Ok(cache) = CACHE.lock() {
+        if let Some((at, value)) = *cache {
+            if at.elapsed() < Duration::from_secs(1) {
+                return value;
+            }
+        }
+    }
+    let value = display_hdr_metadata().is_some_and(|metadata| metadata.hdr);
+    if let Ok(mut cache) = CACHE.lock() {
+        *cache = Some((Instant::now(), value));
+    }
+    value
+}
+
 /// Reads [`DisplayHdr`] for the first HDR output, falling back to the first
 /// output at all (with `hdr == false`) so the caller always has luminances to
 /// report. `None` means no output could be described.
