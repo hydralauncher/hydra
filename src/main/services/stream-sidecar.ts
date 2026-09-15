@@ -147,7 +147,15 @@ export class StreamSidecar {
     streamSidecarLogger.error(`Unexpected RPC message: ${payload}`);
   }
 
-  private static handleProcessExit(reason: string) {
+  private static handleProcessExit(
+    childProcess: cp.ChildProcess,
+    reason: string
+  ) {
+    // Exactly one teardown per child. A child that already exited, was
+    // killed, timed out, or was replaced must not clear the state of its
+    // successor or notify a second time.
+    if (this.childProcess !== childProcess) return;
+
     const error = new Error(`Stream sidecar exited: ${reason}`);
 
     rejectPendingRequests(this.pendingRequests, error);
@@ -211,11 +219,12 @@ export class StreamSidecar {
     this.childProcess = childProcess;
 
     this.childProcess.once("error", (error) => {
-      this.handleProcessExit(String(error));
+      this.handleProcessExit(childProcess, String(error));
     });
 
     this.childProcess.once("exit", (code, signal) => {
       this.handleProcessExit(
+        childProcess,
         `code=${code ?? "null"} signal=${signal ?? "null"}`
       );
     });
@@ -231,7 +240,7 @@ export class StreamSidecar {
           error
         );
         childProcess.kill();
-        this.handleProcessExit("startup-timeout");
+        this.handleProcessExit(childProcess, "startup-timeout");
       }
       throw error;
     }
@@ -281,11 +290,11 @@ export class StreamSidecar {
   }
 
   public static kill() {
-    if (this.childProcess) {
-      streamSidecarLogger.log("Killing stream sidecar process");
-      this.childProcess.kill();
-    }
+    const childProcess = this.childProcess;
+    if (!childProcess) return;
 
-    this.handleProcessExit("killed");
+    streamSidecarLogger.log("Killing stream sidecar process");
+    childProcess.kill();
+    this.handleProcessExit(childProcess, "killed");
   }
 }
