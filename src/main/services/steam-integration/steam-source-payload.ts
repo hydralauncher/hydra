@@ -65,7 +65,8 @@ const parseUnlockTime = (item: Record<string, unknown>): string | null => {
   return unixSecondsToIso(item.unlocktime);
 };
 
-const STEAM_SKIP_TITLE_PATTERN = /\b(?:demo|play[\s-]*test|beta|ptb)\b/i;
+const STEAM_SKIP_TITLE_PATTERN =
+  /\b(?:demo|(?:play|public|closed|open|technical)[\s-]*test|test[\s-]*(?:server|client)|beta|ptb)\b/i;
 
 export const isSkippedSteamLibraryTitle = (name: string): boolean =>
   STEAM_SKIP_TITLE_PATTERN.test(name.trim());

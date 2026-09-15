@@ -168,8 +168,11 @@ describe("isSkippedSteamLibraryTitle", () => {
     assert.equal(isSkippedSteamLibraryTitle("Playtest"), true);
     assert.equal(isSkippedSteamLibraryTitle("Battlefield™ Open Beta"), true);
     assert.equal(isSkippedSteamLibraryTitle("Game PTB"), true);
+    assert.equal(isSkippedSteamLibraryTitle("For Honor - Public Test"), true);
+    assert.equal(isSkippedSteamLibraryTitle("PUBG: Test Server"), true);
     assert.equal(isSkippedSteamLibraryTitle("Portal 2"), false);
     assert.equal(isSkippedSteamLibraryTitle("Demolition Derby"), false);
     assert.equal(isSkippedSteamLibraryTitle("Bethesda"), false);
+    assert.equal(isSkippedSteamLibraryTitle("Test Drive"), false);
   });
 });
