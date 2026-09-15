@@ -9,10 +9,14 @@ import type {
 } from "@types";
 
 import { logger } from "../logger";
+import {
+  buildDolphinInstallOption,
+  DOLPHIN_DOWNLOADS_PAGE,
+  pickLatestDolphinReleaseTag,
+  type InstallArch,
+  type InstallOs,
+} from "./dolphin-install-source";
 import { isKnownEmulatorBinary } from "./known-binaries";
-
-type InstallOs = "win32" | "linux";
-type InstallArch = "x64" | "arm64";
 
 type ReleaseChannel = "rolling" | "latest" | "release" | "prerelease";
 
@@ -31,7 +35,7 @@ interface LinkSource {
   type: "link";
   id: string;
   binary: EmulatorBinary;
-  linkKind: Exclude<EmulatorInstallLinkKind, "release_page">;
+  linkKind: EmulatorInstallLinkKind;
   url: string;
 }
 
@@ -206,6 +210,131 @@ const rpcs3Entries = (
   return entries;
 };
 
+const ppssppEntries = (
+  os: InstallOs,
+  arch: InstallArch
+): EmulatorSourceEntry[] => {
+  if (os === "win32") {
+    return [
+      {
+        type: "github",
+        id: "ppsspp-install",
+        binary: "ppsspp",
+        repo: "hrydgard/PPSSPP",
+        channel: "latest",
+        channelLabel: null,
+        assetPattern:
+          arch === "arm64"
+            ? /^PPSSPP-v.*-Windows-ARM64\.zip$/i
+            : /^PPSSPP-v.*-Windows-x64\.zip$/i,
+        kind: "portable-archive",
+      },
+    ];
+  }
+
+  if (os === "darwin") {
+    return [
+      {
+        type: "github",
+        id: "ppsspp-install",
+        binary: "ppsspp",
+        repo: "hrydgard/PPSSPP",
+        channel: "latest",
+        channelLabel: null,
+        assetPattern: /^PPSSPPSDL-macOS-v.*\.zip$/i,
+        kind: "portable-archive",
+      },
+    ];
+  }
+
+  return [
+    {
+      type: "github",
+      id: "ppsspp-install",
+      binary: "ppsspp",
+      repo: "hrydgard/PPSSPP",
+      channel: "latest",
+      channelLabel: null,
+      assetPattern:
+        arch === "arm64"
+          ? /^PPSSPP-v.*-anylinux-aarch64\.AppImage$/i
+          : /^PPSSPP-v.*-anylinux-x86_64\.AppImage$/i,
+      kind: "linux-appimage",
+    },
+    {
+      type: "link",
+      id: "ppsspp-flatpak",
+      binary: "ppsspp",
+      linkKind: "flatpak",
+      url: "https://flathub.org/apps/org.ppsspp.PPSSPP",
+    },
+  ];
+};
+
+interface GithubTag {
+  name: string;
+}
+
+const DOLPHIN_REPO = "dolphin-emu/dolphin";
+
+const resolveDolphinOptions = async (
+  os: InstallOs,
+  arch: InstallArch
+): Promise<ResolvedInstallOption[]> => {
+  if (os === "linux") {
+    return [
+      {
+        id: "dolphin-flatpak",
+        binary: "dolphin",
+        kind: "link",
+        channel: null,
+        downloadUrl: null,
+        fileName: null,
+        version: null,
+        htmlUrl: null,
+        linkUrl: "https://flatpak.dolphin-emu.org/releases.flatpakrepo",
+        linkKind: "flatpak",
+      },
+    ];
+  }
+
+  try {
+    const { data } = await axios.get<GithubTag[]>(
+      `${GITHUB_API}/repos/${DOLPHIN_REPO}/tags?per_page=30`,
+      {
+        headers: {
+          Accept: "application/vnd.github+json",
+          "User-Agent": "HydraLauncher",
+        },
+        timeout: GITHUB_API_TIMEOUT_MS,
+      }
+    );
+    const version = pickLatestDolphinReleaseTag(data.map((tag) => tag.name));
+    const option = version
+      ? buildDolphinInstallOption(version, os, arch)
+      : null;
+
+    if (option) return [option];
+  } catch (error) {
+    logger.error("Failed to resolve the latest Dolphin release", error);
+  }
+
+  return [
+    {
+      id: "dolphin-releases",
+      binary: "dolphin",
+      kind: "link",
+      channel: null,
+      downloadUrl: null,
+      fileName: null,
+      version: null,
+      htmlUrl: null,
+      linkUrl: DOLPHIN_DOWNLOADS_PAGE,
+      linkKind: "release_page",
+    },
+  ];
+};
+
 const githubEntries = (
   binary: EmulatorBinary,
   os: InstallOs,
@@ -214,6 +343,7 @@ const githubEntries = (
   if (binary === "duckstation") return duckstationEntries(os, arch);
   if (binary === "pcsx2") return pcsx2Entries(os, arch);
   if (binary === "rpcs3") return rpcs3Entries(os, arch);
+  if (binary === "ppsspp") return ppssppEntries(os, arch);
   return [];
 };
 
@@ -342,9 +472,14 @@ export const resolveInstallOptions = async (
   arch: string
 ): Promise<ResolvedInstallOption[]> => {
   if (!isKnownEmulatorBinary(binary)) return [];
-  if (os !== "win32" && os !== "linux") return [];
+  if (os !== "win32" && os !== "linux" && os !== "darwin") return [];
 
-  const entries = githubEntries(binary, os, normalizeArch(arch));
+  const normalizedArch = normalizeArch(arch);
+  if (binary === "dolphin") {
+    return resolveDolphinOptions(os, normalizedArch);
+  }
+
+  const entries = githubEntries(binary, os, normalizedArch);
 
   const resolved = await Promise.all(
     entries.map((entry) => {

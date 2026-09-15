@@ -31,7 +31,7 @@ import "./settings-retroachievements.scss";
 
 const RETRO_ACHIEVEMENTS_URL = "https://retroachievements.org";
 const RETRO_ACHIEVEMENTS_WEB_API_KEY_URL =
-  "https://retroachievements.org/settings";
+  "https://retroachievements.org/settings?tab=applications";
 
 const INTEGRATION_ENDPOINT = "/profile/integrations/retroachievements";
 

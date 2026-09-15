@@ -116,6 +116,30 @@ const createRingTransition = (scaleEase: (value: number) => number) => ({
   },
 });
 
+interface CloudGiftModalNavigationActionsProps {
+  messageFocused: boolean;
+  scrollMessageStep: (direction: "up" | "down") => void;
+}
+
+function CloudGiftModalNavigationActions({
+  messageFocused,
+  scrollMessageStep,
+}: CloudGiftModalNavigationActionsProps) {
+  useNavigationScreenActions({
+    press: {
+      b: () => {},
+    },
+    direction: messageFocused
+      ? {
+          down: () => scrollMessageStep("down"),
+          up: () => scrollMessageStep("up"),
+        }
+      : {},
+  });
+
+  return null;
+}
+
 export function CloudGiftNotificationModal() {
   const { t } = useTranslation("notifications_page");
   const { userDetails, fetchUserDetails } = useUserDetails();
@@ -327,22 +351,6 @@ export function CloudGiftNotificationModal() {
     }
   }, [dismissCurrentGift, fetchUserDetails, isAccepting, notification]);
 
-  const isTopMostDialog = useCallback(() => {
-    const openDialogs = document.querySelectorAll<HTMLElement>(
-      '[role="dialog"]:not([aria-hidden="true"])'
-    );
-
-    return (
-      openDialogs.length > 0 &&
-      openDialogs[openDialogs.length - 1] === dialogRef.current
-    );
-  }, []);
-
-  const closeTopMostDialog = useCallback(() => {
-    if (!isTopMostDialog()) return;
-    dismissCurrentGift();
-  }, [dismissCurrentGift, isTopMostDialog]);
-
   const scrollMessageStep = useCallback(
     (direction: "up" | "down") => {
       const element = messageRef.current;
@@ -383,37 +391,6 @@ export function CloudGiftNotificationModal() {
     },
     [moveFocus]
   );
-
-  useNavigationScreenActions(
-    isVisible
-      ? {
-          press: { b: closeTopMostDialog },
-          direction: messageFocused
-            ? {
-                down: () => scrollMessageStep("down"),
-                up: () => scrollMessageStep("up"),
-              }
-            : {},
-        }
-      : {}
-  );
-
-  useEffect(() => {
-    if (!isVisible) return;
-
-    const previouslyFocusedElement = document.activeElement as HTMLElement;
-    const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key !== "Escape" || event.defaultPrevented) return;
-      closeTopMostDialog();
-    };
-
-    globalThis.window.addEventListener("keydown", onKeyDown);
-
-    return () => {
-      globalThis.window.removeEventListener("keydown", onKeyDown);
-      previouslyFocusedElement?.focus();
-    };
-  }, [closeTopMostDialog, isVisible]);
 
   useEffect(() => {
     if (!isVisible) {
@@ -461,10 +438,11 @@ export function CloudGiftNotificationModal() {
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
           transition={{ duration: shouldReduceMotion ? 0 : 0.2 }}
-          onPointerDown={(event) => {
-            if (event.target === event.currentTarget) closeTopMostDialog();
-          }}
         >
+          <CloudGiftModalNavigationActions
+            messageFocused={messageFocused}
+            scrollMessageStep={scrollMessageStep}
+          />
           <NavigationLayer
             rootRegionId={CONTENT_REGION_ID}
             initialFocusId={ACCEPT_GIFT_FOCUS_ID}

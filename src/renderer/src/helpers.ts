@@ -1,6 +1,8 @@
 import type {
+  EmulationCloudSave,
   EmulatorBinary,
   EmulatorSystem,
+  EmulationSavePlatform,
   GameShop,
   LibraryGame,
   SouvenirSort,
@@ -19,6 +21,14 @@ import { levelDBService } from "./services/leveldb.service";
 import { logger } from "./logger";
 import type { LibraryCategory } from "./pages/library/category-filter";
 import type { SortOption } from "./pages/library/filter-options";
+import type { SkuRegion } from "./helpers/sku-region";
+
+export {
+  getRegionsFromSkus,
+  getSkuRegion,
+  getSkuRegionFromSaveIdentity,
+  type SkuRegion,
+} from "./helpers/sku-region";
 
 // Pixel-art flag icons from R74n PixelFlags (https://r74n.com/pixelflags).
 import flagUS from "./assets/flags/us.png";
@@ -51,9 +61,40 @@ export const platformToSystem = (
 ): EmulatorSystem | null => {
   if (!platform) return null;
   const p = platform.toLowerCase();
+  if (/playstation\s*portable|\bpsp\b/.test(p)) return "psp";
   if (/playstation\s*3|\bps3\b/.test(p)) return "ps3";
   if (/playstation\s*2|\bps2\b/.test(p)) return "ps2";
   if (/playstation|\bps1\b|\bpsx\b/.test(p)) return "ps1";
+  if (/game\s*cube/.test(p)) return "dolphin";
+  if (/^(nintendo\s+)?wii$/.test(p.trim())) return "dolphin";
+  return null;
+};
+
+export const platformToEmulationSavePlatform = (
+  platform?: string | null
+): EmulationSavePlatform | null => {
+  if (!platform) return null;
+  const normalized = platform.toLowerCase().trim();
+  if (/playstation\s*portable|\bpsp\b/.test(normalized)) return "psp";
+  if (/playstation\s*3|\bps3\b/.test(normalized)) return null;
+  if (/playstation\s*2|\bps2\b/.test(normalized)) return "ps2";
+  if (/playstation|\bps1\b|\bpsx\b/.test(normalized)) return "ps1";
+  if (/game\s*cube/.test(normalized)) return "gamecube";
+  if (/^(nintendo\s+)?wii$/.test(normalized)) return "wii";
+  return null;
+};
+
+export const getEmulationSaveMetadataSku = (
+  save: Pick<EmulationCloudSave, "metadata">
+): string | null => {
+  const metadata = save.metadata;
+  if (!metadata) return null;
+  if ("discId" in metadata && typeof metadata.discId === "string") {
+    return metadata.discId;
+  }
+  if ("gameId" in metadata && typeof metadata.gameId === "string") {
+    return metadata.gameId;
+  }
   return null;
 };
 
@@ -61,6 +102,8 @@ export const SYSTEM_TO_BINARY: Record<EmulatorSystem, EmulatorBinary> = {
   ps1: "duckstation",
   ps2: "pcsx2",
   ps3: "rpcs3",
+  psp: "ppsspp",
+  dolphin: "dolphin",
 };
 
 export {
@@ -69,7 +112,7 @@ export {
 } from "@shared";
 
 export const RETROARCH_EMULATION_SETTINGS_PATH =
-  "/settings?tab=emulation&system=retroarch";
+  "/settings?tab=emulation&system=retroarch&section=emulator";
 
 export const retroarchLaunchErrorToastKey = (
   code: "RETROARCH_NOT_CONFIGURED" | "CORE_NOT_INSTALLED"
@@ -106,6 +149,8 @@ export const CLASSICS_PS_PLATFORM_LABELS: Partial<
   ps1: "PS",
   ps2: "PS2",
   ps3: "PS3",
+  psp: "PSP",
+  dolphin: "GC/Wii",
 };
 
 export const resolveClassicsBadge = (
@@ -121,8 +166,9 @@ export const resolveClassicsBadge = (
 
   const system = platformToSystem(platform);
   if (system) {
+    const dolphinLabel = /game\s*cube/i.test(platform ?? "") ? "GC" : "Wii";
     return {
-      label: psLabels[system] ?? null,
+      label: system === "dolphin" ? dolphinLabel : (psLabels[system] ?? null),
       icon: icons.emulatorIcons[SYSTEM_TO_BINARY[system]],
     };
   }
@@ -154,7 +200,7 @@ export const handleClassicsLaunchError = (
   const code = getClassicsLaunchErrorCode(error);
   const system = getClassicsLaunchErrorSystem(error);
   const emulationPath = system
-    ? `/settings?tab=emulation&system=${system}`
+    ? `/settings?tab=emulation&system=${system}&section=emulator`
     : "/settings?tab=emulation";
 
   if (code === "EMULATOR_NOT_CONFIGURED") {
@@ -325,51 +371,6 @@ export const isGameCompleted = (
   return (unlockedAchievementCount ?? 0) >= achievementCount;
 };
 
-export type SkuRegion = "US" | "EU" | "JP" | "KR" | "ASIA";
-
-const SKU_REGION_MAP: Record<string, SkuRegion> = {
-  SCUS: "US",
-  SLUS: "US",
-  SCUD: "US",
-  SLUD: "US",
-  BCUS: "US",
-  BLUS: "US",
-  BCUD: "US",
-  NPUA: "US",
-  NPUB: "US",
-  SCES: "EU",
-  SLES: "EU",
-  SCED: "EU",
-  SLED: "EU",
-  BCES: "EU",
-  BLES: "EU",
-  BCED: "EU",
-  NPEA: "EU",
-  NPEB: "EU",
-  SCPS: "JP",
-  SLPS: "JP",
-  SLPM: "JP",
-  SIPS: "JP",
-  PAPX: "JP",
-  PCPX: "JP",
-  SRPM: "JP",
-  BCJS: "JP",
-  BLJS: "JP",
-  BLJM: "JP",
-  NPJA: "JP",
-  NPJB: "JP",
-  NPJD: "JP",
-  SCKA: "KR",
-  SLKA: "KR",
-  BCKS: "KR",
-  BLKS: "KR",
-  BCKD: "KR",
-  BCAS: "ASIA",
-  BLAS: "ASIA",
-  NPHA: "ASIA",
-  NPHB: "ASIA",
-};
-
 const SKU_REGION_FLAGS: Record<SkuRegion, string> = {
   US: flagUS,
   EU: flagEU,
@@ -378,35 +379,8 @@ const SKU_REGION_FLAGS: Record<SkuRegion, string> = {
   ASIA: flagAsia,
 };
 
-const SKU_REGION_ORDER: SkuRegion[] = ["US", "EU", "JP", "KR", "ASIA"];
-
-export const getSkuRegion = (sku: string): SkuRegion | null => {
-  const prefix = sku.slice(0, 4).toUpperCase();
-  return SKU_REGION_MAP[prefix] ?? null;
-};
-
-export const getSkuRegionFromSaveIdentity = (
-  saveIdentity: string | null | undefined
-): SkuRegion | null => {
-  if (!saveIdentity) return null;
-  const cleaned = saveIdentity
-    .trim()
-    .toUpperCase()
-    .replace(/^B[A-Z](?=[A-Z]{4}[-_ .]?\d{5})/, "");
-  return getSkuRegion(cleaned);
-};
-
 export const getSkuRegionFlag = (region: SkuRegion): string =>
   SKU_REGION_FLAGS[region];
-
-export const getRegionsFromSkus = (skus: string[]): SkuRegion[] => {
-  const set = new Set<SkuRegion>();
-  for (const sku of skus) {
-    const region = getSkuRegion(sku);
-    if (region) set.add(region);
-  }
-  return SKU_REGION_ORDER.filter((r) => set.has(r));
-};
 
 const CLASSICS_LAUNCH_ERROR_CODES = [
   "EMULATOR_NOT_CONFIGURED",
@@ -436,16 +410,16 @@ export const getClassicsLaunchErrorCode = (
 
 export const getClassicsLaunchErrorSystem = (
   error: unknown
-): "ps1" | "ps2" | "ps3" | undefined => {
+): EmulatorSystem | undefined => {
   const direct = (error as { system?: string })?.system;
-  if (direct === "ps1" || direct === "ps2" || direct === "ps3") return direct;
+  const systems: EmulatorSystem[] = ["ps1", "ps2", "ps3", "psp", "dolphin"];
+  if (systems.includes(direct as EmulatorSystem))
+    return direct as EmulatorSystem;
 
   let message = "";
   if (error instanceof Error) message = error.message;
   else if (typeof error === "string") message = error;
-  return (["ps1", "ps2", "ps3"] as const).find((system) =>
-    message.includes(system)
-  );
+  return systems.find((system) => message.includes(system));
 };
 
 const getPlayTimeDifference = (a: LibraryGame, b: LibraryGame): number => {

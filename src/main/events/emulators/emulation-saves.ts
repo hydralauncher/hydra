@@ -8,7 +8,9 @@ const listEmulationSaves = async (
   objectId?: string | null
 ): Promise<EmulationCloudSave[]> => {
   try {
-    const config = await emulators.getEmulatorConfig(platform);
+    const config = await emulators.getEmulatorConfig(
+      emulators.emulationSavePlatformToSystem(platform)
+    );
     return await emulators.listEmulationSaves(
       platform,
       emulators.toEmulationSaveEmulator(config.binary),
