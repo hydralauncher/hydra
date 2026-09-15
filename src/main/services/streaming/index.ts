@@ -364,7 +364,7 @@ export class StreamingManager {
   }
 
   private static pushRunningGame() {
-    const lastGame = this.runningGames[this.runningGames.length - 1];
+    const lastGame = this.runningGames.at(-1);
     this.pushRunningAppid(
       lastGame ? this.appIdFor(lastGame.shop, lastGame.objectId) : 0
     );
