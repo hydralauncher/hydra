@@ -143,7 +143,7 @@ export class StreamingManager {
     let hash = 0x811c9dc5;
     const key = `${shop}:${objectId}`;
     for (let index = 0; index < key.length; index++) {
-      hash ^= key.charCodeAt(index);
+      hash ^= key.codePointAt(index) ?? 0;
       hash = Math.imul(hash, 0x01000193) >>> 0;
     }
     return (hash % 0x7ffffffd) + 2;
