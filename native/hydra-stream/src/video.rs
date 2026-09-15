@@ -373,6 +373,13 @@ pub fn projected_encode_age(age: Duration, queued: usize, encode_latency: Durati
 /// can make this cap the exit a livelock spins on.
 const MAX_EPISODE_UPDATES: u64 = 4;
 
+/// How long a client must keep begging before the starvation warning is
+/// worth printing, and the minimum spacing between two such warnings while
+/// the begging continues — a long episode reports progress without flooding
+/// the log.
+const STARVATION_WARNING_SECS: u64 = 10;
+const STARVATION_WARNING_REPEAT_SECS: u64 = 5;
+
 /// P-frame suppression while the IDR an applied client request asked for
 /// is still unconfirmed.
 ///
@@ -485,10 +492,10 @@ impl PSuppression {
         }
         let starving_since = *self.starving_since.get_or_insert(now);
         let sustained = now.duration_since(starving_since);
-        if sustained >= Duration::from_secs(10)
-            && self
-                .last_warning_at
-                .is_none_or(|at| now.duration_since(at) >= Duration::from_secs(5))
+        if sustained >= Duration::from_secs(STARVATION_WARNING_SECS)
+            && self.last_warning_at.is_none_or(|at| {
+                now.duration_since(at) >= Duration::from_secs(STARVATION_WARNING_REPEAT_SECS)
+            })
         {
             self.last_warning_at = Some(now);
             self.warnings += 1;
