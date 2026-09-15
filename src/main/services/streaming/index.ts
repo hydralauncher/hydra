@@ -308,6 +308,9 @@ export class StreamingManager {
       case "pairing-requested":
         // The client shows the PIN; the renderer prompts the user to
         // enter it. Re-requests while the prompt is open keep it open.
+        // The window that can show the prompt has to be the visible one
+        // (Big Picture hides the main window), so it is revealed first.
+        WindowManager.revealStreamPairingPrompt();
         WindowManager.sendToAppWindows("on-stream-pairing-requested");
         break;
       case "pairing-finished":

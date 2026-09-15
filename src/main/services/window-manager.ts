@@ -181,6 +181,34 @@ export class WindowManager {
     }
   }
 
+  /**
+   * The PIN prompt only reaches the user through a renderer, so the window
+   * showing it has to be the visible one: Big Picture when it is on screen,
+   * the main window otherwise. Runs on every request, since a timed-out
+   * session can be retried.
+   */
+  public static revealStreamPairingPrompt() {
+    const bigPicture = this.bigPicture;
+
+    if (bigPicture && !bigPicture.isDestroyed() && bigPicture.isVisible()) {
+      bigPicture.focus();
+      return;
+    }
+
+    const main = this.mainWindow;
+
+    if (main && !main.isDestroyed()) {
+      // Undo what opening Big Picture — or launching straight into it — left
+      // behind, so the prompt is visible and usable.
+      main.setIgnoreMouseEvents(false);
+      main.setFocusable(true);
+      main.setSkipTaskbar(false);
+      main.setOpacity(1);
+    }
+
+    this.focusMainWindow();
+  }
+
   public static sendDownloadsUpdated() {
     this.sendToAppWindows("on-downloads-updated");
   }
