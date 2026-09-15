@@ -635,26 +635,36 @@ impl Drop for DxgiFrame {
     }
 }
 
-/// The output a capture was created on, recorded with the capture itself:
-/// which output the duplication really came from and whether it runs the
-/// HDR10 colour space.
+/// The output a capture was created on: where it is and how DXGI describes it.
 ///
-/// The host's HDR state — the HEVC/10-bit advertisement, the session's
-/// negotiation, the client's HDR mode message, the encoder's mastering-display
-/// SEI — is all decided from the *first HDR output* the DXGI scan describes
-/// ([`display_hdr_metadata`]). The capture resolves its output by the same
-/// first-HDR rule ([`select_output`]), and this record is what makes the two
-/// comparable: an HDR session may only run on the output the HDR state came
-/// from.
+/// The HDR *capability* comes from a scan of every adapter's outputs
+/// ([`scanned_hdr_metadata`]), and the capture resolves its output by the same
+/// first-HDR rule ([`select_output`]) — so everything the session then reports
+/// about HDR has to describe *this* output, not whichever output the scan
+/// preferred. A live capture records itself ([`CAPTURED_OUTPUT`]), which is
+/// what [`display_hdr_metadata`] answers while it lives: the client's HDR mode
+/// message and the encoder's mastering-display SEI then carry this monitor's
+/// luminances.
+///
+/// `hdr_mismatch` is the policy's verdict on the choice
+/// ([`OutputChoice::hdr_mismatch`]): the HDR capture path is on and this
+/// output is SDR, so the HDR pipeline can never run here — the frames would be
+/// BGRA while the encoder was negotiated Main10 and the converter built for
+/// FP16 scRGB.
 #[derive(Clone, Debug)]
 pub struct CaptureOutput {
-    /// `DXGI_OUTPUT_DESC::DeviceName` (`\\.\DISPLAY1`) — the mismatch
-    /// diagnostic names the captured output with it.
+    /// `DXGI_OUTPUT_DESC::DeviceName` (`\\.\DISPLAY1`) — the logs name the
+    /// captured output with it.
     pub name: String,
-    /// The output's `DXGI_OUTPUT_DESC1::ColorSpace` is the HDR10 colour space
-    /// (`DXGI_COLOR_SPACE_RGB_FULL_G2084_NONE_P2020`), the same test
-    /// `DisplayHdr::hdr` and Sunshine's `is_hdr()` make.
-    pub hdr10: bool,
+    /// The output's own `DXGI_OUTPUT_DESC1`, as the client/SEI path reports
+    /// it. `None` when DXGI will not describe the output (no
+    /// `IDXGIOutput6`, or `GetDesc1` failed): such an output is never treated
+    /// as HDR10, and it records no metadata below, so the scan's description
+    /// stands rather than one this capture is not on.
+    pub metadata: Option<DisplayHdr>,
+    /// The HDR capture path is on and this output is SDR (see
+    /// [`OutputChoice::hdr_mismatch`]).
+    pub hdr_mismatch: bool,
 }
 
 pub struct DxgiCapture {
@@ -671,6 +681,63 @@ pub struct DxgiCapture {
     pub refresh_hz: u32,
     /// The output this capture really duplicated (see [`CaptureOutput`]).
     pub output: CaptureOutput,
+    /// This capture's entry in [`CAPTURED_OUTPUT`].
+    generation: u64,
+}
+
+impl Drop for DxgiCapture {
+    fn drop(&mut self) {
+        clear_captured_output(self.generation);
+    }
+}
+
+/// The output the live capture is streaming, as its [`CaptureOutput::metadata`]
+/// recorded it. Process-wide because the stages that report HDR to the client
+/// — the control thread's HDR mode message and the encoder's mastering-display
+/// SEI — are reached through code that does not carry the capture, and one
+/// sidecar process serves one session at a time (the same reason
+/// `config::set_session_hdr` is process-wide). Unlike the HDR decision this is
+/// not a scan: it is the output the duplication really came from.
+static CAPTURED_OUTPUT: std::sync::Mutex<Option<(u64, DisplayHdr)>> =
+    std::sync::Mutex::new(None);
+
+/// Generation counter for [`CAPTURED_OUTPUT`], so a capture dropped *after*
+/// its successor was created cannot clear the successor's entry.
+static CAPTURED_GENERATION: std::sync::atomic::AtomicU64 =
+    std::sync::atomic::AtomicU64::new(1);
+
+/// Records `metadata` as the live capture's output and returns the generation
+/// the capture clears the entry with. An output DXGI will not describe records
+/// nothing — and clears whatever a previous capture left — so the session's
+/// HDR metadata falls back to the scan rather than describing a monitor this
+/// capture is not on.
+fn record_captured_output(metadata: Option<DisplayHdr>) -> u64 {
+    let generation = CAPTURED_GENERATION.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
+    if let Ok(mut slot) = CAPTURED_OUTPUT.lock() {
+        *slot = metadata.map(|metadata| (generation, metadata));
+    }
+    generation
+}
+
+/// Clears the live capture's entry only if it is still `generation`'s.
+fn clear_captured_output(generation: u64) {
+    if let Ok(mut slot) = CAPTURED_OUTPUT.lock() {
+        if slot
+            .as_ref()
+            .is_some_and(|(recorded, _)| *recorded == generation)
+        {
+            *slot = None;
+        }
+    }
+}
+
+/// The live capture's own output description, `None` when no capture is alive.
+fn captured_output_metadata() -> Option<DisplayHdr> {
+    CAPTURED_OUTPUT
+        .lock()
+        .ok()
+        .and_then(|slot| *slot)
+        .map(|(_, metadata)| metadata)
 }
 
 impl DxgiCapture {
@@ -978,6 +1045,8 @@ unsafe fn try_adapter(adapter: &IDXGIAdapter) -> Result<DxgiCapture, String> {
     // decided by its colour space (`duplicate_selected_output`).
     let selected = duplicate_selected_output(adapter, &device)?;
     eprintln!("desktop duplication: {}x{}", selected.width, selected.height);
+    let output = selected.output;
+    let generation = record_captured_output(output.metadata);
     Ok(DxgiCapture {
         device,
         _context: context,
@@ -985,7 +1054,8 @@ unsafe fn try_adapter(adapter: &IDXGIAdapter) -> Result<DxgiCapture, String> {
         width: selected.width,
         height: selected.height,
         refresh_hz: selected.refresh_hz,
-        output: selected.output,
+        output,
+        generation,
     })
 }
 
@@ -1043,19 +1113,40 @@ unsafe fn duplicate_output(
         .map_err(|error| format!("DuplicateOutput: {error}"))
 }
 
-/// Whether an output is running the HDR10 colour space — the test
-/// `DisplayHdr::hdr` makes, and the one the capture selection uses to agree
-/// with the HDR decision. Sunshine reads the same `ColorSpace` off the single
-/// output it duplicates (`display_base.cpp:760-773`), which is what keeps its
-/// HDR state from describing another monitor.
-fn output_is_hdr10(output: &IDXGIOutput) -> bool {
-    use windows::Win32::Graphics::Dxgi::Common::DXGI_COLOR_SPACE_RGB_FULL_G2084_NONE_P2020;
+/// `DXGI_OUTPUT_DESC1` as the [`DisplayHdr`] every HDR path reports: the
+/// hardcoded Rec.2020 primaries and D65 white point Sunshine sends
+/// (`display_base.cpp:775-826`) with the luminances DXGI measures.
+fn display_hdr_from_desc(
+    desc: &windows::Win32::Graphics::Dxgi::DXGI_OUTPUT_DESC1,
+) -> DisplayHdr {
+    let scale = |value: f32| (value * 50_000.0).round().clamp(0.0, 65_535.0) as u16;
+    let nits = |value: f32| value.round().clamp(0.0, 65_535.0) as u16;
+    DisplayHdr {
+        primaries: [
+            (scale(0.708), scale(0.292)),
+            (scale(0.170), scale(0.797)),
+            (scale(0.131), scale(0.046)),
+        ],
+        white_point: (scale(0.3127), scale(0.3290)),
+        max_luminance: nits(desc.MaxLuminance),
+        min_luminance: nits(desc.MinLuminance * 10_000.0),
+        max_full_frame_luminance: nits(desc.MaxFullFrameLuminance),
+        hdr: desc.ColorSpace
+            == windows::Win32::Graphics::Dxgi::Common::DXGI_COLOR_SPACE_RGB_FULL_G2084_NONE_P2020,
+    }
+}
+
+/// The output's own [`DisplayHdr`], `None` when DXGI cannot describe it (no
+/// `IDXGIOutput6`, or `GetDesc1` failed). This is the test `DisplayHdr::hdr`
+/// and Sunshine's `is_hdr()` make (`display_base.cpp:760-773`), answered once
+/// for both the HDR decision and the capture selection.
+fn output_display_hdr(output: &IDXGIOutput) -> Option<DisplayHdr> {
     unsafe {
         output
             .cast::<windows::Win32::Graphics::Dxgi::IDXGIOutput6>()
-            .and_then(|output6| output6.GetDesc1())
-            .map(|desc| desc.ColorSpace == DXGI_COLOR_SPACE_RGB_FULL_G2084_NONE_P2020)
-            .unwrap_or(false)
+            .ok()
+            .and_then(|output6| output6.GetDesc1().ok())
+            .map(|desc| display_hdr_from_desc(&desc))
     }
 }
 
@@ -1076,7 +1167,7 @@ fn output_device_name(output: &IDXGIOutput) -> String {
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub(crate) struct OutputCandidate {
     /// The output is running the HDR10 colour space (see
-    /// [`output_is_hdr10`]).
+    /// [`output_display_hdr`]).
     pub hdr10: bool,
     /// `DuplicateOutput1`/`DuplicateOutput` succeeded on this output.
     pub duplicable: bool,
@@ -1095,24 +1186,26 @@ pub(crate) struct OutputChoice {
     /// while the encoder was negotiated Main10 and the converter built for
     /// FP16. `hdr::HdrConverter::check_source` refusing those frames is the
     /// symptom (`want 16-bit scRGB … got BGRA`), not the diagnosis — the
-    /// caller has to refuse the capture instead of building a converter that
-    /// rejects every frame.
+    /// caller has to keep the HDR pipeline off this output: capture creation
+    /// passes over it looking for the HDR10 output the session's HDR state
+    /// describes, and falls back to an SDR session when there is none.
     pub hdr_mismatch: bool,
 }
 
 /// Which of `outputs` this host streams. Pure, so the policy is unit-testable
 /// without a GPU, like [`fit_rect`].
 ///
-/// The HDR decision (`display_hdr_metadata`, and with it `hevc_offered`, the
-/// client's HDR mode message and the encoder's SEI) describes the **first HDR
-/// output**, and an HDR session's FP16 scRGB surface only exists on an HDR10
-/// output — so an HDR session has to capture that output and no other. A
-/// duplicable HDR10 output therefore wins even when DXGI lists it after SDR
-/// ones: on a mixed SDR/HDR desktop the old rule (first output whose
-/// duplication comes up) could capture the SDR monitor and then run the HDR10
-/// pipeline over its BGRA frames. With no duplicable HDR output the first
-/// duplicable output is taken in the existing enumeration order, and
-/// `hdr_mismatch` reports that the choice contradicts the HDR expectation.
+/// The HDR decision (`scanned_hdr_metadata`, and with it `hevc_offered` and
+/// the session's negotiation) describes the **first HDR output**, and an HDR
+/// session's FP16 scRGB surface only exists on an HDR10 output — so an HDR
+/// session has to capture that output and no other (the session's metadata
+/// then follows the capture: [`display_hdr_metadata`]). A duplicable HDR10
+/// output therefore wins even when DXGI lists it after SDR ones: on a mixed
+/// SDR/HDR desktop the old rule (first output whose duplication comes up)
+/// could capture the SDR monitor and then run the HDR10 pipeline over its BGRA
+/// frames. With no duplicable HDR output the first duplicable output is taken
+/// in the existing enumeration order, and `hdr_mismatch` reports that the
+/// choice contradicts the HDR expectation.
 pub(crate) fn select_output(outputs: &[OutputCandidate], hdr_path: bool) -> Option<OutputChoice> {
     if hdr_path {
         if let Some(index) = outputs
@@ -1144,31 +1237,33 @@ struct SelectedOutput {
 
 /// Creates the duplication for the output [`select_output`] resolves: the
 /// adapter's outputs are enumerated first — their colour spaces decide which
-/// may be captured — the HDR10 ones are tried first when the HDR capture path
-/// is on (a stable sort, so DXGI's order holds inside each group), and an SDR
-/// output is refused outright when the HDR path expected an HDR one.
+/// may be captured — and the HDR10 ones are tried first when the HDR capture
+/// path is on (a stable sort, so DXGI's order holds inside each group). The
+/// choice comes back with its own metadata and the policy's verdict on it
+/// (`CaptureOutput::hdr_mismatch`); deciding what to do about a mismatch is the
+/// caller's, because only the caller knows which encoder the session will use.
 unsafe fn duplicate_selected_output(
     adapter: &IDXGIAdapter,
     device: &ID3D11Device,
 ) -> Result<SelectedOutput, String> {
     let hdr_path = crate::config::hdr_enabled();
-    let mut outputs: Vec<(IDXGIOutput, bool, String)> = Vec::new();
+    let mut outputs: Vec<(IDXGIOutput, Option<DisplayHdr>, String)> = Vec::new();
     for output_index in 0..8 {
         let Ok(output) = adapter.EnumOutputs(output_index) else {
             break;
         };
-        let hdr10 = output_is_hdr10(&output);
+        let metadata = output_display_hdr(&output);
         let name = output_device_name(&output);
-        outputs.push((output, hdr10, name));
+        outputs.push((output, metadata, name));
     }
     let mut order: Vec<usize> = (0..outputs.len()).collect();
     if hdr_path {
-        order.sort_by_key(|index| !outputs[*index].1);
+        order.sort_by_key(|index| !outputs[*index].1.is_some_and(|metadata| metadata.hdr));
     }
     let mut candidates: Vec<OutputCandidate> = outputs
         .iter()
-        .map(|(_, hdr10, _)| OutputCandidate {
-            hdr10: *hdr10,
+        .map(|(_, metadata, _)| OutputCandidate {
+            hdr10: metadata.is_some_and(|metadata| metadata.hdr),
             duplicable: false,
         })
         .collect();
@@ -1182,20 +1277,10 @@ unsafe fn duplicate_selected_output(
         };
         candidates[index].duplicable = true;
         // The HDR10 outputs were tried first, so the first duplication that
-        // came up is the one this resolves (the choice's index is the index
-        // just attempted); a mismatch means no HDR10 output of this adapter
-        // could be duplicated at all.
+        // came up is the one this resolves: a mismatch means no HDR10 output
+        // of this adapter could be duplicated.
         let choice = select_output(&candidates, hdr_path)
             .expect("a duplicatable output was just recorded");
-        let name = &outputs[choice.index].2;
-        if choice.hdr_mismatch {
-            let wanted = described_hdr_output().unwrap_or_else(|| "none described".to_string());
-            return Err(format!(
-                "HDR session but {name} is SDR and no HDR10 output of this adapter could be \
-                 duplicated; the HDR pipeline streams the FP16 scRGB desktop of {wanted}, not \
-                 {name}'s BGRA surface"
-            ));
-        }
         let desc = duplication.GetDesc();
         let width = desc.ModeDesc.Width;
         let height = desc.ModeDesc.Height;
@@ -1208,8 +1293,9 @@ unsafe fn duplicate_selected_output(
             height,
             refresh_hz: refresh_hz(&desc.ModeDesc.RefreshRate),
             output: CaptureOutput {
-                name: name.clone(),
-                hdr10: candidates[choice.index].hdr10,
+                name: outputs[choice.index].2.clone(),
+                metadata: outputs[choice.index].1,
+                hdr_mismatch: choice.hdr_mismatch,
             },
         });
     }
@@ -1377,6 +1463,13 @@ const HDR_CACHE_TTL: Duration = Duration::from_secs(1);
 /// silently receive 8-bit SDR, which is what "HDR off is broken too" looked
 /// like. The cache keeps the DXGI enumeration off the serverinfo poll path
 /// while still following a mid-session HDR toggle within a second.
+///
+/// The *scan's* answer ([`scanned_hdr_metadata`]), deliberately not the live
+/// capture's own output ([`display_hdr_metadata`]): this is the capability the
+/// host offers for the next session, and it must not flip when the session
+/// running right now duplicates an SDR output of a mixed desktop —
+/// `video.rs` reads `hevc_offered()` as the DESCRIBE-time RFI-marker proxy,
+/// and the capture itself follows this answer (`select_output`).
 pub fn desktop_is_hdr() -> bool {
     static CACHE: std::sync::Mutex<Option<(Instant, bool)>> = std::sync::Mutex::new(None);
     if let Ok(cache) = CACHE.lock() {
@@ -1386,28 +1479,41 @@ pub fn desktop_is_hdr() -> bool {
             }
         }
     }
-    let value = display_hdr_metadata().is_some_and(|metadata| metadata.hdr);
+    let value = scanned_hdr_metadata().is_some_and(|metadata| metadata.hdr);
     if let Ok(mut cache) = CACHE.lock() {
         *cache = Some((Instant::now(), value));
     }
     value
 }
 
-/// Reads [`DisplayHdr`] for the first HDR output, falling back to the first
-/// output at all (with `hdr == false`) so the caller always has luminances to
-/// report. `None` means no output could be described.
+/// Reads [`DisplayHdr`] for the output this host is streaming: the live
+/// capture's own output while a capture exists ([`CAPTURED_OUTPUT`]), and the
+/// scan's first HDR output before that ([`scanned_hdr_metadata`]).
 ///
-/// This one description is the host's whole HDR state: `hevc_offered`'s
-/// advertisement, the session's negotiation (`stream::session_hdr`), the
-/// client's HDR mode message and the encoder's mastering-display SEI all come
-/// from it. The capture resolves its output by the same first-HDR rule
-/// ([`select_output`]) and refuses a capture that contradicts it, which is
-/// what keeps this description from ever naming a monitor other than the one
-/// being streamed. Sunshine reaches the same invariant from the other end:
-/// its `output` member is the first output whose duplication comes up
-/// (`display_base.cpp:504-538`) and `is_hdr()`/`get_hdr_metadata()` read that
-/// same output (`display_base.cpp:760-826`).
+/// This is what the session reports to the client — the HDR mode message
+/// (`control::send_hdr_mode`) and the encoder's mastering-display SEI
+/// (`nvenc`) — so tying it to the duplicated output is what keeps the numbers
+/// describing the monitor the frames really come from, whichever output the
+/// capability scan happened to prefer.
 pub fn display_hdr_metadata() -> Option<DisplayHdr> {
+    captured_output_metadata().or_else(scanned_hdr_metadata)
+}
+
+/// The scan's own answer: the first HDR output, else the first output at all
+/// (with `hdr == false`) so the caller always has luminances to report. `None`
+/// means no output could be described.
+///
+/// The *capability* view — what this host could capture — and what the
+/// advertisement (`hevc_offered`, `desktop_is_hdr`) and the session's own HDR
+/// decision (`stream::session_hdr`, made before any capture exists) read. The
+/// capture resolves its output by the same first-HDR rule ([`select_output`])
+/// and never runs the HDR pipeline on any other output, so a session either
+/// streams the output this describes or streams SDR. Sunshine reaches the same
+/// invariant from the other end: its `output` member is the first output whose
+/// duplication comes up (`display_base.cpp:504-538`) and
+/// `is_hdr()`/`get_hdr_metadata()` read that same output
+/// (`display_base.cpp:760-826`).
+pub fn scanned_hdr_metadata() -> Option<DisplayHdr> {
     let mut fallback = None;
     for described in described_outputs() {
         if described.metadata.hdr {
@@ -1431,12 +1537,10 @@ struct DescribedOutput {
 /// Every output of every candidate adapter, in the order the HDR decision
 /// scans them (`candidate_adapters` order, NVIDIA first, outputs in DXGI
 /// enumeration order; four outputs per adapter is the bound this scan has
-/// always had). The single scan behind both [`display_hdr_metadata`] and the
+/// always had). The single scan behind both [`scanned_hdr_metadata`] and the
 /// capture's own mismatch diagnostic, so the two cannot disagree about which
 /// output is the HDR one.
 fn described_outputs() -> Vec<DescribedOutput> {
-    let scale = |value: f32| (value * 50_000.0).round().clamp(0.0, 65_535.0) as u16;
-    let nits = |value: f32| value.round().clamp(0.0, 65_535.0) as u16;
     let mut described = Vec::new();
     unsafe {
         let Ok(adapters) = DxgiCapture::candidate_adapters() else {
@@ -1448,30 +1552,13 @@ fn described_outputs() -> Vec<DescribedOutput> {
                 let Ok(output) = adapter.EnumOutputs(index) else {
                     break;
                 };
-                let Ok(output6) =
-                    output.cast::<windows::Win32::Graphics::Dxgi::IDXGIOutput6>()
-                else {
-                    continue;
-                };
-                let Ok(desc) = output6.GetDesc1() else {
+                let Some(metadata) = output_display_hdr(&output) else {
                     continue;
                 };
                 described.push(DescribedOutput {
                     adapter: adapter_name.clone(),
                     output: output_device_name(&output),
-                    metadata: DisplayHdr {
-                        primaries: [
-                            (scale(0.708), scale(0.292)),
-                            (scale(0.170), scale(0.797)),
-                            (scale(0.131), scale(0.046)),
-                        ],
-                        white_point: (scale(0.3127), scale(0.3290)),
-                        max_luminance: nits(desc.MaxLuminance),
-                        min_luminance: nits(desc.MinLuminance * 10_000.0),
-                        max_full_frame_luminance: nits(desc.MaxFullFrameLuminance),
-                        hdr: desc.ColorSpace
-                            == windows::Win32::Graphics::Dxgi::Common::DXGI_COLOR_SPACE_RGB_FULL_G2084_NONE_P2020,
-                    },
+                    metadata,
                 });
             }
         }
@@ -1479,7 +1566,7 @@ fn described_outputs() -> Vec<DescribedOutput> {
     described
 }
 
-/// The first HDR10 output of [`display_hdr_metadata`]'s scan, named for the
+/// The first HDR10 output of [`scanned_hdr_metadata`]'s scan, named for the
 /// capture's mismatch diagnostic: an HDR session that can only duplicate an
 /// SDR output has to say which output the HDR state came from as well as which
 /// one it captured.
@@ -1488,6 +1575,26 @@ fn described_hdr_output() -> Option<String> {
         .into_iter()
         .find(|described| described.metadata.hdr)
         .map(|described| format!("{} on {}", described.output, described.adapter))
+}
+
+/// The HDR session's expectation against the output the capture really got, in
+/// words: which output was captured, which output the session's HDR state came
+/// from, and why the two cannot share a pipeline. Empty-handed (`None`) when
+/// they agree.
+///
+/// The HDR path is the display's own FP16 scRGB surface, so the caller must
+/// keep the HDR pipeline off this output: `hdr::HdrConverter::check_source`
+/// refusing the BGRA frames is the symptom, not the diagnosis.
+fn hdr_output_mismatch(capture: &DxgiCapture) -> Option<String> {
+    if !capture.output.hdr_mismatch {
+        return None;
+    }
+    let wanted = described_hdr_output().unwrap_or_else(|| "none described".to_string());
+    Some(format!(
+        "HDR session but {} is SDR and no HDR10 output here could be duplicated; the HDR \
+         pipeline streams the FP16 scRGB desktop of {wanted}, not {}'s BGRA surface",
+        capture.output.name, capture.output.name
+    ))
 }
 
 /// Re-creates the desktop duplication on an existing capture device —
@@ -1510,17 +1617,27 @@ unsafe fn recreate_duplication(device: &ID3D11Device) -> Result<DxgiCapture, Str
         .map_err(|error| format!("GetImmediateContext: {error}"))?;
     // The same selection as `try_adapter`, for the same reason: a recreation
     // must not move an HDR session onto a different output than the one its
-    // HDR state describes.
+    // HDR state describes — and must not resume one on an SDR output, where
+    // the HDR converter would refuse every frame. `Err` here sends the caller
+    // down its full-recreation path, which is where a session that can no
+    // longer be HDR is downgraded.
     let selected = duplicate_selected_output(&adapter, device)?;
-    Ok(DxgiCapture {
+    let output = selected.output;
+    let generation = record_captured_output(output.metadata);
+    let capture = DxgiCapture {
         device: device.clone(),
         _context: context,
         duplication: selected.duplication,
         width: selected.width,
         height: selected.height,
         refresh_hz: selected.refresh_hz,
-        output: selected.output,
-    })
+        output,
+        generation,
+    };
+    match hdr_output_mismatch(&capture) {
+        Some(reason) => Err(reason),
+        None => Ok(capture),
+    }
 }
 /// render target (the session's encode size, resolved before the first frame:
 /// the negotiated client mode, or the macroblock-aligned rung the starting
@@ -2131,6 +2248,10 @@ fn create_capture(
     let selection = encoder_selection();
     let adapters = DxgiCapture::candidate_adapters()?;
     let mut errors = Vec::new();
+    // An SDR output the HDR session refused, kept in case no adapter can give
+    // the session the HDR10 output its HDR state was decided from (see the
+    // fallback below the loop).
+    let mut sdr_fallback: Option<(String, DxgiCapture)> = None;
     for adapter in adapters.iter() {
         let name = adapter_name(adapter);
         let capture = match unsafe { try_adapter(adapter) } {
@@ -2145,6 +2266,23 @@ fn create_capture(
         if config.width == 0 || config.height == 0 {
             config.width = capture.width;
             config.height = capture.height;
+        }
+
+        // The hard mismatch check, at capture creation: the session streams
+        // HDR10 (the client's 10-bit request resolved to HEVC Main10) but this
+        // output is SDR, so the HDR pipeline cannot run here. Name both
+        // outputs and pass over the capture — an adapter further down may
+        // still hold the HDR10 output the HDR state describes — keeping it as
+        // the SDR fallback. Decided from the same `is_hdr_session` the encoder
+        // and scaler are built with, so a session that is not really HDR
+        // (an H.264 override, say) is not refused an SDR output here.
+        if crate::nvenc::is_hdr_session(&config) {
+            if let Some(reason) = hdr_output_mismatch(&capture) {
+                eprintln!("adapter {name} unusable: {reason}");
+                errors.push(format!("{name}: {reason}"));
+                sdr_fallback.get_or_insert((name.clone(), capture));
+                continue;
+            }
         }
 
         // Cross-adapter encode (auto and amf-cross): the scaler renders
@@ -2296,8 +2434,37 @@ fn create_capture(
             "capture: no usable capture adapter ({}); waiting for the display and retrying once",
             errors.join("; ")
         );
+        // the fallback's duplication is released before the retry: an output
+        // allows a single active duplicator, so keeping it would make the
+        // retry fail to duplicate the very output it was going to fall back to
+        drop(sdr_fallback.take());
         std::thread::sleep(DISPLAY_RETRY_DELAY);
         return create_capture(target, skip_cross, false);
+    }
+    // No adapter could give this HDR session the HDR10 output its HDR state
+    // was decided from, but one of them did duplicate an SDR output: stream
+    // that as SDR. It is the downgrade `stream::session_hdr` already makes for
+    // an SDR display — the encoder is built without HDR and the client gets
+    // the HDR-off control message (`control::send_hdr_mode`, fed by the
+    // capture's own output now) — so the client ends up with a usable SDR
+    // stream instead of a pipeline whose converter would refuse every BGRA
+    // frame. The mismatch lines above already named both outputs.
+    // `HYDRA_STREAM_HDR=1` is exempt: it exists to drive the HDR path in the
+    // hardware probes, which must fail loudly rather than measure SDR.
+    if let Some((name, capture)) = sdr_fallback {
+        if crate::config::hdr_override() != Some(true) {
+            eprintln!(
+                "capture: no HDR10 output could be captured for this HDR session; streaming SDR \
+                 from {name} ({})",
+                capture.output.name
+            );
+            // one duplicator per output: the SDR pass re-creates this one
+            drop(capture);
+            crate::config::set_session_hdr(false);
+            let mut sdr = *target;
+            sdr.hdr = false;
+            return create_capture(&sdr, skip_cross, false);
+        }
     }
     Err(format!("no usable capture adapter ({})", errors.join("; ")))
 }
@@ -3879,6 +4046,49 @@ mod tests {
         let outputs = candidates(&[(true, false), (false, false)]);
         assert_eq!(select_output(&outputs, true), None);
         assert_eq!(select_output(&[], true), None);
+    }
+
+    /// The session's HDR metadata follows the live capture's own output: what
+    /// `display_hdr_metadata` answers while a capture is recorded is its
+    /// monitor, not whichever output the capability scan prefers. A capture
+    /// dropped after its successor was recorded must not erase the successor's
+    /// entry, and an output DXGI will not describe records nothing (so no
+    /// stale monitor survives it).
+    #[test]
+    fn captured_output_metadata_ties_the_session_metadata_to_the_live_capture() {
+        let first = DisplayHdr {
+            primaries: [(0, 0); 3],
+            white_point: (0, 0),
+            max_luminance: 1_000,
+            min_luminance: 10,
+            max_full_frame_luminance: 600,
+            hdr: true,
+        };
+        let second = DisplayHdr {
+            max_luminance: 300,
+            hdr: false,
+            ..first
+        };
+
+        let first_generation = record_captured_output(Some(first));
+        assert_eq!(captured_output_metadata(), Some(first));
+        assert_eq!(display_hdr_metadata(), Some(first));
+
+        let second_generation = record_captured_output(Some(second));
+        clear_captured_output(first_generation);
+        assert_eq!(
+            captured_output_metadata(),
+            Some(second),
+            "a capture dropped after its successor was recorded cleared it"
+        );
+
+        let third_generation = record_captured_output(None);
+        assert_eq!(captured_output_metadata(), None);
+        clear_captured_output(second_generation);
+        clear_captured_output(third_generation);
+        assert_eq!(captured_output_metadata(), None);
+        // with no live capture the capability scan answers again
+        assert_eq!(display_hdr_metadata(), scanned_hdr_metadata());
     }
 
     #[test]

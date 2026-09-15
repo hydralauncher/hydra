@@ -9,6 +9,11 @@ use std::sync::OnceLock;
 /// One sidecar process serves one session at a time.
 static SESSION_HDR: AtomicBool = AtomicBool::new(false);
 
+/// Set when the session's HDR state changes after [`set_session_hdr`] has
+/// already been read for the client's HDR mode message: the control loop sends
+/// that message again (see [`take_hdr_message_stale`]).
+static HDR_MESSAGE_STALE: AtomicBool = AtomicBool::new(false);
+
 #[derive(Clone, Copy, Debug)]
 pub struct Ports {
     pub http: u16,
@@ -196,8 +201,24 @@ pub fn hdr_override() -> Option<bool> {
 /// carry the session's parameters, and one sidecar process serves one
 /// session at a time. It is set before the pipeline is built and only read
 /// while that session lives.
+///
+/// A *change* also flags the HDR mode message for re-sending: the state can
+/// settle after the client was already told about it — the capture resolves to
+/// an SDR output of a mixed desktop and the session downgrades
+/// (`capture::create_capture`), or the client connected before the session's
+/// state was installed at all. The client must not be left in HDR10 mode
+/// against an SDR stream, so the control loop repeats the message once
+/// ([`take_hdr_message_stale`]).
 pub fn set_session_hdr(enabled: bool) {
-    SESSION_HDR.store(enabled, Ordering::Relaxed);
+    if SESSION_HDR.swap(enabled, Ordering::Relaxed) != enabled {
+        HDR_MESSAGE_STALE.store(true, Ordering::Relaxed);
+    }
+}
+
+/// Whether the client may have been told an HDR state that has since changed,
+/// clearing the flag (see [`set_session_hdr`]).
+pub fn take_hdr_message_stale() -> bool {
+    HDR_MESSAGE_STALE.swap(false, Ordering::Relaxed)
 }
 
 /// The session's negotiated HDR state, before any override.
@@ -393,6 +414,26 @@ pub fn fec_percentage() -> u32 {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    /// The HDR mode message has to be repeated when the session's state
+    /// changes after the client was told about it (the capture downgrading a
+    /// mixed desktop to SDR, or a state installed after the client connected):
+    /// a client left in HDR10 mode against an SDR stream is the visible
+    /// failure this flag exists to prevent.
+    #[test]
+    fn session_hdr_change_flags_the_client_message() {
+        // `session_hdr` is process-wide: leave it as this test found it
+        let before = session_hdr();
+        let _ = take_hdr_message_stale();
+        set_session_hdr(before);
+        assert!(!take_hdr_message_stale(), "the same state is not a change");
+        set_session_hdr(!before);
+        assert!(take_hdr_message_stale(), "a change owes the client a message");
+        assert!(!take_hdr_message_stale(), "taking the flag clears it");
+        set_session_hdr(before);
+        let _ = take_hdr_message_stale();
+        assert_eq!(session_hdr(), before);
+    }
 
     #[test]
     fn keyframe_interval_env_parsing() {

@@ -123,7 +123,9 @@ fn run(state: Arc<State>, socket: UdpSocket) -> io::Result<()> {
     let mut _control_qos_flow: Option<crate::qos::QosFlow> = None;
 
     // The HDR mode message goes out once per session, as soon as there is a
-    // peer to send it to.
+    // peer to send it to — and again if the session's HDR state changed after
+    // that (see `set_session_hdr`: the state can settle only once the capture
+    // has resolved its output).
     let mut hdr_sent = false;
 
     /// Tells the client what the HDR state of this session is, once its control
@@ -236,6 +238,9 @@ fn run(state: Arc<State>, socket: UdpSocket) -> io::Result<()> {
                     // reliability is available from here on.
                     if !hdr_sent {
                         hdr_sent = true;
+                        // the first message carries the state as it stands;
+                        // whatever change raised the stale flag is in it
+                        crate::config::take_hdr_message_stale();
                         send_hdr_mode(&state, &socket, &mut server, now);
                     }
                     // mark the control channel per the client's video
@@ -279,6 +284,15 @@ fn run(state: Arc<State>, socket: UdpSocket) -> io::Result<()> {
                     state.end_session("control-lost");
                 }
             }
+        }
+
+        // The session's HDR state settled *after* the client was told about it
+        // (the capture resolved to an SDR output of a mixed desktop and the
+        // session downgraded, or the state was installed after the client's
+        // control channel came up): say it again, so the client is not left in
+        // HDR10 mode against an SDR stream.
+        if hdr_sent && crate::config::take_hdr_message_stale() {
+            send_hdr_mode(&state, &socket, &mut server, now);
         }
 
         // Liveness: a connected client must produce traffic (it pings at

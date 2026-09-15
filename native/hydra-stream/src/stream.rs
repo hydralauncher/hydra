@@ -480,10 +480,18 @@ fn build_audio_pipeline(launch: &LaunchParams) -> Result<Box<dyn crate::audio::A
 ///   BT.709, which this host does not encode, and the session stays SDR —
 ///   the same downgrade Sunshine makes (`video.cpp:179-187`).
 ///
+/// The display side is the *capability* scan
+/// ([`crate::capture::scanned_hdr_metadata`]), deliberately not the output a
+/// live capture is streaming: this decision is made before the capture
+/// exists, and the capture follows it — it resolves its own output by the same
+/// first-HDR rule and, when no HDR10 output here can be duplicated, comes back
+/// SDR and `create_capture` downgrades the session to SDR here rather than
+/// building an HDR pipeline over SDR frames.
+///
 /// `HYDRA_STREAM_HDR` overrides the whole decision; the hardware probes and
 /// the live smoke harness drive the HDR path through it.
 fn session_hdr(launch: &LaunchParams) -> bool {
-    let display = crate::capture::display_hdr_metadata();
+    let display = crate::capture::scanned_hdr_metadata();
     let display_is_hdr = display.as_ref().is_some_and(|metadata| metadata.hdr);
     if let Some(forced) = crate::config::hdr_override() {
         eprintln!(
