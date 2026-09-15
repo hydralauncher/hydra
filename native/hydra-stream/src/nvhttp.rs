@@ -59,6 +59,11 @@ pub struct State {
     /// App catalog pushed by the Electron host (Hydra game library).
     /// Desktop (appid 1) is always served in addition to these.
     pub app_list: Mutex<Vec<StreamApp>>,
+    /// Appid of the game process the launcher reports as running (0 = none),
+    /// pushed by the Electron host over the `setRunningGame` RPC. The running
+    /// app is a property of the *process*, not of the Moonlight session: a
+    /// client that merely drops leaves the game running and the host busy.
+    pub running_appid: std::sync::atomic::AtomicU32,
     /// Media (video/audio) UDP sockets bound ONCE for the life of the
     /// process, like Sunshine's stream sockets. Per-session binds created
     /// a dead window between sessions: the client's hole-punch pings
@@ -290,6 +295,7 @@ impl State {
             idr_gate: Mutex::new(crate::stream::IdrRequestGate::new()),
             control_out_seq: std::sync::atomic::AtomicU32::new(0),
             app_list: Mutex::new(Vec::new()),
+            running_appid: std::sync::atomic::AtomicU32::new(0),
             media: Mutex::new(None),
             events,
         })
@@ -297,6 +303,25 @@ impl State {
 
     pub fn session_phase(&self) -> GamePhase {
         self.game_session.lock().expect("game session lock").phase
+    }
+
+    /// The game process the launcher reports as running (0 = none).
+    pub fn running_appid(&self) -> u32 {
+        self.running_appid.load(std::sync::atomic::Ordering::Relaxed)
+    }
+
+    /// Replaces the running appid the launcher reports. Logged only when the
+    /// value changes: this drives what every client sees in /serverinfo.
+    pub fn set_running_appid(&self, appid: u32) {
+        let previous = self.running_appid.swap(appid, std::sync::atomic::Ordering::Relaxed);
+        if previous == appid {
+            return;
+        }
+        if appid == 0 {
+            eprintln!("nvhttp: no app running (clients see SUNSHINE_SERVER_FREE)");
+        } else {
+            eprintln!("nvhttp: running app appid={appid} (clients see SUNSHINE_SERVER_BUSY)");
+        }
     }
 
     fn emit_session_state(&self, phase: GamePhase) {
@@ -483,8 +508,13 @@ impl State {
             let mut session = self.game_session.lock().expect("game session lock");
             if let Some(launch) = session.launch.take() {
                 if launch.appid != DESKTOP_APPID {
+                    // The reason decides whether the Electron host stops the
+                    // game: only an explicit /cancel may kill it, every other
+                    // teardown leaves it running. `running_appid` is Electron's
+                    // to clear, never this path's.
                     let _ = self.events.send(
-                        json!({ "event": "stream-ended", "appid": launch.appid }).to_string(),
+                        json!({ "event": "stream-ended", "appid": launch.appid, "reason": reason })
+                            .to_string(),
                     );
                 }
             }
@@ -812,10 +842,22 @@ fn serverinfo(state: &State, is_https: bool, has_uniqueid: bool, local_ip: IpAdd
     // Sunshine mirrors the running app into serverinfo: clients poll this
     // after /launch and only start RTSP once the host reports BUSY with the
     // launched appid as currentgame (Moonlight-Android's AppView flow).
+    // Precedence: a live session wins, because the client must see BUSY with
+    // its own appid during the launch handshake, before the game process has
+    // even started; in Idle the *process* the launcher reports decides. That
+    // second half is what makes a game started from Hydra's own UI visible to
+    // Moonlight, and what keeps a merely-dropped session's game reported.
     let (currentgame, server_state) = {
         let session = state.game_session.lock().expect("game session lock");
         match session.phase {
-            GamePhase::Idle => (0, "SUNSHINE_SERVER_FREE"),
+            GamePhase::Idle => {
+                let running = state.running_appid();
+                if running != 0 {
+                    (running, "SUNSHINE_SERVER_BUSY")
+                } else {
+                    (0, "SUNSHINE_SERVER_FREE")
+                }
+            }
             _ => (
                 session
                     .launch
@@ -1063,14 +1105,29 @@ fn launch(state: &State, params: &HashMap<String, String>, local_ip: IpAddr, pee
         return launch_error(404, "Failed to start the specified application", "gamesession", 0);
     }
 
+    // An app already running outside the client flow (Hydra's own UI started
+    // it): the same appid attaches to it instead of starting a second
+    // instance — deliberately friendlier than Sunshine, which 400s
+    // unconditionally (nvhttp.cpp:1368-1375). Any other appid conflicts.
+    let running = state.running_appid();
+    let attach = running != 0 && running == params.appid;
+    if running != 0 && !attach {
+        return launch_error(400, "An app is already running on this host", "gamesession", 0);
+    }
+
     if state.begin_launch(params.clone()).is_err() {
         return launch_error(400, "An app is already running on this host", "gamesession", 0);
     }
 
+    if attach {
+        eprintln!("nvhttp: /launch attached to appid {} (already running)", params.appid);
+    }
+
     // Only AFTER the session is raised: emitting before begin_launch is a
     // TOCTOU (a racing launch can make the Electron host start the game
-    // for a session that then fails with 400).
-    if params.appid != DESKTOP_APPID {
+    // for a session that then fails with 400). An attach has nothing to
+    // start — the Electron host is already running that game.
+    if params.appid != DESKTOP_APPID && !attach {
         // The Electron host starts the game and ends it when the stream
         // stops; the stream itself shows whatever is on screen.
         let _ = state.events.send(
@@ -1093,9 +1150,6 @@ fn resume(state: &State, params: &HashMap<String, String>, local_ip: IpAddr, pee
         return unauthorized("/resume");
     }
 
-    if state.session_phase() == GamePhase::Idle {
-        return launch_error(503, "No running app to resume", "resume", 0);
-    }
     if !params.contains_key("rikey") || !params.contains_key("rikeyid") {
         return launch_error(400, "Missing a required resume parameter", "resume", 0);
     }
@@ -1103,15 +1157,32 @@ fn resume(state: &State, params: &HashMap<String, String>, local_ip: IpAddr, pee
     let Some(launch) = make_launch_params(params, uniqueid) else {
         return launch_error(400, "Invalid resume parameters", "resume", 0);
     };
-    // /resume must target the running app, like Sunshine
-    if state
-        .launch_params()
-        .is_some_and(|current| current.appid != launch.appid)
-    {
-        return launch_error(404, "Failed to start the specified application", "resume", 0);
-    }
-    if state.resume_launch(launch).is_err() {
-        return launch_error(503, "No running app to resume", "resume", 0);
+
+    if state.session_phase() != GamePhase::Idle {
+        // /resume must target the running app, like Sunshine
+        if state
+            .launch_params()
+            .is_some_and(|current| current.appid != launch.appid)
+        {
+            return launch_error(404, "Failed to start the specified application", "resume", 0);
+        }
+        if state.resume_launch(launch).is_err() {
+            return launch_error(503, "No running app to resume", "resume", 0);
+        }
+    } else {
+        // No session: the app must be one the launcher reports as running
+        // (started from Hydra's own UI). Raising the session adopts it — the
+        // Electron host must NOT be asked to start a second instance.
+        let running = state.running_appid();
+        if running == 0 {
+            return launch_error(503, "No running app to resume", "resume", 0);
+        }
+        if running != launch.appid {
+            return launch_error(404, "Failed to start the specified application", "resume", 0);
+        }
+        if state.begin_launch(launch).is_err() {
+            return launch_error(503, "No running app to resume", "resume", 0);
+        }
     }
 
     match session_started_xml(state, local_ip, "resume", 1) {
@@ -2342,6 +2413,118 @@ pub(crate) mod tests {
                 .expect("still unpads"),
             frame
         );
+    }
+
+    /// A paired client, so /launch and /resume pass the authorization gate
+    /// without a full pairing handshake.
+    fn authorize(state: &State, uniqueid: &str) {
+        let mut paired = state.paired.lock().expect("paired clients lock");
+        paired.insert(
+            uniqueid.to_string(),
+            PairedClient {
+                uniqueid: uniqueid.to_string(),
+                name: "tester".to_string(),
+                cert: String::new(),
+            },
+        );
+    }
+
+    fn session_params(appid: u32) -> HashMap<String, String> {
+        params(&[
+            ("uniqueid", "tester"),
+            ("rikey", "00112233445566778899aabbccddeeff"),
+            ("rikeyid", "305419896"),
+            ("localAudioPlayMode", "0"),
+            ("appid", &appid.to_string()),
+        ])
+    }
+
+    fn launch_params_for(appid: u32) -> LaunchParams {
+        make_launch_params(&session_params(appid), "tester").expect("launch params")
+    }
+
+    /// `<currentgame>`/`<state>` follow the running *process* while the
+    /// session is Idle — a game Hydra started from its own UI is what
+    /// Moonlight sees — and the live session still wins during a handshake.
+    #[test]
+    fn serverinfo_reports_the_running_process_in_idle() {
+        let (state, _rx) = local_state("serverinfo-running");
+
+        let xml = serverinfo(&state, true, true, "127.0.0.1".parse().unwrap());
+        assert_eq!(tag(&xml, "state"), "SUNSHINE_SERVER_FREE");
+        assert_eq!(tag(&xml, "currentgame"), "0");
+
+        state.set_running_appid(42);
+        let xml = serverinfo(&state, true, true, "127.0.0.1".parse().unwrap());
+        assert_eq!(tag(&xml, "state"), "SUNSHINE_SERVER_BUSY");
+        assert_eq!(tag(&xml, "currentgame"), "42");
+
+        // the pending handshake's own appid wins over the running process
+        state.begin_launch(launch_params_for(7)).expect("begin launch");
+        let xml = serverinfo(&state, true, true, "127.0.0.1".parse().unwrap());
+        assert_eq!(tag(&xml, "state"), "SUNSHINE_SERVER_BUSY");
+        assert_eq!(tag(&xml, "currentgame"), "7");
+    }
+
+    /// A game running outside the client flow: the same appid attaches (no
+    /// second instance, no `launch-requested`), any other 400s like Sunshine.
+    #[test]
+    fn launch_attaches_to_the_same_running_app_and_rejects_another() {
+        let (state, mut rx) = local_state("launch-running");
+        authorize(&state, "tester");
+        state.set_app_list(vec![
+            (7, "Test Game".to_string(), None),
+            (9, "Other Game".to_string(), None),
+        ]);
+
+        state.set_running_appid(9);
+        let response = launch(&state, &session_params(7), "127.0.0.1".parse().unwrap(), None);
+        assert!(response.contains("status_code=\"400\""), "{response}");
+        assert!(
+            response.contains("An app is already running on this host"),
+            "{response}"
+        );
+        assert!(rx.try_recv().is_err(), "a refused launch emits nothing");
+        assert_eq!(state.session_phase(), GamePhase::Idle);
+
+        state.set_running_appid(7);
+        let response = launch(&state, &session_params(7), "127.0.0.1".parse().unwrap(), None);
+        assert!(response.contains("status_code=\"200\""), "{response}");
+        assert!(response.contains("<gamesession>1</gamesession>"), "{response}");
+        assert_eq!(state.session_phase(), GamePhase::Launching);
+        while let Ok(event) = rx.try_recv() {
+            let event: serde_json::Value = serde_json::from_str(&event).unwrap();
+            assert_ne!(
+                event["event"], "launch-requested",
+                "an attach must not ask the host to start the game again"
+            );
+        }
+    }
+
+    /// /resume with no session adopts the running process, and reproduces
+    /// Sunshine's status codes when there is nothing to adopt.
+    #[test]
+    fn resume_adopts_the_running_app_or_fails_like_sunshine() {
+        let (state, _rx) = local_state("resume-running");
+        authorize(&state, "tester");
+
+        let response = resume(&state, &session_params(7), "127.0.0.1".parse().unwrap(), None);
+        assert!(response.contains("status_code=\"503\""), "{response}");
+        assert!(response.contains("No running app to resume"), "{response}");
+
+        state.set_running_appid(9);
+        let response = resume(&state, &session_params(7), "127.0.0.1".parse().unwrap(), None);
+        assert!(response.contains("status_code=\"404\""), "{response}");
+        assert!(
+            response.contains("Failed to start the specified application"),
+            "{response}"
+        );
+
+        state.set_running_appid(7);
+        let response = resume(&state, &session_params(7), "127.0.0.1".parse().unwrap(), None);
+        assert!(response.contains("status_code=\"200\""), "{response}");
+        assert!(response.contains("<resume>1</resume>"), "{response}");
+        assert_eq!(state.session_phase(), GamePhase::Launching);
     }
 }
 
