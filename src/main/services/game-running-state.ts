@@ -5,7 +5,19 @@ interface GamePlaytimeState {
   lastTick: number;
   firstTick: number;
   lastSyncTick: number;
+  countHydraPlaytime: boolean;
 }
+
+export const getGamePlaytimeDeltas = (
+  session: GamePlaytimeState,
+  now: number,
+  pendingDelta = 0
+) => ({
+  localDelta: session.countHydraPlaytime ? now - session.lastTick : 0,
+  syncDelta:
+    (session.countHydraPlaytime ? now - session.lastSyncTick : 0) +
+    pendingDelta,
+});
 
 const mutableGamesPlaytime = new Map<string, GamePlaytimeState>();
 

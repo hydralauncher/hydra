@@ -23,7 +23,7 @@ import { CloudSaveWidget } from "./cloud-save-v2";
 import { getCloudSaveVisibility } from "./cloud-save-visibility";
 import { SimilarGames } from "./similar-games/similar-games";
 
-import { AuthPage } from "@shared";
+import { AuthPage, getDisplayedPlayTimeInMilliseconds } from "@shared";
 import { cloudSyncContext, gameDetailsContext } from "@renderer/context";
 
 import cloudIconAnimated from "@renderer/assets/icons/cloud-animated.gif";
@@ -139,7 +139,10 @@ export function GameDetailsContent() {
   const { showPrompt, dismissPrompt } = useReviewPrompt({
     shop,
     objectId,
-    playTimeInMilliseconds: game?.playTimeInMilliseconds ?? 0,
+    playTimeInMilliseconds: getDisplayedPlayTimeInMilliseconds({
+      playTimeInMilliseconds: game?.playTimeInMilliseconds ?? 0,
+      steamPlayTimeInMilliseconds: game?.steamPlayTimeInMilliseconds,
+    }),
     userDetailsId: userDetails?.id,
     isGameInLibrary,
     hasUserReviewed,

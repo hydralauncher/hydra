@@ -8,6 +8,7 @@ import { CloudSync } from "./cloud-sync";
 import { logger, networkLogger } from "./logger";
 import { PowerSaveBlockerManager } from "./power-save-blocker";
 import path from "node:path";
+import fs from "node:fs/promises";
 import { AchievementWatcherManager } from "./achievements/achievement-watcher-manager";
 import { abortAchievementMetadataExport } from "./achievements/metadata-export";
 import { INTERVALS } from "@main/constants";
@@ -22,6 +23,17 @@ import {
   type LinuxProcessInfo,
 } from "./linux-process-match";
 import { isWindowsBatchFile } from "@main/helpers/windows-batch-command";
+import { HydraApi } from "./hydra-api";
+import { getSteamLibraryFolders } from "./steam";
+import {
+  isSteamLibraryExecutablePath,
+  resolveActiveSteamImport,
+} from "./steam-integration/steam-playtime";
+import {
+  cancelSteamGameExitSync,
+  scheduleSteamGameExitSync,
+  shouldScheduleSteamGameExitSync,
+} from "./steam-integration/steam-game-exit-sync";
 import {
   getCloudSaveAutomaticSyncMode,
   runAutomaticCloudSavePostExit,
@@ -32,6 +44,7 @@ import {
   clearGamesPlaytimeState,
   deleteGamePlaytime,
   gamesPlaytime,
+  getGamePlaytimeDeltas,
   setGamePlaytime,
 } from "./game-running-state";
 import {
@@ -136,6 +149,9 @@ const logPlaytimeTrace = (
     localPlayTimeInMilliseconds: Math.trunc(game.playTimeInMilliseconds ?? 0),
     unsyncedDeltaPlayTimeInMilliseconds:
       game.unsyncedDeltaPlayTimeInMilliseconds ?? 0,
+    countHydraPlaytime: gamesPlaytime.get(
+      levelKeys.game(game.shop, game.objectId)
+    )?.countHydraPlaytime,
     lastTimePlayed:
       game.lastTimePlayed instanceof Date
         ? game.lastTimePlayed.toISOString()
@@ -241,6 +257,23 @@ const getSystemProcessMap = async () => {
   return { processMap, winePrefixMap, linuxProcesses };
 };
 
+// Do not restore an old import flag or executable after an asynchronous sync.
+const persistGamePlaytime = async (
+  gameKey: string,
+  update: Partial<
+    Pick<
+      Game,
+      | "playTimeInMilliseconds"
+      | "lastTimePlayed"
+      | "unsyncedDeltaPlayTimeInMilliseconds"
+    >
+  >
+) => {
+  const currentGame = await gamesSublevel.get(gameKey);
+  if (!currentGame || currentGame.isDeleted) return;
+  await gamesSublevel.put(gameKey, { ...currentGame, ...update });
+};
+
 const hasLinuxCompatibilityProcessMatch = (
   game: Game,
   executablePath: string,
@@ -325,7 +358,7 @@ export const watchProcesses = async () => {
       matchPaths = [executablePath, ...trackingPaths];
     }
 
-    let hasProcess = matchPaths.some((matchPath) => {
+    let matchedPath = matchPaths.find((matchPath) => {
       const executable = matchPath
         .slice(matchPath.lastIndexOf(platform === "win32" ? "\\" : "/") + 1)
         .toLowerCase();
@@ -342,19 +375,23 @@ export const watchProcesses = async () => {
       return false;
     });
 
-    if (!hasProcess && platform === "linux") {
-      hasProcess = hasLaunchedPidMatch(
+    if (
+      !matchedPath &&
+      platform === "linux" &&
+      hasLaunchedPidMatch(
         launchedGamePids.get(gameKey),
         executablePath,
         pidToProcess
-      );
+      )
+    ) {
+      matchedPath = executablePath;
     }
 
-    if (hasProcess) {
+    if (matchedPath) {
       if (gamesPlaytime.has(gameKey)) {
         onTickGame(game);
       } else {
-        onOpenGame(game);
+        await onOpenGame(game, matchedPath);
       }
     } else if (gamesPlaytime.has(gameKey)) {
       onCloseGame(game);
@@ -366,9 +403,47 @@ export const watchProcesses = async () => {
   WindowManager.sendToAppWindows("on-games-running", getGamesRunning());
 };
 
-function onOpenGame(game: Game) {
+async function onOpenGame(game: Game, matchedPath: string) {
+  cancelSteamGameExitSync(game);
+
   const now = performance.now();
   const gameKey = levelKeys.game(game.shop, game.objectId);
+  let countHydraPlaytime = true;
+
+  if (game.shop === "steam") {
+    const libraryFolders = await getSteamLibraryFolders().catch(() => []);
+    const [resolvedPath, resolvedLibraries] = await Promise.all([
+      fs.realpath(matchedPath).catch(() => matchedPath),
+      Promise.all(
+        libraryFolders.map((folder) => fs.realpath(folder).catch(() => folder))
+      ),
+    ]);
+    if (isSteamLibraryExecutablePath(resolvedPath, resolvedLibraries)) {
+      const hasActiveSteamImport = await resolveActiveSteamImport(
+        game.hasActiveSteamImport,
+        async (signal) => {
+          try {
+            return await HydraApi.get<{ hasActiveSteamImport?: boolean }>(
+              `/profile/games/steam/${encodeURIComponent(game.objectId)}`,
+              undefined,
+              { signal }
+            );
+          } catch (error) {
+            if (axios.isAxiosError(error) && error.response?.status === 404) {
+              return { hasActiveSteamImport: false };
+            }
+            throw error;
+          }
+        }
+      );
+      // The library may have changed while the lookup was in flight.
+      const currentGame = await gamesSublevel.get(gameKey);
+      if (!currentGame || currentGame.isDeleted) return;
+      game = { ...currentGame, hasActiveSteamImport };
+      await gamesSublevel.put(gameKey, game);
+      countHydraPlaytime = !hasActiveSteamImport;
+    }
+  }
 
   if (game.remoteId) {
     void prepareLinuxGameCaptureSession(gameKey);
@@ -378,10 +453,12 @@ function onOpenGame(game: Game) {
     lastTick: now,
     firstTick: now,
     lastSyncTick: now,
+    countHydraPlaytime,
   });
 
   logPlaytimeTrace("session-open", game, {
     performanceNow: now,
+    matchedPath,
   });
 
   // On Linux, keep the launcher visible briefly and let it auto-close itself.
@@ -419,8 +496,7 @@ function onOpenGame(game: Game) {
           deltaToSync,
         });
 
-        gamesSublevel.put(gameKey, {
-          ...game,
+        return persistGamePlaytime(gameKey, {
           unsyncedDeltaPlayTimeInMilliseconds: 0,
         });
       })
@@ -462,15 +538,21 @@ function onTickGame(game: Game) {
     levelKeys.game(game.shop, game.objectId)
   )!;
 
-  const delta = now - gamePlaytime.lastTick;
+  const { localDelta: delta, syncDelta: deltaToSync } = getGamePlaytimeDeltas(
+    gamePlaytime,
+    now,
+    game.unsyncedDeltaPlayTimeInMilliseconds ?? 0
+  );
 
-  const updatedGame: Game = {
-    ...game,
+  const updatedGame = {
     playTimeInMilliseconds: (game.playTimeInMilliseconds ?? 0) + delta,
     lastTimePlayed: new Date(),
   };
 
-  gamesSublevel.put(levelKeys.game(game.shop, game.objectId), updatedGame);
+  void persistGamePlaytime(
+    levelKeys.game(game.shop, game.objectId),
+    updatedGame
+  );
 
   setGamePlaytime(levelKeys.game(game.shop, game.objectId), {
     ...gamePlaytime,
@@ -478,11 +560,6 @@ function onTickGame(game: Game) {
   });
 
   if (currentTick % TICKS_TO_UPDATE_API === 0 && game.shop !== "custom") {
-    const deltaToSync =
-      now -
-      gamePlaytime.lastSyncTick +
-      (game.unsyncedDeltaPlayTimeInMilliseconds ?? 0);
-
     logPlaytimeTrace("periodic-sync-request", game, {
       method: game.remoteId ? "track" : "create",
       deltaToSync,
@@ -502,8 +579,7 @@ function onTickGame(game: Game) {
           deltaToSync,
         });
 
-        gamesSublevel.put(levelKeys.game(game.shop, game.objectId), {
-          ...updatedGame,
+        return persistGamePlaytime(levelKeys.game(game.shop, game.objectId), {
           unsyncedDeltaPlayTimeInMilliseconds: 0,
         });
       })
@@ -514,15 +590,17 @@ function onTickGame(game: Game) {
           error: error instanceof Error ? error.message : String(error),
         });
 
-        gamesSublevel.put(levelKeys.game(game.shop, game.objectId), {
-          ...updatedGame,
+        return persistGamePlaytime(levelKeys.game(game.shop, game.objectId), {
           unsyncedDeltaPlayTimeInMilliseconds: deltaToSync,
         });
       })
       .finally(() => {
+        const current = gamesPlaytime.get(
+          levelKeys.game(game.shop, game.objectId)
+        );
+        if (current?.firstTick !== gamePlaytime.firstTick) return;
         setGamePlaytime(levelKeys.game(game.shop, game.objectId), {
-          ...gamePlaytime,
-          lastTick: now,
+          ...current,
           lastSyncTick: now,
         });
       });
@@ -539,7 +617,11 @@ const onCloseGame = (game: Game) => {
   PowerSaveBlockerManager.markGameClosed(gameKey);
   abortAchievementMetadataExport(gameKey);
 
-  const delta = now - gamePlaytime.lastTick;
+  const { localDelta: delta, syncDelta: deltaToSync } = getGamePlaytimeDeltas(
+    gamePlaytime,
+    now,
+    game.unsyncedDeltaPlayTimeInMilliseconds ?? 0
+  );
 
   logPlaytimeTrace("session-close", game, {
     performanceNow: now,
@@ -547,15 +629,22 @@ const onCloseGame = (game: Game) => {
     firstTick: gamePlaytime.firstTick,
     lastTick: gamePlaytime.lastTick,
     lastSyncTick: gamePlaytime.lastSyncTick,
+    countHydraPlaytime: gamePlaytime.countHydraPlaytime,
   });
 
-  const updatedGame: Game = {
-    ...game,
+  if (
+    shouldScheduleSteamGameExitSync(game.shop, gamePlaytime.countHydraPlaytime)
+  ) {
+    scheduleSteamGameExitSync(game);
+    logPlaytimeTrace("steam-exit-sync-scheduled", game);
+  }
+
+  const updatedGame = {
     playTimeInMilliseconds: (game.playTimeInMilliseconds ?? 0) + delta,
     lastTimePlayed: new Date(),
   };
 
-  gamesSublevel.put(gameKey, updatedGame);
+  void persistGamePlaytime(gameKey, updatedGame);
 
   if (game.shop === "custom") return;
 
@@ -564,11 +653,6 @@ const onCloseGame = (game: Game) => {
   });
 
   if (game.remoteId) {
-    const deltaToSync =
-      now -
-      gamePlaytime.lastSyncTick +
-      (game.unsyncedDeltaPlayTimeInMilliseconds ?? 0);
-
     logPlaytimeTrace("close-sync-track-request", game, {
       deltaToSync,
       syncTimestamp:
@@ -583,8 +667,7 @@ const onCloseGame = (game: Game) => {
           deltaToSync,
         });
 
-        return gamesSublevel.put(gameKey, {
-          ...updatedGame,
+        return persistGamePlaytime(gameKey, {
           unsyncedDeltaPlayTimeInMilliseconds: 0,
         });
       })
@@ -594,8 +677,7 @@ const onCloseGame = (game: Game) => {
           error: error instanceof Error ? error.message : String(error),
         });
 
-        return gamesSublevel.put(gameKey, {
-          ...updatedGame,
+        return persistGamePlaytime(gameKey, {
           unsyncedDeltaPlayTimeInMilliseconds: deltaToSync,
         });
       });

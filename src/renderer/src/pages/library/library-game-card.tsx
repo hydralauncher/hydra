@@ -1,4 +1,5 @@
 import { LibraryGame } from "@types";
+import { getDisplayedPlayTimeInMilliseconds } from "@shared";
 import cn from "classnames";
 import {
   useGameCard,
@@ -224,7 +225,9 @@ export const LibraryGameCard = memo(function LibraryGameCard({
           "library-game-card__overlay--classics":
             game.shop === "launchbox" && !isChosenCoverActive,
           "library-game-card__overlay--no-fade":
-            hideAchievementProgress || (game.achievementCount ?? 0) === 0,
+            hideAchievementProgress ||
+            ((game.achievementCount ?? 0) === 0 &&
+              (game.unlockedAchievementCount ?? 0) === 0),
         })}
       >
         <div className="library-game-card__top-section">
@@ -239,10 +242,10 @@ export const LibraryGameCard = memo(function LibraryGameCard({
                 <ClockIcon size={11} />
               )}
               <span className="library-game-card__playtime-long">
-                {formatPlayTime(game.playTimeInMilliseconds)}
+                {formatPlayTime(getDisplayedPlayTimeInMilliseconds(game))}
               </span>
               <span className="library-game-card__playtime-short">
-                {formatPlayTime(game.playTimeInMilliseconds, true)}
+                {formatPlayTime(getDisplayedPlayTimeInMilliseconds(game), true)}
               </span>
             </div>
           )}
@@ -286,14 +289,19 @@ export const LibraryGameCard = memo(function LibraryGameCard({
           )}
         </div>
 
-        {!hideAchievementProgress && (game.achievementCount ?? 0) > 0 && (
-          <AchievementProgress
-            achievementCount={game.achievementCount ?? 0}
-            unlockedAchievementCount={game.unlockedAchievementCount ?? 0}
-            classNamePrefix="library-game-card"
-            label={`${game.title} achievements`}
-          />
-        )}
+        {!hideAchievementProgress &&
+          ((game.achievementCount ?? 0) > 0 ||
+            (game.unlockedAchievementCount ?? 0) > 0) && (
+            <AchievementProgress
+              achievementCount={Math.max(
+                game.achievementCount ?? 0,
+                game.unlockedAchievementCount ?? 0
+              )}
+              unlockedAchievementCount={game.unlockedAchievementCount ?? 0}
+              classNamePrefix="library-game-card"
+              label={`${game.title} achievements`}
+            />
+          )}
       </div>
 
       {renderCoverMedia()}

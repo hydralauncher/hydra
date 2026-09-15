@@ -45,12 +45,15 @@ export interface Game {
   customOriginalHeroPath?: string | null;
   customOriginalCoverPath?: string | null;
   playTimeInMilliseconds: number;
+  steamPlayTimeInMilliseconds?: number;
+  hasActiveSteamImport?: boolean;
   unsyncedDeltaPlayTimeInMilliseconds?: number;
   lastTimePlayed: Date | null;
   addedToLibraryAt?: Date | null;
   objectId: string;
   shop: GameShop;
   remoteId: string | null;
+  source?: "hydra" | "steam";
   collectionIds?: string[];
   isDeleted: boolean;
   winePrefixPath?: string | null;

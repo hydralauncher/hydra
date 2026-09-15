@@ -29,6 +29,12 @@ import { launchGame, openClassicsGame } from "./helpers";
 import { refreshPortableShortcutLauncher } from "./helpers/shortcut-launch";
 import { lookupCachedPlatform } from "./events/library/get-library";
 import { loadState } from "./main";
+import {
+  closeSteamOpenIdWindow,
+  notifySteamConnectError,
+  notifySteamConnected,
+} from "./services/steam-integration/steam-store-session";
+import { parseSteamOpenIdReturn } from "./services/steam-integration/steam-openid-return";
 
 crashReporter.start({
   uploadToServer: false,
@@ -315,6 +321,18 @@ const handleDeepLinkPath = (uri?: string) => {
           `settings?theme=${themeName}&authorId=${authorId}&authorName=${authorName}`
         );
       }
+
+      return;
+    }
+
+    if (url.host === "steam-connected") {
+      closeSteamOpenIdWindow();
+      const result = parseSteamOpenIdReturn(uri);
+      if (result?.kind === "error") {
+        notifySteamConnectError(result.code);
+        return;
+      }
+      notifySteamConnected();
     }
   } catch (error) {
     logger.error("Error handling deep link", uri, error);
