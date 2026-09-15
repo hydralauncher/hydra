@@ -1,18 +1,23 @@
-//! NVENC encoder for H.264, loaded at runtime from `nvEncodeAPI64.dll`
-//! (LoadLibrary/GetProcAddress — the driver ships the DLL, no import lib).
+//! NVENC encoder for H.264 and HEVC, loaded at runtime from
+//! `nvEncodeAPI64.dll` (LoadLibrary/GetProcAddress — the driver ships the
+//! DLL, no import lib).
 //!
 //! Struct layouts are modeled as zeroed byte buffers with accessors at
 //! offsets verified against the real `nvEncodeAPI.h` (compiled with the
 //! project toolchain to dump sizes/offsets) — the C structs are versioned
-//! and padding-heavy, so offsets are the contract, not field names.
+//! and padding-heavy, so offsets are the contract, not field names. The
+//! codec configs are members of one union and have different layouts, so
+//! each codec carries its own offset block.
 //!
-//! Settings mirror Sunshine's low-latency H.264 configuration
+//! Settings mirror Sunshine's low-latency configuration
 //! (`nvenc_base.cpp`): P4 preset + ULTRA_LOW_LATENCY tuning info, CBR at the
 //! bitrate negotiated in the RTSP ANNOUNCE, no B-frames
 //! (`frameIntervalP = 1`, `zeroReorderDelay`), infinite GOP with
-//! `repeatSPSPPS` and IDR only on demand, CABAC, and `sliceMode = 3`
-//! with the client-requested slice count. Input is the DXGI desktop
-//! duplication texture registered zero-copy as a DIRECTX resource.
+//! `repeatSPSPPS` and IDR only on demand, CABAC (H.264), and `sliceMode = 3`
+//! with the client-requested slice count. HEVC adds only its GUIDs and its
+//! codec config block — same rate control, same VBV, same low-latency
+//! tuning. Input is the DXGI desktop duplication texture registered
+//! zero-copy as a DIRECTX resource.
 //! Encoding runs in asynchronous mode (`enableEncodeAsync = 1`) with a
 //! registered completion event, exactly like Sunshine: each frame waits
 //! on its completion event (100ms cap) and then locks the bitstream with
@@ -30,6 +35,7 @@ use windows::Win32::System::LibraryLoader::{GetProcAddress, LoadLibraryW};
 use windows::Win32::System::Threading::{CreateEventW, WaitForSingleObject};
 
 use crate::capture::{SubmitHandle, SubmitState, TextureEncoder};
+use crate::video::VideoCodec;
 
 pub type NvEncStatus = u32;
 pub const NV_ENC_SUCCESS: NvEncStatus = 0;
@@ -76,6 +82,14 @@ const GUID_H264: NvGuid = NvGuid::new(
     0x4ca4,
     [0xaa, 0x85, 0x1e, 0x50, 0xf3, 0x21, 0xf6, 0xbf],
 );
+/// `NV_ENC_CODEC_HEVC_GUID`, `{790CDC88-4522-4d7b-9425-BDA9975F7603}`
+/// (nvEncodeAPI.h:148, cross-checked against FFmpeg's nv-codec-headers).
+const GUID_HEVC: NvGuid = NvGuid::new(
+    0x790cdc88,
+    0x4522,
+    0x4d7b,
+    [0x94, 0x25, 0xbd, 0xa9, 0x97, 0x5f, 0x76, 0x03],
+);
 const GUID_PRESET_P4: NvGuid = NvGuid::new(
     0x90a7b826,
     0xdf06,
@@ -88,6 +102,63 @@ const GUID_PROFILE_HIGH: NvGuid = NvGuid::new(
     0x4b89,
     [0xaf, 0x2a, 0xd5, 0x37, 0xc9, 0x2b, 0xe3, 0x10],
 );
+/// `NV_ENC_HEVC_PROFILE_MAIN_GUID`,
+/// `{b514c39a-b55b-40fa-878f-f1253b4dfdec}` (nvEncodeAPI.h:202). Main
+/// (8-bit 4:2:0) is the profile HEVC SDR clients negotiate.
+const GUID_PROFILE_HEVC_MAIN: NvGuid = NvGuid::new(
+    0xb514c39a,
+    0xb55b,
+    0x40fa,
+    [0x87, 0x8f, 0xf1, 0x25, 0x3b, 0x4d, 0xfd, 0xec],
+);
+
+/// `NV_ENC_HEVC_PROFILE_MAIN10_GUID`,
+/// `{fa4d2b6c-3a5b-411a-8018-0a3f5e3c9be5}` (nvEncodeAPI.h:206). The 10-bit
+/// profile HDR needs: HEVC has no separate "HDR" profile, so Main10 plus the
+/// BT.2020/PQ VUI is what makes the stream HDR10. Taken from a binding of the
+/// reference header whose other five GUIDs (H.264, HEVC, H.264 High, HEVC
+/// Main, preset P4) match the C-probe-verified constants above byte for byte.
+const GUID_PROFILE_HEVC_MAIN10: NvGuid = NvGuid::new(
+    0xfa4d2b6c,
+    0x3a5b,
+    0x411a,
+    [0x80, 0x18, 0x0a, 0x3f, 0x5e, 0x3c, 0x9b, 0xe5],
+);
+
+/// The NVENC codec GUID for a session's negotiated codec.
+fn encode_guid(codec: VideoCodec) -> NvGuid {
+    match codec {
+        VideoCodec::H264 => GUID_H264,
+        VideoCodec::Hevc => GUID_HEVC,
+    }
+}
+
+/// The profile GUID the config is initialized with (Sunshine's
+/// `profileGUID` in `nvenc_base.cpp:346/385`: High for H.264, Main for
+/// HEVC — the 4:4:4 variants are only selected for a 4:4:4 buffer, and the
+/// 10-bit Main10 variant only for an HDR session's 10-bit input).
+///
+/// HDR is HEVC-only: H.264 has no 10-bit profile here, so an HDR session
+/// that somehow negotiated H.264 stays on High and encodes 8-bit (the
+/// caller is responsible for not advertising HDR in that case — see
+/// `nvhttp::server_codec_mode_support`).
+fn profile_guid(codec: VideoCodec, hdr: bool) -> NvGuid {
+    match (codec, hdr) {
+        (VideoCodec::Hevc, true) => GUID_PROFILE_HEVC_MAIN10,
+        (VideoCodec::Hevc, false) => GUID_PROFILE_HEVC_MAIN,
+        (VideoCodec::H264, _) => GUID_PROFILE_HIGH,
+    }
+}
+
+/// Whether a session really encodes HDR10. HDR is HEVC-only (Main10), so a
+/// flag on an H.264 session degrades to SDR everywhere — profile, VUI *and*
+/// input buffer format have to agree, and this is the one place that decides.
+/// The capture pipeline asks the same function to choose its scaler, so the
+/// encoder's registered format and the scaler's output format cannot
+/// disagree.
+pub(crate) fn is_hdr_session(params: &EncoderConfigParams) -> bool {
+    params.hdr && matches!(params.codec, VideoCodec::Hevc)
+}
 
 const RC_MODE_CBR: u32 = 2;
 /// `NV_ENC_TUNING_INFO_ULTRA_LOW_LATENCY` (the tuning value right after
@@ -101,6 +172,36 @@ const RC_MODE_CBR: u32 = 2;
 /// reporting `rfi: false`.
 const TUNING_ULTRA_LOW_LATENCY: u32 = 3;
 const BUFFER_FORMAT_ARGB: u32 = 0x0100_0000;
+/// `NV_ENC_BUFFER_FORMAT_NV12` — 8-bit planar YUV, the control case for the
+/// planar-registration question below (same layout as P010, half the depth).
+const BUFFER_FORMAT_NV12: u32 = 0x0000_0001;
+/// `NV_ENC_BUFFER_FORMAT_YUV420_10BIT` — P010, the 10-bit YUV surface an HDR
+/// session's scaler produces (`DXGI_FORMAT_P010`; Y in array slice 0, the
+/// interleaved UV plane in slice 1 — Sunshine's `display_vram.cpp:508-525`
+/// renders the two planes through separate RTVs).
+///
+/// Feeding NVENC *YUV* rather than 10-bit RGB is deliberate on two counts:
+/// the coded sample depth then follows from the buffer format, and the
+/// RGB->YUV matrix is ours to choose, so the BT.2020-NCL the VUI declares is
+/// the matrix actually used. NVENC's own ARGB conversion applies a fixed
+/// matrix, which would have put BT.709 chroma on the wire under a BT.2020
+/// label.
+///
+/// Regression note: `NvEncRegisterResource` refuses a P010 texture with
+/// 0x8 (`NV_ENC_ERR_INVALID_PARAM`) unless the *session* declares 10-bit
+/// input/output ([`HEVC_INPUT_BIT_DEPTH`] / [`HEVC_OUTPUT_BIT_DEPTH`]). The
+/// earlier probe swept `DXGI_FORMAT_P010` array sizes (1 and 2) and the bind
+/// flags and concluded "planar registration is broken"; the session it
+/// registered into was configured for 8-bit input, so every combination was
+/// rejected for a reason the sweep could not vary. With the declaration in
+/// place the same textures register and encode at `ArraySize = 1` under every
+/// bind-flag set, and ffprobe reads the dump back as `Main 10` /
+/// `yuv420p10le` / `bt2020` / `smpte2084` / `bt2020nc` (`tv` range). One
+/// caveat measured on the way: an `ArraySize = 2` P010 texture created with no
+/// bind flags makes the register call never return, so the scaler keeps
+/// `ArraySize = 1` like Sunshine's native encoder input.
+/// `tests/hdr_encode_probe.rs` covers all of this.
+const BUFFER_FORMAT_YUV420_10BIT: u32 = 0x0001_0000;
 const RESOURCE_TYPE_DIRECTX: u32 = 0;
 const DEVICE_TYPE_DIRECTX: u32 = 0;
 const MULTI_PASS_DISABLED: u32 = 0;
@@ -170,12 +271,25 @@ fixed_buffer!(MapInputParams, 1544);
 fixed_buffer!(PicParams, 3360);
 fixed_buffer!(LockBitstreamParams, 1544);
 fixed_buffer!(BitstreamBufferParams, 776);
-fixed_buffer!(EventParams, 1032);
+fixed_buffer!(EventParams, 1544); // sizeof(NV_ENC_EVENT_PARAMS); was 1032, a
+                                   // truncated struct the driver happened not
+                                   // to write past
 fixed_buffer!(CapsParam, 256); // NV_ENC_CAPS_PARAM
 
 // NV_ENC_CAPS ordinals (verified with the C probe against nvEncodeAPI.h).
 const CAPS_SUPPORT_CUSTOM_VBV_BUF_SIZE: i32 = 26;
 const CAPS_SUPPORT_REF_PIC_INVALIDATION: i32 = 28;
+/// `NV_ENC_CAPS_SUPPORT_10BIT_ENCODE` — whether this codec can encode 10-bit
+/// samples at all. HEVC Main10 is the only way to carry HDR10, so a driver
+/// that answers 0 here has no HDR path and the negotiation must not advertise
+/// `SCM_HEVC_MAIN10` (the same pattern as the HEVC probe gating `SCM_HEVC`).
+///
+/// The ordinal has to be *counted*: `NV_ENC_CAPS` has no explicit values, and
+/// NVIDIA appends new capabilities, so an ordinal is only valid for one SDK
+/// version. In the 13.1 header this is 39. The 23 this constant used to hold
+/// is `NV_ENC_CAPS_SUPPORT_SUBFRAME_READBACK` there, i.e. the startup log's
+/// `10bit-encode=true` was answering a question about subframe readback.
+const CAPS_SUPPORT_10BIT_ENCODE: i32 = 39;
 
 /// numRefFrames configured when the client does not ask for a depth
 /// ("host picks"): Sunshine's H.264 `default_count` (nvenc_base.cpp:272).
@@ -287,6 +401,105 @@ const VUI_COLOR_PRIMARIES_BT709: u32 = 1;
 const VUI_TRANSFER_CHARACTERISTICS_BT709: u32 = 1;
 const VUI_COLOR_MATRIX_BT709: u32 = 1;
 
+// HDR10: Rec. 2020 primaries, SMPTE ST 2084 (PQ) transfer, BT.2020
+// non-constant-luminance matrix — the set `nvenc_utils.cpp:91-96` builds for
+// `colorspace_e::bt2020`, which `video_colorspace.cpp:33-35` selects when the
+// client negotiated a dynamic range the display can actually show. These are
+// the H.264/HEVC VUI code points, so they are the numbers the decoder reads
+// (colour_primaries 9, transfer_characteristics 16, matrix_coefficients 9).
+const VUI_COLOR_PRIMARIES_BT2020: u32 = 9;
+const VUI_TRANSFER_CHARACTERISTICS_SMPTE2084: u32 = 16;
+const VUI_COLOR_MATRIX_BT2020_NCL: u32 = 9;
+
+// NV_ENC_CONFIG_HEVC offsets relative to encodeCodecConfig start. The two
+// codec configs are members of the same NV_ENC_CODEC_CONFIG union, so both
+// start at CFG_CODEC_CONFIG — but the layouts differ, which is why these
+// numbers cannot be reused from the H.264 block. Verified with the same
+// compiled C probe as the H.264 offsets, against nvEncodeAPI.h.
+const HEVC_WORD0: usize = 16; // bitfield word: repeatSPSPPS = bit 7, chromaFormatIDC = bits 9-10, reserved3 = bits 11-13 (must stay 0)
+const HEVC_IDR_PERIOD: usize = 20;
+const HEVC_MAX_REF_FRAMES: usize = 32; // maxNumRefFramesInDPB
+const HEVC_SLICE_MODE: usize = 52;
+const HEVC_SLICE_MODE_DATA: usize = 56;
+/// repeatSPSPPS in the HEVC bitfield word is bit 7 (H.264's is bit 12).
+const HEVC_REPEAT_SPS_PPS_BIT: u32 = 1 << 7;
+/// chromaFormatIDC is a 2-bit field at bits 9-10 of the HEVC bitfield word
+/// (H.264's is a whole u32 field at offset 192). 1 = 4:2:0; leaving the
+/// field zero is rejected by the driver.
+const HEVC_CHROMA_FORMAT_IDC_420: u32 = 1 << 9;
+/// Coding sample depth, the field that makes the difference between a Main10
+/// *label* and 10-bit samples. Bits 11-13 of [`HEVC_WORD0`] are `reserved3`
+/// in the 13.1 header ("Reserved and must be set to 0"), so the
+/// `pixelBitDepthMinus8` this file used to write there did nothing: measured
+/// on the RTX 5070 with an `R10G10B10A2_UNORM` input, the stream came back
+/// `Main 10` but `pix_fmt=yuv420p`. SDK 13 replaced that bit with two
+/// `NV_ENC_BIT_DEPTH` fields — Sunshine's `#if NVENC_SDK_VERSION >= 1300`
+/// branch sets exactly these two for a 10-bit buffer.
+const HEVC_OUTPUT_BIT_DEPTH: usize = 200;
+const HEVC_INPUT_BIT_DEPTH: usize = 204;
+/// `NV_ENC_BIT_DEPTH_10`: the enumerators are the literal bit counts
+/// (`NV_ENC_BIT_DEPTH_8` is 8, `_10` is 10), not ordinals.
+const NV_ENC_BIT_DEPTH_10: u32 = 10;
+
+/// `outputMaxCll` and `outputMasteringDisplay` in the same HEVC bitfield
+/// word (bits 23 and 24). HDR10's static metadata is *per picture* — the two
+/// pointers in `NV_ENC_PIC_PARAMS_HEVC` — and the driver ignores them (writing
+/// no SEI at all) unless the codec config asks for the output first.
+const HEVC_OUTPUT_MAX_CLL_BIT: u32 = 1 << 23;
+const HEVC_OUTPUT_MASTERING_DISPLAY_BIT: u32 = 1 << 24;
+
+/// `CONTENT_LIGHT_LEVEL` (nvEncodeAPI.h:1728-1732): MaxCLL and MaxFALL in
+/// cd/m², i.e. the SEI's own units.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+struct ContentLightLevel {
+    max_content_light_level: u16,
+    max_pic_average_light_level: u16,
+}
+
+/// `MASTERING_DISPLAY_INFO` (nvEncodeAPI.h:1715-1722), in the SEI's units:
+/// chromaticities in 0.00002 (value * 50000) and luminances in
+/// 0.0001 cd/m². The member order is **g, b, r**, white point — not RGB,
+/// which is why the display reader's RGB triples are permuted here.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+struct MasteringDisplayInfo {
+    g: (u16, u16),
+    b: (u16, u16),
+    r: (u16, u16),
+    white_point: (u16, u16),
+    max_luma: u32,
+    min_luma: u32,
+}
+
+/// The static metadata NVENC writes into the stream for a display, from the
+/// values [`crate::capture::display_hdr_metadata`] read out of
+/// `DXGI_OUTPUT_DESC1`. Content light levels stay 0 for the same reason
+/// Sunshine leaves them 0 (`display_base.cpp:820-821`): the interface does
+/// not report them.
+///
+/// The luminance units are the SEI's: `max_display_mastering_luminance` is in
+/// 0.0001 cd/m² steps, which is why the nits go in multiplied by 10,000 —
+/// verified by reading the SEI back out of a real dump with ffprobe.
+fn hdr_sei_from_display(
+    display: &crate::capture::DisplayHdr,
+) -> (ContentLightLevel, MasteringDisplayInfo) {
+    let [(r_x, r_y), (g_x, g_y), (b_x, b_y)] = display.primaries;
+    (
+        ContentLightLevel {
+            max_content_light_level: 0,
+            max_pic_average_light_level: 0,
+        },
+        MasteringDisplayInfo {
+            g: (g_x, g_y),
+            b: (b_x, b_y),
+            r: (r_x, r_y),
+            white_point: display.white_point,
+            max_luma: display.max_luminance as u32 * 10_000,
+            min_luma: display.min_luminance as u32,
+        },
+    )
+}
+
+
 // NV_ENC_REGISTER_RESOURCE offsets (verified).
 const REG_VERSION: usize = 0;
 const REG_RESOURCE_TYPE: usize = 4;
@@ -316,6 +529,15 @@ const PIC_OUTPUT_BITSTREAM: usize = 48;
 const PIC_COMPLETION_EVENT: usize = 56;
 const PIC_BUFFER_FMT: usize = 64;
 const PIC_PICTURE_STRUCT: usize = 68;
+/// `NV_ENC_PIC_PARAMS::codecPicParams`, the union whose first arm is
+/// `NV_ENC_PIC_PARAMS_HEVC`. The HDR static metadata rides in that arm as two
+/// pointers, which the driver only reads when the codec config asked for the
+/// SEI (see [`HEVC_OUTPUT_MAX_CLL_BIT`]).
+const PIC_CODEC_PIC_PARAMS: usize = 80;
+/// `NV_ENC_PIC_PARAMS_HEVC::pMaxCll` / `pMasteringDisplay`, relative to
+/// `codecPicParams` (verified with the C probe against the 13.1 header).
+const HEVC_PIC_MAX_CLL: usize = 120;
+const HEVC_PIC_MASTERING_DISPLAY: usize = 128;
 
 // NV_ENC_LOCK_BITSTREAM offsets (verified).
 const LOCK_VERSION: usize = 0;
@@ -342,6 +564,20 @@ const SESS_API_VERSION: usize = 24;
 
 #[derive(Clone, Copy)]
 pub struct EncoderConfigParams {
+    /// The codec this session encodes, from the client's ANNOUNCE (see
+    /// [`crate::video::VideoCodec`]). It selects the NVENC encode GUID,
+    /// the profile GUID and the codec-specific config block — everything
+    /// else (rate control, GOP, low latency) is identical for both.
+    pub codec: VideoCodec,
+    /// Whether this session streams HDR10. Selects the HEVC Main10 profile,
+    /// the Rec. 2020 / ST 2084 (PQ) VUI instead of Main + BT.709, and the
+    /// 10-bit input/output declaration that makes the coded samples 10-bit
+    /// rather than just the profile label. HDR is HEVC-only, so on an H.264
+    /// session this degrades to SDR in [`build_init_params`] rather than
+    /// declaring BT.2020 over an 8-bit High-profile stream. [`is_hdr_session`]
+    /// is the single predicate for all of it, and the capture pipeline asks
+    /// the same function to build the matching P010 converter.
+    pub hdr: bool,
     pub width: u32,
     pub height: u32,
     pub fps: u32,
@@ -420,6 +656,14 @@ pub struct NvencEncoder {
     /// one frame: invalidating a range inside a 1-frame DPB is no cheaper
     /// than a full IDR, so the capability alone is not enough.
     supports_ref_invalidation: bool,
+    /// NV_ENC_CAPS_SUPPORT_10BIT_ENCODE for this session's codec: 10-bit
+    /// samples need HEVC Main10, so HDR is gated on this.
+    supports_10bit_encode: bool,
+    /// HDR10 static metadata for this session's display (content light level
+    /// and mastering display), pointed at from every picture so the driver
+    /// writes the SEI. `None` for an SDR session or one with no display to
+    /// describe; the codec config's SEI request is cleared to match.
+    hdr_sei: Option<(ContentLightLevel, MasteringDisplayInfo)>,
     /// The DPB depth this session was configured with (numRefFrames); the
     /// invalidation range check compares against it (Sunshine's
     /// encoder_params.ref_frames_in_dpb).
@@ -458,14 +702,18 @@ const RECONFIG_BITFIELD: usize = 1808;
 /// resetEncoder only together with an IDR.
 const RECONFIG_RESET_AND_FORCE_IDR: u32 = 0b11;
 
-/// Sunshine's configure_h264_hevc_metadata for SDR BT.709
-/// (nvenc_base.cpp:307-321). NVENC converts our BGRA texture to YUV
-/// itself; without VUI colour metadata the decoder assumes the wrong
-/// range/matrix and the picture decodes uniformly too bright.
-/// `vui_offset` is the codec's VUI struct offset inside
+/// Sunshine's configure_h264_hevc_metadata (nvenc_base.cpp:307-321).
+/// NVENC converts our texture to YUV itself; without VUI colour metadata the
+/// decoder assumes the wrong range/matrix and the picture decodes uniformly
+/// too bright. `vui_offset` is the codec's VUI struct offset inside
 /// encodeCodecConfig (H264_VUI_PARAMETERS or HEVC_VUI_PARAMETERS) — the
 /// header typedefs both VUI structs to the same layout.
-fn configure_sdr_colour_metadata(config: &mut EncoderConfig, vui_offset: usize) {
+///
+/// `hdr` writes the HDR10 set (Rec. 2020 + PQ + BT.2020 NCL) instead of
+/// BT.709. Both keep limited (MPEG) range: the channel is 4:2:0 8- or 10-bit
+/// video, and full range is the decoder-compatibility risk Moonlight's own
+/// default avoids (`getPreferredColorRange` returns limited).
+fn configure_colour_metadata(config: &mut EncoderConfig, vui_offset: usize, hdr: bool) {
     let vui = CFG_CODEC_CONFIG + vui_offset;
     // limited (MPEG) range: videoFullRangeFlag = 0, i.e. Sunshine's
     // colorRange = NV_ENC_COLOR_RANGE_MPEG expressed through the H.264 /
@@ -475,12 +723,22 @@ fn configure_sdr_colour_metadata(config: &mut EncoderConfig, vui_offset: usize) 
     config.set_u32(vui + VUI_VIDEO_FORMAT, VUI_VIDEO_FORMAT_UNSPECIFIED);
     config.set_u32(vui + VUI_VIDEO_FULL_RANGE_FLAG, 0);
     config.set_u32(vui + VUI_COLOUR_DESCRIPTION_PRESENT, 1);
-    config.set_u32(vui + VUI_COLOR_PRIMARIES, VUI_COLOR_PRIMARIES_BT709);
-    config.set_u32(
-        vui + VUI_TRANSFER_CHARACTERISTICS,
-        VUI_TRANSFER_CHARACTERISTICS_BT709,
-    );
-    config.set_u32(vui + VUI_COLOR_MATRIX, VUI_COLOR_MATRIX_BT709);
+    let (primaries, transfer, matrix) = if hdr {
+        (
+            VUI_COLOR_PRIMARIES_BT2020,
+            VUI_TRANSFER_CHARACTERISTICS_SMPTE2084,
+            VUI_COLOR_MATRIX_BT2020_NCL,
+        )
+    } else {
+        (
+            VUI_COLOR_PRIMARIES_BT709,
+            VUI_TRANSFER_CHARACTERISTICS_BT709,
+            VUI_COLOR_MATRIX_BT709,
+        )
+    };
+    config.set_u32(vui + VUI_COLOR_PRIMARIES, primaries);
+    config.set_u32(vui + VUI_TRANSFER_CHARACTERISTICS, transfer);
+    config.set_u32(vui + VUI_COLOR_MATRIX, matrix);
     // 4:2:0 output, so the chroma-sample-location fields are present
     // (Sunshine passes 0 here only for yuv444 buffers)
     config.set_u32(vui + VUI_CHROMA_SAMPLE_LOCATION_FLAG, 1);
@@ -489,15 +747,18 @@ fn configure_sdr_colour_metadata(config: &mut EncoderConfig, vui_offset: usize) 
     config.set_u32(vui + VUI_BITSTREAM_RESTRICTION, 1);
 }
 
-/// Builds the low-latency H.264 NV_ENC_INITIALIZE_PARAMS (zeroed
-/// NV_ENC_CONFIG plus Sunshine's nvenc_base.cpp settings: CBR at the
-/// negotiated bitrate, no B-frames, infinite GOP with repeatSPSPPS,
-/// CABAC, sliceMode = 3). Shared by session creation and the adaptive
-/// reconfigure; struct offsets verified against nvEncodeAPI.h with the
-/// compiled C probe. Returns the embedded config too: the init params
-/// point INTO it, so the caller must keep it alive across the NVENC
-/// call. `custom_vbv_cap` is the probed SUPPORT_CUSTOM_VBV_BUF_SIZE: the
-/// VBV buffer may only be client-sized when the driver allows it.
+/// Builds the low-latency NV_ENC_INITIALIZE_PARAMS for the session's
+/// codec (zeroed NV_ENC_CONFIG plus Sunshine's nvenc_base.cpp settings:
+/// CBR at the negotiated bitrate, no B-frames, infinite GOP with
+/// repeatSPSPPS, CABAC for H.264, sliceMode = 3). Everything the two
+/// codecs share is written once; only the profile GUID, the codec config
+/// block and the encode GUID are codec-specific. Shared by session
+/// creation and the adaptive reconfigure; struct offsets verified against
+/// nvEncodeAPI.h with the compiled C probe. Returns the embedded config
+/// too: the init params point INTO it, so the caller must keep it alive
+/// across the NVENC call. `custom_vbv_cap` is the probed
+/// SUPPORT_CUSTOM_VBV_BUF_SIZE: the VBV buffer may only be client-sized
+/// when the driver allows it.
 fn build_init_params(
     api_version: u32,
     params: &EncoderConfigParams,
@@ -509,7 +770,10 @@ fn build_init_params(
 
     let mut config = EncoderConfig::zeroed();
     config.set_u32(CFG_VERSION, ver_config);
-    config.set_guid(CFG_PROFILE_GUID, GUID_PROFILE_HIGH);
+    // HDR is HEVC-only (Main10); a flag on an H.264 session degrades to SDR
+    // rather than declaring Rec. 2020 / PQ over an 8-bit High-profile stream.
+    let hdr = is_hdr_session(params);
+    config.set_guid(CFG_PROFILE_GUID, profile_guid(params.codec, hdr));
     config.set_u32(CFG_FRAME_FIELD_MODE, 1);
     config.set_u32(CFG_GOP_LENGTH, INFINITE_GOP);
     config.set_i32(CFG_FRAME_INTERVAL_P, 1); // no B-frames
@@ -529,29 +793,71 @@ fn build_init_params(
     }
     config.or_u32(CFG_RC_PARAMS + RC_BITFIELD, ZERO_REORDER_DELAY_BIT);
     config.set_u32(CFG_RC_PARAMS + RC_MULTI_PASS, MULTI_PASS_DISABLED);
-    config.or_u32(CFG_CODEC_CONFIG + H264_WORD0, REPEAT_SPS_PPS_BIT);
-    config.set_u32(CFG_CODEC_CONFIG + H264_IDR_PERIOD, INFINITE_GOP);
-    config.set_u32(CFG_CODEC_CONFIG + H264_ENTROPY_CODING, ENTROPY_CABAC);
-    config.set_u32(
-        CFG_CODEC_CONFIG + H264_MAX_REF_FRAMES,
-        params.max_ref_frames.clamp(1, REF_FRAMES_MAX),
-    );
-    config.set_u32(CFG_CODEC_CONFIG + H264_SLICE_MODE, 3);
-    config.set_u32(
-        CFG_CODEC_CONFIG + H264_SLICE_MODE_DATA,
-        params.slices_per_frame.max(1),
-    );
-    // a zeroed chromaFormatIDC is rejected by the driver; 4:2:0 for
-    // standard clients (NVENC converts the BGRA input)
-    config.set_u32(CFG_CODEC_CONFIG + H264_CHROMA_FORMAT, 1);
-    // BT.709 primaries/transfer/matrix, limited range, so the decoder
-    // applies the same conversion NVENC used (fixes the uniformly
-    // too-bright picture; Sunshine configure_h264_hevc_metadata)
-    configure_sdr_colour_metadata(&mut config, H264_VUI_PARAMETERS);
+    let ref_frames = params.max_ref_frames.clamp(1, REF_FRAMES_MAX);
+    match params.codec {
+        VideoCodec::H264 => {
+            config.or_u32(CFG_CODEC_CONFIG + H264_WORD0, REPEAT_SPS_PPS_BIT);
+            config.set_u32(CFG_CODEC_CONFIG + H264_IDR_PERIOD, INFINITE_GOP);
+            config.set_u32(CFG_CODEC_CONFIG + H264_ENTROPY_CODING, ENTROPY_CABAC);
+            config.set_u32(CFG_CODEC_CONFIG + H264_MAX_REF_FRAMES, ref_frames);
+            config.set_u32(CFG_CODEC_CONFIG + H264_SLICE_MODE, 3);
+            config.set_u32(
+                CFG_CODEC_CONFIG + H264_SLICE_MODE_DATA,
+                params.slices_per_frame.max(1),
+            );
+            // a zeroed chromaFormatIDC is rejected by the driver; 4:2:0 for
+            // standard clients (NVENC converts the BGRA input)
+            config.set_u32(CFG_CODEC_CONFIG + H264_CHROMA_FORMAT, 1);
+            // BT.709 primaries/transfer/matrix, limited range, so the
+            // decoder applies the same conversion NVENC used (fixes the
+            // uniformly too-bright picture; Sunshine
+            // configure_h264_hevc_metadata). Never HDR: H.264 has no 10-bit
+            // profile here, so `hdr` is already false on this path.
+            configure_colour_metadata(&mut config, H264_VUI_PARAMETERS, hdr);
+        }
+        VideoCodec::Hevc => {
+            // Sunshine's configure_hevc (nvenc_base.cpp:385-397) sets
+            // exactly the same three codec options as configure_h264:
+            // repeatSPSPPS + infinite idrPeriod (so every parameter set the
+            // client needs rides with an IDR and no IDR ever comes
+            // spontaneously), sliceMode 3 with the client's slice count.
+            config.or_u32(
+                CFG_CODEC_CONFIG + HEVC_WORD0,
+                HEVC_REPEAT_SPS_PPS_BIT | HEVC_CHROMA_FORMAT_IDC_420,
+            );
+            if hdr {
+                // 10-bit *coded* samples, not just a Main10 label: the input
+                // surface is 10-bit P010 and the coded depth is declared to
+                // match, which is what puts bit_depth_luma_minus8 = 2 in the
+                // SPS. Leaving these at 0 (invalid) is what the first ARGB10
+                // attempt did while still reporting Main 10.
+                config.set_u32(CFG_CODEC_CONFIG + HEVC_OUTPUT_BIT_DEPTH, NV_ENC_BIT_DEPTH_10);
+                config.set_u32(CFG_CODEC_CONFIG + HEVC_INPUT_BIT_DEPTH, NV_ENC_BIT_DEPTH_10);
+                // Ask for the HDR10 static metadata SEIs. The values are
+                // per picture (the pointers in `encode_picture`), so this only
+                // opens the door; `NvencEncoder::new` closes it again when the
+                // session has no display metadata to send.
+                config.or_u32(
+                    CFG_CODEC_CONFIG + HEVC_WORD0,
+                    HEVC_OUTPUT_MAX_CLL_BIT | HEVC_OUTPUT_MASTERING_DISPLAY_BIT,
+                );
+            }
+            config.set_u32(CFG_CODEC_CONFIG + HEVC_IDR_PERIOD, INFINITE_GOP);
+            config.set_u32(CFG_CODEC_CONFIG + HEVC_MAX_REF_FRAMES, ref_frames);
+            config.set_u32(CFG_CODEC_CONFIG + HEVC_SLICE_MODE, 3);
+            config.set_u32(
+                CFG_CODEC_CONFIG + HEVC_SLICE_MODE_DATA,
+                params.slices_per_frame.max(1),
+            );
+            // Rec. 2020 / PQ when this is an HDR session, BT.709 otherwise;
+            // both at the C-probe-verified hevcVUIParameters offset
+            configure_colour_metadata(&mut config, HEVC_VUI_PARAMETERS, hdr);
+        }
+    }
 
     let mut init = InitializeParams::zeroed();
     init.set_u32(INIT_VERSION, ver_initialize);
-    init.set_guid(INIT_ENCODE_GUID, GUID_H264);
+    init.set_guid(INIT_ENCODE_GUID, encode_guid(params.codec));
     init.set_guid(INIT_PRESET_GUID, GUID_PRESET_P4);
     init.set_u32(INIT_ENCODE_WIDTH, params.width);
     init.set_u32(INIT_ENCODE_HEIGHT, params.height);
@@ -567,8 +873,33 @@ fn build_init_params(
 }
 
 impl NvencEncoder {
+    /// The NVENC input buffer format this session's textures carry — 10-bit
+    /// P010 (`NV_ENC_BUFFER_FORMAT_YUV420_10BIT`, a `DXGI_FORMAT_P010` texture)
+    /// for an HDR session, 8-bit BGRA otherwise. The scaler picks the matching
+    /// D3D texture format, and both read it from the same session flag so the
+    /// registered resource and the submitted picture cannot disagree. The
+    /// session's declared input depth is part of the same contract: a 10-bit
+    /// buffer format only registers against a session configured for 10-bit
+    /// input ([`HEVC_INPUT_BIT_DEPTH`]).
+    fn buffer_format(&self) -> u32 {
+        if let Some(override_format) = crate::config::buffer_format_override() {
+            match override_format {
+                "argb" | "bgra" => return BUFFER_FORMAT_ARGB,
+                "nv12" => return BUFFER_FORMAT_NV12,
+                "p010" => return BUFFER_FORMAT_YUV420_10BIT,
+                other => eprintln!("nvenc: unknown {}= {other:?}", crate::config::BUFFER_FORMAT_ENV),
+            }
+        }
+        if is_hdr_session(&self.config) {
+            BUFFER_FORMAT_YUV420_10BIT
+        } else {
+            BUFFER_FORMAT_ARGB
+        }
+    }
+
     /// Opens an encode session on a D3D11 device pointer
-    /// (`ID3D11Device` as `*mut c_void`) and configures H.264.
+    /// (`ID3D11Device` as `*mut c_void`) and configures the codec
+    /// `params.codec` selects.
     pub fn new(device: *mut c_void, params: &EncoderConfigParams) -> Result<Self, String> {
         if device.is_null() {
             return Err("no D3D11 device".to_string());
@@ -646,6 +977,8 @@ impl NvencEncoder {
             last_encoded_frame_index: -1,
             supports_custom_vbv: false,
             supports_ref_invalidation: false,
+            supports_10bit_encode: false,
+            hdr_sei: None,
             ref_frames_in_dpb: params.max_ref_frames.clamp(1, REF_FRAMES_MAX),
             rfi_pending: false,
             last_rfi_range: (0, -1),
@@ -653,22 +986,53 @@ impl NvencEncoder {
 
         // Probe the two session capabilities that shape config and the
         // control-channel handling (Sunshine get_encoder_cap,
-        // nvenc_base.cpp:195-203).
+        // nvenc_base.cpp:195-203). The probe is made with THIS session's
+        // codec GUID: NVENC advertises per-codec caps, so the H.264
+        // answers are not carried over to an HEVC session.
         this.supports_custom_vbv =
-            this.encoder_cap(GUID_H264, CAPS_SUPPORT_CUSTOM_VBV_BUF_SIZE) != 0;
+            this.encoder_cap(encode_guid(params.codec), CAPS_SUPPORT_CUSTOM_VBV_BUF_SIZE) != 0;
         this.supports_ref_invalidation = this
-            .encoder_cap(GUID_H264, CAPS_SUPPORT_REF_PIC_INVALIDATION)
+            .encoder_cap(encode_guid(params.codec), CAPS_SUPPORT_REF_PIC_INVALIDATION)
             != 0
             && this.ref_frames_in_dpb > 1;
+        this.supports_10bit_encode =
+            this.encoder_cap(encode_guid(params.codec), CAPS_SUPPORT_10BIT_ENCODE) != 0;
         eprintln!(
-            "nvenc: caps custom-vbv={} ref-pic-invalidation={} (ref frames in DPB={})",
-            this.supports_custom_vbv, this.supports_ref_invalidation, this.ref_frames_in_dpb
+            "nvenc: caps custom-vbv={} ref-pic-invalidation={} 10bit-encode={} (codec {}, ref \
+             frames in DPB={})",
+            this.supports_custom_vbv,
+            this.supports_ref_invalidation,
+            this.supports_10bit_encode,
+            params.codec.name(),
+            this.ref_frames_in_dpb
         );
 
-        // Hand-build the low-latency H.264 init params (shared with the
-        // adaptive reconfigure path).
+        // HDR10's static metadata for this session's display: the mastering
+        // display and content light level the driver writes into the stream.
+        // Read here, once per session, from the same DXGI description the
+        // client was told about in the HDR mode message.
+        this.hdr_sei = if is_hdr_session(params) {
+            crate::capture::display_hdr_metadata()
+                .map(|display| hdr_sei_from_display(&display))
+        } else {
+            None
+        };
+
+        // Hand-build the low-latency init params for this session's codec
+        // (shared with the adaptive reconfigure path).
         let (mut init, mut init_config) =
             build_init_params(api_version, params, this.supports_custom_vbv);
+        // `build_init_params` asks the driver for the HDR10 SEIs on any HDR
+        // session; with no display to describe there are no values to write,
+        // so the request has to come back off rather than have the driver
+        // emit an SEI from a null pointer.
+        if this.hdr_sei.is_none() {
+            let word = init_config.u32_at(CFG_CODEC_CONFIG + HEVC_WORD0);
+            init_config.set_u32(
+                CFG_CODEC_CONFIG + HEVC_WORD0,
+                word & !(HEVC_OUTPUT_MAX_CLL_BIT | HEVC_OUTPUT_MASTERING_DISPLAY_BIT),
+            );
+        }
         // build_init_params stores a pointer to its own stack-local config;
         // re-point encodeConfig at the returned config so it stays valid
         // for the whole initialize call
@@ -816,6 +1180,14 @@ impl NvencEncoder {
         self.supports_ref_invalidation
     }
 
+    /// Whether this session's codec can encode 10-bit samples
+    /// (NV_ENC_CAPS_SUPPORT_10BIT_ENCODE). The negotiation gates the
+    /// `SCM_HEVC_MAIN10` advertisement on this, so an HDR-incapable driver is
+    /// never offered an HDR stream.
+    pub fn supports_10bit_encode(&self) -> bool {
+        self.supports_10bit_encode
+    }
+
     /// Reference-frame invalidation for a client 0x0301 request,
     /// mirroring Sunshine nvenc_base.cpp:795-830. Returns false when the
     /// caller must fall back to a full IDR (unsupported, degenerate
@@ -878,7 +1250,7 @@ impl NvencEncoder {
         register.set_u32(REG_HEIGHT, self.height);
         register.set_u32(REG_PITCH, 0);
         register.set_ptr(REG_RESOURCE, texture);
-        register.set_u32(REG_BUFFER_FORMAT, BUFFER_FORMAT_ARGB);
+        register.set_u32(REG_BUFFER_FORMAT, self.buffer_format());
         let register_fn: FnHandleParam = unsafe {
             std::mem::transmute(self.function_list.ptr_at(OFF_REGISTER_RESOURCE))
         };
@@ -1048,8 +1420,23 @@ impl NvencEncoder {
         pic.set_ptr(PIC_INPUT_BUFFER, mapped);
         pic.set_ptr(PIC_OUTPUT_BITSTREAM, bitstream);
         pic.set_ptr(PIC_COMPLETION_EVENT, event.0 as *mut c_void);
-        pic.set_u32(PIC_BUFFER_FMT, BUFFER_FORMAT_ARGB);
+        pic.set_u32(PIC_BUFFER_FMT, self.buffer_format());
         pic.set_u32(PIC_PICTURE_STRUCT, PIC_STRUCT_FRAME);
+        // HDR10 static metadata: with the SEI enabled in the codec config, the
+        // driver writes the mastering-display and content-light-level messages
+        // for this picture from these two structs. They live in the encoder
+        // (stable for the duration of the call) and are only pointed at, never
+        // copied, so the encoder must outlive the driver's read — it does.
+        if let Some((cll, mdi)) = self.hdr_sei.as_ref() {
+            pic.set_ptr(
+                PIC_CODEC_PIC_PARAMS + HEVC_PIC_MAX_CLL,
+                cll as *const ContentLightLevel as *mut c_void,
+            );
+            pic.set_ptr(
+                PIC_CODEC_PIC_PARAMS + HEVC_PIC_MASTERING_DISPLAY,
+                mdi as *const MasteringDisplayInfo as *mut c_void,
+            );
+        }
         let encode: FnHandleParam =
             unsafe { std::mem::transmute(self.function_list.ptr_at(OFF_ENCODE_PICTURE)) };
         let status = unsafe { encode(self.encoder, pic.as_mut_ptr()) };
@@ -1109,7 +1496,7 @@ impl NvencEncoder {
             );
             pic.set_ptr(PIC_INPUT_BUFFER, mapped);
             pic.set_ptr(PIC_OUTPUT_BITSTREAM, self.slots[0].bitstream);
-            pic.set_u32(PIC_BUFFER_FMT, BUFFER_FORMAT_ARGB);
+            pic.set_u32(PIC_BUFFER_FMT, self.buffer_format());
             pic.set_u32(PIC_PICTURE_STRUCT, PIC_STRUCT_FRAME);
             let encode: FnHandleParam = unsafe {
                 std::mem::transmute(self.function_list.ptr_at(OFF_ENCODE_PICTURE))
@@ -1442,6 +1829,8 @@ mod tests {
     #[test]
     fn init_params_carry_bitrate_at_verified_offsets() {
         let params = EncoderConfigParams {
+            codec: VideoCodec::H264,
+            hdr: false,
             width: 1920,
             height: 1080,
             fps: 60,
@@ -1481,6 +1870,8 @@ mod tests {
         let offset = CFG_CODEC_CONFIG + H264_MAX_REF_FRAMES;
         let depth = |count: u32| {
             let params = EncoderConfigParams {
+                codec: VideoCodec::H264,
+                hdr: false,
                 width: 1280,
                 height: 720,
                 fps: 60,
@@ -1497,17 +1888,155 @@ mod tests {
         assert_eq!(depth(99), REF_FRAMES_MAX);
     }
 
-    /// The encoder feeds NVENC a BGRA texture, so the driver does the
-    /// RGB->YUV conversion; the VUI must describe it (Sunshine
-    /// configure_h264_hevc_metadata, nvenc_base.cpp:307-321) or the
-    /// client decodes with the wrong range/matrix and the picture is
-    /// uniformly too bright. Asserts every VUI field byte for the H.264
-    /// config built here, the same bytes via the verified HEVC VUI
-    /// offset (the header typedefs both VUI structs to one layout), and
-    /// that nothing outside the VUI region moved.
+    /// The HEVC session config, at the offsets the compiled C probe
+    /// verified against `NV_ENC_CONFIG_HEVC` (target/hevc_offsets_probe.c):
+    /// the codec configs share the NV_ENC_CODEC_CONFIG union, so the HEVC
+    /// bitfield word sits at 16 — not at H.264's offset 0 — with
+    /// repeatSPSPPS at bit 7 (H.264's is bit 12) and chromaFormatIDC at
+    /// bits 9-10 (H.264's is a whole u32 at 192). Everything outside the
+    /// codec block must be identical to the H.264 build: the codec choice
+    /// changes GUIDs and the codec config, nothing about rate control, GOP
+    /// or low-latency tuning.
     #[test]
-    fn init_params_carry_bt709_vui_metadata() {
-        let params = EncoderConfigParams {
+    fn init_params_configure_hevc_main_at_verified_offsets() {
+        let params = |codec, max_ref_frames| EncoderConfigParams {
+            codec,
+            hdr: false,
+            width: 1920,
+            height: 1080,
+            fps: 60,
+            bitrate_kbps: 30_000,
+            slices_per_frame: 2,
+            max_ref_frames,
+        };
+        let (h264_init, h264_config) =
+            build_init_params(NVENCAPI_VERSION, &params(VideoCodec::H264, 4), true);
+        let (hevc_init, hevc_config) =
+            build_init_params(NVENCAPI_VERSION, &params(VideoCodec::Hevc, 4), true);
+        // the encode GUID and the profile GUID are the HEVC ones
+        assert_eq!(&hevc_init.0[INIT_ENCODE_GUID..INIT_ENCODE_GUID + 16], GUID_HEVC.to_bytes());
+        assert_eq!(
+            &hevc_config.0[CFG_PROFILE_GUID..CFG_PROFILE_GUID + 16],
+            GUID_PROFILE_HEVC_MAIN.to_bytes()
+        );
+        assert_eq!(
+            &h264_config.0[CFG_PROFILE_GUID..CFG_PROFILE_GUID + 16],
+            GUID_PROFILE_HIGH.to_bytes()
+        );
+
+        // repeatSPSPPS (bit 7) + chromaFormatIDC = 1 (bits 9-10), in the
+        // HEVC word at offset 16 — and NOT the H.264 word at offset 0,
+        // which stays the zeroed `level` field
+        let hevc_word0 = u32::from_le_bytes(
+            hevc_config.0[CFG_CODEC_CONFIG + HEVC_WORD0..CFG_CODEC_CONFIG + HEVC_WORD0 + 4]
+                .try_into()
+                .unwrap(),
+        );
+        assert_eq!(hevc_word0, HEVC_REPEAT_SPS_PPS_BIT | HEVC_CHROMA_FORMAT_IDC_420);
+        assert_eq!(hevc_word0 & REPEAT_SPS_PPS_BIT, 0, "not H.264's bit 12");
+        let level_word = u32::from_le_bytes(
+            hevc_config.0[CFG_CODEC_CONFIG..CFG_CODEC_CONFIG + 4].try_into().unwrap(),
+        );
+        assert_eq!(
+            level_word, 0,
+            "the H.264 bitfield word (level) must stay untouched"
+        );
+
+        // infinite IDR period, the negotiated DPB depth and the client's
+        // slice count land at the probe-verified HEVC offsets
+        let u32_at = |config: &EncoderConfig, offset: usize| {
+            u32::from_le_bytes(config.0[offset..offset + 4].try_into().unwrap())
+        };
+        assert_eq!(
+            u32_at(&hevc_config, CFG_CODEC_CONFIG + HEVC_IDR_PERIOD),
+            INFINITE_GOP
+        );
+        assert_eq!(
+            u32_at(&hevc_config, CFG_CODEC_CONFIG + HEVC_MAX_REF_FRAMES),
+            4
+        );
+        assert_eq!(u32_at(&hevc_config, CFG_CODEC_CONFIG + HEVC_SLICE_MODE), 3);
+        assert_eq!(
+            u32_at(&hevc_config, CFG_CODEC_CONFIG + HEVC_SLICE_MODE_DATA),
+            2
+        );
+
+        // everything the codecs share is byte-identical
+        for offset in [
+            CFG_GOP_LENGTH,
+            CFG_FRAME_INTERVAL_P,
+            CFG_RC_PARAMS + RC_RATE_CONTROL_MODE,
+            CFG_RC_PARAMS + RC_AVERAGE_BITRATE,
+            CFG_RC_PARAMS + RC_MAX_BITRATE,
+            CFG_RC_PARAMS + RC_VBV_BUFFER_SIZE,
+            CFG_RC_PARAMS + RC_BITFIELD,
+            CFG_RC_PARAMS + RC_MULTI_PASS,
+        ] {
+            assert_eq!(
+                hevc_config.0[offset..offset + 4],
+                h264_config.0[offset..offset + 4],
+                "shared config at offset {offset} must not depend on the codec"
+            );
+        }
+        for offset in [INIT_TUNING_INFO, INIT_FLAGS, INIT_FRAME_RATE_NUM] {
+            assert_eq!(
+                hevc_init.0[offset..offset + 4],
+                h264_init.0[offset..offset + 4],
+                "shared init param at offset {offset} must not depend on the codec"
+            );
+        }
+
+        // the HEVC encode GUID is what the caps probe is asked about, so
+        // the config builder and the probe cannot disagree about the codec
+        assert_eq!(encode_guid(VideoCodec::Hevc).to_bytes(), GUID_HEVC.to_bytes());
+        assert_eq!(encode_guid(VideoCodec::H264).to_bytes(), GUID_H264.to_bytes());
+        assert_ne!(
+            encode_guid(VideoCodec::H264).to_bytes(),
+            encode_guid(VideoCodec::Hevc).to_bytes()
+        );
+    }
+
+    /// The static metadata the driver writes has to be in the SEI's units and
+    /// member order: chromaticities ×50000, luminances in 0.0001 cd/m², and
+    /// the mastering-display struct ordered g, b, r (not RGB).
+    #[test]
+    fn hdr_sei_units_follow_the_display() {
+        let display = crate::capture::DisplayHdr {
+            primaries: [(35400, 14600), (8500, 39850), (6550, 2300)],
+            white_point: (15635, 16450),
+            max_luminance: 302,
+            min_luminance: 979,
+            max_full_frame_luminance: 302,
+            hdr: true,
+        };
+        let (cll, mdi) = hdr_sei_from_display(&display);
+        assert_eq!(
+            cll,
+            ContentLightLevel {
+                max_content_light_level: 0,
+                max_pic_average_light_level: 0,
+            }
+        );
+        assert_eq!(mdi.r, (35400, 14600), "R keeps its own pair");
+        assert_eq!(mdi.g, (8500, 39850), "G keeps its own pair");
+        assert_eq!(mdi.b, (6550, 2300), "B keeps its own pair");
+        assert_eq!(mdi.white_point, (15635, 16450));
+        assert_eq!(mdi.max_luma, 3_020_000, "302 nits in 0.0001 cd/m² steps");
+        assert_eq!(mdi.min_luma, 979, "already 1/10000 nit");
+    }
+
+    /// An HDR session must build a real HDR10 elementary stream: the HEVC
+    /// Main10 profile (HEVC has no separate HDR profile, so Main10 plus the
+    /// Rec. 2020 / ST 2084 VUI *is* HDR10) and a VUI that says so, or the
+    /// decoder renders PQ content as if it were BT.709 gamma. Also asserts the
+    /// flag degrades to SDR on the H.264 path, which has no 10-bit profile
+    /// here: declaring BT.2020 over an 8-bit High-profile stream would be a lie
+    /// in the SPS.
+    #[test]
+    fn init_params_carry_main10_and_pq_vui_for_hdr() {
+        let params = |codec, hdr| EncoderConfigParams {
+            codec,
+            hdr,
             width: 1920,
             height: 1080,
             fps: 60,
@@ -1515,7 +2044,134 @@ mod tests {
             slices_per_frame: 4,
             max_ref_frames: REF_FRAMES_DEFAULT,
         };
-        let (_, keepalive) = build_init_params(NVENCAPI_VERSION, &params, false);
+        let profile = |config: &EncoderConfig| -> [u8; 16] {
+            config.0[CFG_PROFILE_GUID..CFG_PROFILE_GUID + 16]
+                .try_into()
+                .expect("profile GUID is 16 bytes")
+        };
+        let hevc_vui = |config: &EncoderConfig, field: usize| -> u32 {
+            config.u32_at(CFG_CODEC_CONFIG + HEVC_VUI_PARAMETERS + field)
+        };
+
+        // HDR + HEVC: Main10 with Rec. 2020 primaries, ST 2084 (PQ) transfer
+        // and the BT.2020 non-constant-luminance matrix.
+        let (init, hdr_config) =
+            build_init_params(NVENCAPI_VERSION, &params(VideoCodec::Hevc, true), false);
+        assert_eq!(&init.0[INIT_ENCODE_GUID..INIT_ENCODE_GUID + 16], GUID_HEVC.to_bytes());
+        assert_eq!(profile(&hdr_config), GUID_PROFILE_HEVC_MAIN10.to_bytes());
+        assert_eq!(
+            hevc_vui(&hdr_config, VUI_COLOR_PRIMARIES),
+            VUI_COLOR_PRIMARIES_BT2020
+        );
+        assert_eq!(
+            hevc_vui(&hdr_config, VUI_TRANSFER_CHARACTERISTICS),
+            VUI_TRANSFER_CHARACTERISTICS_SMPTE2084
+        );
+        assert_eq!(
+            hevc_vui(&hdr_config, VUI_COLOR_MATRIX),
+            VUI_COLOR_MATRIX_BT2020_NCL
+        );
+        // still limited range, and still a signalled colour description:
+        // full range is the decoder-compatibility risk Moonlight's own
+        // default avoids, and HDR10 video is conventionally limited
+        assert_eq!(hevc_vui(&hdr_config, VUI_VIDEO_FULL_RANGE_FLAG), 0);
+        assert_eq!(hevc_vui(&hdr_config, VUI_VIDEO_SIGNAL_TYPE_PRESENT), 1);
+        assert_eq!(hevc_vui(&hdr_config, VUI_COLOUR_DESCRIPTION_PRESENT), 1);
+
+        // the same session without HDR keeps Main + BT.709, so the two
+        // cannot be confused by a stale flag
+        let (_, sdr_config) =
+            build_init_params(NVENCAPI_VERSION, &params(VideoCodec::Hevc, false), false);
+        assert_eq!(profile(&sdr_config), GUID_PROFILE_HEVC_MAIN.to_bytes());
+        assert_eq!(
+            hevc_vui(&sdr_config, VUI_TRANSFER_CHARACTERISTICS),
+            VUI_TRANSFER_CHARACTERISTICS_BT709
+        );
+
+        // The coded sample depth, not just the profile label: inputBitDepth
+        // and outputBitDepth carry NV_ENC_BIT_DEPTH_10 for HDR and stay 0
+        // (invalid/8-bit default) otherwise. These are what the SPS reads its
+        // bit_depth_luma_minus8 from; the reserved bits next to
+        // chromaFormatIDC must stay clear, since writing the old
+        // pixelBitDepthMinus8 pattern there is what produced 8-bit samples
+        // under a Main10 profile.
+        let hdr_word0 = hdr_config.u32_at(CFG_CODEC_CONFIG + HEVC_WORD0);
+        assert_eq!(
+            hdr_config.u32_at(CFG_CODEC_CONFIG + HEVC_OUTPUT_BIT_DEPTH),
+            NV_ENC_BIT_DEPTH_10
+        );
+        assert_eq!(
+            hdr_config.u32_at(CFG_CODEC_CONFIG + HEVC_INPUT_BIT_DEPTH),
+            NV_ENC_BIT_DEPTH_10
+        );
+        assert_eq!(
+            hdr_word0 & HEVC_CHROMA_FORMAT_IDC_420,
+            HEVC_CHROMA_FORMAT_IDC_420
+        );
+        assert_eq!(hdr_word0 & (0b111 << 11), 0, "reserved3 must stay zero");
+        // The HDR10 static metadata SEIs are requested on an HDR session and
+        // never on an SDR one (the per-picture pointers are filled in by the
+        // encoder; asking for an SEI with no values would be worse than none).
+        assert_eq!(
+            hdr_word0 & (HEVC_OUTPUT_MAX_CLL_BIT | HEVC_OUTPUT_MASTERING_DISPLAY_BIT),
+            HEVC_OUTPUT_MAX_CLL_BIT | HEVC_OUTPUT_MASTERING_DISPLAY_BIT
+        );
+        assert_eq!(
+            sdr_config.u32_at(CFG_CODEC_CONFIG + HEVC_WORD0)
+                & (HEVC_OUTPUT_MAX_CLL_BIT | HEVC_OUTPUT_MASTERING_DISPLAY_BIT),
+            0
+        );
+        assert_eq!(
+            sdr_config.u32_at(CFG_CODEC_CONFIG + HEVC_OUTPUT_BIT_DEPTH),
+            0
+        );
+        assert_eq!(
+            sdr_config.u32_at(CFG_CODEC_CONFIG + HEVC_INPUT_BIT_DEPTH),
+            0
+        );
+
+        // HDR requested on an H.264 session degrades to SDR end to end
+        let (h264_init, h264_config) =
+            build_init_params(NVENCAPI_VERSION, &params(VideoCodec::H264, true), false);
+        assert_eq!(
+            &h264_init.0[INIT_ENCODE_GUID..INIT_ENCODE_GUID + 16],
+            GUID_H264.to_bytes()
+        );
+        assert_eq!(profile(&h264_config), GUID_PROFILE_HIGH.to_bytes());
+        let vui = CFG_CODEC_CONFIG + H264_VUI_PARAMETERS;
+        assert_eq!(
+            h264_config.u32_at(vui + VUI_COLOR_PRIMARIES),
+            VUI_COLOR_PRIMARIES_BT709
+        );
+        assert_eq!(
+            h264_config.u32_at(vui + VUI_TRANSFER_CHARACTERISTICS),
+            VUI_TRANSFER_CHARACTERISTICS_BT709
+        );
+    }
+
+    /// The encoder feeds NVENC a BGRA texture, so the driver does the
+    /// RGB->YUV conversion; the VUI must describe it (Sunshine
+    /// configure_h264_hevc_metadata, nvenc_base.cpp:307-321) or the
+    /// client decodes with the wrong range/matrix and the picture is
+    /// uniformly too bright. Asserts every VUI field byte for the H.264
+    /// config built here and the same bytes at the C-probe-verified HEVC
+    /// VUI offset in the HEVC config (the header typedefs both VUI
+    /// structs to one layout), and that nothing outside the VUI region
+    /// moved.
+    #[test]
+    fn init_params_carry_bt709_vui_metadata() {
+        let params = |codec| EncoderConfigParams {
+            codec,
+            hdr: false,
+            width: 1920,
+            height: 1080,
+            fps: 60,
+            bitrate_kbps: 42_000,
+            slices_per_frame: 4,
+            max_ref_frames: REF_FRAMES_DEFAULT,
+        };
+        let (_, h264_config) = build_init_params(NVENCAPI_VERSION, &params(VideoCodec::H264), false);
+        let (_, hevc_config) = build_init_params(NVENCAPI_VERSION, &params(VideoCodec::Hevc), false);
 
         // expected VUI bytes, keyed by offset relative to the VUI struct
         let expected: &[(usize, u32)] = &[
@@ -1554,12 +2210,10 @@ mod tests {
                 .all(|byte| *byte == 0));
         };
 
-        assert_vui(&keepalive, H264_VUI_PARAMETERS);
+        assert_vui(&h264_config, H264_VUI_PARAMETERS);
 
-        // HEVC: same routine at the C-probe-verified hevcVUIParameters
-        // offset writes the same bytes (used by the future HEVC path)
-        let mut hevc_config = EncoderConfig::zeroed();
-        configure_sdr_colour_metadata(&mut hevc_config, HEVC_VUI_PARAMETERS);
+        // HEVC: the session config writes the same bytes at the
+        // C-probe-verified hevcVUIParameters offset
         assert_vui(&hevc_config, HEVC_VUI_PARAMETERS);
 
         // nothing else in the H.264 config moved: the VUI struct ends at
@@ -1567,12 +2221,12 @@ mod tests {
         // the tail — assert that gap stays zero and the known fields are
         // still where the other layout tests pin them
         let tail = CFG_CODEC_CONFIG + H264_VUI_PARAMETERS + 112;
-        assert!(keepalive.0[tail..CFG_CODEC_CONFIG + H264_CHROMA_FORMAT]
+        assert!(h264_config.0[tail..CFG_CODEC_CONFIG + H264_CHROMA_FORMAT]
             .iter()
             .all(|byte| *byte == 0));
-        assert_eq!(keepalive.u32_at(CFG_CODEC_CONFIG + H264_CHROMA_FORMAT), 1);
+        assert_eq!(h264_config.u32_at(CFG_CODEC_CONFIG + H264_CHROMA_FORMAT), 1);
         assert_eq!(
-            keepalive.u32_at(CFG_VERSION),
+            h264_config.u32_at(CFG_VERSION),
             struct_version(NVENCAPI_VERSION, 9) | (1 << 31)
         );
     }
@@ -1650,6 +2304,8 @@ mod tests {
             };
 
             let config = EncoderConfigParams {
+                codec: VideoCodec::H264,
+                hdr: false,
                 width: WIDTH,
                 height: HEIGHT,
                 fps: 60,

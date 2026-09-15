@@ -6,7 +6,7 @@ use tokio::net::{TcpListener, TcpStream};
 use tokio::sync::mpsc;
 use tokio_rustls::{rustls, TlsConnector};
 
-use hydra_stream::capture::recovery_capability;
+use hydra_stream::capture::{hevc_offered, recovery_capability};
 use hydra_stream::certs;
 use hydra_stream::crypto;
 use hydra_stream::http;
@@ -366,8 +366,11 @@ async fn plaintext_rtsp_handshake_matches_moonlight_sequence() {
     assert_eq!(event["event"], "session-state");
     assert_eq!(event["state"], "waiting-for-client");
 
-    // DESCRIBE must carry an SDP payload (Moonlight fails without one) and
-    // must not advertise HEVC/AV1 so the client settles on H.264
+    // DESCRIBE must carry an SDP payload (Moonlight fails without one), and
+    // the codec markers it advertises must track the probed encoder: no AV1
+    // (this host has none) and the HEVC VPS marker exactly when the probe
+    // opened an HEVC session — that marker is the only signal the client
+    // uses to decide whether to offer HEVC at all
     let response = rtsp_roundtrip(
         rtsp_port,
         &rtsp_request(
@@ -389,14 +392,24 @@ async fn plaintext_rtsp_handshake_matches_moonlight_sequence() {
     assert!(payload.contains("a=fmtp:97 surround-params=85301245673"), "{payload}");
     assert!(payload.contains("a=fmtp:97 surround-params=88001234567"), "{payload}");
     // the live payload advertises reference-frame invalidation exactly when
-    // the probed encoder capability says it is usable (Moonlight detects RFI
-    // by substring match on this payload)
+    // the probed encoder capability says it is usable **and** HEVC is not on
+    // offer: the client decides RFI per codec while parsing this payload, and
+    // the HEVC path is the one that hangs Amlogic-class decoders
+    // (moonlight-android#1546). Moonlight detects RFI by substring match.
     assert_eq!(
         payload.contains("a=x-nv-video[0].refPicInvalidation:1"),
-        recovery_capability().rfi,
-        "RFI advertisement must track the probed capability: {payload}"
+        recovery_capability().rfi && !hevc_offered(),
+        "RFI advertisement must track the probed capability and the codec offer: {payload}"
     );
-    assert!(!payload.contains("sprop-parameter-sets=AAAAAU"), "{payload}");
+    // the HEVC capability marker, same shape: present exactly when the probed
+    // encoder can produce the codec *and* the desktop can be captured as HDR,
+    // which is the only thing HEVC is offered for (moonlight-common-c
+    // RtspConnection.c:1104 substring-matches it)
+    assert_eq!(
+        payload.contains("sprop-parameter-sets=AAAAAU"),
+        recovery_capability().hevc && hevc_offered(),
+        "HEVC advertisement must track the probed capability and the HDR desktop: {payload}"
+    );
     assert!(!payload.contains("AV1/90000"), "{payload}");
 
     // SETUP audio -> 48000, video -> 47998, control -> 47999

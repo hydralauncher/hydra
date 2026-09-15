@@ -1,4 +1,4 @@
-//! Video pipeline: H.264 frame sources, the GameStream/NVSP RTP
+//! Video pipeline: H.264/HEVC frame sources, the GameStream/NVSP RTP
 //! packetizer, and the UDP sender task.
 //!
 //! The packetizer reproduces Sunshine's wire format exactly (verified
@@ -13,7 +13,9 @@
 //! ```
 //!
 //! Frame data is the 8-byte Sunshine short frame header (0x01, latency,
-//! frame type, lastPayloadLen) followed by the annex-B H.264 access unit.
+//! frame type, lastPayloadLen) followed by the annex-B access unit — H.264
+//! or HEVC, whichever the session negotiated (the packetizer is
+//! codec-agnostic; only the NAL inspection around it is not).
 //! RTP sequence numbers are continuous across frames and the NV
 //! `streamPacketIndex` is the low 24 bits of that stream-wide counter
 //! shifted left by 8. With FEC
@@ -692,8 +694,9 @@ impl FrameSupply {
     }
 }
 
-/// A source of encoded H.264 frames. Implemented by the NVENC pipeline in
-/// production and by a synthetic pattern generator in tests.
+/// A source of encoded frames in the session's codec ([`VideoPipeline::codec`]).
+/// Implemented by the NVENC pipeline in production and by a synthetic
+/// pattern generator (H.264) in tests.
 pub trait VideoPipeline: Send {
     /// Encodes the next frame. `force_idr` requests an instantaneous
     /// decoder refresh. `Ok(None)` means no frame became available yet.
@@ -766,6 +769,16 @@ pub trait VideoPipeline: Send {
     /// capability keep the IDR-only behavior.
     fn supports_ref_invalidation(&self) -> bool {
         false
+    }
+
+    /// The codec this pipeline's bitstreams are in. The sender loop's NAL
+    /// inspection (IDR telemetry, the dump's sanity line) and the session's
+    /// codec log read it here, the same way the recovery mode reads
+    /// `supports_ref_invalidation` — the encoder backend is fixed for the
+    /// session. Default H.264: a source that does not say otherwise is the
+    /// pre-HEVC behavior.
+    fn codec(&self) -> VideoCodec {
+        VideoCodec::H264
     }
 
     /// Frames actually encoded so far (including idle duplicates);
@@ -1382,12 +1395,136 @@ impl VideoPacketizer {
     }
 }
 
+/// The video codec a session encodes and the wire carries. Selected per
+/// session from the client's ANNOUNCE (`x-nv-vqos[0].bitStreamFormat`),
+/// never configured by the user; a client that does not ask for HEVC gets
+/// [`VideoCodec::H264`].
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+pub enum VideoCodec {
+    /// H.264 High profile, 8-bit 4:2:0.
+    #[default]
+    H264,
+    /// HEVC Main profile, 8-bit 4:2:0.
+    Hevc,
+}
+
+/// The NAL unit kinds the host reports on. Each codec spells them with its
+/// own NAL type numbers (and H.264 has no video parameter set at all), so
+/// detection must never cross the two: an H.264 P-frame's 0x41 header byte
+/// reads as NAL type 32 — an HEVC VPS — through the HEVC mask.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum NalKind {
+    /// HEVC VPS (type 32); absent from H.264 by definition.
+    VideoParameterSet,
+    /// H.264 SPS (7) / HEVC SPS (33).
+    SequenceParameterSet,
+    /// H.264 PPS (8) / HEVC PPS (34).
+    PictureParameterSet,
+    /// H.264 SEI (6) / HEVC prefix and suffix SEI (39, 40).
+    Sei,
+    /// H.264 IDR slice (5) / HEVC IDR_W_RADL and IDR_N_LP (19, 20).
+    Idr,
+    /// A coded slice that is not an IDR.
+    NonIdrSlice,
+}
+
+impl VideoCodec {
+    /// Name for the session logs.
+    pub fn name(self) -> &'static str {
+        match self {
+            VideoCodec::H264 => "H.264",
+            VideoCodec::Hevc => "HEVC",
+        }
+    }
+
+    /// The profile this host encodes, one per codec, so a session log names
+    /// the bitstream a client's decoder has to accept rather than just the
+    /// codec family.
+    pub fn profile(self) -> &'static str {
+        match self {
+            VideoCodec::H264 => "High",
+            VideoCodec::Hevc => "Main",
+        }
+    }
+
+    /// The `x-nv-vqos[0].bitStreamFormat` value that selects this codec —
+    /// 0 = H.264, 1 = HEVC, 2 = AV1 (moonlight-common-c SdpGenerator.c
+    /// `x-nv-clientSupportHevc`/`bitStreamFormat` are set together).
+    pub fn bit_stream_format(self) -> u32 {
+        match self {
+            VideoCodec::H264 => 0,
+            VideoCodec::Hevc => 1,
+        }
+    }
+
+    /// The NAL type numbers carrying `kind` in an annex-B stream of this
+    /// codec (H.264: ITU-T H.264 Table 7-1; HEVC: ITU-T H.265 Table 7-1).
+    fn nal_types(self, kind: NalKind) -> &'static [u8] {
+        match (self, kind) {
+            (VideoCodec::H264, NalKind::VideoParameterSet) => &[],
+            (VideoCodec::H264, NalKind::SequenceParameterSet) => &[7],
+            (VideoCodec::H264, NalKind::PictureParameterSet) => &[8],
+            (VideoCodec::H264, NalKind::Sei) => &[6],
+            (VideoCodec::H264, NalKind::Idr) => &[5],
+            (VideoCodec::H264, NalKind::NonIdrSlice) => &[1],
+            (VideoCodec::Hevc, NalKind::VideoParameterSet) => &[32],
+            (VideoCodec::Hevc, NalKind::SequenceParameterSet) => &[33],
+            (VideoCodec::Hevc, NalKind::PictureParameterSet) => &[34],
+            (VideoCodec::Hevc, NalKind::Sei) => &[39, 40],
+            // IDR_W_RADL and IDR_N_LP: both are IDRs to a decoder. The
+            // other IRAP types (BLA 16-18, CRA 21) cannot appear here — the
+            // GOP is infinite and every refresh is a forced IDR.
+            (VideoCodec::Hevc, NalKind::Idr) => &[19, 20],
+            // TRAIL_N/TRAIL_R carry the P frames NVENC emits with
+            // frameIntervalP = 1 (TSA/STSA/RADL need temporal layers).
+            (VideoCodec::Hevc, NalKind::NonIdrSlice) => &[0, 1],
+        }
+    }
+}
+
+impl NalKind {
+    /// Label for the dump's sanity line and the forced-IDR telemetry.
+    fn label(self) -> &'static str {
+        match self {
+            NalKind::VideoParameterSet => "VPS",
+            NalKind::SequenceParameterSet => "SPS",
+            NalKind::PictureParameterSet => "PPS",
+            NalKind::Sei => "SEI",
+            NalKind::Idr => "IDR",
+            NalKind::NonIdrSlice => "non-IDR-slice",
+        }
+    }
+}
+
+/// True when an annex-B stream of `codec` carries a NAL unit of `kind`
+/// (H.264 SPS/PPS/IDR = 7/8/5, HEVC VPS/SPS/PPS/IDR = 32/33/34/19-20).
+/// Same start-code scan as [`annexb_has_nal_type`]; the header width and
+/// the type bits are the only codec-dependent part.
+pub fn annexb_has_nal_kind(data: &[u8], codec: VideoCodec, kind: NalKind) -> bool {
+    codec
+        .nal_types(kind)
+        .iter()
+        .any(|nal_type| annexb_has_nal_type_for(data, codec, *nal_type))
+}
+
 /// True when an annex-B H.264 stream carries a NAL unit whose header byte
 /// has the low-5-bit type `nal_type` (7 = SPS, 8 = PPS, 5 = IDR slice).
 /// Same start-code scan as `capture::sps_info`.
 pub fn annexb_has_nal_type(data: &[u8], nal_type: u8) -> bool {
+    annexb_has_nal_type_for(data, VideoCodec::H264, nal_type)
+}
+
+/// The codec-aware scanner behind [`annexb_has_nal_type`] and
+/// [`annexb_has_nal_kind`]. An H.264 NAL is one header byte whose low 5
+/// bits are the type; an HEVC NAL is two header bytes, the type in bits
+/// 1-6 of the first (nal_unit_header in ITU-T H.265 7.3.1.2).
+fn annexb_has_nal_type_for(data: &[u8], codec: VideoCodec, nal_type: u8) -> bool {
+    let header_len = match codec {
+        VideoCodec::H264 => 1,
+        VideoCodec::Hevc => 2,
+    };
     let mut index = 0;
-    while index + 5 < data.len() {
+    while index + 4 + header_len < data.len() {
         let start_len = if data[index] == 0
             && data[index + 1] == 0
             && data[index + 2] == 0
@@ -1401,7 +1538,12 @@ pub fn annexb_has_nal_type(data: &[u8], nal_type: u8) -> bool {
             continue;
         };
         let header_at = index + start_len;
-        if header_at < data.len() && data[header_at] & 0x1F == nal_type {
+        let matched = header_at + header_len <= data.len()
+            && match codec {
+                VideoCodec::H264 => data[header_at] & 0x1F == nal_type,
+                VideoCodec::Hevc => (data[header_at] >> 1) & 0x3F == nal_type,
+            };
+        if matched {
             return true;
         }
         index += start_len;
@@ -1509,19 +1651,21 @@ fn empty_poll_backoff(pacing_budget_spent: bool) -> Duration {
     }
 }
 
-/// Names of the NAL types an annex-B access unit carries, for the dump's
-/// one-shot first-frame sanity line (SPS/PPS/IDR expected on frame 1).
-fn nal_type_summary(data: &[u8]) -> String {
+/// Names of the NAL kinds an annex-B access unit of `codec` carries, for
+/// the dump's one-shot first-frame sanity line (the parameter sets and an
+/// IDR are expected on frame 1).
+fn nal_type_summary(data: &[u8], codec: VideoCodec) -> String {
     let mut present: Vec<&str> = Vec::new();
-    for (nal_type, name) in [
-        (7u8, "SPS"),
-        (8, "PPS"),
-        (6, "SEI"),
-        (5, "IDR"),
-        (1, "non-IDR-slice"),
+    for kind in [
+        NalKind::VideoParameterSet,
+        NalKind::SequenceParameterSet,
+        NalKind::PictureParameterSet,
+        NalKind::Sei,
+        NalKind::Idr,
+        NalKind::NonIdrSlice,
     ] {
-        if annexb_has_nal_type(data, nal_type) {
-            present.push(name);
+        if annexb_has_nal_kind(data, codec, kind) {
+            present.push(kind.label());
         }
     }
     if present.is_empty() {
@@ -1553,6 +1697,10 @@ fn nal_type_summary(data: &[u8]) -> String {
 /// closed when the session ends.
 struct VideoDump {
     file: Option<File>,
+    /// The codec the dumped bitstreams are in: the file is codec-agnostic
+    /// (annex-B bytes) but the announcing line and the NAL summary must
+    /// name what they are looking at.
+    codec: VideoCodec,
     window_frames: u64,
     window_bytes: u64,
     frames: u64,
@@ -1565,9 +1713,10 @@ impl VideoDump {
     /// Opens the target once per session (truncating) when the env var is
     /// set, and logs the single line that announces the dump. A path that
     /// cannot be opened disables the dump instead of failing the session.
-    fn open() -> Self {
+    fn open(codec: VideoCodec) -> Self {
         let mut dump = VideoDump {
             file: None,
+            codec,
             window_frames: 0,
             window_bytes: 0,
             frames: 0,
@@ -1581,8 +1730,9 @@ impl VideoDump {
             Ok(file) => {
                 dump.file = Some(file);
                 eprintln!(
-                    "video: {}={path} (annex-B access units, one per sent frame)",
-                    crate::config::VIDEO_DUMP_ENV
+                    "video: {}={path} (annex-B {} access units, one per sent frame)",
+                    crate::config::VIDEO_DUMP_ENV,
+                    codec.name()
                 );
             }
             Err(error) => eprintln!(
@@ -1616,7 +1766,7 @@ impl VideoDump {
             eprintln!(
                 "video: dump first access unit ({} bytes): NALs {}",
                 data.len(),
-                nal_type_summary(data)
+                nal_type_summary(data, self.codec)
             );
         }
     }
@@ -1685,6 +1835,18 @@ pub fn run_video_loop(
     socket
         .set_nonblocking(true)
         .map_err(|error| format!("video socket: {error}"))?;
+
+    // The codec decision, once per session start: what the wire carries.
+    // Why — the client's ANNOUNCE attribute and the host's encoder probe —
+    // is logged by nvhttp where the ANNOUNCE is parsed. Read from the
+    // pipeline because the encoder backend is fixed for the session, the
+    // same way the recovery mode below reads it.
+    let codec = pipeline.codec();
+    eprintln!(
+        "video: encoding {} {} profile, 8-bit 4:2:0",
+        codec.name(),
+        codec.profile()
+    );
 
     // Keep the display awake for the whole stream: a sleep cycle mid
     // capture stops the frames (best case) or reinit-loops the
@@ -1868,7 +2030,13 @@ pub fn run_video_loop(
     // policies below (P-frame suppression, short keyframe cadence) are
     // neither needed nor helpful there. Read before the loop because the
     // encoder backend is fixed for the session.
-    let rfi_live = pipeline.supports_ref_invalidation();
+    // `rfi` mode assumes the client resumes at the next after-invalidation
+    // frame, which is only true when the host advertised RFI *and* the client's
+    // decoder accepted it — and the marker is withheld whenever HEVC is offered
+    // (`rtsp::describe_sdp_for`). Without that condition this session would run
+    // an RFI-assuming policy (no P-frame suppression, the long hygiene cadence)
+    // against a client that is waiting strictly for an IDR.
+    let rfi_live = pipeline.supports_ref_invalidation() && !crate::capture::hevc_offered();
     // P-frame suppression while an applied client IDR request is still
     // unanswered (see PSuppression): the request opens an episode, the loop
     // forces the IDR it asked for, and the episode closes as soon as that
@@ -1912,8 +2080,10 @@ pub fn run_video_loop(
     // the endpoint moves, and removed when the loop exits)
     let mut _video_qos_flow: Option<crate::qos::QosFlow> = None;
     // Diagnostic annex-B dump of what leaves for the client
-    // (HYDRA_STREAM_VIDEO_DUMP): opened once here, inert when unset.
-    let mut dump = VideoDump::open();
+    // (HYDRA_STREAM_VIDEO_DUMP): opened once here, inert when unset, and
+    // told the codec so neither its announcing line nor its first-frame
+    // NAL summary can be mistaken about the bitstream.
+    let mut dump = VideoDump::open(codec);
 
     loop {
         loop_iterations += 1;
@@ -2161,13 +2331,16 @@ pub fn run_video_loop(
         let datagrams_len = datagrams.len();
         let prepare_done = Instant::now();
         // IDR lifecycle tracing, part 1: the IDR exists and is packetized.
-        // SPS presence is asserted from the bitstream itself — a client
-        // that never sees SPS after its decoder flush cannot start, and
-        // with an infinite GOP the SPS rides only with IDRs. Under a
-        // starving client this fires at most once per throttle window.
+        // Parameter-set presence is asserted from the bitstream itself — a
+        // client that never sees the SPS after its decoder flush cannot
+        // start, and with an infinite GOP the SPS rides only with IDRs
+        // (`repeatSPSPPS`). The probe is codec-aware: H.264's SPS is NAL
+        // type 7, HEVC's is 33, and the H.264 mask finds nothing in an
+        // HEVC access unit. Under a starving client this fires at most
+        // once per throttle window.
         let idr_number = if frame.idr {
             forced_idr_count += 1;
-            let sps = if annexb_has_nal_type(&frame.data, 7) {
+            let sps = if annexb_has_nal_kind(&frame.data, codec, NalKind::SequenceParameterSet) {
                 "present"
             } else {
                 "ABSENT"
@@ -2590,6 +2763,97 @@ mod tests {
 
         assert!(!annexb_has_nal_type(&[], 7));
         assert!(!annexb_has_nal_type(&[0, 0, 0, 1], 7), "no room for a header");
+    }
+
+    /// The HEVC half of the scanner: 2-byte NAL headers, type in bits 1-6
+    /// of the first byte, VPS/SPS/PPS = 32/33/34 and IDR = 19 or 20
+    /// (`IDR_W_RADL`, the type NVENC's forced IDR comes back with). The
+    /// header bytes below are those type numbers shifted left by one, as
+    /// an HEVC bitstream carries them.
+    #[test]
+    fn annexb_nal_scanner_detects_hevc_vps_sps_pps_idr() {
+        let idr = [
+            &[0, 0, 0, 1, 0x40, 0x01, 0x0c, 0x01][..], // VPS (type 32)
+            &[0, 0, 0, 1, 0x42, 0x01, 0x01, 0x02][..], // SPS (type 33)
+            &[0, 0, 0, 1, 0x44, 0x01, 0xc0, 0x73][..], // PPS (type 34)
+            &[0, 0, 0, 1, 0x26, 0x01, 0xaf, 0x00][..], // IDR_W_RADL (type 19)
+        ]
+        .concat();
+        assert!(annexb_has_nal_kind(&idr, VideoCodec::Hevc, NalKind::VideoParameterSet));
+        assert!(annexb_has_nal_kind(&idr, VideoCodec::Hevc, NalKind::SequenceParameterSet));
+        assert!(annexb_has_nal_kind(&idr, VideoCodec::Hevc, NalKind::PictureParameterSet));
+        assert!(annexb_has_nal_kind(&idr, VideoCodec::Hevc, NalKind::Idr));
+        assert!(!annexb_has_nal_kind(&idr, VideoCodec::Hevc, NalKind::NonIdrSlice));
+        // IDR_N_LP (type 20) is the other IDR an encoder may emit
+        let n_lp = [0, 0, 0, 1, 0x28, 0x01, 0xaf, 0x00];
+        assert!(annexb_has_nal_kind(&n_lp, VideoCodec::Hevc, NalKind::Idr));
+
+        // 3-byte start codes scan the same way
+        let short = [0, 0, 1, 0x42, 0x01, 0x01, 0x00];
+        assert!(annexb_has_nal_kind(&short, VideoCodec::Hevc, NalKind::SequenceParameterSet));
+
+        // a P-frame carries TRAIL_R (type 1) and no parameter sets
+        let p = [0, 0, 0, 1, 0x02, 0x01, 0xd0, 0x09];
+        assert!(!annexb_has_nal_kind(&p, VideoCodec::Hevc, NalKind::SequenceParameterSet));
+        assert!(!annexb_has_nal_kind(&p, VideoCodec::Hevc, NalKind::Idr));
+        assert!(annexb_has_nal_kind(&p, VideoCodec::Hevc, NalKind::NonIdrSlice));
+
+        // an HEVC access unit has no H.264 NAL in it, and H.264 has no VPS
+        assert!(!annexb_has_nal_type(&idr, 7), "the H.264 SPS mask must not fire");
+        assert!(!annexb_has_nal_type(&idr, 5), "the H.264 IDR mask must not fire");
+        assert!(!annexb_has_nal_kind(&idr, VideoCodec::H264, NalKind::VideoParameterSet));
+    }
+
+    /// The masks are codec-specific and cannot be mixed: an H.264 P-frame's
+    /// 0x41 slice header reads as HEVC type 32 (a VPS) through the HEVC
+    /// mask. This is why every scan site is handed the session's negotiated
+    /// codec rather than a default.
+    #[test]
+    fn nal_masks_do_not_cross_codecs() {
+        let h264_p = [0, 0, 0, 1, 0x41, 0x9a, 0x22, 0x00];
+        assert!(annexb_has_nal_type(&h264_p, 1), "H.264 non-IDR slice");
+        assert!(
+            annexb_has_nal_kind(&h264_p, VideoCodec::Hevc, NalKind::VideoParameterSet),
+            "the same byte reads as an HEVC VPS — the hazard this documents"
+        );
+        // and the H.264-scan of an HEVC access unit finds nothing at all
+        let hevc_idr = [0, 0, 0, 1, 0x26, 0x01, 0xaf, 0x00];
+        assert!(!annexb_has_nal_kind(&hevc_idr, VideoCodec::H264, NalKind::Idr));
+        assert!(annexb_has_nal_kind(&hevc_idr, VideoCodec::Hevc, NalKind::Idr));
+    }
+
+    /// The dump's first-frame sanity line names the NAL kinds in the codec
+    /// it was told: an H.264 IDR access unit reads SPS/PPS/SEI/IDR (VPS is
+    /// not a thing), an HEVC one reads VPS/SPS/PPS/IDR.
+    #[test]
+    fn nal_type_summary_is_codec_aware() {
+        let h264 = [
+            &[0, 0, 0, 1, 0x67, 0x64, 0x00, 0x1f][..],
+            &[0, 0, 0, 1, 0x68, 0xee, 0x3c, 0x80][..],
+            &[0, 0, 0, 1, 0x65, 0x88, 0x84, 0x00][..],
+        ]
+        .concat();
+        assert_eq!(nal_type_summary(&h264, VideoCodec::H264), "SPS,PPS,IDR");
+
+        let hevc = [
+            &[0, 0, 0, 1, 0x40, 0x01, 0x0c, 0x01][..],
+            &[0, 0, 0, 1, 0x42, 0x01, 0x01, 0x02][..],
+            &[0, 0, 0, 1, 0x44, 0x01, 0xc0, 0x73][..],
+            &[0, 0, 0, 1, 0x26, 0x01, 0xaf, 0x00][..],
+        ]
+        .concat();
+        assert_eq!(nal_type_summary(&hevc, VideoCodec::Hevc), "VPS,SPS,PPS,IDR");
+        assert_eq!(nal_type_summary(&h264, VideoCodec::Hevc), "none");
+        assert_eq!(nal_type_summary(&[], VideoCodec::H264), "none");
+    }
+
+    /// The codec selector the ANNOUNCE carries: 0 = H.264, 1 = HEVC —
+    /// moonlight-common-c's `x-nv-vqos[0].bitStreamFormat`.
+    #[test]
+    fn bit_stream_format_selects_the_codec() {
+        assert_eq!(VideoCodec::H264.bit_stream_format(), 0);
+        assert_eq!(VideoCodec::Hevc.bit_stream_format(), 1);
+        assert_eq!(VideoCodec::default(), VideoCodec::H264);
     }
 
     #[test]

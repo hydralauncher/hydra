@@ -1,5 +1,5 @@
 //! DXGI desktop duplication capture and the production video pipeline
-//! (capture -> NVENC -> annex-B H.264 frames).
+//! (capture -> NVENC -> annex-B H.264 or HEVC frames).
 
 use std::ffi::c_void;
 use std::ptr;
@@ -21,11 +21,13 @@ use windows::Win32::Graphics::Direct3D11::{
     D3D11_VPOV_DIMENSION_TEXTURE2D,
 };
 use windows::Win32::Graphics::Dxgi::Common::{
-    DXGI_FORMAT_B8G8R8A8_UNORM, DXGI_RATIONAL, DXGI_SAMPLE_DESC,
+    DXGI_FORMAT, DXGI_FORMAT_B8G8R8A8_UNORM, DXGI_FORMAT_R16G16B16A16_FLOAT, DXGI_RATIONAL,
+    DXGI_SAMPLE_DESC,
 };
 use windows::Win32::Graphics::Dxgi::{
-    CreateDXGIFactory1, IDXGIAdapter, IDXGIDevice, IDXGIDevice1, IDXGIFactory1, IDXGIOutput1,
-    IDXGIOutputDuplication, DXGI_ERROR_ACCESS_LOST, DXGI_ERROR_WAIT_TIMEOUT,
+    CreateDXGIFactory1, IDXGIAdapter, IDXGIDevice, IDXGIDevice1, IDXGIFactory1, IDXGIOutput,
+    IDXGIOutput1, IDXGIOutput5, IDXGIOutputDuplication, DXGI_ERROR_ACCESS_LOST,
+    DXGI_ERROR_WAIT_TIMEOUT,
 };
 use windows::Win32::Security::{
     AdjustTokenPrivileges, LookupPrivilegeValueW, SE_INC_BASE_PRIORITY_NAME, SE_PRIVILEGE_ENABLED,
@@ -192,9 +194,10 @@ pub fn preferred_backend(nvenc_works: bool) -> EncoderBackend {
     }
 }
 
-/// Probed recovery capability: whether the encoder the session will use can
-/// invalidate reference frames (RFI) and how deep a decoded-picture buffer
-/// it accepted. DESCRIBE runs before the session's encoder exists, so the
+/// Probed encoder capability: whether the encoder the session will use can
+/// invalidate reference frames (RFI), how deep a decoded-picture buffer
+/// it accepted, and whether it can encode HEVC at all. DESCRIBE runs
+/// before the session's encoder exists, so the
 /// capability is advertised from this probe (Sunshine probes its encoders
 /// at startup too: `video::probe_encoders` →
 /// `last_encoder_probe_supported_ref_frames_invalidation`, emitted in
@@ -212,13 +215,29 @@ pub struct RecoveryCapability {
     /// The ref count the probe's session was created with: the depth the
     /// driver accepted, and the ceiling every session may configure.
     pub ref_frames: u32,
+    /// A real HEVC Main session opened on the probe's adapter. HEVC is
+    /// advertised (serverinfo's `MaxLumaPixelsHEVC`/`ServerCodecModeSupport`
+    /// and the VPS marker in the RTSP DESCRIBE body) only when this is set,
+    /// and only then can a client's `x-nv-vqos[0].bitStreamFormat=1` be
+    /// honored — advertising a codec the session cannot encode would leave
+    /// the client decoding HEVC from an H.264 bitstream. The AMF fallback
+    /// is H.264-only (`AMFVideoEncoderVCE_AVC`), so it reports false.
+    pub hevc: bool,
+    /// A real HEVC **Main10** session opened on the probe's adapter (and the
+    /// driver advertises `NV_ENC_CAPS_SUPPORT_10BIT_ENCODE` for HEVC). This
+    /// is the HDR gate: it adds `SCM_HEVC_MAIN10` to the serverinfo
+    /// advertisement, which is what makes a Moonlight client offer HDR at
+    /// all — and it is only claimed when a 10-bit session really opens.
+    pub hevc_main10: bool,
 }
 
 /// No session could be created (or the selected backend has no RFI): the
-/// IDR-only recovery mode with a single reference frame.
+/// IDR-only recovery mode with a single reference frame and no HEVC.
 pub const NO_RECOVERY: RecoveryCapability = RecoveryCapability {
     rfi: false,
     ref_frames: 1,
+    hevc: false,
+    hevc_main10: false,
 };
 
 /// Probe session shape: tiny, so the throwaway session costs nothing
@@ -267,13 +286,18 @@ unsafe fn probe_device(adapter: &IDXGIAdapter) -> Result<ID3D11Device, String> {
 /// default ref count first: the capability and depth we advertise must match
 /// what the session will really be configured with. A driver that rejects
 /// the default depth still accepts 1 — reported as `rfi: false,
-/// ref_frames: 1`, the depth that makes the IDR fallback honest.
+/// ref_frames: 1`, the depth that makes the IDR fallback honest. Once the
+/// H.264 session is up, an HEVC Main session is opened on the same device:
+/// that is the whole HEVC advertisement gate.
 fn run_recovery_probe() -> RecoveryCapability {
     if matches!(
         encoder_selection(),
         EncoderSelection::Amf | EncoderSelection::AmfCross
     ) {
-        eprintln!("video: recovery probe: amf encoder, no ref invalidation (IDR recovery)");
+        eprintln!(
+            "video: recovery probe: amf encoder, no ref invalidation (IDR recovery), \
+             no HEVC (AMF is H.264-only)"
+        );
         return NO_RECOVERY;
     }
     let adapters = match DxgiCapture::candidate_adapters() {
@@ -295,6 +319,8 @@ fn run_recovery_probe() -> RecoveryCapability {
         };
         for ref_frames in [crate::nvenc::REF_FRAMES_DEFAULT, 1] {
             let params = EncoderConfigParams {
+                codec: crate::video::VideoCodec::H264,
+                hdr: false,
                 width: PROBE_WIDTH,
                 height: PROBE_HEIGHT,
                 fps: PROBE_FPS,
@@ -305,11 +331,17 @@ fn run_recovery_probe() -> RecoveryCapability {
             match NvencEncoder::new(device.as_raw(), &params) {
                 Ok(encoder) => {
                     let rfi = encoder.supports_ref_invalidation();
+                    let (hevc, hevc_main10) = probe_hevc(device.as_raw(), ref_frames);
                     eprintln!(
                         "video: recovery probe: {name} {ref_frames} ref frames, \
-                         ref-pic-invalidation={rfi}"
+                         ref-pic-invalidation={rfi}, hevc={hevc}, hevc-main10={hevc_main10}"
                     );
-                    return RecoveryCapability { rfi, ref_frames };
+                    return RecoveryCapability {
+            rfi,
+            ref_frames,
+            hevc,
+            hevc_main10,
+        };
                 }
                 Err(error) => {
                     eprintln!("video: recovery probe: {name} {ref_frames} ref frames: {error}");
@@ -320,6 +352,51 @@ fn run_recovery_probe() -> RecoveryCapability {
     }
     eprintln!("video: recovery probe: no encoder session ({last_error}), IDR recovery");
     NO_RECOVERY
+}
+
+/// Opens one throwaway HEVC Main session on the probe's device, with the
+/// same shape as the H.264 half. A driver without HEVC encoding (or a GPU
+/// older than Maxwell 2nd gen) fails here and the host then advertises
+/// H.264 only, so no client is ever offered a codec the session cannot
+/// produce. Reports `(hevc, hevc_main10)`.
+///
+/// The second answer gates the `SCM_HEVC_MAIN10` advertisement and therefore
+/// HDR. It needs both the driver's `NV_ENC_CAPS_SUPPORT_10BIT_ENCODE` for
+/// HEVC (read from the session that just opened — NVENC answers caps per
+/// codec) *and* a 10-bit session that really opens, since that is exactly
+/// what an HDR session asks of the driver. A driver without HEVC pays for
+/// one session, not two.
+fn probe_hevc(device: *mut c_void, ref_frames: u32) -> (bool, bool) {
+    let params = |hdr| EncoderConfigParams {
+        codec: crate::video::VideoCodec::Hevc,
+        hdr,
+        width: PROBE_WIDTH,
+        height: PROBE_HEIGHT,
+        fps: PROBE_FPS,
+        bitrate_kbps: PROBE_BITRATE_KBPS,
+        slices_per_frame: 1,
+        max_ref_frames: ref_frames,
+    };
+    let encoder = match NvencEncoder::new(device, &params(false)) {
+        Ok(encoder) => encoder,
+        Err(error) => {
+            eprintln!("video: recovery probe: no HEVC session ({error})");
+            return (false, false);
+        }
+    };
+    let caps = encoder.supports_10bit_encode();
+    drop(encoder);
+    if !caps {
+        return (true, false);
+    }
+    let main10 = match NvencEncoder::new(device, &params(true)) {
+        Ok(_) => true,
+        Err(error) => {
+            eprintln!("video: recovery probe: no HEVC Main10 session ({error})");
+            false
+        }
+    };
+    (true, main10)
 }
 
 /// Resolves the DPB depth for a session from the client's
@@ -363,6 +440,10 @@ fn can_fast_recreate(
 
 /// Probes encoder backends for one adapter's D3D device: NVENC first,
 /// then AMF on the same device. Only the working backend is constructed.
+/// AMF is H.264-only, so an HEVC session never falls back to it: silently
+/// encoding H.264 for a client that negotiated HEVC would be a black
+/// screen with no diagnostic, and the probe that let the client ask for
+/// HEVC in the first place only succeeds on NVENC.
 fn create_encoder(
     device: *mut c_void,
     config: &EncoderConfigParams,
@@ -370,6 +451,12 @@ fn create_encoder(
     match NvencEncoder::new(device, config) {
         Ok(encoder) => Ok((Box::new(encoder), EncoderBackend::Nvenc)),
         Err(nvenc_error) => {
+            if config.codec != crate::video::VideoCodec::H264 {
+                return Err(format!(
+                    "nvenc unavailable for {} ({nvenc_error}); the amf fallback cannot encode it",
+                    config.codec.name()
+                ));
+            }
             eprintln!("nvenc unavailable on this adapter ({nvenc_error}); trying amf");
             match AmfEncoder::new(device, config) {
                 Ok(encoder) => Ok((Box::new(encoder), EncoderBackend::Amf)),
@@ -865,13 +952,10 @@ unsafe fn try_adapter(adapter: &IDXGIAdapter) -> Result<DxgiCapture, String> {
         let Ok(output) = adapter.EnumOutputs(output_index) else {
             break;
         };
-        let Ok(output1) = output.cast::<IDXGIOutput1>() else {
-            continue;
-        };
-        let duplication = match output1.DuplicateOutput(&device) {
+        let duplication = match duplicate_output(&output, &device) {
             Ok(duplication) => duplication,
             Err(error) => {
-                eprintln!("DuplicateOutput: {error}");
+                eprintln!("{error}");
                 continue;
             }
         };
@@ -892,6 +976,273 @@ unsafe fn try_adapter(adapter: &IDXGIAdapter) -> Result<DxgiCapture, String> {
         });
     }
     Err("no duplicatable output".to_string())
+}
+
+/// Formats offered to `IDXGIOutput5::DuplicateOutput1`, in preference order.
+///
+/// The legacy `IDXGIOutput1::DuplicateOutput` can only ever return the 8-bit
+/// BGRA surface — including on an HDR output, where that surface is an
+/// over-bright, clipped *rendition* of the desktop rather than the desktop
+/// itself (measured: mean luma ~1.7x the SDR picture the monitor shows).
+/// Naming `R16G16B16A16_FLOAT` — the FP16 scRGB desktop HDR encoding needs —
+/// is what makes DXGI hand it over, which is why the HDR list is only
+/// requested while the HDR capture path is enabled: the SDR path keeps
+/// exactly the format and behaviour it has today.
+const SDR_DUPLICATION_FORMATS: [DXGI_FORMAT; 1] = [DXGI_FORMAT_B8G8R8A8_UNORM];
+const HDR_DUPLICATION_FORMATS: [DXGI_FORMAT; 2] = [
+    DXGI_FORMAT_R16G16B16A16_FLOAT,
+    DXGI_FORMAT_B8G8R8A8_UNORM,
+];
+
+/// Creates the desktop duplication, preferring the HDR-capable
+/// `IDXGIOutput5::DuplicateOutput1` overload (the only one that can return
+/// anything but BGRA) and falling back to `IDXGIOutput1::DuplicateOutput` on
+/// an output or driver that predates it.
+unsafe fn duplicate_output(
+    output: &IDXGIOutput,
+    device: &ID3D11Device,
+) -> Result<IDXGIOutputDuplication, String> {
+    let hdr = crate::config::hdr_enabled();
+    let formats: &[DXGI_FORMAT] = if hdr {
+        &HDR_DUPLICATION_FORMATS
+    } else {
+        &SDR_DUPLICATION_FORMATS
+    };
+    if let Ok(output5) = output.cast::<IDXGIOutput5>() {
+        match output5.DuplicateOutput1(device, 0, formats) {
+            Ok(duplication) => {
+                eprintln!(
+                    "desktop duplication: requested formats {:?} (HDR {}), actual format logged \
+                     with the first frame",
+                    formats.iter().map(|format| format.0).collect::<Vec<_>>(),
+                    if hdr { "enabled" } else { "off" }
+                );
+                return Ok(duplication);
+            }
+            Err(error) => {
+                eprintln!("DuplicateOutput1: {error}; falling back to DuplicateOutput");
+            }
+        }
+    }
+    let output1 = output
+        .cast::<IDXGIOutput1>()
+        .map_err(|error| format!("IDXGIOutput1: {error}"))?;
+    output1
+        .DuplicateOutput(device)
+        .map_err(|error| format!("DuplicateOutput: {error}"))
+}
+
+/// Keeps the display from being switched off while a stream is running, by
+/// holding `ES_DISPLAY_REQUIRED` (re-asserted every 500 ms) for its lifetime.
+///
+/// Measured on the RTX 5070, and the reason this type is scoped narrowly:
+///
+/// * with the output in DPMS standby the duplication is created fine but
+///   delivers **zero** frames, while the desktop stays composed enough for GDI
+///   to still read it (`probe_display_standby_capture`);
+/// * calling `ES_DISPLAY_REQUIRED` again while the display is off does **not**
+///   bring capture back — 0 frames across ten seconds of two-second retries —
+///   so "switch the display off mid-stream" is not something this can fix. An
+///   earlier version of this comment claimed a 530-frame recovery; that
+///   measurement was an artefact of the probe's cursor wiggler, whose
+///   `SetCursorPos` is user input and wakes a display on its own;
+/// * what the flag *does* do, and why it is still held, is stop the Windows
+///   power plan's display idle timer from turning the display off in the first
+///   place — Sunshine's use of the same call (`display_base.cpp:245`).
+///
+/// The `create_capture` retry that accompanies it covers the case where the
+/// output is not enumerated yet on the first pass. Neither helps when the
+/// display is off at the OS level: the desktop stops being composed, nothing
+/// presents, and there is nothing to duplicate — that needs a display that
+/// stays on (a virtual one) rather than a flag.
+///
+/// `SetThreadExecutionState` is per-thread and a thread's state dies with it,
+/// so this owns a thread that holds the state, re-asserts it, and parks until
+/// dropped. The sender loop sets the same state for its own lifetime
+/// (`video.rs`), but it only starts *after* the capture exists.
+pub struct DisplayKeeper {
+    stop: std::sync::Arc<std::sync::atomic::AtomicBool>,
+    thread: Option<std::thread::JoinHandle<()>>,
+}
+
+impl DisplayKeeper {
+    /// Starts holding the display on. Returns once the state is set, not once
+    /// the display has physically come back: the caller retries its own
+    /// enumeration when that first attempt fails.
+    pub fn start() -> Self {
+        use windows::Win32::System::Power::{
+            SetThreadExecutionState, ES_CONTINUOUS, ES_DISPLAY_REQUIRED,
+        };
+        let stop = std::sync::Arc::new(std::sync::atomic::AtomicBool::new(false));
+        let thread_stop = stop.clone();
+        let thread = std::thread::spawn(move || {
+            // Re-asserted every 500 ms rather than set once, which is what
+            // keeps the *display idle timer* (the Windows power plan's "turn
+            // off the display after N minutes") from firing mid-stream —
+            // `ES_DISPLAY_REQUIRED`'s documented job, and Sunshine's use of it
+            // (`display_base.cpp:245`).
+            //
+            // Measured, and worth knowing before trusting it for more: this
+            // does **not** bring capture back once the display is actually
+            // off. With the output in DPMS standby the duplication returns 0
+            // frames, and calling this again every 2 s for 10 s returns 0
+            // frames too (`probe_display_standby_capture`, keep-alive
+            // buckets). Switching the display off underneath a stream
+            // therefore cannot be papered over here: the desktop stops being
+            // composed and there is nothing to duplicate. See the note on
+            // `DisplayKeeper` — that case needs a display that stays on (a
+            // virtual one) rather than a flag.
+            while !thread_stop.load(std::sync::atomic::Ordering::Relaxed) {
+                unsafe {
+                    SetThreadExecutionState(ES_CONTINUOUS | ES_DISPLAY_REQUIRED);
+                }
+                std::thread::sleep(Duration::from_millis(500));
+            }
+            // Dropping the thread would clear this anyway; clearing it here
+            // documents the pairing and covers an explicit stop.
+            unsafe {
+                SetThreadExecutionState(ES_CONTINUOUS);
+            }
+        });
+        Self {
+            stop,
+            thread: Some(thread),
+        }
+    }
+}
+
+impl Drop for DisplayKeeper {
+    fn drop(&mut self) {
+        self.stop.store(true, std::sync::atomic::Ordering::Relaxed);
+        if let Some(thread) = self.thread.take() {
+            let _ = thread.join();
+        }
+    }
+}
+
+
+/// The display's HDR10 metadata in the form the Moonlight HDR control
+/// message carries it (`SS_HDR_METADATA`, moonlight-common-c
+/// `Limelight.h:976-997`): Rec.2020 primaries and the D65 white point scaled
+/// by 50,000, luminance in nits with the minimum in 1/10,000 nit.
+///
+/// Sunshine's Windows backend (`display_base.cpp:775-826`) hardcodes the
+/// primaries — DXGI reports the panel's *measured* primaries, which are not
+/// what the stream was graded against — and reads the luminances from
+/// `DXGI_OUTPUT_DESC1`, which is what this does. Content light levels are
+/// left at 0 for the same reason Sunshine does: the interface does not
+/// report them. `hdr` is Sunshine's `is_hdr()`
+/// (`ColorSpace == DXGI_COLOR_SPACE_RGB_FULL_G2084_NONE_P2020`), i.e. the
+/// only desktop state an HDR stream can be captured from.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct DisplayHdr {
+    /// Rec.2020 primaries, RGB order, each component `value * 50000`.
+    pub primaries: [(u16, u16); 3],
+    /// D65 white point, `value * 50000`.
+    pub white_point: (u16, u16),
+    /// `DXGI_OUTPUT_DESC1::MaxLuminance`, nits.
+    pub max_luminance: u16,
+    /// `MinLuminance` in 1/10,000 nit.
+    pub min_luminance: u16,
+    /// `MaxFullFrameLuminance`, nits (the third content-light field the
+    /// client reads; Sunshine forwards it the same way).
+    pub max_full_frame_luminance: u16,
+    /// The chosen output is running the HDR10 colour space.
+    pub hdr: bool,
+}
+
+/// Whether HEVC may be advertised and negotiated: only when this desktop can
+/// actually be captured as HDR.
+///
+/// H.264 is the safe codec everywhere; HEVC is here for HDR10 (Main10), and
+/// HDR is the one thing H.264 cannot carry. So a host with an SDR desktop
+/// offers H.264 alone, and a client left on "Auto" — including one whose HEVC
+/// decode is far worse than its H.264, measured on an Android TV as six
+/// reconnects and 139 forced IDRs in nine minutes against one clean H.264
+/// session — is never pushed onto HEVC just to stream SDR. With the desktop in
+/// HDR mode the HEVC advertisement comes back, and the client's own HDR/10-bit
+/// request is what selects it (`stream::session_hdr`).
+///
+/// `HYDRA_STREAM_CODECS=h264` ([`crate::config::hevc_advertised`]) still pins a
+/// host to H.264 outright, and `HYDRA_STREAM_HDR=1` forces the HDR path (and
+/// therefore HEVC) for the hardware probes.
+pub fn hevc_offered() -> bool {
+    crate::config::hevc_advertised()
+        && (desktop_is_hdr() || crate::config::hdr_override() == Some(true))
+}
+
+/// Whether the duplicated desktop is in an HDR colour space right now, cached
+/// for a second.
+///
+/// `serverinfo` is polled by the client several times a second, and the answer
+/// decides whether `SCM_HEVC_MAIN10` may be advertised. It has to be the
+/// *desktop's* state and not just the driver's capability: advertising the bit
+/// makes a Moonlight client negotiate a 10-bit format — and aim its bitrate at
+/// 10-bit levels, which the sessions here show as 100 Mbps against 32 Mbps for
+/// the same client at 8-bit — while this host can only produce HDR10 from an
+/// HDR desktop. With Windows HDR off the client would commit to 10-bit and then
+/// silently receive 8-bit SDR, which is what "HDR off is broken too" looked
+/// like. The cache keeps the DXGI enumeration off the serverinfo poll path
+/// while still following a mid-session HDR toggle within a second.
+pub fn desktop_is_hdr() -> bool {
+    static CACHE: std::sync::Mutex<Option<(Instant, bool)>> = std::sync::Mutex::new(None);
+    if let Ok(cache) = CACHE.lock() {
+        if let Some((at, value)) = *cache {
+            if at.elapsed() < Duration::from_secs(1) {
+                return value;
+            }
+        }
+    }
+    let value = display_hdr_metadata().is_some_and(|metadata| metadata.hdr);
+    if let Ok(mut cache) = CACHE.lock() {
+        *cache = Some((Instant::now(), value));
+    }
+    value
+}
+
+/// Reads [`DisplayHdr`] for the first HDR output, falling back to the first
+/// output at all (with `hdr == false`) so the caller always has luminances to
+/// report. `None` means no output could be described.
+pub fn display_hdr_metadata() -> Option<DisplayHdr> {
+    let scale = |value: f32| (value * 50_000.0).round().clamp(0.0, 65_535.0) as u16;
+    let nits = |value: f32| value.round().clamp(0.0, 65_535.0) as u16;
+    let mut fallback = None;
+    unsafe {
+        let adapters = DxgiCapture::candidate_adapters().ok()?;
+        for adapter in &adapters {
+            for index in 0..4u32 {
+                let Ok(output) = adapter.EnumOutputs(index) else {
+                    break;
+                };
+                let Ok(output6) =
+                    output.cast::<windows::Win32::Graphics::Dxgi::IDXGIOutput6>()
+                else {
+                    continue;
+                };
+                let Ok(desc) = output6.GetDesc1() else {
+                    continue;
+                };
+                let metadata = DisplayHdr {
+                    primaries: [
+                        (scale(0.708), scale(0.292)),
+                        (scale(0.170), scale(0.797)),
+                        (scale(0.131), scale(0.046)),
+                    ],
+                    white_point: (scale(0.3127), scale(0.3290)),
+                    max_luminance: nits(desc.MaxLuminance),
+                    min_luminance: nits(desc.MinLuminance * 10_000.0),
+                    max_full_frame_luminance: nits(desc.MaxFullFrameLuminance),
+                    hdr: desc.ColorSpace
+                        == windows::Win32::Graphics::Dxgi::Common::DXGI_COLOR_SPACE_RGB_FULL_G2084_NONE_P2020,
+                };
+                if metadata.hdr {
+                    return Some(metadata);
+                }
+                fallback.get_or_insert(metadata);
+            }
+        }
+    }
+    fallback
 }
 
 /// Re-creates the desktop duplication on an existing capture device —
@@ -916,13 +1267,10 @@ unsafe fn recreate_duplication(device: &ID3D11Device) -> Result<DxgiCapture, Str
         let Ok(output) = adapter.EnumOutputs(output_index) else {
             break;
         };
-        let Ok(output1) = output.cast::<IDXGIOutput1>() else {
-            continue;
-        };
-        let duplication = match output1.DuplicateOutput(device) {
+        let duplication = match duplicate_output(&output, device) {
             Ok(duplication) => duplication,
             Err(error) => {
-                eprintln!("DuplicateOutput: {error}");
+                eprintln!("{error}");
                 continue;
             }
         };
@@ -982,6 +1330,51 @@ struct TextureScaler {
 }
 
 unsafe impl Send for TextureScaler {}
+
+/// The frame-scaling stage of the pipeline: the D3D11 video processor for SDR
+/// sessions, or the HDR shader converter (`hdr::HdrConverter`) when the
+/// session encodes HDR10 — the video processor cannot ingest the FP16 scRGB
+/// surface HDR capture produces. Both offer the three operations the pipeline
+/// uses, and each produces exactly the input format its session's encoder
+/// registered: 8-bit BGRA for SDR, P010 for HDR.
+enum Scaler {
+    Sdr(TextureScaler),
+    Hdr(crate::hdr::HdrConverter),
+}
+
+impl Scaler {
+    /// The encoder-side size this scaler renders at.
+    fn target_size(&self) -> (u32, u32) {
+        match self {
+            Scaler::Sdr(scaler) => scaler.target_size(),
+            Scaler::Hdr(converter) => converter.target_size(),
+        }
+    }
+
+    /// Scales (SDR) or converts (HDR) `source` into this scaler's own target
+    /// for `slot`.
+    fn scale(&mut self, source: &ID3D11Texture2D, slot: usize) -> Result<ID3D11Texture2D, String> {
+        match self {
+            Scaler::Sdr(scaler) => scaler.scale(source, slot),
+            Scaler::Hdr(converter) => converter.convert(source, slot),
+        }
+    }
+
+    /// Same, into a caller-provided target (a cross-adapter ring slot). The
+    /// HDR converter has no cross-adapter path — the bridge's shared textures
+    /// are 8-bit BGRA — and `create_capture` keeps HDR sessions off it, so
+    /// this arm only exists to keep the two scalers interchangeable.
+    fn scale_into(
+        &mut self,
+        source: &ID3D11Texture2D,
+        target: &ID3D11Texture2D,
+    ) -> Result<(), String> {
+        match self {
+            Scaler::Sdr(scaler) => scaler.scale_into(source, target),
+            Scaler::Hdr(_) => Err("HDR sessions have no cross-adapter scaling path".to_string()),
+        }
+    }
+}
 
 impl TextureScaler {
     fn new(
@@ -1243,6 +1636,12 @@ impl TextureScaler {
 
 /// Finds the first H.264 SPS NAL in an annex-B stream and returns
 /// (profile_idc, constraint flags, level_idc).
+///
+/// H.264 only, by construction: it matches NAL type 7 through the 1-byte
+/// header mask. An HEVC access unit cannot match (an HEVC header's low five
+/// bits are even, so 0x67 never occurs), so the first-frame log simply
+/// omits the profile for an HEVC session rather than misreporting one —
+/// parsing HEVC's profile_tier_level is what the HDR slice will need.
 fn sps_info(data: &[u8]) -> Option<(u8, u8, u8)> {
     let mut index = 0;
     while index + 5 < data.len() {
@@ -1271,7 +1670,8 @@ fn sps_info(data: &[u8]) -> Option<(u8, u8, u8)> {
     None
 }
 
-/// Production pipeline: DXGI desktop duplication + NVENC H.264.
+/// Production pipeline: DXGI desktop duplication + NVENC (H.264 or HEVC,
+/// whichever the session negotiated).
 ///
 /// When the desktop is idle, duplication waits time out without a new
 /// frame; the previous texture is then re-encoded (paced to the frame
@@ -1306,6 +1706,11 @@ fn sps_info(data: &[u8]) -> Option<(u8, u8, u8)> {
 /// reference for the frame behind it. Forced IDRs are exempt — they are
 /// the client's loss-recovery mechanism and are always decodable.
 pub struct NvencPipeline {
+    /// Holds the display on for this pipeline's lifetime. Without it a session
+    /// that starts with the panel off gets no frames at all (see
+    /// [`DisplayKeeper`]); it is started before the capture exists and lives
+    /// across the display-mode recreations. Held for its `Drop`, never read.
+    _display: DisplayKeeper,
     capture: Option<DxgiCapture>,
     /// The desktop duplication died (display mode change, TDR) and the
     /// recreation tick has not resumed yet: encode_next stays out of the
@@ -1314,7 +1719,7 @@ pub struct NvencPipeline {
     /// same-resolution fast-path comparison).
     recreate_pending: bool,
     encoder: Option<Box<dyn TextureEncoder>>,
-    scaler: Option<TextureScaler>,
+    scaler: Option<Scaler>,
     /// Cross-adapter shared-texture ring; the encoder reads the ring's
     /// consumer-side textures on a second GPU. None = the encoder reads
     /// capture-device textures directly.
@@ -1477,12 +1882,13 @@ enum PendingSource {
 fn create_capture(
     target: &EncoderConfigParams,
     skip_cross: bool,
+    allow_retry: bool,
 ) -> Result<
     (
         DxgiCapture,
         Box<dyn TextureEncoder>,
         EncoderBackend,
-        Option<TextureScaler>,
+        Option<Scaler>,
         Option<CrossAdapterBridge>,
     ),
     String,
@@ -1508,8 +1914,10 @@ fn create_capture(
 
         // Cross-adapter encode (auto and amf-cross): the scaler renders
         // into shared textures and the AMF session runs on a second GPU,
-        // leaving the display adapter to the game.
-        if !skip_cross && attempts_cross(selection) {
+        // leaving the display adapter to the game. Not for HDR sessions:
+        // the bridge's shared textures are 8-bit BGRA, so the P010 the HDR
+        // encoder needs has nowhere to go.
+        if !skip_cross && attempts_cross(selection) && !crate::nvenc::is_hdr_session(&config) {
             match try_cross_encoder(&capture, &config, &adapters) {
                 Ok((encoder, bridge, offload_name)) => {
                     // the cross-adapter path always runs through the
@@ -1522,7 +1930,7 @@ fn create_capture(
                         config.height,
                         config.fps,
                     ) {
-                        Ok(scaler) => scaler,
+                        Ok(scaler) => Scaler::Sdr(scaler),
                         Err(error) => {
                             eprintln!("adapter {name} unusable: scaling init failed: {error}");
                             errors.push(format!("{name}: scaler: {error}"));
@@ -1592,14 +2000,38 @@ fn create_capture(
         // overwrite a texture NVENC is still reading (torn frames). The
         // owned-target copy also gives idle-desktop duplicates a stable
         // re-encode source.
-        let scaler = match TextureScaler::new(
-            &capture.device(),
-            capture.width,
-            capture.height,
-            config.width,
-            config.height,
-            config.fps,
-        ) {
+        //
+        // An HDR10 session takes the shader converter instead: it consumes
+        // the FP16 scRGB duplication surface and emits the P010 the encoder
+        // session was configured for. The two are chosen together with the
+        // encoder's buffer format (`nvenc::is_hdr_session`), so a scaler can
+        // never disagree with the format its encoder registered.
+        let scaler = if crate::nvenc::is_hdr_session(&config) {
+            eprintln!(
+                "capture adapter: {name} HDR10 conversion: scRGB FP16 {}x{} -> BT.2020/PQ P010 \
+                 {}x{}",
+                capture.width, capture.height, config.width, config.height
+            );
+            crate::hdr::HdrConverter::new(
+                &capture.device(),
+                capture.width,
+                capture.height,
+                config.width,
+                config.height,
+            )
+            .map(Scaler::Hdr)
+        } else {
+            TextureScaler::new(
+                &capture.device(),
+                capture.width,
+                capture.height,
+                config.width,
+                config.height,
+                config.fps,
+            )
+            .map(Scaler::Sdr)
+        };
+        let scaler = match scaler {
             Ok(scaler) => Some(scaler),
             Err(error) => {
                 eprintln!("adapter {name} unusable: scaling init failed: {error}");
@@ -1618,6 +2050,19 @@ fn create_capture(
             backend.label()
         );
         return Ok((capture, encoder, backend, scaler, None));
+    }
+    // A stream that starts while the panel is off can find nothing to
+    // duplicate on the first pass: `DisplayKeeper` has just asked Windows for
+    // the display, and the output needs a moment before it is really back.
+    // Sunshine waits and retries the same way (`display_base.cpp:550-554`);
+    // the single retry keeps a genuinely absent output failing promptly.
+    if allow_retry {
+        eprintln!(
+            "capture: no usable capture adapter ({}); waiting for the display and retrying once",
+            errors.join("; ")
+        );
+        std::thread::sleep(Duration::from_millis(1500));
+        return create_capture(target, skip_cross, false);
     }
     Err(format!("no usable capture adapter ({})", errors.join("; ")))
 }
@@ -1673,7 +2118,13 @@ fn try_cross_encoder(
 
 impl NvencPipeline {
     pub fn new(config: EncoderConfigParams) -> Result<Self, String> {
-        let (capture, encoder, backend, scaler, bridge) = create_capture(&config, false)?;
+        // Ask Windows for the display *before* the duplication exists: with the
+        // panel off the duplication either cannot be created or delivers
+        // nothing at all, and the sender loop's own wake (video.rs) only runs
+        // once the pipeline is already up.
+        let display = DisplayKeeper::start();
+        let (capture, encoder, backend, scaler, bridge) =
+            create_capture(&config, false, true)?;
         let frame_interval = Duration::from_secs_f64(1.0 / config.fps.max(1) as f64);
         // the geometry the session really runs at: a zero width/height in
         // the config means "encode at the desktop size", which only the
@@ -1681,7 +2132,7 @@ impl NvencPipeline {
         let source_size = (capture.width, capture.height);
         let encode_size = scaler
             .as_ref()
-            .map(TextureScaler::target_size)
+            .map(Scaler::target_size)
             .unwrap_or(source_size);
         // fallback freshness budget for the frame-age drop policy: the
         // sender loop installs its own (3x the frame interval, clamped to
@@ -1692,6 +2143,7 @@ impl NvencPipeline {
             .map(Duration::from_millis)
             .unwrap_or(frame_interval * 5 / 4);
         Ok(NvencPipeline {
+            _display: display,
             capture: Some(capture),
             recreate_pending: false,
             encoder: Some(encoder),
@@ -1845,13 +2297,13 @@ impl NvencPipeline {
         }
 
         let started = Instant::now();
-        match create_capture(&self.config, self.cross_broken) {
+        match create_capture(&self.config, self.cross_broken, true) {
             Ok((capture, encoder, backend, scaler, bridge)) => {
                 self.recreate_count += 1;
                 let source_size = (capture.width, capture.height);
                 let encode_size = scaler
                     .as_ref()
-                    .map(TextureScaler::target_size)
+                    .map(Scaler::target_size)
                     .unwrap_or(self.encode_size);
                 let reverted = std::mem::take(&mut self.resize_reverted);
                 match self.resize_from.take() {
@@ -2182,6 +2634,10 @@ fn bridge_finish_consume(
 }
 
 impl VideoPipeline for NvencPipeline {
+    fn codec(&self) -> crate::video::VideoCodec {
+        self.config.codec
+    }
+
     fn encode_next(&mut self, force_idr: bool) -> Result<Option<EncodedFrame>, String> {
         // pessimistic default: every early return below leaves the sender
         // loop without a backoff (nothing was polled on a spent budget)
@@ -3162,6 +3618,8 @@ mod tests {
         const RFI: RecoveryCapability = RecoveryCapability {
             rfi: true,
             ref_frames: 5,
+            hevc: false,
+            hevc_main10: false,
         };
         // absent attribute (a client that predates it) and 0 ("host picks",
         // which only an RFI-aware client sends) both mean the default
@@ -3182,6 +3640,8 @@ mod tests {
         const NO_RFI: RecoveryCapability = RecoveryCapability {
             rfi: false,
             ref_frames: 5,
+            hevc: false,
+            hevc_main10: false,
         };
         assert_eq!(resolve_ref_frames(Some(8), NO_RFI), 5);
         assert_eq!(resolve_ref_frames(Some(0), NO_RFI), 5);
@@ -3191,11 +3651,21 @@ mod tests {
         const DEEP: RecoveryCapability = RecoveryCapability {
             rfi: true,
             ref_frames: 30,
+            hevc: false,
+            hevc_main10: false,
         };
         assert_eq!(resolve_ref_frames(Some(30), DEEP), crate::nvenc::REF_FRAMES_MAX);
         // never zero, whatever the probe reported
         assert_eq!(
-            resolve_ref_frames(Some(0), RecoveryCapability { rfi: true, ref_frames: 0 }),
+            resolve_ref_frames(
+                Some(0),
+                RecoveryCapability {
+                    rfi: true,
+                    ref_frames: 0,
+                    hevc: false,
+                    hevc_main10: false,
+                }
+            ),
             1
         );
     }
@@ -3482,6 +3952,8 @@ mod tests {
         );
 
         let config = crate::nvenc::EncoderConfigParams {
+            codec: crate::video::VideoCodec::H264,
+            hdr: false,
             width: 1280,
             height: 720,
             fps: 60,
@@ -3522,7 +3994,7 @@ mod tests {
             for _ in 0..5 {
                 let started = Instant::now();
                 let (capture, encoder, _backend, scaler, _bridge) =
-                    create_capture(&config, skip_cross).expect("full create_capture");
+                    create_capture(&config, skip_cross, true).expect("full create_capture");
                 full_ms.push(started.elapsed().as_millis());
                 drop(encoder);
                 drop(scaler);
@@ -3579,6 +4051,14 @@ mod tests {
         let bitrate_kbps = live_u32("HYDRA_LIVE_KBPS", 15_000);
         let seconds = live_u32("HYDRA_LIVE_SECONDS", 15);
         let config = EncoderConfigParams {
+            // HYDRA_LIVE_CODEC=hevc (with HYDRA_STREAM_HDR=1) drives the HDR10
+            // path through this harness: the same loop then captures the FP16
+            // scRGB desktop, converts it to P010 and encodes Main10.
+            codec: match std::env::var("HYDRA_LIVE_CODEC").ok().as_deref() {
+                Some("hevc") | Some("h265") => crate::video::VideoCodec::Hevc,
+                _ => crate::video::VideoCodec::H264,
+            },
+            hdr: crate::config::hdr_enabled(),
             width,
             height,
             fps,
@@ -3824,5 +4304,534 @@ mod tests {
         );
         eprintln!("present-rate probe: {}", hold_probe.unwrap_or_default());
         assert!(presents > 0, "no desktop presents observed");
+    }
+
+    /// Hardware probe (run with --ignored): what does an HDR output actually
+    /// hand the duplication, and does that surface carry data?
+    ///
+    /// HDR streaming needs the FP16 scRGB desktop. If the driver only ever
+    /// returns 8-bit BGRA (an over-bright SDR rendition), HDR capture has no
+    /// source and the feature is blocked at the capture boundary. Reports the
+    /// colour space of every output, then per acquired frame the surface
+    /// format and its content. A synthetic FP16 round-trip runs first so an
+    /// all-zero reading can be told apart from a broken readback path, and the
+    /// duplication is then torn down and rebuilt to test whether the *first*
+    /// duplicator gets a different format from the second.
+    #[test]
+    #[ignore]
+    fn probe_hdr_duplication_surface() {
+        use windows::core::Interface;
+        use windows::Win32::Graphics::Direct3D11::{
+            ID3D11Resource, ID3D11Texture2D, D3D11_CPU_ACCESS_READ, D3D11_MAPPED_SUBRESOURCE,
+            D3D11_MAP_READ, D3D11_TEXTURE2D_DESC, D3D11_USAGE, D3D11_USAGE_DEFAULT,
+            D3D11_USAGE_STAGING,
+        };
+        use windows::Win32::Graphics::Dxgi::Common::{
+            DXGI_FORMAT_R16G16B16A16_FLOAT, DXGI_SAMPLE_DESC,
+        };
+
+        let half_to_f32 = |bits: u16| -> f32 {
+            let sign = if bits & 0x8000 != 0 { -1.0f32 } else { 1.0 };
+            let exponent = ((bits >> 10) & 0x1f) as i32;
+            let mantissa = (bits & 0x3ff) as f32;
+            match exponent {
+                0 => sign * mantissa * 2f32.powi(-24),
+                31 => f32::NAN,
+                _ => sign * (1.0 + mantissa / 1024.0) * 2f32.powi(exponent - 15),
+            }
+        };
+
+        unsafe {
+            let adapters = DxgiCapture::candidate_adapters().expect("adapters");
+            // 12 = RGB_FULL_G2084_NONE_P2020 (HDR10), 13 = RGB_FULL_G10_NONE_P709 (scRGB), 0 = SDR
+            for adapter in &adapters {
+                for index in 0..4u32 {
+                    let Ok(output) = adapter.EnumOutputs(index) else {
+                        break;
+                    };
+                    let Ok(output6) =
+                        output.cast::<windows::Win32::Graphics::Dxgi::IDXGIOutput6>()
+                    else {
+                        continue;
+                    };
+                    let Ok(desc) = output6.GetDesc1() else {
+                        continue;
+                    };
+                    eprintln!(
+                        "output {index}: colour_space={} max_luminance={:.1} \
+                         max_full_frame={:.1} min_luminance={:.4}",
+                        desc.ColorSpace.0,
+                        desc.MaxLuminance,
+                        desc.MaxFullFrameLuminance,
+                        desc.MinLuminance
+                    );
+                }
+            }
+
+            for round in 1..=2 {
+                let mut capture = None;
+                for adapter in &adapters {
+                    if let Ok(candidate) = try_adapter(adapter) {
+                        capture = Some(candidate);
+                        break;
+                    }
+                }
+                let Some(capture) = capture else {
+                    eprintln!("round {round}: no capture");
+                    continue;
+                };
+                let device = capture.device();
+                let context = device.GetImmediateContext().expect("context");
+
+                // duplication surfaces cannot be copied straight into a
+                // CPU-readable staging texture: land them in an owned DEFAULT
+                // texture of the same format first.
+                let describe = |texture: &ID3D11Texture2D| -> String {
+                    let mut source = D3D11_TEXTURE2D_DESC::default();
+                    texture.GetDesc(&mut source);
+
+                    let make = |usage: D3D11_USAGE, cpu: u32| -> ID3D11Texture2D {
+                        let mut desc = D3D11_TEXTURE2D_DESC::default();
+                        desc.Width = source.Width;
+                        desc.Height = source.Height;
+                        desc.MipLevels = 1;
+                        desc.ArraySize = 1;
+                        desc.Format = source.Format;
+                        desc.SampleDesc = DXGI_SAMPLE_DESC {
+                            Count: 1,
+                            Quality: 0,
+                        };
+                        desc.Usage = usage;
+                        desc.CPUAccessFlags = cpu;
+                        let mut texture = None;
+                        device
+                            .CreateTexture2D(&desc, None, Some(&mut texture))
+                            .expect("CreateTexture2D");
+                        texture.expect("texture")
+                    };
+
+                    let owned = make(D3D11_USAGE_DEFAULT, 0);
+                    context.CopyResource(
+                        &owned.cast::<ID3D11Resource>().expect("owned"),
+                        &texture.cast::<ID3D11Resource>().expect("source"),
+                    );
+                    let staging = make(D3D11_USAGE_STAGING, D3D11_CPU_ACCESS_READ.0 as u32);
+                    context.CopyResource(
+                        &staging.cast::<ID3D11Resource>().expect("staging"),
+                        &owned.cast::<ID3D11Resource>().expect("owned"),
+                    );
+
+                    let mut mapped = D3D11_MAPPED_SUBRESOURCE::default();
+                    context
+                        .Map(
+                            &staging.cast::<ID3D11Resource>().expect("staging"),
+                            0,
+                            D3D11_MAP_READ,
+                            0,
+                            Some(&mut mapped),
+                        )
+                        .expect("map");
+                    let base = mapped.pData as *const u8;
+                    let pitch = mapped.RowPitch as usize;
+                    let (mut low, mut high, mut total, mut count) =
+                        (f32::MAX, f32::MIN, 0f64, 0u64);
+                    let mut y = 0usize;
+                    while y < source.Height as usize {
+                        let mut x = 0usize;
+                        while x < source.Width as usize {
+                            let value = if source.Format == DXGI_FORMAT_R16G16B16A16_FLOAT {
+                                let pixel = std::slice::from_raw_parts(
+                                    base.add(y * pitch + x * 8) as *const u16,
+                                    3,
+                                );
+                                half_to_f32(pixel[1])
+                            } else {
+                                let pixel =
+                                    std::slice::from_raw_parts(base.add(y * pitch + x * 4), 3);
+                                pixel[1] as f32 / 255.0
+                            };
+                            low = low.min(value);
+                            high = high.max(value);
+                            total += value as f64;
+                            count += 1;
+                            x += 37;
+                        }
+                        y += 13;
+                    }
+                    context.Unmap(&staging, 0);
+                    format!(
+                        "format={} {}x{} min={low:.4} mean={:.4} max={high:.4}",
+                        source.Format.0,
+                        source.Width,
+                        source.Height,
+                        total / count.max(1) as f64
+                    )
+                };
+
+                if round == 1 {
+                    let mut desc = D3D11_TEXTURE2D_DESC::default();
+                    desc.Width = 4;
+                    desc.Height = 1;
+                    desc.MipLevels = 1;
+                    desc.ArraySize = 1;
+                    desc.Format = DXGI_FORMAT_R16G16B16A16_FLOAT;
+                    desc.SampleDesc = DXGI_SAMPLE_DESC {
+                        Count: 1,
+                        Quality: 0,
+                    };
+                    desc.Usage = D3D11_USAGE_DEFAULT;
+                    let mut synthetic = None;
+                    device
+                        .CreateTexture2D(&desc, None, Some(&mut synthetic))
+                        .expect("CreateTexture2D");
+                    let synthetic = synthetic.expect("synthetic");
+                    let mut pixels: Vec<u16> = Vec::new();
+                    for value in [0x3C00u16, 0x3800, 0x4100, 0x3400] {
+                        pixels.extend_from_slice(&[value, value, value, 0x3C00]);
+                    }
+                    context.UpdateSubresource(
+                        &synthetic.cast::<ID3D11Resource>().expect("synthetic"),
+                        0,
+                        None,
+                        pixels.as_ptr() as *const _,
+                        4 * 8,
+                        0,
+                    );
+                    eprintln!(
+                        "readback sanity (synthetic fp16 green=1.0): {}",
+                        describe(&synthetic)
+                    );
+                }
+
+                let mut held = None;
+                for attempt in 1..=8 {
+                    // DXGI refuses AcquireNextFrame while a frame is held
+                    held = None;
+                    match capture.acquire(700) {
+                        Ok(Some(frame)) => {
+                            eprintln!("round {round} frame {attempt}: {}", describe(&frame.texture));
+                            held = Some(frame);
+                        }
+                        Ok(None) => eprintln!("round {round} frame {attempt}: timeout"),
+                        Err(error) => eprintln!("round {round} frame {attempt}: {error}"),
+                    }
+                    std::thread::sleep(std::time::Duration::from_millis(250));
+                }
+                drop(held);
+            }
+        }
+    }
+
+    /// Hardware probe (run with --ignored): what desktop duplication does
+    /// while the display is in standby, measured in the shape of the user's
+    /// report ("turn the display off, then start the stream").
+    ///
+    /// The display is switched off through the same DPMS path Windows' power
+    /// plan uses (`WM_SYSCOMMAND` / `SC_MONITORPOWER`) and switched back on by
+    /// a guard that also runs on unwind. Each phase reports how many acquires
+    /// returned a frame, timed out or errored, and the mean luma of the frames
+    /// it did get — plus the same statistic sampled through GDI, so "the
+    /// stream is black" can be attributed to the surface DXGI hands over or to
+    /// the desktop behind it. The phase that matters is the *fresh* duplication
+    /// created while the display is already off: that is exactly what starting
+    /// a stream with the monitor off does.
+    #[test]
+    #[ignore]
+    #[allow(unused_unsafe)] // the probe's nested blocks sit in its own unsafe scope
+    fn probe_display_standby_capture() {
+        use windows::Win32::Foundation::{LPARAM, WPARAM};
+        use windows::Win32::Graphics::Direct3D11::{
+            D3D11_CPU_ACCESS_READ, D3D11_MAPPED_SUBRESOURCE, D3D11_MAP_READ, D3D11_USAGE_STAGING,
+        };
+        use windows::Win32::System::Power::{
+            SetThreadExecutionState, ES_CONTINUOUS, ES_DISPLAY_REQUIRED,
+        };
+        use windows::Win32::Graphics::Gdi::{GetDC, GetPixel, ReleaseDC};
+        use windows::Win32::UI::WindowsAndMessaging::{
+            GetSystemMetrics, SendMessageW, HWND_BROADCAST, SM_CXSCREEN, SM_CYSCREEN, WM_SYSCOMMAND,
+        };
+
+        /// `SC_MONITORPOWER` (winuser.h): lparam 2 = off, -1 = on.
+        const SC_MONITORPOWER_CODE: usize = 0xf170;
+
+        /// Switches the display back on even if the probe panics.
+        struct DisplayBackOn;
+        impl Drop for DisplayBackOn {
+            fn drop(&mut self) {
+                unsafe {
+                    SendMessageW(
+                        HWND_BROADCAST,
+                        WM_SYSCOMMAND,
+                        WPARAM(SC_MONITORPOWER_CODE),
+                        LPARAM(-1),
+                    );
+                }
+            }
+        }
+
+        let set_display = |power: isize| unsafe {
+            SendMessageW(
+                HWND_BROADCAST,
+                WM_SYSCOMMAND,
+                WPARAM(SC_MONITORPOWER_CODE),
+                LPARAM(power),
+            );
+        };
+
+        // A static desktop delivers no frames at all, display on or off (the
+        // first run of this probe measured 1 frame in 2s with the display on),
+        // so the probe needs a change source: cursor movement is what makes the
+        // duplication deliver, the same trick `tests/live_smoke.rs` uses.
+        let wiggle_stop = std::sync::Arc::new(std::sync::atomic::AtomicBool::new(false));
+        let stop = wiggle_stop.clone();
+        let wiggler = std::thread::spawn(move || {
+            use std::sync::atomic::Ordering;
+            use windows::Win32::UI::WindowsAndMessaging::{GetCursorPos, SetCursorPos};
+            let mut left = true;
+            while !stop.load(Ordering::Relaxed) {
+                unsafe {
+                    let mut point = windows::Win32::Foundation::POINT { x: 0, y: 0 };
+                    let _ = GetCursorPos(&mut point);
+                    let _ = SetCursorPos(point.x + if left { 1 } else { -1 }, point.y);
+                }
+                left = !left;
+                std::thread::sleep(Duration::from_millis(30));
+            }
+        });
+
+        // GDI sampling of the primary screen: 48x27 points, cheap enough to run
+        // inside a phase and independent of DXGI.
+        let gdi_luma = || unsafe {
+            let screen_w = GetSystemMetrics(SM_CXSCREEN).max(1);
+            let screen_h = GetSystemMetrics(SM_CYSCREEN).max(1);
+            let dc = GetDC(None);
+            let (mut sum, mut min, mut max, mut count) = (0.0f64, f64::MAX, 0.0f64, 0u32);
+            for gy in 0..27 {
+                for gx in 0..48 {
+                    let pixel = GetPixel(dc, gx * screen_w / 48, gy * screen_h / 27).0;
+                    let (b, g, r) = (
+                        (pixel & 0xff) as f64,
+                        ((pixel >> 8) & 0xff) as f64,
+                        ((pixel >> 16) & 0xff) as f64,
+                    );
+                    let luma = 0.114 * b + 0.587 * g + 0.299 * r;
+                    sum += luma;
+                    min = min.min(luma);
+                    max = max.max(luma);
+                    count += 1;
+                }
+            }
+            ReleaseDC(None, dc);
+            (sum / count as f64, min, max)
+        };
+
+        unsafe {
+            let adapters = DxgiCapture::candidate_adapters().expect("adapters");
+            let capture = try_adapter(&adapters[0]).expect("capture");
+            eprintln!(
+                "display standby probe: {}x{}, desktop duplication over BGRA",
+                capture.width, capture.height
+            );
+
+            fn frame_luma(device: &ID3D11Device, frame: &DxgiFrame) -> String {
+                unsafe {
+                    let mut desc = D3D11_TEXTURE2D_DESC::default();
+                    frame.texture.GetDesc(&mut desc);
+                    let mut staging = desc;
+                    staging.Usage = D3D11_USAGE_STAGING;
+                    staging.BindFlags = 0;
+                    staging.CPUAccessFlags = D3D11_CPU_ACCESS_READ.0 as u32;
+                    staging.MiscFlags = 0;
+                    let mut copy = None;
+                    if device
+                        .CreateTexture2D(&staging, None, Some(&mut copy))
+                        .is_err()
+                    {
+                        return "staging texture failed".to_string();
+                    }
+                    let copy = copy.expect("staging");
+                    let context = device.GetImmediateContext().expect("context");
+                    context.CopyResource(&copy, &frame.texture);
+                    let mut mapped = D3D11_MAPPED_SUBRESOURCE::default();
+                    if context
+                        .Map(&copy, 0, D3D11_MAP_READ, 0, Some(&mut mapped))
+                        .is_err()
+                    {
+                        return "map failed".to_string();
+                    }
+                    let pitch = mapped.RowPitch as usize;
+                    let rows = (desc.Height as usize).min(64);
+                    let cols = (desc.Width as usize).min(256);
+                    let (mut sum, mut min, mut max, mut count) = (0.0f64, f64::MAX, 0.0f64, 0u64);
+                    if desc.Format == DXGI_FORMAT_B8G8R8A8_UNORM {
+                        for row in 0..rows {
+                            let row_ptr = (mapped.pData as *const u8).add(row * pitch);
+                            for col in 0..cols {
+                                let pixel = row_ptr.add(col * 4);
+                                let (b, g, r) = (
+                                    *pixel as f64,
+                                    *pixel.add(1) as f64,
+                                    *pixel.add(2) as f64,
+                                );
+                                let luma = 0.114 * b + 0.587 * g + 0.299 * r;
+                                sum += luma;
+                                min = min.min(luma);
+                                max = max.max(luma);
+                                count += 1;
+                            }
+                        }
+                    }
+                    context.Unmap(&copy, 0);
+                    if count == 0 {
+                        return format!("frame format={} (no luma read)", desc.Format.0);
+                    }
+                    format!(
+                        "frame {}x{} format={} mean={:.1} min={:.0} max={:.0}",
+                        desc.Width,
+                        desc.Height,
+                        desc.Format.0,
+                        sum / count as f64,
+                        min,
+                        max
+                    )
+                }
+            }
+
+            let phase = |label: &str, seconds: u32, capture: &DxgiCapture| {
+                let (mut frames, mut timeouts, mut errors) = (0u32, 0u32, 0u32);
+                let mut samples: Vec<String> = Vec::new();
+                let mut error_text = String::new();
+                let deadline = Instant::now() + Duration::from_secs(seconds as u64);
+                while Instant::now() < deadline {
+                    match capture.acquire(250) {
+                        Ok(Some(frame)) => {
+                            frames += 1;
+                            if samples.len() < 2 {
+                                samples.push(frame_luma(&capture.device(), &frame));
+                            }
+                        }
+                        Ok(None) => timeouts += 1,
+                        Err(error) => {
+                            errors += 1;
+                            if error_text.is_empty() {
+                                error_text = error;
+                            }
+                        }
+                    }
+                }
+                let (mean, min, max) = gdi_luma();
+                eprintln!(
+                    "{label}: frames={frames} timeouts={timeouts} errors={errors} | GDI luma \
+                     mean={mean:.1} min={min:.0} max={max:.0}"
+                );
+                if !error_text.is_empty() {
+                    eprintln!("  first acquire error: {error_text}");
+                }
+                for sample in &samples {
+                    eprintln!("  {sample}");
+                }
+            };
+
+            phase("display ON (baseline)", 2, &capture);
+
+            set_display(2);
+            let _restore = DisplayBackOn;
+            std::thread::sleep(Duration::from_millis(2000));
+            phase("display STANDBY (panel off, desktop still composed)", 4, &capture);
+
+            // Does asking Windows to keep the display on bring the frames back
+            // with the panel still dark? This is the mechanism a fix would use
+            // (Sunshine's ES_DISPLAY_REQUIRED + retry, display_base.cpp:550).
+            unsafe {
+                SetThreadExecutionState(ES_CONTINUOUS | ES_DISPLAY_REQUIRED);
+            }
+            std::thread::sleep(Duration::from_millis(2000));
+            phase("display STANDBY + ES_DISPLAY_REQUIRED", 4, &capture);
+
+            // Does *keeping* the flag set — what a running stream does, and
+            // what the keeper now re-asserts every 500 ms — hold capture up,
+            // or does the display win after a while? Re-assert every 2 s and
+            // count frames per bucket: if the later buckets collapse, a
+            // repeated call is not enough and the answer is a virtual display.
+            for bucket in 1..=5 {
+                unsafe {
+                    SetThreadExecutionState(ES_CONTINUOUS | ES_DISPLAY_REQUIRED);
+                }
+                let (mut frames, mut timeouts, mut errors) = (0u32, 0u32, 0u32);
+                let deadline = Instant::now() + Duration::from_secs(2);
+                while Instant::now() < deadline {
+                    match capture.acquire(250) {
+                        Ok(Some(frame)) => {
+                            frames += 1;
+                            drop(frame);
+                        }
+                        Ok(None) => timeouts += 1,
+                        Err(_) => errors += 1,
+                    }
+                }
+                eprintln!(
+                    "standby keep-alive bucket {bucket} (2s): frames={frames} timeouts={timeouts} \
+                     errors={errors}"
+                );
+            }
+            unsafe {
+                SetThreadExecutionState(ES_CONTINUOUS);
+            }
+            std::thread::sleep(Duration::from_millis(2000));
+            phase("display STANDBY after releasing it", 3, &capture);
+
+            // The user's case: the stream starts *after* the display went off.
+            // DXGI allows one duplication per output, so the old duplicator has
+            // to go first — as it does when the sidecar starts fresh.
+            drop(capture);
+            match try_adapter(&adapters[0]) {
+                Ok(fresh) => phase("display STANDBY, fresh duplication", 3, &fresh),
+                Err(error) => {
+                    eprintln!("display STANDBY, fresh duplication: FAILED: {error}");
+                    // Sunshine's move for an output that cannot be duplicated:
+                    // ask Windows to power the display back on and retry
+                    // (display_base.cpp:550-554). The panel may stay dark; the
+                    // question is whether the *desktop* comes back.
+                    let mut woken = None;
+                    for attempt in 1..=4 {
+                        unsafe {
+                            SetThreadExecutionState(ES_CONTINUOUS | ES_DISPLAY_REQUIRED);
+                        }
+                        std::thread::sleep(Duration::from_millis(1500));
+                        match try_adapter(&adapters[0]) {
+                            Ok(fresh) => {
+                                eprintln!(
+                                    "display STANDBY after wake attempt {attempt}: duplication \
+                                     created"
+                                );
+                                woken = Some(fresh);
+                                break;
+                            }
+                            Err(error) => {
+                                eprintln!("display STANDBY after wake attempt {attempt}: {error}")
+                            }
+                        }
+                    }
+                    if let Some(fresh) = woken {
+                        phase("display STANDBY + ES_DISPLAY_REQUIRED", 3, &fresh);
+                    } else {
+                        eprintln!("display STANDBY: never became duplicatable");
+                    }
+                    unsafe {
+                        SetThreadExecutionState(ES_CONTINUOUS);
+                    }
+                }
+            }
+
+            set_display(-1);
+            std::thread::sleep(Duration::from_millis(2000));
+            match try_adapter(&adapters[0]) {
+                Ok(after) => phase("display back ON", 3, &after),
+                Err(error) => eprintln!("display back ON: {error}"),
+            }
+
+            wiggle_stop.store(true, std::sync::atomic::Ordering::Relaxed);
+            let _ = wiggler.join();
+        }
     }
 }

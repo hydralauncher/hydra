@@ -119,6 +119,66 @@ fn run(state: Arc<State>, socket: UdpSocket) -> io::Result<()> {
     // the tiny return-path datagrams that bufferbloat drowns first)
     let mut _control_qos_flow: Option<crate::qos::QosFlow> = None;
 
+    // The HDR mode message goes out once per session, as soon as there is a
+    // peer to send it to.
+    let mut hdr_sent = false;
+
+    /// Tells the client what the HDR state of this session is, once its control
+    /// channel is up: a Moonlight client switches its display on this message
+    /// and it is the only route by which the display's HDR metadata reaches the
+    /// client (Sunshine's `send_hdr_mode`, `stream.cpp:1130-1157`, which logs
+    /// the same "still waiting for PING" case when there is no peer yet).
+    ///
+    /// Sent once, not per frame, and sent whenever the client *asked* for
+    /// 10-bit — including when the answer is "no". Sunshine raises the same
+    /// message with `enabled = false` when the display cannot produce HDR
+    /// (`video.cpp:2650-2658`), and leaving that out is worse than it sounds:
+    /// the client has already negotiated a 10-bit format, so a silent 8-bit
+    /// stream leaves it in HDR10 mode against SDR content. A session the client
+    /// never asked HDR for announces nothing.
+    fn send_hdr_mode(
+        state: &crate::nvhttp::State,
+        socket: &std::net::UdpSocket,
+        server: &mut crate::enet::EnetServer,
+        now: Instant,
+    ) {
+        let asked = state
+            .launch_params()
+            .is_some_and(|launch| launch.dynamic_range > 0 || launch.hdr_mode);
+        let enabled = crate::config::session_hdr();
+        if !asked && !enabled {
+            return;
+        }
+        let Some(metadata) = crate::capture::display_hdr_metadata() else {
+            eprintln!("control: no display to describe, HDR mode message not sent");
+            return;
+        };
+        let payload = crate::stream::hdr_mode_payload(state, &metadata);
+        if payload.is_empty() {
+            eprintln!("control: no launch state, HDR mode message not sent");
+            return;
+        }
+        let _ = server.send_reliable(0, &payload);
+        send_flush(socket, server, now);
+        if !enabled {
+            eprintln!(
+                "control: told the client HDR is unavailable (client asked for 10-bit, streaming \
+                 SDR; max {} nits, min {} nits, {}-byte message)",
+                metadata.max_luminance,
+                metadata.min_luminance,
+                payload.len()
+            );
+            return;
+        }
+        eprintln!(
+            "control: told the client the stream is HDR10 (max {} nits, min {} nits, {}-byte \
+             message)",
+            metadata.max_luminance,
+            metadata.min_luminance,
+            payload.len()
+        );
+    }
+
     loop {
         let now = Instant::now();
 
@@ -168,6 +228,13 @@ fn run(state: Arc<State>, socket: UdpSocket) -> io::Result<()> {
             match event {
                 EnetEvent::Connected { connect_data } => {
                     eprintln!("control: client connected (enet data {connect_data:#x})");
+                    // The HDR state goes out with the first connection: the
+                    // peer's ENet session is established and TCP-style
+                    // reliability is available from here on.
+                    if !hdr_sent {
+                        hdr_sent = true;
+                        send_hdr_mode(&state, &socket, &mut server, now);
+                    }
                     // mark the control channel per the client's video
                     // qosTrafficType (the control socket carries the
                     // return-path ACKs alongside the video class)

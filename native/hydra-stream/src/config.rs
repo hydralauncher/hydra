@@ -2,7 +2,12 @@
 //! development machines, so every port can be overridden via the
 //! environment (tests use ephemeral ports; the live smoke uses overrides).
 
+use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::OnceLock;
+
+/// The HDR state the current session negotiated (see [`set_session_hdr`]).
+/// One sidecar process serves one session at a time.
+static SESSION_HDR: AtomicBool = AtomicBool::new(false);
 
 #[derive(Clone, Copy, Debug)]
 pub struct Ports {
@@ -131,6 +136,98 @@ pub fn video_dump_path() -> Option<&'static str> {
             .filter(|value| !value.trim().is_empty())
     })
     .as_deref()
+}
+
+pub const BUFFER_FORMAT_ENV: &str = "HYDRA_STREAM_BUFFER_FORMAT";
+
+/// Diagnostic override for the NVENC *input* buffer format, so the driver's
+/// registration requirements can be probed without rebuilding
+/// (`tests/hdr_encode_probe.rs` drives it): `argb` (8-bit packed BGRA),
+/// `nv12` (8-bit planar), `p010` (`NV_ENC_BUFFER_FORMAT_YUV420_10BIT`). Unset
+/// means the session decides — ARGB, or P010 for an HDR session. Read once per
+/// process.
+pub fn buffer_format_override() -> Option<&'static str> {
+    static OVERRIDE: OnceLock<Option<String>> = OnceLock::new();
+    OVERRIDE
+        .get_or_init(|| {
+            std::env::var(BUFFER_FORMAT_ENV)
+                .ok()
+                .filter(|value| !value.trim().is_empty())
+        })
+        .as_deref()
+}
+
+pub const HDR_ENV: &str = "HYDRA_STREAM_HDR";
+
+/// Whether this session streams HDR10: the capture path asks DXGI for the
+/// FP16 scRGB desktop (`R16G16B16A16_FLOAT`) instead of the 8-bit BGRA
+/// surface the legacy `IDXGIOutput1::DuplicateOutput` can only return, the
+/// scaler converts it to BT.2020/PQ P010, and the encoder selects HEVC
+/// Main10 with the PQ VUI.
+///
+/// The value is the session's negotiated state (see
+/// [`set_session_hdr`]), i.e. what the client actually negotiated, unless
+/// [`hdr_override`] says otherwise.
+pub fn hdr_enabled() -> bool {
+    hdr_override().unwrap_or_else(|| SESSION_HDR.load(Ordering::Relaxed))
+}
+
+/// Explicit HDR on/off from `HYDRA_STREAM_HDR`, when set: an override that
+/// beats the session's own negotiation, so the hardware probes can drive the
+/// HDR path with a client (or test) that does not ask for it. `Some(false)`
+/// forces SDR even for a client that asked for 10-bit.
+pub fn hdr_override() -> Option<bool> {
+    static OVERRIDE: OnceLock<Option<bool>> = OnceLock::new();
+    *OVERRIDE.get_or_init(|| {
+        match std::env::var(HDR_ENV).ok().as_deref().map(str::trim) {
+            Some("1") | Some("true") | Some("yes") => Some(true),
+            Some("0") | Some("false") | Some("no") => Some(false),
+            _ => None,
+        }
+    })
+}
+
+/// The HDR state this session settled on, installed by the session setup
+/// before the capture is created.
+///
+/// Process-wide rather than a parameter because every stage that has to agree
+/// — the duplication's requested format list, the scaler choice, the
+/// encoder's input buffer format — is reached through code that does not
+/// carry the session's parameters, and one sidecar process serves one
+/// session at a time. It is set before the pipeline is built and only read
+/// while that session lives.
+pub fn set_session_hdr(enabled: bool) {
+    SESSION_HDR.store(enabled, Ordering::Relaxed);
+}
+
+/// The session's negotiated HDR state, before any override.
+pub fn session_hdr() -> bool {
+    SESSION_HDR.load(Ordering::Relaxed)
+}
+
+pub const CODECS_ENV: &str = "HYDRA_STREAM_CODECS";
+
+/// Whether HEVC may be advertised and negotiated at all.
+///
+/// `HYDRA_STREAM_CODECS=h264` (also `avc`) pins the host to H.264: the HEVC
+/// advertisement then drops out of DESCRIBE and `ServerCodecModeSupport`, so a
+/// client — including one left on "Auto" — negotiates H.264 instead of HEVC.
+///
+/// It exists because HEVC decode is not uniformly good on the client side.
+/// Measured on an Android TV with otherwise identical settings (same client,
+/// `initialBitrateKbps=100000`, same 2608x1200 mode request, same FEC): a HEVC
+/// session reconnected six times in nine minutes with 139 forced IDRs, where
+/// H.264 held a single session with 22. HDR needs HEVC Main10, so such a
+/// client cannot have HDR either way — the switch is for choosing smooth SDR
+/// over unusable HEVC. Read once per process.
+pub fn hevc_advertised() -> bool {
+    static VALUE: OnceLock<bool> = OnceLock::new();
+    *VALUE.get_or_init(|| {
+        !matches!(
+            std::env::var(CODECS_ENV).ok().as_deref().map(str::trim),
+            Some("h264") | Some("avc")
+        )
+    })
 }
 
 pub const AUDIO_DUMP_ENV: &str = "HYDRA_STREAM_AUDIO_DUMP";
