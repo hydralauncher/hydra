@@ -455,8 +455,7 @@ async function onOpenGame(game: Game, matchedPath: string) {
       resolveSteamSessionPlaytimePolicy({
         hasActiveSteamImport: game.hasActiveSteamImport === true,
         isSteamLibraryPath,
-        disableHydraPlaytimeTracking:
-          game.disableHydraPlaytimeTracking === true,
+        enableHydraPlaytimeTracking: game.enableHydraPlaytimeTracking === true,
       }));
   }
 

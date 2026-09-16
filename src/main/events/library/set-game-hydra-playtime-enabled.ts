@@ -4,16 +4,16 @@ import type { GameShop } from "@types";
 
 import { registerEvent } from "../register-event";
 
-const setGameHydraPlaytimeDisabled = async (
+const setGameHydraPlaytimeEnabled = async (
   _event: Electron.IpcMainInvokeEvent,
   shop: GameShop,
   objectId: string,
-  disabled: boolean
+  enabled: boolean
 ) => {
   const gameKey = levelKeys.game(shop, objectId);
   await updateGameRecord(gameKey, {
-    disableHydraPlaytimeTracking: disabled,
+    enableHydraPlaytimeTracking: enabled,
   });
 };
 
-registerEvent("setGameHydraPlaytimeDisabled", setGameHydraPlaytimeDisabled);
+registerEvent("setGameHydraPlaytimeEnabled", setGameHydraPlaytimeEnabled);

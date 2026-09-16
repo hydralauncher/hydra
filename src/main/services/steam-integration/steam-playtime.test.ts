@@ -120,34 +120,54 @@ describe("Steam import lookup", () => {
 });
 
 describe("Steam session playtime policy", () => {
-  it("keeps automatic deduplication for Steam library executables", () => {
+  it("deduplicates imported Steam library sessions and syncs on exit", () => {
     assert.deepEqual(
       resolveSteamSessionPlaytimePolicy({
         hasActiveSteamImport: true,
         isSteamLibraryPath: true,
-        disableHydraPlaytimeTracking: false,
+        enableHydraPlaytimeTracking: false,
       }),
       { countHydraPlaytime: false, syncSteamOnExit: true }
     );
   });
 
-  it("allows a per-game opt-out without scheduling an unrelated Steam sync", () => {
+  it("deduplicates imported games outside Steam libraries by default", () => {
     assert.deepEqual(
       resolveSteamSessionPlaytimePolicy({
         hasActiveSteamImport: true,
         isSteamLibraryPath: false,
-        disableHydraPlaytimeTracking: true,
+        enableHydraPlaytimeTracking: false,
       }),
       { countHydraPlaytime: false, syncSteamOnExit: false }
     );
   });
 
-  it("ignores the preference after the Steam import is disconnected", () => {
+  it("allows an imported game to opt in without changing exit sync eligibility", () => {
+    assert.deepEqual(
+      resolveSteamSessionPlaytimePolicy({
+        hasActiveSteamImport: true,
+        isSteamLibraryPath: true,
+        enableHydraPlaytimeTracking: true,
+      }),
+      { countHydraPlaytime: true, syncSteamOnExit: true }
+    );
+
+    assert.deepEqual(
+      resolveSteamSessionPlaytimePolicy({
+        hasActiveSteamImport: true,
+        isSteamLibraryPath: false,
+        enableHydraPlaytimeTracking: true,
+      }),
+      { countHydraPlaytime: true, syncSteamOnExit: false }
+    );
+  });
+
+  it("counts Hydra playtime after the Steam import is disconnected", () => {
     assert.deepEqual(
       resolveSteamSessionPlaytimePolicy({
         hasActiveSteamImport: false,
         isSteamLibraryPath: false,
-        disableHydraPlaytimeTracking: true,
+        enableHydraPlaytimeTracking: false,
       }),
       { countHydraPlaytime: true, syncSteamOnExit: false }
     );
@@ -163,7 +183,7 @@ describe("Steam session playtime policy", () => {
       resolveSteamSessionPlaytimePolicy({
         hasActiveSteamImport,
         isSteamLibraryPath: false,
-        disableHydraPlaytimeTracking: true,
+        enableHydraPlaytimeTracking: false,
       }),
       { countHydraPlaytime: true, syncSteamOnExit: false }
     );

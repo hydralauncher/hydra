@@ -269,7 +269,7 @@ interface GeneralSettingsSectionProps {
   onResetGameTitle?: () => void;
   onChangeLaunchOptions: (event: React.ChangeEvent<HTMLInputElement>) => void;
   onClearLaunchOptions: () => Promise<void>;
-  onToggleHydraPlaytimeDisabled: (disabled: boolean) => Promise<void>;
+  onToggleHydraPlaytimeEnabled: (enabled: boolean) => Promise<void>;
   isTransferring: boolean;
   transferProgress: number;
   drives: DriveInfo[];
@@ -341,7 +341,7 @@ export function GeneralSettingsSection({
   onResetGameTitle,
   onChangeLaunchOptions,
   onClearLaunchOptions,
-  onToggleHydraPlaytimeDisabled,
+  onToggleHydraPlaytimeEnabled,
   isTransferring,
   transferProgress,
   drives,
@@ -617,10 +617,10 @@ export function GeneralSettingsSection({
           </div>
 
           <CheckboxField
-            label={t("disable_hydra_playtime_tracking")}
-            checked={game.disableHydraPlaytimeTracking === true}
+            label={t("enable_hydra_playtime_tracking")}
+            checked={game.enableHydraPlaytimeTracking === true}
             onChange={(event) =>
-              void onToggleHydraPlaytimeDisabled(event.target.checked)
+              void onToggleHydraPlaytimeEnabled(event.target.checked)
             }
           />
         </div>
