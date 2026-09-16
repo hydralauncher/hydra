@@ -2,7 +2,7 @@ import { registerEvent } from "../register-event";
 import { collectGameAchievementFiles } from "@main/services/achievements/collect-game-achievement-files";
 import fs from "fs";
 import { achievementsLogger, HydraApi, WindowManager } from "@main/services";
-import { getUnlockedAchievements } from "../user/get-unlocked-achievements";
+import { syncAndGetUnlockedAchievements } from "../user/get-unlocked-achievements";
 import { gamesSublevel, levelKeys } from "@main/level";
 import type { GameShop } from "@types";
 import { AchievementMemoryStore } from "@main/services/achievements/achievement-memory-store";
@@ -70,10 +70,9 @@ const resetGameAchievements = async (
       }
     );
 
-    const updatedAchievements = await getUnlockedAchievements(
+    const updatedAchievements = await syncAndGetUnlockedAchievements(
       game.objectId,
-      game.shop,
-      true
+      game.shop
     );
 
     WindowManager.mainWindow?.webContents.send(
