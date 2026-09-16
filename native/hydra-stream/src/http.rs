@@ -165,6 +165,7 @@ pub async fn handle_conn(
     tls: Option<TlsAcceptor>,
 ) -> io::Result<()> {
     let local_ip = stream.local_addr()?.ip();
+    let peer_ip = stream.peer_addr()?.ip();
     let is_https = tls.is_some();
 
     let mut io = match tls {
@@ -208,7 +209,15 @@ pub async fn handle_conn(
     );
     let params = parse_query(query);
 
-    let body = match nvhttp::route(&state, path, &params, is_https, local_ip, peer_cert.as_deref()) {
+    let body = match nvhttp::route(
+        &state,
+        path,
+        &params,
+        is_https,
+        local_ip,
+        peer_ip,
+        peer_cert.as_deref(),
+    ) {
         nvhttp::RouteOutcome::Ready(body) => body,
         nvhttp::RouteOutcome::ReadyBinary { body, content_type } => {
             let header = format!(
@@ -225,12 +234,32 @@ pub async fn handle_conn(
         nvhttp::RouteOutcome::AwaitPairingPin { uniqueid } => {
             // The client (Moonlight) waits indefinitely for the
             // getservercert response while the user enters the PIN shown
-            // on the client into Hydra (Sunshine semantics).
+            // on the client into Hydra (Sunshine semantics). The wait also
+            // has to end when the client goes away: cancelling the PIN
+            // dialog closes the connection, and a session parked until the
+            // 5-minute timeout would refuse that same client's immediate
+            // retry (Moonlight reuses one fixed uniqueid) with a 409.
             let (tx, rx) = tokio::sync::oneshot::channel();
             state.register_pair_response(&uniqueid, tx);
-            match tokio::time::timeout(nvhttp::PAIR_TIMEOUT, rx).await {
-                Ok(Ok(body)) => body,
-                _ => {
+            let (body, abandoned) = {
+                // The read future borrows io; the scope ends before the
+                // response write below reuses it.
+                let gone = wait_for_peer_close(&mut io);
+                tokio::pin!(gone);
+                tokio::select! {
+                    result = tokio::time::timeout(nvhttp::PAIR_TIMEOUT, rx) => {
+                        (result.ok().and_then(|result| result.ok()), false)
+                    }
+                    _ = &mut gone => (None, true),
+                }
+            };
+            match body {
+                Some(body) => body,
+                None if abandoned => {
+                    state.abandon_pairing_session(&uniqueid);
+                    nvhttp::pair_fail(400, "Pairing cancelled by client")
+                }
+                None => {
                     state.expire_pairing_session(&uniqueid);
                     nvhttp::pair_fail(400, "Pairing session expired")
                 }
@@ -246,6 +275,23 @@ pub async fn handle_conn(
     io.flush().await?;
     let _ = io.shutdown().await;
     Ok(())
+}
+
+/// Resolves when the client closes its end of a connection whose response
+/// is still being held. EOF or a read error means no response can reach it
+/// any more; a cleartext or TLS `close_notify` both surface that way.
+///
+/// Bytes that are still arriving are *not* a disconnect — they are a
+/// pipelining or probing client — so the wait continues instead of treating
+/// a live session as abandoned.
+async fn wait_for_peer_close(io: &mut (impl AsyncRead + Unpin)) {
+    let mut stray = [0u8; 1];
+    loop {
+        match io.read(&mut stray).await {
+            Ok(0) | Err(_) => return,
+            Ok(_) => continue,
+        }
+    }
 }
 
 async fn read_request_head(

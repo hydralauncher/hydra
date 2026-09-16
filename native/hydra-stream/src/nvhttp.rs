@@ -249,6 +249,12 @@ pub struct PairSession {
     aes_key: Option<[u8; 16]>,
     client_cert: Vec<u8>,
     devicename: String,
+    /// Source address of the getservercert request that raised this
+    /// session. A new getservercert for the same uniqueid may only replace
+    /// a session that has no PIN yet when it comes from this same peer, so
+    /// two devices sharing Moonlight's fixed uniqueid cannot evict each
+    /// other's pairing.
+    peer_ip: IpAddr,
     server_secret: [u8; 16],
     server_challenge: [u8; 16],
     client_hash: Vec<u8>,
@@ -777,6 +783,7 @@ pub fn route(
     params: &HashMap<String, String>,
     is_https: bool,
     local_ip: IpAddr,
+    peer_ip: IpAddr,
     peer_cert: Option<&[u8]>,
 ) -> RouteOutcome {
     if matches!(
@@ -795,7 +802,7 @@ pub fn route(
     }
     let outcome = match path {
         "/serverinfo" => serverinfo(state, is_https, params.contains_key("uniqueid"), local_ip),
-        "/pair" => return pair(state, params),
+        "/pair" => return pair(state, params, peer_ip),
         "/applist" if is_https => applist(state),
         "/appasset" if is_https => {
             let appid = params.get("appid").and_then(|value| value.parse().ok());
@@ -1381,41 +1388,65 @@ fn not_found() -> String {
     .to_string()
 }
 
-fn pair(state: &State, params: &HashMap<String, String>) -> RouteOutcome {
+fn pair(state: &State, params: &HashMap<String, String>, peer_ip: IpAddr) -> RouteOutcome {
     let Some(uniqueid) = params.get("uniqueid") else {
         return RouteOutcome::Ready(pair_fail(400, "Missing uniqueid parameter"));
     };
 
     match params.get("phrase").map(String::as_str) {
-        Some("getservercert") => getservercert(state, uniqueid, params),
+        Some("getservercert") => getservercert(state, uniqueid, params, peer_ip),
         Some("pairchallenge") => RouteOutcome::Ready(pair_ok("")),
         _ => RouteOutcome::Ready(pair_phases(state, uniqueid, params)),
     }
 }
 
-fn getservercert(state: &State, uniqueid: &str, params: &HashMap<String, String>) -> RouteOutcome {
+fn getservercert(
+    state: &State,
+    uniqueid: &str,
+    params: &HashMap<String, String>,
+    peer_ip: IpAddr,
+) -> RouteOutcome {
     let mut sessions = state.sessions.lock().expect("pair sessions lock");
     expire_pair_sessions(state, &mut sessions);
 
-    if sessions.contains_key(uniqueid) {
-        // Re-pair escape: if the previous session's getservercert request
-        // already completed or timed out (its held response is gone and
-        // no PIN raced ahead), the client is starting over — replace the
-        // abandoned session instead of 409ing for the rest of the
-        // 5-minute lifetime. A session whose HTTP request is still held
-        // open (user mid-PIN-entry) still conflicts.
-        let replaceable = sessions.get(uniqueid).is_some_and(|session| {
-            session.response_tx.is_none() && session.pending_body.is_none()
-        });
-        if replaceable {
-            eprintln!("nvhttp: replacing abandoned pairing session for {uniqueid}");
-            sessions.remove(uniqueid);
-        } else {
+    if let Some(existing) = sessions.get(uniqueid) {
+        // A session that has not taken a PIN yet is still just "the client
+        // is showing a PIN dialog" — nothing has been agreed with it, so a
+        // fresh getservercert may supersede it instead of 409ing for the
+        // rest of the 5-minute lifetime. That is what a cancelled pairing
+        // looks like: the user dismisses the PIN dialog and Moonlight
+        // retries with the *same* fixed uniqueid, so refusing the retry
+        // left the client looping until Hydra was restarted.
+        //
+        // The licence to supersede is narrow, so a second device that
+        // happens to share that uniqueid cannot hijack (or be locked out
+        // by) the first one: either the old holder is already gone (its
+        // HTTP task dropped the receiver, so nobody can receive the held
+        // response any more) or the retry comes from the same peer that
+        // raised the session. A session with a PIN applied is mid-handshake
+        // and always conflicts.
+        let awaiting_pin = existing.aes_key.is_none() && existing.pending_body.is_none();
+        let holder_gone = existing
+            .response_tx
+            .as_ref()
+            .is_some_and(|tx| tx.is_closed());
+        if !(awaiting_pin && (holder_gone || existing.peer_ip == peer_ip)) {
             return RouteOutcome::Ready(pair_fail(
                 409,
                 "A pairing session with this uniqueid already exists",
             ));
         }
+
+        // The superseded session's held response is terminal: unblock its
+        // HTTP task, and close the PIN prompt if that session's request is
+        // the one the UI is showing.
+        if let Some(mut replaced) = sessions.remove(uniqueid) {
+            if let Some(tx) = replaced.response_tx.take() {
+                let _ = tx.send(pair_fail(400, "Pairing session replaced by a new request"));
+                emit_pairing_finished(state, false);
+            }
+        }
+        eprintln!("nvhttp: replacing pairing session for {uniqueid} (peer {peer_ip})");
     }
 
     let Some(salt) = params.get("salt") else {
@@ -1449,6 +1480,7 @@ fn getservercert(state: &State, uniqueid: &str, params: &HashMap<String, String>
             aes_key: None,
             client_cert,
             devicename: params.get("devicename").cloned().unwrap_or_default(),
+            peer_ip,
             server_secret: [0; 16],
             server_challenge: [0; 16],
             client_hash: Vec::new(),
@@ -1517,12 +1549,31 @@ impl State {
     /// Removes a pairing session (timeout or terminal failure) and emits
     /// pairing-finished(false).
     pub fn expire_pairing_session(&self, uniqueid: &str) {
+        self.release_pairing_session(uniqueid, "Pairing session expired", "expired");
+    }
+
+    /// Removes a pairing session whose HTTP request the client abandoned:
+    /// the connection closed while the getservercert response was held for
+    /// the PIN, so nothing can receive that response any more and the
+    /// uniqueid must not stay locked. Emitting pairing-finished(false)
+    /// closes the PIN prompt the user cancelled.
+    pub fn abandon_pairing_session(&self, uniqueid: &str) {
+        self.release_pairing_session(
+            uniqueid,
+            "Pairing cancelled by client",
+            "abandoned by client",
+        );
+    }
+
+    /// Drops a pairing session, completing any held HTTP response with a
+    /// 400 failure body and emitting pairing-finished(false).
+    fn release_pairing_session(&self, uniqueid: &str, body: &str, reason: &str) {
         let mut sessions = self.sessions.lock().expect("pair sessions lock");
         if let Some(mut session) = sessions.remove(uniqueid) {
             if let Some(tx) = session.response_tx.take() {
-                let _ = tx.send(pair_fail(400, "Pairing session expired"));
+                let _ = tx.send(pair_fail(400, body));
             }
-            eprintln!("nvhttp: pairing session {uniqueid} expired");
+            eprintln!("nvhttp: pairing session {uniqueid} {reason}");
             emit_pairing_finished(self, false);
         }
     }
@@ -1849,6 +1900,7 @@ pub(crate) mod tests {
                 ("devicename", "test-device"),
                 ("clientcert", &client_cert_hex),
             ]),
+            test_peer(),
         );
         let RouteOutcome::AwaitPairingPin { uniqueid: held } = outcome else {
             panic!("getservercert must hold the response");
@@ -1881,6 +1933,7 @@ pub(crate) mod tests {
                 ("uniqueid", uniqueid),
                 ("clientchallenge", &crypto::hex_encode_upper(&encrypted_challenge)),
             ]),
+            test_peer(),
         ) else {
             panic!("phases must not hold");
         };
@@ -1904,6 +1957,7 @@ pub(crate) mod tests {
                 ("uniqueid", uniqueid),
                 ("serverchallengeresp", &crypto::hex_encode_upper(&encrypted_hash)),
             ]),
+            test_peer(),
         ) else {
             panic!("phases must not hold");
         };
@@ -1939,6 +1993,7 @@ pub(crate) mod tests {
                 ("uniqueid", uniqueid),
                 ("clientpairingsecret", &crypto::hex_encode_upper(&pairing_secret)),
             ]),
+            test_peer(),
         ) else {
             panic!("phases must not hold");
         };
@@ -2088,6 +2143,7 @@ pub(crate) mod tests {
         let RouteOutcome::Ready(response) = pair(
             &state,
             &params(&[("uniqueid", "nobody"), ("clientchallenge", "00")]),
+            test_peer(),
         ) else {
             panic!("phases must not hold");
         };
@@ -2106,7 +2162,14 @@ pub(crate) mod tests {
         (Arc::new(State::with_store(store, tx).expect("state")), rx)
     }
 
-    fn start_pairing(state: &State, uniqueid: &str) -> [u8; 16] {
+    /// The peer address the pairing tests request from. The replacement
+    /// rule keys on it, so a test that plays a *second* device uses a
+    /// different one.
+    fn test_peer() -> IpAddr {
+        "192.168.1.50".parse().expect("test peer address")
+    }
+
+    fn start_pairing_from(state: &State, uniqueid: &str, peer_ip: IpAddr) -> [u8; 16] {
         let salt: [u8; 16] = crypto::random_bytes(16).try_into().unwrap();
         let salt_hex = crypto::hex_encode_upper(&salt);
         let outcome = pair(
@@ -2117,9 +2180,21 @@ pub(crate) mod tests {
                 ("salt", &salt_hex),
                 ("devicename", "tester"),
             ]),
+            peer_ip,
         );
         assert!(matches!(outcome, RouteOutcome::AwaitPairingPin { .. }));
         salt
+    }
+
+    fn start_pairing(state: &State, uniqueid: &str) -> [u8; 16] {
+        start_pairing_from(state, uniqueid, test_peer())
+    }
+
+    fn expect_ready(outcome: RouteOutcome) -> String {
+        let RouteOutcome::Ready(body) = outcome else {
+            panic!("request must not hold the response");
+        };
+        body
     }
 
     #[test]
@@ -2135,6 +2210,7 @@ pub(crate) mod tests {
                 ("uniqueid", uniqueid),
                 ("clientchallenge", &crypto::hex_encode_upper(&[0xAB; 32])),
             ]),
+            test_peer(),
         ) else {
             panic!("phases must not hold");
         };
@@ -2206,6 +2282,145 @@ pub(crate) mod tests {
         let event: serde_json::Value = serde_json::from_str(&rx.blocking_recv().unwrap()).unwrap();
         assert_eq!(event["event"], "pairing-finished");
         assert_eq!(event["success"], false);
+    }
+
+    #[test]
+    fn cancelled_pairing_releases_the_session_for_an_immediate_retry() {
+        let (state, mut rx) = local_state("cancel-retry");
+        let uniqueid = "cancelledpair";
+        let _salt = start_pairing(&state, uniqueid);
+
+        // the HTTP task hooks its held response up to the session, then the
+        // user cancels the PIN dialog and the client's connection goes away
+        let (tx, rx_http) = tokio::sync::oneshot::channel();
+        state.register_pair_response(uniqueid, tx);
+        state.abandon_pairing_session(uniqueid);
+
+        // released outright: no session left, the held waiter is completed
+        // with a failure body, and the UI is told to close the prompt
+        assert!(state.sessions.lock().unwrap().is_empty());
+        let body = rx_http.blocking_recv().expect("held response");
+        assert!(body.contains("status_code=\"400\""), "{body}");
+        let event: serde_json::Value = serde_json::from_str(&rx.blocking_recv().unwrap()).unwrap();
+        assert_eq!(event["event"], "pairing-requested");
+        let event: serde_json::Value = serde_json::from_str(&rx.blocking_recv().unwrap()).unwrap();
+        assert_eq!(event["event"], "pairing-finished");
+        assert_eq!(event["success"], false);
+
+        // the retry with the same (Moonlight-fixed) uniqueid starts a new
+        // session instead of 409ing for the rest of the 5-minute lifetime
+        let retry_salt = start_pairing(&state, uniqueid);
+        let sessions = state.sessions.lock().unwrap();
+        assert_eq!(sessions.len(), 1);
+        let session = sessions.get(uniqueid).expect("fresh session");
+        assert_eq!(session.salt, retry_salt);
+        assert!(session.aes_key.is_none());
+    }
+
+    #[test]
+    fn a_live_pin_waiter_still_conflicts_with_another_peer() {
+        let (state, _rx) = local_state("conflict-other-peer");
+        let uniqueid = "shareduniqueid";
+        start_pairing_from(&state, uniqueid, test_peer());
+
+        // the session is live: an HTTP task is parked on its PIN
+        let (_tx, mut rx_http) = tokio::sync::oneshot::channel();
+        state.register_pair_response(uniqueid, _tx);
+
+        // a second device that happens to share the fixed uniqueid arrives
+        // from another address: refused, and the live waiter is untouched
+        let salt = crypto::hex_encode_upper(&crypto::random_bytes(16));
+        let response = expect_ready(pair(
+            &state,
+            &params(&[
+                ("uniqueid", uniqueid),
+                ("phrase", "getservercert"),
+                ("salt", &salt),
+            ]),
+            "192.168.1.77".parse().unwrap(),
+        ));
+        assert!(response.contains("status_code=\"409\""), "{response}");
+        assert_eq!(state.sessions.lock().unwrap().len(), 1);
+        assert!(rx_http.try_recv().is_err());
+    }
+
+    #[test]
+    fn a_new_request_from_the_same_peer_replaces_a_pin_less_session() {
+        let (state, mut rx) = local_state("replace-same-peer");
+        let uniqueid = "retryuniqueid";
+        start_pairing_from(&state, uniqueid, test_peer());
+        let (tx, mut rx_http) = tokio::sync::oneshot::channel();
+        state.register_pair_response(uniqueid, tx);
+
+        // the same device starts over while its first request is still
+        // held (the socket stayed half-open, so the host never saw the
+        // close): the new request wins
+        let retry_salt = start_pairing_from(&state, uniqueid, test_peer());
+
+        // the old waiter is unblocked with a terminal failure and the
+        // stale prompt closes before the new request's prompt opens
+        let body = rx_http.try_recv().expect("old waiter must be completed");
+        assert!(body.contains("status_code=\"400\""), "{body}");
+        let event: serde_json::Value = serde_json::from_str(&rx.blocking_recv().unwrap()).unwrap();
+        assert_eq!(event["event"], "pairing-requested");
+        let event: serde_json::Value = serde_json::from_str(&rx.blocking_recv().unwrap()).unwrap();
+        assert_eq!(event["event"], "pairing-finished");
+        assert_eq!(event["success"], false);
+        let event: serde_json::Value = serde_json::from_str(&rx.blocking_recv().unwrap()).unwrap();
+        assert_eq!(event["event"], "pairing-requested");
+
+        let sessions = state.sessions.lock().unwrap();
+        assert_eq!(sessions.len(), 1);
+        let session = sessions.get(uniqueid).expect("new session");
+        assert_eq!(session.salt, retry_salt);
+        assert!(session.response_tx.is_none());
+    }
+
+    #[test]
+    fn a_dead_http_holder_does_not_lock_the_uniqueid() {
+        let (state, _rx) = local_state("dead-holder");
+        let uniqueid = "deadholder";
+        start_pairing_from(&state, uniqueid, test_peer());
+        let (tx, rx_http) = tokio::sync::oneshot::channel();
+        state.register_pair_response(uniqueid, tx);
+        drop(rx_http); // the HTTP task died with its connection
+
+        // nothing can receive that session's response any more, so even a
+        // request from another address may take the uniqueid over
+        let other_peer: IpAddr = "192.168.1.77".parse().unwrap();
+        let retry_salt = start_pairing_from(&state, uniqueid, other_peer);
+        let sessions = state.sessions.lock().unwrap();
+        let session = sessions.get(uniqueid).expect("new session");
+        assert_eq!(session.salt, retry_salt);
+        assert_eq!(session.peer_ip, other_peer);
+    }
+
+    #[test]
+    fn a_pin_unlocked_session_is_not_replaced() {
+        let (state, _rx) = local_state("pin-locked");
+        let uniqueid = "pinlocked";
+        start_pairing_from(&state, uniqueid, test_peer());
+        let (tx, mut rx_http) = tokio::sync::oneshot::channel();
+        state.register_pair_response(uniqueid, tx);
+        assert!(state.submit_pairing_pin("1234").is_ok());
+        let body = rx_http.try_recv().expect("held response");
+        assert!(body.contains("plaincert"), "{body}");
+
+        // mid-handshake the session owns the uniqueid: a fresh
+        // getservercert from the same peer is still refused rather than
+        // clobbering a pairing that is already underway
+        let salt = crypto::hex_encode_upper(&crypto::random_bytes(16));
+        let response = expect_ready(pair(
+            &state,
+            &params(&[
+                ("uniqueid", uniqueid),
+                ("phrase", "getservercert"),
+                ("salt", &salt),
+            ]),
+            test_peer(),
+        ));
+        assert!(response.contains("status_code=\"409\""), "{response}");
+        assert_eq!(state.sessions.lock().unwrap().len(), 1);
     }
 
     #[test]

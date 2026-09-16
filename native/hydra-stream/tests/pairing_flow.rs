@@ -94,6 +94,17 @@ async fn http_get(port: u16, target: &str) -> String {
     read_body(&mut stream).await
 }
 
+/// Next pairing event the host broadcasts (pairing-requested /
+/// pairing-finished), with a deadline so a hang fails the test instead of
+/// blocking it forever.
+async fn next_pairing_event(rx: &mut mpsc::UnboundedReceiver<String>) -> serde_json::Value {
+    let raw = tokio::time::timeout(std::time::Duration::from_secs(10), rx.recv())
+        .await
+        .expect("pairing event timed out")
+        .expect("pairing event channel closed");
+    serde_json::from_str(&raw).expect("pairing event json")
+}
+
 #[derive(Debug)]
 struct PinnedCertVerifier {
     pinned: Vec<u8>,
@@ -527,6 +538,125 @@ async fn moonlight_client_pairing_flow() {
     .await;
     assert!(response.contains("status_code=\"401\""), "{response}");
     assert!(response.contains("The client is not authorized"), "{response}");
+}
+
+/// A cancelled pairing must not lock the client out: the user dismisses the
+/// PIN dialog, Moonlight drops the held connection and retries with the same
+/// fixed uniqueid, and that retry has to pair from scratch rather than get a
+/// 409 until Hydra is restarted.
+#[tokio::test]
+async fn cancelled_pairing_retry_pairs_from_scratch() {
+    let dir = std::env::temp_dir().join(format!("hydra-stream-cancel-{}", std::process::id()));
+    std::fs::remove_dir_all(&dir).ok();
+    let store = Store::at(dir).unwrap();
+    let (event_tx, mut event_rx) = mpsc::unbounded_channel::<String>();
+    let state = Arc::new(State::with_store(store.clone(), event_tx).unwrap());
+    let (http_port, _https_port) = spawn_servers(state.clone()).await;
+
+    let uniqueid = "cancelclient7";
+    let client = generate_client_identity();
+    let salt = crypto::random_bytes(16);
+    let getservercert = format!(
+        "/pair?uniqueid={uniqueid}&devicename=roth&updateState=1&phrase=getservercert&salt={}&clientcert={}",
+        crypto::hex_encode_upper(&salt),
+        crypto::hex_encode_upper(client.cert_pem.as_bytes())
+    );
+
+    // the client asks for the server certificate; the host raises the
+    // session and holds the response while the user looks at the PIN dialog
+    let mut stream = TcpStream::connect(("127.0.0.1", http_port)).await.unwrap();
+    stream
+        .write_all(
+            format!("GET {getservercert} HTTP/1.1\r\nHost: localhost\r\nConnection: close\r\n\r\n")
+                .as_bytes(),
+        )
+        .await
+        .unwrap();
+    let event = next_pairing_event(&mut event_rx).await;
+    assert_eq!(event["event"], "pairing-requested");
+
+    // the user cancels the dialog and the client drops the socket without
+    // ever reading the held response
+    drop(stream);
+
+    // the host must notice the abandoned request, release the session and
+    // close the PIN prompt that no longer has a request behind it
+    let event = next_pairing_event(&mut event_rx).await;
+    assert_eq!(event["event"], "pairing-finished");
+    assert_eq!(event["success"], false);
+
+    // the retry reuses the same uniqueid and must start a new session
+    let retry = {
+        let getservercert = getservercert.clone();
+        tokio::spawn(async move { http_get(http_port, &getservercert).await })
+    };
+    let event = next_pairing_event(&mut event_rx).await;
+    assert_eq!(event["event"], "pairing-requested");
+
+    // ...and that session must pair all the way through
+    let pin = "1234".to_string();
+    assert!(state.submit_pairing_pin(&pin).is_ok());
+    let response = retry.await.unwrap();
+    assert!(response.contains("status_code=\"200\""), "{response}");
+    assert_eq!(tag(&response, "paired"), "1");
+
+    let mut aes_input = salt.clone();
+    aes_input.extend_from_slice(pin.as_bytes());
+    let aes_key: [u8; 16] = sha256(&aes_input)[..16].try_into().unwrap();
+
+    // stage 2: clientchallenge
+    let client_challenge = crypto::random_bytes(16);
+    let response = http_get(
+        http_port,
+        &format!(
+            "/pair?uniqueid={uniqueid}&devicename=roth&updateState=1&clientchallenge={}",
+            crypto::hex_encode_upper(&ecb_encrypt(&aes_key, &client_challenge))
+        ),
+    )
+    .await;
+    assert!(response.contains("status_code=\"200\""), "{response}");
+    let challenge_response = crypto::hex_decode(tag(&response, "challengeresponse")).unwrap();
+    let decrypted = crypto::aes128_ecb_decrypt(&aes_key, &challenge_response);
+    assert_eq!(decrypted.len(), 48);
+    let server_challenge = decrypted[32..].to_vec();
+
+    // stage 3: serverchallengeresp
+    let client_secret = crypto::random_bytes(16);
+    let mut hash_input = server_challenge.clone();
+    hash_input.extend_from_slice(&crypto::cert_signature(&client.cert_der).unwrap());
+    hash_input.extend_from_slice(&client_secret);
+    let response = http_get(
+        http_port,
+        &format!(
+            "/pair?uniqueid={uniqueid}&devicename=roth&updateState=1&serverchallengeresp={}",
+            crypto::hex_encode_upper(&ecb_encrypt(&aes_key, &sha256(&hash_input)))
+        ),
+    )
+    .await;
+    assert!(response.contains("status_code=\"200\""), "{response}");
+
+    // stage 4: clientpairingsecret
+    use rsa::pkcs8::DecodePrivateKey;
+    let client_key = rsa::RsaPrivateKey::from_pkcs8_der(&client.key_pkcs8_der).unwrap();
+    let signature = client_key
+        .sign(rsa::Pkcs1v15Sign::new::<sha2::Sha256>(), &sha256(&client_secret))
+        .unwrap();
+    let mut pairing_secret = client_secret.clone();
+    pairing_secret.extend_from_slice(&signature);
+    let response = http_get(
+        http_port,
+        &format!(
+            "/pair?uniqueid={uniqueid}&devicename=roth&updateState=1&clientpairingsecret={}",
+            crypto::hex_encode_upper(&pairing_secret)
+        ),
+    )
+    .await;
+    assert!(response.contains("status_code=\"200\""), "{response}");
+    assert_eq!(tag(&response, "paired"), "1");
+
+    // the retried pairing registered the client for real
+    let persisted: Vec<PairedClient> = store.read_json("clients.json").unwrap();
+    assert!(persisted.iter().any(|client| client.uniqueid == uniqueid));
 }
 
 #[tokio::test]
