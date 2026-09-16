@@ -32,6 +32,25 @@ export const setGamePlaytime = (
   mutableGamesPlaytime.set(gameKey, playtime);
 };
 
+export const enableHydraPlaytimeForRunningSession = (
+  gameKey: string,
+  now = performance.now()
+) => {
+  const session = mutableGamesPlaytime.get(gameKey);
+
+  if (!session) return false;
+  if (session.countHydraPlaytime) return true;
+
+  mutableGamesPlaytime.set(gameKey, {
+    ...session,
+    countHydraPlaytime: true,
+    lastTick: now,
+    lastSyncTick: now,
+  });
+
+  return true;
+};
+
 export const deleteGamePlaytime = (gameKey: string) =>
   mutableGamesPlaytime.delete(gameKey);
 
