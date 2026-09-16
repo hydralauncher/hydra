@@ -279,6 +279,13 @@ const hasLinuxCompatibilityProcessMatch = (
 };
 
 export const watchProcesses = async () => {
+  if (!(await GameExecutables.ensureLoaded())) {
+    logger.warn(
+      "Executable catalogue unavailable; skipping process watcher tick"
+    );
+    return;
+  }
+
   const games = await gamesSublevel
     .values()
     .all()
