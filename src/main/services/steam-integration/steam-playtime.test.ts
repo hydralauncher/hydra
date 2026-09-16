@@ -152,4 +152,20 @@ describe("Steam session playtime policy", () => {
       { countHydraPlaytime: true, syncSteamOnExit: false }
     );
   });
+
+  it("counts an outside-library launch after a cached import is revalidated as disconnected", async () => {
+    const hasActiveSteamImport = await resolveActiveSteamImport(
+      true,
+      async () => ({ hasActiveSteamImport: false })
+    );
+
+    assert.deepEqual(
+      resolveSteamSessionPlaytimePolicy({
+        hasActiveSteamImport,
+        isSteamLibraryPath: false,
+        disableHydraPlaytimeTracking: true,
+      }),
+      { countHydraPlaytime: true, syncSteamOnExit: false }
+    );
+  });
 });

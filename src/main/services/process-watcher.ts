@@ -52,6 +52,7 @@ import {
   prepareLinuxGameCaptureSession,
   stopLinuxGameCaptureSession,
 } from "./linux-game-capture-session";
+import { updateGameRecord } from "./game-record-updater";
 
 export { gamesPlaytime };
 export { isGameRunning } from "./game-running-state";
@@ -270,9 +271,7 @@ const persistGamePlaytime = async (
     >
   >
 ) => {
-  const currentGame = await gamesSublevel.get(gameKey);
-  if (!currentGame || currentGame.isDeleted) return;
-  await gamesSublevel.put(gameKey, { ...currentGame, ...update });
+  await updateGameRecord(gameKey, update);
 };
 
 const hasLinuxCompatibilityProcessMatch = (
@@ -421,31 +420,30 @@ async function onOpenGame(game: Game, matchedPath: string) {
         libraryFolders.map((folder) => fs.realpath(folder).catch(() => folder))
       ),
     ]);
-    if (isSteamLibraryExecutablePath(resolvedPath, resolvedLibraries)) {
-      isSteamLibraryPath = true;
-      const hasActiveSteamImport = await resolveActiveSteamImport(
-        game.hasActiveSteamImport,
-        async (signal) => {
-          try {
-            return await HydraApi.get<{ hasActiveSteamImport?: boolean }>(
-              `/profile/games/steam/${encodeURIComponent(game.objectId)}`,
-              undefined,
-              { signal }
-            );
-          } catch (error) {
-            if (axios.isAxiosError(error) && error.response?.status === 404) {
-              return { hasActiveSteamImport: false };
-            }
-            throw error;
+    isSteamLibraryPath = isSteamLibraryExecutablePath(
+      resolvedPath,
+      resolvedLibraries
+    );
+
+    const hasActiveSteamImport = await resolveActiveSteamImport(
+      game.hasActiveSteamImport,
+      async (signal) => {
+        try {
+          return await HydraApi.get<{ hasActiveSteamImport?: boolean }>(
+            `/profile/games/steam/${encodeURIComponent(game.objectId)}`,
+            undefined,
+            { signal }
+          );
+        } catch (error) {
+          if (axios.isAxiosError(error) && error.response?.status === 404) {
+            return { hasActiveSteamImport: false };
           }
+          throw error;
         }
-      );
-      // The library may have changed while the lookup was in flight.
-      const currentGame = await gamesSublevel.get(gameKey);
-      if (!currentGame || currentGame.isDeleted) return;
-      game = { ...currentGame, hasActiveSteamImport };
-      await gamesSublevel.put(gameKey, game);
-    }
+      }
+    );
+
+    game = (await updateGameRecord(gameKey, { hasActiveSteamImport })) ?? game;
   }
 
   if (game.shop === "steam") {
