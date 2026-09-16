@@ -1,3 +1,10 @@
+import {
+  AUTH_WINDOW_CONTENT_HEIGHT,
+  AUTH_WINDOW_CONTENT_WIDTH,
+  CUSTOM_WINDOW_BORDER_WIDTH,
+  CUSTOM_WINDOW_TITLE_BAR_HEIGHT,
+} from "../../shared/window-layout.js";
+
 export interface RetroAchievementsConnectionWindowLayout {
   width: number;
   height: number;
@@ -6,18 +13,19 @@ export interface RetroAchievementsConnectionWindowLayout {
 }
 
 export const getRetroAchievementsConnectionWindowLayout = (
-  platform: NodeJS.Platform,
-  contentWidth: number,
-  contentHeight: number,
-  linuxTitleBarHeight: number,
-  linuxBorder: number
+  platform: NodeJS.Platform
 ): RetroAchievementsConnectionWindowLayout => {
   const isLinux = platform === "linux";
 
   return {
-    width: contentWidth + (isLinux ? linuxBorder * 2 : 0),
+    width:
+      AUTH_WINDOW_CONTENT_WIDTH +
+      (isLinux ? CUSTOM_WINDOW_BORDER_WIDTH * 2 : 0),
     height:
-      contentHeight + (isLinux ? linuxTitleBarHeight + linuxBorder * 2 : 0),
+      AUTH_WINDOW_CONTENT_HEIGHT +
+      (isLinux
+        ? CUSTOM_WINDOW_TITLE_BAR_HEIGHT + CUSTOM_WINDOW_BORDER_WIDTH * 2
+        : 0),
     frame: !isLinux,
     minimizable: isLinux,
   };

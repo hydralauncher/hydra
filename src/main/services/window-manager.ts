@@ -4,7 +4,13 @@ import { db, gamesSublevel, levelKeys } from "@main/level";
 import icon from "@resources/icon.png?asset";
 import trayIconDark from "@resources/tray-icon-dark.png?asset";
 import trayIcon from "@resources/tray-icon.png?asset";
-import { AuthPage } from "@shared";
+import {
+  AUTH_WINDOW_CONTENT_HEIGHT,
+  AUTH_WINDOW_CONTENT_WIDTH,
+  AuthPage,
+  CUSTOM_WINDOW_BORDER_WIDTH,
+  CUSTOM_WINDOW_TITLE_BAR_HEIGHT,
+} from "@shared";
 import type {
   AchievementCustomNotificationPosition,
   AchievementNotificationInfo,
@@ -616,11 +622,6 @@ export class WindowManager {
     this.mainWindow?.webContents.send("on-open-add-friend-modal");
   }
 
-  private static readonly AUTH_WINDOW_WIDTH = 600;
-  private static readonly AUTH_WINDOW_HEIGHT = 640;
-  private static readonly AUTH_WINDOW_TITLE_BAR_HEIGHT = 34;
-  private static readonly AUTH_WINDOW_BORDER = 1;
-
   private static bindAuthNavigation(
     contents: Electron.WebContents,
     closeWindow: () => void
@@ -657,8 +658,8 @@ export class WindowManager {
     }
 
     const authWindow = new BrowserWindow({
-      width: this.AUTH_WINDOW_WIDTH,
-      height: this.AUTH_WINDOW_HEIGHT,
+      width: AUTH_WINDOW_CONTENT_WIDTH,
+      height: AUTH_WINDOW_CONTENT_HEIGHT,
       backgroundColor: "#1c1c1c",
       parent: parentWindow,
       modal: true,
@@ -696,11 +697,11 @@ export class WindowManager {
     authUrl: string
   ) {
     const authWindow = new BrowserWindow({
-      width: this.AUTH_WINDOW_WIDTH + this.AUTH_WINDOW_BORDER * 2,
+      width: AUTH_WINDOW_CONTENT_WIDTH + CUSTOM_WINDOW_BORDER_WIDTH * 2,
       height:
-        this.AUTH_WINDOW_HEIGHT +
-        this.AUTH_WINDOW_TITLE_BAR_HEIGHT +
-        this.AUTH_WINDOW_BORDER * 2,
+        AUTH_WINDOW_CONTENT_HEIGHT +
+        CUSTOM_WINDOW_TITLE_BAR_HEIGHT +
+        CUSTOM_WINDOW_BORDER_WIDTH * 2,
       parent: parentWindow,
       modal: true,
       show: false,
@@ -728,10 +729,10 @@ export class WindowManager {
 
     authWindow.contentView.addChildView(authView);
     authView.setBounds({
-      x: this.AUTH_WINDOW_BORDER,
-      y: this.AUTH_WINDOW_BORDER + this.AUTH_WINDOW_TITLE_BAR_HEIGHT,
-      width: this.AUTH_WINDOW_WIDTH,
-      height: this.AUTH_WINDOW_HEIGHT,
+      x: CUSTOM_WINDOW_BORDER_WIDTH,
+      y: CUSTOM_WINDOW_BORDER_WIDTH + CUSTOM_WINDOW_TITLE_BAR_HEIGHT,
+      width: AUTH_WINDOW_CONTENT_WIDTH,
+      height: AUTH_WINDOW_CONTENT_HEIGHT,
     });
 
     this.loadWindowURL(authWindow, "auth-window");
@@ -778,13 +779,7 @@ export class WindowManager {
     const parentWindow = this.mainWindow;
     if (!parentWindow || parentWindow.isDestroyed()) return;
 
-    const layout = getRetroAchievementsConnectionWindowLayout(
-      process.platform,
-      this.AUTH_WINDOW_WIDTH,
-      this.AUTH_WINDOW_HEIGHT,
-      this.AUTH_WINDOW_TITLE_BAR_HEIGHT,
-      this.AUTH_WINDOW_BORDER
-    );
+    const layout = getRetroAchievementsConnectionWindowLayout(process.platform);
     const connectionWindow = new BrowserWindow({
       width: layout.width,
       height: layout.height,
