@@ -5,7 +5,7 @@ import type { SteamSourceAchievement, SteamSourceLibraryGame } from "@types";
 
 // @ts-ignore The Node ESM test runner requires the source extension.
 import {
-  buildLegacySteamSnapshot,
+  buildLegacySteamSnapshotFallback,
   buildSteamSnapshot,
   chunkSteamGameSyncPayload,
   chunkSteamSnapshot,
@@ -181,26 +181,38 @@ describe("chunkSteamSnapshot", () => {
   });
 });
 
-describe("buildLegacySteamSnapshot", () => {
-  it("omits oversized achievement lists without truncating them", () => {
-    const snapshot = buildLegacySteamSnapshot({
+describe("buildLegacySteamSnapshotFallback", () => {
+  it("moves oversized achievement lists into complete per-game chunks", () => {
+    const fallback = buildLegacySteamSnapshotFallback({
       games: [
         { ...portal, achievements: unlockedAchievements(2_001) },
         { ...halfLife, achievements: unlockedAchievements(2_000) },
       ],
     });
 
-    assert.equal("achievements" in snapshot.games[0], false);
-    assert.equal(snapshot.games[1].achievements?.length, 2_000);
+    assert.equal("achievements" in fallback.snapshot.games[0], false);
+    assert.equal(fallback.snapshot.games[1].achievements?.length, 2_000);
+    assert.deepEqual(
+      fallback.gameUploads[0].chunks.map((chunk) => chunk.achievements?.length),
+      [2_000, 1]
+    );
+    assert.deepEqual(
+      fallback.gameUploads[0].chunks.flatMap(
+        (chunk) =>
+          chunk.achievements?.map((achievement) => achievement.name) ?? []
+      ),
+      unlockedAchievements(2_001).map((achievement) => achievement.name)
+    );
   });
 
   it("preserves omitted and confirmed-empty achievement states", () => {
-    const snapshot = buildLegacySteamSnapshot({
+    const fallback = buildLegacySteamSnapshotFallback({
       games: [portal, { ...halfLife, achievements: [] }],
     });
 
-    assert.equal("achievements" in snapshot.games[0], false);
-    assert.deepEqual(snapshot.games[1].achievements, []);
+    assert.equal("achievements" in fallback.snapshot.games[0], false);
+    assert.deepEqual(fallback.snapshot.games[1].achievements, []);
+    assert.deepEqual(fallback.gameUploads, []);
   });
 });
 

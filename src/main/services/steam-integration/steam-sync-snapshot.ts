@@ -90,21 +90,42 @@ export const chunkSteamSnapshot = (
   return gameChunks.map((games) => ({ totalChunks, games }));
 };
 
-export const buildLegacySteamSnapshot = (
+export const buildLegacySteamSnapshotFallback = (
   snapshot: SteamSnapshotPayload
-): SteamSnapshotPayload => ({
-  games: snapshot.games.map((game) => {
+): {
+  snapshot: SteamSnapshotPayload;
+  gameUploads: Array<{
+    steamAppId: string;
+    chunks: SteamGameSyncPayload[];
+  }>;
+} => {
+  const gameUploads: Array<{
+    steamAppId: string;
+    chunks: SteamGameSyncPayload[];
+  }> = [];
+
+  const games = snapshot.games.map((game) => {
     if (
       game.achievements !== undefined &&
       game.achievements.length > STEAM_SNAPSHOT_ACHIEVEMENT_CHUNK_SIZE
     ) {
-      const { achievements: _achievements, ...gameWithoutAchievements } = game;
+      const { achievements, ...gameWithoutAchievements } = game;
+      gameUploads.push({
+        steamAppId: game.steamAppId,
+        chunks: chunkSteamGameSyncPayload({
+          playTimeInSeconds: game.playTimeInSeconds,
+          lastPlayedAt: game.lastPlayedAt,
+          achievements,
+        }),
+      });
       return gameWithoutAchievements;
     }
 
     return game;
-  }),
-});
+  });
+
+  return { snapshot: { games }, gameUploads };
+};
 
 export const chunkSteamGameSyncPayload = (
   payload: SteamGameSyncPayload

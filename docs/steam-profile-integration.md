@@ -19,17 +19,18 @@ Este doc é o plano de implementação no hydra-2. Desktop (renderer + main) pri
 
 Todos autenticados com bearer.
 
-| Método   | Path                                           | O que faz                                                                                       |
-| -------- | ---------------------------------------------- | ----------------------------------------------------------------------------------------------- |
-| `GET`    | `/profile/oauth/steam/start`                   | Query opcional `return_to`, `lng`. Resposta `{ authorizationUrl }`.                             |
-| `DELETE` | `/profile/oauth/steam`                         | Query `deleteImportedData` (default `true`). `204`. `400` se Steam for o último método de auth. |
-| `GET`    | `/profile/integrations/steam`                  | Status discriminado. Ver abaixo.                                                                |
-| `POST`   | `/profile/integrations/steam/sync`             | `202 { syncRunId }`. Não publica nada.                                                          |
-| `GET`    | `/profile/integrations/steam/sync/{syncRunId}` | Estado da run.                                                                                  |
-| `DELETE` | `/profile/integrations/steam/sync/{syncRunId}` | Cancela só `PENDING`. Snapshot antigo fica.                                                     |
-| `PUT`    | `.../snapshot/chunks/{chunkIndex}`             | Armazena um chunk sem publicar. `chunkIndex` começa em `0`. `204`.                              |
-| `POST`   | `.../snapshot/commit`                          | Valida e publica todos os chunks atomicamente. `204`.                                           |
-| `PUT`    | `.../snapshot`                                 | Fallback para APIs antigas. Publica em uma chamada. `204`.                                      |
+| Método   | Path                                             | O que faz                                                                                       |
+| -------- | ------------------------------------------------ | ----------------------------------------------------------------------------------------------- |
+| `GET`    | `/profile/oauth/steam/start`                     | Query opcional `return_to`, `lng`. Resposta `{ authorizationUrl }`.                             |
+| `DELETE` | `/profile/oauth/steam`                           | Query `deleteImportedData` (default `true`). `204`. `400` se Steam for o último método de auth. |
+| `GET`    | `/profile/integrations/steam`                    | Status discriminado. Ver abaixo.                                                                |
+| `POST`   | `/profile/integrations/steam/sync`               | `202 { syncRunId }`. Não publica nada.                                                          |
+| `GET`    | `/profile/integrations/steam/sync/{syncRunId}`   | Estado da run.                                                                                  |
+| `DELETE` | `/profile/integrations/steam/sync/{syncRunId}`   | Cancela só `PENDING`. Snapshot antigo fica.                                                     |
+| `PUT`    | `.../snapshot/chunks/{chunkIndex}`               | Armazena um chunk sem publicar. `chunkIndex` começa em `0`. `204`.                              |
+| `POST`   | `.../snapshot/commit`                            | Valida e publica todos os chunks atomicamente. `204`.                                           |
+| `PUT`    | `.../snapshot`                                   | Fallback para APIs antigas. Publica em uma chamada. `204`.                                      |
+| `PUT`    | `/profile/integrations/steam/games/{steamAppId}` | Atualiza playtime e adiciona conquistas de um jogo. `204`.                                      |
 
 `steamAppId` é **string** `^[1-9][0-9]{0,9}$`. Não converter pra number.
 
@@ -78,9 +79,10 @@ retomada: chunks reenviados no mesmo índice são idempotentes.
 
 Se o upload em chunks responder `404`, o launcher assume uma API
 anterior e usa `PUT .../snapshot`. Para respeitar o limite antigo, jogos com mais
-de 2.000 conquistas omitem `achievements`; assim playtime e biblioteca ainda são
-sincronizados, e as conquistas já publicadas desses jogos são preservadas. Um
-sync futuro, depois da atualização da API, publica a lista completa.
+de 2.000 conquistas omitem `achievements` nesse primeiro request. Depois que o
+snapshot cria ou atualiza os jogos, o launcher envia todas as conquistas desses
+jogos em blocos de até 2.000 pelo `PUT .../games/{steamAppId}`. Assim biblioteca,
+playtime e todas as conquistas também são sincronizados com a API anterior.
 
 ### Formato do snapshot
 
@@ -128,7 +130,8 @@ Settings (renderer)
 main/services/steam-integration
   POST sync, lê webapi_token no partition persist:steam,
   GetOwnedGames + community HTML/XML via axios + cookies persist:steam (pool), monta snapshot
-  PUT chunks em ordem, POST commit; usa PUT legado se chunks responderem 404
+  PUT chunks em ordem, POST commit; se chunks responderem 404, usa PUT legado
+  e completa jogos acima de 2.000 conquistas pelo endpoint incremental
   DELETE run se o usuário cancelar ou se a orquestração falhar
   depois do 204: mergeWithRemoteGames()
 ```

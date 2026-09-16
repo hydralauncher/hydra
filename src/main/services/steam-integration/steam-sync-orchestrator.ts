@@ -76,7 +76,7 @@ import {
   type SteamFamilySharedApp,
 } from "./steam-family-library";
 import {
-  buildLegacySteamSnapshot,
+  buildLegacySteamSnapshotFallback,
   buildSteamSnapshot,
   chunkSteamSnapshot,
   uploadSteamSnapshotChunks,
@@ -922,23 +922,29 @@ class SteamSyncOrchestrator {
     } catch (error) {
       if (getSteamSourceHttpStatus(error) !== 404) throw error;
 
-      const legacySnapshot = buildLegacySteamSnapshot(snapshot);
-      const skippedAchievementGames = legacySnapshot.games.filter(
-        (game, index) =>
-          game.achievements === undefined &&
-          snapshot.games[index].achievements !== undefined
-      ).length;
+      const legacyFallback = buildLegacySteamSnapshotFallback(snapshot);
 
       steamSyncLogger.log(
         "Chunked snapshot endpoint unavailable; using legacy snapshot endpoint",
-        { skippedAchievementGames }
+        { deferredAchievementGames: legacyFallback.gameUploads.length }
       );
       throwIfAborted(signal);
       await HydraApi.put(
         `${INTEGRATION_ENDPOINT}/sync/${syncRunId}/snapshot`,
-        legacySnapshot,
+        legacyFallback.snapshot,
         { signal }
       );
+
+      for (const gameUpload of legacyFallback.gameUploads) {
+        for (const chunk of gameUpload.chunks) {
+          throwIfAborted(signal);
+          await HydraApi.put(
+            `${INTEGRATION_ENDPOINT}/games/${encodeURIComponent(gameUpload.steamAppId)}`,
+            chunk,
+            { signal }
+          );
+        }
+      }
     }
 
     steamSyncLogger.log("Snapshot published");
