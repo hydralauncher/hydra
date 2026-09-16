@@ -9,6 +9,8 @@ import { getSteamAppInstallDirectories } from "./steam-installation";
 
 export const linkImportedSteamGameExecutables = async (): Promise<number> => {
   try {
+    await GameExecutables.ensureLoaded();
+
     const candidates = (await gamesSublevel.iterator().all())
       .map(([, game]) => game)
       .filter(

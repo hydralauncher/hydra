@@ -935,6 +935,8 @@ const runScan = async (
   includeDefaultDirectories: boolean,
   addGamesToLibrary: boolean
 ): Promise<ScanResult> => {
+  await GameExecutables.ensureLoaded();
+
   const baseDirectories = includeDefaultDirectories
     ? await getDefaultScanDirectories()
     : [];
