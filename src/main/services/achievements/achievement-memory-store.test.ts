@@ -38,6 +38,19 @@ describe("AchievementMemoryStore", () => {
     assert.equal(AchievementMemoryStore.get("steam", "10"), undefined);
   });
 
+  it("drops only the selected game's achievement state", () => {
+    AchievementMemoryStore.set("steam", "10", entry("STEAM_UNLOCK"));
+    AchievementMemoryStore.set("steam", "20", entry("OTHER_UNLOCK"));
+
+    AchievementMemoryStore.delete("steam", "10");
+
+    assert.equal(AchievementMemoryStore.get("steam", "10"), undefined);
+    assert.deepEqual(
+      AchievementMemoryStore.get("steam", "20")?.unlockedAchievements,
+      [{ name: "OTHER_UNLOCK", unlockTime: 1 }]
+    );
+  });
+
   it("uses the remote unlock count when local memory is empty", () => {
     AchievementMemoryStore.set("steam", "10", {
       achievements: [{ name: "ACH_ONE" } as never],
