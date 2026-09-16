@@ -15,9 +15,10 @@ export function useGameCollections() {
       >("/profile/games/collections", { needsAuth: true });
 
       setCollections(Array.isArray(response) ? response : []);
-      setHasLoadedCollections(true);
     } catch {
       setCollections([]);
+    } finally {
+      setHasLoadedCollections(true);
     }
   }, []);
 

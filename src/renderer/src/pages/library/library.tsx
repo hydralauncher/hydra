@@ -99,6 +99,7 @@ export default function Library() {
     collections,
     loadCollections,
     hasLoaded: hasLoadedCollections,
+    hasFailed: hasFailedToLoadCollections,
   } = useGameCollections();
   const [searchParams, setSearchParams] = useSearchParams();
   const { openCollectionContextMenu } = useCollectionContextMenu();
@@ -342,22 +343,35 @@ export default function Library() {
 
   useEffect(() => {
     if (!selectedCollectionId) return;
-    if (!hasLoadedCollections) return;
-
     if (selectedCollectionId === FAVORITES_COLLECTION_ID) return;
 
-    const hasCollection = collections.some(
-      (collection) => collection.id === selectedCollectionId
+    if (hasLoadedCollections) {
+      const hasCollection = collections.some(
+        (collection) => collection.id === selectedCollectionId
+      );
+
+      if (!hasCollection) {
+        handleCollectionSelect(null);
+      }
+      return;
+    }
+
+    if (!hasFailedToLoadCollections || library.length === 0) return;
+
+    const isCollectionInLibrary = library.some((game) =>
+      getGameCollectionIds(game).includes(selectedCollectionId)
     );
 
-    if (!hasCollection) {
+    if (!isCollectionInLibrary) {
       handleCollectionSelect(null);
     }
   }, [
     collections,
+    library,
     selectedCollectionId,
     handleCollectionSelect,
     hasLoadedCollections,
+    hasFailedToLoadCollections,
   ]);
 
   const sortedLibrary = useMemo(
