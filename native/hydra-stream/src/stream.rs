@@ -1070,6 +1070,10 @@ mod tests {
     /// exact.
     const MS: Duration = Duration::from_millis(1);
 
+    /// The one-second window the peak-IDR assertion measures: the most
+    /// forced IDRs the gate may answer inside any single such window.
+    const IDR_TEST_WINDOW: Duration = Duration::from_secs(1);
+
     fn test_state() -> State {
         // unique dir per test: the shared per-pid dir let one test's
         // remove_dir_all delete a sibling test's store mid-run
@@ -1123,7 +1127,7 @@ mod tests {
             .map(|at| {
                 applies
                     .iter()
-                    .filter(|other| **other >= *at && other.duration_since(*at) < Duration::from_secs(1))
+                    .filter(|other| **other >= *at && other.duration_since(*at) < IDR_TEST_WINDOW)
                     .count()
             })
             .max()

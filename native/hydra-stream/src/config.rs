@@ -102,7 +102,7 @@ pub const MIN_BITS_PER_PIXEL_MILLI_DEFAULT: u32 = 72;
 /// [`MIN_BITS_PER_PIXEL_MILLI_DEFAULT`]), 0 disables the
 /// term (the floor is then max(FLOOR_KBPS, negotiated/4) alone), an
 /// invalid value falls back to the default, and a positive value is
-/// capped at 1000 (1 bpp — no session is driven above that on purpose).
+/// capped at [`MIN_BITS_PER_PIXEL_MILLI_CAP`].
 pub fn min_bits_per_pixel_milli() -> u32 {
     static BPP: OnceLock<u32> = OnceLock::new();
     *BPP.get_or_init(|| {
@@ -110,14 +110,18 @@ pub fn min_bits_per_pixel_milli() -> u32 {
     })
 }
 
+/// Ceiling for the configured session floor, in thousandths of a bit per
+/// pixel per frame: 1.0 bpp, above which no session is driven on purpose.
+const MIN_BITS_PER_PIXEL_MILLI_CAP: u64 = 1_000;
+
 /// Pure `HYDRA_STREAM_MIN_BITS_PER_PIXEL` parse (thousandths of a bpp):
 /// absent/invalid -> the default, 0 -> the term is disabled, else the
-/// value capped at 1000. Read once per process by
-/// [`min_bits_per_pixel_milli`].
+/// value capped at [`MIN_BITS_PER_PIXEL_MILLI_CAP`]. Read once per process
+/// by [`min_bits_per_pixel_milli`].
 fn parse_min_bits_per_pixel_milli(value: Option<&str>) -> u32 {
     match value {
         Some(raw) => match raw.parse::<u64>() {
-            Ok(milli) => milli.min(1_000) as u32,
+            Ok(milli) => milli.min(MIN_BITS_PER_PIXEL_MILLI_CAP) as u32,
             Err(_) => MIN_BITS_PER_PIXEL_MILLI_DEFAULT,
         },
         None => MIN_BITS_PER_PIXEL_MILLI_DEFAULT,
