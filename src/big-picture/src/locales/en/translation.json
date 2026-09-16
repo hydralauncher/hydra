@@ -743,6 +743,7 @@
     "reset_achievements": "Reset achievements",
     "reset_achievements_description": "Your achievements for {{game}} will be deleted locally and in the cloud",
     "reset_achievements_souvenirs_description": "Resetting all achievements for {{game}} will also permanently delete all associated souvenirs.",
+    "reset_achievements_steam_description": "Steam achievements are managed by Steam and cannot be deleted in Hydra. Only Hydra achievements for {{game}} and their associated souvenirs will be deleted.",
     "remove_game_files": "Remove game files",
     "remove_game_files_description": "The downloaded files for {{game}} will be deleted",
     "edit_game_modal_section_title": "Game Title",
