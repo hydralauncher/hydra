@@ -29,6 +29,57 @@ const resolveInstallDirectory = (
   return installDirectory;
 };
 
+export const isPathInsideSteamInstallDirectory = (
+  filePath: string,
+  installDirectory: string,
+  platform: NodeJS.Platform = process.platform
+): boolean => {
+  const paths = platform === "win32" ? path.win32 : path.posix;
+  if (!paths.isAbsolute(filePath) || !paths.isAbsolute(installDirectory)) {
+    return false;
+  }
+
+  const comparableFilePath =
+    platform === "win32" ? filePath.toLowerCase() : filePath;
+  const comparableInstallDirectory =
+    platform === "win32" ? installDirectory.toLowerCase() : installDirectory;
+  const relative = paths.relative(
+    comparableInstallDirectory,
+    comparableFilePath
+  );
+
+  return (
+    relative !== "" &&
+    relative !== ".." &&
+    !relative.startsWith(`..${paths.sep}`) &&
+    !paths.isAbsolute(relative)
+  );
+};
+
+export const getSteamCompatibilityPrefixPath = (
+  installDirectory: string,
+  appId: string
+) =>
+  path.join(
+    path.dirname(path.dirname(installDirectory)),
+    "compatdata",
+    appId,
+    "pfx"
+  );
+
+export const buildSteamGameLaunchUrl = (
+  appId: string,
+  launchOptions?: string | null
+) => {
+  const args = launchOptions?.trim();
+
+  if (!args || args.includes("%command%")) {
+    return `steam://rungameid/${appId}`;
+  }
+
+  return `steam://run/${appId}//${encodeURIComponent(args)}/`;
+};
+
 export const findSteamAppInstallDirectories = async (
   appIds: Iterable<string>,
   libraryFolders: string[]
