@@ -15,4 +15,7 @@ const startupSync = createSteamStartupSync({
 });
 
 export const startSteamSyncOnStartup = () => startupSync.run();
-export const resetSteamStartupSync = () => startupSync.reset();
+export const resetSteamStartupSync = () => {
+  startupSync.reset();
+  steamSyncOrchestrator.clearReconnectRequired();
+};

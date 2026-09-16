@@ -3,6 +3,7 @@ import { describe, it } from "node:test";
 
 // @ts-ignore The Node ESM test runner requires the source extension.
 import {
+  completeSteamOpenIdConnection,
   isSteamOpenIdSuccessUrl,
   parseSteamOpenIdErrorBody,
   parseSteamOpenIdReturn,
@@ -80,6 +81,19 @@ describe("parseSteamOpenIdReturn", () => {
       parseSteamOpenIdReturn("hydralauncher://steam-connected?error=timeout"),
       { kind: "error", code: "generic" }
     );
+  });
+});
+
+describe("completeSteamOpenIdConnection", () => {
+  it("clears a reconnect requirement before notifying the renderer", () => {
+    const calls: string[] = [];
+
+    completeSteamOpenIdConnection({
+      clearReconnectRequired: () => calls.push("clear"),
+      notifyConnected: () => calls.push("notify"),
+    });
+
+    assert.deepEqual(calls, ["clear", "notify"]);
   });
 });
 

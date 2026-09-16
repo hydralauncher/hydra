@@ -1,4 +1,5 @@
 import { db, gamesSublevel, levelKeys } from "@main/level";
+import { isSteamReconnectRequired } from "@shared";
 import { HydraApi } from "../hydra-api";
 import { mergeWithRemoteGames } from "../library-sync";
 import { steamSyncLogger } from "../logger";
@@ -238,6 +239,12 @@ class SteamSyncOrchestrator {
 
   getState() {
     return this.state;
+  }
+
+  clearReconnectRequired() {
+    if (this.state.status === "idle" && this.state.requiresReconnect) {
+      this.setState(idleState());
+    }
   }
 
   async reconcilePersistedRun(latestSyncRunStatus?: SteamSyncRunStatus | null) {
@@ -1015,7 +1022,11 @@ class SteamSyncOrchestrator {
       const message = getSteamSyncFailureMessage(error);
 
       steamSyncLogger.error("Steam sync failed", message);
-      this.setState(idleState());
+      this.setState(
+        isSteamReconnectRequired(message)
+          ? { status: "idle", requiresReconnect: true }
+          : idleState()
+      );
       this.emitFinished({ ok: false, message, origin: this.origin });
       if (
         !snapshotPublished &&

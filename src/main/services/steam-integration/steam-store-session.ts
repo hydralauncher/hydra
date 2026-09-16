@@ -6,6 +6,7 @@ import { steamSyncLogger } from "../logger";
 import { WindowManager } from "../window-manager";
 import type { SteamConnectErrorCode } from "@types";
 import {
+  completeSteamOpenIdConnection,
   parseSteamOpenIdErrorBody,
   parseSteamOpenIdReturn,
 } from "./steam-openid-return";
@@ -133,7 +134,10 @@ const parentWindow = () =>
     ? WindowManager.mainWindow
     : null;
 
-export const openSteamOpenIdWindow = (authorizationUrl: string) => {
+export const openSteamOpenIdWindow = (
+  authorizationUrl: string,
+  clearReconnectRequired: () => void
+) => {
   applySteamSessionUserAgent();
   closeSteamOpenIdWindow();
 
@@ -162,7 +166,10 @@ export const openSteamOpenIdWindow = (authorizationUrl: string) => {
     if (finished) return;
     finished = true;
     steamSyncLogger.log("Steam OpenID returned to Hydra", url);
-    notifySteamConnected();
+    completeSteamOpenIdConnection({
+      clearReconnectRequired,
+      notifyConnected: notifySteamConnected,
+    });
     if (!window.isDestroyed()) {
       window.close();
     }

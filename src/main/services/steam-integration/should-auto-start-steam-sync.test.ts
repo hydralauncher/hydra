@@ -12,6 +12,7 @@ describe("shouldAutoStartSteamSync", () => {
         lastSyncedAt: "2026-09-08T12:00:00.000Z",
         latestSyncRunStatus: "PENDING",
         localOrchestratorIdle: true,
+        requiresReconnect: false,
       }),
       true
     );
@@ -24,6 +25,7 @@ describe("shouldAutoStartSteamSync", () => {
         lastSyncedAt: null,
         latestSyncRunStatus: null,
         localOrchestratorIdle: true,
+        requiresReconnect: false,
       }),
       true
     );
@@ -36,6 +38,7 @@ describe("shouldAutoStartSteamSync", () => {
         lastSyncedAt: null,
         latestSyncRunStatus: "FAILED",
         localOrchestratorIdle: true,
+        requiresReconnect: false,
       }),
       false
     );
@@ -48,6 +51,7 @@ describe("shouldAutoStartSteamSync", () => {
         lastSyncedAt: null,
         latestSyncRunStatus: "RUNNING",
         localOrchestratorIdle: true,
+        requiresReconnect: false,
       }),
       false
     );
@@ -60,6 +64,7 @@ describe("shouldAutoStartSteamSync", () => {
         lastSyncedAt: null,
         latestSyncRunStatus: "PENDING",
         localOrchestratorIdle: false,
+        requiresReconnect: false,
       }),
       false
     );
@@ -72,6 +77,7 @@ describe("shouldAutoStartSteamSync", () => {
         lastSyncedAt: null,
         latestSyncRunStatus: "PENDING",
         localOrchestratorIdle: true,
+        requiresReconnect: false,
       }),
       false
     );
@@ -84,6 +90,20 @@ describe("shouldAutoStartSteamSync", () => {
         lastSyncedAt: "2026-09-08T12:00:00.000Z",
         latestSyncRunStatus: "SUCCEEDED",
         localOrchestratorIdle: true,
+        requiresReconnect: false,
+      }),
+      false
+    );
+  });
+
+  it("does not retry after the local Steam session requires reconnect", () => {
+    assert.equal(
+      shouldAutoStartSteamSync({
+        connected: true,
+        lastSyncedAt: null,
+        latestSyncRunStatus: null,
+        localOrchestratorIdle: true,
+        requiresReconnect: true,
       }),
       false
     );

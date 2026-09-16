@@ -9,13 +9,15 @@ export const shouldAutoStartSteamSync = ({
   lastSyncedAt,
   latestSyncRunStatus,
   localOrchestratorIdle,
+  requiresReconnect,
 }: {
   connected: boolean;
   lastSyncedAt: string | null;
   latestSyncRunStatus?: SteamAutoStartRunStatus | null;
   localOrchestratorIdle: boolean;
+  requiresReconnect: boolean;
 }): boolean => {
-  if (!connected || !localOrchestratorIdle) {
+  if (!connected || !localOrchestratorIdle || requiresReconnect) {
     return false;
   }
 

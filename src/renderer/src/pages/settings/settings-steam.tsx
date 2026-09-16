@@ -10,7 +10,11 @@ import {
   PersonIcon,
   SyncIcon,
 } from "@primer/octicons-react";
-import { AuthPage, shouldAutoStartSteamSync } from "@shared";
+import {
+  AuthPage,
+  isSteamReconnectRequired,
+  shouldAutoStartSteamSync,
+} from "@shared";
 import { logger } from "@renderer/logger";
 import type {
   SteamIntegrationStatus,
@@ -84,6 +88,8 @@ export function SettingsSteam() {
     integration.connected || integration.snapshotPreserved ? integration : null;
   const isSyncing =
     syncState.status === "running" || syncState.status === "cancelling";
+  const needsReconnect =
+    syncState.status === "idle" && syncState.requiresReconnect === true;
 
   useEffect(() => {
     setAvatarError(false);
@@ -164,6 +170,9 @@ export function SettingsSteam() {
           lastSyncedAt: status.connected ? status.lastSyncedAt : null,
           latestSyncRunStatus: getLatestSyncRunStatus(status),
           localOrchestratorIdle: localState.status === "idle",
+          requiresReconnect:
+            localState.status === "idle" &&
+            localState.requiresReconnect === true,
         })
       ) {
         return;
@@ -176,6 +185,9 @@ export function SettingsSteam() {
         setSyncState(state);
       } catch (error) {
         const message = error instanceof Error ? error.message : undefined;
+        if (isSteamReconnectRequired(message)) {
+          setSyncState({ status: "idle", requiresReconnect: true });
+        }
         showErrorToast(getSteamSyncErrorMessage(message));
       }
     },
@@ -253,6 +265,8 @@ export function SettingsSteam() {
 
   useEffect(() => {
     const unsubscribe = globalThis.window.electron.onSteamConnected(() => {
+      didAutoStart.current = false;
+      setSyncState({ status: "idle" });
       void refreshStatus({ silent: true, toastOnConnect: true });
     });
 
@@ -299,7 +313,11 @@ export function SettingsSteam() {
     );
     const unsubscribeFinished = globalThis.window.electron.onSteamSyncFinished(
       (payload: SteamSyncFinishedPayload) => {
-        setSyncState({ status: "idle" });
+        setSyncState(
+          !payload.ok && isSteamReconnectRequired(payload.message)
+            ? { status: "idle", requiresReconnect: true }
+            : { status: "idle" }
+        );
 
         if (payload.ok) {
           setIntegration(payload.status);
@@ -350,6 +368,9 @@ export function SettingsSteam() {
       setSyncState(state);
     } catch (error) {
       const message = error instanceof Error ? error.message : undefined;
+      if (isSteamReconnectRequired(message)) {
+        setSyncState({ status: "idle", requiresReconnect: true });
+      }
       showErrorToast(getSteamSyncErrorMessage(message));
     }
   };
@@ -473,7 +494,16 @@ export function SettingsSteam() {
                 </>
               ) : (
                 <>
-                  {isSyncing ? (
+                  {needsReconnect ? (
+                    <Button
+                      theme="outline"
+                      onClick={handleConnect}
+                      disabled={isSubmitting}
+                    >
+                      <LinkExternalIcon size={STATUS_ICON_SIZE} />
+                      {t("steam_reconnect")}
+                    </Button>
+                  ) : isSyncing ? (
                     <Button
                       theme="outline"
                       onClick={handleCancelSync}
@@ -502,17 +532,23 @@ export function SettingsSteam() {
               )}
             </div>
           </div>
-          {integration.connected && isSyncing ? (
+          {integration.connected && (isSyncing || needsReconnect) ? (
             <p className="settings-steam__sync-progress">
-              {t("steam_syncing")}
-              {syncState.status === "running" &&
-              syncState.phase === "achievements" &&
-              syncState.gamesFound > 0
-                ? ` ${t("steam_sync_progress", {
-                    processed: syncState.gamesProcessed,
-                    found: syncState.gamesFound,
-                  })}`
-                : null}
+              {needsReconnect ? (
+                t("steam_error_session_required")
+              ) : (
+                <>
+                  {t("steam_syncing")}
+                  {syncState.status === "running" &&
+                  syncState.phase === "achievements" &&
+                  syncState.gamesFound > 0
+                    ? ` ${t("steam_sync_progress", {
+                        processed: syncState.gamesProcessed,
+                        found: syncState.gamesFound,
+                      })}`
+                    : null}
+                </>
+              )}
             </p>
           ) : null}
         </div>

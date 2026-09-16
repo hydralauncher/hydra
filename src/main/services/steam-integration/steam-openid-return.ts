@@ -6,6 +6,17 @@ export type SteamOpenIdReturn =
   | { kind: "success" }
   | { kind: "error"; code: SteamConnectErrorCode };
 
+export const completeSteamOpenIdConnection = ({
+  clearReconnectRequired,
+  notifyConnected,
+}: {
+  clearReconnectRequired: () => void;
+  notifyConnected: () => void;
+}) => {
+  clearReconnectRequired();
+  notifyConnected();
+};
+
 const isSteamConnectedDeepLink = (url: URL) =>
   url.protocol === "hydralauncher:" && url.hostname === "steam-connected";
 
