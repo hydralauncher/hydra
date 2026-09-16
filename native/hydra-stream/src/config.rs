@@ -255,6 +255,51 @@ pub fn hevc_advertised() -> bool {
     })
 }
 
+pub const REPEATS_ENV: &str = "HYDRA_STREAM_REPEATS";
+
+/// The canonical value that ENABLES idle-desktop repeats; [`parse_repeats`]
+/// also accepts `true` and `on`. Shared with the session-start log, so the
+/// token that log names is one the parse honours.
+pub const REPEATS_ON_VALUE: &str = "1";
+
+/// Whether the capture side's idle-desktop duplicate keepalive may emit.
+/// DISABLED by default.
+///
+/// When `AcquireNextFrame` hands over nothing new at a due slot, the
+/// previous frame may be re-encoded so the wire still carries the negotiated
+/// frame rate (Sunshine display_base.cpp paces duplicates the same way).
+/// Measured on this machine, that is not a rare path: during the degraded
+/// windows of a 60fps session ~20 of every 60 frames/s were repeats of the
+/// previous frame while only ~40/s were new pictures. That padding is what
+/// the client displays twice: over 4,697 sent frames of a diagnosed session
+/// the host was proven faithful (0 idle-desktop repeats reported by the end
+/// summary, max pipeline queue=1) and the negotiated 60/s on the wire
+/// carried only ~45/s of new pictures, so the client's FPS counter read a
+/// padded 60 while the picture juddered. With repeats off the counter reads
+/// the true rate (45-55/s in heavy scenes) and NO frame is displayed twice.
+///
+/// `HYDRA_STREAM_REPEATS=1` (also `true`, `on`) opts back in: a due slot
+/// with no new desktop frame then re-emits the previous one. Anything else
+/// — unset, empty, unrecognised — leaves repeats off, so a mistyped
+/// override cannot silently re-pad the wire. It changes nothing else: no
+/// gate, no threshold, no retry cadence, and no submit path. Read once per
+/// process.
+pub fn repeats_enabled() -> bool {
+    static REPEATS: OnceLock<bool> = OnceLock::new();
+    *REPEATS.get_or_init(|| parse_repeats(std::env::var(REPEATS_ENV).ok().as_deref()))
+}
+
+/// Pure `HYDRA_STREAM_REPEATS` parse: `1`/`true`/`on` (exact, after trim)
+/// enable the idle-desktop repeat; anything else, including unset and
+/// empty, leaves it disabled — the default. Read once per process by
+/// [`repeats_enabled`].
+fn parse_repeats(value: Option<&str>) -> bool {
+    matches!(
+        value.map(str::trim),
+        Some(REPEATS_ON_VALUE) | Some("true") | Some("on")
+    )
+}
+
 pub const AUDIO_DUMP_ENV: &str = "HYDRA_STREAM_AUDIO_DUMP";
 
 /// Diagnostic dump target for the audio sender loop: one record per Opus
@@ -485,6 +530,28 @@ mod tests {
             assert_eq!(parse_keyframe_interval(Some(""), rfi_live), default);
             assert_eq!(parse_keyframe_interval(Some("abc"), rfi_live), default);
             assert_eq!(parse_keyframe_interval(Some("-5"), rfi_live), default);
+        }
+    }
+
+    /// Only an explicit on enables the repeats: an unset or unrecognised
+    /// value leaves them off, which is the default — a mistyped override can
+    /// never silently re-pad the wire with duplicates of the previous frame.
+    #[test]
+    fn repeats_env_parsing() {
+        // unset -> repeats off (the default)
+        assert!(!parse_repeats(None));
+        // empty is unset: no token, no override
+        assert!(!parse_repeats(Some("")));
+        assert!(!parse_repeats(Some(" ")));
+        // the three on spellings, including the token the session log names
+        assert!(parse_repeats(Some(REPEATS_ON_VALUE)));
+        assert!(parse_repeats(Some("1")));
+        assert!(parse_repeats(Some("true")));
+        assert!(parse_repeats(Some("on")));
+        assert!(parse_repeats(Some(" on ")));
+        // anything else stays at the default
+        for raw in ["0", "false", "off", " OFF", "False", "no", "yes", "abc", "-1"] {
+            assert!(!parse_repeats(Some(raw)), "{raw}");
         }
     }
 

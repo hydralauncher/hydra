@@ -41,8 +41,8 @@ use crate::amf::AmfEncoder;
 use crate::nvenc::{EncoderConfigParams, NvencEncoder};
 use crate::shared::{BeginProduceError, CrossAdapterBridge};
 use crate::video::{
-    frame_age_decision, projected_encode_age, EncodedFrame, FrameAgeDecision, FrameStages,
-    FrameSupply, VideoPipeline,
+    frame_age_decision, hist_bucket, projected_encode_age, EncodedFrame, FrameAgeDecision,
+    FrameStages, FrameSupply, VideoPipeline, ENCODE_HIST_BUCKETS,
 };
 
 /// Hardware encoder backend (NVENC or AMF) bound to the capture's D3D11
@@ -624,6 +624,18 @@ impl RecreateSchedule {
 pub struct DxgiFrame {
     pub texture: ID3D11Texture2D,
     pub acquired: Instant,
+    /// `DXGI_OUTDUPL_FRAME_INFO::AccumulatedFrames` of the acquisition that
+    /// produced this texture: how many frames the compositor presented
+    /// since the previous successful acquire. It is the only number that
+    /// separates a desktop which really presented nothing from one whose
+    /// presents our acquisition rate missed: a stale drain that finds the
+    /// duplication empty every time harvests at the acquire rate and still
+    /// accounts for every present in the sums it does make (the counter is
+    /// per-acquire and coalesces, so the sum over a drain is exactly the
+    /// presents the drain spanned). Zero on an acquire that carried no
+    /// present of its own — a pointer-only update, or a frame already
+    /// counted by an earlier acquire in the same drain.
+    pub presents: u32,
     duplication: IDXGIOutputDuplication,
 }
 
@@ -802,6 +814,17 @@ impl DxgiCapture {
     /// Acquires the next desktop frame, waiting up to `timeout_ms`.
     /// `Ok(None)` on wait timeout; `Err` on access loss (caller should
     /// recreate the capture).
+    ///
+    /// No presents are reported on the timeout path: `AcquireNextFrame`
+    /// leaves `frame_info` untouched when it returns
+    /// `DXGI_ERROR_WAIT_TIMEOUT`, so a present that landed during the
+    /// timeout is not reported by that call and not by the next one either
+    /// (a successful acquire reports only what accumulated since the last
+    /// successful one). The API does not offer the number here, so the
+    /// counter below can only under-report by presents that arrived with no
+    /// successful acquire to carry them — which is stated, not assumed:
+    /// the `live_present_rate_probe` counts a timeout as a timeout and
+    /// never adds `AccumulatedFrames` from one.
     pub fn acquire(&self, timeout_ms: u32) -> Result<Option<DxgiFrame>, String> {
         unsafe {
             let mut frame_info = std::mem::zeroed();
@@ -821,6 +844,7 @@ impl DxgiCapture {
             Ok(Some(DxgiFrame {
                 texture,
                 acquired: Instant::now(),
+                presents: frame_info.AccumulatedFrames,
                 duplication: self.duplication.clone(),
             }))
         }
@@ -2150,9 +2174,62 @@ pub struct NvencPipeline {
     acquire_timeout: u64,
     acquire_error: u64,
     last_acquire_error: String,
+    /// Desktop presents the compositor reported to us, summed over every
+    /// successful acquire — the same `AccumulatedFrames` sum
+    /// `live_present_rate_probe` measures, now read on the production path.
+    /// Reported per window as `presents≈N/s`, the compositor's own count
+    /// beside the `desktop≈N/s` content proxy. The two answer different
+    /// questions in a degraded window: `desktop≈` counts what the slots
+    /// consumed, `presents≈` counts what the desktop offered, so the gap
+    /// between them is what this pipeline failed to harvest.
+    ///
+    /// What the field means exactly (MSDN, `DXGI_OUTDUPL_FRAME_INFO`): "the
+    /// number of frames that the operating system accumulated in the
+    /// desktop image surface since the calling application processed the
+    /// last desktop image", zero "if only the pointer was updated", and one
+    /// "if the application completed processing the last frame before a new
+    /// desktop image was presented". So it counts one for the image this
+    /// acquire hands over plus one for each additional present that landed
+    /// while the previous one was held (measured on this machine: a tight
+    /// acquire loop read 124.0/s against 105.0/s acquires that carried a
+    /// non-zero `LastPresentTime`, i.e. it does report coalesced presents,
+    /// not one per acquisition). The residual ambiguity is the boundary
+    /// present of each acquisition, and it is not resolved here: this is
+    /// the only present figure the API offers on this path, and it is
+    /// decisive where it matters — a window reading `presents≈` at the
+    /// panel's rate beside a `desktop≈` far below it is a desktop offering
+    /// frames this pipeline did not harvest, whatever the boundary costs.
+    desktop_presents: u64,
     encoded: u64,
     encoded_bytes: u64,
     idle_skips: u64,
+    /// Idle-duplicate stand-downs, split by the reason so the 5s line can
+    /// name the condition instead of leaving one number over four of them.
+    /// The distinction is the point: during the diagnosed 60fps session a
+    /// window logged `idle-skips=676` at `encode` p50 15ms, and "the target
+    /// is still inside the encoder" is the coupling that would make the
+    /// encoder's latency suppress new desktop frames, while "no frame ever
+    /// acquired" is a genuinely idle desktop that cannot.
+    ///
+    /// `idle_skips` above stays the running total, the number `counters()`
+    /// and the session-end line print; these four say which condition the
+    /// window hit. Their sum is the total within one run — one capture
+    /// means one branch, and the two counters of the bridge branch are
+    /// disjoint — but no test may assume it: the branches are alternatives,
+    /// so the sum is a consequence of the code below, not of the field
+    /// definitions.
+    idle_no_history: u64,
+    idle_no_scaler_slot: u64,
+    idle_scaler_busy: u64,
+    idle_cross_busy: u64,
+    /// Desktop frames dropped on the real-frame path because every target
+    /// was still inside the encoder: same condition as `idle_scaler_busy`,
+    /// but reached with a fresh present in hand — the frame is lost where a
+    /// stand-down only declines to repeat the previous one. Reported
+    /// per window beside the breakdown so a window that dropped real
+    /// presents is not read as one that merely repeated an idle desktop.
+    scaler_busy_drops: u64,
+    cross_busy_drops: u64,
     /// Desktop frames drained while skipping ahead to the newest texture
     /// (the first half of the pre-encode age gate).
     stale_skips: u64,
@@ -2162,15 +2239,14 @@ pub struct NvencPipeline {
     /// sender loop reports as `stale-skipped`; the post-encode drop count
     /// is expected to stay zero beside it.
     stale_submission_skips: u64,
-    cross_busy_drops: u64,
-    scaler_busy_drops: u64,
     /// Presents the negotiated-fps pacer refused as surplus. It stands at
     /// zero by construction now: a slot takes the newest image the
     /// duplicator has instead of trying to take one early and refusing it,
     /// so nothing is refused (an early present is folded into the image
     /// the slot does take). Kept reported because the sender loop's supply
-    /// line reads it; the desktop's true present rate is what
-    /// `live_present_rate_probe` measures directly.
+    /// line reads it; the desktop's own present rate is
+    /// `desktop_presents` above, which the same line reports as
+    /// `presents≈N/s`.
     pacer_surplus: u64,
     /// Frames dropped at an encoder/ring busy gate while a forced IDR was
     /// pending: the IDR request itself survives (idr_pending stays armed)
@@ -2186,6 +2262,15 @@ pub struct NvencPipeline {
     scaler_slot_busy: [bool; 2],
     /// Scaler slot holding `last_texture` (the idle-duplicate source).
     last_scaler_slot: Option<usize>,
+    /// `submitted_at` → bitstream observed, per submission: the same span
+    /// `FrameStages::encode` carries, accumulated here because the 5s line
+    /// needs its distribution and the sender loop only keeps the last 300
+    /// samples. Idle duplicates are excluded, exactly as the percentiles
+    /// exclude them (see `reap`).
+    encode_hist: [u64; ENCODE_HIST_BUCKETS],
+    /// Submission → target release, per target (scaler-owned or
+    /// cross-adapter ring): how long the target was held out of reuse.
+    scaler_hold_hist: [u64; ENCODE_HIST_BUCKETS],
 }
 
 /// Bookkeeping attached to each encoder submission and echoed back with
@@ -2208,6 +2293,12 @@ struct PendingMeta {
     submit: Duration,
     submitted_at: Instant,
     bridge_sync: Duration,
+    /// When the encode target this submission holds (a scaler-owned target
+    /// or a cross-adapter ring slot) began being held out of reuse: stamped
+    /// before the encoder submit, so the release in `reap` can report the
+    /// hold. Zero for a submission that was never accepted (the caller
+    /// frees the target itself, and there is no hold to report).
+    occupied_at: Instant,
 }
 
 enum PendingSource {
@@ -2577,19 +2668,26 @@ impl NvencPipeline {
             acquire_timeout: 0,
             acquire_error: 0,
             last_acquire_error: String::new(),
+            desktop_presents: 0,
             encoded: 0,
             encoded_bytes: 0,
             idle_skips: 0,
+            idle_no_history: 0,
+            idle_no_scaler_slot: 0,
+            idle_scaler_busy: 0,
+            idle_cross_busy: 0,
+            scaler_busy_drops: 0,
+            cross_busy_drops: 0,
             stale_skips: 0,
             stale_submission_skips: 0,
-            cross_busy_drops: 0,
-            scaler_busy_drops: 0,
             pacer_surplus: 0,
             idr_busy_delays: 0,
             encoder_meta: std::collections::HashMap::new(),
             next_handle: 0,
             scaler_slot_busy: [false; 2],
             last_scaler_slot: None,
+            encode_hist: [0; ENCODE_HIST_BUCKETS],
+            scaler_hold_hist: [0; ENCODE_HIST_BUCKETS],
         })
     }
 
@@ -2849,6 +2947,14 @@ impl NvencPipeline {
                 .encoder_meta
                 .remove(&handle)
                 .expect("handle belongs to a registered submission");
+            // the target's release instant, measured at the site that
+            // actually frees it: this is the span a ring size is chosen
+            // from, and it is the same instant for either source kind
+            // (the `busy` flag below for a scaler target, the bridge
+            // hand-back further down for a ring slot)
+            self.scaler_hold_hist[hist_bucket(
+                Instant::now().saturating_duration_since(meta.occupied_at),
+            )] += 1;
             match meta.source {
                 PendingSource::Scaler(slot) => self.scaler_slot_busy[slot] = false,
                 PendingSource::Bridge(slot) => {
@@ -2875,6 +2981,20 @@ impl NvencPipeline {
                 self.encode_latency = (self.encode_latency * 3 + measured) / 4;
             }
             let frame_idr = encoder_idr || meta.idr;
+            // submission → bitstream observed, measured once and used for
+            // both the per-frame stage split and the window histogram. Only
+            // real captured frames: an idle duplicate's capture stamp is
+            // taken at reap, so it has no honest encode span (the same
+            // exclusion the latency percentiles make).
+            let observed_at = Instant::now();
+            let encode = if meta.re_stamp_at_reap {
+                Duration::ZERO
+            } else {
+                observed_at.saturating_duration_since(meta.submitted_at)
+            };
+            if !meta.re_stamp_at_reap {
+                self.encode_hist[hist_bucket(encode)] += 1;
+            }
             if self.encoded == 1 {
                 // log the SPS profile/level so an exotic negotiated mode can
                 // be ruled out when a client rejects the stream
@@ -2926,7 +3046,7 @@ impl NvencPipeline {
                         // poll-quantized end of it, at reap; the first
                         // poll after the submission already happened
                         // inside the same `encode_next` call.
-                        encode: Instant::now().saturating_duration_since(meta.submitted_at),
+                        encode,
                         // filled in by the sender loop, which is the only
                         // place that sees `encode_next` return
                         reap: Duration::ZERO,
@@ -2966,6 +3086,11 @@ impl NvencPipeline {
         // everything between holding the frame and handing it over: the
         // scale, the ring's producer side, and this call's own overhead
         let scale = Instant::now().saturating_duration_since(capture);
+        // the caller has already taken the target out of reuse (the busy
+        // flag or the ring slot) before calling this, so this instant is
+        // the target's hold beginning; `reap` measures the span to its
+        // release
+        let occupied_at = Instant::now();
         let encoder = self.encoder.as_mut().expect("encoder set");
         let submit_started = Instant::now();
         let outcome = encoder.submit(texture.as_raw(), force, handle);
@@ -2985,6 +3110,7 @@ impl NvencPipeline {
                         submit,
                         submitted_at,
                         bridge_sync,
+                        occupied_at,
                     },
                 );
                 Ok(true)
@@ -3090,7 +3216,20 @@ impl VideoPipeline for NvencPipeline {
             .expect("capture set")
             .acquire(0)
         {
-            Ok(acquired) => acquired,
+            Ok(Some(frame)) => {
+                // the compositor's own count of what it presented since the
+                // last acquire, harvested here and at every drain acquire
+                // below: the only measurement that can tell a desktop which
+                // really presented ~40/s from one that presented 100/s
+                // while this pipeline only got to acquire 40 of them. Taken
+                // here, from the acquisition, rather than from the frame
+                // the iteration ends up holding: the stale drain may abort
+                // on a capture error, and the presents this acquire carried
+                // still happened.
+                self.desktop_presents += u64::from(frame.presents);
+                Some(frame)
+            }
+            Ok(None) => None,
             Err(error) => {
                 self.acquire_error += 1;
                 self.last_acquire_error = error.clone();
@@ -3101,6 +3240,10 @@ impl VideoPipeline for NvencPipeline {
         };
         let Some(mut frame) = acquired else {
             self.acquire_timeout += 1;
+            // no presents either: a timeout reports no AccumulatedFrames
+            // (see `DxgiCapture::acquire`), so the counter under-reports
+            // only by what the compositor put up while the duplication was
+            // empty — never by a present an acquire carried
             if self.acquire_ok == 0 && self.acquire_timeout == 1 {
                 eprintln!("video: duplicated output idle, waiting for first desktop frame");
             }
@@ -3116,6 +3259,20 @@ impl VideoPipeline for NvencPipeline {
             if !self.pacing.due(now) {
                 return Ok(None);
             }
+            // A/B switch (`config::repeats_enabled`): with repeats off the
+            // idle path emits nothing at all, which is the only thing this
+            // switch removes — both duplicate branches below are skipped,
+            // no slot is stamped (`note_emitted` is never reached, so the
+            // pacer's schedule is untouched), and no new counter, gate or
+            // threshold is added. The pause is the stand-down the
+            // no-history and no-scaler-slot branches already take: with no
+            // slot consumed nothing re-anchors the pacer, so without it the
+            // loop would re-poll the duplicator flat out for as long as the
+            // desktop stays idle.
+            if !crate::config::repeats_enabled() {
+                idle_acquire_pause();
+                return Ok(None);
+            }
             //
             // cross-adapter duplicates re-encode the last ring slot: its
             // content is unchanged, so only the consumer-side sync round
@@ -3125,6 +3282,7 @@ impl VideoPipeline for NvencPipeline {
                     // no frame ever submitted: the duplicated desktop has
                     // been completely idle since the stream started
                     self.idle_skips += 1;
+                    self.idle_no_history += 1;
                     idle_acquire_pause();
                     return Ok(None);
                 };
@@ -3140,6 +3298,7 @@ impl VideoPipeline for NvencPipeline {
                     // the bitstream, so retry on the 1ms backoff rather than
                     // pausing the emission path
                     self.idle_skips += 1;
+                    self.idle_cross_busy += 1;
                     self.pacing_spent = true;
                     return Ok(None);
                 }
@@ -3187,11 +3346,17 @@ impl VideoPipeline for NvencPipeline {
                 // no frame ever acquired: the duplicated desktop has been
                 // completely idle since the stream started
                 self.idle_skips += 1;
+                self.idle_no_history += 1;
                 idle_acquire_pause();
                 return Ok(None);
             };
             let Some(slot) = self.last_scaler_slot else {
+                // a scaler-owned texture always records its slot beside it,
+                // so this pairs with `last_texture` being None above; it is
+                // counted apart because it would mean a real present went to
+                // the scaler without the idle path learning where it landed
                 self.idle_skips += 1;
+                self.idle_no_scaler_slot += 1;
                 idle_acquire_pause();
                 return Ok(None);
             };
@@ -3205,6 +3370,7 @@ impl VideoPipeline for NvencPipeline {
                 // schedule, which the pause's own contract forbids on the
                 // emission path).
                 self.idle_skips += 1;
+                self.idle_scaler_busy += 1;
                 self.pacing_spent = true;
                 return Ok(None);
             }
@@ -3286,7 +3452,18 @@ impl VideoPipeline for NvencPipeline {
             loop {
                 match self.capture.as_ref().expect("capture set").acquire(0) {
                     Ok(Some(newer)) => {
+                        // as at the acquire above: every drain acquisition
+                        // carries its own accumulated presents, so the sum
+                        // over the loop is exactly what the compositor put
+                        // up while the drain ran. This is what makes a
+                        // present count even when the drain finds the
+                        // duplication empty on every iteration — the misses
+                        // there are the acquisition rate, not the desktop.
+                        self.desktop_presents += u64::from(newer.presents);
                         dropped += 1;
+                        // assigning releases the frame we were holding
+                        // (DXGI refuses the next acquire while one is
+                        // outstanding), so the replacement happens here
                         current = newer;
                     }
                     Ok(None) => break,
@@ -3505,7 +3682,7 @@ impl VideoPipeline for NvencPipeline {
 
     fn counters(&self) -> String {
         format!(
-            "acquire ok={} timeout={} error={} (last: {}), pacer surplus={}, encoded={} ({} bytes), idle pacing skips={}, stale pre-encode skips={} (drained {}), idr busy delays={}, display recreations={}, bitrate={}kbps, encoder={}, display {}{}",
+            "acquire ok={} timeout={} error={} (last: {}), desktop presents={}, pacer surplus={}, encoded={} ({} bytes), idle pacing skips={} (history={} no-scaler-slot={} scaler-busy={} cross-busy={}), stale pre-encode skips={} (drained {}), idr busy delays={}, display recreations={}, bitrate={}kbps, encoder={}, display {}{}",
             self.acquire_ok,
             self.acquire_timeout,
             self.acquire_error,
@@ -3514,10 +3691,15 @@ impl VideoPipeline for NvencPipeline {
             } else {
                 self.last_acquire_error.as_str()
             },
+            self.desktop_presents,
             self.pacer_surplus,
             self.encoded,
             self.encoded_bytes,
             self.idle_skips,
+            self.idle_no_history,
+            self.idle_no_scaler_slot,
+            self.idle_scaler_busy,
+            self.idle_cross_busy,
             self.stale_submission_skips,
             self.stale_skips,
             self.idr_busy_delays,
@@ -3530,11 +3712,14 @@ impl VideoPipeline for NvencPipeline {
             },
             match &self.bridge {
                 Some(bridge) => format!(
-                    " (cross-adapter via {}, ring busy drops={})",
+                    " | cross-adapter via {}, ring busy drops={}, scaler busy drops={}",
                     bridge.sync_label(),
-                    self.cross_busy_drops
+                    self.cross_busy_drops,
+                    self.scaler_busy_drops
                 ),
-                None => String::new(),
+                // no bridge to name: the scaler-busy drops are still a
+                // capture-side fact, so the summary carries them the same way
+                None => format!(" | scaler busy drops={}", self.scaler_busy_drops),
             }
         )
     }
@@ -3591,10 +3776,14 @@ impl VideoPipeline for NvencPipeline {
     /// See [`VideoPipeline::supply`]: the capture side's frame-supply
     /// counters. Every DXGI frame this pipeline saw is in exactly one of
     /// `new_frames`, `pacer_surplus` or `stale_drained`, so the sender loop
-    /// can read their sum as the content rate the slots consumed (the
-    /// desktop's own present rate is what `live_present_rate_probe`
-    /// measures — a slot takes the newest image in one acquisition, so
-    /// DXGI coalesces the presents between two slots into it).
+    /// can read their sum as the content rate the slots consumed. That sum
+    /// is a proxy, not the present rate: a slot takes the newest image in
+    /// one acquisition, so DXGI coalesces the presents between two slots
+    /// into it. `presents` is the compositor's own count
+    /// (`AccumulatedFrames`), which is what tells the two apart — a window
+    /// with `new=` near its floor and `presents≈` at the panel's rate is
+    /// this pipeline failing to harvest what the desktop offered, not an
+    /// idle desktop.
     fn supply(&self) -> FrameSupply {
         FrameSupply {
             new_frames: self.acquire_ok,
@@ -3602,6 +3791,17 @@ impl VideoPipeline for NvencPipeline {
             pacer_surplus: self.pacer_surplus,
             idle_skips: self.idle_skips,
             stale_drained: self.stale_skips,
+            presents: self.desktop_presents,
+            scaler_busy_drops: self.scaler_busy_drops,
+            cross_busy_drops: self.cross_busy_drops,
+            idle_skip_reasons: [
+                self.idle_no_history,
+                self.idle_no_scaler_slot,
+                self.idle_scaler_busy,
+                self.idle_cross_busy,
+            ],
+            encode_hist: self.encode_hist,
+            scaler_hold_hist: self.scaler_hold_hist,
         }
     }
 
@@ -4680,6 +4880,354 @@ mod tests {
         assert!(received > 0, "no video datagrams reached the client");
     }
 
+    /// Deepest pipeline the probe offers the driver. The session is built
+    /// with this many bitstream buffers (`NvencEncoder::new_with_depth`)
+    /// because a session at the production `PIPELINE_DEPTH` refuses a
+    /// third submission in `submit` before the driver ever sees it — the
+    /// driver's own concurrency limit can only be measured by offering it
+    /// the deeper depths.
+    const PROBE_MAX_DEPTH: usize = 4;
+
+    /// LIVE hardware probe — can this machine's NVENC sustain 60 encodes/s
+    /// at the session's geometry (ignored by default; run on the streaming
+    /// host with a live desktop, since it needs the display adapter's
+    /// D3D11 device):
+    ///
+    ///   cargo test --release -- --ignored live_nvenc_throughput_probe --nocapture --exact
+    ///
+    /// The control experiment for the missed-frame-rate diagnosis: no
+    /// capture, no desktop duplication, no scaler pacing, no sender loop —
+    /// only textures in and bitstreams out, at the geometry and with the
+    /// production encoder configuration (CBR, one-frame VBV, P4 preset,
+    /// ULTRA_LOW_LATENCY tuning, the session's codec and ref-frame count).
+    /// Each geometry runs one phase per pipeline depth, 1 through
+    /// [`PROBE_MAX_DEPTH`], and reports them separately, because they
+    /// answer different questions in the same accounting the pipeline
+    /// uses (`submitted_at` → bitstream observed):
+    ///
+    /// * phase 1 — one encode in flight at a time. Its rate is `1/latency`
+    ///   by construction and is the floor a serial pipeline gets.
+    /// * phases 2..[`PROBE_MAX_DEPTH`] — that many async slots kept in
+    ///   flight, which is what the capture pipeline does when its scaler
+    ///   targets are busy. Phase 2 is the production `PIPELINE_DEPTH`; the
+    ///   deeper phases are the measurement that decides whether raising it
+    ///   buys sustained throughput, and each reports the peak number of
+    ///   concurrent submissions the driver actually accepted, or — if a
+    ///   submission was refused — says so outright instead of falling back
+    ///   to a smaller depth.
+    ///
+    /// THIS PROBE POLLS THE COMPLETION EVENT AS TIGHTLY AS IT CAN (a
+    /// spin loop around the encoder's own nonblocking poll) ON PURPOSE:
+    /// the numbers are the encoder's, not the production sender loop's
+    /// ~1.4ms poll cadence, and the session's own `encode` p50/p95 is NOT
+    /// comparable to them. Read the live line's histograms for that.
+    #[test]
+    #[ignore]
+    fn live_nvenc_throughput_probe() {
+        use windows::Win32::Graphics::Direct3D11::D3D11_USAGE_DEFAULT;
+
+        // the diagnosed session's configuration: 2420x1668 @ 60fps,
+        // 34400kbps, H.264 on NVENC (HYDRA_LIVE_CODEC=hevc and
+        // HYDRA_LIVE_KBPS switch it; the production session read the same
+        // values from the client's ANNOUNCE)
+        let codec = match std::env::var("HYDRA_LIVE_CODEC").ok().as_deref() {
+            Some("hevc") | Some("h265") => crate::video::VideoCodec::Hevc,
+            _ => crate::video::VideoCodec::H264,
+        };
+        let bitrate_kbps: u32 = std::env::var("HYDRA_LIVE_KBPS")
+            .ok()
+            .and_then(|value| value.parse().ok())
+            .unwrap_or(34_400);
+        let fps = 60u32;
+        let interval = Duration::from_secs_f64(1.0 / fps as f64);
+        // 2420x1668 is the diagnosed client's mode, 1920x1080 the
+        // comparison point, 2560x1440 this desktop's own size
+        let geometries = [(2420u32, 1668u32), (1920, 1080), (2560, 1440)];
+        // per phase: 180 frames is ~3.5s at 60/s, long enough for the
+        // driver to settle and short enough to run three geometries
+        let measured = 180usize;
+        const WARMUP: usize = 30;
+
+        let adapters = DxgiCapture::candidate_adapters().expect("adapters");
+        let capture = unsafe { try_adapter(&adapters[0]) }.expect("capture");
+        let device = capture.device();
+        eprintln!(
+            "nvenc throughput probe: desktop {}x{} @ {}Hz, codec={}, {bitrate_kbps}kbps, \
+             {fps}fps, P4 preset + ULTRA_LOW_LATENCY tuning + CBR with one-frame VBV; phases = \
+             1..={PROBE_MAX_DEPTH} encodes in flight (the session is built with \
+             {PROBE_MAX_DEPTH} slots, so the deeper depths reach the driver); {measured} \
+             measured frames per phase after {WARMUP} warmup",
+            capture.width,
+            capture.height,
+            capture.refresh_hz,
+            codec.name(),
+        );
+
+        // The input is scaled (not captured) desktop-sized incompressible
+        // noise, which is also the production scaler's own output format
+        // (BGRA): every encode then really works, at the size a real
+        // session's encode really is. A pattern whose blocks repeat would
+        // let NVENC's motion search match them perfectly and measure a
+        // trivial encode instead — a 64x64 tiled source measured 243-344
+        // encodes/s on this GPU, which is not a number any real session
+        // reaches.
+        let (source_w, source_h) = geometries
+            .iter()
+            .copied()
+            .max_by_key(|(w, h)| w * h)
+            .expect("at least one geometry");
+        let mut pattern = vec![0u8; (source_w * source_h * 4) as usize];
+        for (index, pixel) in pattern.chunks_exact_mut(4).enumerate() {
+            // deterministic per-pixel hash: uniform noise, and the same
+            // bytes for the same geometry every run (so two runs are
+            // comparable)
+            let mut state = 0x9E37_79B9u32 ^ (index as u32).wrapping_mul(2_654_435_761);
+            state ^= state << 13;
+            state ^= state >> 17;
+            state ^= state << 5;
+            let value = state.to_le_bytes();
+            pixel.copy_from_slice(&[value[0], value[1], value[2], 255]);
+        }
+        let source = unsafe {
+            let mut desc = D3D11_TEXTURE2D_DESC::default();
+            desc.Width = source_w;
+            desc.Height = source_h;
+            desc.MipLevels = 1;
+            desc.ArraySize = 1;
+            desc.Format = DXGI_FORMAT_B8G8R8A8_UNORM;
+            desc.SampleDesc = DXGI_SAMPLE_DESC { Count: 1, Quality: 0 };
+            desc.Usage = D3D11_USAGE_DEFAULT;
+            let mut texture = None;
+            device
+                .CreateTexture2D(&desc, None, Some(&mut texture))
+                .expect("CreateTexture2D");
+            let texture = texture.expect("source texture");
+            device
+                .GetImmediateContext()
+                .expect("context")
+                .UpdateSubresource(
+                    &texture.cast::<windows::Win32::Graphics::Direct3D11::ID3D11Resource>()
+                        .expect("resource"),
+                    0,
+                    None,
+                    pattern.as_ptr() as *const c_void,
+                    source_w * 4,
+                    0,
+                );
+            texture
+        };
+
+        // poll the encoder until it hands back at least one bitstream.
+        // This is the tight loop the doc comment above is about.
+        fn poll_until_drained(
+            encoder: &mut NvencEncoder,
+            drained: &mut usize,
+        ) -> Result<Vec<(Vec<u8>, bool, usize, bool)>, String> {
+            loop {
+                let batch = encoder.poll()?;
+                if !batch.is_empty() {
+                    *drained += batch.len();
+                    return Ok(batch);
+                }
+                std::hint::spin_loop();
+            }
+        }
+
+        let mut sustained = Vec::new();
+        for (width, height) in geometries {
+            // the production scaler, at exactly the geometry the encoder
+            // session is configured with (create_capture builds it the same
+            // way: desktop size in, encode size out)
+            let mut scaler = TextureScaler::new(
+                &device,
+                source_w,
+                source_h,
+                width,
+                height,
+                fps,
+            )
+            .expect("scaler");
+            let texture = scaler.scale(&source, 0).expect("scale");
+            let params = EncoderConfigParams {
+                codec,
+                hdr: false,
+                width,
+                height,
+                fps,
+                bitrate_kbps,
+                slices_per_frame: 1,
+                max_ref_frames: crate::nvenc::REF_FRAMES_DEFAULT,
+            };
+            let mut encoder =
+                crate::nvenc::NvencEncoder::new_with_depth(device.as_raw(), &params, PROBE_MAX_DEPTH)
+                    .expect("nvenc session");
+            let raw = texture.as_raw();
+            // one line per geometry before its phases: with the GPU busy
+            // this probe can take tens of seconds, and the setup above is
+            // where a contended session open shows, so where it stopped has
+            // to be readable
+            eprintln!("nvenc throughput probe: {width}x{height} session up, phase 1");
+
+            // phase A: 1 in flight
+            let mut next_handle = 0usize;
+            let mut drained = 0usize;
+            let mut latencies: Vec<Duration> = Vec::with_capacity(measured);
+            let mut started = None;
+            while drained < WARMUP + measured {
+                if drained == WARMUP {
+                    started = Some(Instant::now());
+                }
+                let submitted_at = Instant::now();
+                if encoder.submit(raw, false, next_handle).expect("submit") {
+                    next_handle += 1;
+                }
+                poll_until_drained(&mut encoder, &mut drained).expect("poll");
+                if next_handle > WARMUP {
+                    latencies.push(Instant::now().saturating_duration_since(submitted_at));
+                }
+            }
+            let phase_a = started.expect("warmup spanned").elapsed();
+
+            // same percentile the 5s line uses (`percentile` in `video.rs`
+            // is private), so the probe's milliseconds mean what the
+            // line's mean
+            let percentile = |sorted: &[Duration], pct: f64| -> Duration {
+                if sorted.is_empty() {
+                    return Duration::ZERO;
+                }
+                let index = ((sorted.len().saturating_sub(1)) as f64 * pct).round() as usize;
+                sorted[index.min(sorted.len() - 1)]
+            };
+            let report = |label: &str, elapsed: Duration, samples: &[Duration]| {
+                let rate = samples.len() as f64 / elapsed.as_secs_f64();
+                eprintln!(
+                    "nvenc throughput probe: {width}x{height} {label}: {rate:.1} encodes/s \
+                     ({} frames in {:.2}s), latency p50={:.2}ms p90={:.2}ms p99={:.2}ms \
+                     max={:.2}ms (frame interval {:.2}ms)",
+                    samples.len(),
+                    elapsed.as_secs_f64(),
+                    crate::video::ms(percentile(samples, 0.50)),
+                    crate::video::ms(percentile(samples, 0.90)),
+                    crate::video::ms(percentile(samples, 0.99)),
+                    crate::video::ms(percentile(samples, 1.0)),
+                    crate::video::ms(interval),
+                );
+                rate
+            };
+            latencies.sort();
+            let rate_a = report("phase (1 in flight)", phase_a, &latencies);
+            let mut best = rate_a;
+
+            // phases 2..=PROBE_MAX_DEPTH: the session's own async pipeline
+            // depth and beyond. Each keeps `depth` submissions in flight; a
+            // submission the driver (or the session's own slot budget)
+            // refuses ends the phase and is reported as the refusal it is —
+            // never a quiet fall-back to a smaller depth.
+            for depth in 2..=PROBE_MAX_DEPTH {
+                let mut next_handle = 0usize;
+                let mut drained = 0usize;
+                let mut submit_at: Vec<Instant> = Vec::with_capacity(WARMUP + measured);
+                let mut latencies_d: Vec<Duration> = Vec::with_capacity(measured);
+                let mut started = None;
+                let mut refusal: Option<String> = None;
+                // how many concurrent submissions the driver actually took
+                // (in-flight only shrinks inside `poll`, so this reaches
+                // `depth` unless a submission was refused)
+                let mut peak = 0usize;
+                let target = WARMUP + measured;
+                while drained < target {
+                    if drained == WARMUP {
+                        started = Some(Instant::now());
+                    }
+                    while encoder.pending_depth() < depth && next_handle < target {
+                        let at = Instant::now();
+                        match encoder.submit(raw, false, next_handle) {
+                            Ok(true) => {
+                                submit_at.push(at);
+                                next_handle += 1;
+                            }
+                            // the session's own slot budget answered before
+                            // the driver did: with a session built at
+                            // PROBE_MAX_DEPTH slots this cannot happen, so
+                            // it is named rather than papered over
+                            Ok(false) => {
+                                refusal = Some(format!(
+                                    "the session's own slot budget refused it at {} in flight",
+                                    encoder.pending_depth()
+                                ));
+                                break;
+                            }
+                            Err(error) => {
+                                refusal = Some(error);
+                                break;
+                            }
+                        }
+                    }
+                    peak = peak.max(encoder.pending_depth());
+                    if refusal.is_some() {
+                        break;
+                    }
+                    let observed = Instant::now();
+                    let batch = poll_until_drained(&mut encoder, &mut drained).expect("poll");
+                    for (_, _, handle, _) in &batch {
+                        // the pipeline's own accounting: submission → the poll
+                        // that observed the bitstream
+                        if *handle >= WARMUP {
+                            if let Some(at) = submit_at.get(*handle) {
+                                latencies_d.push(observed.saturating_duration_since(*at));
+                            }
+                        }
+                    }
+                }
+                if let Some(reason) = refusal {
+                    eprintln!(
+                        "nvenc throughput probe: {width}x{height} phase ({depth} in flight): \
+                         REFUSED — {reason}: the driver did NOT accept {depth} concurrent \
+                         submissions{}",
+                        if depth < PROBE_MAX_DEPTH {
+                            format!("; depth {} was not measured", depth + 1)
+                        } else {
+                            String::new()
+                        }
+                    );
+                    break;
+                }
+                latencies_d.sort();
+                let rate = report(
+                    &format!("phase ({depth} in flight), driver accepted {peak} concurrent submissions"),
+                    started.expect("warmup spanned").elapsed(),
+                    &latencies_d,
+                );
+                best = best.max(rate);
+            }
+            eprintln!(
+                "nvenc throughput probe: {width}x{height} vs 60/s target: {best:.1}/s, margin \
+                 {:+.1}/s ({:+.0}%), {}",
+                best - 60.0,
+                (best / 60.0 - 1.0) * 100.0,
+                if best >= 60.0 { "SUSTAINS 60/s" } else { "BELOW 60/s" }
+            );
+            sustained.push(((width, height), best));
+            // the teardown is detached (a driver hang there cannot block
+            // this probe), so the session is dropped and the next geometry
+            // starts immediately
+            drop(encoder);
+        }
+        eprintln!("nvenc throughput probe: summary (best phase per geometry)");
+        for ((width, height), rate) in &sustained {
+            eprintln!(
+                "nvenc throughput probe:   {width}x{height}: {rate:.1} encodes/s, \
+                 {:.0}% of the 60/s target, {}",
+                rate / 60.0 * 100.0,
+                if *rate >= 60.0 { "SUSTAINED" } else { "NOT SUSTAINED" }
+            );
+        }
+        assert!(
+            sustained.iter().all(|(_, rate)| *rate > 0.0),
+            "the probe measured no encodes at all"
+        );
+    }
+
     /// LIVE diagnostic — the compositor's own present rate, measured with
     /// no scaling, no encoding, and no pacing in the way (ignored by
     /// default, needs the real desktop):
@@ -4707,8 +5255,9 @@ mod tests {
             "present-rate probe: desktop {}x{} @ {}Hz",
             capture.width, capture.height, capture.refresh_hz
         );
-        // the live smoke's cursor wiggle, so the number is comparable to a
-        // live run's `desktop≈N/s` proxy
+        // the live smoke's cursor wiggle, so the number is comparable to
+        // the live run's `presents≈N/s` (the same `AccumulatedFrames` sum,
+        // now read on the production path too)
         let wiggle_stop = Arc::new(AtomicBool::new(false));
         {
             let wiggle_stop = wiggle_stop.clone();

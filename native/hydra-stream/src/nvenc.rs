@@ -901,6 +901,28 @@ impl NvencEncoder {
     /// (`ID3D11Device` as `*mut c_void`) and configures the codec
     /// `params.codec` selects.
     pub fn new(device: *mut c_void, params: &EncoderConfigParams) -> Result<Self, String> {
+        Self::open(device, params, PIPELINE_DEPTH)
+    }
+
+    /// Same, with an explicit slot count. Only the live concurrency probe
+    /// (`capture::tests::live_nvenc_throughput_probe`) builds a session
+    /// deeper than the production [`PIPELINE_DEPTH`]: the driver's own
+    /// acceptance of 3-4 concurrent submissions has to be measured before
+    /// the constant can be changed to match.
+    #[cfg(test)]
+    pub fn new_with_depth(
+        device: *mut c_void,
+        params: &EncoderConfigParams,
+        depth: usize,
+    ) -> Result<Self, String> {
+        Self::open(device, params, depth)
+    }
+
+    fn open(
+        device: *mut c_void,
+        params: &EncoderConfigParams,
+        depth: usize,
+    ) -> Result<Self, String> {
         if device.is_null() {
             return Err("no D3D11 device".to_string());
         }
@@ -1052,7 +1074,7 @@ impl NvencEncoder {
         // Registration failure rebuilds the session synchronously (how
         // every frame encoded before this existed).
         let mut slots = Vec::new();
-        for _ in 0..PIPELINE_DEPTH {
+        for _ in 0..depth {
             match unsafe { CreateEventW(None, false, false, None) } {
                 Ok(event) => {
                     let mut event_params = EventParams::zeroed();
@@ -1104,7 +1126,7 @@ impl NvencEncoder {
                 }
             }
         }
-        if slots.len() == PIPELINE_DEPTH {
+        if slots.len() == depth {
             this.slots = slots;
         } else {
             for slot in slots {

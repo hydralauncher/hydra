@@ -27,6 +27,8 @@
 //! controller may raise it frame to frame under congestion without any
 //! negotiation.
 
+use std::array::from_fn;
+use std::fmt::Write as _;
 use std::fs::File;
 use std::io;
 use std::io::Write;
@@ -657,9 +659,14 @@ impl PeriodicKeyframe {
 /// side saw is counted in exactly one of `new_frames`, `pacer_surplus` or
 /// `stale_drained` — and since a slot now takes the newest image the
 /// duplicator has instead of polling for one early, that sum is the
-/// content rate the slots consumed, not the desktop's present rate: DXGI
+/// content rate the slots consumed, NOT the desktop's present rate: DXGI
 /// coalesces every update between two acquisitions into the image the
-/// next slot takes (see `live_present_rate_probe` for the rate itself).
+/// next slot takes. `presents` is the number that separates the two: the
+/// compositor's own `AccumulatedFrames`, summed over the acquires that
+/// carried one. A window whose `desktop≈` proxy is well under `presents≈`
+/// is this pipeline harvesting less than the desktop offered — the case
+/// the diagnosed 60fps session could not distinguish from a desktop that
+/// really only presented 40/s.
 #[derive(Clone, Copy, Default)]
 pub struct FrameSupply {
     /// `acquire ok`: desktop frames acquired that were NEW (a fresh
@@ -672,19 +679,109 @@ pub struct FrameSupply {
     /// Presents the negotiated-fps pacer refused as surplus. Zero by
     /// construction with the held-present path — an early present is held
     /// for its slot, not refused — so `(new + surplus + drained)` is no
-    /// longer a lower bound on the desktop's present rate: the present
-    /// rate is what `live_present_rate_probe` measures directly.
+    /// longer a lower bound on the desktop's present rate: that rate is
+    /// `presents` below, which the capture side reads from DXGI itself.
     pub pacer_surplus: u64,
     /// Times the idle-duplicate path stood down on a due slot: no desktop
     /// frame to re-encode yet (or its texture is still inside the
     /// encoder). A repeat is the last resort, so these are the slots a
-    /// repeat could not cover either.
+    /// repeat could not cover either. `idle_skip_reasons` says which
+    /// condition it was — the half of the question this counter alone
+    /// could not answer.
     pub idle_skips: u64,
     /// Frames drained while skipping ahead to the newest texture (the
     /// first half of the pre-encode age gate): real presents that were
     /// already too old to ship.
     pub stale_drained: u64,
+    /// Desktop frames the compositor presented, summed from
+    /// `DXGI_OUTDUPL_FRAME_INFO::AccumulatedFrames` over the acquires that
+    /// reported one — the count the OS keeps of the images it put up,
+    /// including the ones it coalesced while the previous image was held.
+    /// A timeout reports none (see `DxgiCapture::acquire`), and the
+    /// boundary present of each acquisition is counted once for the image
+    /// that acquisition hands over; the field's own documentation in
+    /// `capture.rs` states both. Printed as `presents≈N/s` beside the
+    /// `desktop≈N/s` content proxy.
+    pub presents: u64,
+    /// Real desktop frames dropped because every scaler target was still
+    /// inside the encoder. Same condition as the `scaler-busy` stand-down
+    /// below, reached with a fresh present in hand: the frame is lost where
+    /// a stand-down only declines to repeat the previous one.
+    pub scaler_busy_drops: u64,
+    /// The cross-adapter ring's version of the same drop: every ring slot
+    /// was still inside the encoder.
+    pub cross_busy_drops: u64,
+    /// [`FrameSupply::idle_skips`] by reason, in the order the 5s line
+    /// prints: no frame ever acquired, a frame but no scaler slot recorded
+    /// for it, the scaler slot still inside the encoder, the cross-adapter
+    /// ring slot still inside the encoder. An array rather than four named
+    /// fields because the only consumer is one formatted line (see
+    /// [`idle_skip_breakdown`]), and an array keeps the delta and the
+    /// format from drifting apart.
+    pub idle_skip_reasons: [u64; IDLE_SKIP_REASONS],
+    /// Per-frame encode latency (`submitted_at` → bitstream observed at
+    /// reap, the pipeline's own `FrameStages::encode`) as the
+    /// [`ENCODE_HIST_BUCKETS_MS`] histogram of [`FrameSupply`] — the
+    /// distribution the window's p50/p95 hides: whether the ~21ms tail
+    /// that starves a two-deep target ring is occasional or most of the
+    /// window. Frames that were never submitted cannot appear, and idle
+    /// duplicates (which have no honest encode span) are excluded exactly
+    /// as the percentiles exclude them.
+    pub encode_hist: [u64; ENCODE_HIST_BUCKETS],
+    /// How long each encode target was held out of reuse (the scaler's
+    /// owned target or the cross-adapter ring slot: submission → the
+    /// release that frees it for the next frame), bucketed the same way.
+    /// Sizes the ring from data: the count in the intervals at or above a
+    /// frame interval is what a two-target ring cannot hide.
+    pub scaler_hold_hist: [u64; ENCODE_HIST_BUCKETS],
 }
+
+/// The four idle-duplicate stand-downs [`FrameSupply::idle_skips`] covers:
+/// no-history, no-scaler-slot, scaler-busy, cross-busy. A constant, not a
+/// `Vec`, so the breakdown array stays `Copy` and the delta stays a plain
+/// element-wise subtraction.
+pub const IDLE_SKIP_REASONS: usize = 4;
+
+/// Buckets in one [`ENCODE_HIST_BUCKETS_MS`] histogram (the boundary list
+/// plus its open-ended last bucket). The sixth and seventh boundaries are
+/// the ones that matter at a 60fps target: `<16` is a frame that cannot
+/// starve the ring and `>=16` (a whole frame interval) is one that can,
+/// which is why the boundary sits exactly on the interval rather than on a
+/// round number.
+pub const ENCODE_HIST_BUCKETS: usize = 7;
+
+/// Histogram bucket boundaries in milliseconds, lower bounds of buckets
+/// 1..: `<5, 5-8, 8-11, 11-14, 14-17, 17-21, >=21`. The boundaries are
+/// finer just below one 60fps frame interval (16.67ms) because that is
+/// where the answer is: the old half-bitrate VBV's measured encode was
+/// ~11-13ms p50 with a tail past 20ms, so 3ms spacing through 5-17
+/// separates "comfortably inside the interval" from "at it", and the last
+/// boundary sits immediately above the interval so that
+/// `(over-interval=N)` counts only frames that cannot finish inside a
+/// frame. Like the percentiles, the population is only the frames that
+/// were SUBMITTED.
+pub const ENCODE_HIST_BUCKETS_MS: [u64; ENCODE_HIST_BUCKETS - 1] =
+    [5, 8, 11, 14, 17, 21];
+
+/// The last boundary, the lower bound of the open-ended bucket: a single
+/// constant because the boundary array is one shorter than the bucket
+/// count (its last bucket has no upper bound), so `[ENCODE_HIST_BUCKETS -
+/// 1]` would be one past the end.
+pub const ENCODE_HIST_LAST_BOUND_MS: u64 = ENCODE_HIST_BUCKETS_MS[ENCODE_HIST_BUCKETS - 2];
+
+/// The bucket whose LOWER bound reaches a 60fps frame interval — the
+/// bucket opened by the 17ms boundary, since [`hist_bucket`] compares
+/// `duration < bound`, so this bucket holds everything from just past the
+/// 16.67ms interval upward. This is the count that matters for target
+/// starvation (`over-interval` on the line).
+pub const OVER_INTERVAL_BUCKET: usize = 5;
+
+/// The reason names [`idle_skip_breakdown`] prints, in
+/// [`FrameSupply::idle_skip_reasons`] order. The capture side's
+/// `idle_*` counters are documented against these positions (see
+/// `NvencPipeline::supply`), and the order is the array's only contract.
+pub const IDLE_SKIP_REASON_LABELS: [&str; IDLE_SKIP_REASONS] =
+    ["history", "no-scaler-slot", "scaler-busy", "cross-busy"];
 
 impl FrameSupply {
     /// Window delta against a previous reading (saturating: a recreation
@@ -697,8 +794,165 @@ impl FrameSupply {
             pacer_surplus: self.pacer_surplus.saturating_sub(previous.pacer_surplus),
             idle_skips: self.idle_skips.saturating_sub(previous.idle_skips),
             stale_drained: self.stale_drained.saturating_sub(previous.stale_drained),
+            presents: self.presents.saturating_sub(previous.presents),
+            scaler_busy_drops: self.scaler_busy_drops.saturating_sub(previous.scaler_busy_drops),
+            cross_busy_drops: self.cross_busy_drops.saturating_sub(previous.cross_busy_drops),
+            idle_skip_reasons: from_fn(|reason| {
+                self.idle_skip_reasons[reason].saturating_sub(previous.idle_skip_reasons[reason])
+            }),
+            encode_hist: from_fn(|bucket| {
+                self.encode_hist[bucket].saturating_sub(previous.encode_hist[bucket])
+            }),
+            scaler_hold_hist: from_fn(|bucket| {
+                self.scaler_hold_hist[bucket].saturating_sub(previous.scaler_hold_hist[bucket])
+            }),
         }
     }
+}
+
+/// The bucket a duration falls in, by [`ENCODE_HIST_BUCKETS_MS`]. Pure, so
+/// the bucketing the live line reports is the one under test.
+pub fn hist_bucket(duration: Duration) -> usize {
+    match ENCODE_HIST_BUCKETS_MS
+        .iter()
+        .position(|bound| duration < Duration::from_millis(*bound))
+    {
+        Some(bucket) => bucket,
+        None => ENCODE_HIST_BUCKETS_MS.len(),
+    }
+}
+
+/// One histogram as the 5s line renders it: fixed buckets, fixed width, no
+/// labels repeated. Each bucket is labelled `lower-upper` from the
+/// boundary above the previous bucket (the first bucket is open at the
+/// bottom: `<5`), and the bounds are the caller's constant so the label and
+/// the bucket it names cannot drift apart. Used by the encode and
+/// scaler-hold histograms ([`ENCODE_HIST_BUCKETS_MS`]).
+fn render_hist(bounds: &[u64], hist: &[u64]) -> String {
+    let mut rendered = format!("<{}={}", bounds[0], hist[0]);
+    for (bucket, bound) in bounds.iter().enumerate().skip(1) {
+        let _ = write!(rendered, " {}-{bound}={}", bounds[bucket - 1], hist[bucket]);
+    }
+    let _ = write!(
+        rendered,
+        " >={}={}",
+        bounds[bounds.len() - 1],
+        hist[bounds.len()]
+    );
+    rendered
+}
+
+/// The frames in a histogram at or past one 60fps frame interval: the
+/// number that decides whether a two-target ring can cover the encoder.
+pub fn over_interval_count(hist: &[u64; ENCODE_HIST_BUCKETS]) -> u64 {
+    hist[OVER_INTERVAL_BUCKET..].iter().sum()
+}
+
+/// A percentile as the bucket bound that contains it (`p50<11ms`,
+/// `p95>=21ms`): the histogram carries no sample values, so the bound is
+/// the honest answer — it says the value is in that bucket, not what it
+/// was. `p95=0ms` for an empty window, matching [`percentile`].
+fn hist_percentile(hist: &[u64; ENCODE_HIST_BUCKETS], pct: u64) -> String {
+    let total: u64 = hist.iter().sum();
+    if total == 0 {
+        return "0ms".to_string();
+    }
+    let rank = total * pct / 100 + u64::from(total * pct % 100 != 0);
+    let mut seen = 0u64;
+    for (bucket, count) in hist.iter().enumerate() {
+        seen += count;
+        if seen >= rank {
+            // the rank is a bucket COUNT (ceil(total * pct / 100)), not
+            // the sample index `percentile` uses ((n - 1) * pct): both put
+            // the p95 of a skewed window in its tail, and the bound this
+            // returns is that bucket's, never a sample value
+            return match ENCODE_HIST_BUCKETS_MS.get(bucket) {
+                Some(bound) => format!("<{bound}ms"),
+                None => format!(">={ENCODE_HIST_LAST_BOUND_MS}ms"),
+            };
+        }
+    }
+    format!(">={ENCODE_HIST_LAST_BOUND_MS}ms")
+}
+
+/// The window's idle-duplicate stand-downs by reason, e.g.
+/// `676 (history=6 no-scaler-slot=0 scaler-busy=670 cross-busy=0)` — the
+/// one number the 5s line used to carry could not say whether an
+/// encoder still holding the target (the suspected coupling) or a desktop
+/// that never presented at all (no history) suppressed the repeats.
+///
+/// Zero reasons are printed rather than skipped: a fixed four-field
+/// breakdown is what makes two windows, or two sessions, comparable by
+/// column. `total` is the pipeline's own counter, not the sum of the
+/// reasons — the two branches (cross-adapter and same-adapter) are
+/// alternatives, so the sum is the total only because one capture runs
+/// one of them.
+pub fn idle_skip_breakdown(total: u64, reasons: [u64; IDLE_SKIP_REASONS]) -> String {
+    let mut breakdown = format!("{total} (");
+    for (index, label) in IDLE_SKIP_REASON_LABELS.iter().enumerate() {
+        if index > 0 {
+            breakdown.push(' ');
+        }
+        let _ = write!(breakdown, "{label}={}", reasons[index]);
+    }
+    breakdown.push(')');
+    breakdown
+}
+
+/// The supply box of the 5s line: the capture side's counters as window
+/// deltas, beside a `sent N/s` rate that can be carried by repeats.
+/// `desktop≈N/s` is the content rate the counters account for — new +
+/// refused surplus + stale drains — and is a PROXY for consumption, not
+/// the compositor's present rate: a slot takes the newest image the
+/// duplicator has, so DXGI coalesces every update between two slots into
+/// it. `presents≈N/s` is the compositor's own count
+/// (`AccumulatedFrames`), and the two side by side are the measurement
+/// this line exists for: `presents≈` at the panel's rate with `desktop≈`
+/// far below it means the desktop offered frames this pipeline did not
+/// harvest; `presents≈` low is a desktop that really did not present.
+/// Read with the same caveat the field carries (`FrameSupply::presents`):
+/// one present per acquisition is structural, so the useful comparison is
+/// the two rates, not the absolute present count.
+///
+/// The two histogram clauses are the distribution behind the window's
+/// `encode p50/p95` and behind the scaler-busy stand-downs: `encode-hist`
+/// is the per-frame `submitted_at` → reap latency over every submitted,
+/// non-duplicate encode in the window (wider than the `stages … encode`
+/// percentiles, which sample only the frames this loop shipped, narrower
+/// than every encode the pipeline completed, which includes the frames it
+/// dropped after encode) and `scaler-hold` the same bucketing of how long
+/// each encode target was held out of reuse. `(over-interval=N)` counts
+/// the frames at or past one 60fps interval — a two-target ring can cover
+/// frames under the interval and cannot cover many over it.
+pub fn supply_counters(supply: &FrameSupply, span: Duration) -> String {
+    format!(
+        " | supply new={} surplus={} drained={} acq-timeouts={} idle-skips={} \
+         | presents≈{:.0}/s (AccumulatedFrames) \
+         | desktop≈{:.0}/s (proxy: new+surplus+drained) \
+         | busy-drops scaler={} cross={} \
+         | encode-hist {} (over-interval={}) \
+         | scaler-hold p50{} p95{} max{} hist {} (over-interval={})",
+        supply.new_frames,
+        supply.pacer_surplus,
+        supply.stale_drained,
+        supply.acquire_timeouts,
+        idle_skip_breakdown(supply.idle_skips, supply.idle_skip_reasons),
+        supply.presents as f64 / span.as_secs_f64(),
+        (supply.new_frames + supply.pacer_surplus + supply.stale_drained) as f64
+            / span.as_secs_f64(),
+        supply.scaler_busy_drops,
+        supply.cross_busy_drops,
+        render_hist(&ENCODE_HIST_BUCKETS_MS, &supply.encode_hist),
+        over_interval_count(&supply.encode_hist),
+        hist_percentile(&supply.scaler_hold_hist, 50),
+        hist_percentile(&supply.scaler_hold_hist, 95),
+        // the max is the top bucket's own bound (`>=21ms`), not a sample:
+        // the histogram stores counts, and the window that matters here is
+        // the one that ran past a frame interval at all
+        hist_percentile(&supply.scaler_hold_hist, 100),
+        render_hist(&ENCODE_HIST_BUCKETS_MS, &supply.scaler_hold_hist),
+        over_interval_count(&supply.scaler_hold_hist),
+    )
 }
 
 /// A source of encoded frames in the session's codec ([`VideoPipeline::codec`]).
@@ -797,10 +1051,11 @@ pub trait VideoPipeline: Send {
 
     /// Cumulative frame-supply counters ([`FrameSupply`]): new desktop
     /// frames, acquire timeouts, presents refused as surplus, slots an
-    /// idle duplicate stood down on, stale drains. The sender loop reports
-    /// the window deltas beside `sent N/s` so a rate carried by repeats
-    /// rather than new frames is visible as such. All zero for sources
-    /// without a capture side.
+    /// idle duplicate stood down on (by reason), stale drains, the
+    /// compositor's own present count. The sender loop reports the window
+    /// deltas beside `sent N/s` so a rate carried by repeats rather than
+    /// new frames is visible as such. All zero for sources without a
+    /// capture side.
     fn supply(&self) -> FrameSupply {
         FrameSupply::default()
     }
@@ -904,7 +1159,10 @@ fn percentile(sorted: &[Duration], pct: f64) -> Duration {
     sorted[index.min(sorted.len() - 1)]
 }
 
-fn ms(duration: Duration) -> f64 {
+/// Also used by the NVENC throughput probe in `capture.rs`, so the
+/// milliseconds a probe reports and the milliseconds the 5s line reports
+/// are the same unit.
+pub(crate) fn ms(duration: Duration) -> f64 {
     duration.as_secs_f64() * 1000.0
 }
 
@@ -969,12 +1227,19 @@ const MIN_RATE_WINDOW: Duration = Duration::from_secs(1);
 ///   inside it), and `reap` (observed → this loop got the frame). `copy`
 ///   is the bitstream lock + copy + unmap share inside `encode`, and
 ///   `acq-wait` is the blocking acquire that produced the frame, which
-///   precedes the aggregate's start and is therefore NOT part of it.
+///   precedes the aggregate's start and is therefore NOT part of it. The
+///   `encode-hist` clause beside it is the distribution of that `encode`
+///   over the same submitted, non-duplicate frames — wider than
+///   `encode p50/p95`, which samples only the frames this loop shipped
+///   (its window holds sent frames), narrower than every encode the
+///   pipeline completed, which includes the ones dropped after encode.
 /// * `supply` are the capture side's counters as window deltas — new
 ///   desktop frames, presents the pacer refused as surplus, stale drains,
-///   acquire timeouts, present-grace skips — and `desktop≈N/s` is the
-///   present rate they account for, a lower bound on the compositor's real
-///   rate because DXGI coalesces updates between acquires.
+///   acquire timeouts, idle-duplicate stand-downs split by reason — and
+///   the two rates beside them are different measurements:
+///   `presents≈N/s` is the compositor's own present rate
+///   (`AccumulatedFrames`), `desktop≈N/s` the content rate the counters
+///   account for, which DXGI coalescing can hold below the first.
 fn report_latencies(
     window: &mut Vec<FrameLatency>,
     when: &str,
@@ -1048,6 +1313,14 @@ fn report_latencies(
     // Sent frame rate: only over a window long enough to mean anything
     // (a report flushed by the 300-sample bound, or a stop right after a
     // flush, can cover a few milliseconds).
+    //
+    // With idle-desktop repeats disabled — the default, see
+    // `config::repeats_enabled` — the wire carries only genuinely new
+    // desktop frames, so this rate IS the source's new-frame rate and reads
+    // BELOW the negotiated fps whenever the desktop cannot supply it
+    // (`| sent 45/s of 60`). That is intended, not a regression: the slots
+    // it used to be padded with are the duplicates the client displayed
+    // twice.
     let sent_clause = if window.is_empty() || span < MIN_RATE_WINDOW {
         String::new()
     } else {
@@ -1058,26 +1331,13 @@ fn report_latencies(
     };
     // The box that explains what the capture side was doing instead: the
     // supply counters as window deltas, beside a sent rate that can be
-    // carried by repeats. `desktop≈N/s` is the content rate those counters
-    // account for — new + refused surplus + stale drains. It is NOT the
-    // compositor's present rate: a slot takes the newest image the
-    // duplicator has, so DXGI coalesces every update between two slots into
-    // it (`live_present_rate_probe` measures the rate itself). Printed
-    // whenever the window spans real time, even with no frames sent (a
-    // starved window is exactly when it matters).
+    // carried by repeats (see [`supply_counters`] for what the two rate
+    // figures mean). Printed whenever the window spans real time, even
+    // with no frames sent (a starved window is exactly when it matters).
     let supply_clause = if span < MIN_RATE_WINDOW {
         String::new()
     } else {
-        format!(
-            " | supply new={} surplus={} drained={} acq-timeouts={} idle-skips={} | desktop≈{:.0}/s (proxy: new+surplus+drained)",
-            supply.new_frames,
-            supply.pacer_surplus,
-            supply.stale_drained,
-            supply.acquire_timeouts,
-            supply.idle_skips,
-            (supply.new_frames + supply.pacer_surplus + supply.stale_drained) as f64
-                / span.as_secs_f64(),
-        )
+        supply_counters(supply, span)
     };
     // The acquire→encode split, on the frames that had a capture to split:
     // the four stages partition the aggregate (the pipeline measured the
@@ -2039,6 +2299,27 @@ pub fn run_video_loop(
             },
         );
     }
+    // Which idle-duplicate mode this session runs, once, beside the other
+    // session identity lines: the switch is read once per process
+    // (`config::repeats_enabled`), and a window whose `dup=` never grows
+    // must not be ambiguous between "repeats are off, as they are by
+    // default" and "the desktop never went idle".
+    if crate::config::repeats_enabled() {
+        // name the token that switched them on, trimmed exactly as
+        // `parse_repeats` reads it: repeats are the opt-in here
+        let token = std::env::var(crate::config::REPEATS_ENV).unwrap_or_default();
+        eprintln!(
+            "video: idle-desktop repeats ENABLED ({}={})",
+            crate::config::REPEATS_ENV,
+            token.trim()
+        );
+    } else {
+        eprintln!(
+            "video: idle-desktop repeats DISABLED (default; {}={} enables them)",
+            crate::config::REPEATS_ENV,
+            crate::config::REPEATS_ON_VALUE
+        );
+    }
     // loop-period probe: time between sender-loop iterations, the
     // health metric for inter-iteration stalls (a healthy loop iterates
     // at the negotiated frame cadence plus one re-poll per pipelined
@@ -2140,7 +2421,7 @@ pub fn run_video_loop(
             // this line adds): whether the session's wire was carrying new
             // desktop frames or repeats is a session-level fact.
             eprintln!(
-                "video: loop stopped (session ended, {} frames sent ({} of a new desktop frame, {} idle-desktop repeats), {} empty polls, {} packets; {}; {}; max pipeline queue={}; stale pre-encode skips={}; dropped-after-encode={}; supply new={} surplus={} drained={} acq-timeouts={} idle-skips={})",
+                "video: loop stopped (session ended, {} frames sent ({} of a new desktop frame, {} idle-desktop repeats), {} empty polls, {} packets; {}; {}; max pipeline queue={}; stale pre-encode skips={}; dropped-after-encode={}; supply new={} surplus={} drained={} acq-timeouts={} presents={} idle-skips={} busy-drops scaler={} cross={})",
                 frame_index,
                 frame_index.saturating_sub(sent_duplicates),
                 sent_duplicates,
@@ -2155,7 +2436,15 @@ pub fn run_video_loop(
                 supply_total.pacer_surplus,
                 supply_total.stale_drained,
                 supply_total.acquire_timeouts,
-                supply_total.idle_skips
+                supply_total.presents,
+                // the breakdown, not the bare total: the session summary is
+                // where a reader looks after a degraded run to see whether
+                // the repeats were suppressed by the encoder or by an idle
+                // desktop, and the same helper keeps its shape identical to
+                // the 5s line's
+                idle_skip_breakdown(supply_total.idle_skips, supply_total.idle_skip_reasons),
+                supply_total.scaler_busy_drops,
+                supply_total.cross_busy_drops
             );
             return Ok(());
         }
@@ -2764,6 +3053,245 @@ mod tests {
         // a bounded nudge, not a stall: it is paid only on an iteration
         // that found the encoder already a full frame interval behind
         assert_eq!(empty_poll_backoff(true), Duration::from_millis(1));
+    }
+
+    /// The supply delta is what the 5s line prints, so every new counter
+    /// must carry the same saturating arithmetic as the old ones: a
+    /// recreation can reset a counter (the capture is rebuilt and starts
+    /// from zero) and a window that straddles it must report the traffic it
+    /// really saw, never a negative rate. `presents` is the field this
+    /// change adds, and it is the one a `u64` wrap in the source counter
+    /// could turn into a huge bogus rate — the saturating subtraction is
+    /// what keeps that a zero window instead.
+    #[test]
+    fn frame_supply_delta_is_saturating_for_every_counter() {
+        let previous = FrameSupply {
+            new_frames: 300,
+            acquire_timeouts: 40,
+            pacer_surplus: 7,
+            idle_skips: 676,
+            stale_drained: 12,
+            presents: 500,
+            scaler_busy_drops: 9,
+            cross_busy_drops: 3,
+            idle_skip_reasons: [6, 0, 670, 0],
+            encode_hist: [10, 20, 30, 40, 50, 60, 70],
+            scaler_hold_hist: [1, 2, 3, 4, 5, 6, 7],
+        };
+        let current = FrameSupply {
+            new_frames: 361,
+            acquire_timeouts: 55,
+            pacer_surplus: 7,
+            idle_skips: 800,
+            stale_drained: 20,
+            presents: 674,
+            scaler_busy_drops: 11,
+            cross_busy_drops: 3,
+            idle_skip_reasons: [6, 1, 793, 0],
+            encode_hist: [12, 22, 33, 44, 55, 66, 77],
+            scaler_hold_hist: [2, 3, 4, 5, 6, 7, 8],
+        };
+        let delta = current.delta(&previous);
+        assert_eq!(delta.new_frames, 61);
+        assert_eq!(delta.acquire_timeouts, 15);
+        assert_eq!(delta.pacer_surplus, 0);
+        assert_eq!(delta.idle_skips, 124);
+        assert_eq!(delta.stale_drained, 8);
+        assert_eq!(delta.presents, 174);
+        // the breakdown travels with the total it belongs to: 6+1+793+0
+        // is 800, exactly the delta above
+        assert_eq!(delta.idle_skip_reasons, [0, 1, 123, 0]);
+        assert_eq!(delta.idle_skip_reasons.iter().sum::<u64>(), delta.idle_skips);
+        assert_eq!(delta.scaler_busy_drops, 2);
+        assert_eq!(delta.cross_busy_drops, 0);
+        // the histograms delta element-wise with everything else
+        assert_eq!(delta.encode_hist, [2, 2, 3, 4, 5, 6, 7]);
+        assert_eq!(delta.scaler_hold_hist, [1, 1, 1, 1, 1, 1, 1]);
+
+        // a recreation reset every counter: the delta of the reset against
+        // the pre-reset total is zero, not a wrap-around
+        let reset = FrameSupply::default();
+        let across_reset = reset.delta(&current);
+        assert_eq!(across_reset.new_frames, 0);
+        assert_eq!(across_reset.acquire_timeouts, 0);
+        assert_eq!(across_reset.pacer_surplus, 0);
+        assert_eq!(across_reset.idle_skips, 0);
+        assert_eq!(across_reset.stale_drained, 0);
+        assert_eq!(across_reset.presents, 0);
+        assert_eq!(across_reset.idle_skip_reasons, [0; IDLE_SKIP_REASONS]);
+        assert_eq!(across_reset.scaler_busy_drops, 0);
+        assert_eq!(across_reset.cross_busy_drops, 0);
+        assert_eq!(across_reset.encode_hist, [0; ENCODE_HIST_BUCKETS]);
+        assert_eq!(across_reset.scaler_hold_hist, [0; ENCODE_HIST_BUCKETS]);
+    }
+
+    /// The bucketing is the histogram's whole contract, so its edges are
+    /// pinned: a duration exactly on a boundary belongs to the bucket it
+    /// opens (the comparison is `< bound`), and one past the last boundary
+    /// lands in the open-ended bucket rather than being dropped. The
+    /// boundary that matters at a 60fps target is the frame interval: the
+    /// bucket opened at 17ms is the first that cannot finish inside a
+    /// 16.67ms interval, and it is what `over-interval` counts.
+    #[test]
+    fn hist_bucket_is_half_open_on_the_boundaries() {
+        let ms_duration = Duration::from_millis;
+        assert_eq!(hist_bucket(Duration::ZERO), 0);
+        assert_eq!(hist_bucket(ms_duration(4)), 0);
+        assert_eq!(hist_bucket(ms_duration(5)), 1);
+        assert_eq!(hist_bucket(ms_duration(7)), 1);
+        assert_eq!(hist_bucket(ms_duration(8)), 2);
+        assert_eq!(hist_bucket(ms_duration(10)), 2);
+        assert_eq!(hist_bucket(ms_duration(11)), 3);
+        assert_eq!(hist_bucket(ms_duration(13)), 3);
+        assert_eq!(hist_bucket(ms_duration(14)), 4);
+        // exactly one 60fps frame interval is still inside it: 16.67ms is
+        // past the 14ms boundary but short of the 17ms one (bucket 4), and
+        // a frame that lands inside the interval is one the ring can cover
+        assert_eq!(hist_bucket(ms_duration(16)), 4);
+        assert_eq!(hist_bucket(Duration::from_micros(16_666)), 4);
+        assert_eq!(hist_bucket(ms_duration(17)), OVER_INTERVAL_BUCKET);
+        assert_eq!(hist_bucket(ms_duration(20)), OVER_INTERVAL_BUCKET);
+        assert_eq!(hist_bucket(ms_duration(21)), ENCODE_HIST_BUCKETS - 1);
+        assert_eq!(hist_bucket(ms_duration(1000)), ENCODE_HIST_BUCKETS - 1);
+    }
+
+    /// The over-interval count is what the ring-size question is read
+    /// from, so it has to be the sum of every bucket at or past the
+    /// interval — not just the top one, and not the whole histogram.
+    #[test]
+    fn over_interval_count_sums_every_bucket_past_the_frame_interval() {
+        let mut hist = [0u64; ENCODE_HIST_BUCKETS];
+        hist[0] = 5;
+        // the last bucket fully inside a frame interval
+        hist[OVER_INTERVAL_BUCKET - 1] = 7;
+        hist[OVER_INTERVAL_BUCKET] = 3;
+        hist[ENCODE_HIST_BUCKETS - 1] = 4;
+        assert_eq!(over_interval_count(&hist), 7);
+        assert_eq!(over_interval_count(&[0; ENCODE_HIST_BUCKETS]), 0);
+        // a histogram entirely inside the interval counts nothing
+        let mut inside = [0u64; ENCODE_HIST_BUCKETS];
+        inside[OVER_INTERVAL_BUCKET - 1] = 90;
+        assert_eq!(over_interval_count(&inside), 0);
+    }
+
+    /// The rendered histogram is a fixed-width column set that never grows
+    /// with the session: every bucket gets a column with its own bound,
+    /// including zeroes (two windows are only comparable by column), and
+    /// the bounds are the constant's, not a literal repeated in the
+    /// format string.
+    #[test]
+    fn render_hist_prints_every_bucket_with_its_bound() {
+        assert_eq!(
+            render_hist(&ENCODE_HIST_BUCKETS_MS, &[1, 2, 3, 4, 5, 6, 7]),
+            "<5=1 5-8=2 8-11=3 11-14=4 14-17=5 17-21=6 >=21=7"
+        );
+        assert_eq!(
+            render_hist(&ENCODE_HIST_BUCKETS_MS, &[0; ENCODE_HIST_BUCKETS]),
+            "<5=0 5-8=0 8-11=0 11-14=0 14-17=0 17-21=0 >=21=0"
+        );
+    }
+
+    /// The scaler-hold percentiles are bucket bounds, never sample values:
+    /// the histogram stores counts, so the honest answer is the bucket the
+    /// rank falls in (`p50<11ms`), the top bucket's own bound for a rank
+    /// that lands there, and `0ms` for a window with no holds at all.
+    #[test]
+    fn hist_percentile_reports_the_bucket_bound_of_the_rank() {
+        // 90 holds, all in the top bucket: both ranks land past the bounds
+        let mut top = [0u64; ENCODE_HIST_BUCKETS];
+        top[ENCODE_HIST_BUCKETS - 1] = 90;
+        assert_eq!(hist_percentile(&top, 50), ">=21ms");
+        assert_eq!(hist_percentile(&top, 95), ">=21ms");
+        // 100 holds spread one per bucket below the top: the p50 rank (50)
+        // falls in the 14-17 bucket, and the p95 rank (95) falls in the
+        // open-ended last one — 95% is where the tail starts, so the bound
+        // it reports is the tail's own (`>=21ms`), not the bucket below it
+        let mut spread = [10u64; ENCODE_HIST_BUCKETS];
+        spread[ENCODE_HIST_BUCKETS - 1] = 40;
+        assert_eq!(hist_percentile(&spread, 50), "<17ms");
+        assert_eq!(hist_percentile(&spread, 95), ">=21ms");
+        assert_eq!(hist_percentile(&spread, 100), ">=21ms");
+        // a tail small enough that the p95 rank still lands inside the
+        // interval: 2 of 62 holds over it is 3%, so the bound is the
+        // last bucket inside a frame (17-21), not the open-ended one
+        let mut mostly_inside = [10u64; ENCODE_HIST_BUCKETS];
+        mostly_inside[ENCODE_HIST_BUCKETS - 1] = 2;
+        assert_eq!(hist_percentile(&mostly_inside, 95), "<21ms");
+        assert_eq!(hist_percentile(&[0; ENCODE_HIST_BUCKETS], 50), "0ms");
+    }
+
+    /// The breakdown is a fixed four-column report, not a list of the
+    /// reasons that happened to fire: two windows of the same session (or
+    /// two sessions) are only comparable if every reason has a column in
+    /// both. `total` is the pipeline's own counter and is printed as such
+    /// even when the reasons do not sum to it — they are alternatives
+    /// across the two capture branches, and a print path that "fixed" the
+    /// discrepancy by trusting the sum would hide exactly the mismatch an
+    /// instrumentation-only reader is looking for.
+    #[test]
+    fn idle_skip_breakdown_prints_every_reason_including_zeroes() {
+        assert_eq!(
+            idle_skip_breakdown(676, [6, 0, 670, 0]),
+            "676 (history=6 no-scaler-slot=0 scaler-busy=670 cross-busy=0)"
+        );
+        assert_eq!(
+            idle_skip_breakdown(0, [0; IDLE_SKIP_REASONS]),
+            "0 (history=0 no-scaler-slot=0 scaler-busy=0 cross-busy=0)"
+        );
+        // the total stands on its own: the reasons below sum to 2, and the
+        // 7 is what the pipeline counted
+        assert_eq!(
+            idle_skip_breakdown(7, [0, 1, 1, 0]),
+            "7 (history=0 no-scaler-slot=1 scaler-busy=1 cross-busy=0)"
+        );
+    }
+
+    /// The rendered supply box, which is the whole deliverable: the
+    /// compositor's present rate has to be on the line and labelled as
+    /// `AccumulatedFrames` (the greppable proof that it is a measurement,
+    /// not another proxy), the `desktop≈` proxy has to survive beside it
+    /// labelled as one, the idle-skips breakdown has to be readable
+    /// without a second line, and the two histograms have to render every
+    /// bucket. Numbers here are the diagnosed session's degraded window:
+    /// 300 slots' worth of 5s at 60fps on the wire, ~40/s of new frames, a
+    /// present rate at the 100Hz panel, an encoder holding the target for
+    /// most stand-downs, and an encode distribution whose tail is a real
+    /// population (31 of 241 frames past a frame interval), not an outlier
+    /// — the thing p50/p95 could not say.
+    #[test]
+    fn supply_counters_prints_both_rates_and_the_idle_breakdown() {
+        let supply = FrameSupply {
+            new_frames: 200,
+            acquire_timeouts: 0,
+            pacer_surplus: 0,
+            idle_skips: 676,
+            stale_drained: 0,
+            presents: 500,
+            scaler_busy_drops: 34,
+            cross_busy_drops: 0,
+            idle_skip_reasons: [6, 0, 670, 0],
+            encode_hist: [10, 25, 93, 45, 35, 25, 10],
+            scaler_hold_hist: [50, 50, 14, 60, 40, 45, 20],
+        };
+        let line = supply_counters(&supply, Duration::from_secs(5));
+        assert!(line.contains("| supply new=200 surplus=0 drained=0 acq-timeouts=0 idle-skips=676 (history=6 no-scaler-slot=0 scaler-busy=670 cross-busy=0)"), "{line}");
+        assert!(line.contains("| presents≈100/s (AccumulatedFrames)"), "{line}");
+        assert!(line.contains("| desktop≈40/s (proxy: new+surplus+drained)"), "{line}");
+        assert!(line.contains("| busy-drops scaler=34 cross=0"), "{line}");
+        assert!(
+            line.contains(
+                "| encode-hist <5=10 5-8=25 8-11=93 11-14=45 14-17=35 17-21=25 >=21=10 \
+                 (over-interval=35)"
+            ),
+            "{line}"
+        );
+        assert!(
+            line.contains(
+                "| scaler-hold p50<14ms p95>=21ms max>=21ms hist <5=50 5-8=50 8-11=14 11-14=60 \
+                 14-17=40 17-21=45 >=21=20 (over-interval=65)"
+            ),
+            "{line}"
+        );
     }
 
     #[test]
