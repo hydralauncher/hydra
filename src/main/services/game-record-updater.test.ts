@@ -35,11 +35,11 @@ describe("game record updater", () => {
         playTimeInMilliseconds: 660_000,
         unsyncedDeltaPlayTimeInMilliseconds: 180_000,
       }),
-      updateGame("steam:620", { disableHydraPlaytimeTracking: true }),
+      updateGame("steam:620", { enableHydraPlaytimeTracking: true }),
     ]);
 
     assert.equal(storedGame.playTimeInMilliseconds, 660_000);
     assert.equal(storedGame.unsyncedDeltaPlayTimeInMilliseconds, 180_000);
-    assert.equal(storedGame.disableHydraPlaytimeTracking, true);
+    assert.equal(storedGame.enableHydraPlaytimeTracking, true);
   });
 });

@@ -1068,13 +1068,13 @@ export function GameOptionsModal({
     }
   };
 
-  const handleToggleHydraPlaytimeDisabled = useCallback(
-    async (disabled: boolean) => {
+  const handleToggleHydraPlaytimeEnabled = useCallback(
+    async (enabled: boolean) => {
       try {
-        await globalThis.window.electron.setGameHydraPlaytimeDisabled(
+        await globalThis.window.electron.setGameHydraPlaytimeEnabled(
           game.shop,
           game.objectId,
-          disabled
+          enabled
         );
         await updateGame();
       } catch {
@@ -1108,7 +1108,7 @@ export function GameOptionsModal({
       onResetGameTitle: handleResetGameTitle,
       onChangeLaunchOptions: handleChangeLaunchOptions,
       onClearLaunchOptions: handleClearLaunchOptions,
-      onToggleHydraPlaytimeDisabled: handleToggleHydraPlaytimeDisabled,
+      onToggleHydraPlaytimeEnabled: handleToggleHydraPlaytimeEnabled,
       isTransferring,
       transferProgress,
       drives,
@@ -1143,7 +1143,7 @@ export function GameOptionsModal({
       handleResetGameTitle,
       handleChangeLaunchOptions,
       handleClearLaunchOptions,
-      handleToggleHydraPlaytimeDisabled,
+      handleToggleHydraPlaytimeEnabled,
       isTransferring,
       transferProgress,
       drives,

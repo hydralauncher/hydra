@@ -861,17 +861,12 @@ contextBridge.exposeInMainWorld("electron", {
       objectId,
       automaticCloudSync
     ),
-  setGameHydraPlaytimeDisabled: (
+  setGameHydraPlaytimeEnabled: (
     shop: GameShop,
     objectId: string,
-    disabled: boolean
+    enabled: boolean
   ) =>
-    ipcRenderer.invoke(
-      "setGameHydraPlaytimeDisabled",
-      shop,
-      objectId,
-      disabled
-    ),
+    ipcRenderer.invoke("setGameHydraPlaytimeEnabled", shop, objectId, enabled),
   toggleGameMangohud: (
     shop: GameShop,
     objectId: string,

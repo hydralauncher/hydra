@@ -294,10 +294,10 @@ declare global {
       objectId: string,
       automaticCloudSync: boolean
     ) => Promise<void>;
-    setGameHydraPlaytimeDisabled: (
+    setGameHydraPlaytimeEnabled: (
       shop: GameShop,
       objectId: string,
-      disabled: boolean
+      enabled: boolean
     ) => Promise<void>;
     toggleGameMangohud: (
       shop: GameShop,

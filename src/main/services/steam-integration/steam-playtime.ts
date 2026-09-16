@@ -26,15 +26,13 @@ export const isSteamLibraryExecutablePath = (
 export const resolveSteamSessionPlaytimePolicy = ({
   hasActiveSteamImport,
   isSteamLibraryPath,
-  disableHydraPlaytimeTracking,
+  enableHydraPlaytimeTracking,
 }: {
   hasActiveSteamImport: boolean;
   isSteamLibraryPath: boolean;
-  disableHydraPlaytimeTracking: boolean;
+  enableHydraPlaytimeTracking: boolean;
 }) => ({
-  countHydraPlaytime:
-    !hasActiveSteamImport ||
-    (!isSteamLibraryPath && !disableHydraPlaytimeTracking),
+  countHydraPlaytime: !hasActiveSteamImport || enableHydraPlaytimeTracking,
   syncSteamOnExit: hasActiveSteamImport && isSteamLibraryPath,
 });
 
