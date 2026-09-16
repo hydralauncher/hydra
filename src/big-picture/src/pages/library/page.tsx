@@ -22,6 +22,7 @@ import {
 } from "../../hooks";
 import {
   isBuiltinLibraryTab,
+  getGameCollectionIds,
   type LibraryViewMode,
   LibraryFocusGrid,
   LibraryFilters,
@@ -123,8 +124,12 @@ export default function LibraryPage() {
   const { setFocus } = useNavigation();
   const { showSuccessToast } = useBigPictureToast();
   const { library, updateLibrary } = useLibrary();
-  const { collections, hasLoadedCollections, loadCollections } =
-    useGameCollections();
+  const {
+    collections,
+    hasLoadedCollections,
+    hasFailedToLoadCollections,
+    loadCollections,
+  } = useGameCollections();
   const [selectedFilterTab, setSelectedFilterTab] = useState<LibraryFilterTab>(
     getInitialLibraryFilterTab
   );
@@ -147,20 +152,27 @@ export default function LibraryPage() {
     });
   const { favoriteLoadingGameId, toggleFavorite } =
     useLibraryFavorite(updateLibrary);
+  const isSelectedFilterTabAvailable =
+    isBuiltinLibraryTab(selectedFilterTab) ||
+    collections.some((collection) => collection.id === selectedFilterTab);
+  const activeFilterTab =
+    isSelectedFilterTabAvailable || !hasFailedToLoadCollections
+      ? selectedFilterTab
+      : "all";
   const {
     filteredLibrary,
     filterCounts,
     firstGridItemId,
     firstListItemId,
     lastPlayedGames,
-  } = useLibraryPageData(library, selectedFilterTab, search, sortBy, filterBy);
+  } = useLibraryPageData(library, activeFilterTab, search, sortBy, filterBy);
 
   /** Must change when sorting, secondary filter or search updates so grid/list fades. */
   const deferredSearchTransition = useDeferredValue(search);
 
   const firstContentItemId =
     viewMode === "list" ? firstListItemId : firstGridItemId;
-  const contentTransitionKey = `${selectedFilterTab}:${viewMode}:${sortBy}:${filterBy}:${deferredSearchTransition}`;
+  const contentTransitionKey = `${activeFilterTab}:${viewMode}:${sortBy}:${filterBy}:${deferredSearchTransition}`;
   const previousContentTransitionKeyRef = useRef(contentTransitionKey);
   const shouldAnimateContentChange =
     hasMountedContentRef.current &&
@@ -355,17 +367,29 @@ export default function LibraryPage() {
   }, [selectedFilterTab]);
 
   useEffect(() => {
-    if (!hasLoadedCollections) return;
+    if (isSelectedFilterTabAvailable) return;
 
-    if (
-      isBuiltinLibraryTab(selectedFilterTab) ||
-      collections.some((c) => c.id === selectedFilterTab)
-    ) {
+    if (hasLoadedCollections) {
+      setSelectedFilterTab("all");
       return;
     }
 
-    setSelectedFilterTab("all");
-  }, [collections, hasLoadedCollections, selectedFilterTab]);
+    if (!hasFailedToLoadCollections || library.length === 0) return;
+
+    const isCollectionInLibrary = library.some((game) =>
+      getGameCollectionIds(game).includes(selectedFilterTab)
+    );
+
+    if (!isCollectionInLibrary) {
+      setSelectedFilterTab("all");
+    }
+  }, [
+    hasFailedToLoadCollections,
+    hasLoadedCollections,
+    isSelectedFilterTabAvailable,
+    library,
+    selectedFilterTab,
+  ]);
 
   useEffect(() => {
     try {
@@ -411,7 +435,7 @@ export default function LibraryPage() {
           />
 
           <LibraryFilters
-            selectedTab={selectedFilterTab}
+            selectedTab={activeFilterTab}
             onSelectedTabChange={setSelectedFilterTab}
             viewMode={viewMode}
             onViewModeChange={setViewMode}
