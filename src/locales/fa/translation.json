@@ -573,6 +573,10 @@
     "move_down": "Move down"
   },
   "settings": {
+    "integration_connect": "اتصال",
+    "integration_disconnect": "قطع اتصال",
+    "integration_reconnect": "اتصال مجدد",
+    "integration_sync": "همگام‌سازی",
     "downloads_path": "مسیر دانلودها",
     "change": "بروزرسانی",
     "notifications": "نوتیفیکشن‌ها",

@@ -793,6 +793,10 @@
     "move_down": "Przenieś w dół"
   },
   "settings": {
+    "integration_connect": "Połącz",
+    "integration_disconnect": "Rozłącz",
+    "integration_reconnect": "Połącz ponownie",
+    "integration_sync": "Synchronizuj",
     "setup_official_website": "Oficjalna strona",
     "setup_install_with_hydra": "Zainstaluj z GitHub",
     "setup_recommended": "Zalecane",
@@ -981,6 +985,7 @@
     "expand_debrid_section": "Rozwiń sekcję {{provider}}",
     "collapse_debrid_section": "Zwiń sekcję {{provider}}",
     "retroachievements": "RetroAchievements",
+    "retroachievements_connect_title": "Połącz RetroAchievements",
     "retroachievements_description": "Połącz konto RetroAchievements, aby synchronizować odblokowane osiągnięcia z emulatorów i klasycznych gier z Hydrą.",
     "retroachievements_create_account": "Kliknij tutaj, jeśli nie masz jeszcze konta RetroAchievements",
     "retroachievements_emulator_note": "Aby odblokowywać osiągnięcia, musisz również połączyć konto RetroAchievements w ustawieniach emulatora.",

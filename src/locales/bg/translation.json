@@ -734,6 +734,10 @@
     "move_down": "Премести надолу"
   },
   "settings": {
+    "integration_connect": "Свързване",
+    "integration_disconnect": "Прекъсване",
+    "integration_reconnect": "Повторно свързване",
+    "integration_sync": "Синхронизиране",
     "setup_official_website": "Официален уебсайт",
     "setup_install_with_hydra": "Инсталирай от GitHub",
     "setup_recommended": "Препоръчено",

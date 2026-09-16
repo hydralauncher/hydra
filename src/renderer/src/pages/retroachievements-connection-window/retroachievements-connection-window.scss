@@ -1,0 +1,85 @@
+@use "../../scss/globals.scss";
+
+.retroachievements-connection-window {
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  overflow: hidden;
+  background: globals.$dark-background-color;
+  color: globals.$muted-color;
+
+  &--linux {
+    border: 1px solid globals.$border-color;
+  }
+
+  &__content {
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+    gap: calc(globals.$spacing-unit * 3);
+    min-height: 0;
+    padding: calc(globals.$spacing-unit * 4);
+    overflow-y: auto;
+  }
+
+  &__heading {
+    display: flex;
+    align-items: flex-start;
+    gap: calc(globals.$spacing-unit * 2);
+
+    img {
+      width: 40px;
+      height: 40px;
+      object-fit: contain;
+    }
+
+    h1 {
+      margin: 0 0 globals.$spacing-unit;
+      font-size: 24px;
+    }
+
+    p {
+      margin: 0;
+      color: globals.$body-color;
+      line-height: 1.5;
+    }
+  }
+
+  &__form {
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+    gap: calc(globals.$spacing-unit * 2);
+  }
+
+  &__error,
+  &__emulator-note {
+    margin: 0;
+    font-size: globals.$small-font-size;
+    line-height: 1.5;
+  }
+
+  &__error {
+    color: globals.$error-color;
+  }
+
+  &__emulator-note {
+    color: globals.$body-color;
+  }
+
+  &__create-account {
+    display: inline-flex;
+    align-items: center;
+    align-self: flex-start;
+    gap: globals.$spacing-unit;
+  }
+
+  &__actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: globals.$spacing-unit;
+    margin-top: auto;
+    padding-top: globals.$spacing-unit;
+  }
+}

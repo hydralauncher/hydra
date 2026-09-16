@@ -576,6 +576,10 @@
     "move_down": "Move down"
   },
   "settings": {
+    "integration_connect": "Підключити",
+    "integration_disconnect": "Відключити",
+    "integration_reconnect": "Перепідключити",
+    "integration_sync": "Синхронізувати",
     "downloads_path": "Тека завантажень",
     "change": "Змінити",
     "notifications": "Повідомлення",

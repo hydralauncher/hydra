@@ -600,6 +600,10 @@
     "move_down": "Le"
   },
   "settings": {
+    "integration_connect": "Csatlakozás",
+    "integration_disconnect": "Leválasztás",
+    "integration_reconnect": "Újracsatlakozás",
+    "integration_sync": "Szinkronizálás",
     "downloads_path": "Letöltési útvonalak",
     "change": "Frissítés",
     "notifications": "Értesítések",

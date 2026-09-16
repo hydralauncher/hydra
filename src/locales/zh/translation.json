@@ -576,6 +576,10 @@
     "move_down": "Move down"
   },
   "settings": {
+    "integration_connect": "连接",
+    "integration_disconnect": "断开连接",
+    "integration_reconnect": "重新连接",
+    "integration_sync": "同步",
     "downloads_path": "下载路径",
     "change": "更改",
     "notifications": "通知",

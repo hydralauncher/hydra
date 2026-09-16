@@ -784,6 +784,10 @@
     "move_down": "Μετακίνηση προς τα κάτω"
   },
   "settings": {
+    "integration_connect": "Σύνδεση",
+    "integration_disconnect": "Αποσύνδεση",
+    "integration_reconnect": "Επανασύνδεση",
+    "integration_sync": "Συγχρονισμός",
     "setup_official_website": "Επίσημος ιστότοπος",
     "setup_install_with_hydra": "Εγκατάσταση από το GitHub",
     "setup_recommended": "Συνιστάται",
@@ -972,6 +976,7 @@
     "expand_debrid_section": "Επέκταση της ενότητας {{provider}}",
     "collapse_debrid_section": "Σύμπτυξη της ενότητας {{provider}}",
     "retroachievements": "RetroAchievements",
+    "retroachievements_connect_title": "Σύνδεση RetroAchievements",
     "retroachievements_description": "Συνδέστε τον λογαριασμό σας στο RetroAchievements για να συγχρονίσετε τα επιτεύγματά σας από τον εξομοιωτή και τα κλασικά παιχνίδια με το Hydra.",
     "retroachievements_create_account": "Κάντε κλικ εδώ αν δεν έχετε ακόμα λογαριασμό στο RetroAchievements",
     "retroachievements_emulator_note": "Πρέπει επίσης να συνδέσετε τον λογαριασμό σας στο RetroAchievements στις ρυθμίσεις του εξομοιωτή σας, για να ξεκλειδώσετε τα επιτεύγματα.",

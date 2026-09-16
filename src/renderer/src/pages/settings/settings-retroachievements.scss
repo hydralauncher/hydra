@@ -1,40 +1,15 @@
 @use "../../scss/globals.scss";
 
 .settings-retroachievements {
-  &__form {
-    display: flex;
-    flex-direction: column;
-    gap: calc(globals.$spacing-unit * 2);
-    padding-top: calc(globals.$spacing-unit * 2);
-    border-top: 1px solid globals.$border-color;
-  }
-
-  &__form-intro {
-    display: flex;
-    flex-direction: column;
-    align-items: flex-start;
-    gap: globals.$spacing-unit;
-  }
-
-  &__submit-button {
-    align-self: flex-end;
-  }
-
-  &__create-account {
-    display: flex;
-    align-items: center;
-    gap: globals.$spacing-unit;
-  }
-
   &__emulator-note {
     margin: 0;
-    color: var(--text-secondary);
+    color: globals.$body-color;
     font-size: globals.$small-font-size;
     line-height: 1.5;
   }
 
   &__guide-tooltip {
-    color: var(--text-secondary);
+    color: globals.$body-color;
     cursor: pointer;
     vertical-align: middle;
 
@@ -51,7 +26,7 @@
 
   &__modal-note {
     margin: 0;
-    color: var(--text-secondary);
+    color: globals.$body-color;
     line-height: 1.5;
   }
 

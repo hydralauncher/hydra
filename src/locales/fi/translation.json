@@ -576,6 +576,10 @@
     "move_down": "Move down"
   },
   "settings": {
+    "integration_connect": "Yhdistä",
+    "integration_disconnect": "Katkaise yhteys",
+    "integration_reconnect": "Yhdistä uudelleen",
+    "integration_sync": "Synkronoi",
     "downloads_path": "Latausten polku",
     "change": "Vaihda",
     "notifications": "Ilmoitukset",

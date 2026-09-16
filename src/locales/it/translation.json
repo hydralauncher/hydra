@@ -765,6 +765,10 @@
     "files": "FILES"
   },
   "settings": {
+    "integration_connect": "Collega",
+    "integration_disconnect": "Disconnetti",
+    "integration_reconnect": "Riconnetti",
+    "integration_sync": "Sincronizza",
     "downloads_path": "Percorso dei download",
     "change": "Aggiorna",
     "notifications": "Notifiche",

@@ -578,6 +578,10 @@
     "move_down": "Move down"
   },
   "settings": {
+    "integration_connect": "Poveži",
+    "integration_disconnect": "Prekini povezavo",
+    "integration_reconnect": "Znova poveži",
+    "integration_sync": "Sinhroniziraj",
     "downloads_path": "Pot prenosa",
     "change": "Posodobi",
     "enable_download_notifications": "Ko je prenos končan",

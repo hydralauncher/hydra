@@ -573,6 +573,10 @@
     "move_down": "Move down"
   },
   "settings": {
+    "integration_connect": "Verbinden",
+    "integration_disconnect": "Verbinding verbreken",
+    "integration_reconnect": "Opnieuw verbinden",
+    "integration_sync": "Synchroniseren",
     "downloads_path": "Downloadpad",
     "change": "Update",
     "notifications": "Meldingen",

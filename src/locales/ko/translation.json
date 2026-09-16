@@ -573,6 +573,10 @@
     "move_down": "Move down"
   },
   "settings": {
+    "integration_connect": "연결",
+    "integration_disconnect": "연결 해제",
+    "integration_reconnect": "다시 연결",
+    "integration_sync": "동기화",
     "downloads_path": "다운로드 경로",
     "change": "업데이트",
     "notifications": "알림",

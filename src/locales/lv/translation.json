@@ -576,6 +576,10 @@
     "move_down": "Move down"
   },
   "settings": {
+    "integration_connect": "Savienot",
+    "integration_disconnect": "Atvienot",
+    "integration_reconnect": "Savienot atkārtoti",
+    "integration_sync": "Sinhronizēt",
     "downloads_path": "Lejupielāžu ceļš",
     "change": "Mainīt",
     "notifications": "Paziņojumi",

@@ -34,6 +34,7 @@ import {
   addSteamGridDbCacheControl,
   isSteamGridDbArtworkRequest,
 } from "./steam-grid-db-cache";
+import { getRetroAchievementsConnectionWindowLayout } from "./retroachievements-connection-window-layout";
 
 const isLinuxWayland =
   process.platform === "linux" &&
@@ -51,6 +52,8 @@ export class WindowManager {
   private static bigPicture: Electron.BrowserWindow | null = null;
   private static friendsWindow: Electron.BrowserWindow | null = null;
   private static authWindow: Electron.BrowserWindow | null = null;
+  private static retroAchievementsConnectionWindow: Electron.BrowserWindow | null =
+    null;
   private static deferredMainMaximize = false;
 
   private static isArtworkRendererRequest(
@@ -762,6 +765,79 @@ export class WindowManager {
     if (this.authWindow && !this.authWindow.isDestroyed()) {
       this.authWindow.close();
     }
+  }
+
+  public static openRetroAchievementsConnectionWindow() {
+    const existingWindow = this.retroAchievementsConnectionWindow;
+    if (existingWindow && !existingWindow.isDestroyed()) {
+      if (existingWindow.isMinimized()) existingWindow.restore();
+      existingWindow.focus();
+      return;
+    }
+
+    const parentWindow = this.mainWindow;
+    if (!parentWindow || parentWindow.isDestroyed()) return;
+
+    const layout = getRetroAchievementsConnectionWindowLayout(
+      process.platform,
+      this.AUTH_WINDOW_WIDTH,
+      this.AUTH_WINDOW_HEIGHT,
+      this.AUTH_WINDOW_TITLE_BAR_HEIGHT,
+      this.AUTH_WINDOW_BORDER
+    );
+    const connectionWindow = new BrowserWindow({
+      width: layout.width,
+      height: layout.height,
+      title: "Hydra",
+      backgroundColor: "#1c1c1c",
+      parent: parentWindow,
+      modal: true,
+      show: false,
+      maximizable: false,
+      resizable: false,
+      minimizable: layout.minimizable,
+      frame: layout.frame,
+      icon,
+      webPreferences: {
+        preload: path.join(__dirname, "../preload/index.mjs"),
+        sandbox: false,
+      },
+    });
+
+    this.retroAchievementsConnectionWindow = connectionWindow;
+    connectionWindow.removeMenu();
+    void this.loadWindowURL(connectionWindow, "retroachievements-connection");
+
+    connectionWindow.once("ready-to-show", () => {
+      connectionWindow.show();
+      if (!app.isPackaged || isStaging) {
+        connectionWindow.webContents.openDevTools();
+      }
+    });
+
+    connectionWindow.once("closed", () => {
+      this.retroAchievementsConnectionWindow = null;
+      if (!parentWindow.isDestroyed()) parentWindow.focus();
+    });
+  }
+
+  public static minimizeRetroAchievementsConnectionWindow() {
+    const connectionWindow = this.retroAchievementsConnectionWindow;
+    if (connectionWindow && !connectionWindow.isDestroyed()) {
+      connectionWindow.minimize();
+    }
+  }
+
+  public static closeRetroAchievementsConnectionWindow() {
+    const connectionWindow = this.retroAchievementsConnectionWindow;
+    if (connectionWindow && !connectionWindow.isDestroyed()) {
+      connectionWindow.close();
+    }
+  }
+
+  public static completeRetroAchievementsConnectionWindow() {
+    this.sendToAppWindows("on-retroachievements-connected");
+    this.closeRetroAchievementsConnectionWindow();
   }
 
   public static sendAchievementToFocusedWindow(

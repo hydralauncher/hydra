@@ -629,6 +629,10 @@
     "files": "FILES"
   },
   "settings": {
+    "integration_connect": "Ligar",
+    "integration_disconnect": "Desligar",
+    "integration_reconnect": "Voltar a ligar",
+    "integration_sync": "Sincronizar",
     "setup_official_website": "Site oficial",
     "retroarch_setup_cores_title": "Núcleos do emulador",
     "retroarch_setup_cores_intro": "O Hydra usa núcleos libretro para executar cada plataforma. Descarregue os cinco núcleos para ativar jogos de NES, SNES, N64 e Game Boy.",
@@ -859,6 +863,7 @@
     "expand_debrid_section": "Expandir secção de {{provider}}",
     "collapse_debrid_section": "Recolher secção de {{provider}}",
     "retroachievements": "RetroAchievements",
+    "retroachievements_connect_title": "Ligar RetroAchievements",
     "retroachievements_description": "Liga a tua conta do RetroAchievements para sincronizar as tuas conquistas de jogos clássicos e de emuladores no Hydra.",
     "retroachievements_create_account": "Clica aqui se ainda não tens uma conta do RetroAchievements",
     "retroachievements_emulator_note": "Também precisas de ligar a tua conta do RetroAchievements nas definições do teu emulador para que as conquistas sejam desbloqueadas.",

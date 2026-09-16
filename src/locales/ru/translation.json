@@ -1017,6 +1017,10 @@
     "move_down": "Переместить вниз"
   },
   "settings": {
+    "integration_connect": "Подключить",
+    "integration_disconnect": "Отключить",
+    "integration_reconnect": "Переподключить",
+    "integration_sync": "Синхронизировать",
     "setup_official_website": "Официальный сайт",
     "setup_install_with_hydra": "Установить с GitHub",
     "setup_recommended": "Рекомендуется",
@@ -1210,6 +1214,7 @@
     "expand_debrid_section": "Развернуть раздел {{provider}}",
     "collapse_debrid_section": "Свернуть раздел {{provider}}",
     "retroachievements": "RetroAchievements",
+    "retroachievements_connect_title": "Подключить RetroAchievements",
     "retroachievements_description": "Подключите свою учётную запись RetroAchievements, чтобы синхронизировать достижения из эмуляторов и классических игр с Hydra.",
     "retroachievements_create_account": "Нажмите здесь, если у вас ещё нет учётной записи RetroAchievements",
     "retroachievements_emulator_note": "Также необходимо подключить учётную запись RetroAchievements в настройках эмулятора, чтобы достижения открывались.",

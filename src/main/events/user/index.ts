@@ -10,3 +10,4 @@ import "./start-steam-sync";
 import "./cancel-steam-sync";
 import "./get-steam-sync-state";
 import "./reconcile-steam-sync-run";
+import "./retroachievements-connection-window";

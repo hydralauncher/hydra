@@ -17,6 +17,7 @@ import type {
 } from "@types";
 import SteamLogo from "@renderer/assets/steam-logo.svg?react";
 import { SettingsIntegrationCard } from "./settings-integration-card";
+import { getSteamProgressPresentation } from "./settings-integration-progress";
 
 import "./settings-steam.scss";
 
@@ -395,11 +396,7 @@ export function SettingsSteam() {
     }
 
     if (steamAccount) {
-      const hasProgress =
-        syncState.status === "running" && syncState.gamesFound > 0;
-      const progress = hasProgress
-        ? Math.min(100, (syncState.gamesProcessed / syncState.gamesFound) * 100)
-        : 0;
+      const progressPresentation = getSteamProgressPresentation(syncState);
 
       return (
         <>
@@ -446,7 +443,8 @@ export function SettingsSteam() {
             <div className="settings-integration-card__progress" role="status">
               <div className="settings-integration-card__progress-header">
                 <span>{t("steam_syncing")}</span>
-                {hasProgress && syncState.status === "running" ? (
+                {progressPresentation?.showCount &&
+                syncState.status === "running" ? (
                   <span className="settings-integration-card__progress-count">
                     {t("steam_sync_progress", {
                       processed: syncState.gamesProcessed,
@@ -458,11 +456,15 @@ export function SettingsSteam() {
               <div className="settings-integration-card__progress-track">
                 <div
                   className={`settings-integration-card__progress-fill ${
-                    hasProgress
+                    progressPresentation?.mode === "determinate"
                       ? ""
                       : "settings-integration-card__progress-fill--indeterminate"
                   }`}
-                  style={hasProgress ? { width: `${progress}%` } : undefined}
+                  style={
+                    progressPresentation?.mode === "determinate"
+                      ? { width: `${progressPresentation.percentage}%` }
+                      : undefined
+                  }
                 />
               </div>
             </div>
@@ -497,7 +499,7 @@ export function SettingsSteam() {
       return (
         <Button onClick={handleConnect} disabled={isSubmitting}>
           <LinkExternalIcon size={STATUS_ICON_SIZE} />
-          {t("steam_connect")}
+          {t("integration_connect")}
         </Button>
       );
     }
@@ -507,7 +509,7 @@ export function SettingsSteam() {
         <>
           <Button onClick={handleConnect} disabled={isSubmitting || isSyncing}>
             <LinkExternalIcon size={STATUS_ICON_SIZE} />
-            {t("steam_reconnect")}
+            {t("integration_reconnect")}
           </Button>
           <Button
             theme="danger"
@@ -525,7 +527,7 @@ export function SettingsSteam() {
         {needsReconnect ? (
           <Button onClick={handleConnect} disabled={isSubmitting}>
             <LinkExternalIcon size={STATUS_ICON_SIZE} />
-            {t("steam_reconnect")}
+            {t("integration_reconnect")}
           </Button>
         ) : isSyncing ? (
           <Button
@@ -533,12 +535,12 @@ export function SettingsSteam() {
             onClick={handleCancelSync}
             disabled={syncState.status === "cancelling"}
           >
-            {t("steam_sync_cancel")}
+            {t("cancel")}
           </Button>
         ) : (
           <Button theme="outline" onClick={handleSync} disabled={isSubmitting}>
             <SyncIcon size={STATUS_ICON_SIZE} />
-            {t("steam_sync")}
+            {t("integration_sync")}
           </Button>
         )}
         <Button
@@ -546,7 +548,7 @@ export function SettingsSteam() {
           onClick={() => setShowDeleteDataModal(true)}
           disabled={isSubmitting || isSyncing}
         >
-          {t("steam_disconnect")}
+          {t("integration_disconnect")}
         </Button>
       </>
     );
@@ -575,6 +577,7 @@ export function SettingsSteam() {
         status={status}
         statusTone={statusTone}
         actions={renderActions()}
+        loading={Boolean(userDetails) && isLoading}
       >
         {renderBody()}
       </SettingsIntegrationCard>

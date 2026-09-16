@@ -576,6 +576,10 @@
     "move_down": "Move down"
   },
   "settings": {
+    "integration_connect": "Ühenda",
+    "integration_disconnect": "Katkesta ühendus",
+    "integration_reconnect": "Ühenda uuesti",
+    "integration_sync": "Sünkrooni",
     "downloads_path": "Allalaadimiste tee",
     "change": "Uuenda",
     "notifications": "Teavitused",

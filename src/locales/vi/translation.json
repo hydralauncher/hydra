@@ -793,6 +793,10 @@
     "move_down": "Di chuyển xuống"
   },
   "settings": {
+    "integration_connect": "Kết nối",
+    "integration_disconnect": "Ngắt kết nối",
+    "integration_reconnect": "Kết nối lại",
+    "integration_sync": "Đồng bộ",
     "setup_official_website": "Trang web chính thức",
     "setup_install_with_hydra": "Cài đặt từ GitHub",
     "setup_recommended": "Đề nghị",
@@ -981,6 +985,7 @@
     "expand_debrid_section": "Mở rộng mục {{provider}}",
     "collapse_debrid_section": "Thu gọn mục {{provider}}",
     "retroachievements": "RetroAchievements",
+    "retroachievements_connect_title": "Kết nối RetroAchievements",
     "retroachievements_description": "Kết nối tài khoản RetroAchievements để đồng bộ các thành tựu bạn mở khóa từ trình giả lập và game cổ điển vào Hydra.",
     "retroachievements_create_account": "Nhấn vào đây nếu bạn chưa có tài khoản RetroAchievements",
     "retroachievements_emulator_note": "Bạn cũng cần kết nối tài khoản RetroAchievements trong cài đặt của trình giả lập thì thành tựu mới được mở khóa.",

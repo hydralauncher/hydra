@@ -573,6 +573,10 @@
     "move_down": "Move down"
   },
   "settings": {
+    "integration_connect": "Падключыць",
+    "integration_disconnect": "Адключыць",
+    "integration_reconnect": "Перападключыць",
+    "integration_sync": "Сінхранізаваць",
     "downloads_path": "Шлях сцягвання",
     "change": "Змяніць шлях",
     "notifications": "Апавяшчэнні",

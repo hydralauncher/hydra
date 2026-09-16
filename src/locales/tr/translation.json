@@ -576,6 +576,10 @@
     "move_down": "Move down"
   },
   "settings": {
+    "integration_connect": "Bağlan",
+    "integration_disconnect": "Bağlantıyı kes",
+    "integration_reconnect": "Yeniden bağlan",
+    "integration_sync": "Eşitle",
     "downloads_path": "İndirme yolu",
     "change": "Güncelle",
     "notifications": "Bildirimler",

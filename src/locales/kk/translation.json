@@ -576,6 +576,10 @@
     "move_down": "Move down"
   },
   "settings": {
+    "integration_connect": "Қосу",
+    "integration_disconnect": "Ажырату",
+    "integration_reconnect": "Қайта қосу",
+    "integration_sync": "Синхрондау",
     "downloads_path": "Жүктеу жолы",
     "change": "Өзгерту",
     "notifications": "Хабарламалар",
