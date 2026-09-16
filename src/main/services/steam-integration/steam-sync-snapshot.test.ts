@@ -5,6 +5,7 @@ import type { SteamSourceAchievement, SteamSourceLibraryGame } from "@types";
 
 // @ts-ignore The Node ESM test runner requires the source extension.
 import {
+  buildLegacySteamSnapshot,
   buildSteamSnapshot,
   chunkSteamGameSyncPayload,
   chunkSteamSnapshot,
@@ -177,6 +178,29 @@ describe("chunkSteamSnapshot", () => {
     assert.equal(chunks[1].games[0].achievements?.length, 1);
     assert.equal("achievements" in chunks[1].games[1], false);
     assert.deepEqual(chunks[1].games[2].achievements, []);
+  });
+});
+
+describe("buildLegacySteamSnapshot", () => {
+  it("omits oversized achievement lists without truncating them", () => {
+    const snapshot = buildLegacySteamSnapshot({
+      games: [
+        { ...portal, achievements: unlockedAchievements(2_001) },
+        { ...halfLife, achievements: unlockedAchievements(2_000) },
+      ],
+    });
+
+    assert.equal("achievements" in snapshot.games[0], false);
+    assert.equal(snapshot.games[1].achievements?.length, 2_000);
+  });
+
+  it("preserves omitted and confirmed-empty achievement states", () => {
+    const snapshot = buildLegacySteamSnapshot({
+      games: [portal, { ...halfLife, achievements: [] }],
+    });
+
+    assert.equal("achievements" in snapshot.games[0], false);
+    assert.deepEqual(snapshot.games[1].achievements, []);
   });
 });
 

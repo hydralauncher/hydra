@@ -76,6 +76,7 @@ import {
   type SteamFamilySharedApp,
 } from "./steam-family-library";
 import {
+  buildLegacySteamSnapshot,
   buildSteamSnapshot,
   chunkSteamSnapshot,
   uploadSteamSnapshotChunks,
@@ -898,25 +899,47 @@ class SteamSyncOrchestrator {
       "unlocked achievements"
     );
 
-    await uploadSteamSnapshotChunks(
-      chunks,
-      async (chunk, chunkIndex) => {
-        throwIfAborted(signal);
-        await HydraApi.put(
-          `${INTEGRATION_ENDPOINT}/sync/${syncRunId}/snapshot/chunks/${chunkIndex}`,
-          chunk,
-          { signal }
-        );
-      },
-      async () => {
-        throwIfAborted(signal);
-        await HydraApi.post(
-          `${INTEGRATION_ENDPOINT}/sync/${syncRunId}/snapshot/commit`,
-          undefined,
-          { signal }
-        );
-      }
-    );
+    try {
+      await uploadSteamSnapshotChunks(
+        chunks,
+        async (chunk, chunkIndex) => {
+          throwIfAborted(signal);
+          await HydraApi.put(
+            `${INTEGRATION_ENDPOINT}/sync/${syncRunId}/snapshot/chunks/${chunkIndex}`,
+            chunk,
+            { signal }
+          );
+        },
+        async () => {
+          throwIfAborted(signal);
+          await HydraApi.post(
+            `${INTEGRATION_ENDPOINT}/sync/${syncRunId}/snapshot/commit`,
+            undefined,
+            { signal }
+          );
+        }
+      );
+    } catch (error) {
+      if (getSteamSourceHttpStatus(error) !== 404) throw error;
+
+      const legacySnapshot = buildLegacySteamSnapshot(snapshot);
+      const skippedAchievementGames = legacySnapshot.games.filter(
+        (game, index) =>
+          game.achievements === undefined &&
+          snapshot.games[index].achievements !== undefined
+      ).length;
+
+      steamSyncLogger.log(
+        "Chunked snapshot endpoint unavailable; using legacy snapshot endpoint",
+        { skippedAchievementGames }
+      );
+      throwIfAborted(signal);
+      await HydraApi.put(
+        `${INTEGRATION_ENDPOINT}/sync/${syncRunId}/snapshot`,
+        legacySnapshot,
+        { signal }
+      );
+    }
 
     steamSyncLogger.log("Snapshot published");
   }

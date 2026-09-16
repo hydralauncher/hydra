@@ -90,6 +90,22 @@ export const chunkSteamSnapshot = (
   return gameChunks.map((games) => ({ totalChunks, games }));
 };
 
+export const buildLegacySteamSnapshot = (
+  snapshot: SteamSnapshotPayload
+): SteamSnapshotPayload => ({
+  games: snapshot.games.map((game) => {
+    if (
+      game.achievements !== undefined &&
+      game.achievements.length > STEAM_SNAPSHOT_ACHIEVEMENT_CHUNK_SIZE
+    ) {
+      const { achievements: _achievements, ...gameWithoutAchievements } = game;
+      return gameWithoutAchievements;
+    }
+
+    return game;
+  }),
+});
+
 export const chunkSteamGameSyncPayload = (
   payload: SteamGameSyncPayload
 ): SteamGameSyncPayload[] => {

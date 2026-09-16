@@ -27,7 +27,9 @@ Todos autenticados com bearer.
 | `POST`   | `/profile/integrations/steam/sync`             | `202 { syncRunId }`. Não publica nada.                                                          |
 | `GET`    | `/profile/integrations/steam/sync/{syncRunId}` | Estado da run.                                                                                  |
 | `DELETE` | `/profile/integrations/steam/sync/{syncRunId}` | Cancela só `PENDING`. Snapshot antigo fica.                                                     |
-| `PUT`    | `.../snapshot`                                 | Publica. `204`.                                                                                 |
+| `PUT`    | `.../snapshot/chunks/{chunkIndex}`             | Armazena um chunk sem publicar. `chunkIndex` começa em `0`. `204`.                              |
+| `POST`   | `.../snapshot/commit`                          | Valida e publica todos os chunks atomicamente. `204`.                                           |
+| `PUT`    | `.../snapshot`                                 | Fallback para APIs antigas. Publica em uma chamada. `204`.                                      |
 
 `steamAppId` é **string** `^[1-9][0-9]{0,9}$`. Não converter pra number.
 
@@ -56,7 +58,31 @@ União de três objetos. Discriminar por `connected` + `snapshotPreserved`:
 }
 ```
 
-### Snapshot (PUT)
+### Snapshot em chunks
+
+O cliente divide o snapshot em chunks com no máximo 2.000 conquistas. Cada
+`PUT .../snapshot/chunks/{chunkIndex}` envia o índice no path e o total no body:
+
+```ts
+{
+  totalChunks: number;
+  games: SteamSnapshotGame[];
+}
+```
+
+Os índices são sequenciais a partir de `0`. Um jogo pode aparecer em mais de um
+chunk; a API reúne suas conquistas na ordem dos chunks. Depois de enviar todos,
+o cliente chama `POST .../snapshot/commit`. Somente o commit altera os dados
+visíveis. Se um chunk falhar, o cliente não chama o commit e a run pode ser
+retomada: chunks reenviados no mesmo índice são idempotentes.
+
+Se o upload em chunks responder `404`, o launcher assume uma API
+anterior e usa `PUT .../snapshot`. Para respeitar o limite antigo, jogos com mais
+de 2.000 conquistas omitem `achievements`; assim playtime e biblioteca ainda são
+sincronizados, e as conquistas já publicadas desses jogos são preservadas. Um
+sync futuro, depois da atualização da API, publica a lista completa.
+
+### Formato do snapshot
 
 ```ts
 {
@@ -101,7 +127,8 @@ Settings (renderer)
 
 main/services/steam-integration
   POST sync, lê webapi_token no partition persist:steam,
-  GetOwnedGames + community HTML/XML via axios + cookies persist:steam (pool), monta snapshot, PUT
+  GetOwnedGames + community HTML/XML via axios + cookies persist:steam (pool), monta snapshot
+  PUT chunks em ordem, POST commit; usa PUT legado se chunks responderem 404
   DELETE run se o usuário cancelar ou se a orquestração falhar
   depois do 204: mergeWithRemoteGames()
 ```
@@ -251,7 +278,7 @@ Fluxo:
 5. Emitir progresso `{ phase: "library", gamesFound: n }`
 6. Para cada jogo, conquistas com **pool de 3** na community. O Chromium `fetch` do Electron descarta `Cookie`; o cliente lê os cookies de `persist:steam` e chama a community com axios (`node:https`, IPv4). Ordem: HTML `profiles/{steamid}/stats/{appid}/achievements?l=english` → se não mapear unlock, HTML do dono `/my/stats/{appid}` → XML público só se nenhuma das páginas tiver `.achieveRow`. Casa os unlocks com `IPlayerService/GetGameAchievements` (`access_token`) para obter o `apiname`. Sem `steamLoginSecure` na community, falha com sessão expirada — não publica snapshot vazio. Snapshot com 0 unlocks não apaga unlocks já publicados.
 7. Montar snapshot (`steam-sync-snapshot.ts`)
-8. `PUT .../snapshot`
+8. `PUT .../snapshot/chunks/{chunkIndex}` para cada chunk, depois `POST .../snapshot/commit`. Se a API não tiver essas rotas, usar o `PUT .../snapshot` legado.
 9. `mergeWithRemoteGames()`
 10. `GET /profile/integrations/steam` e emitir finished com o status novo
 
@@ -330,7 +357,9 @@ Não precisa de progress bar sofisticada. Número é suficiente.
 
 Guardar `{ syncRunId }` em Level (`levelKeys.steamSyncRun`) quando a run começa. Apagar no finished/cancel.
 
-No M2, se o app fechar no meio, a run fica `PENDING` no servidor. O próximo start toma `409` e **recomeça os GETs source** (não tem snapshot parcial). Isso é correto: source é barato comparado a publicar lixo.
+Se o app fechar durante o upload, a run fica `PENDING` no servidor. O próximo
+start reutiliza a run, refaz os GETs source e reenvia os chunks desde o índice
+`0`. O staging é idempotente e nada fica visível antes do commit.
 
 ### Aceite
 
