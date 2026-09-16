@@ -77,8 +77,8 @@ import {
 } from "./steam-family-library";
 import {
   buildSteamSnapshot,
-  buildSteamSnapshotAchievements,
-  STEAM_SNAPSHOT_MAX_ACHIEVEMENTS_PER_GAME,
+  chunkSteamSnapshot,
+  uploadSteamSnapshotChunks,
 } from "./steam-sync-snapshot";
 import { linkImportedSteamGameExecutables } from "./link-imported-steam-executables";
 
@@ -801,14 +801,7 @@ class SteamSyncOrchestrator {
             unlockedAchievements.length
           );
 
-          if (buildSteamSnapshotAchievements(achievements) === undefined) {
-            steamSyncLogger.log(
-              `Skipping achievements for ${game.steamAppId} ${game.name} (more than ${STEAM_SNAPSHOT_MAX_ACHIEVEMENTS_PER_GAME} unlocked)`
-            );
-            achievementsByAppId.set(game.steamAppId, undefined);
-          } else {
-            achievementsByAppId.set(game.steamAppId, achievements);
-          }
+          achievementsByAppId.set(game.steamAppId, achievements);
         } catch (error) {
           if (isSteamSyncAbortError(error)) throw error;
 
@@ -889,23 +882,40 @@ class SteamSyncOrchestrator {
   ) {
     throwIfAborted(signal);
 
+    const chunks = chunkSteamSnapshot(snapshot);
     const unlockedCount = snapshot.games.reduce(
       (total, game) => total + (game.achievements?.length ?? 0),
       0
     );
 
     steamSyncLogger.log(
-      "PUT snapshot",
+      "PUT snapshot chunks",
+      chunks.length,
+      "chunks,",
       snapshot.games.length,
       "games,",
       unlockedCount,
       "unlocked achievements"
     );
 
-    await HydraApi.put(
-      `${INTEGRATION_ENDPOINT}/sync/${syncRunId}/snapshot`,
-      snapshot,
-      { signal }
+    await uploadSteamSnapshotChunks(
+      chunks,
+      async (chunk, chunkIndex) => {
+        throwIfAborted(signal);
+        await HydraApi.put(
+          `${INTEGRATION_ENDPOINT}/sync/${syncRunId}/snapshot/chunks/${chunkIndex}`,
+          chunk,
+          { signal }
+        );
+      },
+      async () => {
+        throwIfAborted(signal);
+        await HydraApi.post(
+          `${INTEGRATION_ENDPOINT}/sync/${syncRunId}/snapshot/commit`,
+          undefined,
+          { signal }
+        );
+      }
     );
 
     steamSyncLogger.log("Snapshot published");

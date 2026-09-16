@@ -77,6 +77,10 @@ export interface SteamSnapshotPayload {
   games: SteamSnapshotGame[];
 }
 
+export interface SteamSnapshotChunkPayload extends SteamSnapshotPayload {
+  totalChunks: number;
+}
+
 export interface SteamGameSyncPayload {
   playTimeInSeconds: number;
   lastPlayedAt: string | null;
