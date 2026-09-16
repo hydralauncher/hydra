@@ -9,6 +9,9 @@ import {
   shouldRemoveImportedSteamGame,
 } from "./steam-imported-games.ts";
 
+const ONE_MINUTE_IN_MILLISECONDS = 60_000;
+const TEN_MINUTES_IN_MILLISECONDS = 600_000;
+
 describe("shouldRemoveImportedSteamGame", () => {
   const steamOnly = new Set(["620"]);
 
@@ -159,7 +162,7 @@ describe("Steam imported data cleanup", () => {
           shop: "steam",
           isDeleted: false,
           objectId: "20",
-          steamPlayTimeInMilliseconds: 60_000,
+          steamPlayTimeInMilliseconds: ONE_MINUTE_IN_MILLISECONDS,
         },
         new Set()
       ),
@@ -189,7 +192,7 @@ describe("Steam imported data cleanup", () => {
         objectId: "620",
         source: "steam",
         hasActiveSteamImport: true,
-        steamPlayTimeInMilliseconds: 600_000,
+        steamPlayTimeInMilliseconds: TEN_MINUTES_IN_MILLISECONDS,
       }),
       {
         hasActiveSteamImport: false,

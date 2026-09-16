@@ -365,8 +365,11 @@ export const mergeWithRemoteGames = async () => {
         await gamesSublevel.put(key, { ...game, hasActiveSteamImport: false });
       }
     }
+
+    return true;
   } catch {
     // Keep local library available when remote sync fails.
+    return false;
   }
 };
 

@@ -16,6 +16,18 @@ import { gamesSublevel } from "@main/level";
 
 const OAUTH_ENDPOINT = "/profile/oauth/steam";
 
+const restoreLastTimePlayed = async (
+  lastTimePlayedByGameKey: Map<string, Date | null>
+) => {
+  for (const [key, lastTimePlayed] of lastTimePlayedByGameKey) {
+    const game = await gamesSublevel.get(key);
+
+    if (game && !game.isDeleted) {
+      await gamesSublevel.put(key, { ...game, lastTimePlayed });
+    }
+  }
+};
+
 const getErrorMessage = (error: unknown): string | null => {
   if (typeof error === "object" && error !== null) {
     const response = (error as { response?: { data?: { message?: unknown } } })
@@ -50,6 +62,7 @@ const disconnectSteam = async (
   }
 
   const steamOnlyObjectIdSet = new Set(steamOnlyObjectIds);
+  const lastTimePlayedByGameKey = new Map<string, Date | null>();
 
   try {
     await HydraApi.delete(
@@ -71,6 +84,7 @@ const disconnectSteam = async (
       deleteImportedData &&
       hasImportedSteamData(game, steamOnlyObjectIdSet)
     ) {
+      lastTimePlayedByGameKey.set(key, game.lastTimePlayed ?? null);
       AchievementMemoryStore.delete(game.shop, game.objectId);
       await gamesSublevel.put(key, {
         ...game,
@@ -86,7 +100,15 @@ const disconnectSteam = async (
 
   await clearImportedSteamGames(steamOnlyObjectIds);
   WindowManager.sendToAppWindows("on-library-batch-complete");
-  await mergeWithRemoteGames();
+  const didMerge = await mergeWithRemoteGames();
+
+  if (!didMerge) {
+    await restoreLastTimePlayed(lastTimePlayedByGameKey);
+    steamSyncLogger.warn(
+      "Steam disconnect remote merge failed; restored local last-played values"
+    );
+  }
+
   WindowManager.sendToAppWindows("on-library-batch-complete");
   steamSyncLogger.log("Steam disconnected and imported games cleared");
 };
