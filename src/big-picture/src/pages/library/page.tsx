@@ -123,7 +123,8 @@ export default function LibraryPage() {
   const { setFocus } = useNavigation();
   const { showSuccessToast } = useBigPictureToast();
   const { library, updateLibrary } = useLibrary();
-  const { collections, loadCollections } = useGameCollections();
+  const { collections, hasLoadedCollections, loadCollections } =
+    useGameCollections();
   const [selectedFilterTab, setSelectedFilterTab] = useState<LibraryFilterTab>(
     getInitialLibraryFilterTab
   );
@@ -354,7 +355,7 @@ export default function LibraryPage() {
   }, [selectedFilterTab]);
 
   useEffect(() => {
-    if (collections.length === 0) return;
+    if (!hasLoadedCollections) return;
 
     if (
       isBuiltinLibraryTab(selectedFilterTab) ||
@@ -364,7 +365,7 @@ export default function LibraryPage() {
     }
 
     setSelectedFilterTab("all");
-  }, [collections, selectedFilterTab]);
+  }, [collections, hasLoadedCollections, selectedFilterTab]);
 
   useEffect(() => {
     try {

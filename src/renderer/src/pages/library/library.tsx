@@ -343,7 +343,6 @@ export default function Library() {
   useEffect(() => {
     if (!selectedCollectionId) return;
     if (!hasLoadedCollections) return;
-    if (collections.length === 0) return;
 
     if (selectedCollectionId === FAVORITES_COLLECTION_ID) return;
 

@@ -4,6 +4,7 @@ import { IS_DESKTOP } from "../constants";
 
 export function useGameCollections() {
   const [collections, setCollections] = useState<GameCollection[]>([]);
+  const [hasLoadedCollections, setHasLoadedCollections] = useState(false);
 
   const loadCollections = useCallback(async () => {
     if (!IS_DESKTOP) return;
@@ -14,6 +15,7 @@ export function useGameCollections() {
       >("/profile/games/collections", { needsAuth: true });
 
       setCollections(Array.isArray(response) ? response : []);
+      setHasLoadedCollections(true);
     } catch {
       setCollections([]);
     }
@@ -45,5 +47,5 @@ export function useGameCollections() {
     };
   }, [loadCollections]);
 
-  return { collections, loadCollections };
+  return { collections, hasLoadedCollections, loadCollections };
 }

@@ -1,5 +1,8 @@
 @use "../../../scss/globals.scss";
 
+$disc-menu-max-height: 280px;
+$disc-menu-transition-duration: 0.15s;
+
 .game-options-modal {
   &__container {
     display: flex;
@@ -358,16 +361,16 @@
     border: 1px solid #1c1c1c;
     border-radius: 8px;
     box-shadow: 0 12px 32px rgba(0, 0, 0, 0.5);
-    max-height: 280px;
+    max-height: $disc-menu-max-height;
     overflow-y: auto;
     opacity: 0;
     visibility: hidden;
     pointer-events: none;
     transform: translateY(-4px);
     transition:
-      opacity 0.15s ease,
-      transform 0.15s ease,
-      visibility 0s linear 0.15s;
+      opacity $disc-menu-transition-duration ease,
+      transform $disc-menu-transition-duration ease,
+      visibility 0s linear $disc-menu-transition-duration;
 
     &--open {
       opacity: 1;
@@ -375,8 +378,8 @@
       pointer-events: auto;
       transform: translateY(0);
       transition:
-        opacity 0.15s ease,
-        transform 0.15s ease,
+        opacity $disc-menu-transition-duration ease,
+        transform $disc-menu-transition-duration ease,
         visibility 0s linear 0s;
     }
   }
@@ -392,7 +395,7 @@
     border-radius: 0;
     cursor: pointer;
     text-align: left;
-    transition: background-color 0.15s ease;
+    transition: background-color $disc-menu-transition-duration ease;
 
     &:first-child {
       border-radius: 7px 7px 0 0;

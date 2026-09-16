@@ -1,5 +1,7 @@
 @use "../../scss/globals.scss";
 
+$button-transition-duration: 0.2s;
+
 .library-installed-filter {
   &__button {
     display: flex;
@@ -11,10 +13,9 @@
     border: 1px solid globals.$border-color;
     color: rgba(255, 255, 255, 0.9);
     cursor: pointer;
-    transition: all ease 0.2s;
+    transition: all ease $button-transition-duration;
 
     &:hover {
-      color: rgba(255, 255, 255, 0.9);
       background: rgba(255, 255, 255, 0.08);
     }
 

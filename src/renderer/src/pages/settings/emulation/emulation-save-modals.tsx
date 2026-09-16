@@ -70,13 +70,15 @@ export function RestoreModal({
     platform === "wii" ? (
       <>
         {t(copyKeys.description)}{" "}
-        <small
+        <button
+          type="button"
           className="emu-save-modal__guide-tooltip"
           data-open-article="wii-saves"
+          aria-label={t("wii_saves_guide")}
           title={t("wii_saves_guide")}
         >
           <QuestionIcon size={12} />
-        </small>
+        </button>
       </>
     ) : (
       t(copyKeys.description)
