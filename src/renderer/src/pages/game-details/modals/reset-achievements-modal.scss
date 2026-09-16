@@ -8,10 +8,15 @@
     margin-bottom: calc(globals.$spacing-unit * 2);
   }
 
-  &__retroachievements-note {
+  &__retroachievements-note,
+  &__steam-note {
     margin: 0;
     color: var(--text-secondary);
     line-height: 1.5;
+  }
+
+  &__steam-note {
+    margin-bottom: calc(globals.$spacing-unit * 2);
   }
 
   &__retroachievements-link {

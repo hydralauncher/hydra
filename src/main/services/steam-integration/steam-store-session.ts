@@ -144,7 +144,7 @@ export const openSteamOpenIdWindow = (
   const parent = parentWindow();
   const window = new BrowserWindow({
     width: 600,
-    height: 720,
+    height: 800,
     parent: parent ?? undefined,
     modal: Boolean(parent),
     show: false,

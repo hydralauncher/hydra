@@ -74,6 +74,12 @@ export function ResetAchievementsModal({
         </div>
       )}
 
+      {game.hasActiveSteamImport ? (
+        <p className="reset-achievements-modal__steam-note">
+          {t("reset_achievements_steam_note")}
+        </p>
+      ) : null}
+
       <div className="reset-achievements-modal__actions">
         <Button onClick={handleClose} theme="outline">
           {t("cancel")}
