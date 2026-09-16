@@ -158,4 +158,11 @@ test("passes plain launch arguments through the Steam protocol", () => {
     buildSteamGameLaunchUrl("620", "mangohud %command%"),
     "steam://rungameid/620"
   );
+  assert.equal(
+    buildSteamGameLaunchUrl(
+      "620",
+      'mangohud %command% -novid -name "Portal Test"'
+    ),
+    "steam://run/620//-novid%20-name%20%22Portal%20Test%22/"
+  );
 });

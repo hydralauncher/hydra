@@ -71,9 +71,17 @@ export const buildSteamGameLaunchUrl = (
   appId: string,
   launchOptions?: string | null
 ) => {
-  const args = launchOptions?.trim();
+  const launchOptionsValue = launchOptions?.trim();
+  const commandPlaceholderIndex =
+    launchOptionsValue?.indexOf("%command%") ?? -1;
+  const args =
+    commandPlaceholderIndex >= 0
+      ? launchOptionsValue
+          ?.slice(commandPlaceholderIndex + "%command%".length)
+          .trim()
+      : launchOptionsValue;
 
-  if (!args || args.includes("%command%")) {
+  if (!args) {
     return `steam://rungameid/${appId}`;
   }
 
