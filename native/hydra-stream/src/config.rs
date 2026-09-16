@@ -383,6 +383,13 @@ fn parse_keyframe_interval(value: Option<&str>, rfi_live: bool) -> Option<u64> {
     }
 }
 
+/// Ceiling for `HYDRA_STREAM_MAX_BITRATE_KBPS` (200,000kbps = 200Mbps):
+/// real phone WiFi rarely sustains more than ~60Mbps of UDP cleanly, so
+/// nothing above this is a target worth driving — the clamp only stops a
+/// mistyped override from turning into an absurd one (the controller still
+/// steps no higher than min(negotiated, this)).
+const MAX_BITRATE_CAP: u64 = 200_000;
+
 /// Hard ceiling for adaptive bitrate stepping (real phone WiFi rarely
 /// sustains more than ~60Mbps of UDP cleanly); the adaptive controller
 /// never steps above min(negotiated, this).
@@ -393,9 +400,15 @@ pub fn max_bitrate_kbps() -> u32 {
             .ok()
             .and_then(|value| value.parse::<u64>().ok())
             .unwrap_or(MAX_BITRATE_DEFAULT)
-            .min(200_000) as u32
+            .min(MAX_BITRATE_CAP) as u32
     })
 }
+
+/// Ceiling for `HYDRA_STREAM_FEC_PERCENT`: the client reads the percentage
+/// from fecInfo bits 4-11 (`(fecInfo & 0xFF0) >> 4`, RtpVideoQueue.c), an
+/// 8-bit field, so a larger configured value could never ride the wire —
+/// clamped here at the source.
+const FEC_PERCENT_CAP: u64 = 255;
 
 /// Video FEC percentage (Sunshine's `fec_percentage`, default 20; 0
 /// disables FEC). There is no SDP negotiation: the client reads the
@@ -411,7 +424,7 @@ pub fn fec_percentage() -> u32 {
             .ok()
             .and_then(|value| value.parse::<u64>().ok())
             .unwrap_or(FEC_PERCENT_DEFAULT)
-            .min(255) as u32
+            .min(FEC_PERCENT_CAP) as u32
     })
 }
 

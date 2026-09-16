@@ -127,6 +127,11 @@ use std::time::{Duration, Instant};
 /// stepped to, whatever the client negotiated.
 pub const FLOOR_KBPS: u32 = 6_000;
 
+/// The fraction of the negotiated bitrate the ladder's floor may never sit
+/// below: a quarter of what the client asked for is still a watchable
+/// picture (see `session_floor`).
+const NEGOTIATED_FLOOR_DIVISOR: u32 = 4;
+
 /// The ladder's floor for one session:
 /// max(FLOOR_KBPS, negotiated/4, `bpp_floor_kbps`), clamped to the
 /// ceiling. A quarter of what the client asked for is still a watchable
@@ -138,7 +143,7 @@ pub const FLOOR_KBPS: u32 = 6_000;
 /// down-step into an up-step; a session whose ceiling is below the
 /// geometry's floor simply cannot step down).
 fn session_floor(negotiated_kbps: u32, ceiling_kbps: u32, bpp_floor_kbps: u32) -> u32 {
-    (negotiated_kbps / 4)
+    (negotiated_kbps / NEGOTIATED_FLOOR_DIVISOR)
         .max(FLOOR_KBPS)
         .max(bpp_floor_kbps)
         .min(ceiling_kbps)
@@ -439,6 +444,29 @@ const ENET_CONGESTION_SEVERE_RECV: u64 = 50;
 /// the 2nd): a single window can be one burst, two in a row is a trend —
 /// relief starts ~10s into congestion instead of ~15s+.
 const ENET_CONGESTION_WINDOWS: u32 = 2;
+
+/// Bitrate down-step factor for the episode's instant-relief shot: an IDR
+/// flood above `IDR_FLOOD_FAST_THRESHOLD` with corroboration, -30%.
+const BACKOFF_FACTOR_IDR_FLOOD_FAST: f64 = 0.70;
+/// Bitrate down-step factor for a licensed IDR flood window, -25%.
+const BACKOFF_FACTOR_IDR_FLOOD: f64 = 0.75;
+/// Bitrate down-step factor for a window `LOSS_STATS` marks, -20%.
+const BACKOFF_FACTOR_LOSS_STATS: f64 = 0.80;
+/// Bitrate down-step factor for a locally negative window with no stronger
+/// signal behind it (send-buffer pressure alone), -15%.
+const BACKOFF_FACTOR_SEND_BUFFER: f64 = 0.85;
+/// Bitrate down-step factor under sustained ENet congestion with a nearly
+/// dead control channel (severe: `ENET_CONGESTION_SEVERE_RECV`), -30%.
+/// Deliberately separate from `BACKOFF_FACTOR_IDR_FLOOD_FAST`, which is the
+/// same figure driven by a different signal: either calibration must stay
+/// free to move without dragging the other.
+const BACKOFF_FACTOR_ENET_SEVERE: f64 = 0.70;
+/// Bitrate down-step factor under sustained ENet congestion, -25%.
+/// Separate from `BACKOFF_FACTOR_IDR_FLOOD` for the same reason.
+const BACKOFF_FACTOR_ENET_CONGESTION: f64 = 0.75;
+/// Clean-link ramp step: +5% per `CLEAN_RAMP_INTERVAL` once the clean
+/// streak has held for `CLEAN_STREAK`, toward the ceiling.
+const CLEAN_RAMP_STEP: f64 = 1.05;
 
 /// FEC percentage the controller applies while the ENet trend confirms
 /// congestion (2nd consecutive congested window) — doubles the base 10%
@@ -875,13 +903,13 @@ impl AdaptiveController {
                 "send-buffer"
             };
             let factor = if fast_flood {
-                0.70
+                BACKOFF_FACTOR_IDR_FLOOD_FAST
             } else if reason == "idr-flood" {
-                0.75
+                BACKOFF_FACTOR_IDR_FLOOD
             } else if reason == "loss-stats" {
-                0.80
+                BACKOFF_FACTOR_LOSS_STATS
             } else {
-                0.85
+                BACKOFF_FACTOR_SEND_BUFFER
             };
             let next = ((self.current_kbps as f64 * factor) as u32).max(self.floor_kbps);
             if next >= self.current_kbps {
@@ -901,9 +929,9 @@ impl AdaptiveController {
         // is congested with a nearly dead control channel on top, the
         // client is barely receiving at all: step down harder.
         let enet_step = if self.starved_windows >= ENET_CONGESTION_WINDOWS {
-            Some((0.70, "enet-severe"))
+            Some((BACKOFF_FACTOR_ENET_SEVERE, "enet-severe"))
         } else if self.congested_windows >= ENET_CONGESTION_WINDOWS {
-            Some((0.75, "enet-congestion"))
+            Some((BACKOFF_FACTOR_ENET_CONGESTION, "enet-congestion"))
         } else {
             None
         };
@@ -929,7 +957,7 @@ impl AdaptiveController {
                 && since_last.is_none_or(|elapsed| elapsed >= CLEAN_RAMP_INTERVAL)
         });
         if clean {
-            let next = ((self.current_kbps as f64 * 1.05) as u32)
+            let next = ((self.current_kbps as f64 * CLEAN_RAMP_STEP) as u32)
                 .min(self.ceiling_kbps)
                 .max(self.current_kbps);
             if next > self.current_kbps {
