@@ -149,6 +149,46 @@ export const isSteamSourceLibraryFatal = (error: unknown) => {
   return false;
 };
 
+const STEAM_SOURCE_TRANSPORT_ERROR_CODES = new Set([
+  "EAI_AGAIN",
+  "ECONNABORTED",
+  "ECONNREFUSED",
+  "ECONNRESET",
+  "EHOSTUNREACH",
+  "ENETUNREACH",
+  "ENOTFOUND",
+  "ERR_NETWORK",
+  "ETIMEDOUT",
+  "UND_ERR_BODY_TIMEOUT",
+  "UND_ERR_CONNECT_TIMEOUT",
+  "UND_ERR_HEADERS_TIMEOUT",
+  "UND_ERR_SOCKET",
+]);
+
+const readErrorCode = (error: unknown): string | null => {
+  if (typeof error !== "object" || error === null || !("code" in error)) {
+    return null;
+  }
+
+  return typeof error.code === "string" ? error.code : null;
+};
+
+export const isSteamSourceTransportError = (error: unknown): boolean => {
+  const directCode = readErrorCode(error);
+  if (directCode && STEAM_SOURCE_TRANSPORT_ERROR_CODES.has(directCode)) {
+    return true;
+  }
+
+  if (typeof error !== "object" || error === null || !("cause" in error)) {
+    return false;
+  }
+
+  const causeCode = readErrorCode(error.cause);
+  return Boolean(
+    causeCode && STEAM_SOURCE_TRANSPORT_ERROR_CODES.has(causeCode)
+  );
+};
+
 export const isSteamSourceAchievementSkippable = (error: unknown) => {
   const status = getSteamSourceHttpStatus(error);
   return (
@@ -156,7 +196,8 @@ export const isSteamSourceAchievementSkippable = (error: unknown) => {
     status === 403 ||
     status === 409 ||
     status === 429 ||
-    status === 502
+    status === 502 ||
+    isSteamSourceTransportError(error)
   );
 };
 

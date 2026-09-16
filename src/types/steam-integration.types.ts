@@ -70,7 +70,7 @@ export interface SteamSnapshotGame {
   name: string;
   playTimeInSeconds: number;
   lastPlayedAt: string | null;
-  achievements: SteamSnapshotAchievement[];
+  achievements?: SteamSnapshotAchievement[];
 }
 
 export interface SteamSnapshotPayload {
