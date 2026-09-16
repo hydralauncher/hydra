@@ -659,6 +659,94 @@ async fn cancelled_pairing_retry_pairs_from_scratch() {
     assert!(persisted.iter().any(|client| client.uniqueid == uniqueid));
 }
 
+/// The cancel sequence from the sidecar log: the client holds a
+/// getservercert while the PIN dialog is open, the user cancels, Moonlight
+/// calls `/unpair` over plain HTTP, and its immediate retry with the same
+/// fixed uniqueid pairs from scratch.
+#[tokio::test]
+async fn unpair_after_a_cancelled_pin_dialog_lets_the_client_pair_again() {
+    let dir = std::env::temp_dir().join(format!("hydra-stream-unpair-{}", std::process::id()));
+    std::fs::remove_dir_all(&dir).ok();
+    let store = Store::at(dir).unwrap();
+    let (event_tx, mut event_rx) = mpsc::unbounded_channel::<String>();
+    let state = Arc::new(State::with_store(store, event_tx).unwrap());
+    let (http_port, https_port) = spawn_servers(state.clone()).await;
+
+    let uniqueid = "unpairclient9";
+    let client = generate_client_identity();
+    let getservercert = |salt: &[u8]| {
+        format!(
+            "/pair?uniqueid={uniqueid}&devicename=roth&updateState=1&phrase=getservercert&salt={}&clientcert={}",
+            crypto::hex_encode_upper(salt),
+            crypto::hex_encode_upper(client.cert_pem.as_bytes())
+        )
+    };
+
+    // stage 1: the client raises the session and the response is held while
+    // the user looks at the PIN dialog
+    let salt = crypto::random_bytes(16);
+    let held = {
+        let query = getservercert(&salt);
+        tokio::spawn(async move { http_get(http_port, &query).await })
+    };
+    let event = next_pairing_event(&mut event_rx).await;
+    assert_eq!(event["event"], "pairing-requested");
+
+    // stage 2: the user cancels and the client calls GET /unpair over plain
+    // HTTP (Moonlight-Android's NvHTTP.unpair, which also sends its uuid)
+    let response = http_get(
+        http_port,
+        &format!("/unpair?uniqueid={uniqueid}&uuid=0123456789abcdef"),
+    )
+    .await;
+    assert!(response.contains("status_code=\"200\""), "{response}");
+
+    // the held request ends with a terminal failure, closing the prompt the
+    // user cancelled
+    let body = held.await.unwrap();
+    assert!(body.contains("status_code=\"400\""), "{body}");
+    let event = next_pairing_event(&mut event_rx).await;
+    assert_eq!(event["event"], "pairing-finished");
+    assert_eq!(event["success"], false);
+
+    // stage 3: the retry with the same uniqueid starts clean (no 409) and
+    // runs to a successful getservercert
+    let salt = crypto::random_bytes(16);
+    let retry = {
+        let query = getservercert(&salt);
+        tokio::spawn(async move { http_get(http_port, &query).await })
+    };
+    let event = next_pairing_event(&mut event_rx).await;
+    assert_eq!(event["event"], "pairing-requested");
+    let pin = "1234".to_string();
+    assert!(state.submit_pairing_pin(&pin).is_ok());
+    let response = retry.await.unwrap();
+    assert!(response.contains("status_code=\"200\""), "{response}");
+    assert_eq!(tag(&response, "paired"), "1");
+    assert!(response.contains("plaincert"), "{response}");
+
+    // stage 4: the status poll answers for the client store, so a client that
+    // never completed pairing is not told it is paired; the same route works
+    // over HTTPS and releases the session that is still mid-handshake
+    let response = tls_get(
+        https_port,
+        &format!("/serverinfo?uniqueid={uniqueid}"),
+        &state.identity.cert_der,
+    )
+    .await;
+    assert!(response.contains("status_code=\"200\""), "{response}");
+    assert_eq!(tag(&response, "PairStatus"), "0");
+
+    let response = tls_get(
+        https_port,
+        &format!("/unpair?uniqueid={uniqueid}"),
+        &state.identity.cert_der,
+    )
+    .await;
+    assert!(response.contains("status_code=\"200\""), "{response}");
+    assert!(state.sessions.lock().unwrap().is_empty());
+}
+
 #[tokio::test]
 async fn tls_rejects_wrong_pinned_cert() {
     let dir = std::env::temp_dir().join(format!("hydra-stream-e2e-tls-{}", std::process::id()));
