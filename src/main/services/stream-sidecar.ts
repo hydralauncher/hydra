@@ -79,6 +79,9 @@ export class StreamSidecar {
   private static readonly stdoutLines = createStdoutLineBuffer((line) =>
     this.handleStdoutLine(line)
   );
+  private static readonly stderrLines = createStdoutLineBuffer((line) =>
+    streamSidecarLogger.log(line)
+  );
   private static readonly readyState = new ReadyState();
   private static readonly eventListeners = new Set<
     (event: StreamSidecarEvent) => void
@@ -100,7 +103,7 @@ export class StreamSidecar {
   }
 
   private static logStderr(readable: Readable | null) {
-    logReadable(readable, streamSidecarLogger.log);
+    logReadable(readable, (chunk) => this.stderrLines.append(chunk));
   }
 
   private static logStdout(readable: Readable | null) {
@@ -168,6 +171,7 @@ export class StreamSidecar {
     this.readyState.rejectIfNotReady(error);
     this.readyState.clear();
     this.stdoutLines.reset();
+    this.stderrLines.reset();
     this.childProcess = null;
 
     // unexpected exits (not an explicit kill) notify subscribers so the
@@ -209,6 +213,7 @@ export class StreamSidecar {
 
     this.readyState.reset();
     this.stdoutLines.reset();
+    this.stderrLines.reset();
 
     const binaryPath = this.resolveBinaryPath();
 

@@ -90,18 +90,33 @@ Key design choices:
 
 ## 4. Build & dev environment (Windows, this machine)
 
-**Toolchain (GNU, NOT MSVC):** rustup stable `x86_64-pc-windows-gnu` at `~/.cargo`. Required env for every cargo/node-build:
+**Toolchain (MSVC since 2026-09-16, was GNU):** the rustup _default_ is still stable `x86_64-pc-windows-gnu` at `~/.cargo`, but that host can no longer build the C crates (ring, libopus): the mingw-w64 toolchain it used — `~/tools/w64devkit`, `~/tools/mingw-binutils` — was removed from this machine, so `cc-rs` fails with `failed to find tool "gcc.exe"` and clang alone cannot stand in (no target sysroot: `assert.h` not found). The sidecar is therefore built for **`x86_64-pc-windows-msvc`** (target added to rustup; VS 18 Community at `C:\Program Files\Microsoft Visual Studio\18\Community` supplies cl.exe, the MSVC CRT and the linker).
 
-```bash
-export PATH="/c/Users/anderson/tools/w64devkit/bin:$HOME/.cargo/bin:/c/Users/anderson/tools/mingw-binutils:$PATH"
-export RUSTFLAGS="-C link-self-contained=y"
+Every cargo invocation needs the VS environment, which PowerShell does not have by itself, so cargo goes through the same Node path the real builds use (`scripts/lib/native-build.cjs`, which loads `vcvars64.bat` via `vswhere` and prepends `~/.cargo/bin` to PATH):
+
+```
+yarn build:stream        # cargo build --release for the sidecar + deploy to hydra-stream/
+yarn test:stream         # cargo test --release -- --skip live_video_and_control_smoke
+yarn test:stream:live    # the opt-in hardware probes (--ignored --nocapture)
 ```
 
-(w64devkit gcc compiles C crates — ring, libopus; rust links self-contained. Without w64devkit first: raw-dylib `dlltool` errors; without link-self-contained: `-lgcc_eh` failures.)
+Raw cargo for a one-off check, from `native/hydra-stream`:
 
-- `native-addon` (hydra-native) also needs `LIBNODE_PATH=C:\Users\anderson\tools\libnode`.
-- Build sidecar: `node scripts/build-stream-sidecar.cjs` (from repo root). EBUSY = the running app holds the exe — kill hydra-stream.exe/electron or defer.
-- Tests: `cd native/hydra-stream && cargo test --release -- --skip live_video_and_control_smoke` (that one is env-flaky on loopback UDP; keep skipped). Live checks: `cargo test --release --lib -- --ignored live_cross_adapter_smoke --nocapture` etc.
+```
+node ../../scripts/cargo-msvc.mjs check --release
+node ../../scripts/cargo-msvc.mjs test  --release -- --skip live_video_and_control_smoke
+node ../../scripts/cargo-msvc.mjs build --release
+```
+
+`scripts/build-stream-sidecar.cjs` resolves the target itself (`scripts/lib/native-build.cjs`): on Windows it prefers MSVC when both the VS toolset and the rustup `x86_64-pc-windows-msvc` target are present, links the CRT statically (`RUSTFLAGS=-C target-feature=+crt-static`) so the binary still ships with no runtime DLLs, and falls back to the GNU host toolchain when MSVC cannot be confirmed. The path is decided up-front from toolchain presence, so a compile error is never mistaken for a missing toolchain. `HYDRA_STREAM_CARGO_TARGET` forces a target. EBUSY = the running app holds the exe — quit Hydra or kill `hydra-stream.exe` first, the app respawns it otherwise.
+
+Deployment consequence: the MSVC binary links `VCRUNTIME140.dll` + the UCRT api-set DLLs, where the GNU one linked only `msvcrt.dll`. `+crt-static` removes that dependency entirely (verified with `dumpbin /dependents`: only Windows system DLLs remain), which is why static linking is not optional here — the packaged app does not otherwise provide `VCRUNTIME140.dll` next to `resources/hydra-stream/`.
+
+- `native-addon` (hydra-native) also needs `LIBNODE_PATH=C:\Users\anderson\tools\libnode` — also gone from this machine, so hydra-native cannot be rebuilt either (its addon binary is present and untouched).
+- Build sidecar: `node scripts/build-stream-sidecar.cjs` (from repo root) — it picks MSVC itself, see above. EBUSY = the running app holds the exe — kill hydra-stream.exe/electron or defer.
+- Tests: `yarn test:stream` (the skipped `live_video_and_control_smoke` is env-flaky on loopback UDP). Live hardware probes: `yarn test:stream:live`, or one specific probe by its exact path:
+  `$exe = Get-ChildItem native\hydra-stream\target\x86_64-pc-windows-msvc\release\deps\hydra_stream-*.exe | Select-Object -First 1; & $exe --ignored --nocapture --exact capture::tests::live_present_rate_probe` (invoke the test binary directly — `cargo test` argument passing is unreliable for `--exact` here).
+
 - Dev app: `npx electron-vite dev` (no yarn on this machine; node_modules installed via npm --ignore-scripts — Electron binary was manually unzipped from the npm cache + `path.txt` written WITHOUT trailing newline).
 - `.env` exists with placeholder API URLs (wrong host on purpose — app runs logged-out; do not "fix").
 - Typecheck: `npx tsc --noEmit -p tsconfig.node.json --composite false` (+ `-p tsconfig.web.json`).
@@ -131,7 +146,10 @@ export RUSTFLAGS="-C link-self-contained=y"
 
 ## 6. Configuration surface (env vars, sidecar)
 
-`HYDRA_STREAM_MAX_BITRATE_KBPS` (cap, default 60000) · `HYDRA_STREAM_MAX_FRAME_AGE_MS` (freshness budget, default 3×frame clamped to [1.25×frame, 100ms]; installed into the pipeline so both the pre-encode gate and the post-encode relief valve use one number) · `HYDRA_STREAM_MIN_BITS_PER_PIXEL` (thousandths of a bit per pixel per frame the encoder needs to hold the frame rate with margin: the adaptive bitrate floor and the startup size resolution's budget, default 72 = 0.072, 0 disables the term) · `HYDRA_STREAM_IDR_QUIET_MS` (begging-wave boundary, 1000) · `HYDRA_STREAM_KEYFRAME_INTERVAL_MS` (default 2000 in IDR-only recovery, 5000 when the encoder can invalidate reference frames; 0=off) · `HYDRA_STREAM_FEC_PERCENT` (base, 20) · `HYDRA_STREAM_LAUNCH_TIMEOUT_MS` (pre-RTSP window, 300000) · `HYDRA_STREAM_*_PORT` (47984/47989/48010/47998/47999/48000 overrides) · `HYDRA_STREAM_ENCODER` (auto|nvenc|amf|amf-cross) · `HYDRA_STREAM_VIDEO_SOURCE` (`testpattern` = synthetic, bypasses GPU) · `HYDRA_STREAM_VIDEO_DUMP` (path: appends every annex-B access unit the sender loop actually puts on the wire, in send order, so a real session can be decoded offline with `ffmpeg -i dump.h264 -f null -`; unset = off, and inert) · `HYDRA_STREAM_AUDIO_DUMP` (path: one record per Opus payload the audio sender loop puts on the wire, in send order — the audio counterpart of the video dump; unset = off, and inert) · `HYDRA_STREAM_AUDIO_SOURCE` (`tone` = synthetic 440Hz source, WASAPI capture bypassed). The ignored live audio probes additionally read `HYDRA_AUDIO_PROBE_SECONDS` (default 5) and `HYDRA_AUDIO_PROBE_KEEPER` (`1` adds the production silence keeper). App pref: `streamingEnabled` (Settings → General → "Console streaming").
+`HYDRA_STREAM_MAX_BITRATE_KBPS` (cap, default 60000) · `HYDRA_STREAM_MAX_FRAME_AGE_MS` (freshness budget, default 3×frame clamped to [1.25×frame, 100ms]; installed into the pipeline so both the pre-encode gate and the post-encode relief valve use one number) · `HYDRA_STREAM_MIN_BITS_PER_PIXEL` (thousandths of a bit per pixel per frame the encoder needs to hold the frame rate with margin: the adaptive bitrate floor and the startup size resolution's budget, default 72 = 0.072, 0 disables the term) · **`HYDRA_STREAM_REPEATS` (idle-desktop repeats: OFF by default, `1`/`true`/`on` opts back in — see below)** · `HYDRA_STREAM_IDR_QUIET_MS` (begging-wave boundary, 1000) · `HYDRA_STREAM_KEYFRAME_INTERVAL_MS` (default 2000 in IDR-only recovery, 5000 when the encoder can invalidate reference frames; 0=off) · `HYDRA_STREAM_FEC_PERCENT` (base, 20) · `HYDRA_STREAM_LAUNCH_TIMEOUT_MS` (pre-RTSP window, 300000) · `HYDRA_STREAM_*_PORT` (47984/47989/48010/47998/47999/48000 overrides) · `HYDRA_STREAM_ENCODER` (auto|nvenc|amf|amf-cross) · `HYDRA_STREAM_VIDEO_SOURCE` (`testpattern` = synthetic, bypasses GPU) · `HYDRA_STREAM_VIDEO_DUMP` (path: appends every annex-B access unit the sender loop actually puts on the wire, in send order, so a real session can be decoded offline with `ffmpeg -i dump.h264 -f null -`; unset = off, and inert) · `HYDRA_STREAM_AUDIO_DUMP` (path: one record per Opus payload the audio sender loop puts on the wire, in send order — the audio counterpart of the video dump; unset = off, and inert) · `HYDRA_STREAM_AUDIO_SOURCE` (`tone` = synthetic 440Hz source, WASAPI capture bypassed). The ignored live audio probes additionally read `HYDRA_AUDIO_PROBE_SECONDS` (default 5) and `HYDRA_AUDIO_PROBE_KEEPER` (`1` adds the production silence keeper). App pref: `streamingEnabled` (Settings → General → "Console streaming").
+
+**Why repeats are off by default.** When `AcquireNextFrame` hands over nothing new at a due slot, the capture side used to re-encode the previous frame so the wire still carried the negotiated frame rate. That padding is what the client displays twice. Measured over a diagnosed session, the host was proven faithful — 4,697 frames sent with `0 idle-desktop repeats`, `0 stale pre-encode skips`, `0 dropped-after-encode`, `0 scaler busy drops` and `max pipeline queue=1` in the end summary — while the negotiated 60/s on the wire carried only ~45/s of *new* pictures: the client's FPS counter read a padded 60 while the picture juddered, which is the "60 FPS that feels like 30" report this default answers. With repeats off the counter reads the true rate (45-55/s in heavy scenes) and **no frame is displayed twice**. The consequence to expect in the log is that `sent N/s` sits **below** the negotiated rate whenever the desktop cannot supply it — that is the intended reading, not a regression. `HYDRA_STREAM_REPEATS=1` (`true`/`on`) restores the old always-pad behaviour.
+
 
 ## 7. How to test (manual)
 
