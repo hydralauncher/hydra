@@ -5,17 +5,19 @@
     display: flex;
     flex-direction: column;
     gap: calc(globals.$spacing-unit * 2);
+    padding-top: calc(globals.$spacing-unit * 2);
+    border-top: 1px solid globals.$border-color;
+  }
+
+  &__form-intro {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: globals.$spacing-unit;
   }
 
   &__submit-button {
     align-self: flex-end;
-  }
-
-  &__description-container {
-    display: flex;
-    flex-direction: column;
-    gap: globals.$spacing-unit;
-    align-items: flex-start;
   }
 
   &__create-account {
@@ -32,94 +34,13 @@
   }
 
   &__guide-tooltip {
+    color: var(--text-secondary);
     cursor: pointer;
     vertical-align: middle;
-    color: var(--text-secondary);
 
     &:hover {
       color: #fff;
     }
-  }
-
-  &__connected-container {
-    display: flex;
-    flex-direction: column;
-    gap: calc(globals.$spacing-unit * 2);
-  }
-
-  &__connected {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    flex-wrap: wrap;
-    gap: calc(globals.$spacing-unit * 2);
-  }
-
-  &__profile {
-    display: flex;
-    align-items: center;
-    gap: calc(globals.$spacing-unit * 2);
-  }
-
-  &__avatar {
-    width: 72px;
-    height: 72px;
-    flex-shrink: 0;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    overflow: hidden;
-    border-radius: 8px;
-    border: 1px solid globals.$border-color;
-    background: rgba(255, 255, 255, 0.04);
-    color: var(--text-secondary);
-
-    img {
-      width: 100%;
-      height: 100%;
-      object-fit: cover;
-    }
-  }
-
-  &__account {
-    display: flex;
-    flex-direction: column;
-    gap: calc(globals.$spacing-unit / 2);
-  }
-
-  &__username {
-    font-weight: bold;
-    font-size: 1rem;
-  }
-
-  &__status {
-    display: flex;
-    align-items: center;
-    gap: globals.$spacing-unit;
-    color: #c0c1c7;
-    font-size: globals.$small-font-size;
-
-    &--warning {
-      color: globals.$warning-color;
-    }
-  }
-
-  &__actions {
-    display: flex;
-    flex-wrap: wrap;
-    gap: globals.$spacing-unit;
-  }
-
-  &__header-icon--warning {
-    flex-shrink: 0;
-    color: globals.$warning-color;
-  }
-
-  &__title-logo {
-    width: 18px;
-    height: 18px;
-    object-fit: contain;
-    flex-shrink: 0;
   }
 
   &__modal {
@@ -136,8 +57,8 @@
 
   &__modal-actions {
     display: flex;
-    justify-content: flex-end;
     align-items: center;
+    justify-content: flex-end;
     gap: globals.$spacing-unit;
   }
 }
