@@ -29,7 +29,6 @@
     "need_help": "Потрібна допомога?",
     "playable_button_title": "Показати лише ігри, які можна грати зараз",
     "add_custom_game_tooltip": "Додати власну гру",
-    "show_playable_only_tooltip": "Показати лише доступні для гри",
     "custom_game_modal": "Додати власну гру",
     "custom_game_modal_description": "Додайте власну гру до бібліотеки, вибравши виконуваний файл",
     "custom_game_modal_executable_path": "Шлях до виконуваного файлу",

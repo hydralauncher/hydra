@@ -13,6 +13,7 @@ import {
 import type {
   ClassicsDisc,
   EmulatorSystem,
+  ExtractionFailure,
   Game,
   GameShop,
   RetroArchPlatform,
@@ -75,35 +76,44 @@ export class GameFilesManager {
     );
   }
 
-  private async setExtractionFailedState(error: unknown, targetPath?: string) {
+  private async resetExtractingState() {
+    const download = await downloadsSublevel.get(this.gameKey);
+
+    if (!download) return;
+
+    const status =
+      download.progress === 1
+        ? download.shouldSeed && download.downloader === Downloader.Torrent
+          ? "seeding"
+          : "complete"
+        : download.status;
+
+    await downloadsSublevel.put(this.gameKey, {
+      ...download,
+      status,
+      queued: false,
+      extracting: false,
+    });
+    WindowManager.sendDownloadsUpdated();
+  }
+
+  private async setExtractionFailedState(
+    error: unknown,
+    targetPath?: string,
+    failure: ExtractionFailure | null = null
+  ) {
     logger.error(
       `[GameFilesManager] Extraction failed for ${this.objectId}${targetPath ? ` at ${targetPath}` : ""}`,
       error
     );
 
-    const download = await downloadsSublevel.get(this.gameKey);
-
-    if (download) {
-      const status =
-        download.progress === 1
-          ? download.shouldSeed && download.downloader === Downloader.Torrent
-            ? "seeding"
-            : "complete"
-          : download.status;
-
-      await downloadsSublevel.put(this.gameKey, {
-        ...download,
-        status,
-        queued: false,
-        extracting: false,
-      });
-      WindowManager.sendDownloadsUpdated();
-    }
+    await this.resetExtractingState();
 
     WindowManager.sendToAppWindows(
       "on-extraction-failed",
       this.shop,
-      this.objectId
+      this.objectId,
+      failure
     );
 
     this.lastProgressUpdateTime = 0;
@@ -112,6 +122,37 @@ export class GameFilesManager {
 
   async failExtraction(error: unknown, targetPath?: string) {
     await this.setExtractionFailedState(error, targetPath);
+  }
+
+  async failMissingExtractionSource(targetPath?: string) {
+    await this.setExtractionFailedState(
+      new Error("No downloaded file was found to extract"),
+      targetPath,
+      { reason: "file-not-found" }
+    );
+  }
+
+  async handleUnsupportedExtraction(
+    filePath: string,
+    { notify }: { notify: boolean }
+  ) {
+    const format = path.extname(filePath).toLowerCase();
+
+    if (notify) {
+      await this.setExtractionFailedState(
+        new Error(`Unsupported extraction format "${format}" for ${filePath}`),
+        filePath,
+        format ? { reason: "unsupported-format", format } : null
+      );
+    } else {
+      logger.info(
+        `[GameFilesManager] Skipped extracting unsupported file ${filePath}`
+      );
+      await this.resetExtractingState();
+    }
+
+    await this.searchAndBindExecutable();
+    await this.autoLinkClassicsDiscs();
   }
 
   private readonly handleProgress = (progress: ExtractionProgress) => {
@@ -125,6 +166,11 @@ export class GameFilesManager {
       pathType = await getPathType(directoryPath);
     } catch (error) {
       await this.setExtractionFailedState(error, directoryPath);
+      return false;
+    }
+
+    if (pathType === "missing") {
+      await this.failMissingExtractionSource(directoryPath);
       return false;
     }
 
@@ -323,29 +369,47 @@ export class GameFilesManager {
     }
   }
 
+  private async collectClassicsRomPaths(
+    targetPath: string,
+    system: EmulatorSystem
+  ): Promise<string[]> {
+    const stats = await fs.promises.stat(targetPath);
+
+    if (stats.isFile()) {
+      const extension = path.extname(targetPath).toLowerCase();
+      return emulators.KNOWN_BINARIES[system].romExtensions.includes(extension)
+        ? [targetPath]
+        : [];
+    }
+
+    const { games: scanned } = await emulators.scanRomFolder(
+      targetPath,
+      emulators.KNOWN_BINARIES[system],
+      true
+    );
+
+    return scanned.map((entry) => entry.primaryPath);
+  }
+
   private async linkClassicsDiscsFromScan(
     game: Game,
     gameFolderPath: string,
     system: EmulatorSystem
   ): Promise<void> {
-    const { games: scanned } = await emulators.scanRomFolder(
-      gameFolderPath,
-      emulators.KNOWN_BINARIES[system],
-      true
-    );
+    const romPaths = await this.collectClassicsRomPaths(gameFolderPath, system);
 
     const discs = [...(game.discs ?? [])];
     let added = 0;
 
-    for (const entry of scanned) {
-      if (discs.some((disc) => disc.path === entry.primaryPath)) continue;
+    for (const romPath of romPaths) {
+      if (discs.some((disc) => disc.path === romPath)) continue;
 
-      const sku = await emulators.extractDiscSku(entry.primaryPath, system);
+      const sku = await emulators.extractDiscSku(romPath, system);
 
       discs.push({
-        path: entry.primaryPath,
+        path: romPath,
         label: `Disc ${discs.length + 1}`,
-        fileName: path.basename(entry.primaryPath),
+        fileName: path.basename(romPath),
         sku,
       });
       added += 1;
@@ -750,13 +814,16 @@ export class GameFilesManager {
     if (!download || !game) return false;
 
     if (!download.folderName) {
-      await this.setExtractionFailedState(
-        new Error("No downloaded archive was found to extract")
-      );
+      await this.failMissingExtractionSource();
       return false;
     }
 
     const filePath = path.join(download.downloadPath, download.folderName);
+
+    if (!fs.existsSync(filePath)) {
+      await this.failMissingExtractionSource(filePath);
+      return false;
+    }
 
     const extractionPath = path.join(
       download.downloadPath,

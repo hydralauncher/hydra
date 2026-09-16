@@ -33,7 +33,6 @@
     "favorites": "お気に入り",
     "playable_button_title": "今すぐプレイできるゲームのみ表示",
     "add_custom_game_tooltip": "カスタムゲームを追加",
-    "show_playable_only_tooltip": "プレイ可能なゲームのみ表示",
     "custom_game_modal": "カスタムゲームを追加",
     "custom_game_modal_description": "実行ファイルを選択してカスタムゲームをライブラリに追加します",
     "custom_game_modal_executable_path": "実行ファイルのパス",

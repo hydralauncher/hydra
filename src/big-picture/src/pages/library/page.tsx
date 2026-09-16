@@ -32,6 +32,7 @@ import {
   VerticalFocusGroup,
   LIBRARY_SECONDARY_FILTER_STORAGE_KEY,
   LIBRARY_SORT_BY_STORAGE_KEY,
+  LIBRARY_TAB_STORAGE_KEY,
   LIBRARY_VIEW_MODE_STORAGE_KEY,
   type LibrarySecondaryFilter,
   isLibraryViewMode,
@@ -88,6 +89,14 @@ function getInitialLibrarySecondaryFilter(): LibrarySecondaryFilter {
   );
 }
 
+function getInitialLibraryFilterTab(): LibraryFilterTab {
+  return getInitialLibraryStoredValue(
+    LIBRARY_TAB_STORAGE_KEY,
+    (value): value is LibraryFilterTab => Boolean(value),
+    "all"
+  );
+}
+
 function getInitialLibraryStoredValue<TValue extends string>(
   storageKey: string,
   validator: (value: string | null | undefined) => value is TValue,
@@ -115,8 +124,9 @@ export default function LibraryPage() {
   const { showSuccessToast } = useBigPictureToast();
   const { library, updateLibrary } = useLibrary();
   const { collections, loadCollections } = useGameCollections();
-  const [selectedFilterTab, setSelectedFilterTab] =
-    useState<LibraryFilterTab>("all");
+  const [selectedFilterTab, setSelectedFilterTab] = useState<LibraryFilterTab>(
+    getInitialLibraryFilterTab
+  );
   const [viewMode, setViewMode] = useState<LibraryViewMode>(
     getInitialLibraryViewMode
   );
@@ -333,6 +343,19 @@ export default function LibraryPage() {
   }, [sortBy]);
 
   useEffect(() => {
+    try {
+      globalThis.window.localStorage.setItem(
+        LIBRARY_TAB_STORAGE_KEY,
+        selectedFilterTab
+      );
+    } catch {
+      return;
+    }
+  }, [selectedFilterTab]);
+
+  useEffect(() => {
+    if (collections.length === 0) return;
+
     if (
       isBuiltinLibraryTab(selectedFilterTab) ||
       collections.some((c) => c.id === selectedFilterTab)

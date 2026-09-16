@@ -29,7 +29,6 @@
     "favorites": "Suosikit",
     "playable_button_title": "Näytä vain asennetut pelit.",
     "add_custom_game_tooltip": "Lisää mukautettu peli",
-    "show_playable_only_tooltip": "Näytä vain pelattavissa olevat",
     "custom_game_modal": "Lisää mukautettu peli",
     "custom_game_modal_description": "Lisää mukautettu peli kirjastoon valitsemalla suoritettava tiedosto",
     "custom_game_modal_executable_path": "Suoritettavan tiedoston polku",

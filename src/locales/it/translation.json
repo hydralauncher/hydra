@@ -31,7 +31,6 @@
     "favorites": "Preferiti",
     "playable_button_title": "Mostra solo i giochi che puoi giocare ora",
     "add_custom_game_tooltip": "Aggiungi gioco personalizzato",
-    "show_playable_only_tooltip": "Mostra solo giocabili",
     "custom_game_modal": "Aggiungi gioco personalizzato",
     "custom_game_modal_description": "Aggiungi un gioco personalizzato alla libreria selezionando un file eseguibile",
     "custom_game_modal_executable_path": "Percorso eseguibile",

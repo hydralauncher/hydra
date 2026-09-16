@@ -199,7 +199,6 @@ function SpeedChart({
         }
       }
       const displaySpeeds = speeds.slice(-totalBars);
-      const firstFilledBar = totalBars - displaySpeeds.length;
 
       for (let i = 0; i < totalBars; i++) {
         const x = i * barSpacing;
@@ -208,8 +207,8 @@ function SpeedChart({
         ctx.roundRect(x, 0, barWidth, height, 3);
         ctx.fill();
 
-        if (i >= firstFilledBar) {
-          const speed = displaySpeeds[i - firstFilledBar] || 0;
+        if (i < displaySpeeds.length) {
+          const speed = displaySpeeds[i] || 0;
           const filledHeight = (speed / maxHeight) * height;
 
           if (filledHeight > 0) {

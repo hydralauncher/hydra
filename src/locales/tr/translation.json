@@ -30,7 +30,6 @@
     "favorites": "Favoriler",
     "playable_button_title": "Şu anda oynayabileceğin oyunları göster",
     "add_custom_game_tooltip": "Özel Oyun Ekle",
-    "show_playable_only_tooltip": "Sadece Oynanabilirleri Göster",
     "custom_game_modal": "Özel Oyun Ekle",
     "custom_game_modal_description": "Çalıştırılabilir bir dosya seçerek kütüphanene özel oyun ekle",
     "custom_game_modal_executable_path": "Çalıştırılabilir Dosya Yolu",

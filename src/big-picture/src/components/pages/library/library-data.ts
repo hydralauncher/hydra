@@ -34,6 +34,7 @@ export const LIBRARY_VIEW_MODE_STORAGE_KEY =
 export const LIBRARY_SORT_BY_STORAGE_KEY = "hydra:big-picture:library-sort-by";
 export const LIBRARY_SECONDARY_FILTER_STORAGE_KEY =
   "hydra:big-picture:library-filter-by";
+export const LIBRARY_TAB_STORAGE_KEY = "hydra:big-picture:library-tab";
 
 export interface LibraryFilterCounts {
   all: number;

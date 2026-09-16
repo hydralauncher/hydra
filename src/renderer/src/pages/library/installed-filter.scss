@@ -1,0 +1,25 @@
+@use "../../scss/globals.scss";
+
+.library-installed-filter {
+  &__button {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 10px;
+    border-radius: 6px;
+    background: globals.$background-color;
+    border: 1px solid globals.$border-color;
+    color: rgba(255, 255, 255, 0.9);
+    cursor: pointer;
+    transition: all ease 0.2s;
+
+    &:hover {
+      color: rgba(255, 255, 255, 0.9);
+      background: rgba(255, 255, 255, 0.08);
+    }
+
+    svg {
+      display: block;
+    }
+  }
+}

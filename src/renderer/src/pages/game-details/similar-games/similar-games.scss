@@ -28,8 +28,16 @@
 
   &__viewport {
     position: relative;
-    overflow: hidden;
+    overflow: clip;
+    overflow-clip-margin: 0px;
     border-radius: 6px;
+    transition: overflow-clip-margin 0s linear 0.2s;
+    transition-behavior: allow-discrete;
+
+    &:has(.similar-games__card:hover) {
+      overflow-clip-margin: calc(globals.$spacing-unit * 1.75);
+      transition-delay: 0s;
+    }
   }
 
   &__container {
@@ -41,6 +49,10 @@
     flex: 0 0 calc(100% / 3);
     min-width: 0;
     padding: 3px globals.$spacing-unit;
+  }
+
+  &__card:hover {
+    transform: scale(1.05);
   }
 
   &__skeleton {

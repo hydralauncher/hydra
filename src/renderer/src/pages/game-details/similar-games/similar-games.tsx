@@ -103,6 +103,7 @@ export function SimilarGames({ objectId, shop }: Readonly<SimilarGamesProps>) {
                   key={`${similarGame.shop}:${similarGame.objectId}`}
                 >
                   <VerticalCoverCard
+                    className="similar-games__card"
                     gameTitle={similarGame.title}
                     coverImageUrls={[
                       similarGame.coverImageUrl,

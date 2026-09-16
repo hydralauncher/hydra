@@ -125,6 +125,24 @@ const SIDEBAR_LIBRARY_FILTER_FOCUS_IDS: Record<SidebarLibraryFilter, string> = {
   favorites: BIG_PICTURE_SIDEBAR_LIBRARY_FILTER_FAVORITES_ID,
 };
 
+const SIDEBAR_LIBRARY_FILTER_STORAGE_KEY =
+  "hydra:big-picture:sidebar-library-filter";
+
+function getInitialSidebarLibraryFilter(): SidebarLibraryFilter {
+  try {
+    const storedValue = globalThis.window.localStorage.getItem(
+      SIDEBAR_LIBRARY_FILTER_STORAGE_KEY
+    );
+
+    return (
+      SIDEBAR_LIBRARY_FILTERS.find((filter) => filter.value === storedValue)
+        ?.value ?? "all"
+    );
+  } catch {
+    return "all";
+  }
+}
+
 function isFocusedNodeWithinRegion(
   currentFocusId: string | null,
   nodes: FocusNode[],
@@ -471,15 +489,22 @@ function SidebarLibrary({
     [runningGamesById]
   );
   const [selectedLibraryFilter, setSelectedLibraryFilter] =
-    useState<SidebarLibraryFilter>("all");
+    useState<SidebarLibraryFilter>(getInitialSidebarLibraryFilter);
   const normalizedPathname = normalizeBigPicturePathname(pathname);
   const activeGameRoute = getBigPictureGameRouteMatch(normalizedPathname);
   const contentEntryTarget =
     getBigPictureContentSidebarReturnTargetFromPathname(pathname);
 
   useEffect(() => {
-    setSelectedLibraryFilter("all");
-  }, []);
+    try {
+      globalThis.window.localStorage.setItem(
+        SIDEBAR_LIBRARY_FILTER_STORAGE_KEY,
+        selectedLibraryFilter
+      );
+    } catch {
+      return;
+    }
+  }, [selectedLibraryFilter]);
 
   useEffect(() => {
     if (!IS_DESKTOP) return;

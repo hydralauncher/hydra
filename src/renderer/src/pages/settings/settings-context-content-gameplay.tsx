@@ -36,10 +36,12 @@ const buildForm = (preferences: UserPreferences | null) => ({
   hideClassicsBookmark: preferences?.hideClassicsBookmark ?? false,
   classicsUseHeroLayout: preferences?.classicsUseHeroLayout ?? false,
   hideLibraryGameBadges: preferences?.hideLibraryGameBadges ?? false,
+  hideLibraryReadySizeBadges: preferences?.hideLibraryReadySizeBadges ?? false,
   hideLibraryClassicsBadges: preferences?.hideLibraryClassicsBadges ?? false,
   hideLibraryAchievementProgress:
     preferences?.hideLibraryAchievementProgress ?? false,
   autoplayAnimatedArtwork: preferences?.autoplayAnimatedArtwork ?? false,
+  persistFiltersAndSorting: preferences?.persistFiltersAndSorting ?? false,
 });
 
 export function SettingsContextContentGameplay() {
@@ -186,6 +188,16 @@ export function SettingsContextContentGameplay() {
             })
           }
         />
+
+        <CheckboxField
+          label={t("persist_filters_and_sorting")}
+          checked={form.persistFiltersAndSorting}
+          onChange={() =>
+            handleChange({
+              persistFiltersAndSorting: !form.persistFiltersAndSorting,
+            })
+          }
+        />
       </div>
 
       <div className="settings-context-panel__group">
@@ -290,6 +302,16 @@ export function SettingsContextContentGameplay() {
           onChange={() =>
             handleChange({
               hideLibraryGameBadges: !form.hideLibraryGameBadges,
+            })
+          }
+        />
+
+        <CheckboxField
+          label={t("hide_library_ready_size_badges")}
+          checked={form.hideLibraryReadySizeBadges}
+          onChange={() =>
+            handleChange({
+              hideLibraryReadySizeBadges: !form.hideLibraryReadySizeBadges,
             })
           }
         />

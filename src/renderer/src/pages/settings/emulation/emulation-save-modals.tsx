@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
-import { Trans, useTranslation } from "react-i18next";
+import { useTranslation } from "react-i18next";
+import { QuestionIcon } from "@primer/octicons-react";
 
 import { Button, Modal, TextField } from "@renderer/components";
 import { useToast } from "@renderer/hooks";
@@ -67,20 +68,16 @@ export function RestoreModal({
   const copyKeys = getRestoreModalCopyKeys(platform);
   const description =
     platform === "wii" ? (
-      <Trans
-        t={t}
-        i18nKey={copyKeys.description}
-        components={{
-          guide: (
-            <button
-              type="button"
-              className="emu-save-modal__guide-link"
-              data-open-article="wii-saves"
-              title={t("wii_saves_guide")}
-            />
-          ),
-        }}
-      />
+      <>
+        {t(copyKeys.description)}{" "}
+        <small
+          className="emu-save-modal__guide-tooltip"
+          data-open-article="wii-saves"
+          title={t("wii_saves_guide")}
+        >
+          <QuestionIcon size={12} />
+        </small>
+      </>
     ) : (
       t(copyKeys.description)
     );
