@@ -7,7 +7,7 @@ import {
 } from "@main/services/library-sync";
 import {
   collectSteamOnlyObjectIds,
-  getSteamImportedDataCleanup,
+  getSteamImportedDataCleanupPlan,
   hasImportedSteamData,
 } from "@main/services/steam-integration/steam-imported-games";
 import { clearImportedSteamGames } from "@main/services/steam-integration/clear-imported-steam-games";
@@ -84,11 +84,12 @@ const disconnectSteam = async (
       deleteImportedData &&
       hasImportedSteamData(game, steamOnlyObjectIdSet)
     ) {
-      lastTimePlayedByGameKey.set(key, game.lastTimePlayed ?? null);
+      const cleanupPlan = getSteamImportedDataCleanupPlan(game);
+      lastTimePlayedByGameKey.set(key, cleanupPlan.lastTimePlayedFallback);
       AchievementMemoryStore.delete(game.shop, game.objectId);
       await gamesSublevel.put(key, {
         ...game,
-        ...getSteamImportedDataCleanup(game),
+        ...cleanupPlan.cleanup,
       });
     }
   }

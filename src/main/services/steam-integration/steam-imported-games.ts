@@ -11,6 +11,7 @@ type ImportedSteamGame = Pick<
   | "trackingExecutablePaths"
   | "hasActiveSteamImport"
   | "steamPlayTimeInMilliseconds"
+  | "lastTimePlayed"
 > & {
   playTimeInMilliseconds?: number | null;
 };
@@ -44,11 +45,14 @@ export const hasImportedSteamData = (
     game.source === "steam" ||
     steamOnlyObjectIds.has(game.objectId));
 
-export const getSteamImportedDataCleanup = (game: ImportedSteamGame) => ({
-  hasActiveSteamImport: false,
-  steamPlayTimeInMilliseconds: 0,
-  lastTimePlayed: null,
-  source: game.source === "steam" ? ("hydra" as const) : game.source,
+export const getSteamImportedDataCleanupPlan = (game: ImportedSteamGame) => ({
+  cleanup: {
+    hasActiveSteamImport: false,
+    steamPlayTimeInMilliseconds: 0,
+    lastTimePlayed: null,
+    source: game.source === "steam" ? ("hydra" as const) : game.source,
+  },
+  lastTimePlayedFallback: game.lastTimePlayed ?? null,
 });
 
 export const collectSteamOnlyObjectIds = (

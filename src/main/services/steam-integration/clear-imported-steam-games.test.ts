@@ -4,7 +4,7 @@ import { describe, it } from "node:test";
 // @ts-ignore The Node ESM test runner requires the source extension.
 import {
   collectSteamOnlyObjectIds,
-  getSteamImportedDataCleanup,
+  getSteamImportedDataCleanupPlan,
   hasImportedSteamData,
   shouldRemoveImportedSteamGame,
 } from "./steam-imported-games.ts";
@@ -186,7 +186,7 @@ describe("Steam imported data cleanup", () => {
 
   it("clears Steam state before restoring Hydra data from the remote merge", () => {
     assert.deepEqual(
-      getSteamImportedDataCleanup({
+      getSteamImportedDataCleanupPlan({
         shop: "steam",
         isDeleted: false,
         objectId: "620",
@@ -195,12 +195,33 @@ describe("Steam imported data cleanup", () => {
         steamPlayTimeInMilliseconds: TEN_MINUTES_IN_MILLISECONDS,
       }),
       {
-        hasActiveSteamImport: false,
-        steamPlayTimeInMilliseconds: 0,
-        lastTimePlayed: null,
-        source: "hydra",
+        cleanup: {
+          hasActiveSteamImport: false,
+          steamPlayTimeInMilliseconds: 0,
+          lastTimePlayed: null,
+          source: "hydra",
+        },
+        lastTimePlayedFallback: null,
       }
     );
+  });
+
+  it("keeps a Hydra session fallback when imported cleanup cannot merge", () => {
+    const hydraLastTimePlayed = new Date("2026-09-15T12:00:00.000Z");
+
+    const cleanupPlan = getSteamImportedDataCleanupPlan({
+      shop: "steam",
+      isDeleted: false,
+      objectId: "220",
+      source: "hydra",
+      hasActiveSteamImport: true,
+      steamPlayTimeInMilliseconds: TEN_MINUTES_IN_MILLISECONDS,
+      playTimeInMilliseconds: ONE_MINUTE_IN_MILLISECONDS,
+      lastTimePlayed: hydraLastTimePlayed,
+    });
+
+    assert.equal(cleanupPlan.cleanup.lastTimePlayed, null);
+    assert.equal(cleanupPlan.lastTimePlayedFallback, hydraLastTimePlayed);
   });
 });
 
