@@ -2,6 +2,7 @@ import { findGameExecutableInFolder } from "@main/helpers/find-game-executable";
 import { updateGameExecutablePath } from "@main/helpers/update-executable-path";
 import { gamesSublevel, levelKeys } from "@main/level";
 import { runAutomaticCloudSaveSync } from "../cloud-save";
+import { updateGameRecord } from "../game-record-updater";
 import { GameExecutables } from "../game-executables";
 import { steamSyncLogger } from "../logger";
 import { getSteamAppInstallDirectories } from "./steam-installation";
@@ -39,21 +40,22 @@ export const linkImportedSteamGameExecutables = async (): Promise<number> => {
       if (!executablePath) continue;
 
       const gameKey = levelKeys.game(candidate.shop, candidate.objectId);
-      const currentGame = await gamesSublevel.get(gameKey);
+      let didLink = false;
+      const updatedGame = await updateGameRecord(gameKey, (game) => {
+        if (
+          game.isDeleted ||
+          !game.hasActiveSteamImport ||
+          game.executablePath
+        ) {
+          return {};
+        }
 
-      if (
-        !currentGame ||
-        currentGame.isDeleted ||
-        !currentGame.hasActiveSteamImport ||
-        currentGame.executablePath
-      ) {
-        continue;
-      }
+        didLink = true;
+        return updateGameExecutablePath(game, executablePath);
+      });
 
-      await gamesSublevel.put(
-        gameKey,
-        updateGameExecutablePath(currentGame, executablePath)
-      );
+      if (!didLink || !updatedGame) continue;
+
       linkedCount += 1;
 
       steamSyncLogger.log(
@@ -64,7 +66,12 @@ export const linkImportedSteamGameExecutables = async (): Promise<number> => {
         candidate.objectId,
         candidate.shop,
         "environment-changed"
-      );
+      ).catch((error) => {
+        steamSyncLogger.error(
+          `Failed to sync cloud saves after linking Steam executable ${candidate.objectId}`,
+          error
+        );
+      });
     }
 
     return linkedCount;
