@@ -286,6 +286,7 @@ interface GeneralSettingsSectionProps {
   showTransferSection?: boolean;
   showShortcutsSection?: boolean;
   showLaunchOptionsSection?: boolean;
+  showSteamPlaytimeSection?: boolean;
 }
 
 //
@@ -358,6 +359,7 @@ export function GeneralSettingsSection({
   showTransferSection = true,
   showShortcutsSection = true,
   showLaunchOptionsSection = true,
+  showSteamPlaytimeSection = true,
 }: Readonly<GeneralSettingsSectionProps>) {
   const { t } = useTranslation("game_details");
 
@@ -607,24 +609,26 @@ export function GeneralSettingsSection({
         </div>
       )}
 
-      {game.shop === "steam" && game.hasActiveSteamImport && (
-        <div className="game-options-modal__section">
-          <div className="game-options-modal__header">
-            <h2>{t("steam_playtime_tracking_title")}</h2>
-            <h4 className="game-options-modal__header-description">
-              {t("steam_playtime_tracking_description")}
-            </h4>
-          </div>
+      {showSteamPlaytimeSection &&
+        game.shop === "steam" &&
+        game.hasActiveSteamImport && (
+          <div className="game-options-modal__section">
+            <div className="game-options-modal__header">
+              <h2>{t("steam_playtime_tracking_title")}</h2>
+              <h4 className="game-options-modal__header-description">
+                {t("steam_playtime_tracking_description")}
+              </h4>
+            </div>
 
-          <CheckboxField
-            label={t("enable_hydra_playtime_tracking")}
-            checked={game.enableHydraPlaytimeTracking === true}
-            onChange={(event) =>
-              void onToggleHydraPlaytimeEnabled(event.target.checked)
-            }
-          />
-        </div>
-      )}
+            <CheckboxField
+              label={t("enable_hydra_playtime_tracking")}
+              checked={game.enableHydraPlaytimeTracking === true}
+              onChange={(event) =>
+                void onToggleHydraPlaytimeEnabled(event.target.checked)
+              }
+            />
+          </div>
+        )}
 
       {/* Drive Selector */}
       {showTransferSection && game.executablePath && !isTransferring && (
