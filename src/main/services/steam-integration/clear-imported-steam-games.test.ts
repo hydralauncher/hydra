@@ -4,6 +4,8 @@ import { describe, it } from "node:test";
 // @ts-ignore The Node ESM test runner requires the source extension.
 import {
   collectSteamOnlyObjectIds,
+  getSteamImportedDataCleanup,
+  hasImportedSteamData,
   shouldRemoveImportedSteamGame,
 } from "./steam-imported-games.ts";
 
@@ -40,7 +42,7 @@ describe("shouldRemoveImportedSteamGame", () => {
     );
   });
 
-  it("keeps steam-imported games that were later installed locally", () => {
+  it("removes steam-only rows after automatic executable linking", () => {
     assert.equal(
       shouldRemoveImportedSteamGame(
         {
@@ -52,7 +54,7 @@ describe("shouldRemoveImportedSteamGame", () => {
         },
         steamOnly
       ),
-      false
+      true
     );
     assert.equal(
       shouldRemoveImportedSteamGame(
@@ -65,7 +67,7 @@ describe("shouldRemoveImportedSteamGame", () => {
         },
         steamOnly
       ),
-      false
+      true
     );
     assert.equal(
       shouldRemoveImportedSteamGame(
@@ -75,6 +77,22 @@ describe("shouldRemoveImportedSteamGame", () => {
           objectId: "620",
           source: "steam",
           trackingExecutablePaths: ["/games/portal.exe"],
+        },
+        steamOnly
+      ),
+      true
+    );
+  });
+
+  it("keeps locally installed games that are not steam-only", () => {
+    assert.equal(
+      shouldRemoveImportedSteamGame(
+        {
+          shop: "steam",
+          isDeleted: false,
+          objectId: "220",
+          source: "steam",
+          executablePath: "/games/half-life.exe",
         },
         steamOnly
       ),
@@ -117,6 +135,68 @@ describe("shouldRemoveImportedSteamGame", () => {
         steamOnly
       ),
       false
+    );
+  });
+});
+
+describe("Steam imported data cleanup", () => {
+  it("recognizes active, stale, and server-confirmed Steam data", () => {
+    assert.equal(
+      hasImportedSteamData(
+        {
+          shop: "steam",
+          isDeleted: false,
+          objectId: "10",
+          hasActiveSteamImport: true,
+        },
+        new Set()
+      ),
+      true
+    );
+    assert.equal(
+      hasImportedSteamData(
+        {
+          shop: "steam",
+          isDeleted: false,
+          objectId: "20",
+          steamPlayTimeInMilliseconds: 60_000,
+        },
+        new Set()
+      ),
+      true
+    );
+    assert.equal(
+      hasImportedSteamData(
+        { shop: "steam", isDeleted: false, objectId: "620" },
+        new Set(["620"])
+      ),
+      true
+    );
+    assert.equal(
+      hasImportedSteamData(
+        { shop: "steam", isDeleted: false, objectId: "30", source: "hydra" },
+        new Set()
+      ),
+      false
+    );
+  });
+
+  it("clears Steam state before restoring Hydra data from the remote merge", () => {
+    assert.deepEqual(
+      getSteamImportedDataCleanup({
+        shop: "steam",
+        isDeleted: false,
+        objectId: "620",
+        source: "steam",
+        hasActiveSteamImport: true,
+        steamPlayTimeInMilliseconds: 600_000,
+      }),
+      {
+        hasActiveSteamImport: false,
+        steamPlayTimeInMilliseconds: 0,
+        lastTimePlayed: null,
+        source: "hydra",
+      }
     );
   });
 });

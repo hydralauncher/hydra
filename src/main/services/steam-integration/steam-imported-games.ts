@@ -9,6 +9,8 @@ type ImportedSteamGame = Pick<
   | "executablePath"
   | "installedSizeInBytes"
   | "trackingExecutablePaths"
+  | "hasActiveSteamImport"
+  | "steamPlayTimeInMilliseconds"
 > & {
   playTimeInMilliseconds?: number | null;
 };
@@ -26,11 +28,28 @@ export const shouldRemoveImportedSteamGame = (
   steamOnlyObjectIds: Set<string>
 ): boolean => {
   if (game.shop !== "steam" || game.isDeleted) return false;
-  if (hasLocalSteamInstall(game)) return false;
   if (hasHydraPlaytime(game)) return false;
-  if (game.source === "steam") return true;
-  return steamOnlyObjectIds.has(game.objectId);
+  if (steamOnlyObjectIds.has(game.objectId)) return true;
+  if (hasLocalSteamInstall(game)) return false;
+  return game.source === "steam";
 };
+
+export const hasImportedSteamData = (
+  game: ImportedSteamGame,
+  steamOnlyObjectIds: Set<string>
+) =>
+  game.shop === "steam" &&
+  (game.hasActiveSteamImport === true ||
+    (game.steamPlayTimeInMilliseconds ?? 0) > 0 ||
+    game.source === "steam" ||
+    steamOnlyObjectIds.has(game.objectId));
+
+export const getSteamImportedDataCleanup = (game: ImportedSteamGame) => ({
+  hasActiveSteamImport: false,
+  steamPlayTimeInMilliseconds: 0,
+  lastTimePlayed: null,
+  source: game.source === "steam" ? ("hydra" as const) : game.source,
+});
 
 export const collectSteamOnlyObjectIds = (
   games: { objectId: string; source?: string | null }[]
