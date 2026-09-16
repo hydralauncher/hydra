@@ -18,6 +18,7 @@ import { emulatorSessions } from "./emulators/emulator-session-tracker";
 import { launchedGamePids } from "./launched-game-pids";
 import { isValidProcessWatcherScan } from "./process-watcher-scan";
 import {
+  doesSteamCompatDataPathMatchWinePrefix,
   hasLaunchedPidMatch,
   hasLinuxNativeOrAppImageMatch,
   type LinuxProcessInfo,
@@ -299,7 +300,10 @@ const hasLinuxCompatibilityProcessMatch = (
     if (
       expectedWinePrefix &&
       process.steamCompatDataPath &&
-      process.steamCompatDataPath !== expectedWinePrefix
+      !doesSteamCompatDataPathMatchWinePrefix(
+        process.steamCompatDataPath,
+        expectedWinePrefix
+      )
     ) {
       return false;
     }

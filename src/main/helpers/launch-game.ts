@@ -26,6 +26,9 @@ import {
   NativeAddon,
   launchedGamePids,
 } from "@main/services";
+import { updateGameRecord } from "@main/services/game-record-updater";
+import { dispatchSteamProtocolLaunch } from "@main/services/steam-integration/steam-protocol-launch-dispatch";
+import { resolveSteamProtocolLaunch } from "@main/services/steam-integration/steam-protocol-launch";
 import { CommonRedistManager } from "@main/services/common-redist-manager";
 import { runAchievementMetadataExport } from "@main/services/achievements/metadata-export";
 import { parseExecutablePath } from "../events/helpers/parse-executable-path";
@@ -433,6 +436,29 @@ interface PreparedLinuxCompatibility {
   >;
 }
 
+const prepareSteamCompatibilityForCloudSave = (
+  compatibilityPrefixPath: string
+): PreparedLinuxCompatibility => {
+  const prefixValid = isValidWinePrefix(compatibilityPrefixPath);
+  const prefixReadyForRestore =
+    prefixValid && Wine.isPrefixReadyForRestore(compatibilityPrefixPath);
+
+  logger.info("[Cloud Save] Resolved Steam compatibility prefix", {
+    compatibilityPrefixPath,
+    prefixValid,
+    prefixReadyForRestore,
+  });
+
+  return {
+    context: {
+      protonPath: null,
+      winePrefixPath: compatibilityPrefixPath,
+    },
+    prefixReadyForRestore,
+    prefixSafeForUpload: prefixReadyForRestore,
+  };
+};
+
 const prepareLinuxCompatibilityForLaunch = async (
   parsedPath: string,
   game: Game | undefined,
@@ -579,6 +605,22 @@ const launchGameWithCloudSaveChecks = async (
   const game = await gamesSublevel.get(gameKey);
   clearCloudSaveLaunchGuard(objectId, shop);
 
+  const steamProtocolLaunch =
+    shop === "steam"
+      ? await resolveSteamProtocolLaunch(
+          objectId,
+          parsedPath,
+          launchOptions
+        ).catch((error) => {
+          logger.error("Failed to resolve Steam protocol launch", {
+            objectId,
+            executablePath: parsedPath,
+            error,
+          });
+          return null;
+        })
+      : null;
+
   const userPreferences = await db
     .get<string, UserPreferences | null>(levelKeys.userPreferences, {
       valueEncoding: "json",
@@ -595,13 +637,23 @@ const launchGameWithCloudSaveChecks = async (
       game?.autoRunGamemode === true) &&
     isGamemodeAvailable();
 
-  const updatedGame = game
-    ? { ...updateGameExecutablePath(game, parsedPath), launchOptions }
-    : null;
+  const steamCompatibilityPrefixPath =
+    process.platform === "linux" &&
+    isWindowsExecutable(parsedPath) &&
+    steamProtocolLaunch
+      ? steamProtocolLaunch.compatibilityPrefixPath
+      : null;
 
-  if (updatedGame) {
-    await gamesSublevel.put(gameKey, updatedGame);
-  }
+  const updatedGame = game
+    ? await updateGameRecord(gameKey, (currentGame) => ({
+        ...updateGameExecutablePath(currentGame, parsedPath),
+        launchOptions,
+        ...(steamCompatibilityPrefixPath
+          ? { winePrefixPath: steamCompatibilityPrefixPath }
+          : {}),
+      }))
+    : null;
+  const launchGameRecord = updatedGame ?? game;
 
   await WindowManager.createGameLauncherWindow(shop, objectId);
 
@@ -614,13 +666,15 @@ const launchGameWithCloudSaveChecks = async (
     prefixReadyForRestore,
     prefixSafeForUpload,
     prefixGenerationOverride,
-  } = await prepareLinuxCompatibilityForLaunch(
-    parsedPath,
-    game,
-    objectId,
-    shop,
-    shouldRunV2AutomaticSync
-  );
+  } = steamCompatibilityPrefixPath
+    ? prepareSteamCompatibilityForCloudSave(steamCompatibilityPrefixPath)
+    : await prepareLinuxCompatibilityForLaunch(
+        parsedPath,
+        launchGameRecord,
+        objectId,
+        shop,
+        shouldRunV2AutomaticSync
+      );
 
   const cloudSaveContext = shouldRunV2AutomaticSync
     ? await getCloudSaveGameContext(objectId, shop, {
@@ -658,7 +712,7 @@ const launchGameWithCloudSaveChecks = async (
     redirectBlockedCloudSaveLaunch(
       shop,
       objectId,
-      game?.title ?? objectId,
+      launchGameRecord?.title ?? objectId,
       "openCloudSavePathApproval"
     );
     return null;
@@ -700,7 +754,7 @@ const launchGameWithCloudSaveChecks = async (
       redirectBlockedCloudSaveLaunch(
         shop,
         objectId,
-        game?.title ?? objectId,
+        launchGameRecord?.title ?? objectId,
         "openCloudSaveConflict"
       );
     } else {
@@ -733,6 +787,61 @@ const launchGameWithCloudSaveChecks = async (
   }
 
   await new Promise((resolve) => setTimeout(resolve, LAUNCH_DELAY_IN_MS));
+
+  if (steamProtocolLaunch) {
+    if (launchOptions?.includes("%command%") || useMangohud || useGamemode) {
+      logger.warn(
+        "Steam protocol launch delegates command wrappers to Steam settings",
+        {
+          objectId,
+          hasCommandWrapper: launchOptions?.includes("%command%") === true,
+          useMangohud,
+          useGamemode,
+        }
+      );
+    }
+
+    const dispatchResult = await dispatchSteamProtocolLaunch(
+      steamProtocolLaunch,
+      (url) => shell.openExternal(url),
+      async (compatibilityPrefixPath) => {
+        logger.warn("Falling back from Steam protocol launch", {
+          objectId,
+          executablePath: parsedPath,
+          compatibilityPrefixPath,
+        });
+
+        return launchResolvedGame(
+          gameKey,
+          shop,
+          objectId,
+          parsedPath,
+          compatibilityContext,
+          launchOptions,
+          useMangohud,
+          useGamemode
+        );
+      }
+    );
+
+    if (dispatchResult.method === "steam") {
+      if (steamCompatibilityPrefixPath) {
+        PowerSaveBlockerManager.markCompatibilityLaunchStarted(gameKey);
+      }
+      logger.info("Launched game through Steam protocol", {
+        objectId,
+        executablePath: parsedPath,
+      });
+      return null;
+    }
+
+    logger.error("Failed to launch game through Steam protocol", {
+      objectId,
+      executablePath: parsedPath,
+      error: dispatchResult.error,
+    });
+    return dispatchResult.value;
+  }
 
   return launchResolvedGame(
     gameKey,

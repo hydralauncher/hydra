@@ -4,7 +4,12 @@ import os from "node:os";
 import path from "node:path";
 import test from "node:test";
 
-import { findSteamAppInstallDirectories } from "./steam-installation-core.ts";
+import {
+  buildSteamGameLaunchUrl,
+  findSteamAppInstallDirectories,
+  getSteamCompatibilityPrefixPath,
+  isPathInsideSteamInstallDirectory,
+} from "./steam-installation-core.ts";
 
 const createLibrary = async () => {
   const library = await fs.promises.mkdtemp(
@@ -90,4 +95,74 @@ test("rejects install directories outside steamapps/common", async (t) => {
   );
 
   assert.equal(installations.size, 0);
+});
+
+test("matches only executables inside the exact Steam app installation", () => {
+  assert.equal(
+    isPathInsideSteamInstallDirectory(
+      String.raw`D:\SteamLibrary\steamapps\common\Portal 2\portal2.exe`,
+      String.raw`d:\steamlibrary\SteamApps\Common\Portal 2`,
+      "win32"
+    ),
+    true
+  );
+  assert.equal(
+    isPathInsideSteamInstallDirectory(
+      "/Users/me/Library/Application Support/Steam/steamapps/common/Game/Game.app/Contents/MacOS/Game",
+      "/Users/me/Library/Application Support/Steam/steamapps/common/Game",
+      "darwin"
+    ),
+    true
+  );
+  assert.equal(
+    isPathInsideSteamInstallDirectory(
+      "/mnt/steam/steamapps/common/Portal 2/bin/portal2",
+      "/mnt/steam/steamapps/common/Portal 2",
+      "linux"
+    ),
+    true
+  );
+
+  for (const executablePath of [
+    String.raw`D:\SteamLibrary\steamapps\common\Portal 2 copy\portal2.exe`,
+    String.raw`D:\SteamLibrary\steamapps\common\Portal 2\..\Other\game.exe`,
+  ]) {
+    assert.equal(
+      isPathInsideSteamInstallDirectory(
+        executablePath,
+        String.raw`D:\SteamLibrary\steamapps\common\Portal 2`,
+        "win32"
+      ),
+      false
+    );
+  }
+});
+
+test("derives the Steam Proton prefix from the app installation", () => {
+  assert.equal(
+    getSteamCompatibilityPrefixPath(
+      "/mnt/steam/steamapps/common/Portal 2",
+      "620"
+    ),
+    "/mnt/steam/steamapps/compatdata/620/pfx"
+  );
+});
+
+test("passes plain launch arguments through the Steam protocol", () => {
+  assert.equal(buildSteamGameLaunchUrl("620"), "steam://rungameid/620");
+  assert.equal(
+    buildSteamGameLaunchUrl("620", " -novid -language pt-BR "),
+    "steam://run/620//-novid%20-language%20pt-BR/"
+  );
+  assert.equal(
+    buildSteamGameLaunchUrl("620", "mangohud %command%"),
+    "steam://rungameid/620"
+  );
+  assert.equal(
+    buildSteamGameLaunchUrl(
+      "620",
+      'mangohud %command% -novid -name "Portal Test"'
+    ),
+    "steam://run/620//-novid%20-name%20%22Portal%20Test%22/"
+  );
 });
