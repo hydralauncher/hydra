@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 
-import { Button, Modal } from "@renderer/components";
+import { Button, ClassicsSpinner, Modal } from "@renderer/components";
 import { useDate, useToast, useUserDetails } from "@renderer/hooks";
 import {
   CheckCircleFillIcon,
@@ -71,6 +71,7 @@ export function SettingsSteam() {
 
   const [isLoading, setIsLoading] = useState(() => Boolean(userDetails));
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isDisconnecting, setIsDisconnecting] = useState(false);
   const [integration, setIntegration] =
     useState<SteamIntegrationStatus>(DISCONNECTED_STATUS);
   const [avatarError, setAvatarError] = useState(false);
@@ -380,17 +381,19 @@ export function SettingsSteam() {
   };
 
   const handleDisconnect = async () => {
-    setShowDeleteDataModal(false);
     setIsSubmitting(true);
+    setIsDisconnecting(true);
 
     try {
       await globalThis.window.electron.disconnectSteam(true);
 
       showSuccessToast(t("steam_account_unlinked"));
+      setShowDeleteDataModal(false);
       await refreshStatus({ silent: true });
     } catch (error) {
       showErrorToast(getSteamErrorMessage(error, "steam_disconnect_error"));
     } finally {
+      setIsDisconnecting(false);
       setIsSubmitting(false);
     }
   };
@@ -532,7 +535,13 @@ export function SettingsSteam() {
               )}
             </div>
           </div>
-          {integration.connected && (isSyncing || needsReconnect) ? (
+          {isDisconnecting ? (
+            <p className="settings-steam__sync-progress" role="status">
+              {integration.connected
+                ? t("steam_disconnecting")
+                : t("steam_removing_imported_data")}
+            </p>
+          ) : integration.connected && (isSyncing || needsReconnect) ? (
             <p className="settings-steam__sync-progress">
               {needsReconnect ? (
                 t("steam_error_session_required")
@@ -614,6 +623,7 @@ export function SettingsSteam() {
       <Modal
         visible={showDeleteDataModal}
         onClose={() => setShowDeleteDataModal(false)}
+        clickOutsideToClose={!isDisconnecting}
         title={
           integration.connected
             ? t("steam_delete_confirm_title")
@@ -634,9 +644,14 @@ export function SettingsSteam() {
             onClick={() => void handleDisconnect()}
             disabled={isSubmitting}
           >
-            {integration.connected
-              ? t("steam_delete_confirm_button")
-              : t("steam_remove_imported_data")}
+            {isDisconnecting ? <ClassicsSpinner size={14} /> : null}
+            {isDisconnecting
+              ? integration.connected
+                ? t("steam_disconnecting")
+                : t("steam_removing_imported_data")
+              : integration.connected
+                ? t("steam_delete_confirm_button")
+                : t("steam_remove_imported_data")}
           </Button>
         </div>
       </Modal>
