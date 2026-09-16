@@ -573,6 +573,16 @@
     "move_down": "Move down"
   },
   "settings": {
+    "integration_connect": "연결",
+    "integration_disconnect": "연결 해제",
+    "integration_reconnect": "다시 연결",
+    "integration_sync": "동기화",
+    "integration_status_not_connected": "연결되지 않음",
+    "retroachievements_connect_title": "RetroAchievements 연결",
+    "retroachievements_status_invalid_credentials": "잘못된 인증 정보",
+    "retroachievements_invalid_credentials_description": "RetroAchievements 인증 정보가 더 이상 유효하지 않습니다. 계정을 다시 연결하세요.",
+    "retroachievements_last_checked": "마지막 확인: {{date}}",
+    "steam_status_reconnect_required": "다시 연결해야 함",
     "downloads_path": "다운로드 경로",
     "change": "업데이트",
     "notifications": "알림",

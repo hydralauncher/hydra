@@ -573,6 +573,16 @@
     "move_down": "Move down"
   },
   "settings": {
+    "integration_connect": "Падключыць",
+    "integration_disconnect": "Адключыць",
+    "integration_reconnect": "Перападключыць",
+    "integration_sync": "Сінхранізаваць",
+    "integration_status_not_connected": "Не падключана",
+    "retroachievements_connect_title": "Падключыць RetroAchievements",
+    "retroachievements_status_invalid_credentials": "Няправільныя ўліковыя даныя",
+    "retroachievements_invalid_credentials_description": "Вашы ўліковыя даныя RetroAchievements больш не дзейнічаюць. Перападключыце ўліковы запіс.",
+    "retroachievements_last_checked": "Апошняя праверка: {{date}}",
+    "steam_status_reconnect_required": "Патрабуецца перападключэнне",
     "downloads_path": "Шлях сцягвання",
     "change": "Змяніць шлях",
     "notifications": "Апавяшчэнні",

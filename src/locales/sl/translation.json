@@ -578,6 +578,16 @@
     "move_down": "Move down"
   },
   "settings": {
+    "integration_connect": "Poveži",
+    "integration_disconnect": "Prekini povezavo",
+    "integration_reconnect": "Znova poveži",
+    "integration_sync": "Sinhroniziraj",
+    "integration_status_not_connected": "Ni povezano",
+    "retroachievements_connect_title": "Poveži RetroAchievements",
+    "retroachievements_status_invalid_credentials": "Neveljavni podatki za prijavo",
+    "retroachievements_invalid_credentials_description": "Vaši podatki za prijavo v RetroAchievements niso več veljavni. Znova povežite račun.",
+    "retroachievements_last_checked": "Zadnje preverjanje: {{date}}",
+    "steam_status_reconnect_required": "Potrebna je ponovna povezava",
     "downloads_path": "Pot prenosa",
     "change": "Posodobi",
     "enable_download_notifications": "Ko je prenos končan",

@@ -576,6 +576,16 @@
     "move_down": "Move down"
   },
   "settings": {
+    "integration_connect": "Anslut",
+    "integration_disconnect": "Koppla från",
+    "integration_reconnect": "Anslut igen",
+    "integration_sync": "Synkronisera",
+    "integration_status_not_connected": "Inte ansluten",
+    "retroachievements_connect_title": "Anslut RetroAchievements",
+    "retroachievements_status_invalid_credentials": "Ogiltiga inloggningsuppgifter",
+    "retroachievements_invalid_credentials_description": "Dina inloggningsuppgifter för RetroAchievements är inte längre giltiga. Anslut ditt konto igen.",
+    "retroachievements_last_checked": "Senast kontrollerad: {{date}}",
+    "steam_status_reconnect_required": "Återanslutning krävs",
     "downloads_path": "Nedladdningssökväg",
     "change": "Uppdatera",
     "notifications": "Aviseringar",

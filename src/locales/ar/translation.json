@@ -576,6 +576,16 @@
     "move_down": "Move down"
   },
   "settings": {
+    "integration_connect": "اتصال",
+    "integration_disconnect": "قطع الاتصال",
+    "integration_reconnect": "إعادة الاتصال",
+    "integration_sync": "مزامنة",
+    "integration_status_not_connected": "غير متصل",
+    "retroachievements_connect_title": "ربط RetroAchievements",
+    "retroachievements_status_invalid_credentials": "بيانات الاعتماد غير صالحة",
+    "retroachievements_invalid_credentials_description": "لم تعد بيانات اعتماد RetroAchievements صالحة. يُرجى إعادة ربط حسابك.",
+    "retroachievements_last_checked": "آخر تحقق: {{date}}",
+    "steam_status_reconnect_required": "إعادة الاتصال مطلوبة",
     "downloads_path": "مسار التنزيلات",
     "change": "تحديث",
     "notifications": "الإشعارات",

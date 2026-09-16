@@ -576,6 +576,16 @@
     "move_down": "Move down"
   },
   "settings": {
+    "integration_connect": "Ühenda",
+    "integration_disconnect": "Katkesta ühendus",
+    "integration_reconnect": "Ühenda uuesti",
+    "integration_sync": "Sünkrooni",
+    "integration_status_not_connected": "Pole ühendatud",
+    "retroachievements_connect_title": "Ühenda RetroAchievements",
+    "retroachievements_status_invalid_credentials": "Kehtetud sisselogimisandmed",
+    "retroachievements_invalid_credentials_description": "Sinu RetroAchievementsi sisselogimisandmed ei kehti enam. Ühenda konto uuesti.",
+    "retroachievements_last_checked": "Viimati kontrollitud: {{date}}",
+    "steam_status_reconnect_required": "Vajalik on uuesti ühendamine",
     "downloads_path": "Allalaadimiste tee",
     "change": "Uuenda",
     "notifications": "Teavitused",

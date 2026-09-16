@@ -765,6 +765,16 @@
     "files": "FILES"
   },
   "settings": {
+    "integration_connect": "Collega",
+    "integration_disconnect": "Disconnetti",
+    "integration_reconnect": "Riconnetti",
+    "integration_sync": "Sincronizza",
+    "integration_status_not_connected": "Non connesso",
+    "retroachievements_connect_title": "Collega RetroAchievements",
+    "retroachievements_status_invalid_credentials": "Credenziali non valide",
+    "retroachievements_invalid_credentials_description": "Le credenziali RetroAchievements non sono più valide. Ricollega il tuo account.",
+    "retroachievements_last_checked": "Ultimo controllo: {{date}}",
+    "steam_status_reconnect_required": "Riconnessione necessaria",
     "downloads_path": "Percorso dei download",
     "change": "Aggiorna",
     "notifications": "Notifiche",

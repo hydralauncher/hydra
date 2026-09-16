@@ -734,6 +734,16 @@
     "move_down": "Премести надолу"
   },
   "settings": {
+    "integration_connect": "Свързване",
+    "integration_disconnect": "Прекъсване",
+    "integration_reconnect": "Повторно свързване",
+    "integration_sync": "Синхронизиране",
+    "integration_status_not_connected": "Не е свързано",
+    "retroachievements_connect_title": "Свързване с RetroAchievements",
+    "retroachievements_status_invalid_credentials": "Невалидни идентификационни данни",
+    "retroachievements_invalid_credentials_description": "Данните ви за вход в RetroAchievements вече не са валидни. Свържете отново профила си.",
+    "retroachievements_last_checked": "Последна проверка: {{date}}",
+    "steam_status_reconnect_required": "Необходимо е повторно свързване",
     "setup_official_website": "Официален уебсайт",
     "setup_install_with_hydra": "Инсталирай от GitHub",
     "setup_recommended": "Препоръчено",

@@ -1126,6 +1126,13 @@ declare global {
     resetRetroAchievementsAchievements: (
       pendingSouvenirsOnly?: boolean
     ) => Promise<void>;
+    openRetroAchievementsConnectionWindow: () => Promise<void>;
+    minimizeRetroAchievementsConnectionWindow: () => Promise<void>;
+    closeRetroAchievementsConnectionWindow: () => Promise<void>;
+    completeRetroAchievementsConnectionWindow: () => Promise<void>;
+    onRetroAchievementsConnected: (
+      cb: () => void
+    ) => () => Electron.IpcRenderer;
     startSteamOAuth: (lng: string) => Promise<void>;
     disconnectSteam: (deleteImportedData: boolean) => Promise<void>;
     startSteamSync: () => Promise<SteamSyncState>;

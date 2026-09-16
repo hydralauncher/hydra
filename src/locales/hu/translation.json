@@ -600,6 +600,16 @@
     "move_down": "Le"
   },
   "settings": {
+    "integration_connect": "Csatlakozás",
+    "integration_disconnect": "Leválasztás",
+    "integration_reconnect": "Újracsatlakozás",
+    "integration_sync": "Szinkronizálás",
+    "integration_status_not_connected": "Nincs csatlakoztatva",
+    "retroachievements_connect_title": "RetroAchievements csatlakoztatása",
+    "retroachievements_status_invalid_credentials": "Érvénytelen hitelesítő adatok",
+    "retroachievements_invalid_credentials_description": "A RetroAchievements hitelesítő adatai már nem érvényesek. Csatlakoztasd újra a fiókodat.",
+    "retroachievements_last_checked": "Utolsó ellenőrzés: {{date}}",
+    "steam_status_reconnect_required": "Újracsatlakozás szükséges",
     "downloads_path": "Letöltési útvonalak",
     "change": "Frissítés",
     "notifications": "Értesítések",

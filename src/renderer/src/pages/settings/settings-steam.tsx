@@ -3,13 +3,7 @@ import { useTranslation } from "react-i18next";
 
 import { Button, ClassicsSpinner, Modal } from "@renderer/components";
 import { useDate, useToast, useUserDetails } from "@renderer/hooks";
-import {
-  CheckCircleFillIcon,
-  ChevronRightIcon,
-  LinkExternalIcon,
-  PersonIcon,
-  SyncIcon,
-} from "@primer/octicons-react";
+import { LinkExternalIcon, PersonIcon, SyncIcon } from "@primer/octicons-react";
 import {
   AuthPage,
   isSteamReconnectRequired,
@@ -22,13 +16,9 @@ import type {
   SteamSyncState,
 } from "@types";
 import SteamLogo from "@renderer/assets/steam-logo.svg?react";
+import { SettingsIntegrationCard } from "./settings-integration-card";
+import { getSteamProgressPresentation } from "./settings-integration-progress";
 
-import {
-  readStoredSectionCollapsed,
-  storeSectionCollapsed,
-} from "./collapsed-sections";
-
-import "./settings-debrid.scss";
 import "./settings-steam.scss";
 
 const INTEGRATION_ENDPOINT = "/profile/integrations/steam";
@@ -39,7 +29,6 @@ const DISCONNECTED_STATUS: SteamIntegrationStatus = {
 };
 
 const STATUS_ICON_SIZE = 14;
-const CHEVRON_ICON_SIZE = 16;
 const AVATAR_FALLBACK_ICON_SIZE = 28;
 
 const getLatestSyncRunStatus = (status: SteamIntegrationStatus) =>
@@ -79,9 +68,6 @@ export function SettingsSteam() {
   const [syncState, setSyncState] = useState<SteamSyncState>({
     status: "idle",
   });
-  const [isCollapsed, setIsCollapsed] = useState(() =>
-    readStoredSectionCollapsed("steam", !userDetails)
-  );
   const didAutoStart = useRef(false);
   const wasConnectedRef = useRef(false);
 
@@ -90,7 +76,9 @@ export function SettingsSteam() {
   const isSyncing =
     syncState.status === "running" || syncState.status === "cancelling";
   const needsReconnect =
-    syncState.status === "idle" && syncState.requiresReconnect === true;
+    integration.connected &&
+    syncState.status === "idle" &&
+    syncState.requiresReconnect === true;
 
   useEffect(() => {
     setAvatarError(false);
@@ -398,227 +386,201 @@ export function SettingsSteam() {
     }
   };
 
-  const toggleCollapsed = () => {
-    const nextCollapsed = !isCollapsed;
-
-    storeSectionCollapsed("steam", nextCollapsed);
-    setIsCollapsed(nextCollapsed);
-  };
-
   const renderBody = () => {
     if (!userDetails) {
-      return (
-        <div className="settings-steam__description-container">
-          <p className="settings-steam__description">
-            {t("steam_sign_in_required")}
-          </p>
-          <Button
-            onClick={() =>
-              globalThis.window.electron.openAuthWindow(AuthPage.SignIn)
-            }
-          >
-            {t("steam_sign_in")}
-          </Button>
-        </div>
-      );
+      return <p>{t("steam_sign_in_required")}</p>;
     }
 
     if (isLoading) {
-      return (
-        <p className="settings-steam__description">{t("steam_loading")}</p>
-      );
+      return <p>{t("steam_loading")}</p>;
     }
 
     if (steamAccount) {
+      const progressPresentation = getSteamProgressPresentation(syncState);
+
       return (
-        <div className="settings-steam__connected-container">
-          <div className="settings-steam__connected">
-            <div className="settings-steam__profile">
-              <div className="settings-steam__avatar">
-                {steamAccount.avatarUrl && !avatarError ? (
-                  <img
-                    src={steamAccount.avatarUrl}
-                    alt={steamAccount.username}
-                    onError={() => setAvatarError(true)}
-                  />
-                ) : (
-                  <PersonIcon size={AVATAR_FALLBACK_ICON_SIZE} />
-                )}
-              </div>
-
-              <div className="settings-steam__account">
-                <span className="settings-steam__username">
-                  {steamAccount.username}
-                </span>
-                <span
-                  className={`settings-steam__status ${
-                    integration.snapshotPreserved
-                      ? "settings-steam__status--preserved"
-                      : ""
-                  }`}
-                >
-                  {integration.connected ? (
-                    <CheckCircleFillIcon size={STATUS_ICON_SIZE} />
-                  ) : null}
-                  {integration.connected
-                    ? t("steam_status_connected")
-                    : t("steam_status_snapshot_preserved")}
-                </span>
-                {integration.connected ? (
-                  <span className="settings-steam__last-synced">
-                    {steamAccount.lastSyncedAt
-                      ? t("steam_last_synced", {
-                          date: formatDateTime(steamAccount.lastSyncedAt),
-                        })
-                      : t("steam_never_synced")}
-                  </span>
-                ) : null}
-              </div>
-            </div>
-
-            <div className="settings-steam__actions">
-              {integration.snapshotPreserved ? (
-                <>
-                  <Button
-                    theme="outline"
-                    onClick={handleConnect}
-                    disabled={isSubmitting || isSyncing}
-                  >
-                    <LinkExternalIcon size={STATUS_ICON_SIZE} />
-                    {t("steam_reconnect")}
-                  </Button>
-                  <Button
-                    theme="danger"
-                    onClick={() => setShowDeleteDataModal(true)}
-                    disabled={isSubmitting || isSyncing}
-                  >
-                    {t("steam_remove_imported_data")}
-                  </Button>
-                </>
+        <>
+          <div className="settings-integration-card__profile">
+            <div className="settings-integration-card__avatar">
+              {steamAccount.avatarUrl && !avatarError ? (
+                <img
+                  src={steamAccount.avatarUrl}
+                  alt={steamAccount.username}
+                  onError={() => setAvatarError(true)}
+                />
               ) : (
-                <>
-                  {needsReconnect ? (
-                    <Button
-                      theme="outline"
-                      onClick={handleConnect}
-                      disabled={isSubmitting}
-                    >
-                      <LinkExternalIcon size={STATUS_ICON_SIZE} />
-                      {t("steam_reconnect")}
-                    </Button>
-                  ) : isSyncing ? (
-                    <Button
-                      theme="outline"
-                      onClick={handleCancelSync}
-                      disabled={syncState.status === "cancelling"}
-                    >
-                      {t("steam_sync_cancel")}
-                    </Button>
-                  ) : (
-                    <Button
-                      theme="outline"
-                      onClick={handleSync}
-                      disabled={isSubmitting}
-                    >
-                      <SyncIcon size={STATUS_ICON_SIZE} />
-                      {t("steam_sync")}
-                    </Button>
-                  )}
-                  <Button
-                    theme="danger"
-                    onClick={() => setShowDeleteDataModal(true)}
-                    disabled={isSubmitting || isSyncing}
-                  >
-                    {t("steam_disconnect")}
-                  </Button>
-                </>
+                <PersonIcon size={AVATAR_FALLBACK_ICON_SIZE} />
               )}
             </div>
+
+            <div className="settings-integration-card__account">
+              <span className="settings-integration-card__username">
+                {steamAccount.username}
+              </span>
+              {integration.connected ? (
+                <span className="settings-integration-card__meta">
+                  {steamAccount.lastSyncedAt
+                    ? t("steam_last_synced", {
+                        date: formatDateTime(steamAccount.lastSyncedAt),
+                      })
+                    : t("steam_never_synced")}
+                </span>
+              ) : null}
+            </div>
           </div>
+
           {isDisconnecting ? (
-            <p className="settings-steam__sync-progress" role="status">
+            <p className="settings-integration-card__message" role="status">
               {integration.connected
                 ? t("steam_disconnecting")
                 : t("steam_removing_imported_data")}
             </p>
-          ) : integration.connected && (isSyncing || needsReconnect) ? (
-            <p className="settings-steam__sync-progress">
-              {needsReconnect ? (
-                t("steam_error_session_required")
-              ) : (
-                <>
-                  {t("steam_syncing")}
-                  {syncState.status === "running" &&
-                  syncState.phase === "achievements" &&
-                  syncState.gamesFound > 0
-                    ? ` ${t("steam_sync_progress", {
-                        processed: syncState.gamesProcessed,
-                        found: syncState.gamesFound,
-                      })}`
-                    : null}
-                </>
-              )}
+          ) : integration.connected && needsReconnect ? (
+            <p className="settings-integration-card__message">
+              {t("steam_error_session_required")}
             </p>
+          ) : integration.connected && isSyncing ? (
+            <div className="settings-integration-card__progress" role="status">
+              <div className="settings-integration-card__progress-header">
+                <span>{t("steam_syncing")}</span>
+                {progressPresentation?.showCount &&
+                syncState.status === "running" ? (
+                  <span className="settings-integration-card__progress-count">
+                    {t("steam_sync_progress", {
+                      processed: syncState.gamesProcessed,
+                      found: syncState.gamesFound,
+                    })}
+                  </span>
+                ) : null}
+              </div>
+              <div className="settings-integration-card__progress-track">
+                <div
+                  className={`settings-integration-card__progress-fill ${
+                    progressPresentation?.mode === "determinate"
+                      ? ""
+                      : "settings-integration-card__progress-fill--indeterminate"
+                  }`}
+                  style={
+                    progressPresentation?.mode === "determinate"
+                      ? { width: `${progressPresentation.percentage}%` }
+                      : undefined
+                  }
+                />
+              </div>
+            </div>
           ) : null}
-        </div>
+        </>
       );
     }
 
     return (
-      <div className="settings-steam__description-container">
-        <p className="settings-steam__description">
-          {t("steam_integration_description")}
-        </p>
-        <Button
-          className="settings-steam__submit-button"
-          onClick={handleConnect}
-          disabled={isSubmitting}
-        >
-          <LinkExternalIcon size={STATUS_ICON_SIZE} />
-          {t("steam_connect")}
-        </Button>
-      </div>
+      <p className="settings-integration-card__description">
+        {t("steam_integration_description")}
+      </p>
     );
   };
 
+  const renderActions = () => {
+    if (!userDetails) {
+      return (
+        <Button
+          onClick={() =>
+            globalThis.window.electron.openAuthWindow(AuthPage.SignIn)
+          }
+        >
+          {t("steam_sign_in")}
+        </Button>
+      );
+    }
+
+    if (isLoading) return null;
+
+    if (!steamAccount) {
+      return (
+        <Button onClick={handleConnect} disabled={isSubmitting}>
+          <LinkExternalIcon size={STATUS_ICON_SIZE} />
+          {t("integration_connect")}
+        </Button>
+      );
+    }
+
+    if (integration.snapshotPreserved) {
+      return (
+        <>
+          <Button onClick={handleConnect} disabled={isSubmitting || isSyncing}>
+            <LinkExternalIcon size={STATUS_ICON_SIZE} />
+            {t("integration_reconnect")}
+          </Button>
+          <Button
+            theme="danger"
+            onClick={() => setShowDeleteDataModal(true)}
+            disabled={isSubmitting || isSyncing}
+          >
+            {t("steam_remove_imported_data")}
+          </Button>
+        </>
+      );
+    }
+
+    return (
+      <>
+        {needsReconnect ? (
+          <Button onClick={handleConnect} disabled={isSubmitting}>
+            <LinkExternalIcon size={STATUS_ICON_SIZE} />
+            {t("integration_reconnect")}
+          </Button>
+        ) : isSyncing ? (
+          <Button
+            theme="outline"
+            onClick={handleCancelSync}
+            disabled={syncState.status === "cancelling"}
+          >
+            {t("cancel")}
+          </Button>
+        ) : (
+          <Button theme="outline" onClick={handleSync} disabled={isSubmitting}>
+            <SyncIcon size={STATUS_ICON_SIZE} />
+            {t("integration_sync")}
+          </Button>
+        )}
+        <Button
+          theme="danger"
+          onClick={() => setShowDeleteDataModal(true)}
+          disabled={isSubmitting || isSyncing}
+        >
+          {t("integration_disconnect")}
+        </Button>
+      </>
+    );
+  };
+
+  const status = needsReconnect
+    ? t("steam_status_reconnect_required")
+    : integration.connected
+      ? t("steam_status_connected")
+      : integration.snapshotPreserved
+        ? t("steam_status_snapshot_preserved")
+        : t("integration_status_not_connected");
+
+  const statusTone =
+    needsReconnect || integration.snapshotPreserved
+      ? "warning"
+      : integration.connected
+        ? "success"
+        : "neutral";
+
   return (
     <>
-      <div
-        className={`settings-debrid__section ${
-          isCollapsed ? "" : "settings-debrid__section--expanded"
-        }`}
+      <SettingsIntegrationCard
+        title={t("steam")}
+        logo={<SteamLogo />}
+        status={status}
+        statusTone={statusTone}
+        actions={renderActions()}
+        loading={Boolean(userDetails) && isLoading}
       >
-        <div className="settings-debrid__section-header">
-          <button
-            type="button"
-            className="settings-debrid__collapse-button"
-            onClick={toggleCollapsed}
-            aria-label={
-              isCollapsed
-                ? t("expand_debrid_section", { provider: t("steam") })
-                : t("collapse_debrid_section", { provider: t("steam") })
-            }
-          >
-            <span
-              className={`settings-debrid__collapse-icon ${
-                isCollapsed ? "" : "settings-debrid__collapse-icon--expanded"
-              }`}
-            >
-              <ChevronRightIcon size={CHEVRON_ICON_SIZE} />
-            </span>
-          </button>
-          <h3 className="settings-debrid__section-title">{t("steam")}</h3>
-          <SteamLogo className="settings-steam__title-logo" />
-          {integration.connected ? (
-            <CheckCircleFillIcon
-              size={CHEVRON_ICON_SIZE}
-              className="settings-debrid__check-icon"
-            />
-          ) : null}
-        </div>
-
-        {!isCollapsed && renderBody()}
-      </div>
+        {renderBody()}
+      </SettingsIntegrationCard>
 
       <Modal
         visible={showDeleteDataModal}

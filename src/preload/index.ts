@@ -1612,6 +1612,20 @@ contextBridge.exposeInMainWorld("electron", {
       "resetRetroAchievementsAchievements",
       pendingSouvenirsOnly
     ),
+  openRetroAchievementsConnectionWindow: () =>
+    ipcRenderer.invoke("openRetroAchievementsConnectionWindow"),
+  minimizeRetroAchievementsConnectionWindow: () =>
+    ipcRenderer.invoke("minimizeRetroAchievementsConnectionWindow"),
+  closeRetroAchievementsConnectionWindow: () =>
+    ipcRenderer.invoke("closeRetroAchievementsConnectionWindow"),
+  completeRetroAchievementsConnectionWindow: () =>
+    ipcRenderer.invoke("completeRetroAchievementsConnectionWindow"),
+  onRetroAchievementsConnected: (cb: () => void) => {
+    const listener = (_event: Electron.IpcRendererEvent) => cb();
+    ipcRenderer.on("on-retroachievements-connected", listener);
+    return () =>
+      ipcRenderer.removeListener("on-retroachievements-connected", listener);
+  },
   startSteamOAuth: (lng: string) => ipcRenderer.invoke("startSteamOAuth", lng),
   disconnectSteam: (deleteImportedData: boolean) =>
     ipcRenderer.invoke("disconnectSteam", deleteImportedData),
