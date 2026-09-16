@@ -27,6 +27,7 @@ import {
   launchedGamePids,
 } from "@main/services";
 import { updateGameRecord } from "@main/services/game-record-updater";
+import { dispatchSteamProtocolLaunch } from "@main/services/steam-integration/steam-protocol-launch-dispatch";
 import { resolveSteamProtocolLaunch } from "@main/services/steam-integration/steam-protocol-launch";
 import { CommonRedistManager } from "@main/services/common-redist-manager";
 import { runAchievementMetadataExport } from "@main/services/achievements/metadata-export";
@@ -800,8 +801,30 @@ const launchGameWithCloudSaveChecks = async (
       );
     }
 
-    try {
-      await shell.openExternal(steamProtocolLaunch.url);
+    const dispatchResult = await dispatchSteamProtocolLaunch(
+      steamProtocolLaunch,
+      (url) => shell.openExternal(url),
+      async (compatibilityPrefixPath) => {
+        logger.warn("Falling back from Steam protocol launch", {
+          objectId,
+          executablePath: parsedPath,
+          compatibilityPrefixPath,
+        });
+
+        return launchResolvedGame(
+          gameKey,
+          shop,
+          objectId,
+          parsedPath,
+          compatibilityContext,
+          launchOptions,
+          useMangohud,
+          useGamemode
+        );
+      }
+    );
+
+    if (dispatchResult.method === "steam") {
       if (steamCompatibilityPrefixPath) {
         PowerSaveBlockerManager.markCompatibilityLaunchStarted(gameKey);
       }
@@ -810,24 +833,14 @@ const launchGameWithCloudSaveChecks = async (
         executablePath: parsedPath,
       });
       return null;
-    } catch (error) {
-      logger.error("Failed to launch game through Steam protocol", {
-        objectId,
-        executablePath: parsedPath,
-        error,
-      });
-
-      if (steamCompatibilityPrefixPath) {
-        clearCloudSaveLaunchGuard(objectId, shop);
-        await updateGameRecord(gameKey, (currentGame) =>
-          currentGame.winePrefixPath === steamCompatibilityPrefixPath
-            ? { winePrefixPath: game?.winePrefixPath }
-            : {}
-        );
-        WindowManager.closeGameLauncherWindow();
-        return null;
-      }
     }
+
+    logger.error("Failed to launch game through Steam protocol", {
+      objectId,
+      executablePath: parsedPath,
+      error: dispatchResult.error,
+    });
+    return dispatchResult.value;
   }
 
   return launchResolvedGame(
