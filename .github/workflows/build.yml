@@ -32,23 +32,16 @@ jobs:
       - name: Install Rust
         uses: dtolnay/rust-toolchain@stable
 
+      - name: Install Linux native build prerequisites
+        if: runner.os == 'Linux'
+        run: sudo apt-get update && sudo apt-get install -y build-essential cmake ninja-build pkg-config curl zip unzip tar autoconf automake libtool
+
       - name: Install dependencies
         run: yarn --frozen-lockfile
 
       - name: Build stream sidecar
         if: matrix.os == 'windows-2022'
         run: yarn build:stream
-
-      - name: Install Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: 3.9
-
-      - name: Install Python dependencies
-        run: pip install -r requirements.txt
-
-      - name: Build Python RPC with cx_Freeze
-        run: python python_rpc/setup.py build
 
       - name: Build Linux
         if: matrix.os == 'ubuntu-latest'
@@ -135,19 +128,12 @@ jobs:
       - name: Install Rust
         uses: dtolnay/rust-toolchain@stable
 
+      - name: Install Linux native build prerequisites
+        if: runner.os == 'Linux'
+        run: sudo apt-get update && sudo apt-get install -y build-essential cmake ninja-build pkg-config curl zip unzip tar autoconf automake libtool
+
       - name: Install dependencies
         run: yarn --frozen-lockfile
-
-      - name: Install Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: 3.9
-
-      - name: Install Python dependencies
-        run: pip install -r requirements.txt
-
-      - name: Build Python RPC with cx_Freeze
-        run: python python_rpc/setup.py build
 
       - name: Build Linux
         if: matrix.os == 'ubuntu-latest'

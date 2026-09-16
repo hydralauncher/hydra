@@ -10,7 +10,6 @@ out
 .vite
 ludusavi/**
 !ludusavi/config.yaml
-hydra-python-rpc/
 /hydra-native/
 native/hydra-native/target/
 /hydra-stream/
@@ -25,3 +24,6 @@ Future-updates.md
 TO-DO.md
 .planning/
 .claude/
+.cache/
+native/torrent-bridge/build/
+native/torrent-bridge/vcpkg_installed/
