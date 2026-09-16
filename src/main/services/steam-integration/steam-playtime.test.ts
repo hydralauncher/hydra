@@ -4,6 +4,7 @@ import { describe, it } from "node:test";
 import {
   isSteamLibraryExecutablePath,
   resolveActiveSteamImport,
+  resolveSteamSessionPlaytimePolicy,
   STEAM_PLAYTIME_LOOKUP_TIMEOUT_MS,
 } from "./steam-playtime.js";
 
@@ -115,5 +116,56 @@ describe("Steam import lookup", () => {
     assert.equal(signal?.aborted, true);
     finish?.({ hasActiveSteamImport: false });
     assert.equal(await result, true);
+  });
+});
+
+describe("Steam session playtime policy", () => {
+  it("keeps automatic deduplication for Steam library executables", () => {
+    assert.deepEqual(
+      resolveSteamSessionPlaytimePolicy({
+        hasActiveSteamImport: true,
+        isSteamLibraryPath: true,
+        disableHydraPlaytimeTracking: false,
+      }),
+      { countHydraPlaytime: false, syncSteamOnExit: true }
+    );
+  });
+
+  it("allows a per-game opt-out without scheduling an unrelated Steam sync", () => {
+    assert.deepEqual(
+      resolveSteamSessionPlaytimePolicy({
+        hasActiveSteamImport: true,
+        isSteamLibraryPath: false,
+        disableHydraPlaytimeTracking: true,
+      }),
+      { countHydraPlaytime: false, syncSteamOnExit: false }
+    );
+  });
+
+  it("ignores the preference after the Steam import is disconnected", () => {
+    assert.deepEqual(
+      resolveSteamSessionPlaytimePolicy({
+        hasActiveSteamImport: false,
+        isSteamLibraryPath: false,
+        disableHydraPlaytimeTracking: true,
+      }),
+      { countHydraPlaytime: true, syncSteamOnExit: false }
+    );
+  });
+
+  it("counts an outside-library launch after a cached import is revalidated as disconnected", async () => {
+    const hasActiveSteamImport = await resolveActiveSteamImport(
+      true,
+      async () => ({ hasActiveSteamImport: false })
+    );
+
+    assert.deepEqual(
+      resolveSteamSessionPlaytimePolicy({
+        hasActiveSteamImport,
+        isSteamLibraryPath: false,
+        disableHydraPlaytimeTracking: true,
+      }),
+      { countHydraPlaytime: true, syncSteamOnExit: false }
+    );
   });
 });

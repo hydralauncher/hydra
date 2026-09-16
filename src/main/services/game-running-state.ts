@@ -6,6 +6,7 @@ interface GamePlaytimeState {
   firstTick: number;
   lastSyncTick: number;
   countHydraPlaytime: boolean;
+  syncSteamOnExit?: boolean;
 }
 
 export const getGamePlaytimeDeltas = (

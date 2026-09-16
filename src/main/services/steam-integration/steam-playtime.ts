@@ -23,6 +23,21 @@ export const isSteamLibraryExecutablePath = (
   });
 };
 
+export const resolveSteamSessionPlaytimePolicy = ({
+  hasActiveSteamImport,
+  isSteamLibraryPath,
+  disableHydraPlaytimeTracking,
+}: {
+  hasActiveSteamImport: boolean;
+  isSteamLibraryPath: boolean;
+  disableHydraPlaytimeTracking: boolean;
+}) => ({
+  countHydraPlaytime:
+    !hasActiveSteamImport ||
+    (!isSteamLibraryPath && !disableHydraPlaytimeTracking),
+  syncSteamOnExit: hasActiveSteamImport && isSteamLibraryPath,
+});
+
 // Bound the entire lookup, including any auth refresh before the HTTP request.
 export const resolveActiveSteamImport = async (
   cachedValue: boolean | undefined,

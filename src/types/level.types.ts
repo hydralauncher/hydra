@@ -47,6 +47,7 @@ export interface Game {
   playTimeInMilliseconds: number;
   steamPlayTimeInMilliseconds?: number;
   hasActiveSteamImport?: boolean;
+  disableHydraPlaytimeTracking?: boolean;
   unsyncedDeltaPlayTimeInMilliseconds?: number;
   lastTimePlayed: Date | null;
   addedToLibraryAt?: Date | null;

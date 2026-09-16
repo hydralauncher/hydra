@@ -1068,6 +1068,22 @@ export function GameOptionsModal({
     }
   };
 
+  const handleToggleHydraPlaytimeDisabled = useCallback(
+    async (disabled: boolean) => {
+      try {
+        await globalThis.window.electron.setGameHydraPlaytimeDisabled(
+          game.shop,
+          game.objectId,
+          disabled
+        );
+        await updateGame();
+      } catch {
+        showErrorToast(t("steam_playtime_tracking_error"));
+      }
+    },
+    [game.objectId, game.shop, showErrorToast, t, updateGame]
+  );
+
   const baseGeneralSettingsProps = useMemo(
     () => ({
       game,
@@ -1092,6 +1108,7 @@ export function GameOptionsModal({
       onResetGameTitle: handleResetGameTitle,
       onChangeLaunchOptions: handleChangeLaunchOptions,
       onClearLaunchOptions: handleClearLaunchOptions,
+      onToggleHydraPlaytimeDisabled: handleToggleHydraPlaytimeDisabled,
       isTransferring,
       transferProgress,
       drives,
@@ -1126,6 +1143,7 @@ export function GameOptionsModal({
       handleResetGameTitle,
       handleChangeLaunchOptions,
       handleClearLaunchOptions,
+      handleToggleHydraPlaytimeDisabled,
       isTransferring,
       transferProgress,
       drives,

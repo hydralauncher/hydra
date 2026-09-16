@@ -50,9 +50,9 @@ const setup = (
 
 describe("Steam game exit sync", () => {
   it("runs only for protected Steam sessions", () => {
-    assert.equal(shouldScheduleSteamGameExitSync("steam", false), true);
-    assert.equal(shouldScheduleSteamGameExitSync("steam", true), false);
-    assert.equal(shouldScheduleSteamGameExitSync("custom", false), false);
+    assert.equal(shouldScheduleSteamGameExitSync("steam", true), true);
+    assert.equal(shouldScheduleSteamGameExitSync("steam", false), false);
+    assert.equal(shouldScheduleSteamGameExitSync("custom", true), false);
   });
 
   it("schedules collection at 10 and 30 seconds", () => {
