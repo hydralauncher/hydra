@@ -23,6 +23,8 @@
     "typecheck": "npm run typecheck:node && npm run typecheck:web",
     "build:native": "node ./scripts/build-native-addon.cjs",
     "build:stream": "node ./scripts/build-stream-sidecar.cjs",
+    "test:stream": "node ./scripts/cargo-msvc.mjs test --release -- --skip live_video_and_control_smoke",
+    "test:stream:live": "node ./scripts/cargo-msvc.mjs test --release -- --ignored --nocapture",
     "start": "electron-vite preview",
     "dev": "electron-vite dev",
     "build": "npm run typecheck && electron-vite build",
