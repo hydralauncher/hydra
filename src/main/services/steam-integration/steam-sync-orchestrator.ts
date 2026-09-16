@@ -80,6 +80,7 @@ import {
   buildSteamSnapshotAchievements,
   STEAM_SNAPSHOT_MAX_ACHIEVEMENTS_PER_GAME,
 } from "./steam-sync-snapshot";
+import { linkImportedSteamGameExecutables } from "./link-imported-steam-executables";
 
 const INTEGRATION_ENDPOINT = "/profile/integrations/steam";
 const ACHIEVEMENT_FETCH_CONCURRENCY = 8;
@@ -970,7 +971,10 @@ class SteamSyncOrchestrator {
 
       steamSyncLogger.log("Merging remote games into local library");
       await mergeWithRemoteGames();
-      steamSyncLogger.log("Library merge finished");
+      const linkedExecutableCount = await linkImportedSteamGameExecutables();
+      steamSyncLogger.log("Library merge finished", {
+        linkedExecutableCount,
+      });
       WindowManager.sendToAppWindows("on-library-batch-complete");
 
       const status =
