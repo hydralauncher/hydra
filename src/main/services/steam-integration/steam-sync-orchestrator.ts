@@ -74,7 +74,11 @@ import {
   type SteamFamilyPlaytime,
   type SteamFamilySharedApp,
 } from "./steam-family-library";
-import { buildSteamSnapshot } from "./steam-sync-snapshot";
+import {
+  buildSteamSnapshot,
+  buildSteamSnapshotAchievements,
+  STEAM_SNAPSHOT_MAX_ACHIEVEMENTS_PER_GAME,
+} from "./steam-sync-snapshot";
 
 const INTEGRATION_ENDPOINT = "/profile/integrations/steam";
 const ACHIEVEMENT_FETCH_CONCURRENCY = 8;
@@ -789,8 +793,17 @@ class SteamSyncOrchestrator {
             unlockedAchievements.length
           );
 
-          achievementsByAppId.set(game.steamAppId, achievements);
+          if (buildSteamSnapshotAchievements(achievements) === undefined) {
+            steamSyncLogger.log(
+              `Skipping achievements for ${game.steamAppId} ${game.name} (more than ${STEAM_SNAPSHOT_MAX_ACHIEVEMENTS_PER_GAME} unlocked)`
+            );
+            achievementsByAppId.set(game.steamAppId, undefined);
+          } else {
+            achievementsByAppId.set(game.steamAppId, achievements);
+          }
         } catch (error) {
+          if (isSteamSyncAbortError(error)) throw error;
+
           if (
             error instanceof SteamSessionRequiredError ||
             (error instanceof Error &&
@@ -869,7 +882,7 @@ class SteamSyncOrchestrator {
     throwIfAborted(signal);
 
     const unlockedCount = snapshot.games.reduce(
-      (total, game) => total + game.achievements.length,
+      (total, game) => total + (game.achievements?.length ?? 0),
       0
     );
 

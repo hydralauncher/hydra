@@ -82,10 +82,34 @@ describe("buildSteamSnapshot", () => {
     ]);
   });
 
-  it("uses an empty achievement list when the game was skipped", () => {
+  it("omits achievements when collection was skipped", () => {
     const snapshot = buildSteamSnapshot([portal, halfLife], new Map());
 
+    assert.equal("achievements" in snapshot.games[0], false);
+    assert.equal("achievements" in snapshot.games[1], false);
+  });
+
+  it("includes an empty list when collection confirms zero unlocks", () => {
+    const snapshot = buildSteamSnapshot([portal], new Map([["620", []]]));
+
     assert.deepEqual(snapshot.games[0].achievements, []);
+  });
+
+  it("omits achievements when one game exceeds the API limit", () => {
+    const achievements = Array.from({ length: 2_001 }, (_, index) => ({
+      name: `ACH.${index}`,
+      unlocked: true,
+      unlockTime: "2026-09-08T17:00:00.000Z",
+    }));
+    const snapshot = buildSteamSnapshot(
+      [portal, halfLife],
+      new Map([
+        ["620", achievements],
+        ["220", []],
+      ])
+    );
+
+    assert.equal("achievements" in snapshot.games[0], false);
     assert.deepEqual(snapshot.games[1].achievements, []);
   });
 });

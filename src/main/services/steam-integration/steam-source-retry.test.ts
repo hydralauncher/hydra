@@ -11,6 +11,7 @@ import {
   isSteamSourceAchievementSkippable,
   isSteamSourceLibraryFatal,
   isSteamSourceRateLimited,
+  isSteamSourceTransportError,
   isSteamSyncConflict,
   shouldRetrySteamSource,
 } from "./steam-source-retry.ts";
@@ -103,6 +104,35 @@ describe("Steam source retry policy", () => {
     assert.equal(isSteamSourceAchievementSkippable(error), true);
     assert.equal(isSteamSourceLibraryFatal(error), false);
     assert.equal(shouldRetrySteamSource(error, 1), false);
+  });
+
+  it("treats transport failures as skippable for one game's achievements", () => {
+    const timeout = Object.assign(new Error("connect ETIMEDOUT"), {
+      code: "ETIMEDOUT",
+    });
+    const fetchFailure = Object.assign(new TypeError("fetch failed"), {
+      cause: Object.assign(new Error("socket closed"), {
+        code: "UND_ERR_SOCKET",
+      }),
+    });
+
+    assert.equal(isSteamSourceTransportError(timeout), true);
+    assert.equal(isSteamSourceAchievementSkippable(timeout), true);
+    assert.equal(isSteamSourceTransportError(fetchFailure), true);
+    assert.equal(isSteamSourceAchievementSkippable(fetchFailure), true);
+  });
+
+  it("does not hide unknown errors or cancellation as transport failures", () => {
+    const cancelled = Object.assign(new Error("cancelled"), {
+      code: "ERR_CANCELED",
+    });
+
+    assert.equal(isSteamSourceTransportError(new Error("parse failed")), false);
+    assert.equal(
+      isSteamSourceAchievementSkippable(new Error("parse failed")),
+      false
+    );
+    assert.equal(isSteamSourceTransportError(cancelled), false);
   });
 
   it("detects 409 sync conflicts", () => {
