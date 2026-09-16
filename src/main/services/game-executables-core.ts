@@ -54,7 +54,7 @@ export class GameExecutableCatalogStore {
     forceRetry = false
   ): Promise<boolean> {
     if (Object.keys(this.catalog).length > 0) return true;
-    if (this.loadPromise) return this.loadPromise;
+    if (this.loadPromise !== null) return this.loadPromise;
     if (!forceRetry && this.now() < this.retryAfter) return false;
 
     this.loadPromise = load()
