@@ -76,9 +76,10 @@ import {
   type SteamFamilySharedApp,
 } from "./steam-family-library";
 import {
+  buildLegacySteamSnapshotFallback,
   buildSteamSnapshot,
-  buildSteamSnapshotAchievements,
-  STEAM_SNAPSHOT_MAX_ACHIEVEMENTS_PER_GAME,
+  chunkSteamSnapshot,
+  uploadSteamSnapshotChunks,
 } from "./steam-sync-snapshot";
 import { linkImportedSteamGameExecutables } from "./link-imported-steam-executables";
 
@@ -801,14 +802,7 @@ class SteamSyncOrchestrator {
             unlockedAchievements.length
           );
 
-          if (buildSteamSnapshotAchievements(achievements) === undefined) {
-            steamSyncLogger.log(
-              `Skipping achievements for ${game.steamAppId} ${game.name} (more than ${STEAM_SNAPSHOT_MAX_ACHIEVEMENTS_PER_GAME} unlocked)`
-            );
-            achievementsByAppId.set(game.steamAppId, undefined);
-          } else {
-            achievementsByAppId.set(game.steamAppId, achievements);
-          }
+          achievementsByAppId.set(game.steamAppId, achievements);
         } catch (error) {
           if (isSteamSyncAbortError(error)) throw error;
 
@@ -889,24 +883,69 @@ class SteamSyncOrchestrator {
   ) {
     throwIfAborted(signal);
 
+    const chunks = chunkSteamSnapshot(snapshot);
     const unlockedCount = snapshot.games.reduce(
       (total, game) => total + (game.achievements?.length ?? 0),
       0
     );
 
     steamSyncLogger.log(
-      "PUT snapshot",
+      "PUT snapshot chunks",
+      chunks.length,
+      "chunks,",
       snapshot.games.length,
       "games,",
       unlockedCount,
       "unlocked achievements"
     );
 
-    await HydraApi.put(
-      `${INTEGRATION_ENDPOINT}/sync/${syncRunId}/snapshot`,
-      snapshot,
-      { signal }
-    );
+    try {
+      await uploadSteamSnapshotChunks(
+        chunks,
+        async (chunk, chunkIndex) => {
+          throwIfAborted(signal);
+          await HydraApi.put(
+            `${INTEGRATION_ENDPOINT}/sync/${syncRunId}/snapshot/chunks/${chunkIndex}`,
+            chunk,
+            { signal }
+          );
+        },
+        async () => {
+          throwIfAborted(signal);
+          await HydraApi.post(
+            `${INTEGRATION_ENDPOINT}/sync/${syncRunId}/snapshot/commit`,
+            undefined,
+            { signal }
+          );
+        }
+      );
+    } catch (error) {
+      if (getSteamSourceHttpStatus(error) !== 404) throw error;
+
+      const legacyFallback = buildLegacySteamSnapshotFallback(snapshot);
+
+      steamSyncLogger.log(
+        "Chunked snapshot endpoint unavailable; using legacy snapshot endpoint",
+        { deferredAchievementGames: legacyFallback.gameUploads.length }
+      );
+      throwIfAborted(signal);
+      await HydraApi.put(
+        `${INTEGRATION_ENDPOINT}/sync/${syncRunId}/snapshot`,
+        legacyFallback.snapshot,
+        { signal }
+      );
+
+      for (const gameUpload of legacyFallback.gameUploads) {
+        for (const chunk of gameUpload.chunks) {
+          throwIfAborted(signal);
+          await HydraApi.put(
+            `${INTEGRATION_ENDPOINT}/games/${encodeURIComponent(gameUpload.steamAppId)}`,
+            chunk,
+            { signal }
+          );
+        }
+      }
+    }
 
     steamSyncLogger.log("Snapshot published");
   }
