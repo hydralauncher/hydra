@@ -7,6 +7,7 @@ import {
 } from "@main/services/library-sync";
 import { collectSteamOnlyObjectIds } from "@main/services/steam-integration/steam-imported-games";
 import { clearImportedSteamGames } from "@main/services/steam-integration/clear-imported-steam-games";
+import { AchievementMemoryStore } from "@main/services/achievements/achievement-memory-store";
 import { gamesSublevel } from "@main/level";
 
 const OAUTH_ENDPOINT = "/profile/oauth/steam";
@@ -56,6 +57,10 @@ const disconnectSteam = async (
 
   for (const [key, game] of await gamesSublevel.iterator().all()) {
     if (game.hasActiveSteamImport) {
+      if (deleteImportedData) {
+        AchievementMemoryStore.delete(game.shop, game.objectId);
+      }
+
       await gamesSublevel.put(key, { ...game, hasActiveSteamImport: false });
     }
   }

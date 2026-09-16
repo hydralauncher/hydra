@@ -24,6 +24,10 @@ export const AchievementMemoryStore = {
     entries.set(gameKey(shop, objectId), achievementEntry);
   },
 
+  delete(shop: GameShop, objectId: string) {
+    entries.delete(gameKey(shop, objectId));
+  },
+
   all() {
     return entries.entries();
   },
