@@ -169,6 +169,7 @@ export default function RetroAchievementsConnectionWindow() {
           <TextField
             label={t("retroachievements_username")}
             value={form.username}
+            disabled={isInitializing || isSubmitting}
             onChange={(event) => updateField("username", event.target.value)}
             placeholder={t("retroachievements_username")}
           />
@@ -176,6 +177,7 @@ export default function RetroAchievementsConnectionWindow() {
             label={t("retroachievements_password")}
             value={form.password}
             type="password"
+            disabled={isInitializing || isSubmitting}
             onChange={(event) => updateField("password", event.target.value)}
             placeholder={t("retroachievements_password")}
             error={errors.password}
@@ -184,6 +186,7 @@ export default function RetroAchievementsConnectionWindow() {
             label={t("retroachievements_web_api_key")}
             value={form.webApiKey}
             type="password"
+            disabled={isInitializing || isSubmitting}
             onChange={(event) => updateField("webApiKey", event.target.value)}
             placeholder={t("retroachievements_web_api_key")}
             error={errors.webApiKey}
