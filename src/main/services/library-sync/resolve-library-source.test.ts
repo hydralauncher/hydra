@@ -32,7 +32,12 @@ describe("resolveLibraryIsDeleted", () => {
     assert.equal(resolveLibraryIsDeleted(false, "steam"), false);
   });
 
-  it("keeps the local deleted flag for hydra or missing provenance", () => {
+  it("undeletes when the game has an active Steam import", () => {
+    assert.equal(resolveLibraryIsDeleted(true, "hydra", true), false);
+    assert.equal(resolveLibraryIsDeleted(true, undefined, true), false);
+  });
+
+  it("keeps the local deleted flag without a Steam import", () => {
     assert.equal(resolveLibraryIsDeleted(true, "hydra"), true);
     assert.equal(resolveLibraryIsDeleted(false, "hydra"), false);
     assert.equal(resolveLibraryIsDeleted(true, undefined), true);

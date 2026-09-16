@@ -23,5 +23,7 @@ export const resolveLibrarySource = (
 
 export const resolveLibraryIsDeleted = (
   localIsDeleted: boolean,
-  remoteSource?: string | null
-): boolean => (remoteSource === "steam" ? false : localIsDeleted);
+  remoteSource?: string | null,
+  hasActiveSteamImport = false
+): boolean =>
+  remoteSource === "steam" || hasActiveSteamImport ? false : localIsDeleted;

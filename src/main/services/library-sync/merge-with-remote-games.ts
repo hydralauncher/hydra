@@ -233,7 +233,11 @@ const mergeExistingGame = (
   platform: remoteGame.platform ?? localGame.platform,
   source: resolveLibrarySource(localGame.source, remoteGame.source),
   hasActiveSteamImport: remoteGame.hasActiveSteamImport === true,
-  isDeleted: resolveLibraryIsDeleted(localGame.isDeleted, remoteGame.source),
+  isDeleted: resolveLibraryIsDeleted(
+    localGame.isDeleted,
+    remoteGame.source,
+    remoteGame.hasActiveSteamImport === true
+  ),
   ...(canReconcileCustomArtwork
     ? {
         customIconUrl: reconcileCustomAsset(

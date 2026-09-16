@@ -1,5 +1,6 @@
 import type { Game, GameShop } from "@types";
 import { mergeLocalAndRemotePlayTime } from "@shared";
+import { resolveLibraryIsDeleted } from "./resolve-library-source";
 
 export interface ImportedProfileGame {
   id: string;
@@ -48,6 +49,11 @@ export const mergeImportedProfileGame = (
   ),
   ...mergeLocalAndRemotePlayTime(localGame, remoteGame),
   hasActiveSteamImport: remoteGame.hasActiveSteamImport === true,
+  isDeleted: resolveLibraryIsDeleted(
+    localGame.isDeleted,
+    undefined,
+    remoteGame.hasActiveSteamImport === true
+  ),
   hasManuallyUpdatedPlaytime:
     remoteGame.hasManuallyUpdatedPlaytime ??
     localGame.hasManuallyUpdatedPlaytime,
