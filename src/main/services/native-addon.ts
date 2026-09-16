@@ -45,6 +45,9 @@ type NativeActiveWindowResponse = {
 };
 
 type HydraNativeModule = {
+  torrentInitialize: (port: number) => Promise<void>;
+  torrentRequest: (method: string, paramsJson: string) => Promise<string>;
+  torrentShutdown: () => Promise<void>;
   processProfileImage: (
     imagePath: string,
     targetExtension?: string
@@ -192,6 +195,18 @@ type PendingResolver =
   | { type: "map"; resolve: (m: SystemProcessMap | null) => void };
 
 export class NativeAddon {
+  public static torrentInitialize(port: number) {
+    return this.load().torrentInitialize(port);
+  }
+
+  public static torrentRequest(method: string, paramsJson: string) {
+    return this.load().torrentRequest(method, paramsJson);
+  }
+
+  public static torrentShutdown() {
+    // Quitting an app which never used torrenting must not load the addon.
+    return this.nativeModule?.torrentShutdown() ?? Promise.resolve();
+  }
   private static nativeModule: HydraNativeModule | null = null;
   private static worker: Worker | null = null;
   private static pendingResolvers: PendingResolver[] = [];
