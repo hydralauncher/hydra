@@ -92,7 +92,7 @@ export type SteamSyncPhase =
   | "publishing";
 
 export type SteamSyncState =
-  | { status: "idle" }
+  | { status: "idle"; requiresReconnect?: boolean }
   | {
       status: "running";
       syncRunId: string;

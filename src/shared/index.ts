@@ -29,6 +29,7 @@ export {
   shouldAutoStartSteamSync,
   type SteamAutoStartRunStatus,
 } from "./should-auto-start-steam-sync";
+export * from "./steam-session";
 export {
   getDisplayedPlayTimeInMilliseconds,
   getPlayTimeHoursAndMinutes,
