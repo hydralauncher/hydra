@@ -406,11 +406,15 @@ async fn moonlight_client_pairing_flow() {
     let persisted: Vec<PairedClient> = store.read_json("clients.json").unwrap();
     assert!(persisted.iter().any(|client| client.uniqueid == uniqueid));
 
-    // host listing over HTTPS
-    let response = tls_get(
+    // host listing over HTTPS, as the paired client itself: PairStatus 1 now
+    // means "paired *and* the presented certificate is the one stored for
+    // this uniqueid", so the request has to be the client's own (the same
+    // proof /launch and /resume demand)
+    let response = tls_get_as_client(
         https_port,
         &format!("/serverinfo?uniqueid={uniqueid}"),
         &server_cert_der,
+        &client,
     )
     .await;
     assert!(response.contains("status_code=\"200\""), "{response}");

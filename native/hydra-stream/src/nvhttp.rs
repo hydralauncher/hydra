@@ -806,13 +806,16 @@ pub fn route(
             is_https,
             params.get("uniqueid").map(String::as_str),
             local_ip,
+            peer_cert,
         ),
         "/pair" => return pair(state, params, peer_ip),
         // No `is_https` guard on purpose: Moonlight-Android's NvHTTP.unpair()
         // issues this over *plain HTTP* (`baseUrlHttp`) on every cancel and
         // failure path of its PIN dialog, before it holds any pinned
-        // certificate to talk TLS with.
-        "/unpair" => return unpair(state, params),
+        // certificate to talk TLS with. The peer certificate travels along
+        // because *removing a stored pairing* is a different operation from
+        // cancelling a session, and needs that proof.
+        "/unpair" => return unpair(state, params, peer_cert),
         "/applist" if is_https => applist(state),
         "/appasset" if is_https => {
             let appid = params.get("appid").and_then(|value| value.parse().ok());
@@ -831,21 +834,35 @@ pub fn route(
 /// reads it from this response, and `PcView.doPair`/`doUnpair` *skip the
 /// whole pairing exchange* (or refuse to unpair) on a 1, then connect with
 /// the certificate they pinned back when they paired. Hydra authorizes
-/// launches on the stored *certificate*, so the old answer — 1 for any HTTPS
-/// request that merely named a uniqueid — could tell a client whose entry
-/// the store does not have (never paired here, or unpaired, since `/unpair`
-/// removes it) that it is paired, and it would never re-pair. Note this is a
-/// deliberate departure from Sunshine, whose rule is exactly that
-/// (`nvhttp.cpp`: `pair_status = 1` for any HTTPS request with a uniqueid);
-/// answering from the same store `authorize` enforces keeps the field honest
-/// and keeps `/unpair` observable to the client.
-fn serverinfo(state: &State, is_https: bool, uniqueid: Option<&str>, local_ip: IpAddr) -> String {
+/// launches on the stored *certificate*, and every endpoint that actually
+/// streams requires it (`client_authorized`), so 1 means "paired *and*
+/// proven": an HTTPS request whose uniqueid is in `state.paired` *and* whose
+/// TLS peer certificate matches that client's stored certificate. A client
+/// that can stream necessarily presents that certificate, so it keeps seeing
+/// 1; a client that lost its pairing, or a stranger who only knows the
+/// public uniqueid, sees 0 — which is what lets it re-pair instead of being
+/// told "you are already paired" and skipping the exchange. That is also
+/// what closes the stale-entry trap: after an unauthenticated `/unpair`
+/// leaves the entry in place (it may not remove a pairing it cannot prove),
+/// the client that cannot prove the certificate sees 0 and can pair again,
+/// and the next successful pairing overwrites the entry. Note this is a
+/// deliberate departure from Sunshine, whose rule is 1 for any HTTPS request
+/// with a uniqueid (`nvhttp.cpp`).
+fn serverinfo(
+    state: &State,
+    is_https: bool,
+    uniqueid: Option<&str>,
+    local_ip: IpAddr,
+    peer_cert: Option<&[u8]>,
+) -> String {
     let paired = uniqueid.is_some_and(|uniqueid| {
-        state
-            .paired
-            .lock()
-            .expect("paired clients lock")
-            .contains_key(uniqueid)
+        let paired = state.paired.lock().expect("paired clients lock");
+        match (paired.get(uniqueid), peer_cert) {
+            (Some(client), Some(presented)) => cert_matches(&client.cert, presented),
+            // No stored entry for the claimed uniqueid, or no certificate to
+            // compare it against: the claim is unproven.
+            _ => false,
+        }
     });
     let pair_status = if is_https && paired { 1 } else { 0 };
     let local_ip = match local_ip {
@@ -1451,7 +1468,19 @@ fn pair(state: &State, params: &HashMap<String, String>, peer_ip: IpAddr) -> Rou
 /// exactly the state where it is not in `state.paired`, and the log shows
 /// the call repeated. Idempotent "already gone" matches Sunshine's erase,
 /// which reports how many devices it removed and treats 0 as done.
-fn unpair(state: &State, params: &HashMap<String, String>) -> RouteOutcome {
+///
+/// Only the *session* half above is unauthenticated. Removing a stored
+/// pairing deletes a persisted, certificate-backed client, and this route is
+/// reachable over plain HTTP by anyone who knows the uniqueid — a fixed
+/// public constant on Moonlight-Android (`0123456789ABCDEF`) — so the entry
+/// goes only when the request proves it holds the stored certificate by
+/// presenting it on TLS (`cert_matches`). A request without that proof is
+/// refused, logged, and still answered with the normal 2xx body: the client
+/// discards the body and only fails on a non-2xx status, so its cancel
+/// handshake must not see an error, and the unremoved entry no longer traps
+/// the client either (it sees `PairStatus` 0 without the certificate and can
+/// pair again, overwriting the entry).
+fn unpair(state: &State, params: &HashMap<String, String>, peer_cert: Option<&[u8]>) -> RouteOutcome {
     let Some(uniqueid) = params.get("uniqueid") else {
         return RouteOutcome::Ready(pair_fail(400, "Missing uniqueid parameter"));
     };
@@ -1462,12 +1491,18 @@ fn unpair(state: &State, params: &HashMap<String, String>) -> RouteOutcome {
     state.release_pairing_session(uniqueid, "Pairing cancelled by client", "unpaired by client");
 
     let mut clients = state.paired.lock().expect("paired clients lock");
-    if clients.remove(uniqueid).is_some() {
+    let proven = clients.get(uniqueid).is_some_and(|client| {
+        peer_cert.is_some_and(|presented| cert_matches(&client.cert, presented))
+    });
+    if proven {
+        clients.remove(uniqueid);
         let clients: Vec<PairedClient> = clients.values().cloned().collect();
         if let Err(error) = state.store.write_json("clients.json", &clients) {
             eprintln!("failed to persist paired clients: {error}");
         }
         eprintln!("nvhttp: unpaired client {uniqueid}");
+    } else if clients.contains_key(uniqueid) {
+        eprintln!("nvhttp: refusing to unpair {uniqueid} without the paired client certificate");
     }
 
     RouteOutcome::Ready(pair_ok(""))
@@ -1908,14 +1943,16 @@ pub(crate) mod tests {
     #[test]
     fn serverinfo_xml_shape() {
         let state = test_state();
-        // PairStatus answers "is this uniqueid paired here?", so the 1 case
-        // needs the client in the store (see the dedicated test below).
+        // PairStatus answers "is this uniqueid paired here, and can the
+        // caller prove it?", so the 1 case needs the client in the store
+        // *and* its certificate presented (see the dedicated test below).
         authorize(&state, "shapeclient");
         let xml = serverinfo(
             &state,
             true,
             Some("shapeclient"),
             "192.168.1.10".parse().unwrap(),
+            Some(PEER_CERT),
         );
 
         assert!(xml.starts_with("<?xml version=\"1.0\" encoding=\"utf-8\"?>\n<root status_code=\"200\">"));
@@ -1951,34 +1988,43 @@ pub(crate) mod tests {
             hevc_main10 && crate::capture::desktop_is_hdr()
         );
         // http without uniqueid reports unpaired
-        let http_xml = serverinfo(&state, false, None, "10.0.0.5".parse().unwrap());
+        let http_xml = serverinfo(&state, false, None, "10.0.0.5".parse().unwrap(), None);
         assert_eq!(tag(&http_xml, "PairStatus"), "0");
         assert_eq!(tag(&http_xml, "LocalIP"), "10.0.0.5");
     }
 
     /// The client's "am I paired with you?" poll. Sunshine answers 1 to any
-    /// HTTPS request that names a uniqueid; Hydra answers for the client
-    /// store it actually authorizes launches from, so the answer stays
-    /// consistent with `/unpair` (which removes the entry).
+    /// HTTPS request that names a uniqueid; Hydra answers 1 only for a
+    /// uniqueid it has in the client store *and* a peer certificate that
+    /// proves that client, which is the same proof `/launch`, `/resume` and
+    /// `/cancel` demand. A client that lost its pairing (or that an
+    /// unauthenticated `/unpair` refused to remove) therefore sees 0 and can
+    /// pair again instead of being told it is already paired.
     #[test]
     fn pair_status_reflects_the_client_store() {
         let (state, _rx) = local_state("pair-status");
         let local_ip: IpAddr = "127.0.0.1".parse().unwrap();
+        let other_cert = b"other-client-der";
 
         // HTTPS + an unknown uniqueid: unpaired, whoever the client claims to be
-        let xml = serverinfo(&state, true, Some("stranger"), local_ip);
+        let xml = serverinfo(&state, true, Some("stranger"), local_ip, Some(PEER_CERT));
         assert_eq!(tag(&xml, "PairStatus"), "0");
         // HTTPS without a uniqueid: unpaired
-        let xml = serverinfo(&state, true, None, local_ip);
+        let xml = serverinfo(&state, true, None, local_ip, Some(PEER_CERT));
         assert_eq!(tag(&xml, "PairStatus"), "0");
 
-        // a paired client is
+        // the client paired here is 1 only while it also presents the
+        // certificate that pairing stored for it
         authorize(&state, "tester");
-        let xml = serverinfo(&state, true, Some("tester"), local_ip);
+        let xml = serverinfo(&state, true, Some("tester"), local_ip, Some(PEER_CERT));
         assert_eq!(tag(&xml, "PairStatus"), "1");
-
-        // plain HTTP stays 0 even for a paired client
-        let xml = serverinfo(&state, false, Some("tester"), local_ip);
+        // the uniqueid alone is not proof: no certificate, a foreign one, or
+        // a plain-HTTP request that cannot present one all read 0
+        let xml = serverinfo(&state, true, Some("tester"), local_ip, None);
+        assert_eq!(tag(&xml, "PairStatus"), "0");
+        let xml = serverinfo(&state, true, Some("tester"), local_ip, Some(other_cert));
+        assert_eq!(tag(&xml, "PairStatus"), "0");
+        let xml = serverinfo(&state, false, Some("tester"), local_ip, Some(PEER_CERT));
         assert_eq!(tag(&xml, "PairStatus"), "0");
     }
 
@@ -2426,11 +2472,13 @@ pub(crate) mod tests {
 
     /// The client's cancel handshake (Moonlight-Android `NvHTTP.unpair()`):
     /// the in-flight session is released, the held getservercert response is
-    /// terminal, and the paired client is forgotten on disk too.
+    /// terminal, and — because the request proves the stored certificate —
+    /// the paired client is forgotten on disk too.
     #[test]
     fn unpair_releases_the_pending_session_and_forgets_the_client() {
         let (state, mut rx) = local_state("unpair-release");
         let uniqueid = "unpairme";
+        let cert = b"old-client-cert";
 
         // the device is already paired (a re-pairing to refresh its cert)
         {
@@ -2440,7 +2488,7 @@ pub(crate) mod tests {
                 PairedClient {
                     uniqueid: uniqueid.to_string(),
                     name: "tester".to_string(),
-                    cert: "old-client-cert".to_string(),
+                    cert: String::from_utf8_lossy(cert).into_owned(),
                 },
             );
             let clients: Vec<PairedClient> = paired.values().cloned().collect();
@@ -2454,10 +2502,14 @@ pub(crate) mod tests {
 
         // the client's status poll reports it as paired here
         let local_ip: IpAddr = "127.0.0.1".parse().unwrap();
-        let xml = serverinfo(&state, true, Some(uniqueid), local_ip);
+        let xml = serverinfo(&state, true, Some(uniqueid), local_ip, Some(cert));
         assert_eq!(tag(&xml, "PairStatus"), "1");
 
-        let response = expect_ready(unpair(&state, &params(&[("uniqueid", uniqueid)])));
+        let response = expect_ready(unpair(
+            &state,
+            &params(&[("uniqueid", uniqueid)]),
+            Some(cert),
+        ));
         assert!(response.contains("status_code=\"200\""), "{response}");
         assert_eq!(tag(&response, "paired"), "1");
 
@@ -2477,7 +2529,7 @@ pub(crate) mod tests {
         assert!(!state.paired.lock().unwrap().contains_key(uniqueid));
         let persisted: Vec<PairedClient> = state.store.read_json("clients.json").unwrap();
         assert!(persisted.iter().all(|client| client.uniqueid != uniqueid));
-        let xml = serverinfo(&state, true, Some(uniqueid), local_ip);
+        let xml = serverinfo(&state, true, Some(uniqueid), local_ip, Some(cert));
         assert_eq!(tag(&xml, "PairStatus"), "0");
 
         // the retry with the same (Moonlight-fixed) uniqueid starts a clean
@@ -2490,6 +2542,97 @@ pub(crate) mod tests {
         assert!(session.aes_key.is_none());
     }
 
+    /// `/unpair` is reachable over plain HTTP by anyone who knows the
+    /// uniqueid — a fixed public constant on Moonlight-Android — so it may
+    /// only *cancel a pairing session*. This is the P1 rule: without proof of
+    /// the stored certificate the established pairing stays in `state.paired`
+    /// and in `clients.json`, while the pending session is still released
+    /// (the client needs its cancel acknowledged) and the answer stays 2xx.
+    #[test]
+    fn unauthenticated_unpair_releases_the_session_but_keeps_the_paired_client() {
+        let (state, mut rx) = local_state("unpair-unauthenticated");
+        let uniqueid = "keptclient";
+
+        // an established pairing, persisted the way the pairing flow does it
+        {
+            let mut paired = state.paired.lock().unwrap();
+            paired.insert(
+                uniqueid.to_string(),
+                PairedClient {
+                    uniqueid: uniqueid.to_string(),
+                    name: "tester".to_string(),
+                    cert: String::from_utf8_lossy(PEER_CERT).into_owned(),
+                },
+            );
+            let clients: Vec<PairedClient> = paired.values().cloned().collect();
+            state.store.write_json("clients.json", &clients).unwrap();
+        }
+
+        // ...with a new pairing attempt waiting on the PIN
+        let _salt = start_pairing(&state, uniqueid);
+        let (tx, rx_http) = tokio::sync::oneshot::channel();
+        state.register_pair_response(uniqueid, tx);
+
+        // plain HTTP, no peer certificate: a success body, and the pending
+        // session is released like it always was
+        let response = expect_ready(unpair(&state, &params(&[("uniqueid", uniqueid)]), None));
+        assert!(response.contains("status_code=\"200\""), "{response}");
+        assert_eq!(tag(&response, "paired"), "1");
+        assert!(state.sessions.lock().unwrap().is_empty());
+        let body = rx_http.blocking_recv().expect("held response");
+        assert!(body.contains("status_code=\"400\""), "{body}");
+        let event: serde_json::Value = serde_json::from_str(&rx.try_recv().unwrap()).unwrap();
+        assert_eq!(event["event"], "pairing-requested");
+        let event: serde_json::Value = serde_json::from_str(&rx.try_recv().unwrap()).unwrap();
+        assert_eq!(event["event"], "pairing-finished");
+        assert_eq!(event["success"], false);
+
+        // ...but the pairing itself survives, in memory and on disk
+        assert!(state.paired.lock().unwrap().contains_key(uniqueid));
+        let persisted: Vec<PairedClient> = state.store.read_json("clients.json").unwrap();
+        assert!(persisted.iter().any(|client| client.uniqueid == uniqueid));
+
+        // the stale entry is not a trap: the client that cannot prove the
+        // certificate now reads 0 and may pair again (overwriting the entry)
+        let local_ip: IpAddr = "127.0.0.1".parse().unwrap();
+        let xml = serverinfo(&state, true, Some(uniqueid), local_ip, None);
+        assert_eq!(tag(&xml, "PairStatus"), "0");
+    }
+
+    /// A certificate that belongs to somebody else is no more proof than no
+    /// certificate at all: the entry the unauthenticated caller tried to
+    /// delete stays put, and the request still gets its normal 2xx.
+    #[test]
+    fn unpair_with_a_non_matching_certificate_keeps_the_paired_client() {
+        let (state, _rx) = local_state("unpair-foreign-cert");
+        let uniqueid = "foreigncert";
+        {
+            let mut paired = state.paired.lock().unwrap();
+            paired.insert(
+                uniqueid.to_string(),
+                PairedClient {
+                    uniqueid: uniqueid.to_string(),
+                    name: "tester".to_string(),
+                    cert: String::from_utf8_lossy(PEER_CERT).into_owned(),
+                },
+            );
+            let clients: Vec<PairedClient> = paired.values().cloned().collect();
+            state.store.write_json("clients.json", &clients).unwrap();
+        }
+
+        let response = expect_ready(unpair(
+            &state,
+            &params(&[("uniqueid", uniqueid)]),
+            Some(b"other-client-der"),
+        ));
+        assert!(response.contains("status_code=\"200\""), "{response}");
+        assert_eq!(tag(&response, "paired"), "1");
+
+        assert!(state.paired.lock().unwrap().contains_key(uniqueid));
+        let persisted: Vec<PairedClient> = state.store.read_json("clients.json").unwrap();
+        assert!(persisted.iter().any(|client| client.uniqueid == uniqueid));
+    }
+
     /// A request without a uniqueid is the same clean 400 `/pair` gives; an
     /// unknown (or empty) one is the documented success no-op, because the
     /// client unpairs precisely when it abandoned a pairing and calls this
@@ -2498,14 +2641,15 @@ pub(crate) mod tests {
     fn unpair_without_uniqueid_is_a_clean_400_and_unknown_ids_are_a_no_op() {
         let (state, mut rx) = local_state("unpair-unknown");
 
-        let response = expect_ready(unpair(&state, &params(&[])));
+        let response = expect_ready(unpair(&state, &params(&[]), None));
         assert!(response.contains("status_code=\"400\""), "{response}");
         assert!(response.contains("Missing uniqueid parameter"), "{response}");
         assert!(rx.try_recv().is_err(), "a rejected unpair emits nothing");
 
         for uniqueid in ["stranger", ""] {
             for _ in 0..2 {
-                let response = expect_ready(unpair(&state, &params(&[("uniqueid", uniqueid)])));
+                let response =
+                    expect_ready(unpair(&state, &params(&[("uniqueid", uniqueid)]), None));
                 assert!(response.contains("status_code=\"200\""), "{response}");
                 assert_eq!(tag(&response, "paired"), "1");
             }
@@ -2900,18 +3044,18 @@ pub(crate) mod tests {
     fn serverinfo_reports_the_running_process_in_idle() {
         let (state, _rx) = local_state("serverinfo-running");
 
-        let xml = serverinfo(&state, true, Some("tester"), "127.0.0.1".parse().unwrap());
+        let xml = serverinfo(&state, true, Some("tester"), "127.0.0.1".parse().unwrap(), None);
         assert_eq!(tag(&xml, "state"), "SUNSHINE_SERVER_FREE");
         assert_eq!(tag(&xml, "currentgame"), "0");
 
         state.set_running_appid(42);
-        let xml = serverinfo(&state, true, Some("tester"), "127.0.0.1".parse().unwrap());
+        let xml = serverinfo(&state, true, Some("tester"), "127.0.0.1".parse().unwrap(), None);
         assert_eq!(tag(&xml, "state"), "SUNSHINE_SERVER_BUSY");
         assert_eq!(tag(&xml, "currentgame"), "42");
 
         // the pending handshake's own appid wins over the running process
         state.begin_launch(launch_params_for(7)).expect("begin launch");
-        let xml = serverinfo(&state, true, Some("tester"), "127.0.0.1".parse().unwrap());
+        let xml = serverinfo(&state, true, Some("tester"), "127.0.0.1".parse().unwrap(), None);
         assert_eq!(tag(&xml, "state"), "SUNSHINE_SERVER_BUSY");
         assert_eq!(tag(&xml, "currentgame"), "7");
     }
