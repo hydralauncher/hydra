@@ -12,6 +12,7 @@ import {
   deleteLocalSouvenirAssetsForGame,
 } from "@main/services/achievements/grouped-souvenir-worker";
 import { AchievementWatcherManager } from "@main/services/achievements/achievement-watcher-manager";
+import { updateGameRecord } from "@main/services/game-record-updater";
 
 const resetGameAchievements = async (
   _event: Electron.IpcMainInvokeEvent,
@@ -45,27 +46,26 @@ const resetGameAchievements = async (
       achievementFiles.map((achievementFile) => achievementFile.filePath)
     );
 
-    const gameAchievements = AchievementMemoryStore.get(shop, objectId);
-    if (gameAchievements) {
-      AchievementMemoryStore.set(shop, objectId, {
-        ...gameAchievements,
-        unlockedAchievements: [],
-      });
-    }
-
     if (game.reportedUnlockedAchievementCount !== undefined) {
-      await gamesSublevel.put(levelKey, {
-        ...game,
+      await updateGameRecord(levelKey, {
         reportedUnlockedAchievementCount: undefined,
       });
     }
 
     await HydraApi.delete(`/profile/games/achievements/${game.remoteId}`).then(
       async () => {
+        const gameAchievements = AchievementMemoryStore.get(shop, objectId);
+        if (gameAchievements) {
+          AchievementMemoryStore.set(shop, objectId, {
+            ...gameAchievements,
+            unlockedAchievements: [],
+          });
+        }
+
         await deleteLocalSouvenirAssetsForGame(levelKey);
         AchievementSouvenirStore.invalidate(shop, objectId);
         achievementsLogger.log(
-          `Deleted achievements from ${game.remoteId} - ${game.objectId} - ${game.title}`
+          `Deleted Hydra achievements from ${game.remoteId} - ${game.objectId} - ${game.title}`
         );
       }
     );
