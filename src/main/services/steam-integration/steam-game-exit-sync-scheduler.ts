@@ -4,8 +4,8 @@ const EXIT_SYNC_DELAYS_MS = [10_000, 30_000] as const;
 
 export const shouldScheduleSteamGameExitSync = (
   shop: string,
-  countHydraPlaytime: boolean
-) => shop === "steam" && !countHydraPlaytime;
+  syncSteamOnExit: boolean
+) => shop === "steam" && syncSteamOnExit;
 
 type TimerHandle = ReturnType<typeof setTimeout>;
 

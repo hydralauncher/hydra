@@ -28,6 +28,7 @@ import { getSteamLibraryFolders } from "./steam";
 import {
   isSteamLibraryExecutablePath,
   resolveActiveSteamImport,
+  resolveSteamSessionPlaytimePolicy,
 } from "./steam-integration/steam-playtime";
 import {
   cancelSteamGameExitSync,
@@ -409,6 +410,8 @@ async function onOpenGame(game: Game, matchedPath: string) {
   const now = performance.now();
   const gameKey = levelKeys.game(game.shop, game.objectId);
   let countHydraPlaytime = true;
+  let syncSteamOnExit = false;
+  let isSteamLibraryPath = false;
 
   if (game.shop === "steam") {
     const libraryFolders = await getSteamLibraryFolders().catch(() => []);
@@ -419,6 +422,7 @@ async function onOpenGame(game: Game, matchedPath: string) {
       ),
     ]);
     if (isSteamLibraryExecutablePath(resolvedPath, resolvedLibraries)) {
+      isSteamLibraryPath = true;
       const hasActiveSteamImport = await resolveActiveSteamImport(
         game.hasActiveSteamImport,
         async (signal) => {
@@ -441,8 +445,17 @@ async function onOpenGame(game: Game, matchedPath: string) {
       if (!currentGame || currentGame.isDeleted) return;
       game = { ...currentGame, hasActiveSteamImport };
       await gamesSublevel.put(gameKey, game);
-      countHydraPlaytime = !hasActiveSteamImport;
     }
+  }
+
+  if (game.shop === "steam") {
+    ({ countHydraPlaytime, syncSteamOnExit } =
+      resolveSteamSessionPlaytimePolicy({
+        hasActiveSteamImport: game.hasActiveSteamImport === true,
+        isSteamLibraryPath,
+        disableHydraPlaytimeTracking:
+          game.disableHydraPlaytimeTracking === true,
+      }));
   }
 
   if (game.remoteId) {
@@ -454,6 +467,7 @@ async function onOpenGame(game: Game, matchedPath: string) {
     firstTick: now,
     lastSyncTick: now,
     countHydraPlaytime,
+    syncSteamOnExit,
   });
 
   logPlaytimeTrace("session-open", game, {
@@ -633,7 +647,10 @@ const onCloseGame = (game: Game) => {
   });
 
   if (
-    shouldScheduleSteamGameExitSync(game.shop, gamePlaytime.countHydraPlaytime)
+    shouldScheduleSteamGameExitSync(
+      game.shop,
+      gamePlaytime.syncSteamOnExit === true
+    )
   ) {
     scheduleSteamGameExitSync(game);
     logPlaytimeTrace("steam-exit-sync-scheduled", game);
