@@ -18,6 +18,7 @@ import type {
 import SteamLogo from "@renderer/assets/steam-logo.svg?react";
 import { SettingsIntegrationCard } from "./settings-integration-card";
 import { getSteamProgressPresentation } from "./settings-integration-progress";
+import { getSteamIntegrationPresentation } from "./settings-steam-state";
 
 import "./settings-steam.scss";
 
@@ -71,14 +72,16 @@ export function SettingsSteam() {
   const didAutoStart = useRef(false);
   const wasConnectedRef = useRef(false);
 
+  const integrationPresentation = getSteamIntegrationPresentation(
+    integration,
+    syncState
+  );
+  const { viewState: integrationViewState } = integrationPresentation;
   const steamAccount =
     integration.connected || integration.snapshotPreserved ? integration : null;
   const isSyncing =
     syncState.status === "running" || syncState.status === "cancelling";
-  const needsReconnect =
-    integration.connected &&
-    syncState.status === "idle" &&
-    syncState.requiresReconnect === true;
+  const needsReconnect = integrationViewState === "reconnect-required";
 
   useEffect(() => {
     setAvatarError(false);
@@ -504,7 +507,7 @@ export function SettingsSteam() {
       );
     }
 
-    if (integration.snapshotPreserved) {
+    if (integrationViewState === "snapshot-preserved") {
       return (
         <>
           <Button onClick={handleConnect} disabled={isSubmitting || isSyncing}>
@@ -554,28 +557,13 @@ export function SettingsSteam() {
     );
   };
 
-  const status = needsReconnect
-    ? t("steam_status_reconnect_required")
-    : integration.connected
-      ? t("steam_status_connected")
-      : integration.snapshotPreserved
-        ? t("steam_status_snapshot_preserved")
-        : t("integration_status_not_connected");
-
-  const statusTone =
-    needsReconnect || integration.snapshotPreserved
-      ? "warning"
-      : integration.connected
-        ? "success"
-        : "neutral";
-
   return (
     <>
       <SettingsIntegrationCard
         title={t("steam")}
         logo={<SteamLogo />}
-        status={status}
-        statusTone={statusTone}
+        status={t(integrationPresentation.statusKey)}
+        statusTone={integrationPresentation.statusTone}
         actions={renderActions()}
         loading={Boolean(userDetails) && isLoading}
       >
