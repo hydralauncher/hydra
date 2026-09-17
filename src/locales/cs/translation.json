@@ -33,7 +33,6 @@
     "notifications": "Notifications",
     "playable_button_title": "Show only games you can play now",
     "add_custom_game_tooltip": "Add Custom Game",
-    "show_playable_only_tooltip": "Show Playable Only",
     "custom_game_modal": "Add Custom Game",
     "custom_game_modal_description": "Add a custom game to your library by selecting an executable file",
     "custom_game_modal_executable_path": "Executable Path",
@@ -341,7 +340,6 @@
     "downloader_online": "Online",
     "downloader_not_configured": "Available but not configured",
     "downloader_offline": "Link is offline",
-    "downloader_not_available": "Not available",
     "go_to_settings": "Go to Settings",
     "open_save_folder": "Open save folder",
     "searching_save_folder": "Searching save folder...",
@@ -576,6 +574,17 @@
     "move_down": "Move down"
   },
   "settings": {
+    "hide_library_steam_badges": "Skrýt odznaky připojení ke knihovně Steam",
+    "integration_connect": "Připojit",
+    "integration_disconnect": "Odpojit",
+    "integration_reconnect": "Znovu připojit",
+    "integration_sync": "Synchronizovat",
+    "integration_status_not_connected": "Nepřipojeno",
+    "retroachievements_connect_title": "Připojit RetroAchievements",
+    "retroachievements_status_invalid_credentials": "Neplatné přihlašovací údaje",
+    "retroachievements_invalid_credentials_description": "Vaše přihlašovací údaje k RetroAchievements již nejsou platné. Znovu připojte svůj účet.",
+    "retroachievements_last_checked": "Poslední kontrola: {{date}}",
+    "steam_status_reconnect_required": "Je vyžadováno opětovné připojení",
     "downloads_path": "Umístění stahování",
     "change": "Aktualizovat",
     "notifications": "Upozornění",
@@ -983,6 +992,8 @@
     "debrid_description": "Stahovat až 4x rychleji s Nimbus"
   },
   "library": {
+    "category_steam_library": "Knihovna Steam",
+    "imported_from_steam": "Importováno z knihovny Steam propojené s tímto profilem.",
     "library": "Library",
     "collections": "Collections",
     "play": "Play",

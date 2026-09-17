@@ -29,7 +29,6 @@
     "need_help": "Потрібна допомога?",
     "playable_button_title": "Показати лише ігри, які можна грати зараз",
     "add_custom_game_tooltip": "Додати власну гру",
-    "show_playable_only_tooltip": "Показати лише доступні для гри",
     "custom_game_modal": "Додати власну гру",
     "custom_game_modal_description": "Додайте власну гру до бібліотеки, вибравши виконуваний файл",
     "custom_game_modal_executable_path": "Шлях до виконуваного файлу",
@@ -438,7 +437,6 @@
     "downloader_online": "Online",
     "downloader_not_configured": "Available but not configured",
     "downloader_offline": "Link is offline",
-    "downloader_not_available": "Not available",
     "go_to_settings": "Go to Settings",
     "open_save_folder": "Open save folder",
     "searching_save_folder": "Searching save folder...",
@@ -576,6 +574,17 @@
     "move_down": "Move down"
   },
   "settings": {
+    "hide_library_steam_badges": "Приховати значки підключення до бібліотеки Steam",
+    "integration_connect": "Підключити",
+    "integration_disconnect": "Відключити",
+    "integration_reconnect": "Перепідключити",
+    "integration_sync": "Синхронізувати",
+    "integration_status_not_connected": "Не підключено",
+    "retroachievements_connect_title": "Підключити RetroAchievements",
+    "retroachievements_status_invalid_credentials": "Недійсні облікові дані",
+    "retroachievements_invalid_credentials_description": "Ваші облікові дані RetroAchievements більше не дійсні. Перепідключіть обліковий запис.",
+    "retroachievements_last_checked": "Остання перевірка: {{date}}",
+    "steam_status_reconnect_required": "Потрібне перепідключення",
     "downloads_path": "Тека завантажень",
     "change": "Змінити",
     "notifications": "Повідомлення",
@@ -985,6 +994,8 @@
     "debrid_description": "Завантажуйте до 4 разів швидше з Nimbus"
   },
   "library": {
+    "category_steam_library": "Бібліотека Steam",
+    "imported_from_steam": "Імпортовано з бібліотеки Steam, пов’язаної з цим профілем.",
     "library": "Library",
     "collections": "Collections",
     "play": "Play",

@@ -1111,6 +1111,22 @@ export function GameOptionsModal({
     }
   };
 
+  const handleToggleHydraPlaytimeEnabled = useCallback(
+    async (enabled: boolean) => {
+      try {
+        await globalThis.window.electron.setGameHydraPlaytimeEnabled(
+          game.shop,
+          game.objectId,
+          enabled
+        );
+        await updateGame();
+      } catch {
+        showErrorToast(t("steam_playtime_tracking_error"));
+      }
+    },
+    [game.objectId, game.shop, showErrorToast, t, updateGame]
+  );
+
   const baseGeneralSettingsProps = useMemo(
     () => ({
       game,
@@ -1136,6 +1152,7 @@ export function GameOptionsModal({
       onChangeLaunchOptions: handleChangeLaunchOptions,
       onClearLaunchOptions: handleClearLaunchOptions,
       onDetectWineDllOverrides: handleDetectWineDllOverrides,
+      onToggleHydraPlaytimeEnabled: handleToggleHydraPlaytimeEnabled,
       isTransferring,
       transferProgress,
       drives,
@@ -1171,6 +1188,7 @@ export function GameOptionsModal({
       handleChangeLaunchOptions,
       handleClearLaunchOptions,
       handleDetectWineDllOverrides,
+      handleToggleHydraPlaytimeEnabled,
       isTransferring,
       transferProgress,
       drives,
@@ -1257,6 +1275,7 @@ export function GameOptionsModal({
                 showTitleSection={false}
                 showShortcutsSection={false}
                 showLaunchOptionsSection={false}
+                showSteamPlaytimeSection={false}
               />
             )}
             {selectedCategory === "assets" && (

@@ -33,6 +33,7 @@ import { migrateDownloadSources } from "./helpers/migrate-download-sources";
 import { getDirSize } from "./services/download/helpers";
 import { GofileApi } from "./services/hosters";
 import { clearLegacyAchievementPersistence } from "./level/clear-legacy-achievements";
+import { startSteamSyncOnStartup } from "./services/steam-integration/steam-startup-sync";
 
 const hasMissingSeedFiles = async (download: Download): Promise<boolean> => {
   if (!download.folderName) return false;
@@ -121,6 +122,7 @@ export const loadState = async () => {
     if (HydraApi.isLoggedIn()) {
       SSEClient.connect();
       void groupedSouvenirWorker.trigger();
+      void startSteamSyncOnStartup();
     }
   });
 
@@ -178,18 +180,17 @@ export const loadState = async () => {
     );
   }
 
-  // For torrents use Python RPC; HTTP downloads use JS downloader.
+  // Torrents use the native service; HTTP downloads use the JS downloader.
   const isTorrent = downloadToResume?.downloader === Downloader.Torrent;
   if (downloadToResume && !isTorrent) {
-    // Start Python RPC for seeding only, then resume HTTP download with JS
-    await DownloadManager.startRPC(undefined, downloadsToSeed);
+    // Initialize torrent seeding, then resume the HTTP download with JS.
+    await DownloadManager.initializeTorrentService(undefined, downloadsToSeed);
     await DownloadManager.startDownload(downloadToResume).catch((err) => {
       // If resume fails, just log it - user can manually retry
       logger.error("Failed to auto-resume download:", err);
     });
   } else {
-    // Use Python RPC for everything (torrent or fallback)
-    await DownloadManager.startRPC(
+    await DownloadManager.initializeTorrentService(
       downloadToResume ?? undefined,
       downloadsToSeed
     );

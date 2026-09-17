@@ -22,13 +22,23 @@ import {
   emulators,
 } from "@main/services";
 import resources from "@locales";
-import { PythonRPC } from "./services/python-rpc";
+import { TorrentService } from "./services/torrent-service";
 import { db, gamesSublevel, levelKeys } from "./level";
 import { GameShop, UserPreferences } from "@types";
 import { launchGame, openClassicsGame } from "./helpers";
 import { refreshPortableShortcutLauncher } from "./helpers/shortcut-launch";
 import { lookupCachedPlatform } from "./events/library/get-library";
 import { loadState } from "./main";
+import {
+  closeSteamOpenIdWindow,
+  notifySteamConnectError,
+  notifySteamConnected,
+} from "./services/steam-integration/steam-store-session";
+import {
+  completeSteamOpenIdConnection,
+  parseSteamOpenIdReturn,
+} from "./services/steam-integration/steam-openid-return";
+import { steamSyncOrchestrator } from "./services/steam-integration/steam-sync-orchestrator";
 
 crashReporter.start({
   uploadToServer: false,
@@ -315,6 +325,22 @@ const handleDeepLinkPath = (uri?: string) => {
           `settings?theme=${themeName}&authorId=${authorId}&authorName=${authorName}`
         );
       }
+
+      return;
+    }
+
+    if (url.host === "steam-connected") {
+      closeSteamOpenIdWindow();
+      const result = parseSteamOpenIdReturn(uri);
+      if (result?.kind === "error") {
+        notifySteamConnectError(result.code);
+        return;
+      }
+      completeSteamOpenIdConnection({
+        clearReconnectRequired: () =>
+          steamSyncOrchestrator.clearReconnectRequired(),
+        notifyConnected: notifySteamConnected,
+      });
     }
   } catch (error) {
     logger.error("Error handling deep link", uri, error);
@@ -359,19 +385,25 @@ app.on("window-all-closed", () => {
 });
 
 let canAppBeClosed = false;
+let isAppClosing = false;
 
 app.on("before-quit", async (e) => {
-  await Lock.releaseLock();
-
   if (!canAppBeClosed) {
     e.preventDefault();
+    if (isAppClosing) return;
+    isAppClosing = true;
     PowerSaveBlockerManager.reset();
-    /* Disconnects Python RPC */
-    PythonRPC.kill();
-    await Promise.all([
+    const results = await Promise.allSettled([
+      Lock.releaseLock(),
+      TorrentService.shutdown(),
       clearGamesPlaytime(),
       emulators.stopAllEmulatorSouvenirCaptureSessions(),
     ]);
+    for (const result of results) {
+      if (result.status === "rejected") {
+        logger.error("Application shutdown cleanup failed", result.reason);
+      }
+    }
     canAppBeClosed = true;
     app.quit();
   }

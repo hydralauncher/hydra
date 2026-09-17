@@ -1,31 +1,25 @@
 import { UserGame } from "@types";
 import HydraIcon from "@renderer/assets/icons/hydra.svg?react";
-import {
-  useFormat,
-  useCoverPoster,
-  isAnimatedCoverCandidate,
-  useAppSelector,
-  useAnimatedSourceWarmup,
-} from "@renderer/hooks";
+import { useAppSelector, useFormat } from "@renderer/hooks";
 import { useNavigate } from "react-router-dom";
-import { useCallback, useContext, useEffect, useState } from "react";
+import { useCallback, useContext, useState } from "react";
 import {
   buildGameAchievementPath,
   buildGameDetailsPath,
   formatDownloadProgress,
   isGameCompleted,
+  shouldShowProfileSteamLibraryBadge,
 } from "@renderer/helpers";
 import { userProfileContext } from "@renderer/context";
-import {
-  ClockIcon,
-  TrophyIcon,
-  AlertFillIcon,
-  ImageIcon,
-} from "@primer/octicons-react";
+import { ClockIcon, TrophyIcon, AlertFillIcon } from "@primer/octicons-react";
 import { MAX_MINUTES_TO_SHOW_IN_PLAYTIME } from "@renderer/constants";
 import { Tooltip } from "react-tooltip";
 import { useTranslation } from "react-i18next";
-import { ProgressBar } from "@renderer/components";
+import {
+  ProgressBar,
+  SteamLibraryBadge,
+  VerticalCoverCard,
+} from "@renderer/components";
 import "./user-library-game-card.scss";
 
 interface UserLibraryGameCardProps {
@@ -42,34 +36,13 @@ export function UserLibraryGameCard({
   const { userProfile, isMe } = useContext(userProfileContext);
   const { t } = useTranslation("user_profile");
   const { numberFormatter } = useFormat();
+  const hideSteamLibraryBadges = useAppSelector(
+    (state) => state.userPreferences.value?.hideSteamLibraryBadges ?? false
+  );
   const navigate = useNavigate();
-  const [imageError, setImageError] = useState(false);
+  const [isTooltipHovered, setIsTooltipHovered] = useState(false);
 
   const coverImageUrl = game.customLibraryImageUrl ?? game.coverImageUrl;
-
-  const userPreferences = useAppSelector(
-    (state) => state.userPreferences.value
-  );
-  const autoplayAnimatedArtwork =
-    userPreferences?.autoplayAnimatedArtwork ?? false;
-
-  const isAnimatedCover = isAnimatedCoverCandidate(coverImageUrl);
-  const coverPoster = useCoverPoster(coverImageUrl, isAnimatedCover);
-  const [isCoverHovered, setIsCoverHovered] = useState(false);
-  const shouldHoldFrame =
-    isAnimatedCover && !isCoverHovered && !autoplayAnimatedArtwork;
-  const isAwaitingPoster = shouldHoldFrame && coverPoster === undefined;
-
-  useAnimatedSourceWarmup(
-    coverImageUrl,
-    isAnimatedCover && !autoplayAnimatedArtwork && Boolean(coverPoster)
-  );
-  const displayCoverUrl =
-    (shouldHoldFrame && coverPoster ? coverPoster : coverImageUrl) ?? undefined;
-
-  useEffect(() => {
-    setImageError(false);
-  }, [coverImageUrl]);
 
   const isCompleted = isGameCompleted(
     game.achievementCount,
@@ -144,93 +117,57 @@ export function UserLibraryGameCard({
     onContextMenu(game, { x: event.clientX, y: event.clientY });
   };
 
-  const renderCoverMedia = () => {
-    if (imageError || !coverImageUrl) {
-      return (
-        <div className="user-library-game__cover-placeholder">
-          <ImageIcon size={48} />
-        </div>
-      );
-    }
-
-    if (isAwaitingPoster) {
-      return <div className="user-library-game__cover-placeholder" />;
-    }
-
-    if (game.shop === "launchbox" && !game.customLibraryImageUrl) {
-      return (
-        <div className="user-library-game__classics-cover">
-          <img
-            src={displayCoverUrl}
-            alt=""
-            aria-hidden="true"
-            className="user-library-game__classics-backdrop"
-            loading="lazy"
-            decoding="async"
-            onError={() => setImageError(true)}
-          />
-          <img
-            src={displayCoverUrl}
-            alt={game.title}
-            className="user-library-game__classics-image"
-            loading="lazy"
-            decoding="async"
-            onError={() => setImageError(true)}
-          />
-        </div>
-      );
-    }
-
-    return (
-      <img
-        src={displayCoverUrl}
-        alt={game.title}
-        className="user-library-game__game-image"
-        loading="lazy"
-        decoding="async"
-        onError={() => setImageError(true)}
-      />
-    );
-  };
-
   return (
     <>
-      <li className="user-library-game__wrapper">
-        <button
-          type="button"
-          className="user-library-game__cover"
+      <li
+        className="user-library-game__wrapper"
+        title={isTooltipHovered ? undefined : game.title}
+      >
+        <VerticalCoverCard
+          gameTitle={game.title}
+          coverImageUrls={[coverImageUrl]}
+          useClassicsLayout={
+            game.shop === "launchbox" && !game.customLibraryImageUrl
+          }
+          showTitleTooltip={false}
           onClick={() => navigate(buildUserGameDetailsPath(game))}
           onContextMenu={handleContextMenu}
-          onMouseEnter={() => setIsCoverHovered(true)}
-          onMouseLeave={() => setIsCoverHovered(false)}
         >
           <div
             className={`user-library-game__overlay${game.shop === "launchbox" && !game.customLibraryImageUrl ? " user-library-game__overlay--classics" : ""}${hasAchievementProgress ? "" : " user-library-game__overlay--no-fade"}`}
           >
-            <div
-              className="user-library-game__playtime"
-              data-tooltip-place="top"
-              data-tooltip-content={
-                game.hasManuallyUpdatedPlaytime
-                  ? t("manual_playtime_tooltip")
-                  : undefined
-              }
-              data-tooltip-id={game.objectId}
-            >
-              {game.hasManuallyUpdatedPlaytime ? (
-                <AlertFillIcon
-                  size={11}
-                  className="user-library-game__manual-playtime"
-                />
-              ) : (
-                <ClockIcon size={11} />
-              )}
-              <span className="user-library-game__playtime-long">
-                {formatPlayTime(game.playTimeInSeconds)}
-              </span>
-              <span className="user-library-game__playtime-short">
-                {formatPlayTime(game.playTimeInSeconds, true)}
-              </span>
+            <div className="user-library-game__top-section">
+              <div
+                className="user-library-game__playtime"
+                data-tooltip-place="top"
+                data-tooltip-content={
+                  game.hasManuallyUpdatedPlaytime
+                    ? t("manual_playtime_tooltip")
+                    : undefined
+                }
+                data-tooltip-id={game.objectId}
+              >
+                {game.hasManuallyUpdatedPlaytime ? (
+                  <AlertFillIcon
+                    size={11}
+                    className="user-library-game__manual-playtime"
+                  />
+                ) : (
+                  <ClockIcon size={11} />
+                )}
+                <span className="user-library-game__playtime-long">
+                  {formatPlayTime(game.playTimeInSeconds)}
+                </span>
+                <span className="user-library-game__playtime-short">
+                  {formatPlayTime(game.playTimeInSeconds, true)}
+                </span>
+              </div>
+
+              {shouldShowProfileSteamLibraryBadge(
+                game,
+                isMe,
+                hideSteamLibraryBadges
+              ) && <SteamLibraryBadge />}
             </div>
 
             {hasAchievementProgress && (
@@ -290,9 +227,7 @@ export function UserLibraryGameCard({
               </div>
             )}
           </div>
-
-          {renderCoverMedia()}
-        </button>
+        </VerticalCoverCard>
       </li>
       <Tooltip
         id={game.objectId}
@@ -300,6 +235,8 @@ export function UserLibraryGameCard({
           zIndex: 9999,
         }}
         openOnClick={false}
+        afterShow={() => setIsTooltipHovered(true)}
+        afterHide={() => setIsTooltipHovered(false)}
       />
     </>
   );

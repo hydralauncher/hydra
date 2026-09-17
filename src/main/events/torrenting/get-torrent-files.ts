@@ -1,5 +1,5 @@
 import { registerEvent } from "../register-event";
-import { PythonRPC } from "@main/services/python-rpc";
+import { TorrentService } from "@main/services/torrent-service";
 import { logger } from "@main/services";
 import type { TorrentFilesResponse } from "@types";
 import { DownloadError } from "@shared";
@@ -49,7 +49,7 @@ const getTorrentFiles = async (
   try {
     const trackers = await getGlobalTrackers();
 
-    const response = await PythonRPC.rpc.call<TorrentFilesResponse>(
+    const response = await TorrentService.call<TorrentFilesResponse>(
       "torrent_files",
       {
         magnet,

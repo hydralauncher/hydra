@@ -31,6 +31,8 @@ import {
 import { useGameCollections, useToast, useUserDetails } from "@renderer/hooks";
 import { useCollectionContextMenu } from "@renderer/context";
 import { getGameCollectionIds } from "@renderer/helpers";
+import { RemoveGameFromLibraryModal } from "@renderer/pages/game-details/modals/remove-from-library-modal";
+import { DeleteGameModal } from "@renderer/pages/downloads/delete-game-modal";
 import type { GameCollection } from "@types";
 import type { GameContextMenuGame } from "./game-context-menu.types";
 
@@ -347,7 +349,7 @@ export function GameContextMenu({
               {
                 id: "download-options",
                 label: t("open_download_options"),
-                icon: <PlayIcon size={16} />,
+                icon: <DownloadIcon size={16} />,
                 onClick: handleOpenDownloadOptions,
                 disabled: isDeleting || isGameDownloading || !hasRepacks,
               },
@@ -444,38 +446,25 @@ export function GameContextMenu({
         }}
       />
 
-      <ConfirmationModal
+      <RemoveGameFromLibraryModal
         visible={showConfirmRemoveLibrary}
-        title={t("remove_from_library_title")}
-        descriptionText={t("remove_from_library_description", {
-          game: game.title,
-        })}
-        onClose={() => {
-          setShowConfirmRemoveLibrary(false);
-        }}
-        onConfirm={async () => {
+        game={game}
+        onClose={() => setShowConfirmRemoveLibrary(false)}
+        removeGameFromLibrary={async () => {
           setShowConfirmRemoveLibrary(false);
           onClose();
           await handleRemoveFromLibrary();
         }}
-        cancelButtonLabel={t("cancel")}
-        confirmButtonLabel={t("remove")}
       />
 
-      <ConfirmationModal
+      <DeleteGameModal
         visible={showConfirmRemoveFiles}
-        title={t("remove_files")}
-        descriptionText={t("delete_modal_description", { ns: "downloads" })}
-        onClose={() => {
-          setShowConfirmRemoveFiles(false);
-        }}
-        onConfirm={async () => {
+        onClose={() => setShowConfirmRemoveFiles(false)}
+        deleteGame={() => {
           setShowConfirmRemoveFiles(false);
           onClose();
-          await handleRemoveFiles();
+          void handleRemoveFiles();
         }}
-        cancelButtonLabel={t("cancel")}
-        confirmButtonLabel={t("remove")}
       />
 
       <ConfirmationModal

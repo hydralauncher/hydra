@@ -1,5 +1,9 @@
 import { Trans, useTranslation } from "react-i18next";
 import {
+  getRetroArchRomExtensions,
+  platformToRetroArchPlatform,
+} from "@shared";
+import {
   type ReactNode,
   useContext,
   useEffect,
@@ -37,6 +41,21 @@ function ClassicsDiscSection({ game }: Readonly<ClassicsDiscSectionProps>) {
 
   const selectedDisc =
     discs.find((d) => d.path === game.selectedDiscPath) ?? discs[0] ?? null;
+
+  const renderDiscIcon = (disc: ClassicsDisc | null) => {
+    const region = disc?.sku ? getSkuRegion(disc.sku) : null;
+
+    if (!region) return <DotIcon size={18} className="disc-field__icon" />;
+
+    return (
+      <img
+        src={getSkuRegionFlag(region)}
+        alt={region}
+        title={region}
+        className="disc-field__flag"
+      />
+    );
+  };
 
   useEffect(() => {
     if (!isDropdownOpen) return undefined;
@@ -84,9 +103,13 @@ function ClassicsDiscSection({ game }: Readonly<ClassicsDiscSectionProps>) {
   };
 
   const handleAddDiscFile = async () => {
-    const extensions = system
-      ? await window.electron.getEmulatorRomExtensions(system)
-      : ["*"];
+    const retroArchPlatform = platformToRetroArchPlatform(game.platform);
+    let extensions = ["*"];
+    if (retroArchPlatform) {
+      extensions = getRetroArchRomExtensions(retroArchPlatform);
+    } else if (system) {
+      extensions = await window.electron.getEmulatorRomExtensions(system);
+    }
     const res = await window.electron.showOpenDialog({
       properties: ["openFile"],
       filters: [
@@ -135,7 +158,7 @@ function ClassicsDiscSection({ game }: Readonly<ClassicsDiscSectionProps>) {
                 className="disc-field__trigger"
                 onClick={() => setIsDropdownOpen((prev) => !prev)}
               >
-                <DotIcon size={18} className="disc-field__icon" />
+                {renderDiscIcon(selectedDisc)}
                 <span className="disc-field__text">
                   <span className="disc-field__label">
                     {selectedDisc?.label}
@@ -152,41 +175,33 @@ function ClassicsDiscSection({ game }: Readonly<ClassicsDiscSectionProps>) {
                 />
               </button>
 
-              {isDropdownOpen && (
-                <div className="disc-field__menu">
-                  {discs.map((disc) => {
-                    const isActive = selectedDisc?.path === disc.path;
-                    const region = disc.sku ? getSkuRegion(disc.sku) : null;
-                    return (
-                      <button
-                        key={disc.path}
-                        type="button"
-                        className={`disc-field__option ${
-                          isActive ? "disc-field__option--active" : ""
-                        }`}
-                        onClick={() => void handleSelectDisc(disc.path)}
-                      >
-                        <DotIcon size={18} className="disc-field__icon" />
-                        <span className="disc-field__text">
-                          <span className="disc-field__label">
-                            {disc.label}
-                          </span>
-                          <span className="disc-field__filename">
-                            {disc.fileName}
-                          </span>
+              <div
+                className={`disc-field__menu ${
+                  isDropdownOpen ? "disc-field__menu--open" : ""
+                }`}
+              >
+                {discs.map((disc) => {
+                  const isActive = selectedDisc?.path === disc.path;
+                  return (
+                    <button
+                      key={disc.path}
+                      type="button"
+                      className={`disc-field__option ${
+                        isActive ? "disc-field__option--active" : ""
+                      }`}
+                      onClick={() => void handleSelectDisc(disc.path)}
+                    >
+                      {renderDiscIcon(disc)}
+                      <span className="disc-field__text">
+                        <span className="disc-field__label">{disc.label}</span>
+                        <span className="disc-field__filename">
+                          {disc.fileName}
                         </span>
-                        {region && (
-                          <img
-                            src={getSkuRegionFlag(region)}
-                            alt={region}
-                            className="disc-field__flag"
-                          />
-                        )}
-                      </button>
-                    );
-                  })}
-                </div>
-              )}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
             </div>
           ) : (
             <p className="game-options-modal__header-description disc-field__empty">
@@ -270,6 +285,7 @@ interface GeneralSettingsSectionProps {
   onChangeLaunchOptions: (event: React.ChangeEvent<HTMLInputElement>) => void;
   onClearLaunchOptions: () => Promise<void>;
   onDetectWineDllOverrides: () => Promise<void>;
+  onToggleHydraPlaytimeEnabled: (enabled: boolean) => Promise<void>;
   isTransferring: boolean;
   transferProgress: number;
   drives: DriveInfo[];
@@ -286,6 +302,7 @@ interface GeneralSettingsSectionProps {
   showTransferSection?: boolean;
   showShortcutsSection?: boolean;
   showLaunchOptionsSection?: boolean;
+  showSteamPlaytimeSection?: boolean;
 }
 
 //
@@ -342,6 +359,7 @@ export function GeneralSettingsSection({
   onChangeLaunchOptions,
   onClearLaunchOptions,
   onDetectWineDllOverrides,
+  onToggleHydraPlaytimeEnabled,
   isTransferring,
   transferProgress,
   drives,
@@ -358,6 +376,7 @@ export function GeneralSettingsSection({
   showTransferSection = true,
   showShortcutsSection = true,
   showLaunchOptionsSection = true,
+  showSteamPlaytimeSection = true,
 }: Readonly<GeneralSettingsSectionProps>) {
   const { t } = useTranslation("game_details");
 
@@ -606,6 +625,27 @@ export function GeneralSettingsSection({
           )}
         </div>
       )}
+
+      {showSteamPlaytimeSection &&
+        game.shop === "steam" &&
+        game.hasActiveSteamImport && (
+          <div className="game-options-modal__section">
+            <div className="game-options-modal__header">
+              <h2>{t("steam_playtime_tracking_title")}</h2>
+              <h4 className="game-options-modal__header-description">
+                {t("steam_playtime_tracking_description")}
+              </h4>
+            </div>
+
+            <CheckboxField
+              label={t("enable_hydra_playtime_tracking")}
+              checked={game.enableHydraPlaytimeTracking === true}
+              onChange={(event) =>
+                void onToggleHydraPlaytimeEnabled(event.target.checked)
+              }
+            />
+          </div>
+        )}
 
       {/* Drive Selector */}
       {showTransferSection && game.executablePath && !isTransferring && (

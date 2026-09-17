@@ -11,6 +11,7 @@ import HydraIcon from "@renderer/assets/icons/hydra.svg?react";
 import { MAX_MINUTES_TO_SHOW_IN_PLAYTIME } from "@renderer/constants";
 import { darkenColor } from "@renderer/helpers";
 import { logger } from "@renderer/logger";
+import { getDisplayedPlayTimeInMilliseconds } from "@shared";
 import { average } from "color.js";
 import type { Game, GameLauncherStatus, GameShop, ShopAssets } from "@types";
 import "./game-launcher.scss";
@@ -177,7 +178,7 @@ export default function GameLauncher() {
     normalizeImageUrl(game?.iconUrl ?? gameAssets?.iconUrl) ||
     fallbackSteamCoverImage;
   const gameTitle = game?.title ?? gameAssets?.title ?? "";
-  const playTime = game?.playTimeInMilliseconds ?? 0;
+  const playTime = game ? getDisplayedPlayTimeInMilliseconds(game) : 0;
   const achievementCount = game?.achievementCount ?? 0;
   const unlockedAchievements = game?.unlockedAchievementCount ?? 0;
   const isWindowsExecutable =

@@ -6,7 +6,9 @@ import { platformToSystem } from "@renderer/helpers";
 import {
   buildWineDllOverridesValue,
   getGameExecutableFilters,
+  getRetroArchRomExtensions,
   mergeLaunchOptionEnvVars,
+  platformToRetroArchPlatform,
 } from "@shared";
 import type { FileFilter } from "../../../common";
 import { useBigPictureToast } from "../../../../hooks";
@@ -129,9 +131,14 @@ export function useGameSettingsModalState({
 
     const loadDiscFilters = async () => {
       const system = platformToSystem(game.platform);
-      const extensions = system
-        ? await globalThis.window.electron.getEmulatorRomExtensions(system)
-        : ["*"];
+      const retroArchPlatform = platformToRetroArchPlatform(game.platform);
+      let extensions = ["*"];
+      if (retroArchPlatform) {
+        extensions = getRetroArchRomExtensions(retroArchPlatform);
+      } else if (system) {
+        extensions =
+          await globalThis.window.electron.getEmulatorRomExtensions(system);
+      }
 
       if (!cancelled) {
         setDiscPickerFilters([

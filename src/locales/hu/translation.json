@@ -33,7 +33,6 @@
     "favorites": "Kedvenc Játékaim",
     "playable_button_title": "Csak az azonnal játszható játékokat mutasd",
     "add_custom_game_tooltip": "Saját játék hozzáadása",
-    "show_playable_only_tooltip": "Csak játszható játék mutatása",
     "custom_game_modal": "Saját játék hozzáadása:",
     "custom_game_modal_description": "Adj meg egy futtatható fájlt",
     "custom_game_modal_executable_path": "Futtatható fájl",
@@ -262,7 +261,6 @@
     "downloader_online": "Elérhető",
     "downloader_not_configured": "Elérhető de nincs beállítva",
     "downloader_offline": "A link nem elérhető",
-    "downloader_not_available": "Nem elérhető",
     "go_to_settings": "Beállítások megnyitása",
     "select_executable": "Tallózás",
     "no_executable_selected": "Nincs futtatható fájl tallózva",
@@ -600,6 +598,17 @@
     "move_down": "Le"
   },
   "settings": {
+    "hide_library_steam_badges": "A Steam-könyvtár kapcsolatjelvényeinek elrejtése",
+    "integration_connect": "Csatlakozás",
+    "integration_disconnect": "Leválasztás",
+    "integration_reconnect": "Újracsatlakozás",
+    "integration_sync": "Szinkronizálás",
+    "integration_status_not_connected": "Nincs csatlakoztatva",
+    "retroachievements_connect_title": "RetroAchievements csatlakoztatása",
+    "retroachievements_status_invalid_credentials": "Érvénytelen hitelesítő adatok",
+    "retroachievements_invalid_credentials_description": "A RetroAchievements hitelesítő adatai már nem érvényesek. Csatlakoztasd újra a fiókodat.",
+    "retroachievements_last_checked": "Utolsó ellenőrzés: {{date}}",
+    "steam_status_reconnect_required": "Újracsatlakozás szükséges",
     "downloads_path": "Letöltési útvonalak",
     "change": "Frissítés",
     "notifications": "Értesítések",
@@ -968,6 +977,8 @@
     "wrapped_2025": "Wrapped 2025"
   },
   "library": {
+    "category_steam_library": "Steam-könyvtár",
+    "imported_from_steam": "Az ehhez a profilhoz kapcsolt Steam-könyvtárból importálva.",
     "library": "Könyvtár",
     "collections": "Collections",
     "play": "Játék",

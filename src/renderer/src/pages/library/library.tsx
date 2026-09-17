@@ -28,15 +28,25 @@ import { AuthPage, removeDiacritics } from "@shared";
 import { GameCollection, LibraryGame } from "@types";
 import { CreateCollectionModal, GameContextMenu } from "@renderer/components";
 import { useCollectionContextMenu } from "@renderer/context";
-import { getGameCollectionIds, sortLibraryGames } from "@renderer/helpers";
+import {
+  filterLibraryGamesByCategory,
+  getGameCollectionIds,
+  isGameInstalled,
+  sortLibraryGames,
+} from "@renderer/helpers";
 import { useSearchParams } from "react-router-dom";
 import { LibraryGameCard } from "./library-game-card";
 import { LibraryGameCardLarge } from "./library-game-card-large";
 import { ViewOptions, ViewMode } from "./view-options";
 import { FilterOptions, SortOption } from "./filter-options";
 import { CategoryFilter, LibraryCategory } from "./category-filter";
+import { InstalledFilter } from "./installed-filter";
 import { PlatformFilter } from "./platform-filter";
 import { CollectionsFilter } from "./collections-filter";
+import {
+  LIBRARY_INSTALLED_ONLY_STORAGE_KEY,
+  LIBRARY_PLATFORMS_STORAGE_KEY,
+} from "@renderer/session-state";
 import {
   ClassicsOnboardingModal,
   hasDismissedClassicsOnboarding,
@@ -59,6 +69,21 @@ const getColumnsCount = (width: number, mode: ViewMode): number => {
   const idx = COLUMN_BREAKPOINTS.findIndex((bp) => width >= bp);
   return COLUMNS[mode][idx === -1 ? COLUMN_BREAKPOINTS.length : idx];
 };
+
+const readStoredPlatforms = (): string[] => {
+  try {
+    const saved = localStorage.getItem(LIBRARY_PLATFORMS_STORAGE_KEY);
+    if (!saved) return [];
+
+    const parsed = JSON.parse(saved);
+    if (!Array.isArray(parsed)) return [];
+
+    return parsed.filter((item): item is string => typeof item === "string");
+  } catch {
+    return [];
+  }
+};
+
 const SORT_OPTIONS: SortOption[] = [
   "title_asc",
   "recently_played",
@@ -75,6 +100,7 @@ export default function Library() {
     collections,
     loadCollections,
     hasLoaded: hasLoadedCollections,
+    hasFailed: hasFailedToLoadCollections,
   } = useGameCollections();
   const [searchParams, setSearchParams] = useSearchParams();
   const { openCollectionContextMenu } = useCollectionContextMenu();
@@ -101,12 +127,21 @@ export default function Library() {
 
   const [category, setCategory] = useState<LibraryCategory>(() => {
     const saved = localStorage.getItem("library-category");
-    if (saved === "all" || saved === "pc" || saved === "classics") {
+    if (
+      saved === "all" ||
+      saved === "pc" ||
+      saved === "steam_library" ||
+      saved === "classics"
+    ) {
       return saved;
     }
     return "all";
   });
-  const [selectedPlatform, setSelectedPlatform] = useState<string | null>(null);
+  const [selectedPlatforms, setSelectedPlatforms] =
+    useState<string[]>(readStoredPlatforms);
+  const [showInstalledOnly, setShowInstalledOnly] = useState<boolean>(
+    () => localStorage.getItem(LIBRARY_INSTALLED_ONLY_STORAGE_KEY) === "true"
+  );
   const [isImportingClassics, setIsImportingClassics] = useState(false);
 
   // The category switch and platform filter are always available, so the
@@ -180,13 +215,26 @@ export default function Library() {
     }
   }, [effectiveCategory]);
 
-  const handleCategoryChange = useCallback((next: LibraryCategory) => {
-    setCategory(next);
-    localStorage.setItem("library-category", next);
-    if (next === "pc") {
-      setSelectedPlatform(null);
-    }
+  const handlePlatformsChange = useCallback((next: string[]) => {
+    setSelectedPlatforms(next);
+    localStorage.setItem(LIBRARY_PLATFORMS_STORAGE_KEY, JSON.stringify(next));
   }, []);
+
+  const handleShowInstalledOnlyChange = useCallback((next: boolean) => {
+    setShowInstalledOnly(next);
+    localStorage.setItem(LIBRARY_INSTALLED_ONLY_STORAGE_KEY, String(next));
+  }, []);
+
+  const handleCategoryChange = useCallback(
+    (next: LibraryCategory) => {
+      setCategory(next);
+      localStorage.setItem("library-category", next);
+      if (next === "pc" || next === "steam_library") {
+        handlePlatformsChange([]);
+      }
+    },
+    [handlePlatformsChange]
+  );
 
   const searchQuery = useAppSelector((state) => state.library.searchQuery);
   const deferredSearchQuery = useDeferredValue(searchQuery);
@@ -301,22 +349,35 @@ export default function Library() {
 
   useEffect(() => {
     if (!selectedCollectionId) return;
-    if (!hasLoadedCollections) return;
-
     if (selectedCollectionId === FAVORITES_COLLECTION_ID) return;
 
-    const hasCollection = collections.some(
-      (collection) => collection.id === selectedCollectionId
+    if (hasLoadedCollections) {
+      const hasCollection = collections.some(
+        (collection) => collection.id === selectedCollectionId
+      );
+
+      if (!hasCollection) {
+        handleCollectionSelect(null);
+      }
+      return;
+    }
+
+    if (!hasFailedToLoadCollections || library.length === 0) return;
+
+    const isCollectionInLibrary = library.some((game) =>
+      getGameCollectionIds(game).includes(selectedCollectionId)
     );
 
-    if (!hasCollection) {
+    if (!isCollectionInLibrary) {
       handleCollectionSelect(null);
     }
   }, [
     collections,
+    library,
     selectedCollectionId,
     handleCollectionSelect,
     hasLoadedCollections,
+    hasFailedToLoadCollections,
   ]);
 
   const sortedLibrary = useMemo(
@@ -337,20 +398,26 @@ export default function Library() {
       }
     }
 
-    if (effectiveCategory === "pc") {
-      filtered = filtered.filter((game) => game.shop !== "launchbox");
-    } else if (effectiveCategory === "classics") {
-      filtered = filtered.filter((game) => game.shop === "launchbox");
-      if (selectedPlatform) {
+    filtered = filterLibraryGamesByCategory(filtered, effectiveCategory);
+
+    const platforms = new Set(selectedPlatforms);
+
+    if (effectiveCategory === "classics") {
+      if (platforms.size > 0) {
         filtered = filtered.filter(
-          (game) => game.platform === selectedPlatform
+          (game) => game.platform && platforms.has(game.platform)
         );
       }
-    } else if (selectedPlatform) {
+    } else if (effectiveCategory === "all" && platforms.size > 0) {
       filtered = filtered.filter(
         (game) =>
-          game.shop !== "launchbox" || game.platform === selectedPlatform
+          game.shop !== "launchbox" ||
+          (game.platform && platforms.has(game.platform))
       );
+    }
+
+    if (showInstalledOnly) {
+      filtered = filtered.filter(isGameInstalled);
     }
 
     const queryLower = removeDiacritics(deferredSearchQuery).toLowerCase();
@@ -378,7 +445,8 @@ export default function Library() {
     deferredSearchQuery,
     selectedCollectionId,
     effectiveCategory,
-    selectedPlatform,
+    selectedPlatforms,
+    showInstalledOnly,
   ]);
 
   const uniquePlatforms = useMemo(() => {
@@ -392,6 +460,19 @@ export default function Library() {
       a.localeCompare(b, undefined, { sensitivity: "base" })
     );
   }, [library]);
+
+  useEffect(() => {
+    if (uniquePlatforms.length === 0 || selectedPlatforms.length === 0) return;
+
+    const availablePlatforms = new Set(uniquePlatforms);
+    const nextPlatforms = selectedPlatforms.filter((platform) =>
+      availablePlatforms.has(platform)
+    );
+
+    if (nextPlatforms.length !== selectedPlatforms.length) {
+      handlePlatformsChange(nextPlatforms);
+    }
+  }, [uniquePlatforms, selectedPlatforms, handlePlatformsChange]);
 
   const favoritesCount = useMemo(() => {
     return library.filter((game) => game.favorite).length;
@@ -446,7 +527,8 @@ export default function Library() {
     setHeaderHidden(false);
   }, [
     effectiveCategory,
-    selectedPlatform,
+    selectedPlatforms,
+    showInstalledOnly,
     sortBy,
     selectedCollectionId,
     setHeaderHidden,
@@ -497,17 +579,22 @@ export default function Library() {
                 onCreate={handleCreateCollectionButtonClick}
                 onCollectionContextMenu={openCollectionContextMenu}
               />
+              <InstalledFilter
+                showInstalledOnly={showInstalledOnly}
+                onShowInstalledOnlyChange={handleShowInstalledOnlyChange}
+              />
             </div>
 
             <div className="library__controls-right">
               <FilterOptions sortBy={sortBy} onSortChange={handleSortChange} />
-              {effectiveCategory !== "pc" && (
-                <PlatformFilter
-                  platform={selectedPlatform}
-                  platforms={uniquePlatforms}
-                  onPlatformChange={setSelectedPlatform}
-                />
-              )}
+              {effectiveCategory !== "pc" &&
+                effectiveCategory !== "steam_library" && (
+                  <PlatformFilter
+                    selectedPlatforms={selectedPlatforms}
+                    platforms={uniquePlatforms}
+                    onPlatformsChange={handlePlatformsChange}
+                  />
+                )}
               <ViewOptions
                 viewMode={viewMode}
                 onViewModeChange={handleViewModeChange}

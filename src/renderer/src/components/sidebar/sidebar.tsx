@@ -20,11 +20,19 @@ import {
 import type { LibraryCategory } from "@renderer/pages/library/category-filter";
 import type { SortOption } from "@renderer/pages/library/filter-options";
 
-import { PlayIcon, VideoIcon } from "@primer/octicons-react";
+import {
+  CheckCircleFillIcon,
+  CheckCircleIcon,
+  VideoIcon,
+} from "@primer/octicons-react";
 import { Tooltip } from "react-tooltip";
 import deckyIcon from "@renderer/assets/icons/decky.png";
 import cn from "classnames";
 import { SidebarFilterMenu } from "./sidebar-filter-menu";
+import {
+  SIDEBAR_PLATFORMS_STORAGE_KEY,
+  SIDEBAR_PLAYABLE_ONLY_STORAGE_KEY,
+} from "@renderer/session-state";
 import { SidebarGameItem } from "./sidebar-game-item";
 import { SidebarProfile } from "./sidebar-profile";
 
@@ -33,7 +41,12 @@ const SIDEBAR_INITIAL_WIDTH = 250;
 const SIDEBAR_MAX_WIDTH = 450;
 const SIDEBAR_GAME_ITEM_HEIGHT = 42;
 
-const SIDEBAR_CATEGORIES = new Set<LibraryCategory>(["all", "pc", "classics"]);
+const SIDEBAR_CATEGORIES = new Set<LibraryCategory>([
+  "all",
+  "pc",
+  "steam_library",
+  "classics",
+]);
 const SIDEBAR_SORT_OPTIONS = new Set<SortOption>([
   "title_asc",
   "recently_played",
@@ -46,6 +59,20 @@ const isGamePlayable = (game: LibraryGame) =>
   (game.shop === "launchbox" && (game.discs?.length ?? 0) > 0);
 
 const initialSidebarWidth = window.localStorage.getItem("sidebarWidth");
+
+const readStoredSidebarPlatforms = (): string[] => {
+  try {
+    const saved = localStorage.getItem(SIDEBAR_PLATFORMS_STORAGE_KEY);
+    if (!saved) return [];
+
+    const parsed = JSON.parse(saved);
+    if (!Array.isArray(parsed)) return [];
+
+    return parsed.filter((item): item is string => typeof item === "string");
+  } catch {
+    return [];
+  }
+};
 
 export function Sidebar() {
   const { t } = useTranslation(["sidebar", "library"]);
@@ -90,8 +117,12 @@ export function Sidebar() {
     return localStorage.getItem("sidebar-favorites-first") !== "false";
   });
 
-  const [selectedPlatforms, setSelectedPlatforms] = useState<string[]>([]);
-  const [showPlayableOnly, setShowPlayableOnly] = useState(false);
+  const [selectedPlatforms, setSelectedPlatforms] = useState<string[]>(
+    readStoredSidebarPlatforms
+  );
+  const [showPlayableOnly, setShowPlayableOnly] = useState<boolean>(
+    () => localStorage.getItem(SIDEBAR_PLAYABLE_ONLY_STORAGE_KEY) === "true"
+  );
 
   const uniquePlatforms = useMemo(() => {
     const set = new Set<string>();
@@ -105,6 +136,20 @@ export function Sidebar() {
     );
   }, [library]);
 
+  const orderSidebarGames = useCallback(
+    (games: LibraryGame[]) => {
+      const sorted = sortLibraryGames(games, sidebarSortBy);
+
+      if (!showFavoritesFirst) return sorted;
+
+      return [
+        ...sorted.filter((game) => game.favorite),
+        ...sorted.filter((game) => !game.favorite),
+      ];
+    },
+    [sidebarSortBy, showFavoritesFirst]
+  );
+
   const sortedLibrary = useMemo(() => {
     let games = filterLibraryGamesByCategory(library, sidebarCategory);
 
@@ -115,23 +160,13 @@ export function Sidebar() {
       );
     }
 
-    games = sortLibraryGames(games, sidebarSortBy);
+    return orderSidebarGames(games);
+  }, [library, sidebarCategory, selectedPlatforms, orderSidebarGames]);
 
-    if (showFavoritesFirst) {
-      games = [
-        ...games.filter((game) => game.favorite),
-        ...games.filter((game) => !game.favorite),
-      ];
-    }
-
-    return games;
-  }, [
-    library,
-    sidebarCategory,
-    sidebarSortBy,
-    selectedPlatforms,
-    showFavoritesFirst,
-  ]);
+  const searchableLibrary = useMemo(
+    () => orderSidebarGames(library),
+    [library, orderSidebarGames]
+  );
 
   const { lastPacket, progress } = useDownload();
 
@@ -154,12 +189,16 @@ export function Sidebar() {
     }
   }, [sortedLibrary]);
 
+  const isSearching = filterQuery.trim().length > 0;
+
   const visibleGames = useMemo(
     () =>
-      filteredLibrary.filter(
-        (game) => !showPlayableOnly || isGamePlayable(game)
-      ),
-    [filteredLibrary, showPlayableOnly]
+      isSearching
+        ? filteredLibrary
+        : filteredLibrary.filter(
+            (game) => !showPlayableOnly || isGamePlayable(game)
+          ),
+    [filteredLibrary, showPlayableOnly, isSearching]
   );
 
   const hasActiveFilter =
@@ -167,7 +206,7 @@ export function Sidebar() {
     (sidebarCategory !== "all" ||
       selectedPlatforms.length > 0 ||
       showPlayableOnly ||
-      filterQuery.trim().length > 0);
+      isSearching);
 
   const virtualizer = useVirtualizer({
     count: visibleGames.length,
@@ -198,7 +237,7 @@ export function Sidebar() {
     }
 
     setFilteredLibrary(
-      sortedLibrary.filter((game) =>
+      searchableLibrary.filter((game) =>
         removeDiacritics(game.title ?? "")
           .toLowerCase()
           .includes(normalizedQuery)
@@ -206,13 +245,32 @@ export function Sidebar() {
     );
   };
 
-  const handleSidebarCategoryChange = useCallback((next: LibraryCategory) => {
-    setSidebarCategory(next);
-    localStorage.setItem("sidebar-category", next);
-    if (next !== "classics") {
-      setSelectedPlatforms([]);
-    }
+  const handleSelectedPlatformsChange = useCallback((next: string[]) => {
+    setSelectedPlatforms(next);
+    localStorage.setItem(SIDEBAR_PLATFORMS_STORAGE_KEY, JSON.stringify(next));
   }, []);
+
+  const handleTogglePlayableOnly = useCallback(() => {
+    setShowPlayableOnly((prev) => !prev);
+  }, []);
+
+  useEffect(() => {
+    localStorage.setItem(
+      SIDEBAR_PLAYABLE_ONLY_STORAGE_KEY,
+      String(showPlayableOnly)
+    );
+  }, [showPlayableOnly]);
+
+  const handleSidebarCategoryChange = useCallback(
+    (next: LibraryCategory) => {
+      setSidebarCategory(next);
+      localStorage.setItem("sidebar-category", next);
+      if (next !== "classics") {
+        handleSelectedPlatformsChange([]);
+      }
+    },
+    [handleSelectedPlatformsChange]
+  );
 
   const handleSidebarSortChange = useCallback((next: SortOption) => {
     setSidebarSortBy(next);
@@ -223,6 +281,19 @@ export function Sidebar() {
     setShowFavoritesFirst(next);
     localStorage.setItem("sidebar-favorites-first", String(next));
   }, []);
+
+  useEffect(() => {
+    if (uniquePlatforms.length === 0 || selectedPlatforms.length === 0) return;
+
+    const availablePlatforms = new Set(uniquePlatforms);
+    const nextPlatforms = selectedPlatforms.filter((platform) =>
+      availablePlatforms.has(platform)
+    );
+
+    if (nextPlatforms.length !== selectedPlatforms.length) {
+      handleSelectedPlatformsChange(nextPlatforms);
+    }
+  }, [uniquePlatforms, selectedPlatforms, handleSelectedPlatformsChange]);
 
   const loadDeckyPluginInfo = async () => {
     if (window.electron.platform !== "linux") return;
@@ -466,12 +537,18 @@ export function Sidebar() {
                 className={cn("sidebar__play-button", {
                   "sidebar__play-button--active": showPlayableOnly,
                 })}
-                onClick={() => setShowPlayableOnly((prev) => !prev)}
+                onClick={handleTogglePlayableOnly}
                 data-tooltip-id="sidebar-show-playable-only-tooltip"
-                data-tooltip-content={t("show_playable_only_tooltip")}
+                data-tooltip-content={t("show_installed_only", {
+                  ns: "library",
+                })}
                 data-tooltip-place="top"
               >
-                <PlayIcon size={16} />
+                {showPlayableOnly ? (
+                  <CheckCircleFillIcon size={16} />
+                ) : (
+                  <CheckCircleIcon size={16} />
+                )}
               </button>
 
               <Tooltip id="sidebar-show-playable-only-tooltip" place="top" />
@@ -485,7 +562,7 @@ export function Sidebar() {
                 onToggleFavoritesFirst={handleToggleFavoritesFirst}
                 platforms={uniquePlatforms}
                 selectedPlatforms={selectedPlatforms}
-                onPlatformsChange={setSelectedPlatforms}
+                onPlatformsChange={handleSelectedPlatformsChange}
               />
             </div>
 

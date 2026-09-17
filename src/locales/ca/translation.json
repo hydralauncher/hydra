@@ -33,7 +33,6 @@
     "need_help": "Need help?",
     "playable_button_title": "Show only games you can play now",
     "add_custom_game_tooltip": "Add Custom Game",
-    "show_playable_only_tooltip": "Show Playable Only",
     "custom_game_modal": "Add Custom Game",
     "custom_game_modal_description": "Add a custom game to your library by selecting an executable file",
     "custom_game_modal_executable_path": "Executable Path",
@@ -268,7 +267,6 @@
     "downloader_online": "Online",
     "downloader_not_configured": "Available but not configured",
     "downloader_offline": "Link is offline",
-    "downloader_not_available": "Not available",
     "go_to_settings": "Go to Settings",
     "open_save_folder": "Open save folder",
     "searching_save_folder": "Searching save folder...",
@@ -576,6 +574,17 @@
     "move_down": "Move down"
   },
   "settings": {
+    "hide_library_steam_badges": "Amaga les insígnies de connexió amb la biblioteca de Steam",
+    "integration_connect": "Connecta",
+    "integration_disconnect": "Desconnecta",
+    "integration_reconnect": "Torna a connectar",
+    "integration_sync": "Sincronitza",
+    "integration_status_not_connected": "No connectat",
+    "retroachievements_connect_title": "Connecta RetroAchievements",
+    "retroachievements_status_invalid_credentials": "Credencials no vàlides",
+    "retroachievements_invalid_credentials_description": "Les credencials de RetroAchievements ja no són vàlides. Torna a connectar el compte.",
+    "retroachievements_last_checked": "Última comprovació: {{date}}",
+    "steam_status_reconnect_required": "Cal tornar a connectar",
     "downloads_path": "Ruta de baixades",
     "change": "Actualitza",
     "notifications": "Notificacions",
@@ -946,6 +955,8 @@
     "wrapped_2025": "Wrapped 2025"
   },
   "library": {
+    "category_steam_library": "Biblioteca de Steam",
+    "imported_from_steam": "Importat de la biblioteca de Steam vinculada a aquest perfil.",
     "library": "Library",
     "collections": "Collections",
     "play": "Play",

@@ -1,4 +1,5 @@
 import { LibraryGame } from "@types";
+import { getDisplayedPlayTimeInMilliseconds } from "@shared";
 import cn from "classnames";
 import {
   useGameCard,
@@ -11,8 +12,9 @@ import {
   CLASSICS_PS_PLATFORM_LABELS,
   isGameReadyToPlay,
   resolveClassicsBadge,
+  shouldShowSteamLibraryBadge,
 } from "@renderer/helpers";
-import { AchievementProgress } from "@renderer/components";
+import { AchievementProgress, SteamLibraryBadge } from "@renderer/components";
 import { memo, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
@@ -50,8 +52,14 @@ export const LibraryGameCard = memo(function LibraryGameCard({
     (state) => state.userPreferences.value
   );
   const hideBadges = userPreferences?.hideLibraryGameBadges ?? false;
+  const hideReadySizeBadges =
+    userPreferences?.hideLibraryReadySizeBadges ?? false;
   const hideClassicsBadges =
     userPreferences?.hideLibraryClassicsBadges ?? false;
+  const showSteamLibraryBadge = shouldShowSteamLibraryBadge(
+    game,
+    userPreferences?.hideSteamLibraryBadges
+  );
   const hideAchievementProgress =
     userPreferences?.hideLibraryAchievementProgress ?? false;
   const autoplayAnimatedArtwork =
@@ -136,7 +144,7 @@ export const LibraryGameCard = memo(function LibraryGameCard({
 
   const showPlatformBadge =
     !hideClassicsBadges && Boolean(classicsPlatformLabel);
-  const showReadyBadge = !hideBadges && isInstalled;
+  const showReadyBadge = !hideReadySizeBadges && isInstalled;
 
   const handleImageError = () => {
     logger.warn(`Image failed to load for ${game.title}`, {
@@ -224,7 +232,9 @@ export const LibraryGameCard = memo(function LibraryGameCard({
           "library-game-card__overlay--classics":
             game.shop === "launchbox" && !isChosenCoverActive,
           "library-game-card__overlay--no-fade":
-            hideAchievementProgress || (game.achievementCount ?? 0) === 0,
+            hideAchievementProgress ||
+            ((game.achievementCount ?? 0) === 0 &&
+              (game.unlockedAchievementCount ?? 0) === 0),
         })}
       >
         <div className="library-game-card__top-section">
@@ -239,16 +249,18 @@ export const LibraryGameCard = memo(function LibraryGameCard({
                 <ClockIcon size={11} />
               )}
               <span className="library-game-card__playtime-long">
-                {formatPlayTime(game.playTimeInMilliseconds)}
+                {formatPlayTime(getDisplayedPlayTimeInMilliseconds(game))}
               </span>
               <span className="library-game-card__playtime-short">
-                {formatPlayTime(game.playTimeInMilliseconds, true)}
+                {formatPlayTime(getDisplayedPlayTimeInMilliseconds(game), true)}
               </span>
             </div>
           )}
 
-          {(showPlatformBadge || showReadyBadge) && (
+          {(showSteamLibraryBadge || showPlatformBadge || showReadyBadge) && (
             <div className="library-game-card__top-right">
+              {showSteamLibraryBadge && <SteamLibraryBadge />}
+
               {showPlatformBadge && (
                 <div className="library-game-card__classics-badges">
                   <span className="library-game-card__platform-badge">
@@ -286,14 +298,19 @@ export const LibraryGameCard = memo(function LibraryGameCard({
           )}
         </div>
 
-        {!hideAchievementProgress && (game.achievementCount ?? 0) > 0 && (
-          <AchievementProgress
-            achievementCount={game.achievementCount ?? 0}
-            unlockedAchievementCount={game.unlockedAchievementCount ?? 0}
-            classNamePrefix="library-game-card"
-            label={`${game.title} achievements`}
-          />
-        )}
+        {!hideAchievementProgress &&
+          ((game.achievementCount ?? 0) > 0 ||
+            (game.unlockedAchievementCount ?? 0) > 0) && (
+            <AchievementProgress
+              achievementCount={Math.max(
+                game.achievementCount ?? 0,
+                game.unlockedAchievementCount ?? 0
+              )}
+              unlockedAchievementCount={game.unlockedAchievementCount ?? 0}
+              classNamePrefix="library-game-card"
+              label={`${game.title} achievements`}
+            />
+          )}
       </div>
 
       {renderCoverMedia()}

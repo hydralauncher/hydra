@@ -30,7 +30,6 @@
     "favorites": "Favoriler",
     "playable_button_title": "Şu anda oynayabileceğin oyunları göster",
     "add_custom_game_tooltip": "Özel Oyun Ekle",
-    "show_playable_only_tooltip": "Sadece Oynanabilirleri Göster",
     "custom_game_modal": "Özel Oyun Ekle",
     "custom_game_modal_description": "Çalıştırılabilir bir dosya seçerek kütüphanene özel oyun ekle",
     "custom_game_modal_executable_path": "Çalıştırılabilir Dosya Yolu",
@@ -448,7 +447,6 @@
     "downloader_online": "Online",
     "downloader_not_configured": "Available but not configured",
     "downloader_offline": "Link is offline",
-    "downloader_not_available": "Not available",
     "go_to_settings": "Go to Settings",
     "open_save_folder": "Open save folder",
     "searching_save_folder": "Searching save folder...",
@@ -576,6 +574,17 @@
     "move_down": "Move down"
   },
   "settings": {
+    "hide_library_steam_badges": "Steam Kütüphanesi bağlantı rozetlerini gizle",
+    "integration_connect": "Bağlan",
+    "integration_disconnect": "Bağlantıyı kes",
+    "integration_reconnect": "Yeniden bağlan",
+    "integration_sync": "Eşitle",
+    "integration_status_not_connected": "Bağlı değil",
+    "retroachievements_connect_title": "RetroAchievements'ı bağla",
+    "retroachievements_status_invalid_credentials": "Geçersiz kimlik bilgileri",
+    "retroachievements_invalid_credentials_description": "RetroAchievements kimlik bilgileriniz artık geçerli değil. Hesabınızı yeniden bağlayın.",
+    "retroachievements_last_checked": "Son kontrol: {{date}}",
+    "steam_status_reconnect_required": "Yeniden bağlantı gerekli",
     "downloads_path": "İndirme yolu",
     "change": "Güncelle",
     "notifications": "Bildirimler",
@@ -946,6 +955,8 @@
     "wrapped_2025": "Wrapped 2025"
   },
   "library": {
+    "category_steam_library": "Steam Kütüphanesi",
+    "imported_from_steam": "Bu profile bağlı Steam kütüphanesinden içe aktarıldı.",
     "library": "Kütüphane",
     "play": "Oyna",
     "download": "İndir",

@@ -17,6 +17,7 @@ import {
   ClassicsIcon,
   type LibraryCategory,
 } from "@renderer/pages/library/category-filter";
+import { SteamIcon } from "@renderer/components/steam-library-badge/steam-library-badge";
 import type { SortOption } from "@renderer/pages/library/filter-options";
 import "./sidebar-filter-menu.scss";
 
@@ -58,7 +59,10 @@ export function SidebarFilterMenu({
       return;
     }
 
-    if (selectedPlatforms.length <= 1) return;
+    if (selectedPlatforms.length <= 1) {
+      onPlatformsChange([]);
+      return;
+    }
 
     onPlatformsChange(
       selectedPlatforms.filter((selected) => selected !== platform)
@@ -79,6 +83,11 @@ export function SidebarFilterMenu({
       value: "pc",
       label: t("category_pc", { ns: "library" }),
       icon: <DeviceDesktopIcon size={14} />,
+    },
+    {
+      value: "steam_library",
+      label: t("category_steam_library", { ns: "library" }),
+      icon: <SteamIcon size={14} />,
     },
     {
       value: "classics",
