@@ -192,7 +192,10 @@ export default function RetroAchievementsConnectionWindow() {
             error={errors.webApiKey}
             hint={
               <Trans i18nKey="retroachievements_web_api_key_hint" ns="settings">
-                <Link to={RETRO_ACHIEVEMENTS_WEB_API_KEY_URL} />
+                <Link
+                  to={RETRO_ACHIEVEMENTS_WEB_API_KEY_URL}
+                  className="retroachievements-connection-window__api-key-link"
+                />
               </Trans>
             }
           />
@@ -205,6 +208,8 @@ export default function RetroAchievementsConnectionWindow() {
               {errors.form}
             </p>
           ) : null}
+
+          <hr className="retroachievements-connection-window__divider" />
 
           <p className="retroachievements-connection-window__emulator-note">
             {t("retroachievements_emulator_note")}

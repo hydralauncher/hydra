@@ -51,6 +51,10 @@
     flex: 1;
     flex-direction: column;
     gap: calc(globals.$spacing-unit * 2);
+
+    > .text-field-container {
+      flex: 0 0 auto;
+    }
   }
 
   &__error,
@@ -64,8 +68,26 @@
     color: globals.$error-color;
   }
 
+  &__divider {
+    width: 100%;
+    margin: 0;
+    border: 0;
+    border-top: 1px solid globals.$border-color;
+  }
+
   &__emulator-note {
     color: globals.$body-color;
+  }
+
+  &__api-key-link,
+  &__create-account {
+    text-decoration: underline;
+    text-underline-offset: 2px;
+    transition: color 0.2s ease;
+
+    &:hover {
+      color: globals.$muted-color;
+    }
   }
 
   &__create-account {
