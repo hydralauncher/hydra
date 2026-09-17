@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 
-import { Button, ClassicsSpinner, Modal } from "@renderer/components";
+import { Button, Modal } from "@renderer/components";
 import { useDate, useToast, useUserDetails } from "@renderer/hooks";
 import { LinkExternalIcon, PersonIcon, SyncIcon } from "@primer/octicons-react";
 import {
@@ -372,6 +372,7 @@ export function SettingsSteam() {
   };
 
   const handleDisconnect = async () => {
+    setShowDeleteDataModal(false);
     setIsSubmitting(true);
     setIsDisconnecting(true);
 
@@ -379,7 +380,6 @@ export function SettingsSteam() {
       await globalThis.window.electron.disconnectSteam(true);
 
       showSuccessToast(t("steam_account_unlinked"));
-      setShowDeleteDataModal(false);
       await refreshStatus({ silent: true });
     } catch (error) {
       showErrorToast(getSteamErrorMessage(error, "steam_disconnect_error"));
@@ -594,14 +594,9 @@ export function SettingsSteam() {
             onClick={() => void handleDisconnect()}
             disabled={isSubmitting}
           >
-            {isDisconnecting ? <ClassicsSpinner size={14} /> : null}
-            {isDisconnecting
-              ? integration.connected
-                ? t("steam_disconnecting")
-                : t("steam_removing_imported_data")
-              : integration.connected
-                ? t("steam_delete_confirm_button")
-                : t("steam_remove_imported_data")}
+            {integration.connected
+              ? t("steam_delete_confirm_button")
+              : t("steam_remove_imported_data")}
           </Button>
         </div>
       </Modal>
