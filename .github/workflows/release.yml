@@ -44,7 +44,7 @@ jobs:
           "prefix=v1-vcpkg-$env:RUNNER_OS-$image-$arch-$arch-$platform" >> $env:GITHUB_OUTPUT
 
       - name: Cache Rust dependencies
-        uses: Swatinem/rust-cache@v2
+        uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2.9.2
         with:
           workspaces: native/hydra-native -> target
           shared-key: native-${{ runner.os }}-${{ runner.arch }}-${{ steps.native-cache.outputs.image }}
@@ -54,7 +54,7 @@ jobs:
       # Keep fallback restores within the same runner image and target triplet.
       - name: Restore vcpkg binary packages
         id: vcpkg-cache
-        uses: actions/cache/restore@v4
+        uses: actions/cache/restore@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
         with:
           path: ${{ env.VCPKG_DEFAULT_BINARY_CACHE }}
           key: ${{ steps.native-cache.outputs.prefix }}-${{ hashFiles('native/torrent-bridge/**/vcpkg*.json', 'native/torrent-bridge/**/triplets/**') }}
@@ -71,7 +71,7 @@ jobs:
       # Save before packaging so later failures do not discard compiled dependencies.
       - name: Save vcpkg binary packages
         if: steps.vcpkg-cache.outputs.cache-hit != 'true'
-        uses: actions/cache/save@v4
+        uses: actions/cache/save@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
         with:
           path: ${{ env.VCPKG_DEFAULT_BINARY_CACHE }}
           key: ${{ steps.vcpkg-cache.outputs.cache-primary-key }}
