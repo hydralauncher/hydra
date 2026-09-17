@@ -991,6 +991,8 @@
     "debrid_description": "Nimbus bilan 4 barobar tezroq yuklab oling"
   },
   "library": {
+    "category_steam_library": "Steam kutubxonasi",
+    "imported_from_steam": "Ushbu profilga ulangan Steam kutubxonasidan import qilingan.",
     "library": "Library",
     "collections": "Collections",
     "play": "Play",

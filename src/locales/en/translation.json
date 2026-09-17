@@ -1982,6 +1982,8 @@
     "installed_tooltip": "Executable set, ready to play",
     "category_all": "All",
     "category_pc": "PC",
+    "category_steam_library": "Steam Library",
+    "imported_from_steam": "Imported from the Steam library linked to this profile.",
     "category_classics": "Classics",
     "all_consoles": "All Consoles",
     "sort_by": "Sort by",

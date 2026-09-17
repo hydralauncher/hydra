@@ -28,7 +28,11 @@ import { AuthPage, removeDiacritics } from "@shared";
 import { GameCollection, LibraryGame } from "@types";
 import { CreateCollectionModal, GameContextMenu } from "@renderer/components";
 import { useCollectionContextMenu } from "@renderer/context";
-import { getGameCollectionIds, sortLibraryGames } from "@renderer/helpers";
+import {
+  filterLibraryGamesByCategory,
+  getGameCollectionIds,
+  sortLibraryGames,
+} from "@renderer/helpers";
 import { useSearchParams } from "react-router-dom";
 import { LibraryGameCard } from "./library-game-card";
 import { LibraryGameCardLarge } from "./library-game-card-large";
@@ -101,7 +105,12 @@ export default function Library() {
 
   const [category, setCategory] = useState<LibraryCategory>(() => {
     const saved = localStorage.getItem("library-category");
-    if (saved === "all" || saved === "pc" || saved === "classics") {
+    if (
+      saved === "all" ||
+      saved === "pc" ||
+      saved === "steam_library" ||
+      saved === "classics"
+    ) {
       return saved;
     }
     return "all";
@@ -183,7 +192,7 @@ export default function Library() {
   const handleCategoryChange = useCallback((next: LibraryCategory) => {
     setCategory(next);
     localStorage.setItem("library-category", next);
-    if (next === "pc") {
+    if (next === "pc" || next === "steam_library") {
       setSelectedPlatform(null);
     }
   }, []);
@@ -337,10 +346,9 @@ export default function Library() {
       }
     }
 
-    if (effectiveCategory === "pc") {
-      filtered = filtered.filter((game) => game.shop !== "launchbox");
-    } else if (effectiveCategory === "classics") {
-      filtered = filtered.filter((game) => game.shop === "launchbox");
+    filtered = filterLibraryGamesByCategory(filtered, effectiveCategory);
+
+    if (effectiveCategory === "classics") {
       if (selectedPlatform) {
         filtered = filtered.filter(
           (game) => game.platform === selectedPlatform
@@ -501,13 +509,14 @@ export default function Library() {
 
             <div className="library__controls-right">
               <FilterOptions sortBy={sortBy} onSortChange={handleSortChange} />
-              {effectiveCategory !== "pc" && (
-                <PlatformFilter
-                  platform={selectedPlatform}
-                  platforms={uniquePlatforms}
-                  onPlatformChange={setSelectedPlatform}
-                />
-              )}
+              {effectiveCategory !== "pc" &&
+                effectiveCategory !== "steam_library" && (
+                  <PlatformFilter
+                    platform={selectedPlatform}
+                    platforms={uniquePlatforms}
+                    onPlatformChange={setSelectedPlatform}
+                  />
+                )}
               <ViewOptions
                 viewMode={viewMode}
                 onViewModeChange={handleViewModeChange}

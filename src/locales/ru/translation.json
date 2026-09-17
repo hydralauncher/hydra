@@ -1958,6 +1958,8 @@
     "installed_tooltip": "Исполняемый файл установлен, готово к игре",
     "category_all": "Все",
     "category_pc": "ПК",
+    "category_steam_library": "Библиотека Steam",
+    "imported_from_steam": "Импортировано из библиотеки Steam, связанной с этим профилем.",
     "category_classics": "Классика",
     "all_consoles": "Все консоли",
     "sort_by": "Сортировать по",

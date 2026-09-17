@@ -956,6 +956,8 @@
     "wrapped_2025": "Wrapped 2025"
   },
   "library": {
+    "category_steam_library": "کتابخانه Steam",
+    "imported_from_steam": "از کتابخانه Steam متصل به این نمایه وارد شده است.",
     "library": "Library",
     "collections": "Collections",
     "play": "Play",

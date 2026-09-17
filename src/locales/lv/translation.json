@@ -991,6 +991,8 @@
     "debrid_description": "Lejupielādējiet 4 reizes ātrāk ar Nimbus"
   },
   "library": {
+    "category_steam_library": "Steam bibliotēka",
+    "imported_from_steam": "Importēts no šim profilam piesaistītās Steam bibliotēkas.",
     "library": "Library",
     "collections": "Collections",
     "play": "Play",

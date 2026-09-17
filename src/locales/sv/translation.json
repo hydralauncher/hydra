@@ -991,6 +991,8 @@
     "debrid_description": "Ladda ner upp till 4x snabbare med Nimbus"
   },
   "library": {
+    "category_steam_library": "Steam-bibliotek",
+    "imported_from_steam": "Importerat från Steam-biblioteket som är länkat till den här profilen.",
     "library": "Library",
     "collections": "Collections",
     "play": "Play",

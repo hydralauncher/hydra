@@ -956,6 +956,8 @@
     "wrapped_2025": "Wrapped 2025"
   },
   "library": {
+    "category_steam_library": "Steam-bibliotheek",
+    "imported_from_steam": "Geïmporteerd uit de Steam-bibliotheek die aan dit profiel is gekoppeld.",
     "library": "Library",
     "collections": "Collections",
     "play": "Play",

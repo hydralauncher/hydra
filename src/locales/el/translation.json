@@ -1535,6 +1535,8 @@
     "installed_tooltip": "Το εκτελέσιμο έχει οριστεί και είναι έτοιμο για εκκίνηση",
     "category_all": "Όλα",
     "category_pc": "PC",
+    "category_steam_library": "Βιβλιοθήκη Steam",
+    "imported_from_steam": "Εισήχθη από τη βιβλιοθήκη Steam που είναι συνδεδεμένη με αυτό το προφίλ.",
     "category_classics": "Κλασικά",
     "all_consoles": "Όλες οι κονσόλες",
     "sort_by": "Ταξινόμηση κατά",

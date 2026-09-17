@@ -1547,6 +1547,8 @@
     "installed_tooltip": "Đã đặt tệp chạy, sẵn sàng chơi",
     "category_all": "Tất cả",
     "category_pc": "PC",
+    "category_steam_library": "Thư viện Steam",
+    "imported_from_steam": "Được nhập từ thư viện Steam liên kết với hồ sơ này.",
     "category_classics": "Game cổ điển",
     "all_consoles": "Tất cả máy chơi game",
     "sort_by": "Sắp xếp theo",
