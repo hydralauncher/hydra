@@ -1,67 +1,123 @@
 @use "../../scss/globals.scss";
 
 .settings-account {
-  &__form {
-    display: flex;
-    flex-direction: column;
-    gap: calc(globals.$spacing-unit * 2);
-  }
+  display: flex;
+  flex-direction: column;
+  gap: calc(globals.$spacing-unit * 2.5);
+  max-width: 720px;
 
-  &__section {
+  &__group {
     display: flex;
     flex-direction: column;
     gap: globals.$spacing-unit;
   }
 
-  &__actions {
-    display: flex;
-    gap: globals.$spacing-unit;
-    margin-top: globals.$spacing-unit;
-  }
-
-  &__subscription-info {
-    display: flex;
-    flex-direction: column;
-    gap: calc(globals.$spacing-unit * 2);
-  }
-
-  &__subscription-button {
-    place-self: flex-start;
-  }
-
-  &__blocked-users {
-    list-style: none;
+  &__group-label {
     margin: 0;
-    padding: 0;
-    display: flex;
-    flex-direction: column;
-    gap: globals.$spacing-unit;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+    color: globals.$body-color;
+    opacity: 0.5;
   }
 
-  &__blocked-user {
+  &__card {
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    background-color: globals.$dark-background-color;
+    border: 1px solid globals.$border-color;
+    border-radius: 8px;
+  }
+
+  &__row {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    gap: globals.$spacing-unit;
+    gap: calc(globals.$spacing-unit * 2);
+    padding: calc(globals.$spacing-unit * 1.5)
+      calc(globals.$spacing-unit * 1.75);
+    border-bottom: 1px solid globals.$border-color;
+
+    &:last-child {
+      border-bottom: none;
+    }
+  }
+
+  &__row-text {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+  }
+
+  &__row-title {
+    font-size: globals.$body-font-size;
+    font-weight: 500;
+    color: globals.$muted-color;
+    overflow-wrap: anywhere;
+  }
+
+  &__row-hint {
+    font-size: globals.$small-font-size;
+    color: globals.$body-color;
+    opacity: 0.7;
+    overflow-wrap: anywhere;
+  }
+
+  &__row-note {
+    font-size: globals.$small-font-size;
+    color: globals.$body-color;
+    opacity: 0.5;
+    white-space: nowrap;
+  }
+
+  &__row-control {
+    display: flex;
+    align-items: center;
+    flex-shrink: 0;
+
+    .select-field__container {
+      flex: 0 0 auto;
+    }
+  }
+
+  &__row-button {
+    min-height: 36px;
+    padding: calc(globals.$spacing-unit * 0.75) calc(globals.$spacing-unit * 2);
+    white-space: nowrap;
+  }
+
+  &__blocked-users {
+    display: flex;
+    flex-direction: column;
+    margin: 0;
+    padding: 0;
+    list-style: none;
   }
 
   &__user-info {
     display: flex;
-    gap: globals.$spacing-unit;
     align-items: center;
+    gap: calc(globals.$spacing-unit * 1.5);
+    min-width: 0;
   }
 
   &__user-avatar {
+    flex-shrink: 0;
     filter: grayscale(100%);
   }
 
-  &__unblock-button {
-    color: globals.$danger-color;
-    cursor: pointer;
-    background: none;
-    border: none;
+  &__visually-hidden {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    margin: -1px;
     padding: 0;
-    display: flex;
-    align-items: center;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
   }
 }

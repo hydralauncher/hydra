@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 
+import { Button } from "../button/button";
 import { Modal } from "../modal/modal";
 import { CheckboxField } from "../checkbox-field/checkbox-field";
 import {
@@ -117,13 +118,12 @@ export function ClassicsOnboardingModal({
               ))}
             </div>
 
-            <button
-              type="button"
+            <Button
               className="classics-onboarding__primary"
               onClick={handlePrimary}
             >
               {isLastStep ? t("explore") : t("next")}
-            </button>
+            </Button>
           </div>
         </div>
       </div>

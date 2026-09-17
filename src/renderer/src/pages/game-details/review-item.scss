@@ -196,20 +196,15 @@
   }
 
   &__delete-review-button {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    background: rgba(244, 67, 54, 0.1);
-    border: 1px solid rgba(244, 67, 54, 0.3);
-    border-radius: 6px;
-    padding: 6px;
-    color: #f44336;
-    cursor: pointer;
-    transition: all 0.2s ease;
+    min-height: 32px;
+    padding: 6px calc(globals.$spacing-unit * 1.5);
     gap: 6px;
+    background-color: rgba(244, 67, 54, 0.1);
+    border-color: rgba(244, 67, 54, 0.3);
+    color: #f44336;
 
     &:hover {
-      background: rgba(244, 67, 54, 0.2);
+      background-color: rgba(244, 67, 54, 0.2);
       border-color: #f44336;
       color: #ff5722;
     }

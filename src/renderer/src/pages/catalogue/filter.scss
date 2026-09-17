@@ -247,5 +247,15 @@
   &__item {
     height: 28px;
     max-height: 28px;
+
+    .checkbox-field {
+      align-items: center;
+    }
+
+    .checkbox-field__label {
+      flex: 1;
+      min-width: 0;
+      overflow-wrap: normal;
+    }
   }
 }

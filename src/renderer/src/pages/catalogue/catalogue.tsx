@@ -4,7 +4,12 @@ import type {
   DownloadSource,
 } from "@types";
 
-import { useAppDispatch, useAppSelector, useFormat } from "@renderer/hooks";
+import {
+  translateGenreName,
+  useAppDispatch,
+  useAppSelector,
+  useFormat,
+} from "@renderer/hooks";
 import {
   lazy,
   Suspense,
@@ -308,11 +313,13 @@ export default function Catalogue() {
       {
         title: t("genres"),
         key: "genres" as const,
-        items: launchboxFilters.genres.map((genre) => ({
-          label: genre,
-          value: genre,
-          checked: filters.genres.includes(genre),
-        })),
+        items: launchboxFilters.genres
+          .map((genre) => ({
+            label: translateGenreName(steamGenres, language, genre),
+            value: genre,
+            checked: filters.genres.includes(genre),
+          }))
+          .sort((a, b) => a.label.localeCompare(b.label)),
       },
       {
         title: t("developers"),
@@ -354,6 +361,8 @@ export default function Catalogue() {
     filters.downloadSourceFingerprints,
     downloadSources,
     classicsPlatforms,
+    steamGenres,
+    language,
     t,
   ]);
 
@@ -369,7 +378,7 @@ export default function Catalogue() {
         value: platform,
       })),
       ...filters.genres.map((genre) => ({
-        label: genre,
+        label: translateGenreName(steamGenres, language, genre),
         filterType: t("genres"),
         orbColor: filterCategoryColors.genres,
         key: "genres",
@@ -400,6 +409,8 @@ export default function Catalogue() {
       })),
     ];
   }, [
+    steamGenres,
+    language,
     classicsPlatforms,
     filters.genres,
     filters.developers,

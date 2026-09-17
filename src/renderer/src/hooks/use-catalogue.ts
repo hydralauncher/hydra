@@ -4,37 +4,10 @@ import { levelDBService } from "@renderer/services/leveldb.service";
 import type { DownloadSource } from "@types";
 import { useAppDispatch } from "./redux";
 import { setGenres, setTags } from "@renderer/features";
-
-const SUPPORTED_STEAM_METADATA_LANGUAGES = new Set([
-  "en",
-  "es",
-  "pt",
-  "ru",
-  "fr",
-]);
-
-async function getLocalizedSteamMetadata<T>(endpoint: string, locale: string) {
-  const language = locale.split("-")[0] || "en";
-  const requestLanguage = SUPPORTED_STEAM_METADATA_LANGUAGES.has(language)
-    ? language
-    : "en";
-  const languages = requestLanguage === "en" ? ["en"] : ["en", requestLanguage];
-  const entries = await Promise.all(
-    languages.map(async (currentLanguage) => {
-      const data = await window.electron.hydraApi.get<T>(endpoint, {
-        params: { language: currentLanguage },
-        needsAuth: false,
-      });
-
-      return [currentLanguage, data] as const;
-    })
-  );
-  const metadata = Object.fromEntries(entries) as Record<string, T>;
-
-  metadata[language] ??= metadata[requestLanguage];
-
-  return metadata;
-}
+import {
+  getLocalizedGenres,
+  getLocalizedSteamMetadata,
+} from "./localized-steam-metadata";
 
 export function useCatalogue() {
   const dispatch = useAppDispatch();
@@ -50,10 +23,7 @@ export function useCatalogue() {
         "/catalogue/steam/tags",
         i18n.language
       ),
-      getLocalizedSteamMetadata<string[]>(
-        "/catalogue/steam/genres",
-        i18n.language
-      ),
+      getLocalizedGenres(i18n.language),
     ]);
 
     dispatch(setTags(tags));

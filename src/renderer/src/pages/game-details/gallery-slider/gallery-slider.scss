@@ -24,16 +24,6 @@
     position: relative;
     overflow: hidden;
     border-radius: 8px;
-
-    @media (min-width: 1280px) {
-      width: 60%;
-      max-height: 500px;
-    }
-
-    @media (min-width: 1536px) {
-      width: 50%;
-      max-height: 600px;
-    }
   }
 
   &__container-inner {
@@ -144,14 +134,6 @@
     overflow-y: hidden;
     gap: calc(globals.$spacing-unit / 2);
 
-    @media (min-width: 1280px) {
-      width: 60%;
-    }
-
-    @media (min-width: 1536px) {
-      width: 50%;
-    }
-
     &::-webkit-scrollbar-thumb {
       width: 20%;
     }
@@ -163,7 +145,9 @@
 
   &__preview-button {
     cursor: pointer;
-    width: 20%;
+    // Relative to the thumbnail strip, clamped so thumbnails stay usable
+    // in a narrow column and do not balloon in a wide one.
+    width: clamp(64px, 12%, 112px);
     display: block;
     flex-shrink: 0;
     flex-grow: 0;
@@ -176,18 +160,6 @@
     overflow: hidden;
     position: relative;
     aspect-ratio: 1 / 1;
-
-    @media (min-width: 1024px) {
-      width: 15%;
-    }
-
-    @media (min-width: 1280px) {
-      width: 12%;
-    }
-
-    @media (min-width: 1536px) {
-      width: 10%;
-    }
 
     &:hover {
       opacity: 0.8;

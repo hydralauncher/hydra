@@ -219,23 +219,21 @@
     }
   }
 
+  // Shared cloud Button with this modal's own gradient.
   &__accept {
-    min-height: 40px;
-    padding: 10px 16px;
     color: #fff;
     background:
       linear-gradient(90deg, rgba(0, 0, 0, 0.2), rgba(0, 0, 0, 0.2)),
       linear-gradient(91deg, #0cf1ca 0.13%, #1dcceb 99.87%);
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    border-radius: 8px;
+    border-color: rgba(255, 255, 255, 0.1);
+    box-shadow: none;
     font-size: 13px;
     font-weight: 600;
-    cursor: pointer;
-    transition: filter 0.2s ease;
 
-    &:hover,
+    &:hover:not(:disabled),
     &:focus-visible {
       filter: brightness(1.12);
+      box-shadow: none;
     }
 
     &:active {

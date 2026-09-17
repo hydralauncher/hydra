@@ -1,9 +1,19 @@
 @use "../../../scss/globals.scss";
 
 .game-options-modal {
+  // Fixed height so the modal does not resize when switching categories.
+  // Shrinks below this only when the viewport is shorter than the modal.
+  height: 700px;
+
+  .modal__content {
+    display: flex;
+    flex-direction: column;
+  }
+
   &__container {
     display: flex;
-    min-height: 520px;
+    flex: 1;
+    min-height: 0;
   }
 
   &__sidebar {
@@ -58,6 +68,8 @@
     flex-direction: column;
     gap: calc(globals.$spacing-unit * 2.5);
     min-width: 0;
+    min-height: 0;
+    overflow-y: auto;
     padding: calc(globals.$spacing-unit * 2.5);
 
     &--assets {
@@ -224,16 +236,75 @@
   &__danger-zone {
     display: flex;
     flex-direction: column;
-    gap: globals.$spacing-unit;
+    gap: calc(globals.$spacing-unit * 2.5);
 
-    &-description {
-      font-weight: 400;
+    &-group {
+      display: flex;
+      flex-direction: column;
+      gap: globals.$spacing-unit;
     }
 
-    &-buttons {
+    &-group-label {
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.5px;
+      text-transform: uppercase;
+      opacity: 0.5;
+    }
+
+    &-card {
       display: flex;
-      gap: globals.$spacing-unit;
-      flex-wrap: wrap;
+      flex-direction: column;
+      background: globals.$dark-background-color;
+      border: 1px solid globals.$border-color;
+      border-radius: 8px;
+      overflow: hidden;
+
+      &--destructive {
+        border-color: rgba(225, 29, 72, 0.35);
+      }
+    }
+
+    &-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: calc(globals.$spacing-unit * 2);
+      padding: calc(globals.$spacing-unit * 1.5)
+        calc(globals.$spacing-unit * 1.75);
+
+      & + & {
+        border-top: 1px solid globals.$border-color;
+      }
+
+      &--disabled {
+        opacity: globals.$disabled-opacity;
+      }
+    }
+
+    &-row-text {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+      min-width: 0;
+    }
+
+    &-row-title {
+      font-size: globals.$body-font-size;
+      font-weight: 500;
+      color: globals.$muted-color;
+    }
+
+    &-row-description {
+      font-size: globals.$small-font-size;
+      opacity: 0.7;
+    }
+
+    &-action {
+      flex-shrink: 0;
+      min-height: 36px;
+      padding: calc(globals.$spacing-unit * 0.75)
+        calc(globals.$spacing-unit * 2);
     }
   }
 
@@ -245,7 +316,6 @@
   @media (max-width: 860px) {
     &__container {
       flex-direction: column;
-      min-height: 0;
     }
 
     &__sidebar {

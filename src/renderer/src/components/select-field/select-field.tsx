@@ -20,6 +20,8 @@ export function SelectField({
   onChange,
   className,
   disabled,
+  "aria-label": ariaLabel,
+  "aria-labelledby": ariaLabelledBy,
 }: Readonly<SelectProps>) {
   const [isFocused, setIsFocused] = useState(false);
   const id = useId();
@@ -42,6 +44,8 @@ export function SelectField({
           id={id}
           value={value}
           className="select-field__option"
+          aria-label={ariaLabel}
+          aria-labelledby={ariaLabelledBy}
           disabled={disabled}
           onFocus={() => setIsFocused(true)}
           onBlur={() => setIsFocused(false)}

@@ -8,6 +8,7 @@ import {
   ToolsIcon,
 } from "@primer/octicons-react";
 import HydraIcon from "@renderer/assets/icons/hydra.svg?react";
+import { Button } from "@renderer/components";
 import { MAX_MINUTES_TO_SHOW_IN_PLAYTIME } from "@renderer/constants";
 import { darkenColor } from "@renderer/helpers";
 import { logger } from "@renderer/logger";
@@ -394,13 +395,12 @@ export default function GameLauncher() {
             </p>
 
             {!isMainWindowOpen && (
-              <button
-                type="button"
+              <Button
                 className="game-launcher__button"
                 onClick={handleOpenHydra}
               >
                 {t("open_hydra")}
-              </button>
+              </Button>
             )}
           </div>
 

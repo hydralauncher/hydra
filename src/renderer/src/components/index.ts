@@ -10,6 +10,7 @@ export * from "./modal/modal";
 export * from "./sidebar/sidebar";
 export * from "./text-field/text-field";
 export * from "./checkbox-field/checkbox-field";
+export * from "./marquee-text/marquee-text";
 export * from "./radio-field/radio-field";
 export * from "./link/link";
 export * from "./select-field/select-field";

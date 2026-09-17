@@ -553,6 +553,7 @@ export function ProfileContent() {
                   pinnedGames={pinnedGames}
                   libraryGames={libraryGames}
                   hasMoreLibraryGames={hasMoreLibraryGames}
+                  isLoadingLibraryGames={isLoadingLibraryGames}
                   isAwaitingInitialLibrary={isCorrectingPrefetchedSort}
                   statsIndex={statsIndex}
                   userStats={userStats}

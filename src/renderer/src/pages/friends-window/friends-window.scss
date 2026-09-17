@@ -279,26 +279,17 @@
     padding: 0 calc(globals.$spacing-unit * 2);
   }
 
+  // Compact variant of the shared primary Button.
   &__add-friend {
-    display: inline-flex;
-    align-items: center;
     gap: calc(globals.$spacing-unit / 2);
     flex-shrink: 0;
-    background-color: globals.$muted-color;
-    border: none;
+    min-height: 36px;
+    padding: 0 calc(globals.$spacing-unit * 1.5);
     border-radius: 6px;
     color: globals.$dark-background-color;
     font-size: globals.$small-font-size;
     font-weight: 600;
     white-space: nowrap;
-    padding: 0 calc(globals.$spacing-unit * 1.5);
-    height: 36px;
-    cursor: pointer;
-    transition: background-color 0.2s ease;
-
-    &:hover {
-      background-color: #dadbe1;
-    }
   }
 
   &__search {

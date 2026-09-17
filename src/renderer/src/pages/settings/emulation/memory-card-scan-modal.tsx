@@ -244,13 +244,13 @@ export function MemoryCardScanModal({
           <div className="setup-modal__footer-side" />
           <div className="setup-modal__footer-side setup-modal__footer-side--end">
             {!isDone && !isError && (
-              <button
-                type="button"
-                className="setup-modal__ghost-button"
+              <Button
+                theme="outline"
+                className="setup-modal__footer-ghost-button"
                 onClick={onCancel}
               >
                 {t("setup_cancel_scan")}
-              </button>
+              </Button>
             )}
             <Button
               theme="primary"

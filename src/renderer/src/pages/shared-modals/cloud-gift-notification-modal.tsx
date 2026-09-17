@@ -10,7 +10,7 @@ import { createPortal } from "react-dom";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { useTranslation } from "react-i18next";
 
-import { Avatar, Link } from "@renderer/components";
+import { Avatar, Button, Link } from "@renderer/components";
 import { useUserDetails } from "@renderer/hooks";
 import { logger } from "@renderer/logger";
 import { levelDBService } from "@renderer/services/leveldb.service";
@@ -475,16 +475,16 @@ export function CloudGiftNotificationModal() {
                   </Link>
                 </div>
 
-                <button
+                <Button
                   ref={acceptButtonRef}
-                  type="button"
+                  theme="cloud"
                   className="cloud-gift-notification-modal__accept"
                   disabled={!isRevealComplete || isAccepting}
                   tabIndex={isRevealComplete ? 0 : -1}
                   onClick={() => void acceptGift()}
                 >
                   {t("cloud_gift_launcher_accept")}
-                </button>
+                </Button>
               </div>
             </motion.section>
 

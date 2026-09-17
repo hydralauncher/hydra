@@ -34,10 +34,21 @@
     );
     padding: calc(globals.$spacing-unit * 1.5);
     gap: calc(globals.$spacing-unit * 1.5);
+
+    // When the app area is too narrow for a two column layout, drop the
+    // details sidebar below the content instead of squeezing the column.
+    @container #{globals.$app-container} (max-width: #{globals.$game-details-stack-breakpoint}) {
+      flex-direction: column;
+
+      .content-sidebar {
+        width: 100%;
+        height: auto;
+      }
+    }
   }
 
   &__description-content {
-    width: 100%;
+    @include globals.game-details-column;
     min-height: 100%;
     min-width: 0;
     flex: 1;
@@ -52,19 +63,9 @@
     line-height: 22px;
     font-size: globals.$body-font-size;
     width: 100%;
-    margin-left: auto;
-    margin-right: auto;
     overflow-x: auto;
     min-height: auto;
     transition: max-height 0.3s ease-in-out;
-
-    @media (min-width: 1280px) {
-      width: 60%;
-    }
-
-    @media (min-width: 1536px) {
-      width: 50%;
-    }
 
     &--collapsed {
       max-height: 300px;
@@ -113,22 +114,9 @@
   }
 
   &__description-toggle {
-    background: none;
-    border: 1px solid globals.$border-color;
-    color: globals.$body-color;
-    padding: calc(globals.$spacing-unit * 0.75)
-      calc(globals.$spacing-unit * 1.5);
-    border-radius: 4px;
-    cursor: pointer;
-    font-size: globals.$body-font-size;
-    margin-top: calc(globals.$spacing-unit * 1.5);
-    transition: all 0.2s ease;
     align-self: center;
-
-    &:hover {
-      background-color: rgba(255, 255, 255, 0.1);
-      border-color: rgba(255, 255, 255, 0.1);
-    }
+    margin-top: calc(globals.$spacing-unit * 1.5);
+    color: globals.$body-color;
   }
 
   // Skeleton-specific styles

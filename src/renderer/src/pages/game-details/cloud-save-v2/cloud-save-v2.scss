@@ -570,12 +570,13 @@
     background: rgba(255, 59, 92, 0.08);
     color: globals.$error-color;
     font-size: globals.$small-font-size;
+  }
 
-    button {
-      color: inherit;
-      cursor: pointer;
-      text-decoration: underline;
-    }
+  &__browser-inline-retry {
+    min-height: 28px;
+    padding: 2px calc(globals.$spacing-unit * 1.5);
+    font-size: globals.$small-font-size;
+    color: inherit;
   }
 
   &__browser-state {

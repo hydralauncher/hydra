@@ -8,6 +8,7 @@ import {
 } from "react";
 import { PencilIcon } from "@primer/octicons-react";
 import { useTranslation } from "react-i18next";
+import { Button } from "@renderer/components";
 import { useSearchParams } from "react-router-dom";
 
 import { HeroPanel } from "./hero";
@@ -487,13 +488,13 @@ export function GameDetailsContent() {
             />
 
             {aboutTheGame && isDescriptionOverflowing && (
-              <button
-                type="button"
+              <Button
+                theme="outline"
                 className="game-details__description-toggle"
                 onClick={() => setIsDescriptionExpanded(!isDescriptionExpanded)}
               >
                 {isDescriptionExpanded ? t("show_less") : t("show_more")}
-              </button>
+              </Button>
             )}
 
             {shop && objectId && (

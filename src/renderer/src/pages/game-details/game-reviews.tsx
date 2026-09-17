@@ -4,6 +4,7 @@ import { useEditor } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
 import Underline from "@tiptap/extension-underline";
 import { useTranslation } from "react-i18next";
+import { Button } from "@renderer/components";
 import type { GameReview, Game, GameShop } from "@types";
 
 import { ReviewForm } from "./review-form";
@@ -489,12 +490,13 @@ export function GameReviews({
       </div>
 
       {hasMoreReviews && !reviewsLoading && (
-        <button
+        <Button
+          theme="outline"
           className="game-details__load-more-reviews"
           onClick={loadMoreReviews}
         >
           {t("load_more_reviews")}
-        </button>
+        </Button>
       )}
 
       {reviewsLoading && reviews.length > 0 && (

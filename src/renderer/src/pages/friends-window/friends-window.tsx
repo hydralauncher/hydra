@@ -11,7 +11,7 @@ import {
   XIcon,
 } from "@primer/octicons-react";
 
-import { Avatar } from "@renderer/components";
+import { Avatar, Button } from "@renderer/components";
 import { useAppSelector, useUserDetails } from "@renderer/hooks";
 import SteamLogo from "@renderer/assets/steam-logo.svg?react";
 import type { ProfileFriends, UserFriend } from "@types";
@@ -601,15 +601,14 @@ export default function FriendsWindow() {
               </button>
             )}
           </div>
-          <button
-            type="button"
+          <Button
             className="friends-window__add-friend"
             onClick={handleAddFriend}
             title={t("add_friend")}
           >
             <PlusIcon size={16} />
             {t("add_friend")}
-          </button>
+          </Button>
         </div>
 
         <div className="friends-window__list-container">

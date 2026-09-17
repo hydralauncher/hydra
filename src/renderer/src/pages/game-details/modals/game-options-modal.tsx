@@ -1182,6 +1182,7 @@ export function GameOptionsModal({
         onCloseStart={cancelLegacySaveExport}
         large={true}
         noContentPadding
+        className="game-options-modal"
       >
         <div className="game-options-modal__container">
           <GameOptionsSidebar

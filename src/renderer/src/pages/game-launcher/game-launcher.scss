@@ -204,28 +204,9 @@
 
   &__button {
     width: 100%;
-    background-color: globals.$muted-color;
-    border: solid 1px transparent;
+    margin-top: calc(globals.$spacing-unit * 2);
     color: #0d0d0d;
-    border-radius: 8px;
-    padding: globals.$spacing-unit calc(globals.$spacing-unit * 2);
-    min-height: 40px;
     font-size: 14px;
     font-weight: 600;
-    cursor: pointer;
-    transition: all ease 0.2s;
-    font-family: inherit;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    margin-top: calc(globals.$spacing-unit * 2);
-
-    &:hover {
-      background-color: #dadbe1;
-    }
-
-    &:active {
-      opacity: globals.$active-opacity;
-    }
   }
 }

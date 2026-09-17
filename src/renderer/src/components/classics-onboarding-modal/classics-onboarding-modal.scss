@@ -70,23 +70,8 @@
   }
 
   &__primary {
-    background-color: #f5f5f5;
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    border-radius: 8px;
-    padding: 10px 16px;
-    color: #0a0a0a;
     font-weight: 600;
     font-size: 13px;
-    cursor: pointer;
-    transition: opacity ease 0.2s;
-
-    &:hover {
-      opacity: 0.9;
-    }
-
-    &:active {
-      opacity: 0.8;
-    }
   }
 
   &__illustration {

@@ -29,8 +29,10 @@
   }
 
   &__card-skeleton {
+    display: block;
     width: 100%;
-    height: 180px;
+    height: auto;
+    aspect-ratio: globals.$game-card-aspect-ratio;
     box-shadow: 0px 0px 15px 0px #000000;
     overflow: hidden;
     border-radius: 4px;
@@ -100,16 +102,27 @@
     transition: all ease 0.2s;
     padding: 0 calc(globals.$spacing-unit * 3) calc(globals.$spacing-unit * 3);
 
-    @media (min-width: 768px) {
+    // Column tiers follow the app content width (not the window) so the nav
+    // sidebar is accounted for, and keep cards roughly 330px to 500px wide.
+    // The tiers skip 5 and 7 so the 24 games requested always fill full rows.
+    @container #{globals.$app-container} (min-width: 700px) {
       grid-template-columns: repeat(2, 1fr);
     }
 
-    @media (min-width: 1250px) {
+    @container #{globals.$app-container} (min-width: 1100px) {
       grid-template-columns: repeat(3, 1fr);
     }
 
-    @media (min-width: 1600px) {
+    @container #{globals.$app-container} (min-width: 1500px) {
       grid-template-columns: repeat(4, 1fr);
+    }
+
+    @container #{globals.$app-container} (min-width: 2100px) {
+      grid-template-columns: repeat(6, 1fr);
+    }
+
+    @container #{globals.$app-container} (min-width: 2800px) {
+      grid-template-columns: repeat(8, 1fr);
     }
   }
 }

@@ -100,6 +100,18 @@
     }
   }
 
+  // Text-only secondary action in a modal footer, built on the shared Button.
+  &__footer-ghost-button {
+    border-color: transparent;
+    color: #a1a1aa;
+    font-size: 13px;
+    font-weight: 600;
+
+    &:hover {
+      color: #fafafa;
+    }
+  }
+
   &__dots {
     display: flex;
     gap: 6px;

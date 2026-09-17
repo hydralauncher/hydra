@@ -6,16 +6,6 @@
     padding-top: calc(globals.$spacing-unit * 3);
     border-top: 1px solid rgba(255, 255, 255, 0.1);
     width: 100%;
-    margin-left: auto;
-    margin-right: auto;
-
-    @media (min-width: 1280px) {
-      width: 60%;
-    }
-
-    @media (min-width: 1536px) {
-      width: 50%;
-    }
   }
 
   &__reviews-header {
@@ -109,20 +99,12 @@
   }
 
   &__load-more-reviews {
-    background: rgba(255, 255, 255, 0.05);
-    border: 1px solid globals.$border-color;
-    color: globals.$body-color;
-    padding: calc(globals.$spacing-unit * 1) calc(globals.$spacing-unit * 2);
-    border-radius: 4px;
-    cursor: pointer;
-    font-size: globals.$body-font-size;
-    font-family: inherit;
-    transition: all 0.2s ease;
     width: 100%;
     margin-top: calc(globals.$spacing-unit * 2);
+    background-color: rgba(255, 255, 255, 0.05);
+    color: globals.$body-color;
 
     &:hover {
-      background-color: rgba(255, 255, 255, 0.1);
       border-color: globals.$brand-teal;
     }
   }

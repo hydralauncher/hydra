@@ -1,4 +1,5 @@
 import { CheckboxField } from "@renderer/components/checkbox-field/checkbox-field";
+import { MarqueeText } from "@renderer/components/marquee-text/marquee-text";
 import { TextField } from "@renderer/components/text-field/text-field";
 import { useFormat } from "@renderer/hooks";
 import { ChevronDownIcon } from "@primer/octicons-react";
@@ -213,9 +214,12 @@ export function FilterSection({
             }}
           >
             {(item) => (
-              <div key={item.value} className="filter-section__item">
+              <div
+                key={item.value}
+                className="filter-section__item marquee-text-trigger"
+              >
                 <CheckboxField
-                  label={item.label}
+                  label={<MarqueeText text={item.label} />}
                   checked={item.checked}
                   onChange={() => onSelect(item.value)}
                 />

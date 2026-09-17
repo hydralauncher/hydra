@@ -689,26 +689,17 @@
   }
 
   &__memcard-backup-all {
-    display: inline-flex;
-    align-items: center;
+    min-height: auto;
     gap: 6px;
-    background: transparent;
-    border: 1px solid #1c1c1c;
-    border-radius: 8px;
-    color: #c0c1c7;
-    cursor: pointer;
     padding: 6px 12px;
     font-size: 12px;
     flex-shrink: 0;
+    border-color: #1c1c1c;
+    color: #c0c1c7;
 
     &:hover {
       color: #fafafa;
       border-color: #2a2a2a;
-    }
-
-    &:disabled {
-      cursor: not-allowed;
-      opacity: 0.5;
     }
   }
 

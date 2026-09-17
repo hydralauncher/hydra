@@ -1,6 +1,6 @@
 import { Badge } from "@renderer/components/badge/badge";
 import { buildGameDetailsPath } from "@renderer/helpers";
-import { useAppSelector, useLibrary } from "@renderer/hooks";
+import { useGenreTranslation, useLibrary } from "@renderer/hooks";
 import { lazy, Suspense, useMemo, useState, useEffect } from "react";
 import { Link } from "@renderer/components/link/link";
 
@@ -20,11 +20,9 @@ export interface GameItemProps {
 }
 
 export function GameItem({ game }: GameItemProps) {
-  const { i18n, t } = useTranslation("game_details");
+  const { t } = useTranslation("game_details");
 
-  const language = i18n.language.split("-")[0];
-
-  const { steamGenres } = useAppSelector((state) => state.catalogueSearch);
+  const { translateGenre } = useGenreTranslation();
 
   const [isAddingToLibrary, setIsAddingToLibrary] = useState(false);
 
@@ -61,23 +59,10 @@ export function GameItem({ game }: GameItemProps) {
     }
   };
 
-  const genres = useMemo(() => {
-    return game.genres?.map((genre) => {
-      const index = steamGenres["en"]?.findIndex(
-        (steamGenre) => steamGenre === genre
-      );
-
-      if (
-        index !== undefined &&
-        steamGenres[language] &&
-        steamGenres[language][index]
-      ) {
-        return steamGenres[language][index];
-      }
-
-      return genre;
-    });
-  }, [game.genres, language, steamGenres]);
+  const genres = useMemo(
+    () => game.genres?.map(translateGenre),
+    [game.genres, translateGenre]
+  );
 
   const libraryImage = useMemo(() => {
     if (game.libraryImageUrl) {

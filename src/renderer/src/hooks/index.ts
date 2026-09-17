@@ -12,6 +12,8 @@ export * from "./use-game-card";
 export * from "./use-search-history";
 export * from "./use-search-suggestions";
 export * from "./use-similar-games";
+export * from "./use-genre-translation";
+export * from "./genre-translation";
 export * from "./use-game-collections";
 export * from "./use-classics-scan";
 export * from "./use-retroarch-scan";

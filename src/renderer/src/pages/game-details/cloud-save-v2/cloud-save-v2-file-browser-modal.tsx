@@ -679,9 +679,13 @@ export function CloudSaveV2FileBrowserModal({
                 <div className="cloud-save-v2__browser-inline-error">
                   <WarningCircleIcon size={16} />
                   <span>{t("cloud_save_v2_files_refresh_error")}</span>
-                  <button type="button" onClick={onRetry}>
+                  <Button
+                    theme="outline"
+                    className="cloud-save-v2__browser-inline-retry"
+                    onClick={onRetry}
+                  >
                     {t("cloud_save_v2_files_retry")}
-                  </button>
+                  </Button>
                 </div>
               )}
 

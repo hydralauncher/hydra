@@ -994,20 +994,18 @@
   }
 }
 
+// Soft danger variant of the shared outline Button.
 .user-reviews__delete-review-button {
-  display: flex;
-  align-items: center;
+  min-height: 32px;
   gap: 6px;
-  background: rgba(244, 67, 54, 0.1);
-  border: 1px solid rgba(244, 67, 54, 0.3);
-  border-radius: 6px;
   padding: 6px 10px;
+  border-radius: 6px;
+  background-color: rgba(244, 67, 54, 0.1);
+  border-color: rgba(244, 67, 54, 0.3);
   color: #f44336;
-  cursor: pointer;
-  transition: all 0.2s ease;
 
   &:hover {
-    background: rgba(244, 67, 54, 0.2);
+    background-color: rgba(244, 67, 54, 0.2);
     border-color: rgba(244, 67, 54, 0.4);
     color: #ff7961;
   }

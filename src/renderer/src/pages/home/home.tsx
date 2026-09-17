@@ -17,6 +17,10 @@ import { buildGameDetailsPath, ensureArray } from "@renderer/helpers";
 import { CatalogueCategory } from "@shared";
 import "./home.scss";
 
+// Keep in sync with the column tiers in home.scss: divisible by 1, 2, 3, 4, 6
+// and 8 so every tier renders complete rows.
+const HOME_CATALOGUE_TAKE = 24;
+
 export default function Home() {
   const { t } = useTranslation("home");
   const navigate = useNavigate();
@@ -48,7 +52,7 @@ export default function Home() {
       const downloadSources = orderBy(sources, "createdAt", "desc");
 
       const params = {
-        take: 12,
+        take: HOME_CATALOGUE_TAKE,
         skip: 0,
         downloadSourceIds: downloadSources.map((source) => source.id),
       };
@@ -193,7 +197,7 @@ export default function Home() {
 
         <section className="home__cards">
           {isLoading
-            ? Array.from({ length: 12 }).map((_, index) => (
+            ? Array.from({ length: HOME_CATALOGUE_TAKE }).map((_, index) => (
                 <Skeleton key={index} className="home__card-skeleton" />
               ))
             : catalogue[currentCatalogueCategory].map((result) => (

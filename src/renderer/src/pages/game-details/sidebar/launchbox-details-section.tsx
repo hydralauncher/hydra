@@ -7,6 +7,7 @@ import {
   getSkuRegionFlag,
   type SkuRegion,
 } from "@renderer/helpers";
+import { useGenreTranslation } from "@renderer/hooks";
 import { SidebarSection } from "../sidebar-section/sidebar-section";
 
 import "./launchbox-details-section.scss";
@@ -32,6 +33,12 @@ export function LaunchboxDetailsSection({
 }: Readonly<Props>) {
   const { t } = useTranslation("game_details");
   const tooltipId = useId();
+  const { translateGenre } = useGenreTranslation();
+
+  const localizedGenres = useMemo(
+    () => (genres ?? []).map(translateGenre),
+    [genres, translateGenre]
+  );
 
   const regions = useMemo(
     () => (skus && skus.length > 0 ? getRegionsFromSkus(skus) : []),
@@ -57,7 +64,7 @@ export function LaunchboxDetailsSection({
           <div className="launchbox-details__row">
             <span className="launchbox-details__label">{t("genres")}</span>
             <span className="launchbox-details__value">
-              {genres.join(", ")}
+              {localizedGenres.join(", ")}
             </span>
           </div>
         )}

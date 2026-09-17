@@ -1,3 +1,5 @@
+@use "sass:math";
+
 $background-color: #121212;
 $dark-background-color: #0d0d0d;
 
@@ -67,3 +69,21 @@ $hint-font-size: 13px;
 $small-font-size: 12px;
 
 $app-container: app-container;
+
+// Game details page: the content column (header, gallery, description,
+// similar games, reviews). Capped by a fixed max width instead of viewport
+// percentages so it fills the space left by the details sidebar and every
+// block in it shares the same edges.
+$game-details-column-max-width: 1000px;
+$game-details-stack-breakpoint: 900px;
+
+@mixin game-details-column {
+  width: 100%;
+  max-width: $game-details-column-max-width;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+// Game cards use the Steam header artwork (460x215), so the card keeps that
+// ratio instead of a fixed height that stretches or crops on wide columns.
+$game-card-aspect-ratio: math.div(460, 215);
