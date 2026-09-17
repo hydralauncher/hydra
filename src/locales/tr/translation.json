@@ -957,7 +957,7 @@
   },
   "library": {
     "category_steam_library": "Steam Kütüphanesi",
-    "imported_from_steam": "Steam'den içe aktarıldı",
+    "imported_from_steam": "Bu profile bağlı Steam kütüphanesinden içe aktarıldı.",
     "library": "Kütüphane",
     "play": "Oyna",
     "download": "İndir",

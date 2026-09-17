@@ -979,7 +979,7 @@
   },
   "library": {
     "category_steam_library": "Steam-könyvtár",
-    "imported_from_steam": "Steamből importálva",
+    "imported_from_steam": "Az ehhez a profilhoz kapcsolt Steam-könyvtárból importálva.",
     "library": "Könyvtár",
     "collections": "Collections",
     "play": "Játék",

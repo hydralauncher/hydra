@@ -957,7 +957,7 @@
   },
   "library": {
     "category_steam_library": "Biblioteca Steam",
-    "imported_from_steam": "Importat din Steam",
+    "imported_from_steam": "Importat din biblioteca Steam conectată la acest profil.",
     "library": "Library",
     "collections": "Collections",
     "play": "Play",

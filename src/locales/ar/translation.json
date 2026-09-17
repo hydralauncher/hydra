@@ -992,7 +992,7 @@
   },
   "library": {
     "category_steam_library": "مكتبة Steam",
-    "imported_from_steam": "مستورد من Steam",
+    "imported_from_steam": "تم استيراده من مكتبة Steam المرتبطة بهذا الملف الشخصي.",
     "library": "Library",
     "collections": "Collections",
     "play": "Play",

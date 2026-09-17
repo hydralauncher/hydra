@@ -957,7 +957,7 @@
   },
   "library": {
     "category_steam_library": "Steam кітапханасы",
-    "imported_from_steam": "Steam-нан импортталды",
+    "imported_from_steam": "Осы профильге байланыстырылған Steam кітапханасынан импортталды.",
     "library": "Library",
     "collections": "Collections",
     "play": "Play",

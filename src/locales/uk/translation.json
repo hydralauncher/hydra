@@ -996,7 +996,7 @@
   },
   "library": {
     "category_steam_library": "Бібліотека Steam",
-    "imported_from_steam": "Імпортовано зі Steam",
+    "imported_from_steam": "Імпортовано з бібліотеки Steam, пов’язаної з цим профілем.",
     "library": "Library",
     "collections": "Collections",
     "play": "Play",

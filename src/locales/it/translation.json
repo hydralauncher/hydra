@@ -1146,7 +1146,7 @@
   },
   "library": {
     "category_steam_library": "Libreria di Steam",
-    "imported_from_steam": "Importato da Steam",
+    "imported_from_steam": "Importato dalla libreria di Steam collegata a questo profilo.",
     "library": "Libreria",
     "play": "Gioca",
     "download": "Scarica",

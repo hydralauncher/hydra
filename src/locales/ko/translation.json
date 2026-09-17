@@ -957,7 +957,7 @@
   },
   "library": {
     "category_steam_library": "Steam 라이브러리",
-    "imported_from_steam": "Steam에서 가져옴",
+    "imported_from_steam": "이 프로필에 연결된 Steam 라이브러리에서 가져왔습니다.",
     "library": "Library",
     "collections": "Collections",
     "play": "Play",

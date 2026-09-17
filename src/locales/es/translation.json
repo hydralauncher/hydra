@@ -1991,7 +1991,7 @@
     "category_all": "Todos",
     "category_pc": "PC",
     "category_steam_library": "Biblioteca de Steam",
-    "imported_from_steam": "Importado de Steam",
+    "imported_from_steam": "Importado de la biblioteca de Steam vinculada a este perfil.",
     "category_classics": "Clásicos",
     "installed": "Listo",
     "installed_tooltip": "Ejecutable configurado, listo para jugar",

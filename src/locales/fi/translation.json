@@ -992,7 +992,7 @@
   },
   "library": {
     "category_steam_library": "Steam-kirjasto",
-    "imported_from_steam": "Tuotu Steamista",
+    "imported_from_steam": "Tuotu tähän profiiliin yhdistetystä Steam-kirjastosta.",
     "library": "Library",
     "collections": "Collections",
     "play": "Play",

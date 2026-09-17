@@ -49,11 +49,17 @@ describe("Steam Library translations", () => {
 
     assert.deepEqual(
       STEAM_LIBRARY_KEYS.map((key) => readLibrary("en")[key]),
-      ["Steam Library", "Imported from Steam"]
+      [
+        "Steam Library",
+        "Imported from the Steam library linked to this profile.",
+      ]
     );
     assert.deepEqual(
       STEAM_LIBRARY_KEYS.map((key) => readLibrary("pt-BR")[key]),
-      ["Biblioteca Steam", "Importado da Steam"]
+      [
+        "Biblioteca Steam",
+        "Importado da biblioteca Steam vinculada a este perfil.",
+      ]
     );
   });
 });

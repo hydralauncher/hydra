@@ -957,7 +957,7 @@
   },
   "library": {
     "category_steam_library": "Steam-bibliotek",
-    "imported_from_steam": "Importert fra Steam",
+    "imported_from_steam": "Importert fra Steam-biblioteket som er koblet til denne profilen.",
     "library": "Library",
     "collections": "Collections",
     "play": "Play",

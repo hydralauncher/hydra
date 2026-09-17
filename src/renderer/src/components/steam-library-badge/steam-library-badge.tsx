@@ -1,4 +1,6 @@
+import { useId } from "react";
 import { useTranslation } from "react-i18next";
+import { Tooltip } from "react-tooltip";
 
 import SteamLogo from "@renderer/assets/bi-steam.svg?react";
 
@@ -30,6 +32,7 @@ export function SteamLibraryBadge({
   className,
 }: SteamLibraryBadgeProps) {
   const { t } = useTranslation("library");
+  const tooltipId = useId();
   const label = t("imported_from_steam");
   const classes = [
     "steam-library-badge",
@@ -40,10 +43,19 @@ export function SteamLibraryBadge({
     .join(" ");
 
   return (
-    <span className={classes} title={label} aria-label={label} role="img">
-      <SteamIcon
-        size={variant === "sidebar" ? 8 : variant === "large" ? 16 : 15}
-      />
-    </span>
+    <>
+      <span
+        className={classes}
+        data-tooltip-id={tooltipId}
+        data-tooltip-content={label}
+        aria-label={label}
+        role="img"
+      >
+        <SteamIcon
+          size={variant === "sidebar" ? 8 : variant === "large" ? 16 : 15}
+        />
+      </span>
+      <Tooltip id={tooltipId} place="top" style={{ zIndex: 9999 }} />
+    </>
   );
 }

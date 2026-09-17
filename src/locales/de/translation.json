@@ -992,7 +992,7 @@
   },
   "library": {
     "category_steam_library": "Steam-Bibliothek",
-    "imported_from_steam": "Aus Steam importiert",
+    "imported_from_steam": "Aus der mit diesem Profil verknüpften Steam-Bibliothek importiert.",
     "library": "Library",
     "collections": "Collections",
     "play": "Play",

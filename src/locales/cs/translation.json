@@ -994,7 +994,7 @@
   },
   "library": {
     "category_steam_library": "Knihovna Steam",
-    "imported_from_steam": "Importováno ze Steamu",
+    "imported_from_steam": "Importováno z knihovny Steam propojené s tímto profilem.",
     "library": "Library",
     "collections": "Collections",
     "play": "Play",

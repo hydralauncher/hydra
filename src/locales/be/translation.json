@@ -957,7 +957,7 @@
   },
   "library": {
     "category_steam_library": "Бібліятэка Steam",
-    "imported_from_steam": "Імпартавана са Steam",
+    "imported_from_steam": "Імпартавана з бібліятэкі Steam, звязанай з гэтым профілем.",
     "library": "Library",
     "collections": "Collections",
     "play": "Play",

@@ -967,7 +967,7 @@
   },
   "library": {
     "category_steam_library": "Knjižnica Steam",
-    "imported_from_steam": "Uvoženo iz Steama",
+    "imported_from_steam": "Uvoženo iz knjižnice Steam, povezane s tem profilom.",
     "library": "Knjižnica",
     "collections": "Collections",
     "play": "Igraj",

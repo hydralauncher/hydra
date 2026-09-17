@@ -957,7 +957,7 @@
   },
   "library": {
     "category_steam_library": "Biblioteca de Steam",
-    "imported_from_steam": "Importat de Steam",
+    "imported_from_steam": "Importat de la biblioteca de Steam vinculada a aquest perfil.",
     "library": "Library",
     "collections": "Collections",
     "play": "Play",

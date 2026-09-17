@@ -981,7 +981,7 @@
   },
   "library": {
     "category_steam_library": "Steamライブラリ",
-    "imported_from_steam": "Steamからインポート",
+    "imported_from_steam": "このプロフィールにリンクされたSteamライブラリからインポートされました。",
     "library": "ライブラリ",
     "collections": "コレクション",
     "play": "プレイ",

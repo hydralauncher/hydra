@@ -992,7 +992,7 @@
   },
   "library": {
     "category_steam_library": "Steam 游戏库",
-    "imported_from_steam": "从 Steam 导入",
+    "imported_from_steam": "从关联到此个人资料的 Steam 库中导入。",
     "library": "Library",
     "collections": "Collections",
     "play": "Play",
