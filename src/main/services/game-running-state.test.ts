@@ -6,6 +6,7 @@ import { levelKeys } from "../level/sublevels/keys.js";
 import {
   clearGamesPlaytimeState,
   deleteGamePlaytime,
+  enableHydraPlaytimeForRunningSession,
   gamesPlaytime,
   getGamePlaytimeDeltas,
   isGameRunning,
@@ -96,6 +97,53 @@ describe("game running state", () => {
     assert.deepEqual(firstAttempt, { localDelta: 0, syncDelta: 60_000 });
     assert.deepEqual(retry, firstAttempt);
     assert.equal(getGamePlaytimeDeltas(session, 600_000, 0).syncDelta, 0);
+  });
+
+  it("starts counting a protected running session from the moment the option is enabled", () => {
+    const key = levelKeys.game("steam", "620");
+    setGamePlaytime(key, {
+      firstTick: 0,
+      lastTick: 60_000,
+      lastSyncTick: 60_000,
+      countHydraPlaytime: false,
+      syncSteamOnExit: true,
+    });
+
+    assert.equal(enableHydraPlaytimeForRunningSession(key, 300_000), true);
+
+    const session = gamesPlaytime.get(key)!;
+    assert.equal(session.firstTick, 0);
+    assert.equal(session.syncSteamOnExit, true);
+    assert.deepEqual(getGamePlaytimeDeltas(session, 360_000), {
+      localDelta: 60_000,
+      syncDelta: 60_000,
+    });
+  });
+
+  it("does not reset an already-counting session", () => {
+    const key = levelKeys.game("steam", "620");
+    setGamePlaytime(key, {
+      firstTick: 0,
+      lastTick: 60_000,
+      lastSyncTick: 60_000,
+      countHydraPlaytime: true,
+    });
+
+    assert.equal(enableHydraPlaytimeForRunningSession(key, 300_000), true);
+    assert.deepEqual(getGamePlaytimeDeltas(gamesPlaytime.get(key)!, 360_000), {
+      localDelta: 300_000,
+      syncDelta: 300_000,
+    });
+  });
+
+  it("ignores enable requests when the game is not running", () => {
+    assert.equal(
+      enableHydraPlaytimeForRunningSession(
+        levelKeys.game("steam", "620"),
+        300_000
+      ),
+      false
+    );
   });
 
   it("counts the next Hydra session after disconnect and keeps Steam history", () => {
