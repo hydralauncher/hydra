@@ -13,7 +13,7 @@ import {
   isGameReadyToPlay,
   resolveClassicsBadge,
 } from "@renderer/helpers";
-import { AchievementProgress } from "@renderer/components";
+import { AchievementProgress, SteamLibraryBadge } from "@renderer/components";
 import { formatBytes, getDisplayedPlayTimeInMilliseconds } from "@shared";
 import {
   ClockIcon,
@@ -366,6 +366,10 @@ export const LibraryGameCardLarge = memo(function LibraryGameCardLarge({
           )}
 
           <div className="library-game-card-large__top-right">
+            {game.hasActiveSteamImport === true && (
+              <SteamLibraryBadge variant="large" />
+            )}
+
             {!hideBadges && (
               <div className="library-game-card-large__playtime">
                 {game.hasManuallyUpdatedPlaytime ? (

@@ -25,7 +25,7 @@ import {
 import { MAX_MINUTES_TO_SHOW_IN_PLAYTIME } from "@renderer/constants";
 import { Tooltip } from "react-tooltip";
 import { useTranslation } from "react-i18next";
-import { ProgressBar } from "@renderer/components";
+import { ProgressBar, SteamLibraryBadge } from "@renderer/components";
 import "./user-library-game-card.scss";
 
 interface UserLibraryGameCardProps {
@@ -207,30 +207,34 @@ export function UserLibraryGameCard({
           <div
             className={`user-library-game__overlay${game.shop === "launchbox" && !game.customLibraryImageUrl ? " user-library-game__overlay--classics" : ""}${hasAchievementProgress ? "" : " user-library-game__overlay--no-fade"}`}
           >
-            <div
-              className="user-library-game__playtime"
-              data-tooltip-place="top"
-              data-tooltip-content={
-                game.hasManuallyUpdatedPlaytime
-                  ? t("manual_playtime_tooltip")
-                  : undefined
-              }
-              data-tooltip-id={game.objectId}
-            >
-              {game.hasManuallyUpdatedPlaytime ? (
-                <AlertFillIcon
-                  size={11}
-                  className="user-library-game__manual-playtime"
-                />
-              ) : (
-                <ClockIcon size={11} />
-              )}
-              <span className="user-library-game__playtime-long">
-                {formatPlayTime(game.playTimeInSeconds)}
-              </span>
-              <span className="user-library-game__playtime-short">
-                {formatPlayTime(game.playTimeInSeconds, true)}
-              </span>
+            <div className="user-library-game__top-section">
+              <div
+                className="user-library-game__playtime"
+                data-tooltip-place="top"
+                data-tooltip-content={
+                  game.hasManuallyUpdatedPlaytime
+                    ? t("manual_playtime_tooltip")
+                    : undefined
+                }
+                data-tooltip-id={game.objectId}
+              >
+                {game.hasManuallyUpdatedPlaytime ? (
+                  <AlertFillIcon
+                    size={11}
+                    className="user-library-game__manual-playtime"
+                  />
+                ) : (
+                  <ClockIcon size={11} />
+                )}
+                <span className="user-library-game__playtime-long">
+                  {formatPlayTime(game.playTimeInSeconds)}
+                </span>
+                <span className="user-library-game__playtime-short">
+                  {formatPlayTime(game.playTimeInSeconds, true)}
+                </span>
+              </div>
+
+              {game.hasActiveSteamImport === true && <SteamLibraryBadge />}
             </div>
 
             {hasAchievementProgress && (

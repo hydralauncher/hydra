@@ -991,6 +991,8 @@
     "learn_more": "了解更多"
   },
   "library": {
+    "category_steam_library": "Steam 游戏库",
+    "imported_from_steam": "从 Steam 导入",
     "library": "Library",
     "collections": "Collections",
     "play": "Play",

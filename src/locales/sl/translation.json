@@ -966,6 +966,8 @@
     "wrapped_2025": "Wrapped 2025"
   },
   "library": {
+    "category_steam_library": "Knjižnica Steam",
+    "imported_from_steam": "Uvoženo iz Steama",
     "library": "Knjižnica",
     "collections": "Collections",
     "play": "Igraj",

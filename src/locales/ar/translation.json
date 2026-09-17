@@ -991,6 +991,8 @@
     "debrid_description": "Download up to 4x faster with Nimbus"
   },
   "library": {
+    "category_steam_library": "مكتبة Steam",
+    "imported_from_steam": "مستورد من Steam",
     "library": "Library",
     "collections": "Collections",
     "play": "Play",

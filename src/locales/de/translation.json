@@ -991,6 +991,8 @@
     "debrid_description": "Lade bis zu 4x schneller mit Nimbus herunter"
   },
   "library": {
+    "category_steam_library": "Steam-Bibliothek",
+    "imported_from_steam": "Aus Steam importiert",
     "library": "Library",
     "collections": "Collections",
     "play": "Play",

@@ -13,7 +13,7 @@ import {
   isGameReadyToPlay,
   resolveClassicsBadge,
 } from "@renderer/helpers";
-import { AchievementProgress } from "@renderer/components";
+import { AchievementProgress, SteamLibraryBadge } from "@renderer/components";
 import { memo, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
@@ -250,8 +250,12 @@ export const LibraryGameCard = memo(function LibraryGameCard({
             </div>
           )}
 
-          {(showPlatformBadge || showReadyBadge) && (
+          {(game.hasActiveSteamImport === true ||
+            showPlatformBadge ||
+            showReadyBadge) && (
             <div className="library-game-card__top-right">
+              {game.hasActiveSteamImport === true && <SteamLibraryBadge />}
+
               {showPlatformBadge && (
                 <div className="library-game-card__classics-badges">
                   <span className="library-game-card__platform-badge">

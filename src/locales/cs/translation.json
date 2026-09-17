@@ -993,6 +993,8 @@
     "debrid_description": "Stahovat až 4x rychleji s Nimbus"
   },
   "library": {
+    "category_steam_library": "Knihovna Steam",
+    "imported_from_steam": "Importováno ze Steamu",
     "library": "Library",
     "collections": "Collections",
     "play": "Play",

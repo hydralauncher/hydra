@@ -1,10 +1,12 @@
 import {
+  appendProfileLibraryFilterParams,
   darkenColor,
   ensureArray,
-  getShopsForProfilePlatform,
+  getProfileLibraryFilter,
   readStoredProfilePlatform,
   readStoredProfileSort,
   readStoredSouvenirSort,
+  type ProfileLibraryFilter,
 } from "@renderer/helpers";
 import { useAppSelector, useToast } from "@renderer/hooks";
 import type {
@@ -35,13 +37,16 @@ export interface UserProfileContext {
   isMe: boolean;
   userStats: UserStats | null;
   getUserProfile: () => Promise<void>;
-  getUserStats: (shops?: string[]) => Promise<void>;
+  getUserStats: (filter?: ProfileLibraryFilter) => Promise<void>;
   getUserLibraryGames: (
     sortBy?: string,
     reset?: boolean,
-    shops?: string[]
+    filter?: ProfileLibraryFilter
   ) => Promise<void>;
-  loadMoreLibraryGames: (sortBy?: string, shops?: string[]) => Promise<boolean>;
+  loadMoreLibraryGames: (
+    sortBy?: string,
+    filter?: ProfileLibraryFilter
+  ) => Promise<boolean>;
   setSelectedBackgroundImage: React.Dispatch<React.SetStateAction<string>>;
   backgroundImage: string;
   badges: Badge[];
@@ -73,13 +78,16 @@ export const userProfileContext = createContext<UserProfileContext>({
   isMe: false,
   userStats: null,
   getUserProfile: async () => {},
-  getUserStats: async (_shops?: string[]) => {},
+  getUserStats: async (_filter?: ProfileLibraryFilter) => {},
   getUserLibraryGames: async (
     _sortBy?: string,
     _reset?: boolean,
-    _shops?: string[]
+    _filter?: ProfileLibraryFilter
   ) => {},
-  loadMoreLibraryGames: async (_sortBy?: string, _shops?: string[]) => false,
+  loadMoreLibraryGames: async (
+    _sortBy?: string,
+    _filter?: ProfileLibraryFilter
+  ) => false,
   setSelectedBackgroundImage: () => {},
   backgroundImage: "",
   badges: [],
@@ -102,6 +110,8 @@ export const userProfileContext = createContext<UserProfileContext>({
 
 const { Provider } = userProfileContext;
 export const { Consumer: UserProfileContextConsumer } = userProfileContext;
+
+const DEFAULT_PROFILE_LIBRARY_FILTER = getProfileLibraryFilter("all");
 
 export interface UserProfileContextProviderProps {
   children: React.ReactNode;
@@ -163,9 +173,9 @@ export function UserProfileContextProvider({
   const navigate = useNavigate();
 
   const getUserStats = useCallback(
-    async (shops = ["steam", "launchbox"]) => {
+    async (filter = DEFAULT_PROFILE_LIBRARY_FILTER) => {
       const params = new URLSearchParams();
-      shops.forEach((shop) => params.append("shop", shop));
+      appendProfileLibraryFilterParams(params, filter);
 
       const requestId = ++userStatsRequestIdRef.current;
 
@@ -183,7 +193,11 @@ export function UserProfileContextProvider({
   );
 
   const getUserLibraryGames = useCallback(
-    async (sortBy?: string, reset = true, shops = ["steam", "launchbox"]) => {
+    async (
+      sortBy?: string,
+      reset = true,
+      filter = DEFAULT_PROFILE_LIBRARY_FILTER
+    ) => {
       if (reset) {
         setLibraryPage(0);
         setHasMoreLibraryGames(true);
@@ -194,7 +208,7 @@ export function UserProfileContextProvider({
         const params = new URLSearchParams();
         params.append("take", "12");
         params.append("skip", "0");
-        shops.forEach((shop) => params.append("shop", shop));
+        appendProfileLibraryFilterParams(params, filter);
         if (sortBy) {
           params.append("sortBy", sortBy);
         }
@@ -233,7 +247,7 @@ export function UserProfileContextProvider({
   const loadMoreLibraryGames = useCallback(
     async (
       sortBy?: string,
-      shops = ["steam", "launchbox"]
+      filter = DEFAULT_PROFILE_LIBRARY_FILTER
     ): Promise<boolean> => {
       if (isLoadingLibraryGames || !hasMoreLibraryGames) {
         return false;
@@ -245,7 +259,7 @@ export function UserProfileContextProvider({
         const params = new URLSearchParams();
         params.append("take", "12");
         params.append("skip", String(nextPage * 12));
-        shops.forEach((shop) => params.append("shop", shop));
+        appendProfileLibraryFilterParams(params, filter);
         if (sortBy) {
           params.append("sortBy", sortBy);
         }
@@ -412,11 +426,11 @@ export function UserProfileContextProvider({
   );
 
   const getUserProfile = useCallback(async () => {
-    const storedShops = getShopsForProfilePlatform(readStoredProfilePlatform());
+    const storedFilter = getProfileLibraryFilter(readStoredProfilePlatform());
 
-    getUserStats(storedShops);
+    getUserStats(storedFilter);
 
-    getUserLibraryGames(readStoredProfileSort(), true, storedShops);
+    getUserLibraryGames(readStoredProfileSort(), true, storedFilter);
     void getUserSouvenirs(readStoredSouvenirSort());
 
     const profileParams = new URLSearchParams();

@@ -103,6 +103,7 @@ export type UserGame = {
   achievementCount: number;
   achievementsPointsEarnedSum: number;
   hasManuallyUpdatedPlaytime: boolean;
+  hasActiveSteamImport?: boolean;
   isFavorite: boolean;
   isPinned: boolean;
   pinnedDate?: Date | null;

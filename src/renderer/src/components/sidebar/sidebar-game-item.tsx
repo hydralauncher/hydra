@@ -4,7 +4,12 @@ import cn from "classnames";
 import { useLocation } from "react-router-dom";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
-import { ConfirmationModal, GameContextMenu, useGameActions } from "..";
+import {
+  ConfirmationModal,
+  GameContextMenu,
+  SteamLibraryBadge,
+  useGameActions,
+} from "..";
 import { HeartFillIcon } from "@primer/octicons-react";
 import { useAppSelector, useToast } from "@renderer/hooks";
 import { useCollectionContextMenu } from "@renderer/context";
@@ -93,16 +98,21 @@ export function SidebarGameItem({
           }}
           onContextMenu={handleContextMenu}
         >
-          {sidebarIcon ? (
-            <img
-              className="sidebar__game-icon"
-              src={sidebarIcon}
-              alt={game.title}
-              loading="lazy"
-            />
-          ) : (
-            getFallbackIcon()
-          )}
+          <span className="sidebar__game-icon-container">
+            {sidebarIcon ? (
+              <img
+                className="sidebar__game-icon"
+                src={sidebarIcon}
+                alt={game.title}
+                loading="lazy"
+              />
+            ) : (
+              getFallbackIcon()
+            )}
+            {game.hasActiveSteamImport === true && (
+              <SteamLibraryBadge variant="sidebar" />
+            )}
+          </span>
 
           <span className="sidebar__menu-item-button-label">
             {getGameTitle(game)}

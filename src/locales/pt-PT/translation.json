@@ -1147,6 +1147,8 @@
     "wrapped_2025": "Wrapped 2025"
   },
   "library": {
+    "category_steam_library": "Biblioteca Steam",
+    "imported_from_steam": "Importado da Steam",
     "library": "Biblioteca",
     "play": "Jogar",
     "download": "Transferir",
