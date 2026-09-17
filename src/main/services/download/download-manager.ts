@@ -26,6 +26,7 @@ import {
   PauseDownloadPayload,
 } from "./types";
 import { calculateETA, getDirSize } from "./helpers";
+import { extractDownloadFilename } from "./download-filename";
 import { RealDebridClient } from "./real-debrid";
 import path from "node:path";
 import fs from "node:fs";
@@ -153,34 +154,7 @@ export class DownloadManager {
     url: string,
     originalUrl?: string
   ): string | undefined {
-    if (originalUrl?.includes("#")) {
-      const hashPart = originalUrl.split("#")[1];
-      if (hashPart && !hashPart.startsWith("http") && hashPart.includes(".")) {
-        return hashPart;
-      }
-    }
-
-    if (url.includes("#")) {
-      const hashPart = url.split("#")[1];
-      if (hashPart && !hashPart.startsWith("http") && hashPart.includes(".")) {
-        return hashPart;
-      }
-    }
-
-    try {
-      const urlObj = new URL(url);
-      const pathname = urlObj.pathname;
-      const pathParts = pathname.split("/");
-      const filename = pathParts.at(-1);
-
-      if (filename?.includes(".") && filename.length > 0) {
-        return decodeURIComponent(filename);
-      }
-    } catch {
-      // Invalid URL
-    }
-
-    return undefined;
+    return extractDownloadFilename(url, originalUrl);
   }
 
   private static sanitizeFilename(filename: string): string {
@@ -906,7 +880,7 @@ export class DownloadManager {
 
     if (!extractionPath || !fs.existsSync(extractionPath)) {
       await gameFilesManager
-        .failExtraction(new Error("No downloaded archive was found to extract"))
+        .failMissingExtractionSource(extractionPath ?? undefined)
         .catch((error) => {
           logger.error(
             "[DownloadManager] Failed to persist extraction failure state",
@@ -955,6 +929,15 @@ export class DownloadManager {
               failError
             );
           });
+        });
+    } else if (extractionStats.isFile()) {
+      await gameFilesManager
+        .handleUnsupportedExtraction(extractionPath, { notify: false })
+        .catch((error) => {
+          logger.error(
+            "[DownloadManager] Failed to handle unsupported extraction format",
+            error
+          );
         });
     } else {
       await gameFilesManager
@@ -1926,9 +1909,7 @@ export class DownloadManager {
         contentType.includes("text/html") ||
         contentType.includes("application/xhtml")
       ) {
-        throw new Error(
-          "The download link returned a web page instead of a file. It may have expired or be invalid."
-        );
+        throw new Error(DownloadError.DownloadLinkReturnedWebPage);
       }
 
       return "done";

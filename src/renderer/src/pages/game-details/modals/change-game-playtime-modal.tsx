@@ -155,7 +155,7 @@ export function ChangeGamePlaytimeModal({
 
           <Button
             onClick={handleChangePlaytime}
-            theme="primary"
+            theme="danger"
             disabled={!isValid || isSubmitting}
           >
             {t("update_playtime")}

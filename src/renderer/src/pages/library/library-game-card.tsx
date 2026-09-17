@@ -50,6 +50,8 @@ export const LibraryGameCard = memo(function LibraryGameCard({
     (state) => state.userPreferences.value
   );
   const hideBadges = userPreferences?.hideLibraryGameBadges ?? false;
+  const hideReadySizeBadges =
+    userPreferences?.hideLibraryReadySizeBadges ?? false;
   const hideClassicsBadges =
     userPreferences?.hideLibraryClassicsBadges ?? false;
   const hideAchievementProgress =
@@ -136,7 +138,7 @@ export const LibraryGameCard = memo(function LibraryGameCard({
 
   const showPlatformBadge =
     !hideClassicsBadges && Boolean(classicsPlatformLabel);
-  const showReadyBadge = !hideBadges && isInstalled;
+  const showReadyBadge = !hideReadySizeBadges && isInstalled;
 
   const handleImageError = () => {
     logger.warn(`Image failed to load for ${game.title}`, {
