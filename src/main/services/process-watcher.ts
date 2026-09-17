@@ -1,7 +1,7 @@
 import { WindowManager } from "./window-manager";
 import { updateGameExecutablePath } from "@main/helpers/update-executable-path";
 import { createGame, trackGamePlaytime } from "./library-sync";
-import type { Game, GameRunning, UserPreferences } from "@types";
+import type { Game, UserPreferences } from "@types";
 import axios from "axios";
 import { db, gamesSublevel, levelKeys } from "@main/level";
 import { CloudSync } from "./cloud-sync";
@@ -16,7 +16,10 @@ import { Wine } from "./wine";
 import { NativeAddon } from "./native-addon";
 import { emulatorSessions } from "./emulators/emulator-session-tracker";
 import { launchedGamePids } from "./launched-game-pids";
-import { isValidProcessWatcherScan } from "./process-watcher-scan";
+import {
+  isValidProcessWatcherScan,
+  startOptionalExecutableCatalogueLoad,
+} from "./process-watcher-scan";
 import {
   doesSteamCompatDataPathMatchWinePrefix,
   hasLaunchedPidMatch,
@@ -47,6 +50,7 @@ import {
   deleteGamePlaytime,
   gamesPlaytime,
   getGamePlaytimeDeltas,
+  getTrackedGamesRunning,
   setGamePlaytime,
 } from "./game-running-state";
 import {
@@ -54,6 +58,7 @@ import {
   stopLinuxGameCaptureSession,
 } from "./linux-game-capture-session";
 import { updateGameRecord } from "./game-record-updater";
+import { GameExecutables } from "./game-executables";
 
 export { gamesPlaytime };
 export { isGameRunning } from "./game-running-state";
@@ -107,12 +112,7 @@ const handleAutomaticCloudSaveLifecycleError = (
 
 export const getGamesRunning = () => {
   const now = performance.now();
-  const gamesRunning = Array.from(gamesPlaytime.entries()).map((entry) => {
-    return {
-      id: entry[0],
-      sessionDurationInMillis: now - entry[1].firstTick,
-    } as Pick<GameRunning, "id" | "sessionDurationInMillis">;
-  });
+  const gamesRunning = getTrackedGamesRunning(now);
 
   for (const [gameKey, session] of emulatorSessions) {
     gamesRunning.push({
@@ -123,16 +123,6 @@ export const getGamesRunning = () => {
 
   return gamesRunning;
 };
-
-interface ExecutableInfo {
-  name: string;
-  os: string;
-  exe: string;
-}
-
-interface GameExecutables {
-  [key: string]: ExecutableInfo[];
-}
 
 const TICKS_TO_UPDATE_API = (3 * 60 * 1000) / INTERVALS.processWatcher; // 3 minutes
 let currentTick = 1;
@@ -163,49 +153,15 @@ const logPlaytimeTrace = (
   });
 };
 
-const getGameExecutables = async () => {
-  const gameExecutables = (
-    await axios
-      .get(import.meta.env.MAIN_VITE_API_URL + "/catalogue/steam/executables")
-      .catch(() => {
-        return { data: {} };
-      })
-  ).data as GameExecutables;
-
-  Object.keys(gameExecutables).forEach((key) => {
-    gameExecutables[key] = gameExecutables[key]
-      .filter((executable) => {
-        if (platform === "win32") {
-          return executable.os === "win32";
-        } else if (platform === "linux") {
-          return executable.os === "linux" || executable.os === "win32";
-        }
-
-        return false;
-      })
-      .map((executable) => {
-        const lowered = executable.name.toLowerCase();
-        const name = lowered.startsWith(">") ? lowered.slice(1) : lowered;
-
-        return {
-          name: platform === "win32" ? name.replaceAll("/", "\\") : name,
-          os: executable.os,
-          exe: name.slice(name.lastIndexOf("/") + 1),
-        };
-      });
-  });
-
-  return gameExecutables;
-};
-
-export const gameExecutables = await getGameExecutables();
+void GameExecutables.ensureLoaded();
 
 const findGamePathByProcess = async (
   processMap: Map<string, Set<string>>,
   winePrefixMap: Map<string, string>,
   gameId: string
 ) => {
-  const executables = gameExecutables[gameId];
+  const executables = GameExecutables.getExecutablesForGame(gameId);
+  if (!executables) return;
 
   for (const executable of executables) {
     const executablewithoutExtension = executable.exe.replace(/\.exe$/i, "");
@@ -322,6 +278,8 @@ const hasLinuxCompatibilityProcessMatch = (
 };
 
 export const watchProcesses = async () => {
+  startOptionalExecutableCatalogueLoad(() => GameExecutables.ensureLoaded());
+
   const games = await gamesSublevel
     .values()
     .all()
@@ -346,7 +304,7 @@ export const watchProcesses = async () => {
     const gameKey = levelKeys.game(game.shop, game.objectId);
     const executablePath = game.executablePath;
     if (!executablePath) {
-      if (gameExecutables[game.objectId]) {
+      if (GameExecutables.getExecutablesForGame(game.objectId)) {
         await findGamePathByProcess(processMap, winePrefixMap, game.objectId);
       }
 

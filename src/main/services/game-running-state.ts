@@ -1,5 +1,5 @@
 import { levelKeys } from "../level/sublevels/keys.js";
-import type { Game } from "@types";
+import type { Game, GameRunning } from "@types";
 
 interface GamePlaytimeState {
   lastTick: number;
@@ -57,6 +57,14 @@ export const deleteGamePlaytime = (gameKey: string) =>
 export const clearGamesPlaytimeState = () => {
   mutableGamesPlaytime.clear();
 };
+
+export const getTrackedGamesRunning = (now = performance.now()) =>
+  Array.from(gamesPlaytime.entries()).map(
+    ([id, session]): Pick<GameRunning, "id" | "sessionDurationInMillis"> => ({
+      id,
+      sessionDurationInMillis: now - session.firstTick,
+    })
+  );
 
 export const isGameRunning = (objectId: string, shop: Game["shop"]) =>
   gamesPlaytime.has(levelKeys.game(shop, objectId));

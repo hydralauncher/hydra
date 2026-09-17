@@ -935,6 +935,10 @@ const runScan = async (
   includeDefaultDirectories: boolean,
   addGamesToLibrary: boolean
 ): Promise<ScanResult> => {
+  if (!(await GameExecutables.ensureLoaded(true))) {
+    throw new Error("game-executable-catalogue-unavailable");
+  }
+
   const baseDirectories = includeDefaultDirectories
     ? await getDefaultScanDirectories()
     : [];

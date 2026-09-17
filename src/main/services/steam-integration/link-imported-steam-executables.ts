@@ -8,6 +8,10 @@ import { steamSyncLogger } from "../logger";
 import { getSteamAppInstallDirectories } from "./steam-installation";
 
 export const linkImportedSteamGameExecutables = async (): Promise<number> => {
+  if (!(await GameExecutables.ensureLoaded(true))) {
+    throw new Error("game-executable-catalogue-unavailable");
+  }
+
   try {
     const candidates = (await gamesSublevel.iterator().all())
       .map(([, game]) => game)
