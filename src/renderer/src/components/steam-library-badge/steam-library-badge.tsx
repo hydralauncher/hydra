@@ -1,6 +1,6 @@
 import { useTranslation } from "react-i18next";
 
-import SteamLogo from "@renderer/assets/steam-logo.svg?react";
+import SteamLogo from "@renderer/assets/bi-steam.svg?react";
 
 import "./steam-library-badge.scss";
 
