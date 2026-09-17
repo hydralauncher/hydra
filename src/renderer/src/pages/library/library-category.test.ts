@@ -8,6 +8,7 @@ const {
   appendProfileLibraryFilterParams,
   filterLibraryGamesByCategory,
   getProfileLibraryFilter,
+  shouldShowProfileSteamLibraryBadge,
 } = libraryCategory;
 
 const games = [
@@ -52,5 +53,11 @@ describe("Steam Library filters", () => {
     const params = new URLSearchParams();
     appendProfileLibraryFilterParams(params, filter);
     assert.equal(params.toString(), "shop=steam&steamLibrary=true");
+  });
+
+  it("shows the Steam badge only for imports on the owner's profile", () => {
+    assert.equal(shouldShowProfileSteamLibraryBadge(games[0], true), true);
+    assert.equal(shouldShowProfileSteamLibraryBadge(games[0], false), false);
+    assert.equal(shouldShowProfileSteamLibraryBadge(games[1], true), false);
   });
 });

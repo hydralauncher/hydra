@@ -8,6 +8,7 @@ import {
   buildGameDetailsPath,
   formatDownloadProgress,
   isGameCompleted,
+  shouldShowProfileSteamLibraryBadge,
 } from "@renderer/helpers";
 import { userProfileContext } from "@renderer/context";
 import { ClockIcon, TrophyIcon, AlertFillIcon } from "@primer/octicons-react";
@@ -159,7 +160,9 @@ export function UserLibraryGameCard({
                 </span>
               </div>
 
-              {game.hasActiveSteamImport === true && <SteamLibraryBadge />}
+              {shouldShowProfileSteamLibraryBadge(game, isMe) && (
+                <SteamLibraryBadge />
+              )}
             </div>
 
             {hasAchievementProgress && (

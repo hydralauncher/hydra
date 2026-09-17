@@ -26,6 +26,7 @@ import {
   appendProfileLibraryFilterParams,
   filterLibraryGamesByCategory,
   getProfileLibraryFilter,
+  shouldShowProfileSteamLibraryBadge,
   type LibraryCategory,
   type ProfileLibraryFilter,
 } from "./pages/library/library-category";
@@ -567,6 +568,7 @@ export {
   appendProfileLibraryFilterParams,
   filterLibraryGamesByCategory,
   getProfileLibraryFilter,
+  shouldShowProfileSteamLibraryBadge,
   type ProfileLibraryFilter,
 };
 
