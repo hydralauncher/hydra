@@ -1230,6 +1230,7 @@ export function GameOptionsModal({
                 showTitleSection={false}
                 showShortcutsSection={false}
                 showLaunchOptionsSection={false}
+                showSteamPlaytimeSection={false}
               />
             )}
             {selectedCategory === "assets" && (
