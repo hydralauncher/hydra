@@ -574,6 +574,17 @@
     "move_down": "Move down"
   },
   "settings": {
+    "hide_library_steam_badges": "Steam kutubxonasiga ulanish nishonlarini yashirish",
+    "integration_connect": "Ulanish",
+    "integration_disconnect": "Uzish",
+    "integration_reconnect": "Qayta ulanish",
+    "integration_sync": "Sinxronlash",
+    "integration_status_not_connected": "Ulanmagan",
+    "retroachievements_connect_title": "RetroAchievements-ni ulash",
+    "retroachievements_status_invalid_credentials": "Hisob ma'lumotlari noto'g'ri",
+    "retroachievements_invalid_credentials_description": "RetroAchievements hisob ma'lumotlaringiz endi amal qilmaydi. Hisobingizni qayta ulang.",
+    "retroachievements_last_checked": "Oxirgi tekshiruv: {{date}}",
+    "steam_status_reconnect_required": "Qayta ulanish talab qilinadi",
     "downloads_path": "Yuklab olish yo'li",
     "change": "O'zgartirish",
     "notifications": "Bildirishnomalar",
@@ -979,6 +990,8 @@
     "debrid_description": "Nimbus bilan 4 barobar tezroq yuklab oling"
   },
   "library": {
+    "category_steam_library": "Steam kutubxonasi",
+    "imported_from_steam": "Ushbu profilga ulangan Steam kutubxonasidan import qilingan.",
     "library": "Library",
     "collections": "Collections",
     "play": "Play",

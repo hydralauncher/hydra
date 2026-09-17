@@ -574,6 +574,17 @@
     "move_down": "Move down"
   },
   "settings": {
+    "hide_library_steam_badges": "Skjul merker for Steam-bibliotekstilkoblingen",
+    "integration_connect": "Koble til",
+    "integration_disconnect": "Koble fra",
+    "integration_reconnect": "Koble til på nytt",
+    "integration_sync": "Synkroniser",
+    "integration_status_not_connected": "Ikke tilkoblet",
+    "retroachievements_connect_title": "Koble til RetroAchievements",
+    "retroachievements_status_invalid_credentials": "Ugyldig påloggingsinformasjon",
+    "retroachievements_invalid_credentials_description": "Påloggingsinformasjonen din for RetroAchievements er ikke lenger gyldig. Koble til kontoen på nytt.",
+    "retroachievements_last_checked": "Sist sjekket: {{date}}",
+    "steam_status_reconnect_required": "Ny tilkobling kreves",
     "downloads_path": "Nedlastingssti",
     "change": "Oppdater",
     "notifications": "Notifikasjoner",
@@ -944,6 +955,8 @@
     "wrapped_2025": "Wrapped 2025"
   },
   "library": {
+    "category_steam_library": "Steam-bibliotek",
+    "imported_from_steam": "Importert fra Steam-biblioteket som er koblet til denne profilen.",
     "library": "Library",
     "collections": "Collections",
     "play": "Play",

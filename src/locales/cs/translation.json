@@ -574,6 +574,17 @@
     "move_down": "Move down"
   },
   "settings": {
+    "hide_library_steam_badges": "Skrýt odznaky připojení ke knihovně Steam",
+    "integration_connect": "Připojit",
+    "integration_disconnect": "Odpojit",
+    "integration_reconnect": "Znovu připojit",
+    "integration_sync": "Synchronizovat",
+    "integration_status_not_connected": "Nepřipojeno",
+    "retroachievements_connect_title": "Připojit RetroAchievements",
+    "retroachievements_status_invalid_credentials": "Neplatné přihlašovací údaje",
+    "retroachievements_invalid_credentials_description": "Vaše přihlašovací údaje k RetroAchievements již nejsou platné. Znovu připojte svůj účet.",
+    "retroachievements_last_checked": "Poslední kontrola: {{date}}",
+    "steam_status_reconnect_required": "Je vyžadováno opětovné připojení",
     "downloads_path": "Umístění stahování",
     "change": "Aktualizovat",
     "notifications": "Upozornění",
@@ -981,6 +992,8 @@
     "debrid_description": "Stahovat až 4x rychleji s Nimbus"
   },
   "library": {
+    "category_steam_library": "Knihovna Steam",
+    "imported_from_steam": "Importováno z knihovny Steam propojené s tímto profilem.",
     "library": "Library",
     "collections": "Collections",
     "play": "Play",

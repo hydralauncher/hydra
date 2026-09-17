@@ -1,6 +1,7 @@
 import { Typography } from "../../../common";
 
 import type { LibraryGame } from "@types";
+import { getDisplayedPlayTimeInMilliseconds } from "@shared";
 import { useDate, useFormat } from "../../../../hooks";
 
 export interface PlaytimeBarProps {
@@ -30,7 +31,9 @@ export function PlaytimeBar({
   const { formatDistance } = useDate();
   const { formatPlayTime } = useFormat();
 
-  const playTimeInSeconds = (game?.playTimeInMilliseconds ?? 0) / 1000;
+  const playTimeInSeconds = game
+    ? getDisplayedPlayTimeInMilliseconds(game) / 1000
+    : 0;
   const runningSessionTimeLabel = formatRunningSessionTime(
     runningSessionDurationInMillis,
     formatPlayTime

@@ -97,6 +97,13 @@
       }
     }
   }
+  &__top-section {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 4px;
+    width: 100%;
+  }
   &__manual-playtime {
     color: globals.$warning-color;
   }

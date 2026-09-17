@@ -1,0 +1,56 @@
+@use "../../scss/globals.scss";
+
+.window-title-bar {
+  position: relative;
+  display: flex;
+  align-items: center;
+  width: 100%;
+  height: var(--window-title-bar-height);
+  min-height: var(--window-title-bar-height);
+  padding-left: calc(globals.$spacing-unit * 2);
+  background-color: globals.$dark-background-color;
+  border-bottom: 1px solid globals.$border-color;
+  -webkit-app-region: drag;
+  z-index: globals.$title-bar-z-index;
+
+  h4 {
+    margin: 0;
+    color: globals.$muted-color;
+    font-size: globals.$small-font-size;
+    font-weight: 500;
+  }
+
+  &__controls {
+    display: flex;
+    align-items: center;
+    height: 100%;
+    margin-left: auto;
+    -webkit-app-region: no-drag;
+  }
+
+  &__control {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: var(--window-title-bar-control-width);
+    height: 100%;
+    padding: 0;
+    background: none;
+    border: none;
+    color: globals.$muted-color;
+    cursor: pointer;
+    transition:
+      background-color var(--window-title-bar-transition-duration) ease,
+      color var(--window-title-bar-transition-duration) ease;
+
+    &:hover {
+      background-color: #606060;
+      color: #dadbe1;
+    }
+
+    &--close:hover {
+      background-color: globals.$error-color;
+      color: #ffffff;
+    }
+  }
+}

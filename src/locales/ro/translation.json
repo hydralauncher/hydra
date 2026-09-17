@@ -571,6 +571,17 @@
     "move_down": "Move down"
   },
   "settings": {
+    "hide_library_steam_badges": "Ascunde insignele conexiunii la biblioteca Steam",
+    "integration_connect": "Conectează",
+    "integration_disconnect": "Deconectează",
+    "integration_reconnect": "Reconectează",
+    "integration_sync": "Sincronizează",
+    "integration_status_not_connected": "Neconectat",
+    "retroachievements_connect_title": "Conectează RetroAchievements",
+    "retroachievements_status_invalid_credentials": "Date de autentificare nevalide",
+    "retroachievements_invalid_credentials_description": "Datele tale de autentificare RetroAchievements nu mai sunt valide. Reconectează contul.",
+    "retroachievements_last_checked": "Ultima verificare: {{date}}",
+    "steam_status_reconnect_required": "Este necesară reconectarea",
     "downloads_path": "Locația de descărcare",
     "change": "Actualizează",
     "notifications": "Notificări",
@@ -944,6 +955,8 @@
     "wrapped_2025": "Wrapped 2025"
   },
   "library": {
+    "category_steam_library": "Biblioteca Steam",
+    "imported_from_steam": "Importat din biblioteca Steam conectată la acest profil.",
     "library": "Library",
     "collections": "Collections",
     "play": "Play",

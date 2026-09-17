@@ -574,6 +574,17 @@
     "move_down": "Move down"
   },
   "settings": {
+    "hide_library_steam_badges": "Abzeichen für die Steam-Bibliotheksverbindung ausblenden",
+    "integration_connect": "Verbinden",
+    "integration_disconnect": "Trennen",
+    "integration_reconnect": "Erneut verbinden",
+    "integration_sync": "Synchronisieren",
+    "integration_status_not_connected": "Nicht verbunden",
+    "retroachievements_connect_title": "RetroAchievements verbinden",
+    "retroachievements_status_invalid_credentials": "Ungültige Anmeldedaten",
+    "retroachievements_invalid_credentials_description": "Deine RetroAchievements-Anmeldedaten sind nicht mehr gültig. Verbinde dein Konto erneut.",
+    "retroachievements_last_checked": "Zuletzt geprüft: {{date}}",
+    "steam_status_reconnect_required": "Erneute Verbindung erforderlich",
     "downloads_path": "Download-Pfad",
     "change": "Aktualisieren",
     "notifications": "Benachrichtigungen",
@@ -979,6 +990,8 @@
     "debrid_description": "Lade bis zu 4x schneller mit Nimbus herunter"
   },
   "library": {
+    "category_steam_library": "Steam-Bibliothek",
+    "imported_from_steam": "Aus der mit diesem Profil verknüpften Steam-Bibliothek importiert.",
     "library": "Library",
     "collections": "Collections",
     "play": "Play",

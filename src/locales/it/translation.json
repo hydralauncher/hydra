@@ -763,6 +763,17 @@
     "files": "FILES"
   },
   "settings": {
+    "hide_library_steam_badges": "Nascondi i badge della connessione alla libreria di Steam",
+    "integration_connect": "Collega",
+    "integration_disconnect": "Disconnetti",
+    "integration_reconnect": "Riconnetti",
+    "integration_sync": "Sincronizza",
+    "integration_status_not_connected": "Non connesso",
+    "retroachievements_connect_title": "Collega RetroAchievements",
+    "retroachievements_status_invalid_credentials": "Credenziali non valide",
+    "retroachievements_invalid_credentials_description": "Le credenziali RetroAchievements non sono più valide. Ricollega il tuo account.",
+    "retroachievements_last_checked": "Ultimo controllo: {{date}}",
+    "steam_status_reconnect_required": "Riconnessione necessaria",
     "downloads_path": "Percorso dei download",
     "change": "Aggiorna",
     "notifications": "Notifiche",
@@ -1133,6 +1144,8 @@
     "wrapped_2025": "Wrapped 2025"
   },
   "library": {
+    "category_steam_library": "Libreria di Steam",
+    "imported_from_steam": "Importato dalla libreria di Steam collegata a questo profilo.",
     "library": "Libreria",
     "play": "Gioca",
     "download": "Scarica",

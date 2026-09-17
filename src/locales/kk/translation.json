@@ -574,6 +574,17 @@
     "move_down": "Move down"
   },
   "settings": {
+    "hide_library_steam_badges": "Steam кітапханасына қосылу белгілерін жасыру",
+    "integration_connect": "Қосу",
+    "integration_disconnect": "Ажырату",
+    "integration_reconnect": "Қайта қосу",
+    "integration_sync": "Синхрондау",
+    "integration_status_not_connected": "Қосылмаған",
+    "retroachievements_connect_title": "RetroAchievements қызметіне қосылу",
+    "retroachievements_status_invalid_credentials": "Жарамсыз тіркелгі деректері",
+    "retroachievements_invalid_credentials_description": "RetroAchievements тіркелгі деректері енді жарамсыз. Тіркелгіңізді қайта қосыңыз.",
+    "retroachievements_last_checked": "Соңғы тексеру: {{date}}",
+    "steam_status_reconnect_required": "Қайта қосылу қажет",
     "downloads_path": "Жүктеу жолы",
     "change": "Өзгерту",
     "notifications": "Хабарламалар",
@@ -944,6 +955,8 @@
     "wrapped_2025": "Wrapped 2025"
   },
   "library": {
+    "category_steam_library": "Steam кітапханасы",
+    "imported_from_steam": "Осы профильге байланыстырылған Steam кітапханасынан импортталды.",
     "library": "Library",
     "collections": "Collections",
     "play": "Play",

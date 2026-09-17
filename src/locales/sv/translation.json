@@ -574,6 +574,17 @@
     "move_down": "Move down"
   },
   "settings": {
+    "hide_library_steam_badges": "Dölj märken för anslutningen till Steam-biblioteket",
+    "integration_connect": "Anslut",
+    "integration_disconnect": "Koppla från",
+    "integration_reconnect": "Anslut igen",
+    "integration_sync": "Synkronisera",
+    "integration_status_not_connected": "Inte ansluten",
+    "retroachievements_connect_title": "Anslut RetroAchievements",
+    "retroachievements_status_invalid_credentials": "Ogiltiga inloggningsuppgifter",
+    "retroachievements_invalid_credentials_description": "Dina inloggningsuppgifter för RetroAchievements är inte längre giltiga. Anslut ditt konto igen.",
+    "retroachievements_last_checked": "Senast kontrollerad: {{date}}",
+    "steam_status_reconnect_required": "Återanslutning krävs",
     "downloads_path": "Nedladdningssökväg",
     "change": "Uppdatera",
     "notifications": "Aviseringar",
@@ -979,6 +990,8 @@
     "debrid_description": "Ladda ner upp till 4x snabbare med Nimbus"
   },
   "library": {
+    "category_steam_library": "Steam-bibliotek",
+    "imported_from_steam": "Importerat från Steam-biblioteket som är länkat till den här profilen.",
     "library": "Library",
     "collections": "Collections",
     "play": "Play",

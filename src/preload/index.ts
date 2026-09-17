@@ -67,6 +67,10 @@ import type {
   LegacySaveExportResult,
   OpenCheckoutOptions,
   AchievementSouvenirSyncStatus,
+  SteamSyncState,
+  SteamSyncFinishedPayload,
+  SteamSyncRunStatus,
+  SteamConnectErrorCode,
   ExtractionFailure,
 } from "@types";
 import type { AuthPage } from "@shared";
@@ -858,6 +862,12 @@ contextBridge.exposeInMainWorld("electron", {
       objectId,
       automaticCloudSync
     ),
+  setGameHydraPlaytimeEnabled: (
+    shop: GameShop,
+    objectId: string,
+    enabled: boolean
+  ) =>
+    ipcRenderer.invoke("setGameHydraPlaytimeEnabled", shop, objectId, enabled),
   toggleGameMangohud: (
     shop: GameShop,
     objectId: string,
@@ -1622,6 +1632,46 @@ contextBridge.exposeInMainWorld("electron", {
       "resetRetroAchievementsAchievements",
       pendingSouvenirsOnly
     ),
+  openRetroAchievementsConnectionWindow: () =>
+    ipcRenderer.invoke("openRetroAchievementsConnectionWindow"),
+  minimizeRetroAchievementsConnectionWindow: () =>
+    ipcRenderer.invoke("minimizeRetroAchievementsConnectionWindow"),
+  closeRetroAchievementsConnectionWindow: () =>
+    ipcRenderer.invoke("closeRetroAchievementsConnectionWindow"),
+  completeRetroAchievementsConnectionWindow: () =>
+    ipcRenderer.invoke("completeRetroAchievementsConnectionWindow"),
+  onRetroAchievementsConnected: (cb: () => void) => {
+    const listener = (_event: Electron.IpcRendererEvent) => cb();
+    ipcRenderer.on("on-retroachievements-connected", listener);
+    return () =>
+      ipcRenderer.removeListener("on-retroachievements-connected", listener);
+  },
+  startSteamOAuth: (lng: string) => ipcRenderer.invoke("startSteamOAuth", lng),
+  disconnectSteam: (deleteImportedData: boolean) =>
+    ipcRenderer.invoke("disconnectSteam", deleteImportedData),
+  startSteamSync: () => ipcRenderer.invoke("startSteamSync"),
+  cancelSteamSync: () => ipcRenderer.invoke("cancelSteamSync"),
+  getSteamSyncState: () => ipcRenderer.invoke("getSteamSyncState"),
+  syncSteamGameOnGamePage: (steamAppId: string) =>
+    ipcRenderer.invoke("syncSteamGameOnGamePage", steamAppId),
+  reconcileSteamSyncRun: (latestSyncRunStatus: SteamSyncRunStatus | null) =>
+    ipcRenderer.invoke("reconcileSteamSyncRun", latestSyncRunStatus),
+  onSteamSyncProgress: (cb: (state: SteamSyncState) => void) => {
+    const listener = (
+      _event: Electron.IpcRendererEvent,
+      state: SteamSyncState
+    ) => cb(state);
+    ipcRenderer.on("on-steam-sync-progress", listener);
+    return () => ipcRenderer.removeListener("on-steam-sync-progress", listener);
+  },
+  onSteamSyncFinished: (cb: (payload: SteamSyncFinishedPayload) => void) => {
+    const listener = (
+      _event: Electron.IpcRendererEvent,
+      payload: SteamSyncFinishedPayload
+    ) => cb(payload);
+    ipcRenderer.on("on-steam-sync-finished", listener);
+    return () => ipcRenderer.removeListener("on-steam-sync-finished", listener);
+  },
 
   /* Auth */
   getAuth: () => ipcRenderer.invoke("getAuth"),
@@ -1640,6 +1690,19 @@ contextBridge.exposeInMainWorld("electron", {
     const listener = (_event: Electron.IpcRendererEvent) => cb();
     ipcRenderer.on("on-account-updated", listener);
     return () => ipcRenderer.removeListener("on-account-updated", listener);
+  },
+  onSteamConnected: (cb: () => void) => {
+    const listener = (_event: Electron.IpcRendererEvent) => cb();
+    ipcRenderer.on("on-steam-connected", listener);
+    return () => ipcRenderer.removeListener("on-steam-connected", listener);
+  },
+  onSteamConnectError: (cb: (code: SteamConnectErrorCode) => void) => {
+    const listener = (
+      _event: Electron.IpcRendererEvent,
+      code: SteamConnectErrorCode
+    ) => cb(code);
+    ipcRenderer.on("on-steam-connect-error", listener);
+    return () => ipcRenderer.removeListener("on-steam-connect-error", listener);
   },
   onSignOut: (cb: () => void) => {
     const listener = (_event: Electron.IpcRendererEvent) => cb();

@@ -12,9 +12,10 @@ import {
   CLASSICS_PS_PLATFORM_LABELS,
   isGameReadyToPlay,
   resolveClassicsBadge,
+  shouldShowSteamLibraryBadge,
 } from "@renderer/helpers";
-import { AchievementProgress } from "@renderer/components";
-import { formatBytes } from "@shared";
+import { AchievementProgress, SteamLibraryBadge } from "@renderer/components";
+import { formatBytes, getDisplayedPlayTimeInMilliseconds } from "@shared";
 import {
   ClockIcon,
   AlertFillIcon,
@@ -92,6 +93,10 @@ export const LibraryGameCardLarge = memo(function LibraryGameCardLarge({
     userPreferences?.hideLibraryReadySizeBadges ?? false;
   const hideClassicsBadges =
     userPreferences?.hideLibraryClassicsBadges ?? false;
+  const showSteamLibraryBadge = shouldShowSteamLibraryBadge(
+    game,
+    userPreferences?.hideSteamLibraryBadges
+  );
   const hideAchievementProgress =
     userPreferences?.hideLibraryAchievementProgress ?? false;
   const autoplayAnimatedArtwork =
@@ -339,9 +344,10 @@ export const LibraryGameCardLarge = memo(function LibraryGameCardLarge({
           loading="lazy"
         />
       )}
-      {!hideAchievementProgress && (game.achievementCount ?? 0) > 0 && (
-        <div className="library-game-card-large__gradient" />
-      )}
+      {!hideAchievementProgress &&
+        ((game.achievementCount ?? 0) > 0 || unlockedAchievementsCount > 0) && (
+          <div className="library-game-card-large__gradient" />
+        )}
 
       <div className="library-game-card-large__overlay">
         <div className="library-game-card-large__top-section">
@@ -367,6 +373,8 @@ export const LibraryGameCardLarge = memo(function LibraryGameCardLarge({
           )}
 
           <div className="library-game-card-large__top-right">
+            {showSteamLibraryBadge && <SteamLibraryBadge variant="large" />}
+
             {!hideBadges && (
               <div className="library-game-card-large__playtime">
                 {game.hasManuallyUpdatedPlaytime ? (
@@ -378,7 +386,7 @@ export const LibraryGameCardLarge = memo(function LibraryGameCardLarge({
                   <ClockIcon size={11} />
                 )}
                 <span className="library-game-card-large__playtime-text">
-                  {formatPlayTime(game.playTimeInMilliseconds)}
+                  {formatPlayTime(getDisplayedPlayTimeInMilliseconds(game))}
                 </span>
               </div>
             )}
@@ -408,15 +416,20 @@ export const LibraryGameCardLarge = memo(function LibraryGameCardLarge({
         </div>
 
         <div className="library-game-card-large__info-bar">
-          {!hideAchievementProgress && (game.achievementCount ?? 0) > 0 && (
-            <AchievementProgress
-              achievementCount={game.achievementCount ?? 0}
-              unlockedAchievementCount={unlockedAchievementsCount}
-              classNamePrefix="library-game-card-large"
-              label={`${game.title} achievements`}
-              trophyIconSize={14}
-            />
-          )}
+          {!hideAchievementProgress &&
+            ((game.achievementCount ?? 0) > 0 ||
+              unlockedAchievementsCount > 0) && (
+              <AchievementProgress
+                achievementCount={Math.max(
+                  game.achievementCount ?? 0,
+                  unlockedAchievementsCount
+                )}
+                unlockedAchievementCount={unlockedAchievementsCount}
+                classNamePrefix="library-game-card-large"
+                label={`${game.title} achievements`}
+                trophyIconSize={14}
+              />
+            )}
         </div>
       </div>
     </button>
