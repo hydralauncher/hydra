@@ -2,7 +2,12 @@ import { shell } from "electron";
 import { spawn } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
-import { GameShop, type Game, type UserPreferences } from "@types";
+import {
+  GameShop,
+  type Game,
+  type LaunchSource,
+  type UserPreferences,
+} from "@types";
 import { db, gamesSublevel, levelKeys } from "@main/level";
 import { updateGameExecutablePath } from "./update-executable-path";
 import {
@@ -24,6 +29,7 @@ import {
   PowerSaveBlockerManager,
   Wine,
   NativeAddon,
+  DisplayManager,
   launchedGamePids,
 } from "@main/services";
 import { CommonRedistManager } from "@main/services/common-redist-manager";
@@ -42,6 +48,7 @@ export interface LaunchGameOptions {
   objectId: string;
   executablePath: string;
   launchOptions?: string | null;
+  launchSource?: LaunchSource;
 }
 
 const LAUNCH_DELAY_IN_MS = 2_000;
@@ -521,6 +528,26 @@ const runCommonRedistPreflight = async (shop: GameShop, objectId: string) => {
   }
 };
 
+const getLaunchDisplay = async (launchSource?: LaunchSource) => {
+  if (launchSource !== "big-picture") {
+    return undefined;
+  }
+
+  return DisplayManager.getBigPictureDisplay();
+};
+
+const prepareBigPictureDisplayForLaunchSource = async (
+  launchSource?: LaunchSource
+) => {
+  if (launchSource !== "big-picture") {
+    return;
+  }
+
+  // Re-assert at launch time because display settings can change while Big Picture stays open.
+  await DisplayManager.prepareBigPictureDisplayForLaunch();
+  await WindowManager.reapplyBigPictureUiScalePreference();
+};
+
 const launchResolvedGame = async (
   gameKey: string,
   shop: GameShop,
@@ -571,7 +598,8 @@ const launchResolvedGame = async (
 const launchGameWithCloudSaveChecks = async (
   options: LaunchGameOptions
 ): Promise<number | null> => {
-  const { shop, objectId, executablePath, launchOptions } = options;
+  const { shop, objectId, executablePath, launchOptions, launchSource } =
+    options;
 
   const parsedPath = parseExecutablePath(executablePath);
 
@@ -603,7 +631,15 @@ const launchGameWithCloudSaveChecks = async (
     await gamesSublevel.put(gameKey, updatedGame);
   }
 
-  await WindowManager.createGameLauncherWindow(shop, objectId);
+  const launchDisplay = await getLaunchDisplay(launchSource);
+  await WindowManager.createGameLauncherWindow(
+    shop,
+    objectId,
+    launchDisplay,
+    launchSource === "big-picture"
+      ? userPreferences?.bigPictureUiScale
+      : undefined
+  );
 
   const shouldRunV2AutomaticSync = await canRunAutomaticCloudSaveSync(
     objectId,
@@ -733,6 +769,7 @@ const launchGameWithCloudSaveChecks = async (
   }
 
   await new Promise((resolve) => setTimeout(resolve, LAUNCH_DELAY_IN_MS));
+  await prepareBigPictureDisplayForLaunchSource(launchSource);
 
   return launchResolvedGame(
     gameKey,

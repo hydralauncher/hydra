@@ -2,11 +2,16 @@ import { registerEvent } from "../register-event";
 import path from "node:path";
 
 import type { Game, UserPreferences } from "@types";
+import { resolveBigPictureUiScale } from "../../../types/big-picture-ui-scale";
 import i18next from "i18next";
 import { defaultDownloadsPath } from "@main/constants";
 import { db, gamesSublevel, levelKeys } from "@main/level";
 import { patchUserProfile } from "../profile/update-profile";
-import { DownloadManager, Wine } from "@main/services";
+import {
+  BigPictureSessionManager,
+  DownloadManager,
+  Wine,
+} from "@main/services";
 import { WindowManager } from "@main/services/window-manager";
 import { getDownloadDirectoryPreferences } from "@shared";
 import {
@@ -144,6 +149,13 @@ const updateUserPreferences = async (
   const updatedPreferences = {
     ...mergedPreferences,
     ...normalizedDownloadDirectoryPreferences,
+    ...(Object.hasOwn(preferences, "bigPictureUiScale")
+      ? {
+          bigPictureUiScale: resolveBigPictureUiScale(
+            preferences.bigPictureUiScale
+          ),
+        }
+      : {}),
   };
 
   await db.put<string, UserPreferences>(
@@ -162,6 +174,25 @@ const updateUserPreferences = async (
     "on-user-preferences-updated",
     updatedPreferences
   );
+
+  if (
+    Object.hasOwn(preferences, "bigPictureAudioDeviceId") ||
+    Object.hasOwn(preferences, "bigPictureSoundsEnabled")
+  ) {
+    await BigPictureSessionManager.applyAudioPreference(updatedPreferences);
+  }
+
+  if (
+    Object.hasOwn(preferences, "bigPictureDisplayId") ||
+    Object.hasOwn(preferences, "bigPictureDisplayBounds")
+  ) {
+    await BigPictureSessionManager.applyDisplayPreference();
+    await WindowManager.applyBigPictureDisplayPreference();
+  }
+
+  if (Object.hasOwn(preferences, "bigPictureUiScale")) {
+    WindowManager.applyBigPictureLaunchUiScalePreference(updatedPreferences);
+  }
 
   await applyDownloadManagerPreferences(preferences);
 };
