@@ -294,7 +294,6 @@
     "downloader_online": "Онлайн",
     "downloader_not_configured": "Наличен, но неконфигуриран",
     "downloader_offline": "Връзката е офлайн",
-    "downloader_not_available": "Не е наличен",
     "go_to_settings": "Отиди в Настройки",
     "select_executable": "Избери",
     "no_executable_selected": "Няма избран изпълним файл",

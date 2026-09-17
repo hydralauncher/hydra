@@ -347,7 +347,6 @@
     "downloader_online": "Online",
     "downloader_not_configured": "Available but not configured",
     "downloader_offline": "Link is offline",
-    "downloader_not_available": "Not available",
     "go_to_settings": "Go to Settings",
     "open_save_folder": "Open save folder",
     "searching_save_folder": "Searching save folder...",

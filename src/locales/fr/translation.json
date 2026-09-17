@@ -731,7 +731,6 @@
     "downloader_not_configured": "Disponible mais non configuré",
     "downloader_requires_hydra_cloud": "Nécessite un abonnement Hydra Cloud actif",
     "downloader_offline": "Lien hors ligne",
-    "downloader_not_available": "Indisponible",
     "go_to_settings": "Aller dans les paramètres",
     "currency_symbol": "$",
     "currency_country": "us",

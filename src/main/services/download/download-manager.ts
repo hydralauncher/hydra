@@ -1909,9 +1909,7 @@ export class DownloadManager {
         contentType.includes("text/html") ||
         contentType.includes("application/xhtml")
       ) {
-        throw new Error(
-          "The download link returned a web page instead of a file. It may have expired or be invalid."
-        );
+        throw new Error(DownloadError.DownloadLinkReturnedWebPage);
       }
 
       return "done";

@@ -111,6 +111,7 @@ export function SimilarGames({ objectId, shop }: Readonly<SimilarGamesProps>) {
                       similarGame.iconUrl,
                     ]}
                     useClassicsLayout={similarGame.shop === "launchbox"}
+                    showTitleTooltip={false}
                     onClick={() => navigate(buildGameDetailsPath(similarGame))}
                   />
                 </SimilarGamesSlide>

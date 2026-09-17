@@ -1,7 +1,11 @@
 import { useEffect, useState } from "react";
 import { IS_DESKTOP } from "../../constants";
 import type { DownloadSource, Game, GameRepack } from "@types";
-import { applyHosterAvailability, fetchHosterAvailability } from "@shared";
+import {
+  applyHosterAvailability,
+  fetchHosterAvailability,
+  filterDownloadableRepacks,
+} from "@shared";
 import { orderBy } from "lodash-es";
 
 export type DownloadOptionsEmptyStateReason =
@@ -151,21 +155,23 @@ async function fetchDownloadOptions(
   try {
     const endpoint = `/games/${game.shop}/${game.objectId}/download-sources`;
 
-    const options = await globalThis.window.electron.hydraApi.get<GameRepack[]>(
-      endpoint,
-      {
-        params: {
-          take: 100,
-          skip: 0,
-          downloadSourceIds: sortedSources.map((source) => source.id),
-        },
-        needsAuth: false,
-      }
-    );
+    const response = await globalThis.window.electron.hydraApi.get<
+      GameRepack[]
+    >(endpoint, {
+      params: {
+        take: 100,
+        skip: 0,
+        downloadSourceIds: sortedSources.map((source) => source.id),
+      },
+      needsAuth: false,
+    });
+    const options = Array.isArray(response)
+      ? filterDownloadableRepacks(response)
+      : [];
 
     setDownloadOptionsSuccessState(signal, setters, options);
 
-    if (signal.cancelled || !Array.isArray(options) || options.length === 0) {
+    if (signal.cancelled || options.length === 0) {
       return;
     }
 

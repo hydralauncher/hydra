@@ -230,7 +230,6 @@
     "downloader_online": "Spletno",
     "downloader_not_configured": "Na voljo, vendar ni nastavljeno",
     "downloader_offline": "Povezava je brez povezave",
-    "downloader_not_available": "Ni na voljo",
     "go_to_settings": "Pojdi v nastavitve",
     "select_executable": "Izberi",
     "no_executable_selected": "Ni izbrane izvršljive datoteke",

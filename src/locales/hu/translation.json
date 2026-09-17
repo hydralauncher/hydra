@@ -261,7 +261,6 @@
     "downloader_online": "Elérhető",
     "downloader_not_configured": "Elérhető de nincs beállítva",
     "downloader_offline": "A link nem elérhető",
-    "downloader_not_available": "Nem elérhető",
     "go_to_settings": "Beállítások megnyitása",
     "select_executable": "Tallózás",
     "no_executable_selected": "Nincs futtatható fájl tallózva",

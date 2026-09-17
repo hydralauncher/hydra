@@ -261,7 +261,6 @@
     "downloader_online": "オンライン",
     "downloader_not_configured": "利用可能ですが未設定",
     "downloader_offline": "リンクはオフライン",
-    "downloader_not_available": "利用不可",
     "go_to_settings": "設定へ",
     "select_executable": "選択",
     "no_executable_selected": "実行ファイルが選択されていません",

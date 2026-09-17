@@ -244,7 +244,6 @@
     "downloader_online": "Online",
     "downloader_not_configured": "Available but not configured",
     "downloader_offline": "Link is offline",
-    "downloader_not_available": "Not available",
     "go_to_settings": "Go to Settings",
     "select_executable": "Select",
     "no_executable_selected": "No executable selected",

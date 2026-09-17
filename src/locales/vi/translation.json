@@ -337,7 +337,6 @@
     "downloader_not_configured": "Khả dụng nhưng chưa được thiết lập",
     "downloader_requires_hydra_cloud": "Yêu cầu gói đăng ký Hydra Cloud đang hoạt động",
     "downloader_offline": "Liên kết đã ngoại tuyến",
-    "downloader_not_available": "Không khả dụng",
     "go_to_settings": "Đi tới Cài đặt",
     "select_executable": "Chọn",
     "no_executable_selected": "Chưa chọn tệp chạy",

@@ -306,7 +306,6 @@
     "downloader_online": "Online",
     "downloader_not_configured": "Tersedia tetapi belum dikonfigurasi",
     "downloader_offline": "Beberapa link tidak aktif",
-    "downloader_not_available": "Tidak tersedia",
     "go_to_settings": "Buka Pengaturan",
     "select_executable": "Pilih",
     "no_executable_selected": "Tidak ada executable yang dipilih",

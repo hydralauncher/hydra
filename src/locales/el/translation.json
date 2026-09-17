@@ -328,7 +328,6 @@
     "downloader_not_configured": "Διαθέσιμο αλλά δεν έχει ρυθμιστεί",
     "downloader_requires_hydra_cloud": "Απαιτεί ενεργή συνδρομή Hydra Cloud",
     "downloader_offline": "Ο σύνδεσμος είναι εκτός σύνδεσης",
-    "downloader_not_available": "Δεν είναι διαθέσιμο",
     "go_to_settings": "Μετάβαση στις Ρυθμίσεις",
     "select_executable": "Επιλογή",
     "no_executable_selected": "Δεν έχει επιλεγεί εκτελέσιμο αρχείο",

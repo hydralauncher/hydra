@@ -231,7 +231,6 @@
     "downloader_online": "Online",
     "downloader_not_configured": "Disponibile ma non configurato",
     "downloader_offline": "Il link è offline",
-    "downloader_not_available": "Non disponibile",
     "go_to_settings": "Vai alle impostazioni",
     "select_executable": "Seleziona",
     "no_executable_selected": "Nessun eseguibile selezionato",

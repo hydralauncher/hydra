@@ -328,7 +328,6 @@
     "downloader_not_configured": "Dostępne, ale nieskonfigurowane",
     "downloader_requires_hydra_cloud": "Wymaga aktywnej subskrypcji Hydra Cloud",
     "downloader_offline": "Link jest offline",
-    "downloader_not_available": "Niedostępny",
     "go_to_settings": "Przejdź do ustawień",
     "select_executable": "Wybierz",
     "no_executable_selected": "Nie wybrano pliku wykonywalnego",
