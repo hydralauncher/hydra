@@ -1219,7 +1219,7 @@ mod tests {
         let later = t0 + 10_000 * MS;
         assert!(gate.note_request(later), "a fresh loss answers immediately");
         assert!(!gate.note_request(later + 100 * MS), "the floor holds inside the run");
-        assert!(gate.note_request(later + 200 * MS));
+        assert!(gate.note_request(later + IDR_THROTTLE_NORMAL));
     }
 
     /// Begging that stops returns the gate to the prompt cadence: the
@@ -1245,7 +1245,7 @@ mod tests {
         );
         assert_eq!(gate.cadence(), IDR_THROTTLE_NORMAL, "the backoff is cleared");
         assert!(!gate.note_request(fresh + 100 * MS), "the floor holds inside the new episode");
-        assert!(gate.note_request(fresh + 200 * MS));
+        assert!(gate.note_request(fresh + IDR_THROTTLE_NORMAL));
     }
 
     #[test]
@@ -1263,7 +1263,7 @@ mod tests {
         assert_eq!(gate.counts(), (0, 0));
         assert!(gate.note_request(now), "a reset gate answers at once again");
         assert!(!gate.note_request(now + 100 * MS), "the 200ms floor is back");
-        assert!(gate.note_request(now + 200 * MS));
+        assert!(gate.note_request(now + IDR_THROTTLE_NORMAL));
     }
 
     /// The 5s stats read (answered, coalesced) from the gate: every request

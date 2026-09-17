@@ -614,6 +614,17 @@ mod tests {
         DXGI_SHARED_RESOURCE_READ, DXGI_SHARED_RESOURCE_WRITE,
     };
 
+    /// Probe texture geometry: the sharing round trip (create -> NT handle
+    /// -> open -> keyed ping-pong) does not depend on the surface size, so
+    /// the probe uses a small 16:9 BGRA surface instead of a full frame.
+    const PROBE_TEXTURE_WIDTH: u32 = 640;
+    const PROBE_TEXTURE_HEIGHT: u32 = 360;
+
+    /// Adapters the probe scans: DXGI has no adapter-count call, so it
+    /// enumerates from 0 and stops at the first `EnumAdapters` failure;
+    /// this ceiling only has to exceed any real machine's adapter count.
+    const PROBE_ADAPTER_LIMIT: u32 = 16;
+
     /// Creates a D3D11 device on the given adapter.
     unsafe fn device_on(adapter: &IDXGIAdapter) -> Result<ID3D11Device, String> {
         let mut device: Option<ID3D11Device> = None;
@@ -645,8 +656,8 @@ mod tests {
         keyed: bool,
     ) -> String {
         let mut desc = D3D11_TEXTURE2D_DESC::default();
-        desc.Width = 640;
-        desc.Height = 360;
+        desc.Width = PROBE_TEXTURE_WIDTH;
+        desc.Height = PROBE_TEXTURE_HEIGHT;
         desc.MipLevels = 1;
         desc.ArraySize = 1;
         desc.Format = format;
@@ -701,13 +712,13 @@ mod tests {
                 Ok(mutex) => mutex,
                 Err(error) => return format!("{label}: consumer mutex QI: {error}"),
             };
-            if let Err(error) = pm.AcquireSync(0, 2000) {
+            if let Err(error) = pm.AcquireSync(0, CONSUME_ACQUIRE_TIMEOUT_MS) {
                 return format!("{label}: producer acquire: {error}");
             }
             if let Err(error) = pm.ReleaseSync(1) {
                 return format!("{label}: producer release: {error}");
             }
-            if let Err(error) = cm.AcquireSync(1, 2000) {
+            if let Err(error) = cm.AcquireSync(1, CONSUME_ACQUIRE_TIMEOUT_MS) {
                 return format!("{label}: consumer acquire: {error}");
             }
             if let Err(error) = cm.ReleaseSync(0) {
@@ -729,7 +740,7 @@ mod tests {
         unsafe {
             let factory: IDXGIFactory1 = CreateDXGIFactory1().expect("CreateDXGIFactory1");
             let mut adapters: Vec<IDXGIAdapter> = Vec::new();
-            for index in 0..16 {
+            for index in 0..PROBE_ADAPTER_LIMIT {
                 match factory.EnumAdapters(index) {
                     Ok(adapter) => adapters.push(adapter),
                     Err(_) => break,
