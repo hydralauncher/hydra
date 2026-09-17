@@ -40,7 +40,7 @@ export function ResetPlaytimeModal({
           {t("cancel")}
         </Button>
 
-        <Button onClick={handleResetPlaytime} theme="primary">
+        <Button onClick={handleResetPlaytime} theme="danger">
           {t("reset_playtime")}
         </Button>
       </div>

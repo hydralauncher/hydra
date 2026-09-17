@@ -193,9 +193,11 @@ export interface UserPreferences {
   hideClassicsBookmark?: boolean;
   classicsUseHeroLayout?: boolean;
   hideLibraryGameBadges?: boolean;
+  hideLibraryReadySizeBadges?: boolean;
   hideLibraryClassicsBadges?: boolean;
   hideLibraryAchievementProgress?: boolean;
   autoplayAnimatedArtwork?: boolean;
+  persistFiltersAndSorting?: boolean;
 }
 
 export interface NetworkInterface {

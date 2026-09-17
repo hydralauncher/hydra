@@ -746,7 +746,32 @@ const launchGameWithCloudSaveChecks = async (
   );
 };
 
-export const launchGame = (options: LaunchGameOptions) =>
-  runWithCloudSaveLaunchGate(options.objectId, options.shop, () =>
+const hasLaunchableExecutable = (executablePath: string) => {
+  if (!executablePath || !fs.existsSync(executablePath)) return false;
+
+  try {
+    return fs.existsSync(parseExecutablePath(executablePath));
+  } catch {
+    return false;
+  }
+};
+
+export const launchGame = async (options: LaunchGameOptions) => {
+  if (!hasLaunchableExecutable(options.executablePath)) {
+    logger.warn("Game executable not found", {
+      shop: options.shop,
+      objectId: options.objectId,
+      executablePath: options.executablePath,
+    });
+    WindowManager.sendToAppWindows(
+      "on-game-executable-not-found",
+      options.shop,
+      options.objectId
+    );
+    return null;
+  }
+
+  return runWithCloudSaveLaunchGate(options.objectId, options.shop, () =>
     launchGameWithCloudSaveChecks(options)
   );
+};

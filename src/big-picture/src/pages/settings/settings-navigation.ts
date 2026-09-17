@@ -149,6 +149,7 @@ export const CONTENT_ITEM_FOCUS_IDS = {
   resetScreenshotsDirectory: "content-reset-screenshots-directory",
   openScreenshotsDirectory: "content-open-screenshots-directory",
   autoplayAnimatedArtwork: "content-autoplay-animated-artwork",
+  persistFiltersAndSorting: "content-persist-filters-and-sorting",
 } as const;
 
 export const BIG_PICTURE_ITEM_FOCUS_IDS = {

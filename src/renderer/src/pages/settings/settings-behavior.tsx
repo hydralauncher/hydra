@@ -1,11 +1,14 @@
 import { useContext, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 
-import { CheckboxField, ProtonPathPicker } from "@renderer/components";
+import {
+  CheckboxField,
+  GuideLink,
+  ProtonPathPicker,
+} from "@renderer/components";
 import { useAppSelector } from "@renderer/hooks";
 import { settingsContext } from "@renderer/context";
 import "./settings-behavior.scss";
-import { QuestionIcon } from "@primer/octicons-react";
 import type { ProtonVersion } from "@types";
 import { StartupBehaviorFields } from "./startup-behavior-fields";
 
@@ -232,24 +235,19 @@ export function SettingsBehavior() {
         }
       />
 
-      <div className={`settings-behavior__checkbox-container--with-tooltip`}>
-        <CheckboxField
-          label={t("enable_steam_achievements")}
-          checked={form.enableSteamAchievements}
-          onChange={() =>
-            handleChange({
-              enableSteamAchievements: !form.enableSteamAchievements,
-            })
-          }
-        />
-
-        <small
-          className="settings-behavior__checkbox-container--tooltip"
-          data-open-article="steam-achievements"
-        >
-          <QuestionIcon size={12} />
-        </small>
-      </div>
+      <CheckboxField
+        label={
+          <GuideLink article="steam-achievements">
+            {t("enable_steam_achievements")}
+          </GuideLink>
+        }
+        checked={form.enableSteamAchievements}
+        onChange={() =>
+          handleChange({
+            enableSteamAchievements: !form.enableSteamAchievements,
+          })
+        }
+      />
 
       <CheckboxField
         label={t("enable_new_download_options_badges")}
