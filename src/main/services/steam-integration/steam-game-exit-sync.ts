@@ -10,6 +10,7 @@ import {
 import { steamSyncLogger } from "../logger";
 import { WindowManager } from "../window-manager";
 import { createSteamGameExitSyncScheduler } from "./steam-game-exit-sync-scheduler";
+import { createSteamGamePageSync } from "./steam-game-page-sync-core";
 import { steamSyncOrchestrator } from "./steam-sync-orchestrator";
 import { chunkSteamGameSyncPayload } from "./steam-sync-snapshot";
 
@@ -60,6 +61,15 @@ const scheduler = createSteamGameExitSyncScheduler({
   logError: (message, ...args) => steamSyncLogger.error(message, ...args),
 });
 
+const pageSync = createSteamGamePageSync({
+  waitForFullSync: () => steamSyncOrchestrator.waitForCurrentRun(),
+  collect: (steamAppId, signal) =>
+    steamSyncOrchestrator.collectGameSyncPayload(steamAppId, signal),
+  publish: publishGame,
+  log: (message, ...args) => steamSyncLogger.log(message, ...args),
+  logError: (message, ...args) => steamSyncLogger.error(message, ...args),
+});
+
 export const scheduleSteamGameExitSync = (game: Game) => {
   const gameKey = levelKeys.game(game.shop, game.objectId);
   scheduler.schedule(gameKey, game.objectId);
@@ -68,5 +78,8 @@ export const scheduleSteamGameExitSync = (game: Game) => {
 export const cancelSteamGameExitSync = (game: Game) => {
   scheduler.cancel(levelKeys.game(game.shop, game.objectId));
 };
+
+export const syncSteamGameOnGamePage = (steamAppId: string) =>
+  pageSync.sync(steamAppId);
 
 export { shouldScheduleSteamGameExitSync } from "./steam-game-exit-sync-scheduler";

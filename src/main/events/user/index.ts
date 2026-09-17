@@ -10,4 +10,5 @@ import "./start-steam-sync";
 import "./cancel-steam-sync";
 import "./get-steam-sync-state";
 import "./reconcile-steam-sync-run";
+import "./sync-steam-game-on-game-page";
 import "./retroachievements-connection-window";

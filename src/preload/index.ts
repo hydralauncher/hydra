@@ -1652,6 +1652,8 @@ contextBridge.exposeInMainWorld("electron", {
   startSteamSync: () => ipcRenderer.invoke("startSteamSync"),
   cancelSteamSync: () => ipcRenderer.invoke("cancelSteamSync"),
   getSteamSyncState: () => ipcRenderer.invoke("getSteamSyncState"),
+  syncSteamGameOnGamePage: (steamAppId: string) =>
+    ipcRenderer.invoke("syncSteamGameOnGamePage", steamAppId),
   reconcileSteamSyncRun: (latestSyncRunStatus: SteamSyncRunStatus | null) =>
     ipcRenderer.invoke("reconcileSteamSyncRun", latestSyncRunStatus),
   onSteamSyncProgress: (cb: (state: SteamSyncState) => void) => {

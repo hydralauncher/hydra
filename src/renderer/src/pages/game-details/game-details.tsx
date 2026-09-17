@@ -44,6 +44,12 @@ export default function GameDetails() {
   const navigate = useNavigate();
 
   useEffect(() => {
+    if (shop !== "steam" || !objectId) return;
+
+    void window.electron.syncSteamGameOnGamePage(objectId).catch(() => {});
+  }, [objectId, shop]);
+
+  useEffect(() => {
     setRandomGame(null);
     window.electron.getRandomGame().then((randomGame) => {
       setRandomGame(randomGame);

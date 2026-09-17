@@ -1146,6 +1146,7 @@ declare global {
     startSteamSync: () => Promise<SteamSyncState>;
     cancelSteamSync: () => Promise<void>;
     getSteamSyncState: () => Promise<SteamSyncState>;
+    syncSteamGameOnGamePage: (steamAppId: string) => Promise<boolean>;
     reconcileSteamSyncRun: (
       latestSyncRunStatus: SteamSyncRunStatus | null
     ) => Promise<void>;
