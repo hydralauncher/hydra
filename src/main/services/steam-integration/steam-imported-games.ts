@@ -47,7 +47,8 @@ export const hasImportedSteamData = (
 
 export const getSteamImportedDataCleanupPlan = (game: ImportedSteamGame) => ({
   cleanup: {
-    hasActiveSteamImport: false,
+    // Keep this until a successful remote merge confirms whether the row survived.
+    hasActiveSteamImport: game.hasActiveSteamImport === true,
     steamPlayTimeInMilliseconds: 0,
     lastTimePlayed: null,
     source: game.source === "steam" ? ("hydra" as const) : game.source,

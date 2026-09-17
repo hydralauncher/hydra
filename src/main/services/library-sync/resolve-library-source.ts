@@ -27,3 +27,21 @@ export const resolveLibraryIsDeleted = (
   hasActiveSteamImport = false
 ): boolean =>
   remoteSource === "steam" || hasActiveSteamImport ? false : localIsDeleted;
+
+export const resolveMissingSteamImport = (
+  game: { shop: string; hasActiveSteamImport?: boolean },
+  existsRemotely: boolean
+) => {
+  if (
+    game.shop !== "steam" ||
+    game.hasActiveSteamImport !== true ||
+    existsRemotely
+  ) {
+    return null;
+  }
+
+  return {
+    hasActiveSteamImport: false as const,
+    isDeleted: true as const,
+  };
+};

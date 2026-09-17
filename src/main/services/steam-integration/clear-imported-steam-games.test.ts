@@ -184,7 +184,7 @@ describe("Steam imported data cleanup", () => {
     );
   });
 
-  it("clears Steam state before restoring Hydra data from the remote merge", () => {
+  it("keeps the import marker until remote cleanup is reconciled", () => {
     assert.deepEqual(
       getSteamImportedDataCleanupPlan({
         shop: "steam",
@@ -196,7 +196,7 @@ describe("Steam imported data cleanup", () => {
       }),
       {
         cleanup: {
-          hasActiveSteamImport: false,
+          hasActiveSteamImport: true,
           steamPlayTimeInMilliseconds: 0,
           lastTimePlayed: null,
           source: "hydra",

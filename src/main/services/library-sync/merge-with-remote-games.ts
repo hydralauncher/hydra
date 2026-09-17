@@ -26,6 +26,7 @@ import {
 } from "./merge-imported-profile-game";
 import {
   resolveLibraryIsDeleted,
+  resolveMissingSteamImport,
   resolveLibrarySource,
 } from "./resolve-library-source";
 import { mergeLocalAndRemotePlayTime } from "@shared";
@@ -352,17 +353,20 @@ export const mergeWithRemoteGames = async () => {
       await mergeRemoteGame(game, canReconcileCustomArtwork);
     }
 
-    // A removed Steam-only row may still have a local installation.
+    // Keep installations, but hide games removed by destructive Steam cleanup.
     const remoteKeys = new Set(
       remoteGames.map((game) => levelKeys.game(game.shop, game.objectId))
     );
     for (const [key, game] of await gamesSublevel.iterator().all()) {
-      if (
-        game.shop === "steam" &&
-        game.hasActiveSteamImport &&
-        !remoteKeys.has(key)
-      ) {
-        await gamesSublevel.put(key, { ...game, hasActiveSteamImport: false });
+      const missingImportResolution = resolveMissingSteamImport(
+        game,
+        remoteKeys.has(key)
+      );
+      if (missingImportResolution) {
+        await gamesSublevel.put(key, {
+          ...game,
+          ...missingImportResolution,
+        });
       }
     }
 
