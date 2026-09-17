@@ -751,6 +751,7 @@
     "move_down": "Pindah ke bawah"
   },
   "settings": {
+    "hide_library_steam_badges": "Sembunyikan lencana koneksi Pustaka Steam",
     "integration_connect": "Hubungkan",
     "integration_disconnect": "Putuskan",
     "integration_reconnect": "Hubungkan kembali",

@@ -627,6 +627,7 @@
     "files": "FILES"
   },
   "settings": {
+    "hide_library_steam_badges": "Ocultar emblemas da ligação à biblioteca Steam",
     "integration_connect": "Ligar",
     "integration_disconnect": "Desligar",
     "integration_reconnect": "Voltar a ligar",

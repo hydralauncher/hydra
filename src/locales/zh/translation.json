@@ -574,6 +574,7 @@
     "move_down": "Move down"
   },
   "settings": {
+    "hide_library_steam_badges": "隐藏 Steam 库连接徽章",
     "integration_connect": "连接",
     "integration_disconnect": "断开连接",
     "integration_reconnect": "重新连接",

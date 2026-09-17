@@ -13,6 +13,7 @@ import {
 import { HeartFillIcon } from "@primer/octicons-react";
 import { useAppSelector, useToast } from "@renderer/hooks";
 import { useCollectionContextMenu } from "@renderer/context";
+import { shouldShowSteamLibraryBadge } from "@renderer/helpers";
 
 interface SidebarGameItemProps {
   game: LibraryGame;
@@ -109,9 +110,10 @@ export function SidebarGameItem({
             ) : (
               getFallbackIcon()
             )}
-            {game.hasActiveSteamImport === true && (
-              <SteamLibraryBadge variant="sidebar" />
-            )}
+            {shouldShowSteamLibraryBadge(
+              game,
+              userPreferences?.hideSteamLibraryBadges
+            ) && <SteamLibraryBadge variant="sidebar" />}
           </span>
 
           <span className="sidebar__menu-item-button-label">

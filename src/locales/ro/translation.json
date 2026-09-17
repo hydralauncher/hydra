@@ -571,6 +571,7 @@
     "move_down": "Move down"
   },
   "settings": {
+    "hide_library_steam_badges": "Ascunde insignele conexiunii la biblioteca Steam",
     "integration_connect": "Conectează",
     "integration_disconnect": "Deconectează",
     "integration_reconnect": "Reconectează",

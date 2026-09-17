@@ -574,6 +574,7 @@
     "move_down": "Move down"
   },
   "settings": {
+    "hide_library_steam_badges": "Abzeichen für die Steam-Bibliotheksverbindung ausblenden",
     "integration_connect": "Verbinden",
     "integration_disconnect": "Trennen",
     "integration_reconnect": "Erneut verbinden",

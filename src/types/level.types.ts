@@ -197,6 +197,7 @@ export interface UserPreferences {
   hideLibraryGameBadges?: boolean;
   hideLibraryReadySizeBadges?: boolean;
   hideLibraryClassicsBadges?: boolean;
+  hideSteamLibraryBadges?: boolean;
   hideLibraryAchievementProgress?: boolean;
   autoplayAnimatedArtwork?: boolean;
   persistFiltersAndSorting?: boolean;

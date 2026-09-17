@@ -791,6 +791,7 @@
     "move_down": "Di chuyển xuống"
   },
   "settings": {
+    "hide_library_steam_badges": "Ẩn huy hiệu kết nối Thư viện Steam",
     "integration_connect": "Kết nối",
     "integration_disconnect": "Ngắt kết nối",
     "integration_reconnect": "Kết nối lại",

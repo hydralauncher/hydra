@@ -574,6 +574,7 @@
     "move_down": "Move down"
   },
   "settings": {
+    "hide_library_steam_badges": "Piilota Steam-kirjastoyhteyden merkit",
     "integration_connect": "Yhdistä",
     "integration_disconnect": "Katkaise yhteys",
     "integration_reconnect": "Yhdistä uudelleen",

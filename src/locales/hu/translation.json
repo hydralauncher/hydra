@@ -598,6 +598,7 @@
     "move_down": "Le"
   },
   "settings": {
+    "hide_library_steam_badges": "A Steam-könyvtár kapcsolatjelvényeinek elrejtése",
     "integration_connect": "Csatlakozás",
     "integration_disconnect": "Leválasztás",
     "integration_reconnect": "Újracsatlakozás",

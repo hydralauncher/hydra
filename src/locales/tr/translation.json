@@ -574,6 +574,7 @@
     "move_down": "Move down"
   },
   "settings": {
+    "hide_library_steam_badges": "Steam Kütüphanesi bağlantı rozetlerini gizle",
     "integration_connect": "Bağlan",
     "integration_disconnect": "Bağlantıyı kes",
     "integration_reconnect": "Yeniden bağlan",

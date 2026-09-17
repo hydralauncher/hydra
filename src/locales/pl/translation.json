@@ -791,6 +791,7 @@
     "move_down": "Przenieś w dół"
   },
   "settings": {
+    "hide_library_steam_badges": "Ukryj odznaki połączenia z biblioteką Steam",
     "integration_connect": "Połącz",
     "integration_disconnect": "Rozłącz",
     "integration_reconnect": "Połącz ponownie",

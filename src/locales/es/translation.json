@@ -1335,6 +1335,7 @@
     "hide_library_game_badges": "Ocultar la insignia de tiempo de juego en las tarjetas de la biblioteca",
     "hide_library_ready_size_badges": "Ocultar las insignias Listo y de tamaño en las tarjetas de la biblioteca",
     "hide_library_classics_badges": "Ocultar las insignias de plataforma de Hydra Classics en las tarjetas de la librería",
+    "hide_library_steam_badges": "Ocultar las insignias de conexión con la biblioteca de Steam",
     "hide_library_achievement_progress": "Ocultar la barra de progreso de logros en las tarjetas de la librería",
     "autoplay_animated_artwork": "Reproducir siempre las ilustraciones animadas (Puede afectar el rendimiento)",
     "classics_group": "Clásicos",

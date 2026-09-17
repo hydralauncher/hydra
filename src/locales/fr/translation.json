@@ -1277,6 +1277,7 @@
     "library_appearance": "Bibliothèque",
     "hide_library_game_badges": "Masquer les badges de temps de jeu, taille et disponibilité sur les cartes de la bibliothèque",
     "hide_library_classics_badges": "Masquer les badges de plateforme Hydra Classics sur les cartes de la bibliothèque",
+    "hide_library_steam_badges": "Masquer les badges de connexion à la bibliothèque Steam",
     "hide_library_achievement_progress": "Masquer la barre de progression des succès sur les cartes de la bibliothèque",
     "autoplay_animated_artwork": "Toujours lire les illustrations animées (peut affecter les performances)",
     "classics_group": "Classiques",

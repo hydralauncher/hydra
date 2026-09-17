@@ -12,6 +12,7 @@ import {
   CLASSICS_PS_PLATFORM_LABELS,
   isGameReadyToPlay,
   resolveClassicsBadge,
+  shouldShowSteamLibraryBadge,
 } from "@renderer/helpers";
 import { AchievementProgress, SteamLibraryBadge } from "@renderer/components";
 import { memo, useEffect, useState } from "react";
@@ -55,6 +56,10 @@ export const LibraryGameCard = memo(function LibraryGameCard({
     userPreferences?.hideLibraryReadySizeBadges ?? false;
   const hideClassicsBadges =
     userPreferences?.hideLibraryClassicsBadges ?? false;
+  const showSteamLibraryBadge = shouldShowSteamLibraryBadge(
+    game,
+    userPreferences?.hideSteamLibraryBadges
+  );
   const hideAchievementProgress =
     userPreferences?.hideLibraryAchievementProgress ?? false;
   const autoplayAnimatedArtwork =
@@ -252,11 +257,9 @@ export const LibraryGameCard = memo(function LibraryGameCard({
             </div>
           )}
 
-          {(game.hasActiveSteamImport === true ||
-            showPlatformBadge ||
-            showReadyBadge) && (
+          {(showSteamLibraryBadge || showPlatformBadge || showReadyBadge) && (
             <div className="library-game-card__top-right">
-              {game.hasActiveSteamImport === true && <SteamLibraryBadge />}
+              {showSteamLibraryBadge && <SteamLibraryBadge />}
 
               {showPlatformBadge && (
                 <div className="library-game-card__classics-badges">

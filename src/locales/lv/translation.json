@@ -574,6 +574,7 @@
     "move_down": "Move down"
   },
   "settings": {
+    "hide_library_steam_badges": "Paslēpt Steam bibliotēkas savienojuma nozīmītes",
     "integration_connect": "Savienot",
     "integration_disconnect": "Atvienot",
     "integration_reconnect": "Savienot atkārtoti",

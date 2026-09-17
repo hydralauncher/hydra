@@ -8,7 +8,9 @@ const {
   appendProfileLibraryFilterParams,
   filterLibraryGamesByCategory,
   getProfileLibraryFilter,
+  isSteamLibraryGame,
   shouldShowProfileSteamLibraryBadge,
+  shouldShowSteamLibraryBadge,
 } = libraryCategory;
 
 const games = [
@@ -59,5 +61,16 @@ describe("Steam Library filters", () => {
     assert.equal(shouldShowProfileSteamLibraryBadge(games[0], true), true);
     assert.equal(shouldShowProfileSteamLibraryBadge(games[0], false), false);
     assert.equal(shouldShowProfileSteamLibraryBadge(games[1], true), false);
+  });
+
+  it("hides Steam badges without changing import membership", () => {
+    assert.equal(shouldShowSteamLibraryBadge(games[0]), true);
+    assert.equal(shouldShowSteamLibraryBadge(games[0], false), true);
+    assert.equal(shouldShowSteamLibraryBadge(games[0], true), false);
+    assert.equal(
+      shouldShowProfileSteamLibraryBadge(games[0], true, true),
+      false
+    );
+    assert.equal(isSteamLibraryGame(games[0]), true);
   });
 });

@@ -574,6 +574,7 @@
     "move_down": "Move down"
   },
   "settings": {
+    "hide_library_steam_badges": "Skrýt odznaky připojení ke knihovně Steam",
     "integration_connect": "Připojit",
     "integration_disconnect": "Odpojit",
     "integration_reconnect": "Znovu připojit",

@@ -35,6 +35,7 @@ const buildForm = (preferences: UserPreferences | null) => ({
   hideLibraryGameBadges: preferences?.hideLibraryGameBadges ?? false,
   hideLibraryReadySizeBadges: preferences?.hideLibraryReadySizeBadges ?? false,
   hideLibraryClassicsBadges: preferences?.hideLibraryClassicsBadges ?? false,
+  hideSteamLibraryBadges: preferences?.hideSteamLibraryBadges ?? false,
   hideLibraryAchievementProgress:
     preferences?.hideLibraryAchievementProgress ?? false,
   autoplayAnimatedArtwork: preferences?.autoplayAnimatedArtwork ?? false,
@@ -314,6 +315,16 @@ export function SettingsContextContentGameplay() {
           onChange={() =>
             handleChange({
               hideLibraryClassicsBadges: !form.hideLibraryClassicsBadges,
+            })
+          }
+        />
+
+        <CheckboxField
+          label={t("hide_library_steam_badges")}
+          checked={form.hideSteamLibraryBadges}
+          onChange={() =>
+            handleChange({
+              hideSteamLibraryBadges: !form.hideSteamLibraryBadges,
             })
           }
         />

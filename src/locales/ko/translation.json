@@ -571,6 +571,7 @@
     "move_down": "Move down"
   },
   "settings": {
+    "hide_library_steam_badges": "Steam 라이브러리 연결 배지 숨기기",
     "integration_connect": "연결",
     "integration_disconnect": "연결 해제",
     "integration_reconnect": "다시 연결",

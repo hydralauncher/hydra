@@ -571,6 +571,7 @@
     "move_down": "Move down"
   },
   "settings": {
+    "hide_library_steam_badges": "پنهان کردن نشان‌های اتصال به کتابخانه Steam",
     "integration_connect": "اتصال",
     "integration_disconnect": "قطع اتصال",
     "integration_reconnect": "اتصال مجدد",

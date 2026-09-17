@@ -27,6 +27,7 @@ import {
   filterLibraryGamesByCategory,
   getProfileLibraryFilter,
   shouldShowProfileSteamLibraryBadge,
+  shouldShowSteamLibraryBadge,
   type LibraryCategory,
   type ProfileLibraryFilter,
 } from "./pages/library/library-category";
@@ -569,6 +570,7 @@ export {
   filterLibraryGamesByCategory,
   getProfileLibraryFilter,
   shouldShowProfileSteamLibraryBadge,
+  shouldShowSteamLibraryBadge,
   type ProfileLibraryFilter,
 };
 

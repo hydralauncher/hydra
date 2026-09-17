@@ -1349,6 +1349,7 @@
     "hide_library_game_badges": "Ocultar o selo de tempo de jogo nos cards da biblioteca",
     "hide_library_ready_size_badges": "Ocultar os selos Pronto e de tamanho nos cards da biblioteca",
     "hide_library_classics_badges": "Ocultar os selos de plataforma do Hydra Classics nos cards da biblioteca",
+    "hide_library_steam_badges": "Ocultar selos da conexão com a biblioteca Steam",
     "hide_library_achievement_progress": "Ocultar a barra de progresso de conquistas nos cards da biblioteca",
     "autoplay_animated_artwork": "Sempre reproduzir artes animadas (Pode afetar o desempenho)",
     "classics_group": "Clássicos",

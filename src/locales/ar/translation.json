@@ -574,6 +574,7 @@
     "move_down": "Move down"
   },
   "settings": {
+    "hide_library_steam_badges": "إخفاء شارات الاتصال بمكتبة Steam",
     "integration_connect": "اتصال",
     "integration_disconnect": "قطع الاتصال",
     "integration_reconnect": "إعادة الاتصال",

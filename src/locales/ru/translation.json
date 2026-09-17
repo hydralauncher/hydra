@@ -1337,6 +1337,7 @@
     "hide_library_game_badges": "Скрывать значок времени в игре на карточках библиотеки",
     "hide_library_ready_size_badges": "Скрывать значки готовности и размера на карточках библиотеки",
     "hide_library_classics_badges": "Скрывать значки платформ Hydra Classics на карточках библиотеки",
+    "hide_library_steam_badges": "Скрыть значки подключения к библиотеке Steam",
     "hide_library_achievement_progress": "Скрывать полосу прогресса достижений на карточках библиотеки",
     "autoplay_animated_artwork": "Всегда воспроизводить анимированные изображения (Может влиять на производительность)",
     "classics_group": "Классика",

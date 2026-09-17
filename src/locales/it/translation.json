@@ -763,6 +763,7 @@
     "files": "FILES"
   },
   "settings": {
+    "hide_library_steam_badges": "Nascondi i badge della connessione alla libreria di Steam",
     "integration_connect": "Collega",
     "integration_disconnect": "Disconnetti",
     "integration_reconnect": "Riconnetti",

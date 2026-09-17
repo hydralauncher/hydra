@@ -574,6 +574,7 @@
     "move_down": "Move down"
   },
   "settings": {
+    "hide_library_steam_badges": "Skjul badges for Steam-biblioteksforbindelsen",
     "integration_connect": "Forbind",
     "integration_disconnect": "Afbryd",
     "integration_reconnect": "Forbind igen",

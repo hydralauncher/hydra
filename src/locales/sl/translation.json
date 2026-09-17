@@ -576,6 +576,7 @@
     "move_down": "Move down"
   },
   "settings": {
+    "hide_library_steam_badges": "Skrij značke povezave s knjižnico Steam",
     "integration_connect": "Poveži",
     "integration_disconnect": "Prekini povezavo",
     "integration_reconnect": "Znova poveži",

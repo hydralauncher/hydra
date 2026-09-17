@@ -782,6 +782,7 @@
     "move_down": "Μετακίνηση προς τα κάτω"
   },
   "settings": {
+    "hide_library_steam_badges": "Απόκρυψη σημάτων σύνδεσης βιβλιοθήκης Steam",
     "integration_connect": "Σύνδεση",
     "integration_disconnect": "Αποσύνδεση",
     "integration_reconnect": "Επανασύνδεση",

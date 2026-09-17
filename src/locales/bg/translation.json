@@ -732,6 +732,7 @@
     "move_down": "Премести надолу"
   },
   "settings": {
+    "hide_library_steam_badges": "Скриване на значките за връзка със Steam библиотеката",
     "integration_connect": "Свързване",
     "integration_disconnect": "Прекъсване",
     "integration_reconnect": "Повторно свързване",

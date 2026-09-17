@@ -1,6 +1,6 @@
 import { UserGame } from "@types";
 import HydraIcon from "@renderer/assets/icons/hydra.svg?react";
-import { useFormat } from "@renderer/hooks";
+import { useAppSelector, useFormat } from "@renderer/hooks";
 import { useNavigate } from "react-router-dom";
 import { useCallback, useContext, useState } from "react";
 import {
@@ -36,6 +36,9 @@ export function UserLibraryGameCard({
   const { userProfile, isMe } = useContext(userProfileContext);
   const { t } = useTranslation("user_profile");
   const { numberFormatter } = useFormat();
+  const hideSteamLibraryBadges = useAppSelector(
+    (state) => state.userPreferences.value?.hideSteamLibraryBadges ?? false
+  );
   const navigate = useNavigate();
   const [isTooltipHovered, setIsTooltipHovered] = useState(false);
 
@@ -160,9 +163,11 @@ export function UserLibraryGameCard({
                 </span>
               </div>
 
-              {shouldShowProfileSteamLibraryBadge(game, isMe) && (
-                <SteamLibraryBadge />
-              )}
+              {shouldShowProfileSteamLibraryBadge(
+                game,
+                isMe,
+                hideSteamLibraryBadges
+              ) && <SteamLibraryBadge />}
             </div>
 
             {hasAchievementProgress && (

@@ -574,6 +574,7 @@
     "move_down": "Move down"
   },
   "settings": {
+    "hide_library_steam_badges": "Amaga les insígnies de connexió amb la biblioteca de Steam",
     "integration_connect": "Connecta",
     "integration_disconnect": "Desconnecta",
     "integration_reconnect": "Torna a connectar",

@@ -598,6 +598,7 @@
     "move_down": "下に移動"
   },
   "settings": {
+    "hide_library_steam_badges": "Steamライブラリ接続バッジを非表示",
     "integration_connect": "接続",
     "integration_disconnect": "切断",
     "integration_reconnect": "再接続",

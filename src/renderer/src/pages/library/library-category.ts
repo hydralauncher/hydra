@@ -13,10 +13,16 @@ export interface ProfileLibraryFilter {
 export const isSteamLibraryGame = (game: LibraryCategoryGame) =>
   game.hasActiveSteamImport === true;
 
+export const shouldShowSteamLibraryBadge = (
+  game: LibraryCategoryGame,
+  hideSteamLibraryBadges = false
+) => !hideSteamLibraryBadges && isSteamLibraryGame(game);
+
 export const shouldShowProfileSteamLibraryBadge = (
   game: LibraryCategoryGame,
-  isOwnProfile: boolean
-) => isOwnProfile && isSteamLibraryGame(game);
+  isOwnProfile: boolean,
+  hideSteamLibraryBadges = false
+) => isOwnProfile && shouldShowSteamLibraryBadge(game, hideSteamLibraryBadges);
 
 export const filterLibraryGamesByCategory = <T extends LibraryCategoryGame>(
   games: T[],

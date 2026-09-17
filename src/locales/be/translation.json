@@ -571,6 +571,7 @@
     "move_down": "Move down"
   },
   "settings": {
+    "hide_library_steam_badges": "Схаваць значкі падключэння да бібліятэкі Steam",
     "integration_connect": "Падключыць",
     "integration_disconnect": "Адключыць",
     "integration_reconnect": "Перападключыць",

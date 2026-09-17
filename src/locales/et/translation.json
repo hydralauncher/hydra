@@ -574,6 +574,7 @@
     "move_down": "Move down"
   },
   "settings": {
+    "hide_library_steam_badges": "Peida Steami teegi ühenduse märgid",
     "integration_connect": "Ühenda",
     "integration_disconnect": "Katkesta ühendus",
     "integration_reconnect": "Ühenda uuesti",
