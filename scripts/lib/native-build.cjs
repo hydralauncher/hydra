@@ -31,16 +31,45 @@ const windowsMsvcBuilds = {
   },
 };
 
-const cargoBinDirectory = path.join(os.homedir(), ".cargo", "bin");
+// Cargo and rustup share one home: CARGO_HOME relocates both, and the rustup
+// default is ~/.cargo.
+const cargoBinDirectory = () =>
+  process.env.CARGO_HOME
+    ? path.join(process.env.CARGO_HOME, "bin")
+    : path.join(os.homedir(), ".cargo", "bin");
+
 const staticCrtRustFlags = "-C target-feature=+crt-static";
 
-// Cargo is always spawned by absolute path: PATH is the vcvars toolchain
-// environment, so it must not decide which executable runs.
+// Toolchain executables are always spawned by absolute path: PATH is the vcvars
+// toolchain environment, so it must not decide which one runs — prepending
+// ~/.cargo/bin into PATH is the unwriteable-directory pattern SonarCloud
+// flagged, and this only ever reads PATH, never writes it. The location is
+// discovered instead of assumed, in the order the user's configuration implies:
+// CARGO_HOME (the supported way to relocate the toolchain), then a directory
+// already on the inherited PATH, then the rustup default home. Cargo and rustup
+// run through this same search so the two cannot disagree about where the
+// toolchain lives.
+const findToolchainExecutable = (executableName) => {
+  const candidates = [
+    path.join(cargoBinDirectory(), executableName),
+    ...(process.env.PATH ?? "")
+      .split(path.delimiter)
+      .filter(Boolean)
+      .map((directory) => path.join(directory, executableName)),
+    path.join(os.homedir(), ".cargo", "bin", executableName),
+  ];
+
+  return candidates.find((candidate) => fs.existsSync(candidate));
+};
+
+const cargoExecutableName = () =>
+  process.platform === "win32" ? "cargo.exe" : "cargo";
+
+// A miss still returns a concrete path, so the failure is a spawn error naming
+// that file rather than a bare "cargo" resolved off the vcvars PATH.
 const cargoExecutable = () =>
-  path.join(
-    cargoBinDirectory,
-    process.platform === "win32" ? "cargo.exe" : "cargo"
-  );
+  findToolchainExecutable(cargoExecutableName()) ??
+  path.join(cargoBinDirectory(), cargoExecutableName());
 
 const copyWindowsRuntimeDlls = (sourceDirectory, outputDirectory) => {
   if (process.platform !== "win32") return;
@@ -129,8 +158,8 @@ const findVisualStudioEnvironment = async () => {
 };
 
 const isRustupTargetInstalled = async (target) => {
-  const rustup = path.join(cargoBinDirectory, "rustup.exe");
-  if (!fs.existsSync(rustup)) return false;
+  const rustup = findToolchainExecutable("rustup.exe");
+  if (!rustup) return false;
 
   const { stdout } = await execFile(rustup, ["target", "list", "--installed"], {
     windowsHide: true,
@@ -295,6 +324,7 @@ const loadCargoEnvironment = () => {
 module.exports = {
   buildCargoRelease,
   cargoExecutable,
+  findToolchainExecutable,
   loadCargoEnvironment,
   resolveCargoEnvironment,
 };

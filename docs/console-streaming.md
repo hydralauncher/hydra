@@ -92,7 +92,7 @@ Key design choices:
 
 **Toolchain (MSVC since 2026-09-16, was GNU):** the rustup _default_ is still stable `x86_64-pc-windows-gnu` at `~/.cargo`, but that host can no longer build the C crates (ring, libopus): the mingw-w64 toolchain it used — `~/tools/w64devkit`, `~/tools/mingw-binutils` — was removed from this machine, so `cc-rs` fails with `failed to find tool "gcc.exe"` and clang alone cannot stand in (no target sysroot: `assert.h` not found). The sidecar is therefore built for **`x86_64-pc-windows-msvc`** (target added to rustup; VS 18 Community at `C:\Program Files\Microsoft Visual Studio\18\Community` supplies cl.exe, the MSVC CRT and the linker).
 
-Every cargo invocation needs the VS environment, which PowerShell does not have by itself, so cargo goes through the same Node path the real builds use (`scripts/lib/native-build.cjs`, which loads `vcvars64.bat` via `vswhere` and prepends `~/.cargo/bin` to PATH):
+Every cargo invocation needs the VS environment, which PowerShell does not have by itself, so cargo goes through the same Node path the real builds use (`scripts/lib/native-build.cjs`, which loads `vcvars64.bat` via `vswhere`). Cargo and rustup are found by absolute path — `CARGO_HOME`, then the inherited `PATH`, then the rustup default `~/.cargo/bin` — because `PATH` is the vcvars toolchain environment and must not decide which executable runs:
 
 ```
 yarn build:stream        # cargo build --release for the sidecar + deploy to hydra-stream/
