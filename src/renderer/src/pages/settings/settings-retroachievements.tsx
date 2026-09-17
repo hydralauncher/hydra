@@ -2,8 +2,9 @@ import { useCallback, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 
 import { Button, CheckboxField, GuideLink, Modal } from "@renderer/components";
-import { useDate, useToast } from "@renderer/hooks";
+import { useDate, useToast, useUserDetails } from "@renderer/hooks";
 import { LinkExternalIcon, PersonIcon, SyncIcon } from "@primer/octicons-react";
+import { AuthPage } from "@shared";
 
 import retroAchievementsLogo from "@renderer/assets/icons/retroachievements.png";
 import { SettingsIntegrationCard } from "./settings-integration-card";
@@ -21,11 +22,12 @@ const STATUS_ICON_SIZE = 14;
 const AVATAR_FALLBACK_ICON_SIZE = 28;
 
 export function SettingsRetroAchievements() {
+  const { userDetails } = useUserDetails();
   const { showSuccessToast, showErrorToast } = useToast();
   const { formatDateTime } = useDate();
   const { t } = useTranslation("settings");
 
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(() => Boolean(userDetails));
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [lastCheckedAt, setLastCheckedAt] = useState<string | null>(null);
@@ -50,6 +52,13 @@ export function SettingsRetroAchievements() {
 
   const refreshStatus = useCallback(
     async (options?: { silent?: boolean; toastOnConnect?: boolean }) => {
+      if (!userDetails) {
+        setIntegration({ connected: false });
+        setLastCheckedAt(null);
+        setIsLoading(false);
+        return;
+      }
+
       if (!options?.silent) setIsLoading(true);
 
       try {
@@ -70,7 +79,7 @@ export function SettingsRetroAchievements() {
         setIsLoading(false);
       }
     },
-    [showSuccessToast, t]
+    [showSuccessToast, t, userDetails]
   );
 
   useEffect(() => {
@@ -228,6 +237,18 @@ export function SettingsRetroAchievements() {
   };
 
   const renderActions = () => {
+    if (!userDetails) {
+      return (
+        <Button
+          onClick={() =>
+            globalThis.window.electron.openAuthWindow(AuthPage.SignIn)
+          }
+        >
+          {t("steam_sign_in")}
+        </Button>
+      );
+    }
+
     if (!integration.connected) {
       return (
         <Button onClick={openConnectionWindow} disabled={isSubmitting}>
