@@ -11,9 +11,9 @@ type ImportedSteamGame = Pick<
   | "trackingExecutablePaths"
   | "hasActiveSteamImport"
   | "steamPlayTimeInMilliseconds"
-  | "lastTimePlayed"
 > & {
   playTimeInMilliseconds?: number | null;
+  lastTimePlayed?: Game["lastTimePlayed"];
 };
 
 const hasLocalSteamInstall = (game: ImportedSteamGame): boolean =>
