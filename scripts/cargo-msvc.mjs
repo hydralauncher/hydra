@@ -9,7 +9,7 @@ import { spawn } from "node:child_process";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
-import { loadCargoEnvironment } from "./lib/native-build.cjs";
+import { cargoExecutable, loadCargoEnvironment } from "./lib/native-build.cjs";
 
 const cargoArgs = process.argv.slice(2);
 if (cargoArgs.length === 0) {
@@ -30,19 +30,21 @@ const { target, environment } = loadCargoEnvironment();
 // rest to the test harness — appended after it, cargo ignores it and silently
 // falls back to the default (GNU) host toolchain.
 const separator = cargoArgs.indexOf("--");
-const cargoArguments =
-  target === null
-    ? cargoArgs
-    : separator === -1
-      ? [...cargoArgs, "--target", target]
-      : [
-          ...cargoArgs.slice(0, separator),
-          "--target",
-          target,
-          ...cargoArgs.slice(separator),
-        ];
+let cargoArguments = cargoArgs;
+if (target !== null && separator === -1) {
+  cargoArguments = [...cargoArgs, "--target", target];
+} else if (target !== null) {
+  cargoArguments = [
+    ...cargoArgs.slice(0, separator),
+    "--target",
+    target,
+    ...cargoArgs.slice(separator),
+  ];
+}
 
-const child = spawn("cargo", cargoArguments, {
+// Spawned by absolute path: the environment below is the one vcvars prepared,
+// so PATH must not decide which cargo runs.
+const child = spawn(cargoExecutable(), cargoArguments, {
   cwd: manifestDirectory,
   env: environment ?? process.env,
   stdio: "inherit",

@@ -34,6 +34,14 @@ const windowsMsvcBuilds = {
 const cargoBinDirectory = path.join(os.homedir(), ".cargo", "bin");
 const staticCrtRustFlags = "-C target-feature=+crt-static";
 
+// Cargo is always spawned by absolute path: PATH is the vcvars toolchain
+// environment, so it must not decide which executable runs.
+const cargoExecutable = () =>
+  path.join(
+    cargoBinDirectory,
+    process.platform === "win32" ? "cargo.exe" : "cargo"
+  );
+
 const copyWindowsRuntimeDlls = (sourceDirectory, outputDirectory) => {
   if (process.platform !== "win32") return;
 
@@ -90,7 +98,7 @@ const findVisualStudioEnvironment = async () => {
       ],
       { windowsHide: true }
     );
-    const vcvarsPath = stdout.trim().split(/\r?\n/).filter(Boolean)[0];
+    const vcvarsPath = stdout.trim().split(/\r?\n/).find(Boolean);
     if (!vcvarsPath) return undefined;
 
     const { stdout: vcvarsOutput } = await execFile(
@@ -113,12 +121,6 @@ const findVisualStudioEnvironment = async () => {
       }
     }
 
-    // vcvars does not add the rustup shims to PATH, but cargo is invoked by name.
-    const pathName = Object.keys(environment).find(
-      (key) => key.toUpperCase() === "PATH"
-    );
-    environment[pathName] = `${cargoBinDirectory};${environment[pathName]}`;
-
     return environment;
   } catch {
     // The probe failed, so the toolset cannot be confirmed as usable.
@@ -136,7 +138,34 @@ const isRustupTargetInstalled = async (target) => {
   return stdout.split(/\r?\n/).includes(target);
 };
 
-const isMsvcTarget = (target) => Boolean(target && target.endsWith("-msvc"));
+const isMsvcTarget = (target) => Boolean(target?.endsWith("-msvc"));
+
+// A forced target is taken as-is; only an MSVC one needs the Visual Studio
+// environment and the static CRT it implies.
+const resolveForcedTarget = async (target, report) => {
+  const staticCrt = isMsvcTarget(target);
+  report(
+    `Building the stream sidecar for ${target}${staticCrt ? " (static CRT)" : ""}`
+  );
+  return {
+    target,
+    environment: staticCrt ? await findVisualStudioEnvironment() : undefined,
+  };
+};
+
+// The MSVC target is usable only when both the C++ toolset and the rustup target
+// are present.
+const resolveMsvcBuild = async (report) => {
+  const msvc = windowsMsvcBuilds[process.arch];
+  if (!msvc) return undefined;
+
+  const environment = await findVisualStudioEnvironment();
+  if (!environment) return undefined;
+  if (!(await isRustupTargetInstalled(msvc.target))) return undefined;
+
+  report(`Building the stream sidecar for ${msvc.target} (static CRT)`);
+  return { target: msvc.target, environment };
+};
 
 // MSVC is the primary Windows toolchain and the GNU host is the fallback, so the
 // path is decided up-front from toolchain presence: a cargo failure afterwards
@@ -146,29 +175,12 @@ const isMsvcTarget = (target) => Boolean(target && target.endsWith("-msvc"));
 const resolveCargoBuild = async ({ quiet = false } = {}) => {
   const report = quiet ? () => {} : console.log;
   const forcedTarget = process.env.HYDRA_STREAM_CARGO_TARGET;
-  if (forcedTarget) {
-    const staticCrt = isMsvcTarget(forcedTarget);
-    report(
-      `Building the stream sidecar for ${forcedTarget}${
-        staticCrt ? " (static CRT)" : ""
-      }`
-    );
-    return {
-      target: forcedTarget,
-      environment: staticCrt ? await findVisualStudioEnvironment() : undefined,
-    };
-  }
+  if (forcedTarget) return resolveForcedTarget(forcedTarget, report);
 
   if (process.platform !== "win32") return {};
 
-  const msvc = windowsMsvcBuilds[process.arch];
-  if (msvc) {
-    const environment = await findVisualStudioEnvironment();
-    if (environment && (await isRustupTargetInstalled(msvc.target))) {
-      report(`Building the stream sidecar for ${msvc.target} (static CRT)`);
-      return { target: msvc.target, environment };
-    }
-  }
+  const msvcBuild = await resolveMsvcBuild(report);
+  if (msvcBuild) return msvcBuild;
 
   report(
     "Building the stream sidecar for the GNU host toolchain (MSVC toolchain unavailable)"
@@ -207,7 +219,7 @@ const buildCargoRelease = async ({
     await resolveCargoEnvironment();
 
   await execFile(
-    "cargo",
+    cargoExecutable(),
     [
       "build",
       "--release",
@@ -282,6 +294,7 @@ const loadCargoEnvironment = () => {
 
 module.exports = {
   buildCargoRelease,
+  cargoExecutable,
   loadCargoEnvironment,
   resolveCargoEnvironment,
 };
