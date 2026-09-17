@@ -71,6 +71,7 @@ import type {
   SteamSyncFinishedPayload,
   SteamSyncRunStatus,
   SteamConnectErrorCode,
+  ExtractionFailure,
 } from "@types";
 import type { AuthPage } from "@shared";
 import type { AxiosProgressEvent } from "axios";
@@ -1188,12 +1189,19 @@ contextBridge.exposeInMainWorld("electron", {
     ipcRenderer.on("on-extraction-progress", listener);
     return () => ipcRenderer.removeListener("on-extraction-progress", listener);
   },
-  onExtractionFailed: (cb: (shop: GameShop, objectId: string) => void) => {
+  onExtractionFailed: (
+    cb: (
+      shop: GameShop,
+      objectId: string,
+      failure: ExtractionFailure | null
+    ) => void
+  ) => {
     const listener = (
       _event: Electron.IpcRendererEvent,
       shop: GameShop,
-      objectId: string
-    ) => cb(shop, objectId);
+      objectId: string,
+      failure: ExtractionFailure | null
+    ) => cb(shop, objectId, failure);
     ipcRenderer.on("on-extraction-failed", listener);
     return () => ipcRenderer.removeListener("on-extraction-failed", listener);
   },
@@ -1202,6 +1210,18 @@ contextBridge.exposeInMainWorld("electron", {
       cb(gameTitle);
     ipcRenderer.on("on-download-halted", listener);
     return () => ipcRenderer.removeListener("on-download-halted", listener);
+  },
+  onGameExecutableNotFound: (
+    cb: (shop: GameShop, objectId: string) => void
+  ) => {
+    const listener = (
+      _event: Electron.IpcRendererEvent,
+      shop: GameShop,
+      objectId: string
+    ) => cb(shop, objectId);
+    ipcRenderer.on("on-game-executable-not-found", listener);
+    return () =>
+      ipcRenderer.removeListener("on-game-executable-not-found", listener);
   },
   onArchiveDeletionPrompt: (cb: (archivePaths: string[]) => void) => {
     const listener = (

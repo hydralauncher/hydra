@@ -5,6 +5,7 @@ import {
   addCollection,
   applyCollectionAssignment,
   setCollections,
+  setCollectionsLoadFailed,
   setCollectionsLoading,
   setGameCollectionIds,
 } from "@renderer/features";
@@ -30,6 +31,7 @@ export function useGameCollections() {
   const collections = useAppSelector((state) => state.collections.items);
   const isLoading = useAppSelector((state) => state.collections.isLoading);
   const hasLoaded = useAppSelector((state) => state.collections.hasLoaded);
+  const hasFailed = useAppSelector((state) => state.collections.hasFailed);
   const library = useAppSelector((state) => state.library.value);
 
   const loadCollections = useCallback(async () => {
@@ -55,6 +57,7 @@ export function useGameCollections() {
         return collections;
       } catch (error) {
         void error;
+        dispatch(setCollectionsLoadFailed());
         return [];
       } finally {
         dispatch(setCollectionsLoading(false));
@@ -135,6 +138,7 @@ export function useGameCollections() {
     collections,
     isLoading,
     hasLoaded,
+    hasFailed,
     loadCollections,
     assignGameToCollection,
     createCollection,

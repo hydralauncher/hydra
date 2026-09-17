@@ -88,6 +88,8 @@ export const LibraryGameCardLarge = memo(function LibraryGameCardLarge({
     (state) => state.userPreferences.value
   );
   const hideBadges = userPreferences?.hideLibraryGameBadges ?? false;
+  const hideReadySizeBadges =
+    userPreferences?.hideLibraryReadySizeBadges ?? false;
   const hideClassicsBadges =
     userPreferences?.hideLibraryClassicsBadges ?? false;
   const hideAchievementProgress =
@@ -304,7 +306,7 @@ export const LibraryGameCardLarge = memo(function LibraryGameCardLarge({
     );
 
   const installedBadge =
-    !hideBadges && isInstalled ? (
+    !hideReadySizeBadges && isInstalled ? (
       <InstalledBadge emulatorIcon={classicsEmulatorIcon} />
     ) : null;
 
@@ -344,7 +346,7 @@ export const LibraryGameCardLarge = memo(function LibraryGameCardLarge({
 
       <div className="library-game-card-large__overlay">
         <div className="library-game-card-large__top-section">
-          {!hideBadges && sizeBars.length > 0 && (
+          {!hideReadySizeBadges && sizeBars.length > 0 && (
             <div className="library-game-card-large__size-badges">
               {sizeBars.map((bar) => (
                 <div

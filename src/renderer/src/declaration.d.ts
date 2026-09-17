@@ -99,6 +99,7 @@ import type {
   SteamSyncFinishedPayload,
   SteamSyncRunStatus,
   SteamConnectErrorCode,
+  ExtractionFailure,
 } from "@types";
 import type { AxiosProgressEvent } from "axios";
 
@@ -878,10 +879,17 @@ declare global {
       cb: (shop: GameShop, objectId: string, progress: number) => void
     ) => () => Electron.IpcRenderer;
     onExtractionFailed: (
-      cb: (shop: GameShop, objectId: string) => void
+      cb: (
+        shop: GameShop,
+        objectId: string,
+        failure: ExtractionFailure | null
+      ) => void
     ) => () => Electron.IpcRenderer;
     onDownloadHalted: (
       cb: (gameTitle: string) => void
+    ) => () => Electron.IpcRenderer;
+    onGameExecutableNotFound: (
+      cb: (shop: GameShop, objectId: string) => void
     ) => () => Electron.IpcRenderer;
     onArchiveDeletionPrompt: (
       cb: (archivePaths: string[]) => void

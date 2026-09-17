@@ -1353,6 +1353,7 @@ function DownloadGameOptions({
   onAutomaticExtractionChange,
   onDeleteArchiveFilesAfterExtractionChange,
 }: Readonly<DownloadGameOptionsProps>) {
+  const { t } = useTranslation("game_details");
   const { showErrorToast } = useBigPictureToast();
   const [selectedDownloader, setSelectedDownloader] = useState<string>();
   const [hasDownloaderTabsInteracted, setHasDownloaderTabsInteracted] =
@@ -1586,9 +1587,10 @@ function DownloadGameOptions({
       showErrorToast("Download failed", {
         fallbackVisual: "downloads",
         color: "var(--error)",
-        message:
-          response.error ??
-          "Hydra couldn't start this download. Try again in a moment.",
+        message: response.error?.startsWith("download_error_")
+          ? t(response.error)
+          : (response.error ??
+            "Hydra couldn't start this download. Try again in a moment."),
       });
 
       console.error("download-game-modal failed to submit download", {

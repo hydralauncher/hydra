@@ -1,35 +1,43 @@
 import { useTranslation } from "react-i18next";
-import { LibrarySelect } from "./library-select";
+import { LibraryMultiSelect } from "./library-multi-select";
 import "./platform-filter.scss";
 
 interface PlatformFilterProps {
-  platform: string | null;
+  selectedPlatforms: string[];
   platforms: string[];
   disabled?: boolean;
-  onPlatformChange: (platform: string | null) => void;
+  onPlatformsChange: (platforms: string[]) => void;
 }
 
 export function PlatformFilter({
-  platform,
+  selectedPlatforms,
   platforms,
   disabled = false,
-  onPlatformChange,
+  onPlatformsChange,
 }: Readonly<PlatformFilterProps>) {
   const { t } = useTranslation("library");
 
-  const options = [
-    { value: "", label: t("all_consoles") },
-    ...platforms.map((p) => ({ value: p, label: p })),
-  ];
+  const allLabel = t("all_consoles");
+
+  const getTriggerLabel = () => {
+    if (selectedPlatforms.length === 0) return allLabel;
+    if (selectedPlatforms.length === 1) return selectedPlatforms[0];
+    return t("selected_consoles", { count: selectedPlatforms.length });
+  };
 
   return (
     <div className="library-platform-filter__container">
-      <LibrarySelect
-        value={platform ?? ""}
+      <LibraryMultiSelect
+        value={selectedPlatforms}
         disabled={disabled}
-        ariaLabel={t("all_consoles")}
-        onChange={(value) => onPlatformChange(value === "" ? null : value)}
-        options={options}
+        ariaLabel={allLabel}
+        allLabel={allLabel}
+        triggerLabel={getTriggerLabel()}
+        onChange={onPlatformsChange}
+        options={platforms.map((platform) => ({
+          value: platform,
+          label: platform,
+        }))}
       />
     </div>
   );

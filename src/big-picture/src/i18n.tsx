@@ -11,6 +11,7 @@ import {
   formatResources,
   type BigPictureLanguage,
 } from "./locales";
+import { registerBigPictureI18nResources } from "./locales/register-resources";
 
 const TRANSLATED_ATTRIBUTES = [
   "aria-label",
@@ -32,9 +33,7 @@ let bigPictureResourcesLoaded = false;
 export function ensureBigPictureI18nResources() {
   if (bigPictureResourcesLoaded) return;
 
-  for (const [language, resources] of Object.entries(formatResources)) {
-    i18next.addResourceBundle(language, "big_picture", resources, true, true);
-  }
+  registerBigPictureI18nResources(i18next, formatResources);
 
   bigPictureResourcesLoaded = true;
 }

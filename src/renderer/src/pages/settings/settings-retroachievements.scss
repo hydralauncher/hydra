@@ -3,21 +3,10 @@
 .settings-retroachievements {
   &__emulator-note {
     margin: 0;
-    color: globals.$body-color;
+    color: var(--text-secondary);
     font-size: globals.$small-font-size;
     line-height: 1.5;
   }
-
-  &__guide-tooltip {
-    color: globals.$body-color;
-    cursor: pointer;
-    vertical-align: middle;
-
-    &:hover {
-      color: #fff;
-    }
-  }
-
   &__modal {
     display: flex;
     flex-direction: column;

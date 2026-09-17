@@ -1,14 +1,9 @@
 import { useCallback, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 
-import { Button, CheckboxField, Modal } from "@renderer/components";
+import { Button, CheckboxField, GuideLink, Modal } from "@renderer/components";
 import { useDate, useToast } from "@renderer/hooks";
-import {
-  LinkExternalIcon,
-  PersonIcon,
-  QuestionIcon,
-  SyncIcon,
-} from "@primer/octicons-react";
+import { LinkExternalIcon, PersonIcon, SyncIcon } from "@primer/octicons-react";
 
 import retroAchievementsLogo from "@renderer/assets/icons/retroachievements.png";
 import { SettingsIntegrationCard } from "./settings-integration-card";
@@ -172,14 +167,12 @@ export function SettingsRetroAchievements() {
 
   const emulatorNote = (
     <p className="settings-retroachievements__emulator-note">
-      {t("retroachievements_emulator_note")}{" "}
-      <small
-        className="settings-retroachievements__guide-tooltip"
-        data-open-article="retroachievements-emulators"
+      <GuideLink
+        article="retroachievements-emulators"
         title={t("retroachievements_view_guide")}
       >
-        <QuestionIcon size={12} />
-      </small>
+        {t("retroachievements_emulator_note")}
+      </GuideLink>
     </p>
   );
 

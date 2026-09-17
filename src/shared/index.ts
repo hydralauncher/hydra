@@ -211,6 +211,15 @@ export const getDownloadersForUris = (uris: string[]) => {
   return Array.from(downloadersSet);
 };
 
+export const filterDownloadableRepacks = <T extends Pick<GameRepack, "uris">>(
+  repacks: T[]
+) =>
+  repacks.filter(
+    (repack) =>
+      Array.isArray(repack.uris) &&
+      getDownloadersForUris(repack.uris).length > 0
+  );
+
 const AVAILABILITY_CHECK_DOWNLOADERS = new Set<Downloader>([
   Downloader.VikingFile,
 ]);

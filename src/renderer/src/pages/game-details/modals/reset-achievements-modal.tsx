@@ -90,7 +90,7 @@ export function ResetAchievementsModal({
 
         <Button
           onClick={handleResetAchievements}
-          theme="primary"
+          theme="danger"
           disabled={isResetDisabled}
         >
           {t("reset_achievements")}

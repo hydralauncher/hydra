@@ -32,7 +32,7 @@ export function DeleteGameModal({
           {t("cancel")}
         </Button>
 
-        <Button onClick={handleDeleteGame} theme="primary">
+        <Button onClick={handleDeleteGame} theme="danger">
           {t("delete")}
         </Button>
       </div>

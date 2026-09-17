@@ -59,7 +59,10 @@ export function SidebarFilterMenu({
       return;
     }
 
-    if (selectedPlatforms.length <= 1) return;
+    if (selectedPlatforms.length <= 1) {
+      onPlatformsChange([]);
+      return;
+    }
 
     onPlatformsChange(
       selectedPlatforms.filter((selected) => selected !== platform)
