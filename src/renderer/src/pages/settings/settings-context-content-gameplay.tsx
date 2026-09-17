@@ -5,16 +5,13 @@ import {
   Button,
   CheckboxField,
   ConfirmationModal,
+  GuideLink,
   TextField,
 } from "@renderer/components";
 import { settingsContext } from "@renderer/context";
 import { useAppSelector, useUserDetails } from "@renderer/hooks";
 import { useSubscription } from "@renderer/hooks/use-subscription";
-import {
-  FileDirectoryIcon,
-  HistoryIcon,
-  QuestionIcon,
-} from "@primer/octicons-react";
+import { FileDirectoryIcon, HistoryIcon } from "@primer/octicons-react";
 import { useLocation } from "react-router-dom";
 import { isAchievementSouvenirsEnabled } from "@shared";
 import type { UserPreferences } from "@types";
@@ -203,24 +200,19 @@ export function SettingsContextContentGameplay() {
       <div className="settings-context-panel__group">
         <h3>{t("gameplay_metadata")}</h3>
 
-        <div className={`settings-behavior__checkbox-container--with-tooltip`}>
-          <CheckboxField
-            label={t("enable_steam_achievements")}
-            checked={form.enableSteamAchievements}
-            onChange={() =>
-              handleChange({
-                enableSteamAchievements: !form.enableSteamAchievements,
-              })
-            }
-          />
-
-          <small
-            className="settings-behavior__checkbox-container--tooltip"
-            data-open-article="steam-achievements"
-          >
-            <QuestionIcon size={12} />
-          </small>
-        </div>
+        <CheckboxField
+          label={
+            <GuideLink article="steam-achievements">
+              {t("enable_steam_achievements")}
+            </GuideLink>
+          }
+          checked={form.enableSteamAchievements}
+          onChange={() =>
+            handleChange({
+              enableSteamAchievements: !form.enableSteamAchievements,
+            })
+          }
+        />
 
         {hasActiveSubscription ? (
           <CheckboxField

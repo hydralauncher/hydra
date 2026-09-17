@@ -64,25 +64,6 @@
     line-height: 1.4;
   }
 
-  &__guide-tooltip {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    cursor: pointer;
-    color: var(--text-secondary);
-    vertical-align: middle;
-
-    &:hover {
-      color: #fff;
-    }
-
-    &:focus-visible {
-      outline: 2px solid var(--primary);
-      outline-offset: 2px;
-      border-radius: 2px;
-    }
-  }
-
   &__actions {
     display: flex;
     justify-content: flex-end;

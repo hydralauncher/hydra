@@ -4,6 +4,7 @@ import { Trans, useTranslation } from "react-i18next";
 import {
   Button,
   CheckboxField,
+  GuideLink,
   Link,
   Modal,
   TextField,
@@ -16,7 +17,6 @@ import {
   ChevronRightIcon,
   LinkExternalIcon,
   PersonIcon,
-  QuestionIcon,
   SyncIcon,
 } from "@primer/octicons-react";
 
@@ -261,14 +261,12 @@ export function SettingsRetroAchievements() {
 
   const emulatorNote = (
     <p className="settings-retroachievements__emulator-note">
-      {t("retroachievements_emulator_note")}{" "}
-      <small
-        className="settings-retroachievements__guide-tooltip"
-        data-open-article="retroachievements-emulators"
+      <GuideLink
+        article="retroachievements-emulators"
         title={t("retroachievements_view_guide")}
       >
-        <QuestionIcon size={12} />
-      </small>
+        {t("retroachievements_emulator_note")}
+      </GuideLink>
     </p>
   );
 

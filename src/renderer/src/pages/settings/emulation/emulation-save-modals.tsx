@@ -1,8 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { QuestionIcon } from "@primer/octicons-react";
 
-import { Button, Modal, TextField } from "@renderer/components";
+import { Button, GuideLink, Modal, TextField } from "@renderer/components";
 import { useToast } from "@renderer/hooks";
 import type {
   EmulationCloudSave,
@@ -68,18 +67,9 @@ export function RestoreModal({
   const copyKeys = getRestoreModalCopyKeys(platform);
   const description =
     platform === "wii" ? (
-      <>
-        {t(copyKeys.description)}{" "}
-        <button
-          type="button"
-          className="emu-save-modal__guide-tooltip"
-          data-open-article="wii-saves"
-          aria-label={t("wii_saves_guide")}
-          title={t("wii_saves_guide")}
-        >
-          <QuestionIcon size={12} />
-        </button>
-      </>
+      <GuideLink article="wii-saves" title={t("wii_saves_guide")}>
+        {t(copyKeys.description)}
+      </GuideLink>
     ) : (
       t(copyKeys.description)
     );
