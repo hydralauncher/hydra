@@ -18,7 +18,7 @@ import type {
 import SteamLogo from "@renderer/assets/steam-logo.svg?react";
 import { SettingsIntegrationCard } from "./settings-integration-card";
 import { getSteamProgressPresentation } from "./settings-integration-progress";
-import { getSteamIntegrationViewState } from "./settings-steam-state";
+import { getSteamIntegrationPresentation } from "./settings-steam-state";
 
 import "./settings-steam.scss";
 
@@ -72,10 +72,11 @@ export function SettingsSteam() {
   const didAutoStart = useRef(false);
   const wasConnectedRef = useRef(false);
 
-  const integrationViewState = getSteamIntegrationViewState(
+  const integrationPresentation = getSteamIntegrationPresentation(
     integration,
     syncState
   );
+  const { viewState: integrationViewState } = integrationPresentation;
   const steamAccount =
     integration.connected || integration.snapshotPreserved ? integration : null;
   const isSyncing =
@@ -556,30 +557,13 @@ export function SettingsSteam() {
     );
   };
 
-  const status =
-    integrationViewState === "reconnect-required"
-      ? t("steam_status_reconnect_required")
-      : integrationViewState === "connected"
-        ? t("steam_status_connected")
-        : integrationViewState === "snapshot-preserved"
-          ? t("steam_status_snapshot_preserved")
-          : t("integration_status_not_connected");
-
-  const statusTone =
-    integrationViewState === "reconnect-required" ||
-    integrationViewState === "snapshot-preserved"
-      ? "warning"
-      : integrationViewState === "connected"
-        ? "success"
-        : "neutral";
-
   return (
     <>
       <SettingsIntegrationCard
         title={t("steam")}
         logo={<SteamLogo />}
-        status={status}
-        statusTone={statusTone}
+        status={t(integrationPresentation.statusKey)}
+        statusTone={integrationPresentation.statusTone}
         actions={renderActions()}
         loading={Boolean(userDetails) && isLoading}
       >
