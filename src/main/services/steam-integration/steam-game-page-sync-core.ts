@@ -36,7 +36,7 @@ export const createSteamGamePageSync = (
 
   const sync = (steamAppId: string): Promise<boolean> => {
     const currentSync = inFlightBySteamAppId.get(steamAppId);
-    if (currentSync) return currentSync;
+    if (currentSync !== undefined) return currentSync;
 
     const syncPromise = (async () => {
       const abortController = new AbortController();

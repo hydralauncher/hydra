@@ -5,7 +5,7 @@ import { shouldSyncSteamGameOnGamePage } from "@main/services/steam-integration/
 
 import { registerEvent } from "../register-event";
 
-const STEAM_APP_ID_PATTERN = /^[1-9][0-9]{0,9}$/;
+const STEAM_APP_ID_PATTERN = /^[1-9]\d{0,9}$/;
 
 const syncSteamGameOnGamePageEvent = async (
   _event: Electron.IpcMainInvokeEvent,
