@@ -1,4 +1,5 @@
 import { useId } from "react";
+import { createPortal } from "react-dom";
 import { useTranslation } from "react-i18next";
 import { Tooltip } from "react-tooltip";
 
@@ -55,7 +56,15 @@ export function SteamLibraryBadge({
           size={variant === "sidebar" ? 8 : variant === "large" ? 16 : 15}
         />
       </span>
-      <Tooltip id={tooltipId} place="top" style={{ zIndex: 9999 }} />
+      {createPortal(
+        <Tooltip
+          id={tooltipId}
+          place="top"
+          positionStrategy="fixed"
+          style={{ zIndex: 9999 }}
+        />,
+        document.body
+      )}
     </>
   );
 }
