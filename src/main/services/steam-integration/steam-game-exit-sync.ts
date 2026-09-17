@@ -1,6 +1,7 @@
-import { gamesSublevel, levelKeys } from "@main/level";
+import { levelKeys } from "@main/level";
 import type { Game, SteamGameSyncPayload } from "@types";
 
+import { updateGameRecord } from "../game-record-updater";
 import { HydraApi } from "../hydra-api";
 import {
   mergeImportedProfileGame,
@@ -38,13 +39,13 @@ const publishGame = async (
   }
 
   const gameKey = levelKeys.game("steam", steamAppId);
-  const localGame = await gamesSublevel.get(gameKey);
-  if (!localGame || signal.aborted) return;
+  if (signal.aborted) return;
 
-  await gamesSublevel.put(
-    gameKey,
+  const updatedGame = await updateGameRecord(gameKey, (localGame) =>
     mergeImportedProfileGame(localGame, remoteGame)
   );
+  if (!updatedGame || signal.aborted) return;
+
   WindowManager.sendToAppWindows("on-library-batch-complete");
 };
 

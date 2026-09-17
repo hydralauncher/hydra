@@ -1,6 +1,6 @@
 import type { Game, GameShop } from "@types";
-import { mergeLocalAndRemotePlayTime } from "@shared";
-import { resolveLibraryIsDeleted } from "./resolve-library-source";
+import { mergeLocalAndRemotePlayTime } from "../../../shared/playtime.js";
+import { resolveLibraryIsDeleted } from "./resolve-library-source.js";
 
 export interface ImportedProfileGame {
   id: string;

@@ -1,5 +1,6 @@
-import { db, gamesSublevel, levelKeys } from "@main/level";
+import { db, levelKeys } from "@main/level";
 import { isSteamReconnectRequired } from "@shared";
+import { updateGameRecord } from "../game-record-updater";
 import { HydraApi } from "../hydra-api";
 import { mergeWithRemoteGames } from "../library-sync";
 import { steamSyncLogger } from "../logger";
@@ -52,7 +53,10 @@ import {
   fetchSteamCommunityPlayerAchievements,
   shouldFetchSteamCommunityAchievements,
 } from "./steam-community-achievements";
-import { AchievementMemoryStore } from "../achievements/achievement-memory-store";
+import {
+  AchievementMemoryStore,
+  mergePersistedAchievementTotals,
+} from "../achievements/achievement-memory-store";
 import { mergeUnlockedAchievementLists } from "../achievements/merge-unlocked-achievements";
 import {
   fetchSteamFamilyGroupForUser,
@@ -669,17 +673,12 @@ class SteamSyncOrchestrator {
     unlockedCount: number
   ) {
     const gameKey = levelKeys.game("steam", steamAppId);
-    const localGame = await gamesSublevel.get(gameKey).catch(() => undefined);
-    if (!localGame) return;
-
-    await gamesSublevel.put(gameKey, {
-      ...localGame,
-      achievementCount: Math.max(localGame.achievementCount ?? 0, schemaCount),
-      unlockedAchievementCount: Math.max(
-        localGame.unlockedAchievementCount ?? 0,
-        unlockedCount
-      ),
-    });
+    await updateGameRecord(gameKey, (localGame) =>
+      mergePersistedAchievementTotals("steam", steamAppId, localGame, {
+        achievementCount: schemaCount,
+        unlockedAchievementCount: unlockedCount,
+      })
+    );
   }
 
   private async fetchAchievements(
