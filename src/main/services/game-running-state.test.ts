@@ -9,6 +9,7 @@ import {
   enableHydraPlaytimeForRunningSession,
   gamesPlaytime,
   getGamePlaytimeDeltas,
+  getTrackedGamesRunning,
   isGameRunning,
   setGamePlaytime,
 } from "./game-running-state.js";
@@ -71,6 +72,12 @@ describe("game running state", () => {
       localMilliseconds += deltas.localDelta;
       assert.equal(deltas.syncDelta, 0);
       assert.equal(isGameRunning("620", "steam"), true);
+      assert.deepEqual(getTrackedGamesRunning(now), [
+        {
+          id: key,
+          sessionDurationInMillis: now,
+        },
+      ]);
       setGamePlaytime(key, { ...session, lastTick: now, lastSyncTick: now });
     }
     deleteGamePlaytime(key);

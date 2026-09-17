@@ -1,7 +1,7 @@
 import { WindowManager } from "./window-manager";
 import { updateGameExecutablePath } from "@main/helpers/update-executable-path";
 import { createGame, trackGamePlaytime } from "./library-sync";
-import type { Game, GameRunning, UserPreferences } from "@types";
+import type { Game, UserPreferences } from "@types";
 import axios from "axios";
 import { db, gamesSublevel, levelKeys } from "@main/level";
 import { CloudSync } from "./cloud-sync";
@@ -16,7 +16,10 @@ import { Wine } from "./wine";
 import { NativeAddon } from "./native-addon";
 import { emulatorSessions } from "./emulators/emulator-session-tracker";
 import { launchedGamePids } from "./launched-game-pids";
-import { isValidProcessWatcherScan } from "./process-watcher-scan";
+import {
+  isValidProcessWatcherScan,
+  startOptionalExecutableCatalogueLoad,
+} from "./process-watcher-scan";
 import {
   doesSteamCompatDataPathMatchWinePrefix,
   hasLaunchedPidMatch,
@@ -47,6 +50,7 @@ import {
   deleteGamePlaytime,
   gamesPlaytime,
   getGamePlaytimeDeltas,
+  getTrackedGamesRunning,
   setGamePlaytime,
 } from "./game-running-state";
 import {
@@ -108,12 +112,7 @@ const handleAutomaticCloudSaveLifecycleError = (
 
 export const getGamesRunning = () => {
   const now = performance.now();
-  const gamesRunning = Array.from(gamesPlaytime.entries()).map((entry) => {
-    return {
-      id: entry[0],
-      sessionDurationInMillis: now - entry[1].firstTick,
-    } as Pick<GameRunning, "id" | "sessionDurationInMillis">;
-  });
+  const gamesRunning = getTrackedGamesRunning(now);
 
   for (const [gameKey, session] of emulatorSessions) {
     gamesRunning.push({
@@ -154,7 +153,7 @@ const logPlaytimeTrace = (
   });
 };
 
-await GameExecutables.ensureLoaded();
+void GameExecutables.ensureLoaded();
 
 const findGamePathByProcess = async (
   processMap: Map<string, Set<string>>,
@@ -279,12 +278,7 @@ const hasLinuxCompatibilityProcessMatch = (
 };
 
 export const watchProcesses = async () => {
-  if (!(await GameExecutables.ensureLoaded())) {
-    logger.warn(
-      "Executable catalogue unavailable; skipping process watcher tick"
-    );
-    return;
-  }
+  startOptionalExecutableCatalogueLoad(() => GameExecutables.ensureLoaded());
 
   const games = await gamesSublevel
     .values()
