@@ -659,6 +659,7 @@
     "reset_playtime": "Reiniciar tiempo de juego",
     "reset_playtime_title": "Reiniciar tiempo de juego",
     "reset_playtime_description": "¿Seguro que querés reiniciar el tiempo de juego de {{game}}? Esto pondrá tu tiempo de juego en cero y quitará la etiqueta de actualización manual. Esta acción no se puede deshacer.",
+    "reset_playtime_steam_note": "Esto reinicia solo el tiempo de juego de Hydra ({{hydra}}). El tiempo de Steam se mantiene en {{steam}}.",
     "reset_playtime_success": "Tiempo de juego reiniciado éxitosamente",
     "reset_playtime_error": "Error al reiniciar el tiempo de juego",
     "manual_playtime_warning": "Tus horas se marcarán como actualizadas manualmente. Solo podés quitar esta etiqueta reiniciando el tiempo de juego.",
