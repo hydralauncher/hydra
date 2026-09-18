@@ -711,6 +711,7 @@
     "reset_playtime": "Redefinir tempo de jogo",
     "reset_playtime_title": "Redefinir tempo de jogo",
     "reset_playtime_description": "Tem certeza de que deseja redefinir o tempo de jogo de {{game}}? Isso vai zerar seu tempo de jogo e remover a marcação de atualização manual. Esta ação não pode ser desfeita.",
+    "reset_playtime_steam_note": "Isso redefine apenas o tempo de jogo do Hydra ({{hydra}}). O tempo da Steam permanece em {{steam}}.",
     "reset_playtime_success": "Tempo de jogo redefinido com sucesso",
     "reset_playtime_error": "Falha ao redefinir o tempo de jogo",
     "steam_playtime_tracking_title": "Tempo de jogo da Steam",

@@ -475,6 +475,7 @@
     "update_playtime": "Játszottidő frissítése",
     "update_playtime_success": "Játszottidő sikeresen frissítve",
     "update_playtime_error": "A Játszottidőnek nem sikerült frissülnie",
+    "reset_playtime_steam_note": "Ez csak a Hydra játékidejét állítja vissza ({{hydra}}). A Steam játékidő {{steam}} marad.",
     "update_game_playtime": "Játszottidő frissítése",
     "manual_playtime_warning": "A Játszottidő „Manuálisan frissített”-ként lesz megjelölve, és ez nem visszavonható.",
     "manual_playtime_tooltip": "Ez a Játszottidő manuálisan lett frissítve",

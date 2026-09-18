@@ -613,6 +613,7 @@
     "reset_playtime": "Đặt lại thời gian chơi",
     "reset_playtime_title": "Đặt lại thời gian chơi",
     "reset_playtime_description": "Bạn có chắc muốn đặt lại thời gian chơi cho {{game}}? Thao tác này sẽ đưa thời gian chơi về 0 và gỡ nhãn cập nhật thủ công. Hành động này không thể hoàn tác.",
+    "reset_playtime_steam_note": "Thao tác này chỉ đặt lại thời gian chơi trên Hydra ({{hydra}}). Thời gian trên Steam vẫn là {{steam}}.",
     "reset_playtime_success": "Đã đặt lại thời gian chơi thành công",
     "reset_playtime_error": "Không thể đặt lại thời gian chơi",
     "manual_playtime_warning": "Số giờ của bạn sẽ được đánh dấu là cập nhật thủ công. Bạn chỉ có thể gỡ nhãn này bằng cách đặt lại thời gian chơi của game.",

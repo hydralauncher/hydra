@@ -377,6 +377,7 @@
     "update_playtime": "Oynama süresini güncelle",
     "update_playtime_success": "Oynama süresi başarıyla güncellendi",
     "update_playtime_error": "Oynama süresi güncellenemedi",
+    "reset_playtime_steam_note": "Bu işlem yalnızca Hydra oyun süresini sıfırlar ({{hydra}}). Steam süresi {{steam}} olarak kalır.",
     "update_game_playtime": "Oyun oynama süresini güncelle",
     "manual_playtime_warning": "Saatlerin manuel olarak güncellendiği işaretlenecek ve bu geri alınamaz.",
     "manual_playtime_tooltip": "Bu oynama süresi manuel olarak güncellendi",

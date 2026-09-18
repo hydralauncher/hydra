@@ -459,6 +459,7 @@
     "update_playtime": "Update playtime",
     "update_playtime_success": "Playtime updated successfully",
     "update_playtime_error": "Failed to update playtime",
+    "reset_playtime_steam_note": "يؤدي هذا إلى إعادة تعيين وقت اللعب في Hydra فقط ({{hydra}}). سيبقى وقت Steam عند {{steam}}.",
     "update_game_playtime": "Update game playtime",
     "manual_playtime_warning": "Your hours will be marked as manually updated, and this cannot be undone.",
     "manual_playtime_tooltip": "This playtime has been manually updated",

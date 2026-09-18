@@ -569,6 +569,7 @@
     "update_playtime": "Aggiorna tempo di gioco",
     "update_playtime_success": "Tempo di gioco aggiornato con successo",
     "update_playtime_error": "Impossibile aggiornare il tempo di gioco",
+    "reset_playtime_steam_note": "Questo azzera solo il tempo di gioco di Hydra ({{hydra}}). Il tempo di Steam resta {{steam}}.",
     "update_game_playtime": "Aggiorna tempo di gioco del gioco",
     "manual_playtime_warning": "Le tue ore saranno contrassegnate come aggiornate manualmente e non potrà essere annullato.",
     "manual_playtime_tooltip": "Questo tempo di gioco è stato aggiornato manualmente",

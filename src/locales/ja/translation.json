@@ -475,6 +475,7 @@
     "update_playtime": "プレイ時間を更新",
     "update_playtime_success": "プレイ時間を更新しました",
     "update_playtime_error": "プレイ時間の更新に失敗しました",
+    "reset_playtime_steam_note": "Hydraのプレイ時間（{{hydra}}）のみがリセットされます。Steamのプレイ時間は{{steam}}のままです。",
     "update_game_playtime": "ゲームのプレイ時間を更新",
     "manual_playtime_warning": "プレイ時間は手動更新済みとしてマークされ、元に戻すことはできません。",
     "manual_playtime_tooltip": "このプレイ時間は手動で更新されました",

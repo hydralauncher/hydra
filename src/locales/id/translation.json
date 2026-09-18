@@ -576,6 +576,7 @@
     "update_playtime": "Perbarui waktu bermain",
     "update_playtime_success": "Waktu bermain berhasil diperbarui",
     "update_playtime_error": "Gagal memperbarui waktu bermain",
+    "reset_playtime_steam_note": "Ini hanya mengatur ulang waktu bermain Hydra ({{hydra}}). Waktu bermain Steam tetap {{steam}}.",
     "update_game_playtime": "Perbarui waktu bermain game",
     "manual_playtime_warning": "Jam bermain kamu akan ditandai sebagai diperbarui secara manual, dan ini tidak dapat dibatalkan.",
     "manual_playtime_tooltip": "Waktu bermain ini telah diperbarui secara manual",

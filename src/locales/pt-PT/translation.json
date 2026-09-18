@@ -434,6 +434,7 @@
     "reset_playtime": "Repor tempo de jogo",
     "reset_playtime_title": "Repor tempo de jogo",
     "reset_playtime_description": "Tens a certeza de que queres repor o tempo de jogo de {{game}}? Isto irá colocar o teu tempo de jogo a zero e remover a etiqueta de atualização manual. Esta ação não pode ser desfeita.",
+    "reset_playtime_steam_note": "Isto repõe apenas o tempo de jogo do Hydra ({{hydra}}). O tempo da Steam mantém-se em {{steam}}.",
     "reset_playtime_success": "Tempo de jogo reposto com sucesso",
     "reset_playtime_error": "Falha ao repor o tempo de jogo",
     "manual_playtime_warning": "As tuas horas serão marcadas como atualizadas manualmente. Só podes remover esta etiqueta ao repor o tempo de jogo.",

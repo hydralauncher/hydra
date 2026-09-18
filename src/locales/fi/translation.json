@@ -376,6 +376,7 @@
     "update_playtime": "Päivitä peliaika",
     "update_playtime_success": "Peliaika päivitetty onnistuneesti",
     "update_playtime_error": "Peliajan päivitys epäonnistui",
+    "reset_playtime_steam_note": "Tämä nollaa vain Hydran peliajan ({{hydra}}). Steamin peliaika säilyy arvossa {{steam}}.",
     "update_game_playtime": "Päivitä peliaika",
     "manual_playtime_warning": "Pelituntisi merkitään manuaalisesti päivitetyiksi. Tätä toimintoa ei voi peruuttaa.",
     "manual_playtime_tooltip": "Tämä peliaika on päivitetty manuaalisesti",

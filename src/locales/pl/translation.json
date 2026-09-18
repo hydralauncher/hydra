@@ -613,6 +613,7 @@
     "reset_playtime": "Zresetuj czas gry",
     "reset_playtime_title": "Zresetuj czas gry",
     "reset_playtime_description": "Czy na pewno chcesz zresetować czas gry dla {{game}}? Czas gry zostanie ustawiony na zero, a oznaczenie ręcznej aktualizacji zostanie usunięte. Tej operacji nie można cofnąć.",
+    "reset_playtime_steam_note": "Spowoduje to wyzerowanie tylko czasu gry w Hydrze ({{hydra}}). Czas gry na Steam pozostanie bez zmian: {{steam}}.",
     "reset_playtime_success": "Czas gry zresetowano pomyślnie",
     "reset_playtime_error": "Nie udało się zresetować czasu gry",
     "manual_playtime_warning": "Twój czas gry zostanie oznaczony jako zaktualizowany ręcznie. To oznaczenie można usunąć tylko przez zresetowanie czasu gry.",

@@ -674,6 +674,7 @@
     "reset_playtime": "Réinitialiser le temps de jeu",
     "reset_playtime_title": "Réinitialiser le temps de jeu",
     "reset_playtime_description": "Voulez-vous vraiment réinitialiser le temps de jeu pour {{game}} ? Cela remettra votre temps de jeu à zéro et supprimera l'indication de modification manuelle. Cette action est irréversible.",
+    "reset_playtime_steam_note": "Cela réinitialise uniquement le temps de jeu Hydra ({{hydra}}). Le temps de jeu Steam reste à {{steam}}.",
     "reset_playtime_success": "Temps de jeu réinitialisé avec succès",
     "reset_playtime_error": "Échec de la réinitialisation du temps de jeu",
     "manual_playtime_warning": "Vos heures seront marquées comme modifiées manuellement et cela ne peut pas être annulé.",
