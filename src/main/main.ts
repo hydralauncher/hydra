@@ -33,6 +33,7 @@ import { migrateDownloadSources } from "./helpers/migrate-download-sources";
 import { getDirSize } from "./services/download/helpers";
 import { GofileApi } from "./services/hosters";
 import { clearLegacyAchievementPersistence } from "./level/clear-legacy-achievements";
+import { startSteamSyncOnStartup } from "./services/steam-integration/steam-startup-sync";
 
 const hasMissingSeedFiles = async (download: Download): Promise<boolean> => {
   if (!download.folderName) return false;
@@ -121,6 +122,7 @@ export const loadState = async () => {
     if (HydraApi.isLoggedIn()) {
       SSEClient.connect();
       void groupedSouvenirWorker.trigger();
+      void startSteamSyncOnStartup();
     }
   });
 

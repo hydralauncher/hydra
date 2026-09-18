@@ -575,6 +575,17 @@
     "move_down": "Move down"
   },
   "settings": {
+    "hide_library_steam_badges": "Piilota Steam-kirjastoyhteyden merkit",
+    "integration_connect": "Yhdistä",
+    "integration_disconnect": "Katkaise yhteys",
+    "integration_reconnect": "Yhdistä uudelleen",
+    "integration_sync": "Synkronoi",
+    "integration_status_not_connected": "Ei yhdistetty",
+    "retroachievements_connect_title": "Yhdistä RetroAchievements",
+    "retroachievements_status_invalid_credentials": "Virheelliset kirjautumistiedot",
+    "retroachievements_invalid_credentials_description": "RetroAchievements-kirjautumistietosi eivät ole enää voimassa. Yhdistä tilisi uudelleen.",
+    "retroachievements_last_checked": "Tarkistettu viimeksi: {{date}}",
+    "steam_status_reconnect_required": "Uudelleenyhdistäminen vaaditaan",
     "downloads_path": "Latausten polku",
     "change": "Vaihda",
     "notifications": "Ilmoitukset",
@@ -988,6 +999,8 @@
     "debrid_description": "Lataa 4 kertaa nopeammin Nimbuksella"
   },
   "library": {
+    "category_steam_library": "Steam-kirjasto",
+    "imported_from_steam": "Tuotu tähän profiiliin yhdistetystä Steam-kirjastosta.",
     "library": "Library",
     "collections": "Collections",
     "play": "Play",

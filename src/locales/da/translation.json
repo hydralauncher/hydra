@@ -575,6 +575,17 @@
     "move_down": "Move down"
   },
   "settings": {
+    "hide_library_steam_badges": "Skjul badges for Steam-biblioteksforbindelsen",
+    "integration_connect": "Forbind",
+    "integration_disconnect": "Afbryd",
+    "integration_reconnect": "Forbind igen",
+    "integration_sync": "Synkroniser",
+    "integration_status_not_connected": "Ikke forbundet",
+    "retroachievements_connect_title": "Tilslut RetroAchievements",
+    "retroachievements_status_invalid_credentials": "Ugyldige loginoplysninger",
+    "retroachievements_invalid_credentials_description": "Dine loginoplysninger til RetroAchievements er ikke længere gyldige. Forbind din konto igen.",
+    "retroachievements_last_checked": "Senest kontrolleret: {{date}}",
+    "steam_status_reconnect_required": "Ny forbindelse påkrævet",
     "downloads_path": "Downloads sti",
     "change": "Opdatér",
     "notifications": "Notifikationer",
@@ -953,6 +964,8 @@
     "wrapped_2025": "Wrapped 2025"
   },
   "library": {
+    "category_steam_library": "Steam-bibliotek",
+    "imported_from_steam": "Importeret fra Steam-biblioteket, der er knyttet til denne profil.",
     "library": "Library",
     "collections": "Collections",
     "play": "Play",

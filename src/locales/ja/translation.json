@@ -599,6 +599,17 @@
     "move_down": "下に移動"
   },
   "settings": {
+    "hide_library_steam_badges": "Steamライブラリ接続バッジを非表示",
+    "integration_connect": "接続",
+    "integration_disconnect": "切断",
+    "integration_reconnect": "再接続",
+    "integration_sync": "同期",
+    "integration_status_not_connected": "未接続",
+    "retroachievements_connect_title": "RetroAchievementsに接続",
+    "retroachievements_status_invalid_credentials": "認証情報が無効です",
+    "retroachievements_invalid_credentials_description": "RetroAchievementsの認証情報が無効になりました。アカウントを再接続してください。",
+    "retroachievements_last_checked": "最終確認: {{date}}",
+    "steam_status_reconnect_required": "再接続が必要です",
     "downloads_path": "ダウンロードパス",
     "change": "更新",
     "notifications": "通知",
@@ -977,6 +988,8 @@
     "wrapped_2025": "Wrapped 2025"
   },
   "library": {
+    "category_steam_library": "Steamライブラリ",
+    "imported_from_steam": "このプロフィールにリンクされたSteamライブラリからインポートされました。",
     "library": "ライブラリ",
     "collections": "コレクション",
     "play": "プレイ",

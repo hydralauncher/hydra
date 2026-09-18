@@ -37,4 +37,5 @@ log.initialize();
 export const logger = log.scope("main");
 export const streamSidecarLogger = log.scope("stream-sidecar");
 export const achievementsLogger = log.scope("achievements");
+export const steamSyncLogger = log.scope("steam-sync");
 export const networkLogger = networkLog.scope("network");

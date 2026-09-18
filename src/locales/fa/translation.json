@@ -572,6 +572,17 @@
     "move_down": "Move down"
   },
   "settings": {
+    "hide_library_steam_badges": "پنهان کردن نشان‌های اتصال به کتابخانه Steam",
+    "integration_connect": "اتصال",
+    "integration_disconnect": "قطع اتصال",
+    "integration_reconnect": "اتصال مجدد",
+    "integration_sync": "همگام‌سازی",
+    "integration_status_not_connected": "متصل نیست",
+    "retroachievements_connect_title": "اتصال RetroAchievements",
+    "retroachievements_status_invalid_credentials": "اطلاعات ورود نامعتبر است",
+    "retroachievements_invalid_credentials_description": "اطلاعات ورود RetroAchievements شما دیگر معتبر نیست. حساب خود را دوباره متصل کنید.",
+    "retroachievements_last_checked": "آخرین بررسی: {{date}}",
+    "steam_status_reconnect_required": "اتصال مجدد لازم است",
     "downloads_path": "مسیر دانلودها",
     "change": "بروزرسانی",
     "notifications": "نوتیفیکشن‌ها",
@@ -953,6 +964,8 @@
     "wrapped_2025": "Wrapped 2025"
   },
   "library": {
+    "category_steam_library": "کتابخانه Steam",
+    "imported_from_steam": "از کتابخانه Steam متصل به این نمایه وارد شده است.",
     "library": "Library",
     "collections": "Collections",
     "play": "Play",

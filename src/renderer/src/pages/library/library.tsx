@@ -29,6 +29,7 @@ import { GameCollection, LibraryGame } from "@types";
 import { CreateCollectionModal, GameContextMenu } from "@renderer/components";
 import { useCollectionContextMenu } from "@renderer/context";
 import {
+  filterLibraryGamesByCategory,
   getGameCollectionIds,
   isGameInstalled,
   sortLibraryGames,
@@ -126,7 +127,12 @@ export default function Library() {
 
   const [category, setCategory] = useState<LibraryCategory>(() => {
     const saved = localStorage.getItem("library-category");
-    if (saved === "all" || saved === "pc" || saved === "classics") {
+    if (
+      saved === "all" ||
+      saved === "pc" ||
+      saved === "steam_library" ||
+      saved === "classics"
+    ) {
       return saved;
     }
     return "all";
@@ -223,7 +229,7 @@ export default function Library() {
     (next: LibraryCategory) => {
       setCategory(next);
       localStorage.setItem("library-category", next);
-      if (next === "pc") {
+      if (next === "pc" || next === "steam_library") {
         handlePlatformsChange([]);
       }
     },
@@ -392,18 +398,17 @@ export default function Library() {
       }
     }
 
+    filtered = filterLibraryGamesByCategory(filtered, effectiveCategory);
+
     const platforms = new Set(selectedPlatforms);
 
-    if (effectiveCategory === "pc") {
-      filtered = filtered.filter((game) => game.shop !== "launchbox");
-    } else if (effectiveCategory === "classics") {
-      filtered = filtered.filter((game) => game.shop === "launchbox");
+    if (effectiveCategory === "classics") {
       if (platforms.size > 0) {
         filtered = filtered.filter(
           (game) => game.platform && platforms.has(game.platform)
         );
       }
-    } else if (platforms.size > 0) {
+    } else if (effectiveCategory === "all" && platforms.size > 0) {
       filtered = filtered.filter(
         (game) =>
           game.shop !== "launchbox" ||
@@ -582,13 +587,14 @@ export default function Library() {
 
             <div className="library__controls-right">
               <FilterOptions sortBy={sortBy} onSortChange={handleSortChange} />
-              {effectiveCategory !== "pc" && (
-                <PlatformFilter
-                  selectedPlatforms={selectedPlatforms}
-                  platforms={uniquePlatforms}
-                  onPlatformsChange={handlePlatformsChange}
-                />
-              )}
+              {effectiveCategory !== "pc" &&
+                effectiveCategory !== "steam_library" && (
+                  <PlatformFilter
+                    selectedPlatforms={selectedPlatforms}
+                    platforms={uniquePlatforms}
+                    onPlatformsChange={handlePlatformsChange}
+                  />
+                )}
               <ViewOptions
                 viewMode={viewMode}
                 onViewModeChange={handleViewModeChange}

@@ -572,6 +572,17 @@
     "move_down": "Move down"
   },
   "settings": {
+    "hide_library_steam_badges": "Steam-bibliotheekverbindingsbadges verbergen",
+    "integration_connect": "Verbinden",
+    "integration_disconnect": "Verbinding verbreken",
+    "integration_reconnect": "Opnieuw verbinden",
+    "integration_sync": "Synchroniseren",
+    "integration_status_not_connected": "Niet verbonden",
+    "retroachievements_connect_title": "RetroAchievements verbinden",
+    "retroachievements_status_invalid_credentials": "Ongeldige inloggegevens",
+    "retroachievements_invalid_credentials_description": "Je RetroAchievements-inloggegevens zijn niet meer geldig. Verbind je account opnieuw.",
+    "retroachievements_last_checked": "Laatst gecontroleerd: {{date}}",
+    "steam_status_reconnect_required": "Opnieuw verbinden vereist",
     "downloads_path": "Downloadpad",
     "change": "Update",
     "notifications": "Meldingen",
@@ -953,6 +964,8 @@
     "wrapped_2025": "Wrapped 2025"
   },
   "library": {
+    "category_steam_library": "Steam-bibliotheek",
+    "imported_from_steam": "Geïmporteerd uit de Steam-bibliotheek die aan dit profiel is gekoppeld.",
     "library": "Library",
     "collections": "Collections",
     "play": "Play",

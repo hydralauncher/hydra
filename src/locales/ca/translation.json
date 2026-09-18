@@ -575,6 +575,17 @@
     "move_down": "Move down"
   },
   "settings": {
+    "hide_library_steam_badges": "Amaga les insígnies de connexió amb la biblioteca de Steam",
+    "integration_connect": "Connecta",
+    "integration_disconnect": "Desconnecta",
+    "integration_reconnect": "Torna a connectar",
+    "integration_sync": "Sincronitza",
+    "integration_status_not_connected": "No connectat",
+    "retroachievements_connect_title": "Connecta RetroAchievements",
+    "retroachievements_status_invalid_credentials": "Credencials no vàlides",
+    "retroachievements_invalid_credentials_description": "Les credencials de RetroAchievements ja no són vàlides. Torna a connectar el compte.",
+    "retroachievements_last_checked": "Última comprovació: {{date}}",
+    "steam_status_reconnect_required": "Cal tornar a connectar",
     "downloads_path": "Ruta de baixades",
     "change": "Actualitza",
     "notifications": "Notificacions",
@@ -953,6 +964,8 @@
     "wrapped_2025": "Wrapped 2025"
   },
   "library": {
+    "category_steam_library": "Biblioteca de Steam",
+    "imported_from_steam": "Importat de la biblioteca de Steam vinculada a aquest perfil.",
     "library": "Library",
     "collections": "Collections",
     "play": "Play",

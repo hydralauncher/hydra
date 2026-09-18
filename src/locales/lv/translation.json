@@ -575,6 +575,17 @@
     "move_down": "Move down"
   },
   "settings": {
+    "hide_library_steam_badges": "Paslēpt Steam bibliotēkas savienojuma nozīmītes",
+    "integration_connect": "Savienot",
+    "integration_disconnect": "Atvienot",
+    "integration_reconnect": "Savienot atkārtoti",
+    "integration_sync": "Sinhronizēt",
+    "integration_status_not_connected": "Nav savienots",
+    "retroachievements_connect_title": "Savienot RetroAchievements",
+    "retroachievements_status_invalid_credentials": "Nederīgi akreditācijas dati",
+    "retroachievements_invalid_credentials_description": "Jūsu RetroAchievements akreditācijas dati vairs nav derīgi. Savienojiet kontu atkārtoti.",
+    "retroachievements_last_checked": "Pēdējā pārbaude: {{date}}",
+    "steam_status_reconnect_required": "Nepieciešams savienot atkārtoti",
     "downloads_path": "Lejupielāžu ceļš",
     "change": "Mainīt",
     "notifications": "Paziņojumi",
@@ -988,6 +999,8 @@
     "debrid_description": "Lejupielādējiet 4 reizes ātrāk ar Nimbus"
   },
   "library": {
+    "category_steam_library": "Steam bibliotēka",
+    "imported_from_steam": "Importēts no šim profilam piesaistītās Steam bibliotēkas.",
     "library": "Library",
     "collections": "Collections",
     "play": "Play",

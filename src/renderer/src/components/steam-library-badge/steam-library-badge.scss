@@ -1,0 +1,37 @@
+.steam-library-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  box-sizing: border-box;
+  width: 24px;
+  height: 24px;
+  color: #ffffff;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  background:
+    linear-gradient(#1c1c1c, #1c1c1c) padding-box,
+    linear-gradient(#3b6f8f, #3b6f8f) border-box;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.25);
+
+  svg {
+    display: block;
+  }
+
+  &--large {
+    width: 28px;
+    height: 28px;
+  }
+
+  &--sidebar {
+    position: absolute;
+    right: -3px;
+    bottom: -3px;
+    width: 12px;
+    height: 12px;
+    border: 1px solid #3b6f8f;
+    border-radius: 50%;
+    background: #1b2838;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.7);
+  }
+}

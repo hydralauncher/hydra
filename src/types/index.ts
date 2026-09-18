@@ -103,6 +103,7 @@ export type UserGame = {
   achievementCount: number;
   achievementsPointsEarnedSum: number;
   hasManuallyUpdatedPlaytime: boolean;
+  hasActiveSteamImport?: boolean;
   isFavorite: boolean;
   isPinned: boolean;
   pinnedDate?: Date | null;
@@ -710,6 +711,7 @@ export type UserGameDetails = ShopAssets & {
 
 export * from "./game.types";
 export * from "./steam.types";
+export * from "./steam-integration.types";
 export * from "./download.types";
 export * from "./ludusavi.types";
 export * from "./how-long-to-beat.types";

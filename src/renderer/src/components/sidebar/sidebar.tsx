@@ -41,7 +41,12 @@ const SIDEBAR_INITIAL_WIDTH = 250;
 const SIDEBAR_MAX_WIDTH = 450;
 const SIDEBAR_GAME_ITEM_HEIGHT = 42;
 
-const SIDEBAR_CATEGORIES = new Set<LibraryCategory>(["all", "pc", "classics"]);
+const SIDEBAR_CATEGORIES = new Set<LibraryCategory>([
+  "all",
+  "pc",
+  "steam_library",
+  "classics",
+]);
 const SIDEBAR_SORT_OPTIONS = new Set<SortOption>([
   "title_asc",
   "recently_played",
