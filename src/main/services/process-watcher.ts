@@ -1,7 +1,7 @@
 import { WindowManager } from "./window-manager";
 import { updateGameExecutablePath } from "@main/helpers/update-executable-path";
 import { createGame, trackGamePlaytime } from "./library-sync";
-import type { Game, UserPreferences } from "@types";
+import type { Game, GameShop, UserPreferences } from "@types";
 import axios from "axios";
 import { db, gamesSublevel, levelKeys } from "@main/level";
 import { CloudSync } from "./cloud-sync";
@@ -62,6 +62,23 @@ import { GameExecutables } from "./game-executables";
 
 export { gamesPlaytime };
 export { isGameRunning } from "./game-running-state";
+
+type RunningGamesListener = (
+  games: { shop: GameShop; objectId: string }[]
+) => void;
+
+let runningGamesListener: RunningGamesListener | null = null;
+
+/**
+ * The streaming manager subscribes here rather than importing it directly:
+ * `streaming/index.ts` imports `@main/helpers` and `@main/services`, so a
+ * direct import from this file would close an import cycle.
+ */
+export const setRunningGamesListener = (
+  listener: RunningGamesListener | null
+) => {
+  runningGamesListener = listener;
+};
 
 const runAutomaticCloudSaveOnOpen = async (game: Game) => {
   const mode = await getCloudSaveAutomaticSyncMode(game.objectId, game.shop);
@@ -300,6 +317,25 @@ export const watchProcesses = async () => {
     linuxProcesses.map((process) => [process.pid, process])
   );
 
+  // The open/close decisions below are the only trigger for reporting the
+  // running set: `gamesPlaytime`'s key insertion order is "most recently
+  // opened last", and the streaming host only needs `{shop, objectId}` back.
+  const gameByKey = new Map(
+    games.map((game) => [levelKeys.game(game.shop, game.objectId), game])
+  );
+
+  const notifyRunningGames = () => {
+    if (!runningGamesListener) return;
+
+    const running: { shop: GameShop; objectId: string }[] = [];
+    for (const gameKey of gamesPlaytime.keys()) {
+      const game = gameByKey.get(gameKey);
+      if (game) running.push({ shop: game.shop, objectId: game.objectId });
+    }
+
+    runningGamesListener(running);
+  };
+
   for (const game of games) {
     const gameKey = levelKeys.game(game.shop, game.objectId);
     const executablePath = game.executablePath;
@@ -354,9 +390,11 @@ export const watchProcesses = async () => {
         onTickGame(game);
       } else {
         await onOpenGame(game, matchedPath);
+        notifyRunningGames();
       }
     } else if (gamesPlaytime.has(gameKey)) {
       onCloseGame(game);
+      notifyRunningGames();
     }
   }
 

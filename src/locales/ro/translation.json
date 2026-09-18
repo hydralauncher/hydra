@@ -517,7 +517,8 @@
     "hide": "Hide",
     "create_steam_shortcut_modal_vr_flag": "VR Game (In Steam: update the VR flag or delete/recreate the shortcut)",
     "create_steam_shortcut_modal_create_button": "Create",
-    "create_steam_shortcut_modal_cancel_button": "Cancel"
+    "create_steam_shortcut_modal_cancel_button": "Cancel",
+    "streaming_now": "Se transmite acum"
   },
   "activation": {
     "title": "Activează Hydra",
@@ -781,7 +782,9 @@
     "proton_version_auto": "Auto (global default or umu default)",
     "proton_source_umu_default": "umu default selection",
     "proton_source_steam": "Installed by Steam",
-    "proton_source_compatibility_tools": "Installed in Steam compatibilitytools.d"
+    "proton_source_compatibility_tools": "Installed in Steam compatibilitytools.d",
+    "console_streaming": "Streaming pe consolă",
+    "enable_console_streaming": "Activează streamingul pe consolă (Moonlight)"
   },
   "notifications": {
     "download_complete": "Descărcare completă",
@@ -821,7 +824,13 @@
     "instructions": "Verifică modul corect de instalare a oricăruia dintre acestea pe distribuția ta Linux pentru ca jocul să ruleze normal"
   },
   "modal": {
-    "close": "Buton de închidere"
+    "close": "Buton de închidere",
+    "stream_pairing_title": "Asociază dispozitivul de streaming",
+    "stream_pairing_description": "Introdu PIN-ul afișat pe dispozitivul tău Moonlight pentru a-l asocia cu Hydra.",
+    "stream_pairing_placeholder": "PIN",
+    "stream_pairing_submit": "Confirmă",
+    "stream_pairing_error_invalid_pin": "PIN incorect. Verifică PIN-ul de pe dispozitivul tău și încearcă din nou.",
+    "stream_pairing_error_no_session": "Sesiunea de asociere a expirat. Începe din nou asocierea de pe dispozitivul tău."
   },
   "app": {
     "successfully_signed_in": "Successfully signed in"

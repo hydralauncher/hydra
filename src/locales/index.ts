@@ -34,7 +34,7 @@ import vi from "./vi/translation.json";
 import ja from "./ja/translation.json";
 import sl from "./sl/translation.json";
 
-export default {
+const resources = {
   "pt-BR": ptBR,
   "pt-PT": ptPT,
   en,
@@ -70,4 +70,6 @@ export default {
   vi,
   ja,
   sl,
-};
+} as unknown as Record<string, typeof en>;
+
+export default resources;

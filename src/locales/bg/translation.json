@@ -676,7 +676,8 @@
     "create_steam_shortcut_modal_cancel_button": "Отказ",
     "delete_shortcut_success": "Steam прекият път е изтрит успешно",
     "delete_shortcut_error": "Неуспешно изтриване на Steam прекия път",
-    "delete_steam_shortcut": "Изтрий Steam прекия път"
+    "delete_steam_shortcut": "Изтрий Steam прекия път",
+    "streaming_now": "Излъчва се сега"
   },
   "activation": {
     "title": "Активирай Hydra",
@@ -1221,7 +1222,9 @@
     "big_picture_enable_sounds": "Включи звуци за Big Picture",
     "big_picture_enable_virtual_keyboard": "Включи виртуална клавиатура за Big Picture",
     "big_picture_enable_diagnostics": "Включи диагностика на навигацията",
-    "big_picture_diagnostics_position": "Позиция на диагностиката"
+    "big_picture_diagnostics_position": "Позиция на диагностиката",
+    "console_streaming": "Стрийминг на конзола",
+    "enable_console_streaming": "Активиране на стрийминг на конзола (Moonlight)"
   },
   "notifications": {
     "download_complete": "Изтеглянето завърши",
@@ -1261,7 +1264,13 @@
     "instructions": "Инсталирай umu-run или Wine на твоята Linux дистрибуция, за да може инсталаторът на играта да работи"
   },
   "modal": {
-    "close": "Бутон за затваряне"
+    "close": "Бутон за затваряне",
+    "stream_pairing_title": "Сдвояване на устройство за стрийминг",
+    "stream_pairing_description": "Въведете PIN кода, показан на вашето устройство Moonlight, за да го сдвоите с Hydra.",
+    "stream_pairing_placeholder": "PIN",
+    "stream_pairing_submit": "Потвърди",
+    "stream_pairing_error_invalid_pin": "Грешен PIN. Проверете PIN кода на устройството си и опитайте отново.",
+    "stream_pairing_error_no_session": "Сесията за сдвояване изтече. Стартирайте сдвояването отново от устройството си."
   },
   "classics_onboarding": {
     "title": "Добре дошли в Hydra Classics",

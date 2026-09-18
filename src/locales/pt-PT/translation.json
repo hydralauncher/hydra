@@ -571,7 +571,8 @@
     "create_steam_shortcut_modal_vr_flag": "VR Game (In Steam: update the VR flag or delete/recreate the shortcut)",
     "create_steam_shortcut_modal_create_button": "Create",
     "create_steam_shortcut_modal_cancel_button": "Cancel",
-    "download_error_archive_org_invalid_file_url": "Este link do archive.org não aponta para um ficheiro. Use um link direto para o ficheiro."
+    "download_error_archive_org_invalid_file_url": "Este link do archive.org não aponta para um ficheiro. Use um link direto para o ficheiro.",
+    "streaming_now": "A transmitir agora"
   },
   "activation": {
     "title": "Ativação",
@@ -958,7 +959,9 @@
     "big_picture_enable_sounds": "Ativar sons do Big Picture",
     "big_picture_enable_virtual_keyboard": "Ativar teclado virtual",
     "big_picture_enable_diagnostics": "Ativar diagnóstico de navegação",
-    "big_picture_diagnostics_position": "Posição do diagnóstico"
+    "big_picture_diagnostics_position": "Posição do diagnóstico",
+    "console_streaming": "Streaming de consola",
+    "enable_console_streaming": "Ativar streaming de consola (Moonlight)"
   },
   "notifications": {
     "download_complete": "Transferência concluída",
@@ -1009,7 +1012,13 @@
     "clear_filters": "Limpar {{filterCount}} selecionados"
   },
   "modal": {
-    "close": "Botão de fechar"
+    "close": "Botão de fechar",
+    "stream_pairing_title": "Emparelhar dispositivo de streaming",
+    "stream_pairing_description": "Introduz o PIN apresentado no teu dispositivo Moonlight para o emparelhar com o Hydra.",
+    "stream_pairing_placeholder": "PIN",
+    "stream_pairing_submit": "Confirmar",
+    "stream_pairing_error_invalid_pin": "PIN incorreto. Verifica o PIN no teu dispositivo e tenta novamente.",
+    "stream_pairing_error_no_session": "A sessão de emparelhamento expirou. Inicia o emparelhamento novamente a partir do teu dispositivo."
   },
   "forms": {
     "toggle_password_visibility": "Alternar visibilidade da palavra-passe"

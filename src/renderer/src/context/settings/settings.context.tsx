@@ -17,6 +17,7 @@ export type SettingsCategoryId =
   | "integrations"
   | "compatibility"
   | "account_privacy"
+  | "console_streaming"
   | "big_picture"
   | "emulation";
 
@@ -39,6 +40,7 @@ const isSettingsCategoryId = (value: string): value is SettingsCategoryId => {
     "integrations",
     "compatibility",
     "account_privacy",
+    "console_streaming",
     "big_picture",
     "emulation",
   ].includes(value);

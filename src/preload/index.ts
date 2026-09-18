@@ -1869,6 +1869,36 @@ contextBridge.exposeInMainWorld("electron", {
       ipcRenderer.removeListener("on-window-maximize-change", listener);
   },
 
+  /* Streaming (Moonlight-compatible sidecar) */
+  submitStreamPairingPin: (pin: string) =>
+    ipcRenderer.invoke("submitStreamPairingPin", pin),
+  onStreamPairingRequest: (cb: () => void) => {
+    const listener = (_event: Electron.IpcRendererEvent) => cb();
+    ipcRenderer.on("on-stream-pairing-requested", listener);
+    return () =>
+      ipcRenderer.removeListener("on-stream-pairing-requested", listener);
+  },
+  onStreamPairingFinished: (cb: (result: { success: boolean }) => void) => {
+    const listener = (
+      _event: Electron.IpcRendererEvent,
+      result: { success: boolean }
+    ) => cb(result);
+    ipcRenderer.on("on-stream-pairing-finished", listener);
+    return () =>
+      ipcRenderer.removeListener("on-stream-pairing-finished", listener);
+  },
+  onStreamSessionEvent: (
+    cb: (event: { event: string; state?: string; reason?: string }) => void
+  ) => {
+    const listener = (
+      _event: Electron.IpcRendererEvent,
+      streamEvent: { event: string; state?: string; reason?: string }
+    ) => cb(streamEvent);
+    ipcRenderer.on("on-stream-session-event", listener);
+    return () =>
+      ipcRenderer.removeListener("on-stream-session-event", listener);
+  },
+
   /* Big Picture */
   openBigPictureWindow: () => ipcRenderer.invoke("openBigPictureWindow"),
 

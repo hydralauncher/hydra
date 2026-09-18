@@ -517,7 +517,8 @@
     "hide": "Hide",
     "create_steam_shortcut_modal_vr_flag": "VR Game (In Steam: update the VR flag or delete/recreate the shortcut)",
     "create_steam_shortcut_modal_create_button": "Create",
-    "create_steam_shortcut_modal_cancel_button": "Cancel"
+    "create_steam_shortcut_modal_cancel_button": "Cancel",
+    "streaming_now": "Nu aan het streamen"
   },
   "activation": {
     "title": "Activeer Hydra",
@@ -781,7 +782,9 @@
     "proton_version_auto": "Auto (global default or umu default)",
     "proton_source_umu_default": "umu default selection",
     "proton_source_steam": "Installed by Steam",
-    "proton_source_compatibility_tools": "Installed in Steam compatibilitytools.d"
+    "proton_source_compatibility_tools": "Installed in Steam compatibilitytools.d",
+    "console_streaming": "Console-streaming",
+    "enable_console_streaming": "Console-streaming inschakelen (Moonlight)"
   },
   "notifications": {
     "download_complete": "Download compleet",
@@ -821,7 +824,13 @@
     "instructions": "Controleer de juiste manier om ze op je Linux-distro te installeren, zodat de game normaal kan werken"
   },
   "modal": {
-    "close": "Knop Sluiten"
+    "close": "Knop Sluiten",
+    "stream_pairing_title": "Streamingapparaat koppelen",
+    "stream_pairing_description": "Voer de PIN in die op je Moonlight-apparaat wordt weergegeven om het aan Hydra te koppelen.",
+    "stream_pairing_placeholder": "PIN",
+    "stream_pairing_submit": "Bevestigen",
+    "stream_pairing_error_invalid_pin": "Onjuiste PIN. Controleer de PIN op je apparaat en probeer het opnieuw.",
+    "stream_pairing_error_no_session": "De koppelsessie is verlopen. Start het koppelen opnieuw vanaf je apparaat."
   },
   "app": {
     "successfully_signed_in": "Successfully signed in"

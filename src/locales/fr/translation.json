@@ -977,7 +977,8 @@
     "pkg_unreadable_toast": "Impossible de lire ce PKG. Installez-le et lancez-le directement depuis RPCS3.",
     "reset_achievements_retroachievements_note": "Réinitialisez d'abord les succès sur RetroAchievements, sinon ils seront resynchronisés vers Hydra.",
     "reset_achievements_retroachievements_link": "Ouvrir le site RetroAchievements",
-    "reset_achievements_retroachievements_confirm": "J'ai déjà réinitialisé les succès de ce jeu sur RetroAchievements"
+    "reset_achievements_retroachievements_confirm": "J'ai déjà réinitialisé les succès de ce jeu sur RetroAchievements",
+    "streaming_now": "Diffusion en cours"
   },
   "activation": {
     "title": "Activer Hydra",
@@ -1676,7 +1677,9 @@
     "setup_firmware_guide": "Ouvrir la page officielle PlayStation",
     "setup_match_wrong_platform": "mauvaise plateforme",
     "setup_run_in_background": "Exécuter en arrière-plan",
-    "scanning_system_label": "Analyse de {{system}}…"
+    "scanning_system_label": "Analyse de {{system}}…",
+    "console_streaming": "Diffusion sur console",
+    "enable_console_streaming": "Activer la diffusion sur console (Moonlight)"
   },
   "classics_onboarding": {
     "title": "Bienvenue dans Hydra Classics",
@@ -1734,7 +1737,13 @@
     "instructions": "Vérifiez la bonne façon d'installer l'un d'entre eux sur votre distribution Linux afin que le jeu puisse fonctionner normalement"
   },
   "modal": {
-    "close": "Fermer la fenêtre"
+    "close": "Fermer la fenêtre",
+    "stream_pairing_title": "Associer votre appareil de diffusion",
+    "stream_pairing_description": "Saisissez le PIN affiché sur votre appareil Moonlight pour l'associer à Hydra.",
+    "stream_pairing_placeholder": "PIN",
+    "stream_pairing_submit": "Confirmer",
+    "stream_pairing_error_invalid_pin": "PIN incorrect. Vérifiez le PIN sur votre appareil et réessayez.",
+    "stream_pairing_error_no_session": "La session d'association a expiré. Relancez l'association depuis votre appareil."
   },
   "forms": {
     "toggle_password_visibility": "Afficher/Masquer le mot de passe"
