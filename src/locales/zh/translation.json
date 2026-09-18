@@ -417,6 +417,7 @@
     "update_playtime": "更新时长",
     "update_playtime_description": "手动更新 {{game}} 的游玩时长",
     "update_playtime_error": "游戏时长更新失败",
+    "reset_playtime_steam_note": "这只会重置 Hydra 游戏时长（{{hydra}}）。Steam 游戏时长将保持为 {{steam}}。",
     "update_playtime_success": "游戏时长已成功更新",
     "update_playtime_title": "更新游戏时长",
     "view_all_prices": "点击查看所有价格",
