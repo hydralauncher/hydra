@@ -1,7 +1,7 @@
 use std::net::Ipv4Addr;
 
 use if_addrs::IfAddr;
-use mdns_sd::{ServiceDaemon, ServiceInfo};
+use mdns_sd::{DaemonEvent, ServiceDaemon, ServiceInfo};
 
 use crate::nvhttp::{HOSTNAME, HTTP_PORT};
 
@@ -46,6 +46,10 @@ pub fn start(uuid: &str) -> Result<(), String> {
         let _daemon = daemon;
         loop {
             match monitor.recv_async().await {
+                // One `Respond` per multicast response per interface (IPv4 and
+                // every IPv6 address): ~80 lines/minute, all of it noise. The
+                // other daemon events are rare and worth keeping.
+                Ok(DaemonEvent::Respond(_)) => {}
                 Ok(event) => eprintln!("mdns: {event:?}"),
                 Err(_) => break,
             }
