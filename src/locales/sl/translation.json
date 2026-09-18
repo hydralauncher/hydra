@@ -374,6 +374,7 @@
     "update_playtime": "Posodobi čas igranja",
     "update_playtime_success": "Čas igranja je bil uspešno posodobljen",
     "update_playtime_error": "Posodabljanje časa igranja ni uspelo",
+    "reset_playtime_steam_note": "To ponastavi samo čas igranja v Hydri ({{hydra}}). Čas igranja v Steamu ostane {{steam}}.",
     "update_game_playtime": "Posodobi čas igranja igre",
     "manual_playtime_warning": "Vaše ure bodo označene kot ročno posodobljene, tega ni mogoče razveljaviti.",
     "manual_playtime_tooltip": "Ta čas igranja je bil ročno posodobljen",

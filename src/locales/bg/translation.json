@@ -559,6 +559,7 @@
     "update_playtime": "Обнови време на игра",
     "update_playtime_success": "Времето на игра е обновено успешно",
     "update_playtime_error": "Неуспешно обновяване на времето на игра",
+    "reset_playtime_steam_note": "Това нулира само времето за игра в Hydra ({{hydra}}). Времето в Steam остава {{steam}}.",
     "update_game_playtime": "Обнови време на игра",
     "manual_playtime_warning": "Часовете ще бъдат маркирани като ръчно обновени и това не може да бъде отменено.",
     "manual_playtime_tooltip": "Това време на игра е обновено ръчно",
