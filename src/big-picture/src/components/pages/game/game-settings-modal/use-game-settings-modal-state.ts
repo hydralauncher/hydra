@@ -4,8 +4,10 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { platformToSystem } from "@renderer/helpers";
 import {
+  buildWineDllOverridesValue,
   getGameExecutableFilters,
   getRetroArchRomExtensions,
+  mergeLaunchOptionEnvVars,
   platformToRetroArchPlatform,
 } from "@shared";
 import type { FileFilter } from "../../../common";
@@ -620,6 +622,45 @@ export function useGameSettingsModalState({
     persistLaunchOptions(launchOptions).catch(() => {});
   }, [launchOptions, persistLaunchOptions]);
 
+  const handleDetectWineDllOverrides = useCallback(async () => {
+    if (!game) return;
+
+    const { dllNames, steamOverlayEnv } =
+      await globalThis.window.electron.detectWineDllOverrides(
+        game.shop,
+        game.objectId
+      );
+
+    if (dllNames.length === 0) {
+      showErrorToast(t("no_dlls_found_in_game_folder"));
+      return;
+    }
+
+    const merged = mergeLaunchOptionEnvVars(launchOptions, {
+      WINEDLLOVERRIDES: buildWineDllOverridesValue(dllNames),
+      ...steamOverlayEnv,
+    });
+
+    setLaunchOptions(merged);
+    await persistLaunchOptions(merged);
+
+    showSuccessToast(
+      t(
+        steamOverlayEnv
+          ? "dll_overrides_and_overlay_detected"
+          : "dll_overrides_detected",
+        { count: dllNames.length }
+      )
+    );
+  }, [
+    game,
+    launchOptions,
+    persistLaunchOptions,
+    showErrorToast,
+    showSuccessToast,
+    t,
+  ]);
+
   const updateClassicsDisc = useCallback(
     async (
       payload: ClassicsDiscUpdatePayload,
@@ -739,6 +780,7 @@ export function useGameSettingsModalState({
       onChangeLaunchOptions: setLaunchOptions,
       onBlurLaunchOptions: handleBlurLaunchOptions,
       onClearLaunchOptions: handleClearLaunchOptions,
+      onDetectWineDllOverrides: handleDetectWineDllOverrides,
       onCreateShortcut: handleCreateShortcut,
       onCreateSteamShortcut: handleCreateSteamShortcut,
       onDeleteSteamShortcut: handleDeleteSteamShortcut,
@@ -761,6 +803,7 @@ export function useGameSettingsModalState({
     handleCreateShortcut,
     handleCreateSteamShortcut,
     handleDeleteSteamShortcut,
+    handleDetectWineDllOverrides,
     handleProcessDiscPath,
     handleRemoveAllDiscs,
     handleRemoveSelectedDisc,

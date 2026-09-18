@@ -597,13 +597,15 @@ const launchResolvedGame = async (
 const launchGameWithCloudSaveChecks = async (
   options: LaunchGameOptions
 ): Promise<number | null> => {
-  const { shop, objectId, executablePath, launchOptions } = options;
+  const { shop, objectId, executablePath } = options;
 
   const parsedPath = parseExecutablePath(executablePath);
 
   const gameKey = levelKeys.game(shop, objectId);
   const game = await gamesSublevel.get(gameKey);
   clearCloudSaveLaunchGuard(objectId, shop);
+
+  const launchOptions = game?.launchOptions;
 
   const steamProtocolLaunch =
     shop === "steam"

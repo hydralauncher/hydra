@@ -67,6 +67,7 @@ import type {
   LegacySaveExportResult,
   OpenCheckoutOptions,
   AchievementSouvenirSyncStatus,
+  WineDllOverridesDetectionResult,
   SteamSyncState,
   SteamSyncFinishedPayload,
   SteamSyncRunStatus,
@@ -1007,6 +1008,12 @@ contextBridge.exposeInMainWorld("electron", {
     objectId: string,
     launchOptions: string | null
   ) => ipcRenderer.invoke("updateLaunchOptions", shop, objectId, launchOptions),
+  detectWineDllOverrides: (shop: GameShop, objectId: string) =>
+    ipcRenderer.invoke(
+      "detectWineDllOverrides",
+      shop,
+      objectId
+    ) as Promise<WineDllOverridesDetectionResult>,
 
   selectGameWinePrefix: (
     shop: GameShop,

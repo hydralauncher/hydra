@@ -1,6 +1,7 @@
 import { ASSETS_PATH } from "@main/constants";
 import { getGameAssets } from "@main/events/catalogue/get-game-assets";
 import { getDirectorySize } from "@main/events/helpers/get-directory-size";
+import { applyAutomaticWineDllOverrides } from "@main/helpers/apply-automatic-wine-dll-overrides";
 import { findGameExecutableInFolder } from "@main/helpers/find-game-executable";
 import { updateGameExecutablePath } from "@main/helpers/update-executable-path";
 import { runAchievementMetadataExport } from "@main/services/achievements/metadata-export";
@@ -498,6 +499,7 @@ export class GameFilesManager {
         const updatedGame = updateGameExecutablePath(game, foundExePath);
 
         await gamesSublevel.put(this.gameKey, { ...updatedGame });
+        await applyAutomaticWineDllOverrides(updatedGame);
         void runAutomaticCloudSaveSync(
           this.objectId,
           this.shop,

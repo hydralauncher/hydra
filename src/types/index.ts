@@ -54,6 +54,11 @@ export interface ProtonVersion {
   source?: "steam" | "compatibility_tools" | "unknown";
 }
 
+export interface WineDllOverridesDetectionResult {
+  dllNames: string[];
+  steamOverlayEnv: Record<string, string> | null;
+}
+
 export interface ShopAssets {
   objectId: string;
   shop: GameShop;
