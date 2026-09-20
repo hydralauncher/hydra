@@ -204,8 +204,8 @@ export interface UserPreferences {
 }
 
 export interface NetworkInterface {
-  name: string;
-  addresses: string[];
+  id: string;
+  label: string;
 }
 
 export interface ScreenState {

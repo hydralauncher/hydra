@@ -85,19 +85,11 @@ export function SettingsContextDownloads() {
   const networkInterfaceOptions = useMemo(() => {
     const options = [
       { key: "default", value: "", label: t("network_interface_default") },
-      ...networkInterfaces.map((networkInterface) => {
-        const ipv4 = networkInterface.addresses.find(
-          (address) => !address.includes(":")
-        );
-
-        return {
-          key: networkInterface.name,
-          value: networkInterface.name,
-          label: ipv4
-            ? `${networkInterface.name} (${ipv4})`
-            : networkInterface.name,
-        };
-      }),
+      ...networkInterfaces.map((networkInterface) => ({
+        key: networkInterface.id,
+        value: networkInterface.id,
+        label: networkInterface.label,
+      })),
     ];
 
     const selected = form.torrentNetworkInterface;
