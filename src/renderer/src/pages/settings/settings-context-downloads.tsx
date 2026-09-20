@@ -94,10 +94,16 @@ export function SettingsContextDownloads() {
 
     const selected = form.torrentNetworkInterface;
     if (selected && !options.some((option) => option.value === selected)) {
+      const legacyAdapter = networkInterfaces.find(
+        (networkInterface) => networkInterface.name === selected
+      );
+
       options.push({
         key: selected,
         value: selected,
-        label: `${selected} (${t("network_interface_unavailable")})`,
+        label: legacyAdapter
+          ? legacyAdapter.label
+          : `${selected} (${t("network_interface_unavailable")})`,
       });
     }
 
