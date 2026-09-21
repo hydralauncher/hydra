@@ -13,8 +13,6 @@ import {
 const ONLINEFIX_DLL_PREFIX = "onlinefix";
 const STEAM_OVERLAY_GAME_ID = "480";
 
-// Matches the DLL-proxying/compatibility file names crack loaders actually
-// use (winmm, onlinefix64, steam_api64, eossdk-*, etc.)
 const RELEVANT_DLL_NAME_PATTERN =
   /^(?:(?:emp|custom)\.dll|win.*\.dll|(?:online|steam).*\.dll|eos.*\.dll|epicfix.*\.dll)$/i;
 const DLL_LIST_FILE_PATTERN = /^(?:winmm|dlllist)\.txt$/i;

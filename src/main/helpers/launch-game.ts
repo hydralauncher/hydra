@@ -26,6 +26,7 @@ import {
   NativeAddon,
   launchedGamePids,
 } from "@main/services";
+import { publishSteamOverlayUnavailableNotification } from "@main/services/notifications";
 import { updateGameRecord } from "@main/services/game-record-updater";
 import { dispatchSteamProtocolLaunch } from "@main/services/steam-integration/steam-protocol-launch-dispatch";
 import { resolveSteamProtocolLaunch } from "@main/services/steam-integration/steam-protocol-launch";
@@ -580,15 +581,31 @@ const blockLaunchForSteamOverlay = (
 
   const args = [shop, objectId, executablePath, launchOptions ?? null] as const;
 
-  // Reply only to the window that requested the launch (desktop or Big
-  // Picture) — broadcasting to every window leaves the modal open in
-  // whichever window the user didn't act on.
   if (requestingWebContents && !requestingWebContents.isDestroyed()) {
     requestingWebContents.send("on-steam-overlay-unavailable", ...args);
     return;
   }
 
   WindowManager.sendToAppWindows("on-steam-overlay-unavailable", ...args);
+};
+
+const notifySteamOverlayUnavailable = async (
+  shop: GameShop,
+  objectId: string
+) => {
+  const game = await gamesSublevel
+    .get(levelKeys.game(shop, objectId))
+    .catch(() => null);
+
+  await publishSteamOverlayUnavailableNotification(
+    game?.title ?? objectId
+  ).catch((error) => {
+    logger.error("Failed to publish Steam overlay unavailable notification", {
+      shop,
+      objectId,
+      error,
+    });
+  });
 };
 
 const launchResolvedGame = async (
@@ -617,14 +634,21 @@ const launchResolvedGame = async (
       !skipSteamOverlayCheck &&
       (await shouldBlockLaunchForSteamOverlay(launchOptions))
     ) {
-      blockLaunchForSteamOverlay(
-        shop,
-        objectId,
-        parsedPath,
-        launchOptions,
-        requestingWebContents
-      );
-      return null;
+      const hasRequestingWindow =
+        requestingWebContents && !requestingWebContents.isDestroyed();
+
+      if (hasRequestingWindow || WindowManager.hasAnyAppWindow()) {
+        blockLaunchForSteamOverlay(
+          shop,
+          objectId,
+          parsedPath,
+          launchOptions,
+          requestingWebContents
+        );
+        return null;
+      }
+
+      await notifySteamOverlayUnavailable(shop, objectId);
     }
 
     const launched = await launchWindowsBinaryOnLinux(

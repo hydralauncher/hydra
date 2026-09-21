@@ -190,6 +190,11 @@ export class WindowManager {
     }
   }
 
+  public static hasAnyAppWindow(): boolean {
+    const windows = [this.mainWindow, this.bigPicture, this.friendsWindow];
+    return windows.some((window) => window && !window.isDestroyed());
+  }
+
   public static sendDownloadsUpdated() {
     this.sendToAppWindows("on-downloads-updated");
   }
