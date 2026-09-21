@@ -1743,7 +1743,7 @@
     "scan_games_complete_linked_description": "Found the executable of {{linked}} games in your library",
     "scan_games_complete_pending_description": "Found {{pending}} executables that need you to choose which game they belong to",
     "steam_overlay_unavailable_notification_title": "Steam isn't running",
-    "steam_overlay_unavailable_notification_description": "{{title}} started without the Steam overlay because Steam isn't running.",
+    "steam_overlay_unavailable_notification_description": "Some features for {{title}} may not work correctly unless Steam is running. Start Steam and try again.",
     "scan_games_no_results_title": "Scanning for games finished",
     "scan_games_no_results_description": "No installed games were found"
   },

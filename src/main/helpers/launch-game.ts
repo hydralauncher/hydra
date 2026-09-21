@@ -1,4 +1,4 @@
-import { shell, type WebContents } from "electron";
+import { BrowserWindow, shell, type WebContents } from "electron";
 import { spawn } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
@@ -569,26 +569,6 @@ const shouldBlockLaunchForSteamOverlay = async (
   return !(await isSteamRunning());
 };
 
-const blockLaunchForSteamOverlay = (
-  shop: GameShop,
-  objectId: string,
-  executablePath: string,
-  launchOptions: string | null | undefined,
-  requestingWebContents: WebContents | undefined
-) => {
-  clearCloudSaveLaunchGuard(objectId, shop);
-  WindowManager.closeGameLauncherWindow();
-
-  const args = [shop, objectId, executablePath, launchOptions ?? null] as const;
-
-  if (requestingWebContents && !requestingWebContents.isDestroyed()) {
-    requestingWebContents.send("on-steam-overlay-unavailable", ...args);
-    return;
-  }
-
-  WindowManager.sendToAppWindows("on-steam-overlay-unavailable", ...args);
-};
-
 const notifySteamOverlayUnavailable = async (
   shop: GameShop,
   objectId: string
@@ -606,6 +586,49 @@ const notifySteamOverlayUnavailable = async (
       error,
     });
   });
+};
+
+const revealWindow = (window: Electron.BrowserWindow): boolean => {
+  if (window.isDestroyed()) return false;
+  const wasHidden = window.isMinimized() || !window.isVisible();
+  if (window.isMinimized()) window.restore();
+  window.show();
+  window.focus();
+  window.flashFrame(true);
+  return wasHidden;
+};
+
+const revealWindowForWebContents = (webContents: WebContents): boolean => {
+  const window = BrowserWindow.fromWebContents(webContents);
+  if (!window) return false;
+  return revealWindow(window);
+};
+
+const blockLaunchForSteamOverlay = async (
+  shop: GameShop,
+  objectId: string,
+  executablePath: string,
+  launchOptions: string | null | undefined,
+  requestingWebContents: WebContents | undefined
+) => {
+  clearCloudSaveLaunchGuard(objectId, shop);
+  WindowManager.closeGameLauncherWindow();
+
+  const args = [shop, objectId, executablePath, launchOptions ?? null] as const;
+
+  const wasHidden = requestingWebContents
+    ? revealWindowForWebContents(requestingWebContents)
+    : WindowManager.openMainWindow();
+
+  if (requestingWebContents) {
+    requestingWebContents.send("on-steam-overlay-unavailable", ...args);
+  } else {
+    WindowManager.sendToAppWindows("on-steam-overlay-unavailable", ...args);
+  }
+
+  if (wasHidden) {
+    await notifySteamOverlayUnavailable(shop, objectId);
+  }
 };
 
 const launchResolvedGame = async (
@@ -634,21 +657,29 @@ const launchResolvedGame = async (
       !skipSteamOverlayCheck &&
       (await shouldBlockLaunchForSteamOverlay(launchOptions))
     ) {
-      const hasRequestingWindow =
-        requestingWebContents && !requestingWebContents.isDestroyed();
-
-      if (hasRequestingWindow || WindowManager.hasAnyAppWindow()) {
-        blockLaunchForSteamOverlay(
+      if (requestingWebContents && !requestingWebContents.isDestroyed()) {
+        await blockLaunchForSteamOverlay(
           shop,
           objectId,
           parsedPath,
           launchOptions,
           requestingWebContents
         );
-        return null;
+      } else if (!requestingWebContents && WindowManager.hasAnyAppWindow()) {
+        await blockLaunchForSteamOverlay(
+          shop,
+          objectId,
+          parsedPath,
+          launchOptions,
+          undefined
+        );
+      } else {
+        clearCloudSaveLaunchGuard(objectId, shop);
+        WindowManager.closeGameLauncherWindow();
+        await notifySteamOverlayUnavailable(shop, objectId);
       }
 
-      await notifySteamOverlayUnavailable(shop, objectId);
+      return null;
     }
 
     const launched = await launchWindowsBinaryOnLinux(
