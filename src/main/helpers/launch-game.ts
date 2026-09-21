@@ -604,6 +604,35 @@ const revealWindowForWebContents = (webContents: WebContents): boolean => {
   return revealWindow(window);
 };
 
+const handleBlockedSteamOverlayLaunch = async (
+  shop: GameShop,
+  objectId: string,
+  parsedPath: string,
+  launchOptions: string | null | undefined,
+  requestingWebContents: WebContents | undefined
+) => {
+  const requestingWindowIsAlive =
+    requestingWebContents && !requestingWebContents.isDestroyed();
+
+  if (
+    requestingWindowIsAlive ||
+    (!requestingWebContents && WindowManager.hasAnyAppWindow())
+  ) {
+    await blockLaunchForSteamOverlay(
+      shop,
+      objectId,
+      parsedPath,
+      launchOptions,
+      requestingWindowIsAlive ? requestingWebContents : undefined
+    );
+    return;
+  }
+
+  clearCloudSaveLaunchGuard(objectId, shop);
+  WindowManager.closeGameLauncherWindow();
+  await notifySteamOverlayUnavailable(shop, objectId);
+};
+
 const blockLaunchForSteamOverlay = async (
   shop: GameShop,
   objectId: string,
@@ -657,28 +686,13 @@ const launchResolvedGame = async (
       !skipSteamOverlayCheck &&
       (await shouldBlockLaunchForSteamOverlay(launchOptions))
     ) {
-      if (requestingWebContents && !requestingWebContents.isDestroyed()) {
-        await blockLaunchForSteamOverlay(
-          shop,
-          objectId,
-          parsedPath,
-          launchOptions,
-          requestingWebContents
-        );
-      } else if (!requestingWebContents && WindowManager.hasAnyAppWindow()) {
-        await blockLaunchForSteamOverlay(
-          shop,
-          objectId,
-          parsedPath,
-          launchOptions,
-          undefined
-        );
-      } else {
-        clearCloudSaveLaunchGuard(objectId, shop);
-        WindowManager.closeGameLauncherWindow();
-        await notifySteamOverlayUnavailable(shop, objectId);
-      }
-
+      await handleBlockedSteamOverlayLaunch(
+        shop,
+        objectId,
+        parsedPath,
+        launchOptions,
+        requestingWebContents
+      );
       return null;
     }
 
