@@ -1,4 +1,4 @@
-import { shell } from "electron";
+import { shell, type WebContents } from "electron";
 import { spawn } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
@@ -45,6 +45,8 @@ export interface LaunchGameOptions {
   objectId: string;
   executablePath: string;
   launchOptions?: string | null;
+  skipSteamOverlayCheck?: boolean;
+  requestingWebContents?: WebContents;
 }
 
 const LAUNCH_DELAY_IN_MS = 2_000;
@@ -547,6 +549,48 @@ const runCommonRedistPreflight = async (shop: GameShop, objectId: string) => {
   }
 };
 
+const STEAM_OVERLAY_LAUNCH_OPTIONS_MARKER = "SteamOverlayGameId=";
+
+const isSteamRunning = async (): Promise<boolean> => {
+  const processes = await NativeAddon.listProcesses().catch(() => []);
+  return processes.some(
+    (runningProcess) => runningProcess.name.toLowerCase() === "steam"
+  );
+};
+
+const shouldBlockLaunchForSteamOverlay = async (
+  launchOptions: string | null | undefined
+): Promise<boolean> => {
+  if (!launchOptions?.includes(STEAM_OVERLAY_LAUNCH_OPTIONS_MARKER)) {
+    return false;
+  }
+
+  return !(await isSteamRunning());
+};
+
+const blockLaunchForSteamOverlay = (
+  shop: GameShop,
+  objectId: string,
+  executablePath: string,
+  launchOptions: string | null | undefined,
+  requestingWebContents: WebContents | undefined
+) => {
+  clearCloudSaveLaunchGuard(objectId, shop);
+  WindowManager.closeGameLauncherWindow();
+
+  const args = [shop, objectId, executablePath, launchOptions ?? null] as const;
+
+  // Reply only to the window that requested the launch (desktop or Big
+  // Picture) — broadcasting to every window leaves the modal open in
+  // whichever window the user didn't act on.
+  if (requestingWebContents && !requestingWebContents.isDestroyed()) {
+    requestingWebContents.send("on-steam-overlay-unavailable", ...args);
+    return;
+  }
+
+  WindowManager.sendToAppWindows("on-steam-overlay-unavailable", ...args);
+};
+
 const launchResolvedGame = async (
   gameKey: string,
   shop: GameShop,
@@ -555,7 +599,9 @@ const launchResolvedGame = async (
   compatibilityContext: LinuxCompatibilityLaunchContext | null,
   launchOptions: string | null | undefined,
   useMangohud: boolean,
-  useGamemode: boolean
+  useGamemode: boolean,
+  skipSteamOverlayCheck = false,
+  requestingWebContents?: WebContents
 ) => {
   if (process.platform !== "linux") {
     return launchNatively(parsedPath, launchOptions, useMangohud, useGamemode);
@@ -564,6 +610,20 @@ const launchResolvedGame = async (
   if (isWindowsExecutable(parsedPath)) {
     if (!compatibilityContext) {
       clearCloudSaveLaunchGuard(objectId, shop);
+      return null;
+    }
+
+    if (
+      !skipSteamOverlayCheck &&
+      (await shouldBlockLaunchForSteamOverlay(launchOptions))
+    ) {
+      blockLaunchForSteamOverlay(
+        shop,
+        objectId,
+        parsedPath,
+        launchOptions,
+        requestingWebContents
+      );
       return null;
     }
 
@@ -597,7 +657,13 @@ const launchResolvedGame = async (
 const launchGameWithCloudSaveChecks = async (
   options: LaunchGameOptions
 ): Promise<number | null> => {
-  const { shop, objectId, executablePath } = options;
+  const {
+    shop,
+    objectId,
+    executablePath,
+    skipSteamOverlayCheck,
+    requestingWebContents,
+  } = options;
 
   const parsedPath = parseExecutablePath(executablePath);
 
@@ -821,7 +887,9 @@ const launchGameWithCloudSaveChecks = async (
           compatibilityContext,
           launchOptions,
           useMangohud,
-          useGamemode
+          useGamemode,
+          skipSteamOverlayCheck,
+          requestingWebContents
         );
       }
     );
@@ -853,7 +921,9 @@ const launchGameWithCloudSaveChecks = async (
     compatibilityContext,
     launchOptions,
     useMangohud,
-    useGamemode
+    useGamemode,
+    skipSteamOverlayCheck,
+    requestingWebContents
   );
 };
 

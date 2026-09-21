@@ -3,13 +3,21 @@ import { GameShop } from "@types";
 import { launchGame } from "@main/helpers";
 
 const openGame = async (
-  _event: Electron.IpcMainInvokeEvent,
+  event: Electron.IpcMainInvokeEvent,
   shop: GameShop,
   objectId: string,
   executablePath: string,
-  launchOptions?: string | null
+  launchOptions?: string | null,
+  skipSteamOverlayCheck?: boolean
 ) => {
-  await launchGame({ shop, objectId, executablePath, launchOptions });
+  await launchGame({
+    shop,
+    objectId,
+    executablePath,
+    launchOptions,
+    skipSteamOverlayCheck,
+    requestingWebContents: event.sender,
+  });
 };
 
 registerEvent("openGame", openGame);
