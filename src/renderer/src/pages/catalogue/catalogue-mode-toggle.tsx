@@ -51,7 +51,7 @@ export function CatalogueModeToggle() {
           role="tablist"
           aria-label="PC store"
         >
-          {(["all", "steam", "epic"] as const).map((shop) => (
+          {(["steam", "epic"] as const).map((shop) => (
             <button
               key={shop}
               type="button"
@@ -74,9 +74,7 @@ export function CatalogueModeToggle() {
                   aria-hidden="true"
                 />
               )}
-              <span>
-                {shop === "all" ? "All" : shop === "steam" ? "Steam" : "Epic"}
-              </span>
+              <span>{shop === "steam" ? "Steam" : "Epic"}</span>
             </button>
           ))}
         </div>

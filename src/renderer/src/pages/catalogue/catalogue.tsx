@@ -185,7 +185,7 @@ export default function Catalogue() {
         offset: number,
         requestId: number,
         mode: "modern" | "classics",
-        pcShop: "all" | "steam" | "epic"
+        pcShop: "steam" | "epic"
       ) => {
         const { platforms, ...restFilters } = filters;
         const baseRequest = {
@@ -204,10 +204,7 @@ export default function Catalogue() {
                 shops: ["launchbox"],
                 platforms: platforms ?? [],
               }
-            : {
-                ...baseRequest,
-                shops: pcShop === "all" ? ["steam", "epic"] : [pcShop],
-              };
+            : { ...baseRequest, shops: [pcShop] };
 
         const response = await window.electron.hydraApi.post<{
           edges: CatalogueSearchResult[];
@@ -282,29 +279,14 @@ export default function Catalogue() {
         }));
     }
 
-    const steamGenres = Object.entries(steamGenresMapping)
+    return Object.entries(steamGenresMapping)
       .filter(([, value]) => publishedGenres.includes(value))
+      .sort(([keyA], [keyB]) => keyA.localeCompare(keyB))
       .map(([key, value]) => ({
         label: key,
         value: value,
         checked: filters.genres.includes(value),
       }));
-
-    const mappedGenres = new Set(Object.values(steamGenresMapping));
-    const epicGenres =
-      pcShop === "all"
-        ? publishedGenres
-            .filter((genre) => !mappedGenres.has(genre))
-            .map((genre) => ({
-              label: genre,
-              value: genre,
-              checked: filters.genres.includes(genre),
-            }))
-        : [];
-
-    return [...steamGenres, ...epicGenres].sort((first, second) =>
-      first.label.localeCompare(second.label)
-    );
   }, [pcShop, steamGenresMapping, filters.genres, publishedGenres]);
 
   const steamUserTagsFilterItems = useMemo(() => {
