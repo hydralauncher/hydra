@@ -75,6 +75,7 @@ export type ShopDetails = Omit<SteamAppDetails, "steam_appid"> & {
   skus?: string[];
   retroAchievementsGameId?: number | null;
   descriptionLanguage?: string;
+  supportedLanguages?: string[];
 };
 
 export type ShopDetailsWithAssets = ShopDetails & {

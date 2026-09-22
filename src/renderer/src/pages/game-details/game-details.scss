@@ -107,6 +107,13 @@
       color: globals.$body-color;
     }
 
+    .epic-description-heading {
+      font-size: 22px;
+      font-weight: 600;
+      line-height: 1.25;
+      margin: 0 0 calc(globals.$spacing-unit * 1.5);
+    }
+
     .bb_tag {
       margin-top: calc(globals.$spacing-unit * 2);
       margin-bottom: calc(globals.$spacing-unit * 2);

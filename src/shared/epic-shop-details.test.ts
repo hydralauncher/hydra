@@ -14,7 +14,11 @@ const response: EpicShopDetailsResponse = {
     developers: ["Studio A", "Studio B"],
     publisher: "Publisher",
     genres: ["Action"],
-    supportedLanguages: ["English<strong>*</strong>", "French"],
+    supportedLanguages: [
+      "English<strong>*</strong>",
+      "French",
+      "Spanish (Latin America, Spain)",
+    ],
     requirements: {
       minimum: "OS version: Windows 10\nMemory: 8 GB",
       recommended: "Memory: 16 GB",
@@ -32,7 +36,10 @@ describe("Epic shop details", () => {
     assert.equal(mapped.objectId, "123");
     assert.equal(mapped.assets?.shop, "epic");
     assert.equal(mapped.name, "Primary title");
-    assert.match(mapped.about_the_game, /<h1>Primary description<\/h1>/);
+    assert.match(
+      mapped.about_the_game,
+      /<h1 class="epic-description-heading">Primary description<\/h1>/
+    );
     assert.match(
       mapped.about_the_game,
       /<a href="\/discover\/example"><img src="https:\/\/example\.com\/banner\.png" alt="Banner"><\/a>/
@@ -71,8 +78,13 @@ describe("Epic shop details", () => {
     assert.deepEqual(mapped.publishers, ["Publisher"]);
     assert.equal(
       mapped.supported_languages,
-      "English<strong>*</strong>, French"
+      "English<strong>*</strong>, French, Spanish (Latin America, Spain)"
     );
+    assert.deepEqual(mapped.supportedLanguages, [
+      "English<strong>*</strong>",
+      "French",
+      "Spanish (Latin America, Spain)",
+    ]);
     assert.deepEqual(mapped.pc_requirements, {
       minimum: "OS version: Windows 10\nMemory: 8 GB",
       recommended: "Memory: 16 GB",

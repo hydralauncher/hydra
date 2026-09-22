@@ -18,6 +18,18 @@ const epicDescriptionMarkdown = new MarkdownIt({
   linkify: true,
 });
 
+epicDescriptionMarkdown.renderer.rules.heading_open = (
+  tokens,
+  index,
+  options,
+  _environment,
+  renderer
+) => {
+  tokens[index].attrJoin("class", "epic-description-heading");
+
+  return renderer.renderToken(tokens, index, options);
+};
+
 const renderEpicDescription = (value: unknown) => {
   const markdown = text(value)
     .replace(/<!--[\s\S]*?-->/g, "\n\n")
@@ -72,6 +84,7 @@ export function mapEpicShopDetails(
     recommended: text(requirements.recommended),
   };
   const description = renderEpicDescription(game.description);
+  const supportedLanguages = names(game.supportedLanguages);
   const title = text(game.title);
 
   return {
@@ -84,7 +97,8 @@ export function mapEpicShopDetails(
     developers: names(game.developers ?? game.developer),
     publishers: names(game.publishers ?? game.publisher),
     genres: names(game.genres).map((name) => ({ id: name, name })),
-    supported_languages: names(game.supportedLanguages).join(", "),
+    supported_languages: supportedLanguages.join(", "),
+    supportedLanguages,
     screenshots: names(game.screenshots).map((url, id) => ({
       id,
       path_thumbnail: url,
