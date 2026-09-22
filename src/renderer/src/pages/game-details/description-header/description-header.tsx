@@ -14,6 +14,8 @@ export function DescriptionHeader() {
   if (!shopDetails) return null;
 
   const rawDate = shopDetails?.release_date.date ?? "";
+  const publisher =
+    shopDetails.publishers?.[0] ?? shopDetails.developers?.[0] ?? "";
   let displayDate = rawDate;
   if (ISO_DATE_REGEX.test(rawDate)) {
     const parsed = new Date(
@@ -35,9 +37,7 @@ export function DescriptionHeader() {
           })}
         </p>
 
-        {Array.isArray(shopDetails.publishers) && (
-          <p>{t("publisher", { publisher: shopDetails.publishers[0] })}</p>
-        )}
+        {publisher && <p>{t("publisher", { publisher })}</p>}
       </section>
     </div>
   );

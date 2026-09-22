@@ -634,7 +634,7 @@ export default function Game() {
   const isLaunchboxGame = shop === "launchbox";
   const isCustomGame = shop === "custom";
   const developer = shopDetails?.developers?.[0] ?? "";
-  const publisher = shopDetails?.publishers?.[0] ?? "";
+  const publisher = shopDetails?.publishers?.[0] ?? developer;
   const releaseDate = shopDetails?.release_date?.date ?? "";
   const shopGenres = useMemo(() => {
     return extractGenreNames(shopDetails?.genres ?? []);
