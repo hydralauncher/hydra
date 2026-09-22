@@ -481,6 +481,8 @@ export function GameDetailsContent() {
                 __html: aboutTheGame,
               }}
               className={`game-details__description ${
+                shop === "epic" ? "game-details__description--epic" : ""
+              } ${
                 isDescriptionExpanded
                   ? "game-details__description--expanded"
                   : isDescriptionOverflowing

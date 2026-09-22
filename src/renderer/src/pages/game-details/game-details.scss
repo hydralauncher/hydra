@@ -67,6 +67,65 @@
       width: 50%;
     }
 
+    &.game-details__description--epic {
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+      overflow-x: hidden;
+      color: rgba(255, 255, 255, 0.65);
+      font-size: 16px;
+      font-weight: 400;
+      line-height: 26.4px;
+
+      body {
+        width: 100%;
+        display: flex;
+        flex-direction: column;
+        gap: 20px;
+      }
+
+      p,
+      ul,
+      ol,
+      blockquote {
+        margin: 0;
+        color: rgba(255, 255, 255, 0.65);
+        font-size: 16px;
+        font-weight: 400;
+        line-height: 26.4px;
+      }
+
+      ul,
+      ol {
+        padding-left: 24px;
+      }
+
+      li + li {
+        margin-top: globals.$spacing-unit;
+      }
+
+      .epic-description-heading {
+        margin: 0;
+        color: #fff;
+        font-size: 20px;
+        font-weight: 700;
+        letter-spacing: 0.4px;
+        line-height: 25px;
+      }
+
+      a {
+        color: #26bbff;
+        text-decoration: underline;
+      }
+
+      img,
+      video {
+        width: 100% !important;
+        margin: 0;
+        border-radius: 4px;
+      }
+    }
+
     &--collapsed {
       max-height: 300px;
       overflow: hidden;
@@ -105,13 +164,6 @@
 
     a {
       color: globals.$body-color;
-    }
-
-    .epic-description-heading {
-      font-size: 22px;
-      font-weight: 600;
-      line-height: 1.25;
-      margin: 0 0 calc(globals.$spacing-unit * 1.5);
     }
 
     .bb_tag {

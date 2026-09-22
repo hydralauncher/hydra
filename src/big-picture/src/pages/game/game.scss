@@ -904,6 +904,67 @@
       outline-offset: 4px;
     }
 
+    &.game-page__detailed-description--epic {
+      gap: 20px;
+      color: rgba(255, 255, 255, 0.65);
+
+      .game-page__detailed-description-block-content {
+        color: rgba(255, 255, 255, 0.65);
+        font-size: 16px;
+        font-weight: 400;
+        line-height: 26.4px;
+
+        > * {
+          margin: 0;
+        }
+
+        > * + * {
+          margin-top: 20px;
+        }
+      }
+
+      p,
+      ul,
+      ol,
+      blockquote {
+        margin: 0;
+        color: rgba(255, 255, 255, 0.65);
+        font-size: 16px;
+        font-weight: 400;
+        line-height: 26.4px;
+      }
+
+      ul,
+      ol {
+        padding-left: 24px;
+      }
+
+      li + li {
+        margin-top: 8px;
+      }
+
+      .epic-description-heading {
+        margin: 0;
+        color: #fff;
+        font-size: 20px;
+        font-weight: 700;
+        letter-spacing: 0.4px;
+        line-height: 25px;
+      }
+
+      a {
+        color: #26bbff;
+        text-decoration: underline;
+      }
+
+      img,
+      video {
+        width: 100%;
+        margin: 0;
+        border-radius: 4px;
+      }
+    }
+
     p {
       font-size: 16px;
       margin-top: 12px;
@@ -938,13 +999,6 @@
       color: var(--body-color);
       overflow-wrap: anywhere;
       word-break: break-word;
-    }
-
-    .epic-description-heading {
-      font-size: 22px;
-      font-weight: 600;
-      line-height: 1.25;
-      margin: 0 0 12px;
     }
 
     ul,

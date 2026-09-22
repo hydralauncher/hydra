@@ -1517,7 +1517,11 @@ export default function Game() {
                   >
                     <div
                       ref={descriptionContainerRef}
-                      className="game-page__detailed-description"
+                      className={`game-page__detailed-description ${
+                        shop === "epic"
+                          ? "game-page__detailed-description--epic"
+                          : ""
+                      }`}
                       data-suppress-navigation-autoscroll="true"
                     >
                       {descriptionBlocks.map((block, index) => (
