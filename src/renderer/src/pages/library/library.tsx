@@ -423,6 +423,10 @@ export default function Library() {
       );
     }
 
+    if (showInstalledOnly) {
+      filtered = filtered.filter(isGameInstalled);
+    }
+
     if (hideAdultContent) {
       filtered = filtered.filter(
         (game) => !shouldHideGameForAdultContent(game, hideAdultContent)
@@ -454,7 +458,6 @@ export default function Library() {
     deferredSearchQuery,
     selectedCollectionId,
     effectiveCategory,
-    selectedPlatform,
     hideAdultContent,
     selectedPlatforms,
     showInstalledOnly,
