@@ -305,7 +305,7 @@ export function Sidebar() {
                   <DeviceDesktopIcon size={18} aria-hidden="true" />
                   {t("platforms", { ns: "catalogue" })}
                 </p>
-                <StoreIcons shop={shop} />
+                <StoreIcons shops={[shop]} />
               </div>
             )}
             <div className="stats__category">

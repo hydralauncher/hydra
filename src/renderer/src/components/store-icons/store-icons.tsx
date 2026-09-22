@@ -3,28 +3,34 @@ import EpicLogo from "@renderer/assets/epic-games-logo.svg?react";
 import "./store-icons.scss";
 
 interface StoreIconsProps {
-  shop: string;
+  shops: readonly string[];
 }
 
-export function StoreIcons({ shop }: StoreIconsProps) {
-  const platform = [
-    { shop: "steam", label: "Steam", Icon: SteamLogo },
-    { shop: "epic", label: "Epic Games", Icon: EpicLogo },
-  ].find((platform) => platform.shop === shop);
-  if (!platform) return null;
+const platforms = [
+  { shop: "steam", label: "Steam", Icon: SteamLogo },
+  { shop: "epic", label: "Epic Games", Icon: EpicLogo },
+];
 
-  const { label, Icon } = platform;
+export function StoreIcons({ shops }: StoreIconsProps) {
+  const visiblePlatforms = [...new Set(shops)]
+    .map((shop) => platforms.find((platform) => platform.shop === shop))
+    .filter((platform) => platform !== undefined);
+
+  if (visiblePlatforms.length === 0) return null;
 
   return (
     <span className="store-icons">
-      <span
-        className="store-icons__item"
-        role="img"
-        aria-label={label}
-        title={label}
-      >
-        <Icon aria-hidden="true" focusable="false" />
-      </span>
+      {visiblePlatforms.map(({ shop, label, Icon }) => (
+        <span
+          key={shop}
+          className="store-icons__item"
+          role="img"
+          aria-label={label}
+          title={label}
+        >
+          <Icon aria-hidden="true" focusable="false" />
+        </span>
+      ))}
     </span>
   );
 }

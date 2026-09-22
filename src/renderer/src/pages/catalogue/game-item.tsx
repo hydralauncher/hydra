@@ -102,6 +102,11 @@ export function GameItem({ game }: GameItemProps) {
     );
   }, [game.libraryImageUrl, game.title]);
 
+  const availableShops = useMemo(
+    () => [game.shop, ...(game.availableShops ?? [])],
+    [game.availableShops, game.shop]
+  );
+
   const rawProtonValue =
     game.tier ??
     game.bestReportedTier ??
@@ -140,7 +145,7 @@ export function GameItem({ game }: GameItemProps) {
             </span>
           )}
 
-          <StoreIcons shop={game.shop} />
+          <StoreIcons shops={availableShops} />
 
           <div className="game-item__repackers">
             {game.downloadSources.map((sourceName) => (

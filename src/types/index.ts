@@ -670,6 +670,7 @@ export type CatalogueSearchResult = {
   objectId: string;
   title: string;
   shop: GameShop;
+  availableShops?: GameShop[];
   genres: string[];
   releaseYear: number | null;
   tier?: string | null;
