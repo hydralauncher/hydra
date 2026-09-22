@@ -1,4 +1,4 @@
-import type { GameShop, ShopDetailsWithAssets } from "../types";
+import type { GameShop, ShopDetailsWithAssets, SteamMovie } from "../types";
 import MarkdownIt from "markdown-it";
 
 interface EpicGameReference {
@@ -51,6 +51,53 @@ const record = (value: unknown): Record<string, unknown> =>
     ? (value as Record<string, unknown>)
     : {};
 
+const mapVideos = (
+  value: unknown,
+  fallbackThumbnail: string
+): SteamMovie[] | undefined => {
+  if (!Array.isArray(value)) return undefined;
+
+  const videos: SteamMovie[] = [];
+
+  for (const entry of value) {
+    const video = record(entry);
+    const id = text(video.id);
+    const url = text(video.url);
+    const contentType = text(video.contentType)
+      .split(";", 1)[0]
+      .trim()
+      .toLowerCase();
+
+    if (!id || !url) continue;
+
+    const mapped = {
+      id,
+      thumbnail: text(video.thumbnailUrl) || fallbackThumbnail,
+      name: text(video.title),
+      highlight: false,
+    };
+
+    if (
+      contentType === "application/x-mpegurl" ||
+      contentType === "application/vnd.apple.mpegurl"
+    ) {
+      videos.push({ ...mapped, hls_h264: url });
+      continue;
+    }
+
+    const source = { max: url, "480": url };
+    if (contentType === "video/mp4") {
+      videos.push({ ...mapped, mp4: source });
+      continue;
+    }
+    if (contentType === "video/webm") {
+      videos.push({ ...mapped, webm: source });
+    }
+  }
+
+  return videos.length ? videos : undefined;
+};
+
 const mapAssets = (
   reference: EpicGameReference,
   game: Record<string, unknown>,
@@ -86,6 +133,17 @@ export function mapEpicShopDetails(
   const description = renderEpicDescription(game.description);
   const supportedLanguages = names(game.supportedLanguages);
   const title = text(game.title);
+  const screenshots = names(game.screenshots).map((url, id) => ({
+    id,
+    path_thumbnail: url,
+    path_full: url,
+  }));
+  const assets = mapAssets(reference, game, title);
+  const fallbackThumbnail =
+    assets.libraryHeroImageUrl ??
+    screenshots[0]?.path_thumbnail ??
+    assets.coverImageUrl ??
+    "";
 
   return {
     objectId: reference.objectId,
@@ -99,11 +157,8 @@ export function mapEpicShopDetails(
     genres: names(game.genres).map((name) => ({ id: name, name })),
     supported_languages: supportedLanguages.join(", "),
     supportedLanguages,
-    screenshots: names(game.screenshots).map((url, id) => ({
-      id,
-      path_thumbnail: url,
-      path_full: url,
-    })),
+    movies: mapVideos(game.videos, fallbackThumbnail),
+    screenshots,
     pc_requirements: epicRequirements,
     mac_requirements: { minimum: "", recommended: "" },
     linux_requirements: { minimum: "", recommended: "" },
@@ -112,6 +167,6 @@ export function mapEpicShopDetails(
       date: text(game.releaseDate),
     },
     content_descriptors: { ids: [] },
-    assets: mapAssets(reference, game, title),
+    assets,
   };
 }

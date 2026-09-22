@@ -93,6 +93,82 @@ describe("Epic shop details", () => {
     assert.equal(mapped.movies, undefined);
   });
 
+  it("maps Epic videos to the gallery movie contract", () => {
+    const mapped = mapEpicShopDetails(
+      {
+        game: {
+          title: "Video game",
+          screenshots: ["https://example.com/screenshot.jpg"],
+          assets: {
+            libraryHeroImageUrl: "https://example.com/hero.jpg",
+          },
+          videos: [
+            {
+              id: "hls-video",
+              title: "HLS trailer",
+              thumbnailUrl: "https://example.com/trailer.jpg",
+              url: "https://example.com/trailer.m3u8",
+              contentType: "application/x-mpegURL",
+            },
+            {
+              id: "mp4-video",
+              title: null,
+              thumbnailUrl: null,
+              url: "https://example.com/trailer.mp4",
+              contentType: "video/mp4; charset=utf-8",
+            },
+            {
+              id: "webm-video",
+              url: "https://example.com/trailer.webm",
+              contentType: "video/webm",
+            },
+            {
+              id: "unsupported-video",
+              url: "https://example.com/trailer.mov",
+              contentType: "video/quicktime",
+            },
+            {
+              url: "https://example.com/missing-id.mp4",
+              contentType: "video/mp4",
+            },
+          ],
+        },
+      },
+      "en-US",
+      { shop: "epic", objectId: "namespace:item" }
+    );
+
+    assert.deepEqual(mapped.movies, [
+      {
+        id: "hls-video",
+        name: "HLS trailer",
+        thumbnail: "https://example.com/trailer.jpg",
+        highlight: false,
+        hls_h264: "https://example.com/trailer.m3u8",
+      },
+      {
+        id: "mp4-video",
+        name: "",
+        thumbnail: "https://example.com/hero.jpg",
+        highlight: false,
+        mp4: {
+          max: "https://example.com/trailer.mp4",
+          "480": "https://example.com/trailer.mp4",
+        },
+      },
+      {
+        id: "webm-video",
+        name: "",
+        thumbnail: "https://example.com/hero.jpg",
+        highlight: false,
+        webm: {
+          max: "https://example.com/trailer.webm",
+          "480": "https://example.com/trailer.webm",
+        },
+      },
+    ]);
+  });
+
   it("handles missing or malformed optional metadata", () => {
     const mapped = mapEpicShopDetails(
       {
