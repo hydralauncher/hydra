@@ -1,4 +1,5 @@
 import type { GameShop, ShopDetailsWithAssets } from "../types";
+import MarkdownIt from "markdown-it";
 
 interface EpicGameReference {
   shop: GameShop;
@@ -10,6 +11,21 @@ export interface EpicShopDetailsResponse {
 }
 
 const text = (value: unknown) => (typeof value === "string" ? value : "");
+
+const epicDescriptionMarkdown = new MarkdownIt({
+  breaks: true,
+  html: false,
+  linkify: true,
+});
+
+const renderEpicDescription = (value: unknown) => {
+  const markdown = text(value)
+    .replace(/<!--[\s\S]*?-->/g, "\n\n")
+    .replace(/\s+•\s+/g, "\n- ")
+    .trim();
+
+  return markdown ? epicDescriptionMarkdown.render(markdown) : "";
+};
 
 const names = (value: unknown): string[] =>
   Array.isArray(value)
@@ -51,11 +67,11 @@ export function mapEpicShopDetails(
 ): ShopDetailsWithAssets {
   const { game } = response;
   const requirements = record(game.requirements);
-  const rules = (os: string) => ({
-    minimum: text(record(requirements[os]).minimum),
-    recommended: text(record(requirements[os]).recommended),
-  });
-  const description = text(game.description);
+  const epicRequirements = {
+    minimum: text(requirements.minimum),
+    recommended: text(requirements.recommended),
+  };
+  const description = renderEpicDescription(game.description);
   const title = text(game.title);
 
   return {
@@ -74,9 +90,9 @@ export function mapEpicShopDetails(
       path_thumbnail: url,
       path_full: url,
     })),
-    pc_requirements: rules("windows"),
-    mac_requirements: rules("mac"),
-    linux_requirements: rules("linux"),
+    pc_requirements: epicRequirements,
+    mac_requirements: { minimum: "", recommended: "" },
+    linux_requirements: { minimum: "", recommended: "" },
     release_date: {
       coming_soon: game.comingSoon === true,
       date: text(game.releaseDate),
