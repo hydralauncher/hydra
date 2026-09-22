@@ -79,6 +79,7 @@ export interface CatalogueData {
 
 export interface SearchGamesFormValues {
   mode?: CatalogueMode;
+  pcShop?: "steam" | "epic";
   title?: string;
   sortBy?: CatalogueSearchPayload["sortBy"];
   sortOrder?: CatalogueSearchPayload["sortOrder"];
@@ -254,10 +255,7 @@ export function useCatalogueData() {
   const deferredTitle = useDeferredValue(searchParams.get("title") ?? "");
   const [pageSize, setPageSize] = useState(getCataloguePageSize);
 
-  const [steamGenres, setSteamGenres] = useState<string[]>([]);
   const [steamTags, setSteamTags] = useState<Record<string, number>>({});
-  const [steamDevelopers, setSteamDevelopers] = useState<string[]>([]);
-  const [steamPublishers, setSteamPublishers] = useState<string[]>([]);
   const [launchboxFilters, setLaunchboxFilters] =
     useState<LaunchboxCatalogueFilters>(DEFAULT_LAUNCHBOX_FILTERS);
   const [downloadSources, setDownloadSources] = useState<DownloadSource[]>([]);
@@ -290,6 +288,7 @@ export function useCatalogueData() {
 
     return {
       mode,
+      pcShop: searchParams.get("pcShop") === "epic" ? "epic" : "steam",
       title: searchParams.get("title") ?? "",
       sortBy: sortOption.sortBy,
       sortOrder: sortOption.sortOrder,
@@ -347,6 +346,7 @@ export function useCatalogueData() {
     () =>
       JSON.stringify({
         mode: values.mode ?? "modern",
+        pcShop: values.pcShop ?? "steam",
         title: deferredTitle,
         sortBy: values.sortBy ?? DEFAULT_CATALOGUE_SORT_OPTION.sortBy,
         sortOrder: values.sortOrder ?? DEFAULT_CATALOGUE_SORT_OPTION.sortOrder,
@@ -365,6 +365,7 @@ export function useCatalogueData() {
       values.downloadSourceFingerprints,
       values.genres,
       values.mode,
+      values.pcShop,
       values.platforms,
       values.publishers,
       values.sortBy,
@@ -379,60 +380,27 @@ export function useCatalogueData() {
     let cancelled = false;
 
     const loadMetadata = async () => {
-      const [
-        genresResponse,
-        tagsResponse,
-        developersResponse,
-        publishersResponse,
-        launchboxFiltersResponse,
-        rawDownloadSources,
-      ] = await Promise.allSettled([
-        globalThis.window.electron.hydraApi.get<string[]>(
-          "/catalogue/steam/genres",
-          { params: { language: "en" }, needsAuth: false }
-        ),
-        globalThis.window.electron.hydraApi.get<Record<string, number>>(
-          "/catalogue/steam/tags",
-          { params: { language: "en" }, needsAuth: false }
-        ),
-        globalThis.window.electron.hydraApi.get<string[]>(
-          "/catalogue/steam/developers",
-          { needsAuth: false }
-        ),
-        globalThis.window.electron.hydraApi.get<string[]>(
-          "/catalogue/steam/publishers",
-          { needsAuth: false }
-        ),
-        globalThis.window.electron.hydraApi.get<LaunchboxFiltersResponse>(
-          "/catalogue/filters?shop=launchbox",
-          { needsAuth: false }
-        ),
-        levelDBService.values("downloadSources"),
-      ]);
+      const [tagsResponse, launchboxFiltersResponse, rawDownloadSources] =
+        await Promise.allSettled([
+          globalThis.window.electron.hydraApi.get<Record<string, number>>(
+            "/catalogue/steam/tags",
+            { params: { language: "en" }, needsAuth: false }
+          ),
+          globalThis.window.electron.hydraApi.get<LaunchboxFiltersResponse>(
+            "/catalogue/filters?shop=launchbox",
+            { needsAuth: false }
+          ),
+          levelDBService.values("downloadSources"),
+        ]);
 
       if (cancelled) return;
 
-      logRejectedMetadataRequest("steam-genres", genresResponse);
       logRejectedMetadataRequest("steam-user-tags", tagsResponse);
-      logRejectedMetadataRequest("steam-developers", developersResponse);
-      logRejectedMetadataRequest("steam-publishers", publishersResponse);
       logRejectedMetadataRequest("launchbox-filters", launchboxFiltersResponse);
       logRejectedMetadataRequest("download-sources", rawDownloadSources);
 
-      if (genresResponse.status === "fulfilled") {
-        setSteamGenres(genresResponse.value);
-      }
-
       if (tagsResponse.status === "fulfilled") {
         setSteamTags(tagsResponse.value);
-      }
-
-      if (developersResponse.status === "fulfilled") {
-        setSteamDevelopers(developersResponse.value);
-      }
-
-      if (publishersResponse.status === "fulfilled") {
-        setSteamPublishers(publishersResponse.value);
       }
 
       if (launchboxFiltersResponse.status === "fulfilled") {
@@ -495,7 +463,8 @@ export function useCatalogueData() {
         };
 
         if (catalogueMode === "modern") {
-          payload.tags = values.tags ?? [];
+          payload.shops = [values.pcShop ?? "steam"];
+          payload.tags = values.pcShop === "epic" ? [] : (values.tags ?? []);
         } else {
           payload.shops = ["launchbox"];
           payload.platforms = values.platforms ?? [];
@@ -567,6 +536,7 @@ export function useCatalogueData() {
       values.downloadSourceFingerprints,
       values.genres,
       values.mode,
+      values.pcShop,
       values.platforms,
       values.publishers,
       values.sortBy,
@@ -630,6 +600,38 @@ export function useCatalogueData() {
     }, {});
   }, [downloadSources]);
 
+  const [pcFilters, setPcFilters] = useState<{
+    genres: string[];
+    developers: string[];
+    publishers: string[];
+  }>({ genres: [], developers: [], publishers: [] });
+  useEffect(() => {
+    let current = true;
+    setPcFilters({ genres: [], developers: [], publishers: [] });
+    const shop = values.pcShop ?? "steam";
+    Promise.all([
+      globalThis.window.electron.hydraApi.get<string[]>(
+        `/catalogue/${shop}/genres`,
+        { needsAuth: false }
+      ),
+      globalThis.window.electron.hydraApi.get<string[]>(
+        `/catalogue/${shop}/developers`,
+        { needsAuth: false }
+      ),
+      globalThis.window.electron.hydraApi.get<string[]>(
+        `/catalogue/${shop}/publishers`,
+        { needsAuth: false }
+      ),
+    ])
+      .then(([genres, developers, publishers]) => {
+        if (current) setPcFilters({ genres, developers, publishers });
+      })
+      .catch(console.error);
+    return () => {
+      current = false;
+    };
+  }, [values.pcShop]);
+
   const catalogueData = useMemo<CatalogueData>(() => {
     const isClassicsMode = values.mode === "classics";
     const launchboxPlatforms = launchboxFilters.platforms.reduce<
@@ -646,7 +648,7 @@ export function useCatalogueData() {
         color: "teal",
       },
       [FilterType.Genres]: {
-        data: isClassicsMode ? launchboxFilters.genres : steamGenres,
+        data: isClassicsMode ? launchboxFilters.genres : pcFilters.genres,
         label: "Genres",
         color: "magenta",
       },
@@ -661,22 +663,24 @@ export function useCatalogueData() {
         color: "red",
       },
       [FilterType.Developers]: {
-        data: isClassicsMode ? launchboxFilters.developers : steamDevelopers,
+        data: isClassicsMode
+          ? launchboxFilters.developers
+          : pcFilters.developers,
         label: "Developers",
         color: "cyan",
       },
       [FilterType.Publishers]: {
-        data: isClassicsMode ? launchboxFilters.publishers : steamPublishers,
+        data: isClassicsMode
+          ? launchboxFilters.publishers
+          : pcFilters.publishers,
         label: "Publishers",
         color: "lime",
       },
     };
   }, [
     downloadSourcesAndFingerprints,
+    pcFilters,
     launchboxFilters,
-    steamDevelopers,
-    steamGenres,
-    steamPublishers,
     steamTags,
     values.mode,
   ]);
@@ -685,12 +689,15 @@ export function useCatalogueData() {
     () =>
       values.mode === "classics"
         ? [...CLASSICS_CATALOGUE_FILTER_TYPES]
-        : [...MODERN_CATALOGUE_FILTER_TYPES],
-    [values.mode]
+        : MODERN_CATALOGUE_FILTER_TYPES.filter(
+            (type) => values.pcShop !== "epic" || type !== FilterType.Tags
+          ),
+    [values.mode, values.pcShop]
   );
 
   return {
     mode: values.mode ?? "modern",
+    pcShop: values.pcShop ?? "steam",
     filterTypes,
     pageSize,
     hasNextPage,

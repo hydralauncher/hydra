@@ -1,3 +1,8 @@
+import { isAxiosError } from "axios";
+import {
+  mapEpicShopDetails,
+  type EpicShopDetailsResponse,
+} from "../../../shared/epic-shop-details";
 import {
   getSteamAppDetails,
   getSteamLanguage,
@@ -99,7 +104,6 @@ const mapLaunchboxToShopDetails = (
     skus: entry?.skus ?? undefined,
     retroAchievementsGameId:
       basic?.retroAchievementsGameId ?? cached?.retroAchievementsGameId ?? null,
-    steam_appid: 0,
     detailed_description: description,
     about_the_game: description,
     short_description: "",
@@ -237,6 +241,49 @@ const getGameShopDetails = async (
       ...details,
       assets: await applyArtworkToAssets(shop, objectId, details.assets),
     };
+  }
+
+  if (shop === "epic") {
+    const cacheKey = levelKeys.gameShopCacheItem(shop, objectId, language);
+    try {
+      const game = await HydraApi.get<Record<string, unknown> | null>(
+        `/games/${shop}/${encodeURIComponent(objectId)}/shop-details`,
+        { language },
+        { needsAuth: false }
+      );
+      if (!game) throw new Error("Game details are unavailable");
+      const response: EpicShopDetailsResponse = { game };
+      const details = mapEpicShopDetails(response, language, {
+        shop,
+        objectId,
+      });
+      const { assets, ...cached } = details;
+      await gamesShopCacheSublevel.put(cacheKey, cached);
+      if (assets)
+        await gamesShopAssetsSublevel.put(
+          levelKeys.game(assets.shop, assets.objectId),
+          { ...assets, updatedAt: Date.now() }
+        );
+      return {
+        ...details,
+        assets: await applyArtworkToAssets(shop, objectId, assets),
+      };
+    } catch (error) {
+      if (
+        !isAxiosError(error) ||
+        (error.response && error.response.status < 500)
+      )
+        throw error;
+      const cached = await gamesShopCacheSublevel.get(cacheKey);
+      if (!cached) throw error;
+      const assets = await gamesShopAssetsSublevel.get(
+        levelKeys.game(shop, objectId)
+      );
+      return {
+        ...cached,
+        assets: await applyArtworkToAssets(shop, objectId, assets ?? null),
+      };
+    }
   }
 
   if (shop === "steam") {

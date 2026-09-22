@@ -68,7 +68,8 @@ export interface ShopAssets {
   selectedArtworkTypes?: ArtworkAssetType[];
 }
 
-export type ShopDetails = SteamAppDetails & {
+export type ShopDetails = Omit<SteamAppDetails, "steam_appid"> & {
+  steam_appid?: SteamAppDetails["steam_appid"];
   objectId: string;
   platform?: string;
   skus?: string[];

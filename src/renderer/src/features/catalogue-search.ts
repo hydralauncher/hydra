@@ -11,6 +11,7 @@ export interface CatalogueSearchState {
   steamUserTags: Record<string, Record<string, number>>;
   steamGenres: Record<string, string[]>;
   mode: CatalogueMode;
+  pcShop: "steam" | "epic";
 }
 
 const initialState: CatalogueSearchState = {
@@ -31,6 +32,7 @@ const initialState: CatalogueSearchState = {
   steamGenres: {},
   page: 1,
   mode: "modern",
+  pcShop: "steam",
 };
 
 export const catalogueSearchSlice = createSlice({
@@ -63,6 +65,11 @@ export const catalogueSearchSlice = createSlice({
     setGenres: (state, action: PayloadAction<Record<string, string[]>>) => {
       state.steamGenres = action.payload;
     },
+    setPcShop: (state, action: PayloadAction<"steam" | "epic">) => {
+      state.pcShop = action.payload;
+      state.page = initialState.page;
+      state.filters = { ...initialState.filters, title: state.filters.title };
+    },
     setMode: (state, action: PayloadAction<CatalogueMode>) => {
       state.mode = action.payload;
       state.page = initialState.page;
@@ -90,4 +97,5 @@ export const {
   setTags,
   setGenres,
   setMode,
+  setPcShop,
 } = catalogueSearchSlice.actions;

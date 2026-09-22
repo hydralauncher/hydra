@@ -133,11 +133,11 @@ export default function Catalogue() {
   const hasResultsRef = useRef(false);
   const cataloguePageRef = useRef<HTMLDivElement>(null);
 
-  const { steamDevelopers, steamPublishers, downloadSources } = useCatalogue();
+  const { steamDevelopers, steamPublishers, downloadSources, publishedGenres } =
+    useCatalogue();
 
-  const { steamGenres, steamUserTags, filters, page, mode } = useAppSelector(
-    (state) => state.catalogueSearch
-  );
+  const { steamGenres, steamUserTags, filters, page, mode, pcShop } =
+    useAppSelector((state) => state.catalogueSearch);
   const launchboxFilters = useLaunchboxFilters(mode === "classics");
   const deferredTitleFilter = useDeferredValue(filters.title);
 
@@ -151,7 +151,7 @@ export default function Catalogue() {
   const [isLoading, setIsLoading] = useState(true);
 
   const [results, setResults] = useState<CatalogueSearchResult[]>([]);
-  const [resultsMode, setResultsMode] = useState(mode);
+  const [resultsMode, setResultsMode] = useState<string>(`${mode}:${pcShop}`);
 
   const [itemsCount, setItemsCount] = useState(0);
 
@@ -184,7 +184,8 @@ export default function Catalogue() {
         pageSize: number,
         offset: number,
         requestId: number,
-        mode: "modern" | "classics"
+        mode: "modern" | "classics",
+        pcShop: "steam" | "epic"
       ) => {
         const { platforms, ...restFilters } = filters;
         const baseRequest = {
@@ -203,7 +204,7 @@ export default function Catalogue() {
                 shops: ["launchbox"],
                 platforms: platforms ?? [],
               }
-            : baseRequest;
+            : { ...baseRequest, shops: [pcShop] };
 
         const response = await window.electron.hydraApi.post<{
           edges: CatalogueSearchResult[];
@@ -216,7 +217,7 @@ export default function Catalogue() {
         if (requestId !== requestSequenceRef.current) return;
 
         setResults(response.edges);
-        setResultsMode(mode);
+        setResultsMode(`${mode}:${pcShop}`);
         setItemsCount(response.count);
         setIsLoading(false);
       },
@@ -231,7 +232,7 @@ export default function Catalogue() {
     hasResultsRef.current = results.length > 0;
   }, [results.length]);
 
-  const isModeTransitioning = resultsMode !== mode;
+  const isModeTransitioning = resultsMode !== `${mode}:${pcShop}`;
   const showSkeleton = isLoading || isModeTransitioning;
 
   useEffect(() => {
@@ -247,13 +248,14 @@ export default function Catalogue() {
       PAGE_SIZE,
       (page - 1) * PAGE_SIZE,
       requestId,
-      mode
+      mode,
+      pcShop
     );
 
     return () => {
       debouncedSearch.cancel();
     };
-  }, [effectiveFilters, downloadSources, page, debouncedSearch, mode]);
+  }, [effectiveFilters, downloadSources, page, debouncedSearch, mode, pcShop]);
 
   const language = i18n.language.split("-")[0];
 
@@ -266,15 +268,26 @@ export default function Catalogue() {
     }, {});
   }, [steamGenres, language]);
 
-  const steamGenresFilterItems = useMemo(() => {
+  const pcGenresFilterItems = useMemo(() => {
+    if (pcShop === "epic") {
+      return [...publishedGenres]
+        .sort((first, second) => first.localeCompare(second))
+        .map((genre) => ({
+          label: genre,
+          value: genre,
+          checked: filters.genres.includes(genre),
+        }));
+    }
+
     return Object.entries(steamGenresMapping)
+      .filter(([, value]) => publishedGenres.includes(value))
       .sort(([keyA], [keyB]) => keyA.localeCompare(keyB))
       .map(([key, value]) => ({
         label: key,
         value: value,
         checked: filters.genres.includes(value),
       }));
-  }, [steamGenresMapping, filters.genres]);
+  }, [pcShop, steamGenresMapping, filters.genres, publishedGenres]);
 
   const steamUserTagsFilterItems = useMemo(() => {
     if (!steamUserTags[language]) return [];
@@ -421,9 +434,12 @@ export default function Catalogue() {
 
     return [
       ...filters.genres.map((genre) => ({
-        label: Object.keys(steamGenresMapping).find(
-          (key) => steamGenresMapping[key] === genre
-        ) as string,
+        label:
+          pcShop === "epic"
+            ? genre
+            : (Object.keys(steamGenresMapping).find(
+                (key) => steamGenresMapping[key] === genre
+              ) ?? genre),
         filterType: t("genres"),
         orbColor: filterCategoryColors.genres,
         key: "genres",
@@ -512,6 +528,7 @@ export default function Catalogue() {
     steamUserTags,
     downloadSources,
     steamGenresMapping,
+    pcShop,
     language,
     shouldShowProtonFeatures,
     t,
@@ -521,7 +538,7 @@ export default function Catalogue() {
     return [
       {
         title: t("genres"),
-        items: steamGenresFilterItems,
+        items: pcGenresFilterItems,
         key: "genres",
       },
       {
@@ -567,7 +584,7 @@ export default function Catalogue() {
     filters.downloadSourceFingerprints,
     filters.publishers,
     steamDevelopers,
-    steamGenresFilterItems,
+    pcGenresFilterItems,
     steamPublishers,
     steamUserTagsFilterItems,
     t,
@@ -774,48 +791,50 @@ export default function Catalogue() {
           <div className="catalogue__filters-sections">
             <CatalogueModeToggle />
 
-            {mode === "modern" && shouldShowProtonFeatures && (
-              <Suspense fallback={null}>
-                <ProtonCompatibilitySection
-                  title={t("protondb")}
-                  protonSliderLabel={t("protondb_minimum")}
-                  deckSliderLabel={t("steam_deck_minimum")}
-                  protonOptions={protonCompatibilityThresholds.map(
-                    (threshold) => ({
-                      value: threshold.value,
-                      label: t(threshold.labelKey),
-                      color: threshold.color,
-                    })
-                  )}
-                  protonValue={protonThresholdValue}
-                  deckChecked={isDeckCompatible}
-                  deckLabel={t("steam_deck_compatible")}
-                  color={filterCategoryColors.protondbSupportBadges}
-                  onProtonChange={(value) => {
-                    const nextThreshold = protonCompatibilityThresholds.find(
-                      (threshold) => threshold.value === value
-                    );
+            {mode === "modern" &&
+              pcShop === "steam" &&
+              shouldShowProtonFeatures && (
+                <Suspense fallback={null}>
+                  <ProtonCompatibilitySection
+                    title={t("protondb")}
+                    protonSliderLabel={t("protondb_minimum")}
+                    deckSliderLabel={t("steam_deck_minimum")}
+                    protonOptions={protonCompatibilityThresholds.map(
+                      (threshold) => ({
+                        value: threshold.value,
+                        label: t(threshold.labelKey),
+                        color: threshold.color,
+                      })
+                    )}
+                    protonValue={protonThresholdValue}
+                    deckChecked={isDeckCompatible}
+                    deckLabel={t("steam_deck_compatible")}
+                    color={filterCategoryColors.protondbSupportBadges}
+                    onProtonChange={(value) => {
+                      const nextThreshold = protonCompatibilityThresholds.find(
+                        (threshold) => threshold.value === value
+                      );
 
-                    dispatch(
-                      setFilters({
-                        protondbSupportBadges: nextThreshold
-                          ? [...nextThreshold.values]
-                          : [],
-                      })
-                    );
-                  }}
-                  onDeckChange={(checked) => {
-                    dispatch(
-                      setFilters({
-                        deckCompatibility: checked
-                          ? ["playable", "verified"]
-                          : [],
-                      })
-                    );
-                  }}
-                />
-              </Suspense>
-            )}
+                      dispatch(
+                        setFilters({
+                          protondbSupportBadges: nextThreshold
+                            ? [...nextThreshold.values]
+                            : [],
+                        })
+                      );
+                    }}
+                    onDeckChange={(checked) => {
+                      dispatch(
+                        setFilters({
+                          deckCompatibility: checked
+                            ? ["playable", "verified"]
+                            : [],
+                        })
+                      );
+                    }}
+                  />
+                </Suspense>
+              )}
 
             {mode === "modern" && (
               <Suspense fallback={null}>
@@ -831,39 +850,43 @@ export default function Catalogue() {
             )}
 
             {mode === "modern" &&
-              filterSections.map((section) => (
-                <FilterSection
-                  key={section.key}
-                  title={section.title}
-                  onClear={() => dispatch(setFilters({ [section.key]: [] }))}
-                  color={filterCategoryColors[section.key]}
-                  onSelect={(value) => {
-                    if (filters[section.key].includes(value)) {
-                      dispatch(
-                        setFilters({
-                          [section.key]: filters[
-                            section.key as
-                              | "genres"
-                              | "tags"
-                              | "downloadSourceFingerprints"
-                              | "developers"
-                              | "publishers"
-                              | "protondbSupportBadges"
-                              | "deckCompatibility"
-                          ].filter((item) => item !== value),
-                        })
-                      );
-                    } else {
-                      dispatch(
-                        setFilters({
-                          [section.key]: [...filters[section.key], value],
-                        })
-                      );
-                    }
-                  }}
-                  items={section.items}
-                />
-              ))}
+              filterSections
+                .filter(
+                  (section) => pcShop === "steam" || section.key !== "tags"
+                )
+                .map((section) => (
+                  <FilterSection
+                    key={section.key}
+                    title={section.title}
+                    onClear={() => dispatch(setFilters({ [section.key]: [] }))}
+                    color={filterCategoryColors[section.key]}
+                    onSelect={(value) => {
+                      if (filters[section.key].includes(value)) {
+                        dispatch(
+                          setFilters({
+                            [section.key]: filters[
+                              section.key as
+                                | "genres"
+                                | "tags"
+                                | "downloadSourceFingerprints"
+                                | "developers"
+                                | "publishers"
+                                | "protondbSupportBadges"
+                                | "deckCompatibility"
+                            ].filter((item) => item !== value),
+                          })
+                        );
+                      } else {
+                        dispatch(
+                          setFilters({
+                            [section.key]: [...filters[section.key], value],
+                          })
+                        );
+                      }
+                    }}
+                    items={section.items}
+                  />
+                ))}
 
             {mode === "classics" &&
               classicsFilterSections.map((section) => {

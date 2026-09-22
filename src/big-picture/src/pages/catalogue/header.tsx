@@ -395,6 +395,9 @@ export function CatalogueHeader({
   const headerFocusIds = [
     CATALOGUE_MODE_MODERN_ID,
     CATALOGUE_MODE_CLASSICS_ID,
+    ...(mode === "modern"
+      ? ["catalogue-store-steam", "catalogue-store-epic"]
+      : []),
     ...chipFocusIds,
     ...(hiddenFiltersCount > 0 ? [CATALOGUE_HIDDEN_FILTERS_BUTTON_ID] : []),
     ...(activeFilters.length > 0 ? [CATALOGUE_CLEAR_FILTERS_ID] : []),
@@ -499,6 +502,12 @@ export function CatalogueHeader({
 
       updateSearchParams({
         mode: nextMode,
+        platforms: [],
+        genres: [],
+        tags: [],
+        publishers: [],
+        developers: [],
+        downloadSourceFingerprints: [],
       });
     },
     [mode, updateSearchParams]
@@ -663,6 +672,35 @@ export function CatalogueHeader({
           variant="segmented"
           ariaLabel="Catalogue mode"
         />
+
+        {mode === "modern" && (
+          <Tabs
+            items={(["steam", "epic"] as const).map((shop) => ({
+              id: `catalogue-store-${shop}`,
+              value: shop,
+              label: shop === "steam" ? "Steam" : "Epic",
+              navigationOverrides:
+                navigationOverridesById[`catalogue-store-${shop}`],
+            }))}
+            value={values.pcShop ?? "steam"}
+            onValueChange={(pcShop) =>
+              updateSearchParams({
+                pcShop,
+                platforms: [],
+                genres: [],
+                tags: [],
+                publishers: [],
+                developers: [],
+                downloadSourceFingerprints: [],
+              })
+            }
+            manageFocusRegion={false}
+            selectOnFocus={false}
+            ignoreInitialFocusSelection
+            variant="segmented"
+            ariaLabel="PC store"
+          />
+        )}
 
         <Button
           className="catalogue-header__filters-button"

@@ -1,3 +1,4 @@
+import { StoreIcons } from "@renderer/components/store-icons/store-icons";
 import { Badge } from "@renderer/components/badge/badge";
 import { buildGameDetailsPath } from "@renderer/helpers";
 import { useAppSelector, useLibrary } from "@renderer/hooks";
@@ -31,7 +32,8 @@ export function GameItem({ game }: GameItemProps) {
   const [added, setAdded] = useState(false);
 
   const { library, updateLibrary } = useLibrary();
-  const shouldShowProtonFeatures = window.electron.platform === "linux";
+  const shouldShowProtonFeatures =
+    window.electron.platform === "linux" && game.shop === "steam";
 
   useEffect(() => {
     const exists = library.some(
@@ -137,6 +139,8 @@ export function GameItem({ game }: GameItemProps) {
               {t("no_genres", { ns: "catalogue" })}
             </span>
           )}
+
+          <StoreIcons shop={game.shop} />
 
           <div className="game-item__repackers">
             {game.downloadSources.map((sourceName) => (

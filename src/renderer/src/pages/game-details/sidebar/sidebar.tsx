@@ -1,3 +1,4 @@
+import { StoreIcons } from "@renderer/components/store-icons/store-icons";
 import { lazy, Suspense, useContext, useEffect, useState } from "react";
 import type {
   HowLongToBeatCategory,
@@ -20,6 +21,7 @@ import {
 import {
   AlertIcon,
   DownloadIcon,
+  DeviceDesktopIcon,
   LockIcon,
   PeopleIcon,
   StarIcon,
@@ -297,6 +299,15 @@ export function Sidebar() {
       {stats && (
         <SidebarSection title={t("stats")}>
           <div className="stats__section">
+            {(shop === "steam" || shop === "epic") && (
+              <div className="stats__category">
+                <p className="stats__category-title">
+                  <DeviceDesktopIcon size={18} aria-hidden="true" />
+                  {t("platforms", { ns: "catalogue" })}
+                </p>
+                <StoreIcons shop={shop} />
+              </div>
+            )}
             <div className="stats__category">
               <p className="stats__category-title">
                 <DownloadIcon size={18} />

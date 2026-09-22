@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { levelDBService } from "@renderer/services/leveldb.service";
 import type { DownloadSource } from "@types";
-import { useAppDispatch } from "./redux";
+import { useAppDispatch, useAppSelector } from "./redux";
 import { setGenres, setTags } from "@renderer/features";
 
 const SUPPORTED_STEAM_METADATA_LANGUAGES = new Set([
@@ -38,6 +38,8 @@ async function getLocalizedSteamMetadata<T>(endpoint: string, locale: string) {
 
 export function useCatalogue() {
   const dispatch = useAppDispatch();
+  const pcShop = useAppSelector((state) => state.catalogueSearch.pcShop);
+  const [publishedGenres, setPublishedGenres] = useState<string[]>([]);
   const { i18n } = useTranslation();
 
   const [steamPublishers, setSteamPublishers] = useState<string[]>([]);
@@ -60,17 +62,35 @@ export function useCatalogue() {
     dispatch(setGenres(genres));
   }, [dispatch, i18n.language]);
 
-  const getSteamPublishers = useCallback(() => {
-    window.electron.hydraApi
-      .get<string[]>("/catalogue/steam/publishers", { needsAuth: false })
-      .then(setSteamPublishers);
-  }, []);
-
-  const getSteamDevelopers = useCallback(() => {
-    window.electron.hydraApi
-      .get<string[]>("/catalogue/steam/developers", { needsAuth: false })
-      .then(setSteamDevelopers);
-  }, []);
+  useEffect(() => {
+    let current = true;
+    setSteamPublishers([]);
+    setSteamDevelopers([]);
+    setPublishedGenres([]);
+    Promise.all([
+      window.electron.hydraApi.get<string[]>(`/catalogue/${pcShop}/genres`, {
+        needsAuth: false,
+      }),
+      window.electron.hydraApi.get<string[]>(
+        `/catalogue/${pcShop}/developers`,
+        { needsAuth: false }
+      ),
+      window.electron.hydraApi.get<string[]>(
+        `/catalogue/${pcShop}/publishers`,
+        { needsAuth: false }
+      ),
+    ])
+      .then(([genres, developers, publishers]) => {
+        if (!current) return;
+        setSteamPublishers(publishers);
+        setSteamDevelopers(developers);
+        setPublishedGenres(genres);
+      })
+      .catch(console.error);
+    return () => {
+      current = false;
+    };
+  }, [pcShop]);
 
   const getDownloadSources = useCallback(() => {
     levelDBService.values("downloadSources").then((results) => {
@@ -81,15 +101,8 @@ export function useCatalogue() {
 
   useEffect(() => {
     getSteamFilters();
-    getSteamPublishers();
-    getSteamDevelopers();
     getDownloadSources();
-  }, [
-    getSteamFilters,
-    getSteamPublishers,
-    getSteamDevelopers,
-    getDownloadSources,
-  ]);
+  }, [getSteamFilters, getDownloadSources]);
 
-  return { steamPublishers, downloadSources, steamDevelopers };
+  return { steamPublishers, downloadSources, steamDevelopers, publishedGenres };
 }
