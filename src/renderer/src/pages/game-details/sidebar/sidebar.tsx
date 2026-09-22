@@ -1,5 +1,12 @@
 import { StoreIcons } from "@renderer/components/store-icons/store-icons";
-import { lazy, Suspense, useContext, useEffect, useState } from "react";
+import {
+  lazy,
+  Suspense,
+  useContext,
+  useEffect,
+  useMemo,
+  useState,
+} from "react";
 import type {
   HowLongToBeatCategory,
   ProtonDBData,
@@ -35,6 +42,7 @@ import { RetroAchievementsConnectBanner } from "@renderer/components/retro-achie
 import "./sidebar.scss";
 import { GameLanguageSection } from "./game-language-section";
 import { ControllerSupportSection } from "./controller-support-section";
+import { parseRequirementRows } from "@shared";
 
 const ProtonDBSection = lazy(async () => {
   const mod = await import("./protondb-section");
@@ -135,6 +143,22 @@ export function Sidebar() {
   const { t } = useTranslation("game_details");
   const { formatDateTime } = useDate();
   const { numberFormatter } = useFormat();
+  const activeRequirementDetails =
+    shopDetails?.pc_requirements?.[activeRequirement];
+  const emptyRequirementText = t(`no_${activeRequirement}_requirements`, {
+    gameTitle,
+  });
+  const requirementDetails =
+    (shop === "epic" || shop === "steam") && !activeRequirementDetails?.trim()
+      ? emptyRequirementText
+      : (activeRequirementDetails ?? emptyRequirementText);
+  const requirementRows = useMemo(
+    () =>
+      shop === "epic" || shop === "steam"
+        ? parseRequirementRows(activeRequirementDetails ?? "")
+        : [],
+    [activeRequirementDetails, shop]
+  );
   const achievementsCount = achievements?.length ?? 0;
   const shouldRenderAchievementsSection =
     (!!userDetails && achievementsCount > 0) ||
@@ -379,16 +403,30 @@ export function Sidebar() {
             </Button>
           </div>
 
-          <div
-            className="requirement__details"
-            dangerouslySetInnerHTML={{
-              __html:
-                shopDetails?.pc_requirements?.[activeRequirement] ??
-                t(`no_${activeRequirement}_requirements`, {
-                  gameTitle,
-                }),
-            }}
-          />
+          {(shop === "epic" || shop === "steam") &&
+          requirementRows.length > 0 ? (
+            <div className="requirement__rows">
+              {requirementRows.map((row, index) => (
+                <div
+                  key={`${row.label ?? "info"}-${index}`}
+                  className="requirement__row"
+                  data-info={!row.label}
+                >
+                  {row.label && (
+                    <span className="requirement__label">{row.label}</span>
+                  )}
+                  <span className="requirement__value">{row.value}</span>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div
+              className="requirement__details"
+              dangerouslySetInnerHTML={{
+                __html: requirementDetails,
+              }}
+            />
+          )}
         </SidebarSection>
       )}
 

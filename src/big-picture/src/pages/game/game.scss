@@ -1177,6 +1177,12 @@
     &:last-child {
       border-radius: 0 0 12px 12px;
     }
+
+    &[data-info="true"] .game-page__requirements-to-play-row-value {
+      color: var(--text-secondary);
+      text-align: left;
+      font-weight: 400;
+    }
   }
 
   &__requirements-to-play-row-label {

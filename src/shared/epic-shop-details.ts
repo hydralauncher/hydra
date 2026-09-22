@@ -12,6 +12,14 @@ export interface EpicShopDetailsResponse {
 
 const text = (value: unknown) => (typeof value === "string" ? value : "");
 
+const escapeHtml = (value: string) =>
+  value
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#39;");
+
 const epicDescriptionMarkdown = new MarkdownIt({
   breaks: true,
   html: false,
@@ -37,6 +45,30 @@ const renderEpicDescription = (value: unknown) => {
     .trim();
 
   return markdown ? epicDescriptionMarkdown.render(markdown) : "";
+};
+
+const renderEpicRequirements = (value: unknown) => {
+  const rows = text(value)
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter(Boolean)
+    .map((line) => {
+      const separatorIndex = line.indexOf(":");
+
+      if (separatorIndex <= 0) {
+        return `<li><span>${escapeHtml(line)}</span></li>`;
+      }
+
+      const label = line.slice(0, separatorIndex).trim();
+      const requirement = line.slice(separatorIndex + 1).trim();
+
+      if (!label || !requirement) return null;
+
+      return `<li><strong>${escapeHtml(label)}</strong><span>${escapeHtml(requirement)}</span></li>`;
+    })
+    .filter((row): row is string => Boolean(row));
+
+  return rows.length ? `<ul>${rows.join("")}</ul>` : "";
 };
 
 const names = (value: unknown): string[] =>
@@ -127,8 +159,8 @@ export function mapEpicShopDetails(
   const { game } = response;
   const requirements = record(game.requirements);
   const epicRequirements = {
-    minimum: text(requirements.minimum),
-    recommended: text(requirements.recommended),
+    minimum: renderEpicRequirements(requirements.minimum),
+    recommended: renderEpicRequirements(requirements.recommended),
   };
   const description = renderEpicDescription(game.description);
   const supportedLanguages = names(game.supportedLanguages);

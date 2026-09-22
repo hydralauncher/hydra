@@ -68,7 +68,7 @@ describe("Epic shop details", () => {
     assert.match(mapped.about_the_game, /&lt;script&gt;/);
   });
 
-  it("keeps requirements and provider arrays", () => {
+  it("formats requirements and keeps provider arrays", () => {
     const mapped = mapEpicShopDetails(response, "en-US", {
       shop: "epic",
       objectId: "123",
@@ -86,11 +86,38 @@ describe("Epic shop details", () => {
       "Spanish (Latin America, Spain)",
     ]);
     assert.deepEqual(mapped.pc_requirements, {
-      minimum: "OS version: Windows 10\nMemory: 8 GB",
-      recommended: "Memory: 16 GB",
+      minimum:
+        "<ul><li><strong>OS version</strong><span>Windows 10</span></li><li><strong>Memory</strong><span>8 GB</span></li></ul>",
+      recommended:
+        "<ul><li><strong>Memory</strong><span>16 GB</span></li></ul>",
     });
     assert.equal(mapped.controller_support, undefined);
     assert.equal(mapped.movies, undefined);
+  });
+
+  it("escapes requirement HTML and preserves colons in values", () => {
+    const mapped = mapEpicShopDetails(
+      {
+        game: {
+          requirements: {
+            minimum:
+              "OS: Windows <11>\nStorage: SSD: 90 GB\n\nNotes without label",
+            recommended: "Unsafe: <script>alert('xss')</script>",
+          },
+        },
+      },
+      "en-US",
+      { shop: "epic", objectId: "123" }
+    );
+
+    assert.equal(
+      mapped.pc_requirements.minimum,
+      "<ul><li><strong>OS</strong><span>Windows &lt;11&gt;</span></li><li><strong>Storage</strong><span>SSD: 90 GB</span></li><li><span>Notes without label</span></li></ul>"
+    );
+    assert.equal(
+      mapped.pc_requirements.recommended,
+      "<ul><li><strong>Unsafe</strong><span>&lt;script&gt;alert(&#39;xss&#39;)&lt;/script&gt;</span></li></ul>"
+    );
   });
 
   it("maps Epic videos to the gallery movie contract", () => {
