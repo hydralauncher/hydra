@@ -4,6 +4,7 @@ import type { PayloadAction } from "@reduxjs/toolkit";
 import type { CatalogueSearchPayload } from "@types";
 
 export type CatalogueMode = "modern" | "classics";
+export type PcShop = "all" | "steam" | "epic";
 
 export interface CatalogueSearchState {
   filters: CatalogueSearchPayload;
@@ -11,7 +12,7 @@ export interface CatalogueSearchState {
   steamUserTags: Record<string, Record<string, number>>;
   steamGenres: Record<string, string[]>;
   mode: CatalogueMode;
-  pcShop: "steam" | "epic";
+  pcShop: PcShop;
 }
 
 const initialState: CatalogueSearchState = {
@@ -32,7 +33,7 @@ const initialState: CatalogueSearchState = {
   steamGenres: {},
   page: 1,
   mode: "modern",
-  pcShop: "steam",
+  pcShop: "all",
 };
 
 export const catalogueSearchSlice = createSlice({
@@ -65,7 +66,7 @@ export const catalogueSearchSlice = createSlice({
     setGenres: (state, action: PayloadAction<Record<string, string[]>>) => {
       state.steamGenres = action.payload;
     },
-    setPcShop: (state, action: PayloadAction<"steam" | "epic">) => {
+    setPcShop: (state, action: PayloadAction<PcShop>) => {
       state.pcShop = action.payload;
       state.page = initialState.page;
       state.filters = { ...initialState.filters, title: state.filters.title };

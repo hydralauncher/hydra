@@ -67,24 +67,36 @@ export function useCatalogue() {
     setSteamPublishers([]);
     setSteamDevelopers([]);
     setPublishedGenres([]);
-    Promise.all([
-      window.electron.hydraApi.get<string[]>(`/catalogue/${pcShop}/genres`, {
-        needsAuth: false,
-      }),
-      window.electron.hydraApi.get<string[]>(
-        `/catalogue/${pcShop}/developers`,
-        { needsAuth: false }
-      ),
-      window.electron.hydraApi.get<string[]>(
-        `/catalogue/${pcShop}/publishers`,
-        { needsAuth: false }
-      ),
-    ])
-      .then(([genres, developers, publishers]) => {
+    const shops = pcShop === "all" ? (["steam", "epic"] as const) : [pcShop];
+
+    Promise.all(
+      shops.map(async (shop) => {
+        const [genres, developers, publishers] = await Promise.all([
+          window.electron.hydraApi.get<string[]>(`/catalogue/${shop}/genres`, {
+            needsAuth: false,
+          }),
+          window.electron.hydraApi.get<string[]>(
+            `/catalogue/${shop}/developers`,
+            { needsAuth: false }
+          ),
+          window.electron.hydraApi.get<string[]>(
+            `/catalogue/${shop}/publishers`,
+            { needsAuth: false }
+          ),
+        ]);
+
+        return { genres, developers, publishers };
+      })
+    )
+      .then((filtersByShop) => {
         if (!current) return;
-        setSteamPublishers(publishers);
-        setSteamDevelopers(developers);
-        setPublishedGenres(genres);
+        const merge = (key: "genres" | "developers" | "publishers") => [
+          ...new Set(filtersByShop.flatMap((filters) => filters[key])),
+        ];
+
+        setSteamPublishers(merge("publishers"));
+        setSteamDevelopers(merge("developers"));
+        setPublishedGenres(merge("genres"));
       })
       .catch(console.error);
     return () => {

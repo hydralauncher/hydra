@@ -5,6 +5,8 @@ import { DeviceDesktopIcon } from "@primer/octicons-react";
 import { useAppDispatch, useAppSelector } from "@renderer/hooks";
 import { setMode, setPcShop } from "@renderer/features";
 import { ClassicsIcon } from "@renderer/pages/library/category-filter";
+import SteamLogo from "@renderer/assets/steam-logo.svg?react";
+import EpicLogo from "@renderer/assets/epic-games-logo.svg?react";
 
 import "./catalogue-mode-toggle.scss";
 
@@ -49,7 +51,7 @@ export function CatalogueModeToggle() {
           role="tablist"
           aria-label="PC store"
         >
-          {(["steam", "epic"] as const).map((shop) => (
+          {(["all", "steam", "epic"] as const).map((shop) => (
             <button
               key={shop}
               type="button"
@@ -60,7 +62,21 @@ export function CatalogueModeToggle() {
               })}
               onClick={() => dispatch(setPcShop(shop))}
             >
-              {shop === "steam" ? "Steam" : "Epic"}
+              {shop === "steam" && (
+                <SteamLogo
+                  className="catalogue-mode-toggle__store-icon"
+                  aria-hidden="true"
+                />
+              )}
+              {shop === "epic" && (
+                <EpicLogo
+                  className="catalogue-mode-toggle__store-icon"
+                  aria-hidden="true"
+                />
+              )}
+              <span>
+                {shop === "all" ? "All" : shop === "steam" ? "Steam" : "Epic"}
+              </span>
             </button>
           ))}
         </div>
