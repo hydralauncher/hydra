@@ -16,6 +16,11 @@ import { composeAssetsWithArtwork, getSteamContentWarning } from "@shared";
 import { AchievementMemoryStore } from "@main/services/achievements/achievement-memory-store";
 import { getSteamAppDetails, logger } from "@main/services";
 import { persistContentWarning } from "./persist-content-warning";
+import { composeAssetsWithArtwork } from "@shared";
+import {
+  resolveAchievementCount,
+  resolveUnlockedAchievementCount,
+} from "@main/services/achievements/achievement-memory-store";
 
 export const lookupCachedPlatform = async (
   gameKey: string
@@ -230,15 +235,10 @@ const getLibrary = async (): Promise<LibraryGame[]> => {
               gameAssets ?? null,
               artworkSelection
             );
-            const achievements = AchievementMemoryStore.get(
+            const unlockedAchievementCount = resolveUnlockedAchievementCount(
               game.shop,
-              game.objectId
-            );
-
-            const validAchievementNames = new Set(
-              achievements?.achievements?.map((a) =>
-                (a.name ?? "").toUpperCase()
-              ) || []
+              game.objectId,
+              game.unlockedAchievementCount
             );
 
             const unlockedAchievementCount =
@@ -268,6 +268,45 @@ const getLibrary = async (): Promise<LibraryGame[]> => {
               game,
               installerSizeInBytes
             );
+            // Verify installer still exists, clear if deleted externally
+            let installerSizeInBytes = game.installerSizeInBytes;
+            if (installerSizeInBytes && download?.folderName) {
+              const installerPath = path.join(
+                download.downloadPath,
+                download.folderName
+              );
+
+              if (!fs.existsSync(installerPath)) {
+                installerSizeInBytes = null;
+                gamesSublevel.put(key, { ...game, installerSizeInBytes: null });
+              }
+            }
+
+            if (
+              game.shop === "launchbox" &&
+              (!game.platform || game.platform === null)
+            ) {
+              const cachedPlatform = await lookupCachedPlatform(key);
+              if (cachedPlatform) {
+                game.platform = cachedPlatform;
+                gamesSublevel.put(key, game).catch(() => {});
+              }
+            }
+
+            // Verify installed folder still exists, clear if deleted externally
+            let installedSizeInBytes = game.installedSizeInBytes;
+            if (installedSizeInBytes && game.executablePath) {
+              const executableDir = path.dirname(game.executablePath);
+
+              if (!fs.existsSync(executableDir)) {
+                installedSizeInBytes = null;
+                gamesSublevel.put(key, {
+                  ...game,
+                  installerSizeInBytes,
+                  installedSizeInBytes: null,
+                });
+              }
+            }
 
             return {
               id: key,
@@ -276,7 +315,11 @@ const getLibrary = async (): Promise<LibraryGame[]> => {
               installedSizeInBytes,
               download: download ?? null,
               unlockedAchievementCount,
-              achievementCount: game.achievementCount ?? 0,
+              achievementCount: resolveAchievementCount(
+                game.shop,
+                game.objectId,
+                game.achievementCount
+              ),
               // Spread composed assets last to ensure all image URLs are properly set
               ...composedAssets,
               title: composedAssets?.title || game.title,

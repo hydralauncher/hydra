@@ -1,4 +1,6 @@
 import type { Game, GameShop } from "@types";
+import { mergeLocalAndRemotePlayTime } from "../../../shared/playtime.js";
+import { resolveLibraryIsDeleted } from "./resolve-library-source.js";
 
 export interface ImportedProfileGame {
   id: string;
@@ -7,8 +9,11 @@ export interface ImportedProfileGame {
   createdAt?: Date | string | null;
   lastTimePlayed?: Date | string | null;
   playTimeInSeconds?: number | null;
+  playTimeInMilliseconds?: number | null;
   runtime?: number | null;
+  runtimeByPlatform?: { hydra?: number | null; steam?: number | null } | null;
   hasManuallyUpdatedPlaytime?: boolean;
+  hasActiveSteamImport?: boolean;
   isFavorite?: boolean;
   isPinned?: boolean;
   collectionIds?: string[];
@@ -30,14 +35,6 @@ const latestDate = (
   return local;
 };
 
-const remotePlayTimeInMilliseconds = (
-  remoteGame: ImportedProfileGame
-): number => {
-  const seconds = remoteGame.runtime ?? remoteGame.playTimeInSeconds ?? 0;
-  if (!Number.isFinite(seconds) || seconds < 0) return 0;
-  return seconds * 1000;
-};
-
 export const mergeImportedProfileGame = (
   localGame: Game,
   remoteGame: ImportedProfileGame
@@ -50,9 +47,12 @@ export const mergeImportedProfileGame = (
     localGame.lastTimePlayed,
     remoteGame.lastTimePlayed
   ),
-  playTimeInMilliseconds: Math.max(
-    localGame.playTimeInMilliseconds,
-    remotePlayTimeInMilliseconds(remoteGame)
+  ...mergeLocalAndRemotePlayTime(localGame, remoteGame),
+  hasActiveSteamImport: remoteGame.hasActiveSteamImport === true,
+  isDeleted: resolveLibraryIsDeleted(
+    localGame.isDeleted,
+    undefined,
+    remoteGame.hasActiveSteamImport === true
   ),
   hasManuallyUpdatedPlaytime:
     remoteGame.hasManuallyUpdatedPlaytime ??

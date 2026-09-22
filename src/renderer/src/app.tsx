@@ -456,12 +456,38 @@ export function App() {
         dispatch(clearExtraction());
         updateLibrary();
       }),
-      window.electron.onExtractionFailed(() => {
+      window.electron.onExtractionFailed((_shop, _objectId, failure) => {
         dispatch(clearExtraction());
         updateLibrary();
+
+        if (failure?.reason === "unsupported-format") {
+          showErrorToast(
+            t("extraction_unsupported_format_title", { ns: "downloads" }),
+            t("extraction_unsupported_format_description", {
+              ns: "downloads",
+              format: failure.format,
+            })
+          );
+          return;
+        }
+
+        if (failure?.reason === "file-not-found") {
+          showErrorToast(
+            t("extraction_file_not_found_title", { ns: "downloads" }),
+            t("extraction_file_not_found_description", { ns: "downloads" })
+          );
+          return;
+        }
+
         showErrorToast(
           t("extraction_failed_title", { ns: "downloads" }),
           t("extraction_failed_description", { ns: "downloads" })
+        );
+      }),
+      window.electron.onGameExecutableNotFound(() => {
+        showErrorToast(
+          t("executable_not_found_title", { ns: "game_details" }),
+          t("executable_not_found_description", { ns: "game_details" })
         );
       }),
       window.electron.onDownloadHalted((gameTitle) => {

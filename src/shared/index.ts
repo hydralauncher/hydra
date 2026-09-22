@@ -25,6 +25,17 @@ import { AchievementNotificationInfo, GameRepack } from "@types";
 
 export * from "./archive-org";
 export * from "./constants";
+export {
+  shouldAutoStartSteamSync,
+  type SteamAutoStartRunStatus,
+} from "./should-auto-start-steam-sync";
+export * from "./steam-session";
+export * from "./window-layout";
+export {
+  getDisplayedPlayTimeInMilliseconds,
+  getPlayTimeHoursAndMinutes,
+  mergeLocalAndRemotePlayTime,
+} from "./playtime";
 export * from "./cloud-save-access";
 export * from "./controller-support";
 export * from "./artwork-resolver";
@@ -200,6 +211,15 @@ export const getDownloadersForUris = (uris: string[]) => {
 
   return Array.from(downloadersSet);
 };
+
+export const filterDownloadableRepacks = <T extends Pick<GameRepack, "uris">>(
+  repacks: T[]
+) =>
+  repacks.filter(
+    (repack) =>
+      Array.isArray(repack.uris) &&
+      getDownloadersForUris(repack.uris).length > 0
+  );
 
 const AVAILABILITY_CHECK_DOWNLOADERS = new Set<Downloader>([
   Downloader.VikingFile,

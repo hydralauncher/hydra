@@ -124,6 +124,7 @@ import {
   normalizeSouvenirReportValues,
   shouldShowSouvenirContentWarning,
   useSouvenirContentWarning,
+  getDisplayedPlayTimeInMilliseconds,
 } from "@shared";
 
 const SOUVENIR_REPORT_RESPONSE_STATUSES = [201, 400, 404, 429];
@@ -455,7 +456,13 @@ function getLibraryCarouselPlaytimeInMilliseconds(
     "playTimeInMilliseconds" in game &&
     typeof game.playTimeInMilliseconds === "number"
   ) {
-    return game.playTimeInMilliseconds;
+    return getDisplayedPlayTimeInMilliseconds({
+      playTimeInMilliseconds: game.playTimeInMilliseconds,
+      steamPlayTimeInMilliseconds:
+        "steamPlayTimeInMilliseconds" in game
+          ? game.steamPlayTimeInMilliseconds
+          : undefined,
+    });
   }
 
   if (
@@ -1689,10 +1696,11 @@ function getLocalFavoriteGame(library: LibraryGame[], isOwnProfile: boolean) {
 
   return (
     [...library]
-      .filter((game) => (game.playTimeInMilliseconds ?? 0) > 0)
+      .filter((game) => getDisplayedPlayTimeInMilliseconds(game) > 0)
       .sort(
         (a, b) =>
-          (b.playTimeInMilliseconds ?? 0) - (a.playTimeInMilliseconds ?? 0)
+          getDisplayedPlayTimeInMilliseconds(b) -
+          getDisplayedPlayTimeInMilliseconds(a)
       )[0] ?? null
   );
 }

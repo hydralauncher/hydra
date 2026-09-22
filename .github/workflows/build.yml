@@ -32,19 +32,51 @@ jobs:
       - name: Install Rust
         uses: dtolnay/rust-toolchain@stable
 
+      - name: Prepare native caches
+        id: native-cache
+        shell: pwsh
+        run: |
+          $cacheDir = Join-Path $env:RUNNER_TEMP "hydra-vcpkg-archives"
+          New-Item -ItemType Directory -Force -Path $cacheDir | Out-Null
+          "VCPKG_DEFAULT_BINARY_CACHE=$cacheDir" >> $env:GITHUB_ENV
+          $arch = $env:RUNNER_ARCH.ToLowerInvariant()
+          $platform = if ($env:RUNNER_OS -eq "Windows") { "windows-static" } else { "linux" }
+          $image = "$env:ImageOS-$env:ImageVersion"
+          "image=$image" >> $env:GITHUB_OUTPUT
+          "prefix=v1-vcpkg-$env:RUNNER_OS-$image-$arch-$arch-$platform" >> $env:GITHUB_OUTPUT
+
+      - name: Cache Rust dependencies
+        uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2.9.2
+        with:
+          workspaces: native/hydra-native -> target
+          shared-key: native-${{ runner.os }}-${{ runner.arch }}-${{ steps.native-cache.outputs.image }}
+          cache-bin: false
+
+      # vcpkg checks each package ABI, including the compiler and build flags.
+      # Keep fallback restores within the same runner image and target triplet.
+      - name: Restore vcpkg binary packages
+        id: vcpkg-cache
+        uses: actions/cache/restore@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
+        with:
+          path: ${{ env.VCPKG_DEFAULT_BINARY_CACHE }}
+          key: ${{ steps.native-cache.outputs.prefix }}-${{ hashFiles('native/torrent-bridge/**/vcpkg*.json', 'native/torrent-bridge/**/triplets/**') }}
+          restore-keys: |
+            ${{ steps.native-cache.outputs.prefix }}-
+
+      - name: Install Linux native build prerequisites
+        if: runner.os == 'Linux'
+        run: sudo apt-get update && sudo apt-get install -y build-essential cmake ninja-build pkg-config curl zip unzip tar autoconf automake libtool
+
       - name: Install dependencies
         run: yarn --frozen-lockfile
 
-      - name: Install Python
-        uses: actions/setup-python@v5
+      # Save before packaging so later failures do not discard compiled dependencies.
+      - name: Save vcpkg binary packages
+        if: steps.vcpkg-cache.outputs.cache-hit != 'true'
+        uses: actions/cache/save@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
         with:
-          python-version: 3.9
-
-      - name: Install Python dependencies
-        run: pip install -r requirements.txt
-
-      - name: Build Python RPC with cx_Freeze
-        run: python python_rpc/setup.py build
+          path: ${{ env.VCPKG_DEFAULT_BINARY_CACHE }}
+          key: ${{ steps.vcpkg-cache.outputs.cache-primary-key }}
 
       - name: Build Linux
         if: matrix.os == 'ubuntu-latest'
@@ -131,19 +163,51 @@ jobs:
       - name: Install Rust
         uses: dtolnay/rust-toolchain@stable
 
+      - name: Prepare native caches
+        id: native-cache
+        shell: pwsh
+        run: |
+          $cacheDir = Join-Path $env:RUNNER_TEMP "hydra-vcpkg-archives"
+          New-Item -ItemType Directory -Force -Path $cacheDir | Out-Null
+          "VCPKG_DEFAULT_BINARY_CACHE=$cacheDir" >> $env:GITHUB_ENV
+          $arch = $env:RUNNER_ARCH.ToLowerInvariant()
+          $platform = if ($env:RUNNER_OS -eq "Windows") { "windows-static" } else { "linux" }
+          $image = "$env:ImageOS-$env:ImageVersion"
+          "image=$image" >> $env:GITHUB_OUTPUT
+          "prefix=v1-vcpkg-$env:RUNNER_OS-$image-$arch-$arch-$platform" >> $env:GITHUB_OUTPUT
+
+      - name: Cache Rust dependencies
+        uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2.9.2
+        with:
+          workspaces: native/hydra-native -> target
+          shared-key: native-${{ runner.os }}-${{ runner.arch }}-${{ steps.native-cache.outputs.image }}
+          cache-bin: false
+
+      # vcpkg checks each package ABI, including the compiler and build flags.
+      # Keep fallback restores within the same runner image and target triplet.
+      - name: Restore vcpkg binary packages
+        id: vcpkg-cache
+        uses: actions/cache/restore@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
+        with:
+          path: ${{ env.VCPKG_DEFAULT_BINARY_CACHE }}
+          key: ${{ steps.native-cache.outputs.prefix }}-${{ hashFiles('native/torrent-bridge/**/vcpkg*.json', 'native/torrent-bridge/**/triplets/**') }}
+          restore-keys: |
+            ${{ steps.native-cache.outputs.prefix }}-
+
+      - name: Install Linux native build prerequisites
+        if: runner.os == 'Linux'
+        run: sudo apt-get update && sudo apt-get install -y build-essential cmake ninja-build pkg-config curl zip unzip tar autoconf automake libtool
+
       - name: Install dependencies
         run: yarn --frozen-lockfile
 
-      - name: Install Python
-        uses: actions/setup-python@v5
+      # Save before packaging so later failures do not discard compiled dependencies.
+      - name: Save vcpkg binary packages
+        if: steps.vcpkg-cache.outputs.cache-hit != 'true'
+        uses: actions/cache/save@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
         with:
-          python-version: 3.9
-
-      - name: Install Python dependencies
-        run: pip install -r requirements.txt
-
-      - name: Build Python RPC with cx_Freeze
-        run: python python_rpc/setup.py build
+          path: ${{ env.VCPKG_DEFAULT_BINARY_CACHE }}
+          key: ${{ steps.vcpkg-cache.outputs.cache-primary-key }}
 
       - name: Build Linux
         if: matrix.os == 'ubuntu-latest'

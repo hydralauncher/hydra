@@ -1,5 +1,6 @@
 import { registerEvent } from "../register-event";
 import { GameShop } from "@types";
+import fs from "node:fs";
 import path from "node:path";
 import { DownloadManager, GameFilesManager, logger } from "@main/services";
 import { downloadsSublevel, gamesSublevel, levelKeys } from "@main/level";
@@ -36,9 +37,7 @@ const extractGameDownload = async (
   const targetFolderName = download.folderName;
 
   if (!targetFolderName) {
-    await gameFilesManager.failExtraction(
-      new Error("No downloaded archive was found to extract")
-    );
+    await gameFilesManager.failMissingExtractionSource();
     return false;
   }
 
@@ -55,10 +54,21 @@ const extractGameDownload = async (
       });
     }
 
+    const targetPath = path.join(download.downloadPath, targetFolderName);
+
+    if (fs.existsSync(targetPath) && fs.statSync(targetPath).isFile()) {
+      return gameFilesManager
+        .handleUnsupportedExtraction(targetPath, { notify: true })
+        .catch((error) => {
+          logger.error(
+            "[extractGameDownload] Failed to handle unsupported extraction format",
+            error
+          );
+        });
+    }
+
     return gameFilesManager
-      .extractFilesInDirectory(
-        path.join(download.downloadPath, targetFolderName)
-      )
+      .extractFilesInDirectory(targetPath)
       .then((success) => {
         if (success) {
           return gameFilesManager.setExtractionComplete(false).catch(() => {

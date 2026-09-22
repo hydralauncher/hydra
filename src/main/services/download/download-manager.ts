@@ -19,13 +19,14 @@ import {
   VikingFileApi,
   RootzApi,
 } from "../hosters";
-import { PythonRPC } from "../python-rpc";
+import { TorrentService } from "../torrent-service";
 import {
   LibtorrentPayload,
   LibtorrentStatus,
   PauseDownloadPayload,
 } from "./types";
 import { calculateETA, getDirSize } from "./helpers";
+import { extractDownloadFilename } from "./download-filename";
 import { RealDebridClient } from "./real-debrid";
 import path from "node:path";
 import fs from "node:fs";
@@ -153,34 +154,7 @@ export class DownloadManager {
     url: string,
     originalUrl?: string
   ): string | undefined {
-    if (originalUrl?.includes("#")) {
-      const hashPart = originalUrl.split("#")[1];
-      if (hashPart && !hashPart.startsWith("http") && hashPart.includes(".")) {
-        return hashPart;
-      }
-    }
-
-    if (url.includes("#")) {
-      const hashPart = url.split("#")[1];
-      if (hashPart && !hashPart.startsWith("http") && hashPart.includes(".")) {
-        return hashPart;
-      }
-    }
-
-    try {
-      const urlObj = new URL(url);
-      const pathname = urlObj.pathname;
-      const pathParts = pathname.split("/");
-      const filename = pathParts.at(-1);
-
-      if (filename?.includes(".") && filename.length > 0) {
-        return decodeURIComponent(filename);
-      }
-    } catch {
-      // Invalid URL
-    }
-
-    return undefined;
+    return extractDownloadFilename(url, originalUrl);
   }
 
   private static sanitizeFilename(filename: string): string {
@@ -333,17 +307,15 @@ export class DownloadManager {
     this.maxDownloadSpeedBytesPerSecond = normalizedLimit;
     this.jsDownloader?.setMaxDownloadSpeedBytesPerSecond(normalizedLimit);
 
-    await PythonRPC.rpc
-      .call("action", {
-        action: "set_download_limit",
-        max_download_speed_bytes_per_second: normalizedLimit,
-      })
-      .catch((error) => {
-        logger.error(
-          "[DownloadManager] Failed to update RPC download speed limit:",
-          error
-        );
-      });
+    await TorrentService.call("action", {
+      action: "set_download_limit",
+      max_download_speed_bytes_per_second: normalizedLimit,
+    }).catch((error) => {
+      logger.error(
+        "[DownloadManager] Failed to update torrent download speed limit:",
+        error
+      );
+    });
   }
 
   private static async getPersistedNetworkInterface() {
@@ -379,24 +351,22 @@ export class DownloadManager {
     const networkInterface =
       value ?? (await this.getPersistedNetworkInterface());
 
-    await PythonRPC.rpc
-      .call("action", {
-        action: "set_network_interface",
-        interface: this.resolveNetworkInterfaceBinding(networkInterface),
-      })
-      .catch((error) => {
-        logger.error(
-          "[DownloadManager] Failed to update RPC network interface:",
-          error
-        );
-      });
+    await TorrentService.call("action", {
+      action: "set_network_interface",
+      interface: this.resolveNetworkInterfaceBinding(networkInterface),
+    }).catch((error) => {
+      logger.error(
+        "[DownloadManager] Failed to update torrent network interface:",
+        error
+      );
+    });
   }
 
-  public static async startRPC(
+  public static async initializeTorrentService(
     download?: Download,
     downloadsToSeed?: Download[]
   ) {
-    await PythonRPC.spawn();
+    await TorrentService.initialize();
 
     await this.applyNetworkInterface();
 
@@ -558,9 +528,9 @@ export class DownloadManager {
     let response: { data: LibtorrentPayload | null };
 
     try {
-      response = await PythonRPC.rpc.call<LibtorrentPayload | null>("status");
+      response = await TorrentService.call<LibtorrentPayload | null>("status");
     } catch (error) {
-      logger.error("[DownloadManager] RPC status poll failed", error);
+      logger.error("[DownloadManager] Torrent status poll failed", error);
       return null;
     }
 
@@ -910,7 +880,7 @@ export class DownloadManager {
 
     if (!extractionPath || !fs.existsSync(extractionPath)) {
       await gameFilesManager
-        .failExtraction(new Error("No downloaded archive was found to extract"))
+        .failMissingExtractionSource(extractionPath ?? undefined)
         .catch((error) => {
           logger.error(
             "[DownloadManager] Failed to persist extraction failure state",
@@ -959,6 +929,15 @@ export class DownloadManager {
               failError
             );
           });
+        });
+    } else if (extractionStats.isFile()) {
+      await gameFilesManager
+        .handleUnsupportedExtraction(extractionPath, { notify: false })
+        .catch((error) => {
+          logger.error(
+            "[DownloadManager] Failed to handle unsupported extraction format",
+            error
+          );
         });
     } else {
       await gameFilesManager
@@ -1105,11 +1084,11 @@ export class DownloadManager {
     let seedStatus: LibtorrentPayload[] = [];
 
     try {
-      seedStatus = await PythonRPC.rpc
-        .call<LibtorrentPayload[] | []>("seed_status")
-        .then((res) => res.data);
+      seedStatus = await TorrentService.call<LibtorrentPayload[] | []>(
+        "seed_status"
+      ).then((res) => res.data);
     } catch (error) {
-      logger.error("[DownloadManager] RPC seed status poll failed", error);
+      logger.error("[DownloadManager] Torrent seed status poll failed", error);
       WindowManager.sendToAppWindows("on-seeding-status", []);
       return;
     }
@@ -1157,12 +1136,10 @@ export class DownloadManager {
       logger.log("[DownloadManager] Pausing JS download");
       this.jsDownloader.pauseDownload();
     } else if (downloadKey) {
-      await PythonRPC.rpc
-        .call("action", {
-          action: "pause",
-          game_id: downloadKey,
-        } as PauseDownloadPayload)
-        .catch(() => {});
+      await TorrentService.call("action", {
+        action: "pause",
+        game_id: downloadKey,
+      } as PauseDownloadPayload).catch(() => {});
     }
 
     if (downloadKey === this.downloadingGameId) {
@@ -1190,9 +1167,10 @@ export class DownloadManager {
         this.usingJsDownloader = false;
         this.allDebridBatch = null;
       } else {
-        await PythonRPC.rpc
-          .call("action", { action: "cancel", game_id: downloadKey })
-          .catch((err) => logger.error("Failed to cancel game download", err));
+        await TorrentService.call("action", {
+          action: "cancel",
+          game_id: downloadKey,
+        }).catch((err) => logger.error("Failed to cancel game download", err));
       }
 
       WindowManager.mainWindow?.setProgressBar(-1);
@@ -1202,14 +1180,15 @@ export class DownloadManager {
       this.usingJsDownloader = false;
       this.allDebridBatch = null;
     } else if (downloadKey) {
-      await PythonRPC.rpc
-        .call("action", { action: "cancel", game_id: downloadKey })
-        .catch((err) => logger.error("Failed to cancel game download", err));
+      await TorrentService.call("action", {
+        action: "cancel",
+        game_id: downloadKey,
+      }).catch((err) => logger.error("Failed to cancel game download", err));
     }
   }
 
   static async resumeSeeding(download: Download) {
-    await PythonRPC.rpc.call("action", {
+    await TorrentService.call("action", {
       action: "resume_seeding",
       game_id: levelKeys.game(download.shop, download.objectId),
       url: download.uri,
@@ -1219,7 +1198,7 @@ export class DownloadManager {
   }
 
   static async pauseSeeding(downloadKey: string) {
-    await PythonRPC.rpc.call("action", {
+    await TorrentService.call("action", {
       action: "pause_seeding",
       game_id: downloadKey,
     });
@@ -1930,9 +1909,7 @@ export class DownloadManager {
         contentType.includes("text/html") ||
         contentType.includes("application/xhtml")
       ) {
-        throw new Error(
-          "The download link returned a web page instead of a file. It may have expired or be invalid."
-        );
+        throw new Error(DownloadError.DownloadLinkReturnedWebPage);
       }
 
       return "done";
@@ -2086,7 +2063,7 @@ export class DownloadManager {
         throw err;
       }
     } else {
-      logger.log("[DownloadManager] Using Python RPC downloader");
+      logger.log("[DownloadManager] Using native libtorrent downloader");
       const payload = await this.getDownloadPayload(download);
       const isSelectiveTorrentStart =
         download.downloader === Downloader.Torrent &&
@@ -2108,7 +2085,7 @@ export class DownloadManager {
       }
 
       try {
-        await PythonRPC.rpc.call("action", payload, {
+        await TorrentService.call("action", payload, {
           timeout: isSelectiveTorrentStart ? 60_000 : 10_000,
         });
 
@@ -2120,14 +2097,15 @@ export class DownloadManager {
           const wasReplacedBySameGame = this.downloadingGameId === downloadId;
 
           if (!wasReplacedBySameGame) {
-            await PythonRPC.rpc
-              .call("action", { action: "cancel", game_id: downloadId })
-              .catch((error) => {
-                logger.error(
-                  "[DownloadManager] Failed to cancel stale torrent download",
-                  error
-                );
-              });
+            await TorrentService.call("action", {
+              action: "cancel",
+              game_id: downloadId,
+            }).catch((error) => {
+              logger.error(
+                "[DownloadManager] Failed to cancel stale torrent download",
+                error
+              );
+            });
           }
 
           return;
