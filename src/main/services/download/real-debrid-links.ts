@@ -89,3 +89,17 @@ export function canUseRealDebridArchiveLink(
       file.path.split(/[\\/]/).at(-1)?.toLowerCase() === normalizedFilename
   );
 }
+
+export function hasRealDebridSelection(
+  info: RealDebridTorrentInfo,
+  selectedIndices?: number[]
+): boolean {
+  if (!selectedIndices) return true;
+
+  const selected = info.files.filter((file) => file.selected);
+  const requested = new Set(selectedIndices);
+  return (
+    requested.size === selected.length &&
+    selected.every((file) => requested.has(file.id))
+  );
+}

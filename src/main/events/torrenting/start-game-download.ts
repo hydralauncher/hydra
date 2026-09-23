@@ -8,7 +8,7 @@ import {
 } from "@main/services";
 import { createGame } from "@main/services/library-sync";
 import { downloadsSublevel, gamesSublevel, levelKeys } from "@main/level";
-import { parseBytes } from "@shared";
+import { Downloader, parseBytes } from "@shared";
 import {
   getGlobalTrackers,
   handleDownloadError,
@@ -37,6 +37,8 @@ const startGameDownload = async (
 
   const parsedFileSize = parseBytes(fileSize ?? null);
   const gameKey = levelKeys.game(shop, objectId);
+  const prepareRealDebridInBackground =
+    downloader === Downloader.RealDebrid && uri.startsWith("magnet:");
 
   logger.log(
     `[Downloads] Start requested for ${gameKey} (downloader=${downloader})`
@@ -69,11 +71,13 @@ const startGameDownload = async (
       fileSize: selectedFilesSize ?? parsedFileSize,
       customTrackers: globalTrackers,
     };
-    try {
-      await DownloadManager.validateDownloadUrl(download);
-    } catch (error) {
-      if (!isDebridPendingError(error, downloader)) throw error;
-      download.awaitingDebrid = true;
+    if (!prepareRealDebridInBackground) {
+      try {
+        await DownloadManager.validateDownloadUrl(download);
+      } catch (error) {
+        if (!isDebridPendingError(error, downloader)) throw error;
+        download.awaitingDebrid = true;
+      }
     }
     await prepareGameEntry({ gameKey, title, objectId, shop });
     await DownloadManager.cancelDownload(gameKey).catch(() => null);
@@ -81,6 +85,8 @@ const startGameDownload = async (
     didWriteDownload = true;
     if (download.awaitingDebrid) {
       await DownloadOrchestrator.saveAwaitingDebridDownload(download);
+    } else if (prepareRealDebridInBackground) {
+      DownloadOrchestrator.startPreparedDownloadInBackground(download);
     } else {
       await DownloadOrchestrator.startPreparedDownload(download);
     }

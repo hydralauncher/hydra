@@ -1127,7 +1127,8 @@ export function DownloadSettingsModal({
       selectedDownloader !== Downloader.Torrent &&
       response &&
       (response.archiveOnly ||
-        (response.files.length === 1 && /\.zip$/i.test(response.files[0].path)))
+        (response.files.length === 1 &&
+          /\.(zip|rar|7z)$/i.test(response.files[0].path)))
     ) {
       setSingleArchiveSelectionKey(selectedTorrentKey);
       setShowTorrentStepModal(false);

@@ -64,6 +64,7 @@ export interface ParallelRangeDownloadOptions {
   startByte: number;
   total: number;
   rangeSize?: number;
+  connectionCount?: number;
   maxRanges?: number;
   signal: AbortSignal;
   abort: () => void;
@@ -80,6 +81,7 @@ export async function downloadParallelRanges({
   startByte,
   total,
   rangeSize = PARALLEL_RANGE_SIZE,
+  connectionCount = PARALLEL_RANGE_COUNT,
   maxRanges = Infinity,
   signal,
   abort,
@@ -215,7 +217,7 @@ export async function downloadParallelRanges({
       const ranges: { start: number; end: number; tempFile: string }[] = [];
       for (
         let index = 0;
-        index < PARALLEL_RANGE_COUNT &&
+        index < connectionCount &&
         nextByte < total &&
         completedRanges + ranges.length < maxRanges;
         index++

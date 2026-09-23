@@ -49,6 +49,7 @@ export interface JsHttpDownloaderOptions {
   headers?: Record<string, string>;
   allowParallelRanges?: boolean;
   parallelRangeSize?: number;
+  parallelRangeConnections?: number;
   maxParallelRanges?: number;
   preserveFilename?: boolean;
   allowResume?: boolean;
@@ -608,6 +609,7 @@ export class JsHttpDownloader {
             startByte,
             total,
             rangeSize,
+            connectionCount: this.currentOptions?.parallelRangeConnections,
             maxRanges: this.currentOptions?.maxParallelRanges,
             signal,
             abort: () => this.abortController?.abort(),

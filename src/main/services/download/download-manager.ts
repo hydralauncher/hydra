@@ -68,6 +68,7 @@ interface JsDownloadOptions {
   filename?: string;
   headers?: Record<string, string>;
   allowParallelRanges?: boolean;
+  parallelRangeConnections?: number;
   totalSize?: number;
 }
 
@@ -86,6 +87,7 @@ interface JsBatchEntry {
   isZip?: boolean;
   fileIndex?: number;
   sourcePath?: string;
+  chunks?: number;
 }
 
 interface JsBatchState {
@@ -106,6 +108,12 @@ interface JsBatchState {
 }
 
 const TORBOX_MAX_PARALLEL_RANGES = 256;
+const REAL_DEBRID_MAX_CONNECTIONS = 8;
+
+function realDebridConnections(chunks: number | undefined): number {
+  if (!Number.isInteger(chunks) || !chunks || chunks < 1) return 4;
+  return Math.min(chunks, REAL_DEBRID_MAX_CONNECTIONS);
+}
 
 export class DownloadManager {
   private static downloadingGameId: string | null = null;
@@ -1316,11 +1324,13 @@ export class DownloadManager {
           entry.isLocked &&
           resolvedUrl
         ) {
-          resolvedUrl = await RealDebridClient.unlockFile(
+          const unlocked = await RealDebridClient.unlockFileWithDetails(
             resolvedUrl,
             entry.sourcePath ?? entry.filename,
             entry.size ?? 0
           );
+          resolvedUrl = unlocked.url;
+          entry.chunks = unlocked.chunks;
         } else if (
           batch.provider === "allDebrid" &&
           entry.isLocked &&
@@ -1362,6 +1372,10 @@ export class DownloadManager {
                 TORBOX_MAX_PARALLEL_RANGES
               )
             : undefined,
+          parallelRangeConnections:
+            batch.provider === "realDebrid"
+              ? realDebridConnections(entry.chunks)
+              : undefined,
           maxParallelRanges: torBoxParallel
             ? TORBOX_MAX_PARALLEL_RANGES
             : undefined,
@@ -1597,10 +1611,13 @@ export class DownloadManager {
     download: Download,
     resumingFilename?: string
   ) {
-    const entries = await RealDebridClient.getDownloadEntries(
+    const resolved = await RealDebridClient.getDownloadEntriesWithTorrent(
       download.uri,
-      download.fileIndices
+      download.fileIndices,
+      download.realDebridTorrentId
     );
+    if (resolved.torrentId) download.realDebridTorrentId = resolved.torrentId;
+    const entries = resolved.entries;
     const first = entries?.[0];
     const downloadUrl = first
       ? first.isLocked
@@ -1620,6 +1637,7 @@ export class DownloadManager {
         filename
       ),
       allowParallelRanges: !isZipDownloadUrl(downloadUrl, first?.path),
+      parallelRangeConnections: realDebridConnections(first?.chunks),
       totalSize: entries?.reduce((sum, entry) => sum + entry.size, 0),
     };
   }
@@ -2239,13 +2257,25 @@ export class DownloadManager {
               download.downloader === Downloader.RealDebrid
                 ? "realDebrid"
                 : "premiumize";
-            const entries =
-              provider === "realDebrid"
-                ? await RealDebridClient.getDownloadEntries(
-                    download.uri,
-                    download.fileIndices
-                  )
-                : premiumizeEntries;
+            let entries = premiumizeEntries;
+            if (provider === "realDebrid") {
+              const resolved =
+                await RealDebridClient.getDownloadEntriesWithTorrent(
+                  download.uri,
+                  download.fileIndices,
+                  download.realDebridTorrentId
+                );
+              if (
+                resolved.torrentId &&
+                resolved.torrentId !== download.realDebridTorrentId &&
+                this.downloadingGameId === downloadId &&
+                this.startGeneration === myGeneration
+              ) {
+                download.realDebridTorrentId = resolved.torrentId;
+                await downloadsSublevel.put(downloadId, download);
+              }
+              entries = resolved.entries;
+            }
             if (!entries?.length) {
               throw new Error(
                 provider === "realDebrid"
@@ -2264,6 +2294,10 @@ export class DownloadManager {
                 isLocked: "isLocked" in entry && entry.isLocked === true,
                 fileIndex: entry.index,
                 sourcePath: entry.path,
+                chunks:
+                  "chunks" in entry && typeof entry.chunks === "number"
+                    ? entry.chunks
+                    : undefined,
               })),
               sourceUri: download.uri,
               currentIndex: 0,

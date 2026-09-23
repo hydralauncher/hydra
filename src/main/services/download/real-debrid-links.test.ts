@@ -4,6 +4,7 @@ import { DownloadError } from "../../../shared/constants.ts";
 import type { RealDebridTorrentInfo } from "../../../types/download.types";
 import {
   canUseRealDebridArchiveLink,
+  hasRealDebridSelection,
   isRealDebridArchiveCandidate,
   waitForRealDebridLinks,
 } from "./real-debrid-links.ts";
@@ -90,5 +91,13 @@ describe("Real-Debrid link readiness", () => {
       canUseRealDebridArchiveLink(info, "bundle.zip", undefined, now - 61_000),
       false
     );
+  });
+
+  it("requires a new torrent when the requested files differ", () => {
+    const info = infoWithLinks(["archive-link"]);
+    assert.equal(hasRealDebridSelection(info, [1, 2]), true);
+    assert.equal(hasRealDebridSelection(info, [1]), false);
+    assert.equal(hasRealDebridSelection(info, [1, 3]), false);
+    assert.equal(hasRealDebridSelection(info), true);
   });
 });

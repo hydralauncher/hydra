@@ -3,6 +3,7 @@ import { DownloadManager } from "./download/download-manager";
 import { isDebridPendingError } from "./download/debrid-pending";
 import { WindowManager } from "./window-manager";
 import { logger } from "./logger";
+import { Downloader } from "@shared";
 import {
   DEFAULT_DOWNLOAD_LAYOUT_STATE,
   getBigPictureDownloadView,
@@ -71,6 +72,14 @@ const NO_INTERNET_GRACE_MS = 15000;
 const RECONNECT_DEBOUNCE_MS = 2000;
 
 export class DownloadOrchestrator {
+  private static readonly backgroundStartVersions = new Map<string, number>();
+
+  private static invalidateBackgroundStart(downloadKey: string) {
+    this.backgroundStartVersions.set(
+      downloadKey,
+      (this.backgroundStartVersions.get(downloadKey) ?? 0) + 1
+    );
+  }
   private static isOnline = true;
   private static reconnectGraceTimer: NodeJS.Timeout | null = null;
   private static lastReconnectAt = 0;
@@ -160,6 +169,12 @@ export class DownloadOrchestrator {
 
   private static async isAwaitingDebridReady(download: Download) {
     if (!download.awaitingDebrid) return true;
+    if (
+      download.downloader === Downloader.RealDebrid &&
+      download.uri.startsWith("magnet:")
+    ) {
+      return true;
+    }
 
     try {
       await DownloadManager.validateDownloadUrl(download);
@@ -178,7 +193,11 @@ export class DownloadOrchestrator {
     }
   }
 
-  private static async activateDownload(download: Download) {
+  private static async activateDownload(
+    download: Download,
+    isCurrent: () => boolean = () => true
+  ) {
+    if (!isCurrent()) return null;
     const activeDownload: Download = {
       ...download,
       awaitingDebrid: false,
@@ -191,16 +210,19 @@ export class DownloadOrchestrator {
     };
 
     await downloadsSublevel.put(getGameKey(download), activeDownload);
+    if (!isCurrent()) return null;
 
     try {
       await DownloadManager.resumeDownload(activeDownload);
     } catch (error) {
       if (isDebridPendingError(error, download.downloader)) {
-        await this.saveAwaitingDebridDownload(download);
+        if (!isCurrent()) return null;
+        await this.saveAwaitingDebridDownload(activeDownload);
         return null;
       }
 
       const downloadId = getDownloadId(download);
+      if (!isCurrent()) return null;
       await downloadsSublevel.put(getGameKey(download), {
         ...activeDownload,
         status: "error",
@@ -436,8 +458,12 @@ export class DownloadOrchestrator {
     return syncDownloadLayoutState(downloads);
   }
 
-  static async startPreparedDownload(download: Download) {
+  static async startPreparedDownload(
+    download: Download,
+    isCurrent: () => boolean = () => true
+  ) {
     const { downloads } = await this.getDownloadsWithLayout();
+    if (!isCurrent()) return { ok: true };
     const currentActiveDownload =
       downloads.find(
         (entry) =>
@@ -451,13 +477,24 @@ export class DownloadOrchestrator {
       return { ok: true };
     }
 
-    const activated = await this.activateDownload(download);
+    const activated = await this.activateDownload(download, isCurrent);
     if (!activated) return { ok: true };
+    if (!isCurrent()) return { ok: true };
     const nextDownloads = await this.getAllDownloads();
     await removeDownloadFromLayoutState(download, nextDownloads);
     WindowManager.sendDownloadsUpdated();
 
     return { ok: true };
+  }
+
+  static startPreparedDownloadInBackground(download: Download) {
+    const key = getGameKey(download);
+    this.invalidateBackgroundStart(key);
+    const version = this.backgroundStartVersions.get(key);
+    const isCurrent = () => this.backgroundStartVersions.get(key) === version;
+    void this.startPreparedDownload(download, isCurrent).catch((error) => {
+      logger.error("Failed to prepare queued download", error);
+    });
   }
 
   static async enqueuePreparedDownload(download: Download) {
@@ -489,6 +526,7 @@ export class DownloadOrchestrator {
     objectId: string,
     strategy: ResumeDownloadStrategy = "interruptActive"
   ) {
+    this.invalidateBackgroundStart(levelKeys.game(shop, objectId));
     const download = await this.getDownload(shop, objectId);
 
     if (
@@ -536,6 +574,7 @@ export class DownloadOrchestrator {
   }
 
   static async pauseDownloadById(shop: GameShop, objectId: string) {
+    this.invalidateBackgroundStart(levelKeys.game(shop, objectId));
     const download = await this.getDownload(shop, objectId);
     if (!download) return false;
 
@@ -548,6 +587,7 @@ export class DownloadOrchestrator {
   }
 
   static async cancelDownloadById(shop: GameShop, objectId: string) {
+    this.invalidateBackgroundStart(levelKeys.game(shop, objectId));
     const download = await this.getDownload(shop, objectId);
     if (!download) return false;
 

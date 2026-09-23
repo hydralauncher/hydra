@@ -8,7 +8,7 @@ import {
 } from "@main/services";
 import { createGame } from "@main/services/library-sync";
 import { downloadsSublevel, gamesSublevel, levelKeys } from "@main/level";
-import { parseBytes } from "@shared";
+import { Downloader, parseBytes } from "@shared";
 import {
   getGlobalTrackers,
   handleDownloadError,
@@ -66,11 +66,13 @@ const addGameToQueue = async (
       customTrackers: globalTrackers,
     };
 
-    try {
-      await DownloadManager.validateDownloadUrl(download);
-    } catch (error) {
-      if (!isDebridPendingError(error, downloader)) throw error;
-      download.awaitingDebrid = true;
+    if (downloader !== Downloader.RealDebrid || !uri.startsWith("magnet:")) {
+      try {
+        await DownloadManager.validateDownloadUrl(download);
+      } catch (error) {
+        if (!isDebridPendingError(error, downloader)) throw error;
+        download.awaitingDebrid = true;
+      }
     }
     await prepareGameEntry({ gameKey, title, objectId, shop });
     await DownloadManager.cancelDownload(gameKey).catch(() => null);

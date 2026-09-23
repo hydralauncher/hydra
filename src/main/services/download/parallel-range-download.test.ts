@@ -104,7 +104,8 @@ async function runDownload(
   onReadPending: (offset: number, pending: boolean) => void = () => undefined,
   rangeSize = PARALLEL_RANGE_SIZE,
   maxRanges?: number,
-  abortAfterBytes?: number
+  abortAfterBytes?: number,
+  connectionCount?: number
 ) {
   const directory = await fs.promises.mkdtemp(
     path.join(os.tmpdir(), "hydra-range-test-")
@@ -128,6 +129,7 @@ async function runDownload(
     startByte,
     total,
     rangeSize,
+    connectionCount,
     maxRanges,
     signal: controller.signal,
     abort: () => controller.abort(),
@@ -158,6 +160,22 @@ describe("parallel HTTP byte ranges", () => {
     assert.deepEqual(await fs.promises.readFile(filePath), contents);
     assert.equal(getCountedBytes(), total);
     assert.ok(server.getPeakActive() >= 2);
+  });
+
+  it("uses the requested connection count", async () => {
+    const server = await startServer();
+    const { download, filePath } = await runDownload(
+      server.url,
+      0,
+      () => undefined,
+      PARALLEL_RANGE_SIZE,
+      undefined,
+      undefined,
+      2
+    );
+    await download;
+    assert.deepEqual(await fs.promises.readFile(filePath), contents);
+    assert.equal(server.getPeakActive(), 2);
   });
 
   it("appends to a previously downloaded prefix", async () => {
