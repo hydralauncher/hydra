@@ -12,11 +12,12 @@ const torrent = (
     name: string;
     size?: number;
     zipped?: boolean;
-  }>
+  }>,
+  name = "Game"
 ): TorBoxTorrentInfo =>
   ({
     id: 42,
-    name: "Game",
+    name,
     files: files.map((file) => ({
       id: file.id,
       name: file.name,
@@ -51,6 +52,39 @@ describe("TorBox file manifest", () => {
     assert.equal(manifest.files[0].path, "Game/Game");
   });
 
+  it("uses a shared file folder instead of adding a release-name wrapper", () => {
+    const manifest = buildTorBoxDownloadManifest(
+      torrent(
+        [
+          { id: 1, name: "Release Files/setup.exe" },
+          { id: 2, name: "Release Files/data.bin" },
+        ],
+        "Long Release &amp; Extras Title"
+      )
+    );
+
+    assert.equal(manifest.name, "Release Files");
+    assert.deepEqual(
+      manifest.files.map((file) => file.path),
+      ["Release Files/setup.exe", "Release Files/data.bin"]
+    );
+  });
+
+  it("decodes HTML entities in a release folder when files are at its root", () => {
+    const manifest = buildTorBoxDownloadManifest(
+      torrent(
+        [
+          { id: 1, name: "data.bin" },
+          { id: 2, name: "Bonus/setup.exe" },
+        ],
+        "Release &amp; Extras"
+      )
+    );
+
+    assert.equal(manifest.name, "Release & Extras");
+    assert.equal(manifest.files[0].path, "Release & Extras/data.bin");
+  });
+
   it("rejects missing selections and unsafe or colliding paths", () => {
     const manifest = buildTorBoxDownloadManifest(
       torrent([{ id: 1, name: "Game/one.bin" }])
@@ -70,11 +104,15 @@ describe("TorBox file manifest", () => {
     );
   });
 
-  it("rejects torrents whose original files were zipped", () => {
-    assert.throws(() =>
-      buildTorBoxDownloadManifest(
-        torrent([{ id: 1, name: "Game.zip", zipped: true }])
-      )
+  it("offers a ZIP archive when the original files were compressed", () => {
+    const manifest = buildTorBoxDownloadManifest(
+      torrent([{ id: 1, name: "Game.zip", size: 42, zipped: true }])
     );
+    assert.equal(manifest.archiveOnly, true);
+    assert.equal(manifest.totalSize, 42);
+    assert.deepEqual(manifest.files, [
+      { id: 1, path: "Game/Game.zip", size: 42, isZip: true },
+    ]);
+    assert.deepEqual(selectTorBoxFiles(manifest, [1]), manifest.files);
   });
 });

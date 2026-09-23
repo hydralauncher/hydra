@@ -207,8 +207,8 @@
     "installing_common_redist": "{{log}}…",
     "installation_complete": "Instalação concluída",
     "installation_complete_message": "Componentes recomendados instalados com sucesso",
-    "downloading_batch": "Downloading {{title}}… ({{percentage}} complete {{filesDownloaded}}/{{filesTotal}} files) - Completion {{eta}} - {{speed}}",
-    "calculating_eta_batch": "Downloading {{title}}… ({{percentage}} complete {{filesDownloaded}}/{{filesTotal}} files) - Calculating remaining time…"
+    "downloading_batch": "Baixando {{title}}… ({{percentage}} concluído, {{filesDownloaded}}/{{filesTotal}} arquivos) - Conclusão {{eta}} - {{speed}}",
+    "calculating_eta_batch": "Baixando {{title}}… ({{percentage}} concluído, {{filesDownloaded}}/{{filesTotal}} arquivos) - Calculando tempo restante…"
   },
   "game_details": {
     "bios_not_configured_toast": "BIOS não encontrada. Adicione a pasta da BIOS nas configurações de Emulação.",
@@ -282,6 +282,7 @@
     "download_settings": "Ajustes do download",
     "downloader": "Downloader",
     "torrent_files": "Arquivos do torrent",
+    "torbox_compressed_archive_notice": "O TorBox compactou este torrent em um único arquivo ZIP. Não é possível selecionar os arquivos originais separadamente.",
     "torrent_name_column": "Nome",
     "torrent_size_column": "Tamanho",
     "torrent_downloading_column": "Baixando",

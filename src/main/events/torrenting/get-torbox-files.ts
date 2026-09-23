@@ -22,6 +22,7 @@ const getTorBoxFiles = async (
         infoHash: "",
         name: manifest.name,
         totalSize: manifest.totalSize,
+        archiveOnly: manifest.archiveOnly,
         files: manifest.files.map((file) => ({
           index: file.id,
           path: file.path,

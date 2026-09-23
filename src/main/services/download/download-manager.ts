@@ -39,6 +39,7 @@ import { GameFilesManager } from "../game-files-manager";
 import { PremiumizeClient } from "./premiumize";
 import { AllDebridClient } from "./all-debrid";
 import { isZipDownloadUrl } from "./debrid-files";
+import { getJsBatchProgress } from "./js-batch-progress";
 import {
   DEFAULT_DOWNLOAD_USER_AGENT,
   JsHttpDownloader,
@@ -81,6 +82,7 @@ interface JsBatchEntry {
   size?: number;
   isLocked?: boolean;
   fileId?: number;
+  isZip?: boolean;
   fileIndex?: number;
   sourcePath?: string;
 }
@@ -94,6 +96,7 @@ interface JsBatchState {
   sourceUri?: string;
   rootFolderName?: string;
   currentIndex: number;
+  activeIndex: number;
   completedBytes: number;
   totalBytes: number;
   lastSpeedUpdate: number;
@@ -477,15 +480,17 @@ export class DownloadManager {
             status.status = "active";
           }
 
-          const currentBytes =
-            status.status === "active" ? status.bytesDownloaded : 0;
-
-          progress = this.calculateJsBatchProgress(
-            batch,
-            status.progress,
-            currentBytes,
-            status.fileSize
-          );
+          const batchProgress = getJsBatchProgress({
+            currentIndex: batch.currentIndex,
+            activeIndex: batch.activeIndex,
+            completedBytes: batch.completedBytes,
+            totalBytes: batch.totalBytes,
+            entryCount: batch.entries.length,
+            fileBytes: status.status === "active" ? status.bytesDownloaded : 0,
+            fileProgress: status.progress,
+          });
+          progress = batchProgress.progress;
+          const currentBytes = batchProgress.currentBytes;
           bytesDownloaded = batch.completedBytes + currentBytes;
           fileSize = batch.totalBytes || fileSize;
           folderName =
@@ -1270,31 +1275,6 @@ export class DownloadManager {
     }
   }
 
-  private static calculateJsBatchProgress(
-    batch: JsBatchState,
-    currentFileProgress: number,
-    currentBytesDownloaded: number,
-    currentFileSize: number
-  ) {
-    if (batch.totalBytes > 0) {
-      const effectiveCurrentBytes =
-        currentFileSize > 0
-          ? currentFileSize * Math.max(0, Math.min(currentFileProgress, 1))
-          : currentBytesDownloaded;
-      return Math.min(
-        (batch.completedBytes + effectiveCurrentBytes) / batch.totalBytes,
-        1
-      );
-    }
-
-    const totalEntries = Math.max(batch.entries.length, 1);
-    return Math.min(
-      (batch.currentIndex + Math.max(0, Math.min(currentFileProgress, 1))) /
-        totalEntries,
-      1
-    );
-  }
-
   private static async runJsBatch() {
     while (this.jsBatch && this.jsDownloader) {
       const batch = this.jsBatch;
@@ -1311,7 +1291,7 @@ export class DownloadManager {
           }
           resolvedUrl = await TorBoxClient.requestLink(
             batch.torrentId,
-            entry.fileId
+            entry.isZip ? "zip" : entry.fileId
           );
         } else if (
           batch.provider === "realDebrid" &&
@@ -1347,7 +1327,11 @@ export class DownloadManager {
         const options = {
           url: resolvedUrl,
           savePath: batch.savePath,
-          allowParallelRanges: !isZipDownloadUrl(resolvedUrl, entry.filename),
+          allowParallelRanges:
+            !entry.isZip && !isZipDownloadUrl(resolvedUrl, entry.filename),
+          preserveFilename: true,
+          // TorBox creates ZIPs on demand and cannot resume their byte stream.
+          allowResume: !entry.isZip,
           filename:
             batch.provider === "torBox"
               ? entry.filename
@@ -1355,6 +1339,7 @@ export class DownloadManager {
         };
 
         this.logResolvedUrl(options.url);
+        batch.activeIndex = batch.currentIndex;
         await downloader.startDownload(options);
 
         if (this.jsBatch !== batch || this.jsDownloader !== downloader) break;
@@ -1369,13 +1354,16 @@ export class DownloadManager {
         }
 
         const expectedSize = entry.size ?? 0;
-        const sizeMismatch =
+        const requiresExactSize =
           batch.provider === "torBox" ||
           batch.provider === "realDebrid" ||
-          batch.provider === "premiumize"
+          batch.provider === "premiumize";
+        const sizeMismatch =
+          !entry.isZip &&
+          (requiresExactSize
             ? dlStatus.bytesDownloaded !== expectedSize
             : expectedSize > 0 &&
-              dlStatus.bytesDownloaded < expectedSize * 0.95;
+              dlStatus.bytesDownloaded < expectedSize * 0.95);
         if (sizeMismatch) {
           logger.error(
             `[DownloadManager] ${batch.provider} batch entry ${batch.currentIndex} size mismatch: ` +
@@ -1402,8 +1390,13 @@ export class DownloadManager {
           return;
         }
 
+        if (entry.isZip && expectedSize !== dlStatus.bytesDownloaded) {
+          batch.totalBytes += dlStatus.bytesDownloaded - expectedSize;
+        }
         const bankedBytes =
-          entry.size && entry.size > 0 ? entry.size : dlStatus.bytesDownloaded;
+          entry.isZip || !entry.size || entry.size <= 0
+            ? dlStatus.bytesDownloaded
+            : entry.size;
         batch.completedBytes += bankedBytes;
         batch.currentIndex += 1;
       } catch (err) {
@@ -1668,7 +1661,7 @@ export class DownloadManager {
     const firstFile = selected[0];
     const url = await TorBoxClient.requestLink(
       manifest.torrentId,
-      firstFile.id
+      firstFile.isZip ? "zip" : firstFile.id
     );
     return {
       ...this.buildDownloadOptions(url, download.downloadPath, firstFile.path),
@@ -2138,10 +2131,12 @@ export class DownloadManager {
                 fileId: file.id,
                 filename: file.path,
                 size: file.size,
+                isZip: file.isZip,
               })),
               torrentId: manifest.torrentId,
               rootFolderName: manifest.name,
               currentIndex: 0,
+              activeIndex: -1,
               completedBytes: 0,
               totalBytes: selected.reduce((sum, file) => sum + file.size, 0),
               lastSpeedUpdate: Date.now(),
@@ -2183,6 +2178,7 @@ export class DownloadManager {
                 filename: this.sanitizeRelativePath(entry.filename),
               })),
               currentIndex: 0,
+              activeIndex: -1,
               completedBytes: 0,
               totalBytes: entries.every((item) => typeof item.size === "number")
                 ? entries.reduce((acc, item) => acc + (item.size ?? 0), 0)
@@ -2224,6 +2220,7 @@ export class DownloadManager {
               })),
               sourceUri: download.uri,
               currentIndex: 0,
+              activeIndex: -1,
               completedBytes: 0,
               totalBytes: entries.reduce((sum, entry) => sum + entry.size, 0),
               lastSpeedUpdate: Date.now(),

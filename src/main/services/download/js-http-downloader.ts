@@ -5,6 +5,7 @@ import { pipeline } from "node:stream/promises";
 import { logger } from "../logger";
 import {
   applySkip,
+  chooseDownloadOutputPath,
   clampProgress,
   computeFileSize,
   isRetryableDownloadError,
@@ -44,6 +45,8 @@ export interface JsHttpDownloaderOptions {
   filename?: string;
   headers?: Record<string, string>;
   allowParallelRanges?: boolean;
+  preserveFilename?: boolean;
+  allowResume?: boolean;
 }
 
 const MAX_RETRY_ATTEMPTS = 10;
@@ -409,7 +412,7 @@ export class JsHttpDownloader {
     }
 
     let startByte = 0;
-    if (fs.existsSync(filePath)) {
+    if (this.currentOptions?.allowResume !== false && fs.existsSync(filePath)) {
       const stats = fs.statSync(filePath);
       startByte = stats.size;
       logger.log(`[JsHttpDownloader] Resuming download from byte ${startByte}`);
@@ -717,20 +720,32 @@ export class JsHttpDownloader {
 
     const urlDerivedFilename = path.basename(filePath);
     const headerFilename = this.parseContentDisposition(response);
+    const preserveFilename = Boolean(
+      this.currentOptions?.preserveFilename && this.currentOptions.filename
+    );
+    const output = chooseDownloadOutputPath(
+      filePath,
+      savePath,
+      headerFilename,
+      preserveFilename
+    );
+    if (preserveFilename) {
+      this.resolvedFilename = output.filename;
+      return output.filePath;
+    }
     if (headerFilename) {
       if (headerFilename !== urlDerivedFilename) {
         logger.log(
           `[JsHttpDownloader] Filename mismatch detected. URL-derived="${urlDerivedFilename}" header-derived="${headerFilename}"`
         );
       }
-      const actualFilePath = path.join(savePath, headerFilename);
-      this.folderName = headerFilename;
-      this.resolvedFilename = headerFilename;
-      fs.mkdirSync(path.dirname(actualFilePath), { recursive: true });
+      this.folderName = output.filename;
+      this.resolvedFilename = output.filename;
+      fs.mkdirSync(path.dirname(output.filePath), { recursive: true });
       logger.log(
         `[JsHttpDownloader] Using filename from Content-Disposition: ${headerFilename}`
       );
-      return actualFilePath;
+      return output.filePath;
     }
 
     this.resolvedFilename = urlDerivedFilename;

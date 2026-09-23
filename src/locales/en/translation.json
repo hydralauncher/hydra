@@ -323,6 +323,7 @@
     "download_settings": "Download settings",
     "downloader": "Downloader",
     "torrent_files": "Torrent files",
+    "torbox_compressed_archive_notice": "TorBox compressed this torrent into one ZIP archive. Its original files cannot be selected separately.",
     "torrent_name_column": "Name",
     "torrent_size_column": "Size",
     "torrent_downloading_column": "Downloading",

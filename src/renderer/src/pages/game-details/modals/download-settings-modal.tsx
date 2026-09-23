@@ -289,6 +289,7 @@ export function DownloadSettingsModal({
   );
   const [showRealDebridModal, setShowRealDebridModal] = useState(false);
   const [torrentFiles, setTorrentFiles] = useState<TorrentFile[]>([]);
+  const [torrentArchiveOnly, setTorrentArchiveOnly] = useState(false);
   const [torrentFilesLoading, setTorrentFilesLoading] = useState(false);
   const [torrentFilesError, setTorrentFilesError] = useState<string | null>(
     null
@@ -800,6 +801,7 @@ export function DownloadSettingsModal({
   const resetTorrentStepState = useCallback(() => {
     torrentFilesRequestIdRef.current += 1;
     setTorrentFiles([]);
+    setTorrentArchiveOnly(false);
     setSelectedTorrentIndices(new Set());
     setExpandedFolderIds(new Set());
     setTorrentFilesError(null);
@@ -827,6 +829,7 @@ export function DownloadSettingsModal({
     if (cached) {
       if (isRequestOutdated()) return;
       setTorrentFiles(cached.files);
+      setTorrentArchiveOnly(Boolean(cached.archiveOnly));
       setSelectedTorrentIndices(
         new Set(cached.files.map((file) => file.index))
       );
@@ -856,6 +859,7 @@ export function DownloadSettingsModal({
     } catch {
       if (isRequestOutdated()) return;
       setTorrentFiles([]);
+      setTorrentArchiveOnly(false);
       setSelectedTorrentIndices(new Set());
       setExpandedFolderIds(new Set());
       setTorrentFilesError(DownloadError.TorrentFilesUnavailable);
@@ -866,6 +870,7 @@ export function DownloadSettingsModal({
     if (!response.ok) {
       if (isRequestOutdated()) return;
       setTorrentFiles([]);
+      setTorrentArchiveOnly(false);
       setSelectedTorrentIndices(new Set());
       setExpandedFolderIds(new Set());
       setTorrentFilesError(
@@ -888,6 +893,7 @@ export function DownloadSettingsModal({
       torrentFilesCache.current.set(cacheKey, response.data);
     }
     setTorrentFiles(response.data.files);
+    setTorrentArchiveOnly(Boolean(response.data.archiveOnly));
     setSelectedTorrentIndices(
       new Set(response.data.files.map((file) => file.index))
     );
@@ -1565,6 +1571,11 @@ export function DownloadSettingsModal({
         noContentPadding
       >
         <div className="download-settings-modal__torrent-step">
+          {torrentArchiveOnly && (
+            <p className="download-settings-modal__archive-notice">
+              {t("torbox_compressed_archive_notice")}
+            </p>
+          )}
           <div className="download-settings-modal__torrent-step-toolbar">
             <TextField
               placeholder={t("search_torrent_files")}

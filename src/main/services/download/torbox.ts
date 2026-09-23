@@ -78,12 +78,16 @@ export class TorBoxClient {
     return response.data.data;
   }
 
-  static async requestLink(id: number, fileId: number) {
+  static async requestLink(id: number, fileId: number | "zip") {
     const searchParams = new URLSearchParams({
       token: this.apiToken,
       torrent_id: id.toString(),
-      file_id: fileId.toString(),
     });
+    if (fileId === "zip") {
+      searchParams.set("zip_link", "true");
+    } else {
+      searchParams.set("file_id", fileId.toString());
+    }
 
     const response = await this.instance.get<TorBoxRequestLinkRequest>(
       "/torrents/requestdl?" + searchParams.toString()

@@ -4,6 +4,7 @@ export interface TorBoxDownloadFile {
   id: number;
   path: string;
   size: number;
+  isZip?: boolean;
 }
 
 export interface TorBoxDownloadManifest {
@@ -11,11 +12,44 @@ export interface TorBoxDownloadManifest {
   name: string;
   files: TorBoxDownloadFile[];
   totalSize: number;
+  archiveOnly?: boolean;
 }
 
+const decodeHtmlEntities = (value: string): string =>
+  value.replace(
+    /&(#(?:x[0-9a-f]+|\d+)|amp|lt|gt|quot|apos|nbsp);/gi,
+    (entity, code: string) => {
+      const normalized = code.toLowerCase();
+      if (normalized.startsWith("#")) {
+        const hex = normalized.startsWith("#x");
+        const point = Number.parseInt(
+          normalized.slice(hex ? 2 : 1),
+          hex ? 16 : 10
+        );
+        return point > 0 &&
+          point <= 0x10ffff &&
+          !(point >= 0xd800 && point <= 0xdfff)
+          ? String.fromCodePoint(point)
+          : entity;
+      }
+      return (
+        {
+          amp: "&",
+          lt: "<",
+          gt: ">",
+          quot: '"',
+          apos: "'",
+          nbsp: " ",
+        }[normalized] ?? entity
+      );
+    }
+  );
+
 const sanitizeSegment = (segment: string): string => {
-  const cleaned = Array.from(segment.normalize("NFC"), (char) =>
-    char.charCodeAt(0) < 32 || /[<>:"/\\|?*]/.test(char) ? "_" : char
+  const cleaned = Array.from(
+    decodeHtmlEntities(segment).normalize("NFC"),
+    (char) =>
+      char.charCodeAt(0) < 32 || /[<>:"/\\|?*]/.test(char) ? "_" : char
   )
     .join("")
     .trim()
@@ -28,20 +62,58 @@ const sanitizeSegment = (segment: string): string => {
 export function buildTorBoxDownloadManifest(
   torrent: TorBoxTorrentInfo
 ): TorBoxDownloadManifest {
-  const name = sanitizeSegment(torrent.name);
+  const sharedRoot = torrent.files?.[0]?.name?.split(/[\\/]+/)[0];
+  const hasSharedRoot =
+    sharedRoot &&
+    torrent.files.every((file) => {
+      const parts = file.name?.split(/[\\/]+/) ?? [];
+      return (
+        parts.length > 1 &&
+        sanitizeSegment(parts[0]).toLowerCase() ===
+          sanitizeSegment(sharedRoot).toLowerCase()
+      );
+    });
+  const name = sanitizeSegment(hasSharedRoot ? sharedRoot : torrent.name);
   if (!name || name === "." || name === ".." || !torrent.files?.length) {
     throw new Error("TorBox did not provide downloadable files.");
+  }
+
+  // A cached torrent can be available only as one compressed archive. TorBox
+  // provides a ZIP link for this case, but not links to its original files.
+  const zippedFile = torrent.files.find((file) => file.zipped);
+  if (zippedFile) {
+    if (!Number.isSafeInteger(zippedFile.id)) {
+      throw new Error("TorBox returned an invalid file ID.");
+    }
+    const archiveName = name.toLowerCase().endsWith(".zip")
+      ? name
+      : `${name}.zip`;
+    const size =
+      Number.isSafeInteger(zippedFile.size) && zippedFile.size > 0
+        ? zippedFile.size
+        : Number.isSafeInteger(torrent.size) && torrent.size > 0
+          ? torrent.size
+          : 0;
+    return {
+      torrentId: torrent.id,
+      name,
+      files: [
+        {
+          id: zippedFile.id,
+          path: `${name}/${archiveName}`,
+          size,
+          isZip: true,
+        },
+      ],
+      totalSize: size,
+      archiveOnly: true,
+    };
   }
 
   const seenIds = new Set<number>();
   const seenPaths = new Set<string>();
   const seenDirectories = new Set<string>();
   const files = torrent.files.map((file): TorBoxDownloadFile => {
-    if (file.zipped) {
-      throw new Error(
-        "TorBox has already zipped this torrent, so its original files are unavailable."
-      );
-    }
     if (!Number.isSafeInteger(file.id) || seenIds.has(file.id)) {
       throw new Error("TorBox returned an invalid file ID.");
     }
