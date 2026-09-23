@@ -1620,6 +1620,12 @@ export class DownloadManager {
         )
       : null;
     if (download.fileIndices?.length && !entries?.length) {
+      if (
+        entries === null &&
+        (await PremiumizeClient.startTransferInBackground(download.uri))
+      ) {
+        throw new Error(DownloadError.PremiumizeTransferStarted);
+      }
       throw new Error("The selected Premiumize files are no longer available.");
     }
     const downloadUrl =
@@ -2129,6 +2135,12 @@ export class DownloadManager {
           download.downloader === Downloader.Premiumize &&
           !premiumizeEntries?.length
         ) {
+          if (
+            premiumizeEntries === null &&
+            (await PremiumizeClient.startTransferInBackground(download.uri))
+          ) {
+            throw new Error(DownloadError.PremiumizeTransferStarted);
+          }
           throw new Error(
             "The selected Premiumize files are no longer available."
           );

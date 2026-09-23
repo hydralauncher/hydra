@@ -63,6 +63,7 @@ export enum AuthPage {
 
 export enum DownloadError {
   NotCachedOnRealDebrid = "download_error_not_cached_on_real_debrid",
+  RealDebridTorrentNotReady = "download_error_real_debrid_torrent_not_ready",
   NotCachedOnTorBox = "download_error_not_cached_on_torbox",
   GofileQuotaExceeded = "download_error_gofile_quota_exceeded",
   RealDebridAccountNotAuthorized = "download_error_real_debrid_account_not_authorized",

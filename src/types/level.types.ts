@@ -106,6 +106,7 @@ export interface Download {
   automaticallyDeleteArchiveFiles: boolean;
   fileIndices?: number[];
   selectedFilesSize?: number | null;
+  awaitingDebrid?: boolean;
   customTrackers?: string[];
 }
 

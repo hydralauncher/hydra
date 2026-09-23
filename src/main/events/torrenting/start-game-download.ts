@@ -15,6 +15,7 @@ import {
   isKnownDownloadError,
   prepareGameEntry,
 } from "@main/helpers";
+import { isDebridPendingError } from "@main/services/download/debrid-pending";
 
 const startGameDownload = async (
   _event: Electron.IpcMainInvokeEvent,
@@ -68,12 +69,21 @@ const startGameDownload = async (
       fileSize: selectedFilesSize ?? parsedFileSize,
       customTrackers: globalTrackers,
     };
-    await DownloadManager.validateDownloadUrl(download);
+    try {
+      await DownloadManager.validateDownloadUrl(download);
+    } catch (error) {
+      if (!isDebridPendingError(error, downloader)) throw error;
+      download.awaitingDebrid = true;
+    }
     await prepareGameEntry({ gameKey, title, objectId, shop });
     await DownloadManager.cancelDownload(gameKey).catch(() => null);
     await downloadsSublevel.put(gameKey, download);
     didWriteDownload = true;
-    await DownloadOrchestrator.startPreparedDownload(download);
+    if (download.awaitingDebrid) {
+      await DownloadOrchestrator.saveAwaitingDebridDownload(download);
+    } else {
+      await DownloadOrchestrator.startPreparedDownload(download);
+    }
 
     const updatedGame = await gamesSublevel.get(gameKey);
 

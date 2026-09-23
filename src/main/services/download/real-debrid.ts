@@ -1,6 +1,7 @@
 import axios, { AxiosInstance } from "axios";
 import https from "node:https";
 import parseTorrent from "parse-torrent";
+import { DownloadError } from "@shared";
 import type {
   RealDebridAddMagnet,
   RealDebridTorrentInfo,
@@ -77,7 +78,7 @@ export class RealDebridClient {
         await new Promise((resolve) => setTimeout(resolve, 1000));
       }
     }
-    throw new Error("Real-Debrid torrent files are not available yet.");
+    throw new Error(DownloadError.RealDebridTorrentNotReady);
   }
 
   static async getDownloadFiles(uri: string) {

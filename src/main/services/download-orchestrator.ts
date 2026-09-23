@@ -1,5 +1,6 @@
 import { downloadsSublevel, levelKeys } from "@main/level";
 import { DownloadManager } from "./download/download-manager";
+import { isDebridPendingError } from "./download/debrid-pending";
 import { WindowManager } from "./window-manager";
 import { logger } from "./logger";
 import {
@@ -157,9 +158,30 @@ export class DownloadOrchestrator {
       .catch(() => null);
   }
 
+  private static async isAwaitingDebridReady(download: Download) {
+    if (!download.awaitingDebrid) return true;
+
+    try {
+      await DownloadManager.validateDownloadUrl(download);
+      return true;
+    } catch (error) {
+      if (isDebridPendingError(error, download.downloader)) return false;
+
+      await downloadsSublevel.put(getGameKey(download), {
+        ...download,
+        status: "error",
+        queued: false,
+        awaitingDebrid: false,
+      });
+      WindowManager.sendDownloadsUpdated();
+      throw error;
+    }
+  }
+
   private static async activateDownload(download: Download) {
     const activeDownload: Download = {
       ...download,
+      awaitingDebrid: false,
       status: "active",
       queued: false,
       pinnedToHero: false,
@@ -173,6 +195,11 @@ export class DownloadOrchestrator {
     try {
       await DownloadManager.resumeDownload(activeDownload);
     } catch (error) {
+      if (isDebridPendingError(error, download.downloader)) {
+        await this.saveAwaitingDebridDownload(download);
+        return null;
+      }
+
       const downloadId = getDownloadId(download);
       await downloadsSublevel.put(getGameKey(download), {
         ...activeDownload,
@@ -196,6 +223,24 @@ export class DownloadOrchestrator {
     }
 
     return activeDownload;
+  }
+
+  private static async restoreInterruptedDownload(download: Download | null) {
+    if (!download) return;
+
+    try {
+      const restored = await this.activateDownload(download);
+      if (restored) {
+        const downloads = await this.getAllDownloads();
+        await removeDownloadFromLayoutState(download, downloads);
+        WindowManager.sendDownloadsUpdated();
+      }
+    } catch (error) {
+      logger.error(
+        "[DownloadOrchestrator] Could not restore the interrupted download",
+        error
+      );
+    }
   }
 
   private static async setDownloadPausedState(
@@ -222,23 +267,29 @@ export class DownloadOrchestrator {
   }
 
   private static async startNextQueuedDownload(downloads?: Download[]) {
-    const currentDownloads = downloads ?? (await this.getAllDownloads());
-    const layoutState =
-      await getNormalizedDownloadLayoutState(currentDownloads);
-    const nextDownload = getNextQueuedDownloadFromLayout(
-      currentDownloads,
-      layoutState
-    );
+    let currentDownloads = downloads ?? (await this.getAllDownloads());
 
-    if (!nextDownload) {
-      WindowManager.sendDownloadsUpdated();
-      return null;
+    for (;;) {
+      const layoutState =
+        await getNormalizedDownloadLayoutState(currentDownloads);
+      const nextDownload = getNextQueuedDownloadFromLayout(
+        currentDownloads,
+        layoutState
+      );
+
+      if (!nextDownload) {
+        WindowManager.sendDownloadsUpdated();
+        return null;
+      }
+
+      const activated = await this.activateDownload(nextDownload);
+      if (activated) {
+        WindowManager.sendDownloadsUpdated();
+        return nextDownload;
+      }
+
+      currentDownloads = await this.getAllDownloads();
     }
-
-    await this.activateDownload(nextDownload);
-    WindowManager.sendDownloadsUpdated();
-
-    return nextDownload;
   }
 
   private static async queueDownload(
@@ -397,7 +448,8 @@ export class DownloadOrchestrator {
       return { ok: true };
     }
 
-    await this.activateDownload(download);
+    const activated = await this.activateDownload(download);
+    if (!activated) return { ok: true };
     const nextDownloads = await this.getAllDownloads();
     await removeDownloadFromLayoutState(download, nextDownloads);
     WindowManager.sendDownloadsUpdated();
@@ -410,6 +462,23 @@ export class DownloadOrchestrator {
     WindowManager.sendDownloadsUpdated();
 
     return { ok: true };
+  }
+
+  static async saveAwaitingDebridDownload(download: Download) {
+    const nextDownload = await this.setDownloadPausedState(
+      { ...download, awaitingDebrid: true },
+      { queued: false }
+    );
+    const downloads = await this.getAllDownloads();
+    const layoutState = await getNormalizedDownloadLayoutState(downloads);
+    await setDownloadLayoutQueues(
+      downloads,
+      layoutState.queueOrder.filter((id) => id !== getDownloadId(download)),
+      withInsertedId(layoutState.pausedOrder, getDownloadId(download), 0)
+    );
+    WindowManager.sendDownloadsUpdated();
+
+    return nextDownload;
   }
 
   static async resumeDownload(
@@ -427,6 +496,9 @@ export class DownloadOrchestrator {
       return false;
     }
 
+    if (!(await this.isAwaitingDebridReady(download))) return false;
+    const readyDownload = { ...download, awaitingDebrid: false };
+
     const downloads = await this.getAllDownloads();
     const currentActiveDownload =
       downloads.find(
@@ -436,7 +508,7 @@ export class DownloadOrchestrator {
       ) ?? null;
 
     if (currentActiveDownload && strategy === "queueIfActive") {
-      await this.queueDownload(download, { toFront: true });
+      await this.queueDownload(readyDownload, { toFront: true });
       WindowManager.sendDownloadsUpdated();
       return true;
     }
@@ -448,7 +520,11 @@ export class DownloadOrchestrator {
       });
     }
 
-    await this.activateDownload(download);
+    const activated = await this.activateDownload(readyDownload);
+    if (!activated) {
+      await this.restoreInterruptedDownload(currentActiveDownload);
+      return false;
+    }
     const nextDownloads = await this.getAllDownloads();
     await removeDownloadFromLayoutState(download, nextDownloads);
     WindowManager.sendDownloadsUpdated();
@@ -520,6 +596,8 @@ export class DownloadOrchestrator {
       return false;
     }
 
+    if (download.awaitingDebrid && targetArea !== "paused") return false;
+
     const { downloads, layoutState } = await this.getDownloadsWithLayout();
     const currentActiveDownload =
       downloads.find(
@@ -542,7 +620,11 @@ export class DownloadOrchestrator {
         });
       }
 
-      await this.activateDownload(download);
+      const activated = await this.activateDownload(download);
+      if (!activated) {
+        await this.restoreInterruptedDownload(currentActiveDownload);
+        return false;
+      }
       const nextDownloads = await this.getAllDownloads();
       await setDownloadLayoutQueues(nextDownloads, queueIds, pausedIds);
       WindowManager.sendDownloadsUpdated();

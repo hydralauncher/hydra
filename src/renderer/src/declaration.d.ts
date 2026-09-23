@@ -226,7 +226,7 @@ declare global {
       shop: GameShop,
       objectId: string,
       strategy?: "interruptActive" | "queueIfActive"
-    ) => Promise<void>;
+    ) => Promise<boolean>;
     pauseGameSeed: (shop: GameShop, objectId: string) => Promise<void>;
     resumeGameSeed: (shop: GameShop, objectId: string) => Promise<void>;
     saveGlobalTrackers: (

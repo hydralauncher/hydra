@@ -526,9 +526,9 @@ export class PremiumizeClient {
     }
   }
 
-  private static async startTransferInBackground(
-    uri: string
-  ): Promise<boolean> {
+  static async startTransferInBackground(uri: string): Promise<boolean> {
+    if (await this.hasRunnableTransfer(uri)) return true;
+
     const created = await this.createTransfer(uri);
     if (created?.id) {
       logger.log(
