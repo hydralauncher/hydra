@@ -609,7 +609,7 @@
     "download_error_hoster_unlock_file_not_found": "Este arquivo não está mais disponível neste downloader.",
     "download_error_hoster_unlock_unavailable": "Este downloader está indisponível no momento. Tente novamente mais tarde.",
     "download_error_link_returned_web_page": "O link de download retornou uma página da web em vez de um arquivo. Ele pode ter expirado ou sido removido.",
-    "download_error_not_cached_on_torbox": "Este download não está disponível no TorBox e a verificação do status do download não está disponível.",
+    "download_error_not_cached_on_torbox": "Este torrent não está em cache no TorBox, então ainda não é possível listar seus arquivos.",
     "download_error_not_cached_on_hydra": "Este download não está disponível no Nimbus.",
     "game_removed_from_favorites": "Jogo removido dos favoritos",
     "game_added_to_favorites": "Jogo adicionado aos favoritos",

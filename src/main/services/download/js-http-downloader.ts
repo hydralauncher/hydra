@@ -46,6 +46,8 @@ export interface JsHttpDownloaderOptions {
   filename?: string;
   headers?: Record<string, string>;
   allowParallelRanges?: boolean;
+  parallelRangeSize?: number;
+  maxParallelRanges?: number;
   preserveFilename?: boolean;
   allowResume?: boolean;
 }
@@ -308,7 +310,10 @@ export class JsHttpDownloader {
         MAX_RETRY_DELAY_MS
       );
 
-      const reason = wasStallRetry ? "stall detected" : err.message;
+      const causeCode = (err.cause as NodeJS.ErrnoException | undefined)?.code;
+      const reason = wasStallRetry
+        ? "stall detected"
+        : `${err.message}${causeCode ? ` (${causeCode})` : ""}`;
       logger.log(
         `[JsHttpDownloader] Retryable error (${reason}). ` +
           `Retry ${this.retryCount}/${MAX_RETRY_ATTEMPTS} in ${delay}ms`
@@ -535,7 +540,9 @@ export class JsHttpDownloader {
       !this.parallelRangesDisabled &&
       this.currentOptions?.allowParallelRanges !== false
     ) {
-      const rangeEnd = startByte + PARALLEL_RANGE_SIZE - 1;
+      const rangeSize =
+        this.currentOptions?.parallelRangeSize ?? PARALLEL_RANGE_SIZE;
+      const rangeEnd = startByte + rangeSize - 1;
       response = await this.fetchWithStallTracking(url, {
         headers: {
           ...requestHeaders,
@@ -547,7 +554,7 @@ export class JsHttpDownloader {
       const total = getRangeTotal(response, startByte, rangeEnd);
       if (
         total !== null &&
-        total - startByte >= PARALLEL_RANGE_SIZE * 2 &&
+        total - startByte >= rangeSize * 2 &&
         !/^(text\/html|application\/xhtml)/i.test(
           response.headers.get("content-type") ?? ""
         )
@@ -568,14 +575,17 @@ export class JsHttpDownloader {
           `[JsHttpDownloader] Downloading ${total} bytes with parallel byte ranges`
         );
         const signal = this.abortController!.signal;
+        let parallelComplete: boolean;
         try {
-          await downloadParallelRanges({
+          parallelComplete = await downloadParallelRanges({
             url,
             headers: requestHeaders,
             firstResponse: response,
             filePath: actualFilePath,
             startByte,
             total,
+            rangeSize,
+            maxRanges: this.currentOptions?.maxParallelRanges,
             signal,
             abort: () => this.abortController?.abort(),
             beforeChunk: (length) => this.applyThrottle(length),
@@ -613,6 +623,24 @@ export class JsHttpDownloader {
           this.pendingRangeReads.clear();
         }
         if (signal.aborted) throw signal.reason;
+        if (!parallelComplete) {
+          this.parallelRangesDisabled = true;
+          const committed = fs.statSync(actualFilePath).size;
+          this.bytesDownloaded = committed;
+          this.resetSpeedTracking();
+          logger.log(
+            "[JsHttpDownloader] Range request budget reached; finishing with one connection"
+          );
+          await this.executeDownload(
+            url,
+            this.buildRequestHeaders(requestHeaders, committed),
+            actualFilePath,
+            committed,
+            savePath,
+            false
+          );
+          return;
+        }
         this.markComplete();
         return;
       }

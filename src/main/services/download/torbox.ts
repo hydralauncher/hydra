@@ -33,10 +33,11 @@ export class TorBoxClient {
     });
   }
 
-  private static async addMagnet(magnet: string) {
+  private static async addMagnet(magnet: string, cachedOnly = false) {
     const form = new FormData();
     form.append("magnet", magnet);
     form.append("allow_zip", "false");
+    if (cachedOnly) form.append("add_only_if_cached", "true");
 
     const response = await this.instance.post<TorBoxAddTorrentRequest>(
       "/torrents/createtorrent",
@@ -44,7 +45,9 @@ export class TorBoxClient {
     );
 
     if (!response.data.success) {
-      throw new Error(response.data.detail);
+      throw new Error(
+        cachedOnly ? DownloadError.NotCachedOnTorBox : response.data.detail
+      );
     }
 
     return response.data.data;
@@ -153,7 +156,10 @@ export class TorBoxClient {
     throw new Error(DownloadError.TorBoxTorrentNotReady);
   }
 
-  private static async getDownloadableTorrent(magnetUri: string) {
+  private static async getDownloadableTorrent(
+    magnetUri: string,
+    cachedOnly = false
+  ) {
     const { infoHash } = await parseTorrent(magnetUri);
 
     if (!infoHash) throw new Error(DownloadError.InvalidMagnet);
@@ -173,14 +179,14 @@ export class TorBoxClient {
       return this.waitForTorrentReady(userTorrent.id);
     }
 
-    const torrent = await this.addMagnet(magnetUri);
+    const torrent = await this.addMagnet(magnetUri, cachedOnly);
     const readyTorrent = await this.waitForTorrentReady(torrent.torrent_id);
 
     return { ...readyTorrent, name: readyTorrent.name || torrent.name };
   }
 
-  static async getDownloadFiles(uri: string) {
-    const torrent = await this.getDownloadableTorrent(uri);
+  static async getDownloadFiles(uri: string, cachedOnly = false) {
+    const torrent = await this.getDownloadableTorrent(uri, cachedOnly);
     return buildTorBoxDownloadManifest(torrent);
   }
 }

@@ -5,6 +5,21 @@ import { pipeline } from "node:stream/promises";
 
 export const PARALLEL_RANGE_SIZE = 8 * 1024 * 1024;
 export const PARALLEL_RANGE_COUNT = 4;
+export const MAX_PARALLEL_RANGE_SIZE = 256 * 1024 * 1024;
+
+export function getRangeSizeForRequestBudget(
+  totalBytes: number,
+  maxRanges: number
+): number {
+  if (!Number.isSafeInteger(totalBytes) || totalBytes <= 0) {
+    return PARALLEL_RANGE_SIZE;
+  }
+  const units = Math.ceil(totalBytes / (maxRanges * PARALLEL_RANGE_SIZE));
+  return Math.min(
+    MAX_PARALLEL_RANGE_SIZE,
+    Math.max(PARALLEL_RANGE_SIZE, units * PARALLEL_RANGE_SIZE)
+  );
+}
 
 export class ParallelRangeUnsupportedError extends Error {
   readonly retryable = true;
@@ -48,6 +63,8 @@ export interface ParallelRangeDownloadOptions {
   filePath: string;
   startByte: number;
   total: number;
+  rangeSize?: number;
+  maxRanges?: number;
   signal: AbortSignal;
   abort: () => void;
   beforeChunk: (length: number) => Promise<void>;
@@ -62,12 +79,14 @@ export async function downloadParallelRanges({
   filePath,
   startByte,
   total,
+  rangeSize = PARALLEL_RANGE_SIZE,
+  maxRanges = Infinity,
   signal,
   abort,
   beforeChunk,
   afterChunk,
   onReadPending,
-}: ParallelRangeDownloadOptions): Promise<void> {
+}: ParallelRangeDownloadOptions): Promise<boolean> {
   let tempDir: string;
   try {
     tempDir = await fs.promises.mkdtemp(
@@ -189,21 +208,25 @@ export async function downloadParallelRanges({
     }
   };
 
+  let nextByte = startByte;
+  let completedRanges = 0;
   try {
-    for (let batchStart = startByte; batchStart < total; ) {
+    while (nextByte < total && completedRanges < maxRanges) {
       const ranges: { start: number; end: number; tempFile: string }[] = [];
       for (
         let index = 0;
-        index < PARALLEL_RANGE_COUNT && batchStart < total;
+        index < PARALLEL_RANGE_COUNT &&
+        nextByte < total &&
+        completedRanges + ranges.length < maxRanges;
         index++
       ) {
-        const end = Math.min(batchStart + PARALLEL_RANGE_SIZE - 1, total - 1);
+        const end = Math.min(nextByte + rangeSize - 1, total - 1);
         ranges.push({
-          start: batchStart,
+          start: nextByte,
           end,
           tempFile: path.join(tempDir, String(index)),
         });
-        batchStart = end + 1;
+        nextByte = end + 1;
       }
 
       const transfers = ranges.map((range, index) =>
@@ -233,7 +256,9 @@ export async function downloadParallelRanges({
         );
         await fs.promises.unlink(range.tempFile).catch(() => undefined);
       }
+      completedRanges += ranges.length;
     }
+    return nextByte >= total;
   } finally {
     await fs.promises
       .rm(tempDir, { recursive: true, force: true })

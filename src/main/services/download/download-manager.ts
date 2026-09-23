@@ -40,6 +40,7 @@ import { PremiumizeClient } from "./premiumize";
 import { AllDebridClient } from "./all-debrid";
 import { isZipDownloadUrl } from "./debrid-files";
 import { getJsBatchProgress } from "./js-batch-progress";
+import { getRangeSizeForRequestBudget } from "./parallel-range-download";
 import {
   DEFAULT_DOWNLOAD_USER_AGENT,
   JsHttpDownloader,
@@ -103,6 +104,8 @@ interface JsBatchState {
   bytesAtLastSpeedUpdate: number;
   batchSpeed: number;
 }
+
+const TORBOX_MAX_PARALLEL_RANGES = 256;
 
 export class DownloadManager {
   private static downloadingGameId: string | null = null;
@@ -1326,6 +1329,7 @@ export class DownloadManager {
 
         const torBoxTorrentId = batch.torrentId;
         const torBoxFileId = entry.isZip ? "zip" : entry.fileId;
+        const torBoxParallel = batch.provider === "torBox" && !entry.isZip;
         const options = {
           url: resolvedUrl,
           refreshUrl:
@@ -1337,6 +1341,15 @@ export class DownloadManager {
           savePath: batch.savePath,
           allowParallelRanges:
             !entry.isZip && !isZipDownloadUrl(resolvedUrl, entry.filename),
+          parallelRangeSize: torBoxParallel
+            ? getRangeSizeForRequestBudget(
+                entry.size ?? 0,
+                TORBOX_MAX_PARALLEL_RANGES
+              )
+            : undefined,
+          maxParallelRanges: torBoxParallel
+            ? TORBOX_MAX_PARALLEL_RANGES
+            : undefined,
           preserveFilename: true,
           // TorBox creates ZIPs on demand and cannot resume their byte stream.
           allowResume: !entry.isZip,

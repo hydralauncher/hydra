@@ -7,6 +7,7 @@ import { afterEach, describe, it } from "node:test";
 
 import {
   downloadParallelRanges,
+  getRangeSizeForRequestBudget,
   getRangeTotal,
   PARALLEL_RANGE_SIZE,
   ParallelRangeUnsupportedError,
@@ -42,6 +43,7 @@ afterEach(async () => {
 async function startServer(breakSecondRange = false, hangRangeStart?: number) {
   let active = 0;
   let peakActive = 0;
+  let rangeRequests = 0;
   const server = http.createServer((request, response) => {
     const match = /^bytes=(\d+)-(\d+)$/.exec(request.headers.range ?? "");
     if (!match) {
@@ -52,6 +54,7 @@ async function startServer(breakSecondRange = false, hangRangeStart?: number) {
 
     const start = Number(match[1]);
     const end = Math.min(Number(match[2]), contents.length - 1);
+    rangeRequests++;
     if (start === hangRangeStart) return;
     if (breakSecondRange && start === PARALLEL_RANGE_SIZE * 4) {
       response.writeHead(200, { "content-length": contents.length });
@@ -87,13 +90,16 @@ async function startServer(breakSecondRange = false, hangRangeStart?: number) {
   return {
     url: `http://127.0.0.1:${address.port}/file`,
     getPeakActive: () => peakActive,
+    getRangeRequests: () => rangeRequests,
   };
 }
 
 async function runDownload(
   url: string,
   startByte = 0,
-  onReadPending: (offset: number, pending: boolean) => void = () => undefined
+  onReadPending: (offset: number, pending: boolean) => void = () => undefined,
+  rangeSize = PARALLEL_RANGE_SIZE,
+  maxRanges?: number
 ) {
   const directory = await fs.promises.mkdtemp(
     path.join(os.tmpdir(), "hydra-range-test-")
@@ -101,7 +107,7 @@ async function runDownload(
   temporaryDirectories.push(directory);
   const filePath = path.join(directory, "download");
   await fs.promises.writeFile(filePath, contents.subarray(0, startByte));
-  const end = startByte + PARALLEL_RANGE_SIZE - 1;
+  const end = startByte + rangeSize - 1;
   const controller = new AbortController();
   const firstResponse = await fetch(url, {
     headers: { Range: `bytes=${startByte}-${end}` },
@@ -116,6 +122,8 @@ async function runDownload(
     filePath,
     startByte,
     total,
+    rangeSize,
+    maxRanges,
     signal: controller.signal,
     abort: () => controller.abort(),
     beforeChunk: async () => undefined,
@@ -150,6 +158,43 @@ describe("parallel HTTP byte ranges", () => {
     const { download, filePath } = await runDownload(server.url, startByte);
     await download;
     assert.deepEqual(await fs.promises.readFile(filePath), contents);
+  });
+
+  it("uses larger ranges to reduce requests for large files", async () => {
+    const server = await startServer();
+    const rangeSize = PARALLEL_RANGE_SIZE * 2;
+    const { download, filePath } = await runDownload(
+      server.url,
+      0,
+      () => undefined,
+      rangeSize
+    );
+    assert.equal(await download, true);
+    assert.equal(server.getRangeRequests(), 3);
+    assert.deepEqual(await fs.promises.readFile(filePath), contents);
+  });
+
+  it("commits a prefix before the range request budget is reached", async () => {
+    const server = await startServer();
+    const { download, filePath } = await runDownload(
+      server.url,
+      0,
+      () => undefined,
+      PARALLEL_RANGE_SIZE,
+      4
+    );
+    assert.equal(await download, false);
+    assert.equal(server.getRangeRequests(), 4);
+    assert.deepEqual(
+      await fs.promises.readFile(filePath),
+      contents.subarray(0, PARALLEL_RANGE_SIZE * 4)
+    );
+  });
+
+  it("plans fewer than 256 range requests for the stalled file size", () => {
+    const rangeSize = getRangeSizeForRequestBudget(3056294936, 256);
+    assert.equal(rangeSize, PARALLEL_RANGE_SIZE * 2);
+    assert.ok(Math.ceil(3056294936 / rangeSize) < 256);
   });
 
   it("leaves completed batches intact when a later request ignores Range", async () => {

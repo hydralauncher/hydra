@@ -15,7 +15,7 @@ const getTorBoxFiles = async (
   }
 
   try {
-    const manifest = await TorBoxClient.getDownloadFiles(magnet);
+    const manifest = await TorBoxClient.getDownloadFiles(magnet, true);
     return {
       ok: true,
       data: {
