@@ -25,6 +25,13 @@ export class ParallelRangeUnsupportedError extends Error {
   readonly retryable = true;
 }
 
+export function shouldDowngradeParallelRanges(
+  error: unknown,
+  failureCount: number
+): boolean {
+  return error instanceof ParallelRangeUnsupportedError || failureCount >= 2;
+}
+
 export function getRangeTotal(
   response: Response,
   start: number,

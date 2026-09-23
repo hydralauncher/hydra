@@ -3,17 +3,17 @@ import type { RealDebridTorrentInfo } from "../../../types/download.types.js";
 
 const LINK_POLL_ATTEMPTS = 10;
 const LINK_POLL_DELAY_MS = 1000;
-const PROVIDER_LINK_SETTLE_MS = 60_000;
 
 const waitForNextPoll = () =>
   new Promise<void>((resolve) => setTimeout(resolve, LINK_POLL_DELAY_MS));
 
 export async function waitForRealDebridLinks(
   getInfo: () => Promise<RealDebridTorrentInfo>,
-  wait: () => Promise<void> = waitForNextPoll
+  wait: () => Promise<void> = waitForNextPoll,
+  initialInfo?: RealDebridTorrentInfo
 ) {
   for (let attempt = 0; attempt < LINK_POLL_ATTEMPTS; attempt++) {
-    const info = await getInfo();
+    const info = attempt === 0 && initialInfo ? initialInfo : await getInfo();
     if (info.status !== "downloaded") return null;
 
     const selectedFiles = info.files.filter((file) => file.selected);
@@ -41,18 +41,15 @@ export async function waitForRealDebridLinks(
 
 export function isRealDebridArchiveCandidate(
   info: RealDebridTorrentInfo,
-  selectedIndices?: number[],
-  now = Date.now()
+  selectedIndices?: number[]
 ) {
   const selectedFiles = info.files.filter((file) => file.selected);
-  const endedAt = Date.parse(info.ended);
 
   if (
     info.status !== "downloaded" ||
     info.links.length !== 1 ||
     selectedFiles.length < 2 ||
-    !Number.isFinite(endedAt) ||
-    now - endedAt < PROVIDER_LINK_SETTLE_MS
+    !Number.isFinite(Date.parse(info.ended))
   ) {
     return false;
   }
@@ -73,10 +70,9 @@ export function isRealDebridArchiveCandidate(
 export function canUseRealDebridArchiveLink(
   info: RealDebridTorrentInfo,
   filename: string,
-  selectedIndices?: number[],
-  now = Date.now()
+  selectedIndices?: number[]
 ) {
-  if (!isRealDebridArchiveCandidate(info, selectedIndices, now)) return false;
+  if (!isRealDebridArchiveCandidate(info, selectedIndices)) return false;
 
   const normalizedFilename = filename.split(/[\\/]/).at(-1)?.toLowerCase();
   if (!normalizedFilename || !/\.(zip|rar|7z)$/.test(normalizedFilename)) {
@@ -94,10 +90,10 @@ export function hasRealDebridSelection(
   info: RealDebridTorrentInfo,
   selectedIndices?: number[]
 ): boolean {
-  if (!selectedIndices) return true;
-
   const selected = info.files.filter((file) => file.selected);
-  const requested = new Set(selectedIndices);
+  const requested = new Set(
+    selectedIndices ?? info.files.map((file) => file.id)
+  );
   return (
     requested.size === selected.length &&
     selected.every((file) => requested.has(file.id))

@@ -24,6 +24,7 @@ import {
   getRangeTotal,
   PARALLEL_RANGE_SIZE,
   ParallelRangeUnsupportedError,
+  shouldDowngradeParallelRanges,
 } from "./parallel-range-download";
 import { verifyResumePrefixChunk } from "./resume-prefix";
 
@@ -114,6 +115,7 @@ export class JsHttpDownloader {
   private throttleWindowStart = Date.now();
   private bytesTransferredInThrottleWindow = 0;
   private parallelRangesDisabled = false;
+  private parallelRangeFailures = 0;
   private pendingRangeReads = new Map<number, number>();
   private urlRefreshAttempted = false;
   private activeRun: Promise<void> | null = null;
@@ -151,6 +153,7 @@ export class JsHttpDownloader {
     this.resolvedFilename = null;
     this.pendingReadSince = null;
     this.parallelRangesDisabled = false;
+    this.parallelRangeFailures = 0;
     this.pendingRangeReads.clear();
     this.urlRefreshAttempted = false;
     this.resetThrottleWindow();
@@ -283,18 +286,6 @@ export class JsHttpDownloader {
       wasStallRetry || wasReconnect || isRetryableDownloadError(err);
     const transientStatus =
       err instanceof HttpDownloadStatusError && err.retryable;
-
-    if (
-      isRetryable &&
-      !wasReconnect &&
-      !this.parallelRangesDisabled &&
-      this.currentOptions?.allowParallelRanges !== false
-    ) {
-      this.parallelRangesDisabled = true;
-      logger.log(
-        "[JsHttpDownloader] Range request failed; resuming with one connection"
-      );
-    }
 
     this.maybeResetRetryBudget();
 
@@ -629,12 +620,22 @@ export class JsHttpDownloader {
           if (
             !this.isPaused &&
             !this.isReconnectRetry &&
+            !(error instanceof ParallelRangeUnsupportedError) &&
             (this.isStallRetry || isRetryableDownloadError(error))
           ) {
-            this.parallelRangesDisabled = true;
-            logger.log(
-              "[JsHttpDownloader] Parallel transfer failed; resuming with one connection"
-            );
+            this.parallelRangeFailures++;
+            if (
+              shouldDowngradeParallelRanges(error, this.parallelRangeFailures)
+            ) {
+              this.parallelRangesDisabled = true;
+              logger.log(
+                "[JsHttpDownloader] Parallel transfer failed twice; resuming with one connection"
+              );
+            } else {
+              logger.log(
+                "[JsHttpDownloader] Parallel transfer failed once; retrying byte ranges"
+              );
+            }
           }
           // Discarded temporary ranges do not count as durable progress.
           const committed = fs.existsSync(actualFilePath)

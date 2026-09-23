@@ -11,6 +11,7 @@ import {
   getRangeTotal,
   PARALLEL_RANGE_SIZE,
   ParallelRangeUnsupportedError,
+  shouldDowngradeParallelRanges,
 } from "./parallel-range-download.ts";
 
 const total = PARALLEL_RANGE_SIZE * 4 + 1024 * 1024;
@@ -176,6 +177,15 @@ describe("parallel HTTP byte ranges", () => {
     await download;
     assert.deepEqual(await fs.promises.readFile(filePath), contents);
     assert.equal(server.getPeakActive(), 2);
+  });
+
+  it("keeps concurrent transfers after one transient failure", () => {
+    assert.equal(shouldDowngradeParallelRanges(new Error("network"), 1), false);
+    assert.equal(shouldDowngradeParallelRanges(new Error("network"), 2), true);
+    assert.equal(
+      shouldDowngradeParallelRanges(new ParallelRangeUnsupportedError(), 1),
+      true
+    );
   });
 
   it("appends to a previously downloaded prefix", async () => {

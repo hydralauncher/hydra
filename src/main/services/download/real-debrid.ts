@@ -164,7 +164,10 @@ export class RealDebridClient {
       }
       throw error;
     }
-    if (selectedIndices && info.status !== "waiting_files_selection") {
+    if (
+      info.status !== "waiting_files_selection" &&
+      (selectedIndices !== undefined || info.status === "downloaded")
+    ) {
       if (!hasRealDebridSelection(info, selectedIndices)) {
         const { infoHash } = await parseTorrent(uri);
         const torrent = await this.addMagnet(uri);
@@ -223,14 +226,18 @@ export class RealDebridClient {
       ];
     };
 
-    // A settled archive will never grow per-file links. Avoid polling it on
-    // every start and resume before using the already verified archive link.
+    // A verified provider archive can start immediately, even if its torrent
+    // only just finished and its file/link counts differ.
     const archive = await resolveArchive(info);
     if (archive) return { torrentId: info.id, entries: archive };
 
     let ready;
     try {
-      ready = await waitForRealDebridLinks(() => this.getTorrentInfo(info.id));
+      ready = await waitForRealDebridLinks(
+        () => this.getTorrentInfo(info.id),
+        undefined,
+        info.status === "downloaded" ? info : undefined
+      );
     } catch (error) {
       if (
         !(error instanceof Error) ||

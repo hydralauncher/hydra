@@ -18,6 +18,17 @@ const infoWithLinks = (links: string[]) =>
   ({ status: "downloaded", files, links }) as RealDebridTorrentInfo;
 
 describe("Real-Debrid link readiness", () => {
+  it("uses ready metadata without requesting it a second time", async () => {
+    const result = await waitForRealDebridLinks(
+      async () => {
+        throw new Error("unexpected metadata request");
+      },
+      async () => undefined,
+      infoWithLinks(["first", "second"])
+    );
+    assert.deepEqual(result?.info.links, ["first", "second"]);
+  });
+
   it("waits for all selected file links before pairing them", async () => {
     let requests = 0;
     let waits = 0;
@@ -67,30 +78,17 @@ describe("Real-Debrid link readiness", () => {
     assert.equal(waits, 0);
   });
 
-  it("accepts a settled archive for an unchanged selection", () => {
-    const now = Date.parse("2026-01-01T01:02:00Z");
+  it("accepts a verified archive without a fixed age delay", () => {
     const info = {
       ...infoWithLinks(["restricted"]),
       ended: "2026-01-01T01:00:00Z",
     };
 
-    assert.equal(isRealDebridArchiveCandidate(info, undefined, now), true);
-    assert.equal(
-      canUseRealDebridArchiveLink(info, "bundle.zip", undefined, now),
-      true
-    );
-    assert.equal(
-      canUseRealDebridArchiveLink(info, "a.bin", undefined, now),
-      false
-    );
-    assert.equal(
-      canUseRealDebridArchiveLink(info, "a.bin.zip", [1], now),
-      false
-    );
-    assert.equal(
-      canUseRealDebridArchiveLink(info, "bundle.zip", undefined, now - 61_000),
-      false
-    );
+    assert.equal(isRealDebridArchiveCandidate(info), true);
+    assert.equal(canUseRealDebridArchiveLink(info, "bundle.zip"), true);
+    assert.equal(canUseRealDebridArchiveLink(info, "a.bin"), false);
+    assert.equal(canUseRealDebridArchiveLink(info, "a.bin.zip", [1]), false);
+    assert.equal(isRealDebridArchiveCandidate({ ...info, ended: "" }), false);
   });
 
   it("requires a new torrent when the requested files differ", () => {
@@ -99,5 +97,15 @@ describe("Real-Debrid link readiness", () => {
     assert.equal(hasRealDebridSelection(info, [1]), false);
     assert.equal(hasRealDebridSelection(info, [1, 3]), false);
     assert.equal(hasRealDebridSelection(info), true);
+    assert.equal(
+      hasRealDebridSelection(
+        {
+          ...info,
+          files: [files[0], { ...files[1], selected: 0 }],
+        },
+        undefined
+      ),
+      false
+    );
   });
 });
