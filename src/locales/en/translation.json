@@ -191,7 +191,7 @@
   },
   "bottom_panel": {
     "reconnecting": "Reconnecting {{title}}…",
-    "recovering": "Recovering {{title}}… ({{percentage}})",
+    "recovering": "Re-downloading the saved portion of {{title}}… ({{percentage}})",
     "no_downloads_in_progress": "No downloads in progress",
     "downloading_metadata": "Downloading {{title}} metadata…",
     "downloading": "Downloading {{title}}… ({{percentage}} complete) - Completion {{eta}} - {{speed}}",
@@ -987,7 +987,7 @@
   },
   "downloads": {
     "reconnecting": "Reconnecting…",
-    "recovering": "Recovering download… {{percentage}}",
+    "recovering": "Re-downloading the saved portion… {{percentage}}",
     "resume": "Resume",
     "pause": "Pause",
     "eta": "Completion {{eta}}",

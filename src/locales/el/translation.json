@@ -182,7 +182,7 @@
   },
   "bottom_panel": {
     "reconnecting": "Επανασύνδεση του {{title}}…",
-    "recovering": "Ανάκτηση του {{title}}… ({{percentage}})",
+    "recovering": "Εκ νέου λήψη του αποθηκευμένου τμήματος του {{title}}… ({{percentage}})",
     "no_downloads_in_progress": "Δεν υπάρχουν λήψεις σε εξέλιξη",
     "downloading_metadata": "Λήψη μεταδεδομένων του {{title}}…",
     "downloading": "Λήψη του {{title}}… ({{percentage}} ολοκληρωμένη) - Εκτιμώμενος χρόνος ολοκλήρωσης {{eta}} - {{speed}}",
@@ -734,7 +734,7 @@
   },
   "downloads": {
     "reconnecting": "Επανασύνδεση…",
-    "recovering": "Ανάκτηση λήψης… {{percentage}}",
+    "recovering": "Εκ νέου λήψη του αποθηκευμένου τμήματος… {{percentage}}",
     "resume": "Συνέχιση",
     "pause": "Παύση",
     "eta": "Ολοκλήρωση {{eta}}",

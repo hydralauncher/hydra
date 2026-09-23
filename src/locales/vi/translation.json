@@ -191,7 +191,7 @@
   },
   "bottom_panel": {
     "reconnecting": "Đang kết nối lại {{title}}…",
-    "recovering": "Đang khôi phục {{title}}… ({{percentage}})",
+    "recovering": "Đang tải lại phần đã lưu của {{title}}… ({{percentage}})",
     "no_downloads_in_progress": "Không có lượt tải nào đang diễn ra",
     "downloading_metadata": "Đang tải metadata của {{title}}…",
     "downloading": "Đang tải {{title}}… (hoàn tất {{percentage}}) - Còn lại {{eta}} - {{speed}}",
@@ -743,7 +743,7 @@
   },
   "downloads": {
     "reconnecting": "Đang kết nối lại…",
-    "recovering": "Đang khôi phục lượt tải… {{percentage}}",
+    "recovering": "Đang tải lại phần đã lưu… {{percentage}}",
     "resume": "Tiếp tục",
     "pause": "Tạm dừng",
     "eta": "Còn lại {{eta}}",

@@ -197,7 +197,7 @@
   },
   "bottom_panel": {
     "reconnecting": "Reconectando {{title}}…",
-    "recovering": "Recuperando {{title}}… ({{percentage}})",
+    "recovering": "Baixando novamente a parte já salva de {{title}}… ({{percentage}})",
     "no_downloads_in_progress": "Sem downloads em andamento",
     "downloading_metadata": "Baixando metadados de {{title}}…",
     "downloading": "Baixando {{title}}… ({{percentage}} concluído) - Conclusão {{eta}} - {{speed}}",
@@ -951,7 +951,7 @@
   },
   "downloads": {
     "reconnecting": "Reconectando…",
-    "recovering": "Recuperando download… {{percentage}}",
+    "recovering": "Baixando novamente a parte já salva… {{percentage}}",
     "resume": "Retomar",
     "pause": "Pausar",
     "eta": "Conclusão {{eta}}",

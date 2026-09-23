@@ -211,7 +211,7 @@
     "downloading_batch": "Téléchargement de {{title}}… ({{percentage}} terminé {{filesDownloaded}}/{{filesTotal}} fichiers) - Fin estimée {{eta}} - {{speed}}",
     "calculating_eta_batch": "Téléchargement de {{title}}… ({{percentage}} terminé {{filesDownloaded}}/{{filesTotal}} fichiers) - Calcul du temps restant…",
     "reconnecting": "Reconnexion {{title}}…",
-    "recovering": "Récupération {{title}}… ({{percentage}})"
+    "recovering": "Nouveau téléchargement de la partie enregistrée de {{title}}… ({{percentage}})"
   },
   "catalogue": {
     "search": "Filtrer…",
@@ -1035,7 +1035,7 @@
     "download_halted_title": "Téléchargement interrompu",
     "download_halted_description": "{{title}} a été interrompu car le dossier de téléchargement n'a plus assez d'espace. Libérez de l'espace puis reprenez le téléchargement.",
     "reconnecting": "Reconnexion…",
-    "recovering": "Récupération du téléchargement… {{percentage}}"
+    "recovering": "Nouveau téléchargement de la partie enregistrée… {{percentage}}"
   },
   "settings": {
     "integration_connect": "Connecter",

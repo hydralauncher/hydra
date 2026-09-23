@@ -165,7 +165,7 @@
   },
   "bottom_panel": {
     "reconnecting": "Menghubungkan kembali ke {{title}}…",
-    "recovering": "Memulihkan {{title}}… ({{percentage}})",
+    "recovering": "Mengunduh ulang bagian tersimpan dari {{title}}… ({{percentage}})",
     "no_downloads_in_progress": "Tidak ada unduhan yang sedang berlangsung",
     "downloading_metadata": "Mengunduh metadata {{title}}…",
     "downloading": "Mengunduh {{title}}… ({{percentage}} selesai) - Perkiraan selesai {{eta}} - {{speed}}",
@@ -705,7 +705,7 @@
   },
   "downloads": {
     "reconnecting": "Menghubungkan kembali…",
-    "recovering": "Memulihkan unduhan… {{percentage}}",
+    "recovering": "Mengunduh ulang bagian tersimpan… {{percentage}}",
     "resume": "Lanjutkan",
     "pause": "Jeda",
     "eta": "Perkiraan selesai {{eta}}",
