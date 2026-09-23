@@ -128,6 +128,10 @@ export function Sidebar() {
     isLoading: boolean;
     data: ProtonDBData | null;
   }>({ isLoading: shouldShowProtonFeatures, data: null });
+  const [storeAvailability, setStoreAvailability] = useState<{
+    gameKey: string;
+    shops: string[];
+  } | null>(null);
 
   const { userDetails, hasActiveSubscription } = useUserDetails();
   const [activeRequirement, setActiveRequirement] =
@@ -165,6 +169,34 @@ export function Sidebar() {
     (shop === "launchbox" &&
       !!shopDetails?.retroAchievementsGameId &&
       !userPreferences?.retroAchievementsWebApiKey);
+
+  useEffect(() => {
+    if (!objectId || (shop !== "steam" && shop !== "epic")) return;
+
+    const gameKey = `${shop}:${objectId}`;
+    let cancelled = false;
+
+    window.electron.hydraApi
+      .get<{ availableShops?: string[] }>(
+        `/games/${shop}/${encodeURIComponent(objectId)}`,
+        { needsAuth: false }
+      )
+      .then(({ availableShops }) => {
+        if (!cancelled) {
+          setStoreAvailability({
+            gameKey,
+            shops: Array.isArray(availableShops) ? availableShops : [],
+          });
+        }
+      })
+      .catch(() => {
+        if (!cancelled) setStoreAvailability(null);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [objectId, shop]);
 
   useEffect(() => {
     if (objectId) {
@@ -329,7 +361,14 @@ export function Sidebar() {
                   <DeviceDesktopIcon size={18} aria-hidden="true" />
                   {t("platforms", { ns: "catalogue" })}
                 </p>
-                <StoreIcons shops={[shop]} />
+                <StoreIcons
+                  shops={[
+                    shop,
+                    ...(storeAvailability?.gameKey === `${shop}:${objectId}`
+                      ? storeAvailability.shops
+                      : []),
+                  ]}
+                />
               </div>
             )}
             <div className="stats__category">
