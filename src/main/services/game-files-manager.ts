@@ -184,64 +184,81 @@ export class GameFilesManager {
       return false;
     }
 
-    let files: string[];
-    try {
-      files = await fs.promises.readdir(directoryPath);
-    } catch (error) {
-      await this.setExtractionFailedState(error, directoryPath);
-      return false;
-    }
+    const compressedFiles = new Set<string>();
+    const extractedFiles = new Set<string>();
 
-    const compressedFiles = files.filter((file) =>
-      FILE_EXTENSIONS_TO_EXTRACT.some((ext) => file.toLowerCase().endsWith(ext))
-    );
-
-    const filesToExtract = compressedFiles.filter(
-      (file) => /part1\.rar$/i.test(file) || !/part\d+\.rar$/i.test(file)
-    );
-
-    if (filesToExtract.length === 0) return true;
-
-    this.updateExtractionProgress(0, true);
-
-    const totalFiles = filesToExtract.length;
-    let completedFiles = 0;
-
-    for (const file of filesToExtract) {
+    // A provider ZIP can contain the torrent's original archive. Scan again
+    // after extraction, but stop after one nested layer.
+    for (let pass = 0; pass < 2; pass++) {
+      let files: string[];
       try {
-        const result = await SevenZip.extractFile(
-          {
-            filePath: path.join(directoryPath, file),
-            cwd: directoryPath,
-            passwords: ["online-fix.me", "steamrip.com"],
-          },
-          (progress) => {
-            const overallProgress =
-              (completedFiles + progress.percent / 100) / totalFiles;
-            this.updateExtractionProgress(overallProgress);
-          }
-        );
+        files = await fs.promises.readdir(directoryPath);
+      } catch (error) {
+        await this.setExtractionFailedState(error, directoryPath);
+        return false;
+      }
 
-        if (result.success) {
-          completedFiles++;
-          this.updateExtractionProgress(completedFiles / totalFiles, true);
-        } else {
+      const archives = files.filter((file) =>
+        FILE_EXTENSIONS_TO_EXTRACT.some((ext) =>
+          file.toLowerCase().endsWith(ext)
+        )
+      );
+      archives.forEach((file) => compressedFiles.add(file));
+      const filesToExtract = archives.filter(
+        (file) =>
+          !extractedFiles.has(file) &&
+          (/part1\.rar$/i.test(file) || !/part\d+\.rar$/i.test(file))
+      );
+
+      if (filesToExtract.length === 0) break;
+
+      if (pass === 0) this.updateExtractionProgress(0, true);
+
+      let completedFiles = 0;
+      for (const file of filesToExtract) {
+        try {
+          const result = await SevenZip.extractFile(
+            {
+              filePath: path.join(directoryPath, file),
+              cwd: directoryPath,
+              passwords: ["online-fix.me", "steamrip.com"],
+            },
+            (progress) => {
+              const passProgress =
+                (completedFiles + progress.percent / 100) /
+                filesToExtract.length;
+              this.updateExtractionProgress((pass + passProgress) / 2);
+            }
+          );
+
+          if (result.success) {
+            completedFiles++;
+            extractedFiles.add(file);
+            this.updateExtractionProgress(
+              (pass + completedFiles / filesToExtract.length) / 2,
+              true
+            );
+          } else {
+            await this.setExtractionFailedState(
+              new Error(`7zip returned unsuccessful extraction for ${file}`),
+              path.join(directoryPath, file)
+            );
+            return false;
+          }
+        } catch (err) {
           await this.setExtractionFailedState(
-            new Error(`7zip returned unsuccessful extraction for ${file}`),
+            err,
             path.join(directoryPath, file)
           );
           return false;
         }
-      } catch (err) {
-        await this.setExtractionFailedState(
-          err,
-          path.join(directoryPath, file)
-        );
-        return false;
       }
     }
 
-    const archivePaths = compressedFiles
+    if (extractedFiles.size === 0) return true;
+    this.updateExtractionProgress(1, true);
+
+    const archivePaths = [...compressedFiles]
       .map((file) => path.join(directoryPath, file))
       .filter((archivePath) => fs.existsSync(archivePath));
 
