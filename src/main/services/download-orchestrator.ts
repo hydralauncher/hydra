@@ -1,5 +1,6 @@
 import { downloadsSublevel, levelKeys } from "@main/level";
 import { DownloadManager } from "./download/download-manager";
+import { RealDebridClient } from "./download/real-debrid";
 import { isDebridPendingError } from "./download/debrid-pending";
 import { WindowManager } from "./window-manager";
 import { logger } from "./logger";
@@ -472,6 +473,39 @@ export class DownloadOrchestrator {
       ) ?? null;
 
     if (currentActiveDownload) {
+      if (
+        download.downloader === Downloader.RealDebrid &&
+        download.uri.startsWith("magnet:")
+      ) {
+        try {
+          const resolved = await RealDebridClient.getDownloadEntriesWithTorrent(
+            download.uri,
+            download.fileIndices,
+            download.realDebridTorrentId
+          );
+          if (!isCurrent()) return { ok: true };
+          if (resolved.torrentId) {
+            download.realDebridTorrentId = resolved.torrentId;
+          }
+          if (!resolved.entries?.length) {
+            await this.saveAwaitingDebridDownload(download);
+            return { ok: true };
+          }
+        } catch (error) {
+          if (!isCurrent()) return { ok: true };
+          if (isDebridPendingError(error, download.downloader)) {
+            await this.saveAwaitingDebridDownload(download);
+            return { ok: true };
+          }
+          await downloadsSublevel.put(getGameKey(download), {
+            ...download,
+            status: "error",
+            queued: false,
+          });
+          WindowManager.sendDownloadsUpdated();
+          throw error;
+        }
+      }
       await this.queueDownload(download);
       WindowManager.sendDownloadsUpdated();
       return { ok: true };
