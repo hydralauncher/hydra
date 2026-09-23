@@ -161,7 +161,10 @@ export class GameFilesManager {
     this.updateExtractionProgress(progress.percent / 100);
   };
 
-  async extractFilesInDirectory(directoryPath: string): Promise<boolean> {
+  async extractFilesInDirectory(
+    directoryPath: string,
+    outerArchivePath?: string
+  ): Promise<boolean> {
     let pathType: Awaited<ReturnType<typeof getPathType>>;
     try {
       pathType = await getPathType(directoryPath);
@@ -210,7 +213,7 @@ export class GameFilesManager {
           (/part1\.rar$/i.test(file) || !/part\d+\.rar$/i.test(file))
       );
 
-      if (filesToExtract.length === 0) break;
+      if (filesToExtract.length === 0) continue;
 
       if (pass === 0) this.updateExtractionProgress(0, true);
 
@@ -257,6 +260,13 @@ export class GameFilesManager {
 
     if (extractedFiles.size === 0) return true;
     this.updateExtractionProgress(1, true);
+
+    if (outerArchivePath) {
+      // The inner archives remain available; remove the generated wrapper only
+      // after every discovered archive has extracted successfully.
+      await deleteArchiveFile(outerArchivePath);
+      return true;
+    }
 
     const archivePaths = [...compressedFiles]
       .map((file) => path.join(directoryPath, file))
@@ -860,8 +870,10 @@ export class GameFilesManager {
       );
 
       if (result.success) {
-        const extractedNestedArchives =
-          await this.extractFilesInDirectory(extractionPath);
+        const extractedNestedArchives = await this.extractFilesInDirectory(
+          extractionPath,
+          filePath
+        );
 
         if (!extractedNestedArchives) {
           return false;
