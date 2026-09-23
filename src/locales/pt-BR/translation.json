@@ -267,6 +267,7 @@
     "close": "Fechar",
     "deleting": "Excluindo instalador…",
     "playing_now": "Jogando agora",
+    "streaming_now": "Transmitindo agora",
     "change": "Explorar",
     "repacks_modal_description": "Escolha o repack do jogo que deseja baixar",
     "select_folder_hint": "Para trocar o diretório padrão, acesse a <0>Tela de Ajustes</0>",
@@ -1055,6 +1056,7 @@
     "behavior": "Comportamento",
     "app_basics": "Noções básicas do aplicativo",
     "startup_behavior": "Comportamento na inicialização",
+    "console_streaming": "Streaming de console",
     "download_behavior": "Comportamento de download",
     "network_interface": "Adaptador de rede para torrents",
     "network_interface_default": "Padrão (todos os adaptadores)",
@@ -1676,7 +1678,8 @@
     "wayland_souvenirs_warning_title": "Lembranças no Wayland",
     "wayland_souvenirs_warning_description": "Devido à natureza do Wayland, o Hydra precisa perguntar qual janela deve ser capturada toda vez que você abrir um jogo. Selecione a janela do jogo para que o Hydra possa capturar lembranças quando você desbloquear conquistas. Sem selecionar uma janela, não é possível capturar lembranças.",
     "wayland_souvenirs_warning_cancel": "Cancelar",
-    "wayland_souvenirs_warning_confirm": "OK"
+    "wayland_souvenirs_warning_confirm": "OK",
+    "enable_console_streaming": "Ativar streaming de console (Moonlight)"
   },
   "notifications": {
     "download_complete": "Download concluído",
@@ -1761,7 +1764,13 @@
     "platforms": "Plataformas"
   },
   "modal": {
-    "close": "Botão de fechar"
+    "close": "Botão de fechar",
+    "stream_pairing_title": "Parear dispositivo de streaming",
+    "stream_pairing_description": "Insira o PIN exibido no seu dispositivo Moonlight para pareá-lo com o Hydra.",
+    "stream_pairing_placeholder": "PIN",
+    "stream_pairing_submit": "Confirmar",
+    "stream_pairing_error_invalid_pin": "PIN incorreto. Verifique o PIN no dispositivo e tente novamente.",
+    "stream_pairing_error_no_session": "A sessão de pareamento expirou. Inicie o pareamento novamente no dispositivo."
   },
   "forms": {
     "toggle_password_visibility": "Alternar visibilidade da senha"

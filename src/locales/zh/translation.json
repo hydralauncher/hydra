@@ -520,7 +520,8 @@
     "source_offline": "Source is offline",
     "create_steam_shortcut_modal_vr_flag": "VR Game (In Steam: update the VR flag or delete/recreate the shortcut)",
     "create_steam_shortcut_modal_create_button": "Create",
-    "create_steam_shortcut_modal_cancel_button": "Cancel"
+    "create_steam_shortcut_modal_cancel_button": "Cancel",
+    "streaming_now": "正在串流"
   },
   "activation": {
     "title": "激活 Hydra",
@@ -784,7 +785,9 @@
     "proton_version_auto": "Auto (global default or umu default)",
     "proton_source_umu_default": "umu default selection",
     "proton_source_steam": "Installed by Steam",
-    "proton_source_compatibility_tools": "Installed in Steam compatibilitytools.d"
+    "proton_source_compatibility_tools": "Installed in Steam compatibilitytools.d",
+    "console_streaming": "主机串流",
+    "enable_console_streaming": "启用主机串流 (Moonlight)"
   },
   "notifications": {
     "download_complete": "下载完成",
@@ -827,7 +830,13 @@
     "toggle_password_visibility": "切换密码可见性"
   },
   "modal": {
-    "close": "关闭按钮"
+    "close": "关闭按钮",
+    "stream_pairing_title": "配对串流设备",
+    "stream_pairing_description": "输入 Moonlight 设备上显示的 PIN，将其与 Hydra 配对。",
+    "stream_pairing_placeholder": "PIN",
+    "stream_pairing_submit": "确认",
+    "stream_pairing_error_invalid_pin": "PIN 不正确。请检查您设备上的 PIN，然后重试。",
+    "stream_pairing_error_no_session": "配对会话已过期。请从您的设备重新开始配对。"
   },
   "user_profile": {
     "amount_hours": "{{amount}} 小时",

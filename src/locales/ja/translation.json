@@ -542,7 +542,8 @@
     "create_steam_shortcut_modal_cancel_button": "キャンセル",
     "delete_shortcut_success": "Steamショートカットを削除しました",
     "delete_shortcut_error": "Steamショートカットの削除に失敗しました",
-    "delete_steam_shortcut": "Steamショートカットを削除"
+    "delete_steam_shortcut": "Steamショートカットを削除",
+    "streaming_now": "配信中"
   },
   "activation": {
     "title": "Hydraをアクティベート",
@@ -808,7 +809,9 @@
     "create_shortcuts_on_download": "ゲームのダウンロード完了時にデスクトップとスタートメニューのショートカットを作成",
     "default_wine_prefix": "デフォルトのWineプレフィックスの場所",
     "default_proton_version": "デフォルトProtonバージョン",
-    "default_proton_version_description": "カスタムオーバーライドがないゲームで自動モードが使用するProtonバージョンを選択"
+    "default_proton_version_description": "カスタムオーバーライドがないゲームで自動モードが使用するProtonバージョンを選択",
+    "console_streaming": "コンソールストリーミング",
+    "enable_console_streaming": "コンソールストリーミングを有効にする (Moonlight)"
   },
   "notifications": {
     "download_complete": "ダウンロード完了",
@@ -848,7 +851,13 @@
     "instructions": "ゲームインストーラーを実行するために、Linuxディストリビューションにumu-runまたはWineをインストールしてください"
   },
   "modal": {
-    "close": "閉じるボタン"
+    "close": "閉じるボタン",
+    "stream_pairing_title": "ストリーミングデバイスをペアリング",
+    "stream_pairing_description": "Moonlight デバイスに表示された PIN を入力して Hydra とペアリングします。",
+    "stream_pairing_placeholder": "PIN",
+    "stream_pairing_submit": "確認",
+    "stream_pairing_error_invalid_pin": "PINが正しくありません。デバイスに表示されたPINを確認して、もう一度お試しください。",
+    "stream_pairing_error_no_session": "ペアリングセッションの有効期限が切れました。デバイスからペアリングをやり直してください。"
   },
   "forms": {
     "toggle_password_visibility": "パスワードの表示を切り替え"

@@ -517,7 +517,8 @@
     "hide": "Hide",
     "create_steam_shortcut_modal_vr_flag": "VR Game (In Steam: update the VR flag or delete/recreate the shortcut)",
     "create_steam_shortcut_modal_create_button": "Create",
-    "create_steam_shortcut_modal_cancel_button": "Cancel"
+    "create_steam_shortcut_modal_cancel_button": "Cancel",
+    "streaming_now": "스트리밍 중"
   },
   "activation": {
     "title": "Hydra 실행",
@@ -781,7 +782,9 @@
     "proton_version_auto": "Auto (global default or umu default)",
     "proton_source_umu_default": "umu default selection",
     "proton_source_steam": "Installed by Steam",
-    "proton_source_compatibility_tools": "Installed in Steam compatibilitytools.d"
+    "proton_source_compatibility_tools": "Installed in Steam compatibilitytools.d",
+    "console_streaming": "콘솔 스트리밍",
+    "enable_console_streaming": "콘솔 스트리밍 활성화 (Moonlight)"
   },
   "notifications": {
     "download_complete": "다운로드 완료",
@@ -821,7 +824,13 @@
     "instructions": "게임이 정상적으로 실행될 수 있게 당신의 리눅스 배포판에 Wine 또는 Lutris를 올바르게 설치해 주세요"
   },
   "modal": {
-    "close": "닫기 버튼"
+    "close": "닫기 버튼",
+    "stream_pairing_title": "스트리밍 기기 페어링",
+    "stream_pairing_description": "Moonlight 기기에 표시된 PIN을 입력하여 Hydra와 페어링하세요.",
+    "stream_pairing_placeholder": "PIN",
+    "stream_pairing_submit": "확인",
+    "stream_pairing_error_invalid_pin": "PIN이 올바르지 않습니다. 기기의 PIN을 확인한 후 다시 시도하세요.",
+    "stream_pairing_error_no_session": "페어링 세션이 만료되었습니다. 기기에서 페어링을 다시 시작하세요."
   },
   "app": {
     "successfully_signed_in": "Successfully signed in"

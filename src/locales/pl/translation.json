@@ -731,7 +731,8 @@
     "create_steam_shortcut_modal_cancel_button": "Anuluj",
     "delete_shortcut_success": "Skrót Steam został pomyślnie usunięty",
     "delete_shortcut_error": "Nie udało się usunąć skrótu Steam",
-    "delete_steam_shortcut": "Usuń skrót Steam"
+    "delete_steam_shortcut": "Usuń skrót Steam",
+    "streaming_now": "Streaming w toku"
   },
   "activation": {
     "title": "Aktywuj Hydrę",
@@ -1336,7 +1337,9 @@
     "big_picture_enable_sounds": "Włącz dźwięki Big Picture",
     "big_picture_enable_virtual_keyboard": "Włącz wirtualną klawiaturę Big Picture",
     "big_picture_enable_diagnostics": "Włącz diagnostykę nawigacji",
-    "big_picture_diagnostics_position": "Pozycja diagnostyki"
+    "big_picture_diagnostics_position": "Pozycja diagnostyki",
+    "console_streaming": "Streaming konsol",
+    "enable_console_streaming": "Włącz streaming konsol (Moonlight)"
   },
   "notifications": {
     "download_complete": "Pobieranie ukończone",
@@ -1380,7 +1383,13 @@
     "instructions": "Zainstaluj umu-run albo Wine w swojej dystrybucji Linuksa, aby instalator gry mógł działać"
   },
   "modal": {
-    "close": "Przycisk zamykania"
+    "close": "Przycisk zamykania",
+    "stream_pairing_title": "Sparuj urządzenie do streamingu",
+    "stream_pairing_description": "Wprowadź PIN wyświetlany na urządzeniu Moonlight, aby sparować je z Hydrą.",
+    "stream_pairing_placeholder": "PIN",
+    "stream_pairing_submit": "Potwierdź",
+    "stream_pairing_error_invalid_pin": "Nieprawidłowy PIN. Sprawdź PIN na swoim urządzeniu i spróbuj ponownie.",
+    "stream_pairing_error_no_session": "Sesja parowania wygasła. Rozpocznij parowanie ponownie ze swojego urządzenia."
   },
   "classics_onboarding": {
     "title": "Witamy w Hydra Classics",

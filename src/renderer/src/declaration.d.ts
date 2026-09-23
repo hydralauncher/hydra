@@ -836,6 +836,14 @@ declare global {
     onUserPreferencesUpdated: (
       cb: (preferences: UserPreferences | null) => void
     ) => () => Electron.IpcRenderer;
+    submitStreamPairingPin: (pin: string) => Promise<string>;
+    onStreamPairingRequest: (cb: () => void) => () => Electron.IpcRenderer;
+    onStreamPairingFinished: (
+      cb: (result: { success: boolean }) => void
+    ) => () => Electron.IpcRenderer;
+    onStreamSessionEvent: (
+      cb: (event: { event: string; state?: string; reason?: string }) => void
+    ) => () => Electron.IpcRenderer;
     autoLaunch: (autoLaunchProps: {
       enabled: boolean;
       minimized: boolean;

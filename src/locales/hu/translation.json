@@ -542,7 +542,8 @@
     "create_steam_shortcut_modal_cancel_button": "Mégse",
     "delete_shortcut_success": "Steam parancsikon sikeresen törölve",
     "delete_shortcut_error": "Nem sikerült törölni a Steam parancsikont",
-    "delete_steam_shortcut": "Steam parancsikon törlése"
+    "delete_steam_shortcut": "Steam parancsikon törlése",
+    "streaming_now": "Éppen streamel"
   },
   "activation": {
     "title": "Hydra Aktiválása",
@@ -806,7 +807,9 @@
     "create_shortcuts_on_download": "Asztali és Start menü parancsikonok létrehozása a letöltés befejezésekor",
     "default_wine_prefix": "Alapértelmezett Wine prefix helye",
     "default_proton_version": "Alapértelmezett Proton verzió",
-    "default_proton_version_description": "Válaszd ki azt a Proton verziót, amelyet az Auto mód használ, ha a játékhoz nincs egyedi felülírás"
+    "default_proton_version_description": "Válaszd ki azt a Proton verziót, amelyet az Auto mód használ, ha a játékhoz nincs egyedi felülírás",
+    "console_streaming": "Konzol streamelés",
+    "enable_console_streaming": "Konzol streamelés engedélyezése (Moonlight)"
   },
   "notifications": {
     "download_complete": "Letöltés befejezve",
@@ -846,7 +849,13 @@
     "instructions": "Ellenőrízd hogy melyiket kell helyesen telepíteni a Linux disztribúciódra, hogy a játék megfelelően fusson"
   },
   "modal": {
-    "close": "Bezárás gomb"
+    "close": "Bezárás gomb",
+    "stream_pairing_title": "Streamelő eszköz párosítása",
+    "stream_pairing_description": "Írd be a Moonlight eszközödön megjelenő PIN-kódot, hogy párosítsd a Hydrával.",
+    "stream_pairing_placeholder": "PIN",
+    "stream_pairing_submit": "Megerősítés",
+    "stream_pairing_error_invalid_pin": "Hibás PIN. Ellenőrizd a PIN-kódot az eszközödön, majd próbáld újra.",
+    "stream_pairing_error_no_session": "A párosítási munkamenet lejárt. Indítsd újra a párosítást az eszközödről."
   },
   "forms": {
     "toggle_password_visibility": "Jelszó láthatóságának állítása"

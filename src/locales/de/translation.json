@@ -520,7 +520,8 @@
     "hide": "Hide",
     "create_steam_shortcut_modal_vr_flag": "VR Game (In Steam: update the VR flag or delete/recreate the shortcut)",
     "create_steam_shortcut_modal_create_button": "Create",
-    "create_steam_shortcut_modal_cancel_button": "Cancel"
+    "create_steam_shortcut_modal_cancel_button": "Cancel",
+    "streaming_now": "Wird gerade gestreamt"
   },
   "activation": {
     "title": "Hydra aktivieren",
@@ -784,7 +785,9 @@
     "proton_version_auto": "Auto (global default or umu default)",
     "proton_source_umu_default": "umu default selection",
     "proton_source_steam": "Installed by Steam",
-    "proton_source_compatibility_tools": "Installed in Steam compatibilitytools.d"
+    "proton_source_compatibility_tools": "Installed in Steam compatibilitytools.d",
+    "console_streaming": "Konsolen-Streaming",
+    "enable_console_streaming": "Konsolen-Streaming aktivieren (Moonlight)"
   },
   "notifications": {
     "download_complete": "Download abgeschlossen",
@@ -824,7 +827,13 @@
     "instructions": "Überprüfe die korrekte Installation dieser für deine Linux-Distro, damit das Spiel normal laufen kann"
   },
   "modal": {
-    "close": "Knopf schließen"
+    "close": "Knopf schließen",
+    "stream_pairing_title": "Streaming-Gerät koppeln",
+    "stream_pairing_description": "Gib die auf deinem Moonlight-Gerät angezeigte PIN ein, um es mit Hydra zu koppeln.",
+    "stream_pairing_placeholder": "PIN",
+    "stream_pairing_submit": "Bestätigen",
+    "stream_pairing_error_invalid_pin": "Falsche PIN. Prüfe die PIN auf deinem Gerät und versuche es erneut.",
+    "stream_pairing_error_no_session": "Die Kopplungssitzung ist abgelaufen. Starte die Kopplung erneut von deinem Gerät aus."
   },
   "forms": {
     "toggle_password_visibility": "Sichtbarkeit des Passworts umschalten"

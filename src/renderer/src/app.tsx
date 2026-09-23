@@ -31,6 +31,7 @@ import {
   setExtractionProgress,
   setGameRunning,
   setProfileBackground,
+  setStreamingSession,
   setUserDetails,
   setUserPreferences,
   toggleDraggingDisabled,
@@ -44,10 +45,11 @@ import { ArchiveDeletionModal } from "./pages/downloads/archive-deletion-error-m
 import { CloudSubscriptionModal } from "./pages/shared-modals/hydra-cloud/cloud-subscription-modal";
 import { AddFriendModal } from "./pages/profile/profile-content/add-friend-modal";
 import { ClassicsScanModal } from "./pages/settings/emulation/classics-scan-modal";
+import { StreamPairingModal } from "./pages/shared-modals/stream-pairing-modal";
 import { RetroArchScanModal } from "./pages/settings/emulation/retroarch-scan-modal";
 import { CloudGiftNotificationModal } from "./pages/shared-modals/cloud-gift-notification-modal";
 
-import type { UserPreferences } from "@types";
+import type { GameShop, UserPreferences } from "@types";
 import "./app.scss";
 import {
   getAchievementSoundUrl,
@@ -66,6 +68,20 @@ type WorkWondersWithKnowledge = WorkWonders & {
     initKnowledgeWidget?: () => void;
     showArticle?: (articleId: number) => void;
   };
+};
+
+/**
+ * The preload's declared payload predates the catalog fields the main
+ * process attaches to the appid-carrying stream events.
+ */
+type StreamSessionEvent = {
+  event: string;
+  state?: string;
+  shop?: GameShop;
+  objectId?: string;
+  width?: number;
+  height?: number;
+  fps?: number;
 };
 
 export function App() {
@@ -369,6 +385,40 @@ export function App() {
       unsubscribe();
     };
   }, [dispatch, library]);
+
+  useEffect(() => {
+    const unsubscribe = window.electron.onStreamSessionEvent((event) => {
+      const streamEvent = event as StreamSessionEvent;
+
+      if (
+        streamEvent.event === "client-disconnected" ||
+        streamEvent.event === "stream-ended" ||
+        (streamEvent.event === "session-state" && streamEvent.state === "idle")
+      ) {
+        dispatch(setStreamingSession(null));
+        return;
+      }
+
+      // Only the events the main process matched to a catalog game carry
+      // `shop`/`objectId`.
+      if (!streamEvent.shop || !streamEvent.objectId) return;
+
+      dispatch(
+        setStreamingSession({
+          state: streamEvent.state ?? streamEvent.event,
+          shop: streamEvent.shop,
+          objectId: streamEvent.objectId,
+          width: streamEvent.width,
+          height: streamEvent.height,
+          fps: streamEvent.fps,
+        })
+      );
+    });
+
+    return () => {
+      unsubscribe();
+    };
+  }, [dispatch]);
 
   useEffect(() => {
     window.electron.getActiveClassicsImport().then((snapshot) => {
@@ -719,6 +769,7 @@ export function App() {
 
       <ClassicsScanModal />
       <RetroArchScanModal />
+      <StreamPairingModal />
 
       <main>
         <Sidebar />

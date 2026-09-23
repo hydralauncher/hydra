@@ -517,7 +517,8 @@
     "hide": "Hide",
     "create_steam_shortcut_modal_vr_flag": "VR Game (In Steam: update the VR flag or delete/recreate the shortcut)",
     "create_steam_shortcut_modal_create_button": "Create",
-    "create_steam_shortcut_modal_cancel_button": "Cancel"
+    "create_steam_shortcut_modal_cancel_button": "Cancel",
+    "streaming_now": "Ідзе стрымінг"
   },
   "activation": {
     "title": "Актываваць Hydra",
@@ -781,7 +782,9 @@
     "proton_version_auto": "Auto (global default or umu default)",
     "proton_source_umu_default": "umu default selection",
     "proton_source_steam": "Installed by Steam",
-    "proton_source_compatibility_tools": "Installed in Steam compatibilitytools.d"
+    "proton_source_compatibility_tools": "Installed in Steam compatibilitytools.d",
+    "console_streaming": "Стрымінг кансоляў",
+    "enable_console_streaming": "Уключыць стрымінг кансоляў (Moonlight)"
   },
   "notifications": {
     "download_complete": "Сцягванне скончана",
@@ -821,7 +824,13 @@
     "instructions": "Даведайцеся, як правільна ўсталяваць любы з іх на вашым дыстрыбутыве Linux, каб гульня магла працаваць нармальна"
   },
   "modal": {
-    "close": "Кнопка закрыцця"
+    "close": "Кнопка закрыцця",
+    "stream_pairing_title": "Спарыць прыладу стрымінгу",
+    "stream_pairing_description": "Увядзіце PIN, паказаны на вашай прыладзе Moonlight, каб спарыць яе з Hydra.",
+    "stream_pairing_placeholder": "PIN",
+    "stream_pairing_submit": "Пацвердзіць",
+    "stream_pairing_error_invalid_pin": "Няправільны PIN. Праверце PIN на вашай прыладзе і паспрабуйце зноў.",
+    "stream_pairing_error_no_session": "Сеанс спарвання скончыўся. Пачніце спарванне зноў з вашай прылады."
   },
   "app": {
     "successfully_signed_in": "Successfully signed in"
