@@ -7,6 +7,7 @@ const pendingErrors = new Map<Downloader, ReadonlySet<string>>([
     new Set([
       DownloadError.NotCachedOnRealDebrid,
       DownloadError.RealDebridTorrentNotReady,
+      DownloadError.RealDebridLinksNotReady,
     ]),
   ],
   [

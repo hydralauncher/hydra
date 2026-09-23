@@ -808,6 +808,7 @@
     "download_error_real_debrid_account_not_authorized": "Your Real-Debrid account is not authorized to make new downloads. Please check your account settings and try again.",
     "download_error_not_cached_on_real_debrid": "Real-Debrid is still preparing this download. Resume it later to try again.",
     "download_error_real_debrid_torrent_not_ready": "Real-Debrid has not listed this torrent's files yet. Resume it later to try again.",
+    "download_error_real_debrid_links_not_ready": "Real-Debrid is still preparing the file links. Resume this download later to try again.",
     "download_error_premiumize_account_not_authorized": "Your Premiumize account is not authorized to make new downloads. Please check your account settings and try again.",
     "download_error_alldebrid_account_not_authorized": "Your AllDebrid account is not authorized to make new downloads. Please check your account settings and try again.",
     "download_error_not_cached_on_premiumize": "This download is not available on Premiumize.",

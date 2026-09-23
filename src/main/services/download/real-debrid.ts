@@ -11,8 +11,14 @@ import type {
 import {
   assertRealDebridFileLink,
   selectDebridFiles,
+  stableDebridFileIndex,
   toTorrentFilesResponse,
 } from "./debrid-files";
+import {
+  canUseRealDebridArchiveLink,
+  isRealDebridArchiveCandidate,
+  waitForRealDebridLinks,
+} from "./real-debrid-links";
 
 interface RealDebridDownloadEntry {
   index: number;
@@ -130,21 +136,51 @@ export class RealDebridClient {
       );
     }
 
-    const current = await this.getTorrentInfo(info.id);
-    if (current.status !== "downloaded") return null;
+    let ready;
+    try {
+      ready = await waitForRealDebridLinks(() => this.getTorrentInfo(info.id));
+    } catch (error) {
+      if (
+        !(error instanceof Error) ||
+        error.message !== DownloadError.RealDebridLinksNotReady
+      ) {
+        throw error;
+      }
 
-    const selectedFiles = current.files.filter((file) => file.selected);
-    if (selectedFiles.length !== current.links.length) {
-      throw new Error(
-        "Real-Debrid returned a different number of files and links."
-      );
+      const current = await this.getTorrentInfo(info.id);
+      if (!isRealDebridArchiveCandidate(current, selectedIndices)) {
+        throw error;
+      }
+
+      const unlocked = await this.unrestrictLink(current.links[0]);
+      if (
+        !unlocked.download ||
+        !canUseRealDebridArchiveLink(
+          current,
+          unlocked.filename,
+          selectedIndices
+        )
+      ) {
+        throw error;
+      }
+
+      return [
+        {
+          index: stableDebridFileIndex(unlocked.filename, unlocked.filesize),
+          path: unlocked.filename,
+          size: unlocked.filesize,
+          url: decodeURIComponent(unlocked.download),
+          isLocked: false,
+        },
+      ];
     }
+    if (!ready) return null;
 
-    const entries = selectedFiles.map((file, index) => ({
+    const entries = ready.selectedFiles.map((file, index) => ({
       index: file.id,
       path: file.path,
       size: file.bytes,
-      url: current.links[index],
+      url: ready.info.links[index],
       isLocked: true,
     }));
     return selectDebridFiles(entries, selectedIndices);

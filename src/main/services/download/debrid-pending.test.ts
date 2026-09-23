@@ -14,6 +14,7 @@ describe("pending debrid downloads", () => {
       [Downloader.TorBox, DownloadError.TorBoxTorrentNotReady],
       [Downloader.RealDebrid, DownloadError.NotCachedOnRealDebrid],
       [Downloader.RealDebrid, DownloadError.RealDebridTorrentNotReady],
+      [Downloader.RealDebrid, DownloadError.RealDebridLinksNotReady],
       [Downloader.Premiumize, DownloadError.PremiumizeTransferStarted],
       [Downloader.Premiumize, DownloadError.NotCachedOnPremiumize],
       [Downloader.AllDebrid, DownloadError.NotCachedOnAllDebrid],
