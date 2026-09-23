@@ -41,12 +41,17 @@ export class TorBoxClient {
 
     const response = await this.instance.post<TorBoxAddTorrentRequest>(
       "/torrents/createtorrent",
-      form
+      form,
+      { validateStatus: () => true }
     );
 
-    if (!response.data.success) {
+    if (!response.data?.success || response.status >= 400) {
+      const detail = response.data?.detail;
+      const reason = `${response.data?.error ?? ""} ${detail ?? ""}`;
       throw new Error(
-        cachedOnly ? DownloadError.NotCachedOnTorBox : response.data.detail
+        cachedOnly && /not[\s_-]?cached|uncached/i.test(reason)
+          ? DownloadError.NotCachedOnTorBox
+          : detail || DownloadError.TorrentFilesUnavailable
       );
     }
 
