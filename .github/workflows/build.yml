@@ -129,6 +129,8 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: Build-staging-${{ matrix.os }}
+          retention-days: 3
+          compression-level: 0
           path: |
             dist/*-portable.exe
             dist/*.zip
@@ -260,6 +262,8 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: Build-production-${{ matrix.os }}
+          retention-days: 7
+          compression-level: 0
           path: |
             dist/*-portable.exe
             dist/*.zip

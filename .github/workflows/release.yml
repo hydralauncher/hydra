@@ -115,6 +115,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: Build-${{ matrix.os }}
+          retention-days: 7
           path: |
             dist/win-unpacked/**
             dist/*-portable.exe
@@ -137,7 +138,7 @@ jobs:
           BUILD_WEBHOOK_URL: ${{ secrets.BUILD_WEBHOOK_URL }}
           GITHUB_ACTOR: ${{ github.actor }}
           GITHUB_ACTOR_ID: ${{ github.actor_id }}
-          BUILD_FLAVOR: production
+          BUILD_FLAVOR: release
         run: node scripts/upload-build.cjs
 
       - name: Release
