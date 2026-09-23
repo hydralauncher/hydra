@@ -192,6 +192,10 @@ export class TorBoxClient {
 
   static async getDownloadFiles(uri: string, cachedOnly = false) {
     const torrent = await this.getDownloadableTorrent(uri, cachedOnly);
-    return buildTorBoxDownloadManifest(torrent);
+    const { name } = await parseTorrent(uri);
+    return buildTorBoxDownloadManifest(
+      torrent,
+      typeof name === "string" ? name : name?.[0]
+    );
   }
 }

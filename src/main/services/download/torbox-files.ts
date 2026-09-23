@@ -60,7 +60,8 @@ const sanitizeSegment = (segment: string): string => {
 };
 
 export function buildTorBoxDownloadManifest(
-  torrent: TorBoxTorrentInfo
+  torrent: TorBoxTorrentInfo,
+  magnetName?: string
 ): TorBoxDownloadManifest {
   const sharedRoot = torrent.files?.[0]?.name?.split(/[\\/]+/)[0];
   const hasSharedRoot =
@@ -73,7 +74,14 @@ export function buildTorBoxDownloadManifest(
           sanitizeSegment(sharedRoot).toLowerCase()
       );
     });
-  const name = sanitizeSegment(hasSharedRoot ? sharedRoot : torrent.name);
+  const providerName = hasSharedRoot ? sharedRoot : torrent.name;
+  const isOpaqueName = (value: string | undefined) =>
+    /^[a-f0-9]{32,64}(?:\.zip)?$/i.test(value ?? "");
+  const name = sanitizeSegment(
+    isOpaqueName(providerName) && magnetName && !isOpaqueName(magnetName)
+      ? magnetName
+      : providerName
+  );
   if (!name || name === "." || name === ".." || !torrent.files?.length) {
     throw new Error("TorBox did not provide downloadable files.");
   }

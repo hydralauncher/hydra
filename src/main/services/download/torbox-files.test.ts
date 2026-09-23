@@ -115,4 +115,18 @@ describe("TorBox file manifest", () => {
     ]);
     assert.deepEqual(selectTorBoxFiles(manifest, [1]), manifest.files);
   });
+
+  it("uses the magnet name when the provider names an archive with a hash", () => {
+    const hash = "4cf0bd89d230ec5147a8ca18610ef2d1d21c42c6";
+    const manifest = buildTorBoxDownloadManifest(
+      torrent([{ id: 1, name: `${hash}.zip`, zipped: true }], hash),
+      "Readable download name"
+    );
+
+    assert.equal(manifest.name, "Readable download name");
+    assert.equal(
+      manifest.files[0].path,
+      "Readable download name/Readable download name.zip"
+    );
+  });
 });

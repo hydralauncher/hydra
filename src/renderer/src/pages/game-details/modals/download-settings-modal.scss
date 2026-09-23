@@ -48,6 +48,13 @@
     text-underline-offset: 2px;
   }
 
+  &__single-archive-notice {
+    align-self: flex-start;
+    margin: 6px 0 0;
+    font-size: 12px;
+    color: globals.$body-color;
+  }
+
   &__downloaders-list-wrapper {
     border: 1px solid globals.$border-color;
     overflow: hidden;
@@ -234,12 +241,6 @@
       rgba(255, 255, 255, 0.015) 0%,
       rgba(255, 255, 255, 0) 100%
     );
-  }
-
-  &__archive-notice {
-    margin: 0;
-    font-size: 13px;
-    color: rgba(255, 255, 255, 0.72);
   }
 
   &__torrent-step-toolbar {

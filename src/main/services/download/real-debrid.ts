@@ -89,6 +89,33 @@ export class RealDebridClient {
 
   static async getDownloadFiles(uri: string) {
     const info = await this.getTorrentWithFiles(uri);
+
+    if (isRealDebridArchiveCandidate(info)) {
+      try {
+        const unlocked = await this.unrestrictLink(info.links[0]);
+        if (
+          unlocked.download &&
+          canUseRealDebridArchiveLink(info, unlocked.filename)
+        ) {
+          return {
+            ...toTorrentFilesResponse(unlocked.filename, [
+              {
+                index: stableDebridFileIndex(
+                  unlocked.filename,
+                  unlocked.filesize
+                ),
+                path: unlocked.filename,
+                size: unlocked.filesize,
+              },
+            ]),
+            archiveOnly: true,
+          };
+        }
+      } catch {
+        // Keep the original file list if the archive link cannot be checked.
+      }
+    }
+
     const available =
       info.status === "downloaded"
         ? info.files.filter((file) => file.selected)
