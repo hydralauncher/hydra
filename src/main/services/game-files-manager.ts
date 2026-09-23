@@ -29,6 +29,7 @@ import { ExtractionProgress, SevenZip } from "./7zip";
 import * as emulators from "./emulators";
 import * as retroarch from "./retroarch";
 import { getPathType } from "./extraction-path";
+import { listArchiveFiles } from "./archive-discovery";
 import { GameExecutables } from "./game-executables";
 import { logger } from "./logger";
 import { platformToRetroArchPlatform, platformToSystem } from "@main/helpers";
@@ -190,19 +191,18 @@ export class GameFilesManager {
     // A provider ZIP can contain the torrent's original archive. Scan again
     // after extraction, but stop after one nested layer.
     for (let pass = 0; pass < 2; pass++) {
-      let files: string[];
+      let archives: string[];
       try {
-        files = await fs.promises.readdir(directoryPath);
+        archives = await listArchiveFiles(
+          directoryPath,
+          pass,
+          FILE_EXTENSIONS_TO_EXTRACT
+        );
       } catch (error) {
         await this.setExtractionFailedState(error, directoryPath);
         return false;
       }
 
-      const archives = files.filter((file) =>
-        FILE_EXTENSIONS_TO_EXTRACT.some((ext) =>
-          file.toLowerCase().endsWith(ext)
-        )
-      );
       archives.forEach((file) => compressedFiles.add(file));
       const filesToExtract = archives.filter(
         (file) =>
@@ -220,7 +220,7 @@ export class GameFilesManager {
           const result = await SevenZip.extractFile(
             {
               filePath: path.join(directoryPath, file),
-              cwd: directoryPath,
+              cwd: path.dirname(path.join(directoryPath, file)),
               passwords: ["online-fix.me", "steamrip.com"],
             },
             (progress) => {

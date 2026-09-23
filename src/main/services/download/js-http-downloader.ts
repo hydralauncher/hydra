@@ -1,4 +1,5 @@
 import fs from "node:fs";
+import type { FileHandle } from "node:fs/promises";
 import path from "node:path";
 import { Readable } from "node:stream";
 import { pipeline } from "node:stream/promises";
@@ -24,6 +25,7 @@ import {
   PARALLEL_RANGE_SIZE,
   ParallelRangeUnsupportedError,
 } from "./parallel-range-download";
+import { verifyResumePrefixChunk } from "./resume-prefix";
 
 export interface JsHttpDownloaderStatus {
   folderName: string;
@@ -50,6 +52,7 @@ export interface JsHttpDownloaderOptions {
   maxParallelRanges?: number;
   preserveFilename?: boolean;
   allowResume?: boolean;
+  verifyResumePrefix?: boolean;
 }
 
 const MAX_RETRY_ATTEMPTS = 10;
@@ -60,6 +63,7 @@ const MAX_RETRY_DELAY_MS = 15000;
 const STALL_TIMEOUT_MS = 30000;
 const STALL_CHECK_INTERVAL_MS = 2000;
 const RECONNECT_RETRY_DELAY_MS = 500;
+const RESUME_OVERLAP_BYTES = 64 * 1024;
 export const DEFAULT_DOWNLOAD_USER_AGENT =
   "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:144.0) Gecko/20100101 Firefox/144.0";
 
@@ -171,7 +175,11 @@ export class JsHttpDownloader {
           filename,
           url
         );
-        const requestHeaders = this.buildRequestHeaders(headers, startByte);
+        const rangeStart =
+          this.currentOptions.verifyResumePrefix && startByte > 0
+            ? Math.max(0, startByte - RESUME_OVERLAP_BYTES)
+            : startByte;
+        const requestHeaders = this.buildRequestHeaders(headers, rangeStart);
 
         this.startStallDetection();
 
@@ -722,12 +730,30 @@ export class JsHttpDownloader {
       .toLowerCase()
       .trim();
     if (contentEncoding && contentEncoding !== "identity" && startByte > 0) {
+      if (this.currentOptions?.verifyResumePrefix) {
+        throw new Error(
+          "The server encoded the resumed archive response; keeping the saved partial file."
+        );
+      }
       logger.log(
         `[JsHttpDownloader] Response is "${contentEncoding}"-encoded; byte-offset resume is unreliable, restarting from byte 0`
       );
       flags = "w";
       skipBytes = 0;
       restart = true;
+    }
+
+    if (this.currentOptions?.verifyResumePrefix && startByte > 0) {
+      const rangeStart = this.parseContentRangeStart(response);
+      if (
+        restart ||
+        (response.status === 206 &&
+          (rangeStart === null || rangeStart >= startByte))
+      ) {
+        throw new Error(
+          "The archive server returned an unsafe byte range; keeping the saved partial file."
+        );
+      }
     }
 
     if (restart) {
@@ -767,13 +793,35 @@ export class JsHttpDownloader {
       throw new Error("Response body is null");
     }
 
-    this.writeStream = fs.createWriteStream(actualFilePath, { flags });
+    let savedPrefix: FileHandle | null = null;
+    if (this.currentOptions?.verifyResumePrefix && skipBytes > 0) {
+      savedPrefix = await fs.promises.open(actualFilePath, "r");
+    }
 
-    const readableStream = this.createReadableStream(
-      response.body.getReader(),
-      skipBytes
-    );
-    await pipeline(readableStream, this.writeStream);
+    try {
+      this.writeStream = fs.createWriteStream(actualFilePath, { flags });
+      const readableStream = this.createReadableStream(
+        response.body.getReader(),
+        skipBytes,
+        savedPrefix,
+        response.status === 200
+          ? 0
+          : (this.parseContentRangeStart(response) ?? 0)
+      );
+      await pipeline(readableStream, this.writeStream);
+    } finally {
+      await savedPrefix?.close();
+    }
+
+    if (
+      this.currentOptions?.verifyResumePrefix &&
+      this.fileSize > 0 &&
+      fs.statSync(actualFilePath).size !== this.fileSize
+    ) {
+      throw new Error(
+        "The archive download ended before its expected size; keeping the partial file."
+      );
+    }
 
     this.markComplete();
   }
@@ -942,7 +990,9 @@ export class JsHttpDownloader {
 
   private createReadableStream(
     reader: ReadableStreamDefaultReader<Uint8Array>,
-    skipBytes = 0
+    skipBytes = 0,
+    savedPrefix: FileHandle | null = null,
+    prefixOffset = 0
   ): Readable {
     const applyThrottle = this.applyThrottle.bind(this);
     const markReadPending = () => {
@@ -997,6 +1047,18 @@ export class JsHttpDownloader {
 
               const plan = applySkip(remainingToSkip, value.length);
               remainingToSkip = plan.newRemainingToSkip;
+              const skipped = plan.shouldWrite
+                ? plan.writeOffset
+                : value.length;
+              if (savedPrefix && skipped > 0) {
+                await verifyResumePrefixChunk(
+                  savedPrefix,
+                  value,
+                  prefixOffset,
+                  skipped
+                );
+                prefixOffset += skipped;
+              }
               applyRecoveryTracking(plan, value.length);
               if (!plan.shouldWrite) {
                 continue;

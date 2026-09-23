@@ -1351,8 +1351,8 @@ export class DownloadManager {
             ? TORBOX_MAX_PARALLEL_RANGES
             : undefined,
           preserveFilename: true,
-          // TorBox creates ZIPs on demand and cannot resume their byte stream.
-          allowResume: !entry.isZip,
+          // Verify a regenerated ZIP's saved prefix before appending new data.
+          verifyResumePrefix: Boolean(entry.isZip),
           filename:
             batch.provider === "torBox"
               ? entry.filename
