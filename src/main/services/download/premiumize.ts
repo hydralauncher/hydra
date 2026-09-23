@@ -388,7 +388,8 @@ export class PremiumizeClient {
 
   static async getDownloadFiles(uri: string) {
     const entries = await this.getDownloadEntries(uri);
-    if (!entries?.length) throw new Error("Premiumize files are not ready.");
+    if (!entries?.length)
+      throw new Error(DownloadError.PremiumizeFilesNotReady);
     return toTorrentFilesResponse(this.extractDisplayName(uri) ?? uri, entries);
   }
 

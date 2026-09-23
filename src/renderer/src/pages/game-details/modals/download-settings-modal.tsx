@@ -874,7 +874,9 @@ export function DownloadSettingsModal({
       setSelectedTorrentIndices(new Set());
       setExpandedFolderIds(new Set());
       setTorrentFilesError(
-        response.error || DownloadError.TorrentFilesUnavailable
+        Object.values(DownloadError).includes(response.error as DownloadError)
+          ? response.error
+          : DownloadError.TorrentFilesUnavailable
       );
       setTorrentFilesLoading(false);
       return null;

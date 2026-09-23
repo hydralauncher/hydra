@@ -2,6 +2,7 @@ import axios, { AxiosInstance, InternalAxiosRequestConfig } from "axios";
 import parseTorrent from "parse-torrent";
 import type { AllDebridUser } from "@types";
 import { appVersion } from "@main/constants";
+import { DownloadError } from "@shared";
 import { logger } from "@main/services";
 import {
   selectDebridFiles,
@@ -507,7 +508,7 @@ export class AllDebridClient {
 
   static async getDownloadFiles(uri: string) {
     const entries = await this.getDownloadEntries(uri);
-    if (!entries?.length) throw new Error("AllDebrid files are not ready.");
+    if (!entries?.length) throw new Error(DownloadError.AllDebridFilesNotReady);
     return toTorrentFilesResponse(uri, entries);
   }
 
