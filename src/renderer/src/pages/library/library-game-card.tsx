@@ -15,6 +15,7 @@ import {
   shouldShowSteamLibraryBadge,
 } from "@renderer/helpers";
 import { AchievementProgress, SteamLibraryBadge } from "@renderer/components";
+import { GameVisibilityBadge } from "@renderer/components/game-visibility-badge/game-visibility-badge";
 import { memo, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
@@ -238,6 +239,7 @@ export const LibraryGameCard = memo(function LibraryGameCard({
         })}
       >
         <div className="library-game-card__top-section">
+          <GameVisibilityBadge hide={game.hide} isHidden={game.isHidden} />
           {!hideBadges && (
             <div className="library-game-card__playtime">
               {game.hasManuallyUpdatedPlaytime ? (

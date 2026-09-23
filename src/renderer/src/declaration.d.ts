@@ -438,6 +438,13 @@ declare global {
     ) => Promise<string | null>;
     verifyExecutablePathInUse: (executablePath: string) => Promise<Game>;
     getLibrary: () => Promise<LibraryGame[]>;
+    getHiddenLibrary: () => Promise<LibraryGame[]>;
+    setGameVisibility: (
+      shop: GameShop,
+      objectId: string,
+      field: "hide" | "isHidden",
+      value: boolean
+    ) => Promise<{ hide: boolean; isHidden: boolean }>;
     refreshLibraryAssets: () => Promise<void>;
     openGameInstaller: (shop: GameShop, objectId: string) => Promise<boolean>;
     getGameInstallerActionType: (

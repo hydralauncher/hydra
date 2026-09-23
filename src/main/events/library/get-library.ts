@@ -11,6 +11,8 @@ import {
   gamesSublevel,
 } from "@main/level";
 import { composeAssetsWithArtwork } from "@shared";
+import { HydraApi } from "@main/services/hydra-api";
+import { belongsToLibraryCollection } from "@main/services/library-sync/game-visibility";
 import {
   resolveAchievementCount,
   resolveUnlockedAchievementCount,
@@ -37,14 +39,19 @@ export const lookupCachedPlatform = async (
   return null;
 };
 
-const getLibrary = async (): Promise<LibraryGame[]> => {
+const getLibrary = async (includeHidden = false): Promise<LibraryGame[]> => {
   return gamesSublevel
     .iterator()
     .all()
     .then((results) => {
       return Promise.all(
         results
-          .filter(([_key, game]) => game.isDeleted === false)
+          .filter(([_key, game]) =>
+            belongsToLibraryCollection(
+              game,
+              includeHidden ? "hidden" : "visible"
+            )
+          )
           .map(async ([key, game]) => {
             const download = await downloadsSublevel.get(key);
             const gameAssets = await gamesShopAssetsSublevel.get(key);
@@ -127,4 +134,7 @@ const getLibrary = async (): Promise<LibraryGame[]> => {
     });
 };
 
-registerEvent("getLibrary", getLibrary);
+registerEvent("getLibrary", () => getLibrary());
+registerEvent("getHiddenLibrary", () =>
+  HydraApi.isLoggedIn() ? getLibrary(true) : Promise.resolve([])
+);

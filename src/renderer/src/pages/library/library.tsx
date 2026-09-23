@@ -54,6 +54,8 @@ import {
 import "./library.scss";
 
 const FAVORITES_COLLECTION_ID = "__favorites__";
+const HIDDEN_COLLECTION_ID = "__hidden__";
+const EMPTY_HIDDEN_GAMES: LibraryGame[] = [];
 const GAP = 16;
 const LARGE_CARD_ESTIMATED_HEIGHT = 300;
 const FALLBACK_ITEM_WIDTH = 150;
@@ -96,6 +98,67 @@ const SORT_OPTIONS: SortOption[] = [
 export default function Library() {
   const { library, updateLibrary } = useLibrary();
   const { userDetails } = useUserDetails();
+  const accountId = userDetails?.id ?? null;
+  const activeAccountIdRef = useRef(accountId);
+  activeAccountIdRef.current = accountId;
+  const [hiddenGamesState, setHiddenGamesState] = useState<{
+    ownerId: string | null;
+    games: LibraryGame[];
+  }>({ ownerId: null, games: [] });
+  const hiddenGames =
+    accountId && hiddenGamesState.ownerId === accountId
+      ? hiddenGamesState.games
+      : EMPTY_HIDDEN_GAMES;
+  const [hiddenGamesLoadFailed, setHiddenGamesLoadFailed] = useState(false);
+  const [hiddenGamesLoading, setHiddenGamesLoading] = useState(true);
+  const updateHiddenGames = useCallback(async () => {
+    if (!accountId) {
+      setHiddenGamesState({ ownerId: null, games: [] });
+      setHiddenGamesLoading(false);
+      return;
+    }
+    try {
+      const games = await window.electron.getHiddenLibrary();
+      if (activeAccountIdRef.current === accountId) {
+        setHiddenGamesState({ ownerId: accountId, games });
+      }
+    } catch {
+      if (activeAccountIdRef.current === accountId) {
+        setHiddenGamesLoadFailed(true);
+      }
+    } finally {
+      if (activeAccountIdRef.current === accountId) {
+        setHiddenGamesLoading(false);
+      }
+    }
+  }, [accountId]);
+
+  const retryHiddenGames = useCallback(async () => {
+    setHiddenGamesLoading(true);
+    try {
+      await window.electron.refreshLibraryAssets();
+      if (activeAccountIdRef.current === accountId) {
+        setHiddenGamesLoadFailed(false);
+      }
+      await Promise.all([updateLibrary(), updateHiddenGames()]);
+    } catch {
+      if (activeAccountIdRef.current === accountId) {
+        setHiddenGamesLoadFailed(true);
+      }
+    } finally {
+      if (activeAccountIdRef.current === accountId) {
+        setHiddenGamesLoading(false);
+      }
+    }
+  }, [accountId, updateLibrary, updateHiddenGames]);
+  useEffect(() => {
+    if (accountId) {
+      void updateHiddenGames();
+    } else {
+      setHiddenGamesState({ ownerId: null, games: [] });
+      setHiddenGamesLoadFailed(false);
+    }
+  }, [accountId, updateHiddenGames]);
   const {
     collections,
     loadCollections,
@@ -291,6 +354,7 @@ export default function Library() {
 
     const unsubscribe = window.electron.onLibraryBatchComplete(() => {
       updateLibrary();
+      void updateHiddenGames();
       void loadCollections();
     });
 
@@ -302,19 +366,51 @@ export default function Library() {
       .getClassicsImportStatus()
       .then((importing) => setIsImportingClassics(importing));
 
-    window.electron.refreshLibraryAssets().finally(() => {
-      const collectionsPromise = hasLoadedCollections
-        ? Promise.resolve([])
-        : loadCollections();
+    window.electron
+      .refreshLibraryAssets()
+      .then(() => {
+        setHiddenGamesLoadFailed(false);
+      })
+      .catch(() => {
+        setHiddenGamesLoadFailed(true);
+      })
+      .finally(() => {
+        const collectionsPromise = hasLoadedCollections
+          ? Promise.resolve([])
+          : loadCollections();
 
-      void Promise.all([updateLibrary(), collectionsPromise]);
-    });
+        void Promise.all([
+          updateLibrary(),
+          updateHiddenGames(),
+          collectionsPromise,
+        ]);
+      });
 
     return () => {
       unsubscribe();
       unsubscribeClassicsImport();
     };
-  }, [dispatch, t, updateLibrary, loadCollections, hasLoadedCollections]);
+  }, [
+    dispatch,
+    t,
+    updateLibrary,
+    updateHiddenGames,
+    loadCollections,
+    hasLoadedCollections,
+  ]);
+
+  useEffect(() => {
+    const refresh = () => {
+      void Promise.all([
+        updateLibrary(),
+        updateHiddenGames(),
+        loadCollections(),
+      ]);
+    };
+    window.addEventListener("hydra:game-visibility-updated", refresh);
+    return () =>
+      window.removeEventListener("hydra:game-visibility-updated", refresh);
+  }, [updateLibrary, updateHiddenGames, loadCollections]);
 
   const handleOpenContextMenu = useCallback(
     (game: LibraryGame, position: { x: number; y: number }) => {
@@ -350,6 +446,10 @@ export default function Library() {
   useEffect(() => {
     if (!selectedCollectionId) return;
     if (selectedCollectionId === FAVORITES_COLLECTION_ID) return;
+    if (selectedCollectionId === HIDDEN_COLLECTION_ID) {
+      if (!userDetails) handleCollectionSelect(null);
+      return;
+    }
 
     if (hasLoadedCollections) {
       const hasCollection = collections.some(
@@ -378,6 +478,7 @@ export default function Library() {
     handleCollectionSelect,
     hasLoadedCollections,
     hasFailedToLoadCollections,
+    userDetails,
   ]);
 
   const sortedLibrary = useMemo(
@@ -386,11 +487,18 @@ export default function Library() {
   );
 
   const filteredLibrary = useMemo(() => {
-    let filtered = sortedLibrary;
+    let filtered =
+      selectedCollectionId === HIDDEN_COLLECTION_ID
+        ? userDetails
+          ? sortLibraryGames(hiddenGames, sortBy)
+          : []
+        : sortedLibrary;
 
     if (selectedCollectionId) {
       if (selectedCollectionId === FAVORITES_COLLECTION_ID) {
         filtered = filtered.filter((game) => game.favorite);
+      } else if (selectedCollectionId === HIDDEN_COLLECTION_ID) {
+        // Hidden games are populated by the authenticated owner's private list.
       } else {
         filtered = filtered.filter((game) =>
           getGameCollectionIds(game).includes(selectedCollectionId)
@@ -442,6 +550,9 @@ export default function Library() {
     });
   }, [
     sortedLibrary,
+    hiddenGames,
+    userDetails,
+    sortBy,
     deferredSearchQuery,
     selectedCollectionId,
     effectiveCategory,
@@ -451,7 +562,9 @@ export default function Library() {
 
   const uniquePlatforms = useMemo(() => {
     const set = new Set<string>();
-    for (const game of library) {
+    const games =
+      selectedCollectionId === HIDDEN_COLLECTION_ID ? hiddenGames : library;
+    for (const game of games) {
       if (game.shop === "launchbox" && game.platform) {
         set.add(game.platform);
       }
@@ -459,7 +572,7 @@ export default function Library() {
     return Array.from(set).sort((a, b) =>
       a.localeCompare(b, undefined, { sensitivity: "base" })
     );
-  }, [library]);
+  }, [library, hiddenGames, selectedCollectionId]);
 
   useEffect(() => {
     if (uniquePlatforms.length === 0 || selectedPlatforms.length === 0) return;
@@ -485,9 +598,18 @@ export default function Library() {
         name: t("favorites"),
         gamesCount: favoritesCount,
       },
+      ...(userDetails
+        ? [
+            {
+              id: HIDDEN_COLLECTION_ID,
+              name: t("hidden_games"),
+              gamesCount: hiddenGames.length,
+            },
+          ]
+        : []),
       ...collections,
     ];
-  }, [collections, favoritesCount, t]);
+  }, [collections, favoritesCount, hiddenGames.length, t, userDetails]);
 
   const columnsCount = useMemo(
     () => getColumnsCount(containerWidth, viewMode),
@@ -534,8 +656,14 @@ export default function Library() {
     setHeaderHidden,
   ]);
 
-  const hasGames = library.length > 0;
+  const hasGames =
+    library.length > 0 ||
+    (Boolean(userDetails) && hiddenGames.length > 0) ||
+    (selectedCollectionId === HIDDEN_COLLECTION_ID && Boolean(userDetails));
+  const showControls = hasGames || Boolean(userDetails);
   const hasNoFilteredGames = filteredLibrary.length === 0;
+  const isHiddenCollectionSelected =
+    selectedCollectionId === HIDDEN_COLLECTION_ID;
   const isFavoritesCollectionSelected =
     selectedCollectionId === FAVORITES_COLLECTION_ID;
   const shouldShowFavoritesEmptyState =
@@ -543,6 +671,10 @@ export default function Library() {
   const shouldShowCollectionEmptyState =
     hasGames &&
     !shouldShowFavoritesEmptyState &&
+    !(
+      isHiddenCollectionSelected &&
+      (hiddenGamesLoadFailed || hiddenGamesLoading)
+    ) &&
     Boolean(selectedCollectionId) &&
     !isFavoritesCollectionSelected &&
     hasNoFilteredGames;
@@ -555,13 +687,17 @@ export default function Library() {
     hasNoFilteredGames &&
     !shouldShowFavoritesEmptyState &&
     !shouldShowCollectionEmptyState &&
+    !(
+      isHiddenCollectionSelected &&
+      (hiddenGamesLoadFailed || hiddenGamesLoading)
+    ) &&
     !shouldShowClassicsImporting;
 
   return (
     <section
       className={`library__content${hasGames && isHeaderHidden ? " library__content--header-hidden" : ""}`}
     >
-      {hasGames && (
+      {showControls && (
         <div
           className={`library__page-header${isHeaderHidden ? " library__page-header--hidden" : ""}`}
         >
@@ -575,6 +711,7 @@ export default function Library() {
                 collections={libraryCollections}
                 selectedCollectionId={selectedCollectionId}
                 favoritesCollectionId={FAVORITES_COLLECTION_ID}
+                hiddenCollectionId={HIDDEN_COLLECTION_ID}
                 onSelect={handleCollectionSelect}
                 onCreate={handleCreateCollectionButtonClick}
                 onCollectionContextMenu={openCollectionContextMenu}
@@ -639,10 +776,40 @@ export default function Library() {
           <div className="library__icon-container">
             <FileDirectoryIcon size={24} />
           </div>
-          <h2>{t("empty_collection_title")}</h2>
-          <p>{t("empty_collection_description")}</p>
+          <h2>
+            {t(
+              selectedCollectionId === HIDDEN_COLLECTION_ID
+                ? "empty_hidden_title"
+                : "empty_collection_title"
+            )}
+          </h2>
+          <p>
+            {t(
+              selectedCollectionId === HIDDEN_COLLECTION_ID
+                ? "empty_hidden_description"
+                : "empty_collection_description"
+            )}
+          </p>
         </div>
       )}
+
+      {hasGames && isHiddenCollectionSelected && hiddenGamesLoading && (
+        <div className="library__empty">
+          <h2>{t("loading")}</h2>
+        </div>
+      )}
+
+      {hasGames &&
+        isHiddenCollectionSelected &&
+        hiddenGamesLoadFailed &&
+        !hiddenGamesLoading && (
+          <div className="library__empty">
+            <h2>{t("hidden_games_load_failed")}</h2>
+            <button type="button" onClick={() => void retryHiddenGames()}>
+              {t("retry_hidden_games")}
+            </button>
+          </div>
+        )}
 
       {shouldShowNoResultsEmptyState && (
         <div className="library__empty">

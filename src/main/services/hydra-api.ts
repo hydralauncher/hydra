@@ -94,6 +94,8 @@ export class HydraApi {
       this.secondsToMilliseconds(expiresIn) -
       this.EXPIRATION_OFFSET_IN_MS;
 
+    await clearGamesRemoteIds();
+
     this.userAuth = {
       authToken: accessToken,
       refreshToken: refreshToken,
@@ -144,7 +146,6 @@ export class HydraApi {
 
     if (WindowManager.mainWindow) {
       WindowManager.mainWindow.webContents.send("on-signin");
-      await clearGamesRemoteIds();
       void uploadGamesBatch();
 
       SSEClient.close();

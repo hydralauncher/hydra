@@ -43,6 +43,8 @@ type ProfileGame = {
   runtimeByPlatform?: { hydra?: number; steam?: number } | null;
   hasManuallyUpdatedPlaytime: boolean;
   isFavorite?: boolean;
+  hide?: boolean;
+  isHidden?: boolean;
   isPinned?: boolean;
   achievementCount: number;
   unlockedAchievementCount: number;
@@ -176,13 +178,14 @@ const PAGE_SIZE = 100;
 const TARGETED_MERGE_CONCURRENCY = 10;
 
 const fetchAllGamesForShop = async (
-  params: Record<string, unknown> = {}
+  params: Record<string, unknown> = {},
+  path = "/profile/games"
 ): Promise<ProfileGame[]> => {
   const all: ProfileGame[] = [];
   let skip = 0;
 
   for (;;) {
-    const page = await HydraApi.get<ProfileGame[]>("/profile/games", {
+    const page = await HydraApi.get<ProfileGame[]>(path, {
       ...params,
       take: PAGE_SIZE,
       skip,
@@ -197,15 +200,29 @@ const fetchAllGamesForShop = async (
   return all;
 };
 
-const fetchRemoteGames = async (): Promise<ProfileGame[]> => {
-  const [defaultGames, classicsGames] = await Promise.all([
-    fetchAllGamesForShop(),
-    fetchAllGamesForShop({ shop: "launchbox" }).catch(
-      () => [] as ProfileGame[]
-    ),
-  ]);
+const fetchAllHiddenGamesForShop = (params: Record<string, unknown> = {}) =>
+  fetchAllGamesForShop(params, "/profile/games/hidden").catch((error) => {
+    if (error?.response?.status === 404) return [] as ProfileGame[];
+    throw error;
+  });
 
-  return [...defaultGames, ...classicsGames];
+const fetchRemoteGames = async (): Promise<ProfileGame[]> => {
+  const [defaultGames, classicsGames, hiddenGames, hiddenClassicsGames] =
+    await Promise.all([
+      fetchAllGamesForShop(),
+      fetchAllGamesForShop({ shop: "launchbox" }).catch(
+        () => [] as ProfileGame[]
+      ),
+      fetchAllHiddenGamesForShop(),
+      fetchAllHiddenGamesForShop({ shop: "launchbox" }),
+    ]);
+
+  return [
+    ...defaultGames,
+    ...classicsGames,
+    ...hiddenGames,
+    ...hiddenClassicsGames,
+  ];
 };
 
 export const fetchRemoteProfileGames = fetchRemoteGames;
@@ -223,6 +240,8 @@ const mergeExistingGame = (
   lastTimePlayed: getLatestLastTimePlayed(localGame, remoteGame),
   ...mergeLocalAndRemotePlayTime(localGame, remoteGame),
   favorite: remoteGame.isFavorite ?? localGame.favorite,
+  hide: remoteGame.hide ?? localGame.hide,
+  isHidden: remoteGame.isHidden ?? false,
   isPinned: remoteGame.isPinned ?? localGame.isPinned,
   collectionIds,
   ...mergePersistedAchievementTotals(
@@ -279,6 +298,8 @@ const createLocalGame = (
   hasManuallyUpdatedPlaytime: remoteGame.hasManuallyUpdatedPlaytime,
   isDeleted: false,
   favorite: remoteGame.isFavorite ?? false,
+  hide: remoteGame.hide ?? false,
+  isHidden: remoteGame.isHidden ?? false,
   isPinned: remoteGame.isPinned ?? false,
   collectionIds,
   ...mergePersistedAchievementTotals(

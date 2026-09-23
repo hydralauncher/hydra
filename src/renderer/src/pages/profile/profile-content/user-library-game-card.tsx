@@ -15,6 +15,7 @@ import { ClockIcon, TrophyIcon, AlertFillIcon } from "@primer/octicons-react";
 import { MAX_MINUTES_TO_SHOW_IN_PLAYTIME } from "@renderer/constants";
 import { Tooltip } from "react-tooltip";
 import { useTranslation } from "react-i18next";
+import { GameVisibilityBadge } from "@renderer/components/game-visibility-badge/game-visibility-badge";
 import {
   ProgressBar,
   SteamLibraryBadge,
@@ -137,6 +138,7 @@ export function UserLibraryGameCard({
             className={`user-library-game__overlay${game.shop === "launchbox" && !game.customLibraryImageUrl ? " user-library-game__overlay--classics" : ""}${hasAchievementProgress ? "" : " user-library-game__overlay--no-fade"}`}
           >
             <div className="user-library-game__top-section">
+              <GameVisibilityBadge hide={game.hide} isHidden={game.isHidden} />
               <div
                 className="user-library-game__playtime"
                 data-tooltip-place="top"
