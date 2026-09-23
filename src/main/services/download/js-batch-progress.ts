@@ -24,3 +24,39 @@ export function getJsBatchProgress(input: JsBatchProgressInput) {
     progress: Math.min(Math.max(progress, 0), 0.9999),
   };
 }
+
+export interface JsBatchSpeedSample {
+  lastSpeedUpdate: number;
+  bytesAtLastSpeedUpdate: number | null;
+  batchSpeed: number;
+}
+
+export function sampleJsBatchSpeed(
+  previous: JsBatchSpeedSample,
+  bytesDownloaded: number,
+  fileSpeed: number,
+  now: number
+): JsBatchSpeedSample {
+  if (
+    previous.bytesAtLastSpeedUpdate === null ||
+    bytesDownloaded < previous.bytesAtLastSpeedUpdate
+  ) {
+    return {
+      lastSpeedUpdate: now,
+      bytesAtLastSpeedUpdate: bytesDownloaded,
+      batchSpeed: Math.max(0, fileSpeed),
+    };
+  }
+
+  const elapsed = (now - previous.lastSpeedUpdate) / 1000;
+  if (elapsed < 1) return previous;
+
+  return {
+    lastSpeedUpdate: now,
+    bytesAtLastSpeedUpdate: bytesDownloaded,
+    batchSpeed: Math.max(
+      0,
+      (bytesDownloaded - previous.bytesAtLastSpeedUpdate) / elapsed
+    ),
+  };
+}

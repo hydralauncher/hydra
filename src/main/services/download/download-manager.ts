@@ -39,7 +39,7 @@ import { GameFilesManager } from "../game-files-manager";
 import { PremiumizeClient } from "./premiumize";
 import { AllDebridClient } from "./all-debrid";
 import { isZipDownloadUrl } from "./debrid-files";
-import { getJsBatchProgress } from "./js-batch-progress";
+import { getJsBatchProgress, sampleJsBatchSpeed } from "./js-batch-progress";
 import { getRangeSizeForRequestBudget } from "./parallel-range-download";
 import {
   DEFAULT_DOWNLOAD_USER_AGENT,
@@ -101,7 +101,7 @@ interface JsBatchState {
   completedBytes: number;
   totalBytes: number;
   lastSpeedUpdate: number;
-  bytesAtLastSpeedUpdate: number;
+  bytesAtLastSpeedUpdate: number | null;
   batchSpeed: number;
 }
 
@@ -503,14 +503,15 @@ export class DownloadManager {
           batchFilesDownloaded = batch.currentIndex;
 
           // Compute batch-level speed so small files don't reset the reading
-          const now = Date.now();
-          const elapsed = (now - batch.lastSpeedUpdate) / 1000;
-          if (elapsed >= 1) {
-            const bytesDelta = bytesDownloaded - batch.bytesAtLastSpeedUpdate;
-            batch.batchSpeed = Math.max(0, bytesDelta / elapsed);
-            batch.lastSpeedUpdate = now;
-            batch.bytesAtLastSpeedUpdate = bytesDownloaded;
-          }
+          const speedSample = sampleJsBatchSpeed(
+            batch,
+            bytesDownloaded,
+            status.isRecovering ? 0 : status.downloadSpeed,
+            Date.now()
+          );
+          batch.lastSpeedUpdate = speedSample.lastSpeedUpdate;
+          batch.bytesAtLastSpeedUpdate = speedSample.bytesAtLastSpeedUpdate;
+          batch.batchSpeed = speedSample.batchSpeed;
           downloadSpeed = batch.batchSpeed;
         }
       }
@@ -2187,7 +2188,7 @@ export class DownloadManager {
               completedBytes: 0,
               totalBytes: selected.reduce((sum, file) => sum + file.size, 0),
               lastSpeedUpdate: Date.now(),
-              bytesAtLastSpeedUpdate: 0,
+              bytesAtLastSpeedUpdate: null,
               batchSpeed: 0,
             };
 
@@ -2206,7 +2207,6 @@ export class DownloadManager {
               batchState.completedBytes += entry.size ?? 0;
               batchState.currentIndex += 1;
             }
-            batchState.bytesAtLastSpeedUpdate = batchState.completedBytes;
           } else if (download.downloader === Downloader.AllDebrid) {
             const entries = await AllDebridClient.getDownloadEntries(
               download.uri,
@@ -2231,7 +2231,7 @@ export class DownloadManager {
                 ? entries.reduce((acc, item) => acc + (item.size ?? 0), 0)
                 : 0,
               lastSpeedUpdate: Date.now(),
-              bytesAtLastSpeedUpdate: 0,
+              bytesAtLastSpeedUpdate: null,
               batchSpeed: 0,
             };
           } else {
@@ -2271,7 +2271,7 @@ export class DownloadManager {
               completedBytes: 0,
               totalBytes: entries.reduce((sum, entry) => sum + entry.size, 0),
               lastSpeedUpdate: Date.now(),
-              bytesAtLastSpeedUpdate: 0,
+              bytesAtLastSpeedUpdate: null,
               batchSpeed: 0,
             };
           }

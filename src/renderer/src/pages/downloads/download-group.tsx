@@ -298,10 +298,12 @@ function HeroDownloadView({
   }, [navigate, game]);
 
   const etaText = calculateETA();
+  const isRecovering = !isGameExtracting && !!lastPacket?.isRecovering;
   const hasEta =
     isGameDownloading &&
     !isGameExtracting &&
     !lastPacket?.isCheckingFiles &&
+    !isRecovering &&
     !!etaText &&
     etaText.trim() !== "" &&
     etaText !== "0";
@@ -309,9 +311,9 @@ function HeroDownloadView({
     isGameDownloading &&
     !isGameExtracting &&
     !lastPacket?.isCheckingFiles &&
+    !isRecovering &&
     !hasEta;
   const shouldShowEta = hasEta || shouldShowEtaPlaceholder;
-  const isRecovering = !isGameExtracting && !!lastPacket?.isRecovering;
   const recoveryPercent = Math.round((lastPacket?.recoveryProgress ?? 0) * 100);
   const isReconnecting =
     !isGameExtracting && !isRecovering && !!lastPacket?.isReconnecting;
