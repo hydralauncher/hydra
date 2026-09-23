@@ -329,7 +329,10 @@ export function DownloadSettingsModal({
   const selectedMagnetUri = useMemo(() => {
     if (
       selectedDownloader !== Downloader.Torrent &&
-      selectedDownloader !== Downloader.TorBox
+      selectedDownloader !== Downloader.TorBox &&
+      selectedDownloader !== Downloader.RealDebrid &&
+      selectedDownloader !== Downloader.Premiumize &&
+      selectedDownloader !== Downloader.AllDebrid
     )
       return null;
     if (!selectedUri?.startsWith("magnet:")) return null;
@@ -778,8 +781,15 @@ export function DownloadSettingsModal({
   const canOpenTorrentStep =
     visible &&
     !!selectedMagnetUri &&
-    (selectedDownloader !== Downloader.TorBox ||
-      !!userPreferences?.torBoxApiToken);
+    (selectedDownloader === Downloader.Torrent ||
+      (selectedDownloader === Downloader.TorBox &&
+        !!userPreferences?.torBoxApiToken) ||
+      (selectedDownloader === Downloader.RealDebrid &&
+        !!userPreferences?.realDebridApiToken) ||
+      (selectedDownloader === Downloader.Premiumize &&
+        !!userPreferences?.premiumizeApiToken) ||
+      (selectedDownloader === Downloader.AllDebrid &&
+        !!userPreferences?.allDebridApiToken));
 
   const shouldShowTorrentFiles = canOpenTorrentStep && showTorrentStepModal;
 
@@ -811,7 +821,7 @@ export function DownloadSettingsModal({
 
     const cacheKey = `${selectedDownloader}:${selectedMagnetUri}`;
     const cached =
-      selectedDownloader === Downloader.TorBox
+      selectedDownloader !== Downloader.Torrent
         ? undefined
         : torrentFilesCache.current.get(cacheKey);
     if (cached) {
@@ -837,7 +847,12 @@ export function DownloadSettingsModal({
       response =
         selectedDownloader === Downloader.TorBox
           ? await window.electron.getTorBoxFiles(selectedMagnetUri)
-          : await window.electron.getTorrentFiles(selectedMagnetUri);
+          : selectedDownloader === Downloader.Torrent
+            ? await window.electron.getTorrentFiles(selectedMagnetUri)
+            : await window.electron.getDebridFiles(
+                selectedMagnetUri,
+                selectedDownloader!
+              );
     } catch {
       if (isRequestOutdated()) return;
       setTorrentFiles([]);
@@ -869,7 +884,7 @@ export function DownloadSettingsModal({
       }
     }
 
-    if (selectedDownloader !== Downloader.TorBox) {
+    if (selectedDownloader === Downloader.Torrent) {
       torrentFilesCache.current.set(cacheKey, response.data);
     }
     setTorrentFiles(response.data.files);

@@ -3,6 +3,11 @@ import parseTorrent from "parse-torrent";
 import type { AllDebridUser } from "@types";
 import { appVersion } from "@main/constants";
 import { logger } from "@main/services";
+import {
+  selectDebridFiles,
+  stableDebridFileIndex,
+  toTorrentFilesResponse,
+} from "./debrid-files";
 
 interface AllDebridError {
   code: string;
@@ -93,9 +98,11 @@ interface AllDebridDownloadInfo {
 }
 
 interface AllDebridDownloadEntry {
+  index: number;
+  path: string;
   url: string;
   filename: string;
-  size?: number;
+  size: number;
   isLocked?: boolean;
 }
 
@@ -432,7 +439,8 @@ export class AllDebridClient {
   }
 
   static async getDownloadEntries(
-    uri: string
+    uri: string,
+    selectedIndices?: number[]
   ): Promise<AllDebridDownloadEntry[] | null> {
     if (!uri.startsWith("magnet:")) {
       const unlockData = await this.unlockLink(uri);
@@ -442,9 +450,11 @@ export class AllDebridClient {
 
       return [
         {
+          index: 0,
+          path: filename,
           url: decoded,
           filename,
-          size: unlockData.filesize,
+          size: unlockData.filesize ?? 0,
           isLocked: false,
         },
       ];
@@ -482,12 +492,23 @@ export class AllDebridClient {
       return null;
     }
 
-    return links.map((file) => ({
-      url: file.link,
-      filename: file.relativePath,
-      size: file.size,
-      isLocked: true,
-    }));
+    const entries = links
+      .sort((a, b) => a.relativePath.localeCompare(b.relativePath))
+      .map((file) => ({
+        index: stableDebridFileIndex(file.relativePath, file.size ?? 0),
+        path: file.relativePath,
+        url: file.link,
+        filename: file.relativePath,
+        size: file.size ?? 0,
+        isLocked: true,
+      }));
+    return selectDebridFiles(entries, selectedIndices);
+  }
+
+  static async getDownloadFiles(uri: string) {
+    const entries = await this.getDownloadEntries(uri);
+    if (!entries?.length) throw new Error("AllDebrid files are not ready.");
+    return toTorrentFilesResponse(uri, entries);
   }
 
   static async unlockDownloadLink(link: string) {

@@ -73,7 +73,7 @@ import type {
   SteamConnectErrorCode,
   ExtractionFailure,
 } from "@types";
-import type { AuthPage } from "@shared";
+import type { AuthPage, Downloader } from "@shared";
 import type { AxiosProgressEvent } from "axios";
 
 const fileExplorerApi = {
@@ -399,6 +399,10 @@ contextBridge.exposeInMainWorld("electron", {
     >,
   getTorBoxFiles: (magnet: string) =>
     ipcRenderer.invoke("getTorBoxFiles", magnet) as Promise<
+      { ok: true; data: TorrentFilesResponse } | { ok: false; error: string }
+    >,
+  getDebridFiles: (magnet: string, provider: Downloader) =>
+    ipcRenderer.invoke("getDebridFiles", magnet, provider) as Promise<
       { ok: true; data: TorrentFilesResponse } | { ok: false; error: string }
     >,
 

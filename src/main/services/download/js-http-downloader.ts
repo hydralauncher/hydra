@@ -43,6 +43,7 @@ export interface JsHttpDownloaderOptions {
   savePath: string;
   filename?: string;
   headers?: Record<string, string>;
+  allowParallelRanges?: boolean;
 }
 
 const MAX_RETRY_ATTEMPTS = 10;
@@ -497,7 +498,10 @@ export class JsHttpDownloader {
     usedFallback: boolean
   ): Promise<void> {
     let response: Response;
-    if (!this.parallelRangesDisabled) {
+    if (
+      !this.parallelRangesDisabled &&
+      this.currentOptions?.allowParallelRanges !== false
+    ) {
       const rangeEnd = startByte + PARALLEL_RANGE_SIZE - 1;
       response = await fetch(url, {
         headers: {

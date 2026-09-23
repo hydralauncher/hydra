@@ -7,6 +7,19 @@ import type {
   RealDebridUnrestrictLink,
   RealDebridUser,
 } from "@types";
+import {
+  assertRealDebridFileLink,
+  selectDebridFiles,
+  toTorrentFilesResponse,
+} from "./debrid-files";
+
+interface RealDebridDownloadEntry {
+  index: number;
+  path: string;
+  size: number;
+  url: string;
+  isLocked: boolean;
+}
 
 export class RealDebridClient {
   private static instance: AxiosInstance;
@@ -45,13 +58,95 @@ export class RealDebridClient {
     return response.data;
   }
 
-  static async selectAllFiles(id: string) {
-    const searchParams = new URLSearchParams({ files: "all" });
-
-    return this.instance.post(
+  private static async selectFiles(id: string, fileIds: number[]) {
+    const searchParams = new URLSearchParams({
+      files: fileIds.join(","),
+    });
+    await this.instance.post(
       `/torrents/selectFiles/${id}`,
       searchParams.toString()
     );
+  }
+
+  private static async getTorrentWithFiles(uri: string) {
+    const id = await this.getTorrentId(uri);
+    for (let attempt = 0; attempt < 15; attempt++) {
+      const info = await this.getTorrentInfo(id);
+      if (info.files?.length) return info;
+      if (attempt < 14) {
+        await new Promise((resolve) => setTimeout(resolve, 1000));
+      }
+    }
+    throw new Error("Real-Debrid torrent files are not available yet.");
+  }
+
+  static async getDownloadFiles(uri: string) {
+    const info = await this.getTorrentWithFiles(uri);
+    const available =
+      info.status === "downloaded"
+        ? info.files.filter((file) => file.selected)
+        : info.files;
+    return toTorrentFilesResponse(
+      info.filename,
+      available.map((file) => ({
+        index: file.id,
+        path: file.path,
+        size: file.bytes,
+      }))
+    );
+  }
+
+  static async getDownloadEntries(
+    uri: string,
+    selectedIndices?: number[]
+  ): Promise<RealDebridDownloadEntry[] | null> {
+    if (!uri.startsWith("magnet:")) {
+      const unlocked = await this.unrestrictLink(uri);
+      return [
+        {
+          index: 0,
+          path: unlocked.filename,
+          size: unlocked.filesize,
+          url: decodeURIComponent(unlocked.download),
+          isLocked: false,
+        },
+      ];
+    }
+
+    const info = await this.getTorrentWithFiles(uri);
+    const files = info.files.map((file) => ({
+      index: file.id,
+      path: file.path,
+      size: file.bytes,
+      selected: Boolean(file.selected),
+    }));
+    const requested = selectDebridFiles(files, selectedIndices);
+
+    if (info.status === "waiting_files_selection") {
+      await this.selectFiles(
+        info.id,
+        requested.map((file) => file.index)
+      );
+    }
+
+    const current = await this.getTorrentInfo(info.id);
+    if (current.status !== "downloaded") return null;
+
+    const selectedFiles = current.files.filter((file) => file.selected);
+    if (selectedFiles.length !== current.links.length) {
+      throw new Error(
+        "Real-Debrid returned a different number of files and links."
+      );
+    }
+
+    const entries = selectedFiles.map((file, index) => ({
+      index: file.id,
+      path: file.path,
+      size: file.bytes,
+      url: current.links[index],
+      isLocked: true,
+    }));
+    return selectDebridFiles(entries, selectedIndices);
   }
 
   static async unrestrictLink(link: string) {
@@ -63,6 +158,21 @@ export class RealDebridClient {
     );
 
     return response.data;
+  }
+
+  static async unlockFile(
+    link: string,
+    expectedPath: string,
+    expectedSize: number
+  ) {
+    const file = await this.unrestrictLink(link);
+    assertRealDebridFileLink(
+      expectedPath,
+      expectedSize,
+      file.filename,
+      file.filesize
+    );
+    return decodeURIComponent(file.download);
   }
 
   private static async getAllTorrentsFromUser() {
@@ -87,35 +197,10 @@ export class RealDebridClient {
   }
 
   public static async getDownloadUrl(uri: string) {
-    let realDebridTorrentId: string | null = null;
-
-    if (uri.startsWith("magnet:")) {
-      realDebridTorrentId = await this.getTorrentId(uri);
-    }
-
-    if (realDebridTorrentId) {
-      let torrentInfo = await this.getTorrentInfo(realDebridTorrentId);
-
-      if (torrentInfo.status === "waiting_files_selection") {
-        await this.selectAllFiles(realDebridTorrentId);
-
-        torrentInfo = await this.getTorrentInfo(realDebridTorrentId);
-      }
-
-      const { links, status } = torrentInfo;
-
-      if (status === "downloaded") {
-        const [link] = links;
-
-        const { download } = await this.unrestrictLink(link);
-        return decodeURIComponent(download);
-      }
-
-      return null;
-    }
-
-    const { download } = await this.unrestrictLink(uri);
-
-    return decodeURIComponent(download);
+    const entries = await this.getDownloadEntries(uri);
+    const first = entries?.[0];
+    if (!first) return null;
+    if (!first.isLocked) return first.url;
+    return this.unlockFile(first.url, first.path, first.size);
   }
 }

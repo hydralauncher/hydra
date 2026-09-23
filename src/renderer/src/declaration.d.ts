@@ -1,4 +1,4 @@
-import type { AuthPage } from "@shared";
+import type { AuthPage, Downloader } from "@shared";
 import type {
   AppUpdaterEvent,
   GameShop,
@@ -271,6 +271,12 @@ declare global {
     >;
     getTorBoxFiles: (
       magnet: string
+    ) => Promise<
+      { ok: true; data: TorrentFilesResponse } | { ok: false; error: string }
+    >;
+    getDebridFiles: (
+      magnet: string,
+      provider: Downloader
     ) => Promise<
       { ok: true; data: TorrentFilesResponse } | { ok: false; error: string }
     >;
