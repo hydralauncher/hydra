@@ -17,6 +17,12 @@ import {
   shouldResetRetryBudget,
   stallDetected,
 } from "./js-http-downloader-helpers";
+import {
+  downloadParallelRanges,
+  getRangeTotal,
+  PARALLEL_RANGE_SIZE,
+  ParallelRangeUnsupportedError,
+} from "./parallel-range-download";
 
 export interface JsHttpDownloaderStatus {
   folderName: string;
@@ -95,6 +101,8 @@ export class JsHttpDownloader {
   private maxDownloadSpeedBytesPerSecond: number | null = null;
   private throttleWindowStart = Date.now();
   private bytesTransferredInThrottleWindow = 0;
+  private parallelRangesDisabled = false;
+  private pendingRangeReads = new Map<number, number>();
 
   setMaxDownloadSpeedBytesPerSecond(limit: number | null): void {
     if (typeof limit !== "number" || !Number.isFinite(limit) || limit <= 0) {
@@ -128,6 +136,8 @@ export class JsHttpDownloader {
     this.fileSize = 0;
     this.resolvedFilename = null;
     this.pendingReadSince = null;
+    this.parallelRangesDisabled = false;
+    this.pendingRangeReads.clear();
     this.resetThrottleWindow();
     await this.startDownloadWithRetry();
   }
@@ -190,10 +200,12 @@ export class JsHttpDownloader {
         return;
       }
 
-      if (stallDetected(this.pendingReadSince, Date.now(), STALL_TIMEOUT_MS)) {
-        const blockedSeconds = Math.round(
-          (Date.now() - (this.pendingReadSince ?? Date.now())) / 1000
-        );
+      const pendingSince = Math.min(
+        this.pendingReadSince ?? Infinity,
+        ...this.pendingRangeReads.values()
+      );
+      if (stallDetected(pendingSince, Date.now(), STALL_TIMEOUT_MS)) {
+        const blockedSeconds = Math.round((Date.now() - pendingSince) / 1000);
         logger.log(
           `[JsHttpDownloader] Read blocked for ${blockedSeconds}s with no data, triggering retry`
         );
@@ -217,6 +229,13 @@ export class JsHttpDownloader {
   }
 
   private async handleDownloadErrorWithRetry(err: Error): Promise<boolean> {
+    if (err instanceof ParallelRangeUnsupportedError) {
+      this.parallelRangesDisabled = true;
+      logger.log(
+        "[JsHttpDownloader] Server stopped honoring byte ranges; retrying with one connection"
+      );
+    }
+
     if (this.isPaused) {
       logger.log("[JsHttpDownloader] Download paused/cancelled by user");
       this.status = "paused";
@@ -477,10 +496,94 @@ export class JsHttpDownloader {
     savePath: string,
     usedFallback: boolean
   ): Promise<void> {
-    const response = await fetch(url, {
-      headers: requestHeaders,
-      signal: this.abortController?.signal,
-    });
+    let response: Response;
+    if (!this.parallelRangesDisabled) {
+      const rangeEnd = startByte + PARALLEL_RANGE_SIZE - 1;
+      response = await fetch(url, {
+        headers: {
+          ...requestHeaders,
+          Range: `bytes=${startByte}-${rangeEnd}`,
+        },
+        signal: this.abortController?.signal,
+      });
+
+      const total = getRangeTotal(response, startByte, rangeEnd);
+      if (
+        total !== null &&
+        total - startByte >= PARALLEL_RANGE_SIZE * 2 &&
+        !/^(text\/html|application\/xhtml)/i.test(
+          response.headers.get("content-type") ?? ""
+        )
+      ) {
+        if (!response.body) throw new Error("Range response body is null");
+        const actualFilePath = this.resolveOutputPath(
+          response,
+          filePath,
+          savePath,
+          usedFallback,
+          startByte === 0
+        );
+        if (startByte === 0) {
+          fs.writeFileSync(actualFilePath, "");
+        }
+        this.fileSize = total;
+        logger.log(
+          `[JsHttpDownloader] Downloading ${total} bytes with parallel byte ranges`
+        );
+        const signal = this.abortController!.signal;
+        try {
+          await downloadParallelRanges({
+            url,
+            headers: requestHeaders,
+            firstResponse: response,
+            filePath: actualFilePath,
+            startByte,
+            total,
+            signal,
+            abort: () => this.abortController?.abort(),
+            beforeChunk: (length) => this.applyThrottle(length),
+            afterChunk: (length) => {
+              this.attemptBytesReceived += length;
+              this.bytesDownloaded += length;
+              this.updateSpeed();
+            },
+            onReadPending: (offset, pending) => {
+              if (pending) this.pendingRangeReads.set(offset, Date.now());
+              else this.pendingRangeReads.delete(offset);
+            },
+          });
+        } catch (error) {
+          // Discarded temporary ranges do not count as durable progress.
+          const committed = fs.existsSync(actualFilePath)
+            ? fs.statSync(actualFilePath).size
+            : 0;
+          this.bytesDownloaded = committed;
+          this.attemptBytesReceived = Math.max(0, committed - startByte);
+          this.resetSpeedTracking();
+          throw error;
+        } finally {
+          this.pendingRangeReads.clear();
+        }
+        if (signal.aborted) throw signal.reason;
+        this.markComplete();
+        return;
+      }
+
+      // A 206 response contains only the probe range. Fetch the complete
+      // remainder through the existing single-stream path instead.
+      if (response.status === 206) {
+        await response.body?.cancel();
+        response = await fetch(url, {
+          headers: requestHeaders,
+          signal: this.abortController?.signal,
+        });
+      }
+    } else {
+      response = await fetch(url, {
+        headers: requestHeaders,
+        signal: this.abortController?.signal,
+      });
+    }
 
     const contentType = response.headers.get("content-type") ?? "unknown";
     const contentLength = response.headers.get("content-length") ?? "unknown";
@@ -576,38 +679,13 @@ export class JsHttpDownloader {
 
     this.parseFileSize(response, startByte);
 
-    // Resolve the on-disk filename once and pin it for the download's
-    // lifetime so a later restart cannot orphan the existing partial.
-    const writingFreshFile = flags === "w";
-    let actualFilePath = filePath;
-    if (writingFreshFile && this.resolvedFilename === null) {
-      const urlDerivedFilename = path.basename(filePath);
-      const headerFilename = this.parseContentDisposition(response);
-      if (headerFilename) {
-        if (headerFilename !== urlDerivedFilename) {
-          logger.log(
-            `[JsHttpDownloader] Filename mismatch detected. URL-derived="${urlDerivedFilename}" header-derived="${headerFilename}"`
-          );
-        }
-        actualFilePath = path.join(savePath, headerFilename);
-        this.folderName = headerFilename;
-        this.resolvedFilename = headerFilename;
-        const targetDir = path.dirname(actualFilePath);
-        if (!fs.existsSync(targetDir)) {
-          fs.mkdirSync(targetDir, { recursive: true });
-        }
-        logger.log(
-          `[JsHttpDownloader] Using filename from Content-Disposition: ${headerFilename}`
-        );
-      } else {
-        this.resolvedFilename = path.basename(actualFilePath);
-        if (usedFallback) {
-          logger.log(
-            "[JsHttpDownloader] Content-Disposition filename not found, using fallback filename"
-          );
-        }
-      }
-    }
+    const actualFilePath = this.resolveOutputPath(
+      response,
+      filePath,
+      savePath,
+      usedFallback,
+      flags === "w"
+    );
 
     if (!response.body) {
       throw new Error("Response body is null");
@@ -621,6 +699,46 @@ export class JsHttpDownloader {
     );
     await pipeline(readableStream, this.writeStream);
 
+    this.markComplete();
+  }
+
+  private resolveOutputPath(
+    response: Response,
+    filePath: string,
+    savePath: string,
+    usedFallback: boolean,
+    writingFreshFile: boolean
+  ): string {
+    if (!writingFreshFile || this.resolvedFilename !== null) return filePath;
+
+    const urlDerivedFilename = path.basename(filePath);
+    const headerFilename = this.parseContentDisposition(response);
+    if (headerFilename) {
+      if (headerFilename !== urlDerivedFilename) {
+        logger.log(
+          `[JsHttpDownloader] Filename mismatch detected. URL-derived="${urlDerivedFilename}" header-derived="${headerFilename}"`
+        );
+      }
+      const actualFilePath = path.join(savePath, headerFilename);
+      this.folderName = headerFilename;
+      this.resolvedFilename = headerFilename;
+      fs.mkdirSync(path.dirname(actualFilePath), { recursive: true });
+      logger.log(
+        `[JsHttpDownloader] Using filename from Content-Disposition: ${headerFilename}`
+      );
+      return actualFilePath;
+    }
+
+    this.resolvedFilename = urlDerivedFilename;
+    if (usedFallback) {
+      logger.log(
+        "[JsHttpDownloader] Content-Disposition filename not found, using fallback filename"
+      );
+    }
+    return filePath;
+  }
+
+  private markComplete(): void {
     this.status = "complete";
     this.retryCount = 0;
     this.statusRetryCount = 0;

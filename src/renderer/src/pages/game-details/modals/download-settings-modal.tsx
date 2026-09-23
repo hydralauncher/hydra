@@ -327,7 +327,11 @@ export function DownloadSettingsModal({
   }, [repack, selectedDownloader]);
 
   const selectedMagnetUri = useMemo(() => {
-    if (selectedDownloader !== Downloader.Torrent) return null;
+    if (
+      selectedDownloader !== Downloader.Torrent &&
+      selectedDownloader !== Downloader.TorBox
+    )
+      return null;
     if (!selectedUri?.startsWith("magnet:")) return null;
     return selectedUri;
   }, [selectedDownloader, selectedUri]);
@@ -772,7 +776,10 @@ export function DownloadSettingsModal({
   ]);
 
   const canOpenTorrentStep =
-    visible && selectedDownloader === Downloader.Torrent && !!selectedMagnetUri;
+    visible &&
+    !!selectedMagnetUri &&
+    (selectedDownloader !== Downloader.TorBox ||
+      !!userPreferences?.torBoxApiToken);
 
   const shouldShowTorrentFiles = canOpenTorrentStep && showTorrentStepModal;
 
@@ -802,7 +809,11 @@ export function DownloadSettingsModal({
       !shouldShowTorrentFiles ||
       selectedMagnetUri === null;
 
-    const cached = torrentFilesCache.current.get(selectedMagnetUri);
+    const cacheKey = `${selectedDownloader}:${selectedMagnetUri}`;
+    const cached =
+      selectedDownloader === Downloader.TorBox
+        ? undefined
+        : torrentFilesCache.current.get(cacheKey);
     if (cached) {
       if (isRequestOutdated()) return;
       setTorrentFiles(cached.files);
@@ -823,7 +834,10 @@ export function DownloadSettingsModal({
       | { ok: false; error: string };
 
     try {
-      response = await window.electron.getTorrentFiles(selectedMagnetUri);
+      response =
+        selectedDownloader === Downloader.TorBox
+          ? await window.electron.getTorBoxFiles(selectedMagnetUri)
+          : await window.electron.getTorrentFiles(selectedMagnetUri);
     } catch {
       if (isRequestOutdated()) return;
       setTorrentFiles([]);
@@ -855,7 +869,9 @@ export function DownloadSettingsModal({
       }
     }
 
-    torrentFilesCache.current.set(selectedMagnetUri, response.data);
+    if (selectedDownloader !== Downloader.TorBox) {
+      torrentFilesCache.current.set(cacheKey, response.data);
+    }
     setTorrentFiles(response.data.files);
     setSelectedTorrentIndices(
       new Set(response.data.files.map((file) => file.index))
@@ -863,7 +879,7 @@ export function DownloadSettingsModal({
     setExpandedFolderIds(new Set());
     setTorrentFilesError(null);
     setTorrentFilesLoading(false);
-  }, [selectedMagnetUri, shouldShowTorrentFiles]);
+  }, [selectedDownloader, selectedMagnetUri, shouldShowTorrentFiles]);
 
   useEffect(() => {
     if (!shouldShowTorrentFiles) {

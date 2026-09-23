@@ -10,6 +10,7 @@ import type {
 import { appVersion } from "@main/constants";
 import { DownloadError } from "@shared";
 import { logger } from "../logger";
+import { buildTorBoxDownloadManifest } from "./torbox-files";
 
 const READINESS_POLL_ATTEMPTS = 6;
 const READINESS_POLL_DELAY_MS = 1000;
@@ -35,6 +36,7 @@ export class TorBoxClient {
   private static async addMagnet(magnet: string) {
     const form = new FormData();
     form.append("magnet", magnet);
+    form.append("allow_zip", "false");
 
     const response = await this.instance.post<TorBoxAddTorrentRequest>(
       "/torrents/createtorrent",
@@ -76,11 +78,11 @@ export class TorBoxClient {
     return response.data.data;
   }
 
-  static async requestLink(id: number) {
+  static async requestLink(id: number, fileId: number) {
     const searchParams = new URLSearchParams({
       token: this.apiToken,
       torrent_id: id.toString(),
-      zip_link: "true",
+      file_id: fileId.toString(),
     });
 
     const response = await this.instance.get<TorBoxRequestLinkRequest>(
@@ -147,7 +149,7 @@ export class TorBoxClient {
     throw new Error(DownloadError.TorBoxTorrentNotReady);
   }
 
-  private static async getTorrentIdAndName(magnetUri: string) {
+  private static async getDownloadableTorrent(magnetUri: string) {
     const { infoHash } = await parseTorrent(magnetUri);
 
     if (!infoHash) throw new Error(DownloadError.InvalidMagnet);
@@ -161,25 +163,20 @@ export class TorBoxClient {
 
     if (userTorrent) {
       if (this.isReady(userTorrent)) {
-        return { id: userTorrent.id, name: userTorrent.name };
+        return userTorrent;
       }
 
-      const readyTorrent = await this.waitForTorrentReady(userTorrent.id);
-      return { id: readyTorrent.id, name: readyTorrent.name };
+      return this.waitForTorrentReady(userTorrent.id);
     }
 
     const torrent = await this.addMagnet(magnetUri);
     const readyTorrent = await this.waitForTorrentReady(torrent.torrent_id);
 
-    return { id: readyTorrent.id, name: readyTorrent.name || torrent.name };
+    return { ...readyTorrent, name: readyTorrent.name || torrent.name };
   }
 
-  static async getDownloadInfo(uri: string) {
-    const torrentData = await this.getTorrentIdAndName(uri);
-    const url = await this.requestLink(torrentData.id);
-
-    const name = torrentData.name ? `${torrentData.name}.zip` : undefined;
-
-    return { url, name };
+  static async getDownloadFiles(uri: string) {
+    const torrent = await this.getDownloadableTorrent(uri);
+    return buildTorBoxDownloadManifest(torrent);
   }
 }

@@ -397,6 +397,10 @@ contextBridge.exposeInMainWorld("electron", {
     ipcRenderer.invoke("getTorrentFiles", magnet) as Promise<
       { ok: true; data: TorrentFilesResponse } | { ok: false; error: string }
     >,
+  getTorBoxFiles: (magnet: string) =>
+    ipcRenderer.invoke("getTorBoxFiles", magnet) as Promise<
+      { ok: true; data: TorrentFilesResponse } | { ok: false; error: string }
+    >,
 
   /* Catalogue */
   getGameShopDetails: (objectId: string, shop: GameShop, language: string) =>
