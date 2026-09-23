@@ -1,4 +1,4 @@
-import { DeviceDesktopIcon } from "@primer/octicons-react";
+import { DeviceDesktopIcon, StackIcon } from "@primer/octicons-react";
 import { FunnelIcon, SortAscendingIcon } from "@phosphor-icons/react";
 import { useCallback, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { ClassicsIcon } from "@renderer/pages/library/category-filter";
@@ -396,7 +396,7 @@ export function CatalogueHeader({
     CATALOGUE_MODE_MODERN_ID,
     CATALOGUE_MODE_CLASSICS_ID,
     ...(mode === "modern"
-      ? ["catalogue-store-steam", "catalogue-store-epic"]
+      ? ["catalogue-store-all", "catalogue-store-steam", "catalogue-store-epic"]
       : []),
     ...chipFocusIds,
     ...(hiddenFiltersCount > 0 ? [CATALOGUE_HIDDEN_FILTERS_BUTTON_ID] : []),
@@ -675,14 +675,28 @@ export function CatalogueHeader({
 
         {mode === "modern" && (
           <Tabs
-            items={(["steam", "epic"] as const).map((shop) => ({
+            items={(["all", "steam", "epic"] as const).map((shop) => ({
               id: `catalogue-store-${shop}`,
               value: shop,
-              label: shop === "steam" ? "Steam" : "Epic",
+              label:
+                shop === "all" ? (
+                  <span className="catalogue-header__mode-tab-content">
+                    <StackIcon
+                      size={14}
+                      className="catalogue-header__mode-tab-icon"
+                      aria-hidden="true"
+                    />
+                    <span>All</span>
+                  </span>
+                ) : shop === "steam" ? (
+                  "Steam"
+                ) : (
+                  "Epic"
+                ),
               navigationOverrides:
                 navigationOverridesById[`catalogue-store-${shop}`],
             }))}
-            value={values.pcShop ?? "steam"}
+            value={values.pcShop ?? "all"}
             onValueChange={(pcShop) =>
               updateSearchParams({
                 pcShop,

@@ -1,6 +1,6 @@
 import { useTranslation } from "react-i18next";
 import cn from "classnames";
-import { DeviceDesktopIcon } from "@primer/octicons-react";
+import { DeviceDesktopIcon, StackIcon } from "@primer/octicons-react";
 
 import { useAppDispatch, useAppSelector } from "@renderer/hooks";
 import { setMode, setPcShop } from "@renderer/features";
@@ -51,7 +51,7 @@ export function CatalogueModeToggle() {
           role="tablist"
           aria-label="PC store"
         >
-          {(["steam", "epic"] as const).map((shop) => (
+          {(["all", "steam", "epic"] as const).map((shop) => (
             <button
               key={shop}
               type="button"
@@ -62,6 +62,13 @@ export function CatalogueModeToggle() {
               })}
               onClick={() => dispatch(setPcShop(shop))}
             >
+              {shop === "all" && (
+                <StackIcon
+                  size={14}
+                  className="catalogue-mode-toggle__store-icon"
+                  aria-hidden="true"
+                />
+              )}
               {shop === "steam" && (
                 <SteamLogo
                   className="catalogue-mode-toggle__store-icon"
@@ -74,7 +81,13 @@ export function CatalogueModeToggle() {
                   aria-hidden="true"
                 />
               )}
-              <span>{shop === "steam" ? "Steam" : "Epic"}</span>
+              <span>
+                {shop === "all"
+                  ? t("store_all")
+                  : shop === "steam"
+                    ? "Steam"
+                    : "Epic"}
+              </span>
             </button>
           ))}
         </div>

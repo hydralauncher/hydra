@@ -26,6 +26,7 @@ import { debounce } from "lodash-es";
 import { useTranslation } from "react-i18next";
 import Skeleton, { SkeletonTheme } from "react-loading-skeleton";
 import cn from "classnames";
+import { getCatalogueSearchShops, type CatalogueStoreScope } from "@shared";
 import { CatalogueModeToggle } from "./catalogue-mode-toggle";
 import { getClassicsPlatformGroup } from "./classics-platform-group";
 import { FilterItem } from "./filter-item";
@@ -133,7 +134,7 @@ export default function Catalogue() {
   const hasResultsRef = useRef(false);
   const cataloguePageRef = useRef<HTMLDivElement>(null);
 
-  const { steamDevelopers, steamPublishers, downloadSources, publishedGenres } =
+  const { developers, publishers, downloadSources, publishedGenres } =
     useCatalogue();
 
   const { steamGenres, steamUserTags, filters, page, mode, pcShop } =
@@ -185,7 +186,7 @@ export default function Catalogue() {
         offset: number,
         requestId: number,
         mode: "modern" | "classics",
-        pcShop: "steam" | "epic"
+        pcShop: CatalogueStoreScope
       ) => {
         const { platforms, ...restFilters } = filters;
         const baseRequest = {
@@ -204,7 +205,7 @@ export default function Catalogue() {
                 shops: ["launchbox"],
                 platforms: platforms ?? [],
               }
-            : { ...baseRequest, shops: [pcShop] };
+            : { ...baseRequest, shops: getCatalogueSearchShops(pcShop) };
 
         const response = await window.electron.hydraApi.post<{
           edges: CatalogueSearchResult[];
@@ -269,24 +270,18 @@ export default function Catalogue() {
   }, [steamGenres, language]);
 
   const pcGenresFilterItems = useMemo(() => {
-    if (pcShop === "epic") {
-      return [...publishedGenres]
-        .sort((first, second) => first.localeCompare(second))
-        .map((genre) => ({
-          label: genre,
-          value: genre,
-          checked: filters.genres.includes(genre),
-        }));
-    }
-
-    return Object.entries(steamGenresMapping)
-      .filter(([, value]) => publishedGenres.includes(value))
-      .sort(([keyA], [keyB]) => keyA.localeCompare(keyB))
-      .map(([key, value]) => ({
-        label: key,
-        value: value,
-        checked: filters.genres.includes(value),
-      }));
+    return publishedGenres
+      .map((genre) => ({
+        label:
+          pcShop === "epic"
+            ? genre
+            : (Object.keys(steamGenresMapping).find(
+                (key) => steamGenresMapping[key] === genre
+              ) ?? genre),
+        value: genre,
+        checked: filters.genres.includes(genre),
+      }))
+      .sort((first, second) => first.label.localeCompare(second.label));
   }, [pcShop, steamGenresMapping, filters.genres, publishedGenres]);
 
   const steamUserTagsFilterItems = useMemo(() => {
@@ -542,7 +537,7 @@ export default function Catalogue() {
         key: "genres",
       },
       {
-        title: t("tags"),
+        title: pcShop === "all" ? `${t("tags")} · Steam` : t("tags"),
         items: steamUserTagsFilterItems,
         key: "tags",
       },
@@ -561,7 +556,7 @@ export default function Catalogue() {
       },
       {
         title: t("developers"),
-        items: steamDevelopers.map((developer) => ({
+        items: developers.map((developer) => ({
           label: developer,
           value: developer,
           checked: filters.developers.includes(developer),
@@ -570,7 +565,7 @@ export default function Catalogue() {
       },
       {
         title: t("publishers"),
-        items: steamPublishers.map((publisher) => ({
+        items: publishers.map((publisher) => ({
           label: decodeHTML(publisher),
           value: publisher,
           checked: filters.publishers.includes(publisher),
@@ -583,10 +578,11 @@ export default function Catalogue() {
     filters.developers,
     filters.downloadSourceFingerprints,
     filters.publishers,
-    steamDevelopers,
+    developers,
     pcGenresFilterItems,
-    steamPublishers,
+    publishers,
     steamUserTagsFilterItems,
+    pcShop,
     t,
   ]);
 
@@ -792,11 +788,15 @@ export default function Catalogue() {
             <CatalogueModeToggle />
 
             {mode === "modern" &&
-              pcShop === "steam" &&
+              pcShop !== "epic" &&
               shouldShowProtonFeatures && (
                 <Suspense fallback={null}>
                   <ProtonCompatibilitySection
-                    title={t("protondb")}
+                    title={
+                      pcShop === "all"
+                        ? `${t("protondb")} · Steam`
+                        : t("protondb")
+                    }
                     protonSliderLabel={t("protondb_minimum")}
                     deckSliderLabel={t("steam_deck_minimum")}
                     protonOptions={protonCompatibilityThresholds.map(
@@ -852,7 +852,7 @@ export default function Catalogue() {
             {mode === "modern" &&
               filterSections
                 .filter(
-                  (section) => pcShop === "steam" || section.key !== "tags"
+                  (section) => pcShop !== "epic" || section.key !== "tags"
                 )
                 .map((section) => (
                   <FilterSection

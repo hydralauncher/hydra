@@ -3,6 +3,12 @@ import type {
   CatalogueSearchResult,
   DownloadSource,
 } from "@types";
+import {
+  getCatalogueSearchShops,
+  loadCatalogueStoreFilters,
+  parseCatalogueStoreScope,
+  type CatalogueStoreScope,
+} from "@shared";
 import { levelDBService } from "@renderer/services/leveldb.service";
 import { logger } from "@renderer/logger";
 import {
@@ -79,7 +85,7 @@ export interface CatalogueData {
 
 export interface SearchGamesFormValues {
   mode?: CatalogueMode;
-  pcShop?: "steam" | "epic";
+  pcShop?: CatalogueStoreScope;
   title?: string;
   sortBy?: CatalogueSearchPayload["sortBy"];
   sortOrder?: CatalogueSearchPayload["sortOrder"];
@@ -288,7 +294,7 @@ export function useCatalogueData() {
 
     return {
       mode,
-      pcShop: searchParams.get("pcShop") === "epic" ? "epic" : "steam",
+      pcShop: parseCatalogueStoreScope(searchParams.get("pcShop")),
       title: searchParams.get("title") ?? "",
       sortBy: sortOption.sortBy,
       sortOrder: sortOption.sortOrder,
@@ -346,7 +352,7 @@ export function useCatalogueData() {
     () =>
       JSON.stringify({
         mode: values.mode ?? "modern",
-        pcShop: values.pcShop ?? "steam",
+        pcShop: values.pcShop ?? "all",
         title: deferredTitle,
         sortBy: values.sortBy ?? DEFAULT_CATALOGUE_SORT_OPTION.sortBy,
         sortOrder: values.sortOrder ?? DEFAULT_CATALOGUE_SORT_OPTION.sortOrder,
@@ -463,7 +469,7 @@ export function useCatalogueData() {
         };
 
         if (catalogueMode === "modern") {
-          payload.shops = [values.pcShop ?? "steam"];
+          payload.shops = getCatalogueSearchShops(values.pcShop ?? "all");
           payload.tags = values.pcShop === "epic" ? [] : (values.tags ?? []);
         } else {
           payload.shops = ["launchbox"];
@@ -608,23 +614,16 @@ export function useCatalogueData() {
   useEffect(() => {
     let current = true;
     setPcFilters({ genres: [], developers: [], publishers: [] });
-    const shop = values.pcShop ?? "steam";
-    Promise.all([
-      globalThis.window.electron.hydraApi.get<string[]>(
-        `/catalogue/${shop}/genres`,
-        { needsAuth: false }
-      ),
-      globalThis.window.electron.hydraApi.get<string[]>(
-        `/catalogue/${shop}/developers`,
-        { needsAuth: false }
-      ),
-      globalThis.window.electron.hydraApi.get<string[]>(
-        `/catalogue/${shop}/publishers`,
-        { needsAuth: false }
-      ),
-    ])
-      .then(([genres, developers, publishers]) => {
-        if (current) setPcFilters({ genres, developers, publishers });
+    loadCatalogueStoreFilters(
+      values.pcShop ?? "all",
+      (path) =>
+        globalThis.window.electron.hydraApi.get<string[]>(path, {
+          needsAuth: false,
+        }),
+      (path, error) => console.error(`Failed to load ${path}`, error)
+    )
+      .then((filters) => {
+        if (current) setPcFilters(filters);
       })
       .catch(console.error);
     return () => {
@@ -654,7 +653,7 @@ export function useCatalogueData() {
       },
       [FilterType.Tags]: {
         data: steamTags,
-        label: "Tags",
+        label: values.pcShop === "all" ? "Steam tags" : "Tags",
         color: "yellow",
       },
       [FilterType.DownloadSourceFingerprints]: {
@@ -683,6 +682,7 @@ export function useCatalogueData() {
     launchboxFilters,
     steamTags,
     values.mode,
+    values.pcShop,
   ]);
 
   const filterTypes = useMemo(
@@ -697,7 +697,7 @@ export function useCatalogueData() {
 
   return {
     mode: values.mode ?? "modern",
-    pcShop: values.pcShop ?? "steam",
+    pcShop: values.pcShop ?? "all",
     filterTypes,
     pageSize,
     hasNextPage,

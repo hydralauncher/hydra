@@ -4,6 +4,7 @@ import { levelDBService } from "@renderer/services/leveldb.service";
 import type { DownloadSource } from "@types";
 import { useAppDispatch, useAppSelector } from "./redux";
 import { setGenres, setTags } from "@renderer/features";
+import { loadCatalogueStoreFilters } from "@shared";
 
 const SUPPORTED_STEAM_METADATA_LANGUAGES = new Set([
   "en",
@@ -42,8 +43,8 @@ export function useCatalogue() {
   const [publishedGenres, setPublishedGenres] = useState<string[]>([]);
   const { i18n } = useTranslation();
 
-  const [steamPublishers, setSteamPublishers] = useState<string[]>([]);
-  const [steamDevelopers, setSteamDevelopers] = useState<string[]>([]);
+  const [publishers, setPublishers] = useState<string[]>([]);
+  const [developers, setDevelopers] = useState<string[]>([]);
   const [downloadSources, setDownloadSources] = useState<DownloadSource[]>([]);
 
   const getSteamFilters = useCallback(async () => {
@@ -64,26 +65,19 @@ export function useCatalogue() {
 
   useEffect(() => {
     let current = true;
-    setSteamPublishers([]);
-    setSteamDevelopers([]);
+    setPublishers([]);
+    setDevelopers([]);
     setPublishedGenres([]);
-    Promise.all([
-      window.electron.hydraApi.get<string[]>(`/catalogue/${pcShop}/genres`, {
-        needsAuth: false,
-      }),
-      window.electron.hydraApi.get<string[]>(
-        `/catalogue/${pcShop}/developers`,
-        { needsAuth: false }
-      ),
-      window.electron.hydraApi.get<string[]>(
-        `/catalogue/${pcShop}/publishers`,
-        { needsAuth: false }
-      ),
-    ])
-      .then(([genres, developers, publishers]) => {
+    loadCatalogueStoreFilters(
+      pcShop,
+      (path) =>
+        window.electron.hydraApi.get<string[]>(path, { needsAuth: false }),
+      (path, error) => console.error(`Failed to load ${path}`, error)
+    )
+      .then(({ genres, developers, publishers }) => {
         if (!current) return;
-        setSteamPublishers(publishers);
-        setSteamDevelopers(developers);
+        setPublishers(publishers);
+        setDevelopers(developers);
         setPublishedGenres(genres);
       })
       .catch(console.error);
@@ -104,5 +98,5 @@ export function useCatalogue() {
     getDownloadSources();
   }, [getSteamFilters, getDownloadSources]);
 
-  return { steamPublishers, downloadSources, steamDevelopers, publishedGenres };
+  return { publishers, downloadSources, developers, publishedGenres };
 }

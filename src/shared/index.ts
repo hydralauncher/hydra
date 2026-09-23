@@ -46,6 +46,7 @@ export * from "./use-hls-video";
 export * from "./use-souvenir-content-warning";
 export * from "./retroarch-platform";
 export * from "./requirements";
+export * from "./catalogue-store-filters";
 export * from "./tracker-list";
 export * from "./souvenirs";
 export * from "./souvenir-sync";
