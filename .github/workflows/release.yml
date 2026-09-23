@@ -1,5 +1,8 @@
 name: Release
 
+env:
+  RELEASE_ARTIFACT_RETENTION_DAYS: 7
+
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
@@ -115,7 +118,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: Build-${{ matrix.os }}
-          retention-days: 7
+          retention-days: ${{ env.RELEASE_ARTIFACT_RETENTION_DAYS }}
           path: |
             dist/win-unpacked/**
             dist/*-portable.exe

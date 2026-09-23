@@ -64,7 +64,7 @@ fs.readdir(dist, async (err, files) => {
         console.log(`⌛️ Uploading ${file}...`);
         const fileName = isRelease
           ? `releases/${packageJson.version}/${file}`
-          : `${flavor}-${new Date().getTime()}-${file}`;
+          : `${flavor}-${Date.now()}-${file}`;
 
         const command = new PutObjectCommand({
           Bucket: process.env.S3_BUILDS_BUCKET_NAME,
