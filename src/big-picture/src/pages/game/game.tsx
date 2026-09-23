@@ -7,6 +7,7 @@ import {
   type SkuRegion,
 } from "@renderer/helpers";
 import type { GameShop, ShopAssets } from "@types";
+import { handleEpicDescriptionLinkClick } from "@shared";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useNavigate, useParams } from "react-router-dom";
@@ -1517,6 +1518,24 @@ export default function Game() {
                   >
                     <div
                       ref={descriptionContainerRef}
+                      onClickCapture={
+                        shop === "epic"
+                          ? (event) =>
+                              handleEpicDescriptionLinkClick(
+                                event,
+                                globalThis.window.electron.openExternal
+                              )
+                          : undefined
+                      }
+                      onAuxClickCapture={
+                        shop === "epic"
+                          ? (event) =>
+                              handleEpicDescriptionLinkClick(
+                                event,
+                                globalThis.window.electron.openExternal
+                              )
+                          : undefined
+                      }
                       className={`game-page__detailed-description ${
                         shop === "epic"
                           ? "game-page__detailed-description--epic"

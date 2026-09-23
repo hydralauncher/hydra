@@ -1,4 +1,3 @@
-import { isAxiosError } from "axios";
 import {
   mapEpicShopDetails,
   type EpicShopDetailsResponse,
@@ -25,6 +24,7 @@ import {
   levelKeys,
 } from "@main/level";
 import { composeAssetsWithArtwork } from "@shared";
+import { fetchEpicShopDetailsWithCache } from "./epic-shop-details-request";
 
 const applyArtworkToAssets = async (
   shop: GameShop,
@@ -245,45 +245,43 @@ const getGameShopDetails = async (
 
   if (shop === "epic") {
     const cacheKey = levelKeys.gameShopCacheItem(shop, objectId, language);
-    try {
-      const game = await HydraApi.get<Record<string, unknown> | null>(
-        `/games/${shop}/${encodeURIComponent(objectId)}/shop-details`,
-        { language },
-        { needsAuth: false }
-      );
-      if (!game) throw new Error("Game details are unavailable");
-      const response: EpicShopDetailsResponse = { game };
-      const details = mapEpicShopDetails(response, language, {
-        shop,
-        objectId,
-      });
-      const { assets, ...cached } = details;
-      await gamesShopCacheSublevel.put(cacheKey, cached);
-      if (assets)
-        await gamesShopAssetsSublevel.put(
-          levelKeys.game(assets.shop, assets.objectId),
-          { ...assets, updatedAt: Date.now() }
-        );
-      return {
-        ...details,
-        assets: await applyArtworkToAssets(shop, objectId, assets),
-      };
-    } catch (error) {
-      if (
-        !isAxiosError(error) ||
-        (error.response && error.response.status < 500)
-      )
-        throw error;
-      const cached = await gamesShopCacheSublevel.get(cacheKey);
-      if (!cached) throw error;
+    const result = await fetchEpicShopDetailsWithCache(
+      () =>
+        HydraApi.get<Record<string, unknown> | null>(
+          `/games/${shop}/${encodeURIComponent(objectId)}/shop-details`,
+          { language },
+          { needsAuth: false }
+        ),
+      () => gamesShopCacheSublevel.get(cacheKey)
+    );
+
+    if (result.source === "cache") {
       const assets = await gamesShopAssetsSublevel.get(
         levelKeys.game(shop, objectId)
       );
       return {
-        ...cached,
+        ...result.data,
         assets: await applyArtworkToAssets(shop, objectId, assets ?? null),
       };
     }
+
+    if (!result.data) throw new Error("Game details are unavailable");
+    const response: EpicShopDetailsResponse = { game: result.data };
+    const details = mapEpicShopDetails(response, language, {
+      shop,
+      objectId,
+    });
+    const { assets, ...cached } = details;
+    await gamesShopCacheSublevel.put(cacheKey, cached);
+    if (assets)
+      await gamesShopAssetsSublevel.put(
+        levelKeys.game(assets.shop, assets.objectId),
+        { ...assets, updatedAt: Date.now() }
+      );
+    return {
+      ...details,
+      assets: await applyArtworkToAssets(shop, objectId, assets),
+    };
   }
 
   if (shop === "steam") {
