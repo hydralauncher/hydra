@@ -489,7 +489,7 @@ export class DownloadManager {
             completedBytes: batch.completedBytes,
             totalBytes: batch.totalBytes,
             entryCount: batch.entries.length,
-            fileBytes: status.status === "active" ? status.bytesDownloaded : 0,
+            fileBytes: status.bytesDownloaded,
             fileProgress: status.progress,
           });
           progress = batchProgress.progress;
@@ -1171,7 +1171,21 @@ export class DownloadManager {
   static async pauseDownload(downloadKey = this.downloadingGameId) {
     if (this.usingJsDownloader && this.jsDownloader) {
       logger.log("[DownloadManager] Pausing JS download");
-      this.jsDownloader.pauseDownload();
+      const downloader = this.jsDownloader;
+      downloader.pauseDownload();
+      await downloader.waitForIdle();
+
+      if (downloadKey && downloadKey === this.downloadingGameId) {
+        const status = await this.getDownloadStatusFromJs();
+        const download = await downloadsSublevel.get(downloadKey);
+        if (status?.download && download) {
+          await downloadsSublevel.put(downloadKey, {
+            ...download,
+            bytesDownloaded: status.download.bytesDownloaded,
+            progress: status.download.progress,
+          });
+        }
+      }
     } else if (downloadKey) {
       await TorrentService.call("action", {
         action: "pause",

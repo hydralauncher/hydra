@@ -40,7 +40,11 @@ afterEach(async () => {
   );
 });
 
-async function startServer(breakSecondRange = false, hangRangeStart?: number) {
+async function startServer(
+  breakSecondRange = false,
+  hangRangeStart?: number,
+  hangOtherRanges = false
+) {
   let active = 0;
   let peakActive = 0;
   let rangeRequests = 0;
@@ -55,7 +59,7 @@ async function startServer(breakSecondRange = false, hangRangeStart?: number) {
     const start = Number(match[1]);
     const end = Math.min(Number(match[2]), contents.length - 1);
     rangeRequests++;
-    if (start === hangRangeStart) return;
+    if (start === hangRangeStart || (hangOtherRanges && start !== 0)) return;
     if (breakSecondRange && start === PARALLEL_RANGE_SIZE * 4) {
       response.writeHead(200, { "content-length": contents.length });
       response.end(contents);
@@ -99,7 +103,8 @@ async function runDownload(
   startByte = 0,
   onReadPending: (offset: number, pending: boolean) => void = () => undefined,
   rangeSize = PARALLEL_RANGE_SIZE,
-  maxRanges?: number
+  maxRanges?: number,
+  abortAfterBytes?: number
 ) {
   const directory = await fs.promises.mkdtemp(
     path.join(os.tmpdir(), "hydra-range-test-")
@@ -129,6 +134,9 @@ async function runDownload(
     beforeChunk: async () => undefined,
     afterChunk: (length) => {
       countedBytes += length;
+      if (abortAfterBytes && countedBytes >= abortAfterBytes) {
+        controller.abort();
+      }
     },
     onReadPending,
   });
@@ -158,6 +166,23 @@ describe("parallel HTTP byte ranges", () => {
     const { download, filePath } = await runDownload(server.url, startByte);
     await download;
     assert.deepEqual(await fs.promises.readFile(filePath), contents);
+  });
+
+  it("commits the first partial range when a transfer is paused", async () => {
+    const server = await startServer(false, undefined, true);
+    const { download, filePath } = await runDownload(
+      server.url,
+      0,
+      () => undefined,
+      PARALLEL_RANGE_SIZE,
+      undefined,
+      128 * 1024
+    );
+    await assert.rejects(download);
+    const saved = await fs.promises.readFile(filePath);
+    assert.ok(saved.length >= 128 * 1024);
+    assert.ok(saved.length < PARALLEL_RANGE_SIZE);
+    assert.deepEqual(saved, contents.subarray(0, saved.length));
   });
 
   it("uses larger ranges to reduce requests for large files", async () => {

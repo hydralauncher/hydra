@@ -240,10 +240,31 @@ export async function downloadParallelRanges({
       try {
         await Promise.all(transfers);
       } catch (error) {
-        // A failed range makes the whole batch unusable. Stop its peers before
-        // removing their temporary files or retrying from the committed prefix.
+        // Stop writers before reading their temporary files. Even when a batch
+        // is incomplete, its first ranges may form a valid contiguous prefix.
         if (!signal.aborted) abort();
         await Promise.allSettled(transfers);
+        for (const range of ranges) {
+          const size = await fs.promises
+            .stat(range.tempFile)
+            .then((stats) => stats.size)
+            .catch((statError: NodeJS.ErrnoException) => {
+              if (statError.code === "ENOENT") return 0;
+              throw statError;
+            });
+          if (size === 0) break;
+          const expected = range.end - range.start + 1;
+          if (size > expected) {
+            throw new ParallelRangeUnsupportedError(
+              "A downloaded byte range exceeded its expected length"
+            );
+          }
+          await pipeline(
+            fs.createReadStream(range.tempFile),
+            fs.createWriteStream(filePath, { flags: "a" })
+          );
+          if (size < expected) break;
+        }
         throw error;
       }
 

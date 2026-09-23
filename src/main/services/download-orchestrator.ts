@@ -334,7 +334,10 @@ export class DownloadOrchestrator {
       WindowManager.sendToAppWindows("on-download-progress", null);
     }
 
-    const nextDownload = await this.setDownloadPausedState(download, {
+    const savedDownload = shouldPauseRuntime
+      ? ((await this.getDownload(download.shop, download.objectId)) ?? download)
+      : download;
+    const nextDownload = await this.setDownloadPausedState(savedDownload, {
       queued: options.queueActiveReplacement,
       status: options.reason === "error" ? "error" : "paused",
     });

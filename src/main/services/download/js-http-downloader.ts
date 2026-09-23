@@ -115,6 +115,7 @@ export class JsHttpDownloader {
   private parallelRangesDisabled = false;
   private pendingRangeReads = new Map<number, number>();
   private urlRefreshAttempted = false;
+  private activeRun: Promise<void> | null = null;
 
   setMaxDownloadSpeedBytesPerSecond(limit: number | null): void {
     if (typeof limit !== "number" || !Number.isFinite(limit) || limit <= 0) {
@@ -152,7 +153,21 @@ export class JsHttpDownloader {
     this.pendingRangeReads.clear();
     this.urlRefreshAttempted = false;
     this.resetThrottleWindow();
-    await this.startDownloadWithRetry();
+    await this.runDownload();
+  }
+
+  private async runDownload(): Promise<void> {
+    const run = this.startDownloadWithRetry();
+    this.activeRun = run;
+    try {
+      await run;
+    } finally {
+      if (this.activeRun === run) this.activeRun = null;
+    }
+  }
+
+  async waitForIdle(): Promise<void> {
+    await this.activeRun?.catch(() => undefined);
   }
 
   private async startDownloadWithRetry(): Promise<void> {
@@ -1119,7 +1134,7 @@ export class JsHttpDownloader {
     this.resetRecoveryState();
     this.pendingReadSince = null;
     this.urlRefreshAttempted = false;
-    await this.startDownloadWithRetry();
+    await this.runDownload();
   }
 
   setReconnecting(value: boolean): void {
