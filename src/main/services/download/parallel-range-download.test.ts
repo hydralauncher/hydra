@@ -39,7 +39,7 @@ afterEach(async () => {
   );
 });
 
-async function startServer(breakSecondRange = false) {
+async function startServer(breakSecondRange = false, hangRangeStart?: number) {
   let active = 0;
   let peakActive = 0;
   const server = http.createServer((request, response) => {
@@ -52,6 +52,7 @@ async function startServer(breakSecondRange = false) {
 
     const start = Number(match[1]);
     const end = Math.min(Number(match[2]), contents.length - 1);
+    if (start === hangRangeStart) return;
     if (breakSecondRange && start === PARALLEL_RANGE_SIZE * 4) {
       response.writeHead(200, { "content-length": contents.length });
       response.end(contents);
@@ -89,7 +90,11 @@ async function startServer(breakSecondRange = false) {
   };
 }
 
-async function runDownload(url: string, startByte = 0) {
+async function runDownload(
+  url: string,
+  startByte = 0,
+  onReadPending: (offset: number, pending: boolean) => void = () => undefined
+) {
   const directory = await fs.promises.mkdtemp(
     path.join(os.tmpdir(), "hydra-range-test-")
   );
@@ -117,9 +122,14 @@ async function runDownload(url: string, startByte = 0) {
     afterChunk: (length) => {
       countedBytes += length;
     },
-    onReadPending: () => undefined,
+    onReadPending,
   });
-  return { download, filePath, getCountedBytes: () => countedBytes };
+  return {
+    download,
+    filePath,
+    abort: () => controller.abort(),
+    getCountedBytes: () => countedBytes,
+  };
 }
 
 describe("parallel HTTP byte ranges", () => {
@@ -149,6 +159,37 @@ describe("parallel HTTP byte ranges", () => {
     const saved = await fs.promises.readFile(filePath);
     assert.equal(saved.length, PARALLEL_RANGE_SIZE * 4);
     assert.deepEqual(saved, contents.subarray(0, saved.length));
+  });
+
+  it("reports a range waiting for response headers so a stall can abort it", async () => {
+    const server = await startServer(false, PARALLEL_RANGE_SIZE);
+    let reportPending: () => void = () => undefined;
+    const pending = new Promise<void>((resolve) => {
+      reportPending = resolve;
+    });
+    const { download, abort } = await runDownload(
+      server.url,
+      0,
+      (offset, isPending) => {
+        if (offset === PARALLEL_RANGE_SIZE && isPending) reportPending();
+      }
+    );
+    let timeout: ReturnType<typeof setTimeout> | undefined;
+    try {
+      await Promise.race([
+        pending,
+        new Promise<never>((_, reject) => {
+          timeout = setTimeout(
+            () => reject(new Error("Range wait was not reported")),
+            2000
+          );
+        }),
+      ]);
+    } finally {
+      clearTimeout(timeout);
+      abort();
+    }
+    await assert.rejects(download);
   });
 
   it("rejects a mismatched Content-Range", () => {

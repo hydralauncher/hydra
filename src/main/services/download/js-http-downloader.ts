@@ -41,6 +41,7 @@ export interface JsHttpDownloaderStatus {
 
 export interface JsHttpDownloaderOptions {
   url: string;
+  refreshUrl?: () => Promise<string>;
   savePath: string;
   filename?: string;
   headers?: Record<string, string>;
@@ -107,6 +108,7 @@ export class JsHttpDownloader {
   private bytesTransferredInThrottleWindow = 0;
   private parallelRangesDisabled = false;
   private pendingRangeReads = new Map<number, number>();
+  private urlRefreshAttempted = false;
 
   setMaxDownloadSpeedBytesPerSecond(limit: number | null): void {
     if (typeof limit !== "number" || !Number.isFinite(limit) || limit <= 0) {
@@ -142,6 +144,7 @@ export class JsHttpDownloader {
     this.pendingReadSince = null;
     this.parallelRangesDisabled = false;
     this.pendingRangeReads.clear();
+    this.urlRefreshAttempted = false;
     this.resetThrottleWindow();
     await this.startDownloadWithRetry();
   }
@@ -255,6 +258,18 @@ export class JsHttpDownloader {
     const transientStatus =
       err instanceof HttpDownloadStatusError && err.retryable;
 
+    if (
+      isRetryable &&
+      !wasReconnect &&
+      !this.parallelRangesDisabled &&
+      this.currentOptions?.allowParallelRanges !== false
+    ) {
+      this.parallelRangesDisabled = true;
+      logger.log(
+        "[JsHttpDownloader] Range request failed; resuming with one connection"
+      );
+    }
+
     this.maybeResetRetryBudget();
 
     if (transientStatus) {
@@ -273,6 +288,21 @@ export class JsHttpDownloader {
       this.retryCount++;
       this.isReconnecting = true;
       this.downloadSpeed = 0;
+      if (!this.urlRefreshAttempted && this.currentOptions?.refreshUrl) {
+        this.urlRefreshAttempted = true;
+        try {
+          const freshUrl = await this.currentOptions.refreshUrl();
+          if (this.isPaused) return false;
+          if (freshUrl) {
+            this.currentOptions = { ...this.currentOptions, url: freshUrl };
+            logger.log("[JsHttpDownloader] Refreshed download link for retry");
+          }
+        } catch {
+          logger.warn(
+            "[JsHttpDownloader] Could not refresh download link for retry"
+          );
+        }
+      }
       const delay = Math.min(
         INITIAL_RETRY_DELAY_MS * Math.pow(2, this.retryCount - 1),
         MAX_RETRY_DELAY_MS
@@ -506,7 +536,7 @@ export class JsHttpDownloader {
       this.currentOptions?.allowParallelRanges !== false
     ) {
       const rangeEnd = startByte + PARALLEL_RANGE_SIZE - 1;
-      response = await fetch(url, {
+      response = await this.fetchWithStallTracking(url, {
         headers: {
           ...requestHeaders,
           Range: `bytes=${startByte}-${rangeEnd}`,
@@ -552,6 +582,7 @@ export class JsHttpDownloader {
             afterChunk: (length) => {
               this.attemptBytesReceived += length;
               this.bytesDownloaded += length;
+              this.isReconnecting = false;
               this.updateSpeed();
             },
             onReadPending: (offset, pending) => {
@@ -560,6 +591,16 @@ export class JsHttpDownloader {
             },
           });
         } catch (error) {
+          if (
+            !this.isPaused &&
+            !this.isReconnectRetry &&
+            (this.isStallRetry || isRetryableDownloadError(error))
+          ) {
+            this.parallelRangesDisabled = true;
+            logger.log(
+              "[JsHttpDownloader] Parallel transfer failed; resuming with one connection"
+            );
+          }
           // Discarded temporary ranges do not count as durable progress.
           const committed = fs.existsSync(actualFilePath)
             ? fs.statSync(actualFilePath).size
@@ -580,13 +621,13 @@ export class JsHttpDownloader {
       // remainder through the existing single-stream path instead.
       if (response.status === 206) {
         await response.body?.cancel();
-        response = await fetch(url, {
+        response = await this.fetchWithStallTracking(url, {
           headers: requestHeaders,
           signal: this.abortController?.signal,
         });
       }
     } else {
-      response = await fetch(url, {
+      response = await this.fetchWithStallTracking(url, {
         headers: requestHeaders,
         signal: this.abortController?.signal,
       });
@@ -707,6 +748,18 @@ export class JsHttpDownloader {
     await pipeline(readableStream, this.writeStream);
 
     this.markComplete();
+  }
+
+  private async fetchWithStallTracking(
+    url: string,
+    options: RequestInit
+  ): Promise<Response> {
+    this.pendingReadSince = Date.now();
+    try {
+      return await fetch(url, options);
+    } finally {
+      this.pendingReadSince = null;
+    }
   }
 
   private resolveOutputPath(
@@ -975,6 +1028,7 @@ export class JsHttpDownloader {
     this.isReconnectRetry = false;
     this.resetRecoveryState();
     this.pendingReadSince = null;
+    this.urlRefreshAttempted = false;
     await this.startDownloadWithRetry();
   }
 

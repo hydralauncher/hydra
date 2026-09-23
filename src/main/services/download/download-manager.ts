@@ -1324,8 +1324,16 @@ export class DownloadManager {
         if (this.jsBatch !== batch || this.jsDownloader !== downloader) break;
         if (!resolvedUrl) throw new Error("The download link is unavailable.");
 
+        const torBoxTorrentId = batch.torrentId;
+        const torBoxFileId = entry.isZip ? "zip" : entry.fileId;
         const options = {
           url: resolvedUrl,
+          refreshUrl:
+            batch.provider === "torBox" &&
+            torBoxTorrentId !== undefined &&
+            torBoxFileId !== undefined
+              ? () => TorBoxClient.requestLink(torBoxTorrentId, torBoxFileId)
+              : undefined,
           savePath: batch.savePath,
           allowParallelRanges:
             !entry.isZip && !isZipDownloadUrl(resolvedUrl, entry.filename),

@@ -90,16 +90,22 @@ export async function downloadParallelRanges({
   ): Promise<void> => {
     if (signal.aborted) throw signal.reason;
 
-    const rangeResponse =
-      response ??
-      (await fetch(url, {
-        headers: {
-          ...headers,
-          Range: `bytes=${start}-${end}`,
-          ...(validator ? { "If-Range": validator } : {}),
-        },
-        signal,
-      }));
+    let rangeResponse = response;
+    if (!rangeResponse) {
+      onReadPending(start, true);
+      try {
+        rangeResponse = await fetch(url, {
+          headers: {
+            ...headers,
+            Range: `bytes=${start}-${end}`,
+            ...(validator ? { "If-Range": validator } : {}),
+          },
+          signal,
+        });
+      } finally {
+        onReadPending(start, false);
+      }
+    }
 
     const responseValidator = validator?.startsWith('"')
       ? rangeResponse.headers.get("etag")
