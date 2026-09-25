@@ -35,7 +35,6 @@ import {
   ColumnsIcon,
   DownloadIcon,
   FileDirectoryIcon,
-  FileIcon,
   LinkIcon,
   PlayIcon,
   TrashIcon,
@@ -299,10 +298,12 @@ function HeroDownloadView({
   }, [navigate, game]);
 
   const etaText = calculateETA();
+  const isRecovering = !isGameExtracting && !!lastPacket?.isRecovering;
   const hasEta =
     isGameDownloading &&
     !isGameExtracting &&
     !lastPacket?.isCheckingFiles &&
+    !isRecovering &&
     !!etaText &&
     etaText.trim() !== "" &&
     etaText !== "0";
@@ -310,9 +311,9 @@ function HeroDownloadView({
     isGameDownloading &&
     !isGameExtracting &&
     !lastPacket?.isCheckingFiles &&
+    !isRecovering &&
     !hasEta;
   const shouldShowEta = hasEta || shouldShowEtaPlaceholder;
-  const isRecovering = !isGameExtracting && !!lastPacket?.isRecovering;
   const recoveryPercent = Math.round((lastPacket?.recoveryProgress ?? 0) * 100);
   const isReconnecting =
     !isGameExtracting && !isRecovering && !!lastPacket?.isReconnecting;
@@ -501,24 +502,6 @@ function HeroDownloadView({
                 </div>
               )}
 
-            {lastPacket?.batchFilesTotal != null &&
-              lastPacket.batchFilesTotal > 1 && (
-                <div className="download-group__stat-item">
-                  <span style={{ color: dominantColor, display: "flex" }}>
-                    <FileIcon size={16} />
-                  </span>
-                  <div className="download-group__stat-content">
-                    <span className="download-group__stat-label">
-                      {t("files")}:
-                    </span>
-                    <span className="download-group__stat-value">
-                      {lastPacket.batchFilesDownloaded ?? 0}/
-                      {lastPacket.batchFilesTotal}
-                    </span>
-                  </div>
-                </div>
-              )}
-
             {game.download?.downloader !== undefined && (
               <div className="download-group__stat-item">
                 <div className="download-group__stat-content">
@@ -591,7 +574,14 @@ export function DownloadGroup({
       setOptimisticallyResumed((prev) => ({ ...prev, [gameId]: true }));
 
       try {
-        await resumeDownloadOriginal(shop, objectId);
+        const resumed = await resumeDownloadOriginal(shop, objectId);
+        if (!resumed) {
+          setOptimisticallyResumed((prev) => {
+            const next = { ...prev };
+            delete next[gameId];
+            return next;
+          });
+        }
       } catch (error) {
         // If resume fails, remove optimistic state
         setOptimisticallyResumed((prev) => {
@@ -818,7 +808,7 @@ export function DownloadGroup({
   );
 
   const getGameActions = (game: LibraryGame): DropdownMenuItem[] => {
-    const download = lastPacket?.download;
+    const download = game.download;
     const isGameDownloading = isGameDownloadingMap[game.id];
 
     const deleting = isGameDeleting(game.id);
@@ -899,7 +889,7 @@ export function DownloadGroup({
     const queueIndex = queuedGameIds.indexOf(game.id);
     const isFirstInQueue = queueIndex === 0;
     const isLastInQueue = queueIndex === queuedGameIds.length - 1;
-    const isInQueue = queueIndex !== -1;
+    const isInQueue = queueIndex !== -1 && !!download?.queued;
 
     const actions = [
       {
@@ -1128,7 +1118,9 @@ export function DownloadGroup({
                 {isQueuedGroup && (
                   <div className="download-group__simple-progress">
                     <span className="download-group__simple-progress-text">
-                      {formatDownloadProgress(progress)}
+                      {game.download?.awaitingDebrid
+                        ? t("waiting_for_debrid")
+                        : formatDownloadProgress(progress)}
                     </span>
                     <div className="download-group__progress-bar download-group__progress-bar--small">
                       <div

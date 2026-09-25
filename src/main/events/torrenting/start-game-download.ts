@@ -8,13 +8,14 @@ import {
 } from "@main/services";
 import { createGame } from "@main/services/library-sync";
 import { downloadsSublevel, gamesSublevel, levelKeys } from "@main/level";
-import { parseBytes } from "@shared";
+import { Downloader, parseBytes } from "@shared";
 import {
   getGlobalTrackers,
   handleDownloadError,
   isKnownDownloadError,
   prepareGameEntry,
 } from "@main/helpers";
+import { isDebridPendingError } from "@main/services/download/debrid-pending";
 
 const startGameDownload = async (
   _event: Electron.IpcMainInvokeEvent,
@@ -36,6 +37,8 @@ const startGameDownload = async (
 
   const parsedFileSize = parseBytes(fileSize ?? null);
   const gameKey = levelKeys.game(shop, objectId);
+  const prepareRealDebridInBackground =
+    downloader === Downloader.RealDebrid && uri.startsWith("magnet:");
 
   logger.log(
     `[Downloads] Start requested for ${gameKey} (downloader=${downloader})`
@@ -68,12 +71,25 @@ const startGameDownload = async (
       fileSize: selectedFilesSize ?? parsedFileSize,
       customTrackers: globalTrackers,
     };
-    await DownloadManager.validateDownloadUrl(download);
+    if (!prepareRealDebridInBackground) {
+      try {
+        await DownloadManager.validateDownloadUrl(download);
+      } catch (error) {
+        if (!isDebridPendingError(error, downloader)) throw error;
+        download.awaitingDebrid = true;
+      }
+    }
     await prepareGameEntry({ gameKey, title, objectId, shop });
     await DownloadManager.cancelDownload(gameKey).catch(() => null);
     await downloadsSublevel.put(gameKey, download);
     didWriteDownload = true;
-    await DownloadOrchestrator.startPreparedDownload(download);
+    if (download.awaitingDebrid) {
+      await DownloadOrchestrator.saveAwaitingDebridDownload(download);
+    } else if (prepareRealDebridInBackground) {
+      DownloadOrchestrator.startPreparedDownloadInBackground(download);
+    } else {
+      await DownloadOrchestrator.startPreparedDownload(download);
+    }
 
     const updatedGame = await gamesSublevel.get(gameKey);
 

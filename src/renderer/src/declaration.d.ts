@@ -1,4 +1,4 @@
-import type { AuthPage } from "@shared";
+import type { AuthPage, Downloader } from "@shared";
 import type {
   AppUpdaterEvent,
   GameShop,
@@ -226,7 +226,7 @@ declare global {
       shop: GameShop,
       objectId: string,
       strategy?: "interruptActive" | "queueIfActive"
-    ) => Promise<void>;
+    ) => Promise<boolean>;
     pauseGameSeed: (shop: GameShop, objectId: string) => Promise<void>;
     resumeGameSeed: (shop: GameShop, objectId: string) => Promise<void>;
     saveGlobalTrackers: (
@@ -266,6 +266,17 @@ declare global {
     onHardDelete: (cb: () => void) => () => Electron.IpcRenderer;
     getTorrentFiles: (
       magnet: string
+    ) => Promise<
+      { ok: true; data: TorrentFilesResponse } | { ok: false; error: string }
+    >;
+    getTorBoxFiles: (
+      magnet: string
+    ) => Promise<
+      { ok: true; data: TorrentFilesResponse } | { ok: false; error: string }
+    >;
+    getDebridFiles: (
+      magnet: string,
+      provider: Downloader
     ) => Promise<
       { ok: true; data: TorrentFilesResponse } | { ok: false; error: string }
     >;

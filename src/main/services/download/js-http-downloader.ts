@@ -1,10 +1,12 @@
 import fs from "node:fs";
+import type { FileHandle } from "node:fs/promises";
 import path from "node:path";
 import { Readable } from "node:stream";
 import { pipeline } from "node:stream/promises";
 import { logger } from "../logger";
 import {
   applySkip,
+  chooseDownloadOutputPath,
   clampProgress,
   computeFileSize,
   isRetryableDownloadError,
@@ -17,6 +19,14 @@ import {
   shouldResetRetryBudget,
   stallDetected,
 } from "./js-http-downloader-helpers";
+import {
+  downloadParallelRanges,
+  getRangeTotal,
+  PARALLEL_RANGE_SIZE,
+  ParallelRangeUnsupportedError,
+  shouldDowngradeParallelRanges,
+} from "./parallel-range-download";
+import { verifyResumePrefixChunk } from "./resume-prefix";
 
 export interface JsHttpDownloaderStatus {
   folderName: string;
@@ -34,9 +44,17 @@ export interface JsHttpDownloaderStatus {
 
 export interface JsHttpDownloaderOptions {
   url: string;
+  refreshUrl?: () => Promise<string>;
   savePath: string;
   filename?: string;
   headers?: Record<string, string>;
+  allowParallelRanges?: boolean;
+  parallelRangeSize?: number;
+  parallelRangeConnections?: number;
+  maxParallelRanges?: number;
+  preserveFilename?: boolean;
+  allowResume?: boolean;
+  verifyResumePrefix?: boolean;
 }
 
 const MAX_RETRY_ATTEMPTS = 10;
@@ -47,6 +65,7 @@ const MAX_RETRY_DELAY_MS = 15000;
 const STALL_TIMEOUT_MS = 30000;
 const STALL_CHECK_INTERVAL_MS = 2000;
 const RECONNECT_RETRY_DELAY_MS = 500;
+const RESUME_OVERLAP_BYTES = 64 * 1024;
 export const DEFAULT_DOWNLOAD_USER_AGENT =
   "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:144.0) Gecko/20100101 Firefox/144.0";
 
@@ -95,6 +114,11 @@ export class JsHttpDownloader {
   private maxDownloadSpeedBytesPerSecond: number | null = null;
   private throttleWindowStart = Date.now();
   private bytesTransferredInThrottleWindow = 0;
+  private parallelRangesDisabled = false;
+  private parallelRangeFailures = 0;
+  private pendingRangeReads = new Map<number, number>();
+  private urlRefreshAttempted = false;
+  private activeRun: Promise<void> | null = null;
 
   setMaxDownloadSpeedBytesPerSecond(limit: number | null): void {
     if (typeof limit !== "number" || !Number.isFinite(limit) || limit <= 0) {
@@ -128,8 +152,26 @@ export class JsHttpDownloader {
     this.fileSize = 0;
     this.resolvedFilename = null;
     this.pendingReadSince = null;
+    this.parallelRangesDisabled = false;
+    this.parallelRangeFailures = 0;
+    this.pendingRangeReads.clear();
+    this.urlRefreshAttempted = false;
     this.resetThrottleWindow();
-    await this.startDownloadWithRetry();
+    await this.runDownload();
+  }
+
+  private async runDownload(): Promise<void> {
+    const run = this.startDownloadWithRetry();
+    this.activeRun = run;
+    try {
+      await run;
+    } finally {
+      if (this.activeRun === run) this.activeRun = null;
+    }
+  }
+
+  async waitForIdle(): Promise<void> {
+    await this.activeRun?.catch(() => undefined);
   }
 
   private async startDownloadWithRetry(): Promise<void> {
@@ -152,7 +194,11 @@ export class JsHttpDownloader {
           filename,
           url
         );
-        const requestHeaders = this.buildRequestHeaders(headers, startByte);
+        const rangeStart =
+          this.currentOptions.verifyResumePrefix && startByte > 0
+            ? Math.max(0, startByte - RESUME_OVERLAP_BYTES)
+            : startByte;
+        const requestHeaders = this.buildRequestHeaders(headers, rangeStart);
 
         this.startStallDetection();
 
@@ -190,10 +236,12 @@ export class JsHttpDownloader {
         return;
       }
 
-      if (stallDetected(this.pendingReadSince, Date.now(), STALL_TIMEOUT_MS)) {
-        const blockedSeconds = Math.round(
-          (Date.now() - (this.pendingReadSince ?? Date.now())) / 1000
-        );
+      const pendingSince = Math.min(
+        this.pendingReadSince ?? Infinity,
+        ...this.pendingRangeReads.values()
+      );
+      if (stallDetected(pendingSince, Date.now(), STALL_TIMEOUT_MS)) {
+        const blockedSeconds = Math.round((Date.now() - pendingSince) / 1000);
         logger.log(
           `[JsHttpDownloader] Read blocked for ${blockedSeconds}s with no data, triggering retry`
         );
@@ -217,6 +265,13 @@ export class JsHttpDownloader {
   }
 
   private async handleDownloadErrorWithRetry(err: Error): Promise<boolean> {
+    if (err instanceof ParallelRangeUnsupportedError) {
+      this.parallelRangesDisabled = true;
+      logger.log(
+        "[JsHttpDownloader] Server stopped honoring byte ranges; retrying with one connection"
+      );
+    }
+
     if (this.isPaused) {
       logger.log("[JsHttpDownloader] Download paused/cancelled by user");
       this.status = "paused";
@@ -250,12 +305,30 @@ export class JsHttpDownloader {
       this.retryCount++;
       this.isReconnecting = true;
       this.downloadSpeed = 0;
+      if (!this.urlRefreshAttempted && this.currentOptions?.refreshUrl) {
+        this.urlRefreshAttempted = true;
+        try {
+          const freshUrl = await this.currentOptions.refreshUrl();
+          if (this.isPaused) return false;
+          if (freshUrl) {
+            this.currentOptions = { ...this.currentOptions, url: freshUrl };
+            logger.log("[JsHttpDownloader] Refreshed download link for retry");
+          }
+        } catch {
+          logger.warn(
+            "[JsHttpDownloader] Could not refresh download link for retry"
+          );
+        }
+      }
       const delay = Math.min(
         INITIAL_RETRY_DELAY_MS * Math.pow(2, this.retryCount - 1),
         MAX_RETRY_DELAY_MS
       );
 
-      const reason = wasStallRetry ? "stall detected" : err.message;
+      const causeCode = (err.cause as NodeJS.ErrnoException | undefined)?.code;
+      const reason = wasStallRetry
+        ? "stall detected"
+        : `${err.message}${causeCode ? ` (${causeCode})` : ""}`;
       logger.log(
         `[JsHttpDownloader] Retryable error (${reason}). ` +
           `Retry ${this.retryCount}/${MAX_RETRY_ATTEMPTS} in ${delay}ms`
@@ -389,7 +462,7 @@ export class JsHttpDownloader {
     }
 
     let startByte = 0;
-    if (fs.existsSync(filePath)) {
+    if (this.currentOptions?.allowResume !== false && fs.existsSync(filePath)) {
       const stats = fs.statSync(filePath);
       startByte = stats.size;
       logger.log(`[JsHttpDownloader] Resuming download from byte ${startByte}`);
@@ -477,10 +550,142 @@ export class JsHttpDownloader {
     savePath: string,
     usedFallback: boolean
   ): Promise<void> {
-    const response = await fetch(url, {
-      headers: requestHeaders,
-      signal: this.abortController?.signal,
-    });
+    let response: Response;
+    if (
+      !this.parallelRangesDisabled &&
+      this.currentOptions?.allowParallelRanges !== false
+    ) {
+      const rangeSize =
+        this.currentOptions?.parallelRangeSize ?? PARALLEL_RANGE_SIZE;
+      const rangeEnd = startByte + rangeSize - 1;
+      response = await this.fetchWithStallTracking(url, {
+        headers: {
+          ...requestHeaders,
+          Range: `bytes=${startByte}-${rangeEnd}`,
+        },
+        signal: this.abortController?.signal,
+      });
+
+      const total = getRangeTotal(response, startByte, rangeEnd);
+      if (
+        total !== null &&
+        total - startByte >= rangeSize * 2 &&
+        !/^(text\/html|application\/xhtml)/i.test(
+          response.headers.get("content-type") ?? ""
+        )
+      ) {
+        if (!response.body) throw new Error("Range response body is null");
+        const actualFilePath = this.resolveOutputPath(
+          response,
+          filePath,
+          savePath,
+          usedFallback,
+          startByte === 0
+        );
+        if (startByte === 0) {
+          fs.writeFileSync(actualFilePath, "");
+        }
+        this.fileSize = total;
+        logger.log(
+          `[JsHttpDownloader] Downloading ${total} bytes with parallel byte ranges`
+        );
+        const signal = this.abortController!.signal;
+        let parallelComplete: boolean;
+        try {
+          parallelComplete = await downloadParallelRanges({
+            url,
+            headers: requestHeaders,
+            firstResponse: response,
+            filePath: actualFilePath,
+            startByte,
+            total,
+            rangeSize,
+            connectionCount: this.currentOptions?.parallelRangeConnections,
+            maxRanges: this.currentOptions?.maxParallelRanges,
+            signal,
+            abort: () => this.abortController?.abort(),
+            beforeChunk: (length) => this.applyThrottle(length),
+            afterChunk: (length) => {
+              this.attemptBytesReceived += length;
+              this.bytesDownloaded += length;
+              this.isReconnecting = false;
+              this.updateSpeed();
+            },
+            onReadPending: (offset, pending) => {
+              if (pending) this.pendingRangeReads.set(offset, Date.now());
+              else this.pendingRangeReads.delete(offset);
+            },
+          });
+        } catch (error) {
+          if (
+            !this.isPaused &&
+            !this.isReconnectRetry &&
+            !(error instanceof ParallelRangeUnsupportedError) &&
+            (this.isStallRetry || isRetryableDownloadError(error))
+          ) {
+            this.parallelRangeFailures++;
+            if (
+              shouldDowngradeParallelRanges(error, this.parallelRangeFailures)
+            ) {
+              this.parallelRangesDisabled = true;
+              logger.log(
+                "[JsHttpDownloader] Parallel transfer failed twice; resuming with one connection"
+              );
+            } else {
+              logger.log(
+                "[JsHttpDownloader] Parallel transfer failed once; retrying byte ranges"
+              );
+            }
+          }
+          // Discarded temporary ranges do not count as durable progress.
+          const committed = fs.existsSync(actualFilePath)
+            ? fs.statSync(actualFilePath).size
+            : 0;
+          this.bytesDownloaded = committed;
+          this.attemptBytesReceived = Math.max(0, committed - startByte);
+          this.resetSpeedTracking();
+          throw error;
+        } finally {
+          this.pendingRangeReads.clear();
+        }
+        if (signal.aborted) throw signal.reason;
+        if (!parallelComplete) {
+          this.parallelRangesDisabled = true;
+          const committed = fs.statSync(actualFilePath).size;
+          this.bytesDownloaded = committed;
+          this.resetSpeedTracking();
+          logger.log(
+            "[JsHttpDownloader] Range request budget reached; finishing with one connection"
+          );
+          await this.executeDownload(
+            url,
+            this.buildRequestHeaders(requestHeaders, committed),
+            actualFilePath,
+            committed,
+            savePath,
+            false
+          );
+          return;
+        }
+        this.markComplete();
+        return;
+      }
+
+      // A 206 response contains only the probe range. Fetch the complete
+      // remainder through the existing single-stream path instead.
+      if (response.status === 206) {
+        await response.body?.cancel();
+        response = await this.fetchWithStallTracking(url, {
+          headers: requestHeaders,
+          signal: this.abortController?.signal,
+        });
+      }
+    } else {
+      response = await this.fetchWithStallTracking(url, {
+        headers: requestHeaders,
+        signal: this.abortController?.signal,
+      });
+    }
 
     const contentType = response.headers.get("content-type") ?? "unknown";
     const contentLength = response.headers.get("content-length") ?? "unknown";
@@ -543,12 +748,30 @@ export class JsHttpDownloader {
       .toLowerCase()
       .trim();
     if (contentEncoding && contentEncoding !== "identity" && startByte > 0) {
+      if (this.currentOptions?.verifyResumePrefix) {
+        throw new Error(
+          "The server encoded the resumed archive response; keeping the saved partial file."
+        );
+      }
       logger.log(
         `[JsHttpDownloader] Response is "${contentEncoding}"-encoded; byte-offset resume is unreliable, restarting from byte 0`
       );
       flags = "w";
       skipBytes = 0;
       restart = true;
+    }
+
+    if (this.currentOptions?.verifyResumePrefix && startByte > 0) {
+      const rangeStart = this.parseContentRangeStart(response);
+      if (
+        restart ||
+        (response.status === 206 &&
+          (rangeStart === null || rangeStart >= startByte))
+      ) {
+        throw new Error(
+          "The archive server returned an unsafe byte range; keeping the saved partial file."
+        );
+      }
     }
 
     if (restart) {
@@ -576,51 +799,112 @@ export class JsHttpDownloader {
 
     this.parseFileSize(response, startByte);
 
-    // Resolve the on-disk filename once and pin it for the download's
-    // lifetime so a later restart cannot orphan the existing partial.
-    const writingFreshFile = flags === "w";
-    let actualFilePath = filePath;
-    if (writingFreshFile && this.resolvedFilename === null) {
-      const urlDerivedFilename = path.basename(filePath);
-      const headerFilename = this.parseContentDisposition(response);
-      if (headerFilename) {
-        if (headerFilename !== urlDerivedFilename) {
-          logger.log(
-            `[JsHttpDownloader] Filename mismatch detected. URL-derived="${urlDerivedFilename}" header-derived="${headerFilename}"`
-          );
-        }
-        actualFilePath = path.join(savePath, headerFilename);
-        this.folderName = headerFilename;
-        this.resolvedFilename = headerFilename;
-        const targetDir = path.dirname(actualFilePath);
-        if (!fs.existsSync(targetDir)) {
-          fs.mkdirSync(targetDir, { recursive: true });
-        }
-        logger.log(
-          `[JsHttpDownloader] Using filename from Content-Disposition: ${headerFilename}`
-        );
-      } else {
-        this.resolvedFilename = path.basename(actualFilePath);
-        if (usedFallback) {
-          logger.log(
-            "[JsHttpDownloader] Content-Disposition filename not found, using fallback filename"
-          );
-        }
-      }
-    }
+    const actualFilePath = this.resolveOutputPath(
+      response,
+      filePath,
+      savePath,
+      usedFallback,
+      flags === "w"
+    );
 
     if (!response.body) {
       throw new Error("Response body is null");
     }
 
-    this.writeStream = fs.createWriteStream(actualFilePath, { flags });
+    let savedPrefix: FileHandle | null = null;
+    if (this.currentOptions?.verifyResumePrefix && skipBytes > 0) {
+      savedPrefix = await fs.promises.open(actualFilePath, "r");
+    }
 
-    const readableStream = this.createReadableStream(
-      response.body.getReader(),
-      skipBytes
+    try {
+      this.writeStream = fs.createWriteStream(actualFilePath, { flags });
+      const readableStream = this.createReadableStream(
+        response.body.getReader(),
+        skipBytes,
+        savedPrefix,
+        response.status === 200
+          ? 0
+          : (this.parseContentRangeStart(response) ?? 0)
+      );
+      await pipeline(readableStream, this.writeStream);
+    } finally {
+      await savedPrefix?.close();
+    }
+
+    if (
+      this.currentOptions?.verifyResumePrefix &&
+      this.fileSize > 0 &&
+      fs.statSync(actualFilePath).size !== this.fileSize
+    ) {
+      throw new Error(
+        "The archive download ended before its expected size; keeping the partial file."
+      );
+    }
+
+    this.markComplete();
+  }
+
+  private async fetchWithStallTracking(
+    url: string,
+    options: RequestInit
+  ): Promise<Response> {
+    this.pendingReadSince = Date.now();
+    try {
+      return await fetch(url, options);
+    } finally {
+      this.pendingReadSince = null;
+    }
+  }
+
+  private resolveOutputPath(
+    response: Response,
+    filePath: string,
+    savePath: string,
+    usedFallback: boolean,
+    writingFreshFile: boolean
+  ): string {
+    if (!writingFreshFile || this.resolvedFilename !== null) return filePath;
+
+    const urlDerivedFilename = path.basename(filePath);
+    const headerFilename = this.parseContentDisposition(response);
+    const preserveFilename = Boolean(
+      this.currentOptions?.preserveFilename && this.currentOptions.filename
     );
-    await pipeline(readableStream, this.writeStream);
+    const output = chooseDownloadOutputPath(
+      filePath,
+      savePath,
+      headerFilename,
+      preserveFilename
+    );
+    if (preserveFilename) {
+      this.resolvedFilename = output.filename;
+      return output.filePath;
+    }
+    if (headerFilename) {
+      if (headerFilename !== urlDerivedFilename) {
+        logger.log(
+          `[JsHttpDownloader] Filename mismatch detected. URL-derived="${urlDerivedFilename}" header-derived="${headerFilename}"`
+        );
+      }
+      this.folderName = output.filename;
+      this.resolvedFilename = output.filename;
+      fs.mkdirSync(path.dirname(output.filePath), { recursive: true });
+      logger.log(
+        `[JsHttpDownloader] Using filename from Content-Disposition: ${headerFilename}`
+      );
+      return output.filePath;
+    }
 
+    this.resolvedFilename = urlDerivedFilename;
+    if (usedFallback) {
+      logger.log(
+        "[JsHttpDownloader] Content-Disposition filename not found, using fallback filename"
+      );
+    }
+    return filePath;
+  }
+
+  private markComplete(): void {
     this.status = "complete";
     this.retryCount = 0;
     this.statusRetryCount = 0;
@@ -724,7 +1008,9 @@ export class JsHttpDownloader {
 
   private createReadableStream(
     reader: ReadableStreamDefaultReader<Uint8Array>,
-    skipBytes = 0
+    skipBytes = 0,
+    savedPrefix: FileHandle | null = null,
+    prefixOffset = 0
   ): Readable {
     const applyThrottle = this.applyThrottle.bind(this);
     const markReadPending = () => {
@@ -779,6 +1065,18 @@ export class JsHttpDownloader {
 
               const plan = applySkip(remainingToSkip, value.length);
               remainingToSkip = plan.newRemainingToSkip;
+              const skipped = plan.shouldWrite
+                ? plan.writeOffset
+                : value.length;
+              if (savedPrefix && skipped > 0) {
+                await verifyResumePrefixChunk(
+                  savedPrefix,
+                  value,
+                  prefixOffset,
+                  skipped
+                );
+                prefixOffset += skipped;
+              }
               applyRecoveryTracking(plan, value.length);
               if (!plan.shouldWrite) {
                 continue;
@@ -838,7 +1136,8 @@ export class JsHttpDownloader {
     this.isReconnectRetry = false;
     this.resetRecoveryState();
     this.pendingReadSince = null;
-    await this.startDownloadWithRetry();
+    this.urlRefreshAttempted = false;
+    await this.runDownload();
   }
 
   setReconnecting(value: boolean): void {

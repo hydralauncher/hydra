@@ -289,6 +289,9 @@ export function DownloadSettingsModal({
   );
   const [showRealDebridModal, setShowRealDebridModal] = useState(false);
   const [torrentFiles, setTorrentFiles] = useState<TorrentFile[]>([]);
+  const [singleArchiveSelectionKey, setSingleArchiveSelectionKey] = useState<
+    string | null
+  >(null);
   const [torrentFilesLoading, setTorrentFilesLoading] = useState(false);
   const [torrentFilesError, setTorrentFilesError] = useState<string | null>(
     null
@@ -327,7 +330,14 @@ export function DownloadSettingsModal({
   }, [repack, selectedDownloader]);
 
   const selectedMagnetUri = useMemo(() => {
-    if (selectedDownloader !== Downloader.Torrent) return null;
+    if (
+      selectedDownloader !== Downloader.Torrent &&
+      selectedDownloader !== Downloader.TorBox &&
+      selectedDownloader !== Downloader.RealDebrid &&
+      selectedDownloader !== Downloader.Premiumize &&
+      selectedDownloader !== Downloader.AllDebrid
+    )
+      return null;
     if (!selectedUri?.startsWith("magnet:")) return null;
     return selectedUri;
   }, [selectedDownloader, selectedUri]);
@@ -772,9 +782,21 @@ export function DownloadSettingsModal({
   ]);
 
   const canOpenTorrentStep =
-    visible && selectedDownloader === Downloader.Torrent && !!selectedMagnetUri;
+    visible &&
+    !!selectedMagnetUri &&
+    (selectedDownloader === Downloader.Torrent ||
+      (selectedDownloader === Downloader.TorBox &&
+        !!userPreferences?.torBoxApiToken) ||
+      (selectedDownloader === Downloader.RealDebrid &&
+        !!userPreferences?.realDebridApiToken) ||
+      (selectedDownloader === Downloader.Premiumize &&
+        !!userPreferences?.premiumizeApiToken) ||
+      (selectedDownloader === Downloader.AllDebrid &&
+        !!userPreferences?.allDebridApiToken));
 
   const shouldShowTorrentFiles = canOpenTorrentStep && showTorrentStepModal;
+  const selectedTorrentKey = `${selectedDownloader}:${selectedMagnetUri}`;
+  const isSingleArchive = singleArchiveSelectionKey === selectedTorrentKey;
 
   const allTorrentFilesSelected =
     torrentFiles.length > 0 &&
@@ -791,18 +813,22 @@ export function DownloadSettingsModal({
     setShowTorrentStepModal(false);
   }, []);
 
-  const fetchTorrentFiles = useCallback(async () => {
+  const fetchTorrentFiles = useCallback(async (): Promise<
+    TorrentFilesResponse | null | undefined
+  > => {
     if (!selectedMagnetUri) {
       return;
     }
 
     const requestId = ++torrentFilesRequestIdRef.current;
     const isRequestOutdated = () =>
-      requestId !== torrentFilesRequestIdRef.current ||
-      !shouldShowTorrentFiles ||
-      selectedMagnetUri === null;
+      requestId !== torrentFilesRequestIdRef.current || !canOpenTorrentStep;
 
-    const cached = torrentFilesCache.current.get(selectedMagnetUri);
+    const cacheKey = `${selectedDownloader}:${selectedMagnetUri}`;
+    const cached =
+      selectedDownloader !== Downloader.Torrent
+        ? undefined
+        : torrentFilesCache.current.get(cacheKey);
     if (cached) {
       if (isRequestOutdated()) return;
       setTorrentFiles(cached.files);
@@ -812,7 +838,7 @@ export function DownloadSettingsModal({
       setExpandedFolderIds(new Set());
       setTorrentFilesError(null);
       setTorrentFilesLoading(false);
-      return;
+      return cached;
     }
 
     setTorrentFilesLoading(true);
@@ -823,7 +849,15 @@ export function DownloadSettingsModal({
       | { ok: false; error: string };
 
     try {
-      response = await window.electron.getTorrentFiles(selectedMagnetUri);
+      response =
+        selectedDownloader === Downloader.TorBox
+          ? await window.electron.getTorBoxFiles(selectedMagnetUri)
+          : selectedDownloader === Downloader.Torrent
+            ? await window.electron.getTorrentFiles(selectedMagnetUri)
+            : await window.electron.getDebridFiles(
+                selectedMagnetUri,
+                selectedDownloader!
+              );
     } catch {
       if (isRequestOutdated()) return;
       setTorrentFiles([]);
@@ -831,7 +865,7 @@ export function DownloadSettingsModal({
       setExpandedFolderIds(new Set());
       setTorrentFilesError(DownloadError.TorrentFilesUnavailable);
       setTorrentFilesLoading(false);
-      return;
+      return null;
     }
 
     if (!response.ok) {
@@ -840,10 +874,12 @@ export function DownloadSettingsModal({
       setSelectedTorrentIndices(new Set());
       setExpandedFolderIds(new Set());
       setTorrentFilesError(
-        response.error || DownloadError.TorrentFilesUnavailable
+        Object.values(DownloadError).includes(response.error as DownloadError)
+          ? response.error
+          : DownloadError.TorrentFilesUnavailable
       );
       setTorrentFilesLoading(false);
-      return;
+      return null;
     }
 
     if (isRequestOutdated()) return;
@@ -855,7 +891,9 @@ export function DownloadSettingsModal({
       }
     }
 
-    torrentFilesCache.current.set(selectedMagnetUri, response.data);
+    if (selectedDownloader === Downloader.Torrent) {
+      torrentFilesCache.current.set(cacheKey, response.data);
+    }
     setTorrentFiles(response.data.files);
     setSelectedTorrentIndices(
       new Set(response.data.files.map((file) => file.index))
@@ -863,16 +901,14 @@ export function DownloadSettingsModal({
     setExpandedFolderIds(new Set());
     setTorrentFilesError(null);
     setTorrentFilesLoading(false);
-  }, [selectedMagnetUri, shouldShowTorrentFiles]);
+    return response.data;
+  }, [canOpenTorrentStep, selectedDownloader, selectedMagnetUri]);
 
   useEffect(() => {
     if (!shouldShowTorrentFiles) {
       resetTorrentStepState();
-      return;
     }
-
-    fetchTorrentFiles().catch(() => undefined);
-  }, [fetchTorrentFiles, resetTorrentStepState, shouldShowTorrentFiles]);
+  }, [resetTorrentStepState, selectedTorrentKey, shouldShowTorrentFiles]);
 
   useEffect(() => {
     if (!visible) {
@@ -880,6 +916,7 @@ export function DownloadSettingsModal({
       startAbortControllerRef.current?.abort();
       startAbortControllerRef.current = null;
       setDownloadStarting(false);
+      setSingleArchiveSelectionKey(null);
       resetTorrentStepState();
     }
   }, [resetTorrentStepState, visible]);
@@ -1082,8 +1119,27 @@ export function DownloadSettingsModal({
     await handleStartClick(selectedFileIndices, selectedTorrentSize);
   };
 
+  const handleOpenTorrentStep = async () => {
+    const response = await fetchTorrentFiles();
+    if (response === undefined) return;
+
+    if (
+      selectedDownloader !== Downloader.Torrent &&
+      response &&
+      (response.archiveOnly ||
+        (response.files.length === 1 &&
+          /\.(zip|rar|7z)$/i.test(response.files[0].path)))
+    ) {
+      setSingleArchiveSelectionKey(selectedTorrentKey);
+      setShowTorrentStepModal(false);
+      return;
+    }
+
+    setShowTorrentStepModal(true);
+  };
+
   const handleRetryFetchTorrentFiles = async () => {
-    await fetchTorrentFiles();
+    await handleOpenTorrentStep();
   };
 
   const toggleAllTorrentFiles = () => {
@@ -1444,16 +1500,25 @@ export function DownloadSettingsModal({
             </div>
           </div>
 
-          {canOpenTorrentStep && (
+          {canOpenTorrentStep && isSingleArchive && (
+            <p className="download-settings-modal__single-archive-notice">
+              {t("single_archive_download_notice")}
+            </p>
+          )}
+          {canOpenTorrentStep && !isSingleArchive && (
             <button
               type="button"
               className="download-settings-modal__select-files-link"
-              onClick={() => setShowTorrentStepModal(true)}
-              disabled={downloadStarting}
+              onClick={handleOpenTorrentStep}
+              disabled={downloadStarting || torrentFilesLoading}
             >
               <FileIcon size={12} />
               <span className="download-settings-modal__select-files-link-text">
-                {t("select_files_to_download")}
+                {t(
+                  torrentFilesLoading
+                    ? "loading_torrent_files"
+                    : "select_files_to_download"
+                )}
               </span>
             </button>
           )}

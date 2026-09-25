@@ -29,6 +29,7 @@ import { ExtractionProgress, SevenZip } from "./7zip";
 import * as emulators from "./emulators";
 import * as retroarch from "./retroarch";
 import { getPathType } from "./extraction-path";
+import { listArchiveFiles } from "./archive-discovery";
 import { GameExecutables } from "./game-executables";
 import { logger } from "./logger";
 import { platformToRetroArchPlatform, platformToSystem } from "@main/helpers";
@@ -160,7 +161,10 @@ export class GameFilesManager {
     this.updateExtractionProgress(progress.percent / 100);
   };
 
-  async extractFilesInDirectory(directoryPath: string): Promise<boolean> {
+  async extractFilesInDirectory(
+    directoryPath: string,
+    outerArchivePath?: string
+  ): Promise<boolean> {
     let pathType: Awaited<ReturnType<typeof getPathType>>;
     try {
       pathType = await getPathType(directoryPath);
@@ -184,64 +188,87 @@ export class GameFilesManager {
       return false;
     }
 
-    let files: string[];
-    try {
-      files = await fs.promises.readdir(directoryPath);
-    } catch (error) {
-      await this.setExtractionFailedState(error, directoryPath);
-      return false;
-    }
+    const compressedFiles = new Set<string>();
+    const extractedFiles = new Set<string>();
 
-    const compressedFiles = files.filter((file) =>
-      FILE_EXTENSIONS_TO_EXTRACT.some((ext) => file.toLowerCase().endsWith(ext))
-    );
-
-    const filesToExtract = compressedFiles.filter(
-      (file) => /part1\.rar$/i.test(file) || !/part\d+\.rar$/i.test(file)
-    );
-
-    if (filesToExtract.length === 0) return true;
-
-    this.updateExtractionProgress(0, true);
-
-    const totalFiles = filesToExtract.length;
-    let completedFiles = 0;
-
-    for (const file of filesToExtract) {
+    // A provider ZIP can contain the torrent's original archive. Scan again
+    // after extraction, but stop after one nested layer.
+    for (let pass = 0; pass < 2; pass++) {
+      let archives: string[];
       try {
-        const result = await SevenZip.extractFile(
-          {
-            filePath: path.join(directoryPath, file),
-            cwd: directoryPath,
-            passwords: ["online-fix.me", "steamrip.com"],
-          },
-          (progress) => {
-            const overallProgress =
-              (completedFiles + progress.percent / 100) / totalFiles;
-            this.updateExtractionProgress(overallProgress);
-          }
+        archives = await listArchiveFiles(
+          directoryPath,
+          pass,
+          FILE_EXTENSIONS_TO_EXTRACT
         );
+      } catch (error) {
+        await this.setExtractionFailedState(error, directoryPath);
+        return false;
+      }
 
-        if (result.success) {
-          completedFiles++;
-          this.updateExtractionProgress(completedFiles / totalFiles, true);
-        } else {
+      archives.forEach((file) => compressedFiles.add(file));
+      const filesToExtract = archives.filter(
+        (file) =>
+          !extractedFiles.has(file) &&
+          (/part1\.rar$/i.test(file) || !/part\d+\.rar$/i.test(file))
+      );
+
+      if (filesToExtract.length === 0) continue;
+
+      if (pass === 0) this.updateExtractionProgress(0, true);
+
+      let completedFiles = 0;
+      for (const file of filesToExtract) {
+        try {
+          const result = await SevenZip.extractFile(
+            {
+              filePath: path.join(directoryPath, file),
+              cwd: path.dirname(path.join(directoryPath, file)),
+              passwords: ["online-fix.me", "steamrip.com"],
+            },
+            (progress) => {
+              const passProgress =
+                (completedFiles + progress.percent / 100) /
+                filesToExtract.length;
+              this.updateExtractionProgress((pass + passProgress) / 2);
+            }
+          );
+
+          if (result.success) {
+            completedFiles++;
+            extractedFiles.add(file);
+            this.updateExtractionProgress(
+              (pass + completedFiles / filesToExtract.length) / 2,
+              true
+            );
+          } else {
+            await this.setExtractionFailedState(
+              new Error(`7zip returned unsuccessful extraction for ${file}`),
+              path.join(directoryPath, file)
+            );
+            return false;
+          }
+        } catch (err) {
           await this.setExtractionFailedState(
-            new Error(`7zip returned unsuccessful extraction for ${file}`),
+            err,
             path.join(directoryPath, file)
           );
           return false;
         }
-      } catch (err) {
-        await this.setExtractionFailedState(
-          err,
-          path.join(directoryPath, file)
-        );
-        return false;
       }
     }
 
-    const archivePaths = compressedFiles
+    if (extractedFiles.size === 0) return true;
+    this.updateExtractionProgress(1, true);
+
+    if (outerArchivePath) {
+      // The inner archives remain available; remove the generated wrapper only
+      // after every discovered archive has extracted successfully.
+      await deleteArchiveFile(outerArchivePath);
+      return true;
+    }
+
+    const archivePaths = [...compressedFiles]
       .map((file) => path.join(directoryPath, file))
       .filter((archivePath) => fs.existsSync(archivePath));
 
@@ -843,8 +870,10 @@ export class GameFilesManager {
       );
 
       if (result.success) {
-        const extractedNestedArchives =
-          await this.extractFilesInDirectory(extractionPath);
+        const extractedNestedArchives = await this.extractFilesInDirectory(
+          extractionPath,
+          filePath
+        );
 
         if (!extractedNestedArchives) {
           return false;

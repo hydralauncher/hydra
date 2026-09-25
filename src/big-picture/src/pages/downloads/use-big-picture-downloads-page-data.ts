@@ -355,7 +355,7 @@ export function useBigPictureDownloadsPageData() {
     } else if (isExtracting) {
       statusLabel = "Extracting";
     } else if (lastPacket?.isRecovering) {
-      statusLabel = `Recovering download… ${Math.round(
+      statusLabel = `Re-downloading saved portion… ${Math.round(
         (lastPacket.recoveryProgress ?? 0) * 100
       )}%`;
     } else if (lastPacket?.isReconnecting) {

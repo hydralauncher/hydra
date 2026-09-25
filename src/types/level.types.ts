@@ -106,6 +106,8 @@ export interface Download {
   automaticallyDeleteArchiveFiles: boolean;
   fileIndices?: number[];
   selectedFilesSize?: number | null;
+  realDebridTorrentId?: string;
+  awaitingDebrid?: boolean;
   customTrackers?: string[];
 }
 

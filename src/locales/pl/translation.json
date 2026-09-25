@@ -182,7 +182,7 @@
   },
   "bottom_panel": {
     "reconnecting": "Ponowne łączenie: {{title}}…",
-    "recovering": "Odzyskiwanie: {{title}}… ({{percentage}})",
+    "recovering": "Ponowne pobieranie zapisanej części {{title}}… ({{percentage}})",
     "no_downloads_in_progress": "Brak pobierań w toku",
     "downloading_metadata": "Pobieranie metadanych {{title}}…",
     "downloading": "Pobieranie {{title}}… (ukończono: {{percentage}}) – zakończenie: {{eta}} – {{speed}}",
@@ -743,7 +743,7 @@
   },
   "downloads": {
     "reconnecting": "Ponowne łączenie…",
-    "recovering": "Odzyskiwanie pobierania… {{percentage}}",
+    "recovering": "Ponowne pobieranie zapisanej części… {{percentage}}",
     "resume": "Wznów",
     "pause": "Wstrzymaj",
     "eta": "Zakończenie: {{eta}}",

@@ -1,7 +1,10 @@
 import { downloadsSublevel, levelKeys } from "@main/level";
 import { DownloadManager } from "./download/download-manager";
+import { RealDebridClient } from "./download/real-debrid";
+import { isDebridPendingError } from "./download/debrid-pending";
 import { WindowManager } from "./window-manager";
 import { logger } from "./logger";
+import { Downloader } from "@shared";
 import {
   DEFAULT_DOWNLOAD_LAYOUT_STATE,
   getBigPictureDownloadView,
@@ -70,6 +73,14 @@ const NO_INTERNET_GRACE_MS = 15000;
 const RECONNECT_DEBOUNCE_MS = 2000;
 
 export class DownloadOrchestrator {
+  private static readonly backgroundStartVersions = new Map<string, number>();
+
+  private static invalidateBackgroundStart(downloadKey: string) {
+    this.backgroundStartVersions.set(
+      downloadKey,
+      (this.backgroundStartVersions.get(downloadKey) ?? 0) + 1
+    );
+  }
   private static isOnline = true;
   private static reconnectGraceTimer: NodeJS.Timeout | null = null;
   private static lastReconnectAt = 0;
@@ -157,9 +168,40 @@ export class DownloadOrchestrator {
       .catch(() => null);
   }
 
-  private static async activateDownload(download: Download) {
+  private static async isAwaitingDebridReady(download: Download) {
+    if (!download.awaitingDebrid) return true;
+    if (
+      download.downloader === Downloader.RealDebrid &&
+      download.uri.startsWith("magnet:")
+    ) {
+      return true;
+    }
+
+    try {
+      await DownloadManager.validateDownloadUrl(download);
+      return true;
+    } catch (error) {
+      if (isDebridPendingError(error, download.downloader)) return false;
+
+      await downloadsSublevel.put(getGameKey(download), {
+        ...download,
+        status: "error",
+        queued: false,
+        awaitingDebrid: false,
+      });
+      WindowManager.sendDownloadsUpdated();
+      throw error;
+    }
+  }
+
+  private static async activateDownload(
+    download: Download,
+    isCurrent: () => boolean = () => true
+  ) {
+    if (!isCurrent()) return null;
     const activeDownload: Download = {
       ...download,
+      awaitingDebrid: false,
       status: "active",
       queued: false,
       pinnedToHero: false,
@@ -169,11 +211,19 @@ export class DownloadOrchestrator {
     };
 
     await downloadsSublevel.put(getGameKey(download), activeDownload);
+    if (!isCurrent()) return null;
 
     try {
       await DownloadManager.resumeDownload(activeDownload);
     } catch (error) {
+      if (isDebridPendingError(error, download.downloader)) {
+        if (!isCurrent()) return null;
+        await this.saveAwaitingDebridDownload(activeDownload);
+        return null;
+      }
+
       const downloadId = getDownloadId(download);
+      if (!isCurrent()) return null;
       await downloadsSublevel.put(getGameKey(download), {
         ...activeDownload,
         status: "error",
@@ -196,6 +246,24 @@ export class DownloadOrchestrator {
     }
 
     return activeDownload;
+  }
+
+  private static async restoreInterruptedDownload(download: Download | null) {
+    if (!download) return;
+
+    try {
+      const restored = await this.activateDownload(download);
+      if (restored) {
+        const downloads = await this.getAllDownloads();
+        await removeDownloadFromLayoutState(download, downloads);
+        WindowManager.sendDownloadsUpdated();
+      }
+    } catch (error) {
+      logger.error(
+        "[DownloadOrchestrator] Could not restore the interrupted download",
+        error
+      );
+    }
   }
 
   private static async setDownloadPausedState(
@@ -222,23 +290,29 @@ export class DownloadOrchestrator {
   }
 
   private static async startNextQueuedDownload(downloads?: Download[]) {
-    const currentDownloads = downloads ?? (await this.getAllDownloads());
-    const layoutState =
-      await getNormalizedDownloadLayoutState(currentDownloads);
-    const nextDownload = getNextQueuedDownloadFromLayout(
-      currentDownloads,
-      layoutState
-    );
+    let currentDownloads = downloads ?? (await this.getAllDownloads());
 
-    if (!nextDownload) {
-      WindowManager.sendDownloadsUpdated();
-      return null;
+    for (;;) {
+      const layoutState =
+        await getNormalizedDownloadLayoutState(currentDownloads);
+      const nextDownload = getNextQueuedDownloadFromLayout(
+        currentDownloads,
+        layoutState
+      );
+
+      if (!nextDownload) {
+        WindowManager.sendDownloadsUpdated();
+        return null;
+      }
+
+      const activated = await this.activateDownload(nextDownload);
+      if (activated) {
+        WindowManager.sendDownloadsUpdated();
+        return nextDownload;
+      }
+
+      currentDownloads = await this.getAllDownloads();
     }
-
-    await this.activateDownload(nextDownload);
-    WindowManager.sendDownloadsUpdated();
-
-    return nextDownload;
   }
 
   private static async queueDownload(
@@ -283,7 +357,10 @@ export class DownloadOrchestrator {
       WindowManager.sendToAppWindows("on-download-progress", null);
     }
 
-    const nextDownload = await this.setDownloadPausedState(download, {
+    const savedDownload = shouldPauseRuntime
+      ? ((await this.getDownload(download.shop, download.objectId)) ?? download)
+      : download;
+    const nextDownload = await this.setDownloadPausedState(savedDownload, {
       queued: options.queueActiveReplacement,
       status: options.reason === "error" ? "error" : "paused",
     });
@@ -382,8 +459,12 @@ export class DownloadOrchestrator {
     return syncDownloadLayoutState(downloads);
   }
 
-  static async startPreparedDownload(download: Download) {
+  static async startPreparedDownload(
+    download: Download,
+    isCurrent: () => boolean = () => true
+  ) {
     const { downloads } = await this.getDownloadsWithLayout();
+    if (!isCurrent()) return { ok: true };
     const currentActiveDownload =
       downloads.find(
         (entry) =>
@@ -392,17 +473,62 @@ export class DownloadOrchestrator {
       ) ?? null;
 
     if (currentActiveDownload) {
+      if (
+        download.downloader === Downloader.RealDebrid &&
+        download.uri.startsWith("magnet:")
+      ) {
+        try {
+          const resolved = await RealDebridClient.getDownloadEntriesWithTorrent(
+            download.uri,
+            download.fileIndices,
+            download.realDebridTorrentId
+          );
+          if (!isCurrent()) return { ok: true };
+          if (resolved.torrentId) {
+            download.realDebridTorrentId = resolved.torrentId;
+          }
+          if (!resolved.entries?.length) {
+            await this.saveAwaitingDebridDownload(download);
+            return { ok: true };
+          }
+        } catch (error) {
+          if (!isCurrent()) return { ok: true };
+          if (isDebridPendingError(error, download.downloader)) {
+            await this.saveAwaitingDebridDownload(download);
+            return { ok: true };
+          }
+          await downloadsSublevel.put(getGameKey(download), {
+            ...download,
+            status: "error",
+            queued: false,
+          });
+          WindowManager.sendDownloadsUpdated();
+          throw error;
+        }
+      }
       await this.queueDownload(download);
       WindowManager.sendDownloadsUpdated();
       return { ok: true };
     }
 
-    await this.activateDownload(download);
+    const activated = await this.activateDownload(download, isCurrent);
+    if (!activated) return { ok: true };
+    if (!isCurrent()) return { ok: true };
     const nextDownloads = await this.getAllDownloads();
     await removeDownloadFromLayoutState(download, nextDownloads);
     WindowManager.sendDownloadsUpdated();
 
     return { ok: true };
+  }
+
+  static startPreparedDownloadInBackground(download: Download) {
+    const key = getGameKey(download);
+    this.invalidateBackgroundStart(key);
+    const version = this.backgroundStartVersions.get(key);
+    const isCurrent = () => this.backgroundStartVersions.get(key) === version;
+    void this.startPreparedDownload(download, isCurrent).catch((error) => {
+      logger.error("Failed to prepare queued download", error);
+    });
   }
 
   static async enqueuePreparedDownload(download: Download) {
@@ -412,11 +538,29 @@ export class DownloadOrchestrator {
     return { ok: true };
   }
 
+  static async saveAwaitingDebridDownload(download: Download) {
+    const nextDownload = await this.setDownloadPausedState(
+      { ...download, awaitingDebrid: true },
+      { queued: false }
+    );
+    const downloads = await this.getAllDownloads();
+    const layoutState = await getNormalizedDownloadLayoutState(downloads);
+    await setDownloadLayoutQueues(
+      downloads,
+      layoutState.queueOrder.filter((id) => id !== getDownloadId(download)),
+      withInsertedId(layoutState.pausedOrder, getDownloadId(download), 0)
+    );
+    WindowManager.sendDownloadsUpdated();
+
+    return nextDownload;
+  }
+
   static async resumeDownload(
     shop: GameShop,
     objectId: string,
     strategy: ResumeDownloadStrategy = "interruptActive"
   ) {
+    this.invalidateBackgroundStart(levelKeys.game(shop, objectId));
     const download = await this.getDownload(shop, objectId);
 
     if (
@@ -427,6 +571,9 @@ export class DownloadOrchestrator {
       return false;
     }
 
+    if (!(await this.isAwaitingDebridReady(download))) return false;
+    const readyDownload = { ...download, awaitingDebrid: false };
+
     const downloads = await this.getAllDownloads();
     const currentActiveDownload =
       downloads.find(
@@ -436,7 +583,7 @@ export class DownloadOrchestrator {
       ) ?? null;
 
     if (currentActiveDownload && strategy === "queueIfActive") {
-      await this.queueDownload(download, { toFront: true });
+      await this.queueDownload(readyDownload, { toFront: true });
       WindowManager.sendDownloadsUpdated();
       return true;
     }
@@ -448,7 +595,11 @@ export class DownloadOrchestrator {
       });
     }
 
-    await this.activateDownload(download);
+    const activated = await this.activateDownload(readyDownload);
+    if (!activated) {
+      await this.restoreInterruptedDownload(currentActiveDownload);
+      return false;
+    }
     const nextDownloads = await this.getAllDownloads();
     await removeDownloadFromLayoutState(download, nextDownloads);
     WindowManager.sendDownloadsUpdated();
@@ -457,6 +608,7 @@ export class DownloadOrchestrator {
   }
 
   static async pauseDownloadById(shop: GameShop, objectId: string) {
+    this.invalidateBackgroundStart(levelKeys.game(shop, objectId));
     const download = await this.getDownload(shop, objectId);
     if (!download) return false;
 
@@ -469,6 +621,7 @@ export class DownloadOrchestrator {
   }
 
   static async cancelDownloadById(shop: GameShop, objectId: string) {
+    this.invalidateBackgroundStart(levelKeys.game(shop, objectId));
     const download = await this.getDownload(shop, objectId);
     if (!download) return false;
 
@@ -520,6 +673,8 @@ export class DownloadOrchestrator {
       return false;
     }
 
+    if (download.awaitingDebrid && targetArea !== "paused") return false;
+
     const { downloads, layoutState } = await this.getDownloadsWithLayout();
     const currentActiveDownload =
       downloads.find(
@@ -542,7 +697,11 @@ export class DownloadOrchestrator {
         });
       }
 
-      await this.activateDownload(download);
+      const activated = await this.activateDownload(download);
+      if (!activated) {
+        await this.restoreInterruptedDownload(currentActiveDownload);
+        return false;
+      }
       const nextDownloads = await this.getAllDownloads();
       await setDownloadLayoutQueues(nextDownloads, queueIds, pausedIds);
       WindowManager.sendDownloadsUpdated();

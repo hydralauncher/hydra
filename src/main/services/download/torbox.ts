@@ -10,6 +10,7 @@ import type {
 import { appVersion } from "@main/constants";
 import { DownloadError } from "@shared";
 import { logger } from "../logger";
+import { buildTorBoxDownloadManifest } from "./torbox-files";
 
 const READINESS_POLL_ATTEMPTS = 6;
 const READINESS_POLL_DELAY_MS = 1000;
@@ -32,17 +33,26 @@ export class TorBoxClient {
     });
   }
 
-  private static async addMagnet(magnet: string) {
+  private static async addMagnet(magnet: string, cachedOnly = false) {
     const form = new FormData();
     form.append("magnet", magnet);
+    form.append("allow_zip", "false");
+    if (cachedOnly) form.append("add_only_if_cached", "true");
 
     const response = await this.instance.post<TorBoxAddTorrentRequest>(
       "/torrents/createtorrent",
-      form
+      form,
+      { validateStatus: () => true }
     );
 
-    if (!response.data.success) {
-      throw new Error(response.data.detail);
+    if (!response.data?.success || response.status >= 400) {
+      const detail = response.data?.detail;
+      const reason = `${response.data?.error ?? ""} ${detail ?? ""}`;
+      throw new Error(
+        cachedOnly && /not[\s_-]?cached|uncached/i.test(reason)
+          ? DownloadError.NotCachedOnTorBox
+          : detail || DownloadError.TorrentFilesUnavailable
+      );
     }
 
     return response.data.data;
@@ -76,12 +86,16 @@ export class TorBoxClient {
     return response.data.data;
   }
 
-  static async requestLink(id: number) {
+  static async requestLink(id: number, fileId: number | "zip") {
     const searchParams = new URLSearchParams({
       token: this.apiToken,
       torrent_id: id.toString(),
-      zip_link: "true",
     });
+    if (fileId === "zip") {
+      searchParams.set("zip_link", "true");
+    } else {
+      searchParams.set("file_id", fileId.toString());
+    }
 
     const response = await this.instance.get<TorBoxRequestLinkRequest>(
       "/torrents/requestdl?" + searchParams.toString()
@@ -147,7 +161,10 @@ export class TorBoxClient {
     throw new Error(DownloadError.TorBoxTorrentNotReady);
   }
 
-  private static async getTorrentIdAndName(magnetUri: string) {
+  private static async getDownloadableTorrent(
+    magnetUri: string,
+    cachedOnly = false
+  ) {
     const { infoHash } = await parseTorrent(magnetUri);
 
     if (!infoHash) throw new Error(DownloadError.InvalidMagnet);
@@ -161,25 +178,24 @@ export class TorBoxClient {
 
     if (userTorrent) {
       if (this.isReady(userTorrent)) {
-        return { id: userTorrent.id, name: userTorrent.name };
+        return userTorrent;
       }
 
-      const readyTorrent = await this.waitForTorrentReady(userTorrent.id);
-      return { id: readyTorrent.id, name: readyTorrent.name };
+      return this.waitForTorrentReady(userTorrent.id);
     }
 
-    const torrent = await this.addMagnet(magnetUri);
+    const torrent = await this.addMagnet(magnetUri, cachedOnly);
     const readyTorrent = await this.waitForTorrentReady(torrent.torrent_id);
 
-    return { id: readyTorrent.id, name: readyTorrent.name || torrent.name };
+    return { ...readyTorrent, name: readyTorrent.name || torrent.name };
   }
 
-  static async getDownloadInfo(uri: string) {
-    const torrentData = await this.getTorrentIdAndName(uri);
-    const url = await this.requestLink(torrentData.id);
-
-    const name = torrentData.name ? `${torrentData.name}.zip` : undefined;
-
-    return { url, name };
+  static async getDownloadFiles(uri: string, cachedOnly = false) {
+    const torrent = await this.getDownloadableTorrent(uri, cachedOnly);
+    const { name } = await parseTorrent(uri);
+    return buildTorBoxDownloadManifest(
+      torrent,
+      typeof name === "string" ? name : name?.[0]
+    );
   }
 }

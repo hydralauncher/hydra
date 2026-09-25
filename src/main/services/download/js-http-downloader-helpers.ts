@@ -1,3 +1,21 @@
+import path from "node:path";
+
+export function chooseDownloadOutputPath(
+  filePath: string,
+  savePath: string,
+  headerFilename: string | undefined,
+  preserveFilename: boolean
+): { filePath: string; filename: string } {
+  if (preserveFilename || !headerFilename) {
+    return { filePath, filename: path.relative(savePath, filePath) };
+  }
+
+  return {
+    filePath: path.join(savePath, headerFilename),
+    filename: headerFilename,
+  };
+}
+
 export const PROGRESS_RESET_THRESHOLD_BYTES = 16 * 1024 * 1024;
 export const MAX_BUDGET_RESETS = 50;
 export const MAX_RESTARTS_FROM_ZERO = 3;

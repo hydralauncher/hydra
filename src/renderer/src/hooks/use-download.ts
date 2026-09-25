@@ -117,8 +117,9 @@ export function useDownload() {
   };
 
   const resumeDownload = async (shop: GameShop, objectId: string) => {
-    await window.electron.resumeGameDownload(shop, objectId);
-    return updateLibrary();
+    const resumed = await window.electron.resumeGameDownload(shop, objectId);
+    await updateLibrary();
+    return resumed;
   };
 
   const removeGameInstaller = async (shop: GameShop, objectId: string) => {

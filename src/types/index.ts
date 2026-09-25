@@ -91,6 +91,7 @@ export interface TorrentFilesResponse {
   name: string;
   totalSize: number;
   files: TorrentFile[];
+  archiveOnly?: boolean;
 }
 
 export type UserGame = {
