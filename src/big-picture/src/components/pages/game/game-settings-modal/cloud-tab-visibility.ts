@@ -1,4 +1,5 @@
 import type { GameShop } from "@types";
+import { isCloudSaveV2Eligible } from "../../../../../../shared/cloud-save-emulator-provider.js";
 
 export const shouldShowLegacyCloudSaveTab = (
   shop: GameShop,
@@ -9,5 +10,7 @@ export const shouldShowLegacyCloudSaveTab = (
 export const shouldShowCloudSaveV2Tab = (
   shop: GameShop,
   isSignedIn: boolean,
-  hasActiveSubscription: boolean
-) => shop === "steam" && isSignedIn && hasActiveSubscription;
+  hasActiveSubscription: boolean,
+  platform?: string | null
+) =>
+  isCloudSaveV2Eligible(shop, platform) && isSignedIn && hasActiveSubscription;

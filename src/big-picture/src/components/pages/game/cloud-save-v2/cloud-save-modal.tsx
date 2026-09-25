@@ -25,6 +25,7 @@ import type {
   CloudSaveConflictResolution,
   CloudSaveOverview,
   CloudSaveSyncProgressPayload,
+  CloudSaveV2FileDetails,
 } from "@types";
 
 import { useDate } from "../../../../hooks";
@@ -67,6 +68,9 @@ export interface BigPictureCloudSavePanelProps {
   onSelectExecutable: () => void;
   onAutomaticSyncChange: (enabled: boolean) => Promise<void>;
   onResolveConflict: (resolution: CloudSaveConflictResolution) => void;
+  rpcs3Profile?: CloudSaveV2FileDetails["rpcs3Profile"];
+  onSelectRpcs3Profile?: (cloudProfileId: string) => void;
+  isBindingRpcs3Profile?: boolean;
 }
 
 interface BigPictureCloudSaveModalProps extends BigPictureCloudSavePanelProps {
@@ -104,6 +108,9 @@ export function BigPictureCloudSavePanel({
   onSelectExecutable,
   onAutomaticSyncChange,
   onResolveConflict,
+  rpcs3Profile,
+  onSelectRpcs3Profile,
+  isBindingRpcs3Profile = false,
 }: Readonly<BigPictureCloudSavePanelProps>) {
   const { t } = useTranslation("game_details");
   const { formatDateTime } = useDate();
@@ -256,6 +263,42 @@ export function BigPictureCloudSavePanel({
           {t(partialDescriptionKey)}
         </p>
       ) : null}
+
+      {rpcs3Profile && rpcs3Profile.cloudProfileIds.length > 0 && (
+        <section className="big-picture-cloud-save__toggle-card">
+          <div className="big-picture-cloud-save__copy">
+            <strong>{t("cloud_save_v2_rpcs3_profile_title")}</strong>
+            <span>
+              {t("cloud_save_v2_rpcs3_profile_description", {
+                localProfileId: rpcs3Profile.localProfileId,
+              })}
+            </span>
+          </div>
+          <VerticalFocusGroup regionId="big-picture-cloud-save-rpcs3-profiles">
+            {rpcs3Profile.cloudProfileIds.map((cloudProfileId) => (
+              <Button
+                key={cloudProfileId}
+                focusId={`big-picture-cloud-save-rpcs3-${cloudProfileId}`}
+                variant="secondary"
+                disabled={
+                  isBindingRpcs3Profile ||
+                  isSyncing ||
+                  isGameRunning ||
+                  cloudProfileId === rpcs3Profile.linkedCloudProfileId
+                }
+                onClick={() => onSelectRpcs3Profile?.(cloudProfileId)}
+              >
+                {t(
+                  cloudProfileId === rpcs3Profile.linkedCloudProfileId
+                    ? "cloud_save_v2_rpcs3_profile_current"
+                    : "cloud_save_v2_rpcs3_profile_link_action",
+                  { cloudProfileId }
+                )}
+              </Button>
+            ))}
+          </VerticalFocusGroup>
+        </section>
+      )}
 
       <section className="big-picture-cloud-save__snapshot">
         {!hasExecutablePath ? (

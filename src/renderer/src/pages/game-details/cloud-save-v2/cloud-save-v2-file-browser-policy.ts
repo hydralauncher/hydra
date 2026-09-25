@@ -3,6 +3,7 @@ interface CloudSaveFileBrowserOperationState {
   isRebindingCustomPath: boolean;
   isRemovingCustomPath: boolean;
   isDeletingCloudSave: boolean;
+  isBindingRpcs3Profile?: boolean;
   isLoading: boolean;
   isGameRunning: boolean;
   isSyncing: boolean;
@@ -13,6 +14,7 @@ export const getCloudSaveFileBrowserOperationPolicy = ({
   isRebindingCustomPath,
   isRemovingCustomPath,
   isDeletingCloudSave,
+  isBindingRpcs3Profile = false,
   isLoading,
   isGameRunning,
   isSyncing,
@@ -22,8 +24,9 @@ export const getCloudSaveFileBrowserOperationPolicy = ({
     isRebindingCustomPath ||
     isRemovingCustomPath ||
     isDeletingCloudSave ||
+    isBindingRpcs3Profile ||
     isLoading ||
     isGameRunning ||
     isSyncing,
-  closeIsBlocked: isDeletingCloudSave,
+  closeIsBlocked: isDeletingCloudSave || isBindingRpcs3Profile,
 });

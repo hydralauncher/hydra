@@ -9,12 +9,14 @@ import {
 } from "react";
 import { useTranslation } from "react-i18next";
 import { useSearchParams } from "react-router-dom";
+import { getCloudSaveEmulatorProvider, isCloudSaveV2Eligible } from "@shared";
 
 import {
   getCloudSaveSyncErrorKind,
   shouldSyncCloudSaveOnGamePage,
 } from "@renderer/pages/game-details/cloud-save-v2/cloud-save-presentation";
 import { useCloudSaveOverview } from "@renderer/pages/game-details/cloud-save-v2/use-cloud-save-overview";
+import { useCloudSaveV2FileDetails } from "@renderer/pages/game-details/cloud-save-v2/use-cloud-save-v2-file-details";
 import type {
   CloudSaveConflictResolution,
   CloudSaveCustomPathApproval,
@@ -26,6 +28,7 @@ import type {
 import { useBigPictureToast, useUserDetails } from "../../../../hooks";
 import { BigPictureCloudSaveConflictModal } from "./cloud-save-conflict-modal";
 import { BigPictureCloudSaveCustomPathModal } from "./cloud-save-custom-path-modal";
+import { BigPictureRpcs3ProfileModal } from "./cloud-save-rpcs3-profile-modal";
 import {
   BigPictureCloudSaveModal,
   type BigPictureCloudSavePanelProps,
@@ -132,6 +135,7 @@ interface BigPictureCloudSaveProviderProps {
   children: ReactNode;
   objectId: string;
   shop: GameShop;
+  platform?: string | null;
   hasExecutablePath: boolean;
   isGameRunning: boolean;
   enableGamePageSync?: boolean;
@@ -142,6 +146,7 @@ export function BigPictureCloudSaveProvider({
   children,
   objectId,
   shop,
+  platform,
   hasExecutablePath,
   isGameRunning,
   enableGamePageSync = true,
@@ -153,13 +158,20 @@ export function BigPictureCloudSaveProvider({
   const { showErrorToast, showSuccessToast, showWarningToast } =
     useBigPictureToast();
   const canUseCloudSaves = Boolean(userDetails) && hasActiveSubscription;
-  const canCheckCloudSaves =
-    shop === "steam" && canUseCloudSaves && hasExecutablePath;
+  const eligible = isCloudSaveV2Eligible(shop, platform);
+  const canCheckCloudSaves = eligible && canUseCloudSaves && hasExecutablePath;
   const { overview, isRefreshing, hasRefreshError, refresh } =
     useCloudSaveOverview({
       objectId,
       shop,
       enabled: canCheckCloudSaves,
+    });
+  const isRpcs3 = getCloudSaveEmulatorProvider(shop, platform) === "rpcs3";
+  const { details: fileDetails, refresh: refreshFileDetails } =
+    useCloudSaveV2FileDetails({
+      objectId,
+      shop,
+      enabled: canCheckCloudSaves && isRpcs3,
     });
 
   const [isModalVisible, setIsModalVisible] = useState(false);
@@ -179,6 +191,10 @@ export function BigPictureCloudSaveProvider({
   const [isFileExplorerVisible, setIsFileExplorerVisible] = useState(false);
   const [pendingResolution, setPendingResolution] =
     useState<CloudSaveConflictResolution | null>(null);
+  const [pendingRpcs3ProfileId, setPendingRpcs3ProfileId] = useState<
+    string | null
+  >(null);
+  const [isBindingRpcs3Profile, setIsBindingRpcs3Profile] = useState(false);
   const gameKey = `${shop}:${objectId}`;
   const activeGameKey = useRef(gameKey);
   const gamePageSyncInFlight = useRef(false);
@@ -187,6 +203,21 @@ export function BigPictureCloudSaveProvider({
 
   const showSyncError = useCallback(
     (error: unknown) => {
+      const message = error instanceof Error ? error.message : error;
+      if (
+        typeof message === "string" &&
+        message.includes("cloud_save_rpcs3_profile_binding_required")
+      ) {
+        setIsModalVisible(true);
+        showWarningToast(t("cloud_save_v2_rpcs3_profile_title"), {
+          message: fileDetails?.rpcs3Profile?.localProfileId
+            ? t("cloud_save_v2_rpcs3_profile_description", {
+                localProfileId: fileDetails.rpcs3Profile.localProfileId,
+              })
+            : t("cloud_save_v2_rpcs3_profile_choose"),
+        });
+        return true;
+      }
       const errorKind = getCloudSaveSyncErrorKind(error);
 
       if (errorKind === "restore-metadata") {
@@ -219,7 +250,12 @@ export function BigPictureCloudSaveProvider({
       });
       return false;
     },
-    [showErrorToast, t]
+    [
+      fileDetails?.rpcs3Profile?.localProfileId,
+      showErrorToast,
+      showWarningToast,
+      t,
+    ]
   );
 
   useEffect(() => {
@@ -234,11 +270,23 @@ export function BigPictureCloudSaveProvider({
     setIsConfirmingCustomPath(false);
     setIsFileExplorerVisible(false);
     setPendingResolution(null);
+    setPendingRpcs3ProfileId(null);
+    setIsBindingRpcs3Profile(false);
     gamePageSyncInFlight.current = false;
   }, [gameKey]);
 
   useEffect(() => {
-    if (shop !== "steam" || searchParams.get("openCloudSaveConflict") !== "1") {
+    if (!eligible || searchParams.get("openCloudSaveProfileBinding") !== "1") {
+      return;
+    }
+    const nextSearchParams = new URLSearchParams(searchParams);
+    nextSearchParams.delete("openCloudSaveProfileBinding");
+    setSearchParams(nextSearchParams, { replace: true });
+    setIsModalVisible(true);
+  }, [eligible, searchParams, setSearchParams]);
+
+  useEffect(() => {
+    if (!eligible || searchParams.get("openCloudSaveConflict") !== "1") {
       return;
     }
 
@@ -247,13 +295,10 @@ export function BigPictureCloudSaveProvider({
     setSearchParams(nextSearchParams, { replace: true });
     setWasOpenedFromLaunchConflict(true);
     setIsModalVisible(true);
-  }, [searchParams, setSearchParams, shop]);
+  }, [eligible, searchParams, setSearchParams]);
 
   useEffect(() => {
-    if (
-      shop !== "steam" ||
-      searchParams.get("openCloudSavePathApproval") !== "1"
-    ) {
+    if (!eligible || searchParams.get("openCloudSavePathApproval") !== "1") {
       return;
     }
 
@@ -279,7 +324,15 @@ export function BigPictureCloudSaveProvider({
     return () => {
       canceled = true;
     };
-  }, [objectId, searchParams, setSearchParams, shop, showErrorToast, t]);
+  }, [
+    eligible,
+    objectId,
+    searchParams,
+    setSearchParams,
+    shop,
+    showErrorToast,
+    t,
+  ]);
 
   useEffect(() => {
     return globalThis.window.electron.onCloudSaveAutomaticSync((event) => {
@@ -323,6 +376,7 @@ export function BigPictureCloudSaveProvider({
       !shouldSyncCloudSaveOnGamePage({
         overview,
         shop,
+        platform,
         canUseCloudSaves,
         hasExecutablePath,
         isGameRunning,
@@ -358,6 +412,7 @@ export function BigPictureCloudSaveProvider({
     isSyncing,
     objectId,
     overview,
+    platform,
     searchParams,
     shop,
     showSyncError,
@@ -370,7 +425,7 @@ export function BigPictureCloudSaveProvider({
         isSyncing ||
         !hasExecutablePath ||
         !canUseCloudSaves ||
-        shop !== "steam"
+        !eligible
       ) {
         return false;
       }
@@ -427,6 +482,7 @@ export function BigPictureCloudSaveProvider({
     [
       canUseCloudSaves,
       gameKey,
+      eligible,
       hasExecutablePath,
       isGameRunning,
       isSyncing,
@@ -572,6 +628,28 @@ export function BigPictureCloudSaveProvider({
     });
   };
 
+  const handleConfirmRpcs3Profile = async () => {
+    const cloudProfileId = pendingRpcs3ProfileId;
+    if (!cloudProfileId || isBindingRpcs3Profile) return;
+    setIsBindingRpcs3Profile(true);
+    try {
+      await globalThis.window.electron.bindRpcs3CloudSaveProfile(
+        objectId,
+        shop,
+        cloudProfileId
+      );
+      await Promise.all([refreshFileDetails(), refresh()]);
+      setPendingRpcs3ProfileId(null);
+      showSuccessToast(t("cloud_save_v2_rpcs3_profile_linked"));
+    } catch {
+      showErrorToast(t("cloud_save_v2_rpcs3_profile_error_title"), {
+        message: t("cloud_save_v2_rpcs3_profile_error_description"),
+      });
+    } finally {
+      setIsBindingRpcs3Profile(false);
+    }
+  };
+
   const customPathErrorKey = getCustomPathApprovalErrorKey(
     customPathApprovalError,
     customPathApproval?.purpose
@@ -601,6 +679,9 @@ export function BigPictureCloudSaveProvider({
     onSync: () => void runCloudSaveOperation(),
     onAutomaticSyncChange: handleAutomaticSyncChange,
     onResolveConflict: setPendingResolution,
+    rpcs3Profile: fileDetails?.rpcs3Profile,
+    onSelectRpcs3Profile: setPendingRpcs3ProfileId,
+    isBindingRpcs3Profile,
   } satisfies Omit<
     BigPictureCloudSavePanelProps,
     "showLaunchConflictWarning" | "onSelectExecutable"
@@ -673,6 +754,16 @@ export function BigPictureCloudSaveProvider({
         isResolving={isSyncing}
         onClose={() => setPendingResolution(null)}
         onConfirm={handleConfirmResolution}
+      />
+
+      <BigPictureRpcs3ProfileModal
+        localProfileId={fileDetails?.rpcs3Profile?.localProfileId ?? null}
+        cloudProfileId={pendingRpcs3ProfileId}
+        isBinding={isBindingRpcs3Profile}
+        onClose={() => {
+          if (!isBindingRpcs3Profile) setPendingRpcs3ProfileId(null);
+        }}
+        onConfirm={() => void handleConfirmRpcs3Profile()}
       />
     </bigPictureCloudSaveContext.Provider>
   );

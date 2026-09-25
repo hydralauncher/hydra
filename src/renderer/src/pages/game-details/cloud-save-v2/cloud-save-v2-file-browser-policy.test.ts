@@ -50,6 +50,15 @@ describe("cloud save file browser operation policy", () => {
     );
   });
 
+  it("keeps the modal open while linking an RPCS3 profile", () => {
+    assert.deepEqual(
+      getCloudSaveFileBrowserOperationPolicy(
+        operationState({ isBindingRpcs3Profile: true })
+      ),
+      { actionsAreDisabled: true, closeIsBlocked: true }
+    );
+  });
+
   it("disables concurrent actions without blocking ordinary closing", () => {
     for (const operation of [
       "isLoading",

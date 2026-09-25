@@ -13,11 +13,12 @@ import type {
 import { NativeAddon } from "../native-addon";
 import { isGameRunning } from "../game-running-state";
 import { analyzeCloudSaveState } from "./analyze-cloud-save-state";
-import { assertCloudSaveExecutableExists } from "./assert-cloud-save-executable";
+import { assertCloudSaveRuntimeAvailable } from "./assert-cloud-save-executable";
 import { clearCloudSaveLocalState } from "./clear-cloud-save-local-state";
 import { assertCloudSaveSubscription } from "./cloud-save-access";
 import { cloudSaveFileKey } from "./cloud-save-contract";
 import { getCloudSaveGameContext } from "./cloud-save-game-context";
+import { getEmulatorSaveProvider } from "./emulator-save-provider";
 import { cloudSaveCustomPathContextFromPathContext } from "./custom-path";
 import {
   confirmCloudSaveCustomPaths,
@@ -691,6 +692,16 @@ const executeGameCloudSaveSync = async ({
   );
   await assertEnvironmentCurrent();
   const initialState = analysis.state.state;
+  if (getEmulatorSaveProvider(analysis.context.game) === "rpcs3") {
+    const { ensureRpcs3ProfileBindingForSync } = await import(
+      "./rpcs3-save-provider"
+    );
+    await ensureRpcs3ProfileBindingForSync(
+      analysis.context.game!,
+      analysis.remoteManifest?.files ?? [],
+      analysis.localSnapshot.files
+    );
+  }
   const finish = createSyncFinisher(
     objectId,
     shop,
@@ -974,7 +985,7 @@ export const syncGameCloudSave = async (
   expectedRemoteHash?: string | null
 ) => {
   assertCloudSaveSubscription();
-  await assertCloudSaveExecutableExists(objectId, shop);
+  await assertCloudSaveRuntimeAvailable(objectId, shop);
   if (isGameRunning(objectId, shop)) {
     throw new Error("cloud_save_game_running");
   }
@@ -992,7 +1003,7 @@ export const syncGameCloudSave = async (
     shop,
     operationKey,
     async (emitProgress) => {
-      await assertCloudSaveExecutableExists(objectId, shop);
+      await assertCloudSaveRuntimeAvailable(objectId, shop);
       if (isGameRunning(objectId, shop)) {
         throw new Error("cloud_save_game_running");
       }
@@ -1016,7 +1027,11 @@ export const resolveCloudSaveConflict = async (
   onProgress?: ProgressCallback
 ) => {
   assertCloudSaveSubscription();
-  await assertCloudSaveExecutableExists(objectId, shop);
+  await assertCloudSaveRuntimeAvailable(objectId, shop);
+
+  if (isGameRunning(objectId, shop)) {
+    throw new Error("cloud_save_game_running");
+  }
 
   const context = await getCloudSaveGameContext(objectId, shop);
   return runCloudSaveOperation(
@@ -1024,7 +1039,10 @@ export const resolveCloudSaveConflict = async (
     shop,
     `resolve:${resolution}:${context.environmentId}`,
     async (emitProgress) => {
-      await assertCloudSaveExecutableExists(objectId, shop);
+      await assertCloudSaveRuntimeAvailable(objectId, shop);
+      if (isGameRunning(objectId, shop)) {
+        throw new Error("cloud_save_game_running");
+      }
       return runGameCloudSaveSync(
         objectId,
         shop,

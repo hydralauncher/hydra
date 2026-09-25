@@ -8,6 +8,7 @@ import type {
 } from "@types";
 
 import { cloudSaveFileKey } from "./cloud-save-contract.js";
+import { parseRpcs3SaveRawPath } from "./emulator-provider-identity.js";
 import { areSnapshotVariantsEqual } from "./snapshot-variant.js";
 import type { SyncDirection } from "./sync-game/policy.js";
 
@@ -40,6 +41,16 @@ const sameBytes = (
 ) => {
   if (!left || !right) return false;
   return left.hash === right.hash && left.sizeBytes === right.sizeBytes;
+};
+
+const rpcs3SlotKey = (
+  file: Pick<SnapshotFile, "variantId" | "rawPath" | "relativePath"> | undefined
+) => {
+  if (!file || !parseRpcs3SaveRawPath(file.rawPath)) return null;
+  const [slot, child] = file.relativePath.split("/");
+  return slot && child
+    ? JSON.stringify([file.variantId, file.rawPath, slot])
+    : null;
 };
 
 const mergeVariantMetadata = (
@@ -130,12 +141,74 @@ export const mergeUserVariantSnapshots = ({
     };
   };
 
+  const slotChanges = new Map<string, { local: boolean; remote: boolean }>();
+  for (const entryId of ids) {
+    const localFile = localById.get(entryId);
+    const remoteFile = remoteById.get(entryId);
+    const baseEntry = baseById.get(entryId);
+    const slotKey = rpcs3SlotKey(localFile ?? remoteFile ?? baseEntry);
+    if (!slotKey || sameBytes(localFile, remoteFile)) continue;
+    const changes = slotChanges.get(slotKey) ?? {
+      local: false,
+      remote: false,
+    };
+    changes.local ||= Boolean(
+      (localFile && !sameBytes(localFile, baseEntry)) ||
+        (!localFile &&
+          baseEntry &&
+          remoteFile &&
+          coverageStateFor(remoteFile).provesDeletion)
+    );
+    changes.remote ||= Boolean(
+      (remoteFile && !sameBytes(remoteFile, baseEntry)) ||
+        (!remoteFile && baseEntry)
+    );
+    slotChanges.set(slotKey, changes);
+  }
+  const divergentSlots = new Set(
+    [...slotChanges]
+      .filter(([, changes]) => changes.local && changes.remote)
+      .map(([slotKey]) => slotKey)
+  );
+
   for (const entryId of [...ids].sort((left, right) =>
     left.localeCompare(right)
   )) {
     const localFile = localById.get(entryId);
     const remoteFile = remoteById.get(entryId);
     const baseEntry = baseById.get(entryId);
+    const slotKey = rpcs3SlotKey(localFile ?? remoteFile ?? baseEntry);
+
+    if (
+      slotKey &&
+      divergentSlots.has(slotKey) &&
+      (localFile || !remoteFile || coverageStateFor(remoteFile).provesDeletion)
+    ) {
+      if (sameBytes(localFile, remoteFile)) {
+        if (remoteFile) files.push(remoteFile);
+        continue;
+      }
+      const resolution = resolutions?.get(entryId);
+      if (resolution === "keep-local") {
+        if (localFile) files.push(localFile);
+        else deleteRemoteEntryIds.add(entryId);
+      } else if (resolution === "keep-remote") {
+        if (remoteFile) {
+          files.push(remoteFile);
+          restoreEntryIds.add(entryId);
+        } else {
+          deleteLocalEntryIds.add(entryId);
+        }
+      } else {
+        if (remoteFile) files.push(remoteFile);
+        conflicts.push({
+          entryId,
+          local: localFile ?? null,
+          remote: remoteFile ?? null,
+        });
+      }
+      continue;
+    }
 
     if (localFile && !remoteFile) {
       if (!baseEntry) {

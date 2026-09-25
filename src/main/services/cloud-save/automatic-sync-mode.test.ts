@@ -87,6 +87,46 @@ describe("cloud save automatic sync mode", () => {
     );
   });
 
+  it("requires explicit V2 opt-in for supported emulator games", () => {
+    for (const platform of [
+      "Sony PlayStation 3",
+      "Nintendo Entertainment System",
+      "Super Nintendo Entertainment System",
+      "Nintendo 64",
+      "Nintendo Game Boy",
+      "Nintendo Game Boy Color",
+      "Nintendo Game Boy Advance",
+    ]) {
+      assert.equal(
+        resolveStoredCloudSaveAutomaticSyncModeForShop(
+          "launchbox",
+          true,
+          undefined,
+          platform
+        ),
+        "legacy"
+      );
+      assert.equal(
+        resolveStoredCloudSaveAutomaticSyncModeForShop(
+          "launchbox",
+          true,
+          true,
+          platform
+        ),
+        "v2"
+      );
+    }
+    assert.equal(
+      resolveStoredCloudSaveAutomaticSyncModeForShop(
+        "launchbox",
+        true,
+        true,
+        "Sony PlayStation 2"
+      ),
+      "legacy"
+    );
+  });
+
   it("enabling legacy disables V2", () => {
     assert.equal(
       getNextCloudSaveAutomaticSyncMode("v2", "legacy", true),

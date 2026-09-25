@@ -10,7 +10,11 @@ import {
 import { useTranslation } from "react-i18next";
 import { useSearchParams } from "react-router-dom";
 
-import { AuthPage, getCloudSaveAccessAction } from "@shared";
+import {
+  AuthPage,
+  getCloudSaveAccessAction,
+  isCloudSaveV2Eligible,
+} from "@shared";
 import { ConfirmationModal } from "@renderer/components";
 import { gameDetailsContext } from "@renderer/context";
 import { useToast, useUserDetails } from "@renderer/hooks";
@@ -160,9 +164,12 @@ export function CloudSaveV2Provider({
     hasActiveSubscription
   );
   const canUseCloudSaves = cloudSaveAccessAction === "open";
-  const hasExecutablePath = Boolean(game?.executablePath);
+  const isV2Eligible = isCloudSaveV2Eligible(shop, game?.platform);
+  const hasExecutablePath =
+    Boolean(game?.executablePath) ||
+    (shop === "launchbox" && isV2Eligible && Boolean(game));
   const canCheckCloudSaves =
-    shop === "steam" && canUseCloudSaves && hasExecutablePath;
+    isV2Eligible && canUseCloudSaves && hasExecutablePath;
   const {
     overview,
     isAutomaticSyncEnabled,
@@ -211,6 +218,14 @@ export function CloudSaveV2Provider({
 
   const showKnownCloudSaveSyncError = useCallback(
     (error: unknown) => {
+      const message = error instanceof Error ? error.message : error;
+      if (
+        typeof message === "string" &&
+        message.includes("cloud_save_rpcs3_profile_binding_required")
+      ) {
+        setIsFileBrowserVisible(true);
+        return true;
+      }
       const errorKind = getCloudSaveSyncErrorKind(error);
       if (errorKind === "generic") return false;
 
@@ -269,7 +284,7 @@ export function CloudSaveV2Provider({
   }, [isGameRunning, refresh]);
 
   useEffect(() => {
-    if (shop !== "steam" || searchParams.get("openCloudSaveConflict") !== "1") {
+    if (!isV2Eligible || searchParams.get("openCloudSaveConflict") !== "1") {
       return;
     }
 
@@ -299,7 +314,34 @@ export function CloudSaveV2Provider({
 
   useEffect(() => {
     if (
-      shop !== "steam" ||
+      !isV2Eligible ||
+      searchParams.get("openCloudSaveProfileBinding") !== "1"
+    ) {
+      return;
+    }
+    const nextSearchParams = new URLSearchParams(searchParams);
+    nextSearchParams.delete("openCloudSaveProfileBinding");
+    setSearchParams(nextSearchParams, { replace: true });
+    if (cloudSaveAccessAction === "sign-in") {
+      window.electron.openAuthWindow(AuthPage.SignIn);
+      return;
+    }
+    if (cloudSaveAccessAction === "paywall") {
+      showHydraCloudModal("backup");
+      return;
+    }
+    setIsFileBrowserVisible(true);
+  }, [
+    cloudSaveAccessAction,
+    isV2Eligible,
+    searchParams,
+    setSearchParams,
+    showHydraCloudModal,
+  ]);
+
+  useEffect(() => {
+    if (
+      !isV2Eligible ||
       searchParams.get("openCloudSavePathApproval") !== "1"
     ) {
       return;
@@ -396,6 +438,7 @@ export function CloudSaveV2Provider({
       !shouldSyncCloudSaveOnGamePage({
         overview,
         shop,
+        platform: game?.platform,
         canUseCloudSaves,
         hasExecutablePath,
         isGameRunning,
@@ -532,7 +575,7 @@ export function CloudSaveV2Provider({
 
   const runCloudSaveOperation = useCallback(
     async (resolution?: CloudSaveConflictResolution) => {
-      if (isGameRunning || !hasExecutablePath || shop !== "steam") return;
+      if (isGameRunning || !hasExecutablePath || !isV2Eligible) return;
       if (cloudSaveAccessAction !== "open") {
         openManager();
         return;

@@ -2,6 +2,15 @@ import { existsSync } from "node:fs";
 
 import { gamesSublevel, levelKeys } from "@main/level";
 import { logger, NativeAddon } from "@main/services";
+import { WindowManager } from "@main/services/window-manager";
+import {
+  canCreateCloudSaveUploadGuard,
+  canRunAutomaticCloudSaveSync,
+  clearCloudSaveLaunchGuard,
+  getCloudSaveGameContext,
+  runAutomaticCloudSaveSyncDetailed,
+  setCloudSaveLaunchGuard,
+} from "@main/services/cloud-save";
 import type { EmulatorSystem, GameShop, RetroArchPlatform } from "@types";
 import { launchClassicsGame } from "./launch-classics-game";
 import { launchRetroArchGame } from "./launch-retroarch-game";
@@ -184,6 +193,55 @@ export const openClassicsGame = async (
   const gameKey = levelKeys.game(shop, objectId);
   const game = await gamesSublevel.get(gameKey);
   if (!game) throw new Error(`Game not found: ${gameKey}`);
+  clearCloudSaveLaunchGuard(objectId, shop);
+
+  const prepareCloudSaveBeforeLaunch = async () => {
+    if (!(await canRunAutomaticCloudSaveSync(objectId, shop))) return true;
+    const context = await getCloudSaveGameContext(objectId, shop).catch(
+      () => null
+    );
+    if (!context) return true;
+    const outcome = await runAutomaticCloudSaveSyncDetailed(
+      objectId,
+      shop,
+      "pre-launch",
+      context
+    );
+    if (outcome.result?.action === "conflict") {
+      WindowManager.redirectToGameWindow(
+        `game/${shop}/${objectId}?${new URLSearchParams({
+          title: game.title,
+          openCloudSaveConflict: "1",
+        })}`
+      );
+      return false;
+    }
+    if (
+      "errorCode" in outcome &&
+      outcome.errorCode === "cloud_save_rpcs3_profile_binding_required"
+    ) {
+      WindowManager.redirectToGameWindow(
+        `game/${shop}/${objectId}?${new URLSearchParams({
+          title: game.title,
+          openCloudSaveProfileBinding: "1",
+        })}`
+      );
+      return false;
+    }
+    if (outcome.result) {
+      setCloudSaveLaunchGuard(objectId, shop, {
+        environmentId: context.environmentId,
+        baseRemoteHash: outcome.result.remoteHash ?? null,
+        uploadAllowed: canCreateCloudSaveUploadGuard(
+          context.prefixIdentityMode !== "session",
+          context.environmentId,
+          outcome.result
+        ),
+        createdAt: new Date().toISOString(),
+      });
+    }
+    return true;
+  };
 
   const retroArchPlatform = platformToRetroArchPlatform(game.platform);
   if (retroArchPlatform) {
@@ -197,12 +255,18 @@ export const openClassicsGame = async (
       );
     }
 
-    await launchRetroArchWithErrors(
-      shop,
-      objectId,
-      resolvedRomPath,
-      retroArchPlatform
-    );
+    if (!(await prepareCloudSaveBeforeLaunch())) return;
+    try {
+      await launchRetroArchWithErrors(
+        shop,
+        objectId,
+        resolvedRomPath,
+        retroArchPlatform
+      );
+    } catch (error) {
+      clearCloudSaveLaunchGuard(objectId, shop);
+      throw error;
+    }
     return;
   }
 
@@ -227,6 +291,8 @@ export const openClassicsGame = async (
 
   if (system === "ps3") await stopRunningRpcs3(objectId, force);
 
+  if (!(await prepareCloudSaveBeforeLaunch())) return;
+
   try {
     await launchClassicsGame({
       shop,
@@ -235,6 +301,7 @@ export const openClassicsGame = async (
       system,
     });
   } catch (error) {
+    clearCloudSaveLaunchGuard(objectId, shop);
     throw translateLaunchError(error, objectId, system);
   }
 };

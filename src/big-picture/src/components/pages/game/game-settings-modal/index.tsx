@@ -137,7 +137,8 @@ export function GameSettingsModal({
   const shouldShowCloudV2Tab = shouldShowCloudSaveV2Tab(
     game.shop,
     isSignedIn,
-    hasActiveSubscription
+    hasActiveSubscription,
+    game.platform
   );
   const shouldShowLegacyCloudTab = shouldShowLegacyCloudSaveTab(
     game.shop,
@@ -186,7 +187,11 @@ export function GameSettingsModal({
         ? [
             {
               id: "hydra_cloud_legacy",
-              label: t("settings_category_hydra_cloud"),
+              label: t(
+                shouldShowCloudV2Tab
+                  ? "settings_category_legacy_saves"
+                  : "settings_category_hydra_cloud"
+              ),
               content: cloudContent,
             } satisfies SidebarModalTab<GameSettingsTabId>,
           ]

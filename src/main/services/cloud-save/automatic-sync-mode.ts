@@ -1,4 +1,5 @@
 import type { CloudSaveAutomaticSyncMode, GameShop } from "@types";
+import { getCloudSaveEmulatorProvider } from "../../../shared/cloud-save-emulator-provider.js";
 
 export type { CloudSaveAutomaticSyncMode } from "@types";
 
@@ -28,13 +29,16 @@ export const resolveStoredCloudSaveAutomaticSyncMode = (
 export const resolveStoredCloudSaveAutomaticSyncModeForShop = (
   shop: GameShop,
   legacyEnabled: boolean,
-  storedV2Enabled: boolean | undefined
+  storedV2Enabled: boolean | undefined,
+  platform?: string | null
 ) =>
   shop === "steam"
     ? resolveStoredCloudSaveAutomaticSyncMode(legacyEnabled, storedV2Enabled)
     : resolveCloudSaveAutomaticSyncMode({
         legacyEnabled,
-        v2Enabled: false,
+        v2Enabled:
+          getCloudSaveEmulatorProvider(shop, platform) !== null &&
+          storedV2Enabled === true,
       });
 
 export const getCloudSaveAutomaticSyncStateForMode = (

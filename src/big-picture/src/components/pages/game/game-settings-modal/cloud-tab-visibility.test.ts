@@ -17,8 +17,25 @@ describe("Big Picture cloud save V2 tab visibility", () => {
     assert.equal(shouldShowCloudSaveV2Tab("steam", true, false), false);
   });
 
-  it("never shows the V2 tab for non-Steam games", () => {
+  it("shows V2 for eligible LaunchBox emulators only", () => {
     assert.equal(shouldShowCloudSaveV2Tab("launchbox", true, true), false);
+    assert.equal(
+      shouldShowCloudSaveV2Tab("launchbox", true, true, "Sony PlayStation 3"),
+      true
+    );
+    assert.equal(
+      shouldShowCloudSaveV2Tab(
+        "launchbox",
+        true,
+        true,
+        "Nintendo Game Boy Advance"
+      ),
+      true
+    );
+    assert.equal(
+      shouldShowCloudSaveV2Tab("launchbox", true, true, "Sony PlayStation 2"),
+      false
+    );
     assert.equal(shouldShowCloudSaveV2Tab("custom", true, true), false);
   });
 });

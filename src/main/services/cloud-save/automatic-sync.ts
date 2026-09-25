@@ -5,6 +5,7 @@ import type {
   GameShop,
   SyncGameCloudSaveResult,
 } from "@types";
+import { isCloudSaveV2Eligible } from "@shared";
 import { gamesSublevel, levelKeys } from "@main/level";
 
 import { HydraApi } from "../hydra-api";
@@ -60,7 +61,6 @@ export const canRunAutomaticCloudSaveSync = async (
   shop: GameShop
 ) => {
   if (
-    shop !== "steam" ||
     !canAccessCloudSaves(
       HydraApi.isLoggedIn(),
       HydraApi.hasActiveSubscription()
@@ -74,7 +74,12 @@ export const canRunAutomaticCloudSaveSync = async (
   const game = await gamesSublevel
     .get(levelKeys.game(shop, objectId))
     .catch(() => null);
-  return Boolean(game?.executablePath);
+  if (!game || !isCloudSaveV2Eligible(shop, game.platform)) return false;
+  if (shop === "steam") return Boolean(game.executablePath);
+  const context = await getCloudSaveGameContext(objectId, shop).catch(
+    () => null
+  );
+  return Boolean(context?.pathContext.executablePath);
 };
 
 const emitAutomaticSyncEvent = (event: CloudSaveAutomaticSyncEvent) => {
@@ -89,7 +94,6 @@ export const runAutomaticCloudSaveSyncDetailed = async (
   expectedRemoteHash?: string | null
 ): Promise<AutomaticCloudSaveSyncOutcome> => {
   if (
-    shop !== "steam" ||
     !canAccessCloudSaves(
       HydraApi.isLoggedIn(),
       HydraApi.hasActiveSubscription()
@@ -132,7 +136,7 @@ export const runAutomaticCloudSaveSyncDetailed = async (
       gameReadFailed = true;
       return null;
     });
-  if (!game?.executablePath) {
+  if (!game || !isCloudSaveV2Eligible(shop, game.platform)) {
     return {
       status: gameReadFailed
         ? classifyAutomaticCloudSaveFailure(trigger)
@@ -169,6 +173,9 @@ export const runAutomaticCloudSaveSyncDetailed = async (
         : "skipped",
       result: null,
     };
+  }
+  if (!context.pathContext.executablePath) {
+    return { status: "skipped", result: null };
   }
   const key = gameKey(objectId, shop);
   const operationKey = JSON.stringify([

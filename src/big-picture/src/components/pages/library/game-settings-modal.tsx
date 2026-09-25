@@ -46,7 +46,10 @@ export function LibraryGameSettingsModal({
     <BigPictureCloudSaveProvider
       objectId={modalGame.objectId}
       shop={modalGame.shop}
-      hasExecutablePath={Boolean(modalGame.executablePath)}
+      platform={modalGame.platform}
+      hasExecutablePath={Boolean(
+        modalGame.executablePath || modalGame.shop === "launchbox"
+      )}
       isGameRunning={isGameRunning}
       enableGamePageSync={false}
       onSelectExecutable={() => undefined}

@@ -223,6 +223,25 @@ export interface BuildLocalGameSnapshotPipelineInput
   extraRules?: CloudSaveRule[];
 }
 
+export interface DiscoveredLocalSaveFile extends CloudSaveFileIdentity {
+  ruleId: string;
+  absolutePath: string;
+  localBindings: LocalResolutionBindings;
+  confidence: "authoritative" | "exact" | "inferred";
+  provenance: string[];
+}
+
+export interface BuildLocalGameSnapshotInput {
+  gameId: CloudSaveGameId;
+  manifestKey?: string;
+  ruleSourceRevision: string;
+  discoveryEngineVersion: number;
+  coverage: UserLocationCoverage[];
+  variants: SnapshotVariant[];
+  files: DiscoveredLocalSaveFile[];
+  hashCache: LocalFileHashCacheEntry[];
+}
+
 export interface LocalFileHashCacheEntry {
   absolutePath: string;
   sizeBytes: number;
@@ -401,6 +420,11 @@ export interface CloudSaveV2FileDetails {
     warningCodes: string[];
   }>;
   unresolvedRemoteVariantCount: number;
+  rpcs3Profile?: {
+    localProfileId: string;
+    cloudProfileIds: string[];
+    linkedCloudProfileId: string | null;
+  } | null;
 }
 
 export type CloudSaveSyncTrigger =

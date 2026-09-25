@@ -170,6 +170,17 @@ contextBridge.exposeInMainWorld("electron", {
       objectId,
       shop
     ) as Promise<CloudSaveV2FileDetails>,
+  bindRpcs3CloudSaveProfile: (
+    objectId: string,
+    shop: GameShop,
+    cloudProfileId: string
+  ) =>
+    ipcRenderer.invoke(
+      "bindRpcs3CloudSaveProfile",
+      objectId,
+      shop,
+      cloudProfileId
+    ) as Promise<void>,
   deleteGameCloudSaveData: (objectId: string, shop: GameShop) =>
     ipcRenderer.invoke(
       "deleteGameCloudSaveData",

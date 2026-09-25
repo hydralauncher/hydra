@@ -10,6 +10,8 @@ import { loadCloudSaveV2FileDetails } from "./cloud-save-v2-file-details";
 import { classifyCloudSaveCustomPathResolutionError } from "./custom-path-binding-state";
 import { getRemoteSnapshotRestoreManifest } from "./resolve-remote-snapshot-targets";
 import { getFirstSyncState } from "./sync-game";
+import { getEmulatorSaveProvider } from "./emulator-save-provider";
+import { listRpcs3CloudProfileIds } from "./rpcs3-profile-binding-policy";
 import {
   cloudSaveCustomPathContextFromPathContext,
   decodeCloudSaveCustomPath,
@@ -78,7 +80,7 @@ export const getCloudSaveV2FileDetails = async (
       ? getFirstSyncState(analysis)
       : analysis.state.state;
 
-  return loadCloudSaveV2FileDetails(
+  const details = await loadCloudSaveV2FileDetails(
     {
       objectId,
       shop,
@@ -102,4 +104,23 @@ export const getCloudSaveV2FileDetails = async (
     },
     getRemoteSnapshotRestoreManifest
   );
+  if (getEmulatorSaveProvider(analysis.context.game) !== "rpcs3") {
+    return details;
+  }
+  const { getRpcs3ProfilePairing } = await import("./rpcs3-save-provider");
+  const pairing = await getRpcs3ProfilePairing(analysis.context.game!).catch(
+    () => null
+  );
+  return {
+    ...details,
+    rpcs3Profile: pairing
+      ? {
+          localProfileId: pairing.activeProfileId,
+          cloudProfileIds: listRpcs3CloudProfileIds(
+            analysis.remoteManifest?.files ?? []
+          ),
+          linkedCloudProfileId: pairing.binding?.cloudProfileId ?? null,
+        }
+      : null,
+  };
 };

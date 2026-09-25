@@ -146,6 +146,11 @@ declare global {
       objectId: string,
       shop: GameShop
     ) => Promise<CloudSaveV2FileDetails>;
+    bindRpcs3CloudSaveProfile: (
+      objectId: string,
+      shop: GameShop,
+      cloudProfileId: string
+    ) => Promise<void>;
     deleteGameCloudSaveData: (
       objectId: string,
       shop: GameShop

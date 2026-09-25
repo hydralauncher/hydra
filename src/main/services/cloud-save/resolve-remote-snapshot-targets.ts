@@ -17,6 +17,12 @@ import { getCloudSaveGameContext } from "./cloud-save-game-context";
 import { cloudSaveCustomPathContextFromPathContext } from "./custom-path";
 import { customPathToCloudSaveRule } from "./custom-path-store";
 import { getUsableCloudSaveCustomPathBindings } from "./custom-path-overlap";
+import {
+  emulatorSaveFileKey,
+  getEmulatorRestoreRules,
+  getEmulatorSaveProvider,
+} from "./emulator-save-provider";
+import { isEmulatorSaveRawPath } from "./emulator-provider-identity";
 
 const isWinePrefixValid = (winePrefixPath?: string) => {
   if (!winePrefixPath) return false;
@@ -70,13 +76,15 @@ export const resolveRestoreManifestTargets = async (
     pathContext === gameContext.pathContext
       ? gameContext
       : { ...gameContext, pathContext };
-  const approved = await NativeAddon.getSaveRulesForGame({
-    shop: manifest.snapshot.shop,
-    objectId: manifest.snapshot.objectId,
-    title: gameContext.game?.title,
-    remoteId: gameContext.game?.remoteId ?? undefined,
-    userDataPath: SystemPath.getPath("userData"),
-  });
+  const approved = getEmulatorSaveProvider(gameContext.game)
+    ? { rules: [] }
+    : await NativeAddon.getSaveRulesForGame({
+        shop: manifest.snapshot.shop,
+        objectId: manifest.snapshot.objectId,
+        title: gameContext.game?.title,
+        remoteId: gameContext.game?.remoteId ?? undefined,
+        userDataPath: SystemPath.getPath("userData"),
+      });
   const customPathContext =
     cloudSaveCustomPathContextFromPathContext(pathContext);
   const customPaths = suppliedCustomPathBindings
@@ -99,6 +107,7 @@ export const resolveRestoreManifestTargets = async (
     ? Wine.getPrefixUserProfiles(effectiveWinePrefixPath)
     : [];
   const usesWindowsCompatibility =
+    !getEmulatorSaveProvider(gameContext.game) &&
     pathContext.platform === "linux" &&
     pathContext.executablePath?.toLowerCase().endsWith(".exe") === true;
   const winePrefixIsValid = isWinePrefixValid(effectiveWinePrefixPath);
@@ -122,7 +131,7 @@ export const resolveRestoreManifestTargets = async (
     throw new Error("cloud_save_restore_profile_unresolved");
   }
 
-  const targets = await NativeAddon.resolveRestoreTargets({
+  const baseInput = {
     shop: pathContext.shop,
     objectId: pathContext.objectId,
     platform: pathContext.platform,
@@ -143,7 +152,77 @@ export const resolveRestoreManifestTargets = async (
       when,
     })),
     variants: manifest.variants,
-    files: manifest.files,
+  };
+  const normalFiles = manifest.files.filter(
+    (file) => !isEmulatorSaveRawPath(file.rawPath)
+  );
+  const emulatorFiles = manifest.files.filter((file) =>
+    isEmulatorSaveRawPath(file.rawPath)
+  );
+  const normal = await NativeAddon.resolveRestoreTargets({
+    ...baseInput,
+    variants: manifest.variants.filter((variant) =>
+      normalFiles.some((file) => file.variantId === variant.variantId)
+    ),
+    files: normalFiles,
   });
-  return targets;
+  if (emulatorFiles.length === 0) return normal;
+
+  const emulatorRules = await getEmulatorRestoreRules(
+    gameContext.game,
+    emulatorFiles
+  );
+  const emulatorPlans = await Promise.all(
+    emulatorFiles.map((file) => {
+      const rule = emulatorRules.get(emulatorSaveFileKey(file));
+      return NativeAddon.resolveRestoreTargets({
+        ...baseInput,
+        approvedRules: rule ? [rule] : [],
+        variants: manifest.variants.filter(
+          (variant) => variant.variantId === file.variantId
+        ),
+        files: [file],
+      });
+    })
+  );
+  const combined = {
+    actions: [
+      ...normal.actions,
+      ...emulatorPlans.flatMap((plan) => plan.actions),
+    ],
+    blocked: [
+      ...normal.blocked,
+      ...emulatorPlans.flatMap((plan) => plan.blocked),
+    ],
+    deferred: [
+      ...normal.deferred,
+      ...emulatorPlans.flatMap((plan) => plan.deferred),
+    ],
+  };
+  const targetCounts = new Map<string, number>();
+  for (const action of combined.actions) {
+    const key =
+      process.platform === "win32"
+        ? action.targetPath.toLowerCase()
+        : action.targetPath;
+    targetCounts.set(key, (targetCounts.get(key) ?? 0) + 1);
+  }
+  combined.actions = combined.actions.filter((action) => {
+    const key =
+      process.platform === "win32"
+        ? action.targetPath.toLowerCase()
+        : action.targetPath;
+    if (targetCounts.get(key) === 1) return true;
+    combined.blocked.push({
+      variantId: action.variantId,
+      rawPath: action.rawPath,
+      relativePath: action.relativePath,
+      hash: action.hash,
+      sizeBytes: action.sizeBytes,
+      lastModifiedAt: action.lastModifiedAt,
+      reason: "blocked-target-ambiguous",
+    });
+    return false;
+  });
+  return combined;
 };

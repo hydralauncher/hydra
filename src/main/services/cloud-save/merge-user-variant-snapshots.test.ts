@@ -150,6 +150,148 @@ describe("merge user variant snapshots", () => {
     ]);
   });
 
+  it("keeps RPCS3 saves from an inactive profile when only the active profile was scanned", () => {
+    const activeRawPath = "<emulator>/rpcs3/BLUS30443/00000002";
+    const inactiveRawPath = "<emulator>/rpcs3/BLUS30443/00000001";
+    const active = file("BLUS30443-SLOT/DATA.BIN", "a", activeRawPath);
+    const inactive = file("BLUS30443-SLOT/DATA.BIN", "b", inactiveRawPath);
+    const local = context([active]);
+    local.coverage = [
+      {
+        candidateId: "active",
+        ruleId: "active",
+        variantId,
+        rawPath: activeRawPath,
+        selectedRoot: true,
+        authority: "exact",
+        outcome: "scanned",
+        enumeratedCompletely: true,
+        warningCodes: [],
+      },
+    ];
+
+    const result = mergeUserVariantSnapshots({
+      local,
+      remoteVariants: [variant],
+      remoteFiles: [active, inactive],
+      base: anchor([active, inactive]),
+    });
+
+    assert.deepEqual(result.deleteRemoteEntryIds, []);
+    assert.deepEqual(result.files, [inactive, active]);
+    assert.deepEqual(result.unresolvedRemoteEntryIds, [
+      cloudSaveFileKey(inactive),
+    ]);
+  });
+
+  it("does not combine divergent files from one RPCS3 save slot", () => {
+    const rawPath = "<emulator>/rpcs3/BLUS30443/00000001";
+    const base = [
+      file("BLUS30443-SLOT/PARAM.SFO", "a", rawPath),
+      file("BLUS30443-SLOT/DATA.BIN", "b", rawPath),
+    ];
+    const local = [file("BLUS30443-SLOT/PARAM.SFO", "c", rawPath), base[1]];
+    const remote = [base[0], file("BLUS30443-SLOT/DATA.BIN", "d", rawPath)];
+    const input = {
+      local: context(local),
+      remoteVariants: [variant],
+      remoteFiles: remote,
+      base: anchor(base),
+    };
+
+    const unresolved = mergeUserVariantSnapshots(input);
+    assert.deepEqual(
+      unresolved.conflicts.map((item) => item.entryId).sort(),
+      base.map(cloudSaveFileKey).sort()
+    );
+
+    for (const [resolution, expected] of [
+      ["keep-local", local],
+      ["keep-remote", remote],
+    ] as const) {
+      const resolutions = new Map(
+        unresolved.conflicts.map((conflict) => [conflict.entryId, resolution])
+      );
+      const resolved = mergeUserVariantSnapshots({ ...input, resolutions });
+      assert.deepEqual(resolved.conflicts, []);
+      assert.deepEqual(
+        resolved.files
+          .map((item) => [item.relativePath, item.hash])
+          .sort((left, right) => left[0].localeCompare(right[0])),
+        expected
+          .map((item) => [item.relativePath, item.hash])
+          .sort((left, right) => left[0].localeCompare(right[0]))
+      );
+    }
+  });
+
+  it("keeps unrelated RPCS3 slots independent", () => {
+    const rawPath = "<emulator>/rpcs3/BLUS30443/00000001";
+    const base = [
+      file("BLUS30443-SLOT-1/DATA.BIN", "a", rawPath),
+      file("BLUS30443-SLOT-2/DATA.BIN", "b", rawPath),
+    ];
+    const result = mergeUserVariantSnapshots({
+      local: context([
+        file("BLUS30443-SLOT-1/DATA.BIN", "c", rawPath),
+        base[1],
+      ]),
+      remoteVariants: [variant],
+      remoteFiles: [base[0], file("BLUS30443-SLOT-2/DATA.BIN", "d", rawPath)],
+      base: anchor(base),
+    });
+
+    assert.deepEqual(result.conflicts, []);
+    assert.deepEqual(
+      result.files.map((item) => item.hash),
+      [hash("c"), hash("d")]
+    );
+  });
+
+  it("resolves a deleted RPCS3 slot file and a remote edit together", () => {
+    const rawPath = "<emulator>/rpcs3/BLUS30443/00000001";
+    const base = [
+      file("BLUS30443-SLOT/PARAM.SFO", "a", rawPath),
+      file("BLUS30443-SLOT/DATA.BIN", "b", rawPath),
+    ];
+    const local = context([base[1]]);
+    local.coverage = [
+      {
+        candidateId: "active",
+        ruleId: "active",
+        variantId,
+        rawPath,
+        selectedRoot: true,
+        authority: "exact",
+        outcome: "scanned",
+        enumeratedCompletely: true,
+        warningCodes: [],
+      },
+    ];
+    const remote = [base[0], file("BLUS30443-SLOT/DATA.BIN", "c", rawPath)];
+    const input = {
+      local,
+      remoteVariants: [variant],
+      remoteFiles: remote,
+      base: anchor(base),
+    };
+    const unresolved = mergeUserVariantSnapshots(input);
+    assert.equal(unresolved.conflicts.length, 2);
+
+    const resolutions = new Map(
+      unresolved.conflicts.map((conflict) => [
+        conflict.entryId,
+        "keep-local" as const,
+      ])
+    );
+    const resolved = mergeUserVariantSnapshots({ ...input, resolutions });
+    assert.deepEqual(resolved.conflicts, []);
+    assert.deepEqual(resolved.files, local.files);
+    assert.deepEqual(resolved.deleteRemoteEntryIds, [
+      cloudSaveFileKey(base[0]),
+    ]);
+  });
+
   it("treats different custom raw paths as different files", () => {
     const local = file("slot.sav", "a", "<custom><windows><winAppData>/Game");
     const remote = file(

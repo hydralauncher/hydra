@@ -30,6 +30,26 @@ describe("cloud save visibility", () => {
     });
   });
 
+  it("offers V2 and legacy for eligible emulator platforms", () => {
+    for (const platform of [
+      "Sony PlayStation 3",
+      "Nintendo Game Boy Advance",
+    ]) {
+      assert.deepEqual(getCloudSaveVisibility("launchbox", platform), {
+        hero: "v2",
+        settings: {
+          showV2: true,
+          showLegacy: true,
+          legacyPurpose: "active",
+        },
+      });
+    }
+    assert.equal(
+      getCloudSaveVisibility("launchbox", "Sony PlayStation 2").hero,
+      "legacy"
+    );
+  });
+
   it("preserves the main-branch behavior for custom games", () => {
     assert.deepEqual(getCloudSaveVisibility("custom"), {
       hero: null,

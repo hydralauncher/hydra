@@ -51,7 +51,8 @@ const readCloudSaveAutomaticSyncMode = async (
   const mode = resolveStoredCloudSaveAutomaticSyncModeForShop(
     shop,
     legacyEnabled,
-    storedV2Enabled
+    storedV2Enabled,
+    game?.platform
   );
 
   return { game, key, mode };

@@ -7,6 +7,7 @@ import type {
   CloudSaveV2FileDetails,
   GameShop,
 } from "@types";
+import { isCloudSaveV2Eligible } from "../../../../../shared/cloud-save-emulator-provider.js";
 
 export type CloudSavePresentationTone =
   | "synced"
@@ -158,6 +159,7 @@ export const getCloudSavePartialDescriptionKey = (
 interface GamePageOpenSyncInput {
   overview: CloudSaveOverview | null;
   shop: GameShop;
+  platform?: string | null;
   canUseCloudSaves: boolean;
   hasExecutablePath: boolean;
   isGameRunning: boolean;
@@ -168,13 +170,14 @@ interface GamePageOpenSyncInput {
 export const shouldSyncCloudSaveOnGamePage = ({
   overview,
   shop,
+  platform,
   canUseCloudSaves,
   hasExecutablePath,
   isGameRunning,
   isSyncing,
   isInFlight,
 }: GamePageOpenSyncInput) =>
-  shop === "steam" &&
+  isCloudSaveV2Eligible(shop, platform) &&
   canUseCloudSaves &&
   hasExecutablePath &&
   !isGameRunning &&

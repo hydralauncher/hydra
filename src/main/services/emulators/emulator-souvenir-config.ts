@@ -75,6 +75,8 @@ export const retroArchConfigRoots = (executablePath: string): string[] => {
   if (process.platform === "win32") {
     const appData = process.env.APPDATA;
     if (appData) roots.push(path.join(appData, "RetroArch"));
+  } else if (process.platform === "darwin") {
+    roots.push(path.join(home, "Library", "Application Support", "RetroArch"));
   } else {
     roots.push(path.join(home, ".config", "retroarch"));
   }
