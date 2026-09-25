@@ -5,13 +5,19 @@ import { logger } from "../logger";
 import { db } from "@main/level";
 import { levelKeys } from "@main/level/sublevels";
 
-export const getUserData = async () => {
-  return HydraApi.get<UserDetails>(`/profile/me`)
+export const getUserData = async (
+  options: { signal?: AbortSignal; allowCachedFallback?: boolean } = {}
+) => {
+  return HydraApi.get<UserDetails>(`/profile/me`, undefined, {
+    signal: options.signal,
+  })
     .then(async (me) => {
+      if (options.signal?.aborted) return null;
       try {
         const user = await db.get<string, User>(levelKeys.user, {
           valueEncoding: "json",
         });
+        if (options.signal?.aborted) return null;
         await db.put<string, User>(
           levelKeys.user,
           {
@@ -28,11 +34,15 @@ export const getUserData = async () => {
         logger.error("Failed to update user in DB", error);
       }
 
+      if (options.signal?.aborted) return null;
       HydraApi.updateUserSubscription(me.subscription);
 
       return me;
     })
     .catch(async (err) => {
+      if (options.signal?.aborted || options.allowCachedFallback === false) {
+        throw err;
+      }
       if (err instanceof UserNotLoggedInError) {
         return null;
       }

@@ -135,18 +135,22 @@ export default function FriendsWindow() {
     const unsubscribeProfile = electron.onProfileUpdated(() => {
       refreshUserDetails();
     });
+    const unsubscribeSubscription =
+      electron.onSubscriptionUpdated(updateUserDetails);
 
     return () => {
       unsubscribeFriends();
       unsubscribePresence();
       unsubscribeRequests();
       unsubscribeProfile();
+      unsubscribeSubscription();
     };
   }, [
     fetchFriends,
     fetchFriendRequests,
     fetchOnlineFriendsCount,
     refreshUserDetails,
+    updateUserDetails,
   ]);
 
   // Debounced friend search

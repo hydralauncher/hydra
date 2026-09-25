@@ -5,7 +5,11 @@ import { friendRequestEvent } from "./events/friend-request";
 import { friendGameSessionEvent } from "./events/friend-game-session";
 import { friendPresenceEvent } from "./events/friend-presence";
 import { notificationEvent } from "./events/notification";
-import { resyncAfterEventFailure, resyncAfterReconnect } from "./resync";
+import {
+  resyncAfterEventFailure,
+  resyncAfterReconnect,
+  resyncSubscription,
+} from "./resync";
 import {
   RealtimeWebSocketClient,
   type RealtimeEnvelope,
@@ -34,6 +38,9 @@ const dispatchEvent = async (
       break;
     case "notification":
       await notificationEvent(payload satisfies Notification, signal);
+      break;
+    case "subscription":
+      await resyncSubscription(signal);
       break;
   }
 };

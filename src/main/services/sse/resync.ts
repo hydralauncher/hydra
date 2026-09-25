@@ -4,10 +4,17 @@ import { HydraApi } from "@main/services/hydra-api";
 import { WindowManager } from "@main/services/window-manager";
 import { logger } from "@main/services/logger";
 import { ResyncCoordinator } from "./resync-coordinator";
+import { getUserData } from "@main/services/user/get-user-data";
+import { syncSubscriptionState } from "./sync-subscription";
 
-type ResyncScope = "friends" | "friendRequests" | "notifications";
+type ResyncScope =
+  | "friends"
+  | "friendRequests"
+  | "notifications"
+  | "subscription";
 
 const ALL_SCOPES: ResyncScope[] = [
+  "subscription",
   "friends",
   "friendRequests",
   "notifications",
@@ -59,6 +66,16 @@ const syncNotificationCount = async (signal: AbortSignal) => {
   });
 };
 
+const syncSubscription = async (signal: AbortSignal) => {
+  await syncSubscriptionState(signal, {
+    fetch: (requestSignal) =>
+      getUserData({ signal: requestSignal, allowCachedFallback: false }),
+    isLoggedIn: () => HydraApi.isLoggedIn(),
+    broadcast: (userDetails) =>
+      WindowManager.sendToAppWindows("on-subscription-updated", userDetails),
+  });
+};
+
 const SCOPE_TASKS: Record<
   ResyncScope,
   {
@@ -77,6 +94,10 @@ const SCOPE_TASKS: Record<
   notifications: {
     errorMessage: "Failed to resync notification count:",
     task: syncNotificationCount,
+  },
+  subscription: {
+    errorMessage: "Failed to resync subscription:",
+    task: syncSubscription,
   },
 };
 
@@ -118,3 +139,6 @@ export const resyncFriendRequests = (signal: AbortSignal) =>
 
 export const resyncNotifications = (signal: AbortSignal) =>
   coordinator.request(["notifications"], signal);
+
+export const resyncSubscription = (signal: AbortSignal) =>
+  coordinator.request(["subscription"], signal);
