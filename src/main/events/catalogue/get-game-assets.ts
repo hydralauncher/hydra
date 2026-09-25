@@ -9,6 +9,7 @@ import {
 import { composeAssetsWithArtwork } from "@shared";
 
 const LOCAL_CACHE_EXPIRATION = 1000 * 60 * 60 * 8; // 8 hours
+const EMPTY_ARTWORK_CACHE_EXPIRATION = 1000 * 60 * 5; // 5 minutes
 
 const applyArtworkSelection = async <T extends ShopAssets | null>(
   gameKey: string,
@@ -32,11 +33,15 @@ export const getGameAssets = async (
 
   const gameKey = levelKeys.game(shop, objectId);
   const cachedAssets = await gamesShopAssetsSublevel.get(gameKey);
+  const cacheExpiration =
+    cachedAssets?.libraryHeroImageUrl || cachedAssets?.logoImageUrl
+      ? LOCAL_CACHE_EXPIRATION
+      : EMPTY_ARTWORK_CACHE_EXPIRATION;
 
   if (
     !options?.forceFresh &&
     cachedAssets &&
-    cachedAssets.updatedAt + LOCAL_CACHE_EXPIRATION > Date.now()
+    cachedAssets.updatedAt + cacheExpiration > Date.now()
   ) {
     return applyArtworkSelection(gameKey, cachedAssets);
   }
