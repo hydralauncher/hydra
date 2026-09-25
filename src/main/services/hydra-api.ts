@@ -285,10 +285,20 @@ export class HydraApi {
     WindowManager.sendToAppWindows("on-signout");
   }
 
-  public static async refreshToken() {
-    const response = await this.instance.post(`/auth/refresh`, {
-      refreshToken: this.userAuth.refreshToken,
-    });
+  public static async refreshToken(signal?: AbortSignal) {
+    const refreshToken = this.userAuth.refreshToken;
+    const response = await this.instance.post(
+      `/auth/refresh`,
+      {
+        refreshToken,
+      },
+      { signal }
+    );
+
+    signal?.throwIfAborted();
+    if (!refreshToken || this.userAuth.refreshToken !== refreshToken) {
+      throw new UserNotLoggedInError();
+    }
 
     const { accessToken, expiresIn } = response.data;
 
@@ -308,6 +318,10 @@ export class HydraApi {
     await db
       .get<string, Auth>(levelKeys.auth, { valueEncoding: "json" })
       .then((auth) => {
+        signal?.throwIfAborted();
+        if (this.userAuth.refreshToken !== refreshToken) {
+          throw new UserNotLoggedInError();
+        }
         return db.put<string, Auth>(
           levelKeys.auth,
           {
@@ -322,10 +336,10 @@ export class HydraApi {
     return { accessToken, expiresIn };
   }
 
-  private static async revalidateAccessTokenIfExpired() {
+  private static async revalidateAccessTokenIfExpired(signal?: AbortSignal) {
     if (this.userAuth.expirationTimestamp < Date.now()) {
       try {
-        await this.refreshToken();
+        await this.refreshToken(signal);
       } catch (err) {
         await this.handleUnauthorizedError(err);
       }
@@ -394,8 +408,10 @@ export class HydraApi {
     const needsSubscription = options?.needsSubscription === true;
 
     if (needsAuth) {
+      options?.signal?.throwIfAborted();
       if (!this.isLoggedIn()) throw new UserNotLoggedInError();
-      await this.revalidateAccessTokenIfExpired();
+      await this.revalidateAccessTokenIfExpired(options?.signal);
+      options?.signal?.throwIfAborted();
     }
 
     if (needsSubscription && !this.hasActiveSubscription()) {

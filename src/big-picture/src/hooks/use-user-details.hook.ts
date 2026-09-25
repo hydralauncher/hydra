@@ -142,6 +142,8 @@ export function useUserDetails() {
       globalThis.window.electron.onAccountUpdated(() => {
         void fetchUserDetails();
       });
+    const unsubscribeSubscriptionUpdated =
+      globalThis.window.electron.onSubscriptionUpdated(setUserDetails);
     const unsubscribeSignIn = globalThis.window.electron.onSignIn(() => {
       void fetchUserDetails();
     });
@@ -151,10 +153,11 @@ export function useUserDetails() {
 
     return () => {
       unsubscribeAccountUpdated();
+      unsubscribeSubscriptionUpdated();
       unsubscribeSignIn();
       unsubscribeSignOut();
     };
-  }, [clearUserDetails, fetchUserDetails]);
+  }, [clearUserDetails, fetchUserDetails, setUserDetails]);
 
   const hasActiveSubscription = useMemo(() => {
     const expiresAt = new Date(userDetails?.subscription?.expiresAt ?? 0);

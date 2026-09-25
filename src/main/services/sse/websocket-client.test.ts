@@ -164,6 +164,18 @@ describe("realtime WebSocket helpers", () => {
       ),
       null
     );
+    assert.notEqual(
+      parseRealtimeEnvelope(
+        JSON.stringify({
+          v: 1,
+          eventId: "subscription",
+          event: "subscription",
+          payload: { invalidate: "subscription" },
+          publishedAt: Date.now(),
+        })
+      ),
+      null
+    );
   });
 
   it("rejects unknown events and malformed event payloads", () => {
@@ -183,6 +195,7 @@ describe("realtime WebSocket helpers", () => {
         payload: { friendId: "1", isOnline: true, version: 0 },
       },
       { event: "notification", payload: { invalidate: "friendRequests" } },
+      { event: "subscription", payload: { invalidate: "notifications" } },
     ];
 
     for (const [index, message] of invalidMessages.entries()) {

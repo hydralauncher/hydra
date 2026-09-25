@@ -334,6 +334,14 @@ export function App() {
     setupExternalResources();
   }, [setupExternalResources]);
 
+  useEffect(() => {
+    const unsubscribe =
+      window.electron.onSubscriptionUpdated(updateUserDetails);
+    return () => {
+      unsubscribe();
+    };
+  }, [updateUserDetails]);
+
   const onSignIn = useCallback(() => {
     fetchUserDetails().then((response) => {
       if (response) {

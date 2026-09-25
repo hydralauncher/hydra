@@ -1107,6 +1107,9 @@ declare global {
     getSessionHash: () => Promise<string | null>;
     onSignIn: (cb: () => void) => () => Electron.IpcRenderer;
     onAccountUpdated: (cb: () => void) => () => Electron.IpcRenderer;
+    onSubscriptionUpdated: (
+      cb: (userDetails: UserDetails) => void
+    ) => () => Electron.IpcRenderer;
     onSteamConnected: (cb: () => void) => () => Electron.IpcRenderer;
     onSteamConnectError: (
       cb: (code: SteamConnectErrorCode) => void
