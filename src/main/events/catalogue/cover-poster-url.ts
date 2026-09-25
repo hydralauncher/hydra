@@ -4,6 +4,8 @@ const ALLOWED_REMOTE_HOSTS = [
   "steamstatic.com",
   "akamaihd.net",
   "launchbox-app.com",
+  // Epic provider key images (covers, heroes, thumbnails).
+  "epicgames.com",
 ];
 
 const isAllowedRemoteHost = (hostname: string) =>

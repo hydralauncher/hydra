@@ -11,6 +11,12 @@ describe("cover poster remote URL", () => {
       )?.hostname,
       "cdn2.steamgriddb.com"
     );
+    assert.equal(
+      parseCoverPosterRemoteUrl(
+        "https://cdn1.epicgames.com/offer/example/EGS_Example.jpg"
+      )?.hostname,
+      "cdn1.epicgames.com"
+    );
   });
 
   it("rejects HTTP and deceptive hosts", () => {
