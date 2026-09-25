@@ -1,5 +1,8 @@
 name: Release
 
+env:
+  RELEASE_ARTIFACT_RETENTION_DAYS: 7
+
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
@@ -115,6 +118,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: Build-${{ matrix.os }}
+          retention-days: ${{ env.RELEASE_ARTIFACT_RETENTION_DAYS }}
           path: |
             dist/win-unpacked/**
             dist/*-portable.exe
@@ -137,7 +141,7 @@ jobs:
           BUILD_WEBHOOK_URL: ${{ secrets.BUILD_WEBHOOK_URL }}
           GITHUB_ACTOR: ${{ github.actor }}
           GITHUB_ACTOR_ID: ${{ github.actor_id }}
-          BUILD_FLAVOR: production
+          BUILD_FLAVOR: release
         run: node scripts/upload-build.cjs
 
       - name: Release
