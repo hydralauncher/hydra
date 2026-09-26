@@ -190,6 +190,11 @@ export class WindowManager {
     }
   }
 
+  public static hasAnyAppWindow(): boolean {
+    const windows = [this.mainWindow, this.bigPicture, this.friendsWindow];
+    return windows.some((window) => window && !window.isDestroyed());
+  }
+
   public static sendDownloadsUpdated() {
     this.sendToAppWindows("on-downloads-updated");
   }
@@ -994,21 +999,31 @@ export class WindowManager {
     }
   }
 
-  public static openMainWindow() {
+  public static openMainWindow(): boolean {
     if (this.bigPicture && !this.bigPicture.isDestroyed()) {
+      const wasHidden = this.bigPicture.isMinimized();
+      if (wasHidden) {
+        this.bigPicture.restore();
+      }
       this.bigPicture.focus();
-      return;
+      this.bigPicture.flashFrame(true);
+      return wasHidden;
     }
 
     if (this.mainWindow) {
-      this.mainWindow.show();
+      const wasHidden =
+        this.mainWindow.isMinimized() || !this.mainWindow.isVisible();
       if (this.mainWindow.isMinimized()) {
         this.mainWindow.restore();
       }
+      this.mainWindow.show();
       this.mainWindow.focus();
-    } else {
-      this.createMainWindow();
+      this.mainWindow.flashFrame(true);
+      return wasHidden;
     }
+
+    this.createMainWindow();
+    return true;
   }
 
   public static redirect(hash: string) {

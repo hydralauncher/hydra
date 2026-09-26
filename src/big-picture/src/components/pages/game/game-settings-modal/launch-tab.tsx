@@ -6,7 +6,7 @@ import {
 } from "@renderer/helpers";
 import type { LibraryGame, ShortcutLocation } from "@types";
 import { DiscIcon } from "@phosphor-icons/react";
-import { FolderOpen, Monitor, Trash } from "lucide-react";
+import { FolderOpen, Monitor, Search, Trash } from "lucide-react";
 import { useCallback, type ReactNode, useState } from "react";
 import { Trans, useTranslation } from "react-i18next";
 import {
@@ -32,6 +32,8 @@ const GAME_LAUNCH_SETTINGS_OPTIONS_INPUT_ID =
   "game-launch-settings-options-input";
 const GAME_LAUNCH_SETTINGS_OPTIONS_CLEAR_ID =
   "game-launch-settings-options-clear";
+const GAME_LAUNCH_SETTINGS_DETECT_DLL_OVERRIDES_ID =
+  "game-launch-settings-detect-dll-overrides";
 const GAME_LAUNCH_SETTINGS_SHORTCUT_DESKTOP_ID =
   "game-launch-settings-shortcut-desktop";
 const GAME_LAUNCH_SETTINGS_SHORTCUT_STEAM_ID =
@@ -69,6 +71,7 @@ export interface GameLaunchSettingsProps {
   onChangeLaunchOptions: (value: string) => void;
   onBlurLaunchOptions: () => void;
   onClearLaunchOptions: () => void;
+  onDetectWineDllOverrides: () => Promise<void>;
   onCreateShortcut: (location: ShortcutLocation) => Promise<void>;
   onCreateSteamShortcut: () => Promise<void>;
   onDeleteSteamShortcut: () => Promise<void>;
@@ -410,6 +413,7 @@ interface LaunchOptionsSectionProps {
   onChangeLaunchOptions: (value: string) => void;
   onBlurLaunchOptions: () => void;
   onClearLaunchOptions: () => void;
+  onDetectWineDllOverrides: () => Promise<void>;
 }
 
 function LaunchOptionsSection({
@@ -417,6 +421,7 @@ function LaunchOptionsSection({
   onChangeLaunchOptions,
   onBlurLaunchOptions,
   onClearLaunchOptions,
+  onDetectWineDllOverrides,
 }: Readonly<LaunchOptionsSectionProps>) {
   const { t } = useTranslation(["game_details", "big_picture"]);
   const isLinux = globalThis.window.electron.platform === "linux";
@@ -454,6 +459,25 @@ function LaunchOptionsSection({
               onBlur={onBlurLaunchOptions}
             />
 
+            {isLinux ? (
+              <Button
+                focusId={GAME_LAUNCH_SETTINGS_DETECT_DLL_OVERRIDES_ID}
+                variant="secondary"
+                icon={<Search size={16} />}
+                onClick={() => {
+                  void onDetectWineDllOverrides();
+                }}
+                focusNavigationOverrides={{
+                  left: {
+                    type: "item",
+                    itemId: GAME_LAUNCH_SETTINGS_OPTIONS_INPUT_ID,
+                  },
+                }}
+              >
+                {t("detect_dll_overrides", { ns: "game_details" })}
+              </Button>
+            ) : null}
+
             <Button
               focusId={GAME_LAUNCH_SETTINGS_OPTIONS_CLEAR_ID}
               variant="danger"
@@ -465,7 +489,9 @@ function LaunchOptionsSection({
               focusNavigationOverrides={{
                 left: {
                   type: "item",
-                  itemId: GAME_LAUNCH_SETTINGS_OPTIONS_INPUT_ID,
+                  itemId: isLinux
+                    ? GAME_LAUNCH_SETTINGS_DETECT_DLL_OVERRIDES_ID
+                    : GAME_LAUNCH_SETTINGS_OPTIONS_INPUT_ID,
                 },
               }}
             >
@@ -492,6 +518,7 @@ export function GameLaunchSettingsTab({
   onChangeLaunchOptions,
   onBlurLaunchOptions,
   onClearLaunchOptions,
+  onDetectWineDllOverrides,
   onCreateShortcut,
   onCreateSteamShortcut,
   onDeleteSteamShortcut,
@@ -586,6 +613,7 @@ export function GameLaunchSettingsTab({
           onChangeLaunchOptions={onChangeLaunchOptions}
           onBlurLaunchOptions={onBlurLaunchOptions}
           onClearLaunchOptions={onClearLaunchOptions}
+          onDetectWineDllOverrides={onDetectWineDllOverrides}
         />
       </VerticalFocusGroup>
 

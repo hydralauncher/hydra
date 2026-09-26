@@ -208,6 +208,30 @@ export const publishNotificationUpdateReadyToInstall = async (
   );
 };
 
+export const publishSteamOverlayUnavailableNotification = async (
+  gameTitle: string
+) => {
+  const title = t("steam_overlay_unavailable_notification_title", {
+    ns: "notifications",
+  });
+  const body = t("steam_overlay_unavailable_notification_description", {
+    ns: "notifications",
+    title: gameTitle,
+  });
+
+  new Notification({
+    title,
+    body,
+    icon: trayIcon,
+  }).show();
+
+  await LocalNotificationManager.createNotification(
+    "STEAM_OVERLAY_UNAVAILABLE",
+    title,
+    body
+  );
+};
+
 export const publishNewFriendRequestNotification = async (
   user: UserProfile,
   signal?: AbortSignal

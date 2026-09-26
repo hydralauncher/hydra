@@ -67,6 +67,7 @@ import type {
   LegacySaveExportResult,
   OpenCheckoutOptions,
   AchievementSouvenirSyncStatus,
+  WineDllOverridesDetectionResult,
   SteamSyncState,
   SteamSyncFinishedPayload,
   SteamSyncRunStatus,
@@ -1007,6 +1008,12 @@ contextBridge.exposeInMainWorld("electron", {
     objectId: string,
     launchOptions: string | null
   ) => ipcRenderer.invoke("updateLaunchOptions", shop, objectId, launchOptions),
+  detectWineDllOverrides: (shop: GameShop, objectId: string) =>
+    ipcRenderer.invoke(
+      "detectWineDllOverrides",
+      shop,
+      objectId
+    ) as Promise<WineDllOverridesDetectionResult>,
 
   selectGameWinePrefix: (
     shop: GameShop,
@@ -1065,14 +1072,16 @@ contextBridge.exposeInMainWorld("electron", {
     shop: GameShop,
     objectId: string,
     executablePath: string,
-    launchOptions?: string | null
+    launchOptions?: string | null,
+    skipSteamOverlayCheck?: boolean
   ) =>
     ipcRenderer.invoke(
       "openGame",
       shop,
       objectId,
       executablePath,
-      launchOptions
+      launchOptions,
+      skipSteamOverlayCheck
     ),
   openClassicsGame: (
     shop: GameShop,
@@ -1222,6 +1231,25 @@ contextBridge.exposeInMainWorld("electron", {
     ipcRenderer.on("on-game-executable-not-found", listener);
     return () =>
       ipcRenderer.removeListener("on-game-executable-not-found", listener);
+  },
+  onSteamOverlayUnavailable: (
+    cb: (
+      shop: GameShop,
+      objectId: string,
+      executablePath: string,
+      launchOptions: string | null
+    ) => void
+  ) => {
+    const listener = (
+      _event: Electron.IpcRendererEvent,
+      shop: GameShop,
+      objectId: string,
+      executablePath: string,
+      launchOptions: string | null
+    ) => cb(shop, objectId, executablePath, launchOptions);
+    ipcRenderer.on("on-steam-overlay-unavailable", listener);
+    return () =>
+      ipcRenderer.removeListener("on-steam-overlay-unavailable", listener);
   },
   onArchiveDeletionPrompt: (cb: (archivePaths: string[]) => void) => {
     const listener = (

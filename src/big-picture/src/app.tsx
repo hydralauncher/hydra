@@ -29,6 +29,7 @@ import {
   CloudGiftNotificationModal,
   VirtualKeyboardProvider,
 } from "./components";
+import { ConfirmationModal } from "./components/modals";
 import { getItemFocusTarget } from "./helpers";
 import {
   initializeBigPictureRunningGamesStore,
@@ -36,8 +37,16 @@ import {
 } from "./stores";
 import { NavigationAudioService, type FocusOverrides } from "./services";
 import { BigPictureI18nBridge, ensureBigPictureI18nResources } from "./i18n";
+import type { GameShop } from "@types";
 
 import "./styles/globals.scss";
+
+interface BlockedSteamOverlayLaunch {
+  shop: GameShop;
+  objectId: string;
+  executablePath: string;
+  launchOptions: string | null;
+}
 
 export default function App() {
   ensureBigPictureI18nResources();
@@ -52,6 +61,8 @@ export default function App() {
   const [pendingRouteFocusPathname, setPendingRouteFocusPathname] = useState<
     string | null
   >(pathname);
+  const [blockedSteamOverlayLaunch, setBlockedSteamOverlayLaunch] =
+    useState<BlockedSteamOverlayLaunch | null>(null);
   const activeSidebarItemId = getBigPictureSidebarItemIdFromPathname(pathname);
   const activeGameRoute = getBigPictureGameRouteMatch(pathname);
   const leftSidebarTargetId = activeGameRoute
@@ -129,9 +140,22 @@ export default function App() {
         );
       });
 
+    const unsubscribeSteamOverlayUnavailable =
+      globalThis.window.electron.onSteamOverlayUnavailable(
+        (shop, objectId, executablePath, launchOptions) => {
+          setBlockedSteamOverlayLaunch({
+            shop,
+            objectId,
+            executablePath,
+            launchOptions,
+          });
+        }
+      );
+
     return () => {
       unsubscribeExtractionFailed();
       unsubscribeExecutableNotFound();
+      unsubscribeSteamOverlayUnavailable();
     };
   }, [showErrorToast, t]);
 
@@ -171,6 +195,21 @@ export default function App() {
         inputMode === "gamepad"
     );
   }, [userPreferences?.bigPictureSoundsEnabled, inputMode]);
+
+  const handleRunSteamOverlayLaunchAnyway = () => {
+    if (!blockedSteamOverlayLaunch) return;
+
+    const { shop, objectId, executablePath, launchOptions } =
+      blockedSteamOverlayLaunch;
+    globalThis.window.electron.openGame(
+      shop,
+      objectId,
+      executablePath,
+      launchOptions,
+      true
+    );
+    setBlockedSteamOverlayLaunch(null);
+  };
 
   return (
     <Fragment>
@@ -219,6 +258,20 @@ export default function App() {
           <NavigationDiagnostics />
           <BigPictureToastHost />
           <CloudGiftNotificationModal />
+          <ConfirmationModal
+            visible={blockedSteamOverlayLaunch !== null}
+            title={t("steam_overlay_unavailable_title", { ns: "game_details" })}
+            description={t("steam_overlay_unavailable_description", {
+              ns: "game_details",
+            })}
+            cancelLabel={t("close", { ns: "game_details" })}
+            confirmLabel={t("steam_overlay_run_anyway", {
+              ns: "game_details",
+            })}
+            danger
+            onClose={() => setBlockedSteamOverlayLaunch(null)}
+            onConfirm={handleRunSteamOverlayLaunchAnyway}
+          />
         </div>
       </NavigationInputProvider>
     </Fragment>

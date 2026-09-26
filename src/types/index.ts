@@ -54,6 +54,11 @@ export interface ProtonVersion {
   source?: "steam" | "compatibility_tools" | "unknown";
 }
 
+export interface WineDllOverridesDetectionResult {
+  dllNames: string[];
+  steamOverlayEnv: Record<string, string> | null;
+}
+
 export interface ShopAssets {
   objectId: string;
   shop: GameShop;
@@ -550,7 +555,8 @@ export type LocalNotificationType =
   | "DOWNLOAD_COMPLETE"
   | "UPDATE_AVAILABLE"
   | "ACHIEVEMENT_UNLOCKED"
-  | "SCAN_GAMES_COMPLETE";
+  | "SCAN_GAMES_COMPLETE"
+  | "STEAM_OVERLAY_UNAVAILABLE";
 
 export interface Notification {
   id: string;
