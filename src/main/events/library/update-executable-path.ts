@@ -7,6 +7,7 @@ import {
   updateGameExecutablePath,
   updateGameTrackingExecutablePaths,
 } from "@main/helpers/update-executable-path";
+import { withGameRecordLock } from "@main/helpers/game-record-lock";
 import { logger } from "@main/services";
 import { runAutomaticCloudSaveSync } from "@main/services/cloud-save";
 import { AchievementWatcherManager } from "@main/services/achievements/achievement-watcher-manager";
@@ -24,20 +25,27 @@ const updateExecutablePath = async (
 
   const gameKey = levelKeys.game(shop, objectId);
 
-  const game = await gamesSublevel.get(gameKey);
-  if (!game) return;
-  const environmentChanged =
-    parsedPath !== null && game.executablePath !== parsedPath;
+  const result = await withGameRecordLock(gameKey, async () => {
+    const game = await gamesSublevel.get(gameKey);
+    if (!game) return null;
 
-  // Update immediately without size so UI responds fast
-  await gamesSublevel.put(gameKey, {
-    ...updateGameExecutablePath(game, parsedPath),
-    installedSizeInBytes: parsedPath ? game.installedSizeInBytes : null,
-    automaticCloudSync:
-      executablePath === null ? false : game.automaticCloudSync,
+    const environmentChanged =
+      parsedPath !== null && game.executablePath !== parsedPath;
+
+    // Update immediately without size so UI responds fast
+    await gamesSublevel.put(gameKey, {
+      ...updateGameExecutablePath(game, parsedPath),
+      installedSizeInBytes: parsedPath ? game.installedSizeInBytes : null,
+      automaticCloudSync:
+        executablePath === null ? false : game.automaticCloudSync,
+    });
+
+    return { environmentChanged };
   });
 
-  if (environmentChanged) {
+  if (!result) return;
+
+  if (result.environmentChanged) {
     void runAutomaticCloudSaveSync(objectId, shop, "environment-changed");
   }
 
