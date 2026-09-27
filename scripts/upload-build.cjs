@@ -3,13 +3,27 @@ const { S3Client, PutObjectCommand } = require("@aws-sdk/client-s3");
 const path = require("node:path");
 const packageJson = require("../package.json");
 
-if (!process.env.BUILD_WEBHOOK_URL) {
+const flavor = process.env.BUILD_FLAVOR || "staging";
+const isRelease = flavor === "release";
+const isProduction = flavor === "production" || isRelease;
+
+if (!process.env.BUILD_WEBHOOK_URL && !isRelease) {
   console.log("No BUILD_WEBHOOK_URL provided, skipping upload");
   process.exit(0);
 }
 
-const flavor = process.env.BUILD_FLAVOR || "staging";
-const isProduction = flavor === "production";
+if (isRelease) {
+  for (const name of [
+    "S3_ENDPOINT",
+    "S3_ACCESS_KEY_ID",
+    "S3_SECRET_ACCESS_KEY",
+    "S3_BUILDS_BUCKET_NAME",
+    "BUILDS_URL",
+  ]) {
+    if (!process.env[name])
+      throw new Error(`Missing ${name} for release upload`);
+  }
+}
 
 const s3 = new S3Client({
   region: "auto",
@@ -23,34 +37,55 @@ const s3 = new S3Client({
 
 const dist = path.resolve(__dirname, "..", "dist");
 
-const extensionsToUpload = [".deb", ".exe", ".AppImage"];
+const extensionsToUpload = isRelease
+  ? [
+      ".deb",
+      ".exe",
+      ".AppImage",
+      ".zip",
+      ".dmg",
+      ".snap",
+      ".rpm",
+      ".tar.gz",
+      ".yml",
+      ".blockmap",
+    ]
+  : [".deb", ".exe", ".AppImage"];
 
 fs.readdir(dist, async (err, files) => {
   if (err) throw err;
 
   const uploads = await Promise.all(
     files
-      .filter((file) => extensionsToUpload.includes(path.extname(file)))
+      .filter((file) =>
+        extensionsToUpload.some((extension) => file.endsWith(extension))
+      )
       .map(async (file) => {
         console.log(`⌛️ Uploading ${file}...`);
-        const fileName = `${flavor}-${new Date().getTime()}-${file}`;
+        const fileName = isRelease
+          ? `releases/${packageJson.version}/${file}`
+          : `${flavor}-${Date.now()}-${file}`;
 
         const command = new PutObjectCommand({
           Bucket: process.env.S3_BUILDS_BUCKET_NAME,
           Key: fileName,
           Body: fs.createReadStream(path.resolve(dist, file)),
-          // 3 days
-          Expires: new Date(Date.now() + 1000 * 60 * 60 * 24 * 3),
+          // HTTP cache expiry only; bucket lifecycle rules control deletion.
+          ...(!isRelease && {
+            Expires: new Date(Date.now() + 1000 * 60 * 60 * 24 * 3),
+          }),
         });
 
         await s3.send(command);
 
         return {
-          url: `${process.env.BUILDS_URL}/${fileName}`,
+          url: `${process.env.BUILDS_URL.replace(/\/$/, "")}/${fileName.split("/").map(encodeURIComponent).join("/")}`,
           name: fileName,
         };
       })
   );
+
+  if (!process.env.BUILD_WEBHOOK_URL) return;
 
   for (const upload of uploads) {
     await fetch(process.env.BUILD_WEBHOOK_URL, {
