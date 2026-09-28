@@ -205,6 +205,8 @@ export class AchievementWatcherManager {
   private static _hasFinishedPreSearch = false;
   private static batchDepth = 0;
   private static hasPendingBatchSync = false;
+  private static readonly batchNotificationGames = new Set<string>();
+  private static batchNotificationAchievements = 0;
   private static readonly batchGames = new Map<
     string,
     { shop: GameShop; objectId: string }
@@ -295,12 +297,35 @@ export class AchievementWatcherManager {
       this.alreadySyncedGames.delete(gameKey);
     }
 
-    if (
-      newAchievements > 0 &&
-      this.hasFinishedPreSearch &&
-      this.batchDepth === 0
-    ) {
-      this.notifyCombinedAchievementsUnlocked(1, newAchievements);
+    if (newAchievements > 0 && this.hasFinishedPreSearch) {
+      if (this.batchDepth > 0) {
+        this.addToBatchNotification(gameKey, newAchievements);
+      } else {
+        this.notifyCombinedAchievementsUnlocked(1, newAchievements);
+      }
+    }
+  }
+
+  private static addToBatchNotification(
+    gameKey: string,
+    newAchievements: number
+  ) {
+    this.batchNotificationGames.add(gameKey);
+    this.batchNotificationAchievements += newAchievements;
+  }
+
+  private static async notifyBatchAchievements() {
+    const totalNewGamesWithAchievements = this.batchNotificationGames.size;
+    const totalNewAchievements = this.batchNotificationAchievements;
+
+    this.batchNotificationGames.clear();
+    this.batchNotificationAchievements = 0;
+
+    if (totalNewAchievements > 0) {
+      await this.notifyCombinedAchievementsUnlocked(
+        totalNewGamesWithAchievements,
+        totalNewAchievements
+      );
     }
   }
 
@@ -318,6 +343,10 @@ export class AchievementWatcherManager {
           );
           await this.syncBatchGames();
         } while (this.hasPendingBatchSync || this.batchGames.size > 0);
+
+        await this.notifyBatchAchievements().catch((err) =>
+          achievementsLogger.error("Error notifying batch achievements", err)
+        );
       } else {
         this.hasPendingBatchSync = true;
       }
@@ -365,13 +394,18 @@ export class AchievementWatcherManager {
       pendingGames.filter((_, index) => results[index].isRemoteBehind)
     );
 
-    const totalNewAchievements = results.reduce(
-      (total, result) => total + result.newAchievements,
-      0
-    );
-    const totalNewGamesWithAchievements = results.filter(
-      (result) => result.newAchievements > 0
-    ).length;
+    let totalNewAchievements = 0;
+
+    pendingGames.forEach(({ game }, index) => {
+      const { newAchievements } = results[index];
+      if (newAchievements <= 0) return;
+
+      totalNewAchievements += newAchievements;
+      this.addToBatchNotification(
+        levelKeys.game(game.shop, game.objectId),
+        newAchievements
+      );
+    });
 
     achievementsLogger.log(
       "Batch achievements synced",
@@ -380,13 +414,6 @@ export class AchievementWatcherManager {
       totalNewAchievements,
       "new achievements"
     );
-
-    if (totalNewAchievements > 0) {
-      await this.notifyCombinedAchievementsUnlocked(
-        totalNewGamesWithAchievements,
-        totalNewAchievements
-      );
-    }
   }
 
   public static watchAchievements() {

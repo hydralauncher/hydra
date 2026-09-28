@@ -8,36 +8,6 @@ const POSIX_MOUNT_CONTAINERS = [
   /^\/(?:run\/)?media\/[^/]+$/,
 ];
 
-const POSIX_MOUNT_POINT_PATTERNS = [
-  /^\/(?:mnt|Volumes)\/[^/]+$/,
-  /^\/media\/[^/]+(?:\/[^/]+)?$/,
-  /^\/run\/media\/[^/]+\/[^/]+$/,
-];
-
-export const parseFstabMountPoints = (content: string) =>
-  new Set(
-    content
-      .split("\n")
-      .map((line) => line.trim())
-      .filter((line) => line && !line.startsWith("#"))
-      .map((line) => line.split(/\s+/)[1])
-      .filter(Boolean)
-      .map((mountPoint) => mountPoint.replaceAll(String.raw`\040`, " "))
-  );
-
-export const isMountPointCandidate = (
-  directory: string,
-  fstabMountPoints: Set<string>
-) =>
-  fstabMountPoints.has(directory) ||
-  POSIX_MOUNT_POINT_PATTERNS.some((pattern) => pattern.test(directory));
-
-const readFstabMountPoints = () =>
-  fs.promises
-    .readFile("/etc/fstab", "utf8")
-    .then(parseFstabMountPoints)
-    .catch(() => new Set<string>());
-
 const pathExists = (filePath: string) =>
   fs.promises
     .access(filePath)
@@ -83,7 +53,5 @@ export const isExecutableMissingFromAvailableStorage = async (
     return false;
   }
 
-  if (!(await isEmptyDirectory(ancestor))) return true;
-
-  return !isMountPointCandidate(ancestor, await readFstabMountPoints());
+  return !(await isEmptyDirectory(ancestor));
 };
