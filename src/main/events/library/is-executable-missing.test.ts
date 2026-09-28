@@ -80,7 +80,7 @@ describe("installed games scan missing executables", () => {
     );
   });
 
-  it("treats an empty folder as an unmounted drive outside Windows", async () => {
+  it("keeps an executable behind an empty mount point", async () => {
     const directory = await createScannedDirectory("Other Game/other.exe");
     await fs.promises.mkdir(path.join(directory, "Drive"));
 
@@ -89,7 +89,24 @@ describe("installed games scan missing executables", () => {
         path.join(directory, "Drive", "Game", "game.exe"),
         [directory]
       ),
-      process.platform === "win32"
+      false
+    );
+  });
+
+  it("keeps an executable behind a mount point that can no longer be opened", async () => {
+    const directory = await createScannedDirectory("Other Game/other.exe");
+    await fs.promises.symlink(
+      path.join(directory, "Offline Drive"),
+      path.join(directory, "Drive"),
+      "junction"
+    );
+
+    assert.equal(
+      await isExecutableMissing(
+        path.join(directory, "Drive", "Game", "game.exe"),
+        [directory]
+      ),
+      false
     );
   });
 

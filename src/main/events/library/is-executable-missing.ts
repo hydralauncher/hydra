@@ -8,19 +8,34 @@ const MISSING_PATH_ERROR_CODES = new Set(["ENOENT", "ENOTDIR"]);
 const isMissingPathError = (err: unknown) =>
   MISSING_PATH_ERROR_CODES.has((err as NodeJS.ErrnoException).code ?? "");
 
-// A drive that went offline takes its folders with it, and outside Windows an
-// unmounted drive can leave an empty mount point behind
+const isEntryGone = async (entryPath: string) => {
+  try {
+    await fs.promises.lstat(entryPath);
+    return false;
+  } catch (err) {
+    return isMissingPathError(err);
+  }
+};
+
+// Storage that went offline takes its folders with it, leaves an empty mount
+// point behind, or leaves a mount point or link that can no longer be opened
 const isClosestFolderAvailable = async (
-  filePath: string,
+  missingPath: string,
   root: string
 ): Promise<boolean> => {
-  const folder = path.dirname(filePath);
+  const folder = path.dirname(missingPath);
 
-  if (folder === filePath || !isWithin(folder, root)) return false;
+  if (
+    folder === missingPath ||
+    !isWithin(folder, root) ||
+    !(await isEntryGone(missingPath))
+  ) {
+    return false;
+  }
 
   try {
     const entries = await fs.promises.readdir(folder);
-    return entries.length > 0 || process.platform === "win32";
+    return entries.length > 0;
   } catch (err) {
     return isMissingPathError(err) && isClosestFolderAvailable(folder, root);
   }
