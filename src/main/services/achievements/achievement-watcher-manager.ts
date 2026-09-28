@@ -204,6 +204,7 @@ const BATCH_SYNC_CONCURRENCY = 4;
 export class AchievementWatcherManager {
   private static _hasFinishedPreSearch = false;
   private static batchDepth = 0;
+  private static hasPendingBatchSync = false;
   private static readonly batchGames = new Map<
     string,
     { shop: GameShop; objectId: string }
@@ -310,10 +311,15 @@ export class AchievementWatcherManager {
       return await task();
     } finally {
       if (this.batchDepth === 1) {
-        await this.syncUnseenAchievementFiles().catch((err) =>
-          achievementsLogger.error("Error syncing batch achievements", err)
-        );
-        await this.syncBatchGames();
+        do {
+          this.hasPendingBatchSync = false;
+          await this.syncUnseenAchievementFiles().catch((err) =>
+            achievementsLogger.error("Error syncing batch achievements", err)
+          );
+          await this.syncBatchGames();
+        } while (this.hasPendingBatchSync || this.batchGames.size > 0);
+      } else {
+        this.hasPendingBatchSync = true;
       }
 
       this.batchDepth -= 1;

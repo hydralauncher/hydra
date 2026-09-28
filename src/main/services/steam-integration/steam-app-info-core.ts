@@ -366,6 +366,8 @@ export const readSteamAppInfo = async (
   return appInfos;
 };
 
+const FALLBACK_LAUNCH_TYPE_PRIORITY = 10;
+
 const getLaunchTypePriority = (type: string | null) => {
   if (!type || type === "default") return 0;
   if (type === "none") return 1;
@@ -373,7 +375,7 @@ const getLaunchTypePriority = (type: string | null) => {
   const option = /^option(\d+)$/.exec(type);
   if (option) return 1 + Number(option[1]);
 
-  return 10;
+  return FALLBACK_LAUNCH_TYPE_PRIORITY;
 };
 
 const NATIVE_STEAM_OPERATING_SYSTEMS: Partial<Record<NodeJS.Platform, string>> =
