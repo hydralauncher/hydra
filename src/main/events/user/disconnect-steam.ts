@@ -12,20 +12,39 @@ import {
 } from "@main/services/steam-integration/steam-imported-games";
 import { clearImportedSteamGames } from "@main/services/steam-integration/clear-imported-steam-games";
 import { AchievementMemoryStore } from "@main/services/achievements/achievement-memory-store";
-import { gamesSublevel } from "@main/level";
+import { db, gamesSublevel } from "@main/level";
+import type { Game } from "@types";
+import { chunk } from "lodash-es";
 
 const OAUTH_ENDPOINT = "/profile/oauth/steam";
+const DISCONNECT_WRITE_CHUNK_SIZE = 250;
+
+const writeGames = async (updates: [string, Game][]) => {
+  for (const updatesChunk of chunk(updates, DISCONNECT_WRITE_CHUNK_SIZE)) {
+    const batch = db.batch();
+
+    for (const [key, game] of updatesChunk) {
+      batch.put(key, game, { sublevel: gamesSublevel });
+    }
+
+    await batch.write();
+  }
+};
 
 const restoreLastTimePlayed = async (
   lastTimePlayedByGameKey: Map<string, Date | null>
 ) => {
-  for (const [key, lastTimePlayed] of lastTimePlayedByGameKey) {
-    const game = await gamesSublevel.get(key);
+  const entries = [...lastTimePlayedByGameKey];
+  const games = await gamesSublevel.getMany(entries.map(([key]) => key));
 
-    if (game && !game.isDeleted) {
-      await gamesSublevel.put(key, { ...game, lastTimePlayed });
-    }
-  }
+  await writeGames(
+    entries.flatMap(([key, lastTimePlayed], index) => {
+      const game = games[index];
+      return game && !game.isDeleted
+        ? [[key, { ...game, lastTimePlayed }] as [string, Game]]
+        : [];
+    })
+  );
 };
 
 const getErrorMessage = (error: unknown): string | null => {
@@ -74,9 +93,11 @@ const disconnectSteam = async (
     throw new Error(message ?? "steam-disconnect-failed");
   }
 
+  const localUpdates: [string, Game][] = [];
+
   for (const [key, game] of await gamesSublevel.iterator().all()) {
     if (!deleteImportedData && game.hasActiveSteamImport) {
-      await gamesSublevel.put(key, { ...game, hasActiveSteamImport: false });
+      localUpdates.push([key, { ...game, hasActiveSteamImport: false }]);
       continue;
     }
 
@@ -87,12 +108,11 @@ const disconnectSteam = async (
       const cleanupPlan = getSteamImportedDataCleanupPlan(game);
       lastTimePlayedByGameKey.set(key, cleanupPlan.lastTimePlayedFallback);
       AchievementMemoryStore.delete(game.shop, game.objectId);
-      await gamesSublevel.put(key, {
-        ...game,
-        ...cleanupPlan.cleanup,
-      });
+      localUpdates.push([key, { ...game, ...cleanupPlan.cleanup }]);
     }
   }
+
+  await writeGames(localUpdates);
 
   if (!deleteImportedData) {
     steamSyncLogger.log("Steam disconnected, imported snapshot preserved");

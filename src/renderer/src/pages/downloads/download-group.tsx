@@ -1,6 +1,11 @@
 import type { GameShop, LibraryGame, SeedingStatus } from "@types";
 
-import { Badge, Button, ConfirmationModal } from "@renderer/components";
+import {
+  Badge,
+  Button,
+  ConfirmationModal,
+  GuideLink,
+} from "@renderer/components";
 import {
   formatDownloadProgress,
   buildGameDetailsPath,
@@ -312,6 +317,10 @@ function HeroDownloadView({
     !lastPacket?.isCheckingFiles &&
     !hasEta;
   const shouldShowEta = hasEta || shouldShowEtaPlaceholder;
+  const isDownloadingMetadata =
+    shouldShowEtaPlaceholder &&
+    !!lastPacket?.isDownloadingMetadata &&
+    game.download?.downloader === Downloader.Torrent;
   const isRecovering = !isGameExtracting && !!lastPacket?.isRecovering;
   const recoveryPercent = Math.round((lastPacket?.recoveryProgress ?? 0) * 100);
   const isReconnecting =
@@ -401,7 +410,15 @@ function HeroDownloadView({
                     {shouldShowEta && (
                       <>
                         <ClockIcon size={14} />
-                        {hasEta ? etaText : tGameDetails("calculating_eta")}
+                        {isDownloadingMetadata ? (
+                          <GuideLink article="downloading-metadata">
+                            {t("downloading_metadata")}
+                          </GuideLink>
+                        ) : hasEta ? (
+                          etaText
+                        ) : (
+                          tGameDetails("calculating_eta")
+                        )}
                       </>
                     )}
                   </span>
@@ -1027,6 +1044,7 @@ export function DownloadGroup({
           descriptionText={t("cancel_download_description")}
           confirmButtonLabel={t("yes_cancel")}
           cancelButtonLabel={t("keep_downloading")}
+          confirmButtonTheme="danger"
           onConfirm={handleConfirmCancel}
           onClose={handleCancelModalClose}
         />
@@ -1060,6 +1078,7 @@ export function DownloadGroup({
         descriptionText={t("cancel_download_description")}
         confirmButtonLabel={t("yes_cancel")}
         cancelButtonLabel={t("keep_downloading")}
+        confirmButtonTheme="danger"
         onConfirm={handleConfirmCancel}
         onClose={handleCancelModalClose}
       />

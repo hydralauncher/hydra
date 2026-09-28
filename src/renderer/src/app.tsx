@@ -30,6 +30,7 @@ import {
   hydrateRetroArchScan,
   setExtractionProgress,
   setGameRunning,
+  setLibrarySyncingRemote,
   setProfileBackground,
   setUserDetails,
   setUserPreferences,
@@ -239,6 +240,7 @@ export function App() {
           "install-dolphin": 7268,
           "wii-saves": 7384,
           "retroachievements-emulators": 6629,
+          "downloading-metadata": 7719,
         },
         en: {
           "cannot-write-directory": 4122,
@@ -253,6 +255,7 @@ export function App() {
           "install-dolphin": 7281,
           "wii-saves": 7406,
           "retroachievements-emulators": 6692,
+          "downloading-metadata": 7773,
         },
         ru: {
           "install-duckstation": 6479,
@@ -263,6 +266,7 @@ export function App() {
           "install-dolphin": 7292,
           "wii-saves": 7422,
           "retroachievements-emulators": 6717,
+          "downloading-metadata": 7848,
         },
         es: {
           "install-duckstation": 6492,
@@ -273,6 +277,7 @@ export function App() {
           "install-dolphin": 7303,
           "wii-saves": 7431,
           "retroachievements-emulators": 6743,
+          "downloading-metadata": 7854,
         },
       };
 
@@ -437,6 +442,27 @@ export function App() {
     });
 
     return () => unsubscribe();
+  }, [dispatch, updateLibrary]);
+
+  useEffect(() => {
+    let hasReceivedSyncState = false;
+
+    void window.electron.getRemoteLibrarySyncState().then((syncing) => {
+      if (!hasReceivedSyncState) dispatch(setLibrarySyncingRemote(syncing));
+    });
+
+    return window.electron.onRemoteLibrarySyncStateChange((syncing) => {
+      hasReceivedSyncState = true;
+
+      if (syncing) {
+        dispatch(setLibrarySyncingRemote(true));
+        return;
+      }
+
+      void updateLibrary().finally(() =>
+        dispatch(setLibrarySyncingRemote(false))
+      );
+    });
   }, [dispatch, updateLibrary]);
 
   useEffect(() => {

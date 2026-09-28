@@ -12,6 +12,7 @@ import type {
   UserPreferences,
 } from "@types";
 import { achievementsLogger } from "../logger";
+import { HydraApi } from "../hydra-api";
 import { Cracker } from "@shared";
 import { publishCombinedNewAchievementNotification } from "../notifications";
 import { db, gamesSublevel, levelKeys } from "@main/level";
@@ -183,11 +184,31 @@ const processChangedAchievementFiles = async (
   }
 };
 
+const hasUnmergedUnlocks = (game: Game, files: AchievementFile[]) => {
+  const mergedNames = new Set(
+    (
+      AchievementMemoryStore.get(game.shop, game.objectId)
+        ?.unlockedAchievements ?? []
+    ).map((achievement) => achievement.name.toUpperCase())
+  );
+
+  return files.some((file) =>
+    parseAchievementFile(file.filePath, file.type).some(
+      (achievement) => !mergedNames.has(achievement.name.toUpperCase())
+    )
+  );
+};
+
 export class AchievementWatcherManager {
   private static _hasFinishedPreSearch = false;
+  private static batchDepth = 0;
 
   public static get hasFinishedPreSearch() {
     return this._hasFinishedPreSearch;
+  }
+
+  public static get isBatching() {
+    return this.batchDepth > 0;
   }
 
   public static readonly alreadySyncedGames: Map<string, boolean> = new Map();
@@ -263,13 +284,75 @@ export class AchievementWatcherManager {
       this.alreadySyncedGames.delete(gameKey);
     }
 
-    if (newAchievements > 0 && this.hasFinishedPreSearch) {
+    if (
+      newAchievements > 0 &&
+      this.hasFinishedPreSearch &&
+      this.batchDepth === 0
+    ) {
       this.notifyCombinedAchievementsUnlocked(1, newAchievements);
     }
   }
 
+  public static async runBatch<T>(task: () => Promise<T>): Promise<T> {
+    this.batchDepth += 1;
+
+    try {
+      return await task();
+    } finally {
+      if (this.batchDepth === 1) {
+        await this.syncUnseenAchievementFiles().catch((err) =>
+          achievementsLogger.error("Error syncing batch achievements", err)
+        );
+      }
+
+      this.batchDepth -= 1;
+    }
+  }
+
+  private static async syncUnseenAchievementFiles() {
+    if (!HydraApi.isLoggedIn()) return;
+
+    const pendingGames = (await this.getGameAchievementFiles()).filter(
+      ({ game, achievementFiles }) => hasUnmergedUnlocks(game, achievementFiles)
+    );
+    if (pendingGames.length === 0) return;
+
+    const results = await Promise.all(
+      pendingGames.map(({ game, achievementFiles }) =>
+        this.preProcessGameAchievementFiles(game, achievementFiles)
+      )
+    );
+
+    await this.uploadPreSearchAchievements(
+      pendingGames.filter((_, index) => results[index].isRemoteBehind)
+    );
+
+    const totalNewAchievements = results.reduce(
+      (total, result) => total + result.newAchievements,
+      0
+    );
+    const totalNewGamesWithAchievements = results.filter(
+      (result) => result.newAchievements > 0
+    ).length;
+
+    achievementsLogger.log(
+      "Batch achievements synced",
+      pendingGames.length,
+      "games,",
+      totalNewAchievements,
+      "new achievements"
+    );
+
+    if (totalNewAchievements > 0) {
+      await this.notifyCombinedAchievementsUnlocked(
+        totalNewGamesWithAchievements,
+        totalNewAchievements
+      );
+    }
+  }
+
   public static watchAchievements() {
-    if (!this.hasFinishedPreSearch) return;
+    if (!this.hasFinishedPreSearch || this.batchDepth > 0) return;
 
     if (process.platform === "win32") {
       return watchAchievementsWindows();

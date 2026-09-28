@@ -91,6 +91,30 @@
     }
   }
 
+  &__steam-title {
+    display: flex;
+    align-items: center;
+    gap: calc(var(--spacing-unit) * 2);
+
+    svg {
+      flex-shrink: 0;
+    }
+
+    span {
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+  }
+
+  &__availability-dot {
+    flex-shrink: 0;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background-color: #22c55e;
+    box-shadow: 0 0 6px rgba(34, 197, 94, 0.5);
+  }
+
   &__divider {
     width: 100%;
     height: 1px;

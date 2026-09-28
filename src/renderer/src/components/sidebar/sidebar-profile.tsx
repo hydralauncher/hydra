@@ -11,6 +11,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import SteamLogo from "@renderer/assets/steam-logo.svg?react";
 import { Avatar } from "../avatar/avatar";
+import { ConfirmationModal } from "../confirmation-modal/confirmation-modal";
 import { AuthPage } from "@shared";
 import { platformToSystem } from "@renderer/helpers";
 import { logger } from "@renderer/logger";
@@ -130,6 +131,7 @@ export function SidebarProfile() {
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [isDropdownClosing, setIsDropdownClosing] = useState(false);
   const [isSigningOut, setIsSigningOut] = useState(false);
+  const [showSignOutModal, setShowSignOutModal] = useState(false);
 
   const apiNotificationCountRef = useRef(0);
   const hasFetchedInitialCount = useRef(false);
@@ -319,14 +321,19 @@ export function SidebarProfile() {
     globalThis.window.electron.openFriendsWindow();
   };
 
+  const handleSignOutClick = () => {
+    closeDropdown();
+    setShowSignOutModal(true);
+  };
+
   const handleSignOut = async () => {
     setIsSigningOut(true);
-    closeDropdown();
     try {
       await signOut();
       showSuccessToast(t("user_profile:successfully_signed_out"));
     } finally {
       setIsSigningOut(false);
+      setShowSignOutModal(false);
     }
     navigate("/");
   };
@@ -440,7 +447,7 @@ export function SidebarProfile() {
           <button
             type="button"
             className="sidebar-profile__dropdown-item sidebar-profile__dropdown-item--danger"
-            onClick={handleSignOut}
+            onClick={handleSignOutClick}
             disabled={isSigningOut}
           >
             <SignOutIcon size={16} />
@@ -448,6 +455,18 @@ export function SidebarProfile() {
           </button>
         </div>
       )}
+
+      <ConfirmationModal
+        visible={showSignOutModal}
+        title={t("user_profile:sign_out_modal_title")}
+        descriptionText={t("user_profile:sign_out_modal_text")}
+        confirmButtonLabel={t("user_profile:sign_out")}
+        cancelButtonLabel={t("user_profile:cancel")}
+        confirmButtonTheme="danger"
+        buttonsIsDisabled={isSigningOut}
+        onConfirm={() => void handleSignOut()}
+        onClose={() => setShowSignOutModal(false)}
+      />
     </div>
   );
 }

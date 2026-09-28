@@ -201,6 +201,11 @@ $disc-menu-transition-duration: 0.15s;
     }
   }
 
+  &__steam-playtime-label {
+    display: inline-flex;
+    align-items: center;
+  }
+
   &__mangohud-link {
     display: inline-flex;
     align-items: center;

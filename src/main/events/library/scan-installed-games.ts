@@ -17,21 +17,20 @@ import { AchievementWatcherManager } from "@main/services/achievements/achieveme
 import { createGame } from "@main/services/library-sync";
 import {
   GameExecutables,
-  getSteamLibraryFolders,
   LocalNotificationManager,
   logger,
   WindowManager,
 } from "@main/services";
 import { runAutomaticCloudSaveSync } from "@main/services/cloud-save";
+import { clearMissingExecutables } from "@main/services/clear-missing-executables";
+import { resolveSteamLaunchExecutables } from "@main/services/steam-integration/steam-app-info-core";
+import {
+  getInstalledSteamApps,
+  loadSteamAppInfo,
+} from "@main/services/steam-integration/steam-launch-executables";
 import type { Game, GameShop } from "@types";
 
-const SCAN_DIRECTORIES = [
-  String.raw`C:\Games`,
-  String.raw`D:\Games`,
-  String.raw`C:\Program Files (x86)\Steam\steamapps\common`,
-  String.raw`C:\Program Files\Steam\steamapps\common`,
-  String.raw`D:\SteamLibrary\steamapps\common`,
-];
+const SCAN_DIRECTORIES = [String.raw`C:\Games`, String.raw`D:\Games`];
 
 const DISCOVERED_GAMES_SHOP: GameShop = "steam";
 const DISCOVERED_GAMES_CHUNK_SIZE = 4;
@@ -171,12 +170,9 @@ const isWithin = (child: string, parent: string) => {
   );
 };
 
-const getDefaultScanDirectories = async () => {
-  const libraryFolders = await getSteamLibraryFolders().catch((err) => {
-    logger.error("[ScanInstalledGames] Failed to read Steam libraries:", err);
-    return [];
-  });
-
+const getDefaultScanDirectories = async (
+  steamFallbackDirectories: string[]
+) => {
   const downloadsPath = await getDownloadsPath().catch((err) => {
     logger.error(
       "[ScanInstalledGames] Failed to read the downloads path:",
@@ -187,11 +183,58 @@ const getDefaultScanDirectories = async () => {
 
   return [
     ...SCAN_DIRECTORIES,
-    ...libraryFolders.map((libraryFolder) =>
-      path.join(libraryFolder, "steamapps", "common")
-    ),
+    ...steamFallbackDirectories,
     ...(downloadsPath ? [downloadsPath] : []),
   ];
+};
+
+interface InstalledSteamGames {
+  executables: Map<string, string>;
+  unresolvedDirectories: string[];
+}
+
+const findInstalledSteamGames = async (): Promise<InstalledSteamGames> => {
+  try {
+    const installedApps = await getInstalledSteamApps();
+    if (installedApps.length === 0) {
+      return { executables: new Map(), unresolvedDirectories: [] };
+    }
+
+    const appInfos = await loadSteamAppInfo(
+      installedApps.map((app) => app.appId)
+    );
+    const gameApps = installedApps.filter((app) => {
+      const type = appInfos.get(app.appId)?.type;
+      return type === undefined || type === "game";
+    });
+    const resolved = await resolveSteamLaunchExecutables(
+      appInfos,
+      new Map(gameApps.map((app) => [app.appId, app.installDirectory]))
+    );
+    const unresolvedDirectories = gameApps
+      .filter((app) => !resolved.has(app.appId))
+      .map((app) => app.installDirectory);
+
+    logger.info(
+      `[ScanInstalledGames] Resolved ${resolved.size} of ${gameApps.length} installed Steam games from Steam's app info`
+    );
+
+    return {
+      executables: new Map(
+        [...resolved].map(([appId, executable]) => [
+          appId,
+          executable.executablePath,
+        ])
+      ),
+      unresolvedDirectories,
+    };
+  } catch (err) {
+    logger.error(
+      "[ScanInstalledGames] Failed to read installed Steam games:",
+      err
+    );
+    return { executables: new Map(), unresolvedDirectories: [] };
+  }
 };
 
 const resolveScanRoots = async (directories: string[]) => {
@@ -787,15 +830,17 @@ export const addGameOutsideLibrary = async (
   await gamesSublevel.put(gameKey, game);
   await createGame(game).catch(() => {});
 
-  AchievementWatcherManager.firstSyncWithRemoteIfNeeded(
-    DISCOVERED_GAMES_SHOP,
-    objectId
-  ).catch((err) => {
-    logger.error(
-      `[ScanInstalledGames] Failed to sync achievements for ${objectId}:`,
-      err
-    );
-  });
+  if (!AchievementWatcherManager.isBatching) {
+    AchievementWatcherManager.firstSyncWithRemoteIfNeeded(
+      DISCOVERED_GAMES_SHOP,
+      objectId
+    ).catch((err) => {
+      logger.error(
+        `[ScanInstalledGames] Failed to sync achievements for ${objectId}:`,
+        err
+      );
+    });
+  }
 
   logger.info(
     `[ScanInstalledGames] Added ${objectId} to the library: ${executablePath}`
@@ -906,11 +951,13 @@ const scanInstalledGames = async (
   if (requestId) inflightScans.set(requestId, signal);
 
   try {
-    return await runScan(
-      signal,
-      additionalDirectories,
-      includeDefaultDirectories,
-      addGamesToLibrary
+    return await AchievementWatcherManager.runBatch(() =>
+      runScan(
+        signal,
+        additionalDirectories,
+        includeDefaultDirectories,
+        addGamesToLibrary
+      )
     );
   } finally {
     if (requestId) inflightScans.delete(requestId);
@@ -939,12 +986,16 @@ const runScan = async (
     throw new Error("game-executable-catalogue-unavailable");
   }
 
+  const installedSteamGames: InstalledSteamGames = includeDefaultDirectories
+    ? await findInstalledSteamGames()
+    : { executables: new Map(), unresolvedDirectories: [] };
   const baseDirectories = includeDefaultDirectories
-    ? await getDefaultScanDirectories()
+    ? await getDefaultScanDirectories(installedSteamGames.unresolvedDirectories)
     : [];
   const directories = [...baseDirectories, ...additionalDirectories];
+  const steamExecutables = installedSteamGames.executables;
 
-  const games = await gamesSublevel
+  const libraryGames = await gamesSublevel
     .iterator()
     .all()
     .then((results) =>
@@ -954,6 +1005,20 @@ const runScan = async (
         )
         .map(([key, game]) => ({ key, game }))
     );
+  const clearedGames = new Map(
+    (await clearMissingExecutables(libraryGames.map(({ game }) => game))).map(
+      (game) => [levelKeys.game(game.shop, game.objectId), game]
+    )
+  );
+  if (clearedGames.size > 0) {
+    logger.info(
+      `[ScanInstalledGames] Cleared ${clearedGames.size} missing executables`
+    );
+  }
+  const games = libraryGames.map(({ key, game }) => ({
+    key,
+    game: clearedGames.get(key) ?? game,
+  }));
 
   const scannedDirectories = await scanDirectories(
     directories,
@@ -982,10 +1047,17 @@ const runScan = async (
   for (const { key, game } of gamesToScan) {
     if (signal.cancelled) break;
 
+    const steamPath =
+      game.shop === DISCOVERED_GAMES_SHOP
+        ? steamExecutables.get(game.objectId)
+        : undefined;
     const executables = GameExecutables.getExecutablesForGame(game.objectId);
-    if (!executables) continue;
-
-    const foundPath = resolveExecutablePath(executables, scannedDirectories);
+    const foundPath =
+      steamPath && !claimedPaths.has(normalizePath(steamPath))
+        ? steamPath
+        : executables
+          ? resolveExecutablePath(executables, scannedDirectories)
+          : null;
     if (!foundPath) continue;
 
     await gamesSublevel.put(key, updateGameExecutablePath(game, foundPath));
@@ -1013,6 +1085,19 @@ const runScan = async (
       .map(({ game }) => game.objectId)
   );
 
+  const steamPathByObjectId = new Map<string, string>();
+
+  if (addGamesToLibrary) {
+    for (const [objectId, executablePath] of steamExecutables) {
+      if (libraryObjectIds.has(objectId)) continue;
+      if (claimedPaths.has(normalizePath(executablePath))) continue;
+
+      steamPathByObjectId.set(objectId, executablePath);
+      libraryObjectIds.add(objectId);
+      claimedPaths.add(normalizePath(executablePath));
+    }
+  }
+
   const outsideLibrary =
     addGamesToLibrary && !signal.cancelled
       ? await findGamesOutsideLibrary(
@@ -1028,7 +1113,9 @@ const runScan = async (
 
   const addedGames = signal.cancelled
     ? []
-    : await addGamesOutsideLibrary(outsideLibrary.pathByObjectId);
+    : await addGamesOutsideLibrary(
+        new Map([...steamPathByObjectId, ...outsideLibrary.pathByObjectId])
+      );
 
   logger.info(
     `[ScanInstalledGames] Linked ${linkedGames.length} of ${gamesToScan.length} games in the library, added ${addedGames.length} new ones, ${outsideLibrary.ambiguousMatches.length} need a choice`
