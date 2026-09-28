@@ -8,10 +8,10 @@ const MISSING_PATH_ERROR_CODES = new Set(["ENOENT", "ENOTDIR"]);
 const isMissingPathError = (err: unknown) =>
   MISSING_PATH_ERROR_CODES.has((err as NodeJS.ErrnoException).code ?? "");
 
+// A regular file can't be a mount point or link, so it can't hide offline storage
 const isEntryGone = async (entryPath: string) => {
   try {
-    await fs.promises.lstat(entryPath);
-    return false;
+    return (await fs.promises.lstat(entryPath)).isFile();
   } catch (err) {
     return isMissingPathError(err);
   }

@@ -57,6 +57,17 @@ describe("installed games scan missing executables", () => {
     );
   });
 
+  it("reports an executable whose game folder was replaced by a file", async () => {
+    const directory = await createScannedDirectory("Game");
+
+    assert.equal(
+      await isExecutableMissing(path.join(directory, "Game", "game.exe"), [
+        directory,
+      ]),
+      true
+    );
+  });
+
   it("keeps an executable that still exists", async () => {
     const directory = await createScannedDirectory("Game/game.exe");
 
