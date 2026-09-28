@@ -199,9 +199,15 @@ const hasUnmergedUnlocks = (game: Game, files: AchievementFile[]) => {
   );
 };
 
+const BATCH_SYNC_CONCURRENCY = 4;
+
 export class AchievementWatcherManager {
   private static _hasFinishedPreSearch = false;
   private static batchDepth = 0;
+  private static readonly batchGames = new Map<
+    string,
+    { shop: GameShop; objectId: string }
+  >();
 
   public static get hasFinishedPreSearch() {
     return this._hasFinishedPreSearch;
@@ -209,6 +215,10 @@ export class AchievementWatcherManager {
 
   public static get isBatching() {
     return this.batchDepth > 0;
+  }
+
+  public static trackBatchGame(shop: GameShop, objectId: string) {
+    this.batchGames.set(levelKeys.game(shop, objectId), { shop, objectId });
   }
 
   public static readonly alreadySyncedGames: Map<string, boolean> = new Map();
@@ -303,9 +313,31 @@ export class AchievementWatcherManager {
         await this.syncUnseenAchievementFiles().catch((err) =>
           achievementsLogger.error("Error syncing batch achievements", err)
         );
+        await this.syncBatchGames();
       }
 
       this.batchDepth -= 1;
+    }
+  }
+
+  private static async syncBatchGames() {
+    const games = [...this.batchGames.values()];
+    this.batchGames.clear();
+
+    for (let index = 0; index < games.length; index += BATCH_SYNC_CONCURRENCY) {
+      await Promise.all(
+        games
+          .slice(index, index + BATCH_SYNC_CONCURRENCY)
+          .map(({ shop, objectId }) =>
+            this.firstSyncWithRemoteIfNeeded(shop, objectId).catch((err) =>
+              achievementsLogger.error(
+                "Error syncing batch game achievements",
+                objectId,
+                err
+              )
+            )
+          )
+      );
     }
   }
 

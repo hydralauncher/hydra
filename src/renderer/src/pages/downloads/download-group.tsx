@@ -26,7 +26,14 @@ import {
 
 import "./download-group.scss";
 import { useTranslation } from "react-i18next";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import {
+  type ReactNode,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import { useNavigate } from "react-router-dom";
 import { AnimatePresence, motion } from "framer-motion";
 import {
@@ -278,6 +285,53 @@ interface HeroDownloadViewProps {
   t: (key: string, options?: Record<string, unknown>) => string;
 }
 
+interface HeroDownloadTimeProps {
+  game: LibraryGame;
+  isGameDownloading: boolean;
+  lastPacket: ReturnType<typeof useDownload>["lastPacket"];
+  etaText: string | null;
+  t: (key: string, options?: Record<string, unknown>) => string;
+}
+
+function HeroDownloadTime({
+  game,
+  isGameDownloading,
+  lastPacket,
+  etaText,
+  t,
+}: Readonly<HeroDownloadTimeProps>) {
+  const { t: tGameDetails } = useTranslation("game_details");
+
+  if (!isGameDownloading) {
+    return <span className="download-group__progress-time" />;
+  }
+
+  const hasEta = !!etaText && etaText.trim() !== "" && etaText !== "0";
+  const isDownloadingMetadata =
+    !hasEta &&
+    !!lastPacket?.isDownloadingMetadata &&
+    game.download?.downloader === Downloader.Torrent;
+
+  let label: ReactNode = tGameDetails("calculating_eta");
+
+  if (isDownloadingMetadata) {
+    label = (
+      <GuideLink article="downloading-metadata">
+        {t("downloading_metadata")}
+      </GuideLink>
+    );
+  } else if (hasEta) {
+    label = etaText;
+  }
+
+  return (
+    <span className="download-group__progress-time">
+      <ClockIcon size={14} />
+      {label}
+    </span>
+  );
+}
+
 function HeroDownloadView({
   game,
   isGameDownloading,
@@ -297,30 +351,11 @@ function HeroDownloadView({
   t,
 }: Readonly<HeroDownloadViewProps>) {
   const navigate = useNavigate();
-  const { t: tGameDetails } = useTranslation("game_details");
 
   const handleLogoClick = useCallback(() => {
     navigate(buildGameDetailsPath(game));
   }, [navigate, game]);
 
-  const etaText = calculateETA();
-  const hasEta =
-    isGameDownloading &&
-    !isGameExtracting &&
-    !lastPacket?.isCheckingFiles &&
-    !!etaText &&
-    etaText.trim() !== "" &&
-    etaText !== "0";
-  const shouldShowEtaPlaceholder =
-    isGameDownloading &&
-    !isGameExtracting &&
-    !lastPacket?.isCheckingFiles &&
-    !hasEta;
-  const shouldShowEta = hasEta || shouldShowEtaPlaceholder;
-  const isDownloadingMetadata =
-    shouldShowEtaPlaceholder &&
-    !!lastPacket?.isDownloadingMetadata &&
-    game.download?.downloader === Downloader.Torrent;
   const isRecovering = !isGameExtracting && !!lastPacket?.isRecovering;
   const recoveryPercent = Math.round((lastPacket?.recoveryProgress ?? 0) * 100);
   const isReconnecting =
@@ -406,22 +441,13 @@ function HeroDownloadView({
               </div>
               <div className="download-group__progress-info-row">
                 {!lastPacket?.isCheckingFiles && !isGameExtracting && (
-                  <span className="download-group__progress-time">
-                    {shouldShowEta && (
-                      <>
-                        <ClockIcon size={14} />
-                        {isDownloadingMetadata ? (
-                          <GuideLink article="downloading-metadata">
-                            {t("downloading_metadata")}
-                          </GuideLink>
-                        ) : hasEta ? (
-                          etaText
-                        ) : (
-                          tGameDetails("calculating_eta")
-                        )}
-                      </>
-                    )}
-                  </span>
+                  <HeroDownloadTime
+                    game={game}
+                    isGameDownloading={isGameDownloading}
+                    lastPacket={lastPacket}
+                    etaText={calculateETA()}
+                    t={t}
+                  />
                 )}
                 <span className="download-group__progress-percentage">
                   <AnimatedPercentage value={currentProgress} />

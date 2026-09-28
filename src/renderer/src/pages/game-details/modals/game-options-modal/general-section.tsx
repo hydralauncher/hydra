@@ -335,6 +335,55 @@ const isBatchExecutable = (executablePath?: string | null) =>
 const supportsTrackingExecutables = (executablePath?: string | null) =>
   !!executablePath && /\.(bat|cmd|exe)$/i.test(executablePath);
 
+interface SteamPlaytimeSectionProps {
+  enableHydraPlaytimeTracking: LibraryGame["enableHydraPlaytimeTracking"];
+  isNonSteamExecutable: boolean;
+  onToggleHydraPlaytimeEnabled: (enabled: boolean) => Promise<void>;
+}
+
+function SteamPlaytimeSection({
+  enableHydraPlaytimeTracking,
+  isNonSteamExecutable,
+  onToggleHydraPlaytimeEnabled,
+}: Readonly<SteamPlaytimeSectionProps>) {
+  const { t } = useTranslation("game_details");
+  const tooltipId = useId();
+
+  return (
+    <div className="game-options-modal__section">
+      <div className="game-options-modal__header">
+        <h2>{t("steam_playtime_tracking_title")}</h2>
+        <h4 className="game-options-modal__header-description">
+          {t("steam_playtime_tracking_description")}
+        </h4>
+      </div>
+
+      <CheckboxField
+        label={
+          <span
+            className="game-options-modal__steam-playtime-label"
+            data-tooltip-id={tooltipId}
+            data-tooltip-content={
+              isNonSteamExecutable
+                ? t("steam_playtime_non_steam_executable_tooltip")
+                : undefined
+            }
+          >
+            {t("enable_hydra_playtime_tracking")}
+          </span>
+        }
+        checked={isNonSteamExecutable || enableHydraPlaytimeTracking === true}
+        disabled={isNonSteamExecutable}
+        onChange={(event) =>
+          void onToggleHydraPlaytimeEnabled(event.target.checked)
+        }
+      />
+
+      {isNonSteamExecutable && <Tooltip id={tooltipId} />}
+    </div>
+  );
+}
+
 export function GeneralSettingsSection({
   game,
   gameTitle,
@@ -386,8 +435,6 @@ export function GeneralSettingsSection({
   const [customPath, setCustomPath] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [isPreparing, setIsPreparing] = useState(false);
-  const steamPlaytimeTooltipId = useId();
-
   const isSteamImport = game.shop === "steam" && game.hasActiveSteamImport;
 
   const gameSize = game.installedSizeInBytes ?? 0;
@@ -632,39 +679,11 @@ export function GeneralSettingsSection({
       )}
 
       {showSteamPlaytimeSection && isSteamImport && (
-        <div className="game-options-modal__section">
-          <div className="game-options-modal__header">
-            <h2>{t("steam_playtime_tracking_title")}</h2>
-            <h4 className="game-options-modal__header-description">
-              {t("steam_playtime_tracking_description")}
-            </h4>
-          </div>
-
-          <CheckboxField
-            label={
-              <span
-                className="game-options-modal__steam-playtime-label"
-                data-tooltip-id={steamPlaytimeTooltipId}
-                data-tooltip-content={
-                  isNonSteamExecutable
-                    ? t("steam_playtime_non_steam_executable_tooltip")
-                    : undefined
-                }
-              >
-                {t("enable_hydra_playtime_tracking")}
-              </span>
-            }
-            checked={
-              isNonSteamExecutable || game.enableHydraPlaytimeTracking === true
-            }
-            disabled={isNonSteamExecutable}
-            onChange={(event) =>
-              void onToggleHydraPlaytimeEnabled(event.target.checked)
-            }
-          />
-
-          {isNonSteamExecutable && <Tooltip id={steamPlaytimeTooltipId} />}
-        </div>
+        <SteamPlaytimeSection
+          enableHydraPlaytimeTracking={game.enableHydraPlaytimeTracking}
+          isNonSteamExecutable={isNonSteamExecutable}
+          onToggleHydraPlaytimeEnabled={onToggleHydraPlaytimeEnabled}
+        />
       )}
 
       {/* Drive Selector */}

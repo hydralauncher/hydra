@@ -470,7 +470,7 @@ export function SettingsSteam() {
           </div>
 
           {isDisconnecting ? (
-            <div className="settings-integration-card__progress" role="status">
+            <output className="settings-integration-card__progress">
               <div className="settings-integration-card__progress-header">
                 <span>
                   {integration.connected
@@ -481,7 +481,7 @@ export function SettingsSteam() {
               <div className="settings-integration-card__progress-track">
                 <div className="settings-integration-card__progress-fill settings-integration-card__progress-fill--indeterminate" />
               </div>
-            </div>
+            </output>
           ) : integration.connected && needsReconnect ? (
             <p className="settings-integration-card__message">
               {t("steam_error_session_required")}

@@ -29,6 +29,12 @@ const findNearestExistingAncestor = async (
   return current;
 };
 
+const isEmptyDirectory = (directory: string) =>
+  fs.promises
+    .readdir(directory)
+    .then((entries) => entries.length === 0)
+    .catch(() => false);
+
 export const isExecutableMissingFromAvailableStorage = async (
   executablePath: string,
   platform: NodeJS.Platform = process.platform
@@ -43,6 +49,9 @@ export const isExecutableMissingFromAvailableStorage = async (
 
   const ancestor = await findNearestExistingAncestor(executablePath, paths);
   if (!ancestor) return false;
+  if (POSIX_MOUNT_CONTAINERS.some((pattern) => pattern.test(ancestor))) {
+    return false;
+  }
 
-  return !POSIX_MOUNT_CONTAINERS.some((pattern) => pattern.test(ancestor));
+  return !(await isEmptyDirectory(ancestor));
 };

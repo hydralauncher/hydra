@@ -26,6 +26,7 @@ describe("isExecutableMissingFromAvailableStorage", () => {
       path.join(os.tmpdir(), "hydra-exe-")
     );
     t.after(() => fs.promises.rm(directory, { recursive: true, force: true }));
+    await fs.promises.writeFile(path.join(directory, "other-game.exe"), "");
 
     assert.equal(
       await isExecutableMissingFromAvailableStorage(
@@ -34,6 +35,26 @@ describe("isExecutableMissingFromAvailableStorage", () => {
       true
     );
   });
+
+  it(
+    "keeps executables under an empty posix mount point",
+    { skip: process.platform === "win32" },
+    async (t) => {
+      const mountPoint = await fs.promises.mkdtemp(
+        path.join(os.tmpdir(), "hydra-mount-")
+      );
+      t.after(() =>
+        fs.promises.rm(mountPoint, { recursive: true, force: true })
+      );
+
+      assert.equal(
+        await isExecutableMissingFromAvailableStorage(
+          path.join(mountPoint, "Game", "game.exe")
+        ),
+        false
+      );
+    }
+  );
 
   it("keeps executables on posix drives that are not mounted", async () => {
     assert.equal(

@@ -376,16 +376,18 @@ const getLaunchTypePriority = (type: string | null) => {
   return 10;
 };
 
+const NATIVE_STEAM_OPERATING_SYSTEMS: Partial<Record<NodeJS.Platform, string>> =
+  {
+    win32: "windows",
+    darwin: "macos",
+  };
+
 const getOperatingSystemTier = (
   oslist: string[],
   platform: NodeJS.Platform
 ): number | null => {
   const nativeOperatingSystem =
-    platform === "win32"
-      ? "windows"
-      : platform === "darwin"
-        ? "macos"
-        : "linux";
+    NATIVE_STEAM_OPERATING_SYSTEMS[platform] ?? "linux";
 
   if (oslist.includes(nativeOperatingSystem)) return 0;
   if (oslist.length === 0) return 1;

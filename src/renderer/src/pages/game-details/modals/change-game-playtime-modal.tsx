@@ -111,7 +111,7 @@ export function ChangeGamePlaytimeModal({
   const isValid = hours !== "" || minutes !== "";
   const tooltipId = useId();
   const isUnchanged =
-    (parseInt(hours) || 0) * 60 + (parseInt(minutes) || 0) ===
+    (Number.parseInt(hours) || 0) * 60 + (Number.parseInt(minutes) || 0) ===
     Math.floor((game.playTimeInMilliseconds ?? 0) / 60_000);
   const steamPlayTimeInMilliseconds = game.steamPlayTimeInMilliseconds ?? 0;
   const nextHydraPlayTimeInMilliseconds =
