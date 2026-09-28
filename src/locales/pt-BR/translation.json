@@ -1703,6 +1703,7 @@
     "scan_games_complete_added_description": "{{added}} jogos novos foram adicionados à sua biblioteca",
     "scan_games_complete_linked_description": "Encontramos o executável de {{linked}} jogos da sua biblioteca",
     "scan_games_complete_pending_description": "Encontramos {{pending}} executáveis para os quais você precisa escolher a qual jogo pertencem",
+    "scan_games_complete_unlinked_description": "{{unlinked}} executáveis que não existem mais foram removidos da sua biblioteca",
     "scan_games_no_results_title": "Escaneamento de jogos finalizado",
     "scan_games_no_results_description": "Nenhum jogo instalado foi encontrado",
     "download_halted": "Download interrompido",

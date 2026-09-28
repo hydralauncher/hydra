@@ -979,6 +979,7 @@
     "notification_achievement_unlocked_title": "Conquista desbloqueada para {{game}}",
     "notification_achievement_unlocked_body": "{{achievement}} e outras {{count}} foram desbloqueadas",
     "scan_games_complete_description": "Encontrados {{count}} jogos sem caminho executável definido",
+    "scan_games_complete_unlinked_description": "{{unlinked}} executáveis que já não existem foram removidos da tua biblioteca",
     "scan_games_complete_title": "Escaneamento de jogos finalizado com sucesso",
     "scan_games_no_results_description": "Nenhum jogo instalado foi encontrado",
     "scan_games_no_results_title": "Escaneamento de jogos finalizado",

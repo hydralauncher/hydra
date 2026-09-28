@@ -5,11 +5,12 @@ import { isWithin } from "../emulators/rom-path-utils.js";
 
 const MISSING_PATH_ERROR_CODES = new Set(["ENOENT", "ENOTDIR"]);
 
-const isMissingPathError = (err: NodeJS.ErrnoException) =>
-  MISSING_PATH_ERROR_CODES.has(err.code ?? "");
+const isMissingPathError = (err: unknown) =>
+  MISSING_PATH_ERROR_CODES.has((err as NodeJS.ErrnoException).code ?? "");
 
-// A drive that went offline takes its folders with it or leaves an empty mount point behind
-const closestFolderHasEntries = async (
+// A drive that went offline takes its folders with it, and outside Windows an
+// unmounted drive can leave an empty mount point behind
+const isClosestFolderAvailable = async (
   filePath: string,
   root: string
 ): Promise<boolean> => {
@@ -17,11 +18,12 @@ const closestFolderHasEntries = async (
 
   if (folder === filePath || !isWithin(folder, root)) return false;
 
-  return fs.promises.readdir(folder).then(
-    (entries) => entries.length > 0,
-    (err: NodeJS.ErrnoException) =>
-      isMissingPathError(err) && closestFolderHasEntries(folder, root)
-  );
+  try {
+    const entries = await fs.promises.readdir(folder);
+    return entries.length > 0 || process.platform === "win32";
+  } catch (err) {
+    return isMissingPathError(err) && isClosestFolderAvailable(folder, root);
+  }
 };
 
 export const isExecutableMissing = async (
@@ -34,10 +36,13 @@ export const isExecutableMissing = async (
 
   if (!directory) return false;
 
-  return fs.promises.access(executablePath).then(
-    () => false,
-    (err: NodeJS.ErrnoException) =>
+  try {
+    await fs.promises.access(executablePath);
+    return false;
+  } catch (err) {
+    return (
       isMissingPathError(err) &&
-      closestFolderHasEntries(executablePath, directory)
-  );
+      isClosestFolderAvailable(executablePath, directory)
+    );
+  }
 };

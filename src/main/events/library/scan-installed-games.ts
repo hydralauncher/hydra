@@ -856,12 +856,13 @@ const unlinkMissingExecutables = async (
     if (!executablePath) continue;
     if (!(await isExecutableMissing(executablePath, directories))) continue;
 
-    entry.game = {
-      ...updateGameExecutablePath(game, null),
-      installedSizeInBytes: null,
-    };
+    // The size stays in memory so a game linked again in this scan keeps it
+    entry.game = updateGameExecutablePath(game, null);
 
-    await gamesSublevel.put(key, entry.game);
+    await gamesSublevel.put(key, {
+      ...entry.game,
+      installedSizeInBytes: null,
+    });
 
     logger.info(
       `[ScanInstalledGames] Removed the executable of ${game.objectId}, ${executablePath} no longer exists`
@@ -893,7 +894,8 @@ const getScanNotificationDescriptionKey = (
 const getScanNotificationKeys = (
   addedCount: number,
   linkedCount: number,
-  pendingCount: number
+  pendingCount: number,
+  unlinkedCount: number
 ) => {
   if (addedCount + linkedCount > 0) {
     return {
@@ -909,6 +911,13 @@ const getScanNotificationKeys = (
     };
   }
 
+  if (unlinkedCount > 0) {
+    return {
+      title: "scan_games_complete_title",
+      description: "scan_games_complete_unlinked_description",
+    };
+  }
+
   return {
     title: "scan_games_no_results_title",
     description: "scan_games_no_results_description",
@@ -918,9 +927,15 @@ const getScanNotificationKeys = (
 async function publishScanNotification(
   addedCount: number,
   linkedCount: number,
-  pendingCount: number
+  pendingCount: number,
+  unlinkedCount: number
 ): Promise<void> {
-  const keys = getScanNotificationKeys(addedCount, linkedCount, pendingCount);
+  const keys = getScanNotificationKeys(
+    addedCount,
+    linkedCount,
+    pendingCount,
+    unlinkedCount
+  );
 
   await LocalNotificationManager.createNotification(
     "SCAN_GAMES_COMPLETE",
@@ -930,6 +945,7 @@ async function publishScanNotification(
       added: addedCount,
       linked: linkedCount,
       pending: pendingCount,
+      unlinked: unlinkedCount,
     }),
     { url: "/library?openScanModal=true" }
   );
@@ -1089,7 +1105,8 @@ const runScan = async (
     await publishScanNotification(
       addedGames.length,
       linkedGames.length,
-      outsideLibrary.ambiguousMatches.length
+      outsideLibrary.ambiguousMatches.length,
+      unlinkedGames.size
     );
   }
 

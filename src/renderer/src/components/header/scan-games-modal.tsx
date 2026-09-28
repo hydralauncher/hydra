@@ -380,12 +380,14 @@ export function ScanGamesModal({
               <span>{t("scan_games_detection_warning")}</span>
             </div>
 
-            {hasResults ? (
+            {hasResults && (
               <div className="scan-games-modal__result-section">
                 <p className="scan-games-modal__result">{resultSummary}</p>
                 {renderGamesList([...addedGames, ...linkedGames])}
               </div>
-            ) : (
+            )}
+
+            {!hasResults && unlinkedGames.length === 0 && (
               <p className="scan-games-modal__no-results">
                 {t("scan_games_no_results")}
               </p>
