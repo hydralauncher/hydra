@@ -4,6 +4,7 @@ import { gamesSublevel, levelKeys } from "@main/level";
 import type { Game } from "@types";
 import { runAutomaticCloudSaveSync } from "../cloud-save";
 import { clearMissingExecutables } from "../clear-missing-executables";
+import { trackAchievementBatchGame } from "../achievements/achievement-batch-games";
 import { updateGameRecord } from "../game-record-updater";
 import { GameExecutables } from "../game-executables";
 import { steamSyncLogger } from "../logger";
@@ -71,6 +72,8 @@ const linkExecutable = async (candidate: Game, executablePath: string) => {
   });
 
   if (!didLink || !updatedGame) return false;
+
+  trackAchievementBatchGame(gameKey);
 
   void runAutomaticCloudSaveSync(
     candidate.objectId,

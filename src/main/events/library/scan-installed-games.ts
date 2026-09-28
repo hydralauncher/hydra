@@ -23,6 +23,7 @@ import {
 } from "@main/services";
 import { runAutomaticCloudSaveSync } from "@main/services/cloud-save";
 import { clearMissingExecutables } from "@main/services/clear-missing-executables";
+import { trackAchievementBatchGame } from "@main/services/achievements/achievement-batch-games";
 import { resolveSteamLaunchExecutables } from "@main/services/steam-integration/steam-app-info-core";
 import {
   getInstalledSteamApps,
@@ -1065,6 +1066,7 @@ const linkLibraryGames = async (
     if (!foundPath) continue;
 
     await gamesSublevel.put(key, updateGameExecutablePath(game, foundPath));
+    trackAchievementBatchGame(key);
     void runAutomaticCloudSaveSync(
       game.objectId,
       game.shop,

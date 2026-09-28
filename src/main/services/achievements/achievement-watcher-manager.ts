@@ -13,6 +13,12 @@ import type {
 } from "@types";
 import { achievementsLogger } from "../logger";
 import { HydraApi } from "../hydra-api";
+import {
+  hasTouchedAchievementBatchGames,
+  setAchievementBatchActive,
+  takeTouchedAchievementBatchGames,
+  trackAchievementBatchGame,
+} from "./achievement-batch-games";
 import { Cracker } from "@shared";
 import { publishCombinedNewAchievementNotification } from "../notifications";
 import { db, gamesSublevel, levelKeys } from "@main/level";
@@ -220,7 +226,9 @@ export class AchievementWatcherManager {
   }
 
   public static trackBatchGame(shop: GameShop, objectId: string) {
-    this.batchGames.set(levelKeys.game(shop, objectId), { shop, objectId });
+    const gameKey = levelKeys.game(shop, objectId);
+    this.batchGames.set(gameKey, { shop, objectId });
+    trackAchievementBatchGame(gameKey);
   }
 
   public static readonly alreadySyncedGames: Map<string, boolean> = new Map();
@@ -339,6 +347,7 @@ export class AchievementWatcherManager {
 
   public static async runBatch<T>(task: () => Promise<T>): Promise<T> {
     this.batchDepth += 1;
+    setAchievementBatchActive(true);
 
     try {
       return await task();
@@ -353,10 +362,15 @@ export class AchievementWatcherManager {
             achievementsLogger.error("Error syncing batch achievements", err)
           );
           await this.syncBatchGames();
-        } while (this.hasPendingBatchSync || this.batchGames.size > 0);
+        } while (
+          this.hasPendingBatchSync ||
+          this.batchGames.size > 0 ||
+          hasTouchedAchievementBatchGames()
+        );
 
         const batchNotification = this.takeBatchNotification();
         this.batchDepth -= 1;
+        setAchievementBatchActive(false);
 
         await this.notifyBatchAchievements(batchNotification).catch((err) =>
           achievementsLogger.error("Error notifying batch achievements", err)
@@ -387,10 +401,13 @@ export class AchievementWatcherManager {
   }
 
   private static async syncUnseenAchievementFiles() {
-    if (!HydraApi.isLoggedIn()) return;
+    const touchedGameKeys = takeTouchedAchievementBatchGames();
+    if (touchedGameKeys.size === 0 || !HydraApi.isLoggedIn()) return;
 
-    const pendingGames = (await this.getGameAchievementFiles()).filter(
-      ({ game, achievementFiles }) => hasUnmergedUnlocks(game, achievementFiles)
+    const pendingGames = (
+      await this.getGameAchievementFiles(touchedGameKeys)
+    ).filter(({ game, achievementFiles }) =>
+      hasUnmergedUnlocks(game, achievementFiles)
     );
     if (pendingGames.length === 0) return;
 
@@ -522,8 +539,11 @@ export class AchievementWatcherManager {
       );
   }
 
-  private static async getGameAchievementFiles() {
-    const games = await getWatchedGames();
+  private static async getGameAchievementFiles(gameKeys?: Set<string>) {
+    const games = (await getWatchedGames()).filter(
+      (game) =>
+        !gameKeys || gameKeys.has(levelKeys.game(game.shop, game.objectId))
+    );
 
     const includeSteamCache = await getEnableSteamAchievements();
 

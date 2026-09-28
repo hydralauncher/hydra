@@ -32,6 +32,7 @@ import {
 } from "./resolve-library-source";
 import { mergeLocalAndRemotePlayTime } from "@shared";
 import { mergePersistedAchievementTotals } from "../achievements/achievement-memory-store";
+import { trackAchievementBatchGame } from "../achievements/achievement-batch-games";
 
 type ProfileGame = {
   id: string;
@@ -181,23 +182,28 @@ export type RemoteGamesMergeProgress = (
   total: number
 ) => void;
 
+const fetchProfileGamesPage = (
+  params: Record<string, unknown>,
+  pageIndex: number
+) =>
+  HydraApi.get<ProfileGame[]>(
+    "/profile/games",
+    { ...params, take: PAGE_SIZE, skip: pageIndex * PAGE_SIZE },
+    { logResponseBody: false }
+  );
+
 const fetchAllGamesForShop = async (
   params: Record<string, unknown> = {}
 ): Promise<ProfileGame[]> => {
-  const all: ProfileGame[] = [];
+  const firstPage = await fetchProfileGamesPage(params, 0);
+  if (firstPage.length < PAGE_SIZE) return firstPage;
 
-  for (let wave = 0; ; wave += 1) {
+  const all = [...firstPage];
+
+  for (let nextPageIndex = 1; ; nextPageIndex += PAGE_FETCH_CONCURRENCY) {
     const pages = await Promise.all(
-      Array.from({ length: PAGE_FETCH_CONCURRENCY }, (_, index) =>
-        HydraApi.get<ProfileGame[]>(
-          "/profile/games",
-          {
-            ...params,
-            take: PAGE_SIZE,
-            skip: (wave * PAGE_FETCH_CONCURRENCY + index) * PAGE_SIZE,
-          },
-          { logResponseBody: false }
-        )
+      Array.from({ length: PAGE_FETCH_CONCURRENCY }, (_, offset) =>
+        fetchProfileGamesPage(params, nextPageIndex + offset)
       )
     );
 
@@ -373,6 +379,8 @@ const mergeRemoteGamesChunk = async (
   remoteGames.forEach((remoteGame, index) => {
     const gameKey = gameKeys[index];
     const localGame = localGames[index];
+
+    if (!localGame || localGame.isDeleted) trackAchievementBatchGame(gameKey);
 
     batch.put(
       gameKey,
