@@ -58,8 +58,7 @@ const reconcileImportedSteamGames = async () => {
   );
 
   for (const game of importedGames) {
-    const isInstalled = installedAppIds.has(game.objectId);
-    if (Boolean(game.executablePath) === isInstalled) continue;
+    if (!game.executablePath && !installedAppIds.has(game.objectId)) continue;
 
     await refreshInstalledState(game.objectId);
   }
@@ -89,6 +88,7 @@ const scheduleLibraryRewatch = () => {
 
 const handleSteamAppsChange = (fileName: string | Buffer | null) => {
   if (!fileName) {
+    scheduleLibraryRewatch();
     scheduleReconcile();
     return;
   }
