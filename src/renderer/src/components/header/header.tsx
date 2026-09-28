@@ -320,7 +320,8 @@ export function Header() {
   const handleStartScan = async (
     additionalDirectories: string[] = [],
     includeDefaultDirectories = true,
-    addGamesToLibrary = true
+    addGamesToLibrary = true,
+    removeMissingExecutables = true
   ) => {
     if (isScanning) return;
 
@@ -335,6 +336,7 @@ export function Header() {
         additionalDirectories,
         includeDefaultDirectories,
         addGamesToLibrary,
+        removeMissingExecutables,
         requestId
       );
       setScanResult(result);

@@ -34,6 +34,7 @@ interface AmbiguousMatch {
 
 export interface ScanResult {
   linkedGames: FoundGame[];
+  unlinkedGames: FoundGame[];
   addedGames: FoundGame[];
   ambiguousMatches: AmbiguousMatch[];
   total: number;
@@ -47,7 +48,8 @@ export interface ScanGamesModalProps {
   onStartScan: (
     additionalDirectories: string[],
     includeDefaultDirectories: boolean,
-    addGamesToLibrary: boolean
+    addGamesToLibrary: boolean,
+    removeMissingExecutables: boolean
   ) => void;
   onCancelScan: () => void;
   onClearResult: () => void;
@@ -84,6 +86,8 @@ export function ScanGamesModal({
     isWindows ? "automatic" : "manual"
   );
   const [addGamesToLibrary, setAddGamesToLibrary] = useState(true);
+  const [removeMissingExecutables, setRemoveMissingExecutables] =
+    useState(true);
   const [pending, setPending] = useState<AmbiguousMatch[]>([]);
   const [picks, setPicks] = useState<Record<string, string>>({});
   const [isResolving, setIsResolving] = useState(false);
@@ -95,6 +99,8 @@ export function ScanGamesModal({
   const addedGames = [...(scanResult?.addedGames ?? []), ...resolvedGames];
 
   const linkedGames = scanResult?.linkedGames ?? [];
+
+  const unlinkedGames = scanResult?.unlinkedGames ?? [];
 
   const hasResults = Boolean(
     scanResult && addedGames.length + linkedGames.length > 0
@@ -157,9 +163,14 @@ export function ScanGamesModal({
 
   const handleStartScan = () => {
     if (isManualMode) {
-      onStartScan(selectedFolders, false, addGamesToLibrary);
+      onStartScan(
+        selectedFolders,
+        false,
+        addGamesToLibrary,
+        removeMissingExecutables
+      );
     } else {
-      onStartScan([], true, addGamesToLibrary);
+      onStartScan([], true, addGamesToLibrary, removeMissingExecutables);
     }
   };
 
@@ -292,6 +303,11 @@ export function ScanGamesModal({
                 checked={addGamesToLibrary}
                 onChange={() => setAddGamesToLibrary((prev) => !prev)}
               />
+              <CheckboxField
+                label={t("scan_games_remove_missing_executables")}
+                checked={removeMissingExecutables}
+                onChange={() => setRemoveMissingExecutables((prev) => !prev)}
+              />
             </div>
           </>
         )}
@@ -373,6 +389,17 @@ export function ScanGamesModal({
               <p className="scan-games-modal__no-results">
                 {t("scan_games_no_results")}
               </p>
+            )}
+
+            {unlinkedGames.length > 0 && (
+              <div className="scan-games-modal__result-section">
+                <p className="scan-games-modal__result">
+                  {t("scan_games_result_unlinked", {
+                    count: unlinkedGames.length,
+                  })}
+                </p>
+                {renderGamesList(unlinkedGames)}
+              </div>
             )}
           </div>
         )}

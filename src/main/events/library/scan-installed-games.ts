@@ -5,6 +5,7 @@ import { chunk } from "lodash-es";
 import { registerEvent } from "../register-event";
 import { getGameAssets } from "../catalogue/get-game-assets";
 import { getDownloadsPath } from "../helpers/get-downloads-path";
+import { isExecutableMissing } from "./is-executable-missing";
 import {
   isRedistributableDirectory,
   isRedistributablePath,
@@ -68,6 +69,7 @@ interface AmbiguousMatch {
 
 interface ScanResult {
   linkedGames: FoundGame[];
+  unlinkedGames: FoundGame[];
   addedGames: FoundGame[];
   ambiguousMatches: AmbiguousMatch[];
   total: number;
@@ -837,6 +839,44 @@ const addGamesOutsideLibrary = async (
   return addedGames;
 };
 
+const unlinkMissingExecutables = async (
+  games: { key: string; game: Game }[],
+  scannedDirectories: ScannedDirectory[],
+  signal: CancelSignal
+) => {
+  const directories = scannedDirectories.map((scanned) => scanned.directory);
+  const unlinkedGames = new Map<string, FoundGame>();
+
+  for (const entry of games) {
+    if (signal.cancelled) break;
+
+    const { key, game } = entry;
+    const { executablePath } = game;
+
+    if (!executablePath) continue;
+    if (!(await isExecutableMissing(executablePath, directories))) continue;
+
+    entry.game = {
+      ...updateGameExecutablePath(game, null),
+      installedSizeInBytes: null,
+    };
+
+    await gamesSublevel.put(key, entry.game);
+
+    logger.info(
+      `[ScanInstalledGames] Removed the executable of ${game.objectId}, ${executablePath} no longer exists`
+    );
+
+    unlinkedGames.set(key, {
+      title: game.title,
+      executablePath,
+      iconUrl: game.iconUrl ?? null,
+    });
+  }
+
+  return unlinkedGames;
+};
+
 const getScanNotificationDescriptionKey = (
   addedCount: number,
   linkedCount: number
@@ -900,6 +940,7 @@ const scanInstalledGames = async (
   additionalDirectories: string[] = [],
   includeDefaultDirectories = true,
   addGamesToLibrary = true,
+  removeMissingExecutables = true,
   requestId?: string
 ): Promise<ScanResult> => {
   const signal: CancelSignal = { cancelled: false };
@@ -910,7 +951,8 @@ const scanInstalledGames = async (
       signal,
       additionalDirectories,
       includeDefaultDirectories,
-      addGamesToLibrary
+      addGamesToLibrary,
+      removeMissingExecutables
     );
   } finally {
     if (requestId) inflightScans.delete(requestId);
@@ -933,7 +975,8 @@ const runScan = async (
   signal: CancelSignal,
   additionalDirectories: string[],
   includeDefaultDirectories: boolean,
-  addGamesToLibrary: boolean
+  addGamesToLibrary: boolean,
+  removeMissingExecutables: boolean
 ): Promise<ScanResult> => {
   if (!(await GameExecutables.ensureLoaded(true))) {
     throw new Error("game-executable-catalogue-unavailable");
@@ -971,6 +1014,11 @@ const runScan = async (
     );
   }
 
+  // Runs before linking so a game that was moved is found again in this same scan
+  const unlinkedGames = removeMissingExecutables
+    ? await unlinkMissingExecutables(games, scannedDirectories, signal)
+    : new Map<string, FoundGame>();
+
   const linkedGames: FoundGame[] = [];
   const claimedPaths = new Set(
     games.flatMap(({ game }) =>
@@ -1004,6 +1052,7 @@ const runScan = async (
       executablePath: foundPath,
       iconUrl: game.iconUrl ?? null,
     });
+    unlinkedGames.delete(key);
     claimedPaths.add(normalizePath(foundPath));
   }
 
@@ -1031,7 +1080,7 @@ const runScan = async (
     : await addGamesOutsideLibrary(outsideLibrary.pathByObjectId);
 
   logger.info(
-    `[ScanInstalledGames] Linked ${linkedGames.length} of ${gamesToScan.length} games in the library, added ${addedGames.length} new ones, ${outsideLibrary.ambiguousMatches.length} need a choice`
+    `[ScanInstalledGames] Linked ${linkedGames.length} of ${gamesToScan.length} games in the library, removed ${unlinkedGames.size} missing executables, added ${addedGames.length} new ones, ${outsideLibrary.ambiguousMatches.length} need a choice`
   );
 
   WindowManager.sendToAppWindows("on-library-batch-complete");
@@ -1046,6 +1095,7 @@ const runScan = async (
 
   return {
     linkedGames,
+    unlinkedGames: [...unlinkedGames.values()],
     addedGames,
     ambiguousMatches: outsideLibrary.ambiguousMatches,
     total: gamesToScan.length,

@@ -845,9 +845,15 @@ declare global {
       additionalDirectories?: string[],
       includeDefaultDirectories?: boolean,
       addGamesToLibrary?: boolean,
+      removeMissingExecutables?: boolean,
       requestId?: string
     ) => Promise<{
       linkedGames: {
+        title: string;
+        executablePath: string;
+        iconUrl: string | null;
+      }[];
+      unlinkedGames: {
         title: string;
         executablePath: string;
         iconUrl: string | null;

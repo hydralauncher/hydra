@@ -1115,6 +1115,7 @@ contextBridge.exposeInMainWorld("electron", {
     additionalDirectories?: string[],
     includeDefaultDirectories?: boolean,
     addGamesToLibrary?: boolean,
+    removeMissingExecutables?: boolean,
     requestId?: string
   ) =>
     ipcRenderer.invoke(
@@ -1122,6 +1123,7 @@ contextBridge.exposeInMainWorld("electron", {
       additionalDirectories,
       includeDefaultDirectories,
       addGamesToLibrary,
+      removeMissingExecutables,
       requestId
     ),
   cancelScanInstalledGames: (requestId: string) =>
