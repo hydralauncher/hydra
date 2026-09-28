@@ -6,6 +6,9 @@ import { afterEach, describe, it } from "node:test";
 
 import { isExecutableMissing } from "./is-executable-missing.ts";
 
+const GAME_EXECUTABLE = path.join("Game", "game.exe");
+const DRIVE_EXECUTABLE = path.join("Drive", GAME_EXECUTABLE);
+
 const tempDirectories: string[] = [];
 
 const createScannedDirectory = async (...filePaths: string[]) => {
@@ -34,99 +37,88 @@ afterEach(async () => {
   );
 });
 
+const scenarios: {
+  name: string;
+  filePaths: string[];
+  prepare?: (directory: string) => Promise<unknown>;
+  executable?: string;
+  isMissing: boolean;
+}[] = [
+  {
+    name: "reports an executable whose game folder was deleted",
+    filePaths: ["Other Game/other.exe"],
+    isMissing: true,
+  },
+  {
+    name: "reports an executable deleted from a game folder that still has files",
+    filePaths: ["Game/data.pak"],
+    isMissing: true,
+  },
+  {
+    name: "reports an executable whose game folder was replaced by a file",
+    filePaths: ["Game"],
+    isMissing: true,
+  },
+  {
+    name: "keeps an executable that still exists",
+    filePaths: ["Game/game.exe"],
+    isMissing: false,
+  },
+  {
+    name: "keeps an executable whose scanned folder went offline",
+    filePaths: ["Game/game.exe"],
+    prepare: (directory) =>
+      fs.promises.rm(directory, { recursive: true, force: true }),
+    isMissing: false,
+  },
+  {
+    name: "keeps an executable behind an empty mount point",
+    filePaths: ["Other Game/other.exe"],
+    prepare: (directory) => fs.promises.mkdir(path.join(directory, "Drive")),
+    executable: DRIVE_EXECUTABLE,
+    isMissing: false,
+  },
+  {
+    name: "keeps an executable behind a mount point that can no longer be opened",
+    filePaths: ["Other Game/other.exe"],
+    prepare: (directory) =>
+      fs.promises.symlink(
+        path.join(directory, "Offline Drive"),
+        path.join(directory, "Drive"),
+        "junction"
+      ),
+    executable: DRIVE_EXECUTABLE,
+    isMissing: false,
+  },
+];
+
 describe("installed games scan missing executables", () => {
-  it("reports an executable whose game folder was deleted", async () => {
-    const directory = await createScannedDirectory("Other Game/other.exe");
+  for (const {
+    name,
+    filePaths,
+    prepare,
+    executable = GAME_EXECUTABLE,
+    isMissing,
+  } of scenarios) {
+    it(name, async () => {
+      const directory = await createScannedDirectory(...filePaths);
+      await prepare?.(directory);
 
-    assert.equal(
-      await isExecutableMissing(path.join(directory, "Game", "game.exe"), [
-        directory,
-      ]),
-      true
-    );
-  });
-
-  it("reports an executable deleted from a game folder that still has files", async () => {
-    const directory = await createScannedDirectory("Game/data.pak");
-
-    assert.equal(
-      await isExecutableMissing(path.join(directory, "Game", "game.exe"), [
-        directory,
-      ]),
-      true
-    );
-  });
-
-  it("reports an executable whose game folder was replaced by a file", async () => {
-    const directory = await createScannedDirectory("Game");
-
-    assert.equal(
-      await isExecutableMissing(path.join(directory, "Game", "game.exe"), [
-        directory,
-      ]),
-      true
-    );
-  });
-
-  it("keeps an executable that still exists", async () => {
-    const directory = await createScannedDirectory("Game/game.exe");
-
-    assert.equal(
-      await isExecutableMissing(path.join(directory, "Game", "game.exe"), [
-        directory,
-      ]),
-      false
-    );
-  });
-
-  it("keeps an executable whose scanned folder went offline", async () => {
-    const directory = await createScannedDirectory("Game/game.exe");
-    await fs.promises.rm(directory, { recursive: true, force: true });
-
-    assert.equal(
-      await isExecutableMissing(path.join(directory, "Game", "game.exe"), [
-        directory,
-      ]),
-      false
-    );
-  });
-
-  it("keeps an executable behind an empty mount point", async () => {
-    const directory = await createScannedDirectory("Other Game/other.exe");
-    await fs.promises.mkdir(path.join(directory, "Drive"));
-
-    assert.equal(
-      await isExecutableMissing(
-        path.join(directory, "Drive", "Game", "game.exe"),
-        [directory]
-      ),
-      false
-    );
-  });
-
-  it("keeps an executable behind a mount point that can no longer be opened", async () => {
-    const directory = await createScannedDirectory("Other Game/other.exe");
-    await fs.promises.symlink(
-      path.join(directory, "Offline Drive"),
-      path.join(directory, "Drive"),
-      "junction"
-    );
-
-    assert.equal(
-      await isExecutableMissing(
-        path.join(directory, "Drive", "Game", "game.exe"),
-        [directory]
-      ),
-      false
-    );
-  });
+      assert.equal(
+        await isExecutableMissing(path.join(directory, executable), [
+          directory,
+        ]),
+        isMissing
+      );
+    });
+  }
 
   it("keeps an executable outside the scanned folders", async () => {
     const directory = await createScannedDirectory("Game/game.exe");
     const otherDirectory = await createScannedDirectory("Other Game/other.exe");
 
     assert.equal(
-      await isExecutableMissing(path.join(otherDirectory, "Game", "game.exe"), [
+      await isExecutableMissing(path.join(otherDirectory, GAME_EXECUTABLE), [
         directory,
       ]),
       false
