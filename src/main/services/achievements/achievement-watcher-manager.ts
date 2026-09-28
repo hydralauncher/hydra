@@ -205,8 +205,7 @@ export class AchievementWatcherManager {
   private static _hasFinishedPreSearch = false;
   private static batchDepth = 0;
   private static hasPendingBatchSync = false;
-  private static readonly batchNotificationGames = new Set<string>();
-  private static batchNotificationAchievements = 0;
+  private static readonly batchNotificationCounts = new Map<string, number>();
   private static readonly batchGames = new Map<
     string,
     { shop: GameShop; objectId: string }
@@ -310,17 +309,26 @@ export class AchievementWatcherManager {
     gameKey: string,
     newAchievements: number
   ) {
-    this.batchNotificationGames.add(gameKey);
-    this.batchNotificationAchievements += newAchievements;
+    this.batchNotificationCounts.set(
+      gameKey,
+      Math.max(this.batchNotificationCounts.get(gameKey) ?? 0, newAchievements)
+    );
   }
 
-  private static async notifyBatchAchievements() {
-    const totalNewGamesWithAchievements = this.batchNotificationGames.size;
-    const totalNewAchievements = this.batchNotificationAchievements;
+  private static takeBatchNotification() {
+    const counts = [...this.batchNotificationCounts.values()];
+    this.batchNotificationCounts.clear();
 
-    this.batchNotificationGames.clear();
-    this.batchNotificationAchievements = 0;
+    return {
+      totalNewGamesWithAchievements: counts.length,
+      totalNewAchievements: counts.reduce((total, count) => total + count, 0),
+    };
+  }
 
+  private static async notifyBatchAchievements({
+    totalNewGamesWithAchievements,
+    totalNewAchievements,
+  }: ReturnType<typeof AchievementWatcherManager.takeBatchNotification>) {
     if (totalNewAchievements > 0) {
       await this.notifyCombinedAchievementsUnlocked(
         totalNewGamesWithAchievements,
@@ -335,7 +343,10 @@ export class AchievementWatcherManager {
     try {
       return await task();
     } finally {
-      if (this.batchDepth === 1) {
+      if (this.batchDepth > 1) {
+        this.hasPendingBatchSync = true;
+        this.batchDepth -= 1;
+      } else {
         do {
           this.hasPendingBatchSync = false;
           await this.syncUnseenAchievementFiles().catch((err) =>
@@ -344,14 +355,13 @@ export class AchievementWatcherManager {
           await this.syncBatchGames();
         } while (this.hasPendingBatchSync || this.batchGames.size > 0);
 
-        await this.notifyBatchAchievements().catch((err) =>
+        const batchNotification = this.takeBatchNotification();
+        this.batchDepth -= 1;
+
+        await this.notifyBatchAchievements(batchNotification).catch((err) =>
           achievementsLogger.error("Error notifying batch achievements", err)
         );
-      } else {
-        this.hasPendingBatchSync = true;
       }
-
-      this.batchDepth -= 1;
     }
   }
 

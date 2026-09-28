@@ -1,3 +1,7 @@
+$availability-color: #22c55e;
+$availability-glow-blur: 6px;
+$availability-glow-opacity: 0.5;
+
 .download-source-option {
   display: flex;
   flex-direction: column;
@@ -111,8 +115,9 @@
     width: 8px;
     height: 8px;
     border-radius: 50%;
-    background-color: #22c55e;
-    box-shadow: 0 0 6px rgba(34, 197, 94, 0.5);
+    background-color: $availability-color;
+    box-shadow: 0 0 $availability-glow-blur
+      rgba($availability-color, $availability-glow-opacity);
   }
 
   &__divider {
