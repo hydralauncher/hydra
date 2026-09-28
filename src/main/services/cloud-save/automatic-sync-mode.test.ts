@@ -87,7 +87,7 @@ describe("cloud save automatic sync mode", () => {
     );
   });
 
-  it("requires explicit V2 opt-in for supported emulator games", () => {
+  it("defaults supported emulator games to V2 and preserves later opt-outs", () => {
     for (const platform of [
       "Sony PlayStation 3",
       "Nintendo Entertainment System",
@@ -104,7 +104,7 @@ describe("cloud save automatic sync mode", () => {
           undefined,
           platform
         ),
-        "legacy"
+        "v2"
       );
       assert.equal(
         resolveStoredCloudSaveAutomaticSyncModeForShop(
@@ -114,6 +114,15 @@ describe("cloud save automatic sync mode", () => {
           platform
         ),
         "v2"
+      );
+      assert.equal(
+        resolveStoredCloudSaveAutomaticSyncModeForShop(
+          "launchbox",
+          true,
+          false,
+          platform
+        ),
+        "disabled"
       );
     }
     assert.equal(

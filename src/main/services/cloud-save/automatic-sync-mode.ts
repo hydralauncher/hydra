@@ -31,15 +31,24 @@ export const resolveStoredCloudSaveAutomaticSyncModeForShop = (
   legacyEnabled: boolean,
   storedV2Enabled: boolean | undefined,
   platform?: string | null
-) =>
-  shop === "steam"
-    ? resolveStoredCloudSaveAutomaticSyncMode(legacyEnabled, storedV2Enabled)
-    : resolveCloudSaveAutomaticSyncMode({
-        legacyEnabled,
-        v2Enabled:
-          getCloudSaveEmulatorProvider(shop, platform) !== null &&
-          storedV2Enabled === true,
-      });
+) => {
+  if (shop === "steam") {
+    return resolveStoredCloudSaveAutomaticSyncMode(
+      legacyEnabled,
+      storedV2Enabled
+    );
+  }
+  if (getCloudSaveEmulatorProvider(shop, platform)) {
+    return resolveCloudSaveAutomaticSyncMode({
+      legacyEnabled: false,
+      v2Enabled: storedV2Enabled ?? true,
+    });
+  }
+  return resolveCloudSaveAutomaticSyncMode({
+    legacyEnabled,
+    v2Enabled: false,
+  });
+};
 
 export const getCloudSaveAutomaticSyncStateForMode = (
   mode: CloudSaveAutomaticSyncMode

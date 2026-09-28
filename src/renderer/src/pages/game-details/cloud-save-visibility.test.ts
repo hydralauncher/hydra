@@ -30,7 +30,7 @@ describe("cloud save visibility", () => {
     });
   });
 
-  it("offers V2 and legacy for eligible emulator platforms", () => {
+  it("uses V2 and archives legacy saves for eligible emulator platforms", () => {
     for (const platform of [
       "Sony PlayStation 3",
       "Nintendo Game Boy Advance",
@@ -40,7 +40,7 @@ describe("cloud save visibility", () => {
         settings: {
           showV2: true,
           showLegacy: true,
-          legacyPurpose: "active",
+          legacyPurpose: "archive",
         },
       });
     }

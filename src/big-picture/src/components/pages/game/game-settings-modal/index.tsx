@@ -143,7 +143,8 @@ export function GameSettingsModal({
   const shouldShowLegacyCloudTab = shouldShowLegacyCloudSaveTab(
     game.shop,
     isSignedIn,
-    hasActiveSubscription
+    hasActiveSubscription,
+    game.platform
   );
 
   useEffect(() => {

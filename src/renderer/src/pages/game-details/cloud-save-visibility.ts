@@ -46,7 +46,7 @@ export const getCloudSaveVisibility = (
         settings: {
           showV2: true,
           showLegacy: true,
-          legacyPurpose: "active",
+          legacyPurpose: "archive",
         },
       };
     }

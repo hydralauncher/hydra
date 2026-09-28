@@ -48,6 +48,33 @@ describe("Big Picture legacy cloud save tab visibility", () => {
 
   it("keeps the legacy tab for subscribed Launchbox users", () => {
     assert.equal(shouldShowLegacyCloudSaveTab("launchbox", true, true), true);
+    assert.equal(
+      shouldShowLegacyCloudSaveTab(
+        "launchbox",
+        true,
+        true,
+        "Sony PlayStation 3"
+      ),
+      false
+    );
+    assert.equal(
+      shouldShowLegacyCloudSaveTab(
+        "launchbox",
+        true,
+        true,
+        "Nintendo Game Boy Advance"
+      ),
+      false
+    );
+    assert.equal(
+      shouldShowLegacyCloudSaveTab(
+        "launchbox",
+        true,
+        true,
+        "Sony PlayStation 2"
+      ),
+      true
+    );
   });
 
   it("preserves the current custom-game behavior", () => {
