@@ -494,6 +494,20 @@ export default function Library() {
     return library.filter((game) => game.favorite).length;
   }, [library]);
 
+  const customGamesCountByCollectionId = useMemo(() => {
+    const counts = new Map<string, number>();
+
+    for (const game of library) {
+      if (game.shop !== "custom") continue;
+
+      for (const collectionId of getGameCollectionIds(game)) {
+        counts.set(collectionId, (counts.get(collectionId) ?? 0) + 1);
+      }
+    }
+
+    return counts;
+  }, [library]);
+
   const libraryCollections = useMemo<GameCollection[]>(() => {
     return [
       {
@@ -501,9 +515,14 @@ export default function Library() {
         name: t("favorites"),
         gamesCount: favoritesCount,
       },
-      ...collections,
+      ...collections.map((collection) => ({
+        ...collection,
+        gamesCount:
+          collection.gamesCount +
+          (customGamesCountByCollectionId.get(collection.id) ?? 0),
+      })),
     ];
-  }, [collections, favoritesCount, t]);
+  }, [collections, customGamesCountByCollectionId, favoritesCount, t]);
 
   const columnsCount = useMemo(
     () => getColumnsCount(containerWidth, viewMode),
