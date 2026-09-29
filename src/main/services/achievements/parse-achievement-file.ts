@@ -15,6 +15,7 @@ import {
   processSkidrow,
   processUserStats,
 } from "./parse-achievement-formats";
+import { parseEpicAchievementFile } from "./epic/achievement-files";
 
 const processFltFolder = (filePath: string): UnlockedAchievement[] =>
   readdirSync(filePath).map((achievement) => ({
@@ -74,9 +75,24 @@ const ACHIEVEMENT_PARSERS: Partial<
 
 export const parseAchievementFile = (
   filePath: string,
-  type: Cracker
-): UnlockedAchievement[] => {
-  if (!existsSync(filePath)) return [];
+  type: Cracker | "nemirtingas" | "alan-wake-2"
+): UnlockedAchievement[] | null => {
+  if (!existsSync(filePath)) {
+    return type === "nemirtingas" || type === "alan-wake-2" ? null : [];
+  }
+
+  if (type === "nemirtingas" || type === "alan-wake-2") {
+    try {
+      return (
+        parseEpicAchievementFile(type, filePath)?.map(
+          ({ externalId, unlockTime }) => ({ name: externalId, unlockTime })
+        ) ?? null
+      );
+    } catch (err) {
+      achievementsLogger.error(`Error parsing ${type} - ${filePath}`, err);
+      return null;
+    }
+  }
 
   const parseAchievements = ACHIEVEMENT_PARSERS[type];
 

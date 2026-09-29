@@ -19,10 +19,80 @@ import { setTimeout } from "node:timers/promises";
 import { Wine } from "../wine";
 import { AchievementMemoryStore } from "./achievement-memory-store";
 import { achievementNotificationPresenter } from "../achievement-notification-presenter-electron";
+import { getGameAchievementData } from "./get-game-achievement-data";
+import { resolveEpicAchievementUnlocks } from "./resolve-epic-achievement-unlocks";
 
 const fileStats: Map<string, number> = new Map();
 const fltFiles: Map<string, Set<string>> = new Map();
 const processingGameKeys = new Set<string>();
+const EPIC_METADATA_RETRY_MS = 60_000;
+const epicMetadataRetryAt = new Map<string, number>();
+const epicFirstObservedUnlocks = new Map<string, Map<string, number>>();
+const epicSilentExternalIds = new Map<string, Set<string>>();
+const epicAwaitingBaselineFiles = new Map<string, Set<string>>();
+
+const markEpicFileAwaitingBaseline = (gameKey: string, filePath: string) => {
+  const files = epicAwaitingBaselineFiles.get(gameKey) ?? new Set<string>();
+  files.add(filePath);
+  epicAwaitingBaselineFiles.set(gameKey, files);
+};
+
+const resolveGameAchievementUnlocks = async (
+  game: Game,
+  achievements: UnlockedAchievement[],
+  silenceUnresolved = false
+): Promise<UnlockedAchievement[]> => {
+  if (game.shop !== "epic") return achievements;
+
+  const gameKey = levelKeys.game(game.shop, game.objectId);
+  if (achievements.length === 0) {
+    epicMetadataRetryAt.delete(gameKey);
+    return achievements;
+  }
+  const firstObserved =
+    epicFirstObservedUnlocks.get(gameKey) ?? new Map<string, number>();
+  epicFirstObservedUnlocks.set(gameKey, firstObserved);
+  const observed = achievements.map((achievement) => {
+    const unlockTime = Math.min(
+      firstObserved.get(achievement.name) ?? achievement.unlockTime,
+      achievement.unlockTime
+    );
+    firstObserved.set(achievement.name, unlockTime);
+    return { ...achievement, unlockTime };
+  });
+
+  let definitions =
+    AchievementMemoryStore.get(game.shop, game.objectId)?.achievements ?? [];
+  let result = resolveEpicAchievementUnlocks(observed, definitions);
+  if (result.unresolvedCount > 0) {
+    const now = Date.now();
+    if (now >= (epicMetadataRetryAt.get(gameKey) ?? 0)) {
+      epicMetadataRetryAt.set(gameKey, now + EPIC_METADATA_RETRY_MS);
+      try {
+        definitions = await getGameAchievementData(
+          game.objectId,
+          game.shop,
+          false
+        );
+        result = resolveEpicAchievementUnlocks(observed, definitions);
+      } catch (error) {
+        achievementsLogger.warn(
+          "Cannot load Epic achievement definitions",
+          game.objectId,
+          error
+        );
+      }
+    }
+  }
+
+  if (silenceUnresolved && result.unresolvedExternalIds.length > 0) {
+    const silentIds = epicSilentExternalIds.get(gameKey) ?? new Set<string>();
+    result.unresolvedExternalIds.forEach((id) => silentIds.add(id));
+    epicSilentExternalIds.set(gameKey, silentIds);
+  }
+  if (result.unresolvedCount === 0) epicMetadataRetryAt.delete(gameKey);
+  return result.resolved;
+};
 
 const mergeDetectedAchievements = async (
   game: Game,
@@ -62,7 +132,9 @@ const getWatchedGames = async (onlyWithWinePrefix = false) => {
   if (!onlyWithWinePrefix) return games;
 
   return games.filter(
-    (game) => !!Wine.getEffectivePrefixPath(game.winePrefixPath, game.objectId)
+    (game) =>
+      game.shop === "epic" ||
+      !!Wine.getEffectivePrefixPath(game.winePrefixPath, game.objectId)
   );
 };
 
@@ -170,12 +242,71 @@ const processChangedAchievementFiles = async (
 
   try {
     const changedFiles = achievementFiles.filter(hasAchievementFileChanged);
+    const retryEpicMetadata =
+      game.shop === "epic" &&
+      Date.now() >= (epicMetadataRetryAt.get(gameKey) ?? Infinity);
 
-    if (!changedFiles.length) return 0;
+    if (!changedFiles.length && !retryEpicMetadata) return 0;
 
-    const unlockedAchievements = changedFiles.flatMap((file) =>
-      parseAchievementFile(file.filePath, file.type)
+    const filesToParse = game.shop === "epic" ? achievementFiles : changedFiles;
+    const parsedAchievements: UnlockedAchievement[] = [];
+    for (const file of filesToParse) {
+      const parsed = parseAchievementFile(file.filePath, file.type);
+      if (parsed === null) {
+        fileStats.set(file.filePath, -1);
+        continue;
+      }
+      if (game.shop === "epic") {
+        const awaiting = epicAwaitingBaselineFiles.get(gameKey);
+        if (awaiting?.delete(file.filePath)) {
+          const silentIds =
+            epicSilentExternalIds.get(gameKey) ?? new Set<string>();
+          parsed.forEach((achievement) => silentIds.add(achievement.name));
+          epicSilentExternalIds.set(gameKey, silentIds);
+          if (awaiting.size === 0) epicAwaitingBaselineFiles.delete(gameKey);
+        }
+      }
+      parsedAchievements.push(...parsed);
+    }
+    const unlockedAchievements = await resolveGameAchievementUnlocks(
+      game,
+      parsedAchievements
     );
+
+    if (game.shop === "epic") {
+      const silentIds = epicSilentExternalIds.get(gameKey);
+      if (silentIds?.size) {
+        const silentRaw = parsedAchievements.filter((achievement) =>
+          silentIds.has(achievement.name)
+        );
+        const definitions =
+          AchievementMemoryStore.get(game.shop, game.objectId)?.achievements ??
+          [];
+        const silentNames = new Set(
+          resolveEpicAchievementUnlocks(silentRaw, definitions).resolved.map(
+            (achievement) => achievement.name.toUpperCase()
+          )
+        );
+        const silentAchievements = unlockedAchievements.filter((achievement) =>
+          silentNames.has(achievement.name.toUpperCase())
+        );
+        if (silentAchievements.length) {
+          const silentCount = await mergeAchievements(
+            game,
+            silentAchievements,
+            false,
+            true
+          );
+          const liveAchievements = unlockedAchievements.filter(
+            (achievement) => !silentNames.has(achievement.name.toUpperCase())
+          );
+          return (
+            silentCount +
+            (await mergeDetectedAchievements(game, liveAchievements))
+          );
+        }
+      }
+    }
 
     return mergeDetectedAchievements(game, unlockedAchievements);
   } finally {
@@ -195,10 +326,18 @@ export class AchievementWatcherManager {
   public static resetSessionState() {
     this.alreadySyncedGames.clear();
     AchievementMemoryStore.clear();
+    epicMetadataRetryAt.clear();
+    epicFirstObservedUnlocks.clear();
+    epicSilentExternalIds.clear();
+    epicAwaitingBaselineFiles.clear();
   }
 
   public static forgetAchievementFiles(gameKey: string, filePaths: string[]) {
     this.alreadySyncedGames.delete(gameKey);
+    epicMetadataRetryAt.delete(gameKey);
+    epicFirstObservedUnlocks.delete(gameKey);
+    epicSilentExternalIds.delete(gameKey);
+    epicAwaitingBaselineFiles.delete(gameKey);
 
     for (const filePath of filePaths) {
       fileStats.delete(filePath);
@@ -242,16 +381,27 @@ export class AchievementWatcherManager {
         achievementFile.type
       );
 
-      if (localAchievementFile.length) {
+      if (localAchievementFile === null && game.shop === "epic") {
+        fileStats.set(achievementFile.filePath, -1);
+        markEpicFileAwaitingBaseline(gameKey, achievementFile.filePath);
+      }
+
+      if (localAchievementFile?.length) {
         unlockedAchievements.push(...localAchievementFile);
       }
     }
+
+    const resolvedAchievements = await resolveGameAchievementUnlocks(
+      game,
+      unlockedAchievements,
+      true
+    );
 
     let newAchievements: number;
     try {
       newAchievements = await mergeAchievements(
         game,
-        unlockedAchievements,
+        resolvedAchievements,
         false
       );
     } catch (error) {
@@ -289,6 +439,17 @@ export class AchievementWatcherManager {
         achievementFile.type
       );
 
+      if (parsedAchievements === null) {
+        fileStats.set(achievementFile.filePath, -1);
+        if (game.shop === "epic") {
+          markEpicFileAwaitingBaseline(
+            levelKeys.game(game.shop, game.objectId),
+            achievementFile.filePath
+          );
+        }
+        continue;
+      }
+
       try {
         const currentStat = fs.statSync(achievementFile.filePath);
         fileStats.set(achievementFile.filePath, currentStat.mtimeMs);
@@ -308,11 +469,17 @@ export class AchievementWatcherManager {
       }
     }
 
-    if (!unlockedAchievements.length) {
+    const resolvedAchievements = await resolveGameAchievementUnlocks(
+      game,
+      unlockedAchievements,
+      true
+    );
+
+    if (!resolvedAchievements.length) {
       return { newAchievements: 0, isRemoteBehind: false };
     }
 
-    await mergeAchievements(game, unlockedAchievements, false);
+    await mergeAchievements(game, resolvedAchievements, false);
 
     const mergedAchievementCount =
       AchievementMemoryStore.get(game.shop, game.objectId)?.unlockedAchievements

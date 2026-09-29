@@ -1,0 +1,62 @@
+import assert from "node:assert/strict";
+import { describe, it } from "node:test";
+
+import type { SteamAchievement } from "@types";
+import { resolveEpicAchievementUnlocks } from "./resolve-epic-achievement-unlocks.ts";
+
+const definition = (
+  name: string,
+  externalId?: string,
+  externalSetId?: string
+): SteamAchievement => ({
+  name,
+  externalId,
+  externalSetId,
+  displayName: name,
+  icon: "",
+  icongray: "",
+  hidden: false,
+});
+
+describe("resolveEpicAchievementUnlocks", () => {
+  it("maps exact provider IDs to the API-owned names and preserves time", () => {
+    assert.deepEqual(
+      resolveEpicAchievementUnlocks(
+        [{ name: "32", unlockTime: 1789103566000 }],
+        [definition("epic_hash", "32", "b5e4c1b")]
+      ),
+      {
+        resolved: [{ name: "epic_hash", unlockTime: 1789103566000 }],
+        unresolvedCount: 0,
+        unresolvedExternalIds: [],
+      }
+    );
+  });
+
+  it("does not fold numeric IDs or guess without provider fields", () => {
+    assert.deepEqual(
+      resolveEpicAchievementUnlocks(
+        [
+          { name: "01", unlockTime: 1 },
+          { name: "1", unlockTime: 2 },
+        ],
+        [definition("epic_one", "01", "set"), definition("epic_old")]
+      ),
+      {
+        resolved: [{ name: "epic_one", unlockTime: 1 }],
+        unresolvedCount: 1,
+        unresolvedExternalIds: ["1"],
+      }
+    );
+  });
+
+  it("leaves IDs shared by two sets unresolved", () => {
+    assert.deepEqual(
+      resolveEpicAchievementUnlocks(
+        [{ name: "7", unlockTime: 1 }],
+        [definition("epic_a", "7", "set-a"), definition("epic_b", "7", "set-b")]
+      ),
+      { resolved: [], unresolvedCount: 1, unresolvedExternalIds: ["7"] }
+    );
+  });
+});

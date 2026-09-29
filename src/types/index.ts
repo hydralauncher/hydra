@@ -454,7 +454,7 @@ export interface UpdatedUnlockedAchievements {
 }
 
 export interface AchievementFile {
-  type: Cracker;
+  type: Cracker | "nemirtingas" | "alan-wake-2";
   filePath: string;
 }
 
