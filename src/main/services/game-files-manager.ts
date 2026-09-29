@@ -161,6 +161,98 @@ export class GameFilesManager {
     this.updateExtractionProgress(progress.percent / 100);
   };
 
+  private async extractArchivePass(
+    directoryPath: string,
+    filesToExtract: string[],
+    pass: number,
+    extractedFiles: Set<string>
+  ): Promise<boolean> {
+    let completedFiles = 0;
+    for (const file of filesToExtract) {
+      const filePath = path.join(directoryPath, file);
+      try {
+        const result = await SevenZip.extractFile(
+          {
+            filePath,
+            cwd: path.dirname(filePath),
+            passwords: ["online-fix.me", "steamrip.com"],
+          },
+          (progress) => {
+            const passProgress =
+              (completedFiles + progress.percent / 100) / filesToExtract.length;
+            this.updateExtractionProgress((pass + passProgress) / 2);
+          }
+        );
+
+        if (!result.success) {
+          await this.setExtractionFailedState(
+            new Error(`7zip returned unsuccessful extraction for ${file}`),
+            filePath
+          );
+          return false;
+        }
+        completedFiles++;
+        extractedFiles.add(file);
+        this.updateExtractionProgress(
+          (pass + completedFiles / filesToExtract.length) / 2,
+          true
+        );
+      } catch (error) {
+        await this.setExtractionFailedState(error, filePath);
+        return false;
+      }
+    }
+    return true;
+  }
+
+  private async finishArchiveExtraction(
+    directoryPath: string,
+    outerArchivePath: string | undefined,
+    compressedFiles: Set<string>,
+    extractedFiles: Set<string>
+  ): Promise<boolean> {
+    if (extractedFiles.size === 0) return true;
+    this.updateExtractionProgress(1, true);
+
+    if (outerArchivePath) {
+      // The inner archives remain available; remove the generated wrapper only
+      // after every discovered archive has extracted successfully.
+      await deleteArchiveFile(outerArchivePath);
+      return true;
+    }
+
+    const archivePaths = [...compressedFiles]
+      .map((file) => path.join(directoryPath, file))
+      .filter((archivePath) => fs.existsSync(archivePath));
+
+    if (archivePaths.length > 0) {
+      const [download, userPreferences] = await Promise.all([
+        downloadsSublevel.get(this.gameKey),
+        db.get<string, UserPreferences | null>(levelKeys.userPreferences, {
+          valueEncoding: "json",
+        }),
+      ]);
+
+      const shouldDelete =
+        download?.automaticallyDeleteArchiveFiles ??
+        userPreferences?.deleteArchiveFilesAfterExtractionByDefault ??
+        false;
+
+      if (shouldDelete) {
+        for (const archivePath of archivePaths) {
+          await deleteArchiveFile(archivePath);
+        }
+      } else {
+        WindowManager.sendToAppWindows(
+          "on-archive-deletion-prompt",
+          archivePaths
+        );
+      }
+    }
+
+    return true;
+  }
+
   async extractFilesInDirectory(
     directoryPath: string,
     outerArchivePath?: string
@@ -217,87 +309,24 @@ export class GameFilesManager {
 
       if (pass === 0) this.updateExtractionProgress(0, true);
 
-      let completedFiles = 0;
-      for (const file of filesToExtract) {
-        try {
-          const result = await SevenZip.extractFile(
-            {
-              filePath: path.join(directoryPath, file),
-              cwd: path.dirname(path.join(directoryPath, file)),
-              passwords: ["online-fix.me", "steamrip.com"],
-            },
-            (progress) => {
-              const passProgress =
-                (completedFiles + progress.percent / 100) /
-                filesToExtract.length;
-              this.updateExtractionProgress((pass + passProgress) / 2);
-            }
-          );
-
-          if (result.success) {
-            completedFiles++;
-            extractedFiles.add(file);
-            this.updateExtractionProgress(
-              (pass + completedFiles / filesToExtract.length) / 2,
-              true
-            );
-          } else {
-            await this.setExtractionFailedState(
-              new Error(`7zip returned unsuccessful extraction for ${file}`),
-              path.join(directoryPath, file)
-            );
-            return false;
-          }
-        } catch (err) {
-          await this.setExtractionFailedState(
-            err,
-            path.join(directoryPath, file)
-          );
-          return false;
-        }
+      if (
+        !(await this.extractArchivePass(
+          directoryPath,
+          filesToExtract,
+          pass,
+          extractedFiles
+        ))
+      ) {
+        return false;
       }
     }
 
-    if (extractedFiles.size === 0) return true;
-    this.updateExtractionProgress(1, true);
-
-    if (outerArchivePath) {
-      // The inner archives remain available; remove the generated wrapper only
-      // after every discovered archive has extracted successfully.
-      await deleteArchiveFile(outerArchivePath);
-      return true;
-    }
-
-    const archivePaths = [...compressedFiles]
-      .map((file) => path.join(directoryPath, file))
-      .filter((archivePath) => fs.existsSync(archivePath));
-
-    if (archivePaths.length > 0) {
-      const [download, userPreferences] = await Promise.all([
-        downloadsSublevel.get(this.gameKey),
-        db.get<string, UserPreferences | null>(levelKeys.userPreferences, {
-          valueEncoding: "json",
-        }),
-      ]);
-
-      const shouldDelete =
-        download?.automaticallyDeleteArchiveFiles ??
-        userPreferences?.deleteArchiveFilesAfterExtractionByDefault ??
-        false;
-
-      if (shouldDelete) {
-        for (const archivePath of archivePaths) {
-          await deleteArchiveFile(archivePath);
-        }
-      } else {
-        WindowManager.sendToAppWindows(
-          "on-archive-deletion-prompt",
-          archivePaths
-        );
-      }
-    }
-
-    return true;
+    return this.finishArchiveExtraction(
+      directoryPath,
+      outerArchivePath,
+      compressedFiles,
+      extractedFiles
+    );
   }
 
   async setExtractionComplete(publishNotification = true) {

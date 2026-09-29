@@ -239,6 +239,34 @@ const buildTorrentTreeData = (
   };
 };
 
+const getProviderTorrentFiles = (
+  magnetUri: string,
+  downloader: Downloader | null
+) => {
+  if (downloader === Downloader.TorBox) {
+    return window.electron.getTorBoxFiles(magnetUri);
+  }
+
+  if (downloader === Downloader.Torrent) {
+    return window.electron.getTorrentFiles(magnetUri);
+  }
+
+  return window.electron.getDebridFiles(magnetUri, downloader!);
+};
+
+const rememberTorrentFiles = (
+  cache: Map<string, TorrentFilesResponse>,
+  downloader: Downloader | null,
+  key: string,
+  files: TorrentFilesResponse
+) => {
+  if (cache.size >= 20) {
+    const oldestKey = cache.keys().next().value;
+    if (oldestKey) cache.delete(oldestKey);
+  }
+  if (downloader === Downloader.Torrent) cache.set(key, files);
+};
+
 export function DownloadSettingsModal({
   visible,
   onClose,
@@ -829,15 +857,24 @@ export function DownloadSettingsModal({
       selectedDownloader !== Downloader.Torrent
         ? undefined
         : torrentFilesCache.current.get(cacheKey);
-    if (cached) {
-      if (isRequestOutdated()) return;
-      setTorrentFiles(cached.files);
-      setSelectedTorrentIndices(
-        new Set(cached.files.map((file) => file.index))
-      );
+    const setAvailableFiles = (files: TorrentFile[]) => {
+      setTorrentFiles(files);
+      setSelectedTorrentIndices(new Set(files.map((file) => file.index)));
       setExpandedFolderIds(new Set());
       setTorrentFilesError(null);
       setTorrentFilesLoading(false);
+    };
+    const setUnavailableFiles = (error: DownloadError) => {
+      setTorrentFiles([]);
+      setSelectedTorrentIndices(new Set());
+      setExpandedFolderIds(new Set());
+      setTorrentFilesError(error);
+      setTorrentFilesLoading(false);
+    };
+
+    if (cached) {
+      if (isRequestOutdated()) return;
+      setAvailableFiles(cached.files);
       return cached;
     }
 
@@ -849,58 +886,35 @@ export function DownloadSettingsModal({
       | { ok: false; error: string };
 
     try {
-      response =
-        selectedDownloader === Downloader.TorBox
-          ? await window.electron.getTorBoxFiles(selectedMagnetUri)
-          : selectedDownloader === Downloader.Torrent
-            ? await window.electron.getTorrentFiles(selectedMagnetUri)
-            : await window.electron.getDebridFiles(
-                selectedMagnetUri,
-                selectedDownloader!
-              );
+      response = await getProviderTorrentFiles(
+        selectedMagnetUri,
+        selectedDownloader
+      );
     } catch {
       if (isRequestOutdated()) return;
-      setTorrentFiles([]);
-      setSelectedTorrentIndices(new Set());
-      setExpandedFolderIds(new Set());
-      setTorrentFilesError(DownloadError.TorrentFilesUnavailable);
-      setTorrentFilesLoading(false);
+      setUnavailableFiles(DownloadError.TorrentFilesUnavailable);
       return null;
     }
 
     if (!response.ok) {
       if (isRequestOutdated()) return;
-      setTorrentFiles([]);
-      setSelectedTorrentIndices(new Set());
-      setExpandedFolderIds(new Set());
-      setTorrentFilesError(
+      setUnavailableFiles(
         Object.values(DownloadError).includes(response.error as DownloadError)
-          ? response.error
+          ? (response.error as DownloadError)
           : DownloadError.TorrentFilesUnavailable
       );
-      setTorrentFilesLoading(false);
       return null;
     }
 
     if (isRequestOutdated()) return;
 
-    if (torrentFilesCache.current.size >= 20) {
-      const oldestKey = torrentFilesCache.current.keys().next().value;
-      if (oldestKey) {
-        torrentFilesCache.current.delete(oldestKey);
-      }
-    }
-
-    if (selectedDownloader === Downloader.Torrent) {
-      torrentFilesCache.current.set(cacheKey, response.data);
-    }
-    setTorrentFiles(response.data.files);
-    setSelectedTorrentIndices(
-      new Set(response.data.files.map((file) => file.index))
+    rememberTorrentFiles(
+      torrentFilesCache.current,
+      selectedDownloader,
+      cacheKey,
+      response.data
     );
-    setExpandedFolderIds(new Set());
-    setTorrentFilesError(null);
-    setTorrentFilesLoading(false);
+    setAvailableFiles(response.data.files);
     return response.data;
   }, [canOpenTorrentStep, selectedDownloader, selectedMagnetUri]);
 
@@ -1287,24 +1301,27 @@ export function DownloadSettingsModal({
     Math.max(36, filteredTorrentRows.length * 36)
   );
 
-  let torrentRowsContent: ReactNode;
-  if (torrentFilesLoading) {
-    torrentRowsContent = (
-      <div className="download-settings-modal__torrent-files-feedback">
-        {t("loading_torrent_files")}
-      </div>
-    );
-  } else if (torrentFilesError) {
-    torrentRowsContent = (
-      <div className="download-settings-modal__torrent-files-feedback">
-        <span>{t(torrentFilesError)}</span>
-        <Button theme="outline" onClick={handleRetryFetchTorrentFiles}>
-          {t("retry_fetch_torrent_files")}
-        </Button>
-      </div>
-    );
-  } else {
-    torrentRowsContent = (
+  const renderTorrentRowsContent = (): ReactNode => {
+    if (torrentFilesLoading) {
+      return (
+        <div className="download-settings-modal__torrent-files-feedback">
+          {t("loading_torrent_files")}
+        </div>
+      );
+    }
+
+    if (torrentFilesError) {
+      return (
+        <div className="download-settings-modal__torrent-files-feedback">
+          <span>{t(torrentFilesError)}</span>
+          <Button theme="outline" onClick={handleRetryFetchTorrentFiles}>
+            {t("retry_fetch_torrent_files")}
+          </Button>
+        </div>
+      );
+    }
+
+    return (
       <div className="download-settings-modal__torrent-files-list">
         <div
           className="download-settings-modal__torrent-files-scroll"
@@ -1314,24 +1331,29 @@ export function DownloadSettingsModal({
         </div>
       </div>
     );
-  }
+  };
 
-  let downloadPathError: ReactNode;
-  if (hasWritePermission === false) {
-    downloadPathError = (
-      <span
-        className="download-settings-modal__path-error"
-        data-open-article="cannot-write-directory"
-      >
-        {t("no_write_permission")}
-      </span>
-    );
-  } else if (!hasEnoughDiskSpace) {
-    downloadPathError = t("not_enough_space_on_disk", {
-      required: formatBytes(requiredSpace ?? 0),
-      available: formatBytes(diskFreeSpace ?? 0),
-    });
-  }
+  const getDownloadPathError = (): ReactNode => {
+    if (hasWritePermission === false) {
+      return (
+        <span
+          className="download-settings-modal__path-error"
+          data-open-article="cannot-write-directory"
+        >
+          {t("no_write_permission")}
+        </span>
+      );
+    }
+
+    if (!hasEnoughDiskSpace) {
+      return t("not_enough_space_on_disk", {
+        required: formatBytes(requiredSpace ?? 0),
+        available: formatBytes(diskFreeSpace ?? 0),
+      });
+    }
+
+    return undefined;
+  };
 
   return (
     <Modal
@@ -1530,7 +1552,7 @@ export function DownloadSettingsModal({
             readOnly
             disabled
             label={t("download_path")}
-            error={downloadPathError}
+            error={getDownloadPathError()}
             rightContent={
               <Button
                 className="download-settings-modal__change-path-button"
@@ -1670,7 +1692,7 @@ export function DownloadSettingsModal({
             </button>
           </div>
 
-          {torrentRowsContent}
+          {renderTorrentRowsContent()}
 
           <div className="download-settings-modal__torrent-files-footer">
             <span className="download-settings-modal__torrent-files-summary">

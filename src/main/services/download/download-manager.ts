@@ -44,6 +44,8 @@ import { getRangeSizeForRequestBudget } from "./parallel-range-download";
 import {
   DEFAULT_DOWNLOAD_USER_AGENT,
   JsHttpDownloader,
+  type JsHttpDownloaderOptions,
+  type JsHttpDownloaderStatus,
 } from "./js-http-downloader";
 import {
   clampProgress,
@@ -471,7 +473,7 @@ export class DownloadManager {
       let batchFilesTotal: number | undefined;
       let batchFilesDownloaded: number | undefined;
 
-      if (this.jsBatch && this.jsBatch.downloadId === downloadId) {
+      if (this.jsBatch?.downloadId === downloadId) {
         const batch = this.jsBatch;
         const batchDone =
           batch.currentIndex >= batch.entries.length &&
@@ -1301,167 +1303,204 @@ export class DownloadManager {
     }
   }
 
+  private static async resolveBatchEntryUrl(
+    batch: JsBatchState,
+    entry: JsBatchEntry
+  ): Promise<string | undefined> {
+    this.assertSafeBatchPath(batch.savePath, entry.filename);
+    const url = entry.url;
+    if (batch.provider === "torBox") {
+      if (batch.torrentId === undefined || entry.fileId === undefined) {
+        throw new Error("The TorBox file selection is incomplete.");
+      }
+      return TorBoxClient.requestLink(
+        batch.torrentId,
+        entry.isZip ? "zip" : entry.fileId
+      );
+    }
+    if (batch.provider === "realDebrid" && entry.isLocked && url) {
+      const unlocked = await RealDebridClient.unlockFileWithDetails(
+        url,
+        entry.sourcePath ?? entry.filename,
+        entry.size ?? 0
+      );
+      entry.chunks = unlocked.chunks;
+      return unlocked.url;
+    }
+    if (batch.provider === "allDebrid" && entry.isLocked && url) {
+      return AllDebridClient.unlockDownloadLink(url);
+    }
+    if (
+      batch.provider === "premiumize" &&
+      batch.sourceUri &&
+      entry.fileIndex !== undefined
+    ) {
+      const entries = await PremiumizeClient.getDownloadEntries(
+        batch.sourceUri,
+        [entry.fileIndex]
+      );
+      return entries?.[0]?.url;
+    }
+    return url;
+  }
+
+  private static getBatchDownloadOptions(
+    batch: JsBatchState,
+    entry: JsBatchEntry,
+    url: string
+  ): JsHttpDownloaderOptions {
+    const torBoxTorrentId = batch.torrentId;
+    const torBoxFileId = entry.isZip ? "zip" : entry.fileId;
+    const torBoxParallel = batch.provider === "torBox" && !entry.isZip;
+    const canRefreshTorBoxLink =
+      batch.provider === "torBox" &&
+      torBoxTorrentId !== undefined &&
+      torBoxFileId !== undefined;
+    return {
+      url,
+      refreshUrl: canRefreshTorBoxLink
+        ? () => TorBoxClient.requestLink(torBoxTorrentId!, torBoxFileId!)
+        : undefined,
+      savePath: batch.savePath,
+      allowParallelRanges:
+        !entry.isZip && !isZipDownloadUrl(url, entry.filename),
+      parallelRangeSize: torBoxParallel
+        ? getRangeSizeForRequestBudget(
+            entry.size ?? 0,
+            TORBOX_MAX_PARALLEL_RANGES
+          )
+        : undefined,
+      parallelRangeConnections:
+        batch.provider === "realDebrid"
+          ? realDebridConnections(entry.chunks)
+          : undefined,
+      maxParallelRanges: torBoxParallel
+        ? TORBOX_MAX_PARALLEL_RANGES
+        : undefined,
+      preserveFilename: true,
+      // Verify a regenerated ZIP's saved prefix before appending new data.
+      verifyResumePrefix: Boolean(entry.isZip),
+      filename:
+        batch.provider === "torBox"
+          ? entry.filename
+          : this.sanitizeRelativePath(entry.filename),
+    };
+  }
+
+  private static async rejectMismatchedBatchEntry(
+    batch: JsBatchState,
+    entry: JsBatchEntry,
+    downloader: JsHttpDownloader,
+    status: JsHttpDownloaderStatus
+  ): Promise<boolean> {
+    const expectedSize = entry.size ?? 0;
+    const requiresExactSize =
+      batch.provider === "torBox" ||
+      batch.provider === "realDebrid" ||
+      batch.provider === "premiumize";
+    const sizeMismatch =
+      !entry.isZip &&
+      (requiresExactSize
+        ? status.bytesDownloaded !== expectedSize
+        : expectedSize > 0 && status.bytesDownloaded < expectedSize * 0.95);
+    if (!sizeMismatch) return false;
+
+    logger.error(
+      `[DownloadManager] ${batch.provider} batch entry ${batch.currentIndex} size mismatch: ` +
+        `downloaded=${status.bytesDownloaded} expected=${expectedSize}. ` +
+        `The download URL may have returned an error page.`
+    );
+    const mismatchDownloadId = this.jsBatch?.downloadId;
+    if (batch.provider === "torBox") {
+      await fs.promises
+        .unlink(path.join(batch.savePath, entry.filename))
+        .catch(() => undefined);
+    }
+    if (this.jsBatch !== batch || this.jsDownloader !== downloader) return true;
+    this.cleanupBatch();
+    if (mismatchDownloadId) {
+      await this.handleRuntimeDownloadError(
+        mismatchDownloadId,
+        new Error(
+          "A downloaded file returned fewer bytes than expected. Its link may have expired."
+        )
+      );
+    }
+    return true;
+  }
+
+  private static bankCompletedBatchEntry(
+    batch: JsBatchState,
+    entry: JsBatchEntry,
+    status: JsHttpDownloaderStatus
+  ): void {
+    const expectedSize = entry.size ?? 0;
+    if (entry.isZip && expectedSize !== status.bytesDownloaded) {
+      batch.totalBytes += status.bytesDownloaded - expectedSize;
+    }
+    const bankedBytes =
+      entry.isZip || !entry.size || entry.size <= 0
+        ? status.bytesDownloaded
+        : entry.size;
+    batch.completedBytes += bankedBytes;
+    batch.currentIndex += 1;
+  }
+
+  private static async runJsBatchEntry(
+    batch: JsBatchState,
+    downloader: JsHttpDownloader,
+    entry: JsBatchEntry
+  ): Promise<boolean> {
+    try {
+      const url = await this.resolveBatchEntryUrl(batch, entry);
+      if (this.jsBatch !== batch || this.jsDownloader !== downloader) {
+        return false;
+      }
+      if (!url) throw new Error("The download link is unavailable.");
+
+      const options = this.getBatchDownloadOptions(batch, entry, url);
+      this.logResolvedUrl(options.url);
+      batch.activeIndex = batch.currentIndex;
+      await downloader.startDownload(options);
+
+      if (this.jsBatch !== batch || this.jsDownloader !== downloader) {
+        return false;
+      }
+      const status = downloader.getDownloadStatus();
+      if (!status || status.status === "paused" || status.status === "error") {
+        return false;
+      }
+      if (
+        await this.rejectMismatchedBatchEntry(batch, entry, downloader, status)
+      ) {
+        return false;
+      }
+      this.bankCompletedBatchEntry(batch, entry, status);
+      return true;
+    } catch (err) {
+      if (this.jsBatch !== batch || this.jsDownloader !== downloader) {
+        return false;
+      }
+      logger.error(
+        `[DownloadManager] ${batch.provider} batch entry error:`,
+        err
+      );
+      const failedDownloadId = this.jsBatch?.downloadId;
+      this.cleanupBatch();
+      if (failedDownloadId) {
+        await this.handleRuntimeDownloadError(failedDownloadId, err);
+      }
+      return false;
+    }
+  }
+
   private static async runJsBatch() {
     while (this.jsBatch && this.jsDownloader) {
       const batch = this.jsBatch;
       const downloader = this.jsDownloader;
       const entry = batch.entries[batch.currentIndex];
       if (!entry) break;
-
-      try {
-        let resolvedUrl: string | undefined = entry.url;
-        this.assertSafeBatchPath(batch.savePath, entry.filename);
-        if (batch.provider === "torBox") {
-          if (batch.torrentId === undefined || entry.fileId === undefined) {
-            throw new Error("The TorBox file selection is incomplete.");
-          }
-          resolvedUrl = await TorBoxClient.requestLink(
-            batch.torrentId,
-            entry.isZip ? "zip" : entry.fileId
-          );
-        } else if (
-          batch.provider === "realDebrid" &&
-          entry.isLocked &&
-          resolvedUrl
-        ) {
-          const unlocked = await RealDebridClient.unlockFileWithDetails(
-            resolvedUrl,
-            entry.sourcePath ?? entry.filename,
-            entry.size ?? 0
-          );
-          resolvedUrl = unlocked.url;
-          entry.chunks = unlocked.chunks;
-        } else if (
-          batch.provider === "allDebrid" &&
-          entry.isLocked &&
-          resolvedUrl
-        ) {
-          resolvedUrl = await AllDebridClient.unlockDownloadLink(resolvedUrl);
-        } else if (
-          batch.provider === "premiumize" &&
-          batch.sourceUri &&
-          entry.fileIndex !== undefined
-        ) {
-          const freshEntries = await PremiumizeClient.getDownloadEntries(
-            batch.sourceUri,
-            [entry.fileIndex]
-          );
-          resolvedUrl = freshEntries?.[0]?.url;
-        }
-
-        if (this.jsBatch !== batch || this.jsDownloader !== downloader) break;
-        if (!resolvedUrl) throw new Error("The download link is unavailable.");
-
-        const torBoxTorrentId = batch.torrentId;
-        const torBoxFileId = entry.isZip ? "zip" : entry.fileId;
-        const torBoxParallel = batch.provider === "torBox" && !entry.isZip;
-        const options = {
-          url: resolvedUrl,
-          refreshUrl:
-            batch.provider === "torBox" &&
-            torBoxTorrentId !== undefined &&
-            torBoxFileId !== undefined
-              ? () => TorBoxClient.requestLink(torBoxTorrentId, torBoxFileId)
-              : undefined,
-          savePath: batch.savePath,
-          allowParallelRanges:
-            !entry.isZip && !isZipDownloadUrl(resolvedUrl, entry.filename),
-          parallelRangeSize: torBoxParallel
-            ? getRangeSizeForRequestBudget(
-                entry.size ?? 0,
-                TORBOX_MAX_PARALLEL_RANGES
-              )
-            : undefined,
-          parallelRangeConnections:
-            batch.provider === "realDebrid"
-              ? realDebridConnections(entry.chunks)
-              : undefined,
-          maxParallelRanges: torBoxParallel
-            ? TORBOX_MAX_PARALLEL_RANGES
-            : undefined,
-          preserveFilename: true,
-          // Verify a regenerated ZIP's saved prefix before appending new data.
-          verifyResumePrefix: Boolean(entry.isZip),
-          filename:
-            batch.provider === "torBox"
-              ? entry.filename
-              : this.sanitizeRelativePath(entry.filename),
-        };
-
-        this.logResolvedUrl(options.url);
-        batch.activeIndex = batch.currentIndex;
-        await downloader.startDownload(options);
-
-        if (this.jsBatch !== batch || this.jsDownloader !== downloader) break;
-
-        const dlStatus = downloader.getDownloadStatus();
-        if (
-          !dlStatus ||
-          dlStatus.status === "paused" ||
-          dlStatus.status === "error"
-        ) {
-          break;
-        }
-
-        const expectedSize = entry.size ?? 0;
-        const requiresExactSize =
-          batch.provider === "torBox" ||
-          batch.provider === "realDebrid" ||
-          batch.provider === "premiumize";
-        const sizeMismatch =
-          !entry.isZip &&
-          (requiresExactSize
-            ? dlStatus.bytesDownloaded !== expectedSize
-            : expectedSize > 0 &&
-              dlStatus.bytesDownloaded < expectedSize * 0.95);
-        if (sizeMismatch) {
-          logger.error(
-            `[DownloadManager] ${batch.provider} batch entry ${batch.currentIndex} size mismatch: ` +
-              `downloaded=${dlStatus.bytesDownloaded} expected=${expectedSize}. ` +
-              `The download URL may have returned an error page.`
-          );
-          const mismatchDownloadId = this.jsBatch?.downloadId;
-          if (batch.provider === "torBox") {
-            await fs.promises
-              .unlink(path.join(batch.savePath, entry.filename))
-              .catch(() => undefined);
-          }
-          if (this.jsBatch !== batch || this.jsDownloader !== downloader)
-            return;
-          this.cleanupBatch();
-          if (mismatchDownloadId) {
-            await this.handleRuntimeDownloadError(
-              mismatchDownloadId,
-              new Error(
-                "A downloaded file returned fewer bytes than expected. Its link may have expired."
-              )
-            );
-          }
-          return;
-        }
-
-        if (entry.isZip && expectedSize !== dlStatus.bytesDownloaded) {
-          batch.totalBytes += dlStatus.bytesDownloaded - expectedSize;
-        }
-        const bankedBytes =
-          entry.isZip || !entry.size || entry.size <= 0
-            ? dlStatus.bytesDownloaded
-            : entry.size;
-        batch.completedBytes += bankedBytes;
-        batch.currentIndex += 1;
-      } catch (err) {
-        if (this.jsBatch !== batch || this.jsDownloader !== downloader) return;
-        logger.error(
-          `[DownloadManager] ${batch.provider} batch entry error:`,
-          err
-        );
-        const failedDownloadId = this.jsBatch?.downloadId;
-        this.cleanupBatch();
-        if (failedDownloadId) {
-          await this.handleRuntimeDownloadError(failedDownloadId, err);
-        }
-        return;
-      }
+      if (!(await this.runJsBatchEntry(batch, downloader, entry))) break;
     }
   }
 
@@ -1619,11 +1658,12 @@ export class DownloadManager {
     if (resolved.torrentId) download.realDebridTorrentId = resolved.torrentId;
     const entries = resolved.entries;
     const first = entries?.[0];
-    const downloadUrl = first
-      ? first.isLocked
+    let downloadUrl: string | null = null;
+    if (first) {
+      downloadUrl = first.isLocked
         ? await RealDebridClient.unlockFile(first.url, first.path, first.size)
-        : first.url
-      : null;
+        : first.url;
+    }
     if (!downloadUrl) throw new Error(DownloadError.NotCachedOnRealDebrid);
     const filename = this.resolveFilename(
       resumingFilename,

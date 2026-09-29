@@ -459,6 +459,46 @@ export class DownloadOrchestrator {
     return syncDownloadLayoutState(downloads);
   }
 
+  private static async prepareRealDebridForQueue(
+    download: Download,
+    isCurrent: () => boolean
+  ): Promise<boolean> {
+    if (
+      download.downloader !== Downloader.RealDebrid ||
+      !download.uri.startsWith("magnet:")
+    ) {
+      return true;
+    }
+
+    try {
+      const resolved = await RealDebridClient.getDownloadEntriesWithTorrent(
+        download.uri,
+        download.fileIndices,
+        download.realDebridTorrentId
+      );
+      if (!isCurrent()) return false;
+      if (resolved.torrentId) download.realDebridTorrentId = resolved.torrentId;
+      if (!resolved.entries?.length) {
+        await this.saveAwaitingDebridDownload(download);
+        return false;
+      }
+      return true;
+    } catch (error) {
+      if (!isCurrent()) return false;
+      if (isDebridPendingError(error, download.downloader)) {
+        await this.saveAwaitingDebridDownload(download);
+        return false;
+      }
+      await downloadsSublevel.put(getGameKey(download), {
+        ...download,
+        status: "error",
+        queued: false,
+      });
+      WindowManager.sendDownloadsUpdated();
+      throw error;
+    }
+  }
+
   static async startPreparedDownload(
     download: Download,
     isCurrent: () => boolean = () => true
@@ -473,38 +513,8 @@ export class DownloadOrchestrator {
       ) ?? null;
 
     if (currentActiveDownload) {
-      if (
-        download.downloader === Downloader.RealDebrid &&
-        download.uri.startsWith("magnet:")
-      ) {
-        try {
-          const resolved = await RealDebridClient.getDownloadEntriesWithTorrent(
-            download.uri,
-            download.fileIndices,
-            download.realDebridTorrentId
-          );
-          if (!isCurrent()) return { ok: true };
-          if (resolved.torrentId) {
-            download.realDebridTorrentId = resolved.torrentId;
-          }
-          if (!resolved.entries?.length) {
-            await this.saveAwaitingDebridDownload(download);
-            return { ok: true };
-          }
-        } catch (error) {
-          if (!isCurrent()) return { ok: true };
-          if (isDebridPendingError(error, download.downloader)) {
-            await this.saveAwaitingDebridDownload(download);
-            return { ok: true };
-          }
-          await downloadsSublevel.put(getGameKey(download), {
-            ...download,
-            status: "error",
-            queued: false,
-          });
-          WindowManager.sendDownloadsUpdated();
-          throw error;
-        }
+      if (!(await this.prepareRealDebridForQueue(download, isCurrent))) {
+        return { ok: true };
       }
       await this.queueDownload(download);
       WindowManager.sendDownloadsUpdated();
@@ -709,30 +719,13 @@ export class DownloadOrchestrator {
     }
 
     if (targetArea === "queue") {
-      if (isHero && isActiveLikeDownload(download)) {
-        await DownloadManager.pauseDownload(getGameKey(download));
-        WindowManager.sendToAppWindows("on-download-progress", null);
-        await this.setDownloadPausedState(download, { queued: true });
-      } else {
-        await this.setDownloadPausedState(download, { queued: true });
-      }
-
-      const nextDownloads = await this.getAllDownloads();
-      await setDownloadLayoutQueues(
-        nextDownloads,
-        withInsertedId(queueIds, downloadId, targetIndex),
-        pausedIds
+      return this.moveDownloadToQueue(
+        download,
+        isHero,
+        queueIds,
+        pausedIds,
+        targetIndex
       );
-
-      if (isHero) {
-        await this.startNextQueuedDownload(
-          nextDownloads.filter((entry) => getDownloadId(entry) !== downloadId)
-        );
-      } else {
-        WindowManager.sendDownloadsUpdated();
-      }
-
-      return true;
     }
 
     if (isHero && isActiveLikeDownload(download)) {
@@ -751,6 +744,38 @@ export class DownloadOrchestrator {
       withInsertedId(pausedIds, downloadId, targetIndex)
     );
     WindowManager.sendDownloadsUpdated();
+
+    return true;
+  }
+
+  private static async moveDownloadToQueue(
+    download: Download,
+    isHero: boolean,
+    queueIds: string[],
+    pausedIds: string[],
+    targetIndex?: number
+  ): Promise<boolean> {
+    const downloadId = getDownloadId(download);
+    if (isHero && isActiveLikeDownload(download)) {
+      await DownloadManager.pauseDownload(getGameKey(download));
+      WindowManager.sendToAppWindows("on-download-progress", null);
+    }
+    await this.setDownloadPausedState(download, { queued: true });
+
+    const nextDownloads = await this.getAllDownloads();
+    await setDownloadLayoutQueues(
+      nextDownloads,
+      withInsertedId(queueIds, downloadId, targetIndex),
+      pausedIds
+    );
+
+    if (isHero) {
+      await this.startNextQueuedDownload(
+        nextDownloads.filter((entry) => getDownloadId(entry) !== downloadId)
+      );
+    } else {
+      WindowManager.sendDownloadsUpdated();
+    }
 
     return true;
   }

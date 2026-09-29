@@ -8,14 +8,17 @@ import {
 } from "@main/services";
 import { createGame } from "@main/services/library-sync";
 import { downloadsSublevel, gamesSublevel, levelKeys } from "@main/level";
-import { Downloader, parseBytes } from "@shared";
+import { parseBytes } from "@shared";
 import {
   getGlobalTrackers,
   handleDownloadError,
   isKnownDownloadError,
   prepareGameEntry,
 } from "@main/helpers";
-import { isDebridPendingError } from "@main/services/download/debrid-pending";
+import {
+  preparesRealDebridInBackground,
+  validateDownloadOrMarkPending,
+} from "./validate-download";
 
 const addGameToQueue = async (
   _event: Electron.IpcMainInvokeEvent,
@@ -66,13 +69,8 @@ const addGameToQueue = async (
       customTrackers: globalTrackers,
     };
 
-    if (downloader !== Downloader.RealDebrid || !uri.startsWith("magnet:")) {
-      try {
-        await DownloadManager.validateDownloadUrl(download);
-      } catch (error) {
-        if (!isDebridPendingError(error, downloader)) throw error;
-        download.awaitingDebrid = true;
-      }
+    if (!preparesRealDebridInBackground(download)) {
+      await validateDownloadOrMarkPending(download);
     }
     await prepareGameEntry({ gameKey, title, objectId, shop });
     await DownloadManager.cancelDownload(gameKey).catch(() => null);

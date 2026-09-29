@@ -493,16 +493,15 @@ export class AllDebridClient {
       return null;
     }
 
-    const entries = links
-      .sort((a, b) => a.relativePath.localeCompare(b.relativePath))
-      .map((file) => ({
-        index: stableDebridFileIndex(file.relativePath, file.size ?? 0),
-        path: file.relativePath,
-        url: file.link,
-        filename: file.relativePath,
-        size: file.size ?? 0,
-        isLocked: true,
-      }));
+    links.sort((a, b) => a.relativePath.localeCompare(b.relativePath));
+    const entries = links.map((file) => ({
+      index: stableDebridFileIndex(file.relativePath, file.size ?? 0),
+      path: file.relativePath,
+      url: file.link,
+      filename: file.relativePath,
+      size: file.size ?? 0,
+      isLocked: true,
+    }));
     return selectDebridFiles(entries, selectedIndices);
   }
 

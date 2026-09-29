@@ -1,4 +1,4 @@
-import type { TorBoxTorrentInfo } from "@types";
+import type { TorBoxFile, TorBoxTorrentInfo } from "@types";
 
 export interface TorBoxDownloadFile {
   id: number;
@@ -46,18 +46,56 @@ const decodeHtmlEntities = (value: string): string =>
   );
 
 const sanitizeSegment = (segment: string): string => {
-  const cleaned = Array.from(
+  const trimmed = Array.from(
     decodeHtmlEntities(segment).normalize("NFC"),
     (char) =>
-      char.charCodeAt(0) < 32 || /[<>:"/\\|?*]/.test(char) ? "_" : char
+      char.codePointAt(0)! < 32 || /[<>:"/\\|?*]/.test(char) ? "_" : char
   )
     .join("")
-    .trim()
-    .replaceAll(/[. ]+$/g, "_");
+    .trim();
+  let lastNonDot = trimmed.length - 1;
+  while (lastNonDot >= 0 && trimmed[lastNonDot] === ".") lastNonDot--;
+  const cleaned =
+    lastNonDot === trimmed.length - 1
+      ? trimmed
+      : `${trimmed.slice(0, lastNonDot + 1)}_`;
   return /^(con|prn|aux|nul|com[1-9]|lpt[1-9])(?:\.|$)/i.test(cleaned)
     ? `_${cleaned}`
     : cleaned;
 };
+
+function buildZippedManifest(
+  torrent: TorBoxTorrentInfo,
+  name: string,
+  zippedFile: TorBoxFile
+): TorBoxDownloadManifest {
+  if (!Number.isSafeInteger(zippedFile.id)) {
+    throw new TypeError("TorBox returned an invalid file ID.");
+  }
+  const archiveName = name.toLowerCase().endsWith(".zip")
+    ? name
+    : `${name}.zip`;
+  let size = 0;
+  if (Number.isSafeInteger(zippedFile.size) && zippedFile.size > 0) {
+    size = zippedFile.size;
+  } else if (Number.isSafeInteger(torrent.size) && torrent.size > 0) {
+    size = torrent.size;
+  }
+  return {
+    torrentId: torrent.id,
+    name,
+    files: [
+      {
+        id: zippedFile.id,
+        path: `${name}/${archiveName}`,
+        size,
+        isZip: true,
+      },
+    ],
+    totalSize: size,
+    archiveOnly: true,
+  };
+}
 
 export function buildTorBoxDownloadManifest(
   torrent: TorBoxTorrentInfo,
@@ -90,32 +128,7 @@ export function buildTorBoxDownloadManifest(
   // provides a ZIP link for this case, but not links to its original files.
   const zippedFile = torrent.files.find((file) => file.zipped);
   if (zippedFile) {
-    if (!Number.isSafeInteger(zippedFile.id)) {
-      throw new Error("TorBox returned an invalid file ID.");
-    }
-    const archiveName = name.toLowerCase().endsWith(".zip")
-      ? name
-      : `${name}.zip`;
-    const size =
-      Number.isSafeInteger(zippedFile.size) && zippedFile.size > 0
-        ? zippedFile.size
-        : Number.isSafeInteger(torrent.size) && torrent.size > 0
-          ? torrent.size
-          : 0;
-    return {
-      torrentId: torrent.id,
-      name,
-      files: [
-        {
-          id: zippedFile.id,
-          path: `${name}/${archiveName}`,
-          size,
-          isZip: true,
-        },
-      ],
-      totalSize: size,
-      archiveOnly: true,
-    };
+    return buildZippedManifest(torrent, name, zippedFile);
   }
 
   const seenIds = new Set<number>();

@@ -116,7 +116,7 @@ export class JsHttpDownloader {
   private bytesTransferredInThrottleWindow = 0;
   private parallelRangesDisabled = false;
   private parallelRangeFailures = 0;
-  private pendingRangeReads = new Map<number, number>();
+  private readonly pendingRangeReads = new Map<number, number>();
   private urlRefreshAttempted = false;
   private activeRun: Promise<void> | null = null;
 
@@ -302,40 +302,7 @@ export class JsHttpDownloader {
     }
 
     if (isRetryable && this.retryCount < MAX_RETRY_ATTEMPTS) {
-      this.retryCount++;
-      this.isReconnecting = true;
-      this.downloadSpeed = 0;
-      if (!this.urlRefreshAttempted && this.currentOptions?.refreshUrl) {
-        this.urlRefreshAttempted = true;
-        try {
-          const freshUrl = await this.currentOptions.refreshUrl();
-          if (this.isPaused) return false;
-          if (freshUrl) {
-            this.currentOptions = { ...this.currentOptions, url: freshUrl };
-            logger.log("[JsHttpDownloader] Refreshed download link for retry");
-          }
-        } catch {
-          logger.warn(
-            "[JsHttpDownloader] Could not refresh download link for retry"
-          );
-        }
-      }
-      const delay = Math.min(
-        INITIAL_RETRY_DELAY_MS * Math.pow(2, this.retryCount - 1),
-        MAX_RETRY_DELAY_MS
-      );
-
-      const causeCode = (err.cause as NodeJS.ErrnoException | undefined)?.code;
-      const reason = wasStallRetry
-        ? "stall detected"
-        : `${err.message}${causeCode ? ` (${causeCode})` : ""}`;
-      logger.log(
-        `[JsHttpDownloader] Retryable error (${reason}). ` +
-          `Retry ${this.retryCount}/${MAX_RETRY_ATTEMPTS} in ${delay}ms`
-      );
-
-      await this.sleep(delay);
-      return !this.isPaused;
+      return this.retryAfterError(err, wasStallRetry);
     }
 
     if (wasStallRetry) {
@@ -355,6 +322,52 @@ export class JsHttpDownloader {
 
     this.handleDownloadError(err);
     return false;
+  }
+
+  private async refreshUrlOnRetry(): Promise<boolean> {
+    if (this.urlRefreshAttempted || !this.currentOptions?.refreshUrl) {
+      return false;
+    }
+    this.urlRefreshAttempted = true;
+    try {
+      const freshUrl = await this.currentOptions.refreshUrl();
+      if (this.isPaused) return true;
+      if (freshUrl) {
+        this.currentOptions = { ...this.currentOptions, url: freshUrl };
+        logger.log("[JsHttpDownloader] Refreshed download link for retry");
+      }
+    } catch {
+      logger.warn(
+        "[JsHttpDownloader] Could not refresh download link for retry"
+      );
+    }
+    return false;
+  }
+
+  private async retryAfterError(
+    err: Error,
+    wasStallRetry: boolean
+  ): Promise<boolean> {
+    this.retryCount++;
+    this.isReconnecting = true;
+    this.downloadSpeed = 0;
+    if (await this.refreshUrlOnRetry()) return false;
+
+    const delay = Math.min(
+      INITIAL_RETRY_DELAY_MS * Math.pow(2, this.retryCount - 1),
+      MAX_RETRY_DELAY_MS
+    );
+    const causeCode = (err.cause as NodeJS.ErrnoException | undefined)?.code;
+    let reason = err.message;
+    if (wasStallRetry) reason = "stall detected";
+    else if (causeCode) reason += ` (${causeCode})`;
+    logger.log(
+      `[JsHttpDownloader] Retryable error (${reason}). ` +
+        `Retry ${this.retryCount}/${MAX_RETRY_ATTEMPTS} in ${delay}ms`
+    );
+
+    await this.sleep(delay);
+    return !this.isPaused;
   }
 
   private maybeResetRetryBudget(): void {
@@ -1039,61 +1052,64 @@ export class JsHttpDownloader {
     };
     let remainingToSkip = skipBytes;
 
+    const finishRead = (output: Readable) => {
+      if (remainingToSkip > 0) {
+        output.destroy(
+          new Error(
+            `[JsHttpDownloader] Server body shorter than the existing partial (missing ${remainingToSkip} bytes); refusing to append a truncated file.`
+          )
+        );
+      } else {
+        output.push(null);
+      }
+    };
+
+    const processValue = async (value: Uint8Array, output: Readable) => {
+      countReceived(value.length);
+      const plan = applySkip(remainingToSkip, value.length);
+      remainingToSkip = plan.newRemainingToSkip;
+      const skipped = plan.shouldWrite ? plan.writeOffset : value.length;
+      if (savedPrefix && skipped > 0) {
+        await verifyResumePrefixChunk(
+          savedPrefix,
+          value,
+          prefixOffset,
+          skipped
+        );
+        prefixOffset += skipped;
+      }
+      applyRecoveryTracking(plan, value.length);
+      if (!plan.shouldWrite) return false;
+
+      const chunk =
+        plan.writeOffset > 0 ? value.subarray(plan.writeOffset) : value;
+      await applyThrottle(chunk.length);
+      onChunk(chunk.length);
+      output.push(Buffer.from(chunk));
+      return true;
+    };
+
+    const readNext = async (output: Readable) => {
+      try {
+        for (;;) {
+          markReadPending();
+          const { done, value } = await reader.read();
+          clearReadPending();
+          if (done) {
+            finishRead(output);
+            return;
+          }
+          if (await processValue(value, output)) return;
+        }
+      } catch (error) {
+        clearReadPending();
+        output.destroy(error as Error);
+      }
+    };
+
     return new Readable({
       read() {
-        void (async () => {
-          try {
-            for (;;) {
-              markReadPending();
-              const { done, value } = await reader.read();
-              clearReadPending();
-
-              if (done) {
-                if (remainingToSkip > 0) {
-                  this.destroy(
-                    new Error(
-                      `[JsHttpDownloader] Server body shorter than the existing partial (missing ${remainingToSkip} bytes); refusing to append a truncated file.`
-                    )
-                  );
-                  return;
-                }
-                this.push(null);
-                return;
-              }
-
-              countReceived(value.length);
-
-              const plan = applySkip(remainingToSkip, value.length);
-              remainingToSkip = plan.newRemainingToSkip;
-              const skipped = plan.shouldWrite
-                ? plan.writeOffset
-                : value.length;
-              if (savedPrefix && skipped > 0) {
-                await verifyResumePrefixChunk(
-                  savedPrefix,
-                  value,
-                  prefixOffset,
-                  skipped
-                );
-                prefixOffset += skipped;
-              }
-              applyRecoveryTracking(plan, value.length);
-              if (!plan.shouldWrite) {
-                continue;
-              }
-
-              const chunk =
-                plan.writeOffset > 0 ? value.subarray(plan.writeOffset) : value;
-              await applyThrottle(chunk.length);
-              onChunk(chunk.length);
-              this.push(Buffer.from(chunk));
-              return;
-            }
-          } catch (err) {
-            clearReadPending();
-            this.destroy(err as Error);
-          }
-        })();
+        void readNext(this);
       },
       destroy(err, callback) {
         reader
