@@ -5,7 +5,6 @@ import { SystemPath } from "@main/services/system-path";
 import type {
   CloudSaveGameId,
   CloudSavePathContext,
-  LocalGameSnapshotContext,
   RemoteGameSnapshot,
   RemoteSnapshotSummary,
   ReplaceRestoreTarget,
@@ -40,9 +39,8 @@ import {
   registerCloudSaveCustomPaths,
 } from "./custom-path-store";
 import { inferCustomPathKind } from "./custom-path-kind";
-import { assertFilesystemEmulatorRestoreRoots } from "./missing-emulator-restore-root";
-import { assertEmulatorDestinationBindingsCurrent } from "./emulator-destination-store";
-import { approveEmulatorStateRestore } from "./state-restore-confirmation";
+import { getEmulatorSaveProvider } from "./emulator-save-provider";
+import { assertRestorePlanUnchanged } from "./emulator-restore-plan";
 import {
   bindCloudSaveCustomPathToLocalPath,
   CLOUD_SAVE_CUSTOM_PATH_PREFIX,
@@ -52,11 +50,6 @@ import {
 interface RestoreCloudSaveContext {
   environmentId: string;
   pathContext: CloudSavePathContext;
-}
-
-interface EmulatorRestoreRootSafety {
-  local: LocalGameSnapshotContext;
-  safeMissingEntryIds: string[];
 }
 
 type DownloadedRestoreFile = Awaited<
@@ -190,8 +183,7 @@ export const restoreRemoteSnapshot = async (
   updateAnchor = true,
   carriedUnresolvedEntryIds: string[] = [],
   versionChangeAttempt = 0,
-  assertEnvironmentCurrent?: () => Promise<void>,
-  emulatorRootSafety?: EmulatorRestoreRootSafety
+  assertEnvironmentCurrent?: () => Promise<void>
 ): Promise<RestoreRemoteSnapshotResult> => {
   assertCloudSaveSubscription();
 
@@ -226,51 +218,54 @@ export const restoreRemoteSnapshot = async (
   if (requestedIds && selectedFiles.length !== requestedIds.size) {
     throw new Error("Requested restore file is missing from manifest");
   }
-  const resolvedGameContext = await getCloudSaveGameContext(
+  let resolvedGameContext = await getCloudSaveGameContext(
     gameId.objectId,
     gameId.shop
   );
+  if (getEmulatorSaveProvider(resolvedGameContext.game) === "rpcs3") {
+    const { ensureRpcs3ProfileBindingForAnalysis } = await import(
+      "./rpcs3-save-provider"
+    );
+    if (
+      await ensureRpcs3ProfileBindingForAnalysis(
+        resolvedGameContext.game!,
+        selectedFiles
+      )
+    ) {
+      resolvedGameContext = await getCloudSaveGameContext(
+        gameId.objectId,
+        gameId.shop
+      );
+    }
+  }
+  if (
+    suppliedContext &&
+    getEmulatorSaveProvider(resolvedGameContext.game) &&
+    suppliedContext.environmentId !== resolvedGameContext.environmentId
+  ) {
+    throw new Error("cloud_save_restore_destination_changed");
+  }
   const cloudSaveContext = suppliedContext ?? resolvedGameContext;
   const game = resolvedGameContext.game;
-  const rejectedStateIds = await approveEmulatorStateRestore(
-    game,
-    selectedFiles
-  );
-  const applicableSelectedFiles = selectedFiles.filter(
-    (file) => !rejectedStateIds.has(cloudSaveFileKey(file))
-  );
-  const usedVariantIds = new Set(
-    applicableSelectedFiles.map((file) => file.variantId)
-  );
+  const usedVariantIds = new Set(selectedFiles.map((file) => file.variantId));
   const selectedManifest = {
     ...manifest,
     variants: manifest.variants.filter((variant) =>
       usedVariantIds.has(variant.variantId)
     ),
-    files: applicableSelectedFiles,
+    files: selectedFiles,
   };
-  emitProgress("resolving", 0, applicableSelectedFiles.length);
+  emitProgress("resolving", 0, selectedFiles.length);
   const plan = await resolveRestoreManifestTargets(
     selectedManifest,
     cloudSaveContext.pathContext
   );
-  const applicableFileCount =
-    applicableSelectedFiles.length - plan.deferred.length;
+  const applicableFileCount = selectedFiles.length - plan.deferred.length;
   emitProgress("resolving", plan.actions.length, applicableFileCount);
 
   const restoreTargets = plan.actions.filter(
     (target) => target.action !== "skip-identical"
   );
-  if (emulatorRootSafety) {
-    await assertFilesystemEmulatorRestoreRoots(
-      restoreTargets,
-      emulatorRootSafety.local,
-      new Set(emulatorRootSafety.safeMissingEntryIds),
-      game
-    );
-  }
-  await assertEmulatorDestinationBindingsCurrent(game, restoreTargets);
-
   try {
     emitProgress("downloading", 0, restoreTargets.length);
     const downloadedFiles = await downloadRemoteSnapshotToTemp(
@@ -300,27 +295,31 @@ export const restoreRemoteSnapshot = async (
           updateAnchor,
           carriedUnresolvedEntryIds,
           1,
-          assertEnvironmentCurrent,
-          emulatorRootSafety
+          assertEnvironmentCurrent
         );
       }
       throw new Error("cloud_save_restore_snapshot_changed_twice");
     }
 
+    await assertEnvironmentCurrent?.();
+    if (getEmulatorSaveProvider(game)) {
+      const currentContext = await getCloudSaveGameContext(
+        gameId.objectId,
+        gameId.shop
+      );
+      if (currentContext.environmentId !== cloudSaveContext.environmentId) {
+        throw new Error("cloud_save_restore_destination_changed");
+      }
+      const currentPlan = await resolveRestoreManifestTargets(
+        selectedManifest,
+        currentContext.pathContext
+      );
+      assertRestorePlanUnchanged(plan, currentPlan);
+    }
     const replacements: ReplaceRestoreTarget[] = buildRestoreReplacements(
       plan.actions,
       downloadedFiles
     );
-    await assertEnvironmentCurrent?.();
-    if (emulatorRootSafety) {
-      await assertFilesystemEmulatorRestoreRoots(
-        restoreTargets,
-        emulatorRootSafety.local,
-        new Set(emulatorRootSafety.safeMissingEntryIds),
-        game
-      );
-    }
-    await assertEmulatorDestinationBindingsCurrent(game, restoreTargets);
     emitProgress("applying_restore", 0, replacements.length);
     const result = await replaceRestoreTargets(replacements);
     emitProgress("applying_restore", replacements.length, replacements.length);
@@ -338,7 +337,6 @@ export const restoreRemoteSnapshot = async (
           (entryId) => !selectedIds.has(entryId)
         ),
         ...blockedIds,
-        ...rejectedStateIds,
       ]),
     ].sort((left, right) => left.localeCompare(right));
 

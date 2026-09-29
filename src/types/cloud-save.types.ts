@@ -556,6 +556,7 @@ export type BlockedRestoreReason =
   | "blocked-relative-path-incomplete"
   | "blocked-target-outside-root"
   | "blocked-target-ambiguous"
+  | "blocked-emulator-destination-unavailable"
   | "foreign-environment";
 
 export interface BlockedRestoreFile extends RestoreManifestFile {

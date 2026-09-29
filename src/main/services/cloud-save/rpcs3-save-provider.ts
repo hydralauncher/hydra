@@ -32,9 +32,8 @@ import {
   setRpcs3ProfileBinding,
 } from "./rpcs3-profile-binding-store";
 import {
-  canCreateInitialRpcs3ProfileBinding,
+  chooseRpcs3CloudProfileId,
   listRpcs3CloudProfileIds,
-  needsRpcs3ProfileBinding,
 } from "./rpcs3-profile-binding-policy";
 
 const exists = async (target: string) =>
@@ -120,30 +119,52 @@ export const getRpcs3ProfilePairing = async (game: Game) => {
   return { ...location, binding };
 };
 
+export const ensureRpcs3ProfileBindingForAnalysis = async (
+  game: Game,
+  remoteFiles: Pick<RestoreManifestFile, "rawPath">[]
+): Promise<boolean> => {
+  const location = await resolveRpcs3ActiveSaveLocation().catch(() => null);
+  if (!location) return false;
+  const { homeRoot, activeProfileId } = location;
+  const binding = await getRpcs3ProfileBinding(
+    game.shop,
+    game.objectId,
+    homeRoot,
+    activeProfileId
+  );
+  const remoteProfiles = listRpcs3CloudProfileIds(remoteFiles);
+  const cloudProfileId = chooseRpcs3CloudProfileId(
+    remoteProfiles,
+    binding,
+    activeProfileId
+  );
+  if (!cloudProfileId) return false;
+  if (binding?.cloudProfileId === cloudProfileId) return false;
+  await setRpcs3ProfileBinding(game.shop, game.objectId, {
+    homeRoot,
+    localProfileId: activeProfileId,
+    cloudProfileId,
+  });
+  return true;
+};
+
 export const ensureRpcs3ProfileBindingForSync = async (
   game: Game,
   remoteFiles: Pick<RestoreManifestFile, "rawPath">[],
-  localFiles: Pick<RestoreManifestFile, "rawPath">[]
+  _localFiles: Pick<RestoreManifestFile, "rawPath">[]
 ) => {
-  const { homeRoot, activeProfileId, binding } =
-    await getRpcs3ProfilePairing(game);
+  const { activeProfileId, binding } = await getRpcs3ProfilePairing(game);
   const remoteProfiles = listRpcs3CloudProfileIds(remoteFiles);
-  if (needsRpcs3ProfileBinding(remoteProfiles, binding)) {
-    throw new Error("cloud_save_rpcs3_profile_binding_required");
-  }
+  const chosenProfileId = chooseRpcs3CloudProfileId(
+    remoteProfiles,
+    binding,
+    activeProfileId
+  );
   if (
-    !binding &&
-    canCreateInitialRpcs3ProfileBinding(
-      remoteProfiles,
-      localFiles,
-      activeProfileId
-    )
+    !chosenProfileId ||
+    (remoteProfiles.length > 0 && binding?.cloudProfileId !== chosenProfileId)
   ) {
-    await setRpcs3ProfileBinding(game.shop, game.objectId, {
-      homeRoot,
-      localProfileId: activeProfileId,
-      cloudProfileId: activeProfileId,
-    });
+    throw new Error("cloud_save_rpcs3_profile_binding_required");
   }
 };
 

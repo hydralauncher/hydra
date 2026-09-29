@@ -24,7 +24,7 @@ interface MergeUserVariantSnapshotsInput {
   resolutions?: ReadonlyMap<string, CloudSaveConflictResolution>;
   preserveLocalMissingRawPaths?: ReadonlySet<string>;
   preserveLocalMissingEntryIds?: ReadonlySet<string>;
-  safeMissingEmulatorRestoreEntryIds?: ReadonlySet<string>;
+  restorableEmulatorEntryIds?: ReadonlySet<string>;
   treatLocalAsNewRawPaths?: ReadonlySet<string>;
 }
 
@@ -89,7 +89,7 @@ export const mergeUserVariantSnapshots = ({
   resolutions,
   preserveLocalMissingRawPaths = new Set<string>(),
   preserveLocalMissingEntryIds = new Set<string>(),
-  safeMissingEmulatorRestoreEntryIds = new Set<string>(),
+  restorableEmulatorEntryIds = new Set<string>(),
   treatLocalAsNewRawPaths = new Set<string>(),
 }: MergeUserVariantSnapshotsInput): CloudSaveMergeResult => {
   const localById = indexUnique(local.files);
@@ -254,7 +254,7 @@ export const mergeUserVariantSnapshots = ({
         files.push(remoteFile);
         continue;
       }
-      if (safeMissingEmulatorRestoreEntryIds.has(entryId)) {
+      if (coverage.incomplete && restorableEmulatorEntryIds.has(entryId)) {
         files.push(remoteFile);
         restoreEntryIds.add(entryId);
         if (coverage.incomplete) unresolvedRemoteEntryIds.add(entryId);

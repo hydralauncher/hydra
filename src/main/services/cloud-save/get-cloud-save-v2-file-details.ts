@@ -114,11 +114,7 @@ export const getCloudSaveV2FileDetails = async (
   const provider = getEmulatorSaveProvider(analysis.context.game);
   if (analysis.context.game && provider) {
     const pending = new Set(analysis.merge.unresolvedRemoteEntryIds);
-    const safeAutomatic = new Set(
-      provider === "retroarch"
-        ? analysis.safeMissingEmulatorRestoreEntryIds
-        : []
-    );
+    const safeAutomatic = new Set(analysis.restorableEmulatorEntryIds);
     const grouped = groupEmulatorRestoreDestinations(
       analysis.remoteManifest?.files ?? [],
       pending,
@@ -132,7 +128,7 @@ export const getCloudSaveV2FileDetails = async (
             group.rawPath,
             group.kind
           ).catch(() => null);
-          if (!group.needsDestination && !selectedPath) return null;
+          if (!group.needsDestination) return null;
           const pathHint = await getExpectedEmulatorDestination(
             analysis.context.game!,
             group.rawPath,

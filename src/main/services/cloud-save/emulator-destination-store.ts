@@ -7,14 +7,8 @@ import {
   db,
   levelKeys,
 } from "@main/level";
-import type {
-  Game,
-  ResolvedRestoreTarget,
-  RestoreManifestFile,
-  User,
-} from "@types";
+import type { Game, RestoreManifestFile, User } from "@types";
 
-import { cloudSaveFileKey } from "./cloud-save-contract.js";
 import {
   getEmulatorRestoreRules,
   getEmulatorSaveProvider,
@@ -205,55 +199,6 @@ export const removeEmulatorDestinationBinding = async (
   );
 };
 
-type DestinationBinding = NonNullable<
-  Awaited<ReturnType<typeof bindingRecord>>
->;
-type BindingExpectation = {
-  binding: DestinationBinding | null;
-  expected: string | null;
-};
-
-const expectedBoundRoot = async (
-  game: Game,
-  target: Pick<
-    ResolvedRestoreTarget,
-    "rawPath" | "relativePath" | "restoreRootPath"
-  >,
-  cache: Map<string, Promise<BindingExpectation>>
-) => {
-  const kind = emulatorDestinationKindForFile(
-    target.rawPath,
-    target.relativePath
-  );
-  if (!kind) return { binding: null, verified: false };
-  const key = JSON.stringify([target.rawPath, kind]);
-  let pending = cache.get(key);
-  if (!pending) {
-    pending = (async () => {
-      const binding = await bindingRecord(game, target.rawPath, kind);
-      if (!binding) return { binding: null, expected: null };
-      const expected = await getExpectedEmulatorDestination(
-        game,
-        target.rawPath,
-        kind,
-        binding.sampleRelativePath || target.relativePath
-      ).catch(() => null);
-      return { binding, expected };
-    })();
-    cache.set(key, pending);
-  }
-  const { binding, expected } = await pending;
-  if (!binding) return { binding: null, verified: false };
-  return {
-    binding: binding.path,
-    verified: await isCurrentEmulatorDestinationBinding(
-      binding,
-      expected,
-      target.restoreRootPath
-    ),
-  };
-};
-
 export const isVerifiedEmulatorDestinationBinding = async (
   game: Game,
   rawPath: string,
@@ -272,33 +217,4 @@ export const isVerifiedEmulatorDestinationBinding = async (
         restoreRootPath
       )
     : false;
-};
-
-export const verifiedEmulatorRestoreEntryIds = async (
-  game: Game | null | undefined,
-  targets: ResolvedRestoreTarget[]
-): Promise<Set<string>> => {
-  const approved = new Set<string>();
-  if (!game) return approved;
-  const cache = new Map<string, Promise<BindingExpectation>>();
-  for (const target of targets) {
-    if ((await expectedBoundRoot(game, target, cache)).verified) {
-      approved.add(cloudSaveFileKey(target));
-    }
-  }
-  return approved;
-};
-
-export const assertEmulatorDestinationBindingsCurrent = async (
-  game: Game | null | undefined,
-  targets: ResolvedRestoreTarget[]
-) => {
-  if (!game) return;
-  const cache = new Map<string, Promise<BindingExpectation>>();
-  for (const target of targets) {
-    const state = await expectedBoundRoot(game, target, cache);
-    if (state.binding && !state.verified) {
-      throw new Error("cloud_save_emulator_destination_changed");
-    }
-  }
 };

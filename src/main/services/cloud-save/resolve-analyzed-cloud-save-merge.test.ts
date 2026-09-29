@@ -107,6 +107,7 @@ describe("resolved cloud save merge", () => {
       syncDirection: "bidirectional",
       pendingCustomPathRawPaths: [],
       installationOwnedCustomPathRawPaths: [protectedFile.rawPath],
+      restorableEmulatorEntryIds: [],
     } as Parameters<typeof resolveAnalyzedCloudSaveMerge>[0];
 
     const result = resolveAnalyzedCloudSaveMerge(analysis, "keep-local");

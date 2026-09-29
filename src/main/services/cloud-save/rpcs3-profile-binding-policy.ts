@@ -35,19 +35,17 @@ export const isCurrentRpcs3ProfileBinding = (
   );
 };
 
-export const needsRpcs3ProfileBinding = (
+export const chooseRpcs3CloudProfileId = (
   remoteProfiles: string[],
-  binding: Rpcs3ProfileBinding | null
-) =>
-  remoteProfiles.length > 0 &&
-  (!binding || !remoteProfiles.includes(binding.cloudProfileId));
-
-export const canCreateInitialRpcs3ProfileBinding = (
-  remoteProfiles: string[],
-  localFiles: Pick<RestoreManifestFile, "rawPath">[],
+  binding: Rpcs3ProfileBinding | null,
   localProfileId: string
-) =>
-  remoteProfiles.length === 0 &&
-  localFiles.some(
-    (file) => parseRpcs3SaveRawPath(file.rawPath)?.profileId === localProfileId
-  );
+): string | null => {
+  if (remoteProfiles.length === 0) {
+    return binding?.cloudProfileId ?? localProfileId;
+  }
+  if (remoteProfiles.length === 1) return remoteProfiles[0];
+  if (binding && remoteProfiles.includes(binding.cloudProfileId)) {
+    return binding.cloudProfileId;
+  }
+  return null;
+};

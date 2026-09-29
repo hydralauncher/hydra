@@ -25,6 +25,7 @@ import {
 import { isEmulatorSaveRawPath } from "./emulator-provider-identity";
 import { buildCloudSaveAggregateHash } from "./snapshot-aggregate-hash";
 import { blockAmbiguousRestoreTargets } from "./restore-target-collision";
+import { filterUnsafeEmulatorRestoreTargets } from "./emulator-restore-plan";
 
 const isWinePrefixValid = (winePrefixPath?: string) => {
   if (!winePrefixPath) return false;
@@ -201,9 +202,13 @@ export const resolveRestoreManifestTargets = async (
       ...emulatorPlans.flatMap((plan) => plan.deferred),
     ],
   };
-  return blockAmbiguousRestoreTargets(
-    combined,
-    pathContext.platform === "linux" &&
-      !pathContext.executablePath?.toLowerCase().endsWith(".exe")
+  return filterUnsafeEmulatorRestoreTargets(
+    Boolean(getEmulatorSaveProvider(gameContext.game)),
+    pathContext,
+    blockAmbiguousRestoreTargets(
+      combined,
+      pathContext.platform === "linux" &&
+        !pathContext.executablePath?.toLowerCase().endsWith(".exe")
+    )
   );
 };

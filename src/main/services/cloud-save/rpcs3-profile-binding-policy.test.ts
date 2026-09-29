@@ -2,10 +2,9 @@ import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 
 import {
-  canCreateInitialRpcs3ProfileBinding,
+  chooseRpcs3CloudProfileId,
   isCurrentRpcs3ProfileBinding,
   listRpcs3CloudProfileIds,
-  needsRpcs3ProfileBinding,
 } from "./rpcs3-profile-binding-policy.js";
 
 describe("RPCS3 profile binding policy", () => {
@@ -41,33 +40,37 @@ describe("RPCS3 profile binding policy", () => {
     );
   });
 
-  it("requires pairing before using an existing remote profile", () => {
-    assert.equal(needsRpcs3ProfileBinding([], null), false);
-    assert.equal(needsRpcs3ProfileBinding(["00000001"], null), true);
-    assert.equal(needsRpcs3ProfileBinding(["00000003"], binding), true);
-    assert.equal(needsRpcs3ProfileBinding(["00000001"], binding), false);
+  it("uses the active local profile for a first upload", () => {
+    assert.equal(chooseRpcs3CloudProfileId([], null, "00000002"), "00000002");
+    assert.equal(
+      chooseRpcs3CloudProfileId([], binding, "00000002"),
+      "00000001"
+    );
   });
 
-  it("creates the first cloud identity only from a real local save", () => {
+  it("maps a sole remote profile before scanning local saves", () => {
     assert.equal(
-      canCreateInitialRpcs3ProfileBinding([], [], "00000001"),
-      false
+      chooseRpcs3CloudProfileId(["00000001"], null, "00000002"),
+      "00000001"
     );
     assert.equal(
-      canCreateInitialRpcs3ProfileBinding(
-        [],
-        [{ rawPath: "<emulator>/rpcs3/BLUS30443/00000001" }],
-        "00000001"
-      ),
-      true
+      chooseRpcs3CloudProfileId(["00000003"], binding, "00000002"),
+      "00000003"
+    );
+  });
+
+  it("requires a choice only when multiple remote profiles lack a valid binding", () => {
+    assert.equal(
+      chooseRpcs3CloudProfileId(["00000001", "00000003"], null, "00000002"),
+      null
     );
     assert.equal(
-      canCreateInitialRpcs3ProfileBinding(
-        ["00000002"],
-        [{ rawPath: "<emulator>/rpcs3/BLUS30443/00000001" }],
-        "00000001"
-      ),
-      false
+      chooseRpcs3CloudProfileId(["00000001", "00000003"], binding, "00000002"),
+      "00000001"
+    );
+    assert.equal(
+      chooseRpcs3CloudProfileId(["00000003", "00000004"], binding, "00000002"),
+      null
     );
   });
 });

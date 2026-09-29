@@ -27,7 +27,10 @@ import {
 import { deleteLocalSaveTargets } from "./delete-local-save-targets";
 import { assertCloudSaveEnvironmentCurrent } from "./environment-guard";
 import { canDeleteInstallationOwnedCustomPathFiles } from "./installation-owned-custom-paths";
+import { listRemoteGameSnapshots } from "./list-remote-game-snapshots";
 import { resolveAnalyzedCloudSaveMerge } from "./resolve-analyzed-cloud-save-merge";
+import { getRemoteSnapshotRestoreManifest } from "./resolve-remote-snapshot-targets";
+import { ensureRpcs3ProfileBindingForAnalysis } from "./rpcs3-save-provider";
 import {
   buildRemoteSnapshotDeletionPlan,
   decideRemoteSnapshotDeletion,
@@ -417,8 +420,7 @@ const executeRestoreOnlySync = async ({
           restoreIds,
           false,
           merge.unresolvedRemoteEntryIds,
-          assertEnvironmentCurrent,
-          analysis.safeMissingEmulatorRestoreEntryIds
+          assertEnvironmentCurrent
         )
       : null;
   if (deleteLocalIds.length > 0) {
@@ -593,8 +595,7 @@ const executeAppliedSync = async ({
       restoreIds,
       false,
       merge.unresolvedRemoteEntryIds,
-      assertEnvironmentCurrent,
-      analysis.safeMissingEmulatorRestoreEntryIds
+      assertEnvironmentCurrent
     );
     finalUnresolvedRemoteEntryIds = restored.unresolvedRemoteEntryIds;
   }
@@ -978,6 +979,31 @@ const runCloudSaveOperation = (
 export const isCloudSaveSyncActive = (objectId: string, shop: GameShop) =>
   activeSyncs.has(gameKey(objectId, shop));
 
+const prepareRpcs3SyncContext = async (
+  objectId: string,
+  shop: GameShop,
+  context: Awaited<ReturnType<typeof getCloudSaveGameContext>>
+) => {
+  if (!context.game || getEmulatorSaveProvider(context.game) !== "rpcs3") {
+    return context;
+  }
+  const snapshots = await listRemoteGameSnapshots(objectId, shop);
+  const manifest = snapshots[0]
+    ? await getRemoteSnapshotRestoreManifest(snapshots[0])
+    : null;
+  if (
+    manifest &&
+    (manifest.snapshot.shop !== shop || manifest.snapshot.objectId !== objectId)
+  ) {
+    throw new Error("Active Cloud Save snapshot belongs to another game");
+  }
+  const changed = await ensureRpcs3ProfileBindingForAnalysis(
+    context.game,
+    manifest?.files ?? []
+  );
+  return changed ? getCloudSaveGameContext(objectId, shop) : context;
+};
+
 export const syncGameCloudSave = async (
   objectId: string,
   shop: GameShop,
@@ -1009,13 +1035,18 @@ export const syncGameCloudSave = async (
       if (isGameRunning(objectId, shop)) {
         throw new Error("cloud_save_game_running");
       }
+      const operationContext = await prepareRpcs3SyncContext(
+        objectId,
+        shop,
+        context
+      );
       return runGameCloudSaveSync(
         objectId,
         shop,
         trigger,
         emitProgress,
         undefined,
-        context
+        operationContext
       );
     },
     onProgress
@@ -1045,13 +1076,18 @@ export const resolveCloudSaveConflict = async (
       if (isGameRunning(objectId, shop)) {
         throw new Error("cloud_save_game_running");
       }
+      const operationContext = await prepareRpcs3SyncContext(
+        objectId,
+        shop,
+        context
+      );
       return runGameCloudSaveSync(
         objectId,
         shop,
         "manual",
         emitProgress,
         resolution,
-        context
+        operationContext
       );
     },
     onProgress
