@@ -12,6 +12,7 @@ import { useSearchParams } from "react-router-dom";
 
 import {
   AuthPage,
+  canSelectCloudSaveCustomFile,
   getCloudSaveAccessAction,
   isCloudSaveV2Eligible,
 } from "@shared";
@@ -989,6 +990,7 @@ export function CloudSaveV2Provider({
         visible={isFileBrowserVisible}
         objectId={objectId}
         shop={shop}
+        canAddSaveFile={canSelectCloudSaveCustomFile(shop, game?.platform)}
         overviewState={overview?.state ?? null}
         details={fileDetails}
         isLoading={isFileDetailsLoading}

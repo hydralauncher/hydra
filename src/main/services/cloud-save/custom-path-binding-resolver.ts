@@ -73,6 +73,7 @@ export const resolveStoredCloudSaveCustomPathBindings = (
         pathHint:
           stored.localPath ??
           getLegacyCloudSaveCustomPathPathHint(stored.rawPath),
+        ...(stored.kind ? { kind: stored.kind } : {}),
         ...classifyCloudSaveCustomPathResolutionError(error),
         registered: true,
       });

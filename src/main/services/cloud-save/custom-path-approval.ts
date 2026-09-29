@@ -110,9 +110,15 @@ const createPendingApproval = async (
   const customPathContext = cloudSaveCustomPathContextFromPathContext(
     context.pathContext
   );
+  const storedBindings = await getCloudSaveCustomPathBindings(
+    shop,
+    objectId,
+    customPathContext
+  );
   const locallyBoundRawPaths = new Set(
     (
       await getUsableCloudSaveCustomPathBindings(objectId, shop, context, {
+        bindings: storedBindings,
         remoteFiles: manifest.files,
       })
     ).ready.map(({ rawPath }) => rawPath)
@@ -129,7 +135,15 @@ const createPendingApproval = async (
   }
 
   const { rawPath, files } = candidate;
-  const kind = inferCustomPathKind(rawPath, files);
+  const storedKind =
+    storedBindings.ready.find((binding) => binding.rawPath === rawPath)?.kind ??
+    storedBindings.unresolved.find((binding) => binding.rawPath === rawPath)
+      ?.kind;
+  const kind = inferCustomPathKind(rawPath, files, {
+    shop,
+    platform: context.game?.platform,
+    storedKind,
+  });
   let suggestedPath: string | null = null;
   try {
     suggestedPath = decodeCloudSaveCustomPath(rawPath, customPathContext).path;
@@ -232,8 +246,11 @@ export const createPendingCustomPathRebindApproval = async (
   const matchingRemoteFiles = remoteFiles.filter(
     (file) => file.rawPath === rawPath
   );
-  const kind =
-    readyBinding?.kind ?? inferCustomPathKind(rawPath, matchingRemoteFiles);
+  const kind = inferCustomPathKind(rawPath, matchingRemoteFiles, {
+    shop,
+    platform: context.game?.platform,
+    storedKind: readyBinding?.kind ?? unresolvedBinding?.kind,
+  });
 
   if (!readyBinding && !unresolvedBinding && matchingRemoteFiles.length === 0) {
     throw new Error("cloud_save_custom_path_not_registered");
@@ -310,7 +327,10 @@ export const selectPendingCloudSaveCustomPathApproval = async (
   const selected = await resolveSelectedCustomPathApproval(
     pending.approval.rawPath,
     pending.approval.kind ??
-      inferCustomPathKind(pending.approval.rawPath, pending.approval.files),
+      inferCustomPathKind(pending.approval.rawPath, pending.approval.files, {
+        shop: pending.approval.gameId.shop,
+        platform: pending.context.game?.platform,
+      }),
     pending.approval.files[0]?.relativePath,
     selectedPath,
     customPathContext

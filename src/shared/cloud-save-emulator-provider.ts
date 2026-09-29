@@ -25,6 +25,11 @@ export const getCloudSaveEmulatorProvider = (
   return platformToRetroArchPlatform(platform) ? "retroarch" : null;
 };
 
+export const canSelectCloudSaveCustomFile = (
+  shop: GameShop,
+  platform?: string | null
+) => getCloudSaveEmulatorProvider(shop, platform) !== null;
+
 export const getCloudSaveRetroArchPlatform = (
   shop: GameShop,
   platform?: string | null

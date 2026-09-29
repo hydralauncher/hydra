@@ -129,6 +129,7 @@ interface CloudSaveV2FileBrowserModalProps {
   visible: boolean;
   objectId: string;
   shop: GameShop;
+  canAddSaveFile: boolean;
   overviewState: CloudSaveState | null;
   details: CloudSaveV2FileDetails | null;
   isLoading: boolean;
@@ -289,6 +290,7 @@ export function CloudSaveV2FileBrowserModal({
   visible,
   objectId,
   shop,
+  canAddSaveFile,
   overviewState,
   details,
   isLoading,
@@ -626,19 +628,21 @@ export function CloudSaveV2FileBrowserModal({
   const hasSaveData = hasCloudSaveDataToDelete(details);
   const addCustomPathButton = (
     <>
-      <Button
-        theme="outline"
-        className="cloud-save-v2__add-custom-path-button"
-        disabled={actionsAreDisabled}
-        onClick={() => void handleAddCustomPath("file")}
-      >
-        {isAddingCustomPath ? (
-          <CircleNotchIcon className="cloud-save-v2__spinner" size={16} />
-        ) : (
-          <PlusIcon size={16} />
-        )}
-        <span>{t("cloud_save_v2_add_custom_file")}</span>
-      </Button>
+      {canAddSaveFile && (
+        <Button
+          theme="outline"
+          className="cloud-save-v2__add-custom-path-button"
+          disabled={actionsAreDisabled}
+          onClick={() => void handleAddCustomPath("file")}
+        >
+          {isAddingCustomPath ? (
+            <CircleNotchIcon className="cloud-save-v2__spinner" size={16} />
+          ) : (
+            <PlusIcon size={16} />
+          )}
+          <span>{t("cloud_save_v2_add_custom_file")}</span>
+        </Button>
+      )}
       <Button
         theme="outline"
         className="cloud-save-v2__add-custom-path-button"

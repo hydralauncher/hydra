@@ -15,6 +15,7 @@ import {
 } from "@main/services/cloud-save";
 import { isGameRunning } from "@main/services/process-watcher";
 import { manualCardSelectionFor } from "@main/services/cloud-save/emulator-card-manual-selection";
+import { assertCloudSaveCustomPathKindAllowed } from "@main/services/cloud-save/custom-path-selection-policy";
 import { registerEmulatorCardPathOverride } from "@main/services/cloud-save/emulator-card-path-store";
 import { WindowManager } from "@main/services/window-manager";
 import type { GameShop, SelectCloudSaveCustomPathResult } from "@types";
@@ -41,6 +42,11 @@ registerEvent(
     }
     assertCloudSaveDeletionInactive(objectId, shop);
 
+    if (kind === "file") {
+      const context = await getCloudSaveGameContext(objectId, shop);
+      assertCloudSaveCustomPathKindAllowed(kind, shop, context.game?.platform);
+    }
+
     const senderWindow = BrowserWindow.fromWebContents(event.sender);
     const owner =
       senderWindow && !senderWindow.isDestroyed()
@@ -66,6 +72,7 @@ registerEvent(
     assertCloudSaveDeletionInactive(objectId, shop);
 
     const context = await getCloudSaveGameContext(objectId, shop);
+    assertCloudSaveCustomPathKindAllowed(kind, shop, context.game?.platform);
     const cardSelection = manualCardSelectionFor(
       context.game,
       selectedPath,

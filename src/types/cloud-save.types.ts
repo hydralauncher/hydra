@@ -54,6 +54,7 @@ export type CloudSaveUnresolvedCustomPathReason =
 export interface CloudSaveUnresolvedCustomPath {
   rawPath: string;
   pathHint: string | null;
+  kind?: "file" | "dir";
   state: CloudSaveUnresolvedCustomPathState;
   reason: CloudSaveUnresolvedCustomPathReason;
   registered: boolean;

@@ -35,7 +35,10 @@ import {
 } from "./resolve-remote-snapshot-targets";
 import { saveCloudSaveSyncAnchor } from "./sync-anchor";
 import { verifyDownloadedRestoreFile } from "./verify-downloaded-restore-file";
-import { registerCloudSaveCustomPaths } from "./custom-path-store";
+import {
+  getCloudSaveCustomPathBindings,
+  registerCloudSaveCustomPaths,
+} from "./custom-path-store";
 import { inferCustomPathKind } from "./custom-path-kind";
 import { assertFilesystemEmulatorRestoreRoots } from "./missing-emulator-restore-root";
 import { assertEmulatorDestinationBindingsCurrent } from "./emulator-destination-store";
@@ -120,7 +123,8 @@ const verifyDownloadedRestoreFiles = async (
 const registerRestoredCustomPaths = async (
   actions: RestorePlanAction[],
   gameId: CloudSaveGameId,
-  pathContext: CloudSavePathContext
+  pathContext: CloudSavePathContext,
+  gamePlatform?: string | null
 ) => {
   const actionByCustomRawPath = new Map<string, RestorePlanAction>();
   for (const action of actions) {
@@ -135,11 +139,26 @@ const registerRestoredCustomPaths = async (
 
   const customPathContext =
     cloudSaveCustomPathContextFromPathContext(pathContext);
+  const existingBindings = await getCloudSaveCustomPathBindings(
+    gameId.shop,
+    gameId.objectId,
+    customPathContext
+  );
+  const existingKinds = new Map(
+    [...existingBindings.ready, ...existingBindings.unresolved].map(
+      ({ rawPath, kind }) => [rawPath, kind] as const
+    )
+  );
   const boundCustomPaths = [...actionByCustomRawPath].map(
     ([rawPath, target]) => {
       const kind = inferCustomPathKind(
         rawPath,
-        actions.filter((action) => action.rawPath === rawPath)
+        actions.filter((action) => action.rawPath === rawPath),
+        {
+          shop: gameId.shop,
+          platform: gamePlatform,
+          storedKind: existingKinds.get(rawPath),
+        }
       );
       return {
         ...bindCloudSaveCustomPathToLocalPath(
@@ -418,7 +437,8 @@ export const restoreRemoteSnapshot = async (
       await registerRestoredCustomPaths(
         plan.actions,
         gameId,
-        cloudSaveContext.pathContext
+        cloudSaveContext.pathContext,
+        game?.platform
       );
     }
     if (restoreSucceeded && updateAnchor) {
