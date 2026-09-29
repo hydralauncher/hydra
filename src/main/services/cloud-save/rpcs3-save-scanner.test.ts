@@ -137,6 +137,31 @@ describe("RPCS3 Cloud Save scanner", () => {
     }
   });
 
+  it("does not treat an unknown state compression format as deletion", async () => {
+    const configRoot = await fs.mkdtemp(path.join(os.tmpdir(), "hydra-rpcs3-"));
+    try {
+      const states = path.join(configRoot, "savestates", "BLUS30443");
+      await fs.mkdir(states, { recursive: true });
+      await fs.writeFile(
+        path.join(states, "BLUS30443_1_1.SAVESTAT.xz"),
+        Buffer.alloc(1025)
+      );
+      const result = await scanRpcs3Savestates(
+        {
+          game,
+          environmentId: "environment",
+          variantId: "variant",
+        },
+        configRoot
+      );
+      assert.deepEqual(result.files, []);
+      assert.equal(result.coverage[0].outcome, "partial");
+      assert.equal(result.coverage[0].enumeratedCompletely, false);
+    } finally {
+      await fs.rm(configRoot, { recursive: true, force: true });
+    }
+  });
+
   it("keeps an absent savedata root partial for the active profile", async () => {
     const homeRoot = await fs.mkdtemp(path.join(os.tmpdir(), "hydra-rpcs3-"));
     try {

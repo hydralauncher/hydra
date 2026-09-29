@@ -240,7 +240,10 @@ export const scanRpcs3Savestates = async (
       // RPCS3's current naming includes a length prefix and numeric state ID.
       // Unknown matching names remain local; partial coverage prevents deletion.
       if (!entry.name.startsWith(`${titleId}_`)) continue;
-      if (!SAVESTATE_SUFFIX.test(entry.name)) continue;
+      if (!SAVESTATE_SUFFIX.test(entry.name)) {
+        complete = false;
+        continue;
+      }
       if (
         !rpcs3SavestateFileBelongsToTitle(entry.name, titleId) ||
         !entry.isFile() ||

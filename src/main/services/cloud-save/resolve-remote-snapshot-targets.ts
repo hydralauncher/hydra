@@ -24,6 +24,7 @@ import {
 } from "./emulator-save-provider";
 import { isEmulatorSaveRawPath } from "./emulator-provider-identity";
 import { buildCloudSaveAggregateHash } from "./snapshot-aggregate-hash";
+import { blockAmbiguousRestoreTargets } from "./restore-target-collision";
 
 const isWinePrefixValid = (winePrefixPath?: string) => {
   if (!winePrefixPath) return false;
@@ -200,30 +201,9 @@ export const resolveRestoreManifestTargets = async (
       ...emulatorPlans.flatMap((plan) => plan.deferred),
     ],
   };
-  const targetCounts = new Map<string, number>();
-  for (const action of combined.actions) {
-    const key =
-      process.platform === "win32"
-        ? action.targetPath.toLowerCase()
-        : action.targetPath;
-    targetCounts.set(key, (targetCounts.get(key) ?? 0) + 1);
-  }
-  combined.actions = combined.actions.filter((action) => {
-    const key =
-      process.platform === "win32"
-        ? action.targetPath.toLowerCase()
-        : action.targetPath;
-    if (targetCounts.get(key) === 1) return true;
-    combined.blocked.push({
-      variantId: action.variantId,
-      rawPath: action.rawPath,
-      relativePath: action.relativePath,
-      hash: action.hash,
-      sizeBytes: action.sizeBytes,
-      lastModifiedAt: action.lastModifiedAt,
-      reason: "blocked-target-ambiguous",
-    });
-    return false;
-  });
-  return combined;
+  return blockAmbiguousRestoreTargets(
+    combined,
+    pathContext.platform === "linux" &&
+      !pathContext.executablePath?.toLowerCase().endsWith(".exe")
+  );
 };

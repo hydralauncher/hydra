@@ -39,6 +39,10 @@ import {
   retroArchTargetForFile,
   type RomSaveLocation,
 } from "./retroarch-save-scanner";
+import {
+  retroArchSaveLocationsOverlap,
+  type RetroArchSaveLayout,
+} from "./retroarch-save-collision";
 import type {
   EmulatorProvider,
   EmulatorProviderContext,
@@ -161,6 +165,39 @@ const mergeOverrides = async (
   return effective;
 };
 
+const configuredSaveLayout = async (
+  romPath: string,
+  platform: NonNullable<ReturnType<typeof getCloudSaveRetroArchPlatform>>,
+  configPath: string,
+  baseConfig: RetroArchSaveConfig
+): Promise<RetroArchSaveLayout> => {
+  const coreName = RETROARCH_CORES[PLATFORM_TO_CORE[platform]].displayName;
+  const values = await mergeOverrides(
+    configPath,
+    baseConfig,
+    romPath,
+    coreName
+  );
+  return {
+    romPath,
+    saveDirectory: resolveRetroArchSaveDirectory({
+      values,
+      configPath,
+      homeDir: os.homedir(),
+      romPath,
+      coreName,
+    }),
+    stateDirectory: resolveRetroArchSaveDirectory({
+      values,
+      configPath,
+      homeDir: os.homedir(),
+      romPath,
+      coreName,
+      kind: "state",
+    }),
+  };
+};
+
 export const getRetroArchSaveEnvironmentKey = async (game: Game) => {
   const platform = getCloudSaveRetroArchPlatform(game.shop, game.platform);
   if (!platform) return "retroarch-platform-unresolved";
@@ -207,12 +244,45 @@ export const getRetroArchSaveEnvironmentKey = async (game: Game) => {
   }
 };
 
-const conflictingRomStems = async (game: Game) => {
+const conflictingRomStems = async (
+  game: Game,
+  knownConfig?: { configPath: string; baseConfig: RetroArchSaveConfig }
+) => {
+  const platform = getCloudSaveRetroArchPlatform(game.shop, game.platform);
+  if (!platform) return new Set<string>();
   const ownStems = new Set(
     (game.discs ?? []).map((disc) => retroArchSaveStem(disc.path))
   );
   const conflicts = new Set<string>();
   if (ownStems.size === 0) return conflicts;
+  const emulator = knownConfig
+    ? null
+    : await getRetroArchConfig().catch(() => null);
+  const configPath =
+    knownConfig?.configPath ??
+    (emulator?.executablePath
+      ? findRetroArchConfig(emulator.executablePath)
+      : null);
+  const baseConfig =
+    knownConfig?.baseConfig ??
+    (configPath ? await readConfig(configPath).catch(() => null) : null);
+  const ownLayouts = new Map<string, Promise<RetroArchSaveLayout | null>>();
+  const ownLayoutFor = (romPath: string) => {
+    let layout = ownLayouts.get(romPath);
+    if (!layout) {
+      layout =
+        configPath && baseConfig
+          ? configuredSaveLayout(
+              romPath,
+              platform,
+              configPath,
+              baseConfig
+            ).catch(() => null)
+          : Promise.resolve(null);
+      ownLayouts.set(romPath, layout);
+    }
+    return layout;
+  };
   for await (const [, other] of gamesSublevel.iterator()) {
     const otherPlatform = getCloudSaveRetroArchPlatform(
       other.shop,
@@ -236,7 +306,28 @@ const conflictingRomStems = async (game: Game) => {
         continue;
       }
       const stat = await fs.lstat(disc.path).catch(() => null);
-      if (stat?.isFile() && !stat.isSymbolicLink()) conflicts.add(stem);
+      if (!stat?.isFile() || stat.isSymbolicLink()) continue;
+      const otherLayout =
+        configPath && baseConfig
+          ? await configuredSaveLayout(
+              disc.path,
+              otherPlatform,
+              configPath,
+              baseConfig
+            ).catch(() => null)
+          : null;
+      for (const ownDisc of game.discs ?? []) {
+        if (retroArchSaveStem(ownDisc.path) !== stem) continue;
+        const ownLayout = await ownLayoutFor(ownDisc.path);
+        if (
+          !ownLayout ||
+          !otherLayout ||
+          retroArchSaveLocationsOverlap(ownLayout, otherLayout)
+        ) {
+          conflicts.add(stem);
+          break;
+        }
+      }
     }
   }
   return conflicts;
@@ -303,29 +394,19 @@ export const locationsForGame = async (game: Game) => {
       continue;
     }
     seenHashes.add(romHash);
-    const coreName = RETROARCH_CORES[core].displayName;
-    let values: RetroArchSaveConfig;
+    let layout: RetroArchSaveLayout;
     try {
-      values = await mergeOverrides(configPath, baseConfig, romPath, coreName);
+      layout = await configuredSaveLayout(
+        romPath,
+        platform,
+        configPath,
+        baseConfig
+      );
     } catch {
       unresolved = true;
       continue;
     }
-    const saveDirectory = resolveRetroArchSaveDirectory({
-      values,
-      configPath,
-      homeDir: os.homedir(),
-      romPath,
-      coreName,
-    });
-    const stateDirectory = resolveRetroArchSaveDirectory({
-      values,
-      configPath,
-      homeDir: os.homedir(),
-      romPath,
-      coreName,
-      kind: "state",
-    });
+    const { saveDirectory, stateDirectory } = layout;
     if (!saveDirectory && !stateDirectory) {
       unresolved = true;
       continue;
@@ -351,7 +432,10 @@ export const locationsForGame = async (game: Game) => {
     });
   }
   if (!locations.length && !unresolved) unresolved = true;
-  const conflictingStems = await conflictingRomStems(game);
+  const conflictingStems = await conflictingRomStems(game, {
+    configPath,
+    baseConfig,
+  });
   if (conflictingStems.size > 0) unresolved = true;
   return {
     locations: locations.filter(
