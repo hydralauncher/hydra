@@ -164,12 +164,6 @@ contextBridge.exposeInMainWorld("electron", {
       objectId,
       shop
     ) as Promise<CloudSaveOverview>,
-  getCloudSaveAutomaticSyncEnabled: (objectId: string, shop: GameShop) =>
-    ipcRenderer.invoke(
-      "getCloudSaveAutomaticSyncEnabled",
-      objectId,
-      shop
-    ) as Promise<boolean>,
   getCloudSaveV2FileDetails: (objectId: string, shop: GameShop) =>
     ipcRenderer.invoke(
       "getCloudSaveV2FileDetails",

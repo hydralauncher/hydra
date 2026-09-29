@@ -532,8 +532,6 @@
     "cloud_save_v2_toggle_enabled": "enabled",
     "cloud_save_v2_toggle_disabled": "disabled",
     "cloud_save_v2_toggle_description": "Keep this game's progress available across your devices.",
-    "cloud_save_v2_epic_switch_title": "Switch to Cloud Saves V2",
-    "cloud_save_v2_epic_legacy_mode_notice": "Turn on automatic sync here to switch this game to Cloud Saves V2. Manual sync is available after the switch.",
     "cloud_save_v2_toggle_error_title": "Automatic sync could not be changed",
     "cloud_save_v2_toggle_error_description": "The previous setting was kept. Try again.",
     "cloud_save_v2_sync_now": "Sync now",

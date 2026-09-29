@@ -9,11 +9,7 @@ import {
 } from "react";
 import { useTranslation } from "react-i18next";
 import { useSearchParams } from "react-router-dom";
-import {
-  isManualCloudSaveV2Blocked,
-  refreshCloudSaveAfterModeChange,
-  supportsCloudSaveV2,
-} from "@shared";
+import { supportsCloudSaveV2 } from "@shared";
 
 import {
   getCloudSaveSyncErrorKind,
@@ -139,9 +135,7 @@ interface BigPictureCloudSaveProviderProps {
   shop: GameShop;
   hasExecutablePath: boolean;
   isGameRunning: boolean;
-  legacyAutomaticCloudSync: boolean;
   enableGamePageSync?: boolean;
-  onAutomaticSyncModeChanged?: () => Promise<void>;
   onSelectExecutable: () => void;
 }
 
@@ -151,9 +145,7 @@ export function BigPictureCloudSaveProvider({
   shop,
   hasExecutablePath,
   isGameRunning,
-  legacyAutomaticCloudSync,
   enableGamePageSync = true,
-  onAutomaticSyncModeChanged,
   onSelectExecutable,
 }: Readonly<BigPictureCloudSaveProviderProps>) {
   const { t } = useTranslation("game_details");
@@ -164,22 +156,12 @@ export function BigPictureCloudSaveProvider({
   const canUseCloudSaves = Boolean(userDetails) && hasActiveSubscription;
   const canCheckCloudSaves =
     supportsCloudSaveV2(shop) && canUseCloudSaves && hasExecutablePath;
-  const {
-    overview,
-    isAutomaticSyncEnabled,
-    isRefreshing,
-    hasRefreshError,
-    refresh,
-  } = useCloudSaveOverview({
-    objectId,
-    shop,
-    enabled: canCheckCloudSaves,
-  });
-  const manualSyncBlocked = isManualCloudSaveV2Blocked(
-    shop,
-    legacyAutomaticCloudSync,
-    isAutomaticSyncEnabled
-  );
+  const { overview, isRefreshing, hasRefreshError, refresh } =
+    useCloudSaveOverview({
+      objectId,
+      shop,
+      enabled: canCheckCloudSaves,
+    });
 
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [wasOpenedFromLaunchConflict, setWasOpenedFromLaunchConflict] =
@@ -392,8 +374,7 @@ export function BigPictureCloudSaveProvider({
         isSyncing ||
         !hasExecutablePath ||
         !canUseCloudSaves ||
-        !supportsCloudSaveV2(shop) ||
-        manualSyncBlocked
+        !supportsCloudSaveV2(shop)
       ) {
         return false;
       }
@@ -453,7 +434,6 @@ export function BigPictureCloudSaveProvider({
       hasExecutablePath,
       isGameRunning,
       isSyncing,
-      manualSyncBlocked,
       objectId,
       refresh,
       shop,
@@ -472,12 +452,7 @@ export function BigPictureCloudSaveProvider({
         shop,
         enabled
       );
-      await refreshCloudSaveAfterModeChange(shop, refresh);
-      if (shop === "epic") {
-        if (onAutomaticSyncModeChanged) {
-          await onAutomaticSyncModeChanged().catch(() => undefined);
-        }
-      }
+      await refresh();
     } catch (error) {
       showErrorToast(t("cloud_save_v2_toggle_error_title"), {
         message: t("cloud_save_v2_toggle_error_description"),
@@ -620,12 +595,10 @@ export function BigPictureCloudSaveProvider({
   }
   const panelProps = {
     overview,
-    isAutomaticSyncEnabled,
     isLoading: isRefreshing,
     isSyncing,
     isGameRunning,
     hasExecutablePath,
-    manualSyncBlocked,
     hasError,
     errorMessageKey,
     progress,

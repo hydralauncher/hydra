@@ -24,7 +24,6 @@ export const useCloudSaveOverview = ({
   const activeRequest = useRef<Promise<void> | null>(null);
   const hasQueuedRefresh = useRef(false);
   const scheduledRefresh = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const modeChangedRevision = useRef(0);
 
   const refresh = useCallback((): Promise<void> => {
     if (!enabled) return Promise.resolve();
@@ -44,21 +43,6 @@ export const useCloudSaveOverview = ({
           setHasRefreshError(false);
         }
 
-        const observedModeRevision = modeChangedRevision.current;
-        let modeLoaded = false;
-        void window.electron
-          .getCloudSaveAutomaticSyncEnabled(objectId, shop)
-          .then((modeEnabled) => {
-            if (
-              activeGameKey.current === requestedGameKey &&
-              modeChangedRevision.current === observedModeRevision
-            ) {
-              modeLoaded = true;
-              setIsAutomaticSyncEnabled(modeEnabled);
-            }
-          })
-          .catch(() => undefined);
-
         try {
           const result = await window.electron.getCloudSaveOverview(
             objectId,
@@ -66,12 +50,7 @@ export const useCloudSaveOverview = ({
           );
           if (activeGameKey.current === requestedGameKey) {
             setOverview(result);
-            if (
-              !modeLoaded &&
-              modeChangedRevision.current === observedModeRevision
-            ) {
-              setIsAutomaticSyncEnabled(result.isAutomaticSyncEnabled);
-            }
+            setIsAutomaticSyncEnabled(result.isAutomaticSyncEnabled);
           }
         } catch {
           if (activeGameKey.current === requestedGameKey) {
@@ -133,7 +112,6 @@ export const useCloudSaveOverview = ({
       }
 
       const enabledForV2 = event.mode === "v2";
-      modeChangedRevision.current += 1;
       setIsAutomaticSyncEnabled(enabledForV2);
       setOverview((current) =>
         current ? { ...current, isAutomaticSyncEnabled: enabledForV2 } : current

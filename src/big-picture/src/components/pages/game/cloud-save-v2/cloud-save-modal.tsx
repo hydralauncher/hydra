@@ -53,12 +53,10 @@ export interface BigPictureCloudSavePanelProps {
   showLaunchConflictWarning: boolean;
   stealFocusOnActionAppear?: boolean;
   overview: CloudSaveOverview | null;
-  isAutomaticSyncEnabled: boolean | null;
   isLoading: boolean;
   isSyncing: boolean;
   isGameRunning: boolean;
   hasExecutablePath: boolean;
-  manualSyncBlocked?: boolean;
   hasError: boolean;
   errorMessageKey:
     | "cloud_save_v2_load_error"
@@ -95,12 +93,10 @@ export function BigPictureCloudSavePanel({
   showLaunchConflictWarning,
   stealFocusOnActionAppear = false,
   overview,
-  isAutomaticSyncEnabled: automaticSyncEnabled,
   isLoading,
   isSyncing,
   isGameRunning,
   hasExecutablePath,
-  manualSyncBlocked = false,
   hasError,
   errorMessageKey,
   progress,
@@ -112,22 +108,13 @@ export function BigPictureCloudSavePanel({
   const { t } = useTranslation("game_details");
   const { formatDateTime } = useDate();
   const [isAutomaticSyncEnabled, setIsAutomaticSyncEnabled] = useState(
-    automaticSyncEnabled ?? false
+    overview?.isAutomaticSyncEnabled ?? false
   );
   const [isUpdatingAutomaticSync, setIsUpdatingAutomaticSync] = useState(false);
-  const cloudSaveToggleTitle = manualSyncBlocked
-    ? t("cloud_save_v2_epic_switch_title")
-    : t("cloud_save_v2_toggle_title", {
-        status: t(
-          isAutomaticSyncEnabled
-            ? "cloud_save_v2_toggle_enabled"
-            : "cloud_save_v2_toggle_disabled"
-        ),
-      });
 
   useEffect(() => {
-    setIsAutomaticSyncEnabled(automaticSyncEnabled ?? false);
-  }, [automaticSyncEnabled]);
+    setIsAutomaticSyncEnabled(overview?.isAutomaticSyncEnabled ?? false);
+  }, [overview?.isAutomaticSyncEnabled]);
 
   const activeSnapshot = overview?.activeRemoteSnapshot ?? null;
   const hasUnconfiguredCustomPaths =
@@ -201,7 +188,15 @@ export function BigPictureCloudSavePanel({
     >
       <section className="big-picture-cloud-save__toggle-card">
         <div className="big-picture-cloud-save__copy">
-          <strong>{cloudSaveToggleTitle}</strong>
+          <strong>
+            {t("cloud_save_v2_toggle_title", {
+              status: t(
+                isAutomaticSyncEnabled
+                  ? "cloud_save_v2_toggle_enabled"
+                  : "cloud_save_v2_toggle_disabled"
+              ),
+            })}
+          </strong>
           <span>{t("cloud_save_v2_toggle_description")}</span>
         </div>
 
@@ -209,12 +204,18 @@ export function BigPictureCloudSavePanel({
           focusId={BIG_PICTURE_CLOUD_SAVE_TOGGLE_BUTTON_ID}
           variant="secondary"
           size="icon"
-          aria-label={cloudSaveToggleTitle}
+          aria-label={t("cloud_save_v2_toggle_title", {
+            status: t(
+              isAutomaticSyncEnabled
+                ? "cloud_save_v2_toggle_enabled"
+                : "cloud_save_v2_toggle_disabled"
+            ),
+          })}
           disabled={
             isUpdatingAutomaticSync ||
             isSyncing ||
             !hasExecutablePath ||
-            automaticSyncEnabled === null
+            overview?.isAutomaticSyncEnabled == null
           }
           onClick={() => void handleAutomaticSyncChange()}
         >
@@ -236,12 +237,6 @@ export function BigPictureCloudSavePanel({
       {isGameRunning ? (
         <p className="big-picture-cloud-save__notice">
           {t("cloud_save_v2_close_game_before_manual_sync")}
-        </p>
-      ) : null}
-
-      {manualSyncBlocked ? (
-        <p className="big-picture-cloud-save__notice">
-          {t("cloud_save_v2_epic_legacy_mode_notice")}
         </p>
       ) : null}
 
@@ -363,7 +358,7 @@ export function BigPictureCloudSavePanel({
               variant="primary"
               icon={<CloudArrowUpIcon size={CLOUD_ACTION_ICON_SIZE} />}
               stealFocusOnAppear={stealFocusOnActionAppear}
-              disabled={isLoading || isGameRunning || manualSyncBlocked}
+              disabled={isLoading || isGameRunning}
               onClick={() => onResolveConflict("keep-local")}
               focusNavigationOverrides={{
                 right: {
@@ -378,7 +373,7 @@ export function BigPictureCloudSavePanel({
               focusId={USE_CLOUD_ID}
               variant="primary"
               icon={<CloudArrowDownIcon size={CLOUD_ACTION_ICON_SIZE} />}
-              disabled={isLoading || isGameRunning || manualSyncBlocked}
+              disabled={isLoading || isGameRunning}
               onClick={() => onResolveConflict("keep-remote")}
               focusNavigationOverrides={{
                 left: {
@@ -396,7 +391,7 @@ export function BigPictureCloudSavePanel({
             variant="primary"
             icon={getActionIcon(action.icon)}
             stealFocusOnAppear={stealFocusOnActionAppear}
-            disabled={isLoading || isGameRunning || manualSyncBlocked}
+            disabled={isLoading || isGameRunning}
             onClick={onSync}
           >
             {t(action.labelKey ?? "cloud_save_v2_check_again")}

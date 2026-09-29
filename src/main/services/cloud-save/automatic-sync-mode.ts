@@ -37,9 +37,13 @@ export const resolveStoredCloudSaveAutomaticSyncModeForShop = (
     );
   }
 
+  if (shop === "epic") {
+    return storedV2Enabled === true ? "v2" : "disabled";
+  }
+
   return resolveCloudSaveAutomaticSyncMode({
     legacyEnabled,
-    v2Enabled: shop === "epic" && storedV2Enabled === true,
+    v2Enabled: false,
   });
 };
 

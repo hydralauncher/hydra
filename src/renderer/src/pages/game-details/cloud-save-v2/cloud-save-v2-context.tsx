@@ -13,8 +13,6 @@ import { useSearchParams } from "react-router-dom";
 import {
   AuthPage,
   getCloudSaveAccessAction,
-  isManualCloudSaveV2Blocked,
-  refreshCloudSaveAfterModeChange,
   supportsCloudSaveV2,
 } from "@shared";
 import { ConfirmationModal } from "@renderer/components";
@@ -52,7 +50,6 @@ interface CloudSaveV2ContextValue {
     | null;
   progress: CloudSaveSyncProgressPayload | null;
   hasExecutablePath: boolean;
-  manualSyncBlocked: boolean;
   canUseCloudSaves: boolean;
   openManager: () => void;
   openFileBrowser: () => void;
@@ -159,7 +156,6 @@ export function CloudSaveV2Provider({
   const {
     game,
     isGameRunning,
-    updateGame,
     setShowGameOptionsModal,
     setGameOptionsInitialCategory,
   } = useContext(gameDetailsContext);
@@ -182,11 +178,6 @@ export function CloudSaveV2Provider({
     shop,
     enabled: canCheckCloudSaves,
   });
-  const manualSyncBlocked = isManualCloudSaveV2Blocked(
-    shop,
-    game?.automaticCloudSync === true,
-    isAutomaticSyncEnabled
-  );
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [wasOpenedFromLaunchConflict, setWasOpenedFromLaunchConflict] =
     useState(false);
@@ -548,12 +539,7 @@ export function CloudSaveV2Provider({
 
   const runCloudSaveOperation = useCallback(
     async (resolution?: CloudSaveConflictResolution) => {
-      if (
-        isGameRunning ||
-        !hasExecutablePath ||
-        !supportsCloudSaveV2(shop) ||
-        manualSyncBlocked
-      )
+      if (isGameRunning || !hasExecutablePath || !supportsCloudSaveV2(shop))
         return;
       if (cloudSaveAccessAction !== "open") {
         openManager();
@@ -605,7 +591,6 @@ export function CloudSaveV2Provider({
       handleCloudSaveOperationError,
       hasExecutablePath,
       isGameRunning,
-      manualSyncBlocked,
       objectId,
       openManager,
       refresh,
@@ -630,10 +615,7 @@ export function CloudSaveV2Provider({
           shop,
           enabled
         );
-        await refreshCloudSaveAfterModeChange(shop, refresh);
-        if (shop === "epic") {
-          await updateGame().catch(() => undefined);
-        }
+        await refresh();
       } catch (error) {
         showErrorToast(
           t("cloud_save_v2_toggle_error_title"),
@@ -650,7 +632,6 @@ export function CloudSaveV2Provider({
       showErrorToast,
       showHydraCloudModal,
       t,
-      updateGame,
     ]
   );
 
@@ -878,7 +859,6 @@ export function CloudSaveV2Provider({
     errorMessageKey = "cloud_save_v2_load_error";
   }
   const openFileBrowser = useCallback(() => {
-    if (manualSyncBlocked) return;
     if (cloudSaveAccessAction === "open") {
       setIsFileBrowserVisible(true);
     } else if (cloudSaveAccessAction === "sign-in") {
@@ -886,7 +866,7 @@ export function CloudSaveV2Provider({
     } else {
       showHydraCloudModal("backup");
     }
-  }, [cloudSaveAccessAction, manualSyncBlocked, showHydraCloudModal]);
+  }, [cloudSaveAccessAction, showHydraCloudModal]);
   const value = useMemo<CloudSaveV2ContextValue>(
     () => ({
       overview,
@@ -898,7 +878,6 @@ export function CloudSaveV2Provider({
       errorMessageKey,
       progress,
       hasExecutablePath,
-      manualSyncBlocked,
       canUseCloudSaves,
       openManager,
       openFileBrowser,
@@ -913,7 +892,6 @@ export function CloudSaveV2Provider({
       hasExecutablePath,
       isAutomaticSyncEnabled,
       isGameRunning,
-      manualSyncBlocked,
       isRefreshing,
       isSyncing,
       openManager,
@@ -953,13 +931,12 @@ export function CloudSaveV2Provider({
         isSyncing={isSyncing}
         isGameRunning={isGameRunning}
         hasExecutablePath={hasExecutablePath}
-        manualSyncBlocked={manualSyncBlocked}
         isAutomaticSyncEnabled={isAutomaticSyncEnabled}
         hasError={hasError}
         errorMessageKey={errorMessageKey}
         progress={progress}
         onSync={() => void runCloudSaveOperation()}
-        onOpenFileBrowser={openFileBrowser}
+        onOpenFileBrowser={() => setIsFileBrowserVisible(true)}
         onSelectExecutable={handleSelectExecutable}
         onAutomaticSyncChange={setAutomaticSyncEnabled}
         onResolveConflict={setPendingResolution}

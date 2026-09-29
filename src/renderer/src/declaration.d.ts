@@ -142,10 +142,6 @@ declare global {
       objectId: string,
       shop: GameShop
     ) => Promise<CloudSaveOverview>;
-    getCloudSaveAutomaticSyncEnabled: (
-      objectId: string,
-      shop: GameShop
-    ) => Promise<boolean>;
     getCloudSaveV2FileDetails: (
       objectId: string,
       shop: GameShop

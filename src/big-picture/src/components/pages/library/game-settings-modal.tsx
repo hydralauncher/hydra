@@ -48,9 +48,7 @@ export function LibraryGameSettingsModal({
       shop={modalGame.shop}
       hasExecutablePath={Boolean(modalGame.executablePath)}
       isGameRunning={isGameRunning}
-      legacyAutomaticCloudSync={modalGame.automaticCloudSync === true}
       enableGamePageSync={false}
-      onAutomaticSyncModeChanged={updateGame}
       onSelectExecutable={() => undefined}
     >
       <GameSettingsModal

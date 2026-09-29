@@ -87,10 +87,10 @@ describe("cloud save automatic sync mode", () => {
     );
   });
 
-  it("requires an explicit Epic V2 opt-in while preserving legacy state", () => {
+  it("requires an explicit Epic V2 opt-in and ignores stale legacy state", () => {
     assert.equal(
       resolveStoredCloudSaveAutomaticSyncModeForShop("epic", true, undefined),
-      "legacy"
+      "disabled"
     );
     assert.equal(
       resolveStoredCloudSaveAutomaticSyncModeForShop("epic", false, undefined),
@@ -103,6 +103,14 @@ describe("cloud save automatic sync mode", () => {
     assert.equal(
       resolveStoredCloudSaveAutomaticSyncModeForShop("epic", false, false),
       "disabled"
+    );
+    assert.equal(
+      resolveStoredCloudSaveAutomaticSyncModeForShop("epic", true, false),
+      "disabled"
+    );
+    assert.equal(
+      resolveStoredCloudSaveAutomaticSyncModeForShop("epic", false, true),
+      "v2"
     );
     assert.equal(
       resolveStoredCloudSaveAutomaticSyncModeForShop("custom", true, true),
