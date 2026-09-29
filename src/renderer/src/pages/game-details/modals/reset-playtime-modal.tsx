@@ -1,7 +1,9 @@
+import { useId } from "react";
 import { useTranslation } from "react-i18next";
+import { Tooltip } from "react-tooltip";
 import { Button, Modal } from "@renderer/components";
 import type { Game } from "@types";
-import { getPlayTimeHoursAndMinutes } from "@shared";
+import { PlaytimeBreakdownTable } from "./playtime-breakdown-table";
 import "./reset-achievements-modal.scss";
 
 type ResetPlaytimeModalProps = Readonly<{
@@ -19,6 +21,9 @@ export function ResetPlaytimeModal({
 }: ResetPlaytimeModalProps) {
   const { t } = useTranslation("game_details");
   const steamPlayTimeInMilliseconds = game.steamPlayTimeInMilliseconds ?? 0;
+  const tooltipId = useId();
+  const hasNoPlaytime =
+    (game.playTimeInMilliseconds ?? 0) <= 0 && !game.hasManuallyUpdatedPlaytime;
 
   const handleResetPlaytime = async () => {
     try {
@@ -38,27 +43,35 @@ export function ResetPlaytimeModal({
       })}
     >
       {steamPlayTimeInMilliseconds > 0 ? (
-        <p className="reset-achievements-modal__retroachievements-note">
-          {t("reset_playtime_steam_note", {
-            hydra: t(
-              "playtime_hours_and_minutes",
-              getPlayTimeHoursAndMinutes(game.playTimeInMilliseconds ?? 0)
-            ),
-            steam: t(
-              "playtime_hours_and_minutes",
-              getPlayTimeHoursAndMinutes(steamPlayTimeInMilliseconds)
-            ),
-          })}
-        </p>
+        <div className="reset-achievements-modal__playtime-breakdown">
+          <PlaytimeBreakdownTable
+            hydraPlayTimeInMilliseconds={game.playTimeInMilliseconds ?? 0}
+            nextHydraPlayTimeInMilliseconds={0}
+            steamPlayTimeInMilliseconds={steamPlayTimeInMilliseconds}
+          />
+        </div>
       ) : null}
       <div className="reset-achievements-modal__actions">
         <Button onClick={onClose} theme="outline">
           {t("cancel")}
         </Button>
 
-        <Button onClick={handleResetPlaytime} theme="danger">
-          {t("reset_playtime")}
-        </Button>
+        <span
+          className="reset-achievements-modal__action-tooltip"
+          data-tooltip-id={hasNoPlaytime ? tooltipId : undefined}
+          data-tooltip-content={
+            hasNoPlaytime ? t("reset_playtime_disabled_tooltip") : undefined
+          }
+        >
+          <Button
+            onClick={handleResetPlaytime}
+            theme="danger"
+            disabled={hasNoPlaytime}
+          >
+            {t("reset_playtime")}
+          </Button>
+        </span>
+        {hasNoPlaytime && <Tooltip id={tooltipId} />}
       </div>
     </Modal>
   );
