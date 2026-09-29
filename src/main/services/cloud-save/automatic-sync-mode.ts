@@ -38,7 +38,7 @@ export const resolveStoredCloudSaveAutomaticSyncModeForShop = (
   }
 
   if (shop === "epic") {
-    return storedV2Enabled === true ? "v2" : "disabled";
+    return storedV2Enabled !== false ? "v2" : "disabled";
   }
 
   return resolveCloudSaveAutomaticSyncMode({

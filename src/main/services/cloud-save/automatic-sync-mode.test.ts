@@ -87,14 +87,14 @@ describe("cloud save automatic sync mode", () => {
     );
   });
 
-  it("requires an explicit Epic V2 opt-in and ignores stale legacy state", () => {
+  it("defaults Epic V2 on while ignoring stale legacy state", () => {
     assert.equal(
       resolveStoredCloudSaveAutomaticSyncModeForShop("epic", true, undefined),
-      "disabled"
+      "v2"
     );
     assert.equal(
       resolveStoredCloudSaveAutomaticSyncModeForShop("epic", false, undefined),
-      "disabled"
+      "v2"
     );
     assert.equal(
       resolveStoredCloudSaveAutomaticSyncModeForShop("epic", true, true),
