@@ -174,6 +174,10 @@
     "scan_games_cancel_scan": "Отменить сканирование",
     "scan_games_result_linked_one": "{{count}} исполняемый файл добавлен к уже существующей игре",
     "scan_games_result_linked_other": "Исполняемых файлов добавлено к уже существующим играм: {{count}}",
+    "scan_games_result_unlinked_one": "{{count}} исполняемый файл, которого больше нет, удалён из вашей библиотеки",
+    "scan_games_result_unlinked_few": "{{count}} исполняемых файла, которых больше нет, удалены из вашей библиотеки",
+    "scan_games_result_unlinked_many": "{{count}} исполняемых файлов, которых больше нет, удалены из вашей библиотеки",
+    "scan_games_result_unlinked_other": "Удалено из вашей библиотеки исполняемых файлов, которых больше нет: {{count}}",
     "scan_games_result_added_one": "В вашу библиотеку добавлена {{count}} новая игра",
     "scan_games_result_added_other": "Новых игр добавлено в вашу библиотеку: {{count}}",
     "scan_games_result_summary": "{{added}} и {{linked}}",
@@ -1712,6 +1716,7 @@
     "scan_games_complete_added_description": "В вашу библиотеку добавлено {{added}} новых игр",
     "scan_games_complete_linked_description": "Найден исполняемый файл для {{linked}} игр в вашей библиотеке",
     "scan_games_complete_pending_description": "Найдено {{pending}} исполняемых файлов, для которых нужно выбрать игру",
+    "scan_games_complete_unlinked_description": "Удалено из вашей библиотеки исполняемых файлов, которых больше нет: {{unlinked}}",
     "scan_games_no_results_title": "Сканирование игр завершено",
     "scan_games_no_results_description": "Установленные игры не найдены"
   },

@@ -174,6 +174,8 @@
     "scan_games_cancel_scan": "Cancelar escaneo",
     "scan_games_result_linked_one": "Se añadió {{count}} ejecutable a un juego ya existente",
     "scan_games_result_linked_other": "Se añadieron {{count}} ejecutables a juegos ya existentes",
+    "scan_games_result_unlinked_one": "Se quitó de tu biblioteca {{count}} ejecutable que ya no existe",
+    "scan_games_result_unlinked_other": "Se quitaron de tu biblioteca {{count}} ejecutables que ya no existen",
     "scan_games_result_added_one": "Se añadió {{count}} juego nuevo a tu biblioteca",
     "scan_games_result_added_other": "Se añadieron {{count}} juegos nuevos a tu biblioteca",
     "scan_games_result_summary": "{{added}} y {{linked}}",
@@ -1694,6 +1696,7 @@
     "scan_games_complete_added_description": "Se añadieron {{added}} juegos nuevos a tu biblioteca",
     "scan_games_complete_linked_description": "Se encontró el ejecutable de {{linked}} juegos de tu biblioteca",
     "scan_games_complete_pending_description": "Se encontraron {{pending}} ejecutables para los que debes elegir a qué juego pertenecen",
+    "scan_games_complete_unlinked_description": "Se quitaron de tu biblioteca {{unlinked}} ejecutables que ya no existen",
     "scan_games_no_results_title": "Escaneo de juegos finalizado",
     "scan_games_no_results_description": "No se encontraron juegos instalados"
   },

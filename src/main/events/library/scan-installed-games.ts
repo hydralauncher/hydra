@@ -68,6 +68,7 @@ interface AmbiguousMatch {
 
 interface ScanResult {
   linkedGames: FoundGame[];
+  unlinkedGames: FoundGame[];
   addedGames: FoundGame[];
   ambiguousMatches: AmbiguousMatch[];
   total: number;
@@ -901,7 +902,8 @@ const getScanNotificationDescriptionKey = (
 const getScanNotificationKeys = (
   addedCount: number,
   linkedCount: number,
-  pendingCount: number
+  pendingCount: number,
+  unlinkedCount: number
 ) => {
   if (addedCount + linkedCount > 0) {
     return {
@@ -917,6 +919,13 @@ const getScanNotificationKeys = (
     };
   }
 
+  if (unlinkedCount > 0) {
+    return {
+      title: "scan_games_complete_title",
+      description: "scan_games_complete_unlinked_description",
+    };
+  }
+
   return {
     title: "scan_games_no_results_title",
     description: "scan_games_no_results_description",
@@ -926,9 +935,15 @@ const getScanNotificationKeys = (
 async function publishScanNotification(
   addedCount: number,
   linkedCount: number,
-  pendingCount: number
+  pendingCount: number,
+  unlinkedCount: number
 ): Promise<void> {
-  const keys = getScanNotificationKeys(addedCount, linkedCount, pendingCount);
+  const keys = getScanNotificationKeys(
+    addedCount,
+    linkedCount,
+    pendingCount,
+    unlinkedCount
+  );
 
   await LocalNotificationManager.createNotification(
     "SCAN_GAMES_COMPLETE",
@@ -938,6 +953,7 @@ async function publishScanNotification(
       added: addedCount,
       linked: linkedCount,
       pending: pendingCount,
+      unlinked: unlinkedCount,
     }),
     { url: "/library?openScanModal=true" }
   );
@@ -984,7 +1000,7 @@ interface LibraryGameEntry {
   game: Game;
 }
 
-const loadLibraryGames = async (): Promise<LibraryGameEntry[]> => {
+const loadLibraryGames = async () => {
   const libraryGames = await gamesSublevel
     .iterator()
     .all()
@@ -1007,10 +1023,41 @@ const loadLibraryGames = async (): Promise<LibraryGameEntry[]> => {
     );
   }
 
-  return libraryGames.map(({ key, game }) => ({
-    key,
-    game: clearedGames.get(key) ?? game,
-  }));
+  const clearedExecutables = new Map<string, FoundGame>();
+
+  for (const { key, game } of libraryGames) {
+    if (!clearedGames.has(key) || !game.executablePath) continue;
+
+    clearedExecutables.set(key, {
+      title: game.title,
+      executablePath: game.executablePath,
+      iconUrl: game.iconUrl ?? null,
+    });
+  }
+
+  return {
+    games: libraryGames.map(
+      ({ key, game }): LibraryGameEntry => ({
+        key,
+        game: clearedGames.get(key) ?? game,
+      })
+    ),
+    clearedExecutables,
+  };
+};
+
+// A cleared game that was linked again in this scan was moved, not removed
+const findUnlinkedGames = async (
+  clearedExecutables: Map<string, FoundGame>
+) => {
+  const unlinkedGames: FoundGame[] = [];
+
+  for (const [key, clearedExecutable] of clearedExecutables) {
+    const game = await gamesSublevel.get(key);
+    if (!game?.executablePath) unlinkedGames.push(clearedExecutable);
+  }
+
+  return unlinkedGames;
 };
 
 const logScannedDirectories = (scannedDirectories: ScannedDirectory[]) => {
@@ -1126,7 +1173,7 @@ const runScan = async (
   const directories = [...baseDirectories, ...additionalDirectories];
   const steamExecutables = installedSteamGames.executables;
 
-  const games = await loadLibraryGames();
+  const { games, clearedExecutables } = await loadLibraryGames();
 
   const scannedDirectories = await scanDirectories(
     directories,
@@ -1148,6 +1195,7 @@ const runScan = async (
     claimedPaths,
     signal
   );
+  const unlinkedGames = await findUnlinkedGames(clearedExecutables);
 
   const libraryObjectIds = new Set(
     games
@@ -1188,12 +1236,14 @@ const runScan = async (
     await publishScanNotification(
       addedGames.length,
       linkedGames.length,
-      outsideLibrary.ambiguousMatches.length
+      outsideLibrary.ambiguousMatches.length,
+      unlinkedGames.length
     );
   }
 
   return {
     linkedGames,
+    unlinkedGames,
     addedGames,
     ambiguousMatches: outsideLibrary.ambiguousMatches,
     total: gamesToScan.length,
