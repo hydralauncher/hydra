@@ -4,7 +4,11 @@ import path from "node:path";
 import type { CloudSaveFileIdentity } from "@types";
 
 import { cloudSaveFileKey } from "./cloud-save-contract.js";
-import { parseRetroArchSaveRawPath } from "./emulator-provider-identity.js";
+import {
+  parseRetroArchSaveRawPath,
+  parseRpcs3SaveRawPath,
+  parseRpcs3SavestateRawPath,
+} from "./emulator-provider-identity.js";
 
 export type EmulatorDestinationKind = "save" | "state";
 
@@ -21,24 +25,8 @@ export const emulatorDestinationKindForFile = (
     }
     return null;
   }
-  const save = /^<emulator>\/ppsspp\/savedata\/([A-Z]{4}\d{5})$/.exec(rawPath);
-  if (save && relativePath.startsWith(save[1])) return "save";
-  const state = /^<emulator>\/ppsspp\/state\/([A-Z]{4}\d{5})$/.exec(rawPath);
-  if (state && relativePath.startsWith(`${state[1]}_`)) return "state";
-  if (
-    /^<emulator>\/(?:duckstation-state|pcsx2-state|dolphin-state|rpcs3-state)\//.test(
-      rawPath
-    )
-  ) {
-    return "state";
-  }
-  if (
-    /^<emulator>\/(?:pcsx2-folder|dolphin-gci|dolphin-wii|rpcs3)\//.test(
-      rawPath
-    )
-  ) {
-    return "save";
-  }
+  if (parseRpcs3SavestateRawPath(rawPath)) return "state";
+  if (parseRpcs3SaveRawPath(rawPath)) return "save";
   return null;
 };
 

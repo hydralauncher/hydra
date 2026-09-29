@@ -44,20 +44,6 @@ import { assertFilesystemEmulatorRestoreRoots } from "./missing-emulator-restore
 import { assertEmulatorDestinationBindingsCurrent } from "./emulator-destination-store";
 import { approveEmulatorStateRestore } from "./state-restore-confirmation";
 import {
-  applyPlaystationCardRestore,
-  isPlaystationCardRawPath,
-} from "./playstation-card-restore";
-import { resolveDuckstationCardTarget } from "./duckstation-save-provider";
-import { resolvePcsx2CardTarget } from "./pcsx2-save-provider";
-import {
-  applyDolphinRawCardRestore,
-  isDolphinRawCardPath,
-} from "./dolphin-raw-card";
-import {
-  resolveDolphinRawCardTarget,
-  validateDolphinGciRestoreFile,
-} from "./dolphin-save-provider";
-import {
   bindCloudSaveCustomPathToLocalPath,
   CLOUD_SAVE_CUSTOM_PATH_PREFIX,
   cloudSaveCustomPathContextFromPathContext,
@@ -295,30 +281,6 @@ export const restoreRemoteSnapshot = async (
         emitProgress("downloading", processedFiles, totalFiles)
     );
     await verifyDownloadedRestoreFiles(downloadedFiles, emitProgress);
-    const downloadedById = new Map(
-      downloadedFiles.map((file) => [cloudSaveFileKey(file), file] as const)
-    );
-    const selectedById = new Map(
-      applicableSelectedFiles.map(
-        (file) => [cloudSaveFileKey(file), file] as const
-      )
-    );
-    for (const action of plan.actions) {
-      if (!action.rawPath.startsWith("<emulator>/dolphin-")) continue;
-      const id = cloudSaveFileKey(action);
-      const file = selectedById.get(id);
-      const sourcePath =
-        action.action === "skip-identical"
-          ? action.targetPath
-          : downloadedById.get(id)?.tempPath;
-      if (
-        !file ||
-        !sourcePath ||
-        !(await validateDolphinGciRestoreFile(file, sourcePath))
-      ) {
-        throw new Error("cloud_save_dolphin_save_identity_mismatch");
-      }
-    }
 
     const current = await assertSnapshotStillCurrent(gameId, snapshot);
     const versionDecision = getRestoreVersionDecision(
@@ -386,55 +348,6 @@ export const restoreRemoteSnapshot = async (
     );
     if (restoreSucceeded) {
       await assertEnvironmentCurrent?.();
-      if (game) {
-        const actionById = new Map(
-          plan.actions.map((action) => [cloudSaveFileKey(action), action])
-        );
-        const cardItems = await Promise.all(
-          applicableSelectedFiles
-            .filter((file) => isPlaystationCardRawPath(file.rawPath))
-            .map(async (file) => {
-              const action = actionById.get(cloudSaveFileKey(file));
-              if (!action) return null;
-              const targetPath = file.rawPath.includes("/duckstation-card/")
-                ? await resolveDuckstationCardTarget(game, file)
-                : await resolvePcsx2CardTarget(game, file);
-              if (!targetPath) {
-                throw new Error("cloud_save_memory_card_target_unavailable");
-              }
-              return {
-                file,
-                stagedPath: action.targetPath,
-                targetPath,
-              };
-            })
-        );
-        await applyPlaystationCardRestore(
-          game,
-          cardItems.filter((item) => item !== null)
-        );
-        const dolphinItems = await Promise.all(
-          applicableSelectedFiles
-            .filter((file) => isDolphinRawCardPath(file.rawPath))
-            .map(async (file) => {
-              const action = actionById.get(cloudSaveFileKey(file));
-              if (!action) return null;
-              const targetPath = await resolveDolphinRawCardTarget(game, file);
-              if (!targetPath) {
-                throw new Error("cloud_save_memory_card_target_unavailable");
-              }
-              return {
-                file,
-                stagedPath: action.targetPath,
-                targetPath,
-              };
-            })
-        );
-        await applyDolphinRawCardRestore(
-          game,
-          dolphinItems.filter((item) => item !== null)
-        );
-      }
       await assertEnvironmentCurrent?.();
       await registerRestoredCustomPaths(
         plan.actions,

@@ -23,6 +23,15 @@ describe("cloud save custom path selection", () => {
         ),
       /cloud_save_custom_path_file_not_supported/
     );
+    assert.throws(
+      () =>
+        assertCloudSaveCustomPathKindAllowed(
+          "file",
+          "launchbox",
+          "Sony PlayStation 2"
+        ),
+      /cloud_save_custom_path_file_not_supported/
+    );
     assert.doesNotThrow(() =>
       assertCloudSaveCustomPathKindAllowed("dir", "steam")
     );

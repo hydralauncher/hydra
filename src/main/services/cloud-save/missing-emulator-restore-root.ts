@@ -36,14 +36,6 @@ const layouts: RootLayout[] = [
     matchesSuffix: () => true,
   },
   {
-    rawPathPrefix: "<emulator>/ppsspp/",
-    profileNames: new Set(["psp"]),
-    branches: new Set(["savedata", "ppsspp_state"]),
-    configPaths: [["SYSTEM", "ppsspp.ini"]],
-    allowSiblingProof: true,
-    matchesSuffix: (suffix) => suffix.length === 0,
-  },
-  {
     rawPathPrefix: "<emulator>/rpcs3-state/",
     profileNames: new Set(["rpcs3"]),
     branches: new Set(["savestates"]),
@@ -78,92 +70,6 @@ const layouts: RootLayout[] = [
         suffix[0] === "home" &&
         /^\d{8}$/.test(suffix[1]) &&
         suffix[2] === "savedata"
-      );
-    },
-  },
-  {
-    rawPathPrefix: "<emulator>/duckstation-state/",
-    profileNames: new Set(["duckstation"]),
-    branches: new Set(["savestates"]),
-    configPaths: [["settings.ini"]],
-    allowSiblingProof: false,
-    matchesSuffix: (suffix) => suffix.length === 0,
-  },
-  {
-    rawPathPrefix: "<emulator>/pcsx2-state/",
-    profileNames: new Set(["pcsx2"]),
-    branches: new Set(["sstates"]),
-    configPaths: [["inis", "PCSX2.ini"]],
-    allowSiblingProof: false,
-    matchesSuffix: (suffix) => suffix.length === 0,
-  },
-  {
-    rawPathPrefix: "<emulator>/dolphin-state/",
-    profileNames: new Set([
-      "dolphin",
-      "dolphin emulator",
-      ".dolphin-emu",
-      "dolphin-emu",
-    ]),
-    branches: new Set(["statesaves"]),
-    configPaths: [["Config", "Dolphin.ini"]],
-    allowSiblingProof: false,
-    matchesSuffix: (suffix) => suffix.length === 0,
-  },
-  {
-    rawPathPrefix: "<emulator>/dolphin-gci/",
-    profileNames: new Set([
-      "dolphin",
-      "dolphin emulator",
-      ".dolphin-emu",
-      "dolphin-emu",
-    ]),
-    branches: new Set(["gc"]),
-    configPaths: [["Config", "Dolphin.ini"]],
-    allowSiblingProof: false,
-    matchesSuffix: (suffix, rawPath) => {
-      const parsed = /^<emulator>\/dolphin-gci\/([AB])\/([A-Z0-9]{6})$/.exec(
-        rawPath
-      );
-      if (!parsed || suffix.length !== 2) return false;
-      const regionCode = parsed[2][3];
-      const region =
-        regionCode === "E" || regionCode === "N"
-          ? "usa"
-          : regionCode === "J"
-            ? "jap"
-            : "PDFHIXSUY".includes(regionCode)
-              ? "eur"
-              : null;
-      return (
-        region !== null &&
-        suffix[0] === region &&
-        suffix[1] === `card ${parsed[1].toLowerCase()}`
-      );
-    },
-  },
-  {
-    rawPathPrefix: "<emulator>/dolphin-wii/",
-    profileNames: new Set([
-      "dolphin",
-      "dolphin emulator",
-      ".dolphin-emu",
-      "dolphin-emu",
-    ]),
-    branches: new Set(["wii"]),
-    configPaths: [["Config", "Dolphin.ini"]],
-    allowSiblingProof: false,
-    matchesSuffix: (suffix, rawPath) => {
-      const parsed = /^<emulator>\/dolphin-wii\/00010000([a-f0-9]{8})$/.exec(
-        rawPath
-      );
-      return (
-        !!parsed &&
-        suffix.length === 4 &&
-        suffix[0] === "title" &&
-        suffix[1] === "00010000" &&
-        suffix[2] === parsed[1] &&
-        suffix[3] === "data"
       );
     },
   },
@@ -410,7 +316,7 @@ const isDefaultRpcs3SavedataTarget = async (
 
 /**
  * A missing default folder is safe to create when its active config exists in
- * the local emulator profile. RetroArch and PPSSPP may also use a scanned
+ * the local emulator profile. RetroArch may also use a scanned
  * sibling folder as proof. External/custom paths need an explicit binding.
  */
 export const isSafeMissingEmulatorRestoreRoot = async (

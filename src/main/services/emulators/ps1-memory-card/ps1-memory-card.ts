@@ -1,7 +1,7 @@
 import { promises as fs } from "node:fs";
 import type { FileHandle } from "node:fs/promises";
 
-import { extractSkuFromSaveFolder } from "../ps2-memory-card/extract-save-sku.js";
+import { extractSkuFromSaveFolder } from "../ps2-memory-card/extract-save-sku";
 import {
   PS1_BLOCK_BYTES,
   PS1_DATA_BLOCKS,
@@ -10,8 +10,8 @@ import {
   PS1_FRAME_BYTES,
   PS1_LINK_END,
   PS1_STATE,
-} from "./types.js";
-import type { Ps1CardInfo, Ps1Save, Ps1SaveContents } from "./types.js";
+} from "./types";
+import type { Ps1CardInfo, Ps1Save, Ps1SaveContents } from "./types";
 
 /*
  * PS1 memory card reader. Pure Node (`fs`/`Buffer`) — no Electron/`@main`

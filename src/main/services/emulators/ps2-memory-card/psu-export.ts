@@ -1,7 +1,7 @@
 import { promises as fs } from "node:fs";
 
-import { DF } from "./types.js";
-import type { Ps2SaveContents } from "./types.js";
+import { DF } from "./types";
+import type { Ps2SaveContents } from "./types";
 
 /*
  * `.psu` (EMS) export writer.

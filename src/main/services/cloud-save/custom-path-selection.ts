@@ -8,7 +8,6 @@ import {
   getEmulatorGameSaveFileFilter,
   getEmulatorSaveProvider,
 } from "./emulator-save-provider";
-import { emulatorProviderSourcePaths } from "./emulator-provider-source-path.js";
 import { isEligibleEmulatorManualFile } from "./emulator-manual-file-eligibility.js";
 
 type CloudSaveGameContext = Awaited<ReturnType<typeof getCloudSaveGameContext>>;
@@ -47,12 +46,10 @@ export const assertCloudSaveCustomPathHasEligibleFiles = async (
     );
     const selected = customPath.path;
     const containsProviderFile = discovery.files.some((file) =>
-      emulatorProviderSourcePaths(file).some((sourcePath) =>
-        customPath.kind === "file"
-          ? sourcePath === selected
-          : sourcePath.startsWith(`${selected}/`) ||
-            sourcePath.startsWith(`${selected}\\`)
-      )
+      customPath.kind === "file"
+        ? file.absolutePath === selected
+        : file.absolutePath.startsWith(`${selected}/`) ||
+          file.absolutePath.startsWith(`${selected}\\`)
     );
     if (containsProviderFile) return;
   }

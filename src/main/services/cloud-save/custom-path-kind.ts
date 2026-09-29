@@ -2,7 +2,7 @@ import type { GameShop, RestoreManifestFile } from "@types";
 import { canSelectCloudSaveCustomFile } from "../../../shared/cloud-save-emulator-provider.js";
 
 const KNOWN_SAVE_FILE =
-  /\.(?:srm|rtc|sav|mcd|mcr|ps2|raw|gcp|gci|mcs|psu|ppst|p2s|p2s\.backup|SAVESTAT(?:\.zst|\.gz)?|state(?:\d+|\.auto)?(?:\.png)?)$/i;
+  /\.(?:srm|rtc|sav|SAVESTAT(?:\.zst|\.gz)?|state(?:\d+|\.auto)?(?:\.png)?)$/i;
 
 /** Old snapshots have no custom path kind. Infer only exact, known save files. */
 export const inferCustomPathKind = (

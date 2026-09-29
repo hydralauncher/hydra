@@ -33,11 +33,6 @@ describe("cloud save visibility", () => {
   it("uses V2 and archives legacy saves for eligible emulator platforms", () => {
     for (const platform of [
       "Sony PlayStation 3",
-      "Sony PlayStation",
-      "Sony PlayStation 2",
-      "Sony PlayStation Portable",
-      "Nintendo GameCube",
-      "Nintendo Wii",
       "Nintendo Game Boy Advance",
     ]) {
       assert.deepEqual(getCloudSaveVisibility("launchbox", platform), {
@@ -53,6 +48,25 @@ describe("cloud save visibility", () => {
       getCloudSaveVisibility("launchbox", "Unknown Console").hero,
       "legacy"
     );
+  });
+
+  it("keeps legacy active for the four unsupported emulator providers", () => {
+    for (const platform of [
+      "Sony PlayStation",
+      "Sony PlayStation 2",
+      "Sony PlayStation Portable",
+      "Nintendo GameCube",
+      "Nintendo Wii",
+    ]) {
+      assert.deepEqual(getCloudSaveVisibility("launchbox", platform), {
+        hero: "legacy",
+        settings: {
+          showV2: false,
+          showLegacy: true,
+          legacyPurpose: "active",
+        },
+      });
+    }
   });
 
   it("preserves the main-branch behavior for custom games", () => {

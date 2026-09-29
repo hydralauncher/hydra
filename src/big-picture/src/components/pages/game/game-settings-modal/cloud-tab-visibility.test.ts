@@ -41,7 +41,7 @@ describe("Big Picture cloud save V2 tab visibility", () => {
     ]) {
       assert.equal(
         shouldShowCloudSaveV2Tab("launchbox", true, true, platform),
-        true
+        false
       );
     }
     assert.equal(
@@ -87,7 +87,7 @@ describe("Big Picture legacy cloud save tab visibility", () => {
     ]) {
       assert.equal(
         shouldShowLegacyCloudSaveTab("launchbox", true, true, platform),
-        false
+        true
       );
     }
     assert.equal(

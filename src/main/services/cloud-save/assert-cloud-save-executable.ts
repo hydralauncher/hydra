@@ -1,5 +1,5 @@
 import { access } from "node:fs/promises";
-import { getCloudSaveEmulatorProvider } from "@shared";
+import { getCloudSaveEmulatorProvider, isCloudSaveV2Eligible } from "@shared";
 
 import { gamesSublevel, levelKeys } from "@main/level";
 
@@ -32,11 +32,22 @@ export const assertCloudSaveExecutableExists = createCloudSaveExecutableGuard({
   },
 });
 
-export const assertCloudSaveRuntimeAvailable = async (
+export const assertCloudSaveV2Eligible = async (
   objectId: string,
   shop: Parameters<typeof assertCloudSaveExecutableExists>[1]
 ) => {
   const game = await gamesSublevel.get(levelKeys.game(shop, objectId));
+  if (!game || !isCloudSaveV2Eligible(shop, game.platform)) {
+    throw new Error("cloud_save_v2_not_available");
+  }
+  return game;
+};
+
+export const assertCloudSaveRuntimeAvailable = async (
+  objectId: string,
+  shop: Parameters<typeof assertCloudSaveExecutableExists>[1]
+) => {
+  const game = await assertCloudSaveV2Eligible(objectId, shop);
   if (!getCloudSaveEmulatorProvider(shop, game?.platform)) {
     return assertCloudSaveExecutableExists(objectId, shop);
   }

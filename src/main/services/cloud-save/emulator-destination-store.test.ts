@@ -79,49 +79,11 @@ describe("manual emulator restore destinations", () => {
     );
   });
 
-  it("keeps PPSSPP save data and states bound to separate title roots", () => {
+  it("recognizes RPCS3 save data and states", () => {
     assert.equal(
       emulatorDestinationKindForFile(
-        "<emulator>/ppsspp/savedata/ULUS12345",
-        "ULUS12345DATA/PARAM.SFO"
-      ),
-      "save"
-    );
-    assert.equal(
-      emulatorDestinationKindForFile(
-        "<emulator>/ppsspp/state/ULUS12345",
-        "ULUS12345_1.00_0.ppst"
-      ),
-      "state"
-    );
-    assert.equal(
-      emulatorDestinationKindForFile(
-        "<emulator>/ppsspp/state/ULUS99999",
-        "ULUS12345_1.00_0.ppst"
-      ),
-      null
-    );
-  });
-
-  it("offers physical emulator roots but leaves shared card images to card binding", () => {
-    assert.equal(
-      emulatorDestinationKindForFile(
-        "<emulator>/duckstation-state/SCUS-94163",
-        "SCUS-94163_1.sav"
-      ),
-      "state"
-    );
-    assert.equal(
-      emulatorDestinationKindForFile(
-        "<emulator>/pcsx2-folder/SLUS-20294/1",
-        "BASLUS-20294/save.bin"
-      ),
-      "save"
-    );
-    assert.equal(
-      emulatorDestinationKindForFile(
-        "<emulator>/dolphin-gci/A/GM8E01",
-        "game.gci"
+        "<emulator>/rpcs3/BLUS30443/00000001",
+        "BLUS30443-SLOT/DATA.BIN"
       ),
       "save"
     );
@@ -134,15 +96,8 @@ describe("manual emulator restore destinations", () => {
     );
     assert.equal(
       emulatorDestinationKindForFile(
-        "<emulator>/dolphin-raw/A/GM8E01",
-        "save.gci"
-      ),
-      null
-    );
-    assert.equal(
-      emulatorDestinationKindForFile(
-        "<emulator>/duckstation-card/SCUS-94163/1",
-        "save.mcs"
+        "<emulator>/rpcs3/INVALID/00000001",
+        "DATA.BIN"
       ),
       null
     );

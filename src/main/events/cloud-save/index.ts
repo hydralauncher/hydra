@@ -16,7 +16,6 @@ import "./upload-save-game";
 import "./select-cloud-save-custom-path";
 import "./rebind-cloud-save-custom-path";
 import "./remove-cloud-save-custom-path";
-import "./remove-emulator-card-path-override";
 import "./select-emulator-destination";
 import "./remove-emulator-destination";
 import "./get-pending-cloud-save-custom-path-approval";

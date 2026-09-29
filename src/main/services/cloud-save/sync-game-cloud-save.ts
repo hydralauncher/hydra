@@ -326,9 +326,7 @@ const executeRemoteSnapshotDeletionSync = async ({
         await deleteLocalSaveTargets(
           analysis.localSnapshotContext,
           deleteLocalEntryIds,
-          assertEnvironmentCurrent,
-          [],
-          analysis.context.game
+          assertEnvironmentCurrent
         );
       }
       await clearCloudSaveLocalState(objectId, shop, customPathStorageKey);
@@ -435,9 +433,7 @@ const executeRestoreOnlySync = async ({
     await deleteLocalSaveTargets(
       analysis.localSnapshotContext,
       deleteLocalIds,
-      assertEnvironmentCurrent,
-      [],
-      analysis.context.game
+      assertEnvironmentCurrent
     );
   }
   const finalUnresolvedRemoteEntryIds =
@@ -607,9 +603,7 @@ const executeAppliedSync = async ({
     await deleteLocalSaveTargets(
       analysis.localSnapshotContext,
       deleteLocalIds,
-      assertEnvironmentCurrent,
-      [],
-      analysis.context.game
+      assertEnvironmentCurrent
     );
   }
 

@@ -11,7 +11,6 @@ import { classifyCloudSaveCustomPathResolutionError } from "./custom-path-bindin
 import { getRemoteSnapshotRestoreManifest } from "./resolve-remote-snapshot-targets";
 import { getFirstSyncState } from "./sync-game";
 import { getEmulatorSaveProvider } from "./emulator-save-provider";
-import { getEmulatorCardPathOverrides } from "./emulator-card-path-store";
 import {
   getEmulatorDestinationBinding,
   getExpectedEmulatorDestination,
@@ -168,17 +167,6 @@ export const getCloudSaveV2FileDetails = async (
         })
       )
     ).filter((item) => item !== null);
-  }
-  if (
-    analysis.context.game &&
-    (provider === "duckstation" ||
-      provider === "pcsx2" ||
-      provider === "dolphin")
-  ) {
-    details.emulatorCardSources = await getEmulatorCardPathOverrides(
-      analysis.context.game,
-      provider
-    );
   }
   if (provider !== "rpcs3") {
     return details;

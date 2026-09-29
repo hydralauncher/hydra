@@ -50,7 +50,6 @@ import {
   getEmulationMemcardRemoveCardFocusId,
 } from "../settings-navigation";
 import { SETTINGS_TOAST_OPTIONS, formatBytes } from "./shared";
-import { canUploadLegacyEmulationSave } from "@renderer/pages/settings/emulation/legacy-upload-visibility";
 
 interface MemoryCardsSectionProps {
   config: EmulatorConfig;
@@ -371,10 +370,6 @@ export function MemoryCardsSection({
   const isPs1 = config.system === "ps1";
   const api = isPs1 ? ps1Api : ps2Api;
   const platform = config.system as EmulationSavePlatform;
-  const canUploadLegacy = canUploadLegacyEmulationSave(
-    platform,
-    hasActiveSubscription
-  );
 
   const [saves, setSaves] = useState<MemoryCardSaveRecord[]>([]);
   const [scanInput, setScanInput] = useState<MemcardScanInput | null>(null);
@@ -615,7 +610,7 @@ export function MemoryCardsSection({
                       id={collapseId}
                       navigationOverrides={{
                         left: { type: "block" },
-                        right: canUploadLegacy
+                        right: hasActiveSubscription
                           ? {
                               type: "item",
                               itemId: backupAllId,
@@ -690,7 +685,7 @@ export function MemoryCardsSection({
                       </button>
                     </FocusItem>
 
-                    {canUploadLegacy ? (
+                    {hasActiveSubscription ? (
                       <FocusItem
                         id={backupAllId}
                         navigationOverrides={{
@@ -765,7 +760,9 @@ export function MemoryCardsSection({
                       focusNavigationOverrides={{
                         left: {
                           type: "item",
-                          itemId: canUploadLegacy ? backupAllId : collapseId,
+                          itemId: hasActiveSubscription
+                            ? backupAllId
+                            : collapseId,
                         },
                         right: { type: "block" },
                         up: previousGroup
@@ -958,20 +955,18 @@ export function MemoryCardsSection({
                                   disabled: exportingKey === currentKey,
                                   onSelect: () => handleExport(save),
                                 },
-                                ...(canUploadLegacy
-                                  ? [
-                                      {
-                                        id: "backup",
-                                        icon: <UploadIcon size={16} />,
-                                        label:
-                                          backingUpKey === currentKey
-                                            ? t("cloud_backing_up")
-                                            : t("cloud_backup"),
-                                        disabled: backingUpKey === currentKey,
-                                        onSelect: () => handleBackup(save),
-                                      },
-                                    ]
-                                  : []),
+                                {
+                                  id: "backup",
+                                  icon: <UploadIcon size={16} />,
+                                  label:
+                                    backingUpKey === currentKey
+                                      ? t("cloud_backing_up")
+                                      : t("cloud_backup"),
+                                  disabled:
+                                    !hasActiveSubscription ||
+                                    backingUpKey === currentKey,
+                                  onSelect: () => handleBackup(save),
+                                },
                               ]}
                             />
                           </div>

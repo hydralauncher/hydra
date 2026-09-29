@@ -10,6 +10,7 @@ import type {
 } from "@types";
 
 import { buildCloudSaveAggregateHash } from "./snapshot-aggregate-hash";
+import { assertCloudSaveV2Eligible } from "./assert-cloud-save-executable";
 import { buildLocalGameSnapshotContext } from "./build-local-game-snapshot";
 import {
   CLOUD_SAVE_HASH_PATTERN,
@@ -103,6 +104,7 @@ export const createRemoteSnapshotFromLocalState = async (
   localSnapshotContext?: LocalGameSnapshotContext,
   options?: CreateRemoteSnapshotOptions
 ): Promise<RemoteGameSnapshot | null> => {
+  await assertCloudSaveV2Eligible(objectId, shop);
   const resolvedOptions = resolveCreateRemoteSnapshotOptions(options);
   const context =
     localSnapshotContext ??

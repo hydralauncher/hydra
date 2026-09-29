@@ -15,7 +15,6 @@ const migrationSublevel = db.sublevel<string, boolean>(
   { valueEncoding: "json" }
 );
 const originalMigrationKey = "emulators-v2-completed";
-const expandedMigrationKey = "emulators-v2-all-providers-completed";
 
 const createStore = (
   migrationCompletedKey: string
@@ -43,13 +42,7 @@ const createStore = (
 });
 
 export const migrateEmulatorCloudSaveDefaults = async () => {
-  const original = await migrateEmulatorCloudSaveDefaultsWithStore(
-    createStore(originalMigrationKey),
-    ["rpcs3", "retroarch"]
+  return migrateEmulatorCloudSaveDefaultsWithStore(
+    createStore(originalMigrationKey)
   );
-  const expanded = await migrateEmulatorCloudSaveDefaultsWithStore(
-    createStore(expandedMigrationKey),
-    ["duckstation", "pcsx2", "ppsspp", "dolphin"]
-  );
-  return original || expanded;
 };

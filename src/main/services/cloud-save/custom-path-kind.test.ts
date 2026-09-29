@@ -58,3 +58,14 @@ it("keeps old Steam folders ending in .sav as folders", () => {
     "dir"
   );
 });
+
+it("does not infer files from unsupported emulator save formats", () => {
+  const rawPath = "<custom><mac><home>/Saves/Game.ps2";
+  assert.equal(
+    inferCustomPathKind(rawPath, [{ relativePath: "Game.ps2" }], {
+      shop: "launchbox",
+      platform: "Super Nintendo",
+    }),
+    "dir"
+  );
+});

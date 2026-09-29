@@ -468,51 +468,6 @@ describe("missing emulator restore roots", () => {
     }
   });
 
-  it("restores a missing PPSSPP state folder beside verified savedata", async () => {
-    const sample = await fixture();
-    try {
-      const psp = path.join(sample.home, "PPSSPP", "PSP");
-      const savedata = path.join(psp, "SAVEDATA");
-      const slot = path.join(savedata, "ULUS12345DATA");
-      await fs.mkdir(slot, { recursive: true });
-      const localFile = path.join(slot, "PARAM.SFO");
-      await fs.writeFile(localFile, "save");
-      const local = {
-        ...sample.local,
-        sourceFiles: [
-          {
-            ...sample.local.sourceFiles[0],
-            rawPath: "<emulator>/ppsspp/savedata/ULUS12345",
-            absolutePath: localFile,
-            localBindings: {
-              ...sample.local.sourceFiles[0].localBindings,
-              concretePath: savedata,
-            },
-          },
-        ],
-      };
-      const target: ResolvedRestoreTarget = {
-        ...sample.target,
-        rawPath: "<emulator>/ppsspp/state/ULUS12345",
-        relativePath: "ULUS12345_0_1.ppst",
-        restoreRootPath: path.join(psp, "PPSSPP_STATE"),
-        targetPath: path.join(psp, "PPSSPP_STATE", "ULUS12345_0_1.ppst"),
-      };
-      const safe = await safeMissingEmulatorRestoreEntryIds([target], local);
-      assert.deepEqual([...safe], [cloudSaveFileKey(target)]);
-
-      await fs.mkdir(path.join(psp, "SYSTEM"), { recursive: true });
-      await fs.writeFile(path.join(psp, "SYSTEM", "ppsspp.ini"), "config");
-      const cleanHost = { ...local, files: [], sourceFiles: [] };
-      assert.deepEqual(
-        [...(await safeMissingEmulatorRestoreEntryIds([target], cleanHost))],
-        [cloudSaveFileKey(target)]
-      );
-    } finally {
-      await fs.rm(sample.temp, { recursive: true, force: true });
-    }
-  });
-
   it("blocks a root that disappeared after local discovery", async () => {
     const sample = await fixture();
     try {
@@ -542,30 +497,6 @@ const defaultStateLayouts = [
     stateRoot: ["savestates", "BLUS30443"],
     rawPath: "<emulator>/rpcs3-state/BLUS30443",
     relativePath: "BLUS30443_0_1.SAVESTAT",
-  },
-  {
-    emulator: "DuckStation",
-    profile: [".local", "share", "duckstation"],
-    config: ["settings.ini"],
-    stateRoot: ["savestates"],
-    rawPath: "<emulator>/duckstation-state/SLUS-12345",
-    relativePath: "SLUS-12345_1.sav",
-  },
-  {
-    emulator: "PCSX2",
-    profile: [".config", "PCSX2"],
-    config: ["inis", "PCSX2.ini"],
-    stateRoot: ["sstates"],
-    rawPath: "<emulator>/pcsx2-state/SLUS-12345",
-    relativePath: "SLUS-12345 (ABCDEF12).00.p2s",
-  },
-  {
-    emulator: "Dolphin",
-    profile: ["Library", "Application Support", "Dolphin"],
-    config: ["Config", "Dolphin.ini"],
-    stateRoot: ["StateSaves"],
-    rawPath: "<emulator>/dolphin-state/GM8E01",
-    relativePath: "GM8E01.s01",
   },
 ] as const;
 
@@ -656,55 +587,6 @@ describe("first sync to a new emulator profile", () => {
       await fs.rm(temp, { recursive: true, force: true });
     }
   });
-
-  it("keeps custom state folders and mismatched RPCS3 titles pending", async () => {
-    const temp = await fs.mkdtemp(
-      path.join(os.tmpdir(), "hydra-custom-state-root-")
-    );
-    try {
-      const home = path.join(temp, "home");
-      const duckstation = path.join(home, ".local", "share", "duckstation");
-      const rpcs3 = path.join(home, ".config", "rpcs3");
-      await fs.mkdir(path.join(rpcs3, "GuiConfigs"), { recursive: true });
-      await fs.mkdir(duckstation, { recursive: true });
-      await fs.writeFile(path.join(duckstation, "settings.ini"), "config");
-      await fs.writeFile(
-        path.join(rpcs3, "GuiConfigs", "persistent_settings.dat"),
-        "config"
-      );
-      const local = emptyLocal(home);
-      const customDuckstation: ResolvedRestoreTarget = {
-        ...file("SLUS-12345_1.sav"),
-        rawPath: "<emulator>/duckstation-state/SLUS-12345",
-        action: "create",
-        restoreRootPath: path.join(duckstation, "custom-states"),
-        targetPath: path.join(duckstation, "custom-states", "SLUS-12345_1.sav"),
-      };
-      const wrongRpcs3Title: ResolvedRestoreTarget = {
-        ...file("BLUS30443_0_1.SAVESTAT"),
-        rawPath: "<emulator>/rpcs3-state/BLUS30443",
-        action: "create",
-        restoreRootPath: path.join(rpcs3, "savestates", "BLUS99999"),
-        targetPath: path.join(
-          rpcs3,
-          "savestates",
-          "BLUS99999",
-          "BLUS30443_0_1.SAVESTAT"
-        ),
-      };
-      assert.deepEqual(
-        [
-          ...(await safeMissingEmulatorRestoreEntryIds(
-            [customDuckstation, wrongRpcs3Title],
-            local
-          )),
-        ],
-        []
-      );
-    } finally {
-      await fs.rm(temp, { recursive: true, force: true });
-    }
-  });
 });
 
 describe("first sync of game save directories", () => {
@@ -762,134 +644,6 @@ describe("first sync of game save directories", () => {
       assert.deepEqual(
         [...(await safeMissingEmulatorRestoreEntryIds([target], local))],
         []
-      );
-    } finally {
-      await fs.rm(temp, { recursive: true, force: true });
-    }
-  });
-
-  it("restores only default Dolphin GCI and Wii title folders", async () => {
-    const temp = await fs.mkdtemp(
-      path.join(os.tmpdir(), "hydra-dolphin-game-saves-")
-    );
-    try {
-      const home = path.join(temp, "home");
-      const profile = path.join(
-        home,
-        "Library",
-        "Application Support",
-        "Dolphin"
-      );
-      const config = path.join(profile, "Config", "Dolphin.ini");
-      await fs.mkdir(path.dirname(config), { recursive: true });
-      await fs.writeFile(config, "[Core]\nSlotA = 8\n");
-      const local = emptyLocal(home);
-      const gciRoot = path.join(profile, "GC", "USA", "Card A");
-      const gci: ResolvedRestoreTarget = {
-        ...file(`${"a".repeat(24)}.gci`),
-        rawPath: "<emulator>/dolphin-gci/A/GM8E01",
-        action: "create",
-        restoreRootPath: gciRoot,
-        targetPath: path.join(gciRoot, `${"a".repeat(24)}.gci`),
-      };
-      const wiiRoot = path.join(
-        profile,
-        "Wii",
-        "title",
-        "00010000",
-        "524d4745",
-        "data"
-      );
-      const wii: ResolvedRestoreTarget = {
-        ...file("banner.bin"),
-        rawPath: "<emulator>/dolphin-wii/00010000524d4745",
-        action: "create",
-        restoreRootPath: wiiRoot,
-        targetPath: path.join(wiiRoot, "banner.bin"),
-      };
-      const safe = await safeMissingEmulatorRestoreEntryIds([gci, wii], local);
-      assert.deepEqual(
-        [...safe].sort(),
-        [cloudSaveFileKey(gci), cloudSaveFileKey(wii)].sort()
-      );
-      local.coverage = [gci, wii].map((remote) => ({
-        ...partialCoverage,
-        rawPath: remote.rawPath,
-        relativePath: remote.relativePath,
-      }));
-      const merge = mergeUserVariantSnapshots({
-        local,
-        remoteVariants: [{ variantId, kind: "default" }],
-        remoteFiles: [gci, wii],
-        base: null,
-        safeMissingEmulatorRestoreEntryIds: safe,
-      });
-      assert.deepEqual(merge.restoreEntryIds.sort(), [...safe].sort());
-      await assertFilesystemEmulatorRestoreRoots([gci, wii], local, safe);
-
-      const wrongRegion = {
-        ...gci,
-        restoreRootPath: path.join(profile, "GC", "EUR", "Card A"),
-      };
-      const wrongTitle = {
-        ...wii,
-        restoreRootPath: path.join(
-          profile,
-          "Wii",
-          "title",
-          "00010000",
-          "524d4746",
-          "data"
-        ),
-      };
-      assert.deepEqual(
-        [
-          ...(await safeMissingEmulatorRestoreEntryIds(
-            [wrongRegion, wrongTitle],
-            local
-          )),
-        ],
-        []
-      );
-    } finally {
-      await fs.rm(temp, { recursive: true, force: true });
-    }
-  });
-
-  it("blocks a Dolphin GCI root that disappears after analysis", async () => {
-    const temp = await fs.mkdtemp(
-      path.join(os.tmpdir(), "hydra-dolphin-gci-race-")
-    );
-    try {
-      const home = path.join(temp, "home");
-      const profile = path.join(
-        home,
-        "Library",
-        "Application Support",
-        "Dolphin"
-      );
-      const config = path.join(profile, "Config", "Dolphin.ini");
-      const gciRoot = path.join(profile, "GC", "USA", "Card A");
-      await fs.mkdir(path.dirname(config), { recursive: true });
-      await fs.mkdir(gciRoot, { recursive: true });
-      await fs.writeFile(config, "[Core]\nSlotA = 8\n");
-      const target: ResolvedRestoreTarget = {
-        ...file(`${"a".repeat(24)}.gci`),
-        rawPath: "<emulator>/dolphin-gci/A/GM8E01",
-        action: "create",
-        restoreRootPath: gciRoot,
-        targetPath: path.join(gciRoot, `${"a".repeat(24)}.gci`),
-      };
-      const local = emptyLocal(home);
-      const safeAtAnalysis = await safeMissingEmulatorRestoreEntryIds(
-        [target],
-        local
-      );
-      assert.equal(safeAtAnalysis.size, 0);
-      await fs.rm(gciRoot, { recursive: true });
-      await assert.rejects(
-        assertFilesystemEmulatorRestoreRoots([target], local, safeAtAnalysis),
-        /cloud_save_restore_root_unavailable/
       );
     } finally {
       await fs.rm(temp, { recursive: true, force: true });

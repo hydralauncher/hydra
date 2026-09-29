@@ -1,5 +1,5 @@
-import type { MemoryCardBackupTarget } from "../ps2-memory-card/psu-export.js";
-import type { Ps1SaveContents } from "./types.js";
+import type { MemoryCardBackupTarget } from "../ps2-memory-card/psu-export";
+import type { Ps1SaveContents } from "./types";
 
 /*
  * `.mcs` (single memory-card save) export writer.

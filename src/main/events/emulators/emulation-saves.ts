@@ -1,7 +1,6 @@
 import { registerEvent } from "../register-event";
 import { emulators, logger } from "@main/services";
 import type { EmulationCloudSave, EmulationSavePlatform } from "@types";
-import { loadArchivedEmulationSaves } from "./archived-emulation-save-policy";
 
 const listEmulationSaves = async (
   _event: Electron.IpcMainInvokeEvent,
@@ -31,30 +30,6 @@ const deleteEmulationSave = async (
   await emulators.deleteEmulationSave(saveId);
 };
 
-const listArchivedEmulationSavesForGame = async (
-  _event: Electron.IpcMainInvokeEvent,
-  platform: EmulationSavePlatform,
-  objectId: string
-): Promise<EmulationCloudSave[]> => {
-  if (!objectId) return [];
-  return loadArchivedEmulationSaves(
-    platform,
-    objectId,
-    emulators.listEmulationSaves
-  );
-};
-
-const listArchivedEmulationSavesForPlatform = async (
-  _event: Electron.IpcMainInvokeEvent,
-  platform: EmulationSavePlatform
-): Promise<EmulationCloudSave[]> => {
-  return loadArchivedEmulationSaves(
-    platform,
-    null,
-    emulators.listEmulationSaves
-  );
-};
-
 const updateEmulationSaveLabel = async (
   _event: Electron.IpcMainInvokeEvent,
   saveId: string,
@@ -64,13 +39,5 @@ const updateEmulationSaveLabel = async (
 };
 
 registerEvent("listEmulationSaves", listEmulationSaves);
-registerEvent(
-  "listArchivedEmulationSavesForGame",
-  listArchivedEmulationSavesForGame
-);
-registerEvent(
-  "listArchivedEmulationSavesForPlatform",
-  listArchivedEmulationSavesForPlatform
-);
 registerEvent("deleteEmulationSave", deleteEmulationSave);
 registerEvent("updateEmulationSaveLabel", updateEmulationSaveLabel);

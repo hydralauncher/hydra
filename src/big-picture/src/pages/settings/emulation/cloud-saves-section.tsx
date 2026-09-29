@@ -2,7 +2,6 @@ import {
   ClockIcon,
   CpuIcon,
   DeviceDesktopIcon,
-  DownloadIcon,
   HistoryIcon,
   KebabHorizontalIcon,
   PencilIcon,
@@ -14,7 +13,6 @@ import type {
   EmulationSavePlatform,
   EmulatorConfig,
 } from "@types";
-import { getEmulationSaveMenuMode } from "../../../../../shared/emulation-save-v2-platform.js";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 
@@ -224,7 +222,7 @@ export function CloudSavesSection({
 }: Readonly<CloudSavesSectionProps>) {
   const { t } = useTranslation("settings");
   const { hasActiveSubscription } = useUserDetails();
-  const { showSuccessToast, showErrorToast } = useBigPictureToast();
+  const { showSuccessToast } = useBigPictureToast();
   const platforms = useMemo<EmulationSavePlatform[]>(
     () =>
       config.system === "dolphin"
@@ -241,9 +239,6 @@ export function CloudSavesSection({
     null
   );
   const [deleteTarget, setDeleteTarget] = useState<EmulationCloudSave | null>(
-    null
-  );
-  const [downloadingSaveId, setDownloadingSaveId] = useState<string | null>(
     null
   );
   const [openMenu, setOpenMenu] = useState<{
@@ -264,11 +259,7 @@ export function CloudSavesSection({
     try {
       const groups = await Promise.all(
         platforms.map((platform) =>
-          getEmulationSaveMenuMode(platform) === "archive"
-            ? globalThis.window.electron.listArchivedEmulationSavesForPlatform(
-                platform
-              )
-            : globalThis.window.electron.listEmulationSaves(platform)
+          globalThis.window.electron.listEmulationSaves(platform)
         )
       );
       setSaves(groups.flat());
@@ -289,35 +280,6 @@ export function CloudSavesSection({
     showSuccessToast("Cloud save removed", SETTINGS_TOAST_OPTIONS);
     await loadSaves();
   }, [deleteTarget, loadSaves, showSuccessToast]);
-
-  const handleDownload = useCallback(
-    async (save: EmulationCloudSave) => {
-      if (downloadingSaveId) return;
-      setDownloadingSaveId(save.id);
-      try {
-        const result =
-          await globalThis.window.electron.exportArchivedEmulationSave(
-            save.platform,
-            null,
-            save.id
-          );
-        if (result.status === "saved") {
-          showSuccessToast(
-            t("game_details:legacy_save_download_success"),
-            SETTINGS_TOAST_OPTIONS
-          );
-        }
-      } catch {
-        showErrorToast(
-          t("game_details:legacy_save_download_failed"),
-          SETTINGS_TOAST_OPTIONS
-        );
-      } finally {
-        setDownloadingSaveId(null);
-      }
-    },
-    [downloadingSaveId, showErrorToast, showSuccessToast, t]
-  );
 
   if (!hasActiveSubscription || saves.length === 0) {
     return null;
@@ -394,8 +356,6 @@ export function CloudSavesSection({
           <div className="emulator-detail__cloud-grid" ref={gridRef}>
             {saves.map((save, index) => {
               const saveName = save.label ?? save.fileName;
-              const archiveMode =
-                getEmulationSaveMenuMode(save.platform) === "archive";
               const platformLabel =
                 config.system === "dolphin"
                   ? getDolphinSavePlatformLabel(save.platform)
@@ -452,7 +412,6 @@ export function CloudSavesSection({
                         type="button"
                         className="emulator-detail__cloud-menu"
                         aria-label={saveName}
-                        disabled={downloadingSaveId !== null}
                         onClick={(event) => {
                           const rect =
                             event.currentTarget.getBoundingClientRect();
@@ -479,29 +438,18 @@ export function CloudSavesSection({
                       onClose={() => setOpenMenu(null)}
                       ariaLabel={saveName}
                       items={[
-                        ...(archiveMode
-                          ? [
-                              {
-                                id: "download",
-                                icon: <DownloadIcon size={16} />,
-                                label: t("library:download"),
-                                onSelect: () => void handleDownload(save),
-                              },
-                            ]
-                          : [
-                              {
-                                id: "restore",
-                                icon: <HistoryIcon size={16} />,
-                                label: t("cloud_restore"),
-                                onSelect: () => setRestoreTarget(save),
-                              },
-                              {
-                                id: "rename",
-                                icon: <PencilIcon size={16} />,
-                                label: t("cloud_rename_title"),
-                                onSelect: () => setRenameTarget(save),
-                              },
-                            ]),
+                        {
+                          id: "restore",
+                          icon: <HistoryIcon size={16} />,
+                          label: t("cloud_restore"),
+                          onSelect: () => setRestoreTarget(save),
+                        },
+                        {
+                          id: "rename",
+                          icon: <PencilIcon size={16} />,
+                          label: t("cloud_rename_title"),
+                          onSelect: () => setRenameTarget(save),
+                        },
                         {
                           id: "delete",
                           icon: <TrashIcon size={16} />,

@@ -5,7 +5,7 @@ import {
   inspectPs1Card,
   listPs1Saves,
   readPs1SaveContents,
-} from "./ps1-memory-card.js";
+} from "./ps1-memory-card";
 import {
   PS1_BLOCK_BYTES,
   PS1_DATA_BLOCKS,
@@ -16,7 +16,7 @@ import {
   PS1_LINK_END,
   PS1_LINK_OFFSET,
   PS1_STATE,
-} from "./types.js";
+} from "./types";
 
 /*
  * PS1 memory card WRITER — imports a `.mcs` single save back into a `.mcd`/`.mcr`
@@ -107,87 +107,6 @@ const chainFrom = (directory: Buffer, firstBlock: number): number[] => {
     cur = next;
   }
   return chain;
-};
-
-/** Remove exactly one verified save from an image. Refuse malformed chains. */
-export const removeMcsFromCardBuffer = (
-  original: Buffer,
-  mcsBuffer: Buffer
-): Buffer => {
-  const mcs = parseMcsBuffer(mcsBuffer);
-  const offset = findDataOffset(original, original.length);
-  if (
-    !mcs ||
-    offset === null ||
-    original.length < offset + 16 * PS1_BLOCK_BYTES
-  ) {
-    throw new Error("cloud_save_ps1_card_invalid");
-  }
-  const output = Buffer.from(original);
-  const directory = output.subarray(offset, offset + PS1_BLOCK_BYTES);
-  const candidates = Array.from(
-    { length: PS1_DATA_BLOCKS },
-    (_, index) => index + 1
-  ).filter(
-    (block) =>
-      blockState(directory, block) === PS1_STATE.IN_USE_FIRST &&
-      readFrameName(directory.subarray(frameOffset(block))) === mcs.identifier
-  );
-  if (candidates.length !== 1)
-    throw new Error("cloud_save_ps1_card_save_ambiguous");
-  const first = candidates[0];
-  const frame = directory.subarray(
-    frameOffset(first),
-    frameOffset(first) + PS1_FRAME_BYTES
-  );
-  if (
-    !frame.equals(mcs.headerFrame) ||
-    frame.readUInt32LE(4) !== mcs.blocks.length * PS1_BLOCK_BYTES
-  ) {
-    throw new Error("cloud_save_ps1_card_save_changed");
-  }
-  const chain = chainFrom(directory, first);
-  if (
-    chain.length !== mcs.blocks.length ||
-    chain.some(
-      (block, index) =>
-        directory.readUInt16LE(frameOffset(block) + PS1_LINK_OFFSET) !==
-          (index === chain.length - 1 ? PS1_LINK_END : chain[index + 1] - 1) ||
-        (index > 0 &&
-          blockState(directory, block) !==
-            (index === chain.length - 1
-              ? PS1_STATE.IN_USE_LAST
-              : PS1_STATE.IN_USE_MIDDLE)) ||
-        !output
-          .subarray(
-            offset + block * PS1_BLOCK_BYTES,
-            offset + (block + 1) * PS1_BLOCK_BYTES
-          )
-          .equals(mcs.blocks[index])
-    )
-  ) {
-    throw new Error("cloud_save_ps1_card_save_changed");
-  }
-  const claimed = new Set(chain);
-  for (let block = 1; block <= PS1_DATA_BLOCKS; block += 1) {
-    if (
-      block === first ||
-      blockState(directory, block) !== PS1_STATE.IN_USE_FIRST
-    )
-      continue;
-    if (chainFrom(directory, block).some((member) => claimed.has(member))) {
-      throw new Error("cloud_save_ps1_card_chain_shared");
-    }
-  }
-  for (const block of chain) {
-    freeFrame(directory, block);
-    output.fill(
-      0,
-      offset + block * PS1_BLOCK_BYTES,
-      offset + (block + 1) * PS1_BLOCK_BYTES
-    );
-  }
-  return output;
 };
 
 export interface Ps1ImportResult {

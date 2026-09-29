@@ -1,8 +1,5 @@
 import type { Game } from "@types";
-import {
-  getCloudSaveEmulatorProvider,
-  type CloudSaveEmulatorProvider,
-} from "../../../shared/cloud-save-emulator-provider.js";
+import { getCloudSaveEmulatorProvider } from "../../../shared/cloud-save-emulator-provider.js";
 
 export interface EmulatorCloudSaveMigrationStore {
   getCompleted: () => Promise<boolean>;
@@ -15,8 +12,7 @@ export interface EmulatorCloudSaveMigrationStore {
 }
 
 export const migrateEmulatorCloudSaveDefaultsWithStore = async (
-  store: EmulatorCloudSaveMigrationStore,
-  providers: readonly CloudSaveEmulatorProvider[] = ["rpcs3", "retroarch"]
+  store: EmulatorCloudSaveMigrationStore
 ) => {
   if (await store.getCompleted()) return false;
 
@@ -24,11 +20,9 @@ export const migrateEmulatorCloudSaveDefaultsWithStore = async (
     store.getGames(),
     store.getStoredSettings(),
   ]);
-  const eligibleGames = games.filter(([, game]) =>
-    providers.some(
-      (provider) =>
-        provider === getCloudSaveEmulatorProvider(game.shop, game.platform)
-    )
+  const eligibleGames = games.filter(
+    ([, game]) =>
+      getCloudSaveEmulatorProvider(game.shop, game.platform) !== null
   );
   const eligibleKeys = new Set(eligibleGames.map(([key]) => key));
   const gamesToDisableLegacy = eligibleGames.filter(

@@ -198,17 +198,6 @@ contextBridge.exposeInMainWorld("electron", {
       shop,
       kind
     ) as Promise<SelectCloudSaveCustomPathResult>,
-  removeEmulatorCardPathOverride: (
-    objectId: string,
-    shop: GameShop,
-    slot: string
-  ) =>
-    ipcRenderer.invoke(
-      "removeEmulatorCardPathOverride",
-      objectId,
-      shop,
-      slot
-    ) as Promise<void>,
   selectEmulatorDestination: (
     objectId: string,
     shop: GameShop,

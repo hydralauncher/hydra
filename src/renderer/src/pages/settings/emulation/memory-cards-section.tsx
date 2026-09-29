@@ -32,7 +32,6 @@ import {
   MemoryCardScanModal,
   type MemcardScanSummary,
 } from "./memory-card-scan-modal";
-import { canUploadLegacyEmulationSave } from "./legacy-upload-visibility";
 
 interface Props {
   config: EmulatorConfig;
@@ -110,10 +109,6 @@ export function MemoryCardsSection({ config, onUploaded }: Readonly<Props>) {
   const isPs1 = config.system === "ps1";
   const api = isPs1 ? ps1Api : ps2Api;
   const platform = config.system as EmulationSavePlatform;
-  const canUploadLegacy = canUploadLegacyEmulationSave(
-    platform,
-    hasActiveSubscription
-  );
 
   const [saves, setSaves] = useState<MemoryCardSaveRecord[]>([]);
   const [scanInput, setScanInput] = useState<MemcardScanInput | null>(null);
@@ -413,7 +408,7 @@ export function MemoryCardsSection({ config, onUploaded }: Readonly<Props>) {
                             )}
                           </span>
                         </button>
-                        {canUploadLegacy && (
+                        {hasActiveSubscription && (
                           <button
                             type="button"
                             className="emulator-detail__memcard-backup-all"
@@ -542,7 +537,7 @@ export function MemoryCardsSection({ config, onUploaded }: Readonly<Props>) {
                                             : t("cloud_backup"),
                                         disabled:
                                           backingUpKey === saveKey(save),
-                                        show: canUploadLegacy,
+                                        show: hasActiveSubscription,
                                         onClick: () => handleBackup(save),
                                       },
                                     ]}

@@ -86,7 +86,6 @@ export interface CheckCloudSaveCustomPathOverlapResult {
 export interface SelectCloudSaveCustomPathResult {
   canceled: boolean;
   customPath?: CloudSaveCustomPath;
-  cardSourceAdded?: boolean;
 }
 
 export interface CloudSaveCustomPathApproval {
@@ -421,7 +420,6 @@ export interface CloudSaveV2FileDetails {
   local: CloudSaveV2LocalFileSource;
   activeSnapshot: CloudSaveV2ActiveSnapshotFileSource | null;
   customPaths: CloudSaveCustomPath[];
-  emulatorCardSources?: Array<{ path: string; slot: string }>;
   emulatorDestinations?: Array<{
     rawPath: string;
     kind: "save" | "state";

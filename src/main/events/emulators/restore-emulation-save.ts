@@ -13,7 +13,6 @@ import type {
   MemcardRestoreTarget,
 } from "@types";
 import { getDownloadsPath } from "../helpers/get-downloads-path";
-import { assertLegacyEmulationSaveWriteAllowed } from "./emulation-legacy-write-policy";
 
 type EmulationSaveMetadataInput =
   | EmulationSaveMetadata
@@ -383,7 +382,6 @@ const restoreEmulationSave = async (
   sourceFileName?: string
 ): Promise<MemcardRestoreResult> => {
   try {
-    assertLegacyEmulationSaveWriteAllowed(platform);
     await assertValidRestoreDestination(platform, metadata, targetCardFilePath);
     const bytes = await emulators.downloadEmulationSaveBytes(saveId);
     const fileSaveResult = await restoreFileSave(

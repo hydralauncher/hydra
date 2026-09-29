@@ -22,30 +22,6 @@ export const getEmulatorGameSaveFileFilter = async (game: Game) => {
     const { isRpcs3GameSaveFile } = await import("./rpcs3-save-layout");
     return (filePath: string) => isRpcs3GameSaveFile(game, filePath);
   }
-  if (provider === "duckstation") {
-    const { getDuckstationGameSaveFileFilter } = await import(
-      "./duckstation-save-provider"
-    );
-    return getDuckstationGameSaveFileFilter(game);
-  }
-  if (provider === "pcsx2") {
-    const { getPcsx2GameSaveFileFilter } = await import(
-      "./pcsx2-save-provider"
-    );
-    return getPcsx2GameSaveFileFilter(game);
-  }
-  if (provider === "ppsspp") {
-    const { getPpssppGameSaveFileFilter } = await import(
-      "./ppsspp-save-provider"
-    );
-    return getPpssppGameSaveFileFilter(game);
-  }
-  if (provider === "dolphin") {
-    const { getDolphinGameSaveFileFilter } = await import(
-      "./dolphin-save-provider"
-    );
-    return getDolphinGameSaveFileFilter(game);
-  }
   return () => false;
 };
 
@@ -57,15 +33,6 @@ const loadProvider = async (
       return (await import("./rpcs3-save-provider")).rpcs3SaveProvider;
     case "retroarch":
       return (await import("./retroarch-save-provider")).retroArchSaveProvider;
-    case "duckstation":
-      return (await import("./duckstation-save-provider"))
-        .duckstationSaveProvider;
-    case "pcsx2":
-      return (await import("./pcsx2-save-provider")).pcsx2SaveProvider;
-    case "ppsspp":
-      return (await import("./ppsspp-save-provider")).ppssppSaveProvider;
-    case "dolphin":
-      return (await import("./dolphin-save-provider")).dolphinSaveProvider;
   }
 };
 
@@ -82,30 +49,6 @@ export const getEmulatorSaveEnvironmentKey = async (game: Game) => {
       "./retroarch-save-provider"
     );
     return getRetroArchSaveEnvironmentKey(game);
-  }
-  if (provider === "duckstation") {
-    const { getDuckstationSaveEnvironmentKey } = await import(
-      "./duckstation-save-provider"
-    );
-    return getDuckstationSaveEnvironmentKey(game);
-  }
-  if (provider === "pcsx2") {
-    const { getPcsx2SaveEnvironmentKey } = await import(
-      "./pcsx2-save-provider"
-    );
-    return getPcsx2SaveEnvironmentKey(game);
-  }
-  if (provider === "ppsspp") {
-    const { getPpssppSaveEnvironmentKey } = await import(
-      "./ppsspp-save-provider"
-    );
-    return getPpssppSaveEnvironmentKey(game);
-  }
-  if (provider === "dolphin") {
-    const { getDolphinSaveEnvironmentKey } = await import(
-      "./dolphin-save-provider"
-    );
-    return getDolphinSaveEnvironmentKey(game);
   }
   return null;
 };

@@ -160,11 +160,6 @@ declare global {
       shop: GameShop,
       kind?: "file" | "dir"
     ) => Promise<SelectCloudSaveCustomPathResult>;
-    removeEmulatorCardPathOverride: (
-      objectId: string,
-      shop: GameShop,
-      slot: string
-    ) => Promise<void>;
     selectEmulatorDestination: (
       objectId: string,
       shop: GameShop,

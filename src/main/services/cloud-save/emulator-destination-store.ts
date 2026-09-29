@@ -24,7 +24,6 @@ import {
   parseRetroArchSaveRawPath,
   parseRpcs3SavestateRawPath,
 } from "./emulator-provider-identity.js";
-import { serialsForGame } from "./playstation-save-common.js";
 import {
   emulatorDestinationKindForFile,
   isCurrentEmulatorDestinationBinding,
@@ -58,51 +57,6 @@ export const getExpectedEmulatorDestination = async (
       kind === "save" ? matching[0].saveDirectory : matching[0].stateDirectory;
     return root ? path.resolve(root) : null;
   }
-  if (provider === "ppsspp") {
-    const match =
-      /^<emulator>\/ppsspp\/(savedata|state)\/([A-Z]{4}\d{5})$/.exec(rawPath);
-    if (!match || (kind === "save") !== (match[1] === "savedata")) {
-      return null;
-    }
-    const { resolvePpssppSaveLocation, titleIdsForGame } = await import(
-      "./ppsspp-save-provider.js"
-    );
-    if (!titleIdsForGame(game).includes(match[2])) return null;
-    const location = await resolvePpssppSaveLocation().catch(() => null);
-    if (!location) return null;
-    return path.resolve(
-      location.pspRoot,
-      kind === "save" ? "SAVEDATA" : "PPSSPP_STATE"
-    );
-  }
-  if (kind === "state" && provider === "duckstation") {
-    const match = /^<emulator>\/duckstation-state\/([A-Z]{4}-\d{5})$/.exec(
-      rawPath
-    );
-    if (!match || !serialsForGame(game).has(match[1])) return null;
-    const { loadDuckstationSaveConfig } = await import(
-      "./duckstation-save-provider.js"
-    );
-    const config = await loadDuckstationSaveConfig().catch(() => null);
-    return config ? path.resolve(config.statesDir) : null;
-  }
-  if (kind === "state" && provider === "pcsx2") {
-    const match = /^<emulator>\/pcsx2-state\/([A-Z]{4}-\d{5})$/.exec(rawPath);
-    if (!match || !serialsForGame(game).has(match[1])) return null;
-    const { loadPcsx2SaveConfig } = await import("./pcsx2-save-provider.js");
-    const config = await loadPcsx2SaveConfig().catch(() => null);
-    return config ? path.resolve(config.statesDir) : null;
-  }
-  if (kind === "state" && provider === "dolphin") {
-    const match = /^<emulator>\/dolphin-state\/([A-Z0-9]{6})$/.exec(rawPath);
-    if (!match) return null;
-    const { gameIds, resolveDolphinSaveLocation } = await import(
-      "./dolphin-save-provider.js"
-    );
-    if (!gameIds(game).includes(match[1])) return null;
-    const location = await resolveDolphinSaveLocation().catch(() => null);
-    return location ? path.resolve(location.userDir, "StateSaves") : null;
-  }
   if (kind === "state" && provider === "rpcs3") {
     const state = parseRpcs3SavestateRawPath(rawPath);
     if (!state) return null;
@@ -119,10 +73,8 @@ export const getExpectedEmulatorDestination = async (
   if (
     kind === "save" &&
     relativePath &&
-    ((provider === "dolphin" &&
-      /^<emulator>\/dolphin-(?:gci|wii)\//.test(rawPath)) ||
-      (provider === "pcsx2" && /^<emulator>\/pcsx2-folder\//.test(rawPath)) ||
-      (provider === "rpcs3" && /^<emulator>\/rpcs3\//.test(rawPath)))
+    provider === "rpcs3" &&
+    /^<emulator>\/rpcs3\//.test(rawPath)
   ) {
     const file = {
       variantId: "emulator-destination",

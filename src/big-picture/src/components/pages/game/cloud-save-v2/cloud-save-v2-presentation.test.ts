@@ -7,9 +7,8 @@ import {
 } from "./cloud-save-v2-presentation.js";
 
 describe("getBigPictureCloudSaveAction", () => {
-  it("loads file details for every emulator provider when Cloud Save is available", () => {
+  it("loads file details for supported emulator providers", () => {
     assert.equal(shouldLoadBigPictureEmulatorDetails(true, "retroarch"), true);
-    assert.equal(shouldLoadBigPictureEmulatorDetails(true, "ppsspp"), true);
     assert.equal(shouldLoadBigPictureEmulatorDetails(true, "rpcs3"), true);
     assert.equal(shouldLoadBigPictureEmulatorDetails(true, null), false);
     assert.equal(

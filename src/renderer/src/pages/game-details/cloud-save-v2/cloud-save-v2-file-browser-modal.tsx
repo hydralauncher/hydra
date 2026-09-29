@@ -314,7 +314,6 @@ export function CloudSaveV2FileBrowserModal({
   const [removingCustomPath, setRemovingCustomPath] = useState<string | null>(
     null
   );
-  const [removingCardSlot, setRemovingCardSlot] = useState<string | null>(null);
   const [bindingEmulatorDestination, setBindingEmulatorDestination] = useState<
     string | null
   >(null);
@@ -414,7 +413,7 @@ export function CloudSaveV2FileBrowserModal({
         shop,
         kind
       );
-      if (!result.canceled && (result.customPath || result.cardSourceAdded)) {
+      if (!result.canceled && result.customPath) {
         wasAdded = true;
         const syncResult = await onSyncAfterCustomPathAdded();
         if (syncResult.finalState === "conflict") {
@@ -477,23 +476,6 @@ export function CloudSaveV2FileBrowserModal({
       );
     } finally {
       setRebindingCustomPath(null);
-    }
-  };
-
-  const handleRemoveCardSource = async (slot: string) => {
-    setRemovingCardSlot(slot);
-    try {
-      await window.electron.removeEmulatorCardPathOverride(
-        objectId,
-        shop,
-        slot
-      );
-      await onRetry();
-      showSuccessToast(t("cloud_save_v2_card_source_removed"));
-    } catch {
-      showErrorToast(t("cloud_save_v2_card_source_remove_error"));
-    } finally {
-      setRemovingCardSlot(null);
     }
   };
 
@@ -608,9 +590,7 @@ export function CloudSaveV2FileBrowserModal({
       isAddingCustomPath,
       isRebindingCustomPath: rebindingCustomPath !== null,
       isRemovingCustomPath:
-        removingCustomPath !== null ||
-        removingCardSlot !== null ||
-        bindingEmulatorDestination !== null,
+        removingCustomPath !== null || bindingEmulatorDestination !== null,
       isDeletingCloudSave,
       isBindingRpcs3Profile,
       isLoading,
@@ -747,34 +727,6 @@ export function CloudSaveV2FileBrowserModal({
                     </div>
                   </div>
                 )}
-              {details.emulatorCardSources &&
-                details.emulatorCardSources.length > 0 && (
-                  <div className="cloud-save-v2__card-sources">
-                    <strong>{t("cloud_save_v2_card_sources_title")}</strong>
-                    {details.emulatorCardSources.map((source) => (
-                      <div
-                        key={source.slot}
-                        className="cloud-save-v2__card-source"
-                      >
-                        <span title={source.path}>
-                          {t("cloud_save_v2_card_slot_option", {
-                            slot: source.slot,
-                          })}
-                          : {source.path}
-                        </span>
-                        <Button
-                          theme="outline"
-                          disabled={actionsAreDisabled}
-                          onClick={() =>
-                            void handleRemoveCardSource(source.slot)
-                          }
-                        >
-                          {t("cloud_save_v2_card_source_remove")}
-                        </Button>
-                      </div>
-                    ))}
-                  </div>
-                )}
               {details.emulatorDestinations &&
                 details.emulatorDestinations.length > 0 && (
                   <div className="cloud-save-v2__card-sources">
@@ -817,7 +769,7 @@ export function CloudSaveV2FileBrowserModal({
                               )
                             }
                           >
-                            {t("cloud_save_v2_card_source_remove")}
+                            {t("remove")}
                           </Button>
                         ) : (
                           <>
@@ -847,7 +799,7 @@ export function CloudSaveV2FileBrowserModal({
                                   )
                                 }
                               >
-                                {t("cloud_save_v2_card_source_remove")}
+                                {t("remove")}
                               </Button>
                             )}
                           </>

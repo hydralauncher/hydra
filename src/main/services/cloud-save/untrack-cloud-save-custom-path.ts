@@ -1,6 +1,7 @@
 import type { CloudSaveCustomPathBindings, GameShop } from "@types";
 
 import { HydraApi } from "../hydra-api.js";
+import { assertCloudSaveV2Eligible } from "./assert-cloud-save-executable.js";
 import { buildCloudSaveAggregateHash } from "./snapshot-aggregate-hash.js";
 import { buildLocalGameSnapshotContext } from "./build-local-game-snapshot.js";
 import { createRemoteSnapshotFromLocalState } from "./create-remote-snapshot-from-local-state.js";
@@ -106,6 +107,7 @@ export const untrackCloudSaveCustomPath = (
     scopeKey,
     JSON.stringify(["untrack-custom-path", rawPath]),
     async () => {
+      await assertCloudSaveV2Eligible(objectId, shop);
       const context = await getCloudSaveGameContext(objectId, shop);
       const customPathContext = cloudSaveCustomPathContextFromPathContext(
         context.pathContext

@@ -16,7 +16,7 @@ describe("emulator provider loading", () => {
         shop: "launchbox",
         platform: "Sony PlayStation 2",
       } as Game),
-      "pcsx2"
+      null
     );
     assert.equal(
       getEmulatorSaveProvider({
@@ -25,13 +25,18 @@ describe("emulator provider loading", () => {
       } as Game),
       "rpcs3"
     );
-    assert.equal(
-      getEmulatorSaveProvider({
-        shop: "launchbox",
-        platform: "Nintendo Wii",
-      } as Game),
-      "dolphin"
-    );
+    for (const platform of [
+      "Sony PlayStation",
+      "Sony PlayStation 2",
+      "Sony PlayStation Portable",
+      "Nintendo GameCube",
+      "Nintendo Wii",
+    ]) {
+      assert.equal(
+        getEmulatorSaveProvider({ shop: "launchbox", platform } as Game),
+        null
+      );
+    }
     assert.equal(
       getEmulatorSaveProvider({
         shop: "launchbox",

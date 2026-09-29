@@ -20,7 +20,6 @@ import {
   getEmulatorSaveProvider,
 } from "./emulator-save-provider";
 import { parseRpcs3SavestateRawPath } from "./emulator-provider-identity";
-import { emulatorProviderSourcePaths } from "./emulator-provider-source-path.js";
 import { isEligibleEmulatorManualFile } from "./emulator-manual-file-eligibility.js";
 import { buildCloudSaveAggregateHash } from "./snapshot-aggregate-hash";
 
@@ -95,7 +94,7 @@ export const buildLocalGameSnapshotContext = async (
           }))
         : [];
     const providerPaths = new Set(
-      discovery.files.flatMap(emulatorProviderSourcePaths)
+      discovery.files.map((file) => file.absolutePath)
     );
     const isGameSaveFile = await getEmulatorGameSaveFileFilter(game);
     const customFiles = (

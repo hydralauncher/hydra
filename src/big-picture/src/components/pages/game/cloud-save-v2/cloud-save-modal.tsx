@@ -364,7 +364,7 @@ export function BigPictureCloudSavePanel({
                 >
                   {t(
                     destination.selectedPath
-                      ? "cloud_save_v2_card_source_remove"
+                      ? "remove"
                       : "cloud_save_v2_emulator_destination_select"
                   )}
                 </Button>

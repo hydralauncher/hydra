@@ -13,6 +13,7 @@ import type {
 import { WindowManager } from "../window-manager";
 import { assertCloudSaveSubscription } from "./cloud-save-access";
 import { assertLegacyCloudSaveWriteAllowed } from "./legacy-cloud-save-policy";
+import { assertCloudSaveV2Eligible } from "./assert-cloud-save-executable";
 import {
   getCloudSaveAutomaticSyncStateForMode,
   getNextCloudSaveAutomaticSyncMode,
@@ -106,6 +107,7 @@ export const setCloudSaveAutomaticSyncEnabled = async (
   enabled: boolean
 ) => {
   if (enabled) {
+    await assertCloudSaveV2Eligible(objectId, shop);
     assertCloudSaveSubscription();
   }
 

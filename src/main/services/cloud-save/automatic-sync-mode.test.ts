@@ -96,11 +96,6 @@ describe("cloud save automatic sync mode", () => {
       "Nintendo Game Boy",
       "Nintendo Game Boy Color",
       "Nintendo Game Boy Advance",
-      "Sony PlayStation",
-      "Sony PlayStation 2",
-      "Sony PlayStation Portable",
-      "Nintendo GameCube",
-      "Nintendo Wii",
     ]) {
       assert.equal(
         resolveStoredCloudSaveAutomaticSyncModeForShop(
@@ -139,6 +134,26 @@ describe("cloud save automatic sync mode", () => {
       ),
       "legacy"
     );
+  });
+
+  it("keeps other emulators on legacy even with an old V2 preference", () => {
+    for (const platform of [
+      "Sony PlayStation",
+      "Sony PlayStation 2",
+      "Sony PlayStation Portable",
+      "Nintendo GameCube",
+      "Nintendo Wii",
+    ]) {
+      assert.equal(
+        resolveStoredCloudSaveAutomaticSyncModeForShop(
+          "launchbox",
+          true,
+          true,
+          platform
+        ),
+        "legacy"
+      );
+    }
   });
 
   it("enabling legacy disables V2", () => {
