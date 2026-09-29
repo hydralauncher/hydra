@@ -8,6 +8,7 @@ import type {
 } from "@types";
 
 import { toSteamAccount } from "../steam-login-users.js";
+import { supportsCloudSaveV2 } from "../../../shared/cloud-save-shops.js";
 
 export const CLOUD_SAVE_HASH_PATTERN = /^[a-f0-9]{64}$/;
 
@@ -249,7 +250,8 @@ export const validateRestoreManifest = (
     typeof snapshot.version !== "number" ||
     !Number.isSafeInteger(snapshot.version) ||
     snapshot.version < 1 ||
-    (snapshot.shop !== "steam" && snapshot.shop !== "launchbox") ||
+    (snapshot.shop !== "launchbox" &&
+      !supportsCloudSaveV2(snapshot.shop as GameShop)) ||
     !isNonEmptyString(snapshot.objectId)
   ) {
     throw new Error("Invalid restore manifest snapshot");

@@ -29,13 +29,19 @@ export const resolveStoredCloudSaveAutomaticSyncModeForShop = (
   shop: GameShop,
   legacyEnabled: boolean,
   storedV2Enabled: boolean | undefined
-) =>
-  shop === "steam"
-    ? resolveStoredCloudSaveAutomaticSyncMode(legacyEnabled, storedV2Enabled)
-    : resolveCloudSaveAutomaticSyncMode({
-        legacyEnabled,
-        v2Enabled: false,
-      });
+) => {
+  if (shop === "steam") {
+    return resolveStoredCloudSaveAutomaticSyncMode(
+      legacyEnabled,
+      storedV2Enabled
+    );
+  }
+
+  return resolveCloudSaveAutomaticSyncMode({
+    legacyEnabled,
+    v2Enabled: shop === "epic" && storedV2Enabled === true,
+  });
+};
 
 export const getCloudSaveAutomaticSyncStateForMode = (
   mode: CloudSaveAutomaticSyncMode

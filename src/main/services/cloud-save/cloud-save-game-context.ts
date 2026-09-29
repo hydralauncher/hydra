@@ -44,7 +44,10 @@ export const getCloudSaveGameContext = async (
   const game = await gamesSublevel
     .get(levelKeys.game(shop, objectId))
     .catch(() => undefined);
-  const steamPath = await getSteamLocation().catch(() => undefined);
+  const steamPath =
+    shop === "epic"
+      ? undefined
+      : await getSteamLocation().catch(() => undefined);
   const storeUserContext =
     shop === "steam" && steamPath
       ? await getSteamStoreUserContext(steamPath)

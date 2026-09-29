@@ -38,6 +38,7 @@ export interface CloudSavePanelProps {
   isSyncing: boolean;
   isGameRunning: boolean;
   hasExecutablePath: boolean;
+  manualSyncBlocked?: boolean;
   isAutomaticSyncEnabled: boolean | null;
   hasError: boolean;
   errorMessageKey:
@@ -62,6 +63,7 @@ interface CloudSaveSyncActionProps {
   isLoading: boolean;
   isSyncing: boolean;
   isGameRunning: boolean;
+  manualSyncBlocked: boolean;
   progress: CloudSaveSyncProgressPayload | null;
   onSync: () => void;
   onOpenFileBrowser: () => void;
@@ -107,12 +109,14 @@ function CloudSaveSyncAction({
   isLoading,
   isSyncing,
   isGameRunning,
+  manualSyncBlocked,
   progress,
   onSync,
   onOpenFileBrowser,
   onResolveConflict,
 }: Readonly<CloudSaveSyncActionProps>) {
   const { t } = useTranslation("game_details");
+  const syncDisabled = isLoading || isGameRunning || manualSyncBlocked;
 
   if (isSyncing) {
     const operation = getCloudSaveOperationPresentation(progress);
@@ -139,14 +143,14 @@ function CloudSaveSyncAction({
         <div className="cloud-save-v2__conflict-actions">
           <Button
             onClick={() => onResolveConflict("keep-local")}
-            disabled={isLoading || isGameRunning}
+            disabled={syncDisabled}
           >
             <CloudArrowUpIcon size={20} />
             {t("cloud_save_v2_keep_local")}
           </Button>
           <Button
             onClick={() => onResolveConflict("keep-remote")}
-            disabled={isLoading || isGameRunning}
+            disabled={syncDisabled}
           >
             <CloudArrowDownIcon size={20} />
             {t("cloud_save_v2_keep_remote")}
@@ -158,7 +162,7 @@ function CloudSaveSyncAction({
         <Button
           className="cloud-save-v2__sync-button"
           onClick={onOpenFileBrowser}
-          disabled={isLoading}
+          disabled={isLoading || manualSyncBlocked}
         >
           <FolderOpenIcon size={20} />
           <span>{t(action.labelKey)}</span>
@@ -169,7 +173,7 @@ function CloudSaveSyncAction({
         <Button
           className="cloud-save-v2__sync-button"
           onClick={onSync}
-          disabled={isLoading || isGameRunning}
+          disabled={syncDisabled}
         >
           <FolderOpenIcon size={20} />
           <span>{t(action.labelKey)}</span>
@@ -180,7 +184,7 @@ function CloudSaveSyncAction({
         <Button
           className="cloud-save-v2__sync-button"
           onClick={onSync}
-          disabled={isLoading || isGameRunning}
+          disabled={syncDisabled}
         >
           <ArrowClockwiseIcon size={20} />
           <span>{t(action.labelKey)}</span>
@@ -191,7 +195,7 @@ function CloudSaveSyncAction({
         <Button
           className="cloud-save-v2__sync-button"
           onClick={onSync}
-          disabled={isLoading || isGameRunning}
+          disabled={syncDisabled}
         >
           {getSyncActionIcon(action.icon)}
           <span>{t(action.labelKey)}</span>
@@ -209,6 +213,7 @@ export function CloudSavePanel({
   isSyncing,
   isGameRunning,
   hasExecutablePath,
+  manualSyncBlocked = false,
   isAutomaticSyncEnabled,
   hasError,
   errorMessageKey,
@@ -225,13 +230,15 @@ export function CloudSavePanel({
     isAutomaticSyncEnabled ?? false
   );
   const [isUpdatingAutomaticSync, setIsUpdatingAutomaticSync] = useState(false);
-  const cloudSaveToggleTitle = t("cloud_save_v2_toggle_title", {
-    status: t(
-      isCloudSaveEnabled
-        ? "cloud_save_v2_toggle_enabled"
-        : "cloud_save_v2_toggle_disabled"
-    ),
-  });
+  const cloudSaveToggleTitle = manualSyncBlocked
+    ? t("cloud_save_v2_epic_switch_title")
+    : t("cloud_save_v2_toggle_title", {
+        status: t(
+          isCloudSaveEnabled
+            ? "cloud_save_v2_toggle_enabled"
+            : "cloud_save_v2_toggle_disabled"
+        ),
+      });
   const activeSnapshot = overview?.activeRemoteSnapshot ?? null;
   const showEmptySnapshot = shouldShowCloudSaveEmptySnapshot({
     overview,
@@ -337,7 +344,7 @@ export function CloudSavePanel({
             type="button"
             className="cloud-save-v2__snapshot-stats cloud-save-v2__snapshot-stats--interactive"
             onClick={onOpenFileBrowser}
-            disabled={isLoading || isSyncing}
+            disabled={isLoading || isSyncing || manualSyncBlocked}
             aria-label={t(
               isConflict
                 ? "cloud_save_v2_view_conflicts"
@@ -388,7 +395,7 @@ export function CloudSavePanel({
             type="button"
             className="cloud-save-v2__snapshot-stats cloud-save-v2__snapshot-stats--interactive"
             onClick={onOpenFileBrowser}
-            disabled={isLoading || isSyncing}
+            disabled={isLoading || isSyncing || manualSyncBlocked}
           >
             {t("cloud_save_v2_manage_save_locations")}
           </button>
@@ -403,6 +410,7 @@ export function CloudSavePanel({
       isLoading={isLoading}
       isSyncing={isSyncing}
       isGameRunning={isGameRunning}
+      manualSyncBlocked={manualSyncBlocked}
       progress={progress}
       onSync={onSync}
       onOpenFileBrowser={onOpenFileBrowser}
@@ -462,6 +470,12 @@ export function CloudSavePanel({
       {isGameRunning && (
         <p className="cloud-save-v2__game-running-warning">
           {t("cloud_save_v2_close_game_before_manual_sync")}
+        </p>
+      )}
+
+      {manualSyncBlocked && (
+        <p className="cloud-save-v2__game-running-warning">
+          {t("cloud_save_v2_epic_legacy_mode_notice")}
         </p>
       )}
 

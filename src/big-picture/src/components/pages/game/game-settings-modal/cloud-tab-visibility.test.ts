@@ -10,6 +10,7 @@ const { shouldShowCloudSaveV2Tab, shouldShowLegacyCloudSaveTab } =
 describe("Big Picture cloud save V2 tab visibility", () => {
   it("shows the V2 tab for subscribed Steam users", () => {
     assert.equal(shouldShowCloudSaveV2Tab("steam", true, true), true);
+    assert.equal(shouldShowCloudSaveV2Tab("epic", true, true), true);
   });
 
   it("hides the V2 tab without an account or subscription", () => {
@@ -17,7 +18,7 @@ describe("Big Picture cloud save V2 tab visibility", () => {
     assert.equal(shouldShowCloudSaveV2Tab("steam", true, false), false);
   });
 
-  it("never shows the V2 tab for non-Steam games", () => {
+  it("keeps V2 hidden for unsupported shops", () => {
     assert.equal(shouldShowCloudSaveV2Tab("launchbox", true, true), false);
     assert.equal(shouldShowCloudSaveV2Tab("custom", true, true), false);
   });
@@ -27,6 +28,10 @@ describe("Big Picture legacy cloud save tab visibility", () => {
   it("hides the legacy tab for Steam regardless of subscription", () => {
     assert.equal(shouldShowLegacyCloudSaveTab("steam", true, true), false);
     assert.equal(shouldShowLegacyCloudSaveTab("steam", true, false), false);
+  });
+
+  it("hides the unavailable legacy backup tab for Epic", () => {
+    assert.equal(shouldShowLegacyCloudSaveTab("epic", true, true), false);
   });
 
   it("keeps the legacy tab for subscribed Launchbox users", () => {

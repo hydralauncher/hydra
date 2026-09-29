@@ -1,6 +1,7 @@
 import "./download-game-artifact";
 import "./export-game-artifact";
 import "./get-cloud-save-overview";
+import "./get-cloud-save-automatic-sync-enabled";
 import "./get-cloud-save-v2-file-details";
 import "./get-game-backup-preview";
 import "./delete-game-cloud-save-data";

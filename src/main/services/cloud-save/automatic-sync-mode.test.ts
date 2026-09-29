@@ -87,6 +87,29 @@ describe("cloud save automatic sync mode", () => {
     );
   });
 
+  it("requires an explicit Epic V2 opt-in while preserving legacy state", () => {
+    assert.equal(
+      resolveStoredCloudSaveAutomaticSyncModeForShop("epic", true, undefined),
+      "legacy"
+    );
+    assert.equal(
+      resolveStoredCloudSaveAutomaticSyncModeForShop("epic", false, undefined),
+      "disabled"
+    );
+    assert.equal(
+      resolveStoredCloudSaveAutomaticSyncModeForShop("epic", true, true),
+      "v2"
+    );
+    assert.equal(
+      resolveStoredCloudSaveAutomaticSyncModeForShop("epic", false, false),
+      "disabled"
+    );
+    assert.equal(
+      resolveStoredCloudSaveAutomaticSyncModeForShop("custom", true, true),
+      "legacy"
+    );
+  });
+
   it("enabling legacy disables V2", () => {
     assert.equal(
       getNextCloudSaveAutomaticSyncMode("v2", "legacy", true),

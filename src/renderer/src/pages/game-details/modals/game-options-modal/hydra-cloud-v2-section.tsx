@@ -20,6 +20,7 @@ export function HydraCloudV2SettingsSection({
     errorMessageKey,
     progress,
     hasExecutablePath,
+    manualSyncBlocked,
     openFileBrowser,
     runCloudSaveOperation,
     setAutomaticSyncEnabled,
@@ -40,7 +41,8 @@ export function HydraCloudV2SettingsSection({
         isSyncing={isSyncing}
         isGameRunning={isGameRunning}
         hasExecutablePath={hasExecutablePath}
-        isAutomaticSyncEnabled={isAutomaticSyncEnabled ?? true}
+        manualSyncBlocked={manualSyncBlocked}
+        isAutomaticSyncEnabled={isAutomaticSyncEnabled}
         hasError={hasError}
         errorMessageKey={errorMessageKey}
         progress={progress}

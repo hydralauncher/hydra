@@ -8,8 +8,9 @@ use crate::cloud_save::hashing::batch::hash_files;
 use crate::cloud_save::identity::{is_safe_capture, normalize_rule_path, SnapshotVariant};
 use crate::cloud_save::manifest::types::CloudSaveRule;
 use crate::cloud_save::path_resolution::{
-    build_context, glob_base_path, path_is_foreign_environment, resolve_path, resolve_restore_root,
-    rule_is_applicable, target_matches_rule, ResolveSaveRulesInput,
+    build_context, capture_store_user_with_components, capture_template, glob_base_path,
+    path_is_foreign_environment, resolve_path, resolve_restore_root, rule_is_applicable,
+    target_matches_rule, PathResolutionContext, ResolveSaveRulesInput,
 };
 
 use super::metadata::parse_last_modified_at;
@@ -156,6 +157,102 @@ fn has_glob(raw_rule: &str) -> bool {
     raw_rule
         .chars()
         .any(|character| matches!(character, '*' | '?' | '[' | '{'))
+}
+
+fn captured_store_user_location_exists(
+    raw_path: &str,
+    resolved_path: &str,
+    concrete_path: &str,
+    expected_user_id: &str,
+    case_sensitive: bool,
+    terminal_is_file: bool,
+) -> bool {
+    let Some(template) = capture_template(raw_path, resolved_path) else {
+        return false;
+    };
+    let Some(capture) =
+        capture_store_user_with_components(&template, concrete_path, case_sensitive)
+    else {
+        return false;
+    };
+    let user_matches = if case_sensitive {
+        capture.value == expected_user_id
+    } else {
+        capture.value.to_lowercase() == expected_user_id.to_lowercase()
+    };
+    user_matches
+        && capture.component_offsets_from_end.iter().all(|offset| {
+            Path::new(concrete_path)
+                .ancestors()
+                .nth(*offset)
+                .is_some_and(|location| {
+                    if *offset == 0 && terminal_is_file {
+                        location.is_file()
+                    } else {
+                        location.is_dir()
+                    }
+                })
+        })
+}
+
+fn epic_store_user_location_exists(
+    raw_path: &str,
+    root_rule: &str,
+    root: &str,
+    target: &str,
+    expected_user_id: &str,
+    context: &PathResolutionContext,
+    directory: bool,
+    target_directory: bool,
+) -> bool {
+    let root_token_count = root_rule.matches("<storeUserId>").count();
+    let full_token_count = raw_path.matches("<storeUserId>").count();
+    if full_token_count == 0 {
+        return false;
+    }
+    if root_token_count > 0
+        && !captured_store_user_location_exists(
+            root_rule,
+            root,
+            root,
+            expected_user_id,
+            context.platform == "linux" && !context.windows_compatibility,
+            !directory,
+        )
+    {
+        return false;
+    }
+    if root_token_count == full_token_count {
+        return true;
+    }
+
+    // A glob before the user token leaves it outside the restore root. A file
+    // rule matches the target; a directory rule matches one of its ancestors.
+    let concrete_paths = if target_directory {
+        Path::new(target)
+            .parent()
+            .into_iter()
+            .flat_map(|parent| parent.ancestors())
+            .map(|path| path.to_string_lossy().replace('\\', "/"))
+            .collect::<Vec<_>>()
+    } else {
+        vec![target.to_string()]
+    };
+    resolve_path(raw_path, context)
+        .paths
+        .iter()
+        .any(|candidate| {
+            concrete_paths.iter().any(|concrete_path| {
+                captured_store_user_location_exists(
+                    raw_path,
+                    &candidate.path,
+                    concrete_path,
+                    expected_user_id,
+                    candidate.case_sensitive,
+                    !target_directory,
+                )
+            })
+        })
 }
 
 fn resolve_restore_targets_inner(
@@ -309,6 +406,21 @@ fn resolve_restore_targets_inner(
                 } else {
                     root.clone()
                 };
+                if context.shop.eq_ignore_ascii_case("epic")
+                    && variant.kind == "opaque-folder"
+                    && !epic_store_user_location_exists(
+                        &rule.raw_path,
+                        &root_rule,
+                        &root,
+                        &target_path,
+                        variant.concrete_folder_id.as_deref().unwrap_or_default(),
+                        &context,
+                        directory,
+                        rule.kind == "dir",
+                    )
+                {
+                    continue;
+                }
                 if concrete_rule.as_ref().is_some_and(|candidates| {
                     !target_matches_rule(candidates, &target_path, rule.kind == "dir")
                 }) {
@@ -517,6 +629,28 @@ mod tests {
             variants,
             files,
         }
+    }
+
+    fn epic_input(
+        home: &Path,
+        variant: SnapshotVariant,
+        raw_path: &str,
+        kind: &str,
+        relative_path: &str,
+    ) -> ResolveRestoreTargetsInput {
+        let mut remote_file = file(&variant, relative_path);
+        remote_file.raw_path = raw_path.into();
+        let mut restore_input = input(home, vec![variant], vec![remote_file]);
+        restore_input.shop = "epic".into();
+        restore_input.object_id = "namespace:playable-item".into();
+        restore_input.approved_rules = vec![ApprovedRestoreRule {
+            kind: kind.into(),
+            raw_path: raw_path.into(),
+            source: "ludusavi".into(),
+            preferred_path: None,
+            when: vec![],
+        }];
+        restore_input
     }
 
     #[test]
@@ -1012,6 +1146,186 @@ mod tests {
             .target_path
             .replace('\\', "/")
             .ends_with("/Game/76561197960278073/slot.dat"));
+    }
+
+    #[test]
+    fn epic_restores_into_an_existing_account_folder() {
+        let temp = tempdir().unwrap();
+        let account = temp.path().join("Game/epicusera");
+        fs::create_dir_all(&account).unwrap();
+        let result = resolve_restore_targets_inner(epic_input(
+            temp.path(),
+            variant("opaque-folder", "epicusera"),
+            RAW_RULE,
+            "dir",
+            "slot.dat",
+        ))
+        .unwrap();
+
+        assert!(result.blocked.is_empty());
+        assert_eq!(result.actions.len(), 1);
+        assert_eq!(result.actions[0].action, "create");
+        assert_eq!(
+            Path::new(&result.actions[0].target_path),
+            account.join("slot.dat")
+        );
+    }
+
+    #[test]
+    fn epic_blocks_a_missing_source_account_folder_beside_another_account() {
+        let temp = tempdir().unwrap();
+        fs::create_dir_all(temp.path().join("Game/epicuserb")).unwrap();
+        let result = resolve_restore_targets_inner(epic_input(
+            temp.path(),
+            variant("opaque-folder", "epicusera"),
+            RAW_RULE,
+            "dir",
+            "slot.dat",
+        ))
+        .unwrap();
+
+        assert!(result.actions.is_empty());
+        assert_eq!(result.blocked.len(), 1);
+        assert_eq!(result.blocked[0].reason, "blocked-user-not-found");
+        assert!(!temp.path().join("Game/epicusera").exists());
+    }
+
+    #[test]
+    fn epic_can_create_a_save_subdirectory_below_an_existing_account() {
+        let temp = tempdir().unwrap();
+        fs::create_dir_all(temp.path().join("Game/epicusera")).unwrap();
+        let result = resolve_restore_targets_inner(epic_input(
+            temp.path(),
+            variant("opaque-folder", "epicusera"),
+            "<home>/Game/<storeUserId>/Saves",
+            "dir",
+            "slot.dat",
+        ))
+        .unwrap();
+
+        assert!(result.blocked.is_empty());
+        assert_eq!(result.actions.len(), 1);
+        assert_eq!(result.actions[0].action, "create");
+        assert!(result.actions[0]
+            .target_path
+            .replace('\\', "/")
+            .ends_with("/Game/epicusera/Saves/slot.dat"));
+    }
+
+    #[test]
+    fn epic_glob_before_account_allows_a_new_save_in_an_existing_account() {
+        let temp = tempdir().unwrap();
+        let account = temp.path().join("Games/Game_one/epicusera");
+        fs::create_dir_all(&account).unwrap();
+        let result = resolve_restore_targets_inner(epic_input(
+            temp.path(),
+            variant("opaque-folder", "epicusera"),
+            "<home>/Games/Game_*/<storeUserId>/slot.dat",
+            "file",
+            "Game_one/epicusera/slot.dat",
+        ))
+        .unwrap();
+
+        assert!(result.blocked.is_empty());
+        assert_eq!(result.actions.len(), 1);
+        assert_eq!(result.actions[0].action, "create");
+        assert_eq!(
+            Path::new(&result.actions[0].target_path),
+            account.join("slot.dat")
+        );
+    }
+
+    #[test]
+    fn epic_glob_before_account_blocks_a_missing_account() {
+        let temp = tempdir().unwrap();
+        fs::create_dir_all(temp.path().join("Games/Game_one/epicuserb")).unwrap();
+        let result = resolve_restore_targets_inner(epic_input(
+            temp.path(),
+            variant("opaque-folder", "epicusera"),
+            "<home>/Games/Game_*/<storeUserId>/slot.dat",
+            "file",
+            "Game_one/epicusera/slot.dat",
+        ))
+        .unwrap();
+
+        assert!(result.actions.is_empty());
+        assert_eq!(result.blocked.len(), 1);
+        assert_eq!(result.blocked[0].reason, "blocked-user-not-found");
+        assert!(!temp.path().join("Games/Game_one/epicusera").exists());
+    }
+
+    #[test]
+    fn epic_directory_glob_before_account_allows_a_new_save_in_an_existing_account() {
+        let temp = tempdir().unwrap();
+        let account = temp.path().join("Games/Game_one/epicusera");
+        fs::create_dir_all(&account).unwrap();
+        let result = resolve_restore_targets_inner(epic_input(
+            temp.path(),
+            variant("opaque-folder", "epicusera"),
+            "<home>/Games/Game_*/<storeUserId>",
+            "dir",
+            "Game_one/epicusera/slot.dat",
+        ))
+        .unwrap();
+
+        assert!(result.blocked.is_empty());
+        assert_eq!(result.actions.len(), 1);
+        assert_eq!(result.actions[0].action, "create");
+        assert_eq!(
+            Path::new(&result.actions[0].target_path),
+            account.join("slot.dat")
+        );
+    }
+
+    #[test]
+    fn epic_directory_glob_before_account_blocks_a_missing_account() {
+        let temp = tempdir().unwrap();
+        fs::create_dir_all(temp.path().join("Games/Game_one/epicuserb")).unwrap();
+        let result = resolve_restore_targets_inner(epic_input(
+            temp.path(),
+            variant("opaque-folder", "epicusera"),
+            "<home>/Games/Game_*/<storeUserId>",
+            "dir",
+            "Game_one/epicusera/slot.dat",
+        ))
+        .unwrap();
+
+        assert!(result.actions.is_empty());
+        assert_eq!(result.blocked.len(), 1);
+        assert_eq!(result.blocked[0].reason, "blocked-user-not-found");
+    }
+
+    #[test]
+    fn epic_requires_an_existing_account_named_file() {
+        let temp = tempdir().unwrap();
+        let game = temp.path().join("Game");
+        fs::create_dir_all(&game).unwrap();
+        fs::write(game.join("PlayerProfileepicuserb.sav"), b"other account").unwrap();
+        let raw_path = "<home>/Game/PlayerProfile<storeUserId>.sav";
+        let remote = variant("opaque-folder", "epicusera");
+        let missing = resolve_restore_targets_inner(epic_input(
+            temp.path(),
+            remote.clone(),
+            raw_path,
+            "file",
+            "PlayerProfileepicusera.sav",
+        ))
+        .unwrap();
+        assert!(missing.actions.is_empty());
+        assert_eq!(missing.blocked[0].reason, "blocked-user-not-found");
+
+        fs::write(game.join("PlayerProfileepicusera.sav"), b"old save").unwrap();
+        let existing = resolve_restore_targets_inner(epic_input(
+            temp.path(),
+            remote,
+            raw_path,
+            "file",
+            "PlayerProfileepicusera.sav",
+        ))
+        .unwrap();
+        assert!(existing.blocked.is_empty());
+        assert_eq!(existing.actions.len(), 1);
+        assert_eq!(existing.actions[0].action, "replace");
     }
 
     #[test]

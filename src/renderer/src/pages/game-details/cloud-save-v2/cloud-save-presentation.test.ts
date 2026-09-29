@@ -563,6 +563,14 @@ describe("game page automatic cloud save sync", () => {
   });
 
   it("respects automatic sync and game eligibility", () => {
+    assert.equal(shouldSyncOnGamePage({ shop: "epic" }), true);
+    assert.equal(
+      shouldSyncOnGamePage({
+        shop: "epic",
+        overview: overview({ isAutomaticSyncEnabled: false }),
+      }),
+      false
+    );
     assert.equal(
       shouldSyncOnGamePage({
         overview: overview({ isAutomaticSyncEnabled: false }),

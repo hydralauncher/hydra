@@ -89,6 +89,46 @@ describe("Cloud Save launcher API contract", () => {
     assert.deepEqual(manifest.files, []);
   });
 
+  it("accepts Epic opaque profile folders and rejects Steam account variants", () => {
+    const epicManifest = {
+      snapshot: {
+        id: "snapshot",
+        version: 1,
+        shop: "epic",
+        objectId: "namespace:playable-item",
+      },
+      customPathRawPaths: [],
+      variants: [
+        {
+          variantId: firstVariantId,
+          kind: "opaque-folder",
+          concreteFolderId: "epic-account-id",
+        },
+      ],
+      files: [file(firstVariantId)],
+    };
+
+    assert.equal(validateRestoreManifest(epicManifest).snapshot.shop, "epic");
+    assert.throws(() =>
+      validateRestoreManifest({
+        ...epicManifest,
+        variants: [
+          {
+            variantId: firstVariantId,
+            kind: "steam-account",
+            steamId64: "76561197960278073",
+          },
+        ],
+      })
+    );
+    assert.throws(() =>
+      validateRestoreManifest({
+        ...epicManifest,
+        snapshot: { ...epicManifest.snapshot, shop: "custom" },
+      })
+    );
+  });
+
   it("rejects a non-array custom path list with a TypeError", () => {
     assert.throws(() => validateCustomPathRawPaths(null), {
       name: "TypeError",

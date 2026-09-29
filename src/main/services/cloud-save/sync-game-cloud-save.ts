@@ -13,6 +13,7 @@ import type {
 import { NativeAddon } from "../native-addon";
 import { isGameRunning } from "../game-running-state";
 import { analyzeCloudSaveState } from "./analyze-cloud-save-state";
+import { getCloudSaveAutomaticSyncMode } from "./automatic-sync-settings";
 import { assertCloudSaveExecutableExists } from "./assert-cloud-save-executable";
 import { clearCloudSaveLocalState } from "./clear-cloud-save-local-state";
 import { assertCloudSaveSubscription } from "./cloud-save-access";
@@ -69,6 +70,20 @@ class CloudSaveSyncStateChangedError extends Error {
 const activeSyncs = new Map<string, ActiveSync>();
 const gameKey = (objectId: string, shop: GameShop) =>
   JSON.stringify([shop, objectId]);
+
+const assertEpicManualSyncDoesNotOverlapLegacy = async (
+  objectId: string,
+  shop: GameShop,
+  trigger: CloudSaveSyncTrigger
+) => {
+  if (
+    shop === "epic" &&
+    (trigger === "manual" || trigger === "custom-path-rebind") &&
+    (await getCloudSaveAutomaticSyncMode(objectId, shop)) === "legacy"
+  ) {
+    throw new Error("cloud_save_epic_legacy_mode_active");
+  }
+};
 type CloudSaveAnalysis = Awaited<ReturnType<typeof analyzeCloudSaveState>>;
 
 type RemoteSnapshotDeletionOutcome =
@@ -974,6 +989,7 @@ export const syncGameCloudSave = async (
   expectedRemoteHash?: string | null
 ) => {
   assertCloudSaveSubscription();
+  await assertEpicManualSyncDoesNotOverlapLegacy(objectId, shop, trigger);
   await assertCloudSaveExecutableExists(objectId, shop);
   if (isGameRunning(objectId, shop)) {
     throw new Error("cloud_save_game_running");
@@ -992,6 +1008,7 @@ export const syncGameCloudSave = async (
     shop,
     operationKey,
     async (emitProgress) => {
+      await assertEpicManualSyncDoesNotOverlapLegacy(objectId, shop, trigger);
       await assertCloudSaveExecutableExists(objectId, shop);
       if (isGameRunning(objectId, shop)) {
         throw new Error("cloud_save_game_running");
@@ -1016,6 +1033,7 @@ export const resolveCloudSaveConflict = async (
   onProgress?: ProgressCallback
 ) => {
   assertCloudSaveSubscription();
+  await assertEpicManualSyncDoesNotOverlapLegacy(objectId, shop, "manual");
   await assertCloudSaveExecutableExists(objectId, shop);
 
   const context = await getCloudSaveGameContext(objectId, shop);
@@ -1024,6 +1042,7 @@ export const resolveCloudSaveConflict = async (
     shop,
     `resolve:${resolution}:${context.environmentId}`,
     async (emitProgress) => {
+      await assertEpicManualSyncDoesNotOverlapLegacy(objectId, shop, "manual");
       await assertCloudSaveExecutableExists(objectId, shop);
       return runGameCloudSaveSync(
         objectId,

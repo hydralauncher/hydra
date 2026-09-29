@@ -1447,6 +1447,8 @@ export default function Game() {
           shop={shop!}
           hasExecutablePath={Boolean(game?.executablePath)}
           isGameRunning={isGameRunning}
+          legacyAutomaticCloudSync={game?.automaticCloudSync === true}
+          onAutomaticSyncModeChanged={updateGame}
           onSelectExecutable={() => setIsGameSettingsModalOpen(true)}
         >
           <Hero
