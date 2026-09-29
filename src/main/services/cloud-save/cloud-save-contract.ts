@@ -2,6 +2,7 @@ import type {
   CloudSaveFileIdentity,
   GameShop,
   RemoteSnapshotSummary,
+  RestoreDownloadUrlFile,
   RestoreManifestResponse,
   SnapshotFile,
   SnapshotVariant,
@@ -185,6 +186,39 @@ export const validateSnapshotFiles = (
     throw new Error("Cloud Save manifest contains an unused variant");
   }
   return files;
+};
+
+export const validateRestoreDownloadUrls = (
+  value: unknown
+): RestoreDownloadUrlFile[] => {
+  if (!Array.isArray(value)) {
+    throw new TypeError("Invalid restore download URLs response");
+  }
+  const seenIds = new Set<string>();
+  return value.map((item) => {
+    if (!item || typeof item !== "object" || Array.isArray(item)) {
+      throw new Error("Invalid restore download URL file");
+    }
+    const { downloadUrl, ...snapshotValue } = item as Record<string, unknown>;
+    if (typeof downloadUrl !== "string" || !downloadUrl) {
+      throw new Error("Invalid restore download URL file");
+    }
+    try {
+      const url = new URL(downloadUrl);
+      if (url.protocol !== "http:" && url.protocol !== "https:") {
+        throw new Error("Invalid restore download URL file");
+      }
+    } catch {
+      throw new Error("Invalid restore download URL file");
+    }
+    const snapshotFile = validateSnapshotFile(snapshotValue);
+    const key = cloudSaveFileKey(snapshotFile);
+    if (seenIds.has(key)) {
+      throw new Error("Duplicate restore download URL file");
+    }
+    seenIds.add(key);
+    return { ...snapshotFile, downloadUrl };
+  });
 };
 
 export const validateCustomPathRawPaths = (value: unknown): string[] => {

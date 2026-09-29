@@ -6,6 +6,7 @@ import {
   cloudSaveFileKey,
   validateCustomPathRawPaths,
   validateRemoteSnapshotSummary,
+  validateRestoreDownloadUrls,
   validateRestoreManifest,
 } from "./cloud-save-contract.ts";
 
@@ -21,6 +22,39 @@ const file = (variantId: string) => ({
 });
 
 describe("Cloud Save launcher API contract", () => {
+  it("downloads Steam files and emulator states with optional metadata", () => {
+    const steamFile = {
+      ...file(firstVariantId),
+      downloadUrl: "https://storage.example.com/steam-save",
+    };
+    const emulatorState = {
+      ...file(secondVariantId),
+      rawPath: "<emulator>/retroarch/snes/1234ABCD",
+      relativePath: "state.state1",
+      stateMetadata: { emulatorId: "retroarch", coreId: "snes9x" },
+      downloadUrl: "https://storage.example.com/emulator-state",
+    };
+
+    assert.deepEqual(validateRestoreDownloadUrls([steamFile, emulatorState]), [
+      steamFile,
+      emulatorState,
+    ]);
+    assert.throws(() =>
+      validateRestoreDownloadUrls([{ ...emulatorState, unknown: true }])
+    );
+    assert.throws(() =>
+      validateRestoreDownloadUrls([
+        {
+          ...emulatorState,
+          stateMetadata: { emulatorId: "retroarch", extra: true },
+        },
+      ])
+    );
+    assert.throws(() =>
+      validateRestoreDownloadUrls([emulatorState, emulatorState])
+    );
+  });
+
   it("accepts optional state origin metadata and rejects unknown fields", () => {
     const base = {
       snapshot: {
