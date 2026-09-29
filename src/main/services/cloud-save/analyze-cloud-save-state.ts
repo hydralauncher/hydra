@@ -157,7 +157,8 @@ export const analyzeCloudSaveState = async (
         );
         safeMissingEmulatorEntryIds = await safeMissingEmulatorRestoreEntryIds(
           resolution.actions,
-          localSnapshotContext
+          localSnapshotContext,
+          context.game
         );
         for (const entryId of await verifiedEmulatorRestoreEntryIds(
           context.game,

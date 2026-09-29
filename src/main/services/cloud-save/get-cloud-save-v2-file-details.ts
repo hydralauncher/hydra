@@ -13,13 +13,12 @@ import { getFirstSyncState } from "./sync-game";
 import { getEmulatorSaveProvider } from "./emulator-save-provider";
 import { getEmulatorCardPathOverrides } from "./emulator-card-path-store";
 import {
-  emulatorDestinationKindForFile,
   getEmulatorDestinationBinding,
   getExpectedEmulatorDestination,
   isSafeExistingEmulatorDestination,
   isVerifiedEmulatorDestinationBinding,
 } from "./emulator-destination-store";
-import { cloudSaveFileKey } from "./cloud-save-contract";
+import { groupEmulatorRestoreDestinations } from "./emulator-destination-policy";
 import { listRpcs3CloudProfileIds } from "./rpcs3-profile-binding-policy";
 import {
   cloudSaveCustomPathContextFromPathContext,
@@ -116,37 +115,19 @@ export const getCloudSaveV2FileDetails = async (
   const provider = getEmulatorSaveProvider(analysis.context.game);
   if (analysis.context.game && provider) {
     const pending = new Set(analysis.merge.unresolvedRemoteEntryIds);
-    const grouped = new Map<
-      string,
-      {
-        rawPath: string;
-        kind: "save" | "state";
-        relativePath: string;
-        fileCount: number;
-        needsDestination: boolean;
-      }
-    >();
-    for (const file of analysis.remoteManifest?.files ?? []) {
-      const kind = emulatorDestinationKindForFile(
-        file.rawPath,
-        file.relativePath
-      );
-      if (!kind) continue;
-      const key = JSON.stringify([file.rawPath, kind]);
-      const group = grouped.get(key) ?? {
-        rawPath: file.rawPath,
-        kind,
-        relativePath: file.relativePath,
-        fileCount: 0,
-        needsDestination: false,
-      };
-      group.fileCount += 1;
-      group.needsDestination ||= pending.has(cloudSaveFileKey(file));
-      grouped.set(key, group);
-    }
+    const safeAutomatic = new Set(
+      provider === "retroarch"
+        ? analysis.safeMissingEmulatorRestoreEntryIds
+        : []
+    );
+    const grouped = groupEmulatorRestoreDestinations(
+      analysis.remoteManifest?.files ?? [],
+      pending,
+      safeAutomatic
+    );
     details.emulatorDestinations = (
       await Promise.all(
-        [...grouped.values()].map(async (group) => {
+        grouped.map(async (group) => {
           const selectedPath = await getEmulatorDestinationBinding(
             analysis.context.game!,
             group.rawPath,

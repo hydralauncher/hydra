@@ -362,6 +362,7 @@ export const locationsForGame = async (game: Game) => {
     ),
     unresolved,
     platform,
+    configPath,
   };
 };
 

@@ -5,6 +5,7 @@ import path from "node:path";
 import { describe, it } from "node:test";
 
 import type {
+  Game,
   LocalGameSnapshotContext,
   ResolvedRestoreTarget,
   SnapshotFile,
@@ -18,6 +19,7 @@ import { mergeUserVariantSnapshots } from "./merge-user-variant-snapshots.ts";
 // @ts-ignore The Node ESM test runner requires the source extension.
 import {
   assertFilesystemEmulatorRestoreRoots,
+  isSafeConfiguredRetroArchRestoreRoot,
   safeMissingEmulatorRestoreEntryIds,
 } from "./missing-emulator-restore-root.ts";
 
@@ -53,6 +55,91 @@ const emptyLocal = (homeDir: string): LocalGameSnapshotContext => ({
     storeUserContext: { known: [] },
   },
 });
+
+const retroArchGame = {
+  shop: "launchbox",
+  platform: "Super Nintendo Entertainment System",
+} as Game;
+
+const splitRetroArchFixture = async () => {
+  const temp = await fs.mkdtemp(
+    path.join(os.tmpdir(), "hydra-retroarch-root-")
+  );
+  const home = path.join(temp, "home");
+  const configPath = path.join(
+    home,
+    "Library",
+    "Application Support",
+    "RetroArch",
+    "config",
+    "retroarch.cfg"
+  );
+  const documents = path.join(home, "Documents", "RetroArch");
+  await fs.mkdir(path.dirname(configPath), { recursive: true });
+  await fs.mkdir(documents, { recursive: true });
+  const saveRoot = path.join(documents, "saves", "Snes9x");
+  const stateRoot = path.join(documents, "states", "Snes9x");
+  const writeConfig = async (saveDirectory = saveRoot) =>
+    fs.writeFile(
+      configPath,
+      `savefile_directory = "${path.dirname(saveDirectory)}"\nsavestate_directory = "${path.dirname(stateRoot)}"\nsort_savefiles_enable = "true"\nsort_savestates_enable = "true"\n`
+    );
+  await writeConfig();
+  const local = emptyLocal(home);
+  const save: ResolvedRestoreTarget = {
+    ...file("battery.srm"),
+    action: "create",
+    restoreRootPath: saveRoot,
+    targetPath: path.join(saveRoot, "Super Mario World.srm"),
+  };
+  const state: ResolvedRestoreTarget = {
+    ...file("state.state1"),
+    action: "create",
+    restoreRootPath: stateRoot,
+    targetPath: path.join(stateRoot, "Super Mario World.state1"),
+  };
+  const state2: ResolvedRestoreTarget = {
+    ...file("state.state2"),
+    action: "create",
+    restoreRootPath: stateRoot,
+    targetPath: path.join(stateRoot, "Super Mario World.state2"),
+  };
+  const resolve = async (target: ResolvedRestoreTarget) => {
+    if (target.rawPath !== rawPath) return null;
+    const config = await fs.readFile(configPath, "utf8");
+    const key = target.relativePath.startsWith("state.")
+      ? "savestate_directory"
+      : "savefile_directory";
+    const configuredDirectory = new RegExp(`${key} = "([^"]+)"`).exec(
+      config
+    )?.[1];
+    return configuredDirectory
+      ? {
+          directory: path.join(configuredDirectory, "Snes9x"),
+          configPath,
+          targetPath: path.join(
+            configuredDirectory,
+            "Snes9x",
+            `Super Mario World${target.relativePath.slice(target.relativePath.indexOf("."))}`
+          ),
+        }
+      : null;
+  };
+  return {
+    temp,
+    home,
+    configPath,
+    documents,
+    saveRoot,
+    stateRoot,
+    local,
+    save,
+    state,
+    state2,
+    resolve,
+    writeConfig,
+  };
+};
 
 const fixture = async () => {
   const temp = await fs.mkdtemp(path.join(os.tmpdir(), "hydra-restore-root-"));
@@ -116,6 +203,145 @@ const partialCoverage: UserLocationCoverage = {
 };
 
 describe("missing emulator restore roots", () => {
+  it("approves missing Mac RetroArch save and state folders from the active config", async () => {
+    const sample = await splitRetroArchFixture();
+    try {
+      const targets = [sample.save, sample.state, sample.state2];
+      assert.equal(
+        (await sample.resolve(sample.save))?.directory,
+        sample.saveRoot
+      );
+      assert.equal(
+        await isSafeConfiguredRetroArchRestoreRoot(
+          sample.save,
+          sample.local,
+          (await sample.resolve(sample.save))!
+        ),
+        true
+      );
+      const safe = await safeMissingEmulatorRestoreEntryIds(
+        targets,
+        sample.local,
+        retroArchGame,
+        sample.resolve
+      );
+      assert.deepEqual([...safe], targets.map(cloudSaveFileKey));
+      await assertFilesystemEmulatorRestoreRoots(
+        targets,
+        sample.local,
+        safe,
+        retroArchGame,
+        sample.resolve
+      );
+      const merge = mergeUserVariantSnapshots({
+        local: { ...sample.local, coverage: [partialCoverage] },
+        remoteVariants: [{ variantId, kind: "default" }],
+        remoteFiles: targets,
+        base: null,
+        safeMissingEmulatorRestoreEntryIds: safe,
+      });
+      assert.deepEqual(merge.restoreEntryIds, targets.map(cloudSaveFileKey));
+      await fs.mkdir(sample.saveRoot, { recursive: true });
+      await fs.mkdir(sample.stateRoot, { recursive: true });
+      await assertFilesystemEmulatorRestoreRoots(
+        targets,
+        sample.local,
+        safe,
+        retroArchGame,
+        sample.resolve
+      );
+    } finally {
+      await fs.rm(sample.temp, { recursive: true, force: true });
+    }
+  });
+
+  it("rejects a changed config or ROM identity before writing", async () => {
+    const sample = await splitRetroArchFixture();
+    try {
+      const safe = await safeMissingEmulatorRestoreEntryIds(
+        [sample.save],
+        sample.local,
+        retroArchGame,
+        sample.resolve
+      );
+      await fs.mkdir(sample.saveRoot, { recursive: true });
+      await sample.writeConfig(path.join(sample.documents, "other", "Snes9x"));
+      await assert.rejects(
+        assertFilesystemEmulatorRestoreRoots(
+          [sample.save],
+          sample.local,
+          safe,
+          retroArchGame,
+          sample.resolve,
+          async () => false
+        ),
+        /cloud_save_restore_root_unavailable/
+      );
+      await assertFilesystemEmulatorRestoreRoots(
+        [sample.save],
+        sample.local,
+        safe,
+        retroArchGame,
+        sample.resolve,
+        async () => true
+      );
+      assert.deepEqual(
+        [
+          ...(await safeMissingEmulatorRestoreEntryIds(
+            [{ ...sample.save, rawPath: "<emulator>/retroarch/snes/DEADBEEF" }],
+            sample.local,
+            retroArchGame,
+            sample.resolve
+          )),
+        ],
+        []
+      );
+      await sample.writeConfig();
+      assert.equal(
+        await isSafeConfiguredRetroArchRestoreRoot(
+          {
+            ...sample.save,
+            targetPath: path.join(sample.saveRoot, "Other Game.srm"),
+          },
+          sample.local,
+          (await sample.resolve(sample.save))!
+        ),
+        false
+      );
+    } finally {
+      await fs.rm(sample.temp, { recursive: true, force: true });
+    }
+  });
+
+  it("keeps symlinked and external RetroArch destinations manual", async () => {
+    const sample = await splitRetroArchFixture();
+    try {
+      const outside = path.join(sample.temp, "external", "saves", "Snes9x");
+      assert.equal(
+        await isSafeConfiguredRetroArchRestoreRoot(sample.save, sample.local, {
+          directory: outside,
+          configPath: sample.configPath,
+          targetPath: path.join(outside, "Super Mario World.srm"),
+        }),
+        false
+      );
+      await fs.symlink(
+        path.join(sample.temp, "external"),
+        path.join(sample.documents, "saves")
+      );
+      assert.equal(
+        await isSafeConfiguredRetroArchRestoreRoot(
+          sample.save,
+          sample.local,
+          (await sample.resolve(sample.save))!
+        ),
+        false
+      );
+    } finally {
+      await fs.rm(sample.temp, { recursive: true, force: true });
+    }
+  });
+
   it("restores a missing state folder beside scanned .srm and .rtc files", async () => {
     const sample = await fixture();
     try {

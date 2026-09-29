@@ -7,12 +7,50 @@ import { describe, it } from "node:test";
 // @ts-ignore The Node ESM test runner requires the source extension.
 import {
   emulatorDestinationKindForFile,
+  groupEmulatorRestoreDestinations,
   isCurrentEmulatorDestinationBinding,
   isSafeExistingEmulatorDestination,
   isSameExistingEmulatorDestination,
 } from "./emulator-destination-policy.ts";
+// @ts-ignore The Node ESM test runner requires the source extension.
+import { cloudSaveFileKey } from "./cloud-save-contract.ts";
 
 describe("manual emulator restore destinations", () => {
+  it("hides automatic RetroArch roots while keeping ambiguous files pending", () => {
+    const rawPath = "<emulator>/retroarch/snes/1234ABCD";
+    const files = ["battery.srm", "state.state1", "state.state2"].map(
+      (relativePath) => ({ variantId: "variant", rawPath, relativePath })
+    );
+    const ids = files.map(cloudSaveFileKey);
+    const grouped = groupEmulatorRestoreDestinations(
+      files,
+      new Set(ids),
+      new Set(ids.slice(0, 2))
+    );
+    assert.deepEqual(
+      grouped.map(({ kind, fileCount, needsDestination }) => ({
+        kind,
+        fileCount,
+        needsDestination,
+      })),
+      [
+        { kind: "save", fileCount: 1, needsDestination: false },
+        { kind: "state", fileCount: 2, needsDestination: true },
+      ]
+    );
+    assert.equal(
+      groupEmulatorRestoreDestinations(files, new Set(ids), new Set(ids)).some(
+        (group) => group.needsDestination
+      ),
+      false
+    );
+    assert.equal(
+      groupEmulatorRestoreDestinations(files, new Set(ids), new Set())[0]
+        .needsDestination,
+      true
+    );
+  });
+
   it("splits RetroArch save and state roots without binding Transfer Pak to the save root", () => {
     const rawPath = "<emulator>/retroarch/snes/1234ABCD";
     assert.equal(

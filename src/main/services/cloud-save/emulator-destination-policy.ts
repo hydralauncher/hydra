@@ -1,6 +1,9 @@
 import { promises as fs } from "node:fs";
 import path from "node:path";
 
+import type { CloudSaveFileIdentity } from "@types";
+
+import { cloudSaveFileKey } from "./cloud-save-contract.js";
 import { parseRetroArchSaveRawPath } from "./emulator-provider-identity.js";
 
 export type EmulatorDestinationKind = "save" | "state";
@@ -37,6 +40,43 @@ export const emulatorDestinationKindForFile = (
     return "save";
   }
   return null;
+};
+
+export const groupEmulatorRestoreDestinations = (
+  files: readonly CloudSaveFileIdentity[],
+  pending: ReadonlySet<string>,
+  automatic: ReadonlySet<string>
+) => {
+  const grouped = new Map<
+    string,
+    {
+      rawPath: string;
+      kind: EmulatorDestinationKind;
+      relativePath: string;
+      fileCount: number;
+      needsDestination: boolean;
+    }
+  >();
+  for (const file of files) {
+    const kind = emulatorDestinationKindForFile(
+      file.rawPath,
+      file.relativePath
+    );
+    if (!kind) continue;
+    const key = JSON.stringify([file.rawPath, kind]);
+    const group = grouped.get(key) ?? {
+      rawPath: file.rawPath,
+      kind,
+      relativePath: file.relativePath,
+      fileCount: 0,
+      needsDestination: false,
+    };
+    group.fileCount += 1;
+    const fileId = cloudSaveFileKey(file);
+    group.needsDestination ||= pending.has(fileId) && !automatic.has(fileId);
+    grouped.set(key, group);
+  }
+  return [...grouped.values()];
 };
 
 export const isSafeExistingEmulatorDestination = async (root: string) => {

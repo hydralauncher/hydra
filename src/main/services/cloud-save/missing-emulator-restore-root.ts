@@ -1,9 +1,17 @@
 import { promises as fs } from "node:fs";
 import path from "node:path";
 
-import type { LocalGameSnapshotContext, ResolvedRestoreTarget } from "@types";
+import type {
+  Game,
+  LocalGameSnapshotContext,
+  ResolvedRestoreTarget,
+} from "@types";
 
 import { cloudSaveFileKey } from "./cloud-save-contract.js";
+import { emulatorDestinationKindForFile } from "./emulator-destination-policy.js";
+import { parseRetroArchSaveRawPath } from "./emulator-provider-identity.js";
+import { getEmulatorSaveProvider } from "./emulator-save-provider.js";
+import { retroArchTargetForFile } from "./retroarch-save-scanner.js";
 import {
   parseRpcs3ActiveProfileId,
   resolveRpcs3VfsHdd0,
@@ -181,6 +189,107 @@ const lstat = async (target: string) =>
     if (error.code === "ENOENT") return null;
     throw error;
   });
+
+type RetroArchConfiguredRoot = {
+  directory: string;
+  configPath: string;
+  targetPath: string;
+};
+type RetroArchRootResolver = (
+  target: ResolvedRestoreTarget
+) => Promise<RetroArchConfiguredRoot | null>;
+type BoundRootVerifier = (target: ResolvedRestoreTarget) => Promise<boolean>;
+
+const configuredRetroArchRootResolver = (game: Game): RetroArchRootResolver => {
+  const loadLocations = () =>
+    import("./retroarch-save-provider.js").then(({ locationsForGame }) =>
+      locationsForGame(game)
+    );
+  let locations: ReturnType<typeof loadLocations> | null = null;
+  return async (target) => {
+    const kind = emulatorDestinationKindForFile(
+      target.rawPath,
+      target.relativePath
+    );
+    if (!parseRetroArchSaveRawPath(target.rawPath) || !kind) return null;
+    locations ??= loadLocations();
+    const configured = await locations.catch(() => null);
+    const matching = configured?.locations.filter(
+      (location) => location.rawPath === target.rawPath
+    );
+    if (matching?.length !== 1) return null;
+    const physical = retroArchTargetForFile(matching[0], target.relativePath);
+    const directory =
+      kind === "save" ? matching[0].saveDirectory : matching[0].stateDirectory;
+    return physical && directory === physical.directory
+      ? {
+          directory,
+          configPath: configured!.configPath,
+          targetPath: physical.filePath,
+        }
+      : null;
+  };
+};
+
+/** A configured RetroArch destination may be created only under this home. */
+export const isSafeConfiguredRetroArchRestoreRoot = async (
+  target: ResolvedRestoreTarget,
+  local: LocalGameSnapshotContext,
+  configured: RetroArchConfiguredRoot
+) => {
+  if (
+    target.action !== "create" ||
+    !parseRetroArchSaveRawPath(target.rawPath) ||
+    !emulatorDestinationKindForFile(target.rawPath, target.relativePath)
+  ) {
+    return false;
+  }
+  const root = path.resolve(target.restoreRootPath);
+  const configPath = path.resolve(configured.configPath);
+  if (
+    root !== path.resolve(configured.directory) ||
+    path.resolve(target.targetPath) !== path.resolve(configured.targetPath) ||
+    !within(root, path.resolve(target.targetPath)) ||
+    root === path.resolve(target.targetPath)
+  ) {
+    return false;
+  }
+  try {
+    const home = path.resolve(local.pathContext.homeDir);
+    if (!within(home, root) || !within(home, configPath)) return false;
+    const homeStat = await fs.lstat(home);
+    if (!homeStat.isDirectory() || homeStat.isSymbolicLink()) return false;
+    const checkPath = async (candidate: string, expectFile: boolean) => {
+      const segments = path.relative(home, candidate).split(path.sep);
+      let current = home;
+      let missing = false;
+      for (const [index, segment] of segments.entries()) {
+        current = path.join(current, segment);
+        const stat = missing ? null : await lstat(current);
+        if (!stat) {
+          missing = true;
+          if (expectFile) return false;
+          continue;
+        }
+        if (
+          stat.isSymbolicLink() ||
+          stat.dev !== homeStat.dev ||
+          (index === segments.length - 1 && expectFile
+            ? !stat.isFile()
+            : !stat.isDirectory())
+        ) {
+          return false;
+        }
+      }
+      return true;
+    };
+    return (
+      (await checkPath(configPath, true)) && (await checkPath(root, false))
+    );
+  } catch {
+    return false;
+  }
+};
 
 const rootedLayout = (root: string, layout: RootLayout) => {
   let profile = path.resolve(root);
@@ -394,11 +503,27 @@ export const isSafeMissingEmulatorRestoreRoot = async (
 
 export const safeMissingEmulatorRestoreEntryIds = async (
   targets: ResolvedRestoreTarget[],
-  local: LocalGameSnapshotContext
+  local: LocalGameSnapshotContext,
+  game?: Game | null,
+  resolveRetroArchRoot?: RetroArchRootResolver
 ) => {
   const safe = new Set<string>();
+  const retroArch = game && getEmulatorSaveProvider(game) === "retroarch";
+  const resolveRoot =
+    resolveRetroArchRoot ??
+    (retroArch ? configuredRetroArchRootResolver(game) : null);
   for (const target of targets) {
-    if (await isSafeMissingEmulatorRestoreRoot(target, local)) {
+    const configured =
+      retroArch && parseRetroArchSaveRawPath(target.rawPath)
+        ? await resolveRoot?.(target)
+        : null;
+    if (
+      configured
+        ? await isSafeConfiguredRetroArchRestoreRoot(target, local, configured)
+        : retroArch && parseRetroArchSaveRawPath(target.rawPath)
+          ? false
+          : await isSafeMissingEmulatorRestoreRoot(target, local)
+    ) {
       safe.add(cloudSaveFileKey(target));
     }
   }
@@ -408,8 +533,15 @@ export const safeMissingEmulatorRestoreEntryIds = async (
 export const assertFilesystemEmulatorRestoreRoots = async (
   targets: ResolvedRestoreTarget[],
   local: LocalGameSnapshotContext,
-  safeMissingAtAnalysis: ReadonlySet<string>
+  safeMissingAtAnalysis: ReadonlySet<string>,
+  game?: Game | null,
+  resolveRetroArchRoot?: RetroArchRootResolver,
+  verifyBoundRoot?: BoundRootVerifier
 ) => {
+  const retroArch = game && getEmulatorSaveProvider(game) === "retroarch";
+  const resolveRoot =
+    resolveRetroArchRoot ??
+    (retroArch ? configuredRetroArchRootResolver(game) : null);
   for (const target of targets) {
     if (
       target.action === "skip-identical" ||
@@ -417,9 +549,44 @@ export const assertFilesystemEmulatorRestoreRoots = async (
     ) {
       continue;
     }
+    const entryId = cloudSaveFileKey(target);
+    if (
+      retroArch &&
+      parseRetroArchSaveRawPath(target.rawPath) &&
+      safeMissingAtAnalysis.has(entryId)
+    ) {
+      const configured = await resolveRoot?.(target);
+      const safeConfigured =
+        configured &&
+        (await isSafeConfiguredRetroArchRestoreRoot(target, local, configured));
+      if (!safeConfigured) {
+        const bound = verifyBoundRoot
+          ? await verifyBoundRoot(target)
+          : await (async () => {
+              const kind = emulatorDestinationKindForFile(
+                target.rawPath,
+                target.relativePath
+              );
+              if (!game || !kind) return false;
+              const { isVerifiedEmulatorDestinationBinding } = await import(
+                "./emulator-destination-store.js"
+              );
+              return isVerifiedEmulatorDestinationBinding(
+                game,
+                target.rawPath,
+                kind,
+                target.relativePath,
+                target.restoreRootPath
+              ).catch(() => false);
+            })();
+        if (!bound) {
+          throw new Error("cloud_save_restore_root_unavailable");
+        }
+      }
+      continue;
+    }
     const root = await lstat(target.restoreRootPath).catch(() => undefined);
     if (root?.isDirectory() && !root.isSymbolicLink()) continue;
-    const entryId = cloudSaveFileKey(target);
     const wasLocal = local.files.some(
       (file) => cloudSaveFileKey(file) === entryId
     );

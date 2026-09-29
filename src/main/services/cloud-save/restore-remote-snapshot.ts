@@ -279,7 +279,8 @@ export const restoreRemoteSnapshot = async (
     await assertFilesystemEmulatorRestoreRoots(
       restoreTargets,
       emulatorRootSafety.local,
-      new Set(emulatorRootSafety.safeMissingEntryIds)
+      new Set(emulatorRootSafety.safeMissingEntryIds),
+      game
     );
   }
   await assertEmulatorDestinationBindingsCurrent(game, restoreTargets);
@@ -353,7 +354,8 @@ export const restoreRemoteSnapshot = async (
       await assertFilesystemEmulatorRestoreRoots(
         restoreTargets,
         emulatorRootSafety.local,
-        new Set(emulatorRootSafety.safeMissingEntryIds)
+        new Set(emulatorRootSafety.safeMissingEntryIds),
+        game
       );
     }
     await assertEmulatorDestinationBindingsCurrent(game, restoreTargets);
