@@ -8,6 +8,7 @@ import type { UserLocationCoverage } from "@types";
 import { parseParamSfoValue } from "../emulators/param-sfo.js";
 import {
   rpcs3SaveRawPath,
+  rpcs3SavestateRawPath,
   safeRelativeSegments,
 } from "./emulator-provider-identity.js";
 import type {
@@ -15,11 +16,13 @@ import type {
   EmulatorProviderDiscovery,
 } from "./emulator-provider-types";
 import {
+  rpcs3SavestateFileBelongsToTitle,
   rpcs3SlotBelongsToTitle,
   rpcs3TitleIdsForGame,
 } from "./rpcs3-save-layout.js";
 
 const PROFILE_ID = /^\d{8}$/;
+const SAVESTATE_SUFFIX = /\.SAVESTAT(?:\.zst|\.gz)?$/;
 const hash = (value: string) =>
   createHash("sha256").update(value).digest("hex");
 
@@ -110,7 +113,14 @@ export const scanRpcs3SaveRoot = async (
     const slots = await fs
       .readdir(saveRoot, { withFileTypes: true })
       .catch(() => null);
-    if (!slots) continue;
+    if (!slots) {
+      for (const titleId of titleIds) {
+        result.coverage.push(
+          coverage(rpcs3SaveRawPath(titleId, cloudProfileId), variantId, false)
+        );
+      }
+      continue;
+    }
     for (const titleId of titleIds) {
       const rawPath = rpcs3SaveRawPath(titleId, cloudProfileId);
       let complete = true;
@@ -171,6 +181,97 @@ export const scanRpcs3SaveRoot = async (
   }
   if (!profiles.some((profile) => profile.name === activeProfileId)) {
     result.coverage.push(unresolvedCoverage("rpcs3-active-profile-missing"));
+  }
+  return result;
+};
+
+// RPCS3 writes certified-game states to <config>/savestates/<TITLE_ID>/.
+// Unlike savedata, these files are shared by every PS3 user profile.
+export const scanRpcs3Savestates = async (
+  { game, environmentId, variantId }: EmulatorProviderContext,
+  configRoot: string
+): Promise<EmulatorProviderDiscovery> => {
+  const result: EmulatorProviderDiscovery = {
+    files: [],
+    coverage: [],
+    revision: "rpcs3-v2",
+  };
+  const titleIds = rpcs3TitleIdsForGame(game);
+  if (!titleIds.length) {
+    result.coverage.push(unresolvedCoverage("rpcs3-title-id-unresolved"));
+    return result;
+  }
+  const statesRoot = path.join(configRoot, "savestates");
+  const rootStat = await fs
+    .lstat(statesRoot)
+    .catch((error: NodeJS.ErrnoException) => {
+      if (error.code === "ENOENT") return null;
+      throw error;
+    })
+    .catch(() => undefined);
+
+  for (const titleId of titleIds) {
+    const rawPath = rpcs3SavestateRawPath(titleId);
+    if (!rootStat || !rootStat.isDirectory() || rootStat.isSymbolicLink()) {
+      result.coverage.push(coverage(rawPath, variantId, false));
+      continue;
+    }
+    const titleRoot = path.join(statesRoot, titleId);
+    const titleStat = await fs
+      .lstat(titleRoot)
+      .catch((error: NodeJS.ErrnoException) => {
+        if (error.code === "ENOENT") return null;
+        throw error;
+      })
+      .catch(() => undefined);
+    if (!titleStat || !titleStat.isDirectory() || titleStat.isSymbolicLink()) {
+      result.coverage.push(coverage(rawPath, variantId, false));
+      continue;
+    }
+    const entries = await fs
+      .readdir(titleRoot, { withFileTypes: true })
+      .catch(() => null);
+    if (!entries) {
+      result.coverage.push(coverage(rawPath, variantId, false));
+      continue;
+    }
+    let complete = true;
+    for (const entry of entries) {
+      // RPCS3's current naming includes a length prefix and numeric state ID.
+      // Unknown matching names remain local; partial coverage prevents deletion.
+      if (!entry.name.startsWith(`${titleId}_`)) continue;
+      if (!SAVESTATE_SUFFIX.test(entry.name)) continue;
+      if (
+        !rpcs3SavestateFileBelongsToTitle(entry.name, titleId) ||
+        !entry.isFile() ||
+        entry.isSymbolicLink()
+      ) {
+        complete = false;
+        continue;
+      }
+      const absolutePath = path.join(titleRoot, entry.name);
+      const stat = await fs.lstat(absolutePath).catch(() => null);
+      if (!stat?.isFile() || stat.isSymbolicLink() || stat.size <= 1024) {
+        complete = false;
+        continue;
+      }
+      result.files.push({
+        variantId,
+        ruleId: hash(JSON.stringify(["emulator", rawPath])),
+        rawPath,
+        absolutePath,
+        relativePath: entry.name,
+        localBindings: {
+          environmentId,
+          rootId: hash(JSON.stringify([environmentId, titleRoot])),
+          concreteUserSegment: "__default__",
+          concretePath: titleRoot,
+        },
+        confidence: "exact",
+        provenance: ["emulator:rpcs3"],
+      });
+    }
+    result.coverage.push(coverage(rawPath, variantId, complete));
   }
   return result;
 };

@@ -1,7 +1,7 @@
 import type { CloudSaveCustomPathBindings, GameShop } from "@types";
 
 import { HydraApi } from "../hydra-api.js";
-import { NativeAddon } from "../native-addon.js";
+import { buildCloudSaveAggregateHash } from "./snapshot-aggregate-hash.js";
 import { buildLocalGameSnapshotContext } from "./build-local-game-snapshot.js";
 import { createRemoteSnapshotFromLocalState } from "./create-remote-snapshot-from-local-state.js";
 import {
@@ -47,7 +47,7 @@ const publishCustomPathRemoval = async (
           }
         ),
       updateSnapshot: async () => {
-        const aggregateHash = NativeAddon.buildSnapshotAggregateHash({
+        const aggregateHash = buildCloudSaveAggregateHash({
           variants: proposal.variants,
           files: proposal.files,
         });

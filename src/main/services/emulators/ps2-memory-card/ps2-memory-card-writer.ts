@@ -1,7 +1,7 @@
 import { promises as fs } from "node:fs";
 import type { FileHandle } from "node:fs/promises";
 
-import { computePageSpare } from "./ecc";
+import { computePageSpare } from "./ecc.js";
 import {
   DIR_ENTRY_BYTES,
   FAT_ALLOCATED_BIT,
@@ -12,9 +12,9 @@ import {
   parseDirEntry,
   readSaveContents,
   readSuperblock,
-} from "./ps2-memory-card";
-import { DF } from "./types";
-import type { Ps2DirEntry, Superblock } from "./types";
+} from "./ps2-memory-card.js";
+import { DF } from "./types.js";
+import type { Ps2DirEntry, Superblock } from "./types.js";
 
 /*
  * PS2 memory card WRITER — imports a `.psu` save folder back into a `.ps2`

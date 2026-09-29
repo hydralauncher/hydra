@@ -35,6 +35,22 @@ import {
 import { saveCloudSaveSyncAnchor } from "./sync-anchor";
 import { verifyDownloadedRestoreFile } from "./verify-downloaded-restore-file";
 import { registerCloudSaveCustomPaths } from "./custom-path-store";
+import { inferCustomPathKind } from "./custom-path-kind";
+import { approveEmulatorStateRestore } from "./state-restore-confirmation";
+import {
+  applyPlaystationCardRestore,
+  isPlaystationCardRawPath,
+} from "./playstation-card-restore";
+import { resolveDuckstationCardTarget } from "./duckstation-save-provider";
+import { resolvePcsx2CardTarget } from "./pcsx2-save-provider";
+import {
+  applyDolphinRawCardRestore,
+  isDolphinRawCardPath,
+} from "./dolphin-raw-card";
+import {
+  resolveDolphinRawCardTarget,
+  validateDolphinGciRestoreFile,
+} from "./dolphin-save-provider";
 import {
   bindCloudSaveCustomPathToLocalPath,
   CLOUD_SAVE_CUSTOM_PATH_PREFIX,
@@ -111,12 +127,21 @@ const registerRestoredCustomPaths = async (
 
   const customPathContext =
     cloudSaveCustomPathContextFromPathContext(pathContext);
-  const boundCustomPaths = [...actionByCustomRawPath].map(([rawPath, target]) =>
-    bindCloudSaveCustomPathToLocalPath(
-      rawPath,
-      target.restoreRootPath,
-      customPathContext
-    )
+  const boundCustomPaths = [...actionByCustomRawPath].map(
+    ([rawPath, target]) => {
+      const kind = inferCustomPathKind(
+        rawPath,
+        actions.filter((action) => action.rawPath === rawPath)
+      );
+      return {
+        ...bindCloudSaveCustomPathToLocalPath(
+          rawPath,
+          kind === "file" ? target.targetPath : target.restoreRootPath,
+          customPathContext
+        ),
+        kind,
+      };
+    }
   );
   await registerCloudSaveCustomPaths(
     gameId.shop,
@@ -187,23 +212,36 @@ export const restoreRemoteSnapshot = async (
   if (requestedIds && selectedFiles.length !== requestedIds.size) {
     throw new Error("Requested restore file is missing from manifest");
   }
-  const usedVariantIds = new Set(selectedFiles.map((file) => file.variantId));
+  const resolvedGameContext = await getCloudSaveGameContext(
+    gameId.objectId,
+    gameId.shop
+  );
+  const cloudSaveContext = suppliedContext ?? resolvedGameContext;
+  const game = resolvedGameContext.game;
+  const rejectedStateIds = await approveEmulatorStateRestore(
+    game,
+    selectedFiles
+  );
+  const applicableSelectedFiles = selectedFiles.filter(
+    (file) => !rejectedStateIds.has(cloudSaveFileKey(file))
+  );
+  const usedVariantIds = new Set(
+    applicableSelectedFiles.map((file) => file.variantId)
+  );
   const selectedManifest = {
     ...manifest,
     variants: manifest.variants.filter((variant) =>
       usedVariantIds.has(variant.variantId)
     ),
-    files: selectedFiles,
+    files: applicableSelectedFiles,
   };
-  emitProgress("resolving", 0, selectedFiles.length);
-  const cloudSaveContext =
-    suppliedContext ??
-    (await getCloudSaveGameContext(gameId.objectId, gameId.shop));
+  emitProgress("resolving", 0, applicableSelectedFiles.length);
   const plan = await resolveRestoreManifestTargets(
     selectedManifest,
     cloudSaveContext.pathContext
   );
-  const applicableFileCount = selectedFiles.length - plan.deferred.length;
+  const applicableFileCount =
+    applicableSelectedFiles.length - plan.deferred.length;
   emitProgress("resolving", plan.actions.length, applicableFileCount);
 
   const restoreTargets = plan.actions.filter(
@@ -220,6 +258,30 @@ export const restoreRemoteSnapshot = async (
         emitProgress("downloading", processedFiles, totalFiles)
     );
     await verifyDownloadedRestoreFiles(downloadedFiles, emitProgress);
+    const downloadedById = new Map(
+      downloadedFiles.map((file) => [cloudSaveFileKey(file), file] as const)
+    );
+    const selectedById = new Map(
+      applicableSelectedFiles.map(
+        (file) => [cloudSaveFileKey(file), file] as const
+      )
+    );
+    for (const action of plan.actions) {
+      if (!action.rawPath.startsWith("<emulator>/dolphin-")) continue;
+      const id = cloudSaveFileKey(action);
+      const file = selectedById.get(id);
+      const sourcePath =
+        action.action === "skip-identical"
+          ? action.targetPath
+          : downloadedById.get(id)?.tempPath;
+      if (
+        !file ||
+        !sourcePath ||
+        !(await validateDolphinGciRestoreFile(file, sourcePath))
+      ) {
+        throw new Error("cloud_save_dolphin_save_identity_mismatch");
+      }
+    }
 
     const current = await assertSnapshotStillCurrent(gameId, snapshot);
     const versionDecision = getRestoreVersionDecision(
@@ -267,6 +329,7 @@ export const restoreRemoteSnapshot = async (
           (entryId) => !selectedIds.has(entryId)
         ),
         ...blockedIds,
+        ...rejectedStateIds,
       ]),
     ].sort((left, right) => left.localeCompare(right));
 
@@ -275,6 +338,56 @@ export const restoreRemoteSnapshot = async (
       replacements.length
     );
     if (restoreSucceeded) {
+      await assertEnvironmentCurrent?.();
+      if (game) {
+        const actionById = new Map(
+          plan.actions.map((action) => [cloudSaveFileKey(action), action])
+        );
+        const cardItems = await Promise.all(
+          applicableSelectedFiles
+            .filter((file) => isPlaystationCardRawPath(file.rawPath))
+            .map(async (file) => {
+              const action = actionById.get(cloudSaveFileKey(file));
+              if (!action) return null;
+              const targetPath = file.rawPath.includes("/duckstation-card/")
+                ? await resolveDuckstationCardTarget(game, file)
+                : await resolvePcsx2CardTarget(game, file);
+              if (!targetPath) {
+                throw new Error("cloud_save_memory_card_target_unavailable");
+              }
+              return {
+                file,
+                stagedPath: action.targetPath,
+                targetPath,
+              };
+            })
+        );
+        await applyPlaystationCardRestore(
+          game,
+          cardItems.filter((item) => item !== null)
+        );
+        const dolphinItems = await Promise.all(
+          applicableSelectedFiles
+            .filter((file) => isDolphinRawCardPath(file.rawPath))
+            .map(async (file) => {
+              const action = actionById.get(cloudSaveFileKey(file));
+              if (!action) return null;
+              const targetPath = await resolveDolphinRawCardTarget(game, file);
+              if (!targetPath) {
+                throw new Error("cloud_save_memory_card_target_unavailable");
+              }
+              return {
+                file,
+                stagedPath: action.targetPath,
+                targetPath,
+              };
+            })
+        );
+        await applyDolphinRawCardRestore(
+          game,
+          dolphinItems.filter((item) => item !== null)
+        );
+      }
       await assertEnvironmentCurrent?.();
       await registerRestoredCustomPaths(
         plan.actions,
@@ -300,6 +413,9 @@ export const restoreRemoteSnapshot = async (
             relativePath: file.relativePath,
             hash: file.hash,
             sizeBytes: file.sizeBytes,
+            ...(file.stateMetadata
+              ? { stateMetadata: file.stateMetadata }
+              : {}),
           })),
           unresolvedRemoteEntryIds,
           updatedAt: new Date().toISOString(),

@@ -33,6 +33,11 @@ describe("cloud save visibility", () => {
   it("uses V2 and archives legacy saves for eligible emulator platforms", () => {
     for (const platform of [
       "Sony PlayStation 3",
+      "Sony PlayStation",
+      "Sony PlayStation 2",
+      "Sony PlayStation Portable",
+      "Nintendo GameCube",
+      "Nintendo Wii",
       "Nintendo Game Boy Advance",
     ]) {
       assert.deepEqual(getCloudSaveVisibility("launchbox", platform), {
@@ -45,7 +50,7 @@ describe("cloud save visibility", () => {
       });
     }
     assert.equal(
-      getCloudSaveVisibility("launchbox", "Sony PlayStation 2").hero,
+      getCloudSaveVisibility("launchbox", "Unknown Console").hero,
       "legacy"
     );
   });
@@ -73,5 +78,15 @@ describe("cloud save visibility", () => {
     assert.equal(isLegacyCloudSaveSettingsAvailable(settings, false, 1), false);
     assert.equal(isLegacyCloudSaveSettingsAvailable(settings, true, 0), false);
     assert.equal(isLegacyCloudSaveSettingsAvailable(settings, true, 2), true);
+  });
+
+  it("shows the emulator archive when its separate API has a backup", () => {
+    const settings = getCloudSaveVisibility(
+      "launchbox",
+      "Nintendo Game Boy Advance"
+    ).settings;
+    assert.equal(isLegacyCloudSaveSettingsAvailable(settings, true, 1), true);
+    assert.equal(isLegacyCloudSaveSettingsAvailable(settings, true, 0), false);
+    assert.equal(isLegacyCloudSaveSettingsAvailable(settings, false, 1), false);
   });
 });

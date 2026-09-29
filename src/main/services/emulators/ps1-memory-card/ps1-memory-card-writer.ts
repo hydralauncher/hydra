@@ -5,7 +5,7 @@ import {
   inspectPs1Card,
   listPs1Saves,
   readPs1SaveContents,
-} from "./ps1-memory-card";
+} from "./ps1-memory-card.js";
 import {
   PS1_BLOCK_BYTES,
   PS1_DATA_BLOCKS,
@@ -16,7 +16,7 @@ import {
   PS1_LINK_END,
   PS1_LINK_OFFSET,
   PS1_STATE,
-} from "./types";
+} from "./types.js";
 
 /*
  * PS1 memory card WRITER — imports a `.mcs` single save back into a `.mcd`/`.mcr`

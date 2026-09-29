@@ -10,7 +10,7 @@ import type {
   SyncGameCloudSaveResult,
 } from "@types";
 
-import { NativeAddon } from "../native-addon";
+import { buildCloudSaveAggregateHash } from "./snapshot-aggregate-hash";
 import { isGameRunning } from "../game-running-state";
 import { analyzeCloudSaveState } from "./analyze-cloud-save-state";
 import { assertCloudSaveRuntimeAvailable } from "./assert-cloud-save-executable";
@@ -114,6 +114,7 @@ const saveCurrentHeadAnchor = async (
       relativePath: file.relativePath,
       hash: file.hash,
       sizeBytes: file.sizeBytes,
+      ...(file.stateMetadata ? { stateMetadata: file.stateMetadata } : {}),
     })),
     unresolvedRemoteEntryIds,
     updatedAt: new Date().toISOString(),
@@ -143,6 +144,7 @@ const saveSnapshotAnchor = async (
       relativePath: file.relativePath,
       hash: file.hash,
       sizeBytes: file.sizeBytes,
+      ...(file.stateMetadata ? { stateMetadata: file.stateMetadata } : {}),
     })),
     unresolvedRemoteEntryIds: unresolvedRemoteEntryIds.filter((entryId) =>
       fileIds.has(entryId)
@@ -203,7 +205,7 @@ const selectAutomaticSnapshotContext = (
   const variants = analysis.localSnapshotContext.variants.filter((variant) =>
     usedVariantIds.has(variant.variantId)
   );
-  const aggregateHash = NativeAddon.buildSnapshotAggregateHash({
+  const aggregateHash = buildCloudSaveAggregateHash({
     variants,
     files,
   });
@@ -537,9 +539,7 @@ const executeAppliedSync = async ({
   trigger: CloudSaveSyncTrigger;
   analysis: CloudSaveAnalysis;
   merge: CloudSaveMergeResult;
-  mergedAggregateHash: ReturnType<
-    typeof NativeAddon.buildSnapshotAggregateHash
-  >;
+  mergedAggregateHash: ReturnType<typeof buildCloudSaveAggregateHash>;
   mergedCustomPathRawPaths: string[];
   proposalChanged: boolean;
   uploadOnly: boolean;
@@ -754,7 +754,7 @@ const executeGameCloudSaveSync = async ({
   }
 
   const merge = resolveAnalyzedCloudSaveMerge(analysis, resolution);
-  const mergedAggregateHash = NativeAddon.buildSnapshotAggregateHash({
+  const mergedAggregateHash = buildCloudSaveAggregateHash({
     variants: merge.variants,
     files: merge.files,
   });

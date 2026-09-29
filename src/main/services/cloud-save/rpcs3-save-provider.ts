@@ -21,7 +21,12 @@ import {
   rpcs3SlotBelongsToTitle,
   rpcs3TitleIdsForGame,
 } from "./rpcs3-save-layout";
-import { scanRpcs3SaveRoot, unresolvedCoverage } from "./rpcs3-save-scanner";
+import {
+  scanRpcs3SaveRoot,
+  scanRpcs3Savestates,
+  unresolvedCoverage,
+} from "./rpcs3-save-scanner";
+import { resolveRpcs3SavestateRestoreRule } from "./rpcs3-savestate-restore";
 import {
   getRpcs3ProfileBinding,
   setRpcs3ProfileBinding,
@@ -60,7 +65,7 @@ export const resolveRpcs3ActiveSaveLocation = async () => {
   if (active.length !== 1) {
     throw new Error("cloud_save_rpcs3_config_ambiguous");
   }
-  const configRoot = active[0].root;
+  const configRoot = await fs.realpath(active[0].root);
   const vfsContent = await fs
     .readFile(path.join(configRoot, "vfs.yml"), "utf8")
     .catch((error: NodeJS.ErrnoException) => {
@@ -82,7 +87,7 @@ export const resolveRpcs3ActiveSaveLocation = async () => {
   if (!activeProfileId) {
     throw new Error("cloud_save_rpcs3_active_profile_unresolved");
   }
-  return { homeRoot: path.join(realHdd0, "home"), activeProfileId };
+  return { configRoot, homeRoot: path.join(realHdd0, "home"), activeProfileId };
 };
 
 export const getRpcs3SaveEnvironmentKey = async (game: Game) => {
@@ -148,8 +153,12 @@ const isSafeTarget = async (root: string, segments: string[]) => {
   let current = root;
   for (const segment of segments) {
     current = path.join(current, segment);
-    const stat = await fs.lstat(current).catch(() => null);
-    if (stat?.isSymbolicLink()) return false;
+    const stat = await fs
+      .lstat(current)
+      .catch((error: NodeJS.ErrnoException) =>
+        error.code === "ENOENT" ? null : undefined
+      );
+    if (stat === undefined || stat?.isSymbolicLink()) return false;
   }
   return true;
 };
@@ -157,7 +166,7 @@ const isSafeTarget = async (root: string, segments: string[]) => {
 export const rpcs3SaveProvider: EmulatorProvider = {
   async discover(context: EmulatorProviderContext) {
     try {
-      const { homeRoot, activeProfileId } =
+      const { configRoot, homeRoot, activeProfileId } =
         await resolveRpcs3ActiveSaveLocation();
       const binding = await getRpcs3ProfileBinding(
         context.game.shop,
@@ -165,17 +174,25 @@ export const rpcs3SaveProvider: EmulatorProvider = {
         homeRoot,
         activeProfileId
       );
-      return scanRpcs3SaveRoot(
-        context,
-        homeRoot,
-        activeProfileId,
-        binding?.cloudProfileId ?? activeProfileId
-      );
+      const [savedata, savestates] = await Promise.all([
+        scanRpcs3SaveRoot(
+          context,
+          homeRoot,
+          activeProfileId,
+          binding?.cloudProfileId ?? activeProfileId
+        ),
+        scanRpcs3Savestates(context, configRoot),
+      ]);
+      return {
+        files: [...savedata.files, ...savestates.files],
+        coverage: [...savedata.coverage, ...savestates.coverage],
+        revision: "rpcs3-v2",
+      };
     } catch {
       return {
         files: [],
         coverage: [unresolvedCoverage("rpcs3-vfs-unresolved")],
-        revision: "rpcs3-v1",
+        revision: "rpcs3-v2",
       };
     }
   },
@@ -183,8 +200,10 @@ export const rpcs3SaveProvider: EmulatorProvider = {
     const allowedTitleIds = new Set(rpcs3TitleIdsForGame(game));
     let homeRoot: string;
     let activeProfileId: string;
+    let configRoot: string;
     try {
-      ({ homeRoot, activeProfileId } = await resolveRpcs3ActiveSaveLocation());
+      ({ configRoot, homeRoot, activeProfileId } =
+        await resolveRpcs3ActiveSaveLocation());
     } catch {
       return new Map();
     }
@@ -196,6 +215,15 @@ export const rpcs3SaveProvider: EmulatorProvider = {
     );
     const rules = new Map<string, ReturnType<typeof emulatorRestoreRule>>();
     for (const file of files) {
+      const stateRule = await resolveRpcs3SavestateRestoreRule(
+        game,
+        file,
+        configRoot
+      );
+      if (stateRule) {
+        rules.set(emulatorSaveFileKey(file), stateRule);
+        continue;
+      }
       const parsed = parseRpcs3SaveRawPath(file.rawPath);
       const segments = safeRelativeSegments(file.relativePath);
       if (

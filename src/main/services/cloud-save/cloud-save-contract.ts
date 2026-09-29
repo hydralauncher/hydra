@@ -45,6 +45,24 @@ const hasOnlyKeys = (
   Object.keys(value).every((key) => expected.includes(key)) &&
   expected.every((key) => key in value);
 
+const isStateMetadata = (value: unknown) => {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return false;
+  const metadata = value as Record<string, unknown>;
+  return (
+    Object.keys(metadata).every((key) =>
+      ["emulatorId", "coreId", "version", "hostPlatform"].includes(key)
+    ) &&
+    typeof metadata.emulatorId === "string" &&
+    metadata.emulatorId.length > 0 &&
+    metadata.emulatorId.length <= 255 &&
+    [metadata.coreId, metadata.version, metadata.hostPlatform].every(
+      (field) =>
+        field === undefined ||
+        (typeof field === "string" && field.length > 0 && field.length <= 255)
+    )
+  );
+};
+
 export const validateSnapshotVariant = (value: unknown): SnapshotVariant => {
   if (!value || typeof value !== "object") {
     throw new Error("Invalid Cloud Save snapshot variant");
@@ -115,7 +133,10 @@ export const validateSnapshotFile = (value: unknown): SnapshotFile => {
       "hash",
       "sizeBytes",
       "lastModifiedAt",
+      ...(file.stateMetadata === undefined ? [] : ["stateMetadata"]),
     ]) ||
+    (file.stateMetadata !== undefined &&
+      !isStateMetadata(file.stateMetadata)) ||
     !isNonEmptyString(file.variantId) ||
     !CLOUD_SAVE_HASH_PATTERN.test(file.variantId) ||
     !isNonEmptyString(file.rawPath) ||

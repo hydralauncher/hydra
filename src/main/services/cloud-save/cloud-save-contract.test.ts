@@ -21,6 +21,40 @@ const file = (variantId: string) => ({
 });
 
 describe("Cloud Save launcher API contract", () => {
+  it("accepts optional state origin metadata and rejects unknown fields", () => {
+    const base = {
+      snapshot: {
+        id: "snapshot",
+        version: 1,
+        shop: "launchbox",
+        objectId: "game",
+      },
+      customPathRawPaths: [],
+      variants: [{ variantId: firstVariantId, kind: "default" }],
+    };
+    const state = {
+      ...file(firstVariantId),
+      rawPath: "<emulator>/retroarch/snes/1234ABCD",
+      relativePath: "state.state1",
+      stateMetadata: { emulatorId: "retroarch", coreId: "snes9x" },
+    };
+    assert.deepEqual(
+      validateRestoreManifest({ ...base, files: [state] }).files[0]
+        .stateMetadata,
+      state.stateMetadata
+    );
+    assert.throws(() =>
+      validateRestoreManifest({
+        ...base,
+        files: [
+          {
+            ...state,
+            stateMetadata: { ...state.stateMetadata, unknown: true },
+          },
+        ],
+      })
+    );
+  });
   it("accepts the active snapshot summary and complete manifest DTOs", () => {
     const summary = validateRemoteSnapshotSummary({
       id: "snapshot",

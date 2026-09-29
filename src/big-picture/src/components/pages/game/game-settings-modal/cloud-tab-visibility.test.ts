@@ -32,8 +32,20 @@ describe("Big Picture cloud save V2 tab visibility", () => {
       ),
       true
     );
+    for (const platform of [
+      "Sony PlayStation",
+      "Sony PlayStation 2",
+      "Sony PlayStation Portable",
+      "Nintendo GameCube",
+      "Nintendo Wii",
+    ]) {
+      assert.equal(
+        shouldShowCloudSaveV2Tab("launchbox", true, true, platform),
+        true
+      );
+    }
     assert.equal(
-      shouldShowCloudSaveV2Tab("launchbox", true, true, "Sony PlayStation 2"),
+      shouldShowCloudSaveV2Tab("launchbox", true, true, "Atari 2600"),
       false
     );
     assert.equal(shouldShowCloudSaveV2Tab("custom", true, true), false);
@@ -66,13 +78,20 @@ describe("Big Picture legacy cloud save tab visibility", () => {
       ),
       false
     );
+    for (const platform of [
+      "Sony PlayStation",
+      "Sony PlayStation 2",
+      "Sony PlayStation Portable",
+      "Nintendo GameCube",
+      "Nintendo Wii",
+    ]) {
+      assert.equal(
+        shouldShowLegacyCloudSaveTab("launchbox", true, true, platform),
+        false
+      );
+    }
     assert.equal(
-      shouldShowLegacyCloudSaveTab(
-        "launchbox",
-        true,
-        true,
-        "Sony PlayStation 2"
-      ),
+      shouldShowLegacyCloudSaveTab("launchbox", true, true, "Atari 2600"),
       true
     );
   });

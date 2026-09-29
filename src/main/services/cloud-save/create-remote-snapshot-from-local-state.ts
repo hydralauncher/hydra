@@ -9,7 +9,7 @@ import type {
   SnapshotFile,
 } from "@types";
 
-import { NativeAddon } from "../native-addon";
+import { buildCloudSaveAggregateHash } from "./snapshot-aggregate-hash";
 import { buildLocalGameSnapshotContext } from "./build-local-game-snapshot";
 import {
   CLOUD_SAVE_HASH_PATTERN,
@@ -113,7 +113,7 @@ export const createRemoteSnapshotFromLocalState = async (
     resolvedOptions.customPathRawPaths ?? context.customPathRawPaths;
   const expectedAggregateHash =
     resolvedOptions.aggregateHash ??
-    NativeAddon.buildSnapshotAggregateHash({ variants, files });
+    buildCloudSaveAggregateHash({ variants, files });
 
   let committed: CommitSnapshotResponse | null = null;
   for (let prepareAttempt = 0; prepareAttempt < 2; prepareAttempt += 1) {
@@ -173,6 +173,7 @@ export const createRemoteSnapshotFromLocalState = async (
         relativePath: file.relativePath,
         hash: file.hash,
         sizeBytes: file.sizeBytes,
+        ...(file.stateMetadata ? { stateMetadata: file.stateMetadata } : {}),
       })),
       unresolvedRemoteEntryIds: (
         resolvedOptions.unresolvedRemoteEntryIds ?? []

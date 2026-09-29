@@ -20,6 +20,7 @@ interface MergeUserVariantSnapshotsInput {
   direction?: SyncDirection;
   resolutions?: ReadonlyMap<string, CloudSaveConflictResolution>;
   preserveLocalMissingRawPaths?: ReadonlySet<string>;
+  preserveLocalMissingEntryIds?: ReadonlySet<string>;
   treatLocalAsNewRawPaths?: ReadonlySet<string>;
 }
 
@@ -83,6 +84,7 @@ export const mergeUserVariantSnapshots = ({
   direction = "bidirectional",
   resolutions,
   preserveLocalMissingRawPaths = new Set<string>(),
+  preserveLocalMissingEntryIds = new Set<string>(),
   treatLocalAsNewRawPaths = new Set<string>(),
 }: MergeUserVariantSnapshotsInput): CloudSaveMergeResult => {
   const localById = indexUnique(local.files);
@@ -231,6 +233,11 @@ export const mergeUserVariantSnapshots = ({
       continue;
     }
     if (!localFile && remoteFile) {
+      if (preserveLocalMissingEntryIds.has(entryId)) {
+        files.push(remoteFile);
+        unresolvedRemoteEntryIds.add(entryId);
+        continue;
+      }
       if (preserveLocalMissingRawPaths.has(remoteFile.rawPath)) {
         files.push(remoteFile);
         restoreEntryIds.add(entryId);

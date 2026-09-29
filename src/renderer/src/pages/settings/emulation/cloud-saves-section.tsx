@@ -4,6 +4,7 @@ import {
   ClockIcon,
   CpuIcon,
   DeviceDesktopIcon,
+  DownloadIcon,
   HistoryIcon,
   KebabHorizontalIcon,
   LockIcon,
@@ -28,6 +29,7 @@ import type {
   EmulationSavePlatform,
   EmulatorConfig,
 } from "@types";
+import { getEmulationSaveMenuMode } from "../../../../../shared/emulation-save-v2-platform.js";
 
 import ConsoleBackside from "@renderer/assets/emulation/console-backside.svg?react";
 import hydraSaveCard from "@renderer/assets/emulation/icons/hydra-save-card.png";
@@ -51,7 +53,7 @@ const getDolphinSavePlatformLabel = (
 export function CloudSavesSection({ config, refreshKey }: Readonly<Props>) {
   const { t } = useTranslation("settings");
   const { t: tHydraCloud } = useTranslation("hydra_cloud");
-  const { showSuccessToast } = useToast();
+  const { showSuccessToast, showErrorToast } = useToast();
   const { hasActiveSubscription } = useUserDetails();
   const { showHydraCloudModal } = useSubscription();
   const platforms = useMemo<EmulationSavePlatform[]>(
@@ -67,6 +69,9 @@ export function CloudSavesSection({ config, refreshKey }: Readonly<Props>) {
   const [restoreFor, setRestoreFor] = useState<EmulationCloudSave | null>(null);
   const [renameFor, setRenameFor] = useState<EmulationCloudSave | null>(null);
   const [deleteFor, setDeleteFor] = useState<EmulationCloudSave | null>(null);
+  const [downloadingSaveId, setDownloadingSaveId] = useState<string | null>(
+    null
+  );
 
   const { stageRef, consoleRef, gridRef, connector } = useCloudConnector(saves);
 
@@ -79,7 +84,9 @@ export function CloudSavesSection({ config, refreshKey }: Readonly<Props>) {
     try {
       const groups = await Promise.all(
         platforms.map((platform) =>
-          window.electron.listEmulationSaves(platform)
+          getEmulationSaveMenuMode(platform) === "archive"
+            ? window.electron.listArchivedEmulationSavesForPlatform(platform)
+            : window.electron.listEmulationSaves(platform)
         )
       );
       setSaves(groups.flat());
@@ -99,6 +106,28 @@ export function CloudSavesSection({ config, refreshKey }: Readonly<Props>) {
     showSuccessToast(t("cloud_delete_success"));
     load();
   }, [deleteFor, showSuccessToast, t, load]);
+
+  const handleDownload = useCallback(
+    async (save: EmulationCloudSave) => {
+      if (downloadingSaveId) return;
+      setDownloadingSaveId(save.id);
+      try {
+        const result = await window.electron.exportArchivedEmulationSave(
+          save.platform,
+          null,
+          save.id
+        );
+        if (result.status === "saved") {
+          showSuccessToast(t("game_details:legacy_save_download_success"));
+        }
+      } catch {
+        showErrorToast(t("game_details:legacy_save_download_failed"));
+      } finally {
+        setDownloadingSaveId(null);
+      }
+    },
+    [downloadingSaveId, showErrorToast, showSuccessToast, t]
+  );
 
   if (!hasActiveSubscription) {
     return (
@@ -210,6 +239,8 @@ export function CloudSavesSection({ config, refreshKey }: Readonly<Props>) {
           <div className="emulator-detail__cloud-grid" ref={gridRef}>
             {saves.map((save) => {
               const name = save.label ?? save.fileName;
+              const archiveMode =
+                getEmulationSaveMenuMode(save.platform) === "archive";
               const platformLabel =
                 config.system === "dolphin"
                   ? getDolphinSavePlatformLabel(save.platform)
@@ -237,16 +268,26 @@ export function CloudSavesSection({ config, refreshKey }: Readonly<Props>) {
                     <DropdownMenu
                       align="end"
                       items={[
-                        {
-                          icon: <HistoryIcon size={16} />,
-                          label: t("cloud_restore"),
-                          onClick: () => setRestoreFor(save),
-                        },
-                        {
-                          icon: <PencilIcon size={16} />,
-                          label: t("cloud_rename_title"),
-                          onClick: () => setRenameFor(save),
-                        },
+                        ...(archiveMode
+                          ? [
+                              {
+                                icon: <DownloadIcon size={16} />,
+                                label: t("library:download"),
+                                onClick: () => void handleDownload(save),
+                              },
+                            ]
+                          : [
+                              {
+                                icon: <HistoryIcon size={16} />,
+                                label: t("cloud_restore"),
+                                onClick: () => setRestoreFor(save),
+                              },
+                              {
+                                icon: <PencilIcon size={16} />,
+                                label: t("cloud_rename_title"),
+                                onClick: () => setRenameFor(save),
+                              },
+                            ]),
                         {
                           icon: <TrashIcon size={16} />,
                           label: t("cloud_delete"),
@@ -258,6 +299,7 @@ export function CloudSavesSection({ config, refreshKey }: Readonly<Props>) {
                         type="button"
                         className="emulator-detail__cloud-menu"
                         aria-label={name}
+                        disabled={downloadingSaveId !== null}
                       >
                         <KebabHorizontalIcon
                           size={16}

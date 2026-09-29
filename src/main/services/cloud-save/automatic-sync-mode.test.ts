@@ -96,6 +96,11 @@ describe("cloud save automatic sync mode", () => {
       "Nintendo Game Boy",
       "Nintendo Game Boy Color",
       "Nintendo Game Boy Advance",
+      "Sony PlayStation",
+      "Sony PlayStation 2",
+      "Sony PlayStation Portable",
+      "Nintendo GameCube",
+      "Nintendo Wii",
     ]) {
       assert.equal(
         resolveStoredCloudSaveAutomaticSyncModeForShop(
@@ -129,8 +134,8 @@ describe("cloud save automatic sync mode", () => {
       resolveStoredCloudSaveAutomaticSyncModeForShop(
         "launchbox",
         true,
-        true,
-        "Sony PlayStation 2"
+        undefined,
+        "Atari 2600"
       ),
       "legacy"
     );

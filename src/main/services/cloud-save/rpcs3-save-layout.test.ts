@@ -5,8 +5,10 @@ import { describe, it } from "node:test";
 import type { Game } from "@types";
 
 import {
+  isRpcs3GameSaveFile,
   parseRpcs3ActiveProfileId,
   resolveRpcs3VfsHdd0,
+  rpcs3SavestateFileBelongsToTitle,
   rpcs3SlotBelongsToTitle,
   rpcs3TitleIdsForGame,
 } from "./rpcs3-save-layout.js";
@@ -45,6 +47,61 @@ describe("RPCS3 save layout", () => {
     );
     assert.equal(
       rpcs3SlotBelongsToTitle("OTHER-BLUS30443", "BLUS30443"),
+      false
+    );
+  });
+
+  it("recognizes RPCS3 states and filters manually selected files by game", () => {
+    const game = { discs: [{ sku: "BLUS30443" }] } as Game;
+    assert.equal(
+      rpcs3SavestateFileBelongsToTitle(
+        "BLUS30443_1_2.SAVESTAT.zst",
+        "BLUS30443"
+      ),
+      true
+    );
+    assert.equal(
+      rpcs3SavestateFileBelongsToTitle("BLUS30443_old.SAVESTAT", "BLUS30443"),
+      false
+    );
+    assert.equal(
+      isRpcs3GameSaveFile(
+        game,
+        path.join(
+          "/",
+          "rpcs3",
+          "savestates",
+          "BLUS30443",
+          "BLUS30443_1_2.SAVESTAT.zst"
+        )
+      ),
+      true
+    );
+    assert.equal(
+      isRpcs3GameSaveFile(
+        game,
+        path.join(
+          "/",
+          "rpcs3",
+          "savestates",
+          "BLES99999",
+          "BLES99999_1_2.SAVESTAT.zst"
+        )
+      ),
+      false
+    );
+    assert.equal(
+      isRpcs3GameSaveFile(
+        game,
+        path.join("/", "rpcs3", "savedata", "BLUS30443-SLOT01", "DATA.BIN")
+      ),
+      true
+    );
+    assert.equal(
+      isRpcs3GameSaveFile(
+        game,
+        path.join("/", "rpcs3", "savedata", "BLES99999-SLOT01", "DATA.BIN")
+      ),
       false
     );
   });

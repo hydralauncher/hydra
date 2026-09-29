@@ -35,6 +35,11 @@ export const EMULATOR_SAVE_RAW_PATH_PREFIX = "<emulator>/";
 export const rpcs3SaveRawPath = (titleId: string, profileId: string) =>
   `${EMULATOR_SAVE_RAW_PATH_PREFIX}rpcs3/${titleId}/${profileId}`;
 
+// RPCS3 keeps savestates per title in its config directory, outside dev_hdd0
+// and outside any PS3 user profile.
+export const rpcs3SavestateRawPath = (titleId: string) =>
+  `${EMULATOR_SAVE_RAW_PATH_PREFIX}rpcs3-state/${titleId}`;
+
 export const retroArchSaveRawPath = (platform: string, romHash: string) =>
   `${EMULATOR_SAVE_RAW_PATH_PREFIX}retroarch/${platform}/${romHash}`;
 
@@ -44,6 +49,11 @@ export const isEmulatorSaveRawPath = (rawPath: string) =>
 export const parseRpcs3SaveRawPath = (rawPath: string) => {
   const match = /^<emulator>\/rpcs3\/([A-Z]{4}\d{5})\/(\d{8})$/.exec(rawPath);
   return match ? { titleId: match[1], profileId: match[2] } : null;
+};
+
+export const parseRpcs3SavestateRawPath = (rawPath: string) => {
+  const match = /^<emulator>\/rpcs3-state\/([A-Z]{4}\d{5})$/.exec(rawPath);
+  return match ? { titleId: match[1] } : null;
 };
 
 export const parseRetroArchSaveRawPath = (rawPath: string) => {

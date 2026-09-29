@@ -483,6 +483,32 @@
     height: 100%;
   }
 
+  &__card-sources {
+    display: flex;
+    flex-direction: column;
+    gap: globals.$spacing-unit;
+    min-width: 0;
+    font-size: globals.$small-font-size;
+  }
+
+  &__card-source {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: globals.$spacing-unit;
+    min-width: 0;
+
+    span {
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    button {
+      flex-shrink: 0;
+    }
+  }
+
   &__browser-toolbar {
     display: flex;
     align-items: center;

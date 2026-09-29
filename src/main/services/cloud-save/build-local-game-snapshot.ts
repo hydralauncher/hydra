@@ -4,18 +4,23 @@ import { SystemPath } from "@main/services/system-path";
 import { cloudSaveLocalHashCacheSublevel, levelKeys } from "@main/level";
 import type {
   CloudSaveCustomPathBindings,
+  CloudSaveStateMetadata,
   GameShop,
   LocalGameSnapshotContext,
 } from "@types";
 
 import { NativeAddon } from "../native-addon";
 import { getCloudSaveGameContext } from "./cloud-save-game-context";
+import { cloudSaveFileKey } from "./cloud-save-contract";
 import { getUsableCloudSaveCustomPathBindings } from "./custom-path-overlap";
 import { customPathToCloudSaveRule } from "./custom-path-store";
 import {
   discoverEmulatorSaveFiles,
+  getEmulatorGameSaveFileFilter,
   getEmulatorSaveProvider,
 } from "./emulator-save-provider";
+import { parseRpcs3SavestateRawPath } from "./emulator-provider-identity";
+import { buildCloudSaveAggregateHash } from "./snapshot-aggregate-hash";
 
 interface BuildLocalGameSnapshotContextOptions {
   customPathBindings?: CloudSaveCustomPathBindings;
@@ -51,11 +56,22 @@ export const buildLocalGameSnapshotContext = async (
     extraRules,
   };
   let nativeSnapshot;
+  const stateMetadataByFile = new Map<string, CloudSaveStateMetadata>();
   if (game && getEmulatorSaveProvider(game)) {
     const { variant, discovery } = await discoverEmulatorSaveFiles(
       game,
       environmentId
     );
+    for (const file of discovery.files) {
+      const stateMetadata =
+        file.stateMetadata ??
+        (parseRpcs3SavestateRawPath(file.rawPath)
+          ? { emulatorId: "rpcs3" }
+          : undefined);
+      if (stateMetadata) {
+        stateMetadataByFile.set(cloudSaveFileKey(file), stateMetadata);
+      }
+    }
     const customSnapshot = extraRules.length
       ? await NativeAddon.buildLocalGameSnapshotPipeline(pipelineInput).catch(
           () => null
@@ -79,12 +95,27 @@ export const buildLocalGameSnapshotContext = async (
     const providerPaths = new Set(
       discovery.files.map((file) => file.absolutePath)
     );
-    const customFiles = (customSnapshot?.sourceFiles ?? [])
-      .filter(
-        (file) =>
-          file.rawPath.startsWith("<custom>") &&
-          !providerPaths.has(file.absolutePath)
+    const isGameSaveFile = await getEmulatorGameSaveFileFilter(game);
+    const customFiles = (
+      await Promise.all(
+        (customSnapshot?.sourceFiles ?? []).map(async (file) => {
+          if (!file.rawPath.startsWith("<custom>")) return null;
+          if (providerPaths.has(file.absolutePath)) return null;
+          const binding = customPathBindings.ready.find(
+            ({ rawPath }) => rawPath === file.rawPath
+          );
+          if (!binding) return null;
+          if (
+            binding.kind !== "file" &&
+            !(await isGameSaveFile(file.absolutePath))
+          ) {
+            return null;
+          }
+          return file;
+        })
       )
+    )
+      .filter((file): file is NonNullable<typeof file> => file !== null)
       .map(
         ({
           variantId,
@@ -131,7 +162,28 @@ export const buildLocalGameSnapshotContext = async (
     nativeSnapshot =
       await NativeAddon.buildLocalGameSnapshotPipeline(pipelineInput);
   }
-  const { hashCache: updatedHashCache, ...snapshot } = nativeSnapshot;
+  const { hashCache: updatedHashCache, ...nativeResult } = nativeSnapshot;
+  const files = nativeResult.files.map((file) => ({
+    ...file,
+    ...(stateMetadataByFile.has(cloudSaveFileKey(file))
+      ? { stateMetadata: stateMetadataByFile.get(cloudSaveFileKey(file))! }
+      : {}),
+  }));
+  const sourceFiles = nativeResult.sourceFiles.map((file) => ({
+    ...file,
+    ...(stateMetadataByFile.has(cloudSaveFileKey(file))
+      ? { stateMetadata: stateMetadataByFile.get(cloudSaveFileKey(file))! }
+      : {}),
+  }));
+  const snapshot = {
+    ...nativeResult,
+    files,
+    sourceFiles,
+    aggregateHash: buildCloudSaveAggregateHash({
+      variants: nativeResult.variants,
+      files,
+    }),
+  };
 
   if (updatedHashCache.length === 0) {
     await cloudSaveLocalHashCacheSublevel.del(cacheKey);

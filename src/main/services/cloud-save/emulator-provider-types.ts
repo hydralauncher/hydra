@@ -1,5 +1,6 @@
 import type {
   CloudSaveRule,
+  CloudSaveStateMetadata,
   Game,
   LocalResolutionBindings,
   RestoreManifestFile,
@@ -15,6 +16,7 @@ export interface EmulatorDiscoveredFile {
   localBindings: LocalResolutionBindings;
   confidence: "exact";
   provenance: string[];
+  stateMetadata?: CloudSaveStateMetadata;
 }
 
 export interface EmulatorProviderDiscovery {

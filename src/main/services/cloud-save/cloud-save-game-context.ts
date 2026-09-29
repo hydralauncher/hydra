@@ -56,12 +56,22 @@ export const getCloudSaveGameContext = async (
       : { known: [] };
   const platform = getCloudSavePlatform();
   const emulatorProvider = getCloudSaveEmulatorProvider(shop, game?.platform);
-  const emulatorExecutablePath =
-    emulatorProvider === "rpcs3"
-      ? (await getEmulatorConfig("ps3").catch(() => null))?.executablePath
-      : emulatorProvider === "retroarch"
-        ? (await getRetroArchConfig().catch(() => null))?.executablePath
-        : null;
+  const emulatorConfigPlatform = {
+    rpcs3: "ps3",
+    duckstation: "ps1",
+    pcsx2: "ps2",
+    ppsspp: "psp",
+    dolphin: "dolphin",
+  } as const;
+  const emulatorExecutablePath = emulatorProvider
+    ? emulatorProvider === "retroarch"
+      ? (await getRetroArchConfig().catch(() => null))?.executablePath
+      : (
+          await getEmulatorConfig(
+            emulatorConfigPlatform[emulatorProvider]
+          ).catch(() => null)
+        )?.executablePath
+    : null;
   const executablePath = emulatorProvider
     ? (emulatorExecutablePath ?? undefined)
     : (overrides?.executablePath ?? game?.executablePath ?? undefined);

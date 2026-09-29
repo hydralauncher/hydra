@@ -10,6 +10,7 @@ interface LegacySaveCardProps {
   artifact: GameArtifact;
   isDownloading: boolean;
   downloadProgress: LegacySaveExportProgress | null;
+  showProgress?: boolean;
   actionsDisabled: boolean;
   onDownload: (artifactId: string, suggestedName: string) => void;
   onDelete: (artifactId: string, artifactName: string) => void;
@@ -30,6 +31,7 @@ export function LegacySaveCard({
   artifact,
   isDownloading,
   downloadProgress,
+  showProgress = true,
   actionsDisabled,
   onDownload,
   onDelete,
@@ -73,7 +75,7 @@ export function LegacySaveCard({
                 className="legacy-saves-section__spinner"
                 size={16}
               />
-              {downloadProgressLabel}
+              {showProgress ? downloadProgressLabel : t("download")}
             </>
           ) : (
             <>

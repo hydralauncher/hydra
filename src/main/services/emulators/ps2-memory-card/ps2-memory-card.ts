@@ -4,8 +4,8 @@ import type { FileHandle } from "node:fs/promises";
 import {
   extractSkuFromSaveFolder,
   isSystemSaveFolder,
-} from "./extract-save-sku";
-import { DF } from "./types";
+} from "./extract-save-sku.js";
+import { DF } from "./types.js";
 import type {
   Ps2CardInfo,
   Ps2DirEntry,
@@ -13,7 +13,7 @@ import type {
   Ps2SaveContents,
   Ps2SaveFile,
   Superblock,
-} from "./types";
+} from "./types.js";
 
 /*
  * PS2 memory card (`.ps2`) reader. Pure Node (`fs`/`Buffer`) — no Electron/`@main`

@@ -25,15 +25,20 @@ import {
 } from "./emulator-provider-identity";
 import {
   parseRetroArchSaveConfig,
+  createRetroArchGameSaveFileFilter,
+  resolveRetroArchConfiguredPath,
   resolveRetroArchOverrideDirectory,
   resolveRetroArchSaveDirectory,
-  RETROARCH_SAVE_SUFFIXES,
-  retroArchLogicalSaveName,
-  retroArchPhysicalSaveName,
   retroArchSaveStem,
   shouldLoadRetroArchOverrides,
   type RetroArchSaveConfig,
 } from "./retroarch-save-config";
+import {
+  discoverRetroArchTargets,
+  isSafeRetroArchFileTarget,
+  retroArchTargetForFile,
+  type RomSaveLocation,
+} from "./retroarch-save-scanner";
 import type {
   EmulatorProvider,
   EmulatorProviderContext,
@@ -72,6 +77,56 @@ const unresolvedCoverage = (reason: string): UserLocationCoverage => ({
 
 const readConfig = async (configPath: string) =>
   parseRetroArchSaveConfig(await fs.readFile(configPath, "utf8"));
+
+export const retroArchStateMetadataForGame = async (game: Game) => {
+  const platform = getCloudSaveRetroArchPlatform(game.shop, game.platform);
+  if (!platform) return null;
+  return {
+    emulatorId: "retroarch",
+    coreId: PLATFORM_TO_CORE[platform],
+  };
+};
+
+export const getRetroArchInstalledCoreVersion = async (
+  game: Game
+): Promise<string | null> => {
+  const platform = getCloudSaveRetroArchPlatform(game.shop, game.platform);
+  if (!platform) return null;
+  const core = PLATFORM_TO_CORE[platform];
+  const emulator = await getRetroArchConfig().catch(() => null);
+  const corePath = emulator?.cores[core]?.path;
+  if (!corePath) return null;
+  const configPath = emulator?.executablePath
+    ? findRetroArchConfig(emulator.executablePath)
+    : null;
+  const values = configPath
+    ? await readConfig(configPath).catch(() => null)
+    : null;
+  const configuredInfoDir =
+    values?.libretro_info_path &&
+    values.libretro_info_path !== "default" &&
+    configPath
+      ? resolveRetroArchConfiguredPath(
+          values.libretro_info_path,
+          configPath,
+          os.homedir()
+        )
+      : null;
+  const infoName = `${path.parse(corePath).name}.info`;
+  const infoDirectories = [
+    configuredInfoDir,
+    path.resolve(path.dirname(corePath), "..", "info"),
+  ].filter((directory): directory is string => Boolean(directory));
+  for (const directory of infoDirectories) {
+    const content = await fs
+      .readFile(path.join(directory, infoName), "utf8")
+      .catch(() => null);
+    if (!content) continue;
+    const version = parseRetroArchSaveConfig(content).display_version;
+    if (version) return version;
+  }
+  return null;
+};
 
 const mergeOverrides = async (
   configPath: string,
@@ -135,24 +190,22 @@ export const getRetroArchSaveEnvironmentKey = async (game: Game) => {
             romPath: disc.path,
             coreName,
           }),
+          resolveRetroArchSaveDirectory({
+            values,
+            configPath,
+            homeDir: os.homedir(),
+            romPath: disc.path,
+            coreName,
+            kind: "state",
+          }),
         ];
       })
     );
-    if (locations.some(([, directory]) => directory === null)) {
-      return "retroarch-save-directory-unresolved";
-    }
     return JSON.stringify([path.resolve(configPath), locations.sort()]);
   } catch {
     return "retroarch-save-config-unresolved";
   }
 };
-
-interface RomSaveLocation {
-  rawPath: string;
-  romPath: string;
-  saveDirectory: string;
-  stem: string;
-}
 
 const conflictingRomStems = async (game: Game) => {
   const ownStems = new Set(
@@ -188,6 +241,24 @@ const conflictingRomStems = async (game: Game) => {
   }
   return conflicts;
 };
+
+export const getRetroArchGameSaveFileFilter = async (game: Game) => {
+  const platform = getCloudSaveRetroArchPlatform(game.shop, game.platform);
+  if (!platform) return async (_filePath: string) => false;
+  const extensions = new Set(getRetroArchRomExtensions(platform));
+  const conflicts = await conflictingRomStems(game);
+  const candidates = (game.discs ?? [])
+    .map((disc) => disc.path)
+    .filter(
+      (romPath) =>
+        extensions.has(path.extname(romPath).slice(1).toLowerCase()) &&
+        !conflicts.has(retroArchSaveStem(romPath))
+    );
+  return createRetroArchGameSaveFileFilter(candidates, platform);
+};
+
+export const isRetroArchGameSaveFile = async (game: Game, filePath: string) =>
+  (await getRetroArchGameSaveFileFilter(game))(filePath);
 
 const locationsForGame = async (game: Game) => {
   const platform = getCloudSaveRetroArchPlatform(game.shop, game.platform);
@@ -247,15 +318,36 @@ const locationsForGame = async (game: Game) => {
       romPath,
       coreName,
     });
-    if (!saveDirectory) {
+    const stateDirectory = resolveRetroArchSaveDirectory({
+      values,
+      configPath,
+      homeDir: os.homedir(),
+      romPath,
+      coreName,
+      kind: "state",
+    });
+    if (!saveDirectory && !stateDirectory) {
       unresolved = true;
       continue;
     }
+    if (!saveDirectory || !stateDirectory) unresolved = true;
+    const transferPakRom = path.join(
+      path.dirname(romPath),
+      `${path.basename(romPath)}.gb`
+    );
+    const transferPakStat =
+      platform === "n64"
+        ? await fs.lstat(transferPakRom).catch(() => null)
+        : null;
     locations.push({
       rawPath: retroArchSaveRawPath(platform, romHash),
       romPath,
       saveDirectory,
+      stateDirectory,
       stem: path.parse(romPath).name,
+      hasTransferPak: Boolean(
+        transferPakStat?.isFile() && !transferPakStat.isSymbolicLink()
+      ),
     });
   }
   if (!locations.length && !unresolved) unresolved = true;
@@ -273,25 +365,18 @@ const locationsForGame = async (game: Game) => {
   };
 };
 
-const isSafeFileTarget = async (directory: string, filePath: string) => {
-  if (path.dirname(filePath) !== directory) return false;
-  const directoryStat = await fs.lstat(directory).catch(() => null);
-  if (directoryStat?.isSymbolicLink()) return false;
-  const fileStat = await fs.lstat(filePath).catch(() => null);
-  return !fileStat?.isSymbolicLink();
-};
-
 export const retroArchSaveProvider: EmulatorProvider = {
   async discover({ game, environmentId, variantId }: EmulatorProviderContext) {
     const result: EmulatorProviderDiscovery = {
       files: [],
       coverage: [],
-      revision: "retroarch-v1",
+      revision: "retroarch-v2",
     };
     let locations: RomSaveLocation[];
     let unresolved: boolean;
+    let platform: string;
     try {
-      ({ locations, unresolved } = await locationsForGame(game));
+      ({ locations, unresolved, platform } = await locationsForGame(game));
     } catch {
       result.coverage.push(unresolvedCoverage("retroarch-config-unresolved"));
       return result;
@@ -299,54 +384,72 @@ export const retroArchSaveProvider: EmulatorProvider = {
     if (unresolved) {
       result.coverage.push(unresolvedCoverage("retroarch-rom-unresolved"));
     }
+    const stateMetadata = await retroArchStateMetadataForGame(game);
+    const targetsByLocation = await Promise.all(
+      locations.map(async (location) => ({
+        location,
+        ...(await discoverRetroArchTargets(location, platform)),
+      }))
+    );
     const targetOwners = new Map<string, string>();
     const collidingTargets = new Set<string>();
-    for (const location of locations) {
-      for (const suffix of RETROARCH_SAVE_SUFFIXES) {
-        const target = path.join(
-          location.saveDirectory,
-          `${location.stem}${suffix}`
-        );
-        const owner = targetOwners.get(target);
-        if (owner && owner !== location.rawPath) collidingTargets.add(target);
-        targetOwners.set(target, location.rawPath);
+    for (const { location, targets } of targetsByLocation) {
+      for (const { filePath } of targets) {
+        const owner = targetOwners.get(filePath);
+        if (owner && owner !== location.rawPath) collidingTargets.add(filePath);
+        targetOwners.set(filePath, location.rawPath);
       }
     }
-    for (const location of locations) {
-      let complete = true;
-      for (const suffix of RETROARCH_SAVE_SUFFIXES) {
-        const filePath = path.join(
-          location.saveDirectory,
-          `${location.stem}${suffix}`
-        );
+    for (const {
+      location,
+      targets,
+      complete: directoriesComplete,
+    } of targetsByLocation) {
+      let complete = directoriesComplete;
+      const acceptedStates = new Set<string>();
+      for (const { filePath, directory, relativePath } of targets) {
+        if (
+          relativePath.endsWith(".png") &&
+          !acceptedStates.has(relativePath.slice(0, -".png".length))
+        ) {
+          complete = false;
+          continue;
+        }
         if (collidingTargets.has(filePath)) {
           complete = false;
           continue;
         }
         const stat = await fs.lstat(filePath).catch(() => null);
         if (!stat) continue;
-        if (!stat.isFile() || stat.isSymbolicLink()) {
+        if (
+          !stat.isFile() ||
+          stat.isSymbolicLink() ||
+          !(await isSafeRetroArchFileTarget(directory, filePath))
+        ) {
           complete = false;
           continue;
         }
-        const relativePath = retroArchLogicalSaveName(suffix)!;
         result.files.push({
           variantId,
           ruleId: hash(JSON.stringify(["emulator", location.rawPath])),
           rawPath: location.rawPath,
           absolutePath: filePath,
           relativePath,
+          ...(relativePath.startsWith("state.state") && stateMetadata
+            ? { stateMetadata }
+            : {}),
           localBindings: {
             environmentId,
-            rootId: hash(
-              JSON.stringify([environmentId, location.saveDirectory])
-            ),
+            rootId: hash(JSON.stringify([environmentId, directory])),
             concreteUserSegment: "__default__",
-            concretePath: location.saveDirectory,
+            concretePath: directory,
           },
           confidence: "exact",
           provenance: ["emulator:retroarch"],
         });
+        if (/^state\.state(?:\d+|\.auto)?$/.test(relativePath)) {
+          acceptedStates.add(relativePath);
+        }
       }
       result.coverage.push(coverage(location.rawPath, variantId, complete));
     }
@@ -365,30 +468,49 @@ export const retroArchSaveProvider: EmulatorProvider = {
     const rules = new Map<string, ReturnType<typeof emulatorRestoreRule>>();
     const targetOwners = new Map<string, string>();
     const collidingTargets = new Set<string>();
+    const stateFiles = new Set(
+      files
+        .filter((file) =>
+          /^state\.state(?:\d+|\.auto)?$/.test(file.relativePath)
+        )
+        .map((file) => `${file.rawPath}:${file.relativePath}`)
+    );
     for (const location of locations) {
-      for (const suffix of RETROARCH_SAVE_SUFFIXES) {
-        const target = path.join(
-          location.saveDirectory,
-          `${location.stem}${suffix}`
-        );
-        const owner = targetOwners.get(target);
-        if (owner && owner !== location.rawPath) collidingTargets.add(target);
-        targetOwners.set(target, location.rawPath);
+      for (const file of files) {
+        if (file.rawPath !== location.rawPath) continue;
+        const target = retroArchTargetForFile(location, file.relativePath);
+        if (!target) continue;
+        const owner = targetOwners.get(target.filePath);
+        if (owner && owner !== location.rawPath) {
+          collidingTargets.add(target.filePath);
+        }
+        targetOwners.set(target.filePath, location.rawPath);
       }
     }
     for (const file of files) {
       const parsed = parseRetroArchSaveRawPath(file.rawPath);
       const location = locationByRawPath.get(file.rawPath);
-      const fileName = location
-        ? retroArchPhysicalSaveName(location.romPath, file.relativePath)
+      const target = location
+        ? retroArchTargetForFile(location, file.relativePath)
         : null;
-      if (!parsed || !location || !fileName) continue;
-      const target = path.join(location.saveDirectory, fileName);
-      if (collidingTargets.has(target)) continue;
-      if (!(await isSafeFileTarget(location.saveDirectory, target))) continue;
+      if (!parsed || !location || !target) continue;
+      if (
+        file.relativePath.endsWith(".png") &&
+        !stateFiles.has(
+          `${file.rawPath}:${file.relativePath.slice(0, -".png".length)}`
+        )
+      ) {
+        continue;
+      }
+      if (collidingTargets.has(target.filePath)) continue;
+      if (
+        !(await isSafeRetroArchFileTarget(target.directory, target.filePath))
+      ) {
+        continue;
+      }
       rules.set(
         emulatorSaveFileKey(file),
-        emulatorRestoreRule(file.rawPath, target, "file")
+        emulatorRestoreRule(file.rawPath, target.filePath, "file")
       );
     }
     return rules;

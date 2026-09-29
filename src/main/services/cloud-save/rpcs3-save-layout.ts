@@ -40,6 +40,29 @@ export const rpcs3TitleIdsForGame = (game: Game) =>
 export const rpcs3SlotBelongsToTitle = (slotName: string, titleId: string) =>
   slotName.startsWith(titleId);
 
+const SAVESTATE_NAME =
+  /^([A-Z]{4}\d{5})_[A-Za-z0-9]_[0-9]+\.SAVESTAT(?:\.zst|\.gz)?$/;
+
+export const rpcs3SavestateFileBelongsToTitle = (
+  fileName: string,
+  titleId: string
+) => SAVESTATE_NAME.exec(fileName)?.[1] === titleId;
+
+export const isRpcs3GameSaveFile = (game: Game, filePath: string) => {
+  const titleIds = rpcs3TitleIdsForGame(game);
+  const segments = path.resolve(filePath).split(path.sep);
+  const fileName = segments.at(-1) ?? "";
+  return titleIds.some((titleId) => {
+    if (rpcs3SavestateFileBelongsToTitle(fileName, titleId)) return true;
+    const savedataIndex = segments.lastIndexOf("savedata");
+    return (
+      savedataIndex >= 0 &&
+      savedataIndex < segments.length - 2 &&
+      rpcs3SlotBelongsToTitle(segments[savedataIndex + 1], titleId)
+    );
+  });
+};
+
 export const resolveRpcs3VfsHdd0 = (
   configRoot: string,
   vfsContent: string | null

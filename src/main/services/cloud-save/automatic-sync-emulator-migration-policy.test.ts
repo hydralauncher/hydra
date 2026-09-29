@@ -86,4 +86,22 @@ describe("emulator Cloud Save V2 default migration", () => {
     );
     assert.equal(state().isCompleted, false);
   });
+
+  it("migrates new providers separately without resetting earlier V2 toggles", async () => {
+    const { store, state } = createStore();
+    assert.equal(
+      await migrateEmulatorCloudSaveDefaultsWithStore(store, [
+        "duckstation",
+        "pcsx2",
+        "ppsspp",
+        "dolphin",
+      ]),
+      true
+    );
+    assert.deepEqual(
+      state().committedGames.map(([key]) => key),
+      ["launchbox:ps2"]
+    );
+    assert.deepEqual(state().deletedSettingKeys, ["launchbox:ps2"]);
+  });
 });

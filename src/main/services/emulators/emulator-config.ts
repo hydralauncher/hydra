@@ -89,9 +89,10 @@ const configCandidates = (
 };
 
 export const rpcs3GuiConfigsCandidates = (
-  executablePath: string | null
+  executablePath: string | null,
+  platform = process.platform,
+  home = homedir()
 ): string[] => {
-  const home = homedir();
   const beside = executablePath
     ? path.join(
         path.dirname(executablePath),
@@ -100,7 +101,7 @@ export const rpcs3GuiConfigsCandidates = (
       )
     : null;
 
-  if (process.platform === "win32") {
+  if (platform === "win32") {
     const appData =
       process.env["APPDATA"] ?? path.join(home, "AppData", "Roaming");
     return [
@@ -109,6 +110,18 @@ export const rpcs3GuiConfigsCandidates = (
     ];
   }
   return [
+    ...(platform === "darwin"
+      ? [
+          path.join(
+            home,
+            "Library",
+            "Application Support",
+            "rpcs3",
+            "GuiConfigs",
+            "persistent_settings.dat"
+          ),
+        ]
+      : []),
     path.join(
       home,
       ".config",

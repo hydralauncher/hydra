@@ -17,6 +17,11 @@ describe("legacy cloud save write policy", () => {
       "Nintendo Game Boy",
       "Nintendo Game Boy Color",
       "Nintendo Game Boy Advance",
+      "Sony PlayStation",
+      "Sony PlayStation 2",
+      "Sony PlayStation Portable",
+      "Nintendo GameCube",
+      "Nintendo Wii",
     ]) {
       assert.throws(
         () => assertLegacyCloudSaveWriteAllowed(game("launchbox", platform)),
@@ -25,12 +30,12 @@ describe("legacy cloud save write policy", () => {
     }
   });
 
-  it("keeps Steam and other emulators on their existing paths", () => {
+  it("keeps Steam and unrelated emulators on their existing paths", () => {
     assert.doesNotThrow(() =>
       assertLegacyCloudSaveWriteAllowed(game("steam", "Sony PlayStation 3"))
     );
     assert.doesNotThrow(() =>
-      assertLegacyCloudSaveWriteAllowed(game("launchbox", "Sony PlayStation 2"))
+      assertLegacyCloudSaveWriteAllowed(game("launchbox", "Atari 2600"))
     );
     assert.doesNotThrow(() => assertLegacyCloudSaveWriteAllowed(null));
   });

@@ -4,22 +4,34 @@ import { useToast } from "@renderer/hooks";
 import { CircleNotchIcon } from "@phosphor-icons/react";
 import { useCallback, useContext, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
-import type { LegacySaveExportProgress } from "@types";
+import type { EmulationCloudSave, LegacySaveExportProgress } from "@types";
 
 import { LegacySaveCard } from "./legacy-save-card";
-import { sortLegacySavesByNewest } from "./legacy-save-presentation";
+import { deleteLegacyArchiveEntry } from "./legacy-save-actions";
+import {
+  archivedEmulationSaveToArtifact,
+  sortLegacyArchiveEntriesByNewest,
+} from "./legacy-save-presentation";
 import "./legacy-saves-section.scss";
 
 interface LegacySavesSectionProps {
   downloadingArtifactId: string | null;
+  downloadingEmulationSaveId?: string | null;
   downloadProgress: LegacySaveExportProgress | null;
   onDownload: (artifactId: string, suggestedName: string) => void;
+  archivedEmulationSaves?: EmulationCloudSave[];
+  onDownloadEmulationSave?: (saveId: string) => void;
+  onEmulationSaveDeleted?: () => void | Promise<void>;
 }
 
 export function LegacySavesSection({
   downloadingArtifactId,
+  downloadingEmulationSaveId = null,
   downloadProgress,
   onDownload,
+  archivedEmulationSaves = [],
+  onDownloadEmulationSave,
+  onEmulationSaveDeleted,
 }: Readonly<LegacySavesSectionProps>) {
   const { t } = useTranslation("game_details");
   const { artifacts, deleteGameArtifact } = useContext(cloudSyncContext);
@@ -27,23 +39,44 @@ export function LegacySavesSection({
   const [pendingDeletion, setPendingDeletion] = useState<{
     artifactId: string;
     artifactName: string;
+    source: "game-artifact" | "emulation-save";
   } | null>(null);
   const [deletingArtifactId, setDeletingArtifactId] = useState<string | null>(
     null
   );
   const deletionInProgressRef = useRef(false);
-  const sortedArtifacts = useMemo(
-    () => sortLegacySavesByNewest(artifacts),
-    [artifacts]
+  const sortedEntries = useMemo(
+    () =>
+      sortLegacyArchiveEntriesByNewest([
+        ...artifacts.map((artifact) => ({
+          source: "game-artifact" as const,
+          artifact,
+        })),
+        ...archivedEmulationSaves.map((save) => ({
+          source: "emulation-save" as const,
+          artifact: archivedEmulationSaveToArtifact(save),
+        })),
+      ]),
+    [artifacts, archivedEmulationSaves]
   );
 
   const handleDelete = useCallback(async () => {
     if (!pendingDeletion || deletionInProgressRef.current) return;
 
     deletionInProgressRef.current = true;
-    setDeletingArtifactId(pendingDeletion.artifactId);
+    setDeletingArtifactId(
+      `${pendingDeletion.source}:${pendingDeletion.artifactId}`
+    );
     try {
-      await deleteGameArtifact(pendingDeletion.artifactId);
+      await deleteLegacyArchiveEntry(
+        pendingDeletion.source,
+        pendingDeletion.artifactId,
+        {
+          deleteGameArtifact,
+          deleteEmulationSave: window.electron.deleteEmulationSave,
+          refreshEmulationSaves: () => onEmulationSaveDeleted?.(),
+        }
+      );
       setPendingDeletion(null);
       showSuccessToast(t("backup_deleted"));
     } catch {
@@ -54,6 +87,7 @@ export function LegacySavesSection({
     }
   }, [
     deleteGameArtifact,
+    onEmulationSaveDeleted,
     pendingDeletion,
     showErrorToast,
     showSuccessToast,
@@ -61,7 +95,9 @@ export function LegacySavesSection({
   ]);
 
   const actionsDisabled =
-    downloadingArtifactId !== null || deletingArtifactId !== null;
+    downloadingArtifactId !== null ||
+    downloadingEmulationSaveId !== null ||
+    deletingArtifactId !== null;
 
   return (
     <>
@@ -73,22 +109,32 @@ export function LegacySavesSection({
 
         <hr className="legacy-saves-section__divider" />
 
-        {sortedArtifacts.length > 0 ? (
+        {sortedEntries.length > 0 ? (
           <ul className="legacy-saves-section__list">
-            {sortedArtifacts.map((artifact) => (
+            {sortedEntries.map(({ source, artifact }) => (
               <LegacySaveCard
-                key={artifact.id}
+                key={`${source}:${artifact.id}`}
                 artifact={artifact}
-                isDownloading={downloadingArtifactId === artifact.id}
+                isDownloading={
+                  source === "emulation-save"
+                    ? downloadingEmulationSaveId === artifact.id
+                    : downloadingArtifactId === artifact.id
+                }
                 downloadProgress={
+                  source === "game-artifact" &&
                   downloadingArtifactId === artifact.id
                     ? downloadProgress
                     : null
                 }
+                showProgress={source === "game-artifact"}
                 actionsDisabled={actionsDisabled}
-                onDownload={onDownload}
+                onDownload={(artifactId, suggestedName) =>
+                  source === "emulation-save"
+                    ? onDownloadEmulationSave?.(artifactId)
+                    : onDownload(artifactId, suggestedName)
+                }
                 onDelete={(artifactId, artifactName) =>
-                  setPendingDeletion({ artifactId, artifactName })
+                  setPendingDeletion({ artifactId, artifactName, source })
                 }
               />
             ))}

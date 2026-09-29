@@ -14,9 +14,12 @@ const migrationSublevel = db.sublevel<string, boolean>(
   levelKeys.cloudSaveV2DefaultMigration,
   { valueEncoding: "json" }
 );
-const migrationCompletedKey = "emulators-v2-completed";
+const originalMigrationKey = "emulators-v2-completed";
+const expandedMigrationKey = "emulators-v2-all-providers-completed";
 
-const defaultStore: EmulatorCloudSaveMigrationStore = {
+const createStore = (
+  migrationCompletedKey: string
+): EmulatorCloudSaveMigrationStore => ({
   getCompleted: async () =>
     (await migrationSublevel.get(migrationCompletedKey)) === true,
   getGames: () => gamesSublevel.iterator().all(),
@@ -37,7 +40,16 @@ const defaultStore: EmulatorCloudSaveMigrationStore = {
     batch.put(migrationCompletedKey, true, { sublevel: migrationSublevel });
     await batch.write();
   },
-};
+});
 
-export const migrateEmulatorCloudSaveDefaults = async () =>
-  migrateEmulatorCloudSaveDefaultsWithStore(defaultStore);
+export const migrateEmulatorCloudSaveDefaults = async () => {
+  const original = await migrateEmulatorCloudSaveDefaultsWithStore(
+    createStore(originalMigrationKey),
+    ["rpcs3", "retroarch"]
+  );
+  const expanded = await migrateEmulatorCloudSaveDefaultsWithStore(
+    createStore(expandedMigrationKey),
+    ["duckstation", "pcsx2", "ppsspp", "dolphin"]
+  );
+  return original || expanded;
+};

@@ -312,6 +312,7 @@ export function CloudSaveV2FileBrowserModal({
   const [removingCustomPath, setRemovingCustomPath] = useState<string | null>(
     null
   );
+  const [removingCardSlot, setRemovingCardSlot] = useState<string | null>(null);
   const [pendingCustomPathRemoval, setPendingCustomPathRemoval] = useState<
     string | null
   >(null);
@@ -399,15 +400,16 @@ export function CloudSaveV2FileBrowserModal({
     }
   };
 
-  const handleAddCustomPath = async () => {
+  const handleAddCustomPath = async (kind: "file" | "dir") => {
     setIsAddingCustomPath(true);
     let wasAdded = false;
     try {
       const result = await window.electron.selectCloudSaveCustomPath(
         objectId,
-        shop
+        shop,
+        kind
       );
-      if (!result.canceled && result.customPath) {
+      if (!result.canceled && (result.customPath || result.cardSourceAdded)) {
         wasAdded = true;
         const syncResult = await onSyncAfterCustomPathAdded();
         if (syncResult.finalState === "conflict") {
@@ -473,6 +475,23 @@ export function CloudSaveV2FileBrowserModal({
     }
   };
 
+  const handleRemoveCardSource = async (slot: string) => {
+    setRemovingCardSlot(slot);
+    try {
+      await window.electron.removeEmulatorCardPathOverride(
+        objectId,
+        shop,
+        slot
+      );
+      await onRetry();
+      showSuccessToast(t("cloud_save_v2_card_source_removed"));
+    } catch {
+      showErrorToast(t("cloud_save_v2_card_source_remove_error"));
+    } finally {
+      setRemovingCardSlot(null);
+    }
+  };
+
   const handleDeleteCloudSave = async () => {
     if (isDeletingCloudSave || !hasSaveData) return;
 
@@ -527,7 +546,8 @@ export function CloudSaveV2FileBrowserModal({
     getCloudSaveFileBrowserOperationPolicy({
       isAddingCustomPath,
       isRebindingCustomPath: rebindingCustomPath !== null,
-      isRemovingCustomPath: removingCustomPath !== null,
+      isRemovingCustomPath:
+        removingCustomPath !== null || removingCardSlot !== null,
       isDeletingCloudSave,
       isBindingRpcs3Profile,
       isLoading,
@@ -544,19 +564,34 @@ export function CloudSaveV2FileBrowserModal({
     : null;
   const hasSaveData = hasCloudSaveDataToDelete(details);
   const addCustomPathButton = (
-    <Button
-      theme="outline"
-      className="cloud-save-v2__add-custom-path-button"
-      disabled={actionsAreDisabled}
-      onClick={() => void handleAddCustomPath()}
-    >
-      {isAddingCustomPath ? (
-        <CircleNotchIcon className="cloud-save-v2__spinner" size={16} />
-      ) : (
-        <PlusIcon size={16} />
-      )}
-      <span>{t("cloud_save_v2_add_custom_path")}</span>
-    </Button>
+    <>
+      <Button
+        theme="outline"
+        className="cloud-save-v2__add-custom-path-button"
+        disabled={actionsAreDisabled}
+        onClick={() => void handleAddCustomPath("file")}
+      >
+        {isAddingCustomPath ? (
+          <CircleNotchIcon className="cloud-save-v2__spinner" size={16} />
+        ) : (
+          <PlusIcon size={16} />
+        )}
+        <span>{t("cloud_save_v2_add_custom_file")}</span>
+      </Button>
+      <Button
+        theme="outline"
+        className="cloud-save-v2__add-custom-path-button"
+        disabled={actionsAreDisabled}
+        onClick={() => void handleAddCustomPath("dir")}
+      >
+        {isAddingCustomPath ? (
+          <CircleNotchIcon className="cloud-save-v2__spinner" size={16} />
+        ) : (
+          <PlusIcon size={16} />
+        )}
+        <span>{t("cloud_save_v2_add_custom_path")}</span>
+      </Button>
+    </>
   );
   const deleteCloudSaveButton = hasSaveData ? (
     <Button
@@ -645,6 +680,34 @@ export function CloudSaveV2FileBrowserModal({
                         )
                       )}
                     </div>
+                  </div>
+                )}
+              {details.emulatorCardSources &&
+                details.emulatorCardSources.length > 0 && (
+                  <div className="cloud-save-v2__card-sources">
+                    <strong>{t("cloud_save_v2_card_sources_title")}</strong>
+                    {details.emulatorCardSources.map((source) => (
+                      <div
+                        key={source.slot}
+                        className="cloud-save-v2__card-source"
+                      >
+                        <span title={source.path}>
+                          {t("cloud_save_v2_card_slot_option", {
+                            slot: source.slot,
+                          })}
+                          : {source.path}
+                        </span>
+                        <Button
+                          theme="outline"
+                          disabled={actionsAreDisabled}
+                          onClick={() =>
+                            void handleRemoveCardSource(source.slot)
+                          }
+                        >
+                          {t("cloud_save_v2_card_source_remove")}
+                        </Button>
+                      </div>
+                    ))}
                   </div>
                 )}
               {(activeOperation ||

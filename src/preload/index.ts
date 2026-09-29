@@ -187,12 +187,28 @@ contextBridge.exposeInMainWorld("electron", {
       objectId,
       shop
     ) as Promise<void>,
-  selectCloudSaveCustomPath: (objectId: string, shop: GameShop) =>
+  selectCloudSaveCustomPath: (
+    objectId: string,
+    shop: GameShop,
+    kind: "file" | "dir" = "dir"
+  ) =>
     ipcRenderer.invoke(
       "selectCloudSaveCustomPath",
       objectId,
-      shop
+      shop,
+      kind
     ) as Promise<SelectCloudSaveCustomPathResult>,
+  removeEmulatorCardPathOverride: (
+    objectId: string,
+    shop: GameShop,
+    slot: string
+  ) =>
+    ipcRenderer.invoke(
+      "removeEmulatorCardPathOverride",
+      objectId,
+      shop,
+      slot
+    ) as Promise<void>,
   createCloudSaveCustomPathRebindApproval: (
     objectId: string,
     shop: GameShop,
@@ -742,6 +758,26 @@ contextBridge.exposeInMainWorld("electron", {
     objectId?: string | null
   ): Promise<EmulationCloudSave[]> =>
     ipcRenderer.invoke("listEmulationSaves", platform, objectId),
+  listArchivedEmulationSavesForGame: (
+    platform: EmulationSavePlatform,
+    objectId: string
+  ): Promise<EmulationCloudSave[]> =>
+    ipcRenderer.invoke("listArchivedEmulationSavesForGame", platform, objectId),
+  listArchivedEmulationSavesForPlatform: (
+    platform: EmulationSavePlatform
+  ): Promise<EmulationCloudSave[]> =>
+    ipcRenderer.invoke("listArchivedEmulationSavesForPlatform", platform),
+  exportArchivedEmulationSave: (
+    platform: EmulationSavePlatform,
+    objectId: string | null,
+    saveId: string
+  ): Promise<{ status: "saved"; filePath: string } | { status: "cancelled" }> =>
+    ipcRenderer.invoke(
+      "exportArchivedEmulationSave",
+      platform,
+      objectId,
+      saveId
+    ),
   listLocalEmulationSaves: (
     platform: EmulationSavePlatform
   ): Promise<Ps2MemoryCardSaveRecord[]> =>

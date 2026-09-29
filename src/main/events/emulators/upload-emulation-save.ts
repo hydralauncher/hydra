@@ -23,6 +23,7 @@ import {
   buildLocalLaunchboxAssetIndex,
   findUniqueLocalAssetBySkuPrefix,
 } from "./memcard-local-assets";
+import { assertLegacyEmulationSaveWriteAllowed } from "./emulation-legacy-write-policy";
 
 const BACKUP_PROGRESS_CHANNEL = "on-emulation-backup-progress";
 const MIN_WII_DATA_BIN_SIZE = 0xf140;
@@ -212,6 +213,7 @@ const uploadOne = async (
   cardFilePath: string,
   folderName: string
 ): Promise<EmulationCloudSave> => {
+  assertLegacyEmulationSaveWriteAllowed(platform);
   if (platform === "psp" || platform === "gamecube" || platform === "wii") {
     return uploadFileSave(platform, cardFilePath, folderName);
   }
@@ -251,6 +253,7 @@ const uploadWiiEmulationSave = async (
   dataBinPath: string,
   objectId: string
 ): Promise<EmulationCloudSave> => {
+  assertLegacyEmulationSaveWriteAllowed("wii");
   const identity = emulators.parseDolphinWiiExportPath(dataBinPath);
   if (!identity) {
     throw new Error(
@@ -305,6 +308,7 @@ const uploadEmulationSavesForCard = async (
   platform: EmulationSavePlatform,
   cardFilePath: string
 ): Promise<{ uploaded: number; total: number }> => {
+  assertLegacyEmulationSaveWriteAllowed(platform);
   const sublevel =
     platform === "ps2"
       ? ps2MemoryCardSavesSublevel

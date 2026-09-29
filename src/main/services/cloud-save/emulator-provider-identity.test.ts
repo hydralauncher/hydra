@@ -5,6 +5,7 @@ import {
   emulatorDefaultVariant,
   emulatorEnvironmentId,
   parseRpcs3SaveRawPath,
+  parseRpcs3SavestateRawPath,
   parseRetroArchSaveRawPath,
   safeRelativeSegments,
 } from "./emulator-provider-identity.js";
@@ -26,6 +27,14 @@ describe("emulator save identities", () => {
       }
     );
     assert.equal(parseRpcs3SaveRawPath("<emulator>/rpcs3/BLUS30443/../"), null);
+    assert.deepEqual(
+      parseRpcs3SavestateRawPath("<emulator>/rpcs3-state/BLUS30443"),
+      { titleId: "BLUS30443" }
+    );
+    assert.equal(
+      parseRpcs3SavestateRawPath("<emulator>/rpcs3-state/../BLUS30443"),
+      null
+    );
     assert.deepEqual(
       parseRetroArchSaveRawPath("<emulator>/retroarch/gba/1234ABCD"),
       {

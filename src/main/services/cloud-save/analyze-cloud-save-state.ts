@@ -5,7 +5,7 @@ import type {
 } from "@types";
 import { logger } from "@main/services/logger";
 
-import { NativeAddon } from "../native-addon";
+import { buildCloudSaveAggregateHash } from "./snapshot-aggregate-hash";
 import { buildLocalGameSnapshotContext } from "./build-local-game-snapshot";
 import { cloudSaveFileKey } from "./cloud-save-contract";
 import { getCloudSaveGameContext } from "./cloud-save-game-context";
@@ -16,6 +16,7 @@ import {
   reconcileCloudSaveCustomPathsWithRemote,
 } from "./custom-path-store";
 import { getInstallationOwnedCustomPathRawPaths } from "./installation-owned-custom-paths";
+import { parseRetroArchSaveRawPath } from "./emulator-provider-identity";
 import { listRemoteGameSnapshots } from "./list-remote-game-snapshots";
 import { mergeUserVariantSnapshots } from "./merge-user-variant-snapshots";
 import { reconcileRemoteTargetObservations } from "./reconcile-remote-target-observations";
@@ -110,6 +111,15 @@ export const analyzeCloudSaveState = async (
           customPathBindings,
           context.pathContext
         );
+  const preserveLocalMissingEntryIds = new Set(
+    (remoteManifest?.files ?? [])
+      .filter(
+        (file) =>
+          parseRetroArchSaveRawPath(file.rawPath) &&
+          /^battery\.(?:sav|eep|sra|fla|mpk)$/.test(file.relativePath)
+      )
+      .map(cloudSaveFileKey)
+  );
   let localSnapshotContext = await buildLocalGameSnapshotContext(
     objectId,
     shop,
@@ -147,7 +157,7 @@ export const analyzeCloudSaveState = async (
           remoteManifest.variants,
           missingRemoteFiles,
           resolution,
-          (input) => NativeAddon.buildSnapshotAggregateHash(input)
+          buildCloudSaveAggregateHash
         );
       } catch (error) {
         if (!isUnavailableRestoreEnvironment(error)) throw error;
@@ -172,6 +182,7 @@ export const analyzeCloudSaveState = async (
     base: anchor,
     direction: syncDirection,
     preserveLocalMissingRawPaths,
+    preserveLocalMissingEntryIds,
     treatLocalAsNewRawPaths: new Set(trackingState.pendingRawPaths),
   });
   const mergedCustomPathRawPaths = [
@@ -180,7 +191,7 @@ export const analyzeCloudSaveState = async (
       ...localSnapshotContext.customPathRawPaths,
     ]),
   ].sort((left, right) => left.localeCompare(right));
-  const mergedAggregateHash = NativeAddon.buildSnapshotAggregateHash({
+  const mergedAggregateHash = buildCloudSaveAggregateHash({
     variants: merge.variants,
     files: merge.files,
   });

@@ -157,8 +157,14 @@ declare global {
     ) => Promise<void>;
     selectCloudSaveCustomPath: (
       objectId: string,
-      shop: GameShop
+      shop: GameShop,
+      kind?: "file" | "dir"
     ) => Promise<SelectCloudSaveCustomPathResult>;
+    removeEmulatorCardPathOverride: (
+      objectId: string,
+      shop: GameShop,
+      slot: string
+    ) => Promise<void>;
     createCloudSaveCustomPathRebindApproval: (
       objectId: string,
       shop: GameShop,
@@ -815,6 +821,20 @@ declare global {
       platform: EmulationSavePlatform,
       objectId?: string | null
     ) => Promise<EmulationCloudSave[]>;
+    listArchivedEmulationSavesForGame: (
+      platform: EmulationSavePlatform,
+      objectId: string
+    ) => Promise<EmulationCloudSave[]>;
+    listArchivedEmulationSavesForPlatform: (
+      platform: EmulationSavePlatform
+    ) => Promise<EmulationCloudSave[]>;
+    exportArchivedEmulationSave: (
+      platform: EmulationSavePlatform,
+      objectId: string | null,
+      saveId: string
+    ) => Promise<
+      { status: "saved"; filePath: string } | { status: "cancelled" }
+    >;
     listLocalEmulationSaves: (
       platform: EmulationSavePlatform
     ) => Promise<Ps2MemoryCardSaveRecord[]>;

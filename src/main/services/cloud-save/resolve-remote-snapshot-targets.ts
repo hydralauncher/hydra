@@ -23,6 +23,7 @@ import {
   getEmulatorSaveProvider,
 } from "./emulator-save-provider";
 import { isEmulatorSaveRawPath } from "./emulator-provider-identity";
+import { buildCloudSaveAggregateHash } from "./snapshot-aggregate-hash";
 
 const isWinePrefixValid = (winePrefixPath?: string) => {
   if (!winePrefixPath) return false;
@@ -52,7 +53,7 @@ export const getRemoteSnapshotRestoreManifest = async (
     manifest.snapshot.version !== snapshot.version ||
     manifest.files.length !== snapshot.fileCount ||
     totalSizeBytes !== snapshot.totalSizeBytes ||
-    NativeAddon.buildSnapshotAggregateHash({
+    buildCloudSaveAggregateHash({
       variants: manifest.variants,
       files: manifest.files,
     }) !== snapshot.aggregateHash

@@ -57,6 +57,7 @@ export const resolveStoredCloudSaveCustomPathBindings = (
       const customPath = {
         ...resolveStoredPath(stored, context),
         ...(stored.storeUserId ? { storeUserId: stored.storeUserId } : {}),
+        ...(stored.kind ? { kind: stored.kind } : {}),
       };
       ready.push(customPath);
       if (!stored.localPath) {

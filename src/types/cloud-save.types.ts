@@ -31,6 +31,7 @@ export interface CloudSaveCustomPath {
   path: string;
   platform: CloudSaveCustomPathPlatform;
   storeUserId?: string;
+  kind?: "file" | "dir";
 }
 
 export type CloudSaveUnresolvedCustomPathState =
@@ -84,6 +85,7 @@ export interface CheckCloudSaveCustomPathOverlapResult {
 export interface SelectCloudSaveCustomPathResult {
   canceled: boolean;
   customPath?: CloudSaveCustomPath;
+  cardSourceAdded?: boolean;
 }
 
 export interface CloudSaveCustomPathApproval {
@@ -91,6 +93,7 @@ export interface CloudSaveCustomPathApproval {
   gameId: CloudSaveGameId;
   purpose: "pre-launch" | "manual-sync" | "custom-path-rebind";
   rawPath: string;
+  kind?: "file" | "dir";
   suggestedPath: string | null;
   selectedPath: string | null;
   canUseSuggestedPath: boolean;
@@ -287,6 +290,14 @@ export interface SnapshotFile extends CloudSaveFileIdentity {
   hash: string;
   sizeBytes: number;
   lastModifiedAt: string;
+  stateMetadata?: CloudSaveStateMetadata;
+}
+
+export interface CloudSaveStateMetadata {
+  emulatorId: string;
+  coreId?: string;
+  version?: string;
+  hostPlatform?: string;
 }
 
 export type UserVariantSnapshotFile = SnapshotFile;
@@ -409,6 +420,7 @@ export interface CloudSaveV2FileDetails {
   local: CloudSaveV2LocalFileSource;
   activeSnapshot: CloudSaveV2ActiveSnapshotFileSource | null;
   customPaths: CloudSaveCustomPath[];
+  emulatorCardSources?: Array<{ path: string; slot: string }>;
   unresolvedCustomPaths: CloudSaveUnresolvedCustomPath[];
   comparisons: CloudSaveV2FileComparison[];
   variants: Array<{
@@ -684,6 +696,7 @@ export interface LocalGameSnapshotSourceFile extends CloudSaveFileIdentity {
   localBindings: LocalResolutionBindings;
   confidence: "authoritative" | "exact" | "inferred";
   provenance: string[];
+  stateMetadata?: CloudSaveStateMetadata;
 }
 
 export interface LocalGameSnapshotPipelineResult
@@ -771,6 +784,7 @@ export interface RemoteGameSnapshot {
 export interface CloudSaveSyncAnchorEntry extends CloudSaveFileIdentity {
   hash: string;
   sizeBytes: number;
+  stateMetadata?: CloudSaveStateMetadata;
 }
 
 export interface CloudSaveSyncAnchor {

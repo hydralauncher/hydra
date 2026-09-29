@@ -3,6 +3,10 @@ import type { CloudSaveCustomPath, GameShop } from "@types";
 import { buildLocalGameSnapshotContext } from "./build-local-game-snapshot";
 import type { getCloudSaveGameContext } from "./cloud-save-game-context";
 import { getCloudSaveCustomPathSelectionFailure } from "./custom-path-selection-policy";
+import {
+  discoverEmulatorSaveFiles,
+  getEmulatorSaveProvider,
+} from "./emulator-save-provider";
 
 type CloudSaveGameContext = Awaited<ReturnType<typeof getCloudSaveGameContext>>;
 
@@ -20,6 +24,21 @@ export const assertCloudSaveCustomPathHasEligibleFiles = async (
       customPathBindings: { ready: [customPath], unresolved: [] },
     }
   );
+
+  if (context.game && getEmulatorSaveProvider(context.game)) {
+    const { discovery } = await discoverEmulatorSaveFiles(
+      context.game,
+      context.environmentId
+    );
+    const selected = customPath.path;
+    const containsProviderFile = discovery.files.some(({ absolutePath }) =>
+      customPath.kind === "file"
+        ? absolutePath === selected
+        : absolutePath.startsWith(`${selected}/`) ||
+          absolutePath.startsWith(`${selected}\\`)
+    );
+    if (containsProviderFile) return;
+  }
 
   const failure = getCloudSaveCustomPathSelectionFailure(
     snapshot.files,
