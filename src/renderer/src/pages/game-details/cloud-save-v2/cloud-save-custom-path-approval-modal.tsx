@@ -2,6 +2,7 @@ import {
   CaretDownIcon,
   CircleNotchIcon,
   CloudArrowDownIcon,
+  FileIcon,
   FolderOpenIcon,
   WarningCircleIcon,
 } from "@phosphor-icons/react";
@@ -18,7 +19,7 @@ interface CloudSaveCustomPathApprovalModalProps {
   isSelecting: boolean;
   isConfirming: boolean;
   errorMessage?: string;
-  onSelectPath: () => void;
+  onSelectPath: (mode: "file" | "dir") => void;
   onConfirm: () => void;
   onClose: () => void;
 }
@@ -174,19 +175,41 @@ export function CloudSaveCustomPathApprovalModal({
           }
           error={errorMessage}
           rightContent={
-            <Button
-              className="cloud-save-v2__path-approval-choose"
-              theme="outline"
-              onClick={onSelectPath}
-              disabled={isBusy}
-            >
-              {isSelecting ? (
-                <CircleNotchIcon className="cloud-save-v2__spinner" size={18} />
-              ) : (
-                <FolderOpenIcon size={18} />
+            <>
+              {approval?.kind === "file" && (
+                <Button
+                  className="cloud-save-v2__path-approval-choose"
+                  theme="outline"
+                  onClick={() => onSelectPath("file")}
+                  disabled={isBusy}
+                >
+                  <FileIcon size={18} />
+                  <span>{t("cloud_save_v2_path_approval_choose_file")}</span>
+                </Button>
               )}
-              <span>{t("cloud_save_v2_path_approval_choose")}</span>
-            </Button>
+              <Button
+                className="cloud-save-v2__path-approval-choose"
+                theme="outline"
+                onClick={() => onSelectPath("dir")}
+                disabled={isBusy}
+              >
+                {isSelecting ? (
+                  <CircleNotchIcon
+                    className="cloud-save-v2__spinner"
+                    size={18}
+                  />
+                ) : (
+                  <FolderOpenIcon size={18} />
+                )}
+                <span>
+                  {t(
+                    approval?.kind === "file"
+                      ? "cloud_save_v2_path_approval_choose_folder"
+                      : "cloud_save_v2_path_approval_choose"
+                  )}
+                </span>
+              </Button>
+            </>
           }
         />
 

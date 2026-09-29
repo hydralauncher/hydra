@@ -209,6 +209,32 @@ contextBridge.exposeInMainWorld("electron", {
       shop,
       slot
     ) as Promise<void>,
+  selectEmulatorDestination: (
+    objectId: string,
+    shop: GameShop,
+    rawPath: string,
+    kind: "save" | "state"
+  ) =>
+    ipcRenderer.invoke(
+      "selectEmulatorDestination",
+      objectId,
+      shop,
+      rawPath,
+      kind
+    ) as Promise<{ canceled: boolean }>,
+  removeEmulatorDestination: (
+    objectId: string,
+    shop: GameShop,
+    rawPath: string,
+    kind: "save" | "state"
+  ) =>
+    ipcRenderer.invoke(
+      "removeEmulatorDestination",
+      objectId,
+      shop,
+      rawPath,
+      kind
+    ) as Promise<void>,
   createCloudSaveCustomPathRebindApproval: (
     objectId: string,
     shop: GameShop,
@@ -239,12 +265,14 @@ contextBridge.exposeInMainWorld("electron", {
     ) as Promise<CloudSaveCustomPathApproval | null>,
   selectCloudSaveCustomPathApproval: (
     approvalId: string,
-    selectedPath?: string
+    selectedPath?: string,
+    selectionMode?: "file" | "dir"
   ) =>
     ipcRenderer.invoke(
       "selectCloudSaveCustomPathApproval",
       approvalId,
-      selectedPath
+      selectedPath,
+      selectionMode
     ) as Promise<SelectCloudSaveCustomPathApprovalResult>,
   confirmCloudSaveCustomPathApproval: (approvalId: string) =>
     ipcRenderer.invoke(

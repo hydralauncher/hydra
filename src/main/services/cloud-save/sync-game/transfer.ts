@@ -65,7 +65,8 @@ export const restoreRemoteState = async (
   entryIds?: string[],
   updateAnchor = true,
   carriedUnresolvedEntryIds: string[] = [],
-  assertEnvironmentCurrent?: () => Promise<void>
+  assertEnvironmentCurrent?: () => Promise<void>,
+  safeMissingEmulatorRestoreEntryIds: string[] = []
 ): Promise<RestoreRemoteSnapshotResult> => {
   emitProgress({
     gameId: { objectId, shop },
@@ -92,7 +93,11 @@ export const restoreRemoteState = async (
     updateAnchor,
     carriedUnresolvedEntryIds,
     0,
-    assertEnvironmentCurrent
+    assertEnvironmentCurrent,
+    {
+      local: localSnapshotContext,
+      safeMissingEntryIds: safeMissingEmulatorRestoreEntryIds,
+    }
   );
   if (!result.ok || result.failedFiles > 0) {
     throw new Error(

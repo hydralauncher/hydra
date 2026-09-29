@@ -1,5 +1,4 @@
 import { randomUUID } from "node:crypto";
-import path from "node:path";
 
 import type {
   CloudSaveCustomPathApproval,
@@ -20,6 +19,7 @@ import {
   validateCloudSaveCustomPathForRestore,
 } from "./custom-path";
 import { getCloudSaveCustomPathBindings } from "./custom-path-store";
+import { resolveSelectedCustomPathApproval } from "./custom-path-approval-selection";
 import { inferCustomPathKind } from "./custom-path-kind";
 import { buildCloudSaveCustomPathRebindApproval } from "./custom-path-rebind-approval";
 import {
@@ -307,21 +307,14 @@ export const selectPendingCloudSaveCustomPathApproval = async (
   const customPathContext = cloudSaveCustomPathContextFromPathContext(
     pending.context.pathContext
   );
-  const selectedDirectory = await canonicalizeSelectedCloudSaveCustomPath(
+  const selected = await resolveSelectedCustomPathApproval(
+    pending.approval.rawPath,
+    pending.approval.kind ??
+      inferCustomPathKind(pending.approval.rawPath, pending.approval.files),
+    pending.approval.files[0]?.relativePath,
     selectedPath,
     customPathContext
   );
-  const selected =
-    pending.approval.kind === "file"
-      ? await validateBoundCloudSaveCustomPathForRestore(
-          pending.approval.rawPath,
-          path.join(
-            selectedDirectory.path,
-            pending.approval.files[0]?.relativePath ?? ""
-          ),
-          customPathContext
-        )
-      : selectedDirectory;
   await assertCloudSaveCustomPathDoesNotOverlap({
     objectId: pending.approval.gameId.objectId,
     shop: pending.approval.gameId.shop,

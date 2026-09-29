@@ -426,6 +426,40 @@ describe("merge user variant snapshots", () => {
     assert.deepEqual(result.files, [remote]);
   });
 
+  it("keeps an emulator snapshot pending when its only destination is incomplete", () => {
+    const remote = file(
+      "state.state1",
+      "r",
+      "<emulator>/retroarch/snes/1234ABCD"
+    );
+    const local = context([]);
+    local.coverage = [
+      {
+        candidateId: "missing-state-root",
+        ruleId: "retroarch",
+        variantId,
+        rawPath: remote.rawPath,
+        selectedRoot: true,
+        authority: "exact",
+        outcome: "partial",
+        enumeratedCompletely: false,
+        warningCodes: ["retroarch-location-partial"],
+      },
+    ];
+    const result = mergeUserVariantSnapshots({
+      local,
+      remoteVariants: [variant],
+      remoteFiles: [remote],
+      base: null,
+    });
+
+    assert.deepEqual(result.files, [remote]);
+    assert.deepEqual(result.restoreEntryIds, []);
+    assert.deepEqual(result.unresolvedRemoteEntryIds, [
+      cloudSaveFileKey(remote),
+    ]);
+  });
+
   it("propagates a proven local deletion to the remote snapshot", () => {
     const deleted = file("deleted.sav", "a");
     const retained = file("retained.sav", "b");

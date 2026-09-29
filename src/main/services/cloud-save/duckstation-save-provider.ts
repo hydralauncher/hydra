@@ -68,7 +68,7 @@ const configCandidates = (executablePath: string | null) => [
   ...duckstationConfigCandidates(),
 ];
 
-const loadConfig = async (): Promise<Config | null> => {
+export const loadDuckstationSaveConfig = async (): Promise<Config | null> => {
   const { getEmulatorConfig } = await import(
     "../emulators/emulators-repository.js"
   );
@@ -93,6 +93,8 @@ const loadConfig = async (): Promise<Config | null> => {
   };
 };
 
+const loadConfig = loadDuckstationSaveConfig;
+
 export const getDuckstationSaveEnvironmentKey = async (_game: Game) => {
   const config = await loadConfig().catch(() => null);
   const overrides = await readOverrides(_game);
@@ -108,7 +110,9 @@ export const getDuckstationSaveEnvironmentKey = async (_game: Game) => {
         ]),
         overrides,
       ])
-    : "duckstation-config-unresolved";
+    : overrides.length
+      ? JSON.stringify(["duckstation-config-unresolved", overrides])
+      : "duckstation-config-unresolved";
 };
 
 const cardType = (config: Config, slot: number) =>
@@ -146,7 +150,7 @@ export const validateDuckstationManualCardForGame = async (
 };
 
 const resolveCardPath = async (
-  config: Config,
+  config: Config | null,
   slot: number,
   serial: string,
   overrides: ReadonlyMap<string, string> = new Map(),
@@ -154,6 +158,7 @@ const resolveCardPath = async (
 ): Promise<string | null> => {
   const override = overrides.get(String(slot));
   if (override) return override;
+  if (!config) return null;
   const type = cardType(config, slot).toLowerCase();
   if (type === "none" || type === "nonpersistent") return null;
   if (type === "shared") {
@@ -239,15 +244,21 @@ export const parseDuckstationCardRawPath = (rawPath: string) => {
 
 export const resolveDuckstationCardTarget = async (
   game: Game,
-  file: RestoreManifestFile
+  file: RestoreManifestFile,
+  options: {
+    config?: DuckstationSaveConfig | null;
+    overrides?: ReadonlyMap<string, string>;
+  } = {}
 ) => {
   const parsed = parseDuckstationCardRawPath(file.rawPath);
   if (!parsed || !serialsForGame(game).has(parsed.serial)) return null;
-  const config = await loadConfig();
-  if (!config) return null;
-  const overrides = new Map(
-    (await readOverrides(game)).map((item) => [item.slot, item.path])
-  );
+  const config =
+    options.config === undefined
+      ? await loadConfig().catch(() => null)
+      : options.config;
+  const overrides =
+    options.overrides ??
+    new Map((await readOverrides(game)).map((item) => [item.slot, item.path]));
   const target = await resolveCardPath(
     config,
     parsed.slot,
@@ -273,7 +284,7 @@ export const getDuckstationGameSaveFileFilter = async (game: Game) => {
 
 export const scanDuckstationSaves = async (
   context: EmulatorProviderContext,
-  config: DuckstationSaveConfig,
+  config: DuckstationSaveConfig | null,
   overrides: ReadonlyMap<string, string> = new Map(),
   privateRoot?: string
 ): Promise<EmulatorProviderDiscovery> => {
@@ -291,7 +302,7 @@ export const scanDuckstationSaves = async (
   }
   for (const serial of serials) {
     for (let slot = 1; slot <= 8; slot += 1) {
-      const type = cardType(config, slot).toLowerCase();
+      const type = config ? cardType(config, slot).toLowerCase() : "none";
       if (
         (type === "none" || type === "nonpersistent") &&
         !overrides.has(String(slot))
@@ -351,6 +362,7 @@ export const scanDuckstationSaves = async (
       result.coverage.push(makeCoverage(rawPath, context.variantId, complete));
     }
     const stateRawPath = `<emulator>/duckstation-state/${serial}`;
+    if (!config) continue;
     const entries = await fs
       .readdir(config.statesDir, { withFileTypes: true })
       .catch(() => null);
@@ -391,19 +403,16 @@ export const duckstationSaveProvider: EmulatorProvider = {
     const overrides = new Map(
       (await readOverrides(context.game)).map((item) => [item.slot, item.path])
     );
-    return config
-      ? scanDuckstationSaves(context, config, overrides)
-      : {
-          files: [],
-          coverage: [
-            unresolvedCoverage("duckstation", "duckstation-config-unresolved"),
-          ],
-          revision: "duckstation-v1",
-        };
+    const discovery = await scanDuckstationSaves(context, config, overrides);
+    if (!config) {
+      discovery.coverage.push(
+        unresolvedCoverage("duckstation", "duckstation-config-unresolved")
+      );
+    }
+    return discovery;
   },
   async restoreRules(game, files) {
     const config = await loadConfig().catch(() => null);
-    if (!config) return new Map();
     const serials = serialsForGame(game);
     const rules = new Map<string, ReturnType<typeof emulatorRestoreRule>>();
     for (const file of files) {
@@ -430,6 +439,7 @@ export const duckstationSaveProvider: EmulatorProvider = {
       }
       const state = STATE_PATH.exec(file.rawPath);
       if (
+        !config ||
         !state ||
         !serials.has(state[1]) ||
         !stateName(file.relativePath, state[1]) ||

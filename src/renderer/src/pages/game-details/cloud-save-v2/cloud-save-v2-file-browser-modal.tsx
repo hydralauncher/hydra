@@ -313,6 +313,9 @@ export function CloudSaveV2FileBrowserModal({
     null
   );
   const [removingCardSlot, setRemovingCardSlot] = useState<string | null>(null);
+  const [bindingEmulatorDestination, setBindingEmulatorDestination] = useState<
+    string | null
+  >(null);
   const [pendingCustomPathRemoval, setPendingCustomPathRemoval] = useState<
     string | null
   >(null);
@@ -492,6 +495,62 @@ export function CloudSaveV2FileBrowserModal({
     }
   };
 
+  const handleSelectEmulatorDestination = async (
+    rawPath: string,
+    kind: "save" | "state"
+  ) => {
+    setBindingEmulatorDestination(JSON.stringify([rawPath, kind]));
+    try {
+      const result = await window.electron.selectEmulatorDestination(
+        objectId,
+        shop,
+        rawPath,
+        kind
+      );
+      if (result.canceled) return;
+      const syncResult = await onSyncAfterCustomPathAdded();
+      if (syncResult.finalState === "conflict") {
+        throw new Error("cloud_save_emulator_destination_sync_conflict");
+      }
+      await onRetry();
+      showSuccessToast(t("cloud_save_v2_emulator_destination_linked"));
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "";
+      showErrorToast(
+        t("cloud_save_v2_emulator_destination_error_title"),
+        t(
+          message.includes("config_mismatch") ||
+            message.includes("config_unavailable")
+            ? "cloud_save_v2_emulator_destination_config_error"
+            : "cloud_save_v2_emulator_destination_error"
+        )
+      );
+    } finally {
+      setBindingEmulatorDestination(null);
+    }
+  };
+
+  const handleRemoveEmulatorDestination = async (
+    rawPath: string,
+    kind: "save" | "state"
+  ) => {
+    setBindingEmulatorDestination(JSON.stringify([rawPath, kind]));
+    try {
+      await window.electron.removeEmulatorDestination(
+        objectId,
+        shop,
+        rawPath,
+        kind
+      );
+      await onRetry();
+      showSuccessToast(t("cloud_save_v2_emulator_destination_removed"));
+    } catch {
+      showErrorToast(t("cloud_save_v2_emulator_destination_error_title"));
+    } finally {
+      setBindingEmulatorDestination(null);
+    }
+  };
+
   const handleDeleteCloudSave = async () => {
     if (isDeletingCloudSave || !hasSaveData) return;
 
@@ -547,7 +606,9 @@ export function CloudSaveV2FileBrowserModal({
       isAddingCustomPath,
       isRebindingCustomPath: rebindingCustomPath !== null,
       isRemovingCustomPath:
-        removingCustomPath !== null || removingCardSlot !== null,
+        removingCustomPath !== null ||
+        removingCardSlot !== null ||
+        bindingEmulatorDestination !== null,
       isDeletingCloudSave,
       isBindingRpcs3Profile,
       isLoading,
@@ -706,6 +767,87 @@ export function CloudSaveV2FileBrowserModal({
                         >
                           {t("cloud_save_v2_card_source_remove")}
                         </Button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              {details.emulatorDestinations &&
+                details.emulatorDestinations.length > 0 && (
+                  <div className="cloud-save-v2__card-sources">
+                    <strong>
+                      {t("cloud_save_v2_emulator_destinations_title")}
+                    </strong>
+                    {details.emulatorDestinations.map((destination) => (
+                      <div
+                        key={JSON.stringify([
+                          destination.rawPath,
+                          destination.kind,
+                        ])}
+                        className="cloud-save-v2__card-source"
+                      >
+                        <span
+                          title={destination.pathHint ?? destination.rawPath}
+                        >
+                          {t(
+                            destination.kind === "state"
+                              ? "cloud_save_v2_emulator_destination_states"
+                              : "cloud_save_v2_emulator_destination_saves"
+                          )}
+                          : {destination.pathHint ?? destination.rawPath}
+                          {destination.status === "unavailable" && (
+                            <span>
+                              {t(
+                                "cloud_save_v2_emulator_destination_unavailable"
+                              )}
+                            </span>
+                          )}
+                        </span>
+                        {destination.status === "bound" ? (
+                          <Button
+                            theme="outline"
+                            disabled={actionsAreDisabled}
+                            onClick={() =>
+                              void handleRemoveEmulatorDestination(
+                                destination.rawPath,
+                                destination.kind
+                              )
+                            }
+                          >
+                            {t("cloud_save_v2_card_source_remove")}
+                          </Button>
+                        ) : (
+                          <>
+                            <Button
+                              theme="outline"
+                              disabled={
+                                actionsAreDisabled ||
+                                destination.status === "unavailable"
+                              }
+                              onClick={() =>
+                                void handleSelectEmulatorDestination(
+                                  destination.rawPath,
+                                  destination.kind
+                                )
+                              }
+                            >
+                              {t("cloud_save_v2_emulator_destination_select")}
+                            </Button>
+                            {destination.selectedPath && (
+                              <Button
+                                theme="outline"
+                                disabled={actionsAreDisabled}
+                                onClick={() =>
+                                  void handleRemoveEmulatorDestination(
+                                    destination.rawPath,
+                                    destination.kind
+                                  )
+                                }
+                              >
+                                {t("cloud_save_v2_card_source_remove")}
+                              </Button>
+                            )}
+                          </>
+                        )}
                       </div>
                     ))}
                   </div>

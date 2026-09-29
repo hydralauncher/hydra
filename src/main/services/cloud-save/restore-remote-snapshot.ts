@@ -5,6 +5,7 @@ import { SystemPath } from "@main/services/system-path";
 import type {
   CloudSaveGameId,
   CloudSavePathContext,
+  LocalGameSnapshotContext,
   RemoteGameSnapshot,
   RemoteSnapshotSummary,
   ReplaceRestoreTarget,
@@ -36,6 +37,8 @@ import { saveCloudSaveSyncAnchor } from "./sync-anchor";
 import { verifyDownloadedRestoreFile } from "./verify-downloaded-restore-file";
 import { registerCloudSaveCustomPaths } from "./custom-path-store";
 import { inferCustomPathKind } from "./custom-path-kind";
+import { assertFilesystemEmulatorRestoreRoots } from "./missing-emulator-restore-root";
+import { assertEmulatorDestinationBindingsCurrent } from "./emulator-destination-store";
 import { approveEmulatorStateRestore } from "./state-restore-confirmation";
 import {
   applyPlaystationCardRestore,
@@ -60,6 +63,11 @@ import {
 interface RestoreCloudSaveContext {
   environmentId: string;
   pathContext: CloudSavePathContext;
+}
+
+interface EmulatorRestoreRootSafety {
+  local: LocalGameSnapshotContext;
+  safeMissingEntryIds: string[];
 }
 
 type DownloadedRestoreFile = Awaited<
@@ -177,7 +185,8 @@ export const restoreRemoteSnapshot = async (
   updateAnchor = true,
   carriedUnresolvedEntryIds: string[] = [],
   versionChangeAttempt = 0,
-  assertEnvironmentCurrent?: () => Promise<void>
+  assertEnvironmentCurrent?: () => Promise<void>,
+  emulatorRootSafety?: EmulatorRestoreRootSafety
 ): Promise<RestoreRemoteSnapshotResult> => {
   assertCloudSaveSubscription();
 
@@ -247,6 +256,14 @@ export const restoreRemoteSnapshot = async (
   const restoreTargets = plan.actions.filter(
     (target) => target.action !== "skip-identical"
   );
+  if (emulatorRootSafety) {
+    await assertFilesystemEmulatorRestoreRoots(
+      restoreTargets,
+      emulatorRootSafety.local,
+      new Set(emulatorRootSafety.safeMissingEntryIds)
+    );
+  }
+  await assertEmulatorDestinationBindingsCurrent(game, restoreTargets);
 
   try {
     emitProgress("downloading", 0, restoreTargets.length);
@@ -301,7 +318,8 @@ export const restoreRemoteSnapshot = async (
           updateAnchor,
           carriedUnresolvedEntryIds,
           1,
-          assertEnvironmentCurrent
+          assertEnvironmentCurrent,
+          emulatorRootSafety
         );
       }
       throw new Error("cloud_save_restore_snapshot_changed_twice");
@@ -312,6 +330,14 @@ export const restoreRemoteSnapshot = async (
       downloadedFiles
     );
     await assertEnvironmentCurrent?.();
+    if (emulatorRootSafety) {
+      await assertFilesystemEmulatorRestoreRoots(
+        restoreTargets,
+        emulatorRootSafety.local,
+        new Set(emulatorRootSafety.safeMissingEntryIds)
+      );
+    }
+    await assertEmulatorDestinationBindingsCurrent(game, restoreTargets);
     emitProgress("applying_restore", 0, replacements.length);
     const result = await replaceRestoreTargets(replacements);
     emitProgress("applying_restore", replacements.length, replacements.length);

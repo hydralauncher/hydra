@@ -17,8 +17,10 @@ import {
 } from "./custom-path-store";
 import { getInstallationOwnedCustomPathRawPaths } from "./installation-owned-custom-paths";
 import { parseRetroArchSaveRawPath } from "./emulator-provider-identity";
+import { verifiedEmulatorRestoreEntryIds } from "./emulator-destination-store";
 import { listRemoteGameSnapshots } from "./list-remote-game-snapshots";
 import { mergeUserVariantSnapshots } from "./merge-user-variant-snapshots";
+import { safeMissingEmulatorRestoreEntryIds } from "./missing-emulator-restore-root";
 import { reconcileRemoteTargetObservations } from "./reconcile-remote-target-observations";
 import {
   getRemoteSnapshotRestoreManifest,
@@ -128,6 +130,7 @@ export const analyzeCloudSaveState = async (
       customPathBindings,
     }
   );
+  let safeMissingEmulatorEntryIds = new Set<string>();
 
   if (remoteManifest) {
     const localEntryIds = new Set(
@@ -152,6 +155,16 @@ export const analyzeCloudSaveState = async (
           context.pathContext,
           customPathBindings
         );
+        safeMissingEmulatorEntryIds = await safeMissingEmulatorRestoreEntryIds(
+          resolution.actions,
+          localSnapshotContext
+        );
+        for (const entryId of await verifiedEmulatorRestoreEntryIds(
+          context.game,
+          resolution.actions
+        )) {
+          safeMissingEmulatorEntryIds.add(entryId);
+        }
         localSnapshotContext = reconcileRemoteTargetObservations(
           localSnapshotContext,
           remoteManifest.variants,
@@ -183,6 +196,7 @@ export const analyzeCloudSaveState = async (
     direction: syncDirection,
     preserveLocalMissingRawPaths,
     preserveLocalMissingEntryIds,
+    safeMissingEmulatorRestoreEntryIds: safeMissingEmulatorEntryIds,
     treatLocalAsNewRawPaths: new Set(trackingState.pendingRawPaths),
   });
   const mergedCustomPathRawPaths = [
@@ -225,6 +239,7 @@ export const analyzeCloudSaveState = async (
     customPathBindings,
     pendingCustomPathRawPaths: trackingState.pendingRawPaths,
     installationOwnedCustomPathRawPaths: [...preserveLocalMissingRawPaths],
+    safeMissingEmulatorRestoreEntryIds: [...safeMissingEmulatorEntryIds],
     localSnapshot,
     localSnapshotContext,
     environmentId,

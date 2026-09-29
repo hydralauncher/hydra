@@ -33,7 +33,7 @@ const STATE_RAW_PATH = /^<emulator>\/ppsspp\/state\/([A-Z]{4}\d{5})$/;
 const STATE_FILE =
   /^([A-Z]{4}\d{5})_([A-Za-z0-9.]+)_([0-9]+)\.(?:(undo)\.)?(ppst|jpg|name\.txt)$/;
 
-const titleIdsForGame = (game: Game) =>
+export const titleIdsForGame = (game: Game) =>
   [
     ...new Set(
       (game.discs ?? []).map((disc) =>

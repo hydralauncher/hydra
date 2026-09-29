@@ -33,6 +33,7 @@ import {
   BigPictureCloudSaveModal,
   type BigPictureCloudSavePanelProps,
 } from "./cloud-save-modal";
+import { shouldLoadBigPictureEmulatorDetails } from "./cloud-save-v2-presentation";
 
 import "./styles.scss";
 
@@ -166,12 +167,15 @@ export function BigPictureCloudSaveProvider({
       shop,
       enabled: canCheckCloudSaves,
     });
-  const isRpcs3 = getCloudSaveEmulatorProvider(shop, platform) === "rpcs3";
+  const emulatorProvider = getCloudSaveEmulatorProvider(shop, platform);
   const { details: fileDetails, refresh: refreshFileDetails } =
     useCloudSaveV2FileDetails({
       objectId,
       shop,
-      enabled: canCheckCloudSaves && isRpcs3,
+      enabled: shouldLoadBigPictureEmulatorDetails(
+        canCheckCloudSaves,
+        emulatorProvider
+      ),
     });
 
   const [isModalVisible, setIsModalVisible] = useState(false);
@@ -195,6 +199,8 @@ export function BigPictureCloudSaveProvider({
     string | null
   >(null);
   const [isBindingRpcs3Profile, setIsBindingRpcs3Profile] = useState(false);
+  const [isBindingEmulatorDestination, setIsBindingEmulatorDestination] =
+    useState(false);
   const gameKey = `${shop}:${objectId}`;
   const activeGameKey = useRef(gameKey);
   const gamePageSyncInFlight = useRef(false);
@@ -272,6 +278,7 @@ export function BigPictureCloudSaveProvider({
     setPendingResolution(null);
     setPendingRpcs3ProfileId(null);
     setIsBindingRpcs3Profile(false);
+    setIsBindingEmulatorDestination(false);
     gamePageSyncInFlight.current = false;
   }, [gameKey]);
 
@@ -372,6 +379,7 @@ export function BigPictureCloudSaveProvider({
     if (
       !enableGamePageSync ||
       customPathApproval !== null ||
+      isBindingEmulatorDestination ||
       searchParams.get("openCloudSavePathApproval") === "1" ||
       !shouldSyncCloudSaveOnGamePage({
         overview,
@@ -409,6 +417,7 @@ export function BigPictureCloudSaveProvider({
     gameKey,
     hasExecutablePath,
     isGameRunning,
+    isBindingEmulatorDestination,
     isSyncing,
     objectId,
     overview,
@@ -650,6 +659,65 @@ export function BigPictureCloudSaveProvider({
     }
   };
 
+  const handleSelectEmulatorDestination = async (
+    rawPath: string,
+    kind: "save" | "state"
+  ) => {
+    if (isBindingEmulatorDestination || isSyncing || isGameRunning) return;
+    setIsBindingEmulatorDestination(true);
+    try {
+      const result = await globalThis.window.electron.selectEmulatorDestination(
+        objectId,
+        shop,
+        rawPath,
+        kind
+      );
+      if (result.canceled) return;
+      await refreshFileDetails();
+      const completed = await runCloudSaveOperation();
+      if (completed) {
+        await refreshFileDetails();
+        showSuccessToast(t("cloud_save_v2_emulator_destination_linked"));
+      }
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "";
+      showErrorToast(t("cloud_save_v2_emulator_destination_error_title"), {
+        message: t(
+          message.includes("config_mismatch") ||
+            message.includes("config_unavailable")
+            ? "cloud_save_v2_emulator_destination_config_error"
+            : "cloud_save_v2_emulator_destination_error"
+        ),
+      });
+    } finally {
+      setIsBindingEmulatorDestination(false);
+    }
+  };
+
+  const handleRemoveEmulatorDestination = async (
+    rawPath: string,
+    kind: "save" | "state"
+  ) => {
+    if (isBindingEmulatorDestination || isSyncing || isGameRunning) return;
+    setIsBindingEmulatorDestination(true);
+    try {
+      await globalThis.window.electron.removeEmulatorDestination(
+        objectId,
+        shop,
+        rawPath,
+        kind
+      );
+      await Promise.all([refreshFileDetails(), refresh()]);
+      showSuccessToast(t("cloud_save_v2_emulator_destination_removed"));
+    } catch {
+      showErrorToast(t("cloud_save_v2_emulator_destination_error_title"), {
+        message: t("cloud_save_v2_emulator_destination_error"),
+      });
+    } finally {
+      setIsBindingEmulatorDestination(false);
+    }
+  };
+
   const customPathErrorKey = getCustomPathApprovalErrorKey(
     customPathApprovalError,
     customPathApproval?.purpose
@@ -682,6 +750,12 @@ export function BigPictureCloudSaveProvider({
     rpcs3Profile: fileDetails?.rpcs3Profile,
     onSelectRpcs3Profile: setPendingRpcs3ProfileId,
     isBindingRpcs3Profile,
+    emulatorDestinations: fileDetails?.emulatorDestinations,
+    onSelectEmulatorDestination: (rawPath: string, kind: "save" | "state") =>
+      void handleSelectEmulatorDestination(rawPath, kind),
+    onRemoveEmulatorDestination: (rawPath: string, kind: "save" | "state") =>
+      void handleRemoveEmulatorDestination(rawPath, kind),
+    isBindingEmulatorDestination,
   } satisfies Omit<
     BigPictureCloudSavePanelProps,
     "showLaunchConflictWarning" | "onSelectExecutable"

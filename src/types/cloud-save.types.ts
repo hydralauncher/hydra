@@ -421,6 +421,14 @@ export interface CloudSaveV2FileDetails {
   activeSnapshot: CloudSaveV2ActiveSnapshotFileSource | null;
   customPaths: CloudSaveCustomPath[];
   emulatorCardSources?: Array<{ path: string; slot: string }>;
+  emulatorDestinations?: Array<{
+    rawPath: string;
+    kind: "save" | "state";
+    pathHint: string | null;
+    selectedPath: string | null;
+    fileCount: number;
+    status: "pending" | "bound" | "unavailable";
+  }>;
   unresolvedCustomPaths: CloudSaveUnresolvedCustomPath[];
   comparisons: CloudSaveV2FileComparison[];
   variants: Array<{

@@ -8,7 +8,10 @@ import type {
 } from "@types";
 
 import { cloudSaveFileKey } from "./cloud-save-contract.js";
-import { parseRpcs3SaveRawPath } from "./emulator-provider-identity.js";
+import {
+  isEmulatorSaveRawPath,
+  parseRpcs3SaveRawPath,
+} from "./emulator-provider-identity.js";
 import { areSnapshotVariantsEqual } from "./snapshot-variant.js";
 import type { SyncDirection } from "./sync-game/policy.js";
 
@@ -21,6 +24,7 @@ interface MergeUserVariantSnapshotsInput {
   resolutions?: ReadonlyMap<string, CloudSaveConflictResolution>;
   preserveLocalMissingRawPaths?: ReadonlySet<string>;
   preserveLocalMissingEntryIds?: ReadonlySet<string>;
+  safeMissingEmulatorRestoreEntryIds?: ReadonlySet<string>;
   treatLocalAsNewRawPaths?: ReadonlySet<string>;
 }
 
@@ -85,6 +89,7 @@ export const mergeUserVariantSnapshots = ({
   resolutions,
   preserveLocalMissingRawPaths = new Set<string>(),
   preserveLocalMissingEntryIds = new Set<string>(),
+  safeMissingEmulatorRestoreEntryIds = new Set<string>(),
   treatLocalAsNewRawPaths = new Set<string>(),
 }: MergeUserVariantSnapshotsInput): CloudSaveMergeResult => {
   const localById = indexUnique(local.files);
@@ -249,9 +254,20 @@ export const mergeUserVariantSnapshots = ({
         files.push(remoteFile);
         continue;
       }
-      if (shouldRestoreEmptyLocalSnapshot) {
+      if (safeMissingEmulatorRestoreEntryIds.has(entryId)) {
         files.push(remoteFile);
         restoreEntryIds.add(entryId);
+        if (coverage.incomplete) unresolvedRemoteEntryIds.add(entryId);
+        continue;
+      }
+      if (shouldRestoreEmptyLocalSnapshot) {
+        files.push(remoteFile);
+        if (
+          !coverage.incomplete ||
+          !isEmulatorSaveRawPath(remoteFile.rawPath)
+        ) {
+          restoreEntryIds.add(entryId);
+        }
         if (!baseEntry || !coverage.hasCoverage || coverage.incomplete) {
           unresolvedRemoteEntryIds.add(entryId);
         }

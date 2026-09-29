@@ -1,4 +1,5 @@
 import { randomUUID } from "node:crypto";
+import { constants } from "node:fs";
 import { promises as fs } from "node:fs";
 import os from "node:os";
 import path from "node:path";
@@ -109,35 +110,74 @@ export const applyPlaystationCardRestore = async (
   );
   const cards = [...new Set(toApply.map((item) => item.targetPath))];
   const backups = new Map<string, string>();
+  const originals = new Map<string, Buffer>();
+  const appliedBytes = new Map<string, Buffer>();
   let preserveBackups = false;
   try {
     for (const card of cards) {
       const backup = path.join(backupRoot, `${sha256(card)}.bak`);
       await fs.copyFile(card, backup);
       backups.set(card, backup);
+      const original = await fs.readFile(backup);
+      originals.set(card, original);
+      if (!(await fs.readFile(card)).equals(original)) {
+        throw new Error("cloud_save_memory_card_changed_before_restore");
+      }
     }
     for (const item of toApply) {
-      const result =
-        item.format === "mcs"
-          ? await importMcsIntoCard(item.targetPath, item.bytes)
-          : await importPsuIntoCard(item.targetPath, item.bytes);
-      if (!result.ok) {
-        throw new Error(result.error ?? "cloud_save_memory_card_import_failed");
+      const expected =
+        appliedBytes.get(item.targetPath) ?? originals.get(item.targetPath)!;
+      if (!(await fs.readFile(item.targetPath)).equals(expected)) {
+        throw new Error("cloud_save_memory_card_changed_before_restore");
+      }
+      const temp = `${item.targetPath}.hydra-import-${randomUUID()}`;
+      try {
+        await fs.copyFile(item.targetPath, temp, constants.COPYFILE_EXCL);
+        const result =
+          item.format === "mcs"
+            ? await importMcsIntoCard(temp, item.bytes)
+            : await importPsuIntoCard(temp, item.bytes);
+        if (!result.ok) {
+          throw new Error(
+            result.error ?? "cloud_save_memory_card_import_failed"
+          );
+        }
+        const prepared = await fs.readFile(temp);
+        if (!(await fs.readFile(item.targetPath)).equals(expected)) {
+          throw new Error("cloud_save_memory_card_changed_before_restore");
+        }
+        await fs.rename(temp, item.targetPath);
+        appliedBytes.set(item.targetPath, prepared);
+      } finally {
+        await fs.rm(temp, { force: true }).catch(() => undefined);
+        await fs
+          .rm(`${temp}.hydra-bak`, { force: true })
+          .catch(() => undefined);
       }
     }
   } catch (error) {
     const rollbackFailures: string[] = [];
-    for (const [card, backup] of backups) {
+    for (const [card, expected] of appliedBytes) {
+      const backup = backups.get(card)!;
+      const rollbackTemp = `${card}.hydra-rollback-${randomUUID()}`;
       try {
-        await fs.copyFile(backup, card);
+        if (!(await fs.readFile(card)).equals(expected)) {
+          throw new Error("cloud_save_memory_card_changed_during_rollback");
+        }
+        await fs.copyFile(backup, rollbackTemp, constants.COPYFILE_EXCL);
+        await fs.rename(rollbackTemp, card);
       } catch {
         rollbackFailures.push(card);
+      } finally {
+        await fs.rm(rollbackTemp, { force: true }).catch(() => undefined);
       }
     }
     if (rollbackFailures.length) {
       preserveBackups = true;
       throw new Error(
-        `cloud_save_memory_card_rollback_failed:${rollbackFailures.join(",")}`,
+        `cloud_save_memory_card_rollback_failed:${rollbackFailures
+          .map((card) => backups.get(card))
+          .join(",")}`,
         { cause: error }
       );
     }

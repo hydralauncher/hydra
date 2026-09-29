@@ -78,18 +78,101 @@ const gameIdOfEntry = (entry: Buffer) => {
   return /^[A-Z0-9]{6}$/.test(gameId) ? gameId : null;
 };
 
-const serialBoundName = (entry: Buffer) => {
+const serialBoundKind = (entry: Buffer) => {
   const name = entry.subarray(8, 0x28);
   const end = name.findIndex((byte) => byte === 0 || byte === 0xff);
   const normalized = name
     .subarray(0, end < 0 ? name.length : end)
-    .toString("ascii")
-    .toUpperCase();
+    .toString("ascii");
+  if (normalized === "f_zero.dat") return "fzero";
+  if (normalized === "PSO_SYSTEM") return "pso";
+  if (normalized === "PSO3_SYSTEM") return "pso3";
+  if (
+    ["F_ZERO.DAT", "PSO_SYSTEM", "PSO3_SYSTEM"].includes(
+      normalized.toUpperCase()
+    )
+  )
+    return "ambiguous";
+  return null;
+};
+
+const serialBoundSaveIsPortable = (entry: Buffer) => {
+  const kind = serialBoundKind(entry);
+  const blocks = entry.readUInt16BE(0x38);
   return (
-    normalized === "F_ZERO.DAT" ||
-    normalized === "PSO_SYSTEM" ||
-    normalized === "PSO3_SYSTEM"
+    !kind ||
+    (kind === "fzero" ? blocks === 4 : kind !== "ambiguous" && blocks >= 2)
   );
+};
+
+// Dolphin's GCMemcard import rewrites these three games' card serial and
+// checksum. The GCI remains portable; this transform runs for the destination
+// card only. Source: Core/HW/GCMemcard/GCMemcard.cpp in dolphin-emu/dolphin.
+export const resignDolphinSerialBoundGci = (
+  gci: Buffer,
+  cardHeader: Buffer
+) => {
+  const { entry, count } = parseGci(gci);
+  const kind = serialBoundKind(entry);
+  if (!kind) return gci;
+  if (cardHeader.length < BLOCK_SIZE || !serialBoundSaveIsPortable(entry)) {
+    throw new Error("dolphin_card_serial_bound_invalid");
+  }
+  let serial1 = 0;
+  let serial2 = 0;
+  for (let offset = 0; offset < 32; offset += 8) {
+    serial1 ^= cardHeader.readUInt32LE(offset);
+    serial2 ^= cardHeader.readUInt32LE(offset + 4);
+  }
+  const result = Buffer.from(gci);
+  const data = ENTRY_SIZE;
+  if (kind === "fzero") {
+    if (count !== 4) throw new Error("dolphin_card_serial_bound_invalid");
+    result.writeUInt16LE(serial1 >>> 16, data + BLOCK_SIZE + 0x60);
+    result.writeUInt16LE(serial1 & 0xffff, data + BLOCK_SIZE + 0x66);
+    result.writeUInt16LE(serial2 >>> 16, data + BLOCK_SIZE + 0x200);
+    result.writeUInt16LE(serial2 & 0xffff, data + 3 * BLOCK_SIZE + 0x1580);
+    let checksum = 0xffff;
+    for (let offset = 2; offset < 4 * BLOCK_SIZE; offset++) {
+      checksum ^= result[data + offset];
+      for (let bit = 0; bit < 8; bit++) {
+        checksum = checksum & 1 ? (checksum >>> 1) ^ 0x8408 : checksum >>> 1;
+      }
+    }
+    result.writeUInt16BE(~checksum & 0xffff, data);
+  } else {
+    result.writeUInt32LE(serial1 >>> 0, data + BLOCK_SIZE + 0x158);
+    result.writeUInt32LE(serial2 >>> 0, data + BLOCK_SIZE + 0x15c);
+    let checksum = 0xdebb20e3;
+    const end = 0x164 + (kind === "pso3" ? 0x10 : 0);
+    for (let offset = 0x4c; offset < end; offset++) {
+      checksum ^= result[data + BLOCK_SIZE + offset];
+      for (let bit = 0; bit < 8; bit++) {
+        checksum =
+          checksum & 1 ? (checksum >>> 1) ^ 0xedb88320 : checksum >>> 1;
+      }
+    }
+    result.writeUInt32BE(
+      (checksum ^ 0xffffffff) >>> 0,
+      data + BLOCK_SIZE + 0x48
+    );
+  }
+  return result;
+};
+
+export const canonicalizeDolphinGci = (gci: Buffer) => {
+  const { entry } = parseGci(gci);
+  if (!serialBoundSaveIsPortable(entry)) {
+    throw new Error("dolphin_card_serial_bound_invalid");
+  }
+  const canonical = serialBoundKind(entry)
+    ? resignDolphinSerialBoundGci(gci, Buffer.alloc(BLOCK_SIZE))
+    : Buffer.from(gci);
+  // The copy counter and BAT pointer belong to the physical/virtual card,
+  // not the game's saved data. Dolphin assigns a new pointer on GCI import.
+  canonical[0x35] = 0;
+  canonical.writeUInt16BE(0xffff, 0x36);
+  return canonical;
 };
 
 const parseGci = (buffer: Buffer) => {
@@ -128,9 +211,9 @@ const mapOffset = (block: number) => BAT_MAP_OFFSET + (block - DATA_START) * 2;
 
 export const parseDolphinRawCard = (buffer: Buffer): ParsedCard => {
   if (
-    buffer.length < BLOCK_SIZE * 6 ||
-    buffer.length % BLOCK_SIZE !== 0 ||
-    buffer.length > 4096 * BLOCK_SIZE
+    ![64, 128, 256, 512, 1024, 2048].includes(buffer.length / BLOCK_SIZE) ||
+    buffer.readUInt16BE(0x22) !== buffer.length / (BLOCK_SIZE * 16) ||
+    !checksumsMatch(buffer, 0, 0, 0x1fc, 0x1fc, 0x1fe)
   )
     throw new Error("dolphin_card_invalid_size");
   const validDirs = [1, 2].filter((block) =>
@@ -205,22 +288,28 @@ export const parseDolphinRawCard = (buffer: Buffer): ParsedCard => {
 export const extractDolphinRawCardGame = (card: ParsedCard, gameId: string) =>
   card.entries
     .filter((entry) => entry.gameId === gameId)
-    .map((entry) => ({
-      fileName: dolphinGciFileName(entry.entry),
-      serialBound: serialBoundName(entry.entry),
-      buffer: Buffer.concat([
+    .map((entry) => {
+      const portable = serialBoundSaveIsPortable(entry.entry);
+      const gci = Buffer.concat([
         entry.entry,
         ...entry.blocks.map((block) =>
           card.buffer.subarray(block * BLOCK_SIZE, (block + 1) * BLOCK_SIZE)
         ),
-      ]),
-    }));
+      ]);
+      return {
+        fileName: dolphinGciFileName(entry.entry),
+        serialBound: serialBoundKind(entry.entry) !== null,
+        portable,
+        buffer: portable ? canonicalizeDolphinGci(gci) : gci,
+      };
+    });
 
 const replaceEntry = (card: ParsedCard, gci: Buffer) => {
   const parsed = parseGci(gci);
-  if (serialBoundName(parsed.entry)) {
-    throw new Error("dolphin_card_serial_bound_save_requires_dolphin_import");
-  }
+  const portableGci = resignDolphinSerialBoundGci(
+    gci,
+    card.buffer.subarray(0, BLOCK_SIZE)
+  );
   const existing = card.entries.find(
     (item) => item.identity === parsed.identity
   );
@@ -258,7 +347,7 @@ const replaceEntry = (card: ParsedCard, gci: Buffer) => {
       available[index + 1] ?? 0xffff,
       batBase + mapOffset(block)
     );
-    gci.copy(
+    portableGci.copy(
       buffer,
       block * BLOCK_SIZE,
       ENTRY_SIZE + index * BLOCK_SIZE,
@@ -325,6 +414,56 @@ export const mergeDolphinRawCard = (
   return merged;
 };
 
+/** Remove only the requested game entries from a shared RAW card image. */
+export const removeDolphinRawCardGcis = (
+  original: Buffer,
+  gameId: string,
+  fileNames: string[]
+) => {
+  const card = parseDolphinRawCard(Buffer.from(original));
+  const requested = new Set(fileNames);
+  if (
+    requested.size !== fileNames.length ||
+    fileNames.some((name) => !/^[a-f0-9]{24}\.gci$/.test(name))
+  ) {
+    throw new Error("dolphin_card_delete_identity_invalid");
+  }
+  const matching = card.entries.filter(
+    (entry) =>
+      entry.gameId === gameId && requested.has(dolphinGciFileName(entry.entry))
+  );
+  if (matching.length !== requested.size) {
+    throw new Error("dolphin_card_delete_entry_missing");
+  }
+  const dirBase = card.dirBlock * BLOCK_SIZE;
+  const batBase = card.batBlock * BLOCK_SIZE;
+  for (const entry of matching) {
+    card.buffer.fill(
+      0xff,
+      dirBase + entry.index * ENTRY_SIZE,
+      dirBase + (entry.index + 1) * ENTRY_SIZE
+    );
+    for (const block of entry.blocks) {
+      card.buffer.writeUInt16BE(0, batBase + mapOffset(block));
+      card.buffer.fill(0, block * BLOCK_SIZE, (block + 1) * BLOCK_SIZE);
+    }
+    card.freeBlocks += entry.blocks.length;
+  }
+  card.buffer.writeUInt16BE(card.freeBlocks, batBase + 6);
+  const updated = withUpdatedMetadata(card);
+  const checked = parseDolphinRawCard(updated);
+  if (
+    checked.entries.some(
+      (entry) =>
+        entry.gameId === gameId &&
+        requested.has(dolphinGciFileName(entry.entry))
+    )
+  ) {
+    throw new Error("dolphin_card_delete_verification_failed");
+  }
+  return updated;
+};
+
 const safeCardFile = async (cardPath: string) => {
   const stat = await fs.lstat(cardPath);
   if (
@@ -353,11 +492,8 @@ export const validateDolphinManualRawCard = async (
   );
   if (!gameIds.size) return false;
   try {
-    const card = await readDolphinRawCard(cardPath);
-    return (
-      card.entries.length === 0 ||
-      card.entries.some((entry) => gameIds.has(entry.gameId))
-    );
+    await readDolphinRawCard(cardPath);
+    return true;
   } catch {
     return false;
   }
@@ -410,6 +546,7 @@ export const applyDolphinRawCardRestore = async (
     backup: string;
     temp: string;
     original: Buffer;
+    prepared: Buffer;
   }[] = [];
   const replaced: typeof pending = [];
   const retainedBackups = new Set<string>();
@@ -424,7 +561,7 @@ export const applyDolphinRawCardRestore = async (
       }
       const backup = `${target}.hydra-backup-${randomUUID()}`;
       const temp = `${target}.hydra-restore-${randomUUID()}`;
-      pending.push({ target, backup, temp, original });
+      pending.push({ target, backup, temp, original, prepared: merged });
       await fs.copyFile(target, backup, constants.COPYFILE_EXCL);
       const handle = await fs.open(temp, "wx", before.mode);
       try {
@@ -450,6 +587,9 @@ export const applyDolphinRawCardRestore = async (
     for (const item of replaced.reverse()) {
       const rollbackTemp = `${item.target}.hydra-rollback-${randomUUID()}`;
       try {
+        if (!(await fs.readFile(item.target)).equals(item.prepared)) {
+          throw new Error("dolphin_card_changed_during_rollback");
+        }
         await fs.copyFile(item.backup, rollbackTemp, constants.COPYFILE_EXCL);
         await fs.rename(rollbackTemp, item.target);
       } catch (rollbackError) {

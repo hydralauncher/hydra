@@ -71,6 +71,16 @@ export interface BigPictureCloudSavePanelProps {
   rpcs3Profile?: CloudSaveV2FileDetails["rpcs3Profile"];
   onSelectRpcs3Profile?: (cloudProfileId: string) => void;
   isBindingRpcs3Profile?: boolean;
+  emulatorDestinations?: CloudSaveV2FileDetails["emulatorDestinations"];
+  onSelectEmulatorDestination?: (
+    rawPath: string,
+    kind: "save" | "state"
+  ) => void;
+  onRemoveEmulatorDestination?: (
+    rawPath: string,
+    kind: "save" | "state"
+  ) => void;
+  isBindingEmulatorDestination?: boolean;
 }
 
 interface BigPictureCloudSaveModalProps extends BigPictureCloudSavePanelProps {
@@ -111,6 +121,10 @@ export function BigPictureCloudSavePanel({
   rpcs3Profile,
   onSelectRpcs3Profile,
   isBindingRpcs3Profile = false,
+  emulatorDestinations,
+  onSelectEmulatorDestination,
+  onRemoveEmulatorDestination,
+  isBindingEmulatorDestination = false,
 }: Readonly<BigPictureCloudSavePanelProps>) {
   const { t } = useTranslation("game_details");
   const { formatDateTime } = useDate();
@@ -221,6 +235,7 @@ export function BigPictureCloudSavePanel({
           disabled={
             isUpdatingAutomaticSync ||
             isSyncing ||
+            isBindingEmulatorDestination ||
             !hasExecutablePath ||
             overview?.isAutomaticSyncEnabled == null
           }
@@ -282,6 +297,7 @@ export function BigPictureCloudSavePanel({
                 variant="secondary"
                 disabled={
                   isBindingRpcs3Profile ||
+                  isBindingEmulatorDestination ||
                   isSyncing ||
                   isGameRunning ||
                   cloudProfileId === rpcs3Profile.linkedCloudProfileId
@@ -295,6 +311,64 @@ export function BigPictureCloudSavePanel({
                   { cloudProfileId }
                 )}
               </Button>
+            ))}
+          </VerticalFocusGroup>
+        </section>
+      )}
+
+      {emulatorDestinations && emulatorDestinations.length > 0 && (
+        <section className="big-picture-cloud-save__toggle-card">
+          <div className="big-picture-cloud-save__copy">
+            <strong>{t("cloud_save_v2_emulator_destinations_title")}</strong>
+          </div>
+          <VerticalFocusGroup regionId="big-picture-cloud-save-destinations">
+            {emulatorDestinations.map((destination, index) => (
+              <div
+                key={JSON.stringify([destination.rawPath, destination.kind])}
+                className="big-picture-cloud-save__copy"
+              >
+                <span>
+                  {t(
+                    destination.kind === "state"
+                      ? "cloud_save_v2_emulator_destination_states"
+                      : "cloud_save_v2_emulator_destination_saves"
+                  )}
+                  : {destination.pathHint ?? destination.rawPath}
+                </span>
+                {destination.status === "unavailable" && (
+                  <span>
+                    {t("cloud_save_v2_emulator_destination_unavailable")}
+                  </span>
+                )}
+                <Button
+                  focusId={`big-picture-cloud-save-destination-${index}`}
+                  variant="secondary"
+                  disabled={
+                    isBindingEmulatorDestination ||
+                    isSyncing ||
+                    isGameRunning ||
+                    (destination.status === "unavailable" &&
+                      !destination.selectedPath)
+                  }
+                  onClick={() =>
+                    destination.selectedPath
+                      ? onRemoveEmulatorDestination?.(
+                          destination.rawPath,
+                          destination.kind
+                        )
+                      : onSelectEmulatorDestination?.(
+                          destination.rawPath,
+                          destination.kind
+                        )
+                  }
+                >
+                  {t(
+                    destination.selectedPath
+                      ? "cloud_save_v2_card_source_remove"
+                      : "cloud_save_v2_emulator_destination_select"
+                  )}
+                </Button>
+              </div>
             ))}
           </VerticalFocusGroup>
         </section>
@@ -401,7 +475,9 @@ export function BigPictureCloudSavePanel({
               variant="primary"
               icon={<CloudArrowUpIcon size={CLOUD_ACTION_ICON_SIZE} />}
               stealFocusOnAppear={stealFocusOnActionAppear}
-              disabled={isLoading || isGameRunning}
+              disabled={
+                isLoading || isGameRunning || isBindingEmulatorDestination
+              }
               onClick={() => onResolveConflict("keep-local")}
               focusNavigationOverrides={{
                 right: {
@@ -416,7 +492,9 @@ export function BigPictureCloudSavePanel({
               focusId={USE_CLOUD_ID}
               variant="primary"
               icon={<CloudArrowDownIcon size={CLOUD_ACTION_ICON_SIZE} />}
-              disabled={isLoading || isGameRunning}
+              disabled={
+                isLoading || isGameRunning || isBindingEmulatorDestination
+              }
               onClick={() => onResolveConflict("keep-remote")}
               focusNavigationOverrides={{
                 left: {
@@ -434,7 +512,9 @@ export function BigPictureCloudSavePanel({
             variant="primary"
             icon={getActionIcon(action.icon)}
             stealFocusOnAppear={stealFocusOnActionAppear}
-            disabled={isLoading || isGameRunning}
+            disabled={
+              isLoading || isGameRunning || isBindingEmulatorDestination
+            }
             onClick={onSync}
           >
             {t(action.labelKey ?? "cloud_save_v2_check_again")}
@@ -463,9 +543,15 @@ export function BigPictureCloudSaveModal({
       title={t("cloud_save_v2_modal_title")}
       description={t("cloud_save_v2_modal_description")}
       onClose={onClose}
-      closeOnBackdrop={!panelProps.isSyncing}
-      closeOnEscape={!panelProps.isSyncing}
-      closeOnB={!panelProps.isSyncing}
+      closeOnBackdrop={
+        !panelProps.isSyncing && !panelProps.isBindingEmulatorDestination
+      }
+      closeOnEscape={
+        !panelProps.isSyncing && !panelProps.isBindingEmulatorDestination
+      }
+      closeOnB={
+        !panelProps.isSyncing && !panelProps.isBindingEmulatorDestination
+      }
       initialFocusId={BIG_PICTURE_CLOUD_SAVE_TOGGLE_BUTTON_ID}
       className="big-picture-cloud-save-modal"
     >

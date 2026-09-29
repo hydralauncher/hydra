@@ -165,6 +165,18 @@ declare global {
       shop: GameShop,
       slot: string
     ) => Promise<void>;
+    selectEmulatorDestination: (
+      objectId: string,
+      shop: GameShop,
+      rawPath: string,
+      kind: "save" | "state"
+    ) => Promise<{ canceled: boolean }>;
+    removeEmulatorDestination: (
+      objectId: string,
+      shop: GameShop,
+      rawPath: string,
+      kind: "save" | "state"
+    ) => Promise<void>;
     createCloudSaveCustomPathRebindApproval: (
       objectId: string,
       shop: GameShop,
@@ -181,7 +193,8 @@ declare global {
     ) => Promise<CloudSaveCustomPathApproval | null>;
     selectCloudSaveCustomPathApproval: (
       approvalId: string,
-      selectedPath?: string
+      selectedPath?: string,
+      selectionMode?: "file" | "dir"
     ) => Promise<SelectCloudSaveCustomPathApprovalResult>;
     confirmCloudSaveCustomPathApproval: (
       approvalId: string

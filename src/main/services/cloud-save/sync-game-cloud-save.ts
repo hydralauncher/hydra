@@ -326,7 +326,9 @@ const executeRemoteSnapshotDeletionSync = async ({
         await deleteLocalSaveTargets(
           analysis.localSnapshotContext,
           deleteLocalEntryIds,
-          assertEnvironmentCurrent
+          assertEnvironmentCurrent,
+          [],
+          analysis.context.game
         );
       }
       await clearCloudSaveLocalState(objectId, shop, customPathStorageKey);
@@ -417,7 +419,8 @@ const executeRestoreOnlySync = async ({
           restoreIds,
           false,
           merge.unresolvedRemoteEntryIds,
-          assertEnvironmentCurrent
+          assertEnvironmentCurrent,
+          analysis.safeMissingEmulatorRestoreEntryIds
         )
       : null;
   if (deleteLocalIds.length > 0) {
@@ -432,7 +435,9 @@ const executeRestoreOnlySync = async ({
     await deleteLocalSaveTargets(
       analysis.localSnapshotContext,
       deleteLocalIds,
-      assertEnvironmentCurrent
+      assertEnvironmentCurrent,
+      [],
+      analysis.context.game
     );
   }
   const finalUnresolvedRemoteEntryIds =
@@ -592,7 +597,8 @@ const executeAppliedSync = async ({
       restoreIds,
       false,
       merge.unresolvedRemoteEntryIds,
-      assertEnvironmentCurrent
+      assertEnvironmentCurrent,
+      analysis.safeMissingEmulatorRestoreEntryIds
     );
     finalUnresolvedRemoteEntryIds = restored.unresolvedRemoteEntryIds;
   }
@@ -601,7 +607,9 @@ const executeAppliedSync = async ({
     await deleteLocalSaveTargets(
       analysis.localSnapshotContext,
       deleteLocalIds,
-      assertEnvironmentCurrent
+      assertEnvironmentCurrent,
+      [],
+      analysis.context.game
     );
   }
 

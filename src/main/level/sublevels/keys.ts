@@ -45,6 +45,7 @@ export const levelKeys = {
   cloudSaveCustomPaths: "cloud-save-custom-paths",
   cloudSaveRpcs3ProfileBindings: "cloud-save-rpcs3-profile-bindings",
   cloudSaveEmulatorCardPaths: "cloud-save-emulator-card-paths",
+  cloudSaveEmulatorDestinations: "cloud-save-emulator-destinations",
   cloudSavePendingDeletions: "cloud-save-pending-deletions",
   steamSyncRun: "steamSyncRun",
 };

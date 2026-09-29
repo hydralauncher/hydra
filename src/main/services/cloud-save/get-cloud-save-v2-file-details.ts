@@ -12,6 +12,14 @@ import { getRemoteSnapshotRestoreManifest } from "./resolve-remote-snapshot-targ
 import { getFirstSyncState } from "./sync-game";
 import { getEmulatorSaveProvider } from "./emulator-save-provider";
 import { getEmulatorCardPathOverrides } from "./emulator-card-path-store";
+import {
+  emulatorDestinationKindForFile,
+  getEmulatorDestinationBinding,
+  getExpectedEmulatorDestination,
+  isSafeExistingEmulatorDestination,
+  isVerifiedEmulatorDestinationBinding,
+} from "./emulator-destination-store";
+import { cloudSaveFileKey } from "./cloud-save-contract";
 import { listRpcs3CloudProfileIds } from "./rpcs3-profile-binding-policy";
 import {
   cloudSaveCustomPathContextFromPathContext,
@@ -106,6 +114,80 @@ export const getCloudSaveV2FileDetails = async (
     getRemoteSnapshotRestoreManifest
   );
   const provider = getEmulatorSaveProvider(analysis.context.game);
+  if (analysis.context.game && provider) {
+    const pending = new Set(analysis.merge.unresolvedRemoteEntryIds);
+    const grouped = new Map<
+      string,
+      {
+        rawPath: string;
+        kind: "save" | "state";
+        relativePath: string;
+        fileCount: number;
+        needsDestination: boolean;
+      }
+    >();
+    for (const file of analysis.remoteManifest?.files ?? []) {
+      const kind = emulatorDestinationKindForFile(
+        file.rawPath,
+        file.relativePath
+      );
+      if (!kind) continue;
+      const key = JSON.stringify([file.rawPath, kind]);
+      const group = grouped.get(key) ?? {
+        rawPath: file.rawPath,
+        kind,
+        relativePath: file.relativePath,
+        fileCount: 0,
+        needsDestination: false,
+      };
+      group.fileCount += 1;
+      group.needsDestination ||= pending.has(cloudSaveFileKey(file));
+      grouped.set(key, group);
+    }
+    details.emulatorDestinations = (
+      await Promise.all(
+        [...grouped.values()].map(async (group) => {
+          const selectedPath = await getEmulatorDestinationBinding(
+            analysis.context.game!,
+            group.rawPath,
+            group.kind
+          ).catch(() => null);
+          if (!group.needsDestination && !selectedPath) return null;
+          const pathHint = await getExpectedEmulatorDestination(
+            analysis.context.game!,
+            group.rawPath,
+            group.kind,
+            group.relativePath
+          ).catch(() => null);
+          const available =
+            pathHint !== null &&
+            (await isSafeExistingEmulatorDestination(pathHint));
+          const verified =
+            available &&
+            selectedPath !== null &&
+            (await isVerifiedEmulatorDestinationBinding(
+              analysis.context.game!,
+              group.rawPath,
+              group.kind,
+              group.relativePath,
+              pathHint!
+            ).catch(() => false));
+          return {
+            rawPath: group.rawPath,
+            kind: group.kind,
+            pathHint,
+            selectedPath,
+            fileCount: group.fileCount,
+            status: verified
+              ? ("bound" as const)
+              : available
+                ? ("pending" as const)
+                : ("unavailable" as const),
+          };
+        })
+      )
+    ).filter((item) => item !== null);
+  }
   if (
     analysis.context.game &&
     (provider === "duckstation" ||

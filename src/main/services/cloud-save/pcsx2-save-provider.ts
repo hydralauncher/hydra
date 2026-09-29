@@ -71,7 +71,7 @@ const configCandidates = (executablePath: string | null) => [
   ...pcsx2ConfigCandidates(executablePath),
 ];
 
-const loadConfig = async (): Promise<Config | null> => {
+export const loadPcsx2SaveConfig = async (): Promise<Config | null> => {
   const { getEmulatorConfig } = await import(
     "../emulators/emulators-repository.js"
   );
@@ -96,6 +96,8 @@ const loadConfig = async (): Promise<Config | null> => {
   };
 };
 
+const loadConfig = loadPcsx2SaveConfig;
+
 const slots = [
   "1",
   "2",
@@ -118,12 +120,13 @@ const slotEnabled = (config: Config, slot: string) => {
 };
 
 const cardPath = (
-  config: Config,
+  config: Config | null,
   slot: string,
   overrides: ReadonlyMap<string, string> = new Map()
 ) => {
   const override = overrides.get(slot);
   if (override) return override;
+  if (!config) return null;
   if (!slotEnabled(config, slot)) return null;
   const configuredName = config.get("MemoryCards", `${slotKey(slot)}_Filename`);
   if (!configuredName && slot !== "1" && slot !== "2") return null;
@@ -174,7 +177,9 @@ export const getPcsx2SaveEnvironmentKey = async (_game: Game) => {
         slots.map((slot) => [slot, cardPath(config, slot)]),
         overrides,
       ])
-    : "pcsx2-config-unresolved";
+    : overrides.length
+      ? JSON.stringify(["pcsx2-config-unresolved", overrides])
+      : "pcsx2-config-unresolved";
 };
 
 const addFile = (
@@ -254,15 +259,21 @@ export const isPcsx2CardRawPath = (rawPath: string) =>
 
 export const resolvePcsx2CardTarget = async (
   game: Game,
-  file: RestoreManifestFile
+  file: RestoreManifestFile,
+  options: {
+    config?: Pcsx2SaveConfig | null;
+    overrides?: ReadonlyMap<string, string>;
+  } = {}
 ) => {
   const parsed = parseCard(file.rawPath);
   if (!parsed || !serialsForGame(game).has(parsed.serial)) return null;
-  const config = await loadConfig();
-  if (!config) return null;
-  const overrides = new Map(
-    (await readOverrides(game)).map((item) => [item.slot, item.path])
-  );
+  const config =
+    options.config === undefined
+      ? await loadConfig().catch(() => null)
+      : options.config;
+  const overrides =
+    options.overrides ??
+    new Map((await readOverrides(game)).map((item) => [item.slot, item.path]));
   const target = cardPath(config, parsed.slot, overrides);
   if (!target || !(await isRegularFile(target))) return null;
   return target;
@@ -307,7 +318,7 @@ export const getPcsx2GameSaveFileFilter = async (game: Game) => {
 
 export const scanPcsx2Saves = async (
   context: EmulatorProviderContext,
-  config: Pcsx2SaveConfig,
+  config: Pcsx2SaveConfig | null,
   overrides: ReadonlyMap<string, string> = new Map(),
   privateRoot?: string
 ): Promise<EmulatorProviderDiscovery> => {
@@ -423,6 +434,7 @@ export const scanPcsx2Saves = async (
       }
     }
     const stateRawPath = `<emulator>/pcsx2-state/${serial}`;
+    if (!config) continue;
     const entries = await fs
       .readdir(config.statesDir, { withFileTypes: true })
       .catch(() => null);
@@ -463,17 +475,16 @@ export const pcsx2SaveProvider: EmulatorProvider = {
     const overrides = new Map(
       (await readOverrides(context.game)).map((item) => [item.slot, item.path])
     );
-    return config
-      ? scanPcsx2Saves(context, config, overrides)
-      : {
-          files: [],
-          coverage: [unresolvedCoverage("pcsx2", "pcsx2-config-unresolved")],
-          revision: "pcsx2-v1",
-        };
+    const discovery = await scanPcsx2Saves(context, config, overrides);
+    if (!config) {
+      discovery.coverage.push(
+        unresolvedCoverage("pcsx2", "pcsx2-config-unresolved")
+      );
+    }
+    return discovery;
   },
   async restoreRules(game, files) {
     const config = await loadConfig().catch(() => null);
-    if (!config) return new Map();
     const overrides = new Map(
       (await readOverrides(game)).map((item) => [item.slot, item.path])
     );
@@ -525,6 +536,7 @@ export const pcsx2SaveProvider: EmulatorProvider = {
       }
       const state = STATE_PATH.exec(file.rawPath);
       if (
+        !config ||
         !state ||
         !serials.has(state[1]) ||
         !stateName(file.relativePath, state[1]) ||

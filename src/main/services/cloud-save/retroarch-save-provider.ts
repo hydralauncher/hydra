@@ -260,7 +260,7 @@ export const getRetroArchGameSaveFileFilter = async (game: Game) => {
 export const isRetroArchGameSaveFile = async (game: Game, filePath: string) =>
   (await getRetroArchGameSaveFileFilter(game))(filePath);
 
-const locationsForGame = async (game: Game) => {
+export const locationsForGame = async (game: Game) => {
   const platform = getCloudSaveRetroArchPlatform(game.shop, game.platform);
   if (!platform) throw new Error("cloud_save_retroarch_platform_unknown");
   const emulator = await getRetroArchConfig();

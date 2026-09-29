@@ -342,6 +342,30 @@ class Ps2CardWriter {
     await this.freeChain(old.cluster);
   }
 
+  async removeFolder(folderName: string): Promise<void> {
+    const rootFirst = await this.readCluster(this.abs(this.sb.rootDirCluster));
+    const rootCount = parseDirEntry(rootFirst, 0).length;
+    const { entries, chain } = await this.readDirEntries(
+      this.sb.rootDirCluster,
+      rootCount
+    );
+    const matches = entries.flatMap((entry, index) =>
+      entry.exists && entry.isDir && entry.name === folderName ? [index] : []
+    );
+    if (matches.length !== 1) {
+      throw new Error("cloud_save_ps2_card_save_ambiguous");
+    }
+    await this.freeExistingFolder(entries[matches[0]]);
+    await this.writeRootEntry(chain, matches[0], {
+      mode: 0,
+      length: 0,
+      cluster: 0,
+      name: "",
+      createdRaw: Buffer.alloc(8),
+      modifiedRaw: Buffer.alloc(8),
+    });
+  }
+
   private async writeFolderDirectory(
     psu: PsuContents,
     targetIndex: number,
@@ -446,9 +470,17 @@ class Ps2CardWriter {
 
     // A brand-new entry that lands past the current root count may need the root
     // directory itself to grow by one cluster.
-    const targetIndex = existingIdx === -1 ? rootCount : existingIdx;
-    const needsRootGrowth =
-      existingIdx === -1 && targetIndex % perCluster === 0;
+    const reusableIdx = rootEntries.findIndex(
+      (entry, index) => index >= 2 && entry.mode === 0 && !entry.name
+    );
+    const targetIndex =
+      existingIdx !== -1
+        ? existingIdx
+        : reusableIdx !== -1
+          ? reusableIdx
+          : rootCount;
+    const isNewRootEntry = targetIndex === rootCount;
+    const needsRootGrowth = isNewRootEntry && targetIndex % perCluster === 0;
 
     const need = dirClusters + totalFileClusters + (needsRootGrowth ? 1 : 0);
     const free = await this.findFreeClusters(need);
@@ -493,7 +525,7 @@ class Ps2CardWriter {
       createdRaw: psu.folderCreatedRaw,
       modifiedRaw: psu.folderModifiedRaw,
     });
-    if (existingIdx === -1) {
+    if (isNewRootEntry) {
       await this.setRootCount(effectiveRootChain, rootCount + 1);
     }
   }
@@ -521,6 +553,23 @@ const verifyImportedFolder = async (
     if (!got) return false;
     return got.data.length === f.length && got.data.equals(f.data);
   });
+};
+
+/** Mutates a working copy of a card. Callers must provide backup and rollback. */
+export const removePsuFromCard = async (
+  cardFilePath: string,
+  folderName: string
+): Promise<void> => {
+  const writer = await Ps2CardWriter.open(cardFilePath);
+  if (!writer) throw new Error("cloud_save_ps2_card_invalid");
+  try {
+    await writer.removeFolder(folderName);
+  } finally {
+    await writer.close();
+  }
+  if (await readSaveContents(cardFilePath, folderName)) {
+    throw new Error("cloud_save_ps2_card_delete_verification_failed");
+  }
 };
 
 /**

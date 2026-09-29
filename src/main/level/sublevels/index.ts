@@ -23,4 +23,5 @@ export * from "./cloud-save-automatic-sync-settings";
 export * from "./cloud-save-custom-paths";
 export * from "./cloud-save-rpcs3-profile-bindings";
 export * from "./cloud-save-emulator-card-paths";
+export * from "./cloud-save-emulator-destinations";
 export * from "./cloud-save-pending-deletions";

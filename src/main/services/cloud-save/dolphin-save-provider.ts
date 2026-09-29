@@ -1,3 +1,4 @@
+import { randomUUID } from "node:crypto";
 import { promises as fs } from "node:fs";
 import os from "node:os";
 import path from "node:path";
@@ -21,6 +22,7 @@ import {
   safeRestorePath,
 } from "./emulator-provider-fs.js";
 import {
+  canonicalizeDolphinGci,
   dolphinRawCardPath,
   extractDolphinRawCardGame,
   parseDolphinRawCardPath,
@@ -38,10 +40,28 @@ const GCI_PATH = /^<emulator>\/dolphin-gci\/([AB])\/([A-Z0-9]{6})$/;
 const WII_PATH = /^<emulator>\/dolphin-wii\/([a-f0-9]{16})$/;
 const STATE_PATH = /^<emulator>\/dolphin-state\/([A-Z0-9]{6})$/;
 const REGIONS = ["USA", "JAP", "JPN", "EUR", "DEV"] as const;
+let exportCacheRootPromise: Promise<string> | null = null;
+
+const writeExportCacheFile = async (segments: string[], content: Buffer) => {
+  exportCacheRootPromise ??= fs.mkdtemp(
+    path.join(os.tmpdir(), "hydra-dolphin-save-export-")
+  );
+  const root = await exportCacheRootPromise;
+  const target = path.join(root, ...segments);
+  await fs.mkdir(path.dirname(target), { recursive: true });
+  const temporary = `${target}.${randomUUID()}.tmp`;
+  try {
+    await fs.writeFile(temporary, content, { flag: "wx", mode: 0o600 });
+    await fs.rename(temporary, target);
+  } finally {
+    await fs.rm(temporary, { force: true }).catch(() => undefined);
+  }
+  return target;
+};
 
 export { validateDolphinManualRawCard };
 
-const gameIds = (game: Game) => [
+export const gameIds = (game: Game) => [
   ...new Set(
     (game.discs ?? [])
       .map((disc) => disc.sku?.replace(/[^A-Za-z0-9]/g, "").toUpperCase())
@@ -166,20 +186,33 @@ const replaceRegionInPath = (value: string, region: string) => {
     : path.join(value, region);
 };
 
+const configuredGciRoot = (location: DolphinLocation, slot: "A" | "B") => {
+  const custom =
+    location.get("Core", `GCIFolder${slot}PathOverride`) ??
+    location.get("Core", `GCIFolder${slot}Path`);
+  return custom ? configuredPath(location.userDir, custom) : null;
+};
+
 const gciRoot = (
   location: DolphinLocation,
   slot: "A" | "B",
   region: string
 ) => {
-  const custom =
-    location.get("Core", `GCIFolder${slot}PathOverride`) ??
-    location.get("Core", `GCIFolder${slot}Path`);
+  const custom = configuredGciRoot(location, slot);
   if (!custom) return path.join(location.userDir, "GC", region, `Card ${slot}`);
-  return replaceRegionInPath(
-    configuredPath(location.userDir, custom),
-    region === "JAP" ? "JPN" : region
-  );
+  return replaceRegionInPath(custom, region === "JAP" ? "JPN" : region);
 };
+
+export const dolphinSlotEnvironmentSignature = (
+  location: DolphinLocation,
+  slot: "A" | "B"
+) => [
+  slot,
+  slotMode(location, slot),
+  location.get("Core", `GCIFolder${slot}PathOverride`),
+  location.get("Core", `GCIFolder${slot}Path`),
+  location.get("Core", `Memcard${slot}Path`),
+];
 
 const rawCardCandidates = async (
   location: DolphinLocation,
@@ -365,25 +398,19 @@ export const discoverDolphinRawCard = async (
   try {
     const card = await readDolphinRawCard(cardPath);
     const exports = extractDolphinRawCardGame(card, gameId);
-    const cache = path.join(
-      os.tmpdir(),
-      "hydra-dolphin-card-v2",
-      emulatorPathHash(cardPath),
-      slot,
-      gameId
-    );
-    await fs.mkdir(cache, { recursive: true });
-    for (const file of exports.filter((item) => !item.serialBound)) {
-      const absolutePath = path.join(cache, file.fileName);
-      await fs.writeFile(absolutePath, file.buffer);
-      addFile(result, context, rawPath, absolutePath, file.fileName, cache);
+    for (const file of exports.filter((item) => item.portable)) {
+      const absolutePath = await writeExportCacheFile(
+        ["raw", emulatorPathHash(cardPath), slot, gameId, file.fileName],
+        file.buffer
+      );
+      addFile(result, context, rawPath, absolutePath, file.fileName, cardPath);
     }
     result.coverage.push(
       emulatorCoverage(
         rawPath,
         context.variantId,
-        !exports.some((file) => file.serialBound),
-        "dolphin-raw-card-serial-bound-save"
+        !exports.some((file) => !file.portable),
+        "dolphin-raw-card-nonportable-save"
       )
     );
   } catch {
@@ -401,7 +428,7 @@ export const discoverDolphinRawCard = async (
 
 export const scanDolphinSaveRoot = async (
   context: EmulatorProviderContext,
-  location: DolphinLocation,
+  location: DolphinLocation | null,
   manualCards: { path: string; slot: string }[] = []
 ): Promise<EmulatorProviderDiscovery> => {
   const result: EmulatorProviderDiscovery = {
@@ -413,6 +440,26 @@ export const scanDolphinSaveRoot = async (
   if (!ids.length) {
     result.coverage.push(
       emulatorUnresolvedCoverage("dolphin", "dolphin-game-id-unresolved")
+    );
+    return result;
+  }
+  if (!location) {
+    for (const id of ids) {
+      for (const slot of ["A", "B"] as const) {
+        const manual = manualCards.find((item) => item.slot === slot);
+        if (!manual) continue;
+        const discovered = await discoverDolphinRawCard(
+          context,
+          manual.path,
+          slot,
+          id
+        );
+        result.files.push(...discovered.files);
+        result.coverage.push(...discovered.coverage);
+      }
+    }
+    result.coverage.push(
+      emulatorUnresolvedCoverage("dolphin", "dolphin-user-directory-unresolved")
     );
     return result;
   }
@@ -555,7 +602,18 @@ export const scanDolphinSaveRoot = async (
           const absolutePath = path.join(root, entry.name);
           const actualId = await readGci(absolutePath).catch(() => null);
           if (actualId === id) {
-            addFile(result, context, gciPath, absolutePath, entry.name, root);
+            try {
+              const canonical = canonicalizeDolphinGci(
+                await fs.readFile(absolutePath)
+              );
+              const cachedPath = await writeExportCacheFile(
+                ["gci", emulatorPathHash(root), slot, id, entry.name],
+                canonical
+              );
+              addFile(result, context, gciPath, cachedPath, entry.name, root);
+            } catch {
+              complete = false;
+            }
           } else if (!actualId) complete = false;
         }
         result.coverage.push(
@@ -630,17 +688,16 @@ export const getDolphinSaveEnvironmentKey = async (game: Game) => {
         "dolphin-v1",
         location.userDir,
         location.configPath,
-        (["A", "B"] as const).map((slot) => [
-          slot,
-          slotMode(location, slot),
-          location.get("Core", `GCIFolder${slot}Path`),
-          location.get("Core", `Memcard${slot}Path`),
-        ]),
+        (["A", "B"] as const).map((slot) =>
+          dolphinSlotEnvironmentSignature(location, slot)
+        ),
         location.get("General", "NANDRootPath"),
         gameSettings,
         overrides,
       ])
-    : "dolphin-save-root-unresolved";
+    : overrides.length
+      ? JSON.stringify(["dolphin-save-root-unresolved", overrides])
+      : "dolphin-save-root-unresolved";
 };
 
 export const getDolphinGameSaveFileFilter =
@@ -712,11 +769,39 @@ export const resolveDolphinRawCardTarget = async (
 export const resolveDolphinRestoreRules = async (
   game: Game,
   files: RestoreManifestFile[],
-  location: DolphinLocation,
+  location: DolphinLocation | null,
   manualCards: { path: string; slot: string }[] = []
 ): Promise<Map<string, CloudSaveRule>> => {
   const result = new Map<string, CloudSaveRule>();
   const ids = gameIds(game);
+  if (!location) {
+    for (const file of files) {
+      const raw = parseDolphinRawCardPath(file.rawPath);
+      if (
+        !raw ||
+        !ids.includes(raw.gameId) ||
+        !/^[a-f0-9]{24}\.gci$/.test(file.relativePath) ||
+        !manualCards.some((item) => item.slot === raw.slot)
+      ) {
+        continue;
+      }
+      const target = manualCards.find((item) => item.slot === raw.slot)!.path;
+      const root = path.join(
+        os.tmpdir(),
+        "hydra-dolphin-card-v2-restore",
+        emulatorPathHash(target),
+        raw.slot,
+        raw.gameId
+      );
+      if (await safeRestorePath(root, [file.relativePath])) {
+        result.set(
+          emulatorSaveFileKey(file),
+          emulatorRestoreRule(file.rawPath, root, "dir")
+        );
+      }
+    }
+    return result;
+  }
   const stateNames = new Set(
     files
       .filter((file) => STATE_PATH.test(file.rawPath))
@@ -747,7 +832,13 @@ export const resolveDolphinRestoreRules = async (
     ) {
       const region = regionForGame(gci[2]);
       if (!region) continue;
-      const root = gciRoot(gameLocation, gci[1] as "A" | "B", region);
+      const slot = gci[1] as "A" | "B";
+      const customRoot = configuredGciRoot(gameLocation, slot);
+      if (customRoot) {
+        const stat = await lstatIfExists(customRoot).catch(() => null);
+        if (!stat?.isDirectory() || stat.isSymbolicLink()) continue;
+      }
+      const root = gciRoot(gameLocation, slot, region);
       if (!(await safeRestorePath(root, segments))) continue;
       const existing = await lstatIfExists(path.join(root, segments[0])).catch(
         () => undefined
@@ -848,17 +939,6 @@ export const resolveDolphinRestoreRules = async (
 export const dolphinSaveProvider: EmulatorProvider = {
   async discover(context) {
     const location = await resolveDolphinSaveLocation().catch(() => null);
-    if (!location)
-      return {
-        files: [],
-        coverage: [
-          emulatorUnresolvedCoverage(
-            "dolphin",
-            "dolphin-user-directory-unresolved"
-          ),
-        ],
-        revision: "dolphin-v1",
-      };
     const { getEmulatorCardPathOverrides } = await import(
       "./emulator-card-path-store.js"
     );
@@ -870,7 +950,6 @@ export const dolphinSaveProvider: EmulatorProvider = {
   },
   async restoreRules(game, files) {
     const location = await resolveDolphinSaveLocation().catch(() => null);
-    if (!location) return new Map();
     const { getEmulatorCardPathOverrides } = await import(
       "./emulator-card-path-store.js"
     );

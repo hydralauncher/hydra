@@ -13,6 +13,7 @@ import type {
 
 import {
   importMcsIntoCard,
+  buildMcsBuffer,
   listPs1Saves,
   readPs1SaveContents,
   PS1_CARD_BYTES,
@@ -27,16 +28,22 @@ import {
   readSaveContents,
 } from "../emulators/ps2-memory-card/index.js";
 import {
+  resolveDuckstationCardTarget,
   scanDuckstationSaves,
   validateDuckstationManualCardForGame,
   type DuckstationSaveConfig,
 } from "./duckstation-save-provider.js";
 import {
+  resolvePcsx2CardTarget,
   scanPcsx2Saves,
   validatePcsx2ManualCardForGame,
   type Pcsx2SaveConfig,
 } from "./pcsx2-save-provider.js";
 import { applyPlaystationCardRestore } from "./playstation-card-restore.js";
+import {
+  deleteResolvedEmulatorCardSaves,
+  type CardItem,
+} from "./delete-emulator-card-saves.js";
 import { mergeUserVariantSnapshots } from "./merge-user-variant-snapshots.js";
 import { sha256 } from "./playstation-save-common.js";
 
@@ -134,6 +141,154 @@ const psu = (folderName: string, value: number, size = 4) => {
 };
 
 describe("PlayStation Cloud Save V2", () => {
+  it("deletes one PS1 card entry and restores the card if later deletion fails", async () => {
+    const root = await fs.mkdtemp(path.join(os.tmpdir(), "hydra-ps1-delete-"));
+    try {
+      const card = path.join(root, "shared.mcd");
+      await createPs1Card(card);
+      const own = "BASCUS-94163OWN";
+      const other = "BASCUS-99999OTHER";
+      assert.equal((await importMcsIntoCard(card, mcs(own, 1))).ok, true);
+      assert.equal((await importMcsIntoCard(card, mcs(other, 2))).ok, true);
+      const current = await readPs1SaveContents(card, own);
+      assert.ok(current);
+      const bytes = buildMcsBuffer(current);
+      const source = {
+        rawPath: "<emulator>/duckstation-card/SCUS-94163/1",
+        relativePath: `${sha256(own)}.mcs`,
+      } as CardItem["source"];
+      const item: CardItem = { kind: "ps1", target: card, source, bytes };
+      const before = await fs.readFile(card);
+      await assert.rejects(
+        deleteResolvedEmulatorCardSaves([item], async () => {
+          throw new Error("native deletion failed");
+        }),
+        /native deletion failed/
+      );
+      assert.deepEqual(await fs.readFile(card), before);
+      await deleteResolvedEmulatorCardSaves([item], async () => undefined);
+      assert.equal(await readPs1SaveContents(card, own), null);
+      assert.equal(
+        (await readPs1SaveContents(card, other))?.blocks[0].at(0),
+        2
+      );
+    } finally {
+      await fs.rm(root, { recursive: true, force: true });
+    }
+  });
+
+  it("deletes one PS2 image-card folder without changing another save", async () => {
+    const root = await fs.mkdtemp(path.join(os.tmpdir(), "hydra-ps2-delete-"));
+    try {
+      const card = path.join(root, "Mcd001.ps2");
+      await createPs2Card(card);
+      const own = "BASLUS-20294SAVE";
+      const other = "BASLUS-99999SAVE";
+      assert.equal((await importPsuIntoCard(card, psu(own, 1))).ok, true);
+      assert.equal((await importPsuIntoCard(card, psu(other, 2))).ok, true);
+      const current = await readSaveContents(card, own);
+      assert.ok(current);
+      const bytes = buildPsuBuffer(current);
+      const source = {
+        rawPath: "<emulator>/pcsx2-card/SLUS-20294/1",
+        relativePath: `${sha256(own)}.psu`,
+      } as CardItem["source"];
+      const item: CardItem = { kind: "ps2", target: card, source, bytes };
+      const before = await fs.readFile(card);
+      await assert.rejects(
+        deleteResolvedEmulatorCardSaves([item], async () => {
+          throw new Error("native deletion failed");
+        }),
+        /native deletion failed/
+      );
+      assert.deepEqual(await fs.readFile(card), before);
+      await deleteResolvedEmulatorCardSaves([item], async () => undefined);
+      assert.equal(await readSaveContents(card, own), null);
+      assert.equal(
+        (await readSaveContents(card, other))?.files[0].data.at(0),
+        2
+      );
+      assert.equal((await importPsuIntoCard(card, bytes)).ok, true);
+      assert.equal((await readSaveContents(card, own))?.files[0].data.at(0), 1);
+    } finally {
+      await fs.rm(root, { recursive: true, force: true });
+    }
+  });
+  it("scans and resolves manually selected image cards without emulator config", async () => {
+    const root = await fs.mkdtemp(
+      path.join(os.tmpdir(), "hydra-ps-manual-no-config-")
+    );
+    try {
+      const ps1 = path.join(root, "shared.mcd");
+      const ps2 = path.join(root, "shared.ps2");
+      await createPs1Card(ps1);
+      await createPs2Card(ps2);
+      assert.equal(
+        (await importMcsIntoCard(ps1, mcs("BASCUS-94163OWN", 1))).ok,
+        true
+      );
+      assert.equal(
+        (await importMcsIntoCard(ps1, mcs("BASCUS-99999OTHER", 2))).ok,
+        true
+      );
+      assert.equal(
+        (await importPsuIntoCard(ps2, psu("BASLUS-20294SAVE", 1))).ok,
+        true
+      );
+      assert.equal(
+        (await importPsuIntoCard(ps2, psu("BASLUS-99999SAVE", 2))).ok,
+        true
+      );
+
+      const ps1Overrides = new Map([["1", ps1]]);
+      const ps2Overrides = new Map([["1", ps2]]);
+      const ps1Result = await scanDuckstationSaves(
+        context(game),
+        null,
+        ps1Overrides,
+        root
+      );
+      const ps2Result = await scanPcsx2Saves(
+        context(ps2Game),
+        null,
+        ps2Overrides,
+        root
+      );
+      assert.deepEqual(
+        ps1Result.files.map((file) => file.relativePath),
+        [`${sha256("BASCUS-94163OWN")}.mcs`]
+      );
+      assert.deepEqual(
+        ps2Result.files.map((file) => file.relativePath),
+        [`${sha256("BASLUS-20294SAVE")}.psu`]
+      );
+      assert.equal(
+        await resolveDuckstationCardTarget(
+          game,
+          manifestFile(
+            "<emulator>/duckstation-card/SCUS-94163/1",
+            ps1Result.files[0].relativePath
+          ),
+          { config: null, overrides: ps1Overrides }
+        ),
+        ps1
+      );
+      assert.equal(
+        await resolvePcsx2CardTarget(
+          ps2Game,
+          manifestFile(
+            "<emulator>/pcsx2-card/SLUS-20294/1",
+            ps2Result.files[0].relativePath
+          ),
+          { config: null, overrides: ps2Overrides }
+        ),
+        ps2
+      );
+    } finally {
+      await fs.rm(root, { recursive: true, force: true });
+    }
+  });
+
   it("accepts formatted empty and shared cards as manual restore destinations", async () => {
     const root = await fs.mkdtemp(
       path.join(os.tmpdir(), "hydra-ps-card-bind-")
@@ -501,6 +656,79 @@ describe("PlayStation Cloud Save V2", () => {
       assert.deepEqual(await fs.readFile(card), original);
       assert.equal((await listPs1Saves(card))?.saves.length, 2);
     } finally {
+      await fs.rm(root, { recursive: true, force: true });
+    }
+  });
+
+  it("does not overwrite a card changed between PlayStation imports", async () => {
+    const root = await fs.mkdtemp(
+      path.join(os.tmpdir(), "hydra-ps1-restore-race-")
+    );
+    const originalRename = fs.rename;
+    let retainedBackup: string | null = null;
+    try {
+      const card = path.join(root, "shared.mcd");
+      await createPs1Card(card);
+      const own = "BASCUS-94163OWN";
+      const next = "BASCUS-94163NEXT";
+      assert.equal((await importMcsIntoCard(card, mcs(own, 1))).ok, true);
+      const first = path.join(root, `${sha256(own)}.mcs`);
+      const second = path.join(root, `${sha256(next)}.mcs`);
+      await fs.writeFile(first, mcs(own, 3));
+      await fs.writeFile(second, mcs(next, 4));
+      let external: Buffer | null = null;
+      fs.rename = async (from, to) => {
+        await originalRename(from, to);
+        if (
+          !external &&
+          String(from).includes(".hydra-import-") &&
+          to === card
+        ) {
+          external = await fs.readFile(card);
+          external[PS1_BLOCK_BYTES] ^= 0x5a;
+          await fs.writeFile(card, external);
+        }
+      };
+      await assert.rejects(
+        applyPlaystationCardRestore(game, [
+          {
+            file: manifestFile(
+              "<emulator>/duckstation-card/SCUS-94163/1",
+              path.basename(first)
+            ),
+            stagedPath: first,
+            targetPath: card,
+          },
+          {
+            file: manifestFile(
+              "<emulator>/duckstation-card/SCUS-94163/1",
+              path.basename(second)
+            ),
+            stagedPath: second,
+            targetPath: card,
+          },
+        ]),
+        (error: unknown) => {
+          assert.ok(error instanceof Error);
+          assert.match(
+            error.message,
+            /cloud_save_memory_card_rollback_failed:/
+          );
+          retainedBackup = error.message.split(":").slice(1).join(":");
+          return true;
+        }
+      );
+      assert.ok(external);
+      assert.deepEqual(await fs.readFile(card), external);
+      assert.ok(retainedBackup);
+      await fs.access(retainedBackup);
+    } finally {
+      fs.rename = originalRename;
+      if (retainedBackup)
+        await fs.rm(path.dirname(retainedBackup), {
+          recursive: true,
+          force: true,
+        });
       await fs.rm(root, { recursive: true, force: true });
     }
   });

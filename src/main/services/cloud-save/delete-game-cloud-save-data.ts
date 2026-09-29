@@ -83,7 +83,8 @@ export const deleteGameCloudSaveData = async (
                         analysis.environmentId
                       );
                     },
-                    cleanupRootPaths
+                    cleanupRootPaths,
+                    analysis.context.game
                   );
                 },
                 clearLocalState: () =>

@@ -676,15 +676,18 @@ export function CloudSaveV2Provider({
     if (resolution) void runCloudSaveOperation(resolution);
   };
 
-  const handleSelectCustomPathApproval = async () => {
+  const handleSelectCustomPathApproval = async (mode: "file" | "dir") => {
     const approvalId = customPathApproval?.id;
     if (!approvalId || isSelectingCustomPath || isConfirmingCustomPath) return;
 
     setIsSelectingCustomPath(true);
     setCustomPathApprovalError(null);
     try {
-      const result =
-        await window.electron.selectCloudSaveCustomPathApproval(approvalId);
+      const result = await window.electron.selectCloudSaveCustomPathApproval(
+        approvalId,
+        undefined,
+        mode
+      );
       if (!result.canceled) setCustomPathApproval(result.approval);
     } catch (error) {
       setCustomPathApprovalError(getCustomPathApprovalError(error));
@@ -953,7 +956,7 @@ export function CloudSaveV2Provider({
         errorMessage={
           customPathApprovalErrorKey ? t(customPathApprovalErrorKey) : undefined
         }
-        onSelectPath={() => void handleSelectCustomPathApproval()}
+        onSelectPath={(mode) => void handleSelectCustomPathApproval(mode)}
         onConfirm={() => void handleConfirmCustomPathApproval()}
         onClose={handleCloseCustomPathApproval}
       />

@@ -18,6 +18,8 @@ import type {
   MemoryCardSaveRecord,
 } from "@types";
 
+import { canUploadLegacyEmulationSave } from "./legacy-upload-visibility";
+
 interface Props {
   config: EmulatorConfig;
   onUploaded: () => void;
@@ -194,7 +196,10 @@ export function LocalEmulatorSavesSection({
                   </span>
                 </div>
 
-                {hasActiveSubscription && (
+                {canUploadLegacyEmulationSave(
+                  platform,
+                  hasActiveSubscription
+                ) && (
                   <DropdownMenu
                     align="end"
                     items={[
