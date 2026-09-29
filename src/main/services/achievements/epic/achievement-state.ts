@@ -29,6 +29,12 @@ const ALAN_WAKE_2_OBJECT_ID =
 const MAX_FILE_BYTES = 2 * 1024 * 1024;
 const MAX_CONFIG_BYTES = 64 * 1024;
 const MAX_JSON_ROWS = 10_000;
+const MAX_NEMIRTINGAS_SAVEPATH_LENGTH = 4096;
+const ALAN_WAKE_2_DISPLAY_NAME = "achievements";
+const ALAN_WAKE_2_DISPLAY_NAME_BYTES = Buffer.byteLength(
+  ALAN_WAKE_2_DISPLAY_NAME,
+  "ascii"
+);
 const NORTHLIGHT_HEADER_BYTES = 8;
 const NORTHLIGHT_RECORD_BYTES = 16;
 
@@ -104,10 +110,13 @@ async function findAlanWake2Candidates(
       achievementRoot,
       "--containerDisplayName.chunk"
     );
-    if (!(await isFile(filePath)) || !(await isFile(displayNamePath, 12)))
+    if (
+      !(await isFile(filePath)) ||
+      !(await isFile(displayNamePath, ALAN_WAKE_2_DISPLAY_NAME_BYTES))
+    )
       continue;
     const displayName = await readFile(displayNamePath).catch(() => null);
-    if (displayName?.toString("ascii") !== "achievements") continue;
+    if (displayName?.toString("ascii") !== ALAN_WAKE_2_DISPLAY_NAME) continue;
     candidates.push({
       filePath,
       source: "alan-wake-2",
@@ -259,7 +268,10 @@ export async function getNemirtingasSaveRoot(
     }
     const savepath = (parsed as Record<string, unknown>).savepath;
     if (savepath === undefined || savepath === "appdata") return undefined;
-    if (typeof savepath !== "string" || savepath.length > 4096) {
+    if (
+      typeof savepath !== "string" ||
+      savepath.length > MAX_NEMIRTINGAS_SAVEPATH_LENGTH
+    ) {
       onWarning("Invalid Nemirtingas savepath; skipping emulator state");
       return null;
     }

@@ -29,13 +29,6 @@ const EPIC_METADATA_RETRY_MS = 60_000;
 const epicMetadataRetryAt = new Map<string, number>();
 const epicFirstObservedUnlocks = new Map<string, Map<string, number>>();
 const epicSilentExternalIds = new Map<string, Set<string>>();
-const epicAwaitingBaselineFiles = new Map<string, Set<string>>();
-
-const markEpicFileAwaitingBaseline = (gameKey: string, filePath: string) => {
-  const files = epicAwaitingBaselineFiles.get(gameKey) ?? new Set<string>();
-  files.add(filePath);
-  epicAwaitingBaselineFiles.set(gameKey, files);
-};
 
 const resolveGameAchievementUnlocks = async (
   game: Game,
@@ -253,18 +246,9 @@ const processChangedAchievementFiles = async (
     for (const file of filesToParse) {
       const parsed = parseAchievementFile(file.filePath, file.type);
       if (parsed === null) {
+        // A failed read supplies no IDs to silence on the next valid snapshot.
         fileStats.set(file.filePath, -1);
         continue;
-      }
-      if (game.shop === "epic") {
-        const awaiting = epicAwaitingBaselineFiles.get(gameKey);
-        if (awaiting?.delete(file.filePath)) {
-          const silentIds =
-            epicSilentExternalIds.get(gameKey) ?? new Set<string>();
-          parsed.forEach((achievement) => silentIds.add(achievement.name));
-          epicSilentExternalIds.set(gameKey, silentIds);
-          if (awaiting.size === 0) epicAwaitingBaselineFiles.delete(gameKey);
-        }
       }
       parsedAchievements.push(...parsed);
     }
@@ -329,7 +313,6 @@ export class AchievementWatcherManager {
     epicMetadataRetryAt.clear();
     epicFirstObservedUnlocks.clear();
     epicSilentExternalIds.clear();
-    epicAwaitingBaselineFiles.clear();
   }
 
   public static forgetAchievementFiles(gameKey: string, filePaths: string[]) {
@@ -337,7 +320,6 @@ export class AchievementWatcherManager {
     epicMetadataRetryAt.delete(gameKey);
     epicFirstObservedUnlocks.delete(gameKey);
     epicSilentExternalIds.delete(gameKey);
-    epicAwaitingBaselineFiles.delete(gameKey);
 
     for (const filePath of filePaths) {
       fileStats.delete(filePath);
@@ -383,7 +365,6 @@ export class AchievementWatcherManager {
 
       if (localAchievementFile === null && game.shop === "epic") {
         fileStats.set(achievementFile.filePath, -1);
-        markEpicFileAwaitingBaseline(gameKey, achievementFile.filePath);
       }
 
       if (localAchievementFile?.length) {
@@ -441,12 +422,6 @@ export class AchievementWatcherManager {
 
       if (parsedAchievements === null) {
         fileStats.set(achievementFile.filePath, -1);
-        if (game.shop === "epic") {
-          markEpicFileAwaitingBaseline(
-            levelKeys.game(game.shop, game.objectId),
-            achievementFile.filePath
-          );
-        }
         continue;
       }
 
