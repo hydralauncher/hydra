@@ -51,7 +51,9 @@ export function useLibraryLaunchGame(
           await globalThis.window.electron.openClassicsGame(
             game.shop,
             game.objectId,
-            game.selectedDiscPath ?? undefined
+            game.selectedDiscPath ?? undefined,
+            undefined,
+            "big-picture"
           );
           globalThis.window.dispatchEvent(new Event("library-update"));
         } catch (error) {
@@ -75,7 +77,8 @@ export function useLibraryLaunchGame(
         game.shop,
         game.objectId,
         game.executablePath,
-        game.launchOptions
+        game.launchOptions,
+        "big-picture"
       );
     },
     [onMissingExecutable, showErrorToast]
