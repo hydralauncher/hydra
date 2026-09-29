@@ -1050,14 +1050,12 @@ const loadLibraryGames = async () => {
 const findUnlinkedGames = async (
   clearedExecutables: Map<string, FoundGame>
 ) => {
-  const unlinkedGames: FoundGame[] = [];
+  const entries = [...clearedExecutables];
+  const games = await gamesSublevel.getMany(entries.map(([key]) => key));
 
-  for (const [key, clearedExecutable] of clearedExecutables) {
-    const game = await gamesSublevel.get(key);
-    if (!game?.executablePath) unlinkedGames.push(clearedExecutable);
-  }
-
-  return unlinkedGames;
+  return entries.flatMap(([_key, clearedExecutable], index) =>
+    games[index]?.executablePath ? [] : [clearedExecutable]
+  );
 };
 
 const logScannedDirectories = (scannedDirectories: ScannedDirectory[]) => {
