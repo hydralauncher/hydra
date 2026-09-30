@@ -1,33 +1,70 @@
-import type { GameShop, User, UserAchievement, UserPreferences } from "@types";
+import type {
+  GameShop,
+  UnlockedAchievement,
+  User,
+  UserAchievement,
+  UserPreferences,
+} from "@types";
 import { db, levelKeys } from "@main/level";
 import { HydraApi } from "@main/services/hydra-api";
 import { achievementsLogger } from "@main/services/logger";
 import { AchievementSouvenirStore } from "./achievement-souvenir-store";
 
-const fetchAchievementSouvenirs = async (
+export const fetchRemoteUserGameAchievements = async (
   objectId: string,
   shop: GameShop,
   language: string
 ) => {
+  const empty = {
+    souvenirs: new Map<string, string>(),
+    unlocked: [] as UnlockedAchievement[],
+    achievements: [] as UserAchievement[],
+  };
+
   const user = await db.get<string, User>(levelKeys.user, {
     valueEncoding: "json",
   });
 
-  if (!user?.id) return new Map<string, string>();
+  if (!user?.id) return empty;
 
   const remoteAchievements = await HydraApi.get<UserAchievement[]>(
     `/users/${user.id}/games/achievements`,
     { shop, objectId, language }
   );
 
-  return new Map(
-    remoteAchievements
-      .filter((achievement) => achievement.imageUrl)
-      .map((achievement) => [
-        achievement.name.toUpperCase(),
-        achievement.imageUrl!,
-      ])
+  return {
+    souvenirs: new Map(
+      remoteAchievements
+        .filter((achievement) => achievement.imageUrl)
+        .map((achievement) => [
+          achievement.name.toUpperCase(),
+          achievement.imageUrl!,
+        ])
+    ),
+    unlocked: remoteAchievements.flatMap((achievement) => {
+      if (!achievement.name || !achievement.unlockTime) return [];
+      return [
+        {
+          name: achievement.name,
+          unlockTime: achievement.unlockTime,
+        },
+      ];
+    }),
+    achievements: remoteAchievements,
+  };
+};
+
+const fetchAchievementSouvenirs = async (
+  objectId: string,
+  shop: GameShop,
+  language: string
+) => {
+  const remote = await fetchRemoteUserGameAchievements(
+    objectId,
+    shop,
+    language
   );
+  return remote.souvenirs;
 };
 
 export const getAchievementSouvenirs = async (

@@ -3,7 +3,12 @@ import type { ChangeEvent } from "react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { platformToSystem } from "@renderer/helpers";
-import { getGameExecutableFilters } from "@shared";
+import { useIsNonSteamExecutable } from "@renderer/hooks/use-non-steam-executable";
+import {
+  getGameExecutableFilters,
+  getRetroArchRomExtensions,
+  platformToRetroArchPlatform,
+} from "@shared";
 import type { FileFilter } from "../../../common";
 import { useBigPictureToast } from "../../../../hooks";
 import {
@@ -125,9 +130,14 @@ export function useGameSettingsModalState({
 
     const loadDiscFilters = async () => {
       const system = platformToSystem(game.platform);
-      const extensions = system
-        ? await globalThis.window.electron.getEmulatorRomExtensions(system)
-        : ["*"];
+      const retroArchPlatform = platformToRetroArchPlatform(game.platform);
+      let extensions = ["*"];
+      if (retroArchPlatform) {
+        extensions = getRetroArchRomExtensions(retroArchPlatform);
+      } else if (system) {
+        extensions =
+          await globalThis.window.electron.getEmulatorRomExtensions(system);
+      }
 
       if (!cancelled) {
         setDiscPickerFilters([
@@ -685,6 +695,26 @@ export function useGameSettingsModalState({
     await updateGame();
   }, [game, updateClassicsDisc, updateGame]);
 
+  const isNonSteamExecutable = useIsNonSteamExecutable(game);
+
+  const handleToggleHydraPlaytimeEnabled = useCallback(
+    async (enabled: boolean) => {
+      if (!game) return;
+
+      try {
+        await globalThis.window.electron.setGameHydraPlaytimeEnabled(
+          game.shop,
+          game.objectId,
+          enabled
+        );
+        await updateGame();
+      } catch {
+        showErrorToast(t("steam_playtime_tracking_error"));
+      }
+    },
+    [game, showErrorToast, t, updateGame]
+  );
+
   const handleToggleAutomaticCloudSync = useCallback(
     async (checked: boolean) => {
       if (!game) return;
@@ -725,6 +755,7 @@ export function useGameSettingsModalState({
       execPickerInitialPath,
       execPickerFilters,
       discPickerFilters,
+      isNonSteamExecutable,
       onProcessExecPath: handleProcessExecPath,
       onClearExecutablePath: handleClearExecutablePath,
       onChangeLaunchOptions: setLaunchOptions,
@@ -738,6 +769,7 @@ export function useGameSettingsModalState({
       onProcessDiscPath: handleProcessDiscPath,
       onRemoveSelectedDisc: handleRemoveSelectedDisc,
       onRemoveAllDiscs: handleRemoveAllDiscs,
+      onToggleHydraPlaytimeEnabled: handleToggleHydraPlaytimeEnabled,
     } satisfies GameLaunchSettingsProps;
   }, [
     creatingSteamShortcut,
@@ -757,6 +789,8 @@ export function useGameSettingsModalState({
     handleRemoveSelectedDisc,
     handleSelectDisc,
     handleToggleDontAskDiscSelection,
+    handleToggleHydraPlaytimeEnabled,
+    isNonSteamExecutable,
     launchOptions,
     steamShortcutExists,
   ]);

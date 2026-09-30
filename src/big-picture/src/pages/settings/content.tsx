@@ -37,6 +37,7 @@ interface ContentForm {
   enableSteamAchievements: boolean;
   enableAchievementSouvenirs: boolean;
   autoplayAnimatedArtwork: boolean;
+  persistFiltersAndSorting: boolean;
 }
 
 interface ContentItem {
@@ -57,6 +58,7 @@ const DEFAULT_FORM: ContentForm = {
     globalThis.window.electron.platform
   ),
   autoplayAnimatedArtwork: false,
+  persistFiltersAndSorting: false,
 };
 
 const buildForm = (preferences: UserPreferences | null): ContentForm =>
@@ -72,6 +74,7 @@ const buildForm = (preferences: UserPreferences | null): ContentForm =>
           globalThis.window.electron.platform
         ),
         autoplayAnimatedArtwork: preferences.autoplayAnimatedArtwork ?? false,
+        persistFiltersAndSorting: preferences.persistFiltersAndSorting ?? false,
       }
     : DEFAULT_FORM;
 
@@ -194,20 +197,20 @@ export function ContentSettingsSection({
           }),
       },
       {
+        id: "persist-filters-and-sorting",
+        focusId: CONTENT_ITEM_FOCUS_IDS.persistFiltersAndSorting,
+        label: t("persist_filters_and_sorting"),
+        checked: form.persistFiltersAndSorting,
+        onChange: (checked: boolean) =>
+          void updateUserPreferences({ persistFiltersAndSorting: checked }),
+      },
+      {
         id: "enable-steam-achievements",
         focusId: CONTENT_ITEM_FOCUS_IDS.enableSteamAchievements,
         label: t("enable_steam_achievements"),
         checked: form.enableSteamAchievements,
         onChange: (checked: boolean) =>
           void updateUserPreferences({ enableSteamAchievements: checked }),
-      },
-      {
-        id: "autoplay-animated-artwork",
-        focusId: CONTENT_ITEM_FOCUS_IDS.autoplayAnimatedArtwork,
-        label: t("autoplay_animated_artwork"),
-        checked: form.autoplayAnimatedArtwork,
-        onChange: (checked: boolean) =>
-          void updateUserPreferences({ autoplayAnimatedArtwork: checked }),
       },
       ...(supportsSouvenirs
         ? [
@@ -229,6 +232,20 @@ export function ContentSettingsSection({
     updateUserPreferences,
   ]);
 
+  const trailingItems = useMemo<ContentItem[]>(
+    () => [
+      {
+        id: "autoplay-animated-artwork",
+        focusId: CONTENT_ITEM_FOCUS_IDS.autoplayAnimatedArtwork,
+        label: t("autoplay_animated_artwork"),
+        checked: form.autoplayAnimatedArtwork,
+        onChange: (checked: boolean) =>
+          void updateUserPreferences({ autoplayAnimatedArtwork: checked }),
+      },
+    ],
+    [form.autoplayAnimatedArtwork, t, updateUserPreferences]
+  );
+
   const hasCustomScreenshotsPath = Boolean(
     userPreferences?.achievementScreenshotsPath
   );
@@ -239,8 +256,9 @@ export function ContentSettingsSection({
       ...(canManageScreenshots
         ? [CONTENT_ITEM_FOCUS_IDS.changeScreenshotsDirectory]
         : []),
+      ...trailingItems.map((item) => item.focusId),
     ],
-    [canManageScreenshots, items]
+    [canManageScreenshots, items, trailingItems]
   );
 
   const navigationOverridesByFocusId = useMemo<
@@ -274,6 +292,19 @@ export function ContentSettingsSection({
     );
   }, [navigationFocusIds]);
 
+  const renderItem = (item: ContentItem) => (
+    <Checkbox
+      key={item.id}
+      id={item.id}
+      label={item.label}
+      checked={item.checked}
+      focusId={item.focusId}
+      navigationOverrides={navigationOverridesByFocusId[item.focusId]}
+      block
+      onChange={item.onChange}
+    />
+  );
+
   return (
     <div
       className={
@@ -288,18 +319,7 @@ export function ContentSettingsSection({
       >
         <VerticalFocusGroup regionId={CONTENT_SECTION_REGION_ID} asChild>
           <div className="content-settings-section__content">
-            {items.map((item) => (
-              <Checkbox
-                key={item.id}
-                id={item.id}
-                label={item.label}
-                checked={item.checked}
-                focusId={item.focusId}
-                navigationOverrides={navigationOverridesByFocusId[item.focusId]}
-                block
-                onChange={item.onChange}
-              />
-            ))}
+            {items.map(renderItem)}
 
             {supportsSouvenirs && (
               <div className="content-settings-section__screenshots-directory">
@@ -392,6 +412,8 @@ export function ContentSettingsSection({
                 </HorizontalFocusGroup>
               </div>
             )}
+
+            {trailingItems.map(renderItem)}
           </div>
         </VerticalFocusGroup>
       </SettingsSection>

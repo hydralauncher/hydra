@@ -1,6 +1,7 @@
 export * from "./use-download";
 export * from "./use-download-layout";
 export * from "./use-library";
+export * from "./use-non-steam-executable";
 export * from "./use-date";
 export * from "./use-toast";
 export * from "./redux";
@@ -11,6 +12,7 @@ export * from "./use-download-options-listener";
 export * from "./use-game-card";
 export * from "./use-search-history";
 export * from "./use-search-suggestions";
+export * from "./use-similar-games";
 export * from "./use-game-collections";
 export * from "./use-classics-scan";
 export * from "./use-retroarch-scan";

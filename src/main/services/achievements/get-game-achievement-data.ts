@@ -47,9 +47,14 @@ export const getGameAchievementData = async (
         return cachedAchievements?.achievements ?? [];
       }
 
+      const achievements =
+        response.data.length > 0
+          ? response.data
+          : (cachedAchievements?.achievements ?? []);
+
       AchievementMemoryStore.set(shop, objectId, {
         unlockedAchievements: cachedAchievements?.unlockedAchievements ?? [],
-        achievements: response.data,
+        achievements,
         language,
         catalogueValidator:
           typeof response.headers.etag === "string"
@@ -57,7 +62,7 @@ export const getGameAchievementData = async (
             : undefined,
       });
 
-      return response.data;
+      return achievements;
     })
     .catch((err) => {
       if (err instanceof UserNotLoggedInError) {

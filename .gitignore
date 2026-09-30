@@ -10,10 +10,8 @@ out
 .vite
 ludusavi/**
 !ludusavi/config.yaml
-hydra-python-rpc/
 /hydra-native/
 native/hydra-native/target/
-.python-version
 
 # Sentry Config File
 .env.sentry-build-plugin
@@ -23,3 +21,6 @@ Future-updates.md
 TO-DO.md
 .planning/
 .claude/
+.cache/
+native/torrent-bridge/build/
+native/torrent-bridge/vcpkg_installed/

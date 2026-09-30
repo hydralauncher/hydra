@@ -392,18 +392,17 @@ export function DownloadSettingsModal({
 
     const getDownloaderPriority = (option: {
       isAvailable: boolean;
-      canHandle: boolean;
       isAvailableButNotConfigured: boolean;
     }) => {
       if (option.isAvailable) return 0;
-      if (option.canHandle && !option.isAvailableButNotConfigured) return 1;
       if (option.isAvailableButNotConfigured) return 2;
-      return 3;
+      return 1;
     };
 
     return allDownloaders
       .filter((downloader) => {
         if (downloader === Downloader.Hydra) return false; // Temporarily comment out Nimbus
+        if (!downloaderMap.has(downloader)) return false;
         if (
           downloader === Downloader.Premiumize &&
           !isFeatureEnabled(Feature.Premiumize)
@@ -422,7 +421,6 @@ export function DownloadSettingsModal({
       })
       .map((downloader) => {
         const status = downloaderMap.get(downloader);
-        const canHandle = status !== undefined;
         const hasAvailableUri = status?.hasAvailable ?? false;
 
         let isConfigured = true;
@@ -441,15 +439,13 @@ export function DownloadSettingsModal({
         //   isConfigured = isFeatureEnabled(Feature.Nimbus);
         // }
 
-        const isAvailableButNotConfigured =
-          hasAvailableUri && !isConfigured && canHandle;
+        const isAvailableButNotConfigured = hasAvailableUri && !isConfigured;
 
         const isAvailable = hasAvailableUri && isConfigured;
 
         return {
           downloader,
           isAvailable,
-          canHandle,
           isAvailableButNotConfigured,
         };
       })
@@ -1307,8 +1303,7 @@ export function DownloadSettingsModal({
                 const Indicator = option.isAvailable ? motion.span : "span";
 
                 const isDisabled =
-                  !option.canHandle ||
-                  (!option.isAvailable && !option.isAvailableButNotConfigured);
+                  !option.isAvailable && !option.isAvailableButNotConfigured;
 
                 const getAvailabilityIndicator = () => {
                   if (option.isAvailable) {
@@ -1344,21 +1339,11 @@ export function DownloadSettingsModal({
                     );
                   }
 
-                  if (option.canHandle) {
-                    return (
-                      <span
-                        className={`download-settings-modal__availability-indicator download-settings-modal__availability-indicator--unavailable`}
-                        data-tooltip-id={tooltipId}
-                        data-tooltip-content={t("downloader_offline")}
-                      />
-                    );
-                  }
-
                   return (
                     <span
-                      className={`download-settings-modal__availability-indicator download-settings-modal__availability-indicator--not-present`}
+                      className={`download-settings-modal__availability-indicator download-settings-modal__availability-indicator--unavailable`}
                       data-tooltip-id={tooltipId}
-                      data-tooltip-content={t("downloader_not_available")}
+                      data-tooltip-content={t("downloader_offline")}
                     />
                   );
                 };
@@ -1384,10 +1369,7 @@ export function DownloadSettingsModal({
                     );
                   }
 
-                  if (
-                    option.downloader === Downloader.RealDebrid &&
-                    option.canHandle
-                  ) {
+                  if (option.downloader === Downloader.RealDebrid) {
                     return (
                       <div className="download-settings-modal__recommendation-badge">
                         <Badge>{t("recommended")}</Badge>
@@ -1397,7 +1379,7 @@ export function DownloadSettingsModal({
 
                   if (
                     option.downloader === Downloader.VikingFile &&
-                    option.canHandle
+                    option.isAvailableButNotConfigured
                   ) {
                     return (
                       <div className="download-settings-modal__recommendation-badge">
@@ -1532,9 +1514,7 @@ export function DownloadSettingsModal({
             downloadOptions.some(
               (option) =>
                 option.downloader === selectedDownloader &&
-                (option.isAvailableButNotConfigured ||
-                  (!option.isAvailable && option.canHandle) ||
-                  !option.canHandle)
+                (option.isAvailableButNotConfigured || !option.isAvailable)
             )
           }
         >

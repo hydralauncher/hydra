@@ -23,3 +23,21 @@ export const RETROARCH_PLATFORM_LABELS: Record<RetroArchPlatform, string> = {
   gbc: "GBC",
   gba: "GBA",
 };
+
+export const PLATFORM_ROM_EXTENSIONS: Record<RetroArchPlatform, string[]> = {
+  nes: [".nes", ".fds"],
+  snes: [".sfc", ".smc"],
+  n64: [".n64", ".z64", ".v64"],
+  gb: [".gb"],
+  gbc: [".gbc"],
+  gba: [".gba"],
+};
+
+export const RETROARCH_ARCHIVE_EXTENSIONS = [".zip", ".7z"] as const;
+
+export const getRetroArchRomExtensions = (
+  platform: RetroArchPlatform
+): string[] =>
+  [...PLATFORM_ROM_EXTENSIONS[platform], ...RETROARCH_ARCHIVE_EXTENSIONS].map(
+    (extension) => extension.slice(1)
+  );

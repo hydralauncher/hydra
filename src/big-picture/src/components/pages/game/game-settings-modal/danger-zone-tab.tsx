@@ -27,9 +27,12 @@ function getConfirmationConfig(
     case "reset-achievements":
       return {
         title: t("reset_achievements"),
-        description: t("reset_achievements_souvenirs_description", {
-          game: game.title,
-        }),
+        description: t(
+          game.shop === "steam"
+            ? "reset_achievements_steam_description"
+            : "reset_achievements_souvenirs_description",
+          { game: game.title }
+        ),
         confirmLabel: t("reset_achievements"),
         onConfirm: handleResetAchievements,
       };
@@ -150,9 +153,12 @@ export function GameDangerZoneSettingsTab({
         <SettingsSection
           className="game-danger-zone-settings-tab__section"
           title={t("reset_achievements")}
-          description={t("reset_achievements_description", {
-            game: game.title,
-          })}
+          description={t(
+            game.shop === "steam"
+              ? "reset_achievements_steam_description"
+              : "reset_achievements_description",
+            { game: game.title }
+          )}
         >
           <Button
             variant="danger"

@@ -32,9 +32,7 @@ interface FolderInput {
   scanSubfolders: boolean;
 }
 
-const inflight = new Map<string, { cancelled: boolean }>();
-
-type CancelSignal = { cancelled: boolean };
+const inflight = new Map<string, AbortController>();
 
 export interface RetroArchUnmatchedFile {
   name: string;
@@ -103,14 +101,19 @@ interface HashedRom extends retroarch.ScannedRetroArchRom {
 
 const hashRoms = async (
   collected: retroarch.ScannedRetroArchRom[],
-  signal: CancelSignal,
+  signal: AbortSignal,
   onHash?: (processed: number, total: number, currentFile: string) => void
 ): Promise<HashedRom[]> => {
   const hashed: HashedRom[] = [];
   for (let i = 0; i < collected.length; i++) {
-    if (signal.cancelled) break;
+    if (signal.aborted) break;
     const rom = collected[i];
-    const crc = await retroarch.hashRomFile(rom.primaryPath, rom.platform);
+    const crc = await retroarch.hashRomFile(
+      rom.primaryPath,
+      rom.platform,
+      signal
+    );
+    if (signal.aborted) break;
     if (!crc) {
       logger.warn("Failed to hash ROM file", {
         path: rom.primaryPath,
@@ -126,7 +129,7 @@ const hashRoms = async (
 const matchRoms = async (
   hashed: HashedRom[],
   language: string,
-  signal: CancelSignal
+  signal: AbortSignal
 ): Promise<retroarch.RomMatchResult> => {
   const lookup = new Map<string, LaunchboxShopDetailsEntry>();
   let failed = false;
@@ -140,13 +143,13 @@ const matchRoms = async (
   }
 
   for (const [platform, roms] of byPlatform) {
-    if (signal.cancelled) break;
+    if (signal.aborted) break;
     const platformResult = await retroarch.fetchShopDetailsForHashes(
       platform,
       roms.map((rom) => ({
         crc32: rom.crc32!,
-        fileName: rom.name,
-        sizeBytes: rom.sizeBytes,
+        fileName: rom.archiveEntry ?? rom.name,
+        sizeBytes: rom.romSizeBytes ?? rom.sizeBytes,
         serial: null,
       })),
       language
@@ -384,7 +387,7 @@ const recordMatchedRom = (
 const aggregateMatches = (
   hashed: HashedRom[],
   lookup: Map<string, LaunchboxShopDetailsEntry>,
-  signal: CancelSignal,
+  signal: AbortSignal,
   onMatch?: (
     processed: number,
     currentFile: string,
@@ -402,7 +405,7 @@ const aggregateMatches = (
   let matchedSizeBytes = 0;
 
   for (let i = 0; i < hashed.length; i++) {
-    if (signal.cancelled) break;
+    if (signal.aborted) break;
     const rom = hashed[i];
     const entry = rom.crc32 ? (lookup.get(rom.crc32) ?? null) : null;
 
@@ -484,7 +487,7 @@ const persistMatchedTitles = async (
 async function runRetroArchImport(
   folders: FolderInput[],
   language: string,
-  signal: CancelSignal,
+  signal: AbortSignal,
   onProgress?: ProgressFn
 ): Promise<RetroArchImportResult> {
   // Register the folders up front with empty counts. A cancelled scan returns
@@ -511,7 +514,7 @@ async function runRetroArchImport(
         sizeBytes: 0,
       })
   );
-  if (signal.cancelled) return cancelledResult();
+  if (signal.aborted) return cancelledResult();
   const totalGames = collected.length;
 
   const hashed = await hashRoms(
@@ -531,14 +534,14 @@ async function runRetroArchImport(
         sizeBytes: 0,
       })
   );
-  if (signal.cancelled) return cancelledResult();
+  if (signal.aborted) return cancelledResult();
 
   const { lookup, failed: matchFailed } = await matchRoms(
     hashed,
     language,
     signal
   );
-  if (signal.cancelled) return cancelledResult();
+  if (signal.aborted) return cancelledResult();
 
   const aggregated = aggregateMatches(
     hashed,
@@ -605,7 +608,7 @@ async function runRetroArchImport(
       aggregated.unmatchedFiles
     );
 
-  if (signal.cancelled) return asCancelled();
+  if (signal.aborted) return asCancelled();
 
   await persistMatchedTitles(aggregated, language);
   if (matchFailed) {
@@ -649,7 +652,7 @@ const RETROARCH_IMPORT_PROGRESS_CHANNEL = "on-retroarch-import-progress";
 
 interface TrackedRetroArchImport {
   requestId: string;
-  signal: CancelSignal;
+  signal: AbortSignal;
   done: Promise<RetroArchImportResult | null>;
 }
 
@@ -662,8 +665,9 @@ export const startTrackedRetroArchImport = (
   if (activeImport) return activeImport;
 
   const requestId = randomUUID();
-  const signal: CancelSignal = { cancelled: false };
-  inflight.set(requestId, signal);
+  const controller = new AbortController();
+  const { signal } = controller;
+  inflight.set(requestId, controller);
 
   setActiveRetroArchImport({
     requestId,
@@ -747,8 +751,7 @@ const cancelRetroArchImport = async (
   _event: Electron.IpcMainInvokeEvent,
   requestId: string
 ) => {
-  const signal = inflight.get(requestId);
-  if (signal) signal.cancelled = true;
+  inflight.get(requestId)?.abort();
 };
 
 registerEvent("importRetroArchRoms", importRetroArchRoms);

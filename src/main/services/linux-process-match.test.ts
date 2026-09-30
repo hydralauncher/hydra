@@ -1,7 +1,29 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 
-import { isLinuxGameWindowProcess } from "./linux-process-match.js";
+import {
+  doesSteamCompatDataPathMatchWinePrefix,
+  isLinuxGameWindowProcess,
+} from "./linux-process-match.js";
+
+describe("Steam compatibility prefix matching", () => {
+  it("matches both compatibility roots and their pfx directories", () => {
+    assert.equal(
+      doesSteamCompatDataPathMatchWinePrefix(
+        "/games/compatdata/620",
+        "/games/compatdata/620/pfx"
+      ),
+      true
+    );
+    assert.equal(
+      doesSteamCompatDataPathMatchWinePrefix(
+        "/games/compatdata/730",
+        "/games/compatdata/620/pfx"
+      ),
+      false
+    );
+  });
+});
 
 describe("Linux game window process matching", () => {
   it("accepts a descendant of the process launched by Hydra", () => {

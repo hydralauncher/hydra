@@ -11,7 +11,7 @@ import {
   SquaresFourIcon,
   StarIcon,
 } from "@phosphor-icons/react";
-import { AuthPage } from "@shared";
+import { AuthPage, getDisplayedPlayTimeInMilliseconds } from "@shared";
 import {
   type FocusEvent,
   forwardRef,
@@ -125,6 +125,24 @@ const SIDEBAR_LIBRARY_FILTER_FOCUS_IDS: Record<SidebarLibraryFilter, string> = {
   favorites: BIG_PICTURE_SIDEBAR_LIBRARY_FILTER_FAVORITES_ID,
 };
 
+const SIDEBAR_LIBRARY_FILTER_STORAGE_KEY =
+  "hydra:big-picture:sidebar-library-filter";
+
+function getInitialSidebarLibraryFilter(): SidebarLibraryFilter {
+  try {
+    const storedValue = globalThis.window.localStorage.getItem(
+      SIDEBAR_LIBRARY_FILTER_STORAGE_KEY
+    );
+
+    return (
+      SIDEBAR_LIBRARY_FILTERS.find((filter) => filter.value === storedValue)
+        ?.value ?? "all"
+    );
+  } catch {
+    return "all";
+  }
+}
+
 function isFocusedNodeWithinRegion(
   currentFocusId: string | null,
   nodes: FocusNode[],
@@ -204,7 +222,8 @@ function compareGamesByExecutablePathUpdatedAt(a: LibraryGame, b: LibraryGame) {
 
 function compareGamesByPlaytime(a: LibraryGame, b: LibraryGame) {
   const playtimeDifference =
-    (b.playTimeInMilliseconds ?? 0) - (a.playTimeInMilliseconds ?? 0);
+    getDisplayedPlayTimeInMilliseconds(b) -
+    getDisplayedPlayTimeInMilliseconds(a);
 
   if (playtimeDifference !== 0) return playtimeDifference;
 
@@ -315,13 +334,6 @@ function SidebarRouter() {
     },
     right: contentEntryTarget,
   };
-  const getRouteNavigationOverrides = (itemId: string): FocusOverrides =>
-    itemId === BIG_PICTURE_SIDEBAR_ITEM_IDS.home
-      ? {
-          ...sidebarItemNavigationOverrides,
-          up: getItemFocusTarget(BIG_PICTURE_SIDEBAR_PROFILE_ID),
-        }
-      : sidebarItemNavigationOverrides;
   const handleExitBigPicture = () => {
     if (IS_DESKTOP) {
       globalThis.close();
@@ -380,9 +392,33 @@ function SidebarRouter() {
     return route.key !== "componentLab";
   });
 
+  const getRouteNavigationOverrides = (index: number): FocusOverrides => {
+    const previousRoute = routes[index - 1];
+    const nextRoute = routes[index + 1];
+
+    return {
+      ...sidebarItemNavigationOverrides,
+      up: previousRoute
+        ? getItemFocusTarget(BIG_PICTURE_SIDEBAR_ITEM_IDS[previousRoute.key])
+        : getItemFocusTarget(BIG_PICTURE_SIDEBAR_PROFILE_ID),
+      down: nextRoute
+        ? getItemFocusTarget(BIG_PICTURE_SIDEBAR_ITEM_IDS[nextRoute.key])
+        : getItemFocusTarget(BIG_PICTURE_SIDEBAR_EXIT_ID),
+    };
+  };
+
+  const lastRoute = routes.at(-1);
+  const exitNavigationOverrides: FocusOverrides = {
+    ...sidebarItemNavigationOverrides,
+    up: lastRoute
+      ? getItemFocusTarget(BIG_PICTURE_SIDEBAR_ITEM_IDS[lastRoute.key])
+      : getItemFocusTarget(BIG_PICTURE_SIDEBAR_PROFILE_ID),
+    down: getItemFocusTarget(BIG_PICTURE_SIDEBAR_LIBRARY_FILTER_ALL_ID),
+  };
+
   return (
     <div className="sidebar-router-container">
-      {routes.map((route) => {
+      {routes.map((route, index) => {
         const itemId = BIG_PICTURE_SIDEBAR_ITEM_IDS[route.key];
 
         return (
@@ -393,7 +429,8 @@ function SidebarRouter() {
             icon={<route.icon size={24} />}
             active={activeSidebarItemId === itemId}
             focusId={itemId}
-            focusNavigationOverrides={getRouteNavigationOverrides(itemId)}
+            focusActions={{ primary: () => navigate(route.path) }}
+            focusNavigationOverrides={getRouteNavigationOverrides(index)}
           />
         );
       })}
@@ -401,7 +438,8 @@ function SidebarRouter() {
       <div className="state-wrapper">
         <FocusItem
           id={BIG_PICTURE_SIDEBAR_EXIT_ID}
-          navigationOverrides={sidebarItemNavigationOverrides}
+          actions={{ primary: handleExitBigPicture }}
+          navigationOverrides={exitNavigationOverrides}
           asChild
         >
           <button
@@ -452,15 +490,22 @@ function SidebarLibrary({
     [runningGamesById]
   );
   const [selectedLibraryFilter, setSelectedLibraryFilter] =
-    useState<SidebarLibraryFilter>("all");
+    useState<SidebarLibraryFilter>(getInitialSidebarLibraryFilter);
   const normalizedPathname = normalizeBigPicturePathname(pathname);
   const activeGameRoute = getBigPictureGameRouteMatch(normalizedPathname);
   const contentEntryTarget =
     getBigPictureContentSidebarReturnTargetFromPathname(pathname);
 
   useEffect(() => {
-    setSelectedLibraryFilter("all");
-  }, []);
+    try {
+      globalThis.window.localStorage.setItem(
+        SIDEBAR_LIBRARY_FILTER_STORAGE_KEY,
+        selectedLibraryFilter
+      );
+    } catch {
+      return;
+    }
+  }, [selectedLibraryFilter]);
 
   useEffect(() => {
     if (!IS_DESKTOP) return;
@@ -569,6 +614,7 @@ function SidebarLibrary({
               index,
               filter.focusId
             )}
+            actions={{ primary: () => setSelectedLibraryFilter(filter.value) }}
             asChild
           >
             <button

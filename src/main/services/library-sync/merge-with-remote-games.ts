@@ -9,6 +9,7 @@ import { chunk } from "lodash-es";
 import { HydraApi } from "../hydra-api";
 import { saveSteamGridDbArtwork } from "../game-artwork-cloud";
 import {
+  db,
   gamesArtworkSelectionSublevel,
   gamesShopAssetsSublevel,
   gamesSublevel,
@@ -24,6 +25,14 @@ import {
   mergeImportedProfileGame,
   type ImportedProfileGame,
 } from "./merge-imported-profile-game";
+import {
+  resolveLibraryIsDeleted,
+  resolveMissingSteamImport,
+  resolveLibrarySource,
+} from "./resolve-library-source";
+import { mergeLocalAndRemotePlayTime } from "@shared";
+import { mergePersistedAchievementTotals } from "../achievements/achievement-memory-store";
+import { trackAchievementBatchGame } from "../achievements/achievement-batch-games";
 
 type ProfileGame = {
   id: string;
@@ -32,12 +41,16 @@ type ProfileGame = {
   collectionId?: string | null;
   lastTimePlayed: Date | null;
   playTimeInMilliseconds: number;
+  playTimeInSeconds?: number;
+  runtimeByPlatform?: { hydra?: number; steam?: number } | null;
   hasManuallyUpdatedPlaytime: boolean;
   isFavorite?: boolean;
   isPinned?: boolean;
   achievementCount: number;
   unlockedAchievementCount: number;
   platform?: string | null;
+  source?: string | null;
+  hasActiveSteamImport?: boolean;
   customLibraryImageUrl?: string | null;
   customLibraryHeroImageUrl?: string | null;
   customLogoImageUrl?: string | null;
@@ -94,12 +107,10 @@ const uploadUnsyncedArtworkSelection = async (
 
 const syncArtworkSelectionWithRemote = async (
   gameKey: string,
+  selection: GameArtworkSelection,
   localGame: Game | undefined,
   remoteGame: ProfileGame
 ) => {
-  const selection = await gamesArtworkSelectionSublevel.get(gameKey);
-  if (!selection) return;
-
   const remoteAssets = getRemoteCustomAssets(remoteGame);
   const { selected, changed } = reconcileRemoteArtworkSelection(
     selection.selected,
@@ -162,25 +173,43 @@ const getRemoteCoverImageUrl = (game: ProfileGame): string | null => {
 };
 
 const PAGE_SIZE = 100;
+const PAGE_FETCH_CONCURRENCY = 3;
+const MERGE_WRITE_CHUNK_SIZE = 250;
 const TARGETED_MERGE_CONCURRENCY = 10;
+
+export type RemoteGamesMergeProgress = (
+  processed: number,
+  total: number
+) => void;
+
+const fetchProfileGamesPage = (
+  params: Record<string, unknown>,
+  pageIndex: number
+) =>
+  HydraApi.get<ProfileGame[]>(
+    "/profile/games",
+    { ...params, take: PAGE_SIZE, skip: pageIndex * PAGE_SIZE },
+    { logResponseBody: false }
+  );
 
 const fetchAllGamesForShop = async (
   params: Record<string, unknown> = {}
 ): Promise<ProfileGame[]> => {
-  const all: ProfileGame[] = [];
-  let skip = 0;
+  const firstPage = await fetchProfileGamesPage(params, 0);
+  if (firstPage.length < PAGE_SIZE) return firstPage;
 
-  for (;;) {
-    const page = await HydraApi.get<ProfileGame[]>("/profile/games", {
-      ...params,
-      take: PAGE_SIZE,
-      skip,
-    });
+  const all = [...firstPage];
 
-    all.push(...page);
+  for (let nextPageIndex = 1; ; nextPageIndex += PAGE_FETCH_CONCURRENCY) {
+    const pages = await Promise.all(
+      Array.from({ length: PAGE_FETCH_CONCURRENCY }, (_, offset) =>
+        fetchProfileGamesPage(params, nextPageIndex + offset)
+      )
+    );
 
-    if (page.length < PAGE_SIZE) break;
-    skip += PAGE_SIZE;
+    for (const page of pages) all.push(...page);
+
+    if (pages.some((page) => page.length < PAGE_SIZE)) break;
   }
 
   return all;
@@ -197,6 +226,8 @@ const fetchRemoteGames = async (): Promise<ProfileGame[]> => {
   return [...defaultGames, ...classicsGames];
 };
 
+export const fetchRemoteProfileGames = fetchRemoteGames;
+
 const mergeExistingGame = (
   localGame: Game,
   remoteGame: ProfileGame,
@@ -208,16 +239,24 @@ const mergeExistingGame = (
   remoteId: remoteGame.id,
   addedToLibraryAt: localGame.addedToLibraryAt ?? remoteAddedToLibraryAt,
   lastTimePlayed: getLatestLastTimePlayed(localGame, remoteGame),
-  playTimeInMilliseconds: Math.max(
-    localGame.playTimeInMilliseconds,
-    remoteGame.playTimeInMilliseconds
-  ),
+  ...mergeLocalAndRemotePlayTime(localGame, remoteGame),
   favorite: remoteGame.isFavorite ?? localGame.favorite,
   isPinned: remoteGame.isPinned ?? localGame.isPinned,
   collectionIds,
-  achievementCount: remoteGame.achievementCount,
-  unlockedAchievementCount: remoteGame.unlockedAchievementCount,
+  ...mergePersistedAchievementTotals(
+    remoteGame.shop,
+    remoteGame.objectId,
+    localGame,
+    remoteGame
+  ),
   platform: remoteGame.platform ?? localGame.platform,
+  source: resolveLibrarySource(localGame.source, remoteGame.source),
+  hasActiveSteamImport: remoteGame.hasActiveSteamImport === true,
+  isDeleted: resolveLibraryIsDeleted(
+    localGame.isDeleted,
+    remoteGame.source,
+    remoteGame.hasActiveSteamImport === true
+  ),
   ...(canReconcileCustomArtwork
     ? {
         customIconUrl: reconcileCustomAsset(
@@ -254,27 +293,51 @@ const createLocalGame = (
   logoImageUrl: remoteGame.logoImageUrl,
   addedToLibraryAt,
   lastTimePlayed: remoteGame.lastTimePlayed,
-  playTimeInMilliseconds: remoteGame.playTimeInMilliseconds,
+  ...mergeLocalAndRemotePlayTime({ playTimeInMilliseconds: 0 }, remoteGame),
   hasManuallyUpdatedPlaytime: remoteGame.hasManuallyUpdatedPlaytime,
   isDeleted: false,
   favorite: remoteGame.isFavorite ?? false,
   isPinned: remoteGame.isPinned ?? false,
   collectionIds,
-  achievementCount: remoteGame.achievementCount,
-  unlockedAchievementCount: remoteGame.unlockedAchievementCount,
+  ...mergePersistedAchievementTotals(
+    remoteGame.shop,
+    remoteGame.objectId,
+    {},
+    remoteGame
+  ),
   platform: remoteGame.platform ?? null,
+  source: resolveLibrarySource(undefined, remoteGame.source),
+  hasActiveSteamImport: remoteGame.hasActiveSteamImport === true,
   customIconUrl: remoteGame.customIconUrl ?? null,
   customLogoImageUrl: remoteGame.customLogoImageUrl ?? null,
   customHeroImageUrl: remoteGame.customLibraryHeroImageUrl ?? null,
   customCoverImageUrl: remoteGame.customLibraryImageUrl ?? null,
 });
 
-const mergeRemoteGame = async (
+const buildRemoteGameShopAssets = (
   remoteGame: ProfileGame,
+  localGame: Game | undefined,
+  localShopAssets: ShopAssets | undefined
+) => ({
+  updatedAt: Date.now(),
+  ...localShopAssets,
+  shop: remoteGame.shop,
+  objectId: remoteGame.objectId,
+  title: localGame?.title || remoteGame.title,
+  coverImageUrl: getRemoteCoverImageUrl(remoteGame),
+  libraryHeroImageUrl: remoteGame.libraryHeroImageUrl,
+  libraryImageUrl: remoteGame.libraryImageUrl,
+  logoImageUrl: remoteGame.logoImageUrl,
+  iconUrl: remoteGame.iconUrl,
+  logoPosition: remoteGame.logoPosition,
+  downloadSources: remoteGame.downloadSources,
+});
+
+const buildMergedGame = (
+  remoteGame: ProfileGame,
+  localGame: Game | undefined,
   canReconcileCustomArtwork: boolean
-) => {
-  const gameKey = levelKeys.game(remoteGame.shop, remoteGame.objectId);
-  const localGame = await gamesSublevel.get(gameKey);
+): Game => {
   const hasRemoteCollectionField =
     Array.isArray(remoteGame.collectionIds) ||
     Object.hasOwn(remoteGame, "collectionId");
@@ -284,7 +347,8 @@ const mergeRemoteGame = async (
   const remoteAddedToLibraryAt = remoteGame.createdAt
     ? new Date(remoteGame.createdAt)
     : null;
-  const mergedGame = localGame
+
+  return localGame
     ? mergeExistingGame(
         localGame,
         remoteGame,
@@ -293,40 +357,111 @@ const mergeRemoteGame = async (
         canReconcileCustomArtwork
       )
     : createLocalGame(remoteGame, collectionIds, remoteAddedToLibraryAt);
-
-  await gamesSublevel.put(gameKey, mergedGame);
-
-  if (canReconcileCustomArtwork) {
-    await syncArtworkSelectionWithRemote(gameKey, localGame, remoteGame);
-  }
-
-  const localGameShopAsset = await gamesShopAssetsSublevel.get(gameKey);
-  await gamesShopAssetsSublevel.put(gameKey, {
-    updatedAt: Date.now(),
-    ...localGameShopAsset,
-    shop: remoteGame.shop,
-    objectId: remoteGame.objectId,
-    title: localGame?.title || remoteGame.title,
-    coverImageUrl: getRemoteCoverImageUrl(remoteGame),
-    libraryHeroImageUrl: remoteGame.libraryHeroImageUrl,
-    libraryImageUrl: remoteGame.libraryImageUrl,
-    logoImageUrl: remoteGame.logoImageUrl,
-    iconUrl: remoteGame.iconUrl,
-    logoPosition: remoteGame.logoPosition,
-    downloadSources: remoteGame.downloadSources,
-  });
 };
 
-export const mergeWithRemoteGames = async () => {
+const mergeRemoteGamesChunk = async (
+  remoteGames: ProfileGame[],
+  canReconcileCustomArtwork: boolean
+) => {
+  const gameKeys = remoteGames.map((game) =>
+    levelKeys.game(game.shop, game.objectId)
+  );
+  const [localGames, localShopAssets, artworkSelections] = await Promise.all([
+    gamesSublevel.getMany(gameKeys),
+    gamesShopAssetsSublevel.getMany(gameKeys),
+    canReconcileCustomArtwork
+      ? gamesArtworkSelectionSublevel.getMany(gameKeys)
+      : Promise.resolve([]),
+  ]);
+
+  const batch = db.batch();
+
+  remoteGames.forEach((remoteGame, index) => {
+    const gameKey = gameKeys[index];
+    const localGame = localGames[index];
+
+    if (!localGame || localGame.isDeleted) trackAchievementBatchGame(gameKey);
+
+    batch.put(
+      gameKey,
+      buildMergedGame(remoteGame, localGame, canReconcileCustomArtwork),
+      { sublevel: gamesSublevel }
+    );
+    batch.put(
+      gameKey,
+      buildRemoteGameShopAssets(remoteGame, localGame, localShopAssets[index]),
+      { sublevel: gamesShopAssetsSublevel }
+    );
+  });
+
+  await batch.write();
+
+  for (const [index, selection] of artworkSelections.entries()) {
+    if (!selection) continue;
+
+    await syncArtworkSelectionWithRemote(
+      gameKeys[index],
+      selection,
+      localGames[index],
+      remoteGames[index]
+    );
+  }
+};
+
+const hideGamesRemovedFromSteamImport = async (remoteKeys: Set<string>) => {
+  const updates = (await gamesSublevel.iterator().all()).flatMap(
+    ([key, game]) => {
+      const missingImportResolution = resolveMissingSteamImport(
+        game,
+        remoteKeys.has(key)
+      );
+
+      return missingImportResolution
+        ? [{ key, game: { ...game, ...missingImportResolution } }]
+        : [];
+    }
+  );
+
+  for (const updatesChunk of chunk(updates, MERGE_WRITE_CHUNK_SIZE)) {
+    const batch = db.batch();
+
+    for (const { key, game } of updatesChunk) {
+      batch.put(key, game, { sublevel: gamesSublevel });
+    }
+
+    await batch.write();
+  }
+};
+
+export const mergeWithRemoteGames = async (
+  onProgress?: RemoteGamesMergeProgress
+) => {
   try {
     const canReconcileCustomArtwork =
       HydraApi.isLoggedIn() && HydraApi.hasActiveSubscription();
     const remoteGames = await fetchRemoteGames();
-    for (const game of remoteGames) {
-      await mergeRemoteGame(game, canReconcileCustomArtwork);
+    let processed = 0;
+
+    onProgress?.(processed, remoteGames.length);
+
+    for (const remoteChunk of chunk(remoteGames, MERGE_WRITE_CHUNK_SIZE)) {
+      await mergeRemoteGamesChunk(remoteChunk, canReconcileCustomArtwork);
+
+      processed += remoteChunk.length;
+      onProgress?.(processed, remoteGames.length);
     }
+
+    // Keep installations, but hide games removed by destructive Steam cleanup.
+    await hideGamesRemovedFromSteamImport(
+      new Set(
+        remoteGames.map((game) => levelKeys.game(game.shop, game.objectId))
+      )
+    );
+
+    return true;
   } catch {
     // Keep local library available when remote sync fails.
+    return false;
   }
 };
 

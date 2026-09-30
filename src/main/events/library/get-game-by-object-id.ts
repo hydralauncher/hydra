@@ -1,7 +1,10 @@
 import { registerEvent } from "../register-event";
 import { gamesSublevel, downloadsSublevel, levelKeys } from "@main/level";
 import type { GameShop } from "@types";
-import { AchievementMemoryStore } from "@main/services/achievements/achievement-memory-store";
+import {
+  resolveAchievementCount,
+  resolveUnlockedAchievementCount,
+} from "@main/services/achievements/achievement-memory-store";
 import { lookupCachedPlatform } from "./get-library";
 
 const getGameByObjectId = async (
@@ -25,22 +28,24 @@ const getGameByObjectId = async (
     }
   }
 
-  const achievements = AchievementMemoryStore.get(shop, objectId);
-
-  const validAchievementNames = new Set(
-    achievements?.achievements?.map((a) => (a.name ?? "").toUpperCase()) || []
+  const unlockedAchievementCount = resolveUnlockedAchievementCount(
+    shop,
+    objectId,
+    game.unlockedAchievementCount
+  );
+  const achievementCount = resolveAchievementCount(
+    shop,
+    objectId,
+    game.achievementCount
   );
 
-  const unlockedAchievementCount =
-    achievements?.unlockedAchievements?.filter(
-      (unlocked) =>
-        validAchievementNames.has((unlocked.name ?? "").toUpperCase()) &&
-        unlocked.unlockTime > 0
-    ).length ??
-    game.unlockedAchievementCount ??
-    0;
-
-  return { ...game, id: gameKey, download, unlockedAchievementCount };
+  return {
+    ...game,
+    id: gameKey,
+    download,
+    unlockedAchievementCount,
+    achievementCount,
+  };
 };
 
 registerEvent("getGameByObjectId", getGameByObjectId);

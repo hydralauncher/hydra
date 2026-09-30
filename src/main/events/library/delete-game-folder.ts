@@ -2,8 +2,9 @@ import path from "node:path";
 import fs from "node:fs";
 
 import { getDownloadsPath } from "../helpers/get-downloads-path";
-import { DownloadOrchestrator, logger } from "@main/services";
+import { DownloadOrchestrator, logger, retroarch } from "@main/services";
 import { registerEvent } from "../register-event";
+import { isWithin } from "../emulators/rom-path-utils";
 import { GameShop } from "@types";
 import { downloadsSublevel, gamesSublevel, levelKeys } from "@main/level";
 
@@ -40,12 +41,14 @@ const deleteGameFolder = async (
     }
   };
 
-  if (download.folderName) {
-    const folderPath = path.join(
-      download.downloadPath ?? (await getDownloadsPath()),
-      download.folderName
-    );
+  const folderPath = download.folderName
+    ? path.join(
+        download.downloadPath ?? (await getDownloadsPath()),
+        download.folderName
+      )
+    : null;
 
+  if (folderPath) {
     const metaPath = `${folderPath}.meta`;
 
     await deleteFile(folderPath, true);
@@ -57,13 +60,37 @@ const deleteGameFolder = async (
 
   const game = await gamesSublevel.get(gameKey);
   if (game) {
+    const discs = game.discs ?? [];
+    const remainingDiscs = folderPath
+      ? discs.filter((disc) => !isWithin(disc.path, folderPath))
+      : discs;
+    const hasUnlinkedDiscs = remainingDiscs.length !== discs.length;
+    const isSelectedDiscRemaining = remainingDiscs.some(
+      (disc) => disc.path === game.selectedDiscPath
+    );
+
     await gamesSublevel.put(gameKey, {
       ...game,
       installerSizeInBytes: null,
       executablePath: null,
       installedSizeInBytes: null,
       automaticCloudSync: false,
+      ...(hasUnlinkedDiscs && {
+        discs: remainingDiscs,
+        selectedDiscPath: isSelectedDiscRemaining
+          ? game.selectedDiscPath
+          : (remainingDiscs[0]?.path ?? null),
+      }),
     });
+
+    if (hasUnlinkedDiscs) {
+      await retroarch.refreshRetroArchLibraryStats().catch((error) => {
+        logger.error(
+          "[deleteGameFolder] Failed to refresh RetroArch library stats",
+          error
+        );
+      });
+    }
   }
 };
 

@@ -10,6 +10,7 @@ import {
 import { Link } from "@renderer/components";
 import { gameDetailsContext } from "@renderer/context";
 import { MAX_MINUTES_TO_SHOW_IN_PLAYTIME } from "@renderer/constants";
+import { getDisplayedPlayTimeInMilliseconds } from "@shared";
 import { AlertFillIcon } from "@primer/octicons-react";
 import { Tooltip } from "react-tooltip";
 import "./hero-panel-playtime.scss";
@@ -37,7 +38,10 @@ export function HeroPanelPlaytime() {
   }, [game?.lastTimePlayed, formatDistance]);
 
   const formattedPlayTime = useMemo(() => {
-    const milliseconds = game?.playTimeInMilliseconds || 0;
+    const milliseconds = getDisplayedPlayTimeInMilliseconds({
+      playTimeInMilliseconds: game?.playTimeInMilliseconds || 0,
+      steamPlayTimeInMilliseconds: game?.steamPlayTimeInMilliseconds,
+    });
     const seconds = milliseconds / 1000;
     const minutes = seconds / 60;
 
@@ -49,9 +53,19 @@ export function HeroPanelPlaytime() {
 
     const hours = minutes / 60;
     return t("amount_hours", { amount: numberFormatter.format(hours) });
-  }, [game?.playTimeInMilliseconds, numberFormatter, t]);
+  }, [
+    game?.playTimeInMilliseconds,
+    game?.steamPlayTimeInMilliseconds,
+    numberFormatter,
+    t,
+  ]);
 
   if (!game) return null;
+
+  const displayedPlayTimeInMilliseconds = getDisplayedPlayTimeInMilliseconds({
+    playTimeInMilliseconds: game.playTimeInMilliseconds || 0,
+    steamPlayTimeInMilliseconds: game.steamPlayTimeInMilliseconds,
+  });
 
   const hasDownload =
     ["active", "paused"].includes(game.download?.status as string) &&
@@ -86,7 +100,7 @@ export function HeroPanelPlaytime() {
     </div>
   );
 
-  if (!game.lastTimePlayed) {
+  if (!game.lastTimePlayed && displayedPlayTimeInMilliseconds <= 0) {
     return (
       <>
         <p>{t("not_played_yet", { title: game?.title })}</p>

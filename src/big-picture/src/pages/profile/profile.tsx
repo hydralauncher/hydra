@@ -124,6 +124,7 @@ import {
   normalizeSouvenirReportValues,
   shouldShowSouvenirContentWarning,
   useSouvenirContentWarning,
+  getDisplayedPlayTimeInMilliseconds,
 } from "@shared";
 
 const SOUVENIR_REPORT_RESPONSE_STATUSES = [201, 400, 404, 429];
@@ -455,7 +456,13 @@ function getLibraryCarouselPlaytimeInMilliseconds(
     "playTimeInMilliseconds" in game &&
     typeof game.playTimeInMilliseconds === "number"
   ) {
-    return game.playTimeInMilliseconds;
+    return getDisplayedPlayTimeInMilliseconds({
+      playTimeInMilliseconds: game.playTimeInMilliseconds,
+      steamPlayTimeInMilliseconds:
+        "steamPlayTimeInMilliseconds" in game
+          ? game.steamPlayTimeInMilliseconds
+          : undefined,
+    });
   }
 
   if (
@@ -836,6 +843,8 @@ function ProfileHeroActions({
   tertiaryNavigationOverrides,
   onSignOut,
 }: Readonly<ProfileHeroActionsProps>) {
+  const { t } = useTranslation("user_profile");
+
   if (profileUser?.isOwnProfile) {
     return (
       <HorizontalFocusGroup
@@ -849,7 +858,7 @@ function ProfileHeroActions({
           focusNavigationOverrides={signOutNavigationOverrides}
           onClick={onSignOut}
         >
-          Sign Out
+          {t("sign_out")}
         </Button>
       </HorizontalFocusGroup>
     );
@@ -1689,10 +1698,11 @@ function getLocalFavoriteGame(library: LibraryGame[], isOwnProfile: boolean) {
 
   return (
     [...library]
-      .filter((game) => (game.playTimeInMilliseconds ?? 0) > 0)
+      .filter((game) => getDisplayedPlayTimeInMilliseconds(game) > 0)
       .sort(
         (a, b) =>
-          (b.playTimeInMilliseconds ?? 0) - (a.playTimeInMilliseconds ?? 0)
+          getDisplayedPlayTimeInMilliseconds(b) -
+          getDisplayedPlayTimeInMilliseconds(a)
       )[0] ?? null
   );
 }
@@ -2677,8 +2687,19 @@ function ProfileContent({ userId }: Readonly<ProfileContentProps>) {
     [externalProfile, userDetails, userId]
   );
 
+  const [showSignOutModal, setShowSignOutModal] = useState(false);
+  const [isSigningOut, setIsSigningOut] = useState(false);
+
   const handleSignOut = useCallback(async () => {
-    await signOut();
+    setIsSigningOut(true);
+
+    try {
+      await signOut();
+    } finally {
+      setIsSigningOut(false);
+      setShowSignOutModal(false);
+    }
+
     navigate(getBasePath() || "/");
   }, [navigate, signOut]);
 
@@ -3225,9 +3246,7 @@ function ProfileContent({ userId }: Readonly<ProfileContentProps>) {
           isPerformingAction={isPerformingProfileAction}
           isLoading={isLoading}
           firstContentFocusId={firstContentFocusId}
-          onSignOut={() => {
-            handleSignOut().catch(() => {});
-          }}
+          onSignOut={() => setShowSignOutModal(true)}
         />
 
         {profileUser ? (
@@ -3361,6 +3380,18 @@ function ProfileContent({ userId }: Readonly<ProfileContentProps>) {
             }
           }}
           onConfirm={() => void handleSouvenirSyncCleanup()}
+        />
+
+        <ConfirmationModal
+          visible={showSignOutModal}
+          title={t("sign_out_modal_title")}
+          description={t("sign_out_modal_text")}
+          confirmLabel={t("sign_out")}
+          cancelLabel={t("cancel")}
+          loading={isSigningOut}
+          danger
+          onClose={() => setShowSignOutModal(false)}
+          onConfirm={() => handleSignOut().catch(() => {})}
         />
 
         <ConfirmationModal

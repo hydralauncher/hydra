@@ -528,13 +528,15 @@ const collectFileEntry = async (
 export const collectFilesByExtension = async (
   rootPath: string,
   extensions: string[],
-  scanSubfolders: boolean
+  scanSubfolders: boolean,
+  signal?: AbortSignal
 ): Promise<CollectedRomFile[]> => {
   const out: CollectedRomFile[] = [];
   const queue: string[] = [rootPath];
   const seen = new Set<string>();
 
   for (let dir = queue.shift(); dir !== undefined; dir = queue.shift()) {
+    if (signal?.aborted) break;
     if (out.length >= MAX_COLLECTED_FILES) {
       logger.warn("ROM scan stopped at file cap", {
         rootPath,
@@ -551,6 +553,7 @@ export const collectFilesByExtension = async (
     if (!entries) continue;
 
     for (const entry of entries) {
+      if (signal?.aborted) break;
       await collectFileEntry(
         entry,
         dir,

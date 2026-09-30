@@ -1,0 +1,10 @@
+@use "../../scss/globals.scss";
+
+.settings-steam {
+  &__modal-actions {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: globals.$spacing-unit;
+  }
+}

@@ -132,6 +132,7 @@
     align-items: center;
     gap: 4px;
     min-width: 0;
+    margin-left: auto;
 
     @container (max-width: 260px) {
       flex-direction: column-reverse;

@@ -11,7 +11,10 @@ import {
   gamesSublevel,
 } from "@main/level";
 import { composeAssetsWithArtwork } from "@shared";
-import { AchievementMemoryStore } from "@main/services/achievements/achievement-memory-store";
+import {
+  resolveAchievementCount,
+  resolveUnlockedAchievementCount,
+} from "@main/services/achievements/achievement-memory-store";
 
 export const lookupCachedPlatform = async (
   gameKey: string
@@ -51,26 +54,11 @@ const getLibrary = async (): Promise<LibraryGame[]> => {
               gameAssets ?? null,
               artworkSelection
             );
-            const achievements = AchievementMemoryStore.get(
+            const unlockedAchievementCount = resolveUnlockedAchievementCount(
               game.shop,
-              game.objectId
+              game.objectId,
+              game.unlockedAchievementCount
             );
-
-            const validAchievementNames = new Set(
-              achievements?.achievements?.map((a) =>
-                (a.name ?? "").toUpperCase()
-              ) || []
-            );
-
-            const unlockedAchievementCount =
-              achievements?.unlockedAchievements?.filter(
-                (unlocked) =>
-                  validAchievementNames.has(
-                    (unlocked.name ?? "").toUpperCase()
-                  ) && unlocked.unlockTime > 0
-              ).length ??
-              game.unlockedAchievementCount ??
-              0;
 
             // Verify installer still exists, clear if deleted externally
             let installerSizeInBytes = game.installerSizeInBytes;
@@ -119,7 +107,11 @@ const getLibrary = async (): Promise<LibraryGame[]> => {
               installedSizeInBytes,
               download: download ?? null,
               unlockedAchievementCount,
-              achievementCount: game.achievementCount ?? 0,
+              achievementCount: resolveAchievementCount(
+                game.shop,
+                game.objectId,
+                game.achievementCount
+              ),
               // Spread composed assets last to ensure all image URLs are properly set
               ...composedAssets,
               title: composedAssets?.title || game.title,
