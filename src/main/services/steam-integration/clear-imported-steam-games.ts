@@ -1,45 +1,49 @@
-import type { Game } from "@types";
+import { chunk } from "lodash-es";
 import {
+  db,
   downloadsSublevel,
   gamesArtworkSelectionSublevel,
-  gamesShopAssetsSublevel,
   gamesSublevel,
 } from "@main/level";
 import { updateGameExecutablePath } from "@main/helpers/update-executable-path";
 import { steamSyncLogger } from "../logger";
 import { shouldRemoveImportedSteamGame } from "./steam-imported-games";
 
-const markGameDeleted = async (game: Game, gameKey: string) => {
-  await gamesSublevel.put(gameKey, {
-    ...updateGameExecutablePath(game, null),
-    isDeleted: true,
-    customIconUrl: null,
-    customLogoImageUrl: null,
-    customHeroImageUrl: null,
-    customCoverImageUrl: null,
-  });
-
-  const existingAssets = await gamesShopAssetsSublevel.get(gameKey);
-  if (existingAssets) {
-    await gamesShopAssetsSublevel.put(gameKey, {
-      ...existingAssets,
-      title: existingAssets.title,
-    });
-  }
-
-  await gamesArtworkSelectionSublevel.del(gameKey).catch(() => {});
-};
+const CLEAR_WRITE_CHUNK_SIZE = 250;
 
 export const clearImportedSteamGames = async (steamOnlyObjectIds: string[]) => {
   const ids = new Set(steamOnlyObjectIds);
+  const candidates = (await gamesSublevel.iterator().all()).filter(([, game]) =>
+    shouldRemoveImportedSteamGame(game, ids)
+  );
   let removed = 0;
 
-  for (const [key, game] of await gamesSublevel.iterator().all()) {
-    if (!shouldRemoveImportedSteamGame(game, ids)) continue;
-    if (await downloadsSublevel.get(key).catch(() => undefined)) continue;
+  for (const candidatesChunk of chunk(candidates, CLEAR_WRITE_CHUNK_SIZE)) {
+    const downloads = await downloadsSublevel.getMany(
+      candidatesChunk.map(([key]) => key)
+    );
+    const batch = db.batch();
 
-    await markGameDeleted(game, key);
-    removed += 1;
+    candidatesChunk.forEach(([key, game], index) => {
+      if (downloads[index]) return;
+
+      batch.put(
+        key,
+        {
+          ...updateGameExecutablePath(game, null),
+          isDeleted: true,
+          customIconUrl: null,
+          customLogoImageUrl: null,
+          customHeroImageUrl: null,
+          customCoverImageUrl: null,
+        },
+        { sublevel: gamesSublevel }
+      );
+      batch.del(key, { sublevel: gamesArtworkSelectionSublevel });
+      removed += 1;
+    });
+
+    await batch.write();
   }
 
   steamSyncLogger.log(

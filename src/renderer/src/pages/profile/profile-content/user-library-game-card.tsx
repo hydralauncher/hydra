@@ -1,25 +1,20 @@
 import { UserGame } from "@types";
 import HydraIcon from "@renderer/assets/icons/hydra.svg?react";
-import { useAppSelector, useFormat } from "@renderer/hooks";
+import { useFormat } from "@renderer/hooks";
 import { useNavigate } from "react-router-dom";
-import { useCallback, useContext, useState } from "react";
+import { useCallback, useContext } from "react";
 import {
   buildGameAchievementPath,
   buildGameDetailsPath,
   formatDownloadProgress,
   isGameCompleted,
-  shouldShowProfileSteamLibraryBadge,
 } from "@renderer/helpers";
 import { userProfileContext } from "@renderer/context";
 import { ClockIcon, TrophyIcon, AlertFillIcon } from "@primer/octicons-react";
 import { MAX_MINUTES_TO_SHOW_IN_PLAYTIME } from "@renderer/constants";
 import { Tooltip } from "react-tooltip";
 import { useTranslation } from "react-i18next";
-import {
-  ProgressBar,
-  SteamLibraryBadge,
-  VerticalCoverCard,
-} from "@renderer/components";
+import { ProgressBar, VerticalCoverCard } from "@renderer/components";
 import "./user-library-game-card.scss";
 
 interface UserLibraryGameCardProps {
@@ -36,11 +31,7 @@ export function UserLibraryGameCard({
   const { userProfile, isMe } = useContext(userProfileContext);
   const { t } = useTranslation("user_profile");
   const { numberFormatter } = useFormat();
-  const hideSteamLibraryBadges = useAppSelector(
-    (state) => state.userPreferences.value?.hideSteamLibraryBadges ?? false
-  );
   const navigate = useNavigate();
-  const [isTooltipHovered, setIsTooltipHovered] = useState(false);
 
   const coverImageUrl = game.customLibraryImageUrl ?? game.coverImageUrl;
 
@@ -119,10 +110,7 @@ export function UserLibraryGameCard({
 
   return (
     <>
-      <li
-        className="user-library-game__wrapper"
-        title={isTooltipHovered ? undefined : game.title}
-      >
+      <li className="user-library-game__wrapper">
         <VerticalCoverCard
           gameTitle={game.title}
           coverImageUrls={[coverImageUrl]}
@@ -162,12 +150,6 @@ export function UserLibraryGameCard({
                   {formatPlayTime(game.playTimeInSeconds, true)}
                 </span>
               </div>
-
-              {shouldShowProfileSteamLibraryBadge(
-                game,
-                isMe,
-                hideSteamLibraryBadges
-              ) && <SteamLibraryBadge />}
             </div>
 
             {hasAchievementProgress && (
@@ -235,8 +217,6 @@ export function UserLibraryGameCard({
           zIndex: 9999,
         }}
         openOnClick={false}
-        afterShow={() => setIsTooltipHovered(true)}
-        afterHide={() => setIsTooltipHovered(false)}
       />
     </>
   );

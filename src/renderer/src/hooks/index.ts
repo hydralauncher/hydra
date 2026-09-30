@@ -1,6 +1,7 @@
 export * from "./use-download";
 export * from "./use-download-layout";
 export * from "./use-library";
+export * from "./use-non-steam-executable";
 export * from "./use-date";
 export * from "./use-toast";
 export * from "./redux";

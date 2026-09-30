@@ -17,7 +17,6 @@ import { useCollectionContextMenu } from "@renderer/context";
 import { GameContextMenu } from "@renderer/components";
 import type { GameContextMenuGame } from "@renderer/components/game-context-menu/game-context-menu.types";
 import { ClassicsIcon } from "@renderer/pages/library/category-filter";
-import { SteamIcon } from "@renderer/components";
 import type { ProfilePlatformFilter } from "@renderer/helpers";
 import { FilterDropdown, type FilterDropdownOption } from "./filter-dropdown";
 import { UserLibraryGameCard } from "./user-library-game-card";
@@ -150,11 +149,6 @@ export function LibraryTab({
   const platformOptions: FilterDropdownOption<ProfilePlatform>[] = [
     { value: "all", label: t("platform_all"), icon: StackIcon },
     { value: "pc", label: t("platform_pc"), icon: DeviceDesktopIcon },
-    {
-      value: "steam_library",
-      label: t("category_steam_library", { ns: "library" }),
-      icon: SteamIcon,
-    },
     { value: "classics", label: t("platform_classics"), icon: ClassicsIcon },
   ];
 

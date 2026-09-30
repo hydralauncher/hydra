@@ -35,6 +35,7 @@ import { GofileApi } from "./services/hosters";
 import { clearLegacyAchievementPersistence } from "./level/clear-legacy-achievements";
 import { startSteamSyncOnStartup } from "./services/steam-integration/steam-startup-sync";
 import { migrateEmulatorCloudSaveDefaults } from "./services/cloud-save/automatic-sync-emulator-migration";
+import { watchSteamLibraries } from "./services/steam-integration/steam-install-watcher";
 
 const hasMissingSeedFiles = async (download: Download): Promise<boolean> => {
   if (!download.folderName) return false;
@@ -108,6 +109,8 @@ export const loadState = async () => {
   if (process.platform === "linux") {
     DeckyPlugin.checkAndUpdateIfOutdated();
   }
+
+  void watchSteamLibraries();
 
   await HydraApi.setupApi().then(async () => {
     uploadGamesBatch();

@@ -220,6 +220,34 @@
     display: block;
   }
 
+  &__game-list-skeleton {
+    list-style: none;
+    margin: 0;
+    padding: 0 16px 0 0;
+    height: 100%;
+    overflow: hidden;
+  }
+
+  &__game-skeleton {
+    display: flex;
+    align-items: center;
+    gap: globals.$spacing-unit;
+    height: 42px;
+    padding: 0 globals.$spacing-unit;
+  }
+
+  &__game-skeleton-icon {
+    display: flex;
+    flex-shrink: 0;
+    line-height: 0;
+  }
+
+  &__game-skeleton-title {
+    flex: 1;
+    min-width: 0;
+    line-height: 0;
+  }
+
   &__game-icon-container {
     position: relative;
     width: 20px;
