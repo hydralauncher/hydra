@@ -69,6 +69,15 @@ const coverage = (
   warningCodes: complete ? [] : ["emulator-location-partial"],
 });
 
+const missingCoverage = (
+  rawPath: string,
+  variantId: string
+): UserLocationCoverage => ({
+  ...coverage(rawPath, variantId, true),
+  selectedRoot: false,
+  outcome: "confirmed-missing",
+});
+
 export const unresolvedCoverage = (reason: string): UserLocationCoverage => ({
   candidateId: hash(reason),
   ruleId: hash("emulator:rpcs3"),
@@ -212,7 +221,11 @@ export const scanRpcs3Savestates = async (
 
   for (const titleId of titleIds) {
     const rawPath = rpcs3SavestateRawPath(titleId);
-    if (!rootStat || !rootStat.isDirectory() || rootStat.isSymbolicLink()) {
+    if (rootStat === null) {
+      result.coverage.push(missingCoverage(rawPath, variantId));
+      continue;
+    }
+    if (!rootStat?.isDirectory() || rootStat.isSymbolicLink()) {
       result.coverage.push(coverage(rawPath, variantId, false));
       continue;
     }
@@ -224,7 +237,11 @@ export const scanRpcs3Savestates = async (
         throw error;
       })
       .catch(() => undefined);
-    if (!titleStat || !titleStat.isDirectory() || titleStat.isSymbolicLink()) {
+    if (titleStat === null) {
+      result.coverage.push(missingCoverage(rawPath, variantId));
+      continue;
+    }
+    if (!titleStat?.isDirectory() || titleStat.isSymbolicLink()) {
       result.coverage.push(coverage(rawPath, variantId, false));
       continue;
     }

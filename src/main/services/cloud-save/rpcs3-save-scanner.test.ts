@@ -109,7 +109,7 @@ describe("RPCS3 Cloud Save scanner", () => {
     }
   });
 
-  it("marks unknown matching states and an absent state root partial", async () => {
+  it("records absent savestate roots as confirmed missing", async () => {
     const configRoot = await fs.mkdtemp(path.join(os.tmpdir(), "hydra-rpcs3-"));
     try {
       const context = {
@@ -117,8 +117,33 @@ describe("RPCS3 Cloud Save scanner", () => {
         environmentId: "environment",
         variantId: "variant",
       };
-      const empty = await scanRpcs3Savestates(context, configRoot);
-      assert.equal(empty.coverage[0].outcome, "partial");
+      const absentRoot = await scanRpcs3Savestates(context, configRoot);
+      assert.deepEqual(absentRoot.files, []);
+      assert.equal(absentRoot.coverage[0].outcome, "confirmed-missing");
+      assert.equal(absentRoot.coverage[0].selectedRoot, false);
+      assert.equal(absentRoot.coverage[0].enumeratedCompletely, true);
+      assert.deepEqual(absentRoot.coverage[0].warningCodes, []);
+
+      await fs.mkdir(path.join(configRoot, "savestates"));
+      const absentTitle = await scanRpcs3Savestates(context, configRoot);
+      assert.deepEqual(absentTitle.files, []);
+      assert.equal(absentTitle.coverage[0].outcome, "confirmed-missing");
+      assert.equal(absentTitle.coverage[0].selectedRoot, false);
+      assert.equal(absentTitle.coverage[0].enumeratedCompletely, true);
+      assert.deepEqual(absentTitle.coverage[0].warningCodes, []);
+    } finally {
+      await fs.rm(configRoot, { recursive: true, force: true });
+    }
+  });
+
+  it("marks unknown matching states partial", async () => {
+    const configRoot = await fs.mkdtemp(path.join(os.tmpdir(), "hydra-rpcs3-"));
+    try {
+      const context = {
+        game,
+        environmentId: "environment",
+        variantId: "variant",
+      };
       const states = path.join(configRoot, "savestates", "BLUS30443");
       await fs.mkdir(states, { recursive: true });
       await fs.writeFile(path.join(states, "BLUS30443_old.SAVESTAT"), "old");
@@ -132,6 +157,81 @@ describe("RPCS3 Cloud Save scanner", () => {
       const incomplete = await scanRpcs3Savestates(context, configRoot);
       assert.deepEqual(incomplete.files, []);
       assert.equal(incomplete.coverage[0].outcome, "partial");
+    } finally {
+      await fs.rm(configRoot, { recursive: true, force: true });
+    }
+  });
+
+  it("keeps invalid and symlinked state roots partial", async () => {
+    const configRoot = await fs.mkdtemp(path.join(os.tmpdir(), "hydra-rpcs3-"));
+    const context = {
+      game,
+      environmentId: "environment",
+      variantId: "variant",
+    };
+    try {
+      const statesRoot = path.join(configRoot, "savestates");
+      await fs.writeFile(statesRoot, "not a directory");
+      assert.equal(
+        (await scanRpcs3Savestates(context, configRoot)).coverage[0].outcome,
+        "partial"
+      );
+
+      await fs.unlink(statesRoot);
+      await fs.mkdir(path.join(configRoot, "outside"));
+      await fs.symlink(path.join(configRoot, "outside"), statesRoot);
+      assert.equal(
+        (await scanRpcs3Savestates(context, configRoot)).coverage[0].outcome,
+        "partial"
+      );
+
+      await fs.unlink(statesRoot);
+      await fs.mkdir(statesRoot);
+      await fs.symlink(
+        path.join(configRoot, "outside"),
+        path.join(statesRoot, "BLUS30443")
+      );
+      assert.equal(
+        (await scanRpcs3Savestates(context, configRoot)).coverage[0].outcome,
+        "partial"
+      );
+    } finally {
+      await fs.rm(configRoot, { recursive: true, force: true });
+    }
+  });
+
+  it("scans Minecraft savedata while its savestate folder is absent", async () => {
+    const configRoot = await fs.mkdtemp(path.join(os.tmpdir(), "hydra-rpcs3-"));
+    const minecraft = { discs: [{ sku: "NPUB31419" }] } as Game;
+    const context = {
+      game: minecraft,
+      environmentId: "environment",
+      variantId: "variant",
+    };
+    try {
+      const homeRoot = path.join(configRoot, "dev_hdd0", "home");
+      const saveRoot = path.join(homeRoot, "00000001", "savedata");
+      for (const [slot, count] of [
+        ["NPUB31419--260930163517", 5],
+        ["NPUB31419-OPTIONS", 4],
+      ] as const) {
+        const slotRoot = path.join(saveRoot, slot);
+        await fs.mkdir(slotRoot, { recursive: true });
+        for (let index = 0; index < count; index++) {
+          await fs.writeFile(path.join(slotRoot, `FILE${index}`), "save");
+        }
+      }
+      await fs.mkdir(path.join(configRoot, "savestates"));
+
+      const [savedata, savestates] = await Promise.all([
+        scanRpcs3SaveRoot(context, homeRoot, "00000001"),
+        scanRpcs3Savestates(context, configRoot),
+      ]);
+      assert.equal(savedata.files.length, 9);
+      assert.equal(savedata.coverage[0].outcome, "scanned");
+      assert.deepEqual(savestates.files, []);
+      assert.equal(savestates.coverage[0].outcome, "confirmed-missing");
+      assert.deepEqual(savestates.coverage[0].warningCodes, []);
     } finally {
       await fs.rm(configRoot, { recursive: true, force: true });
     }

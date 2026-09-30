@@ -32,7 +32,10 @@ import {
   filterCloudSaveV2Comparisons,
   type CloudSaveV2FileTreeRoot,
 } from "./cloud-save-v2-file-tree";
-import { getCloudSaveFileBrowserOperationPolicy } from "./cloud-save-v2-file-browser-policy";
+import {
+  getCloudSaveFileBrowserOperationPolicy,
+  shouldShowRpcs3ProfileWarning,
+} from "./cloud-save-v2-file-browser-policy";
 import { CloudSaveV2FileTreeView } from "./cloud-save-v2-file-tree-view";
 import {
   getCloudSaveOperationPresentation,
@@ -778,7 +781,7 @@ export function CloudSaveV2FileBrowserModal({
           {details && (
             <>
               {details.rpcs3Profile &&
-                details.rpcs3Profile.cloudProfileIds.length > 0 && (
+                shouldShowRpcs3ProfileWarning(details.rpcs3Profile) && (
                   <div className="cloud-save-v2__browser-inline-error">
                     <WarningCircleIcon size={16} />
                     <div>

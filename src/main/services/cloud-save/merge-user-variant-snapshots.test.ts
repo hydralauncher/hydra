@@ -883,6 +883,78 @@ describe("merge user variant snapshots", () => {
     assert.deepEqual(result.restoreEntryIds, [cloudSaveFileKey(missing)]);
   });
 
+  it("keeps Minecraft saves synced without local savestates and restores remote states", () => {
+    const saveRawPath = "<emulator>/rpcs3/NPUB31419/00000001";
+    const stateRawPath = "<emulator>/rpcs3-state/NPUB31419";
+    const saves = Array.from({ length: 9 }, (_, index) =>
+      file(
+        `${index < 5 ? "NPUB31419--260930163517" : "NPUB31419-OPTIONS"}/FILE${index}`,
+        String(index),
+        saveRawPath
+      )
+    );
+    const state = file("NPUB31419_1_0.SAVESTAT.zst", "s", stateRawPath);
+    const local = context(saves);
+    local.coverage = [
+      {
+        candidateId: "savedata",
+        ruleId: "savedata",
+        variantId,
+        rawPath: saveRawPath,
+        selectedRoot: true,
+        authority: "exact",
+        outcome: "scanned",
+        enumeratedCompletely: true,
+        warningCodes: [],
+      },
+      {
+        candidateId: "savestates",
+        ruleId: "savestates",
+        variantId,
+        rawPath: stateRawPath,
+        selectedRoot: false,
+        authority: "exact",
+        outcome: "confirmed-missing",
+        enumeratedCompletely: true,
+        warningCodes: [],
+      },
+    ];
+
+    const synced = mergeUserVariantSnapshots({
+      local,
+      remoteVariants: [variant],
+      remoteFiles: saves,
+      base: anchor(saves),
+    });
+    assert.equal(synced.files.length, 9);
+    assert.equal(synced.partial, false);
+    assert.deepEqual(synced.restoreEntryIds, []);
+
+    const remoteFiles = [...saves, state];
+    const missingState = mergeUserVariantSnapshots({
+      local,
+      remoteVariants: [variant],
+      remoteFiles,
+      base: anchor(remoteFiles),
+    });
+    assert.deepEqual(missingState.deleteRemoteEntryIds, []);
+    assert.deepEqual(missingState.restoreEntryIds, [cloudSaveFileKey(state)]);
+
+    const restored = context(remoteFiles);
+    restored.coverage = [
+      local.coverage[0],
+      { ...local.coverage[1], selectedRoot: true, outcome: "scanned" },
+    ];
+    const afterRestore = mergeUserVariantSnapshots({
+      local: restored,
+      remoteVariants: [variant],
+      remoteFiles,
+      base: anchor(remoteFiles),
+    });
+    assert.equal(afterRestore.partial, false);
+    assert.deepEqual(afterRestore.deleteRemoteEntryIds, []);
+  });
+
   it("preserves remote data without restoring when coverage is incomplete", () => {
     const remote = file("remote.sav", "a");
     const retained = file("retained.sav", "b", "<home>/other");

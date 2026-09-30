@@ -1,3 +1,5 @@
+import type { CloudSaveV2FileDetails } from "@types";
+
 interface CloudSaveFileBrowserOperationState {
   isAddingCustomPath: boolean;
   isRebindingCustomPath: boolean;
@@ -8,6 +10,14 @@ interface CloudSaveFileBrowserOperationState {
   isGameRunning: boolean;
   isSyncing: boolean;
 }
+
+export const shouldShowRpcs3ProfileWarning = (
+  profile: CloudSaveV2FileDetails["rpcs3Profile"]
+) =>
+  Boolean(
+    profile?.cloudProfileIds.length &&
+      !profile.cloudProfileIds.includes(profile.linkedCloudProfileId ?? "")
+  );
 
 export const getCloudSaveFileBrowserOperationPolicy = ({
   isAddingCustomPath,
