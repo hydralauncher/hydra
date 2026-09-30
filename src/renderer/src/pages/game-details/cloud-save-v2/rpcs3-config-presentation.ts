@@ -31,3 +31,8 @@ export const getCloudSavePanelMode = (
     return "rpcs3-config";
   return snapshotMode;
 };
+
+export const shouldShowRpcs3SnapshotWhileBlocked = (
+  panelMode: ReturnType<typeof getCloudSavePanelMode> | "rpcs3-identity",
+  hasActiveSnapshot: boolean
+) => panelMode === "rpcs3-config" && hasActiveSnapshot;

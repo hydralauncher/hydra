@@ -7,6 +7,7 @@ import {
   getRpcs3ConfigWarningKey,
   RPCS3_CONFIG_SETTINGS_URL,
   shouldShowRpcs3IdentityCard,
+  shouldShowRpcs3SnapshotWhileBlocked,
 } from "./rpcs3-config-presentation.js";
 
 it("shows the specific RPCS3 configuration warning and links to PlayStation 3 settings", () => {
@@ -76,6 +77,23 @@ it("uses the RPCS3 setup card instead of a disabled sync action", () => {
     getCloudSavePanelMode(true, "missing", "content", true),
     "content"
   );
+});
+
+it("keeps the snapshot file action in its own card while RPCS3 setup is blocked", () => {
+  assert.equal(shouldShowRpcs3SnapshotWhileBlocked("rpcs3-config", true), true);
+  assert.equal(
+    shouldShowRpcs3SnapshotWhileBlocked("rpcs3-config", false),
+    false
+  );
+  assert.equal(
+    shouldShowRpcs3SnapshotWhileBlocked("missing-executable", true),
+    false
+  );
+  assert.equal(
+    shouldShowRpcs3SnapshotWhileBlocked("rpcs3-identity", true),
+    false
+  );
+  assert.equal(shouldShowRpcs3SnapshotWhileBlocked("content", true), false);
 });
 
 it("asks for a PS3 disc before showing an RPCS3 configuration warning", () => {

@@ -25,6 +25,7 @@ import {
   getCloudSavePanelMode,
   getRpcs3ConfigWarningKey,
   shouldShowRpcs3IdentityCard,
+  shouldShowRpcs3SnapshotWhileBlocked,
 } from "./rpcs3-config-presentation";
 import {
   getCloudSavePanelAction,
@@ -298,6 +299,10 @@ export function CloudSavePanel({
     isSyncing
   );
   const panelMode = identityBlocked ? "rpcs3-identity" : basePanelMode;
+  const showBlockedSnapshot = shouldShowRpcs3SnapshotWhileBlocked(
+    panelMode,
+    activeSnapshot !== null
+  );
 
   useEffect(() => {
     setIsCloudSaveEnabled(isAutomaticSyncEnabled ?? false);
@@ -499,18 +504,14 @@ export function CloudSavePanel({
         <FolderOpenIcon size={20} />
         <span>{t("cloud_save_v2_rpcs3_config_open_settings")}</span>
       </Button>
-      {overview && (
+      {overview && !activeSnapshot && (
         <button
           type="button"
           className="cloud-save-v2__required-setup-link"
           onClick={onOpenFileBrowser}
           disabled={isLoading || isSyncing}
         >
-          {t(
-            activeSnapshot
-              ? "cloud_save_v2_view_files"
-              : "cloud_save_v2_manage_save_locations"
-          )}
+          {t("cloud_save_v2_manage_save_locations")}
         </button>
       )}
     </section>
@@ -609,6 +610,24 @@ export function CloudSavePanel({
 
       {panelMode === "rpcs3-config" && rpcs3ConfigCard}
       {panelMode === "rpcs3-identity" && rpcs3IdentityCard}
+
+      {showBlockedSnapshot && (
+        <section className="cloud-save-v2__active-snapshot">
+          <article className="cloud-save-v2__snapshot cloud-save-v2__snapshot--active">
+            {snapshotSummary}
+            <div className="cloud-save-v2__action-area cloud-save-v2__action-area--with-snapshot">
+              <Button
+                className="cloud-save-v2__sync-button"
+                onClick={onOpenFileBrowser}
+                disabled={isLoading || isSyncing}
+              >
+                <FolderOpenIcon size={20} />
+                <span>{t("cloud_save_v2_view_files")}</span>
+              </Button>
+            </div>
+          </article>
+        </section>
+      )}
 
       {panelMode === "skeleton" && (
         <CloudSaveSnapshotSkeleton label={t("cloud_save_v2_checking")} />
