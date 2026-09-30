@@ -91,7 +91,8 @@ const configCandidates = (
 export const rpcs3GuiConfigsCandidates = (
   executablePath: string | null,
   platform = process.platform,
-  home = homedir()
+  home = homedir(),
+  xdgConfigHome = process.env["XDG_CONFIG_HOME"]
 ): string[] => {
   const beside = executablePath
     ? path.join(
@@ -129,6 +130,16 @@ export const rpcs3GuiConfigsCandidates = (
       "GuiConfigs",
       "persistent_settings.dat"
     ),
+    ...(platform === "linux" && xdgConfigHome && path.isAbsolute(xdgConfigHome)
+      ? [
+          path.join(
+            xdgConfigHome,
+            "rpcs3",
+            "GuiConfigs",
+            "persistent_settings.dat"
+          ),
+        ]
+      : []),
     path.join(
       home,
       ".var",

@@ -20,6 +20,7 @@ import type {
 import { formatBytes } from "@shared";
 import { Button, Modal } from "@renderer/components";
 import { useDate } from "@renderer/hooks";
+import { getRpcs3ConfigWarningKey } from "./rpcs3-config-presentation";
 import {
   getCloudSavePanelAction,
   getCloudSaveOperationPresentation,
@@ -41,6 +42,8 @@ export interface CloudSavePanelProps {
   requiresRom: boolean;
   isAutomaticSyncEnabled: boolean | null;
   hasError: boolean;
+  rpcs3ConfigStatus?: import("@types").Rpcs3ConfigRootStatus["status"] | null;
+  onConfigureRpcs3?: () => void;
   errorMessageKey:
     | "cloud_save_v2_load_error"
     | "cloud_save_v2_sync_error"
@@ -213,6 +216,8 @@ export function CloudSavePanel({
   requiresRom,
   isAutomaticSyncEnabled,
   hasError,
+  rpcs3ConfigStatus,
+  onConfigureRpcs3,
   errorMessageKey,
   progress,
   onSync,
@@ -265,6 +270,8 @@ export function CloudSavePanel({
     hasError,
   });
   const partialDescriptionKey = getCloudSavePartialDescriptionKey(overview);
+  const rpcs3WarningKey = getRpcs3ConfigWarningKey(rpcs3ConfigStatus);
+  const rpcs3NeedsConfig = !!rpcs3WarningKey;
 
   useEffect(() => {
     setIsCloudSaveEnabled(isAutomaticSyncEnabled ?? false);
@@ -402,7 +409,9 @@ export function CloudSavePanel({
   const syncAction = (
     <CloudSaveSyncAction
       action={panelAction}
-      isLoading={isLoading}
+      isLoading={
+        isLoading || (rpcs3NeedsConfig && panelAction.kind !== "details")
+      }
       isSyncing={isSyncing}
       isGameRunning={isGameRunning}
       progress={progress}
@@ -487,13 +496,24 @@ export function CloudSavePanel({
         <p className="cloud-save-v2__error">{t(errorMessageKey)}</p>
       )}
 
-      {hasUnconfiguredCustomPaths && !hasError && (
+      {rpcs3WarningKey && (
+        <div className="cloud-save-v2__error">
+          <p>{t(rpcs3WarningKey)}</p>
+          {onConfigureRpcs3 && (
+            <Button theme="outline" onClick={onConfigureRpcs3}>
+              {t("cloud_save_v2_rpcs3_config_open_settings")}
+            </Button>
+          )}
+        </div>
+      )}
+
+      {hasUnconfiguredCustomPaths && !hasError && !rpcs3NeedsConfig && (
         <p className="cloud-save-v2__error">
           {t("cloud_save_v2_unconfigured_custom_path_description")}
         </p>
       )}
 
-      {partialDescriptionKey && !hasError && (
+      {partialDescriptionKey && !hasError && !rpcs3NeedsConfig && (
         <p className="cloud-save-v2__partial-warning">
           {t(partialDescriptionKey)}
         </p>

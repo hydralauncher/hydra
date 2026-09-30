@@ -46,4 +46,32 @@ describe("RPCS3 config candidates", () => {
       )
     );
   });
+
+  it("includes absolute XDG_CONFIG_HOME on Linux", () => {
+    const candidates = rpcs3GuiConfigsCandidates(
+      null,
+      "linux",
+      "/home/player",
+      "/custom/config"
+    );
+    assert.ok(
+      candidates.includes(
+        path.join(
+          "/custom/config",
+          "rpcs3",
+          "GuiConfigs",
+          "persistent_settings.dat"
+        )
+      )
+    );
+    const relative = rpcs3GuiConfigsCandidates(
+      null,
+      "linux",
+      "/home/player",
+      "relative/config"
+    );
+    assert.ok(
+      !relative.some((candidate) => candidate.includes("relative/config"))
+    );
+  });
 });

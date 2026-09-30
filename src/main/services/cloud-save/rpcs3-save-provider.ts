@@ -1,5 +1,6 @@
 import { promises as fs } from "node:fs";
 import path from "node:path";
+import { logger } from "@main/services/logger";
 
 import type { Game, RestoreManifestFile } from "@types";
 
@@ -16,11 +17,10 @@ import type {
   EmulatorProviderContext,
 } from "./emulator-provider-types";
 import {
-  parseRpcs3ActiveProfileId,
-  resolveRpcs3VfsHdd0,
   rpcs3SlotBelongsToTitle,
   rpcs3TitleIdsForGame,
 } from "./rpcs3-save-layout";
+import { resolveRpcs3ConfigRootStatus } from "./rpcs3-config-root";
 import {
   scanRpcs3SaveRoot,
   scanRpcs3Savestates,
@@ -36,57 +36,26 @@ import {
   listRpcs3CloudProfileIds,
 } from "./rpcs3-profile-binding-policy";
 
-const exists = async (target: string) =>
-  fs.stat(target).then(
-    () => true,
-    () => false
-  );
-
 export const resolveRpcs3ActiveSaveLocation = async () => {
   const emulator = await getEmulatorConfig("ps3");
-  if (!emulator.executablePath || !(await exists(emulator.executablePath))) {
-    throw new Error("cloud_save_rpcs3_not_configured");
-  }
-  const candidates = await Promise.all(
-    [...new Set(rpcs3ConfigRoots(emulator.executablePath))].map(
-      async (root) => ({
-        root,
-        active:
-          (await exists(path.join(root, "vfs.yml"))) ||
-          (await exists(
-            path.join(root, "GuiConfigs", "persistent_settings.dat")
-          )) ||
-          (await exists(path.join(root, "config.yml"))),
-      })
-    )
+  const { status, location } = await resolveRpcs3ConfigRootStatus(
+    emulator.executablePath,
+    emulator.rpcs3ConfigRoot
   );
-  const active = candidates.filter((candidate) => candidate.active);
-  if (active.length !== 1) {
-    throw new Error("cloud_save_rpcs3_config_ambiguous");
-  }
-  const configRoot = await fs.realpath(active[0].root);
-  const vfsContent = await fs
-    .readFile(path.join(configRoot, "vfs.yml"), "utf8")
-    .catch((error: NodeJS.ErrnoException) => {
-      if (error.code === "ENOENT") return null;
-      throw error;
-    });
-  const hdd0 = resolveRpcs3VfsHdd0(configRoot, vfsContent);
-  const realHdd0 = await fs.realpath(hdd0);
-  const settingsContent = await fs
-    .readFile(
-      path.join(configRoot, "GuiConfigs", "persistent_settings.dat"),
-      "utf8"
-    )
-    .catch((error: NodeJS.ErrnoException) => {
-      if (error.code === "ENOENT") return null;
-      throw error;
-    });
-  const activeProfileId = parseRpcs3ActiveProfileId(settingsContent);
-  if (!activeProfileId) {
-    throw new Error("cloud_save_rpcs3_active_profile_unresolved");
-  }
-  return { configRoot, homeRoot: path.join(realHdd0, "home"), activeProfileId };
+  if (location) return location;
+  logger.warn("[Cloud Save] RPCS3 config root unavailable", {
+    status: status.status,
+    selectedRoot: status.selectedRoot,
+    checkedPaths: rpcs3ConfigRoots(emulator.executablePath),
+  });
+  const code = {
+    "not-configured": "cloud_save_rpcs3_not_configured",
+    missing: "cloud_save_rpcs3_config_missing",
+    ambiguous: "cloud_save_rpcs3_config_ambiguous",
+    "invalid-selection": "cloud_save_rpcs3_config_invalid_selection",
+    ready: "cloud_save_rpcs3_config_missing",
+  }[status.status];
+  throw new Error(code);
 };
 
 export const getRpcs3SaveEnvironmentKey = async (game: Game) => {
@@ -95,6 +64,7 @@ export const getRpcs3SaveEnvironmentKey = async (game: Game) => {
     ? await getRpcs3ProfileBinding(
         game.shop,
         game.objectId,
+        resolved.configRoot,
         resolved.homeRoot,
         resolved.activeProfileId
       ).catch(() => null)
@@ -113,6 +83,7 @@ export const getRpcs3ProfilePairing = async (game: Game) => {
   const binding = await getRpcs3ProfileBinding(
     game.shop,
     game.objectId,
+    location.configRoot,
     location.homeRoot,
     location.activeProfileId
   );
@@ -125,10 +96,11 @@ export const ensureRpcs3ProfileBindingForAnalysis = async (
 ): Promise<boolean> => {
   const location = await resolveRpcs3ActiveSaveLocation().catch(() => null);
   if (!location) return false;
-  const { homeRoot, activeProfileId } = location;
+  const { configRoot, homeRoot, activeProfileId } = location;
   const binding = await getRpcs3ProfileBinding(
     game.shop,
     game.objectId,
+    configRoot,
     homeRoot,
     activeProfileId
   );
@@ -141,6 +113,7 @@ export const ensureRpcs3ProfileBindingForAnalysis = async (
   if (!cloudProfileId) return false;
   if (binding?.cloudProfileId === cloudProfileId) return false;
   await setRpcs3ProfileBinding(game.shop, game.objectId, {
+    configRoot,
     homeRoot,
     localProfileId: activeProfileId,
     cloudProfileId,
@@ -192,6 +165,7 @@ export const rpcs3SaveProvider: EmulatorProvider = {
       const binding = await getRpcs3ProfileBinding(
         context.game.shop,
         context.game.objectId,
+        configRoot,
         homeRoot,
         activeProfileId
       );
@@ -231,6 +205,7 @@ export const rpcs3SaveProvider: EmulatorProvider = {
     const binding = await getRpcs3ProfileBinding(
       game.shop,
       game.objectId,
+      configRoot,
       homeRoot,
       activeProfileId
     );

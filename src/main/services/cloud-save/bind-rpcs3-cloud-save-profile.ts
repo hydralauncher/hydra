@@ -36,7 +36,7 @@ export const bindRpcs3CloudSaveProfile = async (
       const { resolveRpcs3ActiveSaveLocation } = await import(
         "./rpcs3-save-provider"
       );
-      const { homeRoot, activeProfileId } =
+      const { configRoot, homeRoot, activeProfileId } =
         await resolveRpcs3ActiveSaveLocation();
       const activeProfile = await fs
         .lstat(path.join(homeRoot, activeProfileId))
@@ -59,6 +59,7 @@ export const bindRpcs3CloudSaveProfile = async (
       }
 
       await setRpcs3ProfileBinding(shop, objectId, {
+        configRoot,
         homeRoot,
         localProfileId: activeProfileId,
         cloudProfileId,

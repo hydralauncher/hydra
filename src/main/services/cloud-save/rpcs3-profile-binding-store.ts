@@ -21,13 +21,19 @@ const getStorageKey = async (shop: GameShop, objectId: string) => {
 export const getRpcs3ProfileBinding = async (
   shop: GameShop,
   objectId: string,
+  configRoot: string,
   homeRoot: string,
   localProfileId: string
 ): Promise<Rpcs3ProfileBinding | null> => {
   const stored = await cloudSaveRpcs3ProfileBindingsSublevel.get(
     await getStorageKey(shop, objectId)
   );
-  return isCurrentRpcs3ProfileBinding(stored, homeRoot, localProfileId)
+  return isCurrentRpcs3ProfileBinding(
+    stored,
+    configRoot,
+    homeRoot,
+    localProfileId
+  )
     ? stored
     : null;
 };
@@ -40,6 +46,7 @@ export const setRpcs3ProfileBinding = async (
   if (
     !isCurrentRpcs3ProfileBinding(
       binding,
+      binding.configRoot,
       binding.homeRoot,
       binding.localProfileId
     )

@@ -611,6 +611,10 @@ declare global {
     ) => Promise<void>;
     /* Emulators */
     getEmulatorConfigs: () => Promise<EmulatorConfigMap>;
+    getRpcs3ConfigRootStatus: () => Promise<
+      import("@types").Rpcs3ConfigRootStatus
+    >;
+    setRpcs3ConfigRoot: (root: string) => Promise<EmulatorConfig>;
     detectEmulators: () => Promise<EmulatorConfigMap>;
     detectEmulator: (system: EmulatorSystem) => Promise<EmulatorConfig>;
     previewEmulatorExecutable: (

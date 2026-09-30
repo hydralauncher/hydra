@@ -3,6 +3,7 @@ import type { RestoreManifestFile } from "@types";
 import { parseRpcs3SaveRawPath } from "./emulator-provider-identity.js";
 
 export interface Rpcs3ProfileBinding {
+  configRoot: string;
   homeRoot: string;
   localProfileId: string;
   cloudProfileId: string;
@@ -21,12 +22,14 @@ export const listRpcs3CloudProfileIds = (
 
 export const isCurrentRpcs3ProfileBinding = (
   value: unknown,
+  configRoot: string,
   homeRoot: string,
   localProfileId: string
 ): value is Rpcs3ProfileBinding => {
   if (!value || typeof value !== "object") return false;
   const binding = value as Partial<Rpcs3ProfileBinding>;
   return (
+    binding.configRoot === configRoot &&
     binding.homeRoot === homeRoot &&
     binding.localProfileId === localProfileId &&
     typeof binding.cloudProfileId === "string" &&

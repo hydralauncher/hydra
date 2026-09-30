@@ -8,7 +8,7 @@ import {
   useState,
 } from "react";
 import { useTranslation } from "react-i18next";
-import { useSearchParams } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 
 import {
   AuthPage,
@@ -30,6 +30,7 @@ import type {
   GameShop,
   RetroArchLocalBatteryCandidate,
   RetroArchLegacyBatteryCandidate,
+  Rpcs3ConfigRootStatus,
 } from "@types";
 
 import { CloudSaveCustomPathApprovalModal } from "./cloud-save-custom-path-approval-modal";
@@ -41,6 +42,7 @@ import {
 import { CloudSaveV2FileBrowserModal } from "./cloud-save-v2-file-browser-modal";
 import { useCloudSaveOverview } from "./use-cloud-save-overview";
 import { useCloudSaveV2FileDetails } from "./use-cloud-save-v2-file-details";
+import { RPCS3_CONFIG_SETTINGS_URL } from "./rpcs3-config-presentation";
 
 interface CloudSaveV2ContextValue {
   overview: CloudSaveOverview | null;
@@ -56,6 +58,8 @@ interface CloudSaveV2ContextValue {
   progress: CloudSaveSyncProgressPayload | null;
   hasExecutablePath: boolean;
   requiresRom: boolean;
+  rpcs3ConfigStatus: Rpcs3ConfigRootStatus["status"] | null;
+  openRpcs3Settings: () => void;
   canUseCloudSaves: boolean;
   openManager: () => void;
   openFileBrowser: () => void;
@@ -155,6 +159,7 @@ export function CloudSaveV2Provider({
   shop,
 }: Readonly<CloudSaveV2ProviderProps>) {
   const { t } = useTranslation("game_details");
+  const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const { userDetails, hasActiveSubscription } = useUserDetails();
   const { showHydraCloudModal } = useSubscription();
@@ -173,6 +178,8 @@ export function CloudSaveV2Provider({
   const isV2Eligible = isCloudSaveV2Eligible(shop, game?.platform);
   const isRetroArchGame =
     getCloudSaveEmulatorProvider(shop, game?.platform) === "retroarch";
+  const isRpcs3Game =
+    getCloudSaveEmulatorProvider(shop, game?.platform) === "rpcs3";
   const hasSelectedRom = game ? hasSelectedRetroArchRom(game) : false;
   const hasExecutablePath = isRetroArchGame
     ? hasSelectedRom
@@ -192,6 +199,10 @@ export function CloudSaveV2Provider({
     enabled: canCheckCloudSaves,
   });
   const [isModalVisible, setIsModalVisible] = useState(false);
+  const [rpcs3StatusEntry, setRpcs3StatusEntry] = useState<{
+    key: string;
+    status: Rpcs3ConfigRootStatus["status"];
+  } | null>(null);
   const [wasOpenedFromLaunchConflict, setWasOpenedFromLaunchConflict] =
     useState(false);
   const [isFileBrowserVisible, setIsFileBrowserVisible] = useState(false);
@@ -231,6 +242,31 @@ export function CloudSaveV2Provider({
     enabled: canCheckCloudSaves && isFileBrowserVisible,
   });
   const gameKey = `${shop}:${objectId}`;
+  const rpcs3ConfigStatus =
+    isRpcs3Game && rpcs3StatusEntry?.key === gameKey
+      ? rpcs3StatusEntry.status
+      : null;
+  const openRpcs3Settings = useCallback(() => {
+    setIsModalVisible(false);
+    navigate(RPCS3_CONFIG_SETTINGS_URL);
+  }, [navigate]);
+
+  useEffect(() => {
+    if (!isRpcs3Game || !canCheckCloudSaves) return;
+    let cancelled = false;
+    void window.electron
+      .getRpcs3ConfigRootStatus()
+      .then((result) => {
+        if (!cancelled)
+          setRpcs3StatusEntry({ key: gameKey, status: result.status });
+      })
+      .catch(() => {
+        if (!cancelled) setRpcs3StatusEntry(null);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [isRpcs3Game, canCheckCloudSaves, gameKey, isModalVisible, isSyncing]);
   const activeGameKey = useRef(gameKey);
   const gamePageSyncInFlight = useRef(false);
 
@@ -979,6 +1015,9 @@ export function CloudSaveV2Provider({
   } else if (hasRefreshError) {
     errorMessageKey = "cloud_save_v2_load_error";
   }
+  if (rpcs3ConfigStatus && rpcs3ConfigStatus !== "ready") {
+    errorMessageKey = null;
+  }
   const openFileBrowser = useCallback(() => {
     if (cloudSaveAccessAction === "open") {
       setIsFileBrowserVisible(true);
@@ -1000,6 +1039,8 @@ export function CloudSaveV2Provider({
       progress,
       hasExecutablePath,
       requiresRom: isRetroArchGame,
+      rpcs3ConfigStatus,
+      openRpcs3Settings,
       canUseCloudSaves,
       openManager,
       openFileBrowser,
@@ -1013,6 +1054,8 @@ export function CloudSaveV2Provider({
       hasError,
       hasExecutablePath,
       isRetroArchGame,
+      rpcs3ConfigStatus,
+      openRpcs3Settings,
       isAutomaticSyncEnabled,
       isGameRunning,
       isRefreshing,
@@ -1055,6 +1098,8 @@ export function CloudSaveV2Provider({
         isGameRunning={isGameRunning}
         hasExecutablePath={hasExecutablePath}
         requiresRom={isRetroArchGame}
+        rpcs3ConfigStatus={rpcs3ConfigStatus}
+        onConfigureRpcs3={openRpcs3Settings}
         isAutomaticSyncEnabled={isAutomaticSyncEnabled}
         hasError={hasError}
         errorMessageKey={errorMessageKey}

@@ -9,6 +9,7 @@ import {
 
 describe("RPCS3 profile binding policy", () => {
   const binding = {
+    configRoot: "/rpcs3",
     homeRoot: "/rpcs3/dev_hdd0/home",
     localProfileId: "00000002",
     cloudProfileId: "00000001",
@@ -27,15 +28,39 @@ describe("RPCS3 profile binding policy", () => {
 
   it("invalidates a binding when the installation or active user changes", () => {
     assert.equal(
-      isCurrentRpcs3ProfileBinding(binding, "/rpcs3/dev_hdd0/home", "00000002"),
+      isCurrentRpcs3ProfileBinding(
+        binding,
+        "/rpcs3",
+        "/rpcs3/dev_hdd0/home",
+        "00000002"
+      ),
       true
     );
     assert.equal(
-      isCurrentRpcs3ProfileBinding(binding, "/other/dev_hdd0/home", "00000002"),
+      isCurrentRpcs3ProfileBinding(
+        binding,
+        "/rpcs3",
+        "/other/dev_hdd0/home",
+        "00000002"
+      ),
       false
     );
     assert.equal(
-      isCurrentRpcs3ProfileBinding(binding, "/rpcs3/dev_hdd0/home", "00000003"),
+      isCurrentRpcs3ProfileBinding(
+        binding,
+        "/rpcs3",
+        "/rpcs3/dev_hdd0/home",
+        "00000003"
+      ),
+      false
+    );
+    assert.equal(
+      isCurrentRpcs3ProfileBinding(
+        binding,
+        "/other",
+        "/rpcs3/dev_hdd0/home",
+        "00000002"
+      ),
       false
     );
   });

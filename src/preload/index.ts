@@ -510,6 +510,10 @@ contextBridge.exposeInMainWorld("electron", {
 
   /* Emulators */
   getEmulatorConfigs: () => ipcRenderer.invoke("getEmulatorConfigs"),
+  getRpcs3ConfigRootStatus: () =>
+    ipcRenderer.invoke("getRpcs3ConfigRootStatus"),
+  setRpcs3ConfigRoot: (root: string) =>
+    ipcRenderer.invoke("setRpcs3ConfigRoot", root),
   detectEmulators: () => ipcRenderer.invoke("detectEmulators"),
   detectEmulator: (system: EmulatorSystem) =>
     ipcRenderer.invoke("detectEmulator", system),
