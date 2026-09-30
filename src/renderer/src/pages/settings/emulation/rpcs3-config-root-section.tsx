@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { FileDirectoryIcon } from "@primer/octicons-react";
 
-import { Button } from "@renderer/components";
+import { Button, SelectField } from "@renderer/components";
 import { useToast } from "@renderer/hooks";
 import type { EmulatorConfig, Rpcs3ConfigRootStatus } from "@types";
 
@@ -78,25 +78,24 @@ export function Rpcs3ConfigRootSection({
         state === "ready" ? t("rpcs3_config_ready") : t("not_detected")
       }
       pathContent={
-        <select
+        <SelectField
           className="emulator-detail__config-root-select"
-          aria-label={t("rpcs3_config_title")}
-          title={selectedRoot || undefined}
           value={selectedRoot}
           onChange={(event) => void select(event.target.value)}
           disabled={controlsDisabled || roots.length === 0}
-        >
-          {!selectedRoot && (
-            <option value="" disabled>
-              {t("rpcs3_config_no_folder")}
-            </option>
-          )}
-          {roots.map((root) => (
-            <option key={root} value={root}>
-              {root}
-            </option>
-          ))}
-        </select>
+          options={[
+            ...(!selectedRoot
+              ? [
+                  {
+                    key: "empty",
+                    value: "",
+                    label: t("rpcs3_config_no_folder"),
+                  },
+                ]
+              : []),
+            ...roots.map((root) => ({ key: root, value: root, label: root })),
+          ]}
+        />
       }
       actions={
         <Button theme="primary" onClick={browse} disabled={controlsDisabled}>
