@@ -6,6 +6,10 @@ import { registerEvent } from "../register-event";
 import { getGameAssets } from "../catalogue/get-game-assets";
 import { getDownloadsPath } from "../helpers/get-downloads-path";
 import {
+  collectClearedExecutables,
+  findUnlinkedGames,
+} from "./scan-installed-games-core";
+import {
   isRedistributableDirectory,
   isRedistributablePath,
   rankExecutableCandidates,
@@ -1023,17 +1027,10 @@ const loadLibraryGames = async () => {
     );
   }
 
-  const clearedExecutables = new Map<string, FoundGame>();
-
-  for (const { key, game } of libraryGames) {
-    if (!clearedGames.has(key) || !game.executablePath) continue;
-
-    clearedExecutables.set(key, {
-      title: game.title,
-      executablePath: game.executablePath,
-      iconUrl: game.iconUrl ?? null,
-    });
-  }
+  const clearedExecutables = collectClearedExecutables(
+    libraryGames,
+    new Set(clearedGames.keys())
+  );
 
   return {
     games: libraryGames.map(
@@ -1044,18 +1041,6 @@ const loadLibraryGames = async () => {
     ),
     clearedExecutables,
   };
-};
-
-// A cleared game that was linked again in this scan was moved, not removed
-const findUnlinkedGames = async (
-  clearedExecutables: Map<string, FoundGame>
-) => {
-  const entries = [...clearedExecutables];
-  const games = await gamesSublevel.getMany(entries.map(([key]) => key));
-
-  return entries.flatMap(([_key, clearedExecutable], index) =>
-    games[index]?.executablePath ? [] : [clearedExecutable]
-  );
 };
 
 const logScannedDirectories = (scannedDirectories: ScannedDirectory[]) => {
@@ -1193,7 +1178,9 @@ const runScan = async (
     claimedPaths,
     signal
   );
-  const unlinkedGames = await findUnlinkedGames(clearedExecutables);
+  const unlinkedGames = await findUnlinkedGames(clearedExecutables, (keys) =>
+    gamesSublevel.getMany(keys)
+  );
 
   const libraryObjectIds = new Set(
     games
