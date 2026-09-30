@@ -67,6 +67,7 @@ import {
   hashRetroArchFile as hashFile,
 } from "./retroarch-safe-move";
 import { dedupeRetroArchBatteryCandidates } from "./retroarch-battery-policy";
+import { requireRetroArchExecutablePath } from "./retroarch-executable-guard";
 
 const hash = (value: string) =>
   createHash("sha256").update(value).digest("hex");
@@ -373,10 +374,10 @@ export const locationsForGame = async (game: Game) => {
   const platform = getCloudSaveRetroArchPlatform(game.shop, game.platform);
   if (!platform) throw new Error("cloud_save_retroarch_platform_unknown");
   const emulator = await getRetroArchConfig();
-  if (!emulator.executablePath) {
-    throw new Error("cloud_save_retroarch_not_configured");
-  }
-  const configPath = findRetroArchConfig(emulator.executablePath);
+  const executablePath = requireRetroArchExecutablePath(
+    emulator.executablePath
+  );
+  const configPath = findRetroArchConfig(executablePath);
   if (!configPath) throw new Error("cloud_save_retroarch_config_unresolved");
   const core = PLATFORM_TO_CORE[platform];
   const installedCore = emulator.cores[core];

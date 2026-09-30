@@ -25,8 +25,9 @@ import {
   getCloudSavePanelMode,
   getRpcs3ConfigWarningKey,
   shouldShowRpcs3IdentityCard,
-  shouldShowRpcs3SnapshotWhileBlocked,
+  type Rpcs3ConfigCheckStatus,
 } from "./rpcs3-config-presentation";
+import type { RetroArchExecutableStatus } from "./retroarch-executable-status";
 import {
   getCloudSavePanelAction,
   getCloudSaveOperationPresentation,
@@ -47,9 +48,13 @@ export interface CloudSavePanelProps {
   hasExecutablePath: boolean;
   requiresRom: boolean;
   requiresDisc: boolean;
+  retroArchExecutableStatus?: RetroArchExecutableStatus | null;
+  onRetryRetroArchExecutable: () => void;
+  onConfigureRetroArch: () => void;
   isAutomaticSyncEnabled: boolean | null;
   hasError: boolean;
-  rpcs3ConfigStatus?: import("@types").Rpcs3ConfigRootStatus["status"] | null;
+  rpcs3ConfigStatus?: Rpcs3ConfigCheckStatus | null;
+  onRetryRpcs3Config: () => void;
   rpcs3DiscStatus?: Rpcs3DiscIdentityStatus | null;
   rpcs3IdentityError?: boolean;
   onRetryRpcs3Disc: () => void;
@@ -225,9 +230,13 @@ export function CloudSavePanel({
   hasExecutablePath,
   requiresRom,
   requiresDisc,
+  retroArchExecutableStatus,
+  onRetryRetroArchExecutable,
+  onConfigureRetroArch,
   isAutomaticSyncEnabled,
   hasError,
   rpcs3ConfigStatus,
+  onRetryRpcs3Config,
   rpcs3DiscStatus,
   rpcs3IdentityError = false,
   onRetryRpcs3Disc,
@@ -285,24 +294,27 @@ export function CloudSavePanel({
   });
   const partialDescriptionKey = getCloudSavePartialDescriptionKey(overview);
   const rpcs3WarningKey = getRpcs3ConfigWarningKey(rpcs3ConfigStatus);
-  const rpcs3NeedsConfig = !!rpcs3WarningKey;
+  const retroArchNeedsConfig =
+    retroArchExecutableStatus !== null &&
+    retroArchExecutableStatus !== undefined &&
+    retroArchExecutableStatus !== "ready";
   const basePanelMode = getCloudSavePanelMode(
     hasExecutablePath,
     rpcs3ConfigStatus,
     snapshotPanelMode,
-    isSyncing
+    isSyncing,
+    retroArchExecutableStatus
   );
-  const identityBlocked = shouldShowRpcs3IdentityCard(
-    requiresDisc,
-    rpcs3DiscStatus,
-    rpcs3IdentityError,
-    isSyncing
-  );
+  const identityBlocked =
+    shouldShowRpcs3IdentityCard(
+      requiresDisc,
+      rpcs3DiscStatus,
+      rpcs3IdentityError,
+      isSyncing
+    ) &&
+    hasExecutablePath &&
+    rpcs3ConfigStatus === "ready";
   const panelMode = identityBlocked ? "rpcs3-identity" : basePanelMode;
-  const showBlockedSnapshot = shouldShowRpcs3SnapshotWhileBlocked(
-    panelMode,
-    activeSnapshot !== null
-  );
 
   useEffect(() => {
     setIsCloudSaveEnabled(isAutomaticSyncEnabled ?? false);
@@ -500,20 +512,65 @@ export function CloudSavePanel({
         </strong>
         <span>{t(rpcs3WarningKey)}</span>
       </div>
-      <Button className="cloud-save-v2__sync-button" onClick={onConfigureRpcs3}>
-        <FolderOpenIcon size={20} />
-        <span>{t("cloud_save_v2_rpcs3_config_open_settings")}</span>
+      <Button
+        className="cloud-save-v2__sync-button"
+        onClick={
+          rpcs3ConfigStatus === "error" ? onRetryRpcs3Config : onConfigureRpcs3
+        }
+      >
+        {rpcs3ConfigStatus === "error" ? (
+          <ArrowClockwiseIcon size={20} />
+        ) : (
+          <FolderOpenIcon size={20} />
+        )}
+        <span>
+          {t(
+            rpcs3ConfigStatus === "error"
+              ? "cloud_save_v2_check_again"
+              : "cloud_save_v2_rpcs3_config_open_settings"
+          )}
+        </span>
       </Button>
-      {overview && !activeSnapshot && (
-        <button
-          type="button"
-          className="cloud-save-v2__required-setup-link"
-          onClick={onOpenFileBrowser}
-          disabled={isLoading || isSyncing}
-        >
-          {t("cloud_save_v2_manage_save_locations")}
-        </button>
-      )}
+    </section>
+  );
+  const retroArchConfigCard = (
+    <section className="cloud-save-v2__snapshot cloud-save-v2__required-setup">
+      <div className="cloud-save-v2__required-setup-copy">
+        <strong>
+          <WarningCircleIcon size={18} />
+          {t("cloud_save_v2_retroarch_config_required_title")}
+        </strong>
+        <span>
+          {t(
+            retroArchExecutableStatus === "invalid"
+              ? "cloud_save_v2_retroarch_config_invalid"
+              : retroArchExecutableStatus === "error"
+                ? "cloud_save_v2_retroarch_config_error"
+                : "cloud_save_v2_retroarch_config_missing"
+          )}
+        </span>
+      </div>
+      <Button
+        className="cloud-save-v2__sync-button"
+        onClick={
+          retroArchExecutableStatus === "error"
+            ? onRetryRetroArchExecutable
+            : onConfigureRetroArch
+        }
+      >
+        {retroArchExecutableStatus === "error" ? (
+          <ArrowClockwiseIcon size={20} />
+        ) : (
+          <FolderOpenIcon size={20} />
+        )}
+        <span>
+          {t(
+            retroArchExecutableStatus === "error"
+              ? "cloud_save_v2_check_again"
+              : "cloud_save_v2_retroarch_config_open_settings"
+          )}
+        </span>
+      </Button>
     </section>
   );
   const rpcs3IdentityCard = (
@@ -569,6 +626,7 @@ export function CloudSavePanel({
           disabled={
             isUpdatingAutomaticSync ||
             !hasExecutablePath ||
+            (retroArchNeedsConfig && !isCloudSaveEnabled) ||
             isAutomaticSyncEnabled === null
           }
           className={`cloud-save-v2__switch ${isCloudSaveEnabled ? "cloud-save-v2__switch--enabled" : ""}`}
@@ -594,13 +652,13 @@ export function CloudSavePanel({
         <p className="cloud-save-v2__error">{t(errorMessageKey)}</p>
       )}
 
-      {hasUnconfiguredCustomPaths && !hasError && !rpcs3NeedsConfig && (
+      {panelMode === "content" && hasUnconfiguredCustomPaths && !hasError && (
         <p className="cloud-save-v2__error">
           {t("cloud_save_v2_unconfigured_custom_path_description")}
         </p>
       )}
 
-      {partialDescriptionKey && !hasError && !rpcs3NeedsConfig && (
+      {panelMode === "content" && partialDescriptionKey && !hasError && (
         <p className="cloud-save-v2__partial-warning">
           {t(partialDescriptionKey)}
         </p>
@@ -609,25 +667,8 @@ export function CloudSavePanel({
       {panelMode === "missing-executable" && missingExecutableCard}
 
       {panelMode === "rpcs3-config" && rpcs3ConfigCard}
+      {panelMode === "retroarch-config" && retroArchConfigCard}
       {panelMode === "rpcs3-identity" && rpcs3IdentityCard}
-
-      {showBlockedSnapshot && (
-        <section className="cloud-save-v2__active-snapshot">
-          <article className="cloud-save-v2__snapshot cloud-save-v2__snapshot--active">
-            {snapshotSummary}
-            <div className="cloud-save-v2__action-area cloud-save-v2__action-area--with-snapshot">
-              <Button
-                className="cloud-save-v2__sync-button"
-                onClick={onOpenFileBrowser}
-                disabled={isLoading || isSyncing}
-              >
-                <FolderOpenIcon size={20} />
-                <span>{t("cloud_save_v2_view_files")}</span>
-              </Button>
-            </div>
-          </article>
-        </section>
-      )}
 
       {panelMode === "skeleton" && (
         <CloudSaveSnapshotSkeleton label={t("cloud_save_v2_checking")} />

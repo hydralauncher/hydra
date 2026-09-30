@@ -22,7 +22,11 @@ export function HydraCloudV2SettingsSection({
     hasExecutablePath,
     requiresRom,
     requiresDisc,
+    retroArchExecutableStatus,
+    retryRetroArchExecutable,
+    openRetroArchSettings,
     rpcs3ConfigStatus,
+    retryRpcs3Config,
     rpcs3DiscStatus,
     rpcs3IdentityError,
     retryRpcs3Disc,
@@ -49,7 +53,11 @@ export function HydraCloudV2SettingsSection({
         hasExecutablePath={hasExecutablePath}
         requiresRom={requiresRom}
         requiresDisc={requiresDisc}
+        retroArchExecutableStatus={retroArchExecutableStatus}
+        onRetryRetroArchExecutable={retryRetroArchExecutable}
+        onConfigureRetroArch={openRetroArchSettings}
         rpcs3ConfigStatus={rpcs3ConfigStatus}
+        onRetryRpcs3Config={retryRpcs3Config}
         rpcs3DiscStatus={rpcs3DiscStatus}
         rpcs3IdentityError={rpcs3IdentityError}
         onRetryRpcs3Disc={retryRpcs3Disc}

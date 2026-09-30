@@ -30,7 +30,6 @@ import type {
   GameShop,
   RetroArchLocalBatteryCandidate,
   RetroArchLegacyBatteryCandidate,
-  Rpcs3ConfigRootStatus,
 } from "@types";
 
 import { CloudSaveCustomPathApprovalModal } from "./cloud-save-custom-path-approval-modal";
@@ -42,7 +41,18 @@ import {
 import { CloudSaveV2FileBrowserModal } from "./cloud-save-v2-file-browser-modal";
 import { useCloudSaveOverview } from "./use-cloud-save-overview";
 import { useCloudSaveV2FileDetails } from "./use-cloud-save-v2-file-details";
-import { RPCS3_CONFIG_SETTINGS_URL } from "./rpcs3-config-presentation";
+import {
+  RPCS3_CONFIG_SETTINGS_URL,
+  type Rpcs3ConfigCheckStatus,
+} from "./rpcs3-config-presentation";
+import {
+  isRetroArchExecutableError,
+  isRetroArchSetupBlocked,
+  RETROARCH_CONFIG_SETTINGS_URL,
+  type RetroArchExecutableStatus,
+} from "./retroarch-executable-status";
+import { useRetroArchExecutableStatus } from "./use-retroarch-executable-status";
+import { useRpcs3ConfigStatus } from "./use-rpcs3-config-status";
 
 interface CloudSaveV2ContextValue {
   overview: CloudSaveOverview | null;
@@ -59,7 +69,11 @@ interface CloudSaveV2ContextValue {
   hasExecutablePath: boolean;
   requiresRom: boolean;
   requiresDisc: boolean;
-  rpcs3ConfigStatus: Rpcs3ConfigRootStatus["status"] | null;
+  retroArchExecutableStatus: RetroArchExecutableStatus | null;
+  retryRetroArchExecutable: () => void;
+  openRetroArchSettings: () => void;
+  rpcs3ConfigStatus: Rpcs3ConfigCheckStatus | null;
+  retryRpcs3Config: () => void;
   rpcs3DiscStatus: Rpcs3DiscIdentityStatus | null;
   rpcs3IdentityError: boolean;
   retryRpcs3Disc: () => void;
@@ -187,8 +201,8 @@ export function CloudSaveV2Provider({
   const hasExecutablePath = game
     ? hasCloudSaveExecutableSelection(game)
     : false;
-  const canCheckCloudSaves =
-    isV2Eligible && canUseCloudSaves && hasExecutablePath;
+  const canCheckEmulator = isV2Eligible && canUseCloudSaves;
+  const canCheckCloudSaves = canCheckEmulator && hasExecutablePath;
   const {
     overview,
     isAutomaticSyncEnabled,
@@ -202,10 +216,6 @@ export function CloudSaveV2Provider({
     enabled: canCheckCloudSaves,
   });
   const [isModalVisible, setIsModalVisible] = useState(false);
-  const [rpcs3StatusEntry, setRpcs3StatusEntry] = useState<{
-    key: string;
-    status: Rpcs3ConfigRootStatus["status"];
-  } | null>(null);
   const [rpcs3DiscStatusEntry, setRpcs3DiscStatusEntry] = useState<{
     key: string;
     status: Rpcs3DiscIdentityStatus;
@@ -249,10 +259,28 @@ export function CloudSaveV2Provider({
     enabled: canCheckCloudSaves && isFileBrowserVisible,
   });
   const gameKey = `${shop}:${objectId}`;
-  const rpcs3ConfigStatus =
-    isRpcs3Game && rpcs3StatusEntry?.key === gameKey
-      ? rpcs3StatusEntry.status
-      : null;
+  const {
+    status: retroArchExecutableStatus,
+    retry: retryRetroArchExecutableStatus,
+  } = useRetroArchExecutableStatus(
+    isRetroArchGame && canCheckEmulator,
+    gameKey,
+    isModalVisible
+  );
+  const { status: rpcs3ConfigStatus, retry: retryRpcs3Config } =
+    useRpcs3ConfigStatus(
+      isRpcs3Game && canCheckEmulator,
+      gameKey,
+      isModalVisible
+    );
+  const retryRetroArchExecutable = useCallback(() => {
+    retryRetroArchExecutableStatus();
+    void refresh().catch(() => undefined);
+  }, [refresh, retryRetroArchExecutableStatus]);
+  const openRetroArchSettings = useCallback(() => {
+    setIsModalVisible(false);
+    navigate(RETROARCH_CONFIG_SETTINGS_URL);
+  }, [navigate]);
   const rpcs3DiscStatus =
     rpcs3DiscStatusEntry?.key === gameKey ? rpcs3DiscStatusEntry.status : null;
   const openRpcs3Settings = useCallback(() => {
@@ -286,22 +314,6 @@ export function CloudSaveV2Provider({
     );
   }, [refreshRpcs3DiscStatus, refresh]);
 
-  useEffect(() => {
-    if (!isRpcs3Game || !canCheckCloudSaves) return;
-    let cancelled = false;
-    void window.electron
-      .getRpcs3ConfigRootStatus()
-      .then((result) => {
-        if (!cancelled)
-          setRpcs3StatusEntry({ key: gameKey, status: result.status });
-      })
-      .catch(() => {
-        if (!cancelled) setRpcs3StatusEntry(null);
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [isRpcs3Game, canCheckCloudSaves, gameKey, isModalVisible, isSyncing]);
   const activeGameKey = useRef(gameKey);
   const gamePageSyncInFlight = useRef(false);
 
@@ -310,6 +322,10 @@ export function CloudSaveV2Provider({
   const showKnownCloudSaveSyncError = useCallback(
     (error: unknown) => {
       const message = error instanceof Error ? error.message : error;
+      if (isRetroArchGame && isRetroArchExecutableError(error)) {
+        retryRetroArchExecutableStatus();
+        return true;
+      }
       if (
         isRetroArchGame &&
         typeof message === "string" &&
@@ -380,7 +396,15 @@ export function CloudSaveV2Provider({
       );
       return true;
     },
-    [gameKey, isRetroArchGame, objectId, shop, showErrorToast, t]
+    [
+      gameKey,
+      isRetroArchGame,
+      objectId,
+      retryRetroArchExecutableStatus,
+      shop,
+      showErrorToast,
+      t,
+    ]
   );
 
   useEffect(() => {
@@ -460,6 +484,7 @@ export function CloudSaveV2Provider({
     setIsModalVisible(true);
   }, [
     cloudSaveAccessAction,
+    isV2Eligible,
     searchParams,
     setSearchParams,
     shop,
@@ -529,7 +554,15 @@ export function CloudSaveV2Provider({
     return () => {
       canceled = true;
     };
-  }, [objectId, searchParams, setSearchParams, shop, showErrorToast, t]);
+  }, [
+    isV2Eligible,
+    objectId,
+    searchParams,
+    setSearchParams,
+    shop,
+    showErrorToast,
+    t,
+  ]);
 
   useEffect(() => {
     return window.electron.onCloudSaveAutomaticSync((event) => {
@@ -589,12 +622,14 @@ export function CloudSaveV2Provider({
       searchParams.get("openCloudSavePathApproval") === "1";
     if (
       isPathApprovalBlockingSync ||
+      (isRetroArchGame && isModalVisible) ||
       !shouldSyncCloudSaveOnGamePage({
         overview,
         shop,
         platform: game?.platform,
         canUseCloudSaves,
         hasExecutablePath,
+        retroArchExecutableStatus,
         isGameRunning,
         isSyncing,
         isInFlight: gamePageSyncInFlight.current,
@@ -628,9 +663,13 @@ export function CloudSaveV2Provider({
   }, [
     canUseCloudSaves,
     gameKey,
+    game?.platform,
     hasExecutablePath,
+    isRetroArchGame,
+    retroArchExecutableStatus,
     isCustomPathApprovalGateActive,
     isGameRunning,
+    isModalVisible,
     isSyncing,
     objectId,
     overview,
@@ -732,6 +771,7 @@ export function CloudSaveV2Provider({
   const runCloudSaveOperation = useCallback(
     async (resolution?: CloudSaveConflictResolution) => {
       if (isGameRunning || !hasExecutablePath || !isV2Eligible) return;
+      if (isRetroArchGame && retroArchExecutableStatus !== "ready") return;
       if (cloudSaveAccessAction !== "open") {
         openManager();
         return;
@@ -781,17 +821,23 @@ export function CloudSaveV2Provider({
       gameKey,
       handleCloudSaveOperationError,
       hasExecutablePath,
+      isRetroArchGame,
       isGameRunning,
+      isV2Eligible,
       objectId,
       openManager,
       refresh,
       refreshFileDetails,
+      retroArchExecutableStatus,
       shop,
     ]
   );
 
   const setAutomaticSyncEnabled = useCallback(
     async (enabled: boolean) => {
+      if (enabled && isRetroArchGame && retroArchExecutableStatus !== "ready") {
+        throw new Error("cloud_save_retroarch_not_configured");
+      }
       if (cloudSaveAccessAction !== "open") {
         if (cloudSaveAccessAction === "sign-in") {
           window.electron.openAuthWindow(AuthPage.SignIn);
@@ -817,7 +863,9 @@ export function CloudSaveV2Provider({
     },
     [
       cloudSaveAccessAction,
+      isRetroArchGame,
       objectId,
+      retroArchExecutableStatus,
       refresh,
       shop,
       showErrorToast,
@@ -1055,6 +1103,9 @@ export function CloudSaveV2Provider({
   if (rpcs3ConfigStatus && rpcs3ConfigStatus !== "ready") {
     errorMessageKey = null;
   }
+  if (isRetroArchGame && isRetroArchSetupBlocked(retroArchExecutableStatus)) {
+    errorMessageKey = null;
+  }
   if (
     rpcs3DiscStatus?.status !== "ready" &&
     rpcs3DiscStatus?.status !== "missing"
@@ -1087,7 +1138,11 @@ export function CloudSaveV2Provider({
       hasExecutablePath,
       requiresRom: isRetroArchGame,
       requiresDisc: isRpcs3Game,
+      retroArchExecutableStatus,
+      retryRetroArchExecutable,
+      openRetroArchSettings,
       rpcs3ConfigStatus,
+      retryRpcs3Config,
       rpcs3DiscStatus,
       rpcs3IdentityError:
         refreshErrorCode === "cloud_save_rpcs3_save_wrong_game",
@@ -1107,7 +1162,11 @@ export function CloudSaveV2Provider({
       hasExecutablePath,
       isRetroArchGame,
       isRpcs3Game,
+      retroArchExecutableStatus,
+      retryRetroArchExecutable,
+      openRetroArchSettings,
       rpcs3ConfigStatus,
+      retryRpcs3Config,
       rpcs3DiscStatus,
       refreshErrorCode,
       retryRpcs3Disc,
@@ -1155,7 +1214,11 @@ export function CloudSaveV2Provider({
         hasExecutablePath={hasExecutablePath}
         requiresRom={isRetroArchGame}
         requiresDisc={isRpcs3Game}
+        retroArchExecutableStatus={retroArchExecutableStatus}
+        onRetryRetroArchExecutable={retryRetroArchExecutable}
+        onConfigureRetroArch={openRetroArchSettings}
         rpcs3ConfigStatus={rpcs3ConfigStatus}
+        onRetryRpcs3Config={retryRpcs3Config}
         rpcs3DiscStatus={rpcs3DiscStatus}
         rpcs3IdentityError={
           refreshErrorCode === "cloud_save_rpcs3_save_wrong_game"

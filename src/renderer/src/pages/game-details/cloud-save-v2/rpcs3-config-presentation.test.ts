@@ -7,7 +7,6 @@ import {
   getRpcs3ConfigWarningKey,
   RPCS3_CONFIG_SETTINGS_URL,
   shouldShowRpcs3IdentityCard,
-  shouldShowRpcs3SnapshotWhileBlocked,
 } from "./rpcs3-config-presentation.js";
 
 it("shows the specific RPCS3 configuration warning and links to PlayStation 3 settings", () => {
@@ -24,6 +23,11 @@ it("shows the specific RPCS3 configuration warning and links to PlayStation 3 se
     "cloud_save_v2_rpcs3_config_invalid-selection"
   );
   assert.equal(getRpcs3ConfigWarningKey("ready"), null);
+  assert.equal(getRpcs3ConfigWarningKey("checking"), null);
+  assert.equal(
+    getRpcs3ConfigWarningKey("error"),
+    "cloud_save_v2_rpcs3_config_error"
+  );
   assert.equal(getRpcs3ConfigWarningKey(null), null);
   assert.equal(
     RPCS3_CONFIG_SETTINGS_URL,
@@ -66,7 +70,11 @@ it("uses the RPCS3 setup card instead of a disabled sync action", () => {
   );
   assert.equal(
     getCloudSavePanelMode(false, "not-configured", "content", false),
-    "missing-executable"
+    "rpcs3-config"
+  );
+  assert.equal(
+    getCloudSavePanelMode(false, "ambiguous", "content", false),
+    "rpcs3-config"
   );
   assert.equal(
     getCloudSavePanelMode(true, "ready", "content", false),
@@ -74,29 +82,49 @@ it("uses the RPCS3 setup card instead of a disabled sync action", () => {
   );
   assert.equal(getCloudSavePanelMode(true, null, "content", false), "content");
   assert.equal(
+    getCloudSavePanelMode(false, "ready", "content", false),
+    "missing-executable"
+  );
+  assert.equal(
     getCloudSavePanelMode(true, "missing", "content", true),
     "content"
   );
 });
 
-it("keeps the snapshot file action in its own card while RPCS3 setup is blocked", () => {
-  assert.equal(shouldShowRpcs3SnapshotWhileBlocked("rpcs3-config", true), true);
+it("checks emulator before ROM or disc and does not show a snapshot while blocked", () => {
   assert.equal(
-    shouldShowRpcs3SnapshotWhileBlocked("rpcs3-config", false),
-    false
+    getCloudSavePanelMode(false, null, "content", false, "missing"),
+    "retroarch-config"
+  );
+  for (const status of ["missing", "invalid", "error"] as const) {
+    assert.equal(
+      getCloudSavePanelMode(false, null, "content", false, status),
+      "retroarch-config"
+    );
+  }
+  assert.equal(
+    getCloudSavePanelMode(false, null, "content", false, "checking"),
+    "skeleton"
   );
   assert.equal(
-    shouldShowRpcs3SnapshotWhileBlocked("missing-executable", true),
-    false
+    getCloudSavePanelMode(false, "checking", "content", false),
+    "skeleton"
   );
   assert.equal(
-    shouldShowRpcs3SnapshotWhileBlocked("rpcs3-identity", true),
-    false
+    getCloudSavePanelMode(false, "error", "content", false),
+    "rpcs3-config"
   );
-  assert.equal(shouldShowRpcs3SnapshotWhileBlocked("content", true), false);
+  assert.equal(
+    getCloudSavePanelMode(false, null, "content", false, "ready"),
+    "missing-executable"
+  );
+  assert.equal(
+    getCloudSavePanelMode(true, null, "content", true, "missing"),
+    "content"
+  );
 });
 
-it("asks for a PS3 disc before showing an RPCS3 configuration warning", () => {
+it("asks for RPCS3 setup before a PS3 disc, then asks for the disc", () => {
   const game = {
     shop: "launchbox" as const,
     platform: "PlayStation 3",
@@ -111,6 +139,23 @@ it("asks for a PS3 disc before showing an RPCS3 configuration warning", () => {
       "content",
       false
     ),
+    "rpcs3-config"
+  );
+  assert.equal(
+    getCloudSavePanelMode(
+      hasCloudSaveExecutableSelection(game),
+      "ready",
+      "content",
+      false
+    ),
     "missing-executable"
   );
+});
+
+it("keeps non emulator games on their existing media and snapshot paths", () => {
+  assert.equal(
+    getCloudSavePanelMode(false, null, "content", false),
+    "missing-executable"
+  );
+  assert.equal(getCloudSavePanelMode(true, null, "content", false), "content");
 });
