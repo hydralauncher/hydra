@@ -65,6 +65,37 @@ const anchor = (files: SnapshotFile[]) => ({
 });
 
 describe("merge user variant snapshots", () => {
+  it("preserves remote RPCS3 saves while the game disc is unresolved", () => {
+    const remote = file(
+      "NPUB31419-SLOT/GAMEDATA",
+      "r",
+      "<emulator>/rpcs3/NPUB31419/00000001"
+    );
+    const local = context([]);
+    local.coverage = [
+      {
+        candidateId: "rpcs3-disc-missing",
+        ruleId: "rpcs3",
+        rawPath: "<emulator>/rpcs3/unresolved",
+        selectedRoot: false,
+        authority: "inferred",
+        outcome: "unresolved",
+        enumeratedCompletely: false,
+        warningCodes: ["rpcs3-title-id-unresolved"],
+      },
+    ];
+
+    const result = mergeUserVariantSnapshots({
+      local,
+      remoteVariants: [variant],
+      remoteFiles: [remote],
+      base: anchor([remote]),
+    });
+
+    assert.deepEqual(result.deleteRemoteEntryIds, []);
+    assert.deepEqual(result.files, [remote]);
+  });
+
   it("unites five cloud states with three new notebook states", () => {
     const rawPath = "<emulator>/retroarch-v2/snes";
     const remote = ["1", "2", "3", "4", "5"].map((value) =>

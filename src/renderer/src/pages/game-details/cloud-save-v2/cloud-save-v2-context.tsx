@@ -12,10 +12,9 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 
 import {
   AuthPage,
-  canSelectCloudSaveCustomFile,
   getCloudSaveAccessAction,
   getCloudSaveEmulatorProvider,
-  hasSelectedRetroArchRom,
+  hasCloudSaveExecutableSelection,
   isCloudSaveV2Eligible,
 } from "@shared";
 import { Button, ConfirmationModal, Modal } from "@renderer/components";
@@ -26,6 +25,7 @@ import type {
   CloudSaveConflictResolution,
   CloudSaveCustomPathApproval,
   CloudSaveOverview,
+  Rpcs3DiscIdentityStatus,
   CloudSaveSyncProgressPayload,
   GameShop,
   RetroArchLocalBatteryCandidate,
@@ -58,7 +58,11 @@ interface CloudSaveV2ContextValue {
   progress: CloudSaveSyncProgressPayload | null;
   hasExecutablePath: boolean;
   requiresRom: boolean;
+  requiresDisc: boolean;
   rpcs3ConfigStatus: Rpcs3ConfigRootStatus["status"] | null;
+  rpcs3DiscStatus: Rpcs3DiscIdentityStatus | null;
+  rpcs3IdentityError: boolean;
+  retryRpcs3Disc: () => void;
   openRpcs3Settings: () => void;
   canUseCloudSaves: boolean;
   openManager: () => void;
@@ -180,11 +184,9 @@ export function CloudSaveV2Provider({
     getCloudSaveEmulatorProvider(shop, game?.platform) === "retroarch";
   const isRpcs3Game =
     getCloudSaveEmulatorProvider(shop, game?.platform) === "rpcs3";
-  const hasSelectedRom = game ? hasSelectedRetroArchRom(game) : false;
-  const hasExecutablePath = isRetroArchGame
-    ? hasSelectedRom
-    : Boolean(game?.executablePath) ||
-      (shop === "launchbox" && isV2Eligible && Boolean(game));
+  const hasExecutablePath = game
+    ? hasCloudSaveExecutableSelection(game)
+    : false;
   const canCheckCloudSaves =
     isV2Eligible && canUseCloudSaves && hasExecutablePath;
   const {
@@ -192,6 +194,7 @@ export function CloudSaveV2Provider({
     isAutomaticSyncEnabled,
     isRefreshing,
     hasRefreshError,
+    refreshErrorCode,
     refresh,
   } = useCloudSaveOverview({
     objectId,
@@ -202,6 +205,10 @@ export function CloudSaveV2Provider({
   const [rpcs3StatusEntry, setRpcs3StatusEntry] = useState<{
     key: string;
     status: Rpcs3ConfigRootStatus["status"];
+  } | null>(null);
+  const [rpcs3DiscStatusEntry, setRpcs3DiscStatusEntry] = useState<{
+    key: string;
+    status: Rpcs3DiscIdentityStatus;
   } | null>(null);
   const [wasOpenedFromLaunchConflict, setWasOpenedFromLaunchConflict] =
     useState(false);
@@ -246,10 +253,38 @@ export function CloudSaveV2Provider({
     isRpcs3Game && rpcs3StatusEntry?.key === gameKey
       ? rpcs3StatusEntry.status
       : null;
+  const rpcs3DiscStatus =
+    rpcs3DiscStatusEntry?.key === gameKey ? rpcs3DiscStatusEntry.status : null;
   const openRpcs3Settings = useCallback(() => {
     setIsModalVisible(false);
     navigate(RPCS3_CONFIG_SETTINGS_URL);
   }, [navigate]);
+  const refreshRpcs3DiscStatus = useCallback(async () => {
+    if (!isRpcs3Game || !canCheckCloudSaves) return;
+    const status = await window.electron.getRpcs3DiscIdentityStatus(
+      objectId,
+      shop
+    );
+    setRpcs3DiscStatusEntry({ key: gameKey, status });
+  }, [canCheckCloudSaves, gameKey, isRpcs3Game, objectId, shop]);
+
+  useEffect(() => {
+    void refreshRpcs3DiscStatus().catch(() =>
+      setRpcs3DiscStatusEntry({
+        key: gameKey,
+        status: {
+          status: "catalogue-unavailable",
+          path: null,
+          titleId: null,
+        },
+      })
+    );
+  }, [refreshRpcs3DiscStatus, gameKey, isModalVisible, game?.discs, isSyncing]);
+  const retryRpcs3Disc = useCallback(() => {
+    void Promise.all([refreshRpcs3DiscStatus(), refresh()]).catch(
+      () => undefined
+    );
+  }, [refreshRpcs3DiscStatus, refresh]);
 
   useEffect(() => {
     if (!isRpcs3Game || !canCheckCloudSaves) return;
@@ -623,7 +658,9 @@ export function CloudSaveV2Provider({
     setIsModalVisible(false);
     setWasOpenedFromLaunchConflict(false);
     setIsFileBrowserVisible(false);
-    setGameOptionsInitialCategory(isRetroArchGame ? "general" : "locations");
+    setGameOptionsInitialCategory(
+      isRetroArchGame || isRpcs3Game ? "general" : "locations"
+    );
     setShowGameOptionsModal(true);
   };
 
@@ -1018,6 +1055,16 @@ export function CloudSaveV2Provider({
   if (rpcs3ConfigStatus && rpcs3ConfigStatus !== "ready") {
     errorMessageKey = null;
   }
+  if (
+    rpcs3DiscStatus?.status !== "ready" &&
+    rpcs3DiscStatus?.status !== "missing"
+  ) {
+    if (
+      rpcs3DiscStatus ||
+      refreshErrorCode === "cloud_save_rpcs3_save_wrong_game"
+    )
+      errorMessageKey = null;
+  }
   const openFileBrowser = useCallback(() => {
     if (cloudSaveAccessAction === "open") {
       setIsFileBrowserVisible(true);
@@ -1039,7 +1086,12 @@ export function CloudSaveV2Provider({
       progress,
       hasExecutablePath,
       requiresRom: isRetroArchGame,
+      requiresDisc: isRpcs3Game,
       rpcs3ConfigStatus,
+      rpcs3DiscStatus,
+      rpcs3IdentityError:
+        refreshErrorCode === "cloud_save_rpcs3_save_wrong_game",
+      retryRpcs3Disc,
       openRpcs3Settings,
       canUseCloudSaves,
       openManager,
@@ -1054,7 +1106,11 @@ export function CloudSaveV2Provider({
       hasError,
       hasExecutablePath,
       isRetroArchGame,
+      isRpcs3Game,
       rpcs3ConfigStatus,
+      rpcs3DiscStatus,
+      refreshErrorCode,
+      retryRpcs3Disc,
       openRpcs3Settings,
       isAutomaticSyncEnabled,
       isGameRunning,
@@ -1098,7 +1154,13 @@ export function CloudSaveV2Provider({
         isGameRunning={isGameRunning}
         hasExecutablePath={hasExecutablePath}
         requiresRom={isRetroArchGame}
+        requiresDisc={isRpcs3Game}
         rpcs3ConfigStatus={rpcs3ConfigStatus}
+        rpcs3DiscStatus={rpcs3DiscStatus}
+        rpcs3IdentityError={
+          refreshErrorCode === "cloud_save_rpcs3_save_wrong_game"
+        }
+        onRetryRpcs3Disc={retryRpcs3Disc}
         onConfigureRpcs3={openRpcs3Settings}
         isAutomaticSyncEnabled={isAutomaticSyncEnabled}
         hasError={hasError}
@@ -1120,7 +1182,6 @@ export function CloudSaveV2Provider({
         visible={isFileBrowserVisible}
         objectId={objectId}
         shop={shop}
-        canAddSaveFile={canSelectCloudSaveCustomFile(shop, game?.platform)}
         overviewState={overview?.state ?? null}
         details={fileDetails}
         isLoading={isFileDetailsLoading}

@@ -3,7 +3,11 @@ import { gamesSublevel, levelKeys } from "@main/level";
 import { emulators } from "@main/services";
 import { platformToSystem } from "@main/helpers";
 import type { ClassicsDisc, GameShop } from "@types";
-import { getCloudSaveRetroArchPlatform } from "@shared";
+import {
+  getCloudSaveEmulatorProvider,
+  getCloudSaveRetroArchPlatform,
+} from "@shared";
+import { isCloudSaveSyncActive } from "@main/services/cloud-save/sync-game-cloud-save";
 import { isGameRunning } from "@main/services/process-watcher";
 import { HydraApi } from "@main/services/hydra-api";
 
@@ -41,6 +45,14 @@ const updateClassicsDisc = async (
 
   if (!game) {
     throw new Error(`Game not found: ${gameKey}`);
+  }
+
+  if (
+    getCloudSaveEmulatorProvider(shop, game.platform) === "rpcs3" &&
+    (patch.addDisc || patch.removeDiscPath) &&
+    isCloudSaveSyncActive(objectId, shop)
+  ) {
+    throw new Error("cloud_save_rpcs3_disc_change_during_sync");
   }
 
   if (

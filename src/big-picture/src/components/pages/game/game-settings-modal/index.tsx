@@ -95,7 +95,7 @@ export function GameSettingsModal({
     if (visible) {
       setActiveTabId("launch");
     }
-  }, []);
+  }, [visible]);
 
   const launchContent = useMemo(
     () => <GameLaunchSettingsTab {...launchSettings} />,

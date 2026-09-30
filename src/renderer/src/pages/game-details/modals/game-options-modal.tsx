@@ -1326,7 +1326,9 @@ export function GameOptionsModal({
             )}
             {selectedCategory === "hydra_cloud" && showCloudSaveV2Settings && (
               <HydraCloudV2SettingsSection
-                onSelectExecutable={() => setSelectedCategory("locations")}
+                onSelectExecutable={() =>
+                  setSelectedCategory(isLaunchbox ? "general" : "locations")
+                }
               />
             )}
             {selectedCategory === "hydra_cloud_legacy" &&

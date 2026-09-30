@@ -38,16 +38,22 @@ export const hasSelectedRetroArchRom = (game: {
   return discs.length === 1;
 };
 
+export const hasRpcs3CloudSaveDisc = (game: {
+  discs?: Array<{ path: string }>;
+}) => game.discs?.some((disc) => Boolean(disc.path.trim())) ?? false;
+
 export const hasCloudSaveExecutableSelection = (game: {
   shop: GameShop;
   platform?: string | null;
   executablePath?: string | null;
   selectedDiscPath?: string | null;
   discs?: Array<{ path: string }>;
-}) =>
-  getCloudSaveEmulatorProvider(game.shop, game.platform) === "retroarch"
-    ? hasSelectedRetroArchRom(game)
-    : Boolean(game.executablePath || game.shop === "launchbox");
+}) => {
+  const provider = getCloudSaveEmulatorProvider(game.shop, game.platform);
+  if (provider === "retroarch") return hasSelectedRetroArchRom(game);
+  if (provider === "rpcs3") return hasRpcs3CloudSaveDisc(game);
+  return Boolean(game.executablePath || game.shop === "launchbox");
+};
 
 export const isCloudSaveV2Eligible = (
   shop: GameShop,

@@ -63,10 +63,14 @@ export const analyzeCloudSaveState = async (
   syncDirection: SyncDirection = "bidirectional",
   options: AnalyzeCloudSaveStateOptions = {}
 ) => {
-  const [initialContext, remoteSnapshots] = await Promise.all([
+  const [suppliedOrCurrentContext, remoteSnapshots] = await Promise.all([
     suppliedContext ?? getCloudSaveGameContext(objectId, shop),
     listRemoteGameSnapshots(objectId, shop),
   ]);
+  const initialContext =
+    getEmulatorSaveProvider(suppliedOrCurrentContext.game) === "rpcs3"
+      ? await getCloudSaveGameContext(objectId, shop)
+      : suppliedOrCurrentContext;
   const activeRemoteSnapshot = remoteSnapshots[0] ?? null;
   const originalRemoteManifest = activeRemoteSnapshot
     ? await getRemoteSnapshotRestoreManifest(activeRemoteSnapshot)
@@ -97,6 +101,18 @@ export const analyzeCloudSaveState = async (
       remoteManifest.snapshot.objectId !== objectId)
   ) {
     throw new Error("Active Cloud Save snapshot belongs to another game");
+  }
+  let rpcs3AllowedTitleIds: ReadonlySet<string> | null = null;
+  if (getEmulatorSaveProvider(initialContext.game) === "rpcs3") {
+    const { assertRpcs3DiscIdentity, assertRpcs3SnapshotIdentity } =
+      await import("./rpcs3-game-identity.js");
+    rpcs3AllowedTitleIds = await assertRpcs3DiscIdentity(initialContext.game!);
+    assertRpcs3SnapshotIdentity(
+      (remoteManifest?.files ?? []).filter(
+        (file) => !file.rawPath.startsWith("<custom>")
+      ),
+      rpcs3AllowedTitleIds
+    );
   }
   let context = initialContext;
   if (getEmulatorSaveProvider(context.game) === "rpcs3") {
@@ -181,6 +197,16 @@ export const analyzeCloudSaveState = async (
       remoteFiles: remoteManifest?.files ?? [],
     }
   );
+  if (rpcs3AllowedTitleIds) {
+    const { assertRpcs3SnapshotIdentity } = await import(
+      "./rpcs3-game-identity.js"
+    );
+    assertRpcs3SnapshotIdentity(
+      remoteManifest?.files ?? [],
+      rpcs3AllowedTitleIds,
+      customPathBindings.ready
+    );
+  }
   const preserveLocalMissingRawPaths =
     options.allowInstallationOwnedCustomPathDeletion
       ? new Set<string>()
@@ -232,6 +258,16 @@ export const analyzeCloudSaveState = async (
       remoteFiles: remoteManifest?.files ?? [],
     }
   );
+  if (rpcs3AllowedTitleIds) {
+    const { assertRpcs3SnapshotIdentity } = await import(
+      "./rpcs3-game-identity.js"
+    );
+    assertRpcs3SnapshotIdentity(
+      localSnapshotContext.files,
+      rpcs3AllowedTitleIds,
+      customPathBindings.ready
+    );
+  }
   const restorableEmulatorEntryIds = new Set<string>();
 
   if (remoteManifest) {

@@ -44,6 +44,18 @@ export interface Rpcs3ConfigRootStatus {
   candidates: string[];
 }
 
+export interface Rpcs3DiscIdentityStatus {
+  status:
+    | "ready"
+    | "missing"
+    | "unverified"
+    | "mismatch"
+    | "stale-sku"
+    | "catalogue-unavailable";
+  path: string | null;
+  titleId: string | null;
+}
+
 export interface DetectedRom {
   objectId: string;
   title: string;

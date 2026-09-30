@@ -21,7 +21,11 @@ export function HydraCloudV2SettingsSection({
     progress,
     hasExecutablePath,
     requiresRom,
+    requiresDisc,
     rpcs3ConfigStatus,
+    rpcs3DiscStatus,
+    rpcs3IdentityError,
+    retryRpcs3Disc,
     openRpcs3Settings,
     openFileBrowser,
     runCloudSaveOperation,
@@ -44,7 +48,11 @@ export function HydraCloudV2SettingsSection({
         isGameRunning={isGameRunning}
         hasExecutablePath={hasExecutablePath}
         requiresRom={requiresRom}
+        requiresDisc={requiresDisc}
         rpcs3ConfigStatus={rpcs3ConfigStatus}
+        rpcs3DiscStatus={rpcs3DiscStatus}
+        rpcs3IdentityError={rpcs3IdentityError}
+        onRetryRpcs3Disc={retryRpcs3Disc}
         onConfigureRpcs3={openRpcs3Settings}
         isAutomaticSyncEnabled={isAutomaticSyncEnabled ?? true}
         hasError={hasError}

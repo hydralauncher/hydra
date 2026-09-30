@@ -4,10 +4,11 @@ import { it } from "node:test";
 import {
   canSelectCloudSaveCustomFile,
   hasCloudSaveExecutableSelection,
+  hasRpcs3CloudSaveDisc,
   isCloudSaveV2Eligible,
 } from "./cloud-save-emulator-provider.js";
 
-it("offers Add save file only for LaunchBox emulator V2 games", () => {
+it("recognizes legacy custom save files only for LaunchBox emulator V2 games", () => {
   assert.equal(canSelectCloudSaveCustomFile("steam"), false);
   assert.equal(canSelectCloudSaveCustomFile("steam", "Super Nintendo"), false);
   assert.equal(
@@ -60,6 +61,50 @@ it("requires a new RetroArch ROM choice after the active ROM is removed", () => 
     hasCloudSaveExecutableSelection({
       shop: "steam",
       executablePath: "/games/mario.exe",
+    }),
+    true
+  );
+});
+
+it("requires a registered RPCS3 disc regardless of active disc selection", () => {
+  const game = {
+    shop: "launchbox" as const,
+    platform: "PlayStation 3",
+    discs: [] as Array<{ path: string }>,
+    selectedDiscPath: null,
+  };
+
+  assert.equal(hasRpcs3CloudSaveDisc(game), false);
+  assert.equal(hasCloudSaveExecutableSelection(game), false);
+  assert.equal(
+    hasCloudSaveExecutableSelection({ ...game, discs: [{ path: " " }] }),
+    false
+  );
+
+  const oneDisc = { ...game, discs: [{ path: "/games/Minecraft.iso" }] };
+  assert.equal(hasRpcs3CloudSaveDisc(oneDisc), true);
+  assert.equal(hasCloudSaveExecutableSelection(oneDisc), true);
+  assert.equal(
+    hasCloudSaveExecutableSelection({
+      ...game,
+      discs: [{ path: "/games/Minecraft.iso" }, { path: "/games/Other.iso" }],
+    }),
+    true
+  );
+
+  assert.equal(
+    hasCloudSaveExecutableSelection({
+      ...game,
+      platform: "Super Nintendo",
+      selectedDiscPath: null,
+      discs: [{ path: "/roms/Mario.sfc" }],
+    }),
+    false
+  );
+  assert.equal(
+    hasCloudSaveExecutableSelection({
+      shop: "steam",
+      executablePath: "/games/minecraft.exe",
     }),
     true
   );

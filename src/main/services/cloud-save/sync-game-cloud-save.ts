@@ -1049,7 +1049,9 @@ export const syncGameCloudSave = async (
       const operationContext = await prepareRpcs3SyncContext(
         objectId,
         shop,
-        context
+        getEmulatorSaveProvider(game) === "rpcs3"
+          ? await getCloudSaveGameContext(objectId, shop)
+          : context
       );
       return runGameCloudSaveSync(
         objectId,
@@ -1091,7 +1093,9 @@ export const resolveCloudSaveConflict = async (
       const operationContext = await prepareRpcs3SyncContext(
         objectId,
         shop,
-        context
+        getEmulatorSaveProvider(game) === "rpcs3"
+          ? await getCloudSaveGameContext(objectId, shop)
+          : context
       );
       return runGameCloudSaveSync(
         objectId,

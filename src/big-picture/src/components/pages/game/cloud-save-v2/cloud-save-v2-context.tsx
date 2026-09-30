@@ -25,6 +25,7 @@ import type {
   GameShop,
   RetroArchLegacyBatteryCandidate,
   RetroArchLocalBatteryCandidate,
+  Rpcs3DiscIdentityStatus,
 } from "@types";
 
 import { useBigPictureToast, useUserDetails } from "../../../../hooks";
@@ -164,7 +165,7 @@ export function BigPictureCloudSaveProvider({
   const canUseCloudSaves = Boolean(userDetails) && hasActiveSubscription;
   const eligible = isCloudSaveV2Eligible(shop, platform);
   const canCheckCloudSaves = eligible && canUseCloudSaves && hasExecutablePath;
-  const { overview, isRefreshing, hasRefreshError, refresh } =
+  const { overview, isRefreshing, hasRefreshError, refreshErrorCode, refresh } =
     useCloudSaveOverview({
       objectId,
       shop,
@@ -181,10 +182,37 @@ export function BigPictureCloudSaveProvider({
       ),
     });
 
+  const gameKey = `${shop}:${objectId}`;
   const [isModalVisible, setIsModalVisible] = useState(false);
+  const [rpcs3DiscStatusEntry, setRpcs3DiscStatusEntry] = useState<{
+    key: string;
+    status: Rpcs3DiscIdentityStatus;
+  } | null>(null);
+  const rpcs3DiscStatus =
+    rpcs3DiscStatusEntry?.key === gameKey ? rpcs3DiscStatusEntry.status : null;
+  const refreshRpcs3DiscStatus = useCallback(async () => {
+    if (emulatorProvider !== "rpcs3" || !canCheckCloudSaves) return;
+    const status = await window.electron.getRpcs3DiscIdentityStatus(
+      objectId,
+      shop
+    );
+    setRpcs3DiscStatusEntry({ key: gameKey, status });
+  }, [canCheckCloudSaves, emulatorProvider, gameKey, objectId, shop]);
   const [wasOpenedFromLaunchConflict, setWasOpenedFromLaunchConflict] =
     useState(false);
   const [isSyncing, setIsSyncing] = useState(false);
+  useEffect(() => {
+    void refreshRpcs3DiscStatus().catch(() =>
+      setRpcs3DiscStatusEntry({
+        key: gameKey,
+        status: {
+          status: "catalogue-unavailable",
+          path: null,
+          titleId: null,
+        },
+      })
+    );
+  }, [refreshRpcs3DiscStatus, gameKey, isModalVisible, isSyncing]);
   const [hasSyncError, setHasSyncError] = useState(false);
   const [progress, setProgress] = useState<CloudSaveSyncProgressPayload | null>(
     null
@@ -210,7 +238,6 @@ export function BigPictureCloudSaveProvider({
   const [isBindingRpcs3Profile, setIsBindingRpcs3Profile] = useState(false);
   const [isBindingEmulatorDestination, setIsBindingEmulatorDestination] =
     useState(false);
-  const gameKey = `${shop}:${objectId}`;
   const activeGameKey = useRef(gameKey);
   const gamePageSyncInFlight = useRef(false);
 
@@ -802,6 +829,13 @@ export function BigPictureCloudSaveProvider({
   } else if (hasRefreshError) {
     errorMessageKey = "cloud_save_v2_load_error";
   }
+  if (
+    emulatorProvider === "rpcs3" &&
+    (refreshErrorCode === "cloud_save_rpcs3_save_wrong_game" ||
+      (rpcs3DiscStatus && rpcs3DiscStatus.status !== "ready"))
+  ) {
+    errorMessageKey = null;
+  }
   const panelProps = {
     overview,
     isLoading: isRefreshing,
@@ -809,6 +843,11 @@ export function BigPictureCloudSaveProvider({
     isGameRunning,
     hasExecutablePath,
     requiresRom: emulatorProvider === "retroarch",
+    requiresDisc: emulatorProvider === "rpcs3",
+    rpcs3DiscStatus,
+    rpcs3IdentityError: refreshErrorCode === "cloud_save_rpcs3_save_wrong_game",
+    onRetryRpcs3Disc: () =>
+      void Promise.all([refreshRpcs3DiscStatus(), refresh()]),
     hasError,
     errorMessageKey,
     progress,

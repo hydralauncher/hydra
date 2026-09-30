@@ -417,7 +417,6 @@
     "cloud_save_v2_custom_paths_title": "Posizioni personalizzate",
     "cloud_save_v2_custom_paths_description": "Aggiungi una cartella locale che Hydra deve includere negli snapshot cloud di questo gioco.",
     "cloud_save_v2_add_custom_path": "Aggiungi nuova posizione",
-    "cloud_save_v2_add_custom_file": "Aggiungi file di salvataggio",
     "cloud_save_v2_emulator_destinations_title": "Destinazioni dei salvataggi dell’emulatore",
     "cloud_save_v2_emulator_destination_saves": "Salvataggi del gioco",
     "cloud_save_v2_emulator_destination_states": "Stati salvati",

@@ -16,11 +16,16 @@ import type {
   CloudSaveConflictResolution,
   CloudSaveOverview,
   CloudSaveSyncProgressPayload,
+  Rpcs3DiscIdentityStatus,
 } from "@types";
 import { formatBytes } from "@shared";
 import { Button, Modal } from "@renderer/components";
 import { useDate } from "@renderer/hooks";
-import { getRpcs3ConfigWarningKey } from "./rpcs3-config-presentation";
+import {
+  getCloudSavePanelMode,
+  getRpcs3ConfigWarningKey,
+  shouldShowRpcs3IdentityCard,
+} from "./rpcs3-config-presentation";
 import {
   getCloudSavePanelAction,
   getCloudSaveOperationPresentation,
@@ -40,10 +45,14 @@ export interface CloudSavePanelProps {
   isGameRunning: boolean;
   hasExecutablePath: boolean;
   requiresRom: boolean;
+  requiresDisc: boolean;
   isAutomaticSyncEnabled: boolean | null;
   hasError: boolean;
   rpcs3ConfigStatus?: import("@types").Rpcs3ConfigRootStatus["status"] | null;
-  onConfigureRpcs3?: () => void;
+  rpcs3DiscStatus?: Rpcs3DiscIdentityStatus | null;
+  rpcs3IdentityError?: boolean;
+  onRetryRpcs3Disc: () => void;
+  onConfigureRpcs3: () => void;
   errorMessageKey:
     | "cloud_save_v2_load_error"
     | "cloud_save_v2_sync_error"
@@ -214,9 +223,13 @@ export function CloudSavePanel({
   isGameRunning,
   hasExecutablePath,
   requiresRom,
+  requiresDisc,
   isAutomaticSyncEnabled,
   hasError,
   rpcs3ConfigStatus,
+  rpcs3DiscStatus,
+  rpcs3IdentityError = false,
+  onRetryRpcs3Disc,
   onConfigureRpcs3,
   errorMessageKey,
   progress,
@@ -272,6 +285,19 @@ export function CloudSavePanel({
   const partialDescriptionKey = getCloudSavePartialDescriptionKey(overview);
   const rpcs3WarningKey = getRpcs3ConfigWarningKey(rpcs3ConfigStatus);
   const rpcs3NeedsConfig = !!rpcs3WarningKey;
+  const basePanelMode = getCloudSavePanelMode(
+    hasExecutablePath,
+    rpcs3ConfigStatus,
+    snapshotPanelMode,
+    isSyncing
+  );
+  const identityBlocked = shouldShowRpcs3IdentityCard(
+    requiresDisc,
+    rpcs3DiscStatus,
+    rpcs3IdentityError,
+    isSyncing
+  );
+  const panelMode = identityBlocked ? "rpcs3-identity" : basePanelMode;
 
   useEffect(() => {
     setIsCloudSaveEnabled(isAutomaticSyncEnabled ?? false);
@@ -409,9 +435,7 @@ export function CloudSavePanel({
   const syncAction = (
     <CloudSaveSyncAction
       action={panelAction}
-      isLoading={
-        isLoading || (rpcs3NeedsConfig && panelAction.kind !== "details")
-      }
+      isLoading={isLoading}
       isSyncing={isSyncing}
       isGameRunning={isGameRunning}
       progress={progress}
@@ -427,16 +451,20 @@ export function CloudSavePanel({
         <strong>
           <WarningCircleIcon size={18} />
           {t(
-            requiresRom
-              ? "cloud_save_v2_rom_required_title"
-              : "cloud_save_v2_executable_required_title"
+            requiresDisc
+              ? "cloud_save_v2_disc_required_title"
+              : requiresRom
+                ? "cloud_save_v2_rom_required_title"
+                : "cloud_save_v2_executable_required_title"
           )}
         </strong>
         <span>
           {t(
-            requiresRom
-              ? "cloud_save_v2_rom_required_description"
-              : "cloud_save_v2_executable_required_description"
+            requiresDisc
+              ? "cloud_save_v2_disc_required_description"
+              : requiresRom
+                ? "cloud_save_v2_rom_required_description"
+                : "cloud_save_v2_executable_required_description"
           )}
         </span>
       </div>
@@ -447,12 +475,81 @@ export function CloudSavePanel({
         <FolderOpenIcon size={20} />
         <span>
           {t(
-            requiresRom
-              ? "cloud_save_v2_select_rom"
-              : "cloud_save_v2_select_executable"
+            requiresDisc
+              ? "cloud_save_v2_select_disc"
+              : requiresRom
+                ? "cloud_save_v2_select_rom"
+                : "cloud_save_v2_select_executable"
           )}
         </span>
       </Button>
+    </section>
+  );
+
+  const rpcs3ConfigCard = rpcs3WarningKey && (
+    <section className="cloud-save-v2__snapshot cloud-save-v2__required-setup">
+      <div className="cloud-save-v2__required-setup-copy">
+        <strong>
+          <WarningCircleIcon size={18} />
+          {t("cloud_save_v2_rpcs3_config_required_title")}
+        </strong>
+        <span>{t(rpcs3WarningKey)}</span>
+      </div>
+      <Button className="cloud-save-v2__sync-button" onClick={onConfigureRpcs3}>
+        <FolderOpenIcon size={20} />
+        <span>{t("cloud_save_v2_rpcs3_config_open_settings")}</span>
+      </Button>
+      {overview && (
+        <button
+          type="button"
+          className="cloud-save-v2__required-setup-link"
+          onClick={onOpenFileBrowser}
+          disabled={isLoading || isSyncing}
+        >
+          {t(
+            activeSnapshot
+              ? "cloud_save_v2_view_files"
+              : "cloud_save_v2_manage_save_locations"
+          )}
+        </button>
+      )}
+    </section>
+  );
+  const rpcs3IdentityCard = (
+    <section className="cloud-save-v2__snapshot cloud-save-v2__required-setup">
+      <div className="cloud-save-v2__required-setup-copy">
+        <strong>
+          <WarningCircleIcon size={18} />
+          {t("cloud_save_v2_rpcs3_identity_title")}
+        </strong>
+        <span>
+          {t(
+            rpcs3IdentityError
+              ? "cloud_save_v2_rpcs3_identity_remote"
+              : `cloud_save_v2_rpcs3_identity_${rpcs3DiscStatus?.status ?? "unverified"}`,
+            { path: rpcs3DiscStatus?.path, titleId: rpcs3DiscStatus?.titleId }
+          )}
+        </span>
+      </div>
+      {!rpcs3IdentityError && (
+        <Button
+          className="cloud-save-v2__sync-button"
+          onClick={
+            rpcs3DiscStatus?.status === "catalogue-unavailable"
+              ? onRetryRpcs3Disc
+              : onSelectExecutable
+          }
+        >
+          <FolderOpenIcon size={20} />
+          <span>
+            {t(
+              rpcs3DiscStatus?.status === "catalogue-unavailable"
+                ? "cloud_save_v2_check_again"
+                : "cloud_save_v2_rpcs3_identity_edit_discs"
+            )}
+          </span>
+        </Button>
+      )}
     </section>
   );
 
@@ -496,17 +593,6 @@ export function CloudSavePanel({
         <p className="cloud-save-v2__error">{t(errorMessageKey)}</p>
       )}
 
-      {rpcs3WarningKey && (
-        <div className="cloud-save-v2__error">
-          <p>{t(rpcs3WarningKey)}</p>
-          {onConfigureRpcs3 && (
-            <Button theme="outline" onClick={onConfigureRpcs3}>
-              {t("cloud_save_v2_rpcs3_config_open_settings")}
-            </Button>
-          )}
-        </div>
-      )}
-
       {hasUnconfiguredCustomPaths && !hasError && !rpcs3NeedsConfig && (
         <p className="cloud-save-v2__error">
           {t("cloud_save_v2_unconfigured_custom_path_description")}
@@ -519,13 +605,16 @@ export function CloudSavePanel({
         </p>
       )}
 
-      {!hasExecutablePath && missingExecutableCard}
+      {panelMode === "missing-executable" && missingExecutableCard}
 
-      {hasExecutablePath && snapshotPanelMode === "skeleton" && (
+      {panelMode === "rpcs3-config" && rpcs3ConfigCard}
+      {panelMode === "rpcs3-identity" && rpcs3IdentityCard}
+
+      {panelMode === "skeleton" && (
         <CloudSaveSnapshotSkeleton label={t("cloud_save_v2_checking")} />
       )}
 
-      {hasExecutablePath && snapshotPanelMode === "content" && (
+      {panelMode === "content" && (
         <section className="cloud-save-v2__active-snapshot">
           <article className="cloud-save-v2__snapshot cloud-save-v2__snapshot--active">
             {snapshotSummary}

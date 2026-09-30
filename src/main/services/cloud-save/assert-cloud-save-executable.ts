@@ -1,5 +1,9 @@
 import { access } from "node:fs/promises";
-import { getCloudSaveEmulatorProvider, isCloudSaveV2Eligible } from "@shared";
+import {
+  getCloudSaveEmulatorProvider,
+  hasRpcs3CloudSaveDisc,
+  isCloudSaveV2Eligible,
+} from "@shared";
 
 import { gamesSublevel, levelKeys } from "@main/level";
 
@@ -48,6 +52,12 @@ export const assertCloudSaveRuntimeAvailable = async (
   shop: Parameters<typeof assertCloudSaveExecutableExists>[1]
 ) => {
   const game = await assertCloudSaveV2Eligible(objectId, shop);
+  if (
+    getCloudSaveEmulatorProvider(shop, game.platform) === "rpcs3" &&
+    !hasRpcs3CloudSaveDisc(game)
+  ) {
+    throw new Error("cloud_save_rpcs3_disc_missing");
+  }
   if (getCloudSaveEmulatorProvider(shop, game.platform) === "retroarch") {
     const { getSelectedRetroArchRom } = await import(
       "./retroarch-save-provider"
@@ -66,5 +76,9 @@ export const assertCloudSaveRuntimeAvailable = async (
   await access(context.pathContext.executablePath).catch(() => {
     throw new Error(CLOUD_SAVE_EXECUTABLE_MISSING_ERROR);
   });
+  if (getCloudSaveEmulatorProvider(shop, game.platform) === "rpcs3") {
+    const { assertRpcs3DiscIdentity } = await import("./rpcs3-game-identity");
+    await assertRpcs3DiscIdentity(game);
+  }
   return game;
 };

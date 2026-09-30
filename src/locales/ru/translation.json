@@ -596,7 +596,6 @@
     "cloud_save_v2_custom_paths_title": "Пользовательские расположения",
     "cloud_save_v2_custom_paths_description": "Добавьте локальную папку, которую Hydra должна включать в облачные снимки этой игры.",
     "cloud_save_v2_add_custom_path": "Добавить расположение",
-    "cloud_save_v2_add_custom_file": "Добавить файл сохранения",
     "cloud_save_v2_emulator_destinations_title": "Папки сохранений эмулятора",
     "cloud_save_v2_emulator_destination_saves": "Сохранения игры",
     "cloud_save_v2_emulator_destination_states": "Состояния игры",

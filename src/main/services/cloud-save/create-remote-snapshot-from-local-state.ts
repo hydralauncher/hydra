@@ -12,6 +12,8 @@ import type {
 import { buildCloudSaveAggregateHash } from "./snapshot-aggregate-hash";
 import { assertCloudSaveV2Eligible } from "./assert-cloud-save-executable";
 import { buildLocalGameSnapshotContext } from "./build-local-game-snapshot";
+import { getCloudSaveCustomPathBindings } from "./custom-path-store";
+import { cloudSaveCustomPathContextFromPathContext } from "./custom-path";
 import { getEmulatorSaveProvider } from "./emulator-save-provider";
 import {
   CLOUD_SAVE_HASH_PATTERN,
@@ -112,6 +114,20 @@ export const createRemoteSnapshotFromLocalState = async (
     (await buildLocalGameSnapshotContext(objectId, shop));
   const variants = resolvedOptions.variants ?? context.variants;
   const files: SnapshotFile[] = resolvedOptions.files ?? context.files;
+  if (getEmulatorSaveProvider(game) === "rpcs3") {
+    const { assertRpcs3DiscIdentity, assertRpcs3SnapshotIdentity } =
+      await import("./rpcs3-game-identity.js");
+    const bindings = await getCloudSaveCustomPathBindings(
+      shop,
+      objectId,
+      cloudSaveCustomPathContextFromPathContext(context.pathContext)
+    );
+    assertRpcs3SnapshotIdentity(
+      files,
+      await assertRpcs3DiscIdentity(game),
+      bindings.ready
+    );
+  }
   const customPathRawPaths =
     resolvedOptions.customPathRawPaths ?? context.customPathRawPaths;
   const expectedAggregateHash =

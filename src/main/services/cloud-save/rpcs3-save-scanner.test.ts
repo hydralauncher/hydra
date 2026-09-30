@@ -16,6 +16,25 @@ describe("RPCS3 Cloud Save scanner", () => {
     discs: [{ sku: "BLUS30443" }],
   } as Game;
 
+  it("does not scan unrelated saves without a registered disc", async () => {
+    const noDiscGame = { discs: [] } as unknown as Game;
+    const context = {
+      game: noDiscGame,
+      environmentId: "environment",
+      variantId: "variant",
+    };
+    const savedata = await scanRpcs3SaveRoot(context, "/unused", "00000001");
+    const states = await scanRpcs3Savestates(context, "/unused");
+
+    for (const result of [savedata, states]) {
+      assert.deepEqual(result.files, []);
+      assert.equal(result.coverage[0].outcome, "unresolved");
+      assert.deepEqual(result.coverage[0].warningCodes, [
+        "rpcs3-title-id-unresolved",
+      ]);
+    }
+  });
+
   it("captures only the active profile and marks unsafe matching slots partial", async () => {
     const homeRoot = await fs.mkdtemp(path.join(os.tmpdir(), "hydra-rpcs3-"));
     try {

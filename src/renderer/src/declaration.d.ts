@@ -614,6 +614,10 @@ declare global {
     getRpcs3ConfigRootStatus: () => Promise<
       import("@types").Rpcs3ConfigRootStatus
     >;
+    getRpcs3DiscIdentityStatus: (
+      objectId: string,
+      shop: GameShop
+    ) => Promise<import("@types").Rpcs3DiscIdentityStatus>;
     setRpcs3ConfigRoot: (root: string) => Promise<EmulatorConfig>;
     detectEmulators: () => Promise<EmulatorConfigMap>;
     detectEmulator: (system: EmulatorSystem) => Promise<EmulatorConfig>;

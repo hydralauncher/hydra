@@ -20,12 +20,14 @@ import {
   getCloudSavePresentation,
   shouldShowCloudSaveEmptySnapshot,
 } from "@renderer/pages/game-details/cloud-save-v2/cloud-save-presentation";
+import { shouldShowRpcs3IdentityCard } from "@renderer/pages/game-details/cloud-save-v2/rpcs3-config-presentation";
 import { formatBytes } from "@shared";
 import type {
   CloudSaveConflictResolution,
   CloudSaveOverview,
   CloudSaveSyncProgressPayload,
   CloudSaveV2FileDetails,
+  Rpcs3DiscIdentityStatus,
 } from "@types";
 
 import { useDate } from "../../../../hooks";
@@ -59,6 +61,10 @@ export interface BigPictureCloudSavePanelProps {
   isGameRunning: boolean;
   hasExecutablePath: boolean;
   requiresRom: boolean;
+  requiresDisc: boolean;
+  rpcs3DiscStatus?: Rpcs3DiscIdentityStatus | null;
+  rpcs3IdentityError?: boolean;
+  onRetryRpcs3Disc: () => void;
   hasError: boolean;
   errorMessageKey:
     | "cloud_save_v2_load_error"
@@ -113,6 +119,10 @@ export function BigPictureCloudSavePanel({
   isGameRunning,
   hasExecutablePath,
   requiresRom,
+  requiresDisc,
+  rpcs3DiscStatus,
+  rpcs3IdentityError = false,
+  onRetryRpcs3Disc,
   hasError,
   errorMessageKey,
   progress,
@@ -140,6 +150,12 @@ export function BigPictureCloudSavePanel({
   }, [overview?.isAutomaticSyncEnabled]);
 
   const activeSnapshot = overview?.activeRemoteSnapshot ?? null;
+  const identityBlocked = shouldShowRpcs3IdentityCard(
+    requiresDisc,
+    rpcs3DiscStatus,
+    rpcs3IdentityError,
+    isSyncing
+  );
   const hasUnconfiguredCustomPaths =
     (overview?.unconfiguredCustomPathCount ?? 0) > 0;
   const partialDescriptionKey = getCloudSavePartialDescriptionKey(overview);
@@ -377,21 +393,43 @@ export function BigPictureCloudSavePanel({
       )}
 
       <section className="big-picture-cloud-save__snapshot">
-        {!hasExecutablePath ? (
+        {identityBlocked ? (
+          <div className="big-picture-cloud-save__missing-executable-copy">
+            <strong>
+              <WarningCircleIcon size={NOTICE_ICON_SIZE} />
+              {t("cloud_save_v2_rpcs3_identity_title")}
+            </strong>
+            <span>
+              {t(
+                rpcs3IdentityError
+                  ? "cloud_save_v2_rpcs3_identity_remote"
+                  : `cloud_save_v2_rpcs3_identity_${rpcs3DiscStatus?.status ?? "unverified"}`,
+                {
+                  path: rpcs3DiscStatus?.path,
+                  titleId: rpcs3DiscStatus?.titleId,
+                }
+              )}
+            </span>
+          </div>
+        ) : !hasExecutablePath ? (
           <div className="big-picture-cloud-save__missing-executable-copy">
             <strong>
               <WarningCircleIcon size={NOTICE_ICON_SIZE} />
               {t(
-                requiresRom
-                  ? "cloud_save_v2_rom_required_title"
-                  : "cloud_save_v2_executable_required_title"
+                requiresDisc
+                  ? "cloud_save_v2_disc_required_title"
+                  : requiresRom
+                    ? "cloud_save_v2_rom_required_title"
+                    : "cloud_save_v2_executable_required_title"
               )}
             </strong>
             <span>
               {t(
-                requiresRom
-                  ? "cloud_save_v2_rom_required_description"
-                  : "cloud_save_v2_executable_required_description"
+                requiresDisc
+                  ? "cloud_save_v2_disc_required_description"
+                  : requiresRom
+                    ? "cloud_save_v2_rom_required_description"
+                    : "cloud_save_v2_executable_required_description"
               )}
             </span>
           </div>
@@ -461,7 +499,27 @@ export function BigPictureCloudSavePanel({
           </div>
         )}
 
-        {!hasExecutablePath ? (
+        {identityBlocked ? (
+          rpcs3IdentityError ? null : (
+            <Button
+              focusId={PRIMARY_ACTION_ID}
+              variant="primary"
+              icon={<FolderOpenIcon size={INLINE_STATUS_ICON_SIZE} />}
+              stealFocusOnAppear={stealFocusOnActionAppear}
+              onClick={
+                rpcs3DiscStatus?.status === "catalogue-unavailable"
+                  ? onRetryRpcs3Disc
+                  : onSelectExecutable
+              }
+            >
+              {t(
+                rpcs3DiscStatus?.status === "catalogue-unavailable"
+                  ? "cloud_save_v2_check_again"
+                  : "cloud_save_v2_rpcs3_identity_edit_discs"
+              )}
+            </Button>
+          )
+        ) : !hasExecutablePath ? (
           <Button
             focusId={PRIMARY_ACTION_ID}
             variant="primary"
@@ -470,9 +528,11 @@ export function BigPictureCloudSavePanel({
             onClick={onSelectExecutable}
           >
             {t(
-              requiresRom
-                ? "cloud_save_v2_select_rom"
-                : "cloud_save_v2_select_executable"
+              requiresDisc
+                ? "cloud_save_v2_select_disc"
+                : requiresRom
+                  ? "cloud_save_v2_select_rom"
+                  : "cloud_save_v2_select_executable"
             )}
           </Button>
         ) : isSyncing ? (
