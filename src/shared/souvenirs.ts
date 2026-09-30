@@ -45,7 +45,7 @@ interface UserSouvenirsPathOptions {
   take?: number;
   sortBy?: SouvenirSort;
   language?: string;
-  shops?: Array<"steam" | "launchbox">;
+  shops?: Array<"steam" | "epic" | "launchbox">;
 }
 
 export const buildUserSouvenirsPath = ({
@@ -54,7 +54,7 @@ export const buildUserSouvenirsPath = ({
   take = SOUVENIRS_PAGE_SIZE,
   sortBy = "recent",
   language,
-  shops = ["steam", "launchbox"],
+  shops = ["steam", "epic", "launchbox"],
 }: UserSouvenirsPathOptions) => {
   const params = new URLSearchParams({
     take: String(take),

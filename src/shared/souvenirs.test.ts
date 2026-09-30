@@ -30,7 +30,7 @@ describe("souvenir API helpers", () => {
     assert.equal(isAchievementSouvenirsEnabled(false, "win32"), false);
   });
 
-  it("builds an encoded paginated feed path", () => {
+  it("includes Epic, Steam and LaunchBox in the default paginated feed", () => {
     const path = buildUserSouvenirsPath({
       userId: "user/id",
       skip: 24,
@@ -46,7 +46,17 @@ describe("souvenir API helpers", () => {
     assert.equal(params.get("skip"), "24");
     assert.equal(params.get("sortBy"), "rare");
     assert.equal(params.get("language"), "pt-BR");
-    assert.deepEqual(params.getAll("shop"), ["steam", "launchbox"]);
+    assert.deepEqual(params.getAll("shop"), ["steam", "epic", "launchbox"]);
+  });
+
+  it("preserves an explicit Epic-only shop filter", () => {
+    const path = buildUserSouvenirsPath({
+      userId: "user-id",
+      shops: ["epic"],
+    });
+    const params = new URLSearchParams(path.split("?")[1]);
+
+    assert.deepEqual(params.getAll("shop"), ["epic"]);
   });
 
   it("uses the opaque souvenir ID as its stable identity", () => {
