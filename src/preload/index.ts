@@ -51,6 +51,8 @@ import type {
   CloudSaveAutomaticSyncEvent,
   CloudSaveConflictResolution,
   CloudSaveOverview,
+  RetroArchLocalBatteryCandidate,
+  RetroArchLegacyBatteryCandidate,
   CloudSaveV2FileDetails,
   CloudSaveSyncIpcProgressPayload,
   CloudSaveSyncProgressPayload,
@@ -170,6 +172,42 @@ contextBridge.exposeInMainWorld("electron", {
       objectId,
       shop
     ) as Promise<CloudSaveV2FileDetails>,
+  getRetroArchLocalBatteryCandidates: (objectId: string, shop: GameShop) =>
+    ipcRenderer.invoke(
+      "getRetroArchLocalBatteryCandidates",
+      objectId,
+      shop
+    ) as Promise<RetroArchLocalBatteryCandidate[]>,
+  selectRetroArchLocalBattery: (
+    objectId: string,
+    shop: GameShop,
+    romPath: string,
+    signature: string
+  ) =>
+    ipcRenderer.invoke(
+      "selectRetroArchLocalBattery",
+      objectId,
+      shop,
+      romPath,
+      signature
+    ) as Promise<void>,
+  getRetroArchLegacyBatteryCandidates: (objectId: string, shop: GameShop) =>
+    ipcRenderer.invoke(
+      "getRetroArchLegacyBatteryCandidates",
+      objectId,
+      shop
+    ) as Promise<RetroArchLegacyBatteryCandidate[]>,
+  selectRetroArchLegacyBattery: (
+    objectId: string,
+    shop: GameShop,
+    rawPath: string
+  ) =>
+    ipcRenderer.invoke(
+      "selectRetroArchLegacyBattery",
+      objectId,
+      shop,
+      rawPath
+    ) as Promise<void>,
   bindRpcs3CloudSaveProfile: (
     objectId: string,
     shop: GameShop,

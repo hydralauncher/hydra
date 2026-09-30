@@ -55,7 +55,8 @@ export const getEmulatorSaveEnvironmentKey = async (game: Game) => {
 
 export const discoverEmulatorSaveFiles = async (
   game: Game,
-  environmentId: string
+  environmentId: string,
+  remoteFiles: RestoreManifestFile[] = []
 ) => {
   const provider = getEmulatorSaveProvider(game);
   if (!provider) throw new Error("cloud_save_emulator_provider_unavailable");
@@ -68,6 +69,7 @@ export const discoverEmulatorSaveFiles = async (
       game,
       environmentId,
       variantId: variant.variantId,
+      remoteFiles,
     }),
   };
 };

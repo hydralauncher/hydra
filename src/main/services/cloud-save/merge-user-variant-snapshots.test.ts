@@ -65,6 +65,156 @@ const anchor = (files: SnapshotFile[]) => ({
 });
 
 describe("merge user variant snapshots", () => {
+  it("unites five cloud states with three new notebook states", () => {
+    const rawPath = "<emulator>/retroarch-v2/snes";
+    const remote = ["1", "2", "3", "4", "5"].map((value) =>
+      file(`states/${value.repeat(64)}.state`, value, rawPath)
+    );
+    const local = ["a", "b", "c"].map((value) =>
+      file(`states/${value.repeat(64)}.state`, value, rawPath)
+    );
+    const result = mergeUserVariantSnapshots({
+      local: context(local),
+      remoteVariants: [variant],
+      remoteFiles: remote,
+      base: null,
+    });
+    assert.equal(result.files.length, 8);
+    assert.equal(result.restoreEntryIds.length, 5);
+    assert.equal(result.conflicts.length, 0);
+  });
+
+  it("asks for a choice when the same state changed on both PCs", () => {
+    const rawPath = "<emulator>/retroarch-v2/snes";
+    const statePath = `states/${"a".repeat(64)}.state`;
+    const base = file(statePath, "1", rawPath);
+    const local = file(statePath, "2", rawPath);
+    const remote = file(statePath, "3", rawPath);
+    const result = mergeUserVariantSnapshots({
+      local: context([local]),
+      remoteVariants: [variant],
+      remoteFiles: [remote],
+      base: anchor([base]),
+    });
+    assert.deepEqual(
+      result.conflicts.map((entry) => entry.entryId),
+      [cloudSaveFileKey(remote)]
+    );
+  });
+
+  it("keeps RetroArch state images with the chosen state version", () => {
+    const rawPath = "<emulator>/retroarch-v2/snes";
+    const stateId = "1".repeat(64);
+    const local = [
+      file(`states/${stateId}.state`, "a", rawPath),
+      file(`states/${stateId}.png`, "b", rawPath),
+    ];
+    const remote = [
+      file(`states/${stateId}.state`, "c", rawPath),
+      file(`states/${stateId}.png`, "d", rawPath),
+    ];
+    const first = mergeUserVariantSnapshots({
+      local: context(local),
+      remoteVariants: [variant],
+      remoteFiles: remote,
+      base: null,
+    });
+    assert.equal(first.conflicts.length, 2);
+    const resolved = mergeUserVariantSnapshots({
+      local: context(local),
+      remoteVariants: [variant],
+      remoteFiles: remote,
+      base: null,
+      resolutions: new Map(
+        first.conflicts.map((entry) => [entry.entryId, "keep-local"])
+      ),
+    });
+    assert.deepEqual(
+      resolved.files.map((entry) => entry.hash),
+      [hash("b"), hash("a")]
+    );
+  });
+
+  it("keeps RetroArch RTC with the chosen battery save", () => {
+    const rawPath = "<emulator>/retroarch-v2/snes";
+    const local = [file("battery.srm", "a", rawPath)];
+    const remote = [
+      file("battery.srm", "b", rawPath),
+      file("battery.rtc", "c", rawPath),
+    ];
+    const first = mergeUserVariantSnapshots({
+      local: context(local),
+      remoteVariants: [variant],
+      remoteFiles: remote,
+      base: null,
+    });
+    assert.equal(first.conflicts.length, 2);
+    const resolved = mergeUserVariantSnapshots({
+      local: context(local),
+      remoteVariants: [variant],
+      remoteFiles: remote,
+      base: null,
+      resolutions: new Map(
+        first.conflicts.map((entry) => [entry.entryId, "keep-local"])
+      ),
+    });
+    assert.deepEqual(
+      resolved.files.map((entry) => entry.relativePath),
+      ["battery.srm"]
+    );
+  });
+
+  it("keeps N64 auxiliary files with the chosen battery version", () => {
+    const rawPath = "<emulator>/retroarch-v2/n64";
+    const local = [
+      file("battery.srm", "a", rawPath),
+      file("battery.eep", "b", rawPath),
+    ];
+    const remote = [
+      file("battery.srm", "c", rawPath),
+      file("battery.eep", "d", rawPath),
+      file("transfer-pak.sav", "e", rawPath),
+    ];
+    const first = mergeUserVariantSnapshots({
+      local: context(local),
+      remoteVariants: [variant],
+      remoteFiles: remote,
+      base: null,
+    });
+    assert.equal(first.conflicts.length, 3);
+    const resolved = mergeUserVariantSnapshots({
+      local: context(local),
+      remoteVariants: [variant],
+      remoteFiles: remote,
+      base: null,
+      resolutions: new Map(
+        first.conflicts.map((entry) => [entry.entryId, "keep-local"])
+      ),
+    });
+    assert.deepEqual(resolved.files.map((entry) => entry.relativePath).sort(), [
+      "battery.eep",
+      "battery.srm",
+    ]);
+  });
+
+  it("retains an archived legacy battery save without restoring it", () => {
+    const archive = file(
+      "archive/battery/11111111.srm",
+      "a",
+      "<emulator>/retroarch-v2/snes"
+    );
+    const result = mergeUserVariantSnapshots({
+      local: context([]),
+      remoteVariants: [variant],
+      remoteFiles: [archive],
+      base: null,
+      preserveCloudOnlyEntryIds: new Set([cloudSaveFileKey(archive)]),
+    });
+    assert.deepEqual(result.files, [archive]);
+    assert.deepEqual(result.restoreEntryIds, []);
+    assert.deepEqual(result.unresolvedRemoteEntryIds, []);
+    assert.equal(result.partial, false);
+  });
   it("combines independent local and remote changes", () => {
     const base = [file("A.sav", "a"), file("B.sav", "b")];
     const result = mergeUserVariantSnapshots({

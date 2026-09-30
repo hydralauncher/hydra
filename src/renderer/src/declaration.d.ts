@@ -78,6 +78,8 @@ import type {
   CloudSaveAutomaticSyncModeChangedEvent,
   CloudSaveAutomaticSyncEvent,
   CloudSaveConflictResolution,
+  RetroArchLocalBatteryCandidate,
+  RetroArchLegacyBatteryCandidate,
   CloudSaveOverview,
   CloudSaveV2FileDetails,
   AchievementSouvenirSyncCleanupResult,
@@ -146,6 +148,25 @@ declare global {
       objectId: string,
       shop: GameShop
     ) => Promise<CloudSaveV2FileDetails>;
+    getRetroArchLocalBatteryCandidates: (
+      objectId: string,
+      shop: GameShop
+    ) => Promise<RetroArchLocalBatteryCandidate[]>;
+    selectRetroArchLocalBattery: (
+      objectId: string,
+      shop: GameShop,
+      romPath: string,
+      signature: string
+    ) => Promise<void>;
+    getRetroArchLegacyBatteryCandidates: (
+      objectId: string,
+      shop: GameShop
+    ) => Promise<RetroArchLegacyBatteryCandidate[]>;
+    selectRetroArchLegacyBattery: (
+      objectId: string,
+      shop: GameShop,
+      rawPath: string
+    ) => Promise<void>;
     bindRpcs3CloudSaveProfile: (
       objectId: string,
       shop: GameShop,

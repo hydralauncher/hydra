@@ -19,6 +19,7 @@ import {
 } from "./emulator-destination-store";
 import { groupEmulatorRestoreDestinations } from "./emulator-destination-policy";
 import { listRpcs3CloudProfileIds } from "./rpcs3-profile-binding-policy";
+import { setRetroArchFileDisplayNames } from "./retroarch-file-display-names";
 import {
   cloudSaveCustomPathContextFromPathContext,
   decodeCloudSaveCustomPath,
@@ -109,9 +110,30 @@ export const getCloudSaveV2FileDetails = async (
       describeUnregisteredCustomPath: (rawPath) =>
         describeUnregisteredCustomPath(rawPath, customPathContext),
     },
-    getRemoteSnapshotRestoreManifest
+    async (snapshot) =>
+      analysis.remoteManifest?.snapshot.id === snapshot.id
+        ? analysis.remoteManifest
+        : getRemoteSnapshotRestoreManifest(snapshot)
   );
   const provider = getEmulatorSaveProvider(analysis.context.game);
+  if (provider === "retroarch" && analysis.context.game) {
+    const game = analysis.context.game;
+    const activeLocation = await import("./retroarch-save-provider")
+      .then(({ locationsForGame }) => locationsForGame(game))
+      .then((locations) => locations.activeLocation)
+      .catch(() => null);
+    const stateBindings = activeLocation
+      ? await import("./retroarch-state-bindings")
+          .then(({ loadRetroArchBindings }) => loadRetroArchBindings(game))
+          .then((bindings) => bindings.states)
+          .catch(() => undefined)
+      : undefined;
+    setRetroArchFileDisplayNames(
+      details,
+      activeLocation ?? null,
+      stateBindings
+    );
+  }
   if (analysis.context.game && provider) {
     const pending = new Set(analysis.merge.unresolvedRemoteEntryIds);
     const safeAutomatic = new Set(analysis.restorableEmulatorEntryIds);

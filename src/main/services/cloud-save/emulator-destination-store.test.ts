@@ -16,6 +16,20 @@ import {
 import { cloudSaveFileKey } from "./cloud-save-contract.ts";
 
 describe("manual emulator restore destinations", () => {
+  it("never asks for a manual destination for game-scoped RetroArch saves", () => {
+    const rawPath = "<emulator>/retroarch-v2/snes";
+    const files = ["battery.srm", `states/${"a".repeat(64)}.state`].map(
+      (relativePath) => ({ variantId: "variant", rawPath, relativePath })
+    );
+    assert.deepEqual(
+      groupEmulatorRestoreDestinations(
+        files,
+        new Set(files.map(cloudSaveFileKey)),
+        new Set()
+      ),
+      []
+    );
+  });
   it("hides automatic RetroArch roots while keeping ambiguous files pending", () => {
     const rawPath = "<emulator>/retroarch/snes/1234ABCD";
     const files = ["battery.srm", "state.state1", "state.state2"].map(

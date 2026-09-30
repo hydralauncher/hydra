@@ -23,12 +23,15 @@ import type {
   CloudSaveOverview,
   CloudSaveSyncProgressPayload,
   GameShop,
+  RetroArchLegacyBatteryCandidate,
+  RetroArchLocalBatteryCandidate,
 } from "@types";
 
 import { useBigPictureToast, useUserDetails } from "../../../../hooks";
 import { BigPictureCloudSaveConflictModal } from "./cloud-save-conflict-modal";
 import { BigPictureCloudSaveCustomPathModal } from "./cloud-save-custom-path-modal";
 import { BigPictureRpcs3ProfileModal } from "./cloud-save-rpcs3-profile-modal";
+import { BigPictureRetroArchBatteryModal } from "./cloud-save-retroarch-battery-modal";
 import {
   BigPictureCloudSaveModal,
   type BigPictureCloudSavePanelProps,
@@ -195,6 +198,12 @@ export function BigPictureCloudSaveProvider({
   const [isFileExplorerVisible, setIsFileExplorerVisible] = useState(false);
   const [pendingResolution, setPendingResolution] =
     useState<CloudSaveConflictResolution | null>(null);
+  const [localBatteryCandidates, setLocalBatteryCandidates] = useState<
+    RetroArchLocalBatteryCandidate[]
+  >([]);
+  const [legacyBatteryCandidates, setLegacyBatteryCandidates] = useState<
+    RetroArchLegacyBatteryCandidate[]
+  >([]);
   const [pendingRpcs3ProfileId, setPendingRpcs3ProfileId] = useState<
     string | null
   >(null);
@@ -210,6 +219,38 @@ export function BigPictureCloudSaveProvider({
   const showSyncError = useCallback(
     (error: unknown) => {
       const message = error instanceof Error ? error.message : error;
+      if (emulatorProvider === "retroarch" && typeof message === "string") {
+        if (message.includes("cloud_save_retroarch_battery_local_conflict")) {
+          void window.electron
+            .getRetroArchLocalBatteryCandidates(objectId, shop)
+            .then((candidates) => {
+              if (activeGameKey.current !== gameKey) return;
+              if (candidates.length === 0) {
+                setHasSyncError(true);
+                return;
+              }
+              setLocalBatteryCandidates(candidates);
+              setIsModalVisible(true);
+            })
+            .catch(() => setHasSyncError(true));
+          return true;
+        }
+        if (message.includes("cloud_save_retroarch_legacy_battery_conflict")) {
+          void window.electron
+            .getRetroArchLegacyBatteryCandidates(objectId, shop)
+            .then((candidates) => {
+              if (activeGameKey.current !== gameKey) return;
+              if (candidates.length === 0) {
+                setHasSyncError(true);
+                return;
+              }
+              setLegacyBatteryCandidates(candidates);
+              setIsModalVisible(true);
+            })
+            .catch(() => setHasSyncError(true));
+          return true;
+        }
+      }
       if (
         typeof message === "string" &&
         message.includes("cloud_save_rpcs3_profile_binding_required")
@@ -258,6 +299,10 @@ export function BigPictureCloudSaveProvider({
     },
     [
       fileDetails?.rpcs3Profile?.localProfileId,
+      emulatorProvider,
+      gameKey,
+      objectId,
+      shop,
       showErrorToast,
       showWarningToast,
       t,
@@ -266,6 +311,8 @@ export function BigPictureCloudSaveProvider({
 
   useEffect(() => {
     setIsModalVisible(false);
+    setLocalBatteryCandidates([]);
+    setLegacyBatteryCandidates([]);
     setWasOpenedFromLaunchConflict(false);
     setIsSyncing(false);
     setHasSyncError(false);
@@ -281,6 +328,26 @@ export function BigPictureCloudSaveProvider({
     setIsBindingEmulatorDestination(false);
     gamePageSyncInFlight.current = false;
   }, [gameKey]);
+
+  useEffect(() => {
+    const kind = searchParams.get("openCloudSaveBatteryConflict");
+    if (
+      emulatorProvider !== "retroarch" ||
+      (kind !== "local" && kind !== "legacy")
+    )
+      return;
+    const nextSearchParams = new URLSearchParams(searchParams);
+    nextSearchParams.delete("openCloudSaveBatteryConflict");
+    setSearchParams(nextSearchParams, { replace: true });
+    setIsModalVisible(true);
+    showSyncError(
+      new Error(
+        kind === "local"
+          ? "cloud_save_retroarch_battery_local_conflict"
+          : "cloud_save_retroarch_legacy_battery_conflict"
+      )
+    );
+  }, [emulatorProvider, searchParams, setSearchParams, showSyncError]);
 
   useEffect(() => {
     if (!eligible || searchParams.get("openCloudSaveProfileBinding") !== "1") {
@@ -741,6 +808,7 @@ export function BigPictureCloudSaveProvider({
     isSyncing,
     isGameRunning,
     hasExecutablePath,
+    requiresRom: emulatorProvider === "retroarch",
     hasError,
     errorMessageKey,
     progress,
@@ -838,6 +906,57 @@ export function BigPictureCloudSaveProvider({
           if (!isBindingRpcs3Profile) setPendingRpcs3ProfileId(null);
         }}
         onConfirm={() => void handleConfirmRpcs3Profile()}
+      />
+
+      <BigPictureRetroArchBatteryModal
+        choices={
+          localBatteryCandidates.length > 0
+            ? localBatteryCandidates.map((item) => ({
+                key: item.romPath,
+                label: item.romPath,
+              }))
+            : legacyBatteryCandidates.map((item, index) => ({
+                key: item.rawPath,
+                label: t("cloud_save_v2_legacy_battery_candidate", {
+                  index: index + 1,
+                  date: new Date(item.files[0].lastModifiedAt).toLocaleString(),
+                  hash: (
+                    item.files.find(
+                      (file) => file.relativePath === "battery.srm"
+                    ) ?? item.files[0]
+                  ).hash.slice(0, 8),
+                }),
+              }))
+        }
+        legacy={legacyBatteryCandidates.length > 0}
+        isBusy={isSyncing || isGameRunning}
+        onClose={() => {
+          setLocalBatteryCandidates([]);
+          setLegacyBatteryCandidates([]);
+        }}
+        onSelect={(key) => {
+          const local = localBatteryCandidates.find(
+            (item) => item.romPath === key
+          );
+          const selection = local
+            ? window.electron.selectRetroArchLocalBattery(
+                objectId,
+                shop,
+                local.romPath,
+                local.signature
+              )
+            : window.electron.selectRetroArchLegacyBattery(objectId, shop, key);
+          void selection
+            .then(() => {
+              setLocalBatteryCandidates([]);
+              setLegacyBatteryCandidates([]);
+              void runCloudSaveOperation();
+            })
+            .catch((error) => {
+              setHasSyncError(true);
+              showSyncError(error);
+            });
+        }}
       />
     </bigPictureCloudSaveContext.Provider>
   );

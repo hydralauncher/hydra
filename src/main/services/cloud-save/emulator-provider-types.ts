@@ -29,6 +29,7 @@ export interface EmulatorProviderContext {
   game: Game;
   environmentId: string;
   variantId: string;
+  remoteFiles?: RestoreManifestFile[];
 }
 
 export interface EmulatorProvider {

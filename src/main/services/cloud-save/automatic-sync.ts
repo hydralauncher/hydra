@@ -5,7 +5,7 @@ import type {
   GameShop,
   SyncGameCloudSaveResult,
 } from "@types";
-import { isCloudSaveV2Eligible } from "@shared";
+import { getCloudSaveEmulatorProvider, isCloudSaveV2Eligible } from "@shared";
 import { gamesSublevel, levelKeys } from "@main/level";
 
 import { HydraApi } from "../hydra-api";
@@ -76,6 +76,12 @@ export const canRunAutomaticCloudSaveSync = async (
     .catch(() => null);
   if (!game || !isCloudSaveV2Eligible(shop, game.platform)) return false;
   if (shop === "steam") return Boolean(game.executablePath);
+  if (getCloudSaveEmulatorProvider(shop, game.platform) === "retroarch") {
+    const { getSelectedRetroArchRom } = await import(
+      "./retroarch-save-provider"
+    );
+    if (!(await getSelectedRetroArchRom(game))) return false;
+  }
   const context = await getCloudSaveGameContext(objectId, shop).catch(
     () => null
   );
@@ -176,6 +182,14 @@ export const runAutomaticCloudSaveSyncDetailed = async (
   }
   if (!context.pathContext.executablePath) {
     return { status: "skipped", result: null };
+  }
+  if (getCloudSaveEmulatorProvider(shop, game.platform) === "retroarch") {
+    const { getSelectedRetroArchRom } = await import(
+      "./retroarch-save-provider"
+    );
+    if (!(await getSelectedRetroArchRom(game))) {
+      return { status: "skipped", result: null };
+    }
   }
   const key = gameKey(objectId, shop);
   const operationKey = JSON.stringify([

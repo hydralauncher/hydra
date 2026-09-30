@@ -3,6 +3,9 @@ import { gamesSublevel, levelKeys } from "@main/level";
 import { emulators } from "@main/services";
 import { platformToSystem } from "@main/helpers";
 import type { ClassicsDisc, GameShop } from "@types";
+import { getCloudSaveRetroArchPlatform } from "@shared";
+import { isGameRunning } from "@main/services/process-watcher";
+import { HydraApi } from "@main/services/hydra-api";
 
 interface ClassicsDiscPatch {
   selectedDiscPath?: string | null;
@@ -40,6 +43,21 @@ const updateClassicsDisc = async (
     throw new Error(`Game not found: ${gameKey}`);
   }
 
+  if (
+    HydraApi.isLoggedIn() &&
+    HydraApi.hasActiveSubscription() &&
+    getCloudSaveRetroArchPlatform(shop, game.platform) &&
+    !isGameRunning(objectId, shop) &&
+    (patch.removeDiscPath ||
+      (patch.selectedDiscPath !== undefined &&
+        patch.selectedDiscPath !== game.selectedDiscPath))
+  ) {
+    const { captureRetroArchSavesBeforeRomChange } = await import(
+      "@main/services/cloud-save/retroarch-save-provider"
+    );
+    await captureRetroArchSavesBeforeRomChange(game).catch(() => undefined);
+  }
+
   const discs = [...(game.discs ?? [])];
 
   if (patch.addDisc) {
@@ -66,10 +84,25 @@ const updateClassicsDisc = async (
     next.selectedDiscPath &&
     !discs.some((d) => d.path === next.selectedDiscPath)
   ) {
-    next.selectedDiscPath = discs[0]?.path ?? null;
+    next.selectedDiscPath = getCloudSaveRetroArchPlatform(shop, next.platform)
+      ? null
+      : (discs[0]?.path ?? null);
   }
 
   await gamesSublevel.put(gameKey, next);
+  if (
+    HydraApi.isLoggedIn() &&
+    HydraApi.hasActiveSubscription() &&
+    getCloudSaveRetroArchPlatform(shop, next.platform) &&
+    next.selectedDiscPath &&
+    next.selectedDiscPath !== game.selectedDiscPath &&
+    !isGameRunning(objectId, shop)
+  ) {
+    const { materializeRetroArchLocalSaves } = await import(
+      "@main/services/cloud-save/retroarch-save-provider"
+    );
+    await materializeRetroArchLocalSaves(next).catch(() => undefined);
+  }
   return next;
 };
 

@@ -228,7 +228,10 @@ export function HeroPanelActions() {
 
     const discs = game.discs ?? [];
 
-    if (discs.length <= 1) {
+    if (
+      discs.length === 0 ||
+      (discs.length === 1 && game.selectedDiscPath !== null)
+    ) {
       await launchClassicsWithErrorHandling();
       return;
     }

@@ -3,6 +3,7 @@ import { it } from "node:test";
 
 import {
   canSelectCloudSaveCustomFile,
+  hasCloudSaveExecutableSelection,
   isCloudSaveV2Eligible,
 } from "./cloud-save-emulator-provider.js";
 
@@ -31,4 +32,35 @@ it("offers Add save file only for LaunchBox emulator V2 games", () => {
     assert.equal(canSelectCloudSaveCustomFile("launchbox", platform), false);
     assert.equal(isCloudSaveV2Eligible("launchbox", platform), false);
   }
+});
+
+it("requires a new RetroArch ROM choice after the active ROM is removed", () => {
+  const game = {
+    shop: "launchbox" as const,
+    platform: "Super Nintendo",
+    discs: [{ path: "/roms/Mario Europe.sfc" }],
+    selectedDiscPath: null,
+  };
+  assert.equal(hasCloudSaveExecutableSelection(game), false);
+  assert.equal(
+    hasCloudSaveExecutableSelection({
+      ...game,
+      selectedDiscPath: game.discs[0].path,
+    }),
+    true
+  );
+  assert.equal(
+    hasCloudSaveExecutableSelection({
+      ...game,
+      selectedDiscPath: undefined,
+    }),
+    true
+  );
+  assert.equal(
+    hasCloudSaveExecutableSelection({
+      shop: "steam",
+      executablePath: "/games/mario.exe",
+    }),
+    true
+  );
 });

@@ -12,6 +12,7 @@ import type {
 import { buildCloudSaveAggregateHash } from "./snapshot-aggregate-hash";
 import { assertCloudSaveV2Eligible } from "./assert-cloud-save-executable";
 import { buildLocalGameSnapshotContext } from "./build-local-game-snapshot";
+import { getEmulatorSaveProvider } from "./emulator-save-provider";
 import {
   CLOUD_SAVE_HASH_PATTERN,
   cloudSaveFileKey,
@@ -104,7 +105,7 @@ export const createRemoteSnapshotFromLocalState = async (
   localSnapshotContext?: LocalGameSnapshotContext,
   options?: CreateRemoteSnapshotOptions
 ): Promise<RemoteGameSnapshot | null> => {
-  await assertCloudSaveV2Eligible(objectId, shop);
+  const game = await assertCloudSaveV2Eligible(objectId, shop);
   const resolvedOptions = resolveCreateRemoteSnapshotOptions(options);
   const context =
     localSnapshotContext ??
@@ -128,6 +129,9 @@ export const createRemoteSnapshotFromLocalState = async (
         context,
         {
           ...resolvedOptions,
+          ...(getEmulatorSaveProvider(game) === "retroarch"
+            ? { retroArchFormatVersion: 2 as const }
+            : {}),
           variants,
           files,
           customPathRawPaths,

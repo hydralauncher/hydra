@@ -18,6 +18,7 @@ import {
 import { getInstallationOwnedCustomPathRawPaths } from "./installation-owned-custom-paths";
 import {
   isEmulatorSaveRawPath,
+  parseRetroArchGameRawPath,
   parseRetroArchSaveRawPath,
 } from "./emulator-provider-identity";
 import { getEmulatorSaveProvider } from "./emulator-save-provider";
@@ -28,7 +29,16 @@ import {
   getRemoteSnapshotRestoreManifest,
   resolveRestoreManifestTargets,
 } from "./resolve-remote-snapshot-targets";
-import { getCloudSaveSyncAnchor } from "./sync-anchor";
+import {
+  getCloudSaveSyncAnchor,
+  getCloudSaveSyncAnchorForSnapshot,
+} from "./sync-anchor";
+import {
+  isRetroArchArchivedBattery,
+  migrateRetroArchAnchor,
+  migrateRetroArchManifest,
+} from "./retroarch-snapshot-migration";
+import { loadRetroArchBindings } from "./retroarch-state-bindings";
 import type { SyncDirection } from "./sync-game/policy";
 
 interface AnalyzeCloudSaveStateOptions {
@@ -58,9 +68,29 @@ export const analyzeCloudSaveState = async (
     listRemoteGameSnapshots(objectId, shop),
   ]);
   const activeRemoteSnapshot = remoteSnapshots[0] ?? null;
-  const remoteManifest = activeRemoteSnapshot
+  const originalRemoteManifest = activeRemoteSnapshot
     ? await getRemoteSnapshotRestoreManifest(activeRemoteSnapshot)
     : null;
+  const retroArchGame =
+    initialContext.game &&
+    getEmulatorSaveProvider(initialContext.game) === "retroarch"
+      ? initialContext.game
+      : null;
+  const retroArchBindings = retroArchGame
+    ? await loadRetroArchBindings(retroArchGame)
+    : null;
+  const migration =
+    retroArchGame && originalRemoteManifest
+      ? migrateRetroArchManifest(
+          retroArchGame,
+          originalRemoteManifest,
+          retroArchBindings?.selectedLegacyBatteryRawPath
+        )
+      : null;
+  const remoteManifest = migration?.manifest ?? originalRemoteManifest;
+  if (migration?.conflicts.length) {
+    throw new Error("cloud_save_retroarch_legacy_battery_conflict");
+  }
   if (
     remoteManifest &&
     (remoteManifest.snapshot.shop !== shop ||
@@ -82,12 +112,41 @@ export const analyzeCloudSaveState = async (
       context = await getCloudSaveGameContext(objectId, shop);
     }
   }
-  const anchor = await getCloudSaveSyncAnchor(
+  const currentAnchor = await getCloudSaveSyncAnchor(
     shop,
     objectId,
     context.environmentId,
     { allowEnvironmentFallback: !activeRemoteSnapshot }
   );
+  const originalAnchor =
+    retroArchGame && activeRemoteSnapshot
+      ? (currentAnchor ??
+        (await getCloudSaveSyncAnchorForSnapshot(
+          shop,
+          objectId,
+          activeRemoteSnapshot.id
+        )))
+      : currentAnchor;
+  if (retroArchGame && migration && originalAnchor) {
+    const { seedRetroArchBindingsFromLegacyAnchor } = await import(
+      "./retroarch-save-provider"
+    );
+    await seedRetroArchBindingsFromLegacyAnchor(
+      retroArchGame,
+      originalAnchor,
+      migration.stateIdByLegacyKey
+    );
+  }
+  const anchor =
+    retroArchGame && activeRemoteSnapshot
+      ? migrateRetroArchAnchor(
+          retroArchGame,
+          originalAnchor,
+          context.environmentId,
+          migration?.selectedBatteryRawPath,
+          migration?.stateIdByLegacyKey
+        )
+      : currentAnchor;
   const customPathContext = cloudSaveCustomPathContextFromPathContext(
     context.pathContext
   );
@@ -138,12 +197,39 @@ export const analyzeCloudSaveState = async (
       )
       .map(cloudSaveFileKey)
   );
+  const preserveCloudOnlyEntryIds = new Set(
+    (remoteManifest?.files ?? [])
+      .filter(isRetroArchArchivedBattery)
+      .map(cloudSaveFileKey)
+  );
+  if (
+    retroArchGame &&
+    remoteManifest?.files.some(
+      (file) => file.relativePath === "transfer-pak.sav"
+    )
+  ) {
+    const { locationsForGame } = await import("./retroarch-save-provider");
+    const activeLocation = await locationsForGame(retroArchGame)
+      .then(({ activeLocation }) => activeLocation)
+      .catch(() => null);
+    if (!activeLocation?.hasTransferPak) {
+      for (const file of remoteManifest.files) {
+        if (
+          file.relativePath === "transfer-pak.sav" &&
+          parseRetroArchGameRawPath(file.rawPath)
+        ) {
+          preserveCloudOnlyEntryIds.add(cloudSaveFileKey(file));
+        }
+      }
+    }
+  }
   let localSnapshotContext = await buildLocalGameSnapshotContext(
     objectId,
     shop,
     context,
     {
       customPathBindings,
+      remoteFiles: remoteManifest?.files ?? [],
     }
   );
   const restorableEmulatorEntryIds = new Set<string>();
@@ -207,6 +293,7 @@ export const analyzeCloudSaveState = async (
     direction: syncDirection,
     preserveLocalMissingRawPaths,
     preserveLocalMissingEntryIds,
+    preserveCloudOnlyEntryIds,
     restorableEmulatorEntryIds,
     treatLocalAsNewRawPaths: new Set(trackingState.pendingRawPaths),
   });
@@ -250,6 +337,7 @@ export const analyzeCloudSaveState = async (
     customPathBindings,
     pendingCustomPathRawPaths: trackingState.pendingRawPaths,
     installationOwnedCustomPathRawPaths: [...preserveLocalMissingRawPaths],
+    preserveCloudOnlyEntryIds: [...preserveCloudOnlyEntryIds],
     restorableEmulatorEntryIds: [...restorableEmulatorEntryIds],
     localSnapshot,
     localSnapshotContext,

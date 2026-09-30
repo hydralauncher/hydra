@@ -48,6 +48,14 @@ export const assertCloudSaveRuntimeAvailable = async (
   shop: Parameters<typeof assertCloudSaveExecutableExists>[1]
 ) => {
   const game = await assertCloudSaveV2Eligible(objectId, shop);
+  if (getCloudSaveEmulatorProvider(shop, game.platform) === "retroarch") {
+    const { getSelectedRetroArchRom } = await import(
+      "./retroarch-save-provider"
+    );
+    if (!(await getSelectedRetroArchRom(game))) {
+      throw new Error("cloud_save_retroarch_rom_missing");
+    }
+  }
   if (!getCloudSaveEmulatorProvider(shop, game?.platform)) {
     return assertCloudSaveExecutableExists(objectId, shop);
   }

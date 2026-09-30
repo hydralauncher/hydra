@@ -26,6 +26,29 @@ export const getCloudSaveRetroArchPlatform = (
     ? platformToRetroArchPlatform(platform)
     : null;
 
+export const hasSelectedRetroArchRom = (game: {
+  selectedDiscPath?: string | null;
+  discs?: Array<{ path: string }>;
+}) => {
+  const discs = game.discs ?? [];
+  if (game.selectedDiscPath === null) return false;
+  if (game.selectedDiscPath !== undefined) {
+    return discs.some((disc) => disc.path === game.selectedDiscPath);
+  }
+  return discs.length === 1;
+};
+
+export const hasCloudSaveExecutableSelection = (game: {
+  shop: GameShop;
+  platform?: string | null;
+  executablePath?: string | null;
+  selectedDiscPath?: string | null;
+  discs?: Array<{ path: string }>;
+}) =>
+  getCloudSaveEmulatorProvider(game.shop, game.platform) === "retroarch"
+    ? hasSelectedRetroArchRom(game)
+    : Boolean(game.executablePath || game.shop === "launchbox");
+
 export const isCloudSaveV2Eligible = (
   shop: GameShop,
   platform?: string | null

@@ -14,9 +14,11 @@ import {
   AuthPage,
   canSelectCloudSaveCustomFile,
   getCloudSaveAccessAction,
+  getCloudSaveEmulatorProvider,
+  hasSelectedRetroArchRom,
   isCloudSaveV2Eligible,
 } from "@shared";
-import { ConfirmationModal } from "@renderer/components";
+import { Button, ConfirmationModal, Modal } from "@renderer/components";
 import { gameDetailsContext } from "@renderer/context";
 import { useToast, useUserDetails } from "@renderer/hooks";
 import { useSubscription } from "@renderer/hooks/use-subscription";
@@ -26,6 +28,8 @@ import type {
   CloudSaveOverview,
   CloudSaveSyncProgressPayload,
   GameShop,
+  RetroArchLocalBatteryCandidate,
+  RetroArchLegacyBatteryCandidate,
 } from "@types";
 
 import { CloudSaveCustomPathApprovalModal } from "./cloud-save-custom-path-approval-modal";
@@ -51,6 +55,7 @@ interface CloudSaveV2ContextValue {
     | null;
   progress: CloudSaveSyncProgressPayload | null;
   hasExecutablePath: boolean;
+  requiresRom: boolean;
   canUseCloudSaves: boolean;
   openManager: () => void;
   openFileBrowser: () => void;
@@ -166,9 +171,13 @@ export function CloudSaveV2Provider({
   );
   const canUseCloudSaves = cloudSaveAccessAction === "open";
   const isV2Eligible = isCloudSaveV2Eligible(shop, game?.platform);
-  const hasExecutablePath =
-    Boolean(game?.executablePath) ||
-    (shop === "launchbox" && isV2Eligible && Boolean(game));
+  const isRetroArchGame =
+    getCloudSaveEmulatorProvider(shop, game?.platform) === "retroarch";
+  const hasSelectedRom = game ? hasSelectedRetroArchRom(game) : false;
+  const hasExecutablePath = isRetroArchGame
+    ? hasSelectedRom
+    : Boolean(game?.executablePath) ||
+      (shop === "launchbox" && isV2Eligible && Boolean(game));
   const canCheckCloudSaves =
     isV2Eligible && canUseCloudSaves && hasExecutablePath;
   const {
@@ -201,6 +210,16 @@ export function CloudSaveV2Provider({
     useState(searchParams.get("openCloudSavePathApproval") === "1");
   const [pendingResolution, setPendingResolution] =
     useState<CloudSaveConflictResolution | null>(null);
+  const [localBatteryCandidates, setLocalBatteryCandidates] = useState<
+    RetroArchLocalBatteryCandidate[]
+  >([]);
+  const [isLocalBatteryPickerVisible, setIsLocalBatteryPickerVisible] =
+    useState(false);
+  const [legacyBatteryCandidates, setLegacyBatteryCandidates] = useState<
+    RetroArchLegacyBatteryCandidate[]
+  >([]);
+  const [isLegacyBatteryPickerVisible, setIsLegacyBatteryPickerVisible] =
+    useState(false);
   const {
     details: fileDetails,
     isLoading: isFileDetailsLoading,
@@ -220,6 +239,44 @@ export function CloudSaveV2Provider({
   const showKnownCloudSaveSyncError = useCallback(
     (error: unknown) => {
       const message = error instanceof Error ? error.message : error;
+      if (
+        isRetroArchGame &&
+        typeof message === "string" &&
+        message.includes("cloud_save_retroarch_battery_local_conflict")
+      ) {
+        void window.electron
+          .getRetroArchLocalBatteryCandidates(objectId, shop)
+          .then((candidates) => {
+            if (activeGameKey.current !== gameKey) return;
+            if (candidates.length === 0) {
+              setHasSyncError(true);
+              return;
+            }
+            setLocalBatteryCandidates(candidates);
+            setIsLocalBatteryPickerVisible(true);
+          })
+          .catch(() => setHasSyncError(true));
+        return true;
+      }
+      if (
+        isRetroArchGame &&
+        typeof message === "string" &&
+        message.includes("cloud_save_retroarch_legacy_battery_conflict")
+      ) {
+        void window.electron
+          .getRetroArchLegacyBatteryCandidates(objectId, shop)
+          .then((candidates) => {
+            if (activeGameKey.current !== gameKey) return;
+            if (candidates.length === 0) {
+              setHasSyncError(true);
+              return;
+            }
+            setLegacyBatteryCandidates(candidates);
+            setIsLegacyBatteryPickerVisible(true);
+          })
+          .catch(() => setHasSyncError(true));
+        return true;
+      }
       if (
         typeof message === "string" &&
         message.includes("cloud_save_rpcs3_profile_binding_required")
@@ -252,7 +309,7 @@ export function CloudSaveV2Provider({
       );
       return true;
     },
-    [showErrorToast, t]
+    [gameKey, isRetroArchGame, objectId, shop, showErrorToast, t]
   );
 
   useEffect(() => {
@@ -268,10 +325,35 @@ export function CloudSaveV2Provider({
     setCustomPathApprovalError(null);
     setIsCustomPathApprovalGateActive(false);
     setPendingResolution(null);
+    setLocalBatteryCandidates([]);
+    setIsLocalBatteryPickerVisible(false);
+    setLegacyBatteryCandidates([]);
+    setIsLegacyBatteryPickerVisible(false);
     gamePageSyncInFlight.current = false;
   }, [gameKey]);
 
   const wasGameRunning = useRef(isGameRunning);
+
+  useEffect(() => {
+    const kind = searchParams.get("openCloudSaveBatteryConflict");
+    if (!isRetroArchGame || (kind !== "local" && kind !== "legacy")) return;
+    const nextSearchParams = new URLSearchParams(searchParams);
+    nextSearchParams.delete("openCloudSaveBatteryConflict");
+    setSearchParams(nextSearchParams, { replace: true });
+    setIsModalVisible(true);
+    showKnownCloudSaveSyncError(
+      new Error(
+        kind === "local"
+          ? "cloud_save_retroarch_battery_local_conflict"
+          : "cloud_save_retroarch_legacy_battery_conflict"
+      )
+    );
+  }, [
+    isRetroArchGame,
+    searchParams,
+    setSearchParams,
+    showKnownCloudSaveSyncError,
+  ]);
 
   useEffect(() => {
     const gameJustClosed = wasGameRunning.current && !isGameRunning;
@@ -505,7 +587,7 @@ export function CloudSaveV2Provider({
     setIsModalVisible(false);
     setWasOpenedFromLaunchConflict(false);
     setIsFileBrowserVisible(false);
-    setGameOptionsInitialCategory("locations");
+    setGameOptionsInitialCategory(isRetroArchGame ? "general" : "locations");
     setShowGameOptionsModal(true);
   };
 
@@ -917,6 +999,7 @@ export function CloudSaveV2Provider({
       errorMessageKey,
       progress,
       hasExecutablePath,
+      requiresRom: isRetroArchGame,
       canUseCloudSaves,
       openManager,
       openFileBrowser,
@@ -929,6 +1012,7 @@ export function CloudSaveV2Provider({
       errorMessageKey,
       hasError,
       hasExecutablePath,
+      isRetroArchGame,
       isAutomaticSyncEnabled,
       isGameRunning,
       isRefreshing,
@@ -970,6 +1054,7 @@ export function CloudSaveV2Provider({
         isSyncing={isSyncing}
         isGameRunning={isGameRunning}
         hasExecutablePath={hasExecutablePath}
+        requiresRom={isRetroArchGame}
         isAutomaticSyncEnabled={isAutomaticSyncEnabled}
         hasError={hasError}
         errorMessageKey={errorMessageKey}
@@ -1029,6 +1114,79 @@ export function CloudSaveV2Provider({
         onConfirm={handleConfirmResolution}
         onClose={() => setPendingResolution(null)}
       />
+
+      <Modal
+        visible={isLocalBatteryPickerVisible}
+        title={t("cloud_save_v2_local_battery_conflict_title")}
+        description={t("cloud_save_v2_local_battery_conflict_description")}
+        onClose={() => setIsLocalBatteryPickerVisible(false)}
+      >
+        <div className="cloud-save-v2__conflict-actions">
+          {localBatteryCandidates.map((candidate) => (
+            <Button
+              key={`${candidate.romPath}:${candidate.signature}`}
+              disabled={isGameRunning || isSyncing}
+              onClick={() => {
+                void window.electron
+                  .selectRetroArchLocalBattery(
+                    objectId,
+                    shop,
+                    candidate.romPath,
+                    candidate.signature
+                  )
+                  .then(() => {
+                    setIsLocalBatteryPickerVisible(false);
+                    void runCloudSaveOperation();
+                  })
+                  .catch(() => setHasSyncError(true));
+              }}
+            >
+              {candidate.romPath}
+            </Button>
+          ))}
+        </div>
+      </Modal>
+
+      <Modal
+        visible={isLegacyBatteryPickerVisible}
+        title={t("cloud_save_v2_legacy_battery_conflict_title")}
+        description={t("cloud_save_v2_legacy_battery_conflict_description")}
+        onClose={() => setIsLegacyBatteryPickerVisible(false)}
+      >
+        <div className="cloud-save-v2__conflict-actions">
+          {legacyBatteryCandidates.map((candidate, index) => (
+            <Button
+              key={candidate.rawPath}
+              disabled={isGameRunning || isSyncing}
+              onClick={() => {
+                void window.electron
+                  .selectRetroArchLegacyBattery(
+                    objectId,
+                    shop,
+                    candidate.rawPath
+                  )
+                  .then(() => {
+                    setIsLegacyBatteryPickerVisible(false);
+                    void runCloudSaveOperation();
+                  })
+                  .catch(() => setHasSyncError(true));
+              }}
+            >
+              {t("cloud_save_v2_legacy_battery_candidate", {
+                index: index + 1,
+                date: new Date(
+                  candidate.files[0].lastModifiedAt
+                ).toLocaleString(),
+                hash: (
+                  candidate.files.find(
+                    (file) => file.relativePath === "battery.srm"
+                  ) ?? candidate.files[0]
+                ).hash.slice(0, 8),
+              })}
+            </Button>
+          ))}
+        </div>
+      </Modal>
     </cloudSaveV2Context.Provider>
   );
 }

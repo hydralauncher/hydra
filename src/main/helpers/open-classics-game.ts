@@ -3,6 +3,7 @@ import { existsSync } from "node:fs";
 import { gamesSublevel, levelKeys } from "@main/level";
 import { logger, NativeAddon } from "@main/services";
 import { WindowManager } from "@main/services/window-manager";
+import { HydraApi } from "@main/services/hydra-api";
 import {
   canCreateCloudSaveUploadGuard,
   canRunAutomaticCloudSaveSync,
@@ -228,6 +229,22 @@ export const openClassicsGame = async (
       );
       return false;
     }
+    if (
+      "errorCode" in outcome &&
+      (outcome.errorCode === "cloud_save_retroarch_battery_local_conflict" ||
+        outcome.errorCode === "cloud_save_retroarch_legacy_battery_conflict")
+    ) {
+      WindowManager.redirectToGameWindow(
+        `game/${shop}/${objectId}?${new URLSearchParams({
+          title: game.title,
+          openCloudSaveBatteryConflict:
+            outcome.errorCode === "cloud_save_retroarch_battery_local_conflict"
+              ? "local"
+              : "legacy",
+        })}`
+      );
+      return false;
+    }
     if (outcome.result) {
       setCloudSaveLaunchGuard(objectId, shop, {
         environmentId: context.environmentId,
@@ -246,13 +263,50 @@ export const openClassicsGame = async (
   const retroArchPlatform = platformToRetroArchPlatform(game.platform);
   if (retroArchPlatform) {
     const resolvedRomPath =
-      discPath ?? game.selectedDiscPath ?? game.discs?.[0]?.path ?? null;
+      discPath ??
+      (game.selectedDiscPath === null
+        ? null
+        : (game.selectedDiscPath ?? game.discs?.[0]?.path ?? null));
     if (!resolvedRomPath || !existsSync(resolvedRomPath)) {
       throw codedLaunchError(
         "NO_DISC",
         `NO_DISC: No ROM available for game ${objectId}`,
         { objectId, platform: retroArchPlatform, resolvedRomPath }
       );
+    }
+
+    if (HydraApi.isLoggedIn() && HydraApi.hasActiveSubscription()) {
+      const { materializeRetroArchLocalSaves } = await import(
+        "@main/services/cloud-save/retroarch-save-provider"
+      );
+      try {
+        await materializeRetroArchLocalSaves({
+          ...game,
+          selectedDiscPath: resolvedRomPath,
+        });
+      } catch (error) {
+        if (
+          error instanceof Error &&
+          error.message === "cloud_save_retroarch_battery_local_conflict"
+        ) {
+          WindowManager.redirectToGameWindow(
+            `game/${shop}/${objectId}?${new URLSearchParams({
+              title: game.title,
+              openCloudSaveBatteryConflict: "local",
+            })}`
+          );
+          return;
+        }
+        if (
+          !(error instanceof Error) ||
+          error.message !== "cloud_save_user_required"
+        ) {
+          logger.warn("RetroArch save materialization unavailable", {
+            objectId,
+            errorCode: error instanceof Error ? error.message : "unknown",
+          });
+        }
+      }
     }
 
     if (!(await prepareCloudSaveBeforeLaunch())) return;

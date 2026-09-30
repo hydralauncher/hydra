@@ -43,6 +43,24 @@ export const rpcs3SavestateRawPath = (titleId: string) =>
 export const retroArchSaveRawPath = (platform: string, romHash: string) =>
   `${EMULATOR_SAVE_RAW_PATH_PREFIX}retroarch/${platform}/${romHash}`;
 
+export const retroArchGameRawPath = (platform: string) =>
+  `${EMULATOR_SAVE_RAW_PATH_PREFIX}retroarch-v2/${platform}`;
+
+export const parseRetroArchGameRawPath = (rawPath: string) => {
+  const match = /^<emulator>\/retroarch-v2\/(nes|snes|n64|gb|gbc|gba)$/.exec(
+    rawPath
+  );
+  return match ? { platform: match[1] } : null;
+};
+
+export const retroArchStateRelativePath = (stateId: string, image = false) =>
+  `states/${stateId}.${image ? "png" : "state"}`;
+
+export const parseRetroArchStateRelativePath = (relativePath: string) => {
+  const match = /^states\/([a-f0-9]{64})\.(state|png)$/.exec(relativePath);
+  return match ? { stateId: match[1], image: match[2] === "png" } : null;
+};
+
 export const isEmulatorSaveRawPath = (rawPath: string) =>
   rawPath.startsWith(EMULATOR_SAVE_RAW_PATH_PREFIX);
 

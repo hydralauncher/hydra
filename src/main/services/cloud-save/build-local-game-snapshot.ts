@@ -7,6 +7,7 @@ import type {
   CloudSaveStateMetadata,
   GameShop,
   LocalGameSnapshotContext,
+  RestoreManifestFile,
 } from "@types";
 
 import { NativeAddon } from "../native-addon";
@@ -25,6 +26,7 @@ import { buildCloudSaveAggregateHash } from "./snapshot-aggregate-hash";
 
 interface BuildLocalGameSnapshotContextOptions {
   customPathBindings?: CloudSaveCustomPathBindings;
+  remoteFiles?: RestoreManifestFile[];
 }
 
 export const buildLocalGameSnapshotContext = async (
@@ -61,7 +63,8 @@ export const buildLocalGameSnapshotContext = async (
   if (game && getEmulatorSaveProvider(game)) {
     const { variant, discovery } = await discoverEmulatorSaveFiles(
       game,
-      environmentId
+      environmentId,
+      options.remoteFiles
     );
     for (const file of discovery.files) {
       const stateMetadata =

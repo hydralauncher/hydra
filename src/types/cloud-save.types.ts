@@ -342,6 +342,26 @@ export interface CloudSaveStateResult {
   activeRemoteSnapshot: RemoteSnapshotSummary | null;
 }
 
+export interface RetroArchLocalBatteryCandidate {
+  romPath: string;
+  signature: string;
+  files: Array<{
+    relativePath: string;
+    path: string;
+    hash: string;
+    lastModifiedAt: string;
+  }>;
+}
+
+export interface RetroArchLegacyBatteryCandidate {
+  rawPath: string;
+  files: Array<{
+    relativePath: string;
+    hash: string;
+    lastModifiedAt: string;
+  }>;
+}
+
 export interface CloudSaveOverview extends CloudSaveStateResult {
   localSnapshotSummary: {
     updatedAt: string | null;
@@ -372,6 +392,7 @@ interface CloudSaveV2FileBase extends CloudSaveFileIdentity {
   sizeBytes: number;
   lastModifiedAt: string | null;
   userLabel: string;
+  displayName?: string;
 }
 
 export interface CloudSaveV2LocalFile extends CloudSaveV2FileBase {
@@ -729,6 +750,7 @@ export interface PrepareSnapshotRequest extends CloudSaveGameId {
   hostname?: string;
   snapshotHash: string;
   baseVersion: number;
+  retroArchFormatVersion?: 2;
   customPathRawPaths: string[];
   variants: SnapshotVariant[];
   files: SnapshotFile[];

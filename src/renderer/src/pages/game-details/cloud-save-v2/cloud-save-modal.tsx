@@ -38,6 +38,7 @@ export interface CloudSavePanelProps {
   isSyncing: boolean;
   isGameRunning: boolean;
   hasExecutablePath: boolean;
+  requiresRom: boolean;
   isAutomaticSyncEnabled: boolean | null;
   hasError: boolean;
   errorMessageKey:
@@ -209,6 +210,7 @@ export function CloudSavePanel({
   isSyncing,
   isGameRunning,
   hasExecutablePath,
+  requiresRom,
   isAutomaticSyncEnabled,
   hasError,
   errorMessageKey,
@@ -415,16 +417,32 @@ export function CloudSavePanel({
       <div className="cloud-save-v2__missing-executable-copy">
         <strong>
           <WarningCircleIcon size={18} />
-          {t("cloud_save_v2_executable_required_title")}
+          {t(
+            requiresRom
+              ? "cloud_save_v2_rom_required_title"
+              : "cloud_save_v2_executable_required_title"
+          )}
         </strong>
-        <span>{t("cloud_save_v2_executable_required_description")}</span>
+        <span>
+          {t(
+            requiresRom
+              ? "cloud_save_v2_rom_required_description"
+              : "cloud_save_v2_executable_required_description"
+          )}
+        </span>
       </div>
       <Button
         className="cloud-save-v2__sync-button"
         onClick={onSelectExecutable}
       >
         <FolderOpenIcon size={20} />
-        <span>{t("cloud_save_v2_select_executable")}</span>
+        <span>
+          {t(
+            requiresRom
+              ? "cloud_save_v2_select_rom"
+              : "cloud_save_v2_select_executable"
+          )}
+        </span>
       </Button>
     </section>
   );

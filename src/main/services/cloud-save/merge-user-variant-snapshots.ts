@@ -10,8 +10,11 @@ import type {
 import { cloudSaveFileKey } from "./cloud-save-contract.js";
 import {
   isEmulatorSaveRawPath,
+  parseRetroArchGameRawPath,
+  parseRetroArchStateRelativePath,
   parseRpcs3SaveRawPath,
 } from "./emulator-provider-identity.js";
+import { isRetroArchBatteryRelativePath } from "./retroarch-snapshot-migration.js";
 import { areSnapshotVariantsEqual } from "./snapshot-variant.js";
 import type { SyncDirection } from "./sync-game/policy.js";
 
@@ -24,6 +27,7 @@ interface MergeUserVariantSnapshotsInput {
   resolutions?: ReadonlyMap<string, CloudSaveConflictResolution>;
   preserveLocalMissingRawPaths?: ReadonlySet<string>;
   preserveLocalMissingEntryIds?: ReadonlySet<string>;
+  preserveCloudOnlyEntryIds?: ReadonlySet<string>;
   restorableEmulatorEntryIds?: ReadonlySet<string>;
   treatLocalAsNewRawPaths?: ReadonlySet<string>;
 }
@@ -58,6 +62,29 @@ const rpcs3SlotKey = (
     : null;
 };
 
+const retroArchGroupKey = (
+  file: Pick<SnapshotFile, "variantId" | "rawPath" | "relativePath"> | undefined
+) => {
+  if (!file || !parseRetroArchGameRawPath(file.rawPath)) return null;
+  const state = parseRetroArchStateRelativePath(file.relativePath);
+  if (state) {
+    return JSON.stringify([
+      file.variantId,
+      file.rawPath,
+      "state",
+      state.stateId,
+    ]);
+  }
+  if (isRetroArchBatteryRelativePath(file.relativePath)) {
+    return JSON.stringify([file.variantId, file.rawPath, "battery"]);
+  }
+  return null;
+};
+
+const atomicGroupKey = (
+  file: Pick<SnapshotFile, "variantId" | "rawPath" | "relativePath"> | undefined
+) => rpcs3SlotKey(file) ?? retroArchGroupKey(file);
+
 const mergeVariantMetadata = (
   local: SnapshotVariant[],
   remote: SnapshotVariant[],
@@ -89,6 +116,7 @@ export const mergeUserVariantSnapshots = ({
   resolutions,
   preserveLocalMissingRawPaths = new Set<string>(),
   preserveLocalMissingEntryIds = new Set<string>(),
+  preserveCloudOnlyEntryIds = new Set<string>(),
   restorableEmulatorEntryIds = new Set<string>(),
   treatLocalAsNewRawPaths = new Set<string>(),
 }: MergeUserVariantSnapshotsInput): CloudSaveMergeResult => {
@@ -153,7 +181,7 @@ export const mergeUserVariantSnapshots = ({
     const localFile = localById.get(entryId);
     const remoteFile = remoteById.get(entryId);
     const baseEntry = baseById.get(entryId);
-    const slotKey = rpcs3SlotKey(localFile ?? remoteFile ?? baseEntry);
+    const slotKey = atomicGroupKey(localFile ?? remoteFile ?? baseEntry);
     if (!slotKey || sameBytes(localFile, remoteFile)) continue;
     const changes = slotChanges.get(slotKey) ?? {
       local: false,
@@ -184,12 +212,15 @@ export const mergeUserVariantSnapshots = ({
     const localFile = localById.get(entryId);
     const remoteFile = remoteById.get(entryId);
     const baseEntry = baseById.get(entryId);
-    const slotKey = rpcs3SlotKey(localFile ?? remoteFile ?? baseEntry);
+    const slotKey = atomicGroupKey(localFile ?? remoteFile ?? baseEntry);
 
     if (
       slotKey &&
       divergentSlots.has(slotKey) &&
-      (localFile || !remoteFile || coverageStateFor(remoteFile).provesDeletion)
+      (retroArchGroupKey(localFile ?? remoteFile ?? baseEntry) ||
+        localFile ||
+        !remoteFile ||
+        coverageStateFor(remoteFile).provesDeletion)
     ) {
       if (sameBytes(localFile, remoteFile)) {
         if (remoteFile) files.push(remoteFile);
@@ -238,6 +269,10 @@ export const mergeUserVariantSnapshots = ({
       continue;
     }
     if (!localFile && remoteFile) {
+      if (preserveCloudOnlyEntryIds.has(entryId)) {
+        files.push(remoteFile);
+        continue;
+      }
       if (preserveLocalMissingEntryIds.has(entryId)) {
         files.push(remoteFile);
         unresolvedRemoteEntryIds.add(entryId);

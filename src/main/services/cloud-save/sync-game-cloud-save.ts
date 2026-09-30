@@ -1004,6 +1004,16 @@ const prepareRpcs3SyncContext = async (
   return changed ? getCloudSaveGameContext(objectId, shop) : context;
 };
 
+const prepareRetroArchSyncLayout = async (
+  game: Awaited<ReturnType<typeof assertCloudSaveRuntimeAvailable>>
+) => {
+  if (getEmulatorSaveProvider(game) !== "retroarch") return;
+  const { materializeRetroArchLocalSaves } = await import(
+    "./retroarch-save-provider"
+  );
+  await materializeRetroArchLocalSaves(game);
+};
+
 export const syncGameCloudSave = async (
   objectId: string,
   shop: GameShop,
@@ -1031,10 +1041,11 @@ export const syncGameCloudSave = async (
     shop,
     operationKey,
     async (emitProgress) => {
-      await assertCloudSaveRuntimeAvailable(objectId, shop);
+      const game = await assertCloudSaveRuntimeAvailable(objectId, shop);
       if (isGameRunning(objectId, shop)) {
         throw new Error("cloud_save_game_running");
       }
+      await prepareRetroArchSyncLayout(game);
       const operationContext = await prepareRpcs3SyncContext(
         objectId,
         shop,
@@ -1072,10 +1083,11 @@ export const resolveCloudSaveConflict = async (
     shop,
     `resolve:${resolution}:${context.environmentId}`,
     async (emitProgress) => {
-      await assertCloudSaveRuntimeAvailable(objectId, shop);
+      const game = await assertCloudSaveRuntimeAvailable(objectId, shop);
       if (isGameRunning(objectId, shop)) {
         throw new Error("cloud_save_game_running");
       }
+      await prepareRetroArchSyncLayout(game);
       const operationContext = await prepareRpcs3SyncContext(
         objectId,
         shop,

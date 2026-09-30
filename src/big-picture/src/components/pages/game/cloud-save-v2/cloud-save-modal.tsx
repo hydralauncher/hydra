@@ -58,6 +58,7 @@ export interface BigPictureCloudSavePanelProps {
   isSyncing: boolean;
   isGameRunning: boolean;
   hasExecutablePath: boolean;
+  requiresRom: boolean;
   hasError: boolean;
   errorMessageKey:
     | "cloud_save_v2_load_error"
@@ -111,6 +112,7 @@ export function BigPictureCloudSavePanel({
   isSyncing,
   isGameRunning,
   hasExecutablePath,
+  requiresRom,
   hasError,
   errorMessageKey,
   progress,
@@ -379,9 +381,19 @@ export function BigPictureCloudSavePanel({
           <div className="big-picture-cloud-save__missing-executable-copy">
             <strong>
               <WarningCircleIcon size={NOTICE_ICON_SIZE} />
-              {t("cloud_save_v2_executable_required_title")}
+              {t(
+                requiresRom
+                  ? "cloud_save_v2_rom_required_title"
+                  : "cloud_save_v2_executable_required_title"
+              )}
             </strong>
-            <span>{t("cloud_save_v2_executable_required_description")}</span>
+            <span>
+              {t(
+                requiresRom
+                  ? "cloud_save_v2_rom_required_description"
+                  : "cloud_save_v2_executable_required_description"
+              )}
+            </span>
           </div>
         ) : activeSnapshot ? (
           <>
@@ -457,7 +469,11 @@ export function BigPictureCloudSavePanel({
             stealFocusOnAppear={stealFocusOnActionAppear}
             onClick={onSelectExecutable}
           >
-            {t("cloud_save_v2_select_executable")}
+            {t(
+              requiresRom
+                ? "cloud_save_v2_select_rom"
+                : "cloud_save_v2_select_executable"
+            )}
           </Button>
         ) : isSyncing ? (
           <Button

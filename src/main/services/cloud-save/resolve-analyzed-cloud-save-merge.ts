@@ -13,6 +13,7 @@ type ResolvableCloudSaveAnalysis = Pick<
   | "syncDirection"
   | "pendingCustomPathRawPaths"
   | "installationOwnedCustomPathRawPaths"
+  | "preserveCloudOnlyEntryIds"
   | "restorableEmulatorEntryIds"
 > & {
   remoteManifest: Pick<RemoteManifest, "variants" | "files"> | null;
@@ -39,6 +40,9 @@ export const resolveAnalyzedCloudSaveMerge = (
     treatLocalAsNewRawPaths: new Set(analysis.pendingCustomPathRawPaths),
     preserveLocalMissingRawPaths: new Set(
       analysis.installationOwnedCustomPathRawPaths
+    ),
+    preserveCloudOnlyEntryIds: new Set(
+      analysis.preserveCloudOnlyEntryIds ?? []
     ),
     restorableEmulatorEntryIds: new Set(analysis.restorableEmulatorEntryIds),
   });
