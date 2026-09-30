@@ -7,6 +7,7 @@ import { useToast } from "@renderer/hooks";
 import type { EmulatorConfig, Rpcs3ConfigRootStatus } from "@types";
 
 import { EmulatorResourceRow } from "./emulator-resource-row";
+import { getRpcs3ConfigRootChoices } from "./rpcs3-config-root-choices";
 
 interface Props {
   config: EmulatorConfig;
@@ -65,68 +66,44 @@ export function Rpcs3ConfigRootSection({
   };
 
   const state = status?.status ?? "not-configured";
+  const { selectedRoot, roots } = getRpcs3ConfigRootChoices(status);
+  const controlsDisabled = disabled || busy || !config.executablePath;
+
   return (
-    <>
-      <EmulatorResourceRow
-        title={t("rpcs3_config_title")}
-        description={t(`rpcs3_config_${state}`)}
-        detected={state === "ready"}
-        statusLabel={
-          state === "ready" ? t("rpcs3_config_ready") : t("not_detected")
-        }
-        path={{
-          text: status?.resolvedRoot ?? status?.selectedRoot ?? null,
-          placeholder: t("rpcs3_config_no_folder"),
-          onClick: browse,
-          disabled: disabled || busy || !config.executablePath,
-          title: t("rpcs3_config_browse"),
-        }}
-        actions={
-          <Button
-            theme="primary"
-            onClick={browse}
-            disabled={disabled || busy || !config.executablePath}
-          >
-            <FileDirectoryIcon size={16} />
-            <span>{t("rpcs3_config_browse")}</span>
-          </Button>
-        }
-      />
-      {status && status.candidates.length > 1 && (
-        <section className="emulator-detail__section">
-          <header className="emulator-detail__section-header">
-            <div className="emulator-detail__section-text">
-              <h3>{t("rpcs3_config_candidates")}</h3>
-            </div>
-          </header>
-          {status.candidates.map((candidate) => (
-            <div className="emulator-detail__exec-path-row" key={candidate}>
-              <button
-                type="button"
-                className="emulator-detail__exec-path-box"
-                onClick={() => void select(candidate)}
-                disabled={disabled || busy}
-              >
-                <span
-                  className="emulator-detail__exec-path-text"
-                  title={candidate}
-                >
-                  {candidate}
-                </span>
-              </button>
-              <div className="emulator-detail__exec-actions">
-                <Button
-                  theme="outline"
-                  onClick={() => void select(candidate)}
-                  disabled={disabled || busy}
-                >
-                  {t("rpcs3_config_select")}
-                </Button>
-              </div>
-            </div>
+    <EmulatorResourceRow
+      title={t("rpcs3_config_title")}
+      description={t(`rpcs3_config_${state}`)}
+      detected={state === "ready"}
+      statusLabel={
+        state === "ready" ? t("rpcs3_config_ready") : t("not_detected")
+      }
+      pathContent={
+        <select
+          className="emulator-detail__config-root-select"
+          aria-label={t("rpcs3_config_title")}
+          title={selectedRoot || undefined}
+          value={selectedRoot}
+          onChange={(event) => void select(event.target.value)}
+          disabled={controlsDisabled || roots.length === 0}
+        >
+          {!selectedRoot && (
+            <option value="" disabled>
+              {t("rpcs3_config_no_folder")}
+            </option>
+          )}
+          {roots.map((root) => (
+            <option key={root} value={root}>
+              {root}
+            </option>
           ))}
-        </section>
-      )}
-    </>
+        </select>
+      }
+      actions={
+        <Button theme="primary" onClick={browse} disabled={controlsDisabled}>
+          <FileDirectoryIcon size={16} />
+          <span>{t("rpcs3_config_browse")}</span>
+        </Button>
+      }
+    />
   );
 }
