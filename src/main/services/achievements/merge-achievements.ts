@@ -286,7 +286,8 @@ const getAchievementsForSouvenirLimitRetry = (
 export const mergeAchievements = async (
   game: Game,
   achievements: UnlockedAchievement[],
-  publishNotification: boolean
+  publishNotification: boolean,
+  sendUpdateEvent = publishNotification
 ) => {
   const gameKey = levelKeys.game(game.shop, game.objectId);
 
@@ -410,14 +411,14 @@ export const mergeAchievements = async (
             response.achievements,
             syncedAchievements
           ),
-          publishNotification
+          sendUpdateEvent
         );
       } else {
         await saveAchievementsInMemory(
           game.objectId,
           game.shop,
           syncedAchievements,
-          publishNotification
+          sendUpdateEvent
         );
       }
     } catch (error) {
@@ -433,7 +434,7 @@ export const mergeAchievements = async (
         game.objectId,
         game.shop,
         syncedAchievements,
-        publishNotification
+        sendUpdateEvent
       );
     }
   } else if (newAchievements.length) {
@@ -441,7 +442,7 @@ export const mergeAchievements = async (
       game.objectId,
       game.shop,
       achievementsToSync,
-      publishNotification
+      sendUpdateEvent
     );
   }
 

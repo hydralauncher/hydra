@@ -11,6 +11,9 @@ export interface UnlockedAchievement {
 
 export interface SteamAchievement {
   name: string;
+  /** Epic provider identifiers, present on Epic catalogue definitions only. */
+  externalId?: string;
+  externalSetId?: string;
   displayName: string;
   description?: string;
   icon: string;

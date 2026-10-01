@@ -1,10 +1,11 @@
 import { registerEvent } from "../register-event";
 import { collectGameAchievementFiles } from "@main/services/achievements/collect-game-achievement-files";
+import { inspectEpicAchievementFiles } from "@main/services/achievements/epic/achievement-files";
 import fs from "fs";
 import { achievementsLogger, HydraApi, WindowManager } from "@main/services";
 import { syncAndGetUnlockedAchievements } from "../user/get-unlocked-achievements";
 import { gamesSublevel, levelKeys } from "@main/level";
-import type { GameShop } from "@types";
+import type { AchievementFile, GameShop } from "@types";
 import { AchievementMemoryStore } from "@main/services/achievements/achievement-memory-store";
 import { AchievementSouvenirStore } from "@main/services/achievements/achievement-souvenir-store";
 import {
@@ -25,19 +26,31 @@ const resetGameAchievements = async (
 
     if (!game) return;
 
-    await cancelPendingSouvenirsForGame(levelKey);
+    let achievementFiles: AchievementFile[];
+    if (game.shop === "epic") {
+      const inspected = await inspectEpicAchievementFiles(game);
+      if (inspected.ambiguous) {
+        throw new Error("Cannot reset ambiguous Epic achievement profiles");
+      }
+      achievementFiles = inspected.files.map(({ source, filePath }) => ({
+        type: source,
+        filePath,
+      }));
+    } else {
+      achievementFiles = await collectGameAchievementFiles(game, {
+        includeSteamCache: false,
+        awaitGameDirectoryLocations: true,
+      });
+    }
 
-    const achievementFiles = await collectGameAchievementFiles(game, {
-      includeSteamCache: false,
-      awaitGameDirectoryLocations: true,
-    });
+    await cancelPendingSouvenirsForGame(levelKey);
 
     for (const achievementFile of achievementFiles) {
       achievementsLogger.log(`deleting ${achievementFile.filePath}`);
 
       await fs.promises.rm(achievementFile.filePath, {
         force: true,
-        recursive: true,
+        recursive: game.shop !== "epic",
       });
     }
 

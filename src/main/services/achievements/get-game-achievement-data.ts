@@ -31,11 +31,18 @@ export const getGameAchievementData = async (
   }
 
   return HydraApi.getResponse<SteamAchievement[]>(
-    `/games/${shop}/${objectId}/achievements`,
+    `/games/${shop}/${encodeURIComponent(objectId)}/achievements`,
     { language },
     {
       ifNoneMatch:
-        cachedAchievements?.language === language
+        cachedAchievements?.language === language &&
+        !(
+          shop === "epic" &&
+          cachedAchievements.achievements?.length &&
+          !cachedAchievements.achievements.some(
+            (achievement) => achievement.externalId && achievement.externalSetId
+          )
+        )
           ? cachedAchievements.catalogueValidator
           : undefined,
       validateStatus: (status) =>
