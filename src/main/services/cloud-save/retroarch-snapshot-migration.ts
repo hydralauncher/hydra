@@ -141,8 +141,18 @@ export const migrateRetroArchManifest = (
       : migratedFile;
   });
   const result = dedupeFiles(migrated);
+  const sourceByMigratedFile = new Map(
+    migrated.map((file, index) => [file, manifest.files[index]] as const)
+  );
+  const sourceFilesByEntryId = new Map(
+    result.files.map(
+      (file) =>
+        [cloudSaveFileKey(file), sourceByMigratedFile.get(file)!] as const
+    )
+  );
   return {
     manifest: { ...manifest, files: result.files as RestoreManifestFile[] },
+    sourceFilesByEntryId,
     conflicts: result.conflicts,
     stateIdByLegacyKey,
     selectedBatteryRawPath: selectedBattery,
@@ -152,6 +162,18 @@ export const migrateRetroArchManifest = (
         file.relativePath !== manifest.files[index].relativePath
     ),
   };
+};
+
+export const assertRetroArchRestoreSelectionUnchanged = (
+  expected: ReturnType<typeof migrateRetroArchManifest>,
+  current: ReturnType<typeof migrateRetroArchManifest>
+) => {
+  if (
+    current.conflicts.length > 0 ||
+    expected.selectedBatteryRawPath !== current.selectedBatteryRawPath
+  ) {
+    throw new Error("cloud_save_restore_destination_changed");
+  }
 };
 
 export const migrateRetroArchAnchor = (

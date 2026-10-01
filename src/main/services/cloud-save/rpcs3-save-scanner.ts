@@ -24,6 +24,7 @@ import { rpcs3SavedataTitleIdsForGame } from "./rpcs3-title-ids.js";
 
 const PROFILE_ID = /^\d{8}$/;
 const SAVESTATE_SUFFIX = /\.SAVESTAT(?:\.zst|\.gz)?$/;
+const RPCS3_SAVESTATE_SIZE_THRESHOLD_BYTES = 1024;
 const hash = (value: string) =>
   createHash("sha256").update(value).digest("hex");
 
@@ -279,7 +280,11 @@ export const scanRpcs3Savestates = async (
       }
       const absolutePath = path.join(titleRoot, entry.name);
       const stat = await fs.lstat(absolutePath).catch(() => null);
-      if (!stat?.isFile() || stat.isSymbolicLink() || stat.size <= 1024) {
+      if (
+        !stat?.isFile() ||
+        stat.isSymbolicLink() ||
+        stat.size <= RPCS3_SAVESTATE_SIZE_THRESHOLD_BYTES
+      ) {
         complete = false;
         continue;
       }

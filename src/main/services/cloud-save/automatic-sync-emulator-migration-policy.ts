@@ -29,8 +29,8 @@ export const migrateEmulatorCloudSaveDefaultsWithStore = async (
     ([, game]) => game.automaticCloudSync === true
   );
   const settingKeysToDelete = storedSettings
-    .map(([key]) => key)
-    .filter((key) => eligibleKeys.has(key));
+    .filter(([key, enabled]) => eligibleKeys.has(key) && enabled === true)
+    .map(([key]) => key);
 
   await store.commit(gamesToDisableLegacy, settingKeysToDelete);
   return true;

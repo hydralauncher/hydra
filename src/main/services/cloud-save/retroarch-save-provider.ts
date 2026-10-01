@@ -4,6 +4,7 @@ import os from "node:os";
 import path from "node:path";
 
 import { gamesSublevel } from "@main/level";
+import { logger } from "@main/services/logger";
 import { SystemPath } from "@main/services/system-path";
 import type { CloudSaveSyncAnchor, Game, UserLocationCoverage } from "@types";
 import {
@@ -65,9 +66,12 @@ import {
   copyRetroArchFileVerified as copyVerified,
   moveRetroArchFileVerified as copyThenRemove,
   hashRetroArchFile as hashFile,
+  replaceRetroArchBatteryFilesSafely,
 } from "./retroarch-safe-move";
 import { dedupeRetroArchBatteryCandidates } from "./retroarch-battery-policy";
 import { requireRetroArchExecutablePath } from "./retroarch-executable-guard";
+
+const RETROARCH_STATE_SLOT_SEARCH_LIMIT = 100_000;
 
 const hash = (value: string) =>
   createHash("sha256").update(value).digest("hex");
@@ -699,7 +703,11 @@ export const retroArchSaveProvider: EmulatorProvider = {
         )
     );
     const nextFreeSlot = () => {
-      for (let number = 0; number < 100_000; number += 1) {
+      for (
+        let number = 0;
+        number < RETROARCH_STATE_SLOT_SEARCH_LIMIT;
+        number += 1
+      ) {
         const slot = number === 0 ? ".state" : `.state${number}`;
         if (!usedSlots.has(slot)) {
           usedSlots.add(slot);
@@ -771,16 +779,20 @@ export const retroArchSaveProvider: EmulatorProvider = {
   },
 };
 
-const archiveDuplicate = async (game: Game, filePath: string) => {
+const retroArchSaveHistoryRoot = (game: Game) => {
   const userData = SystemPath.getPath("userData");
   if (!path.isAbsolute(userData)) {
     throw new Error("cloud_save_retroarch_archive_unavailable");
   }
-  const root = path.join(
+  return path.join(
     userData,
     "retroarch-save-history",
     hash(JSON.stringify([game.shop, game.objectId]))
   );
+};
+
+const archiveDuplicate = async (game: Game, filePath: string) => {
+  const root = retroArchSaveHistoryRoot(game);
   await copyThenRemove(
     filePath,
     path.join(root, `${randomUUID()}-${path.basename(filePath)}`)
@@ -1009,7 +1021,11 @@ export const materializeRetroArchLocalSaves = async (game: Game) => {
       (await fs.lstat(`${target}.png`).catch(() => null))
     ) {
       let found = false;
-      for (let index = 0; index < 100_000; index += 1) {
+      for (
+        let index = 0;
+        index < RETROARCH_STATE_SLOT_SEARCH_LIMIT;
+        index += 1
+      ) {
         slot = index === 0 ? ".state" : `.state${index}`;
         target = path.join(stateDirectory, `${activeLocation.stem}${slot}`);
         if (
@@ -1047,6 +1063,20 @@ export const materializeRetroArchLocalSaves = async (game: Game) => {
     binding.slot = slot;
     activeStatePaths.add(target);
   }
+  const commitBindings = () =>
+    saveRetroArchBindings(game, {
+      ...bindings,
+      activeRomPath: activeLocation.romPath,
+      selectedBatterySignature: undefined,
+      batterySources: batteryCandidates,
+      states: bindings.states.filter(
+        (item, index, all) =>
+          all.findIndex(
+            (candidate) =>
+              candidate.id === item.id && candidate.path === item.path
+          ) === index
+      ),
+    });
   if (batteryCandidates.length > 0) {
     const winner =
       batteryCandidates.find(
@@ -1057,36 +1087,61 @@ export const materializeRetroArchLocalSaves = async (game: Game) => {
       ) ??
       batteryCandidates[0];
     const winnerPaths = new Set(winner.files.map((file) => file.path));
+    const archiveFiles: Array<{ path: string; hash: string }> = [];
+    const activePathsToClear = new Set<string>();
     for (const candidate of batteryCandidates) {
       if (candidate === winner) continue;
       for (const file of candidate.files) {
         if (winnerPaths.has(file.path)) continue;
-        if (!retroArchTargetForFile(activeLocation, file.relativePath))
-          continue;
-        await archiveDuplicate(game, file.path);
+        const activeTarget = retroArchTargetForFile(
+          activeLocation,
+          file.relativePath
+        );
+        if (!activeTarget) continue;
+        archiveFiles.push({ path: file.path, hash: file.hash });
+        if (file.path === activeTarget.filePath)
+          activePathsToClear.add(file.path);
       }
     }
+    const replacements: Array<{
+      source: string;
+      target: string;
+      hash: string;
+    }> = [];
     for (const file of winner.files) {
       const activeTarget = retroArchTargetForFile(
         activeLocation,
         file.relativePath
       );
-      if (activeTarget && file.path !== activeTarget.filePath) {
-        await copyThenRemove(file.path, activeTarget.filePath);
+      if (!activeTarget) continue;
+      if (
+        !(await isSafeRetroArchFileTarget(
+          activeTarget.directory,
+          activeTarget.filePath
+        ))
+      ) {
+        throw new Error("cloud_save_retroarch_target_occupied");
       }
+      replacements.push({
+        source: file.path,
+        target: activeTarget.filePath,
+        hash: file.hash,
+      });
     }
+    const { cleanupFailures } = await replaceRetroArchBatteryFilesSafely({
+      replacements,
+      archiveFiles,
+      activePathsToClear: [...activePathsToClear],
+      archiveRoot: retroArchSaveHistoryRoot(game),
+      commit: commitBindings,
+    });
+    if (cleanupFailures.length) {
+      logger.warn(
+        "[Cloud Save] RetroArch battery installed with pending cleanup",
+        cleanupFailures
+      );
+    }
+  } else {
+    await commitBindings();
   }
-  await saveRetroArchBindings(game, {
-    ...bindings,
-    activeRomPath: activeLocation.romPath,
-    selectedBatterySignature: undefined,
-    batterySources: batteryCandidates,
-    states: bindings.states.filter(
-      (item, index, all) =>
-        all.findIndex(
-          (candidate) =>
-            candidate.id === item.id && candidate.path === item.path
-        ) === index
-    ),
-  });
 };

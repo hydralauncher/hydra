@@ -26,7 +26,13 @@ import { replaceRestoreTargets } from "./replace-restore-targets";
 import {
   buildRestoreReplacements,
   isRestoreReplacementSuccessful,
+  resolveRestoreDownloadSources,
+  selectRestoreFiles,
 } from "./restore-replacements";
+import {
+  assertRetroArchRestoreSelectionUnchanged,
+  migrateRetroArchManifest,
+} from "./retroarch-snapshot-migration";
 import { getRestoreVersionDecision } from "./restore-version-policy";
 import {
   getRemoteSnapshotRestoreManifest,
@@ -202,26 +208,41 @@ export const restoreRemoteSnapshot = async (
   const tempSnapshotId = `${snapshot.id}-${snapshot.version}`;
 
   emitProgress("starting", 0, 0);
-  const manifest = await getRemoteSnapshotRestoreManifest(snapshot);
+  const originalManifest = await getRemoteSnapshotRestoreManifest(snapshot);
   if (
-    manifest.snapshot.shop !== gameId.shop ||
-    manifest.snapshot.objectId !== gameId.objectId
+    originalManifest.snapshot.shop !== gameId.shop ||
+    originalManifest.snapshot.objectId !== gameId.objectId
   ) {
     throw new Error("Restore snapshot does not belong to the requested game");
   }
 
-  const requestedIds = requestedEntryIds ? new Set(requestedEntryIds) : null;
-  const selectedFiles = requestedIds
-    ? manifest.files.filter((file) => requestedIds.has(cloudSaveFileKey(file)))
-    : manifest.files;
-  const selectedIds = new Set(selectedFiles.map(cloudSaveFileKey));
-  if (requestedIds && selectedFiles.length !== requestedIds.size) {
-    throw new Error("Requested restore file is missing from manifest");
-  }
   let resolvedGameContext = await getCloudSaveGameContext(
     gameId.objectId,
     gameId.shop
   );
+  const retroArchGame =
+    resolvedGameContext.game &&
+    getEmulatorSaveProvider(resolvedGameContext.game) === "retroarch"
+      ? resolvedGameContext.game
+      : null;
+  const retroArchBindingStore = retroArchGame
+    ? await import("./retroarch-state-bindings")
+    : null;
+  const migration =
+    retroArchGame && retroArchBindingStore
+      ? migrateRetroArchManifest(
+          retroArchGame,
+          originalManifest,
+          (await retroArchBindingStore.loadRetroArchBindings(retroArchGame))
+            .selectedLegacyBatteryRawPath
+        )
+      : null;
+  if (migration?.conflicts.length) {
+    throw new Error("cloud_save_retroarch_legacy_battery_conflict");
+  }
+  const manifest = migration?.manifest ?? originalManifest;
+  const selectedFiles = selectRestoreFiles(manifest.files, requestedEntryIds);
+  const selectedIds = new Set(selectedFiles.map(cloudSaveFileKey));
   if (getEmulatorSaveProvider(resolvedGameContext.game) === "rpcs3") {
     const { ensureRpcs3ProfileBindingForAnalysis } = await import(
       "./rpcs3-save-provider"
@@ -271,7 +292,10 @@ export const restoreRemoteSnapshot = async (
     const downloadedFiles = await downloadRemoteSnapshotToTemp(
       snapshot.id,
       snapshot.version,
-      restoreTargets,
+      resolveRestoreDownloadSources(
+        restoreTargets,
+        migration?.sourceFilesByEntryId
+      ),
       (processedFiles, totalFiles) =>
         emitProgress("downloading", processedFiles, totalFiles)
     );
@@ -316,9 +340,22 @@ export const restoreRemoteSnapshot = async (
       );
       assertRestorePlanUnchanged(plan, currentPlan);
     }
+    if (retroArchGame && retroArchBindingStore && migration) {
+      const currentBindings =
+        await retroArchBindingStore.loadRetroArchBindings(retroArchGame);
+      assertRetroArchRestoreSelectionUnchanged(
+        migration,
+        migrateRetroArchManifest(
+          retroArchGame,
+          originalManifest,
+          currentBindings.selectedLegacyBatteryRawPath
+        )
+      );
+    }
     const replacements: ReplaceRestoreTarget[] = buildRestoreReplacements(
       plan.actions,
-      downloadedFiles
+      downloadedFiles,
+      migration?.sourceFilesByEntryId
     );
     emitProgress("applying_restore", 0, replacements.length);
     const result = await replaceRestoreTargets(replacements);
