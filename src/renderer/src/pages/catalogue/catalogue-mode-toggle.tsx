@@ -16,6 +16,11 @@ export function CatalogueModeToggle() {
   const mode = useAppSelector((state) => state.catalogueSearch.mode);
 
   const pcShop = useAppSelector((state) => state.catalogueSearch.pcShop);
+  const shopLabels = {
+    all: t("store_all"),
+    steam: "Steam",
+    epic: "Epic",
+  };
 
   return (
     <>
@@ -81,13 +86,7 @@ export function CatalogueModeToggle() {
                   aria-hidden="true"
                 />
               )}
-              <span>
-                {shop === "all"
-                  ? t("store_all")
-                  : shop === "steam"
-                    ? "Steam"
-                    : "Epic"}
-              </span>
+              <span>{shopLabels[shop]}</span>
             </button>
           ))}
         </div>

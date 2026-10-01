@@ -93,7 +93,10 @@ export type SteamSyncPhase =
   | "starting"
   | "library"
   | "achievements"
-  | "publishing";
+  | "publishing"
+  | "merging"
+  | "executables"
+  | "finishing";
 
 export type SteamSyncState =
   | { status: "idle"; requiresReconnect?: boolean }

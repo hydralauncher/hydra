@@ -110,9 +110,9 @@ export function GameContextMenu({
   const selectedCollectionId = searchParams.get("collection");
 
   useEffect(() => {
-    if (!visible || game.shop === "custom" || !userDetails) return;
+    if (!visible || !userDetails) return;
     void loadCollections();
-  }, [visible, game.shop, loadCollections, userDetails]);
+  }, [visible, loadCollections, userDetails]);
 
   useEffect(() => {
     if (!visible) return;
@@ -191,49 +191,43 @@ export function GameContextMenu({
       closeOnClick: false,
       disabled: isDeleting,
     },
-    ...(game.shop === "custom"
-      ? []
-      : collections.map((collection) => ({
-          id: `collection-${collection.id}`,
-          label: collection.name,
-          icon: localCollectionIds.includes(collection.id) ? (
-            <FileDirectoryFillIcon size={16} />
-          ) : (
-            <FileDirectoryIcon size={16} />
-          ),
-          onClick: () => {
-            void handleAssignGameCollection(collection.id);
-          },
-          onContextMenu: onCollectionContextMenu
-            ? (event: React.MouseEvent<HTMLElement>) => {
-                event.preventDefault();
-                event.stopPropagation();
-                onCollectionContextMenu(event, collection);
-              }
-            : undefined,
-          closeOnClick: false,
-          disabled: isDeleting,
-        }))),
-    ...(game.shop === "custom"
-      ? []
-      : [
-          {
-            id: "collection-create",
-            label: t("create_collection"),
-            icon: <PlusIcon size={16} />,
-            separator: collections.length > 0,
-            onClick: () => {
-              if (!userDetails) {
-                window.electron.openAuthWindow(AuthPage.SignIn);
-                return;
-              }
+    ...collections.map((collection) => ({
+      id: `collection-${collection.id}`,
+      label: collection.name,
+      icon: localCollectionIds.includes(collection.id) ? (
+        <FileDirectoryFillIcon size={16} />
+      ) : (
+        <FileDirectoryIcon size={16} />
+      ),
+      onClick: () => {
+        void handleAssignGameCollection(collection.id);
+      },
+      onContextMenu: onCollectionContextMenu
+        ? (event: React.MouseEvent<HTMLElement>) => {
+            event.preventDefault();
+            event.stopPropagation();
+            onCollectionContextMenu(event, collection);
+          }
+        : undefined,
+      closeOnClick: false,
+      disabled: isDeleting,
+    })),
+    {
+      id: "collection-create",
+      label: t("create_collection"),
+      icon: <PlusIcon size={16} />,
+      separator: collections.length > 0,
+      onClick: () => {
+        if (!userDetails) {
+          window.electron.openAuthWindow(AuthPage.SignIn);
+          return;
+        }
 
-              setShowCreateCollectionModal(true);
-            },
-            closeOnClick: false,
-            disabled: isDeleting || Boolean(pendingCollectionId),
-          },
-        ]),
+        setShowCreateCollectionModal(true);
+      },
+      closeOnClick: false,
+      disabled: isDeleting || Boolean(pendingCollectionId),
+    },
   ];
 
   const items: ContextMenuItemData[] = [
@@ -263,20 +257,18 @@ export function GameContextMenu({
       label: t("collection"),
       icon: <FileDirectoryIcon size={16} />,
       onClick: () => {
-        if (game.shop === "custom") return;
         void loadCollections();
       },
       disabled: isDeleting || isFavoritePending || Boolean(pendingCollectionId),
-      submenu:
-        isCollectionsLoading && game.shop !== "custom"
-          ? [
-              {
-                id: "collection-loading",
-                label: t("loading"),
-                disabled: true,
-              },
-            ]
-          : collectionSubmenu,
+      submenu: isCollectionsLoading
+        ? [
+            {
+              id: "collection-loading",
+              label: t("loading"),
+              disabled: true,
+            },
+          ]
+        : collectionSubmenu,
     },
     ...(game.executablePath
       ? [
