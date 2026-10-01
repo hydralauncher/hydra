@@ -1,0 +1,25 @@
+.stream-pairing-modal__form {
+  display: flex;
+  gap: 0.75rem;
+  align-items: center;
+  justify-content: center;
+  padding-top: 0.5rem;
+}
+
+.stream-pairing-modal__input {
+  width: 6rem;
+  padding: 0.5rem 0.75rem;
+  font-size: 1.5rem;
+  font-weight: 700;
+  letter-spacing: 0.35rem;
+  text-align: center;
+  color: var(--color-text);
+  background-color: var(--color-background);
+  border: 1px solid var(--color-border);
+  border-radius: 4px;
+}
+
+.stream-pairing-modal__error {
+  color: var(--color-danger, #e74c3c);
+  font-size: 0.85rem;
+}

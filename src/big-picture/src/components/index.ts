@@ -4,3 +4,4 @@ export * from "./providers";
 export * from "./pages";
 export * from "./skeletons";
 export * from "./cloud-gift-notification-modal";
+export * from "./stream-pairing-modal";

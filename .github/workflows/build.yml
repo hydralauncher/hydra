@@ -83,6 +83,10 @@ jobs:
           path: ${{ env.VCPKG_DEFAULT_BINARY_CACHE }}
           key: ${{ steps.vcpkg-cache.outputs.cache-primary-key }}
 
+      - name: Build stream sidecar
+        if: matrix.os == 'windows-2022'
+        run: yarn build:stream
+
       - name: Build Linux
         if: matrix.os == 'ubuntu-latest'
         run: |

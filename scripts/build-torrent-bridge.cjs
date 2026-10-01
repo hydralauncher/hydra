@@ -145,12 +145,18 @@ function discoverVisualStudioGenerator() {
     );
   }
   const installation = JSON.parse(discovery.stdout)[0];
-  if (!installation?.catalog?.productLineVersion) {
+  if (!installation?.displayName) {
     throw new Error(
       "No Visual Studio C++ toolchain found. Install the Desktop development with C++ workload."
     );
   }
-  return `Visual Studio ${installation.installationVersion.split(".")[0]} ${installation.catalog.productLineVersion}`;
+  const year = installation.displayName.match(/\b(19|20)\d{2}\b/)?.[0];
+  if (!year) {
+    throw new Error(
+      `Could not determine the Visual Studio marketing year from "${installation.displayName}".`
+    );
+  }
+  return `Visual Studio ${installation.installationVersion.split(".")[0]} ${year}`;
 }
 
 function getGeneratorArgs(arch) {

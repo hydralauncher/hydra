@@ -17,6 +17,7 @@ export * from "./game-executables";
 export * from "./common-redist-manager";
 export * from "./sse";
 export * from "./screenshot";
+export * from "./streaming";
 export * from "./system-path";
 export * from "./disk-usage";
 export * from "./library-sync";

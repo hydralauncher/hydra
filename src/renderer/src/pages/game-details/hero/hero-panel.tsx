@@ -16,6 +16,15 @@ export function HeroPanel() {
 
   const { game, repacks } = useContext(gameDetailsContext);
 
+  const { streamingSession } = useAppSelector(
+    (state) => state.streamingSession
+  );
+
+  const isStreaming =
+    Boolean(game) &&
+    streamingSession?.shop === game?.shop &&
+    streamingSession?.objectId === game?.objectId;
+
   const { lastPacket } = useDownload();
 
   const extraction = useAppSelector((state) => state.download.extraction);
@@ -58,7 +67,10 @@ export function HeroPanel() {
   return (
     <div className="hero-panel__container">
       <div className="hero-panel">
-        <div className="hero-panel__content">{getInfo()}</div>
+        <div className="hero-panel__content">
+          {isStreaming && <p>{t("streaming_now")}</p>}
+          {getInfo()}
+        </div>
         <div className="hero-panel__actions">
           <HeroPanelActions />
         </div>
