@@ -482,7 +482,14 @@ declare global {
       objectId: string
     ) => Promise<string | null>;
     verifyExecutablePathInUse: (executablePath: string) => Promise<Game>;
-    getLibrary: () => Promise<LibraryGame[]>;
+    getLibrary: (includeConcealed?: boolean) => Promise<LibraryGame[]>;
+    getHiddenLibrary: () => Promise<LibraryGame[]>;
+    setGameVisibility: (
+      shop: GameShop,
+      objectId: string,
+      field: "isHiddenFromOthers" | "isConcealed",
+      value: boolean
+    ) => Promise<{ isHiddenFromOthers: boolean; isConcealed: boolean }>;
     refreshLibraryAssets: () => Promise<void>;
     getRemoteLibrarySyncState: () => Promise<boolean>;
     openGameInstaller: (shop: GameShop, objectId: string) => Promise<boolean>;

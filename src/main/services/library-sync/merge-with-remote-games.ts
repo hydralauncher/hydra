@@ -33,6 +33,7 @@ import {
 import { mergeLocalAndRemotePlayTime } from "@shared";
 import { mergePersistedAchievementTotals } from "../achievements/achievement-memory-store";
 import { trackAchievementBatchGame } from "../achievements/achievement-batch-games";
+import { fetchRemoteProfileGames as fetchProfileGames } from "./fetch-remote-profile-games";
 
 type ProfileGame = {
   id: string;
@@ -45,6 +46,8 @@ type ProfileGame = {
   runtimeByPlatform?: { hydra?: number; steam?: number } | null;
   hasManuallyUpdatedPlaytime: boolean;
   isFavorite?: boolean;
+  isHiddenFromOthers?: boolean;
+  isConcealed?: boolean;
   isPinned?: boolean;
   achievementCount: number;
   unlockedAchievementCount: number;
@@ -172,8 +175,6 @@ const getRemoteCoverImageUrl = (game: ProfileGame): string | null => {
   return `https://shared.steamstatic.com/store_item_assets/steam/apps/${game.objectId}/library_600x900_2x.jpg`;
 };
 
-const PAGE_SIZE = 100;
-const PAGE_FETCH_CONCURRENCY = 3;
 const MERGE_WRITE_CHUNK_SIZE = 250;
 const TARGETED_MERGE_CONCURRENCY = 10;
 
@@ -182,49 +183,10 @@ export type RemoteGamesMergeProgress = (
   total: number
 ) => void;
 
-const fetchProfileGamesPage = (
-  params: Record<string, unknown>,
-  pageIndex: number
-) =>
-  HydraApi.get<ProfileGame[]>(
-    "/profile/games",
-    { ...params, take: PAGE_SIZE, skip: pageIndex * PAGE_SIZE },
-    { logResponseBody: false }
+const fetchRemoteGames = (): Promise<ProfileGame[]> =>
+  fetchProfileGames((path, params) =>
+    HydraApi.get<ProfileGame[]>(path, params, { logResponseBody: false })
   );
-
-const fetchAllGamesForShop = async (
-  params: Record<string, unknown> = {}
-): Promise<ProfileGame[]> => {
-  const firstPage = await fetchProfileGamesPage(params, 0);
-  if (firstPage.length < PAGE_SIZE) return firstPage;
-
-  const all = [...firstPage];
-
-  for (let nextPageIndex = 1; ; nextPageIndex += PAGE_FETCH_CONCURRENCY) {
-    const pages = await Promise.all(
-      Array.from({ length: PAGE_FETCH_CONCURRENCY }, (_, offset) =>
-        fetchProfileGamesPage(params, nextPageIndex + offset)
-      )
-    );
-
-    for (const page of pages) all.push(...page);
-
-    if (pages.some((page) => page.length < PAGE_SIZE)) break;
-  }
-
-  return all;
-};
-
-const fetchRemoteGames = async (): Promise<ProfileGame[]> => {
-  const [defaultGames, classicsGames] = await Promise.all([
-    fetchAllGamesForShop(),
-    fetchAllGamesForShop({ shop: "launchbox" }).catch(
-      () => [] as ProfileGame[]
-    ),
-  ]);
-
-  return [...defaultGames, ...classicsGames];
-};
 
 export const fetchRemoteProfileGames = fetchRemoteGames;
 
@@ -241,6 +203,9 @@ const mergeExistingGame = (
   lastTimePlayed: getLatestLastTimePlayed(localGame, remoteGame),
   ...mergeLocalAndRemotePlayTime(localGame, remoteGame),
   favorite: remoteGame.isFavorite ?? localGame.favorite,
+  isHiddenFromOthers:
+    remoteGame.isHiddenFromOthers ?? localGame.isHiddenFromOthers,
+  isConcealed: remoteGame.isConcealed ?? localGame.isConcealed ?? false,
   isPinned: remoteGame.isPinned ?? localGame.isPinned,
   collectionIds,
   ...mergePersistedAchievementTotals(
@@ -297,6 +262,8 @@ const createLocalGame = (
   hasManuallyUpdatedPlaytime: remoteGame.hasManuallyUpdatedPlaytime,
   isDeleted: false,
   favorite: remoteGame.isFavorite ?? false,
+  isHiddenFromOthers: remoteGame.isHiddenFromOthers ?? false,
+  isConcealed: remoteGame.isConcealed ?? false,
   isPinned: remoteGame.isPinned ?? false,
   collectionIds,
   ...mergePersistedAchievementTotals(

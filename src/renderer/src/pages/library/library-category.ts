@@ -97,6 +97,17 @@ export const getLibraryGameSource = (
 export const hasSteamLibraryGames = (games: LibraryCategoryGame[]) =>
   games.some(isSteamLibraryGame);
 
+export const getLibraryFilterOptions = (games: LibraryFilterGame[]) => ({
+  hasSteamGames: hasSteamLibraryGames(games),
+  platforms: Array.from(
+    new Set(
+      games.flatMap((game) =>
+        isClassicsGame(game) && game.platform ? [game.platform] : []
+      )
+    )
+  ).sort((a, b) => a.localeCompare(b, undefined, { sensitivity: "base" })),
+});
+
 export const shouldShowSteamLibraryBadge = (
   game: LibraryCategoryGame,
   hideSteamLibraryBadges = false
