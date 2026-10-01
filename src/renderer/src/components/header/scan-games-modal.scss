@@ -114,20 +114,6 @@
     }
   }
 
-  &__warning {
-    display: flex;
-    align-items: flex-start;
-    gap: globals.$spacing-unit;
-    color: globals.$warning-color;
-    font-size: 12px;
-    line-height: 1.4;
-  }
-
-  &__warning-icon {
-    flex-shrink: 0;
-    margin-top: 1px;
-  }
-
   &__option {
     display: flex;
     flex-direction: column;

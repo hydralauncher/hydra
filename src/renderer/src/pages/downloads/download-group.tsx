@@ -1,6 +1,11 @@
 import type { GameShop, LibraryGame, SeedingStatus } from "@types";
 
-import { Badge, Button, ConfirmationModal } from "@renderer/components";
+import {
+  Badge,
+  Button,
+  ConfirmationModal,
+  GuideLink,
+} from "@renderer/components";
 import {
   formatDownloadProgress,
   buildGameDetailsPath,
@@ -21,7 +26,14 @@ import {
 
 import "./download-group.scss";
 import { useTranslation } from "react-i18next";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import {
+  type ReactNode,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import { useNavigate } from "react-router-dom";
 import { AnimatePresence, motion } from "framer-motion";
 import {
@@ -272,6 +284,53 @@ interface HeroDownloadViewProps {
   t: (key: string, options?: Record<string, unknown>) => string;
 }
 
+interface HeroDownloadTimeProps {
+  game: LibraryGame;
+  isGameDownloading: boolean;
+  lastPacket: ReturnType<typeof useDownload>["lastPacket"];
+  etaText: string | null;
+  t: (key: string, options?: Record<string, unknown>) => string;
+}
+
+function HeroDownloadTime({
+  game,
+  isGameDownloading,
+  lastPacket,
+  etaText,
+  t,
+}: Readonly<HeroDownloadTimeProps>) {
+  const { t: tGameDetails } = useTranslation("game_details");
+
+  if (!isGameDownloading || lastPacket?.isRecovering) {
+    return <span className="download-group__progress-time" />;
+  }
+
+  const hasEta = !!etaText && etaText.trim() !== "" && etaText !== "0";
+  const isDownloadingMetadata =
+    !hasEta &&
+    !!lastPacket?.isDownloadingMetadata &&
+    game.download?.downloader === Downloader.Torrent;
+
+  let label: ReactNode = tGameDetails("calculating_eta");
+
+  if (isDownloadingMetadata) {
+    label = (
+      <GuideLink article="downloading-metadata">
+        {t("downloading_metadata")}
+      </GuideLink>
+    );
+  } else if (hasEta) {
+    label = etaText;
+  }
+
+  return (
+    <span className="download-group__progress-time">
+      <ClockIcon size={14} />
+      {label}
+    </span>
+  );
+}
+
 function HeroDownloadView({
   game,
   isGameDownloading,
@@ -291,29 +350,12 @@ function HeroDownloadView({
   t,
 }: Readonly<HeroDownloadViewProps>) {
   const navigate = useNavigate();
-  const { t: tGameDetails } = useTranslation("game_details");
 
   const handleLogoClick = useCallback(() => {
     navigate(buildGameDetailsPath(game));
   }, [navigate, game]);
 
-  const etaText = calculateETA();
   const isRecovering = !isGameExtracting && !!lastPacket?.isRecovering;
-  const hasEta =
-    isGameDownloading &&
-    !isGameExtracting &&
-    !lastPacket?.isCheckingFiles &&
-    !isRecovering &&
-    !!etaText &&
-    etaText.trim() !== "" &&
-    etaText !== "0";
-  const shouldShowEtaPlaceholder =
-    isGameDownloading &&
-    !isGameExtracting &&
-    !lastPacket?.isCheckingFiles &&
-    !isRecovering &&
-    !hasEta;
-  const shouldShowEta = hasEta || shouldShowEtaPlaceholder;
   const recoveryPercent = Math.round((lastPacket?.recoveryProgress ?? 0) * 100);
   const isReconnecting =
     !isGameExtracting && !isRecovering && !!lastPacket?.isReconnecting;
@@ -398,14 +440,13 @@ function HeroDownloadView({
               </div>
               <div className="download-group__progress-info-row">
                 {!lastPacket?.isCheckingFiles && !isGameExtracting && (
-                  <span className="download-group__progress-time">
-                    {shouldShowEta && (
-                      <>
-                        <ClockIcon size={14} />
-                        {hasEta ? etaText : tGameDetails("calculating_eta")}
-                      </>
-                    )}
-                  </span>
+                  <HeroDownloadTime
+                    game={game}
+                    isGameDownloading={isGameDownloading}
+                    lastPacket={lastPacket}
+                    etaText={calculateETA()}
+                    t={t}
+                  />
                 )}
                 <span className="download-group__progress-percentage">
                   <AnimatedPercentage value={currentProgress} />
@@ -1025,6 +1066,7 @@ export function DownloadGroup({
           descriptionText={t("cancel_download_description")}
           confirmButtonLabel={t("yes_cancel")}
           cancelButtonLabel={t("keep_downloading")}
+          confirmButtonTheme="danger"
           onConfirm={handleConfirmCancel}
           onClose={handleCancelModalClose}
         />
@@ -1058,6 +1100,7 @@ export function DownloadGroup({
         descriptionText={t("cancel_download_description")}
         confirmButtonLabel={t("yes_cancel")}
         cancelButtonLabel={t("keep_downloading")}
+        confirmButtonTheme="danger"
         onConfirm={handleConfirmCancel}
         onClose={handleCancelModalClose}
       />

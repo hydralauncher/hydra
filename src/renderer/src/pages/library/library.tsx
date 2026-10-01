@@ -15,7 +15,7 @@ import {
   useGameCollections,
   useUserDetails,
 } from "@renderer/hooks";
-import { setHeaderTitle } from "@renderer/features";
+import { selectIsLibraryLoading, setHeaderTitle } from "@renderer/features";
 import {
   HeartIcon,
   TelescopeIcon,
@@ -29,7 +29,6 @@ import { GameCollection, LibraryGame } from "@types";
 import { CreateCollectionModal, GameContextMenu } from "@renderer/components";
 import { useCollectionContextMenu } from "@renderer/context";
 import {
-  filterLibraryGamesByCategory,
   getGameCollectionIds,
   isGameInstalled,
   sortLibraryGames,
@@ -42,10 +41,21 @@ import { FilterOptions, SortOption } from "./filter-options";
 import { CategoryFilter, LibraryCategory } from "./category-filter";
 import { InstalledFilter } from "./installed-filter";
 import { PlatformFilter } from "./platform-filter";
+import { SourceFilter } from "./source-filter";
 import { CollectionsFilter } from "./collections-filter";
+import { LibraryGamesSkeleton } from "./library-games-skeleton";
+import {
+  categoryShowsPlatforms,
+  categoryShowsSources,
+  filterLibraryGames,
+  hasSteamLibraryGames,
+  readStoredLibraryFilters,
+  type LibrarySource,
+} from "./library-category";
 import {
   LIBRARY_INSTALLED_ONLY_STORAGE_KEY,
   LIBRARY_PLATFORMS_STORAGE_KEY,
+  LIBRARY_SOURCES_STORAGE_KEY,
 } from "@renderer/session-state";
 import {
   ClassicsOnboardingModal,
@@ -125,18 +135,19 @@ export default function Library() {
   const [showCreateCollectionModal, setShowCreateCollectionModal] =
     useState(false);
 
-  const [category, setCategory] = useState<LibraryCategory>(() => {
-    const saved = localStorage.getItem("library-category");
-    if (
-      saved === "all" ||
-      saved === "pc" ||
-      saved === "steam_library" ||
-      saved === "classics"
-    ) {
-      return saved;
-    }
-    return "all";
-  });
+  const [storedFilters] = useState(() =>
+    readStoredLibraryFilters(
+      localStorage,
+      "library-category",
+      LIBRARY_SOURCES_STORAGE_KEY
+    )
+  );
+  const [category, setCategory] = useState<LibraryCategory>(
+    storedFilters.category
+  );
+  const [selectedSources, setSelectedSources] = useState<LibrarySource[]>(
+    storedFilters.sources
+  );
   const [selectedPlatforms, setSelectedPlatforms] =
     useState<string[]>(readStoredPlatforms);
   const [showInstalledOnly, setShowInstalledOnly] = useState<boolean>(
@@ -144,8 +155,6 @@ export default function Library() {
   );
   const [isImportingClassics, setIsImportingClassics] = useState(false);
 
-  // The category switch and platform filter are always available, so the
-  // selected category is honoured even before any classics games exist.
   const effectiveCategory: LibraryCategory = category;
 
   const [showClassicsOnboarding, setShowClassicsOnboarding] = useState(false);
@@ -220,6 +229,11 @@ export default function Library() {
     localStorage.setItem(LIBRARY_PLATFORMS_STORAGE_KEY, JSON.stringify(next));
   }, []);
 
+  const handleSourcesChange = useCallback((next: LibrarySource[]) => {
+    setSelectedSources(next);
+    localStorage.setItem(LIBRARY_SOURCES_STORAGE_KEY, JSON.stringify(next));
+  }, []);
+
   const handleShowInstalledOnlyChange = useCallback((next: boolean) => {
     setShowInstalledOnly(next);
     localStorage.setItem(LIBRARY_INSTALLED_ONLY_STORAGE_KEY, String(next));
@@ -229,14 +243,18 @@ export default function Library() {
     (next: LibraryCategory) => {
       setCategory(next);
       localStorage.setItem("library-category", next);
-      if (next === "pc" || next === "steam_library") {
+      if (!categoryShowsPlatforms(next)) {
         handlePlatformsChange([]);
       }
+      if (!categoryShowsSources(next)) {
+        handleSourcesChange([]);
+      }
     },
-    [handlePlatformsChange]
+    [handlePlatformsChange, handleSourcesChange]
   );
 
   const searchQuery = useAppSelector((state) => state.library.searchQuery);
+  const isLibraryLoading = useAppSelector(selectIsLibraryLoading);
   const deferredSearchQuery = useDeferredValue(searchQuery);
   const dispatch = useAppDispatch();
   const { t } = useTranslation(["library", "sidebar"]);
@@ -385,6 +403,25 @@ export default function Library() {
     [library, sortBy]
   );
 
+  const uniquePlatforms = useMemo(() => {
+    const set = new Set<string>();
+    for (const game of library) {
+      if (game.shop === "launchbox" && game.platform) {
+        set.add(game.platform);
+      }
+    }
+    return Array.from(set).sort((a, b) =>
+      a.localeCompare(b, undefined, { sensitivity: "base" })
+    );
+  }, [library]);
+
+  const hasSteamGames = useMemo(() => hasSteamLibraryGames(library), [library]);
+  const hasPlatforms = uniquePlatforms.length > 0;
+  const showSourceFilter =
+    categoryShowsSources(effectiveCategory) && hasSteamGames;
+  const showPlatformFilter =
+    categoryShowsPlatforms(effectiveCategory) && hasPlatforms;
+
   const filteredLibrary = useMemo(() => {
     let filtered = sortedLibrary;
 
@@ -398,23 +435,11 @@ export default function Library() {
       }
     }
 
-    filtered = filterLibraryGamesByCategory(filtered, effectiveCategory);
-
-    const platforms = new Set(selectedPlatforms);
-
-    if (effectiveCategory === "classics") {
-      if (platforms.size > 0) {
-        filtered = filtered.filter(
-          (game) => game.platform && platforms.has(game.platform)
-        );
-      }
-    } else if (effectiveCategory === "all" && platforms.size > 0) {
-      filtered = filtered.filter(
-        (game) =>
-          game.shop !== "launchbox" ||
-          (game.platform && platforms.has(game.platform))
-      );
-    }
+    filtered = filterLibraryGames(filtered, {
+      category: effectiveCategory,
+      sources: hasSteamGames ? selectedSources : [],
+      platforms: hasPlatforms ? selectedPlatforms : [],
+    });
 
     if (showInstalledOnly) {
       filtered = filtered.filter(isGameInstalled);
@@ -445,21 +470,12 @@ export default function Library() {
     deferredSearchQuery,
     selectedCollectionId,
     effectiveCategory,
+    hasSteamGames,
+    selectedSources,
+    hasPlatforms,
     selectedPlatforms,
     showInstalledOnly,
   ]);
-
-  const uniquePlatforms = useMemo(() => {
-    const set = new Set<string>();
-    for (const game of library) {
-      if (game.shop === "launchbox" && game.platform) {
-        set.add(game.platform);
-      }
-    }
-    return Array.from(set).sort((a, b) =>
-      a.localeCompare(b, undefined, { sensitivity: "base" })
-    );
-  }, [library]);
 
   useEffect(() => {
     if (uniquePlatforms.length === 0 || selectedPlatforms.length === 0) return;
@@ -478,6 +494,20 @@ export default function Library() {
     return library.filter((game) => game.favorite).length;
   }, [library]);
 
+  const customGamesCountByCollectionId = useMemo(() => {
+    const counts = new Map<string, number>();
+
+    for (const game of library) {
+      if (game.shop !== "custom") continue;
+
+      for (const collectionId of getGameCollectionIds(game)) {
+        counts.set(collectionId, (counts.get(collectionId) ?? 0) + 1);
+      }
+    }
+
+    return counts;
+  }, [library]);
+
   const libraryCollections = useMemo<GameCollection[]>(() => {
     return [
       {
@@ -485,9 +515,14 @@ export default function Library() {
         name: t("favorites"),
         gamesCount: favoritesCount,
       },
-      ...collections,
+      ...collections.map((collection) => ({
+        ...collection,
+        gamesCount:
+          collection.gamesCount +
+          (customGamesCountByCollectionId.get(collection.id) ?? 0),
+      })),
     ];
-  }, [collections, favoritesCount, t]);
+  }, [collections, customGamesCountByCollectionId, favoritesCount, t]);
 
   const columnsCount = useMemo(
     () => getColumnsCount(containerWidth, viewMode),
@@ -527,6 +562,7 @@ export default function Library() {
     setHeaderHidden(false);
   }, [
     effectiveCategory,
+    selectedSources,
     selectedPlatforms,
     showInstalledOnly,
     sortBy,
@@ -579,6 +615,19 @@ export default function Library() {
                 onCreate={handleCreateCollectionButtonClick}
                 onCollectionContextMenu={openCollectionContextMenu}
               />
+              {showSourceFilter && (
+                <SourceFilter
+                  selectedSources={selectedSources}
+                  onSourcesChange={handleSourcesChange}
+                />
+              )}
+              {showPlatformFilter && (
+                <PlatformFilter
+                  selectedPlatforms={selectedPlatforms}
+                  platforms={uniquePlatforms}
+                  onPlatformsChange={handlePlatformsChange}
+                />
+              )}
               <InstalledFilter
                 showInstalledOnly={showInstalledOnly}
                 onShowInstalledOnlyChange={handleShowInstalledOnlyChange}
@@ -587,14 +636,6 @@ export default function Library() {
 
             <div className="library__controls-right">
               <FilterOptions sortBy={sortBy} onSortChange={handleSortChange} />
-              {effectiveCategory !== "pc" &&
-                effectiveCategory !== "steam_library" && (
-                  <PlatformFilter
-                    selectedPlatforms={selectedPlatforms}
-                    platforms={uniquePlatforms}
-                    onPlatformsChange={handlePlatformsChange}
-                  />
-                )}
               <ViewOptions
                 viewMode={viewMode}
                 onViewModeChange={handleViewModeChange}
@@ -604,7 +645,7 @@ export default function Library() {
         </div>
       )}
 
-      {!hasGames && !shouldShowClassicsImporting && (
+      {!hasGames && !shouldShowClassicsImporting && !isLibraryLoading && (
         <div className="library__no-games">
           <div className="library__telescope-icon">
             <TelescopeIcon size={24} />
@@ -662,6 +703,17 @@ export default function Library() {
         <div
           className={`library__scroll-shadow${isGamesScrolled && isHeaderHidden ? " library__scroll-shadow--visible" : ""}`}
         />
+        {containerWidth > 0 && isLibraryLoading && (
+          <LibraryGamesSkeleton
+            viewMode={viewMode}
+            columns={columnsCount}
+            rows={Math.max(
+              2,
+              Math.ceil(window.innerHeight / estimatedRowHeight)
+            )}
+            gap={GAP}
+          />
+        )}
         {containerWidth > 0 &&
           hasGames &&
           !shouldShowFavoritesEmptyState &&

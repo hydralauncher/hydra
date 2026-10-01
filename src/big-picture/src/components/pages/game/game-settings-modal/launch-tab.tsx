@@ -2,6 +2,7 @@ import SteamLogo from "@renderer/assets/steam-logo.svg?react";
 import {
   getSkuRegion,
   getSkuRegionFlag,
+  isSteamImportedGame,
   type SkuRegion,
 } from "@renderer/helpers";
 import type { LibraryGame, ShortcutLocation } from "@types";
@@ -46,6 +47,8 @@ const GAME_LAUNCH_SETTINGS_EXEC_PATH_SELECT_ID =
   "game-launch-settings-exec-path-select";
 const GAME_LAUNCH_SETTINGS_EXEC_PATH_CLEAR_ID =
   "game-launch-settings-exec-path-clear";
+const GAME_LAUNCH_SETTINGS_HYDRA_PLAYTIME_ID =
+  "game-launch-settings-hydra-playtime";
 
 const REGION_LABELS: Record<SkuRegion, string> = {
   US: "United States",
@@ -64,6 +67,7 @@ export interface GameLaunchSettingsProps {
   execPickerInitialPath: string;
   execPickerFilters: FileFilter[];
   discPickerFilters: FileFilter[];
+  isNonSteamExecutable: boolean;
   onProcessExecPath: (path: string) => Promise<void>;
   onClearExecutablePath: () => Promise<void>;
   onChangeLaunchOptions: (value: string) => void;
@@ -77,6 +81,7 @@ export interface GameLaunchSettingsProps {
   onProcessDiscPath: (path: string) => Promise<void>;
   onRemoveSelectedDisc: () => Promise<void>;
   onRemoveAllDiscs: () => Promise<void>;
+  onToggleHydraPlaytimeEnabled: (enabled: boolean) => Promise<void>;
 }
 
 interface LaunchboxDiscsSectionProps {
@@ -279,6 +284,47 @@ function ExecutableSection({
             )}
           </div>
         </HorizontalFocusGroup>
+      </div>
+    </SettingsSection>
+  );
+}
+
+interface SteamPlaytimeSectionProps {
+  enableHydraPlaytimeTracking: LibraryGame["enableHydraPlaytimeTracking"];
+  isNonSteamExecutable: boolean;
+  onToggleHydraPlaytimeEnabled: (enabled: boolean) => Promise<void>;
+}
+
+function SteamPlaytimeSection({
+  enableHydraPlaytimeTracking,
+  isNonSteamExecutable,
+  onToggleHydraPlaytimeEnabled,
+}: Readonly<SteamPlaytimeSectionProps>) {
+  const { t } = useTranslation("game_details");
+
+  return (
+    <SettingsSection
+      className="game-launch-settings-tab__section"
+      title={t("steam_playtime_tracking_title")}
+      description={t("steam_playtime_tracking_description")}
+    >
+      <div className="game-launch-settings-tab__section-content">
+        <Checkbox
+          block
+          focusId={GAME_LAUNCH_SETTINGS_HYDRA_PLAYTIME_ID}
+          label={t("enable_hydra_playtime_tracking")}
+          secondaryText={
+            isNonSteamExecutable
+              ? t("steam_playtime_non_steam_executable_tooltip")
+              : undefined
+          }
+          checked={isNonSteamExecutable || enableHydraPlaytimeTracking === true}
+          disabled={isNonSteamExecutable}
+          onChange={(checked) => {
+            if (isNonSteamExecutable) return;
+            void onToggleHydraPlaytimeEnabled(checked);
+          }}
+        />
       </div>
     </SettingsSection>
   );
@@ -487,6 +533,7 @@ export function GameLaunchSettingsTab({
   execPickerInitialPath,
   execPickerFilters,
   discPickerFilters,
+  isNonSteamExecutable,
   onProcessExecPath,
   onClearExecutablePath,
   onChangeLaunchOptions,
@@ -500,6 +547,7 @@ export function GameLaunchSettingsTab({
   onProcessDiscPath,
   onRemoveSelectedDisc,
   onRemoveAllDiscs,
+  onToggleHydraPlaytimeEnabled,
 }: Readonly<GameLaunchSettingsProps>) {
   const { t } = useTranslation("game_details");
   const [execPickerOpen, setExecPickerOpen] = useState(false);
@@ -561,6 +609,14 @@ export function GameLaunchSettingsTab({
             executablePath={game.executablePath}
             onOpenExecPicker={handleOpenExecPicker}
             onClearExecutablePath={onClearExecutablePath}
+          />
+        )}
+
+        {isSteamImportedGame(game) && (
+          <SteamPlaytimeSection
+            enableHydraPlaytimeTracking={game.enableHydraPlaytimeTracking}
+            isNonSteamExecutable={isNonSteamExecutable}
+            onToggleHydraPlaytimeEnabled={onToggleHydraPlaytimeEnabled}
           />
         )}
 

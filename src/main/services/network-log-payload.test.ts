@@ -1,7 +1,10 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 
-import { sanitizeNetworkLogPayload } from "./network-log-payload.js";
+import {
+  sanitizeNetworkLogPayload,
+  summarizeNetworkLogPayload,
+} from "./network-log-payload.js";
 
 describe("network log payload", () => {
   it("keeps nested response arrays inspectable", () => {
@@ -94,5 +97,17 @@ describe("network log payload", () => {
       status: 200,
       self: "[Circular]",
     });
+  });
+
+  it("summarizes bulk payloads without walking them", () => {
+    assert.equal(
+      summarizeNetworkLogPayload([{ id: 1 }, { id: 2 }]),
+      "[Array: 2 items]"
+    );
+    assert.equal(
+      summarizeNetworkLogPayload({ games: [], total: 0 }),
+      "[Object: 2 keys]"
+    );
+    assert.equal(summarizeNetworkLogPayload("ok"), "ok");
   });
 });
