@@ -15,17 +15,10 @@ registerEvent(
   async (
     event: Electron.IpcMainInvokeEvent,
     approvalId: string,
-    selectedPath?: string,
-    selectionMode: "file" | "dir" = "dir"
+    selectedPath?: string
   ): Promise<SelectCloudSaveCustomPathApprovalResult> => {
     assertCloudSaveSubscription();
     const approval = getPendingCloudSaveCustomPathApprovalById(approvalId);
-    if (
-      !["file", "dir"].includes(selectionMode) ||
-      (selectionMode === "file" && approval.kind !== "file")
-    ) {
-      throw new Error("cloud_save_custom_path_invalid_selection_mode");
-    }
     if (selectedPath !== undefined) {
       if (
         typeof selectedPath !== "string" ||
@@ -51,10 +44,7 @@ registerEvent(
     if (!owner) throw new Error("Main window is not available");
 
     const selection = await dialog.showOpenDialog(owner, {
-      properties: [
-        selectionMode === "file" ? "openFile" : "openDirectory",
-        "dontAddToRecent",
-      ],
+      properties: ["openDirectory", "dontAddToRecent"],
       defaultPath: approval.selectedPath ?? approval.suggestedPath ?? undefined,
     });
     const dialogSelectedPath = selection.filePaths[0];

@@ -5,10 +5,6 @@ import { EMULATOR_SYSTEMS } from "@shared";
 import type { EmulatorSystem, Game, GameShop, RetroArchPlatform } from "@types";
 
 import { trackGamePlaytime } from "../library-sync";
-import {
-  deleteEmulatorGameRunning,
-  setEmulatorGameRunning,
-} from "../game-running-state";
 import { logger } from "../logger";
 import { syncRetroAchievements } from "../retro-achievements/retro-achievements-sync";
 import {
@@ -16,10 +12,6 @@ import {
   stopEmulatorSouvenirWatcher,
 } from "./emulator-souvenir-watcher";
 import { WindowManager } from "../window-manager";
-import {
-  hasCloudSaveLaunchGuard,
-  runAutomaticCloudSavePostExit,
-} from "../cloud-save";
 import { readEmulatorPlaytimeSeconds } from "./playtime-files";
 import { stopLinuxGameCaptureSession } from "../linux-game-capture-session";
 import {
@@ -98,7 +90,6 @@ export const startEmulatorSession = async ({
   };
 
   emulatorSessions.set(gameKey, session);
-  setEmulatorGameRunning(gameKey);
 
   if (game.shop !== "custom") {
     void sendPresencePing(gameKey);
@@ -185,7 +176,6 @@ const finalizeEmulatorSession = async (gameKey: string): Promise<void> => {
   const session = emulatorSessions.get(gameKey);
   if (!session) return;
   emulatorSessions.delete(gameKey);
-  deleteEmulatorGameRunning(gameKey);
   stopLinuxGameCaptureSession(gameKey);
   if (session.heartbeat) clearInterval(session.heartbeat);
   stopEmulatorSouvenirWatcher(gameKey);
@@ -243,13 +233,6 @@ const finalizeEmulatorSession = async (gameKey: string): Promise<void> => {
     });
 
   if (game.shop === "launchbox") {
-    if (hasCloudSaveLaunchGuard(game.objectId, game.shop)) {
-      void runAutomaticCloudSavePostExit(game.objectId, game.shop).catch(
-        (error) => {
-          logger.error("Failed to sync emulator save after exit", error);
-        }
-      );
-    }
     syncRetroAchievements({
       objectId: game.objectId,
       shop: game.shop,

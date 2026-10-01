@@ -1,5 +1,4 @@
 import type { LibraryGame } from "@types";
-import { hasCloudSaveExecutableSelection } from "@shared";
 import { GameSettingsModal } from "../game";
 import { BigPictureCloudSaveProvider } from "../game/cloud-save-v2";
 import { useGameSettingsModalState } from "../game/game-settings-modal/use-game-settings-modal-state";
@@ -47,8 +46,7 @@ export function LibraryGameSettingsModal({
     <BigPictureCloudSaveProvider
       objectId={modalGame.objectId}
       shop={modalGame.shop}
-      platform={modalGame.platform}
-      hasExecutablePath={hasCloudSaveExecutableSelection(modalGame)}
+      hasExecutablePath={Boolean(modalGame.executablePath)}
       isGameRunning={isGameRunning}
       enableGamePageSync={false}
       onSelectExecutable={() => undefined}

@@ -9,8 +9,6 @@ export interface GameContextMenuGame {
   download?: { downloadPath?: string | null; status?: string | null } | null;
   favorite?: boolean;
   isPinned?: boolean;
-  isHiddenFromOthers?: boolean;
-  isConcealed?: boolean;
   collectionIds?: string[];
   discs?: { path: string }[];
   selectedDiscPath?: string | null;

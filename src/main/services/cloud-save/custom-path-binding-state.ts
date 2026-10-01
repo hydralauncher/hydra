@@ -8,7 +8,6 @@ export interface StoredCloudSaveCustomPath {
   syncState?: "pending" | "confirmed";
   storeUserId?: string;
   localPath?: string;
-  kind?: "file" | "dir";
 }
 
 export interface CloudSaveCustomPathLocalPathMigration {
@@ -40,17 +39,13 @@ const isStoredCloudSaveCustomPath = (
     (record.storeUserId === undefined ||
       typeof record.storeUserId === "string") &&
     (record.localPath === undefined || typeof record.localPath === "string") &&
-    (record.kind === undefined ||
-      record.kind === "file" ||
-      record.kind === "dir") &&
     Object.keys(record).every(
       (key) =>
         key === "rawPath" ||
         key === "syncState" ||
         key === "tracking" ||
         key === "storeUserId" ||
-        key === "localPath" ||
-        key === "kind"
+        key === "localPath"
     )
   );
 };
@@ -77,9 +72,6 @@ export const normalizeStoredCloudSaveCustomPathEntries = (
           : (entry.syncState ?? existing?.syncState ?? "confirmed"),
       storeUserId: entry.storeUserId ?? existing?.storeUserId,
       localPath: entry.localPath ?? existing?.localPath,
-      ...((entry.kind ?? existing?.kind)
-        ? { kind: entry.kind ?? existing?.kind }
-        : {}),
     });
   }
   return [...byRawPath.values()].sort((left, right) =>
@@ -91,7 +83,7 @@ export const trackStoredCloudSaveCustomPaths = (
   entries: StoredCloudSaveCustomPath[],
   trackedPaths: Pick<
     StoredCloudSaveCustomPath,
-    "rawPath" | "storeUserId" | "localPath" | "kind"
+    "rawPath" | "storeUserId" | "localPath"
   >[],
   syncState: StoredCloudSaveCustomPath["syncState"] = "confirmed"
 ) => {
@@ -103,9 +95,6 @@ export const trackStoredCloudSaveCustomPaths = (
       syncState,
       storeUserId: tracked.storeUserId ?? existing?.storeUserId,
       localPath: tracked.localPath ?? existing?.localPath,
-      ...((tracked.kind ?? existing?.kind)
-        ? { kind: tracked.kind ?? existing?.kind }
-        : {}),
     });
   }
   return [...byRawPath.values()];

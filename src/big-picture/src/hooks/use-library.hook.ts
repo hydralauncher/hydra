@@ -1,17 +1,13 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { IS_DESKTOP } from "../constants";
 import type { LibraryGame } from "@types";
 
 export function useLibrary() {
-  const [downloadLibrary, setLibrary] = useState<LibraryGame[]>([]);
-  const library = useMemo(
-    () => downloadLibrary.filter((game) => !game.isConcealed),
-    [downloadLibrary]
-  );
+  const [library, setLibrary] = useState<LibraryGame[]>([]);
 
   const updateLibrary = useCallback(async () => {
     if (!IS_DESKTOP) return;
-    const updatedLibrary = await globalThis.window.electron.getLibrary(true);
+    const updatedLibrary = await globalThis.window.electron.getLibrary();
     setLibrary(updatedLibrary);
   }, []);
 
@@ -43,5 +39,5 @@ export function useLibrary() {
     };
   }, [updateLibrary]);
 
-  return { library, downloadLibrary, updateLibrary };
+  return { library, updateLibrary };
 }

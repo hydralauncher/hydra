@@ -90,7 +90,6 @@ export function GameDetailsContextProvider({
   const [game, setGame] = useState<LibraryGame | null>(null);
   const [hasNSFWContentBlocked, setHasNSFWContentBlocked] = useState(false);
   const abortControllerRef = useRef<AbortController | null>(null);
-  const achievementUpdateCountRef = useRef(0);
   const [isTransferring, setIsTransferring] = useState(false);
   const [transferProgress, setTransferProgress] = useState(0);
 
@@ -148,10 +147,6 @@ export function GameDetailsContextProvider({
         }
 
         if (userDetails && shop !== "custom") {
-          const achievementUpdateCount = achievementUpdateCountRef.current;
-          const isStaleAchievementResult = () =>
-            abortController.signal.aborted ||
-            achievementUpdateCount !== achievementUpdateCountRef.current;
           const useRetroAchievements =
             shop === "launchbox" &&
             Boolean(userPreferences?.retroAchievementsWebApiKey);
@@ -164,17 +159,17 @@ export function GameDetailsContextProvider({
                 result?.retroAchievementsGameId ?? undefined
               )
               .then((achievements) => {
-                if (isStaleAchievementResult()) return;
+                if (abortController.signal.aborted) return;
                 setAchievements(achievements ?? []);
               })
               .catch(() => {
-                if (!isStaleAchievementResult()) setAchievements([]);
+                if (!abortController.signal.aborted) setAchievements([]);
               });
           } else {
             globalThis.window.electron
               .getUnlockedAchievements(objectId, shop)
               .then((achievements) => {
-                if (isStaleAchievementResult()) return;
+                if (abortController.signal.aborted) return;
                 if (achievements) setAchievements(achievements);
               })
               .catch(() => void 0);
@@ -405,7 +400,6 @@ export function GameDetailsContextProvider({
       shop,
       (achievements) => {
         if (!userDetails) return;
-        achievementUpdateCountRef.current += 1;
         setAchievements(achievements);
       }
     );

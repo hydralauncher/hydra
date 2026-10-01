@@ -21,10 +21,6 @@ import { CompatibilitySettingsSection } from "./compatibility";
 import { ContentSettingsSection } from "./content";
 import { DownloadsSettingsSection } from "./downloads";
 import { EmulationSettingsSection } from "./emulation";
-import {
-  isRetroArchEmulationDeepLink,
-  isRpcs3EmulationDeepLink,
-} from "./emulation/navigation";
 import { GeneralSettingsSection } from "./general";
 import { IntegrationsSettingsSection } from "./integrations";
 import { SETTINGS_PAGE_REGION_ID } from "./navigation";
@@ -172,6 +168,7 @@ export default function Settings() {
 
   const visibleTabs = useMemo(() => {
     return ALL_SETTINGS_TABS.filter((tab) => {
+      if (tab.id === "emulation") return false;
       if (tab.id !== "account-privacy") return true;
 
       return Boolean(userDetails);
@@ -191,12 +188,11 @@ export default function Settings() {
       return;
     }
 
-    setSelectedTab((current) =>
-      visibleTabs.some((tab) => tab.id === current)
-        ? current
-        : (visibleTabs[0]?.id ?? ALL_SETTINGS_TABS[0].id)
-    );
-  }, [search, visibleTabs]);
+    if (visibleTabs.some((tab) => tab.id === selectedTab)) return;
+
+    const fallbackTab = visibleTabs[0]?.id ?? ALL_SETTINGS_TABS[0].id;
+    setSelectedTab(fallbackTab);
+  }, [search, selectedTab, visibleTabs]);
 
   const selectTabByIndex = useCallback(
     (nextIndex: number) => {
@@ -310,13 +306,10 @@ export default function Settings() {
           itemId: BIG_PICTURE_ITEM_FOCUS_IDS.enableVirtualKeyboard,
         };
       case "emulation":
-        return isRetroArchEmulationDeepLink(search) ||
-          isRpcs3EmulationDeepLink(search)
-          ? null
-          : {
-              type: "item",
-              itemId: EMULATION_OVERVIEW_CARD_FOCUS_IDS.ps1,
-            };
+        return {
+          type: "item",
+          itemId: EMULATION_OVERVIEW_CARD_FOCUS_IDS.ps1,
+        };
       case "integrations":
         return {
           type: "item",
@@ -340,7 +333,7 @@ export default function Settings() {
       default:
         return null;
     }
-  }, [requestedSection, search, selectedTab, userDetails]);
+  }, [requestedSection, selectedTab, userDetails]);
 
   return (
     <VerticalFocusGroup regionId={SETTINGS_PAGE_REGION_ID} asChild>

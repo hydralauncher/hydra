@@ -97,8 +97,6 @@ export function useGameCollections() {
         })
       );
 
-      if (game.shop === "custom") return;
-
       dispatch(
         applyCollectionAssignment({
           previousCollectionIds,

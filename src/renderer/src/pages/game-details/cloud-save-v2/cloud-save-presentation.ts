@@ -7,11 +7,6 @@ import type {
   CloudSaveV2FileDetails,
   GameShop,
 } from "@types";
-import {
-  getCloudSaveEmulatorProvider,
-  isCloudSaveV2Eligible,
-} from "../../../../../shared/cloud-save-emulator-provider.js";
-import type { RetroArchExecutableStatus } from "./retroarch-executable-status";
 
 export type CloudSavePresentationTone =
   | "synced"
@@ -163,10 +158,8 @@ export const getCloudSavePartialDescriptionKey = (
 interface GamePageOpenSyncInput {
   overview: CloudSaveOverview | null;
   shop: GameShop;
-  platform?: string | null;
   canUseCloudSaves: boolean;
   hasExecutablePath: boolean;
-  retroArchExecutableStatus?: RetroArchExecutableStatus | null;
   isGameRunning: boolean;
   isSyncing: boolean;
   isInFlight: boolean;
@@ -175,19 +168,15 @@ interface GamePageOpenSyncInput {
 export const shouldSyncCloudSaveOnGamePage = ({
   overview,
   shop,
-  platform,
   canUseCloudSaves,
   hasExecutablePath,
-  retroArchExecutableStatus,
   isGameRunning,
   isSyncing,
   isInFlight,
 }: GamePageOpenSyncInput) =>
-  isCloudSaveV2Eligible(shop, platform) &&
+  shop === "steam" &&
   canUseCloudSaves &&
   hasExecutablePath &&
-  (getCloudSaveEmulatorProvider(shop, platform) !== "retroarch" ||
-    retroArchExecutableStatus === "ready") &&
   !isGameRunning &&
   !isSyncing &&
   !isInFlight &&

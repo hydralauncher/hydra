@@ -1,5 +1,4 @@
 import "./get-emulator-configs";
-import "./rpcs3-config-root";
 import "./detect-emulator";
 import "./detect-emulators";
 import "./preview-emulator-executable";

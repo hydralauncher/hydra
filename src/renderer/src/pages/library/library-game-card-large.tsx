@@ -15,7 +15,6 @@ import {
   shouldShowSteamLibraryBadge,
 } from "@renderer/helpers";
 import { AchievementProgress, SteamLibraryBadge } from "@renderer/components";
-import { GameVisibilityBadge } from "@renderer/components/game-visibility-badge/game-visibility-badge";
 import { formatBytes, getDisplayedPlayTimeInMilliseconds } from "@shared";
 import {
   ClockIcon,
@@ -374,11 +373,8 @@ export const LibraryGameCardLarge = memo(function LibraryGameCardLarge({
           )}
 
           <div className="library-game-card-large__top-right">
-            <GameVisibilityBadge
-              variant="large"
-              isHiddenFromOthers={game.isHiddenFromOthers}
-              isConcealed={game.isConcealed}
-            />
+            {showSteamLibraryBadge && <SteamLibraryBadge variant="large" />}
+
             {!hideBadges && (
               <div className="library-game-card-large__playtime">
                 {game.hasManuallyUpdatedPlaytime ? (
@@ -394,8 +390,6 @@ export const LibraryGameCardLarge = memo(function LibraryGameCardLarge({
                 </span>
               </div>
             )}
-
-            {showSteamLibraryBadge && <SteamLibraryBadge variant="large" />}
 
             {!hideClassicsBadges && classicsPlatformLabel && (
               <div className="library-game-card-large__classics-badges">

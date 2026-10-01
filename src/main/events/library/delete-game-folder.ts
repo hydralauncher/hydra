@@ -79,7 +79,7 @@ const deleteGameFolder = async (
         discs: remainingDiscs,
         selectedDiscPath: isSelectedDiscRemaining
           ? game.selectedDiscPath
-          : null,
+          : (remainingDiscs[0]?.path ?? null),
       }),
     });
 

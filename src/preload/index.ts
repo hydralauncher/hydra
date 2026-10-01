@@ -51,8 +51,6 @@ import type {
   CloudSaveAutomaticSyncEvent,
   CloudSaveConflictResolution,
   CloudSaveOverview,
-  RetroArchLocalBatteryCandidate,
-  RetroArchLegacyBatteryCandidate,
   CloudSaveV2FileDetails,
   CloudSaveSyncIpcProgressPayload,
   CloudSaveSyncProgressPayload,
@@ -172,96 +170,18 @@ contextBridge.exposeInMainWorld("electron", {
       objectId,
       shop
     ) as Promise<CloudSaveV2FileDetails>,
-  getRetroArchLocalBatteryCandidates: (objectId: string, shop: GameShop) =>
-    ipcRenderer.invoke(
-      "getRetroArchLocalBatteryCandidates",
-      objectId,
-      shop
-    ) as Promise<RetroArchLocalBatteryCandidate[]>,
-  selectRetroArchLocalBattery: (
-    objectId: string,
-    shop: GameShop,
-    romPath: string,
-    signature: string
-  ) =>
-    ipcRenderer.invoke(
-      "selectRetroArchLocalBattery",
-      objectId,
-      shop,
-      romPath,
-      signature
-    ) as Promise<void>,
-  getRetroArchLegacyBatteryCandidates: (objectId: string, shop: GameShop) =>
-    ipcRenderer.invoke(
-      "getRetroArchLegacyBatteryCandidates",
-      objectId,
-      shop
-    ) as Promise<RetroArchLegacyBatteryCandidate[]>,
-  selectRetroArchLegacyBattery: (
-    objectId: string,
-    shop: GameShop,
-    rawPath: string
-  ) =>
-    ipcRenderer.invoke(
-      "selectRetroArchLegacyBattery",
-      objectId,
-      shop,
-      rawPath
-    ) as Promise<void>,
-  bindRpcs3CloudSaveProfile: (
-    objectId: string,
-    shop: GameShop,
-    cloudProfileId: string
-  ) =>
-    ipcRenderer.invoke(
-      "bindRpcs3CloudSaveProfile",
-      objectId,
-      shop,
-      cloudProfileId
-    ) as Promise<void>,
   deleteGameCloudSaveData: (objectId: string, shop: GameShop) =>
     ipcRenderer.invoke(
       "deleteGameCloudSaveData",
       objectId,
       shop
     ) as Promise<void>,
-  selectCloudSaveCustomPath: (
-    objectId: string,
-    shop: GameShop,
-    kind: "file" | "dir" = "dir"
-  ) =>
+  selectCloudSaveCustomPath: (objectId: string, shop: GameShop) =>
     ipcRenderer.invoke(
       "selectCloudSaveCustomPath",
       objectId,
-      shop,
-      kind
+      shop
     ) as Promise<SelectCloudSaveCustomPathResult>,
-  selectEmulatorDestination: (
-    objectId: string,
-    shop: GameShop,
-    rawPath: string,
-    kind: "save" | "state"
-  ) =>
-    ipcRenderer.invoke(
-      "selectEmulatorDestination",
-      objectId,
-      shop,
-      rawPath,
-      kind
-    ) as Promise<{ canceled: boolean }>,
-  removeEmulatorDestination: (
-    objectId: string,
-    shop: GameShop,
-    rawPath: string,
-    kind: "save" | "state"
-  ) =>
-    ipcRenderer.invoke(
-      "removeEmulatorDestination",
-      objectId,
-      shop,
-      rawPath,
-      kind
-    ) as Promise<void>,
   createCloudSaveCustomPathRebindApproval: (
     objectId: string,
     shop: GameShop,
@@ -292,14 +212,12 @@ contextBridge.exposeInMainWorld("electron", {
     ) as Promise<CloudSaveCustomPathApproval | null>,
   selectCloudSaveCustomPathApproval: (
     approvalId: string,
-    selectedPath?: string,
-    selectionMode?: "file" | "dir"
+    selectedPath?: string
   ) =>
     ipcRenderer.invoke(
       "selectCloudSaveCustomPathApproval",
       approvalId,
-      selectedPath,
-      selectionMode
+      selectedPath
     ) as Promise<SelectCloudSaveCustomPathApprovalResult>,
   confirmCloudSaveCustomPathApproval: (approvalId: string) =>
     ipcRenderer.invoke(
@@ -510,12 +428,6 @@ contextBridge.exposeInMainWorld("electron", {
 
   /* Emulators */
   getEmulatorConfigs: () => ipcRenderer.invoke("getEmulatorConfigs"),
-  getRpcs3ConfigRootStatus: () =>
-    ipcRenderer.invoke("getRpcs3ConfigRootStatus"),
-  getRpcs3DiscIdentityStatus: (objectId: string, shop: GameShop) =>
-    ipcRenderer.invoke("getRpcs3DiscIdentityStatus", objectId, shop),
-  setRpcs3ConfigRoot: (root: string) =>
-    ipcRenderer.invoke("setRpcs3ConfigRoot", root),
   detectEmulators: () => ipcRenderer.invoke("detectEmulators"),
   detectEmulator: (system: EmulatorSystem) =>
     ipcRenderer.invoke("detectEmulator", system),
@@ -969,10 +881,6 @@ contextBridge.exposeInMainWorld("electron", {
   ) =>
     ipcRenderer.invoke("toggleGameGamemode", shop, objectId, autoRunGamemode),
   isGamemodeAvailable: () => ipcRenderer.invoke("isGamemodeAvailable"),
-  isSteamAppExecutable: (appId: string, executablePath: string) =>
-    ipcRenderer.invoke("isSteamAppExecutable", appId, executablePath),
-  installGameOnSteam: (steamAppId: string) =>
-    ipcRenderer.invoke("installGameOnSteam", steamAppId),
   isMangohudAvailable: () => ipcRenderer.invoke("isMangohudAvailable"),
   isWinetricksAvailable: () => ipcRenderer.invoke("isWinetricksAvailable"),
   addGameToLibrary: (
@@ -1090,13 +998,6 @@ contextBridge.exposeInMainWorld("electron", {
     collectionIds: string[]
   ) =>
     ipcRenderer.invoke("assignGameToCollection", shop, objectId, collectionIds),
-  setGameVisibility: (
-    shop: GameShop,
-    objectId: string,
-    field: "isHiddenFromOthers" | "isConcealed",
-    value: boolean
-  ): Promise<{ isHiddenFromOthers: boolean; isConcealed: boolean }> =>
-    ipcRenderer.invoke("setGameVisibility", shop, objectId, field, value),
   clearNewDownloadOptions: (shop: GameShop, objectId: string) =>
     ipcRenderer.invoke("clearNewDownloadOptions", shop, objectId),
   toggleGamePin: (shop: GameShop, objectId: string, pinned: boolean) =>
@@ -1126,12 +1027,8 @@ contextBridge.exposeInMainWorld("electron", {
     ipcRenderer.invoke("getGameLaunchProtonVersion", shop, objectId),
   verifyExecutablePathInUse: (executablePath: string) =>
     ipcRenderer.invoke("verifyExecutablePathInUse", executablePath),
-  getLibrary: (includeConcealed = false) =>
-    ipcRenderer.invoke("getLibrary", includeConcealed),
-  getHiddenLibrary: () => ipcRenderer.invoke("getHiddenLibrary"),
+  getLibrary: () => ipcRenderer.invoke("getLibrary"),
   refreshLibraryAssets: () => ipcRenderer.invoke("refreshLibraryAssets"),
-  getRemoteLibrarySyncState: () =>
-    ipcRenderer.invoke("getRemoteLibrarySyncState"),
   getClassicsImportStatus: (): Promise<boolean> =>
     ipcRenderer.invoke("getClassicsImportStatus"),
   getActiveClassicsImport: (): Promise<{
@@ -1229,8 +1126,8 @@ contextBridge.exposeInMainWorld("electron", {
     ),
   cancelScanInstalledGames: (requestId: string) =>
     ipcRenderer.invoke("cancelScanInstalledGames", requestId),
-  addScannedGames: (picks: { objectId: string; executablePath: string }[]) =>
-    ipcRenderer.invoke("addScannedGames", picks),
+  addScannedGame: (objectId: string, executablePath: string) =>
+    ipcRenderer.invoke("addScannedGame", objectId, executablePath),
   getDefaultWinePrefixSelectionPath: () =>
     ipcRenderer.invoke("getDefaultWinePrefixSelectionPath"),
   createSteamShortcut: (
@@ -1258,13 +1155,6 @@ contextBridge.exposeInMainWorld("electron", {
     ipcRenderer.on("on-library-batch-complete", listener);
     return () =>
       ipcRenderer.removeListener("on-library-batch-complete", listener);
-  },
-  onRemoteLibrarySyncStateChange: (cb: (syncing: boolean) => void) => {
-    const listener = (_event: Electron.IpcRendererEvent, syncing: boolean) =>
-      cb(syncing);
-    ipcRenderer.on("on-remote-library-sync-state", listener);
-    return () =>
-      ipcRenderer.removeListener("on-remote-library-sync-state", listener);
   },
   onDownloadsUpdated: (cb: () => void) => {
     const listener = (_event: Electron.IpcRendererEvent) => cb();

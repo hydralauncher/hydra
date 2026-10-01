@@ -12,8 +12,6 @@ import type {
 
 import { WindowManager } from "../window-manager";
 import { assertCloudSaveSubscription } from "./cloud-save-access";
-import { assertLegacyCloudSaveWriteAllowed } from "./legacy-cloud-save-policy";
-import { assertCloudSaveV2Eligible } from "./assert-cloud-save-executable";
 import {
   getCloudSaveAutomaticSyncStateForMode,
   getNextCloudSaveAutomaticSyncMode,
@@ -53,8 +51,7 @@ const readCloudSaveAutomaticSyncMode = async (
   const mode = resolveStoredCloudSaveAutomaticSyncModeForShop(
     shop,
     legacyEnabled,
-    storedV2Enabled,
-    game?.platform
+    storedV2Enabled
   );
 
   return { game, key, mode };
@@ -107,7 +104,6 @@ export const setCloudSaveAutomaticSyncEnabled = async (
   enabled: boolean
 ) => {
   if (enabled) {
-    await assertCloudSaveV2Eligible(objectId, shop);
     assertCloudSaveSubscription();
   }
 
@@ -131,11 +127,10 @@ export const setLegacyCloudSaveAutomaticSyncEnabled = async (
   shop: GameShop,
   enabled: boolean
 ) => {
-  const { game, mode: currentMode } = await readCloudSaveAutomaticSyncMode(
+  const { mode: currentMode } = await readCloudSaveAutomaticSyncMode(
     objectId,
     shop
   );
-  assertLegacyCloudSaveWriteAllowed(game);
   const nextMode = getNextCloudSaveAutomaticSyncMode(
     currentMode,
     "legacy",

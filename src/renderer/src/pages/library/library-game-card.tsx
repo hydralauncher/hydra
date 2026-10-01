@@ -15,7 +15,6 @@ import {
   shouldShowSteamLibraryBadge,
 } from "@renderer/helpers";
 import { AchievementProgress, SteamLibraryBadge } from "@renderer/components";
-import { GameVisibilityBadge } from "@renderer/components/game-visibility-badge/game-visibility-badge";
 import { memo, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
@@ -239,33 +238,24 @@ export const LibraryGameCard = memo(function LibraryGameCard({
         })}
       >
         <div className="library-game-card__top-section">
-          <div className="library-game-card__top-left">
-            <GameVisibilityBadge
-              isHiddenFromOthers={game.isHiddenFromOthers}
-              isConcealed={game.isConcealed}
-            />
-            {!hideBadges && (
-              <div className="library-game-card__playtime">
-                {game.hasManuallyUpdatedPlaytime ? (
-                  <AlertFillIcon
-                    size={11}
-                    className="library-game-card__manual-playtime"
-                  />
-                ) : (
-                  <ClockIcon size={11} />
-                )}
-                <span className="library-game-card__playtime-long">
-                  {formatPlayTime(getDisplayedPlayTimeInMilliseconds(game))}
-                </span>
-                <span className="library-game-card__playtime-short">
-                  {formatPlayTime(
-                    getDisplayedPlayTimeInMilliseconds(game),
-                    true
-                  )}
-                </span>
-              </div>
-            )}
-          </div>
+          {!hideBadges && (
+            <div className="library-game-card__playtime">
+              {game.hasManuallyUpdatedPlaytime ? (
+                <AlertFillIcon
+                  size={11}
+                  className="library-game-card__manual-playtime"
+                />
+              ) : (
+                <ClockIcon size={11} />
+              )}
+              <span className="library-game-card__playtime-long">
+                {formatPlayTime(getDisplayedPlayTimeInMilliseconds(game))}
+              </span>
+              <span className="library-game-card__playtime-short">
+                {formatPlayTime(getDisplayedPlayTimeInMilliseconds(game), true)}
+              </span>
+            </div>
+          )}
 
           {(showSteamLibraryBadge || showPlatformBadge || showReadyBadge) && (
             <div className="library-game-card__top-right">

@@ -9,7 +9,6 @@ import { useSearchParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import type { GameCollection } from "@types";
 import { useGameCollections, useLibrary, useToast } from "@renderer/hooks";
-import { getGameCollectionIds } from "@renderer/helpers";
 import {
   Button,
   ConfirmationModal,
@@ -55,7 +54,7 @@ export function CollectionContextMenuProvider({
   const { t } = useTranslation("library");
   const { showSuccessToast, showErrorToast } = useToast();
   const { loadCollections } = useGameCollections();
-  const { library, updateLibrary } = useLibrary();
+  const { updateLibrary } = useLibrary();
 
   const [collectionContextMenu, setCollectionContextMenu] = useState<{
     collection: GameCollection | null;
@@ -219,24 +218,6 @@ export function CollectionContextMenuProvider({
         { needsAuth: true }
       );
 
-      await Promise.all(
-        library
-          .filter(
-            (game) =>
-              game.shop === "custom" &&
-              getGameCollectionIds(game).includes(activeCollection.id)
-          )
-          .map((game) =>
-            window.electron.assignGameToCollection(
-              game.shop,
-              game.objectId,
-              getGameCollectionIds(game).filter(
-                (collectionId) => collectionId !== activeCollection.id
-              )
-            )
-          )
-      );
-
       if (selectedCollectionId === activeCollection.id) {
         handleCollectionSelect(null);
       }
@@ -254,7 +235,6 @@ export function CollectionContextMenuProvider({
     }
   }, [
     activeCollection,
-    library,
     selectedCollectionId,
     handleCollectionSelect,
     loadCollections,

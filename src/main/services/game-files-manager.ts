@@ -326,10 +326,7 @@ export class GameFilesManager {
     await gamesSublevel.put(this.gameKey, {
       ...game,
       discs,
-      selectedDiscPath:
-        game.selectedDiscPath === undefined
-          ? (discs[0]?.path ?? null)
-          : game.selectedDiscPath,
+      selectedDiscPath: game.selectedDiscPath ?? discs[0]?.path ?? null,
     });
 
     WindowManager.sendToAppWindows("on-library-batch-complete");

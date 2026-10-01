@@ -105,8 +105,6 @@ export type UserGame = {
   hasManuallyUpdatedPlaytime: boolean;
   hasActiveSteamImport?: boolean;
   isFavorite: boolean;
-  isHiddenFromOthers?: boolean;
-  isConcealed?: boolean;
   isPinned: boolean;
   pinnedDate?: Date | null;
   customLibraryImageUrl?: string | null;
@@ -226,7 +224,6 @@ export interface UserRelation {
 export type UserProfileCurrentGame = GameRunning &
   ShopAssets & {
     sessionDurationInSeconds: number;
-    isHiddenFromOthers?: boolean;
   };
 
 export type ProfileVisibility = "PUBLIC" | "PRIVATE" | "FRIENDS";
