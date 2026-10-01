@@ -9,6 +9,7 @@ export const LIBRARY_INSTALLED_ONLY_STORAGE_KEY = "library-installed-only";
 export const SIDEBAR_PLATFORMS_STORAGE_KEY = "sidebar-platforms";
 export const SIDEBAR_SOURCES_STORAGE_KEY = "sidebar-sources";
 export const SIDEBAR_PLAYABLE_ONLY_STORAGE_KEY = "sidebar-playable-only";
+export const SIDEBAR_SHOP_STORAGE_KEY = "sidebar-shop";
 
 export const SESSION_SCOPED_KEY_PREFIXES = [SETTINGS_EMULATOR_TAB_STORAGE_KEY];
 
@@ -33,6 +34,7 @@ const FILTER_SESSION_SCOPED_KEYS = [
   SIDEBAR_PLATFORMS_STORAGE_KEY,
   SIDEBAR_SOURCES_STORAGE_KEY,
   SIDEBAR_PLAYABLE_ONLY_STORAGE_KEY,
+  SIDEBAR_SHOP_STORAGE_KEY,
   "profile-sort-by",
   "profile-platform",
   "profile-souvenir-sort-by",

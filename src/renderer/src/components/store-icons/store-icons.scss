@@ -1,0 +1,21 @@
+.store-icons {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  flex-shrink: 0;
+  color: inherit;
+
+  &__item {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 20px;
+    height: 20px;
+
+    svg {
+      display: block;
+      width: 18px;
+      height: 18px;
+    }
+  }
+}

@@ -5,7 +5,7 @@ import { getDateLocale } from "@shared";
 import { gameDetailsContext } from "@renderer/context";
 import "./description-header.scss";
 
-const ISO_DATE_REGEX = /^\d{4}-\d{2}-\d{2}$/;
+const ISO_DATE_REGEX = /^\d{4}-\d{2}-\d{2}(?:T.*)?$/;
 
 export function DescriptionHeader() {
   const { shopDetails } = useContext(gameDetailsContext);
@@ -14,9 +14,13 @@ export function DescriptionHeader() {
   if (!shopDetails) return null;
 
   const rawDate = shopDetails?.release_date.date ?? "";
+  const publisher =
+    shopDetails.publishers?.[0] ?? shopDetails.developers?.[0] ?? "";
   let displayDate = rawDate;
   if (ISO_DATE_REGEX.test(rawDate)) {
-    const parsed = new Date(`${rawDate}T00:00:00`);
+    const parsed = new Date(
+      rawDate.length === 10 ? `${rawDate}T00:00:00` : rawDate
+    );
     if (!isNaN(parsed.getTime())) {
       displayDate = format(parsed, "MMM d, yyyy", {
         locale: getDateLocale(i18n.language),
@@ -33,9 +37,7 @@ export function DescriptionHeader() {
           })}
         </p>
 
-        {Array.isArray(shopDetails.publishers) && (
-          <p>{t("publisher", { publisher: shopDetails.publishers[0] })}</p>
-        )}
+        {publisher && <p>{t("publisher", { publisher })}</p>}
       </section>
     </div>
   );

@@ -20,7 +20,7 @@ export interface SteamVideoSource {
 }
 
 export interface SteamMovie {
-  id: number;
+  id: string | number;
   dash_av1?: string;
   dash_h264?: string;
   hls_h264?: string;

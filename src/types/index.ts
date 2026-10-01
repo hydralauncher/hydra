@@ -68,12 +68,14 @@ export interface ShopAssets {
   selectedArtworkTypes?: ArtworkAssetType[];
 }
 
-export type ShopDetails = SteamAppDetails & {
+export type ShopDetails = Omit<SteamAppDetails, "steam_appid"> & {
+  steam_appid?: SteamAppDetails["steam_appid"];
   objectId: string;
   platform?: string;
   skus?: string[];
   retroAchievementsGameId?: number | null;
   descriptionLanguage?: string;
+  supportedLanguages?: string[];
 };
 
 export type ShopDetailsWithAssets = ShopDetails & {
@@ -669,6 +671,7 @@ export type CatalogueSearchResult = {
   objectId: string;
   title: string;
   shop: GameShop;
+  availableShops?: GameShop[];
   genres: string[];
   releaseYear: number | null;
   tier?: string | null;

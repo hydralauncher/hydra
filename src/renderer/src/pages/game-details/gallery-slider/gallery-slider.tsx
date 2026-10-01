@@ -31,7 +31,9 @@ export function GallerySlider() {
   );
   const autoplayEnabled = userPreferences?.autoplayGameTrailers !== false;
 
-  const hasScreenshots = shopDetails && shopDetails.screenshots?.length;
+  const hasMedia = Boolean(
+    shopDetails?.movies?.length || shopDetails?.screenshots?.length
+  );
 
   const [emblaRef, emblaApi] = useEmblaCarousel({ loop: false });
   const [selectedIndex, setSelectedIndex] = useState(0);
@@ -190,7 +192,7 @@ export function GallerySlider() {
     [mediaItems]
   );
 
-  if (!hasScreenshots) {
+  if (!hasMedia) {
     return null;
   }
 

@@ -1,3 +1,4 @@
+import { StoreIcons } from "@renderer/components/store-icons/store-icons";
 import { Badge } from "@renderer/components/badge/badge";
 import { buildGameDetailsPath } from "@renderer/helpers";
 import { useAppSelector, useLibrary } from "@renderer/hooks";
@@ -31,7 +32,8 @@ export function GameItem({ game }: GameItemProps) {
   const [added, setAdded] = useState(false);
 
   const { library, updateLibrary } = useLibrary();
-  const shouldShowProtonFeatures = window.electron.platform === "linux";
+  const shouldShowProtonFeatures =
+    window.electron.platform === "linux" && game.shop === "steam";
 
   useEffect(() => {
     const exists = library.some(
@@ -100,6 +102,11 @@ export function GameItem({ game }: GameItemProps) {
     );
   }, [game.libraryImageUrl, game.title]);
 
+  const availableShops = useMemo(
+    () => [game.shop, ...(game.availableShops ?? [])],
+    [game.availableShops, game.shop]
+  );
+
   const rawProtonValue =
     game.tier ??
     game.bestReportedTier ??
@@ -126,6 +133,10 @@ export function GameItem({ game }: GameItemProps) {
               <ProtonDBBadge badge={protonBadge} />
             </Suspense>
           )}
+
+          <span className="game-item__store-icons">
+            <StoreIcons shops={availableShops} />
+          </span>
         </div>
 
         <div className="game-item__details">

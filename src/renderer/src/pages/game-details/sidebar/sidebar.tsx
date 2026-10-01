@@ -1,4 +1,12 @@
-import { lazy, Suspense, useContext, useEffect, useState } from "react";
+import { StoreIcons } from "@renderer/components/store-icons/store-icons";
+import {
+  lazy,
+  Suspense,
+  useContext,
+  useEffect,
+  useMemo,
+  useState,
+} from "react";
 import type {
   HowLongToBeatCategory,
   ProtonDBData,
@@ -20,6 +28,7 @@ import {
 import {
   AlertIcon,
   DownloadIcon,
+  DeviceDesktopIcon,
   LockIcon,
   PeopleIcon,
   StarIcon,
@@ -33,6 +42,7 @@ import { RetroAchievementsConnectBanner } from "@renderer/components/retro-achie
 import "./sidebar.scss";
 import { GameLanguageSection } from "./game-language-section";
 import { ControllerSupportSection } from "./controller-support-section";
+import { parseRequirementRows } from "@shared";
 
 const ProtonDBSection = lazy(async () => {
   const mod = await import("./protondb-section");
@@ -118,6 +128,10 @@ export function Sidebar() {
     isLoading: boolean;
     data: ProtonDBData | null;
   }>({ isLoading: shouldShowProtonFeatures, data: null });
+  const [storeAvailability, setStoreAvailability] = useState<{
+    gameKey: string;
+    shops: string[];
+  } | null>(null);
 
   const { userDetails, hasActiveSubscription } = useUserDetails();
   const [activeRequirement, setActiveRequirement] =
@@ -133,12 +147,56 @@ export function Sidebar() {
   const { t } = useTranslation("game_details");
   const { formatDateTime } = useDate();
   const { numberFormatter } = useFormat();
+  const activeRequirementDetails =
+    shopDetails?.pc_requirements?.[activeRequirement];
+  const emptyRequirementText = t(`no_${activeRequirement}_requirements`, {
+    gameTitle,
+  });
+  const requirementDetails =
+    (shop === "epic" || shop === "steam") && !activeRequirementDetails?.trim()
+      ? emptyRequirementText
+      : (activeRequirementDetails ?? emptyRequirementText);
+  const requirementRows = useMemo(
+    () =>
+      shop === "epic" || shop === "steam"
+        ? parseRequirementRows(activeRequirementDetails ?? "")
+        : [],
+    [activeRequirementDetails, shop]
+  );
   const achievementsCount = achievements?.length ?? 0;
   const shouldRenderAchievementsSection =
     (!!userDetails && achievementsCount > 0) ||
     (shop === "launchbox" &&
       !!shopDetails?.retroAchievementsGameId &&
       !userPreferences?.retroAchievementsWebApiKey);
+
+  useEffect(() => {
+    if (!objectId || (shop !== "steam" && shop !== "epic")) return;
+
+    const gameKey = `${shop}:${objectId}`;
+    let cancelled = false;
+
+    window.electron.hydraApi
+      .get<{ availableShops?: string[] }>(
+        `/games/${shop}/${encodeURIComponent(objectId)}`,
+        { needsAuth: false }
+      )
+      .then(({ availableShops }) => {
+        if (!cancelled) {
+          setStoreAvailability({
+            gameKey,
+            shops: Array.isArray(availableShops) ? availableShops : [],
+          });
+        }
+      })
+      .catch(() => {
+        if (!cancelled) setStoreAvailability(null);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [objectId, shop]);
 
   useEffect(() => {
     if (objectId) {
@@ -297,6 +355,22 @@ export function Sidebar() {
       {stats && (
         <SidebarSection title={t("stats")}>
           <div className="stats__section">
+            {(shop === "steam" || shop === "epic") && (
+              <div className="stats__category">
+                <p className="stats__category-title">
+                  <DeviceDesktopIcon size={18} aria-hidden="true" />
+                  {t("platforms", { ns: "catalogue" })}
+                </p>
+                <StoreIcons
+                  shops={[
+                    shop,
+                    ...(storeAvailability?.gameKey === `${shop}:${objectId}`
+                      ? storeAvailability.shops
+                      : []),
+                  ]}
+                />
+              </div>
+            )}
             <div className="stats__category">
               <p className="stats__category-title">
                 <DownloadIcon size={18} />
@@ -368,16 +442,30 @@ export function Sidebar() {
             </Button>
           </div>
 
-          <div
-            className="requirement__details"
-            dangerouslySetInnerHTML={{
-              __html:
-                shopDetails?.pc_requirements?.[activeRequirement] ??
-                t(`no_${activeRequirement}_requirements`, {
-                  gameTitle,
-                }),
-            }}
-          />
+          {(shop === "epic" || shop === "steam") &&
+          requirementRows.length > 0 ? (
+            <div className="requirement__rows">
+              {requirementRows.map((row, index) => (
+                <div
+                  key={`${row.label ?? "info"}-${index}`}
+                  className="requirement__row"
+                  data-info={!row.label}
+                >
+                  {row.label && (
+                    <span className="requirement__label">{row.label}</span>
+                  )}
+                  <span className="requirement__value">{row.value}</span>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div
+              className="requirement__details"
+              dangerouslySetInnerHTML={{
+                __html: requirementDetails,
+              }}
+            />
+          )}
         </SidebarSection>
       )}
 

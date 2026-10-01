@@ -45,6 +45,7 @@
     "add_custom_game_tooltip": "Add Custom Game",
     "filter_sort_tooltip": "Sort and filter",
     "platforms_label": "Platforms",
+    "shops_label": "Stores",
     "consoles_label": "Consoles",
     "libraries_label": "Libraries",
     "show_favorites_first": "Favorites",
@@ -241,6 +242,7 @@
     "filters_sidebar_hint": "Use the sidebar to refine your search",
     "active_filters": "Active filters",
     "no_genres": "No categories",
+    "store_all": "All",
     "mode_modern_games": "Modern Games",
     "mode_classics": "Classics",
     "platforms": "Platforms"

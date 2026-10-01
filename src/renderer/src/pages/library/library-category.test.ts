@@ -8,6 +8,7 @@ const {
   appendProfileLibraryFilterParams,
   filterLibraryGames,
   filterLibraryGamesByCategory,
+  filterLibraryGamesByShop,
   getProfileLibraryFilter,
   hasSteamLibraryGames,
   isSteamLibraryGame,
@@ -228,5 +229,38 @@ describe("Steam badge", () => {
     assert.equal(shouldShowSteamLibraryBadge(games[0], true), false);
     assert.equal(shouldShowSteamLibraryBadge(games[1]), false);
     assert.equal(isSteamLibraryGame(games[0]), true);
+  });
+});
+
+describe("sidebar shop filter", () => {
+  const library = [
+    ...games,
+    { id: "epic-local", shop: "epic", hasActiveSteamImport: false },
+    { id: "custom", shop: "custom", hasActiveSteamImport: false },
+  ];
+
+  it("includes every library game by default", () => {
+    assert.equal(filterLibraryGamesByShop(library, "all"), library);
+  });
+
+  it("keeps only games from the selected shop", () => {
+    assert.deepEqual(
+      filterLibraryGamesByShop(library, "steam").map((game) => game.id),
+      ["steam-import", "steam-local"]
+    );
+    assert.deepEqual(
+      filterLibraryGamesByShop(library, "epic").map((game) => game.id),
+      ["epic-local"]
+    );
+  });
+
+  it("combines with the existing platform selection", () => {
+    assert.deepEqual(
+      filterLibraryGamesByCategory(
+        filterLibraryGamesByShop(library, "epic"),
+        "pc"
+      ).map((game) => game.id),
+      ["epic-local"]
+    );
   });
 });

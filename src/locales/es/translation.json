@@ -45,6 +45,7 @@
     "add_custom_game_tooltip": "Añadir juego personalizado",
     "filter_sort_tooltip": "Ordenar y filtrar",
     "platforms_label": "Plataformas",
+    "shops_label": "Tiendas",
     "consoles_label": "Consolas",
     "show_favorites_first": "Favoritos",
     "custom_game_modal": "Añadir juego personalizado",
@@ -246,6 +247,7 @@
     "filters_sidebar_hint": "Usa la barra lateral para refinar tu búsqueda",
     "active_filters": "Filtros activos",
     "no_genres": "Sin categorías",
+    "store_all": "Todos",
     "mode_classics": "Clásicos",
     "mode_modern_games": "Juegos modernos",
     "platforms": "Plataformas"

@@ -22,13 +22,14 @@ export function SupportedLanguages({
     if (!supportedLanguages) return [];
 
     const languagesString = supportedLanguages.split("<br>")[0];
-    const languageArray = languagesString?.split(",") || [];
+    const languageArray =
+      shopDetails.supportedLanguages ?? languagesString?.split(",") ?? [];
 
     return languageArray.map((lang) => ({
       language: lang.replace("<strong>*</strong>", "").trim(),
       hasAudio: lang.includes("*"),
     }));
-  }, [shopDetails.supported_languages]);
+  }, [shopDetails.supported_languages, shopDetails.supportedLanguages]);
 
   if (languages.length === 0) {
     return null;

@@ -4,7 +4,11 @@ import { useTranslation } from "react-i18next";
 import { useLocation, useNavigate } from "react-router-dom";
 
 import type { LibraryGame } from "@types";
-import { removeDiacritics } from "@shared";
+import {
+  parseCatalogueStoreScope,
+  removeDiacritics,
+  type CatalogueStoreScope,
+} from "@shared";
 
 import { ConfirmationModal, TextField } from "@renderer/components";
 import {
@@ -23,6 +27,7 @@ import {
   categoryShowsPlatforms,
   categoryShowsSources,
   filterLibraryGames,
+  filterLibraryGamesByShop,
   hasSteamLibraryGames,
   readStoredLibraryFilters,
   type LibraryCategory,
@@ -42,6 +47,7 @@ import { SidebarFilterMenu } from "./sidebar-filter-menu";
 import {
   SIDEBAR_PLATFORMS_STORAGE_KEY,
   SIDEBAR_PLAYABLE_ONLY_STORAGE_KEY,
+  SIDEBAR_SHOP_STORAGE_KEY,
   SIDEBAR_SOURCES_STORAGE_KEY,
 } from "@renderer/session-state";
 import { SidebarGameItem } from "./sidebar-game-item";
@@ -116,6 +122,10 @@ export function Sidebar() {
     storedSidebarFilters.sources
   );
 
+  const [sidebarShop, setSidebarShop] = useState<CatalogueStoreScope>(() =>
+    parseCatalogueStoreScope(localStorage.getItem(SIDEBAR_SHOP_STORAGE_KEY))
+  );
+
   const [sidebarSortBy, setSidebarSortBy] = useState<SortOption>(() => {
     const saved = localStorage.getItem("sidebar-sort-by");
     if (SIDEBAR_SORT_OPTIONS.has(saved as SortOption)) {
@@ -172,9 +182,14 @@ export function Sidebar() {
     [sidebarSortBy, showFavoritesFirst]
   );
 
+  const shopLibrary = useMemo(
+    () => filterLibraryGamesByShop(library, sidebarShop),
+    [library, sidebarShop]
+  );
+
   const orderedLibrary = useMemo(
-    () => orderSidebarGames(library),
-    [library, orderSidebarGames]
+    () => orderSidebarGames(shopLibrary),
+    [shopLibrary, orderSidebarGames]
   );
 
   const sortedLibrary = useMemo(
@@ -234,6 +249,7 @@ export function Sidebar() {
   const hasActiveFilter =
     library.length > 0 &&
     (sidebarCategory !== "all" ||
+      sidebarShop !== "all" ||
       (categoryShowsSources(sidebarCategory) && effectiveSources.length > 0) ||
       (categoryShowsPlatforms(sidebarCategory) &&
         effectivePlatforms.length > 0) ||
@@ -299,6 +315,11 @@ export function Sidebar() {
   const handleSidebarSortChange = useCallback((next: SortOption) => {
     setSidebarSortBy(next);
     localStorage.setItem("sidebar-sort-by", next);
+  }, []);
+
+  const handleSidebarShopChange = useCallback((next: CatalogueStoreScope) => {
+    setSidebarShop(next);
+    localStorage.setItem(SIDEBAR_SHOP_STORAGE_KEY, next);
   }, []);
 
   const handleToggleFavoritesFirst = useCallback((next: boolean) => {
@@ -580,6 +601,8 @@ export function Sidebar() {
               <SidebarFilterMenu
                 category={sidebarCategory}
                 onCategoryChange={handleSidebarCategoryChange}
+                shop={sidebarShop}
+                onShopChange={handleSidebarShopChange}
                 sortBy={sidebarSortBy}
                 onSortChange={handleSidebarSortChange}
                 showFavoritesFirst={showFavoritesFirst}

@@ -183,10 +183,16 @@ export function GameDetailsContextProvider({
       });
 
     if (shop !== "custom") {
-      window.electron.getGameStats(objectId, shop).then((result) => {
-        if (abortController.signal.aborted) return;
-        setStats(result);
-      });
+      window.electron
+        .getGameStats(objectId, shop)
+        .then((result) => {
+          if (abortController.signal.aborted) return;
+          setStats(result);
+        })
+        .catch(() => {
+          if (abortController.signal.aborted) return;
+          setStats(null);
+        });
     }
 
     const assetsPromise = window.electron.getGameAssets(objectId, shop);
@@ -199,7 +205,10 @@ export function GameDetailsContextProvider({
             if (!prev) return null;
             return {
               ...prev,
-              assets,
+              assets: {
+                ...prev.assets,
+                ...assets,
+              },
             };
           });
         }
@@ -416,6 +425,7 @@ export function GameDetailsContextProvider({
   }, [objectId, shop, userDetails]);
 
   useEffect(() => {
+    setRepacks([]);
     if (shop === "custom") return;
 
     let cancelled = false;
@@ -434,7 +444,7 @@ export function GameDetailsContextProvider({
         };
 
         const downloads = await window.electron.hydraApi.get<GameRepack[]>(
-          `/games/${shop}/${objectId}/download-sources`,
+          `/games/${shop}/${encodeURIComponent(objectId)}/download-sources`,
           {
             params,
             needsAuth: false,
@@ -446,7 +456,7 @@ export function GameDetailsContextProvider({
         const downloadOptions = filterDownloadableRepacks(
           ensureArray<GameRepack>(
             downloads,
-            `/games/${shop}/${objectId}/download-sources`
+            `/games/${shop}/${encodeURIComponent(objectId)}/download-sources`
           )
         );
 

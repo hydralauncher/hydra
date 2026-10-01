@@ -2,8 +2,10 @@ import { createSlice } from "@reduxjs/toolkit";
 import type { PayloadAction } from "@reduxjs/toolkit";
 
 import type { CatalogueSearchPayload } from "@types";
+import type { CatalogueStoreScope } from "@shared";
 
 export type CatalogueMode = "modern" | "classics";
+export type PcShop = CatalogueStoreScope;
 
 export interface CatalogueSearchState {
   filters: CatalogueSearchPayload;
@@ -11,6 +13,7 @@ export interface CatalogueSearchState {
   steamUserTags: Record<string, Record<string, number>>;
   steamGenres: Record<string, string[]>;
   mode: CatalogueMode;
+  pcShop: PcShop;
 }
 
 const initialState: CatalogueSearchState = {
@@ -31,6 +34,7 @@ const initialState: CatalogueSearchState = {
   steamGenres: {},
   page: 1,
   mode: "modern",
+  pcShop: "all",
 };
 
 export const catalogueSearchSlice = createSlice({
@@ -63,6 +67,11 @@ export const catalogueSearchSlice = createSlice({
     setGenres: (state, action: PayloadAction<Record<string, string[]>>) => {
       state.steamGenres = action.payload;
     },
+    setPcShop: (state, action: PayloadAction<PcShop>) => {
+      state.pcShop = action.payload;
+      state.page = initialState.page;
+      state.filters = { ...initialState.filters, title: state.filters.title };
+    },
     setMode: (state, action: PayloadAction<CatalogueMode>) => {
       state.mode = action.payload;
       state.page = initialState.page;
@@ -90,4 +99,5 @@ export const {
   setTags,
   setGenres,
   setMode,
+  setPcShop,
 } = catalogueSearchSlice.actions;

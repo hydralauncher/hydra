@@ -15,7 +15,7 @@ export interface SteamVideoSource {
 }
 
 export interface SteamMovies {
-  id: number;
+  id: string | number;
   mp4: SteamVideoSource;
   webm: SteamVideoSource;
   thumbnail: string;

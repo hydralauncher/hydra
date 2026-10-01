@@ -15,6 +15,7 @@ import {
   sanitizeNetworkLogPayload,
   summarizeNetworkLogPayload,
 } from "./network-log-payload";
+import { HydraApiRequestError } from "./hydra-api-request-error";
 
 declare module "axios" {
   interface AxiosRequestConfig {
@@ -260,7 +261,7 @@ export class HydraApi {
             const errorData = error.toJSON();
             logger.error("Request error:", errorData.code, errorData.message);
             return Promise.reject(
-              new Error(
+              new HydraApiRequestError(
                 `Request failed with ${errorData.code} ${errorData.message}`
               )
             );

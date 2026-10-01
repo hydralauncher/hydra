@@ -7,30 +7,51 @@ import {
   type GameExecutableCatalogResponse,
 } from "./game-executables-core";
 
-const catalogStore = new GameExecutableCatalogStore(process.platform);
+type ExecutableCatalogueShop = "steam" | "epic";
 
-const loadGameExecutables = async () => {
+const catalogStores: Record<
+  ExecutableCatalogueShop,
+  GameExecutableCatalogStore
+> = {
+  steam: new GameExecutableCatalogStore(process.platform),
+  epic: new GameExecutableCatalogStore(process.platform),
+};
+
+const loadGameExecutables = async (shop: ExecutableCatalogueShop) => {
   try {
     const response = await axios.get<GameExecutableCatalogResponse>(
-      `${import.meta.env.MAIN_VITE_API_URL}/catalogue/steam/executables`
+      `${import.meta.env.MAIN_VITE_API_URL}/catalogue/${shop}/executables`
     );
     return response.data;
   } catch (error) {
-    logger.error("Failed to load game executable catalogue", error);
+    logger.error(`Failed to load ${shop} game executable catalogue`, error);
     throw error;
   }
 };
 
 export class GameExecutables {
   static ensureLoaded(forceRetry = false): Promise<boolean> {
-    return catalogStore.ensureLoaded(loadGameExecutables, forceRetry);
+    return this.ensureLoadedForShop("steam", forceRetry);
   }
 
-  static getExecutablesForGame(objectId: string): KnownGameExecutable[] | null {
-    return catalogStore.getForGame(objectId);
+  static ensureLoadedForShop(
+    shop: ExecutableCatalogueShop,
+    forceRetry = false
+  ): Promise<boolean> {
+    return catalogStores[shop].ensureLoaded(
+      () => loadGameExecutables(shop),
+      forceRetry
+    );
+  }
+
+  static getExecutablesForGame(
+    objectId: string,
+    shop: ExecutableCatalogueShop = "steam"
+  ): KnownGameExecutable[] | null {
+    return catalogStores[shop].getForGame(objectId);
   }
 
   static getAllObjectIds(): string[] {
-    return catalogStore.getAllObjectIds();
+    return catalogStores.steam.getAllObjectIds();
   }
 }
