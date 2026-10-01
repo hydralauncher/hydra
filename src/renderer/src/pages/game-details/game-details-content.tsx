@@ -475,6 +475,12 @@ export function GameDetailsContent() {
 
             <GallerySlider />
 
+            {shopDetails?.about_the_game && (
+              <h2 className="game-details__description-title">
+                {t("about_this_game")}
+              </h2>
+            )}
+
             <div
               ref={descriptionRef}
               dangerouslySetInnerHTML={{

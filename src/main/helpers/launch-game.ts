@@ -877,6 +877,21 @@ export const launchGame = async (options: LaunchGameOptions) => {
       options.shop,
       options.objectId
     );
+
+    if (options.shop === "steam") {
+      void import(
+        "@main/services/steam-integration/link-imported-steam-executables"
+      )
+        .then(({ refreshSteamGameExecutable }) =>
+          refreshSteamGameExecutable(options.objectId)
+        )
+        .then((changed) => {
+          if (changed) {
+            WindowManager.sendToAppWindows("on-library-batch-complete");
+          }
+        });
+    }
+
     return null;
   }
 
