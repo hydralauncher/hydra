@@ -221,7 +221,15 @@ declare global {
       payload: StartGameDownloadPayload
     ) => Promise<{ ok: boolean; error?: string }>;
     cancelGameDownload: (shop: GameShop, objectId: string) => Promise<void>;
-    pauseGameDownload: (shop: GameShop, objectId: string) => Promise<boolean>;
+    pauseGameDownload: (
+      shop: GameShop,
+      objectId: string,
+      confirmed?: boolean
+    ) => Promise<boolean>;
+    getDownloadPauseWarning: (
+      shop: GameShop,
+      objectId: string
+    ) => Promise<boolean>;
     resumeGameDownload: (
       shop: GameShop,
       objectId: string,
@@ -254,7 +262,8 @@ declare global {
       shop: GameShop,
       objectId: string,
       targetArea: "hero" | "queue" | "paused",
-      targetIndex?: number
+      targetIndex?: number,
+      confirmed?: boolean
     ) => Promise<boolean>;
     getDownloadLayoutState: () => Promise<DownloadLayoutState>;
     onDownloadProgress: (

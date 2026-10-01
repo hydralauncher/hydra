@@ -1023,9 +1023,13 @@ export class DownloadOrchestrator {
     return true;
   }
 
-  static async pauseDownloadById(shop: GameShop, objectId: string) {
+  static async pauseDownloadById(
+    shop: GameShop,
+    objectId: string,
+    confirmed = false
+  ) {
     const key = levelKeys.game(shop, objectId);
-    if (!(await DownloadManager.confirmPauseDownload(key))) return false;
+    if (!DownloadManager.confirmPauseDownload(key, confirmed)) return false;
     this.invalidateBackgroundStart(key);
     const download = await this.getDownload(shop, objectId);
     if (!download) return false;
@@ -1082,7 +1086,8 @@ export class DownloadOrchestrator {
     shop: GameShop,
     objectId: string,
     targetArea: "hero" | "queue" | "paused",
-    targetIndex?: number
+    targetIndex?: number,
+    confirmed = false
   ) {
     const download = await this.getDownload(shop, objectId);
 
@@ -1099,7 +1104,7 @@ export class DownloadOrchestrator {
     if (targetArea === "paused") {
       if (
         isActiveLikeDownload(download) &&
-        !(await DownloadManager.confirmPauseDownload(getGameKey(download)))
+        !DownloadManager.confirmPauseDownload(getGameKey(download), confirmed)
       ) {
         return false;
       }

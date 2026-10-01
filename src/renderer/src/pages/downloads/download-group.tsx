@@ -636,21 +636,29 @@ export function DownloadGroup({
     [resumeDownloadOriginal]
   );
 
-  // Wrap pauseDownload to clear optimistic state
-  const pauseDownload = useCallback(
-    async (shop: GameShop, objectId: string) => {
+  const performPauseDownload = useCallback(
+    async (shop: GameShop, objectId: string, confirmed = false) => {
       const gameId = `${shop}:${objectId}`;
-
-      // Clear optimistic state when pausing
+      const paused = await pauseDownloadOriginal(shop, objectId, confirmed);
+      if (!paused) return;
       setOptimisticallyResumed((prev) => {
         const next = { ...prev };
         delete next[gameId];
         return next;
       });
-
-      await pauseDownloadOriginal(shop, objectId);
     },
     [pauseDownloadOriginal]
+  );
+
+  const pauseDownload = useCallback(
+    async (shop: GameShop, objectId: string) => {
+      if (await window.electron.getDownloadPauseWarning(shop, objectId)) {
+        setPauseWarningTarget({ shop, objectId });
+        return;
+      }
+      await performPauseDownload(shop, objectId);
+    },
+    [performPauseDownload]
   );
 
   const { formatDistance } = useDate();
@@ -665,6 +673,10 @@ export function DownloadGroup({
     Record<string, boolean>
   >({});
   const [cancelModalVisible, setCancelModalVisible] = useState(false);
+  const [pauseWarningTarget, setPauseWarningTarget] = useState<{
+    shop: GameShop;
+    objectId: string;
+  } | null>(null);
   const [gameToCancelShop, setGameToCancelShop] = useState<GameShop | null>(
     null
   );
@@ -1025,6 +1037,26 @@ export function DownloadGroup({
     fetchActionTypes();
   }, [library]);
 
+  const handleConfirmPause = async () => {
+    const target = pauseWarningTarget;
+    setPauseWarningTarget(null);
+    if (target) {
+      await performPauseDownload(target.shop, target.objectId, true);
+    }
+  };
+
+  const pauseWarningModal = (
+    <ConfirmationModal
+      visible={pauseWarningTarget !== null}
+      title={t("generated_zip_pause_title")}
+      descriptionText={t("generated_zip_pause_message")}
+      confirmButtonLabel={t("pause")}
+      cancelButtonLabel={t("generated_zip_keep_downloading")}
+      onConfirm={handleConfirmPause}
+      onClose={() => setPauseWarningTarget(null)}
+    />
+  );
+
   if (!library.length) return null;
 
   const isDownloadingGroup = title === t("download_in_progress");
@@ -1060,6 +1092,7 @@ export function DownloadGroup({
 
     return (
       <>
+        {pauseWarningModal}
         <ConfirmationModal
           visible={cancelModalVisible}
           title={t("cancel_download")}
@@ -1094,6 +1127,7 @@ export function DownloadGroup({
 
   return (
     <>
+      {pauseWarningModal}
       <ConfirmationModal
         visible={cancelModalVisible}
         title={t("cancel_download")}

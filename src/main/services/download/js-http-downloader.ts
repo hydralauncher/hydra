@@ -120,7 +120,7 @@ export class JsHttpDownloader {
   private parallelRangesDisabled = false;
   private parallelRangeFailures = 0;
   private resourceValidator: string | null = null;
-  private requireFullResumeVerification = false;
+  private verifyUnvalidatedResumeOverlap = false;
   private resumeCapability: "unknown" | "supported" | "unsupported" = "unknown";
   private readonly pendingRangeReads = new Map<number, number>();
   private urlRefreshAttempted = false;
@@ -161,7 +161,7 @@ export class JsHttpDownloader {
     this.parallelRangesDisabled = false;
     this.parallelRangeFailures = 0;
     this.resourceValidator = null;
-    this.requireFullResumeVerification = false;
+    this.verifyUnvalidatedResumeOverlap = false;
     this.resumeCapability = "unknown";
     this.pendingRangeReads.clear();
     this.urlRefreshAttempted = false;
@@ -203,7 +203,7 @@ export class JsHttpDownloader {
           filename,
           url
         );
-        this.requireFullResumeVerification =
+        this.verifyUnvalidatedResumeOverlap =
           startByte > 0 &&
           !this.resourceValidator &&
           this.currentOptions.allowParallelRanges !== false;
@@ -521,7 +521,7 @@ export class JsHttpDownloader {
     if (
       startByte > 0 ||
       this.currentOptions?.verifyResumePrefix ||
-      this.requireFullResumeVerification
+      this.verifyUnvalidatedResumeOverlap
     ) {
       requestHeaders["Range"] = `bytes=${startByte}-`;
     }
@@ -535,12 +535,11 @@ export class JsHttpDownloader {
     return Boolean(
       this.currentOptions?.verifyResumePrefix ||
         this.resourceValidator ||
-        this.requireFullResumeVerification
+        this.verifyUnvalidatedResumeOverlap
     );
   }
 
   private getResumeRangeStart(startByte: number): number {
-    if (this.requireFullResumeVerification) return 0;
     return this.shouldVerifyResumePrefix() && startByte > 0
       ? Math.max(0, startByte - RESUME_OVERLAP_BYTES)
       : startByte;
@@ -612,7 +611,7 @@ export class JsHttpDownloader {
     if (
       !this.parallelRangesDisabled &&
       this.currentOptions?.allowParallelRanges !== false &&
-      !this.requireFullResumeVerification &&
+      !this.verifyUnvalidatedResumeOverlap &&
       !(startByte > 0 && this.currentOptions?.verifyResumePrefix)
     ) {
       const rangeSize =
@@ -864,9 +863,7 @@ export class JsHttpDownloader {
       if (
         restart ||
         (response.status === 206 &&
-          (rangeStart === null ||
-            rangeStart >= startByte ||
-            (this.requireFullResumeVerification && rangeStart !== 0)))
+          (rangeStart === null || rangeStart >= startByte))
       ) {
         throw new Error(
           "The archive server returned an unsafe byte range; keeping the saved partial file."
@@ -886,15 +883,15 @@ export class JsHttpDownloader {
       logger.log(
         `[JsHttpDownloader] Restarting the file from byte 0 (restart ${this.restartCount}/${MAX_RESTARTS_FROM_ZERO}).`
       );
-    } else if (this.requireFullResumeVerification && skipBytes > 0) {
-      this.beginRecovery(skipBytes);
-      logger.log(
-        `[JsHttpDownloader] Verifying all ${skipBytes} saved bytes before resuming a download without a known resource validator.`
-      );
     } else if (action.rangeIgnored) {
       this.beginRecovery(skipBytes);
       logger.log(
         `[JsHttpDownloader] Server ignored the Range header (HTTP 200). Re-downloading ${skipBytes} bytes to preserve the existing partial.`
+      );
+    } else if (skipBytes > RESUME_OVERLAP_BYTES) {
+      this.beginRecovery(skipBytes);
+      logger.log(
+        `[JsHttpDownloader] Server sent ${skipBytes} saved bytes before the resume offset; verifying them before appending.`
       );
     } else if (skipBytes > 0) {
       logger.log(
@@ -1396,7 +1393,7 @@ export class JsHttpDownloader {
     this.status = "paused";
     this.folderName = "";
     this.resourceValidator = null;
-    this.requireFullResumeVerification = false;
+    this.verifyUnvalidatedResumeOverlap = false;
     this.resumeCapability = "unknown";
     this.isDownloading = false;
     this.retryCount = 0;

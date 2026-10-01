@@ -28,8 +28,6 @@ import {
 import { calculateETA, getDirSize } from "./helpers";
 import { extractDownloadFilename } from "./download-filename";
 import { RealDebridClient } from "./real-debrid";
-import { dialog } from "electron";
-import { t } from "i18next";
 import path from "node:path";
 import fs from "node:fs";
 import { setTimeout as sleep } from "node:timers/promises";
@@ -1259,35 +1257,22 @@ export class DownloadManager {
     return this.startDownload(download, signal);
   }
 
-  public static async confirmPauseDownload(
-    downloadKey: string
-  ): Promise<boolean> {
+  public static requiresPauseConfirmation(downloadKey: string): boolean {
     const batch = this.jsBatch;
     const entry = batch?.entries[batch.currentIndex];
-    if (
-      this.downloadingGameId !== downloadKey ||
-      batch?.provider !== "torBox" ||
-      !entry?.isZip ||
-      this.jsDownloader?.getDownloadStatus()?.resumeCapability !== "unsupported"
-    ) {
-      return true;
-    }
-    const options: Electron.MessageBoxOptions = {
-      type: "warning",
-      title: t("generated_zip_pause_title", { ns: "downloads" }),
-      message: t("generated_zip_pause_message", { ns: "downloads" }),
-      buttons: [
-        t("generated_zip_keep_downloading", { ns: "downloads" }),
-        t("pause", { ns: "downloads" }),
-      ],
-      defaultId: 0,
-      cancelId: 0,
-      noLink: true,
-    };
-    const result = WindowManager.mainWindow
-      ? await dialog.showMessageBox(WindowManager.mainWindow, options)
-      : await dialog.showMessageBox(options);
-    return result.response === 1;
+    return (
+      this.downloadingGameId === downloadKey &&
+      batch?.provider === "torBox" &&
+      entry?.isZip === true &&
+      this.jsDownloader?.getDownloadStatus()?.resumeCapability === "unsupported"
+    );
+  }
+
+  public static confirmPauseDownload(
+    downloadKey: string,
+    confirmed = false
+  ): boolean {
+    return confirmed || !this.requiresPauseConfirmation(downloadKey);
   }
 
   public static async prepareRealDebridDownload(
