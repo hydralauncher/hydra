@@ -1986,7 +1986,7 @@
     "library": "Library",
     "hidden_games": "Concealed games",
     "hidden_from_others_tooltip": "Only you can see this game on your profile and in your library.",
-    "hidden_game_tooltip": "Only you can see this game in Concealed games.",
+    "hidden_game_tooltip": "This game can only be seen in Concealed games.",
     "empty_hidden_title": "No concealed games",
     "empty_hidden_description": "Concealed games appear here.",
     "hidden_games_load_failed": "Could not refresh concealed games",

@@ -375,6 +375,7 @@ export const LibraryGameCardLarge = memo(function LibraryGameCardLarge({
 
           <div className="library-game-card-large__top-right">
             <GameVisibilityBadge
+              variant="large"
               isHiddenFromOthers={game.isHiddenFromOthers}
               isConcealed={game.isConcealed}
             />

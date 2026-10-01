@@ -126,34 +126,36 @@ export function UserLibraryGameCard({
             className={`user-library-game__overlay${game.shop === "launchbox" && !game.customLibraryImageUrl ? " user-library-game__overlay--classics" : ""}${hasAchievementProgress ? "" : " user-library-game__overlay--no-fade"}`}
           >
             <div className="user-library-game__top-section">
-              <GameVisibilityBadge
-                isHiddenFromOthers={game.isHiddenFromOthers}
-                isConcealed={game.isConcealed}
-              />
-              <div
-                className="user-library-game__playtime"
-                data-tooltip-place="top"
-                data-tooltip-content={
-                  game.hasManuallyUpdatedPlaytime
-                    ? t("manual_playtime_tooltip")
-                    : undefined
-                }
-                data-tooltip-id={game.objectId}
-              >
-                {game.hasManuallyUpdatedPlaytime ? (
-                  <AlertFillIcon
-                    size={11}
-                    className="user-library-game__manual-playtime"
-                  />
-                ) : (
-                  <ClockIcon size={11} />
-                )}
-                <span className="user-library-game__playtime-long">
-                  {formatPlayTime(game.playTimeInSeconds)}
-                </span>
-                <span className="user-library-game__playtime-short">
-                  {formatPlayTime(game.playTimeInSeconds, true)}
-                </span>
+              <div className="user-library-game__top-left">
+                <GameVisibilityBadge
+                  isHiddenFromOthers={game.isHiddenFromOthers}
+                  isConcealed={game.isConcealed}
+                />
+                <div
+                  className="user-library-game__playtime"
+                  data-tooltip-place="top"
+                  data-tooltip-content={
+                    game.hasManuallyUpdatedPlaytime
+                      ? t("manual_playtime_tooltip")
+                      : undefined
+                  }
+                  data-tooltip-id={game.objectId}
+                >
+                  {game.hasManuallyUpdatedPlaytime ? (
+                    <AlertFillIcon
+                      size={11}
+                      className="user-library-game__manual-playtime"
+                    />
+                  ) : (
+                    <ClockIcon size={11} />
+                  )}
+                  <span className="user-library-game__playtime-long">
+                    {formatPlayTime(game.playTimeInSeconds)}
+                  </span>
+                  <span className="user-library-game__playtime-short">
+                    {formatPlayTime(game.playTimeInSeconds, true)}
+                  </span>
+                </div>
               </div>
             </div>
 

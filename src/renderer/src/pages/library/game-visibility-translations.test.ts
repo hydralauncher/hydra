@@ -86,4 +86,24 @@ describe("game visibility translations", () => {
     assert.equal(en.library.hidden_games, "Concealed games");
     assert.doesNotMatch(en.library.empty_hidden_description, /move/i);
   });
+
+  it("explains that concealed games are only visible in the concealed collection", () => {
+    const en = readTranslation("en");
+    const ptBR = readTranslation("pt-BR");
+
+    assert.match(en.library.hidden_game_tooltip, /can only be seen in/);
+    assert.match(ptBR.library.hidden_game_tooltip, /só pode ser visto em/);
+
+    for (const translation of [en, ptBR]) {
+      assert.ok(
+        translation.library.hidden_game_tooltip.includes(
+          translation.library.hidden_games
+        )
+      );
+      assert.notEqual(
+        translation.library.hidden_game_tooltip,
+        translation.library.hidden_from_others_tooltip
+      );
+    }
+  });
 });

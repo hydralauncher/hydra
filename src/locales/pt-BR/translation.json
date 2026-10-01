@@ -2025,7 +2025,7 @@
     "library": "Biblioteca",
     "hidden_games": "Jogos ocultos",
     "hidden_from_others_tooltip": "Só você vê este jogo no seu perfil e na sua biblioteca.",
-    "hidden_game_tooltip": "Só você vê este jogo em Jogos ocultos.",
+    "hidden_game_tooltip": "Este jogo só pode ser visto em Jogos ocultos.",
     "empty_hidden_title": "Nenhum jogo oculto",
     "empty_hidden_description": "Jogos ocultos aparecem aqui.",
     "hidden_games_load_failed": "Não foi possível atualizar os jogos ocultos",
