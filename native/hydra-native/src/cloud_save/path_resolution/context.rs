@@ -51,6 +51,15 @@ type WindowsDirectories = (
     Option<String>,
 );
 
+#[derive(Default)]
+struct WindowsPaths {
+    local_app_data_dir: Option<String>,
+    public_dir: Option<String>,
+    program_data_dir: Option<String>,
+    windows_dir: Option<String>,
+    saved_games_dir: Option<String>,
+}
+
 fn fallback_windows_directories(home_dir: &str, app_data_dir: Option<&str>) -> WindowsDirectories {
     let local_app_data = app_data_dir
         .and_then(parent_path)
@@ -111,6 +120,13 @@ fn windows_saved_games_dir(home_dir: &str) -> Option<String> {
 }
 
 pub fn build_context(input: &ResolveSaveRulesInput) -> Result<PathResolutionContext, String> {
+    build_context_with_windows_paths(input, None)
+}
+
+fn build_context_with_windows_paths(
+    input: &ResolveSaveRulesInput,
+    windows_paths: Option<WindowsPaths>,
+) -> Result<PathResolutionContext, String> {
     if !matches!(input.platform.as_str(), "windows" | "linux" | "mac") {
         return Err(format!(
             "Unsupported cloud save path platform: {}",
@@ -125,12 +141,21 @@ pub fn build_context(input: &ResolveSaveRulesInput) -> Result<PathResolutionCont
     let app_data_dir = input.app_data_dir.as_deref().map(normalize_separators);
     let os_username = basename(&home_dir).unwrap_or_else(|| "*".to_string());
 
-    let (local_app_data_dir, public_dir, program_data_dir, windows_dir) =
-        if input.platform == "windows" {
-            windows_directories(&home_dir, app_data_dir.as_deref())
-        } else {
-            (None, None, None, None)
-        };
+    let windows_paths = if input.platform == "windows" {
+        windows_paths.unwrap_or_else(|| {
+            let (local_app_data_dir, public_dir, program_data_dir, windows_dir) =
+                windows_directories(&home_dir, app_data_dir.as_deref());
+            WindowsPaths {
+                local_app_data_dir,
+                public_dir,
+                program_data_dir,
+                windows_dir,
+                saved_games_dir: windows_saved_games_dir(&home_dir),
+            }
+        })
+    } else {
+        WindowsPaths::default()
+    };
 
     let (xdg_data_dir, xdg_config_dir) = match input.platform.as_str() {
         "windows" => (None, None),
@@ -148,11 +173,12 @@ pub fn build_context(input: &ResolveSaveRulesInput) -> Result<PathResolutionCont
         ),
     };
 
-    let derived_steam_root = derived_steam_root(input.executable_path.as_deref());
-    let configured_steam_root = input
-        .steam_path
-        .as_deref()
-        .map(normalize_separators)
+    let derived_steam_root = (!input.shop.eq_ignore_ascii_case("epic"))
+        .then(|| derived_steam_root(input.executable_path.as_deref()))
+        .flatten();
+    let configured_steam_root = (!input.shop.eq_ignore_ascii_case("epic"))
+        .then(|| input.steam_path.as_deref().map(normalize_separators))
+        .flatten()
         .filter(|root| derived_steam_root.as_ref() != Some(root));
     let windows_compatibility = input.platform == "linux"
         && input
@@ -168,13 +194,11 @@ pub fn build_context(input: &ResolveSaveRulesInput) -> Result<PathResolutionCont
         os_username,
         documents_dir,
         app_data_dir,
-        local_app_data_dir,
-        public_dir,
-        program_data_dir,
-        windows_dir,
-        saved_games_dir: (input.platform == "windows")
-            .then(|| windows_saved_games_dir(&home_dir))
-            .flatten(),
+        local_app_data_dir: windows_paths.local_app_data_dir,
+        public_dir: windows_paths.public_dir,
+        program_data_dir: windows_paths.program_data_dir,
+        windows_dir: windows_paths.windows_dir,
+        saved_games_dir: windows_paths.saved_games_dir,
         xdg_data_dir,
         xdg_config_dir,
         install_dir,
@@ -184,4 +208,110 @@ pub fn build_context(input: &ResolveSaveRulesInput) -> Result<PathResolutionCont
         configured_steam_root,
         store_user_id: None,
     })
+}
+
+#[cfg(test)]
+mod tests {
+    use std::fs;
+
+    use tempfile::tempdir;
+
+    use super::*;
+    use crate::cloud_save::manifest::types::{CloudSaveRule, CloudSaveRuleCondition};
+    use crate::cloud_save::path_resolution::resolve_rules::resolve_rules;
+    use crate::cloud_save::save_scanner::scan_resolved_save_rules;
+
+    #[tokio::test]
+    async fn epic_windows_known_folder_rule_discovers_each_account() {
+        let temp = tempdir().unwrap();
+        let home = temp.path().join("Users/Hydra");
+        let roaming = home.join("AppData/Roaming");
+        let local = home.join("AppData/Local");
+        for account in ["EpicUserA", "EpicUserB"] {
+            let save = local.join(format!("FactoryGame/Saved/SaveGames/{account}/slot.sav"));
+            fs::create_dir_all(save.parent().unwrap()).unwrap();
+            fs::write(save, account.as_bytes()).unwrap();
+        }
+        let steam_root = temp.path().join("Steam");
+        let steam_save = steam_root.join("userdata/steam-only.sav");
+        fs::create_dir_all(steam_save.parent().unwrap()).unwrap();
+        fs::write(steam_save, b"steam only").unwrap();
+
+        let input = ResolveSaveRulesInput {
+            shop: "epic".into(),
+            object_id: "namespace:playable-item".into(),
+            platform: "windows".into(),
+            home_dir: home.to_string_lossy().into_owned(),
+            documents_dir: Some(home.join("Documents").to_string_lossy().into_owned()),
+            app_data_dir: Some(roaming.to_string_lossy().into_owned()),
+            executable_path: Some(
+                steam_root
+                    .join("steamapps/common/Satisfactory/FactoryGame.exe")
+                    .to_string_lossy()
+                    .into_owned(),
+            ),
+            wine_prefix_path: None,
+            steam_path: Some(steam_root.to_string_lossy().into_owned()),
+            rules: vec![],
+        };
+        let context = build_context_with_windows_paths(
+            &input,
+            Some(WindowsPaths {
+                local_app_data_dir: Some(normalize_separators(&local.to_string_lossy())),
+                saved_games_dir: Some(normalize_separators(
+                    &home.join("Saved Games").to_string_lossy(),
+                )),
+                ..WindowsPaths::default()
+            }),
+        )
+        .unwrap();
+        assert!(context.configured_steam_root.is_none());
+        assert!(context.derived_steam_root.is_none());
+
+        let rule = |raw_path: &str, store: Option<&str>| CloudSaveRule {
+            rule_id: raw_path.into(),
+            kind: "dir".into(),
+            raw_path: raw_path.into(),
+            source: "ludusavi".into(),
+            tags: vec!["save".into()],
+            when: store
+                .map(|store| CloudSaveRuleCondition {
+                    os: Some("windows".into()),
+                    store: Some(store.into()),
+                })
+                .into_iter()
+                .collect(),
+            preferred_path: None,
+        };
+        let resolved = resolve_rules(
+            vec![
+                rule(
+                    "<winLocalAppData>/FactoryGame/Saved/SaveGames/<storeUserId>",
+                    Some("epic"),
+                ),
+                rule("<root>/userdata/steam-only.sav", None),
+            ],
+            &context,
+        );
+        assert_eq!(resolved.len(), 2);
+        assert!(resolved[0].unresolved_tokens.is_empty());
+        assert_eq!(resolved[0].resolved_paths.len(), 1);
+        assert!(resolved[1].resolved_paths.is_empty());
+        assert!(!resolved[1].unresolved_tokens.is_empty());
+
+        let scanned = scan_resolved_save_rules(resolved).await.unwrap();
+        let accounts = &scanned[0].scanned_paths;
+        assert_eq!(accounts.len(), 2);
+        assert_eq!(
+            accounts
+                .iter()
+                .map(|path| path.store_user_id.as_deref().unwrap())
+                .collect::<Vec<_>>(),
+            ["EpicUserA", "EpicUserB"]
+        );
+        assert!(accounts
+            .iter()
+            .all(|path| { path.files.len() == 1 && path.files[0].relative_path == "slot.sav" }));
+        assert!(scanned[1].scanned_paths.is_empty());
+    }
 }

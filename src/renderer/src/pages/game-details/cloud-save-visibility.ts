@@ -1,4 +1,5 @@
 import type { GameShop } from "@types";
+import { supportsCloudSaveV2 } from "../../../../shared/cloud-save-shops.js";
 
 export type CloudSaveUiMode = "legacy" | "v2";
 export type LegacyCloudSavePurpose = "active" | "archive";
@@ -30,6 +31,17 @@ export const getCloudSaveVisibility = (shop: GameShop): CloudSaveVisibility => {
       settings: {
         showV2: true,
         showLegacy: true,
+        legacyPurpose: "archive",
+      },
+    };
+  }
+
+  if (supportsCloudSaveV2(shop)) {
+    return {
+      hero: "v2",
+      settings: {
+        showV2: true,
+        showLegacy: false,
         legacyPurpose: "archive",
       },
     };

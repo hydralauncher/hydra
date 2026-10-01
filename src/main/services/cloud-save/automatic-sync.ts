@@ -6,6 +6,7 @@ import type {
   SyncGameCloudSaveResult,
 } from "@types";
 import { gamesSublevel, levelKeys } from "@main/level";
+import { supportsCloudSaveV2 } from "../../../shared/cloud-save-shops";
 
 import { HydraApi } from "../hydra-api";
 import { isGameRunning } from "../game-running-state";
@@ -60,7 +61,7 @@ export const canRunAutomaticCloudSaveSync = async (
   shop: GameShop
 ) => {
   if (
-    shop !== "steam" ||
+    !supportsCloudSaveV2(shop) ||
     !canAccessCloudSaves(
       HydraApi.isLoggedIn(),
       HydraApi.hasActiveSubscription()
@@ -89,7 +90,7 @@ export const runAutomaticCloudSaveSyncDetailed = async (
   expectedRemoteHash?: string | null
 ): Promise<AutomaticCloudSaveSyncOutcome> => {
   if (
-    shop !== "steam" ||
+    !supportsCloudSaveV2(shop) ||
     !canAccessCloudSaves(
       HydraApi.isLoggedIn(),
       HydraApi.hasActiveSubscription()

@@ -9,6 +9,7 @@ import {
 } from "react";
 import { useTranslation } from "react-i18next";
 import { useSearchParams } from "react-router-dom";
+import { supportsCloudSaveV2 } from "@shared";
 
 import {
   getCloudSaveSyncErrorKind,
@@ -154,7 +155,7 @@ export function BigPictureCloudSaveProvider({
     useBigPictureToast();
   const canUseCloudSaves = Boolean(userDetails) && hasActiveSubscription;
   const canCheckCloudSaves =
-    shop === "steam" && canUseCloudSaves && hasExecutablePath;
+    supportsCloudSaveV2(shop) && canUseCloudSaves && hasExecutablePath;
   const { overview, isRefreshing, hasRefreshError, refresh } =
     useCloudSaveOverview({
       objectId,
@@ -238,7 +239,10 @@ export function BigPictureCloudSaveProvider({
   }, [gameKey]);
 
   useEffect(() => {
-    if (shop !== "steam" || searchParams.get("openCloudSaveConflict") !== "1") {
+    if (
+      !supportsCloudSaveV2(shop) ||
+      searchParams.get("openCloudSaveConflict") !== "1"
+    ) {
       return;
     }
 
@@ -251,7 +255,7 @@ export function BigPictureCloudSaveProvider({
 
   useEffect(() => {
     if (
-      shop !== "steam" ||
+      !supportsCloudSaveV2(shop) ||
       searchParams.get("openCloudSavePathApproval") !== "1"
     ) {
       return;
@@ -370,7 +374,7 @@ export function BigPictureCloudSaveProvider({
         isSyncing ||
         !hasExecutablePath ||
         !canUseCloudSaves ||
-        shop !== "steam"
+        !supportsCloudSaveV2(shop)
       ) {
         return false;
       }

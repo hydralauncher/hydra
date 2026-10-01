@@ -10,7 +10,11 @@ import {
 import { useTranslation } from "react-i18next";
 import { useSearchParams } from "react-router-dom";
 
-import { AuthPage, getCloudSaveAccessAction } from "@shared";
+import {
+  AuthPage,
+  getCloudSaveAccessAction,
+  supportsCloudSaveV2,
+} from "@shared";
 import { ConfirmationModal } from "@renderer/components";
 import { gameDetailsContext } from "@renderer/context";
 import { useToast, useUserDetails } from "@renderer/hooks";
@@ -162,7 +166,7 @@ export function CloudSaveV2Provider({
   const canUseCloudSaves = cloudSaveAccessAction === "open";
   const hasExecutablePath = Boolean(game?.executablePath);
   const canCheckCloudSaves =
-    shop === "steam" && canUseCloudSaves && hasExecutablePath;
+    supportsCloudSaveV2(shop) && canUseCloudSaves && hasExecutablePath;
   const {
     overview,
     isAutomaticSyncEnabled,
@@ -269,7 +273,10 @@ export function CloudSaveV2Provider({
   }, [isGameRunning, refresh]);
 
   useEffect(() => {
-    if (shop !== "steam" || searchParams.get("openCloudSaveConflict") !== "1") {
+    if (
+      !supportsCloudSaveV2(shop) ||
+      searchParams.get("openCloudSaveConflict") !== "1"
+    ) {
       return;
     }
 
@@ -299,7 +306,7 @@ export function CloudSaveV2Provider({
 
   useEffect(() => {
     if (
-      shop !== "steam" ||
+      !supportsCloudSaveV2(shop) ||
       searchParams.get("openCloudSavePathApproval") !== "1"
     ) {
       return;
@@ -532,7 +539,8 @@ export function CloudSaveV2Provider({
 
   const runCloudSaveOperation = useCallback(
     async (resolution?: CloudSaveConflictResolution) => {
-      if (isGameRunning || !hasExecutablePath || shop !== "steam") return;
+      if (isGameRunning || !hasExecutablePath || !supportsCloudSaveV2(shop))
+        return;
       if (cloudSaveAccessAction !== "open") {
         openManager();
         return;

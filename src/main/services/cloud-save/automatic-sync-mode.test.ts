@@ -87,6 +87,37 @@ describe("cloud save automatic sync mode", () => {
     );
   });
 
+  it("defaults Epic V2 on while ignoring stale legacy state", () => {
+    assert.equal(
+      resolveStoredCloudSaveAutomaticSyncModeForShop("epic", true, undefined),
+      "v2"
+    );
+    assert.equal(
+      resolveStoredCloudSaveAutomaticSyncModeForShop("epic", false, undefined),
+      "v2"
+    );
+    assert.equal(
+      resolveStoredCloudSaveAutomaticSyncModeForShop("epic", true, true),
+      "v2"
+    );
+    assert.equal(
+      resolveStoredCloudSaveAutomaticSyncModeForShop("epic", false, false),
+      "disabled"
+    );
+    assert.equal(
+      resolveStoredCloudSaveAutomaticSyncModeForShop("epic", true, false),
+      "disabled"
+    );
+    assert.equal(
+      resolveStoredCloudSaveAutomaticSyncModeForShop("epic", false, true),
+      "v2"
+    );
+    assert.equal(
+      resolveStoredCloudSaveAutomaticSyncModeForShop("custom", true, true),
+      "legacy"
+    );
+  });
+
   it("enabling legacy disables V2", () => {
     assert.equal(
       getNextCloudSaveAutomaticSyncMode("v2", "legacy", true),

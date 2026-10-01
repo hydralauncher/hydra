@@ -19,6 +19,25 @@ describe("cloud save visibility", () => {
     });
   });
 
+  it("uses V2 for Epic without showing unavailable legacy backups", () => {
+    assert.deepEqual(getCloudSaveVisibility("epic"), {
+      hero: "v2",
+      settings: {
+        showV2: true,
+        showLegacy: false,
+        legacyPurpose: "archive",
+      },
+    });
+    assert.equal(
+      isLegacyCloudSaveSettingsAvailable(
+        getCloudSaveVisibility("epic").settings,
+        true,
+        1
+      ),
+      false
+    );
+  });
+
   it("keeps legacy cloud saves for emulated games", () => {
     assert.deepEqual(getCloudSaveVisibility("launchbox"), {
       hero: "legacy",

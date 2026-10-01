@@ -7,6 +7,7 @@ import type {
   CloudSaveV2FileDetails,
   GameShop,
 } from "@types";
+import { supportsCloudSaveV2 } from "../../../../../shared/cloud-save-shops.js";
 
 export type CloudSavePresentationTone =
   | "synced"
@@ -174,7 +175,7 @@ export const shouldSyncCloudSaveOnGamePage = ({
   isSyncing,
   isInFlight,
 }: GamePageOpenSyncInput) =>
-  shop === "steam" &&
+  supportsCloudSaveV2(shop) &&
   canUseCloudSaves &&
   hasExecutablePath &&
   !isGameRunning &&
