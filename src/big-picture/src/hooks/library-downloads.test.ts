@@ -9,8 +9,8 @@ import { createRoot } from "react-dom/client";
 import { act } from "react-dom/test-utils";
 import ts from "typescript";
 import type { LibraryGame } from "@types";
-import { getBigPictureDownloadView } from "../../../types/download-contract.ts";
-import { readActiveLibraryDownload } from "../components/modals/download-game/download-queue.ts";
+import { getBigPictureDownloadView } from "../../../types/download-contract.js";
+import { readActiveLibraryDownload } from "../components/modals/download-game/download-queue.js";
 
 const requireModule = createRequire(import.meta.url);
 
@@ -78,7 +78,9 @@ describe("Big Picture operational download library", () => {
       electron: {
         getLibrary: async (includeConcealed?: boolean) => {
           reads.push(includeConcealed);
-          return games.filter((entry) => includeConcealed || !entry.isConcealed);
+          return games.filter(
+            (entry) => includeConcealed || !entry.isConcealed
+          );
         },
         onLibraryBatchComplete: subscribe("batch"),
         onDownloadsUpdated: subscribe("downloads"),
@@ -101,24 +103,32 @@ describe("Big Picture operational download library", () => {
 
     try {
       await act(async () => root.render(React.createElement(Probe)));
-      assert.deepEqual(current.library.map((entry) => entry.id), ["steam:visible"]);
-      assert.deepEqual(current.downloadLibrary.map((entry) => entry.id), [
-        "steam:visible",
-        "steam:hidden",
-      ]);
+      assert.deepEqual(
+        current.library.map((entry) => entry.id),
+        ["steam:visible"]
+      );
+      assert.deepEqual(
+        current.downloadLibrary.map((entry) => entry.id),
+        ["steam:visible", "steam:hidden"]
+      );
 
       games = [game("visible", "complete"), game("hidden", "paused")];
       await act(async () => listeners.get("downloads")!());
-      assert.deepEqual(current.library, []);
+      assert.equal(current.library.length, 0);
       assert.equal(current.downloadLibrary[1].download?.status, "paused");
 
       games = [game("hidden", "paused", false)];
-      await act(async () => dom.window.dispatchEvent(new dom.window.Event("library-update")));
-      assert.deepEqual(current.library.map((entry) => entry.id), ["steam:hidden"]);
+      await act(async () =>
+        dom.window.dispatchEvent(new dom.window.Event("library-update"))
+      );
+      assert.deepEqual(
+        current.library.map((entry) => entry.id),
+        ["steam:hidden"]
+      );
 
       games = [game("new", "active")];
       await act(async () => listeners.get("batch")!());
-      assert.deepEqual(current.library, []);
+      assert.equal(current.library.length, 0);
       assert.equal(current.downloadLibrary[0].id, "steam:new");
       assert.deepEqual(reads, [true, true, true, true]);
     } finally {
@@ -158,21 +168,35 @@ describe("Big Picture operational download library", () => {
           useCallback: (callback: unknown) => callback,
           useEffect: () => {},
         },
-        "@shared": { Downloader: {}, formatBytes: String, formatBytesToMbps: String },
+        "@shared": {
+          Downloader: {},
+          formatBytes: String,
+          formatBytesToMbps: String,
+        },
         "../../../../types": { getBigPictureDownloadView },
-        "react-i18next": { useTranslation: () => ({ t: (key: string) => key }) },
+        "react-i18next": {
+          useTranslation: () => ({ t: (key: string) => key }),
+        },
         "../../constants": { IS_DESKTOP: false, DOWNLOADER_NAME: {} },
         "../../helpers": {
           getBigPictureGameDetailsPath: () => "/game",
           resolveImageSource: (value: unknown) => value,
         },
         "../../hooks": {
-          useLibrary: () => ({ library: [], downloadLibrary: games, updateLibrary: () => {} }),
+          useLibrary: () => ({
+            library: [],
+            downloadLibrary: games,
+            updateLibrary: () => {},
+          }),
           useDate: () => ({ formatDistance: String, formatTime: String }),
-          useDownloadLayout: () => ({ layoutState: { version: 1, queueOrder: [], pausedOrder: [] } }),
+          useDownloadLayout: () => ({
+            layoutState: { version: 1, queueOrder: [], pausedOrder: [] },
+          }),
         },
         "../../stores": {
-          useBigPictureDownloadsStore: (selector: (value: typeof store) => unknown) => selector(store),
+          useBigPictureDownloadsStore: (
+            selector: (value: typeof store) => unknown
+          ) => selector(store),
         },
       }
     ).useBigPictureDownloadsPageData as () => {
@@ -184,9 +208,18 @@ describe("Big Picture operational download library", () => {
     };
     const result = useDownloadsPageData();
     assert.equal(result.activeDownload.id, "steam:active");
-    assert.deepEqual(result.queuedDownloads.map((entry) => entry.id), ["steam:queued"]);
-    assert.deepEqual(result.pausedDownloads.map((entry) => entry.id), ["steam:paused"]);
-    assert.deepEqual(result.completedDownloads.map((entry) => entry.id), ["steam:complete"]);
+    assert.deepEqual(
+      result.queuedDownloads.map((entry) => entry.id),
+      ["steam:queued"]
+    );
+    assert.deepEqual(
+      result.pausedDownloads.map((entry) => entry.id),
+      ["steam:paused"]
+    );
+    assert.deepEqual(
+      result.completedDownloads.map((entry) => entry.id),
+      ["steam:complete"]
+    );
     assert.equal(result.hasDownloads, true);
   });
 });
@@ -199,10 +232,12 @@ describe("Big Picture download queue reads", () => {
   ]) {
     it(`queues for concealed ${entry.objectId} downloads`, async () => {
       const reads: Array<boolean | undefined> = [];
-      const shouldQueue = await readActiveLibraryDownload(async (includeConcealed) => {
-        reads.push(includeConcealed);
-        return includeConcealed ? [entry] : [];
-      });
+      const shouldQueue = await readActiveLibraryDownload(
+        async (includeConcealed) => {
+          reads.push(includeConcealed);
+          return includeConcealed ? [entry] : [];
+        }
+      );
       assert.equal(shouldQueue, true);
       assert.deepEqual(reads, [true]);
     });
@@ -211,7 +246,9 @@ describe("Big Picture download queue reads", () => {
   it("starts directly when the library is empty or only has finished downloads", async () => {
     assert.equal(await readActiveLibraryDownload(async () => []), false);
     assert.equal(
-      await readActiveLibraryDownload(async () => [game("finished", "complete")]),
+      await readActiveLibraryDownload(async () => [
+        game("finished", "complete"),
+      ]),
       false
     );
   });
