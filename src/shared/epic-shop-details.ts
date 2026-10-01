@@ -44,6 +44,38 @@ const removeHtmlComments = (value: string) => {
   return result;
 };
 
+const normalizeBulletPoints = (value: string) => {
+  let result = "";
+  let position = 0;
+  let searchFrom = 0;
+
+  while (searchFrom < value.length) {
+    const bullet = value.indexOf("•", searchFrom);
+    if (bullet === -1) break;
+
+    if (
+      bullet <= position ||
+      bullet === value.length - 1 ||
+      value[bullet - 1].trim() !== "" ||
+      value[bullet + 1].trim() !== ""
+    ) {
+      searchFrom = bullet + 1;
+      continue;
+    }
+
+    let before = bullet - 1;
+    while (before > position && value[before - 1].trim() === "") before--;
+    let after = bullet + 1;
+    while (after < value.length && value[after].trim() === "") after++;
+
+    result += value.slice(position, before) + "\n- ";
+    position = after;
+    searchFrom = after;
+  }
+
+  return result + value.slice(position);
+};
+
 epicDescriptionMarkdown.renderer.rules.heading_open = (
   tokens,
   index,
@@ -57,9 +89,9 @@ epicDescriptionMarkdown.renderer.rules.heading_open = (
 };
 
 const renderEpicDescription = (value: unknown) => {
-  const markdown = removeHtmlComments(text(value))
-    .replace(/\s+•\s+/g, "\n- ")
-    .trim();
+  const markdown = normalizeBulletPoints(
+    removeHtmlComments(text(value))
+  ).trim();
 
   return markdown ? epicDescriptionMarkdown.render(markdown) : "";
 };
