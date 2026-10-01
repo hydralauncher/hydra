@@ -1038,7 +1038,8 @@ contextBridge.exposeInMainWorld("electron", {
     ipcRenderer.invoke("getGameLaunchProtonVersion", shop, objectId),
   verifyExecutablePathInUse: (executablePath: string) =>
     ipcRenderer.invoke("verifyExecutablePathInUse", executablePath),
-  getLibrary: () => ipcRenderer.invoke("getLibrary"),
+  getLibrary: (includeConcealed = false) =>
+    ipcRenderer.invoke("getLibrary", includeConcealed),
   getHiddenLibrary: () => ipcRenderer.invoke("getHiddenLibrary"),
   refreshLibraryAssets: () => ipcRenderer.invoke("refreshLibraryAssets"),
   getRemoteLibrarySyncState: () =>

@@ -442,7 +442,7 @@ declare global {
       objectId: string
     ) => Promise<string | null>;
     verifyExecutablePathInUse: (executablePath: string) => Promise<Game>;
-    getLibrary: () => Promise<LibraryGame[]>;
+    getLibrary: (includeConcealed?: boolean) => Promise<LibraryGame[]>;
     getHiddenLibrary: () => Promise<LibraryGame[]>;
     setGameVisibility: (
       shop: GameShop,

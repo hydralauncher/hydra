@@ -39,7 +39,9 @@ export const lookupCachedPlatform = async (
   return null;
 };
 
-const getLibrary = async (includeHidden = false): Promise<LibraryGame[]> => {
+const getLibrary = async (
+  collection: "visible" | "hidden" | "all" = "visible"
+): Promise<LibraryGame[]> => {
   return gamesSublevel
     .iterator()
     .all()
@@ -47,10 +49,7 @@ const getLibrary = async (includeHidden = false): Promise<LibraryGame[]> => {
       return Promise.all(
         results
           .filter(([_key, game]) =>
-            belongsToLibraryCollection(
-              game,
-              includeHidden ? "hidden" : "visible"
-            )
+            belongsToLibraryCollection(game, collection)
           )
           .map(async ([key, game]) => {
             const download = await downloadsSublevel.get(key);
@@ -134,7 +133,9 @@ const getLibrary = async (includeHidden = false): Promise<LibraryGame[]> => {
     });
 };
 
-registerEvent("getLibrary", () => getLibrary());
+registerEvent("getLibrary", (_event, includeConcealed = false) =>
+  getLibrary(includeConcealed ? "all" : "visible")
+);
 registerEvent("getHiddenLibrary", () =>
-  HydraApi.isLoggedIn() ? getLibrary(true) : Promise.resolve([])
+  HydraApi.isLoggedIn() ? getLibrary("hidden") : Promise.resolve([])
 );

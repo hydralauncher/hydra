@@ -71,7 +71,7 @@ type WorkWondersWithKnowledge = WorkWonders & {
 
 export function App() {
   const contentRef = useRef<HTMLDivElement>(null);
-  const { updateLibrary, library } = useLibrary();
+  const { updateLibrary, library, downloadLibrary } = useLibrary();
 
   // Listen for new download options updates
   useDownloadOptionsListener();
@@ -174,12 +174,14 @@ export function App() {
   useEffect(() => {
     if (!lastPacket?.gameId) return;
 
-    const activeGame = library.find((game) => game.id === lastPacket.gameId);
+    const activeGame = downloadLibrary.find(
+      (game) => game.id === lastPacket.gameId
+    );
 
     if (!activeGame || activeGame.download?.status !== "active") {
       clearDownload();
     }
-  }, [clearDownload, lastPacket?.gameId, library]);
+  }, [clearDownload, lastPacket?.gameId, downloadLibrary]);
 
   const setupWorkWonders = useCallback(
     async (token?: string, locale?: string) => {

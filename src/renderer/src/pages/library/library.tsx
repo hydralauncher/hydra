@@ -131,6 +131,7 @@ export default function Library() {
       const games = await window.electron.getHiddenLibrary();
       if (activeAccountIdRef.current === accountId) {
         setHiddenGamesState({ ownerId: accountId, games });
+        setHiddenGamesLoadFailed(false);
       }
     } catch {
       if (activeAccountIdRef.current === accountId) {
@@ -145,20 +146,9 @@ export default function Library() {
 
   const retryHiddenGames = useCallback(async () => {
     setHiddenGamesLoading(true);
-    try {
-      await window.electron.refreshLibraryAssets();
-      if (activeAccountIdRef.current === accountId) {
-        setHiddenGamesLoadFailed(false);
-      }
-      await Promise.all([updateLibrary(), updateHiddenGames()]);
-    } catch {
-      if (activeAccountIdRef.current === accountId) {
-        setHiddenGamesLoadFailed(true);
-      }
-    } finally {
-      if (activeAccountIdRef.current === accountId) {
-        setHiddenGamesLoading(false);
-      }
+    await window.electron.refreshLibraryAssets().catch(() => {});
+    if (activeAccountIdRef.current === accountId) {
+      await Promise.allSettled([updateLibrary(), updateHiddenGames()]);
     }
   }, [accountId, updateLibrary, updateHiddenGames]);
   useEffect(() => {
@@ -386,12 +376,7 @@ export default function Library() {
 
     window.electron
       .refreshLibraryAssets()
-      .then(() => {
-        setHiddenGamesLoadFailed(false);
-      })
-      .catch(() => {
-        setHiddenGamesLoadFailed(true);
-      })
+      .catch(() => {})
       .finally(() => {
         const collectionsPromise = hasLoadedCollections
           ? Promise.resolve([])
