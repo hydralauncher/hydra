@@ -6,9 +6,12 @@ import type {
   Game,
   Subscription,
 } from "./level.types";
-import type { GameShop, UnlockedAchievement } from "./game.types";
+import type {
+  GameShop,
+  UnlockedAchievement,
+  GameContentWarning,
+} from "./game.types";
 import type { ArtworkAssetType } from "./artwork.types";
-import type { GameContentWarning } from "./souvenir.types";
 
 export type FriendRequestAction = "ACCEPTED" | "REFUSED" | "CANCEL";
 export * from "./download-contract";
