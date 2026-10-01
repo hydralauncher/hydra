@@ -205,7 +205,7 @@ const mergeExistingGame = (
   favorite: remoteGame.isFavorite ?? localGame.favorite,
   isHiddenFromOthers:
     remoteGame.isHiddenFromOthers ?? localGame.isHiddenFromOthers,
-  isConcealed: remoteGame.isConcealed ?? false,
+  isConcealed: remoteGame.isConcealed ?? localGame.isConcealed ?? false,
   isPinned: remoteGame.isPinned ?? localGame.isPinned,
   collectionIds,
   ...mergePersistedAchievementTotals(
