@@ -1,5 +1,8 @@
 @use "../../scss/globals.scss";
 
+$menu-row-height: 31px;
+$menu-visible-rows: 12;
+
 .sidebar-filter-menu {
   &__trigger {
     margin-right: 6px;
@@ -13,7 +16,10 @@
     display: flex;
     flex-direction: row;
     align-items: flex-start;
-    max-height: var(--radix-dropdown-menu-content-available-height);
+    max-height: min(
+      var(--radix-dropdown-menu-content-available-height),
+      $menu-row-height * $menu-visible-rows + 8px
+    );
     overflow: hidden;
     animation: sidebar-filter-menu-slide-in 0.2s ease-out;
   }
@@ -23,6 +29,9 @@
     flex-direction: column;
     flex-shrink: 0;
     min-width: 180px;
+    align-self: stretch;
+    min-height: 0;
+    overflow-y: auto;
   }
 
   &__divider {

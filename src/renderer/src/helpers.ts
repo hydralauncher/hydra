@@ -24,10 +24,7 @@ import type { SortOption } from "./pages/library/filter-options";
 import type { SkuRegion } from "./helpers/sku-region";
 import {
   appendProfileLibraryFilterParams,
-  filterLibraryGamesByCategory,
-  filterLibraryGamesByShop,
   getProfileLibraryFilter,
-  shouldShowProfileSteamLibraryBadge,
   shouldShowSteamLibraryBadge,
   type LibraryCategory,
   type ProfileLibraryFilter,
@@ -255,6 +252,9 @@ export const formatDownloadProgress = (
   return `${progressPercentage.toFixed(fractionDigits ?? 2)}%`;
 };
 
+export const getGameTitleFromExecutablePath = (executablePath: string) =>
+  (executablePath.split(/[\\/]/).pop() ?? "").replace(/\.[^/.]+$/, "");
+
 export const buildGameDetailsPath = (
   game: { shop: GameShop; objectId: string; title: string },
   params: Record<string, string> = {}
@@ -457,6 +457,17 @@ export const isGameInstalled = (game: LibraryGame): boolean =>
   game.installedSizeInBytes != null ||
   (game.shop === "launchbox" && (game.discs?.length ?? 0) > 0);
 
+export const isSteamImportedGame = (
+  game: Pick<LibraryGame, "shop" | "hasActiveSteamImport"> | null | undefined
+): boolean => game?.shop === "steam" && game.hasActiveSteamImport === true;
+
+export const canDownloadOnSteam = (
+  game:
+    | Pick<LibraryGame, "shop" | "hasActiveSteamImport" | "executablePath">
+    | null
+    | undefined
+): boolean => isSteamImportedGame(game) && !game?.executablePath;
+
 export const isGameReadyToPlay = (game: LibraryGame): boolean =>
   game.shop === "launchbox"
     ? Boolean(game.selectedDiscPath)
@@ -497,18 +508,18 @@ const getAchievementRateDifference = (
   return bUnlocked - aUnlocked;
 };
 
+const libraryTitleCollator = new Intl.Collator(undefined, {
+  sensitivity: "base",
+});
+
 const compareLibraryGamesByTitle = (
   a: LibraryGame,
   b: LibraryGame,
   ascending = true
 ): number =>
   ascending
-    ? (a.title ?? "").localeCompare(b.title ?? "", undefined, {
-        sensitivity: "base",
-      })
-    : (b.title ?? "").localeCompare(a.title ?? "", undefined, {
-        sensitivity: "base",
-      });
+    ? libraryTitleCollator.compare(a.title ?? "", b.title ?? "")
+    : libraryTitleCollator.compare(b.title ?? "", a.title ?? "");
 
 export const sortLibraryGames = (
   games: LibraryGame[],
@@ -568,10 +579,7 @@ export const getGameCollectionIds = (game: {
 
 export {
   appendProfileLibraryFilterParams,
-  filterLibraryGamesByCategory,
-  filterLibraryGamesByShop,
   getProfileLibraryFilter,
-  shouldShowProfileSteamLibraryBadge,
   shouldShowSteamLibraryBadge,
   type ProfileLibraryFilter,
 };
@@ -626,10 +634,7 @@ export const readStoredProfileSort = (): ProfileSortOption => {
 
 export const readStoredProfilePlatform = (): ProfilePlatformFilter => {
   const saved = localStorage.getItem("profile-platform");
-  return saved === "pc" ||
-    saved === "steam_library" ||
-    saved === "classics" ||
-    saved === "all"
+  return saved === "pc" || saved === "classics" || saved === "all"
     ? saved
     : "all";
 };

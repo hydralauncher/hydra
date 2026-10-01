@@ -311,6 +311,11 @@ declare global {
       autoRunGamemode: boolean
     ) => Promise<void>;
     isGamemodeAvailable: () => Promise<boolean>;
+    isSteamAppExecutable: (
+      appId: string,
+      executablePath: string
+    ) => Promise<boolean>;
+    installGameOnSteam: (steamAppId: string) => Promise<void>;
     isMangohudAvailable: () => Promise<boolean>;
     isWinetricksAvailable: () => Promise<boolean>;
     addGameToLibrary: (
@@ -439,6 +444,7 @@ declare global {
     verifyExecutablePathInUse: (executablePath: string) => Promise<Game>;
     getLibrary: () => Promise<LibraryGame[]>;
     refreshLibraryAssets: () => Promise<void>;
+    getRemoteLibrarySyncState: () => Promise<boolean>;
     openGameInstaller: (shop: GameShop, objectId: string) => Promise<boolean>;
     getGameInstallerActionType: (
       shop: GameShop,
@@ -497,6 +503,9 @@ declare global {
       ) => void
     ) => () => Electron.IpcRenderer;
     onLibraryBatchComplete: (cb: () => void) => () => Electron.IpcRenderer;
+    onRemoteLibrarySyncStateChange: (
+      cb: (syncing: boolean) => void
+    ) => () => Electron.IpcRenderer;
     onDownloadsUpdated: (cb: () => void) => () => Electron.IpcRenderer;
     onClassicsImportStatus: (
       cb: (importing: boolean) => void
@@ -864,14 +873,15 @@ declare global {
       total: number;
     }>;
     cancelScanInstalledGames: (requestId: string) => Promise<void>;
-    addScannedGame: (
-      objectId: string,
-      executablePath: string
-    ) => Promise<{
-      title: string;
-      executablePath: string;
-      iconUrl: string | null;
-    } | null>;
+    addScannedGames: (
+      picks: { objectId: string; executablePath: string }[]
+    ) => Promise<
+      {
+        title: string;
+        executablePath: string;
+        iconUrl: string | null;
+      }[]
+    >;
     onExtractionComplete: (
       cb: (shop: GameShop, objectId: string) => void
     ) => () => Electron.IpcRenderer;
