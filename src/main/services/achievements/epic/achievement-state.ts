@@ -41,14 +41,19 @@ const NORTHLIGHT_RECORD_BYTES = 16;
 type Candidate = EpicAchievementFile & { profileId: string };
 
 async function uniqueCandidates(candidates: Candidate[]): Promise<Candidate[]> {
+  const canonicalPaths = await Promise.all(
+    candidates.map((candidate) =>
+      realpath(candidate.filePath).catch(() => null)
+    )
+  );
   const paths = new Set<string>();
   const unique: Candidate[] = [];
-  for (const candidate of candidates) {
-    const canonicalPath = await realpath(candidate.filePath).catch(() => null);
-    if (!canonicalPath || paths.has(canonicalPath)) continue;
+  candidates.forEach((candidate, index) => {
+    const canonicalPath = canonicalPaths[index];
+    if (!canonicalPath || paths.has(canonicalPath)) return;
     paths.add(canonicalPath);
     unique.push(candidate);
-  }
+  });
   return unique;
 }
 
@@ -73,22 +78,17 @@ async function findNemirtingasCandidates(
   const profiles = await readdir(emulatorRoot, { withFileTypes: true }).catch(
     () => []
   );
-  const candidates: Candidate[] = [];
-
-  for (const profile of profiles) {
-    if (!profile.isDirectory() || profile.isSymbolicLink()) continue;
-    const namespaceRoot = path.join(emulatorRoot, profile.name, namespace);
-    if (!(await isDirectory(namespaceRoot))) continue;
-    const filePath = path.join(namespaceRoot, "achievements.json");
-    if (await isFile(filePath)) {
-      candidates.push({
-        filePath,
-        source: "nemirtingas",
-        profileId: profile.name,
-      });
-    }
-  }
-  return candidates;
+  const candidates = await Promise.all(
+    profiles.map(async (profile): Promise<Candidate | null> => {
+      if (!profile.isDirectory() || profile.isSymbolicLink()) return null;
+      const namespaceRoot = path.join(emulatorRoot, profile.name, namespace);
+      if (!(await isDirectory(namespaceRoot))) return null;
+      const filePath = path.join(namespaceRoot, "achievements.json");
+      if (!(await isFile(filePath))) return null;
+      return { filePath, source: "nemirtingas", profileId: profile.name };
+    })
+  );
+  return candidates.filter((candidate): candidate is Candidate => !!candidate);
 }
 
 async function findAlanWake2Candidates(
@@ -99,31 +99,28 @@ async function findAlanWake2Candidates(
   const profiles = await readdir(gameRoot, { withFileTypes: true }).catch(
     () => []
   );
-  const candidates: Candidate[] = [];
-
-  for (const profile of profiles) {
-    if (!profile.isDirectory() || profile.isSymbolicLink()) continue;
-    const achievementRoot = path.join(gameRoot, profile.name, "achievements");
-    if (!(await isDirectory(achievementRoot))) continue;
-    const filePath = path.join(achievementRoot, "data.chunk");
-    const displayNamePath = path.join(
-      achievementRoot,
-      "--containerDisplayName.chunk"
-    );
-    if (
-      !(await isFile(filePath)) ||
-      !(await isFile(displayNamePath, ALAN_WAKE_2_DISPLAY_NAME_BYTES))
-    )
-      continue;
-    const displayName = await readFile(displayNamePath).catch(() => null);
-    if (displayName?.toString("ascii") !== ALAN_WAKE_2_DISPLAY_NAME) continue;
-    candidates.push({
-      filePath,
-      source: "alan-wake-2",
-      profileId: profile.name,
-    });
-  }
-  return candidates;
+  const candidates = await Promise.all(
+    profiles.map(async (profile): Promise<Candidate | null> => {
+      if (!profile.isDirectory() || profile.isSymbolicLink()) return null;
+      const achievementRoot = path.join(gameRoot, profile.name, "achievements");
+      if (!(await isDirectory(achievementRoot))) return null;
+      const filePath = path.join(achievementRoot, "data.chunk");
+      const displayNamePath = path.join(
+        achievementRoot,
+        "--containerDisplayName.chunk"
+      );
+      if (
+        !(await isFile(filePath)) ||
+        !(await isFile(displayNamePath, ALAN_WAKE_2_DISPLAY_NAME_BYTES))
+      )
+        return null;
+      const displayName = await readFile(displayNamePath).catch(() => null);
+      if (displayName?.toString("ascii") !== ALAN_WAKE_2_DISPLAY_NAME)
+        return null;
+      return { filePath, source: "alan-wake-2", profileId: profile.name };
+    })
+  );
+  return candidates.filter((candidate): candidate is Candidate => !!candidate);
 }
 
 /** Discover only one local player per source. Never union different profiles. */
@@ -228,6 +225,86 @@ function readStableFile(
   }
 }
 
+function parseNemirtingasSavepath(
+  configPath: string,
+  onWarning: (message: string) => void
+): string | undefined | null {
+  const bytes = readStableFile(configPath, MAX_CONFIG_BYTES);
+  let parsed: unknown;
+  try {
+    if (!bytes) throw new Error("Incomplete configuration");
+    parsed = JSON.parse(
+      new TextDecoder("utf-8", { fatal: true }).decode(bytes)
+    );
+  } catch {
+    onWarning("Unreadable Nemirtingas configuration; skipping emulator state");
+    return null;
+  }
+  if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
+    onWarning("Invalid Nemirtingas configuration; skipping emulator state");
+    return null;
+  }
+  const savepath = (parsed as Record<string, unknown>).savepath;
+  if (savepath === undefined || savepath === "appdata") return undefined;
+  if (
+    typeof savepath !== "string" ||
+    savepath.length > MAX_NEMIRTINGAS_SAVEPATH_LENGTH
+  ) {
+    onWarning("Invalid Nemirtingas savepath; skipping emulator state");
+    return null;
+  }
+  return savepath;
+}
+
+function staysWithinDirectory(directory: string, target: string): boolean {
+  const relative = path.relative(directory, target);
+  return (
+    relative !== ".." &&
+    !relative.startsWith(`..${path.sep}`) &&
+    !path.isAbsolute(relative)
+  );
+}
+
+async function resolveNemirtingasSaveRoot(
+  gameDirectory: string,
+  savepath: string,
+  onWarning: (message: string) => void
+): Promise<string | null> {
+  const normalized = savepath.replaceAll("\\", "/");
+  if (
+    path.posix.isAbsolute(normalized) ||
+    path.win32.isAbsolute(savepath) ||
+    /^[a-zA-Z]:/u.test(normalized)
+  ) {
+    onWarning(
+      "Absolute Nemirtingas savepath is unsupported; skipping emulator state"
+    );
+    return null;
+  }
+  const root = path.resolve(gameDirectory, normalized);
+  if (!staysWithinDirectory(gameDirectory, root)) {
+    onWarning(
+      "Nemirtingas savepath leaves the game directory; skipping emulator state"
+    );
+    return null;
+  }
+  const [canonicalGameDirectory, canonicalRoot] = await Promise.all([
+    realpath(gameDirectory).catch(() => null),
+    realpath(root).catch(() => null),
+  ]);
+  if (
+    canonicalGameDirectory &&
+    canonicalRoot &&
+    !staysWithinDirectory(canonicalGameDirectory, canonicalRoot)
+  ) {
+    onWarning(
+      "Nemirtingas savepath resolves outside the game directory; skipping emulator state"
+    );
+    return null;
+  }
+  return root;
+}
+
 /** A configured path is relative to the game directory, per Nemirtingas. */
 export async function getNemirtingasSaveRoot(
   executablePath: string | null,
@@ -249,76 +326,9 @@ export async function getNemirtingasSaveRoot(
       onWarning("Invalid Nemirtingas configuration; skipping emulator state");
       return null;
     }
-    const bytes = readStableFile(configPath, MAX_CONFIG_BYTES);
-    let parsed: unknown;
-    try {
-      if (!bytes) throw new Error("Incomplete configuration");
-      parsed = JSON.parse(
-        new TextDecoder("utf-8", { fatal: true }).decode(bytes)
-      );
-    } catch {
-      onWarning(
-        "Unreadable Nemirtingas configuration; skipping emulator state"
-      );
-      return null;
-    }
-    if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
-      onWarning("Invalid Nemirtingas configuration; skipping emulator state");
-      return null;
-    }
-    const savepath = (parsed as Record<string, unknown>).savepath;
-    if (savepath === undefined || savepath === "appdata") return undefined;
-    if (
-      typeof savepath !== "string" ||
-      savepath.length > MAX_NEMIRTINGAS_SAVEPATH_LENGTH
-    ) {
-      onWarning("Invalid Nemirtingas savepath; skipping emulator state");
-      return null;
-    }
-    const normalized = savepath.replaceAll("\\", "/");
-    if (
-      path.posix.isAbsolute(normalized) ||
-      path.win32.isAbsolute(savepath) ||
-      /^[a-zA-Z]:/u.test(normalized)
-    ) {
-      onWarning(
-        "Absolute Nemirtingas savepath is unsupported; skipping emulator state"
-      );
-      return null;
-    }
-    const root = path.resolve(gameDirectory, normalized);
-    const relative = path.relative(gameDirectory, root);
-    if (
-      relative === ".." ||
-      relative.startsWith(`..${path.sep}`) ||
-      path.isAbsolute(relative)
-    ) {
-      onWarning(
-        "Nemirtingas savepath leaves the game directory; skipping emulator state"
-      );
-      return null;
-    }
-    const [canonicalGameDirectory, canonicalRoot] = await Promise.all([
-      realpath(gameDirectory).catch(() => null),
-      realpath(root).catch(() => null),
-    ]);
-    if (canonicalGameDirectory && canonicalRoot) {
-      const canonicalRelative = path.relative(
-        canonicalGameDirectory,
-        canonicalRoot
-      );
-      if (
-        canonicalRelative === ".." ||
-        canonicalRelative.startsWith(`..${path.sep}`) ||
-        path.isAbsolute(canonicalRelative)
-      ) {
-        onWarning(
-          "Nemirtingas savepath resolves outside the game directory; skipping emulator state"
-        );
-        return null;
-      }
-    }
-    return root;
+    const savepath = parseNemirtingasSavepath(configPath, onWarning);
+    if (savepath === null || savepath === undefined) return savepath;
+    return resolveNemirtingasSaveRoot(gameDirectory, savepath, onWarning);
   }
   return undefined;
 }
@@ -354,7 +364,9 @@ function parseNemirtingasState(
       typeof externalId !== "string" ||
       !externalId.trim() ||
       externalId.length > 512 ||
-      [...externalId].some((character) => character.charCodeAt(0) < 32) ||
+      [...externalId].some(
+        (character) => (character.codePointAt(0) ?? 0) < 32
+      ) ||
       seen.has(externalId) ||
       typeof seconds !== "number" ||
       !Number.isSafeInteger(seconds) ||

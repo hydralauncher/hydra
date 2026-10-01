@@ -175,16 +175,112 @@ const mergeEpicSnapshots = async (
   const historicalCount = historical.length
     ? await mergeAchievements(game, historical, false, sendSilentUpdate)
     : 0;
-  const liveCount = live.length
-    ? publishLive
+  let liveCount = 0;
+  if (live.length) {
+    liveCount = publishLive
       ? await mergeDetectedAchievements(game, live)
-      : await mergeAchievements(game, live, false)
-    : 0;
+      : await mergeAchievements(game, live, false);
+  }
 
   return {
     resolvedCount: resolved.length,
     newAchievements: historicalCount + liveCount,
   };
+};
+
+const parseInitialAchievementFiles = (
+  game: Game,
+  gameKey: string,
+  achievementFiles: AchievementFile[],
+  initialSync: boolean
+) => {
+  const unlockedAchievements: UnlockedAchievement[] = [];
+  const epicSnapshots: ClassifiedEpicAchievements = {
+    historical: [],
+    live: [],
+  };
+
+  for (const achievementFile of achievementFiles) {
+    if (game.shop === "epic") {
+      const classified = parseEpicFile(gameKey, achievementFile, initialSync);
+      if (classified) {
+        epicSnapshots.historical.push(...classified.historical);
+        epicSnapshots.live.push(...classified.live);
+      }
+      continue;
+    }
+
+    const parsed = parseAchievementFile(
+      achievementFile.filePath,
+      achievementFile.type
+    );
+    if (parsed?.length) unlockedAchievements.push(...parsed);
+  }
+
+  return { unlockedAchievements, epicSnapshots };
+};
+
+const parsePreSearchAchievementFile = (
+  game: Game,
+  gameKey: string,
+  achievementFile: AchievementFile,
+  epicSnapshots: ClassifiedEpicAchievements
+): UnlockedAchievement[] | null => {
+  if (game.shop !== "epic") {
+    return parseAchievementFile(achievementFile.filePath, achievementFile.type);
+  }
+
+  const classified = parseEpicFile(gameKey, achievementFile, true);
+  if (!classified) return null;
+  epicSnapshots.historical.push(...classified.historical);
+  epicSnapshots.live.push(...classified.live);
+  return [...classified.historical, ...classified.live];
+};
+
+const parsePreSearchAchievementFiles = (
+  game: Game,
+  gameKey: string,
+  achievementFiles: AchievementFile[]
+) => {
+  const unlockedAchievements: UnlockedAchievement[] = [];
+  const epicSnapshots: ClassifiedEpicAchievements = {
+    historical: [],
+    live: [],
+  };
+
+  for (const achievementFile of achievementFiles) {
+    const parsed = parsePreSearchAchievementFile(
+      game,
+      gameKey,
+      achievementFile,
+      epicSnapshots
+    );
+    if (parsed === null) {
+      fileStats.set(achievementFile.filePath, -1);
+      continue;
+    }
+
+    try {
+      fileStats.set(
+        achievementFile.filePath,
+        fs.statSync(achievementFile.filePath).mtimeMs
+      );
+    } catch {
+      fileStats.set(achievementFile.filePath, -1);
+    }
+
+    if (parsed.length) {
+      unlockedAchievements.push(...parsed);
+      achievementsLogger.log(
+        "Achievement file for",
+        game.title,
+        achievementFile.filePath,
+        parsed
+      );
+    }
+  }
+
+  return { unlockedAchievements, epicSnapshots };
 };
 
 const getEnableSteamAchievements = async () => {
@@ -412,35 +508,13 @@ export class AchievementWatcherManager {
     });
 
     return withGameProcessing(gameKey, async () => {
-      const unlockedAchievements: UnlockedAchievement[] = [];
-      const epicSnapshots: ClassifiedEpicAchievements = {
-        historical: [],
-        live: [],
-      };
-
-      for (const achievementFile of gameAchievementFiles) {
-        if (game.shop === "epic") {
-          const classified = parseEpicFile(
-            gameKey,
-            achievementFile,
-            !this.hasFinishedPreSearch
-          );
-          if (classified) {
-            epicSnapshots.historical.push(...classified.historical);
-            epicSnapshots.live.push(...classified.live);
-          }
-          continue;
-        }
-
-        const localAchievementFile = parseAchievementFile(
-          achievementFile.filePath,
-          achievementFile.type
+      const { unlockedAchievements, epicSnapshots } =
+        parseInitialAchievementFiles(
+          game,
+          gameKey,
+          gameAchievementFiles,
+          !this.hasFinishedPreSearch
         );
-
-        if (localAchievementFile?.length) {
-          unlockedAchievements.push(...localAchievementFile);
-        }
-      }
 
       let newAchievements: number;
       try {
@@ -497,52 +571,8 @@ export class AchievementWatcherManager {
   ) {
     const gameKey = levelKeys.game(game.shop, game.objectId);
     return withGameProcessing(gameKey, async () => {
-      const unlockedAchievements: UnlockedAchievement[] = [];
-      const epicSnapshots: ClassifiedEpicAchievements = {
-        historical: [],
-        live: [],
-      };
-      for (const achievementFile of gameAchievementFiles) {
-        let parsedAchievements: UnlockedAchievement[] | null;
-        if (game.shop === "epic") {
-          const classified = parseEpicFile(gameKey, achievementFile, true);
-          if (classified) {
-            epicSnapshots.historical.push(...classified.historical);
-            epicSnapshots.live.push(...classified.live);
-            parsedAchievements = [...classified.historical, ...classified.live];
-          } else {
-            parsedAchievements = null;
-          }
-        } else {
-          parsedAchievements = parseAchievementFile(
-            achievementFile.filePath,
-            achievementFile.type
-          );
-        }
-
-        if (parsedAchievements === null) {
-          fileStats.set(achievementFile.filePath, -1);
-          continue;
-        }
-
-        try {
-          const currentStat = fs.statSync(achievementFile.filePath);
-          fileStats.set(achievementFile.filePath, currentStat.mtimeMs);
-        } catch {
-          fileStats.set(achievementFile.filePath, -1);
-        }
-
-        if (parsedAchievements.length) {
-          unlockedAchievements.push(...parsedAchievements);
-
-          achievementsLogger.log(
-            "Achievement file for",
-            game.title,
-            achievementFile.filePath,
-            parsedAchievements
-          );
-        }
-      }
+      const { unlockedAchievements, epicSnapshots } =
+        parsePreSearchAchievementFiles(game, gameKey, gameAchievementFiles);
 
       if (game.shop === "epic") {
         const merged = await mergeEpicSnapshots(
