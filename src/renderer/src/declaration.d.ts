@@ -867,20 +867,6 @@ declare global {
       platform: EmulationSavePlatform,
       objectId?: string | null
     ) => Promise<EmulationCloudSave[]>;
-    listArchivedEmulationSavesForGame: (
-      platform: EmulationSavePlatform,
-      objectId: string
-    ) => Promise<EmulationCloudSave[]>;
-    listArchivedEmulationSavesForPlatform: (
-      platform: EmulationSavePlatform
-    ) => Promise<EmulationCloudSave[]>;
-    exportArchivedEmulationSave: (
-      platform: EmulationSavePlatform,
-      objectId: string | null,
-      saveId: string
-    ) => Promise<
-      { status: "saved"; filePath: string } | { status: "cancelled" }
-    >;
     listLocalEmulationSaves: (
       platform: EmulationSavePlatform
     ) => Promise<Ps2MemoryCardSaveRecord[]>;

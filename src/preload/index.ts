@@ -819,26 +819,6 @@ contextBridge.exposeInMainWorld("electron", {
     objectId?: string | null
   ): Promise<EmulationCloudSave[]> =>
     ipcRenderer.invoke("listEmulationSaves", platform, objectId),
-  listArchivedEmulationSavesForGame: (
-    platform: EmulationSavePlatform,
-    objectId: string
-  ): Promise<EmulationCloudSave[]> =>
-    ipcRenderer.invoke("listArchivedEmulationSavesForGame", platform, objectId),
-  listArchivedEmulationSavesForPlatform: (
-    platform: EmulationSavePlatform
-  ): Promise<EmulationCloudSave[]> =>
-    ipcRenderer.invoke("listArchivedEmulationSavesForPlatform", platform),
-  exportArchivedEmulationSave: (
-    platform: EmulationSavePlatform,
-    objectId: string | null,
-    saveId: string
-  ): Promise<{ status: "saved"; filePath: string } | { status: "cancelled" }> =>
-    ipcRenderer.invoke(
-      "exportArchivedEmulationSave",
-      platform,
-      objectId,
-      saveId
-    ),
   listLocalEmulationSaves: (
     platform: EmulationSavePlatform
   ): Promise<Ps2MemoryCardSaveRecord[]> =>

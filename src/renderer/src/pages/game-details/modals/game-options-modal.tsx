@@ -18,7 +18,6 @@ import {
 
 import type {
   CreateSteamShortcutOptions,
-  EmulationCloudSave,
   Game,
   LegacySaveExportProgress,
   LibraryGame,
@@ -54,11 +53,7 @@ import { Wrench } from "lucide-react";
 import { GameAssetsSettings } from "./game-assets-settings";
 import { debounce } from "lodash-es";
 import { levelDBService } from "@renderer/services/leveldb.service";
-import {
-  getGameKey,
-  getGameTitleFromExecutablePath,
-  platformToEmulationSavePlatform,
-} from "@renderer/helpers";
+import { getGameKey, getGameTitleFromExecutablePath } from "@renderer/helpers";
 import "./game-options-modal.scss";
 import { logger } from "@renderer/logger";
 import { GameOptionsSidebar } from "./game-options-modal/sidebar";
@@ -165,15 +160,6 @@ export function GameOptionsModal({
   const [legacySaveDownloadProgress, setLegacySaveDownloadProgress] =
     useState<LegacySaveExportProgress | null>(null);
   const legacySaveExportInProgressRef = useRef(false);
-  const [archivedEmulationSaves, setArchivedEmulationSaves] = useState<
-    EmulationCloudSave[]
-  >([]);
-  const [downloadingEmulationSaveId, setDownloadingEmulationSaveId] = useState<
-    string | null
-  >(null);
-  const emulationArchiveExportInProgressRef = useRef(false);
-  const emulationArchiveRequestIdRef = useRef(0);
-
   const cancelLegacySaveExport = useCallback(() => {
     if (!legacySaveExportInProgressRef.current) return;
 
@@ -263,82 +249,10 @@ export function GameOptionsModal({
     game.platform
   ).settings;
   const { showV2: showCloudSaveV2Settings, legacyPurpose } = cloudSaveSettings;
-  const archivedEmulationPlatform =
-    game.shop === "launchbox" && legacyPurpose === "archive"
-      ? platformToEmulationSavePlatform(game.platform)
-      : null;
-  const loadArchivedEmulationSaves = useCallback(async () => {
-    const requestId = ++emulationArchiveRequestIdRef.current;
-    if (!visible || !hasActiveSubscription || !archivedEmulationPlatform) {
-      setArchivedEmulationSaves([]);
-      return;
-    }
-    try {
-      const saves = await window.electron.listArchivedEmulationSavesForGame(
-        archivedEmulationPlatform,
-        game.objectId
-      );
-      if (requestId !== emulationArchiveRequestIdRef.current) return;
-      setArchivedEmulationSaves(
-        saves.filter(
-          (save) => save.shop === "launchbox" && save.objectId === game.objectId
-        )
-      );
-    } catch (error) {
-      if (requestId !== emulationArchiveRequestIdRef.current) return;
-      logger.error("Failed to list archived emulation saves", error);
-      setArchivedEmulationSaves([]);
-    }
-  }, [
-    archivedEmulationPlatform,
-    game.objectId,
-    hasActiveSubscription,
-    visible,
-  ]);
-
-  useEffect(() => {
-    void loadArchivedEmulationSaves();
-  }, [loadArchivedEmulationSaves]);
-
-  const handleArchivedEmulationDownload = useCallback(
-    async (saveId: string) => {
-      if (
-        !archivedEmulationPlatform ||
-        emulationArchiveExportInProgressRef.current
-      ) {
-        return;
-      }
-      emulationArchiveExportInProgressRef.current = true;
-      setDownloadingEmulationSaveId(saveId);
-      try {
-        const result = await window.electron.exportArchivedEmulationSave(
-          archivedEmulationPlatform,
-          game.objectId,
-          saveId
-        );
-        if (result.status === "saved") {
-          showSuccessToast(t("legacy_save_download_success"));
-        }
-      } catch (error) {
-        logger.error("Failed to export archived emulation save", error);
-        showErrorToast(t("legacy_save_download_failed"));
-      } finally {
-        emulationArchiveExportInProgressRef.current = false;
-        setDownloadingEmulationSaveId(null);
-      }
-    },
-    [
-      archivedEmulationPlatform,
-      game.objectId,
-      showErrorToast,
-      showSuccessToast,
-      t,
-    ]
-  );
   const showLegacyCloudSaveSettings = isLegacyCloudSaveSettingsAvailable(
     cloudSaveSettings,
     hasActiveSubscription,
-    artifacts.length + archivedEmulationSaves.length
+    artifacts.length
   );
   const userPreferences = useAppSelector(
     (state) => state.userPreferences.value
@@ -1381,12 +1295,8 @@ export function GameOptionsModal({
               legacyPurpose === "archive" && (
                 <LegacySavesSection
                   downloadingArtifactId={downloadingLegacySaveArtifactId}
-                  downloadingEmulationSaveId={downloadingEmulationSaveId}
                   downloadProgress={legacySaveDownloadProgress}
                   onDownload={handleLegacySaveDownload}
-                  archivedEmulationSaves={archivedEmulationSaves}
-                  onDownloadEmulationSave={handleArchivedEmulationDownload}
-                  onEmulationSaveDeleted={loadArchivedEmulationSaves}
                 />
               )}
             {selectedCategory === "compatibility" &&

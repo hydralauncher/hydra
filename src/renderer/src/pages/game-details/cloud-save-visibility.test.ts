@@ -94,13 +94,26 @@ describe("cloud save visibility", () => {
     assert.equal(isLegacyCloudSaveSettingsAvailable(settings, true, 2), true);
   });
 
-  it("shows the emulator archive when its separate API has a backup", () => {
-    const settings = getCloudSaveVisibility(
-      "launchbox",
-      "Nintendo Game Boy Advance"
-    ).settings;
-    assert.equal(isLegacyCloudSaveSettingsAvailable(settings, true, 1), true);
-    assert.equal(isLegacyCloudSaveSettingsAvailable(settings, true, 0), false);
-    assert.equal(isLegacyCloudSaveSettingsAvailable(settings, false, 1), false);
+  it("keeps RPCS3 and RetroArch legacy archives available through existing game artifacts", () => {
+    for (const platform of [
+      "Sony PlayStation 3",
+      "Nintendo Entertainment System",
+      "Super Nintendo Entertainment System",
+      "Nintendo 64",
+      "Nintendo Game Boy",
+      "Nintendo Game Boy Color",
+      "Nintendo Game Boy Advance",
+    ]) {
+      const settings = getCloudSaveVisibility("launchbox", platform).settings;
+      assert.equal(isLegacyCloudSaveSettingsAvailable(settings, true, 1), true);
+      assert.equal(
+        isLegacyCloudSaveSettingsAvailable(settings, true, 0),
+        false
+      );
+      assert.equal(
+        isLegacyCloudSaveSettingsAvailable(settings, false, 1),
+        false
+      );
+    }
   });
 });
