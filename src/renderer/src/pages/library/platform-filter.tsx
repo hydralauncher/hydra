@@ -20,7 +20,13 @@ export function PlatformFilter({
   const allLabel = t("all_consoles");
 
   const getTriggerLabel = () => {
-    if (selectedPlatforms.length === 0) return allLabel;
+    if (
+      selectedPlatforms.length === 0 ||
+      platforms.every((platform) => selectedPlatforms.includes(platform))
+    ) {
+      return allLabel;
+    }
+
     if (selectedPlatforms.length === 1) return selectedPlatforms[0];
     return t("selected_consoles", { count: selectedPlatforms.length });
   };

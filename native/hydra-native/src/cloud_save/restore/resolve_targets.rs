@@ -546,6 +546,31 @@ mod tests {
     }
 
     #[test]
+    fn restores_an_emulator_file_to_an_approved_local_save_name() {
+        let temp = tempdir().unwrap();
+        let variant = variant("default", "");
+        let mut remote_file = file(&variant, "battery.srm");
+        remote_file.raw_path = "<emulator>/retroarch/gba/1234ABCD".into();
+        let target = temp.path().join("saves/Metroid.srm");
+        let mut restore_input = input(temp.path(), vec![variant], vec![remote_file.clone()]);
+        restore_input.shop = "launchbox".into();
+        restore_input.approved_rules = vec![ApprovedRestoreRule {
+            kind: "file".into(),
+            raw_path: remote_file.raw_path,
+            source: "emulator".into(),
+            preferred_path: Some(target.display().to_string()),
+            when: vec![],
+        }];
+
+        let result = resolve_restore_targets_inner(restore_input).unwrap();
+
+        assert!(result.blocked.is_empty());
+        assert!(result.deferred.is_empty());
+        assert_eq!(result.actions.len(), 1);
+        assert_eq!(Path::new(&result.actions[0].target_path), target);
+    }
+
+    #[test]
     fn reports_the_current_file_metadata_for_an_existing_target() {
         let temp = tempdir().unwrap();
         let target_root = temp.path().join("Game");

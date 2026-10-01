@@ -24,6 +24,9 @@ import {
 } from "../../../helpers";
 import { SourceAnchor } from "../../common/source-anchor";
 import { DownloadSourceOption } from "../../common/download-source-option";
+import { SteamDownloadOption } from "../../common/download-source-option/steam-download-option";
+import { canDownloadOnSteam, isSteamImportedGame } from "@renderer/helpers";
+import { useIsNonSteamExecutable } from "@renderer/hooks/use-non-steam-executable";
 import {
   DownloadSourceOptionSkeleton,
   SourceAnchorSkeleton,
@@ -70,6 +73,7 @@ import {
 } from "@phosphor-icons/react";
 
 import "./styles.scss";
+import { readActiveLibraryDownload } from "./download-queue";
 
 interface DownloadGameModalProps {
   visible: boolean;
@@ -86,8 +90,14 @@ interface DownloadGameModalProps {
   };
 }
 
+interface SteamDownloadOptionData {
+  title: string;
+  onSelect: () => void;
+}
+
 interface DownloadGameSourceListProps {
   onClose: () => void;
+  steamOption: SteamDownloadOptionData | null;
   onSelectOption: (option: GameRepack) => void;
   downloadOptions: GameRepack[];
   localDownloadSources: DownloadSource[];
@@ -121,21 +131,6 @@ interface DownloadDirectorySuggestion {
   path: string;
   freeBytes: number | null;
   totalBytes: number | null;
-}
-
-function hasActiveLibraryDownload(
-  library: Array<Pick<LibraryGame, "download">>
-) {
-  return library.some((libraryGame) => {
-    const download = libraryGame.download;
-
-    return Boolean(
-      download &&
-        (download.status === "active" ||
-          download.status === "extracting" ||
-          download.extracting)
-    );
-  });
 }
 
 const DOWNLOAD_SORT_OPTIONS: Array<{
@@ -566,6 +561,47 @@ function DownloadGameModalSession({
     isLoading,
     emptyStateReason,
   } = useGameDownloadOptions(game, visible);
+  const [libraryGame, setLibraryGame] = useState<LibraryGame | null>(null);
+  const isNonSteamExecutable = useIsNonSteamExecutable(libraryGame);
+
+  useEffect(() => {
+    if (!visible || !IS_DESKTOP) {
+      setLibraryGame(null);
+      return;
+    }
+
+    let cancelled = false;
+
+    globalThis.window.electron
+      .getGameByObjectId(game.shop, game.objectId)
+      .then((result) => {
+        if (!cancelled) setLibraryGame(result);
+      })
+      .catch(() => {
+        if (!cancelled) setLibraryGame(null);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [visible, game.shop, game.objectId]);
+
+  const steamOption = useMemo<SteamDownloadOptionData | null>(() => {
+    if (
+      !canDownloadOnSteam(libraryGame) &&
+      !(isSteamImportedGame(libraryGame) && isNonSteamExecutable)
+    ) {
+      return null;
+    }
+
+    return {
+      title: game.title,
+      onSelect: () => {
+        void globalThis.window.electron.installGameOnSteam(game.objectId);
+        onClose();
+      },
+    };
+  }, [game.objectId, game.title, isNonSteamExecutable, libraryGame, onClose]);
 
   const isntFirstStep = useMemo(() => {
     return activeStep !== DownloadGameStep.SourceList;
@@ -768,6 +804,7 @@ function DownloadGameModalSession({
     () => (
       <DownloadGameSourceList
         onClose={onClose}
+        steamOption={steamOption}
         onSelectOption={handleNextStep}
         downloadOptions={downloadOptions}
         localDownloadSources={localDownloadSources}
@@ -794,6 +831,7 @@ function DownloadGameModalSession({
       searchTerm,
       selectedSortOption,
       selectedSources,
+      steamOption,
     ]
   );
   const renderOptionsStep = useCallback(
@@ -932,6 +970,7 @@ function DownloadGameModalSession({
 
 function DownloadGameSourceList({
   onClose,
+  steamOption,
   onSelectOption,
   downloadOptions,
   localDownloadSources,
@@ -1010,6 +1049,18 @@ function DownloadGameSourceList({
     !hasStructuralEmptyState &&
     sortedDownloadOptions.length === 0 &&
     trimmedSearchTerm.length > 0;
+  const steamOptionTerm = trimmedSearchTerm.toLowerCase();
+  const showSteamOption =
+    steamOption !== null &&
+    !isSourceListLoading &&
+    selectedSources.length === 0 &&
+    (!steamOptionTerm ||
+      "steam".includes(steamOptionTerm) ||
+      steamOption.title.toLowerCase().includes(steamOptionTerm));
+  const showStructuralEmptyState = hasStructuralEmptyState && !showSteamOption;
+  const showSearchEmptyState = hasSearchEmptyState && !showSteamOption;
+  const showDownloadOptions =
+    !isSourceListLoading && !hasStructuralEmptyState && !hasSearchEmptyState;
   const sourceTrackStyle = useMemo(
     () =>
       ({
@@ -1159,9 +1210,9 @@ function DownloadGameSourceList({
 
   if (isSourceListLoading) {
     optionsTransitionKey = "loading";
-  } else if (hasStructuralEmptyState) {
+  } else if (showStructuralEmptyState) {
     optionsTransitionKey = `empty-${emptyStateReason}`;
-  } else if (hasSearchEmptyState) {
+  } else if (showSearchEmptyState) {
     optionsTransitionKey = "search-empty";
   } else {
     optionsTransitionKey = `sorted-${selectedSortOption}-${selectedSources.toSorted((a, b) => a.localeCompare(b)).join("|") || "all"}`;
@@ -1264,7 +1315,7 @@ function DownloadGameSourceList({
                 />
               ))}
 
-            {hasStructuralEmptyState && (
+            {showStructuralEmptyState && (
               <EmptyState
                 className="download-game-modal__source-list-empty-state"
                 icon={<MagnifyingGlassIcon size={32} weight="bold" />}
@@ -1284,7 +1335,7 @@ function DownloadGameSourceList({
               />
             )}
 
-            {hasSearchEmptyState && (
+            {showSearchEmptyState && (
               <EmptyState
                 className="download-game-modal__source-list-empty-state"
                 icon={<MagnifyingGlassIcon size={32} weight="bold" />}
@@ -1302,9 +1353,32 @@ function DownloadGameSourceList({
               />
             )}
 
-            {!isSourceListLoading &&
-              !hasStructuralEmptyState &&
-              !hasSearchEmptyState &&
+            {showSteamOption && (
+              <SteamDownloadOption
+                title={steamOption.title}
+                label={t("download_on_steam", { ns: "game_details" })}
+                stealFocusOnAppear
+                focusNavigationOverrides={
+                  firstSourceFocusId && !hasStructuralEmptyState
+                    ? {
+                        up: {
+                          type: "item",
+                          itemId: firstSourceFocusId,
+                        },
+                      }
+                    : undefined
+                }
+                onSelect={steamOption.onSelect}
+              />
+            )}
+
+            {showSteamOption &&
+              showDownloadOptions &&
+              sortedDownloadOptions.length > 0 && (
+                <div className="download-game-modal__source-list__separator" />
+              )}
+
+            {showDownloadOptions &&
               sortedDownloadOptions.map((option, index) => (
                 <DownloadSourceOption
                   key={option.id}
@@ -1319,9 +1393,9 @@ function DownloadGameSourceList({
                         }
                       : option
                   }
-                  stealFocusOnAppear={index === 0}
+                  stealFocusOnAppear={index === 0 && !showSteamOption}
                   focusNavigationOverrides={
-                    index === 0 && firstSourceFocusId
+                    index === 0 && !showSteamOption && firstSourceFocusId
                       ? {
                           up: {
                             type: "item",
@@ -1485,11 +1559,13 @@ function DownloadGameOptions({
     let cancelled = false;
 
     const refreshActiveDownloadState = async () => {
-      const library = await globalThis.window.electron.getLibrary();
+      const activeDownload = await readActiveLibraryDownload(
+        globalThis.window.electron.getLibrary
+      );
 
       if (cancelled) return;
 
-      setHasActiveDownload(hasActiveLibraryDownload(library));
+      setHasActiveDownload(activeDownload);
     };
 
     void refreshActiveDownloadState();
@@ -1572,8 +1648,9 @@ function DownloadGameOptions({
     let shouldQueue = hasActiveDownload;
 
     try {
-      const library = await globalThis.window.electron.getLibrary();
-      shouldQueue = hasActiveLibraryDownload(library);
+      shouldQueue = await readActiveLibraryDownload(
+        globalThis.window.electron.getLibrary
+      );
 
       const response = shouldQueue
         ? await globalThis.window.electron.addGameToQueue(payload)

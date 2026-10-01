@@ -465,6 +465,18 @@
     gap: 24px;
   }
 
+  &__rpcs3-roots {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  &__rpcs3-root-path {
+    flex: 1;
+    min-width: 0;
+    overflow-wrap: anywhere;
+  }
+
   &__exec-row {
     align-items: center;
   }

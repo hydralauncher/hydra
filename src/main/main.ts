@@ -34,6 +34,9 @@ import { getDirSize } from "./services/download/helpers";
 import { GofileApi } from "./services/hosters";
 import { clearLegacyAchievementPersistence } from "./level/clear-legacy-achievements";
 import { startSteamSyncOnStartup } from "./services/steam-integration/steam-startup-sync";
+import { migrateEmulatorCloudSaveDefaults } from "./services/cloud-save/automatic-sync-emulator-migration";
+import { watchSteamLibraries } from "./services/steam-integration/steam-install-watcher";
+import { migrateGameVisibilityFields } from "./services/library-sync/game-visibility-migration";
 
 const hasMissingSeedFiles = async (download: Download): Promise<boolean> => {
   if (!download.folderName) return false;
@@ -61,6 +64,8 @@ export const loadState = async () => {
   await Lock.acquireLock();
   await clearLegacyAchievementPersistence();
   await migrateCloudSaveAutomaticSyncDefaults();
+  await migrateEmulatorCloudSaveDefaults();
+  await migrateGameVisibilityFields();
 
   const userPreferences = await db.get<string, UserPreferences | null>(
     levelKeys.userPreferences,
@@ -106,6 +111,8 @@ export const loadState = async () => {
   if (process.platform === "linux") {
     DeckyPlugin.checkAndUpdateIfOutdated();
   }
+
+  void watchSteamLibraries();
 
   await HydraApi.setupApi().then(async () => {
     uploadGamesBatch();

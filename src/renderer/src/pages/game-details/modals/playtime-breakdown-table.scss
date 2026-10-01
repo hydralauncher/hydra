@@ -1,0 +1,53 @@
+@use "../../../scss/globals.scss";
+
+.playtime-breakdown-table {
+  display: grid;
+  grid-template-columns:
+    minmax(0, 1fr) auto minmax(0, 1fr)
+    auto minmax(0, 1fr);
+  gap: globals.$spacing-unit;
+  font-variant-numeric: tabular-nums;
+  cursor: default;
+
+  &__label {
+    display: flex;
+    align-items: center;
+    gap: globals.$spacing-unit;
+    min-width: 0;
+    font-size: globals.$small-font-size;
+    font-weight: bold;
+    color: globals.$body-color;
+    white-space: nowrap;
+  }
+
+  &__operator {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: rgba(255, 255, 255, 0.5);
+  }
+
+  &__value {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: calc(globals.$spacing-unit / 2);
+    min-width: 0;
+    padding: globals.$spacing-unit calc(globals.$spacing-unit * 1.5);
+    border: 1px solid globals.$border-color;
+    border-radius: 8px;
+    background-color: globals.$dark-background-color;
+  }
+
+  &__next {
+    font-size: globals.$body-font-size;
+    color: globals.$muted-color;
+    white-space: nowrap;
+  }
+
+  &__previous {
+    font-size: globals.$small-font-size;
+    color: rgba(255, 255, 255, 0.4);
+    white-space: nowrap;
+  }
+}

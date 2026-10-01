@@ -92,7 +92,18 @@ export function SidebarGameItem({
                 void handlePlayGame();
               } else {
                 showWarningToast(
-                  t("game_has_no_executable", { ns: "translation" })
+                  game.shop === "launchbox"
+                    ? t("game_has_no_disc_hint", {
+                        ns: "sidebar",
+                        options: t("options"),
+                        settings: t("settings", { ns: "sidebar" }),
+                        emulation: t("emulation", { ns: "settings" }),
+                      })
+                    : t("game_has_no_executable_hint", {
+                        ns: "sidebar",
+                        options: t("options"),
+                        locations: t("settings_category_locations"),
+                      })
                 );
               }
             }

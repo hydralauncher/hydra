@@ -6,12 +6,14 @@ import { levelKeys } from "../level/sublevels/keys.js";
 import {
   clearGamesPlaytimeState,
   deleteGamePlaytime,
+  deleteEmulatorGameRunning,
   enableHydraPlaytimeForRunningSession,
   gamesPlaytime,
   getGamePlaytimeDeltas,
   getTrackedGamesRunning,
   isGameRunning,
   setGamePlaytime,
+  setEmulatorGameRunning,
 } from "./game-running-state.js";
 import {
   getDisplayedPlayTimeInMilliseconds,
@@ -32,6 +34,15 @@ describe("game running state", () => {
     assert.equal(isGameRunning("10", "steam"), true);
     assert.equal(isGameRunning("20", "steam"), false);
     assert.equal(gamesPlaytime.size, 1);
+  });
+
+  it("blocks cloud save operations during an emulator session", () => {
+    const key = levelKeys.game("launchbox", "ps3-game");
+    setEmulatorGameRunning(key);
+    assert.equal(isGameRunning("ps3-game", "launchbox"), true);
+    assert.equal(isGameRunning("ps3-game", "steam"), false);
+    deleteEmulatorGameRunning(key);
+    assert.equal(isGameRunning("ps3-game", "launchbox"), false);
   });
 
   it("deletes and clears entries through the shared state helpers", () => {

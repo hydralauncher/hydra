@@ -355,6 +355,14 @@ export const steamCommunityStatsHtmlUrl = (
 export const steamCommunityOwnerStatsHtmlUrl = (steamAppId: string) =>
   `${STEAM_COMMUNITY_ORIGIN}/my/stats/${steamAppId}`;
 
+export const steamCommunityStatsXmlUrlForPage = (pageUrl: string) => {
+  const url = new URL(pageUrl);
+  url.search = "?xml=1";
+  url.hash = "";
+  if (!url.pathname.endsWith("/")) url.pathname = `${url.pathname}/`;
+  return url.toString();
+};
+
 export const catalogueFromSteamSchema = (
   steamAppId: string,
   payload: unknown
@@ -393,11 +401,22 @@ export const fetchSteamCommunityPlayerAchievements = async ({
   loadSchema: (steamAppId: string) => Promise<unknown>;
   timeZoneOffsetSeconds?: number;
 }): Promise<unknown> => {
-  const readHtml = async (url: string) => {
+  const readPage = async (url: string) => {
     const response = await communityFetch(url, { signal, redirect: "follow" });
     const body = await readResponseText(response);
     throwIfCommunityLogin(response.url, body);
-    return body;
+    return { body, url: response.url || url };
+  };
+
+  const readHtml = async (url: string) => (await readPage(url)).body;
+
+  const readPlayerstatsXml = async () => {
+    const page = await readPage(
+      steamCommunityStatsXmlUrl(steamId64, steamAppId)
+    );
+    if (isSteamCommunityPlayerstatsXml(page.body)) return page.body;
+
+    return (await readPage(steamCommunityStatsXmlUrlForPage(page.url))).body;
   };
 
   const mapUnlocks = async (htmlBody: string) => {
@@ -426,9 +445,7 @@ export const fetchSteamCommunityPlayerAchievements = async ({
     return playerstatsPayload([]);
   }
 
-  const xmlBody = await readHtml(
-    steamCommunityStatsXmlUrl(steamId64, steamAppId)
-  );
+  const xmlBody = await readPlayerstatsXml();
   if (
     isSteamCommunityPlayerstatsXml(xmlBody) &&
     !isSteamCommunityPrivateStatsXml(xmlBody)
