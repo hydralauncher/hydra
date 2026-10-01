@@ -28,6 +28,7 @@ describe("baseRefForBranch", () => {
   test("maps both release branch formats to the shipped tag", () => {
     assert.equal(baseRefForBranch("release/4.1.5"), "v4.1.5");
     assert.equal(baseRefForBranch("release/v4.1.5"), "v4.1.5");
+    assert.equal(baseRefForBranch("release/4.2.0-beta.1"), "v4.2.0-beta.1");
   });
 
   test("rejects branches without a version", () => {
@@ -212,6 +213,54 @@ describe("findMissingUsages", () => {
         get();
       `),
       ["newApi"]
+    );
+  });
+
+  test("reports calls through a defaulted missing namespace", () => {
+    assert.deepEqual(
+      check(`
+        const { newApi: { newFn } = {} } = window.electron;
+        newFn();
+        newFn?.();
+      `),
+      ["newApi", "newApi (guarded)"]
+    );
+
+    assert.deepEqual(
+      check(`
+        const { get } = window.electron.newApi ?? {};
+        get();
+      `),
+      ["newApi (guarded)", "newApi"]
+    );
+  });
+
+  test("keeps aliases and destructured members to their own scope", () => {
+    assert.deepEqual(
+      check(`
+        function bridge() {
+          const electron = window.electron;
+          electron.newFn();
+        }
+        function client(electron: { other(): void }) {
+          electron.other();
+        }
+        function local() {
+          const electron = createClient();
+          electron.other();
+        }
+      `),
+      ["newFn"]
+    );
+
+    assert.deepEqual(
+      check(`
+        const { newFn } = window.electron;
+        function run(newFn: () => void) {
+          newFn();
+        }
+      `),
+      []
     );
   });
 });

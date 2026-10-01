@@ -61,7 +61,7 @@ const git = (...args) =>
 
 // release/4.1.5 and release/v4.1.5 both deploy the renderer for tag v4.1.5.
 export const baseRefForBranch = (branch) => {
-  const match = /^release\/v?(\d+\.\d+\.\d+[\w.-]*)$/.exec(branch);
+  const match = /^release\/v?(\d+\.\d+\.\d+(?:-[\w.]+)?)$/.exec(branch);
   if (!match) {
     throw new Error(`"${branch}" is not a release/<version> branch`);
   }
@@ -152,7 +152,62 @@ const isScope = (node) =>
   ts.isModuleBlock(node) ||
   ts.isCaseOrDefaultClause(node);
 
-const scopeOf = (node) => (isScope(node) ? node : scopeOf(node.parent));
+// The identifiers a binding declares: `x`, or each name in `{ x, y: [z] }`.
+const declaredIdentifiers = (name) =>
+  ts.isIdentifier(name)
+    ? [name]
+    : name.elements.flatMap((element) =>
+        ts.isOmittedExpression(element) ? [] : declaredIdentifiers(element.name)
+      );
+
+const declaredInList = (list) =>
+  list.declarations.flatMap(({ name }) => declaredIdentifiers(name));
+
+const declaredInStatement = (statement) => {
+  if (ts.isVariableStatement(statement)) {
+    return declaredInList(statement.declarationList);
+  }
+  const isNamed =
+    ts.isFunctionDeclaration(statement) || ts.isClassDeclaration(statement);
+  return isNamed && statement.name ? [statement.name] : [];
+};
+
+// The identifiers node declares for the code inside it.
+const declaredIn = (node) => {
+  if (isScope(node)) return node.statements.flatMap(declaredInStatement);
+  if (ts.isFunctionLike(node)) {
+    return node.parameters.flatMap(({ name }) => declaredIdentifiers(name));
+  }
+  if (ts.isCatchClause(node) && node.variableDeclaration) {
+    return declaredIdentifiers(node.variableDeclaration.name);
+  }
+  const isLoop =
+    ts.isForStatement(node) ||
+    ts.isForInStatement(node) ||
+    ts.isForOfStatement(node);
+  return isLoop &&
+    node.initializer &&
+    ts.isVariableDeclarationList(node.initializer)
+    ? declaredInList(node.initializer)
+    : [];
+};
+
+const declarationCache = new WeakMap();
+
+// The declaration `identifier` refers to: its name in the nearest scope
+// around it that declares one.
+const declarationOf = (identifier) => {
+  for (let node = identifier.parent; node; node = node.parent) {
+    if (!declarationCache.has(node)) {
+      declarationCache.set(node, declaredIn(node));
+    }
+    const declaration = declarationCache
+      .get(node)
+      .find(({ text }) => text === identifier.text);
+    if (declaration) return declaration;
+  }
+  return undefined;
+};
 
 // Whether statement always leaves the code that follows it.
 const exits = (statement) =>
@@ -166,18 +221,25 @@ const exits = (statement) =>
     exits(statement.thenStatement) &&
     exits(statement.elseStatement));
 
+// `x()` or `x.y`, the uses that throw when x is undefined.
+const isCalledOrAccessed = (node) => {
+  node = wrapped(node);
+  return (
+    (isAccess(node.parent) || ts.isCallExpression(node.parent)) &&
+    node.parent.expression === node
+  );
+};
+
 // Whether reading node is harmless when it is undefined: `x?.()`, `x?.y`,
 // `typeof x`, `!x`, `x == null`, `x && ...` or `if (x)`.
 const toleratesMissing = (node) => {
+  if (isCalledOrAccessed(node)) {
+    return Boolean(wrapped(node).parent.questionDotToken);
+  }
+
   node = wrapped(node);
   const { parent } = node;
 
-  if (
-    (isAccess(parent) || ts.isCallExpression(parent)) &&
-    parent.expression === node
-  ) {
-    return Boolean(parent.questionDotToken);
-  }
   if (ts.isTypeOfExpression(parent)) return true;
   if (ts.isPrefixUnaryExpression(parent)) {
     return parent.operator === SyntaxKind.ExclamationToken;
@@ -288,8 +350,35 @@ const findMissing = (members, member) => {
   return null;
 };
 
-const covers = (member, key) =>
-  member !== null && (member === key || member.startsWith(`${key}.`));
+// `x === y` and `x !== y` style operators.
+const NEGATED_OPERATORS = new Set([
+  SyntaxKind.ExclamationEqualsToken,
+  SyntaxKind.ExclamationEqualsEqualsToken,
+]);
+
+const STRICT_OPERATORS = new Set([
+  SyntaxKind.EqualsEqualsEqualsToken,
+  SyntaxKind.ExclamationEqualsEqualsToken,
+]);
+
+const isNegation = (node) =>
+  ts.isPrefixUnaryExpression(node) &&
+  node.operator === SyntaxKind.ExclamationToken;
+
+const isUndefinedLiteral = (node) =>
+  ts.isIdentifier(node) && node.text === "undefined";
+
+// `window.electron.newApi ?? {}` reads newApi without throwing when it's missing.
+const destructuringSource = (initializer) => {
+  const node = unwrap(initializer);
+  const hasDefault =
+    ts.isBinaryExpression(node) &&
+    (node.operatorToken.kind === SyntaxKind.QuestionQuestionToken ||
+      node.operatorToken.kind === SyntaxKind.BarBarToken);
+  return hasDefault
+    ? { source: node.left, hasDefault }
+    : { source: node, hasDefault };
+};
 
 // Uses of bridge members missing from `members` in a file, as
 // { missing: "leveldb.get", guarded, location }.
@@ -297,20 +386,30 @@ export const findMissingUsages = (fileName, source, members) => {
   if (!source.includes("electron")) return [];
 
   const sourceFile = parse(fileName, source);
+  // Declarations of `const electron = window.electron`.
   const aliases = new Set();
+  // Declarations of `const { getVersion } = window.electron`, to the member.
   const locals = new Map();
-  const bindings = [];
+  // Their names, so only identifiers that may be one get resolved.
+  const names = new Set();
   const usages = [];
 
+  const bindingOf = (node) =>
+    ts.isIdentifier(node) && names.has(node.text)
+      ? declarationOf(node)
+      : undefined;
+
   const isBridge = (node) => {
-    const name = dottedName(node);
-    return BRIDGE_ROOTS.has(name) || aliases.has(name);
+    node = unwrap(node);
+    return ts.isIdentifier(node)
+      ? aliases.has(bindingOf(node))
+      : BRIDGE_ROOTS.has(dottedName(node));
   };
 
   // The bridge member an expression reads ("leveldb.get"), or null.
   const memberOf = (node) => {
     node = unwrap(node);
-    if (ts.isIdentifier(node)) return locals.get(node.text) ?? null;
+    if (ts.isIdentifier(node)) return locals.get(bindingOf(node)) ?? null;
 
     const name = accessName(node);
     if (name === null) return null;
@@ -320,127 +419,142 @@ export const findMissingUsages = (fileName, source, members) => {
     return object && `${object}.${name}`;
   };
 
-  // Whether `condition` evaluating to `outcome` means `key` exists.
-  const implies = (condition, key, outcome) => {
-    condition = unwrap(condition);
+  const covers = (node, key) => {
+    const member = memberOf(node);
+    return member !== null && (member === key || member.startsWith(`${key}.`));
+  };
 
-    if (
-      ts.isPrefixUnaryExpression(condition) &&
-      condition.operator === SyntaxKind.ExclamationToken
-    ) {
-      return implies(condition.operand, key, !outcome);
-    }
+  // "x" in window.electron
+  const inImplies = ({ left, right }, key) => {
+    if (!ts.isStringLiteralLike(left)) return false;
+    const object = isBridge(right) ? "" : memberOf(right);
+    if (object === null) return false;
 
-    // if (window.electron.x)
-    if (!ts.isBinaryExpression(condition)) {
-      return outcome && covers(memberOf(condition), key);
-    }
+    const member = object ? `${object}.${left.text}` : left.text;
+    return member === key || member.startsWith(`${key}.`);
+  };
 
-    const { left, right } = condition;
+  // typeof x === "function", typeof x !== "undefined", x != null,
+  // x !== undefined.
+  const comparisonImplies = (condition, key, outcome) => {
     const operator = condition.operatorToken.kind;
-    const either = (value) =>
-      implies(left, key, value) || implies(right, key, value);
-    const both = (value) =>
-      implies(left, key, value) && implies(right, key, value);
-
-    if (operator === SyntaxKind.AmpersandAmpersandToken) {
-      return outcome ? either(true) : both(false);
-    }
-    if (operator === SyntaxKind.BarBarToken) {
-      return outcome ? both(true) : either(false);
-    }
-
-    // "x" in window.electron
-    if (operator === SyntaxKind.InKeyword) {
-      if (!outcome || !ts.isStringLiteralLike(left)) return false;
-      const object = isBridge(right) ? "" : memberOf(right);
-      return (
-        object !== null &&
-        covers(object ? `${object}.${left.text}` : left.text, key)
-      );
-    }
-
     if (!EQUALITY_OPERATORS.has(operator)) return false;
 
-    const isEqual =
-      outcome !==
-      (operator === SyntaxKind.ExclamationEqualsToken ||
-        operator === SyntaxKind.ExclamationEqualsEqualsToken);
-    const isStrict =
-      operator === SyntaxKind.EqualsEqualsEqualsToken ||
-      operator === SyntaxKind.ExclamationEqualsEqualsToken;
+    const isEqual = outcome !== NEGATED_OPERATORS.has(operator);
+    const isStrict = STRICT_OPERATORS.has(operator);
+    const left = unwrap(condition.left);
+    const right = unwrap(condition.right);
 
     for (const [subject, value] of [
-      [unwrap(left), unwrap(right)],
-      [unwrap(right), unwrap(left)],
+      [left, right],
+      [right, left],
     ]) {
-      // typeof x === "function", typeof x !== "undefined"
       if (ts.isTypeOfExpression(subject) && ts.isStringLiteralLike(value)) {
-        return (
-          isEqual === (value.text !== "undefined") &&
-          covers(memberOf(subject.expression), key)
-        );
+        const isDefined = isEqual === (value.text !== "undefined");
+        return isDefined && covers(subject.expression, key);
       }
 
-      // x != null, x !== undefined
-      const isUndefined = ts.isIdentifier(value) && value.text === "undefined";
-      const isNull = value.kind === SyntaxKind.NullKeyword;
-      if (isUndefined || (isNull && !isStrict)) {
-        return !isEqual && covers(memberOf(subject), key);
+      const isNull = value.kind === SyntaxKind.NullKeyword && !isStrict;
+      if (isNull || isUndefinedLiteral(value)) {
+        return !isEqual && covers(subject, key);
       }
     }
 
     return false;
   };
 
+  // Whether `condition` evaluating to `outcome` means `key` exists.
+  const implies = (condition, key, outcome) => {
+    condition = unwrap(condition);
+
+    if (isNegation(condition)) return implies(condition.operand, key, !outcome);
+
+    // if (window.electron.x)
+    if (!ts.isBinaryExpression(condition)) {
+      return outcome && covers(condition, key);
+    }
+
+    const operator = condition.operatorToken.kind;
+    const isAnd = operator === SyntaxKind.AmpersandAmpersandToken;
+
+    if (isAnd || operator === SyntaxKind.BarBarToken) {
+      const left = implies(condition.left, key, outcome);
+      const right = implies(condition.right, key, outcome);
+      // `a && b` passing means both passed, and `a || b` failing means both
+      // failed, so one of them is enough. Otherwise it takes both.
+      return outcome === isAnd ? left || right : left && right;
+    }
+
+    if (operator === SyntaxKind.InKeyword) {
+      return outcome && inImplies(condition, key);
+    }
+
+    return comparisonImplies(condition, key, outcome);
+  };
+
   // `if (!check) return;`, or `if (check) { ... } else return;`.
-  const exitsUnless = (statement, key) =>
-    ts.isIfStatement(statement) &&
-    ((exits(statement.thenStatement) &&
-      implies(statement.expression, key, false)) ||
-      (statement.elseStatement !== undefined &&
-        exits(statement.elseStatement) &&
-        implies(statement.expression, key, true)));
+  const exitsUnless = (statement, key) => {
+    if (!ts.isIfStatement(statement)) return false;
+
+    const { expression, thenStatement, elseStatement } = statement;
+    if (exits(thenStatement) && implies(expression, key, false)) return true;
+    return (
+      elseStatement !== undefined &&
+      exits(elseStatement) &&
+      implies(expression, key, true)
+    );
+  };
+
+  // `child` is the branch taken when `condition` passed or failed.
+  const branchGuards = (condition, whenTrue, whenFalse, child, key) =>
+    (child === whenTrue && implies(condition, key, true)) ||
+    (child === whenFalse && implies(condition, key, false));
+
+  // check && x(), !check || x()
+  const operandGuards = (expression, child, key) => {
+    const operator = expression.operatorToken.kind;
+    const isAnd = operator === SyntaxKind.AmpersandAmpersandToken;
+    return (
+      child === expression.right &&
+      (isAnd || operator === SyntaxKind.BarBarToken) &&
+      implies(expression.left, key, isAnd)
+    );
+  };
+
+  // if (!check) return; x();
+  const earlierStatementsGuard = (statements, child, key) => {
+    const index = statements.indexOf(child);
+    return (
+      index > 0 &&
+      statements
+        .slice(0, index)
+        .some((statement) => exitsUnless(statement, key))
+    );
+  };
+
+  // Whether `parent` only runs `child` once a check on `key` has passed.
+  const parentGuards = (parent, child, key) => {
+    if (ts.isIfStatement(parent)) {
+      const { expression, thenStatement, elseStatement } = parent;
+      return branchGuards(expression, thenStatement, elseStatement, child, key);
+    }
+    if (ts.isConditionalExpression(parent)) {
+      const { condition, whenTrue, whenFalse } = parent;
+      return branchGuards(condition, whenTrue, whenFalse, child, key);
+    }
+    if (ts.isBinaryExpression(parent)) return operandGuards(parent, child, key);
+    if (isScope(parent)) {
+      return earlierStatementsGuard(parent.statements, child, key);
+    }
+    return false;
+  };
 
   // Whether node only runs once a check like `typeof x === "function"` has
   // passed for `key`. Bridge members never change, so a check outside a
   // callback still covers the callback.
   const isGuarded = (node, key) => {
     for (let child = node; child.parent; child = child.parent) {
-      const { parent } = child;
-
-      if (ts.isIfStatement(parent) || ts.isConditionalExpression(parent)) {
-        const isIf = ts.isIfStatement(parent);
-        const condition = isIf ? parent.expression : parent.condition;
-        const whenTrue = isIf ? parent.thenStatement : parent.whenTrue;
-        const whenFalse = isIf ? parent.elseStatement : parent.whenFalse;
-        if (child === whenTrue && implies(condition, key, true)) return true;
-        if (child === whenFalse && implies(condition, key, false)) return true;
-      } else if (ts.isBinaryExpression(parent) && child === parent.right) {
-        const operator = parent.operatorToken.kind;
-        if (
-          operator === SyntaxKind.AmpersandAmpersandToken &&
-          implies(parent.left, key, true)
-        ) {
-          return true;
-        }
-        if (
-          operator === SyntaxKind.BarBarToken &&
-          implies(parent.left, key, false)
-        ) {
-          return true;
-        }
-      } else if (isScope(parent)) {
-        const index = parent.statements.indexOf(child);
-        if (
-          index > 0 &&
-          parent.statements
-            .slice(0, index)
-            .some((statement) => exitsUnless(statement, key))
-        ) {
-          return true;
-        }
-      }
+      if (parentGuards(child.parent, child, key)) return true;
     }
     return false;
   };
@@ -452,11 +566,13 @@ export const findMissingUsages = (fileName, source, members) => {
     return `${fileName.replaceAll("\\", "/")}:${line + 1}:${character + 1}`;
   };
 
-  const addUsage = (node, missing) => {
+  // `start` is where the use is reported, `target` the node reading
+  // `missing`.
+  const addUsage = (start, target, missing) => {
     usages.push({
       missing,
-      guarded: toleratesMissing(node) || isGuarded(node, missing),
-      location: locate(node),
+      guarded: toleratesMissing(target) || isGuarded(target, missing),
+      location: locate(start),
     });
   };
 
@@ -477,36 +593,35 @@ export const findMissingUsages = (fileName, source, members) => {
     const missing = findMissing(members, member);
     if (!missing) return;
 
-    // A missing part shorter than what `start` reads was reported where
-    // `start` got its value.
-    const index = missing.split(".").length - startDepth;
-    if (index < 0) return;
+    // A local from `{ newApi: { newFn } = {} }` reads newApi.newFn, but is
+    // already undefined when newApi is missing.
+    const index = Math.max(0, missing.split(".").length - startDepth);
+    addUsage(start, chain[index], missing);
+  };
 
-    const target = chain[index];
-    usages.push({
-      missing,
-      guarded: toleratesMissing(target) || isGuarded(target, missing),
-      location: locate(start),
-    });
+  const bindElement = (element, member) => {
+    if (ts.isIdentifier(element.name)) {
+      // With a default, a missing member just falls back to it.
+      if (!element.initializer) {
+        names.add(element.name.text);
+        locals.set(element.name, member);
+      }
+      return;
+    }
+    if (!ts.isObjectBindingPattern(element.name)) return;
+
+    // Destructuring a missing object throws, unless it has a default.
+    const missing = findMissing(members, member);
+    if (missing && !element.initializer) addUsage(element, element, missing);
+    else bind(element.name, member);
   };
 
   // const { getVersion } = window.electron; -> getVersion reads "getVersion".
-  const bind = (pattern, prefix, scope) => {
+  const bind = (pattern, prefix) => {
     for (const element of pattern.elements) {
       const name = (element.propertyName ?? element.name).text;
-      if (element.dotDotDotToken || name === undefined) continue;
-
-      const member = prefix ? `${prefix}.${name}` : name;
-
-      if (ts.isObjectBindingPattern(element.name)) {
-        // Destructuring a missing object throws, unless it has a default.
-        if (!element.initializer && findMissing(members, member) === member) {
-          addUsage(element, member);
-        }
-        bind(element.name, member, scope);
-      } else if (ts.isIdentifier(element.name) && !element.initializer) {
-        locals.set(element.name.text, member);
-        bindings.push({ name: element.name.text, member, scope });
+      if (!element.dotDotDotToken && name !== undefined) {
+        bindElement(element, prefix ? `${prefix}.${name}` : name);
       }
     }
   };
@@ -519,44 +634,45 @@ export const findMissingUsages = (fileName, source, members) => {
       ts.isIdentifier(node.name) &&
       isBridge(node.initializer)
     ) {
-      aliases.add(node.name.text);
+      names.add(node.name.text);
+      aliases.add(node.name);
     }
   });
 
   forEachNode(sourceFile, (node) => {
     if (
-      ts.isVariableDeclaration(node) &&
-      node.initializer &&
-      ts.isObjectBindingPattern(node.name)
+      !ts.isVariableDeclaration(node) ||
+      !node.initializer ||
+      !ts.isObjectBindingPattern(node.name)
     ) {
-      const prefix = isBridge(node.initializer)
-        ? ""
-        : memberOf(node.initializer);
-      if (prefix !== null) bind(node.name, prefix, scopeOf(node));
+      return;
+    }
+
+    const { source, hasDefault } = destructuringSource(node.initializer);
+    const prefix = isBridge(source) ? "" : memberOf(source);
+    if (prefix === null) return;
+
+    // Destructuring a missing object throws, which is reported where it's
+    // read.
+    if (prefix && !hasDefault && findMissing(members, prefix)) return;
+    bind(node.name, prefix);
+  });
+
+  forEachNode(sourceFile, (node) => {
+    // window.electron.leveldb.get(...)
+    const name = accessName(node);
+    if (name !== null && isBridge(node.expression)) {
+      checkChain(node, name);
+      return;
+    }
+
+    // getVersion() after `const { getVersion } = window.electron`. Only calls
+    // and accesses can throw; a missing local just reads as undefined.
+    const member = locals.get(bindingOf(node));
+    if (member !== undefined && isCalledOrAccessed(node)) {
+      checkChain(node, member);
     }
   });
-
-  // window.electron.leveldb.get(...)
-  forEachNode(sourceFile, (node) => {
-    const name = accessName(node);
-    if (name !== null && isBridge(node.expression)) checkChain(node, name);
-  });
-
-  // getVersion() after `const { getVersion } = window.electron`. Only calls
-  // and accesses can throw; a missing local just reads as undefined.
-  for (const { name, member, scope } of bindings) {
-    forEachNode(scope, (node) => {
-      if (!ts.isIdentifier(node) || node.text !== name) return;
-
-      const outer = wrapped(node);
-      if (
-        (isAccess(outer.parent) || ts.isCallExpression(outer.parent)) &&
-        outer.parent.expression === outer
-      ) {
-        checkChain(node, member);
-      }
-    });
-  }
 
   return usages;
 };
