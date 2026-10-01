@@ -20,7 +20,10 @@ import { Wine } from "../wine";
 import { AchievementMemoryStore } from "./achievement-memory-store";
 import { achievementNotificationPresenter } from "../achievement-notification-presenter-electron";
 import { getGameAchievementData } from "./get-game-achievement-data";
-import { resolveEpicAchievementUnlocks } from "./resolve-epic-achievement-unlocks";
+import {
+  classifyResolvedEpicAchievementUnlocks,
+  resolveEpicAchievementUnlocks,
+} from "./resolve-epic-achievement-unlocks";
 import {
   EpicAchievementBaselineTracker,
   type ClassifiedEpicAchievements,
@@ -159,17 +162,10 @@ const mergeEpicSnapshots = async (
   ]);
   const definitions =
     AchievementMemoryStore.get(game.shop, game.objectId)?.achievements ?? [];
-  const historicalNames = new Set(
-    resolveEpicAchievementUnlocks(
-      snapshots.historical,
-      definitions
-    ).resolved.map((achievement) => achievement.name.toUpperCase())
-  );
-  const historical = resolved.filter((achievement) =>
-    historicalNames.has(achievement.name.toUpperCase())
-  );
-  const live = resolved.filter(
-    (achievement) => !historicalNames.has(achievement.name.toUpperCase())
+  const { historical, live } = classifyResolvedEpicAchievementUnlocks(
+    resolved,
+    snapshots.live,
+    definitions
   );
 
   const historicalCount = historical.length

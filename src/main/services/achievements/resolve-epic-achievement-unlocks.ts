@@ -35,3 +35,25 @@ export const resolveEpicAchievementUnlocks = (
     unresolvedExternalIds,
   };
 };
+
+/** A live observation wins when another source reports the same unlock as historical. */
+export const classifyResolvedEpicAchievementUnlocks = (
+  resolved: UnlockedAchievement[],
+  liveUnlocks: UnlockedAchievement[],
+  definitions: SteamAchievement[]
+) => {
+  const liveNames = new Set(
+    resolveEpicAchievementUnlocks(liveUnlocks, definitions).resolved.map(
+      (achievement) => achievement.name.toUpperCase()
+    )
+  );
+
+  return {
+    historical: resolved.filter(
+      (achievement) => !liveNames.has(achievement.name.toUpperCase())
+    ),
+    live: resolved.filter((achievement) =>
+      liveNames.has(achievement.name.toUpperCase())
+    ),
+  };
+};

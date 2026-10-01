@@ -30,6 +30,7 @@ const MAX_FILE_BYTES = 2 * 1024 * 1024;
 const MAX_CONFIG_BYTES = 64 * 1024;
 const MAX_JSON_ROWS = 10_000;
 const MAX_NEMIRTINGAS_SAVEPATH_LENGTH = 4096;
+const MAX_EPIC_EXTERNAL_ID_LENGTH = 512;
 const ALAN_WAKE_2_DISPLAY_NAME = "achievements";
 const ALAN_WAKE_2_DISPLAY_NAME_BYTES = Buffer.byteLength(
   ALAN_WAKE_2_DISPLAY_NAME,
@@ -363,7 +364,7 @@ function parseNemirtingasState(
     if (
       typeof externalId !== "string" ||
       !externalId.trim() ||
-      externalId.length > 512 ||
+      externalId.length > MAX_EPIC_EXTERNAL_ID_LENGTH ||
       [...externalId].some(
         (character) => (character.codePointAt(0) ?? 0) < 32
       ) ||
@@ -382,13 +383,20 @@ function parseNemirtingasState(
   return unlocks;
 }
 
+const ALAN_WAKE_2_CATALOG_ID_RANGES = [
+  { lastPosition: 38, idOffset: 0 },
+  { lastPosition: 40, idOffset: 1 },
+  { lastPosition: 66, idOffset: 3 },
+  { lastPosition: 78, idOffset: 34 },
+  { lastPosition: 88, idOffset: 122 },
+] as const;
+
 const expectedCatalogId = (position: number): number | null => {
-  if (position >= 1 && position <= 38) return position;
-  if (position <= 40) return position + 1;
-  if (position <= 66) return position + 3;
-  if (position <= 78) return position + 34;
-  if (position <= 88) return position + 122;
-  return null;
+  if (position < 1) return null;
+  const range = ALAN_WAKE_2_CATALOG_ID_RANGES.find(
+    ({ lastPosition }) => position <= lastPosition
+  );
+  return range ? position + range.idOffset : null;
 };
 
 // Verified against the 88-entry Alan Wake 2 catalog in LBX-1070. All other
