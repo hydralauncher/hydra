@@ -60,8 +60,8 @@ export function RecentGamesBox() {
               <div className="recent-games__game-details">
                 <span className="recent-games__game-title">{game.title}</span>
                 <GameVisibilityBadge
-                  hide={game.hide}
-                  isHidden={game.isHidden}
+                  isHiddenFromOthers={game.isHiddenFromOthers}
+                  isConcealed={game.isConcealed}
                 />
 
                 <div className="recent-games__game-description">

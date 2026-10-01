@@ -19,10 +19,26 @@
     margin-bottom: calc(globals.$spacing-unit * 2);
   }
 
+  &__playtime-breakdown {
+    margin-bottom: calc(globals.$spacing-unit * 2);
+  }
+
   &__retroachievements-link {
     display: flex;
     align-items: center;
     gap: globals.$spacing-unit;
+  }
+
+  &__action-tooltip {
+    display: inline-flex;
+
+    &:has(button:disabled) {
+      cursor: not-allowed;
+    }
+
+    button:disabled {
+      pointer-events: none;
+    }
   }
 
   &__actions {

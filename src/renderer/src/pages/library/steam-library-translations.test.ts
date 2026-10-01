@@ -3,10 +3,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { describe, it } from "node:test";
 
-const STEAM_LIBRARY_KEYS = [
-  "category_steam_library",
-  "imported_from_steam",
-] as const;
+const STEAM_LIBRARY_KEYS = ["imported_from_steam"] as const;
 
 const STEAM_SETTINGS_KEYS = ["hide_library_steam_badges"] as const;
 
@@ -63,17 +60,21 @@ describe("Steam Library translations", () => {
 
     assert.deepEqual(
       STEAM_LIBRARY_KEYS.map((key) => readLibrary("en")[key]),
-      [
-        "Steam Library",
-        "Imported from the Steam library linked to this profile.",
-      ]
+      ["Imported from the Steam library linked to this profile."]
     );
     assert.deepEqual(
       STEAM_LIBRARY_KEYS.map((key) => readLibrary("pt-BR")[key]),
+      ["Importado da biblioteca Steam vinculada a este perfil."]
+    );
+
+    assert.equal(readLibrary("en").category_steam_library, undefined);
+    assert.deepEqual(
       [
-        "Biblioteca Steam",
-        "Importado da biblioteca Steam vinculada a este perfil.",
-      ]
+        readLibrary("en").all_libraries,
+        readLibrary("en").library_hydra,
+        readLibrary("en").library_steam,
+      ],
+      ["All Libraries", "Hydra", "Steam"]
     );
 
     const readSettings = (locale: string) => {

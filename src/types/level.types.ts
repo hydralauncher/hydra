@@ -67,8 +67,8 @@ export interface Game {
   autoRunMangohud?: boolean | null;
   autoRunGamemode?: boolean | null;
   favorite?: boolean;
-  hide?: boolean;
-  isHidden?: boolean;
+  isHiddenFromOthers?: boolean;
+  isConcealed?: boolean;
   isPinned?: boolean;
   achievementCount?: number;
   unlockedAchievementCount?: number;

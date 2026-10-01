@@ -374,9 +374,10 @@ export const LibraryGameCardLarge = memo(function LibraryGameCardLarge({
           )}
 
           <div className="library-game-card-large__top-right">
-            <GameVisibilityBadge hide={game.hide} isHidden={game.isHidden} />
-            {showSteamLibraryBadge && <SteamLibraryBadge variant="large" />}
-
+            <GameVisibilityBadge
+              isHiddenFromOthers={game.isHiddenFromOthers}
+              isConcealed={game.isConcealed}
+            />
             {!hideBadges && (
               <div className="library-game-card-large__playtime">
                 {game.hasManuallyUpdatedPlaytime ? (
@@ -392,6 +393,8 @@ export const LibraryGameCardLarge = memo(function LibraryGameCardLarge({
                 </span>
               </div>
             )}
+
+            {showSteamLibraryBadge && <SteamLibraryBadge variant="large" />}
 
             {!hideClassicsBadges && classicsPlatformLabel && (
               <div className="library-game-card-large__classics-badges">

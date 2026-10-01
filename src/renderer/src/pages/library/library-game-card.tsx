@@ -239,7 +239,10 @@ export const LibraryGameCard = memo(function LibraryGameCard({
         })}
       >
         <div className="library-game-card__top-section">
-          <GameVisibilityBadge hide={game.hide} isHidden={game.isHidden} />
+          <GameVisibilityBadge
+            isHiddenFromOthers={game.isHiddenFromOthers}
+            isConcealed={game.isConcealed}
+          />
           {!hideBadges && (
             <div className="library-game-card__playtime">
               {game.hasManuallyUpdatedPlaytime ? (

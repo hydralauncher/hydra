@@ -15,7 +15,7 @@ const setGameVisibility = async (
   _event: Electron.IpcMainInvokeEvent,
   shop: GameShop,
   objectId: string,
-  field: "hide" | "isHidden",
+  field: "isHiddenFromOthers" | "isConcealed",
   value: boolean
 ) => {
   const gameKey = levelKeys.game(shop, objectId);
@@ -24,11 +24,15 @@ const setGameVisibility = async (
     throw new Error("game/not-found-local");
   }
 
-  const path = `/profile/games/${shop}/${objectId}/${field === "hide" ? "hide" : "hidden"}`;
+  const path = `/profile/games/${shop}/${objectId}/${field === "isHiddenFromOthers" ? "hide" : "conceal"}`;
   const save = () =>
     value
-      ? HydraApi.put<{ hide: boolean; isHidden: boolean }>(path)
-      : HydraApi.delete<{ hide: boolean; isHidden: boolean }>(path);
+      ? HydraApi.put<{ isHiddenFromOthers: boolean; isConcealed: boolean }>(
+          path
+        )
+      : HydraApi.delete<{ isHiddenFromOthers: boolean; isConcealed: boolean }>(
+          path
+        );
 
   let saved;
   try {
@@ -41,8 +45,8 @@ const setGameVisibility = async (
 
   await gamesSublevel.put(gameKey, {
     ...(await gamesSublevel.get(gameKey))!,
-    hide: saved.hide,
-    isHidden: saved.isHidden,
+    isHiddenFromOthers: saved.isHiddenFromOthers,
+    isConcealed: saved.isConcealed,
   });
 
   return saved;

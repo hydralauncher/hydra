@@ -56,6 +56,7 @@ import {
 import {
   AchievementMemoryStore,
   mergePersistedAchievementTotals,
+  withSteamAchievementCatalogue,
 } from "../achievements/achievement-memory-store";
 import { mergeUnlockedAchievementLists } from "../achievements/merge-unlocked-achievements";
 import {
@@ -86,6 +87,8 @@ import {
   uploadSteamSnapshotChunks,
 } from "./steam-sync-snapshot";
 import { linkImportedSteamGameExecutables } from "./link-imported-steam-executables";
+import { watchSteamLibraries } from "./steam-install-watcher";
+import { AchievementWatcherManager } from "../achievements/achievement-watcher-manager";
 
 const INTEGRATION_ENDPOINT = "/profile/integrations/steam";
 const ACHIEVEMENT_FETCH_CONCURRENCY = 8;
@@ -787,13 +790,15 @@ class SteamSyncOrchestrator {
             `Achievements for ${game.steamAppId} ${game.name}: ${unlockedAchievements.length} unlocked / ${schemaCount}`
           );
 
-          AchievementMemoryStore.set("steam", game.steamAppId, {
-            achievements:
-              catalogue.length > 0 ? catalogue : (current?.achievements ?? []),
-            unlockedAchievements,
-            language: current?.language,
-            catalogueValidator: current?.catalogueValidator,
-          });
+          AchievementMemoryStore.set(
+            "steam",
+            game.steamAppId,
+            withSteamAchievementCatalogue(
+              current,
+              catalogue,
+              unlockedAchievements
+            )
+          );
 
           await this.persistLocalAchievementCounts(
             game.steamAppId,
@@ -883,6 +888,16 @@ class SteamSyncOrchestrator {
     throwIfAborted(signal);
 
     const chunks = chunkSteamSnapshot(snapshot);
+    const setPublishProgress = (uploadedChunks: number) =>
+      this.setState({
+        status: "running",
+        syncRunId,
+        phase: "publishing",
+        gamesFound: chunks.length + 1,
+        gamesProcessed: uploadedChunks,
+      });
+
+    setPublishProgress(0);
     const unlockedCount = snapshot.games.reduce(
       (total, game) => total + (game.achievements?.length ?? 0),
       0
@@ -908,6 +923,7 @@ class SteamSyncOrchestrator {
             chunk,
             { signal }
           );
+          setPublishProgress(chunkIndex + 1);
         },
         async () => {
           throwIfAborted(signal);
@@ -916,6 +932,7 @@ class SteamSyncOrchestrator {
             undefined,
             { signal }
           );
+          setPublishProgress(chunks.length + 1);
         }
       );
     } catch (error) {
@@ -996,24 +1013,68 @@ class SteamSyncOrchestrator {
       throwIfAborted(signal);
 
       const snapshot = buildSteamSnapshot(games, achievementsByAppId);
-      this.setState({
-        status: "running",
-        syncRunId,
-        phase: "publishing",
-        gamesFound: games.length,
-        gamesProcessed: games.length,
-      });
 
       await this.publishSnapshot(syncRunId, snapshot, signal);
       snapshotPublished = true;
 
       steamSyncLogger.log("Merging remote games into local library");
-      await mergeWithRemoteGames();
-      const linkedExecutableCount = await linkImportedSteamGameExecutables();
+      this.setState({
+        status: "running",
+        syncRunId,
+        phase: "merging",
+        gamesFound: 0,
+        gamesProcessed: 0,
+      });
+      const linkedExecutableCount = await AchievementWatcherManager.runBatch(
+        async () => {
+          await mergeWithRemoteGames((processed, total) => {
+            if (signal.aborted) return;
+
+            this.setState({
+              status: "running",
+              syncRunId,
+              phase: "merging",
+              gamesFound: total,
+              gamesProcessed: processed,
+            });
+          });
+          steamSyncLogger.log("Remote games merged");
+          WindowManager.sendToAppWindows("on-library-batch-complete");
+
+          this.setState({
+            status: "running",
+            syncRunId,
+            phase: "executables",
+            gamesFound: 0,
+            gamesProcessed: 0,
+          });
+
+          return linkImportedSteamGameExecutables((processed, total) => {
+            if (signal.aborted) return;
+
+            this.setState({
+              status: "running",
+              syncRunId,
+              phase: "executables",
+              gamesFound: total,
+              gamesProcessed: processed,
+            });
+          });
+        }
+      );
       steamSyncLogger.log("Library merge finished", {
         linkedExecutableCount,
       });
+      void watchSteamLibraries();
       WindowManager.sendToAppWindows("on-library-batch-complete");
+
+      this.setState({
+        status: "running",
+        syncRunId,
+        phase: "finishing",
+        gamesFound: 0,
+        gamesProcessed: 0,
+      });
 
       const status =
         await HydraApi.get<SteamIntegrationStatus>(INTEGRATION_ENDPOINT);

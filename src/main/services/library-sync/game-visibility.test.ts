@@ -8,9 +8,9 @@ import {
 
 describe("account game visibility", () => {
   it("puts hidden games only in the private collection", () => {
-    const normal = { isDeleted: false, isHidden: false };
-    const hidden = { isDeleted: false, isHidden: true };
-    const deleted = { isDeleted: true, isHidden: true };
+    const normal = { isDeleted: false, isConcealed: false };
+    const hidden = { isDeleted: false, isConcealed: true };
+    const deleted = { isDeleted: true, isConcealed: true };
 
     assert.equal(belongsToLibraryCollection(normal, "visible"), true);
     assert.equal(belongsToLibraryCollection(normal, "hidden"), false);
@@ -24,8 +24,8 @@ describe("account game visibility", () => {
       shop: "steam",
       objectId: "400",
       remoteId: "old-account-game",
-      hide: true,
-      isHidden: true,
+      isHiddenFromOthers: true,
+      isConcealed: true,
       isDeleted: false,
       title: "Portal",
       playTimeInMilliseconds: 3600,
@@ -34,8 +34,8 @@ describe("account game visibility", () => {
     assert.deepEqual(resetAccountScopedGameState(game), {
       ...game,
       remoteId: null,
-      hide: false,
-      isHidden: false,
+      isHiddenFromOthers: false,
+      isConcealed: false,
     });
   });
 });

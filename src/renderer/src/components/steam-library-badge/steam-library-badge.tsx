@@ -53,7 +53,7 @@ export function SteamLibraryBadge({
         role="img"
       >
         <SteamIcon
-          size={variant === "sidebar" ? 8 : variant === "large" ? 16 : 15}
+          size={variant === "sidebar" ? 8 : variant === "large" ? 13 : 12}
         />
       </span>
       {createPortal(

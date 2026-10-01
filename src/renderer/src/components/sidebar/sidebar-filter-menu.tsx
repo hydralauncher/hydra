@@ -10,15 +10,19 @@ import {
   StackIcon,
   TrophyIcon,
 } from "@primer/octicons-react";
-import { useId, useRef } from "react";
+import { useId, useRef, type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 import { Tooltip } from "react-tooltip";
 import {
   ClassicsIcon,
   type LibraryCategory,
 } from "@renderer/pages/library/category-filter";
-import { SteamIcon } from "@renderer/components/steam-library-badge/steam-library-badge";
+import {
+  LIBRARY_SOURCES,
+  type LibrarySource,
+} from "@renderer/pages/library/library-category";
 import type { SortOption } from "@renderer/pages/library/filter-options";
+import { SourceIcon } from "@renderer/pages/library/source-icon";
 import "./sidebar-filter-menu.scss";
 
 const MENU_SIDE_OFFSET = 8;
@@ -31,9 +35,105 @@ interface SidebarFilterMenuProps {
   onSortChange: (sortBy: SortOption) => void;
   showFavoritesFirst: boolean;
   onToggleFavoritesFirst: (next: boolean) => void;
+  showSources: boolean;
+  selectedSources: LibrarySource[];
+  onSourcesChange: (sources: LibrarySource[]) => void;
+  showPlatforms: boolean;
   platforms: string[];
   selectedPlatforms: string[];
   onPlatformsChange: (platforms: string[]) => void;
+}
+
+interface FilterGroupOption {
+  value: string;
+  label: string;
+  icon?: ReactNode;
+}
+
+interface FilterGroupProps {
+  label: string;
+  allLabel: string;
+  options: FilterGroupOption[];
+  selected: string[];
+  singleSelect?: boolean;
+  onChange: (selected: string[]) => void;
+}
+
+function FilterGroup({
+  label,
+  allLabel,
+  options,
+  selected,
+  singleSelect = false,
+  onChange,
+}: Readonly<FilterGroupProps>) {
+  const handleToggle = (value: string, checked: boolean) => {
+    if (singleSelect) {
+      onChange([value]);
+      return;
+    }
+
+    if (checked) {
+      if (selected.includes(value)) return;
+      onChange([...selected, value]);
+      return;
+    }
+
+    if (selected.length <= 1) {
+      onChange([]);
+      return;
+    }
+
+    onChange(selected.filter((item) => item !== value));
+  };
+
+  return (
+    <DropdownMenuPrimitive.Group className="sidebar-filter-menu__group">
+      <DropdownMenuPrimitive.Label className="sidebar-filter-menu__label">
+        {label}
+      </DropdownMenuPrimitive.Label>
+
+      <DropdownMenuPrimitive.CheckboxItem
+        checked={selected.length === 0}
+        onCheckedChange={(checked) => {
+          if (checked === true) onChange([]);
+        }}
+        onSelect={(event) => event.preventDefault()}
+        className="sidebar-filter-menu__item"
+      >
+        <span className="sidebar-filter-menu__item-label">{allLabel}</span>
+        <DropdownMenuPrimitive.ItemIndicator
+          forceMount
+          className="sidebar-filter-menu__item-indicator"
+        >
+          <CheckIcon size={14} />
+        </DropdownMenuPrimitive.ItemIndicator>
+      </DropdownMenuPrimitive.CheckboxItem>
+
+      {options.map((option) => (
+        <DropdownMenuPrimitive.CheckboxItem
+          key={option.value}
+          checked={selected.includes(option.value)}
+          onCheckedChange={(checked) =>
+            handleToggle(option.value, checked === true)
+          }
+          onSelect={(event) => event.preventDefault()}
+          className="sidebar-filter-menu__item"
+        >
+          {option.icon}
+          <span className="sidebar-filter-menu__item-label">
+            {option.label}
+          </span>
+          <DropdownMenuPrimitive.ItemIndicator
+            forceMount
+            className="sidebar-filter-menu__item-indicator"
+          >
+            <CheckIcon size={14} />
+          </DropdownMenuPrimitive.ItemIndicator>
+        </DropdownMenuPrimitive.CheckboxItem>
+      ))}
+    </DropdownMenuPrimitive.Group>
+  );
 }
 
 export function SidebarFilterMenu({
@@ -43,6 +143,10 @@ export function SidebarFilterMenu({
   onSortChange,
   showFavoritesFirst,
   onToggleFavoritesFirst,
+  showSources,
+  selectedSources,
+  onSourcesChange,
+  showPlatforms,
   platforms,
   selectedPlatforms,
   onPlatformsChange,
@@ -51,23 +155,6 @@ export function SidebarFilterMenu({
 
   const tooltipId = useId();
   const pointerInteractionRef = useRef(false);
-
-  const handlePlatformToggle = (platform: string, checked: boolean) => {
-    if (checked) {
-      if (selectedPlatforms.includes(platform)) return;
-      onPlatformsChange([...selectedPlatforms, platform]);
-      return;
-    }
-
-    if (selectedPlatforms.length <= 1) {
-      onPlatformsChange([]);
-      return;
-    }
-
-    onPlatformsChange(
-      selectedPlatforms.filter((selected) => selected !== platform)
-    );
-  };
 
   const categoryOptions: {
     value: LibraryCategory;
@@ -83,11 +170,6 @@ export function SidebarFilterMenu({
       value: "pc",
       label: t("category_pc", { ns: "library" }),
       icon: <DeviceDesktopIcon size={14} />,
-    },
-    {
-      value: "steam_library",
-      label: t("category_steam_library", { ns: "library" }),
-      icon: <SteamIcon size={14} />,
     },
     {
       value: "classics",
@@ -237,57 +319,48 @@ export function SidebarFilterMenu({
             </DropdownMenuPrimitive.Group>
           </div>
 
-          {category === "classics" && (
+          {(showSources || showPlatforms) && (
             <>
               <div className="sidebar-filter-menu__divider" />
 
               <div className="sidebar-filter-menu__column">
-                <DropdownMenuPrimitive.Group className="sidebar-filter-menu__group">
-                  <DropdownMenuPrimitive.Label className="sidebar-filter-menu__label">
-                    {t("consoles_label")}
-                  </DropdownMenuPrimitive.Label>
+                {showSources && (
+                  <FilterGroup
+                    label={t("libraries_label")}
+                    allLabel={t("all_libraries", { ns: "library" })}
+                    options={LIBRARY_SOURCES.map((source) => ({
+                      value: source,
+                      label: t(`library_${source}`, { ns: "library" }),
+                      icon: <SourceIcon source={source} />,
+                    }))}
+                    selected={selectedSources}
+                    singleSelect
+                    onChange={(sources) =>
+                      onSourcesChange(
+                        LIBRARY_SOURCES.filter((source) =>
+                          sources.includes(source)
+                        )
+                      )
+                    }
+                  />
+                )}
 
-                  <DropdownMenuPrimitive.CheckboxItem
-                    checked={selectedPlatforms.length === 0}
-                    onCheckedChange={(checked) => {
-                      if (checked === true) onPlatformsChange([]);
-                    }}
-                    onSelect={(event) => event.preventDefault()}
-                    className="sidebar-filter-menu__item"
-                  >
-                    <span className="sidebar-filter-menu__item-label">
-                      {t("all_consoles", { ns: "library" })}
-                    </span>
-                    <DropdownMenuPrimitive.ItemIndicator
-                      forceMount
-                      className="sidebar-filter-menu__item-indicator"
-                    >
-                      <CheckIcon size={14} />
-                    </DropdownMenuPrimitive.ItemIndicator>
-                  </DropdownMenuPrimitive.CheckboxItem>
+                {showSources && showPlatforms && (
+                  <DropdownMenuPrimitive.Separator className="sidebar-filter-menu__separator" />
+                )}
 
-                  {platforms.map((platform) => (
-                    <DropdownMenuPrimitive.CheckboxItem
-                      key={platform}
-                      checked={selectedPlatforms.includes(platform)}
-                      onCheckedChange={(checked) =>
-                        handlePlatformToggle(platform, checked === true)
-                      }
-                      onSelect={(event) => event.preventDefault()}
-                      className="sidebar-filter-menu__item"
-                    >
-                      <span className="sidebar-filter-menu__item-label">
-                        {platform}
-                      </span>
-                      <DropdownMenuPrimitive.ItemIndicator
-                        forceMount
-                        className="sidebar-filter-menu__item-indicator"
-                      >
-                        <CheckIcon size={14} />
-                      </DropdownMenuPrimitive.ItemIndicator>
-                    </DropdownMenuPrimitive.CheckboxItem>
-                  ))}
-                </DropdownMenuPrimitive.Group>
+                {showPlatforms && (
+                  <FilterGroup
+                    label={t("consoles_label")}
+                    allLabel={t("all_consoles", { ns: "library" })}
+                    options={platforms.map((platform) => ({
+                      value: platform,
+                      label: platform,
+                    }))}
+                    selected={selectedPlatforms}
+                    onChange={onPlatformsChange}
+                  />
+                )}
               </div>
             </>
           )}

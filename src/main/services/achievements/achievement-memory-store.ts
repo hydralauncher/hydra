@@ -1,6 +1,6 @@
 import type { GameShop, SteamAchievement, UnlockedAchievement } from "@types";
 
-type AchievementMemoryEntry = {
+export type AchievementMemoryEntry = {
   achievements: SteamAchievement[];
   unlockedAchievements: UnlockedAchievement[];
   language?: string;
@@ -35,6 +35,24 @@ export const AchievementMemoryStore = {
   clear() {
     entries.clear();
   },
+};
+
+export const withSteamAchievementCatalogue = (
+  current: AchievementMemoryEntry | undefined,
+  steamCatalogue: SteamAchievement[],
+  unlockedAchievements: UnlockedAchievement[]
+): AchievementMemoryEntry => {
+  if (current?.language !== undefined && current.achievements.length > 0) {
+    return { ...current, unlockedAchievements };
+  }
+
+  return {
+    achievements:
+      steamCatalogue.length > 0
+        ? steamCatalogue
+        : (current?.achievements ?? []),
+    unlockedAchievements,
+  };
 };
 
 export const resolveAchievementCount = (
