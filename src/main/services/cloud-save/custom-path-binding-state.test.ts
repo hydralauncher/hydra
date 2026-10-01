@@ -12,6 +12,25 @@ import {
 } from "./custom-path-binding-state.ts";
 
 describe("cloud save custom path binding state", () => {
+  it("preserves direct file bindings and leaves old directory records compatible", () => {
+    const file = {
+      rawPath: "<custom><mac><home>/Saves/Game.srm",
+      localPath: "/Users/player/Saves/Game.srm",
+      kind: "file" as const,
+    };
+    const [stored] = normalizeStoredCloudSaveCustomPathEntries([file]);
+    assert.equal(stored.kind, "file");
+    assert.equal(
+      trackStoredCloudSaveCustomPaths([stored], [file])[0].kind,
+      "file"
+    );
+    assert.equal(
+      normalizeStoredCloudSaveCustomPathEntries([
+        { rawPath: "<custom><mac><home>/Saves" },
+      ])[0].kind,
+      undefined
+    );
+  });
   it("normalizes legacy tracking records without preserving ignored bindings", () => {
     assert.deepEqual(
       normalizeStoredCloudSaveCustomPathEntries([

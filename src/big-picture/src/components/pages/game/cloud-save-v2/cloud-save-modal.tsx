@@ -20,11 +20,20 @@ import {
   getCloudSavePresentation,
   shouldShowCloudSaveEmptySnapshot,
 } from "@renderer/pages/game-details/cloud-save-v2/cloud-save-presentation";
+import {
+  getCloudSavePanelMode,
+  getRpcs3ConfigWarningKey,
+  shouldShowRpcs3IdentityCard,
+  type Rpcs3ConfigCheckStatus,
+} from "@renderer/pages/game-details/cloud-save-v2/rpcs3-config-presentation";
+import type { RetroArchExecutableStatus } from "@renderer/pages/game-details/cloud-save-v2/retroarch-executable-status";
 import { formatBytes } from "@shared";
 import type {
   CloudSaveConflictResolution,
   CloudSaveOverview,
   CloudSaveSyncProgressPayload,
+  CloudSaveV2FileDetails,
+  Rpcs3DiscIdentityStatus,
 } from "@types";
 
 import { useDate } from "../../../../hooks";
@@ -57,6 +66,17 @@ export interface BigPictureCloudSavePanelProps {
   isSyncing: boolean;
   isGameRunning: boolean;
   hasExecutablePath: boolean;
+  requiresRom: boolean;
+  requiresDisc: boolean;
+  retroArchExecutableStatus?: RetroArchExecutableStatus | null;
+  onRetryRetroArchExecutable: () => void;
+  onConfigureRetroArch: () => void;
+  rpcs3ConfigStatus?: Rpcs3ConfigCheckStatus | null;
+  onRetryRpcs3Config: () => void;
+  onConfigureRpcs3: () => void;
+  rpcs3DiscStatus?: Rpcs3DiscIdentityStatus | null;
+  rpcs3IdentityError?: boolean;
+  onRetryRpcs3Disc: () => void;
   hasError: boolean;
   errorMessageKey:
     | "cloud_save_v2_load_error"
@@ -67,6 +87,19 @@ export interface BigPictureCloudSavePanelProps {
   onSelectExecutable: () => void;
   onAutomaticSyncChange: (enabled: boolean) => Promise<void>;
   onResolveConflict: (resolution: CloudSaveConflictResolution) => void;
+  rpcs3Profile?: CloudSaveV2FileDetails["rpcs3Profile"];
+  onSelectRpcs3Profile?: (cloudProfileId: string) => void;
+  isBindingRpcs3Profile?: boolean;
+  emulatorDestinations?: CloudSaveV2FileDetails["emulatorDestinations"];
+  onSelectEmulatorDestination?: (
+    rawPath: string,
+    kind: "save" | "state"
+  ) => void;
+  onRemoveEmulatorDestination?: (
+    rawPath: string,
+    kind: "save" | "state"
+  ) => void;
+  isBindingEmulatorDestination?: boolean;
 }
 
 interface BigPictureCloudSaveModalProps extends BigPictureCloudSavePanelProps {
@@ -97,6 +130,17 @@ export function BigPictureCloudSavePanel({
   isSyncing,
   isGameRunning,
   hasExecutablePath,
+  requiresRom,
+  requiresDisc,
+  retroArchExecutableStatus,
+  onRetryRetroArchExecutable,
+  onConfigureRetroArch,
+  rpcs3ConfigStatus,
+  onRetryRpcs3Config,
+  onConfigureRpcs3,
+  rpcs3DiscStatus,
+  rpcs3IdentityError = false,
+  onRetryRpcs3Disc,
   hasError,
   errorMessageKey,
   progress,
@@ -104,6 +148,13 @@ export function BigPictureCloudSavePanel({
   onSelectExecutable,
   onAutomaticSyncChange,
   onResolveConflict,
+  rpcs3Profile,
+  onSelectRpcs3Profile,
+  isBindingRpcs3Profile = false,
+  emulatorDestinations,
+  onSelectEmulatorDestination,
+  onRemoveEmulatorDestination,
+  isBindingEmulatorDestination = false,
 }: Readonly<BigPictureCloudSavePanelProps>) {
   const { t } = useTranslation("game_details");
   const { formatDateTime } = useDate();
@@ -117,6 +168,23 @@ export function BigPictureCloudSavePanel({
   }, [overview?.isAutomaticSyncEnabled]);
 
   const activeSnapshot = overview?.activeRemoteSnapshot ?? null;
+  const panelMode = getCloudSavePanelMode(
+    hasExecutablePath,
+    rpcs3ConfigStatus,
+    "content",
+    isSyncing,
+    retroArchExecutableStatus
+  );
+  const identityBlocked =
+    shouldShowRpcs3IdentityCard(
+      requiresDisc,
+      rpcs3DiscStatus,
+      rpcs3IdentityError,
+      isSyncing
+    ) &&
+    hasExecutablePath &&
+    rpcs3ConfigStatus === "ready";
+  const isSetupBlocked = panelMode !== "content";
   const hasUnconfiguredCustomPaths =
     (overview?.unconfiguredCustomPathCount ?? 0) > 0;
   const partialDescriptionKey = getCloudSavePartialDescriptionKey(overview);
@@ -214,7 +282,9 @@ export function BigPictureCloudSavePanel({
           disabled={
             isUpdatingAutomaticSync ||
             isSyncing ||
+            isBindingEmulatorDestination ||
             !hasExecutablePath ||
+            (isSetupBlocked && !isAutomaticSyncEnabled) ||
             overview?.isAutomaticSyncEnabled == null
           }
           onClick={() => void handleAutomaticSyncChange()}
@@ -244,27 +314,190 @@ export function BigPictureCloudSavePanel({
         <p className="big-picture-cloud-save__error">{t(errorMessageKey)}</p>
       ) : null}
 
-      {hasUnconfiguredCustomPaths && !hasError ? (
+      {hasUnconfiguredCustomPaths && !hasError && !isSetupBlocked ? (
         <p className="big-picture-cloud-save__error">
           {t("cloud_save_v2_unconfigured_custom_path_description")}
         </p>
       ) : null}
 
-      {partialDescriptionKey && !hasError ? (
+      {partialDescriptionKey && !hasError && !isSetupBlocked ? (
         <p className="big-picture-cloud-save__notice big-picture-cloud-save__notice--warning">
           <WarningCircleIcon size={NOTICE_ICON_SIZE} weight="fill" />
           {t(partialDescriptionKey)}
         </p>
       ) : null}
 
+      {!isSetupBlocked &&
+        rpcs3Profile &&
+        rpcs3Profile.cloudProfileIds.length > 0 && (
+          <section className="big-picture-cloud-save__toggle-card">
+            <div className="big-picture-cloud-save__copy">
+              <strong>{t("cloud_save_v2_rpcs3_profile_title")}</strong>
+              <span>
+                {t("cloud_save_v2_rpcs3_profile_description", {
+                  localProfileId: rpcs3Profile.localProfileId,
+                })}
+              </span>
+            </div>
+            <VerticalFocusGroup regionId="big-picture-cloud-save-rpcs3-profiles">
+              {rpcs3Profile.cloudProfileIds.map((cloudProfileId) => (
+                <Button
+                  key={cloudProfileId}
+                  focusId={`big-picture-cloud-save-rpcs3-${cloudProfileId}`}
+                  variant="secondary"
+                  disabled={
+                    isBindingRpcs3Profile ||
+                    isBindingEmulatorDestination ||
+                    isSyncing ||
+                    isGameRunning ||
+                    cloudProfileId === rpcs3Profile.linkedCloudProfileId
+                  }
+                  onClick={() => onSelectRpcs3Profile?.(cloudProfileId)}
+                >
+                  {t(
+                    cloudProfileId === rpcs3Profile.linkedCloudProfileId
+                      ? "cloud_save_v2_rpcs3_profile_current"
+                      : "cloud_save_v2_rpcs3_profile_link_action",
+                    { cloudProfileId }
+                  )}
+                </Button>
+              ))}
+            </VerticalFocusGroup>
+          </section>
+        )}
+
+      {!isSetupBlocked &&
+        emulatorDestinations &&
+        emulatorDestinations.length > 0 && (
+          <section className="big-picture-cloud-save__toggle-card">
+            <div className="big-picture-cloud-save__copy">
+              <strong>{t("cloud_save_v2_emulator_destinations_title")}</strong>
+            </div>
+            <VerticalFocusGroup regionId="big-picture-cloud-save-destinations">
+              {emulatorDestinations.map((destination, index) => (
+                <div
+                  key={JSON.stringify([destination.rawPath, destination.kind])}
+                  className="big-picture-cloud-save__copy"
+                >
+                  <span>
+                    {t(
+                      destination.kind === "state"
+                        ? "cloud_save_v2_emulator_destination_states"
+                        : "cloud_save_v2_emulator_destination_saves"
+                    )}
+                    : {destination.pathHint ?? destination.rawPath}
+                  </span>
+                  {destination.status === "unavailable" && (
+                    <span>
+                      {t("cloud_save_v2_emulator_destination_unavailable")}
+                    </span>
+                  )}
+                  <Button
+                    focusId={`big-picture-cloud-save-destination-${index}`}
+                    variant="secondary"
+                    disabled={
+                      isBindingEmulatorDestination ||
+                      isSyncing ||
+                      isGameRunning ||
+                      (destination.status === "unavailable" &&
+                        !destination.selectedPath)
+                    }
+                    onClick={() =>
+                      destination.selectedPath
+                        ? onRemoveEmulatorDestination?.(
+                            destination.rawPath,
+                            destination.kind
+                          )
+                        : onSelectEmulatorDestination?.(
+                            destination.rawPath,
+                            destination.kind
+                          )
+                    }
+                  >
+                    {t(
+                      destination.selectedPath
+                        ? "remove"
+                        : "cloud_save_v2_emulator_destination_select"
+                    )}
+                  </Button>
+                </div>
+              ))}
+            </VerticalFocusGroup>
+          </section>
+        )}
+
       <section className="big-picture-cloud-save__snapshot">
-        {!hasExecutablePath ? (
+        {panelMode === "skeleton" ? (
+          <div className="big-picture-cloud-save__snapshot-placeholder">
+            <SpinnerIcon
+              size={LOADING_ICON_SIZE}
+              className="big-picture-cloud-save__spinner"
+            />
+            <span>{t("cloud_save_v2_checking")}</span>
+          </div>
+        ) : panelMode === "rpcs3-config" ? (
           <div className="big-picture-cloud-save__missing-executable-copy">
             <strong>
               <WarningCircleIcon size={NOTICE_ICON_SIZE} />
-              {t("cloud_save_v2_executable_required_title")}
+              {t("cloud_save_v2_rpcs3_config_required_title")}
             </strong>
-            <span>{t("cloud_save_v2_executable_required_description")}</span>
+            <span>{t(getRpcs3ConfigWarningKey(rpcs3ConfigStatus)!)}</span>
+          </div>
+        ) : panelMode === "retroarch-config" ? (
+          <div className="big-picture-cloud-save__missing-executable-copy">
+            <strong>
+              <WarningCircleIcon size={NOTICE_ICON_SIZE} />
+              {t("cloud_save_v2_retroarch_config_required_title")}
+            </strong>
+            <span>
+              {t(
+                retroArchExecutableStatus === "invalid"
+                  ? "cloud_save_v2_retroarch_config_invalid"
+                  : retroArchExecutableStatus === "error"
+                    ? "cloud_save_v2_retroarch_config_error"
+                    : "cloud_save_v2_retroarch_config_missing"
+              )}
+            </span>
+          </div>
+        ) : panelMode === "missing-executable" ? (
+          <div className="big-picture-cloud-save__missing-executable-copy">
+            <strong>
+              <WarningCircleIcon size={NOTICE_ICON_SIZE} />
+              {t(
+                requiresDisc
+                  ? "cloud_save_v2_disc_required_title"
+                  : requiresRom
+                    ? "cloud_save_v2_rom_required_title"
+                    : "cloud_save_v2_executable_required_title"
+              )}
+            </strong>
+            <span>
+              {t(
+                requiresDisc
+                  ? "cloud_save_v2_disc_required_description"
+                  : requiresRom
+                    ? "cloud_save_v2_rom_required_description"
+                    : "cloud_save_v2_executable_required_description"
+              )}
+            </span>
+          </div>
+        ) : identityBlocked ? (
+          <div className="big-picture-cloud-save__missing-executable-copy">
+            <strong>
+              <WarningCircleIcon size={NOTICE_ICON_SIZE} />
+              {t("cloud_save_v2_rpcs3_identity_title")}
+            </strong>
+            <span>
+              {t(
+                rpcs3IdentityError
+                  ? "cloud_save_v2_rpcs3_identity_remote"
+                  : `cloud_save_v2_rpcs3_identity_${rpcs3DiscStatus?.status ?? "unverified"}`,
+                {
+                  path: rpcs3DiscStatus?.path,
+                  titleId: rpcs3DiscStatus?.titleId,
+                }
+              )}
+            </span>
           </div>
         ) : activeSnapshot ? (
           <>
@@ -332,7 +565,64 @@ export function BigPictureCloudSavePanel({
           </div>
         )}
 
-        {!hasExecutablePath ? (
+        {panelMode === "skeleton" ? (
+          <Button
+            focusId={PRIMARY_ACTION_ID}
+            variant="primary"
+            loading
+            disabled
+          >
+            {t("cloud_save_v2_checking")}
+          </Button>
+        ) : panelMode === "rpcs3-config" ? (
+          <Button
+            focusId={PRIMARY_ACTION_ID}
+            variant="primary"
+            icon={
+              rpcs3ConfigStatus === "error" ? (
+                <ArrowClockwiseIcon size={INLINE_STATUS_ICON_SIZE} />
+              ) : (
+                <FolderOpenIcon size={INLINE_STATUS_ICON_SIZE} />
+              )
+            }
+            stealFocusOnAppear={stealFocusOnActionAppear}
+            onClick={
+              rpcs3ConfigStatus === "error"
+                ? onRetryRpcs3Config
+                : onConfigureRpcs3
+            }
+          >
+            {t(
+              rpcs3ConfigStatus === "error"
+                ? "cloud_save_v2_check_again"
+                : "cloud_save_v2_rpcs3_config_open_settings"
+            )}
+          </Button>
+        ) : panelMode === "retroarch-config" ? (
+          <Button
+            focusId={PRIMARY_ACTION_ID}
+            variant="primary"
+            icon={
+              retroArchExecutableStatus === "error" ? (
+                <ArrowClockwiseIcon size={INLINE_STATUS_ICON_SIZE} />
+              ) : (
+                <FolderOpenIcon size={INLINE_STATUS_ICON_SIZE} />
+              )
+            }
+            stealFocusOnAppear={stealFocusOnActionAppear}
+            onClick={
+              retroArchExecutableStatus === "error"
+                ? onRetryRetroArchExecutable
+                : onConfigureRetroArch
+            }
+          >
+            {t(
+              retroArchExecutableStatus === "error"
+                ? "cloud_save_v2_check_again"
+                : "cloud_save_v2_retroarch_config_open_settings"
+            )}
+          </Button>
+        ) : panelMode === "missing-executable" ? (
           <Button
             focusId={PRIMARY_ACTION_ID}
             variant="primary"
@@ -340,8 +630,34 @@ export function BigPictureCloudSavePanel({
             stealFocusOnAppear={stealFocusOnActionAppear}
             onClick={onSelectExecutable}
           >
-            {t("cloud_save_v2_select_executable")}
+            {t(
+              requiresDisc
+                ? "cloud_save_v2_select_disc"
+                : requiresRom
+                  ? "cloud_save_v2_select_rom"
+                  : "cloud_save_v2_select_executable"
+            )}
           </Button>
+        ) : identityBlocked ? (
+          rpcs3IdentityError ? null : (
+            <Button
+              focusId={PRIMARY_ACTION_ID}
+              variant="primary"
+              icon={<FolderOpenIcon size={INLINE_STATUS_ICON_SIZE} />}
+              stealFocusOnAppear={stealFocusOnActionAppear}
+              onClick={
+                rpcs3DiscStatus?.status === "catalogue-unavailable"
+                  ? onRetryRpcs3Disc
+                  : onSelectExecutable
+              }
+            >
+              {t(
+                rpcs3DiscStatus?.status === "catalogue-unavailable"
+                  ? "cloud_save_v2_check_again"
+                  : "cloud_save_v2_rpcs3_identity_edit_discs"
+              )}
+            </Button>
+          )
         ) : isSyncing ? (
           <Button
             focusId={PRIMARY_ACTION_ID}
@@ -358,7 +674,9 @@ export function BigPictureCloudSavePanel({
               variant="primary"
               icon={<CloudArrowUpIcon size={CLOUD_ACTION_ICON_SIZE} />}
               stealFocusOnAppear={stealFocusOnActionAppear}
-              disabled={isLoading || isGameRunning}
+              disabled={
+                isLoading || isGameRunning || isBindingEmulatorDestination
+              }
               onClick={() => onResolveConflict("keep-local")}
               focusNavigationOverrides={{
                 right: {
@@ -373,7 +691,9 @@ export function BigPictureCloudSavePanel({
               focusId={USE_CLOUD_ID}
               variant="primary"
               icon={<CloudArrowDownIcon size={CLOUD_ACTION_ICON_SIZE} />}
-              disabled={isLoading || isGameRunning}
+              disabled={
+                isLoading || isGameRunning || isBindingEmulatorDestination
+              }
               onClick={() => onResolveConflict("keep-remote")}
               focusNavigationOverrides={{
                 left: {
@@ -391,7 +711,9 @@ export function BigPictureCloudSavePanel({
             variant="primary"
             icon={getActionIcon(action.icon)}
             stealFocusOnAppear={stealFocusOnActionAppear}
-            disabled={isLoading || isGameRunning}
+            disabled={
+              isLoading || isGameRunning || isBindingEmulatorDestination
+            }
             onClick={onSync}
           >
             {t(action.labelKey ?? "cloud_save_v2_check_again")}
@@ -420,9 +742,15 @@ export function BigPictureCloudSaveModal({
       title={t("cloud_save_v2_modal_title")}
       description={t("cloud_save_v2_modal_description")}
       onClose={onClose}
-      closeOnBackdrop={!panelProps.isSyncing}
-      closeOnEscape={!panelProps.isSyncing}
-      closeOnB={!panelProps.isSyncing}
+      closeOnBackdrop={
+        !panelProps.isSyncing && !panelProps.isBindingEmulatorDestination
+      }
+      closeOnEscape={
+        !panelProps.isSyncing && !panelProps.isBindingEmulatorDestination
+      }
+      closeOnB={
+        !panelProps.isSyncing && !panelProps.isBindingEmulatorDestination
+      }
       initialFocusId={BIG_PICTURE_CLOUD_SAVE_TOGGLE_BUTTON_ID}
       className="big-picture-cloud-save-modal"
     >

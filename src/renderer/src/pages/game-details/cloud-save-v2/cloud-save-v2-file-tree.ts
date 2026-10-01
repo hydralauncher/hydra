@@ -33,6 +33,8 @@ export interface CloudSaveV2FileTreeFile {
   type: "file";
   id: string;
   name: string;
+  localName: string | null;
+  remoteName: string | null;
   local: CloudSaveV2LocalFile | null;
   remote: CloudSaveV2RemoteFile | null;
   status: CloudSaveV2FileComparisonStatus | null;
@@ -63,6 +65,9 @@ const splitPath = (path: string) =>
     .replaceAll("\\", "/")
     .split("/")
     .filter((segment) => segment.length > 0 && segment !== ".");
+
+const isRetroArchV2Path = (rawPath: string) =>
+  rawPath.startsWith("<emulator>/retroarch-v2/");
 
 const trimTrailingSeparators = (path: string) => {
   let end = path.length;
@@ -127,6 +132,10 @@ const getDirectoryPath = (path: string) => {
 };
 
 const getLocalRootPath = (file: CloudSaveV2LocalFile) => {
+  if (isRetroArchV2Path(file.rawPath)) {
+    return getDirectoryPath(file.absolutePath);
+  }
+
   let rootPath = file.absolutePath;
   const relativeSegments = splitPath(file.relativePath);
   const levels = Math.max(1, relativeSegments.length);
@@ -284,9 +293,12 @@ const getOrCreateComparisonDirectory = (
     comparison.rawPath,
     ...directorySegments,
   ]);
-  const localDirectoryPath = localRootPath
-    ? joinPath(localRootPath, directorySegments)
-    : null;
+  const localDirectoryPath =
+    comparison.local && isRetroArchV2Path(comparison.rawPath)
+      ? getDirectoryPath(comparison.local.absolutePath)
+      : localRootPath
+        ? joinPath(localRootPath, directorySegments)
+        : null;
   const existingDirectory = parent.branches.get(directoryId);
   if (existingDirectory) {
     updateBranchSources(
@@ -362,6 +374,12 @@ const addComparisonToTree = (
       comparison.relativePath,
     ]),
     name: fileName,
+    localName: comparison.local
+      ? (comparison.local.displayName ?? fileName)
+      : null,
+    remoteName: comparison.remote
+      ? (comparison.remote.displayName ?? fileName)
+      : null,
     local: comparison.local,
     remote: comparison.remote,
     status: comparison.status,
@@ -399,7 +417,9 @@ const addLocalFileToTree = (
     roots.set(rootPathIdentity, root);
   }
 
-  const pathSegments = splitPath(file.relativePath);
+  const pathSegments = isRetroArchV2Path(file.rawPath)
+    ? splitPath(file.absolutePath).slice(-1)
+    : splitPath(file.relativePath);
   const fileName = pathSegments.pop() ?? file.relativePath;
   let parent = root;
   const directorySegments: string[] = [];
@@ -436,6 +456,8 @@ const addLocalFileToTree = (
       file.absolutePath,
     ]),
     name: fileName,
+    localName: file.displayName ?? fileName,
+    remoteName: null,
     local: file,
     remote: null,
     status: null,
@@ -548,6 +570,8 @@ const addUnresolvedRemoteFile = (
       file.relativePath,
     ]),
     name: fileName,
+    localName: null,
+    remoteName: file.displayName ?? fileName,
     local: null,
     remote: file,
     status: null,

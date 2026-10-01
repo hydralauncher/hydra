@@ -160,7 +160,6 @@ export function GameOptionsModal({
   const [legacySaveDownloadProgress, setLegacySaveDownloadProgress] =
     useState<LegacySaveExportProgress | null>(null);
   const legacySaveExportInProgressRef = useRef(false);
-
   const cancelLegacySaveExport = useCallback(() => {
     if (!legacySaveExportInProgressRef.current) return;
 
@@ -245,7 +244,10 @@ export function GameOptionsModal({
     Boolean(userDetails),
     hasActiveSubscription
   );
-  const cloudSaveSettings = getCloudSaveVisibility(game.shop).settings;
+  const cloudSaveSettings = getCloudSaveVisibility(
+    game.shop,
+    game.platform
+  ).settings;
   const { showV2: showCloudSaveV2Settings, legacyPurpose } = cloudSaveSettings;
   const showLegacyCloudSaveSettings = isLegacyCloudSaveSettingsAvailable(
     cloudSaveSettings,
@@ -907,7 +909,7 @@ export function GameOptionsModal({
             {
               id: "hydra_cloud_legacy" as const,
               label:
-                legacyPurpose === "active"
+                legacyPurpose === "active" && !showCloudSaveV2Settings
                   ? t("settings_category_hydra_cloud")
                   : t("settings_category_legacy_saves"),
               icon:
@@ -1274,7 +1276,9 @@ export function GameOptionsModal({
             )}
             {selectedCategory === "hydra_cloud" && showCloudSaveV2Settings && (
               <HydraCloudV2SettingsSection
-                onSelectExecutable={() => setSelectedCategory("locations")}
+                onSelectExecutable={() =>
+                  setSelectedCategory(isLaunchbox ? "general" : "locations")
+                }
               />
             )}
             {selectedCategory === "hydra_cloud_legacy" &&
