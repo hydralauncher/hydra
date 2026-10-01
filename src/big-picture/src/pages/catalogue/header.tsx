@@ -675,11 +675,11 @@ export function CatalogueHeader({
 
         {mode === "modern" && (
           <Tabs
-            items={(["all", "steam", "epic"] as const).map((shop) => ({
-              id: `catalogue-store-${shop}`,
-              value: shop,
-              label:
-                shop === "all" ? (
+            items={(["all", "steam", "epic"] as const).map((shop) => {
+              let label: TabsItem["label"] =
+                shop === "steam" ? "Steam" : "Epic";
+              if (shop === "all") {
+                label = (
                   <span className="catalogue-header__mode-tab-content">
                     <StackIcon
                       size={14}
@@ -688,14 +688,17 @@ export function CatalogueHeader({
                     />
                     <span>All</span>
                   </span>
-                ) : shop === "steam" ? (
-                  "Steam"
-                ) : (
-                  "Epic"
-                ),
-              navigationOverrides:
-                navigationOverridesById[`catalogue-store-${shop}`],
-            }))}
+                );
+              }
+
+              return {
+                id: `catalogue-store-${shop}`,
+                value: shop,
+                label,
+                navigationOverrides:
+                  navigationOverridesById[`catalogue-store-${shop}`],
+              };
+            })}
             value={values.pcShop ?? "all"}
             onValueChange={(pcShop) =>
               updateSearchParams({

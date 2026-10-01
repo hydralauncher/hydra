@@ -881,6 +881,10 @@ contextBridge.exposeInMainWorld("electron", {
   ) =>
     ipcRenderer.invoke("toggleGameGamemode", shop, objectId, autoRunGamemode),
   isGamemodeAvailable: () => ipcRenderer.invoke("isGamemodeAvailable"),
+  isSteamAppExecutable: (appId: string, executablePath: string) =>
+    ipcRenderer.invoke("isSteamAppExecutable", appId, executablePath),
+  installGameOnSteam: (steamAppId: string) =>
+    ipcRenderer.invoke("installGameOnSteam", steamAppId),
   isMangohudAvailable: () => ipcRenderer.invoke("isMangohudAvailable"),
   isWinetricksAvailable: () => ipcRenderer.invoke("isWinetricksAvailable"),
   addGameToLibrary: (
@@ -1029,6 +1033,8 @@ contextBridge.exposeInMainWorld("electron", {
     ipcRenderer.invoke("verifyExecutablePathInUse", executablePath),
   getLibrary: () => ipcRenderer.invoke("getLibrary"),
   refreshLibraryAssets: () => ipcRenderer.invoke("refreshLibraryAssets"),
+  getRemoteLibrarySyncState: () =>
+    ipcRenderer.invoke("getRemoteLibrarySyncState"),
   getClassicsImportStatus: (): Promise<boolean> =>
     ipcRenderer.invoke("getClassicsImportStatus"),
   getActiveClassicsImport: (): Promise<{
@@ -1126,8 +1132,8 @@ contextBridge.exposeInMainWorld("electron", {
     ),
   cancelScanInstalledGames: (requestId: string) =>
     ipcRenderer.invoke("cancelScanInstalledGames", requestId),
-  addScannedGame: (objectId: string, executablePath: string) =>
-    ipcRenderer.invoke("addScannedGame", objectId, executablePath),
+  addScannedGames: (picks: { objectId: string; executablePath: string }[]) =>
+    ipcRenderer.invoke("addScannedGames", picks),
   getDefaultWinePrefixSelectionPath: () =>
     ipcRenderer.invoke("getDefaultWinePrefixSelectionPath"),
   createSteamShortcut: (
@@ -1155,6 +1161,13 @@ contextBridge.exposeInMainWorld("electron", {
     ipcRenderer.on("on-library-batch-complete", listener);
     return () =>
       ipcRenderer.removeListener("on-library-batch-complete", listener);
+  },
+  onRemoteLibrarySyncStateChange: (cb: (syncing: boolean) => void) => {
+    const listener = (_event: Electron.IpcRendererEvent, syncing: boolean) =>
+      cb(syncing);
+    ipcRenderer.on("on-remote-library-sync-state", listener);
+    return () =>
+      ipcRenderer.removeListener("on-remote-library-sync-state", listener);
   },
   onDownloadsUpdated: (cb: () => void) => {
     const listener = (_event: Electron.IpcRendererEvent) => cb();

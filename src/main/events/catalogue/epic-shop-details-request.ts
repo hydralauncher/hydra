@@ -1,6 +1,8 @@
 import { isAxiosError } from "axios";
 import { HydraApiRequestError } from "../../services/hydra-api-request-error.js";
 
+const HTTP_SERVER_ERROR_STATUS = 500;
+
 export async function fetchEpicShopDetailsWithCache<TRemote, TCached>(
   request: () => Promise<TRemote>,
   readCache: () => Promise<TCached | null | undefined>
@@ -11,7 +13,8 @@ export async function fetchEpicShopDetailsWithCache<TRemote, TCached>(
     return { source: "remote", data: await request() };
   } catch (error) {
     const isServerError =
-      isAxiosError(error) && (!error.response || error.response.status >= 500);
+      isAxiosError(error) &&
+      (!error.response || error.response.status >= HTTP_SERVER_ERROR_STATUS);
 
     if (!(error instanceof HydraApiRequestError) && !isServerError) {
       throw error;

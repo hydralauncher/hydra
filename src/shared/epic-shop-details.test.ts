@@ -68,6 +68,21 @@ describe("Epic shop details", () => {
     assert.match(mapped.about_the_game, /&lt;script&gt;/);
   });
 
+  it("formats spaced bullets without changing inline bullet characters", () => {
+    const mapped = mapEpicShopDetails(
+      {
+        game: {
+          description: `Intro${" ".repeat(10_000)}•\nList item\nInline•word`,
+        },
+      },
+      "en-US",
+      { shop: "epic", objectId: "123" }
+    );
+
+    assert.match(mapped.about_the_game, /<li>List item/);
+    assert.match(mapped.about_the_game, /Inline•word/);
+  });
+
   it("formats requirements and keeps provider arrays", () => {
     const mapped = mapEpicShopDetails(response, "en-US", {
       shop: "epic",

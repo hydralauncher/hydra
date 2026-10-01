@@ -6,11 +6,15 @@ import type { LibraryGame } from "@types";
 export interface LibraryState {
   value: LibraryGame[];
   searchQuery: string;
+  hasLoaded: boolean;
+  isSyncingRemote: boolean;
 }
 
 const initialState: LibraryState = {
   value: [],
   searchQuery: "",
+  hasLoaded: false,
+  isSyncingRemote: false,
 };
 
 export const librarySlice = createSlice({
@@ -19,6 +23,10 @@ export const librarySlice = createSlice({
   reducers: {
     setLibrary: (state, action: PayloadAction<LibraryState["value"]>) => {
       state.value = action.payload;
+      state.hasLoaded = true;
+    },
+    setLibrarySyncingRemote: (state, action: PayloadAction<boolean>) => {
+      state.isSyncingRemote = action.payload;
     },
 
     updateGameNewDownloadOptions: (
@@ -65,8 +73,13 @@ export const librarySlice = createSlice({
 
 export const {
   setLibrary,
+  setLibrarySyncingRemote,
   updateGameNewDownloadOptions,
   clearNewDownloadOptions,
   setLibrarySearchQuery,
   setGameCollectionIds,
 } = librarySlice.actions;
+
+export const selectIsLibraryLoading = (state: { library: LibraryState }) =>
+  !state.library.hasLoaded ||
+  (state.library.isSyncingRemote && state.library.value.length === 0);

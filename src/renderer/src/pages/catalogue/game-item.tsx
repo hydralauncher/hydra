@@ -133,6 +133,10 @@ export function GameItem({ game }: GameItemProps) {
               <ProtonDBBadge badge={protonBadge} />
             </Suspense>
           )}
+
+          <span className="game-item__store-icons">
+            <StoreIcons shops={availableShops} />
+          </span>
         </div>
 
         <div className="game-item__details">
@@ -144,8 +148,6 @@ export function GameItem({ game }: GameItemProps) {
               {t("no_genres", { ns: "catalogue" })}
             </span>
           )}
-
-          <StoreIcons shops={availableShops} />
 
           <div className="game-item__repackers">
             {game.downloadSources.map((sourceName) => (
