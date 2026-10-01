@@ -11,7 +11,6 @@ import YAML from "yaml";
 import { addTrailingSlash, normalizePath } from "@main/helpers";
 import { SystemPath } from "@main/services/system-path";
 import { gamesSublevel, levelKeys } from "@main/level";
-import { assertLegacyCloudSaveWriteAllowed } from "@main/services/cloud-save/legacy-cloud-save-policy";
 import { requestGameArtifactDownload } from "./game-artifact-download";
 
 export const transformLudusaviBackupPathIntoWindowsPath = (
@@ -100,7 +99,6 @@ const downloadGameArtifact = async (
 ) => {
   try {
     const game = await gamesSublevel.get(levelKeys.game(shop, objectId));
-    assertLegacyCloudSaveWriteAllowed(game);
     const effectiveWinePrefixPath = Wine.getEffectivePrefixPath(
       game?.winePrefixPath,
       objectId

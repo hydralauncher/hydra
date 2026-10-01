@@ -8,7 +8,7 @@ const game = (shop: Game["shop"], platform: string) =>
   ({ shop, platform }) as Game;
 
 describe("legacy cloud save write policy", () => {
-  it("blocks direct legacy upload and restore for V2 emulator games", () => {
+  it("blocks legacy upload and sync settings for V2 emulator games", () => {
     for (const platform of [
       "Sony PlayStation 3",
       "Nintendo Entertainment System",
