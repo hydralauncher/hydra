@@ -26,6 +26,24 @@ const epicDescriptionMarkdown = new MarkdownIt({
   linkify: true,
 });
 
+const removeHtmlComments = (value: string) => {
+  let result = "";
+  let position = 0;
+
+  while (position < value.length) {
+    const start = value.indexOf("<!--", position);
+    if (start === -1) return result + value.slice(position);
+
+    const end = value.indexOf("-->", start + 4);
+    if (end === -1) return result + value.slice(position);
+
+    result += value.slice(position, start) + "\n\n";
+    position = end + 3;
+  }
+
+  return result;
+};
+
 epicDescriptionMarkdown.renderer.rules.heading_open = (
   tokens,
   index,
@@ -39,8 +57,7 @@ epicDescriptionMarkdown.renderer.rules.heading_open = (
 };
 
 const renderEpicDescription = (value: unknown) => {
-  const markdown = text(value)
-    .replace(/<!--[\s\S]*?-->/g, "\n\n")
+  const markdown = removeHtmlComments(text(value))
     .replace(/\s+•\s+/g, "\n- ")
     .trim();
 
@@ -71,12 +88,13 @@ const renderEpicRequirements = (value: unknown) => {
   return rows.length ? `<ul>${rows.join("")}</ul>` : "";
 };
 
-const names = (value: unknown): string[] =>
-  Array.isArray(value)
-    ? value.filter((entry): entry is string => typeof entry === "string")
-    : typeof value === "string" && value
-      ? [value]
-      : [];
+const names = (value: unknown): string[] => {
+  if (Array.isArray(value)) {
+    return value.filter((entry): entry is string => typeof entry === "string");
+  }
+
+  return typeof value === "string" && value ? [value] : [];
+};
 
 const record = (value: unknown): Record<string, unknown> =>
   value && typeof value === "object" && !Array.isArray(value)

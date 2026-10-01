@@ -3,7 +3,7 @@ import EpicLogo from "@renderer/assets/epic-games-logo.svg?react";
 import "./store-icons.scss";
 
 interface StoreIconsProps {
-  shops: readonly string[];
+  readonly shops: readonly string[];
 }
 
 const platforms = [
