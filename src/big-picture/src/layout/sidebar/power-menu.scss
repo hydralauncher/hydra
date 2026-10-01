@@ -8,6 +8,12 @@
 
 .power-menu-confirmation-backdrop {
   z-index: 121;
+
+  .confirmation-modal__actions .button {
+    min-height: 36px;
+    border-radius: 8px;
+    font-size: 16px;
+  }
 }
 
 .power-menu,
@@ -116,13 +122,5 @@
   &__chevron {
     flex-shrink: 0;
     opacity: 0.5;
-  }
-}
-
-.power-menu-confirmation-backdrop {
-  .confirmation-modal__actions .button {
-    min-height: 36px;
-    border-radius: 8px;
-    font-size: 16px;
   }
 }

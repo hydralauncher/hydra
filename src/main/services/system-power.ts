@@ -21,7 +21,7 @@ const WINDOWS_SUSPEND_SCRIPT = [
 export function getSystemPowerCommand(
   action: unknown,
   platform: NodeJS.Platform,
-  windowsDirectory = process.env.SystemRoot || "C:\\Windows"
+  windowsDirectory = process.env.SystemRoot || String.raw`C:\Windows`
 ): { file: string; args: string[] } {
   if (action !== "power-off" && action !== "restart" && action !== "suspend") {
     throw new Error("Invalid system power action");

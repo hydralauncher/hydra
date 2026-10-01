@@ -41,13 +41,14 @@ export function trapModalTabFocus(
       element === dialog.ownerDocument.activeElement ||
       element.contains(dialog.ownerDocument.activeElement)
   );
+  if (focusedIndex < 0) {
+    const entryIndex = event.shiftKey ? controls.length - 1 : 0;
+    return controls[entryIndex] ?? dialog;
+  }
+
+  const direction = event.shiftKey ? -1 : 1;
   const nextIndex =
-    focusedIndex < 0
-      ? event.shiftKey
-        ? controls.length - 1
-        : 0
-      : (focusedIndex + (event.shiftKey ? -1 : 1) + controls.length) %
-        controls.length;
+    (focusedIndex + direction + controls.length) % controls.length;
 
   return controls[nextIndex] ?? dialog;
 }
