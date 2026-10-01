@@ -1,5 +1,6 @@
 import type { AuthPage } from "@shared";
 import type {
+  SystemPowerAction,
   AppUpdaterEvent,
   GameShop,
   Steam250Game,
@@ -1285,6 +1286,7 @@ declare global {
 
     /* Big Picture Window */
     openBigPictureWindow: () => Promise<void>;
+    executeSystemPowerAction: (action: SystemPowerAction) => Promise<void>;
 
     /* Friends Window */
     openFriendsWindow: () => Promise<void>;
