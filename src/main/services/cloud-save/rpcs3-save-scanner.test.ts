@@ -22,6 +22,7 @@ describe("RPCS3 Cloud Save scanner", () => {
       game: noDiscGame,
       environmentId: "environment",
       variantId: "variant",
+      rpcs3SavedataTitleIds: ["NPUB31848"],
     };
     const savedata = await scanRpcs3SaveRoot(context, "/unused", "00000001");
     const states = await scanRpcs3Savestates(context, "/unused");

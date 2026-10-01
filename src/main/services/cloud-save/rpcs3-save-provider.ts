@@ -1,5 +1,3 @@
-import { promises as fs } from "node:fs";
-import path from "node:path";
 import { logger } from "@main/services/logger";
 
 import type { Game, RestoreManifestFile } from "@types";
@@ -9,17 +7,13 @@ import { rpcs3ConfigRoots } from "../emulators/emulator-config";
 import {
   emulatorSaveFileKey,
   emulatorRestoreRule,
-  parseRpcs3SaveRawPath,
-  safeRelativeSegments,
 } from "./emulator-provider-identity";
 import type {
   EmulatorProvider,
   EmulatorProviderContext,
 } from "./emulator-provider-types";
-import {
-  rpcs3SlotBelongsToTitle,
-  rpcs3TitleIdsForGame,
-} from "./rpcs3-save-layout";
+import { getRpcs3SavedataTitleIds } from "./rpcs3-savedata-title-ids.js";
+import { rpcs3TitleIdsForGame } from "./rpcs3-title-ids.js";
 import { resolveRpcs3ConfigRootStatus } from "./rpcs3-config-root";
 import {
   scanRpcs3SaveRoot,
@@ -27,6 +21,7 @@ import {
   unresolvedCoverage,
 } from "./rpcs3-save-scanner";
 import { resolveRpcs3SavestateRestoreRule } from "./rpcs3-savestate-restore";
+import { resolveRpcs3SavedataRestoreRule } from "./rpcs3-savedata-restore.js";
 import {
   getRpcs3ProfileBinding,
   setRpcs3ProfileBinding,
@@ -141,22 +136,6 @@ export const ensureRpcs3ProfileBindingForSync = async (
   }
 };
 
-const isSafeTarget = async (root: string, segments: string[]) => {
-  const target = path.resolve(root, ...segments);
-  if (!target.startsWith(`${path.resolve(root)}${path.sep}`)) return false;
-  let current = root;
-  for (const segment of segments) {
-    current = path.join(current, segment);
-    const stat = await fs
-      .lstat(current)
-      .catch((error: NodeJS.ErrnoException) =>
-        error.code === "ENOENT" ? null : undefined
-      );
-    if (stat === undefined || stat?.isSymbolicLink()) return false;
-  }
-  return true;
-};
-
 export const rpcs3SaveProvider: EmulatorProvider = {
   async discover(context: EmulatorProviderContext) {
     try {
@@ -169,9 +148,12 @@ export const rpcs3SaveProvider: EmulatorProvider = {
         homeRoot,
         activeProfileId
       );
+      const rpcs3SavedataTitleIds =
+        context.rpcs3SavedataTitleIds ??
+        (await getRpcs3SavedataTitleIds(context.game));
       const [savedata, savestates] = await Promise.all([
         scanRpcs3SaveRoot(
-          context,
+          { ...context, rpcs3SavedataTitleIds },
           homeRoot,
           activeProfileId,
           binding?.cloudProfileId ?? activeProfileId
@@ -181,18 +163,21 @@ export const rpcs3SaveProvider: EmulatorProvider = {
       return {
         files: [...savedata.files, ...savestates.files],
         coverage: [...savedata.coverage, ...savestates.coverage],
-        revision: "rpcs3-v2",
+        revision: "rpcs3-v3",
       };
     } catch {
       return {
         files: [],
         coverage: [unresolvedCoverage("rpcs3-vfs-unresolved")],
-        revision: "rpcs3-v2",
+        revision: "rpcs3-v3",
       };
     }
   },
-  async restoreRules(game: Game, files) {
-    const allowedTitleIds = new Set(rpcs3TitleIdsForGame(game));
+  async restoreRules(game: Game, files, rpcs3SavedataTitleIds) {
+    if (!rpcs3TitleIdsForGame(game).length) return new Map();
+    const allowedTitleIds = new Set(
+      rpcs3SavedataTitleIds ?? (await getRpcs3SavedataTitleIds(game))
+    );
     let homeRoot: string;
     let activeProfileId: string;
     let configRoot: string;
@@ -220,29 +205,14 @@ export const rpcs3SaveProvider: EmulatorProvider = {
         rules.set(emulatorSaveFileKey(file), stateRule);
         continue;
       }
-      const parsed = parseRpcs3SaveRawPath(file.rawPath);
-      const segments = safeRelativeSegments(file.relativePath);
-      if (
-        !parsed ||
-        parsed.profileId !== binding?.cloudProfileId ||
-        !allowedTitleIds.has(parsed.titleId) ||
-        !segments ||
-        segments.length < 2 ||
-        !rpcs3SlotBelongsToTitle(segments[0], parsed.titleId)
-      ) {
-        continue;
-      }
-      const profileRoot = path.join(homeRoot, activeProfileId);
-      const profile = await fs.lstat(profileRoot).catch(() => null);
-      if (!profile?.isDirectory() || profile.isSymbolicLink()) continue;
-      const saveRoot = path.join(profileRoot, "savedata");
-      const saveRootStat = await fs.lstat(saveRoot).catch(() => null);
-      if (saveRootStat?.isSymbolicLink()) continue;
-      if (!(await isSafeTarget(saveRoot, segments))) continue;
-      rules.set(
-        emulatorSaveFileKey(file),
-        emulatorRestoreRule(file.rawPath, saveRoot, "dir")
+      const rule = await resolveRpcs3SavedataRestoreRule(
+        file,
+        allowedTitleIds,
+        homeRoot,
+        activeProfileId,
+        binding?.cloudProfileId
       );
+      if (rule) rules.set(emulatorSaveFileKey(file), rule);
     }
     return rules;
   },

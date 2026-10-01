@@ -10,7 +10,10 @@ import type { EmulatorProvider } from "./emulator-provider-types";
 export const getEmulatorSaveProvider = (game?: Game | null) =>
   game ? getCloudSaveEmulatorProvider(game.shop, game.platform) : null;
 
-export const getEmulatorGameSaveFileFilter = async (game: Game) => {
+export const getEmulatorGameSaveFileFilter = async (
+  game: Game,
+  rpcs3SavedataTitleIds?: readonly string[]
+) => {
   const provider = getEmulatorSaveProvider(game);
   if (provider === "retroarch") {
     const { getRetroArchGameSaveFileFilter } = await import(
@@ -20,7 +23,12 @@ export const getEmulatorGameSaveFileFilter = async (game: Game) => {
   }
   if (provider === "rpcs3") {
     const { isRpcs3GameSaveFile } = await import("./rpcs3-save-layout");
-    return (filePath: string) => isRpcs3GameSaveFile(game, filePath);
+    const { getRpcs3SavedataTitleIds } = await import(
+      "./rpcs3-savedata-title-ids.js"
+    );
+    const titleIds =
+      rpcs3SavedataTitleIds ?? (await getRpcs3SavedataTitleIds(game));
+    return (filePath: string) => isRpcs3GameSaveFile(game, filePath, titleIds);
   }
   return () => false;
 };
@@ -56,7 +64,8 @@ export const getEmulatorSaveEnvironmentKey = async (game: Game) => {
 export const discoverEmulatorSaveFiles = async (
   game: Game,
   environmentId: string,
-  remoteFiles: RestoreManifestFile[] = []
+  remoteFiles: RestoreManifestFile[] = [],
+  rpcs3SavedataTitleIds?: readonly string[]
 ) => {
   const provider = getEmulatorSaveProvider(game);
   if (!provider) throw new Error("cloud_save_emulator_provider_unavailable");
@@ -70,19 +79,25 @@ export const discoverEmulatorSaveFiles = async (
       environmentId,
       variantId: variant.variantId,
       remoteFiles,
+      rpcs3SavedataTitleIds,
     }),
   };
 };
 
 export const getEmulatorRestoreRules = async (
   game: Game | null | undefined,
-  files: RestoreManifestFile[]
+  files: RestoreManifestFile[],
+  rpcs3SavedataTitleIds?: readonly string[]
 ) => {
   const provider = getEmulatorSaveProvider(game);
   if (!provider || !game || files.length === 0) {
     return new Map<string, CloudSaveRule>();
   }
-  return (await loadProvider(provider)).restoreRules(game, files);
+  return (await loadProvider(provider)).restoreRules(
+    game,
+    files,
+    rpcs3SavedataTitleIds
+  );
 };
 
 export { emulatorSaveFileKey };

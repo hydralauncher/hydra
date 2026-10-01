@@ -3,6 +3,10 @@ import type { Game, Rpcs3DiscIdentityStatus } from "@types";
 import { HydraApi } from "../hydra-api.js";
 import { extractVerifiedPs3TitleId } from "../emulators/extract-disc-sku.js";
 import {
+  cacheRpcs3CatalogueTitleIds,
+  rememberRpcs3CatalogueTitleIds,
+} from "./rpcs3-savedata-title-ids.js";
+import {
   inspectRpcs3DiscIdentity,
   rpcs3TitleIdsFromCatalogue,
   type Rpcs3CatalogueEntry,
@@ -23,6 +27,8 @@ export const getRpcs3CatalogueTitleIds = async (game: Game) => {
   }
   const ids = rpcs3TitleIdsFromCatalogue(entries, game.objectId);
   if (!ids.size) throw new Error("cloud_save_rpcs3_catalogue_unavailable");
+  rememberRpcs3CatalogueTitleIds(game, ids);
+  await cacheRpcs3CatalogueTitleIds(game, ids).catch(() => undefined);
   return ids;
 };
 

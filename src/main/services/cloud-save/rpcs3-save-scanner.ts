@@ -20,6 +20,7 @@ import {
   rpcs3SlotBelongsToTitle,
   rpcs3TitleIdsForGame,
 } from "./rpcs3-save-layout.js";
+import { rpcs3SavedataTitleIdsForGame } from "./rpcs3-title-ids.js";
 
 const PROFILE_ID = /^\d{8}$/;
 const SAVESTATE_SUFFIX = /\.SAVESTAT(?:\.zst|\.gz)?$/;
@@ -90,7 +91,12 @@ export const unresolvedCoverage = (reason: string): UserLocationCoverage => ({
 });
 
 export const scanRpcs3SaveRoot = async (
-  { game, environmentId, variantId }: EmulatorProviderContext,
+  {
+    game,
+    environmentId,
+    variantId,
+    rpcs3SavedataTitleIds,
+  }: EmulatorProviderContext,
   homeRoot: string,
   activeProfileId: string,
   cloudProfileId = activeProfileId
@@ -98,9 +104,11 @@ export const scanRpcs3SaveRoot = async (
   const result: EmulatorProviderDiscovery = {
     files: [],
     coverage: [],
-    revision: "rpcs3-v1",
+    revision: "rpcs3-v3",
   };
-  const titleIds = rpcs3TitleIdsForGame(game);
+  const titleIds = rpcs3TitleIdsForGame(game).length
+    ? (rpcs3SavedataTitleIds ?? rpcs3SavedataTitleIdsForGame(game))
+    : [];
   if (!titleIds.length) {
     result.coverage.push(unresolvedCoverage("rpcs3-title-id-unresolved"));
     return result;

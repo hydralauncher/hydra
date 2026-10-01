@@ -14,6 +14,81 @@ const game = (discs: Array<{ path: string; sku: string | null }>) =>
 const ids = new Set(["BLUS30443", "BLES00510"]);
 
 describe("RPCS3 game identity", () => {
+  it("allows the MK savedata alias without authorizing its disc or savestate", async () => {
+    const mkIds = new Set(["BLUS30902"]);
+    const savedata = {
+      rawPath: "<emulator>/rpcs3/BLUS30522/00000001",
+      relativePath: "BLUS30522MK9PSET/DATA.BIN",
+    };
+    assert.doesNotThrow(() => assertRpcs3SnapshotIdentity([savedata], mkIds));
+    assert.throws(
+      () =>
+        assertRpcs3SnapshotIdentity(
+          [
+            {
+              rawPath: "<emulator>/rpcs3-state/BLUS30522",
+              relativePath: "BLUS30522_1_0.SAVESTAT",
+            },
+          ],
+          mkIds
+        ),
+      /cloud_save_rpcs3_save_wrong_game/
+    );
+    assert.equal(
+      (
+        await inspectRpcs3DiscIdentity(
+          game([{ path: "/games/mk-original", sku: "BLUS30522" }]),
+          mkIds,
+          async () => "BLUS30522"
+        )
+      ).status,
+      "mismatch"
+    );
+    assert.throws(
+      () => assertRpcs3SnapshotIdentity([savedata], ids),
+      /cloud_save_rpcs3_save_wrong_game/
+    );
+  });
+
+  it("keeps savedata aliases valid for custom paths without laundering savestates", () => {
+    const mkIds = new Set(["BLUS30902"]);
+    const savePath = "/rpcs3/dev_hdd0/home/00000001/savedata/BLUS30522MK9PSET";
+    const rawPath = `<custom><mac><home>${savePath}`;
+    const binding = {
+      rawPath,
+      path: savePath,
+      platform: "mac" as const,
+      kind: "dir" as const,
+    };
+    assert.doesNotThrow(() =>
+      assertRpcs3SnapshotIdentity(
+        [{ rawPath, relativePath: "DATA.BIN" }],
+        mkIds,
+        [binding]
+      )
+    );
+    const statePath = "/rpcs3/savestates/BLUS30522";
+    const stateRawPath = `<custom><mac><home>${statePath}`;
+    assert.throws(
+      () =>
+        assertRpcs3SnapshotIdentity(
+          [{ rawPath: stateRawPath, relativePath: "BLUS30522_1_0.SAVESTAT" }],
+          mkIds,
+          [{ ...binding, rawPath: stateRawPath, path: statePath }]
+        ),
+      /cloud_save_rpcs3_save_wrong_game/
+    );
+    assert.throws(
+      () =>
+        assertRpcs3SnapshotIdentity(
+          [{ rawPath, relativePath: "BLUS30522_1_0.SAVESTAT" }],
+          mkIds,
+          [{ ...binding, path: statePath }]
+        ),
+      /cloud_save_rpcs3_save_wrong_game/
+    );
+  });
+
   it("uses only IDs from the matching catalogue page", () => {
     const entries = [
       { objectId: "gow", shop: "launchbox", skus: ["BLUS-30443", "BLES00510"] },

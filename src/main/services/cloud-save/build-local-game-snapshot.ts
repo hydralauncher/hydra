@@ -27,6 +27,7 @@ import { buildCloudSaveAggregateHash } from "./snapshot-aggregate-hash";
 interface BuildLocalGameSnapshotContextOptions {
   customPathBindings?: CloudSaveCustomPathBindings;
   remoteFiles?: RestoreManifestFile[];
+  rpcs3SavedataTitleIds?: readonly string[];
 }
 
 export const buildLocalGameSnapshotContext = async (
@@ -61,10 +62,18 @@ export const buildLocalGameSnapshotContext = async (
   let nativeSnapshot;
   const stateMetadataByFile = new Map<string, CloudSaveStateMetadata>();
   if (game && getEmulatorSaveProvider(game)) {
+    const rpcs3SavedataTitleIds =
+      getEmulatorSaveProvider(game) === "rpcs3"
+        ? (options.rpcs3SavedataTitleIds ??
+          (await (
+            await import("./rpcs3-savedata-title-ids.js")
+          ).getRpcs3SavedataTitleIds(game)))
+        : undefined;
     const { variant, discovery } = await discoverEmulatorSaveFiles(
       game,
       environmentId,
-      options.remoteFiles
+      options.remoteFiles,
+      rpcs3SavedataTitleIds
     );
     for (const file of discovery.files) {
       const stateMetadata =
@@ -99,7 +108,10 @@ export const buildLocalGameSnapshotContext = async (
     const providerPaths = new Set(
       discovery.files.map((file) => file.absolutePath)
     );
-    const isGameSaveFile = await getEmulatorGameSaveFileFilter(game);
+    const isGameSaveFile = await getEmulatorGameSaveFileFilter(
+      game,
+      rpcs3SavedataTitleIds
+    );
     const customFiles = (
       await Promise.all(
         (customSnapshot?.sourceFiles ?? []).map(async (file) => {

@@ -40,6 +40,7 @@ import {
 } from "./retroarch-snapshot-migration";
 import { loadRetroArchBindings } from "./retroarch-state-bindings";
 import type { SyncDirection } from "./sync-game/policy";
+import { rpcs3SavedataTitleIdsForGame } from "./rpcs3-title-ids.js";
 
 interface AnalyzeCloudSaveStateOptions {
   customPathBindings?: CloudSaveCustomPathBindings;
@@ -103,15 +104,22 @@ export const analyzeCloudSaveState = async (
     throw new Error("Active Cloud Save snapshot belongs to another game");
   }
   let rpcs3AllowedTitleIds: ReadonlySet<string> | null = null;
+  let rpcs3SavedataTitleIds: string[] | undefined;
   if (getEmulatorSaveProvider(initialContext.game) === "rpcs3") {
     const { assertRpcs3DiscIdentity, assertRpcs3SnapshotIdentity } =
       await import("./rpcs3-game-identity.js");
     rpcs3AllowedTitleIds = await assertRpcs3DiscIdentity(initialContext.game!);
+    rpcs3SavedataTitleIds = rpcs3SavedataTitleIdsForGame(
+      initialContext.game!,
+      rpcs3AllowedTitleIds
+    );
     assertRpcs3SnapshotIdentity(
       (remoteManifest?.files ?? []).filter(
         (file) => !file.rawPath.startsWith("<custom>")
       ),
-      rpcs3AllowedTitleIds
+      rpcs3AllowedTitleIds,
+      [],
+      new Set(rpcs3SavedataTitleIds)
     );
   }
   let context = initialContext;
@@ -204,7 +212,8 @@ export const analyzeCloudSaveState = async (
     assertRpcs3SnapshotIdentity(
       remoteManifest?.files ?? [],
       rpcs3AllowedTitleIds,
-      customPathBindings.ready
+      customPathBindings.ready,
+      new Set(rpcs3SavedataTitleIds)
     );
   }
   const preserveLocalMissingRawPaths =
@@ -256,6 +265,7 @@ export const analyzeCloudSaveState = async (
     {
       customPathBindings,
       remoteFiles: remoteManifest?.files ?? [],
+      rpcs3SavedataTitleIds,
     }
   );
   if (rpcs3AllowedTitleIds) {
@@ -265,7 +275,8 @@ export const analyzeCloudSaveState = async (
     assertRpcs3SnapshotIdentity(
       localSnapshotContext.files,
       rpcs3AllowedTitleIds,
-      customPathBindings.ready
+      customPathBindings.ready,
+      new Set(rpcs3SavedataTitleIds)
     );
   }
   const restorableEmulatorEntryIds = new Set<string>();
@@ -291,7 +302,8 @@ export const analyzeCloudSaveState = async (
             files: missingRemoteFiles,
           },
           context.pathContext,
-          customPathBindings
+          customPathBindings,
+          rpcs3SavedataTitleIds
         );
         for (const action of resolution.actions) {
           if (isEmulatorSaveRawPath(action.rawPath)) {

@@ -68,7 +68,8 @@ export const getRemoteSnapshotRestoreManifest = async (
 export const resolveRestoreManifestTargets = async (
   manifest: RestoreManifestResponse,
   suppliedPathContext?: CloudSavePathContext,
-  suppliedCustomPathBindings?: CloudSaveCustomPathBindings
+  suppliedCustomPathBindings?: CloudSaveCustomPathBindings,
+  rpcs3SavedataTitleIds?: readonly string[]
 ): Promise<ResolveRestoreTargetsResult> => {
   const gameContext = await getCloudSaveGameContext(
     manifest.snapshot.objectId,
@@ -173,7 +174,8 @@ export const resolveRestoreManifestTargets = async (
 
   const emulatorRules = await getEmulatorRestoreRules(
     gameContext.game,
-    emulatorFiles
+    emulatorFiles,
+    rpcs3SavedataTitleIds
   );
   const emulatorPlans = await Promise.all(
     emulatorFiles.map((file) => {

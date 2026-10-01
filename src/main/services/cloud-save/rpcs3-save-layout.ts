@@ -3,8 +3,13 @@ import path from "node:path";
 import YAML from "yaml";
 
 import type { Game } from "@types";
+import {
+  rpcs3SavedataTitleIdsForGame,
+  rpcs3TitleIdsForGame,
+} from "./rpcs3-title-ids.js";
 
-const TITLE_ID = /^[A-Z]{4}\d{5}$/;
+export { rpcs3TitleIdsForGame } from "./rpcs3-title-ids.js";
+
 const PROFILE_ID = /^\d{8}$/;
 
 export const parseRpcs3ActiveProfileId = (content: string | null) => {
@@ -28,15 +33,6 @@ export const parseRpcs3ActiveProfileId = (content: string | null) => {
     : null;
 };
 
-export const rpcs3TitleIdsForGame = (game: Game) =>
-  [
-    ...new Set(
-      (game.discs ?? []).map((disc) =>
-        disc.sku?.replace(/[^A-Za-z0-9]/g, "").toUpperCase()
-      )
-    ),
-  ].filter((value): value is string => !!value && TITLE_ID.test(value));
-
 export const rpcs3SlotBelongsToTitle = (slotName: string, titleId: string) =>
   slotName.startsWith(titleId);
 
@@ -48,19 +44,25 @@ export const rpcs3SavestateFileBelongsToTitle = (
   titleId: string
 ) => SAVESTATE_NAME.exec(fileName)?.[1] === titleId;
 
-export const isRpcs3GameSaveFile = (game: Game, filePath: string) => {
+export const isRpcs3GameSaveFile = (
+  game: Game,
+  filePath: string,
+  savedataTitleIds: readonly string[] = rpcs3SavedataTitleIdsForGame(game)
+) => {
   const titleIds = rpcs3TitleIdsForGame(game);
+  if (!titleIds.length) return false;
   const segments = path.resolve(filePath).split(path.sep);
   const fileName = segments.at(-1) ?? "";
-  return titleIds.some((titleId) => {
-    if (rpcs3SavestateFileBelongsToTitle(fileName, titleId)) return true;
-    const savedataIndex = segments.lastIndexOf("savedata");
-    return (
-      savedataIndex >= 0 &&
-      savedataIndex < segments.length - 2 &&
-      rpcs3SlotBelongsToTitle(segments[savedataIndex + 1], titleId)
-    );
-  });
+  if (titleIds.some((id) => rpcs3SavestateFileBelongsToTitle(fileName, id)))
+    return true;
+  const savedataIndex = segments.lastIndexOf("savedata");
+  return (
+    savedataIndex >= 0 &&
+    savedataIndex < segments.length - 2 &&
+    savedataTitleIds.some((id) =>
+      rpcs3SlotBelongsToTitle(segments[savedataIndex + 1], id)
+    )
+  );
 };
 
 export const resolveRpcs3VfsHdd0 = (

@@ -16,12 +16,14 @@ import {
   rpcs3SavestateFileBelongsToTitle,
   rpcs3SlotBelongsToTitle,
 } from "./rpcs3-save-layout.js";
+import {
+  expandRpcs3SavedataTitleIds,
+  normalizeRpcs3TitleId,
+} from "./rpcs3-title-ids.js";
+
+export { normalizeRpcs3TitleId } from "./rpcs3-title-ids.js";
 
 const TITLE_ID = /^[A-Z]{4}\d{5}$/;
-export const normalizeRpcs3TitleId = (value: string | null | undefined) => {
-  const normalized = value?.replace(/[^A-Za-z0-9]/g, "").toUpperCase();
-  return normalized && TITLE_ID.test(normalized) ? normalized : null;
-};
 
 export interface Rpcs3CatalogueEntry {
   objectId: string;
@@ -69,25 +71,32 @@ export const inspectRpcs3DiscIdentity = async (
   return { status: "ready", path: null, titleId: null };
 };
 
-const rpcs3TitleIdForLocalSavePath = (filePath: string) => {
+interface Rpcs3LocalSaveIdentity {
+  titleId: string;
+  kind: "savedata" | "savestate";
+}
+
+const rpcs3IdentityForLocalSavePath = (
+  filePath: string
+): Rpcs3LocalSaveIdentity | null => {
   const segments = path.resolve(filePath).split(path.sep);
   const fileName = segments.at(-1) ?? "";
   const stateId = /^([A-Z]{4}\d{5})_/.exec(fileName)?.[1];
   if (stateId && rpcs3SavestateFileBelongsToTitle(fileName, stateId)) {
-    return stateId;
+    return { titleId: stateId, kind: "savestate" };
   }
   const savedataIndex = segments.lastIndexOf("savedata");
   const slot = segments[savedataIndex + 1];
   const saveId = slot && /^([A-Z]{4}\d{5})/.exec(slot)?.[1];
   return savedataIndex >= 0 && saveId && rpcs3SlotBelongsToTitle(slot, saveId)
-    ? saveId
+    ? { titleId: saveId, kind: "savedata" }
     : null;
 };
 
-const rpcs3TitleIdForCustomRawPath = (
+const rpcs3IdentityForCustomRawPath = (
   rawPath: string,
   relativePath: string
-) => {
+): Rpcs3LocalSaveIdentity | null => {
   const relative = safeRelativeSegments(relativePath);
   if (!relative) return null;
   const segments = [...rawPath.replaceAll("\\", "/").split("/"), ...relative];
@@ -97,7 +106,7 @@ const rpcs3TitleIdForCustomRawPath = (
   const slot = segments[savedataIndex + 1];
   const saveId = slot && /^([A-Z]{4}\d{5})/.exec(slot)?.[1];
   if (savedataIndex >= 0 && saveId && rpcs3SlotBelongsToTitle(slot, saveId)) {
-    return saveId;
+    return { titleId: saveId, kind: "savedata" };
   }
   const statesIndex = segments.findLastIndex(
     (segment) => segment.toLowerCase() === "savestates"
@@ -108,7 +117,7 @@ const rpcs3TitleIdForCustomRawPath = (
     stateId &&
     TITLE_ID.test(stateId) &&
     rpcs3SavestateFileBelongsToTitle(fileName, stateId)
-    ? stateId
+    ? { titleId: stateId, kind: "savestate" }
     : null;
 };
 
@@ -116,7 +125,10 @@ const rpcs3TitleIdForCustomRawPath = (
 export const assertRpcs3SnapshotIdentity = (
   files: Pick<CloudSaveFileIdentity, "rawPath" | "relativePath">[],
   allowedTitleIds: ReadonlySet<string>,
-  customPaths: CloudSaveCustomPath[] = []
+  customPaths: CloudSaveCustomPath[] = [],
+  allowedSavedataTitleIds: ReadonlySet<string> = new Set(
+    expandRpcs3SavedataTitleIds(allowedTitleIds)
+  )
 ) => {
   for (const file of files) {
     if (file.rawPath.startsWith("<custom>")) {
@@ -128,14 +140,23 @@ export const assertRpcs3SnapshotIdentity = (
             ? binding.path
             : path.join(binding.path, ...segments)
           : null;
-      const localTitleId = destination
-        ? rpcs3TitleIdForLocalSavePath(destination)
+      const localIdentity = destination
+        ? rpcs3IdentityForLocalSavePath(destination)
         : null;
+      const rawIdentity = rpcs3IdentityForCustomRawPath(
+        file.rawPath,
+        file.relativePath
+      );
+      const allowedIds =
+        localIdentity?.kind === "savedata"
+          ? allowedSavedataTitleIds
+          : allowedTitleIds;
       if (
-        localTitleId &&
-        allowedTitleIds.has(localTitleId) &&
-        localTitleId ===
-          rpcs3TitleIdForCustomRawPath(file.rawPath, file.relativePath)
+        localIdentity &&
+        rawIdentity &&
+        allowedIds.has(localIdentity.titleId) &&
+        localIdentity.titleId === rawIdentity.titleId &&
+        localIdentity.kind === rawIdentity.kind
       ) {
         continue;
       }
@@ -145,9 +166,10 @@ export const assertRpcs3SnapshotIdentity = (
     const state = parseRpcs3SavestateRawPath(file.rawPath);
     const segments = safeRelativeSegments(file.relativePath);
     const titleId = save?.titleId ?? state?.titleId;
+    const allowedIds = save ? allowedSavedataTitleIds : allowedTitleIds;
     if (
       !titleId ||
-      !allowedTitleIds.has(titleId) ||
+      !allowedIds.has(titleId) ||
       !segments ||
       (save &&
         (segments.length < 2 ||
