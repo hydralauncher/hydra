@@ -59,12 +59,11 @@ export function RecentGamesBox() {
 
               <div className="recent-games__game-details">
                 <span className="recent-games__game-title">{game.title}</span>
-                <GameVisibilityBadge
-                  isHiddenFromOthers={game.isHiddenFromOthers}
-                  isConcealed={game.isConcealed}
-                />
-
                 <div className="recent-games__game-description">
+                  <GameVisibilityBadge
+                    isHiddenFromOthers={game.isHiddenFromOthers}
+                    isConcealed={game.isConcealed}
+                  />
                   <ClockIcon />
                   <small>{formatPlayTime(game)}</small>
                 </div>
