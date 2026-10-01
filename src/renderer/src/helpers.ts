@@ -25,6 +25,7 @@ import type { SkuRegion } from "./helpers/sku-region";
 import {
   appendProfileLibraryFilterParams,
   filterLibraryGamesByCategory,
+  filterLibraryGamesByShop,
   getProfileLibraryFilter,
   shouldShowProfileSteamLibraryBadge,
   shouldShowSteamLibraryBadge,
@@ -568,6 +569,7 @@ export const getGameCollectionIds = (game: {
 export {
   appendProfileLibraryFilterParams,
   filterLibraryGamesByCategory,
+  filterLibraryGamesByShop,
   getProfileLibraryFilter,
   shouldShowProfileSteamLibraryBadge,
   shouldShowSteamLibraryBadge,

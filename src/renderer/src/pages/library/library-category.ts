@@ -1,3 +1,5 @@
+import type { CatalogueStoreScope } from "@shared";
+
 export type LibraryCategory = "all" | "pc" | "steam_library" | "classics";
 
 export interface LibraryCategoryGame {
@@ -42,6 +44,11 @@ export const filterLibraryGamesByCategory = <T extends LibraryCategoryGame>(
 
   return games;
 };
+
+export const filterLibraryGamesByShop = <T extends LibraryCategoryGame>(
+  games: T[],
+  shop: CatalogueStoreScope
+): T[] => (shop === "all" ? games : games.filter((game) => game.shop === shop));
 
 export const getProfileLibraryFilter = (
   platform: LibraryCategory

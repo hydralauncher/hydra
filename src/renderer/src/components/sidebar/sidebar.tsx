@@ -4,7 +4,11 @@ import { useTranslation } from "react-i18next";
 import { useLocation, useNavigate } from "react-router-dom";
 
 import type { LibraryGame } from "@types";
-import { removeDiacritics } from "@shared";
+import {
+  parseCatalogueStoreScope,
+  removeDiacritics,
+  type CatalogueStoreScope,
+} from "@shared";
 
 import { ConfirmationModal, TextField } from "@renderer/components";
 import { useDownload, useLibrary, useToast } from "@renderer/hooks";
@@ -15,6 +19,7 @@ import "./sidebar.scss";
 import {
   buildGameDetailsPath,
   filterLibraryGamesByCategory,
+  filterLibraryGamesByShop,
   sortLibraryGames,
 } from "@renderer/helpers";
 import type { LibraryCategory } from "@renderer/pages/library/category-filter";
@@ -32,6 +37,7 @@ import { SidebarFilterMenu } from "./sidebar-filter-menu";
 import {
   SIDEBAR_PLATFORMS_STORAGE_KEY,
   SIDEBAR_PLAYABLE_ONLY_STORAGE_KEY,
+  SIDEBAR_SHOP_STORAGE_KEY,
 } from "@renderer/session-state";
 import { SidebarGameItem } from "./sidebar-game-item";
 import { SidebarProfile } from "./sidebar-profile";
@@ -105,6 +111,10 @@ export function Sidebar() {
     }
   );
 
+  const [sidebarShop, setSidebarShop] = useState<CatalogueStoreScope>(() =>
+    parseCatalogueStoreScope(localStorage.getItem(SIDEBAR_SHOP_STORAGE_KEY))
+  );
+
   const [sidebarSortBy, setSidebarSortBy] = useState<SortOption>(() => {
     const saved = localStorage.getItem("sidebar-sort-by");
     if (SIDEBAR_SORT_OPTIONS.has(saved as SortOption)) {
@@ -150,8 +160,13 @@ export function Sidebar() {
     [sidebarSortBy, showFavoritesFirst]
   );
 
+  const shopLibrary = useMemo(
+    () => filterLibraryGamesByShop(library, sidebarShop),
+    [library, sidebarShop]
+  );
+
   const sortedLibrary = useMemo(() => {
-    let games = filterLibraryGamesByCategory(library, sidebarCategory);
+    let games = filterLibraryGamesByCategory(shopLibrary, sidebarCategory);
 
     if (sidebarCategory === "classics" && selectedPlatforms.length > 0) {
       const platforms = new Set(selectedPlatforms);
@@ -161,11 +176,11 @@ export function Sidebar() {
     }
 
     return orderSidebarGames(games);
-  }, [library, sidebarCategory, selectedPlatforms, orderSidebarGames]);
+  }, [shopLibrary, sidebarCategory, selectedPlatforms, orderSidebarGames]);
 
   const searchableLibrary = useMemo(
-    () => orderSidebarGames(library),
-    [library, orderSidebarGames]
+    () => orderSidebarGames(shopLibrary),
+    [shopLibrary, orderSidebarGames]
   );
 
   const { lastPacket, progress } = useDownload();
@@ -204,6 +219,7 @@ export function Sidebar() {
   const hasActiveFilter =
     library.length > 0 &&
     (sidebarCategory !== "all" ||
+      sidebarShop !== "all" ||
       selectedPlatforms.length > 0 ||
       showPlayableOnly ||
       isSearching);
@@ -275,6 +291,11 @@ export function Sidebar() {
   const handleSidebarSortChange = useCallback((next: SortOption) => {
     setSidebarSortBy(next);
     localStorage.setItem("sidebar-sort-by", next);
+  }, []);
+
+  const handleSidebarShopChange = useCallback((next: CatalogueStoreScope) => {
+    setSidebarShop(next);
+    localStorage.setItem(SIDEBAR_SHOP_STORAGE_KEY, next);
   }, []);
 
   const handleToggleFavoritesFirst = useCallback((next: boolean) => {
@@ -556,6 +577,8 @@ export function Sidebar() {
               <SidebarFilterMenu
                 category={sidebarCategory}
                 onCategoryChange={handleSidebarCategoryChange}
+                shop={sidebarShop}
+                onShopChange={handleSidebarShopChange}
                 sortBy={sidebarSortBy}
                 onSortChange={handleSidebarSortChange}
                 showFavoritesFirst={showFavoritesFirst}

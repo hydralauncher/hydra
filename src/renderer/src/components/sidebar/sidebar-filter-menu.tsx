@@ -18,7 +18,9 @@ import {
   type LibraryCategory,
 } from "@renderer/pages/library/category-filter";
 import { SteamIcon } from "@renderer/components/steam-library-badge/steam-library-badge";
+import EpicLogo from "@renderer/assets/epic-games-logo.svg?react";
 import type { SortOption } from "@renderer/pages/library/filter-options";
+import type { CatalogueStoreScope } from "@shared";
 import "./sidebar-filter-menu.scss";
 
 const MENU_SIDE_OFFSET = 8;
@@ -27,6 +29,8 @@ const MENU_COLLISION_PADDING = 16;
 interface SidebarFilterMenuProps {
   category: LibraryCategory;
   onCategoryChange: (category: LibraryCategory) => void;
+  shop: CatalogueStoreScope;
+  onShopChange: (shop: CatalogueStoreScope) => void;
   sortBy: SortOption;
   onSortChange: (sortBy: SortOption) => void;
   showFavoritesFirst: boolean;
@@ -39,6 +43,8 @@ interface SidebarFilterMenuProps {
 export function SidebarFilterMenu({
   category,
   onCategoryChange,
+  shop,
+  onShopChange,
   sortBy,
   onSortChange,
   showFavoritesFirst,
@@ -47,7 +53,7 @@ export function SidebarFilterMenu({
   selectedPlatforms,
   onPlatformsChange,
 }: Readonly<SidebarFilterMenuProps>) {
-  const { t } = useTranslation(["sidebar", "library"]);
+  const { t } = useTranslation(["sidebar", "library", "catalogue"]);
 
   const tooltipId = useId();
   const pointerInteractionRef = useRef(false);
@@ -123,6 +129,28 @@ export function SidebarFilterMenu({
     },
   ];
 
+  const shopOptions: {
+    value: CatalogueStoreScope;
+    label: string;
+    icon: JSX.Element;
+  }[] = [
+    {
+      value: "all",
+      label: t("store_all", { ns: "catalogue" }),
+      icon: <StackIcon size={14} />,
+    },
+    {
+      value: "steam",
+      label: "Steam",
+      icon: <SteamIcon size={14} />,
+    },
+    {
+      value: "epic",
+      label: "Epic",
+      icon: <EpicLogo className="sidebar-filter-menu__shop-icon" />,
+    },
+  ];
+
   return (
     <DropdownMenuPrimitive.Root>
       <DropdownMenuPrimitive.Trigger asChild>
@@ -170,6 +198,39 @@ export function SidebarFilterMenu({
                 }
               >
                 {categoryOptions.map((option) => (
+                  <DropdownMenuPrimitive.RadioItem
+                    key={option.value}
+                    value={option.value}
+                    onSelect={(event) => event.preventDefault()}
+                    className="sidebar-filter-menu__item"
+                  >
+                    {option.icon}
+                    <span>{option.label}</span>
+                    <DropdownMenuPrimitive.ItemIndicator
+                      forceMount
+                      className="sidebar-filter-menu__item-indicator"
+                    >
+                      <CheckIcon size={14} />
+                    </DropdownMenuPrimitive.ItemIndicator>
+                  </DropdownMenuPrimitive.RadioItem>
+                ))}
+              </DropdownMenuPrimitive.RadioGroup>
+            </DropdownMenuPrimitive.Group>
+
+            <DropdownMenuPrimitive.Separator className="sidebar-filter-menu__separator" />
+
+            <DropdownMenuPrimitive.Group className="sidebar-filter-menu__group">
+              <DropdownMenuPrimitive.Label className="sidebar-filter-menu__label">
+                {t("shops_label")}
+              </DropdownMenuPrimitive.Label>
+
+              <DropdownMenuPrimitive.RadioGroup
+                value={shop}
+                onValueChange={(value) =>
+                  onShopChange(value as CatalogueStoreScope)
+                }
+              >
+                {shopOptions.map((option) => (
                   <DropdownMenuPrimitive.RadioItem
                     key={option.value}
                     value={option.value}

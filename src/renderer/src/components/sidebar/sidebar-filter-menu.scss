@@ -85,6 +85,12 @@
     white-space: nowrap;
   }
 
+  &__shop-icon {
+    width: 14px;
+    height: 14px;
+    flex-shrink: 0;
+  }
+
   &__item-indicator {
     position: absolute;
     right: 12px;
