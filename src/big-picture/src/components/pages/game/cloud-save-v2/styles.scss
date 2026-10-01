@@ -156,16 +156,6 @@
   }
 }
 
-.big-picture-cloud-save__battery-choices {
-  display: flex;
-  flex-direction: column;
-  gap: calc(var(--spacing-unit) * 3);
-
-  .button {
-    width: 100%;
-  }
-}
-
 .big-picture-cloud-save__spinner {
   animation: big-picture-cloud-save-spin 0.9s linear infinite;
 }

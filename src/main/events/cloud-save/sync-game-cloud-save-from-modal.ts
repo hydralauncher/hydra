@@ -1,4 +1,4 @@
-import { assertCloudSaveRuntimeAvailable } from "@main/services/cloud-save/assert-cloud-save-executable";
+import { assertCloudSaveExecutableExists } from "@main/services/cloud-save/assert-cloud-save-executable";
 import {
   assertCloudSaveSubscription,
   confirmPendingManualCloudSaveCustomPathApproval,
@@ -50,7 +50,7 @@ registerEvent(
     if (approvalId) assertApprovalCanContinue();
 
     assertCloudSaveSubscription();
-    await assertCloudSaveRuntimeAvailable(objectId, shop);
+    await assertCloudSaveExecutableExists(objectId, shop);
 
     const onProgress = (progress: CloudSaveSyncProgressPayload) => {
       if (!event.sender.isDestroyed()) {

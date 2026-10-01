@@ -39,11 +39,6 @@ export interface BigPictureCloudSaveAction {
   icon?: CloudSavePresentationIcon;
 }
 
-export const shouldLoadBigPictureEmulatorDetails = (
-  canCheckCloudSaves: boolean,
-  emulatorProvider: string | null
-) => canCheckCloudSaves && emulatorProvider !== null;
-
 export function getBigPictureCloudSaveAction(
   action: CloudSavePanelAction
 ): BigPictureCloudSaveAction {

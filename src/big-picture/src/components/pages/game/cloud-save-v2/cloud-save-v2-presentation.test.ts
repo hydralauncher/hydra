@@ -1,22 +1,10 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 
-import {
-  getBigPictureCloudSaveAction,
-  shouldLoadBigPictureEmulatorDetails,
-} from "./cloud-save-v2-presentation.js";
+// @ts-ignore The Node ESM test runner requires the source extension.
+import { getBigPictureCloudSaveAction } from "./cloud-save-v2-presentation.ts";
 
 describe("getBigPictureCloudSaveAction", () => {
-  it("loads file details for supported emulator providers", () => {
-    assert.equal(shouldLoadBigPictureEmulatorDetails(true, "retroarch"), true);
-    assert.equal(shouldLoadBigPictureEmulatorDetails(true, "rpcs3"), true);
-    assert.equal(shouldLoadBigPictureEmulatorDetails(true, null), false);
-    assert.equal(
-      shouldLoadBigPictureEmulatorDetails(false, "retroarch"),
-      false
-    );
-  });
-
   it("replaces the desktop-only details action with a safe recheck", () => {
     assert.deepEqual(
       getBigPictureCloudSaveAction({

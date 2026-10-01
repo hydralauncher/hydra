@@ -5,11 +5,6 @@ import { Wine } from "@main/services/wine";
 import { logger } from "@main/services/logger";
 import { getSteamStoreUserContext } from "@main/services/steam-login-users";
 import type { CloudSavePathContext, GameShop } from "@types";
-import { getCloudSaveEmulatorProvider } from "@shared";
-import { getEmulatorConfig } from "../emulators/emulators-repository";
-import { getRetroArchConfig } from "../retroarch/retroarch-repository";
-import { getEmulatorSaveEnvironmentKey } from "./emulator-save-provider";
-import { emulatorEnvironmentId } from "./emulator-provider-identity";
 
 import {
   resolveCloudSaveEnvironment,
@@ -55,17 +50,9 @@ export const getCloudSaveGameContext = async (
       ? await getSteamStoreUserContext(steamPath)
       : { known: [] };
   const platform = getCloudSavePlatform();
-  const emulatorProvider = getCloudSaveEmulatorProvider(shop, game?.platform);
-  const emulatorExecutablePath = emulatorProvider
-    ? emulatorProvider === "retroarch"
-      ? (await getRetroArchConfig().catch(() => null))?.executablePath
-      : (await getEmulatorConfig("ps3").catch(() => null))?.executablePath
-    : null;
-  const executablePath = emulatorProvider
-    ? (emulatorExecutablePath ?? undefined)
-    : (overrides?.executablePath ?? game?.executablePath ?? undefined);
+  const executablePath =
+    overrides?.executablePath ?? game?.executablePath ?? undefined;
   const usesWindowsCompatibility =
-    !emulatorProvider &&
     platform === "linux" &&
     executablePath?.toLowerCase().endsWith(".exe") === true;
   const requestedWinePrefixPath = getRequestedWinePrefixPath(
@@ -100,13 +87,6 @@ export const getCloudSaveGameContext = async (
     winePrefixIsValid,
     prefixGenerationOverride: overrides?.prefixGenerationOverride,
   });
-  if (emulatorProvider && game) {
-    const providerKey = await getEmulatorSaveEnvironmentKey(game);
-    environment.environmentId = emulatorEnvironmentId(
-      environment.environmentId,
-      providerKey
-    );
-  }
   if (winePrefixIsValid && environment.prefixIdentityMode !== "marker") {
     logger.warn(
       "[Cloud Save] Wine prefix marker unavailable; using degraded identity",

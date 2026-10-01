@@ -947,16 +947,11 @@ export const validateBoundCloudSaveCustomPathForRestore = async (
 
 export const canonicalizeSelectedCloudSaveCustomPath = async (
   selectedPath: string,
-  context = getCurrentCloudSaveCustomPathContext(),
-  kind: "file" | "dir" = "dir"
+  context = getCurrentCloudSaveCustomPathContext()
 ) => {
   const stats = await fs.stat(selectedPath);
-  if (kind === "dir" ? !stats.isDirectory() : !stats.isFile()) {
-    throw new Error(
-      kind === "dir"
-        ? "cloud_save_custom_path_not_directory"
-        : "cloud_save_custom_path_not_file"
-    );
+  if (!stats.isDirectory()) {
+    throw new Error("cloud_save_custom_path_not_directory");
   }
 
   const normalizedSelectedPath = normalizeAbsolutePath(
@@ -971,7 +966,7 @@ export const canonicalizeSelectedCloudSaveCustomPath = async (
     : await fs.realpath(selectedPath);
   const customPath = encodeCloudSaveCustomPath(sourcePath, context);
   await assertNoSymlinkAncestor(customPath, context);
-  return { ...customPath, kind };
+  return customPath;
 };
 
 export const validateCloudSaveCustomPathForRestore = async (

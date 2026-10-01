@@ -5,10 +5,7 @@ import { FileDirectoryIcon } from "@primer/octicons-react";
 
 import { Modal, TextField, Button } from "@renderer/components";
 import { useLibrary, useToast } from "@renderer/hooks";
-import {
-  buildGameDetailsPath,
-  getGameTitleFromExecutablePath,
-} from "@renderer/helpers";
+import { buildGameDetailsPath } from "@renderer/helpers";
 import { LINUX_GAME_EXECUTABLE_EXTENSIONS } from "@shared";
 
 import "./sidebar-adding-custom-game-modal.scss";
@@ -64,14 +61,12 @@ export function SidebarAddingCustomGameModal({
 
     if (filePaths && filePaths.length > 0) {
       const selectedPath = filePaths[0];
-      const previousTitle = executablePath
-        ? getGameTitleFromExecutablePath(executablePath)
-        : "";
-
       setExecutablePath(selectedPath);
 
-      if (!gameName.trim() || gameName === previousTitle) {
-        setGameName(getGameTitleFromExecutablePath(selectedPath));
+      if (!gameName.trim()) {
+        const fileName = selectedPath.split(/[\\/]/).pop() || "";
+        const gameNameFromFile = fileName.replace(/\.[^/.]+$/, "");
+        setGameName(gameNameFromFile);
       }
     }
   };

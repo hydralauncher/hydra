@@ -7,7 +7,6 @@ import {
   XCircleIcon,
 } from "@phosphor-icons/react";
 import type { LibraryGame, ShopDetailsWithAssets } from "@types";
-import { isCloudSaveV2Eligible } from "@shared";
 import { useEffect, useMemo, useRef } from "react";
 import { useTranslation } from "react-i18next";
 import {
@@ -138,8 +137,7 @@ export function Hero({
     canAddToLibrary;
   const shouldShowCatalogActions = !game && canAddToLibrary;
   const shouldShowFavoriteButton = Boolean(game);
-  const shouldShowCloudSaveButton =
-    !!game && isCloudSaveV2Eligible(game.shop, game.platform);
+  const shouldShowCloudSaveButton = game?.shop === "steam";
   const lastActionRightTarget = useMemo<FocusOverrideTarget>(
     () => sidebarEntryTarget ?? { type: "block" },
     [sidebarEntryTarget]

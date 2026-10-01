@@ -1,6 +1,6 @@
 import type { ClassicsDisc } from "@types";
 
-import { isWithin } from "../emulators/rom-path-utils.js";
+import { isWithin } from "../emulators/rom-path-utils";
 
 export interface DiscReconciliation {
   discs: ClassicsDisc[];
@@ -26,7 +26,9 @@ const buildReconciliation = (
   return {
     discs: survivingDiscs,
     selectedDiscPath:
-      selectedDiscPath && !selectionSurvived ? null : selectedDiscPath,
+      selectedDiscPath && !selectionSurvived
+        ? survivingDiscs[0].path
+        : selectedDiscPath,
     isDeleted: false,
   };
 };

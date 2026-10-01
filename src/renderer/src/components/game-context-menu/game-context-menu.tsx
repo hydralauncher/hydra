@@ -18,8 +18,6 @@ import {
   XIcon,
   PinIcon,
   PinSlashIcon,
-  EyeClosedIcon,
-  LockIcon,
 } from "@primer/octicons-react";
 import SteamLogo from "@renderer/assets/steam-logo.svg?react";
 import {
@@ -78,11 +76,6 @@ export function GameContextMenu({
     null
   );
   const [isFavoritePending, setIsFavoritePending] = useState(false);
-  const [isVisibilityPending, setIsVisibilityPending] = useState(false);
-  const [visibility, setVisibility] = useState({
-    isHiddenFromOthers: Boolean(game.isHiddenFromOthers),
-    isConcealed: Boolean(game.isConcealed),
-  });
   const {
     collections,
     isLoading: isCollectionsLoading,
@@ -117,9 +110,9 @@ export function GameContextMenu({
   const selectedCollectionId = searchParams.get("collection");
 
   useEffect(() => {
-    if (!visible || !userDetails) return;
+    if (!visible || game.shop === "custom" || !userDetails) return;
     void loadCollections();
-  }, [visible, loadCollections, userDetails]);
+  }, [visible, game.shop, loadCollections, userDetails]);
 
   useEffect(() => {
     if (!visible) return;
@@ -128,36 +121,7 @@ export function GameContextMenu({
     setIsFavoriteSelected(Boolean(game.favorite));
     setPendingCollectionId(null);
     setIsFavoritePending(false);
-    setIsVisibilityPending(false);
-    setVisibility({
-      isHiddenFromOthers: Boolean(game.isHiddenFromOthers),
-      isConcealed: Boolean(game.isConcealed),
-    });
   }, [visible, game]);
-
-  const handleVisibilityChange = async (
-    field: "isHiddenFromOthers" | "isConcealed",
-    value: boolean
-  ) => {
-    if (isVisibilityPending) return;
-    setIsVisibilityPending(true);
-    try {
-      const saved = await window.electron.setGameVisibility(
-        game.shop,
-        game.objectId,
-        field,
-        value
-      );
-      setVisibility(saved);
-      window.dispatchEvent(new Event("hydra:game-visibility-updated"));
-      showSuccessToast(t("game_visibility_updated"));
-      onClose();
-    } catch {
-      showErrorToast(t("failed_update_game_visibility"));
-    } finally {
-      setIsVisibilityPending(false);
-    }
-  };
 
   const handleAssignGameCollection = async (collectionId: string) => {
     if (pendingCollectionId || isFavoritePending) return;
@@ -227,43 +191,49 @@ export function GameContextMenu({
       closeOnClick: false,
       disabled: isDeleting,
     },
-    ...collections.map((collection) => ({
-      id: `collection-${collection.id}`,
-      label: collection.name,
-      icon: localCollectionIds.includes(collection.id) ? (
-        <FileDirectoryFillIcon size={16} />
-      ) : (
-        <FileDirectoryIcon size={16} />
-      ),
-      onClick: () => {
-        void handleAssignGameCollection(collection.id);
-      },
-      onContextMenu: onCollectionContextMenu
-        ? (event: React.MouseEvent<HTMLElement>) => {
-            event.preventDefault();
-            event.stopPropagation();
-            onCollectionContextMenu(event, collection);
-          }
-        : undefined,
-      closeOnClick: false,
-      disabled: isDeleting,
-    })),
-    {
-      id: "collection-create",
-      label: t("create_collection"),
-      icon: <PlusIcon size={16} />,
-      separator: collections.length > 0,
-      onClick: () => {
-        if (!userDetails) {
-          window.electron.openAuthWindow(AuthPage.SignIn);
-          return;
-        }
+    ...(game.shop === "custom"
+      ? []
+      : collections.map((collection) => ({
+          id: `collection-${collection.id}`,
+          label: collection.name,
+          icon: localCollectionIds.includes(collection.id) ? (
+            <FileDirectoryFillIcon size={16} />
+          ) : (
+            <FileDirectoryIcon size={16} />
+          ),
+          onClick: () => {
+            void handleAssignGameCollection(collection.id);
+          },
+          onContextMenu: onCollectionContextMenu
+            ? (event: React.MouseEvent<HTMLElement>) => {
+                event.preventDefault();
+                event.stopPropagation();
+                onCollectionContextMenu(event, collection);
+              }
+            : undefined,
+          closeOnClick: false,
+          disabled: isDeleting,
+        }))),
+    ...(game.shop === "custom"
+      ? []
+      : [
+          {
+            id: "collection-create",
+            label: t("create_collection"),
+            icon: <PlusIcon size={16} />,
+            separator: collections.length > 0,
+            onClick: () => {
+              if (!userDetails) {
+                window.electron.openAuthWindow(AuthPage.SignIn);
+                return;
+              }
 
-        setShowCreateCollectionModal(true);
-      },
-      closeOnClick: false,
-      disabled: isDeleting || Boolean(pendingCollectionId),
-    },
+              setShowCreateCollectionModal(true);
+            },
+            closeOnClick: false,
+            disabled: isDeleting || Boolean(pendingCollectionId),
+          },
+        ]),
   ];
 
   const items: ContextMenuItemData[] = [
@@ -293,18 +263,20 @@ export function GameContextMenu({
       label: t("collection"),
       icon: <FileDirectoryIcon size={16} />,
       onClick: () => {
+        if (game.shop === "custom") return;
         void loadCollections();
       },
       disabled: isDeleting || isFavoritePending || Boolean(pendingCollectionId),
-      submenu: isCollectionsLoading
-        ? [
-            {
-              id: "collection-loading",
-              label: t("loading"),
-              disabled: true,
-            },
-          ]
-        : collectionSubmenu,
+      submenu:
+        isCollectionsLoading && game.shop !== "custom"
+          ? [
+              {
+                id: "collection-loading",
+                label: t("loading"),
+                disabled: true,
+              },
+            ]
+          : collectionSubmenu,
     },
     ...(game.executablePath
       ? [
@@ -339,37 +311,6 @@ export function GameContextMenu({
       icon: <GearIcon size={16} />,
       disabled: isDeleting,
       submenu: [
-        {
-          id: "hide-game",
-          label: visibility.isHiddenFromOthers
-            ? t("unhide_game")
-            : t("hide_game"),
-          icon: <EyeClosedIcon size={16} />,
-          onClick: () =>
-            void handleVisibilityChange(
-              "isHiddenFromOthers",
-              !visibility.isHiddenFromOthers
-            ),
-          closeOnClick: false,
-          disabled:
-            isDeleting ||
-            isVisibilityPending ||
-            !userDetails ||
-            game.shop === "custom",
-        },
-        {
-          id: "conceal-game",
-          label: visibility.isConcealed ? t("reveal_game") : t("conceal_game"),
-          icon: <LockIcon size={16} />,
-          onClick: () =>
-            void handleVisibilityChange("isConcealed", !visibility.isConcealed),
-          closeOnClick: false,
-          disabled:
-            isDeleting ||
-            isVisibilityPending ||
-            !userDetails ||
-            game.shop === "custom",
-        },
         {
           id: "pin-game",
           label:

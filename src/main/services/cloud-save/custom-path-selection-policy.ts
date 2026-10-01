@@ -1,5 +1,4 @@
-import { canSelectCloudSaveCustomFile } from "../../../shared/cloud-save-emulator-provider.js";
-import type { GameShop, SnapshotFile, UserLocationCoverage } from "@types";
+import type { SnapshotFile, UserLocationCoverage } from "@types";
 
 export type CloudSaveCustomPathSelectionFailure =
   | "empty"
@@ -43,14 +42,4 @@ export const getCloudSaveCustomPathSelectionFailure = (
   }
 
   return "empty";
-};
-
-export const assertCloudSaveCustomPathKindAllowed = (
-  kind: "file" | "dir",
-  shop: GameShop,
-  platform?: string | null
-) => {
-  if (kind === "file" && !canSelectCloudSaveCustomFile(shop, platform)) {
-    throw new Error("cloud_save_custom_path_file_not_supported");
-  }
 };

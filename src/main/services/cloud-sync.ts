@@ -13,7 +13,6 @@ import { WindowManager } from "./window-manager";
 import axios from "axios";
 import { Ludusavi } from "./ludusavi";
 import { formatDate, SubscriptionRequiredError } from "@shared";
-import { assertLegacyCloudSaveWriteAllowed } from "./cloud-save/legacy-cloud-save-policy";
 import i18next, { t } from "i18next";
 import { SystemPath } from "./system-path";
 import { Wine } from "./wine";
@@ -101,7 +100,6 @@ export class CloudSync {
     }
 
     const game = await gamesSublevel.get(levelKeys.game(shop, objectId));
-    assertLegacyCloudSaveWriteAllowed(game);
     const effectiveWinePrefixPath = Wine.getEffectivePrefixPath(
       game?.winePrefixPath,
       objectId

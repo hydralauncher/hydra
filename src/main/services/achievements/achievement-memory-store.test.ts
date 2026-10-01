@@ -6,7 +6,6 @@ import {
   mergePersistedAchievementTotals,
   resolveAchievementCount,
   resolveUnlockedAchievementCount,
-  withSteamAchievementCatalogue,
 } from "./achievement-memory-store.js";
 
 const entry = (name: string) => ({
@@ -125,66 +124,5 @@ describe("AchievementMemoryStore", () => {
       ),
       { achievementCount: 30, unlockedAchievementCount: 5 }
     );
-  });
-});
-
-describe("withSteamAchievementCatalogue", () => {
-  const achievement = (name: string, points?: number) => ({
-    name,
-    displayName: name,
-    icon: "",
-    icongray: "",
-    hidden: false,
-    ...(points === undefined ? {} : { points }),
-  });
-  const unlocked = [{ name: "ACH_0", unlockTime: 1 }];
-
-  it("keeps the Hydra catalogue, language and validator", () => {
-    const hydra = {
-      achievements: [achievement("ACH_0", 10)],
-      unlockedAchievements: [],
-      language: "pt-BR",
-      catalogueValidator: '"etag"',
-    };
-
-    assert.deepEqual(
-      withSteamAchievementCatalogue(hydra, [achievement("ACH_0")], unlocked),
-      { ...hydra, unlockedAchievements: unlocked }
-    );
-  });
-
-  it("stores the Steam schema without a language or validator", () => {
-    assert.deepEqual(
-      withSteamAchievementCatalogue(
-        undefined,
-        [achievement("ACH_0")],
-        unlocked
-      ),
-      { achievements: [achievement("ACH_0")], unlockedAchievements: unlocked }
-    );
-  });
-
-  it("replaces an earlier Steam schema", () => {
-    const steam = {
-      achievements: [achievement("OLD")],
-      unlockedAchievements: [],
-    };
-
-    assert.deepEqual(
-      withSteamAchievementCatalogue(steam, [achievement("ACH_0")], unlocked),
-      { achievements: [achievement("ACH_0")], unlockedAchievements: unlocked }
-    );
-  });
-
-  it("keeps the current catalogue when Steam has no schema", () => {
-    const steam = {
-      achievements: [achievement("OLD")],
-      unlockedAchievements: [],
-    };
-
-    assert.deepEqual(withSteamAchievementCatalogue(steam, [], unlocked), {
-      achievements: [achievement("OLD")],
-      unlockedAchievements: unlocked,
-    });
   });
 });

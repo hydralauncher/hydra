@@ -8,6 +8,7 @@ import { CloudSync } from "./cloud-sync";
 import { logger, networkLogger } from "./logger";
 import { PowerSaveBlockerManager } from "./power-save-blocker";
 import path from "node:path";
+import fs from "node:fs/promises";
 import { AchievementWatcherManager } from "./achievements/achievement-watcher-manager";
 import { abortAchievementMetadataExport } from "./achievements/metadata-export";
 import { INTERVALS } from "@main/constants";
@@ -27,8 +28,9 @@ import {
 } from "./linux-process-match";
 import { isWindowsBatchFile } from "@main/helpers/windows-batch-command";
 import { HydraApi } from "./hydra-api";
-import { isSteamAppExecutable } from "./steam-integration/steam-library-executable";
+import { getSteamLibraryFolders } from "./steam";
 import {
+  isSteamLibraryExecutablePath,
   resolveActiveSteamImport,
   resolveSteamSessionPlaytimePolicy,
 } from "./steam-integration/steam-playtime";
@@ -373,7 +375,17 @@ async function onOpenGame(game: Game, matchedPath: string) {
   let isSteamLibraryPath = false;
 
   if (game.shop === "steam") {
-    isSteamLibraryPath = await isSteamAppExecutable(game.objectId, matchedPath);
+    const libraryFolders = await getSteamLibraryFolders().catch(() => []);
+    const [resolvedPath, resolvedLibraries] = await Promise.all([
+      fs.realpath(matchedPath).catch(() => matchedPath),
+      Promise.all(
+        libraryFolders.map((folder) => fs.realpath(folder).catch(() => folder))
+      ),
+    ]);
+    isSteamLibraryPath = isSteamLibraryExecutablePath(
+      resolvedPath,
+      resolvedLibraries
+    );
 
     const hasActiveSteamImport = await resolveActiveSteamImport(
       game.hasActiveSteamImport,

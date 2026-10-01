@@ -19,8 +19,6 @@ import {
   validateCloudSaveCustomPathForRestore,
 } from "./custom-path";
 import { getCloudSaveCustomPathBindings } from "./custom-path-store";
-import { resolveSelectedCustomPathApproval } from "./custom-path-approval-selection";
-import { inferCustomPathKind } from "./custom-path-kind";
 import { buildCloudSaveCustomPathRebindApproval } from "./custom-path-rebind-approval";
 import {
   assertCloudSaveCustomPathDoesNotOverlap,
@@ -110,15 +108,9 @@ const createPendingApproval = async (
   const customPathContext = cloudSaveCustomPathContextFromPathContext(
     context.pathContext
   );
-  const storedBindings = await getCloudSaveCustomPathBindings(
-    shop,
-    objectId,
-    customPathContext
-  );
   const locallyBoundRawPaths = new Set(
     (
       await getUsableCloudSaveCustomPathBindings(objectId, shop, context, {
-        bindings: storedBindings,
         remoteFiles: manifest.files,
       })
     ).ready.map(({ rawPath }) => rawPath)
@@ -135,15 +127,6 @@ const createPendingApproval = async (
   }
 
   const { rawPath, files } = candidate;
-  const storedKind =
-    storedBindings.ready.find((binding) => binding.rawPath === rawPath)?.kind ??
-    storedBindings.unresolved.find((binding) => binding.rawPath === rawPath)
-      ?.kind;
-  const kind = inferCustomPathKind(rawPath, files, {
-    shop,
-    platform: context.game?.platform,
-    storedKind,
-  });
   let suggestedPath: string | null = null;
   try {
     suggestedPath = decodeCloudSaveCustomPath(rawPath, customPathContext).path;
@@ -152,7 +135,7 @@ const createPendingApproval = async (
   }
 
   let canUseSuggestedPath = false;
-  if (suggestedPath && kind === "dir") {
+  if (suggestedPath) {
     try {
       canUseSuggestedPath =
         (await validateCloudSaveCustomPathForRestore(
@@ -180,7 +163,6 @@ const createPendingApproval = async (
     gameId: { shop, objectId },
     purpose,
     rawPath,
-    kind,
     suggestedPath,
     selectedPath: canUseSuggestedPath ? suggestedPath : null,
     canUseSuggestedPath,
@@ -246,11 +228,6 @@ export const createPendingCustomPathRebindApproval = async (
   const matchingRemoteFiles = remoteFiles.filter(
     (file) => file.rawPath === rawPath
   );
-  const kind = inferCustomPathKind(rawPath, matchingRemoteFiles, {
-    shop,
-    platform: context.game?.platform,
-    storedKind: readyBinding?.kind ?? unresolvedBinding?.kind,
-  });
 
   if (!readyBinding && !unresolvedBinding && matchingRemoteFiles.length === 0) {
     throw new Error("cloud_save_custom_path_not_registered");
@@ -267,7 +244,6 @@ export const createPendingCustomPathRebindApproval = async (
         customPathContext
       ).path;
       canUseSuggestedPath =
-        kind === "dir" &&
         (await validateCloudSaveCustomPathForRestore(
           rawPath,
           context.pathContext.platform,
@@ -300,7 +276,6 @@ export const createPendingCustomPathRebindApproval = async (
   const approval = buildCloudSaveCustomPathRebindApproval({
     gameId,
     rawPath,
-    kind,
     suggestedPath,
     selectedPath,
     canUseSuggestedPath,
@@ -324,14 +299,7 @@ export const selectPendingCloudSaveCustomPathApproval = async (
   const customPathContext = cloudSaveCustomPathContextFromPathContext(
     pending.context.pathContext
   );
-  const selected = await resolveSelectedCustomPathApproval(
-    pending.approval.rawPath,
-    pending.approval.kind ??
-      inferCustomPathKind(pending.approval.rawPath, pending.approval.files, {
-        shop: pending.approval.gameId.shop,
-        platform: pending.context.game?.platform,
-      }),
-    pending.approval.files[0]?.relativePath,
+  const selected = await canonicalizeSelectedCloudSaveCustomPath(
     selectedPath,
     customPathContext
   );
@@ -402,14 +370,6 @@ const bindPendingCloudSaveCustomPathApproval = async (
       throw new Error("cloud_save_custom_path_approval_path_required");
     }
     selectedPath = validated.path;
-  } else if (approval.kind === "file") {
-    selectedPath = (
-      await validateBoundCloudSaveCustomPathForRestore(
-        approval.rawPath,
-        selectedPath,
-        customPathContext
-      )
-    ).path;
   } else {
     selectedPath = (
       await canonicalizeSelectedCloudSaveCustomPath(
@@ -419,14 +379,11 @@ const bindPendingCloudSaveCustomPathApproval = async (
     ).path;
   }
 
-  const binding = {
-    ...bindCloudSaveCustomPathToLocalPath(
-      approval.rawPath,
-      selectedPath,
-      customPathContext
-    ),
-    kind: approval.kind,
-  };
+  const binding = bindCloudSaveCustomPathToLocalPath(
+    approval.rawPath,
+    selectedPath,
+    customPathContext
+  );
   await registerCloudSaveCustomPathWithoutOverlap({
     objectId: approval.gameId.objectId,
     shop: approval.gameId.shop,

@@ -2,7 +2,6 @@ import {
   CaretDownIcon,
   CircleNotchIcon,
   CloudArrowDownIcon,
-  FileIcon,
   FolderOpenIcon,
   WarningCircleIcon,
 } from "@phosphor-icons/react";
@@ -12,23 +11,14 @@ import { Trans, useTranslation } from "react-i18next";
 import { Button, Modal, TextField } from "@renderer/components";
 import { useDate } from "@renderer/hooks";
 import { formatBytes } from "@shared";
-import type {
-  CloudSaveCustomPathApproval,
-  CloudSaveV2FileDetails,
-} from "@types";
-
-type EmulatorDestination = NonNullable<
-  CloudSaveV2FileDetails["emulatorDestinations"]
->[number];
+import type { CloudSaveCustomPathApproval } from "@types";
 
 interface CloudSaveCustomPathApprovalModalProps {
   approval: CloudSaveCustomPathApproval | null;
-  emulatorDestination?: EmulatorDestination | null;
-  selectedEmulatorPath?: string | null;
   isSelecting: boolean;
   isConfirming: boolean;
   errorMessage?: string;
-  onSelectPath: (mode: "file" | "dir") => void;
+  onSelectPath: () => void;
   onConfirm: () => void;
   onClose: () => void;
 }
@@ -70,8 +60,6 @@ const getApprovalActionKey = (
 
 export function CloudSaveCustomPathApprovalModal({
   approval,
-  emulatorDestination = null,
-  selectedEmulatorPath = null,
   isSelecting,
   isConfirming,
   errorMessage,
@@ -83,18 +71,10 @@ export function CloudSaveCustomPathApprovalModal({
   const { formatDateTime } = useDate();
   const [areFilesExpanded, setAreFilesExpanded] = useState(false);
   const isBusy = isSelecting || isConfirming;
-  const displayedPath = emulatorDestination
-    ? (selectedEmulatorPath ?? emulatorDestination.pathHint ?? "")
-    : (approval?.selectedPath ?? approval?.suggestedPath ?? "");
-  const hasRemoteFiles =
-    (emulatorDestination?.fileCount ?? approval?.fileCount ?? 0) > 0;
-  const descriptionKey = emulatorDestination
-    ? "cloud_save_v2_path_approval_manual_sync_description"
-    : getApprovalDescriptionKey(approval?.purpose);
-  const actionKey = getApprovalActionKey(
-    emulatorDestination ? "manual-sync" : approval?.purpose,
-    isConfirming
-  );
+  const displayedPath = approval?.selectedPath ?? approval?.suggestedPath ?? "";
+  const hasRemoteFiles = (approval?.fileCount ?? 0) > 0;
+  const descriptionKey = getApprovalDescriptionKey(approval?.purpose);
+  const actionKey = getApprovalActionKey(approval?.purpose, isConfirming);
   const fileListId = approval
     ? `cloud-save-path-approval-files-${approval.id}`
     : undefined;
@@ -105,7 +85,7 @@ export function CloudSaveCustomPathApprovalModal({
 
   return (
     <Modal
-      visible={approval !== null || emulatorDestination !== null}
+      visible={approval !== null}
       title={t("cloud_save_v2_path_approval_title")}
       className="cloud-save-v2__path-approval-modal"
       clickOutsideToClose={!isBusy}
@@ -125,7 +105,7 @@ export function CloudSaveCustomPathApprovalModal({
           <Trans t={t} i18nKey={descriptionKey} />
         </p>
 
-        {hasRemoteFiles && approval && (
+        {hasRemoteFiles && (
           <div className="cloud-save-v2__path-approval-summary">
             <button
               type="button"
@@ -188,59 +168,25 @@ export function CloudSaveCustomPathApprovalModal({
           value={displayedPath}
           label={t("cloud_save_v2_path_approval_destination")}
           hint={
-            emulatorDestination
-              ? selectedEmulatorPath
-                ? undefined
-                : t(
-                    emulatorDestination.status === "unavailable"
-                      ? "cloud_save_v2_emulator_destination_unavailable"
-                      : "cloud_save_v2_emulator_destination_config_error"
-                  )
-              : approval?.selectedPath
-                ? undefined
-                : t("cloud_save_v2_path_approval_destination_unavailable")
+            approval?.selectedPath
+              ? undefined
+              : t("cloud_save_v2_path_approval_destination_unavailable")
           }
           error={errorMessage}
           rightContent={
-            <>
-              {approval?.kind === "file" && !emulatorDestination && (
-                <Button
-                  className="cloud-save-v2__path-approval-choose"
-                  theme="outline"
-                  onClick={() => onSelectPath("file")}
-                  disabled={isBusy}
-                >
-                  <FileIcon size={18} />
-                  <span>{t("cloud_save_v2_path_approval_choose_file")}</span>
-                </Button>
+            <Button
+              className="cloud-save-v2__path-approval-choose"
+              theme="outline"
+              onClick={onSelectPath}
+              disabled={isBusy}
+            >
+              {isSelecting ? (
+                <CircleNotchIcon className="cloud-save-v2__spinner" size={18} />
+              ) : (
+                <FolderOpenIcon size={18} />
               )}
-              <Button
-                className="cloud-save-v2__path-approval-choose"
-                theme="outline"
-                onClick={() => onSelectPath("dir")}
-                disabled={
-                  isBusy ||
-                  (emulatorDestination !== null &&
-                    emulatorDestination.pathHint === null)
-                }
-              >
-                {isSelecting ? (
-                  <CircleNotchIcon
-                    className="cloud-save-v2__spinner"
-                    size={18}
-                  />
-                ) : (
-                  <FolderOpenIcon size={18} />
-                )}
-                <span>
-                  {t(
-                    approval?.kind === "file" && !emulatorDestination
-                      ? "cloud_save_v2_path_approval_choose_folder"
-                      : "cloud_save_v2_path_approval_choose"
-                  )}
-                </span>
-              </Button>
-            </>
+              <span>{t("cloud_save_v2_path_approval_choose")}</span>
+            </Button>
           }
         />
 
@@ -248,12 +194,7 @@ export function CloudSaveCustomPathApprovalModal({
           <Button
             theme="primary"
             onClick={onConfirm}
-            disabled={
-              isBusy ||
-              (emulatorDestination
-                ? !selectedEmulatorPath
-                : !approval?.selectedPath)
-            }
+            disabled={isBusy || !approval?.selectedPath}
           >
             {isConfirming && (
               <CircleNotchIcon className="cloud-save-v2__spinner" size={18} />

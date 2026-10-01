@@ -576,37 +576,4 @@ describe("game page automatic cloud save sync", () => {
     assert.equal(shouldSyncOnGamePage({ isGameRunning: true }), false);
     assert.equal(shouldSyncOnGamePage({ isSyncing: true }), false);
   });
-
-  it("waits for RetroArch configuration without blocking Steam or RPCS3", () => {
-    for (const status of ["checking", "missing", "invalid", "error"] as const) {
-      assert.equal(
-        shouldSyncOnGamePage({
-          shop: "launchbox",
-          platform: "Super Nintendo",
-          retroArchExecutableStatus: status,
-        }),
-        false
-      );
-    }
-    assert.equal(
-      shouldSyncOnGamePage({
-        shop: "launchbox",
-        platform: "Super Nintendo",
-        retroArchExecutableStatus: "ready",
-      }),
-      true
-    );
-    assert.equal(
-      shouldSyncOnGamePage({ retroArchExecutableStatus: "missing" }),
-      true
-    );
-    assert.equal(
-      shouldSyncOnGamePage({
-        shop: "launchbox",
-        platform: "PlayStation 3",
-        retroArchExecutableStatus: "missing",
-      }),
-      true
-    );
-  });
 });

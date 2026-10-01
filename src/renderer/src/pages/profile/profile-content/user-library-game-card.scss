@@ -104,13 +104,6 @@
     gap: 4px;
     width: 100%;
   }
-  &__top-left {
-    display: flex;
-    justify-content: flex-start;
-    align-items: center;
-    gap: 4px;
-    min-width: 0;
-  }
   &__manual-playtime {
     color: globals.$warning-color;
   }

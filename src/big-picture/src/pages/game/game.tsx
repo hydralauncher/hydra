@@ -7,7 +7,6 @@ import {
   type SkuRegion,
 } from "@renderer/helpers";
 import type { GameShop, ShopAssets } from "@types";
-import { hasCloudSaveExecutableSelection } from "@shared";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useNavigate, useParams } from "react-router-dom";
@@ -954,10 +953,7 @@ export default function Game() {
 
     const discs = game.discs ?? [];
 
-    if (
-      discs.length === 0 ||
-      (discs.length === 1 && game.selectedDiscPath !== null)
-    ) {
+    if (discs.length <= 1) {
       await launchClassicsWithErrorHandling();
       return;
     }
@@ -1448,10 +1444,7 @@ export default function Game() {
         <BigPictureCloudSaveProvider
           objectId={objectId!}
           shop={shop!}
-          platform={game?.platform}
-          hasExecutablePath={
-            game ? hasCloudSaveExecutableSelection(game) : false
-          }
+          hasExecutablePath={Boolean(game?.executablePath)}
           isGameRunning={isGameRunning}
           onSelectExecutable={() => setIsGameSettingsModalOpen(true)}
         >

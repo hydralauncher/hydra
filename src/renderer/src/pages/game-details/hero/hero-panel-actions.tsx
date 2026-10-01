@@ -20,10 +20,7 @@ import { useContext, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
 import { gameDetailsContext } from "@renderer/context";
-import {
-  canDownloadOnSteam,
-  handleClassicsLaunchError,
-} from "@renderer/helpers";
+import { handleClassicsLaunchError } from "@renderer/helpers";
 import { DiscSelectionModal } from "../modals/disc-selection-modal";
 
 import "./hero-panel-actions.scss";
@@ -231,10 +228,7 @@ export function HeroPanelActions() {
 
     const discs = game.discs ?? [];
 
-    if (
-      discs.length === 0 ||
-      (discs.length === 1 && game.selectedDiscPath !== null)
-    ) {
+    if (discs.length <= 1) {
       await launchClassicsWithErrorHandling();
       return;
     }
@@ -375,7 +369,7 @@ export function HeroPanelActions() {
         onClick={() => setShowRepacksModal(true)}
         theme="outline"
         disabled={isGameDownloading}
-        className={`hero-panel-actions__action ${repacks.length === 0 && !canDownloadOnSteam(game) ? "hero-panel-actions__action--disabled" : ""}`}
+        className={`hero-panel-actions__action ${repacks.length === 0 ? "hero-panel-actions__action--disabled" : ""}`}
       >
         <DownloadIcon />
         {t("download")}

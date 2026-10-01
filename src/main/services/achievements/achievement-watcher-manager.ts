@@ -12,13 +12,6 @@ import type {
   UserPreferences,
 } from "@types";
 import { achievementsLogger } from "../logger";
-import { HydraApi } from "../hydra-api";
-import {
-  hasTouchedAchievementBatchGames,
-  setAchievementBatchActive,
-  takeTouchedAchievementBatchGames,
-  trackAchievementBatchGame,
-} from "./achievement-batch-games";
 import { Cracker } from "@shared";
 import { publishCombinedNewAchievementNotification } from "../notifications";
 import { db, gamesSublevel, levelKeys } from "@main/level";
@@ -190,45 +183,11 @@ const processChangedAchievementFiles = async (
   }
 };
 
-const hasUnmergedUnlocks = (game: Game, files: AchievementFile[]) => {
-  const mergedNames = new Set(
-    (
-      AchievementMemoryStore.get(game.shop, game.objectId)
-        ?.unlockedAchievements ?? []
-    ).map((achievement) => achievement.name.toUpperCase())
-  );
-
-  return files.some((file) =>
-    parseAchievementFile(file.filePath, file.type).some(
-      (achievement) => !mergedNames.has(achievement.name.toUpperCase())
-    )
-  );
-};
-
-const BATCH_SYNC_CONCURRENCY = 4;
-
 export class AchievementWatcherManager {
   private static _hasFinishedPreSearch = false;
-  private static batchDepth = 0;
-  private static hasPendingBatchSync = false;
-  private static readonly batchNotificationCounts = new Map<string, number>();
-  private static readonly batchGames = new Map<
-    string,
-    { shop: GameShop; objectId: string }
-  >();
 
   public static get hasFinishedPreSearch() {
     return this._hasFinishedPreSearch;
-  }
-
-  public static get isBatching() {
-    return this.batchDepth > 0;
-  }
-
-  public static trackBatchGame(shop: GameShop, objectId: string) {
-    const gameKey = levelKeys.game(shop, objectId);
-    this.batchGames.set(gameKey, { shop, objectId });
-    trackAchievementBatchGame(gameKey);
   }
 
   public static readonly alreadySyncedGames: Map<string, boolean> = new Map();
@@ -305,146 +264,12 @@ export class AchievementWatcherManager {
     }
 
     if (newAchievements > 0 && this.hasFinishedPreSearch) {
-      if (this.batchDepth > 0) {
-        this.addToBatchNotification(gameKey, newAchievements);
-      } else {
-        this.notifyCombinedAchievementsUnlocked(1, newAchievements);
-      }
+      this.notifyCombinedAchievementsUnlocked(1, newAchievements);
     }
-  }
-
-  private static addToBatchNotification(
-    gameKey: string,
-    newAchievements: number
-  ) {
-    this.batchNotificationCounts.set(
-      gameKey,
-      Math.max(this.batchNotificationCounts.get(gameKey) ?? 0, newAchievements)
-    );
-  }
-
-  private static takeBatchNotification() {
-    const counts = [...this.batchNotificationCounts.values()];
-    this.batchNotificationCounts.clear();
-
-    return {
-      totalNewGamesWithAchievements: counts.length,
-      totalNewAchievements: counts.reduce((total, count) => total + count, 0),
-    };
-  }
-
-  private static async notifyBatchAchievements({
-    totalNewGamesWithAchievements,
-    totalNewAchievements,
-  }: ReturnType<typeof AchievementWatcherManager.takeBatchNotification>) {
-    if (totalNewAchievements > 0) {
-      await this.notifyCombinedAchievementsUnlocked(
-        totalNewGamesWithAchievements,
-        totalNewAchievements
-      );
-    }
-  }
-
-  public static async runBatch<T>(task: () => Promise<T>): Promise<T> {
-    this.batchDepth += 1;
-    setAchievementBatchActive(true);
-
-    try {
-      return await task();
-    } finally {
-      if (this.batchDepth > 1) {
-        this.hasPendingBatchSync = true;
-        this.batchDepth -= 1;
-      } else {
-        do {
-          this.hasPendingBatchSync = false;
-          await this.syncUnseenAchievementFiles().catch((err) =>
-            achievementsLogger.error("Error syncing batch achievements", err)
-          );
-          await this.syncBatchGames();
-        } while (
-          this.hasPendingBatchSync ||
-          this.batchGames.size > 0 ||
-          hasTouchedAchievementBatchGames()
-        );
-
-        const batchNotification = this.takeBatchNotification();
-        this.batchDepth -= 1;
-        setAchievementBatchActive(false);
-
-        await this.notifyBatchAchievements(batchNotification).catch((err) =>
-          achievementsLogger.error("Error notifying batch achievements", err)
-        );
-      }
-    }
-  }
-
-  private static async syncBatchGames() {
-    const games = [...this.batchGames.values()];
-    this.batchGames.clear();
-
-    for (let index = 0; index < games.length; index += BATCH_SYNC_CONCURRENCY) {
-      await Promise.all(
-        games
-          .slice(index, index + BATCH_SYNC_CONCURRENCY)
-          .map(({ shop, objectId }) =>
-            this.firstSyncWithRemoteIfNeeded(shop, objectId).catch((err) =>
-              achievementsLogger.error(
-                "Error syncing batch game achievements",
-                objectId,
-                err
-              )
-            )
-          )
-      );
-    }
-  }
-
-  private static async syncUnseenAchievementFiles() {
-    const touchedGameKeys = takeTouchedAchievementBatchGames();
-    if (touchedGameKeys.size === 0 || !HydraApi.isLoggedIn()) return;
-
-    const pendingGames = (
-      await this.getGameAchievementFiles(touchedGameKeys)
-    ).filter(({ game, achievementFiles }) =>
-      hasUnmergedUnlocks(game, achievementFiles)
-    );
-    if (pendingGames.length === 0) return;
-
-    const results = await Promise.all(
-      pendingGames.map(({ game, achievementFiles }) =>
-        this.preProcessGameAchievementFiles(game, achievementFiles)
-      )
-    );
-
-    await this.uploadPreSearchAchievements(
-      pendingGames.filter((_, index) => results[index].isRemoteBehind)
-    );
-
-    let totalNewAchievements = 0;
-
-    pendingGames.forEach(({ game }, index) => {
-      const { newAchievements } = results[index];
-      if (newAchievements <= 0) return;
-
-      totalNewAchievements += newAchievements;
-      this.addToBatchNotification(
-        levelKeys.game(game.shop, game.objectId),
-        newAchievements
-      );
-    });
-
-    achievementsLogger.log(
-      "Batch achievements synced",
-      pendingGames.length,
-      "games,",
-      totalNewAchievements,
-      "new achievements"
-    );
   }
 
   public static watchAchievements() {
-    if (!this.hasFinishedPreSearch || this.batchDepth > 0) return;
+    if (!this.hasFinishedPreSearch) return;
 
     if (process.platform === "win32") {
       return watchAchievementsWindows();
@@ -539,11 +364,8 @@ export class AchievementWatcherManager {
       );
   }
 
-  private static async getGameAchievementFiles(gameKeys?: Set<string>) {
-    const games = (await getWatchedGames()).filter(
-      (game) =>
-        !gameKeys || gameKeys.has(levelKeys.game(game.shop, game.objectId))
-    );
+  private static async getGameAchievementFiles() {
+    const games = await getWatchedGames();
 
     const includeSteamCache = await getEnableSteamAchievements();
 

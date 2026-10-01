@@ -9,7 +9,6 @@ import type {
 import cn from "classnames";
 import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { useLocation } from "react-router-dom";
 import { RETROARCH_EMULATOR_ICON } from "@renderer/pages/settings/emulation/emulator-icons";
 import {
   RETROARCH_LABEL,
@@ -22,7 +21,6 @@ import { FocusItem, GridFocusGroup } from "../../../components";
 import { useNavigation } from "../../../hooks";
 import {
   EMULATION_DETAIL_BACK_BUTTON_ID,
-  EMULATION_DETAIL_EXECUTABLE_BUTTON_ID,
   EMULATION_OVERVIEW_CARD_FOCUS_IDS,
   EMULATION_OVERVIEW_REGION_ID,
   SETTINGS_HEADER_RETURN_TARGET,
@@ -37,10 +35,6 @@ import {
 } from "./shared";
 import { EmulationDetail } from "./detail";
 import { RetroArchEmulationDetail } from "./retroarch-detail";
-import {
-  isRetroArchEmulationDeepLink,
-  isRpcs3EmulationDeepLink,
-} from "./navigation";
 import { SettingsSection } from "../settings-section";
 
 interface SettingsSectionProps {
@@ -234,22 +228,12 @@ export function EmulationSettingsSection({
   className,
 }: Readonly<SettingsSectionProps>) {
   const { t } = useTranslation("settings");
-  const { search } = useLocation();
-  const isRetroArchDeepLink = isRetroArchEmulationDeepLink(search);
-  const isRpcs3DeepLink = isRpcs3EmulationDeepLink(search);
   const { setFocus } = useNavigation();
   const [configs, setConfigs] = useState<EmulatorConfigMap | null>(null);
   const [retroArchConfig, setRetroArchConfig] =
     useState<RetroArchConfig | null>(null);
-  const [view, setView] = useState<EmulationView>(() =>
-    isRetroArchDeepLink
-      ? { kind: "retroarch" }
-      : isRpcs3DeepLink
-        ? { kind: "detail", system: "ps3" }
-        : { kind: "grid" }
-  );
+  const [view, setView] = useState<EmulationView>({ kind: "grid" });
   const [returnSystem, setReturnSystem] = useState<EmulationCardKey>("ps1");
-  const isLoaded = configs !== null && retroArchConfig !== null;
 
   useEffect(() => {
     let cancelled = false;
@@ -317,20 +301,9 @@ export function EmulationSettingsSection({
   }, []);
 
   useEffect(() => {
-    if (isRetroArchDeepLink) setView({ kind: "retroarch" });
-    else if (isRpcs3DeepLink) setView({ kind: "detail", system: "ps3" });
-  }, [isRetroArchDeepLink, isRpcs3DeepLink]);
-
-  useEffect(() => {
-    if (!isLoaded) return;
     const frameId = globalThis.window.requestAnimationFrame(() => {
       if (view.kind === "detail" || view.kind === "retroarch") {
-        setFocus(
-          (view.kind === "retroarch" && isRetroArchDeepLink) ||
-            (view.kind === "detail" && isRpcs3DeepLink)
-            ? EMULATION_DETAIL_EXECUTABLE_BUTTON_ID
-            : EMULATION_DETAIL_BACK_BUTTON_ID
-        );
+        setFocus(EMULATION_DETAIL_BACK_BUTTON_ID);
         return;
       }
 
@@ -340,14 +313,7 @@ export function EmulationSettingsSection({
     return () => {
       globalThis.window.cancelAnimationFrame(frameId);
     };
-  }, [
-    isLoaded,
-    isRetroArchDeepLink,
-    isRpcs3DeepLink,
-    returnSystem,
-    setFocus,
-    view,
-  ]);
+  }, [returnSystem, setFocus, view]);
 
   const detailConfig = useMemo(() => {
     if (!configs || view.kind !== "detail") return null;

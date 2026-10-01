@@ -30,7 +30,6 @@ import {
   useAppSelector,
   useDownload,
   useGameCollections,
-  useIsNonSteamExecutable,
   useLibrary,
   useToast,
   useUserDetails,
@@ -53,7 +52,7 @@ import { Wrench } from "lucide-react";
 import { GameAssetsSettings } from "./game-assets-settings";
 import { debounce } from "lodash-es";
 import { levelDBService } from "@renderer/services/leveldb.service";
-import { getGameKey, getGameTitleFromExecutablePath } from "@renderer/helpers";
+import { getGameKey } from "@renderer/helpers";
 import "./game-options-modal.scss";
 import { logger } from "@renderer/logger";
 import { GameOptionsSidebar } from "./game-options-modal/sidebar";
@@ -160,6 +159,7 @@ export function GameOptionsModal({
   const [legacySaveDownloadProgress, setLegacySaveDownloadProgress] =
     useState<LegacySaveExportProgress | null>(null);
   const legacySaveExportInProgressRef = useRef(false);
+
   const cancelLegacySaveExport = useCallback(() => {
     if (!legacySaveExportInProgressRef.current) return;
 
@@ -244,10 +244,7 @@ export function GameOptionsModal({
     Boolean(userDetails),
     hasActiveSubscription
   );
-  const cloudSaveSettings = getCloudSaveVisibility(
-    game.shop,
-    game.platform
-  ).settings;
+  const cloudSaveSettings = getCloudSaveVisibility(game.shop).settings;
   const { showV2: showCloudSaveV2Settings, legacyPurpose } = cloudSaveSettings;
   const showLegacyCloudSaveSettings = isLegacyCloudSaveSettingsAvailable(
     cloudSaveSettings,
@@ -266,8 +263,6 @@ export function GameOptionsModal({
   const { lastPacket } = useDownload();
   const isGameDownloading =
     game.download?.status === "active" && lastPacket?.gameId === game.id;
-
-  const isNonSteamExecutable = useIsNonSteamExecutable(game);
 
   useEffect(() => {
     if (visible) {
@@ -788,34 +783,7 @@ export function GameOptionsModal({
   };
 
   const handleResetGameTitle = useCallback(async () => {
-    if (!game || updatingGameTitle) return;
-
-    if (game.shop === "custom") {
-      const defaultTitle = game.executablePath
-        ? getGameTitleFromExecutablePath(game.executablePath).trim()
-        : "";
-      if (!defaultTitle) return;
-
-      setUpdatingGameTitle(true);
-
-      try {
-        await globalThis.window.electron.updateCustomGame({
-          shop: game.shop,
-          objectId: game.objectId,
-          title: defaultTitle,
-          iconUrl: game.iconUrl || undefined,
-          logoImageUrl: game.logoImageUrl || undefined,
-          libraryHeroImageUrl: game.libraryHeroImageUrl || undefined,
-        });
-        await Promise.all([updateGame(), updateLibrary()]);
-        setGameTitle(defaultTitle);
-      } catch {
-        showErrorToast(t("edit_game_modal_failed"));
-      } finally {
-        setUpdatingGameTitle(false);
-      }
-      return;
-    }
+    if (!game || updatingGameTitle || game.shop === "custom") return;
 
     setUpdatingGameTitle(true);
 
@@ -909,7 +877,7 @@ export function GameOptionsModal({
             {
               id: "hydra_cloud_legacy" as const,
               label:
-                legacyPurpose === "active" && !showCloudSaveV2Settings
+                legacyPurpose === "active"
                   ? t("settings_category_hydra_cloud")
                   : t("settings_category_legacy_saves"),
               icon:
@@ -1141,7 +1109,6 @@ export function GameOptionsModal({
       onChangeLaunchOptions: handleChangeLaunchOptions,
       onClearLaunchOptions: handleClearLaunchOptions,
       onToggleHydraPlaytimeEnabled: handleToggleHydraPlaytimeEnabled,
-      isNonSteamExecutable,
       isTransferring,
       transferProgress,
       drives,
@@ -1177,7 +1144,6 @@ export function GameOptionsModal({
       handleChangeLaunchOptions,
       handleClearLaunchOptions,
       handleToggleHydraPlaytimeEnabled,
-      isNonSteamExecutable,
       isTransferring,
       transferProgress,
       drives,
@@ -1276,9 +1242,7 @@ export function GameOptionsModal({
             )}
             {selectedCategory === "hydra_cloud" && showCloudSaveV2Settings && (
               <HydraCloudV2SettingsSection
-                onSelectExecutable={() =>
-                  setSelectedCategory(isLaunchbox ? "general" : "locations")
-                }
+                onSelectExecutable={() => setSelectedCategory("locations")}
               />
             )}
             {selectedCategory === "hydra_cloud_legacy" &&

@@ -19,7 +19,6 @@ export const useCloudSaveOverview = ({
   >(null);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [hasRefreshError, setHasRefreshError] = useState(false);
-  const [refreshErrorCode, setRefreshErrorCode] = useState<string | null>(null);
   const gameKey = `${shop}:${objectId}`;
   const activeGameKey = useRef("");
   const activeRequest = useRef<Promise<void> | null>(null);
@@ -52,16 +51,10 @@ export const useCloudSaveOverview = ({
           if (activeGameKey.current === requestedGameKey) {
             setOverview(result);
             setIsAutomaticSyncEnabled(result.isAutomaticSyncEnabled);
-            setRefreshErrorCode(null);
           }
-        } catch (error) {
+        } catch {
           if (activeGameKey.current === requestedGameKey) {
             setHasRefreshError(true);
-            setRefreshErrorCode(
-              /cloud_save_rpcs3_[a-z0-9_]+/.exec(
-                error instanceof Error ? error.message : String(error)
-              )?.[0] ?? null
-            );
           }
         }
       } while (
@@ -97,7 +90,6 @@ export const useCloudSaveOverview = ({
     setOverview(null);
     setIsAutomaticSyncEnabled(null);
     setHasRefreshError(false);
-    setRefreshErrorCode(null);
     setIsRefreshing(false);
 
     if (enabled) void refresh();
@@ -148,7 +140,6 @@ export const useCloudSaveOverview = ({
     isAutomaticSyncEnabled,
     isRefreshing,
     hasRefreshError,
-    refreshErrorCode,
     refresh,
   };
 };

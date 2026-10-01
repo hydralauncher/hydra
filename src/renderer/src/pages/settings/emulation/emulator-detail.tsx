@@ -26,7 +26,6 @@ import { MemoryCardsSection } from "./memory-cards-section";
 import { CloudSavesSection } from "./cloud-saves-section";
 import { LocalEmulatorSavesSection } from "./local-emulator-saves-section";
 import { RomsDetectedSection } from "./roms-detected-section";
-import { Rpcs3ConfigRootSection } from "./rpcs3-config-root-section";
 import { formatRelativeShort } from "./relative-time";
 import {
   availableEmulatorTabs,
@@ -340,14 +339,6 @@ export function EmulatorDetail({
             onRedetect={handleRedetect}
             onBrowse={handleBrowseExecutable}
           />
-
-          {config.system === "ps3" && (
-            <Rpcs3ConfigRootSection
-              config={config}
-              disabled={busy}
-              onChange={onChange}
-            />
-          )}
 
           {supportsBios && (
             <BiosSection config={config} disabled={busy} onChange={onChange} />

@@ -78,8 +78,6 @@ import type {
   CloudSaveAutomaticSyncModeChangedEvent,
   CloudSaveAutomaticSyncEvent,
   CloudSaveConflictResolution,
-  RetroArchLocalBatteryCandidate,
-  RetroArchLegacyBatteryCandidate,
   CloudSaveOverview,
   CloudSaveV2FileDetails,
   AchievementSouvenirSyncCleanupResult,
@@ -148,51 +146,14 @@ declare global {
       objectId: string,
       shop: GameShop
     ) => Promise<CloudSaveV2FileDetails>;
-    getRetroArchLocalBatteryCandidates: (
-      objectId: string,
-      shop: GameShop
-    ) => Promise<RetroArchLocalBatteryCandidate[]>;
-    selectRetroArchLocalBattery: (
-      objectId: string,
-      shop: GameShop,
-      romPath: string,
-      signature: string
-    ) => Promise<void>;
-    getRetroArchLegacyBatteryCandidates: (
-      objectId: string,
-      shop: GameShop
-    ) => Promise<RetroArchLegacyBatteryCandidate[]>;
-    selectRetroArchLegacyBattery: (
-      objectId: string,
-      shop: GameShop,
-      rawPath: string
-    ) => Promise<void>;
-    bindRpcs3CloudSaveProfile: (
-      objectId: string,
-      shop: GameShop,
-      cloudProfileId: string
-    ) => Promise<void>;
     deleteGameCloudSaveData: (
       objectId: string,
       shop: GameShop
     ) => Promise<void>;
     selectCloudSaveCustomPath: (
       objectId: string,
-      shop: GameShop,
-      kind?: "file" | "dir"
+      shop: GameShop
     ) => Promise<SelectCloudSaveCustomPathResult>;
-    selectEmulatorDestination: (
-      objectId: string,
-      shop: GameShop,
-      rawPath: string,
-      kind: "save" | "state"
-    ) => Promise<{ canceled: boolean }>;
-    removeEmulatorDestination: (
-      objectId: string,
-      shop: GameShop,
-      rawPath: string,
-      kind: "save" | "state"
-    ) => Promise<void>;
     createCloudSaveCustomPathRebindApproval: (
       objectId: string,
       shop: GameShop,
@@ -209,8 +170,7 @@ declare global {
     ) => Promise<CloudSaveCustomPathApproval | null>;
     selectCloudSaveCustomPathApproval: (
       approvalId: string,
-      selectedPath?: string,
-      selectionMode?: "file" | "dir"
+      selectedPath?: string
     ) => Promise<SelectCloudSaveCustomPathApprovalResult>;
     confirmCloudSaveCustomPathApproval: (
       approvalId: string
@@ -351,11 +311,6 @@ declare global {
       autoRunGamemode: boolean
     ) => Promise<void>;
     isGamemodeAvailable: () => Promise<boolean>;
-    isSteamAppExecutable: (
-      appId: string,
-      executablePath: string
-    ) => Promise<boolean>;
-    installGameOnSteam: (steamAppId: string) => Promise<void>;
     isMangohudAvailable: () => Promise<boolean>;
     isWinetricksAvailable: () => Promise<boolean>;
     addGameToLibrary: (
@@ -482,16 +437,8 @@ declare global {
       objectId: string
     ) => Promise<string | null>;
     verifyExecutablePathInUse: (executablePath: string) => Promise<Game>;
-    getLibrary: (includeConcealed?: boolean) => Promise<LibraryGame[]>;
-    getHiddenLibrary: () => Promise<LibraryGame[]>;
-    setGameVisibility: (
-      shop: GameShop,
-      objectId: string,
-      field: "isHiddenFromOthers" | "isConcealed",
-      value: boolean
-    ) => Promise<{ isHiddenFromOthers: boolean; isConcealed: boolean }>;
+    getLibrary: () => Promise<LibraryGame[]>;
     refreshLibraryAssets: () => Promise<void>;
-    getRemoteLibrarySyncState: () => Promise<boolean>;
     openGameInstaller: (shop: GameShop, objectId: string) => Promise<boolean>;
     getGameInstallerActionType: (
       shop: GameShop,
@@ -550,9 +497,6 @@ declare global {
       ) => void
     ) => () => Electron.IpcRenderer;
     onLibraryBatchComplete: (cb: () => void) => () => Electron.IpcRenderer;
-    onRemoteLibrarySyncStateChange: (
-      cb: (syncing: boolean) => void
-    ) => () => Electron.IpcRenderer;
     onDownloadsUpdated: (cb: () => void) => () => Electron.IpcRenderer;
     onClassicsImportStatus: (
       cb: (importing: boolean) => void
@@ -627,14 +571,6 @@ declare global {
     ) => Promise<void>;
     /* Emulators */
     getEmulatorConfigs: () => Promise<EmulatorConfigMap>;
-    getRpcs3ConfigRootStatus: () => Promise<
-      import("@types").Rpcs3ConfigRootStatus
-    >;
-    getRpcs3DiscIdentityStatus: (
-      objectId: string,
-      shop: GameShop
-    ) => Promise<import("@types").Rpcs3DiscIdentityStatus>;
-    setRpcs3ConfigRoot: (root: string) => Promise<EmulatorConfig>;
     detectEmulators: () => Promise<EmulatorConfigMap>;
     detectEmulator: (system: EmulatorSystem) => Promise<EmulatorConfig>;
     previewEmulatorExecutable: (
@@ -928,15 +864,14 @@ declare global {
       total: number;
     }>;
     cancelScanInstalledGames: (requestId: string) => Promise<void>;
-    addScannedGames: (
-      picks: { objectId: string; executablePath: string }[]
-    ) => Promise<
-      {
-        title: string;
-        executablePath: string;
-        iconUrl: string | null;
-      }[]
-    >;
+    addScannedGame: (
+      objectId: string,
+      executablePath: string
+    ) => Promise<{
+      title: string;
+      executablePath: string;
+      iconUrl: string | null;
+    } | null>;
     onExtractionComplete: (
       cb: (shop: GameShop, objectId: string) => void
     ) => () => Electron.IpcRenderer;

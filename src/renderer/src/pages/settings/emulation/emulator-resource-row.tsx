@@ -17,7 +17,6 @@ interface EmulatorResourceRowProps {
   statusLabel: string;
   actions: ReactNode;
   path?: ResourcePath;
-  pathContent?: ReactNode;
   headerAccessory?: ReactNode;
 }
 
@@ -28,7 +27,6 @@ export function EmulatorResourceRow({
   statusLabel,
   actions,
   path,
-  pathContent,
   headerAccessory,
 }: Readonly<EmulatorResourceRowProps>) {
   return (
@@ -58,7 +56,7 @@ export function EmulatorResourceRow({
 
       <div
         className={cn("emulator-detail__exec-path-row", {
-          "emulator-detail__exec-path-row--actions-only": !path && !pathContent,
+          "emulator-detail__exec-path-row--actions-only": !path,
         })}
       >
         {path && (
@@ -78,7 +76,6 @@ export function EmulatorResourceRow({
             </span>
           </button>
         )}
-        {pathContent}
         <div className="emulator-detail__exec-actions">{actions}</div>
       </div>
     </section>

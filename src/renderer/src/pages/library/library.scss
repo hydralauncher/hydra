@@ -107,9 +107,8 @@
   &__controls-left {
     display: flex;
     align-items: center;
-    flex-wrap: wrap;
     gap: calc(globals.$spacing-unit);
-    min-width: 0;
+    flex-shrink: 0;
   }
 
   &__quick-actions {
