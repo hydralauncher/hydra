@@ -893,6 +893,14 @@ export function DownloadGroup({
 
     const actions = [
       {
+        label: t("pause"),
+        show: download?.awaitingDebrid && download.debridAutoResume,
+        onClick: () => {
+          pauseDownload(game.shop, game.objectId);
+        },
+        icon: <ColumnsIcon />,
+      },
+      {
         label: t("resume"),
         disabled: isResumeDisabled,
         onClick: () => {
@@ -1118,7 +1126,8 @@ export function DownloadGroup({
                 {isQueuedGroup && (
                   <div className="download-group__simple-progress">
                     <span className="download-group__simple-progress-text">
-                      {game.download?.awaitingDebrid
+                      {game.download?.awaitingDebrid &&
+                      game.download.debridAutoResume
                         ? t("waiting_for_debrid")
                         : formatDownloadProgress(progress)}
                     </span>

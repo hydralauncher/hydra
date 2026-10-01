@@ -221,7 +221,7 @@ declare global {
       payload: StartGameDownloadPayload
     ) => Promise<{ ok: boolean; error?: string }>;
     cancelGameDownload: (shop: GameShop, objectId: string) => Promise<void>;
-    pauseGameDownload: (shop: GameShop, objectId: string) => Promise<void>;
+    pauseGameDownload: (shop: GameShop, objectId: string) => Promise<boolean>;
     resumeGameDownload: (
       shop: GameShop,
       objectId: string,
@@ -265,11 +265,6 @@ declare global {
     ) => () => Electron.IpcRenderer;
     onHardDelete: (cb: () => void) => () => Electron.IpcRenderer;
     getTorrentFiles: (
-      magnet: string
-    ) => Promise<
-      { ok: true; data: TorrentFilesResponse } | { ok: false; error: string }
-    >;
-    getTorBoxFiles: (
       magnet: string
     ) => Promise<
       { ok: true; data: TorrentFilesResponse } | { ok: false; error: string }

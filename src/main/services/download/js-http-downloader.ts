@@ -18,15 +18,17 @@ import {
   resolveResumeAction,
   shouldResetRetryBudget,
   stallDetected,
+  verifyResumePrefixChunk,
 } from "./js-http-downloader-helpers";
 import {
   downloadParallelRanges,
+  getRangeResumeCapability,
   getRangeTotal,
+  getStrongRangeValidator,
   PARALLEL_RANGE_SIZE,
   ParallelRangeUnsupportedError,
   shouldDowngradeParallelRanges,
 } from "./parallel-range-download";
-import { verifyResumePrefixChunk } from "./resume-prefix";
 
 export interface JsHttpDownloaderStatus {
   folderName: string;
@@ -40,6 +42,7 @@ export interface JsHttpDownloaderStatus {
   isReconnecting: boolean;
   isRecovering: boolean;
   recoveryProgress: number;
+  resumeCapability?: "unknown" | "supported" | "unsupported";
 }
 
 export interface JsHttpDownloaderOptions {
@@ -116,6 +119,9 @@ export class JsHttpDownloader {
   private bytesTransferredInThrottleWindow = 0;
   private parallelRangesDisabled = false;
   private parallelRangeFailures = 0;
+  private resourceValidator: string | null = null;
+  private requireFullResumeVerification = false;
+  private resumeCapability: "unknown" | "supported" | "unsupported" = "unknown";
   private readonly pendingRangeReads = new Map<number, number>();
   private urlRefreshAttempted = false;
   private activeRun: Promise<void> | null = null;
@@ -154,6 +160,9 @@ export class JsHttpDownloader {
     this.pendingReadSince = null;
     this.parallelRangesDisabled = false;
     this.parallelRangeFailures = 0;
+    this.resourceValidator = null;
+    this.requireFullResumeVerification = false;
+    this.resumeCapability = "unknown";
     this.pendingRangeReads.clear();
     this.urlRefreshAttempted = false;
     this.resetThrottleWindow();
@@ -194,10 +203,11 @@ export class JsHttpDownloader {
           filename,
           url
         );
-        const rangeStart =
-          this.currentOptions.verifyResumePrefix && startByte > 0
-            ? Math.max(0, startByte - RESUME_OVERLAP_BYTES)
-            : startByte;
+        this.requireFullResumeVerification =
+          startByte > 0 &&
+          !this.resourceValidator &&
+          this.currentOptions.allowParallelRanges !== false;
+        const rangeStart = this.getResumeRangeStart(startByte);
         const requestHeaders = this.buildRequestHeaders(headers, rangeStart);
 
         this.startStallDetection();
@@ -508,10 +518,45 @@ export class JsHttpDownloader {
       requestHeaders["Accept-Encoding"] = "identity";
     }
 
-    if (startByte > 0) {
+    if (
+      startByte > 0 ||
+      this.currentOptions?.verifyResumePrefix ||
+      this.requireFullResumeVerification
+    ) {
       requestHeaders["Range"] = `bytes=${startByte}-`;
     }
+    if (startByte > 0 && this.resourceValidator) {
+      requestHeaders["If-Range"] = this.resourceValidator;
+    }
     return requestHeaders;
+  }
+
+  private shouldVerifyResumePrefix(): boolean {
+    return Boolean(
+      this.currentOptions?.verifyResumePrefix ||
+        this.resourceValidator ||
+        this.requireFullResumeVerification
+    );
+  }
+
+  private getResumeRangeStart(startByte: number): number {
+    if (this.requireFullResumeVerification) return 0;
+    return this.shouldVerifyResumePrefix() && startByte > 0
+      ? Math.max(0, startByte - RESUME_OVERLAP_BYTES)
+      : startByte;
+  }
+
+  private trackResumeCapability(
+    response: Response,
+    requestedRange: string | undefined,
+    ifRange?: string
+  ): void {
+    const capability = getRangeResumeCapability(
+      response,
+      requestedRange,
+      ifRange
+    );
+    if (capability !== "unknown") this.resumeCapability = capability;
   }
 
   private resetSpeedTracking(): void {
@@ -566,7 +611,9 @@ export class JsHttpDownloader {
     let response: Response;
     if (
       !this.parallelRangesDisabled &&
-      this.currentOptions?.allowParallelRanges !== false
+      this.currentOptions?.allowParallelRanges !== false &&
+      !this.requireFullResumeVerification &&
+      !(startByte > 0 && this.currentOptions?.verifyResumePrefix)
     ) {
       const rangeSize =
         this.currentOptions?.parallelRangeSize ?? PARALLEL_RANGE_SIZE;
@@ -578,10 +625,18 @@ export class JsHttpDownloader {
         },
         signal: this.abortController?.signal,
       });
+      this.trackResumeCapability(
+        response,
+        `bytes=${startByte}-${rangeEnd}`,
+        requestHeaders["If-Range"]
+      );
 
       const total = getRangeTotal(response, startByte, rangeEnd);
+      const validator = getStrongRangeValidator(response);
       if (
         total !== null &&
+        validator !== null &&
+        (startByte === 0 || this.resourceValidator === validator) &&
         total - startByte >= rangeSize * 2 &&
         !/^(text\/html|application\/xhtml)/i.test(
           response.headers.get("content-type") ?? ""
@@ -599,6 +654,7 @@ export class JsHttpDownloader {
           fs.writeFileSync(actualFilePath, "");
         }
         this.fileSize = total;
+        this.resourceValidator = validator;
         logger.log(
           `[JsHttpDownloader] Downloading ${total} bytes with parallel byte ranges`
         );
@@ -672,7 +728,10 @@ export class JsHttpDownloader {
           );
           await this.executeDownload(
             url,
-            this.buildRequestHeaders(requestHeaders, committed),
+            this.buildRequestHeaders(
+              requestHeaders,
+              this.getResumeRangeStart(committed)
+            ),
             actualFilePath,
             committed,
             savePath,
@@ -692,12 +751,22 @@ export class JsHttpDownloader {
           headers: requestHeaders,
           signal: this.abortController?.signal,
         });
+        this.trackResumeCapability(
+          response,
+          requestHeaders.Range,
+          requestHeaders["If-Range"]
+        );
       }
     } else {
       response = await this.fetchWithStallTracking(url, {
         headers: requestHeaders,
         signal: this.abortController?.signal,
       });
+      this.trackResumeCapability(
+        response,
+        requestHeaders.Range,
+        requestHeaders["If-Range"]
+      );
     }
 
     const contentType = response.headers.get("content-type") ?? "unknown";
@@ -709,7 +778,11 @@ export class JsHttpDownloader {
     if (response.status === 416 && startByte > 0) {
       const remoteTotalSize = this.parseTotalSizeFrom416(response);
 
-      if (remoteTotalSize !== null && startByte === remoteTotalSize) {
+      if (
+        !this.shouldVerifyResumePrefix() &&
+        remoteTotalSize !== null &&
+        startByte === remoteTotalSize
+      ) {
         this.fileSize = remoteTotalSize;
         this.bytesDownloaded = remoteTotalSize;
         this.status = "complete";
@@ -739,6 +812,18 @@ export class JsHttpDownloader {
       throw new Error(`HTTP error! status: ${response.status}`);
     }
 
+    if (
+      startByte > 0 &&
+      response.status === 206 &&
+      this.resourceValidator &&
+      getStrongRangeValidator(response) !== this.resourceValidator
+    ) {
+      await response.body?.cancel();
+      throw new Error(
+        "The download resource changed while resuming; keeping the saved partial file."
+      );
+    }
+
     // Detect HTML error pages served with 200 status (e.g. expired CDN links)
     if (
       contentType.includes("text/html") ||
@@ -761,7 +846,7 @@ export class JsHttpDownloader {
       .toLowerCase()
       .trim();
     if (contentEncoding && contentEncoding !== "identity" && startByte > 0) {
-      if (this.currentOptions?.verifyResumePrefix) {
+      if (this.shouldVerifyResumePrefix()) {
         throw new Error(
           "The server encoded the resumed archive response; keeping the saved partial file."
         );
@@ -774,12 +859,14 @@ export class JsHttpDownloader {
       restart = true;
     }
 
-    if (this.currentOptions?.verifyResumePrefix && startByte > 0) {
+    if (this.shouldVerifyResumePrefix() && startByte > 0) {
       const rangeStart = this.parseContentRangeStart(response);
       if (
         restart ||
         (response.status === 206 &&
-          (rangeStart === null || rangeStart >= startByte))
+          (rangeStart === null ||
+            rangeStart >= startByte ||
+            (this.requireFullResumeVerification && rangeStart !== 0)))
       ) {
         throw new Error(
           "The archive server returned an unsafe byte range; keeping the saved partial file."
@@ -798,6 +885,11 @@ export class JsHttpDownloader {
       this.resetSpeedTracking();
       logger.log(
         `[JsHttpDownloader] Restarting the file from byte 0 (restart ${this.restartCount}/${MAX_RESTARTS_FROM_ZERO}).`
+      );
+    } else if (this.requireFullResumeVerification && skipBytes > 0) {
+      this.beginRecovery(skipBytes);
+      logger.log(
+        `[JsHttpDownloader] Verifying all ${skipBytes} saved bytes before resuming a download without a known resource validator.`
       );
     } else if (action.rangeIgnored) {
       this.beginRecovery(skipBytes);
@@ -825,7 +917,7 @@ export class JsHttpDownloader {
     }
 
     let savedPrefix: FileHandle | null = null;
-    if (this.currentOptions?.verifyResumePrefix && skipBytes > 0) {
+    if (this.shouldVerifyResumePrefix() && skipBytes > 0) {
       savedPrefix = await fs.promises.open(actualFilePath, "r");
     }
 
@@ -845,7 +937,7 @@ export class JsHttpDownloader {
     }
 
     if (
-      this.currentOptions?.verifyResumePrefix &&
+      this.shouldVerifyResumePrefix() &&
       this.fileSize > 0 &&
       fs.statSync(actualFilePath).size !== this.fileSize
     ) {
@@ -1251,6 +1343,7 @@ export class JsHttpDownloader {
       bytesDownloaded: this.bytesDownloaded,
       isReconnecting: this.isReconnecting,
       isRecovering: this.isRecovering,
+      resumeCapability: this.resumeCapability,
       recoveryProgress:
         this.recoverBytesTotal > 0
           ? clampProgress(this.recoverBytesDone / this.recoverBytesTotal)
@@ -1302,6 +1395,9 @@ export class JsHttpDownloader {
     this.downloadSpeed = 0;
     this.status = "paused";
     this.folderName = "";
+    this.resourceValidator = null;
+    this.requireFullResumeVerification = false;
+    this.resumeCapability = "unknown";
     this.isDownloading = false;
     this.retryCount = 0;
     this.statusRetryCount = 0;

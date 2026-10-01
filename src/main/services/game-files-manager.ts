@@ -29,7 +29,7 @@ import { ExtractionProgress, SevenZip } from "./7zip";
 import * as emulators from "./emulators";
 import * as retroarch from "./retroarch";
 import { getPathType } from "./extraction-path";
-import { listArchiveFiles } from "./archive-discovery";
+import { listArchiveFiles } from "./archive-entry";
 import { GameExecutables } from "./game-executables";
 import { logger } from "./logger";
 import { platformToRetroArchPlatform, platformToSystem } from "@main/helpers";

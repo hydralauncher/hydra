@@ -108,6 +108,8 @@ export interface Download {
   selectedFilesSize?: number | null;
   realDebridTorrentId?: string;
   awaitingDebrid?: boolean;
+  debridAutoResume?: boolean;
+  debridPreparationDeadline?: number;
   customTrackers?: string[];
 }
 

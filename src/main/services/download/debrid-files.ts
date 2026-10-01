@@ -1,10 +1,51 @@
 import type { TorrentFilesResponse } from "@types";
 import { createHash } from "node:crypto";
+import { DownloadError, Downloader } from "../../../shared/constants.js";
+
+const pendingErrors = new Map<Downloader, ReadonlySet<string>>([
+  [Downloader.TorBox, new Set([DownloadError.TorBoxTorrentNotReady])],
+  [
+    Downloader.RealDebrid,
+    new Set([
+      DownloadError.NotCachedOnRealDebrid,
+      DownloadError.RealDebridTorrentNotReady,
+      DownloadError.RealDebridLinksNotReady,
+    ]),
+  ],
+  [
+    Downloader.Premiumize,
+    new Set([
+      DownloadError.NotCachedOnPremiumize,
+      DownloadError.PremiumizeTransferStarted,
+    ]),
+  ],
+  [Downloader.AllDebrid, new Set([DownloadError.NotCachedOnAllDebrid])],
+]);
+
+export function isDebridPendingError(
+  error: unknown,
+  downloader: Downloader
+): boolean {
+  if (!(error instanceof Error)) return false;
+  return pendingErrors.get(downloader)?.has(error.message) ?? false;
+}
 
 export interface DebridFile {
   index: number;
   path: string;
   size: number;
+}
+
+export function getDebridRootFolderName(paths: string[]): string | undefined {
+  if (paths.length < 2) return undefined;
+  const components = paths.map((item) => item.split(/[\\/]/).filter(Boolean));
+  const root = components[0][0];
+  return root &&
+    root !== "." &&
+    root !== ".." &&
+    components.every((parts) => parts.length > 1 && parts[0] === root)
+    ? root
+    : undefined;
 }
 
 export function stableDebridFileIndex(path: string, size: number): number {

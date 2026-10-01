@@ -397,10 +397,6 @@ contextBridge.exposeInMainWorld("electron", {
     ipcRenderer.invoke("getTorrentFiles", magnet) as Promise<
       { ok: true; data: TorrentFilesResponse } | { ok: false; error: string }
     >,
-  getTorBoxFiles: (magnet: string) =>
-    ipcRenderer.invoke("getTorBoxFiles", magnet) as Promise<
-      { ok: true; data: TorrentFilesResponse } | { ok: false; error: string }
-    >,
   getDebridFiles: (magnet: string, provider: Downloader) =>
     ipcRenderer.invoke("getDebridFiles", magnet, provider) as Promise<
       { ok: true; data: TorrentFilesResponse } | { ok: false; error: string }

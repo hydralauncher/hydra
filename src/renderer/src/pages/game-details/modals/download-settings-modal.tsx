@@ -243,10 +243,6 @@ const getProviderTorrentFiles = (
   magnetUri: string,
   downloader: Downloader | null
 ) => {
-  if (downloader === Downloader.TorBox) {
-    return window.electron.getTorBoxFiles(magnetUri);
-  }
-
   if (downloader === Downloader.Torrent) {
     return window.electron.getTorrentFiles(magnetUri);
   }

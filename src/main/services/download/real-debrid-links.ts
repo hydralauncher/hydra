@@ -1,19 +1,30 @@
 import { DownloadError } from "../../../shared/constants.js";
 import type { RealDebridTorrentInfo } from "../../../types/download.types.js";
+import { setTimeout as sleep } from "node:timers/promises";
 
 const LINK_POLL_ATTEMPTS = 10;
 const LINK_POLL_DELAY_MS = 1000;
 
-const waitForNextPoll = () =>
-  new Promise<void>((resolve) => setTimeout(resolve, LINK_POLL_DELAY_MS));
+const waitForNextPoll = (signal?: AbortSignal) =>
+  sleep(LINK_POLL_DELAY_MS, undefined, { signal });
+
+export function throwIfRealDebridTorrentFailed(info: RealDebridTorrentInfo) {
+  if (["error", "dead", "virus", "magnet_error"].includes(info.status)) {
+    throw new Error(`Real-Debrid torrent failed (${info.status}).`);
+  }
+}
 
 export async function waitForRealDebridLinks(
   getInfo: () => Promise<RealDebridTorrentInfo>,
-  wait: () => Promise<void> = waitForNextPoll,
-  initialInfo?: RealDebridTorrentInfo
+  wait: (signal?: AbortSignal) => Promise<void> = waitForNextPoll,
+  initialInfo?: RealDebridTorrentInfo,
+  signal?: AbortSignal
 ) {
   for (let attempt = 0; attempt < LINK_POLL_ATTEMPTS; attempt++) {
+    signal?.throwIfAborted();
     const info = attempt === 0 && initialInfo ? initialInfo : await getInfo();
+    signal?.throwIfAborted();
+    throwIfRealDebridTorrentFailed(info);
     if (info.status !== "downloaded") return null;
 
     const selectedFiles = info.files.filter((file) => file.selected);
@@ -33,7 +44,7 @@ export async function waitForRealDebridLinks(
       });
     }
 
-    await wait();
+    await wait(signal);
   }
 
   throw new Error(DownloadError.RealDebridLinksNotReady);

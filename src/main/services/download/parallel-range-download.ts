@@ -63,6 +63,33 @@ export function getRangeTotal(
   return total;
 }
 
+export function getStrongRangeValidator(response: Response): string | null {
+  const etag = response.headers.get("etag");
+  // Last-Modified and weak ETags do not establish byte-for-byte identity.
+  return etag && /^"[\x21\x23-\x7e\x80-\xff]*"$/.test(etag) ? etag : null;
+}
+
+export function getRangeResumeCapability(
+  response: Response,
+  requestedRange: string | undefined,
+  ifRange?: string
+): "unknown" | "supported" | "unsupported" {
+  const range = /^bytes=(\d+)-(\d*)$/.exec(requestedRange ?? "");
+  if (!range) return "unknown";
+  if (
+    /^(text\/html|application\/xhtml)/i.test(
+      response.headers.get("content-type") ?? ""
+    )
+  ) {
+    return "unknown";
+  }
+  // A changed If-Range validator legitimately returns the entire resource.
+  if (response.status === 200) return ifRange ? "unknown" : "unsupported";
+  const start = Number(range[1]);
+  const end = range[2] ? Number(range[2]) : Number.MAX_SAFE_INTEGER;
+  return getRangeTotal(response, start, end) !== null ? "supported" : "unknown";
+}
+
 export interface ParallelRangeDownloadOptions {
   url: string;
   headers: Record<string, string>;
@@ -95,7 +122,7 @@ type RangeContext = Pick<
   | "beforeChunk"
   | "afterChunk"
   | "onReadPending"
-> & { validator: string | null };
+> & { validator: string };
 
 async function fetchRangeResponse(
   context: RangeContext,
@@ -110,7 +137,7 @@ async function fetchRangeResponse(
       headers: {
         ...context.headers,
         Range: `bytes=${start}-${end}`,
-        ...(context.validator ? { "If-Range": context.validator } : {}),
+        "If-Range": context.validator,
       },
       signal: context.signal,
     });
@@ -125,12 +152,9 @@ async function assertRangeResponse(
   context: RangeContext
 ): Promise<void> {
   const { validator } = context;
-  const responseValidator = validator?.startsWith('"')
-    ? response.headers.get("etag")
-    : response.headers.get("last-modified");
   if (
     getRangeTotal(response, range.start, range.end) !== context.total ||
-    (validator && responseValidator && responseValidator !== validator)
+    getStrongRangeValidator(response) !== validator
   ) {
     await response.body?.cancel();
     throw new ParallelRangeUnsupportedError(
@@ -342,6 +366,13 @@ export async function downloadParallelRanges({
   afterChunk,
   onReadPending,
 }: ParallelRangeDownloadOptions): Promise<boolean> {
+  const validator = getStrongRangeValidator(firstResponse);
+  if (!validator) {
+    await firstResponse.body?.cancel().catch(() => undefined);
+    throw new ParallelRangeUnsupportedError(
+      "The download server did not provide a strong byte-range validator"
+    );
+  }
   let tempDir: string;
   try {
     tempDir = await fs.promises.mkdtemp(
@@ -351,11 +382,6 @@ export async function downloadParallelRanges({
     await firstResponse.body?.cancel().catch(() => undefined);
     throw error;
   }
-  const validator = firstResponse.headers.get("etag")?.startsWith("W/")
-    ? firstResponse.headers.get("last-modified")
-    : (firstResponse.headers.get("etag") ??
-      firstResponse.headers.get("last-modified"));
-
   const context: RangeContext = {
     url,
     headers,

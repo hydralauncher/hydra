@@ -15,10 +15,6 @@ import {
   isKnownDownloadError,
   prepareGameEntry,
 } from "@main/helpers";
-import {
-  preparesRealDebridInBackground,
-  validateDownloadOrMarkPending,
-} from "./validate-download";
 
 const addGameToQueue = async (
   _event: Electron.IpcMainInvokeEvent,
@@ -69,8 +65,8 @@ const addGameToQueue = async (
       customTrackers: globalTrackers,
     };
 
-    if (!preparesRealDebridInBackground(download)) {
-      await validateDownloadOrMarkPending(download);
+    if (!DownloadOrchestrator.preparesRealDebridInBackground(download)) {
+      await DownloadOrchestrator.validateDownloadOrMarkPending(download);
     }
     await prepareGameEntry({ gameKey, title, objectId, shop });
     await DownloadManager.cancelDownload(gameKey).catch(() => null);
