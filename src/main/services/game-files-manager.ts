@@ -466,7 +466,14 @@ export class GameFilesManager {
         return;
       }
 
-      const executables = GameExecutables.getExecutablesForGame(this.objectId);
+      if (this.shop === "epic") {
+        await GameExecutables.ensureLoadedForShop("epic");
+      }
+
+      const executables = GameExecutables.getExecutablesForGame(
+        this.objectId,
+        this.shop === "epic" ? "epic" : "steam"
+      );
 
       if (!executables || executables.length === 0) {
         return;
@@ -491,11 +498,14 @@ export class GameFilesManager {
       );
 
       if (foundExePath) {
+        const currentGame = await gamesSublevel.get(this.gameKey);
+        if (!currentGame || currentGame.executablePath) return;
+
         logger.info(
           `[GameFilesManager] Auto-detected executable for ${this.objectId}: ${foundExePath}`
         );
 
-        const updatedGame = updateGameExecutablePath(game, foundExePath);
+        const updatedGame = updateGameExecutablePath(currentGame, foundExePath);
 
         await gamesSublevel.put(this.gameKey, { ...updatedGame });
         void runAutomaticCloudSaveSync(
@@ -508,7 +518,7 @@ export class GameFilesManager {
 
         WindowManager.sendToAppWindows("on-library-batch-complete");
 
-        await this.createDesktopShortcutForGame(game.title);
+        await this.createDesktopShortcutForGame(currentGame.title);
       }
     } catch (err) {
       logger.error(

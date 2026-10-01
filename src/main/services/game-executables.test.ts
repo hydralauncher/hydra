@@ -81,4 +81,24 @@ describe("game executable catalogue", () => {
     assert.equal(calls, 1);
     assert.equal(await store.ensureLoaded(async () => catalog, true), true);
   });
+
+  it("keeps Steam and Epic executable catalogues separate for the same ID", async () => {
+    const steam = new GameExecutableCatalogStore("linux");
+    const epic = new GameExecutableCatalogStore("linux");
+
+    await steam.ensureLoaded(async () => ({
+      shared: [{ name: "steam.exe", os: "win32" }],
+    }));
+    await epic.ensureLoaded(async () => ({
+      shared: [{ name: "epic.exe", os: "win32" }],
+    }));
+
+    assert.deepEqual(steam.getForGame("shared"), [
+      { name: "steam.exe", exe: "steam.exe" },
+    ]);
+    assert.deepEqual(epic.getForGame("shared"), [
+      { name: "epic.exe", exe: "epic.exe" },
+    ]);
+    assert.equal(epic.getForGame("missing"), null);
+  });
 });
