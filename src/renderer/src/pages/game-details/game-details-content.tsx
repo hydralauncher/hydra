@@ -93,7 +93,9 @@ export function GameDetailsContent() {
   const { library } = useLibrary();
 
   const { getGameArtifacts } = useContext(cloudSyncContext);
-  const cloudSaveVisibility = game ? getCloudSaveVisibility(game.shop) : null;
+  const cloudSaveVisibility = game
+    ? getCloudSaveVisibility(game.shop, game.platform)
+    : null;
 
   const aboutTheGame = useMemo(() => {
     const aboutTheGame = shopDetails?.about_the_game;

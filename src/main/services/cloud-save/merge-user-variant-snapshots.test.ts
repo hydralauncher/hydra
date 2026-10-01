@@ -65,6 +65,187 @@ const anchor = (files: SnapshotFile[]) => ({
 });
 
 describe("merge user variant snapshots", () => {
+  it("preserves remote RPCS3 saves while the game disc is unresolved", () => {
+    const remote = file(
+      "NPUB31419-SLOT/GAMEDATA",
+      "r",
+      "<emulator>/rpcs3/NPUB31419/00000001"
+    );
+    const local = context([]);
+    local.coverage = [
+      {
+        candidateId: "rpcs3-disc-missing",
+        ruleId: "rpcs3",
+        rawPath: "<emulator>/rpcs3/unresolved",
+        selectedRoot: false,
+        authority: "inferred",
+        outcome: "unresolved",
+        enumeratedCompletely: false,
+        warningCodes: ["rpcs3-title-id-unresolved"],
+      },
+    ];
+
+    const result = mergeUserVariantSnapshots({
+      local,
+      remoteVariants: [variant],
+      remoteFiles: [remote],
+      base: anchor([remote]),
+    });
+
+    assert.deepEqual(result.deleteRemoteEntryIds, []);
+    assert.deepEqual(result.files, [remote]);
+  });
+
+  it("unites five cloud states with three new notebook states", () => {
+    const rawPath = "<emulator>/retroarch-v2/snes";
+    const remote = ["1", "2", "3", "4", "5"].map((value) =>
+      file(`states/${value.repeat(64)}.state`, value, rawPath)
+    );
+    const local = ["a", "b", "c"].map((value) =>
+      file(`states/${value.repeat(64)}.state`, value, rawPath)
+    );
+    const result = mergeUserVariantSnapshots({
+      local: context(local),
+      remoteVariants: [variant],
+      remoteFiles: remote,
+      base: null,
+    });
+    assert.equal(result.files.length, 8);
+    assert.equal(result.restoreEntryIds.length, 5);
+    assert.equal(result.conflicts.length, 0);
+  });
+
+  it("asks for a choice when the same state changed on both PCs", () => {
+    const rawPath = "<emulator>/retroarch-v2/snes";
+    const statePath = `states/${"a".repeat(64)}.state`;
+    const base = file(statePath, "1", rawPath);
+    const local = file(statePath, "2", rawPath);
+    const remote = file(statePath, "3", rawPath);
+    const result = mergeUserVariantSnapshots({
+      local: context([local]),
+      remoteVariants: [variant],
+      remoteFiles: [remote],
+      base: anchor([base]),
+    });
+    assert.deepEqual(
+      result.conflicts.map((entry) => entry.entryId),
+      [cloudSaveFileKey(remote)]
+    );
+  });
+
+  it("keeps RetroArch state images with the chosen state version", () => {
+    const rawPath = "<emulator>/retroarch-v2/snes";
+    const stateId = "1".repeat(64);
+    const local = [
+      file(`states/${stateId}.state`, "a", rawPath),
+      file(`states/${stateId}.png`, "b", rawPath),
+    ];
+    const remote = [
+      file(`states/${stateId}.state`, "c", rawPath),
+      file(`states/${stateId}.png`, "d", rawPath),
+    ];
+    const first = mergeUserVariantSnapshots({
+      local: context(local),
+      remoteVariants: [variant],
+      remoteFiles: remote,
+      base: null,
+    });
+    assert.equal(first.conflicts.length, 2);
+    const resolved = mergeUserVariantSnapshots({
+      local: context(local),
+      remoteVariants: [variant],
+      remoteFiles: remote,
+      base: null,
+      resolutions: new Map(
+        first.conflicts.map((entry) => [entry.entryId, "keep-local"])
+      ),
+    });
+    assert.deepEqual(
+      resolved.files.map((entry) => entry.hash),
+      [hash("b"), hash("a")]
+    );
+  });
+
+  it("keeps RetroArch RTC with the chosen battery save", () => {
+    const rawPath = "<emulator>/retroarch-v2/snes";
+    const local = [file("battery.srm", "a", rawPath)];
+    const remote = [
+      file("battery.srm", "b", rawPath),
+      file("battery.rtc", "c", rawPath),
+    ];
+    const first = mergeUserVariantSnapshots({
+      local: context(local),
+      remoteVariants: [variant],
+      remoteFiles: remote,
+      base: null,
+    });
+    assert.equal(first.conflicts.length, 2);
+    const resolved = mergeUserVariantSnapshots({
+      local: context(local),
+      remoteVariants: [variant],
+      remoteFiles: remote,
+      base: null,
+      resolutions: new Map(
+        first.conflicts.map((entry) => [entry.entryId, "keep-local"])
+      ),
+    });
+    assert.deepEqual(
+      resolved.files.map((entry) => entry.relativePath),
+      ["battery.srm"]
+    );
+  });
+
+  it("keeps N64 auxiliary files with the chosen battery version", () => {
+    const rawPath = "<emulator>/retroarch-v2/n64";
+    const local = [
+      file("battery.srm", "a", rawPath),
+      file("battery.eep", "b", rawPath),
+    ];
+    const remote = [
+      file("battery.srm", "c", rawPath),
+      file("battery.eep", "d", rawPath),
+      file("transfer-pak.sav", "e", rawPath),
+    ];
+    const first = mergeUserVariantSnapshots({
+      local: context(local),
+      remoteVariants: [variant],
+      remoteFiles: remote,
+      base: null,
+    });
+    assert.equal(first.conflicts.length, 3);
+    const resolved = mergeUserVariantSnapshots({
+      local: context(local),
+      remoteVariants: [variant],
+      remoteFiles: remote,
+      base: null,
+      resolutions: new Map(
+        first.conflicts.map((entry) => [entry.entryId, "keep-local"])
+      ),
+    });
+    assert.deepEqual(resolved.files.map((entry) => entry.relativePath).sort(), [
+      "battery.eep",
+      "battery.srm",
+    ]);
+  });
+
+  it("retains an archived legacy battery save without restoring it", () => {
+    const archive = file(
+      "archive/battery/11111111.srm",
+      "a",
+      "<emulator>/retroarch-v2/snes"
+    );
+    const result = mergeUserVariantSnapshots({
+      local: context([]),
+      remoteVariants: [variant],
+      remoteFiles: [archive],
+      base: null,
+      preserveCloudOnlyEntryIds: new Set([cloudSaveFileKey(archive)]),
+    });
+    assert.deepEqual(result.files, [archive]);
+    assert.deepEqual(result.restoreEntryIds, []);
+    assert.deepEqual(result.unresolvedRemoteEntryIds, []);
+    assert.equal(result.partial, false);
+  });
   it("combines independent local and remote changes", () => {
     const base = [file("A.sav", "a"), file("B.sav", "b")];
     const result = mergeUserVariantSnapshots({
@@ -147,6 +328,148 @@ describe("merge user variant snapshots", () => {
     assert.deepEqual(result.deleteRemoteEntryIds, []);
     assert.deepEqual(result.unresolvedRemoteEntryIds, [
       cloudSaveFileKey(remote),
+    ]);
+  });
+
+  it("keeps RPCS3 saves from an inactive profile when only the active profile was scanned", () => {
+    const activeRawPath = "<emulator>/rpcs3/BLUS30443/00000002";
+    const inactiveRawPath = "<emulator>/rpcs3/BLUS30443/00000001";
+    const active = file("BLUS30443-SLOT/DATA.BIN", "a", activeRawPath);
+    const inactive = file("BLUS30443-SLOT/DATA.BIN", "b", inactiveRawPath);
+    const local = context([active]);
+    local.coverage = [
+      {
+        candidateId: "active",
+        ruleId: "active",
+        variantId,
+        rawPath: activeRawPath,
+        selectedRoot: true,
+        authority: "exact",
+        outcome: "scanned",
+        enumeratedCompletely: true,
+        warningCodes: [],
+      },
+    ];
+
+    const result = mergeUserVariantSnapshots({
+      local,
+      remoteVariants: [variant],
+      remoteFiles: [active, inactive],
+      base: anchor([active, inactive]),
+    });
+
+    assert.deepEqual(result.deleteRemoteEntryIds, []);
+    assert.deepEqual(result.files, [inactive, active]);
+    assert.deepEqual(result.unresolvedRemoteEntryIds, [
+      cloudSaveFileKey(inactive),
+    ]);
+  });
+
+  it("does not combine divergent files from one RPCS3 save slot", () => {
+    const rawPath = "<emulator>/rpcs3/BLUS30443/00000001";
+    const base = [
+      file("BLUS30443-SLOT/PARAM.SFO", "a", rawPath),
+      file("BLUS30443-SLOT/DATA.BIN", "b", rawPath),
+    ];
+    const local = [file("BLUS30443-SLOT/PARAM.SFO", "c", rawPath), base[1]];
+    const remote = [base[0], file("BLUS30443-SLOT/DATA.BIN", "d", rawPath)];
+    const input = {
+      local: context(local),
+      remoteVariants: [variant],
+      remoteFiles: remote,
+      base: anchor(base),
+    };
+
+    const unresolved = mergeUserVariantSnapshots(input);
+    assert.deepEqual(
+      unresolved.conflicts.map((item) => item.entryId).sort(),
+      base.map(cloudSaveFileKey).sort()
+    );
+
+    for (const [resolution, expected] of [
+      ["keep-local", local],
+      ["keep-remote", remote],
+    ] as const) {
+      const resolutions = new Map(
+        unresolved.conflicts.map((conflict) => [conflict.entryId, resolution])
+      );
+      const resolved = mergeUserVariantSnapshots({ ...input, resolutions });
+      assert.deepEqual(resolved.conflicts, []);
+      assert.deepEqual(
+        resolved.files
+          .map((item) => [item.relativePath, item.hash])
+          .sort((left, right) => left[0].localeCompare(right[0])),
+        expected
+          .map((item) => [item.relativePath, item.hash])
+          .sort((left, right) => left[0].localeCompare(right[0]))
+      );
+    }
+  });
+
+  it("keeps unrelated RPCS3 slots independent", () => {
+    const rawPath = "<emulator>/rpcs3/BLUS30443/00000001";
+    const base = [
+      file("BLUS30443-SLOT-1/DATA.BIN", "a", rawPath),
+      file("BLUS30443-SLOT-2/DATA.BIN", "b", rawPath),
+    ];
+    const result = mergeUserVariantSnapshots({
+      local: context([
+        file("BLUS30443-SLOT-1/DATA.BIN", "c", rawPath),
+        base[1],
+      ]),
+      remoteVariants: [variant],
+      remoteFiles: [base[0], file("BLUS30443-SLOT-2/DATA.BIN", "d", rawPath)],
+      base: anchor(base),
+    });
+
+    assert.deepEqual(result.conflicts, []);
+    assert.deepEqual(
+      result.files.map((item) => item.hash),
+      [hash("c"), hash("d")]
+    );
+  });
+
+  it("resolves a deleted RPCS3 slot file and a remote edit together", () => {
+    const rawPath = "<emulator>/rpcs3/BLUS30443/00000001";
+    const base = [
+      file("BLUS30443-SLOT/PARAM.SFO", "a", rawPath),
+      file("BLUS30443-SLOT/DATA.BIN", "b", rawPath),
+    ];
+    const local = context([base[1]]);
+    local.coverage = [
+      {
+        candidateId: "active",
+        ruleId: "active",
+        variantId,
+        rawPath,
+        selectedRoot: true,
+        authority: "exact",
+        outcome: "scanned",
+        enumeratedCompletely: true,
+        warningCodes: [],
+      },
+    ];
+    const remote = [base[0], file("BLUS30443-SLOT/DATA.BIN", "c", rawPath)];
+    const input = {
+      local,
+      remoteVariants: [variant],
+      remoteFiles: remote,
+      base: anchor(base),
+    };
+    const unresolved = mergeUserVariantSnapshots(input);
+    assert.equal(unresolved.conflicts.length, 2);
+
+    const resolutions = new Map(
+      unresolved.conflicts.map((conflict) => [
+        conflict.entryId,
+        "keep-local" as const,
+      ])
+    );
+    const resolved = mergeUserVariantSnapshots({ ...input, resolutions });
+    assert.deepEqual(resolved.conflicts, []);
+    assert.deepEqual(resolved.files, local.files);
+    assert.deepEqual(resolved.deleteRemoteEntryIds, [
+      cloudSaveFileKey(base[0]),
     ]);
   });
 
@@ -282,6 +605,40 @@ describe("merge user variant snapshots", () => {
     assert.deepEqual(result.restoreEntryIds, [cloudSaveFileKey(remote)]);
     assert.equal(result.partial, true);
     assert.deepEqual(result.files, [remote]);
+  });
+
+  it("keeps an emulator snapshot pending when its only destination is incomplete", () => {
+    const remote = file(
+      "state.state1",
+      "r",
+      "<emulator>/retroarch/snes/1234ABCD"
+    );
+    const local = context([]);
+    local.coverage = [
+      {
+        candidateId: "missing-state-root",
+        ruleId: "retroarch",
+        variantId,
+        rawPath: remote.rawPath,
+        selectedRoot: true,
+        authority: "exact",
+        outcome: "partial",
+        enumeratedCompletely: false,
+        warningCodes: ["retroarch-location-partial"],
+      },
+    ];
+    const result = mergeUserVariantSnapshots({
+      local,
+      remoteVariants: [variant],
+      remoteFiles: [remote],
+      base: null,
+    });
+
+    assert.deepEqual(result.files, [remote]);
+    assert.deepEqual(result.restoreEntryIds, []);
+    assert.deepEqual(result.unresolvedRemoteEntryIds, [
+      cloudSaveFileKey(remote),
+    ]);
   });
 
   it("propagates a proven local deletion to the remote snapshot", () => {
@@ -555,6 +912,78 @@ describe("merge user variant snapshots", () => {
 
     assert.deepEqual(result.deleteRemoteEntryIds, []);
     assert.deepEqual(result.restoreEntryIds, [cloudSaveFileKey(missing)]);
+  });
+
+  it("keeps Minecraft saves synced without local savestates and restores remote states", () => {
+    const saveRawPath = "<emulator>/rpcs3/NPUB31419/00000001";
+    const stateRawPath = "<emulator>/rpcs3-state/NPUB31419";
+    const saves = Array.from({ length: 9 }, (_, index) =>
+      file(
+        `${index < 5 ? "NPUB31419--260930163517" : "NPUB31419-OPTIONS"}/FILE${index}`,
+        String(index),
+        saveRawPath
+      )
+    );
+    const state = file("NPUB31419_1_0.SAVESTAT.zst", "s", stateRawPath);
+    const local = context(saves);
+    local.coverage = [
+      {
+        candidateId: "savedata",
+        ruleId: "savedata",
+        variantId,
+        rawPath: saveRawPath,
+        selectedRoot: true,
+        authority: "exact",
+        outcome: "scanned",
+        enumeratedCompletely: true,
+        warningCodes: [],
+      },
+      {
+        candidateId: "savestates",
+        ruleId: "savestates",
+        variantId,
+        rawPath: stateRawPath,
+        selectedRoot: false,
+        authority: "exact",
+        outcome: "confirmed-missing",
+        enumeratedCompletely: true,
+        warningCodes: [],
+      },
+    ];
+
+    const synced = mergeUserVariantSnapshots({
+      local,
+      remoteVariants: [variant],
+      remoteFiles: saves,
+      base: anchor(saves),
+    });
+    assert.equal(synced.files.length, 9);
+    assert.equal(synced.partial, false);
+    assert.deepEqual(synced.restoreEntryIds, []);
+
+    const remoteFiles = [...saves, state];
+    const missingState = mergeUserVariantSnapshots({
+      local,
+      remoteVariants: [variant],
+      remoteFiles,
+      base: anchor(remoteFiles),
+    });
+    assert.deepEqual(missingState.deleteRemoteEntryIds, []);
+    assert.deepEqual(missingState.restoreEntryIds, [cloudSaveFileKey(state)]);
+
+    const restored = context(remoteFiles);
+    restored.coverage = [
+      local.coverage[0],
+      { ...local.coverage[1], selectedRoot: true, outcome: "scanned" },
+    ];
+    const afterRestore = mergeUserVariantSnapshots({
+      local: restored,
+      remoteVariants: [variant],
+      remoteFiles,
+      base: anchor(remoteFiles),
+    });
+    assert.equal(afterRestore.partial, false);
+    assert.deepEqual(afterRestore.deleteRemoteEntryIds, []);
   });
 
   it("preserves remote data without restoring when coverage is incomplete", () => {

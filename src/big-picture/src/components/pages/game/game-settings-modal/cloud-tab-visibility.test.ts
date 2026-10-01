@@ -17,8 +17,37 @@ describe("Big Picture cloud save V2 tab visibility", () => {
     assert.equal(shouldShowCloudSaveV2Tab("steam", true, false), false);
   });
 
-  it("never shows the V2 tab for non-Steam games", () => {
+  it("shows V2 for eligible LaunchBox emulators only", () => {
     assert.equal(shouldShowCloudSaveV2Tab("launchbox", true, true), false);
+    assert.equal(
+      shouldShowCloudSaveV2Tab("launchbox", true, true, "Sony PlayStation 3"),
+      true
+    );
+    assert.equal(
+      shouldShowCloudSaveV2Tab(
+        "launchbox",
+        true,
+        true,
+        "Nintendo Game Boy Advance"
+      ),
+      true
+    );
+    for (const platform of [
+      "Sony PlayStation",
+      "Sony PlayStation 2",
+      "Sony PlayStation Portable",
+      "Nintendo GameCube",
+      "Nintendo Wii",
+    ]) {
+      assert.equal(
+        shouldShowCloudSaveV2Tab("launchbox", true, true, platform),
+        false
+      );
+    }
+    assert.equal(
+      shouldShowCloudSaveV2Tab("launchbox", true, true, "Atari 2600"),
+      false
+    );
     assert.equal(shouldShowCloudSaveV2Tab("custom", true, true), false);
   });
 });
@@ -31,6 +60,40 @@ describe("Big Picture legacy cloud save tab visibility", () => {
 
   it("keeps the legacy tab for subscribed Launchbox users", () => {
     assert.equal(shouldShowLegacyCloudSaveTab("launchbox", true, true), true);
+    assert.equal(
+      shouldShowLegacyCloudSaveTab(
+        "launchbox",
+        true,
+        true,
+        "Sony PlayStation 3"
+      ),
+      false
+    );
+    assert.equal(
+      shouldShowLegacyCloudSaveTab(
+        "launchbox",
+        true,
+        true,
+        "Nintendo Game Boy Advance"
+      ),
+      false
+    );
+    for (const platform of [
+      "Sony PlayStation",
+      "Sony PlayStation 2",
+      "Sony PlayStation Portable",
+      "Nintendo GameCube",
+      "Nintendo Wii",
+    ]) {
+      assert.equal(
+        shouldShowLegacyCloudSaveTab("launchbox", true, true, platform),
+        true
+      );
+    }
+    assert.equal(
+      shouldShowLegacyCloudSaveTab("launchbox", true, true, "Atari 2600"),
+      true
+    );
   });
 
   it("preserves the current custom-game behavior", () => {
