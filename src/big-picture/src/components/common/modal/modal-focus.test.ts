@@ -14,7 +14,10 @@ const projectRoot = fileURLToPath(
 const previousGlobals = new Map<string, PropertyDescriptor | undefined>();
 let dom: JSDOM;
 let directory: string;
-let verifyModalFocus: (enabled: boolean) => Promise<void>;
+let verifyModalFocus: (
+  enabled: boolean,
+  navigateBeforeActivation: boolean
+) => Promise<void>;
 
 function setGlobal(key: string, value: unknown) {
   previousGlobals.set(key, Object.getOwnPropertyDescriptor(globalThis, key));
@@ -123,17 +126,22 @@ after(async () => {
 
 describe("modal physical keyboard focus", () => {
   for (const setting of [undefined, true, false]) {
-    it(`supports typing, Tab, Shift+Tab and controller activation with virtual keyboard ${setting ?? "enabled by default"}`, async () => {
-      Object.defineProperty(dom.window, "electron", {
-        configurable: true,
-        value: {
-          getUserPreferences: async () =>
-            setting === undefined
-              ? null
-              : { bigPictureVirtualKeyboardEnabled: setting },
-        },
+    for (const navigateBeforeActivation of [false, true]) {
+      const activation = navigateBeforeActivation
+        ? "after controller navigation"
+        : "directly after Tab";
+      it(`supports typing, Tab, Shift+Tab and activation ${activation} with virtual keyboard ${setting ?? "enabled by default"}`, async () => {
+        Object.defineProperty(dom.window, "electron", {
+          configurable: true,
+          value: {
+            getUserPreferences: async () =>
+              setting === undefined
+                ? null
+                : { bigPictureVirtualKeyboardEnabled: setting },
+          },
+        });
+        await verifyModalFocus(setting ?? true, navigateBeforeActivation);
       });
-      await verifyModalFocus(setting ?? true);
-    });
+    }
   }
 });

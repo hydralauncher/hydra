@@ -54,7 +54,10 @@ async function tab(backwards = false) {
   assert.equal(useVirtualKeyboardStore.getState().target, null);
 }
 
-export async function verifyModalFocus(virtualKeyboardEnabled: boolean) {
+export async function verifyModalFocus(
+  virtualKeyboardEnabled: boolean,
+  navigateBeforeActivation: boolean
+) {
   const root = createRoot(document.getElementById("root")!);
 
   try {
@@ -100,15 +103,22 @@ export async function verifyModalFocus(virtualKeyboardEnabled: boolean) {
     assert.equal(document.activeElement, close);
 
     await tab();
-    await act(async () => NavigationService.getInstance().moveFocus("down"));
-    assert.equal(document.activeElement, action);
-    await act(async () => NavigationService.getInstance().moveFocus("up"));
-    assert.equal(document.activeElement?.id, "search-owner");
+    if (navigateBeforeActivation) {
+      await act(async () => NavigationService.getInstance().moveFocus("down"));
+      assert.equal(document.activeElement, action);
+      await act(async () => NavigationService.getInstance().moveFocus("up"));
+      assert.equal(document.activeElement?.id, "search-owner");
+    } else {
+      assert.equal(document.activeElement, input);
+    }
     await act(async () =>
       NavigationItemActionsService.getInstance().triggerPrimaryForFocusedItem()
     );
     if (virtualKeyboardEnabled) {
-      assert.equal(useVirtualKeyboardStore.getState().target, input);
+      assert.ok(
+        useVirtualKeyboardStore.getState().target === input,
+        "Controller activation must open the virtual keyboard for this input"
+      );
       assert.ok(
         document.querySelector(
           '[data-focus-region-id="big-picture-virtual-keyboard"]'
