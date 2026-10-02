@@ -8,6 +8,8 @@ const MODAL_FOCUS_SELECTOR = [
   '[tabindex]:not([tabindex="-1"])',
 ].join(",");
 
+const MODAL_EDITABLE_SELECTOR = "input,select,textarea";
+
 export function trapModalTabFocus(
   event: KeyboardEvent,
   dialog: HTMLElement
@@ -17,7 +19,7 @@ export function trapModalTabFocus(
 
   // FocusItem uses a roving tab index for controller navigation. Include its
   // active items even when their native tab index is -1.
-  const controls = Array.from(
+  const candidates = Array.from(
     dialog.querySelectorAll<HTMLElement>(MODAL_FOCUS_SELECTOR)
   ).filter((element) => {
     if (
@@ -25,7 +27,8 @@ export function trapModalTabFocus(
         '[hidden], [inert], [aria-hidden="true"], [aria-disabled="true"], [data-navigation-state="disabled"], [data-navigation-state="hidden"]'
       ) ||
       element.matches(":disabled") ||
-      element.parentElement?.closest('[data-navigation-state="active"]') ||
+      (element.parentElement?.closest('[data-navigation-state="active"]') &&
+        !element.matches(MODAL_EDITABLE_SELECTOR)) ||
       !element.getClientRects().length
     ) {
       return false;
@@ -35,6 +38,17 @@ export function trapModalTabFocus(
       dialog.ownerDocument.defaultView?.getComputedStyle(element).visibility;
     return visibility !== "hidden" && visibility !== "collapse";
   });
+
+  // Native fields replace their controller wrapper in the Tab sequence.
+  const editableControls = candidates.filter((element) =>
+    element.matches(MODAL_EDITABLE_SELECTOR)
+  );
+  const controls = candidates.filter(
+    (element) =>
+      !editableControls.some(
+        (control) => control !== element && element.contains(control)
+      )
+  );
 
   const focusedIndex = controls.findIndex(
     (element) =>

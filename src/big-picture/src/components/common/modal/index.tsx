@@ -116,8 +116,11 @@ export function Modal({
       inputMode.setGamepadMode();
       inputMode.clearPendingGamepadFocus();
 
-      if (nextControl.dataset.navigationState === "active") {
-        NavigationService.getInstance().setFocus(nextControl.id);
+      const navigationItem = nextControl.closest<HTMLElement>(
+        '[data-navigation-state="active"]'
+      );
+      if (navigationItem) {
+        NavigationService.getInstance().setFocus(navigationItem.id);
       }
       nextControl.focus({ preventScroll: true });
     };
