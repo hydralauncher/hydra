@@ -21,6 +21,7 @@ export const getGamePlaytimeDeltas = (
 });
 
 const mutableGamesPlaytime = new Map<string, GamePlaytimeState>();
+const emulatorGamesRunning = new Set<string>();
 
 export const gamesPlaytime: ReadonlyMap<string, GamePlaytimeState> =
   mutableGamesPlaytime;
@@ -56,6 +57,15 @@ export const deleteGamePlaytime = (gameKey: string) =>
 
 export const clearGamesPlaytimeState = () => {
   mutableGamesPlaytime.clear();
+  emulatorGamesRunning.clear();
+};
+
+export const setEmulatorGameRunning = (gameKey: string) => {
+  emulatorGamesRunning.add(gameKey);
+};
+
+export const deleteEmulatorGameRunning = (gameKey: string) => {
+  emulatorGamesRunning.delete(gameKey);
 };
 
 export const getTrackedGamesRunning = (now = performance.now()) =>
@@ -67,4 +77,5 @@ export const getTrackedGamesRunning = (now = performance.now()) =>
   );
 
 export const isGameRunning = (objectId: string, shop: Game["shop"]) =>
-  gamesPlaytime.has(levelKeys.game(shop, objectId));
+  gamesPlaytime.has(levelKeys.game(shop, objectId)) ||
+  emulatorGamesRunning.has(levelKeys.game(shop, objectId));
