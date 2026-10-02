@@ -25,6 +25,10 @@ export type RealtimeEnvelope = RealtimeEnvelopeBase &
         event: "notification";
         payload: { invalidate: "notifications" };
       }
+    | {
+        event: "subscription";
+        payload: { invalidate: "subscription" };
+      }
   );
 
 export interface RealtimeToken {
@@ -148,6 +152,8 @@ const isValidEnvelopePayload = (
       );
     case "notification":
       return payload.invalidate === "notifications";
+    case "subscription":
+      return payload.invalidate === "subscription";
     default:
       return false;
   }
