@@ -15,6 +15,7 @@ import { useNavigationScreenActions } from "../../../hooks";
 import { useInputModeStore, useVirtualKeyboardStore } from "../../../stores";
 import { NavigationService } from "../../../services";
 import { trapModalTabFocus } from "./tab-focus";
+import { focusWithPhysicalKeyboard } from "../../../helpers/physical-keyboard-focus";
 
 import "./styles.scss";
 import { ArrowLeftIcon, XIcon } from "@phosphor-icons/react";
@@ -122,7 +123,7 @@ export function Modal({
       if (navigationItem) {
         NavigationService.getInstance().setFocus(navigationItem.id);
       }
-      nextControl.focus({ preventScroll: true });
+      focusWithPhysicalKeyboard(nextControl);
     };
 
     globalThis.window.addEventListener("keydown", onTabKeyDown, true);

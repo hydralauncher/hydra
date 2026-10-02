@@ -8,6 +8,7 @@ import { GridFocusGroup } from "../grid-focus-group";
 import { NavigationLayer } from "../navigation-layer";
 import { FocusRegionContext } from "../../context";
 import { IS_BROWSER } from "../../../constants";
+import { isPhysicalKeyboardFocus } from "../../../helpers/physical-keyboard-focus";
 import type { FocusDirection, FocusOverrides } from "../../../services";
 import {
   GAMEPAD_REPEAT_INITIAL_DELAY,
@@ -1088,6 +1089,7 @@ export function VirtualKeyboardProvider() {
 
       if (!isEditableTarget(nextTarget)) return;
       if (!isVirtualKeyboardEnabled) return;
+      if (isPhysicalKeyboardFocus(nextTarget)) return;
       if (useInputModeStore.getState().mode !== "gamepad") return;
 
       if (suppressedTargetRef.current === nextTarget) return;
