@@ -729,3 +729,4 @@ export * from "./souvenir.types";
 export type ExtractionFailure =
   | { reason: "unsupported-format"; format: string }
   | { reason: "file-not-found" };
+export type { SystemPowerAction } from "./system-power";

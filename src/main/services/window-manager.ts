@@ -445,6 +445,14 @@ export class WindowManager {
     });
   }
 
+  public static isBigPictureSender(sender: Electron.WebContents) {
+    return (
+      this.bigPicture !== null &&
+      !this.bigPicture.isDestroyed() &&
+      this.bigPicture.webContents === sender
+    );
+  }
+
   public static async openBigPictureWindow() {
     if (this.bigPicture) {
       this.bigPicture.focus();
