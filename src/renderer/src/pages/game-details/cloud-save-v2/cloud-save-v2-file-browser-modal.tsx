@@ -32,12 +32,20 @@ import {
   filterCloudSaveV2Comparisons,
   type CloudSaveV2FileTreeRoot,
 } from "./cloud-save-v2-file-tree";
-import { getCloudSaveFileBrowserOperationPolicy } from "./cloud-save-v2-file-browser-policy";
+import {
+  getCloudSaveFileBrowserOperationPolicy,
+  shouldShowRpcs3ProfileWarning,
+} from "./cloud-save-v2-file-browser-policy";
 import { CloudSaveV2FileTreeView } from "./cloud-save-v2-file-tree-view";
 import {
   getCloudSaveOperationPresentation,
   hasCloudSaveDataToDelete,
 } from "./cloud-save-presentation";
+import { CloudSaveCustomPathApprovalModal } from "./cloud-save-custom-path-approval-modal";
+
+type EmulatorDestination = NonNullable<
+  CloudSaveV2FileDetails["emulatorDestinations"]
+>[number];
 
 const getCustomPathSelectionError = (error: unknown) => {
   const message = error instanceof Error ? error.message : "";
@@ -312,13 +320,43 @@ export function CloudSaveV2FileBrowserModal({
   const [removingCustomPath, setRemovingCustomPath] = useState<string | null>(
     null
   );
+  const [bindingEmulatorDestination, setBindingEmulatorDestination] = useState<
+    string | null
+  >(null);
+  const [pendingEmulatorDestination, setPendingEmulatorDestination] =
+    useState<EmulatorDestination | null>(null);
+  const [selectedEmulatorPath, setSelectedEmulatorPath] = useState<
+    string | null
+  >(null);
+  const [isSelectingEmulatorDestination, setIsSelectingEmulatorDestination] =
+    useState(false);
+  const [isConfirmingEmulatorDestination, setIsConfirmingEmulatorDestination] =
+    useState(false);
+  const [didAttemptEmulatorSync, setDidAttemptEmulatorSync] = useState(false);
   const [pendingCustomPathRemoval, setPendingCustomPathRemoval] = useState<
     string | null
   >(null);
   const [isDeleteConfirmationVisible, setIsDeleteConfirmationVisible] =
     useState(false);
   const [isDeletingCloudSave, setIsDeletingCloudSave] = useState(false);
+  const [pendingRpcs3ProfileId, setPendingRpcs3ProfileId] = useState<
+    string | null
+  >(null);
+  const [isBindingRpcs3Profile, setIsBindingRpcs3Profile] = useState(false);
+  useEffect(() => {
+    setPendingEmulatorDestination(null);
+    setSelectedEmulatorPath(null);
+    setDidAttemptEmulatorSync(false);
+  }, [visible, objectId, shop]);
   const isConflict = details?.state === "conflict";
+  const pendingEmulatorDestinations =
+    details?.emulatorDestinations?.filter(
+      (destination) => destination.status !== "bound"
+    ) ?? [];
+  const boundEmulatorDestinations =
+    details?.emulatorDestinations?.filter(
+      (destination) => destination.status === "bound"
+    ) ?? [];
   const titleIsConflict = isConflict || overviewState === "conflict";
   const visibleComparisons = useMemo(
     () =>
@@ -369,10 +407,11 @@ export function CloudSaveV2FileBrowserModal({
   useEffect(() => {
     if (!visible) {
       setShowOnlyChanged(true);
+      if (!isBindingRpcs3Profile) setPendingRpcs3ProfileId(null);
       if (!removingCustomPath) setPendingCustomPathRemoval(null);
       if (!isDeletingCloudSave) setIsDeleteConfirmationVisible(false);
     }
-  }, [isDeletingCloudSave, removingCustomPath, visible]);
+  }, [isBindingRpcs3Profile, isDeletingCloudSave, removingCustomPath, visible]);
 
   const showPathError = () => {
     showErrorToast(
@@ -468,6 +507,122 @@ export function CloudSaveV2FileBrowserModal({
     }
   };
 
+  const handleSelectEmulatorDestination = async () => {
+    const destination = pendingEmulatorDestination;
+    if (!destination || bindingEmulatorDestination !== null) return;
+    const { rawPath, kind } = destination;
+    setBindingEmulatorDestination(JSON.stringify([rawPath, kind]));
+    setIsSelectingEmulatorDestination(true);
+    try {
+      const result = await window.electron.selectEmulatorDestination(
+        objectId,
+        shop,
+        rawPath,
+        kind
+      );
+      if (result.canceled) return;
+      setSelectedEmulatorPath(destination.pathHint);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "";
+      showErrorToast(
+        t("cloud_save_v2_emulator_destination_error_title"),
+        t(
+          message.includes("config_mismatch") ||
+            message.includes("config_unavailable")
+            ? "cloud_save_v2_emulator_destination_config_error"
+            : "cloud_save_v2_emulator_destination_error"
+        )
+      );
+    } finally {
+      setIsSelectingEmulatorDestination(false);
+      setBindingEmulatorDestination(null);
+    }
+  };
+
+  const handleConfirmEmulatorDestination = async () => {
+    const destination = pendingEmulatorDestination;
+    if (!destination || !selectedEmulatorPath || bindingEmulatorDestination) {
+      return;
+    }
+    setBindingEmulatorDestination(
+      JSON.stringify([destination.rawPath, destination.kind])
+    );
+    setIsConfirmingEmulatorDestination(true);
+    setDidAttemptEmulatorSync(true);
+    try {
+      const syncResult = await onSyncAfterCustomPathAdded();
+      if (syncResult.finalState === "conflict") {
+        throw new Error("cloud_save_emulator_destination_sync_conflict");
+      }
+      await onRetry();
+      if (syncResult.finalState !== "synced") {
+        showErrorToast(
+          t("cloud_save_v2_partial"),
+          t("cloud_save_v2_partial_unresolved_description")
+        );
+        return;
+      }
+      setPendingEmulatorDestination(null);
+      setSelectedEmulatorPath(null);
+      setDidAttemptEmulatorSync(false);
+      showSuccessToast(t("cloud_save_v2_emulator_destination_linked"));
+    } catch {
+      showErrorToast(t("cloud_save_v2_emulator_destination_error_title"));
+    } finally {
+      setIsConfirmingEmulatorDestination(false);
+      setBindingEmulatorDestination(null);
+    }
+  };
+
+  const handleCloseEmulatorDestination = async () => {
+    if (bindingEmulatorDestination !== null) return;
+    const destination = pendingEmulatorDestination;
+    const wasBoundHere =
+      selectedEmulatorPath !== null && !didAttemptEmulatorSync;
+    setPendingEmulatorDestination(null);
+    setSelectedEmulatorPath(null);
+    setDidAttemptEmulatorSync(false);
+    if (!destination || !wasBoundHere) return;
+
+    setBindingEmulatorDestination(
+      JSON.stringify([destination.rawPath, destination.kind])
+    );
+    try {
+      await window.electron.removeEmulatorDestination(
+        objectId,
+        shop,
+        destination.rawPath,
+        destination.kind
+      );
+      await onRetry();
+    } catch {
+      showErrorToast(t("cloud_save_v2_emulator_destination_error_title"));
+    } finally {
+      setBindingEmulatorDestination(null);
+    }
+  };
+
+  const handleRemoveEmulatorDestination = async (
+    rawPath: string,
+    kind: "save" | "state"
+  ) => {
+    setBindingEmulatorDestination(JSON.stringify([rawPath, kind]));
+    try {
+      await window.electron.removeEmulatorDestination(
+        objectId,
+        shop,
+        rawPath,
+        kind
+      );
+      await onRetry();
+      showSuccessToast(t("cloud_save_v2_emulator_destination_removed"));
+    } catch {
+      showErrorToast(t("cloud_save_v2_emulator_destination_error_title"));
+    } finally {
+      setBindingEmulatorDestination(null);
+    }
+  };
+
   const handleDeleteCloudSave = async () => {
     if (isDeletingCloudSave || !hasSaveData) return;
 
@@ -494,14 +649,38 @@ export function CloudSaveV2FileBrowserModal({
     }
   };
 
+  const handleBindRpcs3Profile = async () => {
+    if (!pendingRpcs3ProfileId || isBindingRpcs3Profile) return;
+    setIsBindingRpcs3Profile(true);
+    try {
+      await window.electron.bindRpcs3CloudSaveProfile(
+        objectId,
+        shop,
+        pendingRpcs3ProfileId
+      );
+      setPendingRpcs3ProfileId(null);
+      await onRetry();
+      showSuccessToast(t("cloud_save_v2_rpcs3_profile_linked"));
+    } catch {
+      showErrorToast(
+        t("cloud_save_v2_rpcs3_profile_error_title"),
+        t("cloud_save_v2_rpcs3_profile_error_description")
+      );
+    } finally {
+      setIsBindingRpcs3Profile(false);
+    }
+  };
+
   const loadingState = !details && isLoading;
   const errorState = !details && hasError;
   const { actionsAreDisabled, closeIsBlocked } =
     getCloudSaveFileBrowserOperationPolicy({
       isAddingCustomPath,
       isRebindingCustomPath: rebindingCustomPath !== null,
-      isRemovingCustomPath: removingCustomPath !== null,
+      isRemovingCustomPath:
+        removingCustomPath !== null || bindingEmulatorDestination !== null,
       isDeletingCloudSave,
+      isBindingRpcs3Profile,
       isLoading,
       isGameRunning,
       isSyncing,
@@ -581,6 +760,108 @@ export function CloudSaveV2FileBrowserModal({
 
           {details && (
             <>
+              {details.rpcs3Profile &&
+                shouldShowRpcs3ProfileWarning(details.rpcs3Profile) && (
+                  <div className="cloud-save-v2__browser-inline-error">
+                    <WarningCircleIcon size={16} />
+                    <div>
+                      <strong>{t("cloud_save_v2_rpcs3_profile_title")}</strong>
+                      <p>
+                        {t("cloud_save_v2_rpcs3_profile_description", {
+                          localProfileId: details.rpcs3Profile.localProfileId,
+                        })}
+                      </p>
+                      {details.rpcs3Profile.cloudProfileIds.map(
+                        (cloudProfileId) => (
+                          <Button
+                            key={cloudProfileId}
+                            theme="outline"
+                            disabled={
+                              actionsAreDisabled ||
+                              cloudProfileId ===
+                                details.rpcs3Profile?.linkedCloudProfileId
+                            }
+                            onClick={() =>
+                              setPendingRpcs3ProfileId(cloudProfileId)
+                            }
+                          >
+                            {t(
+                              cloudProfileId ===
+                                details.rpcs3Profile?.linkedCloudProfileId
+                                ? "cloud_save_v2_rpcs3_profile_current"
+                                : "cloud_save_v2_rpcs3_profile_link_action",
+                              { cloudProfileId }
+                            )}
+                          </Button>
+                        )
+                      )}
+                    </div>
+                  </div>
+                )}
+              {pendingEmulatorDestinations.length > 0 && (
+                <div className="cloud-save-v2__browser-inline-error">
+                  <WarningCircleIcon size={16} />
+                  <div>
+                    <strong>
+                      {t("cloud_save_v2_unresolved_custom_path_name")}
+                    </strong>
+                    <p>{t("cloud_save_v2_partial_unresolved_description")}</p>
+                    {pendingEmulatorDestinations.map((destination) => (
+                      <Button
+                        key={JSON.stringify([
+                          destination.rawPath,
+                          destination.kind,
+                        ])}
+                        theme="outline"
+                        disabled={actionsAreDisabled}
+                        onClick={() => {
+                          setSelectedEmulatorPath(null);
+                          setDidAttemptEmulatorSync(false);
+                          setPendingEmulatorDestination(destination);
+                        }}
+                      >
+                        {t(
+                          destination.kind === "state"
+                            ? "cloud_save_v2_emulator_destination_states"
+                            : "cloud_save_v2_emulator_destination_saves"
+                        )}
+                      </Button>
+                    ))}
+                  </div>
+                </div>
+              )}
+              {boundEmulatorDestinations.length > 0 && (
+                <div className="cloud-save-v2__card-sources">
+                  <strong>
+                    {t("cloud_save_v2_emulator_destinations_title")}
+                  </strong>
+                  {boundEmulatorDestinations.map((destination) => (
+                    <div
+                      key={JSON.stringify([
+                        destination.rawPath,
+                        destination.kind,
+                      ])}
+                      className="cloud-save-v2__card-source"
+                    >
+                      <span title={destination.selectedPath ?? undefined}>
+                        {destination.selectedPath}
+                      </span>
+                      <Button
+                        theme="outline"
+                        disabled={actionsAreDisabled}
+                        onClick={() =>
+                          void handleRemoveEmulatorDestination(
+                            destination.rawPath,
+                            destination.kind
+                          )
+                        }
+                      >
+                        {t("remove")}
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+              )}
               {(activeOperation ||
                 isConflict ||
                 localRoots.length > 0 ||
@@ -704,6 +985,33 @@ export function CloudSaveV2FileBrowserModal({
           )}
         </div>
       </Modal>
+
+      <CloudSaveCustomPathApprovalModal
+        approval={null}
+        emulatorDestination={pendingEmulatorDestination}
+        selectedEmulatorPath={selectedEmulatorPath}
+        isSelecting={isSelectingEmulatorDestination}
+        isConfirming={isConfirmingEmulatorDestination}
+        onSelectPath={() => void handleSelectEmulatorDestination()}
+        onConfirm={() => void handleConfirmEmulatorDestination()}
+        onClose={() => void handleCloseEmulatorDestination()}
+      />
+
+      <ConfirmationModal
+        visible={pendingRpcs3ProfileId !== null}
+        title={t("cloud_save_v2_rpcs3_profile_confirm_title")}
+        descriptionText={t("cloud_save_v2_rpcs3_profile_confirm_description", {
+          localProfileId: details?.rpcs3Profile?.localProfileId,
+          cloudProfileId: pendingRpcs3ProfileId,
+        })}
+        confirmButtonLabel={t("cloud_save_v2_rpcs3_profile_confirm")}
+        cancelButtonLabel={t("cloud_save_v2_cancel")}
+        buttonsIsDisabled={isBindingRpcs3Profile}
+        onConfirm={() => void handleBindRpcs3Profile()}
+        onClose={() => {
+          if (!isBindingRpcs3Profile) setPendingRpcs3ProfileId(null);
+        }}
+      />
 
       <ConfirmationModal
         visible={pendingCustomPathRemoval !== null}

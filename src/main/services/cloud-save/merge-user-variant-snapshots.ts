@@ -8,6 +8,13 @@ import type {
 } from "@types";
 
 import { cloudSaveFileKey } from "./cloud-save-contract.js";
+import {
+  isEmulatorSaveRawPath,
+  parseRetroArchGameRawPath,
+  parseRetroArchStateRelativePath,
+  parseRpcs3SaveRawPath,
+} from "./emulator-provider-identity.js";
+import { isRetroArchBatteryRelativePath } from "./retroarch-snapshot-migration.js";
 import { areSnapshotVariantsEqual } from "./snapshot-variant.js";
 import type { SyncDirection } from "./sync-game/policy.js";
 
@@ -19,6 +26,9 @@ interface MergeUserVariantSnapshotsInput {
   direction?: SyncDirection;
   resolutions?: ReadonlyMap<string, CloudSaveConflictResolution>;
   preserveLocalMissingRawPaths?: ReadonlySet<string>;
+  preserveLocalMissingEntryIds?: ReadonlySet<string>;
+  preserveCloudOnlyEntryIds?: ReadonlySet<string>;
+  restorableEmulatorEntryIds?: ReadonlySet<string>;
   treatLocalAsNewRawPaths?: ReadonlySet<string>;
 }
 
@@ -41,6 +51,39 @@ const sameBytes = (
   if (!left || !right) return false;
   return left.hash === right.hash && left.sizeBytes === right.sizeBytes;
 };
+
+const rpcs3SlotKey = (
+  file: Pick<SnapshotFile, "variantId" | "rawPath" | "relativePath"> | undefined
+) => {
+  if (!file || !parseRpcs3SaveRawPath(file.rawPath)) return null;
+  const [slot, child] = file.relativePath.split("/");
+  return slot && child
+    ? JSON.stringify([file.variantId, file.rawPath, slot])
+    : null;
+};
+
+const retroArchGroupKey = (
+  file: Pick<SnapshotFile, "variantId" | "rawPath" | "relativePath"> | undefined
+) => {
+  if (!file || !parseRetroArchGameRawPath(file.rawPath)) return null;
+  const state = parseRetroArchStateRelativePath(file.relativePath);
+  if (state) {
+    return JSON.stringify([
+      file.variantId,
+      file.rawPath,
+      "state",
+      state.stateId,
+    ]);
+  }
+  if (isRetroArchBatteryRelativePath(file.relativePath)) {
+    return JSON.stringify([file.variantId, file.rawPath, "battery"]);
+  }
+  return null;
+};
+
+const atomicGroupKey = (
+  file: Pick<SnapshotFile, "variantId" | "rawPath" | "relativePath"> | undefined
+) => rpcs3SlotKey(file) ?? retroArchGroupKey(file);
 
 const mergeVariantMetadata = (
   local: SnapshotVariant[],
@@ -72,6 +115,9 @@ export const mergeUserVariantSnapshots = ({
   direction = "bidirectional",
   resolutions,
   preserveLocalMissingRawPaths = new Set<string>(),
+  preserveLocalMissingEntryIds = new Set<string>(),
+  preserveCloudOnlyEntryIds = new Set<string>(),
+  restorableEmulatorEntryIds = new Set<string>(),
   treatLocalAsNewRawPaths = new Set<string>(),
 }: MergeUserVariantSnapshotsInput): CloudSaveMergeResult => {
   const localById = indexUnique(local.files);
@@ -130,12 +176,77 @@ export const mergeUserVariantSnapshots = ({
     };
   };
 
+  const slotChanges = new Map<string, { local: boolean; remote: boolean }>();
+  for (const entryId of ids) {
+    const localFile = localById.get(entryId);
+    const remoteFile = remoteById.get(entryId);
+    const baseEntry = baseById.get(entryId);
+    const slotKey = atomicGroupKey(localFile ?? remoteFile ?? baseEntry);
+    if (!slotKey || sameBytes(localFile, remoteFile)) continue;
+    const changes = slotChanges.get(slotKey) ?? {
+      local: false,
+      remote: false,
+    };
+    changes.local ||= Boolean(
+      (localFile && !sameBytes(localFile, baseEntry)) ||
+        (!localFile &&
+          baseEntry &&
+          remoteFile &&
+          coverageStateFor(remoteFile).provesDeletion)
+    );
+    changes.remote ||= Boolean(
+      (remoteFile && !sameBytes(remoteFile, baseEntry)) ||
+        (!remoteFile && baseEntry)
+    );
+    slotChanges.set(slotKey, changes);
+  }
+  const divergentSlots = new Set(
+    [...slotChanges]
+      .filter(([, changes]) => changes.local && changes.remote)
+      .map(([slotKey]) => slotKey)
+  );
+
   for (const entryId of [...ids].sort((left, right) =>
     left.localeCompare(right)
   )) {
     const localFile = localById.get(entryId);
     const remoteFile = remoteById.get(entryId);
     const baseEntry = baseById.get(entryId);
+    const slotKey = atomicGroupKey(localFile ?? remoteFile ?? baseEntry);
+
+    if (
+      slotKey &&
+      divergentSlots.has(slotKey) &&
+      (retroArchGroupKey(localFile ?? remoteFile ?? baseEntry) ||
+        localFile ||
+        !remoteFile ||
+        coverageStateFor(remoteFile).provesDeletion)
+    ) {
+      if (sameBytes(localFile, remoteFile)) {
+        if (remoteFile) files.push(remoteFile);
+        continue;
+      }
+      const resolution = resolutions?.get(entryId);
+      if (resolution === "keep-local") {
+        if (localFile) files.push(localFile);
+        else deleteRemoteEntryIds.add(entryId);
+      } else if (resolution === "keep-remote") {
+        if (remoteFile) {
+          files.push(remoteFile);
+          restoreEntryIds.add(entryId);
+        } else {
+          deleteLocalEntryIds.add(entryId);
+        }
+      } else {
+        if (remoteFile) files.push(remoteFile);
+        conflicts.push({
+          entryId,
+          local: localFile ?? null,
+          remote: remoteFile ?? null,
+        });
+      }
+      continue;
+    }
 
     if (localFile && !remoteFile) {
       if (!baseEntry) {
@@ -158,6 +269,15 @@ export const mergeUserVariantSnapshots = ({
       continue;
     }
     if (!localFile && remoteFile) {
+      if (preserveCloudOnlyEntryIds.has(entryId)) {
+        files.push(remoteFile);
+        continue;
+      }
+      if (preserveLocalMissingEntryIds.has(entryId)) {
+        files.push(remoteFile);
+        unresolvedRemoteEntryIds.add(entryId);
+        continue;
+      }
       if (preserveLocalMissingRawPaths.has(remoteFile.rawPath)) {
         files.push(remoteFile);
         restoreEntryIds.add(entryId);
@@ -169,9 +289,20 @@ export const mergeUserVariantSnapshots = ({
         files.push(remoteFile);
         continue;
       }
-      if (shouldRestoreEmptyLocalSnapshot) {
+      if (coverage.incomplete && restorableEmulatorEntryIds.has(entryId)) {
         files.push(remoteFile);
         restoreEntryIds.add(entryId);
+        if (coverage.incomplete) unresolvedRemoteEntryIds.add(entryId);
+        continue;
+      }
+      if (shouldRestoreEmptyLocalSnapshot) {
+        files.push(remoteFile);
+        if (
+          !coverage.incomplete ||
+          !isEmulatorSaveRawPath(remoteFile.rawPath)
+        ) {
+          restoreEntryIds.add(entryId);
+        }
         if (!baseEntry || !coverage.hasCoverage || coverage.incomplete) {
           unresolvedRemoteEntryIds.add(entryId);
         }

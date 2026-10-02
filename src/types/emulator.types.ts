@@ -20,6 +20,7 @@ export interface EmulatorConfig {
   system: EmulatorSystem;
   binary: EmulatorBinary;
   executablePath: string | null;
+  rpcs3ConfigRoot?: string | null;
   detectedVersion: string | null;
   detectedAt: number | null;
   biosPath: string | null;
@@ -30,6 +31,30 @@ export interface EmulatorConfig {
 }
 
 export type EmulatorConfigMap = Record<EmulatorSystem, EmulatorConfig>;
+
+export interface Rpcs3ConfigRootStatus {
+  status:
+    | "ready"
+    | "not-configured"
+    | "missing"
+    | "ambiguous"
+    | "invalid-selection";
+  selectedRoot: string | null;
+  resolvedRoot: string | null;
+  candidates: string[];
+}
+
+export interface Rpcs3DiscIdentityStatus {
+  status:
+    | "ready"
+    | "missing"
+    | "unverified"
+    | "mismatch"
+    | "stale-sku"
+    | "catalogue-unavailable";
+  path: string | null;
+  titleId: string | null;
+}
 
 export interface DetectedRom {
   objectId: string;

@@ -10,6 +10,16 @@ import { loadCloudSaveV2FileDetails } from "./cloud-save-v2-file-details";
 import { classifyCloudSaveCustomPathResolutionError } from "./custom-path-binding-state";
 import { getRemoteSnapshotRestoreManifest } from "./resolve-remote-snapshot-targets";
 import { getFirstSyncState } from "./sync-game";
+import { getEmulatorSaveProvider } from "./emulator-save-provider";
+import {
+  getEmulatorDestinationBinding,
+  getExpectedEmulatorDestination,
+  isSafeExistingEmulatorDestination,
+  isVerifiedEmulatorDestinationBinding,
+} from "./emulator-destination-store";
+import { groupEmulatorRestoreDestinations } from "./emulator-destination-policy";
+import { listRpcs3CloudProfileIds } from "./rpcs3-profile-binding-policy";
+import { setRetroArchFileDisplayNames } from "./retroarch-file-display-names";
 import {
   cloudSaveCustomPathContextFromPathContext,
   decodeCloudSaveCustomPath,
@@ -78,7 +88,7 @@ export const getCloudSaveV2FileDetails = async (
       ? getFirstSyncState(analysis)
       : analysis.state.state;
 
-  return loadCloudSaveV2FileDetails(
+  const details = await loadCloudSaveV2FileDetails(
     {
       objectId,
       shop,
@@ -100,6 +110,99 @@ export const getCloudSaveV2FileDetails = async (
       describeUnregisteredCustomPath: (rawPath) =>
         describeUnregisteredCustomPath(rawPath, customPathContext),
     },
-    getRemoteSnapshotRestoreManifest
+    async (snapshot) =>
+      analysis.remoteManifest?.snapshot.id === snapshot.id
+        ? analysis.remoteManifest
+        : getRemoteSnapshotRestoreManifest(snapshot)
   );
+  const provider = getEmulatorSaveProvider(analysis.context.game);
+  if (provider === "retroarch" && analysis.context.game) {
+    const game = analysis.context.game;
+    const activeLocation = await import("./retroarch-save-provider")
+      .then(({ locationsForGame }) => locationsForGame(game))
+      .then((locations) => locations.activeLocation)
+      .catch(() => null);
+    const stateBindings = activeLocation
+      ? await import("./retroarch-state-bindings")
+          .then(({ loadRetroArchBindings }) => loadRetroArchBindings(game))
+          .then((bindings) => bindings.states)
+          .catch(() => undefined)
+      : undefined;
+    setRetroArchFileDisplayNames(
+      details,
+      activeLocation ?? null,
+      stateBindings
+    );
+  }
+  if (analysis.context.game && provider) {
+    const pending = new Set(analysis.merge.unresolvedRemoteEntryIds);
+    const safeAutomatic = new Set(analysis.restorableEmulatorEntryIds);
+    const grouped = groupEmulatorRestoreDestinations(
+      analysis.remoteManifest?.files ?? [],
+      pending,
+      safeAutomatic
+    );
+    details.emulatorDestinations = (
+      await Promise.all(
+        grouped.map(async (group) => {
+          const selectedPath = await getEmulatorDestinationBinding(
+            analysis.context.game!,
+            group.rawPath,
+            group.kind
+          ).catch(() => null);
+          if (!group.needsDestination) return null;
+          const pathHint = await getExpectedEmulatorDestination(
+            analysis.context.game!,
+            group.rawPath,
+            group.kind,
+            group.relativePath
+          ).catch(() => null);
+          const available =
+            pathHint !== null &&
+            (await isSafeExistingEmulatorDestination(pathHint));
+          const verified =
+            available &&
+            selectedPath !== null &&
+            (await isVerifiedEmulatorDestinationBinding(
+              analysis.context.game!,
+              group.rawPath,
+              group.kind,
+              group.relativePath,
+              pathHint!
+            ).catch(() => false));
+          return {
+            rawPath: group.rawPath,
+            kind: group.kind,
+            pathHint,
+            selectedPath,
+            fileCount: group.fileCount,
+            status: verified
+              ? ("bound" as const)
+              : available
+                ? ("pending" as const)
+                : ("unavailable" as const),
+          };
+        })
+      )
+    ).filter((item) => item !== null);
+  }
+  if (provider !== "rpcs3") {
+    return details;
+  }
+  const { getRpcs3ProfilePairing } = await import("./rpcs3-save-provider");
+  const pairing = await getRpcs3ProfilePairing(analysis.context.game!).catch(
+    () => null
+  );
+  return {
+    ...details,
+    rpcs3Profile: pairing
+      ? {
+          localProfileId: pairing.activeProfileId,
+          cloudProfileIds: listRpcs3CloudProfileIds(
+            analysis.remoteManifest?.files ?? []
+          ),
+          linkedCloudProfileId: pairing.binding?.cloudProfileId ?? null,
+        }
+      : null,
+  };
 };

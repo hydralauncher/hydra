@@ -20,7 +20,7 @@ export const createGame = async (game: Game) => {
       createdAt,
     } = response;
 
-    gamesSublevel.put(levelKeys.game(game.shop, game.objectId), {
+    return gamesSublevel.put(levelKeys.game(game.shop, game.objectId), {
       ...game,
       remoteId,
       addedToLibraryAt:

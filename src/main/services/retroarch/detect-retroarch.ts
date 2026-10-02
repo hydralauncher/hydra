@@ -11,6 +11,10 @@ import {
 } from "../emulators/detect-emulator";
 import { getEmulatorVersion } from "../emulators/get-emulator-version";
 import { SystemPath } from "../system-path";
+import {
+  retroArchConfigCandidates,
+  retroArchConfigRoots,
+} from "./retroarch-config-paths";
 
 export const RETROARCH_DETECTABLE: DetectableBinary = {
   binary: "retroarch",
@@ -129,41 +133,13 @@ const readLibretroDirectory = (cfgPath: string): string | null => {
   }
 };
 
-const retroArchConfigRoots = (executablePath: string): string[] => {
-  const home = os.homedir();
-
-  if (executablePath.includes("org.libretro.RetroArch")) {
-    return [
-      path.join(
-        home,
-        ".var",
-        "app",
-        "org.libretro.RetroArch",
-        "config",
-        "retroarch"
-      ),
-    ];
-  }
-
-  const roots = [path.dirname(executablePath)];
-  if (process.platform === "win32") {
-    const appData = process.env.APPDATA;
-    if (appData) roots.push(path.join(appData, "RetroArch"));
-  } else if (process.platform === "darwin") {
-    roots.push(path.join(home, "Library", "Application Support", "RetroArch"));
-  } else {
-    roots.push(path.join(home, ".config", "retroarch"));
-  }
-  return roots;
-};
-
 export const detectRetroArchCoresDir = (
   executablePath: string
 ): string | null => {
   const roots = retroArchConfigRoots(executablePath);
 
-  for (const root of roots) {
-    const resolved = readLibretroDirectory(path.join(root, "retroarch.cfg"));
+  for (const configPath of retroArchConfigCandidates(executablePath)) {
+    const resolved = readLibretroDirectory(configPath);
     if (resolved && isDirectory(resolved)) return resolved;
   }
   for (const root of roots) {

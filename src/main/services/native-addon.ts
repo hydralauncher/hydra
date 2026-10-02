@@ -6,6 +6,7 @@ import { Worker } from "node:worker_threads";
 import { app } from "electron";
 import type { ProcessPayload } from "./download/types";
 import type {
+  BuildLocalGameSnapshotInput,
   BuildLocalGameSnapshotPipelineInput,
   BuildSnapshotAggregateHashInput,
   DeleteLocalSaveTarget,
@@ -63,6 +64,9 @@ type HydraNativeModule = {
   getLinuxActiveWindow: () => NativeActiveWindowResponse | null;
   buildLocalGameSnapshotPipeline: (
     input: BuildLocalGameSnapshotPipelineInput
+  ) => Promise<NativeLocalGameSnapshotPipelineResult>;
+  buildLocalGameSnapshot: (
+    input: BuildLocalGameSnapshotInput
   ) => Promise<NativeLocalGameSnapshotPipelineResult>;
   getSaveRulesForGame: (
     input: GetSaveRulesForGameInput
@@ -415,6 +419,10 @@ export class NativeAddon {
     input: BuildLocalGameSnapshotPipelineInput
   ) {
     return this.load().buildLocalGameSnapshotPipeline(input);
+  }
+
+  public static buildLocalGameSnapshot(input: BuildLocalGameSnapshotInput) {
+    return this.load().buildLocalGameSnapshot(input);
   }
 
   public static getSaveRulesForGame(input: GetSaveRulesForGameInput) {

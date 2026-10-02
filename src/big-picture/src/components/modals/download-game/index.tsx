@@ -73,6 +73,7 @@ import {
 } from "@phosphor-icons/react";
 
 import "./styles.scss";
+import { readActiveLibraryDownload } from "./download-queue";
 
 interface DownloadGameModalProps {
   visible: boolean;
@@ -130,21 +131,6 @@ interface DownloadDirectorySuggestion {
   path: string;
   freeBytes: number | null;
   totalBytes: number | null;
-}
-
-function hasActiveLibraryDownload(
-  library: Array<Pick<LibraryGame, "download">>
-) {
-  return library.some((libraryGame) => {
-    const download = libraryGame.download;
-
-    return Boolean(
-      download &&
-        (download.status === "active" ||
-          download.status === "extracting" ||
-          download.extracting)
-    );
-  });
 }
 
 const DOWNLOAD_SORT_OPTIONS: Array<{
@@ -1573,11 +1559,13 @@ function DownloadGameOptions({
     let cancelled = false;
 
     const refreshActiveDownloadState = async () => {
-      const library = await globalThis.window.electron.getLibrary();
+      const activeDownload = await readActiveLibraryDownload(
+        globalThis.window.electron.getLibrary
+      );
 
       if (cancelled) return;
 
-      setHasActiveDownload(hasActiveLibraryDownload(library));
+      setHasActiveDownload(activeDownload);
     };
 
     void refreshActiveDownloadState();
@@ -1660,8 +1648,9 @@ function DownloadGameOptions({
     let shouldQueue = hasActiveDownload;
 
     try {
-      const library = await globalThis.window.electron.getLibrary();
-      shouldQueue = hasActiveLibraryDownload(library);
+      shouldQueue = await readActiveLibraryDownload(
+        globalThis.window.electron.getLibrary
+      );
 
       const response = shouldQueue
         ? await globalThis.window.electron.addGameToQueue(payload)
