@@ -1,9 +1,11 @@
 import { spawn, type SpawnOptionsWithStdioTuple } from "node:child_process";
 import fs from "node:fs/promises";
+import os from "node:os";
 import path from "node:path";
 
 const PROGRESS_INTERVAL_MS = 1000;
 const MAX_DIAGNOSTIC_CHARS = 64 * 1024;
+const AVAILABLE_THREADS = os.availableParallelism();
 
 export interface ExtractionProgress {
   percent: number;
@@ -22,13 +24,158 @@ export interface ArchiveExtractionOptions {
   cwd?: string;
   passwords?: string[];
   collectExtractedFiles?: boolean;
+  onPriorityError?: (error: unknown) => void;
 }
+
+export const getExtractionThreadCount = (
+  availableThreads = AVAILABLE_THREADS
+): number => Math.max(1, Math.min(8, Math.floor(availableThreads / 2)));
+
+export const getExtractionConcurrency = (
+  availableThreads = AVAILABLE_THREADS
+): number => (availableThreads >= 4 ? 2 : 1);
+
+export interface ExtractionScheduling {
+  threads: number;
+  priority: "below-normal";
+}
+
+export const getExtractionScheduling = (
+  filePath: string,
+  availableThreads = AVAILABLE_THREADS
+): ExtractionScheduling => {
+  const isZip = path.extname(filePath).toLowerCase() === ".zip";
+  return {
+    // Common ZIP Store/Deflate decoding is single-threaded. Give it a small
+    // reservation, rather than blocking unrelated ZIPs behind a full CPU budget.
+    threads: isZip ? 1 : getExtractionThreadCount(availableThreads),
+    priority: "below-normal",
+  };
+};
+
+interface QueuedExtraction {
+  threads: number;
+  destination?: string;
+  start: () => void;
+}
+
+const normalizeDestination = (destination: string): string => {
+  const resolved = path.resolve(destination);
+  return process.platform === "win32" || process.platform === "darwin"
+    ? resolved.toLowerCase()
+    : resolved;
+};
+
+const isWithin = (parent: string, child: string): boolean => {
+  const relative = path.relative(parent, child);
+  return (
+    relative === "" ||
+    (!path.isAbsolute(relative) &&
+      relative !== ".." &&
+      !relative.startsWith(`..${path.sep}`))
+  );
+};
+
+export class ArchiveExtractionQueue {
+  private readonly pending: QueuedExtraction[] = [];
+  private readonly active = new Set<QueuedExtraction>();
+  private reservedThreads = 0;
+
+  constructor(
+    private readonly threadBudget = getExtractionThreadCount(),
+    private readonly concurrency = getExtractionConcurrency()
+  ) {
+    if (
+      !Number.isInteger(threadBudget) ||
+      threadBudget < 1 ||
+      !Number.isInteger(concurrency) ||
+      concurrency < 1
+    ) {
+      throw new RangeError("Extraction budgets must be positive integers");
+    }
+  }
+
+  run<T>(
+    operation: () => Promise<T>,
+    {
+      threads = this.threadBudget,
+      destination,
+    }: { threads?: number; destination?: string } = {}
+  ): Promise<T> {
+    if (
+      !Number.isInteger(threads) ||
+      threads < 1 ||
+      threads > this.threadBudget
+    ) {
+      return Promise.reject(
+        new RangeError("Invalid extraction thread reservation")
+      );
+    }
+    return new Promise<T>((resolve, reject) => {
+      const job: QueuedExtraction = {
+        threads,
+        destination:
+          destination === undefined
+            ? undefined
+            : normalizeDestination(destination),
+        start: () => {
+          void Promise.resolve()
+            .then(operation)
+            .then(
+              (value) => {
+                this.complete(job);
+                resolve(value);
+              },
+              (error) => {
+                this.complete(job);
+                reject(error);
+              }
+            );
+        },
+      };
+      this.pending.push(job);
+      this.drain();
+    });
+  }
+
+  private complete(job: QueuedExtraction) {
+    this.active.delete(job);
+    this.reservedThreads -= job.threads;
+    this.drain();
+  }
+
+  private drain() {
+    while (this.pending.length && this.active.size < this.concurrency) {
+      const next = this.pending[0];
+      const destination = next.destination;
+      const conflicts =
+        destination !== undefined &&
+        [...this.active].some(
+          (job) =>
+            job.destination !== undefined &&
+            (isWithin(job.destination, destination) ||
+              isWithin(destination, job.destination))
+        );
+      // FIFO admission prevents a stream of small ZIPs from starving a waiting
+      // CPU-heavy job. Aliased/nested output directories must not have two writers.
+      if (this.reservedThreads + next.threads > this.threadBudget || conflicts)
+        return;
+      this.pending.shift();
+      this.reservedThreads += next.threads;
+      this.active.add(next);
+      next.start();
+    }
+  }
+}
+
+const extractionQueue = new ArchiveExtractionQueue();
 
 export const buildExtractionArgs = (
   filePath: string,
   password: string,
   collectExtractedFiles: boolean,
-  reportProgress: boolean
+  reportProgress: boolean,
+  threads = getExtractionThreadCount()
 ): string[] => [
   "x",
   "-y",
@@ -36,6 +183,7 @@ export const buildExtractionArgs = (
   "-sccUTF-8",
   collectExtractedFiles ? "-bb1" : "-bb0",
   reportProgress ? "-bsp1" : "-bsp0",
+  `-mmt=${threads}`,
   // An explicit password prevents interactive prompts for encrypted archives.
   `-p${password || "-"}`,
   "--",
@@ -79,6 +227,7 @@ const extractAttempt = (
   destination: string,
   password: string,
   options: ArchiveExtractionOptions,
+  scheduling: ExtractionScheduling,
   onProgress?: (progress: ExtractionProgress) => void
 ): Promise<ExtractionResult> =>
   new Promise((resolve, reject) => {
@@ -89,10 +238,21 @@ const extractAttempt = (
         filePath,
         password,
         collectExtractedFiles,
-        Boolean(onProgress)
+        Boolean(onProgress),
+        scheduling.threads
       ),
       getExtractionSpawnOptions(destination)
     );
+
+    if (child.pid !== undefined) {
+      try {
+        // Below-normal (not idle) priority yields to foreground apps without
+        // throttling extraction when the PC is otherwise idle.
+        os.setPriority(child.pid, os.constants.priority.PRIORITY_BELOW_NORMAL);
+      } catch (error) {
+        options.onPriorityError?.(error);
+      }
+    }
 
     const extractedFiles: string[] = [];
     let partialLine = "";
@@ -168,28 +328,40 @@ export const extractArchive = async (
     options.outputPath ?? options.cwd ?? process.cwd()
   );
   await fs.mkdir(destination, { recursive: true });
-  const passwords = [
-    ...new Set(options.passwords?.length ? options.passwords : [""]),
-  ];
+  const canonicalDestination = await fs.realpath(destination);
+  const scheduling = getExtractionScheduling(filePath);
 
-  for (let index = 0; index < passwords.length; index++) {
-    try {
-      return await extractAttempt(
-        binaryPath,
-        filePath,
-        destination,
-        passwords[index],
-        options,
-        onProgress
-      );
-    } catch (error) {
-      if (
-        index === passwords.length - 1 ||
-        !(error instanceof ArchiveExtractionError && error.passwordRelated)
-      ) {
-        throw error;
+  return extractionQueue.run(
+    async () => {
+      const passwords = [
+        ...new Set(options.passwords?.length ? options.passwords : [""]),
+      ];
+
+      for (let index = 0; index < passwords.length; index++) {
+        try {
+          return await extractAttempt(
+            binaryPath,
+            filePath,
+            canonicalDestination,
+            passwords[index],
+            options,
+            scheduling,
+            onProgress
+          );
+        } catch (error) {
+          if (
+            index === passwords.length - 1 ||
+            !(error instanceof ArchiveExtractionError && error.passwordRelated)
+          ) {
+            throw error;
+          }
+        }
       }
-    }
-  }
-  throw new Error(`No extraction password attempt was made for ${filePath}`);
+
+      throw new Error(
+        `No extraction password attempt was made for ${filePath}`
+      );
+    },
+    { threads: scheduling.threads, destination: canonicalDestination }
+  );
 };

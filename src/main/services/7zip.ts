@@ -7,6 +7,8 @@ import { logger } from "./logger";
 import { listArchiveEntries, readArchiveEntry } from "./archive-entry";
 import {
   extractArchive,
+  getExtractionConcurrency,
+  getExtractionScheduling,
   type ArchiveExtractionOptions,
   type ExtractionProgress,
   type ExtractionResult,
@@ -58,12 +60,25 @@ export class SevenZip {
     onProgress?: (progress: ExtractionProgress) => void
   ): Promise<ExtractionResult> {
     const startedAt = Date.now();
-    logger.info(`[7-Zip] Extracting ${options.filePath}`);
+    const scheduling = getExtractionScheduling(options.filePath);
+    logger.info(
+      `[7-Zip] Queued extraction of ${options.filePath} (${scheduling.threads} decoder thread(s), ${scheduling.priority} priority, at most ${getExtractionConcurrency()} active extractors)`
+    );
 
     try {
-      const result = await extractArchive(this.binaryPath, options, onProgress);
+      const result = await extractArchive(
+        this.binaryPath,
+        {
+          ...options,
+          onPriorityError: (error) => {
+            logger.warn("[7-Zip] Could not lower extraction priority", error);
+            options.onPriorityError?.(error);
+          },
+        },
+        onProgress
+      );
       logger.info(
-        `[7-Zip] Extracted ${options.filePath} in ${((Date.now() - startedAt) / 1000).toFixed(1)}s`
+        `[7-Zip] Extracted ${options.filePath} in ${((Date.now() - startedAt) / 1000).toFixed(1)}s (including queue wait)`
       );
       return result;
     } catch (error) {
