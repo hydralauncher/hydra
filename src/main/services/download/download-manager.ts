@@ -30,6 +30,7 @@ import { extractDownloadFilename } from "./download-filename";
 import { RealDebridClient } from "./real-debrid";
 import path from "node:path";
 import fs from "node:fs";
+import net from "node:net";
 import os from "node:os";
 import { logger } from "../logger";
 import { db, downloadsSublevel, gamesSublevel, levelKeys } from "@main/level";
@@ -329,6 +330,11 @@ export class DownloadManager {
 
   private static resolveNetworkInterfaceBinding(name: string | null): string {
     if (!name) return "";
+
+    // If already an explicit IPv4 or IPv6 address, bind directly to it
+    if (net.isIP(name)) {
+      return name;
+    }
 
     const addresses = os.networkInterfaces()[name] ?? [];
     const usable = addresses.filter(
