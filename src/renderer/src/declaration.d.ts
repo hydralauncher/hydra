@@ -917,6 +917,11 @@ declare global {
         executablePath: string;
         iconUrl: string | null;
       }[];
+      unlinkedGames: {
+        title: string;
+        executablePath: string;
+        iconUrl: string | null;
+      }[];
       addedGames: {
         title: string;
         executablePath: string;

@@ -33,6 +33,7 @@ interface AmbiguousMatch {
 
 export interface ScanResult {
   linkedGames: FoundGame[];
+  unlinkedGames: FoundGame[];
   addedGames: FoundGame[];
   ambiguousMatches: AmbiguousMatch[];
   total: number;
@@ -94,6 +95,8 @@ export function ScanGamesModal({
   const addedGames = [...(scanResult?.addedGames ?? []), ...resolvedGames];
 
   const linkedGames = scanResult?.linkedGames ?? [];
+
+  const unlinkedGames = scanResult?.unlinkedGames ?? [];
 
   const hasResults = Boolean(
     scanResult && addedGames.length + linkedGames.length > 0
@@ -357,12 +360,25 @@ export function ScanGamesModal({
 
         {scanResult && pending.length === 0 && (
           <div className="scan-games-modal__results">
-            {hasResults ? (
+            {hasResults && (
               <div className="scan-games-modal__result-section">
                 <p className="scan-games-modal__result">{resultSummary}</p>
                 {renderGamesList([...addedGames, ...linkedGames])}
               </div>
-            ) : (
+            )}
+
+            {unlinkedGames.length > 0 && (
+              <div className="scan-games-modal__result-section">
+                <p className="scan-games-modal__result">
+                  {t("scan_games_result_unlinked", {
+                    count: unlinkedGames.length,
+                  })}
+                </p>
+                {renderGamesList(unlinkedGames)}
+              </div>
+            )}
+
+            {!hasResults && unlinkedGames.length === 0 && (
               <p className="scan-games-modal__no-results">
                 {t("scan_games_no_results")}
               </p>
