@@ -103,6 +103,9 @@ export function App() {
   );
 
   const toast = useAppSelector((state) => state.toast);
+  const userPreferences = useAppSelector(
+    (state) => state.userPreferences.value
+  );
 
   const { showSuccessToast, showErrorToast } = useToast();
 
@@ -749,19 +752,23 @@ export function App() {
       <RetroArchScanModal />
 
       <main>
-        <Sidebar />
+        {userPreferences !== null && (
+          <>
+            {userPreferences.hideSidebar !== true && <Sidebar />}
 
-        <article className="container">
-          <Header />
+            <article className="container">
+              <Header />
 
-          <section
-            ref={contentRef}
-            id="scrollableDiv"
-            className="container__content"
-          >
-            <Outlet />
-          </section>
-        </article>
+              <section
+                ref={contentRef}
+                id="scrollableDiv"
+                className="container__content"
+              >
+                <Outlet />
+              </section>
+            </article>
+          </>
+        )}
       </main>
 
       <BottomPanel />
