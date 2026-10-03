@@ -156,7 +156,6 @@ export class GameFilesManager {
   }
 
   private readonly handleProgress = (progress: ExtractionProgress) => {
-    console.log(`handleProgress: ${progress.percent}% - ${progress.file}`);
     this.updateExtractionProgress(progress.percent / 100);
   };
 
@@ -214,6 +213,7 @@ export class GameFilesManager {
             filePath: path.join(directoryPath, file),
             cwd: directoryPath,
             passwords: ["online-fix.me", "steamrip.com"],
+            collectExtractedFiles: false,
           },
           (progress) => {
             const overallProgress =
@@ -841,6 +841,7 @@ export class GameFilesManager {
           filePath,
           outputPath: extractionPath,
           passwords: ["online-fix.me", "steamrip.com"],
+          collectExtractedFiles: false,
         },
         this.handleProgress
       );
