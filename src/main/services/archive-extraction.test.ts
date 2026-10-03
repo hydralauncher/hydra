@@ -28,17 +28,23 @@ it("uses detached console launch only on Windows and retains piped output", () =
   }
 });
 
-it("uses literal archive paths and noninteractive password arguments", () => {
-  const args = buildExtractionArgs("-game [1].zip", "");
+it("uses quiet extraction without file tracking and disables unused progress", () => {
+  const args = buildExtractionArgs("-game [1].zip", "", false, false);
+  assert.ok(args.includes("-bb0"));
+  assert.ok(args.includes("-bsp0"));
   assert.ok(args.includes("-p-"));
   assert.ok(args.includes("-spd"));
   assert.deepEqual(args.slice(-2), ["--", "-game [1].zip"]);
-  assert.ok(buildExtractionArgs("game.zip", "secret").includes("-psecret"));
+
+  const tracked = buildExtractionArgs("game.zip", "password", true, true);
+  assert.ok(tracked.includes("-bb1"));
+  assert.ok(tracked.includes("-bsp1"));
+  assert.ok(tracked.includes("-ppassword"));
 });
 
 for (const format of ["zip", "7z", "tar"]) {
   it(
-    `extracts a real ${format} archive and tracks literal filenames`,
+    `extracts a real ${format} archive with quiet progress and optional file tracking`,
     { skip: !existsSync(binaryPath) },
     async () => {
       const root = await mkdtemp(path.join(os.tmpdir(), "hydra-extraction-"));
@@ -55,23 +61,40 @@ for (const format of ["zip", "7z", "tar"]) {
           windowsHide: true,
         });
         const progress: ExtractionProgress[] = [];
-        const output = path.join(root, "output");
-        const result = await extractArchive(
+        const quietOutput = path.join(root, "quiet");
+        const quiet = await extractArchive(
           binaryPath,
           {
             filePath: path.relative(process.cwd(), archive),
-            outputPath: output,
+            outputPath: quietOutput,
+            collectExtractedFiles: false,
           },
           (value) => progress.push(value)
         );
-        assert.equal(result.success, true);
+        assert.deepEqual(quiet, { success: true, extractedFiles: [] });
         assert.equal(progress.at(-1)?.percent, 100);
         assert.ok(
           progress.every((value) => value.percent >= 0 && value.percent <= 100)
         );
         for (const name of names) {
-          assert.ok(result.extractedFiles.includes(name));
-          assert.deepEqual(await readFile(path.join(output, name)), payload);
+          assert.deepEqual(
+            await readFile(path.join(quietOutput, name)),
+            payload
+          );
+        }
+
+        const trackedOutput = path.join(root, "tracked");
+        const tracked = await extractArchive(binaryPath, {
+          filePath: archive,
+          cwd: trackedOutput,
+        });
+        assert.equal(tracked.success, true);
+        for (const name of names) {
+          assert.ok(tracked.extractedFiles.includes(name));
+          assert.deepEqual(
+            await readFile(path.join(trackedOutput, name)),
+            payload
+          );
         }
       } finally {
         await rm(root, { recursive: true, force: true });

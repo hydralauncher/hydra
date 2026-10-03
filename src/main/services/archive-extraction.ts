@@ -2,6 +2,7 @@ import { spawn, type SpawnOptionsWithStdioTuple } from "node:child_process";
 import fs from "node:fs/promises";
 import path from "node:path";
 
+const PROGRESS_INTERVAL_MS = 1000;
 const MAX_DIAGNOSTIC_CHARS = 64 * 1024;
 
 export interface ExtractionProgress {
@@ -20,18 +21,21 @@ export interface ArchiveExtractionOptions {
   outputPath?: string;
   cwd?: string;
   passwords?: string[];
+  collectExtractedFiles?: boolean;
 }
 
 export const buildExtractionArgs = (
   filePath: string,
-  password: string
+  password: string,
+  collectExtractedFiles: boolean,
+  reportProgress: boolean
 ): string[] => [
   "x",
   "-y",
   "-spd",
   "-sccUTF-8",
-  "-bb3",
-  "-bsp1",
+  collectExtractedFiles ? "-bb1" : "-bb0",
+  reportProgress ? "-bsp1" : "-bsp0",
   // An explicit password prevents interactive prompts for encrypted archives.
   `-p${password || "-"}`,
   "--",
@@ -74,12 +78,19 @@ const extractAttempt = (
   filePath: string,
   destination: string,
   password: string,
+  options: ArchiveExtractionOptions,
   onProgress?: (progress: ExtractionProgress) => void
 ): Promise<ExtractionResult> =>
   new Promise((resolve, reject) => {
+    const collectExtractedFiles = options.collectExtractedFiles ?? true;
     const child = spawn(
       binaryPath,
-      buildExtractionArgs(filePath, password),
+      buildExtractionArgs(
+        filePath,
+        password,
+        collectExtractedFiles,
+        Boolean(onProgress)
+      ),
       getExtractionSpawnOptions(destination)
     );
 
@@ -87,24 +98,29 @@ const extractAttempt = (
     let partialLine = "";
     let diagnostics = "";
     let spawnError: Error | undefined;
+    let lastProgressAt = 0;
 
     const appendDiagnostic = (text: string) => {
       diagnostics = (diagnostics + text).slice(-MAX_DIAGNOSTIC_CHARS);
     };
 
     const handleLine = (line: string) => {
-      if (line.startsWith("- ")) {
+      if (collectExtractedFiles && line.startsWith("- ")) {
         extractedFiles.push(line.slice(2).replaceAll("\\", "/"));
         return;
       }
 
       const progress = /^\s*(\d{1,3})%(?:\s+(\d+))?(?:\s+(.*))?$/.exec(line);
       if (progress) {
-        onProgress?.({
-          percent: Math.min(100, Number(progress[1])),
-          fileCount: Number(progress[2] ?? extractedFiles.length),
-          file: progress[3] ?? "",
-        });
+        const now = Date.now();
+        if (onProgress && now - lastProgressAt >= PROGRESS_INTERVAL_MS) {
+          lastProgressAt = now;
+          onProgress({
+            percent: Math.min(100, Number(progress[1])),
+            fileCount: Number(progress[2] ?? extractedFiles.length),
+            file: progress[3] ?? "",
+          });
+        }
       } else if (line.trim()) {
         appendDiagnostic(`${line}\n`);
       }
@@ -163,6 +179,7 @@ export const extractArchive = async (
         filePath,
         destination,
         passwords[index],
+        options,
         onProgress
       );
     } catch (error) {
