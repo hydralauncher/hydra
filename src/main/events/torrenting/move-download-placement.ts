@@ -7,13 +7,15 @@ const moveDownloadPlacement = async (
   shop: GameShop,
   objectId: string,
   targetArea: "hero" | "queue" | "paused",
-  targetIndex?: number
+  targetIndex?: number,
+  confirmed = false
 ) => {
   return DownloadOrchestrator.moveDownloadPlacement(
     shop,
     objectId,
     targetArea,
-    targetIndex
+    targetIndex,
+    confirmed
   );
 };
 

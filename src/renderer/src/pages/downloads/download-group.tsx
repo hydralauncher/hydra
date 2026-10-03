@@ -47,7 +47,6 @@ import {
   ColumnsIcon,
   DownloadIcon,
   FileDirectoryIcon,
-  FileIcon,
   LinkIcon,
   PlayIcon,
   TrashIcon,
@@ -302,7 +301,7 @@ function HeroDownloadTime({
 }: Readonly<HeroDownloadTimeProps>) {
   const { t: tGameDetails } = useTranslation("game_details");
 
-  if (!isGameDownloading) {
+  if (!isGameDownloading || lastPacket?.isRecovering) {
     return <span className="download-group__progress-time" />;
   }
 
@@ -544,24 +543,6 @@ function HeroDownloadView({
                 </div>
               )}
 
-            {lastPacket?.batchFilesTotal != null &&
-              lastPacket.batchFilesTotal > 1 && (
-                <div className="download-group__stat-item">
-                  <span style={{ color: dominantColor, display: "flex" }}>
-                    <FileIcon size={16} />
-                  </span>
-                  <div className="download-group__stat-content">
-                    <span className="download-group__stat-label">
-                      {t("files")}:
-                    </span>
-                    <span className="download-group__stat-value">
-                      {lastPacket.batchFilesDownloaded ?? 0}/
-                      {lastPacket.batchFilesTotal}
-                    </span>
-                  </div>
-                </div>
-              )}
-
             {game.download?.downloader !== undefined && (
               <div className="download-group__stat-item">
                 <div className="download-group__stat-content">
@@ -634,7 +615,14 @@ export function DownloadGroup({
       setOptimisticallyResumed((prev) => ({ ...prev, [gameId]: true }));
 
       try {
-        await resumeDownloadOriginal(shop, objectId);
+        const resumed = await resumeDownloadOriginal(shop, objectId);
+        if (!resumed) {
+          setOptimisticallyResumed((prev) => {
+            const next = { ...prev };
+            delete next[gameId];
+            return next;
+          });
+        }
       } catch (error) {
         // If resume fails, remove optimistic state
         setOptimisticallyResumed((prev) => {
@@ -648,21 +636,29 @@ export function DownloadGroup({
     [resumeDownloadOriginal]
   );
 
-  // Wrap pauseDownload to clear optimistic state
-  const pauseDownload = useCallback(
-    async (shop: GameShop, objectId: string) => {
+  const performPauseDownload = useCallback(
+    async (shop: GameShop, objectId: string, confirmed = false) => {
       const gameId = `${shop}:${objectId}`;
-
-      // Clear optimistic state when pausing
+      const paused = await pauseDownloadOriginal(shop, objectId, confirmed);
+      if (!paused) return;
       setOptimisticallyResumed((prev) => {
         const next = { ...prev };
         delete next[gameId];
         return next;
       });
-
-      await pauseDownloadOriginal(shop, objectId);
     },
     [pauseDownloadOriginal]
+  );
+
+  const pauseDownload = useCallback(
+    async (shop: GameShop, objectId: string) => {
+      if (await window.electron.getDownloadPauseWarning(shop, objectId)) {
+        setPauseWarningTarget({ shop, objectId });
+        return;
+      }
+      await performPauseDownload(shop, objectId);
+    },
+    [performPauseDownload]
   );
 
   const { formatDistance } = useDate();
@@ -677,6 +673,10 @@ export function DownloadGroup({
     Record<string, boolean>
   >({});
   const [cancelModalVisible, setCancelModalVisible] = useState(false);
+  const [pauseWarningTarget, setPauseWarningTarget] = useState<{
+    shop: GameShop;
+    objectId: string;
+  } | null>(null);
   const [gameToCancelShop, setGameToCancelShop] = useState<GameShop | null>(
     null
   );
@@ -861,7 +861,7 @@ export function DownloadGroup({
   );
 
   const getGameActions = (game: LibraryGame): DropdownMenuItem[] => {
-    const download = lastPacket?.download;
+    const download = game.download;
     const isGameDownloading = isGameDownloadingMap[game.id];
 
     const deleting = isGameDeleting(game.id);
@@ -942,9 +942,17 @@ export function DownloadGroup({
     const queueIndex = queuedGameIds.indexOf(game.id);
     const isFirstInQueue = queueIndex === 0;
     const isLastInQueue = queueIndex === queuedGameIds.length - 1;
-    const isInQueue = queueIndex !== -1;
+    const isInQueue = queueIndex !== -1 && !!download?.queued;
 
     const actions = [
+      {
+        label: t("pause"),
+        show: download?.awaitingDebrid && download.debridAutoResume,
+        onClick: () => {
+          pauseDownload(game.shop, game.objectId);
+        },
+        icon: <ColumnsIcon />,
+      },
       {
         label: t("resume"),
         disabled: isResumeDisabled,
@@ -1029,6 +1037,26 @@ export function DownloadGroup({
     fetchActionTypes();
   }, [library]);
 
+  const handleConfirmPause = async () => {
+    const target = pauseWarningTarget;
+    setPauseWarningTarget(null);
+    if (target) {
+      await performPauseDownload(target.shop, target.objectId, true);
+    }
+  };
+
+  const pauseWarningModal = (
+    <ConfirmationModal
+      visible={pauseWarningTarget !== null}
+      title={t("generated_zip_pause_title")}
+      descriptionText={t("generated_zip_pause_message")}
+      confirmButtonLabel={t("pause")}
+      cancelButtonLabel={t("generated_zip_keep_downloading")}
+      onConfirm={handleConfirmPause}
+      onClose={() => setPauseWarningTarget(null)}
+    />
+  );
+
   if (!library.length) return null;
 
   const isDownloadingGroup = title === t("download_in_progress");
@@ -1064,6 +1092,7 @@ export function DownloadGroup({
 
     return (
       <>
+        {pauseWarningModal}
         <ConfirmationModal
           visible={cancelModalVisible}
           title={t("cancel_download")}
@@ -1098,6 +1127,7 @@ export function DownloadGroup({
 
   return (
     <>
+      {pauseWarningModal}
       <ConfirmationModal
         visible={cancelModalVisible}
         title={t("cancel_download")}
@@ -1173,7 +1203,10 @@ export function DownloadGroup({
                 {isQueuedGroup && (
                   <div className="download-group__simple-progress">
                     <span className="download-group__simple-progress-text">
-                      {formatDownloadProgress(progress)}
+                      {game.download?.awaitingDebrid &&
+                      game.download.debridAutoResume
+                        ? t("waiting_for_debrid")
+                        : formatDownloadProgress(progress)}
                     </span>
                     <div className="download-group__progress-bar download-group__progress-bar--small">
                       <div

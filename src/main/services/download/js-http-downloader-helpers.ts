@@ -1,3 +1,117 @@
+import path from "node:path";
+import type { FileHandle } from "node:fs/promises";
+
+interface JsBatchProgressInput {
+  currentIndex: number;
+  activeIndex: number;
+  completedBytes: number;
+  totalBytes: number;
+  entryCount: number;
+  fileBytes: number;
+  fileProgress: number;
+}
+
+export function getJsBatchProgress(input: JsBatchProgressInput) {
+  const currentBytes =
+    input.activeIndex === input.currentIndex ? input.fileBytes : 0;
+  const currentProgress =
+    input.activeIndex === input.currentIndex ? input.fileProgress : 0;
+  const progress =
+    input.totalBytes > 0
+      ? (input.completedBytes + currentBytes) / input.totalBytes
+      : (input.currentIndex + currentProgress) / Math.max(input.entryCount, 1);
+
+  // The final 100% is set only after the last file has been banked.
+  return {
+    currentBytes,
+    progress: Math.min(Math.max(progress, 0), 0.9999),
+  };
+}
+
+export interface JsBatchSpeedSample {
+  lastSpeedUpdate: number;
+  bytesAtLastSpeedUpdate: number | null;
+  batchSpeed: number;
+}
+
+export function sampleJsBatchSpeed(
+  previous: JsBatchSpeedSample,
+  bytesDownloaded: number,
+  fileSpeed: number,
+  now: number
+): JsBatchSpeedSample {
+  if (
+    previous.bytesAtLastSpeedUpdate === null ||
+    bytesDownloaded < previous.bytesAtLastSpeedUpdate
+  ) {
+    return {
+      lastSpeedUpdate: now,
+      bytesAtLastSpeedUpdate: bytesDownloaded,
+      batchSpeed: Math.max(0, fileSpeed),
+    };
+  }
+
+  const elapsed = (now - previous.lastSpeedUpdate) / 1000;
+  if (elapsed < 1) return previous;
+
+  return {
+    lastSpeedUpdate: now,
+    bytesAtLastSpeedUpdate: bytesDownloaded,
+    batchSpeed: Math.max(
+      0,
+      (bytesDownloaded - previous.bytesAtLastSpeedUpdate) / elapsed
+    ),
+  };
+}
+
+export class ResumePrefixMismatchError extends Error {
+  constructor() {
+    super("The remote archive changed since the partial download was saved.");
+    this.name = "ResumePrefixMismatchError";
+  }
+}
+
+export async function verifyResumePrefixChunk(
+  file: FileHandle,
+  remoteChunk: Uint8Array,
+  offset: number,
+  length: number
+): Promise<void> {
+  const localChunk = Buffer.allocUnsafe(length);
+  let bytesRead = 0;
+
+  while (bytesRead < length) {
+    const result = await file.read(
+      localChunk,
+      bytesRead,
+      length - bytesRead,
+      offset + bytesRead
+    );
+    if (result.bytesRead === 0) throw new ResumePrefixMismatchError();
+    bytesRead += result.bytesRead;
+  }
+
+  if (!localChunk.equals(Buffer.from(remoteChunk.subarray(0, length)))) {
+    throw new ResumePrefixMismatchError();
+  }
+}
+
+export function chooseDownloadOutputPath(
+  filePath: string,
+  savePath: string,
+  headerFilename: string | undefined,
+  preserveFilename: boolean
+): { filePath: string; filename: string } {
+  if (preserveFilename || !headerFilename) {
+    return { filePath, filename: path.relative(savePath, filePath) };
+  }
+
+  return {
+    filePath: path.join(savePath, headerFilename),
+    filename: headerFilename,
+  };
+}
+
 export const PROGRESS_RESET_THRESHOLD_BYTES = 16 * 1024 * 1024;
 export const MAX_BUDGET_RESETS = 50;
 export const MAX_RESTARTS_FROM_ZERO = 3;

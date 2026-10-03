@@ -65,7 +65,9 @@ const addGameToQueue = async (
       customTrackers: globalTrackers,
     };
 
-    await DownloadManager.validateDownloadUrl(download);
+    if (!DownloadOrchestrator.preparesRealDebridInBackground(download)) {
+      await DownloadOrchestrator.validateDownloadOrMarkPending(download);
+    }
     await prepareGameEntry({ gameKey, title, objectId, shop });
     await DownloadManager.cancelDownload(gameKey).catch(() => null);
   } catch (err: unknown) {
@@ -83,7 +85,11 @@ const addGameToQueue = async (
   try {
     await downloadsSublevel.put(gameKey, download);
     didWriteDownload = true;
-    await DownloadOrchestrator.enqueuePreparedDownload(download);
+    if (download.awaitingDebrid) {
+      await DownloadOrchestrator.saveAwaitingDebridDownload(download);
+    } else {
+      await DownloadOrchestrator.enqueuePreparedDownload(download);
+    }
 
     const updatedGame = await gamesSublevel.get(gameKey);
 
