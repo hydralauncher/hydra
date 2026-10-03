@@ -39,6 +39,10 @@ After installing dependencies, `postinstall` now builds the Rust native addon au
 
 The native build includes a Rust wrapper around pinned libtorrent. Development and packaged torrenting no longer require Python.
 
+### Extraction benchmarks
+
+See [the extraction benchmark guide](docs/extraction-benchmark.md) for reproducible before/after runs and PR reports. Run `yarn benchmark:extraction --help` for available workloads and options.
+
 ## Contributors
 
 <a href="https://github.com/hydralauncher/hydra/graphs/contributors">
