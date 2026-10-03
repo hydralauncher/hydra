@@ -22,5 +22,6 @@ TO-DO.md
 .planning/
 .claude/
 .cache/
+benchmark-results/
 native/torrent-bridge/build/
 native/torrent-bridge/vcpkg_installed/
