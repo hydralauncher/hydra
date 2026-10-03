@@ -431,6 +431,7 @@
     "region_kr": "Korea",
     "region_asia": "Azja",
     "download_error": "Ta opcja pobierania jest niedostępna",
+    "invalid_repack": "Brak dostępnych linków do pobrania dla wybranej metody pobierania.",
     "download": "Pobierz",
     "download_on_steam": "Pobierz na Steamie",
     "executable_path_in_use": "Plik wykonywalny jest już używany przez grę „{{game}}”",

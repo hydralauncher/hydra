@@ -451,6 +451,7 @@
     "region_kr": "Корея",
     "region_asia": "Азия",
     "download_error": "Этот вариант загрузки недоступен",
+    "invalid_repack": "Для выбранного загрузчика нет доступных ссылок.",
     "download": "Скачать",
     "download_on_steam": "Скачать в Steam",
     "executable_path_in_use": "Исполняемый файл уже используется \"{{game}}\"",
