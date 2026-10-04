@@ -14,6 +14,7 @@ import {
   Modal,
   TextField,
   CheckboxField,
+  SteamIcon,
 } from "@renderer/components";
 import type { DownloadSource, Game, GameRepack } from "@types";
 
@@ -21,10 +22,19 @@ import { DownloadSettingsModal } from "./download-settings-modal";
 import { gameDetailsContext } from "@renderer/context";
 import { Downloader } from "@shared";
 import { orderBy } from "lodash-es";
-import { useDate, useAppDispatch, useAppSelector } from "@renderer/hooks";
+import {
+  useDate,
+  useAppDispatch,
+  useAppSelector,
+  useIsNonSteamExecutable,
+} from "@renderer/hooks";
 import { clearNewDownloadOptions } from "@renderer/features";
 import { levelDBService } from "@renderer/services/leveldb.service";
-import { getGameKey } from "@renderer/helpers";
+import {
+  canDownloadOnSteam,
+  getGameKey,
+  isSteamImportedGame,
+} from "@renderer/helpers";
 import "./repacks-modal.scss";
 
 export interface RepacksModalProps {
@@ -233,6 +243,22 @@ export function RepacksModal({
   };
 
   const [isFilterDrawerOpen, setIsFilterDrawerOpen] = useState(false);
+  const steamOptionTerm = filterTerm.trim().toLowerCase();
+  const isNonSteamExecutable = useIsNonSteamExecutable(game);
+  const showSteamOption =
+    (canDownloadOnSteam(game) ||
+      (isSteamImportedGame(game) && isNonSteamExecutable)) &&
+    selectedFingerprints.length === 0 &&
+    (!steamOptionTerm ||
+      "steam".includes(steamOptionTerm) ||
+      (game?.title ?? "").toLowerCase().includes(steamOptionTerm));
+
+  const handleSteamOptionClick = () => {
+    if (!game) return;
+
+    void window.electron.installGameOnSteam(game.objectId);
+    onClose();
+  };
 
   useEffect(() => {
     if (!visible) {
@@ -314,71 +340,99 @@ export function RepacksModal({
         </div>
 
         <div className="repacks-modal__repacks">
-          {filteredRepacks.length === 0 ? (
-            <div className="repacks-modal__no-results">
-              <div className="repacks-modal__no-results-content">
-                <div className="repacks-modal__no-results-text">
-                  {t("no_repacks_found")}
-                </div>
-                <div className="repacks-modal__no-results-button">
-                  <Button
-                    type="button"
-                    theme="primary"
-                    onClick={() => {
-                      onClose();
-                      navigate("/settings?tab=download_sources");
-                    }}
-                  >
-                    <PlusCircleIcon />
-                    {t("add_download_source", { ns: "settings" })}
-                  </Button>
-                </div>
-              </div>
-            </div>
-          ) : (
-            filteredRepacks.map((repack) => {
-              const isLastDownloadedOption =
-                checkIfLastDownloadedOption(repack);
-              const availabilityStatus = getRepackAvailabilityStatus(repack);
-              const tooltipId = `availability-orb-${repack.id}`;
+          {showSteamOption && game && (
+            <Button
+              theme="dark"
+              onClick={handleSteamOptionClick}
+              className="repacks-modal__repack-button"
+            >
+              <span
+                className="repacks-modal__availability-orb repacks-modal__availability-orb--online"
+                data-tooltip-id="availability-orb-steam"
+                data-tooltip-content={t("source_online")}
+              />
+              <Tooltip id="availability-orb-steam" />
 
-              return (
-                <Button
-                  key={repack.id}
-                  theme="dark"
-                  onClick={() => handleRepackClick(repack)}
-                  className="repacks-modal__repack-button"
-                >
-                  <span
-                    className={`repacks-modal__availability-orb repacks-modal__availability-orb--${availabilityStatus}`}
-                    data-tooltip-id={tooltipId}
-                    data-tooltip-content={t(`source_${availabilityStatus}`)}
-                  />
-                  <Tooltip id={tooltipId} />
+              <p className="repacks-modal__repack-title repacks-modal__steam-title">
+                <SteamIcon size={16} />
+                {game.title}
+              </p>
 
-                  <p className="repacks-modal__repack-title">
-                    {repack.title}
-                    {userPreferences?.enableNewDownloadOptionsBadges !==
-                      false &&
-                      isNewRepack(repack) && (
-                        <span className="repacks-modal__new-badge">
-                          {t("new_download_option")}
-                        </span>
-                      )}
-                  </p>
-
-                  {isLastDownloadedOption && (
-                    <Badge>{t("last_downloaded_option")}</Badge>
-                  )}
-
-                  <p className="repacks-modal__repack-info">
-                    {repack.fileSize} - {repack.downloadSourceName} -{" "}
-                    {repack.uploadDate ? formatDate(repack.uploadDate) : ""}
-                  </p>
-                </Button>
-              );
-            })
+              <p className="repacks-modal__repack-info">
+                {t("download_on_steam")}
+              </p>
+            </Button>
           )}
+
+          {showSteamOption && filteredRepacks.length > 0 && (
+            <div className="repacks-modal__separator" />
+          )}
+
+          {filteredRepacks.length === 0
+            ? !showSteamOption && (
+                <div className="repacks-modal__no-results">
+                  <div className="repacks-modal__no-results-content">
+                    <div className="repacks-modal__no-results-text">
+                      {t("no_repacks_found")}
+                    </div>
+                    <div className="repacks-modal__no-results-button">
+                      <Button
+                        type="button"
+                        theme="primary"
+                        onClick={() => {
+                          onClose();
+                          navigate("/settings?tab=download_sources");
+                        }}
+                      >
+                        <PlusCircleIcon />
+                        {t("add_download_source", { ns: "settings" })}
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              )
+            : filteredRepacks.map((repack) => {
+                const isLastDownloadedOption =
+                  checkIfLastDownloadedOption(repack);
+                const availabilityStatus = getRepackAvailabilityStatus(repack);
+                const tooltipId = `availability-orb-${repack.id}`;
+
+                return (
+                  <Button
+                    key={repack.id}
+                    theme="dark"
+                    onClick={() => handleRepackClick(repack)}
+                    className="repacks-modal__repack-button"
+                  >
+                    <span
+                      className={`repacks-modal__availability-orb repacks-modal__availability-orb--${availabilityStatus}`}
+                      data-tooltip-id={tooltipId}
+                      data-tooltip-content={t(`source_${availabilityStatus}`)}
+                    />
+                    <Tooltip id={tooltipId} />
+
+                    <p className="repacks-modal__repack-title">
+                      {repack.title}
+                      {userPreferences?.enableNewDownloadOptionsBadges !==
+                        false &&
+                        isNewRepack(repack) && (
+                          <span className="repacks-modal__new-badge">
+                            {t("new_download_option")}
+                          </span>
+                        )}
+                    </p>
+
+                    {isLastDownloadedOption && (
+                      <Badge>{t("last_downloaded_option")}</Badge>
+                    )}
+
+                    <p className="repacks-modal__repack-info">
+                      {repack.fileSize} - {repack.downloadSourceName} -{" "}
+                      {repack.uploadDate ? formatDate(repack.uploadDate) : ""}
+                    </p>
+                  </Button>
+                );
+              })}
         </div>
       </Modal>
     </>

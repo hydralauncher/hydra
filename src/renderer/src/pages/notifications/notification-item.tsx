@@ -36,7 +36,10 @@ const parseNotificationUrl = (notificationUrl: string): string => {
     return `/badges/${badgeName}`;
   }
 
-  if (url.pathname === "/profile/integrations/retroachievements") {
+  if (
+    url.pathname === "/profile/integrations/retroachievements" ||
+    url.pathname === "/profile/integrations/steam"
+  ) {
     return "/settings?tab=integrations";
   }
 

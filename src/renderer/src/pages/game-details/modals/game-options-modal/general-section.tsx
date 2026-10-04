@@ -7,10 +7,12 @@ import {
   type ReactNode,
   useContext,
   useEffect,
+  useId,
   useMemo,
   useRef,
   useState,
 } from "react";
+import { Tooltip } from "react-tooltip";
 import { Button, CheckboxField, TextField } from "@renderer/components";
 import SteamLogo from "@renderer/assets/steam-logo.svg?react";
 import type { ClassicsDisc, LibraryGame, ShortcutLocation } from "@types";
@@ -41,6 +43,21 @@ function ClassicsDiscSection({ game }: Readonly<ClassicsDiscSectionProps>) {
 
   const selectedDisc =
     discs.find((d) => d.path === game.selectedDiscPath) ?? discs[0] ?? null;
+
+  const renderDiscIcon = (disc: ClassicsDisc | null) => {
+    const region = disc?.sku ? getSkuRegion(disc.sku) : null;
+
+    if (!region) return <DotIcon size={18} className="disc-field__icon" />;
+
+    return (
+      <img
+        src={getSkuRegionFlag(region)}
+        alt={region}
+        title={region}
+        className="disc-field__flag"
+      />
+    );
+  };
 
   useEffect(() => {
     if (!isDropdownOpen) return undefined;
@@ -143,7 +160,7 @@ function ClassicsDiscSection({ game }: Readonly<ClassicsDiscSectionProps>) {
                 className="disc-field__trigger"
                 onClick={() => setIsDropdownOpen((prev) => !prev)}
               >
-                <DotIcon size={18} className="disc-field__icon" />
+                {renderDiscIcon(selectedDisc)}
                 <span className="disc-field__text">
                   <span className="disc-field__label">
                     {selectedDisc?.label}
@@ -160,41 +177,33 @@ function ClassicsDiscSection({ game }: Readonly<ClassicsDiscSectionProps>) {
                 />
               </button>
 
-              {isDropdownOpen && (
-                <div className="disc-field__menu">
-                  {discs.map((disc) => {
-                    const isActive = selectedDisc?.path === disc.path;
-                    const region = disc.sku ? getSkuRegion(disc.sku) : null;
-                    return (
-                      <button
-                        key={disc.path}
-                        type="button"
-                        className={`disc-field__option ${
-                          isActive ? "disc-field__option--active" : ""
-                        }`}
-                        onClick={() => void handleSelectDisc(disc.path)}
-                      >
-                        <DotIcon size={18} className="disc-field__icon" />
-                        <span className="disc-field__text">
-                          <span className="disc-field__label">
-                            {disc.label}
-                          </span>
-                          <span className="disc-field__filename">
-                            {disc.fileName}
-                          </span>
+              <div
+                className={`disc-field__menu ${
+                  isDropdownOpen ? "disc-field__menu--open" : ""
+                }`}
+              >
+                {discs.map((disc) => {
+                  const isActive = selectedDisc?.path === disc.path;
+                  return (
+                    <button
+                      key={disc.path}
+                      type="button"
+                      className={`disc-field__option ${
+                        isActive ? "disc-field__option--active" : ""
+                      }`}
+                      onClick={() => void handleSelectDisc(disc.path)}
+                    >
+                      {renderDiscIcon(disc)}
+                      <span className="disc-field__text">
+                        <span className="disc-field__label">{disc.label}</span>
+                        <span className="disc-field__filename">
+                          {disc.fileName}
                         </span>
-                        {region && (
-                          <img
-                            src={getSkuRegionFlag(region)}
-                            alt={region}
-                            className="disc-field__flag"
-                          />
-                        )}
-                      </button>
-                    );
-                  })}
-                </div>
-              )}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
             </div>
           ) : (
             <p className="game-options-modal__header-description disc-field__empty">
@@ -277,6 +286,8 @@ interface GeneralSettingsSectionProps {
   onResetGameTitle?: () => void;
   onChangeLaunchOptions: (event: React.ChangeEvent<HTMLInputElement>) => void;
   onClearLaunchOptions: () => Promise<void>;
+  onToggleHydraPlaytimeEnabled: (enabled: boolean) => Promise<void>;
+  isNonSteamExecutable: boolean;
   isTransferring: boolean;
   transferProgress: number;
   drives: DriveInfo[];
@@ -293,6 +304,7 @@ interface GeneralSettingsSectionProps {
   showTransferSection?: boolean;
   showShortcutsSection?: boolean;
   showLaunchOptionsSection?: boolean;
+  showSteamPlaytimeSection?: boolean;
 }
 
 //
@@ -323,6 +335,55 @@ const isBatchExecutable = (executablePath?: string | null) =>
 const supportsTrackingExecutables = (executablePath?: string | null) =>
   !!executablePath && /\.(bat|cmd|exe)$/i.test(executablePath);
 
+interface SteamPlaytimeSectionProps {
+  enableHydraPlaytimeTracking: LibraryGame["enableHydraPlaytimeTracking"];
+  isNonSteamExecutable: boolean;
+  onToggleHydraPlaytimeEnabled: (enabled: boolean) => Promise<void>;
+}
+
+function SteamPlaytimeSection({
+  enableHydraPlaytimeTracking,
+  isNonSteamExecutable,
+  onToggleHydraPlaytimeEnabled,
+}: Readonly<SteamPlaytimeSectionProps>) {
+  const { t } = useTranslation("game_details");
+  const tooltipId = useId();
+
+  return (
+    <div className="game-options-modal__section">
+      <div className="game-options-modal__header">
+        <h2>{t("steam_playtime_tracking_title")}</h2>
+        <h4 className="game-options-modal__header-description">
+          {t("steam_playtime_tracking_description")}
+        </h4>
+      </div>
+
+      <CheckboxField
+        label={
+          <span
+            className="game-options-modal__steam-playtime-label"
+            data-tooltip-id={tooltipId}
+            data-tooltip-content={
+              isNonSteamExecutable
+                ? t("steam_playtime_non_steam_executable_tooltip")
+                : undefined
+            }
+          >
+            {t("enable_hydra_playtime_tracking")}
+          </span>
+        }
+        checked={isNonSteamExecutable || enableHydraPlaytimeTracking === true}
+        disabled={isNonSteamExecutable}
+        onChange={(event) =>
+          void onToggleHydraPlaytimeEnabled(event.target.checked)
+        }
+      />
+
+      {isNonSteamExecutable && <Tooltip id={tooltipId} />}
+    </div>
+  );
+}
+
 export function GeneralSettingsSection({
   game,
   gameTitle,
@@ -348,6 +409,8 @@ export function GeneralSettingsSection({
   onResetGameTitle,
   onChangeLaunchOptions,
   onClearLaunchOptions,
+  onToggleHydraPlaytimeEnabled,
+  isNonSteamExecutable,
   isTransferring,
   transferProgress,
   drives,
@@ -364,6 +427,7 @@ export function GeneralSettingsSection({
   showTransferSection = true,
   showShortcutsSection = true,
   showLaunchOptionsSection = true,
+  showSteamPlaytimeSection = true,
 }: Readonly<GeneralSettingsSectionProps>) {
   const { t } = useTranslation("game_details");
 
@@ -371,6 +435,7 @@ export function GeneralSettingsSection({
   const [customPath, setCustomPath] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [isPreparing, setIsPreparing] = useState(false);
+  const isSteamImport = game.shop === "steam" && game.hasActiveSteamImport;
 
   const gameSize = game.installedSizeInBytes ?? 0;
   const progressPercent = Math.round(transferProgress * 100);
@@ -611,6 +676,14 @@ export function GeneralSettingsSection({
             </div>
           )}
         </div>
+      )}
+
+      {showSteamPlaytimeSection && isSteamImport && (
+        <SteamPlaytimeSection
+          enableHydraPlaytimeTracking={game.enableHydraPlaytimeTracking}
+          isNonSteamExecutable={isNonSteamExecutable}
+          onToggleHydraPlaytimeEnabled={onToggleHydraPlaytimeEnabled}
+        />
       )}
 
       {/* Drive Selector */}

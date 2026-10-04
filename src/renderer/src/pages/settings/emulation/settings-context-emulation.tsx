@@ -300,9 +300,6 @@ export function SettingsContextEmulation() {
         <p className="settings-emulation__description">
           {t("emulation_description")}
         </p>
-        <p className="settings-emulation__disclaimer">
-          {t("emulation_disclaimer")}
-        </p>
       </header>
 
       <div className="settings-emulation__cards">

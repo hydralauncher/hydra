@@ -11,7 +11,16 @@ import { db } from "@main/level";
 import { levelKeys } from "@main/level/sublevels";
 import type { Auth, User } from "@types";
 import { SSEClient } from "./sse";
-import { sanitizeNetworkLogPayload } from "./network-log-payload";
+import {
+  sanitizeNetworkLogPayload,
+  summarizeNetworkLogPayload,
+} from "./network-log-payload";
+
+declare module "axios" {
+  interface AxiosRequestConfig {
+    logResponseBody?: boolean;
+  }
+}
 
 export interface HydraApiOptions {
   needsAuth?: boolean;
@@ -20,6 +29,7 @@ export interface HydraApiOptions {
   ifNoneMatch?: string;
   validateStatus?: (status: number) => boolean;
   signal?: AbortSignal;
+  logResponseBody?: boolean;
 }
 
 interface HydraApiUserAuth {
@@ -94,6 +104,8 @@ export class HydraApi {
       this.secondsToMilliseconds(expiresIn) -
       this.EXPIRATION_OFFSET_IN_MS;
 
+    await clearGamesRemoteIds();
+
     this.userAuth = {
       authToken: accessToken,
       refreshToken: refreshToken,
@@ -137,9 +149,13 @@ export class HydraApi {
     );
     void groupedSouvenirWorker.trigger();
 
+    const { startSteamSyncOnStartup } = await import(
+      "./steam-integration/steam-startup-sync"
+    );
+    void startSteamSyncOnStartup();
+
     if (WindowManager.mainWindow) {
       WindowManager.mainWindow.webContents.send("on-signin");
-      await clearGamesRemoteIds();
       void uploadGamesBatch();
 
       SSEClient.close();
@@ -170,6 +186,11 @@ export class HydraApi {
       "./achievements/grouped-souvenir-worker"
     );
     groupedSouvenirWorker.stop();
+
+    const { resetSteamStartupSync } = await import(
+      "./steam-integration/steam-startup-sync"
+    );
+    resetSteamStartupSync();
 
     this.sendSignOutEvent();
     this.post("/auth/logout", {}, { needsAuth: false }).catch(() => {});
@@ -207,7 +228,9 @@ export class HydraApi {
             response.status,
             response.config.method,
             response.config.url,
-            sanitizeNetworkLogPayload(response.data)
+            response.config.logResponseBody === false
+              ? summarizeNetworkLogPayload(response.data)
+              : sanitizeNetworkLogPayload(response.data)
           );
           return response;
         },
@@ -426,8 +449,11 @@ export class HydraApi {
         params,
         ...this.getAxiosConfig(),
         headers,
-        validateStatus: options?.validateStatus,
+        ...(options?.validateStatus
+          ? { validateStatus: options.validateStatus }
+          : {}),
         signal: options?.signal,
+        logResponseBody: options?.logResponseBody,
       })
       .then((response) => response.data)
       .catch(this.handleUnauthorizedError);
@@ -451,7 +477,9 @@ export class HydraApi {
         params,
         ...this.getAxiosConfig(),
         headers,
-        validateStatus: options?.validateStatus,
+        ...(options?.validateStatus
+          ? { validateStatus: options.validateStatus }
+          : {}),
         signal: options?.signal,
       })
       .then((response) => ({
@@ -488,7 +516,9 @@ export class HydraApi {
     return this.instance
       .post<T>(url, data, {
         ...this.getAxiosConfig(),
-        validateStatus: options?.validateStatus,
+        ...(options?.validateStatus
+          ? { validateStatus: options.validateStatus }
+          : {}),
         signal: options?.signal,
       })
       .then((response) => ({

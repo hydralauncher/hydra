@@ -1,0 +1,223 @@
+@use "../../scss/globals.scss";
+
+.settings-integration-card {
+  display: flex;
+  flex-direction: column;
+  gap: calc(globals.$spacing-unit * 2);
+  padding: calc(globals.$spacing-unit * 2);
+  border: 1px solid globals.$border-color;
+  border-radius: 8px;
+  background: rgba(0, 0, 0, 0.12);
+
+  &__header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: calc(globals.$spacing-unit * 2);
+    min-height: 40px;
+  }
+
+  &__heading {
+    min-width: 0;
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: globals.$spacing-unit;
+  }
+
+  &__logo {
+    width: 18px;
+    height: 18px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+
+    > svg,
+    > img {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+    }
+  }
+
+  &__title {
+    margin: 0;
+    color: globals.$muted-color;
+    font-size: 1rem;
+    font-weight: 600;
+  }
+
+  &__status {
+    display: inline-flex;
+    align-items: center;
+    gap: calc(globals.$spacing-unit / 2);
+    color: globals.$body-color;
+    font-size: globals.$small-font-size;
+    white-space: nowrap;
+
+    &--success {
+      color: globals.$muted-color;
+    }
+
+    &--warning {
+      color: globals.$warning-color;
+    }
+  }
+
+  &__status-dot {
+    width: 11px;
+    height: 11px;
+    border: 1px solid currentColor;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+
+  &__actions {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    flex-wrap: wrap;
+    gap: globals.$spacing-unit;
+    flex-shrink: 0;
+  }
+
+  &__content {
+    min-width: 0;
+    min-height: 40px;
+    display: flex;
+    flex-direction: column;
+    gap: calc(globals.$spacing-unit * 1.5);
+  }
+
+  &__description,
+  &__message {
+    margin: 0;
+    color: globals.$body-color;
+    font-size: globals.$small-font-size;
+    line-height: 1.5;
+  }
+
+  &__profile {
+    display: flex;
+    align-items: center;
+    gap: calc(globals.$spacing-unit * 1.5);
+  }
+
+  &__avatar {
+    width: 40px;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    flex-shrink: 0;
+    border: 1px solid globals.$border-color;
+    border-radius: 6px;
+    background: rgba(255, 255, 255, 0.04);
+    color: globals.$body-color;
+
+    img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+  }
+
+  &__account {
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: calc(globals.$spacing-unit / 2);
+  }
+
+  &__username {
+    overflow: hidden;
+    color: globals.$muted-color;
+    font-weight: 600;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  &__meta {
+    color: globals.$body-color;
+    font-size: globals.$small-font-size;
+  }
+
+  &__progress {
+    display: flex;
+    flex-direction: column;
+    gap: globals.$spacing-unit;
+  }
+
+  &__progress-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: globals.$spacing-unit;
+    color: globals.$body-color;
+    font-size: globals.$small-font-size;
+  }
+
+  &__progress-count {
+    font-family: "JetBrains Mono", monospace;
+    white-space: nowrap;
+  }
+
+  &__progress-track {
+    position: relative;
+    height: 4px;
+    overflow: hidden;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.08);
+  }
+
+  &__progress-fill {
+    height: 100%;
+    border-radius: inherit;
+    background: globals.$muted-color;
+    transition: width 0.2s ease;
+
+    &--indeterminate {
+      position: absolute;
+      inset-block: 0;
+      left: 0;
+      width: 35%;
+      animation: settings-integration-progress 1.2s ease-in-out infinite;
+    }
+  }
+
+  &__loading-content {
+    display: flex;
+    align-items: center;
+    gap: calc(globals.$spacing-unit * 1.5);
+  }
+
+  &__loading-copy {
+    display: flex;
+    flex-direction: column;
+    gap: calc(globals.$spacing-unit / 2);
+  }
+
+  @media (max-width: 720px) {
+    &__header {
+      align-items: flex-start;
+      flex-direction: column;
+    }
+
+    &__actions {
+      width: 100%;
+      justify-content: flex-start;
+    }
+  }
+}
+
+@keyframes settings-integration-progress {
+  0% {
+    transform: translateX(-110%);
+  }
+
+  100% {
+    transform: translateX(300%);
+  }
+}

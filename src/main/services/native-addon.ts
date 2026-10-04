@@ -6,6 +6,7 @@ import { Worker } from "node:worker_threads";
 import { app } from "electron";
 import type { ProcessPayload } from "./download/types";
 import type {
+  BuildLocalGameSnapshotInput,
   BuildLocalGameSnapshotPipelineInput,
   BuildSnapshotAggregateHashInput,
   DeleteLocalSaveTarget,
@@ -45,6 +46,9 @@ type NativeActiveWindowResponse = {
 };
 
 type HydraNativeModule = {
+  torrentInitialize: (port: number) => Promise<void>;
+  torrentRequest: (method: string, paramsJson: string) => Promise<string>;
+  torrentShutdown: () => Promise<void>;
   processProfileImage: (
     imagePath: string,
     targetExtension?: string
@@ -60,6 +64,9 @@ type HydraNativeModule = {
   getLinuxActiveWindow: () => NativeActiveWindowResponse | null;
   buildLocalGameSnapshotPipeline: (
     input: BuildLocalGameSnapshotPipelineInput
+  ) => Promise<NativeLocalGameSnapshotPipelineResult>;
+  buildLocalGameSnapshot: (
+    input: BuildLocalGameSnapshotInput
   ) => Promise<NativeLocalGameSnapshotPipelineResult>;
   getSaveRulesForGame: (
     input: GetSaveRulesForGameInput
@@ -192,6 +199,18 @@ type PendingResolver =
   | { type: "map"; resolve: (m: SystemProcessMap | null) => void };
 
 export class NativeAddon {
+  public static torrentInitialize(port: number) {
+    return this.load().torrentInitialize(port);
+  }
+
+  public static torrentRequest(method: string, paramsJson: string) {
+    return this.load().torrentRequest(method, paramsJson);
+  }
+
+  public static torrentShutdown() {
+    // Quitting an app which never used torrenting must not load the addon.
+    return this.nativeModule?.torrentShutdown() ?? Promise.resolve();
+  }
   private static nativeModule: HydraNativeModule | null = null;
   private static worker: Worker | null = null;
   private static pendingResolvers: PendingResolver[] = [];
@@ -400,6 +419,10 @@ export class NativeAddon {
     input: BuildLocalGameSnapshotPipelineInput
   ) {
     return this.load().buildLocalGameSnapshotPipeline(input);
+  }
+
+  public static buildLocalGameSnapshot(input: BuildLocalGameSnapshotInput) {
+    return this.load().buildLocalGameSnapshot(input);
   }
 
   public static getSaveRulesForGame(input: GetSaveRulesForGameInput) {

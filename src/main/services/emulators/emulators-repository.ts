@@ -2,6 +2,7 @@ import { emulatorsSublevel } from "@main/level";
 import { EMULATOR_SYSTEMS } from "@shared";
 import type { EmulatorConfig, EmulatorConfigMap, EmulatorSystem } from "@types";
 import { KNOWN_BINARIES, systemsForBinary } from "./known-binaries";
+import { clearRpcs3RootOnExecutableChange } from "./rpcs3-config-binding";
 
 const emptyConfig = (system: EmulatorSystem): EmulatorConfig => ({
   system,
@@ -49,7 +50,12 @@ export const getAllEmulatorConfigs = async (): Promise<EmulatorConfigMap> => {
 export const setEmulatorConfig = async (
   config: EmulatorConfig
 ): Promise<EmulatorConfig> => {
-  await emulatorsSublevel.put(config.system, config);
+  const stored =
+    config.system === "ps3"
+      ? await emulatorsSublevel.get(config.system)
+      : undefined;
+  const next = clearRpcs3RootOnExecutableChange(stored, config);
+  await emulatorsSublevel.put(config.system, next);
 
   for (const sibling of systemsForBinary(config.binary)) {
     if (sibling === config.system) continue;
@@ -57,13 +63,13 @@ export const setEmulatorConfig = async (
       (await emulatorsSublevel.get(sibling)) ?? emptyConfig(sibling);
     await emulatorsSublevel.put(sibling, {
       ...siblingConfig,
-      executablePath: config.executablePath,
-      detectedVersion: config.detectedVersion,
-      detectedAt: config.detectedAt,
+      executablePath: next.executablePath,
+      detectedVersion: next.detectedVersion,
+      detectedAt: next.detectedAt,
     });
   }
 
-  return config;
+  return next;
 };
 
 export const updateEmulatorConfig = async (

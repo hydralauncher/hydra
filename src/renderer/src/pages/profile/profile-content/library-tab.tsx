@@ -17,12 +17,13 @@ import { useCollectionContextMenu } from "@renderer/context";
 import { GameContextMenu } from "@renderer/components";
 import type { GameContextMenuGame } from "@renderer/components/game-context-menu/game-context-menu.types";
 import { ClassicsIcon } from "@renderer/pages/library/category-filter";
+import type { ProfilePlatformFilter } from "@renderer/helpers";
 import { FilterDropdown, type FilterDropdownOption } from "./filter-dropdown";
 import { UserLibraryGameCard } from "./user-library-game-card";
 import "./profile-content.scss";
 
 type SortOption = "playtime" | "achievementCount" | "playedRecently";
-export type ProfilePlatform = "all" | "pc" | "classics";
+export type ProfilePlatform = ProfilePlatformFilter;
 
 interface LibraryTabProps {
   sortBy: SortOption;
@@ -61,7 +62,7 @@ export function LibraryTab({
   panelKey = "library",
   count,
 }: Readonly<LibraryTabProps>) {
-  const { t } = useTranslation("user_profile");
+  const { t } = useTranslation(["user_profile", "library"]);
   const { numberFormatter } = useFormat();
   const { library } = useLibrary();
   const { openCollectionContextMenu } = useCollectionContextMenu();

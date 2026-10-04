@@ -48,9 +48,12 @@ export function ResetAchievementsModal({
       visible={visible}
       onClose={handleClose}
       title={t("reset_achievements_title")}
-      description={t("reset_achievements_souvenirs_description", {
-        game: game.title,
-      })}
+      description={t(
+        game.shop === "steam"
+          ? "reset_achievements_hydra_souvenirs_description"
+          : "reset_achievements_souvenirs_description",
+        { game: game.title }
+      )}
     >
       {isLaunchbox && (
         <div className="reset-achievements-modal__retroachievements">
@@ -74,6 +77,12 @@ export function ResetAchievementsModal({
         </div>
       )}
 
+      {game.shop === "steam" ? (
+        <p className="reset-achievements-modal__steam-note">
+          {t("reset_achievements_steam_note")}
+        </p>
+      ) : null}
+
       <div className="reset-achievements-modal__actions">
         <Button onClick={handleClose} theme="outline">
           {t("cancel")}
@@ -81,7 +90,7 @@ export function ResetAchievementsModal({
 
         <Button
           onClick={handleResetAchievements}
-          theme="primary"
+          theme="danger"
           disabled={isResetDisabled}
         >
           {t("reset_achievements")}

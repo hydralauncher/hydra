@@ -13,6 +13,7 @@ import { ReviewSortOptions } from "./review-sort-options";
 import "./game-reviews.scss";
 import { useToast } from "@renderer/hooks";
 import { REVIEW_MIN_PLAYTIME_IN_MS } from "@renderer/constants";
+import { getDisplayedPlayTimeInMilliseconds } from "@shared";
 
 type ReviewSortOption =
   | "newest"
@@ -63,7 +64,10 @@ export function GameReviews({
     null
   );
 
-  const playTimeInMilliseconds = game?.playTimeInMilliseconds ?? 0;
+  const playTimeInMilliseconds = getDisplayedPlayTimeInMilliseconds({
+    playTimeInMilliseconds: game?.playTimeInMilliseconds ?? 0,
+    steamPlayTimeInMilliseconds: game?.steamPlayTimeInMilliseconds,
+  });
   const hasEnoughPlaytime = playTimeInMilliseconds >= REVIEW_MIN_PLAYTIME_IN_MS;
   const isReviewLocked = !userDetailsId || !hasEnoughPlaytime;
   const canReply =

@@ -1,4 +1,5 @@
 import type { LibraryGame } from "@types";
+import { getDisplayedPlayTimeInMilliseconds } from "@shared";
 
 export const BUILTIN_LIBRARY_TABS = [
   "all",
@@ -34,6 +35,7 @@ export const LIBRARY_VIEW_MODE_STORAGE_KEY =
 export const LIBRARY_SORT_BY_STORAGE_KEY = "hydra:big-picture:library-sort-by";
 export const LIBRARY_SECONDARY_FILTER_STORAGE_KEY =
   "hydra:big-picture:library-filter-by";
+export const LIBRARY_TAB_STORAGE_KEY = "hydra:big-picture:library-tab";
 
 export interface LibraryFilterCounts {
   all: number;
@@ -196,7 +198,9 @@ export function filterLibraryBySecondaryFilter(
   }
 
   if (selectedFilter === "never_played") {
-    return library.filter((game) => (game.playTimeInMilliseconds ?? 0) <= 0);
+    return library.filter(
+      (game) => getDisplayedPlayTimeInMilliseconds(game) <= 0
+    );
   }
 
   return library;
@@ -213,7 +217,8 @@ export function sortLibraryGames(
 
     if (sortBy === "playtime") {
       const playtimeDifference =
-        (b.playTimeInMilliseconds ?? 0) - (a.playTimeInMilliseconds ?? 0);
+        getDisplayedPlayTimeInMilliseconds(b) -
+        getDisplayedPlayTimeInMilliseconds(a);
 
       return playtimeDifference !== 0
         ? playtimeDifference

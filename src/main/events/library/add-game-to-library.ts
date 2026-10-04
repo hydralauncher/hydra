@@ -53,6 +53,7 @@ const addGameToLibrary = async (
 
     game.isDeleted = false;
     game.addedToLibraryAt ??= new Date();
+    game.source = "hydra";
     if (resolvedPlatform && !game.platform) game.platform = resolvedPlatform;
 
     await gamesSublevel.put(gameKey, game);
@@ -70,6 +71,7 @@ const addGameToLibrary = async (
       lastTimePlayed: null,
       addedToLibraryAt: new Date(),
       platform: resolvedPlatform ?? null,
+      source: "hydra",
     };
 
     await gamesSublevel.put(gameKey, game);
