@@ -15,6 +15,10 @@
  * kept as well, so a mirror that lands just after a very short tap is still
  * recognised, while a humanly impossible double tap is the only thing that could
  * fall inside it.
+ *
+ * State is kept **per controller**, not per backend: two pads plugged into the
+ * same backend are two independent controllers, and one of them must never
+ * consume the other's press or close its release.
  */
 
 import type { GuideEvent } from "./guide-events";
@@ -31,23 +35,31 @@ export interface GuideArbitrationCounters {
   accepted: number;
   /** Presses (and their releases) discarded as another backend's mirror. */
   mirrored: number;
-  /** Releases with no open press, dropped so they cannot close a later one. */
+  /** Releases with no press of their own to close, dropped. */
   orphans: number;
-  /** Repeat presses from a backend that is already holding the button. */
+  /** Repeat presses from a controller that is already holding the button. */
   repeats: number;
 }
 
-export class GuideArbitrator {
-  private openPress: { backend: string; pressedAtMs: number } | null = null;
+interface OpenPress {
+  backend: string;
+  pressedAtMs: number;
+}
 
+export class GuideArbitrator {
+  /** Presses currently held, keyed by controller. */
+  private readonly openPresses = new Map<string, OpenPress>();
+
+  /** Controllers whose press was a mirror, so their release is too. */
+  private readonly mirroredDevices = new Set<string>();
+
+  /** The most recent accepted press, for the trailing-mirror window. */
   private lastPress: {
+    deviceId: string;
     backend: string;
     pressedAtMs: number;
     releasedAtMs: number | null;
   } | null = null;
-
-  /** Backends whose press was discarded as a mirror, so their release is too. */
-  private readonly mirroredBackends = new Set<string>();
 
   public readonly counters: GuideArbitrationCounters = {
     accepted: 0,
@@ -71,54 +83,64 @@ export class GuideArbitrator {
 
   /** Drop all state, e.g. when the user switches the feature off. */
   public reset(): void {
-    this.openPress = null;
+    this.openPresses.clear();
+    this.mirroredDevices.clear();
     this.lastPress = null;
-    this.mirroredBackends.clear();
   }
 
   private acceptPress(event: GuideEvent): GuideEvent | null {
-    const { backend, timestampMs } = event;
+    const { backend, deviceId, timestampMs } = event;
 
-    // The same backend reporting a press it is already holding is a repeated
+    // The same controller reporting a press it is already holding is a repeated
     // report, not a second gesture.
-    if (this.openPress?.backend === backend) {
+    if (this.openPresses.has(deviceId)) {
       this.counters.repeats += 1;
       return null;
     }
 
     if (this.isMirror(backend, timestampMs)) {
-      this.mirroredBackends.add(backend);
+      this.mirroredDevices.add(deviceId);
       this.counters.mirrored += 1;
       return null;
     }
 
-    this.openPress = { backend, pressedAtMs: timestampMs };
-    this.lastPress = { backend, pressedAtMs: timestampMs, releasedAtMs: null };
+    this.openPresses.set(deviceId, { backend, pressedAtMs: timestampMs });
+    this.lastPress = {
+      deviceId,
+      backend,
+      pressedAtMs: timestampMs,
+      releasedAtMs: null,
+    };
     this.counters.accepted += 1;
 
     return event;
   }
 
   private acceptRelease(event: GuideEvent): GuideEvent | null {
-    const { backend } = event;
+    const { backend, deviceId, timestampMs } = event;
 
     // The press never reached the sequence layer, so neither may its release:
     // an unpaired release would otherwise close a later, genuine press.
-    if (this.mirroredBackends.delete(backend)) {
+    if (this.mirroredDevices.delete(deviceId)) {
       this.counters.mirrored += 1;
       return null;
     }
 
-    if (this.openPress?.backend !== backend) {
+    const press = this.openPresses.get(deviceId);
+
+    // Either this controller is not holding the button, or the release arrived
+    // on a different backend than the press did. Neither is usable.
+    if (press === undefined || press.backend !== backend) {
       this.counters.orphans += 1;
       return null;
     }
 
-    if (this.lastPress?.backend === backend) {
-      this.lastPress.releasedAtMs = event.timestampMs;
+    this.openPresses.delete(deviceId);
+
+    if (this.lastPress?.deviceId === deviceId) {
+      this.lastPress.releasedAtMs = timestampMs;
     }
 
-    this.openPress = null;
     this.counters.accepted += 1;
 
     return event;
@@ -127,8 +149,8 @@ export class GuideArbitrator {
   private isMirror(backend: string, timestampMs: number): boolean {
     // Another backend is holding the button right now, so this press is that
     // press seen twice.
-    if (this.openPress !== null && this.openPress.backend !== backend) {
-      return true;
+    for (const press of this.openPresses.values()) {
+      if (press.backend !== backend) return true;
     }
 
     // Another backend already completed a press so recently that this one is

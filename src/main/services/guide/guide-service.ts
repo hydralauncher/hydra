@@ -56,6 +56,12 @@ export class GuideService {
 
   private static actionCounts = { single: 0, double: 0 };
 
+  /**
+   * Difference between the watcher's monotonic clock and `performance.now()`,
+   * refreshed from every event that arrives. See `nativeNow`.
+   */
+  private static clockOffsetMs = 0;
+
   /** Whether this build and platform can watch the system button. */
   public static isSupported(): boolean {
     return NativeAddon.isGuideWatcherSupported();
@@ -148,6 +154,11 @@ export class GuideService {
     const events = NativeAddon.pollGuideEvents();
 
     for (const event of events) {
+      // The edges carry the watcher's own monotonic clock, which is the only
+      // clock that survives a stalled event loop. Keep our clock aligned with it
+      // so gestures are timed by when the button was actually pressed.
+      this.clockOffsetMs = event.timestampMs - performance.now();
+
       const accepted = this.arbitrator.accept(event);
 
       if (accepted === null) continue;
@@ -167,7 +178,21 @@ export class GuideService {
       });
     }
 
-    this.resolveDueAction(performance.now());
+    this.resolveDueAction(this.nativeNow());
+  }
+
+  /**
+   * The current time on the watcher's monotonic clock.
+   *
+   * `performance.now()` alone would be wrong: if the main process is blocked for
+   * longer than the double-press window, two taps that really were a second
+   * apart are all drained at once and would share one timestamp, turning them
+   * into a double press. Offsetting by the newest event's own timestamp keeps
+   * gesture timing anchored to when the button was pressed, while still giving
+   * the timer a "now" it can reschedule against.
+   */
+  private static nativeNow(): number {
+    return performance.now() + this.clockOffsetMs;
   }
 
   private static handlePress(event: GuideEvent): void {
@@ -178,7 +203,7 @@ export class GuideService {
       deviceId: event.deviceId,
     });
 
-    const action = this.sequences.press(event.deviceId, performance.now());
+    const action = this.sequences.press(event.deviceId, event.timestampMs);
 
     if (action === "double") {
       // The double gesture cancels the single one that was waiting: the window
@@ -207,13 +232,13 @@ export class GuideService {
   private static scheduleActionTimer(): void {
     this.cancelActionTimer();
 
-    const remaining = this.sequences.remainingMs(performance.now());
+    const remaining = this.sequences.remainingMs(this.nativeNow());
 
     if (remaining === null) return;
 
     this.actionTimer = setTimeout(() => {
       this.actionTimer = null;
-      this.resolveDueAction(performance.now());
+      this.resolveDueAction(this.nativeNow());
     }, remaining + TIMER_SLACK_MS);
   }
 

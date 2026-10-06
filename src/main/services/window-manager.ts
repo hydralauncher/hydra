@@ -1080,7 +1080,12 @@ export class WindowManager {
       this.mainWindow.focus();
       if (raiseToForeground) this.raiseToForeground(this.mainWindow);
     } else {
-      this.raiseMainWindowWhenReady = raiseToForeground;
+      // Never clear a raise that is already pending: a Guide press waiting for
+      // the window to finish being created must not be cancelled by an
+      // unrelated openMainWindow() call arriving first. The flag is consumed
+      // once the window is ready.
+      this.raiseMainWindowWhenReady =
+        this.raiseMainWindowWhenReady || raiseToForeground;
       this.createMainWindow();
     }
   }

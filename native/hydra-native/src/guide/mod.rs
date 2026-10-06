@@ -142,6 +142,12 @@ pub(crate) fn is_stop_requested() -> bool {
     STOP_REQUESTED.load(Ordering::Acquire)
 }
 
+/// Called by the watcher thread when it stops, so `is_guide_watcher_running`
+/// reflects reality even if the thread ends without a `stop_guide_watcher` call.
+pub(crate) fn mark_watcher_stopped() {
+    RUNNING.store(false, Ordering::Release);
+}
+
 pub(crate) fn push_event(
     kind: &str,
     backend: &'static str,
@@ -228,9 +234,15 @@ pub fn is_guide_watcher_running() -> bool {
     RUNNING.load(Ordering::Acquire)
 }
 
-/// Start watching. Returns `false` when the platform cannot support it or the
-/// watcher thread could not be created. Calling this while already running is a
-/// no-op that returns `true`.
+/// Start watching.
+///
+/// Returns `false` when the platform cannot support it, the watcher thread could
+/// not be created, or the watcher failed to initialise (window creation or Raw
+/// Input sink registration). The result is only reported once the watcher is
+/// actually able to observe input, so a `true` here means Guide detection is
+/// live rather than merely requested.
+///
+/// Calling this while already running is a no-op that returns `true`.
 #[napi]
 pub fn start_guide_watcher() -> bool {
     if RUNNING.load(Ordering::Acquire) {
@@ -244,11 +256,29 @@ pub fn start_guide_watcher() -> bool {
 
     #[cfg(windows)]
     {
+        // The thread reports whether it managed to initialise. Without this the
+        // caller would be told the watcher is running even when window creation
+        // or sink registration failed, and because `RUNNING` would stay set, no
+        // later start would retry it.
+        let (ready_tx, ready_rx) = std::sync::mpsc::channel::<bool>();
+
         match std::thread::Builder::new()
             .name("hydra-guide-watcher".to_string())
-            .spawn(raw_input::watcher_thread)
+            .spawn(move || raw_input::watcher_thread(ready_tx))
         {
             Ok(handle) => {
+                let started = matches!(
+                    ready_rx.recv_timeout(std::time::Duration::from_secs(5)),
+                    Ok(true)
+                );
+
+                if !started {
+                    // Let the thread finish tearing down before reporting, so a
+                    // retry cannot race with a half-created window.
+                    let _ = handle.join();
+                    return false;
+                }
+
                 if let Ok(mut slot) = WATCHER_HANDLE.lock() {
                     *slot = Some(handle);
                 }

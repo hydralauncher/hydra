@@ -121,12 +121,20 @@ Each backend keeps per-device edge-detection state with three flags: `primed`
   no repeats at all, because a level that does not change produces no edge.
 - On **disconnect**, an open press is closed honestly with a release before the
   `disconnected` event, so a gesture can never be left dangling.
-- On XInput, a change in which slots are occupied re-primes every surviving slot.
-  Windows re-assigns pads to different slots on hot-plug, and without re-priming
-  that re-assignment would look like a button edge.
+- When a slot that stays occupied starts hosting a **different** pad (Windows
+  moves pads down when a lower slot frees up), the level is _not_ re-baselined.
+  Re-baselining would silently swallow a real press that happened in the same
+  tick as another pad's arrival; letting the ordinary edge detection run instead
+  means the worst case is an extra edge for a button that genuinely is down,
+  which is far less harmful than losing a Guide tap.
 
 `connected` / `disconnected` are lifecycle notices used for diagnostics. They
 never trigger an action.
+
+The watcher reports that it started only once the Raw Input window exists _and_
+the sink is registered. If either fails, `start_guide_watcher` returns `false`
+and the watcher is not marked as running, so a failed start can be retried
+instead of appearing to succeed while detecting nothing.
 
 ## Deduplication between backends
 
@@ -138,17 +146,20 @@ double-Guide action from a single press.
 
 `guide-arbitration.ts` resolves this **by state rather than by clock**:
 
-- a press from backend B is dropped as a mirror when another backend is
-  _currently holding_ the button, because a mirrored report trails the original
-  by a few milliseconds and therefore always arrives while the original is still
-  down;
+- state is kept **per controller**, not per backend: two pads plugged into the
+  same backend are two independent controllers, and one must never consume the
+  other's press or close its release;
+- a press is dropped as a mirror when another _backend_ is currently holding the
+  button, because a mirrored report trails the original by a few milliseconds and
+  therefore always arrives while the original is still down;
 - a short trailing window (`GUIDE_MIRROR_WINDOW_MS`, 60 ms) additionally catches
   a mirror that lands just after a very short tap;
 - a genuine second tap of a double press can only arrive after the first press
   was released, so it is never mistaken for a mirror;
 - a dropped press also drops its own release, so an unpaired release can never
   close a later, genuine press;
-- a release with no open press is discarded as an orphan.
+- a release with no press of its own, or one arriving on a different backend than
+  its press, is discarded as an orphan.
 
 ## Single / double detection
 
@@ -169,6 +180,12 @@ press ──► press within ~300 ms ──────────────�
 - Pending presses are tracked **per controller**, so two people each tapping
   Guide on their own pad is not a double press, and one pad's press cannot
   consume another's pending action.
+- Gestures are timed by the **watcher's own clock**, from the `timestampMs` each
+  edge carries, not by when the event was drained. If the main process is blocked
+  for longer than the window, two taps that really were a second apart would
+  otherwise be drained together, share one timestamp, and be mistaken for a
+  double press. The service keeps its clock aligned with the watcher's so the
+  deferred timer still has a "now" to reschedule against.
 
 ## Raising Hydra above other applications
 
@@ -195,12 +212,12 @@ from a deep link or from the tray behave exactly as before.
 
 ## Tests
 
-| Suite                                               | Covers                                                                                  |
-| --------------------------------------------------- | --------------------------------------------------------------------------------------- |
-| `cargo test` (`guide::sony`, `guide::raw_input`)    | Sony report layouts, VID/PID parsing, unknown-report rejection, short-report bounds     |
-| `src/main/services/guide/guide-sequences.test.ts`   | single/double timing, window boundary, per-controller pairing, hold produces one action |
-| `src/main/services/guide/guide-arbitration.test.ts` | mirror suppression, mirrored releases, orphan releases, genuine double press survives   |
-| `src/main/services/guide/guide-preferences.test.ts` | only the boolean `true` enables the watcher                                             |
+| Suite                                               | Covers                                                                                                             |
+| --------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------ |
+| `cargo test` (`guide::sony`, `guide::raw_input`)    | Sony report layouts, VID/PID parsing, unknown-report rejection, short-report bounds                                |
+| `src/main/services/guide/guide-sequences.test.ts`   | single/double timing, window boundary, per-controller pairing, hold produces one action                            |
+| `src/main/services/guide/guide-arbitration.test.ts` | mirror suppression, mirrored releases, orphan releases, per-controller independence, genuine double press survives |
+| `src/main/services/guide/guide-preferences.test.ts` | only the boolean `true` enables the watcher                                                                        |
 
 ## What was actually tested
 

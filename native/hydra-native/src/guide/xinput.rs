@@ -183,14 +183,12 @@ struct SlotState {
 
 pub(crate) struct Backend {
     slots: [SlotState; MAX_SLOTS],
-    connected_mask: u8,
 }
 
 impl Backend {
     pub(crate) fn new() -> Self {
         Self {
             slots: [SlotState::default(); MAX_SLOTS],
-            connected_mask: 0,
         }
     }
 
@@ -202,7 +200,6 @@ impl Backend {
 
         let mut present = [false; MAX_SLOTS];
         let mut guide_down = [false; MAX_SLOTS];
-        let mut mask = 0u8;
 
         for slot in 0..MAX_SLOTS {
             let mut state = XInputState::default();
@@ -210,17 +207,17 @@ impl Backend {
 
             if result == ERROR_SUCCESS {
                 present[slot] = true;
-                mask |= 1 << slot;
                 guide_down[slot] = state.gamepad.buttons & XINPUT_GAMEPAD_GUIDE != 0;
             }
         }
 
-        // A change in which slots are occupied can mean Windows re-assigned a pad
-        // to a different slot while it stayed "present" from our point of view. Re-
-        // prime every surviving slot so a re-assignment cannot be mistaken for a
-        // button edge; an open press is closed honestly first.
-        let slots_changed = mask != self.connected_mask;
-
+        // A slot that stays occupied can still end up hosting a different pad,
+        // because Windows moves pads down when a lower slot frees up. That is
+        // deliberately *not* re-baselined here: re-baselining would silently
+        // swallow a real press that happened in the same tick as another pad's
+        // arrival. Letting the ordinary edge detection run instead means the
+        // worst case is an extra edge for a button that genuinely is down, which
+        // is far less harmful than losing a Guide tap.
         for slot in 0..MAX_SLOTS {
             let id = device_id(slot);
 
@@ -258,26 +255,8 @@ impl Backend {
                 continue;
             }
 
-            if slots_changed && self.slots[slot].primed {
-                let name = describe_slot(api, slot);
-
-                if self.slots[slot].emitted_press {
-                    push_event("guide-released", BACKEND, &id, &name, 0, 0);
-                }
-
-                self.slots[slot] = SlotState {
-                    present: true,
-                    pressed: guide_down[slot],
-                    primed: true,
-                    emitted_press: false,
-                };
-                continue;
-            }
-
             self.apply_edge(api, slot, guide_down[slot]);
         }
-
-        self.connected_mask = mask;
     }
 
     fn apply_edge(&mut self, api: &Api, slot: usize, pressed: bool) {

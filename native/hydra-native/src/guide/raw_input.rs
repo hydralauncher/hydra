@@ -418,7 +418,11 @@ pub(crate) fn wake() {
 }
 
 /// Entry point of the single watcher thread.
-pub(crate) fn watcher_thread() {
+///
+/// `ready` receives `true` once the Raw Input sink can actually deliver input,
+/// or `false` when initialisation failed. The starter blocks on it so that
+/// "started" is never reported for a watcher that cannot observe anything.
+pub(crate) fn watcher_thread(ready: std::sync::mpsc::Sender<bool>) {
     let mut xinput_backend = super::xinput::Backend::new();
     // When ordinal 100 is missing there is nothing to poll, so the four syscalls
     // per tick are skipped entirely rather than thrown away.
@@ -462,11 +466,25 @@ pub(crate) fn watcher_thread() {
         );
 
         if window.is_null() {
+            let _ = ready.send(false);
+            super::mark_watcher_stopped();
             return;
         }
 
         WINDOW.store(window as isize, Ordering::Release);
-        register_sink(window);
+
+        if !register_sink(window) {
+            // Without the sink the window would exist but never deliver a single
+            // report, which is exactly the silent failure this guards against.
+            WINDOW.store(0, Ordering::Release);
+            DestroyWindow(window);
+            UnregisterClassW(class_name.as_ptr(), instance);
+            let _ = ready.send(false);
+            super::mark_watcher_stopped();
+            return;
+        }
+
+        let _ = ready.send(true);
 
         let mut message: MSG = std::mem::zeroed();
 
@@ -497,6 +515,10 @@ pub(crate) fn watcher_thread() {
     if let Ok(mut map) = devices().lock() {
         map.clear();
     }
+
+    // If the loop ever ends on its own, `is_guide_watcher_running` must stop
+    // claiming that input is being observed.
+    super::mark_watcher_stopped();
 }
 
 #[cfg(test)]
