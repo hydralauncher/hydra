@@ -28,7 +28,11 @@ export const isQueueVerifyCandidate = (download: {
   bytesDownloaded?: number | null;
   folderName?: string | null;
   fileIndices?: number[] | null;
-}): boolean => {
+}): download is {
+  bytesDownloaded?: number | null;
+  folderName: string;
+  fileIndices?: number[] | null;
+} => {
   return (download.bytesDownloaded ?? 0) <= 0 && !!download.folderName;
 };
 

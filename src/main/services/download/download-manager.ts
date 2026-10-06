@@ -110,7 +110,7 @@ export class DownloadManager {
   } | null = null;
   private static queueHeldForDiskSpace = false;
   private static lastQueueRetry = 0;
-  private static queueVerifyAttempts = new Map<
+  private static readonly queueVerifyAttempts = new Map<
     string,
     { at: number; sig: string }
   >();
@@ -1006,7 +1006,7 @@ export class DownloadManager {
     if (!sig) return false;
     const now = Date.now();
     const prev = this.queueVerifyAttempts.get(key);
-    if (prev && prev.sig === sig && now - prev.at < this.QUEUE_VERIFY_TTL_MS)
+    if (prev?.sig === sig && now - prev.at < this.QUEUE_VERIFY_TTL_MS)
       return false;
     this.queueVerifyAttempts.set(key, { at: now, sig });
     if (this.queueVerifyAttempts.size > this.QUEUE_VERIFY_MAX_ENTRIES) {
