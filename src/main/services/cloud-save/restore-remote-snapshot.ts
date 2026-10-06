@@ -216,7 +216,7 @@ export const restoreRemoteSnapshot = async (
     throw new Error("Restore snapshot does not belong to the requested game");
   }
 
-  let resolvedGameContext = await getCloudSaveGameContext(
+  const resolvedGameContext = await getCloudSaveGameContext(
     gameId.objectId,
     gameId.shop
   );
@@ -243,22 +243,6 @@ export const restoreRemoteSnapshot = async (
   const manifest = migration?.manifest ?? originalManifest;
   const selectedFiles = selectRestoreFiles(manifest.files, requestedEntryIds);
   const selectedIds = new Set(selectedFiles.map(cloudSaveFileKey));
-  if (getEmulatorSaveProvider(resolvedGameContext.game) === "rpcs3") {
-    const { ensureRpcs3ProfileBindingForAnalysis } = await import(
-      "./rpcs3-save-provider"
-    );
-    if (
-      await ensureRpcs3ProfileBindingForAnalysis(
-        resolvedGameContext.game!,
-        selectedFiles
-      )
-    ) {
-      resolvedGameContext = await getCloudSaveGameContext(
-        gameId.objectId,
-        gameId.shop
-      );
-    }
-  }
   if (
     suppliedContext &&
     getEmulatorSaveProvider(resolvedGameContext.game) &&

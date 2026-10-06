@@ -50,7 +50,7 @@ export const getEmulatorSaveEnvironmentKey = async (game: Game) => {
     const { getRpcs3SaveEnvironmentKey } = await import(
       "./rpcs3-save-provider"
     );
-    return getRpcs3SaveEnvironmentKey(game);
+    return getRpcs3SaveEnvironmentKey();
   }
   if (provider === "retroarch") {
     const { getRetroArchSaveEnvironmentKey } = await import(

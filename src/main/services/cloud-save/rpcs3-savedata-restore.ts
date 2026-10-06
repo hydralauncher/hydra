@@ -10,7 +10,10 @@ import {
 } from "./emulator-provider-identity.js";
 import { rpcs3SlotBelongsToTitle } from "./rpcs3-save-layout.js";
 
-const isSafeTarget = async (root: string, segments: string[]) => {
+export const isSafeRpcs3RestoreTarget = async (
+  root: string,
+  segments: string[]
+) => {
   const target = path.resolve(root, ...segments);
   if (!target.startsWith(`${path.resolve(root)}${path.sep}`)) return false;
   let current = root;
@@ -29,27 +32,24 @@ const isSafeTarget = async (root: string, segments: string[]) => {
 export const resolveRpcs3SavedataRestoreRule = async (
   file: Pick<RestoreManifestFile, "rawPath" | "relativePath">,
   allowedTitleIds: ReadonlySet<string>,
-  homeRoot: string,
-  activeProfileId: string,
-  cloudProfileId: string | undefined
+  homeRoot: string
 ): Promise<CloudSaveRule | null> => {
   const parsed = parseRpcs3SaveRawPath(file.rawPath);
   const segments = safeRelativeSegments(file.relativePath);
   if (
     !parsed ||
-    parsed.profileId !== cloudProfileId ||
     !allowedTitleIds.has(parsed.titleId) ||
     !segments ||
     segments.length < 2 ||
     !rpcs3SlotBelongsToTitle(segments[0], parsed.titleId)
   )
     return null;
-  const profileRoot = path.join(homeRoot, activeProfileId);
+  const profileRoot = path.join(homeRoot, parsed.profileId);
   const profile = await fs.lstat(profileRoot).catch(() => null);
   if (!profile?.isDirectory() || profile.isSymbolicLink()) return null;
   const saveRoot = path.join(profileRoot, "savedata");
   const saveRootStat = await fs.lstat(saveRoot).catch(() => null);
   if (saveRootStat?.isSymbolicLink()) return null;
-  if (!(await isSafeTarget(saveRoot, segments))) return null;
+  if (!(await isSafeRpcs3RestoreTarget(saveRoot, segments))) return null;
   return emulatorRestoreRule(file.rawPath, saveRoot, "dir");
 };

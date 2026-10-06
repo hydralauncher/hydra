@@ -168,11 +168,6 @@ declare global {
       shop: GameShop,
       rawPath: string
     ) => Promise<void>;
-    bindRpcs3CloudSaveProfile: (
-      objectId: string,
-      shop: GameShop,
-      cloudProfileId: string
-    ) => Promise<void>;
     deleteGameCloudSaveData: (
       objectId: string,
       shop: GameShop

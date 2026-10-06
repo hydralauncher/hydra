@@ -122,20 +122,7 @@ export const analyzeCloudSaveState = async (
       new Set(rpcs3SavedataTitleIds)
     );
   }
-  let context = initialContext;
-  if (getEmulatorSaveProvider(context.game) === "rpcs3") {
-    const { ensureRpcs3ProfileBindingForAnalysis } = await import(
-      "./rpcs3-save-provider"
-    );
-    if (
-      await ensureRpcs3ProfileBindingForAnalysis(
-        context.game!,
-        remoteManifest?.files ?? []
-      )
-    ) {
-      context = await getCloudSaveGameContext(objectId, shop);
-    }
-  }
+  const context = initialContext;
   const currentAnchor = await getCloudSaveSyncAnchor(
     shop,
     objectId,

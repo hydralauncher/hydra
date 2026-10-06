@@ -40,6 +40,9 @@ export const rpcs3SaveRawPath = (titleId: string, profileId: string) =>
 export const rpcs3SavestateRawPath = (titleId: string) =>
   `${EMULATOR_SAVE_RAW_PATH_PREFIX}rpcs3-state/${titleId}`;
 
+export const rpcs3GamedataRawPath = (titleId: string) =>
+  `${EMULATOR_SAVE_RAW_PATH_PREFIX}rpcs3-gamedata/${titleId}`;
+
 export const retroArchSaveRawPath = (platform: string, romHash: string) =>
   `${EMULATOR_SAVE_RAW_PATH_PREFIX}retroarch/${platform}/${romHash}`;
 
@@ -71,6 +74,11 @@ export const parseRpcs3SaveRawPath = (rawPath: string) => {
 
 export const parseRpcs3SavestateRawPath = (rawPath: string) => {
   const match = /^<emulator>\/rpcs3-state\/([A-Z]{4}\d{5})$/.exec(rawPath);
+  return match ? { titleId: match[1] } : null;
+};
+
+export const parseRpcs3GamedataRawPath = (rawPath: string) => {
+  const match = /^<emulator>\/rpcs3-gamedata\/([A-Z]{4}\d{5})$/.exec(rawPath);
   return match ? { titleId: match[1] } : null;
 };
 
