@@ -46,6 +46,11 @@ use std::time::Instant;
 
 use napi_derive::napi;
 
+// Only the Windows Raw Input backend decodes Sony reports, so on other platforms
+// this module has no caller. It is still compiled there, because the report
+// layouts are portable hardware facts and their unit tests are worth running
+// everywhere.
+#[cfg_attr(not(windows), allow(dead_code))]
 pub mod sony;
 
 #[cfg(windows)]
