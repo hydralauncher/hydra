@@ -24,6 +24,7 @@ import {
   LibtorrentPayload,
   LibtorrentStatus,
   PauseDownloadPayload,
+  isQueueVerifyCandidate,
   isVerifyingStatus,
 } from "./types";
 import { calculateETA, getDirSize } from "./helpers";
@@ -997,9 +998,7 @@ export class DownloadManager {
   private static async shouldBypassQueueHoldForVerify(
     download: Download
   ): Promise<boolean> {
-    if ((download.bytesDownloaded ?? 0) > 0) return false;
-    if (!download.folderName) return false;
-    if (download.fileIndices && download.fileIndices.length > 0) return false;
+    if (!isQueueVerifyCandidate(download)) return false;
     const key = levelKeys.game(download.shop, download.objectId);
     const sig = await this.getQueueVerifySig(
       path.join(download.downloadPath, download.folderName)
@@ -1018,6 +1017,14 @@ export class DownloadManager {
       }
     }
     return true;
+  }
+
+  public static clearQueueVerifyAttempt(
+    download: Pick<Download, "shop" | "objectId">
+  ): void {
+    this.queueVerifyAttempts.delete(
+      levelKeys.game(download.shop, download.objectId)
+    );
   }
 
   private static async processNextQueuedDownload() {

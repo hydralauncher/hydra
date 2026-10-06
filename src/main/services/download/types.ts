@@ -24,6 +24,14 @@ export const isVerifyingStatus = (
   );
 };
 
+export const isQueueVerifyCandidate = (download: {
+  bytesDownloaded?: number | null;
+  folderName?: string | null;
+  fileIndices?: number[] | null;
+}): boolean => {
+  return (download.bytesDownloaded ?? 0) <= 0 && !!download.folderName;
+};
+
 export interface LibtorrentPayload {
   progress: number;
   numPeers: number;
