@@ -555,6 +555,8 @@ export class DownloadManager {
 
       const download = await downloadsSublevel.get(downloadId);
 
+      let updatedDownload = download;
+
       if (!isDownloadingMetadata && !isCheckingFiles) {
         if (!download) return null;
 
@@ -563,14 +565,16 @@ export class DownloadManager {
             ? fileSize
             : (download.selectedFilesSize ?? download.fileSize ?? 0);
 
-        await downloadsSublevel.put(downloadId, {
+        updatedDownload = {
           ...download,
           bytesDownloaded,
           fileSize: effectiveFileSize,
           progress,
           folderName,
           status: "active",
-        });
+        };
+
+        await downloadsSublevel.put(downloadId, updatedDownload);
       }
 
       return {
@@ -588,7 +592,7 @@ export class DownloadManager {
         isCheckingFiles,
         progress,
         gameId: downloadId,
-        download,
+        download: updatedDownload,
       } as DownloadProgress;
     } catch {
       return null;
@@ -652,7 +656,17 @@ export class DownloadManager {
 
     if (!download || !game) return;
 
-    if (await this.haltDownloadIfStorageIsFull(download, game, gameId)) return;
+    if (!status.isCheckingFiles && !status.isDownloadingMetadata) {
+      const live = status.download
+        ? {
+            bytesDownloaded: status.download.bytesDownloaded,
+            fileSize: status.download.fileSize,
+          }
+        : undefined;
+
+      if (await this.haltDownloadIfStorageIsFull(download, game, gameId, live))
+        return;
+    }
 
     this.sendProgressUpdate(progress, status, game);
 
@@ -682,7 +696,8 @@ export class DownloadManager {
   private static async haltDownloadIfStorageIsFull(
     download: Download,
     game: Game,
-    downloadKey: string
+    downloadKey: string,
+    live?: { bytesDownloaded?: number | null; fileSize?: number | null }
   ) {
     if (download.progress >= 1) return false;
 
@@ -697,7 +712,7 @@ export class DownloadManager {
 
     this.lastDiskSpaceCheck = { downloadKey, timestamp: now };
 
-    const diskSpace = await getDownloadDiskSpace(download);
+    const diskSpace = await getDownloadDiskSpace(download, live);
 
     if (!diskSpace) {
       logger.error(
@@ -964,7 +979,32 @@ export class DownloadManager {
     );
 
     if (nextItemOnQueue) {
-      const diskSpace = await getDownloadDiskSpace(nextItemOnQueue);
+      let diskSpace = await getDownloadDiskSpace(nextItemOnQueue);
+
+      if (
+        diskSpace &&
+        !diskSpace.hasEnoughSpace &&
+        (nextItemOnQueue.bytesDownloaded ?? 0) <= 0 &&
+        nextItemOnQueue.folderName &&
+        !(nextItemOnQueue.fileIndices && nextItemOnQueue.fileIndices.length > 0)
+      ) {
+        try {
+          const onDiskBytes = await getDirSize(
+            path.join(nextItemOnQueue.downloadPath, nextItemOnQueue.folderName)
+          );
+          const targetSize =
+            nextItemOnQueue.selectedFilesSize ?? nextItemOnQueue.fileSize ?? 0;
+          if (onDiskBytes > 0 && targetSize > 0) {
+            const healedBytes = Math.min(onDiskBytes, targetSize);
+            diskSpace = await getDownloadDiskSpace(nextItemOnQueue, {
+              bytesDownloaded: healedBytes,
+              fileSize: targetSize,
+            });
+          }
+        } catch {
+          void 0;
+        }
+      }
 
       if (diskSpace && !diskSpace.hasEnoughSpace) {
         if (!this.queueHeldForDiskSpace) {
