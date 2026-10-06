@@ -6,7 +6,12 @@ import i18next from "i18next";
 import { defaultDownloadsPath } from "@main/constants";
 import { db, gamesSublevel, levelKeys } from "@main/level";
 import { patchUserProfile } from "../profile/update-profile";
-import { DownloadManager, Wine } from "@main/services";
+import {
+  DownloadManager,
+  GuideService,
+  isGlobalGuideButtonEnabled,
+  Wine,
+} from "@main/services";
 import { WindowManager } from "@main/services/window-manager";
 import { getDownloadDirectoryPreferences } from "@shared";
 import {
@@ -107,6 +112,14 @@ const updateAchievementSouvenirPreference = async (
   ]);
 };
 
+const updateGlobalGuideButtonPreference = (
+  preferences: Partial<UserPreferences>
+) => {
+  if (!Object.hasOwn(preferences, "enableGlobalGuideButton")) return;
+
+  GuideService.applyEnabled(isGlobalGuideButtonEnabled(preferences));
+};
+
 const applyDownloadManagerPreferences = async (
   preferences: Partial<UserPreferences>
 ) => {
@@ -157,6 +170,8 @@ const updateUserPreferences = async (
   Wine.syncUserPreferences(updatedPreferences);
 
   await updateAchievementSouvenirPreference(preferences);
+
+  updateGlobalGuideButtonPreference(preferences);
 
   WindowManager.sendToAppWindows(
     "on-user-preferences-updated",

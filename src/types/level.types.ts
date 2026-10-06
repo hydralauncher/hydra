@@ -203,6 +203,11 @@ export interface UserPreferences {
   hideLibraryAchievementProgress?: boolean;
   autoplayAnimatedArtwork?: boolean;
   persistFiltersAndSorting?: boolean;
+  /**
+   * Watch the controller's system button (Guide / PS / Home) globally: one press
+   * focuses Hydra, two quick presses open Big Picture. Windows only.
+   */
+  enableGlobalGuideButton?: boolean;
 }
 
 export interface NetworkInterface {

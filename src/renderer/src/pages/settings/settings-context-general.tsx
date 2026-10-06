@@ -72,6 +72,7 @@ const buildForm = (
   hideToTrayOnGameStart: preferences?.hideToTrayOnGameStart ?? false,
   launchToLibraryPage: preferences?.launchToLibraryPage ?? false,
   enableAutoInstall: preferences?.enableAutoInstall ?? false,
+  enableGlobalGuideButton: preferences?.enableGlobalGuideButton ?? false,
 });
 
 export function SettingsContextGeneral({
@@ -269,6 +270,28 @@ export function SettingsContextGeneral({
           }
         />
       </div>
+
+      {window.electron.platform === "win32" && (
+        <div className="settings-context-panel__group">
+          <h3>{t("controller")}</h3>
+
+          <CheckboxField
+            label={
+              <>
+                {t("global_guide_button")}
+                <br />
+                <small>{t("global_guide_button_description")}</small>
+              </>
+            }
+            checked={form.enableGlobalGuideButton}
+            onChange={() =>
+              handleChange({
+                enableGlobalGuideButton: !form.enableGlobalGuideButton,
+              })
+            }
+          />
+        </div>
+      )}
 
       {window.electron.platform === "linux" && (
         <div className="settings-context-panel__group">

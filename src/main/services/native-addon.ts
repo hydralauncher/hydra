@@ -25,6 +25,7 @@ import type {
 } from "@types";
 
 import { logger } from "./logger";
+import type { GuideDevice, GuideEvent } from "./guide/guide-events";
 
 type NativeProcessProfileImageResponse = {
   imagePath?: string;
@@ -112,6 +113,13 @@ type HydraNativeModule = {
     snapshotId: string,
     tempRoot: string
   ) => Promise<void>;
+  isGuideWatcherSupported: () => boolean;
+  isGuideWatcherRunning: () => boolean;
+  startGuideWatcher: () => boolean;
+  stopGuideWatcher: () => boolean;
+  pollGuideEvents: () => GuideEvent[];
+  describeGuideDevices: () => GuideDevice[];
+  bringWindowToForeground: (windowHandle: number) => boolean;
 };
 
 export type SystemProcessMap = {
@@ -505,5 +513,64 @@ export class NativeAddon {
     tempRoot: string
   ) {
     return this.load().cleanupRestoreTempSnapshot(snapshotId, tempRoot);
+  }
+
+  /**
+   * The global Guide button is an optional capability: an addon built before it
+   * existed, or a platform that cannot watch the system button, must degrade to
+   * "unsupported" instead of throwing on every poll. The failure is logged once.
+   */
+  private static guideCapableModule(): HydraNativeModule | null {
+    let nativeModule: HydraNativeModule;
+
+    try {
+      nativeModule = this.load();
+    } catch (error) {
+      if (!this.guideAddonFailureLogged) {
+        this.guideAddonFailureLogged = true;
+        logger.error(
+          "Global guide button: the native addon could not be loaded",
+          error
+        );
+      }
+      return null;
+    }
+
+    if (typeof nativeModule.startGuideWatcher !== "function") return null;
+
+    return nativeModule;
+  }
+
+  private static guideAddonFailureLogged = false;
+
+  public static isGuideWatcherSupported(): boolean {
+    return this.guideCapableModule()?.isGuideWatcherSupported() ?? false;
+  }
+
+  public static isGuideWatcherRunning(): boolean {
+    return this.guideCapableModule()?.isGuideWatcherRunning() ?? false;
+  }
+
+  public static startGuideWatcher(): boolean {
+    return this.guideCapableModule()?.startGuideWatcher() ?? false;
+  }
+
+  public static stopGuideWatcher(): boolean {
+    return this.guideCapableModule()?.stopGuideWatcher() ?? false;
+  }
+
+  public static pollGuideEvents(): GuideEvent[] {
+    return this.guideCapableModule()?.pollGuideEvents() ?? [];
+  }
+
+  public static describeGuideDevices(): GuideDevice[] {
+    return this.guideCapableModule()?.describeGuideDevices() ?? [];
+  }
+
+  /** Raise one of Hydra's windows to the foreground. See the native module. */
+  public static bringWindowToForeground(windowHandle: number): boolean {
+    return (
+      this.guideCapableModule()?.bringWindowToForeground(windowHandle) ?? false
+    );
   }
 }

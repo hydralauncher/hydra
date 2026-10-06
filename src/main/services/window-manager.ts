@@ -36,6 +36,7 @@ import path from "node:path";
 import UserAgent from "user-agents";
 import { HydraApi } from "./hydra-api";
 import { logger } from "./logger";
+import { NativeAddon } from "./native-addon";
 import {
   addSteamGridDbCacheControl,
   isSteamGridDbArtworkRequest,
@@ -51,6 +52,17 @@ interface CreateMainWindowOptions {
   forceBigPicture?: boolean;
 }
 
+/**
+ * Options for the "bring Hydra to the user" entry points.
+ *
+ * `raiseToForeground` is for callers that run while Hydra is in the background
+ * (the global Guide shortcut): plain `show()`/`focus()` are not enough in that
+ * situation, see `raiseToForeground` below.
+ */
+interface RaiseOptions {
+  raiseToForeground?: boolean;
+}
+
 export class WindowManager {
   private static mainWindowInstance: Electron.BrowserWindow | null = null;
   private static gameLauncherWindowInstance: Electron.BrowserWindow | null =
@@ -61,6 +73,45 @@ export class WindowManager {
   private static retroAchievementsConnectionWindow: Electron.BrowserWindow | null =
     null;
   private static deferredMainMaximize = false;
+
+  /** Set when the next main window has to be raised as soon as it is ready. */
+  private static raiseMainWindowWhenReady = false;
+
+  /**
+   * Lift a window above the application the user is currently looking at, and
+   * give it the keyboard focus.
+   *
+   * `show()` and `focus()` alone are not enough from the background: Windows
+   * only lets the *foreground* process claim the foreground, and a controller
+   * button produces no Windows input event for Hydra, so the request is refused
+   * and the window stays behind. Bouncing through "always on top" lifts it in
+   * the z-order, and the native addon performs the thread-input attachment that
+   * makes the focus request legitimate. No input is synthesised.
+   */
+  private static raiseToForeground(window: Electron.BrowserWindow | null) {
+    if (!window || window.isDestroyed()) return;
+
+    if (window.isMinimized()) window.restore();
+
+    window.show();
+    window.setAlwaysOnTop(true);
+    window.setAlwaysOnTop(false);
+    window.focus();
+
+    try {
+      const handle = window.getNativeWindowHandle();
+      // Window handles are far below 2^53, so a JS number is exact here and is
+      // what the native module's `i64` parameter expects.
+      const nativeHandle =
+        handle.length >= 8
+          ? Number(handle.readBigUInt64LE(0))
+          : handle.readUInt32LE(0);
+
+      NativeAddon.bringWindowToForeground(nativeHandle);
+    } catch (error) {
+      logger.error("Failed to raise the Hydra window to the foreground", error);
+    }
+  }
 
   private static isArtworkRendererRequest(
     webContentsId: number | undefined
@@ -398,9 +449,15 @@ export class WindowManager {
       if (!app.isPackaged || isStaging)
         WindowManager.mainWindow?.webContents.openDevTools();
       if (shouldLaunchInBigPicture) {
-        void WindowManager.openBigPictureWindow();
+        const raise = WindowManager.raiseMainWindowWhenReady;
+        WindowManager.raiseMainWindowWhenReady = false;
+        void WindowManager.openBigPictureWindow({ raiseToForeground: raise });
       } else {
         WindowManager.mainWindow?.show();
+        if (WindowManager.raiseMainWindowWhenReady) {
+          WindowManager.raiseMainWindowWhenReady = false;
+          WindowManager.raiseToForeground(WindowManager.mainWindow);
+        }
       }
     });
 
@@ -453,9 +510,12 @@ export class WindowManager {
     );
   }
 
-  public static async openBigPictureWindow() {
+  public static async openBigPictureWindow(options?: RaiseOptions) {
+    const raiseToForeground = options?.raiseToForeground === true;
+
     if (this.bigPicture) {
-      this.bigPicture.focus();
+      if (raiseToForeground) this.raiseToForeground(this.bigPicture);
+      else this.bigPicture.focus();
       return;
     }
 
@@ -510,6 +570,7 @@ export class WindowManager {
       this.bigPicture?.show();
       this.bigPicture?.setFullScreen(true);
       this.bigPicture?.focus();
+      if (raiseToForeground) this.raiseToForeground(this.bigPicture);
     });
 
     this.bigPicture.on("closed", () => {
@@ -1002,9 +1063,12 @@ export class WindowManager {
     }
   }
 
-  public static openMainWindow() {
+  public static openMainWindow(options?: RaiseOptions) {
+    const raiseToForeground = options?.raiseToForeground === true;
+
     if (this.bigPicture && !this.bigPicture.isDestroyed()) {
-      this.bigPicture.focus();
+      if (raiseToForeground) this.raiseToForeground(this.bigPicture);
+      else this.bigPicture.focus();
       return;
     }
 
@@ -1014,7 +1078,9 @@ export class WindowManager {
         this.mainWindow.restore();
       }
       this.mainWindow.focus();
+      if (raiseToForeground) this.raiseToForeground(this.mainWindow);
     } else {
+      this.raiseMainWindowWhenReady = raiseToForeground;
       this.createMainWindow();
     }
   }
