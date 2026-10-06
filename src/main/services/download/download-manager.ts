@@ -114,6 +114,7 @@ export class DownloadManager {
     { at: number; sig: string }
   >();
   private static readonly QUEUE_VERIFY_TTL_MS = 600_000;
+  private static readonly QUEUE_VERIFY_MAX_ENTRIES = 100;
   private static readonly preparedJsDownloads = new Map<
     string,
     PreparedJsDownload
@@ -1009,7 +1010,7 @@ export class DownloadManager {
     if (prev && prev.sig === sig && now - prev.at < this.QUEUE_VERIFY_TTL_MS)
       return false;
     this.queueVerifyAttempts.set(key, { at: now, sig });
-    if (this.queueVerifyAttempts.size > 100) {
+    if (this.queueVerifyAttempts.size > this.QUEUE_VERIFY_MAX_ENTRIES) {
       for (const [entryKey, entry] of this.queueVerifyAttempts) {
         if (now - entry.at >= this.QUEUE_VERIFY_TTL_MS) {
           this.queueVerifyAttempts.delete(entryKey);
