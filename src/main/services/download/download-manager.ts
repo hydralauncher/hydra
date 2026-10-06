@@ -979,32 +979,7 @@ export class DownloadManager {
     );
 
     if (nextItemOnQueue) {
-      let diskSpace = await getDownloadDiskSpace(nextItemOnQueue);
-
-      if (
-        diskSpace &&
-        !diskSpace.hasEnoughSpace &&
-        (nextItemOnQueue.bytesDownloaded ?? 0) <= 0 &&
-        nextItemOnQueue.folderName &&
-        !(nextItemOnQueue.fileIndices && nextItemOnQueue.fileIndices.length > 0)
-      ) {
-        try {
-          const onDiskBytes = await getDirSize(
-            path.join(nextItemOnQueue.downloadPath, nextItemOnQueue.folderName)
-          );
-          const targetSize =
-            nextItemOnQueue.selectedFilesSize ?? nextItemOnQueue.fileSize ?? 0;
-          if (onDiskBytes > 0 && targetSize > 0) {
-            const healedBytes = Math.min(onDiskBytes, targetSize);
-            diskSpace = await getDownloadDiskSpace(nextItemOnQueue, {
-              bytesDownloaded: healedBytes,
-              fileSize: targetSize,
-            });
-          }
-        } catch {
-          void 0;
-        }
-      }
+      const diskSpace = await getDownloadDiskSpace(nextItemOnQueue);
 
       if (diskSpace && !diskSpace.hasEnoughSpace) {
         if (!this.queueHeldForDiskSpace) {
