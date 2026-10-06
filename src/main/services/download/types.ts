@@ -15,6 +15,15 @@ export enum LibtorrentStatus {
   CheckingResumeData = 7,
 }
 
+export const isVerifyingStatus = (
+  status: LibtorrentStatus | number
+): boolean => {
+  return (
+    status === LibtorrentStatus.CheckingFiles ||
+    status === LibtorrentStatus.CheckingResumeData
+  );
+};
+
 export interface LibtorrentPayload {
   progress: number;
   numPeers: number;

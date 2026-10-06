@@ -24,6 +24,7 @@ import {
   LibtorrentPayload,
   LibtorrentStatus,
   PauseDownloadPayload,
+  isVerifyingStatus,
 } from "./types";
 import { calculateETA, getDirSize } from "./helpers";
 import { extractDownloadFilename } from "./download-filename";
@@ -108,6 +109,11 @@ export class DownloadManager {
   } | null = null;
   private static queueHeldForDiskSpace = false;
   private static lastQueueRetry = 0;
+  private static queueVerifyAttempts = new Map<
+    string,
+    { at: number; sig: string }
+  >();
+  private static readonly QUEUE_VERIFY_TTL_MS = 600_000;
   private static readonly preparedJsDownloads = new Map<
     string,
     PreparedJsDownload
@@ -551,9 +557,7 @@ export class DownloadManager {
 
       const isDownloadingMetadata =
         status === LibtorrentStatus.DownloadingMetadata;
-      const isCheckingFiles =
-        status === LibtorrentStatus.CheckingFiles ||
-        status === LibtorrentStatus.CheckingResumeData;
+      const isCheckingFiles = isVerifyingStatus(status);
 
       const download = await downloadsSublevel.get(downloadId);
 
@@ -972,6 +976,49 @@ export class DownloadManager {
     }
   }
 
+  private static async getQueueVerifySig(
+    targetPath: string
+  ): Promise<string | null> {
+    try {
+      const stat = await fs.promises.stat(targetPath);
+      if (!stat.isDirectory()) {
+        if (stat.size <= 0) return null;
+        return `${stat.mtimeMs}:${stat.size}`;
+      }
+      const entries = await fs.promises.readdir(targetPath);
+      if (entries.length === 0) return null;
+      return `${stat.mtimeMs}:${entries.length}`;
+    } catch {
+      return null;
+    }
+  }
+
+  private static async shouldBypassQueueHoldForVerify(
+    download: Download
+  ): Promise<boolean> {
+    if ((download.bytesDownloaded ?? 0) > 0) return false;
+    if (!download.folderName) return false;
+    if (download.fileIndices && download.fileIndices.length > 0) return false;
+    const key = levelKeys.game(download.shop, download.objectId);
+    const sig = await this.getQueueVerifySig(
+      path.join(download.downloadPath, download.folderName)
+    );
+    if (!sig) return false;
+    const now = Date.now();
+    const prev = this.queueVerifyAttempts.get(key);
+    if (prev && prev.sig === sig && now - prev.at < this.QUEUE_VERIFY_TTL_MS)
+      return false;
+    this.queueVerifyAttempts.set(key, { at: now, sig });
+    if (this.queueVerifyAttempts.size > 100) {
+      for (const [entryKey, entry] of this.queueVerifyAttempts) {
+        if (now - entry.at >= this.QUEUE_VERIFY_TTL_MS) {
+          this.queueVerifyAttempts.delete(entryKey);
+        }
+      }
+    }
+    return true;
+  }
+
   private static async processNextQueuedDownload() {
     const downloads = await downloadsSublevel.values().all();
     const layoutState = await getDownloadLayoutStateRecord();
@@ -984,15 +1031,21 @@ export class DownloadManager {
       const diskSpace = await getDownloadDiskSpace(nextItemOnQueue);
 
       if (diskSpace && !diskSpace.hasEnoughSpace) {
-        if (!this.queueHeldForDiskSpace) {
-          logger.warn(
-            `[DownloadManager] Keeping the queue on hold: ${nextItemOnQueue.downloadPath} has ${diskSpace.freeBytes} bytes free, ${diskSpace.requiredBytes} needed`
+        if (await this.shouldBypassQueueHoldForVerify(nextItemOnQueue)) {
+          logger.log(
+            `[DownloadManager] Allowing queued ${nextItemOnQueue.shop}:${nextItemOnQueue.objectId} to verify existing files before disk check`
           );
-          WindowManager.sendDownloadsUpdated();
-        }
+        } else {
+          if (!this.queueHeldForDiskSpace) {
+            logger.warn(
+              `[DownloadManager] Keeping the queue on hold: ${nextItemOnQueue.downloadPath} has ${diskSpace.freeBytes} bytes free, ${diskSpace.requiredBytes} needed`
+            );
+            WindowManager.sendDownloadsUpdated();
+          }
 
-        this.queueHeldForDiskSpace = true;
-        return;
+          this.queueHeldForDiskSpace = true;
+          return;
+        }
       }
 
       this.queueHeldForDiskSpace = false;
