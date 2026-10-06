@@ -12,6 +12,7 @@ export enum LibtorrentStatus {
   Downloading = 3,
   Finished = 4,
   Seeding = 5,
+  CheckingResumeData = 7,
 }
 
 export interface LibtorrentPayload {

@@ -551,7 +551,9 @@ export class DownloadManager {
 
       const isDownloadingMetadata =
         status === LibtorrentStatus.DownloadingMetadata;
-      const isCheckingFiles = status === LibtorrentStatus.CheckingFiles;
+      const isCheckingFiles =
+        status === LibtorrentStatus.CheckingFiles ||
+        status === LibtorrentStatus.CheckingResumeData;
 
       const download = await downloadsSublevel.get(downloadId);
 
