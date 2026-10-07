@@ -605,7 +605,8 @@ export default function Library() {
         name: t("favorites"),
         gamesCount: favoritesCount,
       },
-      ...(userDetails
+      ...(userDetails &&
+      (hiddenGames.length > 0 || selectedCollectionId === HIDDEN_COLLECTION_ID)
         ? [
             {
               id: HIDDEN_COLLECTION_ID,
@@ -626,6 +627,7 @@ export default function Library() {
     customGamesCountByCollectionId,
     favoritesCount,
     hiddenGames.length,
+    selectedCollectionId,
     t,
     userDetails,
   ]);

@@ -680,7 +680,7 @@ declare global {
     ) => Promise<EmulatorConfig>;
     checkPs3Firmware: (
       executablePath: string | null
-    ) => Promise<{ installed: boolean }>;
+    ) => Promise<{ installed: boolean; path: string | null }>;
     checkEmulatorBios: (
       system: EmulatorSystem,
       executablePath: string | null,

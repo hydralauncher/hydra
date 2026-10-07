@@ -1,23 +1,34 @@
 import type { GameShop, UserAchievement } from "@types";
+import {
+  filterAndSortAchievements,
+  getAchievementStatusCounts,
+  isAchievementConcealed,
+  type AchievementSortOption,
+  type AchievementStatusFilter,
+} from "@shared";
 import { useCallback, useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
+import cn from "classnames";
 import { useNavigate, useParams } from "react-router-dom";
 import { VerticalFocusGroup } from "../../components";
 import {
   AchievementRow,
-  AvailablePointsBar,
   GAME_ACHIEVEMENTS_LIST_REGION_ID,
   GAME_ACHIEVEMENTS_PAGE_REGION_ID,
-  GAME_ACHIEVEMENTS_SUMMARY_FOCUS_ID,
+  GAME_ACHIEVEMENTS_SEARCH_INPUT_ID,
   GameAchievementsHero,
   GameAchievementsSouvenirViewer,
+  GameAchievementsToolbar,
   UserAchievementsSummary,
   getAchievementRowId,
 } from "../../components/pages/game-achievements";
 import {
   useGameDetails,
   useHeaderTitle,
+  useNavigationActions,
   useNavigationScreenActions,
   useUserDetails,
+  useUserPreferences,
 } from "../../hooks";
 import "./styles.scss";
 
@@ -28,8 +39,48 @@ export default function GameAchievements() {
     objectId!,
     shop!
   );
-  const { userDetails } = useUserDetails();
+  const { t } = useTranslation("achievement");
+  const { userDetails, hasActiveSubscription } = useUserDetails();
+  const userPreferences = useUserPreferences();
+  const showHiddenAchievements =
+    userPreferences?.showHiddenAchievementsDescription ?? false;
   const [souvenir, setSouvenir] = useState<UserAchievement | null>(null);
+  const [search, setSearch] = useState("");
+  const [status, setStatus] = useState<AchievementStatusFilter>("all");
+  const [sort, setSort] = useState<AchievementSortOption>("most_common");
+  const [revealedNames, setRevealedNames] = useState<Set<string>>(
+    () => new Set()
+  );
+
+  const isConcealed = useCallback(
+    (achievement: Pick<UserAchievement, "name" | "hidden" | "unlocked">) =>
+      isAchievementConcealed(achievement, showHiddenAchievements) &&
+      !revealedNames.has(achievement.name),
+    [revealedNames, showHiddenAchievements]
+  );
+
+  const [lastRevealedName, setLastRevealedName] = useState<string | null>(null);
+
+  const handleReveal = useCallback((achievement: UserAchievement) => {
+    setRevealedNames((current) => new Set(current).add(achievement.name));
+    setLastRevealedName(achievement.name);
+  }, []);
+
+  const statusCounts = useMemo(
+    () => getAchievementStatusCounts(achievements),
+    [achievements]
+  );
+
+  const visibleAchievements = useMemo(
+    () =>
+      filterAndSortAchievements(achievements, {
+        search,
+        status,
+        sort,
+        isConcealed,
+      }),
+    [achievements, isConcealed, search, sort, status]
+  );
 
   const unlockedCount = useMemo(
     () => achievements.filter((a) => a.unlocked).length,
@@ -41,8 +92,8 @@ export default function GameAchievements() {
     [achievements]
   );
 
-  const firstAchievementRowId = achievements[0]
-    ? getAchievementRowId(achievements[0].name)
+  const firstAchievementRowId = visibleAchievements[0]
+    ? getAchievementRowId(visibleAchievements[0].name)
     : null;
 
   const earnedPoints = useMemo(
@@ -61,8 +112,22 @@ export default function GameAchievements() {
     []
   );
 
+  const { moveFocus } = useNavigationActions();
+  const [hasNavigated, setHasNavigated] = useState(false);
+
   const screenActions = useMemo(
     () => ({
+      direction: hasNavigated
+        ? undefined
+        : Object.fromEntries(
+            (["up", "down", "left", "right"] as const).map((direction) => [
+              direction,
+              () => {
+                setHasNavigated(true);
+                moveFocus(direction);
+              },
+            ])
+          ),
       press: {
         b: () => {
           if (souvenir) {
@@ -74,7 +139,7 @@ export default function GameAchievements() {
         },
       },
     }),
-    [navigate, souvenir]
+    [hasNavigated, moveFocus, navigate, souvenir]
   );
 
   useNavigationScreenActions(screenActions);
@@ -91,7 +156,11 @@ export default function GameAchievements() {
 
   return (
     <VerticalFocusGroup regionId={GAME_ACHIEVEMENTS_PAGE_REGION_ID} asChild>
-      <div className="game-achievements-page">
+      <div
+        className={cn("game-achievements-page", {
+          "game-achievements-page--pristine": !hasNavigated,
+        })}
+      >
         <GameAchievementsHero shopDetails={shopDetails} game={game} />
 
         <div className="game-achievements-page__content">
@@ -102,38 +171,57 @@ export default function GameAchievements() {
             stealFocusOnAppear
             navigationOverrides={{
               up: { type: "block" },
-              down: firstAchievementRowId
-                ? { type: "item", itemId: firstAchievementRowId }
-                : { type: "block" },
+              down: { type: "item", itemId: GAME_ACHIEVEMENTS_SEARCH_INPUT_ID },
             }}
           />
 
-          <section className="game-achievements-page__list-section">
-            <AvailablePointsBar
-              earnedPoints={earnedPoints}
-              totalPoints={totalPoints}
-            />
+          <GameAchievementsToolbar
+            search={search}
+            onSearchChange={setSearch}
+            sort={sort}
+            onSortChange={setSort}
+            status={status}
+            onStatusChange={setStatus}
+            statusCounts={statusCounts}
+            firstAchievementRowId={firstAchievementRowId}
+            points={
+              hasActiveSubscription
+                ? { earned: earnedPoints, total: totalPoints }
+                : null
+            }
+          />
 
+          <section className="game-achievements-page__list-section">
             <VerticalFocusGroup
               regionId={GAME_ACHIEVEMENTS_LIST_REGION_ID}
               asChild
             >
               <ul className="game-achievements-page__list">
-                {achievements.map((achievement, index) => (
+                {visibleAchievements.length === 0 ? (
+                  <li className="game-achievements-page__empty">
+                    {t("no_achievements_found")}
+                  </li>
+                ) : null}
+
+                {visibleAchievements.map((achievement, index) => (
                   <AchievementRow
                     key={achievement.name}
                     achievement={achievement}
+                    concealed={isConcealed(achievement)}
+                    revealed={achievement.name === lastRevealedName}
+                    showPoints={hasActiveSubscription}
                     navigationOverrides={
                       index === 0
                         ? {
                             up: {
                               type: "item",
-                              itemId: GAME_ACHIEVEMENTS_SUMMARY_FOCUS_ID,
+                              itemId: GAME_ACHIEVEMENTS_SEARCH_INPUT_ID,
                             },
                           }
                         : undefined
                     }
                     onSouvenirActivate={handleSouvenirActivate}
+                    onReveal={handleReveal}
                   />
                 ))}
               </ul>

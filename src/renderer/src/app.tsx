@@ -10,6 +10,7 @@ import {
   useAppDispatch,
   useAppSelector,
   useDownload,
+  useDragTextSelection,
   useLibrary,
   useToast,
   useUserDetails,
@@ -75,6 +76,7 @@ export function App() {
 
   // Listen for new download options updates
   useDownloadOptionsListener();
+  useDragTextSelection();
 
   const { t } = useTranslation("app");
 

@@ -17,6 +17,7 @@ export interface SteamAchievement {
   icongray: string;
   hidden: boolean;
   points?: number;
+  globalUnlockPercentage?: number | null;
 }
 
 export interface UserAchievement extends SteamAchievement {

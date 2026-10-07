@@ -82,7 +82,10 @@ function getComparedAchievement(
     key: `${achievement.displayName}-${achievement.targetStat.unlockTime}`,
     icon: achievement.icon,
     displayName: achievement.displayName,
-    description: achievement.description,
+    description:
+      achievement.hidden && !achievement.ownerStat?.unlocked
+        ? ""
+        : achievement.description,
     unlockTime: achievement.targetStat.unlockTime,
   };
 }

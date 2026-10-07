@@ -162,7 +162,7 @@ function SouvenirSummary({
   onGameClick: () => void;
 }>) {
   const { t } = useTranslation("user_profile");
-  const { formatDateTime } = useDate();
+  const { formatUnlockDateTime } = useDate();
   const additionalAchievementsTooltipId = useId();
   const [failedAchievementIconUrl, setFailedAchievementIconUrl] = useState<
     string | null
@@ -288,7 +288,7 @@ function SouvenirSummary({
 
           <span className="profile-souvenir-lightbox__unlock-time">
             {t("souvenir_unlocked_on", {
-              date: formatDateTime(primaryAchievement.unlockTime),
+              date: formatUnlockDateTime(primaryAchievement.unlockTime),
             })}
           </span>
         </div>

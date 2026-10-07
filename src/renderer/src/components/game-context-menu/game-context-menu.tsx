@@ -340,6 +340,28 @@ export function GameContextMenu({
       disabled: isDeleting,
       submenu: [
         {
+          id: "pin-game",
+          label:
+            (isPinned ?? game.isPinned ?? false)
+              ? t("unpin_game")
+              : t("pin_game"),
+          icon:
+            (isPinned ?? game.isPinned ?? false) ? (
+              <PinSlashIcon size={16} />
+            ) : (
+              <PinIcon size={16} />
+            ),
+          onClick: onPinToggle ?? handleTogglePin,
+          disabled: isDeleting,
+        },
+        {
+          id: "customize",
+          label: t("customize_game"),
+          icon: <ImageIcon size={16} />,
+          onClick: () => handleOpenGameOptions("assets"),
+          disabled: isDeleting,
+        },
+        {
           id: "hide-game",
           label: visibility.isHiddenFromOthers
             ? t("unhide_game")
@@ -369,28 +391,6 @@ export function GameContextMenu({
             isVisibilityPending ||
             !userDetails ||
             game.shop === "custom",
-        },
-        {
-          id: "pin-game",
-          label:
-            (isPinned ?? game.isPinned ?? false)
-              ? t("unpin_game")
-              : t("pin_game"),
-          icon:
-            (isPinned ?? game.isPinned ?? false) ? (
-              <PinSlashIcon size={16} />
-            ) : (
-              <PinIcon size={16} />
-            ),
-          onClick: onPinToggle ?? handleTogglePin,
-          disabled: isDeleting,
-        },
-        {
-          id: "customize",
-          label: t("customize_game"),
-          icon: <ImageIcon size={16} />,
-          onClick: () => handleOpenGameOptions("assets"),
-          disabled: isDeleting,
         },
         ...(game.executablePath
           ? [

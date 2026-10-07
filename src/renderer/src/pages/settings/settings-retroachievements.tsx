@@ -2,7 +2,12 @@ import { useCallback, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 
 import { Button, CheckboxField, GuideLink, Modal } from "@renderer/components";
-import { useDate, useToast, useUserDetails } from "@renderer/hooks";
+import {
+  useAppSelector,
+  useDate,
+  useToast,
+  useUserDetails,
+} from "@renderer/hooks";
 import { LinkExternalIcon, PersonIcon, SyncIcon } from "@primer/octicons-react";
 import { AuthPage } from "@shared";
 
@@ -41,10 +46,16 @@ export function SettingsRetroAchievements() {
   const [deleteAchievementsOnDisconnect, setDeleteAchievementsOnDisconnect] =
     useState(true);
 
+  const hasLocalApiKey = useAppSelector((state) =>
+    Boolean(state.userPreferences.value?.retroAchievementsWebApiKey)
+  );
+
   const connectedUsername = integration.connected ? integration.username : null;
   const isInvalid =
     integration.connected &&
     integration.retroAchievementsAccountStatus === "invalid_credentials";
+  const isMissingLocalKey =
+    integration.connected && !isInvalid && !hasLocalApiKey;
 
   useEffect(() => {
     setAvatarError(false);
@@ -222,6 +233,19 @@ export function SettingsRetroAchievements() {
               {t("retroachievements_invalid_credentials_description")}
             </p>
           ) : null}
+
+          {isMissingLocalKey ? (
+            <button
+              type="button"
+              className="settings-integration-card__message settings-retroachievements__reconnect-hint"
+              onClick={openConnectionWindow}
+              disabled={isSubmitting}
+            >
+              {t("retroachievements_missing_key_description")}
+            </button>
+          ) : null}
+
+          {emulatorNote}
         </>
       );
     }
@@ -260,7 +284,7 @@ export function SettingsRetroAchievements() {
 
     return (
       <>
-        {isInvalid ? (
+        {isInvalid || isMissingLocalKey ? (
           <Button onClick={openConnectionWindow} disabled={isSubmitting}>
             <LinkExternalIcon size={STATUS_ICON_SIZE} />
             {t("integration_reconnect")}
@@ -291,9 +315,11 @@ export function SettingsRetroAchievements() {
 
   const status = isInvalid
     ? t("retroachievements_status_invalid_credentials")
-    : integration.connected
-      ? t("retroachievements_status_active")
-      : t("integration_status_not_connected");
+    : isMissingLocalKey
+      ? t("retroachievements_status_missing_key")
+      : integration.connected
+        ? t("retroachievements_status_active")
+        : t("integration_status_not_connected");
 
   return (
     <>
@@ -302,7 +328,11 @@ export function SettingsRetroAchievements() {
         logo={<img src={retroAchievementsLogo} alt="" />}
         status={status}
         statusTone={
-          isInvalid ? "warning" : integration.connected ? "success" : "neutral"
+          isInvalid || isMissingLocalKey
+            ? "warning"
+            : integration.connected
+              ? "success"
+              : "neutral"
         }
         actions={renderActions()}
         loading={isLoading}

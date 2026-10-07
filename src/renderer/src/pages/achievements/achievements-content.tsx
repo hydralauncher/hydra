@@ -1,6 +1,6 @@
 import { setHeaderTitle } from "@renderer/features";
 import { useAppDispatch, useUserDetails } from "@renderer/hooks";
-import { useContext, useEffect, useRef, useState } from "react";
+import { useContext, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import {
   buildGameDetailsPath,
@@ -13,10 +13,7 @@ import type { ComparedAchievements } from "@types";
 import { Link, ProgressBar } from "@renderer/components";
 import { ComparedAchievementList } from "./compared-achievement-list";
 import { AchievementList } from "./achievement-list";
-import { AchievementPanel } from "./achievement-panel";
-import { ComparedAchievementPanel } from "./compared-achievement-panel";
 import { useSubscription } from "@renderer/hooks/use-subscription";
-import { RetroAchievementsConnectBanner } from "@renderer/components/retro-achievements-connect-banner/retro-achievements-connect-banner";
 import "./achievements-content.scss";
 
 interface UserInfo {
@@ -49,7 +46,7 @@ function AchievementSummary({ user, isComparison }: AchievementSummaryProps) {
       <div className="achievements-content__profile-avatar">
         {user.profileImageUrl ? (
           <img
-            className="achievements-content__profile-avatar"
+            className="achievements-content__profile-avatar-image"
             src={user.profileImageUrl}
             alt={user.displayName}
           />
@@ -134,16 +131,12 @@ export function AchievementsContent({
   otherUser,
   comparedAchievements,
 }: AchievementsContentProps) {
-  const heroRef = useRef<HTMLDivElement | null>(null);
-  const containerRef = useRef<HTMLDivElement | null>(null);
-  const [isHeaderStuck, setIsHeaderStuck] = useState(false);
-
   const { gameTitle, objectId, shop, game, shopDetails, achievements } =
     useContext(gameDetailsContext);
 
   const dispatch = useAppDispatch();
 
-  const { userDetails, hasActiveSubscription } = useUserDetails();
+  const { userDetails } = useUserDetails();
   useEffect(() => {
     dispatch(setHeaderTitle(gameTitle));
   }, [dispatch, gameTitle]);
@@ -154,46 +147,11 @@ export function AchievementsContent({
   const logoImage =
     game?.customLogoImageUrl || shopDetails?.assets?.logoImageUrl || "";
 
-  const onScroll: React.UIEventHandler<HTMLElement> = (event) => {
-    const heroHeight = heroRef.current?.clientHeight ?? 150;
-
-    const scrollY = (event.target as HTMLDivElement).scrollTop;
-    if (scrollY >= heroHeight && !isHeaderStuck) {
-      setIsHeaderStuck(true);
-    }
-
-    if (scrollY <= heroHeight && isHeaderStuck) {
-      setIsHeaderStuck(false);
-    }
-  };
-
-  const getProfileImage = (
-    user: Pick<UserInfo, "profileImageUrl" | "displayName">
-  ) => {
-    return (
-      <div className="achievements-content__comparison__small-avatar">
-        {user.profileImageUrl ? (
-          <img
-            className="achievements-content__comparison__small-avatar"
-            src={user.profileImageUrl}
-            alt={user.displayName}
-          />
-        ) : (
-          <PersonIcon size={24} />
-        )}
-      </div>
-    );
-  };
-
   if (!objectId || !shop || !gameTitle || !userDetails) return null;
 
   return (
     <div className="achievements-content__achievements-list">
-      <section
-        ref={containerRef}
-        onScroll={onScroll}
-        className="achievements-content__achievements-list__section"
-      >
+      <section className="achievements-content__achievements-list__section">
         <div className="achievements-content__achievements-list__section__container">
           <div className="achievements-content__achievements-list__section__container__banner">
             {heroImage && (
@@ -205,10 +163,7 @@ export function AchievementsContent({
                 loading="lazy"
               />
             )}
-            <div
-              ref={heroRef}
-              className="achievements-content__achievements-list__section__container__hero"
-            >
+            <div className="achievements-content__achievements-list__section__container__hero">
               <div className="achievements-content__achievements-list__section__container__hero__content">
                 <Link
                   to={buildGameDetailsPath({
@@ -253,38 +208,14 @@ export function AchievementsContent({
           </div>
         </div>
 
-        {otherUser && (
-          <div
-            className={`achievements-content__achievements-list__section__table-header ${isHeaderStuck ? "achievements-content__achievements-list__section__table-header--stuck" : ""}`}
-          >
-            <div
-              className={`achievements-content__achievements-list__section__table-header__container ${hasActiveSubscription ? "achievements-content__achievements-list__section__table-header__container--has-active-subscription" : "achievements-content__achievements-list__section__table-header__container--has-no-active-subscription"}`}
-            >
-              <div></div>
-              {hasActiveSubscription && (
-                <div className="achievements-content__achievements-list__section__table-header__container__user-avatar">
-                  {getProfileImage({ ...userDetails })}
-                </div>
-              )}
-              <div className="achievements-content__achievements-list__section__table-header__container__other-user-avatar">
-                {getProfileImage(otherUser)}
-              </div>
-            </div>
-          </div>
-        )}
-
-        <RetroAchievementsConnectBanner />
-
         {otherUser ? (
-          <>
-            <ComparedAchievementPanel achievements={comparedAchievements!} />
-            <ComparedAchievementList achievements={comparedAchievements!} />
-          </>
+          <ComparedAchievementList
+            achievements={comparedAchievements!}
+            owner={userDetails}
+            target={otherUser}
+          />
         ) : (
-          <>
-            <AchievementPanel achievements={achievements!} />
-            <AchievementList achievements={achievements!} />
-          </>
+          <AchievementList achievements={achievements!} />
         )}
       </section>
     </div>

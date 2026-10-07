@@ -4,6 +4,7 @@ import { registerEvent } from "../register-event";
 import { HydraApi } from "@main/services";
 import { db, levelKeys } from "@main/level";
 import { AchievementWatcherManager } from "@main/services/achievements/achievement-watcher-manager";
+import { getMockUnlockPercentage } from "@main/services/achievements/mock-unlock-percentage";
 
 const getComparedUnlockedAchievements = async (
   _event: Electron.IpcMainInvokeEvent,
@@ -20,9 +21,6 @@ const getComparedUnlockedAchievements = async (
     }
   );
 
-  const showHiddenAchievementsDescription =
-    userPreferences?.showHiddenAchievementsDescription || false;
-
   return HydraApi.get<ComparedAchievements>(
     `/users/${userId}/games/achievements/compare`,
     {
@@ -31,39 +29,24 @@ const getComparedUnlockedAchievements = async (
       language: userPreferences?.language ?? "en",
     }
   ).then((achievements) => {
-    const sortedAchievements = achievements.achievements
-      .sort((a, b) => {
-        if (a.targetStat.unlocked && !b.targetStat.unlocked) return -1;
-        if (!a.targetStat.unlocked && b.targetStat.unlocked) return 1;
-        if (a.targetStat.unlocked && b.targetStat.unlocked) {
-          return b.targetStat.unlockTime! - a.targetStat.unlockTime!;
-        }
+    const sortedAchievements = achievements.achievements.sort((a, b) => {
+      if (a.targetStat.unlocked && !b.targetStat.unlocked) return -1;
+      if (!a.targetStat.unlocked && b.targetStat.unlocked) return 1;
+      if (a.targetStat.unlocked && b.targetStat.unlocked) {
+        return b.targetStat.unlockTime! - a.targetStat.unlockTime!;
+      }
 
-        return Number(a.hidden) - Number(b.hidden);
-      })
-      .map((achievement) => {
-        if (!achievement.hidden) return achievement;
-
-        if (!achievement.ownerStat) {
-          return {
-            ...achievement,
-            description: "",
-          };
-        }
-
-        if (!showHiddenAchievementsDescription && achievement.hidden) {
-          return {
-            ...achievement,
-            description: "",
-          };
-        }
-
-        return achievement;
-      });
+      return Number(a.hidden) - Number(b.hidden);
+    });
 
     return {
       ...achievements,
-      achievements: sortedAchievements,
+      achievements: sortedAchievements.map((achievement) => ({
+        ...achievement,
+        globalUnlockPercentage:
+          achievement.globalUnlockPercentage ??
+          getMockUnlockPercentage(achievement.points),
+      })),
     } as ComparedAchievements;
   });
 };

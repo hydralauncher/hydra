@@ -619,13 +619,17 @@ export interface ComparedAchievements {
     icon: string;
     displayName: string;
     description: string;
+    points?: number;
+    globalUnlockPercentage?: number | null;
     ownerStat?: {
       unlocked: boolean;
       unlockTime: number;
+      hardcoreUnlockTime?: number | null;
     };
     targetStat: {
       unlocked: boolean;
       unlockTime: number;
+      hardcoreUnlockTime?: number | null;
     };
   }[];
 }

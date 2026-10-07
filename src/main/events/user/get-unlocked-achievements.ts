@@ -7,6 +7,7 @@ import { AchievementMemoryStore } from "@main/services/achievements/achievement-
 import { AchievementSouvenirStore } from "@main/services/achievements/achievement-souvenir-store";
 import { fetchRemoteUserGameAchievements } from "@main/services/achievements/get-achievement-souvenirs";
 import { mergeUnlockedAchievementLists } from "@main/services/achievements/merge-unlocked-achievements";
+import { getMockUnlockPercentage } from "@main/services/achievements/mock-unlock-percentage";
 
 export const getUnlockedAchievements = async (
   objectId: string,
@@ -19,9 +20,6 @@ export const getUnlockedAchievements = async (
       valueEncoding: "json",
     }
   );
-
-  const showHiddenAchievementsDescription =
-    userPreferences?.showHiddenAchievementsDescription || false;
 
   const achievementsData = await getGameAchievementData(
     objectId,
@@ -71,7 +69,14 @@ export const getUnlockedAchievements = async (
   const souvenirs = remote.souvenirs;
 
   return catalogueAchievements
-    .map((achievementData) => {
+    .map((catalogueAchievement) => {
+      const achievementData = {
+        ...catalogueAchievement,
+        globalUnlockPercentage:
+          catalogueAchievement.globalUnlockPercentage ??
+          getMockUnlockPercentage(catalogueAchievement.points),
+      };
+
       const unlockedAchievementData = unlockedAchievements.find(
         (localAchievement) => {
           return (
@@ -99,10 +104,6 @@ export const getUnlockedAchievements = async (
         unlocked: false,
         unlockTime: null,
         icongray: icongray,
-        description:
-          !achievementData.hidden || showHiddenAchievementsDescription
-            ? achievementData.description
-            : undefined,
       };
     })
     .sort((a, b) => {
