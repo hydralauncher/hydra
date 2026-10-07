@@ -59,6 +59,14 @@ import {
   DISK_SPACE_CHECK_INTERVAL_MS,
   getDownloadDiskSpace,
 } from "./disk-space";
+import {
+  QUEUE_VERIFY_MAX_ENTRIES,
+  QUEUE_VERIFY_TTL_MS,
+  clearVerifyAttempt,
+  getQueueVerifySig,
+  isVerifyAttemptFresh,
+  recordVerifyAttempt,
+} from "./download-queue-verify";
 
 interface JsDownloadOptions {
   url: string;
@@ -114,8 +122,6 @@ export class DownloadManager {
     string,
     { at: number; sig: string }
   >();
-  private static readonly QUEUE_VERIFY_TTL_MS = 600_000;
-  private static readonly QUEUE_VERIFY_MAX_ENTRIES = 100;
   private static readonly preparedJsDownloads = new Map<
     string,
     PreparedJsDownload
@@ -978,51 +984,33 @@ export class DownloadManager {
     }
   }
 
-  private static async getQueueVerifySig(
-    targetPath: string
-  ): Promise<string | null> {
-    try {
-      const stat = await fs.promises.stat(targetPath);
-      if (!stat.isDirectory()) {
-        if (stat.size <= 0) return null;
-        return `${stat.mtimeMs}:${stat.size}`;
-      }
-      const entries = await fs.promises.readdir(targetPath);
-      if (entries.length === 0) return null;
-      return `${stat.mtimeMs}:${entries.length}`;
-    } catch {
-      return null;
-    }
-  }
-
   private static async shouldBypassQueueHoldForVerify(
     download: Download
   ): Promise<boolean> {
     if (!isQueueVerifyCandidate(download)) return false;
     const key = levelKeys.game(download.shop, download.objectId);
-    const sig = await this.getQueueVerifySig(
+    const sig = await getQueueVerifySig(
       path.join(download.downloadPath, download.folderName)
     );
     if (!sig) return false;
     const now = Date.now();
     const prev = this.queueVerifyAttempts.get(key);
-    if (prev?.sig === sig && now - prev.at < this.QUEUE_VERIFY_TTL_MS)
-      return false;
-    this.queueVerifyAttempts.set(key, { at: now, sig });
-    if (this.queueVerifyAttempts.size > this.QUEUE_VERIFY_MAX_ENTRIES) {
-      for (const [entryKey, entry] of this.queueVerifyAttempts) {
-        if (now - entry.at >= this.QUEUE_VERIFY_TTL_MS) {
-          this.queueVerifyAttempts.delete(entryKey);
-        }
-      }
-    }
+    if (isVerifyAttemptFresh(prev, sig, now, QUEUE_VERIFY_TTL_MS)) return false;
+    recordVerifyAttempt(
+      this.queueVerifyAttempts,
+      key,
+      sig,
+      now,
+      QUEUE_VERIFY_MAX_ENTRIES
+    );
     return true;
   }
 
   public static clearQueueVerifyAttempt(
     download: Pick<Download, "shop" | "objectId">
   ): void {
-    this.queueVerifyAttempts.delete(
+    clearVerifyAttempt(
+      this.queueVerifyAttempts,
       levelKeys.game(download.shop, download.objectId)
     );
   }
