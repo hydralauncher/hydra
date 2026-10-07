@@ -11,6 +11,23 @@ import { resolveLaunchCommand } from "@main/helpers/resolve-launch-command";
 import { evaluateUmuPrefixPreparation } from "./umu-prefix-preparation";
 import { Wine } from "./wine";
 import { getSteamLibraryFolders } from "./steam";
+import { UmuUpdater } from "./umu-updater";
+import {
+  UmuOutputMonitor,
+  getFileSize,
+  tailUmuLog,
+  type UmuOutputEvent,
+} from "./umu-output-monitor";
+
+export type UmuStatus =
+  | { type: "progress"; message: string }
+  | { type: "ready" }
+  | { type: "failed"; message: string };
+
+type UmuStatusListener = (status: UmuStatus) => void;
+
+const UMU_SETUP_QUIET_PERIOD_MS = 8_000;
+const UMU_SETUP_DETECTION_WINDOW_MS = 30_000;
 
 const isValidProtonDirectory = (directoryPath: string) => {
   const protonFilePath = path.join(directoryPath, "proton");
@@ -25,10 +42,85 @@ const getVersionName = (directoryPath: string) => {
 
 const getUmuLogPath = () => path.join(logsPath, "umu.log");
 
-const getUmuBinaryPath = () =>
+const getBundledUmuBinaryPath = () =>
   app.isPackaged
     ? path.join(process.resourcesPath, "umu-run")
     : path.join(__dirname, "..", "..", "binaries", "umu", "umu-run");
+
+const getUmuBinaryPath = () =>
+  UmuUpdater.getManagedBinaryPath() ?? getBundledUmuBinaryPath();
+
+const watchUmuSetup = (
+  umuLogPath: string,
+  enabled: boolean,
+  onStatus?: UmuStatusListener
+) => {
+  const monitor = new UmuOutputMonitor();
+  let active = enabled;
+  let preparing = false;
+  let stopTail: (() => void) | null = null;
+  let quietTimer: NodeJS.Timeout | null = null;
+  let detectionTimer: NodeJS.Timeout | null = null;
+
+  const clearTimers = () => {
+    if (quietTimer) clearTimeout(quietTimer);
+    if (detectionTimer) clearTimeout(detectionTimer);
+    quietTimer = null;
+    detectionTimer = null;
+  };
+
+  const markReady = () => {
+    if (!preparing) return;
+    preparing = false;
+    onStatus?.({ type: "ready" });
+  };
+
+  const stop = () => {
+    if (!active) return;
+    active = false;
+    const stopCurrentTail = stopTail;
+    stopTail = null;
+    stopCurrentTail?.();
+    clearTimers();
+  };
+
+  const handleEvents = (events: UmuOutputEvent[]) => {
+    for (const event of events) {
+      if (event.type !== "progress") continue;
+      preparing = true;
+      onStatus?.({ type: "progress", message: event.message });
+      if (!active) continue;
+      if (quietTimer) clearTimeout(quietTimer);
+      quietTimer = setTimeout(() => {
+        stop();
+        markReady();
+      }, UMU_SETUP_QUIET_PERIOD_MS);
+      quietTimer.unref?.();
+    }
+  };
+
+  if (enabled) {
+    stopTail = tailUmuLog(umuLogPath, getFileSize(umuLogPath), (chunk) =>
+      handleEvents(monitor.feed(chunk))
+    );
+    detectionTimer = setTimeout(() => {
+      if (!preparing) stop();
+    }, UMU_SETUP_DETECTION_WINDOW_MS);
+    detectionTimer.unref?.();
+  }
+
+  return {
+    complete: () => {
+      stop();
+      handleEvents(monitor.flush());
+      return {
+        failureMessage: monitor.failureMessage,
+        hasFatalError: monitor.hasFatalError,
+      };
+    },
+    markReady,
+  };
+};
 
 const parsePythonVersion = (versionText: string): [number, number] | null => {
   const match = versionText.trim().match(/^(\d+)\.(\d+)$/);
@@ -209,6 +301,7 @@ export class Umu {
     winePrefixPath: string;
     protonPath?: string | null;
     gameId?: string | null;
+    onStatus?: UmuStatusListener;
   }): Promise<void> {
     const umuLogPath = getUmuLogPath();
     const umuBinaryPath = getUmuBinaryPath();
@@ -245,6 +338,11 @@ export class Umu {
         ? null
         : fs.openSync(umuLogPath, "a");
       let settled = false;
+      const setupWatcher = watchUmuSetup(
+        umuLogPath,
+        !shouldPipeToTerminal,
+        options.onStatus
+      );
 
       const closeLogFileDescriptor = () => {
         if (!settled && logFileDescriptor !== null) {
@@ -271,6 +369,8 @@ export class Umu {
       });
 
       child.once("error", (error) => {
+        setupWatcher.complete();
+        setupWatcher.markReady();
         finish(() => {
           logger.error("Failed to start umu-run prefix preparation", {
             errorName: error.name,
@@ -281,6 +381,8 @@ export class Umu {
         });
       });
       child.once("close", (code, signal) => {
+        const setup = setupWatcher.complete();
+        setupWatcher.markReady();
         finish(() => {
           let prefixValid = false;
 
@@ -311,14 +413,17 @@ export class Umu {
             return;
           }
 
+          const errorMessage = setup.failureMessage
+            ? `${evaluation.errorMessage}: ${setup.failureMessage}`
+            : evaluation.errorMessage;
           logger.error("umu-run failed to prepare a valid Wine prefix", {
             code,
             signal,
             prefixValid,
             umuLogPath,
-            errorMessage: evaluation.errorMessage,
+            errorMessage,
           });
-          reject(new Error(evaluation.errorMessage));
+          reject(new Error(errorMessage));
         });
       });
     });
@@ -334,6 +439,7 @@ export class Umu {
       launchOptions?: string | null;
       useMangohud?: boolean;
       useGamemode?: boolean;
+      onStatus?: UmuStatusListener;
     }
   ): Promise<void> {
     const QUICK_EXIT_THRESHOLD_MS = 3000;
@@ -398,6 +504,11 @@ export class Umu {
         : fs.openSync(umuLogPath, "a");
 
       let settled = false;
+      const setupWatcher = watchUmuSetup(
+        umuLogPath,
+        !shouldPipeToTerminal,
+        options?.onStatus
+      );
 
       const closeLogFileDescriptor = () => {
         if (logFileDescriptor !== null) {
@@ -446,10 +557,33 @@ export class Umu {
           quickExitTimer = null;
         }
 
+        const setup = setupWatcher.complete();
+
+        if (settled) {
+          if (code !== 0 && setup.hasFatalError && setup.failureMessage) {
+            logger.error("umu-run failed after the game launch started", {
+              code,
+              signal,
+              umuLogPath,
+              errorMessage: setup.failureMessage,
+            });
+            options?.onStatus?.({
+              type: "failed",
+              message: setup.failureMessage,
+            });
+            return;
+          }
+          setupWatcher.markReady();
+          return;
+        }
+
         finalize(() => {
           closeLogFileDescriptor();
+          const failureDetail = setup.failureMessage
+            ? `: ${setup.failureMessage}`
+            : "";
           const earlyExitError = new Error(
-            `umu-run exited early with code=${code ?? "null"} signal=${signal ?? "null"}`
+            `umu-run exited early with code=${code ?? "null"} signal=${signal ?? "null"}${failureDetail}`
           );
           fs.appendFileSync(
             umuLogPath,
@@ -464,6 +598,8 @@ export class Umu {
           clearTimeout(quickExitTimer);
           quickExitTimer = null;
         }
+
+        setupWatcher.complete();
 
         finalize(() => {
           closeLogFileDescriptor();

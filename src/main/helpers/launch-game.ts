@@ -25,7 +25,9 @@ import {
   Wine,
   NativeAddon,
   launchedGamePids,
+  type UmuStatus,
 } from "@main/services";
+import { sendGameLauncherStatus } from "@main/services/game-launcher-status";
 import { updateGameRecord } from "@main/services/game-record-updater";
 import { dispatchSteamProtocolLaunch } from "@main/services/steam-integration/steam-protocol-launch-dispatch";
 import { resolveSteamProtocolLaunch } from "@main/services/steam-integration/steam-protocol-launch";
@@ -48,6 +50,28 @@ export interface LaunchGameOptions {
 }
 
 const LAUNCH_DELAY_IN_MS = 2_000;
+
+const createUmuStatusReporter =
+  (gameKey: string) =>
+  (status: UmuStatus): void => {
+    if (status.type === "progress") {
+      sendGameLauncherStatus(
+        gameKey,
+        "preparing_compatibility_layer",
+        status.message
+      );
+      return;
+    }
+    if (status.type === "failed") {
+      sendGameLauncherStatus(
+        gameKey,
+        "compatibility_layer_failed",
+        status.message
+      );
+      return;
+    }
+    sendGameLauncherStatus(gameKey, "compatibility_layer_ready");
+  };
 
 const isWindowsExecutable = (executablePath: string) =>
   path.extname(executablePath).toLowerCase() === ".exe";
@@ -244,6 +268,7 @@ interface CloudSavePrefixPreparationResult {
 
 const prepareWinePrefixIfNeeded = async (
   context: LinuxCompatibilityLaunchContext,
+  gameKey: string,
   objectId: string,
   prefixWasReadyForRestore: boolean
 ) => {
@@ -254,6 +279,7 @@ const prepareWinePrefixIfNeeded = async (
       winePrefixPath: context.winePrefixPath!,
       protonPath: context.protonPath,
       gameId: objectId,
+      onStatus: createUmuStatusReporter(gameKey),
     });
     return false;
   } catch (error) {
@@ -267,6 +293,7 @@ const prepareWinePrefixIfNeeded = async (
 
 const prepareCompatibilityPrefixForCloudSave = async (
   context: LinuxCompatibilityLaunchContext,
+  gameKey: string,
   objectId: string
 ): Promise<CloudSavePrefixPreparationResult> => {
   const winePrefixPath = context.winePrefixPath;
@@ -283,6 +310,7 @@ const prepareCompatibilityPrefixForCloudSave = async (
     prefixWasValid && Wine.isPrefixReadyForRestore(winePrefixPath);
   const preparationFailed = await prepareWinePrefixIfNeeded(
     context,
+    gameKey,
     objectId,
     prefixWasReadyForRestore
   );
@@ -395,6 +423,8 @@ const launchWindowsBinaryOnLinux = async (
   useGamemode: boolean
 ): Promise<boolean> => {
   const { protonPath, winePrefixPath } = compatibilityContext;
+  const reportUmuStatus = createUmuStatusReporter(gameKey);
+  let umuFailureMessage = "umu-run failed to launch the game";
 
   try {
     await Umu.launchExecutable(parsedPath, [], {
@@ -404,11 +434,15 @@ const launchWindowsBinaryOnLinux = async (
       launchOptions,
       useGamemode,
       useMangohud,
+      onStatus: reportUmuStatus,
     });
     PowerSaveBlockerManager.markCompatibilityLaunchStarted(gameKey);
     return true;
   } catch (error) {
     logger.error("Failed to launch game with umu-run, falling back", error);
+    if (error instanceof Error && error.message) {
+      umuFailureMessage = error.message;
+    }
   }
 
   const launchedWithWine = await launchWithWine(
@@ -420,10 +454,12 @@ const launchWindowsBinaryOnLinux = async (
   );
 
   if (launchedWithWine) {
+    reportUmuStatus({ type: "ready" });
     PowerSaveBlockerManager.markCompatibilityLaunchStarted(gameKey);
     return true;
   }
 
+  reportUmuStatus({ type: "failed", message: umuFailureMessage });
   return false;
 };
 
@@ -501,6 +537,7 @@ const prepareLinuxCompatibilityForLaunch = async (
 
   const prefixPreparation = await prepareCompatibilityPrefixForCloudSave(
     context,
+    levelKeys.game(shop, objectId),
     objectId
   );
   context = {

@@ -2247,7 +2247,10 @@
     "preflight_installing_detail": "{{detail}}",
     "generating_achievements": "Gerando arquivo de conquistas",
     "downloading_achievement_icons": "Baixando ícones de conquistas",
-    "downloading_achievement_icons_detail": "Baixando ícones de conquistas ({{detail}})"
+    "downloading_achievement_icons_detail": "Baixando ícones de conquistas ({{detail}})",
+    "preparing_compatibility_layer": "Preparando a camada de compatibilidade",
+    "preparing_compatibility_layer_detail": "Preparando a camada de compatibilidade ({{detail}})",
+    "compatibility_layer_failed": "A camada de compatibilidade não conseguiu iniciar o jogo"
   },
   "friends_window": {
     "title": "Amigos",

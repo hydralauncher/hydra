@@ -26,6 +26,8 @@ type PreflightStatus =
 
 type AchievementsExportStatus = GameLauncherStatus | "idle";
 
+type CompatibilityLayerStatus = "idle" | "preparing" | "failed";
+
 export default function GameLauncher() {
   const { t } = useTranslation("game_launcher");
   const [searchParams] = useSearchParams();
@@ -53,6 +55,11 @@ export default function GameLauncher() {
     string | null
   >(null);
   const [protonVersion, setProtonVersion] = useState<string | null>(null);
+  const [compatibilityLayerStatus, setCompatibilityLayerStatus] =
+    useState<CompatibilityLayerStatus>("idle");
+  const [compatibilityLayerDetail, setCompatibilityLayerDetail] = useState<
+    string | null
+  >(null);
 
   const formatPlayTime = useCallback(
     (playTimeInMilliseconds = 0) => {
@@ -109,6 +116,24 @@ export default function GameLauncher() {
       ({ gameKey, status, detail }) => {
         if (gameKey !== `${shop}:${objectId}`) return;
 
+        if (status === "preparing_compatibility_layer") {
+          setCompatibilityLayerStatus("preparing");
+          setCompatibilityLayerDetail(detail);
+          return;
+        }
+
+        if (status === "compatibility_layer_ready") {
+          setCompatibilityLayerStatus("idle");
+          setCompatibilityLayerDetail(null);
+          return;
+        }
+
+        if (status === "compatibility_layer_failed") {
+          setCompatibilityLayerStatus("failed");
+          setCompatibilityLayerDetail(detail);
+          return;
+        }
+
         setAchievementsExportStatus(status);
         setAchievementsExportDetail(detail);
       }
@@ -140,7 +165,8 @@ export default function GameLauncher() {
 
   const canAutoClose =
     (isPreflightDone || (!preflightStarted && preflightTimeout)) &&
-    !isGeneratingAchievements;
+    !isGeneratingAchievements &&
+    compatibilityLayerStatus === "idle";
 
   useEffect(() => {
     // Don't start timer until window is shown AND preflight is done
@@ -219,6 +245,18 @@ export default function GameLauncher() {
         break;
     }
 
+    if (compatibilityLayerStatus === "failed") {
+      return t("compatibility_layer_failed");
+    }
+
+    if (compatibilityLayerStatus === "preparing") {
+      return compatibilityLayerDetail
+        ? t("preparing_compatibility_layer_detail", {
+            detail: compatibilityLayerDetail,
+          })
+        : t("preparing_compatibility_layer");
+    }
+
     switch (achievementsExportStatus) {
       case "generating_achievements":
         return t("generating_achievements");
@@ -234,12 +272,19 @@ export default function GameLauncher() {
   }, [
     preflightStatus,
     preflightDetail,
+    compatibilityLayerStatus,
+    compatibilityLayerDetail,
     achievementsExportStatus,
     achievementsExportDetail,
     t,
   ]);
 
-  const isStatusRunning = isPreflightRunning || isAchievementsExportRunning;
+  const isCompatibilityLayerFailed = compatibilityLayerStatus === "failed";
+
+  const isStatusRunning =
+    isPreflightRunning ||
+    isAchievementsExportRunning ||
+    compatibilityLayerStatus === "preparing";
 
   useEffect(() => {
     let cancelled = false;
@@ -388,11 +433,28 @@ export default function GameLauncher() {
           <div className="game-launcher__center">
             <h1 className="game-launcher__title">{gameTitle}</h1>
 
-            <p className="game-launcher__status">
+            <p
+              className={`game-launcher__status${
+                isCompatibilityLayerFailed
+                  ? " game-launcher__status--error"
+                  : ""
+              }`}
+            >
               {isStatusRunning && <span className="game-launcher__spinner" />}
               {getStatusMessage()}
-              <span className="game-launcher__dots" />
+              {!isCompatibilityLayerFailed && (
+                <span className="game-launcher__dots" />
+              )}
             </p>
+
+            {isCompatibilityLayerFailed && compatibilityLayerDetail && (
+              <p
+                className="game-launcher__status-detail"
+                title={compatibilityLayerDetail}
+              >
+                {compatibilityLayerDetail}
+              </p>
+            )}
 
             {!isMainWindowOpen && (
               <button
