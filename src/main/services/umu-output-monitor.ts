@@ -69,15 +69,29 @@ export const parseUmuOutputLine = (rawLine: string): UmuOutputEvent | null => {
   return null;
 };
 
-export const isUmuSetupFailure = ({
+export const getUmuSetupFailureMessage = ({
   exitCode,
+  signal,
+  failureMessage,
   hasFatalError,
   gameDetected,
 }: {
   exitCode: number | null;
+  signal: NodeJS.Signals | null;
+  failureMessage: string | null;
   hasFatalError: boolean;
   gameDetected: boolean;
-}) => hasFatalError && (exitCode !== 0 || !gameDetected);
+}): string | null => {
+  if (gameDetected) {
+    return exitCode !== 0 && hasFatalError ? failureMessage : null;
+  }
+  if (hasFatalError && failureMessage) return failureMessage;
+  if (exitCode === 0) return null;
+  if (failureMessage) return failureMessage;
+  return signal
+    ? `umu-run was terminated by ${signal}`
+    : `umu-run exited with code ${exitCode ?? "null"}`;
+};
 
 export class UmuOutputMonitor {
   private buffer = "";

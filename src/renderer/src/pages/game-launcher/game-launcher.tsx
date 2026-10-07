@@ -21,8 +21,10 @@ import type {
   ShopAssets,
 } from "@types";
 import {
+  canGameLauncherAutoClose,
   createLauncherStatusReplay,
   getGameLauncherActions,
+  type CompatibilityLayerStatus,
 } from "./game-launcher-state";
 import "./game-launcher.scss";
 
@@ -35,8 +37,6 @@ type PreflightStatus =
   | "error";
 
 type AchievementsExportStatus = GameLauncherStatus | "idle";
-
-type CompatibilityLayerStatus = "idle" | "preparing" | "failed";
 
 export default function GameLauncher() {
   const { t } = useTranslation("game_launcher");
@@ -182,10 +182,12 @@ export default function GameLauncher() {
   const isGeneratingAchievements =
     achievementsExportStatus === "generating_achievements";
 
-  const canAutoClose =
-    (isPreflightDone || (!preflightStarted && preflightTimeout)) &&
-    !isGeneratingAchievements &&
-    compatibilityLayerStatus === "idle";
+  const canAutoClose = canGameLauncherAutoClose({
+    preflightFinished:
+      isPreflightDone || (!preflightStarted && preflightTimeout),
+    isGeneratingAchievements,
+    compatibilityLayerStatus,
+  });
 
   useEffect(() => {
     // Don't start timer until window is shown AND preflight is done
@@ -305,7 +307,7 @@ export default function GameLauncher() {
   const isCompatibilityLayerFailed = compatibilityLayerStatus === "failed";
   const launcherActions = getGameLauncherActions({
     isMainWindowOpen,
-    isCompatibilityLayerFailed,
+    compatibilityLayerStatus,
   });
 
   const isStatusRunning =

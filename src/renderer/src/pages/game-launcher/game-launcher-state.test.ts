@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 
 import {
+  canGameLauncherAutoClose,
   createLauncherStatusReplay,
   getGameLauncherActions,
 } from "./game-launcher-state.js";
@@ -70,7 +71,17 @@ describe("game launcher actions", () => {
     assert.deepEqual(
       getGameLauncherActions({
         isMainWindowOpen: true,
-        isCompatibilityLayerFailed: true,
+        compatibilityLayerStatus: "failed",
+      }),
+      { showOpenHydra: false, showClose: true }
+    );
+  });
+
+  it("offers a close button while the compatibility layer is preparing", () => {
+    assert.deepEqual(
+      getGameLauncherActions({
+        isMainWindowOpen: true,
+        compatibilityLayerStatus: "preparing",
       }),
       { showOpenHydra: false, showClose: true }
     );
@@ -80,16 +91,48 @@ describe("game launcher actions", () => {
     assert.deepEqual(
       getGameLauncherActions({
         isMainWindowOpen: false,
-        isCompatibilityLayerFailed: false,
+        compatibilityLayerStatus: "idle",
       }),
       { showOpenHydra: true, showClose: false }
     );
     assert.deepEqual(
       getGameLauncherActions({
         isMainWindowOpen: true,
-        isCompatibilityLayerFailed: false,
+        compatibilityLayerStatus: "idle",
       }),
       { showOpenHydra: false, showClose: false }
+    );
+  });
+});
+
+describe("game launcher auto close", () => {
+  it("stays open while setup is preparing even after preflight finished", () => {
+    assert.equal(
+      canGameLauncherAutoClose({
+        preflightFinished: true,
+        isGeneratingAchievements: false,
+        compatibilityLayerStatus: "preparing",
+      }),
+      false
+    );
+  });
+
+  it("closes once setup is idle and nothing else is running", () => {
+    assert.equal(
+      canGameLauncherAutoClose({
+        preflightFinished: true,
+        isGeneratingAchievements: false,
+        compatibilityLayerStatus: "idle",
+      }),
+      true
+    );
+    assert.equal(
+      canGameLauncherAutoClose({
+        preflightFinished: true,
+        isGeneratingAchievements: false,
+        compatibilityLayerStatus: "failed",
+      }),
+      false
     );
   });
 });

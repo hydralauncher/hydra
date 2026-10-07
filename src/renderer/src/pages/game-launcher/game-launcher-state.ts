@@ -29,13 +29,28 @@ export const createLauncherStatusReplay = (gameKey: string) => {
   };
 };
 
+export type CompatibilityLayerStatus = "idle" | "preparing" | "failed";
+
 export const getGameLauncherActions = ({
   isMainWindowOpen,
-  isCompatibilityLayerFailed,
+  compatibilityLayerStatus,
 }: {
   isMainWindowOpen: boolean;
-  isCompatibilityLayerFailed: boolean;
+  compatibilityLayerStatus: CompatibilityLayerStatus;
 }) => ({
   showOpenHydra: !isMainWindowOpen,
-  showClose: isCompatibilityLayerFailed,
+  showClose: compatibilityLayerStatus !== "idle",
 });
+
+export const canGameLauncherAutoClose = ({
+  preflightFinished,
+  isGeneratingAchievements,
+  compatibilityLayerStatus,
+}: {
+  preflightFinished: boolean;
+  isGeneratingAchievements: boolean;
+  compatibilityLayerStatus: CompatibilityLayerStatus;
+}) =>
+  preflightFinished &&
+  !isGeneratingAchievements &&
+  compatibilityLayerStatus === "idle";

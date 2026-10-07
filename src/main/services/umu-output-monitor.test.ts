@@ -6,58 +6,93 @@ import { describe, it } from "node:test";
 
 import {
   UmuOutputMonitor,
-  isUmuSetupFailure,
+  getUmuSetupFailureMessage,
   parseUmuOutputLine,
   tailUmuLog,
 } from "./umu-output-monitor.js";
 
 describe("umu setup failure detection", () => {
-  it("reports a delayed fatal exception even when umu exits with code 0", () => {
+  const baseInput = {
+    exitCode: 0,
+    signal: null,
+    failureMessage: null,
+    hasFatalError: false,
+    gameDetected: false,
+  };
+
+  it("reports a fatal exception before game detection even with exit code 0", () => {
     const monitor = new UmuOutputMonitor();
     monitor.feed("INFO: Downloading steamrt3 (3.0.20260928.262393)...\n");
     monitor.feed(
       "Traceback (most recent call last):\nRuntimeError: runtime setup failed\n"
     );
 
-    assert.equal(monitor.hasFatalError, true);
     assert.equal(
-      isUmuSetupFailure({
-        exitCode: 0,
+      getUmuSetupFailureMessage({
+        ...baseInput,
+        failureMessage: monitor.failureMessage,
         hasFatalError: monitor.hasFatalError,
-        gameDetected: false,
       }),
-      true
+      "RuntimeError: runtime setup failed"
     );
   });
 
-  it("does not report a failure once the game was detected and exited cleanly", () => {
+  it("reports non-zero exits before game detection without a fatal line", () => {
     assert.equal(
-      isUmuSetupFailure({
-        exitCode: 0,
-        hasFatalError: true,
-        gameDetected: true,
+      getUmuSetupFailureMessage({
+        ...baseInput,
+        exitCode: 1,
+        failureMessage: "runtime setup failed",
       }),
-      false
+      "runtime setup failed"
     );
     assert.equal(
-      isUmuSetupFailure({
-        exitCode: 1,
-        hasFatalError: true,
-        gameDetected: true,
+      getUmuSetupFailureMessage({ ...baseInput, exitCode: 1 }),
+      "umu-run exited with code 1"
+    );
+    assert.equal(
+      getUmuSetupFailureMessage({
+        ...baseInput,
+        exitCode: null,
+        signal: "SIGKILL",
       }),
-      true
+      "umu-run was terminated by SIGKILL"
     );
   });
 
-  it("ignores non-zero exits without a fatal umu error", () => {
+  it("stays permissive once the game was detected", () => {
     assert.equal(
-      isUmuSetupFailure({
+      getUmuSetupFailureMessage({
+        ...baseInput,
         exitCode: 1,
-        hasFatalError: false,
-        gameDetected: false,
+        failureMessage: "runtime setup failed",
+        gameDetected: true,
       }),
-      false
+      null
     );
+    assert.equal(
+      getUmuSetupFailureMessage({
+        ...baseInput,
+        failureMessage: "RuntimeError: boom",
+        hasFatalError: true,
+        gameDetected: true,
+      }),
+      null
+    );
+    assert.equal(
+      getUmuSetupFailureMessage({
+        ...baseInput,
+        exitCode: 1,
+        failureMessage: "RuntimeError: boom",
+        hasFatalError: true,
+        gameDetected: true,
+      }),
+      "RuntimeError: boom"
+    );
+  });
+
+  it("treats a clean exit without errors as success", () => {
+    assert.equal(getUmuSetupFailureMessage(baseInput), null);
   });
 });
 

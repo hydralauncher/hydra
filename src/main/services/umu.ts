@@ -13,19 +13,14 @@ import { Wine } from "./wine";
 import { getSteamLibraryFolders } from "./steam";
 import { UmuUpdater } from "./umu-updater";
 import {
-  UmuOutputMonitor,
-  getFileSize,
-  isUmuSetupFailure,
-  tailUmuLog,
-  type UmuOutputEvent,
-} from "./umu-output-monitor";
+  UmuEarlyExitError,
+  observeUmuLaunch,
+  watchUmuSetup,
+  type UmuStatusListener,
+} from "./umu-launch-monitor";
+import { getFileSize } from "./umu-output-monitor";
 
-export type UmuStatus =
-  | { type: "progress"; message: string }
-  | { type: "ready" }
-  | { type: "failed"; message: string };
-
-type UmuStatusListener = (status: UmuStatus) => void;
+export type { UmuStatus } from "./umu-launch-monitor";
 
 const isValidProtonDirectory = (directoryPath: string) => {
   const protonFilePath = path.join(directoryPath, "proton");
@@ -63,45 +58,6 @@ const getBundledUmuBinaryPath = () =>
 
 const getUmuBinaryPath = () =>
   UmuUpdater.getManagedBinaryPath() ?? getBundledUmuBinaryPath();
-
-const watchUmuSetup = (
-  umuLogPath: string,
-  enabled: boolean,
-  onStatus?: UmuStatusListener
-) => {
-  const monitor = new UmuOutputMonitor();
-  let preparing = false;
-
-  const handleEvents = (events: UmuOutputEvent[]) => {
-    for (const event of events) {
-      if (event.type !== "progress") continue;
-      preparing = true;
-      onStatus?.({ type: "progress", message: event.message });
-    }
-  };
-
-  const stopTail = enabled
-    ? tailUmuLog(umuLogPath, getFileSize(umuLogPath), (chunk) =>
-        handleEvents(monitor.feed(chunk))
-      )
-    : null;
-
-  return {
-    complete: () => {
-      stopTail?.();
-      handleEvents(monitor.flush());
-      return {
-        failureMessage: monitor.failureMessage,
-        hasFatalError: monitor.hasFatalError,
-      };
-    },
-    markReady: () => {
-      if (!preparing) return;
-      preparing = false;
-      onStatus?.({ type: "ready" });
-    },
-  };
-};
 
 const parsePythonVersion = (versionText: string): [number, number] | null => {
   const match = versionText.trim().match(/^(\d+)\.(\d+)$/);
@@ -320,8 +276,7 @@ export class Umu {
         : fs.openSync(umuLogPath, "a");
       let settled = false;
       const setupWatcher = watchUmuSetup(
-        umuLogPath,
-        !shouldPipeToTerminal,
+        shouldPipeToTerminal ? null : umuLogPath,
         options.onStatus
       );
 
@@ -479,31 +434,13 @@ export class Umu {
       umuLogPath,
     });
 
-    await new Promise<void>((resolve, reject) => {
-      const shouldPipeToTerminal = is.dev;
-      const logFileDescriptor = shouldPipeToTerminal
-        ? null
-        : fs.openSync(umuLogPath, "a");
+    const shouldPipeToTerminal = is.dev;
+    const logStartOffset = getFileSize(umuLogPath);
+    const logFileDescriptor = shouldPipeToTerminal
+      ? null
+      : fs.openSync(umuLogPath, "a");
 
-      let settled = false;
-      const setupWatcher = watchUmuSetup(
-        umuLogPath,
-        !shouldPipeToTerminal,
-        options?.onStatus
-      );
-
-      const closeLogFileDescriptor = () => {
-        if (logFileDescriptor !== null) {
-          fs.closeSync(logFileDescriptor);
-        }
-      };
-
-      const finalize = (callback: () => void) => {
-        if (settled) return;
-        settled = true;
-        callback();
-      };
-
+    try {
       const child = spawn(
         resolvedLaunchCommand.command,
         resolvedLaunchCommand.args,
@@ -521,86 +458,32 @@ export class Umu {
         }
       );
 
-      let quickExitTimer: NodeJS.Timeout | null = null;
-
-      child.once("spawn", () => {
-        quickExitTimer = setTimeout(() => {
-          finalize(() => {
-            child.unref();
-            closeLogFileDescriptor();
-            resolve();
-          });
-        }, QUICK_EXIT_THRESHOLD_MS);
-      });
-
-      child.once("exit", (code, signal) => {
-        if (quickExitTimer) {
-          clearTimeout(quickExitTimer);
-          quickExitTimer = null;
-        }
-
-        const setup = setupWatcher.complete();
-
-        if (settled) {
-          const gameDetected = options?.wasGameDetected?.() ?? false;
-          if (
-            setup.failureMessage &&
-            isUmuSetupFailure({
-              exitCode: code,
-              hasFatalError: setup.hasFatalError,
-              gameDetected,
-            })
-          ) {
-            logger.error("umu-run failed after the game launch started", {
-              code,
-              signal,
-              gameDetected,
-              umuLogPath,
-              errorMessage: setup.failureMessage,
-            });
-            options?.onStatus?.({
-              type: "failed",
-              message: setup.failureMessage,
-            });
-            return;
-          }
-          setupWatcher.markReady();
-          return;
-        }
-
-        finalize(() => {
-          closeLogFileDescriptor();
-          const failureDetail = setup.failureMessage
-            ? `: ${setup.failureMessage}`
-            : "";
-          const earlyExitError = new Error(
-            `umu-run exited early with code=${code ?? "null"} signal=${signal ?? "null"}${failureDetail}`
-          );
-          fs.appendFileSync(
+      await observeUmuLaunch({
+        child,
+        umuLogPath: shouldPipeToTerminal ? null : umuLogPath,
+        logStartOffset,
+        quickExitThresholdMs: QUICK_EXIT_THRESHOLD_MS,
+        onStatus: options?.onStatus,
+        wasGameDetected: options?.wasGameDetected,
+        onLateFailure: (failure) =>
+          logger.error("umu-run failed after the game launch started", {
+            ...failure,
             umuLogPath,
-            `[${new Date().toISOString()}] ${earlyExitError.message}\n`
-          );
-          reject(earlyExitError);
-        });
+          }),
       });
-
-      child.once("error", (error) => {
-        if (quickExitTimer) {
-          clearTimeout(quickExitTimer);
-          quickExitTimer = null;
-        }
-
-        setupWatcher.complete();
-
-        finalize(() => {
-          closeLogFileDescriptor();
-          fs.appendFileSync(
-            umuLogPath,
-            `[${new Date().toISOString()}] Failed to spawn umu-run (${resolvedLaunchCommand.command}): ${String(error)}\n`
-          );
-          reject(error);
-        });
-      });
-    });
+      child.unref();
+    } catch (error) {
+      const logLine =
+        error instanceof UmuEarlyExitError
+          ? error.message
+          : `Failed to spawn umu-run (${resolvedLaunchCommand.command}): ${String(error)}`;
+      fs.appendFileSync(
+        umuLogPath,
+        `[${new Date().toISOString()}] ${logLine}\n`
+      );
+      throw error;
+    } finally {
+      if (logFileDescriptor !== null) fs.closeSync(logFileDescriptor);
+    }
   }
 }
