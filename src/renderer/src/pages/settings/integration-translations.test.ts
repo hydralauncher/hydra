@@ -14,12 +14,21 @@ const INTEGRATION_DISPLAY_KEYS = [
   "retroachievements_invalid_credentials_description",
   "retroachievements_last_checked",
   "steam_status_reconnect_required",
+  "epic_status_connected",
+  "epic_status_reconnect_required",
+  "epic_status_unconfirmed",
+  "epic_status_unknown",
+  "epic_description",
+  "epic_login_in_window",
+  "epic_disconnect_description",
 ] as const;
 
 const INTEGRATION_SOURCE_FILES = [
   "src/renderer/src/pages/settings/settings-steam.tsx",
   "src/renderer/src/pages/settings/settings-steam-state.ts",
   "src/renderer/src/pages/settings/settings-retroachievements.tsx",
+  "src/renderer/src/pages/settings/settings-epic.tsx",
+  "src/renderer/src/pages/settings/settings-epic-state.ts",
   "src/renderer/src/pages/retroachievements-connection-window/retroachievements-connection-window.tsx",
 ] as const;
 
@@ -27,6 +36,7 @@ const LANGUAGE_NEUTRAL_KEYS = new Set([
   "retroachievements",
   "steam",
   "steam_sync_progress",
+  "epic_games",
 ]);
 
 const readSettingsTranslations = (locale: string) => {
@@ -44,7 +54,7 @@ const readSettingsTranslations = (locale: string) => {
 const getIntegrationKeys = () => {
   const keys = new Set(["cancel", "retroachievements", "steam"]);
   const integrationKeyPattern =
-    /["']((?:integration|retroachievements|steam)_[a-z0-9_]+)["']/g;
+    /["']((?:integration|retroachievements|steam|epic)_[a-z0-9_]+)["']/g;
 
   for (const sourceFile of INTEGRATION_SOURCE_FILES) {
     const source = fs.readFileSync(
@@ -75,7 +85,10 @@ describe("integration translations", () => {
 
       const translation = JSON.parse(fs.readFileSync(translationPath, "utf8"));
 
-      for (const key of INTEGRATION_DISPLAY_KEYS) {
+      for (const key of new Set([
+        ...INTEGRATION_DISPLAY_KEYS,
+        ...[...getIntegrationKeys()].filter((key) => key.startsWith("epic_")),
+      ])) {
         assert.equal(
           typeof translation.settings?.[key],
           "string",

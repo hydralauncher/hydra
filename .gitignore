@@ -7,6 +7,8 @@ out
 *.log*
 *.tsbuildinfo
 .env
+.env.local
+.env.*.local
 .vite
 ludusavi/**
 !ludusavi/config.yaml
