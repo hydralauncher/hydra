@@ -1,4 +1,5 @@
 import fs from "node:fs";
+import { StringDecoder } from "node:string_decoder";
 
 export type UmuOutputEvent =
   | { type: "progress"; message: string }
@@ -6,12 +7,14 @@ export type UmuOutputEvent =
   | { type: "fatal"; message: string };
 
 const ANSI_ESCAPE_PATTERN = new RegExp(
-  `${String.fromCharCode(27)}\\[[0-9;]*m`,
+  String.raw`${String.fromCodePoint(27)}\[[0-9;]*m`,
   "g"
 );
-const LOG_LINE_PATTERN = /^(INFO|WARNING|ERROR|CRITICAL):\s+(.+)$/;
-const EXCEPTION_LINE_PATTERN = /^([A-Z]\w*(?:Error|Exception)):\s+(.+)$/;
-const PRESSURE_VESSEL_ERROR_PATTERN = /^pv-[\w-]+\[\d+\]:\s+E:\s+(.+)$/;
+const LOG_LINE_PATTERN = /^(INFO|WARNING|ERROR|CRITICAL):\s*(\S.*)$/;
+const EXCEPTION_LINE_PATTERN = /^([A-Z]\w*):\s*(\S.*)$/;
+const EXCEPTION_NAME_SUFFIXES = ["Error", "Exception"];
+const PRESSURE_VESSEL_ERROR_PATTERN = /^pv-[\w-]+\[\d+\]:\s+E:\s*(\S.*)$/;
+const PROGRESS_WAIT_SUFFIX = "please wait";
 const PROGRESS_PREFIXES = [
   "Setting up Unified Launcher",
   "Downloading ",
@@ -22,8 +25,15 @@ const PROGRESS_PREFIXES = [
   "Found '",
 ];
 
-const cleanProgressMessage = (message: string) =>
-  message.replace(/,?\s*please wait\.{0,3}$/i, "").replace(/\.{3}$/, "");
+const cleanProgressMessage = (message: string) => {
+  let cleaned = message;
+  while (cleaned.endsWith(".")) cleaned = cleaned.slice(0, -1);
+  if (cleaned.toLowerCase().endsWith(PROGRESS_WAIT_SUFFIX)) {
+    cleaned = cleaned.slice(0, -PROGRESS_WAIT_SUFFIX.length).trimEnd();
+    if (cleaned.endsWith(",")) cleaned = cleaned.slice(0, -1);
+  }
+  return cleaned.trimEnd();
+};
 
 export const parseUmuOutputLine = (rawLine: string): UmuOutputEvent | null => {
   const line = rawLine.replace(ANSI_ESCAPE_PATTERN, "").trim();
@@ -35,7 +45,10 @@ export const parseUmuOutputLine = (rawLine: string): UmuOutputEvent | null => {
   }
 
   const exception = EXCEPTION_LINE_PATTERN.exec(line);
-  if (exception) {
+  if (
+    exception &&
+    EXCEPTION_NAME_SUFFIXES.some((suffix) => exception[1].endsWith(suffix))
+  ) {
     return { type: "fatal", message: `${exception[1]}: ${exception[2]}` };
   }
 
@@ -95,6 +108,7 @@ export class UmuOutputMonitor {
 }
 
 const UMU_LOG_POLL_INTERVAL_MS = 500;
+const UMU_LOG_MAX_READ_BYTES = 256 * 1024;
 
 export const getFileSize = (filePath: string) => {
   try {
@@ -112,28 +126,31 @@ export const tailUmuLog = (
   let offset = startOffset;
   let reading = false;
   let stopped = false;
+  const decoder = new StringDecoder("utf8");
+  const buffer = Buffer.alloc(UMU_LOG_MAX_READ_BYTES);
 
   const readNewContent = () => {
     if (reading) return;
     reading = true;
+    let descriptor: number | null = null;
     try {
-      const size = getFileSize(filePath);
-      if (size <= offset) return;
-      const length = size - offset;
-      const buffer = Buffer.alloc(length);
-      const descriptor = fs.openSync(filePath, "r");
-      try {
-        const bytesRead = fs.readSync(descriptor, buffer, 0, length, offset);
+      while (getFileSize(filePath) > offset) {
+        descriptor ??= fs.openSync(filePath, "r");
+        const bytesRead = fs.readSync(
+          descriptor,
+          buffer,
+          0,
+          UMU_LOG_MAX_READ_BYTES,
+          offset
+        );
+        if (bytesRead <= 0) break;
         offset += bytesRead;
-        if (bytesRead > 0) {
-          onChunk(buffer.subarray(0, bytesRead).toString("utf8"));
-        }
-      } finally {
-        fs.closeSync(descriptor);
+        onChunk(decoder.write(buffer.subarray(0, bytesRead)));
       }
     } catch {
       return;
     } finally {
+      if (descriptor !== null) fs.closeSync(descriptor);
       reading = false;
     }
   };

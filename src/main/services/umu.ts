@@ -26,9 +26,6 @@ export type UmuStatus =
 
 type UmuStatusListener = (status: UmuStatus) => void;
 
-const UMU_SETUP_QUIET_PERIOD_MS = 8_000;
-const UMU_SETUP_DETECTION_WINDOW_MS = 30_000;
-
 const isValidProtonDirectory = (directoryPath: string) => {
   const protonFilePath = path.join(directoryPath, "proton");
   const toolManifestPath = path.join(directoryPath, "toolmanifest.vdf");
@@ -40,7 +37,23 @@ const getVersionName = (directoryPath: string) => {
   return path.basename(directoryPath);
 };
 
-const getUmuLogPath = () => path.join(logsPath, "umu.log");
+const getSharedUmuLogPath = () => path.join(logsPath, "umu.log");
+
+const getUmuLogPath = (gameId?: string | null) =>
+  gameId
+    ? path.join(logsPath, `umu-${gameId.replaceAll(/[^\w.-]/g, "_")}.log`)
+    : getSharedUmuLogPath();
+
+const appendUmuLogHeader = (umuLogPath: string, header: string) => {
+  fs.appendFileSync(umuLogPath, header);
+  const sharedLogPath = getSharedUmuLogPath();
+  if (umuLogPath !== sharedLogPath) {
+    fs.appendFileSync(
+      sharedLogPath,
+      `${header.trimEnd()}\nOutput: ${path.basename(umuLogPath)}\n`
+    );
+  }
+};
 
 const getBundledUmuBinaryPath = () =>
   app.isPackaged
@@ -56,69 +69,36 @@ const watchUmuSetup = (
   onStatus?: UmuStatusListener
 ) => {
   const monitor = new UmuOutputMonitor();
-  let active = enabled;
   let preparing = false;
-  let stopTail: (() => void) | null = null;
-  let quietTimer: NodeJS.Timeout | null = null;
-  let detectionTimer: NodeJS.Timeout | null = null;
-
-  const clearTimers = () => {
-    if (quietTimer) clearTimeout(quietTimer);
-    if (detectionTimer) clearTimeout(detectionTimer);
-    quietTimer = null;
-    detectionTimer = null;
-  };
-
-  const markReady = () => {
-    if (!preparing) return;
-    preparing = false;
-    onStatus?.({ type: "ready" });
-  };
-
-  const stop = () => {
-    if (!active) return;
-    active = false;
-    const stopCurrentTail = stopTail;
-    stopTail = null;
-    stopCurrentTail?.();
-    clearTimers();
-  };
 
   const handleEvents = (events: UmuOutputEvent[]) => {
     for (const event of events) {
       if (event.type !== "progress") continue;
       preparing = true;
       onStatus?.({ type: "progress", message: event.message });
-      if (!active) continue;
-      if (quietTimer) clearTimeout(quietTimer);
-      quietTimer = setTimeout(() => {
-        stop();
-        markReady();
-      }, UMU_SETUP_QUIET_PERIOD_MS);
-      quietTimer.unref?.();
     }
   };
 
-  if (enabled) {
-    stopTail = tailUmuLog(umuLogPath, getFileSize(umuLogPath), (chunk) =>
-      handleEvents(monitor.feed(chunk))
-    );
-    detectionTimer = setTimeout(() => {
-      if (!preparing) stop();
-    }, UMU_SETUP_DETECTION_WINDOW_MS);
-    detectionTimer.unref?.();
-  }
+  const stopTail = enabled
+    ? tailUmuLog(umuLogPath, getFileSize(umuLogPath), (chunk) =>
+        handleEvents(monitor.feed(chunk))
+      )
+    : null;
 
   return {
     complete: () => {
-      stop();
+      stopTail?.();
       handleEvents(monitor.flush());
       return {
         failureMessage: monitor.failureMessage,
         hasFatalError: monitor.hasFatalError,
       };
     },
-    markReady,
+    markReady: () => {
+      if (!preparing) return;
+      preparing = false;
+      onStatus?.({ type: "ready" });
+    },
   };
 };
 
@@ -303,7 +283,7 @@ export class Umu {
     gameId?: string | null;
     onStatus?: UmuStatusListener;
   }): Promise<void> {
-    const umuLogPath = getUmuLogPath();
+    const umuLogPath = getUmuLogPath(options.gameId);
     const umuBinaryPath = getUmuBinaryPath();
     const pythonPath = getCompatiblePythonPath();
     const command = pythonPath ?? umuBinaryPath;
@@ -320,7 +300,7 @@ export class Umu {
     fs.mkdirSync(path.dirname(umuLogPath), { recursive: true });
     fs.mkdirSync(path.dirname(options.winePrefixPath), { recursive: true });
     ensureExecutablePermission(umuBinaryPath);
-    fs.appendFileSync(
+    appendUmuLogHeader(
       umuLogPath,
       `\n[${new Date().toISOString()}] Preparing Wine prefix with umu-run\n`
     );
@@ -444,7 +424,7 @@ export class Umu {
   ): Promise<void> {
     const QUICK_EXIT_THRESHOLD_MS = 3000;
     const workingDirectory = path.dirname(executablePath);
-    const umuLogPath = getUmuLogPath();
+    const umuLogPath = getUmuLogPath(options?.gameId);
     const umuBinaryPath = getUmuBinaryPath();
     const pythonPath = getCompatiblePythonPath();
     const executableToSpawn = pythonPath ?? umuBinaryPath;
@@ -486,7 +466,7 @@ export class Umu {
       `\n[${new Date().toISOString()}] Launching with umu-run\n` +
       `Command: ${launchCommand}\n`;
 
-    fs.appendFileSync(umuLogPath, launchHeader);
+    appendUmuLogHeader(umuLogPath, launchHeader);
 
     logger.info("Launching game with umu-run", {
       command: launchCommand,

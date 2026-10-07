@@ -128,7 +128,7 @@ const installRelease = async (
     await fs.promises.rm(versionDirectory, { recursive: true, force: true });
     await fs.promises.mkdir(versionDirectory, { recursive: true });
     await fs.promises.rename(extractedBinary, getVersionBinaryPath(version));
-    await fs.promises.chmod(getVersionBinaryPath(version), 0o755);
+    await fs.promises.chmod(getVersionBinaryPath(version), 0o700);
   } finally {
     await fs.promises
       .rm(workingDirectory, { recursive: true, force: true })

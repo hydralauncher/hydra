@@ -1,7 +1,37 @@
 import assert from "node:assert/strict";
+import fs from "node:fs";
+import os from "node:os";
+import path from "node:path";
 import { describe, it } from "node:test";
 
-import { UmuOutputMonitor, parseUmuOutputLine } from "./umu-output-monitor.js";
+import {
+  UmuOutputMonitor,
+  parseUmuOutputLine,
+  tailUmuLog,
+} from "./umu-output-monitor.js";
+
+describe("umu log tail", () => {
+  it("reads appended output in bounded chunks without splitting characters", () => {
+    const directory = fs.mkdtempSync(path.join(os.tmpdir(), "umu-tail-"));
+    const logPath = path.join(directory, "umu.log");
+    fs.writeFileSync(logPath, "previous launch\n");
+    const content = `${"é".repeat(200_000)}\nINFO: Extracting runtime...\n`;
+
+    try {
+      const chunks: string[] = [];
+      const stop = tailUmuLog(logPath, fs.statSync(logPath).size, (chunk) =>
+        chunks.push(chunk)
+      );
+      fs.appendFileSync(logPath, content);
+      stop();
+
+      assert.ok(chunks.length > 1);
+      assert.equal(chunks.join(""), content);
+    } finally {
+      fs.rmSync(directory, { recursive: true, force: true });
+    }
+  });
+});
 
 describe("umu output parsing", () => {
   it("reports runtime setup progress without the wait suffix", () => {
@@ -35,6 +65,7 @@ describe("umu output parsing", () => {
   it("ignores informational lines that are not setup progress", () => {
     assert.equal(parseUmuOutputLine("INFO: Using UMU-Proton-10.0-4"), null);
     assert.equal(parseUmuOutputLine("fsync: up and running."), null);
+    assert.equal(parseUmuOutputLine("Note: shader cache is warm"), null);
     assert.equal(parseUmuOutputLine("   "), null);
   });
 

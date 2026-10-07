@@ -1151,6 +1151,10 @@ declare global {
     onGameLauncherStatus: (
       cb: (value: GameLauncherStatusPayload) => void
     ) => () => Electron.IpcRenderer;
+    getGameLauncherStatuses: (
+      shop: GameShop,
+      objectId: string
+    ) => Promise<GameLauncherStatusPayload[]>;
     resetCommonRedistPreflight: () => Promise<void>;
     saveTempFile: (fileName: string, fileData: Uint8Array) => Promise<string>;
     deleteTempFile: (filePath: string) => Promise<void>;

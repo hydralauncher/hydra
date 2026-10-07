@@ -13,7 +13,13 @@ import { darkenColor } from "@renderer/helpers";
 import { logger } from "@renderer/logger";
 import { getDisplayedPlayTimeInMilliseconds } from "@shared";
 import { average } from "color.js";
-import type { Game, GameLauncherStatus, GameShop, ShopAssets } from "@types";
+import type {
+  Game,
+  GameLauncherStatus,
+  GameLauncherStatusPayload,
+  GameShop,
+  ShopAssets,
+} from "@types";
 import "./game-launcher.scss";
 
 type PreflightStatus =
@@ -108,36 +114,53 @@ export default function GameLauncher() {
   }, []);
 
   useEffect(() => {
-    if (!window.electron.onGameLauncherStatus) {
+    if (!window.electron.onGameLauncherStatus || !shop || !objectId) {
       return;
     }
 
-    const unsubscribe = window.electron.onGameLauncherStatus(
-      ({ gameKey, status, detail }) => {
-        if (gameKey !== `${shop}:${objectId}`) return;
+    let receivedLiveStatus = false;
 
-        if (status === "preparing_compatibility_layer") {
-          setCompatibilityLayerStatus("preparing");
-          setCompatibilityLayerDetail(detail);
-          return;
-        }
+    const applyStatus = ({
+      gameKey,
+      status,
+      detail,
+    }: GameLauncherStatusPayload) => {
+      if (gameKey !== `${shop}:${objectId}`) return;
 
-        if (status === "compatibility_layer_ready") {
-          setCompatibilityLayerStatus("idle");
-          setCompatibilityLayerDetail(null);
-          return;
-        }
-
-        if (status === "compatibility_layer_failed") {
-          setCompatibilityLayerStatus("failed");
-          setCompatibilityLayerDetail(detail);
-          return;
-        }
-
-        setAchievementsExportStatus(status);
-        setAchievementsExportDetail(detail);
+      if (status === "preparing_compatibility_layer") {
+        setCompatibilityLayerStatus("preparing");
+        setCompatibilityLayerDetail(detail);
+        return;
       }
-    );
+
+      if (status === "compatibility_layer_ready") {
+        setCompatibilityLayerStatus("idle");
+        setCompatibilityLayerDetail(null);
+        return;
+      }
+
+      if (status === "compatibility_layer_failed") {
+        setCompatibilityLayerStatus("failed");
+        setCompatibilityLayerDetail(detail);
+        return;
+      }
+
+      setAchievementsExportStatus(status);
+      setAchievementsExportDetail(detail);
+    };
+
+    const unsubscribe = window.electron.onGameLauncherStatus((payload) => {
+      receivedLiveStatus = true;
+      applyStatus(payload);
+    });
+
+    window.electron
+      .getGameLauncherStatuses(shop, objectId)
+      .then((statuses) => {
+        if (receivedLiveStatus) return;
+        statuses.forEach(applyStatus);
+      })
+      .catch(() => undefined);
 
     return () => unsubscribe();
   }, [shop, objectId]);

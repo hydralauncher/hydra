@@ -27,7 +27,11 @@ import {
   launchedGamePids,
   type UmuStatus,
 } from "@main/services";
-import { sendGameLauncherStatus } from "@main/services/game-launcher-status";
+import {
+  clearGameLauncherStatuses,
+  sendGameLauncherStatus,
+} from "@main/services/game-launcher-status";
+import { UmuUpdater } from "@main/services/umu-updater";
 import { updateGameRecord } from "@main/services/game-record-updater";
 import { dispatchSteamProtocolLaunch } from "@main/services/steam-integration/steam-protocol-launch-dispatch";
 import { resolveSteamProtocolLaunch } from "@main/services/steam-integration/steam-protocol-launch";
@@ -425,6 +429,7 @@ const launchWindowsBinaryOnLinux = async (
   const { protonPath, winePrefixPath } = compatibilityContext;
   const reportUmuStatus = createUmuStatusReporter(gameKey);
   let umuFailureMessage = "umu-run failed to launch the game";
+  void UmuUpdater.checkForUpdates();
 
   try {
     await Umu.launchExecutable(parsedPath, [], {
@@ -692,6 +697,7 @@ const launchGameWithCloudSaveChecks = async (
     : null;
   const launchGameRecord = updatedGame ?? game;
 
+  clearGameLauncherStatuses(gameKey);
   await WindowManager.createGameLauncherWindow(shop, objectId);
 
   const shouldRunV2AutomaticSync = await canRunAutomaticCloudSaveSync(
