@@ -11,6 +11,7 @@ out
 ludusavi/**
 !ludusavi/config.yaml
 /hydra-native/
+/legendary/
 native/hydra-native/target/
 
 # Sentry Config File

@@ -1,5 +1,8 @@
 appId: gg.hydralauncher.hydra
 productName: Hydra
+beforePack: scripts/legendary-before-pack.cjs
+afterPack: scripts/legendary-after-pack.cjs
+afterSign: scripts/legendary-after-pack.cjs
 directories:
   buildResources: build
 extraResources:
@@ -10,6 +13,8 @@ extraResources:
   - from: resources/achievement.wav
 files:
   - "!.cache/**"
+  - "!legendary/**"
+  - "!resources/legendary/**"
   - "!native/torrent-bridge/**"
   - "!**/.vscode/*"
   - "!src/*"
@@ -27,6 +32,15 @@ asarUnpack:
 win:
   executableName: Hydra
   extraResources:
+    - from: legendary/win32/${arch}
+      to: legendary
+      filter:
+        - legendary.exe
+    - from: resources/legendary
+      to: legendary
+      filter:
+        - LICENSE
+        - NOTICE.md
     - from: binaries/7z.exe
     - from: binaries/7z.dll
   target:
@@ -44,8 +58,18 @@ portable:
   artifactName: ${name}-${version}-portable.${ext}
   unpackDirName: false
 mac:
+  sign: scripts/legendary-mac-sign.cjs
   entitlementsInherit: build/entitlements.mac.plist
   extraResources:
+    - from: legendary/darwin/${arch}
+      to: legendary
+      filter:
+        - legendary
+    - from: resources/legendary
+      to: legendary
+      filter:
+        - LICENSE
+        - NOTICE.md
     - from: binaries/7zz
   extendInfo:
     - NSCameraUsageDescription: Application requests access to the device's camera.

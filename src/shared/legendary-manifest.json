@@ -1,0 +1,32 @@
+{
+  "version": "0.21.1",
+  "releaseUrl": "https://github.com/legendary-gl/legendary/releases/tag/0.21.1",
+  "sourceUrl": "https://github.com/legendary-gl/legendary/tree/0.21.1",
+  "license": "GPL-3.0-or-later",
+  "artifacts": {
+    "win32": {
+      "x64": {
+        "fileName": "legendary.exe",
+        "url": "https://github.com/legendary-gl/legendary/releases/download/0.21.1/legendary_windows_x64.exe",
+        "sha256": "6be77857dc0a6dd33ea7442ce8b5291944ec6da53757f81ca95b57ce794baf5b"
+      },
+      "arm64": {
+        "fileName": "legendary.exe",
+        "url": "https://github.com/legendary-gl/legendary/releases/download/0.21.1/legendary_windows_arm64.exe",
+        "sha256": "5ca178d75713cb92ee24daa5df1905c75f05b8b403383669ca7aa32a5809fba3"
+      }
+    },
+    "darwin": {
+      "x64": {
+        "fileName": "legendary",
+        "url": "https://github.com/legendary-gl/legendary/releases/download/0.21.1/legendary_macOS_x64",
+        "sha256": "3dfab50277284b5bb0104f8710e4ff1d9ff00c992e44f5843fd0c977c5cc99c4"
+      },
+      "arm64": {
+        "fileName": "legendary",
+        "url": "https://github.com/legendary-gl/legendary/releases/download/0.21.1/legendary_macOS_arm64",
+        "sha256": "d87978321dba9cb731fab40c72f0a30bed55baca8b5341ab21024c5733cd837e"
+      }
+    }
+  }
+}

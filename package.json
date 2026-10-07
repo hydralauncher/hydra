@@ -23,6 +23,7 @@
     "typecheck": "npm run typecheck:node && npm run typecheck:web",
     "check:ota-bridge": "node scripts/check-ota-bridge.mjs",
     "build:native": "node ./scripts/build-native-addon.cjs",
+    "prepare:legendary": "node ./scripts/prepare-legendary.cjs",
     "start": "electron-vite preview",
     "dev": "electron-vite dev",
     "build": "npm run typecheck && electron-vite build",
