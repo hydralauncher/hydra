@@ -15,6 +15,7 @@ import { UmuUpdater } from "./umu-updater";
 import {
   UmuOutputMonitor,
   getFileSize,
+  isUmuSetupFailure,
   tailUmuLog,
   type UmuOutputEvent,
 } from "./umu-output-monitor";
@@ -420,6 +421,7 @@ export class Umu {
       useMangohud?: boolean;
       useGamemode?: boolean;
       onStatus?: UmuStatusListener;
+      wasGameDetected?: () => boolean;
     }
   ): Promise<void> {
     const QUICK_EXIT_THRESHOLD_MS = 3000;
@@ -540,10 +542,19 @@ export class Umu {
         const setup = setupWatcher.complete();
 
         if (settled) {
-          if (code !== 0 && setup.hasFatalError && setup.failureMessage) {
+          const gameDetected = options?.wasGameDetected?.() ?? false;
+          if (
+            setup.failureMessage &&
+            isUmuSetupFailure({
+              exitCode: code,
+              hasFatalError: setup.hasFatalError,
+              gameDetected,
+            })
+          ) {
             logger.error("umu-run failed after the game launch started", {
               code,
               signal,
+              gameDetected,
               umuLogPath,
               errorMessage: setup.failureMessage,
             });

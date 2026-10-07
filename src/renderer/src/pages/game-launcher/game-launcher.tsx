@@ -20,6 +20,10 @@ import type {
   GameShop,
   ShopAssets,
 } from "@types";
+import {
+  createLauncherStatusReplay,
+  getGameLauncherActions,
+} from "./game-launcher-state";
 import "./game-launcher.scss";
 
 type PreflightStatus =
@@ -33,17 +37,6 @@ type PreflightStatus =
 type AchievementsExportStatus = GameLauncherStatus | "idle";
 
 type CompatibilityLayerStatus = "idle" | "preparing" | "failed";
-
-const COMPATIBILITY_LAUNCHER_STATUSES = new Set<GameLauncherStatus>([
-  "preparing_compatibility_layer",
-  "compatibility_layer_ready",
-  "compatibility_layer_failed",
-]);
-
-const getLauncherStatusGroup = (status: GameLauncherStatus) =>
-  COMPATIBILITY_LAUNCHER_STATUSES.has(status)
-    ? "compatibility"
-    : "achievements";
 
 export default function GameLauncher() {
   const { t } = useTranslation("game_launcher");
@@ -129,15 +122,9 @@ export default function GameLauncher() {
       return;
     }
 
-    const liveStatusGroups = new Set<string>();
+    const statusReplay = createLauncherStatusReplay(`${shop}:${objectId}`);
 
-    const applyStatus = ({
-      gameKey,
-      status,
-      detail,
-    }: GameLauncherStatusPayload) => {
-      if (gameKey !== `${shop}:${objectId}`) return;
-
+    const applyStatus = ({ status, detail }: GameLauncherStatusPayload) => {
       if (status === "preparing_compatibility_layer") {
         setCompatibilityLayerStatus("preparing");
         setCompatibilityLayerDetail(detail);
@@ -161,19 +148,13 @@ export default function GameLauncher() {
     };
 
     const unsubscribe = window.electron.onGameLauncherStatus((payload) => {
-      liveStatusGroups.add(getLauncherStatusGroup(payload.status));
-      applyStatus(payload);
+      if (statusReplay.acceptLiveStatus(payload)) applyStatus(payload);
     });
 
     window.electron
       .getGameLauncherStatuses(shop, objectId)
       .then((statuses) => {
-        statuses
-          .filter(
-            (payload) =>
-              !liveStatusGroups.has(getLauncherStatusGroup(payload.status))
-          )
-          .forEach(applyStatus);
+        statusReplay.selectCachedStatuses(statuses).forEach(applyStatus);
       })
       .catch(() => undefined);
 
@@ -219,6 +200,10 @@ export default function GameLauncher() {
 
   const handleOpenHydra = () => {
     window.electron.openMainWindow();
+    window.electron.closeGameLauncherWindow();
+  };
+
+  const handleClose = () => {
     window.electron.closeGameLauncherWindow();
   };
 
@@ -318,6 +303,10 @@ export default function GameLauncher() {
   ]);
 
   const isCompatibilityLayerFailed = compatibilityLayerStatus === "failed";
+  const launcherActions = getGameLauncherActions({
+    isMainWindowOpen,
+    isCompatibilityLayerFailed,
+  });
 
   const isStatusRunning =
     isPreflightRunning ||
@@ -494,14 +483,28 @@ export default function GameLauncher() {
               </p>
             )}
 
-            {!isMainWindowOpen && (
-              <button
-                type="button"
-                className="game-launcher__button"
-                onClick={handleOpenHydra}
-              >
-                {t("open_hydra")}
-              </button>
+            {(launcherActions.showOpenHydra || launcherActions.showClose) && (
+              <div className="game-launcher__actions">
+                {launcherActions.showOpenHydra && (
+                  <button
+                    type="button"
+                    className="game-launcher__button"
+                    onClick={handleOpenHydra}
+                  >
+                    {t("open_hydra")}
+                  </button>
+                )}
+
+                {launcherActions.showClose && (
+                  <button
+                    type="button"
+                    className="game-launcher__button game-launcher__button--secondary"
+                    onClick={handleClose}
+                  >
+                    {t("close")}
+                  </button>
+                )}
+              </div>
             )}
           </div>
 

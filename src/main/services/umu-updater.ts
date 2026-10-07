@@ -8,22 +8,22 @@ import { logger } from "./logger";
 import {
   BUNDLED_UMU_VERSION,
   compareUmuVersions,
-  isValidUmuVersion,
   parseUmuRelease,
 } from "./umu-release";
+import {
+  isUmuUpdateCheckDue,
+  parseUmuUpdateState,
+  recordUmuUpdateFailure,
+  recordUmuUpdateSuccess,
+  type UmuUpdateState,
+} from "./umu-update-schedule";
 
 const UMU_RELEASE_API_URL =
   "https://api.github.com/repos/Open-Wine-Components/umu-launcher/releases/latest";
-const UMU_UPDATE_CHECK_INTERVAL_MS = 24 * 60 * 60 * 1000;
 const UMU_RELEASE_REQUEST_TIMEOUT_MS = 15_000;
 const UMU_DOWNLOAD_TIMEOUT_MS = 120_000;
 const UMU_MAX_DOWNLOAD_BYTES = 20 * 1024 * 1024;
 const UMU_ZIPAPP_ENTRY = "umu/umu-run";
-
-interface ManagedUmuState {
-  version: string | null;
-  checkedAt: number;
-}
 
 const getManagedUmuDirectory = () =>
   path.join(SystemPath.getPath("userData"), "umu");
@@ -33,20 +33,17 @@ const getStatePath = () => path.join(getManagedUmuDirectory(), "state.json");
 const getVersionBinaryPath = (version: string) =>
   path.join(getManagedUmuDirectory(), version, "umu-run");
 
-const readState = (): ManagedUmuState | null => {
+const readState = (): UmuUpdateState | null => {
   try {
-    const state = JSON.parse(fs.readFileSync(getStatePath(), "utf8"));
-    if (typeof state?.checkedAt !== "number") return null;
-    return {
-      version: isValidUmuVersion(state.version) ? state.version : null,
-      checkedAt: state.checkedAt,
-    };
+    return parseUmuUpdateState(
+      JSON.parse(fs.readFileSync(getStatePath(), "utf8"))
+    );
   } catch {
     return null;
   }
 };
 
-const writeState = async (state: ManagedUmuState) => {
+const writeState = async (state: UmuUpdateState) => {
   await fs.promises.mkdir(getManagedUmuDirectory(), { recursive: true });
   const temporaryPath = `${getStatePath()}.${randomUUID()}.tmp`;
   await fs.promises.writeFile(temporaryPath, JSON.stringify(state));
@@ -62,7 +59,7 @@ const isUsableBinary = (binaryPath: string) => {
   }
 };
 
-const getInstalledManagedVersion = (state: ManagedUmuState | null) => {
+const getInstalledManagedVersion = (state: UmuUpdateState | null) => {
   if (!state?.version) return null;
   if (compareUmuVersions(state.version, BUNDLED_UMU_VERSION) <= 0) return null;
   return isUsableBinary(getVersionBinaryPath(state.version))
@@ -155,9 +152,7 @@ export class UmuUpdater {
 
   private static async runUpdateCheck() {
     const state = readState();
-    if (state && Date.now() - state.checkedAt < UMU_UPDATE_CHECK_INTERVAL_MS) {
-      return;
-    }
+    if (!isUmuUpdateCheckDue(state, Date.now())) return;
 
     const installedVersion = getInstalledManagedVersion(state);
     const currentVersion = installedVersion ?? BUNDLED_UMU_VERSION;
@@ -173,7 +168,7 @@ export class UmuUpdater {
         !release ||
         compareUmuVersions(release.version, currentVersion) <= 0
       ) {
-        await writeState({ version: installedVersion, checkedAt: Date.now() });
+        await writeState(recordUmuUpdateSuccess(installedVersion, Date.now()));
         return;
       }
 
@@ -186,16 +181,24 @@ export class UmuUpdater {
         release.downloadUrl,
         release.sha256
       );
-      await writeState({ version: release.version, checkedAt: Date.now() });
+      await writeState(recordUmuUpdateSuccess(release.version, Date.now()));
       await removeStaleVersions(
         new Set([release.version, installedVersion ?? release.version])
       );
       logger.info("umu-launcher updated", { version: release.version });
     } catch (error) {
+      const failedState = recordUmuUpdateFailure(
+        state,
+        installedVersion,
+        Date.now()
+      );
       logger.warn("Failed to update umu-launcher", {
         currentVersion,
+        failureCount: failedState.failureCount,
+        retryAt: new Date(failedState.retryAt ?? Date.now()).toISOString(),
         errorMessage: error instanceof Error ? error.message : String(error),
       });
+      await writeState(failedState).catch(() => undefined);
     }
   }
 }

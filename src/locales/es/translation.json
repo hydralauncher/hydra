@@ -2145,7 +2145,8 @@
     "downloading_achievement_icons_detail": "Descargando iconos de logros ({{detail}})",
     "preparing_compatibility_layer": "Preparando la capa de compatibilidad",
     "preparing_compatibility_layer_detail": "Preparando la capa de compatibilidad ({{detail}})",
-    "compatibility_layer_failed": "La capa de compatibilidad no pudo iniciar el juego"
+    "compatibility_layer_failed": "La capa de compatibilidad no pudo iniciar el juego",
+    "close": "Cerrar"
   },
   "friends_window": {
     "title": "Amigos",

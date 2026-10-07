@@ -2121,7 +2121,8 @@
     "downloading_achievement_icons_detail": "Загрузка значков достижений ({{detail}})",
     "preparing_compatibility_layer": "Подготовка слоя совместимости",
     "preparing_compatibility_layer_detail": "Подготовка слоя совместимости ({{detail}})",
-    "compatibility_layer_failed": "Слою совместимости не удалось запустить игру"
+    "compatibility_layer_failed": "Слою совместимости не удалось запустить игру",
+    "close": "Закрыть"
   },
   "notifications_page": {
     "cloud_gift_received_title": "Вам подарили Hydra Cloud",

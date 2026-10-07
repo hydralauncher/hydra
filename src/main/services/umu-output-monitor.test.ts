@@ -6,9 +6,60 @@ import { describe, it } from "node:test";
 
 import {
   UmuOutputMonitor,
+  isUmuSetupFailure,
   parseUmuOutputLine,
   tailUmuLog,
 } from "./umu-output-monitor.js";
+
+describe("umu setup failure detection", () => {
+  it("reports a delayed fatal exception even when umu exits with code 0", () => {
+    const monitor = new UmuOutputMonitor();
+    monitor.feed("INFO: Downloading steamrt3 (3.0.20260928.262393)...\n");
+    monitor.feed(
+      "Traceback (most recent call last):\nRuntimeError: runtime setup failed\n"
+    );
+
+    assert.equal(monitor.hasFatalError, true);
+    assert.equal(
+      isUmuSetupFailure({
+        exitCode: 0,
+        hasFatalError: monitor.hasFatalError,
+        gameDetected: false,
+      }),
+      true
+    );
+  });
+
+  it("does not report a failure once the game was detected and exited cleanly", () => {
+    assert.equal(
+      isUmuSetupFailure({
+        exitCode: 0,
+        hasFatalError: true,
+        gameDetected: true,
+      }),
+      false
+    );
+    assert.equal(
+      isUmuSetupFailure({
+        exitCode: 1,
+        hasFatalError: true,
+        gameDetected: true,
+      }),
+      true
+    );
+  });
+
+  it("ignores non-zero exits without a fatal umu error", () => {
+    assert.equal(
+      isUmuSetupFailure({
+        exitCode: 1,
+        hasFatalError: false,
+        gameDetected: false,
+      }),
+      false
+    );
+  });
+});
 
 describe("umu log tail", () => {
   it("reads appended output in bounded chunks without splitting characters", () => {

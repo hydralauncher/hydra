@@ -30,9 +30,9 @@ import {
 import {
   clearGameLauncherStatuses,
   sendGameLauncherStatus,
+  wasGameLauncherGameDetected,
 } from "@main/services/game-launcher-status";
 import { UmuUpdater } from "@main/services/umu-updater";
-import { gamesPlaytime } from "@main/services/game-running-state";
 import { updateGameRecord } from "@main/services/game-record-updater";
 import { dispatchSteamProtocolLaunch } from "@main/services/steam-integration/steam-protocol-launch-dispatch";
 import { resolveSteamProtocolLaunch } from "@main/services/steam-integration/steam-protocol-launch";
@@ -60,7 +60,7 @@ const createUmuStatusReporter =
   (gameKey: string) =>
   (status: UmuStatus): void => {
     if (status.type === "progress") {
-      if (gamesPlaytime.has(gameKey)) return;
+      if (wasGameLauncherGameDetected(gameKey)) return;
       sendGameLauncherStatus(
         gameKey,
         "preparing_compatibility_layer",
@@ -442,6 +442,7 @@ const launchWindowsBinaryOnLinux = async (
       useGamemode,
       useMangohud,
       onStatus: reportUmuStatus,
+      wasGameDetected: () => wasGameLauncherGameDetected(gameKey),
     });
     PowerSaveBlockerManager.markCompatibilityLaunchStarted(gameKey);
     return true;

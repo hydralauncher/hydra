@@ -69,6 +69,16 @@ export const parseUmuOutputLine = (rawLine: string): UmuOutputEvent | null => {
   return null;
 };
 
+export const isUmuSetupFailure = ({
+  exitCode,
+  hasFatalError,
+  gameDetected,
+}: {
+  exitCode: number | null;
+  hasFatalError: boolean;
+  gameDetected: boolean;
+}) => hasFatalError && (exitCode !== 0 || !gameDetected);
+
 export class UmuOutputMonitor {
   private buffer = "";
   private lastErrorMessage: string | null = null;

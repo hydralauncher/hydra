@@ -2188,7 +2188,8 @@
     "downloading_achievement_icons_detail": "Downloading achievement icons ({{detail}})",
     "preparing_compatibility_layer": "Preparing compatibility layer",
     "preparing_compatibility_layer_detail": "Preparing compatibility layer ({{detail}})",
-    "compatibility_layer_failed": "The compatibility layer failed to start the game"
+    "compatibility_layer_failed": "The compatibility layer failed to start the game",
+    "close": "Close"
   },
   "notifications_page": {
     "cloud_gift_received_title": "You received Hydra Cloud",

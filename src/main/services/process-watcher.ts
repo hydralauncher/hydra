@@ -15,7 +15,7 @@ import { Wine } from "./wine";
 import { NativeAddon } from "./native-addon";
 import { emulatorSessions } from "./emulators/emulator-session-tracker";
 import { launchedGamePids } from "./launched-game-pids";
-import { sendGameLauncherStatus } from "./game-launcher-status";
+import { markGameLauncherGameDetected } from "./game-launcher-status";
 import {
   isValidProcessWatcherScan,
   startOptionalExecutableCatalogueLoad,
@@ -427,7 +427,7 @@ async function onOpenGame(game: Game, matchedPath: string) {
   if (process.platform !== "linux") {
     WindowManager.closeGameLauncherWindow();
   } else {
-    sendGameLauncherStatus(gameKey, "compatibility_layer_ready");
+    markGameLauncherGameDetected(gameKey);
   }
 
   // Hide Hydra to tray on game startup if enabled

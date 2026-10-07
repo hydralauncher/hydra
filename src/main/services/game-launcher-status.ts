@@ -15,6 +15,8 @@ const latestStatuses = new Map<
   Map<GameLauncherStatusGroup, GameLauncherStatusPayload>
 >();
 
+const detectedGames = new Set<string>();
+
 const getStatusGroup = (status: GameLauncherStatus): GameLauncherStatusGroup =>
   COMPATIBILITY_STATUSES.has(status) ? "compatibility" : "achievements";
 
@@ -24,6 +26,15 @@ export const getGameLauncherStatuses = (gameKey: string) => [
 
 export const clearGameLauncherStatuses = (gameKey: string) => {
   latestStatuses.delete(gameKey);
+  detectedGames.delete(gameKey);
+};
+
+export const wasGameLauncherGameDetected = (gameKey: string) =>
+  detectedGames.has(gameKey);
+
+export const markGameLauncherGameDetected = (gameKey: string) => {
+  detectedGames.add(gameKey);
+  sendGameLauncherStatus(gameKey, "compatibility_layer_ready");
 };
 
 export const sendGameLauncherStatus = (
