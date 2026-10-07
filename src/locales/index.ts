@@ -41,6 +41,7 @@ export default {
   en,
   de,
   el,
+  es: es419,
   "es-419": es419,
   "es-ES": esES,
   nl,
