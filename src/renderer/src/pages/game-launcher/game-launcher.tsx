@@ -199,12 +199,12 @@ export default function GameLauncher() {
   }, [windowShown, canAutoClose]);
 
   const handleOpenHydra = () => {
-    window.electron.openMainWindow();
-    window.electron.closeGameLauncherWindow();
+    void window.electron.openMainWindow();
+    void window.electron.closeGameLauncherWindow();
   };
 
   const handleClose = () => {
-    window.electron.closeGameLauncherWindow();
+    void window.electron.closeGameLauncherWindow();
   };
 
   const normalizeImageUrl = (url?: string | null) =>
