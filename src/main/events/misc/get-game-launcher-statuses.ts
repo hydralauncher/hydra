@@ -3,7 +3,7 @@ import { levelKeys } from "@main/level";
 import { getGameLauncherStatuses } from "@main/services/game-launcher-status";
 import { registerEvent } from "../register-event";
 
-const getGameLauncherStatusesEvent = async (
+const getGameLauncherStatusesEvent = (
   _event: Electron.IpcMainInvokeEvent,
   shop: GameShop,
   objectId: string

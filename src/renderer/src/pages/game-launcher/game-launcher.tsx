@@ -34,6 +34,17 @@ type AchievementsExportStatus = GameLauncherStatus | "idle";
 
 type CompatibilityLayerStatus = "idle" | "preparing" | "failed";
 
+const COMPATIBILITY_LAUNCHER_STATUSES = new Set<GameLauncherStatus>([
+  "preparing_compatibility_layer",
+  "compatibility_layer_ready",
+  "compatibility_layer_failed",
+]);
+
+const getLauncherStatusGroup = (status: GameLauncherStatus) =>
+  COMPATIBILITY_LAUNCHER_STATUSES.has(status)
+    ? "compatibility"
+    : "achievements";
+
 export default function GameLauncher() {
   const { t } = useTranslation("game_launcher");
   const [searchParams] = useSearchParams();
@@ -118,7 +129,7 @@ export default function GameLauncher() {
       return;
     }
 
-    let receivedLiveStatus = false;
+    const liveStatusGroups = new Set<string>();
 
     const applyStatus = ({
       gameKey,
@@ -150,15 +161,19 @@ export default function GameLauncher() {
     };
 
     const unsubscribe = window.electron.onGameLauncherStatus((payload) => {
-      receivedLiveStatus = true;
+      liveStatusGroups.add(getLauncherStatusGroup(payload.status));
       applyStatus(payload);
     });
 
     window.electron
       .getGameLauncherStatuses(shop, objectId)
       .then((statuses) => {
-        if (receivedLiveStatus) return;
-        statuses.forEach(applyStatus);
+        statuses
+          .filter(
+            (payload) =>
+              !liveStatusGroups.has(getLauncherStatusGroup(payload.status))
+          )
+          .forEach(applyStatus);
       })
       .catch(() => undefined);
 
