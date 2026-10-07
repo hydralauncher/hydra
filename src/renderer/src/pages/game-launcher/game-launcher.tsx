@@ -24,6 +24,7 @@ import {
   canGameLauncherAutoClose,
   createLauncherStatusReplay,
   getGameLauncherActions,
+  getGameLauncherAutoCloseDelay,
   type CompatibilityLayerStatus,
 } from "./game-launcher-state";
 import "./game-launcher.scss";
@@ -70,6 +71,7 @@ export default function GameLauncher() {
   const [compatibilityLayerDetail, setCompatibilityLayerDetail] = useState<
     string | null
   >(null);
+  const [gameStarted, setGameStarted] = useState(false);
 
   const formatPlayTime = useCallback(
     (playTimeInMilliseconds = 0) => {
@@ -137,6 +139,13 @@ export default function GameLauncher() {
         return;
       }
 
+      if (status === "game_started") {
+        setCompatibilityLayerStatus("idle");
+        setCompatibilityLayerDetail(null);
+        setGameStarted(true);
+        return;
+      }
+
       if (status === "compatibility_layer_failed") {
         setCompatibilityLayerStatus("failed");
         setCompatibilityLayerDetail(detail);
@@ -194,11 +203,11 @@ export default function GameLauncher() {
     if (!windowShown || !canAutoClose) return;
 
     const timer = setTimeout(() => {
-      window.electron.closeGameLauncherWindow();
-    }, 5000);
+      void window.electron.closeGameLauncherWindow();
+    }, getGameLauncherAutoCloseDelay(gameStarted));
 
     return () => clearTimeout(timer);
-  }, [windowShown, canAutoClose]);
+  }, [windowShown, canAutoClose, gameStarted]);
 
   const handleOpenHydra = () => {
     void window.electron.openMainWindow();
@@ -246,15 +255,6 @@ export default function GameLauncher() {
       setColorExtracted(true);
     }
   }, []);
-
-  const isPreflightRunning =
-    preflightStatus === "checking" ||
-    preflightStatus === "downloading" ||
-    preflightStatus === "installing";
-
-  const isAchievementsExportRunning =
-    achievementsExportStatus === "generating_achievements" ||
-    achievementsExportStatus === "downloading_achievement_icons";
 
   const getStatusMessage = useCallback(() => {
     switch (preflightStatus) {
@@ -309,11 +309,6 @@ export default function GameLauncher() {
     isMainWindowOpen,
     compatibilityLayerStatus,
   });
-
-  const isStatusRunning =
-    isPreflightRunning ||
-    isAchievementsExportRunning ||
-    compatibilityLayerStatus === "preparing";
 
   useEffect(() => {
     let cancelled = false;
@@ -469,11 +464,12 @@ export default function GameLauncher() {
                   : ""
               }`}
             >
-              {isStatusRunning && <span className="game-launcher__spinner" />}
-              {getStatusMessage()}
-              {!isCompatibilityLayerFailed && (
-                <span className="game-launcher__dots" />
-              )}
+              <span>
+                {getStatusMessage()}
+                {!isCompatibilityLayerFailed && (
+                  <span className="game-launcher__dots" />
+                )}
+              </span>
             </p>
 
             {isCompatibilityLayerFailed && compatibilityLayerDetail && (

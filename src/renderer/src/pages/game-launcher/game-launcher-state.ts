@@ -4,6 +4,7 @@ const COMPATIBILITY_LAUNCHER_STATUSES = new Set<GameLauncherStatus>([
   "preparing_compatibility_layer",
   "compatibility_layer_ready",
   "compatibility_layer_failed",
+  "game_started",
 ]);
 
 export const getLauncherStatusGroup = (status: GameLauncherStatus) =>
@@ -41,6 +42,14 @@ export const getGameLauncherActions = ({
   showOpenHydra: !isMainWindowOpen,
   showClose: compatibilityLayerStatus !== "idle",
 });
+
+export const GAME_LAUNCHER_AUTO_CLOSE_DELAY_MS = 5_000;
+export const GAME_STARTED_AUTO_CLOSE_DELAY_MS = 1_000;
+
+export const getGameLauncherAutoCloseDelay = (gameStarted: boolean) =>
+  gameStarted
+    ? GAME_STARTED_AUTO_CLOSE_DELAY_MS
+    : GAME_LAUNCHER_AUTO_CLOSE_DELAY_MS;
 
 export const canGameLauncherAutoClose = ({
   preflightFinished,

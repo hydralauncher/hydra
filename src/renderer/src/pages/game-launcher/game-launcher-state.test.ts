@@ -2,10 +2,34 @@ import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 
 import {
+  GAME_LAUNCHER_AUTO_CLOSE_DELAY_MS,
+  GAME_STARTED_AUTO_CLOSE_DELAY_MS,
   canGameLauncherAutoClose,
   createLauncherStatusReplay,
   getGameLauncherActions,
+  getGameLauncherAutoCloseDelay,
+  getLauncherStatusGroup,
 } from "./game-launcher-state.js";
+
+describe("game launcher close delay", () => {
+  it("closes quickly once the game was detected", () => {
+    assert.equal(
+      getGameLauncherAutoCloseDelay(true),
+      GAME_STARTED_AUTO_CLOSE_DELAY_MS
+    );
+    assert.equal(
+      getGameLauncherAutoCloseDelay(false),
+      GAME_LAUNCHER_AUTO_CLOSE_DELAY_MS
+    );
+    assert.ok(
+      GAME_STARTED_AUTO_CLOSE_DELAY_MS < GAME_LAUNCHER_AUTO_CLOSE_DELAY_MS
+    );
+  });
+
+  it("treats game detection as a compatibility status", () => {
+    assert.equal(getLauncherStatusGroup("game_started"), "compatibility");
+  });
+});
 
 describe("game launcher status replay", () => {
   it("ignores other games before replaying cached statuses", () => {

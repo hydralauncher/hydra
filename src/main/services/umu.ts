@@ -306,7 +306,6 @@ export class Umu {
 
       child.once("error", (error) => {
         setupWatcher.complete();
-        setupWatcher.markReady();
         finish(() => {
           logger.error("Failed to start umu-run prefix preparation", {
             errorName: error.name,
@@ -318,7 +317,6 @@ export class Umu {
       });
       child.once("close", (code, signal) => {
         const setup = setupWatcher.complete();
-        setupWatcher.markReady();
         finish(() => {
           let prefixValid = false;
 

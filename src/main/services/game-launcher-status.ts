@@ -8,6 +8,7 @@ const COMPATIBILITY_STATUSES = new Set<GameLauncherStatus>([
   "preparing_compatibility_layer",
   "compatibility_layer_ready",
   "compatibility_layer_failed",
+  "game_started",
 ]);
 
 const latestStatuses = new Map<
@@ -34,7 +35,7 @@ export const wasGameLauncherGameDetected = (gameKey: string) =>
 
 export const markGameLauncherGameDetected = (gameKey: string) => {
   detectedGames.add(gameKey);
-  sendGameLauncherStatus(gameKey, "compatibility_layer_ready");
+  sendGameLauncherStatus(gameKey, "game_started");
 };
 
 export const sendGameLauncherStatus = (
