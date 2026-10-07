@@ -319,7 +319,7 @@ export const scanRpcs3Savestates = async (
   return result;
 };
 
-const lstatIfExists = async (target: string) =>
+const lstatIfExists = (target: string) =>
   fs
     .lstat(target)
     .catch((error: NodeJS.ErrnoException) =>
@@ -336,6 +336,32 @@ const isRpcs3GamedataProfile = async (folderRoot: string, titleId: string) => {
     parseParamSfoValue(sfo, "CATEGORY") === "GD" &&
     normalizeRpcs3TitleId(parseParamSfoValue(sfo, "TITLE_ID")) === titleId
   );
+};
+
+const scanRpcs3GamedataFolder = async (
+  gameRoot: string,
+  folder: Dirent,
+  titleId: string
+) => {
+  if (!folder.isDirectory() || folder.isSymbolicLink()) {
+    return { relativePaths: [], complete: false };
+  }
+  const folderRoot = path.join(gameRoot, folder.name);
+  if (!(await isRpcs3GamedataProfile(folderRoot, titleId))) {
+    return { relativePaths: [], complete: false };
+  }
+  const scanned = await listSafeFiles(folderRoot);
+  const relativePaths = scanned.files.map((absolutePath) =>
+    path.relative(gameRoot, absolutePath).split(path.sep).join("/")
+  );
+  const safeRelativePaths = relativePaths.filter((relativePath) =>
+    safeRelativeSegments(relativePath)
+  );
+  return {
+    relativePaths: safeRelativePaths,
+    complete:
+      scanned.complete && safeRelativePaths.length === relativePaths.length,
+  };
 };
 
 export const scanRpcs3Gamedata = async (
@@ -365,64 +391,61 @@ export const scanRpcs3Gamedata = async (
     rootStat?.isDirectory() && !rootStat.isSymbolicLink()
       ? await fs.readdir(gameRoot, { withFileTypes: true }).catch(() => null)
       : null;
+  const localBindings = {
+    environmentId,
+    rootId: hash(JSON.stringify([environmentId, gameRoot])),
+    concreteUserSegment: "__default__",
+    concretePath: gameRoot,
+  };
 
-  for (const titleId of titleIds) {
+  const titles = await Promise.all(
+    titleIds.map(async (titleId) => {
+      const folders = entries?.filter((entry) =>
+        rpcs3GamedataFolderBelongsToTitle(entry.name, titleId)
+      );
+      const scanned =
+        folders && folders.length > 0
+          ? await Promise.all(
+              folders.map((folder) =>
+                scanRpcs3GamedataFolder(gameRoot, folder, titleId)
+              )
+            )
+          : null;
+      return { titleId, folders, scanned };
+    })
+  );
+
+  for (const { titleId, folders, scanned } of titles) {
     const rawPath = rpcs3GamedataRawPath(titleId);
-    if (rootStat === null) {
+    if (rootStat === null || folders?.length === 0) {
       result.coverage.push(missingCoverage(rawPath, variantId));
       continue;
     }
-    if (!entries) {
+    if (!scanned) {
       result.coverage.push(coverage(rawPath, variantId, false));
       continue;
     }
-    const folders = entries.filter((entry) =>
-      rpcs3GamedataFolderBelongsToTitle(entry.name, titleId)
+    for (const relativePath of scanned.flatMap(
+      (folder) => folder.relativePaths
+    )) {
+      result.files.push({
+        variantId,
+        ruleId: hash(JSON.stringify(["emulator", rawPath])),
+        rawPath,
+        absolutePath: path.join(gameRoot, ...relativePath.split("/")),
+        relativePath,
+        localBindings: { ...localBindings },
+        confidence: "exact",
+        provenance: ["emulator:rpcs3"],
+      });
+    }
+    result.coverage.push(
+      coverage(
+        rawPath,
+        variantId,
+        scanned.every((folder) => folder.complete)
+      )
     );
-    if (!folders.length) {
-      result.coverage.push(missingCoverage(rawPath, variantId));
-      continue;
-    }
-    let complete = true;
-    for (const folder of folders) {
-      if (!folder.isDirectory() || folder.isSymbolicLink()) {
-        complete = false;
-        continue;
-      }
-      const folderRoot = path.join(gameRoot, folder.name);
-      if (!(await isRpcs3GamedataProfile(folderRoot, titleId))) {
-        complete = false;
-        continue;
-      }
-      const scanned = await listSafeFiles(folderRoot);
-      complete &&= scanned.complete;
-      for (const absolutePath of scanned.files) {
-        const relativePath = path
-          .relative(gameRoot, absolutePath)
-          .split(path.sep)
-          .join("/");
-        if (!safeRelativeSegments(relativePath)) {
-          complete = false;
-          continue;
-        }
-        result.files.push({
-          variantId,
-          ruleId: hash(JSON.stringify(["emulator", rawPath])),
-          rawPath,
-          absolutePath,
-          relativePath,
-          localBindings: {
-            environmentId,
-            rootId: hash(JSON.stringify([environmentId, gameRoot])),
-            concreteUserSegment: "__default__",
-            concretePath: gameRoot,
-          },
-          confidence: "exact",
-          provenance: ["emulator:rpcs3"],
-        });
-      }
-    }
-    result.coverage.push(coverage(rawPath, variantId, complete));
   }
   return result;
 };

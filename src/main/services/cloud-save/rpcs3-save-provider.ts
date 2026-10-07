@@ -26,7 +26,10 @@ import {
 } from "./rpcs3-save-scanner";
 import { resolveRpcs3GamedataRestoreRule } from "./rpcs3-gamedata-restore.js";
 import { resolveRpcs3SavestateRestoreRule } from "./rpcs3-savestate-restore";
-import { resolveRpcs3SavedataRestoreRule } from "./rpcs3-savedata-restore.js";
+import {
+  ensureRpcs3RestoredUserNames,
+  resolveRpcs3SavedataRestoreRule,
+} from "./rpcs3-savedata-restore.js";
 
 export const resolveRpcs3SaveLocation = async () => {
   const emulator = await getEmulatorConfig("ps3");
@@ -101,33 +104,24 @@ export const rpcs3SaveProvider: EmulatorProvider = {
     } catch {
       return new Map();
     }
-    const rules = new Map<string, ReturnType<typeof emulatorRestoreRule>>();
-    for (const file of files) {
-      const stateRule = await resolveRpcs3SavestateRestoreRule(
-        game,
-        file,
-        configRoot
-      );
-      if (stateRule) {
-        rules.set(emulatorSaveFileKey(file), stateRule);
-        continue;
-      }
-      const gamedataRule = await resolveRpcs3GamedataRestoreRule(
+    const resolveRule = async (file: (typeof files)[number]) =>
+      (await resolveRpcs3SavestateRestoreRule(game, file, configRoot)) ??
+      (await resolveRpcs3GamedataRestoreRule(
         file,
         allowedTitleIds,
         rpcs3Hdd0Root({ homeRoot })
-      );
-      if (gamedataRule) {
-        rules.set(emulatorSaveFileKey(file), gamedataRule);
-        continue;
-      }
-      const rule = await resolveRpcs3SavedataRestoreRule(
-        file,
-        allowedTitleIds,
-        homeRoot
-      );
+      )) ??
+      resolveRpcs3SavedataRestoreRule(file, allowedTitleIds, homeRoot);
+    const resolved = await Promise.all(
+      files.map(async (file) => [file, await resolveRule(file)] as const)
+    );
+    const rules = new Map<string, ReturnType<typeof emulatorRestoreRule>>();
+    for (const [file, rule] of resolved) {
       if (rule) rules.set(emulatorSaveFileKey(file), rule);
     }
     return rules;
+  },
+  afterRestore(actions) {
+    return ensureRpcs3RestoredUserNames(actions);
   },
 };
