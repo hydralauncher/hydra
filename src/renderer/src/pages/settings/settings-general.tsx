@@ -92,12 +92,14 @@ export function SettingsGeneral() {
 
     setLanguageOptions(
       orderBy(
-        Object.entries(languageResources).map(([language, value]) => {
-          return {
-            nativeName: value.language_name,
-            option: language,
-          };
-        }),
+        Object.entries(languageResources)
+          .filter(([language]) => language !== "es")
+          .map(([language, value]) => {
+            return {
+              nativeName: value.language_name,
+              option: language,
+            };
+          }),
         ["nativeName"],
         "asc"
       )
