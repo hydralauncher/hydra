@@ -124,7 +124,8 @@ function fixture() {
         const old = records.get(key(scope));
         records.set(
           key(scope),
-          old?.connection.connectionId === connection.connectionId &&
+          old !== undefined &&
+            old.connection.connectionId === connection.connectionId &&
             old.connection.epicAccountId === connection.epicAccountId
             ? { ...old, connection }
             : { connection, sessionState: "missing" }
@@ -453,6 +454,35 @@ test("auth execution failure after window login preserves the linked session and
   assert.equal(f.records.get(f.key(f.getContext()))!.bundle, originalBundle);
   assert.equal(f.events.at(-1)?.operation, null);
 });
+
+for (const stage of ["authenticate", "readBundle"] as const) {
+  test(`invalid Legendary identity from ${stage} is rejected before POST or persistence`, async () => {
+    const f = fixture();
+    const invalid = {
+      ...bundle(),
+      user: {
+        ...bundle().user,
+        account_id: {
+          toString() {
+            assert.fail("account identity must never be coerced");
+          },
+        },
+      },
+    };
+    f.deps.prepareAuthRunner = async () => async (signal) => {
+      const runner = await f.runner.createRunner(signal);
+      return { ...runner, [stage]: async () => invalid };
+    };
+    await start(f);
+    assert.deepEqual(await f.callbacks().onCode(code), {
+      ok: false,
+      error: "invalid-response",
+    });
+    assert.equal(f.calls.post, 0);
+    assert.equal(f.records.size, 0);
+    assert.equal(f.calls.cleanup, 1);
+  });
+}
 
 test("Hydra auth, unsupported platform, and vault failure prevent auth subprocess", async () => {
   for (const scenario of ["logout", "unsupported", "vault"]) {
@@ -927,6 +957,42 @@ test("typed late DELETE conflict reloads and preserves newer link", async () => 
     "NewLink12"
   );
   assert.equal(f.events.at(-1)!.verification, "confirmed");
+});
+
+test("cancelling a conflicted DELETE during reconciliation cannot cache a late GET", async () => {
+  const f = fixture();
+  f.setRemote(identity());
+  await f.core.getConnection();
+  const scope = f.getContext();
+  const original = f.records.get(f.key(scope));
+  const started = deferred<void>();
+  const response = deferred<unknown>();
+  f.deps.delete = async () => {
+    throw new EpicIntegrationError("stale-connection");
+  };
+  f.deps.get = () => {
+    started.resolve();
+    return response.promise;
+  };
+  const disconnect = f.core.disconnect("AbCdEfG1");
+  await started.promise;
+  const operationId = f.events.at(-1)!.operation!.id;
+  const cancellation = f.core.cancelAuth(operationId);
+  response.resolve(identity({ connectionId: "NewLink12" }));
+  assert.deepEqual(await disconnect, {
+    ok: false,
+    error: "operation-cancelled",
+  });
+  assert.deepEqual(await cancellation, { ok: true });
+  assert.deepEqual(f.records.get(f.key(scope)), original);
+  assert.equal(
+    f.events.some(
+      (event) =>
+        event.connection?.connected &&
+        event.connection.connectionId === "NewLink12"
+    ),
+    false
+  );
 });
 
 test("window errors release the operation, preserve the existing session and permit retry", async () => {
