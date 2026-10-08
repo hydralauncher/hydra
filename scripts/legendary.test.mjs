@@ -40,12 +40,12 @@ async function directory(t) {
   return projectDir;
 }
 
-test("selects official pinned artifacts for all four targets", () => {
+test("selects official pinned artifacts for all six targets", () => {
   assert.equal(manifest.version, "0.21.1");
-  for (const platform of ["win32", "darwin"]) {
+  for (const platform of ["win32", "darwin", "linux"]) {
     for (const arch of ["x64", "arm64"]) {
       const artifact = getLegendaryArtifact(platform, arch);
-      const name = `${platform === "win32" ? "windows" : "macOS"}_${arch}${platform === "win32" ? ".exe" : ""}`;
+      const name = `${platform === "win32" ? "windows" : platform === "darwin" ? "macOS" : "linux"}_${arch}${platform === "win32" ? ".exe" : ""}`;
       assert.equal(
         artifact.url,
         `https://github.com/legendary-gl/legendary/releases/download/${manifest.version}/legendary_${name}`
@@ -194,31 +194,11 @@ test("HTTP errors do not install an executable", async (t) => {
   );
 });
 
-test("Linux skips all filesystem/network work even with a foreign cache", async (t) => {
-  const projectDir = await directory(t);
-  const foreignPath = path.join(projectDir, "legendary", "darwin", "arm64");
-  await fs.mkdir(foreignPath, { recursive: true });
-  await fs.writeFile(path.join(foreignPath, "legendary"), "cached Mac binary");
-  const result = await prepareLegendary({
-    projectDir,
-    platform: "linux",
-    arch: "ia32",
-    fetchImpl: () => assert.fail("Linux must not download"),
-  });
-  assert.equal(result.skipped, true);
-  assert.deepEqual(await fs.readdir(path.join(projectDir, "legendary")), [
-    "darwin",
-  ]);
-  assert.equal(
-    await fs.readFile(path.join(foreignPath, "legendary"), "utf8"),
-    "cached Mac binary"
-  );
-});
-
 test("unsupported targets fail before downloading or creating cache", async (t) => {
   const projectDir = await directory(t);
   for (const [platform, arch] of [
     ["win32", "ia32"],
+    ["linux", "ia32"],
     ["darwin", "universal"],
     ["freebsd", "x64"],
   ]) {

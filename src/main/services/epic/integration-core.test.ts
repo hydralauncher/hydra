@@ -1,5 +1,8 @@
 import assert from "node:assert/strict";
 import test from "node:test";
+import fs from "node:fs/promises";
+import os from "node:os";
+import path from "node:path";
 import { EpicIntegrationError, EPIC_OAUTH_CLIENT_ID } from "./auth-protocol.ts";
 import {
   EpicIntegrationCore,
@@ -12,6 +15,9 @@ import type {
   EpicConnectionState,
 } from "../../../types/epic-integration.types.ts";
 import type { EpicStoredConnection } from "./store.ts";
+import { createEpicAuthRuntime } from "./auth-runtime.ts";
+import { createEpicStoreCrypto } from "./crypto.ts";
+import { LegendaryAuthRunner } from "./legendary-auth.ts";
 
 const code = "testAuthorizationCode123456789";
 const identity = (
@@ -60,19 +66,8 @@ function fixture() {
   const key = (scope: { environment: string; userId: string }) =>
     `${scope.environment}:${scope.userId}`;
   let callbacks: Parameters<EpicIntegrationDependencies["openWindow"]>[0];
-  const deps: EpicIntegrationDependencies = {
-    getAuthContext: () => context,
-    isAuthContextCurrent: (captured) =>
-      captured.userId === context?.userId &&
-      captured.generation === context.generation &&
-      captured.environment === context.environment,
-    availability: () => ({ available: true }),
-    isEncryptionAvailable: () => true,
-    checkBinary: async () => {
-      calls.check++;
-      return "/pinned/legendary";
-    },
-    createRunner: async () => {
+  const runner = {
+    createRunner: async (_signal: AbortSignal) => {
       calls.runners++;
       return {
         authenticate: async () => {
@@ -88,6 +83,19 @@ function fixture() {
           calls.cleanup++;
         },
       };
+    },
+  };
+  const deps: EpicIntegrationDependencies = {
+    getAuthContext: () => context,
+    isAuthContextCurrent: (captured) =>
+      captured.userId === context?.userId &&
+      captured.generation === context.generation &&
+      captured.environment === context.environment,
+    availability: () => ({ available: true }),
+    isEncryptionAvailable: () => true,
+    prepareAuthRunner: async () => {
+      calls.check++;
+      return (signal) => runner.createRunner(signal);
     },
     openWindow: (options) => {
       callbacks = options;
@@ -158,6 +166,7 @@ function fixture() {
   return {
     core,
     deps,
+    runner,
     records,
     calls,
     events,
@@ -200,14 +209,104 @@ function preparationFixture() {
     querySignal = options.signal;
     return api.promise;
   };
-  f.deps.checkBinary = () => {
+  f.deps.prepareAuthRunner = async () => {
     f.calls.check++;
-    return binary.promise;
+    await binary.promise;
+    return (signal) => f.runner.createRunner(signal);
   };
   return { ...f, api, binary, querySignal: () => querySignal };
 }
 
 const nextTurn = () => new Promise<void>((resolve) => setImmediate(resolve));
+
+test("Linux without a protected vault can still query and disconnect, but cannot start auth", async () => {
+  const f = fixture();
+  const crypto = createEpicStoreCrypto("linux", {
+    isEncryptionAvailable: () => true,
+    getSelectedStorageBackend: () => "basic_text",
+    encryptString: () => assert.fail("tokens must not use unprotected storage"),
+    decryptString: () => assert.fail("unprotected storage must not be read"),
+  });
+  f.deps.isEncryptionAvailable = crypto.isEncryptionAvailable;
+  f.setRemote(identity());
+  assert.equal((await f.core.getConnection()).connection?.connected, true);
+  assert.deepEqual(await f.core.startAuth(), {
+    ok: false,
+    error: "vault-unavailable",
+  });
+  assert.equal(f.calls.windows, 0);
+  assert.equal(f.calls.auth, 0);
+  assert.deepEqual(await f.core.disconnect("AbCdEfG1"), { ok: true });
+  assert.equal(f.calls.delete, 1);
+});
+
+for (const arch of ["x64", "arm64"]) {
+  test(`Linux ${arch} authenticates through Legendary and posts only its exchange code`, async (t) => {
+    const root = await fs.mkdtemp(
+      path.join(os.tmpdir(), "epic-linux-legendary-")
+    );
+    t.after(() => fs.rm(root, { recursive: true, force: true }));
+    const binary = path.join(root, "legendary");
+    await fs.writeFile(binary, "embedded launcher fixture");
+    const f = fixture();
+    const commands: string[][] = [];
+    const runtime = createEpicAuthRuntime({
+      platform: "linux",
+      arch,
+      userDataPath: root,
+      getBinaryPath: () => binary,
+      createLegendaryRunner: (file, directory, signal) =>
+        LegendaryAuthRunner.create(
+          file,
+          directory,
+          signal,
+          async (executable, args, options) => {
+            assert.equal(executable, binary);
+            assert.equal(options.shell, false);
+            assert.deepEqual(args.slice(0, 2), ["--api-timeout", "15"]);
+            commands.push(args);
+            const config = options.env!.LEGENDARY_CONFIG_PATH!;
+            if (args[2] === "auth") {
+              assert.deepEqual(args.slice(2), ["auth", "--code", code]);
+              await fs.writeFile(
+                path.join(config, "user.json"),
+                JSON.stringify(bundle().user)
+              );
+              await fs.writeFile(
+                path.join(config, "version.json"),
+                JSON.stringify(bundle().version)
+              );
+              return "";
+            }
+            assert.deepEqual(args.slice(2), ["get-token", "--json"]);
+            return JSON.stringify({ code: "testExchangeCode123456789" });
+          }
+        ),
+    });
+    f.deps.availability = runtime.availability;
+    f.deps.prepareAuthRunner = runtime.prepareAuthRunner;
+    const operationId = await start(f);
+    assert.equal(commands.length, 0, "no process before the window callback");
+    assert.equal(f.calls.windows, 1);
+    assert.deepEqual(await f.callbacks().onCode(code), { ok: true });
+    assert.equal(commands.length, 2);
+    assert.equal(f.calls.post, 1);
+    assert.equal(
+      f.records.get(f.key(f.getContext()))?.connection.epicAccountId,
+      "a".repeat(32)
+    );
+    assert.equal(f.events.at(-1)?.operation, null);
+    assert.doesNotMatch(
+      JSON.stringify(f.events),
+      /test-access|test-refresh|testExchangeCode|testAuthorizationCode/
+    );
+    assert.deepEqual(await fs.readdir(path.join(root, "epic-temporary")), []);
+    assert.deepEqual(await f.core.cancelAuth(operationId), {
+      ok: false,
+      error: "invalid-operation",
+    });
+  });
+}
 
 for (const first of ["api", "binary"] as const) {
   test(`auth starts both checks immediately and waits for ${first === "api" ? "Legendary" : "API"}`, async () => {
@@ -334,8 +433,8 @@ test("auth execution failure after window login preserves the linked session and
     sessionState: "ready",
     bundle: originalBundle,
   });
-  const create = f.deps.createRunner;
-  f.deps.createRunner = async (...args) => ({
+  const create = f.runner.createRunner;
+  f.runner.createRunner = async (...args) => ({
     ...(await create(...args)),
     authenticate: async () => {
       f.calls.auth++;
@@ -356,10 +455,10 @@ test("auth execution failure after window login preserves the linked session and
 });
 
 test("Hydra auth, unsupported platform, and vault failure prevent auth subprocess", async () => {
-  for (const scenario of ["logout", "linux", "vault"]) {
+  for (const scenario of ["logout", "unsupported", "vault"]) {
     const f = fixture();
     if (scenario === "logout") f.setContext(null);
-    if (scenario === "linux")
+    if (scenario === "unsupported")
       f.deps.availability = () => ({
         available: false,
         reason: "unsupported-platform",
@@ -474,8 +573,8 @@ test("late auth completion after logout cannot commit or emit an old owner", asy
   const blocked = new Promise<void>((resolve) => {
     finishAuth = resolve;
   });
-  const create = f.deps.createRunner;
-  f.deps.createRunner = async (...args) => {
+  const create = f.runner.createRunner;
+  f.runner.createRunner = async (...args) => {
     const runner = await create(...args);
     return {
       ...runner,
@@ -650,8 +749,8 @@ test("cleanup failure blocks another auth until restricted session cleanup succe
   const f = fixture();
   let cleanupFails = true;
   let cleanupAttempts = 0;
-  const create = f.deps.createRunner;
-  f.deps.createRunner = async (...args) => ({
+  const create = f.runner.createRunner;
+  f.runner.createRunner = async (...args) => ({
     ...(await create(...args)),
     cleanup: async () => {
       cleanupAttempts++;
@@ -716,12 +815,12 @@ test("cancelling during binary preparation waits before another operation starts
   const started = new Promise<void>((resolve) => {
     checking = resolve;
   });
-  f.deps.checkBinary = async () => {
+  f.deps.prepareAuthRunner = async () => {
     checking();
     await new Promise<void>((resolve) => {
       finishCheck = resolve;
     });
-    return "/pinned/legendary";
+    return (signal) => f.runner.createRunner(signal);
   };
   const auth = f.core.startAuth();
   await started;

@@ -15,29 +15,26 @@ const afterPack = require("./legendary-after-pack.cjs");
 const { createSigningOptions } = require("./legendary-mac-sign.cjs");
 const signMac = require("./legendary-mac-sign.cjs");
 
-test("Linux packaging ignores Legendary even when other platforms are cached", async () => {
-  const context = {
-    electronPlatformName: "linux",
-    arch: 1,
-    packager: {
-      projectDir: "/unreachable/project",
-      getResourcesDir: () =>
-        assert.fail("Linux must not access packaged Legendary"),
-    },
-  };
-  await beforePack(context);
-  await afterPack(context);
+test("Linux packaging includes only its bundled Legendary and Python runtime outside ASAR", () => {
   assert.ok(config.files.includes("!legendary/**"));
-  assert.ok(config.files.includes("!resources/legendary/**"));
-  for (const resource of [
-    ...config.extraResources,
-    ...config.linux.extraResources,
-  ]) {
-    assert.doesNotMatch(
-      typeof resource === "string" ? resource : resource.from,
-      /legendary/
-    );
-  }
+  const runtime = config.linux.extraResources.find((resource) =>
+    resource.from.startsWith("legendary/")
+  );
+  assert.equal(runtime.from, "legendary/linux/${arch}");
+  assert.equal(runtime.to, "legendary");
+  assert.deepEqual(runtime.filter, [
+    "legendary",
+    "legendary.pyz",
+    "python-runner",
+    "python/**",
+    "glibc/**",
+    "licenses/**",
+    ".runtime-files.json",
+  ]);
+  const notice = config.linux.extraResources.find(
+    (resource) => resource.from === "resources/legendary"
+  );
+  assert.deepEqual(notice.filter, ["LICENSE", "NOTICE.md"]);
 });
 
 test("packaging chooses only the target architecture outside ASAR and includes notices", () => {

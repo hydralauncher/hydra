@@ -26,6 +26,10 @@ const versionOutput = 'legendary version "0.21.1", codename "Test"\n';
 test("resolves the development executable for each platform and architecture", () => {
   for (const arch of ["x64", "arm64"]) {
     assert.equal(
+      resolveLegendaryBinaryPath(environment({ platform: "linux", arch })),
+      `/Users/me/Hydra repo/legendary/linux/${arch}/legendary`
+    );
+    assert.equal(
       resolveLegendaryBinaryPath(environment({ arch })),
       `/Users/me/Hydra repo/legendary/darwin/${arch}/legendary`
     );
@@ -45,6 +49,17 @@ test("resolves the development executable for each platform and architecture", (
 test("runs the packaged resource directly for each target, never a cached userData copy", () => {
   for (const arch of ["x64", "arm64"]) {
     assert.equal(
+      resolveLegendaryBinaryPath(
+        environment({
+          platform: "linux",
+          isPackaged: true,
+          arch,
+          resourcesPath: "/opt/Hydra/resources",
+        })
+      ),
+      "/opt/Hydra/resources/legendary/legendary"
+    );
+    assert.equal(
       resolveLegendaryBinaryPath(environment({ isPackaged: true, arch })),
       "/Applications/Hydra.app/Contents/Resources/legendary/legendary"
     );
@@ -62,7 +77,7 @@ test("runs the packaged resource directly for each target, never a cached userDa
   }
 });
 
-test("does not inspect or execute Legendary on Linux or unsupported architectures", async () => {
+test("does not inspect or execute Legendary on unsupported platforms or architectures", async () => {
   const overrides = {
     isFile: async () => {
       assert.fail("unsupported target must not access the file system");
@@ -74,13 +89,13 @@ test("does not inspect or execute Legendary on Linux or unsupported architecture
   for (const isPackaged of [false, true]) {
     assert.equal(
       resolveLegendaryBinaryPath(
-        environment({ platform: "linux", isPackaged })
+        environment({ platform: "freebsd", isPackaged })
       ),
       null
     );
     assert.deepEqual(
       await getLegendaryAvailability(
-        environment({ platform: "linux", isPackaged }),
+        environment({ platform: "freebsd", isPackaged }),
         expectedVersion,
         overrides
       ),
