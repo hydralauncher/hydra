@@ -1647,6 +1647,8 @@ contextBridge.exposeInMainWorld("electron", {
     ipcRenderer.on("game-launcher-status", listener);
     return () => ipcRenderer.removeListener("game-launcher-status", listener);
   },
+  getGameLauncherStatuses: (shop: GameShop, objectId: string) =>
+    ipcRenderer.invoke("getGameLauncherStatuses", shop, objectId),
   resetCommonRedistPreflight: () =>
     ipcRenderer.invoke("resetCommonRedistPreflight"),
   checkForUpdates: () => ipcRenderer.invoke("checkForUpdates"),

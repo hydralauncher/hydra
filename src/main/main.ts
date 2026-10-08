@@ -37,6 +37,7 @@ import { startSteamSyncOnStartup } from "./services/steam-integration/steam-star
 import { migrateEmulatorCloudSaveDefaults } from "./services/cloud-save/automatic-sync-emulator-migration";
 import { watchSteamLibraries } from "./services/steam-integration/steam-install-watcher";
 import { migrateGameVisibilityFields } from "./services/library-sync/game-visibility-migration";
+import { UmuUpdater } from "./services/umu-updater";
 
 const hasMissingSeedFiles = async (download: Download): Promise<boolean> => {
   if (!download.folderName) return false;
@@ -110,6 +111,7 @@ export const loadState = async () => {
 
   if (process.platform === "linux") {
     DeckyPlugin.checkAndUpdateIfOutdated();
+    void UmuUpdater.checkForUpdates();
   }
 
   void watchSteamLibraries();
