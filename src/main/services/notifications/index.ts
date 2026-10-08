@@ -262,6 +262,112 @@ export const publishFriendStartedPlayingGameNotification = async (
   }).show();
 };
 
+const CHAT_NOTIFICATION_BODY_MAX_LENGTH = 200;
+
+// Windows drops click handlers of notifications that get garbage collected, so
+// the latest notification per friend is kept referenced until it closes.
+const chatMessageNotifications = new Map<string, Notification>();
+const CHAT_UNREAD_SUMMARY_NOTIFICATION_KEY = "unread-summary";
+
+const showChatNotification = async (
+  key: string,
+  content: { title: string; body: string; imageUrl: string | null },
+  onClick: () => void,
+  signal?: AbortSignal
+) => {
+  if (signal?.aborted) return;
+  const notificationIcon =
+    (content.imageUrl
+      ? await downloadImage(content.imageUrl, signal)
+      : undefined) ?? trayIcon;
+  if (signal?.aborted) return;
+
+  chatMessageNotifications.get(key)?.close();
+
+  const notification = new Notification({
+    title: content.title,
+    body:
+      content.body.length > CHAT_NOTIFICATION_BODY_MAX_LENGTH
+        ? `${content.body.slice(0, CHAT_NOTIFICATION_BODY_MAX_LENGTH)}…`
+        : content.body,
+    icon: notificationIcon,
+  });
+
+  notification.on("click", onClick);
+  notification.on("close", () => {
+    if (chatMessageNotifications.get(key) === notification) {
+      chatMessageNotifications.delete(key);
+    }
+  });
+
+  chatMessageNotifications.set(key, notification);
+  notification.show();
+};
+
+type ChatSender = Pick<UserProfile, "id" | "displayName" | "profileImageUrl">;
+
+export const publishChatMessageNotification = (
+  sender: ChatSender,
+  body: string,
+  onClick: () => void,
+  signal?: AbortSignal
+) =>
+  showChatNotification(
+    sender.id,
+    {
+      title: t("chat_message_title", {
+        ns: "notifications",
+        displayName: sender.displayName,
+      }),
+      body,
+      imageUrl: sender.profileImageUrl,
+    },
+    onClick,
+    signal
+  );
+
+/** Announces messages that arrived while the launcher was closed or offline. */
+export const publishChatUnreadNotification = (
+  unread:
+    | { kind: "friend"; sender: ChatSender; messageCount: number }
+    | { kind: "summary"; friendCount: number; messageCount: number },
+  onClick: () => void,
+  signal?: AbortSignal
+) =>
+  unread.kind === "friend"
+    ? showChatNotification(
+        unread.sender.id,
+        {
+          title: t("chat_message_title", {
+            ns: "notifications",
+            displayName: unread.sender.displayName,
+          }),
+          body: t("chat_unread_from_friend", {
+            ns: "notifications",
+            count: unread.messageCount,
+          }),
+          imageUrl: unread.sender.profileImageUrl,
+        },
+        onClick,
+        signal
+      )
+    : showChatNotification(
+        CHAT_UNREAD_SUMMARY_NOTIFICATION_KEY,
+        {
+          title: t("chat_unread_summary_title", {
+            ns: "notifications",
+            count: unread.messageCount,
+          }),
+          body: t("chat_unread_summary_body", {
+            ns: "notifications",
+            count: unread.friendCount,
+          }),
+          imageUrl: null,
+        },
+        onClick,
+        signal
+      );
+
 export const publishCombinedNewAchievementNotification = async (
   achievementCount,
   gameCount

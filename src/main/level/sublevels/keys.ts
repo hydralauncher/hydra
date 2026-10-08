@@ -49,4 +49,5 @@ export const levelKeys = {
   cloudSaveRetroArchBindings: "cloud-save-retroarch-bindings",
   cloudSavePendingDeletions: "cloud-save-pending-deletions",
   steamSyncRun: "steamSyncRun",
+  chatNotificationCursor: "chatNotificationCursor", // Newest chat message already announced
 };

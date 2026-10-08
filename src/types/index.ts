@@ -192,6 +192,14 @@ export interface ProfileFriends {
   friends: UserFriend[];
 }
 
+// Cached in the main process so the friends window can paint real data on its
+// first frame instead of an empty list.
+export interface FriendsSnapshot {
+  friends: UserFriend[];
+  onlineFriends: number;
+  friendRequests: FriendRequest[];
+}
+
 export interface UserBlocks {
   totalBlocks: number;
   blocks: UserFriend[];
@@ -204,6 +212,53 @@ export interface FriendRequestSync {
 export interface FriendPresenceSync {
   friendId: string;
   isOnline: boolean;
+}
+
+export interface ChatMessageDto {
+  seq: number;
+  senderId: string;
+  body: string;
+  clientNonce: string;
+  createdAt: string;
+}
+
+export interface ChatMessagesPage {
+  messages: ChatMessageDto[];
+  hasMore: boolean;
+  canSend: boolean;
+  lastReadSeq: number;
+  unreadCount: number;
+}
+
+export interface ChatUnreadSummary {
+  totalUnread: number;
+  conversations: {
+    friendId: string;
+    unreadCount: number;
+    lastMessageAt: string;
+  }[];
+}
+
+/* Unread message counts keyed by friend id, as kept by the main process. */
+export interface ChatUnreadState {
+  totalUnread: number;
+  byFriend: Record<string, number>;
+}
+
+/* friendId is always the other side of the conversation, even for messages
+   the current user sent from another window or device. */
+export interface ChatMessageSync {
+  friendId: string;
+  message: ChatMessageDto;
+}
+
+export interface ChatTypingSync {
+  friendId: string;
+}
+
+export interface ChatWindowState {
+  activeFriendId: string | null;
+  openFriendIds: string[];
 }
 
 export interface NotificationSync {

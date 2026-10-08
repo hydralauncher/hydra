@@ -25,6 +25,21 @@ export type RealtimeEnvelope = RealtimeEnvelopeBase &
         event: "notification";
         payload: { invalidate: "notifications" };
       }
+    | {
+        event: "chatMessage";
+        payload: {
+          senderId: string;
+          recipientId: string;
+          seq: number;
+          body: string;
+          clientNonce: string;
+          createdAt: string;
+        };
+      }
+    | {
+        event: "chatTyping";
+        payload: { senderId: string };
+      }
   );
 
 export interface RealtimeToken {
@@ -148,6 +163,20 @@ const isValidEnvelopePayload = (
       );
     case "notification":
       return payload.invalidate === "notifications";
+    case "chatMessage":
+      return (
+        typeof payload.senderId === "string" &&
+        typeof payload.recipientId === "string" &&
+        typeof payload.seq === "number" &&
+        Number.isSafeInteger(payload.seq) &&
+        payload.seq > 0 &&
+        typeof payload.body === "string" &&
+        typeof payload.clientNonce === "string" &&
+        typeof payload.createdAt === "string" &&
+        !Number.isNaN(Date.parse(payload.createdAt))
+      );
+    case "chatTyping":
+      return typeof payload.senderId === "string";
     default:
       return false;
   }

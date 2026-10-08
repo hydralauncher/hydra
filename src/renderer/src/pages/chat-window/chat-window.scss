@@ -1,0 +1,1158 @@
+@use "../../scss/globals.scss";
+
+$popover-background: #1c1c1c;
+$popover-border: rgba(255, 255, 255, 0.1);
+$faded-text: rgba(globals.$body-color, 0.7);
+$meta-text: rgba(globals.$body-color, 0.6);
+
+// Animating to `height: auto` relies on `interpolate-size` (set on the root).
+@keyframes chat-window-grow {
+  from {
+    height: 0;
+  }
+
+  to {
+    height: auto;
+  }
+}
+
+@keyframes chat-window-bubble-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px) scale(0.9);
+  }
+
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes chat-window-fade-in {
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes chat-window-typing {
+  0%,
+  60%,
+  100% {
+    opacity: 0.3;
+    transform: translateY(0);
+  }
+
+  30% {
+    opacity: 1;
+    transform: translateY(-2px);
+  }
+}
+
+.chat-window {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  width: 100%;
+  background-color: globals.$background-color;
+  color: globals.$body-color;
+  font-family:
+    Noto Sans,
+    sans-serif;
+  font-size: globals.$body-font-size;
+  overflow: hidden;
+  interpolate-size: allow-keywords;
+
+  // Tab strip doubles as the (frameless) window's title bar.
+  &__strip {
+    position: relative;
+    z-index: globals.$title-bar-z-index;
+    display: flex;
+    align-items: stretch;
+    flex-shrink: 0;
+    height: 40px;
+    padding-left: globals.$spacing-unit;
+    background-color: globals.$dark-background-color;
+    border-bottom: 1px solid globals.$border-color;
+    -webkit-app-region: drag;
+  }
+
+  &__tabs-area {
+    display: flex;
+    align-items: stretch;
+    flex: 1;
+    min-width: 0;
+  }
+
+  &__tabs {
+    display: flex;
+    align-items: flex-end;
+    flex: 1;
+    min-width: 0;
+  }
+
+  &__tab {
+    position: relative;
+    display: flex;
+    align-items: center;
+    flex-shrink: 0;
+    height: 32px;
+    border-radius: 8px 8px 0 0;
+    transition: background-color 0.2s ease;
+    -webkit-app-region: no-drag;
+
+    &:hover {
+      background-color: rgba(255, 255, 255, 0.05);
+    }
+
+    &--separated::before {
+      content: "";
+      position: absolute;
+      top: 8px;
+      left: 0;
+      width: 1px;
+      height: 16px;
+      background-color: rgba(255, 255, 255, 0.12);
+    }
+
+    &--separated:hover::before,
+    &:hover + &--separated::before {
+      opacity: 0;
+    }
+
+    // Overlaps the strip's bottom border so it opens into the conversation.
+    &--active {
+      z-index: 1;
+      height: 33px;
+      margin-bottom: -1px;
+      background-color: globals.$background-color;
+      border: 1px solid globals.$border-color;
+      border-bottom: none;
+
+      &:hover {
+        background-color: globals.$background-color;
+      }
+    }
+  }
+
+  &__tab-button {
+    display: flex;
+    align-items: center;
+    gap: globals.$spacing-unit;
+    flex: 1;
+    min-width: 0;
+    height: 100%;
+    padding: 0 4px 0 10px;
+    background: none;
+    border: none;
+    color: $faded-text;
+    font-family: inherit;
+    font-size: globals.$small-font-size;
+    font-weight: 500;
+    text-align: left;
+    cursor: pointer;
+  }
+
+  &__tab--active &__tab-button,
+  &__tab--unread &__tab-button {
+    color: globals.$muted-color;
+  }
+
+  &__tab--unread &__tab-button {
+    font-weight: 700;
+  }
+
+  &__tab--compact &__tab-button {
+    justify-content: center;
+    padding: 0;
+  }
+
+  &__tab-avatar {
+    position: relative;
+    display: flex;
+    flex-shrink: 0;
+  }
+
+  &__tab-unread-dot {
+    position: absolute;
+    top: -3px;
+    right: -3px;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background-color: globals.$muted-color;
+    border: 2px solid globals.$dark-background-color;
+  }
+
+  &__tab-name {
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+  }
+
+  &__tab-close {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    width: 20px;
+    height: 20px;
+    margin-right: 6px;
+    padding: 0;
+    background: none;
+    border: none;
+    border-radius: 4px;
+    color: globals.$body-color;
+    opacity: 0;
+    cursor: pointer;
+    transition:
+      background-color 0.2s ease,
+      color 0.2s ease,
+      opacity 0.2s ease;
+
+    &:hover {
+      background-color: rgba(255, 255, 255, 0.12);
+      color: globals.$muted-color;
+    }
+  }
+
+  &__tab--active &__tab-close,
+  &__tab:hover &__tab-close,
+  &__tab:focus-within &__tab-close {
+    opacity: 1;
+  }
+
+  // Hover card for compact (avatar-only) tabs.
+  &__friend-card {
+    position: absolute;
+    top: calc(100% + 4px);
+    left: 0;
+    z-index: 2;
+    display: flex;
+    flex-direction: column;
+    width: 240px;
+    overflow: hidden;
+    background-color: $popover-background;
+    border: 1px solid $popover-border;
+    border-radius: 8px;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+    transition:
+      opacity 0.15s ease,
+      visibility 0.15s ease;
+
+    &--end {
+      left: auto;
+      right: 0;
+    }
+  }
+
+  &__tab:hover &__friend-card {
+    opacity: 1;
+    visibility: visible;
+    transition-delay: 0.4s;
+  }
+
+  // Tabs can be dragged to reorder; pointer events, so no text selection or
+  // touch scrolling gets in the way.
+  &__tab {
+    user-select: none;
+    touch-action: none;
+  }
+
+  // While dragging, the other tabs glide aside; separators and hover cards
+  // would only flicker.
+  &__tabs--dragging {
+    .chat-window__tab {
+      transition:
+        transform 0.15s ease-out,
+        background-color 0.2s ease;
+    }
+
+    .chat-window__tab--separated::before,
+    .chat-window__friend-card {
+      display: none;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    &__tabs--dragging .chat-window__tab {
+      transition: none;
+    }
+  }
+
+  &__friend-card-banner {
+    display: block;
+    width: 100%;
+    height: 64px;
+    object-fit: cover;
+  }
+
+  &__friend-card-content {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 12px;
+  }
+
+  // With a banner the avatar overlaps its bottom edge.
+  &__friend-card--banner &__friend-card-content {
+    align-items: flex-end;
+    margin-top: -20px;
+  }
+
+  &__friend-card-details {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+  }
+
+  &__friend-card-name {
+    font-size: 13px;
+    font-weight: 700;
+    color: globals.$muted-color;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  &__overflow {
+    position: relative;
+    display: flex;
+    align-items: center;
+    flex-shrink: 0;
+    margin-left: 4px;
+    -webkit-app-region: no-drag;
+  }
+
+  &__overflow-button {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    width: 40px;
+    height: 28px;
+    padding: 0 0 0 globals.$spacing-unit;
+    background: none;
+    border: none;
+    border-radius: 6px;
+    color: globals.$muted-color;
+    font-family: inherit;
+    font-size: globals.$small-font-size;
+    font-weight: 700;
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+
+    &:hover,
+    &--open {
+      background-color: rgba(255, 255, 255, 0.1);
+    }
+  }
+
+  &__overflow-menu {
+    position: absolute;
+    top: calc(100% + 4px);
+    right: 0;
+    display: flex;
+    flex-direction: column;
+    width: 260px;
+    padding: 4px;
+    background-color: $popover-background;
+    border: 1px solid $popover-border;
+    border-radius: 8px;
+    box-shadow: 0 12px 32px rgba(0, 0, 0, 0.55);
+  }
+
+  &__overflow-title {
+    padding: globals.$spacing-unit globals.$spacing-unit 4px;
+    font-size: globals.$small-font-size;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: $meta-text;
+  }
+
+  &__overflow-item {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+  }
+
+  &__overflow-select {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex: 1;
+    min-width: 0;
+    height: 44px;
+    padding: 0 globals.$spacing-unit;
+    background: none;
+    border: none;
+    border-radius: 6px;
+    color: inherit;
+    font-family: inherit;
+    text-align: left;
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+
+    &:hover,
+    &:focus-visible {
+      background-color: rgba(255, 255, 255, 0.05);
+    }
+  }
+
+  &__overflow-details {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    min-width: 0;
+  }
+
+  &__overflow-name {
+    font-size: 13px;
+    font-weight: 500;
+    color: globals.$muted-color;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  &__unread-badge {
+    flex-shrink: 0;
+    min-width: 18px;
+    height: 18px;
+    padding: 0 5px;
+    border-radius: 9px;
+    background-color: globals.$muted-color;
+    color: globals.$background-color;
+    font-size: 11px;
+    font-weight: 700;
+    line-height: 18px;
+    text-align: center;
+  }
+
+  &__window-controls {
+    display: flex;
+    flex-shrink: 0;
+    margin-left: globals.$spacing-unit;
+    -webkit-app-region: no-drag;
+  }
+
+  &__window-control {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 100%;
+    padding: 0;
+    background: none;
+    border: none;
+    color: globals.$muted-color;
+    cursor: pointer;
+    transition:
+      background-color 0.2s ease,
+      color 0.2s ease;
+
+    &:hover {
+      background-color: rgba(255, 255, 255, 0.08);
+    }
+
+    &--close:hover {
+      background-color: globals.$error-color;
+      color: #ffffff;
+    }
+  }
+
+  &__icon-button {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    width: 32px;
+    height: 32px;
+    padding: 0;
+    background: none;
+    border: none;
+    border-radius: 6px;
+    color: globals.$body-color;
+    cursor: pointer;
+    transition:
+      background-color 0.2s ease,
+      color 0.2s ease;
+
+    &:hover,
+    &:focus-visible {
+      background-color: rgba(255, 255, 255, 0.08);
+      color: globals.$muted-color;
+    }
+
+    &--small {
+      width: 28px;
+      height: 28px;
+    }
+
+    &--active {
+      background-color: rgba(255, 255, 255, 0.1);
+      color: globals.$muted-color;
+    }
+  }
+
+  &__avatar-wrapper {
+    position: relative;
+    flex-shrink: 0;
+  }
+
+  &__status-orb {
+    position: absolute;
+    right: -2px;
+    bottom: -2px;
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background-color: #6d6d6d;
+    border: 2px solid globals.$background-color;
+
+    &--online {
+      background-color: globals.$success-color;
+    }
+  }
+
+  // The orb sits just outside the Cloud ring, as on mobile.
+  &__avatar-wrapper--ring &__status-orb {
+    right: -3px;
+    bottom: -3px;
+    width: 12px;
+    height: 12px;
+  }
+
+  &__friend-card &__status-orb,
+  &__overflow-menu &__status-orb {
+    border-color: $popover-background;
+  }
+
+  &__friend-status {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    min-width: 0;
+    font-size: globals.$small-font-size;
+    color: $faded-text;
+
+    &--highlight {
+      color: globals.$body-color;
+    }
+  }
+
+  &__friend-status-text {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  &__game-icon {
+    flex-shrink: 0;
+    border-radius: 2px;
+  }
+
+  &__conversation {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    min-height: 0;
+  }
+
+  &__conversation-header {
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: calc(globals.$spacing-unit * 1.5);
+    flex-shrink: 0;
+    height: 56px;
+    padding: 0 calc(globals.$spacing-unit * 1.5) 0
+      calc(globals.$spacing-unit * 2);
+    border-bottom: 1px solid globals.$border-color;
+
+    // Keeps the header's content above the banner.
+    > :not(.chat-window__header-banner) {
+      position: relative;
+      z-index: 1;
+    }
+
+    // Light text with a soft shadow over the image, like the Friends window
+    // header.
+    &--banner {
+      height: 64px;
+
+      .chat-window__conversation-name,
+      .chat-window__friend-status {
+        color: #ffffff;
+        text-shadow: 0 0 5px rgb(0 0 0 / 60%);
+      }
+
+      .chat-window__icon-button {
+        background-color: rgba(0, 0, 0, 0.35);
+        color: #ffffff;
+
+        &:hover,
+        &:focus-visible,
+        &.chat-window__icon-button--active {
+          background-color: rgba(0, 0, 0, 0.55);
+        }
+      }
+    }
+  }
+
+  &__header-banner {
+    position: absolute;
+    inset: 0;
+    overflow: hidden;
+    pointer-events: none;
+    animation: chat-window-fade-in 0.25s ease both;
+
+    img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+    // Darker on the left, where the name and game sit.
+    &::after {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(
+        90deg,
+        rgb(0 0 0 / 70%) 0%,
+        rgb(0 0 0 / 35%) 60%,
+        rgb(0 0 0 / 20%) 100%
+      );
+    }
+  }
+
+  &__conversation-details {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 2px;
+    flex: 1;
+    min-width: 0;
+  }
+
+  &__profile-link {
+    padding: 0;
+    background: none;
+    border: none;
+    color: inherit;
+    font-family: inherit;
+    text-align: left;
+    cursor: pointer;
+
+    &--avatar {
+      display: flex;
+      flex-shrink: 0;
+      border-radius: 4px;
+      transition: box-shadow 0.2s ease;
+    }
+  }
+
+  &__conversation-name {
+    max-width: 100%;
+    font-size: globals.$body-font-size;
+    font-weight: 700;
+    color: globals.$muted-color;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    text-underline-offset: 3px;
+  }
+
+  // Avatar and name are one target: hovering either highlights both.
+  &__conversation-header:has(.chat-window__profile-link:hover),
+  &__conversation-header:has(.chat-window__profile-link:focus-visible) {
+    .chat-window__conversation-name {
+      text-decoration: underline;
+    }
+
+    .chat-window__profile-link--avatar {
+      box-shadow: 0 0 0 2px rgba(globals.$muted-color, 0.35);
+    }
+  }
+
+  &__game-link {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    min-width: 0;
+    max-width: 100%;
+    padding: 0;
+    background: none;
+    border: none;
+    color: inherit;
+    font-family: inherit;
+    cursor: pointer;
+
+    &:hover,
+    &:focus-visible {
+      .chat-window__friend-status {
+        color: globals.$muted-color;
+      }
+
+      .chat-window__friend-status-text {
+        text-decoration: underline;
+        text-underline-offset: 3px;
+      }
+
+      .chat-window__game-link-icon {
+        opacity: 1;
+      }
+    }
+  }
+
+  &__game-link-icon {
+    flex-shrink: 0;
+    color: globals.$body-color;
+    opacity: 0;
+    transition: opacity 0.2s ease;
+  }
+
+  &__kebab-icon {
+    transform: rotate(90deg);
+  }
+
+  &__menu {
+    position: relative;
+    flex-shrink: 0;
+  }
+
+  &__menu-popover {
+    position: absolute;
+    top: calc(100% + 4px);
+    right: 0;
+    z-index: 3;
+    display: flex;
+    flex-direction: column;
+    width: 220px;
+    padding: 4px;
+    background-color: $popover-background;
+    border: 1px solid $popover-border;
+    border-radius: 8px;
+    box-shadow: 0 12px 32px rgba(0, 0, 0, 0.55);
+  }
+
+  &__menu-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    height: 36px;
+    padding: 0 10px;
+    background: none;
+    border: none;
+    border-radius: 6px;
+    color: globals.$muted-color;
+    font-family: inherit;
+    font-size: 13px;
+    text-align: left;
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+
+    svg {
+      flex-shrink: 0;
+      color: globals.$body-color;
+    }
+
+    &:hover,
+    &:focus-visible {
+      background-color: rgba(255, 255, 255, 0.06);
+    }
+  }
+
+  &__menu-divider {
+    height: 1px;
+    margin: 4px 6px;
+    background-color: globals.$border-color;
+  }
+
+  &__empty {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: calc(globals.$spacing-unit * 1.5);
+    flex: 1;
+    min-height: 0;
+    padding: calc(globals.$spacing-unit * 3) calc(globals.$spacing-unit * 8);
+    text-align: center;
+  }
+
+  &__empty-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 48px;
+    height: 48px;
+    background-color: $popover-background;
+    border: 1px solid globals.$border-color;
+    border-radius: 12px;
+    color: globals.$body-color;
+  }
+
+  &__empty-text {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  &__empty-title {
+    margin: 0;
+    font-size: globals.$body-font-size;
+    font-weight: 700;
+    color: globals.$muted-color;
+  }
+
+  &__empty-description {
+    margin: 0;
+    font-size: globals.$hint-font-size;
+    line-height: 20px;
+    color: $faded-text;
+  }
+
+  // column-reverse anchors the scroll position to the newest message.
+  &__messages {
+    display: flex;
+    flex-direction: column-reverse;
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+  }
+
+  &__messages-content {
+    display: flex;
+    flex-direction: column;
+    gap: calc(globals.$spacing-unit * 1.5);
+    padding: calc(globals.$spacing-unit * 2);
+  }
+
+  &__day-divider {
+    display: flex;
+    align-items: center;
+    gap: calc(globals.$spacing-unit * 1.5);
+    font-size: globals.$small-font-size;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: $meta-text;
+
+    &::before,
+    &::after {
+      content: "";
+      flex: 1;
+      height: 1px;
+      background-color: globals.$border-color;
+    }
+  }
+
+  &__message-group {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 2px;
+
+    &--mine {
+      align-items: flex-end;
+    }
+  }
+
+  &__message-row {
+    display: flex;
+    justify-content: flex-start;
+    width: 100%;
+
+    // The row grows from zero height so earlier messages glide up while the
+    // bubble itself pops in.
+    &--enter {
+      overflow: clip;
+      overflow-clip-margin: 6px;
+      animation: chat-window-grow 0.2s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+
+      .chat-window__message {
+        animation: chat-window-bubble-in 0.32s cubic-bezier(0.34, 1.4, 0.64, 1)
+          both;
+      }
+    }
+  }
+
+  &__message-group--mine &__message-row {
+    justify-content: flex-end;
+  }
+
+  // Corners tighten on the sender's side between messages of one group; the
+  // time label is always the group's last child.
+  &__message {
+    max-width: 75%;
+    margin: 0;
+    transform-origin: bottom left;
+    padding: globals.$spacing-unit calc(globals.$spacing-unit * 1.5);
+    background-color: $popover-background;
+    border: 1px solid globals.$border-color;
+    border-radius: 4px 12px 12px 4px;
+    color: globals.$muted-color;
+    font-size: globals.$body-font-size;
+    line-height: 20px;
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+  }
+
+  &__message-row:first-child &__message {
+    border-top-left-radius: 12px;
+  }
+
+  &__message-row:nth-last-child(2) &__message {
+    border-bottom-left-radius: 12px;
+  }
+
+  &__message-group--mine &__message {
+    background-color: globals.$muted-color;
+    border-color: transparent;
+    border-radius: 12px 4px 4px 12px;
+    color: globals.$background-color;
+    transform-origin: bottom right;
+  }
+
+  &__message-group--mine &__message-row:first-child &__message {
+    border-top-right-radius: 12px;
+  }
+
+  &__message-group--mine &__message-row:nth-last-child(2) &__message {
+    border-bottom-right-radius: 12px;
+  }
+
+  &__message-row--pending &__message {
+    opacity: 0.6;
+  }
+
+  // The retry link sits under the bubble, inside the row, so the
+  // nth-last-child corner rules above still see one row per message.
+  &__message-row--failed {
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 4px;
+  }
+
+  &__message-row--failed &__message {
+    opacity: 0.6;
+    border: 1px dashed globals.$error-color;
+  }
+
+  &__message-retry {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 0;
+    background: none;
+    border: none;
+    color: globals.$error-color;
+    font-size: globals.$small-font-size;
+    cursor: pointer;
+
+    &:hover,
+    &:focus-visible {
+      text-decoration: underline;
+    }
+  }
+
+  &__empty-retry {
+    padding: 6px calc(globals.$spacing-unit * 1.5);
+    background-color: $popover-background;
+    border: 1px solid globals.$border-color;
+    border-radius: 6px;
+    color: globals.$muted-color;
+    font-size: globals.$small-font-size;
+    cursor: pointer;
+
+    &:hover {
+      border-color: $popover-border;
+    }
+  }
+
+  &__message-time {
+    margin-top: 2px;
+    font-size: globals.$small-font-size;
+    color: $meta-text;
+
+    &--enter {
+      animation: chat-window-fade-in 0.2s ease 0.12s both;
+    }
+  }
+
+  &__typing {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 4px;
+    overflow: clip;
+    overflow-clip-margin: 6px;
+    animation: chat-window-grow 0.2s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+  }
+
+  &__typing-bubble {
+    display: flex;
+    align-items: center;
+    height: 38px;
+    padding: 0 14px;
+    background-color: $popover-background;
+    border: 1px solid globals.$border-color;
+    border-radius: 12px;
+    transform-origin: bottom left;
+    animation: chat-window-bubble-in 0.32s cubic-bezier(0.34, 1.4, 0.64, 1) both;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    &__message-row--enter,
+    &__message-row--enter &__message,
+    &__message-time--enter,
+    &__typing,
+    &__typing-bubble,
+    &__header-banner {
+      animation: none;
+    }
+  }
+
+  &__typing-label {
+    font-size: globals.$small-font-size;
+    color: $meta-text;
+  }
+
+  &__typing-dots {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+
+    span {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background-color: globals.$body-color;
+      animation: chat-window-typing 1.2s ease-in-out infinite;
+
+      &:nth-child(2) {
+        animation-delay: 0.15s;
+      }
+
+      &:nth-child(3) {
+        animation-delay: 0.3s;
+      }
+    }
+
+    // Sized to replace a 16px avatar in tabs and status lines.
+    &--small {
+      justify-content: center;
+      flex-shrink: 0;
+      width: 16px;
+      height: 16px;
+      gap: 2px;
+
+      span {
+        width: 3px;
+        height: 3px;
+      }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      span {
+        animation: none;
+        opacity: 0.7;
+      }
+    }
+  }
+
+  &__composer {
+    flex-shrink: 0;
+    padding: calc(globals.$spacing-unit * 1.5) calc(globals.$spacing-unit * 2)
+      calc(globals.$spacing-unit * 2);
+  }
+
+  &__composer-box {
+    display: flex;
+    align-items: flex-end;
+    gap: globals.$spacing-unit;
+    padding: 6px 6px 6px calc(globals.$spacing-unit * 1.5);
+    background-color: globals.$dark-background-color;
+    border: 1px solid globals.$border-color;
+    border-radius: 8px;
+    transition: border-color 0.2s ease;
+
+    &:hover {
+      border-color: rgba(255, 255, 255, 0.5);
+    }
+
+    &:focus-within {
+      border-color: #dadbe1;
+    }
+  }
+
+  &__composer-input {
+    flex: 1;
+    min-width: 0;
+    max-height: 110px;
+    padding: 5px 0;
+    background: none;
+    border: none;
+    outline: none;
+    resize: none;
+    color: globals.$muted-color;
+    font-family: inherit;
+    font-size: globals.$body-font-size;
+    line-height: 20px;
+
+    &::placeholder {
+      color: globals.$body-color;
+      opacity: 0.6;
+    }
+
+    &:disabled {
+      cursor: not-allowed;
+    }
+  }
+
+  &__send {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    width: 32px;
+    height: 32px;
+    padding: 0;
+    background-color: globals.$muted-color;
+    border: none;
+    border-radius: 6px;
+    color: globals.$background-color;
+    cursor: pointer;
+    transition:
+      background-color 0.2s ease,
+      color 0.2s ease;
+
+    &:hover {
+      background-color: #dadbe1;
+    }
+
+    &:disabled {
+      background-color: rgba(255, 255, 255, 0.06);
+      color: rgba(globals.$body-color, 0.4);
+      cursor: default;
+    }
+  }
+
+  &__composer-hint {
+    margin: globals.$spacing-unit 0 0;
+    font-size: globals.$small-font-size;
+    line-height: 16px;
+    color: $meta-text;
+  }
+}

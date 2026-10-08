@@ -28,6 +28,8 @@ const buildForm = (preferences: UserPreferences | null) => ({
     preferences?.friendRequestNotificationsEnabled ?? false,
   friendStartGameNotificationsEnabled:
     preferences?.friendStartGameNotificationsEnabled ?? true,
+  chatMessageNotificationsEnabled:
+    preferences?.chatMessageNotificationsEnabled ?? true,
   achievementNotificationsEnabled:
     preferences?.achievementNotificationsEnabled ?? true,
   achievementCustomNotificationsEnabled:
@@ -154,6 +156,17 @@ export function SettingsContextNotifications() {
             handleChange({
               friendStartGameNotificationsEnabled:
                 !form.friendStartGameNotificationsEnabled,
+            })
+          }
+        />
+
+        <CheckboxField
+          label={t("enable_chat_message_notifications")}
+          checked={form.chatMessageNotificationsEnabled}
+          onChange={() =>
+            handleChange({
+              chatMessageNotificationsEnabled:
+                !form.chatMessageNotificationsEnabled,
             })
           }
         />

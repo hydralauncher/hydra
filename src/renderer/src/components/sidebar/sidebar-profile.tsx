@@ -16,6 +16,7 @@ import { AuthPage } from "@shared";
 import { platformToSystem } from "@renderer/helpers";
 import { logger } from "@renderer/logger";
 import type {
+  ChatUnreadState,
   NotificationCountResponse,
   NotificationsChangedDetail,
   ProfileFriends,
@@ -128,6 +129,7 @@ export function SidebarProfile() {
 
   const [notificationCount, setNotificationCount] = useState(0);
   const [onlineFriendsCount, setOnlineFriendsCount] = useState(0);
+  const [chatUnreadCount, setChatUnreadCount] = useState(0);
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [isDropdownClosing, setIsDropdownClosing] = useState(false);
   const [isSigningOut, setIsSigningOut] = useState(false);
@@ -135,6 +137,7 @@ export function SidebarProfile() {
 
   const apiNotificationCountRef = useRef(0);
   const hasFetchedInitialCount = useRef(false);
+  const onlineFriendsRequestIdRef = useRef(0);
   const containerRef = useRef<HTMLDivElement>(null);
 
   const fetchLocalNotificationCount = useCallback(async () => {
@@ -217,6 +220,9 @@ export function SidebarProfile() {
   }, [fetchLocalNotificationCount]);
 
   const updateOnlineFriendsCount = useCallback(async () => {
+    // Presence bursts fire overlapping refetches; only the latest may write.
+    const requestId = ++onlineFriendsRequestIdRef.current;
+
     if (!userDetails) {
       setOnlineFriendsCount(0);
       return;
@@ -227,7 +233,9 @@ export function SidebarProfile() {
           "/profile/friends",
           { params: { take: 5, skip: 0 } }
         );
-      setOnlineFriendsCount(response.onlineFriends);
+      if (requestId === onlineFriendsRequestIdRef.current) {
+        setOnlineFriendsCount(response.onlineFriends);
+      }
     } catch {
       // ignore transient errors
     }
@@ -302,8 +310,37 @@ export function SidebarProfile() {
       closeDropdown();
     } else {
       setDropdownOpen(true);
+      // Warm the friends cache now so the friends window opens populated.
+      globalThis.window.electron.prefetchFriends();
     }
   };
+
+  useEffect(() => {
+    if (!userDetails) {
+      setChatUnreadCount(0);
+      return;
+    }
+
+    let cancelled = false;
+    const applyState = (state: ChatUnreadState) => {
+      if (!cancelled) setChatUnreadCount(state.totalUnread);
+    };
+
+    globalThis.window.electron
+      .getChatUnreadState()
+      .then(applyState)
+      .catch(() => {});
+    const unsubscribe =
+      globalThis.window.electron.onChatUnreadUpdated(applyState);
+
+    return () => {
+      cancelled = true;
+      unsubscribe();
+    };
+  }, [userDetails]);
+
+  const formatBadgeCount = (count: number) =>
+    count > 99 ? "99+" : String(count);
 
   const handleViewProfile = () => {
     if (!userDetails) return;
@@ -372,11 +409,20 @@ export function SidebarProfile() {
         onClick={handleProfileClick}
       >
         <div className="sidebar-profile__button-content">
-          <Avatar
-            size={35}
-            src={userDetails?.profileImageUrl}
-            alt={userDetails?.displayName}
-          />
+          <span className="sidebar-profile__avatar">
+            <Avatar
+              size={35}
+              src={userDetails?.profileImageUrl}
+              alt={userDetails?.displayName}
+            />
+            {userDetails && chatUnreadCount > 0 && (
+              <span
+                className="sidebar-profile__unread-dot"
+                role="status"
+                aria-label={t("unread_messages", { count: chatUnreadCount })}
+              />
+            )}
+          </span>
 
           <div className="sidebar-profile__button-information">
             <p className="sidebar-profile__button-title">
@@ -438,6 +484,15 @@ export function SidebarProfile() {
             {onlineFriendsCount > 0 && (
               <small className="sidebar-profile__dropdown-badge sidebar-profile__dropdown-badge--online">
                 {onlineFriendsCount}
+              </small>
+            )}
+            {chatUnreadCount > 0 && (
+              <small
+                className="sidebar-profile__dropdown-badge sidebar-profile__dropdown-badge--unread"
+                title={t("unread_messages", { count: chatUnreadCount })}
+                aria-label={t("unread_messages", { count: chatUnreadCount })}
+              >
+                {formatBadgeCount(chatUnreadCount)}
               </small>
             )}
           </button>

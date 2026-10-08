@@ -1,0 +1,49 @@
+@keyframes cloud-ring-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+// Same as the mobile app: a sweep gradient through the Cloud colours that
+// turns once every 3.2s, with a 2px ring and a cyan glow.
+.cloud-ring {
+  position: relative;
+  display: flex;
+  flex-shrink: 0;
+  padding: 2px;
+  overflow: hidden;
+  isolation: isolate;
+  border-radius: var(--cloud-ring-radius);
+  box-shadow: 0 0 10px rgba(61, 214, 233, 0.45);
+
+  // Oversized so the rotating square always covers the ring's corners.
+  // `from 90deg` matches Compose's sweep gradient, which starts at 3 o'clock.
+  &::before {
+    content: "";
+    position: absolute;
+    inset: -100%;
+    z-index: -1;
+    background: conic-gradient(
+      from 90deg,
+      #0a86d9,
+      #14b9bb,
+      #3dd6e9,
+      #e9fdff,
+      #3dd6e9,
+      #14b9bb,
+      #0a86d9
+    );
+    animation: cloud-ring-spin 3.2s linear infinite;
+  }
+
+  .profile-avatar,
+  .profile-avatar__image {
+    border-radius: calc(var(--cloud-ring-radius) - 2px);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    &::before {
+      animation: none;
+    }
+  }
+}

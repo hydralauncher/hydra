@@ -14,7 +14,9 @@ import {
 import type {
   AchievementCustomNotificationPosition,
   AchievementNotificationInfo,
+  ChatWindowState,
   ScreenState,
+  UserFriend,
   UserPreferences,
 } from "@types";
 import {
@@ -47,6 +49,15 @@ const isLinuxWayland =
   (process.env.XDG_SESSION_TYPE === "wayland" ||
     Boolean(process.env.WAYLAND_DISPLAY));
 
+const EMPTY_CHAT_WINDOW_STATE: ChatWindowState = {
+  activeFriendId: null,
+  openFriendIds: [],
+};
+
+// Upper bound on how long a painted friends window stays hidden while its
+// renderer waits for the cached friends list. Past this it shows the skeleton.
+const FRIENDS_WINDOW_SHOW_FALLBACK_MS = 400;
+
 interface CreateMainWindowOptions {
   forceBigPicture?: boolean;
 }
@@ -57,6 +68,12 @@ export class WindowManager {
     null;
   private static bigPicture: Electron.BrowserWindow | null = null;
   private static friendsWindow: Electron.BrowserWindow | null = null;
+  private static markFriendsWindowReady: (() => void) | null = null;
+  private static chatWindow: Electron.BrowserWindow | null = null;
+  // Held until the chat renderer drains them, so conversations requested while
+  // the window is still loading are not lost.
+  private static pendingChatFriends: UserFriend[] = [];
+  private static chatWindowState: ChatWindowState = EMPTY_CHAT_WINDOW_STATE;
   private static authWindow: Electron.BrowserWindow | null = null;
   private static retroAchievementsConnectionWindow: Electron.BrowserWindow | null =
     null;
@@ -182,7 +199,12 @@ export class WindowManager {
   }
 
   public static sendToAppWindows(channel: string, ...args: unknown[]) {
-    const windows = [this.mainWindow, this.bigPicture, this.friendsWindow];
+    const windows = [
+      this.mainWindow,
+      this.bigPicture,
+      this.friendsWindow,
+      this.chatWindow,
+    ];
 
     for (const window of windows) {
       if (!window || window.isDestroyed()) continue;
@@ -536,7 +558,7 @@ export class WindowManager {
       return;
     }
 
-    this.friendsWindow = new BrowserWindow({
+    const friendsWindow = new BrowserWindow({
       width: 420,
       height: 780,
       minWidth: 420,
@@ -555,20 +577,58 @@ export class WindowManager {
       show: false,
     });
 
-    this.friendsWindow.removeMenu();
+    this.friendsWindow = friendsWindow;
 
-    this.loadWindowURL(this.friendsWindow, "friends-window");
+    friendsWindow.removeMenu();
 
-    this.friendsWindow.once("ready-to-show", () => {
-      this.friendsWindow?.show();
+    this.loadWindowURL(friendsWindow, "friends-window");
+
+    // Show only once the renderer has painted its friends list (cached data or
+    // the skeleton), not on its first paint, so the window never opens on an
+    // empty list. The fallback covers a renderer that never reports in.
+    let isPainted = false;
+    let isRendererReady = false;
+    let isShown = false;
+    let fallbackTimeout: NodeJS.Timeout | null = null;
+
+    const show = () => {
+      if (isShown || friendsWindow.isDestroyed()) return;
+      isShown = true;
+      if (fallbackTimeout) clearTimeout(fallbackTimeout);
+
+      friendsWindow.show();
       if (!app.isPackaged || isStaging) {
-        this.friendsWindow?.webContents.openDevTools();
+        friendsWindow.webContents.openDevTools();
+      }
+    };
+
+    this.markFriendsWindowReady = () => {
+      isRendererReady = true;
+      if (isPainted) show();
+    };
+
+    friendsWindow.once("ready-to-show", () => {
+      isPainted = true;
+
+      if (isRendererReady) {
+        show();
+      } else {
+        fallbackTimeout = setTimeout(show, FRIENDS_WINDOW_SHOW_FALLBACK_MS);
       }
     });
 
-    this.friendsWindow.on("closed", () => {
+    friendsWindow.on("closed", () => {
+      if (fallbackTimeout) clearTimeout(fallbackTimeout);
+      if (this.friendsWindow !== friendsWindow) return;
+
       this.friendsWindow = null;
+      this.markFriendsWindowReady = null;
     });
+  }
+
+  public static handleFriendsWindowReady(sender: Electron.WebContents) {
+    if (this.friendsWindow?.webContents !== sender) return;
+    this.markFriendsWindowReady?.();
   }
 
   public static minimizeFriendsWindow() {
@@ -582,6 +642,112 @@ export class WindowManager {
       this.friendsWindow.close();
     }
     this.friendsWindow = null;
+    this.markFriendsWindowReady = null;
+  }
+
+  public static openChatWindow(friend: UserFriend) {
+    this.pendingChatFriends.push(friend);
+
+    if (this.chatWindow && !this.chatWindow.isDestroyed()) {
+      if (this.chatWindow.isMinimized()) {
+        this.chatWindow.restore();
+      }
+      this.chatWindow.focus();
+      this.chatWindow.webContents.send("on-chat-friends-pending");
+      return;
+    }
+
+    this.chatWindow = new BrowserWindow({
+      width: 560,
+      height: 560,
+      resizable: false,
+      maximizable: false,
+      fullscreenable: false,
+      backgroundColor: "#1c1c1c",
+      // No native frame/controls — the renderer draws its own tab strip and
+      // window controls (see chat-window.tsx).
+      frame: false,
+      icon,
+      webPreferences: {
+        preload: path.join(__dirname, "../preload/index.mjs"),
+        sandbox: false,
+      },
+      show: false,
+    });
+
+    this.chatWindow.removeMenu();
+
+    this.loadWindowURL(this.chatWindow, "chat-window");
+
+    this.chatWindow.once("ready-to-show", () => {
+      this.chatWindow?.show();
+      if (!app.isPackaged || isStaging) {
+        // Detached: docked devtools would squeeze the fixed-size window.
+        this.chatWindow?.webContents.openDevTools({ mode: "detach" });
+      }
+    });
+
+    this.chatWindow.on("closed", () => {
+      this.chatWindow = null;
+      this.pendingChatFriends = [];
+      this.chatWindowState = EMPTY_CHAT_WINDOW_STATE;
+    });
+  }
+
+  public static setChatWindowState(state: ChatWindowState) {
+    this.chatWindowState = state;
+  }
+
+  private static isChatWindowFocused() {
+    const chatWindow = this.chatWindow;
+    return Boolean(
+      chatWindow &&
+        !chatWindow.isDestroyed() &&
+        chatWindow.isVisible() &&
+        !chatWindow.isMinimized() &&
+        chatWindow.isFocused()
+    );
+  }
+
+  public static isChatConversationVisible(friendId: string) {
+    return (
+      this.isChatWindowFocused() &&
+      this.chatWindowState.activeFriendId === friendId
+    );
+  }
+
+  public static isChatConversationOpenInFocusedWindow(friendId: string) {
+    return (
+      this.isChatWindowFocused() &&
+      this.chatWindowState.openFriendIds.includes(friendId)
+    );
+  }
+
+  public static sendToChatWindow(channel: string, ...args: unknown[]) {
+    if (this.chatWindow && !this.chatWindow.isDestroyed()) {
+      this.chatWindow.webContents.send(channel, ...args);
+    }
+  }
+
+  public static consumePendingChatFriends() {
+    const friends = this.pendingChatFriends;
+    this.pendingChatFriends = [];
+    return friends;
+  }
+
+  public static minimizeChatWindow() {
+    if (this.chatWindow && !this.chatWindow.isDestroyed()) {
+      this.chatWindow.minimize();
+    }
+  }
+
+  public static closeChatWindow() {
+    if (this.chatWindow && !this.chatWindow.isDestroyed()) {
+      this.chatWindow.close();
+    }
+    this.chatWindow = null;
+    this.pendingChatFriends = [];
+    this.chatWindowState = EMPTY_CHAT_WINDOW_STATE;
   }
 
   public static minimizeMainWindow() {
