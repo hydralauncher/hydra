@@ -8,6 +8,7 @@ import type {
   GameShop,
   DownloadProgress,
   UserPreferences,
+  UserDetails,
   AppUpdaterEvent,
   StartGameDownloadPayload,
   GameRunning,
@@ -1801,6 +1802,15 @@ contextBridge.exposeInMainWorld("electron", {
     const listener = (_event: Electron.IpcRendererEvent) => cb();
     ipcRenderer.on("on-account-updated", listener);
     return () => ipcRenderer.removeListener("on-account-updated", listener);
+  },
+  onSubscriptionUpdated: (cb: (userDetails: UserDetails) => void) => {
+    const listener = (
+      _event: Electron.IpcRendererEvent,
+      userDetails: UserDetails
+    ) => cb(userDetails);
+    ipcRenderer.on("on-subscription-updated", listener);
+    return () =>
+      ipcRenderer.removeListener("on-subscription-updated", listener);
   },
   onSteamConnected: (cb: () => void) => {
     const listener = (_event: Electron.IpcRendererEvent) => cb();
