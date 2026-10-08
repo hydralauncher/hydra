@@ -64,6 +64,66 @@ const context = (files: SnapshotFile[]): LocalGameSnapshotContext =>
   }) as LocalGameSnapshotContext;
 
 describe("resolved cloud save merge", () => {
+  it("keeps a cloud-only Transfer Pak save while resolving another conflict", () => {
+    const transferPak = file(
+      "transfer-pak.sav",
+      "p",
+      "<emulator>/retroarch-v2/n64"
+    );
+    const baseConflict = file("conflict.sav", "a", "<home>/game");
+    const localConflict = file("conflict.sav", "l", "<home>/game");
+    const remoteConflict = file("conflict.sav", "r", "<home>/game");
+    const analysis = {
+      merge: {
+        variants: [variant],
+        files: [transferPak, remoteConflict],
+        conflicts: [
+          {
+            entryId: cloudSaveFileKey(remoteConflict),
+            local: localConflict,
+            remote: remoteConflict,
+          },
+        ],
+        restoreEntryIds: [],
+        deleteRemoteEntryIds: [],
+        deleteLocalEntryIds: [],
+        unresolvedRemoteEntryIds: [],
+        partial: false,
+      },
+      localSnapshotContext: context([localConflict]),
+      remoteManifest: {
+        variants: [variant],
+        files: [transferPak, remoteConflict],
+      },
+      anchor: {
+        schemaVersion: 4,
+        environmentId: "environment",
+        baseSnapshotId: "snapshot",
+        baseVersion: 1,
+        baseAggregateHash: hash("b"),
+        entries: [transferPak, baseConflict].map(
+          ({ lastModifiedAt: _, ...entry }) => entry
+        ),
+        unresolvedRemoteEntryIds: [],
+        updatedAt: "2026-07-22T10:00:00.000Z",
+      },
+      syncDirection: "bidirectional",
+      pendingCustomPathRawPaths: [],
+      installationOwnedCustomPathRawPaths: [],
+      preserveCloudOnlyEntryIds: [cloudSaveFileKey(transferPak)],
+      restorableEmulatorEntryIds: [],
+    } as Parameters<typeof resolveAnalyzedCloudSaveMerge>[0];
+
+    const result = resolveAnalyzedCloudSaveMerge(analysis, "keep-local");
+    assert.ok(
+      result.files.some(
+        (candidate) =>
+          cloudSaveFileKey(candidate) === cloudSaveFileKey(transferPak)
+      )
+    );
+    assert.ok(!result.restoreEntryIds.includes(cloudSaveFileKey(transferPak)));
+  });
+
   it("preserves installation-owned missing files while resolving another conflict", () => {
     const protectedFile = file("protected.sav", "p", "<custom>/installation");
     const baseConflict = file("conflict.sav", "a", "<home>/game");
@@ -107,6 +167,8 @@ describe("resolved cloud save merge", () => {
       syncDirection: "bidirectional",
       pendingCustomPathRawPaths: [],
       installationOwnedCustomPathRawPaths: [protectedFile.rawPath],
+      preserveCloudOnlyEntryIds: [],
+      restorableEmulatorEntryIds: [],
     } as Parameters<typeof resolveAnalyzedCloudSaveMerge>[0];
 
     const result = resolveAnalyzedCloudSaveMerge(analysis, "keep-local");

@@ -1109,6 +1109,16 @@
     }
   }
 
+  &__config-root-select {
+    flex: 1;
+    min-width: 240px;
+
+    .select-field,
+    .select-field__option {
+      width: 100%;
+    }
+  }
+
   &__remove-emulator {
     align-self: flex-start;
     display: inline-flex;

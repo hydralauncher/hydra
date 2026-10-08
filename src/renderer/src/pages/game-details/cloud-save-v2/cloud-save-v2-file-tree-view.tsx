@@ -206,7 +206,10 @@ export function CloudSaveV2FileTreeView({
           style={{ paddingLeft: contentPaddingLeft }}
         >
           <span className="cloud-save-v2__browser-tree-spacer" />
-          {fileCell(node.local ?? node.remote, node.name)}
+          {fileCell(
+            node.local ?? node.remote,
+            node.localName ?? node.remoteName ?? node.name
+          )}
         </li>
       );
     }
@@ -224,7 +227,7 @@ export function CloudSaveV2FileTreeView({
           className="cloud-save-v2__browser-diff-cell"
           style={{ paddingLeft: contentPaddingLeft }}
         >
-          {fileCell(node.local, node.name)}
+          {fileCell(node.local, node.localName ?? node.name)}
         </div>
         <div className="cloud-save-v2__browser-status-cell">
           <span
@@ -237,7 +240,7 @@ export function CloudSaveV2FileTreeView({
           className="cloud-save-v2__browser-diff-cell"
           style={{ paddingLeft: contentPaddingLeft }}
         >
-          {fileCell(node.remote, node.name)}
+          {fileCell(node.remote, node.remoteName ?? node.name)}
         </div>
       </li>
     );

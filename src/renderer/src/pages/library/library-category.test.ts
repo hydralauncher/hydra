@@ -8,6 +8,7 @@ const {
   appendProfileLibraryFilterParams,
   filterLibraryGames,
   filterLibraryGamesByCategory,
+  getLibraryFilterOptions,
   getProfileLibraryFilter,
   hasSteamLibraryGames,
   isSteamLibraryGame,
@@ -100,6 +101,40 @@ describe("Library categories", () => {
 });
 
 describe("Library and console filters", () => {
+  it("uses the selected hidden library's sources and consoles independently", () => {
+    const visibleGames = [{ id: "visible-pc", shop: "steam" }];
+    const hiddenGames = [
+      { id: "hidden-steam", shop: "steam", hasActiveSteamImport: true },
+      { id: "hidden-hydra", shop: "steam" },
+      { id: "hidden-snes", shop: "launchbox", platform: "SNES" },
+      { id: "hidden-n64", shop: "launchbox", platform: "N64" },
+      { id: "hidden-n64-2", shop: "launchbox", platform: "N64" },
+    ];
+
+    assert.deepEqual(getLibraryFilterOptions(visibleGames), {
+      hasSteamGames: false,
+      platforms: [],
+    });
+    assert.deepEqual(getLibraryFilterOptions(hiddenGames), {
+      hasSteamGames: true,
+      platforms: ["N64", "SNES"],
+    });
+    assert.deepEqual(
+      ids(
+        filterLibraryGames(hiddenGames, {
+          category: "all",
+          sources: ["steam"],
+          platforms: ["SNES"],
+        })
+      ),
+      ["hidden-steam", "hidden-snes"]
+    );
+    assert.deepEqual(getLibraryFilterOptions([]), {
+      hasSteamGames: false,
+      platforms: [],
+    });
+  });
+
   it("returns every game in the category when nothing is selected", () => {
     assert.deepEqual(
       ids(

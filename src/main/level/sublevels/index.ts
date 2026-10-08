@@ -21,4 +21,7 @@ export * from "./cloud-save-prefix-generations";
 export * from "./cloud-save-sync-anchors";
 export * from "./cloud-save-automatic-sync-settings";
 export * from "./cloud-save-custom-paths";
+export * from "./cloud-save-rpcs3-profile-bindings";
+export * from "./cloud-save-emulator-destinations";
+export * from "./cloud-save-retroarch-bindings";
 export * from "./cloud-save-pending-deletions";

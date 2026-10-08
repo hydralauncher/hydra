@@ -1,5 +1,6 @@
 import type { AuthPage } from "@shared";
 import type {
+  SystemPowerAction,
   AppUpdaterEvent,
   GameShop,
   Steam250Game,
@@ -78,6 +79,8 @@ import type {
   CloudSaveAutomaticSyncModeChangedEvent,
   CloudSaveAutomaticSyncEvent,
   CloudSaveConflictResolution,
+  RetroArchLocalBatteryCandidate,
+  RetroArchLegacyBatteryCandidate,
   CloudSaveOverview,
   CloudSaveV2FileDetails,
   AchievementSouvenirSyncCleanupResult,
@@ -146,14 +149,51 @@ declare global {
       objectId: string,
       shop: GameShop
     ) => Promise<CloudSaveV2FileDetails>;
+    getRetroArchLocalBatteryCandidates: (
+      objectId: string,
+      shop: GameShop
+    ) => Promise<RetroArchLocalBatteryCandidate[]>;
+    selectRetroArchLocalBattery: (
+      objectId: string,
+      shop: GameShop,
+      romPath: string,
+      signature: string
+    ) => Promise<void>;
+    getRetroArchLegacyBatteryCandidates: (
+      objectId: string,
+      shop: GameShop
+    ) => Promise<RetroArchLegacyBatteryCandidate[]>;
+    selectRetroArchLegacyBattery: (
+      objectId: string,
+      shop: GameShop,
+      rawPath: string
+    ) => Promise<void>;
+    bindRpcs3CloudSaveProfile: (
+      objectId: string,
+      shop: GameShop,
+      cloudProfileId: string
+    ) => Promise<void>;
     deleteGameCloudSaveData: (
       objectId: string,
       shop: GameShop
     ) => Promise<void>;
     selectCloudSaveCustomPath: (
       objectId: string,
-      shop: GameShop
+      shop: GameShop,
+      kind?: "file" | "dir"
     ) => Promise<SelectCloudSaveCustomPathResult>;
+    selectEmulatorDestination: (
+      objectId: string,
+      shop: GameShop,
+      rawPath: string,
+      kind: "save" | "state"
+    ) => Promise<{ canceled: boolean }>;
+    removeEmulatorDestination: (
+      objectId: string,
+      shop: GameShop,
+      rawPath: string,
+      kind: "save" | "state"
+    ) => Promise<void>;
     createCloudSaveCustomPathRebindApproval: (
       objectId: string,
       shop: GameShop,
@@ -170,7 +210,8 @@ declare global {
     ) => Promise<CloudSaveCustomPathApproval | null>;
     selectCloudSaveCustomPathApproval: (
       approvalId: string,
-      selectedPath?: string
+      selectedPath?: string,
+      selectionMode?: "file" | "dir"
     ) => Promise<SelectCloudSaveCustomPathApprovalResult>;
     confirmCloudSaveCustomPathApproval: (
       approvalId: string
@@ -442,7 +483,14 @@ declare global {
       objectId: string
     ) => Promise<string | null>;
     verifyExecutablePathInUse: (executablePath: string) => Promise<Game>;
-    getLibrary: () => Promise<LibraryGame[]>;
+    getLibrary: (includeConcealed?: boolean) => Promise<LibraryGame[]>;
+    getHiddenLibrary: () => Promise<LibraryGame[]>;
+    setGameVisibility: (
+      shop: GameShop,
+      objectId: string,
+      field: "isHiddenFromOthers" | "isConcealed",
+      value: boolean
+    ) => Promise<{ isHiddenFromOthers: boolean; isConcealed: boolean }>;
     refreshLibraryAssets: () => Promise<void>;
     getRemoteLibrarySyncState: () => Promise<boolean>;
     openGameInstaller: (shop: GameShop, objectId: string) => Promise<boolean>;
@@ -580,6 +628,14 @@ declare global {
     ) => Promise<void>;
     /* Emulators */
     getEmulatorConfigs: () => Promise<EmulatorConfigMap>;
+    getRpcs3ConfigRootStatus: () => Promise<
+      import("@types").Rpcs3ConfigRootStatus
+    >;
+    getRpcs3DiscIdentityStatus: (
+      objectId: string,
+      shop: GameShop
+    ) => Promise<import("@types").Rpcs3DiscIdentityStatus>;
+    setRpcs3ConfigRoot: (root: string) => Promise<EmulatorConfig>;
     detectEmulators: () => Promise<EmulatorConfigMap>;
     detectEmulator: (system: EmulatorSystem) => Promise<EmulatorConfig>;
     previewEmulatorExecutable: (
@@ -1285,6 +1341,7 @@ declare global {
 
     /* Big Picture Window */
     openBigPictureWindow: () => Promise<void>;
+    executeSystemPowerAction: (action: SystemPowerAction) => Promise<void>;
 
     /* Friends Window */
     openFriendsWindow: () => Promise<void>;
