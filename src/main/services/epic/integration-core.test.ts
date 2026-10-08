@@ -226,6 +226,23 @@ test("missing binary or vault never blocks reading and disconnecting the remote 
     ok: false,
     error: "vault-unavailable",
   });
+  f.dependencies.availability = () => ({
+    available: false,
+    reason: "vault-unavailable",
+  });
+  const current = await f.core.getConnection();
+  assert.deepEqual(current.availability, {
+    available: false,
+    reason: "vault-unavailable",
+  });
+  assert.deepEqual(current.connection, connection);
+  assert.equal(current.verification, "confirmed");
+  assert.deepEqual(await f.core.startAuth(), {
+    ok: false,
+    error: "vault-unavailable",
+  });
+  assert.equal(f.state.windows, 0);
+  assert.equal(f.state.posts, 0);
   assert.deepEqual(await f.core.disconnect(connection.connectionId), {
     ok: true,
   });

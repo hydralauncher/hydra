@@ -11,8 +11,7 @@ export function SettingsContextIntegrations() {
     <div className="settings-context-panel">
       <div className="settings-context-panel__group">
         <SettingsSteam />
-        {(window.electron.platform === "win32" ||
-          window.electron.platform === "darwin") && <SettingsEpic />}
+        <SettingsEpic />
         <SettingsRetroAchievements />
       </div>
 

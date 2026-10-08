@@ -45,12 +45,14 @@ function availability(): EpicConnectionState["availability"] {
   const binary = Legendary.getBinaryPath();
   if (!binary) return { available: false, reason: "legendary-missing" };
   try {
-    return fs.statSync(binary).isFile()
-      ? { available: true }
-      : { available: false, reason: "legendary-missing" };
+    if (!fs.statSync(binary).isFile())
+      return { available: false, reason: "legendary-missing" };
   } catch (error) {
     return { available: false, reason: binaryFailure(error) };
   }
+  if (!isEncryptionAvailable())
+    return { available: false, reason: "vault-unavailable" };
+  return { available: true };
 }
 
 async function checkBinary() {

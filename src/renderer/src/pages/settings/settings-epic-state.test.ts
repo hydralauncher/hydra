@@ -62,6 +62,30 @@ test("offline and missing local session/dependencies preserve link and disconnec
   }
 });
 
+test("vault availability controls login and reconnect without blocking disconnect", () => {
+  for (const connected of [false, true]) {
+    for (const available of [false, true]) {
+      const current = state({
+        ...(connected ? {} : { connection: { connected: false } }),
+        sessionState: "missing",
+        availability: available
+          ? { available: true }
+          : { available: false, reason: "vault-unavailable" },
+      });
+      const view = getEpicIntegrationPresentation(current, true);
+      assert.equal(view.canAuthenticate, available);
+      assert.equal(view.requiresReconnect, connected);
+      assert.equal(view.canDisconnect, connected);
+      assert.equal(
+        view.statusKey,
+        connected
+          ? "epic_status_reconnect_required"
+          : "integration_status_not_connected"
+      );
+    }
+  }
+});
+
 test("unknown remote status and older API never claim disconnection", () => {
   assert.equal(
     getEpicIntegrationPresentation(null, true).statusKey,
