@@ -4,14 +4,15 @@ const manifest = require("../src/shared/legendary-manifest.json");
 const {
   getLegendaryArtifact,
   verifyLegendaryVersion,
+  sha256File,
 } = require("./prepare-legendary.cjs");
+const { verifyLinuxRuntime } = require("./legendary-linux-runtime.cjs");
 const { Arch } = require("builder-util");
 
 async function afterPack(context) {
   const platform = context.electronPlatformName;
   const arch = Arch[context.arch];
   const artifact = getLegendaryArtifact(platform, arch);
-  if (!artifact) return;
 
   const binaryPath = path.join(
     context.packager.getResourcesDir(context.appOutDir),
@@ -25,6 +26,11 @@ async function afterPack(context) {
       `Packaged Legendary executable missing: ${platform}/${arch}`
     );
   }
+  if (
+    platform === "linux" &&
+    !(await verifyLinuxRuntime(path.dirname(binaryPath), undefined, sha256File))
+  )
+    throw new Error(`Packaged Legendary runtime is incomplete: linux/${arch}`);
   if (platform === process.platform && arch === process.arch) {
     await verifyLegendaryVersion(binaryPath, manifest.version);
   }

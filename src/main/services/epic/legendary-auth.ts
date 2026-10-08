@@ -14,11 +14,11 @@ import {
 } from "./auth-protocol.js";
 import type { EpicSessionBundle } from "./store";
 
-export const EPIC_LEGENDARY_PROCESS_TIMEOUT_MS = 60_000;
-export const EPIC_LEGENDARY_API_TIMEOUT_SECONDS = 15;
+const EPIC_LEGENDARY_PROCESS_TIMEOUT_MS = 60_000;
+const EPIC_LEGENDARY_API_TIMEOUT_SECONDS = 15;
 const EPIC_LEGENDARY_MAX_OUTPUT_BYTES = 128 * 1024;
 const EPIC_SESSION_MAX_FILE_BYTES = 1024 * 1024;
-export const EPIC_LEGENDARY_TERMINATION_TIMEOUT_MS = 10_000;
+const EPIC_LEGENDARY_TERMINATION_TIMEOUT_MS = 10_000;
 
 export interface EpicSessionRunner {
   authenticate(code: string): Promise<EpicSessionBundle>;
@@ -27,33 +27,17 @@ export interface EpicSessionRunner {
   cleanup(): Promise<void>;
 }
 
-export type LegendaryCommandExecutor = (
-  binaryPath: string,
-  args: string[],
-  options: ExecFileOptionsWithStringEncoding
-) => Promise<string>;
-
-interface LegendaryProcessRuntime {
-  platform: string;
-  spawn: typeof spawn;
-  killGroup: (pid: number, signal: NodeJS.Signals) => void;
-  taskkill: (pid: number) => Promise<void>;
-}
-
-export function taskkillLegendaryTree(
-  pid: number,
-  run: typeof execFile = execFile
-) {
+function taskkillLegendaryTree(pid: number) {
   if (!Number.isSafeInteger(pid) || pid <= 0) {
     return Promise.reject(new EpicIntegrationError("cleanup-failed"));
   }
   return new Promise<void>((resolve, reject) => {
     const executable = path.win32.join(
-      process.env.SystemRoot || "C:\\Windows",
+      process.env.SystemRoot || String.raw`C:\Windows`,
       "System32",
       "taskkill.exe"
     );
-    run(
+    execFile(
       executable,
       ["/PID", String(pid), "/T", "/F"],
       {
@@ -76,15 +60,6 @@ class LegendaryProcessCleanupError extends EpicIntegrationError {
   }
 }
 
-const defaultProcessRuntime: LegendaryProcessRuntime = {
-  platform: process.platform,
-  spawn,
-  killGroup: (pid, signal) => {
-    process.kill(pid, signal);
-  },
-  taskkill: taskkillLegendaryTree,
-};
-
 const waitForProcessClose = (closed: Promise<void>) =>
   new Promise<void>((resolve, reject) => {
     const timer = setTimeout(
@@ -99,23 +74,21 @@ const waitForProcessClose = (closed: Promise<void>) =>
 
 /** PyInstaller onefile has a launcher parent and a Python child. Killing just
  * the parent does not stop authentication or writes to LEGENDARY_CONFIG_PATH. */
-export function executeLegendaryCommand(
+function executeLegendaryCommand(
   binaryPath: string,
   args: string[],
-  options: ExecFileOptionsWithStringEncoding,
-  overrides: Partial<LegendaryProcessRuntime> = {}
+  options: ExecFileOptionsWithStringEncoding
 ): Promise<string> {
-  const runtime = { ...defaultProcessRuntime, ...overrides };
   if (options.signal?.aborted)
     return Promise.reject(new EpicIntegrationError("operation-cancelled"));
   return new Promise((resolve, reject) => {
     let child: ChildProcess;
     try {
-      child = runtime.spawn(binaryPath, args, {
+      child = spawn(binaryPath, args, {
         shell: false,
         windowsHide: true,
         // A new POSIX process group includes bootloader/Python descendants.
-        detached: runtime.platform !== "win32",
+        detached: process.platform !== "win32",
         stdio: ["ignore", "pipe", "pipe"],
         env: options.env,
         cwd: options.cwd,
@@ -155,8 +128,9 @@ export function executeLegendaryCommand(
       if (closed) return;
       if (child.pid) {
         try {
-          if (runtime.platform === "win32") await runtime.taskkill(child.pid);
-          else runtime.killGroup(-child.pid, "SIGKILL");
+          if (process.platform === "win32")
+            await taskkillLegendaryTree(child.pid);
+          else process.kill(-child.pid, "SIGKILL");
         } catch (error) {
           // ESRCH means the entire POSIX group already stopped.
           if (!closed && (error as NodeJS.ErrnoException).code !== "ESRCH") {
@@ -208,22 +182,24 @@ export function executeLegendaryCommand(
   });
 }
 
-const execute: LegendaryCommandExecutor = executeLegendaryCommand;
-
-export const getEpicTemporaryRoot = (userDataPath: string) =>
+const getEpicTemporaryRoot = (userDataPath: string) =>
   path.join(userDataPath, "epic-temporary");
 
 export async function cleanupEpicTemporarySessions(userDataPath: string) {
   const root = getEpicTemporaryRoot(userDataPath);
   try {
-    for (const entry of await fs.readdir(root, { withFileTypes: true })) {
-      if (entry.name.startsWith("operation-")) {
-        await fs.rm(path.join(root, entry.name), {
-          recursive: true,
-          force: true,
-        });
-      }
-    }
+    const results = await Promise.allSettled(
+      (await fs.readdir(root, { withFileTypes: true }))
+        .filter((entry) => entry.name.startsWith("operation-"))
+        .map((entry) =>
+          fs.rm(path.join(root, entry.name), {
+            recursive: true,
+            force: true,
+          })
+        )
+    );
+    if (results.some((result) => result.status === "rejected"))
+      throw new EpicIntegrationError("cleanup-failed");
   } catch (error) {
     if ((error as NodeJS.ErrnoException).code !== "ENOENT") {
       throw new EpicIntegrationError("cleanup-failed");
@@ -236,15 +212,13 @@ export class LegendaryAuthRunner implements EpicSessionRunner {
   private constructor(
     private readonly binaryPath: string,
     private readonly directory: string,
-    private readonly signal: AbortSignal,
-    private readonly executor: LegendaryCommandExecutor
+    private readonly signal: AbortSignal
   ) {}
 
   public static async create(
     binaryPath: string,
     userDataPath: string,
-    signal: AbortSignal,
-    executor: LegendaryCommandExecutor = execute
+    signal: AbortSignal
   ) {
     if (signal.aborted) throw new EpicIntegrationError("operation-cancelled");
     const root = getEpicTemporaryRoot(userDataPath);
@@ -260,7 +234,7 @@ export class LegendaryAuthRunner implements EpicSessionRunner {
         { mode: 0o600 }
       );
       if (signal.aborted) throw new EpicIntegrationError("operation-cancelled");
-      return new LegendaryAuthRunner(binaryPath, directory, signal, executor);
+      return new LegendaryAuthRunner(binaryPath, directory, signal);
     } catch {
       if (directory) {
         try {
@@ -279,7 +253,7 @@ export class LegendaryAuthRunner implements EpicSessionRunner {
     if (this.signal.aborted)
       throw new EpicIntegrationError("operation-cancelled");
     try {
-      const output = await this.executor(
+      const output = await executeLegendaryCommand(
         this.binaryPath,
         ["--api-timeout", String(EPIC_LEGENDARY_API_TIMEOUT_SECONDS), ...args],
         {

@@ -1,4 +1,4 @@
-import electron, { type BrowserWindow, type Session } from "electron";
+import { BrowserWindow, session } from "electron";
 import { randomUUID } from "node:crypto";
 import type { EpicOperationResult } from "../../../types/epic-integration.types";
 import {
@@ -22,14 +22,11 @@ export interface EpicAuthWindowCallbacks {
   ): Promise<EpicOperationResult>;
 }
 
-type EpicWindowRuntime = Pick<typeof electron, "BrowserWindow" | "session">;
 const ERR_ABORTED = -3;
 
 export function openEpicAuthWindow(
-  options: EpicAuthWindowCallbacks,
-  runtime: EpicWindowRuntime = electron
+  options: EpicAuthWindowCallbacks
 ): EpicAuthWindow {
-  const { BrowserWindow, session } = runtime;
   const isolatedSession = session.fromPartition(`epic-auth-${randomUUID()}`);
   const windows = new Set<BrowserWindow>();
   let closing = false;
@@ -173,13 +170,9 @@ export function openEpicAuthWindow(
     },
     async cleanup() {
       this.close();
-      await clearEpicAuthSession(isolatedSession);
+      await isolatedSession.clearStorageData();
+      await isolatedSession.clearAuthCache();
+      await isolatedSession.clearCache();
     },
   };
-}
-
-async function clearEpicAuthSession(epicSession: Session) {
-  await epicSession.clearStorageData();
-  await epicSession.clearAuthCache();
-  await epicSession.clearCache();
 }

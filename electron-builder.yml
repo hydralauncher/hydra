@@ -81,6 +81,21 @@ dmg:
   artifactName: ${name}-${version}.${ext}
 linux:
   extraResources:
+    - from: legendary/linux/${arch}
+      to: legendary
+      filter:
+        - legendary
+        - legendary.pyz
+        - python-runner
+        - python/**
+        - glibc/**
+        - licenses/**
+        - .runtime-files.json
+    - from: resources/legendary
+      to: legendary
+      filter:
+        - LICENSE
+        - NOTICE.md
     - from: binaries/7zzs
     - from: binaries/umu/umu-run
   target:

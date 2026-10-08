@@ -1,26 +1,21 @@
 import { app } from "electron";
 import path from "node:path";
-import manifest from "../../shared/legendary-manifest.json" with { type: "json" };
-import {
-  getLegendaryAvailability,
-  resolveLegendaryBinaryPath,
-  type LegendaryEnvironment,
-} from "./legendary-core";
-
-const getEnvironment = (): LegendaryEnvironment => ({
-  platform: process.platform,
-  arch: process.arch,
-  isPackaged: app.isPackaged,
-  developmentRoot: path.join(__dirname, "..", ".."),
-  resourcesPath: process.resourcesPath,
-});
 
 export class Legendary {
   public static getBinaryPath() {
-    return resolveLegendaryBinaryPath(getEnvironment());
-  }
-
-  public static checkVersion() {
-    return getLegendaryAvailability(getEnvironment(), manifest.version);
+    if (!["linux", "win32", "darwin"].includes(process.platform)) return null;
+    if (process.arch !== "x64" && process.arch !== "arm64") return null;
+    const binary = process.platform === "win32" ? "legendary.exe" : "legendary";
+    return app.isPackaged
+      ? path.join(process.resourcesPath, "legendary", binary)
+      : path.join(
+          __dirname,
+          "..",
+          "..",
+          "legendary",
+          process.platform,
+          process.arch,
+          binary
+        );
   }
 }

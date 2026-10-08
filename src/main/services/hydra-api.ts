@@ -16,6 +16,7 @@ import {
   sanitizeNetworkLogPayload,
   summarizeNetworkLogPayload,
 } from "./network-log-payload";
+import { summarizeNetworkError } from "./network-error-summary";
 import {
   HydraAuthContextTracker,
   waitForHydraAuthRefresh,
@@ -342,7 +343,7 @@ export class HydraApi {
           return request;
         },
         (error) => {
-          logger.error("request error", error);
+          logger.error("request error", summarizeNetworkError(error));
           return Promise.reject(error);
         }
       );
@@ -384,7 +385,7 @@ export class HydraApi {
 
           if (error.request) {
             const errorData = error.toJSON();
-            logger.error("Request error:", errorData.code, errorData.message);
+            logger.error("Request error:", summarizeNetworkError(error));
             return Promise.reject(
               new Error(
                 `Request failed with ${errorData.code} ${errorData.message}`
@@ -392,7 +393,7 @@ export class HydraApi {
             );
           }
 
-          logger.error("Error", error.message);
+          logger.error("Error", summarizeNetworkError(error));
           return Promise.reject(error as Error);
         }
       );

@@ -1,12 +1,11 @@
 import { app, safeStorage } from "electron";
+import fs from "node:fs";
+import type { EpicConnectionState } from "../../../types/epic-integration.types";
 import { HydraApi } from "../hydra-api";
 import { Legendary } from "../legendary";
 import { WindowManager } from "../window-manager";
 import { openEpicAuthWindow } from "./auth-window";
-import {
-  checkEpicBinary,
-  getEpicBinaryAvailability,
-} from "./binary-preparation";
+import { EpicIntegrationError, isRecord } from "./auth-protocol";
 import { EpicIntegrationCore } from "./integration-core";
 import {
   cleanupEpicTemporarySessions,
@@ -19,37 +18,81 @@ let integration: EpicIntegrationCore | null = null;
 let unsubscribeAuth: (() => void) | null = null;
 let temporaryCleanupFailed = false;
 
+function isEncryptionAvailable() {
+  try {
+    return (
+      safeStorage.isEncryptionAvailable() &&
+      (process.platform !== "linux" ||
+        ["gnome_libsecret", "kwallet", "kwallet5", "kwallet6"].includes(
+          safeStorage.getSelectedStorageBackend()
+        ))
+    );
+  } catch {
+    return false;
+  }
+}
+
+const binaryFailure = (error: unknown) =>
+  isRecord(error) && (error.code === "ENOENT" || error.code === "ENOTDIR")
+    ? "legendary-missing"
+    : "legendary-unavailable";
+
+function availability(): EpicConnectionState["availability"] {
+  if (!["linux", "win32", "darwin"].includes(process.platform))
+    return { available: false, reason: "unsupported-platform" };
+  if (process.arch !== "x64" && process.arch !== "arm64")
+    return { available: false, reason: "unsupported-architecture" };
+  const binary = Legendary.getBinaryPath();
+  if (!binary) return { available: false, reason: "legendary-missing" };
+  try {
+    return fs.statSync(binary).isFile()
+      ? { available: true }
+      : { available: false, reason: "legendary-missing" };
+  } catch (error) {
+    return { available: false, reason: binaryFailure(error) };
+  }
+}
+
+async function checkBinary() {
+  if (temporaryCleanupFailed) {
+    try {
+      await cleanupEpicTemporarySessions(app.getPath("userData"));
+      temporaryCleanupFailed = false;
+    } catch {
+      throw new EpicIntegrationError("cleanup-failed");
+    }
+  }
+  const binary = Legendary.getBinaryPath();
+  if (!binary) throw new EpicIntegrationError("legendary-missing");
+  try {
+    if (!(await fs.promises.stat(binary)).isFile())
+      throw new EpicIntegrationError("legendary-missing");
+  } catch (error) {
+    if (error instanceof EpicIntegrationError) throw error;
+    throw new EpicIntegrationError(binaryFailure(error));
+  }
+  return binary;
+}
+
 function getIntegration() {
   if (integration) return integration;
   const store = new EpicConnectionStore({
     userDataPath: app.getPath("userData"),
-    crypto: safeStorage,
+    crypto: {
+      isEncryptionAvailable,
+      encryptString: (value) => safeStorage.encryptString(value),
+      decryptString: (value) => safeStorage.decryptString(value),
+    },
   });
   integration = new EpicIntegrationCore({
     getAuthContext: () => HydraApi.getAuthContext(),
     isAuthContextCurrent: (context) => HydraApi.isAuthContextCurrent(context),
     store,
-    availability: () => {
-      if (process.platform !== "win32" && process.platform !== "darwin") {
-        return { available: false, reason: "unsupported-platform" };
-      }
-      if (process.arch !== "x64" && process.arch !== "arm64") {
-        return { available: false, reason: "unsupported-architecture" };
-      }
-      return getEpicBinaryAvailability(Legendary.getBinaryPath());
-    },
-    isEncryptionAvailable: () => safeStorage.isEncryptionAvailable(),
-    checkBinary: () =>
-      checkEpicBinary(Legendary.getBinaryPath(), {
-        cleanup: temporaryCleanupFailed
-          ? async () => {
-              await cleanupEpicTemporarySessions(app.getPath("userData"));
-              temporaryCleanupFailed = false;
-            }
-          : undefined,
-      }),
-    createRunner: (binaryPath, signal) =>
-      LegendaryAuthRunner.create(binaryPath, app.getPath("userData"), signal),
+    availability,
+    isEncryptionAvailable,
+    checkBinary,
+    createRunner: (binary, signal) =>
+      LegendaryAuthRunner.create(binary, app.getPath("userData"), signal),
     openWindow: openEpicAuthWindow,
     get: (options) =>
       HydraApi.get(EPIC_CONNECTION_ENDPOINT, undefined, {

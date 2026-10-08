@@ -21,13 +21,13 @@ export interface EpicSessionBundle {
   version: Record<string, unknown>;
 }
 
-export interface EpicStoredConnection {
+interface EpicStoredConnection {
   connection: EpicConnectedConnection;
   sessionState: EpicSessionState;
   bundle?: EpicSessionBundle;
 }
 
-export interface EpicStoreCrypto {
+interface EpicStoreCrypto {
   isEncryptionAvailable: () => boolean;
   encryptString: (value: string) => Buffer;
   decryptString: (value: Buffer) => string;
@@ -39,51 +39,20 @@ interface StoredRecord {
   encryptedSession?: string;
 }
 
-export interface EpicStoreFileSystem {
-  mkdirSync: (
-    directory: string,
-    options: { recursive: true; mode: number }
-  ) => unknown;
-  chmodSync: (filePath: string, mode: number) => void;
-  lstatSync: (filePath: string) => {
-    size: number;
-    isFile: () => boolean;
-    isSymbolicLink: () => boolean;
-  };
-  readFileSync: (filePath: string, encoding: "utf8") => string;
-  writeFileSync: (
-    filePath: string,
-    value: string,
-    options: { encoding: "utf8"; mode: number; flag: "wx" }
-  ) => void;
-  renameSync: (oldPath: string, newPath: string) => void;
-  unlinkSync: (filePath: string) => void;
-}
-
 interface EpicStoreOptions {
   userDataPath: string;
   crypto: EpicStoreCrypto;
-  now?: () => number;
-  fileSystem?: Partial<EpicStoreFileSystem>;
 }
 
-const defaultFileSystem: EpicStoreFileSystem = {
-  mkdirSync: fs.mkdirSync,
-  chmodSync: fs.chmodSync,
-  lstatSync: fs.lstatSync,
-  readFileSync: (filePath, encoding) => fs.readFileSync(filePath, encoding),
-  writeFileSync: (filePath, value, options) => {
-    const fd = fs.openSync(filePath, options.flag, options.mode);
-    try {
-      fs.writeFileSync(fd, value, options.encoding);
-      fs.fsyncSync(fd);
-    } finally {
-      fs.closeSync(fd);
-    }
-  },
-  renameSync: fs.renameSync,
-  unlinkSync: fs.unlinkSync,
-};
+function writePrivateFile(filePath: string, value: string) {
+  const fd = fs.openSync(filePath, "wx", STORE_FILE_MODE);
+  try {
+    fs.writeFileSync(fd, value, "utf8");
+    fs.fsyncSync(fd);
+  } finally {
+    fs.closeSync(fd);
+  }
+}
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === "object" && value !== null && !Array.isArray(value);
@@ -142,14 +111,14 @@ const publicConnection = (
   connectedAt: connection.connectedAt,
 });
 
-export class EpicStoreError extends Error {
+class EpicStoreError extends Error {
   constructor(public readonly code: EpicErrorCode) {
     super(code);
     this.name = "EpicStoreError";
   }
 }
 
-export const getEpicStoreScopeKey = (scope: EpicStoreScope): string => {
+const getEpicStoreScopeKey = (scope: EpicStoreScope): string => {
   try {
     const environment = new URL(scope.environment);
     if (
@@ -179,16 +148,12 @@ export const getEpicStoreScopeKey = (scope: EpicStoreScope): string => {
 export class EpicConnectionStore {
   private readonly directory: string;
   private readonly crypto: EpicStoreCrypto;
-  private readonly fileSystem: EpicStoreFileSystem;
-  private readonly now: () => number;
   private readonly cleanupBlocked = new Set<string>();
   private readonly invalidSessions = new Set<string>();
 
   constructor(options: EpicStoreOptions) {
     this.directory = path.join(options.userDataPath, "epic-connections");
     this.crypto = options.crypto;
-    this.fileSystem = { ...defaultFileSystem, ...options.fileSystem };
-    this.now = options.now ?? Date.now;
   }
 
   read(scope: EpicStoreScope): EpicStoredConnection | null {
@@ -227,7 +192,7 @@ export class EpicConnectionStore {
       const refreshExpiresAt = Date.parse(
         bundle.user.refresh_expires_at as string
       );
-      if (refreshExpiresAt <= this.now()) {
+      if (refreshExpiresAt <= Date.now()) {
         return { connection: record.connection, sessionState: "expired" };
       }
       return { connection: record.connection, sessionState: "ready", bundle };
@@ -322,10 +287,7 @@ export class EpicConnectionStore {
       // If marker creation failed, quarantine also blocks reads after restart.
       try {
         if (this.fileExists(this.filePath(key))) {
-          this.fileSystem.renameSync(
-            this.filePath(key),
-            this.filePath(key, "quarantine")
-          );
+          fs.renameSync(this.filePath(key), this.filePath(key, "quarantine"));
         }
       } catch {
         // Keep the in-process block. Remote confirmation is still mandatory.
@@ -334,7 +296,7 @@ export class EpicConnectionStore {
     }
   }
 
-  invalidateSession(scope: EpicStoreScope): void {
+  private invalidateSession(scope: EpicStoreScope): void {
     const key = getEpicStoreScopeKey(scope);
     this.invalidSessions.add(key);
     try {
@@ -356,10 +318,7 @@ export class EpicConnectionStore {
           !this.fileExists(this.filePath(key, "session-invalid")) &&
           this.fileExists(this.filePath(key))
         ) {
-          this.fileSystem.renameSync(
-            this.filePath(key),
-            this.filePath(key, "quarantine")
-          );
+          fs.renameSync(this.filePath(key), this.filePath(key, "quarantine"));
         }
       } catch {
         // Remote confirmation is mandatory if disk permissions block a marker.
@@ -403,19 +362,19 @@ export class EpicConnectionStore {
   }
 
   private ensureDirectory(): void {
-    this.fileSystem.mkdirSync(this.directory, {
+    fs.mkdirSync(this.directory, {
       recursive: true,
       mode: STORE_DIRECTORY_MODE,
     });
     if (process.platform !== "win32") {
-      this.fileSystem.chmodSync(this.directory, STORE_DIRECTORY_MODE);
+      fs.chmodSync(this.directory, STORE_DIRECTORY_MODE);
     }
   }
 
   private readRecord(key: string): StoredRecord | null {
     const filePath = this.filePath(key);
     try {
-      const stat = this.fileSystem.lstatSync(filePath);
+      const stat = fs.lstatSync(filePath);
       if (
         !stat.isFile() ||
         stat.isSymbolicLink() ||
@@ -423,7 +382,7 @@ export class EpicConnectionStore {
       ) {
         throw new EpicStoreError("persistence-failed");
       }
-      const serialized = this.fileSystem.readFileSync(filePath, "utf8");
+      const serialized = fs.readFileSync(filePath, "utf8");
       if (Buffer.byteLength(serialized, "utf8") > MAX_RECORD_BYTES) {
         throw new EpicStoreError("persistence-failed");
       }
@@ -453,11 +412,7 @@ export class EpicConnectionStore {
   private writeMarker(key: string, suffix: string): void {
     const markerPath = this.filePath(key, suffix);
     if (this.fileExists(markerPath)) return;
-    this.fileSystem.writeFileSync(markerPath, "{}", {
-      encoding: "utf8",
-      mode: STORE_FILE_MODE,
-      flag: "wx",
-    });
+    writePrivateFile(markerPath, "{}");
   }
 
   private writeRecord(
@@ -473,13 +428,9 @@ export class EpicConnectionStore {
       }
       this.assertCurrent(isCurrent);
       this.ensureDirectory();
-      this.fileSystem.writeFileSync(temporaryPath, serialized, {
-        encoding: "utf8",
-        mode: STORE_FILE_MODE,
-        flag: "wx",
-      });
+      writePrivateFile(temporaryPath, serialized);
       this.assertCurrent(isCurrent);
-      this.fileSystem.renameSync(temporaryPath, this.filePath(key));
+      fs.renameSync(temporaryPath, this.filePath(key));
     } catch (error) {
       try {
         this.unlinkIfPresent(temporaryPath);
@@ -493,7 +444,7 @@ export class EpicConnectionStore {
 
   private unlinkIfPresent(filePath: string): void {
     try {
-      this.fileSystem.unlinkSync(filePath);
+      fs.unlinkSync(filePath);
     } catch (error) {
       if (!isMissingFile(error)) throw error;
     }
@@ -501,7 +452,7 @@ export class EpicConnectionStore {
 
   private fileExists(filePath: string): boolean {
     try {
-      this.fileSystem.lstatSync(filePath);
+      fs.lstatSync(filePath);
       return true;
     } catch (error) {
       if (isMissingFile(error)) return false;

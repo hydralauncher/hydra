@@ -46,4 +46,3 @@ async function signMac(options, packager) {
 }
 
 module.exports = signMac;
-module.exports.createSigningOptions = createSigningOptions;

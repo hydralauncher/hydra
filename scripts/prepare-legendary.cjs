@@ -10,22 +10,23 @@ const manifest = require("../src/shared/legendary-manifest.json");
 
 const DOWNLOAD_TIMEOUT_MS = 60_000;
 // Build checks allow cold PyInstaller/macOS library validation to complete.
-// The launcher service keeps its separate 15-second timeout.
 const VERSION_TIMEOUT_MS = 60_000;
 const execFileAsync = promisify(execFile);
 
-function getLegendaryArtifact(platform, arch, artifactManifest = manifest) {
-  if (platform === "linux") return null;
-  if (platform !== "win32" && platform !== "darwin") {
+function getLegendaryArtifact(platform, arch) {
+  if (!["linux", "win32", "darwin"].includes(platform)) {
     throw new Error(`Unsupported Legendary platform: ${platform}`);
   }
+
   if (arch !== "x64" && arch !== "arm64") {
     throw new Error(`Unsupported Legendary architecture: ${arch}`);
   }
-  const artifact = artifactManifest.artifacts[platform][arch];
+
+  const artifact = manifest.artifacts?.[platform]?.[arch];
   if (!artifact || !/^[a-f0-9]{64}$/.test(artifact.sha256)) {
     throw new Error(`Invalid Legendary artifact manifest: ${platform}/${arch}`);
   }
+
   return artifact;
 }
 
@@ -44,52 +45,77 @@ async function hasExpectedChecksum(filePath, expectedChecksum) {
   }
 }
 
+async function downloadVerifiedArtifact(
+  artifact,
+  filePath,
+  executable = false
+) {
+  if (await hasExpectedChecksum(filePath, artifact.sha256)) {
+    if (executable) await fs.chmod(filePath, 0o755);
+    return true;
+  }
+  await fs.mkdir(path.dirname(filePath), { recursive: true });
+  const temporaryPath = `${filePath}.download-${randomUUID()}`;
+
+  try {
+    const signal = AbortSignal.timeout(DOWNLOAD_TIMEOUT_MS);
+    const response = await fetch(artifact.url, { signal });
+
+    if (!response.ok || !response.body)
+      throw new Error(`Legendary download failed: HTTP ${response.status}`);
+
+    await pipeline(
+      Readable.fromWeb(response.body),
+      createWriteStream(temporaryPath, { flags: "wx", mode: 0o600 }),
+      { signal }
+    );
+
+    if (!(await hasExpectedChecksum(temporaryPath, artifact.sha256)))
+      throw new Error("Legendary runtime checksum mismatch");
+
+    if (executable) await fs.chmod(temporaryPath, 0o755);
+    try {
+      await fs.rename(temporaryPath, filePath);
+    } catch (error) {
+      // A concurrent preparation may have installed the same verified artifact.
+      if (!(await hasExpectedChecksum(filePath, artifact.sha256))) throw error;
+    }
+    return false;
+  } finally {
+    await fs.rm(temporaryPath, { force: true });
+  }
+}
+
 async function prepareLegendary({
   projectDir = path.resolve(__dirname, ".."),
   platform = process.platform,
   arch = process.arch,
-  artifactManifest = manifest,
-  fetchImpl = global.fetch,
 } = {}) {
-  const artifact = getLegendaryArtifact(platform, arch, artifactManifest);
-  // Linux must not touch the filesystem or network, including a foreign cache.
-  if (!artifact) return { skipped: true, platform, arch };
-
-  const directory = path.join(projectDir, "legendary", platform, arch);
-  const binaryPath = path.join(directory, artifact.fileName);
-  if (await hasExpectedChecksum(binaryPath, artifact.sha256)) {
-    if (platform === "darwin") await fs.chmod(binaryPath, 0o755);
-    return { skipped: false, binaryPath, cached: true, platform, arch };
+  const artifact = getLegendaryArtifact(platform, arch);
+  if (platform === "linux") {
+    const { prepareLinuxLegendary } = require("./legendary-linux-runtime.cjs");
+    return prepareLinuxLegendary({
+      projectDir,
+      arch,
+      artifact,
+      download: downloadVerifiedArtifact,
+      sha256File,
+    });
   }
 
-  await fs.mkdir(directory, { recursive: true });
-  const temporaryPath = path.join(directory, `.download-${randomUUID()}`);
-  try {
-    const signal = AbortSignal.timeout(DOWNLOAD_TIMEOUT_MS);
-    const response = await fetchImpl(artifact.url, { signal });
-    if (!response.ok || !response.body) {
-      throw new Error(`Legendary download failed: HTTP ${response.status}`);
-    }
-    await pipeline(
-      Readable.fromWeb(response.body),
-      createWriteStream(temporaryPath, { flags: "wx", mode: 0o755 }),
-      { signal }
-    );
-    if (!(await hasExpectedChecksum(temporaryPath, artifact.sha256))) {
-      throw new Error(`Legendary checksum mismatch: ${platform}/${arch}`);
-    }
-    if (platform === "darwin") await fs.chmod(temporaryPath, 0o755);
-    try {
-      await fs.rename(temporaryPath, binaryPath);
-    } catch (error) {
-      // Another preparation may have atomically installed the same artifact.
-      if (!(await hasExpectedChecksum(binaryPath, artifact.sha256)))
-        throw error;
-    }
-    return { skipped: false, binaryPath, cached: false, platform, arch };
-  } finally {
-    await fs.rm(temporaryPath, { force: true });
-  }
+  const binaryPath = path.join(
+    projectDir,
+    "legendary",
+    platform,
+    arch,
+    artifact.fileName
+  );
+  const cached = await downloadVerifiedArtifact(
+    artifact,
+    binaryPath,
+    platform === "darwin"
+  );
+  return { binaryPath, cached, platform, arch };
 }
 
 async function verifyLegendaryVersion(
@@ -127,10 +153,6 @@ function parseArguments(args) {
 
 async function main() {
   const result = await prepareLegendary(parseArguments(process.argv.slice(2)));
-  if (result.skipped) {
-    console.log("Legendary preparation skipped on Linux.");
-    return;
-  }
   // Never execute a foreign-platform/architecture binary on the build machine.
   if (result.platform === process.platform && result.arch === process.arch) {
     await verifyLegendaryVersion(result.binaryPath);
@@ -144,9 +166,7 @@ module.exports = {
   getLegendaryArtifact,
   prepareLegendary,
   sha256File,
-  hasExpectedChecksum,
   verifyLegendaryVersion,
-  parseArguments,
 };
 
 if (require.main === module) {
