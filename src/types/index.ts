@@ -475,6 +475,10 @@ export interface AchievementMetadataEntry {
 export type GameLauncherStatus =
   | "generating_achievements"
   | "downloading_achievement_icons"
+  | "preparing_compatibility_layer"
+  | "compatibility_layer_ready"
+  | "compatibility_layer_failed"
+  | "game_started"
   | "complete";
 
 export interface GameLauncherStatusPayload {

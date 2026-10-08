@@ -39,7 +39,6 @@ import type {
 import { useBigPictureToast, useUserDetails } from "../../../../hooks";
 import { BigPictureCloudSaveConflictModal } from "./cloud-save-conflict-modal";
 import { BigPictureCloudSaveCustomPathModal } from "./cloud-save-custom-path-modal";
-import { BigPictureRpcs3ProfileModal } from "./cloud-save-rpcs3-profile-modal";
 import { BigPictureRetroArchBatteryModal } from "./cloud-save-retroarch-battery-modal";
 import {
   BigPictureCloudSaveModal,
@@ -268,10 +267,6 @@ export function BigPictureCloudSaveProvider({
   const [legacyBatteryCandidates, setLegacyBatteryCandidates] = useState<
     RetroArchLegacyBatteryCandidate[]
   >([]);
-  const [pendingRpcs3ProfileId, setPendingRpcs3ProfileId] = useState<
-    string | null
-  >(null);
-  const [isBindingRpcs3Profile, setIsBindingRpcs3Profile] = useState(false);
   const [isBindingEmulatorDestination, setIsBindingEmulatorDestination] =
     useState(false);
   const activeGameKey = useRef(gameKey);
@@ -321,20 +316,6 @@ export function BigPictureCloudSaveProvider({
           return true;
         }
       }
-      if (
-        typeof message === "string" &&
-        message.includes("cloud_save_rpcs3_profile_binding_required")
-      ) {
-        setIsModalVisible(true);
-        showWarningToast(t("cloud_save_v2_rpcs3_profile_title"), {
-          message: fileDetails?.rpcs3Profile?.localProfileId
-            ? t("cloud_save_v2_rpcs3_profile_description", {
-                localProfileId: fileDetails.rpcs3Profile.localProfileId,
-              })
-            : t("cloud_save_v2_rpcs3_profile_choose"),
-        });
-        return true;
-      }
       const errorKind = getCloudSaveSyncErrorKind(error);
 
       if (errorKind === "restore-metadata") {
@@ -368,14 +349,12 @@ export function BigPictureCloudSaveProvider({
       return false;
     },
     [
-      fileDetails?.rpcs3Profile?.localProfileId,
       emulatorProvider,
       gameKey,
       objectId,
       retryRetroArchExecutableStatus,
       shop,
       showErrorToast,
-      showWarningToast,
       t,
     ]
   );
@@ -394,8 +373,6 @@ export function BigPictureCloudSaveProvider({
     setIsConfirmingCustomPath(false);
     setIsFileExplorerVisible(false);
     setPendingResolution(null);
-    setPendingRpcs3ProfileId(null);
-    setIsBindingRpcs3Profile(false);
     setIsBindingEmulatorDestination(false);
     gamePageSyncInFlight.current = false;
   }, [gameKey]);
@@ -419,16 +396,6 @@ export function BigPictureCloudSaveProvider({
       )
     );
   }, [emulatorProvider, searchParams, setSearchParams, showSyncError]);
-
-  useEffect(() => {
-    if (!eligible || searchParams.get("openCloudSaveProfileBinding") !== "1") {
-      return;
-    }
-    const nextSearchParams = new URLSearchParams(searchParams);
-    nextSearchParams.delete("openCloudSaveProfileBinding");
-    setSearchParams(nextSearchParams, { replace: true });
-    setIsModalVisible(true);
-  }, [eligible, searchParams, setSearchParams]);
 
   useEffect(() => {
     if (!eligible || searchParams.get("openCloudSaveConflict") !== "1") {
@@ -794,28 +761,6 @@ export function BigPictureCloudSaveProvider({
     });
   };
 
-  const handleConfirmRpcs3Profile = async () => {
-    const cloudProfileId = pendingRpcs3ProfileId;
-    if (!cloudProfileId || isBindingRpcs3Profile) return;
-    setIsBindingRpcs3Profile(true);
-    try {
-      await globalThis.window.electron.bindRpcs3CloudSaveProfile(
-        objectId,
-        shop,
-        cloudProfileId
-      );
-      await Promise.all([refreshFileDetails(), refresh()]);
-      setPendingRpcs3ProfileId(null);
-      showSuccessToast(t("cloud_save_v2_rpcs3_profile_linked"));
-    } catch {
-      showErrorToast(t("cloud_save_v2_rpcs3_profile_error_title"), {
-        message: t("cloud_save_v2_rpcs3_profile_error_description"),
-      });
-    } finally {
-      setIsBindingRpcs3Profile(false);
-    }
-  };
-
   const handleSelectEmulatorDestination = async (
     rawPath: string,
     kind: "save" | "state"
@@ -936,9 +881,6 @@ export function BigPictureCloudSaveProvider({
     onSync: () => void runCloudSaveOperation(),
     onAutomaticSyncChange: handleAutomaticSyncChange,
     onResolveConflict: setPendingResolution,
-    rpcs3Profile: fileDetails?.rpcs3Profile,
-    onSelectRpcs3Profile: setPendingRpcs3ProfileId,
-    isBindingRpcs3Profile,
     emulatorDestinations: fileDetails?.emulatorDestinations,
     onSelectEmulatorDestination: (rawPath: string, kind: "save" | "state") =>
       void handleSelectEmulatorDestination(rawPath, kind),
@@ -1017,16 +959,6 @@ export function BigPictureCloudSaveProvider({
         isResolving={isSyncing}
         onClose={() => setPendingResolution(null)}
         onConfirm={handleConfirmResolution}
-      />
-
-      <BigPictureRpcs3ProfileModal
-        localProfileId={fileDetails?.rpcs3Profile?.localProfileId ?? null}
-        cloudProfileId={pendingRpcs3ProfileId}
-        isBinding={isBindingRpcs3Profile}
-        onClose={() => {
-          if (!isBindingRpcs3Profile) setPendingRpcs3ProfileId(null);
-        }}
-        onConfirm={() => void handleConfirmRpcs3Profile()}
       />
 
       <BigPictureRetroArchBatteryModal

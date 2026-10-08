@@ -16,11 +16,12 @@
   "scripts": {
     "format": "prettier --write .",
     "format-check": "prettier --check .",
-    "test": "node --import ./scripts/register-ts-node.mjs --test \"src/**/*.test.ts\"",
+    "test": "node --import ./scripts/register-ts-node.mjs --test \"src/**/*.test.ts\" \"scripts/*.test.mjs\"",
     "lint": "eslint . --ext .js,.jsx,.cjs,.mjs,.ts,.tsx,.cts,.mts --fix",
     "typecheck:node": "tsc --noEmit -p tsconfig.node.json --composite false",
     "typecheck:web": "tsc --noEmit -p tsconfig.web.json --composite false",
     "typecheck": "npm run typecheck:node && npm run typecheck:web",
+    "check:ota-bridge": "node scripts/check-ota-bridge.mjs",
     "build:native": "node ./scripts/build-native-addon.cjs",
     "start": "electron-vite preview",
     "dev": "electron-vite dev",
