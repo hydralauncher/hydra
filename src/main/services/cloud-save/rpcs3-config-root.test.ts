@@ -65,7 +65,7 @@ describe("RPCS3 configuration root selection", () => {
       ]);
     }));
 
-  it("deduplicates symlinks and binds selected root and profile", async () =>
+  it("deduplicates symlinks and binds the selected root", async () =>
     withFixture(async (root, executable) => {
       const actual = path.join(root, "actual");
       const alias = path.join(root, "alias");
@@ -86,7 +86,6 @@ describe("RPCS3 configuration root selection", () => {
         selected.location?.homeRoot,
         path.join(await fs.realpath(path.join(actual, "dev_hdd0")), "home")
       );
-      assert.equal(selected.location?.activeProfileId, "00000002");
     }));
 
   it("never switches an invalid saved choice to another valid folder", async () =>
@@ -133,7 +132,7 @@ describe("RPCS3 configuration root selection", () => {
       assert.equal(await validateRpcs3ConfigRoot(candidate), null);
     }));
 
-  it("keeps a VFS-only installation usable with the default profile", async () =>
+  it("keeps a VFS-only installation usable", async () =>
     withFixture(async (root, executable) => {
       const candidate = path.join(root, "candidate");
       await fs.mkdir(path.join(candidate, "dev_hdd0"), { recursive: true });
@@ -145,7 +144,10 @@ describe("RPCS3 configuration root selection", () => {
         candidate,
       ]);
       assert.equal(result.status.status, "ready");
-      assert.equal(result.location?.activeProfileId, "00000001");
+      assert.equal(
+        result.location?.homeRoot,
+        path.join(await fs.realpath(path.join(candidate, "dev_hdd0")), "home")
+      );
     }));
 
   it("requires configured executable", async () =>

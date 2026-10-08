@@ -1,7 +1,11 @@
 import assert from "node:assert/strict";
+import { promises as fs } from "node:fs";
+import os from "node:os";
+import path from "node:path";
 import { describe, it } from "node:test";
 
 import type {
+  CloudSavePathContext,
   CloudSaveSyncAnchor,
   LocalGameSnapshotContext,
   ResolveRestoreTargetsResult,
@@ -10,7 +14,10 @@ import type {
 } from "@types";
 
 import { cloudSaveFileKey } from "./cloud-save-contract.js";
-import { assertRestorePlanUnchanged } from "./emulator-restore-plan.js";
+import {
+  assertRestorePlanUnchanged,
+  filterUnsafeEmulatorRestoreTargets,
+} from "./emulator-restore-plan.js";
 import { mergeUserVariantSnapshots } from "./merge-user-variant-snapshots.js";
 
 const action = (
@@ -198,5 +205,95 @@ describe("emulator restore plan and deletion history", () => {
     });
     assert.deepEqual(result.restoreEntryIds, [cloudSaveFileKey(battery)]);
     assert.deepEqual(result.deleteRemoteEntryIds, []);
+  });
+});
+
+describe("emulator restore destination safety", () => {
+  it("lets RPCS3 saves create a missing user under dev_hdd0/home only", async () => {
+    const root = await fs.realpath(
+      await fs.mkdtemp(path.join(os.tmpdir(), "hydra-restore-"))
+    );
+    try {
+      const homeRoot = path.join(root, "RPCS3", "dev_hdd0", "home");
+      await fs.mkdir(path.join(homeRoot, "00000001"), { recursive: true });
+      const target = (
+        rawPath: string,
+        restoreRootPath: string,
+        relativePath: string
+      ): ResolvedRestoreTarget => ({
+        ...action(relativePath, path.join(restoreRootPath, relativePath)),
+        rawPath,
+        restoreRootPath,
+        action: "create",
+      });
+      const rpcs3 = target(
+        "<emulator>/rpcs3/BLUS30443/00000002",
+        path.join(homeRoot, "00000002", "savedata"),
+        path.join("BLUS30443-SLOT01", "DATA.BIN")
+      );
+      const retroArch = target(
+        "<emulator>/retroarch/snes/1234ABCD",
+        path.join(root, "RetroArch", "saves", "Snes9x"),
+        "Mario.srm"
+      );
+      const result = await filterUnsafeEmulatorRestoreTargets(
+        true,
+        {
+          homeDir: path.join(root, "user-home"),
+          platform: process.platform === "win32" ? "windows" : "linux",
+        } as CloudSavePathContext,
+        { actions: [rpcs3, retroArch], blocked: [], deferred: [] }
+      );
+      assert.deepEqual(
+        result.actions.map((item) => item.rawPath),
+        [rpcs3.rawPath]
+      );
+      assert.deepEqual(
+        result.blocked.map((item) => [item.rawPath, item.reason]),
+        [[retroArch.rawPath, "blocked-emulator-destination-unavailable"]]
+      );
+    } finally {
+      await fs.rm(root, { recursive: true, force: true });
+    }
+  });
+
+  it("lets RPCS3 game data create a missing game directory under dev_hdd0", async () => {
+    const root = await fs.realpath(
+      await fs.mkdtemp(path.join(os.tmpdir(), "hydra-restore-"))
+    );
+    try {
+      const hdd0 = path.join(root, "RPCS3", "dev_hdd0");
+      await fs.mkdir(hdd0, { recursive: true });
+      const relativePath = path.join("BLUS30443_USER1", "USRDIR", "PROFILE");
+      const gamedata: ResolvedRestoreTarget = {
+        ...action(relativePath, path.join(hdd0, "game", relativePath)),
+        rawPath: "<emulator>/rpcs3-gamedata/BLUS30443",
+        restoreRootPath: path.join(hdd0, "game"),
+        action: "create",
+      };
+      const outsideHdd0: ResolvedRestoreTarget = {
+        ...gamedata,
+        restoreRootPath: path.join(root, "missing", "game"),
+        targetPath: path.join(root, "missing", "game", relativePath),
+      };
+      const result = await filterUnsafeEmulatorRestoreTargets(
+        true,
+        {
+          homeDir: path.join(root, "user-home"),
+          platform: process.platform === "win32" ? "windows" : "linux",
+        } as CloudSavePathContext,
+        { actions: [gamedata, outsideHdd0], blocked: [], deferred: [] }
+      );
+      assert.deepEqual(
+        result.actions.map((item) => item.targetPath),
+        [gamedata.targetPath]
+      );
+      assert.deepEqual(
+        result.blocked.map((item) => item.reason),
+        ["blocked-emulator-destination-unavailable"]
+      );
+    } finally {
+      await fs.rm(root, { recursive: true, force: true });
+    }
   });
 });

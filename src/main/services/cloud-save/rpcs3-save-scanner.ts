@@ -7,6 +7,7 @@ import type { UserLocationCoverage } from "@types";
 
 import { parseParamSfoValue } from "../emulators/param-sfo.js";
 import {
+  rpcs3GamedataRawPath,
   rpcs3SaveRawPath,
   rpcs3SavestateRawPath,
   safeRelativeSegments,
@@ -16,11 +17,15 @@ import type {
   EmulatorProviderDiscovery,
 } from "./emulator-provider-types";
 import {
+  rpcs3GamedataFolderBelongsToTitle,
   rpcs3SavestateFileBelongsToTitle,
   rpcs3SlotBelongsToTitle,
   rpcs3TitleIdsForGame,
 } from "./rpcs3-save-layout.js";
-import { rpcs3SavedataTitleIdsForGame } from "./rpcs3-title-ids.js";
+import {
+  normalizeRpcs3TitleId,
+  rpcs3SavedataTitleIdsForGame,
+} from "./rpcs3-title-ids.js";
 
 const PROFILE_ID = /^\d{8}$/;
 const SAVESTATE_SUFFIX = /\.SAVESTAT(?:\.zst|\.gz)?$/;
@@ -98,14 +103,12 @@ export const scanRpcs3SaveRoot = async (
     variantId,
     rpcs3SavedataTitleIds,
   }: EmulatorProviderContext,
-  homeRoot: string,
-  activeProfileId: string,
-  cloudProfileId = activeProfileId
+  homeRoot: string
 ): Promise<EmulatorProviderDiscovery> => {
   const result: EmulatorProviderDiscovery = {
     files: [],
     coverage: [],
-    revision: "rpcs3-v3",
+    revision: "rpcs3-v4",
   };
   const titleIds = rpcs3TitleIdsForGame(game).length
     ? (rpcs3SavedataTitleIds ?? rpcs3SavedataTitleIdsForGame(game))
@@ -121,11 +124,21 @@ export const scanRpcs3SaveRoot = async (
     result.coverage.push(unresolvedCoverage("rpcs3-profiles-unresolved"));
     return result;
   }
-  for (const profile of profiles) {
-    if (profile.name !== activeProfileId) continue;
-    if (!profile.isDirectory() || !PROFILE_ID.test(profile.name)) {
-      result.coverage.push(unresolvedCoverage("rpcs3-active-profile-invalid"));
-      return result;
+  const profileEntries = profiles.filter((profile) =>
+    PROFILE_ID.test(profile.name)
+  );
+  if (!profileEntries.length) {
+    result.coverage.push(unresolvedCoverage("rpcs3-profiles-missing"));
+    return result;
+  }
+  for (const profile of profileEntries) {
+    if (!profile.isDirectory() || profile.isSymbolicLink()) {
+      for (const titleId of titleIds) {
+        result.coverage.push(
+          coverage(rpcs3SaveRawPath(titleId, profile.name), variantId, false)
+        );
+      }
+      continue;
     }
     const saveRoot = path.join(homeRoot, profile.name, "savedata");
     const slots = await fs
@@ -134,13 +147,13 @@ export const scanRpcs3SaveRoot = async (
     if (!slots) {
       for (const titleId of titleIds) {
         result.coverage.push(
-          coverage(rpcs3SaveRawPath(titleId, cloudProfileId), variantId, false)
+          coverage(rpcs3SaveRawPath(titleId, profile.name), variantId, false)
         );
       }
       continue;
     }
     for (const titleId of titleIds) {
-      const rawPath = rpcs3SaveRawPath(titleId, cloudProfileId);
+      const rawPath = rpcs3SaveRawPath(titleId, profile.name);
       let complete = true;
       for (const slot of slots) {
         if (!rpcs3SlotBelongsToTitle(slot.name, titleId)) continue;
@@ -196,9 +209,6 @@ export const scanRpcs3SaveRoot = async (
       }
       result.coverage.push(coverage(rawPath, variantId, complete));
     }
-  }
-  if (!profiles.some((profile) => profile.name === activeProfileId)) {
-    result.coverage.push(unresolvedCoverage("rpcs3-active-profile-missing"));
   }
   return result;
 };
@@ -305,6 +315,137 @@ export const scanRpcs3Savestates = async (
       });
     }
     result.coverage.push(coverage(rawPath, variantId, complete));
+  }
+  return result;
+};
+
+const lstatIfExists = (target: string) =>
+  fs
+    .lstat(target)
+    .catch((error: NodeJS.ErrnoException) =>
+      error.code === "ENOENT" ? null : undefined
+    );
+
+const isRpcs3GamedataProfile = async (folderRoot: string, titleId: string) => {
+  const sfoPath = path.join(folderRoot, "PARAM.SFO");
+  const sfoStat = await lstatIfExists(sfoPath);
+  if (!sfoStat?.isFile() || sfoStat.isSymbolicLink()) return false;
+  const sfo = await fs.readFile(sfoPath).catch(() => null);
+  if (!sfo) return false;
+  return (
+    parseParamSfoValue(sfo, "CATEGORY") === "GD" &&
+    normalizeRpcs3TitleId(parseParamSfoValue(sfo, "TITLE_ID")) === titleId
+  );
+};
+
+const scanRpcs3GamedataFolder = async (
+  gameRoot: string,
+  folder: Dirent,
+  titleId: string
+) => {
+  if (!folder.isDirectory() || folder.isSymbolicLink()) {
+    return { relativePaths: [], complete: false };
+  }
+  const folderRoot = path.join(gameRoot, folder.name);
+  if (!(await isRpcs3GamedataProfile(folderRoot, titleId))) {
+    return { relativePaths: [], complete: false };
+  }
+  const scanned = await listSafeFiles(folderRoot);
+  const relativePaths = scanned.files.map((absolutePath) =>
+    path.relative(gameRoot, absolutePath).split(path.sep).join("/")
+  );
+  const safeRelativePaths = relativePaths.filter((relativePath) =>
+    safeRelativeSegments(relativePath)
+  );
+  return {
+    relativePaths: safeRelativePaths,
+    complete:
+      scanned.complete && safeRelativePaths.length === relativePaths.length,
+  };
+};
+
+export const scanRpcs3Gamedata = async (
+  {
+    game,
+    environmentId,
+    variantId,
+    rpcs3SavedataTitleIds,
+  }: EmulatorProviderContext,
+  hdd0Root: string
+): Promise<EmulatorProviderDiscovery> => {
+  const result: EmulatorProviderDiscovery = {
+    files: [],
+    coverage: [],
+    revision: "rpcs3-gamedata-v1",
+  };
+  const titleIds = rpcs3TitleIdsForGame(game).length
+    ? (rpcs3SavedataTitleIds ?? rpcs3SavedataTitleIdsForGame(game))
+    : [];
+  if (!titleIds.length) {
+    result.coverage.push(unresolvedCoverage("rpcs3-title-id-unresolved"));
+    return result;
+  }
+  const gameRoot = path.join(hdd0Root, "game");
+  const rootStat = await lstatIfExists(gameRoot);
+  const entries =
+    rootStat?.isDirectory() && !rootStat.isSymbolicLink()
+      ? await fs.readdir(gameRoot, { withFileTypes: true }).catch(() => null)
+      : null;
+  const localBindings = {
+    environmentId,
+    rootId: hash(JSON.stringify([environmentId, gameRoot])),
+    concreteUserSegment: "__default__",
+    concretePath: gameRoot,
+  };
+
+  const titles = await Promise.all(
+    titleIds.map(async (titleId) => {
+      const folders = entries?.filter((entry) =>
+        rpcs3GamedataFolderBelongsToTitle(entry.name, titleId)
+      );
+      const scanned =
+        folders && folders.length > 0
+          ? await Promise.all(
+              folders.map((folder) =>
+                scanRpcs3GamedataFolder(gameRoot, folder, titleId)
+              )
+            )
+          : null;
+      return { titleId, folders, scanned };
+    })
+  );
+
+  for (const { titleId, folders, scanned } of titles) {
+    const rawPath = rpcs3GamedataRawPath(titleId);
+    if (rootStat === null || folders?.length === 0) {
+      result.coverage.push(missingCoverage(rawPath, variantId));
+      continue;
+    }
+    if (!scanned) {
+      result.coverage.push(coverage(rawPath, variantId, false));
+      continue;
+    }
+    for (const relativePath of scanned.flatMap(
+      (folder) => folder.relativePaths
+    )) {
+      result.files.push({
+        variantId,
+        ruleId: hash(JSON.stringify(["emulator", rawPath])),
+        rawPath,
+        absolutePath: path.join(gameRoot, ...relativePath.split("/")),
+        relativePath,
+        localBindings: { ...localBindings },
+        confidence: "exact",
+        provenance: ["emulator:rpcs3"],
+      });
+    }
+    result.coverage.push(
+      coverage(
+        rawPath,
+        variantId,
+        scanned.every((folder) => folder.complete)
+      )
+    );
   }
   return result;
 };

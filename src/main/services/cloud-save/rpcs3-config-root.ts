@@ -5,16 +5,15 @@ import YAML from "yaml";
 import type { Rpcs3ConfigRootStatus } from "@types";
 
 import { rpcs3ConfigRoots } from "../emulators/emulator-config.js";
-import {
-  parseRpcs3ActiveProfileId,
-  resolveRpcs3VfsHdd0,
-} from "./rpcs3-save-layout.js";
+import { resolveRpcs3VfsHdd0 } from "./rpcs3-save-layout.js";
 
 export interface Rpcs3SaveLocation {
   configRoot: string;
   homeRoot: string;
-  activeProfileId: string;
 }
+
+export const rpcs3Hdd0Root = (location: Pick<Rpcs3SaveLocation, "homeRoot">) =>
+  path.dirname(location.homeRoot);
 
 const readOptional = async (file: string) =>
   fs.readFile(file, "utf8").catch((error: NodeJS.ErrnoException) => {
@@ -43,12 +42,9 @@ export const validateRpcs3ConfigRoot = async (
     const hdd0 = resolveRpcs3VfsHdd0(configRoot, vfsContent);
     const realHdd0 = await fs.realpath(hdd0);
     if (!(await fs.stat(realHdd0)).isDirectory()) return null;
-    const activeProfileId = parseRpcs3ActiveProfileId(settingsContent);
-    if (!activeProfileId) return null;
     return {
       configRoot,
       homeRoot: path.join(realHdd0, "home"),
-      activeProfileId,
     };
   } catch {
     return null;

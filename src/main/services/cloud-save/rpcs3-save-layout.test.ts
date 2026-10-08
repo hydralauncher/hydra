@@ -6,7 +6,6 @@ import type { Game } from "@types";
 
 import {
   isRpcs3GameSaveFile,
-  parseRpcs3ActiveProfileId,
   resolveRpcs3VfsHdd0,
   rpcs3SavestateFileBelongsToTitle,
   rpcs3SlotBelongsToTitle,
@@ -14,28 +13,6 @@ import {
 } from "./rpcs3-save-layout.js";
 
 describe("RPCS3 save layout", () => {
-  it("reads the active RPCS3 user and rejects a broken user setting", () => {
-    assert.equal(parseRpcs3ActiveProfileId(null), "00000001");
-    assert.equal(
-      parseRpcs3ActiveProfileId("[Playtime]\nGAME=100\n"),
-      "00000001"
-    );
-    assert.equal(
-      parseRpcs3ActiveProfileId(
-        "[Playtime]\nactive_user=00000009\n[Users]\nactive_user=00000002\n"
-      ),
-      "00000002"
-    );
-    assert.equal(
-      parseRpcs3ActiveProfileId("[Users]\nactive_user=00000000\n"),
-      null
-    );
-    assert.equal(
-      parseRpcs3ActiveProfileId("[Users]\nactive_user=../../other\n"),
-      null
-    );
-  });
-
   it("normalizes disc SKUs and matches only its Title ID prefix", () => {
     const game = {
       discs: [{ sku: "BLUS-30443" }, { sku: "blus30443" }, { sku: "BLUS3044" }],
@@ -96,6 +73,30 @@ describe("RPCS3 save layout", () => {
         path.join("/", "rpcs3", "savedata", "BLUS30443-SLOT01", "DATA.BIN")
       ),
       true
+    );
+    assert.equal(
+      isRpcs3GameSaveFile(
+        game,
+        path.join("/", "rpcs3", "game", "BLUS30443_USER1", "USRDIR", "SAVE")
+      ),
+      true
+    );
+    for (const folder of ["BLUS30443", "BLUS30443_INSTALL", "BLUS30443DATA"]) {
+      assert.equal(
+        isRpcs3GameSaveFile(
+          game,
+          path.join("/", "rpcs3", "game", folder, "USRDIR", "DATA")
+        ),
+        false,
+        folder
+      );
+    }
+    assert.equal(
+      isRpcs3GameSaveFile(
+        game,
+        path.join("/", "rpcs3", "game", "BLES99999_USER1", "USRDIR", "SAVE")
+      ),
+      false
     );
     assert.equal(
       isRpcs3GameSaveFile(
