@@ -9,6 +9,7 @@ import type {
 
 import {
   isEmulatorSaveRawPath,
+  parseRpcs3GamedataRawPath,
   parseRpcs3SaveRawPath,
 } from "./emulator-provider-identity.js";
 
@@ -36,6 +37,9 @@ const restoreBaseForRoot = (root: string, rawPath: string) => {
     path.basename(path.dirname(root)) === rpcs3Save.profileId
   ) {
     return path.dirname(path.dirname(root));
+  }
+  if (parseRpcs3GamedataRawPath(rawPath) && path.basename(root) === "game") {
+    return path.dirname(root);
   }
   return root;
 };

@@ -256,4 +256,44 @@ describe("emulator restore destination safety", () => {
       await fs.rm(root, { recursive: true, force: true });
     }
   });
+
+  it("lets RPCS3 game data create a missing game directory under dev_hdd0", async () => {
+    const root = await fs.realpath(
+      await fs.mkdtemp(path.join(os.tmpdir(), "hydra-restore-"))
+    );
+    try {
+      const hdd0 = path.join(root, "RPCS3", "dev_hdd0");
+      await fs.mkdir(hdd0, { recursive: true });
+      const relativePath = path.join("BLUS30443_USER1", "USRDIR", "PROFILE");
+      const gamedata: ResolvedRestoreTarget = {
+        ...action(relativePath, path.join(hdd0, "game", relativePath)),
+        rawPath: "<emulator>/rpcs3-gamedata/BLUS30443",
+        restoreRootPath: path.join(hdd0, "game"),
+        action: "create",
+      };
+      const outsideHdd0: ResolvedRestoreTarget = {
+        ...gamedata,
+        restoreRootPath: path.join(root, "missing", "game"),
+        targetPath: path.join(root, "missing", "game", relativePath),
+      };
+      const result = await filterUnsafeEmulatorRestoreTargets(
+        true,
+        {
+          homeDir: path.join(root, "user-home"),
+          platform: process.platform === "win32" ? "windows" : "linux",
+        } as CloudSavePathContext,
+        { actions: [gamedata, outsideHdd0], blocked: [], deferred: [] }
+      );
+      assert.deepEqual(
+        result.actions.map((item) => item.targetPath),
+        [gamedata.targetPath]
+      );
+      assert.deepEqual(
+        result.blocked.map((item) => item.reason),
+        ["blocked-emulator-destination-unavailable"]
+      );
+    } finally {
+      await fs.rm(root, { recursive: true, force: true });
+    }
+  });
 });
