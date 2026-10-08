@@ -219,18 +219,6 @@ export const openClassicsGame = async (
     }
     if (
       "errorCode" in outcome &&
-      outcome.errorCode === "cloud_save_rpcs3_profile_binding_required"
-    ) {
-      WindowManager.redirectToGameWindow(
-        `game/${shop}/${objectId}?${new URLSearchParams({
-          title: game.title,
-          openCloudSaveProfileBinding: "1",
-        })}`
-      );
-      return false;
-    }
-    if (
-      "errorCode" in outcome &&
       (outcome.errorCode === "cloud_save_retroarch_battery_local_conflict" ||
         outcome.errorCode === "cloud_save_retroarch_legacy_battery_conflict")
     ) {

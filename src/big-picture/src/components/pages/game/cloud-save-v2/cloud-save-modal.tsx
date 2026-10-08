@@ -87,9 +87,6 @@ export interface BigPictureCloudSavePanelProps {
   onSelectExecutable: () => void;
   onAutomaticSyncChange: (enabled: boolean) => Promise<void>;
   onResolveConflict: (resolution: CloudSaveConflictResolution) => void;
-  rpcs3Profile?: CloudSaveV2FileDetails["rpcs3Profile"];
-  onSelectRpcs3Profile?: (cloudProfileId: string) => void;
-  isBindingRpcs3Profile?: boolean;
   emulatorDestinations?: CloudSaveV2FileDetails["emulatorDestinations"];
   onSelectEmulatorDestination?: (
     rawPath: string,
@@ -148,9 +145,6 @@ export function BigPictureCloudSavePanel({
   onSelectExecutable,
   onAutomaticSyncChange,
   onResolveConflict,
-  rpcs3Profile,
-  onSelectRpcs3Profile,
-  isBindingRpcs3Profile = false,
   emulatorDestinations,
   onSelectEmulatorDestination,
   onRemoveEmulatorDestination,
@@ -326,45 +320,6 @@ export function BigPictureCloudSavePanel({
           {t(partialDescriptionKey)}
         </p>
       ) : null}
-
-      {!isSetupBlocked &&
-        rpcs3Profile &&
-        rpcs3Profile.cloudProfileIds.length > 0 && (
-          <section className="big-picture-cloud-save__toggle-card">
-            <div className="big-picture-cloud-save__copy">
-              <strong>{t("cloud_save_v2_rpcs3_profile_title")}</strong>
-              <span>
-                {t("cloud_save_v2_rpcs3_profile_description", {
-                  localProfileId: rpcs3Profile.localProfileId,
-                })}
-              </span>
-            </div>
-            <VerticalFocusGroup regionId="big-picture-cloud-save-rpcs3-profiles">
-              {rpcs3Profile.cloudProfileIds.map((cloudProfileId) => (
-                <Button
-                  key={cloudProfileId}
-                  focusId={`big-picture-cloud-save-rpcs3-${cloudProfileId}`}
-                  variant="secondary"
-                  disabled={
-                    isBindingRpcs3Profile ||
-                    isBindingEmulatorDestination ||
-                    isSyncing ||
-                    isGameRunning ||
-                    cloudProfileId === rpcs3Profile.linkedCloudProfileId
-                  }
-                  onClick={() => onSelectRpcs3Profile?.(cloudProfileId)}
-                >
-                  {t(
-                    cloudProfileId === rpcs3Profile.linkedCloudProfileId
-                      ? "cloud_save_v2_rpcs3_profile_current"
-                      : "cloud_save_v2_rpcs3_profile_link_action",
-                    { cloudProfileId }
-                  )}
-                </Button>
-              ))}
-            </VerticalFocusGroup>
-          </section>
-        )}
 
       {!isSetupBlocked &&
         emulatorDestinations &&
