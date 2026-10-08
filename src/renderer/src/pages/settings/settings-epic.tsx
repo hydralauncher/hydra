@@ -1,11 +1,12 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { LinkExternalIcon, PersonIcon } from "@primer/octicons-react";
+import { PersonIcon } from "@primer/octicons-react";
 
 import { Button, ConfirmationModal } from "@renderer/components";
 import { useDate, useToast, useUserDetails } from "@renderer/hooks";
 import { AuthPage } from "@shared";
 import type { EpicConnectionState, EpicErrorCode } from "@types";
+import EpicLogo from "@renderer/assets/epic-integration-logo.svg?react";
 import { SettingsIntegrationCard } from "./settings-integration-card";
 import {
   getEpicErrorTranslation,
@@ -260,7 +261,6 @@ export function SettingsEpic() {
             onClick={handleConnect}
             disabled={!presentation.canAuthenticate || isSubmitting}
           >
-            <LinkExternalIcon size={14} />
             {t(connection ? "integration_reconnect" : "integration_connect")}
           </Button>
         )}
@@ -292,7 +292,7 @@ export function SettingsEpic() {
     <>
       <SettingsIntegrationCard
         title={t("epic_games")}
-        logo={<LinkExternalIcon size={18} />}
+        logo={<EpicLogo />}
         status={t(presentation.statusKey)}
         statusTone={presentation.statusTone}
         actions={renderActions()}
