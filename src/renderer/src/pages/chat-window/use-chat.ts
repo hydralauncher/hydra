@@ -2,7 +2,11 @@ import { useCallback, useEffect, useRef, useState } from "react";
 
 import type { ChatMessageDto, ChatMessagesPage } from "@types";
 
-import { playMessageSound } from "./chat-sounds";
+import {
+  createSendCooldown,
+  getRateLimitWindowStart,
+  type ChatSendCooldown,
+} from "./chat-rate-limit";
 import {
   createPendingMessage,
   getLatestSeq,
@@ -22,6 +26,7 @@ const TYPING_PING_INTERVAL_MS = 3_000;
 const TYPING_INDICATOR_TIMEOUT_MS = 5_000;
 const MARK_READ_DEBOUNCE_MS = 500;
 const NOT_FRIENDS_ERROR = "chat/not-friends";
+const RATE_LIMITED_ERROR = "chat/rate-limited";
 
 const chatPath = (friendId: string, suffix: string) =>
   `/profile/chats/${friendId}/${suffix}`;
@@ -36,6 +41,9 @@ const fetchMessages = (
 
 const isNotFriendsError = (error: unknown) =>
   error instanceof Error && error.message.includes(NOT_FRIENDS_ERROR);
+
+const isRateLimitedError = (error: unknown) =>
+  error instanceof Error && error.message.includes(RATE_LIMITED_ERROR);
 
 const useWindowFocus = () => {
   const [isFocused, setIsFocused] = useState(() => document.hasFocus());
@@ -85,6 +93,15 @@ export function useChat({
   );
   const lastMarkedSeqRef = useRef(new Map<string, number>());
 
+  // The rate limit is per user, so one cooldown covers every conversation.
+  const [sendCooldown, setSendCooldown] = useState<ChatSendCooldown | null>(
+    null
+  );
+  /** Bumped on every send the rate limit turns away, to shake the composer. */
+  const [sendRejections, setSendRejections] = useState(0);
+  const sendCooldownRef = useRef<ChatSendCooldown | null>(null);
+  const rateLimitWindowRef = useRef<number | null>(null);
+
   useEffect(() => {
     conversationsRef.current = conversations;
     activeIdRef.current = activeId;
@@ -94,6 +111,26 @@ export function useChat({
   useEffect(() => {
     const timers = typingTimersRef.current;
     return () => timers.forEach(clearTimeout);
+  }, []);
+
+  useEffect(() => {
+    if (!sendCooldown) return;
+
+    const timer = setTimeout(() => {
+      sendCooldownRef.current = null;
+      setSendCooldown(null);
+    }, sendCooldown.until - Date.now());
+
+    return () => clearTimeout(timer);
+  }, [sendCooldown]);
+
+  const isCoolingDown = useCallback(
+    () => (sendCooldownRef.current?.until ?? 0) > Date.now(),
+    []
+  );
+
+  const rejectSend = useCallback(() => {
+    setSendRejections((count) => count + 1);
   }, []);
 
   const findConversation = useCallback(
@@ -228,6 +265,12 @@ export function useChat({
 
   const deliver = useCallback(
     async (friendId: string, text: string, clientNonce: string) => {
+      const windowStart = getRateLimitWindowStart(
+        rateLimitWindowRef.current,
+        Date.now()
+      );
+      rateLimitWindowRef.current = windowStart;
+
       try {
         const stored = await electron.hydraApi.post<ChatMessageDto>(
           chatPath(friendId, "messages"),
@@ -241,6 +284,17 @@ export function useChat({
           ]),
         }));
       } catch (error) {
+        if (isRateLimitedError(error)) {
+          // Sends in flight together can all be turned away; the first one
+          // starts the countdown and the rest leave it running.
+          if (!isCoolingDown()) {
+            const cooldown = createSendCooldown(windowStart, Date.now());
+            sendCooldownRef.current = cooldown;
+            setSendCooldown(cooldown);
+          }
+          rejectSend();
+        }
+
         updateConversation(friendId, (conversation) => ({
           ...conversation,
           canSend: isNotFriendsError(error) ? false : conversation.canSend,
@@ -252,11 +306,16 @@ export function useChat({
         }));
       }
     },
-    [updateConversation]
+    [isCoolingDown, rejectSend, updateConversation]
   );
 
   const send = useCallback(
     (friendId: string, text: string) => {
+      if (isCoolingDown()) {
+        rejectSend();
+        return;
+      }
+
       const clientNonce = crypto.randomUUID();
 
       updateConversation(friendId, (conversation) => ({
@@ -271,7 +330,7 @@ export function useChat({
 
       void deliver(friendId, text, clientNonce);
     },
-    [deliver, updateConversation]
+    [deliver, isCoolingDown, rejectSend, updateConversation]
   );
 
   const retry = useCallback(
@@ -280,6 +339,11 @@ export function useChat({
         (current) => current.clientNonce === clientNonce
       );
       if (!message || message.status !== "failed") return;
+
+      if (isCoolingDown()) {
+        rejectSend();
+        return;
+      }
 
       updateConversation(friendId, (conversation) => ({
         ...conversation,
@@ -292,7 +356,7 @@ export function useChat({
 
       void deliver(friendId, message.text, clientNonce);
     },
-    [deliver, findConversation, updateConversation]
+    [deliver, findConversation, isCoolingDown, rejectSend, updateConversation]
   );
 
   const notifyTyping = useCallback(
@@ -366,8 +430,6 @@ export function useChat({
               ? current.unreadCount + 1
               : current.unreadCount,
         }));
-
-        if (isNewFromFriend && isFocusedRef.current) playMessageSound();
       }
     );
 
@@ -463,5 +525,13 @@ export function useChat({
     updateConversation,
   ]);
 
-  return { send, retry, loadOlder, loadLatest, notifyTyping };
+  return {
+    send,
+    retry,
+    loadOlder,
+    loadLatest,
+    notifyTyping,
+    sendCooldown,
+    sendRejections,
+  };
 }

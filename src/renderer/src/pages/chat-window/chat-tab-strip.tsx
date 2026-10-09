@@ -9,8 +9,6 @@ import { useTranslation } from "react-i18next";
 import { ChevronDownIcon, DashIcon, XIcon } from "@primer/octicons-react";
 import cn from "classnames";
 
-import { Avatar } from "@renderer/components";
-
 import {
   ChatFriendAvatar,
   ChatFriendStatus,
@@ -24,13 +22,17 @@ import {
   moveItem,
   type TabSlot,
 } from "./chat-tab-drag";
-import { CHAT_TAB_COMPACT_WIDTH, getChatTabLayout } from "./chat-tab-layout";
+import {
+  CHAT_TAB_COMPACT_WIDTH,
+  CHAT_TAB_GAP,
+  getChatTabLayout,
+} from "./chat-tab-layout";
 import type { ChatConversation } from "./chat-types";
 import { useDismiss } from "./use-dismiss";
 
 const FRIEND_CARD_WIDTH = 240;
-/** Tab area width of the fixed-size window, used until the first measurement. */
-const DEFAULT_TABS_WIDTH = 464;
+/** Tab area width at the default window size, until the first measurement. */
+const DEFAULT_TABS_WIDTH = 468;
 
 /** Pointer travel before a press on a tab becomes a drag. */
 const DRAG_THRESHOLD = 4;
@@ -52,8 +54,8 @@ interface TabDrag {
 interface ChatTabProps {
   conversation: ChatConversation;
   isActive: boolean;
+  isCompact: boolean;
   width: number;
-  showSeparator: boolean;
   isLastTab: boolean;
   alignCardToEnd: boolean;
   dragStyle?: React.CSSProperties;
@@ -68,8 +70,8 @@ interface ChatTabProps {
 function ChatTab({
   conversation,
   isActive,
+  isCompact,
   width,
-  showSeparator,
   isLastTab,
   alignCardToEnd,
   dragStyle,
@@ -83,9 +85,10 @@ function ChatTab({
   const { t } = useTranslation("chat_window");
   const { friend, isTyping, unreadCount } = conversation;
 
-  const isCompact = !isActive && width < CHAT_TAB_COMPACT_WIDTH;
   const hasUnread = !isActive && unreadCount > 0;
 
+  // Every tab has the same size and content whether or not it is active;
+  // selecting one only recolors it.
   return (
     <div
       ref={tabRef}
@@ -93,7 +96,6 @@ function ChatTab({
         "chat-window__tab--active": isActive,
         "chat-window__tab--compact": isCompact,
         "chat-window__tab--unread": hasUnread,
-        "chat-window__tab--separated": showSeparator,
       })}
       style={{ width, ...dragStyle }}
       onPointerDown={onPointerDown}
@@ -114,33 +116,46 @@ function ChatTab({
         }}
         title={isCompact ? undefined : friend.displayName}
       >
-        {isTyping ? (
-          <ChatTypingDots size="small" />
-        ) : (
-          <span className="chat-window__tab-avatar">
-            <Avatar size={16} src={friend.profileImageUrl} alt="" />
-            {hasUnread && <span className="chat-window__tab-unread-dot" />}
-          </span>
-        )}
+        <span className="chat-window__tab-avatar">
+          {isTyping ? (
+            <ChatTypingDots size="small" />
+          ) : (
+            <ChatFriendAvatar friend={friend} size={20} />
+          )}
+          {isCompact && hasUnread && (
+            <span className="chat-window__tab-unread-dot" />
+          )}
+        </span>
         {!isCompact && (
           <span className="chat-window__tab-name">{friend.displayName}</span>
         )}
       </button>
 
+      {/* The unread count shares the close button's slot until hovered. */}
       {!isCompact && (
-        <button
-          type="button"
-          className="chat-window__tab-close"
-          onClick={onClose}
-          title={isLastTab ? t("close_window") : t("close_conversation")}
-          aria-label={
-            isLastTab
-              ? t("close_window")
-              : t("close_conversation_with", { name: friend.displayName })
-          }
-        >
-          <XIcon size={12} />
-        </button>
+        <span className="chat-window__tab-trailing">
+          <button
+            type="button"
+            className="chat-window__tab-close chat-window__tab-action"
+            onClick={onClose}
+            title={isLastTab ? t("close_window") : t("close_conversation")}
+            aria-label={
+              isLastTab
+                ? t("close_window")
+                : t("close_conversation_with", { name: friend.displayName })
+            }
+          >
+            <XIcon size={12} />
+          </button>
+          {hasUnread && (
+            <span
+              className="chat-window__unread-badge chat-window__tab-badge"
+              aria-hidden="true"
+            >
+              {unreadCount}
+            </span>
+          )}
+        </span>
       )}
 
       {isCompact && (
@@ -160,7 +175,7 @@ function ChatTab({
             />
           )}
           <div className="chat-window__friend-card-content">
-            <ChatFriendAvatar friend={friend} size={36} showCloudRing />
+            <ChatFriendAvatar friend={friend} size={36} />
             <div className="chat-window__friend-card-details">
               <span className="chat-window__friend-card-name">
                 {friend.displayName}
@@ -200,6 +215,9 @@ export function ChatTabStrip({
   const overflowRef = useRef<HTMLDivElement>(null);
   const [tabsWidth, setTabsWidth] = useState(DEFAULT_TABS_WIDTH);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  // Like Chrome, closing a tab keeps the widths until the pointer leaves the
+  // strip, so the next close button lands under it.
+  const [frozenTabWidth, setFrozenTabWidth] = useState<number | null>(null);
 
   const tabRefs = useRef(new Map<string, HTMLDivElement>());
   // The ref drives the pointer handlers; the state mirrors it for rendering.
@@ -248,22 +266,34 @@ export function ChatTabStrip({
   const closeMenu = useCallback(() => setIsMenuOpen(false), []);
   useDismiss(overflowRef, showMenu, closeMenu);
 
-  let offset = 0;
-  const tabs = visibleTabs.map((conversation) => {
-    const isActive = conversation.friend.id === activeId;
-    const width = isActive ? layout.activeWidth : layout.inactiveWidth;
-    const tab = { conversation, isActive, width, offset };
-    offset += width;
-    return tab;
-  });
+  // Opening a tab or narrowing the window still shrinks a frozen width.
+  const tabWidth =
+    frozenTabWidth === null
+      ? layout.tabWidth
+      : Math.min(frozenTabWidth, layout.tabWidth);
+  const isCompact = tabWidth < CHAT_TAB_COMPACT_WIDTH;
 
+  const tabs = visibleTabs.map((conversation, index) => ({
+    conversation,
+    isActive: conversation.friend.id === activeId,
+    offset: index * (tabWidth + CHAT_TAB_GAP),
+  }));
+
+  const closeTab = (id: string) => {
+    // A keyboard close has no pointer to leave the strip and release it.
+    if (tabsAreaRef.current?.matches(":hover")) setFrozenTabWidth(tabWidth);
+    onClose(id);
+  };
+
+  // Each slot spans its tab plus the gap after it, so tabs moving aside
+  // during a drag clear the gap too.
   const measureSlots = (): TabSlot[] =>
     tabs.map(({ conversation: { friend } }) => {
       const element = tabRefs.current.get(friend.id);
       return {
         id: friend.id,
         left: element?.offsetLeft ?? 0,
-        width: element?.offsetWidth ?? 0,
+        width: (element?.offsetWidth ?? 0) + CHAT_TAB_GAP,
       };
     });
 
@@ -272,7 +302,8 @@ export function ChatTabStrip({
   const handlePointerDown =
     (id: string) => (event: React.PointerEvent<HTMLDivElement>) => {
       if (event.button !== 0 || dragRef.current) return;
-      if ((event.target as HTMLElement).closest(".chat-window__tab-close")) {
+      // Links and the close button inside a tab keep their own clicks.
+      if ((event.target as HTMLElement).closest(".chat-window__tab-action")) {
         return;
       }
 
@@ -393,7 +424,11 @@ export function ChatTabStrip({
 
   return (
     <div className="chat-window__strip">
-      <div className="chat-window__tabs-area" ref={tabsAreaRef}>
+      <div
+        className="chat-window__tabs-area"
+        ref={tabsAreaRef}
+        onPointerLeave={() => setFrozenTabWidth(null)}
+      >
         <div
           className={cn("chat-window__tabs", {
             "chat-window__tabs--dragging": isDragging,
@@ -409,10 +444,8 @@ export function ChatTabStrip({
                 key={id}
                 conversation={tab.conversation}
                 isActive={tab.isActive}
-                width={tab.width}
-                showSeparator={
-                  index > 0 && !tab.isActive && !tabs[index - 1].isActive
-                }
+                isCompact={isCompact}
+                width={tabWidth}
                 isLastTab={isLastTab}
                 alignCardToEnd={tab.offset + FRIEND_CARD_WIDTH > tabsWidth}
                 dragStyle={getDragStyle(id, index)}
@@ -424,7 +457,7 @@ export function ChatTabStrip({
                 onPointerMove={handlePointerMove}
                 onPointerUp={handlePointerUp}
                 onSelect={() => onSelect(id)}
-                onClose={() => onClose(id)}
+                onClose={() => closeTab(id)}
               />
             );
           })}

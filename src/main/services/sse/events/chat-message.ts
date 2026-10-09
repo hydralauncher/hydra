@@ -17,6 +17,8 @@ const notifyChatMessage = async (
   const sender = await getChatSenderProfile(friendId, signal);
   if (signal.aborted) return;
 
+  WindowManager.showIncomingChatMessage(sender);
+
   await publishChatMessageNotification(
     sender,
     body,

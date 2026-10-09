@@ -5,7 +5,7 @@ import fs from "node:fs";
 import axios from "axios";
 import path from "node:path";
 import sound from "sound-play";
-import { achievementSoundPath } from "@main/constants";
+import { achievementSoundPath, chatMessageSoundPath } from "@main/constants";
 import icon from "@resources/icon.png?asset";
 import { NotificationOptions, toXmlString } from "./xml";
 import { logger } from "../logger";
@@ -263,6 +263,20 @@ export const publishFriendStartedPlayingGameNotification = async (
 };
 
 const CHAT_NOTIFICATION_BODY_MAX_LENGTH = 200;
+/** Matches the chat window's own playback (chat-sounds.ts). */
+const CHAT_MESSAGE_SOUND_VOLUME = 0.35;
+
+// Like the achievement sound, an open window plays it. sound-play, which
+// spawns a process per sound and has no Linux support, only covers the gap
+// before any window has loaded.
+const playChatMessageSound = () => {
+  if (WindowManager.sendToFirstLoadedWindow("on-chat-message-sound")) return;
+  if (process.platform === "linux") return;
+
+  sound
+    .play(chatMessageSoundPath, CHAT_MESSAGE_SOUND_VOLUME)
+    .catch((error) => logger.error("Failed to play chat message sound", error));
+};
 
 // Windows drops click handlers of notifications that get garbage collected, so
 // the latest notification per friend is kept referenced until it closes.
@@ -284,6 +298,7 @@ const showChatNotification = async (
 
   chatMessageNotifications.get(key)?.close();
 
+  // Silent: chat plays its own sound instead of the system one.
   const notification = new Notification({
     title: content.title,
     body:
@@ -291,6 +306,7 @@ const showChatNotification = async (
         ? `${content.body.slice(0, CHAT_NOTIFICATION_BODY_MAX_LENGTH)}…`
         : content.body,
     icon: notificationIcon,
+    silent: true,
   });
 
   notification.on("click", onClick);
@@ -302,6 +318,8 @@ const showChatNotification = async (
 
   chatMessageNotifications.set(key, notification);
   notification.show();
+
+  if (!WindowManager.isChatWindowFocused()) playChatMessageSound();
 };
 
 type ChatSender = Pick<UserProfile, "id" | "displayName" | "profileImageUrl">;

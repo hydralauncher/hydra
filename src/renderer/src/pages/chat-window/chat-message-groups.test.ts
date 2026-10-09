@@ -49,4 +49,19 @@ describe("groupChatMessages", () => {
     assert.equal(days.length, 2);
     assert.equal(days[1].groups[0].key, "b");
   });
+
+  it("starts a new group at the split message", () => {
+    const days = groupChatMessages(
+      [
+        message("a", false, "2026-09-30T19:30:00"),
+        message("b", false, "2026-09-30T19:31:00"),
+      ],
+      "b"
+    );
+
+    assert.deepEqual(
+      days[0].groups.map((group) => group.key),
+      ["a", "b"]
+    );
+  });
 });

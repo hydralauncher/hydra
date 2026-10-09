@@ -79,3 +79,25 @@ export const hasGapBefore = (messages: ChatMessage[], seq: number) => {
   const latestSeq = getLatestSeq(messages);
   return latestSeq > 0 && seq > latestSeq + 1;
 };
+
+/** Messages from the friend after the one with `messageId`; 0 once it is gone. */
+export const countFriendMessagesAfter = (
+  messages: ChatMessage[],
+  messageId: string
+) => {
+  const index = messages.findIndex((message) => message.id === messageId);
+  if (index === -1) return 0;
+
+  return messages.slice(index + 1).filter((message) => !message.fromMe).length;
+};
+
+/** The friend's first message after the one with `messageId`, if any. */
+export const findFirstFriendMessageAfter = (
+  messages: ChatMessage[],
+  messageId: string
+) => {
+  const index = messages.findIndex((message) => message.id === messageId);
+  if (index === -1) return null;
+
+  return messages.slice(index + 1).find((message) => !message.fromMe) ?? null;
+};

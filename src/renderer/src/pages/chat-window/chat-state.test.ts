@@ -3,7 +3,9 @@ import { describe, it } from "node:test";
 
 import type { ChatMessage } from "./chat-message-groups.js";
 import {
+  countFriendMessagesAfter,
   createPendingMessage,
+  findFirstFriendMessageAfter,
   getLatestSeq,
   hasGapBefore,
   mergeChatMessages,
@@ -122,5 +124,40 @@ describe("gap detection", () => {
     assert.equal(hasGapBefore([stored(1), stored(2)], 3), false);
     assert.equal(hasGapBefore([stored(1), stored(2)], 5), true);
     assert.equal(hasGapBefore([], 5), false);
+  });
+});
+
+describe("countFriendMessagesAfter", () => {
+  it("counts only the friend's messages after the given one", () => {
+    const messages = [stored(1), stored(2, MY_ID), stored(3), stored(4)];
+
+    assert.equal(countFriendMessagesAfter(messages, messages[0].id), 2);
+  });
+
+  it("is zero when nothing came after it", () => {
+    const messages = [stored(1), stored(2)];
+
+    assert.equal(countFriendMessagesAfter(messages, messages[1].id), 0);
+  });
+
+  it("is zero when the message is no longer in the list", () => {
+    assert.equal(countFriendMessagesAfter([stored(1)], "nonce-missing"), 0);
+  });
+});
+
+describe("findFirstFriendMessageAfter", () => {
+  it("skips my own messages", () => {
+    const messages = [stored(1), stored(2, MY_ID), stored(3)];
+
+    assert.equal(
+      findFirstFriendMessageAfter(messages, messages[0].id),
+      messages[2]
+    );
+  });
+
+  it("is null when the friend sent nothing after it", () => {
+    const messages = [stored(1), stored(2, MY_ID)];
+
+    assert.equal(findFirstFriendMessageAfter(messages, messages[0].id), null);
   });
 });

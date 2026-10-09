@@ -4,6 +4,8 @@ import { useTranslation } from "react-i18next";
 import type { ProfileFriends, UserFriend } from "@types";
 
 import { ChatConversationView } from "./chat-conversation";
+import { ChatConversationHeader } from "./chat-conversation-header";
+import { playMessageSound } from "./chat-sounds";
 import { applyVisibleOrder } from "./chat-tab-drag";
 import { ChatTabStrip } from "./chat-tab-strip";
 import type { ChatConversation } from "./chat-types";
@@ -112,6 +114,11 @@ export default function ChatWindow() {
     const unsubscribePending = electron.onChatFriendsPending(() => {
       openPendingConversations();
     });
+    // The main process decides when a message is worth a sound (see
+    // showChatNotification); this window just plays it.
+    const unsubscribeSound = electron.onChatMessageSound(() => {
+      void playMessageSound();
+    });
     const unsubscribeFriends = electron.onFriendsUpdated(() => {
       refreshFriends();
     });
@@ -126,6 +133,7 @@ export default function ChatWindow() {
 
     return () => {
       unsubscribePending();
+      unsubscribeSound();
       unsubscribeFriends();
       unsubscribePresence();
     };
@@ -194,9 +202,18 @@ export default function ChatWindow() {
       />
 
       {activeConversation && (
+        <ChatConversationHeader
+          friend={activeConversation.friend}
+          isTyping={activeConversation.isTyping}
+        />
+      )}
+
+      {activeConversation && (
         <ChatConversationView
           key={activeConversation.friend.id}
           conversation={activeConversation}
+          sendCooldown={chat.sendCooldown}
+          sendRejections={chat.sendRejections}
           onDraftChange={(draft) => {
             updateConversation(
               activeConversation.friend.id,
@@ -207,7 +224,6 @@ export default function ChatWindow() {
             );
             chat.notifyTyping(activeConversation.friend.id, draft);
           }}
-          onClose={() => handleClose(activeConversation.friend.id)}
           onSend={(text) => chat.send(activeConversation.friend.id, text)}
           onRetry={(clientNonce) =>
             chat.retry(activeConversation.friend.id, clientNonce)

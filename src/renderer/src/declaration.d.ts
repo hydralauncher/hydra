@@ -1379,6 +1379,7 @@ declare global {
     onChatTyping: (
       cb: (sync: ChatTypingSync) => void
     ) => () => Electron.IpcRenderer;
+    onChatMessageSound: (cb: () => void) => () => Electron.IpcRenderer;
     onChatUnreadUpdated: (
       cb: (state: ChatUnreadState) => void
     ) => () => Electron.IpcRenderer;

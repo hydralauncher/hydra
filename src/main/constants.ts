@@ -40,6 +40,20 @@ export const achievementSoundPath = app.isPackaged
   ? path.join(process.resourcesPath, "achievement.wav")
   : path.join(__dirname, "..", "..", "resources", "achievement.wav");
 
+export const chatMessageSoundPath = app.isPackaged
+  ? path.join(process.resourcesPath, "chat-message.wav")
+  : path.join(
+      __dirname,
+      "..",
+      "..",
+      "src",
+      "big-picture",
+      "src",
+      "assets",
+      "audio",
+      "Favorite Sound.wav"
+    );
+
 export const backupsPath = path.join(SystemPath.getPath("userData"), "Backups");
 
 export const appVersion = app.getVersion() + (isStaging ? "-staging" : "");

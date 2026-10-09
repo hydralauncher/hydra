@@ -645,14 +645,19 @@ export class WindowManager {
     this.markFriendsWindowReady = null;
   }
 
-  public static openChatWindow(friend: UserFriend) {
+  // With activate false the window opens in the background and flashes its
+  // taskbar button instead, so a message never takes focus from a game or
+  // whatever the user is typing in.
+  public static openChatWindow(friend: UserFriend, { activate = true } = {}) {
     this.pendingChatFriends.push(friend);
 
     if (this.chatWindow && !this.chatWindow.isDestroyed()) {
-      if (this.chatWindow.isMinimized()) {
-        this.chatWindow.restore();
+      if (activate) {
+        if (this.chatWindow.isMinimized()) {
+          this.chatWindow.restore();
+        }
+        this.chatWindow.focus();
       }
-      this.chatWindow.focus();
       this.chatWindow.webContents.send("on-chat-friends-pending");
       return;
     }
@@ -660,7 +665,8 @@ export class WindowManager {
     this.chatWindow = new BrowserWindow({
       width: 560,
       height: 560,
-      resizable: false,
+      minWidth: 400,
+      minHeight: 420,
       maximizable: false,
       fullscreenable: false,
       backgroundColor: "#1c1c1c",
@@ -680,11 +686,20 @@ export class WindowManager {
     this.loadWindowURL(this.chatWindow, "chat-window");
 
     this.chatWindow.once("ready-to-show", () => {
-      this.chatWindow?.show();
-      if (!app.isPackaged || isStaging) {
-        // Detached: docked devtools would squeeze the fixed-size window.
-        this.chatWindow?.webContents.openDevTools({ mode: "detach" });
+      if (activate) {
+        this.chatWindow?.show();
+      } else {
+        this.chatWindow?.showInactive();
+        this.chatWindow?.flashFrame(true);
       }
+      if (!app.isPackaged || isStaging) {
+        // Detached: docked devtools would squeeze the small window.
+        this.chatWindow?.webContents.openDevTools({ mode: "detach", activate });
+      }
+    });
+
+    this.chatWindow.on("focus", () => {
+      this.chatWindow?.flashFrame(false);
     });
 
     this.chatWindow.on("closed", () => {
@@ -694,11 +709,31 @@ export class WindowManager {
     });
   }
 
+  // Draws attention to a message the user cannot see: a closed chat window
+  // opens in the background on the sender's conversation, an open one flashes.
+  public static showIncomingChatMessage(friend: UserFriend) {
+    const chatWindow = this.chatWindow;
+
+    if (!chatWindow || chatWindow.isDestroyed()) {
+      // A window popping up over Big Picture would cover its fullscreen UI.
+      if (this.bigPicture && !this.bigPicture.isDestroyed()) return;
+
+      this.openChatWindow(friend, { activate: false });
+      return;
+    }
+
+    // A window still loading gets focus or a flash once shown (see
+    // openChatWindow).
+    if (chatWindow.isVisible() && !this.isChatWindowFocused()) {
+      chatWindow.flashFrame(true);
+    }
+  }
+
   public static setChatWindowState(state: ChatWindowState) {
     this.chatWindowState = state;
   }
 
-  private static isChatWindowFocused() {
+  public static isChatWindowFocused() {
     const chatWindow = this.chatWindow;
     return Boolean(
       chatWindow &&
@@ -721,6 +756,22 @@ export class WindowManager {
       this.isChatWindowFocused() &&
       this.chatWindowState.openFriendIds.includes(friendId)
     );
+  }
+
+  /**
+   * Sends to one window that can handle it right now, the chat window before
+   * the main one. False when neither has finished loading.
+   */
+  public static sendToFirstLoadedWindow(channel: string, ...args: unknown[]) {
+    const window = [this.chatWindow, this.mainWindow].find(
+      (candidate) =>
+        candidate &&
+        !candidate.isDestroyed() &&
+        !candidate.webContents.isLoading()
+    );
+
+    window?.webContents.send(channel, ...args);
+    return Boolean(window);
   }
 
   public static sendToChatWindow(channel: string, ...args: unknown[]) {

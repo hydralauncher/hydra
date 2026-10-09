@@ -2300,8 +2300,6 @@
     "view_profile": "Ver perfil",
     "view_profile_of": "Ver perfil de {{name}}",
     "open_game": "Abrir {{game}}",
-    "more_options": "Mais opções",
-    "close_conversation_menu": "Fechar conversa",
     "online": "Online",
     "offline": "Offline",
     "playing": "Jogando {{game}}",
@@ -2319,7 +2317,14 @@
     "cannot_send_hint": "Você só pode enviar mensagens para amigos. Seu histórico com {{name}} continua aqui.",
     "send_failed": "Não enviada",
     "retry": "Tentar novamente",
-    "load_failed": "Não foi possível carregar as mensagens."
+    "load_failed": "Não foi possível carregar as mensagens.",
+    "rate_limited_hint": "Você está enviando mensagens rápido demais. Aguarde um momento antes de enviar mais.",
+    "jump_to_latest": "Ir para as mensagens mais recentes",
+    "jump_to_new_messages_one": "Ir para {{count}} nova mensagem",
+    "jump_to_new_messages_other": "Ir para {{count}} novas mensagens",
+    "new_messages": "Novas mensagens",
+    "message_too_long_one": "Longa demais para enviar. Remova {{count}} caractere.",
+    "message_too_long_other": "Longa demais para enviar. Remova {{count}} caracteres."
   },
   "classics_onboarding": {
     "title": "Bem-vindo ao Hydra Classics",

@@ -2,6 +2,7 @@ import type { ChatUnreadState, ChatUnreadSummary } from "@types";
 import { HydraApi } from "../hydra-api";
 import { logger } from "../logger";
 import { WindowManager } from "../window-manager";
+import { ChatTaskbarBadge } from "./chat-taskbar-badge";
 
 export type ChatUnreadConversation = ChatUnreadSummary["conversations"][number];
 
@@ -109,6 +110,8 @@ export class ChatUnreadStore {
   }
 
   private static broadcast() {
-    WindowManager.sendToAppWindows("on-chat-unread-updated", this.toState());
+    const state = this.toState();
+    WindowManager.sendToAppWindows("on-chat-unread-updated", state);
+    void ChatTaskbarBadge.setCount(state.totalUnread);
   }
 }

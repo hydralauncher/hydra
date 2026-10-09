@@ -29,7 +29,11 @@ export interface ChatMessageDay {
 /** Consecutive messages from the same sender further apart than this start a new group. */
 const GROUP_GAP_MS = 5 * 60 * 1000;
 
-export function groupChatMessages(messages: ChatMessage[]): ChatMessageDay[] {
+/** `splitBeforeId` starts a new group at that message, for the "New messages" divider. */
+export function groupChatMessages(
+  messages: ChatMessage[],
+  splitBeforeId: string | null = null
+): ChatMessageDay[] {
   const days: ChatMessageDay[] = [];
 
   for (const message of messages) {
@@ -48,6 +52,7 @@ export function groupChatMessages(messages: ChatMessage[]): ChatMessageDay[] {
     if (
       group &&
       previous &&
+      message.id !== splitBeforeId &&
       group.fromMe === message.fromMe &&
       date.getTime() - new Date(previous.createdAt).getTime() <= GROUP_GAP_MS
     ) {

@@ -2301,8 +2301,6 @@
     "view_profile": "View profile",
     "view_profile_of": "View {{name}}'s profile",
     "open_game": "Open {{game}}",
-    "more_options": "More options",
-    "close_conversation_menu": "Close conversation",
     "online": "Online",
     "offline": "Offline",
     "playing": "Playing {{game}}",
@@ -2320,6 +2318,13 @@
     "cannot_send_hint": "You can only message friends. Your history with {{name}} stays here.",
     "send_failed": "Not sent",
     "retry": "Retry",
-    "load_failed": "Couldn't load messages."
+    "load_failed": "Couldn't load messages.",
+    "rate_limited_hint": "You're sending messages too fast. Wait a moment before sending more.",
+    "jump_to_latest": "Jump to latest messages",
+    "jump_to_new_messages_one": "Jump to {{count}} new message",
+    "jump_to_new_messages_other": "Jump to {{count}} new messages",
+    "new_messages": "New messages",
+    "message_too_long_one": "Too long to send. Remove {{count}} character.",
+    "message_too_long_other": "Too long to send. Remove {{count}} characters."
   }
 }

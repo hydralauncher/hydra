@@ -1,7 +1,7 @@
 import { useTranslation } from "react-i18next";
 import cn from "classnames";
 
-import { Avatar, CloudRing } from "@renderer/components";
+import { Avatar } from "@renderer/components";
 import SteamLogo from "@renderer/assets/steam-logo.svg?react";
 import type { UserFriend } from "@types";
 
@@ -52,39 +52,19 @@ export function ChatFriendStatus({ friend, isTyping }: ChatFriendStatusProps) {
   );
 }
 
-/**
- * The friends API only returns a profile banner for active Hydra Cloud
- * subscribers, so the banner doubles as the Cloud signal until the API exposes
- * a dedicated flag. Cloud members without a banner are missed for now.
- */
-export const isCloudFriend = (friend: UserFriend) =>
-  Boolean(friend.backgroundImageUrl);
-
 export interface ChatFriendAvatarProps {
   friend: UserFriend;
   size: number;
-  /** Frames Cloud members with the animated Cloud ring. */
-  showCloudRing?: boolean;
 }
 
-export function ChatFriendAvatar({
-  friend,
-  size,
-  showCloudRing = false,
-}: ChatFriendAvatarProps) {
-  const hasRing = showCloudRing && isCloudFriend(friend);
-
-  const avatar = (
-    <Avatar size={size} src={friend.profileImageUrl} alt={friend.displayName} />
-  );
-
+export function ChatFriendAvatar({ friend, size }: ChatFriendAvatarProps) {
   return (
-    <div
-      className={cn("chat-window__avatar-wrapper", {
-        "chat-window__avatar-wrapper--ring": hasRing,
-      })}
-    >
-      {hasRing ? <CloudRing>{avatar}</CloudRing> : avatar}
+    <div className="chat-window__avatar-wrapper">
+      <Avatar
+        size={size}
+        src={friend.profileImageUrl}
+        alt={friend.displayName}
+      />
       <span
         className={cn("chat-window__status-orb", {
           "chat-window__status-orb--online": friend.isOnline,

@@ -2043,6 +2043,11 @@ contextBridge.exposeInMainWorld("electron", {
     ipcRenderer.on("on-chat-typing", listener);
     return () => ipcRenderer.removeListener("on-chat-typing", listener);
   },
+  onChatMessageSound: (cb: () => void) => {
+    const listener = () => cb();
+    ipcRenderer.on("on-chat-message-sound", listener);
+    return () => ipcRenderer.removeListener("on-chat-message-sound", listener);
+  },
   onChatUnreadUpdated: (cb: (state: ChatUnreadState) => void) => {
     const listener = (
       _event: Electron.IpcRendererEvent,
