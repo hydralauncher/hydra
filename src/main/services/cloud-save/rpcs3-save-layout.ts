@@ -10,29 +10,6 @@ import {
 
 export { rpcs3TitleIdsForGame } from "./rpcs3-title-ids.js";
 
-const PROFILE_ID = /^\d{8}$/;
-
-export const parseRpcs3ActiveProfileId = (content: string | null) => {
-  if (content === null) return "00000001";
-  let inUsers = false;
-  let activeProfileId = "00000001";
-  for (const raw of content.replace(/^\uFEFF/, "").split(/\r?\n/)) {
-    const line = raw.trim();
-    if (!line || line.startsWith("#") || line.startsWith(";")) continue;
-    const section = /^\[(.+?)\]$/.exec(line);
-    if (section) {
-      inUsers = section[1].toLowerCase() === "users";
-      continue;
-    }
-    if (!inUsers) continue;
-    const value = /^active_user\s*=\s*(.*?)\s*$/i.exec(line);
-    if (value) activeProfileId = value[1] || "00000001";
-  }
-  return PROFILE_ID.test(activeProfileId) && activeProfileId !== "00000000"
-    ? activeProfileId
-    : null;
-};
-
 export const rpcs3SlotBelongsToTitle = (slotName: string, titleId: string) =>
   slotName.startsWith(titleId);
 
@@ -43,6 +20,13 @@ export const rpcs3SavestateFileBelongsToTitle = (
   fileName: string,
   titleId: string
 ) => SAVESTATE_NAME.exec(fileName)?.[1] === titleId;
+
+const GAMEDATA_PROFILE_FOLDER = /^([A-Z]{4}\d{5})_USER\d+$/;
+
+export const rpcs3GamedataFolderBelongsToTitle = (
+  folderName: string,
+  titleId: string
+) => GAMEDATA_PROFILE_FOLDER.exec(folderName)?.[1] === titleId;
 
 export const isRpcs3GameSaveFile = (
   game: Game,
@@ -56,11 +40,21 @@ export const isRpcs3GameSaveFile = (
   if (titleIds.some((id) => rpcs3SavestateFileBelongsToTitle(fileName, id)))
     return true;
   const savedataIndex = segments.lastIndexOf("savedata");
-  return (
+  if (
     savedataIndex >= 0 &&
     savedataIndex < segments.length - 2 &&
     savedataTitleIds.some((id) =>
       rpcs3SlotBelongsToTitle(segments[savedataIndex + 1], id)
+    )
+  ) {
+    return true;
+  }
+  const gameIndex = segments.lastIndexOf("game");
+  return (
+    gameIndex >= 0 &&
+    gameIndex < segments.length - 2 &&
+    savedataTitleIds.some((id) =>
+      rpcs3GamedataFolderBelongsToTitle(segments[gameIndex + 1], id)
     )
   );
 };

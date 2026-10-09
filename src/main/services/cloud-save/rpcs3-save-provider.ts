@@ -1,6 +1,6 @@
 import { logger } from "@main/services/logger";
 
-import type { Game, RestoreManifestFile } from "@types";
+import type { Game } from "@types";
 
 import { getEmulatorConfig } from "../emulators/emulators-repository";
 import { rpcs3ConfigRoots } from "../emulators/emulator-config";
@@ -14,24 +14,24 @@ import type {
 } from "./emulator-provider-types";
 import { getRpcs3SavedataTitleIds } from "./rpcs3-savedata-title-ids.js";
 import { rpcs3TitleIdsForGame } from "./rpcs3-title-ids.js";
-import { resolveRpcs3ConfigRootStatus } from "./rpcs3-config-root";
 import {
+  resolveRpcs3ConfigRootStatus,
+  rpcs3Hdd0Root,
+} from "./rpcs3-config-root";
+import {
+  scanRpcs3Gamedata,
   scanRpcs3SaveRoot,
   scanRpcs3Savestates,
   unresolvedCoverage,
 } from "./rpcs3-save-scanner";
+import { resolveRpcs3GamedataRestoreRule } from "./rpcs3-gamedata-restore.js";
 import { resolveRpcs3SavestateRestoreRule } from "./rpcs3-savestate-restore";
-import { resolveRpcs3SavedataRestoreRule } from "./rpcs3-savedata-restore.js";
 import {
-  getRpcs3ProfileBinding,
-  setRpcs3ProfileBinding,
-} from "./rpcs3-profile-binding-store";
-import {
-  chooseRpcs3CloudProfileId,
-  listRpcs3CloudProfileIds,
-} from "./rpcs3-profile-binding-policy";
+  ensureRpcs3RestoredUserNames,
+  resolveRpcs3SavedataRestoreRule,
+} from "./rpcs3-savedata-restore.js";
 
-export const resolveRpcs3ActiveSaveLocation = async () => {
+export const resolveRpcs3SaveLocation = async () => {
   const emulator = await getEmulatorConfig("ps3");
   const { status, location } = await resolveRpcs3ConfigRootStatus(
     emulator.executablePath,
@@ -53,123 +53,42 @@ export const resolveRpcs3ActiveSaveLocation = async () => {
   throw new Error(code);
 };
 
-export const getRpcs3SaveEnvironmentKey = async (game: Game) => {
-  const resolved = await resolveRpcs3ActiveSaveLocation().catch(() => null);
-  const binding = resolved
-    ? await getRpcs3ProfileBinding(
-        game.shop,
-        game.objectId,
-        resolved.configRoot,
-        resolved.homeRoot,
-        resolved.activeProfileId
-      ).catch(() => null)
-    : null;
+export const getRpcs3SaveEnvironmentKey = async () => {
+  const resolved = await resolveRpcs3SaveLocation().catch(() => null);
   return resolved
-    ? JSON.stringify([
-        "rpcs3-active-profile-v2",
-        resolved,
-        binding?.cloudProfileId ?? resolved.activeProfileId,
-      ])
+    ? JSON.stringify(["rpcs3-all-profiles-v1", resolved])
     : "rpcs3-save-root-unresolved";
-};
-
-export const getRpcs3ProfilePairing = async (game: Game) => {
-  const location = await resolveRpcs3ActiveSaveLocation();
-  const binding = await getRpcs3ProfileBinding(
-    game.shop,
-    game.objectId,
-    location.configRoot,
-    location.homeRoot,
-    location.activeProfileId
-  );
-  return { ...location, binding };
-};
-
-export const ensureRpcs3ProfileBindingForAnalysis = async (
-  game: Game,
-  remoteFiles: Pick<RestoreManifestFile, "rawPath">[]
-): Promise<boolean> => {
-  const location = await resolveRpcs3ActiveSaveLocation().catch(() => null);
-  if (!location) return false;
-  const { configRoot, homeRoot, activeProfileId } = location;
-  const binding = await getRpcs3ProfileBinding(
-    game.shop,
-    game.objectId,
-    configRoot,
-    homeRoot,
-    activeProfileId
-  );
-  const remoteProfiles = listRpcs3CloudProfileIds(remoteFiles);
-  const cloudProfileId = chooseRpcs3CloudProfileId(
-    remoteProfiles,
-    binding,
-    activeProfileId
-  );
-  if (!cloudProfileId) return false;
-  if (binding?.cloudProfileId === cloudProfileId) return false;
-  await setRpcs3ProfileBinding(game.shop, game.objectId, {
-    configRoot,
-    homeRoot,
-    localProfileId: activeProfileId,
-    cloudProfileId,
-  });
-  return true;
-};
-
-export const ensureRpcs3ProfileBindingForSync = async (
-  game: Game,
-  remoteFiles: Pick<RestoreManifestFile, "rawPath">[],
-  _localFiles: Pick<RestoreManifestFile, "rawPath">[]
-) => {
-  const { activeProfileId, binding } = await getRpcs3ProfilePairing(game);
-  const remoteProfiles = listRpcs3CloudProfileIds(remoteFiles);
-  const chosenProfileId = chooseRpcs3CloudProfileId(
-    remoteProfiles,
-    binding,
-    activeProfileId
-  );
-  if (
-    !chosenProfileId ||
-    (remoteProfiles.length > 0 && binding?.cloudProfileId !== chosenProfileId)
-  ) {
-    throw new Error("cloud_save_rpcs3_profile_binding_required");
-  }
 };
 
 export const rpcs3SaveProvider: EmulatorProvider = {
   async discover(context: EmulatorProviderContext) {
     try {
-      const { configRoot, homeRoot, activeProfileId } =
-        await resolveRpcs3ActiveSaveLocation();
-      const binding = await getRpcs3ProfileBinding(
-        context.game.shop,
-        context.game.objectId,
-        configRoot,
-        homeRoot,
-        activeProfileId
-      );
+      const { configRoot, homeRoot } = await resolveRpcs3SaveLocation();
       const rpcs3SavedataTitleIds =
         context.rpcs3SavedataTitleIds ??
         (await getRpcs3SavedataTitleIds(context.game));
-      const [savedata, savestates] = await Promise.all([
-        scanRpcs3SaveRoot(
-          { ...context, rpcs3SavedataTitleIds },
-          homeRoot,
-          activeProfileId,
-          binding?.cloudProfileId ?? activeProfileId
-        ),
+      const [savedata, savestates, gamedata] = await Promise.all([
+        scanRpcs3SaveRoot({ ...context, rpcs3SavedataTitleIds }, homeRoot),
         scanRpcs3Savestates(context, configRoot),
+        scanRpcs3Gamedata(
+          { ...context, rpcs3SavedataTitleIds },
+          rpcs3Hdd0Root({ homeRoot })
+        ),
       ]);
       return {
-        files: [...savedata.files, ...savestates.files],
-        coverage: [...savedata.coverage, ...savestates.coverage],
-        revision: "rpcs3-v3",
+        files: [...savedata.files, ...savestates.files, ...gamedata.files],
+        coverage: [
+          ...savedata.coverage,
+          ...savestates.coverage,
+          ...gamedata.coverage,
+        ],
+        revision: "rpcs3-v4",
       };
     } catch {
       return {
         files: [],
         coverage: [unresolvedCoverage("rpcs3-vfs-unresolved")],
-        revision: "rpcs3-v3",
+        revision: "rpcs3-v4",
       };
     }
   },
@@ -179,41 +98,30 @@ export const rpcs3SaveProvider: EmulatorProvider = {
       rpcs3SavedataTitleIds ?? (await getRpcs3SavedataTitleIds(game))
     );
     let homeRoot: string;
-    let activeProfileId: string;
     let configRoot: string;
     try {
-      ({ configRoot, homeRoot, activeProfileId } =
-        await resolveRpcs3ActiveSaveLocation());
+      ({ configRoot, homeRoot } = await resolveRpcs3SaveLocation());
     } catch {
       return new Map();
     }
-    const binding = await getRpcs3ProfileBinding(
-      game.shop,
-      game.objectId,
-      configRoot,
-      homeRoot,
-      activeProfileId
-    );
-    const rules = new Map<string, ReturnType<typeof emulatorRestoreRule>>();
-    for (const file of files) {
-      const stateRule = await resolveRpcs3SavestateRestoreRule(
-        game,
-        file,
-        configRoot
-      );
-      if (stateRule) {
-        rules.set(emulatorSaveFileKey(file), stateRule);
-        continue;
-      }
-      const rule = await resolveRpcs3SavedataRestoreRule(
+    const resolveRule = async (file: (typeof files)[number]) =>
+      (await resolveRpcs3SavestateRestoreRule(game, file, configRoot)) ??
+      (await resolveRpcs3GamedataRestoreRule(
         file,
         allowedTitleIds,
-        homeRoot,
-        activeProfileId,
-        binding?.cloudProfileId
-      );
+        rpcs3Hdd0Root({ homeRoot })
+      )) ??
+      resolveRpcs3SavedataRestoreRule(file, allowedTitleIds, homeRoot);
+    const resolved = await Promise.all(
+      files.map(async (file) => [file, await resolveRule(file)] as const)
+    );
+    const rules = new Map<string, ReturnType<typeof emulatorRestoreRule>>();
+    for (const [file, rule] of resolved) {
       if (rule) rules.set(emulatorSaveFileKey(file), rule);
     }
     return rules;
+  },
+  afterRestore(actions) {
+    return ensureRpcs3RestoredUserNames(actions);
   },
 };
