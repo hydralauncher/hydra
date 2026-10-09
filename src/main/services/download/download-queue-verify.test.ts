@@ -13,14 +13,16 @@ import {
 } from "./download-queue-verify.ts";
 
 describe("getQueueVerifySig", () => {
-  it("returns null for missing and empty paths", async () => {
+  it("returns null for missing and empty paths", async (t) => {
     const root = fs.mkdtempSync(path.join(os.tmpdir(), "queue-verify-"));
+    t.after(() => fs.promises.rm(root, { recursive: true, force: true }));
     assert.equal(await getQueueVerifySig(path.join(root, "nope")), null);
     assert.equal(await getQueueVerifySig(root), null);
   });
 
-  it("keeps directory signature across child content writes", async () => {
+  it("keeps directory signature across child content writes", async (t) => {
     const root = fs.mkdtempSync(path.join(os.tmpdir(), "queue-verify-"));
+    t.after(() => fs.promises.rm(root, { recursive: true, force: true }));
     const child = path.join(root, "part.bin");
     fs.writeFileSync(child, Buffer.alloc(7));
     const before = await getQueueVerifySig(root);
@@ -29,8 +31,9 @@ describe("getQueueVerifySig", () => {
     assert.equal(await getQueueVerifySig(root), before);
   });
 
-  it("changes file signature with size", async () => {
+  it("changes file signature with size", async (t) => {
     const root = fs.mkdtempSync(path.join(os.tmpdir(), "queue-verify-"));
+    t.after(() => fs.promises.rm(root, { recursive: true, force: true }));
     const file = path.join(root, "game.zip");
     fs.writeFileSync(file, Buffer.alloc(7));
     const before = await getQueueVerifySig(file);
