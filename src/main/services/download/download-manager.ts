@@ -88,6 +88,7 @@ interface JsDownloadOptions {
   headers?: Record<string, string>;
   allowParallelRanges?: boolean;
   parallelRangeConnections?: number;
+  probeUnboundedRange?: boolean;
   totalSize?: number;
 }
 
@@ -111,7 +112,7 @@ interface JsBatchEntry {
 
 interface JsBatchState {
   generation?: number;
-  provider: "allDebrid" | "torBox" | "realDebrid" | "premiumize";
+  provider: "allDebrid" | "torBox" | "realDebrid";
   downloadId: string;
   savePath: string;
   entries: JsBatchEntry[];
@@ -521,14 +522,14 @@ export class DownloadManager {
           status.status === "complete";
 
         batchFilesTotal = batch.entries.length;
-        if (batch.provider === "torBox") {
+        if (batch.provider === "torBox" || batch.provider === "realDebrid") {
           files = batch.entries.map((entry, index) => {
             const previous = download.files?.find(
-              (file) => file.index === entry.fileId
+              (file) => file.index === (entry.fileId ?? entry.fileIndex)
             );
             const completed = index < batch.currentIndex;
             return {
-              index: entry.fileId!,
+              index: (entry.fileId ?? entry.fileIndex)!,
               path: entry.filename,
               size: entry.size ?? 0,
               bytesDownloaded: completed
@@ -1522,17 +1523,6 @@ export class DownloadManager {
     if (batch.provider === "allDebrid" && entry.isLocked && url) {
       return AllDebridClient.unlockDownloadLink(url);
     }
-    if (
-      batch.provider === "premiumize" &&
-      batch.sourceUri &&
-      entry.fileIndex !== undefined
-    ) {
-      const entries = await PremiumizeClient.getDownloadEntries(
-        batch.sourceUri,
-        [entry.fileIndex]
-      );
-      return entries?.[0]?.url;
-    }
     return url;
   }
 
@@ -1544,25 +1534,41 @@ export class DownloadManager {
     const torBoxTorrentId = batch.torrentId;
     const torBoxFileId = entry.fileId;
     const torBoxParallel = batch.provider === "torBox" && !entry.isZip;
+    const canRefreshRealDebridLink =
+      batch.provider === "realDebrid" && Boolean(entry.url);
     const canRefreshTorBoxLink =
       batch.provider === "torBox" &&
       torBoxTorrentId !== undefined &&
       torBoxFileId !== undefined;
-    return {
+    const options: JsHttpDownloaderOptions = {
       url,
       refreshUrl: canRefreshTorBoxLink
         ? () => TorBoxClient.requestLink(torBoxTorrentId!, torBoxFileId!)
-        : undefined,
+        : canRefreshRealDebridLink
+          ? () =>
+              this.resolveBatchEntryUrl(batch, entry).then((link) => {
+                if (!link) throw new Error("The download link is unavailable.");
+                options.parallelRangeConnections = realDebridConnections(
+                  entry.chunks
+                );
+                return link;
+              })
+          : undefined,
       savePath: batch.savePath,
       allowParallelRanges:
-        !entry.isZip &&
-        (batch.provider === "torBox" || !isZipDownloadUrl(url, entry.filename)),
+        batch.provider === "allDebrid"
+          ? undefined
+          : !entry.isZip &&
+            (batch.provider === "torBox" ||
+              (batch.provider === "realDebrid" &&
+                !isZipDownloadUrl(url, entry.filename))),
       parallelRangeSize: torBoxParallel
         ? getRangeSizeForRequestBudget(
             entry.size ?? 0,
             TORBOX_MAX_PARALLEL_RANGES
           )
         : undefined,
+      probeUnboundedRange: batch.provider === "realDebrid",
       parallelRangeConnections:
         batch.provider === "realDebrid"
           ? realDebridConnections(entry.chunks)
@@ -1573,8 +1579,12 @@ export class DownloadManager {
       preserveFilename: true,
       resourceId: `${batch.provider}:${batch.sourceUri}#${entry.fileId ?? entry.fileIndex ?? entry.sourcePath ?? entry.filename}`,
       expectedSize:
-        batch.provider === "torBox" && !entry.isZip ? entry.size : undefined,
-      requireRangeResume: batch.provider === "torBox" && !entry.isZip,
+        (batch.provider === "torBox" || batch.provider === "realDebrid") &&
+        !entry.isZip
+          ? entry.size
+          : undefined,
+      requireRangeResume:
+        batch.provider === "torBox" || batch.provider === "realDebrid",
       // Verify a regenerated ZIP's saved prefix before appending new data.
       verifyResumePrefix: Boolean(entry.isZip),
       filename:
@@ -1582,6 +1592,7 @@ export class DownloadManager {
           ? entry.filename
           : this.sanitizeRelativePath(entry.filename),
     };
+    return options;
   }
 
   private static async rejectMismatchedBatchEntry(
@@ -1592,9 +1603,7 @@ export class DownloadManager {
   ): Promise<boolean> {
     const expectedSize = entry.size ?? 0;
     const requiresExactSize =
-      batch.provider === "torBox" ||
-      batch.provider === "realDebrid" ||
-      batch.provider === "premiumize";
+      batch.provider === "torBox" || batch.provider === "realDebrid";
     const sizeMismatch =
       !entry.isZip &&
       (requiresExactSize
@@ -1649,7 +1658,8 @@ export class DownloadManager {
     try {
       if (!this.isCurrentBatch(batch, downloader, generation)) return false;
       const url =
-        batch.provider === "torBox" && entry.size === 0
+        (batch.provider === "torBox" || batch.provider === "realDebrid") &&
+        entry.size === 0
           ? "about:blank"
           : await this.resolveBatchEntryUrl(batch, entry);
       if (
@@ -1913,7 +1923,11 @@ export class DownloadManager {
     let downloadUrl: string | null = null;
     if (first) {
       downloadUrl = first.isLocked
-        ? await RealDebridClient.unlockFile(first.url, first.path, first.size)
+        ? await RealDebridClient.unlockFile(
+            first.url,
+            first.sourcePath ?? first.path,
+            first.size
+          )
         : first.url;
     }
     if (!downloadUrl) throw new Error(DownloadError.NotCachedOnRealDebrid);
@@ -1930,6 +1944,7 @@ export class DownloadManager {
       ),
       allowParallelRanges: !isZipDownloadUrl(downloadUrl, first?.path),
       parallelRangeConnections: realDebridConnections(first?.chunks),
+      probeUnboundedRange: true,
       totalSize: entries?.reduce((sum, entry) => sum + entry.size, 0),
     };
   }
@@ -1938,73 +1953,36 @@ export class DownloadManager {
     download: Download,
     resumingFilename?: string
   ) {
-    const entries = download.uri.startsWith("magnet:")
-      ? await PremiumizeClient.getDownloadEntries(
-          download.uri,
-          download.fileIndices
-        )
-      : null;
-    if (download.fileIndices?.length && !entries?.length) {
-      if (
-        entries === null &&
-        (await PremiumizeClient.startTransferInBackground(download.uri))
-      ) {
-        throw new Error(DownloadError.PremiumizeTransferStarted);
-      }
-      throw new Error("The selected Premiumize files are no longer available.");
-    }
-    const downloadUrl =
-      entries?.[0]?.url ??
-      (await PremiumizeClient.getDownloadUrl(download.uri));
+    const downloadUrl = await PremiumizeClient.getDownloadUrl(download.uri);
     if (!downloadUrl) throw new Error(DownloadError.NotCachedOnPremiumize);
     const filename = this.resolveFilename(
       resumingFilename,
       download.uri,
       downloadUrl
     );
-    return {
-      ...this.buildDownloadOptions(
-        downloadUrl,
-        download.downloadPath,
-        entries?.[0]?.path ?? filename
-      ),
-      allowParallelRanges: !isZipDownloadUrl(downloadUrl, entries?.[0]?.path),
-      totalSize: entries?.reduce((sum, entry) => sum + entry.size, 0),
-    };
+    return this.buildDownloadOptions(
+      downloadUrl,
+      download.downloadPath,
+      filename
+    );
   }
 
   private static async getAllDebridDownloadOptions(
     download: Download,
     resumingFilename?: string
   ) {
-    const entries = await AllDebridClient.getDownloadEntries(
-      download.uri,
-      download.fileIndices
-    );
-    const first = entries?.[0];
-    const downloadInfo = first
-      ? {
-          url: first.isLocked
-            ? await AllDebridClient.unlockDownloadLink(first.url)
-            : first.url,
-          filename: first.filename,
-        }
-      : null;
+    const downloadInfo = await AllDebridClient.getDownloadInfo(download.uri);
     if (!downloadInfo?.url) throw new Error(DownloadError.NotCachedOnAllDebrid);
     const filename = resumingFilename
       ? this.sanitizeRelativePath(resumingFilename)
       : downloadInfo.filename
         ? this.sanitizeRelativePath(downloadInfo.filename)
         : this.resolveFilename(undefined, download.uri, downloadInfo.url);
-    return {
-      ...this.buildDownloadOptions(
-        downloadInfo.url,
-        download.downloadPath,
-        filename
-      ),
-      allowParallelRanges: !isZipDownloadUrl(downloadInfo.url, first?.filename),
-      totalSize: entries?.reduce((sum, entry) => sum + entry.size, 0),
-    };
+    return this.buildDownloadOptions(
+      downloadInfo.url,
+      download.downloadPath,
+      filename
+    );
   }
 
   private static async getTorBoxDownloadOptions(download: Download) {
@@ -2486,35 +2464,11 @@ export class DownloadManager {
       this.usingJsDownloader = true;
 
       try {
-        const premiumizeEntries =
-          download.downloader === Downloader.Premiumize &&
-          download.uri.startsWith("magnet:")
-            ? await PremiumizeClient.getDownloadEntries(
-                download.uri,
-                download.fileIndices
-              )
-            : null;
-        if (
-          download.fileIndices?.length &&
-          download.downloader === Downloader.Premiumize &&
-          !premiumizeEntries?.length
-        ) {
-          if (
-            premiumizeEntries === null &&
-            (await PremiumizeClient.startTransferInBackground(download.uri))
-          ) {
-            throw new Error(DownloadError.PremiumizeTransferStarted);
-          }
-          throw new Error(
-            "The selected Premiumize files are no longer available."
-          );
-        }
         if (
           download.downloader === Downloader.AllDebrid ||
           download.downloader === Downloader.TorBox ||
           (download.downloader === Downloader.RealDebrid &&
-            download.uri.startsWith("magnet:")) ||
-          !!premiumizeEntries?.length
+            download.uri.startsWith("magnet:"))
         ) {
           let batchState: JsBatchState;
           if (download.downloader === Downloader.TorBox) {
@@ -2577,8 +2531,7 @@ export class DownloadManager {
             }
           } else if (download.downloader === Downloader.AllDebrid) {
             const entries = await AllDebridClient.getDownloadEntries(
-              download.uri,
-              download.fileIndices
+              download.uri
             );
             if (!entries?.length) {
               throw new Error(DownloadError.NotCachedOnAllDebrid);
@@ -2604,12 +2557,9 @@ export class DownloadManager {
               batchSpeed: 0,
             };
           } else {
-            const provider =
-              download.downloader === Downloader.RealDebrid
-                ? "realDebrid"
-                : "premiumize";
-            let entries = premiumizeEntries;
-            if (provider === "realDebrid") {
+            const provider = "realDebrid";
+            let entries;
+            {
               const prepared = this.preparedRealDebridDownloads.get(downloadId);
               this.preparedRealDebridDownloads.delete(downloadId);
               const resolved =
@@ -2639,11 +2589,7 @@ export class DownloadManager {
               entries = resolved.entries;
             }
             if (!entries?.length) {
-              throw new Error(
-                provider === "realDebrid"
-                  ? DownloadError.NotCachedOnRealDebrid
-                  : DownloadError.NotCachedOnPremiumize
-              );
+              throw new Error(DownloadError.NotCachedOnRealDebrid);
             }
             batchState = {
               provider,
@@ -2655,7 +2601,7 @@ export class DownloadManager {
                 size: entry.size,
                 isLocked: "isLocked" in entry && entry.isLocked === true,
                 fileIndex: entry.index,
-                sourcePath: entry.path,
+                sourcePath: entry.sourcePath ?? entry.path,
                 chunks:
                   "chunks" in entry && typeof entry.chunks === "number"
                     ? entry.chunks
@@ -2673,6 +2619,28 @@ export class DownloadManager {
               bytesAtLastSpeedUpdate: null,
               batchSpeed: 0,
             };
+          }
+
+          if (batchState.provider === "realDebrid") {
+            download.files = batchState.entries.map((entry) => {
+              this.assertSafeBatchPath(batchState.savePath, entry.filename);
+              const localPath = path.join(batchState.savePath, entry.filename);
+              const bytesDownloaded = getRangeDownloadedBytes(localPath);
+              return {
+                index: entry.fileIndex!,
+                path: entry.filename,
+                size: entry.size ?? 0,
+                bytesDownloaded,
+                completed:
+                  fs.existsSync(localPath) && bytesDownloaded === entry.size,
+              };
+            });
+            while (batchState.currentIndex < batchState.entries.length - 1) {
+              const file = download.files[batchState.currentIndex];
+              if (!file.completed) break;
+              batchState.completedBytes += file.size;
+              batchState.currentIndex++;
+            }
           }
 
           if (

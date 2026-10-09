@@ -357,9 +357,7 @@ export function DownloadSettingsModal({
     if (
       selectedDownloader !== Downloader.Torrent &&
       selectedDownloader !== Downloader.TorBox &&
-      selectedDownloader !== Downloader.RealDebrid &&
-      selectedDownloader !== Downloader.Premiumize &&
-      selectedDownloader !== Downloader.AllDebrid
+      selectedDownloader !== Downloader.RealDebrid
     )
       return null;
     if (!selectedUri?.startsWith("magnet:")) return null;
@@ -812,11 +810,7 @@ export function DownloadSettingsModal({
       (selectedDownloader === Downloader.TorBox &&
         !!userPreferences?.torBoxApiToken) ||
       (selectedDownloader === Downloader.RealDebrid &&
-        !!userPreferences?.realDebridApiToken) ||
-      (selectedDownloader === Downloader.Premiumize &&
-        !!userPreferences?.premiumizeApiToken) ||
-      (selectedDownloader === Downloader.AllDebrid &&
-        !!userPreferences?.allDebridApiToken));
+        !!userPreferences?.realDebridApiToken));
 
   const shouldShowTorrentFiles = canOpenTorrentStep && showTorrentStepModal;
   const selectedTorrentKey = `${selectedDownloader}:${selectedMagnetUri}`;

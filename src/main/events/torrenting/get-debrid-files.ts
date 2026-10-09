@@ -1,6 +1,4 @@
 import { registerEvent } from "../register-event";
-import { AllDebridClient } from "@main/services/download/all-debrid";
-import { PremiumizeClient } from "@main/services/download/premiumize";
 import { RealDebridClient } from "@main/services/download/real-debrid";
 import { TorBoxClient } from "@main/services/download/torbox";
 import { logger } from "@main/services";
@@ -38,12 +36,6 @@ const getDebridFiles = async (
       }
       case Downloader.RealDebrid:
         data = await RealDebridClient.getDownloadFiles(magnet);
-        break;
-      case Downloader.Premiumize:
-        data = await PremiumizeClient.getDownloadFiles(magnet);
-        break;
-      case Downloader.AllDebrid:
-        data = await AllDebridClient.getDownloadFiles(magnet);
         break;
       default:
         return { ok: false, error: DownloadError.TorrentFilesUnavailable };

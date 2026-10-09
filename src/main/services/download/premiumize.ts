@@ -3,11 +3,6 @@ import parseTorrent from "parse-torrent";
 import type { PremiumizeUser } from "@types";
 import { DownloadError } from "@shared";
 import { logger } from "@main/services";
-import {
-  selectDebridFiles,
-  stableDebridFileIndex,
-  toTorrentFilesResponse,
-} from "./debrid-files";
 
 /* ------------------------------------------------------------------ */
 /*  API response types                                                 */
@@ -25,13 +20,6 @@ interface PremiumizeDirectDlContent {
   link: string;
   stream_link?: string;
   transcode_status?: string;
-}
-
-export interface PremiumizeDownloadEntry {
-  index: number;
-  path: string;
-  size: number;
-  url: string;
 }
 
 interface PremiumizeDirectDlResponse extends PremiumizeBaseResponse {
@@ -334,65 +322,6 @@ export class PremiumizeClient {
     return null;
   }
 
-  private static async listFolderFiles(
-    folderId: string,
-    parentPath = ""
-  ): Promise<PremiumizeDownloadEntry[]> {
-    const items = await this.listFolder(folderId);
-    const entries: PremiumizeDownloadEntry[] = [];
-    for (const item of items) {
-      const itemPath = parentPath ? `${parentPath}/${item.name}` : item.name;
-      if (item.type === "folder") {
-        entries.push(...(await this.listFolderFiles(item.id, itemPath)));
-      } else if (item.link) {
-        entries.push({
-          index: 0,
-          path: itemPath,
-          size: item.size ?? 0,
-          url: decodeURIComponent(item.link),
-        });
-      }
-    }
-    return entries;
-  }
-
-  static async getDownloadEntries(
-    uri: string,
-    selectedIndices?: number[]
-  ): Promise<PremiumizeDownloadEntry[] | null> {
-    const direct = await this.directDownload(uri);
-    let entries = (direct?.content ?? [])
-      .filter((file) => file.link && file.path)
-      .map((file) => ({
-        index: 0,
-        path: file.path,
-        size: file.size,
-        url: decodeURIComponent(file.link),
-      }));
-
-    if (entries.length === 0) {
-      const transfer = await this.findExistingTransfer(uri, false);
-      if (transfer?.folder_id) {
-        entries = await this.listFolderFiles(transfer.folder_id, transfer.name);
-      }
-    }
-
-    if (entries.length === 0) return null;
-    entries.sort((a, b) => a.path.localeCompare(b.path));
-    const indexed = entries.map((entry) => ({
-      ...entry,
-      index: stableDebridFileIndex(entry.path, entry.size),
-    }));
-    return selectDebridFiles(indexed, selectedIndices);
-  }
-
-  static async getDownloadFiles(uri: string) {
-    const entries = await this.getDownloadEntries(uri);
-    if (!entries?.length)
-      throw new Error(DownloadError.PremiumizeFilesNotReady);
-    return toTorrentFilesResponse(this.extractDisplayName(uri) ?? uri, entries);
-  }
-
   static async getDownloadUrl(uri: string): Promise<string | null> {
     const directDl = await this.directDownload(uri);
     const content = directDl?.content ?? [];
@@ -469,8 +398,7 @@ export class PremiumizeClient {
   }
 
   private static async findExistingTransfer(
-    uri: string,
-    waitForPending = true
+    uri: string
   ): Promise<PremiumizeTransfer | null> {
     try {
       const infoHash = uri.startsWith("magnet:")
@@ -499,7 +427,7 @@ export class PremiumizeClient {
         return null;
       }
 
-      return waitForPending ? await this.waitForTransfer(match.id) : null;
+      return await this.waitForTransfer(match.id);
     } catch (err) {
       logger.error(`[Premiumize] findExistingTransfer failed:`, err);
       return null;
@@ -527,9 +455,9 @@ export class PremiumizeClient {
     }
   }
 
-  static async startTransferInBackground(uri: string): Promise<boolean> {
-    if (await this.hasRunnableTransfer(uri)) return true;
-
+  private static async startTransferInBackground(
+    uri: string
+  ): Promise<boolean> {
     const created = await this.createTransfer(uri);
     if (created?.id) {
       logger.log(

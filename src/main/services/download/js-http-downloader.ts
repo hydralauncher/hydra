@@ -64,6 +64,7 @@ export interface JsHttpDownloaderOptions {
   headers?: Record<string, string>;
   allowParallelRanges?: boolean;
   parallelRangeSize?: number;
+  probeUnboundedRange?: boolean;
   parallelRangeConnections?: number;
   maxParallelRanges?: number;
   preserveFilename?: boolean;
@@ -687,6 +688,7 @@ export class JsHttpDownloader {
       return;
     }
     let response: Response;
+    let fullRangeResponse = false;
     if (
       this.savedRangeState ||
       (!this.parallelRangesDisabled &&
@@ -700,11 +702,17 @@ export class JsHttpDownloader {
       const firstGap = this.savedRangeState
         ? missingRanges(this.savedRangeState)[0]
         : null;
-      const rangeEnd = Math.min(
-        startByte + rangeSize - 1,
-        firstGap ? firstGap[1] - 1 : Number.MAX_SAFE_INTEGER
-      );
-      const requestedRange = `bytes=${startByte}-${rangeEnd}`;
+      const unboundedProbe =
+        this.currentOptions?.probeUnboundedRange && !this.savedRangeState;
+      const rangeEnd = unboundedProbe
+        ? Number.MAX_SAFE_INTEGER
+        : Math.min(
+            startByte + rangeSize - 1,
+            firstGap ? firstGap[1] - 1 : Number.MAX_SAFE_INTEGER
+          );
+      const requestedRange = unboundedProbe
+        ? `bytes=${startByte}-`
+        : `bytes=${startByte}-${rangeEnd}`;
       response = await this.fetchWithStallTracking(url, {
         headers: { ...requestHeaders, Range: requestedRange },
         signal: this.abortController?.signal,
@@ -716,6 +724,7 @@ export class JsHttpDownloader {
       );
       const total = getRangeTotal(response, startByte, rangeEnd);
       const validator = getStrongRangeValidator(response);
+      fullRangeResponse = total !== null && rangeEnd >= total - 1;
       if (
         this.savedRangeState &&
         (total !== this.savedRangeState.total ||
@@ -750,6 +759,38 @@ export class JsHttpDownloader {
           throw new Error(
             "The download server returned a different file size. Keeping the partial file."
           );
+        }
+        if (unboundedProbe) {
+          await response.body?.cancel();
+          response = await this.fetchWithStallTracking(url, {
+            headers: {
+              ...requestHeaders,
+              Range: `bytes=${startByte}-${Math.min(startByte + rangeSize - 1, total - 1)}`,
+            },
+            signal: this.abortController?.signal,
+          });
+          if (
+            getRangeTotal(
+              response,
+              startByte,
+              Math.min(startByte + rangeSize - 1, total - 1)
+            ) !== total ||
+            getStrongRangeValidator(response) !== validator
+          ) {
+            await response.body?.cancel();
+            if (response.status >= 400)
+              throw new HttpDownloadStatusError(
+                response.status,
+                isRetryableHttpStatus(response.status),
+                parseRetryAfterMs(
+                  response.headers.get("retry-after"),
+                  Date.now()
+                )
+              );
+            throw new Error(
+              "The download resource changed during range preparation. Keeping the partial file."
+            );
+          }
         }
         const actualFilePath = this.resolveOutputPath(
           response,
@@ -841,7 +882,7 @@ export class JsHttpDownloader {
         this.markComplete();
         return;
       }
-      if (response.status === 206) {
+      if (response.status === 206 && !fullRangeResponse) {
         await response.body?.cancel();
         response = await this.fetchWithStallTracking(url, {
           headers: requestHeaders,

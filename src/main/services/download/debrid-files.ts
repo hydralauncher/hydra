@@ -1,5 +1,4 @@
 import type { TorrentFilesResponse } from "@types";
-import { createHash } from "node:crypto";
 import { DownloadError, Downloader } from "../../../shared/constants.js";
 
 const pendingErrors = new Map<Downloader, ReadonlySet<string>>([
@@ -12,14 +11,6 @@ const pendingErrors = new Map<Downloader, ReadonlySet<string>>([
       DownloadError.RealDebridLinksNotReady,
     ]),
   ],
-  [
-    Downloader.Premiumize,
-    new Set([
-      DownloadError.NotCachedOnPremiumize,
-      DownloadError.PremiumizeTransferStarted,
-    ]),
-  ],
-  [Downloader.AllDebrid, new Set([DownloadError.NotCachedOnAllDebrid])],
 ]);
 
 export function isDebridPendingError(
@@ -46,13 +37,6 @@ export function getDebridRootFolderName(paths: string[]): string | undefined {
     components.every((parts) => parts.length > 1 && parts[0] === root)
     ? root
     : undefined;
-}
-
-export function stableDebridFileIndex(path: string, size: number): number {
-  const digest = createHash("sha256")
-    .update(`${path.normalize("NFC")}\0${size}`)
-    .digest("hex");
-  return Number.parseInt(digest.slice(0, 13), 16);
 }
 
 export function isZipDownloadUrl(url: string, filename?: string): boolean {

@@ -871,3 +871,51 @@ it("an immediately invalid refreshed URL cannot cause a refresh loop", async () 
     await f.close();
   }
 });
+
+it("reuses the open-ended Real-Debrid response when range validators are absent", async () => {
+  const f = await fixture({ etag: null, modified: null, date: null });
+  try {
+    const d = new JsHttpDownloader();
+    await d.startDownload({
+      ...f.options,
+      filename: "unbounded.bin",
+      preserveFilename: true,
+      expectedSize: f.data.length,
+      requireRangeResume: true,
+      probeUnboundedRange: true,
+    });
+    assert.equal(d.getDownloadStatus()?.status, "complete");
+    assert.deepEqual(
+      fs.readFileSync(path.join(f.root, "unbounded.bin")),
+      f.data
+    );
+    assert.equal(f.requests.length, 1);
+    assert.equal(f.requests[0].range, "bytes=0-");
+  } finally {
+    await f.close();
+  }
+});
+it("keeps parallel range validation when an open-ended probe has a strong validator", async () => {
+  const f = await fixture({ size: 1024 * 1024 });
+  try {
+    const d = new JsHttpDownloader();
+    await d.startDownload({
+      ...f.options,
+      filename: "unbounded-parallel.bin",
+      preserveFilename: true,
+      parallelRangeSize: 128 * 1024,
+      expectedSize: f.data.length,
+      probeUnboundedRange: true,
+    });
+    assert.equal(d.getDownloadStatus()?.status, "complete");
+    assert.deepEqual(
+      fs.readFileSync(path.join(f.root, "unbounded-parallel.bin")),
+      f.data
+    );
+    assert.equal(f.requests[0].range, "bytes=0-");
+    assert.ok(f.requests.length > 2);
+    assert.ok(f.requests.slice(2).every((r) => r.ifRange === '"fixture-v1"'));
+  } finally {
+    await f.close();
+  }
+});
