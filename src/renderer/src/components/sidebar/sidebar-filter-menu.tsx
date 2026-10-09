@@ -3,6 +3,7 @@ import {
   CheckIcon,
   ClockIcon,
   DeviceDesktopIcon,
+  DownloadIcon,
   HeartIcon,
   HourglassIcon,
   SlidersIcon,
@@ -192,6 +193,11 @@ export function SidebarFilterMenu({
       value: "recently_played",
       label: t("recently_played", { ns: "library" }),
       icon: <ClockIcon size={14} />,
+    },
+    {
+      value: "recently_downloaded",
+      label: t("sort_recently_downloaded", { ns: "library" }),
+      icon: <DownloadIcon size={14} />,
     },
     {
       value: "most_played",
