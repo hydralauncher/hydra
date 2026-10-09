@@ -24,6 +24,8 @@ import {
   LibtorrentPayload,
   LibtorrentStatus,
   PauseDownloadPayload,
+  isQueueVerifyCandidate,
+  isVerifyingStatus,
 } from "./types";
 import { calculateETA, getDirSize } from "./helpers";
 import { extractDownloadFilename } from "./download-filename";
@@ -57,6 +59,14 @@ import {
   DISK_SPACE_CHECK_INTERVAL_MS,
   getDownloadDiskSpace,
 } from "./disk-space";
+import {
+  QUEUE_VERIFY_MAX_ENTRIES,
+  QUEUE_VERIFY_TTL_MS,
+  clearVerifyAttempt,
+  getQueueVerifySig,
+  isVerifyAttemptFresh,
+  recordVerifyAttempt,
+} from "./download-queue-verify";
 
 interface JsDownloadOptions {
   url: string;
@@ -108,6 +118,10 @@ export class DownloadManager {
   } | null = null;
   private static queueHeldForDiskSpace = false;
   private static lastQueueRetry = 0;
+  private static readonly queueVerifyAttempts = new Map<
+    string,
+    { at: number; sig: string }
+  >();
   private static readonly preparedJsDownloads = new Map<
     string,
     PreparedJsDownload
@@ -551,9 +565,11 @@ export class DownloadManager {
 
       const isDownloadingMetadata =
         status === LibtorrentStatus.DownloadingMetadata;
-      const isCheckingFiles = status === LibtorrentStatus.CheckingFiles;
+      const isCheckingFiles = isVerifyingStatus(status);
 
       const download = await downloadsSublevel.get(downloadId);
+
+      let updatedDownload = download;
 
       if (!isDownloadingMetadata && !isCheckingFiles) {
         if (!download) return null;
@@ -563,14 +579,16 @@ export class DownloadManager {
             ? fileSize
             : (download.selectedFilesSize ?? download.fileSize ?? 0);
 
-        await downloadsSublevel.put(downloadId, {
+        updatedDownload = {
           ...download,
           bytesDownloaded,
           fileSize: effectiveFileSize,
           progress,
           folderName,
           status: "active",
-        });
+        };
+
+        await downloadsSublevel.put(downloadId, updatedDownload);
       }
 
       return {
@@ -588,7 +606,7 @@ export class DownloadManager {
         isCheckingFiles,
         progress,
         gameId: downloadId,
-        download,
+        download: updatedDownload,
       } as DownloadProgress;
     } catch {
       return null;
@@ -652,7 +670,17 @@ export class DownloadManager {
 
     if (!download || !game) return;
 
-    if (await this.haltDownloadIfStorageIsFull(download, game, gameId)) return;
+    if (!status.isCheckingFiles && !status.isDownloadingMetadata) {
+      const live = status.download
+        ? {
+            bytesDownloaded: status.download.bytesDownloaded,
+            fileSize: status.download.fileSize,
+          }
+        : undefined;
+
+      if (await this.haltDownloadIfStorageIsFull(download, game, gameId, live))
+        return;
+    }
 
     this.sendProgressUpdate(progress, status, game);
 
@@ -682,7 +710,8 @@ export class DownloadManager {
   private static async haltDownloadIfStorageIsFull(
     download: Download,
     game: Game,
-    downloadKey: string
+    downloadKey: string,
+    live?: { bytesDownloaded?: number | null; fileSize?: number | null }
   ) {
     if (download.progress >= 1) return false;
 
@@ -697,7 +726,7 @@ export class DownloadManager {
 
     this.lastDiskSpaceCheck = { downloadKey, timestamp: now };
 
-    const diskSpace = await getDownloadDiskSpace(download);
+    const diskSpace = await getDownloadDiskSpace(download, live);
 
     if (!diskSpace) {
       logger.error(
@@ -955,6 +984,37 @@ export class DownloadManager {
     }
   }
 
+  private static async shouldBypassQueueHoldForVerify(
+    download: Download
+  ): Promise<boolean> {
+    if (!isQueueVerifyCandidate(download)) return false;
+    const key = levelKeys.game(download.shop, download.objectId);
+    const sig = await getQueueVerifySig(
+      path.join(download.downloadPath, download.folderName)
+    );
+    if (!sig) return false;
+    const now = Date.now();
+    const prev = this.queueVerifyAttempts.get(key);
+    if (isVerifyAttemptFresh(prev, sig, now, QUEUE_VERIFY_TTL_MS)) return false;
+    recordVerifyAttempt(
+      this.queueVerifyAttempts,
+      key,
+      sig,
+      now,
+      QUEUE_VERIFY_MAX_ENTRIES
+    );
+    return true;
+  }
+
+  public static clearQueueVerifyAttempt(
+    download: Pick<Download, "shop" | "objectId">
+  ): void {
+    clearVerifyAttempt(
+      this.queueVerifyAttempts,
+      levelKeys.game(download.shop, download.objectId)
+    );
+  }
+
   private static async processNextQueuedDownload() {
     const downloads = await downloadsSublevel.values().all();
     const layoutState = await getDownloadLayoutStateRecord();
@@ -967,15 +1027,21 @@ export class DownloadManager {
       const diskSpace = await getDownloadDiskSpace(nextItemOnQueue);
 
       if (diskSpace && !diskSpace.hasEnoughSpace) {
-        if (!this.queueHeldForDiskSpace) {
-          logger.warn(
-            `[DownloadManager] Keeping the queue on hold: ${nextItemOnQueue.downloadPath} has ${diskSpace.freeBytes} bytes free, ${diskSpace.requiredBytes} needed`
+        if (await this.shouldBypassQueueHoldForVerify(nextItemOnQueue)) {
+          logger.log(
+            `[DownloadManager] Allowing queued ${nextItemOnQueue.shop}:${nextItemOnQueue.objectId} to verify existing files before disk check`
           );
-          WindowManager.sendDownloadsUpdated();
-        }
+        } else {
+          if (!this.queueHeldForDiskSpace) {
+            logger.warn(
+              `[DownloadManager] Keeping the queue on hold: ${nextItemOnQueue.downloadPath} has ${diskSpace.freeBytes} bytes free, ${diskSpace.requiredBytes} needed`
+            );
+            WindowManager.sendDownloadsUpdated();
+          }
 
-        this.queueHeldForDiskSpace = true;
-        return;
+          this.queueHeldForDiskSpace = true;
+          return;
+        }
       }
 
       this.queueHeldForDiskSpace = false;
