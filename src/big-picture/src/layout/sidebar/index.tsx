@@ -7,7 +7,7 @@ import {
   MagnifyingGlassIcon,
   PlayIcon,
   PuzzlePieceIcon,
-  SignOutIcon,
+  PowerIcon,
   SquaresFourIcon,
   StarIcon,
 } from "@phosphor-icons/react";
@@ -54,7 +54,7 @@ import type { DownloadProgress, LibraryGame } from "@types";
 import type { FocusNode, FocusOverrides, FocusRegion } from "../../services";
 import { useNavigationSnapshot, useVirtualKeyboardStore } from "../../stores";
 import {
-  BIG_PICTURE_SIDEBAR_EXIT_ID,
+  BIG_PICTURE_SIDEBAR_POWER_ID,
   BIG_PICTURE_SIDEBAR_ITEM_IDS,
   BIG_PICTURE_SIDEBAR_LIBRARY_FILTER_ALL_ID,
   BIG_PICTURE_SIDEBAR_LIBRARY_FILTER_FAVORITES_ID,
@@ -83,6 +83,7 @@ import {
 } from "../../components/pages/library";
 import { ConfirmationModal, DownloadGameModal } from "../../components/modals";
 import { SidebarNotificationsDropdown } from "./notifications-dropdown";
+import { PowerMenu } from "./power-menu";
 import "./styles.scss";
 
 type SidebarLibraryFilter =
@@ -322,6 +323,7 @@ function filterSidebarLibraryGames(
 }
 
 function SidebarRouter() {
+  const [powerMenuVisible, setPowerMenuVisible] = useState(false);
   const basePath = IS_DESKTOP ? "/big-picture" : "";
   const { pathname } = useLocation();
   const navigate = useNavigate();
@@ -403,12 +405,12 @@ function SidebarRouter() {
         : getItemFocusTarget(BIG_PICTURE_SIDEBAR_PROFILE_ID),
       down: nextRoute
         ? getItemFocusTarget(BIG_PICTURE_SIDEBAR_ITEM_IDS[nextRoute.key])
-        : getItemFocusTarget(BIG_PICTURE_SIDEBAR_EXIT_ID),
+        : getItemFocusTarget(BIG_PICTURE_SIDEBAR_POWER_ID),
     };
   };
 
   const lastRoute = routes.at(-1);
-  const exitNavigationOverrides: FocusOverrides = {
+  const powerNavigationOverrides: FocusOverrides = {
     ...sidebarItemNavigationOverrides,
     up: lastRoute
       ? getItemFocusTarget(BIG_PICTURE_SIDEBAR_ITEM_IDS[lastRoute.key])
@@ -437,23 +439,32 @@ function SidebarRouter() {
 
       <div className="state-wrapper">
         <FocusItem
-          id={BIG_PICTURE_SIDEBAR_EXIT_ID}
-          actions={{ primary: handleExitBigPicture }}
-          navigationOverrides={exitNavigationOverrides}
+          id={BIG_PICTURE_SIDEBAR_POWER_ID}
+          actions={{ primary: () => setPowerMenuVisible(true) }}
+          navigationOverrides={powerNavigationOverrides}
           asChild
         >
           <button
             type="button"
             className="route-anchor route-anchor--extra-padding sidebar-action-button"
-            onClick={handleExitBigPicture}
+            onClick={() => setPowerMenuVisible(true)}
+            aria-haspopup="dialog"
+            aria-expanded={powerMenuVisible}
           >
             <div className="route-anchor__icon route-anchor__icon--small-size">
-              <SignOutIcon size={24} />
+              <PowerIcon size={24} />
             </div>
-            <div className="route-anchor__label">Exit Big Picture</div>
+            <div className="route-anchor__label">Power</div>
           </button>
         </FocusItem>
       </div>
+      {powerMenuVisible && (
+        <PowerMenu
+          visible
+          onClose={() => setPowerMenuVisible(false)}
+          onExitBigPicture={handleExitBigPicture}
+        />
+      )}
     </div>
   );
 }
@@ -543,7 +554,7 @@ function SidebarLibrary({
       type: "block",
     },
     right: contentEntryTarget,
-    up: getItemFocusTarget(BIG_PICTURE_SIDEBAR_EXIT_ID),
+    up: getItemFocusTarget(BIG_PICTURE_SIDEBAR_POWER_ID),
     down: getItemFocusTarget(selectedFilterFocusId),
   };
 
@@ -866,6 +877,7 @@ const SidebarContainer = forwardRef<
     const activeElement = document.activeElement;
 
     if (!(activeElement instanceof HTMLElement)) return;
+    if (!activeElement.closest(".sidebar-container")) return;
     if (activeElement.dataset.sidebarLibrarySearch === "true") return;
 
     activeElement.blur();

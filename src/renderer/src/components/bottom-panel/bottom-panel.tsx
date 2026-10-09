@@ -24,7 +24,7 @@ export function BottomPanel() {
 
   const { userDetails, hasActiveSubscription } = useUserDetails();
 
-  const { library } = useLibrary();
+  const { downloadLibrary: library } = useLibrary();
 
   const { showSuccessToast } = useToast();
 

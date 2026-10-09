@@ -10,14 +10,15 @@ import type {
   SyncGameCloudSaveResult,
 } from "@types";
 
-import { NativeAddon } from "../native-addon";
+import { buildCloudSaveAggregateHash } from "./snapshot-aggregate-hash";
 import { isGameRunning } from "../game-running-state";
 import { analyzeCloudSaveState } from "./analyze-cloud-save-state";
-import { assertCloudSaveExecutableExists } from "./assert-cloud-save-executable";
+import { assertCloudSaveRuntimeAvailable } from "./assert-cloud-save-executable";
 import { clearCloudSaveLocalState } from "./clear-cloud-save-local-state";
 import { assertCloudSaveSubscription } from "./cloud-save-access";
 import { cloudSaveFileKey } from "./cloud-save-contract";
 import { getCloudSaveGameContext } from "./cloud-save-game-context";
+import { getEmulatorSaveProvider } from "./emulator-save-provider";
 import { cloudSaveCustomPathContextFromPathContext } from "./custom-path";
 import {
   confirmCloudSaveCustomPaths,
@@ -113,6 +114,7 @@ const saveCurrentHeadAnchor = async (
       relativePath: file.relativePath,
       hash: file.hash,
       sizeBytes: file.sizeBytes,
+      ...(file.stateMetadata ? { stateMetadata: file.stateMetadata } : {}),
     })),
     unresolvedRemoteEntryIds,
     updatedAt: new Date().toISOString(),
@@ -142,6 +144,7 @@ const saveSnapshotAnchor = async (
       relativePath: file.relativePath,
       hash: file.hash,
       sizeBytes: file.sizeBytes,
+      ...(file.stateMetadata ? { stateMetadata: file.stateMetadata } : {}),
     })),
     unresolvedRemoteEntryIds: unresolvedRemoteEntryIds.filter((entryId) =>
       fileIds.has(entryId)
@@ -202,7 +205,7 @@ const selectAutomaticSnapshotContext = (
   const variants = analysis.localSnapshotContext.variants.filter((variant) =>
     usedVariantIds.has(variant.variantId)
   );
-  const aggregateHash = NativeAddon.buildSnapshotAggregateHash({
+  const aggregateHash = buildCloudSaveAggregateHash({
     variants,
     files,
   });
@@ -536,9 +539,7 @@ const executeAppliedSync = async ({
   trigger: CloudSaveSyncTrigger;
   analysis: CloudSaveAnalysis;
   merge: CloudSaveMergeResult;
-  mergedAggregateHash: ReturnType<
-    typeof NativeAddon.buildSnapshotAggregateHash
-  >;
+  mergedAggregateHash: ReturnType<typeof buildCloudSaveAggregateHash>;
   mergedCustomPathRawPaths: string[];
   proposalChanged: boolean;
   uploadOnly: boolean;
@@ -743,7 +744,7 @@ const executeGameCloudSaveSync = async ({
   }
 
   const merge = resolveAnalyzedCloudSaveMerge(analysis, resolution);
-  const mergedAggregateHash = NativeAddon.buildSnapshotAggregateHash({
+  const mergedAggregateHash = buildCloudSaveAggregateHash({
     variants: merge.variants,
     files: merge.files,
   });
@@ -965,6 +966,16 @@ const runCloudSaveOperation = (
 export const isCloudSaveSyncActive = (objectId: string, shop: GameShop) =>
   activeSyncs.has(gameKey(objectId, shop));
 
+const prepareRetroArchSyncLayout = async (
+  game: Awaited<ReturnType<typeof assertCloudSaveRuntimeAvailable>>
+) => {
+  if (getEmulatorSaveProvider(game) !== "retroarch") return;
+  const { materializeRetroArchLocalSaves } = await import(
+    "./retroarch-save-provider"
+  );
+  await materializeRetroArchLocalSaves(game);
+};
+
 export const syncGameCloudSave = async (
   objectId: string,
   shop: GameShop,
@@ -974,7 +985,7 @@ export const syncGameCloudSave = async (
   expectedRemoteHash?: string | null
 ) => {
   assertCloudSaveSubscription();
-  await assertCloudSaveExecutableExists(objectId, shop);
+  await assertCloudSaveRuntimeAvailable(objectId, shop);
   if (isGameRunning(objectId, shop)) {
     throw new Error("cloud_save_game_running");
   }
@@ -992,17 +1003,22 @@ export const syncGameCloudSave = async (
     shop,
     operationKey,
     async (emitProgress) => {
-      await assertCloudSaveExecutableExists(objectId, shop);
+      const game = await assertCloudSaveRuntimeAvailable(objectId, shop);
       if (isGameRunning(objectId, shop)) {
         throw new Error("cloud_save_game_running");
       }
+      await prepareRetroArchSyncLayout(game);
+      const operationContext =
+        getEmulatorSaveProvider(game) === "rpcs3"
+          ? await getCloudSaveGameContext(objectId, shop)
+          : context;
       return runGameCloudSaveSync(
         objectId,
         shop,
         trigger,
         emitProgress,
         undefined,
-        context
+        operationContext
       );
     },
     onProgress
@@ -1016,7 +1032,11 @@ export const resolveCloudSaveConflict = async (
   onProgress?: ProgressCallback
 ) => {
   assertCloudSaveSubscription();
-  await assertCloudSaveExecutableExists(objectId, shop);
+  await assertCloudSaveRuntimeAvailable(objectId, shop);
+
+  if (isGameRunning(objectId, shop)) {
+    throw new Error("cloud_save_game_running");
+  }
 
   const context = await getCloudSaveGameContext(objectId, shop);
   return runCloudSaveOperation(
@@ -1024,14 +1044,22 @@ export const resolveCloudSaveConflict = async (
     shop,
     `resolve:${resolution}:${context.environmentId}`,
     async (emitProgress) => {
-      await assertCloudSaveExecutableExists(objectId, shop);
+      const game = await assertCloudSaveRuntimeAvailable(objectId, shop);
+      if (isGameRunning(objectId, shop)) {
+        throw new Error("cloud_save_game_running");
+      }
+      await prepareRetroArchSyncLayout(game);
+      const operationContext =
+        getEmulatorSaveProvider(game) === "rpcs3"
+          ? await getCloudSaveGameContext(objectId, shop)
+          : context;
       return runGameCloudSaveSync(
         objectId,
         shop,
         "manual",
         emitProgress,
         resolution,
-        context
+        operationContext
       );
     },
     onProgress

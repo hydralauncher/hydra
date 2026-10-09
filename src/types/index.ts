@@ -106,6 +106,8 @@ export type UserGame = {
   hasManuallyUpdatedPlaytime: boolean;
   hasActiveSteamImport?: boolean;
   isFavorite: boolean;
+  isHiddenFromOthers?: boolean;
+  isConcealed?: boolean;
   isPinned: boolean;
   pinnedDate?: Date | null;
   customLibraryImageUrl?: string | null;
@@ -225,6 +227,7 @@ export interface UserRelation {
 export type UserProfileCurrentGame = GameRunning &
   ShopAssets & {
     sessionDurationInSeconds: number;
+    isHiddenFromOthers?: boolean;
   };
 
 export type ProfileVisibility = "PUBLIC" | "PRIVATE" | "FRIENDS";
@@ -473,6 +476,10 @@ export interface AchievementMetadataEntry {
 export type GameLauncherStatus =
   | "generating_achievements"
   | "downloading_achievement_icons"
+  | "preparing_compatibility_layer"
+  | "compatibility_layer_ready"
+  | "compatibility_layer_failed"
+  | "game_started"
   | "complete";
 
 export interface GameLauncherStatusPayload {
@@ -727,3 +734,4 @@ export * from "./souvenir.types";
 export type ExtractionFailure =
   | { reason: "unsupported-format"; format: string }
   | { reason: "file-not-found" };
+export type { SystemPowerAction } from "./system-power";

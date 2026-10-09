@@ -202,7 +202,7 @@ function getFinishedAtLabel(
 }
 
 export function useBigPictureDownloadsPageData() {
-  const { library, updateLibrary } = useLibrary();
+  const { downloadLibrary: library, updateLibrary } = useLibrary();
   const { layoutState } = useDownloadLayout();
   const { formatDistance, formatTime } = useDate();
   const { t } = useTranslation("big_picture");

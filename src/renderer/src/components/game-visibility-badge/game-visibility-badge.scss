@@ -1,0 +1,23 @@
+.game-visibility-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  padding: 0 6px;
+  height: 24px;
+  box-sizing: border-box;
+  line-height: 1;
+  color: rgba(255, 255, 255, 0.8);
+  background: rgba(0, 0, 0, 0.4);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 4px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+
+  &--large {
+    padding: 0 12px;
+    height: 28px;
+    color: rgba(255, 255, 255, 0.95);
+  }
+}

@@ -5,6 +5,7 @@ import {
   FileDirectoryIcon,
   HeartFillIcon,
   HeartIcon,
+  LockIcon,
   PlusIcon,
 } from "@primer/octicons-react";
 import { useTranslation } from "react-i18next";
@@ -21,6 +22,7 @@ interface CollectionsFilterProps {
   collections: GameCollection[];
   selectedCollectionId: string | null;
   favoritesCollectionId: string;
+  hiddenCollectionId: string;
   onSelect: (collectionId: string | null) => void;
   onCreate: () => void;
   onCollectionContextMenu: (
@@ -31,17 +33,24 @@ interface CollectionsFilterProps {
 
 const getTriggerIcon = (
   selectedCollection: GameCollection | undefined,
-  favoritesCollectionId: string
+  favoritesCollectionId: string,
+  hiddenCollectionId: string
 ) => {
   if (!selectedCollection) return FileDirectoryIcon;
   if (selectedCollection.id === favoritesCollectionId) return HeartFillIcon;
+  if (selectedCollection.id === hiddenCollectionId) return LockIcon;
   return FileDirectoryFillIcon;
 };
 
-const getCollectionIcon = (isFavorites: boolean, isActive: boolean) => {
+const getCollectionIcon = (
+  isFavorites: boolean,
+  isHidden: boolean,
+  isActive: boolean
+) => {
   if (isFavorites) {
     return isActive ? HeartFillIcon : HeartIcon;
   }
+  if (isHidden) return LockIcon;
   return isActive ? FileDirectoryFillIcon : FileDirectoryIcon;
 };
 
@@ -49,6 +58,7 @@ export function CollectionsFilter({
   collections,
   selectedCollectionId,
   favoritesCollectionId,
+  hiddenCollectionId,
   onSelect,
   onCreate,
   onCollectionContextMenu,
@@ -61,7 +71,11 @@ export function CollectionsFilter({
     (collection) => collection.id === selectedCollectionId
   );
 
-  const TriggerIcon = getTriggerIcon(selectedCollection, favoritesCollectionId);
+  const TriggerIcon = getTriggerIcon(
+    selectedCollection,
+    favoritesCollectionId,
+    hiddenCollectionId
+  );
 
   return (
     <DropdownMenuPrimitive.Root
@@ -103,9 +117,14 @@ export function CollectionsFilter({
           <div className="collections-filter__list">
             {collections.map((collection) => {
               const isFavorites = collection.id === favoritesCollectionId;
+              const isHidden = collection.id === hiddenCollectionId;
               const isActive = collection.id === selectedCollectionId;
 
-              const CollectionIcon = getCollectionIcon(isFavorites, isActive);
+              const CollectionIcon = getCollectionIcon(
+                isFavorites,
+                isHidden,
+                isActive
+              );
 
               return (
                 <DropdownMenuPrimitive.Item
@@ -113,7 +132,7 @@ export function CollectionsFilter({
                   className={`collections-filter__item${isActive ? " collections-filter__item--active" : ""}`}
                   onSelect={() => onSelect(isActive ? null : collection.id)}
                   onContextMenu={
-                    isFavorites
+                    isFavorites || isHidden
                       ? undefined
                       : (event) => onCollectionContextMenu(event, collection)
                   }

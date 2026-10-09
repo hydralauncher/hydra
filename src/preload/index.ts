@@ -4,6 +4,7 @@ import { contextBridge, ipcRenderer } from "electron";
 import { randomUUID } from "node:crypto";
 
 import type {
+  SystemPowerAction,
   GameShop,
   DownloadProgress,
   UserPreferences,
@@ -51,6 +52,8 @@ import type {
   CloudSaveAutomaticSyncEvent,
   CloudSaveConflictResolution,
   CloudSaveOverview,
+  RetroArchLocalBatteryCandidate,
+  RetroArchLegacyBatteryCandidate,
   CloudSaveV2FileDetails,
   CloudSaveSyncIpcProgressPayload,
   CloudSaveSyncProgressPayload,
@@ -170,18 +173,85 @@ contextBridge.exposeInMainWorld("electron", {
       objectId,
       shop
     ) as Promise<CloudSaveV2FileDetails>,
+  getRetroArchLocalBatteryCandidates: (objectId: string, shop: GameShop) =>
+    ipcRenderer.invoke(
+      "getRetroArchLocalBatteryCandidates",
+      objectId,
+      shop
+    ) as Promise<RetroArchLocalBatteryCandidate[]>,
+  selectRetroArchLocalBattery: (
+    objectId: string,
+    shop: GameShop,
+    romPath: string,
+    signature: string
+  ) =>
+    ipcRenderer.invoke(
+      "selectRetroArchLocalBattery",
+      objectId,
+      shop,
+      romPath,
+      signature
+    ) as Promise<void>,
+  getRetroArchLegacyBatteryCandidates: (objectId: string, shop: GameShop) =>
+    ipcRenderer.invoke(
+      "getRetroArchLegacyBatteryCandidates",
+      objectId,
+      shop
+    ) as Promise<RetroArchLegacyBatteryCandidate[]>,
+  selectRetroArchLegacyBattery: (
+    objectId: string,
+    shop: GameShop,
+    rawPath: string
+  ) =>
+    ipcRenderer.invoke(
+      "selectRetroArchLegacyBattery",
+      objectId,
+      shop,
+      rawPath
+    ) as Promise<void>,
   deleteGameCloudSaveData: (objectId: string, shop: GameShop) =>
     ipcRenderer.invoke(
       "deleteGameCloudSaveData",
       objectId,
       shop
     ) as Promise<void>,
-  selectCloudSaveCustomPath: (objectId: string, shop: GameShop) =>
+  selectCloudSaveCustomPath: (
+    objectId: string,
+    shop: GameShop,
+    kind: "file" | "dir" = "dir"
+  ) =>
     ipcRenderer.invoke(
       "selectCloudSaveCustomPath",
       objectId,
-      shop
+      shop,
+      kind
     ) as Promise<SelectCloudSaveCustomPathResult>,
+  selectEmulatorDestination: (
+    objectId: string,
+    shop: GameShop,
+    rawPath: string,
+    kind: "save" | "state"
+  ) =>
+    ipcRenderer.invoke(
+      "selectEmulatorDestination",
+      objectId,
+      shop,
+      rawPath,
+      kind
+    ) as Promise<{ canceled: boolean }>,
+  removeEmulatorDestination: (
+    objectId: string,
+    shop: GameShop,
+    rawPath: string,
+    kind: "save" | "state"
+  ) =>
+    ipcRenderer.invoke(
+      "removeEmulatorDestination",
+      objectId,
+      shop,
+      rawPath,
+      kind
+    ) as Promise<void>,
   createCloudSaveCustomPathRebindApproval: (
     objectId: string,
     shop: GameShop,
@@ -212,12 +282,14 @@ contextBridge.exposeInMainWorld("electron", {
     ) as Promise<CloudSaveCustomPathApproval | null>,
   selectCloudSaveCustomPathApproval: (
     approvalId: string,
-    selectedPath?: string
+    selectedPath?: string,
+    selectionMode?: "file" | "dir"
   ) =>
     ipcRenderer.invoke(
       "selectCloudSaveCustomPathApproval",
       approvalId,
-      selectedPath
+      selectedPath,
+      selectionMode
     ) as Promise<SelectCloudSaveCustomPathApprovalResult>,
   confirmCloudSaveCustomPathApproval: (approvalId: string) =>
     ipcRenderer.invoke(
@@ -436,6 +508,12 @@ contextBridge.exposeInMainWorld("electron", {
 
   /* Emulators */
   getEmulatorConfigs: () => ipcRenderer.invoke("getEmulatorConfigs"),
+  getRpcs3ConfigRootStatus: () =>
+    ipcRenderer.invoke("getRpcs3ConfigRootStatus"),
+  getRpcs3DiscIdentityStatus: (objectId: string, shop: GameShop) =>
+    ipcRenderer.invoke("getRpcs3DiscIdentityStatus", objectId, shop),
+  setRpcs3ConfigRoot: (root: string) =>
+    ipcRenderer.invoke("setRpcs3ConfigRoot", root),
   detectEmulators: () => ipcRenderer.invoke("detectEmulators"),
   detectEmulator: (system: EmulatorSystem) =>
     ipcRenderer.invoke("detectEmulator", system),
@@ -1010,6 +1088,13 @@ contextBridge.exposeInMainWorld("electron", {
     collectionIds: string[]
   ) =>
     ipcRenderer.invoke("assignGameToCollection", shop, objectId, collectionIds),
+  setGameVisibility: (
+    shop: GameShop,
+    objectId: string,
+    field: "isHiddenFromOthers" | "isConcealed",
+    value: boolean
+  ): Promise<{ isHiddenFromOthers: boolean; isConcealed: boolean }> =>
+    ipcRenderer.invoke("setGameVisibility", shop, objectId, field, value),
   clearNewDownloadOptions: (shop: GameShop, objectId: string) =>
     ipcRenderer.invoke("clearNewDownloadOptions", shop, objectId),
   toggleGamePin: (shop: GameShop, objectId: string, pinned: boolean) =>
@@ -1039,7 +1124,9 @@ contextBridge.exposeInMainWorld("electron", {
     ipcRenderer.invoke("getGameLaunchProtonVersion", shop, objectId),
   verifyExecutablePathInUse: (executablePath: string) =>
     ipcRenderer.invoke("verifyExecutablePathInUse", executablePath),
-  getLibrary: () => ipcRenderer.invoke("getLibrary"),
+  getLibrary: (includeConcealed = false) =>
+    ipcRenderer.invoke("getLibrary", includeConcealed),
+  getHiddenLibrary: () => ipcRenderer.invoke("getHiddenLibrary"),
   refreshLibraryAssets: () => ipcRenderer.invoke("refreshLibraryAssets"),
   getRemoteLibrarySyncState: () =>
     ipcRenderer.invoke("getRemoteLibrarySyncState"),
@@ -1568,6 +1655,8 @@ contextBridge.exposeInMainWorld("electron", {
     ipcRenderer.on("game-launcher-status", listener);
     return () => ipcRenderer.removeListener("game-launcher-status", listener);
   },
+  getGameLauncherStatuses: (shop: GameShop, objectId: string) =>
+    ipcRenderer.invoke("getGameLauncherStatuses", shop, objectId),
   resetCommonRedistPreflight: () =>
     ipcRenderer.invoke("resetCommonRedistPreflight"),
   checkForUpdates: () => ipcRenderer.invoke("checkForUpdates"),
@@ -1892,6 +1981,8 @@ contextBridge.exposeInMainWorld("electron", {
 
   /* Big Picture */
   openBigPictureWindow: () => ipcRenderer.invoke("openBigPictureWindow"),
+  executeSystemPowerAction: (action: SystemPowerAction) =>
+    ipcRenderer.invoke("executeSystemPowerAction", action),
 
   /* Friends */
   openFriendsWindow: () => ipcRenderer.invoke("openFriendsWindow"),
