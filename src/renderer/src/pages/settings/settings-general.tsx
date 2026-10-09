@@ -90,20 +90,19 @@ export function SettingsGeneral() {
       });
     }, 1000 * 5);
 
-    setLanguageOptions(
-      orderBy(
-        Object.entries(languageResources)
-          .filter(([language]) => language !== "es")
-          .map(([language, value]) => {
-            return {
-              nativeName: value.language_name,
-              option: language,
-            };
-          }),
-        ["nativeName"],
-        "asc"
-      )
-    );
+
+  setLanguageOptions(
+    orderBy(
+      Object.entries(languageResources)
+        .filter(([language]) => language !== "es")
+        .map(([language, value]) => ({
+          nativeName: value.language_name,
+          option: language,
+        })),
+      ["nativeName"],
+      "asc"
+    )
+  );
 
     return () => {
       clearInterval(redistInterval);
