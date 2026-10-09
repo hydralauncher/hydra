@@ -6,7 +6,6 @@ const EPIC_ERROR_TRANSLATIONS: Record<EpicErrorCode, string> = {
   "unsupported-architecture": "epic_error_platform",
   "legendary-missing": "epic_error_legendary",
   "legendary-unavailable": "epic_error_legendary",
-  "vault-unavailable": "epic_error_vault",
   "api-unavailable": "epic_error_api",
   network: "epic_error_network",
   "invalid-proof": "epic_error_proof",

@@ -1,106 +1,81 @@
-import { createHash, randomUUID } from "node:crypto";
-import fs from "node:fs";
+import { ClassicLevel } from "classic-level";
+import { createHash } from "node:crypto";
+import fs from "node:fs/promises";
 import path from "node:path";
 import type {
   EpicConnectedConnection,
   EpicErrorCode,
   EpicSessionState,
-} from "@types";
+} from "../../../types/epic-integration.types";
+import {
+  isRecord,
+  validateLegendarySession,
+  validateLegendaryVersion,
+} from "./auth-protocol.js";
 
-const MAX_RECORD_BYTES = 1024 * 1024;
+export const EPIC_STORE_MAX_RECORD_BYTES = 1024 * 1024;
 const STORE_DIRECTORY_MODE = 0o700;
-const STORE_FILE_MODE = 0o600;
 
 export interface EpicStoreScope {
   environment: string;
   userId: string;
 }
-
 export interface EpicSessionBundle {
   user: Record<string, unknown>;
   version: Record<string, unknown>;
 }
-
-interface EpicStoredConnection {
+export interface EpicStoredConnection {
   connection: EpicConnectedConnection;
   sessionState: EpicSessionState;
   bundle?: EpicSessionBundle;
 }
-
-interface EpicStoreCrypto {
-  isEncryptionAvailable: () => boolean;
-  encryptString: (value: string) => Buffer;
-  decryptString: (value: Buffer) => string;
-}
-
 interface StoredRecord {
   schemaVersion: 1;
   connection: EpicConnectedConnection;
-  encryptedSession?: string;
+  bundle?: unknown;
 }
-
+export interface EpicStoreDatabase {
+  open(): Promise<void>;
+  close(): Promise<void>;
+  get(key: string): Promise<unknown>;
+  put(key: string, value: unknown, options: { sync: true }): Promise<void>;
+  del(key: string, options: { sync: true }): Promise<void>;
+}
 interface EpicStoreOptions {
   userDataPath: string;
-  crypto: EpicStoreCrypto;
+  createDatabase?: (directory: string) => EpicStoreDatabase;
 }
-
-function writePrivateFile(filePath: string, value: string) {
-  const fd = fs.openSync(filePath, "wx", STORE_FILE_MODE);
-  try {
-    fs.writeFileSync(fd, value, "utf8");
-    fs.fsyncSync(fd);
-  } finally {
-    fs.closeSync(fd);
+export class EpicStoreError extends Error {
+  constructor(public readonly code: EpicErrorCode) {
+    super(code);
+    this.name = "EpicStoreError";
   }
 }
-
-const isRecord = (value: unknown): value is Record<string, unknown> =>
-  typeof value === "object" && value !== null && !Array.isArray(value);
-
-const isMissingFile = (error: unknown): boolean =>
-  isRecord(error) && error.code === "ENOENT";
-
-const isConnection = (value: unknown): value is EpicConnectedConnection => {
-  if (!isRecord(value)) return false;
-  return (
-    value.connected === true &&
-    typeof value.connectionId === "string" &&
-    /^[a-zA-Z0-9]+$/.test(value.connectionId) &&
-    typeof value.epicAccountId === "string" &&
-    /^[a-f0-9]{32}$/.test(value.epicAccountId) &&
-    typeof value.displayName === "string" &&
-    value.displayName.length > 0 &&
-    typeof value.connectedAt === "string" &&
-    Number.isFinite(Date.parse(value.connectedAt))
-  );
-};
+const isConnection = (value: unknown): value is EpicConnectedConnection =>
+  isRecord(value) &&
+  value.connected === true &&
+  typeof value.connectionId === "string" &&
+  /^[a-zA-Z0-9]{8,128}$/.test(value.connectionId) &&
+  typeof value.epicAccountId === "string" &&
+  /^[a-f0-9]{32}$/.test(value.epicAccountId) &&
+  typeof value.displayName === "string" &&
+  value.displayName.trim().length > 0 &&
+  typeof value.connectedAt === "string" &&
+  Number.isFinite(Date.parse(value.connectedAt));
 
 const isBundle = (
   value: unknown,
   epicAccountId: string
 ): value is EpicSessionBundle => {
-  if (!isRecord(value) || !isRecord(value.user) || !isRecord(value.version)) {
+  if (!isRecord(value)) return false;
+  try {
+    const user = validateLegendarySession(value.user);
+    validateLegendaryVersion(value.version);
+    return (user.account_id as string).toLowerCase() === epicAccountId;
+  } catch {
     return false;
   }
-  const user = value.user;
-  return (
-    user.account_id === epicAccountId &&
-    typeof user.access_token === "string" &&
-    user.access_token.length > 0 &&
-    typeof user.refresh_token === "string" &&
-    user.refresh_token.length > 0 &&
-    typeof user.refresh_expires_at === "string" &&
-    Number.isFinite(Date.parse(user.refresh_expires_at))
-  );
 };
-
-const isEncryptedSession = (value: unknown): value is string =>
-  typeof value === "string" &&
-  value.length > 0 &&
-  value.length % 4 === 0 &&
-  /^[a-zA-Z0-9+/]+={0,2}$/.test(value) &&
-  Buffer.from(value, "base64").toString("base64") === value;
-
 const publicConnection = (
   connection: EpicConnectedConnection
 ): EpicConnectedConnection => ({
@@ -110,14 +85,6 @@ const publicConnection = (
   displayName: connection.displayName,
   connectedAt: connection.connectedAt,
 });
-
-class EpicStoreError extends Error {
-  constructor(public readonly code: EpicErrorCode) {
-    super(code);
-    this.name = "EpicStoreError";
-  }
-}
-
 const getEpicStoreScopeKey = (scope: EpicStoreScope): string => {
   try {
     const environment = new URL(scope.environment);
@@ -130,333 +97,263 @@ const getEpicStoreScopeKey = (scope: EpicStoreScope): string => {
       typeof scope.userId !== "string" ||
       !scope.userId ||
       scope.userId.trim() !== scope.userId
-    ) {
-      throw new EpicStoreError("invalid-response");
-    }
-    const normalizedEnvironment = environment.toString().replace(/\/+$/, "");
+    )
+      throw new Error();
     return createHash("sha256")
-      .update(JSON.stringify([normalizedEnvironment, scope.userId]))
+      .update(
+        JSON.stringify([
+          environment.toString().replace(/\/+$/, ""),
+          scope.userId,
+        ])
+      )
       .digest("hex");
   } catch {
     throw new EpicStoreError("invalid-response");
   }
 };
 
-/** This store belongs exclusively to the main process. A caller must confirm the
- * remote connection before restoring a returned session into Legendary.
- */
+/** Private to the main process. Confirm the remote link before reusing a bundle. */
 export class EpicConnectionStore {
   private readonly directory: string;
-  private readonly crypto: EpicStoreCrypto;
-  private readonly cleanupBlocked = new Set<string>();
-  private readonly invalidSessions = new Set<string>();
+  private database: EpicStoreDatabase | null = null;
+  private opening: Promise<void> | null = null;
+  private closing: Promise<void> | null = null;
+  private readonly queues = new Map<string, Promise<unknown>>();
+  private readonly blocked = new Set<string>();
 
-  constructor(options: EpicStoreOptions) {
-    this.directory = path.join(options.userDataPath, "epic-connections");
-    this.crypto = options.crypto;
+  constructor(private readonly options: EpicStoreOptions) {
+    this.directory = path.join(options.userDataPath, "epic-sessions-db");
   }
-
-  read(scope: EpicStoreScope): EpicStoredConnection | null {
-    const key = getEpicStoreScopeKey(scope);
-    if (this.isCleanupBlocked(key)) {
-      this.remove(scope);
-      return null;
-    }
-    const record = this.readRecord(key);
-    if (!record) return null;
-
-    if (this.isSessionInvalid(key)) {
-      try {
-        this.invalidateSession(scope);
-      } catch {
-        // A persisted marker blocks the old ciphertext until cleanup succeeds.
-      }
-      return { connection: record.connection, sessionState: "missing" };
-    }
-    if (!record.encryptedSession) {
-      return { connection: record.connection, sessionState: "missing" };
-    }
-
+  async open(): Promise<void> {
+    if (this.closing) throw new EpicStoreError("persistence-failed");
+    if (this.opening) return this.opening;
+    if (this.database) return;
+    const opening = this.openDatabase();
+    this.opening = opening;
     try {
-      if (!this.crypto.isEncryptionAvailable()) {
-        return { connection: record.connection, sessionState: "unavailable" };
-      }
-      const bundle: unknown = JSON.parse(
-        this.crypto.decryptString(
-          Buffer.from(record.encryptedSession, "base64")
-        )
-      );
-      if (!isBundle(bundle, record.connection.epicAccountId)) {
-        return { connection: record.connection, sessionState: "unavailable" };
-      }
-      const refreshExpiresAt = Date.parse(
-        bundle.user.refresh_expires_at as string
-      );
-      if (refreshExpiresAt <= Date.now()) {
-        return { connection: record.connection, sessionState: "expired" };
-      }
-      return { connection: record.connection, sessionState: "ready", bundle };
-    } catch {
-      return { connection: record.connection, sessionState: "unavailable" };
+      await opening;
+    } finally {
+      this.opening = null;
     }
   }
-
-  cacheConnection(
-    scope: EpicStoreScope,
-    connection: EpicConnectedConnection,
-    isCurrent: () => boolean
-  ): void {
-    const key = getEpicStoreScopeKey(scope);
-    this.assertCurrent(isCurrent);
-    this.assertConnection(connection);
-    this.prepareForSave(scope, key);
-    const previous = this.readRecord(key);
-    const sameConnection =
-      previous?.connection.connectionId === connection.connectionId &&
-      previous.connection.epicAccountId === connection.epicAccountId;
-    const record: StoredRecord = {
-      schemaVersion: 1,
-      connection: publicConnection(connection),
-    };
-    if (sameConnection && previous.encryptedSession) {
-      record.encryptedSession = previous.encryptedSession;
-    }
-    this.writeRecord(key, record, isCurrent);
-  }
-
-  save(
-    scope: EpicStoreScope,
-    connection: EpicConnectedConnection,
-    bundle: EpicSessionBundle,
-    isCurrent: () => boolean
-  ): void {
-    const key = getEpicStoreScopeKey(scope);
-    this.assertCurrent(isCurrent);
-    this.assertConnection(connection);
-    if (!isBundle(bundle, connection.epicAccountId)) {
-      throw new EpicStoreError("invalid-response");
-    }
-    this.prepareForSave(scope, key);
-
-    let encryptedSession: string;
+  private async openDatabase() {
     try {
-      if (!this.crypto.isEncryptionAvailable()) {
-        throw new EpicStoreError("vault-unavailable");
-      }
-      const serialized = JSON.stringify({
-        user: bundle.user,
-        version: bundle.version,
+      await fs.mkdir(this.directory, {
+        recursive: true,
+        mode: STORE_DIRECTORY_MODE,
       });
-      if (Buffer.byteLength(serialized, "utf8") > MAX_RECORD_BYTES) {
-        throw new EpicStoreError("invalid-response");
-      }
-      const encrypted = this.crypto.encryptString(serialized);
-      if (!Buffer.isBuffer(encrypted) || encrypted.length === 0) {
-        throw new EpicStoreError("vault-unavailable");
-      }
-      encryptedSession = encrypted.toString("base64");
-    } catch (error) {
-      if (error instanceof EpicStoreError) throw error;
-      throw new EpicStoreError("vault-unavailable");
-    }
-
-    this.writeRecord(
-      key,
-      {
-        schemaVersion: 1,
-        connection: publicConnection(connection),
-        encryptedSession,
-      },
-      isCurrent
-    );
-  }
-
-  remove(scope: EpicStoreScope): void {
-    const key = getEpicStoreScopeKey(scope);
-    this.cleanupBlocked.add(key);
-    try {
-      this.ensureDirectory();
-      this.writeMarker(key, "cleanup");
-      this.unlinkIfPresent(this.filePath(key));
-      this.unlinkIfPresent(this.filePath(key, "quarantine"));
-      this.unlinkIfPresent(this.filePath(key, "session-invalid"));
-      this.unlinkIfPresent(this.filePath(key, "cleanup"));
-      this.cleanupBlocked.delete(key);
-      this.invalidSessions.delete(key);
+      const stat = await fs.lstat(this.directory);
+      if (!stat.isDirectory() || stat.isSymbolicLink()) throw new Error();
+      if (process.platform !== "win32")
+        await fs.chmod(this.directory, STORE_DIRECTORY_MODE);
+      if (this.closing) throw new Error();
+      // ClassicLevel auto-opens; the private directory must already exist.
+      this.database = this.options.createDatabase
+        ? this.options.createDatabase(this.directory)
+        : new ClassicLevel<string, unknown>(this.directory, {
+            valueEncoding: "json",
+          });
+      await this.database.open();
     } catch {
-      // If marker creation failed, quarantine also blocks reads after restart.
-      try {
-        if (this.fileExists(this.filePath(key))) {
-          fs.renameSync(this.filePath(key), this.filePath(key, "quarantine"));
-        }
-      } catch {
-        // Keep the in-process block. Remote confirmation is still mandatory.
-      }
-      throw new EpicStoreError("cleanup-failed");
+      await this.database?.close().catch(() => undefined);
+      this.database = null;
+      throw new EpicStoreError("persistence-failed");
     }
   }
-
-  private invalidateSession(scope: EpicStoreScope): void {
-    const key = getEpicStoreScopeKey(scope);
-    this.invalidSessions.add(key);
-    try {
-      this.ensureDirectory();
-      this.writeMarker(key, "session-invalid");
-      const record = this.readRecord(key);
-      if (record) {
-        this.writeRecord(
-          key,
-          { schemaVersion: 1, connection: record.connection },
-          () => true
-        );
-      }
-      this.unlinkIfPresent(this.filePath(key, "session-invalid"));
-      this.invalidSessions.delete(key);
-    } catch {
-      try {
-        if (
-          !this.fileExists(this.filePath(key, "session-invalid")) &&
-          this.fileExists(this.filePath(key))
-        ) {
-          fs.renameSync(this.filePath(key), this.filePath(key, "quarantine"));
-        }
-      } catch {
-        // Remote confirmation is mandatory if disk permissions block a marker.
-      }
-      throw new EpicStoreError("cleanup-failed");
-    }
+  private enqueue<T>(key: string, task: () => Promise<T>): Promise<T> {
+    if (this.closing)
+      return Promise.reject(new EpicStoreError("persistence-failed"));
+    const result = (this.queues.get(key) ?? Promise.resolve())
+      .catch(() => undefined)
+      .then(task);
+    this.queues.set(key, result);
+    void result
+      .finally(() => {
+        if (this.queues.get(key) === result) this.queues.delete(key);
+      })
+      .catch(() => undefined);
+    return result;
   }
-
-  private assertCurrent(isCurrent: () => boolean): void {
+  private assertCurrent(isCurrent: () => boolean) {
     if (!isCurrent()) throw new EpicStoreError("operation-cancelled");
   }
-
-  private assertConnection(connection: EpicConnectedConnection): void {
-    if (!isConnection(connection)) {
-      throw new EpicStoreError("invalid-response");
-    }
+  private assertUnblocked(key: string) {
+    if (this.blocked.has(key)) throw new EpicStoreError("cleanup-failed");
   }
-
-  private prepareForSave(scope: EpicStoreScope, key: string): void {
-    if (this.isCleanupBlocked(key)) this.remove(scope);
-    if (this.isSessionInvalid(key)) this.invalidateSession(scope);
-  }
-
-  private filePath(key: string, suffix = "json"): string {
-    return path.join(this.directory, `${key}.${suffix}`);
-  }
-
-  private isCleanupBlocked(key: string): boolean {
-    return (
-      this.cleanupBlocked.has(key) ||
-      this.fileExists(this.filePath(key, "cleanup")) ||
-      this.fileExists(this.filePath(key, "quarantine"))
-    );
-  }
-
-  private isSessionInvalid(key: string): boolean {
-    return (
-      this.invalidSessions.has(key) ||
-      this.fileExists(this.filePath(key, "session-invalid"))
-    );
-  }
-
-  private ensureDirectory(): void {
-    fs.mkdirSync(this.directory, {
-      recursive: true,
-      mode: STORE_DIRECTORY_MODE,
-    });
-    if (process.platform !== "win32") {
-      fs.chmodSync(this.directory, STORE_DIRECTORY_MODE);
-    }
-  }
-
-  private readRecord(key: string): StoredRecord | null {
-    const filePath = this.filePath(key);
+  private async readRecord(key: string): Promise<StoredRecord | null> {
     try {
-      const stat = fs.lstatSync(filePath);
+      if (this.opening) await this.opening;
+      else if (!this.database) await this.open();
+      const value = await this.database!.get(key);
+      if (value === undefined) return null;
       if (
-        !stat.isFile() ||
-        stat.isSymbolicLink() ||
-        stat.size > MAX_RECORD_BYTES
-      ) {
-        throw new EpicStoreError("persistence-failed");
-      }
-      const serialized = fs.readFileSync(filePath, "utf8");
-      if (Buffer.byteLength(serialized, "utf8") > MAX_RECORD_BYTES) {
-        throw new EpicStoreError("persistence-failed");
-      }
-      const value: unknown = JSON.parse(serialized);
-      if (
+        Buffer.byteLength(JSON.stringify(value), "utf8") >
+          EPIC_STORE_MAX_RECORD_BYTES ||
         !isRecord(value) ||
         value.schemaVersion !== 1 ||
-        !isConnection(value.connection) ||
-        (value.encryptedSession !== undefined &&
-          !isEncryptedSession(value.encryptedSession))
-      ) {
-        throw new EpicStoreError("persistence-failed");
-      }
+        !isConnection(value.connection)
+      )
+        throw new Error();
       return {
         schemaVersion: 1,
         connection: publicConnection(value.connection),
-        ...(value.encryptedSession === undefined
-          ? {}
-          : { encryptedSession: value.encryptedSession }),
+        ...(value.bundle === undefined ? {} : { bundle: value.bundle }),
       };
     } catch (error) {
-      if (isMissingFile(error)) return null;
-      throw new EpicStoreError("persistence-failed");
-    }
-  }
-
-  private writeMarker(key: string, suffix: string): void {
-    const markerPath = this.filePath(key, suffix);
-    if (this.fileExists(markerPath)) return;
-    writePrivateFile(markerPath, "{}");
-  }
-
-  private writeRecord(
-    key: string,
-    record: StoredRecord,
-    isCurrent: () => boolean
-  ): void {
-    const temporaryPath = this.filePath(key, `${randomUUID()}.tmp`);
-    try {
-      const serialized = JSON.stringify(record);
-      if (Buffer.byteLength(serialized, "utf8") > MAX_RECORD_BYTES) {
-        throw new EpicStoreError("persistence-failed");
-      }
-      this.assertCurrent(isCurrent);
-      this.ensureDirectory();
-      writePrivateFile(temporaryPath, serialized);
-      this.assertCurrent(isCurrent);
-      fs.renameSync(temporaryPath, this.filePath(key));
-    } catch (error) {
-      try {
-        this.unlinkIfPresent(temporaryPath);
-      } catch {
-        // The temporary file contains ciphertext only and is never read.
-      }
+      if (isRecord(error) && error.code === "LEVEL_NOT_FOUND") return null;
       if (error instanceof EpicStoreError) throw error;
       throw new EpicStoreError("persistence-failed");
     }
   }
-
-  private unlinkIfPresent(filePath: string): void {
-    try {
-      fs.unlinkSync(filePath);
-    } catch (error) {
-      if (!isMissingFile(error)) throw error;
-    }
+  private describe(record: StoredRecord): EpicStoredConnection {
+    const connection = publicConnection(record.connection);
+    if (record.bundle === undefined)
+      return { connection, sessionState: "missing" };
+    if (!isBundle(record.bundle, connection.epicAccountId))
+      return { connection, sessionState: "unavailable" };
+    if (
+      Date.parse(record.bundle.user.refresh_expires_at as string) <= Date.now()
+    )
+      return { connection, sessionState: "expired" };
+    return { connection, sessionState: "ready", bundle: record.bundle };
   }
-
-  private fileExists(filePath: string): boolean {
+  async read(scope: EpicStoreScope): Promise<EpicStoredConnection | null> {
+    const key = getEpicStoreScopeKey(scope);
+    return this.enqueue(key, async () => {
+      this.assertUnblocked(key);
+      const record = await this.readRecord(key);
+      return record ? this.describe(record) : null;
+    });
+  }
+  private async writeRecord(
+    key: string,
+    previous: StoredRecord | null,
+    record: StoredRecord,
+    isCurrent: () => boolean,
+    onCommitted?: (stored: EpicStoredConnection) => void
+  ): Promise<EpicStoredConnection> {
     try {
-      fs.lstatSync(filePath);
-      return true;
+      const serialized = JSON.stringify(record);
+      if (Buffer.byteLength(serialized, "utf8") > EPIC_STORE_MAX_RECORD_BYTES)
+        throw new EpicStoreError("invalid-response");
+      const detached: StoredRecord = JSON.parse(serialized);
+      this.assertCurrent(isCurrent);
+      await this.database!.put(key, detached, { sync: true });
+      if (!isCurrent()) {
+        try {
+          if (previous) await this.database!.put(key, previous, { sync: true });
+          else await this.database!.del(key, { sync: true });
+        } catch {
+          this.blocked.add(key);
+          throw new EpicStoreError("cleanup-failed");
+        }
+        throw new EpicStoreError("operation-cancelled");
+      }
+      const stored = this.describe(detached);
+      // End cancelability synchronously, before the caller's await resumes.
+      onCommitted?.(stored);
+      return stored;
     } catch (error) {
-      if (isMissingFile(error)) return false;
+      if (error instanceof EpicStoreError) throw error;
       throw new EpicStoreError("persistence-failed");
     }
+  }
+  async cacheConnection(
+    scope: EpicStoreScope,
+    connection: EpicConnectedConnection,
+    isCurrent: () => boolean
+  ): Promise<EpicStoredConnection> {
+    const key = getEpicStoreScopeKey(scope);
+    return this.enqueue(key, async () => {
+      this.assertUnblocked(key);
+      this.assertCurrent(isCurrent);
+      if (!isConnection(connection))
+        throw new EpicStoreError("invalid-response");
+      const previous = await this.readRecord(key);
+      const sameConnection =
+        previous?.connection.connectionId === connection.connectionId &&
+        previous.connection.epicAccountId === connection.epicAccountId;
+      return this.writeRecord(
+        key,
+        previous,
+        {
+          schemaVersion: 1,
+          connection: publicConnection(connection),
+          ...(sameConnection && previous.bundle !== undefined
+            ? { bundle: previous.bundle }
+            : {}),
+        },
+        isCurrent
+      );
+    });
+  }
+  async save(
+    scope: EpicStoreScope,
+    connection: EpicConnectedConnection,
+    bundle: EpicSessionBundle,
+    isCurrent: () => boolean,
+    onCommitted?: (stored: EpicStoredConnection) => void
+  ): Promise<EpicStoredConnection> {
+    const key = getEpicStoreScopeKey(scope);
+    return this.enqueue(key, async () => {
+      this.assertUnblocked(key);
+      this.assertCurrent(isCurrent);
+      if (
+        !isConnection(connection) ||
+        !isBundle(bundle, connection.epicAccountId)
+      )
+        throw new EpicStoreError("invalid-response");
+      const previous = await this.readRecord(key);
+      return this.writeRecord(
+        key,
+        previous,
+        {
+          schemaVersion: 1,
+          connection: publicConnection(connection),
+          bundle: { user: bundle.user, version: bundle.version },
+        },
+        isCurrent,
+        onCommitted
+      );
+    });
+  }
+  async remove(
+    scope: EpicStoreScope,
+    isCurrent: () => boolean,
+    expectedConnectionId?: string
+  ): Promise<void> {
+    const key = getEpicStoreScopeKey(scope);
+    return this.enqueue(key, async () => {
+      this.assertCurrent(isCurrent);
+      const previous = await this.readRecord(key);
+      this.assertCurrent(isCurrent);
+      if (
+        expectedConnectionId &&
+        previous &&
+        previous.connection.connectionId !== expectedConnectionId
+      )
+        throw new EpicStoreError("stale-connection");
+      try {
+        await this.database!.del(key, { sync: true });
+        this.blocked.delete(key);
+      } catch {
+        this.blocked.add(key);
+        throw new EpicStoreError("cleanup-failed");
+      }
+    });
+  }
+  close(): Promise<void> {
+    this.closing ??= (async () => {
+      await Promise.allSettled([...this.queues.values()]);
+      await this.opening?.catch(() => undefined);
+      try {
+        await this.database?.close();
+      } catch {
+        throw new EpicStoreError("persistence-failed");
+      } finally {
+        this.database = null;
+      }
+    })();
+    return this.closing;
   }
 }

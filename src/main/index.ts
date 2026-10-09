@@ -183,7 +183,7 @@ const initializeApp = async () => {
   }
   // Optional integration failures must not interrupt launcher startup.
   await initializeEpicIntegration().catch(() => {
-    logger.warn("Epic temporary-session cleanup unavailable");
+    logger.warn("Epic integration initialization unavailable");
   });
 
   // Suspend can outlive the 60s stall watchdog; reconnect right away instead

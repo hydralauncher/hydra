@@ -1,4 +1,4 @@
-import { app, safeStorage } from "electron";
+import { app } from "electron";
 import fs from "node:fs";
 import type { EpicConnectionState } from "../../../types/epic-integration.types";
 import { HydraApi } from "../hydra-api";
@@ -17,20 +17,7 @@ const EPIC_CONNECTION_ENDPOINT = "/profile/integrations/epic";
 let integration: EpicIntegrationCore | null = null;
 let unsubscribeAuth: (() => void) | null = null;
 let temporaryCleanupFailed = false;
-
-function isEncryptionAvailable() {
-  try {
-    return (
-      safeStorage.isEncryptionAvailable() &&
-      (process.platform !== "linux" ||
-        ["gnome_libsecret", "kwallet", "kwallet5", "kwallet6"].includes(
-          safeStorage.getSelectedStorageBackend()
-        ))
-    );
-  } catch {
-    return false;
-  }
-}
+let stopping = false;
 
 const binaryFailure = (error: unknown) =>
   isRecord(error) && (error.code === "ENOENT" || error.code === "ENOTDIR")
@@ -50,8 +37,6 @@ function availability(): EpicConnectionState["availability"] {
   } catch (error) {
     return { available: false, reason: binaryFailure(error) };
   }
-  if (!isEncryptionAvailable())
-    return { available: false, reason: "vault-unavailable" };
   return { available: true };
 }
 
@@ -78,20 +63,15 @@ async function checkBinary() {
 
 function getIntegration() {
   if (integration) return integration;
+  if (stopping) throw new EpicIntegrationError("operation-cancelled");
   const store = new EpicConnectionStore({
     userDataPath: app.getPath("userData"),
-    crypto: {
-      isEncryptionAvailable,
-      encryptString: (value) => safeStorage.encryptString(value),
-      decryptString: (value) => safeStorage.decryptString(value),
-    },
   });
   integration = new EpicIntegrationCore({
     getAuthContext: () => HydraApi.getAuthContext(),
     isAuthContextCurrent: (context) => HydraApi.isAuthContextCurrent(context),
     store,
     availability,
-    isEncryptionAvailable,
     checkBinary,
     createRunner: (binary, signal) =>
       LegendaryAuthRunner.create(binary, app.getPath("userData"), signal),
@@ -122,20 +102,25 @@ function getIntegration() {
 }
 
 export async function initializeEpicIntegration() {
+  if (stopping) return;
   // Crash recovery touches only our temporary directories. Never execute Legendary here.
   try {
     await cleanupEpicTemporarySessions(app.getPath("userData"));
   } catch {
     temporaryCleanupFailed = true;
   }
+  if (stopping) return;
   if (!unsubscribeAuth) {
     unsubscribeAuth = HydraApi.onAuthContextChanged(() => {
-      if (integration) void integration.authContextChanged();
+      if (integration)
+        void integration.authContextChanged().catch(() => undefined);
     });
   }
+  await getIntegration().initialize();
 }
 
 export async function shutdownEpicIntegration() {
+  stopping = true;
   unsubscribeAuth?.();
   unsubscribeAuth = null;
   await integration?.shutdown();

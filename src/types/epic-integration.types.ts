@@ -16,7 +16,6 @@ export type EpicErrorCode =
   | "unsupported-architecture"
   | "legendary-missing"
   | "legendary-unavailable"
-  | "vault-unavailable"
   | "api-unavailable"
   | "network"
   | "invalid-proof"

@@ -659,7 +659,6 @@
     "epic_error_hydra_auth": "Entre no Hydra para conectar sua conta Epic Games.",
     "epic_error_platform": "A conexão Epic Games ainda não está disponível nesta plataforma ou arquitetura.",
     "epic_error_legendary": "O componente de login Epic está indisponível. Verifique sua instalação do Hydra.",
-    "epic_error_vault": "O armazenamento seguro está indisponível. O Hydra não pode salvar sua sessão Epic com segurança.",
     "epic_error_api": "A conexão Epic Games está indisponível neste servidor Hydra. Tente novamente mais tarde.",
     "epic_error_network": "Não foi possível confirmar a conexão Epic. Verifique sua conexão e tente novamente. Seu vínculo existente foi preservado.",
     "epic_error_proof": "Sua autorização Epic expirou ou já foi usada. Inicie o login novamente.",

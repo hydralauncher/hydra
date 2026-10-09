@@ -36,13 +36,7 @@ test("offline and missing local session/dependencies preserve link and disconnec
           boolean,
         ]
     ),
-    ...(
-      [
-        "legendary-missing",
-        "vault-unavailable",
-        "unsupported-architecture",
-      ] as const
-    ).map(
+    ...(["legendary-missing", "unsupported-architecture"] as const).map(
       (reason) =>
         [
           { availability: { available: false, reason } },
@@ -62,7 +56,7 @@ test("offline and missing local session/dependencies preserve link and disconnec
   }
 });
 
-test("vault availability controls login and reconnect without blocking disconnect", () => {
+test("binary availability controls login and reconnect without blocking disconnect", () => {
   for (const connected of [false, true]) {
     for (const available of [false, true]) {
       const current = state({
@@ -70,7 +64,7 @@ test("vault availability controls login and reconnect without blocking disconnec
         sessionState: "missing",
         availability: available
           ? { available: true }
-          : { available: false, reason: "vault-unavailable" },
+          : { available: false, reason: "legendary-missing" },
       });
       const view = getEpicIntegrationPresentation(current, true);
       assert.equal(view.canAuthenticate, available);

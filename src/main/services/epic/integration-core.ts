@@ -5,6 +5,7 @@ import type {
   EpicConnectionState,
   EpicErrorCode,
   EpicOperationResult,
+  EpicSessionState,
   EpicStartAuthResult,
 } from "../../../types/epic-integration.types";
 import {
@@ -14,7 +15,11 @@ import {
 } from "./auth-protocol.js";
 import type { EpicAuthWindow, EpicAuthWindowCallbacks } from "./auth-window";
 import type { EpicSessionRunner } from "./legendary-auth";
-import type { EpicConnectionStore, EpicStoreScope } from "./store";
+import type {
+  EpicConnectionStore,
+  EpicStoredConnection,
+  EpicStoreScope,
+} from "./store";
 
 export interface EpicAuthContext extends EpicStoreScope {
   generation: number;
@@ -31,10 +36,9 @@ export interface EpicIntegrationDependencies {
   isAuthContextCurrent(context: EpicAuthContext): boolean;
   store: Pick<
     EpicConnectionStore,
-    "read" | "save" | "remove" | "cacheConnection"
+    "open" | "read" | "save" | "remove" | "cacheConnection" | "close"
   >;
   availability(): EpicConnectionState["availability"];
-  isEncryptionAvailable(): boolean;
   checkBinary(): Promise<string>;
   createRunner(binary: string, signal: AbortSignal): Promise<EpicSessionRunner>;
   openWindow(callbacks: EpicAuthWindowCallbacks): EpicAuthWindow;
@@ -50,6 +54,7 @@ interface EpicOperation {
   controller: AbortController;
   status: NonNullable<EpicConnectionState["operation"]>["status"];
   cancelled: boolean;
+  cleanedUp?: boolean;
   window?: EpicAuthWindow;
   runner?: EpicSessionRunner;
   task?: Promise<EpicOperationResult>;
@@ -108,10 +113,10 @@ function safeError(error: unknown): EpicErrorCode {
   if (error instanceof EpicIntegrationError) return error.code;
   if (!isRecord(error)) return "network";
   if (
-    error.code === "vault-unavailable" ||
     error.code === "persistence-failed" ||
     error.code === "cleanup-failed" ||
     error.code === "invalid-response" ||
+    error.code === "stale-connection" ||
     error.code === "operation-cancelled"
   )
     return error.code;
@@ -137,6 +142,17 @@ export class EpicIntegrationCore {
   private operation: EpicOperation | null = null;
   private state: EpicConnectionState | null = null;
   private revision = 0;
+  private stopping = false;
+  private shuttingDown: Promise<void> | null = null;
+  private stateContext: EpicAuthContext | null = null;
+  private cached: {
+    context: EpicAuthContext;
+    connection: EpicConnectedConnection | null;
+    sessionState: EpicSessionState;
+    refreshExpiresAt?: number;
+    error?: EpicErrorCode;
+  } | null = null;
+  private readonly reads = new Set<Promise<EpicConnectionState>>();
   private pendingCleanup: Promise<unknown> = Promise.resolve();
   private readonly queries = new Set<AbortController>();
   private readonly cleanupRetries = new Set<EpicOperation>();
@@ -144,7 +160,7 @@ export class EpicIntegrationCore {
   constructor(private readonly dependencies: EpicIntegrationDependencies) {}
 
   private isCurrent(context: EpicAuthContext) {
-    return this.dependencies.isAuthContextCurrent(context);
+    return !this.stopping && this.dependencies.isAuthContextCurrent(context);
   }
 
   private isActive(operation: EpicOperation) {
@@ -173,11 +189,42 @@ export class EpicIntegrationCore {
     };
   }
 
+  public async initialize() {
+    if (this.stopping) throw new EpicIntegrationError("operation-cancelled");
+    await this.dependencies.store.open();
+  }
+
+  private matches(a: EpicAuthContext | null | undefined, b: EpicAuthContext) {
+    return (
+      a?.userId === b.userId &&
+      a.environment === b.environment &&
+      a.generation === b.generation
+    );
+  }
+
+  private cacheStored(
+    context: EpicAuthContext,
+    stored: EpicStoredConnection | null
+  ) {
+    this.cached = {
+      context,
+      connection: stored?.connection ?? null,
+      sessionState: stored?.sessionState ?? "missing",
+      ...(stored?.bundle
+        ? {
+            refreshExpiresAt: Date.parse(
+              stored.bundle.user.refresh_expires_at as string
+            ),
+          }
+        : {}),
+    };
+  }
+
   private snapshot(
     context = this.dependencies.getAuthContext()
   ): EpicConnectionState {
     const availability = this.dependencies.availability();
-    if (!context) {
+    if (!context)
       return {
         hydraLoggedIn: false,
         hydraUserId: null,
@@ -187,19 +234,19 @@ export class EpicIntegrationCore {
         sessionState: "missing",
         operation: null,
       };
-    }
-    let cached: ReturnType<EpicIntegrationDependencies["store"]["read"]> = null;
-    let error: EpicErrorCode | undefined;
-    try {
-      cached = this.dependencies.store.read(context);
-    } catch (error_) {
-      error = safeError(error_);
-    }
-    const previous =
-      this.state?.hydraUserId === context.userId ? this.state : null;
+    const cached = this.matches(this.cached?.context, context)
+      ? this.cached
+      : null;
+    const previous = this.matches(this.stateContext, context)
+      ? this.state
+      : null;
     const active =
       this.operation && this.isActive(this.operation) ? this.operation : null;
-    const snapshotError = error ?? previous?.error;
+    const error = cached?.error ?? previous?.error;
+    const sessionState =
+      cached?.sessionState === "ready" && cached.refreshExpiresAt! <= Date.now()
+        ? "expired"
+        : (cached?.sessionState ?? "missing");
     return {
       hydraLoggedIn: true,
       hydraUserId: context.userId,
@@ -207,34 +254,47 @@ export class EpicIntegrationCore {
       connection: previous?.connection ??
         cached?.connection ?? { connected: false },
       verification: previous?.verification ?? "unconfirmed",
-      sessionState: cached?.sessionState ?? "missing",
+      sessionState,
       operation: active ? { id: active.id, status: active.status } : null,
-      ...(snapshotError ? { error: snapshotError } : {}),
+      ...(error ? { error } : {}),
     };
   }
 
   private emit(context: EpicAuthContext | null, error?: EpicErrorCode) {
-    if (context && !this.isCurrent(context)) return;
+    if (this.stopping || (context && !this.isCurrent(context))) return;
     this.state = { ...this.snapshot(context), ...(error ? { error } : {}) };
+    this.stateContext = context;
     this.dependencies.emit(this.state);
   }
 
-  private applyRemote(context: EpicAuthContext, connection: EpicConnection) {
-    if (!this.isCurrent(context))
-      throw new EpicIntegrationError("operation-cancelled");
-    let error: EpicErrorCode | undefined;
-    try {
-      if (connection.connected) {
-        this.dependencies.store.cacheConnection(context, connection, () =>
-          this.isCurrent(context)
-        );
-      } else {
-        this.dependencies.store.remove(context);
-      }
-    } catch (error_) {
-      error = safeError(error_);
-    }
+  private invalidateQueries() {
     this.revision++;
+    for (const query of this.queries) query.abort();
+  }
+
+  private async hydrate(context: EpicAuthContext, isCurrent: () => boolean) {
+    try {
+      const stored = await this.dependencies.store.read(context);
+      if (isCurrent()) this.cacheStored(context, stored);
+    } catch (error) {
+      if (isCurrent())
+        this.cached = {
+          context,
+          connection: this.matches(this.cached?.context, context)
+            ? this.cached!.connection
+            : null,
+          sessionState: "unavailable",
+          error: safeError(error),
+        };
+    }
+  }
+
+  private remoteState(
+    context: EpicAuthContext,
+    connection: EpicConnection,
+    error?: EpicErrorCode
+  ) {
+    this.stateContext = context;
     this.state = {
       ...this.snapshot(context),
       connection,
@@ -243,39 +303,97 @@ export class EpicIntegrationCore {
         ? { error, sessionState: "unavailable" as const }
         : { error: undefined }),
     };
+    this.revision++;
     this.dependencies.emit(this.state);
     return this.state;
   }
 
-  public async getConnection(): Promise<EpicConnectionState> {
+  private async applyRemote(
+    context: EpicAuthContext,
+    connection: EpicConnection,
+    isCurrent: () => boolean,
+    expectedConnectionId?: string
+  ) {
+    if (!isCurrent()) throw new EpicIntegrationError("operation-cancelled");
+    let error: EpicErrorCode | undefined;
+    let stored: EpicStoredConnection | null = null;
+    try {
+      if (connection.connected)
+        stored = await this.dependencies.store.cacheConnection(
+          context,
+          connection,
+          isCurrent
+        );
+      else
+        await this.dependencies.store.remove(
+          context,
+          isCurrent,
+          expectedConnectionId
+        );
+    } catch (cause) {
+      error = safeError(cause);
+      if (error === "operation-cancelled" || error === "stale-connection")
+        throw cause;
+    }
+    if (!isCurrent()) throw new EpicIntegrationError("operation-cancelled");
+    this.cacheStored(context, stored);
+    if (error)
+      this.cached = {
+        context,
+        connection: connection.connected ? connection : null,
+        sessionState: "unavailable",
+        error,
+      };
+    return this.remoteState(context, connection, error);
+  }
+
+  public getConnection(): Promise<EpicConnectionState> {
     const context = this.dependencies.getAuthContext();
     if (
+      this.stopping ||
       !context ||
-      this.dependencies.availability().reason === "unsupported-platform"
+      this.dependencies.availability().reason === "unsupported-platform" ||
+      this.operation?.status === "connecting" ||
+      this.operation?.status === "disconnecting"
     ) {
-      return this.snapshot(context);
+      return Promise.resolve(this.snapshot(context));
     }
+    const task = this.queryConnection(context);
+    this.reads.add(task);
+    void task.finally(() => this.reads.delete(task)).catch(() => undefined);
+    return task;
+  }
+
+  private async queryConnection(
+    context: EpicAuthContext
+  ): Promise<EpicConnectionState> {
     const revision = ++this.revision;
     const controller = new AbortController();
+    const isCurrent = () =>
+      !controller.signal.aborted &&
+      this.isCurrent(context) &&
+      revision === this.revision;
     this.queries.add(controller);
     try {
-      const response = await this.dependencies.get(
-        this.requestOptions(context, controller.signal)
+      const [, remote] = await Promise.allSettled([
+        this.hydrate(context, isCurrent),
+        this.dependencies.get(this.requestOptions(context, controller.signal)),
+      ]);
+      if (!isCurrent()) return this.snapshot();
+      if (remote.status === "rejected") throw remote.reason;
+      const state = await this.applyRemote(
+        context,
+        validateEpicConnection(remote.value),
+        isCurrent
       );
-      if (
-        controller.signal.aborted ||
-        !this.isCurrent(context) ||
-        revision !== this.revision
-      )
-        return this.snapshot();
-      return this.applyRemote(context, validateEpicConnection(response));
+      return this.isCurrent(context) &&
+        !controller.signal.aborted &&
+        this.state === state
+        ? state
+        : this.snapshot();
     } catch (error) {
-      if (
-        controller.signal.aborted ||
-        !this.isCurrent(context) ||
-        revision !== this.revision
-      )
-        return this.snapshot();
+      if (!isCurrent()) return this.snapshot();
+      this.stateContext = context;
       this.state = {
         ...this.snapshot(context),
         verification: "unconfirmed",
@@ -290,16 +408,16 @@ export class EpicIntegrationCore {
 
   public async startAuth(): Promise<EpicStartAuthResult> {
     await this.pendingCleanup;
+    if (this.stopping) return { ok: false, error: "operation-cancelled" };
     if (!(await this.retryCleanup()))
       return { ok: false, error: "cleanup-failed" };
+    if (this.stopping) return { ok: false, error: "operation-cancelled" };
     if (this.operation) return { ok: false, error: "operation-in-progress" };
     const context = this.dependencies.getAuthContext();
     if (!context) return { ok: false, error: "hydra-auth-required" };
     const available = this.dependencies.availability();
     if (!available.available)
       return { ok: false, error: available.reason ?? "legendary-unavailable" };
-    if (!this.dependencies.isEncryptionAvailable())
-      return { ok: false, error: "vault-unavailable" };
     const operation: EpicOperation = {
       id: randomUUID(),
       context,
@@ -415,7 +533,7 @@ export class EpicIntegrationCore {
         throw new EpicIntegrationError("invalid-response");
       }
       operation.status = "connecting";
-      this.revision++;
+      this.invalidateQueries();
       this.emit(operation.context);
       const connection = await this.confirmConnection(
         operation,
@@ -423,16 +541,45 @@ export class EpicIntegrationCore {
         accountId
       );
       this.assertActive(operation);
-      this.applyRemote(operation.context, connection);
+      // The server link is real even if local persistence subsequently fails.
+      this.remoteState(operation.context, connection);
+      if (!(await this.cleanupOperation(operation)))
+        throw new EpicIntegrationError("cleanup-failed");
       this.assertActive(operation);
-      this.dependencies.store.save(operation.context, connection, bundle, () =>
-        this.isActive(operation)
+      await this.dependencies.store.save(
+        operation.context,
+        connection,
+        bundle,
+        () => this.isActive(operation),
+        (stored) => {
+          this.cacheStored(operation.context, stored);
+          this.operation = null;
+          this.stateContext = operation.context;
+          this.state = {
+            ...this.snapshot(operation.context),
+            connection,
+            verification: "confirmed",
+            error: undefined,
+          };
+        }
       );
-      this.assertActive(operation);
-      this.state = { ...this.snapshot(operation.context), error: undefined };
+      this.emit(operation.context);
       result = { ok: true };
     } catch (error) {
       failure = safeError(error);
+      if (
+        this.isCurrent(operation.context) &&
+        (failure === "persistence-failed" || failure === "cleanup-failed")
+      ) {
+        this.cached = {
+          context: operation.context,
+          connection: this.state?.connection?.connected
+            ? this.state.connection
+            : null,
+          sessionState: "unavailable",
+          error: failure,
+        };
+      }
       result = { ok: false, error: failure };
     } finally {
       const cleanupError = await this.finish(operation, failure);
@@ -483,7 +630,9 @@ export class EpicIntegrationCore {
       try {
         const latest = await this.readRemote(operation);
         this.assertActive(operation);
-        this.applyRemote(operation.context, latest);
+        await this.applyRemote(operation.context, latest, () =>
+          this.isActive(operation)
+        );
       } catch {
         this.assertActive(operation);
       }
@@ -501,7 +650,9 @@ export class EpicIntegrationCore {
     const connection = await this.readRemote(operation);
     this.assertActive(operation);
     if (!connection.connected || connection.epicAccountId !== accountId) {
-      this.applyRemote(operation.context, connection);
+      await this.applyRemote(operation.context, connection, () =>
+        this.isActive(operation)
+      );
       throw new EpicIntegrationError(cause);
     }
     return connection;
@@ -513,6 +664,7 @@ export class EpicIntegrationCore {
   }
 
   private async cleanupOperation(operation: EpicOperation) {
+    if (operation.cleanedUp) return true;
     let cleanupFailed = false;
     try {
       await operation.window?.cleanup();
@@ -524,6 +676,7 @@ export class EpicIntegrationCore {
     } catch {
       cleanupFailed = true;
     }
+    operation.cleanedUp = !cleanupFailed;
     return !cleanupFailed;
   }
 
@@ -581,23 +734,37 @@ export class EpicIntegrationCore {
   }
 
   public async authContextChanged() {
-    this.revision++;
-    for (const query of this.queries) query.abort();
+    this.invalidateQueries();
     const cleanup = this.cancelActive();
+    const context = this.dependencies.getAuthContext();
     this.state = null;
-    this.emit(this.dependencies.getAuthContext());
+    this.stateContext = null;
+    this.cached = null;
+    this.emit(context);
     await cleanup;
-    if (this.dependencies.getAuthContext()) await this.getConnection();
+    if (context && this.isCurrent(context)) await this.getConnection();
   }
 
-  public async shutdown() {
-    for (const query of this.queries) query.abort();
-    await this.cancelActive();
-    await this.retryCleanup();
+  shutdown(): Promise<void> {
+    if (this.shuttingDown) return this.shuttingDown;
+    this.stopping = true;
+    this.invalidateQueries();
+    this.shuttingDown = (async () => {
+      try {
+        await this.cancelActive();
+        await Promise.allSettled([...this.reads]);
+        if (!(await this.retryCleanup()))
+          throw new EpicIntegrationError("cleanup-failed");
+      } finally {
+        await this.dependencies.store.close();
+      }
+    })();
+    return this.shuttingDown;
   }
 
   public async disconnect(connectionId: unknown): Promise<EpicOperationResult> {
     const context = this.dependencies.getAuthContext();
+    if (this.stopping) return { ok: false, error: "operation-cancelled" };
     if (!context) return { ok: false, error: "hydra-auth-required" };
     if (
       typeof connectionId !== "string" ||
@@ -611,6 +778,7 @@ export class EpicIntegrationCore {
     await this.cancelActive();
     if (!this.isCurrent(context))
       return { ok: false, error: "operation-cancelled" };
+    if (this.operation) return { ok: false, error: "operation-in-progress" };
     const operation: EpicOperation = {
       id: randomUUID(),
       context,
@@ -619,7 +787,7 @@ export class EpicIntegrationCore {
       cancelled: false,
     };
     this.operation = operation;
-    this.revision++;
+    this.invalidateQueries();
     this.emit(context);
     operation.task = this.performDisconnect(operation, connectionId);
     return operation.task;
@@ -646,7 +814,12 @@ export class EpicIntegrationCore {
         await this.reconcileDisconnect(operation, connectionId, error);
       }
       this.assertActive(operation);
-      const updatedState = this.applyRemote(context, { connected: false });
+      const updatedState = await this.applyRemote(
+        context,
+        { connected: false },
+        () => this.isActive(operation),
+        connectionId
+      );
       if (updatedState.error)
         throw new EpicIntegrationError(updatedState.error);
       result = { ok: true };
@@ -675,7 +848,9 @@ export class EpicIntegrationCore {
     if (this.state) this.state.verification = "unconfirmed";
     const latest = await this.readRemote(operation);
     this.assertActive(operation);
-    this.applyRemote(operation.context, latest);
+    await this.applyRemote(operation.context, latest, () =>
+      this.isActive(operation)
+    );
     if (stale) throw new EpicIntegrationError("stale-connection");
     if (latest.connected)
       throw new EpicIntegrationError(

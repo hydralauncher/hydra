@@ -1,5 +1,4 @@
 import assert from "node:assert/strict";
-import { createCipheriv, createDecipheriv, randomBytes } from "node:crypto";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
@@ -10,7 +9,13 @@ import {
   type EpicAuthContext,
   type EpicIntegrationDependencies,
 } from "./integration-core.ts";
-import { EpicConnectionStore, type EpicSessionBundle } from "./store.ts";
+import { EpicConnectionStore, type EpicStoreDatabase } from "./store.ts";
+import {
+  bundle,
+  connection,
+  deferred,
+  MemoryDatabase,
+} from "./store-test-helpers.ts";
 import type { EpicAuthWindowCallbacks } from "./auth-window.ts";
 import type { EpicSessionRunner } from "./legendary-auth.ts";
 import type {
@@ -18,37 +23,324 @@ import type {
   EpicConnectionState,
 } from "../../../types/epic-integration.types.ts";
 
-const connection = {
-  connected: true as const,
-  connectionId: "AbCdEfG1",
-  epicAccountId: "a".repeat(32),
-  displayName: "Epic Test",
-  connectedAt: "2026-10-07T12:00:00.000Z",
-};
-const bundle: EpicSessionBundle = {
-  user: {
-    account_id: connection.epicAccountId,
-    access_token: "secret-access",
-    refresh_token: "secret-refresh",
-    refresh_expires_at: "2030-01-01T00:00:00Z",
-  },
-  version: { data: {} },
-};
 const code = "authorizationCode123456789";
 
-function deferred<T>() {
-  let resolve!: (value: T) => void;
-  const promise = new Promise<T>((complete) => {
-    resolve = complete;
-  });
-  return { promise, resolve };
-}
+test("shutdown drains pending hydration and GET without late publication", async (t) => {
+  const db = new MemoryDatabase(),
+    f = fixture(t, db);
+  await f.core.initialize();
+  const readStarted = deferred<void>(),
+    releaseRead = deferred<void>(),
+    releaseGet = deferred<unknown>();
+  db.onGet = async () => {
+    readStarted.resolve();
+    await releaseRead.promise;
+  };
+  f.dependencies.get = () => releaseGet.promise;
+  const query = f.core.getConnection();
+  await readStarted.promise;
+  const count = f.state.events.length;
+  const closing = f.core.shutdown();
+  assert.equal(db.closed, false);
+  releaseRead.resolve();
+  releaseGet.resolve(connection);
+  await query;
+  await closing;
+  assert.equal(db.closed, true);
+  assert.equal(f.state.events.length, count);
+  await assert.rejects(f.core.initialize(), { code: "operation-cancelled" });
+});
 
-function fixture(t: TestContext) {
+test("failed compensation is surfaced by cancellation and blocks the local session", async (t) => {
+  const db = new MemoryDatabase(),
+    f = fixture(t, db);
+  const start = await f.core.startAuth();
+  assert.ok(start.ok);
+  const started = deferred<void>(),
+    release = deferred<void>();
+  db.onPut = async () => {
+    started.resolve();
+    await release.promise;
+  };
+  db.onDel = async () => {
+    throw new Error("secret-refresh");
+  };
+  const auth = f.state.callbacks!.onCode(code);
+  await started.promise;
+  const cancel = f.core.cancelAuth(start.operationId);
+  release.resolve();
+  assert.deepEqual(await auth, { ok: false, error: "cleanup-failed" });
+  assert.deepEqual(await cancel, { ok: false, error: "cleanup-failed" });
+  await assert.rejects(f.store.read(f.state.context!), {
+    code: "cleanup-failed",
+  });
+  assert.deepEqual(f.state.events.at(-1)?.connection, connection);
+  assert.equal(f.state.events.at(-1)?.sessionState, "unavailable");
+  assert.equal(JSON.stringify(f.state.events).includes("secret-"), false);
+});
+
+test("rotated bundle is committed after cleanup and commit ends cancellation synchronously", async (t) => {
+  const db = new MemoryDatabase(),
+    f = fixture(t, db);
+  const rotated = {
+    ...bundle,
+    user: { ...bundle.user, refresh_token: "secret-rotated" },
+  };
+  let cleaned = false;
+  f.runner.readBundle = async () => rotated;
+  f.runner.cleanup = async () => {
+    cleaned = true;
+  };
+  db.onPut = async () => {
+    assert.equal(cleaned, true);
+  };
+  const start = await f.core.startAuth();
+  assert.equal(start.ok, true);
+  assert.deepEqual(await f.state.callbacks!.onCode(code), { ok: true });
+  assert.deepEqual((await f.store.read(f.state.context!))?.bundle, rotated);
+  if (start.ok)
+    assert.deepEqual(await f.core.cancelAuth(start.operationId), {
+      ok: false,
+      error: "invalid-operation",
+    });
+  assert.equal(JSON.stringify(f.state.events).includes("secret-"), false);
+});
+
+test("cancellation during native save waits for compensation and keeps the remote link", async (t) => {
+  const db = new MemoryDatabase(),
+    f = fixture(t, db);
+  const start = await f.core.startAuth();
+  assert.ok(start.ok);
+  const started = deferred<void>(),
+    release = deferred<void>(),
+    undoStarted = deferred<void>(),
+    undoRelease = deferred<void>();
+  db.onPut = async () => {
+    started.resolve();
+    await release.promise;
+  };
+  db.onDel = async () => {
+    undoStarted.resolve();
+    await undoRelease.promise;
+  };
+  const auth = f.state.callbacks!.onCode(code);
+  await started.promise;
+  let cancelled = false;
+  const cancel = f.core.cancelAuth(start.operationId).then((result) => {
+    cancelled = true;
+    return result;
+  });
+  release.resolve();
+  await undoStarted.promise;
+  assert.equal(cancelled, false);
+  undoRelease.resolve();
+  assert.deepEqual(await auth, { ok: false, error: "operation-cancelled" });
+  assert.deepEqual(await cancel, { ok: true });
+  assert.equal(await f.store.read(f.state.context!), null);
+  assert.deepEqual(f.state.remote, connection);
+  assert.equal(
+    f.state.events.some((state) => state.sessionState === "ready"),
+    false
+  );
+});
+
+test("cancellation while cleaning Legendary files prevents persistence", async (t) => {
+  const db = new MemoryDatabase(),
+    f = fixture(t, db),
+    started = deferred<void>(),
+    release = deferred<void>();
+  let writes = 0;
+  db.onPut = async () => {
+    writes++;
+  };
+  f.runner.cleanup = async () => {
+    started.resolve();
+    await release.promise;
+  };
+  const start = await f.core.startAuth();
+  assert.ok(start.ok);
+  const auth = f.state.callbacks!.onCode(code);
+  await started.promise;
+  const cancel = f.core.cancelAuth(start.operationId);
+  release.resolve();
+  assert.deepEqual(await auth, { ok: false, error: "operation-cancelled" });
+  assert.deepEqual(await cancel, { ok: true });
+  assert.equal(writes, 0);
+});
+
+test("confirmed POST survives local failure and can be reauthenticated without remote rollback", async (t) => {
+  const db = new MemoryDatabase(),
+    f = fixture(t, db);
+  assert.equal((await f.core.startAuth()).ok, true);
+  db.onPut = async () => {
+    throw new Error("secret-refresh");
+  };
+  assert.deepEqual(await f.state.callbacks!.onCode(code), {
+    ok: false,
+    error: "persistence-failed",
+  });
+  assert.deepEqual(f.state.events.at(-1)?.connection, connection);
+  assert.equal(f.state.events.at(-1)?.verification, "confirmed");
+  assert.equal(f.state.events.at(-1)?.sessionState, "unavailable");
+  assert.equal(f.state.posts, 1);
+  assert.equal(JSON.stringify(f.state.events).includes("secret-"), false);
+  db.onPut = async () => {};
+  assert.equal((await f.core.startAuth()).ok, true);
+  assert.deepEqual(await f.state.callbacks!.onCode(code), { ok: true });
+});
+
+test("confirmed DELETE with failed local cleanup is represented as disconnected", async (t) => {
+  const db = new MemoryDatabase(),
+    f = fixture(t, db);
+  await f.store.save(f.state.context!, connection, bundle, () => true);
+  f.state.remote = connection;
+  await f.core.getConnection();
+  db.onDel = async () => {
+    throw new Error("secret-refresh");
+  };
+  assert.deepEqual(await f.core.disconnect(connection.connectionId), {
+    ok: false,
+    error: "cleanup-failed",
+  });
+  assert.deepEqual(f.state.events.at(-1)?.connection, { connected: false });
+  assert.equal(f.state.events.at(-1)?.verification, "confirmed");
+  assert.equal(f.state.events.at(-1)?.sessionState, "unavailable");
+  assert.equal(JSON.stringify(f.state.events).includes("secret-"), false);
+});
+
+test("logout during native save compensates without publishing stale user state", async (t) => {
+  const db = new MemoryDatabase(),
+    f = fixture(t, db),
+    owner = f.state.context!;
+  assert.equal((await f.core.startAuth()).ok, true);
+  const started = deferred<void>(),
+    release = deferred<void>();
+  db.onPut = async () => {
+    started.resolve();
+    await release.promise;
+  };
+  const auth = f.state.callbacks!.onCode(code);
+  await started.promise;
+  f.state.context = null;
+  const eventCount = f.state.events.length;
+  const logout = f.core.authContextChanged();
+  release.resolve();
+  assert.deepEqual(await auth, { ok: false, error: "operation-cancelled" });
+  await logout;
+  assert.equal(await f.store.read(owner), null);
+  assert.ok(
+    f.state.events
+      .slice(eventCount)
+      .every((state) => state.hydraUserId === null)
+  );
+});
+
+test("late hydration and GET for Hydra A cannot replace Hydra B state or delete A session", async (t) => {
+  const db = new MemoryDatabase(),
+    f = fixture(t, db),
+    owner = f.state.context!;
+  await f.store.save(owner, connection, bundle, () => true);
+  const started = deferred<void>(),
+    release = deferred<void>();
+  let reads = 0;
+  db.onGet = async () => {
+    if (++reads === 1) {
+      started.resolve();
+      await release.promise;
+    }
+  };
+  f.dependencies.get = async (options) =>
+    options.authContext.userId === owner.userId
+      ? connection
+      : { connected: false };
+  const previous = f.core.getConnection();
+  await started.promise;
+  f.state.context = { ...owner, userId: "HydraB", generation: 2 };
+  const eventCount = f.state.events.length;
+  await f.core.authContextChanged();
+  release.resolve();
+  assert.equal((await previous).hydraUserId, "HydraB");
+  assert.deepEqual((await previous).connection, { connected: false });
+  assert.ok(
+    f.state.events
+      .slice(eventCount)
+      .every((state) => state.hydraUserId === "HydraB")
+  );
+  assert.deepEqual((await f.store.read(owner))?.bundle, bundle);
+});
+
+test("GET started before connection cannot erase the committed session", async (t) => {
+  const f = fixture(t);
+  assert.equal((await f.core.startAuth()).ok, true);
+  const response = deferred<unknown>();
+  f.dependencies.get = () => response.promise;
+  const previous = f.core.getConnection();
+  assert.deepEqual(await f.state.callbacks!.onCode(code), { ok: true });
+  response.resolve({ connected: false });
+  assert.equal((await previous).sessionState, "ready");
+  assert.deepEqual((await f.store.read(f.state.context!))?.bundle, bundle);
+});
+
+test("simultaneous calls reserve one login window and one disconnect", async (t) => {
+  const f = fixture(t);
+  const starts = await Promise.all([f.core.startAuth(), f.core.startAuth()]);
+  assert.equal(starts.filter((result) => result.ok).length, 1);
+  assert.ok(
+    starts.some(
+      (result) => !result.ok && result.error === "operation-in-progress"
+    )
+  );
+  assert.equal(f.state.windows, 1);
+  assert.deepEqual(await f.state.callbacks!.onCode(code), { ok: true });
+  let deletes = 0;
+  f.dependencies.delete = async () => {
+    deletes++;
+    f.state.remote = { connected: false };
+  };
+  const results = await Promise.all([
+    f.core.disconnect(connection.connectionId),
+    f.core.disconnect(connection.connectionId),
+  ]);
+  assert.equal(results.filter((result) => result.ok).length, 1);
+  assert.ok(
+    results.some(
+      (result) => !result.ok && result.error === "operation-in-progress"
+    )
+  );
+  assert.equal(deletes, 1);
+});
+
+test("shutdown waits for native cancellation and closes without late events or reopening", async (t) => {
+  const db = new MemoryDatabase(),
+    f = fixture(t, db);
+  assert.equal((await f.core.startAuth()).ok, true);
+  const started = deferred<void>(),
+    release = deferred<void>();
+  db.onPut = async () => {
+    started.resolve();
+    await release.promise;
+  };
+  const auth = f.state.callbacks!.onCode(code);
+  await started.promise;
+  const eventCount = f.state.events.length;
+  const closing = f.core.shutdown();
+  assert.equal(db.closed, false);
+  release.resolve();
+  assert.deepEqual(await auth, { ok: false, error: "operation-cancelled" });
+  await closing;
+  assert.equal(db.closed, true);
+  assert.equal(f.state.events.length, eventCount);
+  assert.deepEqual(await f.core.startAuth(), {
+    ok: false,
+    error: "operation-cancelled",
+  });
+  await assert.rejects(f.store.read(f.state.context!), {
+    code: "persistence-failed",
+  });
+});
+
+function fixture(t: TestContext, database?: EpicStoreDatabase) {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), "epic-regression-"));
-  t.after(() => fs.rmSync(root, { recursive: true, force: true }));
-  const key = randomBytes(32),
-    iv = randomBytes(16);
   const f = {
     context: {
       environment: "http://localhost:3000",
@@ -56,7 +348,6 @@ function fixture(t: TestContext) {
       generation: 1,
     } as EpicAuthContext | null,
     remote: { connected: false } as EpicConnection,
-    vault: true,
     posts: 0,
     windows: 0,
     callbacks: null as EpicAuthWindowCallbacks | null,
@@ -64,18 +355,16 @@ function fixture(t: TestContext) {
   };
   const store = new EpicConnectionStore({
     userDataPath: root,
-    crypto: {
-      isEncryptionAvailable: () => f.vault,
-      encryptString: (value) => {
-        const cipher = createCipheriv("aes-256-cbc", key, iv);
-        return Buffer.concat([cipher.update(value), cipher.final()]);
-      },
-      decryptString: (value) => {
-        const cipher = createDecipheriv("aes-256-cbc", key, iv);
-        return Buffer.concat([cipher.update(value), cipher.final()]).toString();
-      },
-    },
+    ...(database ? { createDatabase: () => database } : {}),
   });
+  const stores = [store];
+  const reopen = async () => {
+    await stores.at(-1)!.close();
+    const reopened = new EpicConnectionStore({ userDataPath: root });
+    stores.push(reopened);
+    dependencies.store = reopened;
+    return reopened;
+  };
   const runner: EpicSessionRunner = {
     authenticate: async () => bundle,
     getExchangeCode: async () => "exchangeCode123456789",
@@ -90,7 +379,6 @@ function fixture(t: TestContext) {
       context.environment === f.context?.environment,
     store,
     availability: () => ({ available: true }),
-    isEncryptionAvailable: () => f.vault,
     checkBinary: async () => "legendary",
     createRunner: async () => runner,
     openWindow: (callbacks) => {
@@ -116,17 +404,24 @@ function fixture(t: TestContext) {
     },
     emit: (state) => f.events.push(state),
   };
+  const core = new EpicIntegrationCore(dependencies);
+  t.after(async () => {
+    await core.shutdown();
+    await Promise.all(stores.map((instance) => instance.close()));
+    fs.rmSync(root, { recursive: true, force: true });
+  });
   return {
+    reopen,
     state: f,
     root,
     store,
     runner,
     dependencies,
-    core: new EpicIntegrationCore(dependencies),
+    core,
   };
 }
 
-test("lost POST is reconciled once; encrypted session survives restart and Hydra A to B to A", async (t) => {
+test("lost POST is reconciled once; session survives real restart and Hydra A to B to A", async (t) => {
   const f = fixture(t),
     owner = f.state.context!;
   f.dependencies.post = async () => {
@@ -137,20 +432,16 @@ test("lost POST is reconciled once; encrypted session survives restart and Hydra
   assert.equal((await f.core.startAuth()).ok, true);
   assert.deepEqual(await f.state.callbacks!.onCode(code), { ok: true });
   assert.equal(f.state.posts, 1);
-  assert.equal(f.store.read(owner)?.sessionState, "ready");
-  const files = fs.readdirSync(path.join(f.root, "epic-connections"));
-  assert.equal(
-    fs
-      .readFileSync(path.join(f.root, "epic-connections", files[0]), "utf8")
-      .includes("secret-access"),
-    false
-  );
+  assert.equal((await f.store.read(owner))?.sessionState, "ready");
+  assert.equal(JSON.stringify(f.state.events).includes("secret-"), false);
   f.state.context = { ...owner, userId: "HydraB", generation: 2 };
   f.state.remote = { connected: false };
   await f.core.authContextChanged();
-  assert.equal(f.store.read(owner)?.sessionState, "ready");
+  assert.equal((await f.store.read(owner))?.sessionState, "ready");
   f.state.context = { ...owner, generation: 3 };
   f.state.remote = connection;
+  const reopened = await f.reopen();
+  assert.deepEqual((await reopened.read(owner))?.bundle, bundle);
   const restarted = new EpicIntegrationCore(f.dependencies);
   assert.equal((await restarted.getConnection()).sessionState, "ready");
 });
@@ -204,14 +495,16 @@ test("cancelled DELETE reconciliation cannot replace the current cache with a la
     error: "operation-cancelled",
   });
   assert.deepEqual(await cancellation, { ok: true });
-  assert.deepEqual(f.store.read(f.state.context!)?.connection, connection);
+  assert.deepEqual(
+    (await f.store.read(f.state.context!))?.connection,
+    connection
+  );
 });
 
-test("missing binary or vault never blocks reading and disconnecting the remote link", async (t) => {
+test("missing binary does not block remote reads/disconnect; authentication needs no vault", async (t) => {
   const f = fixture(t);
-  f.store.save(f.state.context!, connection, bundle, () => true);
+  await f.store.save(f.state.context!, connection, bundle, () => true);
   f.state.remote = connection;
-  f.state.vault = false;
   f.dependencies.availability = () => ({
     available: false,
     reason: "legendary-missing",
@@ -222,31 +515,13 @@ test("missing binary or vault never blocks reading and disconnecting the remote 
   });
   assert.equal((await f.core.getConnection()).connection?.connected, true);
   f.dependencies.availability = () => ({ available: true });
-  assert.deepEqual(await f.core.startAuth(), {
-    ok: false,
-    error: "vault-unavailable",
-  });
-  f.dependencies.availability = () => ({
-    available: false,
-    reason: "vault-unavailable",
-  });
-  const current = await f.core.getConnection();
-  assert.deepEqual(current.availability, {
-    available: false,
-    reason: "vault-unavailable",
-  });
-  assert.deepEqual(current.connection, connection);
-  assert.equal(current.verification, "confirmed");
-  assert.deepEqual(await f.core.startAuth(), {
-    ok: false,
-    error: "vault-unavailable",
-  });
-  assert.equal(f.state.windows, 0);
-  assert.equal(f.state.posts, 0);
+  assert.equal((await f.core.startAuth()).ok, true);
+  assert.deepEqual(await f.state.callbacks!.onCode(code), { ok: true });
+  assert.equal((await f.store.read(f.state.context!))?.sessionState, "ready");
   assert.deepEqual(await f.core.disconnect(connection.connectionId), {
     ok: true,
   });
-  assert.equal(f.store.read(f.state.context!), null);
+  assert.equal(await f.store.read(f.state.context!), null);
 });
 
 test("invalid Legendary identity is rejected before proof or persistence", async (t) => {
@@ -266,5 +541,5 @@ test("invalid Legendary identity is rejected before proof or persistence", async
     error: "invalid-response",
   });
   assert.equal(f.state.posts, 0);
-  assert.equal(f.store.read(f.state.context!), null);
+  assert.equal(await f.store.read(f.state.context!), null);
 });

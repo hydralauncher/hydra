@@ -608,7 +608,6 @@
     "epic_error_hydra_auth": "Sign in to Hydra to connect your Epic Games account.",
     "epic_error_platform": "Epic Games connections are not available on this platform or architecture yet.",
     "epic_error_legendary": "The Epic sign-in component is unavailable. Check your Hydra installation.",
-    "epic_error_vault": "Secure storage is unavailable. Hydra cannot save your Epic session safely.",
     "epic_error_api": "Epic Games connections are unavailable on this Hydra server. Try again later.",
     "epic_error_network": "Could not confirm your Epic connection. Check your connection and try again. Your existing link is preserved.",
     "epic_error_proof": "Your Epic authorization expired or was already used. Start sign-in again.",
