@@ -1,4 +1,9 @@
-import type { CloudSaveRule, Game, RestoreManifestFile } from "@types";
+import type {
+  CloudSaveRule,
+  Game,
+  ResolvedRestoreTarget,
+  RestoreManifestFile,
+} from "@types";
 import { getCloudSaveEmulatorProvider } from "../../../shared/cloud-save-emulator-provider.js";
 
 import {
@@ -50,7 +55,7 @@ export const getEmulatorSaveEnvironmentKey = async (game: Game) => {
     const { getRpcs3SaveEnvironmentKey } = await import(
       "./rpcs3-save-provider"
     );
-    return getRpcs3SaveEnvironmentKey(game);
+    return getRpcs3SaveEnvironmentKey();
   }
   if (provider === "retroarch") {
     const { getRetroArchSaveEnvironmentKey } = await import(
@@ -98,6 +103,15 @@ export const getEmulatorRestoreRules = async (
     files,
     rpcs3SavedataTitleIds
   );
+};
+
+export const finalizeEmulatorRestore = async (
+  game: Game | null | undefined,
+  actions: ResolvedRestoreTarget[]
+) => {
+  const provider = getEmulatorSaveProvider(game);
+  if (!provider || actions.length === 0) return;
+  await (await loadProvider(provider)).afterRestore?.(actions);
 };
 
 export { emulatorSaveFileKey };

@@ -13,7 +13,20 @@ import { darkenColor } from "@renderer/helpers";
 import { logger } from "@renderer/logger";
 import { getDisplayedPlayTimeInMilliseconds } from "@shared";
 import { average } from "color.js";
-import type { Game, GameLauncherStatus, GameShop, ShopAssets } from "@types";
+import type {
+  Game,
+  GameLauncherStatus,
+  GameLauncherStatusPayload,
+  GameShop,
+  ShopAssets,
+} from "@types";
+import {
+  canGameLauncherAutoClose,
+  createLauncherStatusReplay,
+  getGameLauncherActions,
+  getGameLauncherAutoCloseDelay,
+  type CompatibilityLayerStatus,
+} from "./game-launcher-state";
 import "./game-launcher.scss";
 
 type PreflightStatus =
@@ -53,6 +66,12 @@ export default function GameLauncher() {
     string | null
   >(null);
   const [protonVersion, setProtonVersion] = useState<string | null>(null);
+  const [compatibilityLayerStatus, setCompatibilityLayerStatus] =
+    useState<CompatibilityLayerStatus>("idle");
+  const [compatibilityLayerDetail, setCompatibilityLayerDetail] = useState<
+    string | null
+  >(null);
+  const [gameStarted, setGameStarted] = useState(false);
 
   const formatPlayTime = useCallback(
     (playTimeInMilliseconds = 0) => {
@@ -101,18 +120,52 @@ export default function GameLauncher() {
   }, []);
 
   useEffect(() => {
-    if (!window.electron.onGameLauncherStatus) {
+    if (!window.electron.onGameLauncherStatus || !shop || !objectId) {
       return;
     }
 
-    const unsubscribe = window.electron.onGameLauncherStatus(
-      ({ gameKey, status, detail }) => {
-        if (gameKey !== `${shop}:${objectId}`) return;
+    const statusReplay = createLauncherStatusReplay(`${shop}:${objectId}`);
 
-        setAchievementsExportStatus(status);
-        setAchievementsExportDetail(detail);
+    const applyStatus = ({ status, detail }: GameLauncherStatusPayload) => {
+      if (status === "preparing_compatibility_layer") {
+        setCompatibilityLayerStatus("preparing");
+        setCompatibilityLayerDetail(detail);
+        return;
       }
-    );
+
+      if (status === "compatibility_layer_ready") {
+        setCompatibilityLayerStatus("idle");
+        setCompatibilityLayerDetail(null);
+        return;
+      }
+
+      if (status === "game_started") {
+        setCompatibilityLayerStatus("idle");
+        setCompatibilityLayerDetail(null);
+        setGameStarted(true);
+        return;
+      }
+
+      if (status === "compatibility_layer_failed") {
+        setCompatibilityLayerStatus("failed");
+        setCompatibilityLayerDetail(detail);
+        return;
+      }
+
+      setAchievementsExportStatus(status);
+      setAchievementsExportDetail(detail);
+    };
+
+    const unsubscribe = window.electron.onGameLauncherStatus((payload) => {
+      if (statusReplay.acceptLiveStatus(payload)) applyStatus(payload);
+    });
+
+    window.electron
+      .getGameLauncherStatuses(shop, objectId)
+      .then((statuses) => {
+        statusReplay.selectCachedStatuses(statuses).forEach(applyStatus);
+      })
+      .catch(() => undefined);
 
     return () => unsubscribe();
   }, [shop, objectId]);
@@ -138,24 +191,31 @@ export default function GameLauncher() {
   const isGeneratingAchievements =
     achievementsExportStatus === "generating_achievements";
 
-  const canAutoClose =
-    (isPreflightDone || (!preflightStarted && preflightTimeout)) &&
-    !isGeneratingAchievements;
+  const canAutoClose = canGameLauncherAutoClose({
+    preflightFinished:
+      isPreflightDone || (!preflightStarted && preflightTimeout),
+    isGeneratingAchievements,
+    compatibilityLayerStatus,
+  });
 
   useEffect(() => {
     // Don't start timer until window is shown AND preflight is done
     if (!windowShown || !canAutoClose) return;
 
     const timer = setTimeout(() => {
-      window.electron.closeGameLauncherWindow();
-    }, 5000);
+      void window.electron.closeGameLauncherWindow();
+    }, getGameLauncherAutoCloseDelay(gameStarted));
 
     return () => clearTimeout(timer);
-  }, [windowShown, canAutoClose]);
+  }, [windowShown, canAutoClose, gameStarted]);
 
   const handleOpenHydra = () => {
-    window.electron.openMainWindow();
-    window.electron.closeGameLauncherWindow();
+    void window.electron.openMainWindow();
+    void window.electron.closeGameLauncherWindow();
+  };
+
+  const handleClose = () => {
+    void window.electron.closeGameLauncherWindow();
   };
 
   const normalizeImageUrl = (url?: string | null) =>
@@ -196,15 +256,6 @@ export default function GameLauncher() {
     }
   }, []);
 
-  const isPreflightRunning =
-    preflightStatus === "checking" ||
-    preflightStatus === "downloading" ||
-    preflightStatus === "installing";
-
-  const isAchievementsExportRunning =
-    achievementsExportStatus === "generating_achievements" ||
-    achievementsExportStatus === "downloading_achievement_icons";
-
   const getStatusMessage = useCallback(() => {
     switch (preflightStatus) {
       case "checking":
@@ -217,6 +268,18 @@ export default function GameLauncher() {
           : t("preflight_installing");
       default:
         break;
+    }
+
+    if (compatibilityLayerStatus === "failed") {
+      return t("compatibility_layer_failed");
+    }
+
+    if (compatibilityLayerStatus === "preparing") {
+      return compatibilityLayerDetail
+        ? t("preparing_compatibility_layer_detail", {
+            detail: compatibilityLayerDetail,
+          })
+        : t("preparing_compatibility_layer");
     }
 
     switch (achievementsExportStatus) {
@@ -234,12 +297,18 @@ export default function GameLauncher() {
   }, [
     preflightStatus,
     preflightDetail,
+    compatibilityLayerStatus,
+    compatibilityLayerDetail,
     achievementsExportStatus,
     achievementsExportDetail,
     t,
   ]);
 
-  const isStatusRunning = isPreflightRunning || isAchievementsExportRunning;
+  const isCompatibilityLayerFailed = compatibilityLayerStatus === "failed";
+  const launcherActions = getGameLauncherActions({
+    isMainWindowOpen,
+    compatibilityLayerStatus,
+  });
 
   useEffect(() => {
     let cancelled = false;
@@ -388,20 +457,52 @@ export default function GameLauncher() {
           <div className="game-launcher__center">
             <h1 className="game-launcher__title">{gameTitle}</h1>
 
-            <p className="game-launcher__status">
-              {isStatusRunning && <span className="game-launcher__spinner" />}
-              {getStatusMessage()}
-              <span className="game-launcher__dots" />
+            <p
+              className={`game-launcher__status${
+                isCompatibilityLayerFailed
+                  ? " game-launcher__status--error"
+                  : ""
+              }`}
+            >
+              <span>
+                {getStatusMessage()}
+                {!isCompatibilityLayerFailed && (
+                  <span className="game-launcher__dots" />
+                )}
+              </span>
             </p>
 
-            {!isMainWindowOpen && (
-              <button
-                type="button"
-                className="game-launcher__button"
-                onClick={handleOpenHydra}
+            {isCompatibilityLayerFailed && compatibilityLayerDetail && (
+              <p
+                className="game-launcher__status-detail"
+                title={compatibilityLayerDetail}
               >
-                {t("open_hydra")}
-              </button>
+                {compatibilityLayerDetail}
+              </p>
+            )}
+
+            {(launcherActions.showOpenHydra || launcherActions.showClose) && (
+              <div className="game-launcher__actions">
+                {launcherActions.showOpenHydra && (
+                  <button
+                    type="button"
+                    className="game-launcher__button"
+                    onClick={handleOpenHydra}
+                  >
+                    {t("open_hydra")}
+                  </button>
+                )}
+
+                {launcherActions.showClose && (
+                  <button
+                    type="button"
+                    className="game-launcher__button game-launcher__button--secondary"
+                    onClick={handleClose}
+                  >
+                    {t("close")}
+                  </button>
+                )}
+              </div>
             )}
           </div>
 

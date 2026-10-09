@@ -209,17 +209,6 @@ contextBridge.exposeInMainWorld("electron", {
       shop,
       rawPath
     ) as Promise<void>,
-  bindRpcs3CloudSaveProfile: (
-    objectId: string,
-    shop: GameShop,
-    cloudProfileId: string
-  ) =>
-    ipcRenderer.invoke(
-      "bindRpcs3CloudSaveProfile",
-      objectId,
-      shop,
-      cloudProfileId
-    ) as Promise<void>,
   deleteGameCloudSaveData: (objectId: string, shop: GameShop) =>
     ipcRenderer.invoke(
       "deleteGameCloudSaveData",
@@ -1658,6 +1647,8 @@ contextBridge.exposeInMainWorld("electron", {
     ipcRenderer.on("game-launcher-status", listener);
     return () => ipcRenderer.removeListener("game-launcher-status", listener);
   },
+  getGameLauncherStatuses: (shop: GameShop, objectId: string) =>
+    ipcRenderer.invoke("getGameLauncherStatuses", shop, objectId),
   resetCommonRedistPreflight: () =>
     ipcRenderer.invoke("resetCommonRedistPreflight"),
   checkForUpdates: () => ipcRenderer.invoke("checkForUpdates"),
