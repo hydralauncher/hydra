@@ -41,6 +41,8 @@ import {
 import { useNavigationSnapshot } from "../../stores";
 import { ConfirmationModal } from "../../components/modals";
 
+import { DownloadFiles } from "../../../../renderer/src/pages/downloads/download-files";
+
 import "./downloads.scss";
 
 type DragPlacement = "hero" | "queue" | "paused";
@@ -2595,6 +2597,10 @@ export default function Downloads() {
           />
 
           <div className="downloads-page__hero-stats-stack">
+            <DownloadFiles
+              files={heroPauseTargetDownload?.files}
+              defaultExpanded
+            />
             <DownloadsProgressStats
               title={heroPanelState?.progressPanel.title ?? "Waiting Download"}
               progress={heroPanelState?.progressPanel.progress ?? 0}

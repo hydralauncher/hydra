@@ -330,7 +330,7 @@
     "torrent_downloading_column": "Downloading",
     "torrent_files_disclaimer": "Advanced option: if you are not sure what this does, keep the default selection.",
     "select_files_to_download": "Select files to download",
-    "single_archive_download_notice": "This service offers one ZIP archive. Use Start download to get it.",
+    "single_archive_download_notice": "This download contains one archive. Use Download now to get it.",
     "loading_torrent_files": "Loading torrent files…",
     "search_torrent_files": "Search files",
     "selected_files": "Selected files",
@@ -1039,6 +1039,7 @@
     "loading": "Loading…"
   },
   "downloads": {
+    "download_files": "Files ({{count}})",
     "reconnecting": "Reconnecting…",
     "recovering": "Re-downloading the saved portion… {{percentage}}",
     "resume": "Resume",

@@ -1,7 +1,13 @@
 import fs from "node:fs";
-import os from "node:os";
-import path from "node:path";
-import { pipeline } from "node:stream/promises";
+import {
+  markSavedRange,
+  missingRanges,
+  rangeResourceId,
+  readRangeState,
+  removeRangeState,
+  saveRangeState,
+  type RangeDownloadState,
+} from "./range-download-state.js";
 
 export const PARALLEL_RANGE_SIZE = 8 * 1024 * 1024;
 export const PARALLEL_RANGE_COUNT = 4;
@@ -23,6 +29,15 @@ export function getRangeSizeForRequestBudget(
 
 export class ParallelRangeUnsupportedError extends Error {
   readonly retryable = true;
+}
+
+export class ParallelRangeHttpStatusError extends Error {
+  constructor(
+    readonly statusCode: number,
+    readonly retryAfter: string | null
+  ) {
+    super(`Byte range server returned HTTP ${statusCode}`);
+  }
 }
 
 export function shouldDowngradeParallelRanges(
@@ -65,8 +80,20 @@ export function getRangeTotal(
 
 export function getStrongRangeValidator(response: Response): string | null {
   const etag = response.headers.get("etag");
-  // Last-Modified and weak ETags do not establish byte-for-byte identity.
-  return etag && /^"[\x21\x23-\x7e\x80-\xff]*"$/.test(etag) ? etag : null;
+  if (etag !== null) {
+    return /^"[\x21\x23-\x7e\x80-\xff]*"$/.test(etag) ? etag : null;
+  }
+  const modified = response.headers.get("last-modified");
+  const date = response.headers.get("date");
+  // RFC 9110 8.8.2.2 permits a date validator when the clocks are far enough
+  // apart. Keep the conservative 60-second margin used by older HTTP specs.
+  return modified &&
+    date &&
+    Number.isFinite(Date.parse(modified)) &&
+    Number.isFinite(Date.parse(date)) &&
+    Date.parse(date) - Date.parse(modified) >= 60_000
+    ? modified
+    : null;
 }
 
 export function getRangeResumeCapability(
@@ -100,6 +127,7 @@ export interface ParallelRangeDownloadOptions {
   rangeSize?: number;
   connectionCount?: number;
   maxRanges?: number;
+  resourceId?: string;
   signal: AbortSignal;
   abort: () => void;
   beforeChunk: (length: number) => Promise<void>;
@@ -110,244 +138,6 @@ export interface ParallelRangeDownloadOptions {
 interface ByteRange {
   start: number;
   end: number;
-  tempFile: string;
-}
-
-type RangeContext = Pick<
-  ParallelRangeDownloadOptions,
-  | "url"
-  | "headers"
-  | "total"
-  | "signal"
-  | "beforeChunk"
-  | "afterChunk"
-  | "onReadPending"
-> & { validator: string };
-
-async function fetchRangeResponse(
-  context: RangeContext,
-  range: ByteRange,
-  response?: Response
-): Promise<Response> {
-  if (response) return response;
-  const { start, end } = range;
-  context.onReadPending(start, true);
-  try {
-    return await fetch(context.url, {
-      headers: {
-        ...context.headers,
-        Range: `bytes=${start}-${end}`,
-        "If-Range": context.validator,
-      },
-      signal: context.signal,
-    });
-  } finally {
-    context.onReadPending(start, false);
-  }
-}
-
-async function assertRangeResponse(
-  response: Response,
-  range: ByteRange,
-  context: RangeContext
-): Promise<void> {
-  const { validator } = context;
-  if (
-    getRangeTotal(response, range.start, range.end) !== context.total ||
-    getStrongRangeValidator(response) !== validator
-  ) {
-    await response.body?.cancel();
-    throw new ParallelRangeUnsupportedError(
-      "The download server stopped serving matching byte ranges"
-    );
-  }
-}
-
-async function writeRangeChunk(
-  file: fs.promises.FileHandle,
-  chunk: Uint8Array
-): Promise<void> {
-  let written = 0;
-  while (written < chunk.length) {
-    const result = await file.write(chunk, written, chunk.length - written);
-    if (result.bytesWritten === 0) {
-      throw new Error("Could not write the downloaded byte range");
-    }
-    written += result.bytesWritten;
-  }
-}
-
-async function readRangeBody(
-  reader: ReadableStreamDefaultReader<Uint8Array>,
-  file: fs.promises.FileHandle,
-  range: ByteRange,
-  context: RangeContext
-): Promise<number> {
-  let received = 0;
-  for (;;) {
-    context.onReadPending(range.start, true);
-    let result: ReadableStreamReadResult<Uint8Array>;
-    try {
-      result = await reader.read();
-    } finally {
-      context.onReadPending(range.start, false);
-    }
-    if (result.done) return received;
-
-    const chunk = result.value;
-    if (received + chunk.length > range.end - range.start + 1) {
-      throw new ParallelRangeUnsupportedError(
-        "The download server sent more data than the requested byte range"
-      );
-    }
-    await context.beforeChunk(chunk.length);
-    if (context.signal.aborted) throw context.signal.reason;
-    await writeRangeChunk(file, chunk);
-    received += chunk.length;
-    context.afterChunk(chunk.length);
-  }
-}
-
-async function downloadRange(
-  range: ByteRange,
-  context: RangeContext,
-  response?: Response
-): Promise<void> {
-  if (context.signal.aborted) throw context.signal.reason;
-  const rangeResponse = await fetchRangeResponse(context, range, response);
-  await assertRangeResponse(rangeResponse, range, context);
-  if (!rangeResponse.body) throw new Error("Range response body is null");
-
-  const reader = rangeResponse.body.getReader();
-  let file: fs.promises.FileHandle;
-  try {
-    file = await fs.promises.open(range.tempFile, "w");
-  } catch (error) {
-    await reader.cancel().catch(() => undefined);
-    reader.releaseLock();
-    throw error;
-  }
-
-  let done = false;
-  let received = 0;
-  try {
-    received = await readRangeBody(reader, file, range, context);
-    done = true;
-  } finally {
-    try {
-      await file.close();
-    } finally {
-      if (!done) await reader.cancel().catch(() => undefined);
-      reader.releaseLock();
-    }
-  }
-
-  const expected = range.end - range.start + 1;
-  if (received !== expected) {
-    const error = new Error(
-      `Byte range ended early (received ${received}, expected ${expected})`
-    ) as Error & { retryable: boolean };
-    error.retryable = true;
-    throw error;
-  }
-}
-
-function planRanges(
-  nextByte: number,
-  total: number,
-  rangeSize: number,
-  connectionCount: number,
-  remainingRanges: number,
-  tempDir: string
-): ByteRange[] {
-  const ranges: ByteRange[] = [];
-  for (
-    let index = 0;
-    index < connectionCount &&
-    nextByte < total &&
-    ranges.length < remainingRanges;
-    index++
-  ) {
-    const end = Math.min(nextByte + rangeSize - 1, total - 1);
-    ranges.push({
-      start: nextByte,
-      end,
-      tempFile: path.join(tempDir, String(index)),
-    });
-    nextByte = end + 1;
-  }
-  return ranges;
-}
-
-async function commitFailedRanges(
-  ranges: ByteRange[],
-  filePath: string
-): Promise<void> {
-  for (const range of ranges) {
-    const size = await fs.promises
-      .stat(range.tempFile)
-      .then((stats) => stats.size)
-      .catch((error: NodeJS.ErrnoException) => {
-        if (error.code === "ENOENT") return 0;
-        throw error;
-      });
-    if (size === 0) break;
-    const expected = range.end - range.start + 1;
-    if (size > expected) {
-      throw new ParallelRangeUnsupportedError(
-        "A downloaded byte range exceeded its expected length"
-      );
-    }
-    await pipeline(
-      fs.createReadStream(range.tempFile),
-      fs.createWriteStream(filePath, { flags: "a" })
-    );
-    if (size < expected) break;
-  }
-}
-
-async function commitCompletedRanges(
-  ranges: ByteRange[],
-  filePath: string,
-  signal: AbortSignal
-): Promise<void> {
-  for (const range of ranges) {
-    if (signal.aborted) throw signal.reason;
-    await pipeline(
-      fs.createReadStream(range.tempFile),
-      fs.createWriteStream(filePath, { flags: "a" }),
-      { signal }
-    );
-    await fs.promises.unlink(range.tempFile).catch(() => undefined);
-  }
-}
-
-async function downloadRangeBatch(
-  ranges: ByteRange[],
-  context: RangeContext,
-  firstResponse: Response,
-  startByte: number,
-  filePath: string,
-  abort: () => void
-): Promise<void> {
-  const transfers = ranges.map((range, index) =>
-    downloadRange(
-      range,
-      context,
-      index === 0 && range.start === startByte ? firstResponse : undefined
-    )
-  );
-  try {
-    await Promise.all(transfers);
-  } catch (error) {
-    // Stop writers before reading their temporary files. Even when a batch
-    // is incomplete, its first ranges may form a valid contiguous prefix.
-    if (!context.signal.aborted) abort();
-    await Promise.allSettled(transfers);
-    await commitFailedRanges(ranges, filePath);
-    throw error;
-  }
-  await commitCompletedRanges(ranges, filePath, context.signal);
 }
 
 export async function downloadParallelRanges({
@@ -360,6 +150,7 @@ export async function downloadParallelRanges({
   rangeSize = PARALLEL_RANGE_SIZE,
   connectionCount = PARALLEL_RANGE_COUNT,
   maxRanges = Infinity,
+  resourceId,
   signal,
   abort,
   beforeChunk,
@@ -368,59 +159,195 @@ export async function downloadParallelRanges({
 }: ParallelRangeDownloadOptions): Promise<boolean> {
   const validator = getStrongRangeValidator(firstResponse);
   if (!validator) {
-    await firstResponse.body?.cancel().catch(() => undefined);
+    await firstResponse.body?.cancel();
     throw new ParallelRangeUnsupportedError(
-      "The download server did not provide a strong byte-range validator"
+      "The download server did not provide a byte-range validator"
     );
   }
-  let tempDir: string;
-  try {
-    tempDir = await fs.promises.mkdtemp(
-      path.join(os.tmpdir(), "hydra-ranges-")
+  const saved = readRangeState(filePath);
+  if (
+    saved &&
+    (saved.total !== total ||
+      saved.validator !== validator ||
+      saved.resourceId !== rangeResourceId(resourceId))
+  ) {
+    await firstResponse.body?.cancel();
+    throw new Error(
+      "The download resource changed. Keeping the saved partial file."
     );
-  } catch (error) {
-    await firstResponse.body?.cancel().catch(() => undefined);
-    throw error;
   }
-  const context: RangeContext = {
-    url,
-    headers,
+  if (
+    !Number.isSafeInteger(rangeSize) ||
+    rangeSize <= 0 ||
+    !Number.isSafeInteger(connectionCount) ||
+    connectionCount < 1 ||
+    connectionCount > 16 ||
+    !(
+      maxRanges === Infinity ||
+      (Number.isSafeInteger(maxRanges) && maxRanges > 0)
+    )
+  ) {
+    await firstResponse.body?.cancel();
+    throw new Error("Invalid parallel download limits");
+  }
+  const state: RangeDownloadState = saved ?? {
+    version: 1,
     total,
-    signal,
-    beforeChunk,
-    afterChunk,
-    onReadPending,
     validator,
+    resourceId: rangeResourceId(resourceId),
+    ranges: startByte > 0 ? [[0, startByte]] : [],
   };
-
-  let nextByte = startByte;
-  let completedRanges = 0;
-  try {
-    while (nextByte < total && completedRanges < maxRanges) {
-      const ranges = planRanges(
-        nextByte,
-        total,
-        rangeSize,
-        connectionCount,
-        maxRanges - completedRanges,
-        tempDir
-      );
-      const lastRange = ranges.at(-1);
-      if (lastRange) nextByte = lastRange.end + 1;
-      await downloadRangeBatch(
-        ranges,
-        context,
-        firstResponse,
-        startByte,
-        filePath,
-        abort
-      );
-      completedRanges += ranges.length;
+  const jobs: ByteRange[] = [];
+  for (const [start, end] of missingRanges(state)) {
+    for (let offset = start; offset < end && jobs.length < maxRanges; ) {
+      const next = Math.min(offset + rangeSize, end);
+      jobs.push({ start: offset, end: next - 1 });
+      offset = next;
     }
-    return nextByte >= total;
+    if (jobs.length >= maxRanges) break;
+  }
+  const file = await fs.promises.open(filePath, "r+");
+  let lastCheckpoint = Date.now();
+  let checkpoint: Promise<void> = Promise.resolve();
+  const persist = (): Promise<void> => {
+    // Snapshot before sync so the map never claims bytes that sync did not see.
+    const snapshot = {
+      ...state,
+      ranges: state.ranges.map(([start, end]): [number, number] => [
+        start,
+        end,
+      ]),
+    };
+    checkpoint = checkpoint.then(async () => {
+      await file.sync();
+      await saveRangeState(filePath, snapshot);
+    });
+    return checkpoint;
+  };
+  let nextJob = 0;
+  let firstUsed = false;
+  const runRange = async (range: ByteRange): Promise<void> => {
+    signal.throwIfAborted();
+    let response: Response;
+    const probeTotal = getRangeTotal(firstResponse, range.start, range.end);
+    if (!firstUsed && probeTotal === total) {
+      firstUsed = true;
+      response = firstResponse;
+    } else {
+      onReadPending(range.start, true);
+      try {
+        response = await fetch(url, {
+          headers: {
+            ...headers,
+            Range: `bytes=${range.start}-${range.end}`,
+            "If-Range": validator,
+          },
+          signal,
+        });
+      } finally {
+        onReadPending(range.start, false);
+      }
+    }
+    if (
+      getRangeTotal(response, range.start, range.end) !== total ||
+      getStrongRangeValidator(response) !== validator
+    ) {
+      await response.body?.cancel();
+      if (response.status >= 400) {
+        throw new ParallelRangeHttpStatusError(
+          response.status,
+          response.headers.get("retry-after")
+        );
+      }
+      throw new ParallelRangeUnsupportedError(
+        "The download server stopped serving matching byte ranges"
+      );
+    }
+    if (!response.body) throw new Error("Range response body is null");
+    const reader = response.body.getReader();
+    let received = 0;
+    try {
+      for (;;) {
+        onReadPending(range.start, true);
+        let result: ReadableStreamReadResult<Uint8Array>;
+        try {
+          result = await reader.read();
+        } finally {
+          onReadPending(range.start, false);
+        }
+        if (result.done) break;
+        const chunk = result.value;
+        if (received + chunk.length > range.end - range.start + 1) {
+          throw new ParallelRangeUnsupportedError(
+            "The server sent more data than the requested byte range"
+          );
+        }
+        await beforeChunk(chunk.length);
+        signal.throwIfAborted();
+        let written = 0;
+        while (written < chunk.length) {
+          const offset = range.start + received;
+          const result = await file.write(
+            chunk,
+            written,
+            chunk.length - written,
+            offset
+          );
+          if (!result.bytesWritten)
+            throw new Error("Could not write the downloaded byte range");
+          markSavedRange(state, offset, offset + result.bytesWritten);
+          written += result.bytesWritten;
+          received += result.bytesWritten;
+          afterChunk(result.bytesWritten);
+        }
+        if (Date.now() - lastCheckpoint >= 1000) {
+          lastCheckpoint = Date.now();
+          await persist();
+        }
+        signal.throwIfAborted();
+      }
+    } finally {
+      await reader.cancel().catch(() => undefined);
+      reader.releaseLock();
+    }
+    if (received !== range.end - range.start + 1) {
+      const error = new Error(
+        "Byte range ended before its expected size"
+      ) as Error & { retryable: boolean };
+      error.retryable = true;
+      throw error;
+    }
+  };
+  const worker = async (): Promise<void> => {
+    for (;;) {
+      signal.throwIfAborted();
+      const job = jobs[nextJob++];
+      if (!job) return;
+      await runRange(job);
+    }
+  };
+  let workers: Promise<void>[] = [];
+  try {
+    await persist();
+    workers = Array.from(
+      { length: Math.min(connectionCount, jobs.length) },
+      () => worker()
+    );
+    try {
+      await Promise.all(workers);
+    } catch (error) {
+      abort();
+      await Promise.allSettled(workers);
+      throw error;
+    }
+    return missingRanges(state).length === 0;
   } finally {
-    await fs.promises
-      .rm(tempDir, { recursive: true, force: true })
-      .catch(() => undefined);
+    try {
+      await persist();
+    } finally {
+      await file.close();
+      if (!firstUsed) await firstResponse.body?.cancel().catch(() => undefined);
+    }
+    if (missingRanges(state).length === 0) removeRangeState(filePath);
   }
 }

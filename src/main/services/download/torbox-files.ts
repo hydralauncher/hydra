@@ -1,10 +1,9 @@
-import type { TorBoxFile, TorBoxTorrentInfo } from "@types";
+import type { TorBoxTorrentInfo } from "@types";
 
 export interface TorBoxDownloadFile {
   id: number;
   path: string;
   size: number;
-  isZip?: boolean;
 }
 
 export interface TorBoxDownloadManifest {
@@ -64,43 +63,13 @@ const sanitizeSegment = (segment: string): string => {
     : cleaned;
 };
 
-function buildZippedManifest(
-  torrent: TorBoxTorrentInfo,
-  name: string,
-  zippedFile: TorBoxFile
-): TorBoxDownloadManifest {
-  if (!Number.isSafeInteger(zippedFile.id)) {
-    throw new TypeError("TorBox returned an invalid file ID.");
-  }
-  const archiveName = name.toLowerCase().endsWith(".zip")
-    ? name
-    : `${name}.zip`;
-  let size = 0;
-  if (Number.isSafeInteger(zippedFile.size) && zippedFile.size > 0) {
-    size = zippedFile.size;
-  } else if (Number.isSafeInteger(torrent.size) && torrent.size > 0) {
-    size = torrent.size;
-  }
-  return {
-    torrentId: torrent.id,
-    name,
-    files: [
-      {
-        id: zippedFile.id,
-        path: `${name}/${archiveName}`,
-        size,
-        isZip: true,
-      },
-    ],
-    totalSize: size,
-    archiveOnly: true,
-  };
-}
-
 export function buildTorBoxDownloadManifest(
   torrent: TorBoxTorrentInfo,
   magnetName?: string
 ): TorBoxDownloadManifest {
+  if (!Number.isSafeInteger(torrent.id) || torrent.id < 0) {
+    throw new Error("TorBox returned an invalid torrent ID.");
+  }
   const sharedRoot = torrent.files?.[0]?.name?.split(/[\\/]+/)[0];
   const hasSharedRoot =
     sharedRoot &&
@@ -124,18 +93,11 @@ export function buildTorBoxDownloadManifest(
     throw new Error("TorBox did not provide downloadable files.");
   }
 
-  // A cached torrent can be available only as one compressed archive. TorBox
-  // provides a ZIP link for this case, but not links to its original files.
-  const zippedFile = torrent.files.find((file) => file.zipped);
-  if (zippedFile) {
-    return buildZippedManifest(torrent, name, zippedFile);
-  }
-
   const seenIds = new Set<number>();
   const seenPaths = new Set<string>();
   const seenDirectories = new Set<string>();
   const files = torrent.files.map((file): TorBoxDownloadFile => {
-    if (!Number.isSafeInteger(file.id) || seenIds.has(file.id)) {
+    if (!Number.isSafeInteger(file.id) || file.id < 0 || seenIds.has(file.id)) {
       throw new Error("TorBox returned an invalid file ID.");
     }
     seenIds.add(file.id);
@@ -156,7 +118,8 @@ export function buildTorBoxDownloadManifest(
 
     const relativeParts =
       parts.length > 1 &&
-      sanitizeSegment(parts[0]).toLowerCase() === name.toLowerCase()
+      sanitizeSegment(parts[0]).toLowerCase() ===
+        sanitizeSegment(providerName).toLowerCase()
         ? parts.slice(1)
         : parts;
     const safeParts = relativeParts.map(sanitizeSegment);
@@ -187,11 +150,16 @@ export function buildTorBoxDownloadManifest(
     return { id: file.id, path: filePath, size: file.size };
   });
 
+  const totalSize = files.reduce((total, file) => total + file.size, 0);
+  if (!Number.isSafeInteger(totalSize)) {
+    throw new Error("TorBox returned an invalid total file size.");
+  }
   return {
     torrentId: torrent.id,
     name,
     files,
-    totalSize: files.reduce((total, file) => total + file.size, 0),
+    totalSize,
+    archiveOnly: files.length === 1 && torrent.files[0].zipped === true,
   };
 }
 

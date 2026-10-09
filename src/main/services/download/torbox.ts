@@ -26,6 +26,7 @@ export class TorBoxClient {
     this.apiToken = apiToken;
     this.instance = axios.create({
       baseURL: this.baseURL,
+      timeout: 20_000,
       headers: {
         Authorization: `Bearer ${apiToken}`,
         "User-Agent": `Hydra/${appVersion}`,
@@ -78,7 +79,7 @@ export class TorBoxClient {
       return data.find((item) => item.id === id) ?? null;
     }
 
-    return data;
+    return data.id === id ? data : null;
   }
 
   static async getUser() {
@@ -86,16 +87,13 @@ export class TorBoxClient {
     return response.data.data;
   }
 
-  static async requestLink(id: number, fileId: number | "zip") {
+  static async requestLink(id: number, fileId: number) {
     const searchParams = new URLSearchParams({
       token: this.apiToken,
       torrent_id: id.toString(),
     });
-    if (fileId === "zip") {
-      searchParams.set("zip_link", "true");
-    } else {
-      searchParams.set("file_id", fileId.toString());
-    }
+    searchParams.set("file_id", fileId.toString());
+    searchParams.set("zip_link", "false");
 
     const response = await this.instance.get<TorBoxRequestLinkRequest>(
       "/torrents/requestdl?" + searchParams.toString()
@@ -172,9 +170,12 @@ export class TorBoxClient {
     const normalizedInfoHash = infoHash.toLowerCase();
     const userTorrents = await this.getAllTorrentsFromUser();
 
-    const userTorrent = userTorrents.find(
-      (userTorrent) => userTorrent.hash?.toLowerCase() === normalizedInfoHash
+    const matchingTorrents = userTorrents.filter(
+      (torrent) => torrent.hash?.toLowerCase() === normalizedInfoHash
     );
+    const userTorrent =
+      matchingTorrents.find((torrent) => this.isReady(torrent)) ??
+      matchingTorrents[0];
 
     if (userTorrent) {
       if (this.isReady(userTorrent)) {

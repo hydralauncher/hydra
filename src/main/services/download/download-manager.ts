@@ -1,4 +1,9 @@
 import {
+  getRangeDownloadedBytes,
+  readRangeState,
+  savedRangeBytes,
+} from "./range-download-state";
+import {
   Downloader,
   DownloadError,
   FILE_EXTENSIONS_TO_EXTRACT,
@@ -505,6 +510,7 @@ export class DownloadManager {
 
       let { progress, bytesDownloaded, fileSize, folderName } = status;
       let downloadSpeed = status.downloadSpeed;
+      let files = download.files;
       let batchFilesTotal: number | undefined;
       let batchFilesDownloaded: number | undefined;
 
@@ -515,6 +521,25 @@ export class DownloadManager {
           status.status === "complete";
 
         batchFilesTotal = batch.entries.length;
+        if (batch.provider === "torBox") {
+          files = batch.entries.map((entry, index) => {
+            const previous = download.files?.find(
+              (file) => file.index === entry.fileId
+            );
+            const completed = index < batch.currentIndex;
+            return {
+              index: entry.fileId!,
+              path: entry.filename,
+              size: entry.size ?? 0,
+              bytesDownloaded: completed
+                ? (entry.size ?? 0)
+                : index === batch.activeIndex
+                  ? status.bytesDownloaded
+                  : (previous?.bytesDownloaded ?? 0),
+              completed,
+            };
+          });
+        }
 
         if (batchDone) {
           this.jsBatch = null;
@@ -567,6 +592,7 @@ export class DownloadManager {
 
       const updatedDownload = {
         ...download,
+        files,
         bytesDownloaded,
         fileSize: effectiveFileSize,
         progress,
@@ -1303,6 +1329,9 @@ export class DownloadManager {
             ...download,
             bytesDownloaded: status.download.bytesDownloaded,
             progress: status.download.progress,
+            files: status.download.files,
+            folderName: status.download.folderName,
+            fileSize: status.download.fileSize,
           });
         }
       }
@@ -1478,10 +1507,7 @@ export class DownloadManager {
       if (batch.torrentId === undefined || entry.fileId === undefined) {
         throw new Error("The TorBox file selection is incomplete.");
       }
-      return TorBoxClient.requestLink(
-        batch.torrentId,
-        entry.isZip ? "zip" : entry.fileId
-      );
+      return TorBoxClient.requestLink(batch.torrentId, entry.fileId);
     }
     if (batch.provider === "realDebrid" && entry.isLocked && url) {
       const unlocked = await RealDebridClient.unlockFileWithDetails(
@@ -1516,7 +1542,7 @@ export class DownloadManager {
     url: string
   ): JsHttpDownloaderOptions {
     const torBoxTorrentId = batch.torrentId;
-    const torBoxFileId = entry.isZip ? "zip" : entry.fileId;
+    const torBoxFileId = entry.fileId;
     const torBoxParallel = batch.provider === "torBox" && !entry.isZip;
     const canRefreshTorBoxLink =
       batch.provider === "torBox" &&
@@ -1529,7 +1555,8 @@ export class DownloadManager {
         : undefined,
       savePath: batch.savePath,
       allowParallelRanges:
-        !entry.isZip && !isZipDownloadUrl(url, entry.filename),
+        !entry.isZip &&
+        (batch.provider === "torBox" || !isZipDownloadUrl(url, entry.filename)),
       parallelRangeSize: torBoxParallel
         ? getRangeSizeForRequestBudget(
             entry.size ?? 0,
@@ -1544,6 +1571,10 @@ export class DownloadManager {
         ? TORBOX_MAX_PARALLEL_RANGES
         : undefined,
       preserveFilename: true,
+      resourceId: `${batch.provider}:${batch.sourceUri}#${entry.fileId ?? entry.fileIndex ?? entry.sourcePath ?? entry.filename}`,
+      expectedSize:
+        batch.provider === "torBox" && !entry.isZip ? entry.size : undefined,
+      requireRangeResume: batch.provider === "torBox" && !entry.isZip,
       // Verify a regenerated ZIP's saved prefix before appending new data.
       verifyResumePrefix: Boolean(entry.isZip),
       filename:
@@ -1579,13 +1610,6 @@ export class DownloadManager {
     const generation = batch.generation ?? this.startGeneration;
     const mismatchDownloadId = batch.downloadId;
     if (!this.isCurrentBatch(batch, downloader, generation)) return true;
-    if (batch.provider === "torBox") {
-      try {
-        fs.unlinkSync(path.join(batch.savePath, entry.filename));
-      } catch (error) {
-        if ((error as NodeJS.ErrnoException).code !== "ENOENT") throw error;
-      }
-    }
     if (!(await this.cleanupBatch(batch, downloader, generation))) return true;
     if (mismatchDownloadId) {
       await this.handleRuntimeDownloadError(
@@ -1624,7 +1648,10 @@ export class DownloadManager {
     const generation = batch.generation ?? this.startGeneration;
     try {
       if (!this.isCurrentBatch(batch, downloader, generation)) return false;
-      const url = await this.resolveBatchEntryUrl(batch, entry);
+      const url =
+        batch.provider === "torBox" && entry.size === 0
+          ? "about:blank"
+          : await this.resolveBatchEntryUrl(batch, entry);
       if (
         this.jsBatch !== batch ||
         this.jsDownloader !== downloader ||
@@ -1983,11 +2010,23 @@ export class DownloadManager {
   private static async getTorBoxDownloadOptions(download: Download) {
     const manifest = await TorBoxClient.getDownloadFiles(download.uri);
     const selected = selectTorBoxFiles(manifest, download.fileIndices);
+    download.files = selected.map((file) => {
+      this.assertSafeBatchPath(download.downloadPath, file.path);
+      const localPath = path.join(download.downloadPath, file.path);
+      const bytesDownloaded = getRangeDownloadedBytes(localPath);
+      return {
+        index: file.id,
+        path: file.path,
+        size: file.size,
+        bytesDownloaded,
+        completed: fs.existsSync(localPath) && bytesDownloaded === file.size,
+      };
+    });
     const firstFile = selected[0];
-    const url = await TorBoxClient.requestLink(
-      manifest.torrentId,
-      firstFile.isZip ? "zip" : firstFile.id
-    );
+    const url =
+      firstFile.size === 0
+        ? "about:blank"
+        : await TorBoxClient.requestLink(manifest.torrentId, firstFile.id);
     return {
       ...this.buildDownloadOptions(url, download.downloadPath, firstFile.path),
       totalSize: selected.reduce((sum, file) => sum + file.size, 0),
@@ -2242,7 +2281,14 @@ export class DownloadManager {
     }
 
     signal?.throwIfAborted();
-    await this.validateJsDownloadResponse(options, signal);
+    if (
+      !(
+        download.downloader === Downloader.TorBox &&
+        download.files?.[0]?.size === 0
+      )
+    ) {
+      await this.validateJsDownloadResponse(options, signal);
+    }
     signal?.throwIfAborted();
 
     this.prunePreparedJsDownloads();
@@ -2474,15 +2520,28 @@ export class DownloadManager {
           if (download.downloader === Downloader.TorBox) {
             const manifest = await TorBoxClient.getDownloadFiles(download.uri);
             const selected = selectTorBoxFiles(manifest, download.fileIndices);
+            download.files = selected.map((file) => {
+              this.assertSafeBatchPath(download.downloadPath, file.path);
+              const localPath = path.join(download.downloadPath, file.path);
+              const bytesDownloaded = getRangeDownloadedBytes(localPath);
+              return {
+                index: file.id,
+                path: file.path,
+                size: file.size,
+                bytesDownloaded,
+                completed:
+                  fs.existsSync(localPath) && bytesDownloaded === file.size,
+              };
+            });
             batchState = {
               provider: "torBox",
+              sourceUri: download.uri,
               downloadId,
               savePath: download.downloadPath,
               entries: selected.map((file) => ({
                 fileId: file.id,
                 filename: file.path,
                 size: file.size,
-                isZip: file.isZip,
               })),
               torrentId: manifest.torrentId,
               rootFolderName: manifest.name,
@@ -2502,7 +2561,13 @@ export class DownloadManager {
               const filePath = path.join(batchState.savePath, entry.filename);
               try {
                 const stat = fs.statSync(filePath);
-                if (!stat.isFile() || stat.size !== entry.size) break;
+                const ranges = readRangeState(filePath);
+                if (
+                  !stat.isFile() ||
+                  stat.size !== entry.size ||
+                  (ranges && savedRangeBytes(ranges) !== ranges.total)
+                )
+                  break;
               } catch (error) {
                 if ((error as NodeJS.ErrnoException).code === "ENOENT") break;
                 throw error;
@@ -2521,6 +2586,7 @@ export class DownloadManager {
 
             batchState = {
               provider: "allDebrid",
+              sourceUri: download.uri,
               downloadId,
               savePath: download.downloadPath,
               entries: entries.map((entry) => ({
@@ -2620,6 +2686,20 @@ export class DownloadManager {
             return;
           }
 
+          if (batchState.provider === "torBox") {
+            const record = await downloadsSublevel.get(downloadId);
+            if (
+              !record ||
+              signal.aborted ||
+              this.startGeneration !== myGeneration
+            )
+              return;
+            await downloadsSublevel.put(downloadId, {
+              ...record,
+              files: download.files,
+            });
+            if (signal.aborted || this.startGeneration !== myGeneration) return;
+          }
           batchState.generation = myGeneration;
           this.jsBatch = batchState;
           this.jsDownloader = new JsHttpDownloader();
@@ -2655,18 +2735,20 @@ export class DownloadManager {
           this.isPreparingDownload = false;
 
           this.logResolvedUrl(options.url);
-          this.jsDownloader.startDownload(options).catch((err) => {
-            void this.handleRuntimeDownloadError(
-              downloadId,
-              err,
-              myGeneration
-            ).catch((error) => {
-              logger.error(
-                `[DownloadManager] Failed to handle download error for ${downloadId}`,
-                error
-              );
+          this.jsDownloader
+            .startDownload({ ...options, resourceId: download.uri })
+            .catch((err) => {
+              void this.handleRuntimeDownloadError(
+                downloadId,
+                err,
+                myGeneration
+              ).catch((error) => {
+                logger.error(
+                  `[DownloadManager] Failed to handle download error for ${downloadId}`,
+                  error
+                );
+              });
             });
-          });
         }
       } catch (err) {
         if (this.startGeneration !== myGeneration) return;
