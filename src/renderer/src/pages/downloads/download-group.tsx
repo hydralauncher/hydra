@@ -465,32 +465,32 @@ function HeroDownloadView({
             {!isGameExtracting && (
               <div className="download-group__hero-buttons">
                 {isGameDownloading ? (
-                  <button
-                    type="button"
+                  <Button
+                    theme="outline"
                     onClick={() => pauseDownload(game.shop, game.objectId)}
                     className="download-group__glass-btn"
                   >
                     <ColumnsIcon size={14} />
                     {t("pause")}
-                  </button>
+                  </Button>
                 ) : (
-                  <button
-                    type="button"
+                  <Button
+                    theme="outline"
                     onClick={() => resumeDownload(game.shop, game.objectId)}
                     className="download-group__glass-btn"
                   >
                     <PlayIcon size={14} />
                     {t("resume")}
-                  </button>
+                  </Button>
                 )}
-                <button
-                  type="button"
+                <Button
+                  theme="outline"
                   onClick={() => onCancelClick(game.shop, game.objectId)}
                   className="download-group__glass-btn"
                 >
                   <XCircleIcon size={14} />
                   {t("cancel")}
-                </button>
+                </Button>
               </div>
             )}
           </div>

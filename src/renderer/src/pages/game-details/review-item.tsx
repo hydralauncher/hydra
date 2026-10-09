@@ -7,6 +7,7 @@ import { useState, type ReactNode } from "react";
 import type { GameReview } from "@types";
 
 import { getReviewTranslationLanguage, sanitizeHtml } from "@shared";
+import { Button } from "@renderer/components";
 import { useDate, useFormat, useProcessedImage } from "@renderer/hooks";
 import { formatNumber } from "@renderer/helpers";
 import { Avatar } from "@renderer/components";
@@ -352,14 +353,15 @@ export function ReviewItem({
           {replyAction}
         </div>
         {userDetailsId === review.user.id && (
-          <button
-            className="game-details__delete-review-button"
+          <Button
+            theme="danger"
+            size="small"
             onClick={() => onDelete(review.id)}
             title={t("delete_review")}
           >
-            <TrashIcon size={16} />
-            <span>{t("remove_review")}</span>
-          </button>
+            <TrashIcon size={14} />
+            {t("remove_review")}
+          </Button>
         )}
         {isBlocked && isVisible && (
           <button

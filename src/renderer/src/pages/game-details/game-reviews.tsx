@@ -11,6 +11,7 @@ import { ReviewGateNotice } from "./review-gate-notice";
 import { ReviewThread } from "./review-thread";
 import { ReviewSortOptions } from "./review-sort-options";
 import "./game-reviews.scss";
+import { Button } from "@renderer/components";
 import { useToast } from "@renderer/hooks";
 import { REVIEW_MIN_PLAYTIME_IN_MS } from "@renderer/constants";
 import { getDisplayedPlayTimeInMilliseconds } from "@shared";
@@ -493,12 +494,13 @@ export function GameReviews({
       </div>
 
       {hasMoreReviews && !reviewsLoading && (
-        <button
+        <Button
+          theme="outline"
           className="game-details__load-more-reviews"
           onClick={loadMoreReviews}
         >
           {t("load_more_reviews")}
-        </button>
+        </Button>
       )}
 
       {reviewsLoading && reviews.length > 0 && (

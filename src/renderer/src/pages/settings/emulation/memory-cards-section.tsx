@@ -409,8 +409,9 @@ export function MemoryCardsSection({ config, onUploaded }: Readonly<Props>) {
                           </span>
                         </button>
                         {hasActiveSubscription && (
-                          <button
-                            type="button"
+                          <Button
+                            theme="outline"
+                            size="small"
                             className="emulator-detail__memcard-backup-all"
                             onClick={() =>
                               handleBackupAll(cardFilePath, records.length)
@@ -418,18 +419,16 @@ export function MemoryCardsSection({ config, onUploaded }: Readonly<Props>) {
                             disabled={isBackingUp}
                           >
                             <UploadIcon size={13} />
-                            <span>
-                              {isBackingUp
-                                ? `${t("cloud_backing_up")} ${t(
-                                    "setup_scan_count",
-                                    {
-                                      processed: progressDone,
-                                      total: progressTotal,
-                                    }
-                                  )}`
-                                : t("cloud_backup_all")}
-                            </span>
-                          </button>
+                            {isBackingUp
+                              ? `${t("cloud_backing_up")} ${t(
+                                  "setup_scan_count",
+                                  {
+                                    processed: progressDone,
+                                    total: progressTotal,
+                                  }
+                                )}`
+                              : t("cloud_backup_all")}
+                          </Button>
                         )}
                         <button
                           type="button"
