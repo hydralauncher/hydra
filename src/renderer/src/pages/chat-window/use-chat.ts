@@ -61,6 +61,79 @@ const sendReaction = (friendId: string, seq: number, emoji: string | null) => {
     : electron.hydraApi.put<ChatMessageReactionsDto>(path, { data: { emoji } });
 };
 
+interface ReactionTargetsResult {
+  /** The last reactions the server saved, if any request succeeded. */
+  settled: ChatMessageReactionsDto | null;
+  isFailed: boolean;
+  error: unknown;
+}
+
+/**
+ * Sends the reaction `targets` holds for `key`, one request at a time, until
+ * it stops changing. Resolves with the last saved reactions and whether the
+ * last request failed.
+ */
+const sendReactionTargets = async (
+  targets: Map<string, string | null>,
+  key: string,
+  friendId: string,
+  seq: number,
+  previous: ChatMessageReactionsDto | null = null
+): Promise<ReactionTargetsResult> => {
+  const target = targets.get(key) ?? null;
+  let result: ReactionTargetsResult;
+
+  try {
+    const settled = await sendReaction(friendId, seq, target);
+    result = { settled, isFailed: false, error: null };
+  } catch (error) {
+    result = { settled: previous, isFailed: true, error };
+  }
+
+  return targets.get(key) === target
+    ? result
+    : sendReactionTargets(targets, key, friendId, seq, result.settled);
+};
+
+interface MessagesRange {
+  messages: ChatMessageDto[];
+  canSend: boolean | null;
+  /** False when a failure stopped it before the newest message. */
+  isComplete: boolean;
+}
+
+/**
+ * Every stored message after `afterSeq`, a page at a time. Whatever loaded
+ * before a failure is kept.
+ */
+const fetchMessagesAfter = async (
+  friendId: string,
+  afterSeq: number,
+  range: MessagesRange = { messages: [], canSend: null, isComplete: false }
+): Promise<MessagesRange> => {
+  let page: ChatMessagesPage;
+  try {
+    page = await fetchMessages(friendId, {
+      after: afterSeq,
+      take: MAX_PAGE_SIZE,
+    });
+  } catch {
+    return range;
+  }
+
+  const next = {
+    messages: [...range.messages, ...page.messages],
+    canSend: page.canSend,
+    isComplete: false,
+  };
+  const lastSeq = page.messages.at(-1)?.seq;
+  if (!page.hasMore || lastSeq === undefined) {
+    return { ...next, isComplete: true };
+  }
+
+  return fetchMessagesAfter(friendId, lastSeq, next);
+};
+
 const isNotFriendsError = (error: unknown) =>
   error instanceof Error && error.message.includes(NOT_FRIENDS_ERROR);
 
@@ -303,35 +376,15 @@ export function useChat({
         return;
       }
 
-      const loaded: ChatMessage[] = [];
-      let afterSeq = oldestSeq - 1;
-      let canSend: boolean | null = null;
-      let isComplete = false;
-
-      try {
-        while (!isComplete) {
-          const page = await fetchMessages(friendId, {
-            after: afterSeq,
-            take: MAX_PAGE_SIZE,
-          });
-
-          loaded.push(
-            ...page.messages.map((message) =>
-              toChatMessage(message, friendId, true)
-            )
-          );
-          canSend = page.canSend;
-          afterSeq = page.messages.at(-1)?.seq ?? afterSeq;
-          isComplete = !page.hasMore || page.messages.length === 0;
-        }
-      } catch {
-        // Whatever loaded before the failure is still kept.
-      }
+      const range = await fetchMessagesAfter(friendId, oldestSeq - 1);
+      const loaded = range.messages.map((message) =>
+        toChatMessage(message, friendId, true)
+      );
 
       updateConversation(friendId, (conversation) => ({
         ...conversation,
-        canSend: canSend ?? conversation.canSend,
-        gapAfterSeq: isComplete ? null : conversation.gapAfterSeq,
+        canSend: range.canSend ?? conversation.canSend,
+        gapAfterSeq: range.isComplete ? null : conversation.gapAfterSeq,
         messages: mergeChatMessages(conversation.messages, loaded),
       }));
     },
@@ -618,19 +671,12 @@ export function useChat({
 
       // Nothing was in flight, so this is the saved reaction.
       const savedMine = message.reactions?.find((reaction) => reaction.fromMe);
-      let settled: ChatMessageReactionsDto | null = null;
-      let failure: unknown = null;
-      let target: string | null;
-
-      do {
-        target = targets.get(key) ?? null;
-        try {
-          settled = await sendReaction(friendId, seq, target);
-          failure = null;
-        } catch (error) {
-          failure = error;
-        }
-      } while (targets.get(key) !== target);
+      const { settled, isFailed, error } = await sendReactionTargets(
+        targets,
+        key,
+        friendId,
+        seq
+      );
       targets.delete(key);
 
       // A failed last change falls back to what the server last saved.
@@ -649,16 +695,14 @@ export function useChat({
       updateConversation(friendId, (conversation) => ({
         ...conversation,
         canSend:
-          failure !== null && isNotFriendsError(failure)
-            ? false
-            : conversation.canSend,
+          isFailed && isNotFriendsError(error) ? false : conversation.canSend,
         messages: updateMessageReactions(conversation.messages, seq, settle),
       }));
 
-      if (failure !== null) {
+      if (isFailed) {
         setReactionError({
           friendId,
-          kind: isRateLimitedError(failure) ? "rate_limited" : "failed",
+          kind: isRateLimitedError(error) ? "rate_limited" : "failed",
         });
       }
     },

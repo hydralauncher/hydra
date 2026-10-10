@@ -1256,8 +1256,11 @@ $cooldown-ring-length: 2 * math.$pi * 11;
     }
   }
 
+  // Above the bubble and its reactions, which come later in the row and
+  // would otherwise cover it.
   &__message-action-tooltip {
     position: absolute;
+    z-index: 2;
     bottom: calc(100% + 6px);
     left: 50%;
     padding: 4px globals.$spacing-unit;
