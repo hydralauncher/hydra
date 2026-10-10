@@ -5,12 +5,14 @@ import type { ChatMessage, ChatReaction } from "./chat-message-groups.js";
 import {
   applyReaction,
   getMyReaction,
+  mergeReactions,
   toReactionPills,
   updateMessageReactions,
 } from "./chat-reactions.js";
 
 const EARLIER = "2026-10-09T12:00:00.000Z";
 const LATER = "2026-10-09T12:05:00.000Z";
+const LATEST = "2026-10-09T12:10:00.000Z";
 
 const mine = (emoji: string, updatedAt = EARLIER): ChatReaction => ({
   emoji,
@@ -58,14 +60,29 @@ describe("applyReaction", () => {
     );
   });
 
-  it("removes the side's reaction for a null emoji", () => {
+  it("records a removal for a null emoji", () => {
     assert.deepEqual(
       applyReaction([mine("👍"), theirs("😂")], {
         fromMe: false,
         emoji: null,
         updatedAt: LATER,
       }),
-      [mine("👍")]
+      [mine("👍"), { emoji: null, fromMe: false, updatedAt: LATER }]
+    );
+  });
+
+  it("keeps an older change from bringing a removed reaction back", () => {
+    const reactions: ChatReaction[] = [
+      { emoji: null, fromMe: false, updatedAt: LATER },
+    ];
+
+    assert.equal(
+      applyReaction(reactions, {
+        fromMe: false,
+        emoji: "😂",
+        updatedAt: EARLIER,
+      }),
+      reactions
     );
   });
 
@@ -106,6 +123,44 @@ describe("applyReaction", () => {
   });
 });
 
+describe("mergeReactions", () => {
+  it("keeps whichever change is newer on each side", () => {
+    assert.deepEqual(
+      mergeReactions(
+        [theirs("🔥", LATER), mine("👍")],
+        [theirs("😂"), mine("💀", LATEST)]
+      ),
+      [theirs("🔥", LATER), mine("💀", LATEST)]
+    );
+  });
+
+  it("records a removal for a side the response leaves out", () => {
+    assert.deepEqual(mergeReactions([theirs("😂")], []), [
+      { emoji: null, fromMe: false, updatedAt: EARLIER },
+    ]);
+  });
+
+  it("keeps an unsaved reaction until its request settles", () => {
+    const pending = { ...mine("🔥", LATER), isPending: true };
+
+    assert.deepEqual(mergeReactions([pending], [mine("👍")]), [pending]);
+  });
+
+  it("settles the user's side with the request's result, keeping the friend's", () => {
+    const pending = { ...mine("🔥", LATER), isPending: true };
+
+    assert.deepEqual(
+      mergeReactions([pending, theirs("😂", LATER)], [mine("👍")], {
+        settleMine: true,
+      }),
+      [mine("👍"), theirs("😂", LATER)]
+    );
+    assert.deepEqual(mergeReactions([pending], [], { settleMine: true }), [
+      { emoji: null, fromMe: true, updatedAt: LATER },
+    ]);
+  });
+});
+
 describe("updateMessageReactions", () => {
   it("changes only the message with the seq", () => {
     const messages = [message(1), message(2, [theirs("😂")])];
@@ -121,6 +176,13 @@ describe("updateMessageReactions", () => {
 });
 
 describe("toReactionPills", () => {
+  it("leaves out removed reactions", () => {
+    assert.deepEqual(
+      toReactionPills([{ emoji: null, fromMe: false, updatedAt: EARLIER }]),
+      []
+    );
+  });
+
   it("merges the same emoji from both sides into one pill", () => {
     assert.deepEqual(toReactionPills([theirs("😂"), mine("😂", LATER)]), [
       { emoji: "😂", fromMe: true, fromFriend: true, isPending: false },

@@ -10,7 +10,10 @@ export interface ChatFriendStatusProps {
   isTyping?: boolean;
 }
 
-export function ChatFriendStatus({ friend, isTyping }: ChatFriendStatusProps) {
+export function ChatFriendStatus({
+  friend,
+  isTyping,
+}: Readonly<ChatFriendStatusProps>) {
   const { t } = useTranslation("chat_window");
 
   if (isTyping) {
@@ -57,7 +60,10 @@ export interface ChatFriendAvatarProps {
   size: number;
 }
 
-export function ChatFriendAvatar({ friend, size }: ChatFriendAvatarProps) {
+export function ChatFriendAvatar({
+  friend,
+  size,
+}: Readonly<ChatFriendAvatarProps>) {
   return (
     <div className="chat-window__avatar-wrapper">
       <Avatar
@@ -78,7 +84,9 @@ export interface ChatTypingDotsProps {
   size?: "small" | "regular";
 }
 
-export function ChatTypingDots({ size = "regular" }: ChatTypingDotsProps) {
+export function ChatTypingDots({
+  size = "regular",
+}: Readonly<ChatTypingDotsProps>) {
   return (
     <span
       className={cn("chat-window__typing-dots", {

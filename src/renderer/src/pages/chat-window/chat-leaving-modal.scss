@@ -3,9 +3,13 @@
 $faded-text: rgba(globals.$body-color, 0.7);
 $meta-text: rgba(globals.$body-color, 0.6);
 
-// Extends `.modal`; the chat window can be narrower than its min-width.
+// Extends `.modal`; the chat window can be narrower than its min-width. It is
+// a native <dialog>, so its default placement and padding are reset.
 .chat-leaving-modal {
   position: relative;
+  inset: auto;
+  margin: 0;
+  padding: 0;
   width: 400px;
   min-width: 0;
   max-width: 100%;

@@ -40,7 +40,7 @@ export interface ChatScrollbarProps {
  * only draws the position and handles dragging: wheel, keyboard and touch
  * scrolling stay native.
  */
-export function ChatScrollbar({ scrollRef }: ChatScrollbarProps) {
+export function ChatScrollbar({ scrollRef }: Readonly<ChatScrollbarProps>) {
   const [thumb, setThumb] = useState<ScrollbarThumb | null>(null);
   const [isScrolling, setIsScrolling] = useState(false);
   const [isDragging, setIsDragging] = useState(false);

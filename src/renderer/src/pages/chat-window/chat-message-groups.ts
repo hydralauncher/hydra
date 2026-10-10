@@ -7,7 +7,8 @@ export interface ChatMessageReply {
 }
 
 export interface ChatReaction {
-  emoji: string;
+  /** Null once the side removed its reaction, kept for the time of the change. */
+  emoji: string | null;
   fromMe: boolean;
   updatedAt: string;
   /** Set on the user's own reaction while it is being saved. */
@@ -25,7 +26,7 @@ export interface ChatMessage {
   createdAt: string;
   status: ChatMessageStatus;
   replyTo?: ChatMessageReply;
-  /** Oldest first, at most one from each side. */
+  /** Oldest first, at most one from each side, removals included. */
   reactions?: ChatReaction[];
   /** Loaded from history rather than sent or received live: no entrance animation. */
   fromHistory?: boolean;
@@ -57,14 +58,14 @@ export function groupChatMessages(
     const date = new Date(message.createdAt);
     const dayKey = date.toDateString();
 
-    let day = days[days.length - 1];
-    if (!day || day.key !== dayKey) {
+    let day = days.at(-1);
+    if (day?.key !== dayKey) {
       day = { key: dayKey, date, groups: [] };
       days.push(day);
     }
 
-    const group = day.groups[day.groups.length - 1];
-    const previous = group?.messages[group.messages.length - 1];
+    const group = day.groups.at(-1);
+    const previous = group?.messages.at(-1);
 
     if (
       group &&

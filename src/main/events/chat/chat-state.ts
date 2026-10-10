@@ -25,17 +25,23 @@ ipcMain.handle("getChatUnreadState", () => ChatUnreadStore.getState());
 
 ipcMain.handle(
   "markChatRead",
-  async (_event, friendId: string, seq: number) => {
-    if (!isFriendId(friendId) || !Number.isSafeInteger(seq) || seq < 0) return;
+  async (_event, friendId: string, seq: number): Promise<boolean> => {
+    if (!isFriendId(friendId) || !Number.isSafeInteger(seq) || seq < 0) {
+      return false;
+    }
+
+    const generation = ChatUnreadStore.getGeneration();
 
     try {
       const { unreadCount } = await HydraApi.post<{ unreadCount: number }>(
         `/profile/chats/${friendId}/read`,
         { seq }
       );
-      ChatUnreadStore.setUnread(friendId, unreadCount);
+      ChatUnreadStore.setUnread(friendId, unreadCount, generation);
+      return true;
     } catch (error) {
       logger.error("Failed to mark chat as read", error);
+      return false;
     }
   }
 );

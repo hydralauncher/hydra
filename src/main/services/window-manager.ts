@@ -581,7 +581,7 @@ export class WindowManager {
 
     friendsWindow.removeMenu();
 
-    this.loadWindowURL(friendsWindow, "friends-window");
+    void this.loadWindowURL(friendsWindow, "friends-window");
 
     // Show only once the renderer has painted its friends list (cached data or
     // the skeleton), not on its first paint, so the window never opens on an
@@ -692,7 +692,7 @@ export class WindowManager {
       event.preventDefault();
     });
 
-    this.loadWindowURL(this.chatWindow, "chat-window");
+    void this.loadWindowURL(this.chatWindow, "chat-window");
 
     this.chatWindow.once("ready-to-show", () => {
       if (activate) {

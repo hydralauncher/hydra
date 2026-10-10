@@ -19,20 +19,19 @@ describe("getMissedChatConversations", () => {
   const bob = conversation("bob00001", 3, "2026-10-05T13:00:00.000Z");
 
   it("announces every unread conversation when nothing was announced yet", () => {
-    const missed = getMissedChatConversations([alice, bob], null, nothingOpen);
+    const missed = getMissedChatConversations([alice, bob], {}, nothingOpen);
 
     assert.deepEqual(
       missed.conversations.map(({ friendId }) => friendId),
       ["alice001", "bob00001"]
     );
     assert.equal(missed.messageCount, 5);
-    assert.equal(missed.latestMessageAt, bob.lastMessageAt);
   });
 
   it("skips conversations already announced", () => {
     const missed = getMissedChatConversations(
       [alice, bob],
-      "2026-10-05T12:30:00.000Z",
+      { alice001: alice.lastMessageAt },
       nothingOpen
     );
 
@@ -42,22 +41,48 @@ describe("getMissedChatConversations", () => {
     );
   });
 
-  it("returns nothing when the newest message was already announced", () => {
+  it("returns nothing when every conversation was already announced", () => {
     const missed = getMissedChatConversations(
       [alice, bob],
-      bob.lastMessageAt,
+      { alice001: alice.lastMessageAt, bob00001: bob.lastMessageAt },
       nothingOpen
     );
 
     assert.equal(missed.conversations.length, 0);
     assert.equal(missed.messageCount, 0);
-    assert.equal(missed.latestMessageAt, "");
+  });
+
+  it("announces older messages when another conversation was announced later", () => {
+    // A live message from Bob must not hide what Alice sent while offline.
+    const missed = getMissedChatConversations(
+      [alice, bob],
+      { bob00001: bob.lastMessageAt },
+      nothingOpen
+    );
+
+    assert.deepEqual(
+      missed.conversations.map(({ friendId }) => friendId),
+      ["alice001"]
+    );
+  });
+
+  it("announces a conversation again once a newer message arrives", () => {
+    const missed = getMissedChatConversations(
+      [alice],
+      { alice001: "2026-10-05T11:00:00.000Z" },
+      nothingOpen
+    );
+
+    assert.deepEqual(
+      missed.conversations.map(({ friendId }) => friendId),
+      ["alice001"]
+    );
   });
 
   it("skips conversations open in a focused chat window", () => {
     const missed = getMissedChatConversations(
       [alice, bob],
-      null,
+      {},
       (friendId) => friendId === "bob00001"
     );
 

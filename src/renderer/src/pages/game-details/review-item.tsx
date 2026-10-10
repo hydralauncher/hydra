@@ -7,10 +7,9 @@ import { useState, type ReactNode } from "react";
 import type { GameReview } from "@types";
 
 import { getReviewTranslationLanguage, sanitizeHtml } from "@shared";
-import { Button } from "@renderer/components";
+import { Avatar, Button } from "@renderer/components";
 import { useDate, useFormat, useProcessedImage } from "@renderer/hooks";
 import { formatNumber } from "@renderer/helpers";
-import { Avatar } from "@renderer/components";
 import {
   MAX_MINUTES_TO_SHOW_IN_PLAYTIME,
   REVIEW_BANNER_IMAGE_SIZE,

@@ -90,10 +90,10 @@ export function ChatEmojiPicker({
   anchorRef,
   onPick,
   onClose,
-}: ChatEmojiPickerProps) {
+}: Readonly<ChatEmojiPickerProps>) {
   const { t } = useTranslation("chat_window");
 
-  const rootRef = useRef<HTMLDivElement>(null);
+  const rootRef = useRef<HTMLDialogElement>(null);
   const gridRef = useRef<HTMLDivElement>(null);
   const searchRef = useRef<HTMLInputElement>(null);
 
@@ -199,10 +199,10 @@ export function ChatEmojiPicker({
     : t(`emoji_category_${tab}`);
 
   return (
-    <div
+    <dialog
       ref={rootRef}
       className={cn("chat-window__emoji-picker", className)}
-      role="dialog"
+      open
       aria-label={label}
     >
       <div className="chat-window__emoji-search">
@@ -267,9 +267,8 @@ export function ChatEmojiPicker({
         <div className="chat-window__emoji-section-title">{sectionTitle}</div>
 
         {items.length > 0 ? (
-          <div
+          <fieldset
             className="chat-window__emoji-grid"
-            role="group"
             aria-label={sectionTitle}
           >
             {items.map((item) => (
@@ -280,7 +279,7 @@ export function ChatEmojiPicker({
                   "chat-window__emoji-option--selected":
                     item.emoji === selected,
                 })}
-                aria-label={item.name.replace(/_/g, " ")}
+                aria-label={item.name.replaceAll("_", " ")}
                 aria-pressed={item.emoji === selected}
                 onClick={() => pick(item.emoji)}
                 onKeyDown={handleGridKeyDown}
@@ -290,7 +289,7 @@ export function ChatEmojiPicker({
                 <span className="chat-window__emoji-glyph">{item.emoji}</span>
               </button>
             ))}
-          </div>
+          </fieldset>
         ) : (
           <div className="chat-window__emoji-empty">
             <p className="chat-window__emoji-empty-title">
@@ -315,6 +314,6 @@ export function ChatEmojiPicker({
           </>
         )}
       </div>
-    </div>
+    </dialog>
   );
 }

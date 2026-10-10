@@ -13,7 +13,11 @@ export interface CloudRingProps {
  * Animated Hydra Cloud frame for avatars, matching the mobile app's
  * `CloudRing`.
  */
-export function CloudRing({ radius = 7, className, children }: CloudRingProps) {
+export function CloudRing({
+  radius = 7,
+  className,
+  children,
+}: Readonly<CloudRingProps>) {
   return (
     <div
       className={cn("cloud-ring", className)}

@@ -20,7 +20,7 @@ export interface ChatSendCooldownGaugeProps {
  */
 export function ChatSendCooldownGauge({
   cooldown,
-}: ChatSendCooldownGaugeProps) {
+}: Readonly<ChatSendCooldownGaugeProps>) {
   const [secondsLeft, setSecondsLeft] = useState(() =>
     getSecondsLeft(cooldown.until)
   );

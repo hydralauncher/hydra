@@ -7,6 +7,7 @@ import {
   createPendingMessage,
   createReply,
   findFirstFriendMessageAfter,
+  findGapAfter,
   getLatestSeq,
   hasGapBefore,
   mergeChatMessages,
@@ -157,7 +158,30 @@ describe("mergeChatMessages", () => {
     );
 
     assert.deepEqual(fromRealtime.reactions, reacted.reactions);
-    assert.deepEqual(fromHistory.reactions, []);
+    // History without it means it was removed; the removal keeps its time.
+    assert.deepEqual(fromHistory.reactions, [
+      { emoji: null, fromMe: true, updatedAt: CREATED_AT },
+    ]);
+  });
+
+  it("keeps a reaction newer than the one history reports", () => {
+    const later = "2026-10-09T13:00:00.000Z";
+    const reacted: ChatMessage = {
+      ...stored(1),
+      reactions: [{ emoji: "🔥", fromMe: false, updatedAt: later }],
+    };
+
+    const [merged] = mergeChatMessages(
+      [reacted],
+      [
+        {
+          ...stored(1),
+          reactions: [{ emoji: "😂", fromMe: false, updatedAt: CREATED_AT }],
+        },
+      ]
+    );
+
+    assert.deepEqual(merged.reactions, reacted.reactions);
   });
 
   it("replaces the optimistic copy once the server stores it", () => {
@@ -227,6 +251,18 @@ describe("gap detection", () => {
     assert.equal(hasGapBefore([stored(1), stored(2)], 3), false);
     assert.equal(hasGapBefore([stored(1), stored(2)], 5), true);
     assert.equal(hasGapBefore([], 5), false);
+  });
+
+  it("keeps the first recorded gap until it is loaded", () => {
+    const messages = [stored(1), stored(2), stored(3)];
+
+    assert.equal(findGapAfter({ messages, gapAfterSeq: null }, 4), null);
+    assert.equal(findGapAfter({ messages, gapAfterSeq: null }, 6), 3);
+    // Message 6 is loaded by now, but 4 and 5 are still missing.
+    assert.equal(
+      findGapAfter({ messages: [...messages, stored(6)], gapAfterSeq: 3 }, 7),
+      3
+    );
   });
 });
 

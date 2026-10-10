@@ -1368,7 +1368,8 @@ declare global {
     onChatFriendsPending: (cb: () => void) => () => Electron.IpcRenderer;
     setChatWindowState: (state: ChatWindowState) => Promise<void>;
     getChatUnreadState: () => Promise<ChatUnreadState>;
-    markChatRead: (friendId: string, seq: number) => Promise<void>;
+    /** Resolves to false when the read could not be saved. */
+    markChatRead: (friendId: string, seq: number) => Promise<boolean>;
     onChatMessage: (
       cb: (sync: ChatMessageSync) => void
     ) => () => Electron.IpcRenderer;

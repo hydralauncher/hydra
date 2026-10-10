@@ -259,6 +259,10 @@ $cooldown-ring-length: 2 * math.$pi * 11;
       width 0.15s ease,
       background-color 0.15s ease;
     -webkit-app-region: no-drag;
+    // Tabs can be dragged to reorder; pointer events, so no text selection or
+    // touch scrolling gets in the way.
+    user-select: none;
+    touch-action: none;
 
     &:hover {
       --chat-tab-surface: #{$tab-hover-background};
@@ -522,13 +526,6 @@ $cooldown-ring-length: 2 * math.$pi * 11;
     opacity: 1;
     visibility: visible;
     transition-delay: 0.4s;
-  }
-
-  // Tabs can be dragged to reorder; pointer events, so no text selection or
-  // touch scrolling gets in the way.
-  &__tab {
-    user-select: none;
-    touch-action: none;
   }
 
   // While dragging, the other tabs glide aside; hover cards would only
@@ -2069,9 +2066,14 @@ $cooldown-ring-length: 2 * math.$pi * 11;
     background-color: $popover-border;
   }
 
+  // A native <dialog>: its default box is reset so the placement classes
+  // below decide where it sits.
   &__emoji-picker {
     position: absolute;
     z-index: 5;
+    inset: auto;
+    margin: 0;
+    padding: 0;
     display: flex;
     flex-direction: column;
     width: 328px;
@@ -2224,8 +2226,13 @@ $cooldown-ring-length: 2 * math.$pi * 11;
     color: $meta-text;
   }
 
+  // A <fieldset>, without its default frame.
   &__emoji-grid {
     display: grid;
+    min-width: 0;
+    margin: 0;
+    padding: 0;
+    border: none;
     grid-template-columns: repeat(8, minmax(0, 1fr));
     gap: 2px;
   }

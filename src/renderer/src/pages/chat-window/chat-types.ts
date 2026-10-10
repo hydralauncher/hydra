@@ -17,4 +17,9 @@ export interface ChatConversation {
   loadState: ChatLoadState;
   hasMoreBefore: boolean;
   isLoadingOlder: boolean;
+  /**
+   * Seq of the last message before ones that were missed, until they are
+   * loaded. Messages past it are not marked read meanwhile.
+   */
+  gapAfterSeq: number | null;
 }

@@ -81,7 +81,7 @@ function ChatTab({
   onPointerUp,
   onSelect,
   onClose,
-}: ChatTabProps) {
+}: Readonly<ChatTabProps>) {
   const { t } = useTranslation("chat_window");
   const { friend, isTyping, unreadCount } = conversation;
 
@@ -208,7 +208,7 @@ export function ChatTabStrip({
   onReorder,
   onMinimize,
   onCloseWindow,
-}: ChatTabStripProps) {
+}: Readonly<ChatTabStripProps>) {
   const { t } = useTranslation("chat_window");
 
   const tabsAreaRef = useRef<HTMLDivElement>(null);

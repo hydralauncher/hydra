@@ -19,7 +19,7 @@ export class FriendsSnapshotCache {
 
   public static prefetch(): Promise<FriendsSnapshot | null> {
     if (!HydraApi.isLoggedIn()) return Promise.resolve(null);
-    if (this.inFlight) return this.inFlight;
+    if (this.inFlight !== null) return this.inFlight;
 
     if (this.snapshot && Date.now() - this.fetchedAt < SNAPSHOT_MAX_AGE_MS) {
       return Promise.resolve(this.snapshot);
@@ -28,7 +28,7 @@ export class FriendsSnapshotCache {
     const request = this.fetchSnapshot(this.generation);
     this.inFlight = request;
 
-    request.finally(() => {
+    void request.finally(() => {
       if (this.inFlight === request) this.inFlight = null;
     });
 

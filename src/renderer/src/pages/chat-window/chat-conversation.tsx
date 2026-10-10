@@ -7,6 +7,7 @@ import {
   useState,
 } from "react";
 import { Trans, useTranslation } from "react-i18next";
+import type { TFunction } from "i18next";
 import {
   AlertFillIcon,
   PaperAirplaneIcon,
@@ -42,6 +43,54 @@ const HINT_ROLES: Partial<Record<ComposerHintKind, "alert" | "status">> = {
   typing: "status",
 };
 
+interface ComposerHintState {
+  canSend: boolean;
+  isRateLimited: boolean;
+  reactionError: ChatReactionErrorKind | null;
+  /** Characters over the length limit; null within it. */
+  tooLongBy: number | null;
+  isTyping: boolean;
+  isFriendOnline: boolean;
+  isEmpty: boolean;
+  friendName: string;
+}
+
+/** The line under the composer: the most pressing thing to tell the user. */
+const getComposerHint = (
+  state: ComposerHintState,
+  t: TFunction<"chat_window">
+): { kind: ComposerHintKind; text: string } | null => {
+  const name = state.friendName;
+
+  if (!state.canSend) {
+    return { kind: "info", text: t("cannot_send_hint", { name }) };
+  }
+  if (state.isRateLimited) {
+    return { kind: "error", text: t("rate_limited_hint") };
+  }
+  if (state.reactionError) {
+    return {
+      kind: "error",
+      text:
+        state.reactionError === "rate_limited"
+          ? t("reaction_rate_limited_hint")
+          : t("reaction_failed_hint"),
+    };
+  }
+  if (state.tooLongBy !== null) {
+    return {
+      kind: "error",
+      text: t("message_too_long", { count: state.tooLongBy }),
+    };
+  }
+  if (state.isTyping) return { kind: "typing", text: t("typing", { name }) };
+  if (!state.isFriendOnline) {
+    return { kind: "offline", text: t("offline_hint", { name }) };
+  }
+  if (state.isEmpty) return { kind: "info", text: t("enter_hint") };
+  return null;
+};
+
 export interface ChatConversationViewProps {
   conversation: ChatConversation;
   sendCooldown: ChatSendCooldown | null;
@@ -74,7 +123,7 @@ export function ChatConversationView({
   onLoadOlder,
   onLoadThrough,
   onReload,
-}: ChatConversationViewProps) {
+}: Readonly<ChatConversationViewProps>) {
   const { t, i18n } = useTranslation("chat_window");
   const { friend, messages, isTyping, draft, loadState } = conversation;
 
@@ -217,42 +266,19 @@ export function ChatConversationView({
     }
   };
 
-  let hint: { kind: ComposerHintKind; text: string } | null = null;
-  if (!conversation.canSend) {
-    hint = {
-      kind: "info",
-      text: t("cannot_send_hint", { name: friend.displayName }),
-    };
-  } else if (sendCooldown) {
-    hint = { kind: "error", text: t("rate_limited_hint") };
-  } else if (reactionError) {
-    hint = {
-      kind: "error",
-      text:
-        reactionError === "rate_limited"
-          ? t("reaction_rate_limited_hint")
-          : t("reaction_failed_hint"),
-    };
-  } else if (isTooLong) {
-    hint = {
-      kind: "error",
-      text: t("message_too_long", {
-        count: text.length - CHAT_MESSAGE_MAX_LENGTH,
-      }),
-    };
-  } else if (isTyping) {
-    hint = {
-      kind: "typing",
-      text: t("typing", { name: friend.displayName }),
-    };
-  } else if (!friend.isOnline) {
-    hint = {
-      kind: "offline",
-      text: t("offline_hint", { name: friend.displayName }),
-    };
-  } else if (isEmpty) {
-    hint = { kind: "info", text: t("enter_hint") };
-  }
+  const hint = getComposerHint(
+    {
+      canSend: conversation.canSend,
+      isRateLimited: sendCooldown !== null,
+      reactionError,
+      tooLongBy: isTooLong ? text.length - CHAT_MESSAGE_MAX_LENGTH : null,
+      isTyping,
+      isFriendOnline: Boolean(friend.isOnline),
+      isEmpty,
+      friendName: friend.displayName,
+    },
+    t
+  );
 
   return (
     <div className="chat-window__conversation">

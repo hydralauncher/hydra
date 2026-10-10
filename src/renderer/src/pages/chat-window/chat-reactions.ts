@@ -16,10 +16,25 @@ export interface ChatReactionPill {
   isPending: boolean;
 }
 
+const isNewer = (a: ChatReaction, b: ChatReaction) =>
+  Date.parse(a.updatedAt) > Date.parse(b.updatedAt);
+
+const byUpdatedAt = (a: ChatReaction, b: ChatReaction) =>
+  Date.parse(a.updatedAt) - Date.parse(b.updatedAt);
+
+/** A removal that keeps the time of the side's last known change. */
+const toRemoval = (reaction: ChatReaction): ChatReaction => ({
+  emoji: null,
+  fromMe: reaction.fromMe,
+  updatedAt: reaction.updatedAt,
+});
+
 /**
  * Applies a reaction change for one side. Realtime events can arrive out of
- * order, so a change older than the side's current reaction is dropped,
- * unless that reaction is still an optimistic, unsaved one.
+ * order, so a change older than the side's current one is dropped, unless
+ * either is an optimistic, unsaved reaction: the user's own pick always shows,
+ * whatever the clocks say. Removals stay in the list, so an older change
+ * can't bring a removed reaction back.
  */
 export const applyReaction = (
   reactions: ChatReaction[],
@@ -31,6 +46,7 @@ export const applyReaction = (
   if (
     current &&
     !current.isPending &&
+    !update.isPending &&
     Date.parse(update.updatedAt) < Date.parse(current.updatedAt)
   ) {
     return reactions;
@@ -39,7 +55,6 @@ export const applyReaction = (
   const others = reactions.filter(
     (reaction) => reaction.fromMe !== update.fromMe
   );
-  if (update.emoji === null) return others;
 
   return [
     ...others,
@@ -50,6 +65,51 @@ export const applyReaction = (
       ...(update.isPending ? { isPending: true } : {}),
     },
   ];
+};
+
+const mergeSide = (
+  current: ChatReaction | undefined,
+  saved: ChatReaction | undefined,
+  keepMissing: boolean
+) => {
+  if (current?.isPending) return current;
+  if (!saved) return current && !keepMissing ? toRemoval(current) : current;
+  return current && isNewer(current, saved) ? current : saved;
+};
+
+/**
+ * Merges the reactions a server response reported for a message into the
+ * known ones. Each side keeps whichever change is newer, so a slow response
+ * can't undo a realtime event, and an unsaved reaction stays until its own
+ * request settles. A side the response leaves out has no reaction.
+ *
+ * With `settleMine`, the response is the result of the user's latest change:
+ * their side is taken from it as is, and a friend's reaction it leaves out is
+ * kept, since it may have come in by realtime while the request ran.
+ */
+export const mergeReactions = (
+  known: ChatReaction[],
+  stored: ChatReaction[],
+  { settleMine = false } = {}
+): ChatReaction[] => {
+  const sideOf = (reactions: ChatReaction[], fromMe: boolean) =>
+    reactions.find((reaction) => reaction.fromMe === fromMe);
+
+  const current = sideOf(known, true);
+  const saved = sideOf(stored, true);
+  const fallback = current ? toRemoval(current) : undefined;
+  const mine = settleMine
+    ? (saved ?? fallback)
+    : mergeSide(current, saved, false);
+  const friend = mergeSide(
+    sideOf(known, false),
+    sideOf(stored, false),
+    settleMine
+  );
+
+  return [mine, friend]
+    .filter((reaction): reaction is ChatReaction => reaction !== undefined)
+    .sort(byUpdatedAt);
 };
 
 export const updateMessageReactions = (
@@ -70,6 +130,8 @@ export const toReactionPills = (
   const pills: ChatReactionPill[] = [];
 
   for (const reaction of reactions) {
+    if (reaction.emoji === null) continue;
+
     const pill = pills.find((current) => current.emoji === reaction.emoji);
     if (pill) {
       pill.fromMe ||= reaction.fromMe;

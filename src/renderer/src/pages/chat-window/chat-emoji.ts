@@ -44,12 +44,13 @@ export const MAX_RECENT_EMOJI = 16;
 const parseItems = (list: string): EmojiItem[] =>
   list
     .trim()
-    .split(/\s*,\s*/)
+    .split(",")
     .map((entry) => {
-      const space = entry.indexOf(" ");
+      const trimmed = entry.trim();
+      const space = trimmed.indexOf(" ");
       return {
-        emoji: entry.slice(0, space),
-        name: entry.slice(space + 1).replace(/ /g, "_"),
+        emoji: trimmed.slice(0, space),
+        name: trimmed.slice(space + 1).replaceAll(" ", "_"),
       };
     });
 
@@ -146,8 +147,8 @@ export const searchEmoji = (query: string): EmojiItem[] => {
   const normalized = query
     .trim()
     .toLowerCase()
-    .replace(/:/g, "")
-    .replace(/\s+/g, "_");
+    .replaceAll(":", "")
+    .replaceAll(/\s+/g, "_");
   if (!normalized) return [];
 
   return [...EMOJI_BY_GLYPH.values()].filter((item) =>

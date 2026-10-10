@@ -12,17 +12,29 @@ export interface ChatMessageTextProps {
  * A message's text with its web links. Links never navigate the window; they
  * go through `onOpenLink`, which asks before leaving Hydra.
  */
-export function ChatMessageText({ text, onOpenLink }: ChatMessageTextProps) {
-  const parts = useMemo(() => splitMessageLinks(text), [text]);
+export function ChatMessageText({
+  text,
+  onOpenLink,
+}: Readonly<ChatMessageTextProps>) {
+  // Each part is keyed by where it starts in the text.
+  const parts = useMemo(() => {
+    let offset = 0;
+
+    return splitMessageLinks(text).map((part) => {
+      const key = offset;
+      offset += part.text.length;
+      return { ...part, key };
+    });
+  }, [text]);
 
   return (
     <span className="chat-window__message-text">
-      {parts.map((part, index) =>
+      {parts.map((part) =>
         part.type === "text" ? (
-          <Fragment key={index}>{part.text}</Fragment>
+          <Fragment key={part.key}>{part.text}</Fragment>
         ) : (
           <a
-            key={index}
+            key={part.key}
             href={part.url}
             className="chat-window__message-link"
             title={part.url}

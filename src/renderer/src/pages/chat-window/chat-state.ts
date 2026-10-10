@@ -6,6 +6,7 @@ import type {
   ChatMessageStatus,
   ChatReaction,
 } from "./chat-message-groups";
+import { mergeReactions } from "./chat-reactions.js";
 
 export const toChatReactions = (
   dtos: ChatReactionDto[],
@@ -98,11 +99,15 @@ export const mergeChatMessages = (
   );
   for (const message of incoming) {
     const existing = byNonce.get(message.clientNonce);
-    // Realtime messages carry no reactions; keep the ones already known.
-    const merged =
-      message.reactions === undefined && existing?.reactions
-        ? { ...message, reactions: existing.reactions }
-        : message;
+    const merged = existing?.reactions
+      ? {
+          ...message,
+          // Realtime messages carry no reactions; keep the ones already known.
+          reactions: message.reactions
+            ? mergeReactions(existing.reactions, message.reactions)
+            : existing.reactions,
+        }
+      : message;
     byNonce.set(
       message.clientNonce,
       existing?.fromHistory ? { ...merged, fromHistory: true } : merged
@@ -137,6 +142,20 @@ export const hasGapBefore = (messages: ChatMessage[], seq: number) => {
   const latestSeq = getLatestSeq(messages);
   return latestSeq > 0 && seq > latestSeq + 1;
 };
+
+/**
+ * Seq of the last message before missed ones, when a message with `seq`
+ * arrives: the gap already recorded, else the newest loaded message if `seq`
+ * skips past it.
+ */
+export const findGapAfter = (
+  conversation: { messages: ChatMessage[]; gapAfterSeq: number | null },
+  seq: number
+) =>
+  conversation.gapAfterSeq ??
+  (hasGapBefore(conversation.messages, seq)
+    ? getLatestSeq(conversation.messages)
+    : null);
 
 /** Messages from the friend after the one with `messageId`; 0 once it is gone. */
 export const countFriendMessagesAfter = (

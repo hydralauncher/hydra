@@ -59,12 +59,17 @@ export const chatMessageEvent = async (
   const isNewMessage = ChatUnreadStore.registerIncoming(
     friendId,
     payload.seq,
+    payload.createdAt,
     !WindowManager.isChatConversationVisible(friendId)
   );
 
   if (isNewMessage) {
-    await advanceChatNotificationCursor(user.id, payload.createdAt).catch(
-      (error) => logger.error("Failed to record announced chat message", error)
+    await advanceChatNotificationCursor(
+      user.id,
+      friendId,
+      payload.createdAt
+    ).catch((error) =>
+      logger.error("Failed to record announced chat message", error)
     );
   }
 

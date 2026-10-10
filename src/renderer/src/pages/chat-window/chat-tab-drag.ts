@@ -12,7 +12,8 @@ export function clampDragOffset(
 ) {
   const from = slots[fromIndex];
   const first = slots[0];
-  const last = slots[slots.length - 1];
+  const last = slots.at(-1);
+  if (!last) return offset;
 
   return Math.min(
     Math.max(offset, first.left - from.left),

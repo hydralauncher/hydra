@@ -25,7 +25,7 @@ const CLOSE_ANIMATION_MS = 200;
 const ICON_MASK_ID = "chat-leaving-icon-cut";
 
 /** Hydra's mark with an alert badge cut into its corner. */
-function ChatLeavingIcon({ isInsecure }: { isInsecure: boolean }) {
+function ChatLeavingIcon({ isInsecure }: Readonly<{ isInsecure: boolean }>) {
   return (
     <svg
       className={cn("chat-leaving-modal__icon", {
@@ -76,12 +76,15 @@ export interface ChatLeavingModalProps {
 }
 
 /** Asks before a link from a message opens in the browser. */
-export function ChatLeavingModal({ url, onClose }: ChatLeavingModalProps) {
+export function ChatLeavingModal({
+  url,
+  onClose,
+}: Readonly<ChatLeavingModalProps>) {
   const { t } = useTranslation("chat_window");
 
   const titleId = useId();
   const descriptionId = useId();
-  const dialogRef = useRef<HTMLDivElement>(null);
+  const dialogRef = useRef<HTMLDialogElement>(null);
   const goBackRef = useRef<HTMLButtonElement>(null);
 
   const [isClosing, setIsClosing] = useState(false);
@@ -130,12 +133,12 @@ export function ChatLeavingModal({ url, onClose }: ChatLeavingModalProps) {
 
   return createPortal(
     <Backdrop isClosing={isClosing}>
-      <div
+      <dialog
         ref={dialogRef}
         className={cn("modal", "chat-leaving-modal", {
           "modal--closing": isClosing,
         })}
-        role="dialog"
+        open
         aria-modal="true"
         aria-labelledby={titleId}
         aria-describedby={descriptionId}
@@ -223,7 +226,7 @@ export function ChatLeavingModal({ url, onClose }: ChatLeavingModalProps) {
             </Button>
           </div>
         </div>
-      </div>
+      </dialog>
     </Backdrop>,
     document.body
   );

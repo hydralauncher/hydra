@@ -9,7 +9,10 @@ import { chatMessageEvent } from "./events/chat-message";
 import { chatTypingEvent } from "./events/chat-typing";
 import { chatReactionEvent } from "./events/chat-reaction";
 import { resyncAfterEventFailure, resyncAfterReconnect } from "./resync";
-import { catchUpChatUnread } from "../chat/chat-unread-catch-up";
+import {
+  cancelChatCatchUp,
+  catchUpChatUnread,
+} from "../chat/chat-unread-catch-up";
 import {
   RealtimeWebSocketClient,
   type RealtimeEnvelope,
@@ -89,6 +92,9 @@ export class SSEClient {
 
   static close() {
     client.close();
+    // Sign-out and sign-in both close first; a catch-up still running belongs
+    // to the previous account.
+    cancelChatCatchUp();
   }
 
   static reconnectNow() {

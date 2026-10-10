@@ -12,12 +12,16 @@ import {
   type ChatSendCooldown,
 } from "./chat-rate-limit";
 import type { ChatMessage, ChatReaction } from "./chat-message-groups";
-import { applyReaction, updateMessageReactions } from "./chat-reactions";
+import {
+  applyReaction,
+  mergeReactions,
+  updateMessageReactions,
+} from "./chat-reactions";
 import {
   createPendingMessage,
   createReply,
+  findGapAfter,
   getLatestSeq,
-  hasGapBefore,
   mergeChatMessages,
   setMessageStatus,
   toChatMessage,
@@ -47,6 +51,15 @@ const fetchMessages = (
   electron.hydraApi.get<ChatMessagesPage>(chatPath(friendId, "messages"), {
     params,
   });
+
+/** Sets the user's reaction on the message; null removes it. */
+const sendReaction = (friendId: string, seq: number, emoji: string | null) => {
+  const path = chatPath(friendId, `messages/${seq}/reaction`);
+
+  return emoji === null
+    ? electron.hydraApi.delete<ChatMessageReactionsDto>(path)
+    : electron.hydraApi.put<ChatMessageReactionsDto>(path, { data: { emoji } });
+};
 
 const isNotFriendsError = (error: unknown) =>
   error instanceof Error && error.message.includes(NOT_FRIENDS_ERROR);
@@ -106,6 +119,9 @@ export function useChat({
     new Map<string, ReturnType<typeof setTimeout>>()
   );
   const lastMarkedSeqRef = useRef(new Map<string, number>());
+  const newerLoadsRef = useRef(new Map<string, Promise<boolean>>());
+  /** Bumped on every resync, so reads that failed while offline go out again. */
+  const [resyncCount, setResyncCount] = useState(0);
 
   // The rate limit is per user, so one cooldown covers every conversation.
   const [sendCooldown, setSendCooldown] = useState<ChatSendCooldown | null>(
@@ -120,9 +136,10 @@ export function useChat({
     friendId: string;
     kind: ChatReactionErrorKind;
   } | null>(null);
-  // Only the latest change to a message's reaction may write its result, so a
-  // slow, older response can't undo a newer pick.
-  const reactionRequestsRef = useRef(new Map<string, number>());
+  // The emoji each message's reaction should end up as, while a request for it
+  // runs. Changes to one message go out one at a time, so a slow response
+  // can't undo a newer pick and a failure can restore the saved reaction.
+  const reactionTargetsRef = useRef(new Map<string, string | null>());
 
   useEffect(() => {
     conversationsRef.current = conversations;
@@ -202,6 +219,7 @@ export function useChat({
               isFirstLoad || replace
                 ? page.hasMore
                 : conversation.hasMoreBefore,
+            gapAfterSeq: replace ? null : conversation.gapAfterSeq,
             loadState: "loaded",
           };
         });
@@ -215,36 +233,128 @@ export function useChat({
     [updateConversation]
   );
 
+  /**
+   * Loads the messages after `afterSeq`. Resolves to true when there were too
+   * many and the conversation started over from the latest page instead.
+   */
   const loadNewerThan = useCallback(
-    async (friendId: string, afterSeq: number) => {
-      try {
-        const page = await fetchMessages(friendId, {
-          after: afterSeq,
-          take: MAX_PAGE_SIZE,
-        });
+    (friendId: string, afterSeq: number) => {
+      // Messages arriving while it runs would only repeat it.
+      const running = newerLoadsRef.current.get(friendId);
+      if (running) return running;
 
-        // More missed messages than one page: start over from the latest page
-        // instead of paging forward through all of them.
-        if (page.hasMore) {
-          await loadLatest(friendId, { replace: true });
-          return;
+      const load = (async () => {
+        try {
+          const page = await fetchMessages(friendId, {
+            after: afterSeq,
+            take: MAX_PAGE_SIZE,
+          });
+
+          // More missed messages than one page: start over from the latest
+          // page instead of paging forward through all of them.
+          if (page.hasMore) {
+            await loadLatest(friendId, { replace: true });
+            return true;
+          }
+
+          updateConversation(friendId, (conversation) => ({
+            ...conversation,
+            canSend: page.canSend,
+            // Everything after `afterSeq` is loaded now.
+            gapAfterSeq:
+              conversation.gapAfterSeq !== null &&
+              conversation.gapAfterSeq >= afterSeq
+                ? null
+                : conversation.gapAfterSeq,
+            messages: mergeChatMessages(
+              conversation.messages,
+              page.messages.map((message) =>
+                toChatMessage(message, friendId, true)
+              )
+            ),
+          }));
+        } catch {
+          // The gap stays recorded; the next resync or incoming message
+          // retries it.
+        } finally {
+          newerLoadsRef.current.delete(friendId);
         }
 
-        updateConversation(friendId, (conversation) => ({
-          ...conversation,
-          canSend: page.canSend,
-          messages: mergeChatMessages(
-            conversation.messages,
-            page.messages.map((message) =>
-              toChatMessage(message, friendId, true)
-            )
-          ),
-        }));
-      } catch {
-        // The next resync or incoming message retries the gap.
-      }
+        return false;
+      })();
+
+      newerLoadsRef.current.set(friendId, load);
+      return load;
     },
     [loadLatest, updateConversation]
+  );
+
+  /**
+   * Reloads every stored message from the oldest one loaded, for what changed
+   * while offline: reactions on older messages only show up this way.
+   */
+  const refreshLoaded = useCallback(
+    async (friendId: string) => {
+      const oldestSeq = findConversation(friendId)?.messages.find(
+        (message) => message.seq !== undefined
+      )?.seq;
+      if (oldestSeq === undefined) {
+        await loadLatest(friendId);
+        return;
+      }
+
+      const loaded: ChatMessage[] = [];
+      let afterSeq = oldestSeq - 1;
+      let canSend: boolean | null = null;
+      let isComplete = false;
+
+      try {
+        while (!isComplete) {
+          const page = await fetchMessages(friendId, {
+            after: afterSeq,
+            take: MAX_PAGE_SIZE,
+          });
+
+          loaded.push(
+            ...page.messages.map((message) =>
+              toChatMessage(message, friendId, true)
+            )
+          );
+          canSend = page.canSend;
+          afterSeq = page.messages.at(-1)?.seq ?? afterSeq;
+          isComplete = !page.hasMore || page.messages.length === 0;
+        }
+      } catch {
+        // Whatever loaded before the failure is still kept.
+      }
+
+      updateConversation(friendId, (conversation) => ({
+        ...conversation,
+        canSend: canSend ?? conversation.canSend,
+        gapAfterSeq: isComplete ? null : conversation.gapAfterSeq,
+        messages: mergeChatMessages(conversation.messages, loaded),
+      }));
+    },
+    [findConversation, loadLatest, updateConversation]
+  );
+
+  const resyncConversation = useCallback(
+    async (conversation: ChatConversation) => {
+      const friendId = conversation.friend.id;
+      const latestSeq = getLatestSeq(conversation.messages);
+      if (conversation.loadState !== "loaded" || latestSeq === 0) {
+        await loadLatest(friendId);
+        return;
+      }
+
+      const isReplaced = await loadNewerThan(
+        friendId,
+        conversation.gapAfterSeq ?? latestSeq
+      );
+      // A fresh latest page already has current reactions.
+      if (!isReplaced) await refreshLoaded(friendId);
+    },
+    [loadLatest, loadNewerThan, refreshLoaded]
   );
 
   const loadOlder = useCallback(
@@ -455,7 +565,7 @@ export function useChat({
       const message = findConversation(friendId)?.messages.find(
         (current) => current.clientNonce === clientNonce
       );
-      if (!message || message.status !== "failed") return;
+      if (message?.status !== "failed") return;
 
       if (isCoolingDown()) {
         rejectSend();
@@ -483,15 +593,6 @@ export function useChat({
       );
       if (!message) return;
 
-      const previousMine = message.reactions?.find(
-        (reaction) => reaction.fromMe
-      );
-      const requestKey = `${friendId}:${seq}`;
-      const requestId = (reactionRequestsRef.current.get(requestKey) ?? 0) + 1;
-      reactionRequestsRef.current.set(requestKey, requestId);
-      const isLatest = () =>
-        reactionRequestsRef.current.get(requestKey) === requestId;
-
       setReactionError(null);
       updateConversation(friendId, (conversation) => ({
         ...conversation,
@@ -508,42 +609,56 @@ export function useChat({
         ),
       }));
 
-      const path = chatPath(friendId, `messages/${seq}/reaction`);
+      const key = `${friendId}:${seq}`;
+      const targets = reactionTargetsRef.current;
+      const isSending = targets.has(key);
+      targets.set(key, emoji);
+      // The request already running sends this change once it settles.
+      if (isSending) return;
 
-      try {
-        const result =
-          emoji === null
-            ? await electron.hydraApi.delete<ChatMessageReactionsDto>(path)
-            : await electron.hydraApi.put<ChatMessageReactionsDto>(path, {
-                data: { emoji },
-              });
-        if (!isLatest()) return;
+      // Nothing was in flight, so this is the saved reaction.
+      const savedMine = message.reactions?.find((reaction) => reaction.fromMe);
+      let settled: ChatMessageReactionsDto | null = null;
+      let failure: unknown = null;
+      let target: string | null;
 
-        updateConversation(friendId, (conversation) => ({
-          ...conversation,
-          messages: updateMessageReactions(conversation.messages, seq, () =>
-            toChatReactions(result.reactions, friendId)
-          ),
-        }));
-      } catch (error) {
-        if (!isLatest()) return;
+      do {
+        target = targets.get(key) ?? null;
+        try {
+          settled = await sendReaction(friendId, seq, target);
+          failure = null;
+        } catch (error) {
+          failure = error;
+        }
+      } while (targets.get(key) !== target);
+      targets.delete(key);
 
-        updateConversation(friendId, (conversation) => ({
-          ...conversation,
-          canSend: isNotFriendsError(error) ? false : conversation.canSend,
-          messages: updateMessageReactions(
-            conversation.messages,
-            seq,
-            (reactions) =>
-              [
-                ...reactions.filter((reaction) => !reaction.fromMe),
-                ...(previousMine ? [previousMine] : []),
-              ].sort(byUpdatedAt)
-          ),
-        }));
+      // A failed last change falls back to what the server last saved.
+      const settle = (reactions: ChatReaction[]) =>
+        settled
+          ? mergeReactions(
+              reactions,
+              toChatReactions(settled.reactions, friendId),
+              { settleMine: true }
+            )
+          : [
+              ...reactions.filter((reaction) => !reaction.fromMe),
+              ...(savedMine ? [savedMine] : []),
+            ].sort(byUpdatedAt);
+
+      updateConversation(friendId, (conversation) => ({
+        ...conversation,
+        canSend:
+          failure !== null && isNotFriendsError(failure)
+            ? false
+            : conversation.canSend,
+        messages: updateMessageReactions(conversation.messages, seq, settle),
+      }));
+
+      if (failure !== null) {
         setReactionError({
           friendId,
-          kind: isRateLimitedError(error) ? "rate_limited" : "failed",
+          kind: isRateLimitedError(failure) ? "rate_limited" : "failed",
         });
       }
     },
@@ -604,17 +719,17 @@ export function useChat({
           activeIdRef.current === friendId && isFocusedRef.current;
         const isNewFromFriend = !incoming.fromMe && !isKnown;
 
-        if (
-          conversation.loadState === "loaded" &&
-          hasGapBefore(conversation.messages, message.seq)
-        ) {
-          void loadNewerThan(friendId, getLatestSeq(conversation.messages));
-        }
+        const gapAfterSeq =
+          conversation.loadState === "loaded"
+            ? findGapAfter(conversation, message.seq)
+            : null;
+        if (gapAfterSeq !== null) void loadNewerThan(friendId, gapAfterSeq);
 
         if (isNewFromFriend) stopTyping(friendId);
 
         updateConversation(friendId, (current) => ({
           ...current,
+          gapAfterSeq: current.gapAfterSeq ?? gapAfterSeq,
           messages: mergeChatMessages(current.messages, [incoming]),
           unreadCount:
             isNewFromFriend && !isVisible
@@ -657,17 +772,27 @@ export function useChat({
     );
 
     const unsubscribeResync = electron.onChatResync(() => {
+      setResyncCount((count) => count + 1);
+
+      for (const conversation of conversationsRef.current) {
+        void resyncConversation(conversation);
+      }
+    });
+
+    // Messages loaded after a reconnect come without notifications; the
+    // refreshed counts still put dots on the tabs the user isn't looking at.
+    const unsubscribeUnread = electron.onChatUnreadUpdated(({ byFriend }) => {
       for (const conversation of conversationsRef.current) {
         const friendId = conversation.friend.id;
-        const latestSeq = getLatestSeq(conversation.messages);
-        if (conversation.loadState !== "loaded" || latestSeq === 0) {
-          void loadLatest(friendId);
-        } else {
-          // Reactions missed while offline only show up in a fresh page.
-          void loadNewerThan(friendId, latestSeq).then(() =>
-            loadLatest(friendId)
-          );
-        }
+        const unreadCount = byFriend[friendId] ?? 0;
+        const isVisible =
+          activeIdRef.current === friendId && isFocusedRef.current;
+        if (isVisible || conversation.unreadCount === unreadCount) continue;
+
+        updateConversation(friendId, (current) => ({
+          ...current,
+          unreadCount,
+        }));
       }
     });
 
@@ -676,11 +801,12 @@ export function useChat({
       unsubscribeTyping();
       unsubscribeReaction();
       unsubscribeResync();
+      unsubscribeUnread();
     };
   }, [
     findConversation,
-    loadLatest,
     loadNewerThan,
+    resyncConversation,
     stopTyping,
     updateConversation,
   ]);
@@ -699,8 +825,10 @@ export function useChat({
   const activeConversation = conversations.find(
     (conversation) => conversation.friend.id === activeId
   );
-  const activeLatestSeq = activeConversation
-    ? getLatestSeq(activeConversation.messages)
+  // Messages past a gap stay unread until the gap is loaded.
+  const activeReadSeq = activeConversation
+    ? (activeConversation.gapAfterSeq ??
+      getLatestSeq(activeConversation.messages))
     : 0;
   const activeIsLoaded = activeConversation?.loadState === "loaded";
   const activeHasUnread = Boolean(activeConversation?.unreadCount);
@@ -716,15 +844,24 @@ export function useChat({
     }
 
     if (
-      activeLatestSeq === 0 ||
-      (lastMarkedSeqRef.current.get(activeId) ?? 0) >= activeLatestSeq
+      activeReadSeq === 0 ||
+      (lastMarkedSeqRef.current.get(activeId) ?? 0) >= activeReadSeq
     ) {
       return;
     }
 
+    // Only a saved read is remembered; a failed one goes out again on
+    // refocus or after the next resync.
     const timer = setTimeout(() => {
-      lastMarkedSeqRef.current.set(activeId, activeLatestSeq);
-      void electron.markChatRead(activeId, activeLatestSeq);
+      void electron.markChatRead(activeId, activeReadSeq).then((isMarked) => {
+        if (!isMarked) return;
+
+        const markedSeq = lastMarkedSeqRef.current.get(activeId) ?? 0;
+        lastMarkedSeqRef.current.set(
+          activeId,
+          Math.max(markedSeq, activeReadSeq)
+        );
+      });
     }, MARK_READ_DEBOUNCE_MS);
 
     return () => clearTimeout(timer);
@@ -732,8 +869,9 @@ export function useChat({
     activeId,
     isFocused,
     activeIsLoaded,
-    activeLatestSeq,
+    activeReadSeq,
     activeHasUnread,
+    resyncCount,
     updateConversation,
   ]);
 

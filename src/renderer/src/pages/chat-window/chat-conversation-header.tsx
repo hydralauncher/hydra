@@ -21,7 +21,7 @@ export interface ChatConversationHeaderProps {
 export function ChatConversationHeader({
   friend,
   isTyping,
-}: ChatConversationHeaderProps) {
+}: Readonly<ChatConversationHeaderProps>) {
   const { t } = useTranslation("chat_window");
 
   // Cloud members' profile banner sits behind the header.

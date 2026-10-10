@@ -282,6 +282,18 @@ const playChatMessageSound = () => {
 // the latest notification per friend is kept referenced until it closes.
 const chatMessageNotifications = new Map<string, Notification>();
 const CHAT_UNREAD_SUMMARY_NOTIFICATION_KEY = "unread-summary";
+// Bumped on sign-out. A notification from an earlier session neither shows
+// nor reacts to clicks, since it would open a chat for the wrong account.
+let chatNotificationSession = 0;
+
+/** Closes every chat notification still shown, as on sign-out. */
+export const closeChatNotifications = () => {
+  chatNotificationSession++;
+
+  const notifications = [...chatMessageNotifications.values()];
+  chatMessageNotifications.clear();
+  for (const notification of notifications) notification.close();
+};
 
 const showChatNotification = async (
   key: string,
@@ -290,11 +302,12 @@ const showChatNotification = async (
   signal?: AbortSignal
 ) => {
   if (signal?.aborted) return;
+  const session = chatNotificationSession;
   const notificationIcon =
     (content.imageUrl
       ? await downloadImage(content.imageUrl, signal)
       : undefined) ?? trayIcon;
-  if (signal?.aborted) return;
+  if (signal?.aborted || session !== chatNotificationSession) return;
 
   chatMessageNotifications.get(key)?.close();
 
@@ -309,7 +322,9 @@ const showChatNotification = async (
     silent: true,
   });
 
-  notification.on("click", onClick);
+  notification.on("click", () => {
+    if (session === chatNotificationSession) onClick();
+  });
   notification.on("close", () => {
     if (chatMessageNotifications.get(key) === notification) {
       chatMessageNotifications.delete(key);

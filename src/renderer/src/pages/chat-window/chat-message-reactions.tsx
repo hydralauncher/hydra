@@ -27,7 +27,7 @@ export function ChatReactionBar({
   onPick,
   onMore,
   onClose,
-}: ChatReactionBarProps) {
+}: Readonly<ChatReactionBarProps>) {
   const { t } = useTranslation("chat_window");
   const barRef = useRef<HTMLDivElement>(null);
 
@@ -125,7 +125,7 @@ export function ChatReactionPills({
   isDetached,
   canReact,
   onToggle,
-}: ChatReactionPillsProps) {
+}: Readonly<ChatReactionPillsProps>) {
   const { t } = useTranslation("chat_window");
   const hasMine = pills.some((pill) => pill.fromMe);
 

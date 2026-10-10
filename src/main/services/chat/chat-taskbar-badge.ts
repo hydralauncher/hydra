@@ -10,7 +10,7 @@ import { getChatBadgeLabel, renderChatBadge } from "./chat-badge-image";
 export class ChatTaskbarBadge {
   private static count = 0;
   private static overlay: Electron.NativeImage | null = null;
-  private static overlays = new Map<string, Electron.NativeImage>();
+  private static readonly overlays = new Map<string, Electron.NativeImage>();
   private static isTrackingWindows = false;
 
   public static async setCount(count: number) {

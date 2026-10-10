@@ -25,6 +25,8 @@ import { useDispatch } from "react-redux";
 import { setFriendRequestCount } from "@renderer/features/user-details-slice";
 import "./sidebar-profile.scss";
 
+const MAX_UNREAD_BADGE_COUNT = 99;
+
 const CLASSIC_DISC_OVERLAY = (
   <svg
     className="sidebar-profile__classic-disc-overlay"
@@ -311,7 +313,7 @@ export function SidebarProfile() {
     } else {
       setDropdownOpen(true);
       // Warm the friends cache now so the friends window opens populated.
-      globalThis.window.electron.prefetchFriends();
+      void globalThis.window.electron.prefetchFriends();
     }
   };
 
@@ -340,7 +342,9 @@ export function SidebarProfile() {
   }, [userDetails]);
 
   const formatBadgeCount = (count: number) =>
-    count > 99 ? "99+" : String(count);
+    count > MAX_UNREAD_BADGE_COUNT
+      ? `${MAX_UNREAD_BADGE_COUNT}+`
+      : String(count);
 
   const handleViewProfile = () => {
     if (!userDetails) return;
@@ -416,9 +420,8 @@ export function SidebarProfile() {
               alt={userDetails?.displayName}
             />
             {userDetails && chatUnreadCount > 0 && (
-              <span
+              <output
                 className="sidebar-profile__unread-dot"
-                role="status"
                 aria-label={t("unread_messages", { count: chatUnreadCount })}
               />
             )}

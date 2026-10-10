@@ -54,6 +54,8 @@ const OFFLINE_SKELETON_ROWS = [
 ];
 // Rows from this index on fade out to hint that the list keeps going.
 const SKELETON_FADE_FROM_ROW = 3;
+// Opacity each faded row loses relative to the one above it.
+const SKELETON_FADE_STEP = 0.25;
 const SKELETON_ROW_STAGGER_MS = 90;
 const MAX_UNREAD_BADGE_COUNT = 99;
 
@@ -179,7 +181,7 @@ export default function FriendsWindow() {
 
     // Paint the list the main window prefetched, then revalidate. Fetching only
     // after the snapshot lands keeps it from overwriting a fresher response.
-    electron
+    void electron
       .getFriendsSnapshot()
       .catch(() => null)
       .then((snapshot) => {
@@ -433,7 +435,7 @@ export default function FriendsWindow() {
   };
 
   const handleMessageFriend = (friend: UserFriend) => {
-    electron.openChatWindow(friend);
+    void electron.openChatWindow(friend);
   };
 
   const handleAddFriend = () => {
@@ -644,7 +646,10 @@ export default function FriendsWindow() {
                   "--skeleton-delay": `${
                     (firstRowIndex + index) * SKELETON_ROW_STAGGER_MS
                   }ms`,
-                  opacity: fadeSteps > 0 ? 1 - fadeSteps * 0.25 : undefined,
+                  opacity:
+                    fadeSteps > 0
+                      ? 1 - fadeSteps * SKELETON_FADE_STEP
+                      : undefined,
                 } as React.CSSProperties
               }
             >

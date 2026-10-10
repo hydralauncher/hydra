@@ -4,32 +4,29 @@ export interface UnreadChatConversation {
   lastMessageAt: string;
 }
 
+/** The newest announced message in each conversation, by friend id. */
+export type ChatNotifiedUntil = Partial<Record<string, string>>;
+
 /**
  * Unread conversations whose newest message is newer than the last one
- * announced, skipping conversations the user is already looking at.
+ * announced in that conversation, skipping conversations the user is already
+ * looking at.
  */
 export const getMissedChatConversations = (
   conversations: UnreadChatConversation[],
-  notifiedUntil: string | null,
+  notifiedUntil: ChatNotifiedUntil,
   isOpenInFocusedChatWindow: (friendId: string) => boolean
 ) => {
-  const since = notifiedUntil ? Date.parse(notifiedUntil) : 0;
+  const missed = conversations.filter((conversation) => {
+    const announcedAt = notifiedUntil[conversation.friendId];
 
-  const missed = conversations.filter(
-    (conversation) =>
+    return (
       conversation.unreadCount > 0 &&
-      Date.parse(conversation.lastMessageAt) > since &&
+      (!announcedAt ||
+        Date.parse(conversation.lastMessageAt) > Date.parse(announcedAt)) &&
       !isOpenInFocusedChatWindow(conversation.friendId)
-  );
-
-  const latest = missed.reduce<UnreadChatConversation | null>(
-    (newest, conversation) =>
-      !newest ||
-      Date.parse(conversation.lastMessageAt) > Date.parse(newest.lastMessageAt)
-        ? conversation
-        : newest,
-    null
-  );
+    );
+  });
 
   return {
     conversations: missed,
@@ -37,6 +34,5 @@ export const getMissedChatConversations = (
       (total, conversation) => total + conversation.unreadCount,
       0
     ),
-    latestMessageAt: latest?.lastMessageAt ?? "",
   };
 };

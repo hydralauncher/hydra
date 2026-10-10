@@ -29,6 +29,7 @@ const createConversation = (friend: UserFriend): ChatConversation => ({
   loadState: "idle",
   hasMoreBefore: false,
   isLoadingOlder: false,
+  gapAfterSeq: null,
 });
 
 export default function ChatWindow() {
@@ -89,7 +90,8 @@ export default function ChatWindow() {
 
   const openPendingConversations = useCallback(async () => {
     const friends = await electron.consumePendingChatFriends();
-    if (!friends.length) return;
+    const lastFriend = friends.at(-1);
+    if (!lastFriend) return;
 
     setConversations((current) =>
       friends.reduce((next, friend) => {
@@ -111,7 +113,7 @@ export default function ChatWindow() {
       }, current)
     );
 
-    setActiveId(friends[friends.length - 1].id);
+    setActiveId(lastFriend.id);
 
     // The opener's copy can be stale, and one built from a message
     // notification has no presence or game at all. Realtime events only report
@@ -193,7 +195,7 @@ export default function ChatWindow() {
 
     // Closing the last conversation closes the window.
     if (remaining.length === 0) {
-      electron.closeChatWindow();
+      void electron.closeChatWindow();
       return;
     }
 

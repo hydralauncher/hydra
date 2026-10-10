@@ -82,7 +82,7 @@ function ChatMessageQuote({
   reply,
   friendName,
   onJump,
-}: ChatMessageQuoteProps) {
+}: Readonly<ChatMessageQuoteProps>) {
   const { t } = useTranslation("chat_window");
 
   if (!reply.quoted) {
@@ -124,7 +124,7 @@ export function ChatMessageList({
   onRetry,
   onLoadOlder,
   onLoadThrough,
-}: ChatMessageListProps) {
+}: Readonly<ChatMessageListProps>) {
   const { t, i18n } = useTranslation("chat_window");
 
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -215,28 +215,31 @@ export function ChatMessageList({
     if (dayKey !== stickyDayKey) setStickyDayKey(dayKey);
   };
 
+  const setAway = (isAway: boolean) => {
+    const latestId = messages.at(-1)?.id ?? null;
+    setAwayFromId(isAway ? latestId : null);
+
+    if (isAway) {
+      setLeavingJump(null);
+      // A divider still in the list keeps its place.
+      if (firstNewId === null) setNewSinceId(latestId);
+      return;
+    }
+
+    // Without motion there is no exit animation to wait for.
+    if (!prefersReducedMotion()) {
+      setLeavingJump({ count: newMessageCount });
+    }
+    // Nothing arrived while away, so later messages are seen live.
+    if (firstNewId === null) setNewSinceId(null);
+  };
+
   // column-reverse makes scrollTop 0 at the bottom and negative going up.
   const handleScroll = (event: React.UIEvent<HTMLDivElement>) => {
     const { scrollHeight, clientHeight, scrollTop } = event.currentTarget;
 
     const isAway = -scrollTop > JUMP_TO_LATEST_THRESHOLD_PX;
-    if (isAway !== (awayFromId !== null)) {
-      const latestId = messages[messages.length - 1]?.id ?? null;
-      setAwayFromId(isAway ? latestId : null);
-
-      if (isAway) {
-        setLeavingJump(null);
-        // A divider still in the list keeps its place.
-        if (firstNewId === null) setNewSinceId(latestId);
-      } else {
-        // Without motion there is no exit animation to wait for.
-        if (!prefersReducedMotion()) {
-          setLeavingJump({ count: newMessageCount });
-        }
-        // Nothing arrived while away, so later messages are seen live.
-        if (firstNewId === null) setNewSinceId(null);
-      }
-    }
+    if (isAway !== (awayFromId !== null)) setAway(isAway);
 
     updateStickyDay(event.currentTarget);
 
@@ -362,7 +365,7 @@ export function ChatMessageList({
 
   // Sending a message brings the list back to it, and replying means the
   // new messages were read.
-  const newestMessage = messages[messages.length - 1];
+  const newestMessage = messages.at(-1);
   const newestMessageIdRef = useRef(newestMessage?.id);
   useEffect(() => {
     if (!newestMessage || newestMessage.id === newestMessageIdRef.current) {
@@ -421,7 +424,7 @@ export function ChatMessageList({
               </div>
 
               {day.groups.map((group) => {
-                const lastMessage = group.messages[group.messages.length - 1];
+                const lastMessage = group.messages.at(-1);
 
                 return (
                   <Fragment key={group.key}>
@@ -617,16 +620,18 @@ export function ChatMessageList({
                           </div>
                         );
                       })}
-                      <time
-                        className={cn("chat-window__message-time", {
-                          "chat-window__message-time--enter": !isStatic(
-                            group.messages[0]
-                          ),
-                        })}
-                        dateTime={lastMessage.createdAt}
-                      >
-                        {timeFormat.format(new Date(lastMessage.createdAt))}
-                      </time>
+                      {lastMessage && (
+                        <time
+                          className={cn("chat-window__message-time", {
+                            "chat-window__message-time--enter": !isStatic(
+                              group.messages[0]
+                            ),
+                          })}
+                          dateTime={lastMessage.createdAt}
+                        >
+                          {timeFormat.format(new Date(lastMessage.createdAt))}
+                        </time>
+                      )}
                     </div>
                   </Fragment>
                 );

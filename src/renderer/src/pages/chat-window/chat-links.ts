@@ -5,7 +5,7 @@ export type ChatTextPart =
 // Only web links become clickable; any other scheme stays plain text.
 const LINK_PATTERN = /\bhttps?:\/\/[^\s<>"'`]+/gi;
 // Punctuation that usually ends the sentence around a link, not the link.
-const TRAILING_PUNCTUATION = /[.,;:!?*_~]+$/;
+const TRAILING_PUNCTUATION = new Set(".,;:!?*_~");
 const OPENING_BRACKETS: Record<string, string> = {
   ")": "(",
   "]": "[",
@@ -15,8 +15,14 @@ const OPENING_BRACKETS: Record<string, string> = {
 const countOf = (text: string, character: string) =>
   text.split(character).length - 1;
 
+const trimTrailingPunctuation = (link: string) => {
+  let end = link.length;
+  while (end > 0 && TRAILING_PUNCTUATION.has(link[end - 1])) end--;
+  return link.slice(0, end);
+};
+
 const trimLinkEnd = (link: string): string => {
-  const trimmed = link.replace(TRAILING_PUNCTUATION, "");
+  const trimmed = trimTrailingPunctuation(link);
   const last = trimmed.at(-1) ?? "";
   const opening = OPENING_BRACKETS[last];
 
