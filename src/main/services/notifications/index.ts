@@ -5,7 +5,7 @@ import fs from "node:fs";
 import axios from "axios";
 import path from "node:path";
 import sound from "sound-play";
-import { achievementSoundPath } from "@main/constants";
+import { achievementSoundPath, chatMessageSoundPath } from "@main/constants";
 import icon from "@resources/icon.png?asset";
 import { NotificationOptions, toXmlString } from "./xml";
 import { logger } from "../logger";
@@ -261,6 +261,145 @@ export const publishFriendStartedPlayingGameNotification = async (
     icon: notificationIcon,
   }).show();
 };
+
+const CHAT_NOTIFICATION_BODY_MAX_LENGTH = 200;
+/** Matches the chat window's own playback (chat-sounds.ts). */
+const CHAT_MESSAGE_SOUND_VOLUME = 0.35;
+
+// Like the achievement sound, an open window plays it. sound-play, which
+// spawns a process per sound and has no Linux support, only covers the gap
+// before any window has loaded.
+const playChatMessageSound = () => {
+  if (WindowManager.sendToFirstLoadedWindow("on-chat-message-sound")) return;
+  if (process.platform === "linux") return;
+
+  sound
+    .play(chatMessageSoundPath, CHAT_MESSAGE_SOUND_VOLUME)
+    .catch((error) => logger.error("Failed to play chat message sound", error));
+};
+
+// Windows drops click handlers of notifications that get garbage collected, so
+// the latest notification per friend is kept referenced until it closes.
+const chatMessageNotifications = new Map<string, Notification>();
+const CHAT_UNREAD_SUMMARY_NOTIFICATION_KEY = "unread-summary";
+// Bumped on sign-out. A notification from an earlier session neither shows
+// nor reacts to clicks, since it would open a chat for the wrong account.
+let chatNotificationSession = 0;
+
+/** Closes every chat notification still shown, as on sign-out. */
+export const closeChatNotifications = () => {
+  chatNotificationSession++;
+
+  const notifications = [...chatMessageNotifications.values()];
+  chatMessageNotifications.clear();
+  for (const notification of notifications) notification.close();
+};
+
+const showChatNotification = async (
+  key: string,
+  content: { title: string; body: string; imageUrl: string | null },
+  onClick: () => void,
+  signal?: AbortSignal
+) => {
+  if (signal?.aborted) return;
+  const session = chatNotificationSession;
+  const notificationIcon =
+    (content.imageUrl
+      ? await downloadImage(content.imageUrl, signal)
+      : undefined) ?? trayIcon;
+  if (signal?.aborted || session !== chatNotificationSession) return;
+
+  chatMessageNotifications.get(key)?.close();
+
+  // Silent: chat plays its own sound instead of the system one.
+  const notification = new Notification({
+    title: content.title,
+    body:
+      content.body.length > CHAT_NOTIFICATION_BODY_MAX_LENGTH
+        ? `${content.body.slice(0, CHAT_NOTIFICATION_BODY_MAX_LENGTH)}…`
+        : content.body,
+    icon: notificationIcon,
+    silent: true,
+  });
+
+  notification.on("click", () => {
+    if (session === chatNotificationSession) onClick();
+  });
+  notification.on("close", () => {
+    if (chatMessageNotifications.get(key) === notification) {
+      chatMessageNotifications.delete(key);
+    }
+  });
+
+  chatMessageNotifications.set(key, notification);
+  notification.show();
+
+  if (!WindowManager.isChatWindowFocused()) playChatMessageSound();
+};
+
+type ChatSender = Pick<UserProfile, "id" | "displayName" | "profileImageUrl">;
+
+export const publishChatMessageNotification = (
+  sender: ChatSender,
+  body: string,
+  onClick: () => void,
+  signal?: AbortSignal
+) =>
+  showChatNotification(
+    sender.id,
+    {
+      title: t("chat_message_title", {
+        ns: "notifications",
+        displayName: sender.displayName,
+      }),
+      body,
+      imageUrl: sender.profileImageUrl,
+    },
+    onClick,
+    signal
+  );
+
+/** Announces messages that arrived while the launcher was closed or offline. */
+export const publishChatUnreadNotification = (
+  unread:
+    | { kind: "friend"; sender: ChatSender; messageCount: number }
+    | { kind: "summary"; friendCount: number; messageCount: number },
+  onClick: () => void,
+  signal?: AbortSignal
+) =>
+  unread.kind === "friend"
+    ? showChatNotification(
+        unread.sender.id,
+        {
+          title: t("chat_message_title", {
+            ns: "notifications",
+            displayName: unread.sender.displayName,
+          }),
+          body: t("chat_unread_from_friend", {
+            ns: "notifications",
+            count: unread.messageCount,
+          }),
+          imageUrl: unread.sender.profileImageUrl,
+        },
+        onClick,
+        signal
+      )
+    : showChatNotification(
+        CHAT_UNREAD_SUMMARY_NOTIFICATION_KEY,
+        {
+          title: t("chat_unread_summary_title", {
+            ns: "notifications",
+            count: unread.messageCount,
+          }),
+          body: t("chat_unread_summary_body", {
+            ns: "notifications",
+            count: unread.friendCount,
+          }),
+          imageUrl: null,
+        },
+        onClick,
+        signal
+      );
 
 export const publishCombinedNewAchievementNotification = async (
   achievementCount,

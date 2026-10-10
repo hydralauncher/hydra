@@ -192,6 +192,14 @@ export interface ProfileFriends {
   friends: UserFriend[];
 }
 
+// Cached in the main process so the friends window can paint real data on its
+// first frame instead of an empty list.
+export interface FriendsSnapshot {
+  friends: UserFriend[];
+  onlineFriends: number;
+  friendRequests: FriendRequest[];
+}
+
 export interface UserBlocks {
   totalBlocks: number;
   blocks: UserFriend[];
@@ -204,6 +212,84 @@ export interface FriendRequestSync {
 export interface FriendPresenceSync {
   friendId: string;
   isOnline: boolean;
+}
+
+export interface ChatReplyDto {
+  senderId: string;
+  body: string;
+}
+
+export interface ChatMessageDto {
+  seq: number;
+  senderId: string;
+  body: string;
+  clientNonce: string;
+  createdAt: string;
+  /* Seq of the message this one replies to. */
+  replyToSeq?: number | null;
+  /* The replied-to message; null once it is past chat retention. */
+  replyTo?: ChatReplyDto | null;
+  /* Oldest first, at most one per user. Realtime messages leave it out. */
+  reactions?: ChatReactionDto[];
+}
+
+export interface ChatReactionDto {
+  userId: string;
+  emoji: string;
+  updatedAt: string;
+}
+
+export interface ChatMessageReactionsDto {
+  seq: number;
+  reactions: ChatReactionDto[];
+}
+
+export interface ChatMessagesPage {
+  messages: ChatMessageDto[];
+  hasMore: boolean;
+  canSend: boolean;
+  lastReadSeq: number;
+  unreadCount: number;
+}
+
+export interface ChatUnreadSummary {
+  totalUnread: number;
+  conversations: {
+    friendId: string;
+    unreadCount: number;
+    lastMessageAt: string;
+  }[];
+}
+
+/* Unread message counts keyed by friend id, as kept by the main process. */
+export interface ChatUnreadState {
+  totalUnread: number;
+  byFriend: Record<string, number>;
+}
+
+/* friendId is always the other side of the conversation, even for messages
+   the current user sent from another window or device. */
+export interface ChatMessageSync {
+  friendId: string;
+  message: ChatMessageDto;
+}
+
+export interface ChatTypingSync {
+  friendId: string;
+}
+
+/* A reaction set (or removed, with a null emoji) on the message with `seq`. */
+export interface ChatReactionSync {
+  friendId: string;
+  seq: number;
+  fromMe: boolean;
+  emoji: string | null;
+  updatedAt: string;
+}
+
+export interface ChatWindowState {
+  activeFriendId: string | null;
+  openFriendIds: string[];
 }
 
 export interface NotificationSync {

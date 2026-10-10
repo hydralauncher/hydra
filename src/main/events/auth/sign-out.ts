@@ -48,8 +48,9 @@ const signOut = async (_event: Electron.IpcMainInvokeEvent) => {
 
   await HydraApi.handleSignOut();
 
-  /* The friends window is only meaningful while signed in */
+  /* The friends and chat windows are only meaningful while signed in */
   WindowManager.closeFriendsWindow();
+  WindowManager.closeChatWindow();
 
   await Promise.all([
     databaseOperations,

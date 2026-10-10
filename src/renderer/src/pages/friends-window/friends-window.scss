@@ -279,28 +279,13 @@
     padding: 0 calc(globals.$spacing-unit * 2);
   }
 
+  // Look comes from the shared Button; this only keeps it from shrinking.
   &__add-friend {
-    display: inline-flex;
-    align-items: center;
-    gap: calc(globals.$spacing-unit / 2);
     flex-shrink: 0;
-    background-color: globals.$muted-color;
-    border: none;
-    border-radius: 6px;
-    color: globals.$dark-background-color;
-    font-size: globals.$small-font-size;
-    font-weight: 600;
     white-space: nowrap;
-    padding: 0 calc(globals.$spacing-unit * 1.5);
-    height: 36px;
-    cursor: pointer;
-    transition: background-color 0.2s ease;
-
-    &:hover {
-      background-color: #dadbe1;
-    }
   }
 
+  // Matches the shared Button's 40px height so the row lines up.
   &__search {
     display: flex;
     align-items: center;
@@ -308,7 +293,7 @@
     flex: 1;
     min-width: 0;
     padding: 0 calc(globals.$spacing-unit * 1.5);
-    height: 36px;
+    height: 40px;
     background-color: globals.$dark-background-color;
     border: 1px solid globals.$border-color;
     border-radius: 6px;
@@ -401,6 +386,15 @@
     svg {
       flex-shrink: 0;
     }
+
+    // Skeleton header: same look, nothing to toggle yet.
+    &--static {
+      cursor: default;
+
+      &:hover {
+        color: globals.$body-color;
+      }
+    }
   }
 
   &__section-title {
@@ -410,6 +404,96 @@
     text-transform: uppercase;
     letter-spacing: 0.04em;
     color: inherit;
+  }
+
+  // Count orb next to a section title; grows into a pill past one digit.
+  &__count {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    min-width: 18px;
+    height: 18px;
+    padding: 0 5px;
+    margin-left: calc(globals.$spacing-unit / 2);
+    border-radius: 9px;
+    background-color: rgba(255, 255, 255, 0.12);
+    color: globals.$muted-color;
+    font-size: 11px;
+    font-weight: 600;
+    line-height: 1;
+
+    // Darker than $success-color so the white digits keep 4.5:1 contrast.
+    &--online {
+      background-color: #157a3b;
+      color: #ffffff;
+    }
+
+    &--offline {
+      background-color: #6d6d6d;
+      color: #ffffff;
+    }
+  }
+
+  // Shimmer block. Each row sets --skeleton-delay so the sweep runs down the
+  // list instead of flashing every block at once.
+  &__skeleton {
+    display: block;
+    flex-shrink: 0;
+    border-radius: 4px;
+    background-color: #1c1c1c;
+    background-image: linear-gradient(
+      90deg,
+      transparent 0%,
+      #333333 50%,
+      transparent 100%
+    );
+    background-size: 200% 100%;
+    background-repeat: no-repeat;
+    animation: friends-window-skeleton 1.4s ease-in-out infinite;
+    animation-delay: var(--skeleton-delay, 0ms);
+
+    @media (prefers-reduced-motion: reduce) {
+      animation: none;
+      background-image: none;
+    }
+
+    &--avatar {
+      width: 40px;
+      height: 40px;
+    }
+
+    &--name {
+      height: 12px;
+    }
+
+    &--status {
+      height: 9px;
+    }
+
+    &--count {
+      width: 18px;
+      height: 18px;
+      margin-left: calc(globals.$spacing-unit / 2);
+      border-radius: 50%;
+    }
+  }
+
+  // Same box as a friend row (40px avatar + 8px padding) so nothing shifts
+  // when the real rows replace it.
+  &__skeleton-row {
+    display: flex;
+    align-items: center;
+    gap: calc(globals.$spacing-unit * 1.5);
+    height: 56px;
+    padding: globals.$spacing-unit;
+  }
+
+  &__skeleton-details {
+    display: flex;
+    flex-direction: column;
+    gap: globals.$spacing-unit;
+    min-width: 0;
   }
 
   &__list {
@@ -460,11 +544,76 @@
       }
 
       .friends-window__friend-name,
-      .friends-window__friend-status {
+      .friends-window__friend-status,
+      .friends-window__message-button {
         color: #ffffff;
         opacity: 1;
       }
+
+      // Keeps the icon legible over bright profile backgrounds.
+      .friends-window__message-button svg {
+        filter: drop-shadow(0 0 3px rgb(0 0 0 / 70%));
+      }
     }
+
+    &:hover .friends-window__message-button {
+      color: globals.$muted-color;
+      opacity: 1;
+    }
+  }
+
+  &__message-button {
+    position: relative;
+    z-index: 2;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    width: 32px;
+    height: 32px;
+    margin-right: globals.$spacing-unit;
+    padding: 0;
+    background: none;
+    border: none;
+    border-radius: 6px;
+    color: globals.$body-color;
+    opacity: 0.7;
+    cursor: pointer;
+    transition:
+      background-color 0.2s ease,
+      color 0.2s ease,
+      opacity 0.2s ease;
+
+    &:hover,
+    &:focus-visible {
+      background-color: rgba(255, 255, 255, 0.08);
+      color: globals.$muted-color;
+      opacity: 1;
+    }
+  }
+
+  &__message-button--unread {
+    color: globals.$muted-color;
+    opacity: 1;
+  }
+
+  &__unread-badge {
+    position: absolute;
+    top: -2px;
+    right: -4px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 16px;
+    height: 16px;
+    padding: 0 4px;
+    border-radius: 8px;
+    background-color: globals.$error-color;
+    color: #ffffff;
+    font-size: 10px;
+    font-weight: 700;
+    line-height: 1;
+    pointer-events: none;
   }
 
   &__friend-bg {
@@ -602,5 +751,15 @@
     font-size: globals.$small-font-size;
     color: globals.$body-color;
     opacity: 0.7;
+  }
+}
+
+@keyframes friends-window-skeleton {
+  from {
+    background-position: 150% 0;
+  }
+
+  to {
+    background-position: -50% 0;
   }
 }

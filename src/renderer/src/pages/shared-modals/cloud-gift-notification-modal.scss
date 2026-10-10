@@ -219,30 +219,6 @@
     }
   }
 
-  &__accept {
-    min-height: 40px;
-    padding: 10px 16px;
-    color: #fff;
-    background:
-      linear-gradient(90deg, rgba(0, 0, 0, 0.2), rgba(0, 0, 0, 0.2)),
-      linear-gradient(91deg, #0cf1ca 0.13%, #1dcceb 99.87%);
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    border-radius: 8px;
-    font-size: 13px;
-    font-weight: 600;
-    cursor: pointer;
-    transition: filter 0.2s ease;
-
-    &:hover,
-    &:focus-visible {
-      filter: brightness(1.12);
-    }
-
-    &:active {
-      filter: brightness(0.9);
-    }
-  }
-
   &__logo {
     z-index: 2;
     width: 352px;
@@ -351,10 +327,6 @@
     &__logo,
     &__panel {
       will-change: auto;
-    }
-
-    &__accept {
-      transition: none;
     }
   }
 }

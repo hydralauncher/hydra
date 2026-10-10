@@ -25,6 +25,31 @@ export type RealtimeEnvelope = RealtimeEnvelopeBase &
         event: "notification";
         payload: { invalidate: "notifications" };
       }
+    | {
+        event: "chatMessage";
+        payload: {
+          senderId: string;
+          recipientId: string;
+          seq: number;
+          body: string;
+          clientNonce: string;
+          createdAt: string;
+        };
+      }
+    | {
+        event: "chatTyping";
+        payload: { senderId: string };
+      }
+    | {
+        event: "chatReaction";
+        payload: {
+          senderId: string;
+          recipientId: string;
+          seq: number;
+          emoji: string | null;
+          updatedAt: string;
+        };
+      }
   );
 
 export interface RealtimeToken {
@@ -122,6 +147,22 @@ const isValidPublishedAt = (publishedAt: unknown) =>
     publishedAt.length > 0 &&
     !Number.isNaN(Date.parse(publishedAt)));
 
+const isValidChatReply = (payload: Record<string, unknown>) => {
+  const { replyToSeq, replyTo } = payload;
+  if (replyToSeq === undefined && replyTo === undefined) return true;
+
+  return (
+    typeof replyToSeq === "number" &&
+    Number.isSafeInteger(replyToSeq) &&
+    replyToSeq > 0 &&
+    (replyTo === undefined ||
+      (typeof replyTo === "object" &&
+        replyTo !== null &&
+        typeof (replyTo as Record<string, unknown>).senderId === "string" &&
+        typeof (replyTo as Record<string, unknown>).body === "string"))
+  );
+};
+
 const isValidEnvelopePayload = (
   event: unknown,
   payload: Record<string, unknown>
@@ -148,6 +189,33 @@ const isValidEnvelopePayload = (
       );
     case "notification":
       return payload.invalidate === "notifications";
+    case "chatMessage":
+      return (
+        typeof payload.senderId === "string" &&
+        typeof payload.recipientId === "string" &&
+        typeof payload.seq === "number" &&
+        Number.isSafeInteger(payload.seq) &&
+        payload.seq > 0 &&
+        typeof payload.body === "string" &&
+        typeof payload.clientNonce === "string" &&
+        typeof payload.createdAt === "string" &&
+        !Number.isNaN(Date.parse(payload.createdAt)) &&
+        isValidChatReply(payload)
+      );
+    case "chatTyping":
+      return typeof payload.senderId === "string";
+    case "chatReaction":
+      return (
+        typeof payload.senderId === "string" &&
+        typeof payload.recipientId === "string" &&
+        typeof payload.seq === "number" &&
+        Number.isSafeInteger(payload.seq) &&
+        payload.seq > 0 &&
+        (payload.emoji === null ||
+          (typeof payload.emoji === "string" && payload.emoji.length > 0)) &&
+        typeof payload.updatedAt === "string" &&
+        !Number.isNaN(Date.parse(payload.updatedAt))
+      );
     default:
       return false;
   }

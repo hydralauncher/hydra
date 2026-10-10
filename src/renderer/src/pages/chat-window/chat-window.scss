@@ -1,0 +1,2375 @@
+@use "sass:color";
+@use "sass:math";
+@use "../../scss/globals.scss";
+
+$popover-background: #1c1c1c;
+$popover-border: rgba(255, 255, 255, 0.1);
+$faded-text: rgba(globals.$body-color, 0.7);
+$meta-text: rgba(globals.$body-color, 0.6);
+// Message links; each keeps 6:1 contrast on its bubble.
+$link-color: #7aa2ff;
+$mine-link-color: #2350c8;
+$emoji-font-family:
+  "Segoe UI Emoji", "Apple Color Emoji", "Noto Color Emoji", sans-serif;
+$mine-reaction-background: color.mix(
+  globals.$muted-color,
+  globals.$background-color,
+  12%
+);
+// Height of the window controls, which the tab strip lines up with.
+$strip-height: 40px;
+// Matches CHAT_TAB_GAP in chat-tab-layout.ts.
+$tab-gap: 4px;
+// Opaque, so the status orb's ring can match the tab under it.
+$tab-hover-background: color.mix(#ffffff, globals.$dark-background-color, 4%);
+$tab-active-background: color.mix(#ffffff, globals.$dark-background-color, 8%);
+// Circumference of the send button's cooldown ring (r=11, chat-send-cooldown.tsx).
+$cooldown-ring-length: 2 * math.$pi * 11;
+
+// Animating to `height: auto` relies on `interpolate-size` (set on the root).
+@keyframes chat-window-grow {
+  from {
+    height: 0;
+  }
+
+  to {
+    height: auto;
+  }
+}
+
+@keyframes chat-window-bubble-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px) scale(0.9);
+  }
+
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes chat-window-fade-in {
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes chat-window-typing {
+  0%,
+  60%,
+  100% {
+    opacity: 0.3;
+    transform: translateY(0);
+  }
+
+  30% {
+    opacity: 1;
+    transform: translateY(-2px);
+  }
+}
+
+@keyframes chat-window-shake {
+  0%,
+  100% {
+    transform: none;
+  }
+
+  20% {
+    transform: translateX(-6px);
+  }
+
+  40% {
+    transform: translateX(5px);
+  }
+
+  60% {
+    transform: translateX(-3px);
+  }
+
+  80% {
+    transform: translateX(2px);
+  }
+}
+
+// Stands in for the shake under reduced motion. The composer still needs an
+// animation to end, or it would stay flagged red.
+@keyframes chat-window-still {
+  from,
+  to {
+    transform: none;
+  }
+}
+
+@keyframes chat-window-cooldown {
+  from {
+    stroke-dashoffset: 0;
+  }
+
+  to {
+    stroke-dashoffset: $cooldown-ring-length;
+  }
+}
+
+// The jump-to-latest button blooms in from a small, blurred dot and shrinks
+// back into a blur on the way out.
+@keyframes chat-window-jump-in {
+  from {
+    opacity: 0;
+    transform: scale(0.6);
+    filter: blur(8px);
+  }
+
+  to {
+    opacity: 1;
+    transform: none;
+    filter: blur(0);
+  }
+}
+
+@keyframes chat-window-jump-out {
+  from {
+    opacity: 1;
+    transform: none;
+    filter: blur(0);
+  }
+
+  to {
+    opacity: 0;
+    transform: scale(0.8);
+    filter: blur(4px);
+  }
+}
+
+@keyframes chat-window-badge-in {
+  0% {
+    opacity: 0;
+    transform: scale(0.3);
+  }
+
+  70% {
+    opacity: 1;
+    transform: scale(1.15);
+  }
+
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes chat-window-popover-in {
+  from {
+    opacity: 0;
+    transform: translateY(4px) scale(0.94);
+  }
+
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes chat-window-reaction-option-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px) scale(0.6);
+  }
+
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes chat-window-zzz {
+  0%,
+  100% {
+    opacity: 0.5;
+    transform: none;
+  }
+
+  50% {
+    opacity: 1;
+    transform: translateY(-1px);
+  }
+}
+
+.chat-window {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  width: 100%;
+  background-color: globals.$background-color;
+  color: globals.$body-color;
+  font-family:
+    Noto Sans,
+    sans-serif;
+  font-size: globals.$body-font-size;
+  overflow: hidden;
+  interpolate-size: allow-keywords;
+
+  // Tab strip doubles as the (frameless) window's title bar. Its row matches
+  // the window controls, and the tabs sit centered on it.
+  &__strip {
+    position: relative;
+    z-index: globals.$title-bar-z-index;
+    display: flex;
+    align-items: stretch;
+    flex-shrink: 0;
+    height: $strip-height + 1px;
+    padding-left: $tab-gap;
+    background-color: globals.$dark-background-color;
+    border-bottom: 1px solid globals.$border-color;
+    -webkit-app-region: drag;
+  }
+
+  &__tabs-area {
+    display: flex;
+    align-items: stretch;
+    flex: 1;
+    min-width: 0;
+  }
+
+  &__tabs {
+    display: flex;
+    align-items: center;
+    gap: $tab-gap;
+    flex: 1;
+    min-width: 0;
+  }
+
+  // All tabs share one size and padding in every state; selecting one only
+  // recolors it. The surface color also rings the avatar's status orb.
+  &__tab {
+    --chat-tab-surface: #{globals.$dark-background-color};
+
+    position: relative;
+    display: flex;
+    align-items: center;
+    flex-shrink: 0;
+    height: 32px;
+    border-radius: 8px;
+    background-color: var(--chat-tab-surface);
+    transition:
+      width 0.15s ease,
+      background-color 0.15s ease;
+    -webkit-app-region: no-drag;
+    // Tabs can be dragged to reorder; pointer events, so no text selection or
+    // touch scrolling gets in the way.
+    user-select: none;
+    touch-action: none;
+
+    &:hover {
+      --chat-tab-surface: #{$tab-hover-background};
+    }
+
+    &--active,
+    &--active:hover {
+      --chat-tab-surface: #{$tab-active-background};
+    }
+  }
+
+  &__tab-button {
+    display: flex;
+    align-items: center;
+    gap: globals.$spacing-unit;
+    flex: 1;
+    min-width: 0;
+    height: 100%;
+    padding: 0 0 0 globals.$spacing-unit;
+    background: none;
+    border: none;
+    border-radius: inherit;
+    color: $faded-text;
+    font-family: inherit;
+    font-size: 13px;
+    font-weight: 600;
+    text-align: left;
+    transition: color 0.15s ease;
+
+    // Hidden until the user presses Tab (see chat-window.tsx).
+    &:focus-visible {
+      outline: none;
+    }
+  }
+
+  &--keyboard-navigation &__tab-button:focus-visible {
+    outline: revert;
+  }
+
+  // Brighter, never bolder: a weight change would reflow the name.
+  &__tab--active &__tab-button,
+  &__tab--unread &__tab-button {
+    color: globals.$muted-color;
+  }
+
+  // The active conversation's friend, under the strip. One height with or
+  // without a banner, so switching tabs never moves the messages.
+  &__conversation-header {
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-shrink: 0;
+    height: 52px;
+    padding: 0 calc(globals.$spacing-unit * 2);
+    overflow: hidden;
+    border-bottom: 1px solid globals.$border-color;
+
+    // Keeps the header's content above the banner.
+    > :not(.chat-window__header-banner) {
+      position: relative;
+      z-index: 1;
+    }
+
+    // Light text with a soft shadow over the image, like the Friends window
+    // header.
+    &--banner {
+      .chat-window__conversation-name,
+      .chat-window__friend-status {
+        color: #ffffff;
+        text-shadow: 0 0 5px rgb(0 0 0 / 60%);
+      }
+    }
+  }
+
+  &__header-banner {
+    position: absolute;
+    inset: 0;
+    overflow: hidden;
+    pointer-events: none;
+    animation: chat-window-fade-in 0.25s ease both;
+
+    img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+    // Darker on the left, where the name and game sit.
+    &::after {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(
+        90deg,
+        rgb(0 0 0 / 75%) 0%,
+        rgb(0 0 0 / 40%) 60%,
+        rgb(0 0 0 / 25%) 100%
+      );
+    }
+  }
+
+  &__conversation-details {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 1px;
+    flex: 1;
+    min-width: 0;
+  }
+
+  &__conversation-name {
+    max-width: 100%;
+    font-size: 13px;
+    font-weight: 700;
+    color: globals.$muted-color;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    text-underline-offset: 3px;
+  }
+
+  // Avatar and name are one target: hovering either highlights both.
+  &__conversation-header:has(.chat-window__profile-link:hover),
+  &__conversation-header:has(.chat-window__profile-link:focus-visible) {
+    .chat-window__conversation-name {
+      text-decoration: underline;
+    }
+
+    .chat-window__profile-link--avatar {
+      box-shadow: 0 0 0 2px rgba(globals.$muted-color, 0.35);
+    }
+  }
+
+  &__tab--compact &__tab-button {
+    justify-content: center;
+    padding: 0;
+  }
+
+  // Holds the avatar, or the typing dots in its place.
+  &__tab-avatar {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    width: 20px;
+    height: 20px;
+
+    .chat-window__status-orb {
+      right: -3px;
+      bottom: -3px;
+      width: 8px;
+      height: 8px;
+      border-color: var(--chat-tab-surface);
+      transition: border-color 0.15s ease;
+    }
+  }
+
+  &__tab-unread-dot {
+    position: absolute;
+    top: -3px;
+    right: -3px;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background-color: globals.$muted-color;
+    border: 2px solid var(--chat-tab-surface);
+  }
+
+  &__tab-name {
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+  }
+
+  // The close button and unread count share one slot; hovering or focusing
+  // the tab swaps the count for the close button.
+  &__tab-trailing {
+    display: grid;
+    place-items: center;
+    flex-shrink: 0;
+    min-width: 20px;
+    height: 20px;
+    margin: 0 6px 0 4px;
+
+    > * {
+      grid-area: 1 / 1;
+    }
+  }
+
+  &__tab-close {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 20px;
+    height: 20px;
+    padding: 0;
+    background: none;
+    border: none;
+    border-radius: 4px;
+    color: globals.$body-color;
+    opacity: 0;
+    transition:
+      background-color 0.15s ease,
+      color 0.15s ease,
+      opacity 0.15s ease;
+
+    &:hover {
+      background-color: rgba(255, 255, 255, 0.12);
+      color: globals.$muted-color;
+    }
+  }
+
+  &__tab--active &__tab-close,
+  &__tab:hover &__tab-close,
+  &__tab:focus-within &__tab-close {
+    opacity: 1;
+  }
+
+  &__tab-badge {
+    pointer-events: none;
+    transition: opacity 0.15s ease;
+  }
+
+  &__tab:hover &__tab-badge,
+  &__tab:focus-within &__tab-badge {
+    opacity: 0;
+  }
+
+  // Hover card for compact (avatar-only) tabs.
+  &__friend-card {
+    position: absolute;
+    top: calc(100% + 4px);
+    left: 0;
+    z-index: 2;
+    display: flex;
+    flex-direction: column;
+    width: 240px;
+    overflow: hidden;
+    background-color: $popover-background;
+    border: 1px solid $popover-border;
+    border-radius: 8px;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+    transition:
+      opacity 0.15s ease,
+      visibility 0.15s ease;
+
+    &--end {
+      left: auto;
+      right: 0;
+    }
+  }
+
+  &__tab:hover &__friend-card {
+    opacity: 1;
+    visibility: visible;
+    transition-delay: 0.4s;
+  }
+
+  // While dragging, the other tabs glide aside; hover cards would only
+  // flicker.
+  &__tabs--dragging {
+    .chat-window__tab {
+      transition:
+        transform 0.15s ease-out,
+        width 0.15s ease,
+        background-color 0.15s ease;
+    }
+
+    .chat-window__friend-card {
+      display: none;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    &__tab,
+    &__tabs--dragging .chat-window__tab {
+      transition: none;
+    }
+  }
+
+  &__friend-card-banner {
+    display: block;
+    width: 100%;
+    height: 64px;
+    object-fit: cover;
+  }
+
+  &__friend-card-content {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 12px;
+  }
+
+  // With a banner the avatar overlaps its bottom edge.
+  &__friend-card--banner &__friend-card-content {
+    align-items: flex-end;
+    margin-top: -20px;
+  }
+
+  &__friend-card-details {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+  }
+
+  &__friend-card-name {
+    font-size: 13px;
+    font-weight: 700;
+    color: globals.$muted-color;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  &__overflow {
+    position: relative;
+    display: flex;
+    align-items: center;
+    flex-shrink: 0;
+    margin-left: 4px;
+    -webkit-app-region: no-drag;
+  }
+
+  &__overflow-button {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    width: 40px;
+    height: 32px;
+    padding: 0 0 0 globals.$spacing-unit;
+    background: none;
+    border: none;
+    border-radius: 8px;
+    color: globals.$muted-color;
+    font-family: inherit;
+    font-size: globals.$small-font-size;
+    font-weight: 700;
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+
+    &:hover,
+    &--open {
+      background-color: rgba(255, 255, 255, 0.1);
+    }
+  }
+
+  &__overflow-menu {
+    position: absolute;
+    top: calc(100% + 4px);
+    right: 0;
+    display: flex;
+    flex-direction: column;
+    width: 260px;
+    padding: 4px;
+    background-color: $popover-background;
+    border: 1px solid $popover-border;
+    border-radius: 8px;
+    box-shadow: 0 12px 32px rgba(0, 0, 0, 0.55);
+  }
+
+  &__overflow-title {
+    padding: globals.$spacing-unit globals.$spacing-unit 4px;
+    font-size: globals.$small-font-size;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: $meta-text;
+  }
+
+  &__overflow-item {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+  }
+
+  &__overflow-select {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex: 1;
+    min-width: 0;
+    height: 44px;
+    padding: 0 globals.$spacing-unit;
+    background: none;
+    border: none;
+    border-radius: 6px;
+    color: inherit;
+    font-family: inherit;
+    text-align: left;
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+
+    &:hover,
+    &:focus-visible {
+      background-color: rgba(255, 255, 255, 0.05);
+    }
+  }
+
+  &__overflow-details {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    min-width: 0;
+  }
+
+  &__overflow-name {
+    font-size: 13px;
+    font-weight: 500;
+    color: globals.$muted-color;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  &__unread-badge {
+    flex-shrink: 0;
+    min-width: 18px;
+    height: 18px;
+    padding: 0 5px;
+    border-radius: 9px;
+    background-color: globals.$muted-color;
+    color: globals.$background-color;
+    font-size: 11px;
+    font-weight: 700;
+    line-height: 18px;
+    text-align: center;
+  }
+
+  &__window-controls {
+    display: flex;
+    align-self: flex-start;
+    flex-shrink: 0;
+    height: $strip-height;
+    margin-left: globals.$spacing-unit;
+    -webkit-app-region: no-drag;
+  }
+
+  &__window-control {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 100%;
+    padding: 0;
+    background: none;
+    border: none;
+    color: globals.$muted-color;
+    cursor: pointer;
+    transition:
+      background-color 0.2s ease,
+      color 0.2s ease;
+
+    &:hover {
+      background-color: rgba(255, 255, 255, 0.08);
+    }
+
+    &--close:hover {
+      background-color: globals.$error-color;
+      color: #ffffff;
+    }
+  }
+
+  &__icon-button {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    width: 32px;
+    height: 32px;
+    padding: 0;
+    background: none;
+    border: none;
+    border-radius: 6px;
+    color: globals.$body-color;
+    cursor: pointer;
+    transition:
+      background-color 0.2s ease,
+      color 0.2s ease;
+
+    &:hover,
+    &:focus-visible {
+      background-color: rgba(255, 255, 255, 0.08);
+      color: globals.$muted-color;
+    }
+
+    &--small {
+      width: 28px;
+      height: 28px;
+    }
+  }
+
+  &__avatar-wrapper {
+    position: relative;
+    flex-shrink: 0;
+  }
+
+  &__status-orb {
+    position: absolute;
+    right: -2px;
+    bottom: -2px;
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background-color: #6d6d6d;
+    border: 2px solid globals.$background-color;
+
+    &--online {
+      background-color: globals.$success-color;
+    }
+  }
+
+  &__friend-card &__status-orb,
+  &__overflow-menu &__status-orb {
+    border-color: $popover-background;
+  }
+
+  &__friend-status {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    min-width: 0;
+    font-size: globals.$small-font-size;
+    color: $faded-text;
+
+    &--highlight {
+      color: globals.$body-color;
+    }
+  }
+
+  &__friend-status-text {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  &__game-icon {
+    flex-shrink: 0;
+    border-radius: 2px;
+  }
+
+  &__conversation {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    min-height: 0;
+  }
+
+  &__profile-link {
+    padding: 0;
+    background: none;
+    border: none;
+    color: inherit;
+    font-family: inherit;
+    text-align: left;
+    cursor: pointer;
+
+    // Focus shows as the underline and avatar ring below, not an outline.
+    &:focus {
+      outline: none;
+    }
+
+    &--avatar {
+      display: flex;
+      flex-shrink: 0;
+      border-radius: 4px;
+      transition: box-shadow 0.2s ease;
+    }
+  }
+
+  &__game-link {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    min-width: 0;
+    max-width: 100%;
+    padding: 0;
+    background: none;
+    border: none;
+    color: inherit;
+    font-family: inherit;
+    cursor: pointer;
+
+    &:hover,
+    &:focus-visible {
+      .chat-window__friend-status {
+        color: globals.$muted-color;
+      }
+
+      .chat-window__friend-status-text {
+        text-decoration: underline;
+        text-underline-offset: 3px;
+      }
+
+      .chat-window__game-link-icon {
+        opacity: 1;
+      }
+    }
+  }
+
+  &__game-link-icon {
+    flex-shrink: 0;
+    color: globals.$body-color;
+    opacity: 0;
+    transition: opacity 0.2s ease;
+  }
+
+  &__empty {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: calc(globals.$spacing-unit * 1.5);
+    flex: 1;
+    min-height: 0;
+    padding: calc(globals.$spacing-unit * 3) calc(globals.$spacing-unit * 8);
+    text-align: center;
+  }
+
+  &__empty-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 56px;
+    height: 56px;
+    background-color: $popover-background;
+    border: 1px solid globals.$border-color;
+    border-radius: 14px;
+    color: globals.$body-color;
+  }
+
+  // Cut-outs in the empty state icon (chat-empty-icon.tsx) show the tile.
+  &__empty-icon-gap {
+    stroke: $popover-background;
+  }
+
+  &__empty-icon-logo path {
+    fill: $popover-background;
+  }
+
+  &__empty-text {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  &__empty-title {
+    margin: 0;
+    font-size: globals.$body-font-size;
+    font-weight: 700;
+    color: globals.$muted-color;
+  }
+
+  &__empty-description {
+    margin: 0;
+    font-size: globals.$hint-font-size;
+    line-height: 20px;
+    color: $faded-text;
+  }
+
+  // Holds the list with its overlay scrollbar and jump button.
+  &__messages-viewport {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    min-height: 0;
+  }
+
+  // column-reverse anchors the scroll position to the newest message. The
+  // native scrollbar is hidden in favor of chat-scrollbar.tsx.
+  &__messages {
+    display: flex;
+    flex-direction: column-reverse;
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+    scrollbar-width: none;
+
+    &::-webkit-scrollbar {
+      display: none;
+    }
+  }
+
+  // Shown while scrolling, dragging or hovering the list.
+  &__scrollbar {
+    position: absolute;
+    top: 4px;
+    right: 3px;
+    bottom: 4px;
+    width: 6px;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.2s ease;
+
+    &--visible {
+      opacity: 1;
+    }
+  }
+
+  &__messages-viewport:hover &__scrollbar {
+    opacity: 1;
+  }
+
+  &__scrollbar-thumb {
+    position: absolute;
+    top: 0;
+    right: 0;
+    width: 4px;
+    border-radius: 3px;
+    background-color: rgba(255, 255, 255, 0.22);
+    pointer-events: auto;
+    transition:
+      width 0.15s ease,
+      background-color 0.15s ease;
+
+    &:hover,
+    &--dragging {
+      width: 6px;
+      background-color: rgba(255, 255, 255, 0.36);
+    }
+  }
+
+  &__jump {
+    position: absolute;
+    right: calc(globals.$spacing-unit * 2);
+    bottom: calc(globals.$spacing-unit * 1.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    padding: 0;
+    background-color: $popover-background;
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 50%;
+    color: globals.$muted-color;
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.5);
+    animation: chat-window-jump-in 0.26s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+    transition: border-color 0.2s ease;
+
+    &:hover,
+    &:focus-visible {
+      border-color: rgba(255, 255, 255, 0.3);
+    }
+
+    &--leaving {
+      pointer-events: none;
+      animation: chat-window-jump-out 0.16s ease-in both;
+    }
+  }
+
+  // Styled like the unread badges on tabs.
+  &__jump-count {
+    position: absolute;
+    top: -6px;
+    right: -6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 18px;
+    height: 18px;
+    padding: 0 5px;
+    border-radius: 9px;
+    background-color: globals.$muted-color;
+    border: 2px solid globals.$background-color;
+    color: globals.$background-color;
+    font-size: 10px;
+    font-weight: 700;
+    line-height: 1;
+    // Lands just after the button.
+    animation: chat-window-badge-in 0.26s cubic-bezier(0.34, 1.4, 0.64, 1) 0.12s
+      both;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    &__jump,
+    &__jump-count,
+    &__sticky-day {
+      animation: none;
+    }
+  }
+
+  &__messages-content {
+    display: flex;
+    flex-direction: column;
+    gap: calc(globals.$spacing-unit * 1.5);
+    padding: calc(globals.$spacing-unit * 2);
+  }
+
+  &__day-divider {
+    display: flex;
+    align-items: center;
+    gap: calc(globals.$spacing-unit * 1.5);
+    font-size: globals.$small-font-size;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: $meta-text;
+
+    &::before,
+    &::after {
+      content: "";
+      flex: 1;
+      height: 1px;
+      background-color: globals.$border-color;
+    }
+  }
+
+  // Marks where messages that arrived while scrolled up begin.
+  &__new-divider {
+    display: flex;
+    align-items: center;
+    gap: calc(globals.$spacing-unit * 1.5);
+    font-size: globals.$small-font-size;
+    font-weight: 700;
+    color: globals.$muted-color;
+
+    &::before,
+    &::after {
+      content: "";
+      flex: 1;
+      height: 1px;
+      background-color: rgba(globals.$muted-color, 0.4);
+    }
+  }
+
+  // The day of the messages at the top while scrolled up.
+  &__sticky-day {
+    position: absolute;
+    top: globals.$spacing-unit;
+    left: 50%;
+    z-index: 1;
+    padding: 3px 10px;
+    transform: translateX(-50%);
+    background-color: rgba($popover-background, 0.92);
+    border: 1px solid globals.$border-color;
+    border-radius: 6px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: rgba(globals.$body-color, 0.8);
+    pointer-events: none;
+    animation: chat-window-fade-in 0.15s ease;
+  }
+
+  &__message-group {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 2px;
+
+    &--mine {
+      align-items: flex-end;
+    }
+  }
+
+  &__message-row {
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    gap: 6px;
+    width: 100%;
+
+    // The row grows from zero height so earlier messages glide up while the
+    // bubble itself pops in.
+    &--enter {
+      overflow: clip;
+      overflow-clip-margin: 6px;
+      animation: chat-window-grow 0.2s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+
+      .chat-window__message {
+        animation: chat-window-bubble-in 0.32s cubic-bezier(0.34, 1.4, 0.64, 1)
+          both;
+      }
+
+      // The clip is only for the grow; reaction bars and tooltips reach
+      // past the row once the user interacts with it.
+      &:hover,
+      &:focus-within {
+        overflow: visible;
+      }
+    }
+  }
+
+  // The bubble and the reactions under it.
+  &__message-body {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    min-width: 0;
+    max-width: 75%;
+  }
+
+  &__message-group--mine &__message-body {
+    align-items: flex-end;
+  }
+
+  &__message-group--mine &__message-row {
+    justify-content: flex-end;
+  }
+
+  // Corners tighten on the sender's side between messages of one group; the
+  // time label is always the group's last child.
+  &__message {
+    max-width: 100%;
+    margin: 0;
+    transform-origin: bottom left;
+    padding: globals.$spacing-unit calc(globals.$spacing-unit * 1.5);
+    background-color: $popover-background;
+    border: 1px solid globals.$border-color;
+    border-radius: 4px 12px 12px 4px;
+    color: globals.$muted-color;
+    font-size: globals.$body-font-size;
+    line-height: 20px;
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+    user-select: text;
+    transition: box-shadow 0.35s ease;
+
+    &--reply {
+      display: flex;
+      flex-direction: column;
+    }
+
+    // Rings sit 2px off the bubble, so they read on both bubble colors.
+    &--replying {
+      box-shadow:
+        0 0 0 2px globals.$background-color,
+        0 0 0 3px rgba(globals.$muted-color, 0.5);
+    }
+
+    &--flash {
+      box-shadow:
+        0 0 0 2px globals.$background-color,
+        0 0 0 4px rgba(globals.$muted-color, 0.9);
+    }
+  }
+
+  // Reply and copy, shown while the message's row is hovered or focused.
+  &__message-actions {
+    display: flex;
+    align-items: center;
+    gap: 2px;
+    flex-shrink: 0;
+    opacity: 0;
+    transition: opacity 0.15s ease;
+
+    &--visible {
+      opacity: 1;
+    }
+  }
+
+  &__message-row:hover &__message-actions,
+  &__message-row:focus-within &__message-actions {
+    opacity: 1;
+  }
+
+  &__message-action {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    padding: 0;
+    background: none;
+    border: none;
+    border-radius: 6px;
+    color: globals.$body-color;
+    cursor: pointer;
+    transition:
+      background-color 0.15s ease,
+      color 0.15s ease;
+
+    &:hover,
+    &:focus-visible {
+      background-color: rgba(255, 255, 255, 0.08);
+      color: globals.$muted-color;
+    }
+  }
+
+  // Above the bubble and its reactions, which come later in the row and
+  // would otherwise cover it.
+  &__message-action-tooltip {
+    position: absolute;
+    z-index: 2;
+    bottom: calc(100% + 6px);
+    left: 50%;
+    padding: 4px globals.$spacing-unit;
+    transform: translateX(-50%);
+    background-color: $popover-background;
+    border: 1px solid $popover-border;
+    border-radius: 6px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+    font-size: globals.$small-font-size;
+    line-height: 16px;
+    color: globals.$muted-color;
+    white-space: nowrap;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.15s ease;
+  }
+
+  &__message-action:hover &__message-action-tooltip,
+  &__message-action:focus-visible &__message-action-tooltip,
+  &__message-action--copied &__message-action-tooltip {
+    opacity: 1;
+  }
+
+  // The replied-to message, quoted at the top of a reply's bubble.
+  &__message-quote {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    min-width: 0;
+    margin: -2px -6px 6px;
+    padding: 5px globals.$spacing-unit 6px;
+    background-color: rgba(255, 255, 255, 0.06);
+    border: none;
+    border-radius: 6px;
+    color: inherit;
+    font-family: inherit;
+    text-align: left;
+    white-space: nowrap;
+    cursor: pointer;
+    transition: background-color 0.15s ease;
+
+    &:hover,
+    &:focus-visible {
+      background-color: rgba(255, 255, 255, 0.1);
+    }
+
+    &--unavailable {
+      font-size: globals.$small-font-size;
+      font-style: italic;
+      line-height: 16px;
+      color: rgba(globals.$body-color, 0.75);
+      white-space: normal;
+      cursor: default;
+
+      &:hover {
+        background-color: rgba(255, 255, 255, 0.06);
+      }
+    }
+  }
+
+  &__message-quote-name {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    font-size: globals.$small-font-size;
+    font-weight: 700;
+    line-height: 16px;
+    color: globals.$muted-color;
+  }
+
+  &__message-quote-text {
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    font-size: globals.$small-font-size;
+    line-height: 16px;
+    color: rgba(globals.$body-color, 0.75);
+  }
+
+  &__message-group--mine &__message-quote {
+    background-color: rgba(globals.$background-color, 0.08);
+
+    &:hover,
+    &:focus-visible {
+      background-color: rgba(globals.$background-color, 0.14);
+    }
+
+    &--unavailable,
+    &--unavailable:hover {
+      background-color: rgba(globals.$background-color, 0.08);
+      color: rgba(globals.$background-color, 0.66);
+    }
+  }
+
+  &__message-group--mine &__message-quote-name {
+    color: rgba(globals.$background-color, 0.8);
+  }
+
+  &__message-group--mine &__message-quote-text {
+    color: rgba(globals.$background-color, 0.66);
+  }
+
+  &__message-row:first-child &__message {
+    border-top-left-radius: 12px;
+  }
+
+  &__message-row:nth-last-child(2) &__message {
+    border-bottom-left-radius: 12px;
+  }
+
+  &__message-group--mine &__message {
+    background-color: globals.$muted-color;
+    border-color: transparent;
+    border-radius: 12px 4px 4px 12px;
+    color: globals.$background-color;
+    transform-origin: bottom right;
+  }
+
+  // One inline box, so a reply's flex bubble keeps links in the text flow.
+  &__message-text {
+    min-width: 0;
+  }
+
+  &__message-link {
+    border-radius: 2px;
+    color: $link-color;
+    text-decoration: none;
+    cursor: pointer;
+
+    &:hover {
+      text-decoration: underline;
+      text-underline-offset: 2px;
+    }
+
+    &:focus-visible {
+      outline: 2px solid currentColor;
+      outline-offset: 2px;
+    }
+  }
+
+  &__message-link-icon {
+    margin-left: 4px;
+  }
+
+  &__message-group--mine &__message-link {
+    color: $mine-link-color;
+  }
+
+  &__message-group--mine &__message-row:first-child &__message {
+    border-top-right-radius: 12px;
+  }
+
+  &__message-group--mine &__message-row:nth-last-child(2) &__message {
+    border-bottom-right-radius: 12px;
+  }
+
+  &__message-row--pending &__message {
+    opacity: 0.6;
+  }
+
+  // The retry link sits under the bubble, inside the row, so the
+  // nth-last-child corner rules above still see one row per message.
+  &__message-row--failed {
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 4px;
+  }
+
+  &__message-row--failed &__message {
+    opacity: 0.6;
+    border: 1px dashed globals.$error-color;
+  }
+
+  &__message-retry {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 0;
+    background: none;
+    border: none;
+    color: globals.$error-color;
+    font-size: globals.$small-font-size;
+    cursor: pointer;
+
+    &:hover,
+    &:focus-visible {
+      text-decoration: underline;
+    }
+  }
+
+  &__empty-retry {
+    padding: 6px calc(globals.$spacing-unit * 1.5);
+    background-color: $popover-background;
+    border: 1px solid globals.$border-color;
+    border-radius: 6px;
+    color: globals.$muted-color;
+    font-size: globals.$small-font-size;
+    cursor: pointer;
+
+    &:hover {
+      border-color: $popover-border;
+    }
+  }
+
+  &__message-time {
+    margin-top: 2px;
+    font-size: globals.$small-font-size;
+    color: $meta-text;
+
+    &--enter {
+      animation: chat-window-fade-in 0.2s ease 0.12s both;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    &__message-row--enter,
+    &__message-row--enter &__message,
+    &__message-time--enter,
+    &__header-banner {
+      animation: none;
+    }
+
+    &__message,
+    &__message-actions,
+    &__message-action-tooltip {
+      transition: none;
+    }
+  }
+
+  &__typing-dots {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+
+    span {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background-color: globals.$body-color;
+      animation: chat-window-typing 1.2s ease-in-out infinite;
+
+      &:nth-child(2) {
+        animation-delay: 0.15s;
+      }
+
+      &:nth-child(3) {
+        animation-delay: 0.3s;
+      }
+    }
+
+    // Sized to replace a 16px avatar in tabs and status lines.
+    &--small {
+      justify-content: center;
+      flex-shrink: 0;
+      width: 16px;
+      height: 16px;
+      gap: 2px;
+
+      span {
+        width: 3px;
+        height: 3px;
+      }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      span {
+        animation: none;
+        opacity: 0.7;
+      }
+    }
+  }
+
+  &__composer {
+    position: relative;
+    flex-shrink: 0;
+    padding: calc(globals.$spacing-unit * 1.5) calc(globals.$spacing-unit * 2)
+      calc(globals.$spacing-unit * 2);
+  }
+
+  &__composer-box {
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    background-color: globals.$dark-background-color;
+    border: 1px solid globals.$border-color;
+    border-radius: 8px;
+    transition: border-color 0.2s ease;
+
+    &:hover {
+      border-color: rgba(255, 255, 255, 0.5);
+    }
+
+    &:focus-within {
+      border-color: #dadbe1;
+    }
+
+    &--shake,
+    &--invalid {
+      &,
+      &:hover,
+      &:focus-within {
+        border-color: globals.$error-color;
+      }
+    }
+
+    &--shake {
+      animation: chat-window-shake 0.4s ease;
+    }
+  }
+
+  &__composer-row {
+    display: flex;
+    align-items: flex-end;
+    gap: globals.$spacing-unit;
+    padding: 6px 6px 6px calc(globals.$spacing-unit * 1.5);
+  }
+
+  // The message being replied to, pinned above the input.
+  &__composer-reply {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    padding: 6px 6px 6px calc(globals.$spacing-unit * 1.5);
+    background-color: $tab-hover-background;
+    border-bottom: 1px solid globals.$border-color;
+    animation: chat-window-fade-in 0.15s ease;
+  }
+
+  &__composer-reply-target {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex: 1;
+    min-width: 0;
+    padding: 0;
+    background: none;
+    border: none;
+    color: inherit;
+    font-family: inherit;
+    text-align: left;
+    cursor: pointer;
+  }
+
+  &__composer-reply-icon {
+    flex-shrink: 0;
+    color: $meta-text;
+  }
+
+  &__composer-reply-details {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    min-width: 0;
+  }
+
+  &__composer-reply-label {
+    font-size: globals.$small-font-size;
+    line-height: 16px;
+    color: $meta-text;
+
+    strong {
+      font-weight: 700;
+      color: globals.$muted-color;
+    }
+  }
+
+  &__composer-reply-text {
+    font-size: globals.$hint-font-size;
+    line-height: 18px;
+    color: globals.$body-color;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  &__composer-reply-target:hover &__composer-reply-text,
+  &__composer-reply-target:focus-visible &__composer-reply-text {
+    color: globals.$muted-color;
+  }
+
+  &__composer-field {
+    position: relative;
+    display: flex;
+    flex: 1;
+    min-width: 0;
+  }
+
+  // Sits under the textarea with the same text, transparent, so only the
+  // highlight past the length limit shows through.
+  &__composer-mirror {
+    position: absolute;
+    inset: 0;
+    padding: 5px 0;
+    overflow: hidden;
+    color: transparent;
+    font-size: globals.$body-font-size;
+    line-height: 20px;
+    white-space: pre-wrap;
+    overflow-wrap: break-word;
+    pointer-events: none;
+  }
+
+  &__composer-overflow {
+    border-radius: 2px;
+    background-color: rgba(globals.$error-color, 0.35);
+    color: transparent;
+  }
+
+  // Its native scrollbar would narrow the text and misalign the mirror.
+  &__composer-input {
+    position: relative;
+    flex: 1;
+    min-width: 0;
+    scrollbar-width: none;
+    max-height: 110px;
+    padding: 5px 0;
+    background: none;
+    border: none;
+    outline: none;
+    resize: none;
+    color: globals.$muted-color;
+    font-family: inherit;
+    font-size: globals.$body-font-size;
+    line-height: 20px;
+
+    &::placeholder {
+      color: globals.$body-color;
+      opacity: 0.6;
+    }
+
+    &:disabled {
+      cursor: not-allowed;
+    }
+  }
+
+  &__send {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    width: 32px;
+    height: 32px;
+    padding: 0;
+    background-color: globals.$muted-color;
+    border: none;
+    border-radius: 6px;
+    color: globals.$background-color;
+    cursor: pointer;
+    transition:
+      background-color 0.2s ease,
+      color 0.2s ease;
+
+    &:hover {
+      background-color: #dadbe1;
+    }
+
+    &:disabled {
+      background-color: rgba(255, 255, 255, 0.06);
+      color: rgba(globals.$body-color, 0.4);
+      cursor: default;
+    }
+  }
+
+  &__send-cooldown {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    height: 100%;
+  }
+
+  &__send-cooldown-ring {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    transform: rotate(-90deg);
+    fill: none;
+    stroke-width: 2;
+  }
+
+  &__send-cooldown-track {
+    stroke: rgba(255, 255, 255, 0.12);
+  }
+
+  &__send-cooldown-progress {
+    stroke: globals.$error-color;
+    stroke-linecap: round;
+    stroke-dasharray: $cooldown-ring-length;
+    animation: chat-window-cooldown linear forwards;
+  }
+
+  &__send-cooldown-seconds {
+    font-size: 11px;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+    color: globals.$error-color;
+  }
+
+  // The hint on the left, the length counter on the right.
+  &__composer-meta {
+    display: flex;
+    align-items: flex-start;
+    gap: calc(globals.$spacing-unit * 1.5);
+    margin-bottom: globals.$spacing-unit;
+  }
+
+  &__composer-counter {
+    flex-shrink: 0;
+    margin-left: auto;
+    font-size: globals.$small-font-size;
+    font-variant-numeric: tabular-nums;
+    line-height: 16px;
+    color: $meta-text;
+
+    &--over {
+      font-weight: 700;
+      color: globals.$error-color;
+    }
+  }
+
+  &__composer-hint {
+    display: flex;
+    align-items: flex-start;
+    gap: 6px;
+    min-width: 0;
+    margin: 0;
+    font-size: globals.$small-font-size;
+    line-height: 16px;
+    color: $meta-text;
+    animation: chat-window-fade-in 0.2s ease;
+
+    &--error {
+      color: globals.$error-color;
+    }
+  }
+
+  // Icons sit in a 16px box so they line up with the hint's first line.
+  &__hint-icon {
+    flex-shrink: 0;
+    margin: 2px;
+  }
+
+  &__zzz {
+    flex-shrink: 0;
+
+    path {
+      animation: chat-window-zzz 2.4s ease-in-out infinite;
+    }
+
+    path:nth-child(2) {
+      animation-delay: 0.4s;
+    }
+
+    path:nth-child(3) {
+      animation-delay: 0.8s;
+    }
+  }
+
+  &__emoji-glyph {
+    display: inline-block;
+    font-family: $emoji-font-family;
+    line-height: 1;
+  }
+
+  // Emoji-only messages drop the bubble and show the emoji large.
+  &__message-group &__message--emoji,
+  &__message-group--mine &__message--emoji {
+    padding: 0 2px;
+    background: none;
+    border-color: transparent;
+    border-radius: 8px;
+    color: globals.$muted-color;
+    font-family: $emoji-font-family;
+    font-size: 40px;
+    line-height: 48px;
+  }
+
+  &__message-group &__message--emoji-small,
+  &__message-group--mine &__message--emoji-small {
+    font-size: 28px;
+    line-height: 36px;
+  }
+
+  // Pills hang off the bubble's bottom edge, cut out of it by a ring in the
+  // window's background color.
+  &__reactions {
+    position: relative;
+    z-index: 1;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+    margin-top: -8px;
+    padding: 0 10px;
+
+    &--end {
+      justify-content: flex-end;
+    }
+
+    &--detached {
+      margin-top: 2px;
+      padding: 0 2px;
+    }
+  }
+
+  &__reaction-wrapper {
+    position: relative;
+    display: inline-flex;
+  }
+
+  &__reaction {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    height: 24px;
+    padding: 0 globals.$spacing-unit;
+    background-color: $popover-background;
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 12px;
+    box-shadow: 0 0 0 2px globals.$background-color;
+    color: globals.$muted-color;
+    font-family: inherit;
+    cursor: pointer;
+    transition:
+      border-color 0.15s ease,
+      opacity 0.15s ease;
+
+    .chat-window__emoji-glyph {
+      font-size: 14px;
+    }
+
+    &--enter {
+      animation: chat-window-badge-in 0.3s cubic-bezier(0.34, 1.4, 0.64, 1) both;
+    }
+
+    &--mine {
+      background-color: $mine-reaction-background;
+      border-color: rgba(globals.$muted-color, 0.6);
+    }
+
+    &--pending {
+      opacity: 0.6;
+      cursor: default;
+    }
+
+    &--static {
+      cursor: default;
+    }
+
+    &:not(&--static):hover,
+    &:focus-visible {
+      border-color: rgba(255, 255, 255, 0.32);
+    }
+
+    &--mine:not(&--static):hover,
+    &--mine:focus-visible {
+      border-color: globals.$muted-color;
+    }
+  }
+
+  &__reaction-count {
+    font-size: 11px;
+    font-weight: 700;
+    line-height: 1;
+    font-variant-numeric: tabular-nums;
+  }
+
+  &__reaction-tooltip {
+    position: absolute;
+    bottom: calc(100% + 6px);
+    left: 0;
+    z-index: 2;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    padding: 6px 10px;
+    background-color: $popover-background;
+    border: 1px solid $popover-border;
+    border-radius: 6px;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+    white-space: nowrap;
+    pointer-events: none;
+    opacity: 0;
+    visibility: hidden;
+    transition:
+      opacity 0.15s ease,
+      visibility 0.15s ease;
+  }
+
+  &__reactions--end &__reaction-tooltip {
+    right: 0;
+    left: auto;
+    align-items: flex-end;
+  }
+
+  &__reaction-wrapper:hover &__reaction-tooltip,
+  &__reaction-wrapper:focus-within &__reaction-tooltip {
+    opacity: 1;
+    visibility: visible;
+    transition-delay: 0.35s;
+  }
+
+  &__reaction-tooltip-label {
+    font-size: globals.$small-font-size;
+    font-weight: 600;
+    line-height: 16px;
+    color: globals.$muted-color;
+  }
+
+  &__reaction-tooltip-hint {
+    font-size: 11px;
+    line-height: 14px;
+    color: $meta-text;
+  }
+
+  &__message-action--active {
+    background-color: rgba(255, 255, 255, 0.08);
+    color: globals.$muted-color;
+  }
+
+  &__reaction-bar {
+    position: absolute;
+    z-index: 3;
+    display: flex;
+    align-items: center;
+    gap: 2px;
+    padding: 4px;
+    background-color: $popover-background;
+    border: 1px solid $popover-border;
+    border-radius: 8px;
+    box-shadow: 0 12px 32px rgba(0, 0, 0, 0.55);
+    animation: chat-window-popover-in 0.18s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+
+    &--above {
+      bottom: calc(100% + 6px);
+    }
+
+    &--below {
+      top: calc(100% + 6px);
+    }
+
+    &--start {
+      left: 0;
+      transform-origin: bottom left;
+    }
+
+    &--end {
+      right: 0;
+      transform-origin: bottom right;
+    }
+
+    // Each option lands a beat after the one before it.
+    @for $index from 2 through 7 {
+      > button:nth-of-type(#{$index}) {
+        animation-delay: ($index - 1) * 0.025s;
+      }
+    }
+  }
+
+  &__reaction-option,
+  &__reaction-more {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    padding: 0;
+    background: none;
+    border: none;
+    border-radius: 6px;
+    color: globals.$body-color;
+    cursor: pointer;
+    transition: background-color 0.15s ease;
+    animation: chat-window-reaction-option-in 0.28s
+      cubic-bezier(0.34, 1.4, 0.64, 1) both;
+
+    &:hover,
+    &:focus-visible {
+      background-color: rgba(255, 255, 255, 0.08);
+      color: globals.$muted-color;
+    }
+  }
+
+  &__reaction-option {
+    .chat-window__emoji-glyph {
+      font-size: 20px;
+      transition: transform 0.15s cubic-bezier(0.34, 1.4, 0.64, 1);
+    }
+
+    &:hover .chat-window__emoji-glyph,
+    &:focus-visible .chat-window__emoji-glyph {
+      transform: scale(1.2);
+    }
+
+    &[aria-pressed="true"] {
+      background-color: rgba(globals.$muted-color, 0.14);
+      box-shadow: inset 0 0 0 1px rgba(globals.$muted-color, 0.4);
+    }
+  }
+
+  &__reaction-bar-divider {
+    width: 1px;
+    height: 20px;
+    margin: 0 4px;
+    background-color: $popover-border;
+  }
+
+  // A native <dialog>: its default box is reset so the placement classes
+  // below decide where it sits.
+  &__emoji-picker {
+    position: absolute;
+    z-index: 5;
+    inset: auto;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    width: 328px;
+    height: 376px;
+    overflow: hidden;
+    background-color: $popover-background;
+    border: 1px solid $popover-border;
+    border-radius: 8px;
+    box-shadow: 0 12px 32px rgba(0, 0, 0, 0.55);
+    color: globals.$body-color;
+    animation: chat-window-popover-in 0.2s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+
+    &--reaction {
+      bottom: globals.$spacing-unit;
+      max-height: calc(100% - globals.$spacing-unit * 2);
+    }
+
+    &--start {
+      left: calc(globals.$spacing-unit * 2);
+      transform-origin: bottom left;
+    }
+
+    &--end {
+      right: calc(globals.$spacing-unit * 2);
+      transform-origin: bottom right;
+    }
+
+    // 8px above the composer box, which starts 12px into the composer.
+    &--composer {
+      bottom: calc(100% - 4px);
+      left: calc(globals.$spacing-unit * 2);
+      max-height: calc(100vh - 160px);
+      transform-origin: bottom left;
+    }
+  }
+
+  &__emoji-search {
+    display: flex;
+    align-items: center;
+    gap: globals.$spacing-unit;
+    flex-shrink: 0;
+    height: 32px;
+    margin: globals.$spacing-unit globals.$spacing-unit 0;
+    padding: 0 6px 0 10px;
+    background-color: globals.$dark-background-color;
+    border: 1px solid globals.$border-color;
+    border-radius: 6px;
+    transition: border-color 0.2s ease;
+
+    &:focus-within {
+      border-color: #dadbe1;
+    }
+  }
+
+  &__emoji-search-icon {
+    flex-shrink: 0;
+    color: $meta-text;
+  }
+
+  &__emoji-search-input {
+    flex: 1;
+    min-width: 0;
+    height: 100%;
+    padding: 0;
+    background: none;
+    border: none;
+    outline: none;
+    color: globals.$muted-color;
+    font-family: inherit;
+    font-size: globals.$hint-font-size;
+
+    &::placeholder {
+      color: globals.$body-color;
+      opacity: 0.6;
+    }
+  }
+
+  &__emoji-search-clear {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    width: 20px;
+    height: 20px;
+    padding: 0;
+    background: none;
+    border: none;
+    border-radius: 4px;
+    color: globals.$body-color;
+    cursor: pointer;
+
+    &:hover,
+    &:focus-visible {
+      background-color: rgba(255, 255, 255, 0.08);
+      color: globals.$muted-color;
+    }
+  }
+
+  &__emoji-tabs {
+    display: flex;
+    gap: 2px;
+    flex-shrink: 0;
+    padding: 6px globals.$spacing-unit;
+    border-bottom: 1px solid globals.$border-color;
+  }
+
+  &__emoji-tab {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex: 1;
+    height: 28px;
+    padding: 0;
+    background: none;
+    border: none;
+    border-radius: 6px;
+    color: $meta-text;
+    cursor: pointer;
+    transition:
+      background-color 0.15s ease,
+      color 0.15s ease;
+
+    &:hover,
+    &:focus-visible {
+      color: globals.$body-color;
+    }
+
+    &--active,
+    &--active:hover {
+      background-color: rgba(255, 255, 255, 0.08);
+      color: globals.$muted-color;
+    }
+  }
+
+  &__emoji-body {
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+    padding: 4px globals.$spacing-unit globals.$spacing-unit;
+    scrollbar-width: thin;
+    scrollbar-color: rgba(255, 255, 255, 0.22) transparent;
+  }
+
+  &__emoji-section-title {
+    padding: 6px 4px;
+    font-size: globals.$small-font-size;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: $meta-text;
+  }
+
+  // A <fieldset>, without its default frame.
+  &__emoji-grid {
+    display: grid;
+    min-width: 0;
+    margin: 0;
+    padding: 0;
+    border: none;
+    grid-template-columns: repeat(8, minmax(0, 1fr));
+    gap: 2px;
+  }
+
+  &__emoji-option {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 36px;
+    padding: 0;
+    background: none;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: background-color 0.1s ease;
+
+    .chat-window__emoji-glyph {
+      font-size: 22px;
+    }
+
+    &:hover,
+    &:focus-visible {
+      background-color: rgba(255, 255, 255, 0.08);
+    }
+
+    &--selected {
+      background-color: rgba(globals.$muted-color, 0.14);
+      box-shadow: inset 0 0 0 1px rgba(globals.$muted-color, 0.4);
+    }
+  }
+
+  &__emoji-empty {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    padding: calc(globals.$spacing-unit * 6) calc(globals.$spacing-unit * 2);
+    text-align: center;
+  }
+
+  &__emoji-empty-title {
+    margin: 0;
+    font-size: globals.$hint-font-size;
+    font-weight: 700;
+    color: globals.$muted-color;
+  }
+
+  &__emoji-empty-description {
+    margin: 0;
+    font-size: globals.$small-font-size;
+    line-height: 18px;
+    color: $meta-text;
+  }
+
+  &__emoji-footer {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-shrink: 0;
+    height: 44px;
+    padding: 0 calc(globals.$spacing-unit * 1.5);
+    border-top: 1px solid globals.$border-color;
+  }
+
+  &__emoji-footer-glyph {
+    font-size: 24px;
+  }
+
+  &__emoji-footer-name {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-size: globals.$hint-font-size;
+    font-weight: 600;
+    color: globals.$muted-color;
+  }
+
+  &__composer-emoji {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    width: 32px;
+    height: 32px;
+    margin-left: -6px;
+    padding: 0;
+    background: none;
+    border: none;
+    border-radius: 6px;
+    color: globals.$body-color;
+    cursor: pointer;
+    transition:
+      background-color 0.2s ease,
+      color 0.2s ease;
+
+    &:hover,
+    &:focus-visible,
+    &--open {
+      background-color: rgba(255, 255, 255, 0.08);
+      color: globals.$muted-color;
+    }
+
+    &:disabled {
+      background: none;
+      color: rgba(globals.$body-color, 0.4);
+      cursor: not-allowed;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    &__reaction--enter,
+    &__reaction-bar,
+    &__reaction-option,
+    &__reaction-more,
+    &__emoji-picker {
+      animation: none;
+    }
+
+    &__reaction-option:hover .chat-window__emoji-glyph,
+    &__reaction-option:focus-visible .chat-window__emoji-glyph {
+      transform: none;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    &__composer-box--shake {
+      animation-name: chat-window-still;
+    }
+
+    &__composer-hint,
+    &__composer-reply,
+    &__zzz path {
+      animation: none;
+    }
+  }
+}

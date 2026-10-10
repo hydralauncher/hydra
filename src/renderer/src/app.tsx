@@ -47,6 +47,7 @@ import { AddFriendModal } from "./pages/profile/profile-content/add-friend-modal
 import { ClassicsScanModal } from "./pages/settings/emulation/classics-scan-modal";
 import { RetroArchScanModal } from "./pages/settings/emulation/retroarch-scan-modal";
 import { CloudGiftNotificationModal } from "./pages/shared-modals/cloud-gift-notification-modal";
+import { playMessageSound } from "./pages/chat-window/chat-sounds";
 
 import type { UserPreferences } from "@types";
 import "./app.scss";
@@ -616,6 +617,13 @@ export function App() {
       unsubscribe();
     };
   }, [playAudio]);
+
+  // Sent here when the chat window is closed or still loading.
+  useEffect(() => {
+    return window.electron.onChatMessageSound(() => {
+      void playMessageSound();
+    });
+  }, []);
 
   const handleToastClose = useCallback(() => {
     dispatch(closeToast());

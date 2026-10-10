@@ -21,3 +21,29 @@ export interface FriendPresence {
 export interface Notification {
   invalidate: "notifications";
 }
+
+export interface ChatMessage {
+  senderId: string;
+  recipientId: string;
+  seq: number;
+  body: string;
+  clientNonce: string;
+  createdAt: string;
+  replyToSeq?: number;
+  replyTo?: {
+    senderId: string;
+    body: string;
+  };
+}
+
+export interface ChatTyping {
+  senderId: string;
+}
+
+export interface ChatReaction {
+  senderId: string;
+  recipientId: string;
+  seq: number;
+  emoji: string | null;
+  updatedAt: string;
+}

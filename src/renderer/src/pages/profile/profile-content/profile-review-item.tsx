@@ -6,6 +6,7 @@ import { useTranslation } from "react-i18next";
 import { useState } from "react";
 import type { GameShop } from "@types";
 import { getReviewTranslationLanguage, sanitizeHtml } from "@shared";
+import { Button } from "@renderer/components";
 import { useDate } from "@renderer/hooks";
 import { buildGameDetailsPath } from "@renderer/helpers";
 import "./profile-content.scss";
@@ -240,14 +241,15 @@ export function ProfileReviewItem({
         </div>
 
         {isOwnReview && (
-          <button
-            className="user-reviews__delete-review-button"
+          <Button
+            theme="danger"
+            size="small"
             onClick={() => onDelete(review.id)}
             title={t("delete_review")}
           >
             <TrashIcon size={14} />
-            <span>{t("delete_review")}</span>
-          </button>
+            {t("delete_review")}
+          </Button>
         )}
       </div>
     </motion.div>

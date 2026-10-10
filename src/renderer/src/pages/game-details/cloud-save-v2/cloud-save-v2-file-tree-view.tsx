@@ -16,6 +16,7 @@ import type {
   CloudSaveV2RemoteFile,
 } from "@types";
 import { formatBytes } from "@shared";
+import { Button } from "@renderer/components";
 import { useDate } from "@renderer/hooks";
 
 import type {
@@ -151,42 +152,45 @@ export function CloudSaveV2FileTreeView({
     return (
       <div className="cloud-save-v2__browser-path-actions">
         {path && (
-          <button
-            type="button"
+          <Button
+            theme="outline"
+            size="small"
             className="cloud-save-v2__browser-path-action"
             onClick={() => onOpenFolder(path)}
             title={t("cloud_save_v2_open_folder")}
             aria-label={t("cloud_save_v2_open_folder_named", { name })}
           >
-            <LinkExternalIcon size={15} />
-            <span>{t("cloud_save_v2_open")}</span>
-          </button>
+            <LinkExternalIcon size={14} />
+            {t("cloud_save_v2_open")}
+          </Button>
         )}
         {rebindCustomRawPath && (
-          <button
-            type="button"
-            className="cloud-save-v2__browser-path-action cloud-save-v2__browser-path-action--rebind"
+          <Button
+            theme="outline"
+            size="small"
+            className="cloud-save-v2__browser-path-action"
             disabled={customPathActionsDisabled}
             onClick={() => onRebindCustomPath(rebindCustomRawPath)}
             title={t("cloud_save_v2_rebind_custom_path")}
             aria-label={t("cloud_save_v2_rebind_custom_path_named", { name })}
           >
-            <FileDirectoryIcon size={15} />
-            <span>{t("cloud_save_v2_rebind_custom_path")}</span>
-          </button>
+            <FileDirectoryIcon size={14} />
+            {t("cloud_save_v2_rebind_custom_path")}
+          </Button>
         )}
         {removableCustomRawPath && (
-          <button
-            type="button"
-            className="cloud-save-v2__browser-path-action cloud-save-v2__browser-path-action--remove"
+          <Button
+            theme="danger"
+            size="small"
+            className="cloud-save-v2__browser-path-action"
             disabled={customPathActionsDisabled}
             onClick={() => onRemoveCustomPath(removableCustomRawPath)}
             title={t("cloud_save_v2_remove_custom_path")}
             aria-label={t("cloud_save_v2_remove_custom_path_named", { name })}
           >
-            <TrashIcon size={15} />
-            <span>{t("cloud_save_v2_remove")}</span>
-          </button>
+            <TrashIcon size={14} />
+            {t("cloud_save_v2_remove")}
+          </Button>
         )}
       </div>
     );

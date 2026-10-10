@@ -19,6 +19,7 @@ import type {
   FriendRequestSync,
   FriendPresenceSync,
   NotificationSync,
+  UserFriend,
   GameArtifact,
   LudusaviBackup,
   UserAchievement,
@@ -103,6 +104,12 @@ import type {
   SteamSyncRunStatus,
   SteamConnectErrorCode,
   ExtractionFailure,
+  FriendsSnapshot,
+  ChatMessageSync,
+  ChatReactionSync,
+  ChatTypingSync,
+  ChatUnreadState,
+  ChatWindowState,
 } from "@types";
 import type { AxiosProgressEvent } from "axios";
 
@@ -1346,8 +1353,38 @@ declare global {
     openFriendsWindow: () => Promise<void>;
     minimizeFriendsWindow: () => Promise<void>;
     closeFriendsWindow: () => Promise<void>;
+    friendsWindowReady: () => Promise<void>;
+    prefetchFriends: () => Promise<void>;
+    getFriendsSnapshot: () => Promise<FriendsSnapshot | null>;
     openFriendProfileInMainWindow: (userId: string) => Promise<void>;
     openAddFriendModalInMainWindow: () => Promise<void>;
+
+    /* Chat Window */
+    openChatWindow: (friend: UserFriend) => Promise<void>;
+    minimizeChatWindow: () => Promise<void>;
+    closeChatWindow: () => Promise<void>;
+    openGameInMainWindow: (gamePath: string) => Promise<void>;
+    consumePendingChatFriends: () => Promise<UserFriend[]>;
+    onChatFriendsPending: (cb: () => void) => () => Electron.IpcRenderer;
+    setChatWindowState: (state: ChatWindowState) => Promise<void>;
+    getChatUnreadState: () => Promise<ChatUnreadState>;
+    /** Resolves to false when the read could not be saved. */
+    markChatRead: (friendId: string, seq: number) => Promise<boolean>;
+    onChatMessage: (
+      cb: (sync: ChatMessageSync) => void
+    ) => () => Electron.IpcRenderer;
+    onChatTyping: (
+      cb: (sync: ChatTypingSync) => void
+    ) => () => Electron.IpcRenderer;
+    onChatReaction: (
+      cb: (sync: ChatReactionSync) => void
+    ) => () => Electron.IpcRenderer;
+    onChatMessageSound: (cb: () => void) => () => Electron.IpcRenderer;
+    onChatUnreadUpdated: (
+      cb: (state: ChatUnreadState) => void
+    ) => () => Electron.IpcRenderer;
+    onChatResync: (cb: () => void) => () => Electron.IpcRenderer;
+
     onOpenAddFriendModal: (cb: () => void) => () => Electron.IpcRenderer;
     onFriendsUpdated: (cb: () => void) => () => Electron.IpcRenderer;
     onFriendPresence: (

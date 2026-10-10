@@ -185,6 +185,27 @@
     &--online {
       background-color: globals.$success-color;
     }
+
+    &--unread {
+      background-color: globals.$error-color;
+    }
+  }
+
+  &__avatar {
+    position: relative;
+    display: inline-flex;
+    flex-shrink: 0;
+  }
+
+  &__unread-dot {
+    position: absolute;
+    top: -2px;
+    right: -2px;
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background-color: globals.$error-color;
+    border: 2px solid globals.$dark-background-color;
   }
 
   &__dropdown-separator {
