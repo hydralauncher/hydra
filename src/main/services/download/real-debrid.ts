@@ -24,6 +24,7 @@ import {
 import { getRealDebridFiles } from "./real-debrid-files.js";
 
 const REQUEST_TIMEOUT_MS = 15_000;
+const TORRENT_LIST_PAGE_LIMIT = 5000;
 const TORRENT_FILE_POLL_ATTEMPTS = 15;
 const TORRENT_FILE_POLL_DELAY_MS = 1000;
 
@@ -496,7 +497,7 @@ export class RealDebridClient {
   private static async getAllTorrentsFromUser(signal?: AbortSignal) {
     const response = await this.instance.get<RealDebridTorrentInfo[]>(
       "/torrents",
-      { signal, params: { limit: 5000 } }
+      { signal, params: { limit: TORRENT_LIST_PAGE_LIMIT } }
     );
 
     return response.data;

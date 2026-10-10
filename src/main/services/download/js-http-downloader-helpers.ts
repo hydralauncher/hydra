@@ -1,6 +1,9 @@
 import path from "node:path";
 import type { FileHandle } from "node:fs/promises";
 
+const INCOMPLETE_BATCH_PROGRESS_LIMIT = 0.9999;
+const BATCH_SPEED_SAMPLE_INTERVAL_SECONDS = 1;
+
 interface JsBatchProgressInput {
   currentIndex: number;
   activeIndex: number;
@@ -24,7 +27,7 @@ export function getJsBatchProgress(input: JsBatchProgressInput) {
   // The final 100% is set only after the last file has been banked.
   return {
     currentBytes,
-    progress: Math.min(Math.max(progress, 0), 0.9999),
+    progress: Math.min(Math.max(progress, 0), INCOMPLETE_BATCH_PROGRESS_LIMIT),
   };
 }
 
@@ -52,7 +55,7 @@ export function sampleJsBatchSpeed(
   }
 
   const elapsed = (now - previous.lastSpeedUpdate) / 1000;
-  if (elapsed < 1) return previous;
+  if (elapsed < BATCH_SPEED_SAMPLE_INTERVAL_SECONDS) return previous;
 
   return {
     lastSpeedUpdate: now,

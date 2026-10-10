@@ -95,6 +95,7 @@ export class DownloadOrchestrator {
 
   private static readonly backgroundStartVersions = new Map<string, number>();
   private static readonly pendingBackgroundStarts = new Map<string, symbol>();
+  private static isShuttingDown = false;
   private static readonly preparationControllers = new Map<
     string,
     AbortController
@@ -112,6 +113,11 @@ export class DownloadOrchestrator {
   }
 
   private static beginPreparation(downloadKey: string) {
+    if (this.isShuttingDown) {
+      const error = new Error("Downloads are stopping for shutdown");
+      error.name = "AbortError";
+      throw error;
+    }
     this.invalidateBackgroundStart(downloadKey);
     const version = this.backgroundStartVersions.get(downloadKey);
     const controller = new AbortController();
@@ -133,6 +139,8 @@ export class DownloadOrchestrator {
   }
 
   static cancelPendingDebridPreparations() {
+    this.isShuttingDown = true;
+    this.pendingBackgroundStarts.clear();
     for (const key of this.preparationControllers.keys()) {
       this.invalidateBackgroundStart(key);
     }
@@ -737,6 +745,7 @@ export class DownloadOrchestrator {
   }
 
   static startPreparedDownloadInBackground(download: Download) {
+    if (this.isShuttingDown) return;
     const request = Symbol();
     this.pendingBackgroundStarts.set(getGameKey(download), request);
     const start = async () => {
@@ -938,6 +947,7 @@ export class DownloadOrchestrator {
   }
 
   static async pollAwaitingDebridDownloads(now = Date.now()) {
+    if (this.isShuttingDown) return;
     const downloads = await this.getAllDownloads();
     const polls = await Promise.all(
       downloads.map((download) => this.startDebridReadinessPoll(download, now))

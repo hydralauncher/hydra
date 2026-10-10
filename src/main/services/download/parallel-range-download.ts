@@ -10,6 +10,8 @@ import {
 } from "./range-download-state.js";
 
 const PARALLEL_RANGE_FAILURE_LIMIT = 2;
+const MAX_PARALLEL_CONNECTIONS = 16;
+const RANGE_CHECKPOINT_INTERVAL_MS = 1000;
 const STRONG_LAST_MODIFIED_AGE_MS = 60_000;
 
 export const PARALLEL_RANGE_SIZE = 8 * 1024 * 1024;
@@ -187,7 +189,7 @@ export async function downloadParallelRanges({
     rangeSize <= 0 ||
     !Number.isSafeInteger(connectionCount) ||
     connectionCount < 1 ||
-    connectionCount > 16 ||
+    connectionCount > MAX_PARALLEL_CONNECTIONS ||
     !(
       maxRanges === Infinity ||
       (Number.isSafeInteger(maxRanges) && maxRanges > 0)
@@ -313,7 +315,7 @@ export async function downloadParallelRanges({
         await beforeChunk(chunk.length);
         signal.throwIfAborted();
         await writeChunk(chunk);
-        if (Date.now() - lastCheckpoint >= 1000) {
+        if (Date.now() - lastCheckpoint >= RANGE_CHECKPOINT_INTERVAL_MS) {
           lastCheckpoint = Date.now();
           await persist();
         }

@@ -147,6 +147,7 @@ function orchestrator() {
   const paused: string[] = [];
   const resumeSignals: AbortSignal[] = [];
   let preparedReady = true;
+  let preparationCalls = 0;
   let afterResume: (() => Promise<void>) | undefined;
   let runtimeActive = false;
   let afterQueue: (() => void) | undefined;
@@ -213,6 +214,7 @@ function orchestrator() {
           return undefined;
         },
         prepareRealDebridDownload: async () => {
+          preparationCalls++;
           entered();
           await preparation;
           return preparedReady;
@@ -250,6 +252,7 @@ function orchestrator() {
   runtimeActive = true;
   return {
     instance: DownloadOrchestrator,
+    preparationCalls: () => preparationCalls,
     setPreparedReady: (ready: boolean) => {
       preparedReady = ready;
     },
@@ -746,4 +749,45 @@ it("pausing a background request waiting for the lock prevents preparation from 
   assert.deepEqual(f.resumed, []);
   assert.equal(f.records.get("next").queued, false);
   assert.equal(f.records.get("next").debridAutoResume, false);
+});
+
+it("shutdown cancels a background request still waiting for the activation lock", async () => {
+  const f = orchestrator();
+  f.finishActive();
+  f.records.set("next", { ...f.download, queued: false });
+  f.release();
+  const entered = deferred();
+  const release = deferred();
+  const held = withDownloadActivation(async () => {
+    entered.resolve();
+    await release.promise;
+  });
+  await entered.promise;
+  await f.instance.enqueuePreparedDownload(f.download);
+  f.instance.cancelPendingDebridPreparations();
+  release.resolve();
+  await held;
+  await new Promise<void>((resolve) => setImmediate(resolve));
+  assert.equal(f.preparationCalls(), 0);
+  assert.equal(f.records.get("next").queued, false);
+  assert.deepEqual(f.resumed, []);
+});
+
+it("shutdown cancels in-flight preparation and prevents subsequent readiness polls and starts", async () => {
+  const f = orchestrator();
+  f.finishActive();
+  await f.instance.enqueuePreparedDownload(f.download);
+  await f.preparing;
+  f.instance.cancelPendingDebridPreparations();
+  f.release();
+  await new Promise<void>((resolve) => setImmediate(resolve));
+  await f.instance.pollAwaitingDebridDownloads();
+  f.instance.startPreparedDownloadInBackground(f.download);
+  await new Promise<void>((resolve) => setImmediate(resolve));
+  await assert.rejects(f.instance.resumeDownload("steam", "next"), {
+    name: "AbortError",
+  });
+  assert.equal(f.preparationCalls(), 1);
+  assert.equal(f.records.get("next").queued, false);
+  assert.deepEqual(f.resumed, []);
 });
