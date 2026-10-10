@@ -49,6 +49,8 @@ export const chatMessageEvent = async (
       body: payload.body,
       clientNonce: payload.clientNonce,
       createdAt: payload.createdAt,
+      replyToSeq: payload.replyToSeq ?? null,
+      replyTo: payload.replyTo ?? null,
     },
   } satisfies ChatMessageSync);
 

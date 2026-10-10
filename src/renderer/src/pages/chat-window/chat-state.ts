@@ -1,26 +1,78 @@
-import type { ChatMessageDto } from "@types";
+import type { ChatMessageDto, ChatReactionDto } from "@types";
 
-import type { ChatMessage, ChatMessageStatus } from "./chat-message-groups";
+import type {
+  ChatMessage,
+  ChatMessageReply,
+  ChatMessageStatus,
+  ChatReaction,
+} from "./chat-message-groups";
+
+export const toChatReactions = (
+  dtos: ChatReactionDto[],
+  friendId: string
+): ChatReaction[] =>
+  dtos.map((dto) => ({
+    emoji: dto.emoji,
+    fromMe: dto.userId !== friendId,
+    updatedAt: dto.updatedAt,
+  }));
+
+const toChatMessageReply = (
+  dto: ChatMessageDto,
+  friendId: string
+): ChatMessageReply | null => {
+  if (!dto.replyToSeq) return null;
+
+  return {
+    seq: dto.replyToSeq,
+    ...(dto.replyTo
+      ? {
+          quoted: {
+            fromMe: dto.replyTo.senderId !== friendId,
+            text: dto.replyTo.body,
+          },
+        }
+      : {}),
+  };
+};
 
 export const toChatMessage = (
   dto: ChatMessageDto,
   friendId: string,
   fromHistory = false
-): ChatMessage => ({
-  id: dto.clientNonce,
-  clientNonce: dto.clientNonce,
-  seq: dto.seq,
-  fromMe: dto.senderId !== friendId,
-  text: dto.body,
-  createdAt: dto.createdAt,
-  status: "sent",
-  ...(fromHistory ? { fromHistory } : {}),
-});
+): ChatMessage => {
+  const replyTo = toChatMessageReply(dto, friendId);
+
+  return {
+    id: dto.clientNonce,
+    clientNonce: dto.clientNonce,
+    seq: dto.seq,
+    fromMe: dto.senderId !== friendId,
+    text: dto.body,
+    createdAt: dto.createdAt,
+    status: "sent",
+    ...(replyTo ? { replyTo } : {}),
+    ...(dto.reactions
+      ? { reactions: toChatReactions(dto.reactions, friendId) }
+      : {}),
+    ...(fromHistory ? { fromHistory } : {}),
+  };
+};
+
+/** Only stored messages can be replied to: the reply points at their seq. */
+export const createReply = (target: ChatMessage): ChatMessageReply | null =>
+  target.seq === undefined
+    ? null
+    : {
+        seq: target.seq,
+        quoted: { fromMe: target.fromMe, text: target.text },
+      };
 
 export const createPendingMessage = (
   text: string,
   clientNonce: string,
-  createdAt = new Date().toISOString()
+  createdAt = new Date().toISOString(),
+  replyTo: ChatMessageReply | null = null
 ): ChatMessage => ({
   id: clientNonce,
   clientNonce,
@@ -28,6 +80,7 @@ export const createPendingMessage = (
   text,
   createdAt,
   status: "pending",
+  ...(replyTo ? { replyTo } : {}),
 });
 
 /**
@@ -45,9 +98,14 @@ export const mergeChatMessages = (
   );
   for (const message of incoming) {
     const existing = byNonce.get(message.clientNonce);
+    // Realtime messages carry no reactions; keep the ones already known.
+    const merged =
+      message.reactions === undefined && existing?.reactions
+        ? { ...message, reactions: existing.reactions }
+        : message;
     byNonce.set(
       message.clientNonce,
-      existing?.fromHistory ? { ...message, fromHistory: true } : message
+      existing?.fromHistory ? { ...merged, fromHistory: true } : merged
     );
   }
 

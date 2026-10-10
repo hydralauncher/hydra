@@ -7,23 +7,54 @@ import {
   useState,
 } from "react";
 import { useTranslation } from "react-i18next";
-import { AlertIcon, ArrowDownIcon } from "@primer/octicons-react";
+import {
+  AlertIcon,
+  ArrowDownIcon,
+  CheckIcon,
+  CopyIcon,
+  ReplyIcon,
+  SmileyIcon,
+} from "@primer/octicons-react";
 import cn from "classnames";
 
-import { groupChatMessages, type ChatMessage } from "./chat-message-groups";
+import { LARGE_EMOJI_MAX_COUNT, countEmojiOnly } from "./chat-emoji";
+import { ChatEmojiPicker, rememberEmoji } from "./chat-emoji-picker";
+import {
+  groupChatMessages,
+  type ChatMessage,
+  type ChatMessageReply,
+} from "./chat-message-groups";
+import { ChatLeavingModal } from "./chat-leaving-modal";
+import { ChatReactionBar, ChatReactionPills } from "./chat-message-reactions";
+import { ChatMessageText } from "./chat-message-text";
+import { getMyReaction, toReactionPills } from "./chat-reactions";
 import { ChatScrollbar } from "./chat-scrollbar";
 import {
   countFriendMessagesAfter,
   findFirstFriendMessageAfter,
 } from "./chat-state";
+import { isTrustedLink } from "./chat-trusted-links";
+
+const electron = globalThis.electron as Electron;
 
 export interface ChatMessageListProps {
   messages: ChatMessage[];
   /** Messages that render without the entrance animation. */
   initialMessageIds: Set<string>;
   hasMoreBefore: boolean;
+  friendName: string;
+  /** False once the users can no longer message each other: no replies or reactions. */
+  canReply: boolean;
+  /** The message the composer is replying to, highlighted in the list. */
+  replyToSeq: number | null;
+  /** A new object scrolls to and flashes the message with that seq. */
+  revealSeq: { seq: number } | null;
+  onReply: (message: ChatMessage) => void;
+  /** Sets the user's reaction on the message with `seq`; null removes it. */
+  onReact: (seq: number, emoji: string | null) => void;
   onRetry: (clientNonce: string) => void;
   onLoadOlder: () => void;
+  onLoadThrough: (seq: number) => Promise<boolean>;
 }
 
 /** Older history starts loading this close to the top of the list. */
@@ -31,23 +62,92 @@ const LOAD_OLDER_THRESHOLD_PX = 120;
 /** Scrolled farther than this from the newest message shows the jump button. */
 const JUMP_TO_LATEST_THRESHOLD_PX = 200;
 const MAX_NEW_MESSAGES_SHOWN = 99;
+const FLASH_DURATION_MS = 1_600;
+const COPIED_DURATION_MS = 1_500;
+/** Room the quick reaction bar needs above a message before it opens below. */
+const REACTION_BAR_CLEARANCE_PX = 56;
 
 const isSameDay = (a: Date, b: Date) => a.toDateString() === b.toDateString();
 
 const prefersReducedMotion = () =>
   window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
+interface ChatMessageQuoteProps {
+  reply: ChatMessageReply;
+  friendName: string;
+  onJump: (seq: number) => void;
+}
+
+function ChatMessageQuote({
+  reply,
+  friendName,
+  onJump,
+}: ChatMessageQuoteProps) {
+  const { t } = useTranslation("chat_window");
+
+  if (!reply.quoted) {
+    return (
+      <span className="chat-window__message-quote chat-window__message-quote--unavailable">
+        {t("reply_unavailable")}
+      </span>
+    );
+  }
+
+  return (
+    <button
+      type="button"
+      className="chat-window__message-quote"
+      onClick={() => onJump(reply.seq)}
+      title={t("jump_to_original")}
+    >
+      <span className="chat-window__message-quote-name">
+        <ReplyIcon size={12} />
+        {reply.quoted.fromMe ? t("you") : friendName}
+      </span>
+      <span className="chat-window__message-quote-text">
+        {reply.quoted.text}
+      </span>
+    </button>
+  );
+}
+
 export function ChatMessageList({
   messages,
   initialMessageIds,
   hasMoreBefore,
+  friendName,
+  canReply,
+  replyToSeq,
+  revealSeq,
+  onReply,
+  onReact,
   onRetry,
   onLoadOlder,
+  onLoadThrough,
 }: ChatMessageListProps) {
   const { t, i18n } = useTranslation("chat_window");
 
   const scrollRef = useRef<HTMLDivElement>(null);
   const dayDividerRefs = useRef(new Map<string, HTMLDivElement>());
+  const messageRefs = useRef(new Map<number, HTMLDivElement>());
+
+  const [flashSeq, setFlashSeq] = useState<number | null>(null);
+  // A quoted message that is still loading from older history.
+  const [pendingJumpSeq, setPendingJumpSeq] = useState<number | null>(null);
+  const [copiedId, setCopiedId] = useState<string | null>(null);
+  // A link waiting for the user to confirm leaving Hydra.
+  const [leavingUrl, setLeavingUrl] = useState<string | null>(null);
+
+  // The message whose quick reaction bar or full emoji picker is open, and
+  // the button that opened it.
+  const [reactionBar, setReactionBar] = useState<{
+    seq: number;
+    placement: "above" | "below";
+  } | null>(null);
+  const [reactionPickerSeq, setReactionPickerSeq] = useState<number | null>(
+    null
+  );
+  const reactionAnchorRef = useRef<HTMLButtonElement | null>(null);
 
   // While scrolled away from the newest message: the newest message at that
   // moment. Whatever the friend sends after it counts as new.
@@ -148,6 +248,111 @@ export function ChatMessageList({
     }
   };
 
+  const revealMessage = useCallback((seq: number) => {
+    const element = messageRefs.current.get(seq);
+    if (!element) return false;
+
+    element.scrollIntoView({
+      block: "center",
+      behavior: prefersReducedMotion() ? "auto" : "smooth",
+    });
+    setFlashSeq(seq);
+    return true;
+  }, []);
+
+  const jumpToMessage = (seq: number) => {
+    if (revealMessage(seq)) return;
+
+    setPendingJumpSeq(seq);
+    void onLoadThrough(seq).then((isLoaded) => {
+      if (!isLoaded) {
+        setPendingJumpSeq((current) => (current === seq ? null : current));
+      }
+    });
+  };
+
+  // The jump completes once the older history holding the message renders.
+  useEffect(() => {
+    if (pendingJumpSeq !== null && revealMessage(pendingJumpSeq)) {
+      setPendingJumpSeq(null);
+    }
+  }, [messages, pendingJumpSeq, revealMessage]);
+
+  useEffect(() => {
+    if (revealSeq) revealMessage(revealSeq.seq);
+  }, [revealSeq, revealMessage]);
+
+  useEffect(() => {
+    if (flashSeq === null) return;
+
+    const timer = setTimeout(() => setFlashSeq(null), FLASH_DURATION_MS);
+    return () => clearTimeout(timer);
+  }, [flashSeq]);
+
+  useEffect(() => {
+    if (copiedId === null) return;
+
+    const timer = setTimeout(() => setCopiedId(null), COPIED_DURATION_MS);
+    return () => clearTimeout(timer);
+  }, [copiedId]);
+
+  const copyText = (message: ChatMessage) => {
+    navigator.clipboard
+      .writeText(message.text)
+      .then(() => setCopiedId(message.id))
+      .catch(() => {});
+  };
+
+  const toggleReactionBar = (seq: number, button: HTMLButtonElement) => {
+    if (reactionBar?.seq === seq) {
+      setReactionBar(null);
+      return;
+    }
+
+    const body = button
+      .closest(".chat-window__message-row")
+      ?.querySelector(".chat-window__message-body");
+    const viewportTop = scrollRef.current?.getBoundingClientRect().top ?? 0;
+    const roomAbove = (body?.getBoundingClientRect().top ?? 0) - viewportTop;
+
+    reactionAnchorRef.current = button;
+    setReactionPickerSeq(null);
+    setReactionBar({
+      seq,
+      placement: roomAbove < REACTION_BAR_CLEARANCE_PX ? "below" : "above",
+    });
+  };
+
+  const closeReactionBar = useCallback(() => setReactionBar(null), []);
+
+  const closeReactionPicker = useCallback(() => {
+    setReactionPickerSeq(null);
+    reactionAnchorRef.current?.focus();
+  }, []);
+
+  // Picking the reaction the user already has takes it back.
+  const reactTo = (message: ChatMessage, emoji: string) => {
+    if (message.seq === undefined) return;
+
+    const mine = getMyReaction(message);
+    if (emoji !== mine) rememberEmoji(emoji);
+    onReact(message.seq, emoji === mine ? null : emoji);
+  };
+
+  const reactionPickerMessage =
+    reactionPickerSeq === null
+      ? null
+      : (messages.find((message) => message.seq === reactionPickerSeq) ?? null);
+
+  const openLink = (url: string) => {
+    if (isTrustedLink(url)) {
+      void electron.openExternal(url);
+      return;
+    }
+
+    setLeavingUrl(url);
+  };
+
   const scrollToLatest = useCallback(() => {
     scrollRef.current?.scrollTo({
       top: 0,
@@ -230,31 +435,188 @@ export function ChatMessageList({
                         "chat-window__message-group--mine": group.fromMe,
                       })}
                     >
-                      {group.messages.map((message) => (
-                        <div
-                          key={message.id}
-                          className={cn("chat-window__message-row", {
-                            "chat-window__message-row--enter":
-                              !isStatic(message),
-                            "chat-window__message-row--pending":
-                              message.status === "pending",
-                            "chat-window__message-row--failed":
-                              message.status === "failed",
-                          })}
-                        >
-                          <p className="chat-window__message">{message.text}</p>
-                          {message.status === "failed" && (
-                            <button
-                              type="button"
-                              className="chat-window__message-retry"
-                              onClick={() => onRetry(message.clientNonce)}
+                      {group.messages.map((message) => {
+                        const { seq } = message;
+                        const isCopied = copiedId === message.id;
+                        const isReactionBarOpen =
+                          seq !== undefined && reactionBar?.seq === seq;
+                        const isReacting =
+                          isReactionBarOpen ||
+                          (seq !== undefined && reactionPickerSeq === seq);
+                        // Replies keep their bubble to hold the quote.
+                        const emojiCount = message.replyTo
+                          ? 0
+                          : countEmojiOnly(message.text);
+                        const pills = toReactionPills(message.reactions ?? []);
+                        const align = group.fromMe ? "end" : "start";
+
+                        // Only stored messages have a seq to reply or react to.
+                        const actions = seq !== undefined &&
+                          message.status === "sent" && (
+                            <div
+                              className={cn("chat-window__message-actions", {
+                                "chat-window__message-actions--visible":
+                                  isCopied || isReacting,
+                              })}
                             >
-                              <AlertIcon size={12} />
-                              {t("send_failed")} · {t("retry")}
-                            </button>
-                          )}
-                        </div>
-                      ))}
+                              {canReply && (
+                                <button
+                                  type="button"
+                                  className={cn("chat-window__message-action", {
+                                    "chat-window__message-action--active":
+                                      isReacting,
+                                  })}
+                                  onClick={(event) =>
+                                    toggleReactionBar(seq, event.currentTarget)
+                                  }
+                                  aria-label={t("add_reaction")}
+                                  aria-expanded={isReactionBarOpen}
+                                >
+                                  <SmileyIcon size={16} />
+                                  <span
+                                    className="chat-window__message-action-tooltip"
+                                    aria-hidden="true"
+                                  >
+                                    {t("add_reaction")}
+                                  </span>
+                                </button>
+                              )}
+                              {canReply && (
+                                <button
+                                  type="button"
+                                  className="chat-window__message-action"
+                                  onClick={() => onReply(message)}
+                                  aria-label={t("reply")}
+                                >
+                                  <ReplyIcon size={16} />
+                                  <span
+                                    className="chat-window__message-action-tooltip"
+                                    aria-hidden="true"
+                                  >
+                                    {t("reply")}
+                                  </span>
+                                </button>
+                              )}
+                              <button
+                                type="button"
+                                className={cn("chat-window__message-action", {
+                                  "chat-window__message-action--copied":
+                                    isCopied,
+                                })}
+                                onClick={() => copyText(message)}
+                                aria-label={
+                                  isCopied ? t("copied") : t("copy_text")
+                                }
+                              >
+                                {isCopied ? (
+                                  <CheckIcon size={16} />
+                                ) : (
+                                  <CopyIcon size={16} />
+                                )}
+                                <span
+                                  className="chat-window__message-action-tooltip"
+                                  aria-hidden="true"
+                                >
+                                  {isCopied ? t("copied") : t("copy_text")}
+                                </span>
+                              </button>
+                            </div>
+                          );
+
+                        return (
+                          <div
+                            key={message.id}
+                            ref={(element) => {
+                              if (seq === undefined) return;
+                              if (element)
+                                messageRefs.current.set(seq, element);
+                              else messageRefs.current.delete(seq);
+                            }}
+                            className={cn("chat-window__message-row", {
+                              "chat-window__message-row--enter":
+                                !isStatic(message),
+                              "chat-window__message-row--pending":
+                                message.status === "pending",
+                              "chat-window__message-row--failed":
+                                message.status === "failed",
+                            })}
+                          >
+                            {/* Actions sit on the side away from the sender. */}
+                            {group.fromMe && actions}
+                            <div className="chat-window__message-body">
+                              <p
+                                className={cn("chat-window__message", {
+                                  "chat-window__message--reply":
+                                    message.replyTo,
+                                  "chat-window__message--emoji": emojiCount > 0,
+                                  "chat-window__message--emoji-small":
+                                    emojiCount > LARGE_EMOJI_MAX_COUNT,
+                                  "chat-window__message--replying":
+                                    seq !== undefined &&
+                                    (seq === replyToSeq || isReacting),
+                                  "chat-window__message--flash":
+                                    seq !== undefined && seq === flashSeq,
+                                })}
+                              >
+                                {message.replyTo && (
+                                  <ChatMessageQuote
+                                    reply={message.replyTo}
+                                    friendName={friendName}
+                                    onJump={jumpToMessage}
+                                  />
+                                )}
+                                <ChatMessageText
+                                  text={message.text}
+                                  onOpenLink={openLink}
+                                />
+                              </p>
+                              {seq !== undefined && (
+                                <ChatReactionPills
+                                  pills={pills}
+                                  friendName={friendName}
+                                  align={align}
+                                  isDetached={emojiCount > 0}
+                                  canReact={canReply}
+                                  onToggle={(pill) =>
+                                    onReact(
+                                      seq,
+                                      pill.fromMe ? null : pill.emoji
+                                    )
+                                  }
+                                />
+                              )}
+                              {isReactionBarOpen && reactionBar && (
+                                <ChatReactionBar
+                                  selected={getMyReaction(message)}
+                                  placement={reactionBar.placement}
+                                  align={align}
+                                  anchorRef={reactionAnchorRef}
+                                  onPick={(emoji) => {
+                                    reactTo(message, emoji);
+                                    setReactionBar(null);
+                                  }}
+                                  onMore={() => {
+                                    setReactionBar(null);
+                                    setReactionPickerSeq(seq);
+                                  }}
+                                  onClose={closeReactionBar}
+                                />
+                              )}
+                            </div>
+                            {!group.fromMe && actions}
+                            {message.status === "failed" && (
+                              <button
+                                type="button"
+                                className="chat-window__message-retry"
+                                onClick={() => onRetry(message.clientNonce)}
+                              >
+                                <AlertIcon size={12} />
+                                {t("send_failed")} · {t("retry")}
+                              </button>
+                            )}
+                          </div>
+                        );
+                      })}
                       <time
                         className={cn("chat-window__message-time", {
                           "chat-window__message-time--enter": !isStatic(
@@ -308,6 +670,32 @@ export function ChatMessageList({
             </span>
           )}
         </button>
+      )}
+
+      {reactionPickerMessage && (
+        <ChatEmojiPicker
+          label={t("choose_reaction")}
+          className={cn(
+            "chat-window__emoji-picker--reaction",
+            reactionPickerMessage.fromMe
+              ? "chat-window__emoji-picker--end"
+              : "chat-window__emoji-picker--start"
+          )}
+          selected={getMyReaction(reactionPickerMessage)}
+          anchorRef={reactionAnchorRef}
+          onPick={(emoji) => {
+            reactTo(reactionPickerMessage, emoji);
+            closeReactionPicker();
+          }}
+          onClose={closeReactionPicker}
+        />
+      )}
+
+      {leavingUrl && (
+        <ChatLeavingModal
+          url={leavingUrl}
+          onClose={() => setLeavingUrl(null)}
+        />
       )}
     </div>
   );

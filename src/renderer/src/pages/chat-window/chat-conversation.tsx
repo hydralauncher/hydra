@@ -1,8 +1,22 @@
-import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
-import { useTranslation } from "react-i18next";
-import { AlertFillIcon, PaperAirplaneIcon } from "@primer/octicons-react";
+import {
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
+import { Trans, useTranslation } from "react-i18next";
+import {
+  AlertFillIcon,
+  PaperAirplaneIcon,
+  ReplyIcon,
+  SmileyIcon,
+  XIcon,
+} from "@primer/octicons-react";
 import cn from "classnames";
 
+import { ChatEmojiPicker } from "./chat-emoji-picker";
 import { ChatEmptyIcon } from "./chat-empty-icon";
 import { ChatTypingDots } from "./chat-friend-status";
 import {
@@ -10,11 +24,13 @@ import {
   getOverflowRange,
   shouldShowLengthCounter,
 } from "./chat-message-limit";
+import type { ChatMessage } from "./chat-message-groups";
 import { ChatMessageList } from "./chat-message-list";
 import type { ChatSendCooldown } from "./chat-rate-limit";
 import { ChatSendCooldownGauge } from "./chat-send-cooldown";
 import type { ChatConversation } from "./chat-types";
 import { ChatZzzIcon } from "./chat-zzz-icon";
+import type { ChatReactionErrorKind } from "./use-chat";
 
 /** Five lines of text plus the input's vertical padding. */
 const COMPOSER_MAX_HEIGHT = 110;
@@ -32,9 +48,16 @@ export interface ChatConversationViewProps {
   /** Changes whenever the rate limit turns a send away. */
   sendRejections: number;
   onDraftChange: (draft: string) => void;
+  onReplyChange: (replyToSeq: number | null) => void;
   onSend: (text: string) => void;
+  /** Sets the user's reaction on the message with `seq`; null removes it. */
+  onReact: (seq: number, emoji: string | null) => void;
+  /** Why the user's last reaction change was not saved, if it wasn't. */
+  reactionError: ChatReactionErrorKind | null;
   onRetry: (clientNonce: string) => void;
   onLoadOlder: () => void;
+  /** Resolves to whether the message with `seq` is loaded afterwards. */
+  onLoadThrough: (seq: number) => Promise<boolean>;
   onReload: () => void;
 }
 
@@ -43,9 +66,13 @@ export function ChatConversationView({
   sendCooldown,
   sendRejections,
   onDraftChange,
+  onReplyChange,
   onSend,
+  onReact,
+  reactionError,
   onRetry,
   onLoadOlder,
+  onLoadThrough,
   onReload,
 }: ChatConversationViewProps) {
   const { t, i18n } = useTranslation("chat_window");
@@ -53,6 +80,12 @@ export function ChatConversationView({
 
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const mirrorRef = useRef<HTMLDivElement>(null);
+  const emojiButtonRef = useRef<HTMLButtonElement>(null);
+
+  const [isEmojiPickerOpen, setIsEmojiPickerOpen] = useState(false);
+  // Where picked emoji go while focus is in the picker: the textarea's
+  // selection survives the blur, but React resets it on every value change.
+  const selectionRef = useRef<{ start: number; end: number } | null>(null);
 
   const numberFormat = useMemo(
     () => new Intl.NumberFormat(i18n.language),
@@ -98,16 +131,82 @@ export function ChatConversationView({
   const isEmpty = hasNoMessages && loadState === "loaded";
   const hasLoadFailed = hasNoMessages && loadState === "error";
 
+  const replyTarget =
+    conversation.replyToSeq === null
+      ? null
+      : (messages.find((message) => message.seq === conversation.replyToSeq) ??
+        null);
+
+  // Set by the reply strip, so the list scrolls to the message being answered.
+  const [revealSeq, setRevealSeq] = useState<{ seq: number } | null>(null);
+
+  const startReply = (message: ChatMessage) => {
+    if (message.seq === undefined) return;
+    onReplyChange(message.seq);
+    inputRef.current?.focus();
+  };
+
+  const cancelReply = () => {
+    onReplyChange(null);
+    inputRef.current?.focus();
+  };
+
+  const toggleEmojiPicker = () => {
+    if (!isEmojiPickerOpen) {
+      selectionRef.current = {
+        start: inputRef.current?.selectionStart ?? draft.length,
+        end: inputRef.current?.selectionEnd ?? draft.length,
+      };
+    }
+    setIsEmojiPickerOpen((isOpen) => !isOpen);
+  };
+
+  const closeEmojiPicker = useCallback(() => {
+    setIsEmojiPickerOpen(false);
+    inputRef.current?.focus();
+  }, []);
+
+  const insertEmoji = (emoji: string) => {
+    const selection = selectionRef.current;
+    const start = Math.min(selection?.start ?? draft.length, draft.length);
+    const end = Math.min(
+      Math.max(selection?.end ?? start, start),
+      draft.length
+    );
+    const caret = start + emoji.length;
+
+    selectionRef.current = { start: caret, end: caret };
+    onDraftChange(draft.slice(0, start) + emoji + draft.slice(end));
+  };
+
+  // Keeps the caret after the last picked emoji, for the next pick and for
+  // typing once the picker closes.
+  useLayoutEffect(() => {
+    const input = inputRef.current;
+    const selection = selectionRef.current;
+    if (!isEmojiPickerOpen || !input || !selection) return;
+    input.setSelectionRange(selection.start, selection.end);
+  }, [draft, isEmojiPickerOpen]);
+
   // Enter during a cooldown still reaches onSend, which shakes the composer.
   const handleSend = () => {
     if (isTooLong) {
       setTooLongRejections((count) => count + 1);
       return;
     }
-    if (canSend) onSend(text);
+    if (canSend) {
+      setIsEmojiPickerOpen(false);
+      onSend(text);
+    }
   };
 
   const handleKeyDown = (event: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    if (event.key === "Escape" && replyTarget) {
+      event.preventDefault();
+      onReplyChange(null);
+      return;
+    }
+
     if (
       event.key === "Enter" &&
       !event.shiftKey &&
@@ -126,6 +225,14 @@ export function ChatConversationView({
     };
   } else if (sendCooldown) {
     hint = { kind: "error", text: t("rate_limited_hint") };
+  } else if (reactionError) {
+    hint = {
+      kind: "error",
+      text:
+        reactionError === "rate_limited"
+          ? t("reaction_rate_limited_hint")
+          : t("reaction_failed_hint"),
+    };
   } else if (isTooLong) {
     hint = {
       kind: "error",
@@ -187,12 +294,29 @@ export function ChatConversationView({
           messages={messages}
           initialMessageIds={initialMessageIds}
           hasMoreBefore={conversation.hasMoreBefore}
+          friendName={friend.displayName}
+          canReply={conversation.canSend}
+          replyToSeq={replyTarget?.seq ?? null}
+          revealSeq={revealSeq}
+          onReply={startReply}
+          onReact={onReact}
           onRetry={onRetry}
           onLoadOlder={onLoadOlder}
+          onLoadThrough={onLoadThrough}
         />
       )}
 
       <div className="chat-window__composer">
+        {isEmojiPickerOpen && (
+          <ChatEmojiPicker
+            label={t("choose_emoji")}
+            className="chat-window__emoji-picker--composer"
+            anchorRef={emojiButtonRef}
+            onPick={insertEmoji}
+            onClose={closeEmojiPicker}
+          />
+        )}
+
         {(hint || showCounter) && (
           <div className="chat-window__composer-meta">
             {hint && (
@@ -236,62 +360,127 @@ export function ChatConversationView({
             }
           }}
         >
-          <div className="chat-window__composer-field">
-            {/* Draws a highlight behind the characters past the limit. */}
-            {overflow && (
-              <div
-                ref={mirrorRef}
-                className="chat-window__composer-mirror"
-                aria-hidden="true"
-              >
-                {draft.slice(0, overflow[0])}
-                <mark className="chat-window__composer-overflow">
-                  {draft.slice(overflow[0], overflow[1])}
-                </mark>
-                {draft.slice(overflow[1])}
-                {/* Keeps a trailing newline's line, as the textarea does. */}
-                {"\u200b"}
-              </div>
-            )}
-            <textarea
-              ref={inputRef}
-              className="chat-window__composer-input"
-              rows={1}
-              value={draft}
-              placeholder={t("message_placeholder", {
-                name: friend.displayName,
-              })}
-              aria-label={t("message_placeholder", {
-                name: friend.displayName,
-              })}
-              aria-invalid={isTooLong}
-              onChange={(event) => onDraftChange(event.target.value)}
-              onKeyDown={handleKeyDown}
-              onScroll={(event) => {
-                if (mirrorRef.current) {
-                  mirrorRef.current.scrollTop = event.currentTarget.scrollTop;
+          {replyTarget && (
+            <div className="chat-window__composer-reply">
+              <button
+                type="button"
+                className="chat-window__composer-reply-target"
+                onClick={() =>
+                  replyTarget.seq !== undefined &&
+                  setRevealSeq({ seq: replyTarget.seq })
                 }
-              }}
+                title={t("show_replied_message")}
+              >
+                <ReplyIcon
+                  size={16}
+                  className="chat-window__composer-reply-icon"
+                />
+                <span className="chat-window__composer-reply-details">
+                  <span className="chat-window__composer-reply-label">
+                    {replyTarget.fromMe ? (
+                      <Trans
+                        i18nKey="replying_to_self"
+                        ns="chat_window"
+                        components={{ strong: <strong /> }}
+                      />
+                    ) : (
+                      <Trans
+                        i18nKey="replying_to"
+                        ns="chat_window"
+                        values={{ name: friend.displayName }}
+                        components={{ strong: <strong /> }}
+                      />
+                    )}
+                  </span>
+                  <span className="chat-window__composer-reply-text">
+                    {replyTarget.text}
+                  </span>
+                </span>
+              </button>
+              <button
+                type="button"
+                className="chat-window__icon-button chat-window__icon-button--small"
+                onClick={cancelReply}
+                title={t("cancel_reply_hint")}
+                aria-label={t("cancel_reply")}
+              >
+                <XIcon size={16} />
+              </button>
+            </div>
+          )}
+
+          <div className="chat-window__composer-row">
+            <button
+              ref={emojiButtonRef}
+              type="button"
+              className={cn("chat-window__composer-emoji", {
+                "chat-window__composer-emoji--open": isEmojiPickerOpen,
+              })}
+              onClick={toggleEmojiPicker}
               disabled={!conversation.canSend}
-            />
-          </div>
-          <button
-            type="button"
-            className="chat-window__send"
-            onClick={handleSend}
-            disabled={!canSend || sendCooldown !== null}
-            title={t("send")}
-            aria-label={t("send")}
-          >
-            {sendCooldown ? (
-              <ChatSendCooldownGauge
-                key={sendCooldown.startedAt}
-                cooldown={sendCooldown}
+              title={t("add_emoji")}
+              aria-label={t("add_emoji")}
+              aria-expanded={isEmojiPickerOpen}
+            >
+              <SmileyIcon size={16} />
+            </button>
+            <div className="chat-window__composer-field">
+              {/* Draws a highlight behind the characters past the limit. */}
+              {overflow && (
+                <div
+                  ref={mirrorRef}
+                  className="chat-window__composer-mirror"
+                  aria-hidden="true"
+                >
+                  {draft.slice(0, overflow[0])}
+                  <mark className="chat-window__composer-overflow">
+                    {draft.slice(overflow[0], overflow[1])}
+                  </mark>
+                  {draft.slice(overflow[1])}
+                  {/* Keeps a trailing newline's line, as the textarea does. */}
+                  {"\u200b"}
+                </div>
+              )}
+              <textarea
+                ref={inputRef}
+                className="chat-window__composer-input"
+                rows={1}
+                value={draft}
+                placeholder={t("message_placeholder", {
+                  name: friend.displayName,
+                })}
+                aria-label={t("message_placeholder", {
+                  name: friend.displayName,
+                })}
+                aria-invalid={isTooLong}
+                onChange={(event) => onDraftChange(event.target.value)}
+                onKeyDown={handleKeyDown}
+                onScroll={(event) => {
+                  if (mirrorRef.current) {
+                    mirrorRef.current.scrollTop = event.currentTarget.scrollTop;
+                  }
+                }}
+                disabled={!conversation.canSend}
               />
-            ) : (
-              <PaperAirplaneIcon size={16} />
-            )}
-          </button>
+            </div>
+            <button
+              type="button"
+              className="chat-window__send"
+              onClick={handleSend}
+              disabled={!canSend || sendCooldown !== null}
+              title={t("send")}
+              aria-label={t("send")}
+            >
+              {sendCooldown ? (
+                <ChatSendCooldownGauge
+                  key={sendCooldown.startedAt}
+                  cooldown={sendCooldown}
+                />
+              ) : (
+                <PaperAirplaneIcon size={16} />
+              )}
+            </button>
+          </div>
         </div>
       </div>
     </div>

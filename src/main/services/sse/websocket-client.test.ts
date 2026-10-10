@@ -209,10 +209,31 @@ describe("realtime WebSocket helpers", () => {
     createdAt: "2026-10-05T12:00:00.000Z",
   };
 
+  const chatReactionPayload = {
+    senderId: "sender01",
+    recipientId: "recipie1",
+    seq: 3,
+    emoji: "🔥",
+    updatedAt: "2026-10-05T12:00:00.000Z",
+  };
+
   it("accepts chat message and typing events", () => {
     for (const message of [
       { event: "chatMessage", payload: chatMessagePayload },
+      {
+        event: "chatMessage",
+        payload: {
+          ...chatMessagePayload,
+          replyToSeq: 2,
+          replyTo: { senderId: "recipie1", body: "hi" },
+        },
+      },
       { event: "chatTyping", payload: { senderId: "sender01" } },
+      { event: "chatReaction", payload: chatReactionPayload },
+      {
+        event: "chatReaction",
+        payload: { ...chatReactionPayload, emoji: null },
+      },
     ]) {
       const envelope = parseRealtimeEnvelope(
         JSON.stringify({
@@ -236,6 +257,9 @@ describe("realtime WebSocket helpers", () => {
       { ...chatMessagePayload, body: 42 },
       { ...chatMessagePayload, createdAt: "not a date" },
       { ...chatMessagePayload, recipientId: undefined },
+      { ...chatMessagePayload, replyToSeq: 0 },
+      { ...chatMessagePayload, replyTo: { senderId: "recipie1", body: "hi" } },
+      { ...chatMessagePayload, replyToSeq: 2, replyTo: { body: "hi" } },
     ];
 
     for (const [index, payload] of invalidPayloads.entries()) {
@@ -265,6 +289,30 @@ describe("realtime WebSocket helpers", () => {
       ),
       null
     );
+
+    const invalidReactions = [
+      { ...chatReactionPayload, seq: 0 },
+      { ...chatReactionPayload, emoji: "" },
+      { ...chatReactionPayload, emoji: 42 },
+      { ...chatReactionPayload, emoji: undefined },
+      { ...chatReactionPayload, updatedAt: "not a date" },
+      { ...chatReactionPayload, recipientId: undefined },
+    ];
+
+    for (const [index, payload] of invalidReactions.entries()) {
+      assert.equal(
+        parseRealtimeEnvelope(
+          JSON.stringify({
+            v: 1,
+            eventId: `invalid-reaction-${index}`,
+            publishedAt: Date.now(),
+            event: "chatReaction",
+            payload,
+          })
+        ),
+        null
+      );
+    }
   });
 
   it("parses numeric and HTTP-date retry hints", () => {

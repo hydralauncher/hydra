@@ -20,6 +20,7 @@ import {
   useUserDetails,
 } from "@renderer/hooks";
 import SteamLogo from "@renderer/assets/steam-logo.svg?react";
+import { PROFILE_FRIENDS_PATH } from "@shared";
 import type { ChatUnreadState, ProfileFriends, UserFriend } from "@types";
 
 import "./friends-window.scss";
@@ -122,7 +123,7 @@ export default function FriendsWindow() {
 
     try {
       const response = await electron.hydraApi.get<ProfileFriends>(
-        "/profile/friends",
+        PROFILE_FRIENDS_PATH,
         { params: { take: PAGE_SIZE, skip: 0 } }
       );
 

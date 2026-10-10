@@ -39,7 +39,7 @@ export function ChatFriendStatus({ friend, isTyping }: ChatFriendStatusProps) {
           <SteamLogo width={14} height={14} />
         )}
         <span className="chat-window__friend-status-text">
-          {t("playing", { game: friend.currentGame.title })}
+          {friend.currentGame.title}
         </span>
       </span>
     );

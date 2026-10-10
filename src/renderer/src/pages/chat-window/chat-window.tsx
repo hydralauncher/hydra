@@ -1,6 +1,8 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
+import cn from "classnames";
 
+import { PROFILE_FRIENDS_PATH } from "@shared";
 import type { ProfileFriends, UserFriend } from "@types";
 
 import { ChatConversationView } from "./chat-conversation";
@@ -22,6 +24,7 @@ const createConversation = (friend: UserFriend): ChatConversation => ({
   isTyping: false,
   unreadCount: 0,
   draft: "",
+  replyToSeq: null,
   canSend: true,
   loadState: "idle",
   hasMoreBefore: false,
@@ -52,6 +55,38 @@ export default function ChatWindow() {
 
   const chat = useChat({ conversations, activeId, updateConversation });
 
+  // Friend updates arrive in bursts; only the latest refresh may write, so a
+  // slow, older response can't roll presence back.
+  const friendsRequestIdRef = useRef(0);
+
+  // Keeps presence and "playing" status of open conversations current.
+  const refreshFriends = useCallback(async () => {
+    const requestId = ++friendsRequestIdRef.current;
+
+    try {
+      const response = await electron.hydraApi.get<ProfileFriends>(
+        PROFILE_FRIENDS_PATH,
+        { params: { take: FRIENDS_PAGE_SIZE, skip: 0 } }
+      );
+      if (requestId !== friendsRequestIdRef.current) return;
+
+      const friendsById = new Map(
+        response.friends.map((friend) => [friend.id, friend])
+      );
+
+      setConversations((current) =>
+        current.map((conversation) => {
+          const friend = friendsById.get(conversation.friend.id);
+          return friend
+            ? { ...conversation, friend: { ...conversation.friend, ...friend } }
+            : conversation;
+        })
+      );
+    } catch {
+      // ignore transient errors; the next update will retry
+    }
+  }, []);
+
   const openPendingConversations = useCallback(async () => {
     const friends = await electron.consumePendingChatFriends();
     if (!friends.length) return;
@@ -77,36 +112,35 @@ export default function ChatWindow() {
     );
 
     setActiveId(friends[friends.length - 1].id);
-  }, []);
 
-  // Keeps presence and "playing" status of open conversations current.
-  const refreshFriends = useCallback(async () => {
-    try {
-      const response = await electron.hydraApi.get<ProfileFriends>(
-        "/profile/friends",
-        { params: { take: FRIENDS_PAGE_SIZE, skip: 0 } }
-      );
-
-      const friendsById = new Map(
-        response.friends.map((friend) => [friend.id, friend])
-      );
-
-      setConversations((current) =>
-        current.map((conversation) => {
-          const friend = friendsById.get(conversation.friend.id);
-          return friend
-            ? { ...conversation, friend: { ...conversation.friend, ...friend } }
-            : conversation;
-        })
-      );
-    } catch {
-      // ignore transient errors; the next update will retry
-    }
-  }, []);
+    // The opener's copy can be stale, and one built from a message
+    // notification has no presence or game at all. Realtime events only report
+    // changes, so fetch the current state once.
+    void refreshFriends();
+  }, [refreshFriends]);
 
   useEffect(() => {
     document.title = t("title");
   }, [t]);
+
+  // Chromium can move focus to the first tab as the window opens, ringed as
+  // if the user had tabbed there. The tab ring waits for a real Tab press.
+  const [isKeyboardNavigating, setIsKeyboardNavigating] = useState(false);
+
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      // Alt+Tab belongs to the OS window switcher.
+      if (event.key === "Tab" && !event.altKey) setIsKeyboardNavigating(true);
+    };
+    const handlePointerDown = () => setIsKeyboardNavigating(false);
+
+    window.addEventListener("keydown", handleKeyDown, true);
+    window.addEventListener("pointerdown", handlePointerDown, true);
+    return () => {
+      window.removeEventListener("keydown", handleKeyDown, true);
+      window.removeEventListener("pointerdown", handlePointerDown, true);
+    };
+  }, []);
 
   useEffect(() => {
     openPendingConversations();
@@ -190,7 +224,11 @@ export default function ChatWindow() {
     null;
 
   return (
-    <div className="chat-window">
+    <div
+      className={cn("chat-window", {
+        "chat-window--keyboard-navigation": isKeyboardNavigating,
+      })}
+    >
       <ChatTabStrip
         conversations={conversations}
         activeId={activeId}
@@ -224,11 +262,28 @@ export default function ChatWindow() {
             );
             chat.notifyTyping(activeConversation.friend.id, draft);
           }}
+          onReplyChange={(replyToSeq) =>
+            updateConversation(
+              activeConversation.friend.id,
+              (conversation) => ({ ...conversation, replyToSeq })
+            )
+          }
           onSend={(text) => chat.send(activeConversation.friend.id, text)}
+          onReact={(seq, emoji) =>
+            void chat.react(activeConversation.friend.id, seq, emoji)
+          }
+          reactionError={
+            chat.reactionError?.friendId === activeConversation.friend.id
+              ? chat.reactionError.kind
+              : null
+          }
           onRetry={(clientNonce) =>
             chat.retry(activeConversation.friend.id, clientNonce)
           }
           onLoadOlder={() => chat.loadOlder(activeConversation.friend.id)}
+          onLoadThrough={(seq) =>
+            chat.loadThrough(activeConversation.friend.id, seq)
+          }
           onReload={() => chat.loadLatest(activeConversation.friend.id)}
         />
       )}

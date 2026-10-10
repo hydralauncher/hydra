@@ -5,6 +5,7 @@ import type { ChatMessage } from "./chat-message-groups.js";
 import {
   countFriendMessagesAfter,
   createPendingMessage,
+  createReply,
   findFirstFriendMessageAfter,
   getLatestSeq,
   hasGapBefore,
@@ -42,6 +43,92 @@ describe("toChatMessage", () => {
     });
     assert.equal(stored(4, MY_ID).fromMe, true);
   });
+
+  it("keeps reactions and tells whose they are", () => {
+    const message = toChatMessage(
+      {
+        seq: 6,
+        senderId: FRIEND_ID,
+        body: "gg",
+        clientNonce: "nonce-6",
+        createdAt: CREATED_AT,
+        reactions: [
+          { userId: FRIEND_ID, emoji: "😂", updatedAt: CREATED_AT },
+          { userId: MY_ID, emoji: "💀", updatedAt: CREATED_AT },
+        ],
+      },
+      FRIEND_ID
+    );
+
+    assert.deepEqual(message.reactions, [
+      { emoji: "😂", fromMe: false, updatedAt: CREATED_AT },
+      { emoji: "💀", fromMe: true, updatedAt: CREATED_AT },
+    ]);
+    assert.equal(stored(7).reactions, undefined);
+  });
+
+  it("keeps the replied-to message, from either side", () => {
+    const reply = (senderId: string) =>
+      toChatMessage(
+        {
+          seq: 5,
+          senderId: FRIEND_ID,
+          body: "sure",
+          clientNonce: "nonce-5",
+          createdAt: CREATED_AT,
+          replyToSeq: 4,
+          replyTo: { senderId, body: "lunch?" },
+        },
+        FRIEND_ID
+      ).replyTo;
+
+    assert.deepEqual(reply(MY_ID), {
+      seq: 4,
+      quoted: { fromMe: true, text: "lunch?" },
+    });
+    assert.equal(reply(FRIEND_ID)?.quoted?.fromMe, false);
+  });
+
+  it("marks replies to messages past retention as unavailable", () => {
+    const message = toChatMessage(
+      {
+        seq: 5,
+        senderId: FRIEND_ID,
+        body: "sure",
+        clientNonce: "nonce-5",
+        createdAt: CREATED_AT,
+        replyToSeq: 4,
+        replyTo: null,
+      },
+      FRIEND_ID
+    );
+
+    assert.deepEqual(message.replyTo, { seq: 4 });
+  });
+});
+
+describe("createReply", () => {
+  it("quotes stored messages by seq", () => {
+    assert.deepEqual(createReply(stored(3)), {
+      seq: 3,
+      quoted: { fromMe: false, text: "message 3" },
+    });
+  });
+
+  it("refuses messages the server has not stored", () => {
+    assert.equal(createReply(createPendingMessage("hi", "nonce-9")), null);
+  });
+
+  it("is carried by the optimistic copy of a reply", () => {
+    const replyTo = createReply(stored(3));
+    const pending = createPendingMessage("ok", "nonce-9", CREATED_AT, replyTo);
+
+    assert.deepEqual(pending.replyTo, replyTo);
+    assert.equal(
+      "replyTo" in createPendingMessage("ok", "nonce-10", CREATED_AT),
+      false
+    );
+  });
 });
 
 describe("mergeChatMessages", () => {
@@ -55,6 +142,22 @@ describe("mergeChatMessages", () => {
       merged.map((message) => message.seq),
       [1, 2, 3]
     );
+  });
+
+  it("keeps known reactions when a message arrives without any", () => {
+    const reacted: ChatMessage = {
+      ...stored(1),
+      reactions: [{ emoji: "🔥", fromMe: true, updatedAt: CREATED_AT }],
+    };
+
+    const [fromRealtime] = mergeChatMessages([reacted], [stored(1)]);
+    const [fromHistory] = mergeChatMessages(
+      [reacted],
+      [{ ...stored(1), reactions: [] }]
+    );
+
+    assert.deepEqual(fromRealtime.reactions, reacted.reactions);
+    assert.deepEqual(fromHistory.reactions, []);
   });
 
   it("replaces the optimistic copy once the server stores it", () => {

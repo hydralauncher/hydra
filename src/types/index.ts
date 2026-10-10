@@ -214,12 +214,34 @@ export interface FriendPresenceSync {
   isOnline: boolean;
 }
 
+export interface ChatReplyDto {
+  senderId: string;
+  body: string;
+}
+
 export interface ChatMessageDto {
   seq: number;
   senderId: string;
   body: string;
   clientNonce: string;
   createdAt: string;
+  /* Seq of the message this one replies to. */
+  replyToSeq?: number | null;
+  /* The replied-to message; null once it is past chat retention. */
+  replyTo?: ChatReplyDto | null;
+  /* Oldest first, at most one per user. Realtime messages leave it out. */
+  reactions?: ChatReactionDto[];
+}
+
+export interface ChatReactionDto {
+  userId: string;
+  emoji: string;
+  updatedAt: string;
+}
+
+export interface ChatMessageReactionsDto {
+  seq: number;
+  reactions: ChatReactionDto[];
 }
 
 export interface ChatMessagesPage {
@@ -254,6 +276,15 @@ export interface ChatMessageSync {
 
 export interface ChatTypingSync {
   friendId: string;
+}
+
+/* A reaction set (or removed, with a null emoji) on the message with `seq`. */
+export interface ChatReactionSync {
+  friendId: string;
+  seq: number;
+  fromMe: boolean;
+  emoji: string | null;
+  updatedAt: string;
 }
 
 export interface ChatWindowState {

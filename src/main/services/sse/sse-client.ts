@@ -7,6 +7,7 @@ import { friendPresenceEvent } from "./events/friend-presence";
 import { notificationEvent } from "./events/notification";
 import { chatMessageEvent } from "./events/chat-message";
 import { chatTypingEvent } from "./events/chat-typing";
+import { chatReactionEvent } from "./events/chat-reaction";
 import { resyncAfterEventFailure, resyncAfterReconnect } from "./resync";
 import { catchUpChatUnread } from "../chat/chat-unread-catch-up";
 import {
@@ -16,6 +17,7 @@ import {
 } from "./websocket-client";
 import type {
   ChatMessage,
+  ChatReaction,
   ChatTyping,
   FriendGameSession,
   FriendPresence,
@@ -45,6 +47,9 @@ const dispatchEvent = async (
       break;
     case "chatTyping":
       chatTypingEvent(payload satisfies ChatTyping, signal);
+      break;
+    case "chatReaction":
+      await chatReactionEvent(payload satisfies ChatReaction, signal);
       break;
   }
 };

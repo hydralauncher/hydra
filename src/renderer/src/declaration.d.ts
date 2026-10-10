@@ -106,6 +106,7 @@ import type {
   ExtractionFailure,
   FriendsSnapshot,
   ChatMessageSync,
+  ChatReactionSync,
   ChatTypingSync,
   ChatUnreadState,
   ChatWindowState,
@@ -1373,6 +1374,9 @@ declare global {
     ) => () => Electron.IpcRenderer;
     onChatTyping: (
       cb: (sync: ChatTypingSync) => void
+    ) => () => Electron.IpcRenderer;
+    onChatReaction: (
+      cb: (sync: ChatReactionSync) => void
     ) => () => Electron.IpcRenderer;
     onChatMessageSound: (cb: () => void) => () => Electron.IpcRenderer;
     onChatUnreadUpdated: (

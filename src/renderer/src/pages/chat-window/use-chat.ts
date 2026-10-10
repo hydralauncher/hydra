@@ -1,19 +1,27 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 
-import type { ChatMessageDto, ChatMessagesPage } from "@types";
+import type {
+  ChatMessageDto,
+  ChatMessageReactionsDto,
+  ChatMessagesPage,
+} from "@types";
 
 import {
   createSendCooldown,
   getRateLimitWindowStart,
   type ChatSendCooldown,
 } from "./chat-rate-limit";
+import type { ChatMessage, ChatReaction } from "./chat-message-groups";
+import { applyReaction, updateMessageReactions } from "./chat-reactions";
 import {
   createPendingMessage,
+  createReply,
   getLatestSeq,
   hasGapBefore,
   mergeChatMessages,
   setMessageStatus,
   toChatMessage,
+  toChatReactions,
 } from "./chat-state";
 import type { ChatConversation } from "./chat-types";
 
@@ -25,6 +33,7 @@ const MAX_PAGE_SIZE = 100;
 const TYPING_PING_INTERVAL_MS = 3_000;
 const TYPING_INDICATOR_TIMEOUT_MS = 5_000;
 const MARK_READ_DEBOUNCE_MS = 500;
+const REACTION_ERROR_DURATION_MS = 5_000;
 const NOT_FRIENDS_ERROR = "chat/not-friends";
 const RATE_LIMITED_ERROR = "chat/rate-limited";
 
@@ -44,6 +53,11 @@ const isNotFriendsError = (error: unknown) =>
 
 const isRateLimitedError = (error: unknown) =>
   error instanceof Error && error.message.includes(RATE_LIMITED_ERROR);
+
+export type ChatReactionErrorKind = "failed" | "rate_limited";
+
+const byUpdatedAt = (a: ChatReaction, b: ChatReaction) =>
+  Date.parse(a.updatedAt) - Date.parse(b.updatedAt);
 
 const useWindowFocus = () => {
   const [isFocused, setIsFocused] = useState(() => document.hasFocus());
@@ -102,6 +116,14 @@ export function useChat({
   const sendCooldownRef = useRef<ChatSendCooldown | null>(null);
   const rateLimitWindowRef = useRef<number | null>(null);
 
+  const [reactionError, setReactionError] = useState<{
+    friendId: string;
+    kind: ChatReactionErrorKind;
+  } | null>(null);
+  // Only the latest change to a message's reaction may write its result, so a
+  // slow, older response can't undo a newer pick.
+  const reactionRequestsRef = useRef(new Map<string, number>());
+
   useEffect(() => {
     conversationsRef.current = conversations;
     activeIdRef.current = activeId;
@@ -112,6 +134,16 @@ export function useChat({
     const timers = typingTimersRef.current;
     return () => timers.forEach(clearTimeout);
   }, []);
+
+  useEffect(() => {
+    if (!reactionError) return;
+
+    const timer = setTimeout(
+      () => setReactionError(null),
+      REACTION_ERROR_DURATION_MS
+    );
+    return () => clearTimeout(timer);
+  }, [reactionError]);
 
   useEffect(() => {
     if (!sendCooldown) return;
@@ -263,8 +295,76 @@ export function useChat({
     [findConversation, updateConversation]
   );
 
+  /**
+   * Loads older history until the message with `seq` is in the conversation.
+   * Resolves to whether it is there, so a jump to it can go ahead.
+   */
+  const loadThrough = useCallback(
+    async (friendId: string, seq: number) => {
+      const conversation = findConversation(friendId);
+      if (!conversation) return false;
+
+      let oldestSeq = conversation.messages.find(
+        (message) => message.seq !== undefined
+      )?.seq;
+      if (oldestSeq === undefined) return false;
+      if (oldestSeq <= seq) {
+        return conversation.messages.some((message) => message.seq === seq);
+      }
+      if (conversation.isLoadingOlder || !conversation.hasMoreBefore) {
+        return false;
+      }
+
+      updateConversation(friendId, (current) => ({
+        ...current,
+        isLoadingOlder: true,
+      }));
+
+      const loaded: ChatMessage[] = [];
+      let hasMoreBefore = true;
+
+      try {
+        while (hasMoreBefore && oldestSeq > seq) {
+          const page = await fetchMessages(friendId, {
+            before: oldestSeq,
+            take: MAX_PAGE_SIZE,
+          });
+          if (page.messages.length === 0) {
+            hasMoreBefore = false;
+            break;
+          }
+
+          loaded.push(
+            ...page.messages.map((message) =>
+              toChatMessage(message, friendId, true)
+            )
+          );
+          oldestSeq = page.messages[0].seq;
+          hasMoreBefore = page.hasMore;
+        }
+      } catch {
+        // Whatever loaded before the failure is still kept.
+      }
+
+      updateConversation(friendId, (current) => ({
+        ...current,
+        isLoadingOlder: false,
+        hasMoreBefore,
+        messages: mergeChatMessages(current.messages, loaded),
+      }));
+
+      return loaded.some((message) => message.seq === seq);
+    },
+    [findConversation, updateConversation]
+  );
+
   const deliver = useCallback(
-    async (friendId: string, text: string, clientNonce: string) => {
+    async (
+      friendId: string,
+      text: string,
+      clientNonce: string,
+      replyToSeq?: number
+    ) => {
       const windowStart = getRateLimitWindowStart(
         rateLimitWindowRef.current,
         Date.now()
@@ -274,7 +374,13 @@ export function useChat({
       try {
         const stored = await electron.hydraApi.post<ChatMessageDto>(
           chatPath(friendId, "messages"),
-          { data: { body: text, clientNonce } }
+          {
+            data: {
+              body: text,
+              clientNonce,
+              ...(replyToSeq ? { replyToSeq } : {}),
+            },
+          }
         );
 
         updateConversation(friendId, (conversation) => ({
@@ -318,19 +424,30 @@ export function useChat({
 
       const clientNonce = crypto.randomUUID();
 
-      updateConversation(friendId, (conversation) => ({
-        ...conversation,
+      const conversation = findConversation(friendId);
+      const replyToSeq = conversation?.replyToSeq ?? null;
+      const replyTarget =
+        replyToSeq === null
+          ? undefined
+          : conversation?.messages.find(
+              (message) => message.seq === replyToSeq
+            );
+      const replyTo = replyTarget ? createReply(replyTarget) : null;
+
+      updateConversation(friendId, (current) => ({
+        ...current,
         draft: "",
+        replyToSeq: null,
         messages: [
-          ...conversation.messages,
-          createPendingMessage(text, clientNonce),
+          ...current.messages,
+          createPendingMessage(text, clientNonce, undefined, replyTo),
         ],
       }));
       lastTypingPingRef.current.delete(friendId);
 
-      void deliver(friendId, text, clientNonce);
+      void deliver(friendId, text, clientNonce, replyTo?.seq);
     },
-    [deliver, isCoolingDown, rejectSend, updateConversation]
+    [deliver, findConversation, isCoolingDown, rejectSend, updateConversation]
   );
 
   const retry = useCallback(
@@ -354,9 +471,83 @@ export function useChat({
         ),
       }));
 
-      void deliver(friendId, message.text, clientNonce);
+      void deliver(friendId, message.text, clientNonce, message.replyTo?.seq);
     },
     [deliver, findConversation, isCoolingDown, rejectSend, updateConversation]
+  );
+
+  const react = useCallback(
+    async (friendId: string, seq: number, emoji: string | null) => {
+      const message = findConversation(friendId)?.messages.find(
+        (current) => current.seq === seq
+      );
+      if (!message) return;
+
+      const previousMine = message.reactions?.find(
+        (reaction) => reaction.fromMe
+      );
+      const requestKey = `${friendId}:${seq}`;
+      const requestId = (reactionRequestsRef.current.get(requestKey) ?? 0) + 1;
+      reactionRequestsRef.current.set(requestKey, requestId);
+      const isLatest = () =>
+        reactionRequestsRef.current.get(requestKey) === requestId;
+
+      setReactionError(null);
+      updateConversation(friendId, (conversation) => ({
+        ...conversation,
+        messages: updateMessageReactions(
+          conversation.messages,
+          seq,
+          (reactions) =>
+            applyReaction(reactions, {
+              fromMe: true,
+              emoji,
+              updatedAt: new Date().toISOString(),
+              isPending: true,
+            })
+        ),
+      }));
+
+      const path = chatPath(friendId, `messages/${seq}/reaction`);
+
+      try {
+        const result =
+          emoji === null
+            ? await electron.hydraApi.delete<ChatMessageReactionsDto>(path)
+            : await electron.hydraApi.put<ChatMessageReactionsDto>(path, {
+                data: { emoji },
+              });
+        if (!isLatest()) return;
+
+        updateConversation(friendId, (conversation) => ({
+          ...conversation,
+          messages: updateMessageReactions(conversation.messages, seq, () =>
+            toChatReactions(result.reactions, friendId)
+          ),
+        }));
+      } catch (error) {
+        if (!isLatest()) return;
+
+        updateConversation(friendId, (conversation) => ({
+          ...conversation,
+          canSend: isNotFriendsError(error) ? false : conversation.canSend,
+          messages: updateMessageReactions(
+            conversation.messages,
+            seq,
+            (reactions) =>
+              [
+                ...reactions.filter((reaction) => !reaction.fromMe),
+                ...(previousMine ? [previousMine] : []),
+              ].sort(byUpdatedAt)
+          ),
+        }));
+        setReactionError({
+          friendId,
+          kind: isRateLimitedError(error) ? "rate_limited" : "failed",
+        });
+      }
+    },
+    [findConversation, updateConversation]
   );
 
   const notifyTyping = useCallback(
@@ -449,13 +640,33 @@ export function useChat({
       }));
     });
 
+    const unsubscribeReaction = electron.onChatReaction(
+      ({ friendId, seq, fromMe, emoji, updatedAt }) => {
+        if (!findConversation(friendId)) return;
+
+        updateConversation(friendId, (conversation) => ({
+          ...conversation,
+          messages: updateMessageReactions(
+            conversation.messages,
+            seq,
+            (reactions) =>
+              applyReaction(reactions, { fromMe, emoji, updatedAt })
+          ),
+        }));
+      }
+    );
+
     const unsubscribeResync = electron.onChatResync(() => {
       for (const conversation of conversationsRef.current) {
+        const friendId = conversation.friend.id;
         const latestSeq = getLatestSeq(conversation.messages);
         if (conversation.loadState !== "loaded" || latestSeq === 0) {
-          void loadLatest(conversation.friend.id);
+          void loadLatest(friendId);
         } else {
-          void loadNewerThan(conversation.friend.id, latestSeq);
+          // Reactions missed while offline only show up in a fresh page.
+          void loadNewerThan(friendId, latestSeq).then(() =>
+            loadLatest(friendId)
+          );
         }
       }
     });
@@ -463,6 +674,7 @@ export function useChat({
     return () => {
       unsubscribeMessage();
       unsubscribeTyping();
+      unsubscribeReaction();
       unsubscribeResync();
     };
   }, [
@@ -528,7 +740,10 @@ export function useChat({
   return {
     send,
     retry,
+    react,
+    reactionError,
     loadOlder,
+    loadThrough,
     loadLatest,
     notifyTyping,
     sendCooldown,

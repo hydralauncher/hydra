@@ -10,6 +10,8 @@ export interface ChatConversation {
   isTyping: boolean;
   unreadCount: number;
   draft: string;
+  /** Seq of the message the next send replies to. */
+  replyToSeq: number | null;
   /** False after an unfriend or block: history stays readable, sending stops. */
   canSend: boolean;
   loadState: ChatLoadState;

@@ -78,6 +78,7 @@ import type {
   ExtractionFailure,
   FriendsSnapshot,
   ChatMessageSync,
+  ChatReactionSync,
   ChatTypingSync,
   ChatUnreadState,
   ChatWindowState,
@@ -2031,6 +2032,14 @@ contextBridge.exposeInMainWorld("electron", {
     ) => cb(sync);
     ipcRenderer.on("on-chat-typing", listener);
     return () => ipcRenderer.removeListener("on-chat-typing", listener);
+  },
+  onChatReaction: (cb: (sync: ChatReactionSync) => void) => {
+    const listener = (
+      _event: Electron.IpcRendererEvent,
+      sync: ChatReactionSync
+    ) => cb(sync);
+    ipcRenderer.on("on-chat-reaction", listener);
+    return () => ipcRenderer.removeListener("on-chat-reaction", listener);
   },
   onChatMessageSound: (cb: () => void) => {
     const listener = () => cb();

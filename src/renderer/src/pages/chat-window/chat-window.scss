@@ -6,6 +6,16 @@ $popover-background: #1c1c1c;
 $popover-border: rgba(255, 255, 255, 0.1);
 $faded-text: rgba(globals.$body-color, 0.7);
 $meta-text: rgba(globals.$body-color, 0.6);
+// Message links; each keeps 6:1 contrast on its bubble.
+$link-color: #7aa2ff;
+$mine-link-color: #2350c8;
+$emoji-font-family:
+  "Segoe UI Emoji", "Apple Color Emoji", "Noto Color Emoji", sans-serif;
+$mine-reaction-background: color.mix(
+  globals.$muted-color,
+  globals.$background-color,
+  12%
+);
 // Height of the window controls, which the tab strip lines up with.
 $strip-height: 40px;
 // Matches CHAT_TAB_GAP in chat-tab-layout.ts.
@@ -152,6 +162,30 @@ $cooldown-ring-length: 2 * math.$pi * 11;
   }
 }
 
+@keyframes chat-window-popover-in {
+  from {
+    opacity: 0;
+    transform: translateY(4px) scale(0.94);
+  }
+
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes chat-window-reaction-option-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px) scale(0.6);
+  }
+
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
 @keyframes chat-window-zzz {
   0%,
   100% {
@@ -253,6 +287,15 @@ $cooldown-ring-length: 2 * math.$pi * 11;
     font-weight: 600;
     text-align: left;
     transition: color 0.15s ease;
+
+    // Hidden until the user presses Tab (see chat-window.tsx).
+    &:focus-visible {
+      outline: none;
+    }
+  }
+
+  &--keyboard-navigation &__tab-button:focus-visible {
+    outline: revert;
   }
 
   // Brighter, never bolder: a weight change would reflow the name.
@@ -1092,7 +1135,9 @@ $cooldown-ring-length: 2 * math.$pi * 11;
 
   &__message-row {
     display: flex;
+    align-items: center;
     justify-content: flex-start;
+    gap: 6px;
     width: 100%;
 
     // The row grows from zero height so earlier messages glide up while the
@@ -1106,7 +1151,28 @@ $cooldown-ring-length: 2 * math.$pi * 11;
         animation: chat-window-bubble-in 0.32s cubic-bezier(0.34, 1.4, 0.64, 1)
           both;
       }
+
+      // The clip is only for the grow; reaction bars and tooltips reach
+      // past the row once the user interacts with it.
+      &:hover,
+      &:focus-within {
+        overflow: visible;
+      }
     }
+  }
+
+  // The bubble and the reactions under it.
+  &__message-body {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    min-width: 0;
+    max-width: 75%;
+  }
+
+  &__message-group--mine &__message-body {
+    align-items: flex-end;
   }
 
   &__message-group--mine &__message-row {
@@ -1116,7 +1182,7 @@ $cooldown-ring-length: 2 * math.$pi * 11;
   // Corners tighten on the sender's side between messages of one group; the
   // time label is always the group's last child.
   &__message {
-    max-width: 75%;
+    max-width: 100%;
     margin: 0;
     transform-origin: bottom left;
     padding: globals.$spacing-unit calc(globals.$spacing-unit * 1.5);
@@ -1129,6 +1195,172 @@ $cooldown-ring-length: 2 * math.$pi * 11;
     white-space: pre-wrap;
     overflow-wrap: anywhere;
     user-select: text;
+    transition: box-shadow 0.35s ease;
+
+    &--reply {
+      display: flex;
+      flex-direction: column;
+    }
+
+    // Rings sit 2px off the bubble, so they read on both bubble colors.
+    &--replying {
+      box-shadow:
+        0 0 0 2px globals.$background-color,
+        0 0 0 3px rgba(globals.$muted-color, 0.5);
+    }
+
+    &--flash {
+      box-shadow:
+        0 0 0 2px globals.$background-color,
+        0 0 0 4px rgba(globals.$muted-color, 0.9);
+    }
+  }
+
+  // Reply and copy, shown while the message's row is hovered or focused.
+  &__message-actions {
+    display: flex;
+    align-items: center;
+    gap: 2px;
+    flex-shrink: 0;
+    opacity: 0;
+    transition: opacity 0.15s ease;
+
+    &--visible {
+      opacity: 1;
+    }
+  }
+
+  &__message-row:hover &__message-actions,
+  &__message-row:focus-within &__message-actions {
+    opacity: 1;
+  }
+
+  &__message-action {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    padding: 0;
+    background: none;
+    border: none;
+    border-radius: 6px;
+    color: globals.$body-color;
+    cursor: pointer;
+    transition:
+      background-color 0.15s ease,
+      color 0.15s ease;
+
+    &:hover,
+    &:focus-visible {
+      background-color: rgba(255, 255, 255, 0.08);
+      color: globals.$muted-color;
+    }
+  }
+
+  &__message-action-tooltip {
+    position: absolute;
+    bottom: calc(100% + 6px);
+    left: 50%;
+    padding: 4px globals.$spacing-unit;
+    transform: translateX(-50%);
+    background-color: $popover-background;
+    border: 1px solid $popover-border;
+    border-radius: 6px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+    font-size: globals.$small-font-size;
+    line-height: 16px;
+    color: globals.$muted-color;
+    white-space: nowrap;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.15s ease;
+  }
+
+  &__message-action:hover &__message-action-tooltip,
+  &__message-action:focus-visible &__message-action-tooltip,
+  &__message-action--copied &__message-action-tooltip {
+    opacity: 1;
+  }
+
+  // The replied-to message, quoted at the top of a reply's bubble.
+  &__message-quote {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    min-width: 0;
+    margin: -2px -6px 6px;
+    padding: 5px globals.$spacing-unit 6px;
+    background-color: rgba(255, 255, 255, 0.06);
+    border: none;
+    border-radius: 6px;
+    color: inherit;
+    font-family: inherit;
+    text-align: left;
+    white-space: nowrap;
+    cursor: pointer;
+    transition: background-color 0.15s ease;
+
+    &:hover,
+    &:focus-visible {
+      background-color: rgba(255, 255, 255, 0.1);
+    }
+
+    &--unavailable {
+      font-size: globals.$small-font-size;
+      font-style: italic;
+      line-height: 16px;
+      color: rgba(globals.$body-color, 0.75);
+      white-space: normal;
+      cursor: default;
+
+      &:hover {
+        background-color: rgba(255, 255, 255, 0.06);
+      }
+    }
+  }
+
+  &__message-quote-name {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    font-size: globals.$small-font-size;
+    font-weight: 700;
+    line-height: 16px;
+    color: globals.$muted-color;
+  }
+
+  &__message-quote-text {
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    font-size: globals.$small-font-size;
+    line-height: 16px;
+    color: rgba(globals.$body-color, 0.75);
+  }
+
+  &__message-group--mine &__message-quote {
+    background-color: rgba(globals.$background-color, 0.08);
+
+    &:hover,
+    &:focus-visible {
+      background-color: rgba(globals.$background-color, 0.14);
+    }
+
+    &--unavailable,
+    &--unavailable:hover {
+      background-color: rgba(globals.$background-color, 0.08);
+      color: rgba(globals.$background-color, 0.66);
+    }
+  }
+
+  &__message-group--mine &__message-quote-name {
+    color: rgba(globals.$background-color, 0.8);
+  }
+
+  &__message-group--mine &__message-quote-text {
+    color: rgba(globals.$background-color, 0.66);
   }
 
   &__message-row:first-child &__message {
@@ -1145,6 +1377,36 @@ $cooldown-ring-length: 2 * math.$pi * 11;
     border-radius: 12px 4px 4px 12px;
     color: globals.$background-color;
     transform-origin: bottom right;
+  }
+
+  // One inline box, so a reply's flex bubble keeps links in the text flow.
+  &__message-text {
+    min-width: 0;
+  }
+
+  &__message-link {
+    border-radius: 2px;
+    color: $link-color;
+    text-decoration: none;
+    cursor: pointer;
+
+    &:hover {
+      text-decoration: underline;
+      text-underline-offset: 2px;
+    }
+
+    &:focus-visible {
+      outline: 2px solid currentColor;
+      outline-offset: 2px;
+    }
+  }
+
+  &__message-link-icon {
+    margin-left: 4px;
+  }
+
+  &__message-group--mine &__message-link {
+    color: $mine-link-color;
   }
 
   &__message-group--mine &__message-row:first-child &__message {
@@ -1220,6 +1482,12 @@ $cooldown-ring-length: 2 * math.$pi * 11;
     &__header-banner {
       animation: none;
     }
+
+    &__message,
+    &__message-actions,
+    &__message-action-tooltip {
+      transition: none;
+    }
   }
 
   &__typing-dots {
@@ -1266,6 +1534,7 @@ $cooldown-ring-length: 2 * math.$pi * 11;
   }
 
   &__composer {
+    position: relative;
     flex-shrink: 0;
     padding: calc(globals.$spacing-unit * 1.5) calc(globals.$spacing-unit * 2)
       calc(globals.$spacing-unit * 2);
@@ -1273,9 +1542,8 @@ $cooldown-ring-length: 2 * math.$pi * 11;
 
   &__composer-box {
     display: flex;
-    align-items: flex-end;
-    gap: globals.$spacing-unit;
-    padding: 6px 6px 6px calc(globals.$spacing-unit * 1.5);
+    flex-direction: column;
+    overflow: hidden;
     background-color: globals.$dark-background-color;
     border: 1px solid globals.$border-color;
     border-radius: 8px;
@@ -1301,6 +1569,76 @@ $cooldown-ring-length: 2 * math.$pi * 11;
     &--shake {
       animation: chat-window-shake 0.4s ease;
     }
+  }
+
+  &__composer-row {
+    display: flex;
+    align-items: flex-end;
+    gap: globals.$spacing-unit;
+    padding: 6px 6px 6px calc(globals.$spacing-unit * 1.5);
+  }
+
+  // The message being replied to, pinned above the input.
+  &__composer-reply {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    padding: 6px 6px 6px calc(globals.$spacing-unit * 1.5);
+    background-color: $tab-hover-background;
+    border-bottom: 1px solid globals.$border-color;
+    animation: chat-window-fade-in 0.15s ease;
+  }
+
+  &__composer-reply-target {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex: 1;
+    min-width: 0;
+    padding: 0;
+    background: none;
+    border: none;
+    color: inherit;
+    font-family: inherit;
+    text-align: left;
+    cursor: pointer;
+  }
+
+  &__composer-reply-icon {
+    flex-shrink: 0;
+    color: $meta-text;
+  }
+
+  &__composer-reply-details {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    min-width: 0;
+  }
+
+  &__composer-reply-label {
+    font-size: globals.$small-font-size;
+    line-height: 16px;
+    color: $meta-text;
+
+    strong {
+      font-weight: 700;
+      color: globals.$muted-color;
+    }
+  }
+
+  &__composer-reply-text {
+    font-size: globals.$hint-font-size;
+    line-height: 18px;
+    color: globals.$body-color;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  &__composer-reply-target:hover &__composer-reply-text,
+  &__composer-reply-target:focus-visible &__composer-reply-text {
+    color: globals.$muted-color;
   }
 
   &__composer-field {
@@ -1483,12 +1821,543 @@ $cooldown-ring-length: 2 * math.$pi * 11;
     }
   }
 
+  &__emoji-glyph {
+    display: inline-block;
+    font-family: $emoji-font-family;
+    line-height: 1;
+  }
+
+  // Emoji-only messages drop the bubble and show the emoji large.
+  &__message-group &__message--emoji,
+  &__message-group--mine &__message--emoji {
+    padding: 0 2px;
+    background: none;
+    border-color: transparent;
+    border-radius: 8px;
+    color: globals.$muted-color;
+    font-family: $emoji-font-family;
+    font-size: 40px;
+    line-height: 48px;
+  }
+
+  &__message-group &__message--emoji-small,
+  &__message-group--mine &__message--emoji-small {
+    font-size: 28px;
+    line-height: 36px;
+  }
+
+  // Pills hang off the bubble's bottom edge, cut out of it by a ring in the
+  // window's background color.
+  &__reactions {
+    position: relative;
+    z-index: 1;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+    margin-top: -8px;
+    padding: 0 10px;
+
+    &--end {
+      justify-content: flex-end;
+    }
+
+    &--detached {
+      margin-top: 2px;
+      padding: 0 2px;
+    }
+  }
+
+  &__reaction-wrapper {
+    position: relative;
+    display: inline-flex;
+  }
+
+  &__reaction {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    height: 24px;
+    padding: 0 globals.$spacing-unit;
+    background-color: $popover-background;
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 12px;
+    box-shadow: 0 0 0 2px globals.$background-color;
+    color: globals.$muted-color;
+    font-family: inherit;
+    cursor: pointer;
+    transition:
+      border-color 0.15s ease,
+      opacity 0.15s ease;
+
+    .chat-window__emoji-glyph {
+      font-size: 14px;
+    }
+
+    &--enter {
+      animation: chat-window-badge-in 0.3s cubic-bezier(0.34, 1.4, 0.64, 1) both;
+    }
+
+    &--mine {
+      background-color: $mine-reaction-background;
+      border-color: rgba(globals.$muted-color, 0.6);
+    }
+
+    &--pending {
+      opacity: 0.6;
+      cursor: default;
+    }
+
+    &--static {
+      cursor: default;
+    }
+
+    &:not(&--static):hover,
+    &:focus-visible {
+      border-color: rgba(255, 255, 255, 0.32);
+    }
+
+    &--mine:not(&--static):hover,
+    &--mine:focus-visible {
+      border-color: globals.$muted-color;
+    }
+  }
+
+  &__reaction-count {
+    font-size: 11px;
+    font-weight: 700;
+    line-height: 1;
+    font-variant-numeric: tabular-nums;
+  }
+
+  &__reaction-tooltip {
+    position: absolute;
+    bottom: calc(100% + 6px);
+    left: 0;
+    z-index: 2;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    padding: 6px 10px;
+    background-color: $popover-background;
+    border: 1px solid $popover-border;
+    border-radius: 6px;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+    white-space: nowrap;
+    pointer-events: none;
+    opacity: 0;
+    visibility: hidden;
+    transition:
+      opacity 0.15s ease,
+      visibility 0.15s ease;
+  }
+
+  &__reactions--end &__reaction-tooltip {
+    right: 0;
+    left: auto;
+    align-items: flex-end;
+  }
+
+  &__reaction-wrapper:hover &__reaction-tooltip,
+  &__reaction-wrapper:focus-within &__reaction-tooltip {
+    opacity: 1;
+    visibility: visible;
+    transition-delay: 0.35s;
+  }
+
+  &__reaction-tooltip-label {
+    font-size: globals.$small-font-size;
+    font-weight: 600;
+    line-height: 16px;
+    color: globals.$muted-color;
+  }
+
+  &__reaction-tooltip-hint {
+    font-size: 11px;
+    line-height: 14px;
+    color: $meta-text;
+  }
+
+  &__message-action--active {
+    background-color: rgba(255, 255, 255, 0.08);
+    color: globals.$muted-color;
+  }
+
+  &__reaction-bar {
+    position: absolute;
+    z-index: 3;
+    display: flex;
+    align-items: center;
+    gap: 2px;
+    padding: 4px;
+    background-color: $popover-background;
+    border: 1px solid $popover-border;
+    border-radius: 8px;
+    box-shadow: 0 12px 32px rgba(0, 0, 0, 0.55);
+    animation: chat-window-popover-in 0.18s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+
+    &--above {
+      bottom: calc(100% + 6px);
+    }
+
+    &--below {
+      top: calc(100% + 6px);
+    }
+
+    &--start {
+      left: 0;
+      transform-origin: bottom left;
+    }
+
+    &--end {
+      right: 0;
+      transform-origin: bottom right;
+    }
+
+    // Each option lands a beat after the one before it.
+    @for $index from 2 through 7 {
+      > button:nth-of-type(#{$index}) {
+        animation-delay: ($index - 1) * 0.025s;
+      }
+    }
+  }
+
+  &__reaction-option,
+  &__reaction-more {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    padding: 0;
+    background: none;
+    border: none;
+    border-radius: 6px;
+    color: globals.$body-color;
+    cursor: pointer;
+    transition: background-color 0.15s ease;
+    animation: chat-window-reaction-option-in 0.28s
+      cubic-bezier(0.34, 1.4, 0.64, 1) both;
+
+    &:hover,
+    &:focus-visible {
+      background-color: rgba(255, 255, 255, 0.08);
+      color: globals.$muted-color;
+    }
+  }
+
+  &__reaction-option {
+    .chat-window__emoji-glyph {
+      font-size: 20px;
+      transition: transform 0.15s cubic-bezier(0.34, 1.4, 0.64, 1);
+    }
+
+    &:hover .chat-window__emoji-glyph,
+    &:focus-visible .chat-window__emoji-glyph {
+      transform: scale(1.2);
+    }
+
+    &[aria-pressed="true"] {
+      background-color: rgba(globals.$muted-color, 0.14);
+      box-shadow: inset 0 0 0 1px rgba(globals.$muted-color, 0.4);
+    }
+  }
+
+  &__reaction-bar-divider {
+    width: 1px;
+    height: 20px;
+    margin: 0 4px;
+    background-color: $popover-border;
+  }
+
+  &__emoji-picker {
+    position: absolute;
+    z-index: 5;
+    display: flex;
+    flex-direction: column;
+    width: 328px;
+    height: 376px;
+    overflow: hidden;
+    background-color: $popover-background;
+    border: 1px solid $popover-border;
+    border-radius: 8px;
+    box-shadow: 0 12px 32px rgba(0, 0, 0, 0.55);
+    color: globals.$body-color;
+    animation: chat-window-popover-in 0.2s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+
+    &--reaction {
+      bottom: globals.$spacing-unit;
+      max-height: calc(100% - globals.$spacing-unit * 2);
+    }
+
+    &--start {
+      left: calc(globals.$spacing-unit * 2);
+      transform-origin: bottom left;
+    }
+
+    &--end {
+      right: calc(globals.$spacing-unit * 2);
+      transform-origin: bottom right;
+    }
+
+    // 8px above the composer box, which starts 12px into the composer.
+    &--composer {
+      bottom: calc(100% - 4px);
+      left: calc(globals.$spacing-unit * 2);
+      max-height: calc(100vh - 160px);
+      transform-origin: bottom left;
+    }
+  }
+
+  &__emoji-search {
+    display: flex;
+    align-items: center;
+    gap: globals.$spacing-unit;
+    flex-shrink: 0;
+    height: 32px;
+    margin: globals.$spacing-unit globals.$spacing-unit 0;
+    padding: 0 6px 0 10px;
+    background-color: globals.$dark-background-color;
+    border: 1px solid globals.$border-color;
+    border-radius: 6px;
+    transition: border-color 0.2s ease;
+
+    &:focus-within {
+      border-color: #dadbe1;
+    }
+  }
+
+  &__emoji-search-icon {
+    flex-shrink: 0;
+    color: $meta-text;
+  }
+
+  &__emoji-search-input {
+    flex: 1;
+    min-width: 0;
+    height: 100%;
+    padding: 0;
+    background: none;
+    border: none;
+    outline: none;
+    color: globals.$muted-color;
+    font-family: inherit;
+    font-size: globals.$hint-font-size;
+
+    &::placeholder {
+      color: globals.$body-color;
+      opacity: 0.6;
+    }
+  }
+
+  &__emoji-search-clear {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    width: 20px;
+    height: 20px;
+    padding: 0;
+    background: none;
+    border: none;
+    border-radius: 4px;
+    color: globals.$body-color;
+    cursor: pointer;
+
+    &:hover,
+    &:focus-visible {
+      background-color: rgba(255, 255, 255, 0.08);
+      color: globals.$muted-color;
+    }
+  }
+
+  &__emoji-tabs {
+    display: flex;
+    gap: 2px;
+    flex-shrink: 0;
+    padding: 6px globals.$spacing-unit;
+    border-bottom: 1px solid globals.$border-color;
+  }
+
+  &__emoji-tab {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex: 1;
+    height: 28px;
+    padding: 0;
+    background: none;
+    border: none;
+    border-radius: 6px;
+    color: $meta-text;
+    cursor: pointer;
+    transition:
+      background-color 0.15s ease,
+      color 0.15s ease;
+
+    &:hover,
+    &:focus-visible {
+      color: globals.$body-color;
+    }
+
+    &--active,
+    &--active:hover {
+      background-color: rgba(255, 255, 255, 0.08);
+      color: globals.$muted-color;
+    }
+  }
+
+  &__emoji-body {
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+    padding: 4px globals.$spacing-unit globals.$spacing-unit;
+    scrollbar-width: thin;
+    scrollbar-color: rgba(255, 255, 255, 0.22) transparent;
+  }
+
+  &__emoji-section-title {
+    padding: 6px 4px;
+    font-size: globals.$small-font-size;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: $meta-text;
+  }
+
+  &__emoji-grid {
+    display: grid;
+    grid-template-columns: repeat(8, minmax(0, 1fr));
+    gap: 2px;
+  }
+
+  &__emoji-option {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 36px;
+    padding: 0;
+    background: none;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: background-color 0.1s ease;
+
+    .chat-window__emoji-glyph {
+      font-size: 22px;
+    }
+
+    &:hover,
+    &:focus-visible {
+      background-color: rgba(255, 255, 255, 0.08);
+    }
+
+    &--selected {
+      background-color: rgba(globals.$muted-color, 0.14);
+      box-shadow: inset 0 0 0 1px rgba(globals.$muted-color, 0.4);
+    }
+  }
+
+  &__emoji-empty {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    padding: calc(globals.$spacing-unit * 6) calc(globals.$spacing-unit * 2);
+    text-align: center;
+  }
+
+  &__emoji-empty-title {
+    margin: 0;
+    font-size: globals.$hint-font-size;
+    font-weight: 700;
+    color: globals.$muted-color;
+  }
+
+  &__emoji-empty-description {
+    margin: 0;
+    font-size: globals.$small-font-size;
+    line-height: 18px;
+    color: $meta-text;
+  }
+
+  &__emoji-footer {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-shrink: 0;
+    height: 44px;
+    padding: 0 calc(globals.$spacing-unit * 1.5);
+    border-top: 1px solid globals.$border-color;
+  }
+
+  &__emoji-footer-glyph {
+    font-size: 24px;
+  }
+
+  &__emoji-footer-name {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-size: globals.$hint-font-size;
+    font-weight: 600;
+    color: globals.$muted-color;
+  }
+
+  &__composer-emoji {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    width: 32px;
+    height: 32px;
+    margin-left: -6px;
+    padding: 0;
+    background: none;
+    border: none;
+    border-radius: 6px;
+    color: globals.$body-color;
+    cursor: pointer;
+    transition:
+      background-color 0.2s ease,
+      color 0.2s ease;
+
+    &:hover,
+    &:focus-visible,
+    &--open {
+      background-color: rgba(255, 255, 255, 0.08);
+      color: globals.$muted-color;
+    }
+
+    &:disabled {
+      background: none;
+      color: rgba(globals.$body-color, 0.4);
+      cursor: not-allowed;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    &__reaction--enter,
+    &__reaction-bar,
+    &__reaction-option,
+    &__reaction-more,
+    &__emoji-picker {
+      animation: none;
+    }
+
+    &__reaction-option:hover .chat-window__emoji-glyph,
+    &__reaction-option:focus-visible .chat-window__emoji-glyph {
+      transform: none;
+    }
+  }
+
   @media (prefers-reduced-motion: reduce) {
     &__composer-box--shake {
       animation-name: chat-window-still;
     }
 
     &__composer-hint,
+    &__composer-reply,
     &__zzz path {
       animation: none;
     }

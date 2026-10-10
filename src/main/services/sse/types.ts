@@ -29,8 +29,21 @@ export interface ChatMessage {
   body: string;
   clientNonce: string;
   createdAt: string;
+  replyToSeq?: number;
+  replyTo?: {
+    senderId: string;
+    body: string;
+  };
 }
 
 export interface ChatTyping {
   senderId: string;
+}
+
+export interface ChatReaction {
+  senderId: string;
+  recipientId: string;
+  seq: number;
+  emoji: string | null;
+  updatedAt: string;
 }

@@ -683,6 +683,15 @@ export class WindowManager {
 
     this.chatWindow.removeMenu();
 
+    // Message links open in the browser after the renderer's prompt; nothing
+    // may load a site in this window or pop one up from it.
+    this.chatWindow.webContents.setWindowOpenHandler(() => ({
+      action: "deny",
+    }));
+    this.chatWindow.webContents.on("will-navigate", (event) => {
+      event.preventDefault();
+    });
+
     this.loadWindowURL(this.chatWindow, "chat-window");
 
     this.chatWindow.once("ready-to-show", () => {

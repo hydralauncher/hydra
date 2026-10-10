@@ -1,5 +1,19 @@
 export type ChatMessageStatus = "sent" | "pending" | "failed";
 
+export interface ChatMessageReply {
+  seq: number;
+  /** Unset once the replied-to message is past chat retention. */
+  quoted?: { fromMe: boolean; text: string };
+}
+
+export interface ChatReaction {
+  emoji: string;
+  fromMe: boolean;
+  updatedAt: string;
+  /** Set on the user's own reaction while it is being saved. */
+  isPending?: boolean;
+}
+
 export interface ChatMessage {
   /** The client nonce, so the React key survives the pending → sent swap. */
   id: string;
@@ -10,6 +24,9 @@ export interface ChatMessage {
   text: string;
   createdAt: string;
   status: ChatMessageStatus;
+  replyTo?: ChatMessageReply;
+  /** Oldest first, at most one from each side. */
+  reactions?: ChatReaction[];
   /** Loaded from history rather than sent or received live: no entrance animation. */
   fromHistory?: boolean;
 }

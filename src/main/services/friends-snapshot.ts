@@ -1,3 +1,4 @@
+import { PROFILE_FRIENDS_PATH } from "@shared";
 import type { FriendRequest, FriendsSnapshot, ProfileFriends } from "@types";
 import { HydraApi } from "./hydra-api";
 import { logger } from "./logger";
@@ -52,7 +53,7 @@ export class FriendsSnapshotCache {
   ): Promise<FriendsSnapshot | null> {
     try {
       const [profileFriends, friendRequests] = await Promise.all([
-        HydraApi.get<ProfileFriends>("/profile/friends", {
+        HydraApi.get<ProfileFriends>(PROFILE_FRIENDS_PATH, {
           take: FRIENDS_PAGE_SIZE,
           skip: 0,
         }),
