@@ -51,6 +51,7 @@ export const THEMES_PATH = path.join(SystemPath.getPath("userData"), "themes");
 export const INTERVALS = {
   processWatcher: 2_000,
   downloadWatcher: 2_000,
+  debridReadinessWatcher: 5_000,
   achievementWatcher: 2_000,
   emulatorSouvenirWatcher: 2_000,
   seedStatusWatcher: 2_000,

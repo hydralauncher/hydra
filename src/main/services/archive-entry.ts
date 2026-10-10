@@ -1,4 +1,6 @@
 import { execFile } from "node:child_process";
+import fs from "node:fs";
+import path from "node:path";
 import { promisify } from "node:util";
 
 const execFileAsync = promisify(execFile);
@@ -9,6 +11,39 @@ export interface ArchiveEntry {
   name: string;
   size: number;
   encrypted?: boolean;
+}
+
+export async function listArchiveFiles(
+  directoryPath: string,
+  maxSubfolderDepth: number,
+  archiveExtensions: readonly string[]
+): Promise<string[]> {
+  const visit = async (
+    relativePath: string,
+    depth: number
+  ): Promise<string[]> => {
+    const entries = await fs.promises.readdir(
+      path.join(directoryPath, relativePath),
+      { withFileTypes: true }
+    );
+    const groups = await Promise.all(
+      entries.map(async (entry) => {
+        const entryPath = path.join(relativePath, entry.name);
+        if (
+          entry.isFile() &&
+          archiveExtensions.some((ext) =>
+            entry.name.toLowerCase().endsWith(ext)
+          )
+        )
+          return [entryPath];
+        if (entry.isDirectory() && depth < maxSubfolderDepth)
+          return visit(entryPath, depth + 1);
+        return [];
+      })
+    );
+    return groups.flat();
+  };
+  return visit("", 0);
 }
 
 export const listArchiveEntries = async (
