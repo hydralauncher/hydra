@@ -266,17 +266,39 @@ export async function downloadParallelRanges({
     if (!response.body) throw new Error("Range response body is null");
     const reader = response.body.getReader();
     let received = 0;
+    const writeChunk = async (
+      chunk: Uint8Array,
+      written = 0
+    ): Promise<void> => {
+      if (written === chunk.length) return;
+      const offset = range.start + received;
+      const result = await file.write(
+        chunk,
+        written,
+        chunk.length - written,
+        offset
+      );
+      if (!result.bytesWritten)
+        throw new Error("Could not write the downloaded byte range");
+      markSavedRange(state, offset, offset + result.bytesWritten);
+      received += result.bytesWritten;
+      afterChunk(result.bytesWritten);
+      return writeChunk(chunk, written + result.bytesWritten);
+    };
     try {
-      for (;;) {
-        onReadPending(range.start, true);
-        let result: ReadableStreamReadResult<Uint8Array>;
-        try {
-          result = await reader.read();
-        } finally {
-          onReadPending(range.start, false);
-        }
-        if (result.done) break;
-        const chunk = result.value;
+      const chunks: AsyncIterable<Uint8Array> = {
+        [Symbol.asyncIterator]: () => ({
+          next: async () => {
+            onReadPending(range.start, true);
+            try {
+              return await reader.read();
+            } finally {
+              onReadPending(range.start, false);
+            }
+          },
+        }),
+      };
+      for await (const chunk of chunks) {
         if (received + chunk.length > range.end - range.start + 1) {
           throw new ParallelRangeUnsupportedError(
             "The server sent more data than the requested byte range"
@@ -284,22 +306,7 @@ export async function downloadParallelRanges({
         }
         await beforeChunk(chunk.length);
         signal.throwIfAborted();
-        let written = 0;
-        while (written < chunk.length) {
-          const offset = range.start + received;
-          const result = await file.write(
-            chunk,
-            written,
-            chunk.length - written,
-            offset
-          );
-          if (!result.bytesWritten)
-            throw new Error("Could not write the downloaded byte range");
-          markSavedRange(state, offset, offset + result.bytesWritten);
-          written += result.bytesWritten;
-          received += result.bytesWritten;
-          afterChunk(result.bytesWritten);
-        }
+        await writeChunk(chunk);
         if (Date.now() - lastCheckpoint >= 1000) {
           lastCheckpoint = Date.now();
           await persist();
@@ -318,13 +325,14 @@ export async function downloadParallelRanges({
       throw error;
     }
   };
-  const worker = async (): Promise<void> => {
-    for (;;) {
+  async function* pendingJobs() {
+    while (nextJob < jobs.length) {
       signal.throwIfAborted();
-      const job = jobs[nextJob++];
-      if (!job) return;
-      await runRange(job);
+      yield jobs[nextJob++];
     }
+  }
+  const worker = async (): Promise<void> => {
+    for await (const job of pendingJobs()) await runRange(job);
   };
   let workers: Promise<void>[] = [];
   try {

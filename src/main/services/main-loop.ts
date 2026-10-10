@@ -29,7 +29,10 @@ const wrapInLoop = (fn: () => unknown, interval: number) => {
 export const startMainLoop = async () => {
   wrapInLoop(() => watchProcesses(), INTERVALS.processWatcher);
   wrapInLoop(() => DownloadManager.watchDownloads(), INTERVALS.downloadWatcher);
-  wrapInLoop(() => DownloadOrchestrator.pollAwaitingDebridDownloads(), 5000);
+  wrapInLoop(
+    () => DownloadOrchestrator.pollAwaitingDebridDownloads(),
+    INTERVALS.debridReadinessWatcher
+  );
   wrapInLoop(
     () => AchievementWatcherManager.watchAchievements(),
     INTERVALS.achievementWatcher

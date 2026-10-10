@@ -78,22 +78,28 @@ export async function verifyResumePrefixChunk(
   length: number
 ): Promise<void> {
   const localChunk = Buffer.allocUnsafe(length);
-  let bytesRead = 0;
-
-  while (bytesRead < length) {
-    const result = await file.read(
-      localChunk,
-      bytesRead,
-      length - bytesRead,
-      offset + bytesRead
-    );
-    if (result.bytesRead === 0) throw new ResumePrefixMismatchError();
-    bytesRead += result.bytesRead;
-  }
+  await readResumePrefix(file, localChunk, offset);
 
   if (!localChunk.equals(Buffer.from(remoteChunk.subarray(0, length)))) {
     throw new ResumePrefixMismatchError();
   }
+}
+
+async function readResumePrefix(
+  file: FileHandle,
+  buffer: Buffer,
+  offset: number,
+  bytesRead = 0
+): Promise<void> {
+  if (bytesRead === buffer.length) return;
+  const result = await file.read(
+    buffer,
+    bytesRead,
+    buffer.length - bytesRead,
+    offset + bytesRead
+  );
+  if (result.bytesRead === 0) throw new ResumePrefixMismatchError();
+  return readResumePrefix(file, buffer, offset, bytesRead + result.bytesRead);
 }
 
 export function chooseDownloadOutputPath(

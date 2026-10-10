@@ -919,3 +919,46 @@ it("keeps parallel range validation when an open-ended probe has a strong valida
     await f.close();
   }
 });
+
+it("resumes a generated ZIP from a full response only after checking the saved prefix", async () => {
+  const f = await fixture({ ignoreRange: true, size: 64 * 1024 });
+  const file = path.join(f.root, f.options.filename);
+  fs.mkdirSync(path.dirname(file), { recursive: true });
+  fs.writeFileSync(file, f.data.subarray(0, 16 * 1024));
+  try {
+    const downloader = new JsHttpDownloader();
+    await downloader.startDownload({
+      ...f.options,
+      allowParallelRanges: false,
+      verifyResumePrefix: true,
+    });
+    assert.deepEqual(fs.readFileSync(file), f.data);
+    assert.equal(downloader.getDownloadStatus()?.status, "complete");
+    assert.equal(
+      downloader.getDownloadStatus()?.resumeCapability,
+      "unsupported"
+    );
+  } finally {
+    await f.close();
+  }
+});
+it("keeps a generated ZIP partial file when the full response has a changed prefix", async () => {
+  const f = await fixture({ ignoreRange: true, size: 64 * 1024 });
+  const file = path.join(f.root, f.options.filename);
+  const saved = Buffer.alloc(16 * 1024, 255);
+  fs.mkdirSync(path.dirname(file), { recursive: true });
+  fs.writeFileSync(file, saved);
+  try {
+    await assert.rejects(
+      new JsHttpDownloader().startDownload({
+        ...f.options,
+        allowParallelRanges: false,
+        verifyResumePrefix: true,
+      }),
+      /archive changed/
+    );
+    assert.deepEqual(fs.readFileSync(file), saved);
+  } finally {
+    await f.close();
+  }
+});

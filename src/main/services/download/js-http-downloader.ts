@@ -253,15 +253,7 @@ export class JsHttpDownloader {
           break;
         } catch (err) {
           this.abortController?.abort();
-          if (this.outputFilePath) {
-            try {
-              this.bytesDownloaded = getRangeDownloadedBytes(
-                this.outputFilePath
-              );
-            } catch {
-              /* An invalid map must preserve the original error. */
-            }
-          }
+          this.restoreSavedByteCount();
           const shouldRetry = await this.handleDownloadErrorWithRetry(
             err as Error
           );
@@ -275,6 +267,16 @@ export class JsHttpDownloader {
       }
     } finally {
       this.isDownloading = false;
+    }
+  }
+
+  private restoreSavedByteCount(): void {
+    if (this.outputFilePath) {
+      try {
+        this.bytesDownloaded = getRangeDownloadedBytes(this.outputFilePath);
+      } catch {
+        /* An invalid map must preserve the original error. */
+      }
     }
   }
 
@@ -314,19 +316,7 @@ export class JsHttpDownloader {
   }
 
   private async handleDownloadErrorWithRetry(err: Error): Promise<boolean> {
-    if (err instanceof ParallelRangeHttpStatusError) {
-      err = new HttpDownloadStatusError(
-        err.statusCode,
-        isRetryableHttpStatus(err.statusCode),
-        parseRetryAfterMs(err.retryAfter, Date.now())
-      );
-    }
-    if (err instanceof ParallelRangeUnsupportedError) {
-      this.parallelRangesDisabled = true;
-      logger.log(
-        "[JsHttpDownloader] Server stopped honoring byte ranges; retrying with one connection"
-      );
-    }
+    err = this.normalizeRangeError(err);
 
     if (this.isPaused) {
       logger.log("[JsHttpDownloader] Download paused/cancelled by user");
@@ -386,6 +376,23 @@ export class JsHttpDownloader {
 
     this.handleDownloadError(err);
     return false;
+  }
+
+  private normalizeRangeError(err: Error): Error {
+    if (err instanceof ParallelRangeHttpStatusError) {
+      err = new HttpDownloadStatusError(
+        err.statusCode,
+        isRetryableHttpStatus(err.statusCode),
+        parseRetryAfterMs(err.retryAfter, Date.now())
+      );
+    }
+    if (err instanceof ParallelRangeUnsupportedError) {
+      this.parallelRangesDisabled = true;
+      logger.log(
+        "[JsHttpDownloader] Server stopped honoring byte ranges; retrying with one connection"
+      );
+    }
+    return err;
   }
 
   private async refreshUrlOnRetry(): Promise<
@@ -494,19 +501,30 @@ export class JsHttpDownloader {
   }
 
   private async applyThrottle(chunkSize: number): Promise<void> {
-    while (!this.isPaused && !this.abortController?.signal.aborted) {
-      const limit = this.maxDownloadSpeedBytesPerSecond;
-      if (!limit) return;
-      const elapsed = Date.now() - this.throttleWindowStart;
-      const required =
-        ((this.bytesTransferredInThrottleWindow + chunkSize) * 1000) / limit;
-      if (elapsed >= required) {
-        this.bytesTransferredInThrottleWindow += chunkSize;
-        return;
-      }
-      // Share the budget across workers and react to changed limits or pause.
-      await this.sleep(Math.min(100, Math.max(1, required - elapsed)));
-    }
+    await new Promise<void>((resolve) => {
+      const checkBudget = () => {
+        if (this.isPaused || this.abortController?.signal.aborted) {
+          resolve();
+          return;
+        }
+        const limit = this.maxDownloadSpeedBytesPerSecond;
+        if (!limit) {
+          resolve();
+          return;
+        }
+        const elapsed = Date.now() - this.throttleWindowStart;
+        const required =
+          ((this.bytesTransferredInThrottleWindow + chunkSize) * 1000) / limit;
+        if (elapsed >= required) {
+          this.bytesTransferredInThrottleWindow += chunkSize;
+          resolve();
+          return;
+        }
+        // Keep one timer per worker while sharing the transfer budget.
+        setTimeout(checkBudget, Math.min(100, Math.max(1, required - elapsed)));
+      };
+      checkBudget();
+    });
   }
 
   private prepareDownloadPath(
@@ -704,12 +722,10 @@ export class JsHttpDownloader {
         : null;
       const unboundedProbe =
         this.currentOptions?.probeUnboundedRange && !this.savedRangeState;
+      const gapEnd = firstGap ? firstGap[1] - 1 : Number.MAX_SAFE_INTEGER;
       const rangeEnd = unboundedProbe
         ? Number.MAX_SAFE_INTEGER
-        : Math.min(
-            startByte + rangeSize - 1,
-            firstGap ? firstGap[1] - 1 : Number.MAX_SAFE_INTEGER
-          );
+        : Math.min(startByte + rangeSize - 1, gapEnd);
       const requestedRange = unboundedProbe
         ? `bytes=${startByte}-`
         : `bytes=${startByte}-${rangeEnd}`;

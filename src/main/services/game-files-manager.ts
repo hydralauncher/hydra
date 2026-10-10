@@ -210,16 +210,12 @@ export class GameFilesManager {
     outerArchivePath: string | undefined,
     compressedFiles: Set<string>,
     extractedFiles: Set<string>
-  ): Promise<boolean> {
-    if (extractedFiles.size === 0) return true;
+  ): Promise<void> {
+    if (extractedFiles.size === 0) return;
     this.updateExtractionProgress(1, true);
 
-    if (outerArchivePath) {
-      // The inner archives remain available; remove the generated wrapper only
-      // after every discovered archive has extracted successfully.
-      await deleteArchiveFile(outerArchivePath);
-      return true;
-    }
+    // The caller applies the user's retention preference to the outer archive.
+    if (outerArchivePath) return;
 
     const archivePaths = [...compressedFiles]
       .map((file) => path.join(directoryPath, file))
@@ -250,7 +246,7 @@ export class GameFilesManager {
       }
     }
 
-    return true;
+    return;
   }
 
   async extractFilesInDirectory(
@@ -321,12 +317,13 @@ export class GameFilesManager {
       }
     }
 
-    return this.finishArchiveExtraction(
+    await this.finishArchiveExtraction(
       directoryPath,
       outerArchivePath,
       compressedFiles,
       extractedFiles
     );
+    return true;
   }
 
   async setExtractionComplete(publishNotification = true) {

@@ -1,4 +1,5 @@
 import { downloadsSublevel, levelKeys } from "@main/level";
+import { withDownloadActivation } from "./download/download-activation";
 import { DownloadManager } from "./download/download-manager";
 import { isDebridPendingError } from "./download/debrid-files";
 import { WindowManager } from "./window-manager";
@@ -98,7 +99,6 @@ export class DownloadOrchestrator {
     AbortController
   >();
   private static readonly lastDebridPollAt = new Map<string, number>();
-  private static readyDebridActivation: Promise<void> = Promise.resolve();
 
   private static invalidateBackgroundStart(downloadKey: string) {
     this.preparationControllers.get(downloadKey)?.abort();
@@ -368,30 +368,49 @@ export class DownloadOrchestrator {
     return { downloads, layoutState };
   }
 
-  private static async startNextQueuedDownload(downloads?: Download[]) {
-    let currentDownloads = downloads ?? (await this.getAllDownloads());
+  private static startNextQueuedDownload(downloads?: Download[]) {
+    return withDownloadActivation(() =>
+      this.activateNextQueuedDownload(downloads)
+    );
+  }
 
-    for (;;) {
-      const layoutState =
-        await getNormalizedDownloadLayoutState(currentDownloads);
-      const nextDownload = getNextQueuedDownloadFromLayout(
-        currentDownloads,
-        layoutState
-      );
-
-      if (!nextDownload) {
-        WindowManager.sendDownloadsUpdated();
-        return null;
-      }
-
-      const activated = await this.activateDownload(nextDownload);
-      if (activated) {
-        WindowManager.sendDownloadsUpdated();
-        return nextDownload;
-      }
-
-      currentDownloads = await this.getAllDownloads();
+  private static async activateNextQueuedDownload(
+    downloads?: Download[],
+    prepared?: { id: string; isCurrent: () => boolean; signal: AbortSignal }
+  ) {
+    if (prepared && !prepared.isCurrent()) return null;
+    const currentDownloads = downloads ?? (await this.getAllDownloads());
+    if (
+      DownloadManager.hasActiveDownload() ||
+      currentDownloads.some(isActiveLikeDownload)
+    )
+      return null;
+    const layoutState =
+      await getNormalizedDownloadLayoutState(currentDownloads);
+    if (DownloadManager.hasActiveDownload()) return null;
+    const nextDownload = getNextQueuedDownloadFromLayout(
+      currentDownloads,
+      layoutState
+    );
+    if (!nextDownload) {
+      WindowManager.sendDownloadsUpdated();
+      return null;
     }
+    const nextPreparation =
+      prepared?.id === getDownloadId(nextDownload) ? prepared : undefined;
+    const activated = await this.activateDownload(
+      nextDownload,
+      nextPreparation?.isCurrent,
+      nextPreparation?.signal
+    );
+    if (activated) {
+      WindowManager.sendDownloadsUpdated();
+      return nextDownload;
+    }
+    return this.activateNextQueuedDownload(
+      await this.getAllDownloads(),
+      prepared
+    );
   }
 
   private static async queueDownload(
@@ -488,75 +507,73 @@ export class DownloadOrchestrator {
     return nextDownload;
   }
 
+  private static isTerminalDownload(download: Download) {
+    return ["removed", "complete", "seeding", "error"].includes(
+      download.status ?? ""
+    );
+  }
+
+  private static normalizeAwaitingStartupDownload(download: Download) {
+    if (!download.awaitingDebrid) return;
+    if (this.isTerminalDownload(download)) {
+      download.awaitingDebrid = false;
+      download.debridAutoResume = false;
+      download.debridPreparationDeadline = undefined;
+      return;
+    }
+    download.status = "paused";
+    download.queued = false;
+    if (
+      download.debridAutoResume === true &&
+      (!Number.isFinite(download.debridPreparationDeadline) ||
+        download.debridPreparationDeadline! <= Date.now())
+    ) {
+      download.debridAutoResume = false;
+      download.debridPreparationDeadline = undefined;
+    }
+  }
+
+  private static normalizeStartupDownload(
+    download: Download,
+    queueInterrupted: boolean
+  ): Download {
+    const nextDownload = { ...download };
+    if (nextDownload.extracting) nextDownload.extracting = false;
+    if (nextDownload.pinnedToHero) nextDownload.pinnedToHero = false;
+    this.normalizeAwaitingStartupDownload(nextDownload);
+    if (nextDownload.status === "active") {
+      nextDownload.status = "paused";
+      nextDownload.queued = queueInterrupted;
+    }
+    if (this.isTerminalDownload(nextDownload) && nextDownload.queued)
+      nextDownload.queued = false;
+    return nextDownload;
+  }
+
   static async bootstrapDownloadsOnStartup() {
     const downloads = await this.getAllDownloads();
     let interruptedDownloadId: string | null = null;
 
-    for (const download of downloads) {
-      const nextDownload: Download = { ...download };
-      let shouldPersist = false;
-
-      if (nextDownload.extracting) {
-        nextDownload.extracting = false;
-        shouldPersist = true;
-      }
-
-      if (nextDownload.pinnedToHero) {
-        nextDownload.pinnedToHero = false;
-        shouldPersist = true;
-      }
-
-      if (nextDownload.awaitingDebrid) {
-        if (
-          nextDownload.status === "removed" ||
-          nextDownload.status === "complete" ||
-          nextDownload.status === "seeding" ||
-          nextDownload.status === "error"
-        ) {
-          nextDownload.awaitingDebrid = false;
-          nextDownload.debridAutoResume = false;
-          nextDownload.debridPreparationDeadline = undefined;
-          shouldPersist = true;
-        } else {
-          if (nextDownload.status !== "paused" || nextDownload.queued) {
-            nextDownload.status = "paused";
-            nextDownload.queued = false;
-            shouldPersist = true;
-          }
-          if (
-            nextDownload.debridAutoResume === true &&
-            (!Number.isFinite(nextDownload.debridPreparationDeadline) ||
-              nextDownload.debridPreparationDeadline! <= Date.now())
-          ) {
-            nextDownload.debridAutoResume = false;
-            nextDownload.debridPreparationDeadline = undefined;
-            shouldPersist = true;
-          }
-        }
-      }
-
-      if (nextDownload.status === "active") {
-        nextDownload.status = "paused";
-        nextDownload.queued = interruptedDownloadId == null;
-        interruptedDownloadId ??= getDownloadId(nextDownload);
-        shouldPersist = true;
-      }
-
-      if (
-        (nextDownload.status === "removed" ||
-          nextDownload.status === "complete" ||
-          nextDownload.status === "seeding" ||
-          nextDownload.status === "error") &&
-        nextDownload.queued
-      ) {
-        nextDownload.queued = false;
-        shouldPersist = true;
-      }
-
-      if (shouldPersist) {
-        await downloadsSublevel.put(getGameKey(nextDownload), nextDownload);
-      }
-    }
+    const changedDownloads = downloads
+      .map((download) => {
+        const nextDownload = this.normalizeStartupDownload(
+          download,
+          interruptedDownloadId == null
+        );
+        if (download.status === "active" && !download.awaitingDebrid)
+          interruptedDownloadId ??= getDownloadId(nextDownload);
+        return { download, nextDownload };
+      })
+      .filter(({ download, nextDownload }) =>
+        Object.keys(nextDownload).some(
+          (key) => download[key] !== nextDownload[key]
+        )
+      );
+    await Promise.all(
+      changedDownloads.map(({ nextDownload }) =>
+        downloadsSublevel.put(getGameKey(nextDownload), nextDownload)
+      )
+    );
 
     const normalizedDownloads = await this.getAllDownloads();
     await syncDownloadLayoutState(normalizedDownloads);
@@ -638,34 +655,23 @@ export class DownloadOrchestrator {
         preparation.dispose();
       }
     }
-    const { downloads } = await this.getDownloadsWithLayout();
-    if (!isCurrent()) return { ok: true };
-    const currentActiveDownload =
-      downloads.find(
-        (entry) =>
-          isActiveLikeDownload(entry) &&
-          getDownloadId(entry) !== getDownloadId(download)
-      ) ?? null;
-
-    if (currentActiveDownload) {
-      if (
-        !(await this.prepareRealDebridForQueue(download, isCurrent, signal))
-      ) {
-        return { ok: true };
-      }
-      await this.queueDownload(download);
-      WindowManager.sendDownloadsUpdated();
+    if (!(await this.prepareRealDebridForQueue(download, isCurrent, signal))) {
       return { ok: true };
     }
-
-    const activated = await this.activateDownload(download, isCurrent, signal);
-    if (!activated) return { ok: true };
-    if (!isCurrent()) return { ok: true };
-    const nextDownloads = await this.getAllDownloads();
-    await removeDownloadFromLayoutState(download, nextDownloads);
-    WindowManager.sendDownloadsUpdated();
-
-    return { ok: true };
+    return withDownloadActivation(async () => {
+      if (!isCurrent()) return { ok: true };
+      await this.queueDownload(download);
+      if (!isCurrent()) return { ok: true };
+      // Read the slot after preparation and queue persistence. Completion can
+      // happen during either wait, including after its empty-queue check.
+      await this.activateNextQueuedDownload(undefined, {
+        id: getDownloadId(download),
+        isCurrent,
+        signal,
+      });
+      WindowManager.sendDownloadsUpdated();
+      return { ok: true };
+    });
   }
 
   static startPreparedDownloadInBackground(download: Download) {
@@ -820,7 +826,11 @@ export class DownloadOrchestrator {
     ) {
       await this.queueDownload(readyDownload);
       if (!isCurrent()) return;
-      if (!hasActive) await this.startNextQueuedDownload();
+      await this.activateNextQueuedDownload(undefined, {
+        id: getDownloadId(readyDownload),
+        isCurrent,
+        signal,
+      });
       WindowManager.sendDownloadsUpdated();
       return;
     }
@@ -839,86 +849,90 @@ export class DownloadOrchestrator {
 
   static async pollAwaitingDebridDownloads(now = Date.now()) {
     const downloads = await this.getAllDownloads();
-    const polls: Promise<void>[] = [];
-    for (const download of downloads) {
-      if (
-        download.status !== "paused" ||
-        !download.awaitingDebrid ||
-        download.debridAutoResume !== true
-      ) {
-        continue;
-      }
-      const key = getGameKey(download);
-      const deadline = download.debridPreparationDeadline;
-      if (!Number.isFinite(deadline) || deadline! <= now) {
-        this.invalidateBackgroundStart(key);
-        await this.expireDebridPreparation(download);
-        continue;
-      }
-      if (
-        !this.isOnline ||
-        this.preparationControllers.has(key) ||
-        now - (this.lastDebridPollAt.get(key) ?? -Infinity) <
-          DEBRID_READINESS_POLL_MS
-      ) {
-        continue;
-      }
-      this.lastDebridPollAt.set(key, now);
-      const preparation = this.beginPreparation(key);
-      const timer = setTimeout(
-        () => preparation.controller.abort(),
-        Math.max(0, deadline! - now)
-      );
-      const poll = async () => {
-        try {
-          const ready = await this.waitForDebridReadiness(
-            download,
-            preparation.signal
-          );
-          clearTimeout(timer);
-          if (!preparation.isCurrent()) return;
-          if (!ready) {
-            const current = await this.getDownload(
-              download.shop,
-              download.objectId
-            );
-            if (!preparation.isCurrent() || !current?.debridAutoResume) return;
-            // Preparation can discover the cloud torrent ID before its files.
-            await downloadsSublevel.put(key, {
-              ...current,
-              realDebridTorrentId: download.realDebridTorrentId,
-            });
-            return;
-          }
-          const activate = this.readyDebridActivation.then(() =>
-            this.activateReadyDebridDownload(
-              download,
-              preparation.isCurrent,
-              preparation.signal
-            )
-          );
-          this.readyDebridActivation = activate.catch(() => undefined);
-          await activate;
-        } catch (error) {
-          if (!preparation.hasCurrentVersion()) return;
-          if (preparation.signal.aborted) {
-            await this.expireDebridPreparation(download);
-            return;
-          }
-          if (isDebridPendingError(error, download.downloader)) return;
-          await this.saveDebridPreparationError(
-            download,
-            preparation.isCurrent
-          );
-          logger.error("Failed to prepare pending debrid download", error);
-        } finally {
-          clearTimeout(timer);
-          preparation.dispose();
-        }
-      };
-      polls.push(poll());
+    const polls = await Promise.all(
+      downloads.map((download) => this.startDebridReadinessPoll(download, now))
+    );
+    await Promise.allSettled(
+      polls.flatMap((poll) => (poll ? [poll.result] : []))
+    );
+  }
+
+  private static async startDebridReadinessPoll(
+    download: Download,
+    now: number
+  ) {
+    if (
+      download.status !== "paused" ||
+      !download.awaitingDebrid ||
+      download.debridAutoResume !== true
+    ) {
+      return null;
     }
-    await Promise.allSettled(polls);
+    const key = getGameKey(download);
+    const deadline = download.debridPreparationDeadline;
+    if (!Number.isFinite(deadline) || deadline! <= now) {
+      this.invalidateBackgroundStart(key);
+      await this.expireDebridPreparation(download);
+      return null;
+    }
+    if (
+      !this.isOnline ||
+      this.preparationControllers.has(key) ||
+      now - (this.lastDebridPollAt.get(key) ?? -Infinity) <
+        DEBRID_READINESS_POLL_MS
+    ) {
+      return null;
+    }
+    this.lastDebridPollAt.set(key, now);
+    const preparation = this.beginPreparation(key);
+    const timer = setTimeout(
+      () => preparation.controller.abort(),
+      Math.max(0, deadline! - now)
+    );
+    const poll = async () => {
+      try {
+        const ready = await this.waitForDebridReadiness(
+          download,
+          preparation.signal
+        );
+        clearTimeout(timer);
+        if (!preparation.isCurrent()) return;
+        if (!ready) {
+          const current = await this.getDownload(
+            download.shop,
+            download.objectId
+          );
+          if (!preparation.isCurrent() || !current?.debridAutoResume) return;
+          // Preparation can discover the cloud torrent ID before its files.
+          await downloadsSublevel.put(key, {
+            ...current,
+            realDebridTorrentId: download.realDebridTorrentId,
+          });
+          return;
+        }
+        const activate = withDownloadActivation(() =>
+          this.activateReadyDebridDownload(
+            download,
+            preparation.isCurrent,
+            preparation.signal
+          )
+        );
+        await activate;
+      } catch (error) {
+        if (!preparation.hasCurrentVersion()) return;
+        if (preparation.signal.aborted) {
+          await this.expireDebridPreparation(download);
+          return;
+        }
+        if (isDebridPendingError(error, download.downloader)) return;
+        await this.saveDebridPreparationError(download, preparation.isCurrent);
+        logger.error("Failed to prepare pending debrid download", error);
+      } finally {
+        clearTimeout(timer);
+        preparation.dispose();
+      }
+    };
+    return { result: poll() };
   }
 
   static async resumeDownload(
@@ -1084,6 +1098,21 @@ export class DownloadOrchestrator {
     return true;
   }
 
+  private static preparePausedPlacement(
+    download: Download,
+    confirmed: boolean
+  ) {
+    if (
+      isActiveLikeDownload(download) &&
+      !DownloadManager.confirmPauseDownload(getGameKey(download), confirmed)
+    )
+      return false;
+    this.invalidateBackgroundStart(getGameKey(download));
+    download.debridAutoResume = false;
+    download.debridPreparationDeadline = undefined;
+    return true;
+  }
+
   static async moveDownloadPlacement(
     shop: GameShop,
     objectId: string,
@@ -1103,17 +1132,11 @@ export class DownloadOrchestrator {
 
     if (download.awaitingDebrid && targetArea !== "paused") return false;
 
-    if (targetArea === "paused") {
-      if (
-        isActiveLikeDownload(download) &&
-        !DownloadManager.confirmPauseDownload(getGameKey(download), confirmed)
-      ) {
-        return false;
-      }
-      this.invalidateBackgroundStart(getGameKey(download));
-      download.debridAutoResume = false;
-      download.debridPreparationDeadline = undefined;
-    }
+    if (
+      targetArea === "paused" &&
+      !this.preparePausedPlacement(download, confirmed)
+    )
+      return false;
 
     const { downloads, layoutState } = await this.getDownloadsWithLayout();
     const currentActiveDownload =

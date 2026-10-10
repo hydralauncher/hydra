@@ -1,6 +1,10 @@
+import { withDownloadActivation } from "./download-activation.ts";
 import assert from "node:assert/strict";
 import fs from "node:fs";
 import path from "node:path";
+import os from "node:os";
+import * as torboxFiles from "./torbox-files.ts";
+import * as rangeState from "./range-download-state.ts";
 import { it } from "node:test";
 import { runInNewContext } from "node:vm";
 import ts from "typescript";
@@ -12,7 +16,8 @@ import * as filenames from "./download-filename.ts";
 import type { DownloadProgress } from "../../../types/download.types.ts";
 import type { JsHttpDownloaderOptions } from "./js-http-downloader.ts";
 
-function manager() {
+function manager(manifest?: torboxFiles.TorBoxDownloadManifest) {
+  const starts: JsHttpDownloaderOptions[] = [];
   const exports: Record<string, unknown> = {};
   let stored: Record<string, unknown> = { files: [] };
   let unlocks = 0;
@@ -36,6 +41,7 @@ function manager() {
     require: (id: string) => {
       const deps: Record<string, unknown> = {
         "@shared": shared,
+        "./download-activation": { withDownloadActivation },
         "node:fs": fs,
         "node:path": path,
         "../logger": {
@@ -45,7 +51,43 @@ function manager() {
             error: () => undefined,
           },
         },
+        "../window-manager": {
+          WindowManager: {
+            sendDownloadsUpdated() {
+              return undefined;
+            },
+          },
+        },
+        "./disk-space": {
+          getDownloadDiskSpace: async () => ({ hasEnoughSpace: true }),
+        },
+        "../download-layout-state": {
+          getDownloadLayoutStateRecord: async () => ({}),
+          getNextQueuedDownloadFromLayout: (records: any[]) =>
+            records.find((d) => d.queued),
+        },
         "./debrid-files": debridFiles,
+        "./torbox-files": torboxFiles,
+        "./range-download-state": rangeState,
+        "./torbox": {
+          TorBoxClient: {
+            getDownloadFiles: async () => manifest,
+            requestLink: async () => "https://fixture.invalid/archive.zip",
+          },
+        },
+        "./js-http-downloader": {
+          JsHttpDownloader: class {
+            setMaxDownloadSpeedBytesPerSecond() {
+              return undefined;
+            }
+            async startDownload(options: JsHttpDownloaderOptions) {
+              starts.push(options);
+            }
+            getDownloadStatus() {
+              return { status: "paused", resumeCapability: "unsupported" };
+            }
+          },
+        },
         "./parallel-range-download": ranges,
         "./js-http-downloader-helpers": batchHelpers,
         "./helpers": { calculateETA: () => 0 },
@@ -64,8 +106,10 @@ function manager() {
           },
         },
         "@main/level": {
+          levelKeys: { game: (shop: string, id: string) => `${shop}:${id}` },
           downloadsSublevel: {
             get: async () => stored,
+            values: () => ({ all: async () => [stored] }),
             put: async (_key: string, value: Record<string, unknown>) => {
               stored = value;
             },
@@ -84,6 +128,10 @@ function manager() {
     },
   });
   const instance = exports.DownloadManager as {
+    processNextQueuedDownload: () => Promise<void>;
+    resumeDownload: (download: any) => Promise<void>;
+    startDownload: (download: any) => Promise<void>;
+    requiresPauseConfirmation: (key: string) => boolean;
     getBatchDownloadOptions: (
       b: ReturnType<typeof batch>,
       entry: ReturnType<typeof batch>["entries"][number],
@@ -103,6 +151,7 @@ function manager() {
   };
   return {
     instance,
+    starts,
     unlocks: () => unlocks,
     setStored: (d: Record<string, unknown>) => {
       stored = d;
@@ -281,4 +330,66 @@ it("returns per-file Real-Debrid progress and keeps the completed first file", a
       [2, 2, false],
     ]
   );
+});
+
+it("preserves the generated ZIP flag from the TorBox manifest through HTTP options", async () => {
+  const directory = fs.mkdtempSync(path.join(os.tmpdir(), "zip-manifest-"));
+  const f = manager({
+    torrentId: 1,
+    name: "folder",
+    totalSize: 8,
+    archiveOnly: true,
+    files: [{ id: 0, path: "folder/archive.zip", size: 8 }],
+  });
+  try {
+    await f.instance.startDownload({
+      shop: "steam",
+      objectId: "fixture",
+      downloader: shared.Downloader.TorBox,
+      uri: "magnet:fixture",
+      downloadPath: directory,
+    });
+    await new Promise((resolve) => setImmediate(resolve));
+    assert.equal(f.starts.length, 1);
+    const options = f.starts[0];
+    assert.equal(options.allowParallelRanges, false);
+    assert.equal(options.requireRangeResume, false);
+    assert.equal(options.expectedSize, undefined);
+    assert.equal(options.verifyResumePrefix, true);
+    assert.equal(f.instance.requiresPauseConfirmation("steam:fixture"), true);
+  } finally {
+    fs.rmSync(directory, { recursive: true, force: true });
+  }
+});
+
+it("completion can start the next queued transfer while the old torrent is seeding", async () => {
+  const f = manager();
+  f.setStored({
+    shop: "steam",
+    objectId: "queued",
+    status: "paused",
+    queued: true,
+  });
+  Object.assign(f.instance, { downloadingGameId: "steam:seeding" });
+  const resumed: string[] = [];
+  f.instance.resumeDownload = async (d) => {
+    resumed.push(d.objectId);
+  };
+  await f.instance.processNextQueuedDownload();
+  assert.deepEqual(resumed, ["queued"]);
+});
+it("completion does not replace another transfer that already claimed the slot", async () => {
+  const f = manager();
+  f.setStored({
+    shop: "steam",
+    objectId: "active",
+    status: "active",
+    queued: false,
+  });
+  const resumed: string[] = [];
+  f.instance.resumeDownload = async (d) => {
+    resumed.push(d.objectId);
+  };
+  await f.instance.processNextQueuedDownload();
+  assert.deepEqual(resumed, []);
 });

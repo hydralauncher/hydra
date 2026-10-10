@@ -18,29 +18,32 @@ export async function listArchiveFiles(
   maxSubfolderDepth: number,
   archiveExtensions: readonly string[]
 ): Promise<string[]> {
-  const archives: string[] = [];
-
-  const visit = async (relativePath: string, depth: number): Promise<void> => {
+  const visit = async (
+    relativePath: string,
+    depth: number
+  ): Promise<string[]> => {
     const entries = await fs.promises.readdir(
       path.join(directoryPath, relativePath),
       { withFileTypes: true }
     );
-
-    for (const entry of entries) {
-      const entryPath = path.join(relativePath, entry.name);
-      if (
-        entry.isFile() &&
-        archiveExtensions.some((ext) => entry.name.toLowerCase().endsWith(ext))
-      ) {
-        archives.push(entryPath);
-      } else if (entry.isDirectory() && depth < maxSubfolderDepth) {
-        await visit(entryPath, depth + 1);
-      }
-    }
+    const groups = await Promise.all(
+      entries.map(async (entry) => {
+        const entryPath = path.join(relativePath, entry.name);
+        if (
+          entry.isFile() &&
+          archiveExtensions.some((ext) =>
+            entry.name.toLowerCase().endsWith(ext)
+          )
+        )
+          return [entryPath];
+        if (entry.isDirectory() && depth < maxSubfolderDepth)
+          return visit(entryPath, depth + 1);
+        return [];
+      })
+    );
+    return groups.flat();
   };
-
-  await visit("", 0);
-  return archives;
+  return visit("", 0);
 }
 
 export const listArchiveEntries = async (

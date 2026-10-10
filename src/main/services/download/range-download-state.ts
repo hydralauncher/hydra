@@ -26,7 +26,8 @@ export function readRangeState(filePath: string): RangeDownloadState | null {
   const statePath = rangeStatePath(filePath);
   try {
     const stat = fs.lstatSync(statePath);
-    if (!stat.isFile() || stat.size > 1024 * 1024) throw new Error();
+    if (!stat.isFile() || stat.size > 1024 * 1024)
+      throw new Error("Invalid byte-range state file");
   } catch (error) {
     if ((error as NodeJS.ErrnoException).code === "ENOENT") return null;
     throw new Error(
@@ -53,7 +54,7 @@ export function readRangeState(filePath: string): RangeDownloadState | null {
       !stat.isFile() ||
       stat.size > state.total
     )
-      throw new Error();
+      throw new Error("Invalid byte-range state metadata");
     let previousEnd = -1;
     for (const range of state.ranges) {
       if (
@@ -66,7 +67,7 @@ export function readRangeState(filePath: string): RangeDownloadState | null {
         range[1] > state.total ||
         range[1] > stat.size
       )
-        throw new Error();
+        throw new Error("Invalid saved byte range");
       previousEnd = range[1];
     }
     return state;

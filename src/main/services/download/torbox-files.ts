@@ -152,7 +152,7 @@ export function buildTorBoxDownloadManifest(
 
   const totalSize = files.reduce((total, file) => total + file.size, 0);
   if (!Number.isSafeInteger(totalSize)) {
-    throw new Error("TorBox returned an invalid total file size.");
+    throw new TypeError("TorBox returned an invalid total file size.");
   }
   return {
     torrentId: torrent.id,

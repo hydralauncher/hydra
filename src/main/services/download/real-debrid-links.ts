@@ -20,34 +20,34 @@ export async function waitForRealDebridLinks(
   initialInfo?: RealDebridTorrentInfo,
   signal?: AbortSignal
 ) {
-  for (let attempt = 0; attempt < LINK_POLL_ATTEMPTS; attempt++) {
-    signal?.throwIfAborted();
-    const info = attempt === 0 && initialInfo ? initialInfo : await getInfo();
-    signal?.throwIfAborted();
-    throwIfRealDebridTorrentFailed(info);
-    if (info.status !== "downloaded") return null;
+  return pollRealDebridLinks(getInfo, wait, initialInfo, signal);
+}
 
-    const selectedFiles = info.files.filter((file) => file.selected);
-    if (
-      selectedFiles.length > 0 &&
-      selectedFiles.length === info.links.length
-    ) {
-      return { info, selectedFiles };
-    }
-
-    if (attempt === LINK_POLL_ATTEMPTS - 1) {
-      throw new Error(DownloadError.RealDebridLinksNotReady, {
-        cause: {
-          selectedFiles: selectedFiles.length,
-          links: info.links.length,
-        },
-      });
-    }
-
-    await wait(signal);
+async function pollRealDebridLinks(
+  getInfo: () => Promise<RealDebridTorrentInfo>,
+  wait: (signal?: AbortSignal) => Promise<void>,
+  initialInfo?: RealDebridTorrentInfo,
+  signal?: AbortSignal,
+  attempt = 0
+): Promise<{
+  info: RealDebridTorrentInfo;
+  selectedFiles: RealDebridTorrentInfo["files"];
+} | null> {
+  signal?.throwIfAborted();
+  const info = attempt === 0 && initialInfo ? initialInfo : await getInfo();
+  signal?.throwIfAborted();
+  throwIfRealDebridTorrentFailed(info);
+  if (info.status !== "downloaded") return null;
+  const selectedFiles = info.files.filter((file) => file.selected);
+  if (selectedFiles.length > 0 && selectedFiles.length === info.links.length)
+    return { info, selectedFiles };
+  if (attempt === LINK_POLL_ATTEMPTS - 1) {
+    throw new Error(DownloadError.RealDebridLinksNotReady, {
+      cause: { selectedFiles: selectedFiles.length, links: info.links.length },
+    });
   }
-
-  throw new Error(DownloadError.RealDebridLinksNotReady);
+  await wait(signal);
+  return pollRealDebridLinks(getInfo, wait, undefined, signal, attempt + 1);
 }
 
 export function isRealDebridArchiveCandidate(
