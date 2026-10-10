@@ -1,9 +1,5 @@
 import { Downloader, formatBytes, formatBytesToMbps } from "@shared";
-import type {
-  DownloadFile,
-  LibraryGame,
-  UserPreferences,
-} from "../../../../types";
+import type { LibraryGame, UserPreferences } from "../../../../types";
 import { getBigPictureDownloadView } from "../../../../types";
 import { addMilliseconds } from "date-fns";
 import { useCallback, useEffect, useMemo, useState } from "react";
@@ -47,7 +43,6 @@ export interface BigPictureDownloadListItem {
 }
 
 export interface BigPictureActiveDownloadItem {
-  files?: DownloadFile[];
   id: string;
   title: string;
   href: string;
@@ -381,9 +376,6 @@ export function useBigPictureDownloadsPageData() {
 
     return {
       id: activeGame.id,
-      files: shouldUseLivePacket
-        ? (lastPacket?.download.files ?? download.files)
-        : download.files,
       title: activeGame.title,
       href: getBigPictureGameDetailsPath(activeGame),
       coverImageUrl: getDownloadCoverImageUrl(activeGame),

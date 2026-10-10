@@ -1,4 +1,3 @@
-import { DownloadFiles } from "./download-files";
 import type { GameShop, LibraryGame, SeedingStatus } from "@types";
 
 import {
@@ -495,14 +494,6 @@ function HeroDownloadView({
             )}
           </div>
         </div>
-
-        <DownloadFiles
-          files={
-            isGameDownloading
-              ? (lastPacket?.download.files ?? game.download?.files)
-              : game.download?.files
-          }
-        />
 
         <div className="download-group__hero-stats">
           <div className="download-group__stats-column">
@@ -1207,7 +1198,6 @@ export function DownloadGroup({
                       )}
                     </div>
                   </div>
-                  <DownloadFiles files={game.download?.files} />
                 </div>
 
                 {isQueuedGroup && (

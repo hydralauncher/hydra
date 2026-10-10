@@ -1037,7 +1037,6 @@
     "loading": "Loading…"
   },
   "downloads": {
-    "download_files": "Files ({{count}})",
     "reconnecting": "Reconnecting…",
     "recovering": "Re-downloading the saved portion… {{percentage}}",
     "resume": "Resume",
