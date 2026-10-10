@@ -3,7 +3,8 @@ name: Torrent bridge prebuilts
 # Rebuilds the committed libtorrent bridge (native/torrent-bridge/prebuilt) on
 # every platform and commits it to the branch the workflow runs on. It runs
 # when a branch push changes the bridge inputs, or by hand; until it finishes,
-# installs build the bridge from source. Its own commit starts no workflows.
+# installs build the bridge from source. Checks on its own commit wait for a
+# maintainer to approve them in the Actions tab.
 
 on:
   push:
@@ -25,7 +26,27 @@ permissions:
   contents: read
 
 jobs:
+  # MSVC output differs on every build, so rebuilding current bundles would
+  # only commit new bytes. Manual runs always rebuild.
+  status:
+    runs-on: ubuntu-latest
+
+    outputs:
+      stale: ${{ github.event_name == 'workflow_dispatch' || steps.verify.outcome == 'failure' }}
+
+    steps:
+      - name: Check out Git repository
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+
+      - name: Verify prebuilt bridges
+        id: verify
+        continue-on-error: true
+        run: node scripts/torrent-bridge-prebuilt.cjs verify
+
   bridge:
+    needs: status
+    if: needs.status.outputs.stale == 'true'
+
     strategy:
       matrix:
         os: [windows-2022, ubuntu-latest]
@@ -35,10 +56,10 @@ jobs:
 
     steps:
       - name: Check out Git repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
 
       - name: Install Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with:
           node-version: 22.21.0
 
@@ -85,7 +106,7 @@ jobs:
           key: ${{ steps.vcpkg-cache.outputs.cache-primary-key }}
 
       - name: Upload prebuilt bridge
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: torrent-bridge-${{ matrix.os }}
           path: native/torrent-bridge/prebuilt/
@@ -100,14 +121,14 @@ jobs:
 
     steps:
       - name: Check out Git repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
 
       # Replace every bundle, so files a new build no longer has go away too.
       - name: Remove old prebuilt bridges
         run: rm -rf native/torrent-bridge/prebuilt
 
       - name: Download prebuilt bridges
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
         with:
           pattern: torrent-bridge-*
           merge-multiple: true

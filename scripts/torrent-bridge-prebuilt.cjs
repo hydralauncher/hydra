@@ -8,10 +8,12 @@
 //   node scripts/torrent-bridge-prebuilt.cjs verify  Fail if any bundle is stale
 //
 // The "Torrent bridge prebuilts" workflow runs `update` on every platform and
-// commits the results. Set HYDRA_TORRENT_BRIDGE_FROM_SOURCE=1 to ignore bundles.
+// commits the results. Bundles are skipped when HYDRA_TORRENT_BRIDGE_FROM_SOURCE=1
+// or HYDRA_TORRENT_SANITIZE=1, and on Linux systems that cannot load them.
 const fs = require("node:fs");
 const path = require("node:path");
 const crypto = require("node:crypto");
+const cp = require("node:child_process");
 const {
   root,
   source,
@@ -66,6 +68,41 @@ function getBundle() {
   return { triplet, dir, stamp, isCurrent: stamp === hashInputs() };
 }
 
+// Sanitizer builds and explicit requests need the bridge compiled here.
+function isSourceBuildForced() {
+  return (
+    process.env.HYDRA_TORRENT_BRIDGE_FROM_SOURCE === "1" ||
+    process.env.HYDRA_TORRENT_SANITIZE === "1"
+  );
+}
+
+// The Linux bundle needs the glibc and libstdc++ versions of the image that
+// built it; ldd names any this system lacks.
+function findMissingLinuxDependencies(dir) {
+  if (process.platform !== "linux") return null;
+  const library = path.join(dir, "lib", "libhydra_torrent_bridge.so");
+  const result = cp.spawnSync("ldd", [library], { encoding: "utf8" });
+  const missing = `${result.stdout ?? ""}${result.stderr ?? ""}`
+    .split("\n")
+    .filter((line) => line.includes("not found"))
+    .map((line) => line.trim());
+  if (missing.length) return missing.join("; ");
+  if (result.error || result.status !== 0) return "ldd could not inspect it";
+  return null;
+}
+
+// Why this system cannot use its committed bundle, or null when it can.
+function getBundleProblem({ triplet, dir, stamp, isCurrent }) {
+  if (isSourceBuildForced()) return "a source build was requested";
+  if (!stamp) return `there is no prebuilt torrent bridge for ${triplet}`;
+  if (!isCurrent)
+    return `the prebuilt torrent bridge for ${triplet} is out of date. Run the "Torrent bridge prebuilts" workflow on this branch to refresh it`;
+  const missing = findMissingLinuxDependencies(dir);
+  if (missing)
+    return `this system cannot load the prebuilt torrent bridge (${missing})`;
+  return null;
+}
+
 function warn(message) {
   console.warn(process.env.GITHUB_ACTIONS ? `::warning::${message}` : message);
 }
@@ -73,19 +110,16 @@ function warn(message) {
 // Installs the committed bundle into hydra-native and returns the folder to
 // link against, or null when the bridge must be built from source.
 function usePrebuiltTorrentBridge() {
-  if (process.env.HYDRA_TORRENT_BRIDGE_FROM_SOURCE === "1") return null;
+  const bundle = getBundle();
+  const problem = getBundleProblem(bundle);
+  if (problem) {
+    // A missing bundle or a requested source build is expected; others are not.
+    const report = bundle.stamp && !isSourceBuildForced() ? warn : console.log;
+    report(`Building the torrent bridge from source: ${problem}.`);
+    return null;
+  }
 
-  const { triplet, dir, stamp, isCurrent } = getBundle();
-  if (!stamp) {
-    console.log(`No prebuilt torrent bridge for ${triplet}.`);
-    return null;
-  }
-  if (!isCurrent) {
-    warn(
-      `The prebuilt torrent bridge for ${triplet} is out of date, so it is being built from source. Run the "Torrent bridge prebuilts" workflow on this branch to refresh it.`
-    );
-    return null;
-  }
+  const { triplet, dir } = bundle;
 
   const output = prepareTorrentBridgeOutput();
   copyRuntimeLibraries(dir, output);
@@ -109,9 +143,12 @@ function updatePrebuilt() {
 }
 
 function check() {
-  const { triplet, isCurrent } = getBundle();
+  const problem = getBundleProblem(getBundle());
+  const isCurrent = problem === null;
   console.log(
-    `Prebuilt torrent bridge for ${triplet}: ${isCurrent ? "current" : "missing or out of date"}`
+    isCurrent
+      ? "The prebuilt torrent bridge is usable."
+      : `Not usable: ${problem}.`
   );
   if (process.env.GITHUB_OUTPUT)
     fs.appendFileSync(process.env.GITHUB_OUTPUT, `current=${isCurrent}\n`);
