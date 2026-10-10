@@ -14,6 +14,7 @@ on:
       - "native/torrent-bridge/**"
       - "!native/torrent-bridge/prebuilt/**"
       - "scripts/build-torrent-bridge.cjs"
+      - ".github/workflows/torrent-bridge-prebuilt.yml"
   workflow_dispatch:
 
 concurrency:
@@ -68,8 +69,13 @@ jobs:
         if: runner.os == 'Linux'
         run: sudo apt-get update && sudo apt-get install -y build-essential cmake ninja-build pkg-config curl zip unzip tar autoconf automake libtool
 
+      # The checkout carries every platform's committed bundle; drop them so
+      # this job's artifact holds only the one it builds.
       - name: Build torrent bridge
-        run: node scripts/torrent-bridge-prebuilt.cjs update
+        shell: bash
+        run: |
+          rm -rf native/torrent-bridge/prebuilt
+          node scripts/torrent-bridge-prebuilt.cjs update
 
       - name: Save vcpkg binary packages
         if: steps.vcpkg-cache.outputs.cache-hit != 'true'
@@ -106,6 +112,9 @@ jobs:
           pattern: torrent-bridge-*
           merge-multiple: true
           path: native/torrent-bridge/prebuilt
+
+      - name: Verify prebuilt bridges
+        run: node scripts/torrent-bridge-prebuilt.cjs verify
 
       # Fails if the branch moved during the build; the new commits may have
       # changed the bridge, so run the workflow again.

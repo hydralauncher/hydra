@@ -5,6 +5,7 @@
 //
 //   node scripts/torrent-bridge-prebuilt.cjs update  Rebuild this platform's bundle
 //   node scripts/torrent-bridge-prebuilt.cjs check   Report whether it is current
+//   node scripts/torrent-bridge-prebuilt.cjs verify  Fail if any bundle is stale
 //
 // The "Torrent bridge prebuilts" workflow runs `update` on every platform and
 // commits the results. Set HYDRA_TORRENT_BRIDGE_FROM_SOURCE=1 to ignore bundles.
@@ -116,15 +117,33 @@ function check() {
     fs.appendFileSync(process.env.GITHUB_OUTPUT, `current=${isCurrent}\n`);
 }
 
+// Fails unless every bundle, whatever its platform, matches the inputs.
+function verify() {
+  const hash = hashInputs();
+  const stale = fs.readdirSync(prebuiltRoot).filter((triplet) => {
+    const stampPath = path.join(prebuiltRoot, triplet, STAMP);
+    return (
+      !fs.existsSync(stampPath) ||
+      fs.readFileSync(stampPath, "utf8").trim() !== hash
+    );
+  });
+  if (stale.length) {
+    console.error(`Out of date prebuilt torrent bridges: ${stale.join(", ")}`);
+    process.exit(1);
+  }
+  console.log("Every prebuilt torrent bridge matches its inputs.");
+}
+
 module.exports = { usePrebuiltTorrentBridge };
 
 if (require.main === module) {
   const command = process.argv[2];
   if (command === "update") updatePrebuilt();
   else if (command === "check") check();
+  else if (command === "verify") verify();
   else {
     console.error(
-      "Usage: node scripts/torrent-bridge-prebuilt.cjs <update|check>"
+      "Usage: node scripts/torrent-bridge-prebuilt.cjs <update|check|verify>"
     );
     process.exit(1);
   }
