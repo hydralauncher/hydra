@@ -24,7 +24,7 @@ permissions:
   contents: read
 
 jobs:
-  build:
+  bridge:
     strategy:
       matrix:
         os: [windows-2022, ubuntu-latest]
@@ -86,7 +86,7 @@ jobs:
           if-no-files-found: error
 
   commit:
-    needs: build
+    needs: bridge
     runs-on: ubuntu-latest
 
     permissions:
