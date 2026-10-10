@@ -6,6 +6,10 @@ import { registerEvent } from "../register-event";
 import { getGameAssets } from "../catalogue/get-game-assets";
 import { getDownloadsPath } from "../helpers/get-downloads-path";
 import {
+  collectClearedExecutables,
+  findUnlinkedGames,
+} from "./scan-installed-games-core";
+import {
   isRedistributableDirectory,
   isRedistributablePath,
   rankExecutableCandidates,
@@ -68,6 +72,7 @@ interface AmbiguousMatch {
 
 interface ScanResult {
   linkedGames: FoundGame[];
+  unlinkedGames: FoundGame[];
   addedGames: FoundGame[];
   ambiguousMatches: AmbiguousMatch[];
   total: number;
@@ -901,7 +906,8 @@ const getScanNotificationDescriptionKey = (
 const getScanNotificationKeys = (
   addedCount: number,
   linkedCount: number,
-  pendingCount: number
+  pendingCount: number,
+  unlinkedCount: number
 ) => {
   if (addedCount + linkedCount > 0) {
     return {
@@ -917,6 +923,13 @@ const getScanNotificationKeys = (
     };
   }
 
+  if (unlinkedCount > 0) {
+    return {
+      title: "scan_games_complete_title",
+      description: "scan_games_complete_unlinked_description",
+    };
+  }
+
   return {
     title: "scan_games_no_results_title",
     description: "scan_games_no_results_description",
@@ -926,9 +939,15 @@ const getScanNotificationKeys = (
 async function publishScanNotification(
   addedCount: number,
   linkedCount: number,
-  pendingCount: number
+  pendingCount: number,
+  unlinkedCount: number
 ): Promise<void> {
-  const keys = getScanNotificationKeys(addedCount, linkedCount, pendingCount);
+  const keys = getScanNotificationKeys(
+    addedCount,
+    linkedCount,
+    pendingCount,
+    unlinkedCount
+  );
 
   await LocalNotificationManager.createNotification(
     "SCAN_GAMES_COMPLETE",
@@ -938,6 +957,7 @@ async function publishScanNotification(
       added: addedCount,
       linked: linkedCount,
       pending: pendingCount,
+      unlinked: unlinkedCount,
     }),
     { url: "/library?openScanModal=true" }
   );
@@ -984,7 +1004,7 @@ interface LibraryGameEntry {
   game: Game;
 }
 
-const loadLibraryGames = async (): Promise<LibraryGameEntry[]> => {
+const loadLibraryGames = async () => {
   const libraryGames = await gamesSublevel
     .iterator()
     .all()
@@ -1007,10 +1027,20 @@ const loadLibraryGames = async (): Promise<LibraryGameEntry[]> => {
     );
   }
 
-  return libraryGames.map(({ key, game }) => ({
-    key,
-    game: clearedGames.get(key) ?? game,
-  }));
+  const clearedExecutables = collectClearedExecutables(
+    libraryGames,
+    new Set(clearedGames.keys())
+  );
+
+  return {
+    games: libraryGames.map(
+      ({ key, game }): LibraryGameEntry => ({
+        key,
+        game: clearedGames.get(key) ?? game,
+      })
+    ),
+    clearedExecutables,
+  };
 };
 
 const logScannedDirectories = (scannedDirectories: ScannedDirectory[]) => {
@@ -1126,7 +1156,7 @@ const runScan = async (
   const directories = [...baseDirectories, ...additionalDirectories];
   const steamExecutables = installedSteamGames.executables;
 
-  const games = await loadLibraryGames();
+  const { games, clearedExecutables } = await loadLibraryGames();
 
   const scannedDirectories = await scanDirectories(
     directories,
@@ -1147,6 +1177,9 @@ const runScan = async (
     scannedDirectories,
     claimedPaths,
     signal
+  );
+  const unlinkedGames = await findUnlinkedGames(clearedExecutables, (keys) =>
+    gamesSublevel.getMany(keys)
   );
 
   const libraryObjectIds = new Set(
@@ -1188,12 +1221,14 @@ const runScan = async (
     await publishScanNotification(
       addedGames.length,
       linkedGames.length,
-      outsideLibrary.ambiguousMatches.length
+      outsideLibrary.ambiguousMatches.length,
+      unlinkedGames.length
     );
   }
 
   return {
     linkedGames,
+    unlinkedGames,
     addedGames,
     ambiguousMatches: outsideLibrary.ambiguousMatches,
     total: gamesToScan.length,
