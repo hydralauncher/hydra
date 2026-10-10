@@ -2,8 +2,9 @@ import assert from "node:assert/strict";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
-import { it } from "node:test";
+import { after, it } from "node:test";
 import {
+  configureRangeStateDirectory,
   markSavedRange,
   missingRanges,
   savedRangeBytes,
@@ -12,12 +13,19 @@ import {
   rangeStatePath,
   rangeResourceId,
   getRangeDownloadedBytes,
+  removeRangeState,
   type RangeDownloadState,
 } from "./range-download-state.ts";
 import {
   getStrongRangeValidator,
   getRangeTotal,
 } from "./parallel-range-download.ts";
+
+const metadataDirectory = fs.mkdtempSync(
+  path.join(os.tmpdir(), "hydra-range-metadata-")
+);
+configureRangeStateDirectory(metadataDirectory);
+after(() => fs.rmSync(metadataDirectory, { recursive: true, force: true }));
 
 const state = (): RangeDownloadState => ({
   version: 1,
@@ -59,10 +67,7 @@ it("returns every hole instead of treating sparse file length as downloaded byte
       [0, 20],
       [30, 80],
     ]);
-    assert.deepEqual(fs.readdirSync(root).sort(), [
-      "file.bin",
-      "file.bin.hydra-part.json",
-    ]);
+    assert.deepEqual(fs.readdirSync(root), ["file.bin"]);
   } finally {
     fs.rmSync(root, { recursive: true, force: true });
   }
@@ -175,4 +180,75 @@ it("validates the exact requested range, total, body length, and encoding", () =
     ),
     100
   );
+});
+
+it("range metadata never replaces or deletes a similarly named downloaded file", async () => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), "hydra-range-collision-"));
+  const file = path.join(root, "data.bin");
+  const sibling = `${file}.hydra-part.json`;
+  const siblingBytes = Buffer.alloc(100, 19);
+  try {
+    fs.writeFileSync(file, Buffer.alloc(100, 42));
+    fs.writeFileSync(sibling, siblingBytes);
+    const map = state();
+    map.ranges = [[20, 30]];
+    await saveRangeState(file, map);
+    assert.deepEqual(fs.readFileSync(sibling), siblingBytes);
+    assert.equal(getRangeDownloadedBytes(file), 10);
+    assert.equal(getRangeDownloadedBytes(sibling), siblingBytes.length);
+    assert.equal(
+      path.relative(root, rangeStatePath(file)).startsWith(".."),
+      true
+    );
+    removeRangeState(file);
+    assert.deepEqual(fs.readFileSync(sibling), siblingBytes);
+    assert.deepEqual(fs.readdirSync(root).sort(), [
+      "data.bin",
+      "data.bin.hydra-part.json",
+    ]);
+  } finally {
+    removeRangeState(file);
+    fs.rmSync(root, { recursive: true, force: true });
+  }
+});
+
+it("missing partial files discard orphaned metadata before a fresh download", async () => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), "hydra-range-orphan-"));
+  const file = path.join(root, "data.bin");
+  try {
+    fs.writeFileSync(file, Buffer.alloc(100));
+    await saveRangeState(file, { ...state(), ranges: [[0, 30]] });
+    fs.unlinkSync(file);
+    assert.equal(readRangeState(file), null);
+    assert.equal(getRangeDownloadedBytes(file), 0);
+    assert.equal(fs.existsSync(rangeStatePath(file)), false);
+  } finally {
+    removeRangeState(file);
+    fs.rmSync(root, { recursive: true, force: true });
+  }
+});
+
+it("persistent metadata distinguishes the same filename in different folders", async () => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), "hydra-range-identity-"));
+  const files = [
+    path.join(root, "one", "data.bin"),
+    path.join(root, "two", "data.bin"),
+  ];
+  try {
+    await Promise.all(
+      files.map(async (file, index) => {
+        fs.mkdirSync(path.dirname(file), { recursive: true });
+        fs.writeFileSync(file, Buffer.alloc(100));
+        await saveRangeState(file, { ...state(), ranges: [[0, 30 + index]] });
+      })
+    );
+    // Reinitializing the directory models another launcher session.
+    configureRangeStateDirectory(metadataDirectory);
+    assert.notEqual(rangeStatePath(files[0]), rangeStatePath(files[1]));
+    assert.equal(getRangeDownloadedBytes(files[0]), 30);
+    assert.equal(getRangeDownloadedBytes(files[1]), 31);
+  } finally {
+    files.forEach(removeRangeState);
+    fs.rmSync(root, { recursive: true, force: true });
+  }
 });

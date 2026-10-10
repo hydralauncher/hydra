@@ -6,13 +6,19 @@ import path from "node:path";
 import { Readable } from "node:stream";
 import { pipeline } from "node:stream/promises";
 import { setTimeout as delay } from "node:timers/promises";
-import { it } from "node:test";
+import { after, it } from "node:test";
 import { runInNewContext } from "node:vm";
 import ts from "typescript";
 import * as helpers from "./js-http-downloader-helpers.ts";
 import * as parallel from "./parallel-range-download.ts";
 import * as rangeState from "./range-download-state.ts";
 import type { JsHttpDownloader as DownloaderType } from "./js-http-downloader.ts";
+
+const metadataDirectory = fs.mkdtempSync(
+  path.join(os.tmpdir(), "hydra-range-metadata-")
+);
+rangeState.configureRangeStateDirectory(metadataDirectory);
+after(() => fs.rmSync(metadataDirectory, { recursive: true, force: true }));
 
 // Load the real downloader without starting Electron's log transport.
 const code = ts.transpileModule(

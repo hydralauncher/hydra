@@ -14,6 +14,7 @@ import { buildTorBoxDownloadManifest } from "./torbox-files";
 
 const READINESS_POLL_ATTEMPTS = 6;
 const READINESS_POLL_DELAY_MS = 1000;
+const REQUEST_TIMEOUT_MS = 20_000;
 const MY_LIST_PAGE_SIZE = 1000;
 const MY_LIST_MAX_PAGES = 10;
 
@@ -26,7 +27,7 @@ export class TorBoxClient {
     this.apiToken = apiToken;
     this.instance = axios.create({
       baseURL: this.baseURL,
-      timeout: 20_000,
+      timeout: REQUEST_TIMEOUT_MS,
       headers: {
         Authorization: `Bearer ${apiToken}`,
         "User-Agent": `Hydra/${appVersion}`,

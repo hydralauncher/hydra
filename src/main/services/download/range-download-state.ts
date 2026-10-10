@@ -1,4 +1,5 @@
 import fs from "node:fs";
+import path from "node:path";
 import { createHash, randomUUID } from "node:crypto";
 
 /** End offsets are exclusive. Only bytes already written belong in this map. */
@@ -12,8 +13,21 @@ export interface RangeDownloadState {
   ranges: SavedByteRange[];
 }
 
+const MAX_RANGE_STATE_SIZE_BYTES = 1024 * 1024;
+let rangeStateDirectory: string | undefined;
+
+export function configureRangeStateDirectory(directory: string): void {
+  rangeStateDirectory = path.resolve(directory);
+}
+
 export function rangeStatePath(filePath: string): string {
-  return `${filePath}.hydra-part.json`;
+  if (!rangeStateDirectory)
+    throw new Error("Range metadata directory is not configured");
+  const absolutePath = path.resolve(filePath);
+  const identity =
+    process.platform === "win32" ? absolutePath.toLowerCase() : absolutePath;
+  const key = createHash("sha256").update(identity).digest("hex");
+  return path.join(rangeStateDirectory, `${key}.json`);
 }
 
 export function rangeResourceId(resourceId?: string): string | null {
@@ -26,7 +40,7 @@ export function readRangeState(filePath: string): RangeDownloadState | null {
   const statePath = rangeStatePath(filePath);
   try {
     const stat = fs.lstatSync(statePath);
-    if (!stat.isFile() || stat.size > 1024 * 1024)
+    if (!stat.isFile() || stat.size > MAX_RANGE_STATE_SIZE_BYTES)
       throw new Error("Invalid byte-range state file");
   } catch (error) {
     if ((error as NodeJS.ErrnoException).code === "ENOENT") return null;
@@ -71,7 +85,11 @@ export function readRangeState(filePath: string): RangeDownloadState | null {
       previousEnd = range[1];
     }
     return state;
-  } catch {
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code === "ENOENT") {
+      removeRangeState(filePath);
+      return null;
+    }
     throw new Error(
       "The saved byte ranges are invalid. Keeping the partial file."
     );
@@ -126,6 +144,10 @@ export async function saveRangeState(
   state: RangeDownloadState
 ): Promise<void> {
   const target = rangeStatePath(filePath);
+  await fs.promises.mkdir(path.dirname(target), {
+    recursive: true,
+    mode: 0o700,
+  });
   const temporary = `${target}.${randomUUID()}.tmp`;
   try {
     const file = await fs.promises.open(temporary, "wx", 0o600);

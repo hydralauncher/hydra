@@ -5,7 +5,7 @@ import path from "node:path";
 import os from "node:os";
 import * as torboxFiles from "./torbox-files.ts";
 import * as rangeState from "./range-download-state.ts";
-import { it } from "node:test";
+import { after, it } from "node:test";
 import { runInNewContext } from "node:vm";
 import ts from "typescript";
 import * as shared from "../../../shared/constants.ts";
@@ -15,6 +15,12 @@ import * as ranges from "./parallel-range-download.ts";
 import * as filenames from "./download-filename.ts";
 import type { DownloadProgress } from "../../../types/download.types.ts";
 import type { JsHttpDownloaderOptions } from "./js-http-downloader.ts";
+
+const metadataDirectory = fs.mkdtempSync(
+  path.join(os.tmpdir(), "hydra-range-metadata-")
+);
+rangeState.configureRangeStateDirectory(metadataDirectory);
+after(() => fs.rmSync(metadataDirectory, { recursive: true, force: true }));
 
 function manager(manifest?: torboxFiles.TorBoxDownloadManifest) {
   const starts: JsHttpDownloaderOptions[] = [];
@@ -44,6 +50,7 @@ function manager(manifest?: torboxFiles.TorBoxDownloadManifest) {
         "./download-activation": { withDownloadActivation },
         "node:fs": fs,
         "node:path": path,
+        "../system-path": { SystemPath: { getPath: () => metadataDirectory } },
         "../logger": {
           logger: {
             log: () => undefined,

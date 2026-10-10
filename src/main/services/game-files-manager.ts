@@ -42,6 +42,8 @@ import { runAutomaticCloudSaveSync } from "./cloud-save";
 
 const PROGRESS_THROTTLE_MS = 1000;
 
+const MAX_ARCHIVE_EXTRACTION_PASSES = 2;
+
 export class GameFilesManager {
   private lastProgressUpdateTime = 0;
   private lastProgressUpdateValue = 0;
@@ -180,7 +182,9 @@ export class GameFilesManager {
           (progress) => {
             const passProgress =
               (completedFiles + progress.percent / 100) / filesToExtract.length;
-            this.updateExtractionProgress((pass + passProgress) / 2);
+            this.updateExtractionProgress(
+              (pass + passProgress) / MAX_ARCHIVE_EXTRACTION_PASSES
+            );
           }
         );
 
@@ -194,7 +198,8 @@ export class GameFilesManager {
         completedFiles++;
         extractedFiles.add(file);
         this.updateExtractionProgress(
-          (pass + completedFiles / filesToExtract.length) / 2,
+          (pass + completedFiles / filesToExtract.length) /
+            MAX_ARCHIVE_EXTRACTION_PASSES,
           true
         );
       } catch (error) {
@@ -279,7 +284,7 @@ export class GameFilesManager {
 
     // A provider ZIP can contain the torrent's original archive. Scan again
     // after extraction, but stop after one nested layer.
-    for (let pass = 0; pass < 2; pass++) {
+    for (let pass = 0; pass < MAX_ARCHIVE_EXTRACTION_PASSES; pass++) {
       let archives: string[];
       try {
         archives = await listArchiveFiles(
@@ -879,9 +884,11 @@ export class GameFilesManager {
       return false;
     }
 
+    const archivePath = path.parse(download.folderName);
+    const extractedFolderName = path.join(archivePath.dir, archivePath.name);
     const extractionPath = path.join(
       download.downloadPath,
-      path.parse(download.folderName!).name
+      extractedFolderName
     );
 
     this.updateExtractionProgress(0, true);
@@ -928,7 +935,7 @@ export class GameFilesManager {
 
         await downloadsSublevel.put(this.gameKey, {
           ...download,
-          folderName: path.parse(download.folderName!).name,
+          folderName: extractedFolderName,
         });
 
         await this.setExtractionComplete();

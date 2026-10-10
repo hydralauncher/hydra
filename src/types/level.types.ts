@@ -120,6 +120,7 @@ export interface Download {
   realDebridTorrentId?: string;
   awaitingDebrid?: boolean;
   debridAutoResume?: boolean;
+  debridQueueOnly?: boolean;
   debridPreparationDeadline?: number;
   customTrackers?: string[];
 }

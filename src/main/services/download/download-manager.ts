@@ -1,5 +1,6 @@
 import { withDownloadActivation } from "./download-activation";
 import {
+  configureRangeStateDirectory,
   getRangeDownloadedBytes,
   readRangeState,
   savedRangeBytes,
@@ -11,6 +12,7 @@ import {
   resolveArchiveOrgFile,
 } from "@shared";
 import { WindowManager } from "../window-manager";
+import { SystemPath } from "../system-path";
 import {
   publishDownloadCompleteNotification,
   publishDownloadHaltedNotification,
@@ -82,6 +84,19 @@ import {
   recordVerifyAttempt,
 } from "./download-queue-verify";
 
+configureRangeStateDirectory(
+  path.join(SystemPath.getPath("userData"), "DownloadRanges")
+);
+
+const PREFLIGHT_MAX_ATTEMPTS = 3;
+const PREFLIGHT_RETRY_DELAY_MS = 1000;
+const PREFLIGHT_TIMEOUT_MS = 15_000;
+const TORRENT_START_TIMEOUT_MS = 10_000;
+const SELECTIVE_TORRENT_START_TIMEOUT_MS = 60_000;
+const SELECTIVE_TORRENT_METADATA_TIMEOUT_MS = 60_000;
+const MIN_BATCH_COMPLETION_RATIO = 0.95;
+const DEFAULT_REAL_DEBRID_CONNECTIONS = 4;
+
 interface JsDownloadOptions {
   url: string;
   savePath: string;
@@ -133,7 +148,8 @@ const TORBOX_MAX_PARALLEL_RANGES = 256;
 const REAL_DEBRID_MAX_CONNECTIONS = 8;
 
 function realDebridConnections(chunks: number | undefined): number {
-  if (!Number.isInteger(chunks) || !chunks || chunks < 1) return 4;
+  if (!Number.isInteger(chunks) || !chunks || chunks < 1)
+    return DEFAULT_REAL_DEBRID_CONNECTIONS;
   return Math.min(chunks, REAL_DEBRID_MAX_CONNECTIONS);
 }
 
@@ -1639,7 +1655,8 @@ export class DownloadManager {
       !entry.isZip &&
       (requiresExactSize
         ? status.bytesDownloaded !== expectedSize
-        : expectedSize > 0 && status.bytesDownloaded < expectedSize * 0.95);
+        : expectedSize > 0 &&
+          status.bytesDownloaded < expectedSize * MIN_BATCH_COMPLETION_RATIO);
     if (!sizeMismatch) return false;
 
     logger.error(
@@ -2173,7 +2190,9 @@ export class DownloadManager {
           file_indices: hasSelectedFileIndices
             ? download.fileIndices
             : undefined,
-          metadata_timeout_ms: hasSelectedFileIndices ? 60_000 : undefined,
+          metadata_timeout_ms: hasSelectedFileIndices
+            ? SELECTIVE_TORRENT_METADATA_TIMEOUT_MS
+            : undefined,
           trackers: download.customTrackers,
         };
       }
@@ -2359,7 +2378,10 @@ export class DownloadManager {
     signal?: AbortSignal
   ): Promise<"done" | "retry"> {
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 15000);
+    const timeoutId = setTimeout(
+      () => controller.abort(),
+      PREFLIGHT_TIMEOUT_MS
+    );
 
     try {
       const response = await fetch(url, {
@@ -2449,17 +2471,16 @@ export class DownloadManager {
     signal?: AbortSignal,
     attempt = 1
   ): Promise<void> {
-    const maxAttempts = 3;
     const verdict = await this.runPreflightAttempt(
       url,
       headers,
       attempt,
-      maxAttempts,
+      PREFLIGHT_MAX_ATTEMPTS,
       signal
     );
     if (verdict === "done") return;
-    await sleep(1000 * attempt, undefined, { signal });
-    if (attempt < maxAttempts)
+    await sleep(PREFLIGHT_RETRY_DELAY_MS * attempt, undefined, { signal });
+    if (attempt < PREFLIGHT_MAX_ATTEMPTS)
       await this.validatePreflightAttempt(url, headers, signal, attempt + 1);
   }
 
@@ -2871,7 +2892,9 @@ export class DownloadManager {
 
     try {
       await TorrentService.call("action", payload, {
-        timeout: isSelectiveTorrentStart ? 60_000 : 10_000,
+        timeout: isSelectiveTorrentStart
+          ? SELECTIVE_TORRENT_START_TIMEOUT_MS
+          : TORRENT_START_TIMEOUT_MS,
       });
 
       const downloadWasCancelledOrReplaced =

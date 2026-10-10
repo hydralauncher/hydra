@@ -85,11 +85,7 @@ const addGameToQueue = async (
   try {
     await downloadsSublevel.put(gameKey, download);
     didWriteDownload = true;
-    if (download.awaitingDebrid) {
-      await DownloadOrchestrator.saveAwaitingDebridDownload(download);
-    } else {
-      await DownloadOrchestrator.enqueuePreparedDownload(download);
-    }
+    await DownloadOrchestrator.enqueuePreparedDownload(download);
 
     const updatedGame = await gamesSublevel.get(gameKey);
 

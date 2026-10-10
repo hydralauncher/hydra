@@ -266,10 +266,15 @@ export class DownloadOrchestrator {
       }
     }
     if (!isCurrent()) return null;
+    // A repeated manual action must retain the downloader already owning this slot.
+    if (DownloadManager.getActiveDownloadId() === getGameKey(download)) {
+      return download;
+    }
     const activeDownload: Download = {
       ...download,
       awaitingDebrid: false,
       debridAutoResume: false,
+      debridQueueOnly: undefined,
       debridPreparationDeadline: undefined,
       status: "active",
       queued: false,
@@ -306,6 +311,7 @@ export class DownloadOrchestrator {
         queued: false,
         awaitingDebrid: false,
         debridAutoResume: false,
+        debridQueueOnly: undefined,
         debridPreparationDeadline: undefined,
       });
 
@@ -420,9 +426,10 @@ export class DownloadOrchestrator {
       targetIndex?: number;
     } = {}
   ) {
-    const nextDownload = await this.setDownloadPausedState(download, {
-      queued: true,
-    });
+    const nextDownload = await this.setDownloadPausedState(
+      { ...download, debridQueueOnly: undefined },
+      { queued: true }
+    );
     const downloads = await this.getAllDownloads();
     const layoutState = await getNormalizedDownloadLayoutState(downloads);
     const nextQueueOrder = withInsertedId(
@@ -465,6 +472,7 @@ export class DownloadOrchestrator {
       {
         ...savedDownload,
         debridAutoResume: false,
+        debridQueueOnly: undefined,
         debridPreparationDeadline: undefined,
       },
       {
@@ -518,6 +526,7 @@ export class DownloadOrchestrator {
     if (this.isTerminalDownload(download)) {
       download.awaitingDebrid = false;
       download.debridAutoResume = false;
+      download.debridQueueOnly = undefined;
       download.debridPreparationDeadline = undefined;
       return;
     }
@@ -529,6 +538,7 @@ export class DownloadOrchestrator {
         download.debridPreparationDeadline! <= Date.now())
     ) {
       download.debridAutoResume = false;
+      download.debridQueueOnly = undefined;
       download.debridPreparationDeadline = undefined;
     }
   }
@@ -631,6 +641,7 @@ export class DownloadOrchestrator {
         queued: false,
         awaitingDebrid: false,
         debridAutoResume: false,
+        debridQueueOnly: undefined,
         debridPreparationDeadline: undefined,
       });
       WindowManager.sendDownloadsUpdated();
@@ -664,11 +675,13 @@ export class DownloadOrchestrator {
       if (!isCurrent()) return { ok: true };
       // Read the slot after preparation and queue persistence. Completion can
       // happen during either wait, including after its empty-queue check.
-      await this.activateNextQueuedDownload(undefined, {
-        id: getDownloadId(download),
-        isCurrent,
-        signal,
-      });
+      if (!download.debridQueueOnly) {
+        await this.activateNextQueuedDownload(undefined, {
+          id: getDownloadId(download),
+          isCurrent,
+          signal,
+        });
+      }
       WindowManager.sendDownloadsUpdated();
       return { ok: true };
     });
@@ -691,7 +704,14 @@ export class DownloadOrchestrator {
   }
 
   static async enqueuePreparedDownload(download: Download) {
-    await this.queueDownload(download);
+    const queuedDownload = { ...download, debridQueueOnly: true };
+    if (download.awaitingDebrid) {
+      await this.saveAwaitingDebridDownload(queuedDownload);
+    } else if (this.preparesRealDebridInBackground(download)) {
+      this.startPreparedDownloadInBackground(queuedDownload);
+    } else {
+      await this.queueDownload(download);
+    }
     WindowManager.sendDownloadsUpdated();
 
     return { ok: true };
@@ -738,6 +758,7 @@ export class DownloadOrchestrator {
         ...download,
         awaitingDebrid: false,
         debridAutoResume: false,
+        debridQueueOnly: undefined,
         debridPreparationDeadline: undefined,
       },
       { status: "error" }
@@ -761,6 +782,7 @@ export class DownloadOrchestrator {
       ...current,
       queued: false,
       debridAutoResume: false,
+      debridQueueOnly: undefined,
       debridPreparationDeadline: undefined,
     });
     WindowManager.sendDownloadsUpdated();
@@ -811,8 +833,14 @@ export class DownloadOrchestrator {
       realDebridTorrentId: download.realDebridTorrentId,
       awaitingDebrid: false,
       debridAutoResume: false,
+      debridQueueOnly: undefined,
       debridPreparationDeadline: undefined,
     };
+    if (current.debridQueueOnly) {
+      await this.queueDownload(readyDownload);
+      WindowManager.sendDownloadsUpdated();
+      return;
+    }
     const downloads = await this.getAllDownloads();
     if (!isCurrent()) return;
     const layout = await getNormalizedDownloadLayoutState(downloads);
@@ -975,6 +1003,7 @@ export class DownloadOrchestrator {
     const resumingDownload: Download = {
       ...download,
       debridAutoResume: true,
+      debridQueueOnly: undefined,
       debridPreparationDeadline: Date.now() + DEBRID_PREPARATION_WINDOW_MS,
     };
     try {
@@ -993,13 +1022,25 @@ export class DownloadOrchestrator {
       awaitingDebrid: false,
     };
 
+    return withDownloadActivation(() =>
+      this.activateResumedDownload(readyDownload, strategy, isCurrent, signal)
+    );
+  }
+
+  private static async activateResumedDownload(
+    readyDownload: Download,
+    strategy: ResumeDownloadStrategy,
+    isCurrent: () => boolean,
+    signal: AbortSignal
+  ) {
+    if (!isCurrent()) return false;
     const downloads = await this.getAllDownloads();
     if (!isCurrent()) return false;
     const currentActiveDownload =
       downloads.find(
         (entry) =>
           isActiveLikeDownload(entry) &&
-          getDownloadId(entry) !== getDownloadId(download)
+          getDownloadId(entry) !== getDownloadId(readyDownload)
       ) ?? null;
 
     if (currentActiveDownload && strategy === "queueIfActive") {
@@ -1007,6 +1048,7 @@ export class DownloadOrchestrator {
         {
           ...readyDownload,
           debridAutoResume: false,
+          debridQueueOnly: undefined,
           debridPreparationDeadline: undefined,
         },
         { toFront: true }
@@ -1033,7 +1075,7 @@ export class DownloadOrchestrator {
       return false;
     }
     const nextDownloads = await this.getAllDownloads();
-    await removeDownloadFromLayoutState(download, nextDownloads);
+    await removeDownloadFromLayoutState(readyDownload, nextDownloads);
     WindowManager.sendDownloadsUpdated();
 
     return true;
@@ -1078,6 +1120,7 @@ export class DownloadOrchestrator {
       extracting: false,
       awaitingDebrid: false,
       debridAutoResume: false,
+      debridQueueOnly: undefined,
       debridPreparationDeadline: undefined,
     });
 
@@ -1109,11 +1152,30 @@ export class DownloadOrchestrator {
       return false;
     this.invalidateBackgroundStart(getGameKey(download));
     download.debridAutoResume = false;
+    download.debridQueueOnly = undefined;
     download.debridPreparationDeadline = undefined;
     return true;
   }
 
-  static async moveDownloadPlacement(
+  static moveDownloadPlacement(
+    shop: GameShop,
+    objectId: string,
+    targetArea: "hero" | "queue" | "paused",
+    targetIndex?: number,
+    confirmed = false
+  ) {
+    const move = () =>
+      this.applyDownloadPlacement(
+        shop,
+        objectId,
+        targetArea,
+        targetIndex,
+        confirmed
+      );
+    return targetArea === "hero" ? withDownloadActivation(move) : move();
+  }
+
+  private static async applyDownloadPlacement(
     shop: GameShop,
     objectId: string,
     targetArea: "hero" | "queue" | "paused",

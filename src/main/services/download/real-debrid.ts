@@ -23,6 +23,7 @@ import {
 
 import { getRealDebridFiles } from "./real-debrid-files.js";
 
+const REQUEST_TIMEOUT_MS = 15_000;
 const TORRENT_FILE_POLL_ATTEMPTS = 15;
 const TORRENT_FILE_POLL_DELAY_MS = 1000;
 
@@ -47,7 +48,7 @@ export class RealDebridClient {
     this.fileTorrentIds.clear();
     this.instance = axios.create({
       baseURL: this.baseURL,
-      timeout: 15_000,
+      timeout: REQUEST_TIMEOUT_MS,
       headers: {
         Authorization: `Bearer ${apiToken}`,
       },

@@ -82,6 +82,7 @@ const INITIAL_RETRY_DELAY_MS = 1000;
 const MAX_RETRY_DELAY_MS = 15000;
 const STALL_TIMEOUT_MS = 30000;
 const STALL_CHECK_INTERVAL_MS = 2000;
+const THROTTLE_CHECK_INTERVAL_MS = 100;
 const RECONNECT_RETRY_DELAY_MS = 500;
 const RESUME_OVERLAP_BYTES = 64 * 1024;
 export const DEFAULT_DOWNLOAD_USER_AGENT =
@@ -521,7 +522,10 @@ export class JsHttpDownloader {
           return;
         }
         // Keep one timer per worker while sharing the transfer budget.
-        setTimeout(checkBudget, Math.min(100, Math.max(1, required - elapsed)));
+        setTimeout(
+          checkBudget,
+          Math.min(THROTTLE_CHECK_INTERVAL_MS, Math.max(1, required - elapsed))
+        );
       };
       checkBudget();
     });

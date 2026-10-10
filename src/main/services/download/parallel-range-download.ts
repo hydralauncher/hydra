@@ -9,6 +9,9 @@ import {
   type RangeDownloadState,
 } from "./range-download-state.js";
 
+const PARALLEL_RANGE_FAILURE_LIMIT = 2;
+const STRONG_LAST_MODIFIED_AGE_MS = 60_000;
+
 export const PARALLEL_RANGE_SIZE = 8 * 1024 * 1024;
 export const PARALLEL_RANGE_COUNT = 4;
 export const MAX_PARALLEL_RANGE_SIZE = 256 * 1024 * 1024;
@@ -44,7 +47,10 @@ export function shouldDowngradeParallelRanges(
   error: unknown,
   failureCount: number
 ): boolean {
-  return error instanceof ParallelRangeUnsupportedError || failureCount >= 2;
+  return (
+    error instanceof ParallelRangeUnsupportedError ||
+    failureCount >= PARALLEL_RANGE_FAILURE_LIMIT
+  );
 }
 
 export function getRangeTotal(
@@ -91,7 +97,7 @@ export function getStrongRangeValidator(response: Response): string | null {
     date &&
     Number.isFinite(Date.parse(modified)) &&
     Number.isFinite(Date.parse(date)) &&
-    Date.parse(date) - Date.parse(modified) >= 60_000
+    Date.parse(date) - Date.parse(modified) >= STRONG_LAST_MODIFIED_AGE_MS
     ? modified
     : null;
 }
