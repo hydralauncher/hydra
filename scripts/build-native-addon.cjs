@@ -8,6 +8,7 @@ const { usePrebuiltTorrentBridge } = require("./torrent-bridge-prebuilt.cjs");
 const execFile = util.promisify(childProcess.execFile);
 const MAX_COMMAND_OUTPUT_BYTES = 10 * 1024 * 1024;
 const NATIVE_LOAD_TIMEOUT_MS = 30_000;
+const ELECTRON_INSTALL_TIMEOUT_MS = 10 * 60_000;
 
 const projectRoot = process.cwd();
 const manifestPath = path.join(
@@ -91,6 +92,29 @@ const copySidecarLibrariesOnWindows = async () => {
   }
 };
 
+// Yarn runs this postinstall alongside Electron's, which downloads the
+// runtime and then writes path.txt. Wait for it before loading the addon.
+const waitForElectron = async () => {
+  if (
+    process.env.ELECTRON_SKIP_BINARY_DOWNLOAD ||
+    process.env.ELECTRON_OVERRIDE_DIST_PATH
+  ) {
+    return;
+  }
+
+  const pathFile = path.join(
+    path.dirname(require.resolve("electron/package.json")),
+    "path.txt"
+  );
+  const deadline = Date.now() + ELECTRON_INSTALL_TIMEOUT_MS;
+  while (!fs.existsSync(pathFile)) {
+    if (Date.now() > deadline) {
+      throw new Error("Timed out waiting for Electron to finish installing");
+    }
+    await new Promise((resolve) => setTimeout(resolve, 1000));
+  }
+};
+
 const build = async () => {
   const sourceLibraryName = sourceLibraryNameByPlatform[process.platform];
 
@@ -146,6 +170,7 @@ const build = async () => {
 
   // Verify with the actual application runtime, not a potentially incompatible
   // system Node.js. Fail installation before the user opens the download UI.
+  await waitForElectron();
   await run(
     require("electron"),
     [
