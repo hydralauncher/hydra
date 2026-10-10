@@ -325,7 +325,7 @@ export async function downloadParallelRanges({
       throw error;
     }
   };
-  async function* pendingJobs() {
+  function* pendingJobs() {
     while (nextJob < jobs.length) {
       signal.throwIfAborted();
       yield jobs[nextJob++];

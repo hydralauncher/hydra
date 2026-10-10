@@ -363,7 +363,7 @@ export class RealDebridClient {
       entries.push(entry);
       return entries;
     }, Promise.resolve<(RealDebridDownloadEntry | null)[]>([]));
-    if (results.some((entry) => entry === null)) return null;
+    if (results.includes(null)) return null;
     return results as RealDebridDownloadEntry[];
   }
 

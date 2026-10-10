@@ -2776,10 +2776,10 @@ export class DownloadManager {
   ) {
     try {
       await this.handleRuntimeDownloadError(downloadId, error, generation);
-    } catch (failure) {
+    } catch (error_) {
       logger.error(
         `[DownloadManager] Failed to handle download error for ${downloadId}`,
-        failure
+        error_
       );
     }
   }

@@ -245,8 +245,6 @@ export class GameFilesManager {
         );
       }
     }
-
-    return;
   }
 
   async extractFilesInDirectory(
