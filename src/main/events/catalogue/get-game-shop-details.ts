@@ -1,9 +1,18 @@
-import { getEpicStoreDetails } from "../../services/epic-store-details";
+import {
+  getEpicLocale,
+  getEpicStoreDetails,
+} from "../../services/epic-store-details";
 import {
   resolveStoreDetails,
+  resolveCachedStoreDetails,
   STORE_DETAILS_TIMEOUT_MS,
 } from "../../services/store-details-fallback";
-import { getSteamAppDetails, HydraApi, logger } from "@main/services";
+import {
+  getSteamAppDetails,
+  getSteamLanguage,
+  HydraApi,
+  logger,
+} from "@main/services";
 
 import type {
   ShopDetails,
@@ -240,38 +249,59 @@ const getGameShopDetails = async (
   }
 
   if (shop === "steam" || shop === "epic") {
-    const cachedAssets = await gamesShopAssetsSublevel.get(
-      levelKeys.game(shop, objectId)
-    );
-    const details = await resolveStoreDetails<ShopDetailsWithAssets>(
-      async () => {
-        if (shop === "epic") return getEpicStoreDetails(objectId, language);
-        const result = await getSteamAppDetails(objectId, language);
-        return result
-          ? {
-              ...result,
-              descriptionLanguage: language,
-              assets: cachedAssets ?? null,
-            }
-          : null;
-      },
+    const cacheLanguage =
+      shop === "steam" ? getSteamLanguage(language) : getEpicLocale(language);
+    const [cachedData, cachedAssets] = await Promise.all([
+      gamesShopCacheSublevel.get(
+        levelKeys.gameShopCacheItem(shop, objectId, cacheLanguage)
+      ),
+      gamesShopAssetsSublevel.get(levelKeys.game(shop, objectId)),
+    ]);
+    const details = await resolveCachedStoreDetails<ShopDetailsWithAssets>(
+      cachedData ? { ...cachedData, assets: cachedAssets ?? null } : null,
       () =>
-        HydraApi.get<ShopDetailsWithAssets | null>(
-          `/games/${shop}/${encodeURIComponent(objectId)}/shop-details`,
-          { language: "en" },
-          {
-            needsAuth: false,
-            signal: AbortSignal.timeout(STORE_DETAILS_TIMEOUT_MS),
-          }
-        )
-          .then((result) =>
-            result ? { ...result, descriptionLanguage: "en-US" } : null
-          )
-          .catch((error) => {
-            logger.error("Store details fallback failed", error);
-            return null;
-          }),
-      (result) => Boolean(result.detailed_description?.trim())
+        resolveStoreDetails<ShopDetailsWithAssets>(
+          async () => {
+            if (shop === "epic") return getEpicStoreDetails(objectId, language);
+            const result = await getSteamAppDetails(objectId, language);
+            return result
+              ? {
+                  ...result,
+                  descriptionLanguage: language,
+                  assets: cachedAssets ?? null,
+                }
+              : null;
+          },
+          () =>
+            HydraApi.get<ShopDetailsWithAssets | null>(
+              `/games/${shop}/${encodeURIComponent(objectId)}/shop-details`,
+              { language: "en" },
+              {
+                needsAuth: false,
+                signal: AbortSignal.timeout(STORE_DETAILS_TIMEOUT_MS),
+              }
+            )
+              .then((result) =>
+                result ? { ...result, descriptionLanguage: "en-US" } : null
+              )
+              .catch((error) => {
+                logger.error("Store details fallback failed", error);
+                return null;
+              }),
+          (result) => Boolean(result.detailed_description?.trim())
+        ),
+      (result) => {
+        const storedLanguage = result.descriptionLanguage ?? language;
+        const storedCacheLanguage =
+          shop === "steam"
+            ? getSteamLanguage(storedLanguage)
+            : getEpicLocale(storedLanguage);
+        return gamesShopCacheSublevel.put(
+          levelKeys.gameShopCacheItem(shop, objectId, storedCacheLanguage),
+          result
+        );
+      },
+      (error) => logger.error("Could not refresh or cache game details", error)
     );
     if (!details) return null;
     return {

@@ -3,6 +3,41 @@ import { describe, it } from "node:test";
 import { getEpicLocale, getEpicStoreDetails } from "./epic-store-details.js";
 
 describe("Epic localized store details", () => {
+  for (const failure of ["rate limit", "timeout"]) {
+    it(`keeps translated content when optional images fail with ${failure}`, async () => {
+      const result = await getEpicStoreDetails(
+        "ns:item",
+        "pt-BR",
+        async (_url, init) => {
+          if (JSON.parse(String(init?.body)).query.includes("searchStore")) {
+            if (failure === "timeout") throw Error("timeout");
+            return new Response(null, { status: 429 });
+          }
+          return Response.json({
+            data: {
+              Catalog: {
+                catalogOffers: {
+                  elements: [
+                    {
+                      id: "base",
+                      title: "Game",
+                      items: [{ id: "item", namespace: "ns" }],
+                      longDescription: "Descrição longa",
+                      publisherDisplayName: "Publisher",
+                    },
+                  ],
+                },
+              },
+            },
+          });
+        }
+      );
+      assert.equal(result?.detailed_description, "Descrição longa");
+      assert.equal(result?.descriptionLanguage, "pt-BR");
+      assert.deepEqual(result?.developers, ["Publisher"]);
+      assert.deepEqual(result?.publishers, ["Publisher"]);
+    });
+  }
   it("uses explicit regional locales", () => {
     assert.equal(getEpicLocale("pt-BR"), "pt-BR");
     assert.equal(getEpicLocale("en"), "en-US");

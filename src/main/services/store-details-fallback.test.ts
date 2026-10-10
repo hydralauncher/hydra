@@ -1,6 +1,38 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import { resolveStoreDetails } from "./store-details-fallback.js";
+import {
+  resolveCachedStoreDetails,
+  resolveStoreDetails,
+} from "./store-details-fallback.js";
+
+describe("offline store details cache", () => {
+  it("keeps a saved localized description when both remote providers fail", async () => {
+    const cached = { long: "Descrição salva", locale: "pt-BR" };
+    const result = await resolveCachedStoreDetails(
+      cached,
+      async () => {
+        throw Error("offline");
+      },
+      async () => {
+        throw Error("must not save unavailable content");
+      },
+      () => {}
+    );
+    assert.deepEqual(result, cached);
+  });
+  it("returns newly fetched details even when local persistence fails", async () => {
+    const fresh = { long: "English long", locale: "en-US" };
+    const result = await resolveCachedStoreDetails(
+      null,
+      async () => fresh,
+      async () => {
+        throw Error("disk full");
+      },
+      () => {}
+    );
+    assert.deepEqual(result, fresh);
+  });
+});
 
 describe("store details direct request and persisted fallback", () => {
   for (const locale of ["en", "pt-BR", "ru", "es"]) {

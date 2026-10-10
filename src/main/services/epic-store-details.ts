@@ -37,6 +37,7 @@ interface EpicPayload {
 
 const ENDPOINT = "https://launcher.store.epicgames.com/graphql";
 const BASE_OFFER_LIMIT = 50;
+const SEARCH_OFFER_LIMIT = 50;
 const GENRE_IDS = new Set([
   "1216",
   "1210",
@@ -125,10 +126,10 @@ export const getEpicStoreDetails = async (
   const longDescription = text(offer.longDescription);
   if (!longDescription) return null;
   const search = await request(
-    `query($keywords:String!,$country:String!,$locale:String!){ Catalog { searchStore(country:$country,locale:$locale,count:50,start:0,keywords:$keywords,comingSoon:false) { elements { id namespace tags { id name } keyImages { type url } items { id namespace } } } } }`,
+    `query($keywords:String!,$country:String!,$locale:String!){ Catalog { searchStore(country:$country,locale:$locale,count:${SEARCH_OFFER_LIMIT},start:0,keywords:$keywords,comingSoon:false) { elements { id namespace tags { id name } keyImages { type url } items { id namespace } } } } }`,
     { keywords: text(offer.title), country: "US", locale }
-  );
-  const searchOffer = (search.Catalog?.searchStore?.elements ?? []).find(
+  ).catch(() => null);
+  const searchOffer = (search?.Catalog?.searchStore?.elements ?? []).find(
     (row) =>
       row.id === offer.id &&
       row.namespace === namespace &&
@@ -180,6 +181,7 @@ export const getEpicStoreDetails = async (
       text(
         configs.find((row) => text(row.shortDescription))?.shortDescription
       ) || text(offer.description),
+    // Use the publisher for the display field when Epic omits the developer.
     developers: developer || publisher ? [developer || publisher] : [],
     publishers: publisher ? [publisher] : [],
     genres: (searchOffer?.tags ?? [])
