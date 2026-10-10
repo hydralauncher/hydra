@@ -1,5 +1,5 @@
-appId: gg.hydralauncher.hydra
-productName: Hydra
+appId: gg.hydralauncher.hydra.staging.catalogue
+productName: Hydra Staging Catalogue
 directories:
   buildResources: build
 extraResources:

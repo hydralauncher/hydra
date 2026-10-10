@@ -124,7 +124,9 @@ export function useSearchSuggestions(
           params: {
             query: searchQuery,
             limit,
-            shop: shopParam,
+            ...(shopParam === "steam"
+              ? { shops: "steam,epic" }
+              : { shop: shopParam }),
           },
           needsAuth: false,
         });

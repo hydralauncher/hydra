@@ -525,7 +525,7 @@ export default function Catalogue() {
         key: "genres",
       },
       {
-        title: t("tags"),
+        title: `${t("tags")} (Steam)`,
         items: steamUserTagsFilterItems,
         key: "tags",
       },

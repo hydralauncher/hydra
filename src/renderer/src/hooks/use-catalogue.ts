@@ -61,15 +61,37 @@ export function useCatalogue() {
   }, [dispatch, i18n.language]);
 
   const getSteamPublishers = useCallback(() => {
-    window.electron.hydraApi
-      .get<string[]>("/catalogue/steam/publishers", { needsAuth: false })
-      .then(setSteamPublishers);
+    Promise.all([
+      window.electron.hydraApi.get<string[]>("/catalogue/steam/publishers", {
+        needsAuth: false,
+      }),
+      window.electron.hydraApi
+        .get<string[]>("/catalogue/epic/publishers", {
+          needsAuth: false,
+        })
+        .catch(() => [] as string[]),
+    ]).then((names) =>
+      setSteamPublishers(
+        [...new Set(names.flat())].sort((a, b) => a.localeCompare(b))
+      )
+    );
   }, []);
 
   const getSteamDevelopers = useCallback(() => {
-    window.electron.hydraApi
-      .get<string[]>("/catalogue/steam/developers", { needsAuth: false })
-      .then(setSteamDevelopers);
+    Promise.all([
+      window.electron.hydraApi.get<string[]>("/catalogue/steam/developers", {
+        needsAuth: false,
+      }),
+      window.electron.hydraApi
+        .get<string[]>("/catalogue/epic/developers", {
+          needsAuth: false,
+        })
+        .catch(() => [] as string[]),
+    ]).then((names) =>
+      setSteamDevelopers(
+        [...new Set(names.flat())].sort((a, b) => a.localeCompare(b))
+      )
+    );
   }, []);
 
   const getDownloadSources = useCallback(() => {

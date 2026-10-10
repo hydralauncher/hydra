@@ -1,3 +1,4 @@
+import { formatShopDescription } from "@renderer/helpers/shop-description";
 import {
   useContext,
   useEffect,
@@ -101,7 +102,7 @@ export function GameDetailsContent() {
     const aboutTheGame = shopDetails?.about_the_game;
     if (aboutTheGame) {
       const document = new DOMParser().parseFromString(
-        aboutTheGame,
+        formatShopDescription(aboutTheGame, shop),
         "text/html"
       );
 
@@ -115,7 +116,7 @@ export function GameDetailsContent() {
     }
 
     return t("no_shop_details");
-  }, [shopDetails, t, game?.shop]);
+  }, [shopDetails, t, game?.shop, shop]);
 
   const [backdropOpacity, setBackdropOpacity] = useState(1);
   const [isDescriptionExpanded, setIsDescriptionExpanded] = useState(false);

@@ -1,3 +1,4 @@
+import { STORE_DETAILS_TIMEOUT_MS } from "./store-details-fallback";
 import axios from "axios";
 import path from "node:path";
 import fs from "node:fs";
@@ -154,7 +155,8 @@ export const getSteamAppDetails = async (
 
   return axios
     .get<SteamAppDetailsResponse>(
-      `http://store.steampowered.com/api/appdetails?${searchParams.toString()}`
+      `https://store.steampowered.com/api/appdetails?${searchParams.toString()}`,
+      { timeout: STORE_DETAILS_TIMEOUT_MS }
     )
     .then((response) => parseSteamAppDetailsResponse(response.data, objectId))
     .catch((err) => {

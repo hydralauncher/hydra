@@ -1,9 +1,9 @@
+import { getEpicStoreDetails } from "../../services/epic-store-details";
 import {
-  getSteamAppDetails,
-  getSteamLanguage,
-  HydraApi,
-  logger,
-} from "@main/services";
+  resolveStoreDetails,
+  STORE_DETAILS_TIMEOUT_MS,
+} from "../../services/store-details-fallback";
+import { getSteamAppDetails, HydraApi, logger } from "@main/services";
 
 import type {
   ShopDetails,
@@ -239,50 +239,50 @@ const getGameShopDetails = async (
     };
   }
 
-  if (shop === "steam") {
-    const steamLanguage = getSteamLanguage(language);
-
-    const [cachedData, cachedAssets] = await Promise.all([
-      gamesShopCacheSublevel.get(
-        levelKeys.gameShopCacheItem(shop, objectId, steamLanguage)
-      ),
-      gamesShopAssetsSublevel.get(levelKeys.game(shop, objectId)),
-    ]);
-
-    const appDetails = getSteamAppDetails(objectId, language).then((result) => {
-      if (result) {
-        result.name = cachedAssets?.title ?? result.name;
-
-        gamesShopCacheSublevel
-          .put(
-            levelKeys.gameShopCacheItem(shop, objectId, steamLanguage),
-            result
+  if (shop === "steam" || shop === "epic") {
+    const cachedAssets = await gamesShopAssetsSublevel.get(
+      levelKeys.game(shop, objectId)
+    );
+    const details = await resolveStoreDetails<ShopDetailsWithAssets>(
+      async () => {
+        if (shop === "epic") return getEpicStoreDetails(objectId, language);
+        const result = await getSteamAppDetails(objectId, language);
+        return result
+          ? {
+              ...result,
+              descriptionLanguage: language,
+              assets: cachedAssets ?? null,
+            }
+          : null;
+      },
+      () =>
+        HydraApi.get<ShopDetailsWithAssets | null>(
+          `/games/${shop}/${encodeURIComponent(objectId)}/shop-details`,
+          { language: "en" },
+          {
+            needsAuth: false,
+            signal: AbortSignal.timeout(STORE_DETAILS_TIMEOUT_MS),
+          }
+        )
+          .then((result) =>
+            result ? { ...result, descriptionLanguage: "en-US" } : null
           )
-          .catch((err) => {
-            logger.error("Could not cache game details", err);
-          });
-
-        return {
-          ...result,
-          assets: cachedAssets ?? null,
-        };
-      }
-
-      return null;
-    });
-
-    const details = cachedData
-      ? { ...cachedData, assets: cachedAssets ?? null }
-      : await appDetails;
-
-    if (!details) return details;
-
+          .catch((error) => {
+            logger.error("Store details fallback failed", error);
+            return null;
+          }),
+      (result) => Boolean(result.detailed_description?.trim())
+    );
+    if (!details) return null;
     return {
       ...details,
-      assets: await applyArtworkToAssets(shop, objectId, details.assets),
+      assets: await applyArtworkToAssets(
+        shop,
+        objectId,
+        cachedAssets ?? details.assets ?? null
+      ),
     };
   }
-
   throw new Error("Not implemented");
 };
 
