@@ -138,12 +138,10 @@ export const getEpicStoreDetails = async (
   );
   const configurations = result.Product?.sandbox?.configuration ?? [];
   const configs = configurations.flatMap(
-    (entry: { configs?: EpicConfig | EpicConfig[] }) =>
-      Array.isArray(entry.configs)
-        ? entry.configs
-        : entry.configs
-          ? [entry.configs]
-          : []
+    (entry: { configs?: EpicConfig | EpicConfig[] }) => {
+      if (!entry.configs) return [];
+      return Array.isArray(entry.configs) ? entry.configs : [entry.configs];
+    }
   );
   const requirements =
     configs.find((row) => row.technicalRequirements?.windows?.length)

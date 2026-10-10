@@ -61,7 +61,7 @@ export function useCatalogue() {
   }, [dispatch, i18n.language]);
 
   const getSteamPublishers = useCallback(() => {
-    Promise.all([
+    return Promise.all([
       window.electron.hydraApi.get<string[]>("/catalogue/steam/publishers", {
         needsAuth: false,
       }),
@@ -78,7 +78,7 @@ export function useCatalogue() {
   }, []);
 
   const getSteamDevelopers = useCallback(() => {
-    Promise.all([
+    return Promise.all([
       window.electron.hydraApi.get<string[]>("/catalogue/steam/developers", {
         needsAuth: false,
       }),
@@ -95,17 +95,19 @@ export function useCatalogue() {
   }, []);
 
   const getDownloadSources = useCallback(() => {
-    levelDBService.values("downloadSources").then((results) => {
+    return levelDBService.values("downloadSources").then((results) => {
       const sources = results as DownloadSource[];
       setDownloadSources(sources.filter((source) => !!source.fingerprint));
     });
   }, []);
 
   useEffect(() => {
-    getSteamFilters();
-    getSteamPublishers();
-    getSteamDevelopers();
-    getDownloadSources();
+    void Promise.all([
+      getSteamFilters(),
+      getSteamPublishers(),
+      getSteamDevelopers(),
+      getDownloadSources(),
+    ]).catch(() => undefined);
   }, [
     getSteamFilters,
     getSteamPublishers,
