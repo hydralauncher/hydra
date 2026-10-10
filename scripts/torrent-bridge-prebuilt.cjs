@@ -14,11 +14,12 @@ const crypto = require("node:crypto");
 const {
   root,
   source,
+  NOTICES,
   getTriplet,
   compileTorrentBridge,
   copyRuntimeLibraries,
-  copyDependencyNotices,
-  copyDependencyManifest,
+  writeDependencyNotices,
+  prepareTorrentBridgeOutput,
 } = require("./build-torrent-bridge.cjs");
 
 const prebuiltRoot = path.join(source, "prebuilt");
@@ -85,13 +86,9 @@ function usePrebuiltTorrentBridge() {
     return null;
   }
 
-  const output = path.join(root, "hydra-native");
-  fs.mkdirSync(output, { recursive: true });
+  const output = prepareTorrentBridgeOutput();
   copyRuntimeLibraries(dir, output);
-  fs.cpSync(path.join(dir, "licenses"), path.join(output, "licenses"), {
-    recursive: true,
-  });
-  copyDependencyManifest(output);
+  fs.copyFileSync(path.join(dir, NOTICES), path.join(output, NOTICES));
   console.log(`Using the prebuilt torrent bridge for ${triplet}.`);
   return path.join(dir, "lib");
 }
@@ -105,7 +102,7 @@ function updatePrebuilt() {
     if (fs.existsSync(location))
       fs.cpSync(location, path.join(dir, name), { recursive: true });
   }
-  copyDependencyNotices(installed, triplet, dir);
+  writeDependencyNotices(installed, triplet, path.join(dir, NOTICES));
   fs.writeFileSync(path.join(dir, STAMP), `${hashInputs()}\n`);
   console.log(`Updated the prebuilt torrent bridge in ${dir}`);
 }

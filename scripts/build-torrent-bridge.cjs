@@ -7,6 +7,7 @@ const root = path.resolve(__dirname, "..");
 const source = path.join(root, "native", "torrent-bridge");
 const manifest = require(path.join(source, "vcpkg.json"));
 const baseline = manifest["builtin-baseline"];
+const NOTICES = "THIRD_PARTY_NOTICES.txt";
 const run = (command, args, options = {}) => {
   const result = cp.spawnSync(command, args, {
     cwd: root,
@@ -175,22 +176,44 @@ function copyRuntimeLibraries(stage, output) {
   }
 }
 
-function copyDependencyNotices(installed, triplet, output) {
+// One notice file for every port built into the bridge. Ports with the same
+// license text (all of Boost, for one) share a section; vcpkg-* ports are
+// build helpers and ship nothing.
+function writeDependencyNotices(installed, triplet, file) {
   const share = path.join(installed, triplet, "share");
-  const licenses = path.join(output, "licenses");
-  fs.mkdirSync(licenses, { recursive: true });
-  for (const name of fs.readdirSync(share)) {
+  const portsByText = new Map();
+  for (const name of fs.readdirSync(share).sort()) {
     const copyright = path.join(share, name, "copyright");
-    if (fs.existsSync(copyright))
-      fs.copyFileSync(copyright, path.join(licenses, `${name}.txt`));
+    if (name.startsWith("vcpkg-") || !fs.existsSync(copyright)) continue;
+    const text = fs
+      .readFileSync(copyright, "utf8")
+      .replace(/\r\n?/g, "\n")
+      .trim();
+    portsByText.set(text, [...(portsByText.get(text) ?? []), name]);
   }
+  const rule = "=".repeat(72);
+  const sections = [...portsByText].map(
+    ([text, names]) => `${rule}\n${names.join(", ")}\n${rule}\n\n${text}\n`
+  );
+  fs.writeFileSync(
+    file,
+    [`Third-party notices for the libtorrent bridge (${triplet}).\n`]
+      .concat(sections)
+      .join("\n")
+  );
 }
 
-function copyDependencyManifest(output) {
+// Where the bridge's runtime files go, with the dependency manifest.
+function prepareTorrentBridgeOutput() {
+  const output = path.join(root, "hydra-native");
+  fs.mkdirSync(output, { recursive: true });
+  // Older builds wrote one notice file per port.
+  fs.rmSync(path.join(output, "licenses"), { recursive: true, force: true });
   fs.copyFileSync(
     path.join(source, "vcpkg.json"),
     path.join(output, "torrent-dependencies.json")
   );
+  return output;
 }
 
 function getTriplet() {
@@ -243,11 +266,9 @@ function compileTorrentBridge() {
 
 function buildTorrentBridge() {
   const { triplet, stage, installed } = compileTorrentBridge();
-  const output = path.join(root, "hydra-native");
-  fs.mkdirSync(output, { recursive: true });
+  const output = prepareTorrentBridgeOutput();
   copyRuntimeLibraries(stage, output);
-  copyDependencyNotices(installed, triplet, output);
-  copyDependencyManifest(output);
+  writeDependencyNotices(installed, triplet, path.join(output, NOTICES));
   return path.join(stage, "lib");
 }
 
@@ -256,9 +277,10 @@ module.exports = {
   source,
   getTriplet,
   compileTorrentBridge,
+  NOTICES,
   copyRuntimeLibraries,
-  copyDependencyNotices,
-  copyDependencyManifest,
+  writeDependencyNotices,
+  prepareTorrentBridgeOutput,
   buildTorrentBridge,
 };
 if (require.main === module) buildTorrentBridge();
