@@ -3,6 +3,7 @@ const path = require("node:path");
 const util = require("node:util");
 const childProcess = require("node:child_process");
 const { buildTorrentBridge } = require("./build-torrent-bridge.cjs");
+const { usePrebuiltTorrentBridge } = require("./torrent-bridge-prebuilt.cjs");
 
 const execFile = util.promisify(childProcess.execFile);
 const MAX_COMMAND_OUTPUT_BYTES = 10 * 1024 * 1024;
@@ -110,7 +111,7 @@ const build = async () => {
   }
 
   console.log("Building hydra-native Rust addon...");
-  const torrentLibraryDir = buildTorrentBridge();
+  const torrentLibraryDir = usePrebuiltTorrentBridge() ?? buildTorrentBridge();
 
   const cargoArgs = [
     "build",

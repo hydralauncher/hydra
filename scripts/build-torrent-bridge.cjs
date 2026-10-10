@@ -184,29 +184,36 @@ function copyDependencyNotices(installed, triplet, output) {
     if (fs.existsSync(copyright))
       fs.copyFileSync(copyright, path.join(licenses, `${name}.txt`));
   }
+}
+
+function copyDependencyManifest(output) {
   fs.copyFileSync(
     path.join(source, "vcpkg.json"),
     path.join(output, "torrent-dependencies.json")
   );
 }
 
-function buildTorrentBridge() {
+function getTriplet() {
   if (!["x64", "arm64"].includes(process.arch))
     throw new Error(`Unsupported architecture: ${process.arch}`);
-  const arch = process.arch;
   const platform = {
     win32: "windows-static",
     linux: "linux",
     darwin: "osx",
   }[process.platform];
   if (!platform) throw new Error(`Unsupported platform: ${process.platform}`);
+  return `${process.arch}-${platform}`;
+}
+
+// Builds, tests and stages the bridge. Returns where its files landed.
+function compileTorrentBridge() {
+  const triplet = getTriplet();
   // The manifest baseline pins libtorrent, Boost, OpenSSL and WebRTC.
   const cache =
     process.env.HYDRA_NATIVE_CACHE ||
     path.join(os.homedir(), ".cache", "hydra");
   const { vcpkg, executable } = ensureVcpkg(cache);
   const { cmake, ctest } = resolveCmakeTools(executable);
-  const triplet = `${arch}-${platform}`;
   const build = path.join(
     source,
     "build",
@@ -220,7 +227,7 @@ function buildTorrentBridge() {
     source,
     "-B",
     build,
-    ...getGeneratorArgs(arch),
+    ...getGeneratorArgs(process.arch),
     `-DCMAKE_TOOLCHAIN_FILE=${path.join(vcpkg, "scripts", "buildsystems", "vcpkg.cmake")}`,
     `-DVCPKG_INSTALLED_DIR=${installed}`,
     `-DVCPKG_TARGET_TRIPLET=${triplet}`,
@@ -231,13 +238,27 @@ function buildTorrentBridge() {
   run(cmake, ["--build", build, "--config", "Release", "--parallel"]);
   run(ctest, ["--test-dir", build, "-C", "Release", "--output-on-failure"]);
   run(cmake, ["--install", build, "--config", "Release"]);
+  return { triplet, stage, installed };
+}
 
+function buildTorrentBridge() {
+  const { triplet, stage, installed } = compileTorrentBridge();
   const output = path.join(root, "hydra-native");
   fs.mkdirSync(output, { recursive: true });
   copyRuntimeLibraries(stage, output);
   copyDependencyNotices(installed, triplet, output);
+  copyDependencyManifest(output);
   return path.join(stage, "lib");
 }
 
-module.exports = { buildTorrentBridge };
+module.exports = {
+  root,
+  source,
+  getTriplet,
+  compileTorrentBridge,
+  copyRuntimeLibraries,
+  copyDependencyNotices,
+  copyDependencyManifest,
+  buildTorrentBridge,
+};
 if (require.main === module) buildTorrentBridge();
