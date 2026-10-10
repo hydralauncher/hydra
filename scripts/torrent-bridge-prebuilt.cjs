@@ -41,9 +41,10 @@ function listInputs() {
     }
   };
   walk(source);
+  // Code-unit order, so every machine and locale hashes files the same way.
   return files
     .map((file) => path.relative(root, file).split(path.sep).join("/"))
-    .sort();
+    .sort((a, b) => Number(a > b) - Number(a < b));
 }
 
 function hashInputs() {
@@ -52,7 +53,7 @@ function hashInputs() {
     // Line endings depend on the checkout, not on what gets built.
     const content = fs
       .readFileSync(path.join(root, file), "utf8")
-      .replace(/\r\n/g, "\n");
+      .replaceAll("\r\n", "\n");
     hash.update(`${file}\0${content}\0`);
   }
   return hash.digest("hex");
@@ -80,8 +81,10 @@ function isSourceBuildForced() {
 // built it; ldd names any this system lacks.
 function findMissingLinuxDependencies(dir) {
   if (process.platform !== "linux") return null;
+  const ldd = ["/usr/bin/ldd", "/bin/ldd"].find((file) => fs.existsSync(file));
+  if (!ldd) return "ldd was not found";
   const library = path.join(dir, "lib", "libhydra_torrent_bridge.so");
-  const result = cp.spawnSync("ldd", [library], { encoding: "utf8" });
+  const result = cp.spawnSync(ldd, [library], { encoding: "utf8" });
   const missing = `${result.stdout ?? ""}${result.stderr ?? ""}`
     .split("\n")
     .filter((line) => line.includes("not found"))
@@ -109,7 +112,7 @@ function warn(message) {
 
 // Installs the committed bundle into hydra-native and returns the folder to
 // link against, or null when the bridge must be built from source.
-function usePrebuiltTorrentBridge() {
+function installPrebuiltTorrentBridge() {
   const bundle = getBundle();
   const problem = getBundleProblem(bundle);
   if (problem) {
@@ -171,7 +174,7 @@ function verify() {
   console.log("Every prebuilt torrent bridge matches its inputs.");
 }
 
-module.exports = { usePrebuiltTorrentBridge };
+module.exports = { installPrebuiltTorrentBridge };
 
 if (require.main === module) {
   const command = process.argv[2];

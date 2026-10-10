@@ -3,7 +3,9 @@ const path = require("node:path");
 const util = require("node:util");
 const childProcess = require("node:child_process");
 const { buildTorrentBridge } = require("./build-torrent-bridge.cjs");
-const { usePrebuiltTorrentBridge } = require("./torrent-bridge-prebuilt.cjs");
+const {
+  installPrebuiltTorrentBridge,
+} = require("./torrent-bridge-prebuilt.cjs");
 
 const execFile = util.promisify(childProcess.execFile);
 const MAX_COMMAND_OUTPUT_BYTES = 10 * 1024 * 1024;
@@ -106,13 +108,22 @@ const waitForElectron = async () => {
     path.dirname(require.resolve("electron/package.json")),
     "path.txt"
   );
+  if (fs.existsSync(pathFile)) return;
+
   const deadline = Date.now() + ELECTRON_INSTALL_TIMEOUT_MS;
-  while (!fs.existsSync(pathFile)) {
-    if (Date.now() > deadline) {
-      throw new Error("Timed out waiting for Electron to finish installing");
-    }
-    await new Promise((resolve) => setTimeout(resolve, 1000));
-  }
+  await new Promise((resolve, reject) => {
+    const timer = setInterval(() => {
+      if (fs.existsSync(pathFile)) {
+        clearInterval(timer);
+        resolve();
+      } else if (Date.now() > deadline) {
+        clearInterval(timer);
+        reject(
+          new Error("Timed out waiting for Electron to finish installing")
+        );
+      }
+    }, 1000);
+  });
 };
 
 const build = async () => {
@@ -135,7 +146,8 @@ const build = async () => {
   }
 
   console.log("Building hydra-native Rust addon...");
-  const torrentLibraryDir = usePrebuiltTorrentBridge() ?? buildTorrentBridge();
+  const torrentLibraryDir =
+    installPrebuiltTorrentBridge() ?? buildTorrentBridge();
 
   const cargoArgs = [
     "build",
