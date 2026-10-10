@@ -55,7 +55,7 @@ const addGameToQueue = async (
       fileSize: selectedFilesSize ?? parsedFileSize,
       shouldSeed: false,
       timestamp: Date.now(),
-      queued: true,
+      queued: false,
       pinnedToHero: false,
       extracting: false,
       automaticallyExtract,

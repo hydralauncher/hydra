@@ -7,6 +7,7 @@ import { it } from "node:test";
 import { runInNewContext } from "node:vm";
 import ts from "typescript";
 import * as shared from "../../shared/constants.ts";
+import * as downloadContract from "../../types/download-contract.ts";
 import { listArchiveFiles } from "./archive-entry.ts";
 
 function load(source: string, deps: Record<string, unknown>) {
@@ -144,6 +145,7 @@ function orchestrator() {
   const records = new Map<string, any>();
   const resumed: string[] = [];
   const paused: string[] = [];
+  const resumeSignals: AbortSignal[] = [];
   let preparedReady = true;
   let afterResume: (() => Promise<void>) | undefined;
   let runtimeActive = false;
@@ -202,6 +204,8 @@ function orchestrator() {
       DownloadManager: {
         confirmPauseDownload: () => true,
         hasActiveDownload: () => runtimeActive,
+        hasRunningDownload: (id: string) =>
+          runtimeActive && id === (resumed.at(-1) ?? "active"),
         getActiveDownloadId: () =>
           runtimeActive ? (resumed.at(-1) ?? "active") : null,
         validateDownloadUrl: async () => undefined,
@@ -213,7 +217,8 @@ function orchestrator() {
           await preparation;
           return preparedReady;
         },
-        resumeDownload: async (d: any) => {
+        resumeDownload: async (d: any, signal: AbortSignal) => {
+          resumeSignals.push(signal);
           assert.equal(runtimeActive, false);
           runtimeActive = true;
           resumed.push(d.objectId);
@@ -253,6 +258,7 @@ function orchestrator() {
     },
     records,
     resumed,
+    resumeSignals,
     paused,
     afterResume: (callback: () => Promise<void>) => {
       afterResume = callback;
@@ -629,4 +635,115 @@ it("pausing queue-only preparation prevents a later readiness poll from starting
   assert.equal(f.records.get("next").queued, false);
   assert.equal(f.records.get("next").debridAutoResume, false);
   assert.equal(f.records.get("next").debridQueueOnly, undefined);
+});
+
+it("Real-Debrid work cannot be selected by queue completion while preparation is pending", async () => {
+  const f = orchestrator();
+  const download = { ...f.download, queued: true };
+  f.records.set("next", download);
+  await f.instance.enqueuePreparedDownload(download);
+  await f.preparing;
+  f.finishActive();
+  const { getNextQueuedDownloadFromLayout } = load(
+    "./download-layout-state.ts",
+    {
+      "../../types": downloadContract,
+      "@main/level": {},
+    }
+  );
+  let selected;
+  let waitingRecord;
+  try {
+    selected = getNextQueuedDownloadFromLayout([...f.records.values()], {
+      version: 1,
+      queueOrder: ["steam:next"],
+      pausedOrder: [],
+    });
+    waitingRecord = { ...f.records.get("next") };
+  } finally {
+    f.release();
+  }
+  await new Promise<void>((resolve) => setImmediate(resolve));
+  assert.equal(selected, null);
+  assert.equal(waitingRecord.awaitingDebrid, true);
+  assert.equal(waitingRecord.debridQueueOnly, true);
+  assert.equal(f.records.get("next").queued, true);
+  assert.deepEqual(f.resumed, []);
+});
+
+it("background preparation never overwrites a transfer already running in the same slot", async () => {
+  const f = orchestrator();
+  const run = f.instance.startPreparedDownload(f.download);
+  await f.preparing;
+  f.records.set("next", {
+    ...f.download,
+    status: "active",
+    bytesDownloaded: 7,
+  });
+  f.release();
+  await run;
+  assert.equal(f.records.get("next").status, "active");
+  assert.equal(f.records.get("next").bytesDownloaded, 7);
+  assert.equal(f.records.get("next").queued, undefined);
+});
+
+it("background waiting state cannot replace an already active download", async () => {
+  const f = orchestrator();
+  const active = { ...f.download, status: "active", bytesDownloaded: 7 };
+  f.records.set("next", active);
+  f.release();
+  await f.instance.enqueuePreparedDownload(f.download);
+  await new Promise<void>((resolve) => setImmediate(resolve));
+  assert.equal(f.records.get("next").status, "active");
+  assert.equal(f.records.get("next").bytesDownloaded, 7);
+  assert.equal(f.records.get("next").awaitingDebrid, undefined);
+});
+
+it("background enqueue does not abort preparation for a transfer already claiming the slot", async () => {
+  const f = orchestrator();
+  f.finishActive();
+  addManualDownload(f);
+  const started = deferred();
+  const release = deferred();
+  f.afterResume(async () => {
+    started.resolve();
+    await release.promise;
+  });
+  const manual = f.instance.resumeDownload("steam", "manual");
+  await started.promise;
+  await f.instance.enqueuePreparedDownload({
+    ...f.download,
+    objectId: "manual",
+  });
+  await new Promise<void>((resolve) => setImmediate(resolve));
+  const aborted = f.resumeSignals[0].aborted;
+  release.resolve();
+  await manual;
+  await new Promise<void>((resolve) => setImmediate(resolve));
+  assert.equal(aborted, false);
+  assert.deepEqual(f.resumed, ["manual"]);
+  assert.equal(f.records.get("manual").status, "active");
+});
+
+it("pausing a background request waiting for the lock prevents preparation from starting", async () => {
+  const f = orchestrator();
+  f.finishActive();
+  f.records.set("next", { ...f.download, queued: false });
+  f.release();
+  const entered = deferred();
+  const release = deferred();
+  const held = withDownloadActivation(async () => {
+    entered.resolve();
+    await release.promise;
+  });
+  await entered.promise;
+  await f.instance.enqueuePreparedDownload(f.download);
+  const paused = f.instance.pauseDownloadById("steam", "next");
+  await new Promise<void>((resolve) => setImmediate(resolve));
+  release.resolve();
+  await Promise.all([held, paused]);
+  await new Promise<void>((resolve) => setImmediate(resolve));
+  assert.deepEqual(f.resumed, []);
+  assert.equal(f.records.get("next").queued, false);
+  assert.equal(f.records.get("next").debridAutoResume, false);
 });

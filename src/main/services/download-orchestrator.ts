@@ -94,6 +94,7 @@ export class DownloadOrchestrator {
   }
 
   private static readonly backgroundStartVersions = new Map<string, number>();
+  private static readonly pendingBackgroundStarts = new Map<string, symbol>();
   private static readonly preparationControllers = new Map<
     string,
     AbortController
@@ -101,6 +102,7 @@ export class DownloadOrchestrator {
   private static readonly lastDebridPollAt = new Map<string, number>();
 
   private static invalidateBackgroundStart(downloadKey: string) {
+    this.pendingBackgroundStarts.delete(downloadKey);
     this.preparationControllers.get(downloadKey)?.abort();
     this.preparationControllers.delete(downloadKey);
     this.backgroundStartVersions.set(
@@ -267,7 +269,7 @@ export class DownloadOrchestrator {
     }
     if (!isCurrent()) return null;
     // A repeated manual action must retain the downloader already owning this slot.
-    if (DownloadManager.getActiveDownloadId() === getGameKey(download)) {
+    if (DownloadManager.hasRunningDownload(getGameKey(download))) {
       return download;
     }
     const activeDownload: Download = {
@@ -671,6 +673,14 @@ export class DownloadOrchestrator {
     }
     return withDownloadActivation(async () => {
       if (!isCurrent()) return { ok: true };
+      const current = await this.getDownload(download.shop, download.objectId);
+      if (!isCurrent()) return { ok: true };
+      if (
+        current &&
+        (isActiveLikeDownload(current) || this.isTerminalDownload(current))
+      ) {
+        return { ok: true };
+      }
       await this.queueDownload(download);
       if (!isCurrent()) return { ok: true };
       // Read the slot after preparation and queue persistence. Completion can
@@ -687,20 +697,72 @@ export class DownloadOrchestrator {
     });
   }
 
-  static startPreparedDownloadInBackground(download: Download) {
+  private static beginBackgroundPreparation(
+    download: Download,
+    request: symbol
+  ) {
     const key = getGameKey(download);
-    const preparation = this.beginPreparation(key);
-    void this.startPreparedDownload(
-      download,
-      preparation.isCurrent,
-      preparation.signal
-    )
-      .catch((error) => {
+    return withDownloadActivation(async () => {
+      try {
+        const current = await this.getDownload(
+          download.shop,
+          download.objectId
+        );
+        if (this.pendingBackgroundStarts.get(key) !== request) return null;
+        if (
+          current &&
+          (isActiveLikeDownload(current) || this.isTerminalDownload(current))
+        ) {
+          return null;
+        }
+        const preparation = this.beginPreparation(key);
+        try {
+          // Persist waiting intent before readiness so completion and restart cannot
+          // pick an item whose files are still being prepared.
+          await this.saveAwaitingDebridDownload(
+            download,
+            preparation.isCurrent
+          );
+          return preparation;
+        } catch (error) {
+          preparation.dispose();
+          throw error;
+        }
+      } finally {
+        if (this.pendingBackgroundStarts.get(key) === request) {
+          this.pendingBackgroundStarts.delete(key);
+        }
+      }
+    });
+  }
+
+  static startPreparedDownloadInBackground(download: Download) {
+    const request = Symbol();
+    this.pendingBackgroundStarts.set(getGameKey(download), request);
+    const start = async () => {
+      const preparation = await this.beginBackgroundPreparation(
+        download,
+        request
+      );
+      if (!preparation) return;
+      try {
+        if (!preparation.isCurrent()) return;
+        await this.startPreparedDownload(
+          download,
+          preparation.isCurrent,
+          preparation.signal
+        );
+      } catch (error) {
         if (preparation.isCurrent()) {
           logger.error("Failed to prepare queued download", error);
         }
-      })
-      .finally(preparation.dispose);
+      } finally {
+        preparation.dispose();
+      }
+    };
+    void start().catch((error) => {
+      logger.error("Failed to save background download preparation", error);
+    });
   }
 
   static async enqueuePreparedDownload(download: Download) {

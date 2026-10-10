@@ -197,6 +197,14 @@ export class DownloadManager {
     return this.downloadingGameId !== null;
   }
 
+  public static hasRunningDownload(downloadId: string): boolean {
+    return (
+      this.downloadingGameId === downloadId &&
+      !this.isPreparingDownload &&
+      (!this.usingJsDownloader || this.jsDownloader !== null)
+    );
+  }
+
   public static get isJsDownloadActive(): boolean {
     return (
       this.usingJsDownloader &&
@@ -2838,6 +2846,8 @@ export class DownloadManager {
           preparedOptions
         );
       }
+      // An aborted manifest lookup can return without ever creating a downloader.
+      if (this.isPreparingDownload) signal.throwIfAborted();
     } catch (error) {
       if (this.startGeneration !== myGeneration) return;
       this.isPreparingDownload = false;

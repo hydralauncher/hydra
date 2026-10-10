@@ -57,7 +57,7 @@ const startGameDownload = async (
       folderName: null,
       shouldSeed: false,
       timestamp: Date.now(),
-      queued: true,
+      queued: false,
       pinnedToHero: false,
       extracting: false,
       automaticallyExtract,

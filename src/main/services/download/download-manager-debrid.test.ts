@@ -22,7 +22,12 @@ const metadataDirectory = fs.mkdtempSync(
 rangeState.configureRangeStateDirectory(metadataDirectory);
 after(() => fs.rmSync(metadataDirectory, { recursive: true, force: true }));
 
-function manager(manifest?: torboxFiles.TorBoxDownloadManifest) {
+function manager(
+  manifest?: torboxFiles.TorBoxDownloadManifest,
+  getFiles: () => Promise<
+    torboxFiles.TorBoxDownloadManifest | undefined
+  > = async () => manifest
+) {
   const starts: JsHttpDownloaderOptions[] = [];
   const exports: Record<string, unknown> = {};
   let stored: Record<string, unknown> = { files: [] };
@@ -78,7 +83,7 @@ function manager(manifest?: torboxFiles.TorBoxDownloadManifest) {
         "./range-download-state": rangeState,
         "./torbox": {
           TorBoxClient: {
-            getDownloadFiles: async () => manifest,
+            getDownloadFiles: getFiles,
             requestLink: async () => "https://fixture.invalid/archive.zip",
           },
         },
@@ -137,7 +142,10 @@ function manager(manifest?: torboxFiles.TorBoxDownloadManifest) {
   const instance = exports.DownloadManager as {
     processNextQueuedDownload: () => Promise<void>;
     resumeDownload: (download: any) => Promise<void>;
-    startDownload: (download: any) => Promise<void>;
+    startDownload: (download: any, signal?: AbortSignal) => Promise<void>;
+    hasActiveDownload: () => boolean;
+    hasRunningDownload: (id: string) => boolean;
+    getActiveDownloadId: () => string | null;
     requiresPauseConfirmation: (key: string) => boolean;
     getBatchDownloadOptions: (
       b: ReturnType<typeof batch>,
@@ -399,4 +407,60 @@ it("completion does not replace another transfer that already claimed the slot",
   };
   await f.instance.processNextQueuedDownload();
   assert.deepEqual(resumed, []);
+});
+
+it("aborted TorBox preparation releases the slot before the same download is retried", async () => {
+  const root = fs.mkdtempSync(
+    path.join(os.tmpdir(), "torbox-aborted-preparation-")
+  );
+  let entered!: () => void;
+  let release!: () => void;
+  const preparing = new Promise<void>((resolve) => {
+    entered = resolve;
+  });
+  const waiting = new Promise<void>((resolve) => {
+    release = resolve;
+  });
+  const manifest: torboxFiles.TorBoxDownloadManifest = {
+    name: "folder",
+    torrentId: 1,
+    totalSize: 10,
+    files: [{ id: 1, path: "folder/file.bin", size: 10 }],
+  };
+  const f = manager(manifest, async () => {
+    entered();
+    await waiting;
+    return manifest;
+  });
+  const download = {
+    shop: "steam",
+    objectId: "fixture",
+    downloader: shared.Downloader.TorBox,
+    uri: "magnet:fixture",
+    downloadPath: root,
+  };
+  f.setStored(download);
+  const controller = new AbortController();
+  const start = f.instance.startDownload(download, controller.signal);
+  try {
+    await preparing;
+    assert.equal(f.instance.getActiveDownloadId(), "steam:fixture");
+    assert.equal(f.instance.hasRunningDownload("steam:fixture"), false);
+    controller.abort();
+    release();
+    await start.catch((error) => {
+      assert.equal(error.name, "AbortError");
+    });
+    assert.equal(f.instance.hasActiveDownload(), false);
+    assert.equal(f.instance.getActiveDownloadId(), null);
+    assert.deepEqual(f.starts, []);
+    await f.instance.startDownload(download);
+    await new Promise<void>((resolve) => setImmediate(resolve));
+    assert.equal(f.starts.length, 1);
+    assert.equal(f.instance.hasRunningDownload("steam:fixture"), true);
+    assert.equal(f.instance.getActiveDownloadId(), "steam:fixture");
+  } finally {
+    release();
+    fs.rmSync(root, { recursive: true, force: true });
+  }
 });
