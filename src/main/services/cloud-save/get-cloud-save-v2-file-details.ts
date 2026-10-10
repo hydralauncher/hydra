@@ -18,7 +18,6 @@ import {
   isVerifiedEmulatorDestinationBinding,
 } from "./emulator-destination-store";
 import { groupEmulatorRestoreDestinations } from "./emulator-destination-policy";
-import { listRpcs3CloudProfileIds } from "./rpcs3-profile-binding-policy";
 import { setRetroArchFileDisplayNames } from "./retroarch-file-display-names";
 import {
   cloudSaveCustomPathContextFromPathContext,
@@ -186,23 +185,5 @@ export const getCloudSaveV2FileDetails = async (
       )
     ).filter((item) => item !== null);
   }
-  if (provider !== "rpcs3") {
-    return details;
-  }
-  const { getRpcs3ProfilePairing } = await import("./rpcs3-save-provider");
-  const pairing = await getRpcs3ProfilePairing(analysis.context.game!).catch(
-    () => null
-  );
-  return {
-    ...details,
-    rpcs3Profile: pairing
-      ? {
-          localProfileId: pairing.activeProfileId,
-          cloudProfileIds: listRpcs3CloudProfileIds(
-            analysis.remoteManifest?.files ?? []
-          ),
-          linkedCloudProfileId: pairing.binding?.cloudProfileId ?? null,
-        }
-      : null,
-  };
+  return details;
 };

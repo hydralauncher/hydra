@@ -7,6 +7,7 @@ const root = path.resolve(__dirname, "..");
 const source = path.join(root, "native", "torrent-bridge");
 const manifest = require(path.join(source, "vcpkg.json"));
 const baseline = manifest["builtin-baseline"];
+const NOTICES = "THIRD_PARTY_NOTICES.txt";
 const run = (command, args, options = {}) => {
   const result = cp.spawnSync(command, args, {
     cwd: root,
@@ -175,38 +176,67 @@ function copyRuntimeLibraries(stage, output) {
   }
 }
 
-function copyDependencyNotices(installed, triplet, output) {
+// One notice file for every port built into the bridge. Ports with the same
+// license text (all of Boost, for one) share a section; vcpkg-* ports are
+// build helpers and ship nothing.
+function writeDependencyNotices(installed, triplet, file) {
   const share = path.join(installed, triplet, "share");
-  const licenses = path.join(output, "licenses");
-  fs.mkdirSync(licenses, { recursive: true });
-  for (const name of fs.readdirSync(share)) {
+  const portsByText = new Map();
+  for (const name of fs.readdirSync(share).sort()) {
     const copyright = path.join(share, name, "copyright");
-    if (fs.existsSync(copyright))
-      fs.copyFileSync(copyright, path.join(licenses, `${name}.txt`));
+    if (name.startsWith("vcpkg-") || !fs.existsSync(copyright)) continue;
+    const text = fs
+      .readFileSync(copyright, "utf8")
+      .replace(/\r\n?/g, "\n")
+      .trim();
+    portsByText.set(text, [...(portsByText.get(text) ?? []), name]);
   }
+  const rule = "=".repeat(72);
+  const sections = [...portsByText].map(
+    ([text, names]) => `${rule}\n${names.join(", ")}\n${rule}\n\n${text}\n`
+  );
+  fs.writeFileSync(
+    file,
+    [`Third-party notices for the libtorrent bridge (${triplet}).\n`]
+      .concat(sections)
+      .join("\n")
+  );
+}
+
+// Where the bridge's runtime files go, with the dependency manifest.
+function prepareTorrentBridgeOutput() {
+  const output = path.join(root, "hydra-native");
+  fs.mkdirSync(output, { recursive: true });
+  // Older builds wrote one notice file per port.
+  fs.rmSync(path.join(output, "licenses"), { recursive: true, force: true });
   fs.copyFileSync(
     path.join(source, "vcpkg.json"),
     path.join(output, "torrent-dependencies.json")
   );
+  return output;
 }
 
-function buildTorrentBridge() {
+function getTriplet() {
   if (!["x64", "arm64"].includes(process.arch))
     throw new Error(`Unsupported architecture: ${process.arch}`);
-  const arch = process.arch;
   const platform = {
     win32: "windows-static",
     linux: "linux",
     darwin: "osx",
   }[process.platform];
   if (!platform) throw new Error(`Unsupported platform: ${process.platform}`);
+  return `${process.arch}-${platform}`;
+}
+
+// Builds, tests and stages the bridge. Returns where its files landed.
+function compileTorrentBridge() {
+  const triplet = getTriplet();
   // The manifest baseline pins libtorrent, Boost, OpenSSL and WebRTC.
   const cache =
     process.env.HYDRA_NATIVE_CACHE ||
     path.join(os.homedir(), ".cache", "hydra");
   const { vcpkg, executable } = ensureVcpkg(cache);
   const { cmake, ctest } = resolveCmakeTools(executable);
-  const triplet = `${arch}-${platform}`;
   const build = path.join(
     source,
     "build",
@@ -220,7 +250,7 @@ function buildTorrentBridge() {
     source,
     "-B",
     build,
-    ...getGeneratorArgs(arch),
+    ...getGeneratorArgs(process.arch),
     `-DCMAKE_TOOLCHAIN_FILE=${path.join(vcpkg, "scripts", "buildsystems", "vcpkg.cmake")}`,
     `-DVCPKG_INSTALLED_DIR=${installed}`,
     `-DVCPKG_TARGET_TRIPLET=${triplet}`,
@@ -231,13 +261,26 @@ function buildTorrentBridge() {
   run(cmake, ["--build", build, "--config", "Release", "--parallel"]);
   run(ctest, ["--test-dir", build, "-C", "Release", "--output-on-failure"]);
   run(cmake, ["--install", build, "--config", "Release"]);
+  return { triplet, stage, installed };
+}
 
-  const output = path.join(root, "hydra-native");
-  fs.mkdirSync(output, { recursive: true });
+function buildTorrentBridge() {
+  const { triplet, stage, installed } = compileTorrentBridge();
+  const output = prepareTorrentBridgeOutput();
   copyRuntimeLibraries(stage, output);
-  copyDependencyNotices(installed, triplet, output);
+  writeDependencyNotices(installed, triplet, path.join(output, NOTICES));
   return path.join(stage, "lib");
 }
 
-module.exports = { buildTorrentBridge };
+module.exports = {
+  root,
+  source,
+  getTriplet,
+  compileTorrentBridge,
+  NOTICES,
+  copyRuntimeLibraries,
+  writeDependencyNotices,
+  prepareTorrentBridgeOutput,
+  buildTorrentBridge,
+};
 if (require.main === module) buildTorrentBridge();

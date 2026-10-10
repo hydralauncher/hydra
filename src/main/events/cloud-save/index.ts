@@ -3,7 +3,6 @@ import "./export-game-artifact";
 import "./get-cloud-save-overview";
 import "./get-cloud-save-v2-file-details";
 import "./get-rpcs3-disc-identity-status";
-import "./bind-rpcs3-cloud-save-profile";
 import "./get-game-backup-preview";
 import "./delete-game-cloud-save-data";
 import "./sync-game-cloud-save";

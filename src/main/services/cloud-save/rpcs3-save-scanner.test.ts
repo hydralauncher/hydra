@@ -7,9 +7,57 @@ import { describe, it } from "node:test";
 import type { Game } from "@types";
 
 import {
+  scanRpcs3Gamedata,
   scanRpcs3SaveRoot,
   scanRpcs3Savestates,
 } from "./rpcs3-save-scanner.js";
+
+const paramSfo = (entries: Record<string, string>) => {
+  const keys = Object.keys(entries);
+  const keyTable = Buffer.from(keys.map((key) => `${key}\0`).join(""), "ascii");
+  const values = keys.map((key) => Buffer.from(`${entries[key]}\0`, "ascii"));
+  const keyTableStart = 20 + keys.length * 16;
+  const dataTableStart = keyTableStart + keyTable.length;
+  const dataTable = Buffer.concat(values);
+  const sfo = Buffer.alloc(dataTableStart + dataTable.length);
+  sfo.writeUInt32LE(0x46535000, 0);
+  sfo.writeUInt32LE(0x0101, 4);
+  sfo.writeUInt32LE(keyTableStart, 8);
+  sfo.writeUInt32LE(dataTableStart, 12);
+  sfo.writeUInt32LE(keys.length, 16);
+  let keyOffset = 0;
+  let dataOffset = 0;
+  keys.forEach((key, index) => {
+    const offset = 20 + index * 16;
+    sfo.writeUInt16LE(keyOffset, offset);
+    sfo.writeUInt16LE(0x0204, offset + 2);
+    sfo.writeUInt32LE(values[index].length, offset + 4);
+    sfo.writeUInt32LE(values[index].length, offset + 8);
+    sfo.writeUInt32LE(dataOffset, offset + 12);
+    keyOffset += key.length + 1;
+    dataOffset += values[index].length;
+  });
+  keyTable.copy(sfo, keyTableStart);
+  dataTable.copy(sfo, dataTableStart);
+  return sfo;
+};
+
+const writeGamedataFolder = async (
+  gameRoot: string,
+  folderName: string,
+  sfo: Record<string, string>,
+  files: Record<string, string> = {}
+) => {
+  const folderRoot = path.join(gameRoot, folderName);
+  await fs.mkdir(folderRoot, { recursive: true });
+  await fs.writeFile(path.join(folderRoot, "PARAM.SFO"), paramSfo(sfo));
+  for (const [relativePath, content] of Object.entries(files)) {
+    const target = path.join(folderRoot, ...relativePath.split("/"));
+    await fs.mkdir(path.dirname(target), { recursive: true });
+    await fs.writeFile(target, content);
+  }
+  return folderRoot;
+};
 
 describe("RPCS3 Cloud Save scanner", () => {
   const game = {
@@ -24,7 +72,7 @@ describe("RPCS3 Cloud Save scanner", () => {
       variantId: "variant",
       rpcs3SavedataTitleIds: ["NPUB31848"],
     };
-    const savedata = await scanRpcs3SaveRoot(context, "/unused", "00000001");
+    const savedata = await scanRpcs3SaveRoot(context, "/unused");
     const states = await scanRpcs3Savestates(context, "/unused");
 
     for (const result of [savedata, states]) {
@@ -36,7 +84,7 @@ describe("RPCS3 Cloud Save scanner", () => {
     }
   });
 
-  it("captures only the active profile and marks unsafe matching slots partial", async () => {
+  it("captures every profile under its own ID and marks unsafe slots partial", async () => {
     const homeRoot = await fs.mkdtemp(path.join(os.tmpdir(), "hydra-rpcs3-"));
     try {
       for (const profileId of ["00000001", "00000002"]) {
@@ -53,41 +101,61 @@ describe("RPCS3 Cloud Save scanner", () => {
         path.join(homeRoot, "00000002", "savedata", "BLUS30443-BROKEN"),
         "not a directory"
       );
+      await fs.writeFile(path.join(homeRoot, "localusername"), "not a user");
+      await fs.mkdir(path.join(homeRoot, "not-a-profile", "savedata"), {
+        recursive: true,
+      });
       const result = await scanRpcs3SaveRoot(
         { game, environmentId: "environment", variantId: "variant" },
-        homeRoot,
-        "00000002",
-        "00000001"
+        homeRoot
       );
 
       assert.deepEqual(
-        result.files.map((file) => [file.rawPath, file.relativePath]),
-        [["<emulator>/rpcs3/BLUS30443/00000001", "BLUS30443-SLOT01/DATA.BIN"]]
+        result.files
+          .map((file) => [
+            file.rawPath,
+            file.relativePath,
+            file.localBindings.concreteUserSegment,
+          ])
+          .sort((left, right) => left[0].localeCompare(right[0])),
+        [
+          [
+            "<emulator>/rpcs3/BLUS30443/00000001",
+            "BLUS30443-SLOT01/DATA.BIN",
+            "00000001",
+          ],
+          [
+            "<emulator>/rpcs3/BLUS30443/00000002",
+            "BLUS30443-SLOT01/DATA.BIN",
+            "00000002",
+          ],
+        ]
       );
-      assert.equal(
-        result.files[0].localBindings.concreteUserSegment,
-        "00000002"
+      assert.deepEqual(
+        result.coverage
+          .map((item) => [item.rawPath ?? "", item.outcome])
+          .sort((left, right) => left[0].localeCompare(right[0])),
+        [
+          ["<emulator>/rpcs3/BLUS30443/00000001", "scanned"],
+          ["<emulator>/rpcs3/BLUS30443/00000002", "partial"],
+        ]
       );
-      assert.equal(result.coverage.length, 1);
-      assert.equal(result.coverage[0].outcome, "partial");
-      assert.equal(result.coverage[0].enumeratedCompletely, false);
     } finally {
       await fs.rm(homeRoot, { recursive: true, force: true });
     }
   });
 
-  it("does not treat a missing active profile as an empty save", async () => {
+  it("does not treat a home folder without profiles as an empty save", async () => {
     const homeRoot = await fs.mkdtemp(path.join(os.tmpdir(), "hydra-rpcs3-"));
     try {
       const result = await scanRpcs3SaveRoot(
         { game, environmentId: "environment", variantId: "variant" },
-        homeRoot,
-        "00000002"
+        homeRoot
       );
       assert.deepEqual(result.files, []);
       assert.equal(result.coverage[0].outcome, "unresolved");
       assert.deepEqual(result.coverage[0].warningCodes, [
-        "rpcs3-active-profile-missing",
+        "rpcs3-profiles-missing",
       ]);
     } finally {
       await fs.rm(homeRoot, { recursive: true, force: true });
@@ -244,7 +312,7 @@ describe("RPCS3 Cloud Save scanner", () => {
       await fs.mkdir(path.join(configRoot, "savestates"));
 
       const [savedata, savestates] = await Promise.all([
-        scanRpcs3SaveRoot(context, homeRoot, "00000001"),
+        scanRpcs3SaveRoot(context, homeRoot),
         scanRpcs3Savestates(context, configRoot),
       ]);
       assert.equal(savedata.files.length, 9);
@@ -282,19 +350,206 @@ describe("RPCS3 Cloud Save scanner", () => {
     }
   });
 
-  it("keeps an absent savedata root partial for the active profile", async () => {
+  it("keeps an absent savedata root partial for a profile", async () => {
     const homeRoot = await fs.mkdtemp(path.join(os.tmpdir(), "hydra-rpcs3-"));
     try {
       await fs.mkdir(path.join(homeRoot, "00000001"));
       const result = await scanRpcs3SaveRoot(
         { game, environmentId: "environment", variantId: "variant" },
-        homeRoot,
-        "00000001"
+        homeRoot
       );
       assert.deepEqual(result.files, []);
       assert.equal(result.coverage[0].outcome, "partial");
     } finally {
       await fs.rm(homeRoot, { recursive: true, force: true });
     }
+  });
+
+  describe("game data profiles", () => {
+    const lbpGame = { discs: [{ sku: "BCUS98245" }] } as Game;
+    const lbpContext = {
+      game: lbpGame,
+      environmentId: "environment",
+      variantId: "variant",
+      rpcs3SavedataTitleIds: ["BCUS98245"],
+    };
+    const profileSfo = {
+      CATEGORY: "GD",
+      TITLE_ID: "BCUS98245",
+      TITLE: "User LittleBigPlanet 2 Profile",
+    };
+    const installSfo = { CATEGORY: "GD", TITLE_ID: "BCUS98245" };
+
+    it("captures the <TITLEID>_USER profile folder and ignores installs", async () => {
+      const hdd0 = await fs.mkdtemp(path.join(os.tmpdir(), "hydra-rpcs3-"));
+      try {
+        const gameRoot = path.join(hdd0, "game");
+        await writeGamedataFolder(gameRoot, "BCUS98245_USER1", profileSfo, {
+          "ICON0.PNG": "icon",
+          "USRDIR/bigfart2": "profile",
+          "USRDIR/littlefart11": "slots",
+        });
+        await writeGamedataFolder(gameRoot, "BCUS98245", installSfo, {
+          "USRDIR/data.farc": "update",
+        });
+        await writeGamedataFolder(gameRoot, "BCUS98245_INSTALL", installSfo, {
+          "USRDIR/install.bin": "install",
+        });
+        await writeGamedataFolder(gameRoot, "BCUS98245DATA", installSfo, {
+          "USRDIR/dlc.bin": "dlc",
+        });
+        await writeGamedataFolder(
+          gameRoot,
+          "BCUS98125_USER1",
+          { CATEGORY: "GD", TITLE_ID: "BCUS98125" },
+          { "USRDIR/other": "other game" }
+        );
+
+        const result = await scanRpcs3Gamedata(lbpContext, hdd0);
+
+        const rawPath = "<emulator>/rpcs3-gamedata/BCUS98245";
+        assert.deepEqual(
+          result.files
+            .map((file) => [file.rawPath, file.relativePath])
+            .sort(([, left], [, right]) => left.localeCompare(right)),
+          [
+            [rawPath, "BCUS98245_USER1/ICON0.PNG"],
+            [rawPath, "BCUS98245_USER1/PARAM.SFO"],
+            [rawPath, "BCUS98245_USER1/USRDIR/bigfart2"],
+            [rawPath, "BCUS98245_USER1/USRDIR/littlefart11"],
+          ]
+        );
+        assert.equal(result.files[0].localBindings.concretePath, gameRoot);
+        assert.equal(
+          result.files[0].localBindings.concreteUserSegment,
+          "__default__"
+        );
+        assert.equal(result.coverage.length, 1);
+        assert.equal(result.coverage[0].rawPath, rawPath);
+        assert.equal(result.coverage[0].outcome, "scanned");
+        assert.equal(result.coverage[0].enumeratedCompletely, true);
+      } finally {
+        await fs.rm(hdd0, { recursive: true, force: true });
+      }
+    });
+
+    for (const [name, sfo] of [
+      ["wrong title ID", { CATEGORY: "GD", TITLE_ID: "BCES00850" }],
+      ["wrong category", { CATEGORY: "SD", TITLE_ID: "BCUS98245" }],
+    ] as const) {
+      it(`ignores a profile folder with a ${name} and marks coverage partial`, async () => {
+        const hdd0 = await fs.mkdtemp(path.join(os.tmpdir(), "hydra-rpcs3-"));
+        try {
+          await writeGamedataFolder(
+            path.join(hdd0, "game"),
+            "BCUS98245_USER1",
+            sfo,
+            { "USRDIR/bigfart2": "profile" }
+          );
+
+          const result = await scanRpcs3Gamedata(lbpContext, hdd0);
+
+          assert.deepEqual(result.files, []);
+          assert.equal(result.coverage[0].outcome, "partial");
+          assert.equal(result.coverage[0].enumeratedCompletely, false);
+        } finally {
+          await fs.rm(hdd0, { recursive: true, force: true });
+        }
+      });
+    }
+
+    it("ignores a profile folder without PARAM.SFO and marks coverage partial", async () => {
+      const hdd0 = await fs.mkdtemp(path.join(os.tmpdir(), "hydra-rpcs3-"));
+      try {
+        const usrdir = path.join(hdd0, "game", "BCUS98245_USER1", "USRDIR");
+        await fs.mkdir(usrdir, { recursive: true });
+        await fs.writeFile(path.join(usrdir, "bigfart2"), "profile");
+
+        const result = await scanRpcs3Gamedata(lbpContext, hdd0);
+
+        assert.deepEqual(result.files, []);
+        assert.equal(result.coverage[0].outcome, "partial");
+      } finally {
+        await fs.rm(hdd0, { recursive: true, force: true });
+      }
+    });
+
+    it("skips symlinks and marks coverage partial", async () => {
+      const hdd0 = await fs.mkdtemp(path.join(os.tmpdir(), "hydra-rpcs3-"));
+      try {
+        const gameRoot = path.join(hdd0, "game");
+        const folderRoot = await writeGamedataFolder(
+          gameRoot,
+          "BCUS98245_USER1",
+          profileSfo,
+          { "USRDIR/bigfart2": "profile" }
+        );
+        const outside = path.join(hdd0, "outside");
+        await fs.mkdir(outside);
+        await fs.writeFile(path.join(outside, "secret"), "outside");
+        await fs.symlink(
+          outside,
+          path.join(folderRoot, "USRDIR", "linked"),
+          "junction"
+        );
+        await fs.symlink(
+          folderRoot,
+          path.join(gameRoot, "BCUS98245_USER2"),
+          "junction"
+        );
+
+        const result = await scanRpcs3Gamedata(lbpContext, hdd0);
+
+        assert.deepEqual(result.files.map((file) => file.relativePath).sort(), [
+          "BCUS98245_USER1/PARAM.SFO",
+          "BCUS98245_USER1/USRDIR/bigfart2",
+        ]);
+        assert.equal(result.coverage[0].outcome, "partial");
+        assert.deepEqual(result.coverage[0].warningCodes, [
+          "emulator-location-partial",
+        ]);
+      } finally {
+        await fs
+          .unlink(path.join(hdd0, "game", "BCUS98245_USER2"))
+          .catch(() => {});
+        await fs
+          .unlink(
+            path.join(hdd0, "game", "BCUS98245_USER1", "USRDIR", "linked")
+          )
+          .catch(() => {});
+        await fs.rm(hdd0, { recursive: true, force: true });
+      }
+    });
+
+    it("confirms missing game data without proving deletion", async () => {
+      const hdd0 = await fs.mkdtemp(path.join(os.tmpdir(), "hydra-rpcs3-"));
+      try {
+        const missingRoot = await scanRpcs3Gamedata(lbpContext, hdd0);
+        assert.deepEqual(missingRoot.files, []);
+        assert.equal(missingRoot.coverage[0].outcome, "confirmed-missing");
+        assert.equal(missingRoot.coverage[0].selectedRoot, false);
+
+        await writeGamedataFolder(
+          path.join(hdd0, "game"),
+          "BCUS98245",
+          installSfo,
+          { "USRDIR/data.farc": "update" }
+        );
+        const noProfile = await scanRpcs3Gamedata(lbpContext, hdd0);
+        assert.deepEqual(noProfile.files, []);
+        assert.equal(noProfile.coverage[0].outcome, "confirmed-missing");
+      } finally {
+        await fs.rm(hdd0, { recursive: true, force: true });
+      }
+    });
+
+    it("does not scan game data without a registered disc", async () => {
+      const result = await scanRpcs3Gamedata(
+        { ...lbpContext, game: { discs: [] } as unknown as Game },
+        "/unused"
+      );
+      assert.deepEqual(result.files, []);
+      assert.equal(result.coverage[0].outcome, "unresolved");
+    });
   });
 });

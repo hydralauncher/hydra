@@ -3,6 +3,7 @@
 .auto-update-sub-header {
   border-bottom: solid 1px globals.$body-color;
   padding: calc(globals.$spacing-unit / 2) calc(globals.$spacing-unit * 3);
+  background-color: globals.$dark-background-color;
 
   &__new-version-link {
     display: flex;
