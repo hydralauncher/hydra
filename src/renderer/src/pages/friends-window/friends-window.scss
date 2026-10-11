@@ -525,14 +525,20 @@
     // processed local variant so it stays light to raster.
     &--has-bg {
       // Scrim pseudo over the image; clips its own corners (no overflow:hidden,
-      // which caused scroll repaint flicker).
+      // which caused scroll repaint flicker). Dark behind the avatar and name,
+      // fading out so the rest of the image shows as is.
       &::after {
         content: "";
         position: absolute;
         inset: 0;
         z-index: 1;
         border-radius: inherit;
-        background: linear-gradient(135deg, rgb(0 0 0 / 25%), rgb(0 0 0 / 18%));
+        background: linear-gradient(
+          90deg,
+          rgb(0 0 0 / 85%) 0%,
+          rgb(0 0 0 / 64%) 36%,
+          rgb(0 0 0 / 0%) 80%
+        );
         pointer-events: none;
       }
 
@@ -545,14 +551,21 @@
 
       .friends-window__friend-name,
       .friends-window__friend-status,
+      .friends-window__game-info,
       .friends-window__message-button {
         color: #ffffff;
         opacity: 1;
       }
 
-      // Keeps the icon legible over bright profile backgrounds.
+      // Keeps the text crisp over busy images.
+      .friends-window__friend-details {
+        text-shadow: 0 1px 2px rgb(0 0 0 / 60%);
+      }
+
+      // The icon sits past the scrim's fade, on the bare image.
       .friends-window__message-button svg {
-        filter: drop-shadow(0 0 3px rgb(0 0 0 / 70%));
+        filter: drop-shadow(0 1px 2px rgb(0 0 0 / 80%))
+          drop-shadow(0 0 6px rgb(0 0 0 / 60%));
       }
     }
 

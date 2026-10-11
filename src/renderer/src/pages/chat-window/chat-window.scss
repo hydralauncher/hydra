@@ -327,13 +327,13 @@ $cooldown-ring-length: 2 * math.$pi * 11;
       z-index: 1;
     }
 
-    // Light text with a soft shadow over the image, like the Friends window
-    // header.
+    // Light text with a tight shadow over the image, like the Friends window
+    // rows.
     &--banner {
       .chat-window__conversation-name,
       .chat-window__friend-status {
         color: #ffffff;
-        text-shadow: 0 0 5px rgb(0 0 0 / 60%);
+        text-shadow: 0 1px 2px rgb(0 0 0 / 60%);
       }
     }
   }
@@ -351,16 +351,17 @@ $cooldown-ring-length: 2 * math.$pi * 11;
       object-fit: cover;
     }
 
-    // Darker on the left, where the name and game sit.
+    // Dark behind the avatar, name and game, fading out so the rest of the
+    // image shows as is.
     &::after {
       content: "";
       position: absolute;
       inset: 0;
       background: linear-gradient(
         90deg,
-        rgb(0 0 0 / 75%) 0%,
-        rgb(0 0 0 / 40%) 60%,
-        rgb(0 0 0 / 25%) 100%
+        rgb(0 0 0 / 85%) 0%,
+        rgb(0 0 0 / 64%) 36%,
+        rgb(0 0 0 / 0%) 80%
       );
     }
   }
