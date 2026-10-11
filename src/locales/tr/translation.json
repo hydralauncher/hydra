@@ -208,11 +208,11 @@
     "installing_common_redist": "{{log}}…",
     "installation_complete": "Kurulum tamamlandı",
     "installation_complete_message": "Gerekli paketler başarıyla yüklendi",
-    "downloading_batch": "{{title}} indiriliyor… (%{{percentage}} tamamlandı, {{filesDownloaded}}/{{filesTotal}} dosya) - Kalan Süre: {{eta}} - {{speed}}",
-    "calculating_eta_batch": "{{title}} indiriliyor… (%{{percentage}} tamamlandı, {{filesDownloaded}}/{{filesTotal}} dosya) - Kalan süre hesaplanıyor…",
-    "extracting": "{{title}} arşivden çıkarılıyor… (%{{percentage}} tamamlandı)",
+    "downloading_batch": "{{title}} indiriliyor… ({{percentage}} tamamlandı, {{filesDownloaded}}/{{filesTotal}} dosya) - Kalan Süre: {{eta}} - {{speed}}",
+    "calculating_eta_batch": "{{title}} indiriliyor… ({{percentage}} tamamlandı, {{filesDownloaded}}/{{filesTotal}} dosya) - Kalan süre hesaplanıyor…",
+    "extracting": "{{title}} arşivden çıkarılıyor… ({{percentage}} tamamlandı)",
     "reconnecting": "{{title}} yeniden bağlanıyor…",
-    "recovering": "{{title}} kurtarılıyor… (%{{percentage}})"
+    "recovering": "{{title}} kurtarılıyor… ({{percentage}})"
   },
   "catalogue": {
     "search": "Filtrele…",
