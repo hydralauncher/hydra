@@ -789,7 +789,7 @@
     "cloud_save_v2_files_modal_title": "Tanınan yerel dosyalar",
     "cloud_save_v2_files_modal_description": "Bu cihazda tanınan kayıt dosyalarının gerçek yollarını inceleyin.",
     "cloud_save_v2_custom_paths_title": "Özel konumlar",
-    "cloud_save_v2_custom_paths_description": "Hydra'nın bu oyunun bulut anlık görüntübiçimlerine dahil etmesi gereken yerel bir klasör ekleyin.",
+    "cloud_save_v2_custom_paths_description": "Hydra'nın bu oyunun bulut anlık görüntülerine dahil etmesi gereken yerel bir klasör ekleyin.",
     "cloud_save_v2_add_custom_path": "Yeni konum ekle",
     "cloud_save_v2_emulator_destinations_title": "Emülatör kayıt hedefleri",
     "cloud_save_v2_emulator_destination_saves": "Oyun kayıtları",
