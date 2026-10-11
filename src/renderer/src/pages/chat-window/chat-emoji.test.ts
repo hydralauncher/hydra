@@ -83,4 +83,14 @@ describe("addRecentEmoji", () => {
     assert.equal(updated.length, MAX_RECENT_EMOJI);
     assert.equal(updated[0], "🔥");
   });
+
+  it("keeps the quick reactions at their size", () => {
+    const updated = addRecentEmoji(
+      QUICK_REACTIONS,
+      "💀",
+      QUICK_REACTIONS.length
+    );
+
+    assert.deepEqual(updated, ["💀", ...QUICK_REACTIONS.slice(0, -1)]);
+  });
 });

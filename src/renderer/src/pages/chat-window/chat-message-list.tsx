@@ -10,15 +10,17 @@ import { useTranslation } from "react-i18next";
 import {
   AlertIcon,
   ArrowDownIcon,
-  CheckIcon,
-  CopyIcon,
   ReplyIcon,
   SmileyIcon,
 } from "@primer/octicons-react";
 import cn from "classnames";
 
 import { LARGE_EMOJI_MAX_COUNT, countEmojiOnly } from "./chat-emoji";
-import { ChatEmojiPicker, rememberEmoji } from "./chat-emoji-picker";
+import {
+  ChatEmojiPicker,
+  rememberEmoji,
+  rememberReaction,
+} from "./chat-emoji-picker";
 import {
   groupChatMessages,
   type ChatMessage,
@@ -63,7 +65,6 @@ const LOAD_OLDER_THRESHOLD_PX = 120;
 const JUMP_TO_LATEST_THRESHOLD_PX = 200;
 const MAX_NEW_MESSAGES_SHOWN = 99;
 const FLASH_DURATION_MS = 1_600;
-const COPIED_DURATION_MS = 1_500;
 /** Room the quick reaction bar needs above a message before it opens below. */
 const REACTION_BAR_CLEARANCE_PX = 56;
 
@@ -134,7 +135,6 @@ export function ChatMessageList({
   const [flashSeq, setFlashSeq] = useState<number | null>(null);
   // A quoted message that is still loading from older history.
   const [pendingJumpSeq, setPendingJumpSeq] = useState<number | null>(null);
-  const [copiedId, setCopiedId] = useState<string | null>(null);
   // A link waiting for the user to confirm leaving Hydra.
   const [leavingUrl, setLeavingUrl] = useState<string | null>(null);
 
@@ -292,20 +292,6 @@ export function ChatMessageList({
     return () => clearTimeout(timer);
   }, [flashSeq]);
 
-  useEffect(() => {
-    if (copiedId === null) return;
-
-    const timer = setTimeout(() => setCopiedId(null), COPIED_DURATION_MS);
-    return () => clearTimeout(timer);
-  }, [copiedId]);
-
-  const copyText = (message: ChatMessage) => {
-    navigator.clipboard
-      .writeText(message.text)
-      .then(() => setCopiedId(message.id))
-      .catch(() => {});
-  };
-
   const toggleReactionBar = (seq: number, button: HTMLButtonElement) => {
     if (reactionBar?.seq === seq) {
       setReactionBar(null);
@@ -338,7 +324,10 @@ export function ChatMessageList({
     if (message.seq === undefined) return;
 
     const mine = getMyReaction(message);
-    if (emoji !== mine) rememberEmoji(emoji);
+    if (emoji !== mine) {
+      rememberEmoji(emoji);
+      rememberReaction(emoji);
+    }
     onReact(message.seq, emoji === mine ? null : emoji);
   };
 
@@ -440,7 +429,6 @@ export function ChatMessageList({
                     >
                       {group.messages.map((message) => {
                         const { seq } = message;
-                        const isCopied = copiedId === message.id;
                         const isReactionBarOpen =
                           seq !== undefined && reactionBar?.seq === seq;
                         const isReacting =
@@ -454,73 +442,47 @@ export function ChatMessageList({
                         const align = group.fromMe ? "end" : "start";
 
                         // Only stored messages have a seq to reply or react to.
-                        const actions = seq !== undefined &&
+                        const actions = canReply &&
+                          seq !== undefined &&
                           message.status === "sent" && (
                             <div
                               className={cn("chat-window__message-actions", {
                                 "chat-window__message-actions--visible":
-                                  isCopied || isReacting,
+                                  isReacting,
                               })}
                             >
-                              {canReply && (
-                                <button
-                                  type="button"
-                                  className={cn("chat-window__message-action", {
-                                    "chat-window__message-action--active":
-                                      isReacting,
-                                  })}
-                                  onClick={(event) =>
-                                    toggleReactionBar(seq, event.currentTarget)
-                                  }
-                                  aria-label={t("add_reaction")}
-                                  aria-expanded={isReactionBarOpen}
-                                >
-                                  <SmileyIcon size={16} />
-                                  <span
-                                    className="chat-window__message-action-tooltip"
-                                    aria-hidden="true"
-                                  >
-                                    {t("add_reaction")}
-                                  </span>
-                                </button>
-                              )}
-                              {canReply && (
-                                <button
-                                  type="button"
-                                  className="chat-window__message-action"
-                                  onClick={() => onReply(message)}
-                                  aria-label={t("reply")}
-                                >
-                                  <ReplyIcon size={16} />
-                                  <span
-                                    className="chat-window__message-action-tooltip"
-                                    aria-hidden="true"
-                                  >
-                                    {t("reply")}
-                                  </span>
-                                </button>
-                              )}
                               <button
                                 type="button"
                                 className={cn("chat-window__message-action", {
-                                  "chat-window__message-action--copied":
-                                    isCopied,
+                                  "chat-window__message-action--active":
+                                    isReacting,
                                 })}
-                                onClick={() => copyText(message)}
-                                aria-label={
-                                  isCopied ? t("copied") : t("copy_text")
+                                onClick={(event) =>
+                                  toggleReactionBar(seq, event.currentTarget)
                                 }
+                                aria-label={t("add_reaction")}
+                                aria-expanded={isReactionBarOpen}
                               >
-                                {isCopied ? (
-                                  <CheckIcon size={16} />
-                                ) : (
-                                  <CopyIcon size={16} />
-                                )}
+                                <SmileyIcon size={16} />
                                 <span
                                   className="chat-window__message-action-tooltip"
                                   aria-hidden="true"
                                 >
-                                  {isCopied ? t("copied") : t("copy_text")}
+                                  {t("add_reaction")}
+                                </span>
+                              </button>
+                              <button
+                                type="button"
+                                className="chat-window__message-action"
+                                onClick={() => onReply(message)}
+                                aria-label={t("reply")}
+                              >
+                                <ReplyIcon size={16} />
+                                <span
+                                  className="chat-window__message-action-tooltip"
+                                  aria-hidden="true"
+                                >
+                                  {t("reply")}
                                 </span>
                               </button>
                             </div>
@@ -581,10 +543,7 @@ export function ChatMessageList({
                                   isDetached={emojiCount > 0}
                                   canReact={canReply}
                                   onToggle={(pill) =>
-                                    onReact(
-                                      seq,
-                                      pill.fromMe ? null : pill.emoji
-                                    )
+                                    reactTo(message, pill.emoji)
                                   }
                                 />
                               )}

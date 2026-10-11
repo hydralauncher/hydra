@@ -1213,7 +1213,7 @@ $cooldown-ring-length: 2 * math.$pi * 11;
     }
   }
 
-  // Reply and copy, shown while the message's row is hovered or focused.
+  // React and reply, shown while the message's row is hovered or focused.
   &__message-actions {
     display: flex;
     align-items: center;
@@ -1280,10 +1280,6 @@ $cooldown-ring-length: 2 * math.$pi * 11;
 
   &__message-action:hover &__message-action-tooltip,
   &__message-action:focus-visible &__message-action-tooltip,
-  &__message-action--copied &__message-action-tooltip {
-    opacity: 1;
-  }
-
   // The replied-to message, quoted at the top of a reply's bubble.
   &__message-quote {
     display: flex;

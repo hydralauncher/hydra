@@ -2315,8 +2315,6 @@
     "message_too_long_one": "Too long to send. Remove {{count}} character.",
     "message_too_long_other": "Too long to send. Remove {{count}} characters.",
     "reply": "Reply",
-    "copy_text": "Copy text",
-    "copied": "Copied",
     "you": "You",
     "replying_to": "Replying to <strong>{{name}}</strong>",
     "replying_to_self": "Replying to <strong>yourself</strong>",

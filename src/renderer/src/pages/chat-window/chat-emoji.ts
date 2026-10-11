@@ -18,6 +18,7 @@ export interface EmojiCategory {
   items: EmojiItem[];
 }
 
+/** The quick reaction bar until the user reacts; then their latest reactions. */
 export const QUICK_REACTIONS = ["👍", "❤️", "😂", "😮", "😢", "🔥"];
 
 export const DEFAULT_RECENT_EMOJI = [
@@ -156,12 +157,12 @@ export const searchEmoji = (query: string): EmojiItem[] => {
   );
 };
 
-/** Most recent first, without duplicates. */
-export const addRecentEmoji = (recent: string[], emoji: string) =>
-  [emoji, ...recent.filter((current) => current !== emoji)].slice(
-    0,
-    MAX_RECENT_EMOJI
-  );
+/** Most recent first, without duplicates, at most `max` long. */
+export const addRecentEmoji = (
+  recent: string[],
+  emoji: string,
+  max = MAX_RECENT_EMOJI
+) => [emoji, ...recent.filter((current) => current !== emoji)].slice(0, max);
 
 // One emoji: a flag, a keycap, a tag sequence, or a ZWJ sequence of
 // pictographs with optional variation selectors and skin tones. Keep in sync

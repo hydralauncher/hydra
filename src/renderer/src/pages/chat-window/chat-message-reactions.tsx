@@ -3,7 +3,7 @@ import { useTranslation } from "react-i18next";
 import { PlusIcon } from "@primer/octicons-react";
 import cn from "classnames";
 
-import { QUICK_REACTIONS } from "./chat-emoji";
+import { loadQuickReactions } from "./chat-emoji-picker";
 import type { ChatReactionPill } from "./chat-reactions";
 
 export interface ChatReactionBarProps {
@@ -30,12 +30,13 @@ export function ChatReactionBar({
 }: Readonly<ChatReactionBarProps>) {
   const { t } = useTranslation("chat_window");
   const barRef = useRef<HTMLDivElement>(null);
+  const [reactions] = useState(loadQuickReactions);
 
   useEffect(() => {
     const buttons = barRef.current?.querySelectorAll("button");
-    const selectedIndex = QUICK_REACTIONS.indexOf(selected ?? "");
+    const selectedIndex = reactions.indexOf(selected ?? "");
     buttons?.[Math.max(selectedIndex, 0)]?.focus();
-  }, [selected]);
+  }, [reactions, selected]);
 
   useEffect(() => {
     const handlePointerDown = (event: MouseEvent) => {
@@ -48,8 +49,14 @@ export function ChatReactionBar({
       }
     };
 
+    // A click outside the window doesn't reach the document, so leaving the
+    // window counts as one.
     document.addEventListener("mousedown", handlePointerDown);
-    return () => document.removeEventListener("mousedown", handlePointerDown);
+    window.addEventListener("blur", onClose);
+    return () => {
+      document.removeEventListener("mousedown", handlePointerDown);
+      window.removeEventListener("blur", onClose);
+    };
   }, [anchorRef, onClose]);
 
   const handleKeyDown = (event: React.KeyboardEvent<HTMLDivElement>) => {
@@ -81,7 +88,7 @@ export function ChatReactionBar({
       aria-label={t("quick_reactions")}
       onKeyDown={handleKeyDown}
     >
-      {QUICK_REACTIONS.map((emoji) => (
+      {reactions.map((emoji) => (
         <button
           key={emoji}
           type="button"

@@ -17,6 +17,7 @@ import cn from "classnames";
 import {
   DEFAULT_RECENT_EMOJI,
   EMOJI_CATEGORIES,
+  QUICK_REACTIONS,
   addRecentEmoji,
   findEmoji,
   searchEmoji,
@@ -25,6 +26,7 @@ import {
 } from "./chat-emoji";
 
 const RECENT_EMOJI_STORAGE_KEY = "chat-window:recent-emoji";
+const RECENT_REACTIONS_STORAGE_KEY = "chat-window:recent-reactions";
 const GRID_COLUMNS = 8;
 
 const CATEGORY_ICONS: Record<EmojiCategoryId, Icon> = {
@@ -42,11 +44,9 @@ const CATEGORY_IDS: EmojiCategoryId[] = [
   ...EMOJI_CATEGORIES.map((category) => category.id),
 ];
 
-const loadRecentEmoji = (): string[] => {
+const loadEmojiList = (key: string, defaults: string[]): string[] => {
   try {
-    const stored = JSON.parse(
-      localStorage.getItem(RECENT_EMOJI_STORAGE_KEY) ?? "null"
-    ) as unknown;
+    const stored = JSON.parse(localStorage.getItem(key) ?? "null") as unknown;
     if (
       Array.isArray(stored) &&
       stored.length > 0 &&
@@ -57,20 +57,37 @@ const loadRecentEmoji = (): string[] => {
   } catch {
     // Unreadable storage falls back to the defaults.
   }
-  return DEFAULT_RECENT_EMOJI;
+  return defaults;
 };
 
-/** Moves `emoji` to the front of the picker's Recent tab. */
-export const rememberEmoji = (emoji: string) => {
+const saveEmojiList = (key: string, list: string[]) => {
   try {
-    localStorage.setItem(
-      RECENT_EMOJI_STORAGE_KEY,
-      JSON.stringify(addRecentEmoji(loadRecentEmoji(), emoji))
-    );
+    localStorage.setItem(key, JSON.stringify(list));
   } catch {
     // Recents are a convenience; picking still works without them.
   }
 };
+
+const loadRecentEmoji = () =>
+  loadEmojiList(RECENT_EMOJI_STORAGE_KEY, DEFAULT_RECENT_EMOJI);
+
+/** The quick reaction bar's emoji: the defaults, then the latest reactions. */
+export const loadQuickReactions = () =>
+  loadEmojiList(RECENT_REACTIONS_STORAGE_KEY, QUICK_REACTIONS);
+
+/** Moves `emoji` to the front of the picker's Recent tab. */
+export const rememberEmoji = (emoji: string) =>
+  saveEmojiList(
+    RECENT_EMOJI_STORAGE_KEY,
+    addRecentEmoji(loadRecentEmoji(), emoji)
+  );
+
+/** Moves `emoji` to the front of the quick reaction bar. */
+export const rememberReaction = (emoji: string) =>
+  saveEmojiList(
+    RECENT_REACTIONS_STORAGE_KEY,
+    addRecentEmoji(loadQuickReactions(), emoji, QUICK_REACTIONS.length)
+  );
 
 export interface ChatEmojiPickerProps {
   label: string;
@@ -121,11 +138,15 @@ export function ChatEmojiPicker({
       if (event.key === "Escape") onClose();
     };
 
+    // A click outside the window doesn't reach the document, so leaving the
+    // window counts as one.
     document.addEventListener("mousedown", handlePointerDown);
     document.addEventListener("keydown", handleKeyDown);
+    window.addEventListener("blur", onClose);
     return () => {
       document.removeEventListener("mousedown", handlePointerDown);
       document.removeEventListener("keydown", handleKeyDown);
+      window.removeEventListener("blur", onClose);
     };
   }, [anchorRef, onClose]);
 
