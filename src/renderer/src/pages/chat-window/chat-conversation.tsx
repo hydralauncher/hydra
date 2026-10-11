@@ -343,38 +343,6 @@ export function ChatConversationView({
           />
         )}
 
-        {(hint || showCounter) && (
-          <div className="chat-window__composer-meta">
-            {hint && (
-              <p
-                key={hint.kind}
-                className={cn("chat-window__composer-hint", {
-                  "chat-window__composer-hint--error": hint.kind === "error",
-                })}
-                role={HINT_ROLES[hint.kind]}
-              >
-                {hint.kind === "typing" && <ChatTypingDots size="small" />}
-                {hint.kind === "offline" && <ChatZzzIcon />}
-                {hint.kind === "error" && (
-                  <AlertFillIcon size={12} className="chat-window__hint-icon" />
-                )}
-                <span>{hint.text}</span>
-              </p>
-            )}
-
-            {showCounter && (
-              <span
-                className={cn("chat-window__composer-counter", {
-                  "chat-window__composer-counter--over": isTooLong,
-                })}
-              >
-                {numberFormat.format(text.length)} /{" "}
-                {numberFormat.format(CHAT_MESSAGE_MAX_LENGTH)}
-              </span>
-            )}
-          </div>
-        )}
-
         <div
           className={cn("chat-window__composer-box", {
             "chat-window__composer-box--shake": isShaking,
@@ -507,6 +475,38 @@ export function ChatConversationView({
               )}
             </button>
           </div>
+        </div>
+
+        {/* Always rendered: it sits in space kept for it, so a hint showing up
+            doesn't move anything. */}
+        <div className="chat-window__composer-meta">
+          {hint && (
+            <p
+              key={hint.kind}
+              className={cn("chat-window__composer-hint", {
+                "chat-window__composer-hint--error": hint.kind === "error",
+              })}
+              role={HINT_ROLES[hint.kind]}
+            >
+              {hint.kind === "typing" && <ChatTypingDots size="small" />}
+              {hint.kind === "offline" && <ChatZzzIcon />}
+              {hint.kind === "error" && (
+                <AlertFillIcon size={12} className="chat-window__hint-icon" />
+              )}
+              <span>{hint.text}</span>
+            </p>
+          )}
+
+          {showCounter && (
+            <span
+              className={cn("chat-window__composer-counter", {
+                "chat-window__composer-counter--over": isTooLong,
+              })}
+            >
+              {numberFormat.format(text.length)} /{" "}
+              {numberFormat.format(CHAT_MESSAGE_MAX_LENGTH)}
+            </span>
+          )}
         </div>
       </div>
     </div>

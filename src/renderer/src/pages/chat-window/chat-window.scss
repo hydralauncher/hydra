@@ -1533,11 +1533,13 @@ $cooldown-ring-length: 2 * math.$pi * 11;
     }
   }
 
+  // Less bottom padding than top: the hint line under the box takes some of
+  // that room.
   &__composer {
     position: relative;
     flex-shrink: 0;
     padding: calc(globals.$spacing-unit * 1.5) calc(globals.$spacing-unit * 2)
-      calc(globals.$spacing-unit * 2);
+      10px;
   }
 
   &__composer-box {
@@ -1547,6 +1549,10 @@ $cooldown-ring-length: 2 * math.$pi * 11;
     background-color: globals.$dark-background-color;
     border: 1px solid globals.$border-color;
     border-radius: 8px;
+    // Lifts the box off the messages scrolling up behind it.
+    box-shadow:
+      0 -2px 12px rgba(0, 0, 0, 0.35),
+      0 8px 24px rgba(0, 0, 0, 0.45);
     transition: border-color 0.2s ease;
 
     &:hover {
@@ -1761,12 +1767,14 @@ $cooldown-ring-length: 2 * math.$pi * 11;
     color: globals.$error-color;
   }
 
-  // The hint on the left, the length counter on the right.
+  // Under the box: the hint on the left, the length counter on the right. One
+  // line stays reserved, so a hint showing up doesn't move anything.
   &__composer-meta {
     display: flex;
     align-items: flex-start;
     gap: calc(globals.$spacing-unit * 1.5);
-    margin-bottom: globals.$spacing-unit;
+    min-height: 16px;
+    margin-top: 6px;
   }
 
   &__composer-counter {
