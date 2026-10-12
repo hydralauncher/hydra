@@ -4,9 +4,21 @@
 $hero-height: 150px;
 $logo-height: 100px;
 $logo-max-width: 200px;
-$compare-columns: minmax(0, 3fr)
-  repeat(var(--compare-stat-columns), minmax(120px, 1fr));
+$compare-main-min-width: 390px;
+$compare-stat-min-width: 96px;
+$compare-stat-max-width: 140px;
+$compare-columns: minmax($compare-main-min-width, 1fr)
+  repeat(
+    var(--compare-stat-columns),
+    minmax($compare-stat-min-width, $compare-stat-max-width)
+  );
 $compare-columns-narrow: repeat(var(--compare-stat-columns), minmax(0, 1fr));
+$compare-gutter: (globals.$spacing-unit * 3.5 + 1px) * 2;
+
+@function compare-layout-min-width($stat-columns) {
+  @return $compare-gutter + $compare-main-min-width +
+    ($compare-stat-min-width + globals.$spacing-unit * 2) * $stat-columns;
+}
 
 .achievements {
   display: flex;
@@ -180,11 +192,18 @@ $compare-columns-narrow: repeat(var(--compare-stat-columns), minmax(0, 1fr));
     min-width: 0;
 
     .achievements__toolbar-search {
-      flex: 1 1 200px;
-      width: auto;
+      flex: 0 1 auto;
       min-width: 0;
       margin-right: 0;
     }
+  }
+
+  &__compare-selects {
+    display: flex;
+    flex: 0 1 auto;
+    flex-wrap: wrap;
+    gap: globals.$spacing-unit * 1.5 globals.$spacing-unit * 2;
+    min-width: 0;
   }
 
   &__compare-row-label {
@@ -267,7 +286,6 @@ $compare-columns-narrow: repeat(var(--compare-stat-columns), minmax(0, 1fr));
       color: globals.$body-color;
       font-size: 11px;
       text-align: center;
-      white-space: nowrap;
     }
   }
 
@@ -445,8 +463,11 @@ $compare-columns-narrow: repeat(var(--compare-stat-columns), minmax(0, 1fr));
     }
 
     &-unlock-time {
+      display: block;
+      overflow: hidden;
       color: globals.$body-color;
       white-space: nowrap;
+      text-overflow: ellipsis;
     }
 
     &-hardcore-badge {
@@ -574,14 +595,16 @@ $compare-columns-narrow: repeat(var(--compare-stat-columns), minmax(0, 1fr));
     }
   }
 
-  @container (max-width: 820px) {
-    &__compare-grid,
-    &__item.achievements__compare-row {
-      grid-template-columns: $compare-columns-narrow;
-      row-gap: globals.$spacing-unit * 1.5;
+  @each $count in 1, 2, 3 {
+    @container (max-width: #{compare-layout-min-width($count) - 1px}) {
+      &__list-container--stats-#{$count} &__compare-grid,
+      &__list-container--stats-#{$count} &__item.achievements__compare-row {
+        grid-template-columns: $compare-columns-narrow;
+        row-gap: globals.$spacing-unit * 1.5;
 
-      > :first-child {
-        grid-column: 1 / -1;
+        > :first-child {
+          grid-column: 1 / -1;
+        }
       }
     }
   }

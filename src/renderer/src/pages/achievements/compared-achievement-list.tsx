@@ -236,13 +236,18 @@ export function ComparedAchievementList({
     (row) => row.points != null || row.globalUnlockPercentage != null
   );
 
+  const statColumnCount = 1 + Number(hasOwnerStats) + Number(hasCommunityStats);
   const gridStyle = {
-    "--compare-stat-columns":
-      1 + Number(hasOwnerStats) + Number(hasCommunityStats),
+    "--compare-stat-columns": statColumnCount,
   } as CSSProperties;
 
   return (
-    <div className="achievements__list-container achievements__list-container--compare">
+    <div
+      className={cn(
+        "achievements__list-container achievements__list-container--compare",
+        `achievements__list-container--stats-${statColumnCount}`
+      )}
+    >
       <div className="achievements__compare-sticky">
         <div className="achievements__compare-grid" style={gridStyle}>
           <div className="achievements__compare-controls">
@@ -256,20 +261,22 @@ export function ComparedAchievementList({
               />
             </div>
 
-            <AchievementSelect
-              value={filter}
-              options={filterOptions}
-              onChange={setFilter}
-              ariaLabel={t("filter_achievements")}
-            />
+            <div className="achievements__compare-selects">
+              <AchievementSelect
+                value={filter}
+                options={filterOptions}
+                onChange={setFilter}
+                ariaLabel={t("filter_achievements")}
+              />
 
-            <AchievementSelect
-              value={sort}
-              options={sortOptions}
-              onChange={setSort}
-              ariaLabel={t("sort_achievements")}
-              fitToOptions
-            />
+              <AchievementSelect
+                value={sort}
+                options={sortOptions}
+                onChange={setSort}
+                ariaLabel={t("sort_achievements")}
+                fitToOptions
+              />
+            </div>
           </div>
 
           {hasCommunityStats && (

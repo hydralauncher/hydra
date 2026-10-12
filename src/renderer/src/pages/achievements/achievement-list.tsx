@@ -294,7 +294,16 @@ export function AchievementList({
                     )}
 
                     {achievement.unlockTime != null && (
-                      <small className="achievements__item-unlock-time">
+                      <small
+                        className="achievements__item-unlock-time"
+                        onMouseEnter={(event) => {
+                          const element = event.currentTarget;
+                          element.title =
+                            element.scrollWidth > element.clientWidth
+                              ? (element.textContent ?? "")
+                              : "";
+                        }}
+                      >
                         {t("unlocked_at", {
                           date: formatUnlockDateTime(achievement.unlockTime),
                         })}
