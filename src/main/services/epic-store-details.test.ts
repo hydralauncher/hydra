@@ -72,6 +72,12 @@ function storefront(offers = [offer]) {
 }
 
 describe("direct Epic store details", () => {
+  it("identifies English content when the requested locale is outside this delivery", async () => {
+    const { calls, fetchImpl } = storefront();
+    const result = await getEpicStoreDetails("sandbox:item", "de", fetchImpl);
+    assert.equal(calls[0].locale, "en-US");
+    assert.equal(result?.descriptionLanguage, "en");
+  });
   it("keeps game details and successful trailers when another trailer fails", async () => {
     const broken = {
       ...offer,

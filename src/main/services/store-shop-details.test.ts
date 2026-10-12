@@ -110,6 +110,13 @@ describe("store-first details", () => {
 });
 
 describe("Epic details mapping", () => {
+  it("keeps the actual content language when English is returned for another locale", () => {
+    assert.equal(
+      mapEpicShopDetails("id", { ...epic, descriptionLanguage: "en" }, "de")
+        .descriptionLanguage,
+      "en"
+    );
+  });
   it("removes executable HTML while preserving safe store media and text", () => {
     const data = {
       ...epic,

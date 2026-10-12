@@ -197,6 +197,7 @@ export async function getEpicStoreDetails(
     (row) => row.supportedText?.length || row.supportedAudio?.length
   );
   return {
+    descriptionLanguage: locale === "pt-BR" ? "pt-BR" : locale.split("-")[0],
     title: offer.title,
     description,
     shortDescription: summary,

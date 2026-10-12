@@ -4,6 +4,7 @@ import { JSDOM } from "jsdom";
 export const STORE_DETAILS_TIMEOUT_MS = 15_000;
 
 export interface EpicShopDetails {
+  descriptionLanguage?: string;
   title: string | null;
   description: string | null;
   shortDescription: string | null;
@@ -44,7 +45,7 @@ export function mapEpicShopDetails(
   return {
     objectId,
     name: data.title ?? "",
-    descriptionLanguage: language,
+    descriptionLanguage: data.descriptionLanguage ?? language,
     steam_appid: 0,
     detailed_description: description,
     about_the_game: description,
