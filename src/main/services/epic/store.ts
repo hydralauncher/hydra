@@ -186,7 +186,18 @@ export class EpicConnectionStore {
     try {
       if (this.opening !== null) await this.opening;
       else if (!this.database) await this.open();
-      const value = await this.database!.get(key);
+      let value: unknown;
+      try {
+        value = await this.database!.get(key);
+      } catch (error) {
+        if (
+          isRecord(error) &&
+          (error.code === "LEVEL_NOT_FOUND" ||
+            error.code === "LEVEL_DECODE_ERROR")
+        )
+          return null;
+        throw error;
+      }
       if (value === undefined) return null;
       if (
         Buffer.byteLength(JSON.stringify(value), "utf8") >
@@ -194,15 +205,16 @@ export class EpicConnectionStore {
         !isRecord(value) ||
         value.schemaVersion !== 1 ||
         !isConnection(value.connection)
-      )
-        throw new Error("Invalid Epic store record");
+      ) {
+        // Confirmed API metadata or a new login can replace unusable local data.
+        return null;
+      }
       return {
         schemaVersion: 1,
         connection: publicConnection(value.connection),
         ...(value.bundle === undefined ? {} : { bundle: value.bundle }),
       };
     } catch (error) {
-      if (isRecord(error) && error.code === "LEVEL_NOT_FOUND") return null;
       if (error instanceof EpicStoreError) throw error;
       throw new EpicStoreError("persistence-failed");
     }

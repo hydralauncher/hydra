@@ -244,33 +244,34 @@ test("identity, expiry, OAuth configuration and size validation reject candidate
   assert.deepEqual((await f.store.read(scope))?.bundle, bundle);
 });
 
-test("open failure is sanitized and a new authentication attempt can retry", async (t) => {
-  const f = fixture(t);
-  let attempts = 0;
-  const store = new EpicConnectionStore({
-    userDataPath: f.root,
-    createDatabase: () => {
-      const db = new MemoryDatabase();
-      if (++attempts === 1)
-        db.onOpen = async () => {
-          throw new Error("secret-refresh");
-        };
-      return db;
-    },
-  });
-  try {
-    await assert.rejects(store.open(), {
-      code: "persistence-failed",
-      message: "persistence-failed",
+for (const code of [undefined, "LEVEL_DECODE_ERROR"])
+  test(`open failure is sanitized and a new authentication attempt can retry (code=${code})`, async (t) => {
+    const f = fixture(t);
+    let attempts = 0;
+    const store = new EpicConnectionStore({
+      userDataPath: f.root,
+      createDatabase: () => {
+        const db = new MemoryDatabase();
+        if (++attempts === 1)
+          db.onOpen = async () => {
+            throw Object.assign(new Error("secret-refresh"), { code });
+          };
+        return db;
+      },
     });
-    await store.save(scope, connection, bundle, current);
-    assert.equal(attempts, 2);
-  } finally {
-    await store.close();
-  }
-});
+    try {
+      await assert.rejects(store.open(), {
+        code: "persistence-failed",
+        message: "persistence-failed",
+      });
+      await store.save(scope, connection, bundle, current);
+      assert.equal(attempts, 2);
+    } finally {
+      await store.close();
+    }
+  });
 
-test("read/write failures and corrupt records do not leak secrets or recreate the database", async (t) => {
+test("read/write failures preserve records without leaking secrets or mutating after failed reads", async (t) => {
   const db = new MemoryDatabase(),
     f = fixture(t, db);
   db.onPut = async () => {
@@ -282,25 +283,203 @@ test("read/write failures and corrupt records do not leak secrets or recreate th
   });
   db.onPut = async () => {};
   await f.store.save(scope, connection, bundle, current);
-  db.onGet = async () => {
-    throw new Error("secret-access");
+  const previous = structuredClone([...db.records.entries()]);
+  let writes = 0,
+    deletions = 0;
+  db.onPut = async () => {
+    writes++;
   };
-  await assert.rejects(f.store.read(scope), {
-    code: "persistence-failed",
-    message: "persistence-failed",
-  });
+  db.onDel = async () => {
+    deletions++;
+  };
+  for (const cause of [
+    new Error("secret-access"),
+    new SyntaxError("secret-access"),
+    Object.assign(new Error("secret-access"), { code: "LEVEL_IO_ERROR" }),
+    Object.assign(new Error("secret-access"), { code: "LEVEL_CORRUPTION" }),
+  ]) {
+    db.onGet = async () => {
+      throw cause;
+    };
+    for (const operation of [
+      () => f.store.read(scope),
+      () => f.store.cacheConnection(scope, connection, current),
+      () => f.store.save(scope, connection, nextBundle, current),
+      () => f.store.remove(scope, current, connection.connectionId),
+    ])
+      await assert.rejects(operation(), {
+        code: "persistence-failed",
+        message: "persistence-failed",
+      });
+  }
+  assert.equal(writes, 0);
+  assert.equal(deletions, 0);
+  assert.deepEqual([...db.records.entries()], previous);
   db.onGet = async () => {};
-  const key = [...db.records.keys()][0];
-  db.records.set(key, { schemaVersion: 999, connection, bundle });
-  await assert.rejects(f.store.read(scope), { code: "persistence-failed" });
-  assert.equal(db.records.size, 1);
+  assert.deepEqual((await f.store.read(scope))?.bundle, bundle);
 });
 
-for (const hasPrevious of [false, true])
-  test(`native cancellation compensates inside the queue (previous=${hasPrevious})`, async (t) => {
+for (const [description, invalid] of [
+  ["schema", { schemaVersion: 999, connection, bundle }],
+  [
+    "connection ID",
+    {
+      schemaVersion: 1,
+      connection: { ...connection, connectionId: "invalid!" },
+      bundle,
+    },
+  ],
+  [
+    "Epic ID",
+    {
+      schemaVersion: 1,
+      connection: { ...connection, epicAccountId: "not-an-epic-id" },
+      bundle,
+    },
+  ],
+  [
+    "name",
+    {
+      schemaVersion: 1,
+      connection: { ...connection, displayName: "  " },
+      bundle,
+    },
+  ],
+  [
+    "date",
+    {
+      schemaVersion: 1,
+      connection: { ...connection, connectedAt: "invalid" },
+      bundle,
+    },
+  ],
+  ["shape", "secret-refresh"],
+  [
+    "size",
+    {
+      schemaVersion: 1,
+      connection,
+      bundle,
+      extra: "x".repeat(EPIC_STORE_MAX_RECORD_BYTES),
+    },
+  ],
+] as const)
+  test(`invalid ${description} is absent without writes and can be replaced or removed`, async (t) => {
     const db = new MemoryDatabase(),
       f = fixture(t, db);
-    if (hasPrevious) await f.store.save(scope, connection, bundle, current);
+    await f.store.save(scope, connection, bundle, current);
+    const key = [...db.records.keys()][0];
+    db.records.set(key, invalid);
+    let mutations = 0;
+    db.onPut = db.onDel = async () => {
+      mutations++;
+    };
+    assert.equal(await f.store.read(scope), null);
+    assert.equal(mutations, 0);
+    assert.deepEqual(db.records.get(key), invalid);
+
+    assert.deepEqual(
+      await f.store.cacheConnection(scope, connection, current),
+      { connection, sessionState: "missing" }
+    );
+    assert.deepEqual(db.records.get(key), { schemaVersion: 1, connection });
+
+    db.records.set(key, invalid);
+    assert.deepEqual(
+      await f.store.save(scope, connection, nextBundle, current),
+      {
+        connection,
+        sessionState: "ready",
+        bundle: nextBundle,
+      }
+    );
+
+    db.records.set(key, invalid);
+    await f.store.remove(scope, current, connection.connectionId);
+    assert.equal(await f.store.read(scope), null);
+    assert.equal(db.records.size, 0);
+  });
+
+for (const recovery of ["cache", "save", "remove"] as const)
+  test(`real LevelDB JSON decode failure stays untouched until ${recovery} recovery`, async (t) => {
+    const f = fixture(t);
+    const key = createHash("sha256")
+      .update(JSON.stringify([scope.environment, scope.userId]))
+      .digest("hex");
+    const malformed = '{"refresh_token":"secret-refresh",';
+    const database = new ClassicLevel<string, unknown>(
+      path.join(f.root, "epic-sessions-db"),
+      { valueEncoding: "json" }
+    );
+    try {
+      await database.put(key, malformed, { valueEncoding: "utf8", sync: true });
+    } finally {
+      await database.close();
+    }
+    assert.equal(await f.store.read(scope), null);
+    await f.store.close();
+    try {
+      await database.open();
+      assert.equal(
+        await database.get(key, { valueEncoding: "utf8" }),
+        malformed
+      );
+    } finally {
+      await database.close();
+    }
+
+    const reopened = f.create();
+    if (recovery === "cache") {
+      assert.deepEqual(
+        await reopened.cacheConnection(scope, connection, current),
+        { connection, sessionState: "missing" }
+      );
+      assert.deepEqual(await reopened.read(scope), {
+        connection,
+        sessionState: "missing",
+      });
+    } else if (recovery === "save") {
+      await reopened.save(scope, connection, nextBundle, current);
+      assert.deepEqual((await reopened.read(scope))?.bundle, nextBundle);
+    } else {
+      await reopened.remove(scope, current, connection.connectionId);
+      assert.equal(await reopened.read(scope), null);
+    }
+  });
+
+test("invalid-record recovery stays within its Hydra user and environment", async (t) => {
+  const db = new MemoryDatabase(),
+    f = fixture(t, db);
+  await f.store.save(scope, connection, bundle, current);
+  const key = [...db.records.keys()][0];
+  const otherScopes = [
+    { ...scope, userId: "HydraB" },
+    { ...scope, environment: "https://other.example.test" },
+  ];
+  for (const other of otherScopes)
+    await f.store.save(other, connection, bundle, current);
+  const otherRecords = [...db.records.entries()].filter(([id]) => id !== key);
+  db.records.set(key, { schemaVersion: 999, connection, bundle });
+  await f.store.cacheConnection(scope, connection, current);
+  await f.store.save(scope, connection, nextBundle, current);
+  await f.store.remove(scope, current, connection.connectionId);
+  assert.deepEqual([...db.records.entries()], otherRecords);
+  for (const other of otherScopes)
+    assert.deepEqual((await f.store.read(other))?.bundle, bundle);
+});
+
+for (const previous of ["missing", "valid", "invalid"] as const)
+  test(`native cancellation compensates inside the queue (previous=${previous})`, async (t) => {
+    const db = new MemoryDatabase(),
+      f = fixture(t, db);
+    if (previous !== "missing")
+      await f.store.save(scope, connection, bundle, current);
+    if (previous === "invalid")
+      db.records.set([...db.records.keys()][0], {
+        schemaVersion: 999,
+        connection,
+        bundle,
+      });
     const started = deferred<void>(),
       release = deferred<void>(),
       undoStarted = deferred<void>(),
@@ -344,7 +523,10 @@ for (const hasPrevious of [false, true])
     assert.equal(committed, false);
     undoRelease.resolve();
     await rejected;
-    assert.deepEqual((await read)?.bundle ?? null, hasPrevious ? bundle : null);
+    assert.deepEqual(
+      (await read)?.bundle ?? null,
+      previous === "valid" ? bundle : null
+    );
   });
 
 test("cancellation before put writes nothing and synchronous commit ends cancelability", async (t) => {
@@ -374,10 +556,16 @@ test("cancellation before put writes nothing and synchronous commit ends cancela
   assert.deepEqual((await f.store.read(scope))?.bundle, bundle);
 });
 
-test("failed compensation blocks the record until explicit successful cleanup", async (t) => {
+test("failed compensation of an invalid record blocks it until explicit successful cleanup", async (t) => {
   const db = new MemoryDatabase(),
-    f = fixture(t, db),
-    started = deferred<void>(),
+    f = fixture(t, db);
+  await f.store.save(scope, connection, bundle, current);
+  db.records.set([...db.records.keys()][0], {
+    schemaVersion: 999,
+    connection,
+    bundle,
+  });
+  const started = deferred<void>(),
     release = deferred<void>();
   let active = true;
   db.onPut = async () => {
@@ -426,6 +614,35 @@ test("conditional deletion cannot erase another link; native delete errors are s
   assert.equal(await f.store.read(scope), null);
 });
 
+test("queued deletion with an old ID cannot erase a replacement of an invalid record", async (t) => {
+  const db = new MemoryDatabase(),
+    f = fixture(t, db);
+  await f.store.save(scope, connection, bundle, current);
+  db.records.set([...db.records.keys()][0], {
+    schemaVersion: 999,
+    connection,
+    bundle,
+  });
+  const replacement = { ...connection, connectionId: "NewLink12" };
+  const started = deferred<void>(),
+    release = deferred<void>();
+  db.onPut = async () => {
+    started.resolve();
+    await release.promise;
+  };
+  const save = f.store.save(scope, replacement, nextBundle, current);
+  await started.promise;
+  const deletion = f.store.remove(scope, current, connection.connectionId);
+  const rejected = assert.rejects(deletion, { code: "stale-connection" });
+  release.resolve();
+  await Promise.all([save, rejected]);
+  assert.deepEqual(await f.store.read(scope), {
+    connection: replacement,
+    sessionState: "ready",
+    bundle: nextBundle,
+  });
+});
+
 test("close drains accepted writes and permanently prevents reopening", async (t) => {
   const db = new MemoryDatabase(),
     f = fixture(t, db),
@@ -453,30 +670,37 @@ test("close drains accepted writes and permanently prevents reopening", async (t
   await assert.rejects(f.store.open(), { code: "persistence-failed" });
 });
 
-test("cancellation during read does not reach put or delete", async (t) => {
-  const db = new MemoryDatabase(),
-    f = fixture(t, db);
-  await f.store.save(scope, connection, bundle, current);
-  const started = deferred<void>(),
-    release = deferred<void>();
-  let active = true,
-    mutations = 0;
-  db.onGet = async () => {
-    started.resolve();
-    await release.promise;
-  };
-  db.onPut = db.onDel = async () => {
-    mutations++;
-  };
-  const save = f.store.save(scope, connection, nextBundle, () => active);
-  const rejected = assert.rejects(save, { code: "operation-cancelled" });
-  await started.promise;
-  active = false;
-  release.resolve();
-  await rejected;
-  assert.equal(mutations, 0);
-  assert.deepEqual((await f.store.read(scope))?.bundle, bundle);
-});
+for (const invalid of [false, true])
+  test(`cancellation during read does not reach put or delete (invalid=${invalid})`, async (t) => {
+    const db = new MemoryDatabase(),
+      f = fixture(t, db);
+    await f.store.save(scope, connection, bundle, current);
+    const key = [...db.records.keys()][0];
+    if (invalid)
+      db.records.set(key, { schemaVersion: 999, connection, bundle });
+    const previous = structuredClone(db.records.get(key));
+    const started = deferred<void>(),
+      release = deferred<void>();
+    let active = true,
+      mutations = 0;
+    db.onGet = async () => {
+      started.resolve();
+      await release.promise;
+    };
+    db.onPut = db.onDel = async () => {
+      mutations++;
+    };
+    const save = f.store.save(scope, connection, nextBundle, () => active);
+    const rejected = assert.rejects(save, { code: "operation-cancelled" });
+    await started.promise;
+    active = false;
+    release.resolve();
+    await rejected;
+    assert.equal(mutations, 0);
+    assert.deepEqual(db.records.get(key), previous);
+    if (invalid) assert.equal(await f.store.read(scope), null);
+    else assert.deepEqual((await f.store.read(scope))?.bundle, bundle);
+  });
 
 test("read failure before deletion stays persistence-failed and can be retried", async (t) => {
   const db = new MemoryDatabase(),

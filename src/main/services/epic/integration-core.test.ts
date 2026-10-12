@@ -31,8 +31,125 @@ import type {
   EpicConnection,
   EpicConnectionState,
 } from "../../../types/epic-integration.types.ts";
+import { getEpicIntegrationPresentation } from "../../../renderer/src/pages/settings/settings-epic-state.ts";
 
 const code = "authorizationCode123456789";
+
+test("invalid local metadata keeps the API link and offers reconnection with a fresh session", async (t) => {
+  const db = new MemoryDatabase(),
+    f = fixture(t, db),
+    owner = f.state.context!;
+  await f.store.save(owner, connection, bundle, () => true);
+  const key = [...db.records.keys()][0];
+  const unusable = {
+    schemaVersion: 999,
+    connection,
+    bundle: {
+      ...bundle,
+      user: { ...bundle.user, access_token: "secret-unusable-access" },
+    },
+  };
+  db.records.set(key, unusable);
+  const canonical = { ...connection, displayName: "Name confirmed by the API" };
+  f.state.remote = canonical;
+
+  const state = await f.core.getConnection();
+  assert.deepEqual(state.connection, canonical);
+  assert.equal(state.verification, "confirmed");
+  assert.equal(state.sessionState, "missing");
+  assert.equal(state.error, undefined);
+  assert.deepEqual(getEpicIntegrationPresentation(state, true), {
+    statusKey: "epic_status_reconnect_required",
+    statusTone: "warning",
+    requiresReconnect: true,
+    canAuthenticate: true,
+    canDisconnect: true,
+  });
+  assert.deepEqual(await f.store.read(owner), {
+    connection: canonical,
+    sessionState: "missing",
+  });
+  assert.equal(
+    JSON.stringify([...db.records.values()]).includes("secret-"),
+    false
+  );
+
+  const authenticated = {
+    ...bundle,
+    user: { ...bundle.user, access_token: "secret-new-access" },
+  };
+  f.runner.authenticate = async () => authenticated;
+  f.dependencies.post = async (account) => {
+    f.state.posts++;
+    assert.equal(account.accessToken, authenticated.user.access_token);
+    f.state.remote = canonical;
+    return canonical;
+  };
+  assert.equal((await f.core.startAuth()).ok, true);
+  assert.deepEqual(await f.state.callbacks!.onCode(code), { ok: true });
+  assert.equal(f.state.posts, 1);
+  assert.deepEqual((await f.store.read(owner))?.bundle, authenticated);
+  assert.equal(f.state.events.at(-1)?.sessionState, "ready");
+  assert.equal(JSON.stringify(f.state.events).includes("secret-"), false);
+});
+
+for (const source of ["GET", "DELETE"] as const) {
+  test(`confirmed ${source} disconnection removes invalid local metadata`, async (t) => {
+    const db = new MemoryDatabase(),
+      f = fixture(t, db),
+      owner = f.state.context!;
+    await f.store.save(owner, connection, bundle, () => true);
+    f.state.remote = connection;
+    if (source === "DELETE") await f.core.getConnection();
+    const key = [...db.records.keys()][0];
+    db.records.set(key, {
+      schemaVersion: 1,
+      connection: { ...connection, epicAccountId: "invalid" },
+      bundle,
+    });
+    if (source === "GET") {
+      f.state.remote = { connected: false };
+      await f.core.getConnection();
+    } else {
+      assert.deepEqual(await f.core.disconnect(connection.connectionId), {
+        ok: true,
+      });
+    }
+    const state = f.state.events.at(-1)!;
+    assert.deepEqual(state.connection, { connected: false });
+    assert.equal(state.verification, "confirmed");
+    assert.equal(state.sessionState, "missing");
+    assert.equal(state.error, undefined);
+    assert.equal(db.records.has(key), false);
+    assert.equal(JSON.stringify(f.state.events).includes("secret-"), false);
+  });
+}
+
+test("API failure leaves the invalid local record untouched and does not start authentication", async (t) => {
+  const db = new MemoryDatabase(),
+    f = fixture(t, db),
+    owner = f.state.context!;
+  await f.store.save(owner, connection, bundle, () => true);
+  const key = [...db.records.keys()][0];
+  const unusable = { schemaVersion: 999, connection, bundle };
+  db.records.set(key, unusable);
+  let mutations = 0;
+  db.onPut = db.onDel = async () => {
+    mutations++;
+  };
+  f.dependencies.get = async () => {
+    throw { code: "ETIMEDOUT" };
+  };
+  const state = await f.core.getConnection();
+  assert.equal(state.verification, "unconfirmed");
+  assert.equal(state.error, "timeout");
+  assert.deepEqual(await f.core.startAuth(), { ok: false, error: "timeout" });
+  assert.equal(f.state.windows, 0);
+  assert.equal(f.state.posts, 0);
+  assert.equal(mutations, 0);
+  assert.deepEqual(db.records.get(key), unusable);
+  assert.equal(JSON.stringify(f.state.events).includes("secret-"), false);
+});
 
 test("shutdown drains pending hydration and GET without late publication", async (t) => {
   const db = new MemoryDatabase(),
