@@ -661,7 +661,7 @@
     "epic_error_legendary": "O componente de login Epic está indisponível. Verifique sua instalação do Hydra.",
     "epic_error_api": "A conexão Epic Games está indisponível neste servidor Hydra. Tente novamente mais tarde.",
     "epic_error_network": "Não foi possível confirmar a conexão Epic. Verifique sua conexão e tente novamente. Seu vínculo existente foi preservado.",
-    "epic_error_proof": "Sua autorização Epic expirou ou já foi usada. Inicie o login novamente.",
+    "epic_error_account_data": "Os dados da conta Epic são inválidos. Tente novamente.",
     "epic_error_account_in_use": "Esta conta Epic Games já está vinculada a outra conta Hydra.",
     "epic_error_different_account": "Entre com a conta Epic já vinculada ao Hydra ou desconecte-a antes de escolher outra conta.",
     "epic_error_stale_connection": "Sua conexão Epic mudou. Verifique o status atual antes de desconectar.",

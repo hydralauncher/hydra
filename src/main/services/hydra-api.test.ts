@@ -11,6 +11,11 @@ import { build } from "esbuild";
 import type { Auth } from "@types";
 
 const endpoint = "/profile/integrations/epic";
+const epicPayload = {
+  epicAccountId: "a".repeat(32),
+  displayName: "Epic Test",
+  accessToken: "epic-access-canary",
+};
 const deferred = <T>() => {
   let resolve!: (value: T) => void;
   let reject!: (error: unknown) => void;
@@ -226,7 +231,7 @@ async function fixture(t: TestContext) {
   };
 }
 
-test("late refresh or 401 from A never dispatches Epic proof or changes B", async (t) => {
+test("late refresh or 401 from A never dispatches Epic access token or changes B", async (t) => {
   for (const status of [200, 401]) {
     const f = await fixture(t);
     await f.signIn("A");
@@ -240,14 +245,10 @@ test("late refresh or 401 from A never dispatches Epic proof or changes B", asyn
       return refresh.promise;
     };
     const attempt = f.api
-      .post(
-        endpoint,
-        { exchangeCode: "private-proof" },
-        {
-          authContext: f.api.getAuthContext()!,
-          timeout: 20_000,
-        }
-      )
+      .post(endpoint, epicPayload, {
+        authContext: f.api.getAuthContext()!,
+        timeout: 20_000,
+      })
       .catch((error: unknown) => error);
     await started.promise;
     await f.api.handleSignOut();
@@ -262,7 +263,10 @@ test("late refresh or 401 from A never dispatches Epic proof or changes B", asyn
       f.requests.some((request) => request.url === endpoint),
       false
     );
-    assert.equal(JSON.stringify(f.logs).includes("private-proof"), false);
+    assert.equal(
+      JSON.stringify(f.logs).includes(epicPayload.accessToken),
+      false
+    );
   }
 });
 
@@ -340,15 +344,11 @@ test("cancel or timeout stops Epic while shared Hydra refresh remains usable", a
     };
     const controller = new AbortController();
     const attempt = f.api
-      .post(
-        endpoint,
-        { exchangeCode: "private-proof" },
-        {
-          authContext: f.api.getAuthContext()!,
-          signal: controller.signal,
-          timeout: cancel ? 20_000 : 10,
-        }
-      )
+      .post(endpoint, epicPayload, {
+        authContext: f.api.getAuthContext()!,
+        signal: controller.signal,
+        timeout: cancel ? 20_000 : 10,
+      })
       .catch((error: { code: string }) => error);
     await started.promise;
     if (cancel) controller.abort();
@@ -365,6 +365,53 @@ test("cancel or timeout stops Epic while shared Hydra refresh remains usable", a
     );
   }
 });
+
+for (const status of [200, 401, 422, 502, 503]) {
+  test(`Epic POST ${status} keeps access token out of logs and only 401 signs Hydra out`, async (t) => {
+    const f = await fixture(t);
+    await f.signIn("A");
+    f.hooks.request = async (request) => {
+      assert.equal(request.url, endpoint);
+      assert.deepEqual(request.data, epicPayload);
+      const result = {
+        ...response({
+          connected: false,
+          // Even an upstream credential echo must be redacted by interceptors.
+          accessToken: epicPayload.accessToken,
+        }),
+        status,
+        config: request.config,
+      };
+      if (status !== 200)
+        throw new AxiosError(
+          "Epic connection rejected",
+          AxiosError.ERR_BAD_RESPONSE,
+          request.config,
+          undefined,
+          result
+        );
+      return result;
+    };
+    const attempt = f.api.post(endpoint, epicPayload, {
+      authContext: f.api.getAuthContext()!,
+      logResponseBody: false,
+    });
+    if (status === 200) await attempt;
+    else
+      await assert.rejects(attempt, (error: AxiosError) => {
+        assert.equal(error.response?.status, status);
+        return true;
+      });
+    assert.equal(f.api.isLoggedIn(), status !== 401);
+    const output = JSON.stringify(f.logs);
+    assert.equal(output.includes(epicPayload.accessToken), false);
+    assert.ok(output.includes("[REDACTED]"));
+    assert.equal(
+      JSON.stringify([...f.values.values()]).includes(epicPayload.accessToken),
+      false
+    );
+  });
+}
 
 test("real profile ignores late responses and cache reads after logout or account switch", async (t) => {
   for (const stage of ["response", "cache-read"]) {

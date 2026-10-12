@@ -8,7 +8,6 @@ import fs from "node:fs/promises";
 import path from "node:path";
 import {
   EpicIntegrationError,
-  isRecord,
   validateLegendarySession,
   validateLegendaryVersion,
 } from "./auth-protocol.js";
@@ -22,8 +21,6 @@ const EPIC_LEGENDARY_TERMINATION_TIMEOUT_MS = 10_000;
 
 export interface EpicSessionRunner {
   authenticate(code: string): Promise<EpicSessionBundle>;
-  getExchangeCode(): Promise<string>;
-  readBundle(): Promise<EpicSessionBundle>;
   cleanup(): Promise<void>;
 }
 
@@ -312,30 +309,13 @@ export class LegendaryAuthRunner implements EpicSessionRunner {
     }
   }
 
-  public async readBundle(): Promise<EpicSessionBundle> {
+  private async readBundle(): Promise<EpicSessionBundle> {
     if (this.signal.aborted)
       throw new EpicIntegrationError("operation-cancelled");
     return {
       user: validateLegendarySession(await this.readJson("user.json")),
       version: validateLegendaryVersion(await this.readJson("version.json")),
     };
-  }
-
-  public async getExchangeCode() {
-    const output = await this.run(["get-token", "--json"]);
-    try {
-      const token: unknown = JSON.parse(output);
-      if (
-        !isRecord(token) ||
-        typeof token.code !== "string" ||
-        !/^[a-zA-Z0-9_-]{16,512}$/.test(token.code)
-      ) {
-        throw new Error("invalid-code");
-      }
-      return token.code;
-    } catch {
-      throw new EpicIntegrationError("invalid-response");
-    }
   }
 
   public async cleanup() {

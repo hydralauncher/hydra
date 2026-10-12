@@ -8,7 +8,7 @@ const EPIC_ERROR_TRANSLATIONS: Record<EpicErrorCode, string> = {
   "legendary-unavailable": "epic_error_legendary",
   "api-unavailable": "epic_error_api",
   network: "epic_error_network",
-  "invalid-proof": "epic_error_proof",
+  "invalid-account-data": "epic_error_account_data",
   "account-in-use": "epic_error_account_in_use",
   "different-account": "epic_error_different_account",
   "stale-connection": "epic_error_stale_connection",

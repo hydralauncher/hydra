@@ -3,13 +3,22 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import test, { type TestContext } from "node:test";
-import { EpicIntegrationError } from "./auth-protocol.ts";
+import {
+  EPIC_ACCESS_TOKEN_MAX_LENGTH,
+  EPIC_DISPLAY_NAME_MAX_LENGTH,
+  EpicIntegrationError,
+  validateLegendarySession,
+} from "./auth-protocol.ts";
 import {
   EpicIntegrationCore,
   type EpicAuthContext,
   type EpicIntegrationDependencies,
 } from "./integration-core.ts";
-import { EpicConnectionStore, type EpicStoreDatabase } from "./store.ts";
+import {
+  EpicConnectionStore,
+  type EpicSessionBundle,
+  type EpicStoreDatabase,
+} from "./store.ts";
 import {
   bundle,
   connection,
@@ -79,7 +88,7 @@ test("failed compensation is surfaced by cancellation and blocks the local sessi
   assert.equal(JSON.stringify(f.state.events).includes("secret-"), false);
 });
 
-test("rotated bundle is committed after cleanup and commit ends cancellation synchronously", async (t) => {
+test("authenticated bundle is committed after cleanup and commit ends cancellation synchronously", async (t) => {
   const db = new MemoryDatabase(),
     f = fixture(t, db);
   const rotated = {
@@ -87,7 +96,7 @@ test("rotated bundle is committed after cleanup and commit ends cancellation syn
     user: { ...bundle.user, refresh_token: "secret-rotated" },
   };
   let cleaned = false;
-  f.runner.readBundle = async () => rotated;
+  f.runner.authenticate = async () => rotated;
   f.runner.cleanup = async () => {
     cleaned = true;
   };
@@ -367,8 +376,6 @@ function fixture(t: TestContext, database?: EpicStoreDatabase) {
   };
   const runner: EpicSessionRunner = {
     authenticate: async () => bundle,
-    getExchangeCode: async () => "exchangeCode123456789",
-    readBundle: async () => bundle,
     cleanup: async () => {},
   };
   const dependencies: EpicIntegrationDependencies = {
@@ -444,6 +451,301 @@ test("lost POST is reconciled once; session survives real restart and Hydra A to
   assert.deepEqual((await reopened.read(owner))?.bundle, bundle);
   const restarted = new EpicIntegrationCore(f.dependencies);
   assert.equal((await restarted.getConnection()).sessionState, "ready");
+});
+
+test("POST sends normalized account metadata and only the access token while IPC stays public", async (t) => {
+  const f = fixture(t);
+  const authenticated: EpicSessionBundle = {
+    ...bundle,
+    user: {
+      ...bundle.user,
+      account_id: connection.epicAccountId.toUpperCase(),
+      displayName: ` ${connection.displayName} `,
+    },
+  };
+  f.runner.authenticate = async (input) => {
+    assert.equal(input, code);
+    return authenticated;
+  };
+  f.dependencies.post = async (account, options) => {
+    f.state.posts++;
+    assert.deepEqual(account, {
+      epicAccountId: connection.epicAccountId,
+      displayName: connection.displayName,
+      accessToken: authenticated.user.access_token,
+    });
+    assert.deepEqual(options.authContext, f.state.context);
+    assert.equal(JSON.stringify(account).includes("secret-refresh"), false);
+    assert.equal(JSON.stringify(account).includes(code), false);
+    f.state.remote = connection;
+    return {
+      ...connection,
+      accessToken: authenticated.user.access_token,
+      refreshToken: authenticated.user.refresh_token,
+    };
+  };
+  assert.equal((await f.core.startAuth()).ok, true);
+  assert.deepEqual(await f.state.callbacks!.onCode(code), { ok: true });
+  assert.equal(f.state.posts, 1);
+  assert.deepEqual(
+    (await f.store.read(f.state.context!))?.bundle,
+    authenticated
+  );
+  assert.deepEqual(await f.core.getConnection(), f.state.events.at(-1));
+  assert.equal(JSON.stringify(f.state.events).includes("secret-"), false);
+  assert.equal(JSON.stringify(f.state.events).includes(code), false);
+});
+
+for (const [label, accessToken, expiresAt] of [
+  ["missing token", undefined, bundle.user.expires_at],
+  ["non-string token", 42, bundle.user.expires_at],
+  ["empty token", "", bundle.user.expires_at],
+  ["space in token", "secret access", bundle.user.expires_at],
+  ["control character in token", "secret\naccess", bundle.user.expires_at],
+  ["trailing newline in token", "secret-access\n", bundle.user.expires_at],
+  ["non-ASCII token", "secret-á", bundle.user.expires_at],
+  [
+    "oversized token",
+    "x".repeat(EPIC_ACCESS_TOKEN_MAX_LENGTH + 1),
+    bundle.user.expires_at,
+  ],
+  ["expired token", bundle.user.access_token, "2000-01-01T00:00:00Z"],
+  ["missing expiration", bundle.user.access_token, undefined],
+  ["invalid expiration", bundle.user.access_token, "invalid-date"],
+  ["non-string expiration", bundle.user.access_token, 42],
+] as const) {
+  test(`Legendary session with ${label} does not POST or replace the existing link`, async (t) => {
+    const f = fixture(t);
+    f.state.remote = connection;
+    f.runner.authenticate = async () => ({
+      ...bundle,
+      user: {
+        ...bundle.user,
+        access_token: accessToken,
+        expires_at: expiresAt,
+      },
+    });
+    assert.equal((await f.core.startAuth()).ok, true);
+    assert.deepEqual(await f.state.callbacks!.onCode(code), {
+      ok: false,
+      error: "auth-failed",
+    });
+    assert.equal(f.state.posts, 0);
+    assert.deepEqual(f.state.events.at(-1)?.connection, connection);
+    assert.equal((await f.store.read(f.state.context!))?.bundle, undefined);
+    assert.equal(JSON.stringify(f.state.events).includes("secret-"), false);
+  });
+}
+
+for (const accessToken of ["!", "~".repeat(EPIC_ACCESS_TOKEN_MAX_LENGTH)]) {
+  test(`visible ASCII access token at length ${accessToken.length} is accepted`, async (t) => {
+    const f = fixture(t);
+    f.runner.authenticate = async () => ({
+      ...bundle,
+      user: { ...bundle.user, access_token: accessToken },
+    });
+    f.dependencies.post = async (account) => {
+      f.state.posts++;
+      assert.equal(account.accessToken, accessToken);
+      f.state.remote = connection;
+      return connection;
+    };
+    assert.equal((await f.core.startAuth()).ok, true);
+    assert.deepEqual(await f.state.callbacks!.onCode(code), { ok: true });
+    assert.equal(f.state.posts, 1);
+  });
+}
+
+for (const [label, displayName] of [
+  ["blank", " "],
+  ["too long", "x".repeat(EPIC_DISPLAY_NAME_MAX_LENGTH + 1)],
+  ["missing", undefined],
+  ["non-string", 42],
+] as const) {
+  test(`invalid ${label} Epic display name does not POST or persist a session`, async (t) => {
+    const f = fixture(t);
+    f.runner.authenticate = async () => ({
+      ...bundle,
+      user: { ...bundle.user, displayName },
+    });
+    assert.equal((await f.core.startAuth()).ok, true);
+    assert.deepEqual(await f.state.callbacks!.onCode(code), {
+      ok: false,
+      error: "invalid-account-data",
+    });
+    assert.equal(f.state.posts, 0);
+    assert.equal(await f.store.read(f.state.context!), null);
+  });
+}
+
+for (const [status, message, expected] of [
+  [400, "Invalid payload", "invalid-account-data"],
+  [401, "Unauthorized Hydra session", "hydra-auth-required"],
+  [409, "profile/epic-account-already-linked", "account-in-use"],
+  [409, "profile/epic-disconnect-required", "different-account"],
+  [409, "profile/epic-connection-changed", "stale-connection"],
+  [422, "profile/epic-session-invalid", "auth-failed"],
+  [429, "Too many requests", "network"],
+  [500, "Internal server error", "network"],
+  [502, "Invalid Epic response", "api-unavailable"],
+  [503, "Epic unavailable", "api-unavailable"],
+] as const) {
+  test(`rejected POST ${status}/${message} cannot succeed through an existing same-account link`, async (t) => {
+    const f = fixture(t);
+    f.state.remote = connection;
+    let reads = 0;
+    f.dependencies.get = async () => {
+      reads++;
+      return f.state.remote;
+    };
+    f.dependencies.post = async () => {
+      f.state.posts++;
+      throw { response: { status, data: { message } } };
+    };
+    assert.equal((await f.core.startAuth()).ok, true);
+    assert.deepEqual(await f.state.callbacks!.onCode(code), {
+      ok: false,
+      error: expected,
+    });
+    assert.equal(f.state.posts, 1);
+    assert.equal((await f.store.read(f.state.context!))?.bundle, undefined);
+    if (expected !== "different-account" && expected !== "stale-connection")
+      assert.equal(reads, 1);
+    assert.equal(JSON.stringify(f.state.events).includes("secret-"), false);
+  });
+}
+
+for (const action of ["cancel", "switch-Hydra-user"] as const) {
+  test(`${action} during Epic verification prevents local persistence and late publication`, async (t) => {
+    const f = fixture(t);
+    const owner = f.state.context!;
+    const started = deferred<void>();
+    const release = deferred<unknown>();
+    let signal: AbortSignal | undefined;
+    f.dependencies.post = async (account, options) => {
+      f.state.posts++;
+      assert.equal(account.accessToken, bundle.user.access_token);
+      signal = options.signal;
+      started.resolve();
+      return release.promise;
+    };
+    const start = await f.core.startAuth();
+    assert.ok(start.ok);
+    const auth = f.state.callbacks!.onCode(code);
+    await started.promise;
+    if (action === "switch-Hydra-user")
+      f.state.context = { ...owner, userId: "HydraB", generation: 2 };
+    const cancelling =
+      action === "cancel"
+        ? f.core.cancelAuth(start.operationId)
+        : f.core.authContextChanged();
+    assert.equal(signal?.aborted, true);
+    release.resolve(connection);
+    assert.deepEqual(await auth, {
+      ok: false,
+      error: "operation-cancelled",
+    });
+    await cancelling;
+    assert.equal(f.state.posts, 1);
+    assert.equal(await f.store.read(owner), null);
+    assert.equal(
+      f.state.events.some((state) => state.sessionState === "ready"),
+      false
+    );
+    assert.equal(JSON.stringify(f.state.events).includes("secret-"), false);
+  });
+}
+
+for (const [status, expected] of [
+  [422, "auth-failed"],
+  [502, "api-unavailable"],
+  [503, "api-unavailable"],
+] as const) {
+  test(`Epic verification ${status} preserves the previous local session`, async (t) => {
+    const f = fixture(t);
+    const previous = {
+      ...bundle,
+      user: {
+        ...bundle.user,
+        access_token: "previous-access",
+        refresh_token: "previous-refresh",
+      },
+    };
+    f.state.remote = connection;
+    await f.store.save(f.state.context!, connection, previous, () => true);
+    f.dependencies.post = async () => {
+      f.state.posts++;
+      throw { response: { status } };
+    };
+    assert.equal((await f.core.startAuth()).ok, true);
+    assert.deepEqual(await f.state.callbacks!.onCode(code), {
+      ok: false,
+      error: expected,
+    });
+    assert.equal(f.state.posts, 1);
+    assert.deepEqual((await f.store.read(f.state.context!))?.bundle, previous);
+    assert.equal(f.state.events.at(-1)?.verification, "confirmed");
+    assert.equal(f.state.events.at(-1)?.sessionState, "ready");
+    assert.equal(JSON.stringify(f.state.events).includes("previous-"), false);
+  });
+}
+
+for (const [status, expected] of [
+  [500, "network"],
+  [502, "api-unavailable"],
+  [503, "api-unavailable"],
+] as const) {
+  test(`explicit DELETE ${status} cannot become success through GET`, async (t) => {
+    const f = fixture(t);
+    f.state.remote = connection;
+    await f.store.save(f.state.context!, connection, bundle, () => true);
+    await f.core.getConnection();
+    let reads = 0;
+    f.dependencies.get = async () => {
+      reads++;
+      return { connected: false };
+    };
+    f.dependencies.delete = async () => {
+      throw { response: { status } };
+    };
+    assert.deepEqual(await f.core.disconnect(connection.connectionId), {
+      ok: false,
+      error: expected,
+    });
+    assert.equal(reads, 0);
+    assert.deepEqual((await f.store.read(f.state.context!))?.bundle, bundle);
+  });
+}
+
+test("timed-out POST reconciles persisted account metadata without repeating POST", async (t) => {
+  const f = fixture(t);
+  const canonical = { ...connection, displayName: "Name returned by the API" };
+  f.dependencies.post = async () => {
+    f.state.posts++;
+    f.state.remote = canonical;
+    throw { code: "ETIMEDOUT" };
+  };
+  assert.equal((await f.core.startAuth()).ok, true);
+  assert.deepEqual(await f.state.callbacks!.onCode(code), { ok: true });
+  assert.equal(f.state.posts, 1);
+  const stored = await f.store.read(f.state.context!);
+  assert.deepEqual(stored?.connection, canonical);
+  assert.deepEqual(stored?.bundle, bundle);
+});
+
+test("a POST response for a different Epic account cannot persist the local session", async (t) => {
+  const f = fixture(t);
+  f.dependencies.post = async () => {
+    f.state.posts++;
+    return { ...connection, epicAccountId: "b".repeat(32) };
+  };
+  assert.equal((await f.core.startAuth()).ok, true);
+  assert.deepEqual(await f.state.callbacks!.onCode(code), {
+    ok: false,
+    error: "invalid-response",
+  });
+  assert.equal(f.state.posts, 1);
+  assert.equal(await f.store.read(f.state.context!), null);
 });
 
 test("preparation starts API and binary checks together; logout rejects late completion", async (t) => {
@@ -524,7 +826,7 @@ test("missing binary does not block remote reads/disconnect; authentication need
   assert.equal(await f.store.read(f.state.context!), null);
 });
 
-test("invalid Legendary identity is rejected before proof or persistence", async (t) => {
+test("invalid Legendary identity is rejected before POST or persistence", async (t) => {
   const f = fixture(t);
   f.runner.authenticate = async () => ({
     ...bundle,
@@ -535,6 +837,29 @@ test("invalid Legendary identity is rejected before proof or persistence", async
       },
     },
   });
+  assert.equal((await f.core.startAuth()).ok, true);
+  assert.deepEqual(await f.state.callbacks!.onCode(code), {
+    ok: false,
+    error: "invalid-response",
+  });
+  assert.equal(f.state.posts, 0);
+  assert.equal(await f.store.read(f.state.context!), null);
+});
+
+test("Legendary identity with a trailing newline fails session validation and never POSTs", async (t) => {
+  const f = fixture(t);
+  const invalid = {
+    ...bundle,
+    user: {
+      ...bundle.user,
+      account_id: `${connection.epicAccountId}\n`,
+    },
+  };
+  assert.throws(() => validateLegendarySession(invalid.user), {
+    code: "auth-failed",
+  });
+  // A mocked runner bypassing session validation must still fail before POST.
+  f.runner.authenticate = async () => invalid;
   assert.equal((await f.core.startAuth()).ok, true);
   assert.deepEqual(await f.state.callbacks!.onCode(code), {
     ok: false,

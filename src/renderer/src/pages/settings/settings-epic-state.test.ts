@@ -3,6 +3,7 @@ import test from "node:test";
 import type { EpicConnectionState } from "../../../../types/epic-integration.types.js";
 import {
   getEpicIntegrationPresentation,
+  getEpicErrorTranslation,
   isEpicStateForUser,
 } from "./settings-epic-state.js";
 
@@ -23,6 +24,13 @@ const state = (
   sessionState: "ready",
   operation: null,
   ...overrides,
+});
+
+test("invalid account data uses the payload error message", () => {
+  assert.equal(
+    getEpicErrorTranslation("invalid-account-data"),
+    "epic_error_account_data"
+  );
 });
 
 test("offline and missing local session/dependencies preserve link and disconnect", () => {

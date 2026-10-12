@@ -607,7 +607,7 @@
     "epic_error_legendary": "The Epic sign-in component is unavailable. Check your Hydra installation.",
     "epic_error_api": "Epic Games connections are unavailable on this Hydra server. Try again later.",
     "epic_error_network": "Could not confirm your Epic connection. Check your connection and try again. Your existing link is preserved.",
-    "epic_error_proof": "Your Epic authorization expired or was already used. Start sign-in again.",
+    "epic_error_account_data": "The Epic account data is invalid. Please try again.",
     "epic_error_account_in_use": "This Epic Games account is already linked to another Hydra account.",
     "epic_error_different_account": "Sign in with the Epic account already linked to Hydra, or disconnect it before choosing another account.",
     "epic_error_stale_connection": "Your Epic connection changed. Check its current status before disconnecting.",

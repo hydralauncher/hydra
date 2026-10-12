@@ -1,5 +1,6 @@
 import { randomUUID } from "node:crypto";
 import type {
+  EpicAccountData,
   EpicConnectedConnection,
   EpicConnection,
   EpicConnectionState,
@@ -9,6 +10,8 @@ import type {
   EpicStartAuthResult,
 } from "../../../types/epic-integration.types";
 import {
+  EPIC_ACCESS_TOKEN_MAX_LENGTH,
+  EPIC_DISPLAY_NAME_MAX_LENGTH,
   EpicIntegrationError,
   isRecord,
   validateEpicAuthorizationCode,
@@ -31,6 +34,11 @@ interface EpicRequestOptions {
   signal: AbortSignal;
 }
 
+/** Credentials stay in the main process and are never part of public state. */
+interface EpicConnectPayload extends EpicAccountData {
+  accessToken: string;
+}
+
 export interface EpicIntegrationDependencies {
   getAuthContext(): EpicAuthContext | null;
   isAuthContextCurrent(context: EpicAuthContext): boolean;
@@ -43,7 +51,10 @@ export interface EpicIntegrationDependencies {
   createRunner(binary: string, signal: AbortSignal): Promise<EpicSessionRunner>;
   openWindow(callbacks: EpicAuthWindowCallbacks): EpicAuthWindow;
   get(options: EpicRequestOptions): Promise<unknown>;
-  post(exchangeCode: string, options: EpicRequestOptions): Promise<unknown>;
+  post(
+    account: EpicConnectPayload,
+    options: EpicRequestOptions
+  ): Promise<unknown>;
   delete(connectionId: string, options: EpicRequestOptions): Promise<void>;
   emit(state: EpicConnectionState): void;
 }
@@ -95,7 +106,8 @@ function safeHttpError(response: unknown): EpicErrorCode | undefined {
   if (!isRecord(response)) return undefined;
   const status = response.status;
   if (status === 401) return "hydra-auth-required";
-  if (status === 404 || status === 503) return "api-unavailable";
+  if (status === 404 || status === 502 || status === 503)
+    return "api-unavailable";
   if (status === 409) {
     const message = isRecord(response.data) ? response.data.message : undefined;
     if (message === "profile/epic-disconnect-required")
@@ -104,9 +116,17 @@ function safeHttpError(response: unknown): EpicErrorCode | undefined {
       return "stale-connection";
     return "account-in-use";
   }
-  if (status === 400 || status === 422) return "invalid-proof";
-  if (status === 502) return "network";
+  if (status === 400) return "invalid-account-data";
+  if (status === 422) return "auth-failed";
   return undefined;
+}
+
+function hasHttpResponse(error: unknown): boolean {
+  return (
+    isRecord(error) &&
+    isRecord(error.response) &&
+    typeof error.response.status === "number"
+  );
 }
 
 function safeError(error: unknown): EpicErrorCode {
@@ -132,10 +152,33 @@ function safeError(error: unknown): EpicErrorCode {
 function getEpicAccountId(user: Record<string, unknown>): string {
   if (
     typeof user.account_id !== "string" ||
+    user.account_id.length !== 32 ||
     !/^[a-f0-9]{32}$/i.test(user.account_id)
   )
     throw new EpicIntegrationError("invalid-response");
   return user.account_id.toLowerCase();
+}
+
+function getEpicConnectPayload(
+  user: Record<string, unknown>
+): EpicConnectPayload {
+  const epicAccountId = getEpicAccountId(user);
+  const displayName =
+    typeof user.displayName === "string" ? user.displayName.trim() : "";
+  if (!displayName || displayName.length > EPIC_DISPLAY_NAME_MAX_LENGTH)
+    throw new EpicIntegrationError("invalid-account-data");
+  const expiresAt =
+    typeof user.expires_at === "string" ? Date.parse(user.expires_at) : NaN;
+  if (
+    typeof user.access_token !== "string" ||
+    user.access_token.length === 0 ||
+    user.access_token.length > EPIC_ACCESS_TOKEN_MAX_LENGTH ||
+    /[^\x21-\x7e]/.test(user.access_token) ||
+    !Number.isFinite(expiresAt) ||
+    expiresAt <= Date.now()
+  )
+    throw new EpicIntegrationError("auth-failed");
+  return { epicAccountId, displayName, accessToken: user.access_token };
 }
 
 export class EpicIntegrationCore {
@@ -517,29 +560,17 @@ export class EpicIntegrationCore {
     try {
       this.assertActive(operation);
       if (!operation.runner) throw new EpicIntegrationError("auth-failed");
-      const firstBundle = await operation.runner.authenticate(code);
+      const bundle = await operation.runner.authenticate(code);
       this.assertActive(operation);
-      const accountId = getEpicAccountId(firstBundle.user);
+      const account = getEpicConnectPayload(bundle.user);
       const linked = this.state?.connection;
-      if (linked?.connected && linked.epicAccountId !== accountId) {
+      if (linked?.connected && linked.epicAccountId !== account.epicAccountId) {
         throw new EpicIntegrationError("different-account");
-      }
-      const exchangeCode = await operation.runner.getExchangeCode();
-      this.assertActive(operation);
-      // get-token may refresh and rewrite user.json. Persist only the latest file.
-      const bundle = await operation.runner.readBundle();
-      this.assertActive(operation);
-      if (getEpicAccountId(bundle.user) !== accountId) {
-        throw new EpicIntegrationError("invalid-response");
       }
       operation.status = "connecting";
       this.invalidateQueries();
       this.emit(operation.context);
-      const connection = await this.confirmConnection(
-        operation,
-        exchangeCode,
-        accountId
-      );
+      const connection = await this.confirmConnection(operation, account);
       this.assertActive(operation);
       // The server link is real even if local persistence subsequently fails.
       this.remoteState(operation.context, connection);
@@ -590,22 +621,28 @@ export class EpicIntegrationCore {
 
   private async confirmConnection(
     operation: EpicOperation,
-    exchangeCode: string,
-    accountId: string
+    account: EpicConnectPayload
   ): Promise<EpicConnectedConnection> {
     let connection: EpicConnection;
     try {
       connection = validateEpicConnection(
         await this.dependencies.post(
-          exchangeCode,
+          account,
           this.requestOptions(operation.context, operation.controller.signal)
         )
       );
     } catch (error) {
-      connection = await this.reconcileConnect(operation, accountId, error);
+      connection = await this.reconcileConnect(
+        operation,
+        account.epicAccountId,
+        error
+      );
     }
     this.assertActive(operation);
-    if (!connection.connected || connection.epicAccountId !== accountId)
+    if (
+      !connection.connected ||
+      connection.epicAccountId !== account.epicAccountId
+    )
       throw new EpicIntegrationError("invalid-response");
     return connection;
   }
@@ -640,13 +677,14 @@ export class EpicIntegrationCore {
       throw new EpicIntegrationError(cause);
     }
     if (
-      cause !== "network" &&
-      cause !== "timeout" &&
-      cause !== "invalid-response"
+      hasHttpResponse(error) ||
+      (cause !== "network" &&
+        cause !== "timeout" &&
+        cause !== "invalid-response")
     )
       throw error;
     if (this.state) this.state.verification = "unconfirmed";
-    // A redeemed proof is single-use. Reconcile instead of retrying POST.
+    // The POST may have committed before its response was lost.
     const connection = await this.readRemote(operation);
     this.assertActive(operation);
     if (!connection.connected || connection.epicAccountId !== accountId) {
@@ -844,7 +882,11 @@ export class EpicIntegrationCore {
       cause === "account-in-use" ||
       cause === "stale-connection" ||
       cause === "different-account";
-    if (!stale && cause !== "network" && cause !== "timeout") throw error;
+    if (
+      !stale &&
+      (hasHttpResponse(error) || (cause !== "network" && cause !== "timeout"))
+    )
+      throw error;
     if (this.state) this.state.verification = "unconfirmed";
     const latest = await this.readRemote(operation);
     this.assertActive(operation);

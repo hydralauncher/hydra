@@ -3,6 +3,8 @@ import type { EpicErrorCode } from "../../../types/epic-integration.types";
 // Public OAuth client used by the pinned Legendary 0.21.1 release.
 export const EPIC_OAUTH_CLIENT_ID = "34a02cf8f4414e29b15921876da36f9a";
 export const EPIC_AUTH_CODE_MAX_LENGTH = 4096;
+export const EPIC_DISPLAY_NAME_MAX_LENGTH = 128;
+export const EPIC_ACCESS_TOKEN_MAX_LENGTH = 8192;
 
 export class EpicIntegrationError extends Error {
   constructor(public readonly code: EpicErrorCode) {
@@ -77,6 +79,7 @@ export function validateLegendarySession(value: unknown) {
   if (
     !isRecord(value) ||
     typeof value.account_id !== "string" ||
+    value.account_id.length !== 32 ||
     !/^[a-fA-F0-9]{32}$/.test(value.account_id) ||
     typeof value.displayName !== "string" ||
     !value.displayName.trim() ||

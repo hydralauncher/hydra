@@ -81,12 +81,11 @@ function getIntegration() {
         ...options,
         logResponseBody: false,
       }),
-    post: (exchangeCode, options) =>
-      HydraApi.post(
-        EPIC_CONNECTION_ENDPOINT,
-        { exchangeCode },
-        { ...options, logResponseBody: false }
-      ),
+    post: (account, options) =>
+      HydraApi.post(EPIC_CONNECTION_ENDPOINT, account, {
+        ...options,
+        logResponseBody: false,
+      }),
     delete: (connectionId, options) =>
       HydraApi.delete(
         `${EPIC_CONNECTION_ENDPOINT}?connectionId=${encodeURIComponent(connectionId)}`,

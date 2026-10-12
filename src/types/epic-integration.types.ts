@@ -1,3 +1,8 @@
+export interface EpicAccountData {
+  epicAccountId: string;
+  displayName: string;
+}
+
 export interface EpicConnectedConnection {
   connected: true;
   connectionId: string;
@@ -18,7 +23,7 @@ export type EpicErrorCode =
   | "legendary-unavailable"
   | "api-unavailable"
   | "network"
-  | "invalid-proof"
+  | "invalid-account-data"
   | "account-in-use"
   | "different-account"
   | "stale-connection"
@@ -37,6 +42,7 @@ export interface EpicConnectionState {
   hydraUserId: string | null;
   availability: { available: boolean; reason?: EpicErrorCode };
   connection: EpicConnection | null;
+  /** Confirmation of the persisted Hydra link, independent of the local Epic session. */
   verification: "confirmed" | "unconfirmed";
   sessionState: EpicSessionState;
   operation: {
