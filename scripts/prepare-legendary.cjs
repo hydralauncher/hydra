@@ -51,7 +51,8 @@ async function downloadVerifiedArtifact(
   executable = false
 ) {
   if (await hasExpectedChecksum(filePath, artifact.sha256)) {
-    if (executable) await fs.chmod(filePath, 0o755);
+    // Verified public binary: shared installs need read/execute access; only the owner can write.
+    if (executable) await fs.chmod(filePath, 0o755); // NOSONAR
     return true;
   }
   await fs.mkdir(path.dirname(filePath), { recursive: true });
@@ -73,7 +74,8 @@ async function downloadVerifiedArtifact(
     if (!(await hasExpectedChecksum(temporaryPath, artifact.sha256)))
       throw new Error("Legendary runtime checksum mismatch");
 
-    if (executable) await fs.chmod(temporaryPath, 0o755);
+    // Verified public binary: shared installs need read/execute access; only the owner can write.
+    if (executable) await fs.chmod(temporaryPath, 0o755); // NOSONAR
     try {
       await fs.rename(temporaryPath, filePath);
     } catch (error) {
