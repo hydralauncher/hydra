@@ -103,6 +103,9 @@ import type {
   SteamSyncRunStatus,
   SteamConnectErrorCode,
   ExtractionFailure,
+  EpicConnectionState,
+  EpicOperationResult,
+  EpicStartAuthResult,
 } from "@types";
 import type { AxiosProgressEvent } from "axios";
 
@@ -1206,6 +1209,13 @@ declare global {
     onRetroAchievementsConnected: (
       cb: () => void
     ) => () => Electron.IpcRenderer;
+    getEpicConnection: () => Promise<EpicConnectionState>;
+    startEpicAuth: () => Promise<EpicStartAuthResult>;
+    cancelEpicAuth: (operationId: string) => Promise<EpicOperationResult>;
+    disconnectEpic: (connectionId: string) => Promise<EpicOperationResult>;
+    onEpicConnectionChanged: (
+      cb: (state: EpicConnectionState) => void
+    ) => () => void;
     startSteamOAuth: (lng: string) => Promise<void>;
     disconnectSteam: (deleteImportedData: boolean) => Promise<void>;
     startSteamSync: () => Promise<SteamSyncState>;
