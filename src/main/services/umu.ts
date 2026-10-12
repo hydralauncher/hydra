@@ -19,6 +19,10 @@ import {
   type UmuStatusListener,
 } from "./umu-launch-monitor";
 import { getFileSize } from "./umu-output-monitor";
+import {
+  findFlatpakCompatibilityTools,
+  getFlatpakInstallationRoots,
+} from "./flatpak-compatibility-tools";
 
 export type { UmuStatus } from "./umu-launch-monitor";
 
@@ -221,6 +225,15 @@ export class Umu {
           source: "compatibility_tools",
         });
       }
+    }
+
+    const flatpakTools = await findFlatpakCompatibilityTools(
+      getFlatpakInstallationRoots(homePath),
+      isValidProtonDirectory
+    ).catch(() => []);
+
+    for (const tool of flatpakTools) {
+      versions.push({ ...tool, source: "compatibility_tools" });
     }
 
     const uniqueVersions = new Map<string, ProtonVersion>();
