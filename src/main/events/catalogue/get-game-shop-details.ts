@@ -1,3 +1,4 @@
+import { getEpicStoreDetails } from "@main/services/epic-store-details";
 import {
   getSteamAppDetails,
   getSteamLanguage,
@@ -20,6 +21,12 @@ import {
   levelKeys,
 } from "@main/level";
 import { composeAssetsWithArtwork } from "@shared";
+import {
+  getStoreDetailsWithFallback,
+  mapEpicShopDetails,
+  STORE_DETAILS_TIMEOUT_MS,
+  type EpicShopDetails,
+} from "@main/services/store-shop-details";
 
 const applyArtworkToAssets = async (
   shop: GameShop,
@@ -280,6 +287,104 @@ const getGameShopDetails = async (
     return {
       ...details,
       assets: await applyArtworkToAssets(shop, objectId, details.assets),
+    };
+  }
+
+  if (shop === "epic") {
+    const cacheLanguage = language;
+    const path = `/games/${shop}/${encodeURIComponent(objectId)}/shop-details`;
+    const [cachedData, cachedAssets] = await Promise.all([
+      gamesShopCacheSublevel.get(
+        levelKeys.gameShopCacheItem(shop, objectId, cacheLanguage)
+      ),
+      gamesShopAssetsSublevel.get(levelKeys.game(shop, objectId)),
+    ]);
+
+    const appDetails = (async () => {
+      const details = await getStoreDetailsWithFallback<ShopDetailsWithAssets>(
+        async () => {
+          const data = await getEpicStoreDetails(objectId, language).catch(
+            (error) => {
+              logger.error("Could not fetch Epic store details", error);
+              return null;
+            }
+          );
+          const result = data
+            ? mapEpicShopDetails(objectId, data, language)
+            : null;
+          if (!result) return null;
+          return {
+            ...result,
+            name: result.name,
+            assets: result.assets ?? cachedAssets ?? null,
+          };
+        },
+        async () => {
+          const data = await HydraApi.get<EpicShopDetails | null>(
+            path,
+            { language },
+            {
+              needsAuth: false,
+              signal: AbortSignal.timeout(STORE_DETAILS_TIMEOUT_MS),
+            }
+          );
+          if (!data) return null;
+          return mapEpicShopDetails(objectId, data, language);
+        },
+        null
+      );
+
+      if (!details) return details;
+
+      const { assets: freshAssets, ...payload } = details;
+      const assets = freshAssets
+        ? {
+            ...freshAssets,
+            coverImageUrl:
+              freshAssets.coverImageUrl ?? cachedAssets?.coverImageUrl ?? null,
+            iconUrl: freshAssets.iconUrl ?? cachedAssets?.iconUrl ?? null,
+            libraryImageUrl:
+              freshAssets.libraryImageUrl ??
+              cachedAssets?.libraryImageUrl ??
+              null,
+            libraryHeroImageUrl:
+              freshAssets.libraryHeroImageUrl ??
+              cachedAssets?.libraryHeroImageUrl ??
+              null,
+            logoImageUrl:
+              freshAssets.logoImageUrl ?? cachedAssets?.logoImageUrl ?? null,
+            logoPosition:
+              cachedAssets?.logoPosition ?? freshAssets.logoPosition,
+            downloadSources:
+              cachedAssets?.downloadSources ?? freshAssets.downloadSources,
+          }
+        : (cachedAssets ?? null);
+      gamesShopCacheSublevel
+        .put(
+          levelKeys.gameShopCacheItem(shop, objectId, cacheLanguage),
+          payload
+        )
+        .catch((error) => logger.error("Could not cache game details", error));
+      if (assets)
+        gamesShopAssetsSublevel
+          .put(levelKeys.game(shop, objectId), {
+            ...assets,
+            updatedAt: Date.now(),
+          })
+          .catch((error) => logger.error("Could not cache game assets", error));
+
+      return {
+        ...details,
+        assets,
+      };
+    })();
+    const selected = cachedData
+      ? { ...cachedData, assets: cachedAssets ?? null }
+      : await appDetails;
+    if (!selected) return null;
+    return {
+      ...selected,
+      assets: await applyArtworkToAssets(shop, objectId, selected.assets),
     };
   }
 
