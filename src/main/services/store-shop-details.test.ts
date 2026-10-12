@@ -129,6 +129,27 @@ describe("Epic details mapping", () => {
     );
   });
 
+  it("sanitizes summary HTML even when the long description is safe", () => {
+    const result = mapEpicShopDetails(
+      "id",
+      {
+        ...epic,
+        shortDescription:
+          '<strong>Summary</strong><img src="https://example.com/art.jpg" onerror="alert(1)"><script>alert(2)</script><a href="javascript:alert(3)">Link</a>',
+      },
+      "en"
+    );
+    assert.equal(result.detailed_description, epic.description);
+    assert.equal(
+      result.short_description,
+      '<strong>Summary</strong><img src="https://example.com/art.jpg"><a>Link</a>'
+    );
+    assert.equal(
+      mapEpicShopDetails("id", { ...epic, shortDescription: null }, "en")
+        .short_description,
+      ""
+    );
+  });
   it("renders both persisted and live plain requirements as escaped HTML lists", () => {
     const data = {
       ...epic,

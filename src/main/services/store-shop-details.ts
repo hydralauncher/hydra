@@ -49,7 +49,7 @@ export function mapEpicShopDetails(
     steam_appid: 0,
     detailed_description: description,
     about_the_game: description,
-    short_description: data.shortDescription ?? "",
+    short_description: sanitizeEpicHtml(data.shortDescription ?? ""),
     developers: data.developer?.trim() ? [data.developer.trim()] : [],
     publishers: data.publisher?.trim() ? [data.publisher.trim()] : [],
     genres: data.genres.map((name, id) => ({ id: String(id), name })),

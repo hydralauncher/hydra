@@ -196,6 +196,29 @@ export async function getEpicStoreDetails(
   const languages = configs.find(
     (row) => row.supportedText?.length || row.supportedAudio?.length
   );
+  const audioLanguages = new Set(
+    (languages?.supportedAudio ?? []).map((name) =>
+      name.trim().toLocaleLowerCase("en-US")
+    )
+  );
+  const supportedLanguages = [
+    ...new Set(
+      [
+        ...(languages?.supportedText ?? []),
+        ...(languages?.supportedAudio ?? []),
+      ]
+        .map((name) => name.trim())
+        .filter(Boolean)
+    ),
+  ].map((name) => {
+    const escapedName = name
+      .replaceAll("&", "&amp;")
+      .replaceAll("<", "&lt;")
+      .replaceAll(">", "&gt;");
+    return audioLanguages.has(name.toLocaleLowerCase("en-US"))
+      ? escapedName + "<strong>*</strong>"
+      : escapedName;
+  });
   return {
     descriptionLanguage: locale === "pt-BR" ? "pt-BR" : locale.split("-")[0],
     title: offer.title,
@@ -240,12 +263,7 @@ export async function getEpicStoreDetails(
       minimum: requirement("minimum"),
       recommended: requirement("recommended"),
     },
-    supportedLanguages: [
-      ...new Set([
-        ...(languages?.supportedText ?? []),
-        ...(languages?.supportedAudio ?? []),
-      ]),
-    ],
+    supportedLanguages,
     images: {
       cover: image("OfferImageTall", "DieselStoreFrontTall", "Thumbnail"),
       libraryImage: image("OfferImageWide", "DieselStoreFrontWide"),

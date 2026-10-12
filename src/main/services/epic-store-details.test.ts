@@ -1,7 +1,10 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import { getEpicStoreDetails } from "./epic-store-details.js";
-import { getStoreDetailsWithFallback } from "./store-shop-details.js";
+import {
+  mapEpicShopDetails,
+  getStoreDetailsWithFallback,
+} from "./store-shop-details.js";
 
 const offer = {
   id: "offer",
@@ -22,7 +25,11 @@ const offer = {
     },
   ],
 };
-function storefront(offers = [offer]) {
+function storefront(
+  offers = [offer],
+  supportedText = ["English"],
+  supportedAudio: string[] = []
+) {
   const calls: { url: string; locale?: string }[] = [];
   const fetchImpl: typeof fetch = async (url, init) => {
     const { query, variables } = JSON.parse(String(init?.body));
@@ -56,7 +63,8 @@ function storefront(offers = [offer]) {
             configuration: [
               {
                 configs: {
-                  supportedText: ["English"],
+                  supportedText,
+                  supportedAudio,
                   technicalRequirements: {
                     windows: [{ title: "OS", minimum: "Windows 10" }],
                   },
@@ -119,6 +127,36 @@ describe("direct Epic store details", () => {
     assert.equal(calls[0].locale, "pt-BR");
   });
 
+  it("preserves audio markers through the existing shop-details contract", async () => {
+    const { fetchImpl } = storefront(
+      undefined,
+      ["English", "French", " Unsafe <language> & text "],
+      ["english", " Spanish ", " "]
+    );
+    const result = await getEpicStoreDetails("sandbox:item", "en", fetchImpl);
+    assert.ok(result);
+    assert.deepEqual(result.supportedLanguages, [
+      "English<strong>*</strong>",
+      "French",
+      "Unsafe &lt;language&gt; &amp; text",
+      "english<strong>*</strong>",
+      "Spanish<strong>*</strong>",
+    ]);
+    const mapped = mapEpicShopDetails("sandbox:item", result, "en");
+    const languages = mapped.supported_languages.split(", ");
+    assert.equal(
+      languages.find((name) => name.startsWith("English"))?.includes("*"),
+      true
+    );
+    assert.equal(
+      languages.find((name) => name.startsWith("French"))?.includes("*"),
+      false
+    );
+    assert.equal(
+      languages.find((name) => name.startsWith("Spanish"))?.includes("*"),
+      true
+    );
+  });
   it("uses the store summary when long content is missing", async () => {
     const { fetchImpl } = storefront([{ ...offer, longDescription: "" }]);
     assert.equal(
