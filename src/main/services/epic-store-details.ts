@@ -34,6 +34,7 @@ interface StoreResponse {
   };
 }
 const OFFER_PAGE_SIZE = 50;
+const SCREENSHOT_LIMIT = 10;
 const LOCALES: Record<string, string> = {
   en: "en-US",
   pt: "pt-BR",
@@ -134,7 +135,7 @@ export async function getEpicStoreDetails(
     types
       .map((type) => images.find((entry) => entry.type === type)?.url)
       .find(Boolean) ?? null;
-  const videos = await Promise.all(
+  const videos = await Promise.allSettled(
     (offer.keyImages ?? [])
       .filter((entry) => entry.type === "heroCarouselVideo" && entry.url)
       .map(async (entry) => {
@@ -230,8 +231,10 @@ export async function getEpicStoreDetails(
           )
       )
       .map((entry) => entry.url!)
-      .slice(0, 10),
-    videos: videos.filter((video) => video !== null),
+      .slice(0, SCREENSHOT_LIMIT),
+    videos: videos.flatMap((result) =>
+      result.status === "fulfilled" && result.value ? [result.value] : []
+    ),
     requirements: {
       minimum: requirement("minimum"),
       recommended: requirement("recommended"),

@@ -1,4 +1,5 @@
 import type { ShopDetailsWithAssets } from "@types";
+import { JSDOM } from "jsdom";
 
 export const STORE_DETAILS_TIMEOUT_MS = 15_000;
 
@@ -69,8 +70,8 @@ export function mapEpicShopDetails(
     })),
     supported_languages: data.supportedLanguages.join(", "),
     pc_requirements: {
-      minimum: data.requirements?.minimum ?? "",
-      recommended: data.requirements?.recommended ?? "",
+      minimum: formatEpicRequirements(data.requirements?.minimum ?? ""),
+      recommended: formatEpicRequirements(data.requirements?.recommended ?? ""),
     },
     mac_requirements: { minimum: "", recommended: "" },
     linux_requirements: { minimum: "", recommended: "" },
@@ -108,31 +109,116 @@ export function mapEpicShopDetails(
 function formatEpicDescription(description: string): string {
   const content = description.replace(/<!--[\s\S]*?-->/g, "").trim();
   if (/<\/?[a-z][^>]*>/i.test(content)) {
-    return content.replace(/={3,}/g, "<br><br>");
+    return sanitizeEpicHtml(content.replace(/={3,}/g, "<br><br>"));
   }
 
-  return content
-    .replace(/={3,}/g, "\n\n")
-    .replace(/\r\n/g, "\n")
-    .replace(/\n[\t ]*\n(?:[\t ]*\n)+/g, "\n\n")
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;")
-    .replace(
-      /!\[([^\]\n]*)\]\((https?:\/\/[^\s)]+)\)/g,
-      '<img alt="$1" src="$2">'
-    )
-    .replace(
-      /\[([^\]\n]+)\]\((https?:\/\/[^\s)]+|\/(?!\/)[^\s)]*)\)/g,
-      (_, label: string, destination: string) => {
-        const href = destination.startsWith("/")
-          ? `https://store.epicgames.com${destination}`
-          : destination;
-        return `<a href="${href}">${label}</a>`;
+  return sanitizeEpicHtml(
+    content
+      .replace(/={3,}/g, "\n\n")
+      .replace(/\r\n/g, "\n")
+      .replace(/\n[\t ]*\n(?:[\t ]*\n)+/g, "\n\n")
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;")
+      .replace(
+        /!\[([^\]\n]*)\]\((https?:\/\/[^\s)]+)\)/g,
+        '<img alt="$1" src="$2">'
+      )
+      .replace(
+        /\[([^\]\n]+)\]\((https?:\/\/[^\s)]+|\/(?!\/)[^\s)]*)\)/g,
+        (_, label: string, destination: string) => {
+          const href = destination.startsWith("/")
+            ? `https://store.epicgames.com${destination}`
+            : destination;
+          return `<a href="${href}">${label}</a>`;
+        }
+      )
+      .replace(/\r?\n/g, "<br>")
+  );
+}
+
+function formatEpicRequirements(requirements: string): string {
+  if (!requirements.trim()) return "";
+  if (/<\/?[a-z][^>]*>/i.test(requirements))
+    return sanitizeEpicHtml(requirements);
+  const items = requirements
+    .split(/\r?\n/)
+    .filter((row) => row.trim())
+    .map(
+      (row) =>
+        `<li>${row.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")}</li>`
+    );
+  return `<ul>${items.join("")}</ul>`;
+}
+
+function sanitizeEpicHtml(html: string): string {
+  const fragment = JSDOM.fragment(html);
+  for (const element of fragment.querySelectorAll(
+    "script, style, iframe, object, embed, svg, math, form, input, button, textarea, select, template"
+  )) {
+    element.remove();
+  }
+  const allowedTags = new Set([
+    "P",
+    "BR",
+    "STRONG",
+    "EM",
+    "B",
+    "I",
+    "U",
+    "S",
+    "H1",
+    "H2",
+    "H3",
+    "H4",
+    "H5",
+    "H6",
+    "UL",
+    "OL",
+    "LI",
+    "DIV",
+    "SPAN",
+    "BLOCKQUOTE",
+    "HR",
+    "IMG",
+    "A",
+    "TABLE",
+    "THEAD",
+    "TBODY",
+    "TR",
+    "TH",
+    "TD",
+  ]);
+  for (const element of fragment.querySelectorAll("*")) {
+    if (!allowedTags.has(element.tagName)) {
+      element.replaceWith(...element.childNodes);
+      continue;
+    }
+    for (const attribute of Array.from(element.attributes)) {
+      const name = attribute.name.toLowerCase();
+      if (name === "alt" || name === "title") continue;
+      if (
+        (element.tagName === "IMG" && name === "src") ||
+        (element.tagName === "A" && name === "href")
+      ) {
+        try {
+          const url = new URL(attribute.value, "https://store.epicgames.com");
+          if (url.protocol === "https:" || url.protocol === "http:") {
+            element.setAttribute(name, url.href);
+            continue;
+          }
+        } catch {
+          element.removeAttribute(attribute.name);
+          continue;
+        }
       }
-    )
-    .replace(/\r?\n/g, "<br>");
+      element.removeAttribute(attribute.name);
+    }
+  }
+  const container = fragment.ownerDocument.createElement("div");
+  container.append(fragment);
+  return container.innerHTML;
 }
 
 export async function getStoreDetailsWithFallback<T>(

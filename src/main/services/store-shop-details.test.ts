@@ -110,6 +110,33 @@ describe("store-first details", () => {
 });
 
 describe("Epic details mapping", () => {
+  it("removes executable HTML while preserving safe store media and text", () => {
+    const data = {
+      ...epic,
+      description:
+        '<p onclick="alert(1)">Text</p><script>alert(2)</script><img src="https://example.com/art.jpg" onerror="alert(3)"><a href="javascript:alert(4)">Link</a><svg onload="alert(5)"></svg><iframe src="https://example.com"></iframe>',
+    };
+    assert.equal(
+      mapEpicShopDetails("id", data, "en").detailed_description,
+      '<p>Text</p><img src="https://example.com/art.jpg"><a>Link</a>'
+    );
+  });
+
+  it("renders both persisted and live plain requirements as escaped HTML lists", () => {
+    const data = {
+      ...epic,
+      requirements: {
+        minimum: "OS: Windows 10\nMemory: 8 GB & more",
+        recommended: '<ul><li onmouseover="alert(1)">16 GB</li></ul>',
+      },
+    };
+    const result = mapEpicShopDetails("id", data, "en");
+    assert.equal(
+      result.pc_requirements.minimum,
+      "<ul><li>OS: Windows 10</li><li>Memory: 8 GB &amp; more</li></ul>"
+    );
+    assert.equal(result.pc_requirements.recommended, "<ul><li>16 GB</li></ul>");
+  });
   it("renders linked images and resolves Epic relative links to the store", () => {
     const data = {
       ...epic,
@@ -118,7 +145,7 @@ describe("Epic details mapping", () => {
     };
     assert.equal(
       mapEpicShopDetails("id", data, "pt").detailed_description,
-      '<a href="https://store.epicgames.com/discover/v-bucks"><img alt="Vbucks" src="https://cdn2.unrealengine.com/banner.png"></a><br><a href="https://store.epicgames.com">Store</a>'
+      '<a href="https://store.epicgames.com/discover/v-bucks"><img alt="Vbucks" src="https://cdn2.unrealengine.com/banner.png"></a><br><a href="https://store.epicgames.com/">Store</a>'
     );
   });
   it("renders Markdown store images without allowing attribute injection", () => {
@@ -167,7 +194,10 @@ describe("Epic details mapping", () => {
     assert.equal(result.descriptionLanguage, "pt-BR");
     assert.deepEqual(result.developers, []);
     assert.deepEqual(result.publishers, ["Publisher"]);
-    assert.equal(result.pc_requirements.minimum, "Windows 10");
+    assert.equal(
+      result.pc_requirements.minimum,
+      "<ul><li>Windows 10</li></ul>"
+    );
     assert.equal(result.assets?.shop, "epic");
     assert.equal(result.assets?.libraryHeroImageUrl, epic.images.hero);
     assert.equal(result.assets?.logoImageUrl, epic.images.logo);

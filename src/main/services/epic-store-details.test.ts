@@ -72,6 +72,27 @@ function storefront(offers = [offer]) {
 }
 
 describe("direct Epic store details", () => {
+  it("keeps game details and successful trailers when another trailer fails", async () => {
+    const broken = {
+      ...offer,
+      keyImages: [
+        ...offer.keyImages,
+        { type: "heroCarouselVideo", url: "com.epicgames.video://broken" },
+      ],
+    };
+    const { fetchImpl: normalFetch } = storefront([broken]);
+    const fetchImpl: typeof fetch = async (url, init) => {
+      const { variables } = JSON.parse(String(init?.body));
+      if (variables.videoId === "broken")
+        throw new Error("Unavailable trailer");
+      return normalFetch(url, init);
+    };
+    const result = await getEpicStoreDetails("sandbox:item", "en", fetchImpl);
+    assert.equal(result?.description, offer.longDescription);
+    assert.equal(result?.videos?.length, 1);
+    assert.equal(result?.videos?.[0].url, "https://example.com/video.m3u8");
+    assert.deepEqual(result?.screenshots, ["https://example.com/image.jpg"]);
+  });
   it("requests Epic directly in the user's language and resolves media", async () => {
     const { calls, fetchImpl } = storefront();
     const result = await getEpicStoreDetails(
