@@ -361,24 +361,24 @@ export function GameContextMenu({
           onClick: () => handleOpenGameOptions("assets"),
           disabled: isDeleting,
         },
-        {
-          id: "hide-game",
-          label: visibility.isHiddenFromOthers
-            ? t("unhide_game")
-            : t("hide_game"),
-          icon: <EyeClosedIcon size={16} />,
-          onClick: () =>
-            void handleVisibilityChange(
-              "isHiddenFromOthers",
-              !visibility.isHiddenFromOthers
-            ),
-          closeOnClick: false,
-          disabled:
-            isDeleting ||
-            isVisibilityPending ||
-            !userDetails ||
-            game.shop === "custom",
-        },
+        ...(game.shop === "custom"
+          ? []
+          : [
+              {
+                id: "hide-game",
+                label: visibility.isHiddenFromOthers
+                  ? t("unhide_game")
+                  : t("hide_game"),
+                icon: <EyeClosedIcon size={16} />,
+                onClick: () =>
+                  void handleVisibilityChange(
+                    "isHiddenFromOthers",
+                    !visibility.isHiddenFromOthers
+                  ),
+                closeOnClick: false,
+                disabled: isDeleting || isVisibilityPending || !userDetails,
+              },
+            ]),
         {
           id: "conceal-game",
           label: visibility.isConcealed ? t("reveal_game") : t("conceal_game"),
@@ -386,11 +386,7 @@ export function GameContextMenu({
           onClick: () =>
             void handleVisibilityChange("isConcealed", !visibility.isConcealed),
           closeOnClick: false,
-          disabled:
-            isDeleting ||
-            isVisibilityPending ||
-            !userDetails ||
-            game.shop === "custom",
+          disabled: isDeleting || isVisibilityPending || !userDetails,
         },
         ...(game.executablePath
           ? [
