@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { PersonIcon } from "@primer/octicons-react";
+import { LinkExternalIcon, PersonIcon } from "@primer/octicons-react";
 
 import { Button, ConfirmationModal } from "@renderer/components";
 import { useDate, useToast, useUserDetails } from "@renderer/hooks";
@@ -13,6 +13,8 @@ import {
   getEpicIntegrationPresentation,
   isEpicStateForUser,
 } from "./settings-epic-state";
+
+const STATUS_ICON_SIZE = 14;
 
 export function SettingsEpic() {
   const { userDetails } = useUserDetails();
@@ -261,6 +263,7 @@ export function SettingsEpic() {
             onClick={handleConnect}
             disabled={!presentation.canAuthenticate || isSubmitting}
           >
+            <LinkExternalIcon size={STATUS_ICON_SIZE} />
             {t(connection ? "integration_reconnect" : "integration_connect")}
           </Button>
         )}
