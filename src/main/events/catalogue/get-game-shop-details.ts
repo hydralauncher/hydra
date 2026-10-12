@@ -20,6 +20,7 @@ import {
   levelKeys,
 } from "@main/level";
 import { composeAssetsWithArtwork } from "@shared";
+import { persistContentWarning } from "../library/persist-content-warning";
 
 const applyArtworkToAssets = async (
   shop: GameShop,
@@ -261,6 +262,16 @@ const getGameShopDetails = async (
           .catch((err) => {
             logger.error("Could not cache game details", err);
           });
+
+        if (result.content_descriptors?.ids) {
+          persistContentWarning(
+            shop,
+            objectId,
+            result.content_descriptors.ids
+          ).catch((err) => {
+            logger.error("Could not persist game content warning", err);
+          });
+        }
 
         return {
           ...result,
