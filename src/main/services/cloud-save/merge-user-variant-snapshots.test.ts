@@ -406,6 +406,34 @@ describe("merge user variant snapshots", () => {
     }
   });
 
+  it("does not combine divergent files from one RPCS3 game data profile", () => {
+    const rawPath = "<emulator>/rpcs3-gamedata/BCUS98245";
+    const base = [
+      file("BCUS98245_USER1/USRDIR/bigfart2", "a", rawPath),
+      file("BCUS98245_USER1/USRDIR/littlefart11", "b", rawPath),
+    ];
+    const local = [
+      file("BCUS98245_USER1/USRDIR/bigfart2", "c", rawPath),
+      base[1],
+    ];
+    const remote = [
+      base[0],
+      file("BCUS98245_USER1/USRDIR/littlefart11", "d", rawPath),
+    ];
+
+    const merged = mergeUserVariantSnapshots({
+      local: context(local),
+      remoteVariants: [variant],
+      remoteFiles: remote,
+      base: anchor(base),
+    });
+
+    assert.deepEqual(
+      merged.conflicts.map((item) => item.entryId).sort(),
+      base.map(cloudSaveFileKey).sort()
+    );
+  });
+
   it("keeps unrelated RPCS3 slots independent", () => {
     const rawPath = "<emulator>/rpcs3/BLUS30443/00000001";
     const base = [

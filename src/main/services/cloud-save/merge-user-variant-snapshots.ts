@@ -12,6 +12,7 @@ import {
   isEmulatorSaveRawPath,
   parseRetroArchGameRawPath,
   parseRetroArchStateRelativePath,
+  parseRpcs3GamedataRawPath,
   parseRpcs3SaveRawPath,
 } from "./emulator-provider-identity.js";
 import { isRetroArchBatteryRelativePath } from "./retroarch-snapshot-migration.js";
@@ -55,7 +56,13 @@ const sameBytes = (
 const rpcs3SlotKey = (
   file: Pick<SnapshotFile, "variantId" | "rawPath" | "relativePath"> | undefined
 ) => {
-  if (!file || !parseRpcs3SaveRawPath(file.rawPath)) return null;
+  if (
+    !file ||
+    (!parseRpcs3SaveRawPath(file.rawPath) &&
+      !parseRpcs3GamedataRawPath(file.rawPath))
+  ) {
+    return null;
+  }
   const [slot, child] = file.relativePath.split("/");
   return slot && child
     ? JSON.stringify([file.variantId, file.rawPath, slot])

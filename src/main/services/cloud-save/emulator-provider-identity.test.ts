@@ -4,8 +4,10 @@ import { describe, it } from "node:test";
 import {
   emulatorDefaultVariant,
   emulatorEnvironmentId,
+  parseRpcs3GamedataRawPath,
   parseRpcs3SaveRawPath,
   parseRpcs3SavestateRawPath,
+  rpcs3GamedataRawPath,
   parseRetroArchSaveRawPath,
   safeRelativeSegments,
 } from "./emulator-provider-identity.js";
@@ -47,6 +49,28 @@ describe("emulator save identities", () => {
       null
     );
     assert.equal(safeRelativeSegments("slot/../../outside"), null);
+  });
+
+  it("round-trips RPCS3 game data paths without profile IDs", () => {
+    const rawPath = rpcs3GamedataRawPath("BCUS98245");
+    assert.equal(rawPath, "<emulator>/rpcs3-gamedata/BCUS98245");
+    assert.deepEqual(parseRpcs3GamedataRawPath(rawPath), {
+      titleId: "BCUS98245",
+    });
+    assert.equal(parseRpcs3SaveRawPath(rawPath), null);
+    assert.equal(parseRpcs3SavestateRawPath(rawPath), null);
+    assert.equal(
+      parseRpcs3GamedataRawPath("<emulator>/rpcs3-gamedata/../BCUS98245"),
+      null
+    );
+    assert.equal(
+      parseRpcs3GamedataRawPath("<emulator>/rpcs3-gamedata/BCUS98245/00000001"),
+      null
+    );
+    assert.equal(
+      parseRpcs3GamedataRawPath("<emulator>/rpcs3-gamedata/bcus98245"),
+      null
+    );
   });
 
   it("changes environment identity when the save root changes", () => {
