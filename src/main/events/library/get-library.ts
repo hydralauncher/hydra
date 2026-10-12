@@ -12,13 +12,15 @@ import {
   gamesSublevel,
   levelKeys,
 } from "@main/level";
-import { composeAssetsWithArtwork } from "@shared";
+import { composeAssetsWithArtwork, getSteamContentWarning } from "@shared";
+import { getSteamAppDetails, logger } from "@main/services";
 import { HydraApi } from "@main/services/hydra-api";
 import { belongsToLibraryCollection } from "@main/services/library-sync/game-visibility";
 import {
   resolveAchievementCount,
   resolveUnlockedAchievementCount,
 } from "@main/services/achievements/achievement-memory-store";
+import { persistContentWarning } from "./persist-content-warning";
 
 export const lookupCachedPlatform = async (
   gameKey: string
@@ -210,7 +212,9 @@ const reconcileInstalledSize = async (
   return installedSizeInBytes;
 };
 
-const getLibrary = async (): Promise<LibraryGame[]> => {
+const getLibrary = async (
+  collection: "visible" | "hidden" | "all" = "visible"
+): Promise<LibraryGame[]> => {
   const userPreferences = await db.get<string, UserPreferences | null>(
     levelKeys.userPreferences,
     { valueEncoding: "json" }
@@ -218,10 +222,6 @@ const getLibrary = async (): Promise<LibraryGame[]> => {
   const pendingSteamObjectIds: string[] = [];
 
   const libraryGames = await gamesSublevel
-const getLibrary = async (
-  collection: "visible" | "hidden" | "all" = "visible"
-): Promise<LibraryGame[]> => {
-  return gamesSublevel
     .iterator()
     .all()
     .then((results) => {

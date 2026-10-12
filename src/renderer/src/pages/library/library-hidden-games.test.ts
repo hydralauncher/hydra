@@ -138,7 +138,10 @@ async function renderLibrary(
       useUserDetails: () => ({ userDetails }),
       useAppDispatch: () => noop,
       useAppSelector: (select: (state: unknown) => unknown) =>
-        select({ library: { searchQuery: "" } }),
+        select({
+          library: { searchQuery: "" },
+          userPreferences: { value: null },
+        }),
       useGameCollections: () => ({
         collections,
         loadCollections,
@@ -163,6 +166,7 @@ async function renderLibrary(
     "@shared": {
       AuthPage: { SignIn: "sign-in" },
       removeDiacritics: (value: string) => value,
+      shouldHideGameForAdultContent: () => false,
     },
     "@renderer/components": {
       CreateCollectionModal: () => null,
