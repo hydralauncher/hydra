@@ -10,6 +10,8 @@ const manifest = require("../src/shared/legendary-manifest.json");
 const execFileAsync = promisify(execFile);
 const CACHE_MANIFEST = ".runtime-files.json";
 const RUNTIME_FILE_CONCURRENCY = 8;
+const ARCHIVE_EXTRACTION_TIMEOUT_MS = 60_000;
+const ARCHIVE_EXTRACTION_MAX_OUTPUT_BYTES = 1024 * 1024;
 const SYSTEM_TAR = existsSync("/usr/bin/tar") ? "/usr/bin/tar" : "/bin/tar";
 const TAR_EXECUTABLE =
   process.platform === "win32"
@@ -62,8 +64,8 @@ async function extractArchive(archive, directory) {
   // Only pinned, SHA-256-verified official archives reach this build-time step.
   await execFileAsync(TAR_EXECUTABLE, ["-xf", archive, "-C", directory], {
     shell: false,
-    timeout: 60_000,
-    maxBuffer: 1024 * 1024,
+    timeout: ARCHIVE_EXTRACTION_TIMEOUT_MS,
+    maxBuffer: ARCHIVE_EXTRACTION_MAX_OUTPUT_BYTES,
     windowsHide: true,
   });
 }

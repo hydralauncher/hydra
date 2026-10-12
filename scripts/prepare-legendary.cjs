@@ -11,6 +11,7 @@ const manifest = require("../src/shared/legendary-manifest.json");
 const DOWNLOAD_TIMEOUT_MS = 60_000;
 // Build checks allow cold PyInstaller/macOS library validation to complete.
 const VERSION_TIMEOUT_MS = 60_000;
+const VERSION_MAX_OUTPUT_BYTES = 64 * 1024;
 const execFileAsync = promisify(execFile);
 
 function getLegendaryArtifact(platform, arch) {
@@ -128,7 +129,7 @@ async function verifyLegendaryVersion(
     shell: false,
     windowsHide: true,
     timeout: VERSION_TIMEOUT_MS,
-    maxBuffer: 64 * 1024,
+    maxBuffer: VERSION_MAX_OUTPUT_BYTES,
   });
   const version = /legendary version ["']([^"']+)["']/i.exec(stdout)?.[1];
   if (version !== expectedVersion) {

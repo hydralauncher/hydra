@@ -13,11 +13,12 @@ import {
 } from "./auth-protocol.js";
 import type { EpicSessionBundle } from "./store";
 
-const EPIC_LEGENDARY_PROCESS_TIMEOUT_MS = 60_000;
-const EPIC_LEGENDARY_API_TIMEOUT_SECONDS = 15;
-const EPIC_LEGENDARY_MAX_OUTPUT_BYTES = 128 * 1024;
-const EPIC_SESSION_MAX_FILE_BYTES = 1024 * 1024;
+export const EPIC_LEGENDARY_PROCESS_TIMEOUT_MS = 60_000;
+export const EPIC_LEGENDARY_API_TIMEOUT_SECONDS = 15;
+export const EPIC_LEGENDARY_MAX_OUTPUT_BYTES = 128 * 1024;
+export const EPIC_SESSION_MAX_FILE_BYTES = 1024 * 1024;
 const EPIC_LEGENDARY_TERMINATION_TIMEOUT_MS = 10_000;
+const EPIC_LEGENDARY_TERMINATION_MAX_OUTPUT_BYTES = 16 * 1024;
 
 export interface EpicSessionRunner {
   authenticate(code: string): Promise<EpicSessionBundle>;
@@ -41,7 +42,7 @@ function taskkillLegendaryTree(pid: number) {
         shell: false,
         windowsHide: true,
         timeout: EPIC_LEGENDARY_TERMINATION_TIMEOUT_MS,
-        maxBuffer: 16 * 1024,
+        maxBuffer: EPIC_LEGENDARY_TERMINATION_MAX_OUTPUT_BYTES,
       },
       (error) => {
         if (error) reject(new EpicIntegrationError("cleanup-failed"));
