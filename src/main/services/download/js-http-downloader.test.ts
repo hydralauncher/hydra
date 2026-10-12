@@ -1015,3 +1015,131 @@ it("keeps a Real-Debrid archive partial when the server ignores the resume offse
     await f.close();
   }
 });
+
+for (const [label, nextIdentity] of [
+  ["another torrent", "realDebrid:def:archive:1,2"],
+  ["another selection", "realDebrid:abc:archive:1,3"],
+]) {
+  it(`archive identity prevents resume with ${label} even when the saved overlap matches`, async () => {
+    const f = await fixture({ size: 2 * 1024 * 1024 });
+    const archiveOptions = {
+      ...f.options,
+      allowParallelRanges: false,
+      verifyResumePrefix: true,
+      requireRangeResume: true,
+      requireResourceIdentity: true,
+      resourceId: "realDebrid:abc:archive:1,2",
+    };
+    const file = path.join(f.root, f.options.filename);
+    try {
+      const first = new JsHttpDownloader();
+      const running = first.startDownload(archiveOptions);
+      await waitUntil(
+        () => (first.getDownloadStatus()?.bytesDownloaded ?? 0) >= 256 * 1024
+      );
+      first.pauseDownload();
+      await running;
+      const saved = fs.readFileSync(file);
+      f.data.fill(255, 0, 32 * 1024);
+      const before = f.requests.length;
+      await assert.rejects(
+        new JsHttpDownloader().startDownload({
+          ...archiveOptions,
+          resourceId: nextIdentity,
+        }),
+        /identity|different resource/i
+      );
+      assert.deepEqual(fs.readFileSync(file), saved);
+      assert.equal(f.requests.length, before);
+    } finally {
+      await f.close();
+    }
+  });
+}
+it("archive identity refuses to adopt an unidentified legacy partial", async () => {
+  const f = await fixture({ size: 512 * 1024 });
+  const file = path.join(f.root, f.options.filename);
+  const saved = f.data.subarray(0, 128 * 1024);
+  fs.mkdirSync(path.dirname(file), { recursive: true });
+  fs.writeFileSync(file, saved);
+  const archiveOptions = {
+    ...f.options,
+    allowParallelRanges: false,
+    verifyResumePrefix: true,
+    requireRangeResume: true,
+    requireResourceIdentity: true,
+    resourceId: "realDebrid:abc:archive:1,2",
+  };
+  try {
+    await assert.rejects(
+      new JsHttpDownloader().startDownload(archiveOptions),
+      /identity/i
+    );
+    assert.deepEqual(fs.readFileSync(file), saved);
+    assert.equal(f.requests.length, 0);
+  } finally {
+    await f.close();
+  }
+});
+
+it("archive identity survives a restart and permits the same archive at a refreshed URL", async () => {
+  const f = await fixture({ size: 2 * 1024 * 1024 });
+  const archiveOptions = {
+    ...f.options,
+    allowParallelRanges: false,
+    verifyResumePrefix: true,
+    requireRangeResume: true,
+    requireResourceIdentity: true,
+    resourceId: "realDebrid:abc:archive:1,2",
+  };
+  const file = path.join(f.root, f.options.filename);
+  try {
+    const first = new JsHttpDownloader();
+    const running = first.startDownload(archiveOptions);
+    await waitUntil(
+      () => (first.getDownloadStatus()?.bytesDownloaded ?? 0) >= 256 * 1024
+    );
+    first.pauseDownload();
+    await running;
+    const savedBytes = fs.statSync(file).size;
+    assert.equal(
+      rangeState.readResourceIdentity(file),
+      rangeState.rangeResourceId(archiveOptions.resourceId)
+    );
+    const next = new JsHttpDownloader();
+    await next.startDownload({ ...archiveOptions, url: f.url + "?fresh" });
+    assert.equal(next.getDownloadStatus()?.status, "complete");
+    assert.deepEqual(fs.readFileSync(file), f.data);
+    assert.equal(f.requests.length, 2);
+    assert.equal(f.requests[1].start, savedBytes - 64 * 1024);
+  } finally {
+    await f.close();
+  }
+});
+it("archive identity rejects corrupt metadata without changing the partial file", async () => {
+  const f = await fixture({ size: 512 * 1024 });
+  const file = path.join(f.root, f.options.filename);
+  const saved = f.data.subarray(0, 128 * 1024);
+  fs.mkdirSync(path.dirname(file), { recursive: true });
+  fs.writeFileSync(file, saved);
+  await rangeState.saveResourceIdentity(file, "realDebrid:abc:archive:1,2");
+  fs.writeFileSync(rangeState.resourceIdentityPath(file), "{");
+  const archiveOptions = {
+    ...f.options,
+    allowParallelRanges: false,
+    verifyResumePrefix: true,
+    requireRangeResume: true,
+    requireResourceIdentity: true,
+    resourceId: "realDebrid:abc:archive:1,2",
+  };
+  try {
+    await assert.rejects(
+      new JsHttpDownloader().startDownload(archiveOptions),
+      /identity is invalid/
+    );
+    assert.deepEqual(fs.readFileSync(file), saved);
+    assert.equal(f.requests.length, 0);
+  } finally {
+    await f.close();
+  }
+});

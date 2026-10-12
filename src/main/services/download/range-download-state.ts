@@ -143,7 +143,13 @@ export async function saveRangeState(
   filePath: string,
   state: RangeDownloadState
 ): Promise<void> {
-  const target = rangeStatePath(filePath);
+  return saveMetadata(rangeStatePath(filePath), () => JSON.stringify(state));
+}
+
+async function saveMetadata(
+  target: string,
+  contents: () => string
+): Promise<void> {
   await fs.promises.mkdir(path.dirname(target), {
     recursive: true,
     mode: 0o700,
@@ -152,7 +158,7 @@ export async function saveRangeState(
   try {
     const file = await fs.promises.open(temporary, "wx", 0o600);
     try {
-      await file.writeFile(JSON.stringify(state));
+      await file.writeFile(contents());
       await file.sync();
     } finally {
       await file.close();
@@ -165,4 +171,43 @@ export async function saveRangeState(
 
 export function removeRangeState(filePath: string): void {
   fs.rmSync(rangeStatePath(filePath), { force: true });
+}
+
+export function resourceIdentityPath(filePath: string): string {
+  return `${rangeStatePath(filePath)}.identity`;
+}
+
+export function readResourceIdentity(filePath: string): string | null {
+  try {
+    const target = resourceIdentityPath(filePath);
+    const stat = fs.lstatSync(target);
+    if (!stat.isFile() || stat.size > MAX_RANGE_STATE_SIZE_BYTES)
+      throw new Error("Invalid download identity file");
+    const identity = JSON.parse(fs.readFileSync(target, "utf8"));
+    if (
+      identity.version !== 1 ||
+      typeof identity.resourceId !== "string" ||
+      !/^[a-f0-9]{64}$/.test(identity.resourceId)
+    )
+      throw new Error("Invalid download identity metadata");
+    return identity.resourceId;
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code === "ENOENT") return null;
+    throw new Error(
+      "The saved download identity is invalid. Keeping the partial file."
+    );
+  }
+}
+
+export async function saveResourceIdentity(
+  filePath: string,
+  resourceId: string
+): Promise<void> {
+  await saveMetadata(resourceIdentityPath(filePath), () =>
+    JSON.stringify({ version: 1, resourceId: rangeResourceId(resourceId) })
+  );
+}
+
+export function removeResourceIdentity(filePath: string): void {
+  fs.rmSync(resourceIdentityPath(filePath), { force: true });
 }

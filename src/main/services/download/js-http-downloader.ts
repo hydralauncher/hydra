@@ -36,6 +36,9 @@ import {
   missingRanges,
   rangeResourceId,
   readRangeState,
+  readResourceIdentity,
+  saveResourceIdentity,
+  removeResourceIdentity,
   removeRangeState,
   savedRangeBytes,
   type RangeDownloadState,
@@ -71,6 +74,7 @@ export interface JsHttpDownloaderOptions {
   allowResume?: boolean;
   verifyResumePrefix?: boolean;
   resourceId?: string;
+  requireResourceIdentity?: boolean;
   expectedSize?: number;
   requireRangeResume?: boolean;
 }
@@ -560,6 +564,7 @@ export class JsHttpDownloader {
       logger.log(`[JsHttpDownloader] Resuming download from byte ${startByte}`);
     }
 
+    this.assertResourceIdentity(filePath, startByte);
     this.savedRangeState =
       this.currentOptions?.allowResume === false
         ? null
@@ -583,6 +588,28 @@ export class JsHttpDownloader {
     }
     this.resetSpeedTracking();
     return { filePath, startByte, usedFallback };
+  }
+
+  private assertResourceIdentity(filePath: string, startByte: number): void {
+    if (!this.currentOptions?.requireResourceIdentity) return;
+    const expected = rangeResourceId(this.currentOptions.resourceId);
+    if (
+      !expected ||
+      (startByte > 0 && readResourceIdentity(filePath) !== expected)
+    ) {
+      throw new Error(
+        "The saved archive identity is missing or belongs to a different resource. Keeping the partial file."
+      );
+    }
+  }
+
+  private async persistResourceIdentity(filePath: string): Promise<void> {
+    if (
+      this.currentOptions?.requireResourceIdentity &&
+      this.currentOptions.resourceId
+    ) {
+      await saveResourceIdentity(filePath, this.currentOptions.resourceId);
+    }
   }
 
   private buildRequestHeaders(
@@ -819,6 +846,7 @@ export class JsHttpDownloader {
           usedFallback,
           startByte === 0 && !this.savedRangeState
         );
+        await this.persistResourceIdentity(actualFilePath);
         if (startByte === 0 && !this.savedRangeState)
           fs.writeFileSync(actualFilePath, "");
         this.fileSize = total;
@@ -1086,6 +1114,7 @@ export class JsHttpDownloader {
       throw new Error("Response body is null");
     }
 
+    await this.persistResourceIdentity(actualFilePath);
     let savedPrefix: FileHandle | null = null;
     if (this.shouldVerifyResumePrefix() && skipBytes > 0) {
       savedPrefix = await fs.promises.open(actualFilePath, "r");
@@ -1462,6 +1491,7 @@ export class JsHttpDownloader {
         try {
           fs.unlinkSync(filePath);
           removeRangeState(filePath);
+          removeResourceIdentity(filePath);
           logger.log("[JsHttpDownloader] Deleted partial file");
         } catch (err) {
           logger.error(

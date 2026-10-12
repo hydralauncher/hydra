@@ -512,6 +512,7 @@ for (const size of [0, 7]) {
       assert.equal(options.resourceId, "realDebrid:abc:archive:1,2");
       assert.equal(options.allowParallelRanges, false);
       assert.equal(options.requireRangeResume, true);
+      assert.equal(options.requireResourceIdentity, true);
       assert.equal(options.verifyResumePrefix, true);
       assert.equal(options.expectedSize, undefined);
       assert.equal(

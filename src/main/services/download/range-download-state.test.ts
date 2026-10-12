@@ -14,6 +14,10 @@ import {
   rangeResourceId,
   getRangeDownloadedBytes,
   removeRangeState,
+  resourceIdentityPath,
+  readResourceIdentity,
+  saveResourceIdentity,
+  removeResourceIdentity,
   type RangeDownloadState,
 } from "./range-download-state.ts";
 import {
@@ -249,6 +253,62 @@ it("persistent metadata distinguishes the same filename in different folders", a
     assert.equal(getRangeDownloadedBytes(files[1]), 31);
   } finally {
     files.forEach(removeRangeState);
+    fs.rmSync(root, { recursive: true, force: true });
+  }
+});
+
+it("single-connection identities stay in private metadata and never replace downloaded files", async () => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), "hydra-identity-test-"));
+  const file = path.join(root, "file.bin");
+  const sibling = `${file}.identity`;
+  const bytes = Buffer.alloc(100, 42);
+  try {
+    fs.writeFileSync(file, bytes);
+    fs.writeFileSync(sibling, bytes);
+    await saveResourceIdentity(file, "fixture-resource");
+    assert.equal(
+      readResourceIdentity(file),
+      rangeResourceId("fixture-resource")
+    );
+    assert.equal(path.dirname(resourceIdentityPath(file)), metadataDirectory);
+    assert.deepEqual(fs.readdirSync(root).sort(), [
+      "file.bin",
+      "file.bin.identity",
+    ]);
+    removeResourceIdentity(file);
+    assert.equal(readResourceIdentity(file), null);
+    assert.deepEqual(fs.readFileSync(file), bytes);
+    assert.deepEqual(fs.readFileSync(sibling), bytes);
+  } finally {
+    fs.rmSync(root, { recursive: true, force: true });
+  }
+});
+it("single-connection identities reject symlinks and invalid ownership metadata", async () => {
+  const root = fs.mkdtempSync(
+    path.join(os.tmpdir(), "hydra-identity-invalid-")
+  );
+  const file = path.join(root, "file.bin");
+  try {
+    fs.writeFileSync(file, Buffer.alloc(100));
+    for (const value of [
+      { version: 2, resourceId: rangeResourceId("fixture") },
+      { version: 1, resourceId: "private-url" },
+      null,
+    ]) {
+      fs.writeFileSync(resourceIdentityPath(file), JSON.stringify(value));
+      assert.throws(() => readResourceIdentity(file), /identity is invalid/);
+    }
+    removeResourceIdentity(file);
+    const target = path.join(root, "target");
+    fs.writeFileSync(
+      target,
+      JSON.stringify({ version: 1, resourceId: rangeResourceId("fixture") })
+    );
+    fs.symlinkSync(target, resourceIdentityPath(file));
+    assert.throws(() => readResourceIdentity(file), /identity is invalid/);
+    removeResourceIdentity(file);
+    assert.ok(fs.existsSync(target));
+  } finally {
     fs.rmSync(root, { recursive: true, force: true });
   }
 });

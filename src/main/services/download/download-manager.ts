@@ -1608,6 +1608,8 @@ export class DownloadManager {
         ? TORBOX_MAX_PARALLEL_RANGES
         : undefined,
       preserveFilename: true,
+      requireResourceIdentity:
+        batch.provider === "realDebrid" && entry.isZip === true,
       resourceId:
         entry.resourceId ??
         `${batch.provider}:${batch.sourceUri}#${entry.fileId ?? entry.fileIndex ?? entry.sourcePath ?? entry.filename}`,
