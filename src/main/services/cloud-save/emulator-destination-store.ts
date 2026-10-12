@@ -16,8 +16,6 @@ import {
 import {
   emulatorSaveFileKey,
   parseRetroArchSaveRawPath,
-  parseRpcs3GamedataRawPath,
-  parseRpcs3SaveRawPath,
   parseRpcs3SavestateRawPath,
 } from "./emulator-provider-identity.js";
 import {
@@ -58,10 +56,10 @@ export const getExpectedEmulatorDestination = async (
     if (!state) return null;
     const { rpcs3TitleIdsForGame } = await import("./rpcs3-save-layout.js");
     if (!rpcs3TitleIdsForGame(game).includes(state.titleId)) return null;
-    const { resolveRpcs3SaveLocation } = await import(
+    const { resolveRpcs3ActiveSaveLocation } = await import(
       "./rpcs3-save-provider.js"
     );
-    const location = await resolveRpcs3SaveLocation().catch(() => null);
+    const location = await resolveRpcs3ActiveSaveLocation().catch(() => null);
     return location
       ? path.resolve(location.configRoot, "savestates", state.titleId)
       : null;
@@ -70,7 +68,7 @@ export const getExpectedEmulatorDestination = async (
     kind === "save" &&
     relativePath &&
     provider === "rpcs3" &&
-    (parseRpcs3SaveRawPath(rawPath) || parseRpcs3GamedataRawPath(rawPath))
+    /^<emulator>\/rpcs3\//.test(rawPath)
   ) {
     const file = {
       variantId: "emulator-destination",

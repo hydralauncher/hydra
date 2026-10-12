@@ -4,7 +4,6 @@ import { HydraApi } from "@main/services/hydra-api";
 import { WindowManager } from "@main/services/window-manager";
 import { logger } from "@main/services/logger";
 import { ResyncCoordinator } from "./resync-coordinator";
-import { summarizeNetworkError } from "../network-error-summary.js";
 
 type ResyncScope = "friends" | "friendRequests" | "notifications";
 
@@ -99,7 +98,7 @@ const runResync = async (
     } catch (error) {
       if (signal.aborted) return;
       firstError ??= error;
-      logger.error(errorMessage, summarizeNetworkError(error));
+      logger.error(errorMessage, error);
     }
   }
 

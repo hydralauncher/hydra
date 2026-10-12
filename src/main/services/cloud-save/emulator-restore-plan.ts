@@ -7,11 +7,7 @@ import type {
   ResolveRestoreTargetsResult,
 } from "@types";
 
-import {
-  isEmulatorSaveRawPath,
-  parseRpcs3GamedataRawPath,
-  parseRpcs3SaveRawPath,
-} from "./emulator-provider-identity.js";
+import { isEmulatorSaveRawPath } from "./emulator-provider-identity.js";
 
 const within = (root: string, candidate: string) => {
   const relative = path.relative(root, candidate);
@@ -29,21 +25,6 @@ const lstatIfExists = async (target: string) =>
     throw error;
   });
 
-const restoreBaseForRoot = (root: string, rawPath: string) => {
-  const rpcs3Save = parseRpcs3SaveRawPath(rawPath);
-  if (
-    rpcs3Save &&
-    path.basename(root) === "savedata" &&
-    path.basename(path.dirname(root)) === rpcs3Save.profileId
-  ) {
-    return path.dirname(path.dirname(root));
-  }
-  if (parseRpcs3GamedataRawPath(rawPath) && path.basename(root) === "game") {
-    return path.dirname(root);
-  }
-  return root;
-};
-
 const targetPathIsSafe = async (
   action: ResolvedRestoreTarget,
   context: CloudSavePathContext
@@ -60,7 +41,7 @@ const targetPathIsSafe = async (
 
   const home = path.resolve(context.homeDir);
   const isHomeTarget = root === home || within(home, root);
-  const base = isHomeTarget ? home : restoreBaseForRoot(root, action.rawPath);
+  const base = isHomeTarget ? home : root;
   const baseStat = await lstatIfExists(base);
   if (!baseStat?.isDirectory() || baseStat.isSymbolicLink()) return false;
   const canonicalBase = (await fs.realpath(base)).normalize("NFC");

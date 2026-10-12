@@ -8,13 +8,11 @@ import type {
 } from "@types";
 
 import {
-  parseRpcs3GamedataRawPath,
   parseRpcs3SaveRawPath,
   parseRpcs3SavestateRawPath,
   safeRelativeSegments,
 } from "./emulator-provider-identity.js";
 import {
-  rpcs3GamedataFolderBelongsToTitle,
   rpcs3SavestateFileBelongsToTitle,
   rpcs3SlotBelongsToTitle,
 } from "./rpcs3-save-layout.js";
@@ -75,21 +73,8 @@ export const inspectRpcs3DiscIdentity = async (
 
 interface Rpcs3LocalSaveIdentity {
   titleId: string;
-  kind: "savedata" | "savestate" | "gamedata";
+  kind: "savedata" | "savestate";
 }
-
-const GAMEDATA_FOLDER_TITLE_ID = /^([A-Z]{4}\d{5})_USER\d+$/;
-
-const rpcs3GamedataIdentity = (
-  segments: string[]
-): Rpcs3LocalSaveIdentity | null => {
-  const gameIndex = segments.lastIndexOf("game");
-  const folder = segments[gameIndex + 1];
-  const titleId = folder && GAMEDATA_FOLDER_TITLE_ID.exec(folder)?.[1];
-  return gameIndex >= 0 && gameIndex < segments.length - 2 && titleId
-    ? { titleId, kind: "gamedata" }
-    : null;
-};
 
 const rpcs3IdentityForLocalSavePath = (
   filePath: string
@@ -105,7 +90,7 @@ const rpcs3IdentityForLocalSavePath = (
   const saveId = slot && /^([A-Z]{4}\d{5})/.exec(slot)?.[1];
   return savedataIndex >= 0 && saveId && rpcs3SlotBelongsToTitle(slot, saveId)
     ? { titleId: saveId, kind: "savedata" }
-    : rpcs3GamedataIdentity(segments);
+    : null;
 };
 
 const rpcs3IdentityForCustomRawPath = (
@@ -133,7 +118,7 @@ const rpcs3IdentityForCustomRawPath = (
     TITLE_ID.test(stateId) &&
     rpcs3SavestateFileBelongsToTitle(fileName, stateId)
     ? { titleId: stateId, kind: "savestate" }
-    : rpcs3GamedataIdentity(segments);
+    : null;
 };
 
 /** Validate file identity before any merge can restore or delete it. */
@@ -163,9 +148,9 @@ export const assertRpcs3SnapshotIdentity = (
         file.relativePath
       );
       const allowedIds =
-        localIdentity?.kind === "savestate"
-          ? allowedTitleIds
-          : allowedSavedataTitleIds;
+        localIdentity?.kind === "savedata"
+          ? allowedSavedataTitleIds
+          : allowedTitleIds;
       if (
         localIdentity &&
         rawIdentity &&
@@ -179,10 +164,9 @@ export const assertRpcs3SnapshotIdentity = (
     }
     const save = parseRpcs3SaveRawPath(file.rawPath);
     const state = parseRpcs3SavestateRawPath(file.rawPath);
-    const gamedata = parseRpcs3GamedataRawPath(file.rawPath);
     const segments = safeRelativeSegments(file.relativePath);
-    const titleId = save?.titleId ?? state?.titleId ?? gamedata?.titleId;
-    const allowedIds = state ? allowedTitleIds : allowedSavedataTitleIds;
+    const titleId = save?.titleId ?? state?.titleId;
+    const allowedIds = save ? allowedSavedataTitleIds : allowedTitleIds;
     if (
       !titleId ||
       !allowedIds.has(titleId) ||
@@ -190,9 +174,6 @@ export const assertRpcs3SnapshotIdentity = (
       (save &&
         (segments.length < 2 ||
           !rpcs3SlotBelongsToTitle(segments[0], titleId))) ||
-      (gamedata &&
-        (segments.length < 2 ||
-          !rpcs3GamedataFolderBelongsToTitle(segments[0], titleId))) ||
       (state &&
         (segments.length !== 1 ||
           !rpcs3SavestateFileBelongsToTitle(segments[0], titleId)))

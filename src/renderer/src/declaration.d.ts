@@ -103,9 +103,6 @@ import type {
   SteamSyncRunStatus,
   SteamConnectErrorCode,
   ExtractionFailure,
-  EpicConnectionState,
-  EpicOperationResult,
-  EpicStartAuthResult,
 } from "@types";
 import type { AxiosProgressEvent } from "axios";
 
@@ -170,6 +167,11 @@ declare global {
       objectId: string,
       shop: GameShop,
       rawPath: string
+    ) => Promise<void>;
+    bindRpcs3CloudSaveProfile: (
+      objectId: string,
+      shop: GameShop,
+      cloudProfileId: string
     ) => Promise<void>;
     deleteGameCloudSaveData: (
       objectId: string,
@@ -1149,10 +1151,6 @@ declare global {
     onGameLauncherStatus: (
       cb: (value: GameLauncherStatusPayload) => void
     ) => () => Electron.IpcRenderer;
-    getGameLauncherStatuses: (
-      shop: GameShop,
-      objectId: string
-    ) => Promise<GameLauncherStatusPayload[]>;
     resetCommonRedistPreflight: () => Promise<void>;
     saveTempFile: (fileName: string, fileData: Uint8Array) => Promise<string>;
     deleteTempFile: (filePath: string) => Promise<void>;
@@ -1209,13 +1207,6 @@ declare global {
     onRetroAchievementsConnected: (
       cb: () => void
     ) => () => Electron.IpcRenderer;
-    getEpicConnection: () => Promise<EpicConnectionState>;
-    startEpicAuth: () => Promise<EpicStartAuthResult>;
-    cancelEpicAuth: (operationId: string) => Promise<EpicOperationResult>;
-    disconnectEpic: (connectionId: string) => Promise<EpicOperationResult>;
-    onEpicConnectionChanged: (
-      cb: (state: EpicConnectionState) => void
-    ) => () => void;
     startSteamOAuth: (lng: string) => Promise<void>;
     disconnectSteam: (deleteImportedData: boolean) => Promise<void>;
     startSteamSync: () => Promise<SteamSyncState>;

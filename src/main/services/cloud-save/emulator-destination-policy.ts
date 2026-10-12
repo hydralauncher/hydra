@@ -6,7 +6,6 @@ import type { CloudSaveFileIdentity } from "@types";
 import { cloudSaveFileKey } from "./cloud-save-contract.js";
 import {
   parseRetroArchSaveRawPath,
-  parseRpcs3GamedataRawPath,
   parseRpcs3SaveRawPath,
   parseRpcs3SavestateRawPath,
 } from "./emulator-provider-identity.js";
@@ -27,9 +26,7 @@ export const emulatorDestinationKindForFile = (
     return null;
   }
   if (parseRpcs3SavestateRawPath(rawPath)) return "state";
-  if (parseRpcs3SaveRawPath(rawPath) || parseRpcs3GamedataRawPath(rawPath)) {
-    return "save";
-  }
+  if (parseRpcs3SaveRawPath(rawPath)) return "save";
   return null;
 };
 

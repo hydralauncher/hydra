@@ -10,32 +10,23 @@ export interface DownloadDiskSpace {
   hasEnoughSpace: boolean;
 }
 
-const getRemainingBytes = (
-  download: Download,
-  live?: { bytesDownloaded?: number | null; fileSize?: number | null }
-) => {
-  const liveSize =
-    live?.fileSize != null && live.fileSize > 0 ? live.fileSize : undefined;
-  const fileSize =
-    download.selectedFilesSize ?? liveSize ?? download.fileSize ?? 0;
+const getRemainingBytes = (download: Download) => {
+  const fileSize = download.selectedFilesSize ?? download.fileSize ?? 0;
 
   if (fileSize <= 0) return 0;
 
-  const bytes = live?.bytesDownloaded ?? download.bytesDownloaded ?? 0;
-
-  return Math.max(0, fileSize - bytes);
+  return Math.max(0, fileSize - (download.bytesDownloaded ?? 0));
 };
 
 export const getDownloadDiskSpace = async (
-  download: Download,
-  live?: { bytesDownloaded?: number | null; fileSize?: number | null }
+  download: Download
 ): Promise<DownloadDiskSpace | null> => {
   const usage = await getDiskUsage(download.downloadPath);
 
   if (!usage) return null;
 
   const requiredBytes = Math.max(
-    getRemainingBytes(download, live),
+    getRemainingBytes(download),
     MINIMUM_FREE_DISK_SPACE_BYTES
   );
 

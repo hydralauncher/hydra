@@ -3,7 +3,6 @@ import type {
   CloudSaveStateMetadata,
   Game,
   LocalResolutionBindings,
-  ResolvedRestoreTarget,
   RestoreManifestFile,
   UserLocationCoverage,
 } from "@types";
@@ -43,5 +42,4 @@ export interface EmulatorProvider {
     files: RestoreManifestFile[],
     rpcs3SavedataTitleIds?: readonly string[]
   ): Promise<Map<string, CloudSaveRule>>;
-  afterRestore?(actions: ResolvedRestoreTarget[]): Promise<void>;
 }

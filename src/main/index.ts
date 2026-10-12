@@ -39,10 +39,6 @@ import {
   parseSteamOpenIdReturn,
 } from "./services/steam-integration/steam-openid-return";
 import { steamSyncOrchestrator } from "./services/steam-integration/steam-sync-orchestrator";
-import {
-  initializeEpicIntegration,
-  shutdownEpicIntegration,
-} from "./services/epic";
 
 crashReporter.start({
   uploadToServer: false,
@@ -61,7 +57,9 @@ autoUpdater.logger = logger;
 const gotTheLock = app.requestSingleInstanceLock();
 if (!gotTheLock) app.quit();
 
-if (process.platform === "linux") {
+if (process.platform !== "linux") {
+  app.commandLine.appendSwitch("--no-sandbox");
+} else {
   app.commandLine.appendSwitch("ozone-platform-hint", "auto");
 }
 
@@ -181,10 +179,6 @@ const initializeApp = async () => {
   } catch (error) {
     logger.error("Failed to load app state during startup", error);
   }
-  // Optional integration failures must not interrupt launcher startup.
-  await initializeEpicIntegration().catch(() => {
-    logger.warn("Epic integration initialization unavailable");
-  });
 
   // Suspend can outlive the 60s stall watchdog; reconnect right away instead
   powerMonitor.on("resume", () => {
@@ -404,7 +398,6 @@ app.on("before-quit", async (e) => {
       TorrentService.shutdown(),
       clearGamesPlaytime(),
       emulators.stopAllEmulatorSouvenirCaptureSessions(),
-      shutdownEpicIntegration(),
     ]);
     for (const result of results) {
       if (result.status === "rejected") {

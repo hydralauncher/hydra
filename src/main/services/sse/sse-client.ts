@@ -1,7 +1,6 @@
 import { UserNotLoggedInError } from "@shared";
 import { HydraApi } from "../hydra-api";
 import { logger } from "../logger";
-import { summarizeNetworkError } from "../network-error-summary.js";
 import { friendRequestEvent } from "./events/friend-request";
 import { friendGameSessionEvent } from "./events/friend-game-session";
 import { friendPresenceEvent } from "./events/friend-presence";
@@ -45,18 +44,12 @@ const client = new RealtimeWebSocketClient({
   onEvent: dispatchEvent,
   onReconnect: (signal) => {
     void resyncAfterReconnect(signal).catch((error) =>
-      logger.error(
-        "Failed to resync after realtime reconnect",
-        summarizeNetworkError(error)
-      )
+      logger.error("Failed to resync after realtime reconnect", error)
     );
   },
   onEventFailure: (signal) => {
     void resyncAfterEventFailure(signal).catch((error) =>
-      logger.error(
-        "Failed to resync after realtime event failure",
-        summarizeNetworkError(error)
-      )
+      logger.error("Failed to resync after realtime event failure", error)
     );
   },
   shouldStop: (error) => {

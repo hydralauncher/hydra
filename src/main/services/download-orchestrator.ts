@@ -265,8 +265,6 @@ export class DownloadOrchestrator {
       layoutState.pausedOrder.filter((id) => id !== getDownloadId(download))
     );
 
-    DownloadManager.clearQueueVerifyAttempt(download);
-
     return nextDownload;
   }
 
@@ -566,8 +564,6 @@ export class DownloadOrchestrator {
         withInsertedId(queueIds, downloadId, targetIndex),
         pausedIds
       );
-
-      DownloadManager.clearQueueVerifyAttempt(download);
 
       if (isHero) {
         await this.startNextQueuedDownload(
