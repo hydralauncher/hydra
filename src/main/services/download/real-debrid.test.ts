@@ -25,8 +25,15 @@ function fixture(
     staleCandidate?: boolean;
     deletedMain?: boolean;
     deletedAll?: boolean;
+    packSelections?: boolean;
+    stalePartialSelection?: boolean;
+    omitUnselectedFiles?: boolean;
   } = {}
 ) {
+  const manifestFiles = [
+    { id: 1, path: "/dir/first.bin", bytes: 3, selected: 1 },
+    { id: 2, path: "/dir/second.bin", bytes: 5, selected: 1 },
+  ];
   const main = {
     id: "main",
     hash: "abc",
@@ -34,12 +41,7 @@ function fixture(
     original_filename: "Game",
     status: options.status ?? "downloaded",
     ended: options.badLinks ? "invalid" : "2020-01-01T00:00:00Z",
-    files: options.noFiles
-      ? []
-      : [
-          { id: 1, path: "/dir/first.bin", bytes: 3, selected: 1 },
-          { id: 2, path: "/dir/second.bin", bytes: 5, selected: 1 },
-        ],
+    files: options.noFiles ? [] : structuredClone(manifestFiles),
     links:
       options.packed || options.badLinks ? ["packed"] : ["file-1", "file-2"],
   } as Info;
@@ -96,8 +98,18 @@ function fixture(
         return {
           data: {
             ...structuredClone(info),
-            status: "waiting_files_selection",
-            files: info.files.map((f) => ({ ...f, selected: 0 })),
+            status: options.stalePartialSelection
+              ? "downloaded"
+              : "waiting_files_selection",
+            files: info.files
+              .filter((file) => !options.omitUnselectedFiles || file.id === 1)
+              .map((f) => ({
+                ...f,
+                selected: options.stalePartialSelection
+                  ? Number(f.id === 1)
+                  : 0,
+              })),
+            links: options.stalePartialSelection ? ["file-1"] : info.links,
           },
         };
       }
@@ -128,7 +140,12 @@ function fixture(
       }
       if (url.startsWith("/torrents/selectFiles/")) {
         const info = infos.get(url.split("/").at(-1)!)!;
-        const selected = new Set(params.get("files")!.split(",").map(Number));
+        if (!info.files?.length) info.files = structuredClone(manifestFiles);
+        const selected = new Set(
+          params.get("files") === "all"
+            ? info.files.map((file) => file.id)
+            : params.get("files")!.split(",").map(Number)
+        );
         info.files = info.files.map((f) => ({
           ...f,
           selected: Number(selected.has(f.id)),
@@ -136,8 +153,13 @@ function fixture(
         info.status = options.pending ? "downloading" : "downloaded";
         info.links = options.pending
           ? []
-          : info.files.filter((f) => f.selected).map((f) => `file-${f.id}`);
-        delayedInfo = Boolean(options.delayedSelection);
+          : options.packSelections &&
+              info.files.filter((file) => file.selected).length > 1
+            ? ["packed"]
+            : info.files.filter((f) => f.selected).map((f) => `file-${f.id}`);
+        delayedInfo = Boolean(
+          options.delayedSelection || options.stalePartialSelection
+        );
         return { data: null };
       }
       if (url === "/unrestrict/link") return { data: unlocked };
@@ -186,9 +208,16 @@ function fixture(
             get: () => Promise<Info>,
             _wait: unknown,
             initial: Info,
-            signal?: AbortSignal
+            signal?: AbortSignal,
+            allowArchive = false
           ) =>
-            links.waitForRealDebridLinks(get, async () => {}, initial, signal),
+            links.waitForRealDebridLinks(
+              get,
+              async () => {},
+              initial,
+              signal,
+              allowArchive
+            ),
         },
         "./real-debrid-files.js": { getRealDebridFiles },
       };
@@ -512,5 +541,203 @@ it("bounds recovery when every newly returned torrent ID is unavailable", async 
   assert.equal(
     f.requests.filter((r) => r.url === "/torrents/addMagnet").length,
     14
+  );
+});
+
+it("whole download selects all on a waiting torrent before file metadata is available", async () => {
+  const f = fixture({
+    status: "waiting_files_selection",
+    noFiles: true,
+    pending: true,
+  });
+  const result = await f.client.getDownloadEntriesWithTorrent(magnet);
+  assert.equal(result.torrentId, "main");
+  assert.equal(result.entries, null);
+  assert.deepEqual(
+    f.requests
+      .filter((request) => request.files)
+      .map((request) => request.files),
+    ["all"]
+  );
+  assert.equal(f.main.status, "downloading");
+  assert.equal(f.main.files.filter((file) => file.selected).length, 2);
+  assert.equal(
+    f.requests.filter((request) => request.url === "/torrents/addMagnet")
+      .length,
+    0
+  );
+});
+
+it("whole download starts one full selection instead of accepting an actively caching subset", async () => {
+  const f = fixture({ status: "downloading", pending: true });
+  f.main.files[1].selected = 0;
+  f.main.links = [];
+  const first = await f.client.getDownloadEntriesWithTorrent(magnet);
+  assert.equal(first.entries, null);
+  assert.notEqual(first.torrentId, "main");
+  const selected = f.infos.get(first.torrentId!)!;
+  assert.equal(selected.files.filter((file) => file.selected).length, 2);
+  await f.client.getDownloadEntriesWithTorrent(
+    magnet,
+    undefined,
+    first.torrentId!
+  );
+  assert.equal(
+    f.requests.filter((request) => request.url === "/torrents/addMagnet")
+      .length,
+    1
+  );
+  assert.deepEqual(
+    f.requests
+      .filter((request) => request.files)
+      .map((request) => request.files),
+    ["all"]
+  );
+  selected.status = "downloaded";
+  selected.links = ["file-1", "file-2"];
+  const ready = await f.client.getDownloadEntriesWithTorrent(
+    magnet,
+    undefined,
+    first.torrentId!
+  );
+  assert.equal(ready.entries?.length, 2);
+});
+
+it("whole download handles a provider archive appearing immediately after selecting all", async () => {
+  const f = fixture({
+    status: "waiting_files_selection",
+    packSelections: true,
+  });
+  f.main.files.forEach((file) => {
+    file.selected = 0;
+  });
+  f.main.links = [];
+  const result = await f.client.getDownloadEntriesWithTorrent(magnet);
+  assert.deepEqual(
+    Array.from(result.entries ?? [], (entry) => entry.url),
+    ["file-1", "file-2"]
+  );
+  assert.deepEqual(
+    f.requests
+      .filter((request) => request.files)
+      .map((request) => request.files),
+    ["all", "1", "2"]
+  );
+  assert.ok(!f.requests.some((request) => request.url === "/unrestrict/link"));
+});
+
+it("selection metadata lag does not create replacement torrents on every readiness poll", async () => {
+  const f = fixture({ status: "queued", pending: true });
+  f.main.files.forEach((file) => {
+    file.selected = 0;
+  });
+  f.main.links = [];
+  for (let poll = 0; poll < 3; poll++) {
+    const result = await f.client.getDownloadEntriesWithTorrent(
+      magnet,
+      [1, 2],
+      "main"
+    );
+    assert.equal(result.torrentId, "main");
+    assert.equal(result.entries, null);
+  }
+  assert.equal(
+    f.requests.filter((request) => request.url === "/torrents/addMagnet")
+      .length,
+    0
+  );
+});
+
+it("whole download retains the complete selection while caching and resumes readiness after client restart", async () => {
+  const f = fixture({ status: "waiting_files_selection", pending: true });
+  f.main.files.forEach((file) => {
+    file.selected = 0;
+  });
+  f.main.links = [];
+  const first = await f.client.getDownloadEntriesWithTorrent(magnet);
+  f.client.authorize("fixture-token");
+  const second = await f.client.getDownloadEntriesWithTorrent(
+    magnet,
+    undefined,
+    first.torrentId!
+  );
+  assert.equal(second.entries, null);
+  assert.equal(second.torrentId, "main");
+  assert.deepEqual(
+    f.requests
+      .filter((request) => request.files)
+      .map((request) => request.files),
+    ["all"]
+  );
+  f.main.status = "downloaded";
+  f.main.links = ["file-1", "file-2"];
+  assert.equal(
+    (await f.client.getDownloadEntriesWithTorrent(magnet, undefined, "main"))
+      .entries?.length,
+    2
+  );
+});
+
+it("whole download selects all when the provider omits the waiting torrent's file list", async () => {
+  const f = fixture({
+    status: "waiting_files_selection",
+    noFiles: true,
+    pending: true,
+  });
+  delete (f.main as Partial<Info>).files;
+  const result = await f.client.getDownloadEntriesWithTorrent(magnet);
+  assert.equal(result.torrentId, "main");
+  assert.equal(result.entries, null);
+  assert.deepEqual(
+    f.requests
+      .filter((request) => request.files)
+      .map((request) => request.files),
+    ["all"]
+  );
+});
+
+it("whole download waits for all selected files instead of returning a stale ready subset", async () => {
+  const f = fixture({
+    status: "waiting_files_selection",
+    stalePartialSelection: true,
+  });
+  f.main.files.forEach((file) => {
+    file.selected = 0;
+  });
+  f.main.links = [];
+  const first = await f.client.getDownloadEntriesWithTorrent(magnet);
+  assert.equal(first.entries, null);
+  assert.equal(first.torrentId, "main");
+  const second = await f.client.getDownloadEntriesWithTorrent(
+    magnet,
+    undefined,
+    "main"
+  );
+  assert.equal(second.entries?.length, 2);
+  assert.equal(
+    f.requests.filter((request) => request.url === "/torrents/addMagnet")
+      .length,
+    0
+  );
+});
+
+it("whole download checks readiness against the original requested file IDs", async () => {
+  const f = fixture({
+    status: "waiting_files_selection",
+    stalePartialSelection: true,
+    omitUnselectedFiles: true,
+  });
+  f.main.files.forEach((file) => {
+    file.selected = 0;
+  });
+  f.main.links = [];
+  assert.equal(
+    (await f.client.getDownloadEntriesWithTorrent(magnet)).entries,
+    null
+  );
+  assert.equal(
+    (await f.client.getDownloadEntriesWithTorrent(magnet, undefined, "main"))
+      .entries?.length,
+    2
   );
 });

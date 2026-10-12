@@ -84,11 +84,11 @@ export class RealDebridClient {
 
   private static async selectFiles(
     id: string,
-    fileIds: number[],
+    fileIds: number[] | undefined,
     signal?: AbortSignal
   ) {
     const searchParams = new URLSearchParams({
-      files: fileIds.join(","),
+      files: fileIds === undefined ? "all" : fileIds.join(","),
     });
     await this.instance.post(
       `/torrents/selectFiles/${id}`,
@@ -100,11 +100,19 @@ export class RealDebridClient {
   private static async getTorrentWithFiles(
     uri: string,
     preferredId?: string,
-    signal?: AbortSignal
+    signal?: AbortSignal,
+    allowEmptyFileSelection = false
   ): Promise<RealDebridTorrentInfo> {
     signal?.throwIfAborted();
     const id = preferredId ?? (await this.getTorrentId(uri, signal));
-    return this.pollTorrentFiles(uri, id, new Set(), signal);
+    return this.pollTorrentFiles(
+      uri,
+      id,
+      new Set(),
+      signal,
+      0,
+      allowEmptyFileSelection
+    );
   }
 
   private static async pollTorrentFiles(
@@ -112,7 +120,8 @@ export class RealDebridClient {
     id: string,
     unavailableIds: Set<string>,
     signal?: AbortSignal,
-    attempt = 0
+    attempt = 0,
+    allowEmptyFileSelection = false
   ): Promise<RealDebridTorrentInfo> {
     let info: RealDebridTorrentInfo;
     try {
@@ -130,15 +139,27 @@ export class RealDebridClient {
         nextId,
         unavailableIds,
         signal,
-        attempt + 1
+        attempt + 1,
+        allowEmptyFileSelection
       );
     }
     signal?.throwIfAborted();
     throwIfRealDebridTorrentFailed(info);
-    if (info.files?.length) return info;
+    if (
+      info.files?.length ||
+      (allowEmptyFileSelection && info.status === "waiting_files_selection")
+    )
+      return info;
     this.assertTorrentFilePollRemaining(attempt);
     await sleep(TORRENT_FILE_POLL_DELAY_MS, undefined, { signal });
-    return this.pollTorrentFiles(uri, id, unavailableIds, signal, attempt + 1);
+    return this.pollTorrentFiles(
+      uri,
+      id,
+      unavailableIds,
+      signal,
+      attempt + 1,
+      allowEmptyFileSelection
+    );
   }
 
   private static assertTorrentFilePollRemaining(attempt: number) {
@@ -169,10 +190,16 @@ export class RealDebridClient {
   private static async getTorrentOrPending(
     uri: string,
     preferredId?: string,
-    signal?: AbortSignal
+    signal?: AbortSignal,
+    allowEmptyFileSelection = false
   ) {
     try {
-      const info = await this.getTorrentWithFiles(uri, preferredId, signal);
+      const info = await this.getTorrentWithFiles(
+        uri,
+        preferredId,
+        signal,
+        allowEmptyFileSelection
+      );
       return { torrentId: info.id, info };
     } catch (error) {
       if (
@@ -193,7 +220,7 @@ export class RealDebridClient {
   ) {
     const canChangeSelection =
       info.status !== "waiting_files_selection" &&
-      (selectedIndices !== undefined || info.status === "downloaded");
+      info.files.some((file) => file.selected);
     if (!canChangeSelection || hasRealDebridSelection(info, selectedIndices)) {
       return { torrentId: info.id, info };
     }
@@ -396,10 +423,28 @@ export class RealDebridClient {
       };
     }
 
-    const initial = await this.getTorrentOrPending(uri, preferredId, signal);
+    const initial = await this.getTorrentOrPending(
+      uri,
+      preferredId,
+      signal,
+      selectedIndices === undefined
+    );
     if (!initial.info) return { torrentId: initial.torrentId, entries: null };
-    selectDebridFiles(getRealDebridFiles(initial.info), selectedIndices);
-    if (isRealDebridArchiveCandidate(initial.info)) {
+    if (!initial.info.files?.length) {
+      await this.selectFiles(initial.info.id, undefined, signal);
+      return { torrentId: initial.info.id, entries: null };
+    }
+    const requestedFiles = selectDebridFiles(
+      getRealDebridFiles(initial.info),
+      selectedIndices
+    );
+    const requestsWholeTorrent =
+      requestedFiles.length === initial.info.files.length;
+    if (
+      isRealDebridArchiveCandidate(initial.info) &&
+      (!requestsWholeTorrent ||
+        hasRealDebridSelection(initial.info, selectedIndices))
+    ) {
       return {
         torrentId: initial.info.id,
         entries: await this.getIndividualFileEntries(
@@ -430,7 +475,9 @@ export class RealDebridClient {
     if (info.status === "waiting_files_selection") {
       await this.selectFiles(
         info.id,
-        requested.map((file) => file.index),
+        selectedIndices === undefined
+          ? undefined
+          : requested.map((file) => file.index),
         signal
       );
     }
@@ -439,9 +486,29 @@ export class RealDebridClient {
       () => this.getTorrentInfo(info.id, signal),
       undefined,
       info.status === "downloaded" ? info : undefined,
-      signal
+      signal,
+      true
     );
-    if (!ready) return { torrentId: info.id, entries: null };
+    if (
+      !ready ||
+      !hasRealDebridSelection(
+        ready.info,
+        requested.map((file) => file.index)
+      )
+    ) {
+      return { torrentId: info.id, entries: null };
+    }
+    if (isRealDebridArchiveCandidate(ready.info)) {
+      return {
+        torrentId: info.id,
+        entries: await this.getIndividualFileEntries(
+          uri,
+          ready.info,
+          selectedIndices,
+          signal
+        ),
+      };
+    }
 
     const normalized = getRealDebridFiles(ready.info);
     const entries = ready.selectedFiles.map((file, index) => ({

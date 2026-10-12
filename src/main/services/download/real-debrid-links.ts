@@ -18,9 +18,17 @@ export async function waitForRealDebridLinks(
   getInfo: () => Promise<RealDebridTorrentInfo>,
   wait: (signal?: AbortSignal) => Promise<void> = waitForNextPoll,
   initialInfo?: RealDebridTorrentInfo,
-  signal?: AbortSignal
+  signal?: AbortSignal,
+  allowArchive = false
 ) {
-  return pollRealDebridLinks(getInfo, wait, initialInfo, signal);
+  return pollRealDebridLinks(
+    getInfo,
+    wait,
+    initialInfo,
+    signal,
+    0,
+    allowArchive
+  );
 }
 
 async function pollRealDebridLinks(
@@ -28,7 +36,8 @@ async function pollRealDebridLinks(
   wait: (signal?: AbortSignal) => Promise<void>,
   initialInfo?: RealDebridTorrentInfo,
   signal?: AbortSignal,
-  attempt = 0
+  attempt = 0,
+  allowArchive = false
 ): Promise<{
   info: RealDebridTorrentInfo;
   selectedFiles: RealDebridTorrentInfo["files"];
@@ -39,7 +48,10 @@ async function pollRealDebridLinks(
   throwIfRealDebridTorrentFailed(info);
   if (info.status !== "downloaded") return null;
   const selectedFiles = info.files.filter((file) => file.selected);
-  if (selectedFiles.length > 0 && selectedFiles.length === info.links.length)
+  if (
+    (selectedFiles.length > 0 && selectedFiles.length === info.links.length) ||
+    (allowArchive && isRealDebridArchiveCandidate(info))
+  )
     return { info, selectedFiles };
   if (attempt === LINK_POLL_ATTEMPTS - 1) {
     throw new Error(DownloadError.RealDebridLinksNotReady, {
@@ -47,7 +59,14 @@ async function pollRealDebridLinks(
     });
   }
   await wait(signal);
-  return pollRealDebridLinks(getInfo, wait, undefined, signal, attempt + 1);
+  return pollRealDebridLinks(
+    getInfo,
+    wait,
+    undefined,
+    signal,
+    attempt + 1,
+    allowArchive
+  );
 }
 
 export function isRealDebridArchiveCandidate(

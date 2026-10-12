@@ -47,7 +47,6 @@ import {
   ColumnsIcon,
   DownloadIcon,
   FileDirectoryIcon,
-  FileIcon,
   LinkIcon,
   PlayIcon,
   TrashIcon,
@@ -539,24 +538,6 @@ function HeroDownloadView({
                       <span className="download-group__stat-value">
                         {lastPacket.numPeers}
                       </span>
-                    </span>
-                  </div>
-                </div>
-              )}
-
-            {lastPacket?.batchFilesTotal != null &&
-              lastPacket.batchFilesTotal > 1 && (
-                <div className="download-group__stat-item">
-                  <span style={{ color: dominantColor, display: "flex" }}>
-                    <FileIcon size={16} />
-                  </span>
-                  <div className="download-group__stat-content">
-                    <span className="download-group__stat-label">
-                      {t("files")}:
-                    </span>
-                    <span className="download-group__stat-value">
-                      {lastPacket.batchFilesDownloaded ?? 0}/
-                      {lastPacket.batchFilesTotal}
                     </span>
                   </div>
                 </div>

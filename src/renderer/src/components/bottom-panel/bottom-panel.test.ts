@@ -8,7 +8,7 @@ import { renderToStaticMarkup } from "react-dom/server";
 import ts from "typescript";
 
 for (const eta of [undefined, "1s"]) {
-  it(`renders compact batch progress without per-file records when ETA is ${eta}`, () => {
+  it(`renders download progress without a debrid file counter when ETA is ${eta}`, () => {
     const translations: { key: string; values: Record<string, unknown> }[] = [];
     const exports: { BottomPanel?: React.ComponentType } = {};
     const code = ts.transpileModule(
@@ -63,12 +63,13 @@ for (const eta of [undefined, "1s"]) {
       },
     });
     renderToStaticMarkup(React.createElement(exports.BottomPanel!));
-    const batch = translations.find(
-      (item) =>
-        item.key === (eta ? "downloading_batch" : "calculating_eta_batch")
+    const status = translations.find(
+      (item) => item.key === (eta ? "downloading" : "calculating_eta")
     );
-    assert.ok(batch);
-    assert.equal(batch.values.filesDownloaded, 1);
-    assert.equal(batch.values.filesTotal, 3);
+    assert.ok(status);
+    assert.equal(status.values.percentage, "33%");
+    assert.ok(translations.every((item) => !item.key.endsWith("_batch")));
+    assert.equal(status.values.filesDownloaded, undefined);
+    assert.equal(status.values.filesTotal, undefined);
   });
 }
