@@ -5,6 +5,8 @@ import path from "node:path";
 import test, { type TestContext } from "node:test";
 import {
   EPIC_ACCESS_TOKEN_MAX_LENGTH,
+  EPIC_CONNECTION_ID_MIN_LENGTH,
+  EPIC_CONNECTION_ID_MAX_LENGTH,
   EPIC_DISPLAY_NAME_MAX_LENGTH,
   EpicIntegrationError,
   validateLegendarySession,
@@ -34,6 +36,56 @@ import type {
 import { getEpicIntegrationPresentation } from "../../../renderer/src/pages/settings/settings-epic-state.ts";
 
 const code = "authorizationCode123456789";
+
+for (const length of [
+  EPIC_CONNECTION_ID_MIN_LENGTH,
+  EPIC_CONNECTION_ID_MAX_LENGTH,
+]) {
+  test(`API connection IDs at length ${length} can be cached and disconnected`, async (t) => {
+    const f = fixture(t);
+    const connectionId = "Ab0".repeat(length).slice(0, length);
+    const linked = { ...connection, connectionId };
+    f.state.remote = linked;
+    const state = await f.core.getConnection();
+    assert.equal(state.verification, "confirmed");
+    assert.equal(state.error, undefined);
+    assert.deepEqual(state.connection, linked);
+    assert.deepEqual(
+      (await f.store.read(f.state.context!))?.connection,
+      linked
+    );
+    let deletions = 0;
+    f.dependencies.delete = async (expectedId) => {
+      assert.equal(expectedId, connectionId);
+      deletions++;
+      f.state.remote = { connected: false };
+    };
+    assert.deepEqual(await f.core.disconnect(connectionId), { ok: true });
+    assert.equal(deletions, 1);
+    assert.equal(await f.store.read(f.state.context!), null);
+  });
+}
+
+for (const [description, connectionId] of [
+  ["below minimum", "a".repeat(EPIC_CONNECTION_ID_MIN_LENGTH - 1)],
+  ["above maximum", "a".repeat(EPIC_CONNECTION_ID_MAX_LENGTH + 1)],
+  ["non-alphanumeric", "a".repeat(EPIC_CONNECTION_ID_MIN_LENGTH - 1) + "_"],
+]) {
+  test(`invalid ${description} connection ID cannot be cached or sent to DELETE`, async (t) => {
+    const f = fixture(t);
+    f.state.remote = { ...connection, connectionId };
+    f.dependencies.delete = async () =>
+      assert.fail("invalid ID must not reach DELETE");
+    const state = await f.core.getConnection();
+    assert.equal(state.error, "invalid-response");
+    assert.equal(state.verification, "unconfirmed");
+    assert.equal(await f.store.read(f.state.context!), null);
+    assert.deepEqual(await f.core.disconnect(connectionId), {
+      ok: false,
+      error: "stale-connection",
+    });
+  });
+}
 
 test("invalid local metadata keeps the API link and offers reconnection with a fresh session", async (t) => {
   const db = new MemoryDatabase(),

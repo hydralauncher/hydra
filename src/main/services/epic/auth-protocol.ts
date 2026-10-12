@@ -2,9 +2,20 @@ import type { EpicErrorCode } from "../../../types/epic-integration.types";
 
 // Public OAuth client used by the pinned Legendary 0.21.1 release.
 export const EPIC_OAUTH_CLIENT_ID = "34a02cf8f4414e29b15921876da36f9a";
-export const EPIC_AUTH_CODE_MAX_LENGTH = 4096;
+export const EPIC_AUTH_CODE_MIN_LENGTH = 16;
+export const EPIC_AUTH_CODE_MAX_LENGTH = 512;
+export const EPIC_AUTH_RESPONSE_MAX_LENGTH = 4096;
+export const EPIC_CONNECTION_ID_MIN_LENGTH = 8;
+export const EPIC_CONNECTION_ID_MAX_LENGTH = 128;
 export const EPIC_DISPLAY_NAME_MAX_LENGTH = 128;
 export const EPIC_ACCESS_TOKEN_MAX_LENGTH = 8192;
+
+const EPIC_AUTH_CODE_PATTERN = new RegExp(
+  `^[a-zA-Z0-9_-]{${EPIC_AUTH_CODE_MIN_LENGTH},${EPIC_AUTH_CODE_MAX_LENGTH}}$`
+);
+export const EPIC_CONNECTION_ID_PATTERN = new RegExp(
+  `^[a-zA-Z0-9]{${EPIC_CONNECTION_ID_MIN_LENGTH},${EPIC_CONNECTION_ID_MAX_LENGTH}}$`
+);
 
 export class EpicIntegrationError extends Error {
   constructor(public readonly code: EpicErrorCode) {
@@ -17,14 +28,17 @@ export const isRecord = (value: unknown): value is Record<string, unknown> =>
   value !== null && typeof value === "object" && !Array.isArray(value);
 
 export function validateEpicAuthorizationCode(input: unknown): string {
-  if (typeof input !== "string" || !/^[a-zA-Z0-9_-]{16,512}$/.test(input)) {
+  if (typeof input !== "string" || !EPIC_AUTH_CODE_PATTERN.test(input)) {
     throw new EpicIntegrationError("invalid-response");
   }
   return input;
 }
 
 export function parseEpicAuthorizationResponse(input: unknown): string {
-  if (typeof input !== "string" || input.length > EPIC_AUTH_CODE_MAX_LENGTH) {
+  if (
+    typeof input !== "string" ||
+    input.length > EPIC_AUTH_RESPONSE_MAX_LENGTH
+  ) {
     throw new EpicIntegrationError("invalid-response");
   }
   try {

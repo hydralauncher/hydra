@@ -11,6 +11,7 @@ import type {
 } from "../../../types/epic-integration.types";
 import {
   EPIC_ACCESS_TOKEN_MAX_LENGTH,
+  EPIC_CONNECTION_ID_PATTERN,
   EPIC_DISPLAY_NAME_MAX_LENGTH,
   EpicIntegrationError,
   isRecord,
@@ -82,7 +83,7 @@ function validateEpicConnection(response: unknown): EpicConnection {
   if (!response.connected) return { connected: false };
   if (
     typeof response.connectionId !== "string" ||
-    !/^[a-zA-Z0-9]{8,128}$/.test(response.connectionId) ||
+    !EPIC_CONNECTION_ID_PATTERN.test(response.connectionId) ||
     typeof response.epicAccountId !== "string" ||
     !/^[a-f0-9]{32}$/.test(response.epicAccountId) ||
     typeof response.displayName !== "string" ||
@@ -808,7 +809,7 @@ export class EpicIntegrationCore {
     if (!context) return { ok: false, error: "hydra-auth-required" };
     if (
       typeof connectionId !== "string" ||
-      !/^[a-zA-Z0-9]{8,128}$/.test(connectionId)
+      !EPIC_CONNECTION_ID_PATTERN.test(connectionId)
     ) {
       return { ok: false, error: "stale-connection" };
     }

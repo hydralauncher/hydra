@@ -9,6 +9,7 @@ import type {
   EpicSessionState,
 } from "../../../types/epic-integration.types";
 import {
+  EPIC_CONNECTION_ID_PATTERN,
   isRecord,
   validateLegendarySession,
   validateLegendaryVersion,
@@ -56,7 +57,7 @@ const isConnection = (value: unknown): value is EpicConnectedConnection =>
   isRecord(value) &&
   value.connected === true &&
   typeof value.connectionId === "string" &&
-  /^[a-zA-Z0-9]{8,128}$/.test(value.connectionId) &&
+  EPIC_CONNECTION_ID_PATTERN.test(value.connectionId) &&
   typeof value.epicAccountId === "string" &&
   /^[a-f0-9]{32}$/.test(value.epicAccountId) &&
   typeof value.displayName === "string" &&

@@ -2,7 +2,7 @@ import { BrowserWindow, session } from "electron";
 import { randomUUID } from "node:crypto";
 import type { EpicOperationResult } from "../../../types/epic-integration.types";
 import {
-  EPIC_AUTH_CODE_MAX_LENGTH,
+  EPIC_AUTH_RESPONSE_MAX_LENGTH,
   getEpicLoginUrl,
   isEpicAuthorizationReturn,
   isHttpsNavigation,
@@ -23,6 +23,10 @@ export interface EpicAuthWindowCallbacks {
 }
 
 const ERR_ABORTED = -3;
+const EPIC_AUTH_WINDOW_WIDTH = 800;
+const EPIC_AUTH_WINDOW_HEIGHT = 860;
+const EPIC_AUTH_POPUP_WIDTH = 720;
+const EPIC_AUTH_POPUP_HEIGHT = 800;
 
 export function openEpicAuthWindow(
   options: EpicAuthWindowCallbacks
@@ -84,8 +88,8 @@ export function openEpicAuthWindow(
       return {
         action: "allow",
         overrideBrowserWindowOptions: {
-          width: 720,
-          height: 800,
+          width: EPIC_AUTH_POPUP_WIDTH,
+          height: EPIC_AUTH_POPUP_HEIGHT,
           autoHideMenuBar: true,
           show: !isEpicAuthorizationReturn(url),
           webPreferences,
@@ -112,7 +116,7 @@ export function openEpicAuthWindow(
       // Read only the validated main frame. Provider data never crosses renderer IPC.
       void contents
         .executeJavaScript(
-          `document.body.innerText.slice(0, ${EPIC_AUTH_CODE_MAX_LENGTH + 1})`
+          `document.body.innerText.slice(0, ${EPIC_AUTH_RESPONSE_MAX_LENGTH + 1})`
         )
         .then((body: unknown) => {
           if (!active()) return;
@@ -147,8 +151,8 @@ export function openEpicAuthWindow(
 
   const root = new BrowserWindow({
     title: "Epic Games",
-    width: 800,
-    height: 860,
+    width: EPIC_AUTH_WINDOW_WIDTH,
+    height: EPIC_AUTH_WINDOW_HEIGHT,
     autoHideMenuBar: true,
     webPreferences,
   });

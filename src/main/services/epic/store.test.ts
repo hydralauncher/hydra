@@ -6,6 +6,10 @@ import path from "node:path";
 import test, { type TestContext } from "node:test";
 import { ClassicLevel } from "classic-level";
 import {
+  EPIC_CONNECTION_ID_MIN_LENGTH,
+  EPIC_CONNECTION_ID_MAX_LENGTH,
+} from "./auth-protocol.ts";
+import {
   EpicConnectionStore,
   EPIC_STORE_MAX_RECORD_BYTES,
   type EpicStoreDatabase,
@@ -40,6 +44,59 @@ function fixture(t: TestContext, database?: EpicStoreDatabase) {
     fs.rmSync(root, { recursive: true, force: true });
   });
   return { root, store: create(), create };
+}
+
+for (const length of [
+  EPIC_CONNECTION_ID_MIN_LENGTH,
+  EPIC_CONNECTION_ID_MAX_LENGTH,
+]) {
+  test(`stored connection IDs at length ${length} remain accessible after restart`, async (t) => {
+    const f = fixture(t);
+    const linked = {
+      ...connection,
+      connectionId: "Ab0".repeat(length).slice(0, length),
+    };
+    await f.store.save(scope, linked, bundle, current);
+    await f.store.close();
+    const reopened = f.create();
+    assert.deepEqual(await reopened.read(scope), {
+      connection: linked,
+      sessionState: "ready",
+      bundle,
+    });
+    await reopened.remove(scope, current, linked.connectionId);
+    assert.equal(await reopened.read(scope), null);
+  });
+}
+
+for (const [description, connectionId] of [
+  ["below minimum", "a".repeat(EPIC_CONNECTION_ID_MIN_LENGTH - 1)],
+  ["above maximum", "a".repeat(EPIC_CONNECTION_ID_MAX_LENGTH + 1)],
+  ["non-alphanumeric", "a".repeat(EPIC_CONNECTION_ID_MIN_LENGTH - 1) + "_"],
+]) {
+  test(`invalid ${description} connection ID is rejected on writes and absent on reads`, async (t) => {
+    const db = new MemoryDatabase();
+    const f = fixture(t, db);
+    await f.store.save(scope, connection, bundle, current);
+    const linked = { ...connection, connectionId };
+    let mutations = 0;
+    db.onPut = db.onDel = async () => {
+      mutations++;
+    };
+    await assert.rejects(f.store.save(scope, linked, bundle, current), {
+      code: "invalid-response",
+    });
+    await assert.rejects(f.store.cacheConnection(scope, linked, current), {
+      code: "invalid-response",
+    });
+    assert.deepEqual((await f.store.read(scope))?.bundle, bundle);
+    const key = [...db.records.keys()][0];
+    const invalid = { schemaVersion: 1, connection: linked, bundle };
+    db.records.set(key, invalid);
+    assert.equal(await f.store.read(scope), null);
+    assert.deepEqual(db.records.get(key), invalid);
+    assert.equal(mutations, 0);
+  });
 }
 
 test("real LevelDB survives restart, normalizes URL and isolates environment/user", async (t) => {
