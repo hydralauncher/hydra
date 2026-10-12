@@ -15,6 +15,7 @@ import {
   toTorrentFilesResponse,
 } from "./debrid-files.js";
 import {
+  canUseRealDebridArchiveLink,
   hasRealDebridSelection,
   isRealDebridArchiveCandidate,
   throwIfRealDebridTorrentFailed,
@@ -36,17 +37,17 @@ interface RealDebridDownloadEntry {
   isLocked: boolean;
   sourcePath?: string;
   chunks?: number;
+  isArchive?: boolean;
+  resourceId?: string;
 }
 
 export class RealDebridClient {
   private static instance: AxiosInstance;
   private static readonly baseURL = "https://api.real-debrid.com/rest/1.0";
   private static readonly torrentIdsByHash = new Map<string, string>();
-  private static readonly fileTorrentIds = new Map<string, string>();
 
   static authorize(apiToken: string) {
     this.torrentIdsByHash.clear();
-    this.fileTorrentIds.clear();
     this.instance = axios.create({
       baseURL: this.baseURL,
       timeout: REQUEST_TIMEOUT_MS,
@@ -242,158 +243,41 @@ export class RealDebridClient {
     }
   }
 
-  private static async getTorrentInfoOrMissing(
-    id: string,
-    signal?: AbortSignal
-  ) {
-    try {
-      return await this.getTorrentInfo(id, signal);
-    } catch (error) {
-      if (axios.isAxiosError(error) && error.response?.status === 404)
-        return undefined;
-      throw error;
-    }
-  }
-
-  private static async findFileTorrent(
-    candidates: RealDebridTorrentInfo[],
-    candidateInfos: Map<string, RealDebridTorrentInfo>,
-    fileIndex: number,
-    signal?: AbortSignal,
-    index = 0
-  ): Promise<RealDebridTorrentInfo | undefined> {
-    signal?.throwIfAborted();
-    const candidate = candidates[index];
-    if (!candidate) return undefined;
-    const info =
-      candidateInfos.get(candidate.id) ??
-      (await this.getTorrentInfoOrMissing(candidate.id, signal));
-    if (info) {
-      candidateInfos.set(candidate.id, info);
-      if (
-        !["error", "dead", "virus", "magnet_error"].includes(info.status) &&
-        hasRealDebridSelection(info, [fileIndex])
-      )
-        return info;
-    }
-    return this.findFileTorrent(
-      candidates,
-      candidateInfos,
-      fileIndex,
-      signal,
-      index + 1
-    );
-  }
-
-  private static async getFileTorrent(
-    uri: string,
-    hash: string,
-    fileIndex: number,
-    candidates: RealDebridTorrentInfo[],
-    candidateInfos: Map<string, RealDebridTorrentInfo>,
-    signal?: AbortSignal
-  ) {
-    const key = `${hash.toLowerCase()}:${fileIndex}`;
-    const cachedId = this.fileTorrentIds.get(key);
-    let info = cachedId
-      ? await this.getTorrentInfoOrMissing(cachedId, signal)
-      : undefined;
-    if (cachedId && !info) this.fileTorrentIds.delete(key);
-    info ??= await this.findFileTorrent(
-      candidates,
-      candidateInfos,
-      fileIndex,
-      signal
-    );
-    if (!info) {
-      const created = await this.addMagnet(uri, signal);
-      this.fileTorrentIds.set(key, created.id);
-      info = await this.getTorrentWithFiles(uri, created.id, signal);
-    }
-    this.fileTorrentIds.set(key, info.id);
-    throwIfRealDebridTorrentFailed(info);
-    if (info.status === "waiting_files_selection") {
-      await this.selectFiles(info.id, [fileIndex], signal);
-      info = await this.getTorrentInfo(info.id, signal);
-    }
-    return info;
-  }
-
-  private static async getIndividualFileEntry(
-    uri: string,
-    current: RealDebridTorrentInfo,
-    file: ReturnType<typeof getRealDebridFiles>[number],
-    candidates: RealDebridTorrentInfo[],
-    candidateInfos: Map<string, RealDebridTorrentInfo>,
-    signal?: AbortSignal
-  ): Promise<RealDebridDownloadEntry | null> {
-    signal?.throwIfAborted();
-    if (file.size === 0)
-      return { ...file, url: "about:blank", isLocked: false };
-    const info = await this.getFileTorrent(
-      uri,
-      current.hash,
-      file.index,
-      candidates,
-      candidateInfos,
-      signal
-    );
-    if (info.status === "waiting_files_selection") return null;
-    if (
-      !hasRealDebridSelection(info, [file.index]) ||
-      info.hash.toLowerCase() !== current.hash.toLowerCase()
-    ) {
-      throw new Error("Real-Debrid returned a different file selection.");
-    }
-    const ready = await waitForRealDebridLinks(
-      () => this.getTorrentInfo(info.id, signal),
-      undefined,
-      info,
-      signal
-    );
-    if (!ready) return null;
-    const resolved = ready.selectedFiles[0];
-    if (
-      resolved.id !== file.index ||
-      resolved.bytes !== file.size ||
-      resolved.path !== file.sourcePath
-    ) {
-      throw new Error("Real-Debrid returned a different torrent file.");
-    }
-    return { ...file, url: ready.info.links[0], isLocked: true };
-  }
-
-  private static async getIndividualFileEntries(
-    uri: string,
-    current: RealDebridTorrentInfo,
+  private static async getArchiveEntry(
+    info: RealDebridTorrentInfo,
     selectedIndices?: number[],
     signal?: AbortSignal
-  ): Promise<RealDebridDownloadEntry[] | null> {
-    const requested = selectDebridFiles(
-      getRealDebridFiles(current),
-      selectedIndices
-    );
-    const candidates = (await this.getAllTorrentsFromUser(signal)).filter(
-      (torrent) => torrent.hash?.toLowerCase() === current.hash.toLowerCase()
-    );
-    const candidateInfos = new Map<string, RealDebridTorrentInfo>();
-    // Keep selection requests sequential so later files reuse the cached torrent
-    // metadata and never compete to select files on the same provider torrent.
-    const results = await requested.reduce(async (previous, file) => {
-      const entries = await previous;
-      const entry = await this.getIndividualFileEntry(
-        uri,
-        current,
-        file,
-        candidates,
-        candidateInfos,
-        signal
-      );
-      entries.push(entry);
-      return entries;
-    }, Promise.resolve<(RealDebridDownloadEntry | null)[]>([]));
-    if (results.includes(null)) return null;
-    return results as RealDebridDownloadEntry[];
+  ): Promise<RealDebridDownloadEntry> {
+    const unlocked = await this.unrestrictLink(info.links[0], signal);
+    if (
+      !canUseRealDebridArchiveLink(info, unlocked.filename, selectedIndices)
+    ) {
+      throw new Error("Real-Debrid returned an invalid torrent archive.");
+    }
+    const [file] = getRealDebridFiles({
+      ...info,
+      files: [
+        {
+          id: 0,
+          path: `/${unlocked.filename}`,
+          bytes: unlocked.filesize,
+          selected: 1,
+        },
+      ],
+    });
+    const selection = info.files
+      .filter((file) => file.selected)
+      .map((file) => file.id)
+      .sort((a, b) => a - b)
+      .join(",");
+    return {
+      ...file,
+      url: info.links[0],
+      isLocked: true,
+      isArchive: true,
+      chunks: unlocked.chunks,
+      resourceId: `realDebrid:${info.hash.toLowerCase()}:archive:${selection}`,
+    };
   }
 
   static async getDownloadEntriesWithTorrent(
@@ -438,21 +322,14 @@ export class RealDebridClient {
       getRealDebridFiles(initial.info),
       selectedIndices
     );
-    const requestsWholeTorrent =
-      requestedFiles.length === initial.info.files.length;
-    if (
-      isRealDebridArchiveCandidate(initial.info) &&
-      (!requestsWholeTorrent ||
-        hasRealDebridSelection(initial.info, selectedIndices))
-    ) {
+    if (requestedFiles.every((file) => file.size === 0)) {
       return {
         torrentId: initial.info.id,
-        entries: await this.getIndividualFileEntries(
-          uri,
-          initial.info,
-          selectedIndices,
-          signal
-        ),
+        entries: requestedFiles.map((file) => ({
+          ...file,
+          url: "about:blank",
+          isLocked: false,
+        })),
       };
     }
     const selectedTorrent = await this.restartTorrentForSelection(
@@ -501,12 +378,9 @@ export class RealDebridClient {
     if (isRealDebridArchiveCandidate(ready.info)) {
       return {
         torrentId: info.id,
-        entries: await this.getIndividualFileEntries(
-          uri,
-          ready.info,
-          selectedIndices,
-          signal
-        ),
+        entries: [
+          await this.getArchiveEntry(ready.info, selectedIndices, signal),
+        ],
       };
     }
 
@@ -610,7 +484,7 @@ export class RealDebridClient {
     return this.unlockFile(
       first.url,
       first.sourcePath ?? first.path,
-      first.size,
+      first.isArchive ? 0 : first.size,
       signal
     );
   }

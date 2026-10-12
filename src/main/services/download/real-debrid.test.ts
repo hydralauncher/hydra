@@ -64,9 +64,13 @@ function fixture(
   let delayedInfo = false;
   let config: { timeout: number };
   let unlocked = {
-    filename: "first.bin",
-    filesize: 3,
-    download: "https://fixture.invalid/first.bin",
+    filename:
+      options.packed || options.packSelections ? "folder.zip" : "first.bin",
+    filesize: options.packed || options.packSelections ? 7 : 3,
+    download:
+      options.packed || options.packSelections
+        ? "https://fixture.invalid/folder.zip"
+        : "https://fixture.invalid/first.bin",
     chunks: 8,
   };
   const instance = {
@@ -254,70 +258,92 @@ it("returns matching individual links without generating a packed link", async (
   );
   assert.equal(f.requests.filter((r) => r.method === "POST").length, 0);
 });
-it("reuses existing single-file torrents for a provider-packed folder", async () => {
+it("uses the provider archive without looking up existing single-file torrents", async () => {
   const f = fixture({ packed: true, singles: true });
   const result = await f.client.getDownloadEntriesWithTorrent(magnet);
-  assert.deepEqual(
-    Array.from(result.entries ?? [], (e) => e.url),
-    ["file-1", "file-2"]
+  assert.equal(result.entries?.length, 1);
+  assert.equal(result.entries?.[0].isArchive, true);
+  assert.equal(result.entries?.[0].url, "packed");
+  assert.equal(result.entries?.[0].resourceId, "realDebrid:abc:archive:1,2");
+  assert.equal(
+    f.requests.filter((r) => r.url === "/torrents/addMagnet").length,
+    0
   );
-  assert.ok(f.requests.every((r) => r.method === "GET"));
+  assert.ok(!f.requests.some((r) => r.url.includes("/info/single-")));
 });
-it("resolves only the selected file in a provider-packed folder", async () => {
+it("selects only the requested subset on one torrent when the existing archive includes other files", async () => {
   const f = fixture({ packed: true, singles: true });
   const result = await f.client.getDownloadEntriesWithTorrent(magnet, [2]);
   assert.equal(result.entries?.length, 1);
   assert.equal(result.entries?.[0].index, 2);
   assert.equal(result.entries?.[0].url, "file-2");
-});
-it("creates one selection per file and never unlocks the provider archive", async () => {
-  const f = fixture({ packed: true });
-  const result = await f.client.getDownloadEntriesWithTorrent(magnet);
-  assert.equal(result.entries?.length, 2);
   assert.deepEqual(
     f.requests.filter((r) => r.files).map((r) => r.files),
-    ["1", "2"]
+    ["2"]
+  );
+  assert.equal(
+    f.requests.filter((r) => r.url === "/torrents/addMagnet").length,
+    1
   );
   assert.ok(!f.requests.some((r) => r.url === "/unrestrict/link"));
 });
-it("keeps pending individual torrents and reuses them on the next preparation", async () => {
-  const f = fixture({ packed: true, pending: true });
+it("does not split an archive into cloud jobs on repeated preparation", async () => {
+  const f = fixture({ packed: true });
+  for (let poll = 0; poll < 3; poll++) {
+    const result = await f.client.getDownloadEntriesWithTorrent(
+      magnet,
+      undefined,
+      "main"
+    );
+    assert.equal(result.torrentId, "main");
+    assert.equal(result.entries?.length, 1);
+  }
+  assert.ok(
+    !f.requests.some((r) => r.url === "/torrents/addMagnet" || r.files)
+  );
+});
+it("waits for the complete parent torrent to cache before resolving its archive", async () => {
+  const f = fixture({ packed: true, status: "downloading", pending: true });
   assert.equal(
     (await f.client.getDownloadEntriesWithTorrent(magnet)).entries,
     null
   );
-  for (const [id, info] of f.infos)
-    if (id.startsWith("created")) {
-      info.status = "downloaded";
-      info.links = info.files
-        .filter((x) => x.selected)
-        .map((x) => `file-${x.id}`);
-    }
+  assert.ok(!f.requests.some((r) => r.method === "POST"));
+  f.main.status = "downloaded";
+  const result = await f.client.getDownloadEntriesWithTorrent(
+    magnet,
+    undefined,
+    "main"
+  );
+  assert.equal(result.entries?.length, 1);
+  assert.ok(
+    !f.requests.some((r) => r.url === "/torrents/addMagnet" || r.files)
+  );
+});
+it("reuses the parent archive after reauthorizing the client", async () => {
+  const f = fixture({ packed: true, singles: true });
+  const first = await f.client.getDownloadEntriesWithTorrent(magnet);
+  f.client.authorize("fixture-token");
+  const second = await f.client.getDownloadEntriesWithTorrent(
+    magnet,
+    undefined,
+    first.torrentId!
+  );
+  assert.equal(second.entries?.length, 1);
+  assert.equal(second.entries?.[0].resourceId, first.entries?.[0].resourceId);
+  assert.ok(
+    !f.requests.some((r) => r.url === "/torrents/addMagnet" || r.files)
+  );
+});
+it("a deleted old per-file torrent cannot trigger a new caching job for the parent archive", async () => {
+  const f = fixture({ packed: true, singles: true });
+  f.infos.delete("single-2");
   assert.equal(
     (await f.client.getDownloadEntriesWithTorrent(magnet)).entries?.length,
-    2
-  );
-  assert.equal(
-    f.requests.filter((r) => r.url === "/torrents/addMagnet").length,
-    2
-  );
-});
-it("reuses single-file torrents after reauthorizing the client", async () => {
-  const f = fixture({ packed: true, singles: true });
-  await f.client.getDownloadEntriesWithTorrent(magnet);
-  f.client.authorize("fixture-token");
-  await f.client.getDownloadEntriesWithTorrent(magnet);
-  assert.ok(f.requests.every((r) => r.method === "GET"));
-});
-it("recovers a deleted per-file torrent without replaying other selections", async () => {
-  const f = fixture({ packed: true, singles: true });
-  await f.client.getDownloadEntriesWithTorrent(magnet);
-  f.infos.delete("single-2");
-  const result = await f.client.getDownloadEntriesWithTorrent(magnet);
-  assert.equal(result.entries?.length, 2);
-  assert.equal(
-    f.requests.filter((r) => r.url === "/torrents/addMagnet").length,
     1
+  );
+  assert.ok(
+    !f.requests.some((r) => r.url === "/torrents/addMagnet" || r.files)
   );
 });
 it("recovers a deleted preferred torrent ID", async () => {
@@ -474,19 +500,24 @@ it("normalizes Unicode and reserved local filenames while retaining the source n
   assert.equal(file.sourcePath, "/e\u0301/CON.txt");
 });
 
-it("waits for provider selection updates instead of failing immediately", async () => {
-  const f = fixture({ packed: true, delayedSelection: true });
+it("waits for provider selection updates before resolving the whole archive", async () => {
+  const f = fixture({
+    status: "waiting_files_selection",
+    packSelections: true,
+    delayedSelection: true,
+  });
   assert.equal(
     (await f.client.getDownloadEntriesWithTorrent(magnet)).entries,
     null
   );
   assert.equal(
-    (await f.client.getDownloadEntriesWithTorrent(magnet)).entries?.length,
-    2
+    (await f.client.getDownloadEntriesWithTorrent(magnet, undefined, "main"))
+      .entries?.length,
+    1
   );
-  assert.equal(
-    f.requests.filter((r) => r.url === "/torrents/addMagnet").length,
-    2
+  assert.deepEqual(
+    f.requests.filter((r) => r.files).map((r) => r.files),
+    ["all"]
   );
 });
 
@@ -509,13 +540,13 @@ it("preserves escaped filename and signature characters in download URLs", async
     url
   );
 });
-it("ignores a torrent deleted between the list and individual-file lookup", async () => {
+it("does not inspect unrelated deleted torrents when resolving a ready archive", async () => {
   const f = fixture({ packed: true, singles: true, staleCandidate: true });
   assert.equal(
     (await f.client.getDownloadEntriesWithTorrent(magnet)).entries?.length,
-    2
+    1
   );
-  assert.ok(f.requests.some((r) => r.url === "/torrents/info/deleted"));
+  assert.ok(!f.requests.some((r) => r.url === "/torrents/info/deleted"));
 });
 
 it("excludes stale listed IDs when recovering a deleted main torrent", async () => {
@@ -603,7 +634,7 @@ it("whole download starts one full selection instead of accepting an actively ca
   assert.equal(ready.entries?.length, 2);
 });
 
-it("whole download handles a provider archive appearing immediately after selecting all", async () => {
+it("whole download handles a provider archive appearing immediately after selecting all without more cloud jobs", async () => {
   const f = fixture({
     status: "waiting_files_selection",
     packSelections: true,
@@ -613,17 +644,16 @@ it("whole download handles a provider archive appearing immediately after select
   });
   f.main.links = [];
   const result = await f.client.getDownloadEntriesWithTorrent(magnet);
+  assert.equal(result.entries?.length, 1);
+  assert.equal(result.entries?.[0].url, "packed");
   assert.deepEqual(
-    Array.from(result.entries ?? [], (entry) => entry.url),
-    ["file-1", "file-2"]
+    f.requests.filter((r) => r.files).map((r) => r.files),
+    ["all"]
   );
-  assert.deepEqual(
-    f.requests
-      .filter((request) => request.files)
-      .map((request) => request.files),
-    ["all", "1", "2"]
+  assert.equal(
+    f.requests.filter((r) => r.url === "/torrents/addMagnet").length,
+    0
   );
-  assert.ok(!f.requests.some((request) => request.url === "/unrestrict/link"));
 });
 
 it("selection metadata lag does not create replacement torrents on every readiness poll", async () => {
@@ -739,5 +769,104 @@ it("whole download checks readiness against the original requested file IDs", as
     (await f.client.getDownloadEntriesWithTorrent(magnet, undefined, "main"))
       .entries?.length,
     2
+  );
+});
+
+it("whole packed downloads keep one provider torrent instead of caching each file", async () => {
+  const f = fixture({ packed: true });
+  f.changeUnlock({
+    filename: "folder.zip",
+    filesize: 7,
+    download: "https://fixture.invalid/folder.zip",
+    chunks: 1,
+  });
+  const result = await f.client.getDownloadEntriesWithTorrent(magnet);
+  assert.equal(result.torrentId, "main");
+  assert.equal(result.entries?.length, 1);
+  assert.equal(result.entries?.[0].url, "packed");
+  assert.equal(result.entries?.[0].path, "folder.zip");
+  assert.equal(
+    f.requests.filter((r) => r.url === "/torrents/addMagnet").length,
+    0
+  );
+  assert.equal(f.requests.filter((r) => r.files).length, 0);
+});
+
+for (const filename of ["folder.zip", "folder.rar", "folder.7z"]) {
+  it(`accepts the provider's ${filename.split(".").at(-1)} archive with its actual compressed size`, async () => {
+    const f = fixture({ packed: true });
+    f.changeUnlock({
+      filename,
+      filesize: 7,
+      download: "https://fixture.invalid/archive",
+      chunks: 1,
+    });
+    const entry = (await f.client.getDownloadEntriesWithTorrent(magnet))
+      .entries?.[0];
+    assert.equal(entry?.path, filename);
+    assert.equal(entry?.size, 7);
+    assert.equal(entry?.isArchive, true);
+    assert.ok(
+      !f.requests.some((r) => r.url === "/torrents/addMagnet" || r.files)
+    );
+  });
+}
+for (const filename of [
+  "wrong.bin",
+  "../escape.zip",
+  "/escape.zip",
+  "C:\\escape.zip",
+]) {
+  it(`rejects an invalid archive name ${filename}`, async () => {
+    const f = fixture({ packed: true });
+    f.changeUnlock({
+      filename,
+      filesize: 7,
+      download: "https://fixture.invalid/archive",
+      chunks: 1,
+    });
+    await assert.rejects(
+      () => f.client.getDownloadEntriesWithTorrent(magnet),
+      /Real-Debrid/
+    );
+    assert.ok(
+      !f.requests.some((r) => r.url === "/torrents/addMagnet" || r.files)
+    );
+  });
+}
+it("keeps different archive selections separate in saved range metadata", async () => {
+  const f = fixture({ packed: true, packSelections: true });
+  const full = (await f.client.getDownloadEntriesWithTorrent(magnet))
+    .entries?.[0];
+  f.main.files.push({ id: 3, path: "/dir/third.bin", bytes: 2, selected: 1 });
+  const larger = (
+    await f.client.getDownloadEntriesWithTorrent(magnet, [3, 2, 1])
+  ).entries?.[0];
+  assert.notEqual(full?.resourceId, larger?.resourceId);
+  assert.equal(larger?.resourceId, "realDebrid:abc:archive:1,2,3");
+});
+it("accepts an archive whose size is unknown without declaring it an empty file", async () => {
+  const f = fixture({ packed: true });
+  f.changeUnlock({
+    filename: "folder.zip",
+    filesize: 0,
+    download: "https://fixture.invalid/archive",
+    chunks: 1,
+  });
+  const entry = (await f.client.getDownloadEntriesWithTorrent(magnet))
+    .entries?.[0];
+  assert.equal(entry?.size, 0);
+  assert.equal(entry?.isArchive, true);
+  assert.equal(entry?.url, "packed");
+});
+
+it("legacy URL resolution returns the parent archive without creating individual torrents", async () => {
+  const f = fixture({ packed: true });
+  assert.equal(
+    await f.client.getDownloadUrl(magnet),
+    "https://fixture.invalid/folder.zip"
+  );
+  assert.ok(
+    !f.requests.some((r) => r.url === "/torrents/addMagnet" || r.files)
   );
 });

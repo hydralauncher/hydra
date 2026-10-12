@@ -121,6 +121,7 @@ interface JsBatchEntry {
   isLocked?: boolean;
   fileId?: number;
   isZip?: boolean;
+  resourceId?: string;
   fileIndex?: number;
   sourcePath?: string;
   chunks?: number;
@@ -1564,7 +1565,7 @@ export class DownloadManager {
       const unlocked = await RealDebridClient.unlockFileWithDetails(
         url,
         entry.sourcePath ?? entry.filename,
-        entry.size ?? 0,
+        entry.isZip ? 0 : (entry.size ?? 0),
         this.preparationController?.signal
       );
       entry.chunks = unlocked.chunks;
@@ -1607,15 +1608,17 @@ export class DownloadManager {
         ? TORBOX_MAX_PARALLEL_RANGES
         : undefined,
       preserveFilename: true,
-      resourceId: `${batch.provider}:${batch.sourceUri}#${entry.fileId ?? entry.fileIndex ?? entry.sourcePath ?? entry.filename}`,
+      resourceId:
+        entry.resourceId ??
+        `${batch.provider}:${batch.sourceUri}#${entry.fileId ?? entry.fileIndex ?? entry.sourcePath ?? entry.filename}`,
       expectedSize:
         (batch.provider === "torBox" || batch.provider === "realDebrid") &&
         !entry.isZip
           ? entry.size
           : undefined,
       requireRangeResume:
-        !entry.isZip &&
-        (batch.provider === "torBox" || batch.provider === "realDebrid"),
+        batch.provider === "realDebrid" ||
+        (!entry.isZip && batch.provider === "torBox"),
       // Verify a regenerated ZIP's saved prefix before appending new data.
       verifyResumePrefix: Boolean(entry.isZip),
       filename:
@@ -1696,6 +1699,7 @@ export class DownloadManager {
     const expectedSize = entry.size ?? 0;
     if (entry.isZip && expectedSize !== status.bytesDownloaded) {
       batch.totalBytes += status.bytesDownloaded - expectedSize;
+      entry.size = status.bytesDownloaded;
     }
     const bankedBytes =
       entry.isZip || !entry.size || entry.size <= 0
@@ -1715,6 +1719,7 @@ export class DownloadManager {
       if (!this.isCurrentBatch(batch, downloader, generation)) return false;
       const url =
         (batch.provider === "torBox" || batch.provider === "realDebrid") &&
+        !entry.isZip &&
         entry.size === 0
           ? "about:blank"
           : await this.resolveBatchEntryUrl(batch, entry);
@@ -1967,11 +1972,12 @@ export class DownloadManager {
     const first = entries?.[0];
     let downloadUrl: string | null = null;
     if (first) {
+      const expectedSize = first.isArchive ? 0 : first.size;
       downloadUrl = first.isLocked
         ? await RealDebridClient.unlockFile(
             first.url,
             first.sourcePath ?? first.path,
-            first.size
+            expectedSize
           )
         : first.url;
     }
@@ -2664,6 +2670,8 @@ export class DownloadManager {
         url: entry.url,
         filename: this.sanitizeRelativePath(entry.path),
         size: entry.size,
+        isZip: entry.isArchive === true,
+        resourceId: entry.resourceId,
         isLocked: "isLocked" in entry && entry.isLocked === true,
         fileIndex: entry.index,
         sourcePath: entry.sourcePath ?? entry.path,

@@ -13,6 +13,7 @@ import * as batchHelpers from "./js-http-downloader-helpers.ts";
 import * as debridFiles from "./debrid-files.ts";
 import * as ranges from "./parallel-range-download.ts";
 import * as filenames from "./download-filename.ts";
+import type { RealDebridClient } from "./real-debrid.ts";
 import type { DownloadProgress } from "../../../types/download.types.ts";
 import type { JsHttpDownloaderOptions } from "./js-http-downloader.ts";
 
@@ -26,12 +27,16 @@ function manager(
   manifest?: torboxFiles.TorBoxDownloadManifest,
   getFiles: () => Promise<
     torboxFiles.TorBoxDownloadManifest | undefined
-  > = async () => manifest
+  > = async () => manifest,
+  realDebridEntries: Awaited<
+    ReturnType<typeof RealDebridClient.getDownloadEntriesWithTorrent>
+  >["entries"] = []
 ) {
   const starts: JsHttpDownloaderOptions[] = [];
   const exports: Record<string, unknown> = {};
   let stored: Record<string, unknown> = { files: [] };
   let unlocks = 0;
+  const unlockSizes: number[] = [];
   const code = ts.transpileModule(
     fs.readFileSync(new URL("./download-manager.ts", import.meta.url), "utf8"),
     {
@@ -129,8 +134,17 @@ function manager(
         },
         "./real-debrid": {
           RealDebridClient: {
-            unlockFileWithDetails: async () => {
+            getDownloadEntriesWithTorrent: async () => ({
+              torrentId: "fixture-torrent",
+              entries: realDebridEntries,
+            }),
+            unlockFileWithDetails: async (
+              _url: string,
+              _path: string,
+              size: number
+            ) => {
               unlocks++;
+              unlockSizes.push(size);
               return { url: "https://fixture.invalid/new-link", chunks: 1 };
             },
           },
@@ -168,6 +182,7 @@ function manager(
     instance,
     starts,
     unlocks: () => unlocks,
+    unlockSizes,
     setStored: (d: Record<string, unknown>) => {
       stored = d;
     },
@@ -464,3 +479,48 @@ it("aborted TorBox preparation releases the slot before the same download is ret
     fs.rmSync(root, { recursive: true, force: true });
   }
 });
+
+for (const size of [0, 7]) {
+  it(`Real-Debrid archives with size ${size} refresh links and require genuine range resume`, async () => {
+    const directory = fs.mkdtempSync(path.join(os.tmpdir(), "rd-archive-"));
+    const f = manager(undefined, undefined, [
+      {
+        index: 0,
+        path: "folder.zip",
+        sourcePath: "/folder.zip",
+        size,
+        url: "packed",
+        isLocked: true,
+        isArchive: true,
+        resourceId: "realDebrid:abc:archive:1,2",
+        chunks: 1,
+      },
+    ]);
+    try {
+      await f.instance.startDownload({
+        shop: "steam",
+        objectId: "fixture",
+        downloader: shared.Downloader.RealDebrid,
+        uri: "magnet:fixture",
+        downloadPath: directory,
+      });
+      await new Promise((resolve) => setImmediate(resolve));
+      assert.equal(f.starts.length, 1);
+      const options = f.starts[0];
+      assert.equal(options.url, "https://fixture.invalid/new-link");
+      assert.equal(options.filename, "folder.zip");
+      assert.equal(options.resourceId, "realDebrid:abc:archive:1,2");
+      assert.equal(options.allowParallelRanges, false);
+      assert.equal(options.requireRangeResume, true);
+      assert.equal(options.verifyResumePrefix, true);
+      assert.equal(options.expectedSize, undefined);
+      assert.equal(
+        await options.refreshUrl!(),
+        "https://fixture.invalid/new-link"
+      );
+      assert.deepEqual(f.unlockSizes, [0, 0]);
+    } finally {
+      fs.rmSync(directory, { recursive: true, force: true });
+    }
+  });
+}

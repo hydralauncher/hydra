@@ -968,3 +968,50 @@ it("keeps a generated ZIP partial file when the full response has a changed pref
     await f.close();
   }
 });
+
+it("resumes a Real-Debrid archive from its saved offset with a bounded overlap check", async () => {
+  const f = await fixture({ size: 512 * 1024 });
+  const file = path.join(f.root, f.options.filename);
+  const savedBytes = 128 * 1024;
+  fs.mkdirSync(path.dirname(file), { recursive: true });
+  fs.writeFileSync(file, f.data.subarray(0, savedBytes));
+  try {
+    const d = new JsHttpDownloader();
+    await d.startDownload({
+      ...f.options,
+      allowParallelRanges: false,
+      verifyResumePrefix: true,
+      requireRangeResume: true,
+      resourceId: "realDebrid:abc:archive:1,2",
+    });
+    assert.deepEqual(fs.readFileSync(file), f.data);
+    assert.equal(d.getDownloadStatus()?.status, "complete");
+    assert.equal(f.requests.length, 1);
+    assert.equal(f.requests[0].start, savedBytes - 64 * 1024);
+  } finally {
+    await f.close();
+  }
+});
+it("keeps a Real-Debrid archive partial when the server ignores the resume offset", async () => {
+  const f = await fixture({ ignoreRange: true, size: 512 * 1024 });
+  const file = path.join(f.root, f.options.filename);
+  const saved = f.data.subarray(0, 128 * 1024);
+  fs.mkdirSync(path.dirname(file), { recursive: true });
+  fs.writeFileSync(file, saved);
+  try {
+    await assert.rejects(
+      new JsHttpDownloader().startDownload({
+        ...f.options,
+        allowParallelRanges: false,
+        verifyResumePrefix: true,
+        requireRangeResume: true,
+        resourceId: "realDebrid:abc:archive:1,2",
+      }),
+      /ignored the resume request/
+    );
+    assert.deepEqual(fs.readFileSync(file), saved);
+    assert.equal(f.requests.length, 1);
+  } finally {
+    await f.close();
+  }
+});
