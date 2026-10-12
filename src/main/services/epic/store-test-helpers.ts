@@ -40,8 +40,9 @@ export class MemoryDatabase implements EpicStoreDatabase {
   async open() {
     await this.onOpen();
   }
-  async close() {
+  close(): Promise<void> {
     this.closed = true;
+    return Promise.resolve();
   }
   async get(key: string) {
     assert.equal(this.closed, false);

@@ -117,26 +117,84 @@ test("unknown remote status and older API never claim disconnection", () => {
 });
 
 test("logout and active operations block account actions", () => {
-  for (const status of [
-    "awaiting-login",
-    "authenticating",
-    "connecting",
-    "disconnecting",
+  for (const [status, statusKey] of [
+    ["awaiting-login", "epic_status_awaiting_login"],
+    ["authenticating", "epic_status_connecting"],
+    ["connecting", "epic_status_connecting"],
+    ["disconnecting", "epic_status_disconnecting"],
   ] as const) {
     const view = getEpicIntegrationPresentation(
       state({ operation: { id: "operation", status } }),
       true
     );
-    assert.equal(view.canAuthenticate, false);
-    assert.equal(view.canDisconnect, false);
+    assert.deepEqual(view, {
+      statusKey,
+      statusTone: "neutral",
+      requiresReconnect: false,
+      canAuthenticate: false,
+      canDisconnect: false,
+    });
   }
   for (const current of [
     state(),
     state({ hydraLoggedIn: false, hydraUserId: null }),
   ]) {
     const view = getEpicIntegrationPresentation(current, false);
-    assert.equal(view.canAuthenticate, false);
-    assert.equal(view.canDisconnect, false);
+    assert.deepEqual(view, {
+      statusKey: "integration_status_not_connected",
+      statusTone: "neutral",
+      requiresReconnect: false,
+      canAuthenticate: false,
+      canDisconnect: false,
+    });
+  }
+});
+
+test("confirmed links preserve their status tone and available actions", () => {
+  const cases: [
+    Partial<EpicConnectionState>,
+    string,
+    string,
+    boolean,
+    boolean,
+  ][] = [
+    [{}, "epic_status_connected", "success", false, true],
+    [
+      { sessionState: "missing" },
+      "epic_status_reconnect_required",
+      "warning",
+      true,
+      true,
+    ],
+    [
+      { connection: { connected: false } },
+      "integration_status_not_connected",
+      "neutral",
+      false,
+      false,
+    ],
+    [
+      { verification: "unconfirmed" },
+      "epic_status_unconfirmed",
+      "warning",
+      false,
+      true,
+    ],
+  ];
+  for (const [
+    overrides,
+    statusKey,
+    statusTone,
+    requiresReconnect,
+    canDisconnect,
+  ] of cases) {
+    assert.deepEqual(getEpicIntegrationPresentation(state(overrides), true), {
+      statusKey,
+      statusTone,
+      requiresReconnect,
+      canAuthenticate: true,
+      canDisconnect,
+    });
   }
 });
 

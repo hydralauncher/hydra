@@ -168,7 +168,9 @@ function getEpicConnectPayload(
   if (!displayName || displayName.length > EPIC_DISPLAY_NAME_MAX_LENGTH)
     throw new EpicIntegrationError("invalid-account-data");
   const expiresAt =
-    typeof user.expires_at === "string" ? Date.parse(user.expires_at) : NaN;
+    typeof user.expires_at === "string"
+      ? Date.parse(user.expires_at)
+      : Number.NaN;
   if (
     typeof user.access_token !== "string" ||
     user.access_token.length === 0 ||
@@ -784,13 +786,13 @@ export class EpicIntegrationCore {
   }
 
   shutdown(): Promise<void> {
-    if (this.shuttingDown) return this.shuttingDown;
+    if (this.shuttingDown !== null) return this.shuttingDown;
     this.stopping = true;
     this.invalidateQueries();
     this.shuttingDown = (async () => {
       try {
         await this.cancelActive();
-        await Promise.allSettled([...this.reads]);
+        await Promise.allSettled(this.reads);
         if (!(await this.retryCleanup()))
           throw new EpicIntegrationError("cleanup-failed");
       } finally {

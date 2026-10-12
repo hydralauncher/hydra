@@ -63,14 +63,15 @@ export const getEpicIntegrationPresentation = (
   };
 
   if (state?.operation) {
+    let statusKey = "epic_status_connecting";
+    if (state.operation.status === "awaiting-login") {
+      statusKey = "epic_status_awaiting_login";
+    } else if (state.operation.status === "disconnecting") {
+      statusKey = "epic_status_disconnecting";
+    }
     return {
       ...actions,
-      statusKey:
-        state.operation.status === "awaiting-login"
-          ? "epic_status_awaiting_login"
-          : state.operation.status === "disconnecting"
-            ? "epic_status_disconnecting"
-            : "epic_status_connecting",
+      statusKey,
       statusTone: "neutral" as const,
     };
   }
@@ -83,17 +84,14 @@ export const getEpicIntegrationPresentation = (
     };
   }
 
-  return {
-    ...actions,
-    statusKey: requiresReconnect
-      ? "epic_status_reconnect_required"
-      : connected
-        ? "epic_status_connected"
-        : "integration_status_not_connected",
-    statusTone: requiresReconnect
-      ? ("warning" as const)
-      : connected
-        ? ("success" as const)
-        : ("neutral" as const),
-  };
+  let statusKey = "integration_status_not_connected";
+  let statusTone: "neutral" | "warning" | "success" = "neutral";
+  if (requiresReconnect) {
+    statusKey = "epic_status_reconnect_required";
+    statusTone = "warning";
+  } else if (connected) {
+    statusKey = "epic_status_connected";
+    statusTone = "success";
+  }
+  return { ...actions, statusKey, statusTone };
 };

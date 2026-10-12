@@ -56,7 +56,7 @@ export function waitForHydraAuthRefresh<T>(
 export class HydraAuthContextTracker {
   private current: HydraApiAuthContext | null = null;
   private epoch = 0;
-  private listeners = new Set<() => void>();
+  private readonly listeners = new Set<() => void>();
 
   get generation() {
     return this.epoch;

@@ -52,7 +52,7 @@ type Request = {
   config: InternalAxiosRequestConfig;
 };
 
-async function fixture(t: TestContext) {
+async function fixture(t: TestContext, apiUrl = "http://localhost:3000") {
   const root = await fs.mkdtemp(path.join(os.tmpdir(), "hydra-api-"));
   const key = "__hydraTest" + randomUUID();
   const globals = globalThis as unknown as Record<string, unknown>;
@@ -167,9 +167,7 @@ async function fixture(t: TestContext) {
     format: "esm",
     target: "node20",
     define: {
-      "import.meta.env.MAIN_VITE_API_URL": JSON.stringify(
-        "http://localhost:3000"
-      ),
+      "import.meta.env.MAIN_VITE_API_URL": JSON.stringify(apiUrl),
     },
     plugins: [
       {
@@ -230,6 +228,16 @@ async function fixture(t: TestContext) {
     },
   };
 }
+
+test("auth context removes trailing slashes without changing the API path", async (t) => {
+  const f = await fixture(t, "http://localhost:3000/api//v1///");
+  await f.signIn("A");
+  assert.equal(
+    f.api.getAuthContext()?.environment,
+    "http://localhost:3000/api//v1"
+  );
+  assert.equal(f.api.getAuthContext()?.userId, "A");
+});
 
 test("late refresh or 401 from A never dispatches Epic access token or changes B", async (t) => {
   for (const status of [200, 401]) {

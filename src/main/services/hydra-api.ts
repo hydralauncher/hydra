@@ -12,6 +12,7 @@ import { db } from "@main/level";
 import { levelKeys } from "@main/level/sublevels";
 import type { Auth, User } from "@types";
 import { SSEClient } from "./sse";
+import { trimTrailingSlashes } from "../../shared/trim-trailing-slashes.js";
 import {
   sanitizeNetworkLogPayload,
   summarizeNetworkLogPayload,
@@ -76,7 +77,7 @@ export class HydraApi {
         ? claims.userId
         : null;
     this.authContexts.activate(
-      import.meta.env.MAIN_VITE_API_URL.replace(/\/+$/, ""),
+      trimTrailingSlashes(import.meta.env.MAIN_VITE_API_URL),
       userId,
       generation
     );

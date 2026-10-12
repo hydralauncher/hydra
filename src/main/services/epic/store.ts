@@ -2,6 +2,7 @@ import { ClassicLevel } from "classic-level";
 import { createHash } from "node:crypto";
 import fs from "node:fs/promises";
 import path from "node:path";
+import { trimTrailingSlashes } from "../../../shared/trim-trailing-slashes.js";
 import type {
   EpicConnectedConnection,
   EpicErrorCode,
@@ -95,14 +96,14 @@ const getEpicStoreScopeKey = (scope: EpicStoreScope): string => {
       environment.search ||
       environment.hash ||
       typeof scope.userId !== "string" ||
-      !scope.userId ||
+      !scope.userId?.length ||
       scope.userId.trim() !== scope.userId
     )
-      throw new Error();
+      throw new Error("Invalid Epic store scope");
     return createHash("sha256")
       .update(
         JSON.stringify([
-          environment.toString().replace(/\/+$/, ""),
+          trimTrailingSlashes(environment.toString()),
           scope.userId,
         ])
       )
@@ -125,8 +126,8 @@ export class EpicConnectionStore {
     this.directory = path.join(options.userDataPath, "epic-sessions-db");
   }
   async open(): Promise<void> {
-    if (this.closing) throw new EpicStoreError("persistence-failed");
-    if (this.opening) return this.opening;
+    if (this.closing !== null) throw new EpicStoreError("persistence-failed");
+    if (this.opening !== null) return this.opening;
     if (this.database) return;
     const opening = this.openDatabase();
     this.opening = opening;
@@ -143,10 +144,11 @@ export class EpicConnectionStore {
         mode: STORE_DIRECTORY_MODE,
       });
       const stat = await fs.lstat(this.directory);
-      if (!stat.isDirectory() || stat.isSymbolicLink()) throw new Error();
+      if (!stat.isDirectory() || stat.isSymbolicLink())
+        throw new Error("Invalid Epic store directory");
       if (process.platform !== "win32")
         await fs.chmod(this.directory, STORE_DIRECTORY_MODE);
-      if (this.closing) throw new Error();
+      if (this.closing !== null) throw new Error("Epic store is closing");
       // ClassicLevel auto-opens; the private directory must already exist.
       this.database = this.options.createDatabase
         ? this.options.createDatabase(this.directory)
@@ -161,7 +163,7 @@ export class EpicConnectionStore {
     }
   }
   private enqueue<T>(key: string, task: () => Promise<T>): Promise<T> {
-    if (this.closing)
+    if (this.closing !== null)
       return Promise.reject(new EpicStoreError("persistence-failed"));
     const result = (this.queues.get(key) ?? Promise.resolve())
       .catch(() => undefined)
@@ -182,7 +184,7 @@ export class EpicConnectionStore {
   }
   private async readRecord(key: string): Promise<StoredRecord | null> {
     try {
-      if (this.opening) await this.opening;
+      if (this.opening !== null) await this.opening;
       else if (!this.database) await this.open();
       const value = await this.database!.get(key);
       if (value === undefined) return null;
@@ -193,7 +195,7 @@ export class EpicConnectionStore {
         value.schemaVersion !== 1 ||
         !isConnection(value.connection)
       )
-        throw new Error();
+        throw new Error("Invalid Epic store record");
       return {
         schemaVersion: 1,
         connection: publicConnection(value.connection),
@@ -344,7 +346,7 @@ export class EpicConnectionStore {
   }
   close(): Promise<void> {
     this.closing ??= (async () => {
-      await Promise.allSettled([...this.queues.values()]);
+      await Promise.allSettled(this.queues.values());
       await this.opening?.catch(() => undefined);
       try {
         await this.database?.close();

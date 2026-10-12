@@ -50,11 +50,13 @@ test("shutdown drains pending hydration and GET without late publication", async
   await readStarted.promise;
   const count = f.state.events.length;
   const closing = f.core.shutdown();
+  assert.equal(f.core.shutdown(), closing);
   assert.equal(db.closed, false);
   releaseRead.resolve();
   releaseGet.resolve(connection);
   await query;
   await closing;
+  assert.equal(f.core.shutdown(), closing);
   assert.equal(db.closed, true);
   assert.equal(f.state.events.length, count);
   await assert.rejects(f.core.initialize(), { code: "operation-cancelled" });

@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { createHash } from "node:crypto";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
@@ -79,6 +80,40 @@ test("shared LevelDB cannot read or delete Epic sessions", async (t) => {
     assert.deepEqual((await f.store.read(scope))?.bundle, bundle);
   } finally {
     await shared.close();
+  }
+});
+
+test("previous scope keys retain the same identity and session after normalization", async (t) => {
+  const f = fixture(t);
+  const environments = [scope.environment, `${scope.environment}/v1//epic`];
+  const previousDatabase = new ClassicLevel<string, unknown>(
+    path.join(f.root, "epic-sessions-db"),
+    { valueEncoding: "json" }
+  );
+  try {
+    for (const environment of environments) {
+      const previousKey = createHash("sha256")
+        .update(JSON.stringify([environment, scope.userId]))
+        .digest("hex");
+      await previousDatabase.put(
+        previousKey,
+        { schemaVersion: 1, connection, bundle },
+        { sync: true }
+      );
+    }
+  } finally {
+    await previousDatabase.close();
+  }
+  for (const environment of environments) {
+    for (const suffix of ["", "/", "///"]) {
+      assert.deepEqual(
+        await f.store.read({
+          ...scope,
+          environment: `${environment}${suffix}`,
+        }),
+        { connection, sessionState: "ready", bundle }
+      );
+    }
   }
 });
 
@@ -408,6 +443,7 @@ test("close drains accepted writes and permanently prevents reopening", async (t
   const second = f.store.save(scope, connection, nextBundle, current);
   await started.promise;
   const closing = f.store.close();
+  assert.equal(f.store.close(), closing);
   await assert.rejects(f.store.read(scope), { code: "persistence-failed" });
   assert.equal(db.closed, false);
   release.resolve();
