@@ -7,10 +7,13 @@ out
 *.log*
 *.tsbuildinfo
 .env
+.env.local
+.env.*.local
 .vite
 ludusavi/**
 !ludusavi/config.yaml
 /hydra-native/
+/legendary/
 native/hydra-native/target/
 
 # Sentry Config File

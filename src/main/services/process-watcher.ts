@@ -15,6 +15,7 @@ import { Wine } from "./wine";
 import { NativeAddon } from "./native-addon";
 import { emulatorSessions } from "./emulators/emulator-session-tracker";
 import { launchedGamePids } from "./launched-game-pids";
+import { markGameLauncherGameDetected } from "./game-launcher-status";
 import {
   isValidProcessWatcherScan,
   startOptionalExecutableCatalogueLoad,
@@ -425,6 +426,8 @@ async function onOpenGame(game: Game, matchedPath: string) {
   // On Linux, keep the launcher visible briefly and let it auto-close itself.
   if (process.platform !== "linux") {
     WindowManager.closeGameLauncherWindow();
+  } else {
+    markGameLauncherGameDetected(gameKey);
   }
 
   // Hide Hydra to tray on game startup if enabled

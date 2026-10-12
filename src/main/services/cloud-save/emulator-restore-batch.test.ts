@@ -25,6 +25,7 @@ import {
 import {
   emulatorRestoreRule,
   retroArchSaveRawPath,
+  rpcs3GamedataRawPath,
   rpcs3SaveRawPath,
   rpcs3SavestateRawPath,
 } from "./emulator-provider-identity.js";
@@ -40,10 +41,8 @@ import {
 import { hashRomFile } from "../retroarch/rom-hash.js";
 import { mergeUserVariantSnapshots } from "./merge-user-variant-snapshots.js";
 import { blockAmbiguousRestoreTargets } from "./restore-target-collision.js";
-import {
-  parseRpcs3ActiveProfileId,
-  resolveRpcs3VfsHdd0,
-} from "./rpcs3-save-layout.js";
+import { resolveRpcs3VfsHdd0 } from "./rpcs3-save-layout.js";
+import { resolveRpcs3SavedataRestoreRule } from "./rpcs3-savedata-restore.js";
 
 const addonPath = path.resolve(
   path.dirname(fileURLToPath(import.meta.url)),
@@ -505,7 +504,7 @@ describe("emulator restore batch", () => {
     }
   );
   it(
-    "maps RPCS3 cloud user 00000001 to local active user 00000002",
+    "restores each RPCS3 user's saves into that same user regardless of the active one",
     { skip: !existsSync(addonPath) && "native addon is not built" },
     async () => {
       const root = await fs.mkdtemp(
@@ -521,14 +520,13 @@ describe("emulator restore batch", () => {
           "rpcs3"
         );
         const hdd0 = resolveRpcs3VfsHdd0(configRoot, null);
-        const localProfileId = parseRpcs3ActiveProfileId(
-          "[Users]\nactive_user=00000002\n"
-        );
-        assert.equal(localProfileId, "00000002");
-        const profileRoot = path.join(hdd0, "home", localProfileId!);
-        const saveRoot = path.join(profileRoot, "savedata");
+        const homeRoot = path.join(hdd0, "home");
+        const firstSaveRoot = path.join(homeRoot, "00000001", "savedata");
+        const secondSaveRoot = path.join(homeRoot, "00000002", "savedata");
         const stateRoot = path.join(configRoot, "savestates", "BLUS30443");
-        await fs.mkdir(profileRoot, { recursive: true });
+        const gamedataRoot = path.join(hdd0, "game");
+        await fs.mkdir(path.join(homeRoot, "00000001"), { recursive: true });
+        await fs.mkdir(path.join(homeRoot, "00000002"), { recursive: true });
         await fs.mkdir(path.join(configRoot, "GuiConfigs"), {
           recursive: true,
         });
@@ -536,16 +534,37 @@ describe("emulator restore batch", () => {
           path.join(configRoot, "GuiConfigs", "persistent_settings.dat"),
           "[Users]\nactive_user=00000002\n"
         );
-        assert.equal(existsSync(saveRoot), false);
+        assert.equal(existsSync(firstSaveRoot), false);
+        assert.equal(existsSync(secondSaveRoot), false);
         assert.equal(existsSync(stateRoot), false);
+        assert.equal(existsSync(gamedataRoot), false);
 
+        const savedataRule = async (profileId: string) => {
+          const rule = await resolveRpcs3SavedataRestoreRule(
+            {
+              rawPath: rpcs3SaveRawPath("BLUS30443", profileId),
+              relativePath: "BLUS30443-SLOT01/DATA.BIN",
+            },
+            new Set(["BLUS30443"]),
+            homeRoot
+          );
+          assert.ok(rule?.preferredPath);
+          return rule.preferredPath;
+        };
         const entries = [
           {
             rawPath: rpcs3SaveRawPath("BLUS30443", "00000001"),
             relativePath: "BLUS30443-SLOT01/DATA.BIN",
-            preferredPath: saveRoot,
+            preferredPath: await savedataRule("00000001"),
             kind: "dir" as const,
-            content: "savedata",
+            content: "first user",
+          },
+          {
+            rawPath: rpcs3SaveRawPath("BLUS30443", "00000002"),
+            relativePath: "BLUS30443-SLOT01/DATA.BIN",
+            preferredPath: await savedataRule("00000002"),
+            kind: "dir" as const,
+            content: "second user",
           },
           {
             rawPath: rpcs3SavestateRawPath("BLUS30443"),
@@ -553,6 +572,13 @@ describe("emulator restore batch", () => {
             preferredPath: path.join(stateRoot, "BLUS30443_0_1.SAVESTAT"),
             kind: "file" as const,
             content: "savestate",
+          },
+          {
+            rawPath: rpcs3GamedataRawPath("BLUS30443"),
+            relativePath: "BLUS30443_USER1/USRDIR/PROFILE",
+            preferredPath: gamedataRoot,
+            kind: "dir" as const,
+            content: "gamedata",
           },
         ];
         const plans: ResolveRestoreTargetsResult[] = [];
@@ -616,14 +642,18 @@ describe("emulator restore batch", () => {
           []
         );
         assert.deepEqual(
-          replacements.map((replacement) => replacement.targetPath),
+          replacements.map((replacement) =>
+            path.normalize(replacement.targetPath)
+          ),
           [
-            path.join(saveRoot, "BLUS30443-SLOT01", "DATA.BIN"),
+            path.join(firstSaveRoot, "BLUS30443-SLOT01", "DATA.BIN"),
+            path.join(secondSaveRoot, "BLUS30443-SLOT01", "DATA.BIN"),
             path.join(stateRoot, "BLUS30443_0_1.SAVESTAT"),
+            path.join(gamedataRoot, "BLUS30443_USER1", "USRDIR", "PROFILE"),
           ]
         );
         const result = await native.replaceRestoreTargets(replacements);
-        assert.equal(result.restoredFiles.length, 2);
+        assert.equal(result.restoredFiles.length, 4);
         assert.deepEqual(result.failedFiles, []);
         for (const [index, replacement] of replacements.entries()) {
           assert.equal(
