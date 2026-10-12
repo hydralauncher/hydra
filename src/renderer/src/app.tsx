@@ -174,6 +174,19 @@ export function App() {
   }, [updateLibrary]);
 
   useEffect(() => {
+    const refreshLibrary = () => {
+      void updateLibrary();
+    };
+
+    window.addEventListener("hydra:game-visibility-updated", refreshLibrary);
+    return () =>
+      window.removeEventListener(
+        "hydra:game-visibility-updated",
+        refreshLibrary
+      );
+  }, [updateLibrary]);
+
+  useEffect(() => {
     if (!lastPacket?.gameId) return;
 
     const activeGame = downloadLibrary.find(
