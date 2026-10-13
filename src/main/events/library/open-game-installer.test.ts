@@ -3,7 +3,7 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { it } from "node:test";
-import { loadTestModule } from "../../../../scripts/load-test-module.mjs";
+import { loadTestModule } from "../../../../scripts/test/load-module.mjs";
 
 for (const platform of ["darwin", "win32", "linux"]) {
   for (const file of [true, false]) {

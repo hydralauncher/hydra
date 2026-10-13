@@ -6,7 +6,8 @@ import path from "node:path";
 import { createRequire } from "node:module";
 import { setTimeout as delay } from "node:timers/promises";
 import { after, it, type TestContext } from "node:test";
-import { loadTestModule } from "../../../../scripts/load-test-module.mjs";
+import { loadTestModule } from "../../../../scripts/test/load-module.mjs";
+import { runDownloadQueue } from "./download-work-queue.ts";
 import { DownloadThrottle } from "./download-throttle.ts";
 import * as helpers from "./js-http-downloader-helpers.ts";
 import * as parallel from "./parallel-range-download.ts";
@@ -20,6 +21,7 @@ rangeState.configureRangeStateDirectory(metadata);
 after(() => fs.rmSync(metadata, { recursive: true, force: true }));
 const dependencies: Record<string, unknown> = {
   "./download-throttle": { DownloadThrottle },
+  "./download-work-queue": { runDownloadQueue },
   "./js-http-downloader-helpers": helpers,
   "./parallel-range-download": parallel,
   "./range-download-state": rangeState,

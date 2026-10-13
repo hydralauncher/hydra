@@ -1,3 +1,4 @@
+import { runDownloadQueue } from "./download-work-queue.js";
 import fs from "node:fs";
 import {
   markSavedRange,
@@ -333,24 +334,11 @@ export async function downloadParallelRanges({
       throw error;
     }
   };
-  const worker = (): Promise<void> =>
-    new Promise((resolve, reject) => {
-      const startNextRange = () => {
-        try {
-          signal.throwIfAborted();
-          const job = jobs[nextJob++];
-          if (!job) {
-            resolve();
-            return;
-          }
-          // Each worker retains one request, regardless of the queue length.
-          runRange(job).then(startNextRange, reject);
-        } catch (error) {
-          reject(error);
-        }
-      };
-      startNextRange();
-    });
+  const worker = () =>
+    runDownloadQueue(() => {
+      const job = jobs[nextJob++];
+      return job ? runRange(job) : undefined;
+    }, signal);
   let workers: Promise<void>[] = [];
   try {
     await persist();

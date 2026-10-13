@@ -7,7 +7,7 @@ import { Readable } from "node:stream";
 import { pipeline } from "node:stream/promises";
 import { setTimeout as delay } from "node:timers/promises";
 import { after, it } from "node:test";
-import { loadTestModule } from "../../../../scripts/load-test-module.mjs";
+import { loadTestModule } from "../../../../scripts/test/load-module.mjs";
 import { DownloadThrottle } from "./download-throttle.ts";
 import * as helpers from "./js-http-downloader-helpers.ts";
 import * as parallel from "./parallel-range-download.ts";

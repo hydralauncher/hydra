@@ -2871,17 +2871,19 @@ export class DownloadManager {
         this.jsDownloader !== downloader
       )
         return;
-      await this.persistPausedJsProgress(
-        batch.downloadId,
-        () =>
-          this.startGeneration === generation &&
-          this.jsDownloader === downloader
-      ).catch((persistError) =>
+      try {
+        await this.persistPausedJsProgress(
+          batch.downloadId,
+          () =>
+            this.startGeneration === generation &&
+            this.jsDownloader === downloader
+        );
+      } catch (persistError) {
         logger.error(
           "[DownloadManager] Failed to save batch progress",
           persistError
-        )
-      );
+        );
+      }
       await this.reportRuntimeDownloadError(
         batch.downloadId,
         error,

@@ -6,7 +6,8 @@ import os from "node:os";
 import * as torboxFiles from "./torbox-files.ts";
 import * as rangeState from "./range-download-state.ts";
 import { after, it } from "node:test";
-import { loadTestModule } from "../../../../scripts/load-test-module.mjs";
+import { loadTestModule } from "../../../../scripts/test/load-module.mjs";
+import { runDownloadQueue } from "./download-work-queue.ts";
 import { DownloadThrottle } from "./download-throttle.ts";
 import * as shared from "../../../shared/constants.ts";
 import * as batchHelpers from "./js-http-downloader-helpers.ts";
@@ -63,6 +64,7 @@ function manager(
     (id: string) =>
       ({
         "./download-throttle": { DownloadThrottle },
+        "./download-work-queue": { runDownloadQueue },
         "./js-http-downloader": { JsHttpDownloader: StubDownloader },
         "./js-http-downloader-helpers": batchHelpers,
         "./parallel-range-download": ranges,

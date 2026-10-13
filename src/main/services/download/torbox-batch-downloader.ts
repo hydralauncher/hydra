@@ -1,3 +1,4 @@
+import { runDownloadQueue } from "./download-work-queue";
 import type { DownloadFile } from "@types";
 import { DownloadThrottle } from "./download-throttle";
 import {
@@ -130,20 +131,17 @@ export class TorBoxBatchDownloader {
 
   private async runSmallFiles(start: number, end: number): Promise<void> {
     let position = start;
-    const runWorker = async () => {
-      while (position < end && !this.controller.signal.aborted) {
-        const next = position++;
-        try {
-          await this.downloadFile(next);
-        } catch (error) {
-          if (!this.controller.signal.aborted) {
-            this.failure = error;
-            this.stop("error");
-          }
-          throw error;
+    const runWorker = () =>
+      runDownloadQueue(
+        () => (position < end ? this.downloadFile(position++) : undefined),
+        this.controller.signal
+      ).catch((error: unknown) => {
+        if (!this.controller.signal.aborted) {
+          this.failure = error;
+          this.stop("error");
         }
-      }
-    };
+        throw error;
+      });
     const results = await Promise.allSettled(
       Array.from(
         { length: Math.min(PARALLEL_RANGE_COUNT, end - start) },
@@ -157,24 +155,19 @@ export class TorBoxBatchDownloader {
   private async run(): Promise<void> {
     try {
       let position = 0;
-      while (
-        position < this.pending.length &&
-        !this.controller.signal.aborted
-      ) {
+      await runDownloadQueue(() => {
+        if (position >= this.pending.length) return undefined;
         const index = this.pending[position];
-        if (this.files[index].size > PARALLEL_RANGE_SIZE) {
-          await this.downloadFile(position++);
-        } else {
-          let end = position + 1;
-          while (
-            end < this.pending.length &&
-            this.files[this.pending[end]].size <= PARALLEL_RANGE_SIZE
-          )
-            end++;
-          await this.runSmallFiles(position, end);
-          position = end;
-        }
-      }
+        if (this.files[index].size > PARALLEL_RANGE_SIZE)
+          return this.downloadFile(position++);
+        const start = position;
+        while (
+          position < this.pending.length &&
+          this.files[this.pending[position]].size <= PARALLEL_RANGE_SIZE
+        )
+          position++;
+        return this.runSmallFiles(start, position);
+      }, this.controller.signal);
       if (!this.controller.signal.aborted) this.status = "complete";
     } catch (error) {
       if (this.status === "paused") return;
