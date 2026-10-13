@@ -1748,7 +1748,7 @@
     "epic_sync_merging": "Updating local library…",
     "epic_sync_finishing": "Finishing up…",
     "epic_sync_cancelling": "Cancelling Epic sync…",
-    "epic_sync_success": "Epic library imported",
+    "epic_sync_success": "Синхронизация Epic завершена",
     "epic_sync_in_progress": "An Epic sync is already running. Wait for it to finish or cancel the pending upload.",
     "epic_sync_invalid": "Epic library data could not be verified. Your previous library was preserved.",
     "epic_sync_too_large": "The Epic library exceeds the sync limits.",

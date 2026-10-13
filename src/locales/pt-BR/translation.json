@@ -1792,7 +1792,7 @@
     "epic_sync_merging": "Atualizando biblioteca local…",
     "epic_sync_finishing": "Finalizando…",
     "epic_sync_cancelling": "Cancelando sincronização Epic…",
-    "epic_sync_success": "Biblioteca Epic importada",
+    "epic_sync_success": "Sincronização Epic concluída",
     "epic_sync_in_progress": "Uma sincronização Epic já está em andamento. Aguarde ou cancele o envio pendente.",
     "epic_sync_invalid": "Não foi possível validar a biblioteca Epic. Sua biblioteca anterior foi preservada.",
     "epic_sync_too_large": "A biblioteca Epic excede os limites de sincronização.",
