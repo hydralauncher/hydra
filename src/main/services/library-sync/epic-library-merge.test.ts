@@ -5,6 +5,7 @@ import ts from "typescript";
 import { test } from "node:test";
 import { chunk } from "lodash-es";
 import * as playtime from "../../../shared/playtime.js";
+import { preserveEpicDefaultArtwork } from "../../../shared/artwork-resolver.js";
 import * as source from "./resolve-library-source.js";
 import * as queue from "./library-write-queue.js";
 import { mergeImportedProfileGame } from "./merge-imported-profile-game.js";
@@ -81,7 +82,7 @@ function fixture() {
   };
   const modules: Record<string, unknown> = {
     "lodash-es": { chunk },
-    "@shared": playtime,
+    "@shared": { ...playtime, preserveEpicDefaultArtwork },
     "./library-write-queue": queue,
     "../hydra-api": {
       HydraApi: {
