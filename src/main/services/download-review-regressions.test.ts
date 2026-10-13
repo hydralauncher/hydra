@@ -728,50 +728,40 @@ it("background enqueue does not abort preparation for a transfer already claimin
   assert.equal(f.records.get("manual").status, "active");
 });
 
-it("pausing a background request waiting for the lock prevents preparation from starting", async () => {
-  const f = orchestrator();
-  f.finishActive();
-  f.records.set("next", { ...f.download, queued: false });
-  f.release();
-  const entered = deferred();
-  const release = deferred();
-  const held = withDownloadActivation(async () => {
-    entered.resolve();
-    await release.promise;
+for (const action of ["pause", "shutdown"] as const) {
+  it(`${action} cancels a background request waiting for the activation lock`, async () => {
+    const f = orchestrator();
+    f.finishActive();
+    f.records.set("next", { ...f.download, queued: false });
+    f.release();
+    const entered = deferred();
+    const release = deferred();
+    const held = withDownloadActivation(async () => {
+      entered.resolve();
+      await release.promise;
+    });
+    await entered.promise;
+    try {
+      await f.instance.enqueuePreparedDownload(f.download);
+      const cancelled =
+        action === "pause"
+          ? f.instance.pauseDownloadById("steam", "next")
+          : f.instance.cancelPendingDebridPreparations();
+      await new Promise<void>((resolve) => setImmediate(resolve));
+      release.resolve();
+      await Promise.all([held, cancelled]);
+      await new Promise<void>((resolve) => setImmediate(resolve));
+      assert.equal(f.preparationCalls(), 0);
+      assert.equal(f.records.get("next").queued, false);
+      assert.deepEqual(f.resumed, []);
+      if (action === "pause")
+        assert.equal(f.records.get("next").debridAutoResume, false);
+    } finally {
+      release.resolve();
+      await held;
+    }
   });
-  await entered.promise;
-  await f.instance.enqueuePreparedDownload(f.download);
-  const paused = f.instance.pauseDownloadById("steam", "next");
-  await new Promise<void>((resolve) => setImmediate(resolve));
-  release.resolve();
-  await Promise.all([held, paused]);
-  await new Promise<void>((resolve) => setImmediate(resolve));
-  assert.deepEqual(f.resumed, []);
-  assert.equal(f.records.get("next").queued, false);
-  assert.equal(f.records.get("next").debridAutoResume, false);
-});
-
-it("shutdown cancels a background request still waiting for the activation lock", async () => {
-  const f = orchestrator();
-  f.finishActive();
-  f.records.set("next", { ...f.download, queued: false });
-  f.release();
-  const entered = deferred();
-  const release = deferred();
-  const held = withDownloadActivation(async () => {
-    entered.resolve();
-    await release.promise;
-  });
-  await entered.promise;
-  await f.instance.enqueuePreparedDownload(f.download);
-  f.instance.cancelPendingDebridPreparations();
-  release.resolve();
-  await held;
-  await new Promise<void>((resolve) => setImmediate(resolve));
-  assert.equal(f.preparationCalls(), 0);
-  assert.equal(f.records.get("next").queued, false);
-  assert.deepEqual(f.resumed, []);
-});
+}
 
 it("shutdown cancels in-flight preparation and prevents subsequent readiness polls and starts", async () => {
   const f = orchestrator();

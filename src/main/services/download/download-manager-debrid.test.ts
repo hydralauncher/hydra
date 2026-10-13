@@ -15,6 +15,7 @@ import * as ranges from "./parallel-range-download.ts";
 import * as filenames from "./download-filename.ts";
 import type { RealDebridClient } from "./real-debrid.ts";
 import type { DownloadProgress } from "../../../types/download.types.ts";
+import type { DownloadFile } from "../../../types/level.types.ts";
 import type { JsHttpDownloaderOptions } from "./js-http-downloader.ts";
 
 const metadataDirectory = fs.mkdtempSync(
@@ -167,6 +168,12 @@ function manager(
       url: string
     ) => JsHttpDownloaderOptions;
     getDownloadStatusFromJs: () => Promise<DownloadProgress | null>;
+    getTorBoxDownloadOptions: (download: {
+      uri: string;
+      downloadPath: string;
+      fileIndices?: number[];
+      files?: DownloadFile[];
+    }) => Promise<JsHttpDownloaderOptions & { totalSize?: number }>;
     getPremiumizeDownloadOptions: (download: {
       uri: string;
       downloadPath: string;
@@ -580,3 +587,58 @@ for (const age of [0, 120_000, -1000]) {
     }
   });
 }
+
+it("TorBox validation and startup retain completed, sparse partial, and missing file progress", async () => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), "torbox-progress-"));
+  const files = [
+    { id: 1, path: "folder/complete.bin", size: 4 },
+    { id: 2, path: "folder/partial.bin", size: 8 },
+    { id: 3, path: "folder/missing.bin", size: 2 },
+  ];
+  fs.mkdirSync(path.join(root, "folder"));
+  fs.writeFileSync(path.join(root, files[0].path), Buffer.alloc(4));
+  const partial = path.join(root, files[1].path);
+  fs.writeFileSync(partial, Buffer.alloc(8));
+  const f = manager({ torrentId: 1, name: "folder", totalSize: 14, files });
+  const download = {
+    shop: "steam",
+    objectId: "fixture",
+    downloader: shared.Downloader.TorBox,
+    uri: "magnet:fixture",
+    downloadPath: root,
+    files: undefined as DownloadFile[] | undefined,
+  };
+  const progress = () =>
+    Array.from(download.files ?? [], (file) => [
+      file.index,
+      file.bytesDownloaded,
+      file.completed,
+    ]);
+  try {
+    await rangeState.saveRangeState(partial, {
+      version: 1,
+      total: 8,
+      validator: "etag:fixture",
+      resourceId: null,
+      ranges: [[0, 3]],
+    });
+    const options = await f.instance.getTorBoxDownloadOptions(download);
+    const expected = [
+      [1, 4, true],
+      [2, 3, false],
+      [3, 0, false],
+    ];
+    assert.deepEqual(progress(), expected);
+    assert.equal(options.totalSize, 14);
+    assert.equal(options.filename, files[0].path);
+    f.setStored(download);
+    await f.instance.startDownload(download);
+    await new Promise<void>((resolve) => setImmediate(resolve));
+    assert.deepEqual(progress(), expected);
+    assert.equal(f.starts.length, 1);
+    assert.equal(f.starts[0].filename, files[1].path);
+    assert.equal(f.starts[0].expectedSize, 8);
+  } finally {
+    fs.rmSync(root, { recursive: true, force: true });
+  }
+});

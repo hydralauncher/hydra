@@ -12,7 +12,10 @@ import ts from "typescript";
 import * as helpers from "./js-http-downloader-helpers.ts";
 import * as parallel from "./parallel-range-download.ts";
 import * as rangeState from "./range-download-state.ts";
-import type { JsHttpDownloader as DownloaderType } from "./js-http-downloader.ts";
+import type {
+  JsHttpDownloader as DownloaderType,
+  JsHttpDownloaderOptions,
+} from "./js-http-downloader.ts";
 
 const metadataDirectory = fs.mkdtempSync(
   path.join(os.tmpdir(), "hydra-range-metadata-")
@@ -200,6 +203,32 @@ async function waitUntil(check: () => boolean, timeout = 4000) {
   }
 }
 
+async function pauseAfterBytes(
+  options: JsHttpDownloaderOptions,
+  minimumBytes: number
+) {
+  const downloader = new JsHttpDownloader();
+  const running = downloader.startDownload(options);
+  await waitUntil(
+    () => (downloader.getDownloadStatus()?.bytesDownloaded ?? 0) >= minimumBytes
+  );
+  downloader.pauseDownload();
+  await running;
+}
+
+function identifiedArchiveOptions(
+  options: JsHttpDownloaderOptions
+): JsHttpDownloaderOptions {
+  return {
+    ...options,
+    allowParallelRanges: false,
+    verifyResumePrefix: true,
+    requireRangeResume: true,
+    requireResourceIdentity: true,
+    resourceId: "realDebrid:abc:archive:1,2",
+  };
+}
+
 it("uses parallel ranges for TorBox-style responses without ETags", async () => {
   const f = await fixture({ etag: null });
   try {
@@ -324,13 +353,7 @@ it("changed validators preserve the saved file and stop resume", async () => {
   const behavior: FixtureOptions = {};
   const f = await fixture(behavior);
   try {
-    const d = new JsHttpDownloader();
-    const running = d.startDownload(f.options);
-    await waitUntil(
-      () => (d.getDownloadStatus()?.bytesDownloaded ?? 0) >= 64 * 1024
-    );
-    d.pauseDownload();
-    await running;
+    await pauseAfterBytes(f.options, 64 * 1024);
     const output = path.join(f.root, f.options.filename);
     const before = fs.readFileSync(output);
     behavior.etag = '"fixture-v2"';
@@ -371,13 +394,7 @@ it("a ranged download refuses a later full response without replay", async () =>
   const behavior: FixtureOptions = {};
   const f = await fixture(behavior);
   try {
-    const d = new JsHttpDownloader();
-    const running = d.startDownload(f.options);
-    await waitUntil(
-      () => (d.getDownloadStatus()?.bytesDownloaded ?? 0) >= 64 * 1024
-    );
-    d.pauseDownload();
-    await running;
+    await pauseAfterBytes(f.options, 64 * 1024);
     const output = path.join(f.root, f.options.filename);
     const before = fs.readFileSync(output);
     behavior.ignoreRange = true;
@@ -1022,23 +1039,10 @@ for (const [label, nextIdentity] of [
 ]) {
   it(`archive identity prevents resume with ${label} even when the saved overlap matches`, async () => {
     const f = await fixture({ size: 2 * 1024 * 1024 });
-    const archiveOptions = {
-      ...f.options,
-      allowParallelRanges: false,
-      verifyResumePrefix: true,
-      requireRangeResume: true,
-      requireResourceIdentity: true,
-      resourceId: "realDebrid:abc:archive:1,2",
-    };
+    const archiveOptions = identifiedArchiveOptions(f.options);
     const file = path.join(f.root, f.options.filename);
     try {
-      const first = new JsHttpDownloader();
-      const running = first.startDownload(archiveOptions);
-      await waitUntil(
-        () => (first.getDownloadStatus()?.bytesDownloaded ?? 0) >= 256 * 1024
-      );
-      first.pauseDownload();
-      await running;
+      await pauseAfterBytes(archiveOptions, 256 * 1024);
       const saved = fs.readFileSync(file);
       f.data.fill(255, 0, 32 * 1024);
       const before = f.requests.length;
@@ -1062,14 +1066,7 @@ it("archive identity refuses to adopt an unidentified legacy partial", async () 
   const saved = f.data.subarray(0, 128 * 1024);
   fs.mkdirSync(path.dirname(file), { recursive: true });
   fs.writeFileSync(file, saved);
-  const archiveOptions = {
-    ...f.options,
-    allowParallelRanges: false,
-    verifyResumePrefix: true,
-    requireRangeResume: true,
-    requireResourceIdentity: true,
-    resourceId: "realDebrid:abc:archive:1,2",
-  };
+  const archiveOptions = identifiedArchiveOptions(f.options);
   try {
     await assert.rejects(
       new JsHttpDownloader().startDownload(archiveOptions),
@@ -1084,23 +1081,10 @@ it("archive identity refuses to adopt an unidentified legacy partial", async () 
 
 it("archive identity survives a restart and permits the same archive at a refreshed URL", async () => {
   const f = await fixture({ size: 2 * 1024 * 1024 });
-  const archiveOptions = {
-    ...f.options,
-    allowParallelRanges: false,
-    verifyResumePrefix: true,
-    requireRangeResume: true,
-    requireResourceIdentity: true,
-    resourceId: "realDebrid:abc:archive:1,2",
-  };
+  const archiveOptions = identifiedArchiveOptions(f.options);
   const file = path.join(f.root, f.options.filename);
   try {
-    const first = new JsHttpDownloader();
-    const running = first.startDownload(archiveOptions);
-    await waitUntil(
-      () => (first.getDownloadStatus()?.bytesDownloaded ?? 0) >= 256 * 1024
-    );
-    first.pauseDownload();
-    await running;
+    await pauseAfterBytes(archiveOptions, 256 * 1024);
     const savedBytes = fs.statSync(file).size;
     assert.equal(
       rangeState.readResourceIdentity(file),
@@ -1124,14 +1108,7 @@ it("archive identity rejects corrupt metadata without changing the partial file"
   fs.writeFileSync(file, saved);
   await rangeState.saveResourceIdentity(file, "realDebrid:abc:archive:1,2");
   fs.writeFileSync(rangeState.resourceIdentityPath(file), "{");
-  const archiveOptions = {
-    ...f.options,
-    allowParallelRanges: false,
-    verifyResumePrefix: true,
-    requireRangeResume: true,
-    requireResourceIdentity: true,
-    resourceId: "realDebrid:abc:archive:1,2",
-  };
+  const archiveOptions = identifiedArchiveOptions(f.options);
   try {
     await assert.rejects(
       new JsHttpDownloader().startDownload(archiveOptions),

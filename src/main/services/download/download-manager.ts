@@ -17,7 +17,13 @@ import {
   publishDownloadCompleteNotification,
   publishDownloadHaltedNotification,
 } from "../notifications";
-import type { Download, DownloadProgress, Game, UserPreferences } from "@types";
+import type {
+  Download,
+  DownloadFile,
+  DownloadProgress,
+  Game,
+  UserPreferences,
+} from "@types";
 import {
   GofileApi,
   DatanodesApi,
@@ -2053,21 +2059,40 @@ export class DownloadManager {
     );
   }
 
-  private static async getTorBoxDownloadOptions(download: Download) {
-    const manifest = await TorBoxClient.getDownloadFiles(download.uri);
-    const selected = selectTorBoxFiles(manifest, download.fileIndices);
-    download.files = selected.map((file) => {
-      this.assertSafeBatchPath(download.downloadPath, file.path);
-      const localPath = path.join(download.downloadPath, file.path);
+  private static readLocalFileProgress(
+    downloadPath: string,
+    files: { index: number; path: string; size?: number }[]
+  ): DownloadFile[] {
+    return files.map((file) => {
+      this.assertSafeBatchPath(downloadPath, file.path);
+      const localPath = path.join(downloadPath, file.path);
       const bytesDownloaded = getRangeDownloadedBytes(localPath);
       return {
-        index: file.id,
+        index: file.index,
         path: file.path,
-        size: file.size,
+        size: file.size ?? 0,
         bytesDownloaded,
         completed: fs.existsSync(localPath) && bytesDownloaded === file.size,
       };
     });
+  }
+
+  private static async prepareTorBoxFiles(download: Download) {
+    const manifest = await TorBoxClient.getDownloadFiles(download.uri);
+    const selected = selectTorBoxFiles(manifest, download.fileIndices);
+    download.files = this.readLocalFileProgress(
+      download.downloadPath,
+      selected.map((file) => ({
+        index: file.id,
+        path: file.path,
+        size: file.size,
+      }))
+    );
+    return { manifest, selected };
+  }
+
+  private static async getTorBoxDownloadOptions(download: Download) {
+    const { manifest, selected } = await this.prepareTorBoxFiles(download);
     const firstFile = selected[0];
     const url =
       firstFile.size === 0
@@ -2533,55 +2558,38 @@ export class DownloadManager {
     myGeneration: number,
     signal: AbortSignal
   ) {
-    let entries;
-    {
-      const prepared = this.preparedRealDebridDownloads.get(downloadId);
-      this.preparedRealDebridDownloads.delete(downloadId);
-      const resolved =
-        prepared?.uri === download.uri &&
-        prepared.selection === JSON.stringify(download.fileIndices) &&
-        prepared.resolved.torrentId === download.realDebridTorrentId &&
-        Date.now() - prepared.resolvedAt < this.PREPARED_JS_DOWNLOAD_TTL_MS
-          ? prepared.resolved
-          : await RealDebridClient.getDownloadEntriesWithTorrent(
-              download.uri,
-              download.fileIndices,
-              download.realDebridTorrentId,
-              signal
-            );
-      signal.throwIfAborted();
-      if (
-        resolved.torrentId &&
-        resolved.torrentId !== download.realDebridTorrentId &&
-        this.downloadingGameId === downloadId &&
-        this.startGeneration === myGeneration
-      ) {
-        download.realDebridTorrentId = resolved.torrentId;
-        await downloadsSublevel.put(downloadId, download);
-      }
-      entries = resolved.entries;
+    const prepared = this.preparedRealDebridDownloads.get(downloadId);
+    this.preparedRealDebridDownloads.delete(downloadId);
+    const resolved =
+      prepared?.uri === download.uri &&
+      prepared.selection === JSON.stringify(download.fileIndices) &&
+      prepared.resolved.torrentId === download.realDebridTorrentId &&
+      Date.now() - prepared.resolvedAt < this.PREPARED_JS_DOWNLOAD_TTL_MS
+        ? prepared.resolved
+        : await RealDebridClient.getDownloadEntriesWithTorrent(
+            download.uri,
+            download.fileIndices,
+            download.realDebridTorrentId,
+            signal
+          );
+    signal.throwIfAborted();
+    if (
+      resolved.torrentId &&
+      resolved.torrentId !== download.realDebridTorrentId &&
+      this.downloadingGameId === downloadId &&
+      this.startGeneration === myGeneration
+    ) {
+      download.realDebridTorrentId = resolved.torrentId;
+      await downloadsSublevel.put(downloadId, download);
     }
-    return entries;
+    return resolved.entries;
   }
 
   private static async prepareTorBoxBatch(
     download: Download,
     downloadId: string
   ) {
-    const manifest = await TorBoxClient.getDownloadFiles(download.uri);
-    const selected = selectTorBoxFiles(manifest, download.fileIndices);
-    download.files = selected.map((file) => {
-      this.assertSafeBatchPath(download.downloadPath, file.path);
-      const localPath = path.join(download.downloadPath, file.path);
-      const bytesDownloaded = getRangeDownloadedBytes(localPath);
-      return {
-        index: file.id,
-        path: file.path,
-        size: file.size,
-        bytesDownloaded,
-        completed: fs.existsSync(localPath) && bytesDownloaded === file.size,
-      };
-    });
+    const { manifest, selected } = await this.prepareTorBoxFiles(download);
     const batchState: JsBatchState = {
       provider: "torBox",
       sourceUri: download.uri,
@@ -2719,18 +2727,14 @@ export class DownloadManager {
     download: Download,
     batchState: JsBatchState
   ) {
-    download.files = batchState.entries.map((entry) => {
-      this.assertSafeBatchPath(batchState.savePath, entry.filename);
-      const localPath = path.join(batchState.savePath, entry.filename);
-      const bytesDownloaded = getRangeDownloadedBytes(localPath);
-      return {
+    download.files = this.readLocalFileProgress(
+      batchState.savePath,
+      batchState.entries.map((entry) => ({
         index: entry.fileIndex!,
         path: entry.filename,
-        size: entry.size ?? 0,
-        bytesDownloaded,
-        completed: fs.existsSync(localPath) && bytesDownloaded === entry.size,
-      };
-    });
+        size: entry.size,
+      }))
+    );
     while (batchState.currentIndex < batchState.entries.length - 1) {
       const file = download.files[batchState.currentIndex];
       if (!file.completed) break;
