@@ -250,13 +250,15 @@ const getProviderTorrentFiles = (
   return window.electron.getDebridFiles(magnetUri, downloader!);
 };
 
+const MAX_CACHED_TORRENT_MANIFESTS = 20;
+
 const rememberTorrentFiles = (
   cache: Map<string, TorrentFilesResponse>,
   downloader: Downloader | null,
   key: string,
   files: TorrentFilesResponse
 ) => {
-  if (cache.size >= 20) {
+  if (cache.size >= MAX_CACHED_TORRENT_MANIFESTS) {
     const oldestKey = cache.keys().next().value;
     if (oldestKey) cache.delete(oldestKey);
   }
