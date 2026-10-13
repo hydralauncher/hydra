@@ -107,7 +107,7 @@ export function mapEpicShopDetails(
   };
 }
 
-function formatEpicDescription(description: string): string {
+export function formatEpicDescription(description: string): string {
   const content = description.replace(/<!--[\s\S]*?-->/g, "").trim();
   if (/<\/?[a-z][^>]*>/i.test(content)) {
     return sanitizeEpicHtml(content.replace(/={3,}/g, "<br><br>"));
@@ -153,7 +153,7 @@ function formatEpicRequirements(requirements: string): string {
   return `<ul>${items.join("")}</ul>`;
 }
 
-function sanitizeEpicHtml(html: string): string {
+export function sanitizeEpicHtml(html: string): string {
   const fragment = JSDOM.fragment(html);
   for (const element of fragment.querySelectorAll(
     "script, style, iframe, object, embed, svg, math, form, input, button, textarea, select, template"
@@ -183,7 +183,6 @@ function sanitizeEpicHtml(html: string): string {
     "BLOCKQUOTE",
     "HR",
     "IMG",
-    "A",
     "TABLE",
     "THEAD",
     "TBODY",
