@@ -26,7 +26,9 @@ import {
   mapEpicShopDetails,
   STORE_DETAILS_TIMEOUT_MS,
   type EpicShopDetails,
+  formatEpicDescription,
 } from "@main/services/store-shop-details";
+import { resolveEpicDefaultArtwork } from "@main/services/game-artwork";
 
 const applyArtworkToAssets = async (
   shop: GameShop,
@@ -34,6 +36,17 @@ const applyArtworkToAssets = async (
   assets: ShopAssets | null
 ): Promise<ShopAssets | null> => {
   if (!assets) return assets;
+  if (shop === "epic") {
+    const key = levelKeys.game(shop, objectId);
+    assets = await resolveEpicDefaultArtwork(
+      assets,
+      await gamesShopAssetsSublevel.get(key)
+    );
+    await gamesShopAssetsSublevel.put(key, {
+      ...assets,
+      updatedAt: Date.now(),
+    });
+  }
 
   const selection = await gamesArtworkSelectionSublevel.get(
     levelKeys.game(shop, objectId)
@@ -337,7 +350,7 @@ const getGameShopDetails = async (
       if (!details) return details;
 
       const { assets: freshAssets, ...payload } = details;
-      const assets = freshAssets
+      let assets = freshAssets
         ? {
             ...freshAssets,
             coverImageUrl:
@@ -359,6 +372,8 @@ const getGameShopDetails = async (
               cachedAssets?.downloadSources ?? freshAssets.downloadSources,
           }
         : (cachedAssets ?? null);
+      if (assets)
+        assets = await resolveEpicDefaultArtwork(assets, cachedAssets);
       gamesShopCacheSublevel
         .put(
           levelKeys.gameShopCacheItem(shop, objectId, cacheLanguage),
@@ -384,6 +399,11 @@ const getGameShopDetails = async (
     if (!selected) return null;
     return {
       ...selected,
+      detailed_description: formatEpicDescription(
+        selected.detailed_description
+      ),
+      about_the_game: formatEpicDescription(selected.about_the_game),
+      short_description: formatEpicDescription(selected.short_description),
       assets: await applyArtworkToAssets(shop, objectId, selected.assets),
     };
   }

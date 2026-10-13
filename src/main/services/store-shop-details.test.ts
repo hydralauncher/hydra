@@ -125,7 +125,7 @@ describe("Epic details mapping", () => {
     };
     assert.equal(
       mapEpicShopDetails("id", data, "en").detailed_description,
-      '<p>Text</p><img src="https://example.com/art.jpg"><a>Link</a>'
+      '<p>Text</p><img src="https://example.com/art.jpg">Link'
     );
   });
 
@@ -142,7 +142,7 @@ describe("Epic details mapping", () => {
     assert.equal(result.detailed_description, epic.description);
     assert.equal(
       result.short_description,
-      '<strong>Summary</strong><img src="https://example.com/art.jpg"><a>Link</a>'
+      '<strong>Summary</strong><img src="https://example.com/art.jpg">Link'
     );
     assert.equal(
       mapEpicShopDetails("id", { ...epic, shortDescription: null }, "en")
@@ -165,7 +165,7 @@ describe("Epic details mapping", () => {
     );
     assert.equal(result.pc_requirements.recommended, "<ul><li>16 GB</li></ul>");
   });
-  it("renders linked images and resolves Epic relative links to the store", () => {
+  it("preserves linked images and text without clickable store links", () => {
     const data = {
       ...epic,
       description:
@@ -173,7 +173,7 @@ describe("Epic details mapping", () => {
     };
     assert.equal(
       mapEpicShopDetails("id", data, "pt").detailed_description,
-      '<a href="https://store.epicgames.com/discover/v-bucks"><img alt="Vbucks" src="https://cdn2.unrealengine.com/banner.png"></a><br><a href="https://store.epicgames.com/">Store</a>'
+      '<img alt="Vbucks" src="https://cdn2.unrealengine.com/banner.png"><br>Store'
     );
   });
   it("renders Markdown store images without allowing attribute injection", () => {

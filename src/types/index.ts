@@ -66,6 +66,7 @@ export interface ShopAssets {
   coverImageUrl: string | null;
   downloadSources: string[];
   selectedArtworkTypes?: ArtworkAssetType[];
+  epicArtworkUpdatedAt?: number;
 }
 
 export type ShopDetails = SteamAppDetails & {

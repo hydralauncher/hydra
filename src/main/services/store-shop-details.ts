@@ -107,7 +107,7 @@ export function mapEpicShopDetails(
   };
 }
 
-function formatEpicDescription(description: string): string {
+export function formatEpicDescription(description: string): string {
   const content = description.replace(/<!--[\s\S]*?-->/g, "").trim();
   if (/<\/?[a-z][^>]*>/i.test(content)) {
     return sanitizeEpicHtml(content.replace(/={3,}/g, "<br><br>"));
@@ -183,7 +183,6 @@ function sanitizeEpicHtml(html: string): string {
     "BLOCKQUOTE",
     "HR",
     "IMG",
-    "A",
     "TABLE",
     "THEAD",
     "TBODY",
