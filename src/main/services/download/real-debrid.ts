@@ -39,6 +39,7 @@ interface RealDebridDownloadEntry {
   chunks?: number;
   isArchive?: boolean;
   resourceId?: string;
+  preparedLink?: { url: string; resolvedAt: number };
 }
 
 export class RealDebridClient {
@@ -276,6 +277,7 @@ export class RealDebridClient {
       isLocked: true,
       isArchive: true,
       chunks: unlocked.chunks,
+      preparedLink: { url: unlocked.download, resolvedAt: Date.now() },
       resourceId: `realDebrid:${info.hash.toLowerCase()}:archive:${selection}`,
     };
   }
@@ -480,6 +482,7 @@ export class RealDebridClient {
     const entries = await this.getDownloadEntries(uri, undefined, signal);
     const first = entries?.[0];
     if (!first) return null;
+    if (first.preparedLink) return first.preparedLink.url;
     if (!first.isLocked) return first.url;
     return this.unlockFile(
       first.url,

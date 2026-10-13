@@ -769,7 +769,7 @@ export class DownloadOrchestrator {
         preparation.dispose();
       }
     };
-    void start().catch((error) => {
+    return start().catch((error) => {
       logger.error("Failed to save background download preparation", error);
     });
   }

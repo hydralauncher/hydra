@@ -122,6 +122,7 @@ interface JsBatchEntry {
   fileId?: number;
   isZip?: boolean;
   resourceId?: string;
+  preparedLink?: { url: string; resolvedAt: number };
   fileIndex?: number;
   sourcePath?: string;
   chunks?: number;
@@ -1551,7 +1552,8 @@ export class DownloadManager {
 
   private static async resolveBatchEntryUrl(
     batch: JsBatchState,
-    entry: JsBatchEntry
+    entry: JsBatchEntry,
+    reusePreparedLink = false
   ): Promise<string | undefined> {
     this.assertSafeBatchPath(batch.savePath, entry.filename);
     const url = entry.url;
@@ -1562,6 +1564,17 @@ export class DownloadManager {
       return TorBoxClient.requestLink(batch.torrentId, entry.fileId);
     }
     if (batch.provider === "realDebrid" && entry.isLocked && url) {
+      const prepared = entry.preparedLink;
+      entry.preparedLink = undefined;
+      const age = prepared ? Date.now() - prepared.resolvedAt : Infinity;
+      if (
+        reusePreparedLink &&
+        prepared?.url &&
+        age >= 0 &&
+        age < this.PREPARED_JS_DOWNLOAD_TTL_MS
+      ) {
+        return prepared.url;
+      }
       const unlocked = await RealDebridClient.unlockFileWithDetails(
         url,
         entry.sourcePath ?? entry.filename,
@@ -1724,7 +1737,7 @@ export class DownloadManager {
         !entry.isZip &&
         entry.size === 0
           ? "about:blank"
-          : await this.resolveBatchEntryUrl(batch, entry);
+          : await this.resolveBatchEntryUrl(batch, entry, true);
       if (!this.isCurrentBatch(batch, downloader, generation)) {
         return false;
       }
@@ -1975,13 +1988,15 @@ export class DownloadManager {
     let downloadUrl: string | null = null;
     if (first) {
       const expectedSize = first.isArchive ? 0 : first.size;
-      downloadUrl = first.isLocked
-        ? await RealDebridClient.unlockFile(
-            first.url,
-            first.sourcePath ?? first.path,
-            expectedSize
-          )
-        : first.url;
+      downloadUrl =
+        first.preparedLink?.url ??
+        (first.isLocked
+          ? await RealDebridClient.unlockFile(
+              first.url,
+              first.sourcePath ?? first.path,
+              expectedSize
+            )
+          : first.url);
     }
     if (!downloadUrl) throw new Error(DownloadError.NotCachedOnRealDebrid);
     const filename = this.resolveFilename(
@@ -2674,6 +2689,7 @@ export class DownloadManager {
         size: entry.size,
         isZip: entry.isArchive === true,
         resourceId: entry.resourceId,
+        preparedLink: entry.preparedLink,
         isLocked: "isLocked" in entry && entry.isLocked === true,
         fileIndex: entry.index,
         sourcePath: entry.sourcePath ?? entry.path,

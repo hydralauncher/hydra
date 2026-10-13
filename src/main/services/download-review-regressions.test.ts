@@ -791,3 +791,95 @@ it("shutdown cancels in-flight preparation and prevents subsequent readiness pol
   assert.equal(f.records.get("next").queued, false);
   assert.deepEqual(f.resumed, []);
 });
+
+for (const ready of [true, false]) {
+  it(`initial background start waits for the first readiness result (${ready})`, async () => {
+    const f = orchestrator();
+    f.finishActive();
+    f.records.set("next", { ...f.download, queued: false });
+    f.setPreparedReady(ready);
+    let settled = false;
+    const start = Promise.resolve(
+      f.instance.startPreparedDownloadInBackground(f.download)
+    ).then(() => {
+      settled = true;
+    });
+    await f.preparing;
+    await new Promise<void>((resolve) => setImmediate(resolve));
+    try {
+      assert.equal(
+        settled,
+        false,
+        "the start response must not navigate before the initial readiness check"
+      );
+    } finally {
+      f.release();
+      await start;
+      await new Promise<void>((resolve) => setImmediate(resolve));
+    }
+    assert.equal(f.preparationCalls(), 1);
+    assert.equal(f.records.get("next").awaitingDebrid, !ready);
+    assert.equal(f.records.get("next").status, ready ? "active" : "paused");
+    assert.deepEqual(f.resumed, ready ? ["next"] : []);
+  });
+}
+
+it("the start event waits for initial Real-Debrid preparation before replying to the renderer", async () => {
+  const entered = deferred();
+  const prepared = deferred();
+  let handler!: (event: unknown, payload: unknown) => Promise<unknown>;
+  load("../events/torrenting/start-game-download.ts", {
+    "../register-event": {
+      registerEvent: (_name: string, callback: typeof handler) => {
+        handler = callback;
+      },
+    },
+    "@main/services": {
+      logger,
+      DownloadManager: { cancelDownload: async () => undefined },
+      DownloadOrchestrator: {
+        preparesRealDebridInBackground: () => true,
+        startPreparedDownloadInBackground: async () => {
+          entered.resolve();
+          await prepared.promise;
+        },
+      },
+      HydraApi: { post: async () => undefined },
+    },
+    "@main/services/library-sync": { createGame: async () => undefined },
+    "@main/level": {
+      levelKeys: { game: () => "fixture" },
+      downloadsSublevel: { put: async () => undefined },
+      gamesSublevel: { get: async () => ({}) },
+    },
+    "@shared": { parseBytes: () => 8 },
+    "@main/helpers": {
+      getGlobalTrackers: async () => [],
+      prepareGameEntry: async () => undefined,
+      isKnownDownloadError: () => false,
+      handleDownloadError: () => ({ ok: false }),
+    },
+  });
+  let replied = false;
+  const response = handler(
+    {},
+    {
+      shop: "steam",
+      objectId: "fixture",
+      downloader: shared.Downloader.RealDebrid,
+      uri: "magnet:fixture",
+      downloadPath: "/fixture",
+    }
+  ).then((result) => {
+    replied = true;
+    return result;
+  });
+  await entered.promise;
+  await new Promise<void>((resolve) => setImmediate(resolve));
+  try {
+    assert.equal(replied, false);
+  } finally {
+    prepared.resolve();
+  }
+  assert.equal(((await response) as { ok: boolean }).ok, true);
+});

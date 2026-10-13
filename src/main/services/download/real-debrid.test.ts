@@ -870,3 +870,16 @@ it("legacy URL resolution returns the parent archive without creating individual
     !f.requests.some((r) => r.url === "/torrents/addMagnet" || r.files)
   );
 });
+
+it("unlocks an already cached archive only once for immediate URL resolution", async () => {
+  const f = fixture({ packed: true });
+  await f.client.getDownloadUrl(magnet);
+  assert.equal(
+    f.requests.filter((r) => r.url === "/unrestrict/link").length,
+    1
+  );
+  assert.equal(
+    f.requests.filter((r) => r.url.startsWith("/torrents/info/")).length,
+    1
+  );
+});

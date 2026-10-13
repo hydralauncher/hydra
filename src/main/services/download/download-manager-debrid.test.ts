@@ -525,3 +525,58 @@ for (const size of [0, 7]) {
     }
   });
 }
+
+for (const age of [0, 120_000, -1000]) {
+  it(`cached archive startup reuses only a fresh prepared URL (age ${age})`, async () => {
+    const directory = fs.mkdtempSync(
+      path.join(os.tmpdir(), "rd-cached-start-")
+    );
+    const f = manager(undefined, undefined, [
+      {
+        index: 0,
+        path: "folder.zip",
+        sourcePath: "/folder.zip",
+        size: 7,
+        url: "packed",
+        isLocked: true,
+        isArchive: true,
+        resourceId: "realDebrid:abc:archive:1,2",
+        preparedLink: {
+          url: "https://fixture.invalid/prepared.zip",
+          resolvedAt: Date.now() - age,
+        },
+        chunks: 8,
+      },
+    ]);
+    try {
+      await f.instance.startDownload({
+        shop: "steam",
+        objectId: "fixture",
+        downloader: shared.Downloader.RealDebrid,
+        uri: "magnet:fixture",
+        downloadPath: directory,
+      });
+      await new Promise((resolve) => setImmediate(resolve));
+      assert.equal(f.starts.length, 1);
+      const options = f.starts[0];
+      assert.equal(
+        options.url,
+        age === 0
+          ? "https://fixture.invalid/prepared.zip"
+          : "https://fixture.invalid/new-link"
+      );
+      assert.equal(f.unlocks(), age === 0 ? 0 : 1);
+      assert.equal(options.requireResourceIdentity, true);
+      assert.equal(options.requireRangeResume, true);
+      assert.equal(options.verifyResumePrefix, true);
+      assert.equal(
+        await options.refreshUrl!(),
+        "https://fixture.invalid/new-link"
+      );
+      assert.equal(f.unlocks(), age === 0 ? 1 : 2);
+      assert.ok(f.unlockSizes.every((size) => size === 0));
+    } finally {
+      fs.rmSync(directory, { recursive: true, force: true });
+    }
+  });
+}
