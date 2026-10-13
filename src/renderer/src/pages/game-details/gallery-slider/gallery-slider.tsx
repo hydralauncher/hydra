@@ -1,27 +1,69 @@
-import { useContext, useCallback, useMemo, useState, useEffect } from "react";
-import { useTranslation } from "react-i18next";
 import {
-  ChevronRightIcon,
-  ChevronLeftIcon,
-  PlayIcon,
-  ScreenFullIcon,
-} from "@primer/octicons-react";
+  useContext,
+  useCallback,
+  useMemo,
+  useState,
+  useEffect,
+  useRef,
+} from "react";
+import { createPortal } from "react-dom";
+import { useTranslation } from "react-i18next";
+import { ChevronRightIcon, ChevronLeftIcon } from "@primer/octicons-react";
+import { CornersOut, Play } from "@phosphor-icons/react";
 import useEmblaCarousel from "embla-carousel-react";
+import { Tooltip } from "react-tooltip";
 import { gameDetailsContext } from "@renderer/context";
 import { useAppSelector } from "@renderer/hooks";
-import { VideoPlayer } from "./video-player";
-import { GalleryLightbox } from "./gallery-lightbox";
+import type { SteamVideoSource } from "@types";
+import {
+  GALLERY_PAGE_TOOLTIP_ID,
+  SEEK_STEP_SECONDS,
+  resolveMediaKey,
+  GalleryVideoPlayer,
+  type GalleryPlaybackState,
+  type GalleryVideoPlayerHandle,
+} from "./gallery-video-player";
+import { GalleryVideoHost, GalleryVideoSlot } from "./gallery-video-host";
+import {
+  GalleryLightbox,
+  type GalleryViewerPresentation,
+} from "./gallery-lightbox";
 import "./gallery-slider.scss";
+
+export interface GalleryVideoSource {
+  label: string;
+  src: string;
+  type: string;
+}
 
 export interface GalleryMediaItem {
   id: string;
   type: "video" | "image";
   src?: string;
+  thumbnail?: string;
   poster?: string;
   videoSrc?: string;
   videoType?: string;
+  sources?: GalleryVideoSource[];
   alt: string;
 }
+
+const toHttps = (url: string) =>
+  url.startsWith("http://") ? url.replace("http://", "https://") : url;
+
+const buildProgressiveSources = (
+  source: SteamVideoSource | undefined,
+  type: string
+): GalleryVideoSource[] => {
+  if (!source) return [];
+
+  const sources: GalleryVideoSource[] = [];
+  if (source.max) sources.push({ label: "HD", src: toHttps(source.max), type });
+  if (source["480"] && source["480"] !== source.max) {
+    sources.push({ label: "480p", src: toHttps(source["480"]), type });
+  }
+  return sources;
+};
 
 export function GallerySlider() {
   const { shopDetails } = useContext(gameDetailsContext);
@@ -33,9 +75,23 @@ export function GallerySlider() {
 
   const hasScreenshots = shopDetails && shopDetails.screenshots?.length;
 
-  const [emblaRef, emblaApi] = useEmblaCarousel({ loop: false });
+  const [emblaRef, emblaApi] = useEmblaCarousel({
+    loop: false,
+    watchDrag: (_api, event) =>
+      !document.fullscreenElement &&
+      !(event.target as Element | null)?.closest("[data-gallery-chrome]"),
+  });
   const [selectedIndex, setSelectedIndex] = useState(0);
-  const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
+  const [lightbox, setLightbox] = useState<{
+    index: number;
+    fullscreen: boolean;
+  } | null>(null);
+  const [presentation, setPresentation] =
+    useState<GalleryViewerPresentation | null>(null);
+  const [videoHoldsChrome, setVideoHoldsChrome] = useState(true);
+  const mediaItemsRef = useRef<GalleryMediaItem[]>([]);
+  const playerHandlesRef = useRef(new Map<string, GalleryVideoPlayerHandle>());
+  const toggleViewerFullscreenRef = useRef<(() => void) | null>(null);
 
   const scrollPrev = useCallback(() => {
     if (emblaApi) emblaApi.scrollPrev();
@@ -85,21 +141,14 @@ export function GallerySlider() {
       const newIndex = emblaApi.selectedScrollSnap();
       setSelectedIndex(newIndex);
 
-      const videos = document.querySelectorAll(".gallery-slider__media");
-      videos.forEach((video) => {
-        if (video instanceof HTMLVideoElement) {
-          video.pause();
+      const selectedId = mediaItemsRef.current[newIndex]?.id;
+      playerHandlesRef.current.forEach((handle, id) => {
+        if (id === selectedId && autoplayEnabled) {
+          handle.play();
+        } else {
+          handle.pause();
         }
       });
-
-      if (autoplayEnabled) {
-        const selectedSlide = emblaApi.slideNodes()[newIndex];
-        const selectedVideo = selectedSlide?.querySelector("video");
-
-        if (selectedVideo instanceof HTMLVideoElement) {
-          selectedVideo.play().catch(() => {});
-        }
-      }
     };
 
     emblaApi.on("select", onSelect);
@@ -117,6 +166,7 @@ export function GallerySlider() {
       shopDetails.movies.forEach((video, index) => {
         let videoSrc: string | undefined;
         let videoType: string | undefined;
+        let sources: GalleryVideoSource[] | undefined;
 
         if (video.hls_h264) {
           videoSrc = video.hls_h264;
@@ -130,9 +180,11 @@ export function GallerySlider() {
         } else if (video.mp4?.max) {
           videoSrc = video.mp4.max;
           videoType = "video/mp4";
+          sources = buildProgressiveSources(video.mp4, videoType);
         } else if (video.webm?.max) {
           videoSrc = video.webm.max;
           videoType = "video/webm";
+          sources = buildProgressiveSources(video.webm, videoType);
         }
 
         if (videoSrc) {
@@ -140,10 +192,10 @@ export function GallerySlider() {
             id: String(video.id),
             type: "video",
             poster: video.thumbnail,
-            videoSrc: videoSrc.startsWith("http://")
-              ? videoSrc.replace("http://", "https://")
-              : videoSrc,
+            thumbnail: video.thumbnail,
+            videoSrc: toHttps(videoSrc),
             videoType,
+            sources,
             alt: video.name || t("video", { number: String(index + 1) }),
           });
         }
@@ -156,6 +208,7 @@ export function GallerySlider() {
           id: String(image.id),
           type: "image",
           src: image.path_full,
+          thumbnail: image.path_thumbnail,
           alt: t("screenshot", { number: String(index + 1) }),
         });
       });
@@ -185,58 +238,248 @@ export function GallerySlider() {
     return screenshotPreviews;
   }, [shopDetails]);
 
+  const videoHostsRef = useRef(new Map<string, GalleryVideoHost>());
+  mediaItemsRef.current = mediaItems;
+
+  const videoHosts = useMemo(() => {
+    const hosts = videoHostsRef.current;
+    mediaItems.forEach((item) => {
+      if (item.type === "video" && !hosts.has(item.id)) {
+        hosts.set(item.id, new GalleryVideoHost());
+      }
+    });
+    return hosts;
+  }, [mediaItems]);
+
+  const getVideoHandle = useCallback(
+    (id: string) => playerHandlesRef.current.get(id),
+    []
+  );
+
+  const openLightbox = useCallback(
+    (index: number, fullscreen: boolean) => {
+      const target = mediaItems[index];
+
+      mediaItems.forEach((item) => {
+        if (item.type === "video" && item.id !== target?.id) {
+          playerHandlesRef.current.get(item.id)?.pause();
+        }
+      });
+
+      setVideoHoldsChrome(true);
+      setLightbox({ index, fullscreen });
+    },
+    [mediaItems]
+  );
+
+  const closeLightbox = useCallback(
+    (index: number, playback?: GalleryPlaybackState) => {
+      setLightbox(null);
+      setPresentation(null);
+      if (!emblaApi) return;
+
+      if (emblaApi.selectedScrollSnap() !== index) {
+        emblaApi.scrollTo(index, true);
+      }
+
+      window.setTimeout(() => {
+        const closedItem = mediaItems[index];
+        const handle = closedItem
+          ? playerHandlesRef.current.get(closedItem.id)
+          : undefined;
+        if (playback && handle) handle.restore(playback);
+      }, 0);
+    },
+    [emblaApi, mediaItems]
+  );
+
+  const navigateLightbox = useCallback((index: number) => {
+    setLightbox((current) => current && { ...current, index });
+  }, []);
+
   const firstVideoIndex = useMemo(
     () => mediaItems.findIndex((item) => item.type === "video"),
     [mediaItems]
   );
 
+  const viewerItemId = lightbox ? mediaItems[lightbox.index]?.id : undefined;
+
+  const containerRef = useRef<HTMLDivElement>(null);
+  const inViewRef = useRef(false);
+
+  useEffect(() => {
+    const container = containerRef.current;
+    if (!container) return undefined;
+
+    const observer = new IntersectionObserver(([entry]) => {
+      inViewRef.current = entry.isIntersecting;
+    });
+    observer.observe(container);
+
+    return () => observer.disconnect();
+  }, [hasScreenshots]);
+
+  useEffect(() => {
+    if (lightbox) return undefined;
+
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.defaultPrevented) return;
+      if (event.ctrlKey || event.metaKey || event.altKey || event.shiftKey) {
+        return;
+      }
+      if (!inViewRef.current) return;
+
+      const target = event.target;
+      if (
+        target instanceof Element &&
+        target.closest("input, textarea, select, [contenteditable='true']")
+      ) {
+        return;
+      }
+      if (
+        document.querySelector(
+          '[role="dialog"]:not([aria-hidden="true"]), dialog[open]'
+        )
+      ) {
+        return;
+      }
+
+      const item = mediaItems[selectedIndex];
+      if (!item) return;
+
+      const key = resolveMediaKey(event.key);
+
+      switch (key) {
+        case "f":
+        case "F":
+          openLightbox(selectedIndex, true);
+          break;
+        case "m":
+        case "M":
+          if (item.type !== "video") return;
+          playerHandlesRef.current.get(item.id)?.toggleMute();
+          break;
+        case " ": {
+          if (item.type !== "video") return;
+          const focusedControl =
+            target instanceof Element
+              ? target.closest("button, a, [role='button']")
+              : null;
+          if (
+            focusedControl &&
+            !containerRef.current?.contains(focusedControl)
+          ) {
+            return;
+          }
+          playerHandlesRef.current.get(item.id)?.togglePlay();
+          break;
+        }
+        case "ArrowLeft":
+        case "ArrowRight":
+          if (item.type !== "video") return;
+          playerHandlesRef.current
+            .get(item.id)
+            ?.seekBy(
+              key === "ArrowLeft" ? -SEEK_STEP_SECONDS : SEEK_STEP_SECONDS
+            );
+          break;
+        default:
+          return;
+      }
+
+      event.preventDefault();
+    };
+
+    window.addEventListener("keydown", onKeyDown);
+
+    return () => {
+      window.removeEventListener("keydown", onKeyDown);
+    };
+  }, [lightbox, mediaItems, selectedIndex, openLightbox]);
+
   if (!hasScreenshots) {
     return null;
   }
 
+  const renderVideoPlayer = (item: GalleryMediaItem, index: number) => {
+    const borrowed =
+      lightbox !== null &&
+      (item.id === viewerItemId ||
+        !!presentation?.borrowedVideoIds.includes(item.id));
+    const active = borrowed && presentation?.activeVideoId === item.id;
+
+    return (
+      <GalleryVideoPlayer
+        ref={(handle) => {
+          if (handle) {
+            playerHandlesRef.current.set(item.id, handle);
+          } else {
+            playerHandlesRef.current.delete(item.id);
+          }
+        }}
+        variant={borrowed ? "viewer" : "inline"}
+        className={borrowed ? "gallery-lightbox__frame" : undefined}
+        item={item}
+        autoPlay={autoplayEnabled && index === firstVideoIndex}
+        loadOnDemand={!autoplayEnabled}
+        isFullscreen={borrowed && !!presentation?.isFullscreen}
+        controlsHidden={borrowed && !!presentation?.chromeHidden}
+        onHoldChromeChange={active ? setVideoHoldsChrome : undefined}
+        onToggleFullscreen={() => {
+          if (borrowed) {
+            toggleViewerFullscreenRef.current?.();
+          } else {
+            openLightbox(index, true);
+          }
+        }}
+      />
+    );
+  };
+
   return (
-    <div className="gallery-slider__container">
+    <div className="gallery-slider__container" ref={containerRef}>
       <div className="gallery-slider__viewport" ref={emblaRef}>
         <div className="gallery-slider__container-inner">
           {mediaItems.map((item, index) => (
             <div key={item.id} className="gallery-slider__slide">
-              {item.type === "video" ? (
+              {item.type === "video" && videoHosts.has(item.id) ? (
                 <>
-                  <VideoPlayer
-                    videoSrc={item.videoSrc}
-                    videoType={item.videoType}
-                    poster={item.poster}
-                    autoplay={autoplayEnabled && index === firstVideoIndex}
-                    loadOnDemand={!autoplayEnabled}
-                    loop
-                    muted
-                    controls
-                    className="gallery-slider__media"
-                    tabIndex={-1}
+                  <GalleryVideoSlot
+                    host={videoHosts.get(item.id)!}
+                    mode="home"
                   />
-                  <button
-                    type="button"
-                    className="gallery-slider__expand-button"
-                    onClick={() => setLightboxIndex(index)}
-                    aria-label={t("view_fullscreen")}
-                  >
-                    <ScreenFullIcon size={16} />
-                  </button>
+                  {createPortal(
+                    renderVideoPlayer(item, index),
+                    videoHosts.get(item.id)!.container
+                  )}
                 </>
               ) : (
-                <button
-                  type="button"
-                  className="gallery-slider__media-button"
-                  onClick={() => setLightboxIndex(index)}
-                  aria-label={t("view_fullscreen")}
-                >
-                  <img
-                    className="gallery-slider__media"
-                    src={item.src}
-                    alt={item.alt}
-                    loading="lazy"
-                  />
-                </button>
+                <div className="gallery-slider__image-slide">
+                  <button
+                    type="button"
+                    className="gallery-slider__media-button"
+                    onClick={() => openLightbox(index, false)}
+                    aria-label={item.alt}
+                  >
+                    <img
+                      className="gallery-slider__media"
+                      src={item.src}
+                      alt={item.alt}
+                      loading="lazy"
+                    />
+                  </button>
+                  <button
+                    type="button"
+                    className="gallery-slider__fullscreen-button"
+                    onClick={() => openLightbox(index, true)}
+                    aria-label={t("fullscreen")}
+                    data-tooltip-id={GALLERY_PAGE_TOOLTIP_ID}
+                    data-tooltip-content={`${t("fullscreen")} (F)`}
+                    data-tooltip-place="top"
+                  >
+                    <CornersOut size={24} weight="bold" />
+                  </button>
+                </div>
               )}
             </div>
           ))}
@@ -283,19 +526,35 @@ export function GallerySlider() {
             />
             {media.type === "video" && (
               <div className="gallery-slider__play-overlay">
-                <PlayIcon size={20} />
+                <Play size={18} weight="fill" />
               </div>
             )}
           </button>
         ))}
       </div>
 
+      {createPortal(
+        <Tooltip
+          id={GALLERY_PAGE_TOOLTIP_ID}
+          positionStrategy="fixed"
+          style={{ zIndex: 9999 }}
+        />,
+        document.body
+      )}
+
       <GalleryLightbox
-        visible={lightboxIndex !== null}
+        visible={lightbox !== null}
+        autoplay={autoplayEnabled}
         items={mediaItems}
-        index={lightboxIndex ?? 0}
-        onClose={() => setLightboxIndex(null)}
-        onNavigate={setLightboxIndex}
+        index={lightbox?.index ?? 0}
+        fullscreen={lightbox?.fullscreen}
+        videoHosts={videoHosts}
+        videoHoldsChrome={videoHoldsChrome}
+        toggleFullscreenRef={toggleViewerFullscreenRef}
+        getVideoHandle={getVideoHandle}
+        onPresentationChange={setPresentation}
+        onClose={closeLightbox}
+        onNavigate={navigateLightbox}
       />
     </div>
   );

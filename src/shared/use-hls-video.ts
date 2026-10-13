@@ -8,6 +8,7 @@ interface UseHlsVideoOptions {
   autoplay?: boolean;
   muted?: boolean;
   loop?: boolean;
+  onHlsInstance?: (hls: Hls | null) => void;
 }
 
 interface HlsVideoLogger {
@@ -29,10 +30,13 @@ export function useHlsVideo(
     autoplay,
     muted,
     loop,
+    onHlsInstance,
   }: UseHlsVideoOptions,
   log: HlsVideoLogger = defaultLogger
 ) {
   const hlsRef = useRef<Hls | null>(null);
+  const onHlsInstanceRef = useRef(onHlsInstance);
+  onHlsInstanceRef.current = onHlsInstance;
 
   useEffect(() => {
     const video = videoRef.current;
@@ -56,6 +60,8 @@ export function useHlsVideo(
       hls.attachMedia(video);
 
       hls.on(Hls.Events.MANIFEST_PARSED, () => {
+        onHlsInstanceRef.current?.(hls);
+
         if (autoplay) {
           video.play().catch((err) => {
             log.warn("Failed to autoplay HLS video:", err);
@@ -85,6 +91,7 @@ export function useHlsVideo(
       return () => {
         hls.destroy();
         hlsRef.current = null;
+        onHlsInstanceRef.current?.(null);
       };
     } else if (video.canPlayType("application/vnd.apple.mpegurl")) {
       video.src = videoSrc;
