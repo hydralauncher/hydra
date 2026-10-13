@@ -6,6 +6,8 @@ import { test } from "node:test";
 import * as queue from "./library-write-queue.js";
 import * as requests from "./game-request-queue.js";
 import * as playtime from "../../../shared/playtime.js";
+import * as running from "../game-running-state.js";
+import { createGameRecordUpdater } from "../game-record-updater-core.js";
 import type { Game } from "@types";
 
 const auth = {
@@ -37,7 +39,11 @@ function fixture() {
     current: true,
     postFail: false,
     putFail: false,
+    putError: new Error("offline"),
     postGate: Promise.resolve(),
+    putGate: Promise.resolve(),
+    now: 60_000,
+    acceptedPlayTimeInSeconds: 0,
     calls: [] as { method: string; body: unknown }[],
   };
   const modules: Record<string, unknown> = {
@@ -60,7 +66,11 @@ function fixture() {
         },
         put: async (_path: string, body: unknown) => {
           state.calls.push({ method: "put", body });
-          if (state.putFail) throw new Error("offline");
+          await state.putGate;
+          if (state.putFail) throw state.putError;
+          state.acceptedPlayTimeInSeconds +=
+            (body as { playTimeDeltaInSeconds?: number })
+              .playTimeDeltaInSeconds ?? 0;
           return {};
         },
       },
@@ -99,11 +109,15 @@ function fixture() {
       },
     },
   };
-  const load = <T>(name: string): T => {
+  const load = <T>(
+    name: string,
+    dependencies = modules,
+    extraSource = ""
+  ): T => {
     const module = {};
     vm.runInNewContext(
       ts.transpileModule(
-        fs.readFileSync(new URL(name, import.meta.url), "utf8"),
+        fs.readFileSync(new URL(name, import.meta.url), "utf8") + extraSource,
         {
           compilerOptions: {
             module: ts.ModuleKind.CommonJS,
@@ -115,14 +129,16 @@ function fixture() {
       {
         exports: module,
         require: (name: string) =>
-          modules[name] ?? assert.fail(`Unexpected dependency ${name}`),
+          dependencies[name] ?? assert.fail(`Unexpected dependency ${name}`),
         Date,
         Math,
+        process,
+        performance: { now: () => state.now },
       }
     );
     return module as T;
   };
-  return {
+  const sync = {
     state,
     create: load<typeof import("./create-game")>("./create-game.ts").createGame,
     batch: load<typeof import("./upload-games-batch")>(
@@ -132,6 +148,98 @@ function fixture() {
       "./update-game-playtime.ts"
     ).trackGamePlaytime,
   };
+  const watcher = () => {
+    const store = (
+      modules["@main/level"] as {
+        gamesSublevel: Parameters<typeof createGameRecordUpdater>[0];
+      }
+    ).gamesSublevel;
+    const update = createGameRecordUpdater(store);
+    return load<{
+      onOpenGame(game: Game, matchedPath: string): Promise<void>;
+      onCloseGame(game: Game): Promise<unknown>;
+    }>(
+      "../process-watcher.ts",
+      {
+        "./library-sync/library-write-queue": queue,
+        "./library-sync": {
+          createGame: sync.create,
+          trackGamePlaytime: sync.track,
+        },
+        "./game-running-state": running,
+        "./game-record-updater": {
+          updateGameRecord: (...args: Parameters<typeof update>) =>
+            queue.libraryWriteQueue.run(() => update(...args)),
+        },
+        "./hydra-api": modules["../hydra-api"],
+        "@main/level": {
+          ...(modules["@main/level"] as object),
+          db: { get: async () => null },
+        },
+        "./epic": {
+          resolveEpicSessionPolicy: async () => ({
+            countHydraPlaytime: true,
+            syncEpicOnExit: false,
+          }),
+          cancelEpicGameExitSync: () => {},
+        },
+        "./window-manager": {
+          WindowManager: { closeGameLauncherWindow: () => {} },
+        },
+        "./logger": { networkLogger: { info: () => {} } },
+        "./power-save-blocker": {
+          PowerSaveBlockerManager: { markGameClosed: () => {} },
+        },
+        "./achievements/achievement-watcher-manager": {
+          AchievementWatcherManager: { syncGameAchievementFiles: () => {} },
+        },
+        "./achievements/metadata-export": {
+          abortAchievementMetadataExport: () => {},
+        },
+        "@main/constants": { INTERVALS: { processWatcher: 1000 } },
+        "./launched-game-pids": { launchedGamePids: new Map() },
+        "./steam-integration/steam-game-exit-sync": {
+          cancelSteamGameExitSync: () => {},
+          shouldScheduleSteamGameExitSync: () => false,
+        },
+        "./cloud-save": {
+          getCloudSaveAutomaticSyncMode: async () => "off",
+          shouldRunLegacyAutomaticCloudSave: () => false,
+          shouldRunV2AutomaticCloudSave: () => false,
+        },
+        "./linux-game-capture-session": {
+          prepareLinuxGameCaptureSession: async () => {},
+          stopLinuxGameCaptureSession: () => {},
+        },
+        "./game-executables": {
+          GameExecutables: { ensureLoaded: async () => {} },
+        },
+        "@main/helpers/update-executable-path": {},
+        axios: {},
+        "./cloud-sync": {},
+        "node:path": {},
+        "./wine": {},
+        "./native-addon": {},
+        "./emulators/emulator-session-tracker": {},
+        "./game-launcher-status": { markGameLauncherGameDetected: () => {} },
+        "./process-watcher-scan": {},
+        "./linux-process-match": {},
+        "@main/helpers/windows-batch-command": {},
+        "./steam-integration/steam-library-executable": {
+          isSteamAppExecutable: async () => false,
+        },
+        "./steam-integration/steam-playtime": {
+          resolveActiveSteamImport: async () => false,
+          resolveSteamSessionPlaytimePolicy: () => ({
+            countHydraPlaytime: true,
+            syncSteamOnExit: false,
+          }),
+        },
+      },
+      "\nexport { onOpenGame, onCloseGame };"
+    );
+  };
+  return { ...sync, watcher };
 }
 test("creation never copies Epic aggregate into Hydra", async () => {
   const f = fixture();
@@ -215,16 +323,112 @@ test("a tracking delta queued before reset is discarded after its revision chang
   assert.equal(f.state.calls.length, 0);
 });
 
-test("a failed positive Hydra delta retains its claim for retry after unlinking", async () => {
+test("a failed positive Hydra delta retains its claim and remote identity for retry", async () => {
   const f = fixture();
   f.state.game.source = "epic";
   f.state.putFail = true;
   await assert.rejects(f.track(f.state.game, 1000, new Date()));
   assert.equal(f.state.game.source, "hydra");
-  assert.equal(f.state.game.remoteId, null);
+  assert.equal(f.state.game.remoteId, base.remoteId);
   assert.equal(f.state.game.epicPlayTimeInMilliseconds, 3000);
   assert.equal(f.state.game.playTimeInMilliseconds, 500);
   assert.equal(f.state.game.favorite, true);
+});
+
+for (const [name, error] of [
+  ["network", new Error("offline")],
+  ["timeout", Object.assign(new Error("timeout"), { code: "ECONNABORTED" })],
+  [
+    "rate limit",
+    Object.assign(new Error("rate limit"), { response: { status: 429 } }),
+  ],
+  ["server", Object.assign(new Error("server"), { response: { status: 503 } })],
+] as const) {
+  for (const remoteId of [base.remoteId, null]) {
+    test(`${name} tracking failure preserves ${remoteId === null ? "an unpublished" : "an existing"} Hydra claim and local data`, async () => {
+      const f = fixture();
+      f.state.game = { ...base, source: "epic", remoteId };
+      f.state.putFail = true;
+      f.state.putError = error;
+      const latest = { ...f.state.game };
+      await assert.rejects(
+        f.track(f.state.game, 1000, new Date()),
+        (actual) => actual === error
+      );
+      assert.deepEqual({ ...f.state.game }, { ...latest, source: "hydra" });
+    });
+  }
+}
+
+for (const shop of ["steam", "epic"] as const) {
+  test(`${shop} close failure retries the pending delta on reopen without creating the game again`, async () => {
+    const f = fixture();
+    f.state.game = { ...base, shop, playTimeInMilliseconds: 900_000 };
+    const gameKey = `${shop}:${base.objectId}`;
+    const watcher = f.watcher();
+    running.setGamePlaytime(gameKey, {
+      firstTick: 0,
+      lastTick: 30_000,
+      lastSyncTick: 0,
+      countHydraPlaytime: true,
+    });
+    try {
+      f.state.putFail = true;
+      await watcher.onCloseGame({ ...f.state.game });
+      assert.equal(f.state.game.remoteId, base.remoteId);
+      assert.equal(f.state.game.playTimeInMilliseconds, 930_000);
+      assert.equal(f.state.game.unsyncedDeltaPlayTimeInMilliseconds, 60_000);
+      assert.equal(f.state.acceptedPlayTimeInSeconds, 0);
+      assert.equal(running.gamesPlaytime.has(gameKey), false);
+
+      f.state.putFail = false;
+      await watcher.onOpenGame({ ...f.state.game }, "game.exe");
+      await new Promise<void>((resolve) => setImmediate(resolve));
+      await queue.libraryWriteQueue.drain();
+      assert.equal(f.state.game.unsyncedDeltaPlayTimeInMilliseconds, 0);
+      assert.equal(f.state.game.playTimeInMilliseconds, 930_000);
+      assert.equal(
+        f.state.game.epicPlayTimeInMilliseconds,
+        base.epicPlayTimeInMilliseconds
+      );
+      assert.equal(f.state.game.favorite, true);
+      assert.equal(f.state.acceptedPlayTimeInSeconds, 60);
+      assert.deepEqual(
+        f.state.calls.map(({ method }) => method),
+        ["put", "put"]
+      );
+      assert.deepEqual(
+        f.state.calls.map(
+          ({ body }) =>
+            (body as { playTimeDeltaInSeconds: number }).playTimeDeltaInSeconds
+        ),
+        [60, 60]
+      );
+    } finally {
+      running.clearGamesPlaytimeState();
+    }
+  });
+}
+
+test("a tracking failure after a context change does not write into the new account", async () => {
+  const f = fixture();
+  let release!: () => void;
+  f.state.putGate = new Promise<void>((resolve) => {
+    release = resolve;
+  });
+  f.state.putFail = true;
+  const tracking = f.track(f.state.game, 1000, new Date());
+  await new Promise<void>((resolve) => setImmediate(resolve));
+  f.state.current = false;
+  f.state.game = {
+    ...base,
+    remoteId: "NewAccount",
+    playTimeInMilliseconds: 1234,
+  };
+  const latest = { ...f.state.game };
+  release();
+  await assert.rejects(tracking, /offline/);
+  assert.deepEqual(f.state.game, latest);
 });
 
 test("Hydra batch excludes exclusive Epic games and uploads only the Hydra portion in inventory order", async () => {

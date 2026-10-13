@@ -35,31 +35,17 @@ export const trackGamePlaytime = async (
             if (latest)
               await gamesSublevel.put(key, { ...latest, source: "hydra" });
           }, current);
-        try {
-          return await HydraApi.put(
-            `/profile/games/${game.shop}/${encodeURIComponent(game.objectId)}`,
-            {
-              playTimeDeltaInSeconds: Math.trunc(deltaInMillis / 1000),
-              lastTimePlayed,
-            },
-            {
-              ...(context ? { authContext: context } : {}),
-              timeout: HYDRA_GAME_REQUEST_TIMEOUT_MS,
-            }
-          );
-        } catch (error) {
-          if (deltaInMillis >= 1000 && current())
-            await libraryWriteQueue.run(async () => {
-              const latest = await gamesSublevel.get(key);
-              if (latest)
-                await gamesSublevel.put(key, {
-                  ...latest,
-                  source: "hydra",
-                  remoteId: null,
-                });
-            }, current);
-          throw error;
-        }
+        return HydraApi.put(
+          `/profile/games/${game.shop}/${encodeURIComponent(game.objectId)}`,
+          {
+            playTimeDeltaInSeconds: Math.trunc(deltaInMillis / 1000),
+            lastTimePlayed,
+          },
+          {
+            ...(context ? { authContext: context } : {}),
+            timeout: HYDRA_GAME_REQUEST_TIMEOUT_MS,
+          }
+        );
       },
       current
     );

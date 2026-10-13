@@ -48,6 +48,13 @@ const game: Game = {
     connectionId: connection.connectionId,
   },
 };
+function deferred() {
+  let resolve!: () => void;
+  const promise = new Promise<void>((done) => {
+    resolve = done;
+  });
+  return { promise, resolve };
+}
 function fixture() {
   const state = {
     current: true,
@@ -64,6 +71,11 @@ function fixture() {
     aliases: ["Artifact"],
     sourceGate: Promise.resolve(),
     waitGate: Promise.resolve(),
+    finalOwnerGate: Promise.resolve(),
+    finalOwnerStarted: () => {},
+    remoteHydraSeconds: 0,
+    remoteLastTimePlayed: null as Date | null,
+    remoteManualPlaytime: undefined as boolean | undefined,
   };
   const connectionState: EpicConnectionState = {
     hydraLoggedIn: true,
@@ -120,17 +132,28 @@ function fixture() {
           if (options.signal?.aborted)
             throw new protocol.EpicIntegrationError("operation-cancelled");
           state.ownerReads++;
-          return {
+          const response = {
             id: "Remote1",
             shop: "epic",
             objectId,
             hasActiveEpicImport: true,
-            runtimeByPlatform: { hydra: 0, steam: 0, epic: state.seconds },
+            runtimeByPlatform: {
+              hydra: state.remoteHydraSeconds,
+              steam: 0,
+              epic: state.seconds,
+            },
+            lastTimePlayed: state.remoteLastTimePlayed,
+            hasManuallyUpdatedPlaytime: state.remoteManualPlaytime,
             epicImport: {
               connectionId: state.ownerConnectionId,
               artifactIds: state.aliases,
             },
           };
+          if (state.ownerReads === 2) {
+            state.finalOwnerStarted();
+            await state.finalOwnerGate;
+          }
+          return response;
         },
         put: async (
           _url: string,
@@ -248,7 +271,15 @@ function fixture() {
         timer.callback();
       }
   };
-  return { runtime, state, timers, events, fire, executionWait };
+  return {
+    runtime,
+    state,
+    connectionState,
+    timers,
+    events,
+    fire,
+    executionWait,
+  };
 }
 test("individual sync rehydrates owner aliases after restart and preserves Hydra", async () => {
   const f = fixture();
@@ -267,6 +298,150 @@ test("individual sync rehydrates owner aliases after restart and preserves Hydra
     })
   );
 });
+
+test("individual sync merges remote Hydra fields when the revision is unchanged", async () => {
+  const f = fixture();
+  const lastTimePlayed = new Date("2026-10-13T00:00:00Z");
+  f.state.remoteHydraSeconds = 600;
+  f.state.remoteLastTimePlayed = lastTimePlayed;
+  f.state.remoteManualPlaytime = true;
+  assert.equal(await f.runtime.syncGame(objectId), 100);
+  assert.equal(f.state.game.playTimeInMilliseconds, 600_000);
+  assert.equal(
+    f.state.game.lastTimePlayed?.getTime(),
+    lastTimePlayed.getTime()
+  );
+  assert.equal(f.state.game.hasManuallyUpdatedPlaytime, true);
+  assert.equal(f.state.game.epicPlayTimeInMilliseconds, 100_000);
+});
+
+for (const edit of [
+  {
+    name: "reset",
+    playTimeInMilliseconds: 0,
+    lastTimePlayed: null,
+    hasManuallyUpdatedPlaytime: false,
+    remoteManualPlaytime: true,
+  },
+  {
+    name: "downward edit",
+    playTimeInMilliseconds: 30_000,
+    lastTimePlayed: new Date("2026-10-12T00:00:00Z"),
+    hasManuallyUpdatedPlaytime: true,
+    remoteManualPlaytime: false,
+  },
+]) {
+  for (const phase of ["owner request", "write queue"] as const) {
+    test(`individual sync preserves a Hydra ${edit.name} during the final ${phase}`, async () => {
+      const f = fixture();
+      const started = deferred();
+      const response = deferred();
+      const blocked = deferred();
+      f.state.finalOwnerStarted = started.resolve;
+      f.state.finalOwnerGate = response.promise;
+      f.state.remoteHydraSeconds = 600;
+      f.state.remoteLastTimePlayed = new Date("2026-10-13T00:00:00Z");
+      f.state.remoteManualPlaytime = edit.remoteManualPlaytime;
+      f.state.game = {
+        ...game,
+        source: "hydra",
+        playTimeInMilliseconds: 600_000,
+        lastTimePlayed: f.state.remoteLastTimePlayed,
+        hasManuallyUpdatedPlaytime: edit.remoteManualPlaytime,
+        unsyncedDeltaPlayTimeInMilliseconds: 60_000,
+      };
+      const applyEdit = async () => {
+        f.state.game = {
+          ...f.state.game,
+          playTimeInMilliseconds: edit.playTimeInMilliseconds,
+          lastTimePlayed: edit.lastTimePlayed,
+          hasManuallyUpdatedPlaytime: edit.hasManuallyUpdatedPlaytime,
+          unsyncedDeltaPlayTimeInMilliseconds: 0,
+        };
+        queue.markHydraPlaytimeChanged(`epic:${objectId}`);
+      };
+      const syncing = f.runtime.syncGame(objectId);
+      await started.promise;
+      let editing: Promise<void>;
+      if (phase === "write queue") {
+        editing = queue.libraryWriteQueue.run(async () => {
+          await blocked.promise;
+          await applyEdit();
+        });
+        response.resolve();
+        await new Promise<void>((resolve) => setImmediate(resolve));
+        blocked.resolve();
+      } else {
+        editing = queue.libraryWriteQueue.run(applyEdit);
+        await editing;
+        response.resolve();
+      }
+      await editing;
+      assert.equal(await syncing, 100);
+      assert.equal(
+        f.state.game.playTimeInMilliseconds,
+        edit.playTimeInMilliseconds
+      );
+      assert.equal(f.state.game.lastTimePlayed, edit.lastTimePlayed);
+      assert.equal(
+        f.state.game.hasManuallyUpdatedPlaytime,
+        edit.hasManuallyUpdatedPlaytime
+      );
+      assert.equal(f.state.game.unsyncedDeltaPlayTimeInMilliseconds, 0);
+      assert.equal(f.state.game.epicPlayTimeInMilliseconds, 100_000);
+      assert.equal(f.state.game.remoteId, game.remoteId);
+      assert.equal(f.state.game.source, "hydra");
+      assert.deepEqual(f.events, ["on-library-batch-complete"]);
+    });
+  }
+}
+
+test("individual sync discards a final owner response after an auth context change", async () => {
+  const f = fixture();
+  const started = deferred();
+  const response = deferred();
+  f.state.finalOwnerStarted = started.resolve;
+  f.state.finalOwnerGate = response.promise;
+  const syncing = f.runtime.syncGame(objectId);
+  await started.promise;
+  f.state.current = false;
+  const latest = { ...f.state.game };
+  response.resolve();
+  assert.equal(await syncing, null);
+  assert.deepEqual(f.state.game, latest);
+  assert.deepEqual(f.events, []);
+});
+
+for (const change of ["auth context", "Epic connection"] as const) {
+  test(`individual sync rejects a queued merge after the ${change} changes`, async () => {
+    const f = fixture();
+    const started = deferred();
+    const response = deferred();
+    const blocked = deferred();
+    f.state.finalOwnerStarted = started.resolve;
+    f.state.finalOwnerGate = response.promise;
+    const syncing = f.runtime.syncGame(objectId);
+    await started.promise;
+    const writing = queue.libraryWriteQueue.run(async () => {
+      await blocked.promise;
+      if (change === "auth context") f.state.current = false;
+      else
+        f.connectionState.connection = {
+          ...connection,
+          connectionId: "NewLink1",
+        };
+    });
+    response.resolve();
+    await new Promise<void>((resolve) => setImmediate(resolve));
+    const rejected = assert.rejects(syncing, /library-context-changed/);
+    const latest = { ...f.state.game };
+    blocked.resolve();
+    await writing;
+    await rejected;
+    assert.deepEqual(f.state.game, latest);
+    assert.deepEqual(f.events, []);
+  });
+}
 test("individual sync does not publish metadata belonging to an old connection", async () => {
   const f = fixture();
   f.state.ownerConnectionId = "OldLink1";
