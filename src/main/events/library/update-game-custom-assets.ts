@@ -1,3 +1,4 @@
+import { libraryWriteQueue } from "../../services/library-sync/library-write-queue";
 import { registerEvent } from "../register-event";
 import {
   gamesArtworkSelectionSublevel,
@@ -89,21 +90,25 @@ const updateGameData = async (params: UpdateGameDataParams): Promise<Game> => {
     customOriginalHeroPath,
     customOriginalCoverPath,
   } = params;
-  const updatedGame = {
-    ...existingGame,
-    title,
-    ...(customIconUrl !== undefined && { customIconUrl }),
-    ...(customLogoImageUrl !== undefined && { customLogoImageUrl }),
-    ...(customHeroImageUrl !== undefined && { customHeroImageUrl }),
-    ...(customCoverImageUrl !== undefined && { customCoverImageUrl }),
-    ...(customOriginalIconPath !== undefined && { customOriginalIconPath }),
-    ...(customOriginalLogoPath !== undefined && { customOriginalLogoPath }),
-    ...(customOriginalHeroPath !== undefined && { customOriginalHeroPath }),
-    ...(customOriginalCoverPath !== undefined && { customOriginalCoverPath }),
-  };
+  return libraryWriteQueue.run(async () => {
+    const latest = await gamesSublevel.get(gameKey);
+    if (!latest) return existingGame;
+    const updatedGame = {
+      ...latest,
+      title,
+      ...(customIconUrl !== undefined && { customIconUrl }),
+      ...(customLogoImageUrl !== undefined && { customLogoImageUrl }),
+      ...(customHeroImageUrl !== undefined && { customHeroImageUrl }),
+      ...(customCoverImageUrl !== undefined && { customCoverImageUrl }),
+      ...(customOriginalIconPath !== undefined && { customOriginalIconPath }),
+      ...(customOriginalLogoPath !== undefined && { customOriginalLogoPath }),
+      ...(customOriginalHeroPath !== undefined && { customOriginalHeroPath }),
+      ...(customOriginalCoverPath !== undefined && { customOriginalCoverPath }),
+    };
 
-  await gamesSublevel.put(gameKey, updatedGame);
-  return updatedGame;
+    await gamesSublevel.put(gameKey, updatedGame);
+    return updatedGame;
+  });
 };
 
 const updateShopAssets = async (

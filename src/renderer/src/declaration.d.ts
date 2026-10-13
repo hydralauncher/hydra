@@ -104,6 +104,8 @@ import type {
   SteamConnectErrorCode,
   ExtractionFailure,
   EpicConnectionState,
+  EpicSyncState,
+  EpicSyncFinished,
   EpicOperationResult,
   EpicStartAuthResult,
 } from "@types";
@@ -1209,6 +1211,12 @@ declare global {
     onRetroAchievementsConnected: (
       cb: () => void
     ) => () => Electron.IpcRenderer;
+    startEpicSync: (connectionId: string) => Promise<EpicSyncState>;
+    getEpicSyncState: () => Promise<EpicSyncState>;
+    cancelEpicSync: (connectionId: string) => Promise<EpicOperationResult>;
+    syncEpicGameOnGamePage: (objectId: string) => Promise<boolean>;
+    onEpicSyncProgress: (cb: (state: EpicSyncState) => void) => () => void;
+    onEpicSyncFinished: (cb: (result: EpicSyncFinished) => void) => () => void;
     getEpicConnection: () => Promise<EpicConnectionState>;
     startEpicAuth: () => Promise<EpicStartAuthResult>;
     cancelEpicAuth: (operationId: string) => Promise<EpicOperationResult>;

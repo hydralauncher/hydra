@@ -44,6 +44,16 @@ export default function GameDetails() {
   const navigate = useNavigate();
 
   useEffect(() => {
+    if (
+      shop !== "epic" ||
+      !objectId ||
+      typeof window.electron.syncEpicGameOnGamePage !== "function"
+    )
+      return;
+    void window.electron.syncEpicGameOnGamePage(objectId).catch(() => {});
+  }, [objectId, shop]);
+
+  useEffect(() => {
     if (shop !== "steam" || !objectId) return;
 
     void window.electron.syncSteamGameOnGamePage(objectId).catch(() => {});

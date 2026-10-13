@@ -998,7 +998,9 @@
     "pkg_unreadable_toast": "Impossible de lire ce PKG. Installez-le et lancez-le directement depuis RPCS3.",
     "reset_achievements_retroachievements_note": "Réinitialisez d'abord les succès sur RetroAchievements, sinon ils seront resynchronisés vers Hydra.",
     "reset_achievements_retroachievements_link": "Ouvrir le site RetroAchievements",
-    "reset_achievements_retroachievements_confirm": "J'ai déjà réinitialisé les succès de ce jeu sur RetroAchievements"
+    "reset_achievements_retroachievements_confirm": "J'ai déjà réinitialisé les succès de ce jeu sur RetroAchievements",
+    "epic_playtime_tracking_title": "Epic playtime",
+    "epic_playtime_tracking_description": "Epic playtime is already synced. When an Epic installation is identified, Hydra does not count the same session by default. Enable this option to also count it in Hydra."
   },
   "activation": {
     "title": "Activer Hydra",
@@ -1068,12 +1070,11 @@
     "epic_status_awaiting_login": "Waiting for Epic sign-in",
     "epic_status_connecting": "Connecting...",
     "epic_status_disconnecting": "Disconnecting...",
-    "epic_connected_at": "Connected on {{date}}",
     "epic_reconnect_description": "Your account is still linked. Sign in again to restore the Epic session on this device.",
     "epic_login_in_window": "Complete sign-in in the Epic window.",
     "epic_check_connection": "Check connection",
     "epic_disconnect_title": "Disconnect Epic Games?",
-    "epic_disconnect_description": "This removes your Epic link from Hydra and the saved Epic session on this device.",
+    "epic_disconnect_description": "This removes your imported Epic library and playtime and the saved Epic session on this device. Your Hydra games, playtime and preferences are preserved.",
     "epic_account_linked": "Epic Games account connected",
     "epic_account_unlinked": "Epic Games account disconnected",
     "epic_error_hydra_auth": "Sign in to Hydra to connect your Epic Games account.",
@@ -1097,6 +1098,8 @@
     "integration_disconnect": "Déconnecter",
     "integration_reconnect": "Reconnecter",
     "integration_sync": "Synchroniser",
+    "integration_last_synced": "Dernière synchronisation : {{date}}",
+    "integration_never_synced": "Pas encore synchronisé",
     "integration_status_not_connected": "Non connecté",
     "downloads_path": "Chemin des téléchargements",
     "change": "Mettre à jour",
@@ -1697,7 +1700,6 @@
     "retroachievements_status_active": "Connecté",
     "retroachievements_status_invalid_credentials": "Identifiants invalides",
     "retroachievements_invalid_credentials_description": "Vos identifiants RetroAchievements ne sont plus valides. Reconnectez votre compte.",
-    "retroachievements_last_checked": "Dernière vérification : {{date}}",
     "steam_status_reconnect_required": "Reconnexion requise",
     "retroachievements_invalid_password": "Mot de passe RetroAchievements invalide",
     "retroachievements_invalid_web_api_key": "Clé Web API RetroAchievements invalide",
@@ -1731,7 +1733,22 @@
     "setup_firmware_guide": "Ouvrir la page officielle PlayStation",
     "setup_match_wrong_platform": "mauvaise plateforme",
     "setup_run_in_background": "Exécuter en arrière-plan",
-    "scanning_system_label": "Analyse de {{system}}…"
+    "scanning_system_label": "Analyse de {{system}}…",
+    "epic_sync_starting": "Preparing Epic sync…",
+    "epic_sync_library": "Collecting Epic library…",
+    "epic_sync_playtime": "Collecting Epic playtime…",
+    "epic_sync_publishing": "Uploading Epic library…",
+    "epic_sync_merging": "Updating local library…",
+    "epic_sync_finishing": "Finishing up…",
+    "epic_sync_cancelling": "Cancelling Epic sync…",
+    "epic_sync_success": "Synchronisation Epic terminée",
+    "epic_sync_in_progress": "An Epic sync is already running. Wait for it to finish or cancel the pending upload.",
+    "epic_sync_invalid": "Epic library data could not be verified. Your previous library was preserved.",
+    "epic_sync_too_large": "The Epic library exceeds the sync limits.",
+    "epic_sync_permission": "Epic did not allow access to playtime. Your previous library was preserved.",
+    "epic_sync_rate_limit": "Epic is limiting requests. Try again later.",
+    "epic_sync_merge_pending": "The server synced your Epic library. Retry sync to update the local library.",
+    "hide_library_epic_badges": "Masquer les badges de connexion à la bibliothèque Epic"
   },
   "classics_onboarding": {
     "title": "Bienvenue dans Hydra Classics",
@@ -2109,7 +2126,9 @@
     "context_menu_options": "Options",
     "context_menu_uninstall": "Désinstaller",
     "context_menu_remove_from_library": "Retirer de la bibliothèque",
-    "context_menu_add_to_library": "Ajouter à la bibliothèque"
+    "context_menu_add_to_library": "Ajouter à la bibliothèque",
+    "library_epic": "Epic",
+    "imported_from_epic": "Importé depuis la bibliothèque Epic liée à ce profil."
   },
   "notifications_page": {
     "cloud_gift_received_title": "Vous avez reçu Hydra Cloud",

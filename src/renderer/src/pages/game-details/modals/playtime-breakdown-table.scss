@@ -4,7 +4,7 @@
   display: grid;
   grid-template-columns:
     minmax(0, 1fr) auto minmax(0, 1fr)
-    auto minmax(0, 1fr);
+    auto minmax(0, 1fr) auto minmax(0, 1fr);
   gap: globals.$spacing-unit;
   font-variant-numeric: tabular-nums;
   cursor: default;
@@ -49,5 +49,21 @@
     font-size: globals.$small-font-size;
     color: rgba(255, 255, 255, 0.4);
     white-space: nowrap;
+  }
+}
+
+@media (max-width: 520px) {
+  .playtime-breakdown-table {
+    gap: 4px;
+    &__label {
+      gap: 4px;
+      font-size: 12px;
+    }
+    &__value {
+      padding: 6px 4px;
+    }
+    &__next {
+      font-size: 12px;
+    }
   }
 }

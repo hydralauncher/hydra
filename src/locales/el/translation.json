@@ -731,7 +731,9 @@
     "create_steam_shortcut_modal_cancel_button": "Ακύρωση",
     "delete_shortcut_success": "Η συντόμευση του Steam διαγράφηκε με επιτυχία",
     "delete_shortcut_error": "Δεν κατέστη δυνατή η διαγραφή της συντόμευσης του Steam",
-    "delete_steam_shortcut": "Διαγραφή της συντόμευσης του Steam"
+    "delete_steam_shortcut": "Διαγραφή της συντόμευσης του Steam",
+    "epic_playtime_tracking_title": "Epic playtime",
+    "epic_playtime_tracking_description": "Epic playtime is already synced. When an Epic installation is identified, Hydra does not count the same session by default. Enable this option to also count it in Hydra."
   },
   "activation": {
     "title": "Ενεργοποίηση του Hydra",
@@ -802,12 +804,11 @@
     "epic_status_awaiting_login": "Waiting for Epic sign-in",
     "epic_status_connecting": "Connecting...",
     "epic_status_disconnecting": "Disconnecting...",
-    "epic_connected_at": "Connected on {{date}}",
     "epic_reconnect_description": "Your account is still linked. Sign in again to restore the Epic session on this device.",
     "epic_login_in_window": "Complete sign-in in the Epic window.",
     "epic_check_connection": "Check connection",
     "epic_disconnect_title": "Disconnect Epic Games?",
-    "epic_disconnect_description": "This removes your Epic link from Hydra and the saved Epic session on this device.",
+    "epic_disconnect_description": "This removes your imported Epic library and playtime and the saved Epic session on this device. Your Hydra games, playtime and preferences are preserved.",
     "epic_account_linked": "Epic Games account connected",
     "epic_account_unlinked": "Epic Games account disconnected",
     "epic_error_hydra_auth": "Sign in to Hydra to connect your Epic Games account.",
@@ -831,6 +832,8 @@
     "integration_disconnect": "Αποσύνδεση",
     "integration_reconnect": "Επανασύνδεση",
     "integration_sync": "Συγχρονισμός",
+    "integration_last_synced": "Τελευταίος συγχρονισμός: {{date}}",
+    "integration_never_synced": "Δεν έχει συγχρονιστεί ακόμα",
     "integration_status_not_connected": "Μη συνδεδεμένο",
     "setup_official_website": "Επίσημος ιστότοπος",
     "setup_install_with_hydra": "Εγκατάσταση από το GitHub",
@@ -1043,7 +1046,6 @@
     "retroachievements_status_active": "Συνδεδεμένος",
     "retroachievements_status_invalid_credentials": "Μη έγκυρα διαπιστευτήρια",
     "retroachievements_invalid_credentials_description": "Τα διαπιστευτήριά σας για το RetroAchievements δεν είναι πλέον έγκυρα. Επανασυνδέστε τον λογαριασμό σας.",
-    "retroachievements_last_checked": "Τελευταίος έλεγχος: {{date}}",
     "steam_status_reconnect_required": "Απαιτείται επανασύνδεση",
     "retroachievements_invalid_password": "Ο κωδικός πρόσβασης για το RetroAchievements δεν είναι έγκυρος",
     "retroachievements_invalid_web_api_key": "Μη έγκυρο κλειδί Web API του RetroAchievements",
@@ -1361,7 +1363,22 @@
     "big_picture_enable_sounds": "Ενεργοποίηση ήχων Big Picture",
     "big_picture_enable_virtual_keyboard": "Ενεργοποίηση του εικονικού πληκτρολογίου «Big Picture»",
     "big_picture_enable_diagnostics": "Ενεργοποίηση διαγνωστικών πλοήγησης",
-    "big_picture_diagnostics_position": "Θέση διαγνωστικών"
+    "big_picture_diagnostics_position": "Θέση διαγνωστικών",
+    "epic_sync_starting": "Preparing Epic sync…",
+    "epic_sync_library": "Collecting Epic library…",
+    "epic_sync_playtime": "Collecting Epic playtime…",
+    "epic_sync_publishing": "Uploading Epic library…",
+    "epic_sync_merging": "Updating local library…",
+    "epic_sync_finishing": "Finishing up…",
+    "epic_sync_cancelling": "Cancelling Epic sync…",
+    "epic_sync_success": "Ο συγχρονισμός με το Epic ολοκληρώθηκε",
+    "epic_sync_in_progress": "An Epic sync is already running. Wait for it to finish or cancel the pending upload.",
+    "epic_sync_invalid": "Epic library data could not be verified. Your previous library was preserved.",
+    "epic_sync_too_large": "The Epic library exceeds the sync limits.",
+    "epic_sync_permission": "Epic did not allow access to playtime. Your previous library was preserved.",
+    "epic_sync_rate_limit": "Epic is limiting requests. Try again later.",
+    "epic_sync_merge_pending": "The server synced your Epic library. Retry sync to update the local library.",
+    "hide_library_epic_badges": "Απόκρυψη σημάτων σύνδεσης βιβλιοθήκης Epic"
   },
   "notifications": {
     "download_complete": "Η λήψη ολοκληρώθηκε",
@@ -1626,7 +1643,9 @@
     "context_menu_options": "Επιλογές",
     "context_menu_uninstall": "Απεγκατάσταση",
     "context_menu_remove_from_library": "Διαγραφή από τη βιβλιοθήκη",
-    "context_menu_add_to_library": "Προσθήκη στη βιβλιοθήκη"
+    "context_menu_add_to_library": "Προσθήκη στη βιβλιοθήκη",
+    "library_epic": "Epic",
+    "imported_from_epic": "Εισήχθη από τη βιβλιοθήκη Epic που είναι συνδεδεμένη με αυτό το προφίλ."
   },
   "achievement": {
     "achievement_unlocked": "Το επίτευγμα ξεκλειδώθηκε",

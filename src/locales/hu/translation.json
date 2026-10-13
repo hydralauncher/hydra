@@ -552,7 +552,9 @@
     "create_steam_shortcut_modal_cancel_button": "Mégse",
     "delete_shortcut_success": "Steam parancsikon sikeresen törölve",
     "delete_shortcut_error": "Nem sikerült törölni a Steam parancsikont",
-    "delete_steam_shortcut": "Steam parancsikon törlése"
+    "delete_steam_shortcut": "Steam parancsikon törlése",
+    "epic_playtime_tracking_title": "Epic playtime",
+    "epic_playtime_tracking_description": "Epic playtime is already synced. When an Epic installation is identified, Hydra does not count the same session by default. Enable this option to also count it in Hydra."
   },
   "activation": {
     "title": "Hydra Aktiválása",
@@ -619,12 +621,11 @@
     "epic_status_awaiting_login": "Waiting for Epic sign-in",
     "epic_status_connecting": "Connecting...",
     "epic_status_disconnecting": "Disconnecting...",
-    "epic_connected_at": "Connected on {{date}}",
     "epic_reconnect_description": "Your account is still linked. Sign in again to restore the Epic session on this device.",
     "epic_login_in_window": "Complete sign-in in the Epic window.",
     "epic_check_connection": "Check connection",
     "epic_disconnect_title": "Disconnect Epic Games?",
-    "epic_disconnect_description": "This removes your Epic link from Hydra and the saved Epic session on this device.",
+    "epic_disconnect_description": "This removes your imported Epic library and playtime and the saved Epic session on this device. Your Hydra games, playtime and preferences are preserved.",
     "epic_account_linked": "Epic Games account connected",
     "epic_account_unlinked": "Epic Games account disconnected",
     "epic_error_hydra_auth": "Sign in to Hydra to connect your Epic Games account.",
@@ -648,11 +649,12 @@
     "integration_disconnect": "Leválasztás",
     "integration_reconnect": "Újracsatlakozás",
     "integration_sync": "Szinkronizálás",
+    "integration_last_synced": "Utolsó szinkronizálás: {{date}}",
+    "integration_never_synced": "Még nincs szinkronizálva",
     "integration_status_not_connected": "Nincs csatlakoztatva",
     "retroachievements_connect_title": "RetroAchievements csatlakoztatása",
     "retroachievements_status_invalid_credentials": "Érvénytelen hitelesítő adatok",
     "retroachievements_invalid_credentials_description": "A RetroAchievements hitelesítő adatai már nem érvényesek. Csatlakoztasd újra a fiókodat.",
-    "retroachievements_last_checked": "Utolsó ellenőrzés: {{date}}",
     "steam_status_reconnect_required": "Újracsatlakozás szükséges",
     "downloads_path": "Letöltési útvonalak",
     "change": "Frissítés",
@@ -850,7 +852,22 @@
     "create_shortcuts_on_download": "Asztali és Start menü parancsikonok létrehozása a letöltés befejezésekor",
     "default_wine_prefix": "Alapértelmezett Wine prefix helye",
     "default_proton_version": "Alapértelmezett Proton verzió",
-    "default_proton_version_description": "Válaszd ki azt a Proton verziót, amelyet az Auto mód használ, ha a játékhoz nincs egyedi felülírás"
+    "default_proton_version_description": "Válaszd ki azt a Proton verziót, amelyet az Auto mód használ, ha a játékhoz nincs egyedi felülírás",
+    "epic_sync_starting": "Preparing Epic sync…",
+    "epic_sync_library": "Collecting Epic library…",
+    "epic_sync_playtime": "Collecting Epic playtime…",
+    "epic_sync_publishing": "Uploading Epic library…",
+    "epic_sync_merging": "Updating local library…",
+    "epic_sync_finishing": "Finishing up…",
+    "epic_sync_cancelling": "Cancelling Epic sync…",
+    "epic_sync_success": "Az Epic szinkronizálása befejeződött",
+    "epic_sync_in_progress": "An Epic sync is already running. Wait for it to finish or cancel the pending upload.",
+    "epic_sync_invalid": "Epic library data could not be verified. Your previous library was preserved.",
+    "epic_sync_too_large": "The Epic library exceeds the sync limits.",
+    "epic_sync_permission": "Epic did not allow access to playtime. Your previous library was preserved.",
+    "epic_sync_rate_limit": "Epic is limiting requests. Try again later.",
+    "epic_sync_merge_pending": "The server synced your Epic library. Retry sync to update the local library.",
+    "hide_library_epic_badges": "A Epic-könyvtár kapcsolatjelvényeinek elrejtése"
   },
   "notifications": {
     "download_complete": "Letöltés befejezve",
@@ -1071,7 +1088,9 @@
     "empty_collection_description": "Jobb-katt bármelyik játékra, nyisd meg a Gyűjtemény részt, majd add hozzá a játékot.",
     "disk_usage": "Lemez használat",
     "disk_usage_tooltip": "Telepített méret a lemezen",
-    "installer_size_tooltip": "Telepítő mérete"
+    "installer_size_tooltip": "Telepítő mérete",
+    "library_epic": "Epic",
+    "imported_from_epic": "Az ehhez a profilhoz kapcsolt Epic-könyvtárból importálva."
   },
   "achievement": {
     "achievement_unlocked": "Achievement feloldva",

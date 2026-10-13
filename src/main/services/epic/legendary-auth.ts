@@ -1,3 +1,4 @@
+import { StringDecoder } from "node:string_decoder";
 import {
   execFile,
   spawn,
@@ -52,7 +53,7 @@ function taskkillLegendaryTree(pid: number) {
   });
 }
 
-class LegendaryProcessCleanupError extends EpicIntegrationError {
+export class LegendaryProcessCleanupError extends EpicIntegrationError {
   constructor(public readonly retry: () => Promise<void>) {
     super("cleanup-failed");
   }
@@ -72,7 +73,7 @@ const waitForProcessClose = (closed: Promise<void>) =>
 
 /** PyInstaller onefile has a launcher parent and a Python child. Killing just
  * the parent does not stop authentication or writes to LEGENDARY_CONFIG_PATH. */
-function executeLegendaryCommand(
+export function executeLegendaryCommand(
   binaryPath: string,
   args: string[],
   options: ExecFileOptionsWithStringEncoding
@@ -96,6 +97,7 @@ function executeLegendaryCommand(
       return;
     }
     let output = "";
+    const decoder = new StringDecoder("utf8");
     let bytes = 0;
     let spawnFailed = false;
     let closed = false;
@@ -156,7 +158,7 @@ function executeLegendaryCommand(
       bytes += chunk.length;
       if (bytes > (options.maxBuffer ?? EPIC_LEGENDARY_MAX_OUTPUT_BYTES))
         stop("auth-failed");
-      else if (!interruption) output += chunk.toString("utf8");
+      else if (!interruption) output += decoder.write(chunk);
     });
     child.stderr?.on("data", (chunk: Buffer) => {
       bytes += chunk.length;
@@ -165,6 +167,7 @@ function executeLegendaryCommand(
     });
     child.on("close", (code) => {
       closed = true;
+      output += decoder.end();
       completeClose();
       if (!interruption)
         settle(

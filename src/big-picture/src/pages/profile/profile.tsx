@@ -458,6 +458,10 @@ function getLibraryCarouselPlaytimeInMilliseconds(
   ) {
     return getDisplayedPlayTimeInMilliseconds({
       playTimeInMilliseconds: game.playTimeInMilliseconds,
+      epicPlayTimeInMilliseconds:
+        "epicPlayTimeInMilliseconds" in game
+          ? game.epicPlayTimeInMilliseconds
+          : undefined,
       steamPlayTimeInMilliseconds:
         "steamPlayTimeInMilliseconds" in game
           ? game.steamPlayTimeInMilliseconds

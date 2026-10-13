@@ -500,6 +500,19 @@ export default function Game() {
   const navigate = useNavigate();
 
   useEffect(() => {
+    if (
+      !IS_DESKTOP ||
+      shop !== "epic" ||
+      !objectId ||
+      typeof globalThis.window.electron.syncEpicGameOnGamePage !== "function"
+    )
+      return;
+    void globalThis.window.electron
+      .syncEpicGameOnGamePage(objectId)
+      .catch(() => {});
+  }, [objectId, shop]);
+
+  useEffect(() => {
     if (!IS_DESKTOP || shop !== "steam" || !objectId) return;
 
     void globalThis.window.electron

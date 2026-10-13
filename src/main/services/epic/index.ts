@@ -1,3 +1,6 @@
+import { setEpicLibraryConnection } from "../library-sync/library-write-queue";
+import { EpicSyncRuntime } from "./sync-runtime";
+import { clearEpicImports, clearStaleEpicImports } from "./import-cleanup";
 import { app } from "electron";
 import fs from "node:fs";
 import type { EpicConnectionState } from "../../../types/epic-integration.types";
@@ -15,6 +18,9 @@ import { EpicConnectionStore } from "./store";
 
 const EPIC_CONNECTION_ENDPOINT = "/profile/integrations/epic";
 let integration: EpicIntegrationCore | null = null;
+let runtime: EpicSyncRuntime | null = null;
+let lastPublicState: EpicConnectionState | null = null;
+let firstLinkPending = false;
 let unsubscribeAuth: (() => void) | null = null;
 let temporaryCleanupFailed = false;
 let stopping = false;
@@ -67,14 +73,31 @@ function getIntegration() {
   const store = new EpicConnectionStore({
     userDataPath: app.getPath("userData"),
   });
+  runtime = new EpicSyncRuntime(
+    store,
+    app.getPath("userData"),
+    checkBinary,
+    () => getIntegration().getConnection(),
+    () => lastPublicState
+  );
   integration = new EpicIntegrationCore({
     getAuthContext: () => HydraApi.getAuthContext(),
     isAuthContextCurrent: (context) => HydraApi.isAuthContextCurrent(context),
     store,
     availability,
     checkBinary,
-    createRunner: (binary, signal) =>
-      LegendaryAuthRunner.create(binary, app.getPath("userData"), signal),
+    createRunner: async (binary, signal) => {
+      const runner = await LegendaryAuthRunner.create(
+        binary,
+        app.getPath("userData"),
+        signal
+      );
+      return {
+        authenticate: (code) =>
+          runtime!.session.serialize(() => runner.authenticate(code)),
+        cleanup: () => runner.cleanup(),
+      };
+    },
     openWindow: openEpicAuthWindow,
     get: (options) =>
       HydraApi.get(EPIC_CONNECTION_ENDPOINT, undefined, {
@@ -91,7 +114,80 @@ function getIntegration() {
         `${EPIC_CONNECTION_ENDPOINT}?connectionId=${encodeURIComponent(connectionId)}`,
         { ...options, logResponseBody: false }
       ),
+    connectionChanged: async (context, previous, next) => {
+      const current = () => HydraApi.isAuthContextCurrent(context);
+      if (!current()) return;
+      setEpicLibraryConnection(
+        context,
+        next.connected ? next.connectionId : null
+      );
+      const transitioned =
+        (!!previous &&
+          (!next.connected || previous.connectionId !== next.connectionId)) ||
+        (lastPublicState?.hydraUserId === context.userId &&
+          lastPublicState.connection?.connected === true &&
+          (!next.connected ||
+            lastPublicState.connection.connectionId !== next.connectionId));
+      if (transitioned) {
+        if (lastPublicState)
+          lastPublicState = {
+            ...lastPublicState,
+            connection: next,
+            verification: "confirmed",
+          };
+        runtime?.invalidate();
+        if (previous)
+          await clearEpicImports(
+            context,
+            previous.connectionId,
+            false,
+            current
+          );
+      }
+      const cleaned = await clearStaleEpicImports(
+        context,
+        current,
+        next.connected ? next.connectionId : null
+      );
+      if (transitioned || cleaned > 0) {
+        await import("../library-sync/merge-with-remote-games").then(
+          ({ mergeWithRemoteGames }) => mergeWithRemoteGames(undefined, context)
+        );
+        if (current())
+          WindowManager.sendToAppWindows("on-library-batch-complete");
+      }
+    },
     emit: (state) => {
+      const old = lastPublicState;
+      lastPublicState = state;
+      if (
+        state.verification === "confirmed" &&
+        state.connection?.connected &&
+        old?.connection?.connected !== true &&
+        state.operation?.status === "connecting"
+      )
+        firstLinkPending = true;
+      if (
+        state.verification === "confirmed" &&
+        state.connection?.connected &&
+        !state.operation &&
+        (firstLinkPending ||
+          old?.verification !== "confirmed" ||
+          old.hydraUserId !== state.hydraUserId ||
+          old.connection?.connected !== true ||
+          old.connection.connectionId !== state.connection.connectionId ||
+          !!old.operation)
+      ) {
+        const firstLink = firstLinkPending;
+        const authenticated =
+          old?.operation?.status === "connecting" &&
+          state.sessionState === "ready";
+        firstLinkPending = false;
+        queueMicrotask(() => {
+          if (authenticated) void runtime?.authenticated(firstLink);
+          else void runtime?.startup(firstLink);
+        });
+      }
       const window = WindowManager.mainWindow;
       if (window && !window.isDestroyed())
         window.webContents.send("on-epic-connection-changed", state);
@@ -102,6 +198,10 @@ function getIntegration() {
 
 export async function initializeEpicIntegration() {
   if (stopping) return;
+  if (unsubscribeAuth) {
+    await getIntegration().initialize();
+    return;
+  }
   // Crash recovery touches only our temporary directories. Never execute Legendary here.
   try {
     await cleanupEpicTemporarySessions(app.getPath("userData"));
@@ -111,6 +211,8 @@ export async function initializeEpicIntegration() {
   if (stopping) return;
   if (!unsubscribeAuth) {
     unsubscribeAuth = HydraApi.onAuthContextChanged(() => {
+      runtime?.invalidate();
+      firstLinkPending = false;
       if (integration)
         void integration.authContextChanged().catch(() => undefined);
     });
@@ -122,12 +224,64 @@ export async function shutdownEpicIntegration() {
   stopping = true;
   unsubscribeAuth?.();
   unsubscribeAuth = null;
+  await runtime?.stop();
   await integration?.shutdown();
 }
 
 export const getEpicConnection = () => getIntegration().getConnection();
-export const startEpicAuth = () => getIntegration().startAuth();
+export const startEpicAuth = async () => {
+  getIntegration();
+  await runtime?.stop();
+  return getIntegration().startAuth();
+};
 export const cancelEpicAuth = (operationId: string) =>
   getIntegration().cancelAuth(operationId);
-export const disconnectEpic = (connectionId: string) =>
-  getIntegration().disconnect(connectionId);
+export const disconnectEpic = async (connectionId: string) => {
+  getIntegration();
+  await runtime?.stop();
+  return getIntegration().disconnect(connectionId);
+};
+export const startEpicSync = (connectionId: string) => {
+  getIntegration();
+  return runtime!.start(connectionId);
+};
+export const getEpicSyncState = () => {
+  getIntegration();
+  const state = runtime!.orchestrator.getState();
+  const context = HydraApi.getAuthContext();
+  return state.hydraUserId === context?.userId
+    ? state
+    : { status: "idle" as const, hydraUserId: context?.userId ?? null };
+};
+export const cancelEpicSync = async (connectionId: string) => {
+  getIntegration();
+  try {
+    await runtime!.orchestrator.cancel(connectionId);
+    return { ok: true as const };
+  } catch {
+    return { ok: false as const, error: "sync-active" as const };
+  }
+};
+export const syncEpicGameOnGamePage = async (objectId: string) => {
+  getIntegration();
+  try {
+    return (await runtime!.syncGame(objectId)) !== null;
+  } catch {
+    return false;
+  }
+};
+export const startEpicSyncOnStartup = () => {
+  getIntegration();
+  return runtime!.startup();
+};
+export const resolveEpicSessionPolicy = (
+  game: import("@types").Game,
+  matchedPath: string
+) => {
+  getIntegration();
+  return runtime!.sessionPolicy(game, matchedPath);
+};
+export const cancelEpicGameExitSync = (objectId: string) =>
+  runtime?.cancelExit(objectId);
+export const scheduleEpicGameExitSync = (game: import("@types").Game) =>
+  runtime?.scheduleExit(game);

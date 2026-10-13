@@ -7,6 +7,8 @@ export const connection = {
   epicAccountId: "a".repeat(32),
   displayName: "Epic Test",
   connectedAt: "2026-10-07T12:00:00.000Z",
+  lastSyncedAt: null,
+  latestSyncRun: null,
 };
 
 export const bundle: EpicSessionBundle = {

@@ -9,10 +9,11 @@ const INTEGRATION_DISPLAY_KEYS = [
   "integration_reconnect",
   "integration_status_not_connected",
   "integration_sync",
+  "integration_last_synced",
+  "integration_never_synced",
   "retroachievements_connect_title",
   "retroachievements_status_invalid_credentials",
   "retroachievements_invalid_credentials_description",
-  "retroachievements_last_checked",
   "steam_status_reconnect_required",
   "epic_status_connected",
   "epic_status_reconnect_required",
@@ -24,6 +25,7 @@ const INTEGRATION_DISPLAY_KEYS = [
 ] as const;
 
 const INTEGRATION_SOURCE_FILES = [
+  "src/renderer/src/pages/settings/settings-integration-card.tsx",
   "src/renderer/src/pages/settings/settings-steam.tsx",
   "src/renderer/src/pages/settings/settings-steam-state.ts",
   "src/renderer/src/pages/settings/settings-retroachievements.tsx",
@@ -120,6 +122,41 @@ describe("integration translations", () => {
           english[key],
           `settings.${key} still uses the English copy in pt-BR`
         );
+      }
+    }
+  });
+
+  it("localizes shared sync metadata and preserves the date placeholder", () => {
+    const english = readSettingsTranslations("en");
+    const localesPath = path.resolve(process.cwd(), "src/locales");
+
+    for (const locale of fs.readdirSync(localesPath)) {
+      if (!fs.existsSync(path.join(localesPath, locale, "translation.json")))
+        continue;
+
+      const settings = readSettingsTranslations(locale);
+      assert.deepEqual(
+        settings.integration_last_synced.match(/\{\{.*?\}\}/g),
+        ["{{date}}"],
+        `${locale} must interpolate the sync date exactly once`
+      );
+      assert.equal(
+        settings.integration_never_synced.match(/\{\{.*?\}\}/g),
+        null,
+        `${locale} must not interpolate a date before the first sync`
+      );
+
+      if (locale !== "en") {
+        for (const key of [
+          "integration_last_synced",
+          "integration_never_synced",
+        ]) {
+          assert.notEqual(
+            settings[key],
+            english[key],
+            `${locale} still uses the English copy of settings.${key}`
+          );
+        }
       }
     }
   });

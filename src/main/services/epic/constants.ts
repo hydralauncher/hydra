@@ -1,0 +1,29 @@
+export const EPIC_SYNC_TIMEOUT_MS = 5 * 60_000;
+export const EPIC_SOURCE_TIMEOUT_MS = 15_000;
+export const EPIC_HYDRA_TIMEOUT_MS = 20_000;
+export const EPIC_SYNC_MAX_OUTPUT_BYTES = 64 * 1024 * 1024;
+export const EPIC_PLAYTIME_CACHE_MS = 15_000;
+export const EPIC_IMPORT_LOOKUP_TIMEOUT_MS = 3_000;
+export const EPIC_EXIT_SYNC_DELAYS_MS = [10_000, 30_000] as const;
+export const EPIC_RECONCILE_INTERVAL_MS = 2_000;
+export const EPIC_SNAPSHOT_MAX_GAMES = 10_000;
+export const EPIC_SNAPSHOT_CHUNK_GAMES = 250;
+export const EPIC_SNAPSHOT_MAX_CHUNKS = 100;
+export const EPIC_SNAPSHOT_MAX_CHUNK_BYTES = 1024 * 1024;
+export const EPIC_MAX_ARTIFACTS = 16;
+export const EPIC_ID_MAX_LENGTH = 255;
+export const EPIC_GAME_NAME_MAX_LENGTH = 256;
+export const EPIC_MAX_PLAYTIME_SECONDS = 2_147_483_647;
+export const EPIC_RATE_LIMIT_ATTEMPTS = 5;
+export const EPIC_NETWORK_ATTEMPTS = 3;
+export const EPIC_RATE_LIMIT_BACKOFF_MS = 1_000;
+export const EPIC_NETWORK_BACKOFF_MS = 500;
+export const EPIC_MAX_BACKOFF_MS = 30_000;
+export const EPIC_SYNC_RUN_ID_MIN_LENGTH = 8;
+export const EPIC_SYNC_RUN_ID_MAX_LENGTH = 128;
+export const EPIC_ENDPOINT = "/profile/integrations/epic";
+export const EPIC_PLAYTIME_ORIGIN =
+  "https://library-service.live.use1a.on.epicgames.com";
+
+export const EPIC_PENDING_EXPIRATION_MS = 60 * 60_000;
+export const EPIC_RUNNING_EXPIRATION_MS = 15 * 60_000;

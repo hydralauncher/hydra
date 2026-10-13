@@ -1,3 +1,7 @@
+import {
+  parseEpicSyncRun,
+  EPIC_LEGACY_RUN_ID_PATTERN,
+} from "./sync-protocol.js";
 import { ClassicLevel } from "classic-level";
 import { createHash } from "node:crypto";
 import fs from "node:fs/promises";
@@ -86,6 +90,10 @@ const publicConnection = (
   epicAccountId: connection.epicAccountId,
   displayName: connection.displayName,
   connectedAt: connection.connectedAt,
+  lastSyncedAt: connection.lastSyncedAt ?? null,
+  latestSyncRun: connection.latestSyncRun
+    ? parseEpicSyncRun(connection.latestSyncRun)
+    : null,
 });
 const getEpicStoreScopeKey = (scope: EpicStoreScope): string => {
   try {
@@ -212,7 +220,13 @@ export class EpicConnectionStore {
       }
       return {
         schemaVersion: 1,
-        connection: publicConnection(value.connection),
+        connection: publicConnection({
+          ...value.connection,
+          ...(typeof value.connection.latestSyncRun?.id === "string" &&
+          EPIC_LEGACY_RUN_ID_PATTERN.test(value.connection.latestSyncRun.id)
+            ? { latestSyncRun: null }
+            : {}),
+        }),
         ...(value.bundle === undefined ? {} : { bundle: value.bundle }),
       };
     } catch (error) {
@@ -329,6 +343,33 @@ export class EpicConnectionStore {
         },
         isCurrent,
         onCommitted
+      );
+    });
+  }
+  async refreshSession(
+    scope: EpicStoreScope,
+    connection: EpicConnectedConnection,
+    bundle: EpicSessionBundle,
+    isCurrent: () => boolean
+  ) {
+    const key = getEpicStoreScopeKey(scope);
+    return this.enqueue(key, async () => {
+      this.assertUnblocked(key);
+      this.assertCurrent(isCurrent);
+      const previous = await this.readRecord(key);
+      if (
+        !previous ||
+        previous.connection.connectionId !== connection.connectionId ||
+        previous.connection.epicAccountId !== connection.epicAccountId
+      )
+        throw new EpicStoreError("stale-connection");
+      if (!isBundle(bundle, connection.epicAccountId))
+        throw new EpicStoreError("invalid-response");
+      return this.writeRecord(
+        key,
+        previous,
+        { ...previous, bundle },
+        isCurrent
       );
     });
   }

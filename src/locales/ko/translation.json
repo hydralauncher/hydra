@@ -526,7 +526,9 @@
     "hide": "Hide",
     "create_steam_shortcut_modal_vr_flag": "VR Game (In Steam: update the VR flag or delete/recreate the shortcut)",
     "create_steam_shortcut_modal_create_button": "Create",
-    "create_steam_shortcut_modal_cancel_button": "Cancel"
+    "create_steam_shortcut_modal_cancel_button": "Cancel",
+    "epic_playtime_tracking_title": "Epic playtime",
+    "epic_playtime_tracking_description": "Epic playtime is already synced. When an Epic installation is identified, Hydra does not count the same session by default. Enable this option to also count it in Hydra."
   },
   "activation": {
     "title": "Hydra 실행",
@@ -591,12 +593,11 @@
     "epic_status_awaiting_login": "Waiting for Epic sign-in",
     "epic_status_connecting": "Connecting...",
     "epic_status_disconnecting": "Disconnecting...",
-    "epic_connected_at": "Connected on {{date}}",
     "epic_reconnect_description": "Your account is still linked. Sign in again to restore the Epic session on this device.",
     "epic_login_in_window": "Complete sign-in in the Epic window.",
     "epic_check_connection": "Check connection",
     "epic_disconnect_title": "Disconnect Epic Games?",
-    "epic_disconnect_description": "This removes your Epic link from Hydra and the saved Epic session on this device.",
+    "epic_disconnect_description": "This removes your imported Epic library and playtime and the saved Epic session on this device. Your Hydra games, playtime and preferences are preserved.",
     "epic_account_linked": "Epic Games account connected",
     "epic_account_unlinked": "Epic Games account disconnected",
     "epic_error_hydra_auth": "Sign in to Hydra to connect your Epic Games account.",
@@ -620,11 +621,12 @@
     "integration_disconnect": "연결 해제",
     "integration_reconnect": "다시 연결",
     "integration_sync": "동기화",
+    "integration_last_synced": "마지막 동기화: {{date}}",
+    "integration_never_synced": "아직 동기화되지 않음",
     "integration_status_not_connected": "연결되지 않음",
     "retroachievements_connect_title": "RetroAchievements 연결",
     "retroachievements_status_invalid_credentials": "잘못된 인증 정보",
     "retroachievements_invalid_credentials_description": "RetroAchievements 인증 정보가 더 이상 유효하지 않습니다. 계정을 다시 연결하세요.",
-    "retroachievements_last_checked": "마지막 확인: {{date}}",
     "steam_status_reconnect_required": "다시 연결해야 함",
     "downloads_path": "다운로드 경로",
     "change": "업데이트",
@@ -824,7 +826,22 @@
     "proton_version_auto": "Auto (global default or umu default)",
     "proton_source_umu_default": "umu default selection",
     "proton_source_steam": "Installed by Steam",
-    "proton_source_compatibility_tools": "Installed in Steam compatibilitytools.d"
+    "proton_source_compatibility_tools": "Installed in Steam compatibilitytools.d",
+    "epic_sync_starting": "Preparing Epic sync…",
+    "epic_sync_library": "Collecting Epic library…",
+    "epic_sync_playtime": "Collecting Epic playtime…",
+    "epic_sync_publishing": "Uploading Epic library…",
+    "epic_sync_merging": "Updating local library…",
+    "epic_sync_finishing": "Finishing up…",
+    "epic_sync_cancelling": "Cancelling Epic sync…",
+    "epic_sync_success": "Epic 동기화 완료",
+    "epic_sync_in_progress": "An Epic sync is already running. Wait for it to finish or cancel the pending upload.",
+    "epic_sync_invalid": "Epic library data could not be verified. Your previous library was preserved.",
+    "epic_sync_too_large": "The Epic library exceeds the sync limits.",
+    "epic_sync_permission": "Epic did not allow access to playtime. Your previous library was preserved.",
+    "epic_sync_rate_limit": "Epic is limiting requests. Try again later.",
+    "epic_sync_merge_pending": "The server synced your Epic library. Retry sync to update the local library.",
+    "hide_library_epic_badges": "Epic 라이브러리 연결 배지 숨기기"
   },
   "notifications": {
     "download_complete": "다운로드 완료",
@@ -1048,7 +1065,9 @@
     "empty_collection_description": "Right-click any game, open Collection, and add it here.",
     "disk_usage": "Disk usage",
     "disk_usage_tooltip": "Installed size on disk",
-    "installer_size_tooltip": "Installer size"
+    "installer_size_tooltip": "Installer size",
+    "library_epic": "Epic",
+    "imported_from_epic": "이 프로필에 연결된 Epic 라이브러리에서 가져왔습니다."
   },
   "achievement": {
     "achievement_unlocked": "Achievement unlocked",

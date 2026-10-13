@@ -7,12 +7,23 @@ import {
   startEpicAuth,
   cancelEpicAuth,
   disconnectEpic,
+  startEpicSync,
+  getEpicSyncState,
+  cancelEpicSync,
+  syncEpicGameOnGamePage,
 } from "../../services/epic";
 import { registerEvent } from "../register-event";
 import { isTrustedEpicSender } from "./epic-ipc-sender";
 
-function assertTrustedSender(event: IpcMainInvokeEvent) {
-  const window = WindowManager.mainWindow;
+function assertTrustedSender(
+  event: IpcMainInvokeEvent,
+  allowBigPicture = false
+) {
+  const window = allowBigPicture
+    ? WindowManager.appWindows.find(
+        (candidate) => candidate?.webContents.id === event.sender.id
+      )
+    : WindowManager.mainWindow;
   const rendererUrls = [
     pathToFileURL(path.join(__dirname, "../renderer/index.html")).href,
   ];
@@ -56,4 +67,21 @@ registerEvent("cancelEpicAuth", (event, operationId: string) => {
 registerEvent("disconnectEpic", (event, connectionId: string) => {
   assertTrustedSender(event);
   return disconnectEpic(connectionId);
+});
+
+registerEvent("startEpicSync", (event, connectionId: string) => {
+  assertTrustedSender(event, true);
+  return startEpicSync(connectionId);
+});
+registerEvent("getEpicSyncState", (event) => {
+  assertTrustedSender(event, true);
+  return getEpicSyncState();
+});
+registerEvent("cancelEpicSync", (event, connectionId: string) => {
+  assertTrustedSender(event, true);
+  return cancelEpicSync(connectionId);
+});
+registerEvent("syncEpicGameOnGamePage", (event, objectId: string) => {
+  assertTrustedSender(event, true);
+  return syncEpicGameOnGamePage(objectId);
 });

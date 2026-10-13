@@ -1,3 +1,11 @@
+import {
+  libraryWriteQueue,
+  hasPendingHydraClaim,
+  getEpicLibraryConnectionRevision,
+  getHydraPlaytimeRevision,
+} from "./library-write-queue";
+import type { HydraApiAuthContext } from "../hydra-auth-context";
+import type { EpicConnection } from "../../../types/epic-integration.types";
 import type {
   ArtworkAssetType,
   Game,
@@ -6,7 +14,7 @@ import type {
   ShopAssets,
 } from "@types";
 import { chunk } from "lodash-es";
-import { HydraApi } from "../hydra-api";
+import { HydraApi, type HydraApiOptions } from "../hydra-api";
 import { saveSteamGridDbArtwork } from "../game-artwork-cloud";
 import {
   db,
@@ -46,7 +54,7 @@ type ProfileGame = {
   lastTimePlayed: Date | null;
   playTimeInMilliseconds: number;
   playTimeInSeconds?: number;
-  runtimeByPlatform?: { hydra?: number; steam?: number } | null;
+  runtimeByPlatform?: { hydra?: number; epic?: number; steam?: number } | null;
   hasManuallyUpdatedPlaytime: boolean;
   isFavorite?: boolean;
   isHiddenFromOthers?: boolean;
@@ -57,6 +65,7 @@ type ProfileGame = {
   platform?: string | null;
   source?: string | null;
   hasActiveSteamImport?: boolean;
+  hasActiveEpicImport?: boolean;
   customLibraryImageUrl?: string | null;
   customLibraryHeroImageUrl?: string | null;
   customLogoImageUrl?: string | null;
@@ -186,9 +195,16 @@ export type RemoteGamesMergeProgress = (
   total: number
 ) => void;
 
-const fetchRemoteGames = (): Promise<ProfileGame[]> =>
+const fetchRemoteGames = (
+  context?: HydraApiAuthContext | null,
+  networkOptions: Pick<HydraApiOptions, "signal" | "timeout"> = {}
+): Promise<ProfileGame[]> =>
   fetchProfileGames((path, params) =>
-    HydraApi.get<ProfileGame[]>(path, params, { logResponseBody: false })
+    HydraApi.get<ProfileGame[]>(path, params, {
+      ...networkOptions,
+      logResponseBody: false,
+      ...(context ? { authContext: context } : {}),
+    })
   );
 
 export const fetchRemoteProfileGames = fetchRemoteGames;
@@ -201,7 +217,12 @@ const mergeExistingGame = (
   canReconcileCustomArtwork: boolean
 ): Game => ({
   ...localGame,
-  remoteId: remoteGame.id,
+  remoteId:
+    localGame.source === "hydra" &&
+    localGame.remoteId === null &&
+    remoteGame.source === "epic"
+      ? null
+      : remoteGame.id,
   addedToLibraryAt: localGame.addedToLibraryAt ?? remoteAddedToLibraryAt,
   lastTimePlayed: getLatestLastTimePlayed(localGame, remoteGame),
   ...mergeLocalAndRemotePlayTime(localGame, remoteGame),
@@ -220,10 +241,13 @@ const mergeExistingGame = (
   platform: remoteGame.platform ?? localGame.platform,
   source: resolveLibrarySource(localGame.source, remoteGame.source),
   hasActiveSteamImport: remoteGame.hasActiveSteamImport === true,
+  hasActiveEpicImport:
+    remoteGame.hasActiveEpicImport ?? localGame.hasActiveEpicImport ?? false,
   isDeleted: resolveLibraryIsDeleted(
     localGame.isDeleted,
     remoteGame.source,
-    remoteGame.hasActiveSteamImport === true
+    remoteGame.hasActiveSteamImport === true,
+    remoteGame.hasActiveEpicImport === true
   ),
   ...(canReconcileCustomArtwork
     ? {
@@ -278,6 +302,7 @@ const createLocalGame = (
   platform: remoteGame.platform ?? null,
   source: resolveLibrarySource(undefined, remoteGame.source),
   hasActiveSteamImport: remoteGame.hasActiveSteamImport === true,
+  hasActiveEpicImport: remoteGame.hasActiveEpicImport === true,
   customIconUrl: remoteGame.customIconUrl ?? null,
   customLogoImageUrl: remoteGame.customLogoImageUrl ?? null,
   customHeroImageUrl: remoteGame.customLibraryHeroImageUrl ?? null,
@@ -335,40 +360,70 @@ const buildMergedGame = (
 
 const mergeRemoteGamesChunk = async (
   remoteGames: ProfileGame[],
-  canReconcileCustomArtwork: boolean
+  canReconcileCustomArtwork: boolean,
+  context: HydraApiAuthContext | null,
+  epicConnectionId: string | undefined,
+  hydraRevision: number,
+  current: () => boolean
 ) => {
-  const gameKeys = remoteGames.map((game) =>
-    levelKeys.game(game.shop, game.objectId)
-  );
-  const [localGames, localShopAssets, artworkSelections] = await Promise.all([
-    gamesSublevel.getMany(gameKeys),
-    gamesShopAssetsSublevel.getMany(gameKeys),
-    canReconcileCustomArtwork
-      ? gamesArtworkSelectionSublevel.getMany(gameKeys)
-      : Promise.resolve([]),
-  ]);
+  const { gameKeys, localGames, artworkSelections } =
+    await libraryWriteQueue.run(async () => {
+      const gameKeys = remoteGames.map((game) =>
+        levelKeys.game(game.shop, game.objectId)
+      );
+      const [localGames, localShopAssets, artworkSelections] =
+        await Promise.all([
+          gamesSublevel.getMany(gameKeys),
+          gamesShopAssetsSublevel.getMany(gameKeys),
+          canReconcileCustomArtwork
+            ? gamesArtworkSelectionSublevel.getMany(gameKeys)
+            : Promise.resolve([]),
+        ]);
 
-  const batch = db.batch();
+      const batch = db.batch();
 
-  remoteGames.forEach((remoteGame, index) => {
-    const gameKey = gameKeys[index];
-    const localGame = localGames[index];
+      remoteGames.forEach((remoteGame, index) => {
+        const gameKey = gameKeys[index];
+        const localGame = localGames[index];
 
-    if (!localGame || localGame.isDeleted) trackAchievementBatchGame(gameKey);
+        if (!localGame || localGame.isDeleted)
+          trackAchievementBatchGame(gameKey);
 
-    batch.put(
-      gameKey,
-      buildMergedGame(remoteGame, localGame, canReconcileCustomArtwork),
-      { sublevel: gamesSublevel }
-    );
-    batch.put(
-      gameKey,
-      buildRemoteGameShopAssets(remoteGame, localGame, localShopAssets[index]),
-      { sublevel: gamesShopAssetsSublevel }
-    );
-  });
+        const merged = buildMergedGame(
+          remoteGame,
+          localGame,
+          canReconcileCustomArtwork
+        );
+        if (localGame && getHydraPlaytimeRevision(gameKey) > hydraRevision) {
+          merged.playTimeInMilliseconds = localGame.playTimeInMilliseconds;
+          merged.hasManuallyUpdatedPlaytime =
+            localGame.hasManuallyUpdatedPlaytime;
+          merged.lastTimePlayed = localGame.lastTimePlayed;
+        }
+        if (remoteGame.hasActiveEpicImport && context && epicConnectionId)
+          merged.epicImportScope = {
+            environment: context.environment,
+            userId: context.userId,
+            connectionId: epicConnectionId,
+          };
+        else if (remoteGame.hasActiveEpicImport === false)
+          merged.epicImportScope = undefined;
+        batch.put(gameKey, merged, { sublevel: gamesSublevel });
+        batch.put(
+          gameKey,
+          buildRemoteGameShopAssets(
+            remoteGame,
+            localGame,
+            localShopAssets[index]
+          ),
+          { sublevel: gamesShopAssetsSublevel }
+        );
+      });
 
-  await batch.write();
+      if (!current()) throw new Error("library-context-changed");
+      await batch.write();
+      return { gameKeys, localGames, artworkSelections };
+    }, current);
 
   for (const [index, selection] of artworkSelections.entries()) {
     if (!selection) continue;
@@ -407,36 +462,148 @@ const hideGamesRemovedFromSteamImport = async (remoteKeys: Set<string>) => {
   }
 };
 
-export const mergeWithRemoteGames = async (
-  onProgress?: RemoteGamesMergeProgress
+const mergeWithRemoteGamesOnce = async (
+  onProgress?: RemoteGamesMergeProgress,
+  capturedContext?: HydraApiAuthContext,
+  expectedEpicConnectionId?: string,
+  connectionCurrent: () => boolean = () => true,
+  networkOptions: Pick<HydraApiOptions, "signal" | "timeout"> = {}
 ) => {
+  const context = capturedContext ?? HydraApi.getAuthContext();
+  const revision = getEpicLibraryConnectionRevision();
+  const hydraRevision = getHydraPlaytimeRevision();
+  const current = () =>
+    (context
+      ? HydraApi.isAuthContextCurrent(context)
+      : HydraApi.getAuthContext() === null) &&
+    connectionCurrent() &&
+    !networkOptions.signal?.aborted &&
+    revision === getEpicLibraryConnectionRevision();
   try {
+    if (!current()) return false;
     const canReconcileCustomArtwork =
       HydraApi.isLoggedIn() && HydraApi.hasActiveSubscription();
-    const remoteGames = await fetchRemoteGames();
+    const remoteGames = await fetchRemoteGames(context, networkOptions);
+    if (!current()) return false;
+    let epicConnectionId = expectedEpicConnectionId;
+    if (
+      !epicConnectionId &&
+      remoteGames.some((game) => game.hasActiveEpicImport)
+    ) {
+      const connection = await HydraApi.get<EpicConnection>(
+        "/profile/integrations/epic",
+        undefined,
+        {
+          ...networkOptions,
+          ...(context ? { authContext: context } : {}),
+          logResponseBody: false,
+        }
+      );
+      if (!connection.connected) return false;
+      epicConnectionId = connection.connectionId;
+    }
     let processed = 0;
 
     onProgress?.(processed, remoteGames.length);
 
     for (const remoteChunk of chunk(remoteGames, MERGE_WRITE_CHUNK_SIZE)) {
-      await mergeRemoteGamesChunk(remoteChunk, canReconcileCustomArtwork);
+      await mergeRemoteGamesChunk(
+        remoteChunk,
+        canReconcileCustomArtwork,
+        context,
+        epicConnectionId,
+        hydraRevision,
+        current
+      );
 
       processed += remoteChunk.length;
       onProgress?.(processed, remoteGames.length);
     }
 
     // Keep installations, but hide games removed by destructive Steam cleanup.
-    await hideGamesRemovedFromSteamImport(
-      new Set(
-        remoteGames.map((game) => levelKeys.game(game.shop, game.objectId))
-      )
+    await libraryWriteQueue.run(
+      () =>
+        hideGamesRemovedFromSteamImport(
+          new Set(
+            remoteGames.map((game) => levelKeys.game(game.shop, game.objectId))
+          )
+        ),
+      current
     );
 
+    if (!current()) return false;
+    const remoteKeys = new Set(
+      remoteGames.map((game) => levelKeys.game(game.shop, game.objectId))
+    );
+    for (const [key, game] of await gamesSublevel.iterator().all()) {
+      if (
+        game.shop !== "epic" ||
+        !game.remoteId ||
+        remoteKeys.has(key) ||
+        hasPendingHydraClaim(key) ||
+        (game.unsyncedDeltaPlayTimeInMilliseconds ?? 0) > 0
+      )
+        continue;
+      try {
+        await HydraApi.get(
+          `/profile/games/epic/${encodeURIComponent(game.objectId)}`,
+          undefined,
+          {
+            ...networkOptions,
+            ...(context ? { authContext: context } : {}),
+            logResponseBody: false,
+          }
+        );
+      } catch (error) {
+        if (
+          (error as { response?: { status?: number } }).response?.status !==
+            404 ||
+          !current()
+        )
+          continue;
+        await libraryWriteQueue.run(async () => {
+          const latest = await gamesSublevel.get(key);
+          if (
+            !latest ||
+            latest.remoteId !== game.remoteId ||
+            hasPendingHydraClaim(key) ||
+            (latest.unsyncedDeltaPlayTimeInMilliseconds ?? 0) > 0
+          )
+            return;
+          await gamesSublevel.put(key, {
+            ...latest,
+            epicPlayTimeInMilliseconds: 0,
+            hasActiveEpicImport: false,
+            epicImportScope: undefined,
+            isDeleted: true,
+          });
+        }, current);
+      }
+    }
     return true;
   } catch {
     // Keep local library available when remote sync fails.
     return false;
   }
+};
+
+// A connection transition invalidates old snapshots even when the Hydra user did not change.
+export const mergeWithRemoteGames: typeof mergeWithRemoteGamesOnce = async (
+  ...args
+) => {
+  const revision = getEpicLibraryConnectionRevision();
+  const result = await mergeWithRemoteGamesOnce(...args);
+  const context = args[1] ?? HydraApi.getAuthContext();
+  if (
+    !result &&
+    revision !== getEpicLibraryConnectionRevision() &&
+    (context
+      ? HydraApi.isAuthContextCurrent(context)
+      : HydraApi.getAuthContext() === null) &&
+    (!args[3] || args[3]())
+  )
+    return mergeWithRemoteGamesOnce(...args);
+  return result;
 };
 
 // Emulator imports already have catalogue assets and ROM metadata locally.

@@ -1,3 +1,4 @@
+import * as stringDecoder from "node:string_decoder";
 import assert from "node:assert/strict";
 import {
   execFile,
@@ -203,6 +204,7 @@ async function fixture(
   );
   const module = {} as typeof import("./legendary-auth");
   const modules: Record<string, unknown> = {
+    "node:string_decoder": stringDecoder,
     "node:fs/promises": fs,
     "node:path": path,
     "./auth-protocol.js": protocol,

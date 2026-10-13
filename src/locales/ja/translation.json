@@ -552,7 +552,9 @@
     "create_steam_shortcut_modal_cancel_button": "キャンセル",
     "delete_shortcut_success": "Steamショートカットを削除しました",
     "delete_shortcut_error": "Steamショートカットの削除に失敗しました",
-    "delete_steam_shortcut": "Steamショートカットを削除"
+    "delete_steam_shortcut": "Steamショートカットを削除",
+    "epic_playtime_tracking_title": "Epic playtime",
+    "epic_playtime_tracking_description": "Epic playtime is already synced. When an Epic installation is identified, Hydra does not count the same session by default. Enable this option to also count it in Hydra."
   },
   "activation": {
     "title": "Hydraをアクティベート",
@@ -619,12 +621,11 @@
     "epic_status_awaiting_login": "Waiting for Epic sign-in",
     "epic_status_connecting": "Connecting...",
     "epic_status_disconnecting": "Disconnecting...",
-    "epic_connected_at": "Connected on {{date}}",
     "epic_reconnect_description": "Your account is still linked. Sign in again to restore the Epic session on this device.",
     "epic_login_in_window": "Complete sign-in in the Epic window.",
     "epic_check_connection": "Check connection",
     "epic_disconnect_title": "Disconnect Epic Games?",
-    "epic_disconnect_description": "This removes your Epic link from Hydra and the saved Epic session on this device.",
+    "epic_disconnect_description": "This removes your imported Epic library and playtime and the saved Epic session on this device. Your Hydra games, playtime and preferences are preserved.",
     "epic_account_linked": "Epic Games account connected",
     "epic_account_unlinked": "Epic Games account disconnected",
     "epic_error_hydra_auth": "Sign in to Hydra to connect your Epic Games account.",
@@ -648,11 +649,12 @@
     "integration_disconnect": "切断",
     "integration_reconnect": "再接続",
     "integration_sync": "同期",
+    "integration_last_synced": "最終同期: {{date}}",
+    "integration_never_synced": "まだ同期されていません",
     "integration_status_not_connected": "未接続",
     "retroachievements_connect_title": "RetroAchievementsに接続",
     "retroachievements_status_invalid_credentials": "認証情報が無効です",
     "retroachievements_invalid_credentials_description": "RetroAchievementsの認証情報が無効になりました。アカウントを再接続してください。",
-    "retroachievements_last_checked": "最終確認: {{date}}",
     "steam_status_reconnect_required": "再接続が必要です",
     "downloads_path": "ダウンロードパス",
     "change": "更新",
@@ -852,7 +854,22 @@
     "create_shortcuts_on_download": "ゲームのダウンロード完了時にデスクトップとスタートメニューのショートカットを作成",
     "default_wine_prefix": "デフォルトのWineプレフィックスの場所",
     "default_proton_version": "デフォルトProtonバージョン",
-    "default_proton_version_description": "カスタムオーバーライドがないゲームで自動モードが使用するProtonバージョンを選択"
+    "default_proton_version_description": "カスタムオーバーライドがないゲームで自動モードが使用するProtonバージョンを選択",
+    "epic_sync_starting": "Preparing Epic sync…",
+    "epic_sync_library": "Collecting Epic library…",
+    "epic_sync_playtime": "Collecting Epic playtime…",
+    "epic_sync_publishing": "Uploading Epic library…",
+    "epic_sync_merging": "Updating local library…",
+    "epic_sync_finishing": "Finishing up…",
+    "epic_sync_cancelling": "Cancelling Epic sync…",
+    "epic_sync_success": "Epicとの同期が完了しました",
+    "epic_sync_in_progress": "An Epic sync is already running. Wait for it to finish or cancel the pending upload.",
+    "epic_sync_invalid": "Epic library data could not be verified. Your previous library was preserved.",
+    "epic_sync_too_large": "The Epic library exceeds the sync limits.",
+    "epic_sync_permission": "Epic did not allow access to playtime. Your previous library was preserved.",
+    "epic_sync_rate_limit": "Epic is limiting requests. Try again later.",
+    "epic_sync_merge_pending": "The server synced your Epic library. Retry sync to update the local library.",
+    "hide_library_epic_badges": "Epicライブラリ接続バッジを非表示"
   },
   "notifications": {
     "download_complete": "ダウンロード完了",
@@ -1073,7 +1090,9 @@
     "empty_collection_description": "任意のゲームを右クリックし、コレクションを開いてここに追加してください。",
     "disk_usage": "ディスク使用量",
     "disk_usage_tooltip": "ディスクのインストールサイズ",
-    "installer_size_tooltip": "インストーラーサイズ"
+    "installer_size_tooltip": "インストーラーサイズ",
+    "library_epic": "Epic",
+    "imported_from_epic": "このプロフィールにリンクされたEpicライブラリからインポートされました。"
   },
   "achievement": {
     "achievement_unlocked": "実績アンロック",

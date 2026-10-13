@@ -581,7 +581,9 @@
     "create_steam_shortcut_modal_vr_flag": "VR Game (In Steam: update the VR flag or delete/recreate the shortcut)",
     "create_steam_shortcut_modal_create_button": "Create",
     "create_steam_shortcut_modal_cancel_button": "Cancel",
-    "download_error_archive_org_invalid_file_url": "Este link do archive.org não aponta para um ficheiro. Use um link direto para o ficheiro."
+    "download_error_archive_org_invalid_file_url": "Este link do archive.org não aponta para um ficheiro. Use um link direto para o ficheiro.",
+    "epic_playtime_tracking_title": "Epic playtime",
+    "epic_playtime_tracking_description": "Epic playtime is already synced. When an Epic installation is identified, Hydra does not count the same session by default. Enable this option to also count it in Hydra."
   },
   "activation": {
     "title": "Ativação",
@@ -648,12 +650,11 @@
     "epic_status_awaiting_login": "Aguardando login Epic",
     "epic_status_connecting": "Conectando...",
     "epic_status_disconnecting": "Desconectando...",
-    "epic_connected_at": "Conectada em {{date}}",
     "epic_reconnect_description": "Sua conta continua vinculada. Entre novamente para restaurar a sessão Epic neste dispositivo.",
     "epic_login_in_window": "Conclua o login na janela Epic.",
     "epic_check_connection": "Verificar conexão",
     "epic_disconnect_title": "Desconectar Epic Games?",
-    "epic_disconnect_description": "Isso remove o vínculo Epic com o Hydra e a sessão Epic salva neste dispositivo.",
+    "epic_disconnect_description": "This removes your imported Epic library and playtime and the saved Epic session on this device. Your Hydra games, playtime and preferences are preserved.",
     "epic_account_linked": "Conta Epic Games conectada",
     "epic_account_unlinked": "Conta Epic Games desconectada",
     "epic_error_hydra_auth": "Entre no Hydra para conectar sua conta Epic Games.",
@@ -677,6 +678,8 @@
     "integration_disconnect": "Desligar",
     "integration_reconnect": "Voltar a ligar",
     "integration_sync": "Sincronizar",
+    "integration_last_synced": "Última sincronização: {{date}}",
+    "integration_never_synced": "Ainda não sincronizada",
     "integration_status_not_connected": "Não ligado",
     "setup_official_website": "Site oficial",
     "retroarch_setup_cores_title": "Núcleos do emulador",
@@ -931,7 +934,6 @@
     "retroachievements_status_active": "Ligado",
     "retroachievements_status_invalid_credentials": "Credenciais inválidas",
     "retroachievements_invalid_credentials_description": "As tuas credenciais do RetroAchievements já não são válidas. Volta a ligar a tua conta.",
-    "retroachievements_last_checked": "Última verificação: {{date}}",
     "steam_status_reconnect_required": "É necessário voltar a ligar",
     "retroachievements_invalid_password": "Palavra-passe do RetroAchievements inválida",
     "retroachievements_invalid_web_api_key": "Chave da Web API do RetroAchievements inválida",
@@ -1002,7 +1004,22 @@
     "big_picture_enable_sounds": "Ativar sons do Big Picture",
     "big_picture_enable_virtual_keyboard": "Ativar teclado virtual",
     "big_picture_enable_diagnostics": "Ativar diagnóstico de navegação",
-    "big_picture_diagnostics_position": "Posição do diagnóstico"
+    "big_picture_diagnostics_position": "Posição do diagnóstico",
+    "epic_sync_starting": "Preparando sincronização Epic…",
+    "epic_sync_library": "Buscando biblioteca Epic…",
+    "epic_sync_playtime": "Buscando tempo de jogo Epic…",
+    "epic_sync_publishing": "Enviando biblioteca Epic…",
+    "epic_sync_merging": "Atualizando biblioteca local…",
+    "epic_sync_finishing": "Finalizando…",
+    "epic_sync_cancelling": "Cancelando sincronização Epic…",
+    "epic_sync_success": "Sincronização Epic concluída",
+    "epic_sync_in_progress": "Uma sincronização Epic já está em andamento. Aguarde ou cancele o envio pendente.",
+    "epic_sync_invalid": "Não foi possível validar a biblioteca Epic. Sua biblioteca anterior foi preservada.",
+    "epic_sync_too_large": "A biblioteca Epic excede os limites de sincronização.",
+    "epic_sync_permission": "A Epic não permitiu consultar o tempo de jogo. Sua biblioteca anterior foi preservada.",
+    "epic_sync_rate_limit": "A Epic está limitando as consultas. Tente novamente mais tarde.",
+    "epic_sync_merge_pending": "O servidor sincronizou sua biblioteca Epic. Tente sincronizar novamente para atualizar a biblioteca local.",
+    "hide_library_epic_badges": "Ocultar emblemas da ligação à biblioteca Epic"
   },
   "notifications": {
     "download_complete": "Transferência concluída",
@@ -1226,7 +1243,9 @@
     "disk_usage_tooltip": "Tamanho instalado no disco",
     "installer_size_tooltip": "Tamanho do instalador",
     "empty_favorites_title": "No favorite games",
-    "empty_favorites_description": "Mark games as favorites to keep them handy here."
+    "empty_favorites_description": "Mark games as favorites to keep them handy here.",
+    "library_epic": "Epic",
+    "imported_from_epic": "Importado da biblioteca Epic associada a este perfil."
   },
   "achievement": {
     "achievement_unlocked": "Conquista desbloqueada",
