@@ -779,7 +779,7 @@ export class DownloadOrchestrator {
     if (download.awaitingDebrid) {
       await this.saveAwaitingDebridDownload(queuedDownload);
     } else if (this.preparesRealDebridInBackground(download)) {
-      this.startPreparedDownloadInBackground(queuedDownload);
+      void this.startPreparedDownloadInBackground(queuedDownload);
     } else {
       await this.queueDownload(download);
     }
