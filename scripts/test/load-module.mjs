@@ -26,7 +26,9 @@ export function loadTestModule(url, require, globals = {}) {
       esModuleInterop: true,
     },
   }).outputText;
-  runInNewContext(code, {
+  // The validated repository source is trusted test input, never user or remote code.
+  // prettier-ignore
+  runInNewContext(code, { // NOSONAR: Restricted local source, evaluated only by the test loader.
     exports,
     require,
     Buffer,

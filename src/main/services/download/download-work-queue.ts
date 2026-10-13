@@ -8,7 +8,7 @@ export function runDownloadQueue(
       try {
         signal.throwIfAborted();
         const job = nextJob();
-        if (!job) {
+        if (job === undefined) {
           resolve();
           return;
         }

@@ -1,4 +1,12 @@
 import { runDownloadQueue } from "./download-work-queue";
+import path from "node:path";
+import {
+  hasCompletedResourceIdentity,
+  saveCompletedResourceIdentity,
+  readRangeState,
+  readResourceIdentity,
+  rangeResourceId,
+} from "./range-download-state";
 import type { DownloadFile } from "@types";
 import { DownloadThrottle } from "./download-throttle";
 import {
@@ -8,6 +16,7 @@ import {
 } from "./js-http-downloader";
 import {
   sampleJsBatchSpeed,
+  INCOMPLETE_BATCH_PROGRESS_LIMIT,
   type JsBatchSpeedSample,
 } from "./js-http-downloader-helpers";
 import {
@@ -48,7 +57,9 @@ export class TorBoxBatchDownloader {
       url: string
     ) => JsHttpDownloaderOptions
   ) {
-    this.files = files.map((file) => ({ ...file }));
+    this.files = files.map((file, index) =>
+      this.verifyCompletedFile(file, index)
+    );
     this.pending = this.files.flatMap((file, index) =>
       file.completed ? [] : [index]
     );
@@ -60,6 +71,24 @@ export class TorBoxBatchDownloader {
       ),
       batchSpeed: 0,
     };
+  }
+
+  private verifyCompletedFile(file: DownloadFile, index: number): DownloadFile {
+    if (!file.completed || !file.size) return { ...file };
+    const options = this.getOptions(index, "about:blank");
+    const filename = path.join(options.savePath, options.filename!);
+    if (
+      options.resourceId &&
+      hasCompletedResourceIdentity(filename, options.resourceId)
+    )
+      return { ...file };
+    // Legacy complete range maps must still reach the downloader's identity checks.
+    const ranges = readRangeState(filename);
+    if (ranges && ranges.resourceId === rangeResourceId(options.resourceId))
+      return { ...file, completed: false };
+    throw new Error(
+      "The existing completed file has no matching verified identity. Keeping the saved file."
+    );
   }
 
   setMaxDownloadSpeedBytesPerSecond(limit: number | null): void {
@@ -106,10 +135,14 @@ export class TorBoxBatchDownloader {
     this.workers.set(index, downloader);
     const options = this.getOptions(index, prepared.url);
     options.throttle = this.throttle;
-    options.allowParallelRanges = file.size > PARALLEL_RANGE_SIZE;
-    options.parallelRangeConnections = options.allowParallelRanges
-      ? PARALLEL_RANGE_COUNT
-      : 1;
+    // New files record provenance before writing; unidentified legacy partials keep overlap verification.
+    options.requireResourceIdentity =
+      file.bytesDownloaded === 0 ||
+      readResourceIdentity(path.join(options.savePath, options.filename!)) !==
+        null;
+    options.allowParallelRanges = true;
+    options.parallelRangeConnections =
+      file.size > PARALLEL_RANGE_SIZE ? PARALLEL_RANGE_COUNT : 1;
     options.refreshUrl = () => this.resolveLink(index, this.controller.signal);
     if (!this.transferStarted) {
       this.throttle.reset();
@@ -120,6 +153,10 @@ export class TorBoxBatchDownloader {
     await run;
     const status = downloader.getDownloadStatus();
     if (status?.status === "complete" && status.bytesDownloaded === file.size) {
+      await saveCompletedResourceIdentity(
+        path.join(options.savePath, options.filename!),
+        options.resourceId!
+      );
       file.bytesDownloaded = file.size;
       file.completed = true;
       this.workers.delete(index);
@@ -239,7 +276,10 @@ export class TorBoxBatchDownloader {
     return {
       folderName: this.folderName,
       fileSize,
-      progress: this.status === "complete" ? 1 : Math.min(progress, 0.9999),
+      progress:
+        this.status === "complete"
+          ? 1
+          : Math.min(progress, INCOMPLETE_BATCH_PROGRESS_LIMIT),
       bytesDownloaded,
       downloadSpeed: this.status === "active" ? this.speed.batchSpeed : 0,
       status: this.status,

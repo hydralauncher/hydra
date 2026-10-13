@@ -65,6 +65,8 @@ function manager(
       ({
         "./download-throttle": { DownloadThrottle },
         "./download-work-queue": { runDownloadQueue },
+        "./range-download-state": rangeState,
+        "node:path": path,
         "./js-http-downloader": { JsHttpDownloader: StubDownloader },
         "./js-http-downloader-helpers": batchHelpers,
         "./parallel-range-download": ranges,
@@ -639,6 +641,10 @@ it("TorBox validation and startup retain completed, sparse partial, and missing 
     assert.deepEqual(progress(), expected);
     assert.equal(options.totalSize, 14);
     assert.equal(options.filename, files[0].path);
+    await rangeState.saveCompletedResourceIdentity(
+      path.join(root, files[0].path),
+      "torBox:magnet:fixture#1"
+    );
     f.setStored(download);
     await f.instance.startDownload(download);
     await new Promise<void>((resolve) => setImmediate(resolve));

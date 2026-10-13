@@ -1,7 +1,7 @@
 import path from "node:path";
 import type { FileHandle } from "node:fs/promises";
 
-const INCOMPLETE_BATCH_PROGRESS_LIMIT = 0.9999;
+export const INCOMPLETE_BATCH_PROGRESS_LIMIT = 0.9999;
 const BATCH_SPEED_SAMPLE_INTERVAL_SECONDS = 1;
 
 interface JsBatchProgressInput {

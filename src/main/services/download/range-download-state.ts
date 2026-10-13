@@ -177,7 +177,13 @@ export function resourceIdentityPath(filePath: string): string {
   return `${rangeStatePath(filePath)}.identity`;
 }
 
-export function readResourceIdentity(filePath: string): string | null {
+interface ResourceIdentity {
+  version: 1;
+  resourceId: string;
+  completed?: { size: number; mtimeMs: number; ctimeMs: number };
+}
+
+function readIdentityRecord(filePath: string): ResourceIdentity | null {
   try {
     const target = resourceIdentityPath(filePath);
     const stat = fs.lstatSync(target);
@@ -190,13 +196,50 @@ export function readResourceIdentity(filePath: string): string | null {
       !/^[a-f0-9]{64}$/.test(identity.resourceId)
     )
       throw new Error("Invalid download identity metadata");
-    return identity.resourceId;
+    return identity;
   } catch (error) {
     if ((error as NodeJS.ErrnoException).code === "ENOENT") return null;
     throw new Error(
       "The saved download identity is invalid. Keeping the partial file."
     );
   }
+}
+
+export function readResourceIdentity(filePath: string): string | null {
+  return readIdentityRecord(filePath)?.resourceId ?? null;
+}
+
+export function hasCompletedResourceIdentity(
+  filePath: string,
+  resourceId: string
+): boolean {
+  const identity = readIdentityRecord(filePath);
+  if (
+    identity?.resourceId !== rangeResourceId(resourceId) ||
+    !identity.completed
+  )
+    return false;
+  const stat = fs.statSync(filePath);
+  return (
+    stat.isFile() &&
+    stat.size === identity.completed.size &&
+    stat.mtimeMs === identity.completed.mtimeMs &&
+    stat.ctimeMs === identity.completed.ctimeMs
+  );
+}
+
+export async function saveCompletedResourceIdentity(
+  filePath: string,
+  resourceId: string
+): Promise<void> {
+  const { size, mtimeMs, ctimeMs } = await fs.promises.stat(filePath);
+  await saveMetadata(resourceIdentityPath(filePath), () =>
+    JSON.stringify({
+      version: 1,
+      resourceId: rangeResourceId(resourceId),
+      completed: { size, mtimeMs, ctimeMs },
+    })
+  );
 }
 
 export async function saveResourceIdentity(

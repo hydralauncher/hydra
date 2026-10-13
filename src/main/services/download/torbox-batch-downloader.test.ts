@@ -22,9 +22,10 @@ after(() => fs.rmSync(metadata, { recursive: true, force: true }));
 const dependencies: Record<string, unknown> = {
   "./download-throttle": { DownloadThrottle },
   "./download-work-queue": { runDownloadQueue },
+  "./range-download-state": rangeState,
+  "node:path": path,
   "./js-http-downloader-helpers": helpers,
   "./parallel-range-download": parallel,
-  "./range-download-state": rangeState,
   "../logger": {
     logger: {
       log() {
@@ -145,7 +146,7 @@ async function fixture(
   await new Promise<void>((resolve) => server.listen(0, "127.0.0.1", resolve));
   const { port } = server.address() as { port: number };
   const batches: BatchType[] = [];
-  const make = () => {
+  const make = (resourcePrefix = "fixture") => {
     const files = sizes.map((size, index) => {
       const filename = `folder/sub/file-${index}.bin`;
       const filePath = path.join(root, filename);
@@ -163,7 +164,11 @@ async function fixture(
       "folder",
       async (index, signal) => {
         links.push({ index, requests: requests.length });
-        await delay(settings.linkDelay, undefined, { signal });
+        await delay(
+          settings.linkDelay + (index === settings.failIndex ? 120 : 0),
+          undefined,
+          { signal }
+        );
         if (index === settings.failIndex)
           throw new Error("Fixture link failure");
         return `http://127.0.0.1:${port}/${index}${settings.expired && links.filter((link) => link.index === index).length === 1 ? "?expired" : ""}`;
@@ -175,7 +180,7 @@ async function fixture(
         preserveFilename: true,
         expectedSize: files[index].size,
         requireRangeResume: true,
-        resourceId: `fixture:${index}`,
+        resourceId: `${resourcePrefix}:${index}`,
       })
     );
     batches.push(batch);
@@ -253,7 +258,7 @@ it("pause stops every worker and a new batch resumes partials while skipping out
       batch.getFiles()[1].completed &&
       batch
         .getFiles()
-        .filter((file) => !file.completed && file.bytesDownloaded > 16384)
+        .filter((file) => !file.completed && file.bytesDownloaded > 128 * 1024)
         .length >= 3
   );
   batch.pauseDownload();
@@ -287,7 +292,10 @@ it("pause stops every worker and a new batch resumes partials while skipping out
     assert.ok(
       resumed
         .filter((request) => request.index === file.index)
-        .every((request) => request.start > 0)
+        .every(
+          (request) =>
+            request.start >= Math.max(0, file.bytesDownloaded - 64 * 1024)
+        )
     );
   f.verify();
 });
@@ -327,7 +335,7 @@ for (const stage of ["links", "headers", "body"] as const) {
 
 it("a failed worker stops its peers, preserves partials, and reports the original failure", async (t) => {
   const f = await fixture(t, Array<number>(8).fill(1024 * 1024));
-  f.settings.failIndex = 4;
+  f.settings.failIndex = 2;
   f.settings.linkDelay = 120;
   const batch = f.make();
   await assert.rejects(batch.startDownload(), /Fixture link failure/);
@@ -339,7 +347,7 @@ it("a failed worker stops its peers, preserves partials, and reports the origina
   );
   batch.cancelDownload(false);
   assert.ok(
-    fs.existsSync(path.join(f.root, "folder/sub/file-4.bin")) === false
+    fs.existsSync(path.join(f.root, "folder/sub/file-2.bin")) === false
   );
   f.settings.failIndex = -1;
   await f.make().startDownload();
@@ -384,7 +392,7 @@ it("network reconnect reaches every active worker and keeps exact output", async
   const batch = f.make();
   const run = batch.startDownload();
   await waitUntil(() =>
-    batch.getFiles().every((file) => file.bytesDownloaded > 16384)
+    batch.getFiles().every((file) => file.bytesDownloaded > 128 * 1024)
   );
   batch.setReconnecting(true);
   assert.equal(batch.getDownloadStatus().isReconnecting, true);
@@ -425,4 +433,84 @@ it("small files with saved sparse ranges still use one connection per file", asy
   await f.make().startDownload();
   assert.ok(f.peak() <= 4);
   f.verify();
+});
+
+it("small legacy partials reject different saved content without appending it", async (t) => {
+  const f = await fixture(t, [256 * 1024]);
+  const filename = path.join(f.root, "folder/sub/file-0.bin");
+  fs.mkdirSync(path.dirname(filename), { recursive: true });
+  const wrong = Buffer.alloc(96 * 1024, 99);
+  fs.writeFileSync(filename, wrong);
+  await assert.rejects(f.make().startDownload(), /overlap|prefix|match/i);
+  assert.deepEqual(fs.readFileSync(filename), wrong);
+});
+
+it("a same-sized unrelated complete file cannot be accepted as downloaded", async (t) => {
+  const f = await fixture(t, [32 * 1024]);
+  const filename = path.join(f.root, "folder/sub/file-0.bin");
+  fs.mkdirSync(path.dirname(filename), { recursive: true });
+  const wrong = Buffer.alloc(32 * 1024, 99);
+  fs.writeFileSync(filename, wrong);
+  assert.throws(() => f.make(), /verified identity/);
+  assert.deepEqual(fs.readFileSync(filename), wrong);
+  assert.equal(f.links.length, 0);
+});
+
+it("a completed range map belonging to another resource is preserved and refused", async (t) => {
+  const f = await fixture(t, [32 * 1024]);
+  const filename = path.join(f.root, "folder/sub/file-0.bin");
+  fs.mkdirSync(path.dirname(filename), { recursive: true });
+  const wrong = Buffer.alloc(32 * 1024, 99);
+  fs.writeFileSync(filename, wrong);
+  await rangeState.saveRangeState(filename, {
+    version: 1,
+    total: wrong.length,
+    validator: '"fixture-v1"',
+    resourceId: rangeState.rangeResourceId("other"),
+    ranges: [[0, wrong.length]],
+  });
+  assert.throws(() => f.make(), /verified identity/);
+  assert.deepEqual(fs.readFileSync(filename), wrong);
+});
+
+it("a completed file changed after verification cannot reuse its completion receipt", async (t) => {
+  const f = await fixture(t, [32 * 1024]);
+  await f.make().startDownload();
+  const filename = path.join(f.root, "folder/sub/file-0.bin");
+  fs.writeFileSync(filename, Buffer.alloc(32 * 1024, 99));
+  assert.throws(() => f.make(), /verified identity/);
+});
+
+it("a legacy complete range map with matching identity is validated without downloading its body again", async (t) => {
+  const f = await fixture(t, [32 * 1024]);
+  const filename = path.join(f.root, "folder/sub/file-0.bin");
+  fs.mkdirSync(path.dirname(filename), { recursive: true });
+  fs.writeFileSync(filename, Buffer.alloc(32 * 1024, 1));
+  await rangeState.saveRangeState(filename, {
+    version: 1,
+    total: 32 * 1024,
+    validator: '"fixture-v1"',
+    resourceId: rangeState.rangeResourceId("fixture:0"),
+    ranges: [[0, 32 * 1024]],
+  });
+  await f.make().startDownload();
+  assert.equal(f.requests.length, 0);
+  assert.ok(rangeState.hasCompletedResourceIdentity(filename, "fixture:0"));
+  f.verify();
+});
+
+it("an identified small partial cannot resume as another resource", async (t) => {
+  const f = await fixture(t, [512 * 1024]);
+  const batch = f.make();
+  const run = batch.startDownload();
+  await waitUntil(() => batch.getDownloadStatus().bytesDownloaded > 128 * 1024);
+  batch.pauseDownload();
+  await batch.waitForIdle();
+  await run;
+  const filename = path.join(f.root, "folder/sub/file-0.bin");
+  const saved = fs.readFileSync(filename);
+  const requests = f.requests.length;
+  await assert.rejects(f.make("different").startDownload(), /identity/);
+  assert.deepEqual(fs.readFileSync(filename), saved);
+  assert.equal(f.requests.length, requests);
 });
