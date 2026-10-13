@@ -19,10 +19,21 @@ const metadata = fs.mkdtempSync(
 );
 rangeState.configureRangeStateDirectory(metadata);
 after(() => fs.rmSync(metadata, { recursive: true, force: true }));
+const completionFailures = new Set<string>();
 const dependencies: Record<string, unknown> = {
   "./download-throttle": { DownloadThrottle },
   "./download-work-queue": { runDownloadQueue },
-  "./range-download-state": rangeState,
+  "./range-download-state": {
+    ...rangeState,
+    saveCompletedResourceIdentity: async (
+      filename: string,
+      resourceId: string
+    ) => {
+      if (completionFailures.delete(filename))
+        throw new Error("Fixture completion record interrupted");
+      await rangeState.saveCompletedResourceIdentity(filename, resourceId);
+    },
+  },
   "node:path": path,
   "./js-http-downloader-helpers": helpers,
   "./parallel-range-download": parallel,
@@ -514,3 +525,38 @@ it("an identified small partial cannot resume as another resource", async (t) =>
   assert.deepEqual(fs.readFileSync(filename), saved);
   assert.equal(f.requests.length, requests);
 });
+
+for (const size of [512 * 1024, 24 * 1024 * 1024]) {
+  it(`interrupted completion recording recovers without replaying the completed file (${size})`, async (t) => {
+    const f = await fixture(t, [size, 64 * 1024]);
+    const filename = path.join(f.root, "folder/sub/file-0.bin");
+    completionFailures.add(filename);
+    await assert.rejects(
+      f.make().startDownload(),
+      /completion record interrupted/
+    );
+    assert.deepEqual(fs.readFileSync(filename), Buffer.alloc(size, 1));
+    assert.equal(
+      rangeState.readResourceIdentity(filename),
+      rangeState.rangeResourceId("fixture:0")
+    );
+    if (size > parallel.PARALLEL_RANGE_SIZE)
+      assert.equal(
+        rangeState.savedRangeBytes(rangeState.readRangeState(filename)!),
+        size
+      );
+    const boundary = f.requests.length;
+    await f.make().startDownload();
+    const checked = f.requests
+      .slice(boundary)
+      .filter((request) => request.index === 0);
+    if (size > parallel.PARALLEL_RANGE_SIZE) assert.equal(checked.length, 0);
+    else {
+      assert.equal(checked.length, 1);
+      assert.equal(checked[0].start, size - 64 * 1024);
+    }
+    assert.ok(rangeState.hasCompletedResourceIdentity(filename, "fixture:0"));
+    assert.equal(rangeState.readRangeState(filename), null);
+    f.verify();
+  });
+}

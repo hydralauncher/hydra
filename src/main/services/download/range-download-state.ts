@@ -209,23 +209,28 @@ export function readResourceIdentity(filePath: string): string | null {
   return readIdentityRecord(filePath)?.resourceId ?? null;
 }
 
+export function getResourceIdentityState(
+  filePath: string,
+  resourceId: string
+): "unidentified" | "identified" | "complete" | "changed" {
+  const identity = readIdentityRecord(filePath);
+  if (identity?.resourceId !== rangeResourceId(resourceId))
+    return "unidentified";
+  if (!identity.completed) return "identified";
+  const stat = fs.statSync(filePath);
+  return stat.isFile() &&
+    stat.size === identity.completed.size &&
+    stat.mtimeMs === identity.completed.mtimeMs &&
+    stat.ctimeMs === identity.completed.ctimeMs
+    ? "complete"
+    : "changed";
+}
+
 export function hasCompletedResourceIdentity(
   filePath: string,
   resourceId: string
 ): boolean {
-  const identity = readIdentityRecord(filePath);
-  if (
-    identity?.resourceId !== rangeResourceId(resourceId) ||
-    !identity.completed
-  )
-    return false;
-  const stat = fs.statSync(filePath);
-  return (
-    stat.isFile() &&
-    stat.size === identity.completed.size &&
-    stat.mtimeMs === identity.completed.mtimeMs &&
-    stat.ctimeMs === identity.completed.ctimeMs
-  );
+  return getResourceIdentityState(filePath, resourceId) === "complete";
 }
 
 export async function saveCompletedResourceIdentity(

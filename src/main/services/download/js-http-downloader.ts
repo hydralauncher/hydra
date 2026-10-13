@@ -79,6 +79,7 @@ export interface JsHttpDownloaderOptions {
   expectedSize?: number;
   requireRangeResume?: boolean;
   throttle?: DownloadThrottle;
+  beforeComplete?: (filePath: string) => Promise<void>;
 }
 
 const MAX_RETRY_ATTEMPTS = 10;
@@ -193,7 +194,7 @@ export class JsHttpDownloader {
           "The empty file has existing data. Keeping the saved file."
         );
       fs.writeFileSync(output.filePath, "");
-      this.markComplete();
+      await this.completeDownload(output.filePath);
       return;
     }
     await this.runDownload();
@@ -575,7 +576,8 @@ export class JsHttpDownloader {
 
   private async persistResourceIdentity(filePath: string): Promise<void> {
     if (
-      this.currentOptions?.requireResourceIdentity &&
+      (this.currentOptions?.requireResourceIdentity ||
+        this.currentOptions?.beforeComplete) &&
       this.currentOptions.resourceId
     ) {
       await saveResourceIdentity(filePath, this.currentOptions.resourceId);
@@ -700,10 +702,10 @@ export class JsHttpDownloader {
       this.savedRangeState &&
       missingRanges(this.savedRangeState).length === 0
     ) {
-      removeRangeState(filePath);
       this.bytesDownloaded = this.savedRangeState.total;
+      await this.completeDownload(filePath);
+      removeRangeState(filePath);
       this.savedRangeState = null;
-      this.markComplete();
       return;
     }
     let response: Response;
@@ -846,6 +848,9 @@ export class JsHttpDownloader {
             signal,
             abort: () => this.abortController?.abort(),
             beforeChunk: (length) => this.applyThrottle(length),
+            beforeComplete: this.currentOptions?.beforeComplete
+              ? () => this.currentOptions!.beforeComplete!(actualFilePath)
+              : undefined,
             afterChunk: (length) => {
               this.urlRefreshAttempted = false;
               this.attemptBytesReceived += length;
@@ -880,24 +885,24 @@ export class JsHttpDownloader {
         } finally {
           this.pendingRangeReads.clear();
         }
-        signal.throwIfAborted();
-        this.savedRangeState = readRangeState(actualFilePath);
-        if (!complete) {
-          this.parallelRangesDisabled = true;
-          const nextByte = missingRanges(this.savedRangeState!)[0][0];
-          this.bytesDownloaded = savedRangeBytes(this.savedRangeState!);
-          this.resetSpeedTracking();
-          await this.executeDownload(
-            url,
-            this.buildRequestHeaders(requestHeaders, nextByte),
-            actualFilePath,
-            nextByte,
-            savePath,
-            false
-          );
+        if (complete) {
+          this.markComplete();
           return;
         }
-        this.markComplete();
+        signal.throwIfAborted();
+        this.savedRangeState = readRangeState(actualFilePath);
+        this.parallelRangesDisabled = true;
+        const nextByte = missingRanges(this.savedRangeState!)[0][0];
+        this.bytesDownloaded = savedRangeBytes(this.savedRangeState!);
+        this.resetSpeedTracking();
+        await this.executeDownload(
+          url,
+          this.buildRequestHeaders(requestHeaders, nextByte),
+          actualFilePath,
+          nextByte,
+          savePath,
+          false
+        );
         return;
       }
       if (response.status === 206 && !fullRangeResponse) {
@@ -1116,7 +1121,7 @@ export class JsHttpDownloader {
       );
     }
 
-    this.markComplete();
+    await this.completeDownload(actualFilePath);
   }
 
   private async fetchWithStallTracking(
@@ -1178,6 +1183,11 @@ export class JsHttpDownloader {
       );
     }
     return filePath;
+  }
+
+  private async completeDownload(filePath: string): Promise<void> {
+    await this.currentOptions?.beforeComplete?.(filePath);
+    this.markComplete();
   }
 
   private markComplete(): void {

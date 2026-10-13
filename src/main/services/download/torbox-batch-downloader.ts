@@ -1,7 +1,7 @@
 import { runDownloadQueue } from "./download-work-queue";
 import path from "node:path";
 import {
-  hasCompletedResourceIdentity,
+  getResourceIdentityState,
   saveCompletedResourceIdentity,
   readRangeState,
   readResourceIdentity,
@@ -77,14 +77,17 @@ export class TorBoxBatchDownloader {
     if (!file.completed || !file.size) return { ...file };
     const options = this.getOptions(index, "about:blank");
     const filename = path.join(options.savePath, options.filename!);
-    if (
-      options.resourceId &&
-      hasCompletedResourceIdentity(filename, options.resourceId)
-    )
-      return { ...file };
-    // Legacy complete range maps must still reach the downloader's identity checks.
+    const identity = options.resourceId
+      ? getResourceIdentityState(filename, options.resourceId)
+      : "unidentified";
+    if (identity === "complete") return { ...file };
+    // Interrupted finalization retains provenance and must pass the downloader's saved-byte checks.
     const ranges = readRangeState(filename);
-    if (ranges && ranges.resourceId === rangeResourceId(options.resourceId))
+    if (
+      identity !== "changed" &&
+      (identity === "identified" ||
+        ranges?.resourceId === rangeResourceId(options.resourceId))
+    )
       return { ...file, completed: false };
     throw new Error(
       "The existing completed file has no matching verified identity. Keeping the saved file."
@@ -135,6 +138,8 @@ export class TorBoxBatchDownloader {
     this.workers.set(index, downloader);
     const options = this.getOptions(index, prepared.url);
     options.throttle = this.throttle;
+    options.beforeComplete = (filename) =>
+      saveCompletedResourceIdentity(filename, options.resourceId!);
     // New files record provenance before writing; unidentified legacy partials keep overlap verification.
     options.requireResourceIdentity =
       file.bytesDownloaded === 0 ||
@@ -153,10 +158,6 @@ export class TorBoxBatchDownloader {
     await run;
     const status = downloader.getDownloadStatus();
     if (status?.status === "complete" && status.bytesDownloaded === file.size) {
-      await saveCompletedResourceIdentity(
-        path.join(options.savePath, options.filename!),
-        options.resourceId!
-      );
       file.bytesDownloaded = file.size;
       file.completed = true;
       this.workers.delete(index);

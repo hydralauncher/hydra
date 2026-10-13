@@ -140,6 +140,7 @@ export interface ParallelRangeDownloadOptions {
   signal: AbortSignal;
   abort: () => void;
   beforeChunk: (length: number) => Promise<void>;
+  beforeComplete?: () => Promise<void>;
   afterChunk: (length: number) => void;
   onReadPending: (offset: number, pending: boolean) => void;
 }
@@ -163,6 +164,7 @@ export async function downloadParallelRanges({
   signal,
   abort,
   beforeChunk,
+  beforeComplete,
   afterChunk,
   onReadPending,
 }: ParallelRangeDownloadOptions): Promise<boolean> {
@@ -361,6 +363,9 @@ export async function downloadParallelRanges({
       await file.close();
       if (!firstUsed) await firstResponse.body?.cancel().catch(() => undefined);
     }
-    if (missingRanges(state).length === 0) removeRangeState(filePath);
+    if (missingRanges(state).length === 0) {
+      await beforeComplete?.();
+      removeRangeState(filePath);
+    }
   }
 }
