@@ -75,6 +75,9 @@ import type {
   SteamSyncRunStatus,
   SteamConnectErrorCode,
   ExtractionFailure,
+  EpicConnectionState,
+  EpicOperationResult,
+  EpicStartAuthResult,
 } from "@types";
 import type { AuthPage } from "@shared";
 import type { AxiosProgressEvent } from "axios";
@@ -208,17 +211,6 @@ contextBridge.exposeInMainWorld("electron", {
       objectId,
       shop,
       rawPath
-    ) as Promise<void>,
-  bindRpcs3CloudSaveProfile: (
-    objectId: string,
-    shop: GameShop,
-    cloudProfileId: string
-  ) =>
-    ipcRenderer.invoke(
-      "bindRpcs3CloudSaveProfile",
-      objectId,
-      shop,
-      cloudProfileId
     ) as Promise<void>,
   deleteGameCloudSaveData: (objectId: string, shop: GameShop) =>
     ipcRenderer.invoke(
@@ -1658,6 +1650,8 @@ contextBridge.exposeInMainWorld("electron", {
     ipcRenderer.on("game-launcher-status", listener);
     return () => ipcRenderer.removeListener("game-launcher-status", listener);
   },
+  getGameLauncherStatuses: (shop: GameShop, objectId: string) =>
+    ipcRenderer.invoke("getGameLauncherStatuses", shop, objectId),
   resetCommonRedistPreflight: () =>
     ipcRenderer.invoke("resetCommonRedistPreflight"),
   checkForUpdates: () => ipcRenderer.invoke("checkForUpdates"),
@@ -1756,6 +1750,29 @@ contextBridge.exposeInMainWorld("electron", {
     ipcRenderer.on("on-retroachievements-connected", listener);
     return () =>
       ipcRenderer.removeListener("on-retroachievements-connected", listener);
+  },
+  getEpicConnection: () =>
+    ipcRenderer.invoke("getEpicConnection") as Promise<EpicConnectionState>,
+  startEpicAuth: () =>
+    ipcRenderer.invoke("startEpicAuth") as Promise<EpicStartAuthResult>,
+  cancelEpicAuth: (operationId: string) =>
+    ipcRenderer.invoke(
+      "cancelEpicAuth",
+      operationId
+    ) as Promise<EpicOperationResult>,
+  disconnectEpic: (connectionId: string) =>
+    ipcRenderer.invoke(
+      "disconnectEpic",
+      connectionId
+    ) as Promise<EpicOperationResult>,
+  onEpicConnectionChanged: (cb: (state: EpicConnectionState) => void) => {
+    const listener = (
+      _event: Electron.IpcRendererEvent,
+      state: EpicConnectionState
+    ) => cb(state);
+    ipcRenderer.on("on-epic-connection-changed", listener);
+    return () =>
+      ipcRenderer.removeListener("on-epic-connection-changed", listener);
   },
   startSteamOAuth: (lng: string) => ipcRenderer.invoke("startSteamOAuth", lng),
   disconnectSteam: (deleteImportedData: boolean) =>

@@ -50,6 +50,58 @@ describe("RPCS3 game identity", () => {
     );
   });
 
+  it("accepts only the game's own game data profile folders", () => {
+    const lbpIds = new Set(["BCUS98245"]);
+    const rawPath = "<emulator>/rpcs3-gamedata/BCUS98245";
+    assert.doesNotThrow(() =>
+      assertRpcs3SnapshotIdentity(
+        [{ rawPath, relativePath: "BCUS98245_USER1/USRDIR/bigfart2" }],
+        lbpIds
+      )
+    );
+    for (const relativePath of [
+      "BCUS98245/USRDIR/data.farc",
+      "BCUS98245_INSTALL/USRDIR/install.bin",
+      "BCES00850_USER1/USRDIR/bigfart2",
+      "BCUS98245_USER1",
+    ]) {
+      assert.throws(
+        () => assertRpcs3SnapshotIdentity([{ rawPath, relativePath }], lbpIds),
+        /cloud_save_rpcs3_save_wrong_game/,
+        relativePath
+      );
+    }
+    assert.throws(
+      () =>
+        assertRpcs3SnapshotIdentity(
+          [
+            {
+              rawPath: "<emulator>/rpcs3-gamedata/BCES00850",
+              relativePath: "BCES00850_USER1/USRDIR/bigfart2",
+            },
+          ],
+          lbpIds
+        ),
+      /cloud_save_rpcs3_save_wrong_game/
+    );
+    const profilePath = "/rpcs3/dev_hdd0/game/BCUS98245_USER1";
+    const customRawPath = `<custom><mac><home>${profilePath}`;
+    assert.doesNotThrow(() =>
+      assertRpcs3SnapshotIdentity(
+        [{ rawPath: customRawPath, relativePath: "USRDIR/bigfart2" }],
+        lbpIds,
+        [
+          {
+            rawPath: customRawPath,
+            path: profilePath,
+            platform: "mac" as const,
+            kind: "dir" as const,
+          },
+        ]
+      )
+    );
+  });
+
   it("keeps savedata aliases valid for custom paths without laundering savestates", () => {
     const mkIds = new Set(["BLUS30902"]);
     const savePath = "/rpcs3/dev_hdd0/home/00000001/savedata/BLUS30522MK9PSET";

@@ -475,6 +475,10 @@ export interface AchievementMetadataEntry {
 export type GameLauncherStatus =
   | "generating_achievements"
   | "downloading_achievement_icons"
+  | "preparing_compatibility_layer"
+  | "compatibility_layer_ready"
+  | "compatibility_layer_failed"
+  | "game_started"
   | "complete";
 
 export interface GameLauncherStatusPayload {
@@ -715,6 +719,7 @@ export type UserGameDetails = ShopAssets & {
 export * from "./game.types";
 export * from "./steam.types";
 export * from "./steam-integration.types";
+export * from "./epic-integration.types";
 export * from "./download.types";
 export * from "./ludusavi.types";
 export * from "./how-long-to-beat.types";
