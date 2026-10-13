@@ -33,7 +33,7 @@ export class GalleryVideoHost {
   }
 
   private place() {
-    const target = this.borrowers[this.borrowers.length - 1] ?? this.home;
+    const target = this.borrowers.at(-1) ?? this.home;
     if (target && this.container.parentElement !== target) {
       target.appendChild(this.container);
     }

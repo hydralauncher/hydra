@@ -8,6 +8,13 @@ $media-viewer-layer-fade: 280ms;
 .media-viewer {
   position: fixed;
   inset: 0;
+  width: 100%;
+  height: 100%;
+  max-width: none;
+  max-height: none;
+  margin: 0;
+  padding: 0;
+  border: none;
   z-index: 1000;
   overflow: hidden;
   background-color: #000;

@@ -39,6 +39,51 @@ const LAYER_FADE_MS = 280;
 const VOLUME_STEP = 0.05;
 const DEFAULT_ASPECT_RATIO = 16 / 9;
 const navigationAudio = NavigationAudioService.getInstance();
+const LAYER_CLEANUP_MARGIN_MS = 40;
+
+type ViewerDirection = "left" | "right" | "up" | "down";
+
+const NAVIGATION_STEPS: Partial<Record<ViewerDirection, number>> = {
+  left: -1,
+  right: 1,
+};
+const QUALITY_FOCUS_STEPS: Partial<Record<ViewerDirection, number>> = {
+  up: -1,
+  down: 1,
+};
+const SEEK_SECONDS: Partial<Record<ViewerDirection, number>> = {
+  left: -SEEK_STEP_SECONDS,
+  right: SEEK_STEP_SECONDS,
+};
+const VOLUME_CHANGES: Partial<Record<ViewerDirection, number>> = {
+  up: VOLUME_STEP,
+  down: -VOLUME_STEP,
+};
+
+const applyVideoDirection = (
+  video: GalleryVideoPlayerHandle,
+  direction: ViewerDirection
+) => {
+  const seekSeconds = SEEK_SECONDS[direction];
+  if (seekSeconds !== undefined) {
+    video.seekBy(seekSeconds);
+    return;
+  }
+
+  const volumeChange = VOLUME_CHANGES[direction];
+  if (volumeChange !== undefined) video.changeVolume(volumeChange);
+};
+
+const withLayerReady = (layers: StageLayer[], key: number) =>
+  layers.map((layer) =>
+    layer.key === key && !layer.ready ? { ...layer, ready: true } : layer
+  );
+
+const withoutLayersBelow = (layers: StageLayer[], key: number) => {
+  const position = layers.findIndex((layer) => layer.key === key);
+  return position > 0 ? layers.slice(position) : layers;
+};
+
 const STAGE_FOCUS_ID = "game-media-viewer-stage";
 const STAGE_REGION_ID = "game-media-viewer";
 
@@ -122,6 +167,7 @@ export function MediaViewer({
   const pointerOverChromeRef = useRef(false);
   const chromeHiddenRef = useRef(false);
   const filmstripRef = useRef<HTMLDivElement>(null);
+  const rootRef = useRef<HTMLDialogElement>(null);
   const filmstripDrag = useDragScroll();
 
   const [idle, setIdle] = useState(true);
@@ -149,6 +195,26 @@ export function MediaViewer({
     );
   }, []);
 
+  useEffect(() => {
+    const root = rootRef.current;
+    if (!root) return undefined;
+
+    const onPointerMove = (event: PointerEvent) => {
+      pointerOverChromeRef.current =
+        event.target instanceof Element &&
+        event.target.closest("[data-gallery-chrome]") !== null;
+      wake();
+    };
+
+    root.addEventListener("pointermove", onPointerMove);
+    root.addEventListener("pointerdown", wake);
+
+    return () => {
+      root.removeEventListener("pointermove", onPointerMove);
+      root.removeEventListener("pointerdown", wake);
+    };
+  }, [wake]);
+
   const hideChrome = useCallback(() => {
     window.clearTimeout(idleTimerRef.current);
     setIdle(true);
@@ -171,28 +237,24 @@ export function MediaViewer({
     });
   }, [index]);
 
-  const markLayerReady = useCallback((key: number) => {
-    requestAnimationFrame(() =>
-      requestAnimationFrame(() => {
-        setLayers((current) =>
-          current.map((layer) =>
-            layer.key === key && !layer.ready
-              ? { ...layer, ready: true }
-              : layer
-          )
-        );
-
-        layerTimersRef.current.push(
-          window.setTimeout(() => {
-            setLayers((current) => {
-              const position = current.findIndex((layer) => layer.key === key);
-              return position > 0 ? current.slice(position) : current;
-            });
-          }, LAYER_FADE_MS + 40)
-        );
-      })
+  const revealLayer = useCallback((key: number) => {
+    setLayers((current) => withLayerReady(current, key));
+    layerTimersRef.current.push(
+      window.setTimeout(
+        () => setLayers((current) => withoutLayersBelow(current, key)),
+        LAYER_FADE_MS + LAYER_CLEANUP_MARGIN_MS
+      )
     );
   }, []);
+
+  const markLayerReady = useCallback(
+    (key: number) => {
+      requestAnimationFrame(() =>
+        requestAnimationFrame(() => revealLayer(key))
+      );
+    },
+    [revealLayer]
+  );
 
   useEffect(() => {
     layers.forEach((layer) => {
@@ -253,34 +315,24 @@ export function MediaViewer({
   );
 
   const handleDirection = useCallback(
-    (direction: "left" | "right" | "up" | "down") => {
+    (direction: ViewerDirection) => {
       const activeVideo = getActiveVideo();
+
       if (activeVideo?.isQualityMenuOpen()) {
-        if (direction === "up") activeVideo.moveQualityFocus(-1);
-        if (direction === "down") activeVideo.moveQualityFocus(1);
-        if (direction === "up" || direction === "down") {
+        const focusStep = QUALITY_FOCUS_STEPS[direction];
+        if (focusStep !== undefined) {
+          activeVideo.moveQualityFocus(focusStep);
           navigationAudio.play("scroll");
         }
-        wake();
-        return;
+      } else if (!chromeHiddenRef.current) {
+        if (activeVideo) {
+          applyVideoDirection(activeVideo, direction);
+        } else {
+          const step = NAVIGATION_STEPS[direction];
+          if (step !== undefined) navigate(index + step);
+        }
       }
 
-      if (chromeHiddenRef.current) {
-        wake();
-        return;
-      }
-
-      if (!activeVideo) {
-        if (direction === "left") navigate(index - 1);
-        if (direction === "right") navigate(index + 1);
-        wake();
-        return;
-      }
-
-      if (direction === "left") activeVideo.seekBy(-SEEK_STEP_SECONDS);
-      if (direction === "right") activeVideo.seekBy(SEEK_STEP_SECONDS);
-      if (direction === "up") activeVideo.changeVolume(VOLUME_STEP);
-      if (direction === "down") activeVideo.changeVolume(-VOLUME_STEP);
       wake();
     },
     [getActiveVideo, index, navigate, wake]
@@ -429,21 +481,15 @@ export function MediaViewer({
 
   return createPortal(
     <FocusRegionContext.Provider value={null}>
-      <div
+      <dialog
+        open
+        ref={rootRef}
         className={cn("media-viewer", {
           "media-viewer--chrome-hidden": chromeHidden,
           "media-viewer--video": isVideo,
         })}
-        role="dialog"
         aria-modal="true"
         aria-label={item.alt}
-        onPointerMove={(event) => {
-          pointerOverChromeRef.current = !!(
-            event.target as HTMLElement
-          ).closest("[data-gallery-chrome]");
-          wake();
-        }}
-        onPointerDown={wake}
       >
         <NavigationLayer
           rootRegionId={STAGE_REGION_ID}
@@ -599,7 +645,7 @@ export function MediaViewer({
           positionStrategy="fixed"
           opacity={1}
         />
-      </div>
+      </dialog>
     </FocusRegionContext.Provider>,
     portalTarget
   );

@@ -14,7 +14,6 @@ import useEmblaCarousel from "embla-carousel-react";
 import { Tooltip } from "react-tooltip";
 import { gameDetailsContext } from "@renderer/context";
 import { useAppSelector } from "@renderer/hooks";
-import type { SteamVideoSource } from "@types";
 import {
   GALLERY_PAGE_TOOLTIP_ID,
   SEEK_STEP_SECONDS,
@@ -24,6 +23,13 @@ import {
   type GalleryVideoPlayerHandle,
 } from "./gallery-video-player";
 import { GalleryVideoHost, GalleryVideoSlot } from "./gallery-video-host";
+import { getSteamMovieSource } from "./gallery-media-sources";
+import {
+  hasShortcutModifier,
+  isDialogOpen,
+  isEditableTarget,
+  normalizeShortcutKey,
+} from "./gallery-shortcuts";
 import {
   GalleryLightbox,
   type GalleryViewerPresentation,
@@ -47,23 +53,6 @@ export interface GalleryMediaItem {
   sources?: GalleryVideoSource[];
   alt: string;
 }
-
-const toHttps = (url: string) =>
-  url.startsWith("http://") ? url.replace("http://", "https://") : url;
-
-const buildProgressiveSources = (
-  source: SteamVideoSource | undefined,
-  type: string
-): GalleryVideoSource[] => {
-  if (!source) return [];
-
-  const sources: GalleryVideoSource[] = [];
-  if (source.max) sources.push({ label: "HD", src: toHttps(source.max), type });
-  if (source["480"] && source["480"] !== source.max) {
-    sources.push({ label: "480p", src: toHttps(source["480"]), type });
-  }
-  return sources;
-};
 
 export function GallerySlider() {
   const { shopDetails } = useContext(gameDetailsContext);
@@ -164,41 +153,17 @@ export function GallerySlider() {
 
     if (shopDetails?.movies) {
       shopDetails.movies.forEach((video, index) => {
-        let videoSrc: string | undefined;
-        let videoType: string | undefined;
-        let sources: GalleryVideoSource[] | undefined;
+        const movieSource = getSteamMovieSource(video);
+        if (!movieSource) return;
 
-        if (video.hls_h264) {
-          videoSrc = video.hls_h264;
-          videoType = "application/x-mpegURL";
-        } else if (video.dash_h264) {
-          videoSrc = video.dash_h264;
-          videoType = "application/dash+xml";
-        } else if (video.dash_av1) {
-          videoSrc = video.dash_av1;
-          videoType = "application/dash+xml";
-        } else if (video.mp4?.max) {
-          videoSrc = video.mp4.max;
-          videoType = "video/mp4";
-          sources = buildProgressiveSources(video.mp4, videoType);
-        } else if (video.webm?.max) {
-          videoSrc = video.webm.max;
-          videoType = "video/webm";
-          sources = buildProgressiveSources(video.webm, videoType);
-        }
-
-        if (videoSrc) {
-          items.push({
-            id: String(video.id),
-            type: "video",
-            poster: video.thumbnail,
-            thumbnail: video.thumbnail,
-            videoSrc: toHttps(videoSrc),
-            videoType,
-            sources,
-            alt: video.name || t("video", { number: String(index + 1) }),
-          });
-        }
+        items.push({
+          id: String(video.id),
+          type: "video",
+          poster: video.thumbnail,
+          thumbnail: video.thumbnail,
+          ...movieSource,
+          alt: video.name || t("video", { number: String(index + 1) }),
+        });
       });
     }
 
@@ -323,71 +288,53 @@ export function GallerySlider() {
     if (lightbox) return undefined;
 
     const onKeyDown = (event: KeyboardEvent) => {
-      if (event.defaultPrevented) return;
-      if (event.ctrlKey || event.metaKey || event.altKey || event.shiftKey) {
-        return;
-      }
-      if (!inViewRef.current) return;
-
-      const target = event.target;
-      if (
-        target instanceof Element &&
-        target.closest("input, textarea, select, [contenteditable='true']")
-      ) {
-        return;
-      }
-      if (
-        document.querySelector(
-          '[role="dialog"]:not([aria-hidden="true"]), dialog[open]'
-        )
-      ) {
-        return;
-      }
+      if (event.defaultPrevented || hasShortcutModifier(event)) return;
+      if (!inViewRef.current || isEditableTarget(event.target)) return;
+      if (isDialogOpen()) return;
 
       const item = mediaItems[selectedIndex];
       if (!item) return;
 
-      const key = resolveMediaKey(event.key);
+      const video =
+        item.type === "video"
+          ? playerHandlesRef.current.get(item.id)
+          : undefined;
+      const target = event.target;
+      const focusedControl =
+        target instanceof Element
+          ? target.closest("button, a, [role='button']")
+          : null;
+      const focusIsOutsideGallery =
+        focusedControl !== null &&
+        !containerRef.current?.contains(focusedControl);
 
-      switch (key) {
-        case "f":
-        case "F":
+      const shortcuts: Record<string, () => boolean> = {
+        f: () => {
           openLightbox(selectedIndex, true);
-          break;
-        case "m":
-        case "M":
-          if (item.type !== "video") return;
-          playerHandlesRef.current.get(item.id)?.toggleMute();
-          break;
-        case " ": {
-          if (item.type !== "video") return;
-          const focusedControl =
-            target instanceof Element
-              ? target.closest("button, a, [role='button']")
-              : null;
-          if (
-            focusedControl &&
-            !containerRef.current?.contains(focusedControl)
-          ) {
-            return;
-          }
-          playerHandlesRef.current.get(item.id)?.togglePlay();
-          break;
-        }
-        case "ArrowLeft":
-        case "ArrowRight":
-          if (item.type !== "video") return;
-          playerHandlesRef.current
-            .get(item.id)
-            ?.seekBy(
-              key === "ArrowLeft" ? -SEEK_STEP_SECONDS : SEEK_STEP_SECONDS
-            );
-          break;
-        default:
-          return;
-      }
+          return true;
+        },
+        m: () => {
+          video?.toggleMute();
+          return Boolean(video);
+        },
+        " ": () => {
+          if (!video || focusIsOutsideGallery) return false;
+          video.togglePlay();
+          return true;
+        },
+        ArrowLeft: () => {
+          video?.seekBy(-SEEK_STEP_SECONDS);
+          return Boolean(video);
+        },
+        ArrowRight: () => {
+          video?.seekBy(SEEK_STEP_SECONDS);
+          return Boolean(video);
+        },
+      };
 
-      event.preventDefault();
+      const shortcut =
+        shortcuts[normalizeShortcutKey(resolveMediaKey(event.key))];
+      if (shortcut?.()) event.preventDefault();
     };
 
     window.addEventListener("keydown", onKeyDown);

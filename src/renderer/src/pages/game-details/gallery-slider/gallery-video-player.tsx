@@ -24,12 +24,21 @@ import {
 } from "@phosphor-icons/react";
 import { useHlsVideo } from "@shared";
 import type { GalleryMediaItem, GalleryVideoSource } from "./gallery-slider";
+import { HLS_VIDEO_TYPE } from "./gallery-media-sources";
 import "./gallery-video-player.scss";
 
 const AUTO_QUALITY = -1;
 const DEFAULT_ASPECT_RATIO = 16 / 9;
 const FLASH_DURATION_MS = 650;
 const STORYBOARD_FRAMES = 50;
+const STORYBOARD_FRAME_CENTER = 0.5;
+const STORYBOARD_SEEK_TOLERANCE_SECONDS = 0.01;
+const STORYBOARD_MAX_BUFFER_SECONDS = 2;
+const STORYBOARD_MAX_MAX_BUFFER_SECONDS = 4;
+const DEFAULT_UNMUTE_VOLUME = 0.5;
+const SPEAKER_HIGH_VOLUME = 0.5;
+const RESTORE_SEEK_TOLERANCE_SECONDS = 0.5;
+const BUFFERED_RANGE_LOOKAHEAD_SECONDS = 0.5;
 const STORYBOARD_FRAME_WIDTH = 400;
 const STORYBOARD_SEEK_TIMEOUT_MS = 4000;
 const VOLUME_STORAGE_KEY = "trailerVolume";
@@ -144,6 +153,24 @@ const formatTime = (seconds: number) => {
     : `${minutes}:${secs}`;
 };
 
+const hasDuration = (value: number) => Number.isFinite(value) && value > 0;
+
+const getIdleTimeout = (isInline: boolean, isFullscreen: boolean) => {
+  if (isInline) return INLINE_IDLE_TIMEOUT_MS;
+  if (isFullscreen) return FULLSCREEN_IDLE_TIMEOUT_MS;
+  return VIEWER_IDLE_TIMEOUT_MS;
+};
+
+function VolumeIcon({
+  level,
+  size,
+}: Readonly<{ level: number; size: number }>) {
+  if (level === 0) return <SpeakerX size={size} weight="fill" />;
+  if (level < SPEAKER_HIGH_VOLUME)
+    return <SpeakerLow size={size} weight="fill" />;
+  return <SpeakerHigh size={size} weight="fill" />;
+}
+
 const readStoredVolume = () => {
   const stored = localStorage.getItem(VOLUME_STORAGE_KEY);
   const volume = stored === null ? Number.NaN : Number(stored);
@@ -167,7 +194,14 @@ const storeVolume = (volume: number, muted: boolean) => {
 const preventFocusOnClick = (event: React.MouseEvent) => event.preventDefault();
 
 function useSeekPreview(item: GalleryMediaItem, sources: GalleryVideoSource[]) {
-  const sourceRef = useRef<HTMLVideoElement>(null);
+  const sourceRef = useRef<HTMLVideoElement | null>(null);
+  const [sourceElement, setSourceElement] = useState<HTMLVideoElement | null>(
+    null
+  );
+  const setSourceRef = useCallback((element: HTMLVideoElement | null) => {
+    sourceRef.current = element;
+    setSourceElement(element);
+  }, []);
   const displayRef = useRef<HTMLCanvasElement>(null);
   const framesRef = useRef<(HTMLCanvasElement | undefined)[]>([]);
   const skippedRef = useRef(new Set<number>());
@@ -249,7 +283,7 @@ function useSeekPreview(item: GalleryMediaItem, sources: GalleryVideoSource[]) {
       const video = sourceRef.current;
       if (!video || capturingRef.current !== null) return;
       if (video.readyState < HTMLMediaElement.HAVE_METADATA) return;
-      if (!(video.duration > 0)) return;
+      if (!hasDuration(video.duration)) return;
 
       const index = nextIndex();
       if (index === null) return;
@@ -262,9 +296,12 @@ function useSeekPreview(item: GalleryMediaItem, sources: GalleryVideoSource[]) {
         pump();
       }, STORYBOARD_SEEK_TIMEOUT_MS);
 
-      const target = ((index + 0.5) / STORYBOARD_FRAMES) * video.duration;
+      const target =
+        ((index + STORYBOARD_FRAME_CENTER) / STORYBOARD_FRAMES) *
+        video.duration;
       if (
-        Math.abs(video.currentTime - target) < 0.01 &&
+        Math.abs(video.currentTime - target) <
+          STORYBOARD_SEEK_TOLERANCE_SECONDS &&
         video.readyState >= HTMLMediaElement.HAVE_CURRENT_DATA
       ) {
         capture();
@@ -296,18 +333,18 @@ function useSeekPreview(item: GalleryMediaItem, sources: GalleryVideoSource[]) {
   }, []);
 
   useEffect(() => {
-    const video = sourceRef.current;
+    const video = sourceElement;
     if (!active || !video) return undefined;
 
     if (
-      item.videoType === "application/x-mpegURL" &&
+      item.videoType === HLS_VIDEO_TYPE &&
       item.videoSrc &&
       Hls.isSupported()
     ) {
       const hls = new Hls({
         enableWorker: true,
-        maxBufferLength: 2,
-        maxMaxBufferLength: 4,
+        maxBufferLength: STORYBOARD_MAX_BUFFER_SECONDS,
+        maxMaxBufferLength: STORYBOARD_MAX_MAX_BUFFER_SECONDS,
       });
 
       hls.on(Hls.Events.MANIFEST_PARSED, () => {
@@ -328,7 +365,7 @@ function useSeekPreview(item: GalleryMediaItem, sources: GalleryVideoSource[]) {
       };
     }
 
-    const src = sources[sources.length - 1]?.src ?? item.videoSrc;
+    const src = sources.at(-1)?.src ?? item.videoSrc;
     if (!src) return undefined;
 
     video.src = src;
@@ -338,7 +375,14 @@ function useSeekPreview(item: GalleryMediaItem, sources: GalleryVideoSource[]) {
       video.removeAttribute("src");
       video.load();
     };
-  }, [active, item.videoSrc, item.videoType, sources, storyboard]);
+  }, [
+    active,
+    sourceElement,
+    item.videoSrc,
+    item.videoType,
+    sources,
+    storyboard,
+  ]);
 
   const preview = useCallback(
     (ratio: number) => {
@@ -353,7 +397,13 @@ function useSeekPreview(item: GalleryMediaItem, sources: GalleryVideoSource[]) {
     onSeeked: storyboard.capture,
   };
 
-  return { sourceRef, displayRef, ready, preview, sourceHandlers };
+  return {
+    sourceRef: setSourceRef,
+    displayRef,
+    ready,
+    preview,
+    sourceHandlers,
+  };
 }
 
 function usePointerRatio(
@@ -429,7 +479,7 @@ export const GalleryVideoPlayer = forwardRef<
   const scrubRatioRef = useRef<number | null>(null);
   const inlineIdleTimerRef = useRef<number>();
 
-  const isHls = item.videoType === "application/x-mpegURL";
+  const isHls = item.videoType === HLS_VIDEO_TYPE;
   const sources = useMemo(() => item.sources ?? [], [item.sources]);
 
   const [started, setStarted] = useState(!loadOnDemand);
@@ -595,27 +645,32 @@ export const GalleryVideoPlayer = forwardRef<
 
   const progressRef = seekSlider.ref;
 
+  const updatePlayedProgress = useCallback(() => {
+    const video = videoRef.current;
+    const progress = progressRef.current;
+    if (!video || !progress) return;
+
+    const ratio =
+      scrubRatioRef.current ??
+      (hasDuration(video.duration) ? video.currentTime / video.duration : 0);
+    progress.style.setProperty("--played", String(clamp(ratio)));
+  }, [progressRef]);
+
+  const progressAnimating = (!paused && !ended) || seekSlider.dragging;
+
   useEffect(() => {
+    updatePlayedProgress();
+    if (!progressAnimating) return undefined;
+
     let frame = 0;
-
     const tick = () => {
-      const video = videoRef.current;
-      const progress = progressRef.current;
-
-      if (video && progress) {
-        const ratio =
-          scrubRatioRef.current ??
-          (video.duration > 0 ? video.currentTime / video.duration : 0);
-        progress.style.setProperty("--played", String(clamp(ratio)));
-      }
-
+      updatePlayedProgress();
       frame = requestAnimationFrame(tick);
     };
-
     frame = requestAnimationFrame(tick);
 
     return () => cancelAnimationFrame(frame);
-  }, [progressRef]);
+  }, [progressAnimating, currentTime, duration, updatePlayedProgress]);
 
   const togglePlay = useCallback(() => {
     const video = videoRef.current;
@@ -666,7 +721,7 @@ export const GalleryVideoPlayer = forwardRef<
     if (!video) return;
 
     if (video.muted || video.volume === 0) {
-      if (video.volume === 0) video.volume = 0.5;
+      if (video.volume === 0) video.volume = DEFAULT_UNMUTE_VOLUME;
       video.muted = false;
     } else {
       video.muted = true;
@@ -718,7 +773,8 @@ export const GalleryVideoPlayer = forwardRef<
 
         if (
           Number.isFinite(video.duration) &&
-          Math.abs(video.currentTime - state.time) > 0.5
+          Math.abs(video.currentTime - state.time) >
+            RESTORE_SEEK_TOLERANCE_SECONDS
         ) {
           video.currentTime = clamp(state.time, 0, video.duration);
         }
@@ -879,7 +935,7 @@ export const GalleryVideoPlayer = forwardRef<
   const { preview } = seekPreview;
 
   useEffect(() => {
-    if (hoverRatio === null || !(duration > 0)) return;
+    if (hoverRatio === null || !hasDuration(duration)) return;
     setTooltipRatio(hoverRatio);
     preview(hoverRatio);
   }, [hoverRatio, duration, preview]);
@@ -891,7 +947,8 @@ export const GalleryVideoPlayer = forwardRef<
     const { buffered } = video;
     for (let i = 0; i < buffered.length; i++) {
       if (
-        buffered.start(i) <= video.currentTime + 0.5 &&
+        buffered.start(i) <=
+          video.currentTime + BUFFERED_RANGE_LOOKAHEAD_SECONDS &&
         buffered.end(i) >= video.currentTime
       ) {
         setBufferedEnd(buffered.end(i));
@@ -1026,13 +1083,7 @@ export const GalleryVideoPlayer = forwardRef<
         seekIndicators[direction] && !seekIndicators[direction]?.hiding
     ) ||
     (!!volumeIndicator && !volumeIndicator.hiding);
-  const idleTimeout =
-    idleTimeoutMs ??
-    (isInline
-      ? INLINE_IDLE_TIMEOUT_MS
-      : isFullscreen
-        ? FULLSCREEN_IDLE_TIMEOUT_MS
-        : VIEWER_IDLE_TIMEOUT_MS);
+  const idleTimeout = idleTimeoutMs ?? getIdleTimeout(isInline, isFullscreen);
   const previousControlsHiddenRef = useRef(controlsHidden);
 
   const hideSeekIndicator = useCallback(() => {
@@ -1217,11 +1268,7 @@ export const GalleryVideoPlayer = forwardRef<
                 key={`icon-${volumeIndicator.presses}`}
                 className="gallery-video__volume-indicator-icon"
               >
-                {volumeLevel === 0 && <SpeakerX size={18} weight="fill" />}
-                {volumeLevel > 0 && volumeLevel < 0.5 && (
-                  <SpeakerLow size={18} weight="fill" />
-                )}
-                {volumeLevel >= 0.5 && <SpeakerHigh size={18} weight="fill" />}
+                <VolumeIcon level={volumeLevel} size={18} />
               </span>
               <span className="gallery-video__volume-indicator-track">
                 <span
@@ -1368,15 +1415,7 @@ export const GalleryVideoPlayer = forwardRef<
                   data-tooltip-content={`${muteLabel} (M)`}
                   data-tooltip-place="top"
                 >
-                  {volumeLevel === 0 && (
-                    <SpeakerX size={iconSize} weight="fill" />
-                  )}
-                  {volumeLevel > 0 && volumeLevel < 0.5 && (
-                    <SpeakerLow size={iconSize} weight="fill" />
-                  )}
-                  {volumeLevel >= 0.5 && (
-                    <SpeakerHigh size={iconSize} weight="fill" />
-                  )}
+                  <VolumeIcon level={volumeLevel} size={iconSize} />
                 </button>
 
                 <div

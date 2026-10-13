@@ -10,6 +10,11 @@ import {
   type GalleryVideoPlayerHandle,
 } from "@renderer/pages/game-details/gallery-slider/gallery-video-player";
 import type { GalleryMediaItem } from "@renderer/pages/game-details/gallery-slider/gallery-slider";
+import { getSteamMovieSource } from "@renderer/pages/game-details/gallery-slider/gallery-media-sources";
+import {
+  isDialogOpen,
+  isEditableTarget,
+} from "@renderer/pages/game-details/gallery-slider/gallery-shortcuts";
 import type { SteamMovie, SteamScreenshot } from "@types";
 import useEmblaCarousel from "embla-carousel-react";
 import type { FocusOverrideTarget } from "../../../../services";
@@ -178,40 +183,18 @@ export function ScreenshotCarousel({
     const items: MediaItem[] = [];
 
     videos.forEach((video, videoIndex) => {
-      let videoSrc: string | undefined;
-      let videoType: string | undefined;
+      const movieSource = getSteamMovieSource(video);
+      if (!movieSource) return;
 
-      if (video.hls_h264) {
-        videoSrc = video.hls_h264;
-        videoType = "application/x-mpegURL";
-      } else if (video.dash_h264) {
-        videoSrc = video.dash_h264;
-        videoType = "application/dash+xml";
-      } else if (video.dash_av1) {
-        videoSrc = video.dash_av1;
-        videoType = "application/dash+xml";
-      } else if (video.mp4?.max) {
-        videoSrc = video.mp4.max;
-        videoType = "video/mp4";
-      } else if (video.webm?.max) {
-        videoSrc = video.webm.max;
-        videoType = "video/webm";
-      }
-
-      if (videoSrc) {
-        items.push({
-          id: `video-${video.id}`,
-          focusId: getGameMediaCarouselItemId(items.length),
-          type: "video",
-          poster: video.thumbnail,
-          thumbnail: video.thumbnail,
-          videoSrc: videoSrc.startsWith("http://")
-            ? videoSrc.replace("http://", "https://")
-            : videoSrc,
-          videoType,
-          alt: video.name || t("video", { number: String(videoIndex + 1) }),
-        });
-      }
+      items.push({
+        id: `video-${video.id}`,
+        focusId: getGameMediaCarouselItemId(items.length),
+        type: "video",
+        poster: video.thumbnail,
+        thumbnail: video.thumbnail,
+        ...movieSource,
+        alt: video.name || t("video", { number: String(videoIndex + 1) }),
+      });
     });
 
     screenshots.forEach((image, imageIndex) => {
@@ -456,7 +439,7 @@ export function ScreenshotCarousel({
         ? itemFocusIds.indexOf(focusIdRef.current)
         : -1;
       const item = mediaItems[focusedIndex];
-      if (!item || item.type !== "video") return;
+      if (item?.type !== "video") return;
 
       event.preventDefault();
       event.stopImmediatePropagation();
@@ -493,20 +476,7 @@ export function ScreenshotCarousel({
       }
       if (!inViewRef.current) return;
 
-      const target = event.target;
-      if (
-        target instanceof Element &&
-        target.closest("input, textarea, select, [contenteditable='true']")
-      ) {
-        return;
-      }
-      if (
-        document.querySelector(
-          '[role="dialog"]:not([aria-hidden="true"]), dialog[open]'
-        )
-      ) {
-        return;
-      }
+      if (isEditableTarget(event.target) || isDialogOpen()) return;
 
       const item = mediaItems[selectedIndex];
       if (!item) return;

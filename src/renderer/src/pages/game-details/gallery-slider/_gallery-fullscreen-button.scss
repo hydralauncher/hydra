@@ -12,6 +12,16 @@ $fullscreen-offset-right: calc(globals.$spacing-unit * 4);
 $fullscreen-offset-bottom: calc(globals.$spacing-unit * 2);
 $fullscreen-size: 52px;
 
+%fullscreen-button-states {
+  &:hover {
+    background-color: rgba(255, 255, 255, 0.1);
+  }
+
+  &:active {
+    transform: scale(0.92);
+  }
+}
+
 @mixin look {
   display: flex;
   align-items: center;
@@ -32,13 +42,7 @@ $fullscreen-size: 52px;
       drop-shadow(0 0 8px rgba(0, 0, 0, 0.45));
   }
 
-  &:hover {
-    background-color: rgba(255, 255, 255, 0.1);
-  }
-
-  &:active {
-    transform: scale(0.92);
-  }
+  @extend %fullscreen-button-states;
 }
 
 @mixin size($size) {

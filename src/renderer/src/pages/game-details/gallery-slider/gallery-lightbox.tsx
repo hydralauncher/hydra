@@ -21,10 +21,12 @@ import {
 import { GalleryVideoSlot, type GalleryVideoHost } from "./gallery-video-host";
 import type { GalleryMediaItem } from "./gallery-slider";
 import { useDragScroll } from "./use-drag-scroll";
+import { normalizeShortcutKey } from "./gallery-shortcuts";
 import "./gallery-lightbox.scss";
 
 const ESCAPE_AFTER_FULLSCREEN_EXIT_MS = 300;
 const LAYER_FADE_MS = 280;
+const LAYER_CLEANUP_MARGIN_MS = 40;
 const VOLUME_STEP = 0.05;
 const DEFAULT_ASPECT_RATIO = 16 / 9;
 
@@ -64,6 +66,29 @@ interface GalleryLightboxImageProps {
 }
 
 const preventFocusOnClick = (event: React.MouseEvent) => event.preventDefault();
+
+const withLayerReady = (layers: StageLayer[], key: number) =>
+  layers.map((layer) =>
+    layer.key === key && !layer.ready ? { ...layer, ready: true } : layer
+  );
+
+const withoutLayersBelow = (layers: StageLayer[], key: number) => {
+  const position = layers.findIndex((layer) => layer.key === key);
+  return position > 0 ? layers.slice(position) : layers;
+};
+
+type ShortcutResult = "wake" | "quiet" | null;
+
+const isActivatingFocusedControl = (
+  event: KeyboardEvent,
+  root: HTMLElement | null
+) => {
+  if (event.key !== " " && event.key !== "Enter") return false;
+  const target = event.target;
+  if (!(target instanceof HTMLElement) || !root) return false;
+  if (target === root || !root.contains(target)) return false;
+  return target.closest("button") !== null;
+};
 
 function GalleryLightboxImage({
   item,
@@ -139,7 +164,7 @@ function GalleryLightboxContent({
   onNavigate,
 }: Readonly<Omit<GalleryLightboxProps, "visible">>) {
   const { t } = useTranslation("game_details");
-  const rootRef = useRef<HTMLDivElement>(null);
+  const rootRef = useRef<HTMLDialogElement>(null);
   const filmstripRef = useRef<HTMLDivElement>(null);
   const filmstripDrag = useDragScroll();
   const idleTimerRef = useRef<number>();
@@ -152,7 +177,7 @@ function GalleryLightboxContent({
   const layerKeyRef = useRef(0);
   const layerTimersRef = useRef<number[]>([]);
 
-  const [isFullscreenActive, setIsFullscreen] = useState(false);
+  const [isFullscreenActive, setIsFullscreenActive] = useState(false);
   const [exitingFullscreen, setExitingFullscreen] = useState(false);
   const exitingFullscreenRef = useRef(false);
   const isFullscreen = isFullscreenActive || exitingFullscreen;
@@ -214,28 +239,24 @@ function GalleryLightboxContent({
     return () => timers.forEach((timer) => window.clearTimeout(timer));
   }, []);
 
-  const markLayerReady = useCallback((key: number) => {
-    requestAnimationFrame(() =>
-      requestAnimationFrame(() => {
-        setLayers((current) =>
-          current.map((layer) =>
-            layer.key === key && !layer.ready
-              ? { ...layer, ready: true }
-              : layer
-          )
-        );
-
-        layerTimersRef.current.push(
-          window.setTimeout(() => {
-            setLayers((current) => {
-              const position = current.findIndex((layer) => layer.key === key);
-              return position > 0 ? current.slice(position) : current;
-            });
-          }, LAYER_FADE_MS + 40)
-        );
-      })
+  const revealLayer = useCallback((key: number) => {
+    setLayers((current) => withLayerReady(current, key));
+    layerTimersRef.current.push(
+      window.setTimeout(
+        () => setLayers((current) => withoutLayersBelow(current, key)),
+        LAYER_FADE_MS + LAYER_CLEANUP_MARGIN_MS
+      )
     );
   }, []);
+
+  const markLayerReady = useCallback(
+    (key: number) => {
+      requestAnimationFrame(() =>
+        requestAnimationFrame(() => revealLayer(key))
+      );
+    },
+    [revealLayer]
+  );
 
   useEffect(() => {
     layers.forEach((layer) => {
@@ -295,7 +316,7 @@ function GalleryLightboxContent({
         return;
       }
 
-      setIsFullscreen(active);
+      setIsFullscreenActive(active);
       setEnteringFullscreen(false);
 
       if (active) return;
@@ -342,102 +363,87 @@ function GalleryLightboxContent({
   }, []);
 
   useEffect(() => {
+    const handleEscape = (video: GalleryVideoPlayerHandle | null) => {
+      if (video?.dismissMenu()) return;
+
+      if (document.fullscreenElement) {
+        if (closeOnFullscreenExitRef.current) {
+          exitAndClose();
+        } else {
+          document.exitFullscreen().catch(() => {});
+        }
+        return;
+      }
+
+      const recentlyExitedFullscreen =
+        performance.now() - lastFullscreenExitRef.current <
+        ESCAPE_AFTER_FULLSCREEN_EXIT_MS;
+      if (!recentlyExitedFullscreen) close();
+    };
+
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.ctrlKey || event.metaKey || event.altKey) return;
+      if (isActivatingFocusedControl(event, rootRef.current)) return;
 
       const video = isVideo && item ? (getVideoHandle(item.id) ?? null) : null;
-      const navigateOnArrow = !video || event.shiftKey;
-      let wakeChrome = !!video;
 
-      switch (resolveMediaKey(event.key)) {
-        case "Escape":
-          wakeChrome = false;
-          if (video?.dismissMenu()) break;
-          if (document.fullscreenElement) {
-            if (closeOnFullscreenExitRef.current) {
-              exitAndClose();
-            } else {
-              document.exitFullscreen().catch(() => {});
-            }
-            break;
-          }
-          if (
-            performance.now() - lastFullscreenExitRef.current <
-            ESCAPE_AFTER_FULLSCREEN_EXIT_MS
-          ) {
-            break;
-          }
-          close();
-          break;
-        case "f":
-        case "F":
-          wakeChrome = false;
+      const navigateOrSeek = (step: number): ShortcutResult => {
+        if (!video || event.shiftKey) {
+          navigate(index + step);
+          return "quiet";
+        }
+        video.seekBy(step * SEEK_STEP_SECONDS);
+        return "wake";
+      };
+
+      const navigateTo = (nextIndex: number): ShortcutResult => {
+        navigate(nextIndex);
+        return "quiet";
+      };
+
+      const withVideo =
+        (action: (handle: GalleryVideoPlayerHandle) => void) =>
+        (): ShortcutResult => {
+          if (!video) return null;
+          action(video);
+          return "wake";
+        };
+
+      const seekOrNavigateTo = (ratio: number, fallbackIndex: number) =>
+        video
+          ? withVideo((handle) => handle.seekToRatio(ratio))()
+          : navigateTo(fallbackIndex);
+
+      const shortcuts: Record<string, () => ShortcutResult> = {
+        Escape: () => {
+          handleEscape(video);
+          return "quiet";
+        },
+        f: () => {
           toggleFullscreen();
-          break;
-        case "ArrowLeft":
-          if (navigateOnArrow) {
-            wakeChrome = false;
-            navigate(index - 1);
-          } else {
-            video?.seekBy(-SEEK_STEP_SECONDS);
-          }
-          break;
-        case "ArrowRight":
-          if (navigateOnArrow) {
-            wakeChrome = false;
-            navigate(index + 1);
-          } else {
-            video?.seekBy(SEEK_STEP_SECONDS);
-          }
-          break;
-        case "PageUp":
-          wakeChrome = false;
-          navigate(index - 1);
-          break;
-        case "PageDown":
-          wakeChrome = false;
-          navigate(index + 1);
-          break;
-        case "Home":
-          if (video) {
-            video.seekToRatio(0);
-          } else {
-            navigate(0);
-          }
-          break;
-        case "End":
-          if (video) {
-            video.seekToRatio(1);
-          } else {
-            navigate(items.length - 1);
-          }
-          break;
-        case "ArrowUp":
-          if (!video) return;
-          video.changeVolume(VOLUME_STEP);
-          break;
-        case "ArrowDown":
-          if (!video) return;
-          video.changeVolume(-VOLUME_STEP);
-          break;
-        case " ":
-        case "k":
-        case "K":
-          if (!video) return;
-          video.togglePlay();
-          break;
-        case "m":
-        case "M":
-          if (!video) return;
-          video.toggleMute();
-          break;
-        default:
-          return;
-      }
+          return "quiet";
+        },
+        ArrowLeft: () => navigateOrSeek(-1),
+        ArrowRight: () => navigateOrSeek(1),
+        PageUp: () => navigateTo(index - 1),
+        PageDown: () => navigateTo(index + 1),
+        Home: () => seekOrNavigateTo(0, 0),
+        End: () => seekOrNavigateTo(1, items.length - 1),
+        ArrowUp: withVideo((handle) => handle.changeVolume(VOLUME_STEP)),
+        ArrowDown: withVideo((handle) => handle.changeVolume(-VOLUME_STEP)),
+        " ": withVideo((handle) => handle.togglePlay()),
+        k: withVideo((handle) => handle.togglePlay()),
+        m: withVideo((handle) => handle.toggleMute()),
+      };
+
+      const shortcut =
+        shortcuts[normalizeShortcutKey(resolveMediaKey(event.key))];
+      const result = shortcut?.() ?? null;
+      if (!result) return;
 
       event.preventDefault();
       event.stopPropagation();
-      if (wakeChrome) wake();
+      if (result === "wake") wake();
     };
 
     window.addEventListener("keydown", onKeyDown, true);
@@ -523,18 +529,33 @@ function GalleryLightboxContent({
     });
   }, [index, isFullscreen]);
 
-  const handlePointerMove = (event: React.PointerEvent) => {
-    pointerOverChromeRef.current = !!(event.target as HTMLElement).closest(
-      "[data-gallery-chrome]"
-    );
-    wake();
-  };
+  useEffect(() => {
+    const root = rootRef.current;
+    if (!root) return undefined;
 
-  const handlePointerLeave = () => {
-    pointerOverChromeRef.current = false;
-    window.clearTimeout(idleTimerRef.current);
-    setIdle(true);
-  };
+    const onPointerMove = (event: PointerEvent) => {
+      pointerOverChromeRef.current =
+        event.target instanceof Element &&
+        event.target.closest("[data-gallery-chrome]") !== null;
+      wake();
+    };
+
+    const onPointerLeave = () => {
+      pointerOverChromeRef.current = false;
+      window.clearTimeout(idleTimerRef.current);
+      setIdle(true);
+    };
+
+    root.addEventListener("pointermove", onPointerMove);
+    root.addEventListener("pointerdown", wake);
+    root.addEventListener("pointerleave", onPointerLeave);
+
+    return () => {
+      root.removeEventListener("pointermove", onPointerMove);
+      root.removeEventListener("pointerdown", wake);
+      root.removeEventListener("pointerleave", onPointerLeave);
+    };
+  }, [wake]);
 
   const activeVideoId = isVideo && item ? item.id : null;
   const borrowedVideoKey = layers
@@ -570,7 +591,8 @@ function GalleryLightboxContent({
   const showFilmstrip = items.length > 1 && !(isFullscreen && isVideo);
 
   return (
-    <div
+    <dialog
+      open
       ref={rootRef}
       className={cn("gallery-lightbox", {
         "gallery-lightbox--fullscreen": isFullscreen,
@@ -583,13 +605,9 @@ function GalleryLightboxContent({
       style={
         { "--layer-fade-duration": `${LAYER_FADE_MS}ms` } as React.CSSProperties
       }
-      role="dialog"
       aria-modal="true"
       aria-label={item.alt}
       tabIndex={-1}
-      onPointerMove={handlePointerMove}
-      onPointerDown={wake}
-      onPointerLeave={handlePointerLeave}
     >
       <div className="gallery-lightbox__stage">
         {layers.map((layer, position) => {
@@ -763,7 +781,7 @@ function GalleryLightboxContent({
           )}
         </div>
       )}
-    </div>
+    </dialog>
   );
 }
 
