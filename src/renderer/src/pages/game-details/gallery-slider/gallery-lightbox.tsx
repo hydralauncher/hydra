@@ -27,6 +27,27 @@ import "./gallery-lightbox.scss";
 const ESCAPE_AFTER_FULLSCREEN_EXIT_MS = 300;
 const LAYER_FADE_MS = 280;
 const LAYER_CLEANUP_MARGIN_MS = 40;
+const OPEN_FADE_MS = 200;
+const OPEN_FADE_FALLBACK_MARGIN_MS = 60;
+
+const freezePageLayout = () => {
+  const page = document.getElementById("root");
+  if (!page) return () => {};
+
+  const { width, height } = page.getBoundingClientRect();
+  const previousWidth = page.style.width;
+  const previousHeight = page.style.height;
+  page.style.width = `${width}px`;
+  page.style.height = `${height}px`;
+
+  let released = false;
+  return () => {
+    if (released) return;
+    released = true;
+    page.style.width = previousWidth;
+    page.style.height = previousHeight;
+  };
+};
 const VOLUME_STEP = 0.05;
 const DEFAULT_ASPECT_RATIO = 16 / 9;
 
@@ -164,7 +185,7 @@ function GalleryLightboxContent({
   onNavigate,
 }: Readonly<Omit<GalleryLightboxProps, "visible">>) {
   const { t } = useTranslation("game_details");
-  const rootRef = useRef<HTMLDialogElement>(null);
+  const rootRef = useRef<HTMLDivElement>(null);
   const filmstripRef = useRef<HTMLDivElement>(null);
   const filmstripDrag = useDragScroll();
   const idleTimerRef = useRef<number>();
@@ -174,14 +195,14 @@ function GalleryLightboxContent({
   const lastFullscreenExitRef = useRef(0);
   const closeOnFullscreenExitRef = useRef(fullscreen);
   const initialFullscreenRequestedRef = useRef(false);
+  const openFadeDoneRef = useRef(false);
+  const ownsFullscreenRef = useRef(false);
   const layerKeyRef = useRef(0);
   const layerTimersRef = useRef<number[]>([]);
 
   const [isFullscreenActive, setIsFullscreenActive] = useState(false);
-  const [exitingFullscreen, setExitingFullscreen] = useState(false);
-  const exitingFullscreenRef = useRef(false);
-  const isFullscreen = isFullscreenActive || exitingFullscreen;
   const [enteringFullscreen, setEnteringFullscreen] = useState(fullscreen);
+  const isFullscreen = isFullscreenActive || enteringFullscreen;
   const [idle, setIdle] = useState(false);
   const [layers, setLayers] = useState<StageLayer[]>([
     { key: 0, index, ready: true },
@@ -284,43 +305,48 @@ function GalleryLightboxContent({
     [items, index, autoplay, getVideoHandle, onNavigate]
   );
 
-  const exitAndClose = useCallback(() => {
-    if (exitingFullscreenRef.current) return;
-    exitingFullscreenRef.current = true;
-    setExitingFullscreen(true);
-    document.exitFullscreen().catch(() => flushSync(close));
-  }, [close]);
+  const requestPageFullscreen = useCallback(() => {
+    const page = document.documentElement;
+    return page.requestFullscreen({ navigationUI: "hide" }).then(() => {
+      ownsFullscreenRef.current = true;
+    });
+  }, []);
 
-  const toggleFullscreen = useCallback(() => {
-    const root = rootRef.current;
-    if (!root) return;
-
-    if (!document.fullscreenElement) {
-      root.requestFullscreen({ navigationUI: "hide" }).catch(() => {});
-    } else if (closeOnFullscreenExitRef.current) {
-      exitAndClose();
-    } else {
+  const exitPageFullscreen = useCallback(() => {
+    if (!ownsFullscreenRef.current) return;
+    ownsFullscreenRef.current = false;
+    if (document.fullscreenElement) {
       document.exitFullscreen().catch(() => {});
     }
-  }, [exitAndClose]);
+  }, []);
+
+  const toggleFullscreen = useCallback(() => {
+    if (closeOnFullscreenExitRef.current) {
+      close();
+    } else if (ownsFullscreenRef.current) {
+      exitPageFullscreen();
+    } else {
+      requestPageFullscreen().catch(() => {});
+    }
+  }, [close, exitPageFullscreen, requestPageFullscreen]);
 
   useEffect(() => {
-    const root = rootRef.current;
-
     const onFullscreenChange = () => {
-      const active = !!root && document.fullscreenElement === root;
+      const active =
+        document.fullscreenElement === document.documentElement &&
+        ownsFullscreenRef.current;
 
-      if (!active && closeOnFullscreenExitRef.current) {
+      if (!active) {
+        ownsFullscreenRef.current = false;
         lastFullscreenExitRef.current = performance.now();
-        flushSync(close);
-        return;
+        if (closeOnFullscreenExitRef.current) {
+          flushSync(close);
+          return;
+        }
       }
 
       setIsFullscreenActive(active);
       setEnteringFullscreen(false);
-
-      if (active) return;
-      lastFullscreenExitRef.current = performance.now();
     };
 
     document.addEventListener("fullscreenchange", onFullscreenChange);
@@ -332,22 +358,53 @@ function GalleryLightboxContent({
 
   useEffect(() => {
     const root = rootRef.current;
+    if (!root || !closeOnFullscreenExitRef.current || openFadeDoneRef.current) {
+      return undefined;
+    }
 
+    const releasePageLayout = freezePageLayout();
+
+    const finishOpenFade = () => {
+      openFadeDoneRef.current = true;
+      releasePageLayout();
+    };
+
+    const onAnimationEnd = (event: AnimationEvent) => {
+      if (event.target === root) finishOpenFade();
+    };
+
+    root.addEventListener("animationend", onAnimationEnd);
+    const fallbackTimer = window.setTimeout(
+      finishOpenFade,
+      OPEN_FADE_MS + OPEN_FADE_FALLBACK_MARGIN_MS
+    );
+
+    return () => {
+      root.removeEventListener("animationend", onAnimationEnd);
+      window.clearTimeout(fallbackTimer);
+      releasePageLayout();
+    };
+  }, []);
+
+  useEffect(() => {
     if (
-      root &&
       closeOnFullscreenExitRef.current &&
       !initialFullscreenRequestedRef.current
     ) {
       initialFullscreenRequestedRef.current = true;
-      root.requestFullscreen({ navigationUI: "hide" }).catch(() => {
-        if (document.fullscreenElement === root) return;
+      requestPageFullscreen().catch(() => {
+        if (ownsFullscreenRef.current) return;
         closeOnFullscreenExitRef.current = false;
         setEnteringFullscreen(false);
       });
     }
+  }, [requestPageFullscreen]);
 
+  useEffect(() => {
     return () => {
-      if (root && document.fullscreenElement === root) {
+      if (!ownsFullscreenRef.current) return;
+      ownsFullscreenRef.current = false;
+      if (document.fullscreenElement) {
         document.exitFullscreen().catch(() => {});
       }
     };
@@ -366,11 +423,11 @@ function GalleryLightboxContent({
     const handleEscape = (video: GalleryVideoPlayerHandle | null) => {
       if (video?.dismissMenu()) return;
 
-      if (document.fullscreenElement) {
+      if (ownsFullscreenRef.current) {
         if (closeOnFullscreenExitRef.current) {
-          exitAndClose();
+          close();
         } else {
-          document.exitFullscreen().catch(() => {});
+          exitPageFullscreen();
         }
         return;
       }
@@ -459,7 +516,7 @@ function GalleryLightboxContent({
     getVideoHandle,
     navigate,
     close,
-    exitAndClose,
+    exitPageFullscreen,
     toggleFullscreen,
     wake,
   ]);
@@ -491,7 +548,7 @@ function GalleryLightboxContent({
     const onClick = (event: MouseEvent) => {
       const shouldClose = pressedOnBackdrop && isBackdrop(event.target);
       pressedOnBackdrop = false;
-      if (shouldClose && !document.fullscreenElement) close();
+      if (shouldClose && !ownsFullscreenRef.current) close();
     };
 
     root.addEventListener("wheel", onWheel, { passive: false });
@@ -591,20 +648,22 @@ function GalleryLightboxContent({
   const showFilmstrip = items.length > 1 && !(isFullscreen && isVideo);
 
   return (
-    <dialog
-      open
+    <div
       ref={rootRef}
       className={cn("gallery-lightbox", {
         "gallery-lightbox--fullscreen": isFullscreen,
-        "gallery-lightbox--entering-fullscreen": enteringFullscreen,
         "gallery-lightbox--chrome-hidden": chromeHidden,
         "gallery-lightbox--with-filmstrip": showFilmstrip,
         "gallery-lightbox--titlebar-offset":
           !isFullscreen && (platform === "win32" || platform === "darwin"),
       })}
       style={
-        { "--layer-fade-duration": `${LAYER_FADE_MS}ms` } as React.CSSProperties
+        {
+          "--layer-fade-duration": `${LAYER_FADE_MS}ms`,
+          "--open-fade-duration": `${OPEN_FADE_MS}ms`,
+        } as React.CSSProperties
       }
+      role="dialog"
       aria-modal="true"
       aria-label={item.alt}
       tabIndex={-1}
@@ -781,7 +840,7 @@ function GalleryLightboxContent({
           )}
         </div>
       )}
-    </dialog>
+    </div>
   );
 }
 

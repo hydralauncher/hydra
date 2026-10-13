@@ -72,6 +72,11 @@ interface SeekIndicatorState {
 
 type SeekIndicators = Partial<Record<SeekDirection, SeekIndicatorState>>;
 
+interface VolumeIndicatorState {
+  presses: number;
+  hiding: boolean;
+}
+
 const SEEK_DIRECTIONS: SeekDirection[] = ["back", "forward"];
 
 const hideSeekIndicators = (
@@ -192,6 +197,330 @@ const storeVolume = (volume: number, muted: boolean) => {
 };
 
 const preventFocusOnClick = (event: React.MouseEvent) => event.preventDefault();
+
+interface ChromeStateInput {
+  isInline: boolean;
+  started: boolean;
+  loaded: boolean;
+  waiting: boolean;
+  paused: boolean;
+  ended: boolean;
+  hasPlayed: boolean;
+  autoplayBlocked: boolean;
+  qualityMenuOpen: boolean;
+  scrubbing: boolean;
+  adjustingVolume: boolean;
+  hoveringProgress: boolean;
+  inlineHovered: boolean;
+  inlineKeyboardActive: boolean;
+  inlineIdle: boolean;
+  viewerControlsHidden: boolean;
+}
+
+const getChromeState = (input: ChromeStateInput) => {
+  const showBigPlay =
+    !input.scrubbing &&
+    (!input.started ||
+      (!input.isInline && input.ended) ||
+      (input.paused && !input.hasPlayed && input.autoplayBlocked));
+
+  const holdChrome =
+    (input.paused && (input.hasPlayed || !input.isInline)) ||
+    input.ended ||
+    input.qualityMenuOpen ||
+    input.scrubbing ||
+    input.adjustingVolume ||
+    input.hoveringProgress;
+
+  const inlineInactive =
+    (!input.inlineHovered && !input.inlineKeyboardActive) || input.inlineIdle;
+
+  return {
+    showBigPlay,
+    showSpinner:
+      input.started && !showBigPlay && (!input.loaded || input.waiting),
+    holdChrome,
+    controlsHidden: input.isInline
+      ? !holdChrome && inlineInactive
+      : input.viewerControlsHidden,
+  };
+};
+
+const isIndicatorVisible = (
+  indicator: { hiding: boolean } | null | undefined
+) => !!indicator && !indicator.hiding;
+
+function SeekIndicatorBadge({
+  direction,
+  indicator,
+  onHidden,
+}: Readonly<{
+  direction: SeekDirection;
+  indicator: SeekIndicatorState;
+  onHidden: (direction: SeekDirection) => void;
+}>) {
+  return (
+    <div
+      className={cn(
+        "gallery-video__seek-indicator",
+        `gallery-video__seek-indicator--${direction}`,
+        {
+          "gallery-video__seek-indicator--hiding": indicator.hiding,
+          "gallery-video__seek-indicator--canceled": indicator.canceled,
+        }
+      )}
+      aria-hidden
+      onAnimationEnd={(event) => {
+        if (event.target === event.currentTarget && indicator.hiding) {
+          onHidden(direction);
+        }
+      }}
+    >
+      <div
+        key={`arrows-${indicator.presses}`}
+        className="gallery-video__seek-arrows"
+      >
+        {[0, 1, 2].map((arrow) => (
+          <Play key={arrow} size={11} weight="fill" />
+        ))}
+      </div>
+      <span
+        key={`amount-${indicator.amount}`}
+        className="gallery-video__seek-amount"
+      >
+        {direction === "back" ? "-" : "+"}
+        {indicator.amount}s
+      </span>
+    </div>
+  );
+}
+
+function VolumeIndicatorBadge({
+  indicator,
+  level,
+  onHidden,
+}: Readonly<{
+  indicator: VolumeIndicatorState;
+  level: number;
+  onHidden: () => void;
+}>) {
+  const percent = Math.round(level * 100);
+
+  return (
+    <div
+      className={cn("gallery-video__volume-indicator", {
+        "gallery-video__volume-indicator--hiding": indicator.hiding,
+      })}
+      aria-hidden
+      onAnimationEnd={(event) => {
+        if (event.target === event.currentTarget && indicator.hiding) {
+          onHidden();
+        }
+      }}
+    >
+      <span
+        key={`icon-${indicator.presses}`}
+        className="gallery-video__volume-indicator-icon"
+      >
+        <VolumeIcon level={level} size={18} />
+      </span>
+      <span className="gallery-video__volume-indicator-track">
+        <span
+          className="gallery-video__volume-indicator-fill"
+          style={{ transform: `scaleX(${level})` }}
+        />
+      </span>
+      <span
+        key={`value-${percent}`}
+        className="gallery-video__volume-indicator-value"
+      >
+        {percent}%
+      </span>
+    </div>
+  );
+}
+
+function PlaybackIcon({
+  playing,
+  size,
+}: Readonly<{ playing: boolean; size: number }>) {
+  return playing ? (
+    <Pause size={size} weight="fill" />
+  ) : (
+    <Play size={size} weight="fill" />
+  );
+}
+
+function FullscreenButton({
+  isFullscreen,
+  isInline,
+  tooltipId,
+  onClick,
+}: Readonly<{
+  isFullscreen: boolean;
+  isInline: boolean;
+  tooltipId: string;
+  onClick: () => void;
+}>) {
+  const { t } = useTranslation("game_details");
+  const label = isFullscreen ? t("exit_fullscreen") : t("fullscreen");
+
+  return (
+    <button
+      type="button"
+      className="gallery-video__button gallery-video__button--fullscreen"
+      onClick={onClick}
+      onMouseDown={preventFocusOnClick}
+      aria-label={label}
+      data-tooltip-id={tooltipId}
+      data-tooltip-content={`${label} (F)`}
+      data-tooltip-place="top"
+    >
+      {isFullscreen ? (
+        <CornersIn size={34} weight="bold" />
+      ) : (
+        <CornersOut size={isInline ? 24 : 26} weight="bold" />
+      )}
+    </button>
+  );
+}
+
+function VolumeControl({
+  level,
+  iconSize,
+  tooltipId,
+  slider,
+  onToggleMute,
+}: Readonly<{
+  level: number;
+  iconSize: number;
+  tooltipId: string;
+  slider: ReturnType<typeof usePointerRatio>;
+  onToggleMute: () => void;
+}>) {
+  const { t } = useTranslation("game_details");
+  const muteLabel = level === 0 ? t("unmute") : t("mute");
+
+  return (
+    <div
+      className={cn("gallery-video__volume", {
+        "gallery-video__volume--active": slider.dragging,
+      })}
+    >
+      <button
+        type="button"
+        className="gallery-video__button"
+        onClick={onToggleMute}
+        onMouseDown={preventFocusOnClick}
+        aria-label={muteLabel}
+        data-tooltip-id={tooltipId}
+        data-tooltip-content={`${muteLabel} (M)`}
+        data-tooltip-place="top"
+      >
+        <VolumeIcon level={level} size={iconSize} />
+      </button>
+
+      <div
+        ref={slider.ref}
+        className="gallery-video__volume-slider"
+        style={{ "--volume": level } as React.CSSProperties}
+        role="slider"
+        tabIndex={-1}
+        aria-label={t("volume")}
+        aria-valuemin={0}
+        aria-valuemax={100}
+        aria-valuenow={Math.round(level * 100)}
+        {...slider.handlers}
+      >
+        <div className="gallery-video__volume-track">
+          <div className="gallery-video__volume-fill" />
+        </div>
+        <div className="gallery-video__volume-thumb" />
+      </div>
+    </div>
+  );
+}
+
+interface QualityControlProps {
+  menuRef: React.RefObject<HTMLDivElement>;
+  options: QualityOption[];
+  selected: number;
+  open: boolean;
+  focusedIndex: number | null;
+  iconSize: number;
+  tooltipId: string;
+  onToggle: () => void;
+  onSelect: (id: number) => void;
+}
+
+function QualityControl({
+  menuRef,
+  options,
+  selected,
+  open,
+  focusedIndex,
+  iconSize,
+  tooltipId,
+  onToggle,
+  onSelect,
+}: Readonly<QualityControlProps>) {
+  const { t } = useTranslation("game_details");
+
+  return (
+    <div className="gallery-video__quality" ref={menuRef}>
+      <button
+        type="button"
+        className={cn(
+          "gallery-video__button",
+          "gallery-video__quality-button",
+          {
+            "gallery-video__quality-button--open": open,
+          }
+        )}
+        onClick={onToggle}
+        onMouseDown={preventFocusOnClick}
+        aria-label={t("video_quality")}
+        aria-haspopup="menu"
+        aria-expanded={open}
+        data-tooltip-id={tooltipId}
+        data-tooltip-content={t("video_quality")}
+        data-tooltip-place="top"
+        data-tooltip-hidden={open}
+      >
+        <GearSix size={iconSize} weight="fill" />
+      </button>
+
+      {open && (
+        <div className="gallery-video__quality-menu" role="menu">
+          <span className="gallery-video__quality-title">
+            {t("video_quality")}
+          </span>
+          {options.map((option, optionIndex) => {
+            const isSelected = option.id === selected;
+            return (
+              <button
+                key={option.id}
+                type="button"
+                role="menuitemradio"
+                aria-checked={isSelected}
+                className={cn("gallery-video__quality-option", {
+                  "gallery-video__quality-option--selected": isSelected,
+                  "gallery-video__quality-option--focused":
+                    optionIndex === focusedIndex,
+                })}
+                onClick={() => onSelect(option.id)}
+                onMouseDown={preventFocusOnClick}
+              >
+                {option.label}
+                {isSelected && <CheckIcon size={16} />}
+              </button>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
 
 function useSeekPreview(item: GalleryMediaItem, sources: GalleryVideoSource[]) {
   const sourceRef = useRef<HTMLVideoElement | null>(null);
@@ -499,10 +828,8 @@ export const GalleryVideoPlayer = forwardRef<
   const [hoverRatio, setHoverRatio] = useState<number | null>(null);
   const [seekIndicators, setSeekIndicators] = useState<SeekIndicators>({});
   const [seekPresses, setSeekPresses] = useState(0);
-  const [volumeIndicator, setVolumeIndicator] = useState<{
-    presses: number;
-    hiding: boolean;
-  } | null>(null);
+  const [volumeIndicator, setVolumeIndicator] =
+    useState<VolumeIndicatorState | null>(null);
   const seekIndicatorTimerRef = useRef<number>();
   const flashTimerRef = useRef<number>();
   const indicatorTimeoutRef = useRef(indicatorTimeoutMs);
@@ -670,7 +997,13 @@ export const GalleryVideoPlayer = forwardRef<
     frame = requestAnimationFrame(tick);
 
     return () => cancelAnimationFrame(frame);
-  }, [progressAnimating, currentTime, duration, updatePlayedProgress]);
+  }, [
+    interactive,
+    progressAnimating,
+    currentTime,
+    duration,
+    updatePlayedProgress,
+  ]);
 
   const togglePlay = useCallback(() => {
     const video = videoRef.current;
@@ -1038,53 +1371,65 @@ export const GalleryVideoPlayer = forwardRef<
 
   const selectedQuality = hlsLevels.length > 1 ? selectedLevel : sourceIndex;
 
+  const selectQuality = (id: number) =>
+    hlsLevels.length > 1 ? handleSelectLevel(id) : handleSelectSource(id);
+
   qualityControlRef.current = {
     options: qualityOptions,
     selected: selectedQuality,
-    select: (id) =>
-      hlsLevels.length > 1 ? handleSelectLevel(id) : handleSelectSource(id),
+    select: selectQuality,
   };
   const isPlaying = !paused && !ended;
   const playLabel = isPlaying ? t("pause_video") : t("play_video");
-  const fullscreenLabel = isFullscreen ? t("exit_fullscreen") : t("fullscreen");
   const volumeLevel = muted ? 0 : volume;
   const iconSize = isFullscreen ? 26 : 20;
-  const muteLabel = volumeLevel === 0 ? t("unmute") : t("mute");
   const tooltipId = isInline
     ? GALLERY_PAGE_TOOLTIP_ID
     : GALLERY_VIEWER_TOOLTIP_ID;
 
-  const showBigPlay =
-    !seekSlider.dragging &&
-    (!started ||
-      (!isInline && ended) ||
-      (paused && !hasPlayed && autoplayBlocked));
-  const showSpinner = started && !showBigPlay && (!loaded || waiting);
-
-  const holdChrome =
-    (paused && (hasPlayed || !isInline)) ||
-    ended ||
-    qualityMenuOpen ||
-    seekSlider.dragging ||
-    volumeSlider.dragging ||
-    hoverRatio !== null;
+  const { showBigPlay, showSpinner, holdChrome, controlsHidden } =
+    getChromeState({
+      isInline,
+      started,
+      loaded,
+      waiting,
+      paused,
+      ended,
+      hasPlayed,
+      autoplayBlocked,
+      qualityMenuOpen,
+      scrubbing: seekSlider.dragging,
+      adjustingVolume: volumeSlider.dragging,
+      hoveringProgress: hoverRatio !== null,
+      inlineHovered,
+      inlineKeyboardActive,
+      inlineIdle,
+      viewerControlsHidden,
+    });
 
   useEffect(() => {
     onHoldChromeChange?.(holdChrome);
   }, [holdChrome, onHoldChromeChange]);
 
-  const controlsHidden = isInline
-    ? !holdChrome && ((!inlineHovered && !inlineKeyboardActive) || inlineIdle)
-    : viewerControlsHidden;
-
   const hasSeekIndicator =
-    SEEK_DIRECTIONS.some(
-      (direction) =>
-        seekIndicators[direction] && !seekIndicators[direction]?.hiding
-    ) ||
-    (!!volumeIndicator && !volumeIndicator.hiding);
+    SEEK_DIRECTIONS.some((direction) =>
+      isIndicatorVisible(seekIndicators[direction])
+    ) || isIndicatorVisible(volumeIndicator);
   const idleTimeout = idleTimeoutMs ?? getIdleTimeout(isInline, isFullscreen);
   const previousControlsHiddenRef = useRef(controlsHidden);
+
+  const removeSeekIndicator = useCallback((direction: SeekDirection) => {
+    setSeekIndicators((current) => {
+      if (!current[direction]?.hiding) return current;
+      const next = { ...current };
+      delete next[direction];
+      return next;
+    });
+  }, []);
+
+  const removeVolumeIndicator = useCallback(() => {
+    setVolumeIndicator((current) => (current?.hiding ? null : current));
+  }, []);
 
   const hideSeekIndicator = useCallback(() => {
     setSeekIndicators((current) => hideSeekIndicators(current, false));
@@ -1196,93 +1541,22 @@ export const GalleryVideoPlayer = forwardRef<
 
           {SEEK_DIRECTIONS.map((direction) => {
             const indicator = seekIndicators[direction];
-            if (!indicator) return null;
-
-            return (
-              <div
+            return indicator ? (
+              <SeekIndicatorBadge
                 key={direction}
-                className={cn(
-                  "gallery-video__seek-indicator",
-                  `gallery-video__seek-indicator--${direction}`,
-                  {
-                    "gallery-video__seek-indicator--hiding": indicator.hiding,
-                    "gallery-video__seek-indicator--canceled":
-                      indicator.canceled,
-                  }
-                )}
-                aria-hidden
-                onAnimationEnd={(event) => {
-                  if (
-                    event.target !== event.currentTarget ||
-                    !indicator.hiding
-                  ) {
-                    return;
-                  }
-                  setSeekIndicators((current) => {
-                    if (!current[direction]?.hiding) return current;
-                    const next = { ...current };
-                    delete next[direction];
-                    return next;
-                  });
-                }}
-              >
-                <div
-                  key={`arrows-${indicator.presses}`}
-                  className="gallery-video__seek-arrows"
-                >
-                  {[0, 1, 2].map((arrow) => (
-                    <Play key={arrow} size={11} weight="fill" />
-                  ))}
-                </div>
-                <span
-                  key={`amount-${indicator.amount}`}
-                  className="gallery-video__seek-amount"
-                >
-                  {direction === "back" ? "-" : "+"}
-                  {indicator.amount}s
-                </span>
-              </div>
-            );
+                direction={direction}
+                indicator={indicator}
+                onHidden={removeSeekIndicator}
+              />
+            ) : null;
           })}
 
           {volumeIndicator && (
-            <div
-              className={cn("gallery-video__volume-indicator", {
-                "gallery-video__volume-indicator--hiding":
-                  volumeIndicator.hiding,
-              })}
-              aria-hidden
-              onAnimationEnd={(event) => {
-                if (
-                  event.target !== event.currentTarget ||
-                  !volumeIndicator.hiding
-                ) {
-                  return;
-                }
-                setVolumeIndicator((current) =>
-                  current?.hiding ? null : current
-                );
-              }}
-            >
-              <span
-                key={`icon-${volumeIndicator.presses}`}
-                className="gallery-video__volume-indicator-icon"
-              >
-                <VolumeIcon level={volumeLevel} size={18} />
-              </span>
-              <span className="gallery-video__volume-indicator-track">
-                <span
-                  className="gallery-video__volume-indicator-fill"
-                  style={{ transform: `scaleX(${volumeLevel})` }}
-                />
-              </span>
-              <span
-                key={`value-${Math.round(volumeLevel * 100)}`}
-                className="gallery-video__volume-indicator-value"
-              >
-                {Math.round(volumeLevel * 100)}%
-              </span>
-            </div>
+            <VolumeIndicatorBadge
+              indicator={volumeIndicator}
+              level={volumeLevel}
+              onHidden={removeVolumeIndicator}
+            />
           )}
 
           {flash && !showBigPlay && (
@@ -1292,11 +1566,7 @@ export const GalleryVideoPlayer = forwardRef<
               aria-hidden
               onAnimationEnd={() => setFlash(null)}
             >
-              {flash.playing ? (
-                <Play size={26} weight="fill" />
-              ) : (
-                <Pause size={26} weight="fill" />
-              )}
+              <PlaybackIcon playing={!flash.playing} size={26} />
             </div>
           )}
 
@@ -1393,49 +1663,16 @@ export const GalleryVideoPlayer = forwardRef<
                 data-tooltip-content={`${playLabel} (${t("keyboard_space")})`}
                 data-tooltip-place="top"
               >
-                {isPlaying ? (
-                  <Pause size={iconSize} weight="fill" />
-                ) : (
-                  <Play size={iconSize} weight="fill" />
-                )}
+                <PlaybackIcon playing={isPlaying} size={iconSize} />
               </button>
 
-              <div
-                className={cn("gallery-video__volume", {
-                  "gallery-video__volume--active": volumeSlider.dragging,
-                })}
-              >
-                <button
-                  type="button"
-                  className="gallery-video__button"
-                  onClick={toggleMute}
-                  onMouseDown={preventFocusOnClick}
-                  aria-label={muteLabel}
-                  data-tooltip-id={tooltipId}
-                  data-tooltip-content={`${muteLabel} (M)`}
-                  data-tooltip-place="top"
-                >
-                  <VolumeIcon level={volumeLevel} size={iconSize} />
-                </button>
-
-                <div
-                  ref={volumeSlider.ref}
-                  className="gallery-video__volume-slider"
-                  style={{ "--volume": volumeLevel } as React.CSSProperties}
-                  role="slider"
-                  tabIndex={-1}
-                  aria-label={t("volume")}
-                  aria-valuemin={0}
-                  aria-valuemax={100}
-                  aria-valuenow={Math.round(volumeLevel * 100)}
-                  {...volumeSlider.handlers}
-                >
-                  <div className="gallery-video__volume-track">
-                    <div className="gallery-video__volume-fill" />
-                  </div>
-                  <div className="gallery-video__volume-thumb" />
-                </div>
-              </div>
+              <VolumeControl
+                level={volumeLevel}
+                iconSize={iconSize}
+                tooltipId={tooltipId}
+                slider={volumeSlider}
+                onToggleMute={toggleMute}
+              />
 
               <span className="gallery-video__time">
                 {formatTime(displayedTime)}
@@ -1446,85 +1683,30 @@ export const GalleryVideoPlayer = forwardRef<
               <div className="gallery-video__spacer" />
 
               {qualityOptions.length > 0 && (
-                <div className="gallery-video__quality" ref={qualityMenuRef}>
-                  <button
-                    type="button"
-                    className={cn(
-                      "gallery-video__button",
-                      "gallery-video__quality-button",
-                      {
-                        "gallery-video__quality-button--open": qualityMenuOpen,
-                      }
-                    )}
-                    onClick={() => {
-                      setQualityMenuFromController(false);
-                      setQualityMenuOpen((open) => !open);
-                    }}
-                    onMouseDown={preventFocusOnClick}
-                    aria-label={t("video_quality")}
-                    aria-haspopup="menu"
-                    aria-expanded={qualityMenuOpen}
-                    data-tooltip-id={tooltipId}
-                    data-tooltip-content={t("video_quality")}
-                    data-tooltip-place="top"
-                    data-tooltip-hidden={qualityMenuOpen}
-                  >
-                    <GearSix size={iconSize} weight="fill" />
-                  </button>
-
-                  {qualityMenuOpen && (
-                    <div className="gallery-video__quality-menu" role="menu">
-                      <span className="gallery-video__quality-title">
-                        {t("video_quality")}
-                      </span>
-                      {qualityOptions.map((option, optionIndex) => {
-                        const selected = option.id === selectedQuality;
-                        return (
-                          <button
-                            key={option.id}
-                            type="button"
-                            role="menuitemradio"
-                            aria-checked={selected}
-                            className={cn("gallery-video__quality-option", {
-                              "gallery-video__quality-option--selected":
-                                selected,
-                              "gallery-video__quality-option--focused":
-                                qualityMenuFromController &&
-                                optionIndex === focusedQualityIndex,
-                            })}
-                            onClick={() =>
-                              hlsLevels.length > 1
-                                ? handleSelectLevel(option.id)
-                                : handleSelectSource(option.id)
-                            }
-                            onMouseDown={preventFocusOnClick}
-                          >
-                            {option.label}
-                            {selected && <CheckIcon size={16} />}
-                          </button>
-                        );
-                      })}
-                    </div>
-                  )}
-                </div>
+                <QualityControl
+                  menuRef={qualityMenuRef}
+                  options={qualityOptions}
+                  selected={selectedQuality}
+                  open={qualityMenuOpen}
+                  focusedIndex={
+                    qualityMenuFromController ? focusedQualityIndex : null
+                  }
+                  iconSize={iconSize}
+                  tooltipId={tooltipId}
+                  onToggle={() => {
+                    setQualityMenuFromController(false);
+                    setQualityMenuOpen((open) => !open);
+                  }}
+                  onSelect={selectQuality}
+                />
               )}
 
-              <button
-                type="button"
-                className="gallery-video__button gallery-video__button--fullscreen"
+              <FullscreenButton
+                isFullscreen={isFullscreen}
+                isInline={isInline}
+                tooltipId={tooltipId}
                 onClick={onToggleFullscreen}
-                onMouseDown={preventFocusOnClick}
-                aria-label={fullscreenLabel}
-                data-tooltip-id={tooltipId}
-                data-tooltip-content={`${fullscreenLabel} (F)`}
-                data-tooltip-place="top"
-              >
-                {isFullscreen ? (
-                  <CornersIn size={34} weight="bold" />
-                ) : (
-                  <CornersOut size={isInline ? 24 : 26} weight="bold" />
-                )}
-              </button>
+              />
             </div>
           </div>
         </>

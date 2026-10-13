@@ -7,6 +7,7 @@ import {
   useRef,
 } from "react";
 import { createPortal } from "react-dom";
+import cn from "classnames";
 import { useTranslation } from "react-i18next";
 import { ChevronRightIcon, ChevronLeftIcon } from "@primer/octicons-react";
 import { CornersOut, Play } from "@phosphor-icons/react";
@@ -24,6 +25,7 @@ import {
 } from "./gallery-video-player";
 import { GalleryVideoHost, GalleryVideoSlot } from "./gallery-video-host";
 import { getSteamMovieSource } from "./gallery-media-sources";
+import { useDragScroll } from "./use-drag-scroll";
 import {
   hasShortcutModifier,
   isDialogOpen,
@@ -79,6 +81,7 @@ export function GallerySlider() {
     useState<GalleryViewerPresentation | null>(null);
   const [videoHoldsChrome, setVideoHoldsChrome] = useState(true);
   const mediaItemsRef = useRef<GalleryMediaItem[]>([]);
+  const previewDrag = useDragScroll();
   const playerHandlesRef = useRef(new Map<string, GalleryVideoPlayerHandle>());
   const toggleViewerFullscreenRef = useRef<(() => void) | null>(null);
 
@@ -453,7 +456,12 @@ export function GallerySlider() {
         </button>
       </div>
 
-      <div className="gallery-slider__preview">
+      <div
+        className={cn("gallery-slider__preview", {
+          "gallery-slider__preview--dragging": previewDrag.dragging,
+        })}
+        {...previewDrag.handlers}
+      >
         {previews.map((media, i) => (
           <button
             key={media.id}

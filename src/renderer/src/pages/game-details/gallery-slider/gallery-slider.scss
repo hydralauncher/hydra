@@ -114,6 +114,15 @@
     &::-webkit-scrollbar {
       height: 10px;
     }
+
+    &--dragging,
+    &--dragging * {
+      cursor: grabbing;
+    }
+
+    &--dragging .gallery-slider__preview-button {
+      pointer-events: none;
+    }
   }
 
   &__preview-button {

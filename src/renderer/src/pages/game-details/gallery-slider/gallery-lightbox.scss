@@ -10,13 +10,6 @@ $lightbox-titlebar-height: 35px;
 .gallery-lightbox {
   position: fixed;
   inset: 0;
-  width: 100%;
-  height: 100%;
-  max-width: none;
-  max-height: none;
-  margin: 0;
-  padding: 0;
-  border: none;
   z-index: globals.$backdrop-z-index;
   background-color: rgba(0, 0, 0, 0.9);
   backdrop-filter: blur(6px);
@@ -25,15 +18,11 @@ $lightbox-titlebar-height: 35px;
   user-select: none;
   outline: none;
   -webkit-app-region: no-drag;
-  animation: gallery-lightbox-fade-in 0.2s ease-out;
+  animation: gallery-lightbox-fade-in var(--open-fade-duration, 200ms) ease-out;
 
   &--fullscreen {
     background-color: #000;
     backdrop-filter: none;
-  }
-
-  &--entering-fullscreen {
-    visibility: hidden;
   }
 
   &--chrome-hidden {
