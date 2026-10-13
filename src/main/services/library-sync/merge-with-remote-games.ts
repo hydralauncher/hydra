@@ -30,7 +30,10 @@ import {
   resolveMissingSteamImport,
   resolveLibrarySource,
 } from "./resolve-library-source";
-import { mergeLocalAndRemotePlayTime } from "@shared";
+import {
+  mergeLocalAndRemotePlayTime,
+  preserveEpicDefaultArtwork,
+} from "@shared";
 import { mergePersistedAchievementTotals } from "../achievements/achievement-memory-store";
 import { trackAchievementBatchGame } from "../achievements/achievement-batch-games";
 import { fetchRemoteProfileGames as fetchProfileGames } from "./fetch-remote-profile-games";
@@ -285,20 +288,24 @@ const buildRemoteGameShopAssets = (
   remoteGame: ProfileGame,
   localGame: Game | undefined,
   localShopAssets: ShopAssets | undefined
-) => ({
-  updatedAt: Date.now(),
-  ...localShopAssets,
-  shop: remoteGame.shop,
-  objectId: remoteGame.objectId,
-  title: localGame?.title || remoteGame.title,
-  coverImageUrl: getRemoteCoverImageUrl(remoteGame),
-  libraryHeroImageUrl: remoteGame.libraryHeroImageUrl,
-  libraryImageUrl: remoteGame.libraryImageUrl,
-  logoImageUrl: remoteGame.logoImageUrl,
-  iconUrl: remoteGame.iconUrl,
-  logoPosition: remoteGame.logoPosition,
-  downloadSources: remoteGame.downloadSources,
-});
+) =>
+  preserveEpicDefaultArtwork(
+    {
+      updatedAt: Date.now(),
+      ...localShopAssets,
+      shop: remoteGame.shop,
+      objectId: remoteGame.objectId,
+      title: localGame?.title || remoteGame.title,
+      coverImageUrl: getRemoteCoverImageUrl(remoteGame),
+      libraryHeroImageUrl: remoteGame.libraryHeroImageUrl,
+      libraryImageUrl: remoteGame.libraryImageUrl,
+      logoImageUrl: remoteGame.logoImageUrl,
+      iconUrl: remoteGame.iconUrl,
+      logoPosition: remoteGame.logoPosition,
+      downloadSources: remoteGame.downloadSources,
+    },
+    localShopAssets
+  );
 
 const buildMergedGame = (
   remoteGame: ProfileGame,

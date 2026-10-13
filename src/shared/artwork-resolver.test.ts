@@ -1,9 +1,15 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import type { ArtworkItem, ShopAssets } from "../types/index.js";
+import type {
+  ArtworkItem,
+  ShopAssets,
+  GameArtworkSelection,
+} from "../types/index.js";
 import {
   composeAssetsWithArtwork,
   composeEpicDefaultArtwork,
+  composeEpicDefaultArtworkPages,
+  preserveEpicDefaultArtwork,
 } from "./artwork-resolver.js";
 
 const assets: ShopAssets = {
@@ -29,6 +35,80 @@ const item = (overrides: Partial<ArtworkItem> = {}): ArtworkItem => ({
 });
 
 describe("Epic default artwork", () => {
+  it("retains a successful icon when either grid request fails", () => {
+    const resolved = composeEpicDefaultArtworkPages(
+      preserveEpicDefaultArtwork(assets),
+      { icon: [item()] },
+      1000
+    );
+    assert.equal(resolved.iconUrl, item().url);
+    assert.deepEqual(resolved.epicArtworkUpdatedAtByType, { icon: 1000 });
+    const retried = composeEpicDefaultArtworkPages(
+      preserveEpicDefaultArtwork(assets, resolved),
+      { portrait: [] },
+      2000
+    );
+    assert.equal(retried.iconUrl, item().url);
+    assert.deepEqual(retried.epicArtworkUpdatedAtByType, {
+      icon: 1000,
+      portrait: 2000,
+    });
+  });
+
+  it("preserves resolved defaults across remote sync asset replacement", () => {
+    const resolved = composeEpicDefaultArtworkPages(
+      assets,
+      {
+        icon: [item()],
+        portrait: [
+          item({
+            url: "https://sgdb.example/portrait.png",
+            width: 600,
+            height: 900,
+            style: "no_logo",
+          }),
+        ],
+        landscape: [
+          item({
+            url: "https://sgdb.example/landscape.png",
+            width: 920,
+            height: 430,
+            style: "no_logo",
+          }),
+        ],
+      },
+      1000
+    );
+    const synced = preserveEpicDefaultArtwork(
+      {
+        ...resolved,
+        ...assets,
+        libraryHeroImageUrl: "https://epic.example/hero.jpg",
+      },
+      resolved
+    );
+    assert.equal(synced.iconUrl, resolved.iconUrl);
+    assert.equal(synced.coverImageUrl, resolved.coverImageUrl);
+    assert.equal(synced.libraryImageUrl, resolved.libraryImageUrl);
+    assert.equal(synced.libraryHeroImageUrl, resolved.libraryHeroImageUrl);
+    assert.deepEqual(
+      synced.epicArtworkUpdatedAtByType,
+      resolved.epicArtworkUpdatedAtByType
+    );
+    assert.equal(
+      composeAssetsWithArtwork(synced, {
+        selected: { icon: { url: "https://user.example/icon.png" } },
+      } as GameArtworkSelection).iconUrl,
+      "https://user.example/icon.png"
+    );
+  });
+
+  it("caches a confirmed missing icon without reusing the Epic cover", () => {
+    const resolved = composeEpicDefaultArtworkPages(assets, { icon: [] }, 1000);
+    assert.equal(preserveEpicDefaultArtwork(assets, resolved).iconUrl, null);
+    assert.equal(resolved.epicArtworkUpdatedAtByType?.icon, 1000);
+  });
+
   it("uses the bounded SGDB PNG preview for ICO responses with zero dimensions", () => {
     const ico = item({
       width: 0,

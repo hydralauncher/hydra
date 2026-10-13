@@ -5,7 +5,10 @@ import type {
   GameShop,
   ShopAssets,
 } from "@types";
-import { composeEpicDefaultArtwork } from "@shared";
+import {
+  composeEpicDefaultArtworkPages,
+  preserveEpicDefaultArtwork,
+} from "@shared";
 
 import { HydraApi } from "./hydra-api";
 
@@ -15,9 +18,13 @@ const PORTRAIT_GRID_DIMENSIONS = "600x900,342x482,660x930";
 const LANDSCAPE_GRID_DIMENSIONS = "460x215,920x430";
 export const EPIC_ARTWORK_CACHE_DURATION_MS = 8 * 60 * 60 * 1000;
 const EPIC_DEFAULT_ARTWORK_TIMEOUT_MS = 5_000;
+const EPIC_DEFAULT_ARTWORK_LIMIT = 10;
+type EpicArtworkType = keyof NonNullable<
+  ShopAssets["epicArtworkUpdatedAtByType"]
+>;
 const epicArtworkRequests = new Map<
   string,
-  Promise<PromiseSettledResult<ArtworkPage>[]>
+  Promise<Partial<Record<EpicArtworkType, ArtworkPage>>>
 >();
 
 const KIND_PARAMS: Record<ArtworkKind, Record<string, string>> = {
@@ -85,32 +92,41 @@ export async function resolveEpicDefaultArtwork(
   cached?: ShopAssets | null
 ): Promise<ShopAssets> {
   if (assets.shop !== "epic") return assets;
+  const preserved = preserveEpicDefaultArtwork(assets, cached);
+  const now = Date.now();
+  const isFresh = (type: EpicArtworkType) => {
+    const timestamp = cached?.epicArtworkUpdatedAtByType?.[type];
+    return (
+      timestamp !== undefined &&
+      timestamp <= now &&
+      timestamp + EPIC_ARTWORK_CACHE_DURATION_MS > now
+    );
+  };
   if (
-    cached?.epicArtworkUpdatedAt &&
-    cached.epicArtworkUpdatedAt + EPIC_ARTWORK_CACHE_DURATION_MS > Date.now()
-  ) {
-    return {
-      ...assets,
-      iconUrl: cached.iconUrl,
-      coverImageUrl: cached.coverImageUrl ?? assets.coverImageUrl,
-      libraryImageUrl: cached.libraryImageUrl ?? assets.libraryImageUrl,
-      libraryHeroImageUrl:
-        cached.libraryHeroImageUrl ?? assets.libraryHeroImageUrl,
-      epicArtworkUpdatedAt: cached.epicArtworkUpdatedAt,
-    };
-  }
+    ["icon", "portrait", "landscape"].every((type) =>
+      isFresh(type as EpicArtworkType)
+    )
+  )
+    return preserved;
   let pending = epicArtworkRequests.get(assets.objectId);
   if (!pending) {
     const defaults: Array<{
+      type: EpicArtworkType;
       kind: ArtworkKind;
       parameters: Record<string, string>;
     }> = [
-      { kind: "icons", parameters: { dimensions: "32,48,64,96,128" } },
       {
+        type: "icon",
+        kind: "icons",
+        parameters: { dimensions: "32,48,64,96,128" },
+      },
+      {
+        type: "portrait",
         kind: "grids",
         parameters: { dimensions: PORTRAIT_GRID_DIMENSIONS, styles: "no_logo" },
       },
       {
+        type: "landscape",
         kind: "grids",
         parameters: {
           dimensions: LANDSCAPE_GRID_DIMENSIONS,
@@ -118,8 +134,9 @@ export async function resolveEpicDefaultArtwork(
         },
       },
     ];
+    const missing = defaults.filter(({ type }) => !isFresh(type));
     pending = Promise.allSettled(
-      defaults.map(({ kind, parameters }) =>
+      missing.map(({ kind, parameters }) =>
         fetchGameArtwork(
           "epic",
           assets.objectId,
@@ -127,7 +144,7 @@ export async function resolveEpicDefaultArtwork(
           0,
           {
             types: "static",
-            limit: "10",
+            limit: String(EPIC_DEFAULT_ARTWORK_LIMIT),
             humor: "false",
             epilepsy: "false",
             ...parameters,
@@ -135,21 +152,26 @@ export async function resolveEpicDefaultArtwork(
           EPIC_DEFAULT_ARTWORK_TIMEOUT_MS
         )
       )
-    ).finally(() => epicArtworkRequests.delete(assets.objectId));
+    )
+      .then((responses) => {
+        const pages: Partial<Record<EpicArtworkType, ArtworkPage>> = {};
+        responses.forEach((response, index) => {
+          if (response.status === "fulfilled")
+            pages[missing[index].type] = response.value;
+        });
+        return pages;
+      })
+      .finally(() => epicArtworkRequests.delete(assets.objectId));
     epicArtworkRequests.set(assets.objectId, pending);
   }
-  const responses = await pending;
-  const items = responses.map((response) =>
-    response.status === "fulfilled" && Array.isArray(response.value.items)
-      ? response.value.items
-      : []
+  const pages = await pending;
+  return composeEpicDefaultArtworkPages(
+    preserved,
+    {
+      ...(pages.icon && { icon: pages.icon.items }),
+      ...(pages.portrait && { portrait: pages.portrait.items }),
+      ...(pages.landscape && { landscape: pages.landscape.items }),
+    },
+    Date.now()
   );
-  return {
-    ...composeEpicDefaultArtwork(assets, items[0], items[1], items[2]),
-    epicArtworkUpdatedAt: responses.every(
-      (response) => response.status === "fulfilled"
-    )
-      ? Date.now()
-      : undefined,
-  };
 }

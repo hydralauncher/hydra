@@ -59,7 +59,7 @@ const getLibrary = async (
             const composedAssets = composeAssetsWithArtwork(
               game.shop === "epic" &&
                 gameAssets &&
-                !gameAssets.epicArtworkUpdatedAt
+                !gameAssets.epicArtworkUpdatedAtByType?.icon
                 ? { ...gameAssets, iconUrl: null }
                 : (gameAssets ?? null),
               artworkSelection

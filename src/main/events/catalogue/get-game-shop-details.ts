@@ -26,7 +26,7 @@ import {
   mapEpicShopDetails,
   STORE_DETAILS_TIMEOUT_MS,
   type EpicShopDetails,
-  formatEpicDescription,
+  sanitizeEpicHtml,
 } from "@main/services/store-shop-details";
 import { resolveEpicDefaultArtwork } from "@main/services/game-artwork";
 
@@ -399,11 +399,9 @@ const getGameShopDetails = async (
     if (!selected) return null;
     return {
       ...selected,
-      detailed_description: formatEpicDescription(
-        selected.detailed_description
-      ),
-      about_the_game: formatEpicDescription(selected.about_the_game),
-      short_description: formatEpicDescription(selected.short_description),
+      detailed_description: sanitizeEpicHtml(selected.detailed_description),
+      about_the_game: sanitizeEpicHtml(selected.about_the_game),
+      short_description: sanitizeEpicHtml(selected.short_description),
       assets: await applyArtworkToAssets(shop, objectId, selected.assets),
     };
   }

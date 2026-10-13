@@ -3,6 +3,7 @@ import { describe, it } from "node:test";
 import {
   getStoreDetailsWithFallback,
   mapEpicShopDetails,
+  sanitizeEpicHtml,
   type EpicShopDetails,
 } from "./store-shop-details.js";
 
@@ -110,6 +111,36 @@ describe("store-first details", () => {
 });
 
 describe("Epic details mapping", () => {
+  it("sanitizes mapped description fields without escaping entities again", () => {
+    const mapped = mapEpicShopDetails(
+      "namespace:item",
+      {
+        ...epic,
+        description: "First & second",
+        shortDescription: "Short & sweet",
+      },
+      "en"
+    );
+    for (const field of [
+      "detailed_description",
+      "about_the_game",
+      "short_description",
+    ] as const) {
+      const cached = sanitizeEpicHtml(mapped[field]);
+      assert.equal(cached, mapped[field]);
+      assert.ok(!cached.includes("&amp;amp;"));
+    }
+    assert.equal(
+      sanitizeEpicHtml(mapped.detailed_description),
+      "First &amp; second"
+    );
+    assert.equal(
+      sanitizeEpicHtml(
+        '<a href="https://store.epicgames.com">Text &amp; image<img src="https://example.com/image.jpg"></a>'
+      ),
+      'Text &amp; image<img src="https://example.com/image.jpg">'
+    );
+  });
   it("keeps the actual content language when English is returned for another locale", () => {
     assert.equal(
       mapEpicShopDetails("id", { ...epic, descriptionLanguage: "en" }, "de")

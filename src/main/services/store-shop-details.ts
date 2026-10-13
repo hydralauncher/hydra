@@ -153,7 +153,7 @@ function formatEpicRequirements(requirements: string): string {
   return `<ul>${items.join("")}</ul>`;
 }
 
-function sanitizeEpicHtml(html: string): string {
+export function sanitizeEpicHtml(html: string): string {
   const fragment = JSDOM.fragment(html);
   for (const element of fragment.querySelectorAll(
     "script, style, iframe, object, embed, svg, math, form, input, button, textarea, select, template"
