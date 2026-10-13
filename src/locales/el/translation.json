@@ -804,7 +804,6 @@
     "epic_status_awaiting_login": "Waiting for Epic sign-in",
     "epic_status_connecting": "Connecting...",
     "epic_status_disconnecting": "Disconnecting...",
-    "epic_connected_at": "Connected on {{date}}",
     "epic_reconnect_description": "Your account is still linked. Sign in again to restore the Epic session on this device.",
     "epic_login_in_window": "Complete sign-in in the Epic window.",
     "epic_check_connection": "Check connection",
@@ -833,6 +832,8 @@
     "integration_disconnect": "Αποσύνδεση",
     "integration_reconnect": "Επανασύνδεση",
     "integration_sync": "Συγχρονισμός",
+    "integration_last_synced": "Τελευταίος συγχρονισμός: {{date}}",
+    "integration_never_synced": "Δεν έχει συγχρονιστεί ακόμα",
     "integration_status_not_connected": "Μη συνδεδεμένο",
     "setup_official_website": "Επίσημος ιστότοπος",
     "setup_install_with_hydra": "Εγκατάσταση από το GitHub",
@@ -1045,7 +1046,6 @@
     "retroachievements_status_active": "Συνδεδεμένος",
     "retroachievements_status_invalid_credentials": "Μη έγκυρα διαπιστευτήρια",
     "retroachievements_invalid_credentials_description": "Τα διαπιστευτήριά σας για το RetroAchievements δεν είναι πλέον έγκυρα. Επανασυνδέστε τον λογαριασμό σας.",
-    "retroachievements_last_checked": "Τελευταίος έλεγχος: {{date}}",
     "steam_status_reconnect_required": "Απαιτείται επανασύνδεση",
     "retroachievements_invalid_password": "Ο κωδικός πρόσβασης για το RetroAchievements δεν είναι έγκυρος",
     "retroachievements_invalid_web_api_key": "Μη έγκυρο κλειδί Web API του RetroAchievements",
@@ -1378,8 +1378,6 @@
     "epic_sync_permission": "Epic did not allow access to playtime. Your previous library was preserved.",
     "epic_sync_rate_limit": "Epic is limiting requests. Try again later.",
     "epic_sync_merge_pending": "The server synced your Epic library. Retry sync to update the local library.",
-    "epic_last_synced": "Last synced {{date}}",
-    "epic_never_synced": "Not synced yet",
     "hide_library_epic_badges": "Απόκρυψη σημάτων σύνδεσης βιβλιοθήκης Epic"
   },
   "notifications": {

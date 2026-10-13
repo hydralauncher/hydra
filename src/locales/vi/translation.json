@@ -813,7 +813,6 @@
     "epic_status_awaiting_login": "Waiting for Epic sign-in",
     "epic_status_connecting": "Connecting...",
     "epic_status_disconnecting": "Disconnecting...",
-    "epic_connected_at": "Connected on {{date}}",
     "epic_reconnect_description": "Your account is still linked. Sign in again to restore the Epic session on this device.",
     "epic_login_in_window": "Complete sign-in in the Epic window.",
     "epic_check_connection": "Check connection",
@@ -842,6 +841,8 @@
     "integration_disconnect": "Ngắt kết nối",
     "integration_reconnect": "Kết nối lại",
     "integration_sync": "Đồng bộ",
+    "integration_last_synced": "Đồng bộ lần cuối: {{date}}",
+    "integration_never_synced": "Chưa được đồng bộ",
     "integration_status_not_connected": "Chưa kết nối",
     "setup_official_website": "Trang web chính thức",
     "setup_install_with_hydra": "Cài đặt từ GitHub",
@@ -1054,7 +1055,6 @@
     "retroachievements_status_active": "Đã kết nối",
     "retroachievements_status_invalid_credentials": "Thông tin đăng nhập không hợp lệ",
     "retroachievements_invalid_credentials_description": "Thông tin đăng nhập RetroAchievements của bạn không còn hợp lệ. Hãy kết nối lại tài khoản.",
-    "retroachievements_last_checked": "Kiểm tra lần cuối: {{date}}",
     "steam_status_reconnect_required": "Cần kết nối lại",
     "retroachievements_invalid_password": "Mật khẩu RetroAchievements không hợp lệ",
     "retroachievements_invalid_web_api_key": "Khóa Web API của RetroAchievements không hợp lệ",
@@ -1387,8 +1387,6 @@
     "epic_sync_permission": "Epic did not allow access to playtime. Your previous library was preserved.",
     "epic_sync_rate_limit": "Epic is limiting requests. Try again later.",
     "epic_sync_merge_pending": "The server synced your Epic library. Retry sync to update the local library.",
-    "epic_last_synced": "Last synced {{date}}",
-    "epic_never_synced": "Not synced yet",
     "hide_library_epic_badges": "Ẩn huy hiệu kết nối Thư viện Epic"
   },
   "notifications": {

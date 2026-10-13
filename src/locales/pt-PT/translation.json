@@ -650,7 +650,6 @@
     "epic_status_awaiting_login": "Aguardando login Epic",
     "epic_status_connecting": "Conectando...",
     "epic_status_disconnecting": "Desconectando...",
-    "epic_connected_at": "Conectada em {{date}}",
     "epic_reconnect_description": "Sua conta continua vinculada. Entre novamente para restaurar a sessão Epic neste dispositivo.",
     "epic_login_in_window": "Conclua o login na janela Epic.",
     "epic_check_connection": "Verificar conexão",
@@ -679,6 +678,8 @@
     "integration_disconnect": "Desligar",
     "integration_reconnect": "Voltar a ligar",
     "integration_sync": "Sincronizar",
+    "integration_last_synced": "Última sincronização: {{date}}",
+    "integration_never_synced": "Ainda não sincronizada",
     "integration_status_not_connected": "Não ligado",
     "setup_official_website": "Site oficial",
     "retroarch_setup_cores_title": "Núcleos do emulador",
@@ -933,7 +934,6 @@
     "retroachievements_status_active": "Ligado",
     "retroachievements_status_invalid_credentials": "Credenciais inválidas",
     "retroachievements_invalid_credentials_description": "As tuas credenciais do RetroAchievements já não são válidas. Volta a ligar a tua conta.",
-    "retroachievements_last_checked": "Última verificação: {{date}}",
     "steam_status_reconnect_required": "É necessário voltar a ligar",
     "retroachievements_invalid_password": "Palavra-passe do RetroAchievements inválida",
     "retroachievements_invalid_web_api_key": "Chave da Web API do RetroAchievements inválida",
@@ -1019,8 +1019,6 @@
     "epic_sync_permission": "A Epic não permitiu consultar o tempo de jogo. Sua biblioteca anterior foi preservada.",
     "epic_sync_rate_limit": "A Epic está limitando as consultas. Tente novamente mais tarde.",
     "epic_sync_merge_pending": "O servidor sincronizou sua biblioteca Epic. Tente sincronizar novamente para atualizar a biblioteca local.",
-    "epic_last_synced": "Last synced {{date}}",
-    "epic_never_synced": "Not synced yet",
     "hide_library_epic_badges": "Ocultar emblemas da ligação à biblioteca Epic"
   },
   "notifications": {

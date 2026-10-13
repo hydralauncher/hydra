@@ -1,13 +1,16 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { LinkExternalIcon, PersonIcon } from "@primer/octicons-react";
+import { LinkExternalIcon, PersonIcon, SyncIcon } from "@primer/octicons-react";
 
 import { Button, ConfirmationModal } from "@renderer/components";
-import { useDate, useToast, useUserDetails } from "@renderer/hooks";
+import { useToast, useUserDetails } from "@renderer/hooks";
 import { AuthPage } from "@shared";
 import type { EpicConnectionState, EpicErrorCode, EpicSyncState } from "@types";
 import EpicLogo from "@renderer/assets/epic-integration-logo.svg?react";
-import { SettingsIntegrationCard } from "./settings-integration-card";
+import {
+  SettingsIntegrationCard,
+  SettingsIntegrationLastSynced,
+} from "./settings-integration-card";
 import {
   getEpicAuthFailure,
   getEpicErrorTranslation,
@@ -20,7 +23,6 @@ const STATUS_ICON_SIZE = 14;
 export function SettingsEpic() {
   const { userDetails } = useUserDetails();
   const { showSuccessToast, showErrorToast } = useToast();
-  const { formatDateTime } = useDate();
   const { t } = useTranslation("settings");
   const userId = userDetails?.id ?? null;
 
@@ -316,14 +318,24 @@ export function SettingsEpic() {
     ? visibleState.connection
     : null;
   const operation = visibleState?.operation;
+  const requiresReconnect =
+    presentation.requiresReconnect || syncState.requiresReconnect === true;
+  const supportsSync = typeof window.electron.startEpicSync === "function";
+  const isSyncing =
+    supportsSync &&
+    Boolean(connection) &&
+    (syncState.status !== "idle" ||
+      (syncState.error === "sync-active" &&
+        connection?.latestSyncRun?.status === "PENDING"));
+  const showReconnectMessage = Boolean(connection) && requiresReconnect;
   const error =
     requestError ??
     syncState.error ??
     visibleState?.error ??
     visibleState?.availability.reason;
-  const displayedError =
+  const displayedErrorKey =
     error && error !== "operation-cancelled" && error !== "hydra-auth-required"
-      ? error
+      ? getEpicErrorTranslation(error)
       : null;
 
   const renderActions = () => {
@@ -349,34 +361,15 @@ export function SettingsEpic() {
 
     return (
       <>
-        {connection &&
-          typeof window.electron.startEpicSync === "function" &&
-          (syncState.status !== "idle" ||
-          (syncState.error === "sync-active" &&
-            connection.latestSyncRun?.status === "PENDING") ? (
-            <Button
-              theme="outline"
-              onClick={() => void handleCancelSync()}
-              disabled={syncState.status === "cancelling" || isSubmitting}
-            >
-              {t("cancel")}
-            </Button>
-          ) : (
-            <Button
-              onClick={() => void handleSync()}
-              disabled={
-                isSubmitting ||
-                visibleState?.verification !== "confirmed" ||
-                presentation.requiresReconnect ||
-                syncState.requiresReconnect
-              }
-            >
-              {t("integration_sync")}
-            </Button>
-          ))}
-        {(!connection ||
-          presentation.requiresReconnect ||
-          syncState.requiresReconnect) && (
+        {isSyncing ? (
+          <Button
+            theme="outline"
+            onClick={() => void handleCancelSync()}
+            disabled={syncState.status === "cancelling" || isSubmitting}
+          >
+            {t("cancel")}
+          </Button>
+        ) : !connection || requiresReconnect ? (
           <Button
             onClick={handleConnect}
             disabled={!presentation.canAuthenticate || isSubmitting}
@@ -384,7 +377,18 @@ export function SettingsEpic() {
             <LinkExternalIcon size={STATUS_ICON_SIZE} />
             {t(connection ? "integration_reconnect" : "integration_connect")}
           </Button>
-        )}
+        ) : supportsSync ? (
+          <Button
+            theme="outline"
+            onClick={() => void handleSync()}
+            disabled={
+              isSubmitting || visibleState?.verification !== "confirmed"
+            }
+          >
+            <SyncIcon size={STATUS_ICON_SIZE} />
+            {t("integration_sync")}
+          </Button>
+        ) : null}
         {(visibleState?.verification === "unconfirmed" ||
           visibleState?.availability.reason === "api-unavailable" ||
           requestError === "network") && (
@@ -434,11 +438,11 @@ export function SettingsEpic() {
               <span className="settings-integration-card__username">
                 {connection.displayName}
               </span>
-              <span className="settings-integration-card__meta">
-                {t("epic_connected_at", {
-                  date: formatDateTime(connection.connectedAt),
-                })}
-              </span>
+              {typeof window.electron.getEpicSyncState === "function" && (
+                <SettingsIntegrationLastSynced
+                  lastSyncedAt={connection.lastSyncedAt}
+                />
+              )}
             </div>
           </div>
         ) : (
@@ -447,16 +451,6 @@ export function SettingsEpic() {
           </p>
         )}
 
-        {connection &&
-          typeof window.electron.getEpicSyncState === "function" && (
-            <p className="settings-integration-card__meta">
-              {connection.lastSyncedAt
-                ? t("epic_last_synced", {
-                    date: formatDateTime(connection.lastSyncedAt),
-                  })
-                : t("epic_never_synced")}
-            </p>
-          )}
         {syncState.status !== "idle" && syncState.hydraUserId === userId && (
           <div
             className="settings-integration-card__progress"
@@ -473,7 +467,7 @@ export function SettingsEpic() {
                 syncState.total > 0 &&
                 (syncState.phase === "publishing" ||
                   syncState.phase === "merging") && (
-                  <span>
+                  <span className="settings-integration-card__progress-count">
                     {syncState.processed ?? 0} / {syncState.total}
                   </span>
                 )}
@@ -483,22 +477,32 @@ export function SettingsEpic() {
             </div>
           </div>
         )}
-        {connection &&
-          (presentation.requiresReconnect || syncState.requiresReconnect) && (
-            <p className="settings-integration-card__message">
-              {t("epic_reconnect_description")}
-            </p>
-          )}
+        {showReconnectMessage && (
+          <p
+            className="settings-integration-card__message"
+            role={
+              displayedErrorKey === "epic_reconnect_description"
+                ? "alert"
+                : undefined
+            }
+          >
+            {t("epic_reconnect_description")}
+          </p>
+        )}
         {operation?.status === "awaiting-login" && (
           <p className="settings-integration-card__message">
             {t("epic_login_in_window")}
           </p>
         )}
-        {displayedError && (
-          <p className="settings-integration-card__message" role="alert">
-            {t(getEpicErrorTranslation(displayedError))}
-          </p>
-        )}
+        {displayedErrorKey &&
+          !(
+            showReconnectMessage &&
+            displayedErrorKey === "epic_reconnect_description"
+          ) && (
+            <p className="settings-integration-card__message" role="alert">
+              {t(displayedErrorKey)}
+            </p>
+          )}
       </SettingsIntegrationCard>
 
       <ConfirmationModal

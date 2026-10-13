@@ -773,7 +773,6 @@
     "epic_status_awaiting_login": "Waiting for Epic sign-in",
     "epic_status_connecting": "Connecting...",
     "epic_status_disconnecting": "Disconnecting...",
-    "epic_connected_at": "Connected on {{date}}",
     "epic_reconnect_description": "Your account is still linked. Sign in again to restore the Epic session on this device.",
     "epic_login_in_window": "Complete sign-in in the Epic window.",
     "epic_check_connection": "Check connection",
@@ -802,6 +801,8 @@
     "integration_disconnect": "Putuskan",
     "integration_reconnect": "Hubungkan kembali",
     "integration_sync": "Sinkronkan",
+    "integration_last_synced": "Terakhir disinkronkan: {{date}}",
+    "integration_never_synced": "Belum disinkronkan",
     "integration_status_not_connected": "Belum terhubung",
     "setup_official_website": "Situs web resmi",
     "setup_install_with_hydra": "Instal dari GitHub",
@@ -1014,7 +1015,6 @@
     "retroachievements_status_active": "Terhubung",
     "retroachievements_status_invalid_credentials": "Kredensial tidak valid",
     "retroachievements_invalid_credentials_description": "Kredensial RetroAchievements Anda sudah tidak valid. Hubungkan kembali akun Anda.",
-    "retroachievements_last_checked": "Terakhir diperiksa: {{date}}",
     "steam_status_reconnect_required": "Perlu menghubungkan kembali",
     "retroachievements_invalid_password": "Kata sandi RetroAchievements tidak valid",
     "retroachievements_invalid_web_api_key": "Web API key RetroAchievements tidak valid",
@@ -1340,8 +1340,6 @@
     "epic_sync_permission": "Epic did not allow access to playtime. Your previous library was preserved.",
     "epic_sync_rate_limit": "Epic is limiting requests. Try again later.",
     "epic_sync_merge_pending": "The server synced your Epic library. Retry sync to update the local library.",
-    "epic_last_synced": "Last synced {{date}}",
-    "epic_never_synced": "Not synced yet",
     "hide_library_epic_badges": "Sembunyikan lencana koneksi Pustaka Epic"
   },
   "notifications": {

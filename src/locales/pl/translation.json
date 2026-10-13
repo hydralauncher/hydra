@@ -813,7 +813,6 @@
     "epic_status_awaiting_login": "Waiting for Epic sign-in",
     "epic_status_connecting": "Connecting...",
     "epic_status_disconnecting": "Disconnecting...",
-    "epic_connected_at": "Connected on {{date}}",
     "epic_reconnect_description": "Your account is still linked. Sign in again to restore the Epic session on this device.",
     "epic_login_in_window": "Complete sign-in in the Epic window.",
     "epic_check_connection": "Check connection",
@@ -842,6 +841,8 @@
     "integration_disconnect": "Rozłącz",
     "integration_reconnect": "Połącz ponownie",
     "integration_sync": "Synchronizuj",
+    "integration_last_synced": "Ostatnia synchronizacja: {{date}}",
+    "integration_never_synced": "Jeszcze nie zsynchronizowano",
     "integration_status_not_connected": "Nie połączono",
     "setup_official_website": "Oficjalna strona",
     "setup_install_with_hydra": "Zainstaluj z GitHub",
@@ -1054,7 +1055,6 @@
     "retroachievements_status_active": "Połączono",
     "retroachievements_status_invalid_credentials": "Nieprawidłowe dane logowania",
     "retroachievements_invalid_credentials_description": "Twoje dane logowania do RetroAchievements utraciły ważność. Połącz konto ponownie.",
-    "retroachievements_last_checked": "Ostatnio sprawdzono: {{date}}",
     "steam_status_reconnect_required": "Wymagane ponowne połączenie",
     "retroachievements_invalid_password": "Nieprawidłowe hasło RetroAchievements",
     "retroachievements_invalid_web_api_key": "Nieprawidłowy klucz Web API RetroAchievements",
@@ -1396,8 +1396,6 @@
     "epic_sync_permission": "Epic did not allow access to playtime. Your previous library was preserved.",
     "epic_sync_rate_limit": "Epic is limiting requests. Try again later.",
     "epic_sync_merge_pending": "The server synced your Epic library. Retry sync to update the local library.",
-    "epic_last_synced": "Last synced {{date}}",
-    "epic_never_synced": "Not synced yet",
     "hide_library_epic_badges": "Ukryj odznaki połączenia z biblioteką Epic"
   },
   "notifications": {
