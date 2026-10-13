@@ -107,6 +107,40 @@ describe("Epic library normalization", () => {
       normalizeEpicLibrary([[item("A", "A"), item("B", "B")]]).length,
       2
     ));
+  it("sorts aliases and names alphabetically without depending on platform or input order", () => {
+    const entries = ["Zebra", "zebra", "Álpha", "alpha"].map((name) => ({
+      ...item(name),
+      app_title: name,
+    }));
+    const other = { ...item("Other", "Other"), app_title: "alpha" };
+    const library = normalizeEpicLibrary([entries, [other]]);
+    assert.deepEqual(
+      library,
+      normalizeEpicLibrary([[other], [...entries].reverse()])
+    );
+    assert.equal(library.length, 2);
+    assert.deepEqual(library[0].artifactIds, [
+      "alpha",
+      "Álpha",
+      "zebra",
+      "Zebra",
+    ]);
+    assert.equal(library[0].name, "alpha");
+    assert.equal(library[0].catalogItemId, "Item");
+    assert.equal(library[1].catalogItemId, "Other");
+  });
+  it("breaks Unicode collation ties consistently without collapsing distinct artifacts", () => {
+    const composed = "Café";
+    const decomposed = "Cafe\u0301";
+    const entries = [composed, decomposed].map((name) => ({
+      ...item(name),
+      app_title: name,
+    }));
+    const library = normalizeEpicLibrary([entries]);
+    assert.deepEqual(library, normalizeEpicLibrary([[...entries].reverse()]));
+    assert.deepEqual(library[0].artifactIds, [decomposed, composed]);
+    assert.equal(library[0].name, decomposed);
+  });
   it("rejects conflicting artifacts, asset identities and unknown product kinds", () => {
     assert.throws(() =>
       normalizeEpicLibrary([[item("A", "A"), item("A", "B")]])
@@ -448,6 +482,51 @@ function syncFixture() {
   return { state, deps, sync: new EpicSyncOrchestrator(deps) };
 }
 describe("Epic publication reconciliation", () => {
+  it("serializes simultaneous preparation and publishes only one sync", async () => {
+    const f = syncFixture();
+    let releaseCapture!: () => void;
+    const captureGate = new Promise<void>((resolve) => {
+      releaseCapture = resolve;
+    });
+    let releaseLibrary!: () => void;
+    const libraryGate = new Promise<void>((resolve) => {
+      releaseLibrary = resolve;
+    });
+    let captures = 0;
+    f.deps.capture = async () => {
+      captures++;
+      await captureGate;
+      return context;
+    };
+    const collectLibrary = f.deps.library;
+    f.deps.library = async (...args) => {
+      await libraryGate;
+      return collectLibrary(...args);
+    };
+    try {
+      const starts = Promise.all([
+        f.sync.start(connection.connectionId),
+        f.sync.start(connection.connectionId),
+        f.sync.start(connection.connectionId),
+      ]);
+      assert.equal(captures, 1);
+      releaseCapture();
+      const states = await starts;
+      assert.ok(states.every((state) => state.status === "running"));
+      assert.equal(f.state.starts, 1);
+      releaseLibrary();
+      await f.sync.wait();
+      assert.equal(f.state.collections, 1);
+      assert.equal(f.state.uploads, 1);
+      assert.equal(f.state.commits, 1);
+      assert.equal(f.state.merges, 1);
+      assert.equal(f.state.result?.ok, true);
+    } finally {
+      releaseCapture();
+      releaseLibrary();
+      await f.sync.abortAndWait();
+    }
+  });
   it("publishes accumulated time once and clears journal after merge", async () => {
     const f = syncFixture();
     await f.sync.start(connection.connectionId);

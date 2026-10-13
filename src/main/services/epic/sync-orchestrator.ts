@@ -135,7 +135,7 @@ export class EpicSyncOrchestrator {
     connectionId: string,
     trigger: EpicSyncTrigger = "MANUAL"
   ): Promise<EpicSyncState> {
-    if (this.preparing)
+    if (this.preparing !== null)
       return this.preparing.then(() => this.start(connectionId, trigger));
     this.preparing = this.prepare(connectionId, trigger).finally(() => {
       this.preparing = null;

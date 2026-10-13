@@ -1,5 +1,6 @@
 import { getContextualEpicGame } from "@main/services/epic/import-visibility";
 import { updateGameRecord } from "@main/services/game-record-updater";
+import { logger } from "@main/services/logger";
 import path from "node:path";
 import fs from "node:fs";
 
@@ -83,7 +84,13 @@ const getLibrary = async (
 
               if (!fs.existsSync(installerPath)) {
                 installerSizeInBytes = null;
-                updateGameRecord(key, { installerSizeInBytes: null });
+                updateGameRecord(key, { installerSizeInBytes: null }).catch(
+                  (error) =>
+                    logger.error(
+                      `Failed to clear missing installer size for ${key}`,
+                      error
+                    )
+                );
               }
             }
 
@@ -110,7 +117,12 @@ const getLibrary = async (
                 updateGameRecord(key, {
                   installerSizeInBytes,
                   installedSizeInBytes: null,
-                });
+                }).catch((error) =>
+                  logger.error(
+                    `Failed to clear missing installed size for ${key}`,
+                    error
+                  )
+                );
               }
             }
 

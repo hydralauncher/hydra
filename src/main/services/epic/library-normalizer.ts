@@ -11,6 +11,12 @@ import {
 // The bundled Legendary explicitly recognizes launchable add-ons.
 // Do not guess tool/demo category names absent from verified metadata.
 const excludedCategories = new Set(["addons", "addons/launchable"]);
+const compareEpicStrings = (left: string, right: string): number => {
+  const comparison = left.localeCompare(right, "en");
+  if (comparison !== 0 || left === right) return comparison;
+  // Distinct Unicode representations can compare equally under collation.
+  return left < right ? -1 : 1;
+};
 const validId = (value: unknown, max = EPIC_ID_MAX_LENGTH): value is string =>
   typeof value === "string" &&
   value.length > 0 &&
@@ -103,11 +109,11 @@ export function normalizeEpicLibrary(platforms: unknown[]): EpicSnapshotGame[] {
       if (existing) {
         existing.artifactIds = [
           ...new Set([...existing.artifactIds, artifact]),
-        ].sort();
+        ].sort(compareEpicStrings);
         if (existing.artifactIds.length > EPIC_MAX_ARTIFACTS)
           throw new EpicIntegrationError("snapshot-invalid");
         // Stable across command order and platforms, without using titles as identity.
-        existing.name = [existing.name, name].sort()[0];
+        existing.name = [existing.name, name].sort(compareEpicStrings)[0];
       } else
         games.set(objectId, {
           namespace,
