@@ -15,7 +15,7 @@ import type {
   SteamSyncFinishedPayload,
   SteamSyncState,
 } from "@types";
-import SteamLogo from "@renderer/assets/steam-logo.svg?react";
+import SteamLogo from "@renderer/assets/steam-integration-logo.svg?react";
 import { SettingsIntegrationCard } from "./settings-integration-card";
 import { getSteamProgressPresentation } from "./settings-integration-progress";
 import { getSteamIntegrationPresentation } from "./settings-steam-state";
