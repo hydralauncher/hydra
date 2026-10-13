@@ -1,3 +1,4 @@
+import { updateGameRecord } from "@main/services/game-record-updater";
 import { registerEvent } from "../register-event";
 import { gamesSublevel, levelKeys } from "@main/level";
 import { createGame } from "@main/services/library-sync";
@@ -43,8 +44,7 @@ const setGameVisibility = async (
     saved = await save();
   }
 
-  await gamesSublevel.put(gameKey, {
-    ...(await gamesSublevel.get(gameKey))!,
+  await updateGameRecord(gameKey, {
     isHiddenFromOthers: saved.isHiddenFromOthers,
     isConcealed: saved.isConcealed,
   });

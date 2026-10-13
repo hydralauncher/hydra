@@ -989,7 +989,9 @@
     "view_fullscreen": "Ver em tela cheia",
     "previous_media": "Anterior",
     "next_media": "Próximo",
-    "not_enough_space_on_disk": "Espaço insuficiente neste disco. Necessário {{required}}, disponível {{available}}."
+    "not_enough_space_on_disk": "Espaço insuficiente neste disco. Necessário {{required}}, disponível {{available}}.",
+    "epic_playtime_tracking_title": "Tempo de jogo Epic",
+    "epic_playtime_tracking_description": "O tempo Epic já é sincronizado. Quando a instalação Epic é identificada, o Hydra não conta a mesma sessão por padrão. Ative esta opção para contar também no Hydra."
   },
   "activation": {
     "title": "Ativação",
@@ -1081,7 +1083,7 @@
     "epic_login_in_window": "Conclua o login na janela Epic.",
     "epic_check_connection": "Verificar conexão",
     "epic_disconnect_title": "Desconectar Epic Games?",
-    "epic_disconnect_description": "Isso remove o vínculo Epic com o Hydra e a sessão Epic salva neste dispositivo.",
+    "epic_disconnect_description": "Isso remove sua biblioteca e tempo de jogo importados da Epic e a sessão Epic salva neste dispositivo. Seus jogos, tempo e preferências do Hydra são preservados.",
     "epic_account_linked": "Conta Epic Games conectada",
     "epic_account_unlinked": "Conta Epic Games desconectada",
     "epic_error_hydra_auth": "Entre no Hydra para conectar sua conta Epic Games.",
@@ -1782,7 +1784,24 @@
     "wayland_souvenirs_warning_title": "Lembranças no Wayland",
     "wayland_souvenirs_warning_description": "Devido à natureza do Wayland, o Hydra precisa perguntar qual janela deve ser capturada toda vez que você abrir um jogo. Selecione a janela do jogo para que o Hydra possa capturar lembranças quando você desbloquear conquistas. Sem selecionar uma janela, não é possível capturar lembranças.",
     "wayland_souvenirs_warning_cancel": "Cancelar",
-    "wayland_souvenirs_warning_confirm": "OK"
+    "wayland_souvenirs_warning_confirm": "OK",
+    "epic_sync_starting": "Preparando sincronização Epic…",
+    "epic_sync_library": "Buscando biblioteca Epic…",
+    "epic_sync_playtime": "Buscando tempo de jogo Epic…",
+    "epic_sync_publishing": "Enviando biblioteca Epic…",
+    "epic_sync_merging": "Atualizando biblioteca local…",
+    "epic_sync_finishing": "Finalizando…",
+    "epic_sync_cancelling": "Cancelando sincronização Epic…",
+    "epic_sync_success": "Biblioteca Epic importada",
+    "epic_sync_in_progress": "Uma sincronização Epic já está em andamento. Aguarde ou cancele o envio pendente.",
+    "epic_sync_invalid": "Não foi possível validar a biblioteca Epic. Sua biblioteca anterior foi preservada.",
+    "epic_sync_too_large": "A biblioteca Epic excede os limites de sincronização.",
+    "epic_sync_permission": "A Epic não permitiu consultar o tempo de jogo. Sua biblioteca anterior foi preservada.",
+    "epic_sync_rate_limit": "A Epic está limitando as consultas. Tente novamente mais tarde.",
+    "epic_sync_merge_pending": "O servidor sincronizou sua biblioteca Epic. Tente sincronizar novamente para atualizar a biblioteca local.",
+    "epic_last_synced": "Última sincronização em {{date}}",
+    "epic_never_synced": "Ainda não sincronizada",
+    "hide_library_epic_badges": "Ocultar badges de conexão da biblioteca Epic"
   },
   "notifications": {
     "download_complete": "Download concluído",
@@ -2190,7 +2209,9 @@
     "context_menu_options": "Opções",
     "context_menu_uninstall": "Desinstalar",
     "context_menu_remove_from_library": "Remover da Biblioteca",
-    "context_menu_add_to_library": "Adicionar à Biblioteca"
+    "context_menu_add_to_library": "Adicionar à Biblioteca",
+    "library_epic": "Epic",
+    "imported_from_epic": "Importado da biblioteca Epic vinculada a este perfil."
   },
   "notifications_page": {
     "cloud_gift_received_title": "Você recebeu Hydra Cloud",

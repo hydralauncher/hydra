@@ -983,7 +983,9 @@
     "download_error_torbox_torrent_not_ready": "TorBox ещё готовит этот торрент. Подождите немного и попробуйте снова.",
     "download_error_torbox_link_unavailable": "TorBox не смог создать ссылку для скачивания этого торрента. Попробуйте позже.",
     "download_error_network_unreachable": "Не удалось связаться с сервером загрузки. Проверьте подключение к интернету и попробуйте снова.",
-    "download_error_network_certificate_rejected": "Не удалось проверить соединение с сервером загрузки. Антивирус или прокси может перехватывать HTTPS-трафик."
+    "download_error_network_certificate_rejected": "Не удалось проверить соединение с сервером загрузки. Антивирус или прокси может перехватывать HTTPS-трафик.",
+    "epic_playtime_tracking_title": "Epic playtime",
+    "epic_playtime_tracking_description": "Epic playtime is already synced. When an Epic installation is identified, Hydra does not count the same session by default. Enable this option to also count it in Hydra."
   },
   "activation": {
     "title": "Активировать Hydra",
@@ -1062,7 +1064,7 @@
     "epic_login_in_window": "Complete sign-in in the Epic window.",
     "epic_check_connection": "Check connection",
     "epic_disconnect_title": "Disconnect Epic Games?",
-    "epic_disconnect_description": "This removes your Epic link from Hydra and the saved Epic session on this device.",
+    "epic_disconnect_description": "This removes your imported Epic library and playtime and the saved Epic session on this device. Your Hydra games, playtime and preferences are preserved.",
     "epic_account_linked": "Epic Games account connected",
     "epic_account_unlinked": "Epic Games account disconnected",
     "epic_error_hydra_auth": "Sign in to Hydra to connect your Epic Games account.",
@@ -1738,7 +1740,24 @@
     "wayland_souvenirs_warning_title": "Сувениры в Wayland",
     "wayland_souvenirs_warning_description": "Из-за особенностей Wayland Hydra должна спрашивать, какое окно захватывать, при каждом запуске игры. Выберите окно игры, чтобы Hydra могла создавать сувениры при получении достижений. Без выбора окна создавать сувениры невозможно.",
     "wayland_souvenirs_warning_cancel": "Отмена",
-    "wayland_souvenirs_warning_confirm": "ОК"
+    "wayland_souvenirs_warning_confirm": "ОК",
+    "epic_sync_starting": "Preparing Epic sync…",
+    "epic_sync_library": "Collecting Epic library…",
+    "epic_sync_playtime": "Collecting Epic playtime…",
+    "epic_sync_publishing": "Uploading Epic library…",
+    "epic_sync_merging": "Updating local library…",
+    "epic_sync_finishing": "Finishing up…",
+    "epic_sync_cancelling": "Cancelling Epic sync…",
+    "epic_sync_success": "Epic library imported",
+    "epic_sync_in_progress": "An Epic sync is already running. Wait for it to finish or cancel the pending upload.",
+    "epic_sync_invalid": "Epic library data could not be verified. Your previous library was preserved.",
+    "epic_sync_too_large": "The Epic library exceeds the sync limits.",
+    "epic_sync_permission": "Epic did not allow access to playtime. Your previous library was preserved.",
+    "epic_sync_rate_limit": "Epic is limiting requests. Try again later.",
+    "epic_sync_merge_pending": "The server synced your Epic library. Retry sync to update the local library.",
+    "epic_last_synced": "Last synced {{date}}",
+    "epic_never_synced": "Not synced yet",
+    "hide_library_epic_badges": "Скрыть значки подключения к библиотеке Epic"
   },
   "notifications": {
     "download_complete": "Загрузка завершена",
@@ -2079,7 +2098,9 @@
     "context_menu_options": "Настройки",
     "context_menu_uninstall": "Удалить",
     "context_menu_remove_from_library": "Удалить из библиотеки",
-    "context_menu_add_to_library": "Добавить в библиотеку"
+    "context_menu_add_to_library": "Добавить в библиотеку",
+    "library_epic": "Epic",
+    "imported_from_epic": "Импортировано из библиотеки Epic, связанной с этим профилем."
   },
   "achievement": {
     "achievement_unlocked": "Достижение разблокировано",

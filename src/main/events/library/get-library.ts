@@ -1,3 +1,5 @@
+import { getContextualEpicGame } from "@main/services/epic/import-visibility";
+import { updateGameRecord } from "@main/services/game-record-updater";
 import path from "node:path";
 import fs from "node:fs";
 
@@ -51,7 +53,12 @@ const getLibrary = async (
           .filter(([_key, game]) =>
             belongsToLibraryCollection(game, collection)
           )
-          .map(async ([key, game]) => {
+          .map(async ([key, storedGame]) => {
+            const game = getContextualEpicGame(
+              storedGame,
+              HydraApi.getAuthContext()
+            );
+            if (game.isDeleted) return null;
             const download = await downloadsSublevel.get(key);
             const gameAssets = await gamesShopAssetsSublevel.get(key);
             const artworkSelection =
@@ -76,7 +83,7 @@ const getLibrary = async (
 
               if (!fs.existsSync(installerPath)) {
                 installerSizeInBytes = null;
-                gamesSublevel.put(key, { ...game, installerSizeInBytes: null });
+                updateGameRecord(key, { installerSizeInBytes: null });
               }
             }
 
@@ -87,7 +94,9 @@ const getLibrary = async (
               const cachedPlatform = await lookupCachedPlatform(key);
               if (cachedPlatform) {
                 game.platform = cachedPlatform;
-                gamesSublevel.put(key, game).catch(() => {});
+                updateGameRecord(key, { platform: game.platform }).catch(
+                  () => {}
+                );
               }
             }
 
@@ -98,8 +107,7 @@ const getLibrary = async (
 
               if (!fs.existsSync(executableDir)) {
                 installedSizeInBytes = null;
-                gamesSublevel.put(key, {
-                  ...game,
+                updateGameRecord(key, {
                   installerSizeInBytes,
                   installedSizeInBytes: null,
                 });
@@ -129,6 +137,8 @@ const getLibrary = async (
               customCoverImageUrl: game.customCoverImageUrl,
             };
           })
+      ).then((games) =>
+        games.filter((game): game is NonNullable<typeof game> => game !== null)
       );
     });
 };

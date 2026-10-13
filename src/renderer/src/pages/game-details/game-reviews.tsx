@@ -67,6 +67,7 @@ export function GameReviews({
   const playTimeInMilliseconds = getDisplayedPlayTimeInMilliseconds({
     playTimeInMilliseconds: game?.playTimeInMilliseconds ?? 0,
     steamPlayTimeInMilliseconds: game?.steamPlayTimeInMilliseconds,
+    epicPlayTimeInMilliseconds: game?.epicPlayTimeInMilliseconds,
   });
   const hasEnoughPlaytime = playTimeInMilliseconds >= REVIEW_MIN_PLAYTIME_IN_MS;
   const isReviewLocked = !userDetailsId || !hasEnoughPlaytime;

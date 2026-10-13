@@ -121,6 +121,11 @@ export function SidebarGameItem({
             ) : (
               getFallbackIcon()
             )}
+            {game.shop === "epic" &&
+              game.hasActiveEpicImport &&
+              !userPreferences?.hideEpicLibraryBadges && (
+                <SteamLibraryBadge source="epic" variant="sidebar" />
+              )}
             {shouldShowSteamLibraryBadge(
               game,
               userPreferences?.hideSteamLibraryBadges

@@ -28,6 +28,35 @@ const nextBundle = {
   user: { ...bundle.user, refresh_token: "secret-next" },
 };
 
+test("cached UUID execution metadata does not invalidate the linked session", async (t) => {
+  const database = new MemoryDatabase();
+  const f = fixture(t, database);
+  await f.store.save(scope, connection, bundle, current);
+  const key = [...database.records.keys()][0];
+  database.records.set(key, {
+    schemaVersion: 1,
+    connection: {
+      ...connection,
+      lastSyncedAt: "2026-10-12T00:00:00Z",
+      latestSyncRun: { id: "00000000-0000-4000-8000-000000000001" },
+    },
+    bundle,
+  });
+  const stored = await f.store.read(scope);
+  assert.equal(stored?.sessionState, "ready");
+  assert.equal(stored?.connection.connectionId, connection.connectionId);
+  assert.equal(stored?.connection.lastSyncedAt, "2026-10-12T00:00:00Z");
+  assert.equal(stored?.connection.latestSyncRun, null);
+  assert.deepEqual(stored?.bundle, bundle);
+  await f.store.refreshSession(scope, connection, nextBundle, current);
+  assert.equal(
+    (database.records.get(key) as { connection: { latestSyncRun: unknown } })
+      .connection.latestSyncRun,
+    null
+  );
+  assert.deepEqual((await f.store.read(scope))?.bundle, nextBundle);
+});
+
 function fixture(t: TestContext, database?: EpicStoreDatabase) {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), "epic-store-"));
   const stores: EpicConnectionStore[] = [];
@@ -794,4 +823,40 @@ test("private store is not exported or wired into shared LevelDB IPC", () => {
     );
     assert.doesNotMatch(source, /@main\/level|safeStorage/);
   }
+});
+
+test("refresh cannot replace the bundle of a newer connection", async (t) => {
+  const f = fixture(t, new MemoryDatabase());
+  await f.store.save(scope, connection, bundle, current);
+  await f.store.save(
+    scope,
+    { ...connection, connectionId: "NewLink1" },
+    bundle,
+    current
+  );
+  await assert.rejects(
+    f.store.refreshSession(scope, connection, nextBundle, current),
+    /stale-connection/
+  );
+  assert.equal(
+    (await f.store.read(scope))?.bundle?.user.refresh_token,
+    bundle.user.refresh_token
+  );
+});
+test("rotated session keeps server sync metadata and does not expose credentials", async (t) => {
+  const f = fixture(t, new MemoryDatabase());
+  const linked = {
+    ...connection,
+    lastSyncedAt: "2026-10-12T00:00:00Z",
+    latestSyncRun: null,
+  };
+  await f.store.save(scope, linked, bundle, current);
+  await f.store.refreshSession(scope, connection, nextBundle, current);
+  const result = await f.store.read(scope);
+  assert.equal(result?.connection.lastSyncedAt, linked.lastSyncedAt);
+  assert.equal(
+    result?.bundle?.user.refresh_token,
+    nextBundle.user.refresh_token
+  );
+  assert.ok(!JSON.stringify(result?.connection).includes("secret"));
 });

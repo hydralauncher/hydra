@@ -157,11 +157,13 @@ export function ChangeGamePlaytimeModal({
           />
         </div>
 
-        {steamPlayTimeInMilliseconds > 0 ? (
+        {steamPlayTimeInMilliseconds > 0 ||
+        (game.epicPlayTimeInMilliseconds ?? 0) > 0 ? (
           <PlaytimeBreakdownTable
             hydraPlayTimeInMilliseconds={game.playTimeInMilliseconds ?? 0}
             nextHydraPlayTimeInMilliseconds={nextHydraPlayTimeInMilliseconds}
             steamPlayTimeInMilliseconds={steamPlayTimeInMilliseconds}
+            epicPlayTimeInMilliseconds={game.epicPlayTimeInMilliseconds ?? 0}
           />
         ) : null}
 

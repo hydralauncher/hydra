@@ -5,10 +5,11 @@ import { LinkExternalIcon, PersonIcon } from "@primer/octicons-react";
 import { Button, ConfirmationModal } from "@renderer/components";
 import { useDate, useToast, useUserDetails } from "@renderer/hooks";
 import { AuthPage } from "@shared";
-import type { EpicConnectionState, EpicErrorCode } from "@types";
+import type { EpicConnectionState, EpicErrorCode, EpicSyncState } from "@types";
 import EpicLogo from "@renderer/assets/epic-integration-logo.svg?react";
 import { SettingsIntegrationCard } from "./settings-integration-card";
 import {
+  getEpicAuthFailure,
   getEpicErrorTranslation,
   getEpicIntegrationPresentation,
   isEpicStateForUser,
@@ -23,6 +24,10 @@ export function SettingsEpic() {
   const { t } = useTranslation("settings");
   const userId = userDetails?.id ?? null;
 
+  const [syncState, setSyncState] = useState<EpicSyncState>({
+    status: "idle",
+    hydraUserId: null,
+  });
   const [state, setState] = useState<EpicConnectionState | null>(null);
   const [isLoading, setIsLoading] = useState(Boolean(userId));
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -55,12 +60,15 @@ export function SettingsEpic() {
         showSuccessToast(t("epic_account_linked"));
       }
 
+      const failure = getEpicAuthFailure(previous, next);
+      if (failure) showErrorToast(t(getEpicErrorTranslation(failure)));
+
       stateRef.current = next;
       setState(next);
       setRequestError(null);
       setIsLoading(false);
     },
-    [showSuccessToast, t]
+    [showSuccessToast, showErrorToast, t]
   );
 
   const refreshStatus = useCallback(
@@ -70,6 +78,7 @@ export function SettingsEpic() {
       if (showLoading) setIsLoading(Boolean(requestedOwner));
 
       try {
+        if (typeof window.electron.getEpicConnection !== "function") return;
         const next = await window.electron.getEpicConnection();
         if (
           generation === requestGeneration.current &&
@@ -111,6 +120,7 @@ export function SettingsEpic() {
   }, [invalidateRequests, refreshStatus, userId]);
 
   useEffect(() => {
+    if (typeof window.electron.onEpicConnectionChanged !== "function") return;
     const unsubscribe = window.electron.onEpicConnectionChanged((next) => {
       if (!isEpicStateForUser(next, ownerRef.current)) return;
       ++requestGeneration.current;
@@ -137,6 +147,80 @@ export function SettingsEpic() {
       unsubscribeSignOut();
     };
   }, [applyState, refreshStatus]);
+
+  useEffect(() => {
+    setSyncState({ status: "idle", hydraUserId: userId });
+    if (
+      typeof window.electron.getEpicSyncState !== "function" ||
+      typeof window.electron.onEpicSyncProgress !== "function" ||
+      typeof window.electron.onEpicSyncFinished !== "function"
+    )
+      return;
+    const apply = (next: EpicSyncState) => {
+      if (next.hydraUserId !== ownerRef.current) return;
+      const connection = stateRef.current?.connection;
+      if (
+        connection?.connected &&
+        next.connectionId &&
+        connection.connectionId !== next.connectionId
+      )
+        return;
+      setSyncState(next);
+    };
+    void window.electron
+      .getEpicSyncState()
+      .then(apply)
+      .catch(() => {});
+    const progress = window.electron.onEpicSyncProgress(apply);
+    const finished = window.electron.onEpicSyncFinished((result) => {
+      if (result.hydraUserId !== ownerRef.current) return;
+      const current = stateRef.current?.connection;
+      if (!current?.connected || result.connectionId !== current.connectionId)
+        return;
+      if (result.origin === "manual") {
+        if (result.ok) showSuccessToast(t("epic_sync_success"));
+        else if (result.error !== "operation-cancelled")
+          showErrorToast(
+            t(
+              result.requiresMerge
+                ? "epic_sync_merge_pending"
+                : getEpicErrorTranslation(result.error ?? "network")
+            )
+          );
+      }
+      void refreshStatus();
+    });
+    return () => {
+      progress();
+      finished();
+    };
+  }, [userId, refreshStatus, showSuccessToast, showErrorToast, t]);
+
+  const handleSync = async () => {
+    const current = stateRef.current?.connection;
+    if (
+      !current?.connected ||
+      typeof window.electron.startEpicSync !== "function"
+    )
+      return;
+    try {
+      const result = await window.electron.startEpicSync(current.connectionId);
+      if (result.hydraUserId === ownerRef.current) setSyncState(result);
+    } catch {
+      setRequestError("network");
+    }
+  };
+  const handleCancelSync = async () => {
+    const current = stateRef.current?.connection;
+    if (
+      !current?.connected ||
+      typeof window.electron.cancelEpicSync !== "function"
+    )
+      return;
+    await runOperation(() =>
+      window.electron.cancelEpicSync(current.connectionId)
+    );
+  };
 
   const runOperation = async (
     action: () => Promise<{ ok: boolean; error?: EpicErrorCode }>,
@@ -182,12 +266,15 @@ export function SettingsEpic() {
     }
   };
 
-  const handleConnect = () =>
+  const handleConnect = () => {
+    if (typeof window.electron.startEpicAuth !== "function") return;
     void runOperation(() => window.electron.startEpicAuth());
+  };
 
   const handleCancel = async () => {
     const operation = stateRef.current?.operation;
-    if (!operation) return;
+    if (!operation || typeof window.electron.cancelEpicAuth !== "function")
+      return;
     const generation = ownerGeneration.current;
     ++operationGeneration.current;
     try {
@@ -208,7 +295,8 @@ export function SettingsEpic() {
   };
 
   const handleDisconnect = () => {
-    if (!disconnectId) return;
+    if (!disconnectId || typeof window.electron.disconnectEpic !== "function")
+      return;
     const expectedId = disconnectId;
     setDisconnectId(null);
     void runOperation(() => window.electron.disconnectEpic(expectedId), {
@@ -229,7 +317,10 @@ export function SettingsEpic() {
     : null;
   const operation = visibleState?.operation;
   const error =
-    requestError ?? visibleState?.error ?? visibleState?.availability.reason;
+    requestError ??
+    syncState.error ??
+    visibleState?.error ??
+    visibleState?.availability.reason;
   const displayedError =
     error && error !== "operation-cancelled" && error !== "hydra-auth-required"
       ? error
@@ -258,7 +349,34 @@ export function SettingsEpic() {
 
     return (
       <>
-        {(!connection || presentation.requiresReconnect) && (
+        {connection &&
+          typeof window.electron.startEpicSync === "function" &&
+          (syncState.status !== "idle" ||
+          (syncState.error === "sync-active" &&
+            connection.latestSyncRun?.status === "PENDING") ? (
+            <Button
+              theme="outline"
+              onClick={() => void handleCancelSync()}
+              disabled={syncState.status === "cancelling" || isSubmitting}
+            >
+              {t("cancel")}
+            </Button>
+          ) : (
+            <Button
+              onClick={() => void handleSync()}
+              disabled={
+                isSubmitting ||
+                visibleState?.verification !== "confirmed" ||
+                presentation.requiresReconnect ||
+                syncState.requiresReconnect
+              }
+            >
+              {t("integration_sync")}
+            </Button>
+          ))}
+        {(!connection ||
+          presentation.requiresReconnect ||
+          syncState.requiresReconnect) && (
           <Button
             onClick={handleConnect}
             disabled={!presentation.canAuthenticate || isSubmitting}
@@ -296,8 +414,14 @@ export function SettingsEpic() {
       <SettingsIntegrationCard
         title={t("epic_games")}
         logo={<EpicLogo />}
-        status={t(presentation.statusKey)}
-        statusTone={presentation.statusTone}
+        status={t(
+          syncState.requiresReconnect
+            ? "epic_status_reconnect_required"
+            : presentation.statusKey
+        )}
+        statusTone={
+          syncState.requiresReconnect ? "warning" : presentation.statusTone
+        }
         actions={renderActions()}
         loading={isLoading}
       >
@@ -323,11 +447,48 @@ export function SettingsEpic() {
           </p>
         )}
 
-        {connection && presentation.requiresReconnect && (
-          <p className="settings-integration-card__message">
-            {t("epic_reconnect_description")}
-          </p>
+        {connection &&
+          typeof window.electron.getEpicSyncState === "function" && (
+            <p className="settings-integration-card__meta">
+              {connection.lastSyncedAt
+                ? t("epic_last_synced", {
+                    date: formatDateTime(connection.lastSyncedAt),
+                  })
+                : t("epic_never_synced")}
+            </p>
+          )}
+        {syncState.status !== "idle" && syncState.hydraUserId === userId && (
+          <div
+            className="settings-integration-card__progress"
+            role="status"
+            aria-live="polite"
+          >
+            <div className="settings-integration-card__progress-header">
+              <span>
+                {t(
+                  `epic_sync_${syncState.status === "cancelling" ? "cancelling" : (syncState.phase ?? "starting")}`
+                )}
+              </span>
+              {typeof syncState.total === "number" &&
+                syncState.total > 0 &&
+                (syncState.phase === "publishing" ||
+                  syncState.phase === "merging") && (
+                  <span>
+                    {syncState.processed ?? 0} / {syncState.total}
+                  </span>
+                )}
+            </div>
+            <div className="settings-integration-card__progress-track">
+              <div className="settings-integration-card__progress-fill settings-integration-card__progress-fill--indeterminate" />
+            </div>
+          </div>
         )}
+        {connection &&
+          (presentation.requiresReconnect || syncState.requiresReconnect) && (
+            <p className="settings-integration-card__message">
+              {t("epic_reconnect_description")}
+            </p>
+          )}
         {operation?.status === "awaiting-login" && (
           <p className="settings-integration-card__message">
             {t("epic_login_in_window")}
