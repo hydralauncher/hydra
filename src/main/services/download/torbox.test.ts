@@ -3,6 +3,7 @@ import fs from "node:fs";
 import { it } from "node:test";
 import { runInNewContext } from "node:vm";
 import ts from "typescript";
+import { setTimeout as sleep } from "node:timers/promises";
 import type { TorBoxClient as TorBoxClientType } from "./torbox.ts";
 import { buildTorBoxDownloadManifest } from "./torbox-files.ts";
 
@@ -13,7 +14,13 @@ function client({
   linkSuccess = true,
   timeoutReady = false,
 } = {}) {
-  const requests: { method: string; url: string; form?: FormData }[] = [];
+  const requests: {
+    method: string;
+    url: string;
+    form?: FormData;
+    signal?: AbortSignal;
+    at?: number;
+  }[] = [];
   const torrent = {
     id: 42,
     hash: "abc",
@@ -24,8 +31,13 @@ function client({
   };
   let config: { timeout: number } | undefined;
   const instance = {
-    get: async (url: string) => {
-      requests.push({ method: "GET", url });
+    get: async (url: string, options?: { signal?: AbortSignal }) => {
+      requests.push({
+        method: "GET",
+        url,
+        signal: options?.signal,
+        at: Date.now(),
+      });
       const query = new URL(url, "https://fixture.invalid").searchParams;
       if (url.startsWith("/torrents/requestdl"))
         return {
@@ -83,6 +95,7 @@ function client({
     exports,
     require: (id: string) => {
       const dependencies: Record<string, unknown> = {
+        "node:timers/promises": { setTimeout: sleep },
         axios: {
           create: (options: unknown) => {
             config = options as { timeout: number };
@@ -153,4 +166,28 @@ it("rejects missing download links and bounds API request time", async () => {
   const { TorBoxClient, getConfig } = client({ linkSuccess: false });
   await assert.rejects(() => TorBoxClient.requestLink(42, 7), /unavailable/);
   assert.equal(getConfig().timeout, 20000);
+});
+
+it("spaces concurrent TorBox link requests within the API budget", async () => {
+  const { TorBoxClient, requests } = client();
+  const controller = new AbortController();
+  await Promise.all(
+    [0, 1, 2].map((id) => TorBoxClient.requestLink(42, id, controller.signal))
+  );
+  assert.equal(requests.length, 3);
+  for (let index = 1; index < requests.length; index++)
+    assert.ok(requests[index].at! - requests[index - 1].at! >= 240);
+  assert.ok(requests.every((request) => request.signal === controller.signal));
+});
+it("aborted queued links never reach TorBox", async () => {
+  const { TorBoxClient, requests } = client();
+  await TorBoxClient.requestLink(42, 0);
+  const controller = new AbortController();
+  const queued = TorBoxClient.requestLink(42, 1, controller.signal);
+  controller.abort();
+  await assert.rejects(queued, { name: "AbortError" });
+  await assert.rejects(TorBoxClient.requestLink(42, 2, controller.signal), {
+    name: "AbortError",
+  });
+  assert.equal(requests.length, 1);
 });

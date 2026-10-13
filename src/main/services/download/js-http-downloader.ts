@@ -1,3 +1,4 @@
+import { DownloadThrottle } from "./download-throttle";
 import fs from "node:fs";
 import type { FileHandle } from "node:fs/promises";
 import path from "node:path";
@@ -77,6 +78,7 @@ export interface JsHttpDownloaderOptions {
   requireResourceIdentity?: boolean;
   expectedSize?: number;
   requireRangeResume?: boolean;
+  throttle?: DownloadThrottle;
 }
 
 const MAX_RETRY_ATTEMPTS = 10;
@@ -86,7 +88,6 @@ const INITIAL_RETRY_DELAY_MS = 1000;
 const MAX_RETRY_DELAY_MS = 15000;
 const STALL_TIMEOUT_MS = 30000;
 const STALL_CHECK_INTERVAL_MS = 2000;
-const THROTTLE_CHECK_INTERVAL_MS = 100;
 const RECONNECT_RETRY_DELAY_MS = 500;
 const RESUME_OVERLAP_BYTES = 64 * 1024;
 export const DEFAULT_DOWNLOAD_USER_AGENT =
@@ -135,9 +136,7 @@ export class JsHttpDownloader {
   private recoverBytesDone = 0;
   private recoverSpeedLastUpdate = Date.now();
   private recoverBytesAtLastUpdate = 0;
-  private maxDownloadSpeedBytesPerSecond: number | null = null;
-  private throttleWindowStart = Date.now();
-  private bytesTransferredInThrottleWindow = 0;
+  private readonly throttle = new DownloadThrottle();
   private parallelRangesDisabled = false;
   private parallelRangeFailures = 0;
   private resourceValidator: string | null = null;
@@ -149,13 +148,7 @@ export class JsHttpDownloader {
   private activeRun: Promise<void> | null = null;
 
   setMaxDownloadSpeedBytesPerSecond(limit: number | null): void {
-    if (typeof limit !== "number" || !Number.isFinite(limit) || limit <= 0) {
-      this.maxDownloadSpeedBytesPerSecond = null;
-    } else {
-      this.maxDownloadSpeedBytesPerSecond = Math.floor(limit);
-    }
-
-    this.resetThrottleWindow();
+    this.throttle.setLimit(limit);
   }
 
   async startDownload(options: JsHttpDownloaderOptions): Promise<void> {
@@ -501,38 +494,15 @@ export class JsHttpDownloader {
   }
 
   private resetThrottleWindow(): void {
-    this.throttleWindowStart = Date.now();
-    this.bytesTransferredInThrottleWindow = 0;
+    this.throttle.reset();
   }
 
   private async applyThrottle(chunkSize: number): Promise<void> {
-    await new Promise<void>((resolve) => {
-      const checkBudget = () => {
-        if (this.isPaused || this.abortController?.signal.aborted) {
-          resolve();
-          return;
-        }
-        const limit = this.maxDownloadSpeedBytesPerSecond;
-        if (!limit) {
-          resolve();
-          return;
-        }
-        const elapsed = Date.now() - this.throttleWindowStart;
-        const required =
-          ((this.bytesTransferredInThrottleWindow + chunkSize) * 1000) / limit;
-        if (elapsed >= required) {
-          this.bytesTransferredInThrottleWindow += chunkSize;
-          resolve();
-          return;
-        }
-        // Keep one timer per worker while sharing the transfer budget.
-        setTimeout(
-          checkBudget,
-          Math.min(THROTTLE_CHECK_INTERVAL_MS, Math.max(1, required - elapsed))
-        );
-      };
-      checkBudget();
-    });
+    if (this.isPaused) return;
+    await (this.currentOptions?.throttle ?? this.throttle).wait(
+      chunkSize,
+      this.abortController?.signal
+    );
   }
 
   private prepareDownloadPath(

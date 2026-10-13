@@ -6,8 +6,8 @@ import os from "node:os";
 import * as torboxFiles from "./torbox-files.ts";
 import * as rangeState from "./range-download-state.ts";
 import { after, it } from "node:test";
-import { runInNewContext } from "node:vm";
-import ts from "typescript";
+import { loadTestModule } from "../../../../scripts/load-test-module.mjs";
+import { DownloadThrottle } from "./download-throttle.ts";
 import * as shared from "../../../shared/constants.ts";
 import * as batchHelpers from "./js-http-downloader-helpers.ts";
 import * as debridFiles from "./debrid-files.ts";
@@ -34,28 +34,43 @@ function manager(
   >["entries"] = []
 ) {
   const starts: JsHttpDownloaderOptions[] = [];
-  const exports: Record<string, unknown> = {};
   let stored: Record<string, unknown> = { files: [] };
   let unlocks = 0;
   const unlockSizes: number[] = [];
-  const code = ts.transpileModule(
-    fs.readFileSync(new URL("./download-manager.ts", import.meta.url), "utf8"),
-    {
-      compilerOptions: {
-        module: ts.ModuleKind.CommonJS,
-        target: ts.ScriptTarget.ES2022,
-        esModuleInterop: true,
-      },
+  class StubDownloader {
+    private finish: () => void = () => undefined;
+    setMaxDownloadSpeedBytesPerSecond() {
+      return undefined;
     }
-  ).outputText;
-  runInNewContext(code, {
-    exports,
-    AbortSignal,
-    AbortController,
-    Date,
-    Map,
-    Set,
-    require: (id: string) => {
+    setReconnecting() {
+      return undefined;
+    }
+    pauseDownload() {
+      this.finish();
+    }
+    async startDownload(options: JsHttpDownloaderOptions) {
+      starts.push(options);
+      await new Promise<void>((resolve) => {
+        this.finish = resolve;
+      });
+    }
+    getDownloadStatus() {
+      return { status: "paused", resumeCapability: "unsupported" };
+    }
+  }
+  const { TorBoxBatchDownloader } = loadTestModule(
+    new URL("./torbox-batch-downloader.ts", import.meta.url),
+    (id: string) =>
+      ({
+        "./download-throttle": { DownloadThrottle },
+        "./js-http-downloader": { JsHttpDownloader: StubDownloader },
+        "./js-http-downloader-helpers": batchHelpers,
+        "./parallel-range-download": ranges,
+      })[id]
+  );
+  const exports = loadTestModule(
+    new URL("./download-manager.ts", import.meta.url),
+    (id: string) => {
       const deps: Record<string, unknown> = {
         "@shared": shared,
         "./download-activation": { withDownloadActivation },
@@ -93,19 +108,8 @@ function manager(
             requestLink: async () => "https://fixture.invalid/archive.zip",
           },
         },
-        "./js-http-downloader": {
-          JsHttpDownloader: class {
-            setMaxDownloadSpeedBytesPerSecond() {
-              return undefined;
-            }
-            async startDownload(options: JsHttpDownloaderOptions) {
-              starts.push(options);
-            }
-            getDownloadStatus() {
-              return { status: "paused", resumeCapability: "unsupported" };
-            }
-          },
-        },
+        "./js-http-downloader": { JsHttpDownloader: StubDownloader },
+        "./torbox-batch-downloader": { TorBoxBatchDownloader },
         "./parallel-range-download": ranges,
         "./js-http-downloader-helpers": batchHelpers,
         "./helpers": { calculateETA: () => 0 },
@@ -152,8 +156,8 @@ function manager(
         },
       };
       return deps[id] ?? {};
-    },
-  });
+    }
+  );
   const instance = exports.DownloadManager as {
     processNextQueuedDownload: () => Promise<void>;
     resumeDownload: (download: any) => Promise<void>;
@@ -389,6 +393,8 @@ it("preserves the generated ZIP flag from the TorBox manifest through HTTP optio
     await new Promise((resolve) => setImmediate(resolve));
     assert.equal(f.starts.length, 1);
     const options = f.starts[0];
+    assert.equal(options.filename, "archive.zip");
+    assert.equal(options.savePath, directory);
     assert.equal(options.allowParallelRanges, false);
     assert.equal(options.requireRangeResume, false);
     assert.equal(options.expectedSize, undefined);
@@ -635,9 +641,102 @@ it("TorBox validation and startup retain completed, sparse partial, and missing 
     await f.instance.startDownload(download);
     await new Promise<void>((resolve) => setImmediate(resolve));
     assert.deepEqual(progress(), expected);
-    assert.equal(f.starts.length, 1);
+    assert.equal(f.starts.length, 2);
     assert.equal(f.starts[0].filename, files[1].path);
     assert.equal(f.starts[0].expectedSize, 8);
+  } finally {
+    fs.rmSync(root, { recursive: true, force: true });
+  }
+});
+
+for (const provider of ["torBox", "realDebrid"] as const) {
+  for (const resume of [false, true]) {
+    it(`${provider} saves a lone ZIP without a new folder and preserves an existing partial (${resume})`, async () => {
+      const root = fs.mkdtempSync(path.join(os.tmpdir(), "hydra-single-zip-"));
+      const oldPath = "folder/archive.zip";
+      const manifest = {
+        torrentId: 1,
+        name: "folder",
+        totalSize: 8,
+        files: [{ id: 0, path: oldPath, size: 8 }],
+      };
+      const entries = [
+        {
+          index: 0,
+          path: oldPath,
+          sourcePath: "/folder/archive.zip",
+          size: 8,
+          url: "https://fixture.invalid/direct",
+          isLocked: false,
+        },
+      ];
+      const f = manager(manifest, async () => manifest, entries);
+      const download = {
+        shop: "steam",
+        objectId: "fixture",
+        uri: "magnet:fixture",
+        downloader:
+          provider === "torBox"
+            ? shared.Downloader.TorBox
+            : shared.Downloader.RealDebrid,
+        downloadPath: root,
+        files: [
+          {
+            index: 0,
+            path: oldPath,
+            size: 8,
+            bytesDownloaded: resume ? 2 : 0,
+            completed: false,
+          },
+        ],
+      };
+      try {
+        if (resume) {
+          fs.mkdirSync(path.join(root, "folder"));
+          fs.writeFileSync(path.join(root, oldPath), "ab");
+        }
+        f.setStored(download);
+        await f.instance.startDownload(download);
+        await new Promise((resolve) => setImmediate(resolve));
+        assert.equal(f.starts.length, 1);
+        assert.equal(f.starts[0].filename, resume ? oldPath : "archive.zip");
+        assert.equal(f.starts[0].savePath, root);
+        assert.equal(fs.existsSync(path.join(root, "folder")), resume);
+        if (resume)
+          assert.equal(fs.readFileSync(path.join(root, oldPath), "utf8"), "ab");
+      } finally {
+        fs.rmSync(root, { recursive: true, force: true });
+      }
+    });
+  }
+}
+it("multiple TorBox files keep their folder while a selected lone ZIP is flattened", async () => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), "hydra-zip-selection-"));
+  const manifest = {
+    torrentId: 1,
+    name: "folder",
+    totalSize: 10,
+    files: [
+      { id: 0, path: "folder/archive.zip", size: 8 },
+      { id: 1, path: "folder/data.bin", size: 2 },
+    ],
+  };
+  const f = manager(manifest);
+  try {
+    const download = { uri: "magnet:fixture", downloadPath: root };
+    assert.equal(
+      (await f.instance.getTorBoxDownloadOptions(download)).filename,
+      "folder/archive.zip"
+    );
+    assert.equal(
+      (
+        await f.instance.getTorBoxDownloadOptions({
+          ...download,
+          fileIndices: [0],
+        })
+      ).filename,
+      "archive.zip"
+    );
   } finally {
     fs.rmSync(root, { recursive: true, force: true });
   }

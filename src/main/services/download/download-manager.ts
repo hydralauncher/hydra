@@ -51,6 +51,7 @@ import os from "node:os";
 import { logger } from "../logger";
 import { db, downloadsSublevel, gamesSublevel, levelKeys } from "@main/level";
 import { TorBoxClient } from "./torbox";
+import { TorBoxBatchDownloader } from "./torbox-batch-downloader";
 import { selectTorBoxFiles } from "./torbox-files";
 import { GameFilesManager } from "../game-files-manager";
 import { PremiumizeClient } from "./premiumize";
@@ -163,7 +164,8 @@ function realDebridConnections(chunks: number | undefined): number {
 
 export class DownloadManager {
   private static downloadingGameId: string | null = null;
-  private static jsDownloader: JsHttpDownloader | null = null;
+  private static jsDownloader: JsHttpDownloader | TorBoxBatchDownloader | null =
+    null;
   private static usingJsDownloader = false;
   private static isPreparingDownload = false;
   private static jsBatch: JsBatchState | null = null;
@@ -544,7 +546,10 @@ export class DownloadManager {
 
       let { progress, bytesDownloaded, fileSize, folderName } = status;
       let downloadSpeed = status.downloadSpeed;
-      let files = download.files;
+      let files =
+        downloader instanceof TorBoxBatchDownloader
+          ? downloader.getFiles()
+          : download.files;
       let batchFilesTotal: number | undefined;
       let batchFilesDownloaded: number | undefined;
 
@@ -1808,6 +1813,7 @@ export class DownloadManager {
     while (this.jsBatch && this.jsDownloader) {
       const batch = this.jsBatch;
       const downloader = this.jsDownloader;
+      if (!(downloader instanceof JsHttpDownloader)) break;
       const entry = batch.entries[batch.currentIndex];
       if (!entry) break;
       if (!(await this.runJsBatchEntry(batch, downloader, entry))) break;
@@ -2077,9 +2083,38 @@ export class DownloadManager {
     });
   }
 
+  private static getDebridOutputPath(
+    download: Download,
+    file: { index: number; path: string },
+    fileCount: number
+  ): string {
+    if (fileCount !== 1 || !file.path.toLowerCase().endsWith(".zip"))
+      return file.path;
+    const filename = file.path.split(/[\\/]/).at(-1)!;
+    // Keep existing partials at their original path; new single ZIPs need no wrapper folder.
+    const previous = download.files?.find((item) => item.index === file.index);
+    const existingPath = previous?.path ?? file.path;
+    this.assertSafeBatchPath(download.downloadPath, existingPath);
+    if (
+      existingPath.split(/[\\/]/).at(-1) === filename &&
+      getRangeDownloadedBytes(path.join(download.downloadPath, existingPath)) >
+        0
+    )
+      return existingPath;
+    return filename;
+  }
+
   private static async prepareTorBoxFiles(download: Download) {
     const manifest = await TorBoxClient.getDownloadFiles(download.uri);
-    const selected = selectTorBoxFiles(manifest, download.fileIndices);
+    const selectedFiles = selectTorBoxFiles(manifest, download.fileIndices);
+    const selected = selectedFiles.map((file) => ({
+      ...file,
+      path: this.getDebridOutputPath(
+        download,
+        { index: file.id, path: file.path },
+        selectedFiles.length
+      ),
+    }));
     download.files = this.readLocalFileProgress(
       download.downloadPath,
       selected.map((file) => ({
@@ -2602,7 +2637,10 @@ export class DownloadManager {
         isZip: manifest.archiveOnly === true,
       })),
       torrentId: manifest.torrentId,
-      rootFolderName: manifest.name,
+      rootFolderName:
+        selected.length === 1 && !selected[0].path.includes("/")
+          ? undefined
+          : manifest.name,
       currentIndex: 0,
       activeIndex: -1,
       completedBytes: 0,
@@ -2612,7 +2650,7 @@ export class DownloadManager {
       batchSpeed: 0,
     };
 
-    this.skipCompletedTorBoxEntries(batchState);
+    if (manifest.archiveOnly) this.skipCompletedTorBoxEntries(batchState);
     return batchState;
   }
 
@@ -2693,7 +2731,9 @@ export class DownloadManager {
       savePath: download.downloadPath,
       entries: entries.map((entry) => ({
         url: entry.url,
-        filename: this.sanitizeRelativePath(entry.path),
+        filename: this.sanitizeRelativePath(
+          this.getDebridOutputPath(download, entry, entries.length)
+        ),
         size: entry.size,
         isZip: entry.isArchive === true,
         resourceId: entry.resourceId,
@@ -2782,6 +2822,13 @@ export class DownloadManager {
       });
       if (signal.aborted || this.startGeneration !== myGeneration) return;
     }
+    if (
+      batchState.provider === "torBox" &&
+      batchState.entries.every((entry) => !entry.isZip)
+    ) {
+      this.startTorBoxFiles(download, batchState, myGeneration);
+      return;
+    }
     batchState.generation = myGeneration;
     this.jsBatch = batchState;
     this.jsDownloader = new JsHttpDownloader();
@@ -2790,6 +2837,57 @@ export class DownloadManager {
     );
     this.isPreparingDownload = false;
     void this.runJsBatch();
+  }
+
+  private static startTorBoxFiles(
+    download: Download,
+    batch: JsBatchState,
+    generation: number
+  ): void {
+    const downloader = new TorBoxBatchDownloader(
+      download.files!,
+      batch.rootFolderName ?? batch.entries[0]?.filename ?? "",
+      (index, signal) =>
+        TorBoxClient.requestLink(
+          batch.torrentId!,
+          batch.entries[index].fileId!,
+          signal
+        ),
+      (index, url) => {
+        const entry = batch.entries[index];
+        this.assertSafeBatchPath(batch.savePath, entry.filename);
+        return this.getBatchDownloadOptions(batch, entry, url);
+      }
+    );
+    this.jsBatch = null;
+    this.jsDownloader = downloader;
+    downloader.setMaxDownloadSpeedBytesPerSecond(
+      this.maxDownloadSpeedBytesPerSecond
+    );
+    this.isPreparingDownload = false;
+    void downloader.startDownload().catch(async (error) => {
+      if (
+        this.startGeneration !== generation ||
+        this.jsDownloader !== downloader
+      )
+        return;
+      await this.persistPausedJsProgress(
+        batch.downloadId,
+        () =>
+          this.startGeneration === generation &&
+          this.jsDownloader === downloader
+      ).catch((persistError) =>
+        logger.error(
+          "[DownloadManager] Failed to save batch progress",
+          persistError
+        )
+      );
+      await this.reportRuntimeDownloadError(
+        batch.downloadId,
+        error,
+        generation
+      );
+    });
   }
 
   private static async startSingleJsDownload(

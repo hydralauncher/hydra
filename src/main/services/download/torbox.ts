@@ -1,3 +1,4 @@
+import { setTimeout as sleep } from "node:timers/promises";
 import axios, { AxiosInstance } from "axios";
 import parseTorrent from "parse-torrent";
 import type {
@@ -17,11 +18,14 @@ const READINESS_POLL_DELAY_MS = 1000;
 const REQUEST_TIMEOUT_MS = 20_000;
 const MY_LIST_PAGE_SIZE = 1000;
 const MY_LIST_MAX_PAGES = 10;
+const LINK_REQUEST_INTERVAL_MS = 250;
 
 export class TorBoxClient {
   private static instance: AxiosInstance;
   private static readonly baseURL = "https://api.torbox.app/v1/api";
   private static apiToken: string;
+  private static lastLinkRequestAt = 0;
+  private static linkRequestQueue: Promise<void> = Promise.resolve();
 
   static authorize(apiToken: string) {
     this.apiToken = apiToken;
@@ -88,7 +92,19 @@ export class TorBoxClient {
     return response.data.data;
   }
 
-  static async requestLink(id: number, fileId: number) {
+  static async requestLink(id: number, fileId: number, signal?: AbortSignal) {
+    const slot = this.linkRequestQueue.then(async () => {
+      signal?.throwIfAborted();
+      const delay = Math.max(
+        0,
+        this.lastLinkRequestAt + LINK_REQUEST_INTERVAL_MS - Date.now()
+      );
+      if (delay) await sleep(delay, undefined, { signal });
+      signal?.throwIfAborted();
+      this.lastLinkRequestAt = Date.now();
+    });
+    this.linkRequestQueue = slot.catch(() => undefined);
+    await slot;
     const searchParams = new URLSearchParams({
       token: this.apiToken,
       torrent_id: id.toString(),
@@ -97,7 +113,8 @@ export class TorBoxClient {
     searchParams.set("zip_link", "false");
 
     const response = await this.instance.get<TorBoxRequestLinkRequest>(
-      "/torrents/requestdl?" + searchParams.toString()
+      "/torrents/requestdl?" + searchParams.toString(),
+      { signal }
     );
 
     const { success, detail, data } = response.data;

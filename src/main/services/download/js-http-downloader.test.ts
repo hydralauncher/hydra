@@ -7,8 +7,8 @@ import { Readable } from "node:stream";
 import { pipeline } from "node:stream/promises";
 import { setTimeout as delay } from "node:timers/promises";
 import { after, it } from "node:test";
-import { runInNewContext } from "node:vm";
-import ts from "typescript";
+import { loadTestModule } from "../../../../scripts/load-test-module.mjs";
+import { DownloadThrottle } from "./download-throttle.ts";
 import * as helpers from "./js-http-downloader-helpers.ts";
 import * as parallel from "./parallel-range-download.ts";
 import * as rangeState from "./range-download-state.ts";
@@ -24,20 +24,9 @@ rangeState.configureRangeStateDirectory(metadataDirectory);
 after(() => fs.rmSync(metadataDirectory, { recursive: true, force: true }));
 
 // Load the real downloader without starting Electron's log transport.
-const code = ts.transpileModule(
-  fs.readFileSync(new URL("./js-http-downloader.ts", import.meta.url), "utf8"),
-  {
-    compilerOptions: {
-      module: ts.ModuleKind.CommonJS,
-      target: ts.ScriptTarget.ES2022,
-      esModuleInterop: true,
-    },
-  }
-).outputText;
-const exports: Record<string, unknown> = {};
-runInNewContext(code, {
-  exports,
-  require: (id: string) => {
+const exports = loadTestModule(
+  new URL("./js-http-downloader.ts", import.meta.url),
+  (id: string) => {
     const dependencies: Record<string, unknown> = {
       "node:fs": fs,
       "node:path": path,
@@ -59,22 +48,12 @@ runInNewContext(code, {
       "./js-http-downloader-helpers": helpers,
       "./parallel-range-download": parallel,
       "./range-download-state": rangeState,
+      "./download-throttle": { DownloadThrottle },
     };
     assert.ok(id in dependencies, `Unexpected downloader dependency: ${id}`);
     return dependencies[id];
-  },
-  Buffer,
-  URL,
-  AbortController,
-  Error,
-  TypeError,
-  DOMException,
-  fetch,
-  setTimeout,
-  clearTimeout,
-  setInterval,
-  clearInterval,
-});
+  }
+);
 const JsHttpDownloader = exports.JsHttpDownloader as typeof DownloaderType;
 
 interface FixtureOptions {
