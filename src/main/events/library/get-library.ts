@@ -57,7 +57,11 @@ const getLibrary = async (
             const artworkSelection =
               await gamesArtworkSelectionSublevel.get(key);
             const composedAssets = composeAssetsWithArtwork(
-              gameAssets ?? null,
+              game.shop === "epic" &&
+                gameAssets &&
+                !gameAssets.epicArtworkUpdatedAtByType?.icon
+                ? { ...gameAssets, iconUrl: null }
+                : (gameAssets ?? null),
               artworkSelection
             );
             const unlockedAchievementCount = resolveUnlockedAchievementCount(
@@ -120,6 +124,9 @@ const getLibrary = async (
               ),
               // Spread composed assets last to ensure all image URLs are properly set
               ...composedAssets,
+              ...(game.shop === "epic" && {
+                iconUrl: composedAssets?.iconUrl ?? null,
+              }),
               title: composedAssets?.title || game.title,
               platform: game.platform ?? null,
               // Preserve custom image URLs from game if they exist

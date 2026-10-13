@@ -7,6 +7,7 @@ import {
   levelKeys,
 } from "@main/level";
 import { composeAssetsWithArtwork } from "@shared";
+import { resolveEpicDefaultArtwork } from "@main/services/game-artwork";
 
 const LOCAL_CACHE_EXPIRATION = 1000 * 60 * 60 * 8; // 8 hours
 
@@ -38,7 +39,16 @@ export const getGameAssets = async (
     cachedAssets &&
     cachedAssets.updatedAt + LOCAL_CACHE_EXPIRATION > Date.now()
   ) {
-    return applyArtworkSelection(gameKey, cachedAssets);
+    if (shop !== "epic") return applyArtworkSelection(gameKey, cachedAssets);
+    const resolved = await resolveEpicDefaultArtwork(
+      cachedAssets,
+      cachedAssets
+    );
+    await gamesShopAssetsSublevel.put(gameKey, {
+      ...resolved,
+      updatedAt: cachedAssets.updatedAt,
+    });
+    return applyArtworkSelection(gameKey, resolved);
   }
 
   return HydraApi.get<ShopAssets | null>(
@@ -49,6 +59,11 @@ export const getGameAssets = async (
     }
   ).then(async (assets) => {
     if (!assets) return null;
+    if (shop === "epic")
+      assets = await resolveEpicDefaultArtwork(
+        assets,
+        options?.forceFresh ? null : cachedAssets
+      );
 
     const shouldPreserveTitle =
       !options?.forceFresh &&
