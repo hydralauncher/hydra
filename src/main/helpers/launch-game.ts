@@ -51,6 +51,7 @@ import {
   prepareManagedEpicLaunch,
   cancelManagedEpicLaunch,
   recordManagedEpicProcess,
+  launchPreparedEpicLinuxGame,
 } from "@main/services/epic/launch";
 import type { EpicLaunchParameters } from "@main/services/epic/launch-protocol";
 import { EpicSaveFailure } from "@main/services/epic/cloud-save-protocol";
@@ -787,17 +788,13 @@ const launchGameWithCloudSaveChecks = async (
           await markManagedEpicLaunched(prepared.session);
           getEpicCloudSaveService().assertSessionCurrent(prepared.session);
           if (prepared.linuxContext) {
-            const { launchEpicLinuxGame } = await import(
-              "@main/services/epic/linux-runtime"
-            );
-            const handle = await launchEpicLinuxGame(
+            const handle = await launchPreparedEpicLinuxGame(
+              prepared.session,
               prepared.parameters,
-              prepared.linuxContext,
               {
                 launchOptions,
                 useGamemode,
                 useMangohud,
-                lease: prepared.linuxLease,
                 onStatus: createUmuStatusReporter(gameKey),
               }
             );

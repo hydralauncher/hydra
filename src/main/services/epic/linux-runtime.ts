@@ -710,13 +710,28 @@ export async function ensureEpicLinuxPrerequisites(input: {
       resultFile = path.join(directory, "result.json");
     let preserveDirectory = false;
     try {
-      const [windowsExecutable, cwd, resultPath, requestPath] =
-        await Promise.all([
-          mapEpicLinuxPath(context, executable, input.signal),
-          mapEpicLinuxPath(context, path.dirname(executable), input.signal),
-          mapEpicLinuxPath(context, resultFile, input.signal),
-          mapEpicLinuxPath(context, requestFile, input.signal),
-        ]);
+      // Each UMU mapping touches the same prefix/runtime. Keep these operations
+      // ordered instead of launching four concurrent Wine/container sessions.
+      const windowsExecutable = await mapEpicLinuxPath(
+        context,
+        executable,
+        input.signal
+      );
+      const cwd = await mapEpicLinuxPath(
+        context,
+        path.dirname(executable),
+        input.signal
+      );
+      const resultPath = await mapEpicLinuxPath(
+        context,
+        resultFile,
+        input.signal
+      );
+      const requestPath = await mapEpicLinuxPath(
+        context,
+        requestFile,
+        input.signal
+      );
       const executeRequest = async (
         kind: "exe" | "msi" | "reboot",
         executable: string,
@@ -835,6 +850,9 @@ export async function launchEpicLinuxGame(
       )
     )
       throw new EpicManagedError("invalid-operation");
+    assertSignal(options.signal);
+    if (activePrefixes.get(context.winePrefixPath) !== lease.id)
+      throw new EpicManagedError("compatibility-prefix-busy");
     const handle = await Umu.launchSupervised({
       executable: resolved.command,
       args: resolved.args,

@@ -51,6 +51,8 @@ interface LaunchResources {
   lease: EpicLinuxPrefixLease;
   token?: EpicOwnershipToken;
   handle?: UmuProcessHandle;
+  controller: AbortController;
+  spawnPromise?: Promise<UmuProcessHandle>;
   releasePromise?: Promise<void>;
 }
 const preparedResources = new Map<EpicSaveSession, LaunchResources>();
@@ -60,6 +62,14 @@ async function releaseResources(session: EpicSaveSession, terminate = false) {
   if (!resources) return;
   if (resources.releasePromise) return resources.releasePromise;
   resources.releasePromise = (async () => {
+    if (terminate || !resources.handle) resources.controller.abort();
+    if (resources.spawnPromise) {
+      try {
+        resources.handle = await resources.spawnPromise;
+      } catch (error) {
+        if ((error as { code?: string }).code === "cleanup-failed") throw error;
+      }
+    }
     // A failed termination must retain the prefix lease and ownership token.
     if (terminate && resources.handle) await resources.handle.terminate();
     await resources.token?.dispose();
@@ -146,7 +156,7 @@ async function prepareLaunch(
           controller.signal
         );
       const lease = await runtime.acquireEpicLinuxPrefixSession(context);
-      resources = { linuxContext: context, lease };
+      resources = { linuxContext: context, lease, controller };
       // Prefix preparation can create or replace its profile; capture save paths again.
       session = await cloud.capture(
         game.objectId,
@@ -240,6 +250,44 @@ async function prepareLaunch(
     }
     throw error;
   }
+}
+
+/** Keep the spawn operation owned while signout/cancellation waits for cleanup. */
+export async function launchPreparedEpicLinuxGame(
+  session: EpicSaveSession,
+  parameters: EpicLaunchParameters,
+  options: {
+    launchOptions?: string | null;
+    useGamemode?: boolean;
+    useMangohud?: boolean;
+    onStatus?: UmuStatusListener;
+  } = {}
+): Promise<UmuProcessHandle> {
+  const resources = preparedResources.get(session);
+  if (!resources || resources.controller.signal.aborted)
+    throw new EpicSaveFailure("operation-cancelled");
+  const runtime = await import("./linux-runtime");
+  if (
+    preparedResources.get(session) !== resources ||
+    resources.controller.signal.aborted
+  )
+    throw new EpicSaveFailure("operation-cancelled");
+  resources.spawnPromise = runtime.launchEpicLinuxGame(
+    parameters,
+    resources.linuxContext,
+    {
+      ...options,
+      lease: resources.lease,
+      signal: resources.controller.signal,
+    }
+  );
+  const handle = await resources.spawnPromise;
+  resources.handle = handle;
+  if (resources.controller.signal.aborted) {
+    await handle.terminate();
+    throw new EpicSaveFailure("operation-cancelled");
+  }
+  return handle;
 }
 
 export async function markManagedEpicLaunched(session: EpicSaveSession) {
@@ -409,6 +457,9 @@ export async function cancelManagedEpicLaunch(session: EpicSaveSession) {
 }
 export async function clearManagedEpicSessions() {
   for (const controller of preparations.keys()) controller.abort();
+  for (const resources of preparedResources.values()) {
+    if (!resources.handle) resources.controller.abort();
+  }
   const preparationResults = await Promise.allSettled([
     ...preparations.values(),
   ]);

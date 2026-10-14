@@ -49,6 +49,9 @@ async function fixture(t: TestContext, options: { linux?: boolean } = {}) {
     uploadWait: Promise.resolve() as Promise<void>,
     terminateWait: Promise.resolve() as Promise<void>,
     prepareWait: null as ((signal: AbortSignal) => Promise<void>) | null,
+    launchWait: null as ((signal?: AbortSignal) => Promise<void>) | null,
+    launchCalls: 0,
+    launchSignals: [] as Array<AbortSignal | undefined>,
   };
   const session = {
     objectId: "Namespace:Item",
@@ -79,6 +82,9 @@ async function fixture(t: TestContext, options: { linux?: boolean } = {}) {
     },
     markSessionStarted: async () => {
       state.starts++;
+    },
+    assertSessionCurrent: () => {
+      if (!state.current) throw new EpicSaveFailure("operation-cancelled");
     },
     afterClose: async () => {
       state.closes++;
@@ -163,6 +169,21 @@ async function fixture(t: TestContext, options: { linux?: boolean } = {}) {
       mapEpicLinuxPath: async () => {
         state.order.push("token-map");
         return "Q:\\Private";
+      },
+      launchEpicLinuxGame: async (
+        _parameters: protocol.EpicLaunchParameters,
+        _context: unknown,
+        options: { signal?: AbortSignal }
+      ) => {
+        if (options.signal?.aborted)
+          throw new EpicSaveFailure("operation-cancelled");
+        state.launchCalls++;
+        state.launchSignals.push(options.signal);
+        state.order.push("spawn-start");
+        await state.launchWait?.(options.signal);
+        // Native spawn may already have crossed the cancellation boundary.
+        state.order.push("spawn-handle");
+        return handle;
       },
     },
   };
@@ -591,6 +612,129 @@ test("Linux signout releases resources prepared before spawn exactly once", asyn
   assert.equal(f.state.leaseReleases, 1);
   assert.equal(f.state.tokenDisposals, 1);
   assert.equal(f.exported.hasManagedEpicSession("epic:Namespace:Item"), false);
+});
+
+test("a prepared Linux launch cannot spawn after signout released its resources", async (t) => {
+  const f = await fixture(t, { linux: true });
+  const prepared = await f.exported.prepareManagedEpicLaunch(
+    f.game,
+    f.executable
+  );
+  await f.exported.markManagedEpicLaunched(prepared.session);
+  f.state.current = false;
+  await f.exported.clearManagedEpicSessions();
+  await assert.rejects(
+    f.exported.launchPreparedEpicLinuxGame(
+      prepared.session,
+      prepared.parameters,
+      {}
+    ),
+    /operation-cancelled/
+  );
+  assert.equal(f.state.launchCalls, 0);
+  assert.equal(f.state.terminations, 0);
+  assert.equal(f.state.tokenDisposals, 1);
+  assert.equal(f.state.leaseReleases, 1);
+});
+
+test("signout waits for a pending Linux spawn and confirmed termination before disposing its token or lease", async (t) => {
+  const f = await fixture(t, { linux: true });
+  const prepared = await f.exported.prepareManagedEpicLaunch(
+    f.game,
+    f.executable
+  );
+  await f.exported.markManagedEpicLaunched(prepared.session);
+  let entered!: () => void;
+  const spawning = new Promise<void>((done) => {
+    entered = done;
+  });
+  let finishSpawn!: () => void;
+  const spawned = new Promise<void>((done) => {
+    finishSpawn = done;
+  });
+  f.state.launchWait = async () => {
+    entered();
+    await spawned;
+  };
+  let finishTermination!: () => void;
+  f.state.terminateWait = new Promise<void>((done) => {
+    finishTermination = done;
+  });
+  const launch = f.exported.launchPreparedEpicLinuxGame(
+    prepared.session,
+    prepared.parameters,
+    {}
+  );
+  const rejectedLaunch = assert.rejects(launch, /operation-cancelled/);
+  await spawning;
+  f.state.current = false;
+  let cleared = false;
+  const clearing = f.exported.clearManagedEpicSessions().then(() => {
+    cleared = true;
+  });
+  try {
+    await new Promise<void>((done) => setImmediate(done));
+    assert.equal(f.state.launchSignals[0]?.aborted, true);
+    assert.equal(cleared, false);
+    assert.equal(f.state.tokenDisposals, 0);
+    assert.equal(f.state.leaseReleases, 0);
+    finishSpawn();
+    await new Promise<void>((done) => setImmediate(done));
+    assert.ok(f.state.terminations > 0);
+    assert.equal(cleared, false);
+    assert.equal(f.state.tokenDisposals, 0);
+    assert.equal(f.state.leaseReleases, 0);
+  } finally {
+    finishSpawn();
+    finishTermination();
+  }
+  await rejectedLaunch;
+  await clearing;
+  assert.equal(f.state.launchCalls, 1);
+  assert.equal(f.state.tokenDisposals, 1);
+  assert.equal(f.state.leaseReleases, 1);
+  assert.equal(f.exported.hasManagedEpicSession("epic:Namespace:Item"), false);
+  assert.equal(f.state.closes, 0);
+});
+
+test("a late Linux spawn with failed termination retains its ownership token and lease for retry", async (t) => {
+  const f = await fixture(t, { linux: true });
+  const prepared = await f.exported.prepareManagedEpicLaunch(
+    f.game,
+    f.executable
+  );
+  await f.exported.markManagedEpicLaunched(prepared.session);
+  let entered!: () => void;
+  const spawning = new Promise<void>((done) => {
+    entered = done;
+  });
+  let finishSpawn!: () => void;
+  const spawned = new Promise<void>((done) => {
+    finishSpawn = done;
+  });
+  f.state.launchWait = async () => {
+    entered();
+    await spawned;
+  };
+  const launch = f.exported.launchPreparedEpicLinuxGame(
+    prepared.session,
+    prepared.parameters,
+    {}
+  );
+  const rejectedLaunch = assert.rejects(launch, /cleanup-failed/);
+  await spawning;
+  f.state.cleanupFails = true;
+  f.state.current = false;
+  const clearing = f.exported.clearManagedEpicSessions();
+  const rejectedCleanup = assert.rejects(clearing, /cleanup-failed/);
+  finishSpawn();
+  await Promise.all([rejectedLaunch, rejectedCleanup]);
+  assert.equal(f.state.tokenDisposals, 0);
+  assert.equal(f.state.leaseReleases, 0);
+  f.state.cleanupFails = false;
+  await f.exported.cancelManagedEpicLaunch(prepared.session);
+  assert.equal(f.state.tokenDisposals, 1);
+  assert.equal(f.state.leaseReleases, 1);
 });
 
 test("Linux signout keeps the running game and token until proven exit, with no remote upload to the disconnected owner", async (t) => {

@@ -463,3 +463,47 @@ test("a failed launch never releases the caller's prefix lease before token clea
   });
   lease.release();
 });
+
+test("cancellation or lease replacement during fingerprint IO prevents spawning", async (t) => {
+  const f = await fixture(t);
+  const context = await f.api.prepareEpicLinuxRuntime(
+    f.game,
+    f.target,
+    f.options()
+  );
+  const parameters = {
+    executable: "Game.exe",
+    args: [],
+    workingDirectory: f.root,
+    environment: {},
+  };
+  const lease = (await f.api.acquireEpicLinuxPrefixSession(context)) as {
+    release(): void;
+  };
+  const controller = new AbortController();
+  const calls = f.state.calls.length;
+  const cancelled = f.api.launchEpicLinuxGame(parameters, context, {
+    lease,
+    signal: controller.signal,
+  });
+  controller.abort();
+  await assert.rejects(cancelled, { code: "operation-cancelled" });
+  assert.equal(f.state.calls.length, calls);
+  lease.release();
+  const oldLease = (await f.api.acquireEpicLinuxPrefixSession(context)) as {
+    release(): void;
+  };
+  const revoked = f.api.launchEpicLinuxGame(parameters, context, {
+    lease: oldLease,
+  });
+  oldLease.release();
+  const replacement = (await f.api.acquireEpicLinuxPrefixSession(context)) as {
+    release(): void;
+  };
+  await assert.rejects(revoked, { code: "compatibility-launch-failed" });
+  assert.equal(f.state.calls.length, calls);
+  await assert.rejects(f.api.acquireEpicLinuxPrefixSession(context), {
+    code: "compatibility-prefix-busy",
+  });
+  replacement.release();
+});
