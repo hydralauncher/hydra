@@ -1835,7 +1835,9 @@
     "epic_sync_rate_limit": "A Epic está limitando as consultas. Tente novamente mais tarde.",
     "epic_sync_merge_pending": "O servidor sincronizou sua biblioteca Epic. Tente sincronizar novamente para atualizar a biblioteca local.",
     "hide_library_epic_badges": "Ocultar badges de conexão da biblioteca Epic",
-    "epic_shutdown_failed": "Não foi possível encerrar a operação Epic. Tente fechar o Hydra novamente."
+    "epic_shutdown_failed": "Não foi possível encerrar a operação Epic. Tente fechar o Hydra novamente.",
+    "epic_sync_achievements": "Coletando conquistas da Epic…",
+    "epic_sync_partial": "Jogos e tempo sincronizados; conquistas de {{count}} jogos serão tentadas novamente."
   },
   "notifications": {
     "download_complete": "Download concluído",
@@ -2147,7 +2149,8 @@
     "available_points": "Pontos disponíveis:",
     "how_to_earn_achievements_points": "Como desbloquear pontos nas conquistas?",
     "view_souvenir": "Ver lembrança",
-    "souvenir_alt": "Captura feita ao desbloquear {{achievement}}"
+    "souvenir_alt": "Captura feita ao desbloquear {{achievement}}",
+    "achievement_store": "Loja das conquistas"
   },
   "hydra_cloud": {
     "subscription_tour_title": "Assinatura Hydra Cloud",

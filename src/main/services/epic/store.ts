@@ -90,6 +90,9 @@ const publicConnection = (
   epicAccountId: connection.epicAccountId,
   displayName: connection.displayName,
   connectedAt: connection.connectedAt,
+  ...(connection.capabilities?.achievementsSnapshotVersion === 1
+    ? { capabilities: { achievementsSnapshotVersion: 1 as const } }
+    : {}),
   lastSyncedAt: connection.lastSyncedAt ?? null,
   latestSyncRun: connection.latestSyncRun
     ? parseEpicSyncRun(connection.latestSyncRun)

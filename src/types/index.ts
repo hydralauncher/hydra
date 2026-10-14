@@ -710,6 +710,7 @@ export type LibraryGame = Game &
 export type LibraryGamePresentation = LibraryGame & {
   members: LibraryGame[];
   operationalGame: LibraryGame;
+  achievementGame?: LibraryGame;
   downloadGame: LibraryGame;
   catalogueGame: CatalogueGameIdentity;
   availableShops: GameShop[];

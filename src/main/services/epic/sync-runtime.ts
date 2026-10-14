@@ -25,6 +25,10 @@ import {
 } from "./sync-orchestrator";
 import { EpicSessionProvider } from "./session-provider";
 import { EpicPlaytimeSource } from "./playtime-source";
+import { EpicAchievementSource } from "./achievement-source";
+import { parseEpicAchievementTargets } from "./achievement-protocol";
+import { buildEpicSnapshotChunks } from "./sync-snapshot";
+import { AchievementMemoryStore } from "../achievements/achievement-memory-store";
 import { EpicConnectionStore } from "./store";
 import {
   EpicIntegrationError,
@@ -94,6 +98,7 @@ export class EpicSyncRuntime {
       (auth, connection) => this.current({ auth, connection })
     );
     this.source = new EpicPlaytimeSource(this.session);
+    const achievementSource = new EpicAchievementSource(this.session);
     const options = (context: EpicSyncContext, signal: AbortSignal) => ({
       authContext: context.auth,
       signal,
@@ -122,12 +127,72 @@ export class EpicSyncRuntime {
         ),
       playtime: (context, signal, fresh) =>
         this.source.get(context.auth, context.connection, signal, fresh),
+      achievements: async (context, games, signal, progress, budget) => {
+        const key = `${journalKey(context)}:achievementPending`;
+        const pending = await db
+          .get<string, string[]>(key, { valueEncoding: "json" })
+          .catch(() => []);
+        const result = await achievementSource.collect(
+          context,
+          games,
+          signal,
+          async (objectIds, sourceSignal) =>
+            parseEpicAchievementTargets(
+              await HydraApi.post(
+                `${EPIC_ENDPOINT}/achievement-targets`,
+                { connectionId: context.connection.connectionId, objectIds },
+                options(context, sourceSignal)
+              ),
+              objectIds
+            ),
+          Array.isArray(pending) ? pending : [],
+          progress,
+          budget
+        );
+        if (!this.current(context) || signal.aborted)
+          throw new EpicIntegrationError("operation-cancelled");
+        try {
+          buildEpicSnapshotChunks(
+            context.connection.connectionId,
+            result.games
+          );
+        } catch (error) {
+          if (
+            !(error instanceof EpicIntegrationError) ||
+            error.code !== "snapshot-too-large"
+          )
+            throw error;
+          result.games = result.games.map((game) => ({
+            ...game,
+            achievements: null,
+          }));
+          buildEpicSnapshotChunks(
+            context.connection.connectionId,
+            result.games
+          );
+          result.pendingObjectIds = result.games.map(
+            (game) => `${game.namespace}:${game.catalogItemId}`
+          );
+        }
+        await libraryWriteQueue.run(
+          () => db.put(key, result.pendingObjectIds, { valueEncoding: "json" }),
+          () => this.current(context)
+        );
+        return result;
+      },
       start: async (context, trigger, signal) => {
         let result: { syncRunId: string };
         try {
           result = await HydraApi.post<{ syncRunId: string }>(
             `${EPIC_ENDPOINT}/sync`,
-            { connectionId: context.connection.connectionId, trigger },
+            {
+              connectionId: context.connection.connectionId,
+              trigger,
+              ...(context.connection.capabilities
+                ?.achievementsSnapshotVersion === 1
+                ? { achievementSnapshotVersion: 1 }
+                : {}),
+            },
             options(context, signal)
           );
         } catch (error) {
@@ -206,6 +271,10 @@ export class EpicSyncRuntime {
           () => this.current(context)
         ),
       merge: async (context, progress, signal) => {
+        if (this.current(context))
+          for (const [key] of AchievementMemoryStore.all())
+            if (key.startsWith("epic:"))
+              AchievementMemoryStore.delete("epic", key.slice("epic:".length));
         const result = await mergeWithRemoteGames(
           progress,
           context.auth,
@@ -317,6 +386,9 @@ export class EpicSyncRuntime {
   }
   invalidate() {
     this.source.invalidate();
+    for (const [key] of AchievementMemoryStore.all())
+      if (key.startsWith("epic:"))
+        AchievementMemoryStore.delete("epic", key.slice("epic:".length));
     this.aliases.clear();
     for (const entry of this.individual.values()) entry.controller.abort();
     for (const id of this.exitTimers.keys()) this.cancelExit(id);

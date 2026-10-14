@@ -46,7 +46,11 @@ const buildFallbackShopDetails = (
   assets,
 });
 
-export function useGameDetails(objectId: string, shop: GameShop) {
+export function useGameDetails(
+  objectId: string,
+  shop: GameShop,
+  lockAchievementIdentity = false
+) {
   const { i18n } = useTranslation();
   const language = i18n.resolvedLanguage ?? i18n.language ?? "en";
   const { showSuccessToast, showErrorToast } = useBigPictureToast();
@@ -256,8 +260,12 @@ export function useGameDetails(objectId: string, shop: GameShop) {
   }, [catalogueObjectId, catalogueShop, refreshGameDetails]);
 
   useEffect(() => {
-    const achievementShop = game?.shop ?? shop;
-    const achievementObjectId = game?.objectId ?? objectId;
+    const achievementShop = lockAchievementIdentity
+      ? shop
+      : (game?.shop ?? shop);
+    const achievementObjectId = lockAchievementIdentity
+      ? objectId
+      : (game?.objectId ?? objectId);
     if (!IS_DESKTOP || achievementShop === "custom") {
       setAchievements([]);
       return;
@@ -288,7 +296,14 @@ export function useGameDetails(objectId: string, shop: GameShop) {
     return () => {
       isCurrentRequest = false;
     };
-  }, [game?.objectId, game?.shop, objectId, shop, shouldUseRetroAchievements]);
+  }, [
+    game?.objectId,
+    game?.shop,
+    objectId,
+    shop,
+    shouldUseRetroAchievements,
+    lockAchievementIdentity,
+  ]);
 
   useEffect(() => {
     if (!IS_DESKTOP) return;

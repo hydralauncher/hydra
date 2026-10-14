@@ -11,6 +11,10 @@ import * as policy from "./playtime-policy.js";
 import * as queue from "../library-sync/library-write-queue.js";
 import { mergeImportedProfileGame } from "../library-sync/merge-imported-profile-game.js";
 import { EpicSyncOrchestrator } from "./sync-orchestrator.js";
+import { EpicAchievementSource } from "./achievement-source.js";
+import * as achievementProtocol from "./achievement-protocol.js";
+import * as snapshot from "./sync-snapshot.js";
+import { AchievementMemoryStore } from "../achievements/achievement-memory-store.js";
 import type { EpicConnectionState } from "../../../types/epic-integration.types";
 import type { Game } from "@types";
 import {
@@ -93,6 +97,10 @@ function fixture() {
   const timers = new Map<object, { callback: () => void; delay: number }>();
   const events: string[] = [];
   const modules: Record<string, unknown> = {
+    "./achievement-source": { EpicAchievementSource },
+    "./achievement-protocol": achievementProtocol,
+    "./sync-snapshot": snapshot,
+    "../achievements/achievement-memory-store": { AchievementMemoryStore },
     "node:crypto": {
       createHash: () => ({ update: () => ({ digest: () => "scope-key" }) }),
     },

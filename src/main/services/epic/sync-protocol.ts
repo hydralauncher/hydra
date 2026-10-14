@@ -1,4 +1,5 @@
 import type { EpicSyncRun } from "../../../types/epic-integration.types";
+import type { EpicAchievementSummary } from "../../../types/epic-integration.types";
 import { EpicIntegrationError, isRecord } from "./auth-protocol.js";
 import {
   EPIC_SYNC_RUN_ID_MIN_LENGTH,
@@ -41,7 +42,32 @@ export function parseEpicSyncRun(value: unknown): EpicSyncRun {
     startedAt: value.startedAt as string | null,
     completedAt: value.completedAt as string | null,
     createdAt: value.createdAt,
+    ...(value.achievementSnapshotVersion === 1
+      ? { achievementSnapshotVersion: 1 as const }
+      : {}),
+    ...(value.achievementSummary != null
+      ? {
+          achievementSummary: parseEpicAchievementSummary(
+            value.achievementSummary
+          ),
+        }
+      : {}),
   };
+}
+export function parseEpicAchievementSummary(
+  value: unknown
+): EpicAchievementSummary {
+  if (
+    !isRecord(value) ||
+    !["not-requested", "complete", "partial"].includes(
+      value.status as string
+    ) ||
+    ["gamesApplied", "gamesPending", "gamesUnsupported", "unlocksApplied"].some(
+      (key) => !Number.isInteger(value[key]) || (value[key] as number) < 0
+    )
+  )
+    throw new EpicIntegrationError("invalid-response");
+  return value as unknown as EpicAchievementSummary;
 }
 export function epicSyncHttpError(error: unknown) {
   if (error instanceof EpicIntegrationError) return error.code;
