@@ -8,6 +8,7 @@ import {
   normalizeEpicPlaytime,
   applyEpicPlaytime,
   getEpicGamePlaytime,
+  type EpicLibraryDiagnostic,
 } from "./library-normalizer.js";
 import { buildEpicSnapshotChunks } from "./sync-snapshot.js";
 import { epicRetryAfter, fetchEpicWithRetry } from "./source-retry.js";
@@ -141,58 +142,117 @@ describe("Epic library normalization", () => {
     assert.deepEqual(library[0].artifactIds, [decomposed, composed]);
     assert.equal(library[0].name, decomposed);
   });
-  it("rejects conflicting artifacts, asset identities and unknown product kinds", () => {
+  it("rejects conflicting artifacts and asset identities", () => {
     assert.throws(() =>
       normalizeEpicLibrary([[item("A", "A"), item("A", "B")]])
     );
     const invalid = item();
     invalid.asset_infos.Windows.catalog_item_id = "Wrong";
     assert.throws(() => normalizeEpicLibrary([[invalid]]));
-    assert.throws(() =>
-      normalizeEpicLibrary([
-        [
-          {
-            ...item(),
-            metadata: {
-              namespace: "N",
-              id: "I",
-              categories: [{ path: "applications" }],
-            },
-          },
-        ],
-      ])
-    );
   });
-  for (const category of ["addons", "addons/launchable"]) {
+  for (const category of ["addons", "addons/launchable", "mods", "software"]) {
     it(`excludes verified non-game category ${category}`, () =>
       assert.equal(
         classifyEpicItem({ categories: [{ path: category }] }),
         "exclude"
       ));
   }
-  it("blocks conflicting and unproven classification instead of inventing tool or demo categories", () => {
-    for (const category of ["software", "mods", "games/demo", "games/test"]) {
+  it("accepts additional store labels on explicitly classified games", () => {
+    for (const category of [
+      "hidden",
+      "games/demo",
+      "games/test",
+      "future-label",
+    ]) {
       assert.equal(
         classifyEpicItem({ categories: [{ path: category }] }),
-        "unknown"
+        "exclude"
       );
       assert.equal(
         classifyEpicItem({
           categories: [{ path: "games" }, { path: category }],
         }),
-        "unknown"
+        "include"
       );
     }
     assert.equal(
       classifyEpicItem({
         categories: [{ path: "games" }, { path: "addons/launchable" }],
       }),
-      "unknown"
+      "exclude"
     );
+  });
+  it("does not abort games when a complete reply also contains non-game applications or add-ons", () => {
+    const classified = (artifact: string, categories: string[]) => ({
+      ...item(artifact, artifact),
+      metadata: {
+        ...item(artifact, artifact).metadata,
+        categories: categories.map((path) => ({ path })),
+      },
+    });
+    const game = classified("Game", ["games", "applications", "hidden"]);
+    const apps = [
+      classified("App", ["applications", "public"]),
+      classified("Tool", ["software", "applications"]),
+      classified("Mod", ["mods"]),
+      classified("Addon", ["games", "addons/launchable"]),
+    ];
+    assert.deepEqual(
+      normalizeEpicLibrary([
+        [game, ...apps],
+        [game, ...apps],
+      ]),
+      normalizeEpicLibrary([[game]])
+    );
+    assert.deepEqual(normalizeEpicLibrary([apps, apps]), []);
+  });
+  it("still rejects missing, empty or malformed categories instead of publishing a partial library", () => {
+    for (const categories of [undefined, [], [{ path: "games" }, {}]]) {
+      const entry = { ...item(), metadata: { ...item().metadata, categories } };
+      assert.equal(classifyEpicItem(entry.metadata), "unknown");
+      assert.throws(() => normalizeEpicLibrary([[item(), entry], []]));
+    }
     assert.equal(
       classifyEpicItem({ categories: [{ path: "games" }, {}] }),
       "unknown"
     );
+  });
+  it("reports the failing item and rule without copying session data or arbitrary metadata", () => {
+    const diagnostics: EpicLibraryDiagnostic[] = [];
+    const invalid = {
+      ...item(),
+      app_title: "Game\nInjected line",
+      access_token: "private-access-token",
+      metadata: {
+        ...item().metadata,
+        categories: [],
+        refresh_token: "private-refresh-token",
+      },
+    };
+    assert.throws(() =>
+      normalizeEpicLibrary([[invalid]], (diagnostic) =>
+        diagnostics.push(diagnostic)
+      )
+    );
+    assert.equal(diagnostics.length, 1);
+    assert.deepEqual(diagnostics.at(0), {
+      reason: "classification-incomplete",
+      platformIndex: 0,
+      entryIndex: 0,
+      artifactId: "Artifact",
+      name: "GameInjected line",
+      namespace: "Namespace",
+      catalogItemId: "Item",
+    });
+    assert.ok(!JSON.stringify(diagnostics).includes("private-"));
+    const mismatch = item();
+    mismatch.asset_infos.Windows.catalog_item_id = "Wrong";
+    assert.throws(() =>
+      normalizeEpicLibrary([[mismatch]], (diagnostic) =>
+        diagnostics.push(diagnostic)
+      )
+    );
+    assert.equal(diagnostics.at(-1)?.reason, "asset-identity-mismatch");
   });
   it("excludes DLC relationship and Unreal namespace", () => {
     assert.equal(
@@ -512,6 +572,43 @@ function syncFixture() {
   return { state, deps, sync: new EpicSyncOrchestrator(deps) };
 }
 describe("Epic publication reconciliation", () => {
+  it("publishes games and playtime when Legendary also lists applications and additional game labels", async () => {
+    const f = syncFixture();
+    const game = {
+      ...item(),
+      metadata: {
+        ...item().metadata,
+        categories: [{ path: "games" }, { path: "hidden" }],
+      },
+    };
+    const application = {
+      ...item("Application", "ApplicationItem"),
+      metadata: {
+        ...item("Application", "ApplicationItem").metadata,
+        categories: [{ path: "applications" }],
+      },
+    };
+    f.deps.library = async () =>
+      normalizeEpicLibrary([[game, application], []]);
+    const uploaded: unknown[] = [];
+    f.deps.upload = async (_context, _id, _index, chunk) => {
+      uploaded.push(...chunk.games);
+    };
+    await f.sync.start(connection.connectionId);
+    await f.sync.wait();
+    assert.deepEqual(uploaded, [
+      {
+        namespace: "Namespace",
+        catalogItemId: "Item",
+        artifactIds: ["Artifact"],
+        name: "Game",
+        playTimeInSeconds: 100,
+      },
+    ]);
+    assert.equal(f.state.commits, 1);
+    assert.equal(f.state.merges, 1);
+    assert.equal(f.state.result?.ok, true);
+  });
   it("serializes simultaneous preparation and publishes only one sync", async () => {
     const f = syncFixture();
     let releaseCapture!: () => void;

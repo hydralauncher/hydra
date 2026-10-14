@@ -97,6 +97,7 @@ function fixture() {
   const timers = new Map<object, { callback: () => void; delay: number }>();
   const events: string[] = [];
   const modules: Record<string, unknown> = {
+    "../logger": { logger: { error: () => {} } },
     "./achievement-source": { EpicAchievementSource },
     "./achievement-protocol": achievementProtocol,
     "./sync-snapshot": snapshot,

@@ -9,6 +9,7 @@ import type {
 import { db, gamesSublevel, levelKeys } from "@main/level";
 import { HydraApi } from "../hydra-api";
 import { WindowManager } from "../window-manager";
+import { logger } from "../logger";
 import { mergeWithRemoteGames } from "../library-sync/merge-with-remote-games";
 import {
   mergeImportedProfileGame,
@@ -123,7 +124,10 @@ export class EpicSyncRuntime {
           context.auth,
           context.connection,
           signal,
-          async (runner) => normalizeEpicLibrary(await runner.library())
+          async (runner) =>
+            normalizeEpicLibrary(await runner.library(), (diagnostic) =>
+              logger.error("Epic library validation failed", diagnostic)
+            )
         ),
       playtime: (context, signal, fresh) =>
         this.source.get(context.auth, context.connection, signal, fresh),
