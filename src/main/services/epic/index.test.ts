@@ -29,7 +29,10 @@ function fixture(t: TestContext, options: { linux?: boolean } = {}) {
   };
   const localSaveSession = {
     objectId: "Namespace:Item",
-    installed: { version: "build-1" },
+    installed: {
+      version: "build-1",
+      installPath: path.join(root, "installed"),
+    },
     target: {
       owner: localOwner,
       artifactId: "Artifact",
@@ -66,6 +69,7 @@ function fixture(t: TestContext, options: { linux?: boolean } = {}) {
       target: EpicSaveSession["target"];
       offline?: boolean;
       buildVersion?: string;
+      installPath?: string;
     }>,
     toolContext,
     toolTreeExit: Promise.resolve(),
@@ -262,7 +266,11 @@ function fixture(t: TestContext, options: { linux?: boolean } = {}) {
       prepareEpicLinuxRuntime: async (
         game: Game,
         target: EpicSaveSession["target"],
-        options: { offline?: boolean; buildVersion?: string }
+        options: {
+          offline?: boolean;
+          buildVersion?: string;
+          installPath?: string;
+        }
       ) => {
         state.managedEvents.push("tool-context-prepared");
         state.runtimePreparations.push({
@@ -270,6 +278,7 @@ function fixture(t: TestContext, options: { linux?: boolean } = {}) {
           target,
           offline: options.offline,
           buildVersion: options.buildVersion,
+          installPath: options.installPath,
         });
         return state.toolContext;
       },
@@ -464,6 +473,10 @@ test("managed Winetricks verifies the captured local owner before selecting its 
   );
   assert.equal(f.state.runtimePreparations[0].offline, true);
   assert.equal(f.state.runtimePreparations[0].buildVersion, "build-1");
+  assert.equal(
+    f.state.runtimePreparations[0].installPath,
+    f.state.localSaveSession.installed.installPath
+  );
   assert.deepEqual(f.state.managedEvents, [
     "local-save-captured",
     "tool-context-prepared",

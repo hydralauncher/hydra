@@ -588,6 +588,7 @@ export const openManagedEpicWinetricks = async (
     signal: new AbortController().signal,
     offline: true,
     buildVersion: session.installed.version,
+    installPath: session.installed.installPath,
   });
   const lease = await runtime.acquireEpicLinuxPrefixSession(context);
   try {

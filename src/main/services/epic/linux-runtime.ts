@@ -50,6 +50,7 @@ export interface PreparedEpicLinuxContext {
   umuBinaryPath: string;
   umuVersion: string;
   umuFingerprint: string;
+  installPath: string;
   protonPath: string;
   protonFingerprint: string;
   winePrefixPath: string;
@@ -62,6 +63,7 @@ interface PreparationOptions {
   signal: AbortSignal;
   offline?: boolean;
   buildVersion?: string;
+  installPath?: string;
   onStatus?: UmuStatusListener;
 }
 interface LinuxReceipt {
@@ -71,6 +73,7 @@ interface LinuxReceipt {
   artifactId: string;
   platform: "Windows";
   buildVersion: string | null;
+  installPath: string;
   winePrefixPath: string;
   prefixGeneration: string;
   protonPath: string;
@@ -193,6 +196,8 @@ async function loadReceipt(
       typeof value.protonFingerprint === "string" &&
       typeof value.umuVersion === "string" &&
       typeof value.umuFingerprint === "string" &&
+      typeof value.installPath === "string" &&
+      path.isAbsolute(value.installPath) &&
       value.artifactId === target.artifactId &&
       value.platform === target.platform &&
       (value.buildVersion === null || typeof value.buildVersion === "string")
@@ -390,7 +395,7 @@ export async function withEpicLinuxPrefixMutation<T>(
 function runtimeEnvironment(
   context: Pick<
     PreparedEpicLinuxContext,
-    "winePrefixPath" | "protonPath" | "gameId" | "offline"
+    "winePrefixPath" | "protonPath" | "gameId" | "offline" | "installPath"
   >
 ) {
   return {
@@ -398,6 +403,7 @@ function runtimeEnvironment(
     PROTONPATH: context.protonPath,
     STORE: "egs",
     GAMEID: context.gameId,
+    STEAM_COMPAT_INSTALL_PATH: context.installPath,
     PROTON_VERB: "waitforexitandrun",
     PROTON_LOG: "0",
     PROTON_DUMP_DEBUG_COMMANDS: "0",
@@ -459,7 +465,7 @@ async function runTool(
 export async function prepareEpicLinuxRuntime(
   game: Game,
   target: EpicManagedTarget,
-  options: PreparationOptions
+  options: PreparationOptions & { installPath: string }
 ): Promise<PreparedEpicLinuxContext> {
   if (
     process.platform !== "linux" ||
@@ -485,6 +491,16 @@ async function prepareUnlocked(
   buildVersion: string | null = null
 ): Promise<PreparedEpicLinuxContext> {
   assertSignal(options.signal);
+  if (
+    typeof options.installPath !== "string" ||
+    !path.isAbsolute(options.installPath)
+  )
+    throw new EpicManagedError("invalid-path");
+  const installPath = await fs.realpath(options.installPath).catch(() => {
+    throw new EpicManagedError("invalid-path");
+  });
+  if (!(await fs.stat(installPath)).isDirectory())
+    throw new EpicManagedError("invalid-path");
   if (activePrefixes.has(prefix) || (await hasLinuxPrefixProcesses(prefix)))
     throw new EpicManagedError("compatibility-prefix-busy");
   const pythonRunnerPath = await getLegendaryLinuxPythonRunnerPath().catch(
@@ -519,6 +535,7 @@ async function prepareUnlocked(
     umuBinaryPath,
     umuVersion: selectedUmu.version,
     umuFingerprint: selectedUmu.sha256,
+    installPath,
     protonPath: selected.path,
     protonFingerprint: "",
     winePrefixPath: prefix,
@@ -534,6 +551,7 @@ async function prepareUnlocked(
       receipt.buildVersion !== buildVersion ||
       receipt.umuVersion !== context.umuVersion ||
       receipt.umuFingerprint !== context.umuFingerprint ||
+      receipt.installPath !== context.installPath ||
       receipt.winePrefixPath !== prefix ||
       !hadPrefix ||
       !path.isAbsolute(receipt.protonPath) ||
@@ -586,6 +604,7 @@ async function prepareUnlocked(
     artifactId: target.artifactId,
     platform: target.platform,
     buildVersion,
+    installPath: context.installPath,
     winePrefixPath: prefix,
     prefixGeneration: context.prefixGeneration,
     protonPath: context.protonPath,
@@ -594,7 +613,8 @@ async function prepareUnlocked(
     receipt.protonFingerprint === context.protonFingerprint &&
     receipt.umuVersion === context.umuVersion &&
     receipt.umuFingerprint === context.umuFingerprint &&
-    receipt.buildVersion === buildVersion
+    receipt.buildVersion === buildVersion &&
+    receipt.installPath === context.installPath
       ? { prerequisite: receipt.prerequisite }
       : {}),
   });
@@ -676,7 +696,7 @@ export async function ensureEpicLinuxPrerequisites(input: {
       input.game,
       input.target,
       prefix,
-      input,
+      { ...input, installPath: input.installed.installPath },
       input.installed.version
     );
     const info = input.installed.prereq_info;
@@ -790,6 +810,7 @@ export async function ensureEpicLinuxPrerequisites(input: {
         artifactId: input.target.artifactId,
         platform: input.target.platform,
         buildVersion: input.installed.version,
+        installPath: context.installPath,
         winePrefixPath: prefix,
         prefixGeneration: context.prefixGeneration,
         protonPath: context.protonPath,

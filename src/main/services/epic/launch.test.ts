@@ -154,7 +154,10 @@ async function fixture(t: TestContext, options: { linux?: boolean } = {}) {
       ensureEpicLinuxPrerequisites: async (input: { signal: AbortSignal }) => {
         state.order.push("prepare");
         await state.prepareWait?.(input.signal);
-        return { winePrefixPath: path.join(root, "prepared-prefix") };
+        return {
+          winePrefixPath: path.join(root, "prepared-prefix"),
+          installPath: path.dirname(executable),
+        };
       },
       acquireEpicLinuxPrefixSession: async () => {
         state.order.push("lease");

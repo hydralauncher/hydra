@@ -119,12 +119,16 @@ async function fixture(t: TestContext) {
           )
             stdout = command;
           else if (command === helper) {
+            const nativePath = (value: string) =>
+              process.platform === "win32"
+                ? value
+                : value.replace(/\\/g, path.sep);
             const request = JSON.parse(
-              await fsp.readFile(options.args[2], "utf8")
+              await fsp.readFile(nativePath(options.args[2]), "utf8")
             );
             state.requests.push(request);
             await fsp.writeFile(
-              request.resultPath,
+              nativePath(request.resultPath),
               JSON.stringify({
                 schemaVersion: 1,
                 nonce: state.nonceWrong ? "wrong" : request.nonce,
@@ -224,7 +228,10 @@ async function fixture(t: TestContext) {
     version: "build",
     prereq_info: { path: "Redist.exe", args: "/quiet" },
   };
-  const options = () => ({ signal: new AbortController().signal });
+  const options = () => ({
+    signal: new AbortController().signal,
+    installPath: install,
+  });
   return {
     root,
     state,
@@ -328,6 +335,47 @@ test("cached preparation for tools validates the explicit build without bootstra
     buildVersion: f.installed.version,
   });
   assert.equal(f.state.calls.length, calls);
+});
+
+test("every path mapping verb keeps the canonical installation context and offline rejects a moved installation", async (t) => {
+  const f = await fixture(t);
+  const input = {
+    game: f.game,
+    target: f.target,
+    installed: { ...f.installed, prereq_info: undefined },
+    ...f.options(),
+  };
+  const context = await f.api.ensureEpicLinuxPrerequisites(input);
+  const before = f.state.calls.length;
+  await f.api.mapEpicLinuxPath(
+    context,
+    path.join(f.installed.installPath, "Redist.exe")
+  );
+  const calls = f.state.calls.slice(before);
+  assert.equal(calls.length, 2);
+  assert.equal(calls[0].environment.PROTON_VERB, "getcompatpath");
+  assert.equal(calls[1].environment.PROTON_VERB, "getnativepath");
+  for (const call of calls)
+    assert.equal(
+      call.environment.STEAM_COMPAT_INSTALL_PATH,
+      f.installed.installPath
+    );
+  const moved = path.join(f.root, "moved install");
+  await fsp.mkdir(moved);
+  await assert.rejects(
+    f.api.ensureEpicLinuxPrerequisites({
+      ...input,
+      installed: { ...input.installed, installPath: moved },
+      offline: true,
+    }),
+    { code: "compatibility-runtime-unavailable" }
+  );
+  await assert.rejects(
+    f.api.prepareEpicLinuxRuntime(f.game, f.target, {
+      signal: new AbortController().signal,
+    }),
+    { code: "invalid-path" }
+  );
 });
 
 test("installer receipt accepts full Windows reboot codes and avoids repeating a completed prerequisite", async (t) => {
