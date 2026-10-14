@@ -51,6 +51,16 @@ child after wrapper exit, natural tree completion, deadline cleanup after wrappe
 success, incomplete process inspection, and spoof rejection for protected
 systemd user infrastructure. These tests run in the normal user session.
 
+A separate isolated run on rebased commit
+`5a3734cfeaa24f5924e7cc1995787649596e4d83` used the real Linux native addon and
+the production Epic tracker while a benign PE waited for ten seconds under UMU.
+The native projection proved the invocation marker, canonical prefix, kernel
+start ticks and canonical PE path; the tracker included that running fixture.
+After natural PE and full process-tree exit, the tracker returned
+`{ complete: true, paths: [] }`. The run exited zero. Its local evidence is
+retained in `.cache/tracker-smoke-final.log`; only the explicit process identity
+and path projection was logged, without raw argv or environment dumps.
+
 Two upstream behaviors discovered by the real smoke are explicit implementation
 decisions: UMU 1.4.4 treats `UMU_ZENITY=0` as truthy and skips the Python Proton
 download, so the managed runtime clears that variable. Its `createprefix` command
@@ -69,7 +79,10 @@ The feature starts at the published #2906 head
 `a4dfafb6621fc4e274158db59604dcdccc41a244` on
 `codex/epic-linux-download-launch`. Its PR initially targets
 `codex/epic-achievements-sync`; the original checkout's uncommitted changes were
-not copied. The Linux validation copy uses an independent ext4 checkout of the
+not copied. Before publication, the feature was rebased onto the dependency's
+updated published head `6d3a53f0a424dd01f27717b92f14ed836a7954d2`, preserving its
+preview cancellation, shared caches and external-launcher checks. The Linux
+validation copy uses an independent ext4 checkout of the
 same feature commit and its own dependencies and Rust targets.
 
 The validation environment is Ubuntu WSL2 x86_64 with Node 22.21.0, Yarn 1.22.22,
@@ -102,7 +115,7 @@ the dependency was squash merged:
 
 ```sh
 git fetch origin main
-git rebase --onto origin/main a4dfafb6621fc4e274158db59604dcdccc41a244 codex/epic-linux-download-launch
+git rebase --onto origin/main 6d3a53f0a424dd01f27717b92f14ed836a7954d2 codex/epic-linux-download-launch
 git push --force-with-lease origin codex/epic-linux-download-launch
 gh pr edit <linux-pr-number> --base main
 ```
