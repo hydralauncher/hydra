@@ -74,4 +74,42 @@ describe("Epic IPC sender", () => {
     );
     assert.equal(isTrustedEpicSender(sender, null, sources), false);
   });
+
+  it("accepts the same portable renderer file when Node and Chromium encode '~' differently", () => {
+    const encoded =
+      "file:///C:/Users/PLAYER%7E1/AppData/Local/Temp/Hydra/resources/app.asar/out/renderer/index.html";
+    const literal = encoded.replace("%7E", "~");
+    assert.equal(
+      isTrustedEpicSender({ ...sender, url: `${literal}#/settings` }, 1, [
+        encoded,
+      ]),
+      true
+    );
+    assert.equal(
+      isTrustedEpicSender({ ...sender, url: `${encoded}#/settings` }, 1, [
+        literal,
+      ]),
+      true
+    );
+    for (const url of [
+      literal.replace("index.html", "other.html"),
+      `${literal}?remote=1`,
+      literal.replace("file:///", "file://attacker.test/"),
+      literal.replace("renderer/index.html", "renderer%2Findex.html"),
+    ])
+      assert.equal(
+        isTrustedEpicSender({ ...sender, url }, 1, [encoded]),
+        false
+      );
+    assert.equal(
+      isTrustedEpicSender({ ...sender, url: literal, isMainFrame: false }, 1, [
+        encoded,
+      ]),
+      false
+    );
+    assert.equal(
+      isTrustedEpicSender({ ...sender, url: literal, id: 2 }, 1, [encoded]),
+      false
+    );
+  });
 });
