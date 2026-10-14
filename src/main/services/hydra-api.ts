@@ -154,7 +154,8 @@ export class HydraApi {
   }
 
   public static updateUserSubscription(
-    subscription?: { expiresAt: Date | string | null } | null
+    subscription?: { expiresAt: Date | string | null } | null,
+    options?: { freshUserId?: string; triggerSouvenirSync?: boolean }
   ) {
     this.userAuth.subscription = subscription
       ? { expiresAt: subscription.expiresAt }
@@ -170,10 +171,31 @@ export class HydraApi {
       );
     }
 
-    if (this.isLoggedIn() && this.hasActiveSubscription()) {
-      void import("./achievements/grouped-souvenir-worker").then(
-        ({ groupedSouvenirWorker }) => groupedSouvenirWorker.trigger()
-      );
+    if (
+      options?.triggerSouvenirSync !== false &&
+      this.isLoggedIn() &&
+      this.hasActiveSubscription()
+    ) {
+      void import("./achievements/grouped-souvenir-worker")
+        .then(async ({ groupedSouvenirWorker }) => {
+          if (
+            options?.freshUserId &&
+            this.getAuthContext()?.userId === options.freshUserId
+          ) {
+            await groupedSouvenirWorker.resumeAfterSubscriptionRefresh(
+              options.freshUserId,
+              subscription?.expiresAt ?? null
+            );
+            return;
+          }
+          await groupedSouvenirWorker.trigger();
+        })
+        .catch((error) =>
+          logger.error(
+            "Failed to resume grouped souvenir synchronization",
+            error
+          )
+        );
     }
   }
 

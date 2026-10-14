@@ -5,7 +5,10 @@ import { logger } from "../logger";
 import { db } from "@main/level";
 import { levelKeys } from "@main/level/sublevels";
 
-export const getUserData = async (): Promise<UserDetails | null> => {
+export const getUserData = async (options?: {
+  allowCached?: boolean;
+  triggerSouvenirSync?: boolean;
+}): Promise<UserDetails | null> => {
   const context = HydraApi.getAuthContext();
   if (!context || !HydraApi.isAuthContextCurrent(context)) return null;
 
@@ -22,6 +25,7 @@ export const getUserData = async (): Promise<UserDetails | null> => {
       return null;
     }
     logger.error("Failed to get logged user");
+    if (options?.allowCached === false) return null;
     try {
       const user = await db.get<string, User>(levelKeys.user, {
         valueEncoding: "json",
@@ -82,6 +86,9 @@ export const getUserData = async (): Promise<UserDetails | null> => {
   }
 
   if (!HydraApi.isAuthContextCurrent(context)) return null;
-  HydraApi.updateUserSubscription(me.subscription);
+  HydraApi.updateUserSubscription(me.subscription, {
+    freshUserId: me.id,
+    triggerSouvenirSync: options?.triggerSouvenirSync,
+  });
   return me;
 };

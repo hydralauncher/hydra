@@ -14,7 +14,8 @@ export interface PendingAchievementSouvenir {
   uploadedAt?: number;
   capturedAt: number;
   achievements: PendingSouvenirAchievement[];
-  status: "pending" | "terminal";
+  status: "pending" | "paused" | "terminal";
+  pausedSubscriptionExpiresAt?: number | null;
   attemptCount: number;
   lastAttemptAt?: number;
   lastErrorCode?: string;
@@ -34,7 +35,13 @@ export interface AchievementSouvenirSyncItem {
   status: "pending" | "failed";
   screenshotPath: string;
   gameTitle: string | null;
+  gameIconUrl?: string | null;
   achievementNames: string[];
+  achievements?: {
+    name: string;
+    displayName: string;
+    iconUrl: string | null;
+  }[];
   capturedAt: number;
   lastErrorCode?: string;
 }

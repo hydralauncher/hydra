@@ -149,7 +149,7 @@ async function fixture(t: TestContext, apiUrl = "http://localhost:3000") {
     "./achievements/achievement-watcher-manager":
       "export const AchievementWatcherManager = { resetSessionState() {} };",
     "./achievements/grouped-souvenir-worker":
-      "export const groupedSouvenirWorker = { trigger() { harness.effects.push('worker-start'); }, stop() { harness.effects.push('worker-stop'); } };",
+      "export const groupedSouvenirWorker = { trigger() { harness.effects.push('worker-start'); }, resumeAfterSubscriptionRefresh(ownerId, expiresAt) { harness.effects.push('worker-refresh:' + ownerId + ':' + expiresAt); }, stop() { harness.effects.push('worker-stop'); } };",
     "./linux-game-capture-session":
       "export const stopAllLinuxGameCaptureSessions = () => {};",
     "./steam-integration/steam-startup-sync":
@@ -482,10 +482,22 @@ test("real profile preserves subscription/cache and offline fallback matches cur
   assert.deepEqual(await f.getUserData(), me);
   assert.deepEqual(f.values.get("user"), me);
   assert.equal(f.api.hasActiveSubscription(), true);
+  await new Promise<void>((resolve) => setImmediate(resolve));
+  const refreshed = f.effects.filter((effect) =>
+    effect.startsWith("worker-refresh:")
+  );
+  assert.ok(
+    refreshed.includes(`worker-refresh:A:${me.subscription.expiresAt}`)
+  );
   f.hooks.request = async () => {
     throw new Error("private-token");
   };
   assert.equal((await f.getUserData())?.id, "A");
+  assert.equal(await f.getUserData({ allowCached: false }), null);
+  assert.deepEqual(
+    f.effects.filter((effect) => effect.startsWith("worker-refresh:")),
+    refreshed
+  );
   f.values.set("user", profile("B"));
   assert.equal(await f.getUserData(), null);
   f.values.delete("user");

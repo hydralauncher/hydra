@@ -1,0 +1,106 @@
+.souvenir-sync-preview {
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
+  min-width: 0;
+
+  &__screenshot {
+    display: flex;
+    flex: 0 0 184px;
+    aspect-ratio: 16 / 9;
+    overflow: hidden;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+    gap: 8px;
+    border-radius: 4px;
+    background: rgba(0, 0, 0, 0.25);
+
+    img {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+    }
+
+    span {
+      padding: 0 8px;
+      font-size: 12px;
+      text-align: center;
+    }
+  }
+
+  &__details {
+    display: flex;
+    flex: 1;
+    min-width: 0;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  &__game,
+  &__achievements > li {
+    display: flex;
+    min-width: 0;
+    align-items: center;
+    gap: 10px;
+    overflow-wrap: anywhere;
+  }
+
+  &__game strong {
+    font-size: 14px;
+    line-height: 1.4;
+  }
+
+  &__game-icon,
+  &__achievement-icon {
+    display: flex;
+    flex: 0 0 auto;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    border-radius: 4px;
+    background: rgba(255, 255, 255, 0.04);
+
+    img {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+    }
+  }
+
+  &__game-icon {
+    width: 32px;
+    height: 32px;
+  }
+
+  &__achievement-icon {
+    width: 24px;
+    height: 24px;
+  }
+
+  &__achievements {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    padding: 0;
+    margin: 0;
+    list-style: none;
+    font-size: 13px;
+    line-height: 1.4;
+  }
+
+  &__error {
+    font-size: 12px;
+    line-height: 1.4;
+    opacity: 0.8;
+  }
+
+  @media (max-width: 640px) {
+    flex-direction: column;
+
+    &__screenshot {
+      width: 100%;
+      flex-basis: auto;
+    }
+  }
+}
