@@ -31,6 +31,7 @@ import {
   handleClassicsLaunchError,
 } from "@renderer/helpers";
 import { DiscSelectionModal } from "../modals/disc-selection-modal";
+import { EpicCloudSaveConflictModal } from "../modals/epic-cloud-save-conflict-modal";
 
 import "./hero-panel-actions.scss";
 import { useEffect } from "react";
@@ -80,6 +81,9 @@ export function HeroPanelActions() {
   const [localSaveRetry, setLocalSaveRetry] = useState<LibraryGame | null>(
     null
   );
+  const [epicSaveConflict, setEpicSaveConflict] = useState<LibraryGame | null>(
+    null
+  );
   const [canRetryOffline, setCanRetryOffline] = useState(false);
   const [canRetryLocalSaves, setCanRetryLocalSaves] = useState(false);
   const installedMembers = getInstalledStoreMembers(
@@ -102,6 +106,7 @@ export function HeroPanelActions() {
       invalidateLaunch();
       setShowStoreSelection(false);
       setLocalSaveRetry(null);
+      setEpicSaveConflict(null);
     };
     invalidate();
     const stop = window.electron?.onEpicConnectionChanged?.(invalidate);
@@ -342,6 +347,7 @@ export function HeroPanelActions() {
     if (!member.executablePath) return;
     setShowStoreSelection(false);
     setLocalSaveRetry(null);
+    setEpicSaveConflict(null);
     setCanRetryOffline(false);
     setCanRetryLocalSaves(false);
     const generation = launchGeneration.current;
@@ -361,6 +367,10 @@ export function HeroPanelActions() {
       if (generation !== launchGeneration.current) return;
       const code =
         member.shop === "epic" ? getEpicLaunchError(error) : undefined;
+      if (code === "save-conflict") {
+        setEpicSaveConflict(member);
+        return;
+      }
       const translation = code ? getEpicManagedError(code) : null;
       showErrorToast(
         translation
@@ -375,6 +385,10 @@ export function HeroPanelActions() {
           .getEpicCloudSaveState(member.objectId)
           .catch(() => null);
         if (generation !== launchGeneration.current) return;
+        if (state?.status === "conflict") {
+          setEpicSaveConflict(member);
+          return;
+        }
         if (
           canRetryEpicLaunchWithLocalSaves(state) ||
           state?.canRunOffline === true
@@ -489,6 +503,11 @@ export function HeroPanelActions() {
   if (game) {
     return (
       <div className="hero-panel-actions__container">
+        <EpicCloudSaveConflictModal
+          game={epicSaveConflict}
+          isGameRunning={isGameRunning}
+          onClose={() => setEpicSaveConflict(null)}
+        />
         <Modal
           visible={showStoreSelection}
           title={t("choose_game_store")}

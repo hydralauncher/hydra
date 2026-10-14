@@ -90,6 +90,7 @@ import { useNavigationStore } from "../../stores";
 import { extractGenreNames } from "./game-metadata";
 import "./game.scss";
 import { EpicCloudSaves } from "../../components/pages/game/epic-cloud-saves";
+import { EpicCloudSaveConflictModal } from "../../components/modals/epic-cloud-save-conflict-modal";
 import { Button, Modal, HorizontalFocusGroup } from "../../components/common";
 import {
   canRetryEpicLaunchWithLocalSaves,
@@ -602,6 +603,9 @@ export default function Game() {
   const [localSaveRetry, setLocalSaveRetry] = useState<LibraryGame | null>(
     null
   );
+  const [epicSaveConflict, setEpicSaveConflict] = useState<LibraryGame | null>(
+    null
+  );
   const [canRetryOffline, setCanRetryOffline] = useState(false);
   const [canRetryLocalSaves, setCanRetryLocalSaves] = useState(false);
   const launchGeneration = useRef(0);
@@ -613,6 +617,7 @@ export default function Game() {
       invalidateLaunch();
       setShowStoreSelection(false);
       setLocalSaveRetry(null);
+      setEpicSaveConflict(null);
     };
     invalidate();
     const stop = window.electron?.onEpicConnectionChanged?.(invalidate);
@@ -626,6 +631,7 @@ export default function Game() {
       if (!member.executablePath) return;
       setShowStoreSelection(false);
       setLocalSaveRetry(null);
+      setEpicSaveConflict(null);
       setCanRetryOffline(false);
       setCanRetryLocalSaves(false);
       const generation = launchGeneration.current;
@@ -645,6 +651,10 @@ export default function Game() {
         if (generation !== launchGeneration.current) return;
         const code =
           member.shop === "epic" ? getEpicLaunchError(error) : undefined;
+        if (code === "save-conflict") {
+          setEpicSaveConflict(member);
+          return;
+        }
         const translation = code ? getEpicManagedError(code) : null;
         showErrorToast(
           translation
@@ -659,6 +669,10 @@ export default function Game() {
             .getEpicCloudSaveState(member.objectId)
             .catch(() => null);
           if (generation !== launchGeneration.current) return;
+          if (state?.status === "conflict") {
+            setEpicSaveConflict(member);
+            return;
+          }
           if (
             canRetryEpicLaunchWithLocalSaves(state) ||
             state?.canRunOffline === true
@@ -1544,6 +1558,11 @@ export default function Game() {
   return (
     <VerticalFocusGroup regionId={GAME_PAGE_REGION_ID} asChild>
       <div ref={pageRef} className="game-page">
+        <EpicCloudSaveConflictModal
+          game={epicSaveConflict}
+          isGameRunning={isGameRunning}
+          onClose={() => setEpicSaveConflict(null)}
+        />
         <Modal
           visible={showStoreSelection}
           title={t("choose_game_store", { ns: "game_details" })}

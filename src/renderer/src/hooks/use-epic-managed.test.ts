@@ -1282,16 +1282,25 @@ describe("Epic managed UI lifecycle", () => {
     assert.deepEqual(available, [false, false]);
   });
 
-  for (const canRunOffline of [false, true]) {
-    it(`offers offline retry only for proven support (${canRunOffline}) and launches the real Epic copy`, async (t) => {
+  for (const { canRunOffline, launchError, conflict } of [
+    { canRunOffline: false, launchError: "network", conflict: false },
+    { canRunOffline: true, launchError: "network", conflict: false },
+    { canRunOffline: true, launchError: "save-conflict", conflict: true },
+    { canRunOffline: true, launchError: "network", conflict: true },
+  ]) {
+    it(`routes launch failure ${launchError} to conflict resolution (${conflict}) or supported offline retry (${canRunOffline}) for the real Epic copy`, async (t) => {
       const calls: unknown[][] = [];
       const { render } = await fixture(t, {
         openGame: async (...args: unknown[]) => {
           calls.push(args);
-          if (calls.length === 1) throw new Error("network");
+          if (calls.length === 1) throw new Error(launchError);
         },
         getEpicCloudSaveState: async () =>
-          state({ status: "unavailable", error: "network", canRunOffline }),
+          state({
+            status: conflict ? "conflict" : "unavailable",
+            error: conflict ? "save-conflict" : "network",
+            canRunOffline,
+          }),
       });
       const game = {
         id: "epic:namespace:executable",
@@ -1373,6 +1382,18 @@ describe("Epic managed UI lifecycle", () => {
             applyLibraryGroupAction: async () => {},
           },
           "../modals/disc-selection-modal": { DiscSelectionModal: () => null },
+          "../modals/epic-cloud-save-conflict-modal": {
+            EpicCloudSaveConflictModal: ({
+              game: conflictGame,
+            }: {
+              game: LibraryGame | null;
+            }) =>
+              conflictGame
+                ? React.createElement("section", {
+                    "data-epic-save-conflict": conflictGame.objectId,
+                  })
+                : null,
+          },
           "./hero-panel-actions.scss": {},
         }
       ).HeroPanelActions as React.FunctionComponent;
@@ -1382,9 +1403,23 @@ describe("Epic managed UI lifecycle", () => {
           (button) => button.textContent === text
         );
       await React.act(async () => findButton("play")!.click());
-      assert.equal(!!findButton("epic_play_offline"), canRunOffline);
+      assert.equal(
+        !!findButton("epic_play_offline"),
+        !conflict && canRunOffline
+      );
       assert.equal(calls[0][0], "epic");
       assert.equal(calls[0][1], "namespace:executable");
+      if (conflict) {
+        assert.equal(
+          document
+            .querySelector("[data-epic-save-conflict]")
+            ?.getAttribute("data-epic-save-conflict"),
+          "namespace:executable"
+        );
+        assert.equal(!!findButton("epic_play_local_saves"), false);
+        assert.equal(calls.length, 1);
+        return;
+      }
       if (canRunOffline) {
         await React.act(async () => findButton("epic_play_offline")!.click());
         assert.deepEqual(calls[1], [
