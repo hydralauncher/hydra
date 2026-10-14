@@ -32,6 +32,7 @@ export function useLibraryGamePresentation(
         ...cached,
         ...currentGame,
         ...mergeLibraryCatalogueMetadata(currentGame, cached),
+        download: cached.download,
         title: cached.title,
         iconUrl: cached.iconUrl,
         logoImageUrl: cached.logoImageUrl,

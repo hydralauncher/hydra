@@ -6,10 +6,11 @@ import { JSDOM } from "jsdom";
 import * as React from "react";
 import { createRoot } from "react-dom/client";
 import ts from "typescript";
-import type { Download, LibraryGame } from "@types";
+import type { Download, DownloadProgress, LibraryGame } from "@types";
 import type { GameDetailsContext } from "./game-details.context.types";
 import {
   findLibraryGamePresentation,
+  isLibraryGameDownloading,
   mergeLibraryCatalogueMetadata,
 } from "../../../../shared/library-catalogue.js";
 import { getDisplayedPlayTimeInMilliseconds } from "../../../../shared/playtime.js";
@@ -50,8 +51,11 @@ const epic = {
 async function fixture(
   t: TestContext,
   games: LibraryGame[],
-  runningId?: string
+  runningId?: string,
+  initialLastPacket: DownloadProgress | null = null
 ) {
+  let libraryGames = games;
+  let lastPacket = initialLastPacket;
   const dom = new JSDOM("<div id='root'></div>", {
     url: "https://hydra.test/game/steam/123",
   });
@@ -129,7 +133,9 @@ async function fixture(
     "src/renderer/src/hooks/use-library-game-presentation.ts",
     {
       "@shared": { findLibraryGamePresentation, mergeLibraryCatalogueMetadata },
-      "./use-library": { useLibrary: () => ({ downloadLibrary: games }) },
+      "./use-library": {
+        useLibrary: () => ({ downloadLibrary: libraryGames }),
+      },
       "./redux": {
         useAppSelector: (select: (state: unknown) => unknown) =>
           select({
@@ -158,7 +164,7 @@ async function fixture(
       useAppDispatch: () => dispatch,
       useAppSelector: (selector: (state: typeof preferencesState) => unknown) =>
         selector(preferencesState),
-      useDownload: () => ({ lastPacket: null }),
+      useDownload: () => ({ lastPacket }),
       useUserDetails: () => ({ userDetails }),
       useLibraryGamePresentation: presentationHook.useLibraryGamePresentation,
     },
@@ -190,17 +196,27 @@ async function fixture(
       else Reflect.deleteProperty(globalThis, key);
     }
   });
-  await React.act(async () => {
-    root.render(
-      React.createElement(
-        Provider,
-        { shop: "steam", objectId: "123", gameTitle: "Steam title" },
-        React.createElement(Probe)
-      )
-    );
-  });
+  const render = () =>
+    React.act(async () => {
+      root.render(
+        React.createElement(
+          Provider,
+          { shop: "steam", objectId: "123", gameTitle: "Steam title" },
+          React.createElement(Probe)
+        )
+      );
+    });
+  await render();
   return {
     calls,
+    async updateLibrary(
+      updatedGames: LibraryGame[],
+      updatedLastPacket: DownloadProgress | null = lastPacket
+    ) {
+      libraryGames = updatedGames;
+      lastPacket = updatedLastPacket;
+      await render();
+    },
     get details() {
       return current;
     },
@@ -208,6 +224,155 @@ async function fixture(
 }
 
 describe("Desktop catalogue page", () => {
+  for (const status of [
+    "paused",
+    "removed",
+    "complete",
+    "error",
+    null,
+    undefined,
+  ] as const) {
+    it(`uses the live library download after an active download becomes ${status} and its packet clears`, async (t) => {
+      const downloading = {
+        ...epic,
+        download: { status: "active", progress: 0.25 } as Download,
+      };
+      const packet = {
+        gameId: downloading.id,
+        download: downloading.download,
+        progress: 0.25,
+      } as DownloadProgress;
+      const state = await fixture(t, [downloading], undefined, packet);
+      assert.equal(state.details.game, downloading);
+      assert.equal(isLibraryGameDownloading(state.details.downloadGame), true);
+      const updated = {
+        ...downloading,
+        download:
+          status == null
+            ? null
+            : {
+                ...downloading.download,
+                status,
+                progress: status === "complete" ? 1 : 0.25,
+                extracting: false,
+              },
+      };
+      if (status === undefined) Reflect.deleteProperty(updated, "download");
+
+      await state.updateLibrary([updated], null);
+
+      assert.equal(state.details.game, downloading);
+      assert.equal(state.details.game?.download?.status, "active");
+      assert.equal(state.details.downloadGame?.download, updated.download);
+      assert.equal(isLibraryGameDownloading(state.details.downloadGame), false);
+      assert.equal(downloading.download.status, "active");
+    });
+  }
+
+  it("keeps extraction disabled until the live library clears its extracting flag without a packet", async (t) => {
+    const extracting = {
+      ...epic,
+      download: {
+        status: "complete",
+        progress: 1,
+        extracting: true,
+      } as Download,
+    };
+    const state = await fixture(t, [extracting]);
+    assert.equal(isLibraryGameDownloading(state.details.downloadGame), true);
+    const completed = {
+      ...extracting,
+      download: { ...extracting.download, extracting: false },
+    };
+
+    await state.updateLibrary([completed], null);
+
+    assert.equal(state.details.game, extracting);
+    assert.equal(state.details.downloadGame?.download, completed.download);
+    assert.equal(isLibraryGameDownloading(state.details.downloadGame), false);
+    assert.equal(extracting.download.extracting, true);
+  });
+
+  it("updates the Epic download independently while Steam remains operational", async (t) => {
+    const steam = {
+      ...epic,
+      id: "steam:123",
+      shop: "steam",
+      objectId: "123",
+      executablePath: "steam.exe",
+      hasActiveEpicImport: false,
+      download: null,
+    } as LibraryGame;
+    const downloading = {
+      ...epic,
+      executablePath: null,
+      download: { status: "active", progress: 0.25 } as Download,
+    };
+    const state = await fixture(t, [steam, downloading]);
+    assert.equal(state.details.game, steam);
+    assert.equal(state.details.downloadGame, downloading);
+    const paused = {
+      ...downloading,
+      download: { ...downloading.download, status: "paused" as const },
+    };
+
+    await state.updateLibrary([steam, paused], null);
+
+    assert.equal(state.details.game, steam);
+    assert.equal(state.details.downloadGame, paused);
+    assert.equal(isLibraryGameDownloading(state.details.downloadGame), false);
+    const resumed = {
+      ...paused,
+      download: { ...paused.download, status: "active" as const },
+    };
+
+    await state.updateLibrary([steam, resumed], null);
+
+    assert.equal(state.details.game, steam);
+    assert.equal(state.details.downloadGame, resumed);
+    assert.equal(isLibraryGameDownloading(state.details.downloadGame), true);
+  });
+
+  it("selects the newly active member without reviving the operational member's stale active download", async (t) => {
+    const steam = {
+      ...epic,
+      id: "steam:123",
+      shop: "steam",
+      objectId: "123",
+      executablePath: "steam.exe",
+      hasActiveEpicImport: false,
+      download: { status: "active", progress: 0.25 } as Download,
+    } as LibraryGame;
+    const pausedEpic = {
+      ...epic,
+      executablePath: null,
+      download: { status: "paused", progress: 0.5 } as Download,
+    };
+    const state = await fixture(t, [steam, pausedEpic]);
+    assert.equal(state.details.game, steam);
+    assert.equal(state.details.downloadGame?.id, steam.id);
+    const pausedSteam = {
+      ...steam,
+      download: { ...steam.download!, status: "paused" as const },
+    };
+    const activeEpic = {
+      ...pausedEpic,
+      download: { ...pausedEpic.download, status: "active" as const },
+    };
+
+    await state.updateLibrary([pausedSteam, activeEpic], null);
+
+    assert.equal(state.details.game, steam);
+    assert.equal(state.details.game?.download?.status, "active");
+    assert.equal(state.details.presentation?.operationalGame.id, steam.id);
+    assert.equal(
+      state.details.presentation?.operationalGame.download?.status,
+      "paused"
+    );
+    assert.equal(state.details.downloadGame, activeEpic);
+    assert.equal(steam.download?.status, "active");
+  });
+
   for (const executablePath of [null, "steam.exe"]) {
     it(`uses the Epic download while keeping Steam operational (executable=${executablePath})`, async (t) => {
       const steam = {
