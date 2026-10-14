@@ -97,7 +97,12 @@ function LibraryCatalogueBadge({
   }
   return (
     <span className="library-catalogue-badge">
-      <SteamLibraryBadge source={source} availableShops={game.availableShops} />
+      <SteamLibraryBadge
+        source={source}
+        availableShops={game.availableShops}
+        hasActiveSteamImport={game.hasActiveSteamImport}
+        hasActiveEpicImport={game.hasActiveEpicImport}
+      />
     </span>
   );
 }

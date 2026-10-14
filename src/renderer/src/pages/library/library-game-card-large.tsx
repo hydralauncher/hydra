@@ -401,12 +401,16 @@ export const LibraryGameCardLarge = memo(function LibraryGameCardLarge({
                 source="epic"
                 variant="large"
                 availableShops={game.availableShops}
+                hasActiveSteamImport={game.hasActiveSteamImport}
+                hasActiveEpicImport={game.hasActiveEpicImport}
               />
             )}
             {showSteamLibraryBadge && (
               <SteamLibraryBadge
                 variant="large"
                 availableShops={game.availableShops}
+                hasActiveSteamImport={game.hasActiveSteamImport}
+                hasActiveEpicImport={game.hasActiveEpicImport}
               />
             )}
 

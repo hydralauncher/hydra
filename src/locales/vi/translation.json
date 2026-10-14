@@ -1658,6 +1658,7 @@
     "context_menu_add_to_library": "Thêm vào thư viện",
     "library_epic": "Epic",
     "imported_from_epic": "Được nhập từ thư viện Epic liên kết với hồ sơ này.",
+    "imported_from_steam_and_epic": "Được nhập từ các thư viện Steam và Epic Games liên kết với hồ sơ này.",
     "available_on_steam_and_epic": "Có trên Steam và Epic Games",
     "available_on_steam": "Có trên Steam",
     "available_on_epic": "Có trên Epic Games"

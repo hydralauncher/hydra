@@ -1104,6 +1104,7 @@
     "installer_size_tooltip": "Installer size",
     "library_epic": "Epic",
     "imported_from_epic": "تم استيراده من مكتبة Epic المرتبطة بهذا الملف الشخصي.",
+    "imported_from_steam_and_epic": "مستورد من مكتبتي Steam وEpic Games المرتبطتين بهذا الملف الشخصي.",
     "available_on_steam_and_epic": "متوفر على Steam وEpic Games",
     "available_on_steam": "متوفر على Steam",
     "available_on_epic": "متوفر على Epic Games"

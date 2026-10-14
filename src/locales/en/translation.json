@@ -2169,6 +2169,7 @@
     "context_menu_add_to_library": "Add to Library",
     "library_epic": "Epic",
     "imported_from_epic": "Imported from the Epic library linked to this profile.",
+    "imported_from_steam_and_epic": "Imported from the Steam and Epic Games libraries linked to this profile.",
     "available_on_steam_and_epic": "Available on Steam and Epic Games",
     "available_on_steam": "Available on Steam",
     "available_on_epic": "Available on Epic Games"

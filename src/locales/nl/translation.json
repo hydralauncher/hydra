@@ -1069,6 +1069,7 @@
     "installer_size_tooltip": "Installer size",
     "library_epic": "Epic",
     "imported_from_epic": "Geïmporteerd uit de Epic-bibliotheek die aan dit profiel is gekoppeld.",
+    "imported_from_steam_and_epic": "Geïmporteerd uit de Steam- en Epic Games-bibliotheken die aan dit profiel zijn gekoppeld.",
     "available_on_steam_and_epic": "Beschikbaar op Steam en Epic Games",
     "available_on_steam": "Beschikbaar op Steam",
     "available_on_epic": "Beschikbaar op Epic Games"

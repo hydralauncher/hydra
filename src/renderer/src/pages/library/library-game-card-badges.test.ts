@@ -133,7 +133,11 @@ function renderCard(
 
 function renderCatalogueBadge(
   source: "steam" | "epic",
-  availableShops: string[]
+  availableShops: string[],
+  imports: {
+    hasActiveSteamImport?: boolean;
+    hasActiveEpicImport?: boolean;
+  } = {}
 ) {
   const filename = path.join(
     rendererPath,
@@ -170,6 +174,7 @@ function renderCatalogueBadge(
       React.createElement(exports.SteamLibraryBadge, {
         source,
         availableShops,
+        ...imports,
         variant: "sidebar",
       })
     )
@@ -287,6 +292,41 @@ describe("visibility and playtime badge layout", () => {
       "available_on_epic"
     );
     dom.window.close();
+  });
+  it("describes imports from both libraries when both are active", () => {
+    const dom = renderCatalogueBadge("steam", ["steam", "epic"], {
+      hasActiveSteamImport: true,
+      hasActiveEpicImport: true,
+    });
+    const badge = dom.window.document.querySelector(".steam-library-badge")!;
+    assert.equal(
+      badge.getAttribute("data-tooltip-content"),
+      "imported_from_steam_and_epic"
+    );
+    assert.equal(
+      badge.getAttribute("aria-label"),
+      "imported_from_steam_and_epic"
+    );
+    dom.window.close();
+  });
+
+  it("describes only the imported library even when both stores are available", () => {
+    for (const source of ["steam", "epic"] as const) {
+      const dom = renderCatalogueBadge("steam", ["steam", "epic"], {
+        hasActiveSteamImport: source === "steam",
+        hasActiveEpicImport: source === "epic",
+      });
+      const badge = dom.window.document.querySelector(".steam-library-badge")!;
+      assert.equal(
+        badge.getAttribute("data-tooltip-content"),
+        `imported_from_${source}`
+      );
+      assert.equal(
+        badge.querySelector(".steam-library-badge__additional")?.textContent,
+        "+"
+      );
+      dom.window.close();
+    }
   });
   it("shows Steam presentation for a game owned only on Epic", () => {
     const dom = renderCard(layouts[0], {

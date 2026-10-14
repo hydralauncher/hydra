@@ -1068,6 +1068,7 @@
     "installer_size_tooltip": "Installer size",
     "library_epic": "Epic",
     "imported_from_epic": "از کتابخانه Epic متصل به این نمایه وارد شده است.",
+    "imported_from_steam_and_epic": "واردشده از کتابخانه‌های Steam و Epic Games متصل به این پروفایل.",
     "available_on_steam_and_epic": "در Steam و Epic Games موجود است",
     "available_on_steam": "در Steam موجود است",
     "available_on_epic": "در Epic Games موجود است"

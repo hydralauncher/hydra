@@ -1106,6 +1106,7 @@
     "installer_size_tooltip": "Installer size",
     "library_epic": "Epic",
     "imported_from_epic": "Importováno z knihovny Epic propojené s tímto profilem.",
+    "imported_from_steam_and_epic": "Importováno z knihoven Steam a Epic Games propojených s tímto profilem.",
     "available_on_steam_and_epic": "Dostupné na Steamu a Epic Games",
     "available_on_steam": "Dostupné na Steamu",
     "available_on_epic": "Dostupné na Epic Games"

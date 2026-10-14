@@ -1270,6 +1270,7 @@
     "empty_collection_description": "Right-click any game, open Collection, and add it here.",
     "library_epic": "Epic",
     "imported_from_epic": "Importato dalla libreria di Epic collegata a questo profilo.",
+    "imported_from_steam_and_epic": "Importato dalle librerie Steam ed Epic Games collegate a questo profilo.",
     "available_on_steam_and_epic": "Disponibile su Steam ed Epic Games",
     "available_on_steam": "Disponibile su Steam",
     "available_on_epic": "Disponibile su Epic Games"

@@ -277,10 +277,16 @@ export const LibraryGameCard = memo(function LibraryGameCard({
                 <SteamLibraryBadge
                   source="epic"
                   availableShops={game.availableShops}
+                  hasActiveSteamImport={game.hasActiveSteamImport}
+                  hasActiveEpicImport={game.hasActiveEpicImport}
                 />
               )}
               {showSteamLibraryBadge && (
-                <SteamLibraryBadge availableShops={game.availableShops} />
+                <SteamLibraryBadge
+                  availableShops={game.availableShops}
+                  hasActiveSteamImport={game.hasActiveSteamImport}
+                  hasActiveEpicImport={game.hasActiveEpicImport}
+                />
               )}
 
               {showPlatformBadge && (

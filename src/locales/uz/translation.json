@@ -1104,6 +1104,7 @@
     "installer_size_tooltip": "Installer size",
     "library_epic": "Epic",
     "imported_from_epic": "Ushbu profilga ulangan Epic kutubxonasidan import qilingan.",
+    "imported_from_steam_and_epic": "Ushbu profilga bog‘langan Steam va Epic Games kutubxonalaridan import qilingan.",
     "available_on_steam_and_epic": "Steam va Epic Games’da mavjud",
     "available_on_steam": "Steam’da mavjud",
     "available_on_epic": "Epic Games’da mavjud"

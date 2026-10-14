@@ -135,6 +135,8 @@ export function SidebarGameItem({
                   source="epic"
                   variant="sidebar"
                   availableShops={game.availableShops}
+                  hasActiveSteamImport={game.hasActiveSteamImport}
+                  hasActiveEpicImport={game.hasActiveEpicImport}
                 />
               )}
             {badgeSource === "steam" &&
@@ -142,6 +144,8 @@ export function SidebarGameItem({
                 <SteamLibraryBadge
                   variant="sidebar"
                   availableShops={game.availableShops}
+                  hasActiveSteamImport={game.hasActiveSteamImport}
+                  hasActiveEpicImport={game.hasActiveEpicImport}
                 />
               )}
           </span>

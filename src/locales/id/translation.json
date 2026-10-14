@@ -1603,6 +1603,7 @@
     "context_menu_add_to_library": "Tambah ke Pustaka",
     "library_epic": "Epic",
     "imported_from_epic": "Diimpor dari pustaka Epic yang ditautkan ke profil ini.",
+    "imported_from_steam_and_epic": "Diimpor dari pustaka Steam dan Epic Games yang ditautkan ke profil ini.",
     "available_on_steam_and_epic": "Tersedia di Steam dan Epic Games",
     "available_on_steam": "Tersedia di Steam",
     "available_on_epic": "Tersedia di Epic Games"

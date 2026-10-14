@@ -1093,6 +1093,7 @@
     "installer_size_tooltip": "インストーラーサイズ",
     "library_epic": "Epic",
     "imported_from_epic": "このプロフィールにリンクされたEpicライブラリからインポートされました。",
+    "imported_from_steam_and_epic": "このプロフィールに連携された Steam と Epic Games のライブラリからインポートされました。",
     "available_on_steam_and_epic": "Steam と Epic Games で利用可能",
     "available_on_steam": "Steam で利用可能",
     "available_on_epic": "Epic Games で利用可能"

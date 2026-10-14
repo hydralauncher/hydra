@@ -34,6 +34,7 @@ describe("Steam Library translations", () => {
       }
 
       for (const key of [
+        "imported_from_steam_and_epic",
         "available_on_steam_and_epic",
         "available_on_steam",
         "available_on_epic",
@@ -80,6 +81,14 @@ describe("Steam Library translations", () => {
     );
 
     assert.equal(readLibrary("en").category_steam_library, undefined);
+    assert.equal(
+      readLibrary("en").imported_from_steam_and_epic,
+      "Imported from the Steam and Epic Games libraries linked to this profile."
+    );
+    assert.equal(
+      readLibrary("pt-BR").imported_from_steam_and_epic,
+      "Importado das bibliotecas Steam e Epic Games vinculadas a este perfil."
+    );
     assert.equal(
       readLibrary("pt-BR").available_on_steam_and_epic,
       "Disponível na Steam e Epic Games"

@@ -1069,6 +1069,7 @@
     "installer_size_tooltip": "Installer size",
     "library_epic": "Epic",
     "imported_from_epic": "Bu profile bağlı Epic kütüphanesinden içe aktarıldı.",
+    "imported_from_steam_and_epic": "Bu profile bağlı Steam ve Epic Games kütüphanelerinden içe aktarıldı.",
     "available_on_steam_and_epic": "Steam ve Epic Games üzerinde mevcut",
     "available_on_steam": "Steam üzerinde mevcut",
     "available_on_epic": "Epic Games üzerinde mevcut"

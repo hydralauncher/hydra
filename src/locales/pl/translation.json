@@ -1666,6 +1666,7 @@
     "context_menu_add_to_library": "Dodaj do biblioteki",
     "library_epic": "Epic",
     "imported_from_epic": "Zaimportowano z biblioteki Epic połączonej z tym profilem.",
+    "imported_from_steam_and_epic": "Zaimportowano z bibliotek Steam i Epic Games połączonych z tym profilem.",
     "available_on_steam_and_epic": "Dostępne na Steam i Epic Games",
     "available_on_steam": "Dostępne na Steam",
     "available_on_epic": "Dostępne na Epic Games"

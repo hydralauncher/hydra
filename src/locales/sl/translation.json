@@ -1079,6 +1079,7 @@
     "installer_size_tooltip": "Installer size",
     "library_epic": "Epic",
     "imported_from_epic": "Uvoženo iz knjižnice Epic, povezane s tem profilom.",
+    "imported_from_steam_and_epic": "Uvoženo iz knjižnic Steam in Epic Games, povezanih s tem profilom.",
     "available_on_steam_and_epic": "Na voljo v Steamu in Epic Games",
     "available_on_steam": "Na voljo v Steamu",
     "available_on_epic": "Na voljo v Epic Games"

@@ -2208,6 +2208,7 @@
     "context_menu_add_to_library": "Adicionar à Biblioteca",
     "library_epic": "Epic",
     "imported_from_epic": "Importado da biblioteca Epic vinculada a este perfil.",
+    "imported_from_steam_and_epic": "Importado das bibliotecas Steam e Epic Games vinculadas a este perfil.",
     "available_on_steam_and_epic": "Disponível na Steam e Epic Games",
     "available_on_steam": "Disponível na Steam",
     "available_on_epic": "Disponível na Epic Games"

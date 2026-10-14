@@ -1068,6 +1068,7 @@
     "installer_size_tooltip": "Installer size",
     "library_epic": "Epic",
     "imported_from_epic": "Осы профильге байланыстырылған Epic кітапханасынан импортталды.",
+    "imported_from_steam_and_epic": "Осы профильге байланыстырылған Steam және Epic Games кітапханаларынан импортталған.",
     "available_on_steam_and_epic": "Steam және Epic Games дүкендерінде қолжетімді",
     "available_on_steam": "Steam дүкенінде қолжетімді",
     "available_on_epic": "Epic Games дүкенінде қолжетімді"

@@ -1104,6 +1104,7 @@
     "installer_size_tooltip": "Installer size",
     "library_epic": "Epic",
     "imported_from_epic": "Imporditud selle profiiliga seotud Epici teegist.",
+    "imported_from_steam_and_epic": "Imporditud selle profiiliga seotud Steami ja Epic Gamesi teekidest.",
     "available_on_steam_and_epic": "Saadaval Steamis ja Epic Gamesis",
     "available_on_steam": "Saadaval Steamis",
     "available_on_epic": "Saadaval Epic Gamesis"
