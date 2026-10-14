@@ -1,4 +1,10 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import {
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useState,
+} from "react";
 import { createPortal, flushSync } from "react-dom";
 import cn from "classnames";
 import { useTranslation } from "react-i18next";
@@ -21,7 +27,7 @@ import {
 import { GalleryVideoSlot, type GalleryVideoHost } from "./gallery-video-host";
 import type { GalleryMediaItem } from "./gallery-slider";
 import { useDragScroll } from "./use-drag-scroll";
-import { normalizeShortcutKey } from "./gallery-shortcuts";
+import { isPointerActivity, normalizeShortcutKey } from "./gallery-shortcuts";
 import "./gallery-lightbox.scss";
 
 const ESCAPE_AFTER_FULLSCREEN_EXIT_MS = 300;
@@ -30,9 +36,15 @@ const LAYER_CLEANUP_MARGIN_MS = 40;
 const OPEN_FADE_MS = 200;
 const OPEN_FADE_FALLBACK_MARGIN_MS = 60;
 
-const freezePageLayout = () => {
-  const page = document.getElementById("root");
-  if (!page) return () => {};
+const getPageRoot = () => document.getElementById("root");
+
+let pageHolds = 0;
+let restorePageSize: (() => void) | null = null;
+
+const acquirePageHold = () => {
+  pageHolds += 1;
+  const page = getPageRoot();
+  if (pageHolds > 1 || !page) return;
 
   const { width, height } = page.getBoundingClientRect();
   const previousWidth = page.style.width;
@@ -40,14 +52,39 @@ const freezePageLayout = () => {
   page.style.width = `${width}px`;
   page.style.height = `${height}px`;
 
-  let released = false;
-  return () => {
-    if (released) return;
-    released = true;
+  restorePageSize = () => {
     page.style.width = previousWidth;
     page.style.height = previousHeight;
   };
 };
+
+const releasePageHold = () => {
+  if (pageHolds === 0) return;
+  pageHolds -= 1;
+  if (pageHolds > 0) return;
+  restorePageSize?.();
+  restorePageSize = null;
+};
+
+let fullscreenQueue: Promise<unknown> = Promise.resolve();
+
+const queueFullscreen = (operation: () => Promise<void>) => {
+  const run = fullscreenQueue.then(operation);
+  fullscreenQueue = run.catch(() => {});
+  return run;
+};
+
+const enterElementFullscreen = (element: HTMLElement) =>
+  queueFullscreen(() =>
+    document.fullscreenElement === element
+      ? Promise.resolve()
+      : element.requestFullscreen({ navigationUI: "hide" })
+  );
+
+const leaveFullscreen = () =>
+  queueFullscreen(() =>
+    document.fullscreenElement ? document.exitFullscreen() : Promise.resolve()
+  ).catch(() => {});
 const VOLUME_STEP = 0.05;
 const DEFAULT_ASPECT_RATIO = 16 / 9;
 
@@ -63,6 +100,7 @@ export interface GalleryLightboxProps {
   items: GalleryMediaItem[];
   index: number;
   fullscreen?: boolean;
+  initialChromeHidden?: boolean;
   autoplay?: boolean;
   videoHosts: Map<string, GalleryVideoHost>;
   videoHoldsChrome: boolean;
@@ -175,6 +213,7 @@ function GalleryLightboxContent({
   items,
   index,
   fullscreen = false,
+  initialChromeHidden = false,
   autoplay = true,
   videoHosts,
   videoHoldsChrome,
@@ -195,15 +234,22 @@ function GalleryLightboxContent({
   const lastFullscreenExitRef = useRef(0);
   const closeOnFullscreenExitRef = useRef(fullscreen);
   const initialFullscreenRequestedRef = useRef(false);
-  const openFadeDoneRef = useRef(false);
+  const unmountedRef = useRef(false);
+  const pendingFullscreenRequestsRef = useRef(0);
+  const leavingFullscreenRef = useRef(false);
+  const pageHeldRef = useRef(false);
   const ownsFullscreenRef = useRef(false);
   const layerKeyRef = useRef(0);
   const layerTimersRef = useRef<number[]>([]);
 
   const [isFullscreenActive, setIsFullscreenActive] = useState(false);
   const [enteringFullscreen, setEnteringFullscreen] = useState(fullscreen);
+  const [openFadeDone, setOpenFadeDone] = useState(!fullscreen);
   const isFullscreen = isFullscreenActive || enteringFullscreen;
-  const [idle, setIdle] = useState(false);
+  const startsChromeHidden =
+    initialChromeHidden || (fullscreen && items[index]?.type === "image");
+  const [idle, setIdle] = useState(startsChromeHidden);
+  const initialChromeHiddenRef = useRef(startsChromeHidden);
   const [layers, setLayers] = useState<StageLayer[]>([
     { key: 0, index, ready: true },
   ]);
@@ -224,6 +270,11 @@ function GalleryLightboxContent({
       currentItem?.type === "video"
         ? (getVideoHandle(currentItem.id)?.getState() ?? undefined)
         : undefined;
+    if (ownsFullscreenRef.current || pendingFullscreenRequestsRef.current > 0) {
+      ownsFullscreenRef.current = false;
+      leavingFullscreenRef.current = true;
+      leaveFullscreen();
+    }
     onClose(currentIndex, playback);
   }, [items, getVideoHandle, onClose]);
 
@@ -243,9 +294,19 @@ function GalleryLightboxContent({
   }, []);
 
   useEffect(() => {
-    wake();
+    if (!initialChromeHiddenRef.current) wake();
     return () => window.clearTimeout(idleTimerRef.current);
   }, [wake]);
+
+  const wasFullscreenRef = useRef(isFullscreen);
+
+  useLayoutEffect(() => {
+    const wasFullscreen = wasFullscreenRef.current;
+    wasFullscreenRef.current = isFullscreen;
+    if (!isFullscreen || wasFullscreen || isVideo) return;
+    window.clearTimeout(idleTimerRef.current);
+    setIdle(true);
+  }, [isFullscreen, isVideo]);
 
   useEffect(() => {
     setLayers((current) => {
@@ -305,40 +366,84 @@ function GalleryLightboxContent({
     [items, index, autoplay, getVideoHandle, onNavigate]
   );
 
-  const requestPageFullscreen = useCallback(() => {
-    const page = document.documentElement;
-    return page.requestFullscreen({ navigationUI: "hide" }).then(() => {
-      ownsFullscreenRef.current = true;
-    });
+  const holdPage = useCallback(() => {
+    if (pageHeldRef.current) return;
+    pageHeldRef.current = true;
+    acquirePageHold();
   }, []);
 
-  const exitPageFullscreen = useCallback(() => {
-    if (!ownsFullscreenRef.current) return;
+  const releasePage = useCallback(() => {
+    if (!pageHeldRef.current) return;
+    pageHeldRef.current = false;
+    releasePageHold();
+  }, []);
+
+  const requestViewerFullscreen = useCallback(() => {
+    const viewer = rootRef.current;
+    if (!viewer) return Promise.reject(new Error("Viewer is not mounted"));
+
+    holdPage();
+    pendingFullscreenRequestsRef.current += 1;
+    leavingFullscreenRef.current = false;
+
+    return enterElementFullscreen(viewer).then(
+      () => {
+        pendingFullscreenRequestsRef.current -= 1;
+        if (unmountedRef.current || leavingFullscreenRef.current) return;
+        ownsFullscreenRef.current = true;
+        if (document.fullscreenElement === viewer) {
+          setIsFullscreenActive(true);
+          setEnteringFullscreen(false);
+        }
+      },
+      (error: unknown) => {
+        pendingFullscreenRequestsRef.current -= 1;
+        releasePage();
+        throw error;
+      }
+    );
+  }, [holdPage, releasePage]);
+
+  const exitViewerFullscreen = useCallback(() => {
+    if (
+      !ownsFullscreenRef.current &&
+      pendingFullscreenRequestsRef.current === 0
+    )
+      return;
     ownsFullscreenRef.current = false;
-    if (document.fullscreenElement) {
-      document.exitFullscreen().catch(() => {});
-    }
+    leavingFullscreenRef.current = true;
+    leaveFullscreen();
   }, []);
 
   const toggleFullscreen = useCallback(() => {
     if (closeOnFullscreenExitRef.current) {
       close();
-    } else if (ownsFullscreenRef.current) {
-      exitPageFullscreen();
+    } else if (
+      !leavingFullscreenRef.current &&
+      (ownsFullscreenRef.current || pendingFullscreenRequestsRef.current > 0)
+    ) {
+      exitViewerFullscreen();
     } else {
-      requestPageFullscreen().catch(() => {});
+      requestViewerFullscreen().catch(() => {});
     }
-  }, [close, exitPageFullscreen, requestPageFullscreen]);
+  }, [close, exitViewerFullscreen, requestViewerFullscreen]);
 
   useEffect(() => {
     const onFullscreenChange = () => {
       const active =
-        document.fullscreenElement === document.documentElement &&
-        ownsFullscreenRef.current;
+        document.fullscreenElement !== null &&
+        document.fullscreenElement === rootRef.current;
 
-      if (!active) {
+      if (active) {
+        if (!ownsFullscreenRef.current) return;
+      } else {
+        if (!ownsFullscreenRef.current && !leavingFullscreenRef.current) {
+          return;
+        }
         ownsFullscreenRef.current = false;
+        leavingFullscreenRef.current = false;
         lastFullscreenExitRef.current = performance.now();
+        if (pendingFullscreenRequestsRef.current === 0) releasePage();
         if (closeOnFullscreenExitRef.current) {
           flushSync(close);
           return;
@@ -354,20 +459,13 @@ function GalleryLightboxContent({
     return () => {
       document.removeEventListener("fullscreenchange", onFullscreenChange);
     };
-  }, [close]);
+  }, [close, releasePage]);
 
   useEffect(() => {
     const root = rootRef.current;
-    if (!root || !closeOnFullscreenExitRef.current || openFadeDoneRef.current) {
-      return undefined;
-    }
+    if (!root || openFadeDone) return undefined;
 
-    const releasePageLayout = freezePageLayout();
-
-    const finishOpenFade = () => {
-      openFadeDoneRef.current = true;
-      releasePageLayout();
-    };
+    const finishOpenFade = () => setOpenFadeDone(true);
 
     const onAnimationEnd = (event: AnimationEvent) => {
       if (event.target === root) finishOpenFade();
@@ -382,9 +480,8 @@ function GalleryLightboxContent({
     return () => {
       root.removeEventListener("animationend", onAnimationEnd);
       window.clearTimeout(fallbackTimer);
-      releasePageLayout();
     };
-  }, []);
+  }, [openFadeDone]);
 
   useEffect(() => {
     if (
@@ -392,23 +489,37 @@ function GalleryLightboxContent({
       !initialFullscreenRequestedRef.current
     ) {
       initialFullscreenRequestedRef.current = true;
-      requestPageFullscreen().catch(() => {
+      requestViewerFullscreen().catch(() => {
         if (ownsFullscreenRef.current) return;
         closeOnFullscreenExitRef.current = false;
         setEnteringFullscreen(false);
       });
     }
-  }, [requestPageFullscreen]);
+  }, [requestViewerFullscreen]);
 
   useEffect(() => {
+    unmountedRef.current = false;
+    if (pendingFullscreenRequestsRef.current > 0 || ownsFullscreenRef.current) {
+      holdPage();
+    }
+
     return () => {
-      if (!ownsFullscreenRef.current) return;
-      ownsFullscreenRef.current = false;
-      if (document.fullscreenElement) {
-        document.exitFullscreen().catch(() => {});
-      }
+      unmountedRef.current = true;
+      queueMicrotask(() => {
+        if (!unmountedRef.current) return;
+        const needsExit =
+          ownsFullscreenRef.current ||
+          leavingFullscreenRef.current ||
+          pendingFullscreenRequestsRef.current > 0;
+        ownsFullscreenRef.current = false;
+        if (needsExit) {
+          leaveFullscreen().finally(releasePage);
+        } else {
+          releasePage();
+        }
+      });
     };
-  }, []);
+  }, [holdPage, releasePage]);
 
   useEffect(() => {
     const previouslyFocused = document.activeElement as HTMLElement | null;
@@ -427,7 +538,7 @@ function GalleryLightboxContent({
         if (closeOnFullscreenExitRef.current) {
           close();
         } else {
-          exitPageFullscreen();
+          exitViewerFullscreen();
         }
         return;
       }
@@ -516,7 +627,7 @@ function GalleryLightboxContent({
     getVideoHandle,
     navigate,
     close,
-    exitPageFullscreen,
+    exitViewerFullscreen,
     toggleFullscreen,
     wake,
   ]);
@@ -594,7 +705,7 @@ function GalleryLightboxContent({
       pointerOverChromeRef.current =
         event.target instanceof Element &&
         event.target.closest("[data-gallery-chrome]") !== null;
-      wake();
+      if (isPointerActivity(event)) wake();
     };
 
     const onPointerLeave = () => {
@@ -648,199 +759,204 @@ function GalleryLightboxContent({
   const showFilmstrip = items.length > 1 && !(isFullscreen && isVideo);
 
   return (
-    <div
-      ref={rootRef}
-      className={cn("gallery-lightbox", {
-        "gallery-lightbox--fullscreen": isFullscreen,
-        "gallery-lightbox--chrome-hidden": chromeHidden,
-        "gallery-lightbox--with-filmstrip": showFilmstrip,
-        "gallery-lightbox--titlebar-offset":
-          !isFullscreen && (platform === "win32" || platform === "darwin"),
-      })}
-      style={
-        {
-          "--layer-fade-duration": `${LAYER_FADE_MS}ms`,
-          "--open-fade-duration": `${OPEN_FADE_MS}ms`,
-        } as React.CSSProperties
-      }
-      role="dialog"
+    <dialog
+      open
+      className="gallery-lightbox-dialog"
+      data-hydra-dialog
       aria-modal="true"
       aria-label={item.alt}
-      tabIndex={-1}
     >
-      <div className="gallery-lightbox__stage">
-        {layers.map((layer, position) => {
-          const layerItem = items[layer.index];
-          if (!layerItem) return null;
-
-          const topLayer = layers[layers.length - 1];
-          const isTop = position === layers.length - 1;
-
-          return (
-            <div
-              key={layer.key}
-              className={cn("gallery-lightbox__layer", {
-                "gallery-lightbox__layer--visible": layer.ready,
-                "gallery-lightbox__layer--inactive": !isTop,
-                "gallery-lightbox__layer--leaving": !isTop && topLayer.ready,
-              })}
-            >
-              {layerItem.type === "video" ? (
-                videoHosts.has(layerItem.id) && (
-                  <GalleryVideoSlot
-                    host={videoHosts.get(layerItem.id)!}
-                    mode="borrow"
-                  />
-                )
-              ) : (
-                <GalleryLightboxImage
-                  item={layerItem}
-                  isFullscreen={isFullscreen}
-                  onReady={() => markLayerReady(layer.key)}
-                  onToggleFullscreen={toggleFullscreen}
-                />
-              )}
-            </div>
-          );
-        })}
-      </div>
-
       <div
-        className="gallery-lightbox__top-bar gallery-lightbox__chrome"
-        data-gallery-chrome
+        ref={rootRef}
+        className={cn("gallery-lightbox", {
+          "gallery-lightbox--fullscreen": isFullscreen,
+          "gallery-lightbox--chrome-hidden": chromeHidden,
+          "gallery-lightbox--with-filmstrip": showFilmstrip,
+          "gallery-lightbox--titlebar-offset":
+            !isFullscreen && (platform === "win32" || platform === "darwin"),
+        })}
+        style={
+          {
+            "--layer-fade-duration": `${LAYER_FADE_MS}ms`,
+            "--open-fade-duration": `${OPEN_FADE_MS}ms`,
+          } as React.CSSProperties
+        }
+        tabIndex={-1}
       >
-        <div className="gallery-lightbox__heading">
-          <span className="gallery-lightbox__counter">
-            {index + 1} / {items.length}
-          </span>
-          <span className="gallery-lightbox__title">{item.alt}</span>
+        <div className="gallery-lightbox__stage">
+          {layers.map((layer, position) => {
+            const layerItem = items[layer.index];
+            if (!layerItem) return null;
+
+            const topLayer = layers[layers.length - 1];
+            const isTop = position === layers.length - 1;
+
+            return (
+              <div
+                key={layer.key}
+                className={cn("gallery-lightbox__layer", {
+                  "gallery-lightbox__layer--visible": layer.ready,
+                  "gallery-lightbox__layer--inactive": !isTop,
+                  "gallery-lightbox__layer--leaving": !isTop && topLayer.ready,
+                })}
+              >
+                {layerItem.type === "video" ? (
+                  videoHosts.has(layerItem.id) && (
+                    <GalleryVideoSlot
+                      host={videoHosts.get(layerItem.id)!}
+                      mode="borrow"
+                    />
+                  )
+                ) : (
+                  <GalleryLightboxImage
+                    item={layerItem}
+                    isFullscreen={isFullscreen}
+                    onReady={() => markLayerReady(layer.key)}
+                    onToggleFullscreen={toggleFullscreen}
+                  />
+                )}
+              </div>
+            );
+          })}
         </div>
 
-        {!isFullscreen && (
-          <button
-            type="button"
-            onClick={close}
-            onMouseDown={preventFocusOnClick}
-            className="gallery-lightbox__icon-button"
-            aria-label={t("close")}
-            data-tooltip-id={GALLERY_VIEWER_TOOLTIP_ID}
-            data-tooltip-content={`${t("close")} (Esc)`}
-            data-tooltip-place="bottom"
-          >
-            <XIcon size={20} />
-          </button>
-        )}
-      </div>
-
-      {isFullscreen && !isVideo && !showFilmstrip && (
-        <button
-          type="button"
-          onClick={toggleFullscreen}
-          onMouseDown={preventFocusOnClick}
-          className="gallery-lightbox__corner-button gallery-lightbox__chrome"
-          aria-label={t("exit_fullscreen")}
-          data-tooltip-id={GALLERY_VIEWER_TOOLTIP_ID}
-          data-tooltip-content={`${t("exit_fullscreen")} (F)`}
-          data-tooltip-place="top"
-          data-gallery-chrome
-        >
-          <CornersIn size={34} weight="bold" />
-        </button>
-      )}
-
-      <Tooltip
-        id={GALLERY_VIEWER_TOOLTIP_ID}
-        positionStrategy="fixed"
-        style={{ zIndex: 10 }}
-      />
-
-      <button
-        type="button"
-        onClick={() => navigate(index - 1)}
-        onMouseDown={preventFocusOnClick}
-        disabled={!hasPrevious}
-        className={cn(
-          "gallery-lightbox__nav-button gallery-lightbox__nav-button--left gallery-lightbox__chrome",
-          { "gallery-lightbox__nav-button--hidden": !hasPrevious }
-        )}
-        aria-label={t("previous_media")}
-        data-gallery-chrome
-      >
-        <ChevronLeftIcon size={28} />
-      </button>
-
-      <button
-        type="button"
-        onClick={() => navigate(index + 1)}
-        onMouseDown={preventFocusOnClick}
-        disabled={!hasNext}
-        className={cn(
-          "gallery-lightbox__nav-button gallery-lightbox__nav-button--right gallery-lightbox__chrome",
-          { "gallery-lightbox__nav-button--hidden": !hasNext }
-        )}
-        aria-label={t("next_media")}
-        data-gallery-chrome
-      >
-        <ChevronRightIcon size={28} />
-      </button>
-
-      {showFilmstrip && (
         <div
-          className="gallery-lightbox__filmstrip gallery-lightbox__chrome"
+          className="gallery-lightbox__top-bar gallery-lightbox__chrome"
           data-gallery-chrome
         >
-          <div
-            ref={filmstripRef}
-            className={cn("gallery-lightbox__filmstrip-track", {
-              "gallery-lightbox__filmstrip-track--dragging":
-                filmstripDrag.dragging,
-            })}
-            {...filmstripDrag.handlers}
-          >
-            {items.map((media, mediaIndex) => (
-              <button
-                key={media.id}
-                type="button"
-                className={cn("gallery-lightbox__thumbnail", {
-                  "gallery-lightbox__thumbnail--active": mediaIndex === index,
-                })}
-                onClick={() => navigate(mediaIndex)}
-                onMouseDown={preventFocusOnClick}
-                aria-label={media.alt}
-                aria-current={mediaIndex === index}
-              >
-                <img
-                  src={media.thumbnail ?? media.poster ?? media.src}
-                  alt=""
-                  draggable={false}
-                  loading="lazy"
-                />
-                {media.type === "video" && (
-                  <span className="gallery-lightbox__thumbnail-play">
-                    <Play size={12} weight="fill" />
-                  </span>
-                )}
-              </button>
-            ))}
+          <div className="gallery-lightbox__heading">
+            <span className="gallery-lightbox__counter">
+              {index + 1} / {items.length}
+            </span>
+            <span className="gallery-lightbox__title">{item.alt}</span>
           </div>
 
-          {isFullscreen && !isVideo && (
+          {!isFullscreen && (
             <button
               type="button"
-              onClick={toggleFullscreen}
+              onClick={close}
               onMouseDown={preventFocusOnClick}
-              className="gallery-lightbox__filmstrip-exit"
-              aria-label={t("exit_fullscreen")}
+              className="gallery-lightbox__icon-button"
+              aria-label={t("close")}
               data-tooltip-id={GALLERY_VIEWER_TOOLTIP_ID}
-              data-tooltip-content={`${t("exit_fullscreen")} (F)`}
-              data-tooltip-place="top"
+              data-tooltip-content={`${t("close")} (Esc)`}
+              data-tooltip-place="bottom"
             >
-              <CornersIn size={34} weight="bold" />
+              <XIcon size={20} />
             </button>
           )}
         </div>
-      )}
-    </div>
+
+        {isFullscreen && !isVideo && !showFilmstrip && (
+          <button
+            type="button"
+            onClick={toggleFullscreen}
+            onMouseDown={preventFocusOnClick}
+            className="gallery-lightbox__corner-button gallery-lightbox__chrome"
+            aria-label={t("exit_fullscreen")}
+            data-tooltip-id={GALLERY_VIEWER_TOOLTIP_ID}
+            data-tooltip-content={`${t("exit_fullscreen")} (F)`}
+            data-tooltip-place="top"
+            data-gallery-chrome
+          >
+            <CornersIn size={34} weight="bold" />
+          </button>
+        )}
+
+        <Tooltip
+          id={GALLERY_VIEWER_TOOLTIP_ID}
+          positionStrategy="fixed"
+          style={{ zIndex: 10 }}
+        />
+
+        <button
+          type="button"
+          onClick={() => navigate(index - 1)}
+          onMouseDown={preventFocusOnClick}
+          disabled={!hasPrevious}
+          className={cn(
+            "gallery-lightbox__nav-button gallery-lightbox__nav-button--left gallery-lightbox__chrome",
+            { "gallery-lightbox__nav-button--hidden": !hasPrevious }
+          )}
+          aria-label={t("previous_media")}
+          data-gallery-chrome
+        >
+          <ChevronLeftIcon size={28} />
+        </button>
+
+        <button
+          type="button"
+          onClick={() => navigate(index + 1)}
+          onMouseDown={preventFocusOnClick}
+          disabled={!hasNext}
+          className={cn(
+            "gallery-lightbox__nav-button gallery-lightbox__nav-button--right gallery-lightbox__chrome",
+            { "gallery-lightbox__nav-button--hidden": !hasNext }
+          )}
+          aria-label={t("next_media")}
+          data-gallery-chrome
+        >
+          <ChevronRightIcon size={28} />
+        </button>
+
+        {showFilmstrip && (
+          <div
+            className="gallery-lightbox__filmstrip gallery-lightbox__chrome"
+            data-gallery-chrome
+          >
+            <div
+              ref={filmstripRef}
+              className={cn("gallery-lightbox__filmstrip-track", {
+                "gallery-lightbox__filmstrip-track--dragging":
+                  filmstripDrag.dragging,
+              })}
+              {...filmstripDrag.handlers}
+            >
+              {items.map((media, mediaIndex) => (
+                <button
+                  key={media.id}
+                  type="button"
+                  className={cn("gallery-lightbox__thumbnail", {
+                    "gallery-lightbox__thumbnail--active": mediaIndex === index,
+                  })}
+                  onClick={() => navigate(mediaIndex)}
+                  onMouseDown={preventFocusOnClick}
+                  aria-label={media.alt}
+                  aria-current={mediaIndex === index}
+                >
+                  <img
+                    src={media.thumbnail ?? media.poster ?? media.src}
+                    alt=""
+                    draggable={false}
+                    loading="lazy"
+                  />
+                  {media.type === "video" && (
+                    <span className="gallery-lightbox__thumbnail-play">
+                      <Play size={12} weight="fill" />
+                    </span>
+                  )}
+                </button>
+              ))}
+            </div>
+
+            {isFullscreen && !isVideo && (
+              <button
+                type="button"
+                onClick={toggleFullscreen}
+                onMouseDown={preventFocusOnClick}
+                className="gallery-lightbox__filmstrip-exit"
+                aria-label={t("exit_fullscreen")}
+                data-tooltip-id={GALLERY_VIEWER_TOOLTIP_ID}
+                data-tooltip-content={`${t("exit_fullscreen")} (F)`}
+                data-tooltip-place="top"
+              >
+                <CornersIn size={34} weight="bold" />
+              </button>
+            )}
+          </div>
+        )}
+      </div>
+    </dialog>
   );
 }
 

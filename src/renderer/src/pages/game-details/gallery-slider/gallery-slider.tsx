@@ -76,6 +76,7 @@ export function GallerySlider() {
   const [lightbox, setLightbox] = useState<{
     index: number;
     fullscreen: boolean;
+    chromeHidden: boolean;
   } | null>(null);
   const [presentation, setPresentation] =
     useState<GalleryViewerPresentation | null>(null);
@@ -234,8 +235,20 @@ export function GallerySlider() {
         }
       });
 
-      setVideoHoldsChrome(true);
-      setLightbox({ index, fullscreen });
+      const controls =
+        target?.type === "video"
+          ? playerHandlesRef.current.get(target.id)?.getControlsState()
+          : undefined;
+      const chromeHidden = controls?.hidden ?? false;
+
+      setVideoHoldsChrome(controls?.held ?? true);
+      setPresentation({
+        isFullscreen: fullscreen,
+        chromeHidden,
+        activeVideoId: target?.type === "video" ? target.id : null,
+        borrowedVideoIds: [],
+      });
+      setLightbox({ index, fullscreen, chromeHidden });
     },
     [mediaItems]
   );
@@ -477,6 +490,7 @@ export function GallerySlider() {
             <img
               src={media.thumbnail}
               className="gallery-slider__preview-image"
+              draggable={false}
               alt={t("screenshot", { number: String(i + 1) })}
             />
             {media.type === "video" && (
@@ -503,6 +517,7 @@ export function GallerySlider() {
         items={mediaItems}
         index={lightbox?.index ?? 0}
         fullscreen={lightbox?.fullscreen}
+        initialChromeHidden={lightbox?.chromeHidden}
         videoHosts={videoHosts}
         videoHoldsChrome={videoHoldsChrome}
         toggleFullscreenRef={toggleViewerFullscreenRef}

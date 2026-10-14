@@ -25,6 +25,7 @@ import {
 import { useHlsVideo } from "@shared";
 import type { GalleryMediaItem, GalleryVideoSource } from "./gallery-slider";
 import { HLS_VIDEO_TYPE } from "./gallery-media-sources";
+import { isPointerActivity } from "./gallery-shortcuts";
 import "./gallery-video-player.scss";
 
 const AUTO_QUALITY = -1;
@@ -117,6 +118,7 @@ export interface GalleryVideoPlayerHandle {
   isQualityMenuOpen: () => boolean;
   moveQualityFocus: (delta: number) => void;
   selectFocusedQuality: () => void;
+  getControlsState: () => { hidden: boolean; held: boolean };
 }
 
 interface GalleryVideoPlayerProps {
@@ -807,6 +809,9 @@ export const GalleryVideoPlayer = forwardRef<
   const resumeAfterScrubRef = useRef(false);
   const scrubRatioRef = useRef<number | null>(null);
   const inlineIdleTimerRef = useRef<number>();
+  const controlsStateRef = useRef({ hidden: false, held: false });
+  const lastViewerControlsHiddenRef = useRef(false);
+  const wasInlineRef = useRef(variant === "inline");
 
   const isHls = item.videoType === HLS_VIDEO_TYPE;
   const sources = useMemo(() => item.sources ?? [], [item.sources]);
@@ -1077,6 +1082,7 @@ export const GalleryVideoPlayer = forwardRef<
   useImperativeHandle(
     ref,
     () => ({
+      getControlsState: () => controlsStateRef.current,
       getState: () => {
         const video = videoRef.current;
         if (!video) return null;
@@ -1334,6 +1340,7 @@ export const GalleryVideoPlayer = forwardRef<
 
   const wakeInlineControls = (event?: React.PointerEvent) => {
     if (!isInline) return;
+    if (event && !isPointerActivity(event.nativeEvent)) return;
     setInlineIdle(false);
     window.clearTimeout(inlineIdleTimerRef.current);
     if ((event?.target as Element | null)?.closest("[data-gallery-chrome]")) {
@@ -1407,6 +1414,32 @@ export const GalleryVideoPlayer = forwardRef<
       viewerControlsHidden,
     });
 
+  controlsStateRef.current = { hidden: controlsHidden, held: holdChrome };
+
+  useLayoutEffect(() => {
+    if (!isInline) lastViewerControlsHiddenRef.current = viewerControlsHidden;
+  }, [isInline, viewerControlsHidden]);
+
+  useLayoutEffect(() => {
+    const wasInline = wasInlineRef.current;
+    wasInlineRef.current = isInline;
+    if (!isInline || wasInline) return;
+
+    window.clearTimeout(inlineIdleTimerRef.current);
+    if (lastViewerControlsHiddenRef.current) {
+      setInlineIdle(true);
+      setInlineKeyboardActive(false);
+      return;
+    }
+
+    setInlineIdle(false);
+    setInlineKeyboardActive(true);
+    inlineIdleTimerRef.current = window.setTimeout(() => {
+      setInlineIdle(true);
+      setInlineKeyboardActive(false);
+    }, INLINE_IDLE_TIMEOUT_MS);
+  }, [isInline]);
+
   useEffect(() => {
     onHoldChromeChange?.(holdChrome);
   }, [holdChrome, onHoldChromeChange]);
@@ -1430,6 +1463,27 @@ export const GalleryVideoPlayer = forwardRef<
   const removeVolumeIndicator = useCallback(() => {
     setVolumeIndicator((current) => (current?.hiding ? null : current));
   }, []);
+
+  const placementRef = useRef({ variant, interactive });
+  const scrubbingRef = useRef(false);
+  scrubbingRef.current = seekSlider.dragging;
+
+  useLayoutEffect(() => {
+    const previous = placementRef.current;
+    if (previous.variant === variant && previous.interactive === interactive) {
+      return;
+    }
+    placementRef.current = { variant, interactive };
+
+    window.clearTimeout(flashTimerRef.current);
+    window.clearTimeout(seekIndicatorTimerRef.current);
+    setFlash(null);
+    setSeekIndicators((current) =>
+      Object.keys(current).length > 0 ? {} : current
+    );
+    setVolumeIndicator(null);
+    if (!scrubbingRef.current) setHoverRatio(null);
+  }, [variant, interactive]);
 
   const hideSeekIndicator = useCallback(() => {
     setSeekIndicators((current) => hideSeekIndicators(current, false));
