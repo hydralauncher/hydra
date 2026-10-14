@@ -2,101 +2,126 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { it } from "node:test";
 import ts from "typescript";
+import { mergeUnlockedAchievementLists } from "../../services/achievements/merge-unlocked-achievements.ts";
 
-it("bounds the optional union request and falls back to the exact selected copy", async () => {
-  const reads: string[] = [];
-  const unlocked = [{ name: "FIRST", unlockTime: 1 }];
-  const stubs: Record<string, unknown> = {
-    "../register-event": { registerEvent: () => undefined },
-    "@main/level": {
-      db: { get: async () => null },
-      levelKeys: { userPreferences: "preferences" },
-    },
-    "@main/services/hydra-api": {
-      HydraApi: {
-        get: async (
-          _url: string,
-          params: { shop: string; objectId: string },
-          options: { timeout: number }
-        ) => {
-          assert.deepEqual(params, {
-            shop: "steam",
-            objectId: "10",
-            language: "en",
-          });
-          assert.ok(options.timeout > 0 && options.timeout <= 5000);
-          throw new Error("timeout");
+for (const combinedAvailable of [false, true]) {
+  it(`refreshes only the selected source cache before optional union (available=${combinedAvailable})`, async () => {
+    const reads: string[] = [];
+    const calls: string[] = [];
+    const unlocked = [{ name: "FIRST", unlockTime: 1 }];
+    let cached = { unlockedAchievements: unlocked };
+    const stubs: Record<string, unknown> = {
+      "../register-event": { registerEvent: () => undefined },
+      "@main/level": {
+        db: { get: async () => null },
+        levelKeys: { userPreferences: "preferences" },
+      },
+      "@main/services/hydra-api": {
+        HydraApi: {
+          get: async (
+            _url: string,
+            params: { shop: string; objectId: string },
+            options: { timeout: number }
+          ) => {
+            assert.deepEqual(calls, ["catalogue", "remote", "cache"]);
+            assert.deepEqual(params, {
+              shop: "steam",
+              objectId: "10",
+              language: "en",
+            });
+            assert.ok(options.timeout > 0 && options.timeout <= 5000);
+            if (!combinedAvailable) throw new Error("timeout");
+            return { achievements: [{ canonicalAchievementId: "union" }] };
+          },
         },
       },
-    },
-    "@main/services/achievements/achievement-watcher-manager": {
-      AchievementWatcherManager: {},
-    },
-    "@main/services/achievements/achievement-memory-store": {
-      AchievementMemoryStore: {
-        get: (shop: string, id: string) => {
-          reads.push(`${shop}:${id}`);
-          return { unlockedAchievements: unlocked };
-        },
-        set: (shop: string, id: string) => {
-          assert.equal(`${shop}:${id}`, "steam:10");
+      "@main/services/achievements/achievement-watcher-manager": {
+        AchievementWatcherManager: {},
+      },
+      "@main/services/achievements/achievement-memory-store": {
+        AchievementMemoryStore: {
+          get: (shop: string, id: string) => {
+            reads.push(`${shop}:${id}`);
+            return cached;
+          },
+          set: (shop: string, id: string, value: typeof cached) => {
+            assert.equal(`${shop}:${id}`, "steam:10");
+            calls.push("cache");
+            cached = value;
+          },
         },
       },
-    },
-    "@main/services/achievements/achievement-souvenir-store": {
-      AchievementSouvenirStore: {
-        set: () => undefined,
-        invalidate: () => undefined,
-      },
-    },
-    "@main/services/achievements/get-game-achievement-data": {
-      getGameAchievementData: async () => [
-        {
-          name: "FIRST",
-          displayName: "First",
-          icon: "icon",
-          icongray: "gray",
-          hidden: false,
+      "@main/services/achievements/achievement-souvenir-store": {
+        AchievementSouvenirStore: {
+          set: () => undefined,
+          invalidate: () => undefined,
         },
-      ],
-    },
-    "@main/services/achievements/get-achievement-souvenirs": {
-      fetchRemoteUserGameAchievements: async () => ({
-        unlocked: [],
-        achievements: [],
-        souvenirs: new Map(),
-      }),
-    },
-    "@main/services/achievements/merge-unlocked-achievements": {
-      mergeUnlockedAchievementLists: (_remote: unknown, local: unknown) =>
-        local,
-    },
-    "@main/services/achievements/combined-achievement-presentation": {
-      presentCombinedAchievements() {
-        throw new Error("Unexpected combined presentation");
       },
-    },
-  };
-  const output = ts.transpileModule(
-    readFileSync(
-      new URL("./get-unlocked-achievements.ts", import.meta.url),
-      "utf8"
-    ),
-    { compilerOptions: { module: ts.ModuleKind.CommonJS } }
-  ).outputText;
-  const exported = {} as {
-    getUnlockedAchievements: (
-      objectId: string,
-      shop: string,
-      cached: boolean
-    ) => Promise<Array<{ unlocked: boolean }>>;
-  };
-  new Function("exports", "require", output)(exported, (name: string) => {
-    assert.ok(name in stubs, name);
-    return stubs[name];
+      "@main/services/achievements/get-game-achievement-data": {
+        getGameAchievementData: async () => {
+          calls.push("catalogue");
+          return [
+            {
+              name: "FIRST",
+              displayName: "First",
+              icon: "icon",
+              icongray: "gray",
+              hidden: false,
+            },
+          ];
+        },
+      },
+      "@main/services/achievements/get-achievement-souvenirs": {
+        fetchRemoteUserGameAchievements: async () => {
+          calls.push("remote");
+          return {
+            unlocked: [{ name: "STEAM_REMOTE", unlockTime: 2 }],
+            achievements: [],
+            souvenirs: new Map(),
+          };
+        },
+      },
+      "@main/services/achievements/merge-unlocked-achievements": {
+        mergeUnlockedAchievementLists,
+      },
+      "@main/services/achievements/combined-achievement-presentation": {
+        presentCombinedAchievements() {
+          assert.ok(combinedAvailable);
+          assert.ok(
+            cached.unlockedAchievements.some(
+              (row) => row.name === "STEAM_REMOTE"
+            )
+          );
+          return [{ name: "EPIC_ONLY", unlocked: true }];
+        },
+      },
+    };
+    const output = ts.transpileModule(
+      readFileSync(
+        new URL("./get-unlocked-achievements.ts", import.meta.url),
+        "utf8"
+      ),
+      { compilerOptions: { module: ts.ModuleKind.CommonJS } }
+    ).outputText;
+    const exported = {} as {
+      getUnlockedAchievements: (
+        objectId: string,
+        shop: string,
+        cached: boolean
+      ) => Promise<Array<{ name: string; unlocked: boolean }>>;
+    };
+    new Function("exports", "require", output)(exported, (name: string) => {
+      assert.ok(name in stubs, name);
+      return stubs[name];
+    });
+    const rows = await exported.getUnlockedAchievements("10", "steam", true);
+    assert.equal(rows.length, 1);
+    assert.equal(rows[0].unlocked, true);
+    assert.equal(rows[0].name, combinedAvailable ? "EPIC_ONLY" : "FIRST");
+    assert.ok(reads.length > 0 && reads.every((key) => key === "steam:10"));
+    assert.deepEqual(
+      cached.unlockedAchievements.map((row) => row.name).sort(),
+      ["FIRST", "STEAM_REMOTE"]
+    );
   });
-  const rows = await exported.getUnlockedAchievements("10", "steam", true);
-  assert.equal(rows.length, 1);
-  assert.equal(rows[0].unlocked, true);
-  assert.ok(reads.length > 0 && reads.every((key) => key === "steam:10"));
-});
+}

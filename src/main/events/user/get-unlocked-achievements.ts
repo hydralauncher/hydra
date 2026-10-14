@@ -30,23 +30,6 @@ export const getUnlockedAchievements = async (
   const showHiddenAchievementsDescription =
     userPreferences?.showHiddenAchievementsDescription || false;
 
-  if (shop === "steam" || shop === "epic") {
-    const combined = await HydraApi.get<CombinedAchievements>(
-      "/profile/achievements/combined",
-      { shop, objectId, language: userPreferences?.language ?? "en" },
-      { timeout: COMBINED_ACHIEVEMENTS_TIMEOUT_MS }
-    ).catch(() => null);
-    if (combined?.achievements.length) {
-      return presentCombinedAchievements(
-        combined,
-        (sourceShop, sourceObjectId) =>
-          AchievementMemoryStore.get(sourceShop, sourceObjectId)
-            ?.unlockedAchievements ?? [],
-        showHiddenAchievementsDescription
-      );
-    }
-  }
-
   const achievementsData = await getGameAchievementData(
     objectId,
     shop,
@@ -93,6 +76,25 @@ export const getUnlockedAchievements = async (
         }));
 
   const souvenirs = remote.souvenirs;
+
+  // Preserve the selected copy's catalogue/cache refresh and sync side effects.
+  // The union is a display projection and must never replace that source state.
+  if (shop === "steam" || shop === "epic") {
+    const combined = await HydraApi.get<CombinedAchievements>(
+      "/profile/achievements/combined",
+      { shop, objectId, language: userPreferences?.language ?? "en" },
+      { timeout: COMBINED_ACHIEVEMENTS_TIMEOUT_MS }
+    ).catch(() => null);
+    if (combined?.achievements.length) {
+      return presentCombinedAchievements(
+        combined,
+        (sourceShop, sourceObjectId) =>
+          AchievementMemoryStore.get(sourceShop, sourceObjectId)
+            ?.unlockedAchievements ?? [],
+        showHiddenAchievementsDescription
+      );
+    }
+  }
 
   return catalogueAchievements
     .map((achievementData) => {

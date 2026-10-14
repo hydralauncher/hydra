@@ -16,6 +16,9 @@ Epic. Distinct achievements stay separate; original localized names are kept.
 Both provider timestamps remain in `sources`.
 
 Unsynced local unlocks are matched only within their original store and game.
+The original selected-copy catalogue, remote-unlock and souvenir refresh always
+runs first, including when the combined response succeeds. This keeps source
+caches current for subsequent detection/sync without importing the union into them.
 The combined list is a read-only presentation projection: it never writes into
 `AchievementMemoryStore`, uploads one store's unlocks to another, or changes
 Steam/Epic synchronization. API absence/failure falls back to the previous
