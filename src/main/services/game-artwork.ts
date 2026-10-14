@@ -37,7 +37,7 @@ const epicIconRequests = new Map<string, Promise<string>>();
 async function cacheEpicIcon(url: URL): Promise<string> {
   const source = url.href;
   const cachedRequest = epicIconRequests.get(source);
-  if (cachedRequest) return cachedRequest;
+  if (cachedRequest !== undefined) return cachedRequest;
   const pending = (async () => {
     const directory = path.join(ASSETS_PATH, "epic-icons");
     const filename = crypto
@@ -97,30 +97,35 @@ async function resolveLargeEpicIcon(items: ArtworkItem[]) {
   const candidates = items
     .filter((item) => item && !item.nsfw && !item.humor)
     .sort((left, right) => right.score - left.score);
-  let failed = false;
-  let attempts = 0;
-  for (const item of candidates) {
-    // ICO files are decoded by SGDB; their provided thumbnail is a PNG.
-    const source =
-      item.width === 0 && item.height === 0 ? item.thumb : item.url;
-    const url = parseCoverPosterRemoteUrl(source);
-    if (
-      !url ||
-      !(
-        url.hostname === "steamgriddb.com" ||
-        url.hostname.endsWith(".steamgriddb.com")
-      ) ||
-      !/^\/(icon|icon_thumb)\//.test(url.pathname)
-    )
-      continue;
-    if (attempts++ >= EPIC_ICON_MAX_ATTEMPTS) break;
+  const urls = candidates
+    .flatMap((item) => {
+      // ICO files are decoded by SGDB; their provided thumbnail is a PNG.
+      const source =
+        item.width === 0 && item.height === 0 ? item.thumb : item.url;
+      const url = parseCoverPosterRemoteUrl(source);
+      if (
+        !url ||
+        !(
+          url.hostname === "steamgriddb.com" ||
+          url.hostname.endsWith(".steamgriddb.com")
+        ) ||
+        !/^\/(icon|icon_thumb)\//.test(url.pathname)
+      )
+        return [];
+      return [url];
+    })
+    .slice(0, EPIC_ICON_MAX_ATTEMPTS);
+  const tryNext = async (
+    index: number
+  ): Promise<{ url: string | null; failed: boolean }> => {
+    if (index >= urls.length) return { url: null, failed: urls.length > 0 };
     try {
-      return { url: await cacheEpicIcon(url), failed: false };
+      return { url: await cacheEpicIcon(urls[index]), failed: false };
     } catch {
-      failed = true;
+      return tryNext(index + 1);
     }
-  }
-  return { url: null, failed };
+  };
+  return tryNext(0);
 }
 type EpicArtworkType = keyof NonNullable<
   ShopAssets["epicArtworkUpdatedAtByType"]
@@ -268,6 +273,13 @@ export async function resolveEpicDefaultArtwork(
     epicArtworkRequests.set(assets.objectId, pending);
   }
   const pages = await pending;
+  return finishEpicDefaultArtwork(preserved, pages);
+}
+
+async function finishEpicDefaultArtwork(
+  preserved: ShopAssets,
+  pages: Partial<Record<EpicArtworkType, ArtworkPage>>
+) {
   const artwork = composeEpicDefaultArtworkPages(
     preserved,
     {
@@ -277,18 +289,17 @@ export async function resolveEpicDefaultArtwork(
     },
     Date.now()
   );
-  if (pages.icon && !artwork.iconUrl) {
-    const icon = await resolveLargeEpicIcon(pages.icon.items);
-    if (icon.url) artwork.iconUrl = icon.url;
-    else if (icon.failed) {
-      // A download failure must be retried rather than cached as absent for eight hours.
-      artwork.iconUrl = preserved.iconUrl;
-      if (artwork.epicArtworkUpdatedAtByType) {
-        if (preserved.epicArtworkUpdatedAtByType?.icon !== undefined)
-          artwork.epicArtworkUpdatedAtByType.icon =
-            preserved.epicArtworkUpdatedAtByType.icon;
-        else delete artwork.epicArtworkUpdatedAtByType.icon;
-      }
+  if (!pages.icon || artwork.iconUrl) return artwork;
+  const icon = await resolveLargeEpicIcon(pages.icon.items);
+  if (icon.url) artwork.iconUrl = icon.url;
+  else if (icon.failed) {
+    // A download failure must be retried rather than cached as absent for eight hours.
+    artwork.iconUrl = preserved.iconUrl;
+    if (artwork.epicArtworkUpdatedAtByType) {
+      if (preserved.epicArtworkUpdatedAtByType?.icon !== undefined)
+        artwork.epicArtworkUpdatedAtByType.icon =
+          preserved.epicArtworkUpdatedAtByType.icon;
+      else delete artwork.epicArtworkUpdatedAtByType.icon;
     }
   }
   return artwork;

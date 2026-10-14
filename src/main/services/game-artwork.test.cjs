@@ -152,6 +152,41 @@ test("Epic icons use a bounded PNG cache with safe fallbacks", async () => {
   const failedResult = await failed.resolveEpicDefaultArtwork(assets("failed"));
   assert.equal(failedResult.iconUrl, null);
   assert.equal(failedResult.epicArtworkUpdatedAtByType.icon, undefined);
+  let failNext = true;
+  const retry = service(
+    [item({ url: "https://cdn2.steamgriddb.com/icon/retry.png" })],
+    async () => {
+      if (failNext) {
+        failNext = false;
+        throw Error("temporary timeout");
+      }
+      return png;
+    }
+  );
+  const expiredTimestamp =
+    Date.now() - retry.EPIC_ARTWORK_CACHE_DURATION_MS - 1;
+  const expired = {
+    ...assets("retry"),
+    iconUrl: "local:previous-icon",
+    epicArtworkUpdatedAtByType: { icon: expiredTimestamp },
+  };
+  const preservedAfterFailure = await retry.resolveEpicDefaultArtwork(
+    assets("retry"),
+    expired
+  );
+  assert.equal(preservedAfterFailure.iconUrl, expired.iconUrl);
+  assert.equal(
+    preservedAfterFailure.epicArtworkUpdatedAtByType.icon,
+    expiredTimestamp
+  );
+  const recovered = await retry.resolveEpicDefaultArtwork(
+    assets("retry"),
+    preservedAfterFailure
+  );
+  assert.match(recovered.iconUrl, /^local:/);
+  assert.notEqual(recovered.iconUrl, expired.iconUrl);
+  assert.equal(retry.downloads(), 2);
+  assert.ok(recovered.epicArtworkUpdatedAtByType.icon > expiredTimestamp);
   const foreign = service(
     [item({ url: "https://evil.invalid/icon/large.png" })],
     async () => {
