@@ -620,6 +620,7 @@
     "move_down": "Move down"
   },
   "settings": {
+    "epic_sync_partial": "بازی‌ها و زمان بازی همگام‌سازی شدند؛ همگام‌سازی دستاوردهای {{count}} بازی دوباره امتحان خواهد شد.",
     "hide_library_steam_badges": "پنهان کردن نشان‌های اتصال به کتابخانه Steam",
     "epic_games": "Epic Games",
     "epic_description": "Link your Epic Games account to Hydra.",

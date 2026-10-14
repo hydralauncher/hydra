@@ -313,7 +313,13 @@ test("two initial copies require a choice and stale conflict choices cannot over
   await fsp.writeFile(path.join(f.local, "profile.sav"), "local");
   await fsp.writeFile(path.join(f.remote, "profile.sav"), "cloud");
   f.state.manifest = "2026.10.14-10.00.00.manifest";
-  assert.equal((await f.service.sync("Namespace:Item")).status, "conflict");
+  const conflict = await f.service.sync("Namespace:Item");
+  assert.equal(conflict.status, "conflict");
+  assert.equal(
+    conflict.localModifiedAt,
+    (await fsp.stat(path.join(f.local, "profile.sav"))).mtime.toISOString()
+  );
+  assert.equal(conflict.remoteModifiedAt, "2026-10-14T10:00:00.000Z");
   const old = f.state.manifest;
   f.state.manifest = "2026.10.14-11.00.00.manifest";
   assert.equal(
@@ -327,6 +333,10 @@ test("two initial copies require a choice and stale conflict choices cannot over
     "conflict"
   );
   assert.equal(f.state.uploads, 0);
+  const lastState = f.state.events.at(
+    -1
+  ) as import("@types").EpicCloudSaveState;
+  assert.equal(lastState.remoteModifiedAt, "2026-10-14T11:00:00.000Z");
   assert.equal(
     (
       await f.service.resolveConflict({

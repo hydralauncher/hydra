@@ -840,6 +840,7 @@
     "move_down": "Di chuyển xuống"
   },
   "settings": {
+    "epic_sync_partial": "Đã đồng bộ trò chơi và thời gian chơi; sẽ thử lại việc đồng bộ thành tích của {{count}} trò chơi.",
     "hide_library_steam_badges": "Ẩn huy hiệu kết nối Thư viện Steam",
     "epic_games": "Epic Games",
     "epic_description": "Link your Epic Games account to Hydra.",

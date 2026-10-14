@@ -623,6 +623,7 @@
     "move_down": "Move down"
   },
   "settings": {
+    "epic_sync_partial": "S'han sincronitzat els jocs i el temps de joc; es tornarà a intentar sincronitzar els assoliments de {{count}} jocs.",
     "hide_library_steam_badges": "Amaga les insígnies de connexió amb la biblioteca de Steam",
     "epic_games": "Epic Games",
     "epic_description": "Link your Epic Games account to Hydra.",

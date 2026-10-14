@@ -624,6 +624,7 @@
     "move_down": "Move down"
   },
   "settings": {
+    "epic_sync_partial": "Spiele und Spielzeit wurden synchronisiert; Erfolge für {{count}} Spiele werden erneut synchronisiert.",
     "hide_library_steam_badges": "Abzeichen für die Steam-Bibliotheksverbindung ausblenden",
     "epic_games": "Epic Games",
     "epic_description": "Link your Epic Games account to Hydra.",

@@ -271,7 +271,7 @@ export class EpicDownloadService {
         controller.signal
       );
       const downloadPath = await this.validateBasePath(payload.downloadPath);
-      const installed = await this.options.installation.readInstalled(
+      const installed = await this.options.installation.readInstalledForRepair(
         prepared.target,
         payload.epicObjectId
       );
@@ -494,22 +494,11 @@ export class EpicDownloadService {
         throw new EpicManagedError("operation-cancelled");
     };
     try {
-      let existing: EpicInstalledGame | null;
-      try {
-        existing = await this.options.installation.readInstalled(
-          target,
-          owned.game.objectId,
-          destination
-        );
-      } catch (error) {
-        // Legendary must repair partial manifests instead of blocking every resume.
-        if (
-          !(error instanceof EpicManagedError) ||
-          error.code !== "installation-incomplete"
-        )
-          throw error;
-        existing = null;
-      }
+      const existing = await this.options.installation.readInstalledForRepair(
+        target,
+        owned.game.objectId,
+        destination
+      );
       assertActive();
       if (!existing || existing.version !== active.version) {
         await this.options.runtime.stream(

@@ -6,6 +6,7 @@ import {
   parseEpicAchievementTargets,
 } from "./achievement-protocol.js";
 import type { EpicSnapshotGame } from "../../../types/epic-integration.types";
+import { EPIC_SNAPSHOT_CHUNK_GAMES } from "./constants.js";
 
 const context = {
   auth: { userId: "HydraA", environment: "https://api.test", generation: 1 },
@@ -49,6 +50,40 @@ const game = (id = "item"): EpicSnapshotGame => ({
   playTimeInSeconds: 0,
 });
 const session = { token: async () => "private-test-token" };
+
+test("queries achievements before resolving later batches and reuses shared sandboxes", async () => {
+  let queries = 0;
+  let batches = 0;
+  const source = new EpicAchievementSource(session, async () => {
+    queries++;
+    return Response.json(payload());
+  });
+  const games = Array.from({ length: EPIC_SNAPSHOT_CHUNK_GAMES + 1 }, (_, id) =>
+    game(String(id))
+  );
+  const result = await source.collect(
+    context,
+    games,
+    new AbortController().signal,
+    async (ids) => {
+      if (++batches > 1)
+        assert.equal(
+          queries,
+          1,
+          "the first batch must already have its achievements"
+        );
+      return ids.map((objectId) => ({
+        objectId,
+        status: "supported",
+        achievementSandboxId: "primary",
+      }));
+    }
+  );
+  assert.equal(batches, 2);
+  assert.equal(queries, 1);
+  assert.ok(result.games.every((game) => game.achievements?.length === 1));
+  assert.deepEqual(result.pendingObjectIds, []);
+});
 
 test("Epic unlocks use exact set/name pairs, original UTC dates and verified identity", () => {
   const result = parseEpicPlayerAchievements(

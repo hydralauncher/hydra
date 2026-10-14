@@ -648,6 +648,7 @@
     "move_down": "Le"
   },
   "settings": {
+    "epic_sync_partial": "A játékok és a játékidő szinkronizálva; {{count}} játék eredményeinek szinkronizálását újra megpróbáljuk.",
     "hide_library_steam_badges": "A Steam-könyvtár kapcsolatjelvényeinek elrejtése",
     "epic_games": "Epic Games",
     "epic_description": "Link your Epic Games account to Hydra.",

@@ -826,8 +826,11 @@ export class EpicIntegrationCore {
         await Promise.allSettled(this.reads);
         if (!(await this.retryCleanup()))
           throw new EpicIntegrationError("cleanup-failed");
-      } finally {
         await this.dependencies.store.close();
+      } catch (error) {
+        this.stopping = false;
+        this.shuttingDown = null;
+        throw error;
       }
     })();
     return this.shuttingDown;

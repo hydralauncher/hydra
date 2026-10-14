@@ -417,10 +417,10 @@ export class EpicConnectionStore {
       await this.opening?.catch(() => undefined);
       try {
         await this.database?.close();
-      } catch {
-        throw new EpicStoreError("persistence-failed");
-      } finally {
         this.database = null;
+      } catch {
+        this.closing = null;
+        throw new EpicStoreError("persistence-failed");
       }
     })();
     return this.closing;

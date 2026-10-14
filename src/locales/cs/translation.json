@@ -624,6 +624,7 @@
     "move_down": "Move down"
   },
   "settings": {
+    "epic_sync_partial": "Hry a herní čas byly synchronizovány; synchronizace úspěchů pro {{count}} her bude znovu vyzkoušena.",
     "hide_library_steam_badges": "Skrýt odznaky připojení ke knihovně Steam",
     "epic_games": "Epic Games",
     "epic_description": "Link your Epic Games account to Hydra.",

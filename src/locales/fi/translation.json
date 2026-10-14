@@ -624,6 +624,7 @@
     "move_down": "Move down"
   },
   "settings": {
+    "epic_sync_partial": "Pelit ja peliaika synkronoitiin; {{count}} pelin saavutusten synkronointia yritetään uudelleen.",
     "hide_library_steam_badges": "Piilota Steam-kirjastoyhteyden merkit",
     "epic_games": "Epic Games",
     "epic_description": "Link your Epic Games account to Hydra.",

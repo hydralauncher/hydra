@@ -624,6 +624,7 @@
     "move_down": "Move down"
   },
   "settings": {
+    "epic_sync_partial": "تمت مزامنة الألعاب ووقت اللعب؛ ستتم إعادة محاولة مزامنة إنجازات {{count}} لعبة.",
     "hide_library_steam_badges": "إخفاء شارات الاتصال بمكتبة Steam",
     "epic_games": "Epic Games",
     "epic_description": "Link your Epic Games account to Hydra.",

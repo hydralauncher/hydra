@@ -12,9 +12,9 @@ import {
   EPIC_ACHIEVEMENT_GRAPHQL_URL,
   EPIC_ACHIEVEMENT_MAX_RESPONSE_BYTES,
   EPIC_ACHIEVEMENT_MAX_PER_SNAPSHOT,
+  EPIC_ACHIEVEMENT_MAX_GAME_BYTES,
   EPIC_SOURCE_TIMEOUT_MS,
   EPIC_SNAPSHOT_CHUNK_GAMES,
-  EPIC_SNAPSHOT_MAX_CHUNK_BYTES,
 } from "./constants.js";
 import {
   EPIC_PLAYER_ACHIEVEMENT_QUERY,
@@ -70,7 +70,7 @@ export class EpicAchievementSource {
     const signal = AbortSignal.any([parent, controller.signal]);
     const timer = setTimeout(() => controller.abort(), Math.max(1, budget));
     const results = new Map<string, EpicSnapshotGame["achievements"]>();
-    const supported = new Map<string, string[]>();
+    const completed = new Map<string, EpicSnapshotGame["achievements"]>();
     const unsupported = new Set<string>();
     const priority = new Set(pending);
     const ordered = [...games].sort(
@@ -94,9 +94,10 @@ export class EpicAchievementSource {
     try {
       for (
         let start = 0;
-        start < ordered.length && !signal.aborted;
+        start < ordered.length && !signal.aborted && !requiresReconnect;
         start += EPIC_SNAPSHOT_CHUNK_GAMES
       ) {
+        const supported = new Map<string, string[]>();
         const ids = ordered
           .slice(start, start + EPIC_SNAPSHOT_CHUNK_GAMES)
           .map(objectId);
@@ -109,6 +110,15 @@ export class EpicAchievementSource {
               progress(processed, games.length);
               continue;
             }
+            if (completed.has(target.achievementSandboxId)) {
+              results.set(
+                target.objectId,
+                completed.get(target.achievementSandboxId)
+              );
+              processed++;
+              progress(processed, games.length);
+              continue;
+            }
             const members = supported.get(target.achievementSandboxId) ?? [];
             members.push(target.objectId);
             supported.set(target.achievementSandboxId, members);
@@ -116,87 +126,94 @@ export class EpicAchievementSource {
         } catch {
           epicAbort(parent);
         }
-      }
-      const work = [...supported.entries()];
-      let next = 0;
-      await Promise.all(
-        Array.from({ length: EPIC_ACHIEVEMENT_CONCURRENCY }, async () => {
-          while (!signal.aborted && !requiresReconnect && next < work.length) {
-            const [sandbox, ids] = work[next++];
-            try {
-              let token = await this.session.token(
-                context.auth,
-                context.connection,
-                signal
-              );
-              let graphqlRefreshed = false;
-              for (;;) {
-                const response = await fetchEpicWithRetry(
-                  () =>
-                    this.fetchImpl(EPIC_ACHIEVEMENT_GRAPHQL_URL, {
-                      method: "POST",
-                      redirect: "error",
-                      signal: AbortSignal.any([
-                        signal,
-                        AbortSignal.timeout(EPIC_SOURCE_TIMEOUT_MS),
-                      ]),
-                      headers: {
-                        Authorization: `Bearer ${token}`,
-                        "Content-Type": "application/json",
-                        Accept: "application/json",
-                        "User-Agent": "EpicGamesLauncher/15.0.0",
-                        Origin: "https://store.epicgames.com",
-                        Referer: "https://store.epicgames.com/",
-                      },
-                      body: JSON.stringify({
-                        query: EPIC_PLAYER_ACHIEVEMENT_QUERY,
-                        variables: {
-                          epicAccountId: context.connection.epicAccountId,
-                          sandboxId: sandbox,
-                        },
-                      }),
-                    }),
-                  signal,
-                  async () => {
-                    token = await renew(token);
-                  }
+        // Collect each resolved batch before spending the budget on later descriptors.
+        const work = [...supported.entries()];
+        let next = 0;
+        await Promise.all(
+          Array.from({ length: EPIC_ACHIEVEMENT_CONCURRENCY }, async () => {
+            while (
+              !signal.aborted &&
+              !requiresReconnect &&
+              next < work.length
+            ) {
+              const [sandbox, ids] = work[next++];
+              try {
+                let token = await this.session.token(
+                  context.auth,
+                  context.connection,
+                  signal
                 );
-                try {
-                  const achievements = parseEpicPlayerAchievements(
-                    await readResponse(response),
-                    context.connection.epicAccountId,
-                    sandbox
+                let graphqlRefreshed = false;
+                for (;;) {
+                  const response = await fetchEpicWithRetry(
+                    () =>
+                      this.fetchImpl(EPIC_ACHIEVEMENT_GRAPHQL_URL, {
+                        method: "POST",
+                        redirect: "error",
+                        signal: AbortSignal.any([
+                          signal,
+                          AbortSignal.timeout(EPIC_SOURCE_TIMEOUT_MS),
+                        ]),
+                        headers: {
+                          Authorization: `Bearer ${token}`,
+                          "Content-Type": "application/json",
+                          Accept: "application/json",
+                          "User-Agent": "EpicGamesLauncher/15.0.0",
+                          Origin: "https://store.epicgames.com",
+                          Referer: "https://store.epicgames.com/",
+                        },
+                        body: JSON.stringify({
+                          query: EPIC_PLAYER_ACHIEVEMENT_QUERY,
+                          variables: {
+                            epicAccountId: context.connection.epicAccountId,
+                            sandboxId: sandbox,
+                          },
+                        }),
+                      }),
+                    signal,
+                    async () => {
+                      token = await renew(token);
+                    }
                   );
-                  epicAbort(signal);
-                  for (const id of ids) results.set(id, achievements);
-                  break;
-                } catch (error) {
-                  if (
-                    error instanceof EpicIntegrationError &&
-                    error.code === "session-expired" &&
-                    !graphqlRefreshed
-                  ) {
-                    graphqlRefreshed = true;
-                    token = await renew(token);
-                    continue;
+                  try {
+                    const achievements = parseEpicPlayerAchievements(
+                      await readResponse(response),
+                      context.connection.epicAccountId,
+                      sandbox
+                    );
+                    epicAbort(signal);
+                    completed.set(sandbox, achievements);
+                    for (const id of ids) results.set(id, achievements);
+                    break;
+                  } catch (error) {
+                    if (
+                      error instanceof EpicIntegrationError &&
+                      error.code === "session-expired" &&
+                      !graphqlRefreshed
+                    ) {
+                      graphqlRefreshed = true;
+                      token = await renew(token);
+                      continue;
+                    }
+                    throw error;
                   }
-                  throw error;
                 }
+              } catch (error) {
+                epicAbort(parent);
+                completed.set(sandbox, null);
+                if (
+                  error instanceof EpicIntegrationError &&
+                  error.code === "session-expired"
+                )
+                  requiresReconnect = true;
+              } finally {
+                processed += ids.length;
+                progress(processed, games.length);
               }
-            } catch (error) {
-              epicAbort(parent);
-              if (
-                error instanceof EpicIntegrationError &&
-                error.code === "session-expired"
-              )
-                requiresReconnect = true;
-            } finally {
-              processed += ids.length;
-              progress(processed, games.length);
             }
-          }
-        })
-      );
+          })
+        );
+      }
     } finally {
       clearTimeout(timer);
     }
@@ -208,7 +225,7 @@ export class EpicAchievementSource {
         achievements &&
         (count + achievements.length > EPIC_ACHIEVEMENT_MAX_PER_SNAPSHOT ||
           Buffer.byteLength(JSON.stringify({ ...game, achievements }), "utf8") >
-            EPIC_SNAPSHOT_MAX_CHUNK_BYTES / 2)
+            EPIC_ACHIEVEMENT_MAX_GAME_BYTES)
       )
         achievements = null;
       count += achievements?.length ?? 0;

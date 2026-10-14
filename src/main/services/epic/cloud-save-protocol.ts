@@ -100,6 +100,21 @@ export function resolveEpicSavePath(
 }
 
 const manifestPattern = /^\d{4}\.\d{2}\.\d{2}-\d{2}\.\d{2}\.\d{2}\.manifest$/;
+export function getEpicRemoteManifestModifiedAt(
+  manifest: string | null
+): string | null {
+  if (!manifest || !manifestPattern.test(manifest)) return null;
+  const [year, month, day, hour, minute, second] = manifest
+    .replace(".manifest", "")
+    .split(/[.-]/);
+  // Legendary generates manifest names with datetime.utcnow().
+  const timestamp = `${year}-${month}-${day}T${hour}:${minute}:${second}.000Z`;
+  const date = new Date(timestamp);
+  return Number.isFinite(date.getTime()) && date.toISOString() === timestamp
+    ? timestamp
+    : null;
+}
+
 export function parseEpicRemoteManifest(
   stdout: string,
   artifactId: string
@@ -124,7 +139,10 @@ export function parseEpicRemoteManifest(
   }
   if (selected && !manifests.length)
     throw new EpicSaveFailure("save-sync-failed");
-  return manifests.sort().at(-1) ?? null;
+  return (
+    manifests.sort((left, right) => left.localeCompare(right, "en")).at(-1) ??
+    null
+  );
 }
 
 export function assertEpicSaveCommandSucceeded(

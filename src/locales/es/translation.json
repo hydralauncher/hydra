@@ -1096,6 +1096,7 @@
     "files": "FILES"
   },
   "settings": {
+    "epic_sync_partial": "Juegos y tiempo de juego sincronizados; se volverá a intentar sincronizar los logros de {{count}} juegos.",
     "epic_games": "Epic Games",
     "epic_description": "Link your Epic Games account to Hydra.",
     "epic_status_connected": "Connected",

@@ -623,6 +623,7 @@
     "move_down": "Move down"
   },
   "settings": {
+    "epic_sync_partial": "Ойындар мен ойын уақыты синхрондалды; {{count}} ойынның жетістіктерін синхрондау қайта орындалады.",
     "hide_library_steam_badges": "Steam кітапханасына қосылу белгілерін жасыру",
     "epic_games": "Epic Games",
     "epic_description": "Link your Epic Games account to Hydra.",

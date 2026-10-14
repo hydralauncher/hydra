@@ -195,7 +195,7 @@ function fixture(t: TestContext) {
       },
     },
     "./installation": { EpicInstallationService: class {} },
-    "../logger": { logger: { warn: () => {} } },
+    "../logger": { logger: { warn: () => {}, info: () => {} } },
     "./playtime-reporter": {
       EpicPlaytimeReporter: class {
         constructor(
@@ -214,11 +214,15 @@ function fixture(t: TestContext) {
           await state.reportDrainGate;
           state.managedEvents.push("reports-drained");
         };
+        restoreAfterFailedShutdown = () => {
+          state.managedEvents.push("reports-restored");
+        };
       },
     },
     "./download": {
       EpicDownloadService: class {
         stop = async () => {};
+        getOptions = async () => ({ options: [] });
       },
       setEpicDownloadService: () => {},
     },
@@ -435,6 +439,28 @@ test("normal shutdown drains observed playtime before invalidating the runtime",
     f.state.managedEvents.indexOf("reports-drained") <
       f.state.managedEvents.indexOf("process-stopping")
   );
+});
+
+test("an aborted shutdown restores auth and permits managed operations after cleanup recovers", async (t) => {
+  const f = fixture(t);
+  await f.integration.initializeEpicIntegration();
+  const failedCleanup = Promise.reject(
+    new EpicIntegrationError("cleanup-failed")
+  );
+  void failedCleanup.catch(() => undefined);
+  f.state.managedStopGate = failedCleanup;
+  await assert.rejects(f.integration.shutdownEpicIntegration(), {
+    code: "cleanup-failed",
+  });
+  assert.equal(f.state.subscriptions, 2);
+  assert.equal(f.state.unsubscriptions, 1);
+  assert.ok(f.state.managedEvents.includes("reports-restored"));
+  f.state.managedStopGate = Promise.resolve();
+  assert.deepEqual(
+    await f.integration.getEpicGameInstallOptions("Namespace:Item"),
+    { options: [] }
+  );
+  await f.integration.shutdownEpicIntegration();
 });
 
 test("a confirmed write refreshes the captured game's remote total and ignores a later auth context", async (t) => {

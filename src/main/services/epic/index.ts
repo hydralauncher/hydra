@@ -66,7 +66,7 @@ function configureManagedEpic() {
     current: (target) =>
       !stopping &&
       !closing &&
-      !managedStop &&
+      managedStop === null &&
       (target.localOnly
         ? runtime!.currentLocal(target)
         : runtime!.current(target)),
@@ -76,7 +76,10 @@ function configureManagedEpic() {
     capture: () => runtime!.capture(),
     captureLocal: () => runtime!.captureLocal(),
     current: (context) =>
-      !stopping && !closing && !managedStop && runtime!.current(context),
+      !stopping &&
+      !closing &&
+      managedStop === null &&
+      runtime!.current(context),
     ownGame: (context, objectId, signal) =>
       runtime!.ownGame(context, objectId, signal),
     getGame: (objectId) => gamesSublevel.get(levelKeys.game("epic", objectId)),
@@ -111,10 +114,16 @@ function configureManagedEpic() {
   managedSaves = configureEpicCloudSaves(dependencies);
   managedPlaytime = new EpicPlaytimeReporter({
     session: runtime!.session,
-    current: (target) => !stopping && !managedStop && runtime!.current(target),
+    current: (target) =>
+      !stopping && managedStop === null && runtime!.current(target),
     confirmed: async (objectId, target) => {
       logger.info("Epic session playtime submission confirmed", { objectId });
-      if (stopping || closing || managedStop || !runtime!.current(target))
+      if (
+        stopping ||
+        closing ||
+        managedStop !== null ||
+        !runtime!.current(target)
+      )
         return;
       runtime!.source.clearCache();
       await runtime!.syncGame(objectId, true);
@@ -130,7 +139,7 @@ function configureManagedEpic() {
 
 /** Stop the process tree before releasing its queue slot or removing credentials. */
 function stopManagedEpic(): Promise<void> {
-  if (managedStop) return managedStop;
+  if (managedStop !== null) return managedStop;
   managedPlaytime?.invalidate();
   const operation = Promise.resolve()
     .then(async () => {
@@ -187,7 +196,7 @@ function stopManagedEpic(): Promise<void> {
 async function awaitManagedEpicReady() {
   getIntegration();
   await managedStop;
-  if (managedCleanupFailed) throw new EpicIntegrationError("cleanup-failed");
+  if (managedCleanupFailed) await stopManagedEpic();
   if (stopping || closing)
     throw new EpicIntegrationError("operation-cancelled");
 }
@@ -367,6 +376,19 @@ function getIntegration() {
   return integration;
 }
 
+function subscribeEpicAuth() {
+  if (unsubscribeAuth !== null) return;
+  unsubscribeAuth = HydraApi.onAuthContextChanged(() => {
+    runtime?.invalidate();
+    lastPublicState = null;
+    firstLinkPending = false;
+    if (integration)
+      void stopManagedEpic()
+        .then(() => integration?.authContextChanged())
+        .catch(() => undefined);
+  });
+}
+
 export async function initializeEpicIntegration() {
   if (stopping) return;
   if (unsubscribeAuth) {
@@ -386,30 +408,32 @@ export async function initializeEpicIntegration() {
   } catch {
     managedCleanupFailed = true;
   }
-  if (!unsubscribeAuth) {
-    unsubscribeAuth = HydraApi.onAuthContextChanged(() => {
-      runtime?.invalidate();
-      lastPublicState = null;
-      firstLinkPending = false;
-      if (integration)
-        void stopManagedEpic()
-          .then(() => integration?.authContextChanged())
-          .catch(() => undefined);
-    });
-  }
+  subscribeEpicAuth();
   await getIntegration().initialize();
 }
 
 export async function shutdownEpicIntegration() {
   closing = true;
-  // Flush only observations already captured; the actual game may keep running.
-  await managedPlaytime?.drain();
-  stopping = true;
-  unsubscribeAuth?.();
-  unsubscribeAuth = null;
-  await stopManagedEpic();
-  await runtime?.stop();
-  await integration?.shutdown();
+  try {
+    // Flush only observations already captured; the actual game may keep running.
+    await managedPlaytime?.drain();
+    stopping = true;
+    unsubscribeAuth?.();
+    unsubscribeAuth = null;
+    await stopManagedEpic();
+    await runtime?.stop();
+    await integration?.shutdown();
+  } catch (error) {
+    stopping = false;
+    closing = false;
+    managedPlaytime?.restoreAfterFailedShutdown();
+    subscribeEpicAuth();
+    runtime?.invalidate();
+    lastPublicState = null;
+    firstLinkPending = false;
+    void integration?.authContextChanged().catch(() => undefined);
+    throw error;
+  }
 }
 
 export const getEpicConnection = () => getIntegration().getConnection();

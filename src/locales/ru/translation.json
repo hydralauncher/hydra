@@ -1098,6 +1098,7 @@
     "move_down": "Переместить вниз"
   },
   "settings": {
+    "epic_sync_partial": "Игры и время игры синхронизированы; синхронизация достижений для {{count}} игр будет повторена.",
     "epic_games": "Epic Games",
     "epic_description": "Link your Epic Games account to Hydra.",
     "epic_status_connected": "Connected",

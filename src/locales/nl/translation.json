@@ -621,6 +621,7 @@
     "move_down": "Move down"
   },
   "settings": {
+    "epic_sync_partial": "Games en speeltijd zijn gesynchroniseerd; prestaties voor {{count}} games worden opnieuw geprobeerd.",
     "hide_library_steam_badges": "Steam-bibliotheekverbindingsbadges verbergen",
     "epic_games": "Epic Games",
     "epic_description": "Link your Epic Games account to Hydra.",

@@ -840,6 +840,7 @@
     "move_down": "Przenieś w dół"
   },
   "settings": {
+    "epic_sync_partial": "Gry i czas gry zostały zsynchronizowane; synchronizacja osiągnięć dla {{count}} gier zostanie ponowiona.",
     "hide_library_steam_badges": "Ukryj odznaki połączenia z biblioteką Steam",
     "epic_games": "Epic Games",
     "epic_description": "Link your Epic Games account to Hydra.",

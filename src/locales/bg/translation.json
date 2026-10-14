@@ -781,6 +781,7 @@
     "move_down": "Премести надолу"
   },
   "settings": {
+    "epic_sync_partial": "Игрите и времето за игра са синхронизирани; ще бъде направен нов опит за постиженията на {{count}} игри.",
     "hide_library_steam_badges": "Скриване на значките за връзка със Steam библиотеката",
     "epic_games": "Epic Games",
     "epic_description": "Link your Epic Games account to Hydra.",

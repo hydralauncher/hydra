@@ -75,6 +75,11 @@ export class EpicManagedProcessTracker {
       }
       paths.push(executable);
     }
-    return { complete, paths: [...new Set(paths)].sort() };
+    return {
+      complete,
+      paths: [...new Set(paths)].sort((left, right) =>
+        left.localeCompare(right, "en")
+      ),
+    };
   }
 }

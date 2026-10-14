@@ -4,12 +4,27 @@ import test from "node:test";
 import {
   assertEpicSaveCommandSucceeded,
   decideEpicSaveSync,
+  getEpicRemoteManifestModifiedAt,
   isEpicSaveFile,
   matchesEpicSaveFilter,
   parseEpicRemoteManifest,
   parseEpicSaveMetadata,
   resolveEpicSavePath,
 } from "./cloud-save-protocol.js";
+
+test("remote save manifest dates are UTC and invalid dates remain unknown", () => {
+  assert.equal(
+    getEpicRemoteManifestModifiedAt("2026.10.14-10.00.00.manifest"),
+    "2026-10-14T10:00:00.000Z"
+  );
+  for (const manifest of [
+    null,
+    "invalid",
+    "2026.02.31-10.00.00.manifest",
+    "2026.10.14-25.00.00.manifest",
+  ])
+    assert.equal(getEpicRemoteManifestModifiedAt(manifest), null);
+});
 
 test("reads actual Epic save metadata and Legendary inclusion/exclusion semantics", () => {
   const metadata = parseEpicSaveMetadata(

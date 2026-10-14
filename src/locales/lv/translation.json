@@ -624,6 +624,7 @@
     "move_down": "Move down"
   },
   "settings": {
+    "epic_sync_partial": "Spēles un spēlēšanas laiks sinhronizēts; {{count}} spēļu sasniegumu sinhronizācija tiks mēģināta vēlreiz.",
     "hide_library_steam_badges": "Paslēpt Steam bibliotēkas savienojuma nozīmītes",
     "epic_games": "Epic Games",
     "epic_description": "Link your Epic Games account to Hydra.",

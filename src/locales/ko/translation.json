@@ -620,6 +620,7 @@
     "move_down": "Move down"
   },
   "settings": {
+    "epic_sync_partial": "게임과 플레이 시간이 동기화되었습니다. 게임 {{count}}개의 도전 과제 동기화를 다시 시도합니다.",
     "hide_library_steam_badges": "Steam 라이브러리 연결 배지 숨기기",
     "epic_games": "Epic Games",
     "epic_description": "Link your Epic Games account to Hydra.",

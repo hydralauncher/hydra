@@ -825,6 +825,7 @@
     "files": "FILES"
   },
   "settings": {
+    "epic_sync_partial": "Giochi e tempo di gioco sincronizzati; la sincronizzazione degli obiettivi di {{count}} giochi verrà ritentata.",
     "hide_library_steam_badges": "Nascondi i badge della connessione alla libreria di Steam",
     "epic_games": "Epic Games",
     "epic_description": "Link your Epic Games account to Hydra.",

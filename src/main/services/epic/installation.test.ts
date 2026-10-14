@@ -373,6 +373,26 @@ test("installed metadata binds the manifest executable preserving import provena
   assert.equal(f.getGame().epicPlayTimeInMilliseconds, 120_000);
   assert.equal(f.getGame().favorite, true);
   assert.equal(f.getGame().customIconUrl, "custom-icon");
+  assert.equal(
+    (await f.service.getOptions(objectId)).options[0].installed,
+    true
+  );
+  await fs.writeFile(
+    path.join(f.runtime.workspace(f.target), "installed.json"),
+    JSON.stringify({ Artifact1: { ...installed, needs_verification: true } })
+  );
+  const cachedOptions = await f.service.getOptions(objectId);
+  assert.equal(cachedOptions.error, undefined);
+  assert.equal(cachedOptions.options[0].installed, false);
+  await assert.rejects(f.service.readInstalled(f.target, objectId), {
+    code: "installation-incomplete",
+  });
+  await assert.rejects(
+    f.service.readInstalledForRepair(f.target, objectId, f.root),
+    {
+      code: "invalid-path",
+    }
+  );
   for (const executable of [
     "../escape.exe",
     "C:\\outside\\Game.exe",
@@ -380,9 +400,14 @@ test("installed metadata binds the manifest executable preserving import provena
   ]) {
     await fs.writeFile(
       path.join(f.runtime.workspace(f.target), "installed.json"),
-      JSON.stringify({ Artifact1: { ...installed, executable } })
+      JSON.stringify({
+        Artifact1: { ...installed, executable, needs_verification: true },
+      })
     );
     await assert.rejects(f.service.readInstalled(f.target, objectId), {
+      code: "invalid-path",
+    });
+    await assert.rejects(f.service.readInstalledForRepair(f.target, objectId), {
       code: "invalid-path",
     });
   }

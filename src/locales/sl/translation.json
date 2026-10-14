@@ -626,6 +626,7 @@
     "move_down": "Move down"
   },
   "settings": {
+    "epic_sync_partial": "Igre in čas igranja so sinhronizirani; sinhronizacija dosežkov za {{count}} iger bo znova poskušana.",
     "hide_library_steam_badges": "Skrij značke povezave s knjižnico Steam",
     "epic_games": "Epic Games",
     "epic_description": "Link your Epic Games account to Hydra.",

@@ -92,6 +92,23 @@ const durations = (f: ReturnType<typeof fixture>) =>
     return (Date.parse(row.endTime) - Date.parse(row.startTime)) / 1000;
   });
 
+test("playtime resumes for new sessions after an aborted shutdown without replaying drained intervals", async () => {
+  const f = fixture();
+  f.advance(2000);
+  await f.reporter.drain();
+  f.reporter.restoreAfterFailedShutdown();
+  const next = f.reporter.begin("Namespace:Item", f.session.target);
+  f.state.elapsed += 2000;
+  f.reporter.observe(next);
+  f.reporter.finish(next);
+  await f.reporter.idle();
+  assert.equal(f.state.requests.length, 2);
+  const first = f.state.requests[0].body.playtimeAddList[0];
+  const second = f.state.requests[1].body.playtimeAddList[0];
+  assert.equal(first.endTime, second.startTime);
+  assert.equal(Date.parse(second.endTime) - Date.parse(second.startTime), 2000);
+});
+
 test("consecutive observed intervals and final remainder are disjoint, whole seconds and sent once", async () => {
   const f = fixture();
   f.advance(60000);

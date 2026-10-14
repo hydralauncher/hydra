@@ -648,6 +648,7 @@
     "move_down": "下に移動"
   },
   "settings": {
+    "epic_sync_partial": "ゲームとプレイ時間を同期しました。{{count}}本のゲームの実績の同期を再試行します。",
     "hide_library_steam_badges": "Steamライブラリ接続バッジを非表示",
     "epic_games": "Epic Games",
     "epic_description": "Link your Epic Games account to Hydra.",

@@ -19,6 +19,17 @@ export interface EpicSaveSnapshot {
   digest: string;
   files: EpicSaveFile[];
 }
+export function getEpicSaveSnapshotModifiedAt(
+  snapshot: EpicSaveSnapshot
+): string | null {
+  const modifiedAt = snapshot.files.reduce(
+    (latest, file) => Math.max(latest, file.modifiedAt),
+    Number.NEGATIVE_INFINITY
+  );
+  return Number.isFinite(modifiedAt)
+    ? new Date(modifiedAt).toISOString()
+    : null;
+}
 export class EpicSaveRollbackFailure extends EpicSaveFailure {
   readonly preserveBackup = true;
   constructor() {

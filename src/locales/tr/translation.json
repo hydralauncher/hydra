@@ -624,6 +624,7 @@
     "move_down": "Move down"
   },
   "settings": {
+    "epic_sync_partial": "Oyunlar ve oynama süresi senkronize edildi; {{count}} oyunun başarımları için yeniden denenecek.",
     "hide_library_steam_badges": "Steam Kütüphanesi bağlantı rozetlerini gizle",
     "epic_games": "Epic Games",
     "epic_description": "Link your Epic Games account to Hydra.",

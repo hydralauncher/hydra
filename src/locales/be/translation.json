@@ -620,6 +620,7 @@
     "move_down": "Move down"
   },
   "settings": {
+    "epic_sync_partial": "Гульні і час гульні сінхранізаваныя; сінхранізацыя дасягненняў для {{count}} гульняў будзе паўторана.",
     "hide_library_steam_badges": "Схаваць значкі падключэння да бібліятэкі Steam",
     "epic_games": "Epic Games",
     "epic_description": "Link your Epic Games account to Hydra.",

@@ -36,6 +36,7 @@ import {
 import {
   assertEpicSaveCommandSucceeded,
   decideEpicSaveSync,
+  getEpicRemoteManifestModifiedAt,
   EpicSaveFailure,
   parseEpicRemoteManifest,
   parseEpicSaveMetadata,
@@ -46,6 +47,7 @@ import {
   applyEpicSaveSnapshot,
   copyEpicSaveSnapshot,
   inspectEpicSaveFiles,
+  getEpicSaveSnapshotModifiedAt,
   EpicSaveRollbackFailure,
   type EpicSaveSnapshot,
 } from "./cloud-save-files.js";
@@ -352,7 +354,15 @@ export class EpicCloudSaveService {
     );
     assertEpicSaveCommandSucceeded(result);
     this.assertCurrent(session, signal);
-    return parseEpicRemoteManifest(result.stdout, session.target.artifactId);
+    const manifest = parseEpicRemoteManifest(
+      result.stdout,
+      session.target.artifactId
+    );
+    this.publish(session, {
+      remoteManifest: manifest,
+      remoteModifiedAt: getEpicRemoteManifestModifiedAt(manifest),
+    });
+    return manifest;
   }
   private async transfer(
     session: EpicSaveSession,
@@ -405,6 +415,7 @@ export class EpicCloudSaveService {
     });
     return this.publish(session, {
       status: "up-to-date",
+      localModifiedAt: getEpicSaveSnapshotModifiedAt(snapshot),
       phase: undefined,
       pendingUpload: false,
       remoteManifest,
@@ -437,6 +448,8 @@ export class EpicCloudSaveService {
             status: "syncing",
             phase: "checking",
             error: undefined,
+            localModifiedAt: null,
+            remoteModifiedAt: null,
           });
           const before = await inspectEpicSaveFiles(
             session.savePath!,
@@ -444,6 +457,9 @@ export class EpicCloudSaveService {
             signal
           );
           this.assertCurrent(session, signal);
+          this.publish(session, {
+            localModifiedAt: getEpicSaveSnapshotModifiedAt(before),
+          });
           // Reopening can cancel inspection until the first cloud command starts.
           // Once a command is requested, its captured task must finish before launch.
           if (postExit) postExit.commandStarted = true;
@@ -585,7 +601,7 @@ export class EpicCloudSaveService {
     )
       throw new EpicSaveFailure("save-operation-active");
     const existing = this.operations.get(session.objectId);
-    if (existing) return existing;
+    if (existing !== undefined) return existing;
     const controller = new AbortController();
     const cancelPostExit = () => controller.abort();
     postExit?.controller.signal.addEventListener("abort", cancelPostExit, {

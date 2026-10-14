@@ -362,6 +362,50 @@ test("dedicated Epic enqueue preserves imported identity/provenance and separate
   );
 });
 
+test("an incomplete cancelled installation can load options, enqueue and finish its repair", async (t) => {
+  const f = await fixture(t);
+  const owned = await f.installation.capture(
+    objectId,
+    new AbortController().signal
+  );
+  const prepared = await f.installation.prepare(
+    owned,
+    "Artifact1",
+    "Windows",
+    new AbortController().signal
+  );
+  const destination = path.join(f.base, "EpicGame");
+  await fs.mkdir(destination);
+  await fs.writeFile(path.join(destination, "Game.exe"), "partial game");
+  await fs.writeFile(
+    path.join(f.runtime.workspace(prepared.target), "installed.json"),
+    JSON.stringify({
+      Artifact1: {
+        app_name: "Artifact1",
+        platform: "Windows",
+        install_path: destination,
+        executable: "Game.exe",
+        install_size: 4 * MIB,
+        version: "build-1",
+        needs_verification: true,
+      },
+    })
+  );
+  const options = await f.service.getOptions(objectId);
+  assert.equal(options.error, undefined);
+  assert.equal(options.options.length, 1);
+  assert.equal(options.options[0].installed, false);
+  assert.deepEqual(await f.service.start(f.payload), { ok: true });
+  await f.service.startRuntime(f.getDownload()!, (error) =>
+    f.failed.resolve(error)
+  );
+  await f.complete.promise;
+  assert.ok(f.commands.some((args) => args.includes("install")));
+  assert.ok(
+    await f.installation.readInstalled(prepared.target, objectId, destination)
+  );
+});
+
 test("100 percent before child exit remains active until installed manifest/executable are verified", async (t) => {
   const ready = deferred<void>();
   const finish = deferred<void>();

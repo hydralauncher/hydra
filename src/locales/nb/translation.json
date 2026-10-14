@@ -624,6 +624,7 @@
     "move_down": "Move down"
   },
   "settings": {
+    "epic_sync_partial": "Spill og spilletid er synkronisert; prestasjoner for {{count}} spill forsøkes igjen.",
     "hide_library_steam_badges": "Skjul merker for Steam-bibliotekstilkoblingen",
     "epic_games": "Epic Games",
     "epic_description": "Link your Epic Games account to Hydra.",

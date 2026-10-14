@@ -1098,6 +1098,7 @@
     "recovering": "Récupération du téléchargement… {{percentage}}"
   },
   "settings": {
+    "epic_sync_partial": "Jeux et temps de jeu synchronisés ; la synchronisation des succès de {{count}} jeux sera réessayée.",
     "epic_games": "Epic Games",
     "epic_description": "Link your Epic Games account to Hydra.",
     "epic_status_connected": "Connected",

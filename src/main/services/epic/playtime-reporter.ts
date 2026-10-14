@@ -5,6 +5,7 @@ import type { EpicSessionProvider } from "./session-provider";
 import { EpicIntegrationError } from "./auth-protocol.js";
 import {
   EPIC_PLAYTIME_MAX_PENDING_SEGMENTS,
+  EPIC_PLAYTIME_AUTH_ATTEMPTS,
   EPIC_PLAYTIME_OBSERVATION_GAP_MS,
   EPIC_PLAYTIME_ORIGIN,
   EPIC_PLAYTIME_REPORT_INTERVAL_MS,
@@ -104,6 +105,9 @@ export class EpicPlaytimeReporter {
   }
   resume() {
     this.suspended = false;
+  }
+  restoreAfterFailedShutdown() {
+    this.draining = false;
   }
   finish(session: EpicPlaytimeSession) {
     if (session.closed) return;
@@ -227,7 +231,7 @@ export class EpicPlaytimeReporter {
         },
       ],
     });
-    for (let attempt = 0; attempt < 2; attempt++) {
+    for (let attempt = 0; attempt < EPIC_PLAYTIME_AUTH_ATTEMPTS; attempt++) {
       this.assertCurrent(session, signal);
       const response = await (this.dependencies.fetch ?? fetch)(
         `${EPIC_PLAYTIME_ORIGIN}/library/api/public/playtime/account/${connection.epicAccountId}/bulk`,

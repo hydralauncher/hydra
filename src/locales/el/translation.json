@@ -831,6 +831,7 @@
     "move_down": "Μετακίνηση προς τα κάτω"
   },
   "settings": {
+    "epic_sync_partial": "Τα παιχνίδια και ο χρόνος παιχνιδιού συγχρονίστηκαν· θα γίνει νέα προσπάθεια για τα επιτεύγματα {{count}} παιχνιδιών.",
     "hide_library_steam_badges": "Απόκρυψη σημάτων σύνδεσης βιβλιοθήκης Steam",
     "epic_games": "Epic Games",
     "epic_description": "Link your Epic Games account to Hydra.",

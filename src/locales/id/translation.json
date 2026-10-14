@@ -800,6 +800,7 @@
     "move_down": "Pindah ke bawah"
   },
   "settings": {
+    "epic_sync_partial": "Game dan waktu bermain telah disinkronkan; pencapaian untuk {{count}} game akan dicoba lagi.",
     "hide_library_steam_badges": "Sembunyikan lencana koneksi Pustaka Steam",
     "epic_games": "Epic Games",
     "epic_description": "Link your Epic Games account to Hydra.",

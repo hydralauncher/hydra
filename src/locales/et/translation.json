@@ -624,6 +624,7 @@
     "move_down": "Move down"
   },
   "settings": {
+    "epic_sync_partial": "Mängud ja mänguaeg on sünkroonitud; {{count}} mängu saavutuste sünkroonimist proovitakse uuesti.",
     "hide_library_steam_badges": "Peida Steami teegi ühenduse märgid",
     "epic_games": "Epic Games",
     "epic_description": "Link your Epic Games account to Hydra.",

@@ -624,6 +624,7 @@
     "move_down": "Move down"
   },
   "settings": {
+    "epic_sync_partial": "游戏和游玩时间已同步；将重试同步 {{count}} 款游戏的成就。",
     "hide_library_steam_badges": "隐藏 Steam 库连接徽章",
     "epic_games": "Epic Games",
     "epic_description": "Link your Epic Games account to Hydra.",

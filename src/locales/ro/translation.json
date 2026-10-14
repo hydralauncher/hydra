@@ -620,6 +620,7 @@
     "move_down": "Move down"
   },
   "settings": {
+    "epic_sync_partial": "Jocurile și timpul de joc au fost sincronizate; sincronizarea realizărilor pentru {{count}} jocuri va fi reîncercată.",
     "hide_library_steam_badges": "Ascunde insignele conexiunii la biblioteca Steam",
     "epic_games": "Epic Games",
     "epic_description": "Link your Epic Games account to Hydra.",

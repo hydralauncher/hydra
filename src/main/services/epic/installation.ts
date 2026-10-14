@@ -302,7 +302,9 @@ export class EpicInstallationService {
     return {
       ...context,
       game,
-      artifactIds: [...new Set(owned.epicImport.artifactIds)].sort(),
+      artifactIds: [...new Set(owned.epicImport.artifactIds)].sort(
+        (left, right) => left.localeCompare(right, "en")
+      ),
       owner: {
         environment: context.auth.environment,
         userId: context.auth.userId,
@@ -449,7 +451,7 @@ export class EpicInstallationService {
           ...option,
           ...(reused
             ? {
-                installed: !!(await this.readInstalled(
+                installed: !!(await this.readInstalledForRepair(
                   {
                     ...context,
                     owner,
@@ -494,7 +496,10 @@ export class EpicInstallationService {
             "Windows",
             controller.signal
           );
-          const installed = await this.readInstalled(prepared.target, objectId);
+          const installed = await this.readInstalledForRepair(
+            prepared.target,
+            objectId
+          );
           options.push({
             artifactId,
             platform: "Windows",
@@ -533,6 +538,26 @@ export class EpicInstallationService {
       controller.abort();
     }
   }
+  async readInstalledForRepair(
+    target: EpicManagedTarget,
+    expectedObjectId?: string,
+    expectedInstallPath?: string
+  ): Promise<EpicInstalledGame | null> {
+    try {
+      return await this.readInstalled(
+        target,
+        expectedObjectId,
+        expectedInstallPath
+      );
+    } catch (error) {
+      if (
+        error instanceof EpicManagedError &&
+        error.code === "installation-incomplete"
+      )
+        return null;
+      throw error;
+    }
+  }
   async readInstalled(
     target: EpicManagedTarget,
     expectedObjectId?: string,
@@ -556,7 +581,6 @@ export class EpicInstallationService {
       raw.platform !== target.platform ||
       raw.is_dlc === true ||
       raw.is_preloaded === true ||
-      raw.needs_verification === true ||
       typeof raw.version !== "string" ||
       !raw.version ||
       typeof raw.install_path !== "string" ||
@@ -601,6 +625,9 @@ export class EpicInstallationService {
       !(await fs.stat(executablePath)).isFile()
     )
       return null;
+    // Keep ownership and path validation strict even for an unfinished install.
+    if (raw.needs_verification === true)
+      throw new EpicManagedError("installation-incomplete");
     return {
       ...raw,
       raw,
