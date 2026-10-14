@@ -44,6 +44,9 @@ async function fixture(t: TestContext, options: { linux?: boolean } = {}) {
     tokenRequired: [] as boolean[],
     leaseReleases: 0,
     tokenDisposals: 0,
+    tokenDisposeAttempts: 0,
+    tokenDisposeFailures: 0,
+    tokenDisposeWait: Promise.resolve() as Promise<void>,
     terminations: 0,
     cleanupFails: false,
     uploadWait: Promise.resolve() as Promise<void>,
@@ -142,6 +145,12 @@ async function fixture(t: TestContext, options: { linux?: boolean } = {}) {
                 return parameters;
               },
               dispose: async () => {
+                state.tokenDisposeAttempts++;
+                await state.tokenDisposeWait;
+                if (state.tokenDisposeFailures > 0) {
+                  state.tokenDisposeFailures--;
+                  throw new Error("transient token cleanup failure");
+                }
                 state.tokenDisposals++;
                 state.order.push("token-dispose");
               },
@@ -345,10 +354,12 @@ test("Legendary JSON exit does not close the game; actual bootstrapper/child clo
     null
   );
   assert.equal(f.exported.onManagedEpicClosed(f.game), true);
-  assert.equal(f.exported.onManagedEpicClosed(f.game), false);
+  assert.equal(f.exported.onManagedEpicClosed(f.game), true);
   assert.equal(f.state.closes, 1);
   assert.equal(f.state.reportsFinished, 1);
   assert.equal(f.state.reportsInterrupted, 2);
+  await new Promise<void>((done) => setImmediate(done));
+  assert.equal(f.exported.onManagedEpicClosed(f.game), false);
 });
 
 test("official sessions, failed launches and context changes cannot start or finish managed playtime", async (t) => {
@@ -556,6 +567,12 @@ test("Linux keeps the prefix/token while wrapper has exited or inspection is unk
   assert.equal(f.exported.onManagedEpicClosed(f.game), true);
   assert.equal(f.state.closes, 1);
   assert.equal(f.state.leaseReleases, 0);
+  assert.equal(
+    (await f.exported.getManagedEpicProcessMatch("epic:Namespace:Item", []))
+      .complete,
+    true
+  );
+  assert.equal(f.state.leaseReleases, 0);
   completeUpload();
   await new Promise<void>((done) => setImmediate(done));
   assert.equal(f.state.tokenDisposals, 1);
@@ -563,6 +580,104 @@ test("Linux keeps the prefix/token while wrapper has exited or inspection is unk
   assert.ok(
     f.state.order.indexOf("upload") < f.state.order.indexOf("token-dispose")
   );
+});
+
+for (const recovery of ["clear", "prepare", "watcher"] as const) {
+  test(`Linux closed-session cleanup retries through ${recovery} after a transient token failure without another upload`, async (t) => {
+    const f = await fixture(t, { linux: true });
+    const prepared = await f.exported.prepareManagedEpicLaunch(
+      f.game,
+      f.executable
+    );
+    await f.exported.markManagedEpicLaunched(prepared.session);
+    f.exported.recordManagedEpicProcess(
+      prepared.session,
+      f.handle.pid,
+      f.linuxContext,
+      f.handle
+    );
+    await f.exported.getManagedEpicProcessMatch("epic:Namespace:Item", [
+      f.linuxGameProcess,
+    ]);
+    await f.exported.onManagedEpicDetected(f.game, f.executable);
+    f.state.tokenDisposeFailures = 1;
+    await f.exported.getManagedEpicProcessMatch("epic:Namespace:Item", []);
+    assert.equal(f.exported.onManagedEpicClosed(f.game), true);
+    await new Promise<void>((done) => setImmediate(done));
+    assert.equal(f.state.tokenDisposeAttempts, 1);
+    assert.equal(f.state.tokenDisposals, 0);
+    assert.equal(f.state.leaseReleases, 0);
+    assert.equal(f.exported.hasManagedEpicSession("epic:Namespace:Item"), true);
+    assert.equal(f.exported.onManagedEpicClosed(f.game), true);
+    assert.equal(f.state.closes, 1);
+    assert.equal(f.state.reportsFinished, 1);
+    let nextSession: typeof prepared.session | undefined;
+    if (recovery === "clear") await f.exported.clearManagedEpicSessions();
+    else if (recovery === "prepare")
+      nextSession = (
+        await f.exported.prepareManagedEpicLaunch(f.game, f.executable)
+      ).session;
+    else {
+      await f.exported.getManagedEpicProcessMatch("epic:Namespace:Item", []);
+      await new Promise<void>((done) => setImmediate(done));
+    }
+    assert.equal(f.state.tokenDisposeAttempts, 2);
+    assert.equal(f.state.tokenDisposals, 1);
+    assert.equal(f.state.leaseReleases, 1);
+    assert.equal(f.state.closes, 1);
+    assert.equal(f.state.reportsFinished, 1);
+    assert.equal(f.state.terminations, 0);
+    assert.equal(
+      f.exported.hasManagedEpicSession("epic:Namespace:Item"),
+      false
+    );
+    if (nextSession) await f.exported.cancelManagedEpicLaunch(nextSession);
+  });
+}
+
+test("Linux reopening waits for closed-session local cleanup after its upload has finished", async (t) => {
+  const f = await fixture(t, { linux: true });
+  const prepared = await f.exported.prepareManagedEpicLaunch(
+    f.game,
+    f.executable
+  );
+  await f.exported.markManagedEpicLaunched(prepared.session);
+  f.exported.recordManagedEpicProcess(
+    prepared.session,
+    f.handle.pid,
+    f.linuxContext,
+    f.handle
+  );
+  await f.exported.getManagedEpicProcessMatch("epic:Namespace:Item", [
+    f.linuxGameProcess,
+  ]);
+  await f.exported.onManagedEpicDetected(f.game, f.executable);
+  let finishCleanup!: () => void;
+  f.state.tokenDisposeWait = new Promise<void>((done) => {
+    finishCleanup = done;
+  });
+  await f.exported.getManagedEpicProcessMatch("epic:Namespace:Item", []);
+  assert.equal(f.exported.onManagedEpicClosed(f.game), true);
+  await new Promise<void>((done) => setImmediate(done));
+  let reopened = false;
+  const next = f.exported
+    .prepareManagedEpicLaunch(f.game, f.executable)
+    .then((value) => {
+      reopened = true;
+      return value;
+    });
+  await new Promise<void>((done) => setImmediate(done));
+  assert.equal(reopened, false);
+  assert.equal(f.state.closes, 1);
+  assert.equal(f.state.leaseReleases, 0);
+  assert.equal(f.state.authCalls, 1);
+  finishCleanup();
+  const ready = await next;
+  assert.equal(reopened, true);
+  assert.equal(f.state.tokenDisposeAttempts, 1);
+  assert.equal(f.state.leaseReleases, 1);
+  assert.equal(f.state.closes, 1);
+  await f.exported.cancelManagedEpicLaunch(ready.session);
 });
 
 test("Linux cancellation waits for termination and retains the lease/token when cleanup fails", async (t) => {

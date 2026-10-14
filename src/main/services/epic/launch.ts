@@ -45,6 +45,10 @@ interface ManagedSession {
   resources?: LaunchResources;
   disconnected?: boolean;
   complete?: boolean;
+  closed?: boolean;
+  closeUpload?: Promise<void>;
+  closeUploadFinished?: boolean;
+  cleanupFailureLogged?: boolean;
 }
 interface LaunchResources {
   linuxContext: PreparedEpicLinuxContext;
@@ -82,6 +86,22 @@ async function releaseResources(session: EpicSaveSession, terminate = false) {
   return resources.releasePromise;
 }
 const managedSessions = new Map<string, ManagedSession>();
+async function finishClosedManagedEpicSession(
+  gameKey: string,
+  entry: ManagedSession
+) {
+  if (!entry.closed) return;
+  await entry.closeUpload;
+  await releaseResources(entry.session);
+  if (managedSessions.get(gameKey) === entry) managedSessions.delete(gameKey);
+}
+function logPendingEpicCleanup(entry: ManagedSession) {
+  if (entry.cleanupFailureLogged) return;
+  entry.cleanupFailureLogged = true;
+  logger.warn("Epic session resource cleanup remains pending", {
+    objectId: entry.session.objectId,
+  });
+}
 type EpicLaunchDependencies = EpicCloudSaveDependencies & {
   playtime?: EpicPlaytimeReporter;
 };
@@ -123,6 +143,9 @@ async function prepareLaunch(
   controller: AbortController
 ) {
   if (!dependencies) throw new EpicSaveFailure("legendary-unavailable");
+  const key = levelKeys.game("epic", game.objectId);
+  const previous = managedSessions.get(key);
+  if (previous?.closed) await finishClosedManagedEpicSession(key, previous);
   const cloud = getEpicCloudSaveService();
   let session = await cloud.capture(
     game.objectId,
@@ -133,7 +156,6 @@ async function prepareLaunch(
   const actual = await fs.realpath(actualExecutable).catch(() => null);
   if (!actual || path.relative(session.installed.executablePath, actual) !== "")
     throw new EpicSaveFailure("invalid-path");
-  const key = levelKeys.game("epic", game.objectId);
   if (managedSessions.has(key)) throw new EpicSaveFailure("game-running");
   if (options.epicOffline && session.installed.can_run_offline !== true)
     throw new EpicSaveFailure("not-installable");
@@ -340,6 +362,15 @@ export async function getManagedEpicProcessMatch(
 ) {
   const entry = managedSessions.get(gameKey);
   if (!entry) return { managed: false, complete: true, path: null };
+  if (entry.closed) {
+    // Do not wait for a network upload in the global watcher. Once it settles,
+    // later ticks can recover transient local cleanup failures without a timer.
+    if (entry.closeUploadFinished)
+      void finishClosedManagedEpicSession(gameKey, entry).catch(() =>
+        logPendingEpicCleanup(entry)
+      );
+    return { managed: true, complete: true, path: null };
+  }
   if (!processes || !entry.tracker) {
     entry.processObserved = false;
     if (entry.playtime) dependencies?.playtime?.interrupt(entry.playtime);
@@ -390,7 +421,7 @@ export async function onManagedEpicDetected(
   actualExecutable: string
 ) {
   const entry = managedSessions.get(levelKeys.game(game.shop, game.objectId));
-  if (!entry || game.shop !== "epic") return false;
+  if (!entry || entry.closed || game.shop !== "epic") return false;
   if (!dependencies?.runtime.current(entry.session.target)) return false;
   const executable = await fs.realpath(actualExecutable).catch(() => null);
   if (!executable || !entry.verifiedPaths.has(executable)) return false;
@@ -411,8 +442,8 @@ export async function onManagedEpicDetected(
 export function onManagedEpicClosed(game: Game) {
   const key = levelKeys.game(game.shop, game.objectId);
   const entry = managedSessions.get(key);
+  if (entry?.closed) return true;
   if (!entry?.detected || (entry.resources && !entry.complete)) return false;
-  managedSessions.delete(key);
   clearTimeout(entry.timer);
   if (entry.playtime) dependencies?.playtime?.finish(entry.playtime);
   logger.info("Epic managed game session closed", {
@@ -423,18 +454,19 @@ export function onManagedEpicClosed(game: Game) {
   const closing = entry.disconnected
     ? Promise.resolve(getEpicCloudSaveService().endSession(entry.session))
     : getEpicCloudSaveService().afterClose(entry.session);
-  void closing
+  entry.closed = true;
+  entry.closeUpload = Promise.resolve(closing)
     .catch(() => {
       logger.warn("Epic save upload remains pending after the game session", {
         objectId: game.objectId,
       });
     })
-    .finally(() => releaseResources(entry.session))
-    .catch(() => {
-      logger.warn("Epic session resource cleanup remains pending", {
-        objectId: game.objectId,
-      });
+    .then(() => {
+      entry.closeUploadFinished = true;
     });
+  void finishClosedManagedEpicSession(key, entry).catch(() =>
+    logPendingEpicCleanup(entry)
+  );
   return true;
 }
 export const hasManagedEpicSession = (gameKey: string) =>
@@ -465,6 +497,15 @@ export async function clearManagedEpicSessions() {
   ]);
   const cleanup: Promise<unknown>[] = [];
   for (const entry of managedSessions.values()) {
+    if (entry.closed) {
+      cleanup.push(
+        finishClosedManagedEpicSession(
+          levelKeys.game("epic", entry.session.objectId),
+          entry
+        )
+      );
+      continue;
+    }
     if (entry.playtime) dependencies?.playtime?.discard(entry.playtime);
     if (entry.resources?.handle) {
       entry.playtime = undefined;
