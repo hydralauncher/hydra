@@ -9,11 +9,17 @@ const sharp = require(path.join(repo, "node_modules/sharp"));
 const cacheDirectory = fs.mkdtempSync(
   path.join(require("node:os").tmpdir(), "hydra-epic-icon-test-")
 );
+const cacheDirectories = [path.join(cacheDirectory, "epic-icons")];
 test.after(async () => {
-  const iconsDirectory = path.join(cacheDirectory, "epic-icons");
-  for (const file of await fs.promises.readdir(iconsDirectory))
-    await fs.promises.unlink(path.join(iconsDirectory, file));
-  await fs.promises.rmdir(iconsDirectory);
+  await Promise.all(
+    cacheDirectories.map(async (directory) => {
+      const files = await fs.promises.readdir(directory);
+      await Promise.all(
+        files.map((file) => fs.promises.unlink(path.join(directory, file)))
+      );
+      await fs.promises.rmdir(directory);
+    })
+  );
   await fs.promises.rmdir(cacheDirectory);
 });
 function load(relative, mocks = {}) {
@@ -187,6 +193,75 @@ test("Epic icons use a bounded PNG cache with safe fallbacks", async () => {
   assert.notEqual(recovered.iconUrl, expired.iconUrl);
   assert.equal(retry.downloads(), 2);
   assert.ok(recovered.epicArtworkUpdatedAtByType.icon > expiredTimestamp);
+  const repair = service(
+    [item({ url: "https://cdn2.steamgriddb.com/icon/repair.png" })],
+    async () => png
+  );
+  const original = await repair.resolveEpicDefaultArtwork(assets("repair"));
+  await fs.promises.unlink(original.iconUrl.slice(6));
+  const restored = await repair.resolveEpicDefaultArtwork(
+    assets("repair"),
+    original
+  );
+  assert.equal(repair.downloads(), 2);
+  assert.match(restored.iconUrl, /^local:/);
+  await fs.promises.writeFile(restored.iconUrl.slice(6), "corrupt file");
+  const repaired = await repair.resolveEpicDefaultArtwork(
+    assets("repair"),
+    restored
+  );
+  assert.equal(repair.downloads(), 3);
+  assert.equal((await sharp(repaired.iconUrl.slice(6)).metadata()).width, 64);
+  const writeFile = fs.promises.writeFile;
+  let failWrite = true;
+  const disk = service(
+    [item({ url: "https://cdn2.steamgriddb.com/icon/disk.png" })],
+    async () => png
+  );
+  fs.promises.writeFile = async (filename, ...parameters) => {
+    if (failWrite && String(filename).endsWith(".tmp")) {
+      failWrite = false;
+      throw Object.assign(new Error("no space"), { code: "ENOSPC" });
+    }
+    return writeFile(filename, ...parameters);
+  };
+  try {
+    const retained = await disk.resolveEpicDefaultArtwork(
+      assets("disk"),
+      expired
+    );
+    assert.equal(retained.iconUrl, expired.iconUrl);
+    const restoredAfterDiskFailure = await disk.resolveEpicDefaultArtwork(
+      assets("disk"),
+      retained
+    );
+    assert.match(restoredAfterDiskFailure.iconUrl, /^local:/);
+    assert.notEqual(restoredAfterDiskFailure.iconUrl, expired.iconUrl);
+  } finally {
+    fs.promises.writeFile = writeFile;
+  }
+  await Promise.all(
+    [
+      { name: "file-count", maxFiles: 2, maxBytes: 100, incoming: 4 },
+      { name: "byte-count", maxFiles: 10, maxBytes: 10, incoming: 4 },
+    ].map(async ({ name, maxFiles, maxBytes, incoming }) => {
+      const directory = path.join(cacheDirectory, name);
+      cacheDirectories.push(directory);
+      await fs.promises.mkdir(directory);
+      const oldFile = path.join(directory, `${"a".repeat(64)}.png`);
+      const newFile = path.join(directory, `${"b".repeat(64)}.png`);
+      const unrelatedFile = path.join(directory, "user-file.txt");
+      await fs.promises.writeFile(oldFile, Buffer.alloc(5));
+      await fs.promises.writeFile(newFile, Buffer.alloc(3));
+      await fs.promises.writeFile(unrelatedFile, "keep");
+      await fs.promises.utimes(oldFile, new Date(1000), new Date(1000));
+      await fs.promises.utimes(newFile, new Date(2000), new Date(2000));
+      await repair.pruneEpicIconCache(directory, incoming, maxFiles, maxBytes);
+      assert.equal(fs.existsSync(oldFile), false);
+      assert.equal(fs.existsSync(newFile), true);
+      assert.equal(fs.existsSync(unrelatedFile), true);
+    })
+  );
   const foreign = service(
     [item({ url: "https://evil.invalid/icon/large.png" })],
     async () => {
