@@ -1103,7 +1103,11 @@
     "disk_usage_tooltip": "Installed size on disk",
     "installer_size_tooltip": "Installer size",
     "library_epic": "Epic",
-    "imported_from_epic": "Tuotu tähän profiiliin yhdistetystä Epic-kirjastosta."
+    "imported_from_epic": "Tuotu tähän profiiliin yhdistetystä Epic-kirjastosta.",
+    "imported_from_steam_and_epic": "Tuotu tähän profiiliin liitetyistä Steam- ja Epic Games -kirjastoista.",
+    "available_on_steam_and_epic": "Saatavilla Steamissa ja Epic Gamesissa",
+    "available_on_steam": "Saatavilla Steamissa",
+    "available_on_epic": "Saatavilla Epic Gamesissa"
   },
   "game_launcher": {
     "launching": "Launching...",

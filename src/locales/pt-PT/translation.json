@@ -1245,7 +1245,11 @@
     "empty_favorites_title": "No favorite games",
     "empty_favorites_description": "Mark games as favorites to keep them handy here.",
     "library_epic": "Epic",
-    "imported_from_epic": "Importado da biblioteca Epic associada a este perfil."
+    "imported_from_epic": "Importado da biblioteca Epic associada a este perfil.",
+    "imported_from_steam_and_epic": "Importado das bibliotecas Steam e Epic Games associadas a este perfil.",
+    "available_on_steam_and_epic": "Disponível na Steam e Epic Games",
+    "available_on_steam": "Disponível na Steam",
+    "available_on_epic": "Disponível na Epic Games"
   },
   "achievement": {
     "achievement_unlocked": "Conquista desbloqueada",

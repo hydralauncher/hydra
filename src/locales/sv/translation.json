@@ -1103,7 +1103,11 @@
     "disk_usage_tooltip": "Installed size on disk",
     "installer_size_tooltip": "Installer size",
     "library_epic": "Epic",
-    "imported_from_epic": "Importerat från Epic-biblioteket som är länkat till den här profilen."
+    "imported_from_epic": "Importerat från Epic-biblioteket som är länkat till den här profilen.",
+    "imported_from_steam_and_epic": "Importerat från Steam- och Epic Games-biblioteken som är kopplade till den här profilen.",
+    "available_on_steam_and_epic": "Tillgängligt på Steam och Epic Games",
+    "available_on_steam": "Tillgängligt på Steam",
+    "available_on_epic": "Tillgängligt på Epic Games"
   },
   "game_launcher": {
     "launching": "Launching...",

@@ -1543,7 +1543,11 @@
     "context_menu_remove_from_library": "Премахни от библиотеката",
     "context_menu_add_to_library": "Добави в библиотеката",
     "library_epic": "Epic",
-    "imported_from_epic": "Импортирано от Epic библиотеката, свързана с този профил."
+    "imported_from_epic": "Импортирано от Epic библиотеката, свързана с този профил.",
+    "imported_from_steam_and_epic": "Импортирано от библиотеките Steam и Epic Games, свързани с този профил.",
+    "available_on_steam_and_epic": "Налично в Steam и Epic Games",
+    "available_on_steam": "Налично в Steam",
+    "available_on_epic": "Налично в Epic Games"
   },
   "achievement": {
     "achievement_unlocked": "Отключено постижение",

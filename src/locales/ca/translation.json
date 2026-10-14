@@ -1067,7 +1067,11 @@
     "disk_usage_tooltip": "Installed size on disk",
     "installer_size_tooltip": "Installer size",
     "library_epic": "Epic",
-    "imported_from_epic": "Importat de la biblioteca de Epic vinculada a aquest perfil."
+    "imported_from_epic": "Importat de la biblioteca de Epic vinculada a aquest perfil.",
+    "imported_from_steam_and_epic": "Importat de les biblioteques de Steam i Epic Games vinculades a aquest perfil.",
+    "available_on_steam_and_epic": "Disponible a Steam i Epic Games",
+    "available_on_steam": "Disponible a Steam",
+    "available_on_epic": "Disponible a Epic Games"
   },
   "achievement": {
     "achievement_unlocked": "Achievement unlocked",

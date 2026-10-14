@@ -4,6 +4,7 @@ import {
   useDownload,
   useGameCollections,
   useLibrary,
+  useLibraryGamePresentation,
   useToast,
 } from "@renderer/hooks";
 import { useNavigate, useLocation } from "react-router-dom";
@@ -15,22 +16,22 @@ import { logger } from "@renderer/logger";
 import { useGameOptionsModal } from "@renderer/context/game-options-modal/game-options-modal.context";
 import type { GameSettingsCategoryId } from "@renderer/pages/game-details/modals/game-options-modal/types";
 import type { GameContextMenuGame } from "./game-context-menu.types";
+import { applyLibraryGroupAction, isLibraryGameDownloading } from "@shared";
 
-export function useGameActions(game: GameContextMenuGame) {
+export function useGameActions(requestedGame: GameContextMenuGame) {
   const { t } = useTranslation("game_details");
   const { showSuccessToast, showErrorToast } = useToast();
   const { library, updateLibrary } = useLibrary();
+  const group = useLibraryGamePresentation(requestedGame);
+  const game = group?.operationalGame ?? requestedGame;
+  const downloadGame = group?.downloadGame ?? game;
+  const members = group?.members ?? [game];
   const { loadCollections } = useGameCollections();
   const navigate = useNavigate();
   const location = useLocation();
   const { openGameOptionsModal } = useGameOptionsModal();
-  const {
-    removeGameInstaller,
-    removeGameFromLibrary,
-    isGameDeleting,
-    lastPacket,
-    cancelDownload,
-  } = useDownload();
+  const { removeGameInstaller, removeGameFromLibrary, isGameDeleting } =
+    useDownload();
 
   const [creatingSteamShortcut, setCreatingSteamShortcut] = useState(false);
   const [creatingShortcut, setCreatingShortcut] = useState(false);
@@ -43,9 +44,9 @@ export function useGameActions(game: GameContextMenuGame) {
   const hasClassicsDiscs = (game.discs?.length ?? 0) > 0;
   const canPlay =
     Boolean(game.executablePath) || (isClassics && hasClassicsDiscs);
-  const isDeleting = isGameDeleting(game.id ?? "");
-  const isGameDownloading =
-    game.download?.status === "active" && lastPacket?.gameId === game.id;
+  const isDeleting = isGameDeleting(game.objectId);
+  const isDownloadDeleting = isGameDeleting(downloadGame.objectId);
+  const isGameDownloading = isLibraryGameDownloading(downloadGame);
   const hasRepacks = true;
   useEffect(() => {
     const unsubscribe = window.electron.onGamesRunning((gamesIds) => {
@@ -155,16 +156,21 @@ export function useGameActions(game: GameContextMenuGame) {
     }
   };
 
-  const handleToggleFavorite = async (isFavorite = Boolean(game.favorite)) => {
+  const handleToggleFavorite = async (
+    isFavorite = Boolean(group?.favorite ?? game.favorite)
+  ) => {
     try {
       if (isFavorite) {
-        await window.electron.removeGameFromFavorites(game.shop, game.objectId);
+        await applyLibraryGroupAction(members, (member) =>
+          window.electron.removeGameFromFavorites(member.shop, member.objectId)
+        );
         showSuccessToast(t("game_removed_from_favorites"));
       } else {
-        await window.electron.addGameToFavorites(game.shop, game.objectId);
+        await applyLibraryGroupAction(members, (member) =>
+          window.electron.addGameToFavorites(member.shop, member.objectId)
+        );
         showSuccessToast(t("game_added_to_favorites"));
       }
-      updateLibrary();
       try {
         window.dispatchEvent(
           new CustomEvent("hydra:game-favorite-toggled", {
@@ -178,6 +184,8 @@ export function useGameActions(game: GameContextMenuGame) {
       showErrorToast(t("failed_update_favorites"));
       logger.error("Failed to toggle favorite", error);
       throw error;
+    } finally {
+      await updateLibrary();
     }
   };
 
@@ -288,14 +296,15 @@ export function useGameActions(game: GameContextMenuGame) {
 
   const handleTogglePin = async () => {
     try {
-      if (game.isPinned) {
-        await window.electron.toggleGamePin(game.shop, game.objectId, false);
+      const isPinned = group?.isPinned ?? game.isPinned;
+      await applyLibraryGroupAction(members, (member) =>
+        window.electron.toggleGamePin(member.shop, member.objectId, !isPinned)
+      );
+      if (isPinned) {
         showSuccessToast(t("game_removed_from_pinned"));
       } else {
-        await window.electron.toggleGamePin(game.shop, game.objectId, true);
         showSuccessToast(t("game_added_to_pinned"));
       }
-      updateLibrary();
       try {
         window.dispatchEvent(
           new CustomEvent("hydra:game-pin-toggled", {
@@ -308,12 +317,17 @@ export function useGameActions(game: GameContextMenuGame) {
     } catch (error) {
       showErrorToast(t("failed_update_pinned"));
       logger.error("Failed to toggle pin", error);
+    } finally {
+      await updateLibrary();
     }
   };
 
   const handleOpenDownloadLocation = async () => {
     try {
-      await window.electron.openGameInstallerPath(game.shop, game.objectId);
+      await window.electron.openGameInstallerPath(
+        downloadGame.shop,
+        downloadGame.objectId
+      );
     } catch (error) {
       showErrorToast("Failed to open download location");
       logger.error("Failed to open download location", error);
@@ -322,12 +336,15 @@ export function useGameActions(game: GameContextMenuGame) {
 
   const handleRemoveFromLibrary = async () => {
     try {
-      if (isGameDownloading) {
-        await cancelDownload(game.shop, game.objectId);
-      }
-
-      await removeGameFromLibrary(game.shop, game.objectId);
-      await Promise.all([updateLibrary(), loadCollections()]);
+      await applyLibraryGroupAction(members, async (member) => {
+        if (member.download?.status === "active") {
+          await window.electron.cancelGameDownload(
+            member.shop,
+            member.objectId
+          );
+        }
+        await removeGameFromLibrary(member.shop, member.objectId);
+      });
       showSuccessToast(t("game_removed_from_library"));
       try {
         window.dispatchEvent(
@@ -341,18 +358,29 @@ export function useGameActions(game: GameContextMenuGame) {
     } catch (error) {
       showErrorToast(t("failed_remove_from_library"));
       logger.error("Failed to remove from library", error);
+    } finally {
+      await Promise.all([updateLibrary(), loadCollections()]);
     }
   };
 
   const handleRemoveFiles = async () => {
+    if (
+      isLibraryGameDownloading(downloadGame) ||
+      isGameDeleting(downloadGame.objectId)
+    )
+      return;
+
     try {
-      await removeGameInstaller(game.shop, game.objectId);
-      updateLibrary();
+      await removeGameInstaller(downloadGame.shop, downloadGame.objectId);
+      await updateLibrary();
       showSuccessToast(t("files_removed_success"));
       try {
         window.dispatchEvent(
           new CustomEvent("hydra:game-files-removed", {
-            detail: { shop: game.shop, objectId: game.objectId },
+            detail: {
+              shop: downloadGame.shop,
+              objectId: downloadGame.objectId,
+            },
           })
         );
       } catch {
@@ -366,7 +394,9 @@ export function useGameActions(game: GameContextMenuGame) {
 
   return {
     canPlay,
+    downloadGame,
     isDeleting,
+    isDownloadDeleting,
     isGameDownloading,
     isGameRunning,
     hasRepacks,

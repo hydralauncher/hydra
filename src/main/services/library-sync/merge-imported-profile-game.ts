@@ -1,8 +1,9 @@
-import type { Game, GameShop } from "@types";
+import type { Game, GameShop, LibraryCatalogueMetadata } from "@types";
 import { mergeLocalAndRemotePlayTime } from "../../../shared/playtime.js";
+import { mergeLibraryCatalogueMetadata } from "../../../shared/library-catalogue.js";
 import { resolveLibraryIsDeleted } from "./resolve-library-source.js";
 
-export interface ImportedProfileGame {
+export interface ImportedProfileGame extends LibraryCatalogueMetadata {
   id: string;
   source?: string;
   objectId: string;
@@ -46,6 +47,7 @@ export const mergeImportedProfileGame = (
   remoteGame: ImportedProfileGame
 ): Game => ({
   ...localGame,
+  ...mergeLibraryCatalogueMetadata(localGame, remoteGame),
   remoteId:
     localGame.source === "hydra" &&
     localGame.remoteId === null &&

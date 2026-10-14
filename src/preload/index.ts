@@ -47,6 +47,8 @@ import type {
   ArtworkKind,
   ArtworkPage,
   GameArtworkSelection,
+  GameArtworkOptions,
+  GameAssetsOptions,
   GameLauncherStatusPayload,
   CloudSaveAutomaticSyncModeChangedEvent,
   CloudSaveAutomaticSyncEvent,
@@ -476,15 +478,20 @@ contextBridge.exposeInMainWorld("electron", {
     >,
 
   /* Catalogue */
-  getGameShopDetails: (objectId: string, shop: GameShop, language: string) =>
-    ipcRenderer.invoke("getGameShopDetails", objectId, shop, language),
+  getGameShopDetails: (
+    objectId: string,
+    shop: GameShop,
+    language: string,
+    options?: GameArtworkOptions
+  ) =>
+    ipcRenderer.invoke("getGameShopDetails", objectId, shop, language, options),
   getRandomGame: () => ipcRenderer.invoke("getRandomGame"),
   getGameStats: (objectId: string, shop: GameShop) =>
     ipcRenderer.invoke("getGameStats", objectId, shop),
   getGameAssets: (
     objectId: string,
     shop: GameShop,
-    options?: { forceFresh?: boolean }
+    options?: GameAssetsOptions
   ) => ipcRenderer.invoke("getGameAssets", objectId, shop, options),
   onUpdateAchievements: (
     objectId: string,

@@ -1067,7 +1067,11 @@
     "disk_usage_tooltip": "Installed size on disk",
     "installer_size_tooltip": "Installer size",
     "library_epic": "Epic",
-    "imported_from_epic": "이 프로필에 연결된 Epic 라이브러리에서 가져왔습니다."
+    "imported_from_epic": "이 프로필에 연결된 Epic 라이브러리에서 가져왔습니다.",
+    "imported_from_steam_and_epic": "이 프로필에 연결된 Steam 및 Epic Games 라이브러리에서 가져왔습니다.",
+    "available_on_steam_and_epic": "Steam 및 Epic Games에서 이용 가능",
+    "available_on_steam": "Steam에서 이용 가능",
+    "available_on_epic": "Epic Games에서 이용 가능"
   },
   "achievement": {
     "achievement_unlocked": "Achievement unlocked",
