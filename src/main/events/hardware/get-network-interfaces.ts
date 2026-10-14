@@ -5,29 +5,31 @@ import { registerEvent } from "../register-event";
 
 const getNetworkInterfaces = async (): Promise<NetworkInterface[]> => {
   const interfaces = os.networkInterfaces();
+  const options: NetworkInterface[] = [];
 
-  return Object.entries(interfaces).reduce<NetworkInterface[]>(
-    (acc, [name, addresses]) => {
-      const external = (addresses ?? []).filter((address) => !address.internal);
+  for (const [name, addresses] of Object.entries(interfaces)) {
+    if (!addresses) continue;
 
-      if (external.length === 0) {
-        return acc;
-      }
+    for (const addr of addresses) {
+      // Exclude loopback, link-local IPv6, and APIPA addresses
+      if (addr.internal) continue;
+      if (
+        addr.family === "IPv6" &&
+        addr.address.toLowerCase().startsWith("fe80")
+      )
+        continue;
+      if (addr.family === "IPv4" && addr.address.startsWith("169.254."))
+        continue;
 
-      const sorted = external.sort((a, b) => {
-        if (a.family === b.family) return 0;
-        return a.family === "IPv4" ? -1 : 1;
-      });
-
-      acc.push({
+      options.push({
+        id: addr.address,
+        label: `${name} (${addr.address})`,
         name,
-        addresses: sorted.map((address) => address.address),
       });
+    }
+  }
 
-      return acc;
-    },
-    []
-  );
+  return options;
 };
 
 registerEvent("getNetworkInterfaces", getNetworkInterfaces);
