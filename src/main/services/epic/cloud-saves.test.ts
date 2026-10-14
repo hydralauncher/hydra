@@ -13,7 +13,11 @@ import * as files from "./cloud-save-files.js";
 import { isRecord } from "./auth-protocol.js";
 import * as linuxPaths from "./cloud-save-linux-path.js";
 import { resolveWinePrefixPath } from "../wine-prefix.js";
+import { queueEpicOperation } from "./operation-queue.js";
+import { deferred } from "./store-test-helpers.js";
 import type { Game } from "@types";
+
+const TEST_SAVE_SYNC_TIMEOUT_MS = 10_000;
 
 async function fixture(t: TestContext, options: { linux?: boolean } = {}) {
   const root = await fsp.mkdtemp(path.join(os.tmpdir(), "epic-save-service-"));
@@ -75,6 +79,10 @@ async function fixture(t: TestContext, options: { linux?: boolean } = {}) {
     prefixBusy: false,
     leaseId: "own-launch-lease",
     mutationLeases: [] as Array<string | undefined>,
+    workspaceTail: undefined as Promise<unknown> | undefined,
+    workspaceSignals: [] as Array<AbortSignal | undefined>,
+    workspaceExecutions: 0,
+    onWorkspaceQueued: null as (() => void) | null,
   };
   const installed: {
     app_name: string;
@@ -100,8 +108,22 @@ async function fixture(t: TestContext, options: { linux?: boolean } = {}) {
     },
     serializeWorkspace: async (
       _target: unknown,
-      task: (directory: string) => Promise<unknown>
-    ) => task(workspace),
+      task: (directory: string) => Promise<unknown>,
+      signal?: AbortSignal
+    ) => {
+      const { queued, result } = queueEpicOperation(
+        state.workspaceTail,
+        () => {
+          state.workspaceExecutions++;
+          return task(workspace);
+        },
+        signal
+      );
+      state.workspaceTail = queued;
+      state.workspaceSignals.push(signal);
+      state.onWorkspaceQueued?.();
+      return result;
+    },
     runRawUnlocked: async (
       _target: unknown,
       args: string[],
@@ -231,7 +253,7 @@ async function fixture(t: TestContext, options: { linux?: boolean } = {}) {
     "./cloud-save-protocol.js": protocol,
     "./cloud-save-files.js": files,
     "./constants.js": {
-      EPIC_SAVE_SYNC_TIMEOUT_MS: 1000,
+      EPIC_SAVE_SYNC_TIMEOUT_MS: TEST_SAVE_SYNC_TIMEOUT_MS,
       EPIC_SAVE_STABILITY_DELAY_MS: 1,
       EPIC_SAVE_STABILITY_ATTEMPTS: 3,
     },
@@ -702,6 +724,51 @@ test("invalidated post-close inspection publishes nothing to the replacement con
     "local save"
   );
 });
+
+for (const linux of [false, true]) {
+  test(`${linux ? "Linux" : "Windows"} invalidation cancels saves waiting for a busy workspace without releasing its active task`, async (t) => {
+    const f = await fixture(t, { linux });
+    const releaseWorkspace = deferred<void>();
+    const waiting = deferred<void>();
+    let activeFinished = false;
+    const active = queueEpicOperation(undefined, async () => {
+      await releaseWorkspace.promise;
+      activeFinished = true;
+    });
+    f.state.workspaceTail = active.queued;
+    f.state.onWorkspaceQueued = () => waiting.resolve();
+    f.game().epicInstallation!.pendingSaveUpload = true;
+    await fsp.writeFile(path.join(f.local, "profile.sav"), "preserve local");
+    const operation = f.service.sync("Namespace:Item");
+    const cancelled = assert.rejects(operation, /operation-cancelled/);
+    await waiting.promise;
+    let invalidated = false;
+    const invalidation = f.service.invalidate().then(() => {
+      invalidated = true;
+    });
+    try {
+      await new Promise<void>((resolve) => setImmediate(resolve));
+      assert.equal(invalidated, true);
+      assert.equal(activeFinished, false);
+      assert.equal(f.state.workspaceSignals.at(-1)?.aborted, true);
+      assert.equal(f.state.workspaceExecutions, 0);
+      assert.equal(f.state.commands.length, 0);
+      assert.equal(f.game().epicInstallation?.pendingSaveUpload, true);
+    } finally {
+      releaseWorkspace.resolve();
+      await Promise.all([invalidation, cancelled, active.result]);
+      await f.state.workspaceTail?.catch(() => undefined);
+    }
+    assert.equal(f.state.workspaceExecutions, 0);
+    assert.equal(f.state.commands.length, 0);
+    assert.equal(
+      await fsp.readFile(path.join(f.local, "profile.sav"), "utf8"),
+      "preserve local"
+    );
+    assert.equal((await f.service.sync("Namespace:Item")).status, "up-to-date");
+    assert.equal(f.state.uploads, 1);
+  });
+}
 
 test("a launched session blocks manual restore before the watcher first detects its process", async (t) => {
   const f = await fixture(t);

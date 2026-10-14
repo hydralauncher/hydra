@@ -899,6 +899,83 @@ test("installed metadata binds the manifest executable preserving import provena
   }
 });
 
+test("queued prerequisite confirmation cancels without modifying installation or releasing the active workspace", async (t) => {
+  const f = await fixture(t, "linux");
+  await f.service.prepare(
+    f.owned,
+    "Artifact1",
+    "Windows",
+    new AbortController().signal
+  );
+  const installPath = path.join(f.root, "EpicGame");
+  await fs.mkdir(installPath);
+  await fs.writeFile(path.join(installPath, "Game.exe"), "game");
+  const file = path.join(f.runtime.workspace(f.target), "installed.json");
+  await fs.writeFile(
+    file,
+    JSON.stringify({
+      Artifact1: {
+        app_name: "Artifact1",
+        platform: "Windows",
+        version: "build-1",
+        install_path: installPath,
+        executable: "Game.exe",
+        install_size: 1000,
+        prereq_info: { path: "Redist.exe", args: "/quiet", installed: false },
+      },
+    })
+  );
+  const installed = await f.service.readInstalled(f.target, objectId);
+  assert.ok(installed);
+  const release = deferred<void>();
+  const entered = deferred<void>();
+  const active = f.runtime.serializeWorkspace(f.target, async () => {
+    entered.resolve();
+    await release.promise;
+  });
+  await entered.promise;
+  const controller = new AbortController();
+  const confirmation = f.service.confirmPrerequisites(
+    f.target,
+    installed,
+    controller.signal
+  );
+  const cancelled = assert.rejects(confirmation, {
+    code: "operation-cancelled",
+  });
+  let nextRan = false;
+  const next = f.runtime.serializeWorkspace(f.target, async () => {
+    nextRan = true;
+  });
+  try {
+    controller.abort();
+    await cancelled;
+    assert.equal(nextRan, false);
+    assert.equal(
+      JSON.parse(await fs.readFile(file, "utf8")).Artifact1.prereq_info
+        .installed,
+      false
+    );
+  } finally {
+    release.resolve();
+    await active;
+    await next;
+  }
+  assert.equal(
+    JSON.parse(await fs.readFile(file, "utf8")).Artifact1.prereq_info.installed,
+    false
+  );
+  await f.service.confirmPrerequisites(
+    f.target,
+    installed,
+    new AbortController().signal
+  );
+  assert.equal(
+    JSON.parse(await fs.readFile(file, "utf8")).Artifact1.prereq_info.installed,
+    true
+  );
+});
+
 test("installed executable realpath cannot escape through a directory junction", async (t) => {
   const f = await fixture(t);
   await f.service.prepare(

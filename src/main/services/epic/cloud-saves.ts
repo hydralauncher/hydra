@@ -758,7 +758,8 @@ export class EpicCloudSaveService {
               if (!preserveRecovery)
                 await fs.rm(temporary, { recursive: true, force: true });
             }
-          }
+          },
+          signal
         );
       return session.winePrefixPath
         ? withEpicLinuxPrefixMutation(

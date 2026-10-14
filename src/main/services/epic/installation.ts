@@ -942,22 +942,26 @@ export class EpicInstallationService {
     signal: AbortSignal
   ) {
     if (!installed.prereq_info) return;
-    await this.runtime.serializeWorkspace(target, async (directory) => {
-      this.runtime.assertCurrent(target, signal);
-      const file = path.join(directory, "installed.json");
-      const values = await readManagedJson(file);
-      const entry = isRecord(values) ? values[target.artifactId] : null;
-      if (
-        !isRecord(values) ||
-        !isRecord(entry) ||
-        !isRecord(entry.prereq_info) ||
-        entry.version !== installed.version ||
-        entry.install_path !== installed.install_path
-      )
-        throw new EpicManagedError("installation-incomplete");
-      entry.prereq_info.installed = true;
-      await writeManagedJson(file, values);
-    });
+    await this.runtime.serializeWorkspace(
+      target,
+      async (directory) => {
+        this.runtime.assertCurrent(target, signal);
+        const file = path.join(directory, "installed.json");
+        const values = await readManagedJson(file);
+        const entry = isRecord(values) ? values[target.artifactId] : null;
+        if (
+          !isRecord(values) ||
+          !isRecord(entry) ||
+          !isRecord(entry.prereq_info) ||
+          entry.version !== installed.version ||
+          entry.install_path !== installed.install_path
+        )
+          throw new EpicManagedError("installation-incomplete");
+        entry.prereq_info.installed = true;
+        await writeManagedJson(file, values);
+      },
+      signal
+    );
   }
   async folderName(target: EpicManagedTarget, objectId: string) {
     const entry = await this.metadata(target, objectId);
