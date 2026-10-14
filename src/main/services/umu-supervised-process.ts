@@ -281,8 +281,9 @@ export async function spawnSupervisedUmu(
       const deadline = Date.now() + EPIC_LINUX_TERMINATE_TIMEOUT_MS;
       const forceAt = Date.now() + EPIC_LINUX_TERMINATE_GRACE_MS;
       for (;;) {
+        const closedBeforeSnapshot = wrapperClosed;
         const alive = await invocationProcesses(invocationId, known);
-        if (!alive.length && wrapperClosed) return;
+        if (!alive.length && closedBeforeSnapshot && wrapperClosed) return;
         const signal = Date.now() >= forceAt ? "SIGKILL" : "SIGTERM";
         for (const identity of alive) {
           try {
@@ -414,6 +415,7 @@ export async function spawnSupervisedUmu(
         if (terminatePromise) await terminatePromise;
         if (outputFailure) throw outputFailure;
         if (options.signal?.aborted) throw failure("operation-cancelled");
+        const closedBeforeSnapshot = wrapperClosed;
         let alive: ProcessIdentity[];
         try {
           alive =
@@ -429,7 +431,7 @@ export async function spawnSupervisedUmu(
           await pause(EPIC_LINUX_PROCESS_POLL_MS);
           continue;
         }
-        if (wrapperClosed && !alive.length) {
+        if (closedBeforeSnapshot && wrapperClosed && !alive.length) {
           clearLifecycle();
           return;
         }

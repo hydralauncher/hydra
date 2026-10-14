@@ -11,6 +11,7 @@ function fixture(
     writableBinary?: boolean;
     reused?: boolean;
     wrongUid?: boolean;
+    protectedExe?: boolean;
   } = {}
 ) {
   const uid = process.getuid?.() ?? 1000;
@@ -23,14 +24,17 @@ function fixture(
       mode: options.writableBinary ? 0o100777 : 0o100755,
       isFile: () => true,
     }),
-    realpath: async (file: string) =>
-      file.startsWith("/proc/")
+    realpath: async (file: string) => {
+      if (options.protectedExe && file.startsWith("/proc/"))
+        throw Object.assign(new Error("denied"), { code: "EACCES" });
+      return file.startsWith("/proc/")
         ? options.spoofExe
           ? "/home/user/fake-systemd"
           : file.includes("/100/")
             ? "/usr/lib/systemd/systemd"
             : "/usr/lib/systemd/systemd-executor"
-        : file,
+        : file;
+    },
     readFile: async (file: string) => {
       const pid = Number(file.split("/")[2]);
       if (file.endsWith("/stat")) return statText(pid);
@@ -62,6 +66,23 @@ test(
         100,
         good.filesystem as never,
         good.manager
+      ),
+      true
+    );
+    const protectedGood = fixture({ protectedExe: true });
+    assert.equal(
+      await isVerifiedLinuxUserService(
+        100,
+        protectedGood.filesystem as never,
+        protectedGood.manager
+      ),
+      true
+    );
+    assert.equal(
+      await isVerifiedLinuxUserService(
+        101,
+        protectedGood.filesystem as never,
+        protectedGood.manager
       ),
       true
     );
