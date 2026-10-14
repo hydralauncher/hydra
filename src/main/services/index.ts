@@ -29,6 +29,7 @@ export * from "./download-sources-checker";
 export * from "./notifications/local-notifications";
 export * from "./power-save-blocker";
 export * from "./native-addon";
+export * from "./guide";
 export * from "./cloud-save";
 export * from "./achievement-notification-presenter-electron";
 export * from "./achievements/grouped-souvenir-worker";

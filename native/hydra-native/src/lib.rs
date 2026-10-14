@@ -1,6 +1,7 @@
 mod active_window;
 mod cloud_save;
 mod constants;
+mod guide;
 mod torrent;
 
 pub use cloud_save::hashing::{build_snapshot_aggregate_hash, hash_local_save_file};
@@ -15,6 +16,10 @@ pub use cloud_save::restore::{
 };
 pub use cloud_save::save_scanner::scan_resolved_save_rules;
 pub use cloud_save::upload::upload_local_save_blob;
+pub use guide::{
+    bring_window_to_foreground, describe_guide_devices, is_guide_watcher_running,
+    is_guide_watcher_supported, poll_guide_events, start_guide_watcher, stop_guide_watcher,
+};
 
 use std::fs::File;
 use std::io::{BufReader, BufWriter};

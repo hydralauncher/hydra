@@ -32,6 +32,8 @@ import {
   logger,
   migrateCloudSaveAutomaticSyncDefaults,
   groupedSouvenirWorker,
+  GuideService,
+  isGlobalGuideButtonEnabled,
 } from "@main/services";
 import { migrateDownloadSources } from "./helpers/migrate-download-sources";
 import { getDirSize } from "./services/download/helpers";
@@ -80,6 +82,8 @@ export const loadState = async () => {
   );
 
   Wine.syncUserPreferences(userPreferences);
+
+  GuideService.applyEnabled(isGlobalGuideButtonEnabled(userPreferences));
 
   await import("./events");
 
