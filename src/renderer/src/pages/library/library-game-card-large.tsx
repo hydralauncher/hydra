@@ -219,7 +219,7 @@ export const LibraryGameCardLarge = memo(function LibraryGameCardLarge({
       return;
     }
 
-    setUnlockedAchievementsCount(0);
+    setUnlockedAchievementsCount(game.unlockedAchievementCount ?? 0);
 
     if ((game.achievementCount ?? 0) <= 0 && !hasStoreUnion) return;
 
@@ -232,8 +232,8 @@ export const LibraryGameCardLarge = memo(function LibraryGameCardLarge({
         setUnlockedAchievementsCount(
           achievements.filter((a) => a.unlocked).length
         );
-        if (achievements.some((a) => a.canonicalAchievementId))
-          setTotalAchievementsCount(achievements.length);
+        // Both counts must describe the returned list, including a one-store fallback.
+        setTotalAchievementsCount(achievements.length);
       })
       .catch(() => void 0);
 

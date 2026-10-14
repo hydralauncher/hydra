@@ -1,5 +1,11 @@
 # Combined Steam/Epic achievement presentation
 
+The optional combined request has a five-second timeout. Source-only update
+events from other copies are ignored on fallback; only the operational copy may
+replace that page's source-specific list. Library totals and unlocked counts are
+both derived from the returned list, and rejected requests retain the existing
+count pair.
+
 Requires the API's `/profile/achievements/combined` endpoint and its additive
 canonical achievement identity migration. The API groups equivalent provider
 definitions and applies the existing owner/session/subscription visibility rules.

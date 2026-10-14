@@ -501,6 +501,14 @@ export function GameDetailsContextProvider({
         member.shop,
         (achievements) => {
           if (!userDetails) return;
+          if (
+            (member.objectId !== operationalObjectId ||
+              member.shop !== operationalShop) &&
+            !achievements.some(
+              (achievement) => achievement.canonicalAchievementId
+            )
+          )
+            return;
           achievementUpdateCountRef.current += 1;
           setAchievements(achievements);
         }

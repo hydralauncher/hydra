@@ -13,6 +13,8 @@ import {
   type CombinedAchievements,
 } from "@main/services/achievements/combined-achievement-presentation";
 
+const COMBINED_ACHIEVEMENTS_TIMEOUT_MS = 5_000;
+
 export const getUnlockedAchievements = async (
   objectId: string,
   shop: GameShop,
@@ -31,7 +33,8 @@ export const getUnlockedAchievements = async (
   if (shop === "steam" || shop === "epic") {
     const combined = await HydraApi.get<CombinedAchievements>(
       "/profile/achievements/combined",
-      { shop, objectId, language: userPreferences?.language ?? "en" }
+      { shop, objectId, language: userPreferences?.language ?? "en" },
+      { timeout: COMBINED_ACHIEVEMENTS_TIMEOUT_MS }
     ).catch(() => null);
     if (combined?.achievements.length) {
       return presentCombinedAchievements(

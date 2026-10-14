@@ -14,6 +14,7 @@ import type {
   GameStats,
   LibraryGame,
   ShopAssets,
+  UserAchievement,
 } from "@types";
 import type { GameDetailsContext } from "./game-details.context.types";
 import {
@@ -116,6 +117,10 @@ async function fixture(
   const calls: [string, ...unknown[]][] = [];
   const unsubscribe = () => {};
   const libraryBatchListeners = new Set<() => void>();
+  const achievementListeners = new Map<
+    string,
+    (rows: UserAchievement[]) => void
+  >();
   const resolveAssets = async (request: AssetsRequest) =>
     artworkAssets
       ? artworkAssets(request)
@@ -177,9 +182,15 @@ async function fixture(
       calls.push(["sync", "steam", objectId]);
       return false;
     },
-    onUpdateAchievements: (objectId: string, shop: string) => {
+    onUpdateAchievements: (
+      objectId: string,
+      shop: string,
+      listener: (rows: UserAchievement[]) => void
+    ) => {
       calls.push(["achievement-listener", shop, objectId]);
-      return unsubscribe;
+      const key = `${shop}:${objectId}`;
+      achievementListeners.set(key, listener);
+      return () => achievementListeners.delete(key);
     },
     onGamesRunning: () => unsubscribe,
     onLibraryBatchComplete: (listener: () => void) => {
@@ -295,6 +306,15 @@ async function fixture(
         for (const listener of libraryBatchListeners) listener();
       });
     },
+    async emitAchievements(
+      shop: string,
+      objectId: string,
+      rows: UserAchievement[]
+    ) {
+      await React.act(async () => {
+        achievementListeners.get(`${shop}:${objectId}`)?.(rows);
+      });
+    },
     get details() {
       return current;
     },
@@ -302,6 +322,31 @@ async function fixture(
 }
 
 describe("Desktop catalogue page", () => {
+  it("ignores another copy's source-only fallback but accepts combined and operational updates", async (t) => {
+    const steam = {
+      ...epic,
+      id: "steam:123",
+      shop: "steam",
+      objectId: "123",
+      executablePath: "steam.exe",
+      hasActiveEpicImport: false,
+    } as LibraryGame;
+    const state = await fixture(t, [steam, epic]);
+    const operational = [
+      { name: "steam-only", unlocked: true },
+    ] as UserAchievement[];
+    await state.emitAchievements("steam", "123", operational);
+    assert.deepEqual(state.details.achievements, operational);
+    await state.emitAchievements("epic", epic.objectId, [
+      { name: "epic-only", unlocked: true },
+    ] as UserAchievement[]);
+    assert.deepEqual(state.details.achievements, operational);
+    const combined = [
+      { name: "combined", canonicalAchievementId: "identity", unlocked: true },
+    ] as UserAchievement[];
+    await state.emitAchievements("epic", epic.objectId, combined);
+    assert.deepEqual(state.details.achievements, combined);
+  });
   for (const status of [
     "paused",
     "removed",
