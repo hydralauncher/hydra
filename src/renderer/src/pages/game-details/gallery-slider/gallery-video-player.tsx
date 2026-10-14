@@ -26,6 +26,7 @@ import { useHlsVideo } from "@shared";
 import type { GalleryMediaItem, GalleryVideoSource } from "./gallery-slider";
 import { HLS_VIDEO_TYPE } from "./gallery-media-sources";
 import { isPointerActivity } from "./gallery-shortcuts";
+import { shouldPauseOnToggle } from "./gallery-playback";
 import "./gallery-video-player.scss";
 
 const AUTO_QUALITY = -1;
@@ -1021,12 +1022,22 @@ export const GalleryVideoPlayer = forwardRef<
       return;
     }
 
-    if (video.paused || video.ended) {
-      play();
-      showFlash(true);
-    } else {
+    const pendingRestore = pendingRestoreRef.current;
+    const pause = shouldPauseOnToggle({
+      paused: video.paused,
+      ended: video.ended,
+      pendingPlay: pendingRestore?.play === true,
+    });
+
+    if (pause) {
+      if (pendingRestore) {
+        pendingRestoreRef.current = { ...pendingRestore, play: false };
+      }
       video.pause();
       showFlash(false);
+    } else {
+      play();
+      showFlash(true);
     }
   }, [play, started]);
 

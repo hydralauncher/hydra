@@ -25,6 +25,7 @@ import {
 } from "./gallery-video-player";
 import { GalleryVideoHost, GalleryVideoSlot } from "./gallery-video-host";
 import { getSteamMovieSource } from "./gallery-media-sources";
+import { shouldSpaceTogglePlayback } from "./gallery-playback";
 import { useDragScroll } from "./use-drag-scroll";
 import {
   hasShortcutModifier,
@@ -315,14 +316,6 @@ export function GallerySlider() {
         item.type === "video"
           ? playerHandlesRef.current.get(item.id)
           : undefined;
-      const target = event.target;
-      const focusedControl =
-        target instanceof Element
-          ? target.closest("button, a, [role='button']")
-          : null;
-      const focusIsOutsideGallery =
-        focusedControl !== null &&
-        !containerRef.current?.contains(focusedControl);
 
       const shortcuts: Record<string, () => boolean> = {
         f: () => {
@@ -334,7 +327,10 @@ export function GallerySlider() {
           return Boolean(video);
         },
         " ": () => {
-          if (!video || focusIsOutsideGallery) return false;
+          if (!video) return false;
+          if (!shouldSpaceTogglePlayback(event.target, containerRef.current)) {
+            return false;
+          }
           video.togglePlay();
           return true;
         },
