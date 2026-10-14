@@ -15,13 +15,9 @@ export interface ArchiveEntry {
 
 export async function listArchiveFiles(
   directoryPath: string,
-  maxSubfolderDepth: number,
   archiveExtensions: readonly string[]
 ): Promise<string[]> {
-  const visit = async (
-    relativePath: string,
-    depth: number
-  ): Promise<string[]> => {
+  const visit = async (relativePath: string): Promise<string[]> => {
     const entries = await fs.promises.readdir(
       path.join(directoryPath, relativePath),
       { withFileTypes: true }
@@ -36,14 +32,13 @@ export async function listArchiveFiles(
           )
         )
           return [entryPath];
-        if (entry.isDirectory() && depth < maxSubfolderDepth)
-          return visit(entryPath, depth + 1);
+        if (entry.isDirectory()) return visit(entryPath);
         return [];
       })
     );
     return groups.flat();
   };
-  return visit("", 0);
+  return visit("");
 }
 
 export const listArchiveEntries = async (

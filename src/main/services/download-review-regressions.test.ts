@@ -973,3 +973,91 @@ it("initial provider failure reaches the start IPC error handler and removes the
   assert.equal(f.records.has("next"), false);
   assert.deepEqual(f.resumed, []);
 });
+
+for (const shouldDelete of [false, true]) {
+  it(`finds archives throughout preserved folders while limiting extraction passes (${shouldDelete})`, async () => {
+    const root = fs.mkdtempSync(
+      path.join(os.tmpdir(), "deep-archive-discovery-")
+    );
+    const outside = fs.mkdtempSync(
+      path.join(os.tmpdir(), "outside-archive-discovery-")
+    );
+    const first = path.join(root, "branch/one/two/payload.part1.rar");
+    const secondPart = path.join(path.dirname(first), "payload.part2.rar");
+    const inner = path.join(path.dirname(first), "nested/deeper/inner.zip");
+    const third = path.join(path.dirname(inner), "another/deep/third.zip");
+    const external = path.join(outside, "external.rar");
+    fs.mkdirSync(path.dirname(first), { recursive: true });
+    fs.writeFileSync(first, "first part");
+    fs.writeFileSync(secondPart, "second part");
+    fs.writeFileSync(external, "outside file");
+    fs.symlinkSync(outside, path.join(root, "linked"), "junction");
+    const calls: string[] = [];
+    const prompts: string[][] = [];
+    const { GameFilesManager } = load("./game-files-manager.ts", {
+      "node:fs": fs,
+      "node:path": path,
+      "@shared": shared,
+      "./logger": { logger },
+      "@main/level": {
+        levelKeys: { game: () => "fixture", userPreferences: "prefs" },
+        downloadsSublevel: {
+          get: async () => ({ automaticallyDeleteArchiveFiles: shouldDelete }),
+        },
+        db: {
+          get: async () => ({
+            deleteArchiveFilesAfterExtractionByDefault: !shouldDelete,
+          }),
+        },
+      },
+      "./archive-entry": { listArchiveFiles },
+      "./extraction-path": { getPathType: async () => "directory" },
+      "@main/events/library/delete-archive": {
+        deleteArchiveFile: async (file: string) => fs.rmSync(file),
+      },
+      "./window-manager": {
+        WindowManager: {
+          sendToAppWindows: (event: string, paths: string[]) => {
+            if (event === "on-archive-deletion-prompt") prompts.push(paths);
+          },
+        },
+      },
+      "./7zip": {
+        SevenZip: {
+          extractFile: async (options: { filePath: string; cwd: string }) => {
+            calls.push(options.filePath);
+            assert.equal(options.cwd, path.dirname(options.filePath));
+            const output = options.filePath === first ? inner : third;
+            fs.mkdirSync(path.dirname(output), { recursive: true });
+            fs.writeFileSync(output, "nested archive");
+            return { success: true };
+          },
+        },
+      },
+    });
+    const instance = new GameFilesManager("steam", "fixture");
+    instance.updateExtractionProgress = () => undefined;
+    instance.setExtractionFailedState = async (error: unknown) => {
+      throw error;
+    };
+    try {
+      assert.equal(await instance.extractFilesInDirectory(root), true);
+      assert.deepEqual(calls, [first, inner]);
+      assert.equal(
+        fs.existsSync(third),
+        true,
+        "the extraction pass limit stays independent of folder depth"
+      );
+      assert.equal(fs.readFileSync(external, "utf8"), "outside file");
+      for (const file of [first, secondPart, inner])
+        assert.equal(fs.existsSync(file), !shouldDelete);
+      assert.deepEqual(
+        prompts.map((files) => [...files].sort()),
+        shouldDelete ? [] : [[first, secondPart, inner].sort()]
+      );
+    } finally {
+      fs.rmSync(root, { recursive: true, force: true });
+      fs.rmSync(outside, { recursive: true, force: true });
+    }
+  });
+}

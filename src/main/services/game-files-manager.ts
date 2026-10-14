@@ -282,14 +282,13 @@ export class GameFilesManager {
     const compressedFiles = new Set<string>();
     const extractedFiles = new Set<string>();
 
-    // A provider ZIP can contain the torrent's original archive. Scan again
-    // after extraction, but stop after one nested layer.
+    // Scan every folder on each pass. A provider ZIP can contain another archive,
+    // but extraction still stops after one nested archive layer.
     for (let pass = 0; pass < MAX_ARCHIVE_EXTRACTION_PASSES; pass++) {
       let archives: string[];
       try {
         archives = await listArchiveFiles(
           directoryPath,
-          pass,
           FILE_EXTENSIONS_TO_EXTRACT
         );
       } catch (error) {
