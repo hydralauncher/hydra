@@ -21,6 +21,13 @@ const EPIC_ERROR_TRANSLATIONS: Record<EpicErrorCode, string> = {
   "invalid-operation": "epic_error_cancelled",
   "auth-failed": "epic_error_auth",
   timeout: "epic_error_timeout",
+  "sync-active": "epic_sync_in_progress",
+  "snapshot-invalid": "epic_sync_invalid",
+  "snapshot-too-large": "epic_sync_too_large",
+  "source-permission": "epic_sync_permission",
+  "rate-limit": "epic_sync_rate_limit",
+  "merge-failed": "epic_sync_merge_pending",
+  "session-expired": "epic_reconnect_description",
 };
 
 export const getEpicErrorTranslation = (error: EpicErrorCode): string =>
@@ -32,6 +39,24 @@ export const isEpicStateForUser = (
 ): boolean =>
   state.hydraUserId === hydraUserId ||
   (!state.hydraLoggedIn && state.hydraUserId === null);
+
+export const getEpicAuthFailure = (
+  previous: EpicConnectionState | null,
+  next: EpicConnectionState
+): EpicErrorCode | null => {
+  if (
+    !previous?.operation ||
+    previous.operation.status === "disconnecting" ||
+    previous.hydraUserId !== next.hydraUserId ||
+    !next.hydraLoggedIn ||
+    next.operation ||
+    !next.error ||
+    next.error === "operation-cancelled"
+  )
+    return null;
+
+  return next.error;
+};
 
 export const getEpicIntegrationPresentation = (
   state: EpicConnectionState | null,

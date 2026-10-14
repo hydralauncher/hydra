@@ -1,3 +1,4 @@
+import { updateGameRecord } from "@main/services/game-record-updater";
 import { registerEvent } from "../register-event";
 import fs from "node:fs";
 import { levelKeys, gamesSublevel } from "@main/level";
@@ -20,8 +21,7 @@ const selectGameWinePrefix = async (
   if (!winePrefixPath) {
     const environmentChanged = Boolean(game.winePrefixPath);
 
-    await gamesSublevel.put(gameKey, {
-      ...game,
+    await updateGameRecord(gameKey, {
       winePrefixPath: null,
     });
 
@@ -38,8 +38,7 @@ const selectGameWinePrefix = async (
     throw new Error("Invalid wine prefix path");
   }
 
-  await gamesSublevel.put(gameKey, {
-    ...game,
+  await updateGameRecord(gameKey, {
     winePrefixPath: realWinePrefixPath,
   });
 

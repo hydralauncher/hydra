@@ -731,7 +731,9 @@
     "download_error_alldebrid_unavailable": "AllDebrid is temporarily unavailable. Please try again later.",
     "create_steam_shortcut_modal_vr_flag": "VR Game (In Steam: update the VR flag or delete/recreate the shortcut)",
     "create_steam_shortcut_modal_create_button": "Create",
-    "create_steam_shortcut_modal_cancel_button": "Cancel"
+    "create_steam_shortcut_modal_cancel_button": "Cancel",
+    "epic_playtime_tracking_title": "Epic playtime",
+    "epic_playtime_tracking_description": "Epic playtime is already synced. When an Epic installation is identified, Hydra does not count the same session by default. Enable this option to also count it in Hydra."
   },
   "activation": {
     "title": "Attiva Hydra",
@@ -796,12 +798,11 @@
     "epic_status_awaiting_login": "Waiting for Epic sign-in",
     "epic_status_connecting": "Connecting...",
     "epic_status_disconnecting": "Disconnecting...",
-    "epic_connected_at": "Connected on {{date}}",
     "epic_reconnect_description": "Your account is still linked. Sign in again to restore the Epic session on this device.",
     "epic_login_in_window": "Complete sign-in in the Epic window.",
     "epic_check_connection": "Check connection",
     "epic_disconnect_title": "Disconnect Epic Games?",
-    "epic_disconnect_description": "This removes your Epic link from Hydra and the saved Epic session on this device.",
+    "epic_disconnect_description": "This removes your imported Epic library and playtime and the saved Epic session on this device. Your Hydra games, playtime and preferences are preserved.",
     "epic_account_linked": "Epic Games account connected",
     "epic_account_unlinked": "Epic Games account disconnected",
     "epic_error_hydra_auth": "Sign in to Hydra to connect your Epic Games account.",
@@ -825,11 +826,12 @@
     "integration_disconnect": "Disconnetti",
     "integration_reconnect": "Riconnetti",
     "integration_sync": "Sincronizza",
+    "integration_last_synced": "Ultima sincronizzazione: {{date}}",
+    "integration_never_synced": "Non ancora sincronizzato",
     "integration_status_not_connected": "Non connesso",
     "retroachievements_connect_title": "Collega RetroAchievements",
     "retroachievements_status_invalid_credentials": "Credenziali non valide",
     "retroachievements_invalid_credentials_description": "Le credenziali RetroAchievements non sono più valide. Ricollega il tuo account.",
-    "retroachievements_last_checked": "Ultimo controllo: {{date}}",
     "steam_status_reconnect_required": "Riconnessione necessaria",
     "downloads_path": "Percorso dei download",
     "change": "Aggiorna",
@@ -1029,7 +1031,22 @@
     "proton_version_auto": "Auto (global default or umu default)",
     "proton_source_umu_default": "umu default selection",
     "proton_source_steam": "Installed by Steam",
-    "proton_source_compatibility_tools": "Installed in Steam compatibilitytools.d"
+    "proton_source_compatibility_tools": "Installed in Steam compatibilitytools.d",
+    "epic_sync_starting": "Preparing Epic sync…",
+    "epic_sync_library": "Collecting Epic library…",
+    "epic_sync_playtime": "Collecting Epic playtime…",
+    "epic_sync_publishing": "Uploading Epic library…",
+    "epic_sync_merging": "Updating local library…",
+    "epic_sync_finishing": "Finishing up…",
+    "epic_sync_cancelling": "Cancelling Epic sync…",
+    "epic_sync_success": "Sincronizzazione Epic completata",
+    "epic_sync_in_progress": "An Epic sync is already running. Wait for it to finish or cancel the pending upload.",
+    "epic_sync_invalid": "Epic library data could not be verified. Your previous library was preserved.",
+    "epic_sync_too_large": "The Epic library exceeds the sync limits.",
+    "epic_sync_permission": "Epic did not allow access to playtime. Your previous library was preserved.",
+    "epic_sync_rate_limit": "Epic is limiting requests. Try again later.",
+    "epic_sync_merge_pending": "The server synced your Epic library. Retry sync to update the local library.",
+    "hide_library_epic_badges": "Nascondi i badge della connessione alla libreria di Epic"
   },
   "notifications": {
     "download_complete": "Download completato",
@@ -1250,7 +1267,9 @@
     "empty_favorites_title": "No favorite games",
     "empty_favorites_description": "Mark games as favorites to keep them handy here.",
     "empty_collection_title": "This collection is empty",
-    "empty_collection_description": "Right-click any game, open Collection, and add it here."
+    "empty_collection_description": "Right-click any game, open Collection, and add it here.",
+    "library_epic": "Epic",
+    "imported_from_epic": "Importato dalla libreria di Epic collegata a questo profilo."
   },
   "achievement": {
     "achievement_unlocked": "Obiettivo sbloccato",

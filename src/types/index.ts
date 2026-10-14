@@ -107,6 +107,8 @@ export type UserGame = {
   achievementsPointsEarnedSum: number;
   hasManuallyUpdatedPlaytime: boolean;
   hasActiveSteamImport?: boolean;
+  hasActiveEpicImport?: boolean;
+  runtimeByPlatform?: { hydra?: number; steam?: number; epic?: number };
   isFavorite: boolean;
   isHiddenFromOthers?: boolean;
   isConcealed?: boolean;

@@ -193,7 +193,10 @@ async function renderLibrary(
       categoryShowsPlatforms: () => false,
       categoryShowsSources: () => false,
       filterLibraryGames: (games: TestGame[]) => games,
-      getLibraryFilterOptions: () => ({ platforms: [], hasSteamGames: false }),
+      getLibraryFilterOptions: () => ({
+        platforms: [],
+        hasImportedGames: false,
+      }),
       readStoredLibraryFilters: () => ({ category: "all", sources: [] }),
     },
     "@renderer/session-state": {

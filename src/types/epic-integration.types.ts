@@ -9,6 +9,8 @@ export interface EpicConnectedConnection {
   epicAccountId: string;
   displayName: string;
   connectedAt: string;
+  lastSyncedAt?: string | null;
+  latestSyncRun?: EpicSyncRun | null;
 }
 
 export type EpicConnection = { connected: false } | EpicConnectedConnection;
@@ -35,7 +37,14 @@ export type EpicErrorCode =
   | "operation-in-progress"
   | "invalid-operation"
   | "auth-failed"
-  | "timeout";
+  | "timeout"
+  | "sync-active"
+  | "snapshot-invalid"
+  | "snapshot-too-large"
+  | "source-permission"
+  | "rate-limit"
+  | "merge-failed"
+  | "session-expired";
 
 export interface EpicConnectionState {
   hydraLoggedIn: boolean;
@@ -63,3 +72,49 @@ export type EpicOperationResult =
 export type EpicStartAuthResult =
   | { ok: true; operationId: string }
   | { ok: false; error: EpicErrorCode };
+
+export type EpicSyncTrigger = "FIRST_LINK" | "STARTUP" | "MANUAL";
+export interface EpicSyncRun {
+  id: string;
+  trigger: EpicSyncTrigger;
+  status: "PENDING" | "RUNNING" | "SUCCEEDED" | "FAILED";
+  gamesCount: number;
+  error: string | null;
+  startedAt: string | null;
+  completedAt: string | null;
+  createdAt: string;
+}
+export type EpicSyncPhase =
+  | "starting"
+  | "library"
+  | "playtime"
+  | "publishing"
+  | "merging"
+  | "finishing";
+export interface EpicSyncState {
+  status: "idle" | "running" | "cancelling";
+  hydraUserId: string | null;
+  connectionId?: string;
+  syncRunId?: string | null;
+  phase?: EpicSyncPhase;
+  processed?: number;
+  total?: number | null;
+  requiresReconnect?: boolean;
+  error?: EpicErrorCode;
+}
+export interface EpicSyncFinished {
+  hydraUserId: string;
+  connectionId: string;
+  origin: "first-link" | "startup" | "manual";
+  ok: boolean;
+  error?: EpicErrorCode;
+  publication: "not-published" | "published" | "unknown";
+  requiresMerge: boolean;
+}
+export interface EpicSnapshotGame {
+  namespace: string;
+  catalogItemId: string;
+  artifactIds: string[];
+  name: string;
+  playTimeInSeconds: number;
+}

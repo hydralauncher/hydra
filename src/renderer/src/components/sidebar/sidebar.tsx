@@ -23,7 +23,7 @@ import {
   categoryShowsPlatforms,
   categoryShowsSources,
   filterLibraryGames,
-  hasSteamLibraryGames,
+  hasImportedLibraryGames,
   readStoredLibraryFilters,
   type LibraryCategory,
   type LibrarySource,
@@ -147,11 +147,14 @@ export function Sidebar() {
     );
   }, [library]);
 
-  const hasSteamGames = useMemo(() => hasSteamLibraryGames(library), [library]);
+  const hasImportedGames = useMemo(
+    () => hasImportedLibraryGames(library),
+    [library]
+  );
   const hasPlatforms = uniquePlatforms.length > 0;
   const effectiveSources = useMemo(
-    () => (hasSteamGames ? selectedSources : []),
-    [hasSteamGames, selectedSources]
+    () => (hasImportedGames ? selectedSources : []),
+    [hasImportedGames, selectedSources]
   );
   const effectivePlatforms = useMemo(
     () => (hasPlatforms ? selectedPlatforms : []),
@@ -585,7 +588,7 @@ export function Sidebar() {
                 showFavoritesFirst={showFavoritesFirst}
                 onToggleFavoritesFirst={handleToggleFavoritesFirst}
                 showSources={
-                  categoryShowsSources(sidebarCategory) && hasSteamGames
+                  categoryShowsSources(sidebarCategory) && hasImportedGames
                 }
                 selectedSources={selectedSources}
                 onSourcesChange={handleSelectedSourcesChange}

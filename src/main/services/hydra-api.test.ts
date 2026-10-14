@@ -129,6 +129,10 @@ async function fixture(t: TestContext, apiUrl = "http://localhost:3000") {
     axios:
       "import axios from 'real-axios'; export { AxiosError } from 'real-axios'; export default { create: options => axios.create({ ...options, adapter: harness.adapter }) };",
     "./window-manager": "export const WindowManager = harness.WindowManager;",
+    "./epic": "export const startEpicSyncOnStartup = async () => {};",
+    "./epic/import-cleanup":
+      "export const clearStaleEpicImports = async () => {};",
+    "./game-running-state": "export const clearGamesPlaytimeState = () => {};",
     "./library-sync": "export const uploadGamesBatch = async () => {};",
     "./library-sync/clear-games-remote-id":
       "export const clearGamesRemoteIds = async () => {};",

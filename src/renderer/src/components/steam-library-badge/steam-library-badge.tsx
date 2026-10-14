@@ -1,3 +1,4 @@
+import EpicLogo from "@renderer/assets/epic-integration-logo.svg?react";
 import { useId } from "react";
 import { createPortal } from "react-dom";
 import { useTranslation } from "react-i18next";
@@ -24,17 +25,21 @@ export function SteamIcon({ size = 14, className }: SteamIconProps) {
 }
 
 interface SteamLibraryBadgeProps {
+  source?: "steam" | "epic";
   variant?: "cover" | "large" | "sidebar";
   className?: string;
 }
 
 export function SteamLibraryBadge({
   variant = "cover",
+  source = "steam",
   className,
 }: SteamLibraryBadgeProps) {
   const { t } = useTranslation("library");
   const tooltipId = useId();
-  const label = t("imported_from_steam");
+  const label = t(
+    source === "epic" ? "imported_from_epic" : "imported_from_steam"
+  );
   const classes = [
     "steam-library-badge",
     `steam-library-badge--${variant}`,
@@ -52,9 +57,17 @@ export function SteamLibraryBadge({
         aria-label={label}
         role="img"
       >
-        <SteamIcon
-          size={variant === "sidebar" ? 8 : variant === "large" ? 13 : 12}
-        />
+        {source === "epic" ? (
+          <EpicLogo
+            width={variant === "sidebar" ? 8 : 13}
+            height={variant === "sidebar" ? 8 : 13}
+            aria-hidden="true"
+          />
+        ) : (
+          <SteamIcon
+            size={variant === "sidebar" ? 8 : variant === "large" ? 13 : 12}
+          />
+        )}
       </span>
       {createPortal(
         <Tooltip

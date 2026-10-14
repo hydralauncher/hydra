@@ -489,7 +489,7 @@ export default function Library() {
     [library, sortBy]
   );
 
-  const { platforms: uniquePlatforms, hasSteamGames } = useMemo(
+  const { platforms: uniquePlatforms, hasImportedGames } = useMemo(
     () =>
       getLibraryFilterOptions(
         selectedCollectionId === HIDDEN_COLLECTION_ID ? hiddenGames : library
@@ -498,7 +498,7 @@ export default function Library() {
   );
   const hasPlatforms = uniquePlatforms.length > 0;
   const showSourceFilter =
-    categoryShowsSources(effectiveCategory) && hasSteamGames;
+    categoryShowsSources(effectiveCategory) && hasImportedGames;
   const showPlatformFilter =
     categoryShowsPlatforms(effectiveCategory) && hasPlatforms;
 
@@ -524,7 +524,7 @@ export default function Library() {
 
     filtered = filterLibraryGames(filtered, {
       category: effectiveCategory,
-      sources: hasSteamGames ? selectedSources : [],
+      sources: hasImportedGames ? selectedSources : [],
       platforms: hasPlatforms ? selectedPlatforms : [],
     });
 
@@ -560,7 +560,7 @@ export default function Library() {
     deferredSearchQuery,
     selectedCollectionId,
     effectiveCategory,
-    hasSteamGames,
+    hasImportedGames,
     selectedSources,
     hasPlatforms,
     selectedPlatforms,

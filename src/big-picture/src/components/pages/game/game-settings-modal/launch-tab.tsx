@@ -290,12 +290,14 @@ function ExecutableSection({
 }
 
 interface SteamPlaytimeSectionProps {
+  source?: "steam" | "epic";
   enableHydraPlaytimeTracking: LibraryGame["enableHydraPlaytimeTracking"];
   isNonSteamExecutable: boolean;
   onToggleHydraPlaytimeEnabled: (enabled: boolean) => Promise<void>;
 }
 
 function SteamPlaytimeSection({
+  source = "steam",
   enableHydraPlaytimeTracking,
   isNonSteamExecutable,
   onToggleHydraPlaytimeEnabled,
@@ -305,8 +307,8 @@ function SteamPlaytimeSection({
   return (
     <SettingsSection
       className="game-launch-settings-tab__section"
-      title={t("steam_playtime_tracking_title")}
-      description={t("steam_playtime_tracking_description")}
+      title={t(`${source}_playtime_tracking_title`)}
+      description={t(`${source}_playtime_tracking_description`)}
     >
       <div className="game-launch-settings-tab__section-content">
         <Checkbox
@@ -612,10 +614,14 @@ export function GameLaunchSettingsTab({
           />
         )}
 
-        {isSteamImportedGame(game) && (
+        {(isSteamImportedGame(game) ||
+          (game.shop === "epic" && game.hasActiveEpicImport)) && (
           <SteamPlaytimeSection
             enableHydraPlaytimeTracking={game.enableHydraPlaytimeTracking}
-            isNonSteamExecutable={isNonSteamExecutable}
+            isNonSteamExecutable={
+              game.shop === "epic" ? false : isNonSteamExecutable
+            }
+            source={game.shop === "epic" ? "epic" : "steam"}
             onToggleHydraPlaytimeEnabled={onToggleHydraPlaytimeEnabled}
           />
         )}

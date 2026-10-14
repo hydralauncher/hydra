@@ -740,7 +740,9 @@
     "create_steam_shortcut_modal_cancel_button": "Hủy",
     "delete_shortcut_success": "Đã xóa lối tắt Steam thành công",
     "delete_shortcut_error": "Không thể xóa lối tắt Steam",
-    "delete_steam_shortcut": "Xóa lối tắt Steam"
+    "delete_steam_shortcut": "Xóa lối tắt Steam",
+    "epic_playtime_tracking_title": "Epic playtime",
+    "epic_playtime_tracking_description": "Epic playtime is already synced. When an Epic installation is identified, Hydra does not count the same session by default. Enable this option to also count it in Hydra."
   },
   "activation": {
     "title": "Kích hoạt Hydra",
@@ -811,12 +813,11 @@
     "epic_status_awaiting_login": "Waiting for Epic sign-in",
     "epic_status_connecting": "Connecting...",
     "epic_status_disconnecting": "Disconnecting...",
-    "epic_connected_at": "Connected on {{date}}",
     "epic_reconnect_description": "Your account is still linked. Sign in again to restore the Epic session on this device.",
     "epic_login_in_window": "Complete sign-in in the Epic window.",
     "epic_check_connection": "Check connection",
     "epic_disconnect_title": "Disconnect Epic Games?",
-    "epic_disconnect_description": "This removes your Epic link from Hydra and the saved Epic session on this device.",
+    "epic_disconnect_description": "This removes your imported Epic library and playtime and the saved Epic session on this device. Your Hydra games, playtime and preferences are preserved.",
     "epic_account_linked": "Epic Games account connected",
     "epic_account_unlinked": "Epic Games account disconnected",
     "epic_error_hydra_auth": "Sign in to Hydra to connect your Epic Games account.",
@@ -840,6 +841,8 @@
     "integration_disconnect": "Ngắt kết nối",
     "integration_reconnect": "Kết nối lại",
     "integration_sync": "Đồng bộ",
+    "integration_last_synced": "Đồng bộ lần cuối: {{date}}",
+    "integration_never_synced": "Chưa được đồng bộ",
     "integration_status_not_connected": "Chưa kết nối",
     "setup_official_website": "Trang web chính thức",
     "setup_install_with_hydra": "Cài đặt từ GitHub",
@@ -1052,7 +1055,6 @@
     "retroachievements_status_active": "Đã kết nối",
     "retroachievements_status_invalid_credentials": "Thông tin đăng nhập không hợp lệ",
     "retroachievements_invalid_credentials_description": "Thông tin đăng nhập RetroAchievements của bạn không còn hợp lệ. Hãy kết nối lại tài khoản.",
-    "retroachievements_last_checked": "Kiểm tra lần cuối: {{date}}",
     "steam_status_reconnect_required": "Cần kết nối lại",
     "retroachievements_invalid_password": "Mật khẩu RetroAchievements không hợp lệ",
     "retroachievements_invalid_web_api_key": "Khóa Web API của RetroAchievements không hợp lệ",
@@ -1370,7 +1372,22 @@
     "big_picture_enable_sounds": "Bật âm thanh Big Picture",
     "big_picture_enable_virtual_keyboard": "Bật bàn phím ảo Big Picture",
     "big_picture_enable_diagnostics": "Bật chẩn đoán điều hướng",
-    "big_picture_diagnostics_position": "Vị trí bảng chẩn đoán"
+    "big_picture_diagnostics_position": "Vị trí bảng chẩn đoán",
+    "epic_sync_starting": "Preparing Epic sync…",
+    "epic_sync_library": "Collecting Epic library…",
+    "epic_sync_playtime": "Collecting Epic playtime…",
+    "epic_sync_publishing": "Uploading Epic library…",
+    "epic_sync_merging": "Updating local library…",
+    "epic_sync_finishing": "Finishing up…",
+    "epic_sync_cancelling": "Cancelling Epic sync…",
+    "epic_sync_success": "Đã hoàn tất đồng bộ Epic",
+    "epic_sync_in_progress": "An Epic sync is already running. Wait for it to finish or cancel the pending upload.",
+    "epic_sync_invalid": "Epic library data could not be verified. Your previous library was preserved.",
+    "epic_sync_too_large": "The Epic library exceeds the sync limits.",
+    "epic_sync_permission": "Epic did not allow access to playtime. Your previous library was preserved.",
+    "epic_sync_rate_limit": "Epic is limiting requests. Try again later.",
+    "epic_sync_merge_pending": "The server synced your Epic library. Retry sync to update the local library.",
+    "hide_library_epic_badges": "Ẩn huy hiệu kết nối Thư viện Epic"
   },
   "notifications": {
     "download_complete": "Tải về hoàn tất",
@@ -1638,7 +1655,9 @@
     "context_menu_options": "Tùy chọn",
     "context_menu_uninstall": "Gỡ cài đặt",
     "context_menu_remove_from_library": "Xóa khỏi thư viện",
-    "context_menu_add_to_library": "Thêm vào thư viện"
+    "context_menu_add_to_library": "Thêm vào thư viện",
+    "library_epic": "Epic",
+    "imported_from_epic": "Được nhập từ thư viện Epic liên kết với hồ sơ này."
   },
   "achievement": {
     "achievement_unlocked": "Đã mở khóa thành tựu",

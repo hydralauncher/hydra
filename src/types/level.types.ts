@@ -46,6 +46,13 @@ export interface Game {
   customOriginalCoverPath?: string | null;
   playTimeInMilliseconds: number;
   steamPlayTimeInMilliseconds?: number;
+  epicPlayTimeInMilliseconds?: number;
+  hasActiveEpicImport?: boolean;
+  epicImportScope?: {
+    environment: string;
+    userId: string;
+    connectionId: string;
+  };
   hasActiveSteamImport?: boolean;
   enableHydraPlaytimeTracking?: boolean;
   unsyncedDeltaPlayTimeInMilliseconds?: number;
@@ -54,7 +61,7 @@ export interface Game {
   objectId: string;
   shop: GameShop;
   remoteId: string | null;
-  source?: "hydra" | "steam";
+  source?: "hydra" | "steam" | "epic";
   collectionIds?: string[];
   isDeleted: boolean;
   winePrefixPath?: string | null;
@@ -200,6 +207,7 @@ export interface UserPreferences {
   hideLibraryReadySizeBadges?: boolean;
   hideLibraryClassicsBadges?: boolean;
   hideSteamLibraryBadges?: boolean;
+  hideEpicLibraryBadges?: boolean;
   hideLibraryAchievementProgress?: boolean;
   autoplayAnimatedArtwork?: boolean;
   persistFiltersAndSorting?: boolean;
