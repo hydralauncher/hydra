@@ -42,12 +42,14 @@ export function ResetPlaytimeModal({
         game: game.title,
       })}
     >
-      {steamPlayTimeInMilliseconds > 0 ? (
+      {steamPlayTimeInMilliseconds > 0 ||
+      (game.epicPlayTimeInMilliseconds ?? 0) > 0 ? (
         <div className="reset-achievements-modal__playtime-breakdown">
           <PlaytimeBreakdownTable
             hydraPlayTimeInMilliseconds={game.playTimeInMilliseconds ?? 0}
             nextHydraPlayTimeInMilliseconds={0}
             steamPlayTimeInMilliseconds={steamPlayTimeInMilliseconds}
+            epicPlayTimeInMilliseconds={game.epicPlayTimeInMilliseconds ?? 0}
           />
         </div>
       ) : null}

@@ -12,6 +12,7 @@ interface PlaytimeBreakdownTableProps {
   hydraPlayTimeInMilliseconds: number;
   nextHydraPlayTimeInMilliseconds: number;
   steamPlayTimeInMilliseconds: number;
+  epicPlayTimeInMilliseconds?: number;
 }
 
 interface PlaytimeBreakdownColumn {
@@ -27,6 +28,7 @@ export function PlaytimeBreakdownTable({
   hydraPlayTimeInMilliseconds,
   nextHydraPlayTimeInMilliseconds,
   steamPlayTimeInMilliseconds,
+  epicPlayTimeInMilliseconds = 0,
 }: Readonly<PlaytimeBreakdownTableProps>) {
   const { t } = useTranslation(["game_details", "library"]);
 
@@ -51,11 +53,25 @@ export function PlaytimeBreakdownTable({
       operator: <Plus size={OPERATOR_ICON_SIZE} aria-label="+" />,
     },
     {
+      key: "epic",
+      icon: <SourceIcon source="epic" />,
+      label: t("library_epic", { ns: "library" }),
+      current: epicPlayTimeInMilliseconds,
+      next: epicPlayTimeInMilliseconds,
+      operator: <Plus size={OPERATOR_ICON_SIZE} aria-label="+" />,
+    },
+    {
       key: "total",
       icon: <ClockIcon size={14} />,
       label: t("playtime_breakdown_total"),
-      current: hydraPlayTimeInMilliseconds + steamPlayTimeInMilliseconds,
-      next: nextHydraPlayTimeInMilliseconds + steamPlayTimeInMilliseconds,
+      current:
+        hydraPlayTimeInMilliseconds +
+        steamPlayTimeInMilliseconds +
+        epicPlayTimeInMilliseconds,
+      next:
+        nextHydraPlayTimeInMilliseconds +
+        steamPlayTimeInMilliseconds +
+        epicPlayTimeInMilliseconds,
       operator: <Equal size={OPERATOR_ICON_SIZE} aria-label="=" />,
     },
   ];

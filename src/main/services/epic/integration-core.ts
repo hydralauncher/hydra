@@ -1,3 +1,4 @@
+import { parseEpicSyncRun } from "./sync-protocol.js";
 import { randomUUID } from "node:crypto";
 import type {
   EpicAccountData,
@@ -58,6 +59,11 @@ export interface EpicIntegrationDependencies {
   ): Promise<unknown>;
   delete(connectionId: string, options: EpicRequestOptions): Promise<void>;
   emit(state: EpicConnectionState): void;
+  connectionChanged?(
+    context: EpicAuthContext,
+    previous: EpicConnectedConnection | null,
+    next: EpicConnection
+  ): Promise<void>;
 }
 
 interface EpicOperation {
@@ -100,6 +106,19 @@ function validateEpicConnection(response: unknown): EpicConnection {
     epicAccountId: response.epicAccountId,
     displayName: response.displayName,
     connectedAt: response.connectedAt,
+    lastSyncedAt:
+      response.lastSyncedAt === undefined || response.lastSyncedAt === null
+        ? null
+        : typeof response.lastSyncedAt === "string" &&
+            Number.isFinite(Date.parse(response.lastSyncedAt))
+          ? response.lastSyncedAt
+          : (() => {
+              throw new EpicIntegrationError("invalid-response");
+            })(),
+    latestSyncRun:
+      response.latestSyncRun === undefined || response.latestSyncRun === null
+        ? null
+        : parseEpicSyncRun(response.latestSyncRun),
   };
 }
 
@@ -361,6 +380,7 @@ export class EpicIntegrationCore {
     expectedConnectionId?: string
   ) {
     if (!isCurrent()) throw new EpicIntegrationError("operation-cancelled");
+    const previousConnection = this.cached?.connection ?? null;
     let error: EpicErrorCode | undefined;
     let stored: EpicStoredConnection | null = null;
     try {
@@ -390,6 +410,12 @@ export class EpicIntegrationCore {
         sessionState: "unavailable",
         error,
       };
+    await this.dependencies.connectionChanged?.(
+      context,
+      previousConnection,
+      connection
+    );
+    if (!isCurrent()) throw new EpicIntegrationError("operation-cancelled");
     return this.remoteState(context, connection, error);
   }
 

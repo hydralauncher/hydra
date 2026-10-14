@@ -1,6 +1,6 @@
 {
   "name": "hydralauncher",
-  "version": "4.1.4",
+  "version": "4.1.6",
   "description": "Hydra",
   "main": "./out/main/index.js",
   "author": "Los Broxas",
@@ -16,7 +16,7 @@
   "scripts": {
     "format": "prettier --write .",
     "format-check": "prettier --check .",
-    "test": "node --import ./scripts/register-ts-node.mjs --test \"src/**/*.test.ts\" \"scripts/*.test.mjs\"",
+    "test": "node --import ./scripts/register-ts-node.mjs --test \"src/**/*.test.ts\" \"src/**/*.test.cjs\" \"scripts/*.test.mjs\"",
     "lint": "eslint . --ext .js,.jsx,.cjs,.mjs,.ts,.tsx,.cts,.mts --fix",
     "typecheck:node": "tsc --noEmit -p tsconfig.node.json --composite false",
     "typecheck:web": "tsc --noEmit -p tsconfig.web.json --composite false",

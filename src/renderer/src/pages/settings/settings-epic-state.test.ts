@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import type { EpicConnectionState } from "../../../../types/epic-integration.types.js";
 import {
+  getEpicAuthFailure,
   getEpicIntegrationPresentation,
   getEpicErrorTranslation,
   isEpicStateForUser,
@@ -30,6 +31,50 @@ test("invalid account data uses the payload error message", () => {
   assert.equal(
     getEpicErrorTranslation("invalid-account-data"),
     "epic_error_account_data"
+  );
+});
+
+test("failed Epic linking notifies once when the asynchronous operation ends", () => {
+  const pending = state({
+    connection: { connected: false },
+    operation: { id: "operation", status: "connecting" },
+  });
+  const failed = state({
+    connection: { connected: false },
+    error: "account-in-use",
+  });
+  const failure = getEpicAuthFailure(pending, failed);
+  assert.equal(failure, "account-in-use");
+  assert.equal(getEpicErrorTranslation(failure!), "epic_error_account_in_use");
+  assert.equal(getEpicAuthFailure(failed, failed), null);
+  assert.equal(
+    getEpicIntegrationPresentation(failed, true).statusKey,
+    "integration_status_not_connected"
+  );
+});
+
+test("Epic auth feedback excludes cancellation, other users and disconnects", () => {
+  const pending = state({
+    operation: { id: "operation", status: "authenticating" },
+  });
+  const failed = state({ error: "auth-failed" });
+  assert.equal(getEpicAuthFailure(pending, failed), "auth-failed");
+  for (const next of [
+    state(),
+    state({ error: "operation-cancelled" }),
+    state({ hydraUserId: "B", error: "auth-failed" }),
+    state({ hydraLoggedIn: false, error: "hydra-auth-required" }),
+    state({ ...pending, error: "auth-failed" }),
+  ]) {
+    assert.equal(getEpicAuthFailure(pending, next), null);
+  }
+  assert.equal(getEpicAuthFailure(null, failed), null);
+  assert.equal(
+    getEpicAuthFailure(
+      state({ operation: { id: "operation", status: "disconnecting" } }),
+      failed
+    ),
+    null
   );
 });
 

@@ -702,7 +702,9 @@
     "create_steam_shortcut_modal_cancel_button": "Batal",
     "delete_shortcut_success": "Pintasan Steam berhasil dihapus",
     "delete_shortcut_error": "Gagal menghapus pintasan Steam",
-    "delete_steam_shortcut": "Hapus pintasan Steam"
+    "delete_steam_shortcut": "Hapus pintasan Steam",
+    "epic_playtime_tracking_title": "Epic playtime",
+    "epic_playtime_tracking_description": "Epic playtime is already synced. When an Epic installation is identified, Hydra does not count the same session by default. Enable this option to also count it in Hydra."
   },
   "activation": {
     "title": "Aktifkan Hydra",
@@ -771,12 +773,11 @@
     "epic_status_awaiting_login": "Waiting for Epic sign-in",
     "epic_status_connecting": "Connecting...",
     "epic_status_disconnecting": "Disconnecting...",
-    "epic_connected_at": "Connected on {{date}}",
     "epic_reconnect_description": "Your account is still linked. Sign in again to restore the Epic session on this device.",
     "epic_login_in_window": "Complete sign-in in the Epic window.",
     "epic_check_connection": "Check connection",
     "epic_disconnect_title": "Disconnect Epic Games?",
-    "epic_disconnect_description": "This removes your Epic link from Hydra and the saved Epic session on this device.",
+    "epic_disconnect_description": "This removes your imported Epic library and playtime and the saved Epic session on this device. Your Hydra games, playtime and preferences are preserved.",
     "epic_account_linked": "Epic Games account connected",
     "epic_account_unlinked": "Epic Games account disconnected",
     "epic_error_hydra_auth": "Sign in to Hydra to connect your Epic Games account.",
@@ -800,6 +801,8 @@
     "integration_disconnect": "Putuskan",
     "integration_reconnect": "Hubungkan kembali",
     "integration_sync": "Sinkronkan",
+    "integration_last_synced": "Terakhir disinkronkan: {{date}}",
+    "integration_never_synced": "Belum disinkronkan",
     "integration_status_not_connected": "Belum terhubung",
     "setup_official_website": "Situs web resmi",
     "setup_install_with_hydra": "Instal dari GitHub",
@@ -1012,7 +1015,6 @@
     "retroachievements_status_active": "Terhubung",
     "retroachievements_status_invalid_credentials": "Kredensial tidak valid",
     "retroachievements_invalid_credentials_description": "Kredensial RetroAchievements Anda sudah tidak valid. Hubungkan kembali akun Anda.",
-    "retroachievements_last_checked": "Terakhir diperiksa: {{date}}",
     "steam_status_reconnect_required": "Perlu menghubungkan kembali",
     "retroachievements_invalid_password": "Kata sandi RetroAchievements tidak valid",
     "retroachievements_invalid_web_api_key": "Web API key RetroAchievements tidak valid",
@@ -1323,7 +1325,22 @@
     "big_picture_enable_sounds": "Aktifkan suara Big Picture",
     "big_picture_enable_virtual_keyboard": "Aktifkan keyboard virtual Big Picture",
     "big_picture_enable_diagnostics": "Aktifkan diagnostik navigasi",
-    "big_picture_diagnostics_position": "Posisi diagnostik"
+    "big_picture_diagnostics_position": "Posisi diagnostik",
+    "epic_sync_starting": "Preparing Epic sync…",
+    "epic_sync_library": "Collecting Epic library…",
+    "epic_sync_playtime": "Collecting Epic playtime…",
+    "epic_sync_publishing": "Uploading Epic library…",
+    "epic_sync_merging": "Updating local library…",
+    "epic_sync_finishing": "Finishing up…",
+    "epic_sync_cancelling": "Cancelling Epic sync…",
+    "epic_sync_success": "Sinkronisasi Epic selesai",
+    "epic_sync_in_progress": "An Epic sync is already running. Wait for it to finish or cancel the pending upload.",
+    "epic_sync_invalid": "Epic library data could not be verified. Your previous library was preserved.",
+    "epic_sync_too_large": "The Epic library exceeds the sync limits.",
+    "epic_sync_permission": "Epic did not allow access to playtime. Your previous library was preserved.",
+    "epic_sync_rate_limit": "Epic is limiting requests. Try again later.",
+    "epic_sync_merge_pending": "The server synced your Epic library. Retry sync to update the local library.",
+    "hide_library_epic_badges": "Sembunyikan lencana koneksi Pustaka Epic"
   },
   "notifications": {
     "download_complete": "Unduhan selesai!",
@@ -1583,7 +1600,9 @@
     "context_menu_options": "Opsi",
     "context_menu_uninstall": "Hapus Instalasi",
     "context_menu_remove_from_library": "Hapus dari Pustaka",
-    "context_menu_add_to_library": "Tambah ke Pustaka"
+    "context_menu_add_to_library": "Tambah ke Pustaka",
+    "library_epic": "Epic",
+    "imported_from_epic": "Diimpor dari pustaka Epic yang ditautkan ke profil ini."
   },
   "achievement": {
     "achievement_unlocked": "Pencapaian terbuka!",

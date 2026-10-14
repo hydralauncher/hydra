@@ -69,7 +69,7 @@ export function PlaytimeBar({
                 addSuffix: true,
               })}
             </>
-          ) : (
+          ) : playTimeInSeconds > 0 ? null : (
             <>You haven&apos;t played {game?.title} yet</>
           )}
         </Typography>

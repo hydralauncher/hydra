@@ -2,6 +2,8 @@ import cn from "classnames";
 import { AlertIcon, CheckCircleFillIcon } from "@primer/octicons-react";
 import type { ReactNode } from "react";
 import Skeleton, { SkeletonTheme } from "react-loading-skeleton";
+import { useTranslation } from "react-i18next";
+import { useDate } from "@renderer/hooks";
 
 import "./settings-integration-card.scss";
 
@@ -16,6 +18,23 @@ interface SettingsIntegrationCardProps {
   children?: ReactNode;
   className?: string;
   loading?: boolean;
+}
+
+export function SettingsIntegrationLastSynced({
+  lastSyncedAt,
+}: Readonly<{ lastSyncedAt?: string | null }>) {
+  const { t } = useTranslation("settings");
+  const { formatDateTime } = useDate();
+
+  return (
+    <span className="settings-integration-card__meta">
+      {lastSyncedAt
+        ? t("integration_last_synced", {
+            date: formatDateTime(lastSyncedAt),
+          })
+        : t("integration_never_synced")}
+    </span>
+  );
 }
 
 export function SettingsIntegrationCard({

@@ -36,6 +36,7 @@ const buildForm = (preferences: UserPreferences | null) => ({
   hideLibraryReadySizeBadges: preferences?.hideLibraryReadySizeBadges ?? false,
   hideLibraryClassicsBadges: preferences?.hideLibraryClassicsBadges ?? false,
   hideSteamLibraryBadges: preferences?.hideSteamLibraryBadges ?? false,
+  hideEpicLibraryBadges: preferences?.hideEpicLibraryBadges ?? false,
   hideLibraryAchievementProgress:
     preferences?.hideLibraryAchievementProgress ?? false,
   autoplayAnimatedArtwork: preferences?.autoplayAnimatedArtwork ?? false,
@@ -326,6 +327,14 @@ export function SettingsContextContentGameplay() {
             handleChange({
               hideSteamLibraryBadges: !form.hideSteamLibraryBadges,
             })
+          }
+        />
+
+        <CheckboxField
+          label={t("hide_library_epic_badges")}
+          checked={form.hideEpicLibraryBadges}
+          onChange={() =>
+            handleChange({ hideEpicLibraryBadges: !form.hideEpicLibraryBadges })
           }
         />
 

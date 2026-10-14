@@ -6,9 +6,13 @@ import test, { type TestContext } from "node:test";
 import vm from "node:vm";
 import ts from "typescript";
 import { EpicIntegrationError, isRecord } from "./auth-protocol.ts";
-import { EpicIntegrationCore } from "./integration-core.ts";
+import {
+  EpicIntegrationCore,
+  type EpicAuthContext,
+} from "./integration-core.ts";
 import { EpicConnectionStore } from "./store.ts";
-import { deferred, MemoryDatabase } from "./store-test-helpers.ts";
+import { connection, deferred, MemoryDatabase } from "./store-test-helpers.ts";
+import type { EpicConnection } from "../../../types/epic-integration.types";
 
 function fixture(t: TestContext) {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), "epic-lifecycle-"));
@@ -19,14 +23,58 @@ function fixture(t: TestContext) {
     cleanupCalls: 0,
     subscriptions: 0,
     unsubscriptions: 0,
+    context: null as EpicAuthContext | null,
+    connection: { connected: false } as EpicConnection,
+    events: [] as string[],
+    merge: async () => false,
   };
   const modules: Record<string, unknown> = {
+    "../library-sync/library-write-queue": {
+      setEpicLibraryConnection: () => undefined,
+    },
+    "./sync-runtime": {
+      EpicSyncRuntime: class {
+        source = {
+          invalidate() {
+            return undefined;
+          },
+        };
+        session = { serialize: (task: () => Promise<unknown>) => task() };
+        orchestrator = {
+          getState: () => ({ status: "idle" }),
+          abortAndWait: async () => {},
+        };
+        startup = async () => {};
+        authenticated = async () => {};
+        invalidate() {
+          return undefined;
+        }
+        stop = async () => {};
+      },
+    },
+    "./import-cleanup": {
+      clearEpicImports: async () => {
+        state.events.push("cleanup");
+      },
+      clearStaleEpicImports: async () => 0,
+    },
+    "../library-sync/merge-with-remote-games": {
+      mergeWithRemoteGames: async () => {
+        state.events.push("merge");
+        return state.merge();
+      },
+    },
     electron: { app: { getPath: () => root } },
     "node:fs": fs,
     "../hydra-api": {
       HydraApi: {
-        getAuthContext: () => null,
-        isAuthContextCurrent: () => false,
+        getAuthContext: () => state.context,
+        isAuthContextCurrent: (context: EpicAuthContext) =>
+          context === state.context,
+        get: async () => state.connection,
+        delete: async () => {
+          state.connection = { connected: false };
+        },
         onAuthContextChanged: () => {
           state.subscriptions++;
           return () => {
@@ -36,7 +84,12 @@ function fixture(t: TestContext) {
       },
     },
     "../legendary": { Legendary: { getBinaryPath: () => null } },
-    "../window-manager": { WindowManager: { mainWindow: null } },
+    "../window-manager": {
+      WindowManager: {
+        mainWindow: null,
+        sendToAppWindows: (channel: string) => state.events.push(channel),
+      },
+    },
     "./auth-window": {
       openEpicAuthWindow: () => assert.fail("unexpected window"),
     },
@@ -134,4 +187,53 @@ test("initial open failure is sanitized, retryable and shutdown unsubscribes", a
   await f.integration.shutdownEpicIntegration();
   assert.equal(f.state.unsubscriptions, 1);
   await assert.rejects(f.stores[0].open(), { code: "persistence-failed" });
+});
+
+test("unlink refreshes app libraries after cleanup even if remote merge fails", async (t) => {
+  const f = fixture(t);
+  f.state.context = {
+    environment: "http://localhost:3000",
+    userId: "A",
+    generation: 1,
+  };
+  f.state.connection = connection;
+  await f.integration.initializeEpicIntegration();
+  await f.integration.getEpicConnection();
+  f.state.events.length = 0;
+
+  assert.deepEqual(
+    await f.integration.disconnectEpic(connection.connectionId),
+    {
+      ok: true,
+    }
+  );
+  assert.deepEqual(f.state.events, [
+    "cleanup",
+    "merge",
+    "on-library-batch-complete",
+  ]);
+});
+
+test("unlink cannot notify a different user's library after context changes", async (t) => {
+  const f = fixture(t);
+  f.state.context = {
+    environment: "http://localhost:3000",
+    userId: "A",
+    generation: 1,
+  };
+  f.state.connection = connection;
+  await f.integration.initializeEpicIntegration();
+  await f.integration.getEpicConnection();
+  f.state.events.length = 0;
+  f.state.merge = async () => {
+    f.state.context = {
+      environment: "http://localhost:3000",
+      userId: "B",
+      generation: 2,
+    };
+    return false;
+  };
+
+  await f.integration.disconnectEpic(connection.connectionId);
+  assert.deepEqual(f.state.events, ["cleanup", "merge"]);
 });
