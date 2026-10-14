@@ -252,6 +252,7 @@ it("Real-Debrid requires genuine range resume and enforces the file's exact size
   assert.equal(o.expectedSize, 3);
   assert.equal(o.preserveFilename, true);
   assert.equal(o.resourceId, "realDebrid:magnet:test#1");
+  assert.equal(o.verifyResumePrefix, true);
 });
 for (const [chunks, expected] of [
   [1, 1],
@@ -881,4 +882,18 @@ it("Real-Debrid completion records the same identity used by batch resume", asyn
   } finally {
     fs.rmSync(root, { recursive: true, force: true });
   }
+});
+
+it("an individual Real-Debrid ZIP still verifies a legacy saved prefix", () => {
+  const f = manager();
+  const b = batch();
+  b.entries[0].filename = "folder/archive.zip";
+  const options = f.instance.getBatchDownloadOptions(
+    b,
+    b.entries[0],
+    "https://fixture.invalid/archive.zip"
+  );
+  assert.equal(options.allowParallelRanges, false);
+  assert.equal(options.verifyResumePrefix, true);
+  assert.equal(options.requireRangeResume, true);
 });

@@ -1660,8 +1660,9 @@ export class DownloadManager {
       requireRangeResume:
         batch.provider === "realDebrid" ||
         (!entry.isZip && batch.provider === "torBox"),
-      // Verify a regenerated ZIP's saved prefix before appending new data.
-      verifyResumePrefix: Boolean(entry.isZip),
+      // Verify saved bytes even for single-connection Real-Debrid files.
+      verifyResumePrefix:
+        batch.provider === "realDebrid" || Boolean(entry.isZip),
       filename:
         batch.provider === "torBox"
           ? entry.filename

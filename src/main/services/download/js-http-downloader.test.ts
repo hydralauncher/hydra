@@ -1203,3 +1203,39 @@ it("a full checkpoint for another Real-Debrid resource cannot complete or overwr
     await f.close();
   }
 });
+
+for (const matches of [true, false]) {
+  it(`verifies a complete unidentified single-connection file before accepting it (${matches})`, async () => {
+    const f = await fixture({ size: 128 * 1024 });
+    const filename = "folder/archive.zip";
+    const output = path.join(f.root, filename);
+    fs.mkdirSync(path.dirname(output), { recursive: true });
+    const before = matches ? f.data : Buffer.alloc(f.data.length, 99);
+    fs.writeFileSync(output, before);
+    let completed = false;
+    const downloader = new JsHttpDownloader();
+    try {
+      const start = () =>
+        downloader.startDownload({
+          ...f.options,
+          filename,
+          allowParallelRanges: false,
+          verifyResumePrefix: true,
+          requireRangeResume: true,
+          expectedSize: f.data.length,
+          resourceId: "realDebrid:magnet:new#1",
+          beforeComplete: async () => {
+            completed = true;
+          },
+        });
+      if (matches) await start();
+      else await assert.rejects(start, /saved|prefix|overlap|changed/);
+      assert.equal(completed, matches);
+      assert.equal(f.requests.length, 1);
+      assert.equal(f.requests[0].start, before.length - 64 * 1024);
+      assert.deepEqual(fs.readFileSync(output), before);
+    } finally {
+      await f.close();
+    }
+  });
+}
