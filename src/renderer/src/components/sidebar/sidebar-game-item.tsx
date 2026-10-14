@@ -1,4 +1,5 @@
 import SteamLogo from "@renderer/assets/steam-logo.svg?react";
+import EpicLogo from "@renderer/assets/epic-integration-logo.svg?react";
 import { LibraryGame } from "@types";
 import cn from "classnames";
 import { useLocation } from "react-router-dom";
@@ -68,6 +69,9 @@ export function SidebarGameItem({
   const getFallbackIcon = () => {
     if (isCustomGame) {
       return null;
+    }
+    if (game.shop === "epic") {
+      return <EpicLogo className="sidebar__game-icon" />;
     }
     return <SteamLogo className="sidebar__game-icon" />;
   };
