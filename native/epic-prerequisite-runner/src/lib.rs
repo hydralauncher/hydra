@@ -116,6 +116,9 @@ impl Config {
 }
 /// Windows CRT argv rules; no command shell is involved.
 pub fn quote_argument(value: &str) -> String {
+    if !value.is_empty() && !value.chars().any(|c| c.is_whitespace() || c == '"') {
+        return value.to_owned();
+    }
     let mut quoted = String::from("\"");
     let mut slashes = 0;
     for character in value.chars() {
@@ -138,6 +141,16 @@ pub fn quote_argument(value: &str) -> String {
     quoted.push('"');
     quoted
 }
+
+/// MSI parses its own command line and requires quotes around a property value.
+pub fn quote_msi_argument(value: &str) -> String {
+    if let Some((name, argument)) = value.split_once('=') {
+        if !name.is_empty() && name.bytes().all(|b| b.is_ascii_alphanumeric() || b == b'_') {
+            return format!("{}={}", name, quote_argument(argument));
+        }
+    }
+    quote_argument(value)
+}
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -146,8 +159,23 @@ mod tests {
         assert_eq!(quote_argument(""), "\"\"");
         assert_eq!(quote_argument("two words"), "\"two words\"");
         assert_eq!(quote_argument("a\"b"), "\"a\\\"b\"");
-        assert_eq!(quote_argument("C:\\path\\"), "\"C:\\path\\\\\"");
+        assert_eq!(quote_argument("C:\\path\\"), "C:\\path\\");
+        assert_eq!(quote_argument("C:\\two words\\"), "\"C:\\two words\\\\\"");
         assert_eq!(quote_argument("%PATH% & $(echo)"), "\"%PATH% & $(echo)\"");
+    }
+    #[test]
+    fn msi_options_are_not_quoted_and_properties_quote_only_the_value() {
+        assert_eq!(quote_msi_argument("/i"), "/i");
+        assert_eq!(quote_msi_argument("/qn"), "/qn");
+        assert_eq!(
+            quote_msi_argument("INSTALLDIR=C:\\two words"),
+            "INSTALLDIR=\"C:\\two words\""
+        );
+        assert_eq!(
+            quote_msi_argument("REBOOT=ReallySuppress"),
+            "REBOOT=ReallySuppress"
+        );
+        assert_eq!(quote_msi_argument("EMPTY="), "EMPTY=\"\"");
     }
     #[test]
     fn schema_rejects_shell_unknown_fields_and_unsafe_nonce() {

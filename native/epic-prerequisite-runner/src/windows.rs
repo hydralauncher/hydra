@@ -1,4 +1,6 @@
-use epic_prerequisite_runner::{invalid, quote_argument, Config, Kind, MAX_COMMAND_UNITS};
+use epic_prerequisite_runner::{
+    invalid, quote_argument, quote_msi_argument, Config, Kind, MAX_COMMAND_UNITS,
+};
 use std::{io, mem, path::Path, ptr};
 use windows_sys::Win32::{
     Foundation::{CloseHandle, HANDLE, WAIT_OBJECT_0},
@@ -60,11 +62,15 @@ pub fn execute(config: &Config) -> io::Result<u32> {
     };
     let executable_wide = wide(&executable);
     let cwd = wide(&config.cwd);
-    let command = std::iter::once(executable.as_str())
-        .chain(args.iter().map(String::as_str))
-        .map(quote_argument)
-        .collect::<Vec<_>>()
-        .join(" ");
+    let mut words = vec![quote_argument(&executable)];
+    words.extend(args.iter().map(|argument| {
+        if matches!(config.kind, Kind::Msi) {
+            quote_msi_argument(argument)
+        } else {
+            quote_argument(argument)
+        }
+    }));
+    let command = words.join(" ");
     let mut command = wide(&command);
     if command.len() > MAX_COMMAND_UNITS {
         return Err(invalid());
