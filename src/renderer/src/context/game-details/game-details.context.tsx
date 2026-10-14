@@ -233,11 +233,15 @@ export function GameDetailsContextProvider({
       });
 
     if (shop !== "custom") {
-      window.electron
+      void window.electron
         .getGameStats(catalogueObjectId, catalogueShop)
         .then((result) => {
           if (abortController.signal.aborted) return;
           setStats(result);
+        })
+        .catch(() => {
+          if (abortController.signal.aborted) return;
+          setStats(null);
         });
     }
 
@@ -573,19 +577,13 @@ export function GameDetailsContextProvider({
       }
     );
 
-    return window.electron
-      .showOpenDialog({
-        properties: ["openFile"],
-        defaultPath: downloadsPath,
-        filters,
-      })
-      .then(({ filePaths }) => {
-        if (filePaths && filePaths.length > 0) {
-          return filePaths[0];
-        }
+    const { filePaths } = await window.electron.showOpenDialog({
+      properties: ["openFile"],
+      defaultPath: downloadsPath,
+      filters,
+    });
 
-        return null;
-      });
+    return filePaths?.[0] ?? null;
   };
 
   // Handlers for cancel

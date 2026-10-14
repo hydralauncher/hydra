@@ -11,6 +11,7 @@ import type {
   DownloadProgress,
   GameArtworkOptions,
   GameShop,
+  GameStats,
   LibraryGame,
   ShopAssets,
 } from "@types";
@@ -55,6 +56,11 @@ const epic = {
   isDeleted: false,
 } as LibraryGame;
 
+interface ExecutableDialogOptions {
+  defaultPath?: string;
+  properties?: string[];
+}
+
 interface AssetsRequest {
   source: "details" | "assets";
   shop: GameShop;
@@ -64,10 +70,12 @@ interface AssetsRequest {
 
 function deferred<T>() {
   let resolve!: (value: T) => void;
-  const promise = new Promise<T>((accept) => {
+  let reject!: (reason: unknown) => void;
+  const promise = new Promise<T>((accept, decline) => {
     resolve = accept;
+    reject = decline;
   });
-  return { promise, resolve };
+  return { promise, resolve, reject };
 }
 
 async function fixture(
@@ -77,7 +85,8 @@ async function fixture(
   initialLastPacket: DownloadProgress | null = null,
   artworkAssets?: (
     request: AssetsRequest
-  ) => Partial<ShopAssets> | null | Promise<Partial<ShopAssets> | null>
+  ) => Partial<ShopAssets> | null | Promise<Partial<ShopAssets> | null>,
+  getStats: () => Promise<GameStats | null> = async () => null
 ) {
   let libraryGames = games;
   let lastPacket = initialLastPacket;
@@ -148,7 +157,11 @@ async function fixture(
       calls.push(["assets", shop, objectId, options]);
       return resolveAssets({ source: "assets", shop, objectId, options });
     },
-    getGameStats: async () => null,
+    getGameStats: getStats,
+    getDefaultDownloadsPath: async () => "downloads",
+    showOpenDialog: async (_options: ExecutableDialogOptions) => ({
+      filePaths: [] as string[],
+    }),
     getUnlockedAchievements: async (objectId: string, shop: string) => {
       calls.push(["achievements", shop, objectId]);
       return [];
@@ -261,6 +274,7 @@ async function fixture(
   await render();
   return {
     calls,
+    bridge,
     async updateLibrary(
       updatedGames: LibraryGame[],
       updatedLastPacket: DownloadProgress | null = lastPacket
@@ -687,5 +701,90 @@ describe("Desktop selected artwork", () => {
 
     assert.deepEqual(state.details.shopDetails?.assets, defaults);
     assert.equal(state.details.game, steam);
+  });
+});
+
+describe("Desktop asynchronous requests", () => {
+  it("clears unavailable stats without rejecting the page refresh", async (t) => {
+    const stats = { downloadCount: 5 } as GameStats;
+    let failStats = false;
+    const state = await fixture(
+      t,
+      [epic],
+      undefined,
+      null,
+      undefined,
+      async () => {
+        if (failStats) throw new Error("stats unavailable");
+        return stats;
+      }
+    );
+    assert.equal(state.details.stats, stats);
+
+    failStats = true;
+    await state.completeLibraryBatch();
+
+    assert.equal(state.details.stats, null);
+    assert.equal(state.details.isLoading, false);
+    assert.ok(state.details.shopDetails);
+  });
+
+  it("ignores a stats rejection from the previous operational identity", async (t) => {
+    const oldStats = deferred<GameStats | null>();
+    const freshStats = { downloadCount: 10 } as GameStats;
+    let firstRequest = true;
+    const steam = {
+      ...epic,
+      id: "steam:123",
+      shop: "steam",
+      objectId: "123",
+      hasActiveEpicImport: false,
+    } as LibraryGame;
+    const state = await fixture(
+      t,
+      [epic, steam],
+      epic.id,
+      null,
+      undefined,
+      () => {
+        if (firstRequest) {
+          firstRequest = false;
+          return oldStats.promise;
+        }
+        return Promise.resolve(freshStats);
+      }
+    );
+
+    await state.setRunningGame(steam.id);
+    assert.equal(state.details.stats, freshStats);
+    await React.act(async () =>
+      oldStats.reject(new Error("old request failed"))
+    );
+    assert.equal(state.details.stats, freshStats);
+  });
+
+  it("awaits executable selection, returns cancellation, and propagates dialog errors", async (t) => {
+    const state = await fixture(t, [epic]);
+    let dialogOptions: ExecutableDialogOptions | undefined;
+    const pendingDialog = deferred<{ filePaths: string[] }>();
+    state.bridge.showOpenDialog = async (options) => {
+      dialogOptions = options;
+      return pendingDialog.promise;
+    };
+    const selected = state.details.selectGameExecutable();
+    await React.act(async () =>
+      pendingDialog.resolve({ filePaths: ["game.exe"] })
+    );
+    assert.equal(await selected, "game.exe");
+    assert.equal(dialogOptions?.defaultPath, "downloads");
+    assert.deepEqual(dialogOptions?.properties, ["openFile"]);
+
+    state.bridge.showOpenDialog = async () => ({ filePaths: [] });
+    assert.equal(await state.details.selectGameExecutable(), null);
+    const error = new Error("dialog unavailable");
+    state.bridge.showOpenDialog = async () => {
+      throw error;
+    };
+    await assert.rejects(state.details.selectGameExecutable(), error);
   });
 });
