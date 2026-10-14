@@ -36,7 +36,7 @@ const applyArtworkToAssets = async (
   shop: GameShop,
   objectId: string,
   assets: ShopAssets | null,
-  artworkIdentity: CatalogueGameIdentity = { shop, objectId }
+  artworkIdentity?: CatalogueGameIdentity
 ): Promise<ShopAssets | null> => {
   if (!assets) return assets;
   if (shop === "epic") {
@@ -51,8 +51,9 @@ const applyArtworkToAssets = async (
     });
   }
 
+  const selectedIdentity = artworkIdentity ?? { shop, objectId };
   const selection = await gamesArtworkSelectionSublevel.get(
-    levelKeys.game(artworkIdentity.shop, artworkIdentity.objectId)
+    levelKeys.game(selectedIdentity.shop, selectedIdentity.objectId)
   );
 
   return composeAssetsWithArtwork(assets, selection);

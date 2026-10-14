@@ -588,7 +588,11 @@ export function GameDetailsContextProvider({
 
   // Handlers for cancel
   const cancelTransfer = () => {
-    window.electron.cancelGameTransfer?.(operationalShop, operationalObjectId);
+    void window.electron
+      .cancelGameTransfer?.(operationalShop, operationalObjectId)
+      .catch((error) => {
+        console.error("Failed to cancel game transfer:", error);
+      });
     setIsTransferring(false);
     setTransferProgress(0);
   };

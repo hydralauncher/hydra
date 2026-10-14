@@ -157,6 +157,9 @@ async function fixture(
       calls.push(["assets", shop, objectId, options]);
       return resolveAssets({ source: "assets", shop, objectId, options });
     },
+    cancelGameTransfer: async (shop: string, objectId: string) => {
+      calls.push(["cancel-transfer", shop, objectId]);
+    },
     getGameStats: getStats,
     getDefaultDownloadsPath: async () => "downloads",
     showOpenDialog: async (_options: ExecutableDialogOptions) => ({
@@ -787,4 +790,29 @@ describe("Desktop asynchronous requests", () => {
     };
     await assert.rejects(state.details.selectGameExecutable(), error);
   });
+});
+
+it("handles a failed transfer cancellation for the operational copy", async (t) => {
+  const state = await fixture(t, [epic]);
+  const error = new Error("transfer cancellation failed");
+  const originalError = console.error;
+  const reported: unknown[][] = [];
+  console.error = (...args: unknown[]) => reported.push(args);
+  t.after(() => {
+    console.error = originalError;
+  });
+  state.bridge.cancelGameTransfer = async (shop, objectId) => {
+    assert.equal(shop, epic.shop);
+    assert.equal(objectId, epic.objectId);
+    throw error;
+  };
+
+  await React.act(async () => state.details.cancelTransfer());
+
+  assert.deepEqual(reported, [["Failed to cancel game transfer:", error]]);
+  assert.equal(state.details.isTransferring, false);
+  assert.equal(state.details.transferProgress, 0);
+  Reflect.deleteProperty(state.bridge, "cancelGameTransfer");
+  await React.act(async () => state.details.cancelTransfer());
+  assert.equal(reported.length, 1);
 });
