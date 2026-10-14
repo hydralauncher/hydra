@@ -83,7 +83,6 @@ import {
 } from "../../components/pages/game/navigation";
 import { NavigationService, type FocusOverrideTarget } from "../../services";
 import { useNavigationStore } from "../../stores";
-import { IS_DESKTOP } from "../../constants";
 import { extractGenreNames } from "./game-metadata";
 import "./game.scss";
 
@@ -499,27 +498,6 @@ export default function Game() {
   const { shop, objectId } = useParams<{ shop: GameShop; objectId: string }>();
   const navigate = useNavigate();
 
-  useEffect(() => {
-    if (
-      !IS_DESKTOP ||
-      shop !== "epic" ||
-      !objectId ||
-      typeof globalThis.window.electron.syncEpicGameOnGamePage !== "function"
-    )
-      return;
-    void globalThis.window.electron
-      .syncEpicGameOnGamePage(objectId)
-      .catch(() => {});
-  }, [objectId, shop]);
-
-  useEffect(() => {
-    if (!IS_DESKTOP || shop !== "steam" || !objectId) return;
-
-    void globalThis.window.electron
-      .syncSteamGameOnGamePage(objectId)
-      .catch(() => {});
-  }, [objectId, shop]);
-
   const [isDownloadModalOpen, setIsDownloadModalOpen] = useState(false);
   const [isDiscSelectionModalOpen, setIsDiscSelectionModalOpen] =
     useState(false);
@@ -589,6 +567,8 @@ export default function Game() {
   const {
     shopDetails,
     game,
+    presentationGame,
+    catalogueGame,
     stats,
     isGameRunning,
     runningSessionDurationInMillis,
@@ -658,8 +638,8 @@ export default function Game() {
     isLoading: areSimilarGamesLoading,
     isEligible: areSimilarGamesEligible,
   } = useSimilarGames({
-    objectId: objectId ?? "",
-    shop: shop ?? "custom",
+    objectId: catalogueGame.objectId,
+    shop: catalogueGame.shop,
   });
   const similarCarouselGames = useMemo<ShopAssets[]>(
     () =>
@@ -1459,8 +1439,8 @@ export default function Game() {
     <VerticalFocusGroup regionId={GAME_PAGE_REGION_ID} asChild>
       <div ref={pageRef} className="game-page">
         <BigPictureCloudSaveProvider
-          objectId={objectId!}
-          shop={shop!}
+          objectId={game?.objectId ?? objectId!}
+          shop={game?.shop ?? shop!}
           platform={game?.platform}
           hasExecutablePath={
             game ? hasCloudSaveExecutableSelection(game) : false
@@ -1470,9 +1450,9 @@ export default function Game() {
         >
           <Hero
             shopDetails={shopDetails}
-            game={game}
+            game={presentationGame ?? game}
             isGameRunning={isGameRunning}
-            isFavorite={game?.favorite ?? false}
+            isFavorite={presentationGame?.favorite ?? game?.favorite ?? false}
             toggleFavorite={toggleFavorite}
             onPlay={handlePlayGame}
             onDownload={handleOpenDownloadModal}
@@ -1500,6 +1480,7 @@ export default function Game() {
         <section className="game-page__content">
           <PlaytimeBar
             game={game}
+            presentationGame={presentationGame}
             isGameRunning={isGameRunning}
             runningSessionDurationInMillis={runningSessionDurationInMillis}
           />
@@ -1615,8 +1596,8 @@ export default function Game() {
                   <Divider />
 
                   <GameReviews
-                    shop={shop!}
-                    objectId={objectId!}
+                    shop={game?.shop ?? shop!}
+                    objectId={game?.objectId ?? objectId!}
                     topNavigationTarget={commentsTopNavigationTarget}
                     onHasNavigableActionsChange={setHasNavigableComments}
                   />
@@ -1702,7 +1683,7 @@ export default function Game() {
                 )}
 
                 <ControllerSupportBox
-                  shop={shop}
+                  shop={catalogueGame.shop}
                   shopDetails={shopDetails}
                   focusId={GAME_SIDEBAR_CONTROLLER_SUPPORT_ID}
                   focusNavigationOrder={3}
@@ -1832,8 +1813,8 @@ export default function Game() {
           visible={isDownloadModalOpen}
           onClose={handleCloseDownloadModal}
           game={{
-            objectId: objectId!,
-            shop: shop!,
+            objectId: game?.objectId ?? objectId!,
+            shop: game?.shop ?? shop!,
             title: resolvedGameTitle,
             iconUrl: preferredAssets.iconUrl,
             downloadSources:

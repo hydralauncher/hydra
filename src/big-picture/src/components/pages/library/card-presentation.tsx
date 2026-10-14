@@ -183,6 +183,7 @@ export function useLibraryGameCardPresentation(
   };
 
   return {
+    userPreferences,
     activeImageSource,
     isChosenCoverActive,
     achievementProgress,

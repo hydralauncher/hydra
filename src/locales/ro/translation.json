@@ -1067,7 +1067,10 @@
     "disk_usage_tooltip": "Installed size on disk",
     "installer_size_tooltip": "Installer size",
     "library_epic": "Epic",
-    "imported_from_epic": "Importat din biblioteca Epic conectată la acest profil."
+    "imported_from_epic": "Importat din biblioteca Epic conectată la acest profil.",
+    "available_on_steam_and_epic": "Disponibil pe Steam și Epic Games",
+    "available_on_steam": "Disponibil pe Steam",
+    "available_on_epic": "Disponibil pe Epic Games"
   },
   "achievement": {
     "achievement_unlocked": "Achievement unlocked",

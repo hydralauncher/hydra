@@ -1090,7 +1090,10 @@
     "disk_usage_tooltip": "Telepített méret a lemezen",
     "installer_size_tooltip": "Telepítő mérete",
     "library_epic": "Epic",
-    "imported_from_epic": "Az ehhez a profilhoz kapcsolt Epic-könyvtárból importálva."
+    "imported_from_epic": "Az ehhez a profilhoz kapcsolt Epic-könyvtárból importálva.",
+    "available_on_steam_and_epic": "Elérhető a Steamen és az Epic Gamesen",
+    "available_on_steam": "Elérhető a Steamen",
+    "available_on_epic": "Elérhető az Epic Gamesen"
   },
   "achievement": {
     "achievement_unlocked": "Achievement feloldva",

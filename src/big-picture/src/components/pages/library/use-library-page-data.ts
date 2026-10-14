@@ -1,5 +1,7 @@
 import type { LibraryGame } from "@types";
+import { groupLibraryGames } from "@shared";
 import { useDeferredValue, useMemo } from "react";
+import { useBigPictureRunningGames } from "../../../hooks/use-big-picture-running-games.hook";
 import {
   getFirstLibraryFocusGridItemId,
   getFirstLibraryFocusListItemId,
@@ -25,13 +27,18 @@ export function useLibraryPageData(
   secondaryFilter: LibrarySecondaryFilter
 ) {
   const deferredSearch = useDeferredValue(search);
+  const runningGames = useBigPictureRunningGames();
+  const groupedLibrary = useMemo(
+    () => groupLibraryGames(library, Object.keys(runningGames)),
+    [library, runningGames]
+  );
 
   const lastPlayedSortedLibrary = useMemo(() => {
-    return [...library].sort(sortByLastPlayed);
-  }, [library]);
+    return [...groupedLibrary].sort(sortByLastPlayed);
+  }, [groupedLibrary]);
 
   const filteredLibrary = useMemo(() => {
-    const tabFilteredLibrary = filterLibraryByTab(library, selectedTab);
+    const tabFilteredLibrary = filterLibraryByTab(groupedLibrary, selectedTab);
     const secondaryFilteredLibrary = filterLibraryBySecondaryFilter(
       tabFilteredLibrary,
       secondaryFilter
@@ -41,11 +48,11 @@ export function useLibraryPageData(
     );
 
     return sortLibraryGames(searchFilteredLibrary, sortBy);
-  }, [deferredSearch, library, secondaryFilter, selectedTab, sortBy]);
+  }, [deferredSearch, groupedLibrary, secondaryFilter, selectedTab, sortBy]);
 
   const filterCounts = useMemo(() => {
-    return getLibraryFilterCounts(library);
-  }, [library]);
+    return getLibraryFilterCounts(groupedLibrary);
+  }, [groupedLibrary]);
 
   const lastPlayedGames = useMemo(() => {
     return getLastPlayedGames(lastPlayedSortedLibrary);
@@ -60,6 +67,7 @@ export function useLibraryPageData(
   }, [filteredLibrary]);
 
   return {
+    groupedLibrary,
     filteredLibrary,
     filterCounts,
     firstGridItemId,

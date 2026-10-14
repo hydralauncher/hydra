@@ -30,7 +30,14 @@ import {
   CreateCollectionModal,
   useGameActions,
 } from "..";
-import { useGameCollections, useToast, useUserDetails } from "@renderer/hooks";
+import {
+  useGameCollections,
+  useToast,
+  useUserDetails,
+  useLibrary,
+  useLibraryGamePresentation,
+} from "@renderer/hooks";
+import { applyLibraryGroupAction } from "@shared";
 import { useCollectionContextMenu } from "@renderer/context";
 import { getGameCollectionIds } from "@renderer/helpers";
 import { RemoveGameFromLibraryModal } from "@renderer/pages/game-details/modals/remove-from-library-modal";
@@ -62,6 +69,9 @@ export function GameContextMenu({
   const { t } = useTranslation("game_details");
   const { showSuccessToast, showErrorToast } = useToast();
   const { userDetails } = useUserDetails();
+  const group = useLibraryGamePresentation(game);
+  const preferenceGame = group ?? game;
+  const { updateLibrary } = useLibrary();
   const [searchParams] = useSearchParams();
   const [showConfirmRemoveLibrary, setShowConfirmRemoveLibrary] =
     useState(false);
@@ -69,10 +79,10 @@ export function GameContextMenu({
   const [showCreateCollectionModal, setShowCreateCollectionModal] =
     useState(false);
   const [localCollectionIds, setLocalCollectionIds] = useState<string[]>(() =>
-    getGameCollectionIds(game)
+    getGameCollectionIds(preferenceGame)
   );
   const [isFavoriteSelected, setIsFavoriteSelected] = useState(
-    Boolean(game.favorite)
+    Boolean(preferenceGame.favorite)
   );
   const [pendingCollectionId, setPendingCollectionId] = useState<string | null>(
     null
@@ -80,8 +90,8 @@ export function GameContextMenu({
   const [isFavoritePending, setIsFavoritePending] = useState(false);
   const [isVisibilityPending, setIsVisibilityPending] = useState(false);
   const [visibility, setVisibility] = useState({
-    isHiddenFromOthers: Boolean(game.isHiddenFromOthers),
-    isConcealed: Boolean(game.isConcealed),
+    isHiddenFromOthers: Boolean(preferenceGame.isHiddenFromOthers),
+    isConcealed: Boolean(preferenceGame.isConcealed),
   });
   const {
     collections,
@@ -124,16 +134,13 @@ export function GameContextMenu({
   useEffect(() => {
     if (!visible) return;
 
-    setLocalCollectionIds(getGameCollectionIds(game));
-    setIsFavoriteSelected(Boolean(game.favorite));
-    setPendingCollectionId(null);
-    setIsFavoritePending(false);
-    setIsVisibilityPending(false);
+    setLocalCollectionIds(getGameCollectionIds(preferenceGame));
+    setIsFavoriteSelected(Boolean(preferenceGame.favorite));
     setVisibility({
-      isHiddenFromOthers: Boolean(game.isHiddenFromOthers),
-      isConcealed: Boolean(game.isConcealed),
+      isHiddenFromOthers: Boolean(preferenceGame.isHiddenFromOthers),
+      isConcealed: Boolean(preferenceGame.isConcealed),
     });
-  }, [visible, game]);
+  }, [visible, preferenceGame]);
 
   const handleVisibilityChange = async (
     field: "isHiddenFromOthers" | "isConcealed",
@@ -142,19 +149,22 @@ export function GameContextMenu({
     if (isVisibilityPending) return;
     setIsVisibilityPending(true);
     try {
-      const saved = await window.electron.setGameVisibility(
-        game.shop,
-        game.objectId,
-        field,
-        value
+      await applyLibraryGroupAction(group?.members ?? [game], (member) =>
+        window.electron.setGameVisibility(
+          member.shop,
+          member.objectId,
+          field,
+          value
+        )
       );
-      setVisibility(saved);
+      setVisibility((previous) => ({ ...previous, [field]: value }));
       window.dispatchEvent(new Event("hydra:game-visibility-updated"));
       showSuccessToast(t("game_visibility_updated"));
       onClose();
     } catch {
       showErrorToast(t("failed_update_game_visibility"));
     } finally {
+      await updateLibrary();
       setIsVisibilityPending(false);
     }
   };
@@ -373,11 +383,11 @@ export function GameContextMenu({
         {
           id: "pin-game",
           label:
-            (isPinned ?? game.isPinned ?? false)
+            (isPinned ?? preferenceGame.isPinned ?? false)
               ? t("unpin_game")
               : t("pin_game"),
           icon:
-            (isPinned ?? game.isPinned ?? false) ? (
+            (isPinned ?? preferenceGame.isPinned ?? false) ? (
               <PinSlashIcon size={16} />
             ) : (
               <PinIcon size={16} />

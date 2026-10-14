@@ -2104,7 +2104,10 @@
     "context_menu_remove_from_library": "Quitar de la librería",
     "context_menu_add_to_library": "Añadir a la librería",
     "library_epic": "Epic",
-    "imported_from_epic": "Importado de la biblioteca de Epic vinculada a este perfil."
+    "imported_from_epic": "Importado de la biblioteca de Epic vinculada a este perfil.",
+    "available_on_steam_and_epic": "Disponible en Steam y Epic Games",
+    "available_on_steam": "Disponible en Steam",
+    "available_on_epic": "Disponible en Epic Games"
   },
   "notifications_page": {
     "cloud_gift_received_title": "Has recibido Hydra Cloud",

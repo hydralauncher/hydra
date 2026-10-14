@@ -1,4 +1,5 @@
 import cn from "classnames";
+import { getLibraryPresentationBadgeSource } from "./library-category";
 
 import { LibraryGame } from "@types";
 import {
@@ -12,7 +13,6 @@ import {
   CLASSICS_PS_PLATFORM_LABELS,
   isGameReadyToPlay,
   resolveClassicsBadge,
-  shouldShowSteamLibraryBadge,
 } from "@renderer/helpers";
 import { AchievementProgress, SteamLibraryBadge } from "@renderer/components";
 import { GameVisibilityBadge } from "@renderer/components/game-visibility-badge/game-visibility-badge";
@@ -94,14 +94,11 @@ export const LibraryGameCardLarge = memo(function LibraryGameCardLarge({
     userPreferences?.hideLibraryReadySizeBadges ?? false;
   const hideClassicsBadges =
     userPreferences?.hideLibraryClassicsBadges ?? false;
+  const badgeSource = getLibraryPresentationBadgeSource(game);
   const showEpicLibraryBadge =
-    game.shop === "epic" &&
-    game.hasActiveEpicImport === true &&
-    !userPreferences?.hideEpicLibraryBadges;
-  const showSteamLibraryBadge = shouldShowSteamLibraryBadge(
-    game,
-    userPreferences?.hideSteamLibraryBadges
-  );
+    badgeSource === "epic" && !userPreferences?.hideEpicLibraryBadges;
+  const showSteamLibraryBadge =
+    badgeSource === "steam" && !userPreferences?.hideSteamLibraryBadges;
   const hideAchievementProgress =
     userPreferences?.hideLibraryAchievementProgress ?? false;
   const autoplayAnimatedArtwork =
@@ -400,9 +397,18 @@ export const LibraryGameCardLarge = memo(function LibraryGameCardLarge({
             )}
 
             {showEpicLibraryBadge && (
-              <SteamLibraryBadge source="epic" variant="large" />
+              <SteamLibraryBadge
+                source="epic"
+                variant="large"
+                availableShops={game.availableShops}
+              />
             )}
-            {showSteamLibraryBadge && <SteamLibraryBadge variant="large" />}
+            {showSteamLibraryBadge && (
+              <SteamLibraryBadge
+                variant="large"
+                availableShops={game.availableShops}
+              />
+            )}
 
             {!hideClassicsBadges && classicsPlatformLabel && (
               <div className="library-game-card-large__classics-badges">

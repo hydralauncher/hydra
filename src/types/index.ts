@@ -4,6 +4,8 @@ import type {
   AchievementCustomNotificationPosition,
   Download,
   Game,
+  CatalogueGameIdentity,
+  LibraryCatalogueMetadata,
   Subscription,
 } from "./level.types";
 import type { GameShop, UnlockedAchievement } from "./game.types";
@@ -96,7 +98,7 @@ export interface TorrentFilesResponse {
   files: TorrentFile[];
 }
 
-export type UserGame = {
+export type UserGame = LibraryCatalogueMetadata & {
   objectId: string;
   shop: GameShop;
   title: string;
@@ -703,6 +705,14 @@ export type LibraryGame = Game &
     unlockedAchievementCount?: number;
     achievementCount?: number;
   };
+
+/** Read-only catalogue projection; writes must use its original members. */
+export type LibraryGamePresentation = LibraryGame & {
+  members: LibraryGame[];
+  operationalGame: LibraryGame;
+  catalogueGame: CatalogueGameIdentity;
+  availableShops: GameShop[];
+};
 
 export type UserGameDetails = ShopAssets & {
   id: string;

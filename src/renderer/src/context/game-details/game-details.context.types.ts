@@ -2,7 +2,9 @@ import type {
   GameRepack,
   GameShop,
   GameStats,
+  CatalogueGameIdentity,
   LibraryGame,
+  LibraryGamePresentation,
   ShopDetailsWithAssets,
   UserAchievement,
 } from "@types";
@@ -19,6 +21,8 @@ export type GameOptionsCategoryId =
 
 export interface GameDetailsContext {
   game: LibraryGame | null;
+  presentation: LibraryGamePresentation | null;
+  catalogueGame: CatalogueGameIdentity;
   shopDetails: ShopDetailsWithAssets | null;
   repacks: GameRepack[];
   shop: GameShop;

@@ -1,4 +1,8 @@
 import type { LibraryGame } from "@types";
+import { getGameCatalogueIdentity } from "@shared";
+import { SteamLibraryBadge } from "@renderer/components/steam-library-badge/steam-library-badge";
+import { getLibraryPresentationBadgeSource } from "@renderer/pages/library/library-category";
+import type { UserPreferences } from "@types";
 import { DotsThreeVerticalIcon } from "@phosphor-icons/react";
 import type { MouseEvent as ReactMouseEvent, RefObject } from "react";
 import {
@@ -75,6 +79,29 @@ function LibraryGameCardAction({
   );
 }
 
+function LibraryCatalogueBadge({
+  game,
+  preferences,
+}: {
+  game: LibraryGame;
+  preferences: UserPreferences | null;
+}) {
+  const source = getLibraryPresentationBadgeSource(game);
+  if (
+    !source ||
+    (source === "steam"
+      ? preferences?.hideSteamLibraryBadges
+      : preferences?.hideEpicLibraryBadges)
+  ) {
+    return null;
+  }
+  return (
+    <span className="library-catalogue-badge">
+      <SteamLibraryBadge source={source} availableShops={game.availableShops} />
+    </span>
+  );
+}
+
 export function VerticalLibraryGameCard({
   game,
   navigationOverrides,
@@ -84,6 +111,7 @@ export function VerticalLibraryGameCard({
   const navigate = useNavigate();
   const menuButtonRef = useRef<HTMLButtonElement | null>(null);
   const {
+    userPreferences,
     activeImageSource,
     isChosenCoverActive,
     achievementProgress,
@@ -96,7 +124,10 @@ export function VerticalLibraryGameCard({
   const focusId = getLibraryFocusGridItemId(game.id);
   const isFocused = useNavigationIsFocused(focusId);
   const displayCover = useFocusAnimatedCover(activeImageSource, isFocused);
-  const gameDetailsPath = getBigPictureGameDetailsPath(game);
+  const gameDetailsPath = getBigPictureGameDetailsPath({
+    ...game,
+    ...getGameCatalogueIdentity(game),
+  });
   const coverMedia =
     game.shop === "launchbox" && displayCover && !isChosenCoverActive ? (
       <ClassicsVerticalCoverMedia
@@ -105,13 +136,17 @@ export function VerticalLibraryGameCard({
         onImageError={handleCoverImageError}
       />
     ) : null;
-  const coverOverlay =
-    classicsPlatformLabel != null ? (
-      <ClassicsCoverBadges
-        platformLabel={classicsPlatformLabel}
-        emulatorIcon={classicsEmulatorIcon}
-      />
-    ) : null;
+  const coverOverlay = (
+    <>
+      {classicsPlatformLabel != null && (
+        <ClassicsCoverBadges
+          platformLabel={classicsPlatformLabel}
+          emulatorIcon={classicsEmulatorIcon}
+        />
+      )}
+      <LibraryCatalogueBadge game={game} preferences={userPreferences} />
+    </>
+  );
 
   const openContextMenuFromRect = (
     rect: DOMRect,
@@ -203,6 +238,7 @@ export function HorizontalLibraryGameListCard({
   const navigate = useNavigate();
   const menuButtonRef = useRef<HTMLButtonElement | null>(null);
   const {
+    userPreferences,
     activeImageSource,
     achievementProgress,
     classicsEmulatorIcon,
@@ -216,14 +252,21 @@ export function HorizontalLibraryGameListCard({
   const isFocused = useNavigationIsFocused(focusId);
   const displayCover = useFocusAnimatedCover(activeImageSource, isFocused);
   const displayLogo = useFocusAnimatedCover(logoImageUrl, isFocused);
-  const gameDetailsPath = getBigPictureGameDetailsPath(game);
-  const coverOverlay =
-    classicsPlatformLabel != null ? (
-      <ClassicsCoverBadges
-        platformLabel={classicsPlatformLabel}
-        emulatorIcon={classicsEmulatorIcon}
-      />
-    ) : null;
+  const gameDetailsPath = getBigPictureGameDetailsPath({
+    ...game,
+    ...getGameCatalogueIdentity(game),
+  });
+  const coverOverlay = (
+    <>
+      {classicsPlatformLabel != null && (
+        <ClassicsCoverBadges
+          platformLabel={classicsPlatformLabel}
+          emulatorIcon={classicsEmulatorIcon}
+        />
+      )}
+      <LibraryCatalogueBadge game={game} preferences={userPreferences} />
+    </>
+  );
 
   const openContextMenuFromRect = (
     rect: DOMRect,

@@ -1068,7 +1068,10 @@
     "disk_usage_tooltip": "Installed size on disk",
     "installer_size_tooltip": "Installer size",
     "library_epic": "Epic",
-    "imported_from_epic": "Bu profile bağlı Epic kütüphanesinden içe aktarıldı."
+    "imported_from_epic": "Bu profile bağlı Epic kütüphanesinden içe aktarıldı.",
+    "available_on_steam_and_epic": "Steam ve Epic Games üzerinde mevcut",
+    "available_on_steam": "Steam üzerinde mevcut",
+    "available_on_epic": "Epic Games üzerinde mevcut"
   },
   "achievement": {
     "achievement_unlocked": "Başarım açıldı",

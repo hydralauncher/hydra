@@ -26,6 +26,7 @@ export function SteamIcon({ size = 14, className }: SteamIconProps) {
 
 interface SteamLibraryBadgeProps {
   source?: "steam" | "epic";
+  availableShops?: readonly string[];
   variant?: "cover" | "large" | "sidebar";
   className?: string;
 }
@@ -33,16 +34,28 @@ interface SteamLibraryBadgeProps {
 export function SteamLibraryBadge({
   variant = "cover",
   source = "steam",
+  availableShops,
   className,
 }: SteamLibraryBadgeProps) {
   const { t } = useTranslation("library");
   const tooltipId = useId();
+  const hasBothStores =
+    availableShops?.includes("steam") && availableShops.includes("epic");
   const label = t(
-    source === "epic" ? "imported_from_epic" : "imported_from_steam"
+    hasBothStores
+      ? "available_on_steam_and_epic"
+      : availableShops?.length
+        ? source === "epic"
+          ? "available_on_epic"
+          : "available_on_steam"
+        : source === "epic"
+          ? "imported_from_epic"
+          : "imported_from_steam"
   );
   const classes = [
     "steam-library-badge",
     `steam-library-badge--${variant}`,
+    hasBothStores && "steam-library-badge--multiple",
     className,
   ]
     .filter(Boolean)
@@ -67,6 +80,11 @@ export function SteamLibraryBadge({
           <SteamIcon
             size={variant === "sidebar" ? 8 : variant === "large" ? 13 : 12}
           />
+        )}
+        {hasBothStores && (
+          <span className="steam-library-badge__additional" aria-hidden="true">
+            +
+          </span>
         )}
       </span>
       {createPortal(

@@ -1665,7 +1665,10 @@
     "context_menu_remove_from_library": "Usuń z biblioteki",
     "context_menu_add_to_library": "Dodaj do biblioteki",
     "library_epic": "Epic",
-    "imported_from_epic": "Zaimportowano z biblioteki Epic połączonej z tym profilem."
+    "imported_from_epic": "Zaimportowano z biblioteki Epic połączonej z tym profilem.",
+    "available_on_steam_and_epic": "Dostępne na Steam i Epic Games",
+    "available_on_steam": "Dostępne na Steam",
+    "available_on_epic": "Dostępne na Epic Games"
   },
   "achievement": {
     "achievement_unlocked": "Odblokowano osiągnięcie",

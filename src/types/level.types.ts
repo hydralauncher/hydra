@@ -28,7 +28,18 @@ export interface User {
   subscription: Subscription | null;
 }
 
-export interface Game {
+export interface CatalogueGameIdentity {
+  shop: GameShop;
+  objectId: string;
+}
+
+export interface LibraryCatalogueMetadata {
+  canonicalId?: string;
+  catalogueGame?: CatalogueGameIdentity;
+  availableShops?: GameShop[];
+}
+
+export interface Game extends LibraryCatalogueMetadata {
   title: string;
   iconUrl: string | null;
   libraryHeroImageUrl: string | null;

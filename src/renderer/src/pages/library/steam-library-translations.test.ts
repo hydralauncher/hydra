@@ -33,6 +33,18 @@ describe("Steam Library translations", () => {
         );
       }
 
+      for (const key of [
+        "available_on_steam_and_epic",
+        "available_on_steam",
+        "available_on_epic",
+      ]) {
+        assert.ok(
+          typeof translation.library?.[key] === "string" &&
+            translation.library[key].trim(),
+          `${locale} is missing library.${key}`
+        );
+      }
+
       for (const key of STEAM_SETTINGS_KEYS) {
         assert.equal(
           typeof translation.settings?.[key],
@@ -68,6 +80,10 @@ describe("Steam Library translations", () => {
     );
 
     assert.equal(readLibrary("en").category_steam_library, undefined);
+    assert.equal(
+      readLibrary("pt-BR").available_on_steam_and_epic,
+      "Disponível na Steam e Epic Games"
+    );
     assert.deepEqual(
       [
         readLibrary("en").all_libraries,

@@ -256,11 +256,17 @@ export const getGameTitleFromExecutablePath = (executablePath: string) =>
   (executablePath.split(/[\\/]/).pop() ?? "").replace(/\.[^/.]+$/, "");
 
 export const buildGameDetailsPath = (
-  game: { shop: GameShop; objectId: string; title: string },
+  game: {
+    shop: GameShop;
+    objectId: string;
+    title: string;
+    catalogueGame?: { shop: GameShop; objectId: string };
+  },
   params: Record<string, string> = {}
 ) => {
   const searchParams = new URLSearchParams({ title: game.title, ...params });
-  return `/game/${game.shop}/${game.objectId}?${searchParams.toString()}`;
+  const identity = game.catalogueGame ?? game;
+  return `/game/${identity.shop}/${identity.objectId}?${searchParams.toString()}`;
 };
 
 export const buildGameAchievementPath = (

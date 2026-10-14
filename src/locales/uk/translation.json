@@ -1107,7 +1107,10 @@
     "disk_usage_tooltip": "Installed size on disk",
     "installer_size_tooltip": "Installer size",
     "library_epic": "Epic",
-    "imported_from_epic": "Імпортовано з бібліотеки Epic, пов’язаної з цим профілем."
+    "imported_from_epic": "Імпортовано з бібліотеки Epic, пов’язаної з цим профілем.",
+    "available_on_steam_and_epic": "Доступно в Steam та Epic Games",
+    "available_on_steam": "Доступно в Steam",
+    "available_on_epic": "Доступно в Epic Games"
   },
   "game_launcher": {
     "launching": "Launching...",
