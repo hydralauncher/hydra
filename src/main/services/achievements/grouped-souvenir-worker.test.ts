@@ -3,7 +3,11 @@ import fs from "node:fs";
 import vm from "node:vm";
 import { describe, it } from "node:test";
 import ts from "typescript";
-import type { PendingAchievementSouvenir, User } from "@types";
+import type {
+  PendingAchievementSouvenir,
+  SteamAchievement,
+  User,
+} from "@types";
 import * as policy from "./grouped-souvenir-retry-policy.js";
 import * as payload from "./grouped-souvenir-payload.js";
 import * as syncStatus from "./grouped-souvenir-sync-status.js";
@@ -11,7 +15,15 @@ import * as syncItem from "./grouped-souvenir-sync-item.js";
 import { composeAssetsWithArtwork } from "../../../shared/artwork-resolver.js";
 
 const RETENTION_MS = 7 * 24 * 60 * 60_000;
+const METADATA_TIMEOUT_MS = 5_000;
 const noop = () => undefined;
+const deferred = () => {
+  let resolve!: () => void;
+  const promise = new Promise<void>((done) => {
+    resolve = done;
+  });
+  return { promise, resolve };
+};
 const errorResponse = (message: string, status = 404, clientId?: string) => ({
   isAxiosError: true,
   response: { status, data: { message, ...(clientId && { clientId }) } },
@@ -37,7 +49,11 @@ function fixture(records = [pending()]) {
   );
   const calls: string[] = [];
   const removed: string[] = [];
-  const timers = new Set<{ delay: number; unref: () => void }>();
+  const timers = new Set<{
+    delay: number;
+    unref: () => void;
+    fire: () => void;
+  }>();
   const state = {
     now: 1_800_000_000_000,
     authorizationError: undefined as unknown,
@@ -48,6 +64,11 @@ function fixture(records = [pending()]) {
     active: true,
     fresh: null as User | null,
     user: { id: "owner", subscription: null } as User,
+    catalogueFetch: undefined as
+      | (() => Promise<SteamAchievement[]>)
+      | undefined,
+    metadataSignal: undefined as AbortSignal | undefined,
+    onList: undefined as (() => Promise<void>) | undefined,
   };
   const saved = (id = "client-1") => store.get(id)!;
   const response = {
@@ -68,6 +89,7 @@ function fixture(records = [pending()]) {
       SOUVENIR_RETRY_BASE_DELAY_MS: 10_000,
       SOUVENIR_RETRY_MAX_DELAY_MS: 15 * 60_000,
       SOUVENIR_TERMINAL_RETENTION_MS: RETENTION_MS,
+      SOUVENIR_SYNC_METADATA_TIMEOUT_MS: METADATA_TIMEOUT_MS,
     },
     "@main/level": {
       db: { get: async () => state.user },
@@ -142,8 +164,13 @@ function fixture(records = [pending()]) {
         delete: async (id: string) => {
           store.delete(id);
         },
-        list: async () =>
-          [...store.values()].map((record) => structuredClone(record)),
+        list: async () => {
+          const records = [...store.values()].map((record) =>
+            structuredClone(record)
+          );
+          await state.onList?.();
+          return records;
+        },
         acknowledge: async (record: PendingAchievementSouvenir) => {
           store.delete(record.clientId);
         },
@@ -153,8 +180,15 @@ function fixture(records = [pending()]) {
     "./grouped-souvenir-retry-policy": policy,
     "./grouped-souvenir-sync-status": syncStatus,
     "./get-game-achievement-data": {
-      getGameAchievementData: async () => {
+      getGameAchievementData: async (
+        _objectId: string,
+        _shop: string,
+        _cached: boolean,
+        options?: { signal?: AbortSignal }
+      ) => {
         calls.push("catalogue");
+        state.metadataSignal = options?.signal;
+        if (state.catalogueFetch) return state.catalogueFetch();
         return [
           {
             name: "FIRST",
@@ -213,12 +247,12 @@ function fixture(records = [pending()]) {
           return state.now;
         }
       },
-      (_callback: unknown, delay: number) => {
-        const timer = { delay, unref: noop };
+      (callback: () => void, delay: number) => {
+        const timer = { delay, unref: noop, fire: callback };
         timers.add(timer);
         return timer;
       },
-      (timer: { delay: number; unref: () => void }) => {
+      (timer: { delay: number; unref: () => void; fire: () => void }) => {
         timers.delete(timer);
       }
     );
@@ -247,6 +281,109 @@ function fixture(records = [pending()]) {
 }
 
 describe("grouped souvenir worker recovery", () => {
+  it("returns cleanup items with raw names when optional catalogue loading never completes", async () => {
+    const f = fixture([pending({ status: "paused" })]);
+    f.state.catalogueFetch = () => new Promise(() => {});
+    const loading = f.worker.getAchievementSouvenirSyncDetails();
+    await f.settle();
+    const timeout = [...f.timers].find(
+      (timer) => timer.delay === METADATA_TIMEOUT_MS
+    );
+    assert.ok(timeout, "optional metadata loading must have a deadline");
+    timeout.fire();
+    const details = await loading;
+    assert.equal(details.items[0].screenshotPath, "/fixture/photo.jpeg");
+    assert.deepEqual(details.items[0].achievementNames, ["FIRST"]);
+    assert.equal(f.state.metadataSignal?.aborted, true);
+    assert.equal(f.timers.size, 0);
+  });
+
+  it("does not let subscription renewal recreate a souvenir deleted by concurrent cleanup", async () => {
+    const f = fixture([pending({ status: "paused" })]);
+    const snapshotRead = deferred();
+    const releaseSnapshot = deferred();
+    f.state.authorizationError = new Error("network unavailable");
+    f.state.onList = async () => {
+      f.state.onList = undefined;
+      snapshotRead.resolve();
+      await releaseSnapshot.promise;
+    };
+    const renewal =
+      f.worker.groupedSouvenirWorker.resumeAfterSubscriptionRefresh(
+        "owner",
+        new Date(f.state.now + RETENTION_MS)
+      );
+    await snapshotRead.promise;
+    const cleanup = f.worker.cleanupAchievementSouvenirSync();
+    await f.settle();
+    releaseSnapshot.resolve();
+    const [, result] = await Promise.all([renewal, cleanup]);
+    await f.settle();
+    assert.equal(result.deletedCount, 1);
+    assert.deepEqual(f.removed, ["/fixture/photo.jpeg"]);
+    assert.equal(
+      f.store.size,
+      0,
+      "a stale renewal snapshot must not restore a deleted record"
+    );
+    assert.deepEqual(f.calls, []);
+    f.worker.groupedSouvenirWorker.stop();
+  });
+
+  it("serializes overlapping renewal refreshes without duplicate uploads", async () => {
+    const f = fixture([pending({ status: "paused" })]);
+    const expiry = new Date(f.state.now + RETENTION_MS);
+    await Promise.all([
+      f.worker.groupedSouvenirWorker.resumeAfterSubscriptionRefresh(
+        "owner",
+        expiry
+      ),
+      f.worker.groupedSouvenirWorker.resumeAfterSubscriptionRefresh(
+        "owner",
+        expiry
+      ),
+    ]);
+    await f.settle();
+    assert.deepEqual(f.calls, ["authorize", "upload", "sync"]);
+    assert.equal(f.store.size, 0);
+    f.worker.groupedSouvenirWorker.stop();
+  });
+
+  it("continues cleanup after a queued renewal fails", async () => {
+    const f = fixture([pending({ status: "paused" })]);
+    f.state.onList = async () => {
+      f.state.onList = undefined;
+      throw new Error("storage unavailable");
+    };
+    await assert.rejects(
+      f.worker.groupedSouvenirWorker.resumeAfterSubscriptionRefresh(
+        "owner",
+        new Date(f.state.now + RETENTION_MS)
+      ),
+      /storage unavailable/
+    );
+    const result = await f.worker.cleanupAchievementSouvenirSync();
+    assert.equal(result.deletedCount, 1);
+    assert.equal(f.store.size, 0);
+  });
+
+  it("does not resume queued records if the user signs out while waiting", async () => {
+    const f = fixture([pending({ status: "paused" })]);
+    const release = deferred();
+    const occupied = f.worker.groupedSouvenirWorker.serializeQueueChanges(
+      () => release.promise
+    );
+    const renewal =
+      f.worker.groupedSouvenirWorker.resumeAfterSubscriptionRefresh(
+        "owner",
+        new Date(f.state.now + RETENTION_MS)
+      );
+    f.state.loggedIn = false;
+    release.resolve();
+    await Promise.all([occupied, renewal]);
+    assert.equal(f.saved().status, "paused");
+    assert.deepEqual(f.calls, []);
+  });
   it("loads cleanup metadata once per game after restart and excludes another owner's records", async () => {
     const f = fixture([
       pending({ clientId: "older", capturedAt: 1 }),

@@ -1,4 +1,5 @@
 import { HydraApi } from "../hydra-api";
+import type { HydraApiOptions } from "../hydra-api";
 import type { GameShop, SteamAchievement } from "@types";
 import { UserNotLoggedInError } from "@shared";
 import { logger } from "../logger";
@@ -8,7 +9,8 @@ import { AchievementMemoryStore } from "./achievement-memory-store";
 export const getGameAchievementData = async (
   objectId: string,
   shop: GameShop,
-  useCachedData: boolean
+  useCachedData: boolean,
+  requestOptions?: Pick<HydraApiOptions, "signal" | "timeout">
 ) => {
   if (shop === "custom") {
     return [];
@@ -34,6 +36,7 @@ export const getGameAchievementData = async (
     `/games/${shop}/${objectId}/achievements`,
     { language },
     {
+      ...requestOptions,
       ifNoneMatch:
         cachedAchievements?.language === language
           ? cachedAchievements.catalogueValidator

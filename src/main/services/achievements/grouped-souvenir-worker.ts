@@ -5,6 +5,7 @@ import {
   SOUVENIR_RETRY_BASE_DELAY_MS,
   SOUVENIR_RETRY_MAX_DELAY_MS,
   SOUVENIR_TERMINAL_RETENTION_MS,
+  SOUVENIR_SYNC_METADATA_TIMEOUT_MS,
 } from "@main/constants";
 import {
   db,
@@ -102,6 +103,53 @@ export const getAchievementSouvenirSyncStatus = async () => {
   return getAchievementSouvenirSyncStatusForOwner(souvenirs, ownerId);
 };
 
+interface SouvenirSyncMetadata {
+  game: Game | null;
+  catalogue: SteamAchievement[];
+}
+
+const getCleanupAchievementData = async (game: Game) => {
+  const fallback = () =>
+    AchievementMemoryStore.get(game.shop, game.objectId)?.achievements ?? [];
+  const controller = new AbortController();
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const deadline = new Promise<SteamAchievement[]>((resolve) => {
+    timer = setTimeout(() => {
+      controller.abort();
+      resolve(fallback());
+    }, SOUVENIR_SYNC_METADATA_TIMEOUT_MS);
+  });
+  try {
+    return await Promise.race([
+      getGameAchievementData(game.objectId, game.shop, true, {
+        signal: controller.signal,
+        timeout: SOUVENIR_SYNC_METADATA_TIMEOUT_MS,
+      }).catch(fallback),
+      deadline,
+    ]);
+  } finally {
+    if (timer) clearTimeout(timer);
+  }
+};
+
+const getSouvenirSyncMetadata = async (
+  gameKey: string
+): Promise<SouvenirSyncMetadata> => {
+  const game = await gamesSublevel.get(gameKey).catch(() => null);
+  if (!game) return { game: null, catalogue: [] };
+
+  const [assets, selection, catalogue] = await Promise.all([
+    gamesShopAssetsSublevel.get(gameKey).catch(() => null),
+    gamesArtworkSelectionSublevel.get(gameKey).catch(() => null),
+    getCleanupAchievementData(game),
+  ]);
+  const artwork = composeAssetsWithArtwork(assets ?? null, selection);
+  return {
+    game: { ...game, iconUrl: artwork?.iconUrl ?? game.iconUrl },
+    catalogue,
+  };
+};
+
 export const getAchievementSouvenirSyncDetails = async () => {
   const ownerId = await getCurrentOwner();
   if (!ownerId) return EMPTY_SYNC_DETAILS;
@@ -111,37 +159,13 @@ export const getAchievementSouvenirSyncDetails = async () => {
     .filter((souvenir) => souvenir.ownerId === ownerId)
     .toSorted((a, b) => b.capturedAt - a.capturedAt);
 
-  const metadataByGame = new Map<
-    string,
-    Promise<{ game: Game | null; catalogue: SteamAchievement[] }>
-  >();
+  const metadataByGame = new Map<string, Promise<SouvenirSyncMetadata>>();
   const toSyncItem = async (
     souvenir: PendingAchievementSouvenir
   ): Promise<AchievementSouvenirSyncItem> => {
     let metadata = metadataByGame.get(souvenir.gameKey);
     if (!metadata) {
-      metadata = gamesSublevel
-        .get(souvenir.gameKey)
-        .catch(() => null)
-        .then(async (game) => {
-          if (!game) return { game: null, catalogue: [] };
-          const [assets, selection, catalogue] = await Promise.all([
-            gamesShopAssetsSublevel.get(souvenir.gameKey).catch(() => null),
-            gamesArtworkSelectionSublevel
-              .get(souvenir.gameKey)
-              .catch(() => null),
-            getGameAchievementData(game.objectId, game.shop, true).catch(
-              () =>
-                AchievementMemoryStore.get(game.shop, game.objectId)
-                  ?.achievements ?? []
-            ),
-          ]);
-          const artwork = composeAssetsWithArtwork(assets ?? null, selection);
-          return {
-            game: { ...game, iconUrl: artwork?.iconUrl ?? game.iconUrl },
-            catalogue,
-          };
-        });
+      metadata = getSouvenirSyncMetadata(souvenir.gameKey);
       metadataByGame.set(souvenir.gameKey, metadata);
     }
     const { game, catalogue } = await metadata;
@@ -623,6 +647,13 @@ const processPendingSouvenir = async (
 class GroupedSouvenirWorker {
   private running: Promise<GroupedSouvenirRunResult> | null = null;
   private retryTimer: ReturnType<typeof setTimeout> | null = null;
+  private queueChanges: Promise<unknown> = Promise.resolve();
+
+  public serializeQueueChanges<T>(change: () => Promise<T>): Promise<T> {
+    const result = this.queueChanges.then(change);
+    this.queueChanges = result.catch(() => undefined);
+    return result;
+  }
 
   public trigger() {
     if (this.retryTimer) {
@@ -631,10 +662,12 @@ class GroupedSouvenirWorker {
     }
 
     if (!this.running) {
-      this.running = this.run().finally(() => {
-        this.running = null;
-        void this.scheduleNextRun();
-      });
+      this.running = this.serializeQueueChanges(() => this.run()).finally(
+        () => {
+          this.running = null;
+          void this.scheduleNextRun();
+        }
+      );
     }
 
     return this.running;
@@ -660,28 +693,35 @@ class GroupedSouvenirWorker {
       !Number.isFinite(expiration)
     )
       return;
-    await this.waitForIdle();
-    const user = await getCurrentUser().catch(() => null);
-    if (user?.id !== ownerId) return;
-
-    const pending = await PendingGroupedSouvenirStore.list();
-    for (const souvenir of pending) {
+    const canRun = await this.serializeQueueChanges(async () => {
+      const user = await getCurrentUser().catch(() => null);
       if (
-        souvenir.ownerId !== ownerId ||
-        souvenir.status !== "paused" ||
-        // Repeated refreshes of the rejected subscription must keep it paused.
-        souvenir.pausedSubscriptionExpiresAt === expiration
+        !HydraApi.isLoggedIn() ||
+        user?.id !== ownerId ||
+        expiration <= Date.now()
       )
-        continue;
+        return false;
 
-      await PendingGroupedSouvenirStore.put({
-        ...souvenir,
-        status: "pending",
-        pausedSubscriptionExpiresAt: undefined,
-        lastAttemptAt: undefined,
-      });
-    }
-    await this.trigger();
+      const pending = await PendingGroupedSouvenirStore.list();
+      for (const souvenir of pending) {
+        if (
+          souvenir.ownerId !== ownerId ||
+          souvenir.status !== "paused" ||
+          // Repeated refreshes of the rejected subscription must keep it paused.
+          souvenir.pausedSubscriptionExpiresAt === expiration
+        )
+          continue;
+
+        await PendingGroupedSouvenirStore.put({
+          ...souvenir,
+          status: "pending",
+          pausedSubscriptionExpiresAt: undefined,
+          lastAttemptAt: undefined,
+        });
+      }
+      return true;
+    });
+    if (canRun) await this.trigger();
   }
 
   private async run(): Promise<GroupedSouvenirRunResult> {
@@ -786,7 +826,7 @@ export const retryAchievementSouvenirSync =
 
     await groupedSouvenirWorker.waitForIdle();
 
-    let souvenirs = await PendingGroupedSouvenirStore.list();
+    const souvenirs = await PendingGroupedSouvenirStore.list();
     const initialStatus = getAchievementSouvenirSyncStatusForOwner(
       souvenirs,
       ownerId
@@ -812,29 +852,31 @@ export const retryAchievementSouvenirSync =
         });
         canResumeSubscription =
           user?.id === ownerId && HydraApi.hasActiveSubscription();
-        await groupedSouvenirWorker.waitForIdle();
-        souvenirs = await PendingGroupedSouvenirStore.list();
       }
-      for (const souvenir of souvenirs) {
-        if (
-          souvenir.ownerId !== ownerId ||
-          souvenir.status === "terminal" ||
-          (souvenir.status === "paused" && !canResumeSubscription)
-        ) {
-          continue;
+      await groupedSouvenirWorker.serializeQueueChanges(async () => {
+        const souvenirs = await PendingGroupedSouvenirStore.list();
+        if ((await getCurrentOwner()) !== ownerId) return;
+        for (const souvenir of souvenirs) {
+          if (
+            souvenir.ownerId !== ownerId ||
+            souvenir.status === "terminal" ||
+            (souvenir.status === "paused" && !canResumeSubscription)
+          ) {
+            continue;
+          }
+
+          attemptedCount += 1;
+          await PendingGroupedSouvenirStore.put(
+            prepareAchievementSouvenirForRetry({
+              ...souvenir,
+              status: "pending",
+              pausedSubscriptionExpiresAt: undefined,
+            })
+          );
         }
 
-        attemptedCount += 1;
-        await PendingGroupedSouvenirStore.put(
-          prepareAchievementSouvenirForRetry({
-            ...souvenir,
-            status: "pending",
-            pausedSubscriptionExpiresAt: undefined,
-          })
-        );
-      }
-
-      await publishAchievementSouvenirSyncStatus();
+        await publishAchievementSouvenirSyncStatus();
+      });
       const runResult = await groupedSouvenirWorker.trigger();
       const status = await getAchievementSouvenirSyncStatus();
       achievementsLogger.info(
@@ -871,41 +913,41 @@ export const cleanupAchievementSouvenirSync =
       };
     }
 
-    groupedSouvenirWorker.stop();
-    await groupedSouvenirWorker.waitForIdle();
-    groupedSouvenirWorker.stop();
+    return groupedSouvenirWorker.serializeQueueChanges(async () => {
+      groupedSouvenirWorker.stop();
 
-    const souvenirs = await PendingGroupedSouvenirStore.list();
-    const ownedSouvenirs = souvenirs.filter(
-      (souvenir) => souvenir.ownerId === ownerId
-    );
-    const failedFilePaths: string[] = [];
+      const souvenirs = await PendingGroupedSouvenirStore.list();
+      const ownedSouvenirs = souvenirs.filter(
+        (souvenir) => souvenir.ownerId === ownerId
+      );
+      const failedFilePaths: string[] = [];
 
-    for (const souvenir of ownedSouvenirs) {
-      try {
-        await fs.promises.rm(souvenir.screenshotPath, { force: true });
-      } catch (error) {
-        failedFilePaths.push(souvenir.screenshotPath);
-        achievementsLogger.error(
-          "Failed to delete grouped souvenir screenshot during cleanup",
-          { clientId: souvenir.clientId, error }
-        );
+      for (const souvenir of ownedSouvenirs) {
+        try {
+          await fs.promises.rm(souvenir.screenshotPath, { force: true });
+        } catch (error) {
+          failedFilePaths.push(souvenir.screenshotPath);
+          achievementsLogger.error(
+            "Failed to delete grouped souvenir screenshot during cleanup",
+            { clientId: souvenir.clientId, error }
+          );
+        }
+
+        await PendingGroupedSouvenirStore.delete(souvenir.clientId);
       }
 
-      await PendingGroupedSouvenirStore.delete(souvenir.clientId);
-    }
-
-    const status = await publishAchievementSouvenirSyncStatus();
-    const result = {
-      status,
-      deletedCount: ownedSouvenirs.length,
-      failedFilePaths,
-    } satisfies AchievementSouvenirSyncCleanupResult;
-    achievementsLogger.info(
-      "Grouped souvenir synchronization cleanup completed",
-      result
-    );
-    return result;
+      const status = await publishAchievementSouvenirSyncStatus();
+      const result = {
+        status,
+        deletedCount: ownedSouvenirs.length,
+        failedFilePaths,
+      } satisfies AchievementSouvenirSyncCleanupResult;
+      achievementsLogger.info(
+        "Grouped souvenir synchronization cleanup completed",
+        result
+      );
+      return result;
+    });
   };
 
 export const deleteLocalSouvenirAsset = async (souvenirId: string) => {
