@@ -36,7 +36,7 @@ const helper =
     "x64",
     "epic-prerequisite-runner.exe"
   );
-const fixture =
+const fixtureSource =
   options.get("--fixture") ||
   path.join(
     source,
@@ -47,6 +47,11 @@ const fixture =
     "release",
     "epic-prerequisite-fixture.exe"
   );
+const fixture = path.join(
+  data,
+  "installed fixture",
+  "epic-prerequisite-fixture.exe"
+);
 const runtimeManifest = require(
   path.join(source, "src", "shared", "epic-linux-runtime-manifest.json")
 );
@@ -157,6 +162,8 @@ async function main() {
     helper,
     path.join(data, "epic", "epic-prerequisite-runner.exe")
   );
+  await fsp.mkdir(path.dirname(fixture), { recursive: true });
+  await fsp.copyFile(fixtureSource, fixture);
   const api = load(source + "/src/main/services/epic/linux-runtime.ts");
   const owner = {
     environment: "staging",
@@ -223,7 +230,7 @@ async function main() {
       workingDirectory: gameCwd,
       environment: { HYDRA_EPIC_SMOKE_SENTINEL: "synthetic-environment-value" },
     },
-    ctx,
+    offline,
     { lease }
   );
   assert.equal((await launched.exited).code, 0);
@@ -298,6 +305,34 @@ async function main() {
       }
     }
   }
+  await api.ensureEpicLinuxPrerequisites({
+    game: customGame,
+    target,
+    installed: {
+      ...installed,
+      prereq_info: { path: path.basename(fixture), args: "--exit 3010" },
+    },
+    signal,
+  });
+  console.log(
+    "Proton prerequisite full DWORD 3010 + supervised system reboot passed"
+  );
+  const sourceContext = await api.ensureEpicLinuxPrerequisites({
+    game: customGame,
+    target,
+    installed: {
+      installPath: path.dirname(fixtureSource),
+      version: "mounted-source-build",
+    },
+    signal,
+  });
+  assert.match(
+    await api.mapEpicLinuxPath(sourceContext, fixtureSource),
+    /^[A-Z]:\\/i
+  );
+  console.log(
+    "mounted source fixture roundtrip with fixed installation context passed"
+  );
   await inspectPrivateFiles(data);
   console.log("credential-free receipts passed");
   console.log(

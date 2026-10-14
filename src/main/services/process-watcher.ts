@@ -78,11 +78,12 @@ export { gamesPlaytime };
 export { isGameRunning } from "./game-running-state";
 
 const runAutomaticCloudSaveOnOpen = async (game: Game) => {
-  // A disconnected managed game still owns its files/prefix until proven exit,
-  // even though its captured account can no longer receive session callbacks.
+  // Persisted ownership survives a Hydra restart. Legacy sync must not read a
+  // managed game's files while its captured session/close proof is unavailable.
   if (
     game.shop === "epic" &&
-    hasManagedEpicSession(levelKeys.game(game.shop, game.objectId))
+    (game.epicInstallation ||
+      hasManagedEpicSession(levelKeys.game(game.shop, game.objectId)))
   )
     return;
   const mode = await getCloudSaveAutomaticSyncMode(game.objectId, game.shop);
@@ -100,6 +101,12 @@ const runAutomaticCloudSaveOnOpen = async (game: Game) => {
 };
 
 const runAutomaticCloudSaveOnClose = async (game: Game) => {
+  if (
+    game.shop === "epic" &&
+    (game.epicInstallation ||
+      hasManagedEpicSession(levelKeys.game(game.shop, game.objectId)))
+  )
+    return;
   const mode = await getCloudSaveAutomaticSyncMode(game.objectId, game.shop);
 
   if (shouldRunLegacyAutomaticCloudSave(mode)) {

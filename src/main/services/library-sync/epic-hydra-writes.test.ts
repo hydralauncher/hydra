@@ -444,9 +444,10 @@ for (const shop of ["steam", "epic"] as const) {
 }
 
 for (const managed of [false, true]) {
-  test(`Epic legacy save upload ${managed ? "stays suppressed for a disconnected managed session" : "continues for an unmanaged session"}`, async () => {
+  test(`Epic legacy save uploads on open and close ${managed ? "stay suppressed for a disconnected managed session" : "continue for an unmanaged session"}`, async () => {
     const f = fixture();
     f.state.legacySavesEnabled = true;
+    f.state.game.automaticCloudSync = true;
     f.state.managedEpicSession = managed;
     const watcher = f.watcher();
     try {
@@ -456,12 +457,60 @@ for (const managed of [false, true]) {
       await new Promise<void>((resolve) => setImmediate(resolve));
       await queue.libraryWriteQueue.drain();
       assert.equal(f.state.cloudUploads, managed ? 0 : 1);
+      await watcher.onCloseGame({ ...f.state.game });
+      await new Promise<void>((resolve) => setImmediate(resolve));
+      await queue.libraryWriteQueue.drain();
+      assert.equal(f.state.cloudUploads, managed ? 0 : 2);
       assert.deepEqual(f.state.lifecycleErrors, []);
     } finally {
       running.clearGamesPlaytimeState();
     }
   });
 }
+
+test("a managed Epic game surviving Hydra restart skips legacy uploads on open and close and preserves its pending Epic save", async () => {
+  const f = fixture();
+  f.state.game = {
+    ...base,
+    source: "epic",
+    automaticCloudSync: true,
+    winePrefixPath: "/custom/epic-prefix",
+    epicInstallation: {
+      owner: {
+        environment: auth.environment,
+        userId: auth.userId,
+        epicAccountId: "a".repeat(32),
+      },
+      artifactId: "Artifact",
+      platform: "Windows",
+      automaticSaveSync: true,
+      pendingSaveUpload: true,
+      saveAnchor: { remoteManifest: "old.manifest", localDigest: "old" },
+    },
+  };
+  f.state.legacySavesEnabled = true;
+  const savedInstallation = structuredClone(f.state.game.epicInstallation);
+  const watcher = f.watcher();
+  try {
+    assert.equal(f.state.managedEpicSession, false);
+    assert.ok(f.state.game.remoteId);
+    await watcher.onOpenGame({ ...f.state.game }, "game.exe");
+    await new Promise<void>((resolve) => setImmediate(resolve));
+    await queue.libraryWriteQueue.drain();
+    assert.equal(running.gamesPlaytime.get(key)?.managedEpicSession, false);
+    assert.equal(f.state.cloudUploads, 0);
+    assert.deepEqual(f.state.game.epicInstallation, savedInstallation);
+    await watcher.onCloseGame({ ...f.state.game });
+    await new Promise<void>((resolve) => setImmediate(resolve));
+    await queue.libraryWriteQueue.drain();
+    assert.equal(f.state.cloudUploads, 0);
+    assert.equal(f.state.game.winePrefixPath, "/custom/epic-prefix");
+    assert.deepEqual(f.state.game.epicInstallation, savedInstallation);
+    assert.deepEqual(f.state.lifecycleErrors, []);
+  } finally {
+    running.clearGamesPlaytimeState();
+  }
+});
 
 test("a tracking failure after a context change does not write into the new account", async () => {
   const f = fixture();
