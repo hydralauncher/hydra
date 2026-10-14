@@ -1,0 +1,259 @@
+import assert from "node:assert/strict";
+import { EventEmitter } from "node:events";
+import { PassThrough } from "node:stream";
+import fs from "node:fs/promises";
+import os from "node:os";
+import path from "node:path";
+import test from "node:test";
+import {
+  spawnSupervisedUmu,
+  parseLinuxProcessIdentity,
+  inspectLinuxPrefixProcesses,
+} from "./umu-supervised-process.js";
+
+function fakeSpawn() {
+  const child = Object.assign(new EventEmitter(), {
+    pid: 87654321,
+    stdout: new PassThrough(),
+    stderr: new PassThrough(),
+    kill: () => {
+      child.emit("close", null, "SIGKILL");
+      return true;
+    },
+  });
+  let received: unknown[] = [];
+  const spawn = (...args: unknown[]) => {
+    received = args;
+    setImmediate(() => child.emit("spawn"));
+    return child;
+  };
+  return { child, spawn, received: () => received };
+}
+
+test("Linux identity parsing handles process names with spaces and parentheses", () => {
+  const fields = ["S", "42", ...Array(17).fill("0"), "123456789"];
+  const parsed = parseLinuxProcessIdentity(
+    43,
+    `43 (odd ) process) ${fields.join(" ")}`
+  );
+  assert.deepEqual(parsed, {
+    pid: 43,
+    parentPid: 42,
+    startTime: "123456789",
+    state: "S",
+  });
+});
+
+test("authenticated process returns at spawn, adds marker and drains output without exposing credentials", async () => {
+  const fixture = fakeSpawn();
+  const emitted: string[] = [];
+  const handle = await spawnSupervisedUmu({
+    executable: "/private/python-runner",
+    args: ["umu", "game.exe", "-AUTH_PASSWORD=synthetic-secret"],
+    cwd: "/game",
+    environment: { WINEPREFIX: "/prefix", PROTON_LOG: "0" },
+    onLine: (line) => emitted.push(line),
+    spawnProcess: fixture.spawn as never,
+  });
+  assert.equal(handle.pid, fixture.child.pid);
+  assert.match(handle.invocationId, /^[a-f0-9-]{36}$/);
+  const options = fixture.received()[2] as {
+    env: Record<string, string>;
+    shell: boolean;
+    stdio: string[];
+  };
+  assert.equal(options.env.HYDRA_EPIC_INVOCATION_ID, handle.invocationId);
+  assert.equal(options.shell, false);
+  assert.deepEqual(options.stdio, ["ignore", "pipe", "pipe"]);
+  fixture.child.stdout.write("-AUTH_PASSWORD=synthetic-secret\n");
+  fixture.child.stderr.write("spawn failed args synthetic-secret\n");
+  fixture.child.emit("close", 0, null);
+  assert.deepEqual(await handle.output, { stdout: "", stderr: "" });
+  assert.deepEqual(emitted, []);
+  assert.deepEqual(await handle.exited, { code: 0, signal: null });
+});
+
+test("private unauthenticated capture handles fragmented UTF8 without logging", async () => {
+  const fixture = fakeSpawn();
+  const lines: string[] = [];
+  const handle = await spawnSupervisedUmu({
+    executable: "python",
+    args: ["umu", "createprefix"],
+    cwd: "/prefix",
+    environment: {},
+    captureOutput: true,
+    onLine: (line) => lines.push(line),
+    spawnProcess: fixture.spawn as never,
+  });
+  const text = Buffer.from("PROTONPATH=/Games/Próton\n");
+  fixture.child.stdout.write(text.subarray(0, text.length - 3));
+  fixture.child.stdout.write(text.subarray(text.length - 3));
+  fixture.child.emit("close", 0, null);
+  assert.equal((await handle.output).stdout, "PROTONPATH=/Games/Próton\n");
+  assert.deepEqual(lines, ["PROTONPATH=/Games/Próton"]);
+});
+
+test("already cancelled invocation never starts a process", async () => {
+  const controller = new AbortController();
+  controller.abort();
+  let called = false;
+  await assert.rejects(
+    spawnSupervisedUmu({
+      executable: "python",
+      args: [],
+      cwd: "/prefix",
+      environment: {},
+      signal: controller.signal,
+      spawnProcess: (() => {
+        called = true;
+      }) as never,
+    }),
+    { code: "operation-cancelled" }
+  );
+  assert.equal(called, false);
+});
+
+test(
+  "natural tree completion waits for a child in a new session after its wrapper exits",
+  { skip: process.platform !== "linux" },
+  async (t) => {
+    const directory = await fs.mkdtemp(path.join(os.tmpdir(), "umu-tree-"));
+    t.after(() => fs.rm(directory, { recursive: true, force: true }));
+    const marker = path.join(directory, "completed");
+    const descendant =
+      "setTimeout(() => require('node:fs').writeFileSync(process.argv[1], 'complete'), 700)";
+    const wrapper =
+      "const p=require('node:child_process').spawn(process.execPath,['-e',process.argv[1],process.argv[2]],{env:process.env,detached:true,stdio:'ignore'});p.unref();";
+    const handle = await spawnSupervisedUmu({
+      executable: process.execPath,
+      args: ["-e", wrapper, descendant, marker],
+      cwd: directory,
+      environment: process.env,
+      timeoutMs: 10_000,
+    });
+    t.after(() => handle.terminate());
+    assert.equal((await handle.exited).code, 0);
+    assert.equal(
+      await fs.stat(marker).then(
+        () => true,
+        () => false
+      ),
+      false
+    );
+    await handle.waitForTreeExit();
+    assert.equal(await fs.readFile(marker, "utf8"), "complete");
+  }
+);
+
+test(
+  "tool deadline still terminates an attributed detached child after wrapper success",
+  { skip: process.platform !== "linux" },
+  async (t) => {
+    const directory = await fs.mkdtemp(path.join(os.tmpdir(), "umu-timeout-"));
+    t.after(() => fs.rm(directory, { recursive: true, force: true }));
+    const marker = path.join(directory, "must-not-complete");
+    const descendant =
+      "setTimeout(() => require('node:fs').writeFileSync(process.argv[1], 'wrong'), 10000)";
+    const wrapper =
+      "const p=require('node:child_process').spawn(process.execPath,['-e',process.argv[1],process.argv[2]],{env:process.env,detached:true,stdio:'ignore'});p.unref();";
+    const handle = await spawnSupervisedUmu({
+      executable: process.execPath,
+      args: ["-e", wrapper, descendant, marker],
+      cwd: directory,
+      environment: process.env,
+      timeoutMs: 600,
+    });
+    t.after(() => handle.terminate());
+    assert.equal((await handle.exited).code, 0);
+    await assert.rejects(handle.waitForTreeExit(), { code: "timeout" });
+    await handle.terminate();
+    assert.equal(
+      await fs.stat(marker).then(
+        () => true,
+        () => false
+      ),
+      false
+    );
+  }
+);
+
+function processInspectionPort(options: {
+  environment?: string;
+  denied?: boolean;
+  reused?: boolean;
+  vanished?: boolean;
+  zombie?: boolean;
+}) {
+  let statReads = 0;
+  return {
+    readdir: async () => [{ name: "100", isDirectory: () => true }],
+    stat: async () => ({ uid: process.getuid?.() ?? 0 }),
+    readFile: async (file: string) => {
+      if (options.vanished)
+        throw Object.assign(new Error("gone"), { code: "ENOENT" });
+      if (file.endsWith("/environ")) {
+        if (options.denied)
+          throw Object.assign(new Error("denied"), { code: "EACCES" });
+        return Buffer.from(options.environment ?? "");
+      }
+      statReads++;
+      return `100 (wine) ${[options.zombie ? "Z" : "S", "1", ...Array(17).fill("0"), options.reused && statReads > 1 ? "20" : "10"].join(" ")}`;
+    },
+    realpath: async (value: string) =>
+      value === "/compat/pfx" ? "/prefix" : value,
+  };
+}
+
+test("prefix inspection accepts either Wine or Steam compatibility identity and fails closed on denied/reused live processes", async () => {
+  assert.equal(
+    await inspectLinuxPrefixProcesses(
+      "/prefix",
+      processInspectionPort({ environment: "WINEPREFIX=/prefix\0" }) as never
+    ),
+    true
+  );
+  assert.equal(
+    await inspectLinuxPrefixProcesses(
+      "/prefix",
+      processInspectionPort({
+        environment: "STEAM_COMPAT_DATA_PATH=/compat\0",
+      }) as never
+    ),
+    true
+  );
+  assert.equal(
+    await inspectLinuxPrefixProcesses(
+      "/prefix",
+      processInspectionPort({ denied: true }) as never
+    ),
+    true
+  );
+  assert.equal(
+    await inspectLinuxPrefixProcesses(
+      "/prefix",
+      processInspectionPort({ reused: true }) as never
+    ),
+    true
+  );
+  assert.equal(
+    await inspectLinuxPrefixProcesses(
+      "/prefix",
+      processInspectionPort({ environment: "WINEPREFIX=/other\0" }) as never
+    ),
+    false
+  );
+  assert.equal(
+    await inspectLinuxPrefixProcesses(
+      "/prefix",
+      processInspectionPort({ vanished: true }) as never
+    ),
+    false
+  );
+  assert.equal(
+    await inspectLinuxPrefixProcesses(
+      "/prefix",
+      processInspectionPort({ zombie: true, denied: true }) as never
+    ),
+    false
+  );
+});
