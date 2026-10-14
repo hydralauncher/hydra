@@ -284,7 +284,11 @@ export class DownloadManager {
       throw new Error("The download file path is outside the selected folder.");
     }
 
-    for (let parent = target; parent !== root; parent = path.dirname(parent)) {
+    for (
+      let parent = target;
+      path.relative(root, parent) !== "";
+      parent = path.dirname(parent)
+    ) {
       try {
         if (fs.lstatSync(parent).isSymbolicLink()) {
           throw new Error("The download file path contains a symbolic link.");

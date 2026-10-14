@@ -33,7 +33,8 @@ function manager(
   realDebridEntries: Awaited<
     ReturnType<typeof RealDebridClient.getDownloadEntriesWithTorrent>
   >["entries"] = [],
-  pathImplementation: typeof path = path
+  pathImplementation: typeof path = path,
+  filesystem: typeof fs = fs
 ) {
   const starts: JsHttpDownloaderOptions[] = [];
   let stored: Record<string, unknown> = { files: [] };
@@ -79,7 +80,7 @@ function manager(
       const deps: Record<string, unknown> = {
         "@shared": shared,
         "./download-activation": { withDownloadActivation },
-        "node:fs": fs,
+        "node:fs": filesystem,
         "node:path": pathImplementation,
         "../system-path": { SystemPath: { getPath: () => metadataDirectory } },
         "../logger": {
@@ -897,3 +898,27 @@ it("an individual Real-Debrid ZIP still verifies a legacy saved prefix", () => {
   assert.equal(options.verifyResumePrefix, true);
   assert.equal(options.requireRangeResume, true);
 });
+
+for (const [root, filename] of [
+  ["D:\\Folder", "d:\\folder\\file.bin"],
+  ["\\\\Server\\Share\\Folder", "\\\\server\\share\\folder\\file.bin"],
+]) {
+  it(`Windows containment stops at the same folder regardless of casing (${root})`, () => {
+    let checks = 0;
+    const filesystem = {
+      ...fs,
+      lstatSync: () => {
+        assert.ok(
+          ++checks < 4,
+          "the ancestor walk must reach the selected folder"
+        );
+        throw Object.assign(new Error("Fixture path is not on disk"), {
+          code: "ENOENT",
+        });
+      },
+    };
+    const f = manager(undefined, undefined, [], path.win32, filesystem);
+    assert.doesNotThrow(() => f.instance.assertSafeBatchPath(root, filename));
+    assert.equal(checks, 1);
+  });
+}
