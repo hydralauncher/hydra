@@ -173,7 +173,12 @@ export function GameDetailsContextProvider({
     abortControllerRef.current = abortController;
 
     const shopDetailsPromise = window.electron
-      .getGameShopDetails(catalogueObjectId, catalogueShop, i18n.language)
+      .getGameShopDetails(catalogueObjectId, catalogueShop, i18n.language, {
+        artworkIdentity: {
+          shop: operationalShop,
+          objectId: operationalObjectId,
+        },
+      })
       .then((result) => {
         if (abortController.signal.aborted) return;
 
@@ -238,7 +243,13 @@ export function GameDetailsContextProvider({
 
     const assetsPromise = window.electron.getGameAssets(
       catalogueObjectId,
-      catalogueShop
+      catalogueShop,
+      {
+        artworkIdentity: {
+          shop: operationalShop,
+          objectId: operationalObjectId,
+        },
+      }
     );
 
     Promise.all([shopDetailsPromise, assetsPromise])

@@ -6,7 +6,14 @@ import { JSDOM } from "jsdom";
 import * as React from "react";
 import { createRoot } from "react-dom/client";
 import ts from "typescript";
-import type { Download, DownloadProgress, LibraryGame } from "@types";
+import type {
+  Download,
+  DownloadProgress,
+  GameArtworkOptions,
+  GameShop,
+  LibraryGame,
+  ShopAssets,
+} from "@types";
 import type { GameDetailsContext } from "./game-details.context.types";
 import {
   findLibraryGamePresentation,
@@ -48,14 +55,33 @@ const epic = {
   isDeleted: false,
 } as LibraryGame;
 
+interface AssetsRequest {
+  source: "details" | "assets";
+  shop: GameShop;
+  objectId: string;
+  options?: GameArtworkOptions;
+}
+
+function deferred<T>() {
+  let resolve!: (value: T) => void;
+  const promise = new Promise<T>((accept) => {
+    resolve = accept;
+  });
+  return { promise, resolve };
+}
+
 async function fixture(
   t: TestContext,
   games: LibraryGame[],
   runningId?: string,
-  initialLastPacket: DownloadProgress | null = null
+  initialLastPacket: DownloadProgress | null = null,
+  artworkAssets?: (
+    request: AssetsRequest
+  ) => Partial<ShopAssets> | null | Promise<Partial<ShopAssets> | null>
 ) {
   let libraryGames = games;
   let lastPacket = initialLastPacket;
+  let runningGameId = runningId;
   const dom = new JSDOM("<div id='root'></div>", {
     url: "https://hydra.test/game/steam/123",
   });
@@ -80,6 +106,13 @@ async function fixture(
   }
   const calls: [string, ...unknown[]][] = [];
   const unsubscribe = () => {};
+  const libraryBatchListeners = new Set<() => void>();
+  const resolveAssets = async (request: AssetsRequest) =>
+    artworkAssets
+      ? artworkAssets(request)
+      : request.source === "assets"
+        ? { title: "Steam assets" }
+        : {};
   const bridge = {
     getGameByObjectId: async (shop: string, objectId: string) => {
       calls.push(["game", shop, objectId]);
@@ -89,17 +122,31 @@ async function fixture(
         ) ?? null
       );
     },
-    getGameShopDetails: async (objectId: string, shop: string) => {
-      calls.push(["details", shop, objectId]);
+    getGameShopDetails: async (
+      objectId: string,
+      shop: GameShop,
+      language: string,
+      options?: GameArtworkOptions
+    ) => {
+      calls.push(["details", shop, objectId, language, options]);
       return {
         name: "Steam metadata",
         content_descriptors: { ids: [] },
-        assets: {},
+        assets: await resolveAssets({
+          source: "details",
+          shop,
+          objectId,
+          options,
+        }),
       };
     },
-    getGameAssets: async (objectId: string, shop: string) => {
-      calls.push(["assets", shop, objectId]);
-      return { title: "Steam assets" };
+    getGameAssets: async (
+      objectId: string,
+      shop: GameShop,
+      options?: GameArtworkOptions
+    ) => {
+      calls.push(["assets", shop, objectId, options]);
+      return resolveAssets({ source: "assets", shop, objectId, options });
     },
     getGameStats: async () => null,
     getUnlockedAchievements: async (objectId: string, shop: string) => {
@@ -119,7 +166,10 @@ async function fixture(
       return unsubscribe;
     },
     onGamesRunning: () => unsubscribe,
-    onLibraryBatchComplete: () => unsubscribe,
+    onLibraryBatchComplete: (listener: () => void) => {
+      libraryBatchListeners.add(listener);
+      return () => libraryBatchListeners.delete(listener);
+    },
     on: unsubscribe,
     off: unsubscribe,
     hydraApi: { get: async () => [] },
@@ -139,7 +189,9 @@ async function fixture(
       "./redux": {
         useAppSelector: (select: (state: unknown) => unknown) =>
           select({
-            gameRunning: { gameRunning: runningId ? { id: runningId } : null },
+            gameRunning: {
+              gameRunning: runningGameId ? { id: runningGameId } : null,
+            },
           }),
       },
     }
@@ -217,6 +269,15 @@ async function fixture(
       lastPacket = updatedLastPacket;
       await render();
     },
+    async setRunningGame(id?: string) {
+      runningGameId = id;
+      await render();
+    },
+    async completeLibraryBatch() {
+      await React.act(async () => {
+        for (const listener of libraryBatchListeners) listener();
+      });
+    },
     get details() {
       return current;
     },
@@ -269,7 +330,7 @@ describe("Desktop catalogue page", () => {
     });
   }
 
-  it("keeps extraction disabled until the live library clears its extracting flag without a packet", async (t) => {
+  it("keeps Download disabled while extracting until the live library clears its flag without a packet", async (t) => {
     const extracting = {
       ...epic,
       download: {
@@ -490,5 +551,141 @@ describe("Desktop catalogue page", () => {
       ).length,
       1
     );
+  });
+});
+
+describe("Desktop selected artwork", () => {
+  const defaults: ShopAssets = {
+    shop: "steam",
+    objectId: "123",
+    title: "Steam assets",
+    iconUrl: "https://steam.test/icon.png",
+    libraryHeroImageUrl: "https://steam.test/hero.png",
+    libraryImageUrl: "https://steam.test/grid.png",
+    logoImageUrl: "https://steam.test/logo.png",
+    logoPosition: null,
+    coverImageUrl: "https://steam.test/cover.png",
+    downloadSources: [],
+  };
+  const selected: ShopAssets = {
+    ...defaults,
+    libraryHeroImageUrl: "https://artwork.test/epic-hero.png",
+    logoImageUrl: "https://artwork.test/epic-logo.png",
+    selectedArtworkTypes: ["hero", "logo"],
+  };
+
+  it("renders the Epic record's selected artwork while both getters still request Steam catalogue data", async (t) => {
+    const state = await fixture(t, [epic], undefined, null, ({ options }) =>
+      options?.artworkIdentity?.shop === "epic" &&
+      options.artworkIdentity.objectId === epic.objectId
+        ? selected
+        : defaults
+    );
+
+    assert.equal(state.details.shopDetails?.name, "Steam metadata");
+    assert.deepEqual(state.details.shopDetails?.assets, selected);
+    for (const source of ["details", "assets"]) {
+      const requests = state.calls.filter(([action]) => action === source);
+      assert.ok(requests.length > 0);
+      for (const request of requests) {
+        assert.equal(request[1], "steam");
+        assert.equal(request[2], "123");
+        assert.deepEqual(request[source === "details" ? 4 : 3], {
+          artworkIdentity: { shop: "epic", objectId: epic.objectId },
+        });
+      }
+    }
+  });
+
+  it("refreshes selected artwork and clears individual selections on library batch events", async (t) => {
+    let response = selected;
+    const state = await fixture(t, [epic], undefined, null, ({ options }) =>
+      options?.artworkIdentity?.shop === "epic" ? response : defaults
+    );
+    assert.deepEqual(state.details.shopDetails?.assets, selected);
+    response = {
+      ...selected,
+      libraryHeroImageUrl: "https://artwork.test/updated-hero.png",
+    };
+
+    await state.completeLibraryBatch();
+
+    assert.deepEqual(state.details.shopDetails?.assets, response);
+    response = {
+      ...defaults,
+      logoImageUrl: selected.logoImageUrl,
+      selectedArtworkTypes: ["logo"],
+    };
+
+    await state.completeLibraryBatch();
+
+    assert.equal(
+      state.details.shopDetails?.assets?.libraryHeroImageUrl,
+      defaults.libraryHeroImageUrl
+    );
+    assert.equal(
+      state.details.shopDetails?.assets?.logoImageUrl,
+      selected.logoImageUrl
+    );
+    assert.deepEqual(state.details.shopDetails?.assets, response);
+    response = defaults;
+
+    await state.completeLibraryBatch();
+
+    assert.deepEqual(state.details.shopDetails?.assets, defaults);
+    assert.equal(state.details.game, epic);
+    assert.equal(epic.customHeroImageUrl, undefined);
+  });
+
+  it("ignores late Epic details and assets after the operational member changes to Steam", async (t) => {
+    const steam = {
+      ...epic,
+      id: "steam:123",
+      shop: "steam",
+      objectId: "123",
+      executablePath: "steam.exe",
+      hasActiveEpicImport: false,
+    } as LibraryGame;
+    const pendingDetails = deferred<ShopAssets>();
+    const pendingAssets = deferred<ShopAssets>();
+    const state = await fixture(
+      t,
+      [epic, steam],
+      epic.id,
+      null,
+      ({ source, options }) => {
+        if (options?.artworkIdentity?.shop === "epic") {
+          return source === "details"
+            ? pendingDetails.promise
+            : pendingAssets.promise;
+        }
+        return defaults;
+      }
+    );
+    assert.equal(state.details.shop, "epic");
+    const pendingShopDetails = state.details.shopDetails;
+    assert.equal(pendingShopDetails, null);
+
+    await state.setRunningGame(steam.id);
+
+    assert.equal(state.details.shop, "steam");
+    assert.deepEqual(state.details.shopDetails?.assets, defaults);
+    for (const source of ["details", "assets"]) {
+      const request = state.calls.findLast(([action]) => action === source)!;
+      assert.equal(request[1], "steam");
+      assert.equal(request[2], "123");
+      assert.deepEqual(request[source === "details" ? 4 : 3], {
+        artworkIdentity: { shop: "steam", objectId: "123" },
+      });
+    }
+
+    await React.act(async () => pendingDetails.resolve(selected));
+
+    assert.deepEqual(state.details.shopDetails?.assets, defaults);
+
+    await React.act(async () => pendingAssets.resolve(selected));
+
+    assert.deepEqual(state.details.shopDetails?.assets, defaults);
+    assert.equal(state.details.game, steam);
   });
 });

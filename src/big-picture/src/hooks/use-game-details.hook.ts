@@ -94,6 +94,8 @@ export function useGameDetails(objectId: string, shop: GameShop) {
     presentationGame?.catalogueGame.objectId ??
     game?.catalogueGame?.objectId ??
     objectId;
+  const artworkShop = game?.shop ?? catalogueShop;
+  const artworkObjectId = game?.objectId ?? catalogueObjectId;
   const runningGame = game ? (runningGames[game.id] ?? null) : null;
   const isGameRunning = runningGame !== null;
   const runningSessionDurationInMillis =
@@ -165,7 +167,17 @@ export function useGameDetails(objectId: string, shop: GameShop) {
           catalogueShop === "custom"
             ? Promise.resolve(null)
             : globalThis.window.electron
-                .getGameShopDetails(catalogueObjectId, catalogueShop, language)
+                .getGameShopDetails(
+                  catalogueObjectId,
+                  catalogueShop,
+                  language,
+                  {
+                    artworkIdentity: {
+                      shop: artworkShop,
+                      objectId: artworkObjectId,
+                    },
+                  }
+                )
                 .catch(() => null);
 
         const [statsResult, assets, shopDetailsResult] = await Promise.all([
@@ -177,7 +189,13 @@ export function useGameDetails(objectId: string, shop: GameShop) {
               ),
           globalThis.window.electron.getGameAssets(
             catalogueObjectId,
-            catalogueShop
+            catalogueShop,
+            {
+              artworkIdentity: {
+                shop: artworkShop,
+                objectId: artworkObjectId,
+              },
+            }
           ),
           shopDetailsPromise,
         ]);
@@ -199,7 +217,7 @@ export function useGameDetails(objectId: string, shop: GameShop) {
         }
       }
     },
-    [catalogueObjectId, catalogueShop, language]
+    [catalogueObjectId, catalogueShop, artworkObjectId, artworkShop, language]
   );
 
   const refreshGameDetails = useCallback(

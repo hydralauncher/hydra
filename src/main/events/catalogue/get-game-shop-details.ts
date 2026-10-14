@@ -7,6 +7,8 @@ import {
 } from "@main/services";
 
 import type {
+  CatalogueGameIdentity,
+  GameArtworkOptions,
   ShopDetails,
   GameShop,
   ShopAssets,
@@ -33,7 +35,8 @@ import { resolveEpicDefaultArtwork } from "@main/services/game-artwork";
 const applyArtworkToAssets = async (
   shop: GameShop,
   objectId: string,
-  assets: ShopAssets | null
+  assets: ShopAssets | null,
+  artworkIdentity: CatalogueGameIdentity = { shop, objectId }
 ): Promise<ShopAssets | null> => {
   if (!assets) return assets;
   if (shop === "epic") {
@@ -49,7 +52,7 @@ const applyArtworkToAssets = async (
   }
 
   const selection = await gamesArtworkSelectionSublevel.get(
-    levelKeys.game(shop, objectId)
+    levelKeys.game(artworkIdentity.shop, artworkIdentity.objectId)
   );
 
   return composeAssetsWithArtwork(assets, selection);
@@ -245,7 +248,8 @@ const getGameShopDetails = async (
   _event: Electron.IpcMainInvokeEvent,
   objectId: string,
   shop: GameShop,
-  language: string
+  language: string,
+  options?: GameArtworkOptions
 ): Promise<ShopDetailsWithAssets | null> => {
   if (shop === "custom") return null;
 
@@ -255,7 +259,12 @@ const getGameShopDetails = async (
 
     return {
       ...details,
-      assets: await applyArtworkToAssets(shop, objectId, details.assets),
+      assets: await applyArtworkToAssets(
+        shop,
+        objectId,
+        details.assets,
+        options?.artworkIdentity
+      ),
     };
   }
 
@@ -299,7 +308,12 @@ const getGameShopDetails = async (
 
     return {
       ...details,
-      assets: await applyArtworkToAssets(shop, objectId, details.assets),
+      assets: await applyArtworkToAssets(
+        shop,
+        objectId,
+        details.assets,
+        options?.artworkIdentity
+      ),
     };
   }
 
@@ -402,7 +416,12 @@ const getGameShopDetails = async (
       detailed_description: sanitizeEpicHtml(selected.detailed_description),
       about_the_game: sanitizeEpicHtml(selected.about_the_game),
       short_description: sanitizeEpicHtml(selected.short_description),
-      assets: await applyArtworkToAssets(shop, objectId, selected.assets),
+      assets: await applyArtworkToAssets(
+        shop,
+        objectId,
+        selected.assets,
+        options?.artworkIdentity
+      ),
     };
   }
 
