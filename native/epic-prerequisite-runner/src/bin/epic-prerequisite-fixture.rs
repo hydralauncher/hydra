@@ -4,8 +4,20 @@ fn main() {
     match args.first().map(String::as_str) {
         Some("--exit") => std::process::exit(args[1].parse::<u32>().unwrap() as i32),
         Some("--record") => {
-            let value =
-                serde_json::json!({ "args": &args[2..], "cwd": std::env::current_dir().unwrap() });
+            let env = [
+                "HYDRA_EPIC_SMOKE_SENTINEL",
+                "WINEPREFIX",
+                "PROTONPATH",
+                "HYDRA_EPIC_INVOCATION_ID",
+            ]
+            .into_iter()
+            .filter_map(|name| std::env::var(name).ok().map(|value| (name, value)))
+            .collect::<std::collections::BTreeMap<_, _>>();
+            let value = serde_json::json!({
+                "args": &args[2..],
+                "cwd": std::env::current_dir().unwrap(),
+                "env": env,
+            });
             std::fs::write(&args[1], serde_json::to_vec(&value).unwrap()).unwrap();
         }
         Some("--spawn-child") => {
@@ -95,7 +107,7 @@ fn schedule_reboot(directory: &str) {
     .collect::<Vec<_>>()
     .join(" ");
     set(
-        HKEY_CURRENT_USER,
+        HKEY_LOCAL_MACHINE,
         "Software\\Microsoft\\Windows\\CurrentVersion\\RunOnce",
         "HydraEpicFixture",
         REG_SZ,

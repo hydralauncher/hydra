@@ -414,10 +414,21 @@ export async function spawnSupervisedUmu(
         if (terminatePromise) await terminatePromise;
         if (outputFailure) throw outputFailure;
         if (options.signal?.aborted) throw failure("operation-cancelled");
-        const alive =
-          process.platform === "linux"
-            ? await invocationProcesses(invocationId, known)
-            : [];
+        let alive: ProcessIdentity[];
+        try {
+          alive =
+            process.platform === "linux"
+              ? await invocationProcesses(invocationId, known)
+              : [];
+        } catch (error) {
+          // Privileged exec transitions can briefly protect /proc. An unknown
+          // observation remains busy and is retried until the tool deadline.
+          // It must never turn into successful closure or force a success path.
+          if ((error as { code?: string }).code !== "cleanup-failed")
+            throw error;
+          await pause(EPIC_LINUX_PROCESS_POLL_MS);
+          continue;
+        }
         if (wrapperClosed && !alive.length) {
           clearLifecycle();
           return;

@@ -5,3 +5,8 @@ pnpm-lock.yaml
 LICENSE.md
 tsconfig.json
 tsconfig.*.json
+.cache/
+legendary/
+hydra-native/
+native/**/target/
+binaries/epic-prerequisite-runner/
