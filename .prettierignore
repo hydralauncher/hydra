@@ -10,3 +10,4 @@ legendary/
 hydra-native/
 native/**/target/
 binaries/epic-prerequisite-runner/
+native/epic-prerequisite-runner/tests/*.wxs
