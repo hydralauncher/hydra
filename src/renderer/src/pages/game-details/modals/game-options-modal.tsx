@@ -41,6 +41,7 @@ import {
   useUserDetails,
 } from "@renderer/hooks";
 import { useSubscription } from "@renderer/hooks/use-subscription";
+import { useGameLinuxCompatibility } from "@renderer/hooks/use-game-linux-compatibility";
 import { RemoveGameFromLibraryModal } from "./remove-from-library-modal";
 import { ResetAchievementsModal } from "./reset-achievements-modal";
 import { ChangeGamePlaytimeModal } from "./change-game-playtime-modal";
@@ -115,6 +116,8 @@ export function GameOptionsModal({
   );
   const downloadGame = presentation?.downloadGame ?? game;
   const catalogueGame = getGameCatalogueIdentity(presentation ?? game);
+  const { compatibility: linuxCompatibility, refresh: refreshCompatibility } =
+    useGameLinuxCompatibility(game, visible);
 
   const {
     updateGame,
@@ -700,7 +703,7 @@ export function GameOptionsModal({
       await globalThis.window.electron.getDefaultWinePrefixSelectionPath();
     const { filePaths } = await globalThis.window.electron.showOpenDialog({
       properties: ["openDirectory"],
-      defaultPath: game?.winePrefixPath ?? defaultPath ?? "",
+      defaultPath: displayedWinePrefixPath ?? defaultPath ?? "",
     });
     if (filePaths?.length) {
       try {
@@ -710,6 +713,7 @@ export function GameOptionsModal({
           filePaths[0]
         );
         await updateGame();
+        await refreshCompatibility();
       } catch {
         showErrorToast(
           t("invalid_wine_prefix_path"),
@@ -725,7 +729,8 @@ export function GameOptionsModal({
       game.objectId,
       null
     );
-    updateGame();
+    await updateGame();
+    await refreshCompatibility();
   };
   const handleOpenWinetricks = async () => {
     const success = await globalThis.window.electron.openGameWinetricks(
@@ -764,6 +769,7 @@ export function GameOptionsModal({
         protonPath || null
       );
       await updateGame();
+      await refreshCompatibility();
     } catch {
       setSelectedProtonPath(game.protonPath ?? "");
       showErrorToast(t("proton_version_update_error"));
@@ -912,11 +918,14 @@ export function GameOptionsModal({
   const showDownloadSettings = game.shop !== "custom";
   const shouldShowWinePrefixConfiguration =
     globalThis.window.electron.platform === "linux";
-  const defaultHydraWinePrefixPath = defaultWinePrefixPath
-    ? `${defaultWinePrefixPath}/${game.objectId}`
-    : null;
+  const defaultHydraWinePrefixPath =
+    game.shop !== "epic" && defaultWinePrefixPath
+      ? `${defaultWinePrefixPath}/${game.objectId}`
+      : null;
   const displayedWinePrefixPath =
-    game.winePrefixPath ?? defaultHydraWinePrefixPath;
+    linuxCompatibility?.winePrefixPath ??
+    game.winePrefixPath ??
+    defaultHydraWinePrefixPath;
 
   const categories = useMemo(
     () => [
@@ -1367,6 +1376,12 @@ export function GameOptionsModal({
                 <CompatibilitySettingsSection
                   game={game}
                   displayedWinePrefixPath={displayedWinePrefixPath}
+                  winePrefixPlaceholder={
+                    game.shop === "epic"
+                      ? t("epic_compatibility_automatic")
+                      : undefined
+                  }
+                  effectiveProtonName={linuxCompatibility?.protonName}
                   protonVersions={protonVersions}
                   selectedProtonPath={selectedProtonPath}
                   autoRunGamemode={autoRunGamemode}

@@ -39,7 +39,11 @@ export function useEpicManagedConnection() {
       stop?.();
     };
   }, [available]);
-  return { available, connection };
+  const installationAvailable =
+    available &&
+    (connection?.managedInstallation?.available ??
+      globalThis.window?.electron?.platform === "win32");
+  return { available, installationAvailable, connection };
 }
 
 export function useEpicCloudSaves(

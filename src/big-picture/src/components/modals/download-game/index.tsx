@@ -574,7 +574,8 @@ function DownloadGameModalSession({
   const { steam: libraryGame, epic: epicGame } = getOfficialStoreMembers(
     presentation?.members ?? []
   );
-  const { available: epicAvailable, connection } = useEpicManagedConnection();
+  const { installationAvailable: epicAvailable, connection } =
+    useEpicManagedConnection();
   const [epicInstallGame, setEpicInstallGame] = useState<LibraryGame | null>(
     null
   );
