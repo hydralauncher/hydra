@@ -2,6 +2,7 @@ export interface PendingSouvenirAchievement {
   name: string;
   unlockTime: number;
   hardcore?: boolean;
+  hardcoreUnlockTime?: number;
 }
 
 export interface PendingAchievementSouvenir {

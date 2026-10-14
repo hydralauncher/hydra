@@ -1,3 +1,5 @@
+import { HydraApi } from "@main/services/hydra-api";
+import { achievementSyncCoordinator } from "@main/services/achievements/achievement-sync-coordinator";
 import type { GameShop, UserAchievement, UserPreferences } from "@types";
 import { registerEvent } from "../register-event";
 import { getGameAchievementData } from "@main/services/achievements/get-game-achievement-data";
@@ -11,8 +13,20 @@ import { mergeUnlockedAchievementLists } from "@main/services/achievements/merge
 export const getUnlockedAchievements = async (
   objectId: string,
   shop: GameShop,
-  useCachedData: boolean
+  useCachedData: boolean,
+  current?: () => boolean
 ): Promise<UserAchievement[]> => {
+  const context = HydraApi.getAuthContext();
+  const valid =
+    current ??
+    achievementSyncCoordinator.captureCurrent(
+      levelKeys.game(shop, objectId),
+      () =>
+        context
+          ? HydraApi.isAuthContextCurrent(context)
+          : HydraApi.getAuthContext() === null
+    );
+
   const userPreferences = await db.get<string, UserPreferences | null>(
     levelKeys.userPreferences,
     {
@@ -20,14 +34,19 @@ export const getUnlockedAchievements = async (
     }
   );
 
+  if (!valid()) return [];
+
   const showHiddenAchievementsDescription =
     userPreferences?.showHiddenAchievementsDescription || false;
 
   const achievementsData = await getGameAchievementData(
     objectId,
     shop,
-    useCachedData
+    useCachedData,
+    valid
   );
+
+  if (!valid()) return [];
 
   if (!useCachedData) AchievementSouvenirStore.invalidate(shop, objectId);
 
@@ -41,6 +60,8 @@ export const getUnlockedAchievements = async (
     achievements: [],
   }));
 
+  if (!valid()) return [];
+
   AchievementSouvenirStore.set(shop, objectId, remote.souvenirs);
 
   const unlockedAchievements = mergeUnlockedAchievementLists(
@@ -48,10 +69,10 @@ export const getUnlockedAchievements = async (
     AchievementMemoryStore.get(shop, objectId)?.unlockedAchievements ?? []
   );
 
-  const current = AchievementMemoryStore.get(shop, objectId);
-  if (current) {
+  const stored = AchievementMemoryStore.get(shop, objectId);
+  if (stored) {
     AchievementMemoryStore.set(shop, objectId, {
-      ...current,
+      ...stored,
       unlockedAchievements,
     });
   }
