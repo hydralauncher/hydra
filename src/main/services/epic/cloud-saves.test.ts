@@ -11,9 +11,11 @@ import ts from "typescript";
 import * as protocol from "./cloud-save-protocol.js";
 import * as files from "./cloud-save-files.js";
 import { isRecord } from "./auth-protocol.js";
+import * as linuxPaths from "./cloud-save-linux-path.js";
+import { resolveWinePrefixPath } from "../wine-prefix.js";
 import type { Game } from "@types";
 
-async function fixture(t: TestContext) {
+async function fixture(t: TestContext, options: { linux?: boolean } = {}) {
   const root = await fsp.mkdtemp(path.join(os.tmpdir(), "epic-save-service-"));
   t.after(() => fsp.rm(root, { recursive: true, force: true }));
   const local = path.join(root, "local"),
@@ -24,6 +26,9 @@ async function fixture(t: TestContext) {
     fsp.mkdir(remote),
     fsp.mkdir(workspace),
   ]);
+  const prefix = path.join(root, "prefix");
+  const profile = path.join(prefix, "drive_c", "users", "steamuser");
+  await fsp.mkdir(path.join(profile, "AppData", "Local"), { recursive: true });
   const owner = {
     environment: "https://test.example",
     userId: "user",
@@ -57,14 +62,26 @@ async function fixture(t: TestContext) {
     running: false,
     partialUpload: false,
     offline: false,
-    metadataFolder: local as string | null,
     beforeUpload: null as (() => Promise<void>) | null,
     uploads: 0,
     downloads: 0,
     commands: [] as string[][],
     events: [] as unknown[],
+    folder: local as string | null,
+    prefixPath: prefix,
+    prefixReady: true,
+    prefixGeneration: "generation-a" as string | null,
+    prefixResolutions: 0,
+    prefixBusy: false,
+    leaseId: "own-launch-lease",
+    mutationLeases: [] as Array<string | undefined>,
   };
-  const installed = {
+  const installed: {
+    app_name: string;
+    save_path: string | null;
+    installPath: string;
+    executablePath: string;
+  } = {
     app_name: "Artifact",
     save_path: local,
     installPath: root,
@@ -168,7 +185,36 @@ async function fixture(t: TestContext) {
       },
     },
     "../game-running-state": { isGameRunning: () => state.running },
-    "../wine": { Wine: { getPrefixUserProfile: () => null } },
+    "../wine": {
+      Wine: {
+        getPrefixUserProfile: () =>
+          state.prefixReady
+            ? { path: profile, windowsPath: "C:/users/steamuser" }
+            : null,
+        isPrefixReadyForRestore: () => state.prefixReady,
+        resolvePrefixPath: (value: string | null) =>
+          resolveWinePrefixPath(value, root),
+      },
+    },
+    "./linux-runtime": {
+      resolveEpicLinuxPrefixPath: async (game: Game) => {
+        state.prefixResolutions++;
+        return game.winePrefixPath ?? state.prefixPath;
+      },
+      getEpicLinuxPrefixGeneration: async () =>
+        state.prefixReady ? state.prefixGeneration : null,
+      withEpicLinuxPrefixMutation: async (
+        _prefix: string,
+        task: () => Promise<unknown>,
+        lease?: string
+      ) => {
+        state.mutationLeases.push(lease);
+        if (state.prefixBusy && lease !== state.leaseId)
+          throw new protocol.EpicSaveFailure("compatibility-prefix-busy");
+        return task();
+      },
+    },
+    "./cloud-save-linux-path.js": linuxPaths,
     "./legendary-managed-runtime": {
       epicManagedErrorCode: () => "process-failed",
       epicOwnerMatches: (left: typeof owner, right: typeof owner) =>
@@ -209,7 +255,7 @@ async function fixture(t: TestContext) {
         assert.ok(name in modules, `Unexpected import ${name}`);
         return modules[name];
       },
-      process,
+      process: { ...process, platform: options.linux ? "linux" : "win32" },
       setTimeout,
       clearTimeout,
       AbortController,
@@ -244,7 +290,7 @@ async function fixture(t: TestContext) {
       metadata: async () => ({
         metadata: {
           customAttributes: {
-            CloudSaveFolder: { value: state.metadataFolder },
+            CloudSaveFolder: { value: state.folder },
             CloudIncludeList: { value: "*.sav" },
           },
         },
@@ -257,6 +303,9 @@ async function fixture(t: TestContext) {
     local,
     remote,
     workspace,
+    prefix,
+    profile,
+    installed,
     state,
     service,
     exported,
@@ -298,6 +347,39 @@ test("recovers interrupted transfer paths before capture, including legacy trans
     assert.equal(
       JSON.parse(await fsp.readFile(installedFile, "utf8")).Artifact.save_path,
       f.local
+    );
+    assert.equal(f.state.commands.length, 0);
+  }
+});
+
+test("Linux interrupted recovery preserves paths that still need prefix validation or an explicit choice", async (t) => {
+  for (const prefixReady of [false, true]) {
+    const f = await fixture(t, { linux: true });
+    f.state.folder = "{appdata}/Example";
+    f.state.prefixReady = prefixReady;
+    if (!prefixReady) f.game().epicInstallation!.savePathSource = "custom";
+    const installedFile = path.join(f.workspace, "installed.json");
+    const installed = JSON.parse(await fsp.readFile(installedFile, "utf8"));
+    installed.Artifact.save_path = path.join(
+      f.workspace,
+      "save-transfer-interrupted",
+      "staging"
+    );
+    await fsp.writeFile(installedFile, JSON.stringify(installed));
+    const session = await f.service.capture(
+      "Namespace:Item",
+      new AbortController().signal
+    );
+    assert.equal(session.savePath, null);
+    assert.equal(f.game().epicInstallation?.savePath, f.local);
+    assert.equal(
+      f.game().epicInstallation?.savePathSource,
+      prefixReady ? undefined : "custom"
+    );
+    assert.equal(session.installed.save_path, null);
+    assert.equal(
+      JSON.parse(await fsp.readFile(installedFile, "utf8")).Artifact.save_path,
+      null
     );
     assert.equal(f.state.commands.length, 0);
   }
@@ -757,4 +839,225 @@ test("all Hydra v2 sync entry points take the provider gate before the per-game 
     "hydra-game-gate",
     "hydra-transfer",
   ]);
+});
+
+test("Linux default prefix is resolved for state, manual sync and anchors without launch-only context", async (t) => {
+  const f = await fixture(t, { linux: true });
+  f.state.folder = "{appdata}/Example";
+  f.game().epicInstallation!.savePath = undefined;
+  f.installed.save_path = null;
+  await fsp.writeFile(
+    path.join(f.workspace, "installed.json"),
+    JSON.stringify({ Artifact: f.installed })
+  );
+  const expected = path.join(f.profile, "AppData", "Local", "Example");
+  const captured = await f.service.capture(
+    "Namespace:Item",
+    new AbortController().signal
+  );
+  assert.equal(captured.savePath, expected);
+  assert.equal(captured.winePrefixPath, f.prefix);
+  assert.equal(captured.prefixGeneration, "generation-a");
+  assert.equal(captured.savePathSource, "automatic");
+  assert.equal((await f.service.getState("Namespace:Item")).savePath, expected);
+  await fsp.mkdir(expected);
+  await fsp.writeFile(path.join(expected, "profile.sav"), "linux save");
+  assert.equal((await f.service.sync("Namespace:Item")).status, "up-to-date");
+  assert.equal(f.game().epicInstallation?.savePathSource, "automatic");
+  assert.equal(
+    f.game().epicInstallation?.savePathPrefixGeneration,
+    "generation-a"
+  );
+  assert.ok(f.state.prefixResolutions > 3);
+});
+
+test("Linux invalid prefix never falls back to host HOME, even for a retained absolute save path", async (t) => {
+  const f = await fixture(t, { linux: true });
+  f.state.prefixReady = false;
+  f.state.folder = "{userprofile}/Game";
+  const captured = await f.service.capture(
+    "Namespace:Item",
+    new AbortController().signal
+  );
+  assert.equal(captured.savePath, null);
+  const state = await f.service.getState("Namespace:Item");
+  assert.equal(state.savePath, null);
+  assert.equal(state.error, "save-path-required");
+  assert.equal(
+    (await f.service.sync("Namespace:Item")).error,
+    "save-path-required"
+  );
+  assert.equal(f.state.commands.length, 0);
+});
+
+test("Linux recreated prefix recalculates automatic paths and invalidates an old anchor before sync", async (t) => {
+  const f = await fixture(t, { linux: true });
+  const installation = f.game().epicInstallation!;
+  installation.savePathSource = "automatic";
+  installation.savePathPrefixGeneration = "generation-old";
+  installation.saveAnchor = {
+    localDigest: "old",
+    remoteManifest: "2026.10.14-09.00.00.manifest",
+  };
+  f.state.folder = "{appdata}/Example";
+  const expected = path.join(f.profile, "AppData", "Local", "Example");
+  await fsp.mkdir(expected);
+  await fsp.writeFile(path.join(expected, "profile.sav"), "new prefix local");
+  await fsp.writeFile(path.join(f.remote, "profile.sav"), "remote");
+  f.state.manifest = "2026.10.14-10.00.00.manifest";
+  const captured = await f.service.capture(
+    "Namespace:Item",
+    new AbortController().signal
+  );
+  assert.equal(captured.savePath, expected);
+  assert.equal(f.game().epicInstallation?.saveAnchor, undefined);
+  assert.equal((await f.service.sync("Namespace:Item")).status, "conflict");
+  assert.equal(f.state.uploads, 0);
+  assert.equal(f.state.downloads, 0);
+});
+
+test("Linux first migration cannot adopt an ambiguous legacy path without recorded generation", async (t) => {
+  const f = await fixture(t, { linux: true });
+  f.state.folder = "{appdata}/Example";
+  f.game().epicInstallation!.saveAnchor = {
+    remoteManifest: null,
+    localDigest: "legacy",
+  };
+  assert.equal(
+    (await f.service.getState("Namespace:Item")).error,
+    "save-path-required"
+  );
+  assert.equal(f.game().epicInstallation?.savePath, f.local);
+  assert.equal(f.game().epicInstallation?.savePathSource, undefined);
+  assert.equal(f.game().epicInstallation?.savePathPrefixGeneration, undefined);
+  assert.equal(f.game().epicInstallation?.saveAnchor, undefined);
+  assert.equal(
+    (await f.service.sync("Namespace:Item")).error,
+    "save-path-required"
+  );
+  assert.equal(f.state.commands.length, 0);
+  await f.service.setSettings("Namespace:Item", {
+    automaticSync: true,
+    savePath: f.local,
+  });
+  const captured = await f.service.capture(
+    "Namespace:Item",
+    new AbortController().signal
+  );
+  assert.equal(captured.savePath, f.local);
+  assert.equal(captured.savePathSource, "custom");
+  assert.equal(
+    f.game().epicInstallation?.savePathPrefixGeneration,
+    "generation-a"
+  );
+});
+
+test("Linux custom paths survive prefix changes while ambiguous legacy paths require an explicit choice", async (t) => {
+  const f = await fixture(t, { linux: true });
+  f.state.folder = "{appdata}/Example";
+  const installation = f.game().epicInstallation!;
+  installation.savePathPrefixGeneration = "generation-old";
+  installation.saveAnchor = { remoteManifest: null, localDigest: "old" };
+  let captured = await f.service.capture(
+    "Namespace:Item",
+    new AbortController().signal
+  );
+  assert.equal(captured.savePath, null);
+  assert.equal(f.game().epicInstallation?.savePath, f.local);
+  assert.equal(
+    f.game().epicInstallation?.savePathPrefixGeneration,
+    "generation-old"
+  );
+  assert.equal(f.game().epicInstallation?.saveAnchor, undefined);
+  captured = await f.service.capture(
+    "Namespace:Item",
+    new AbortController().signal
+  );
+  assert.equal(captured.savePath, null);
+  await f.service.setSettings("Namespace:Item", {
+    automaticSync: true,
+    savePath: f.local,
+  });
+  captured = await f.service.capture(
+    "Namespace:Item",
+    new AbortController().signal
+  );
+  assert.equal(captured.savePath, f.local);
+  assert.equal(captured.savePathSource, "custom");
+  f.state.prefixGeneration = "generation-next";
+  captured = await f.service.capture(
+    "Namespace:Item",
+    new AbortController().signal
+  );
+  assert.equal(captured.savePath, f.local);
+  assert.equal(captured.savePathSource, "custom");
+});
+
+test("Linux clearing custom saves returns to metadata and commitAnchor preserves explicit provenance", async (t) => {
+  const f = await fixture(t, { linux: true });
+  f.state.folder = "{appdata}/Example";
+  await f.service.setSettings("Namespace:Item", {
+    automaticSync: true,
+    savePath: f.local,
+  });
+  await fsp.writeFile(path.join(f.local, "profile.sav"), "custom");
+  assert.equal((await f.service.sync("Namespace:Item")).status, "up-to-date");
+  assert.equal(f.game().epicInstallation?.savePathSource, "custom");
+  await f.service.setSettings("Namespace:Item", {
+    automaticSync: true,
+    savePath: null,
+  });
+  const captured = await f.service.capture(
+    "Namespace:Item",
+    new AbortController().signal
+  );
+  assert.equal(
+    captured.savePath,
+    path.join(f.profile, "AppData", "Local", "Example")
+  );
+  assert.equal(captured.savePathSource, "automatic");
+  assert.equal(f.game().epicInstallation?.saveAnchor, undefined);
+});
+
+test("Linux prefix lease blocks manual work but permits its own prelaunch restore and post-exit upload", async (t) => {
+  const f = await fixture(t, { linux: true });
+  await fsp.writeFile(path.join(f.local, "profile.sav"), "local");
+  f.state.prefixBusy = true;
+  assert.equal(
+    (await f.service.sync("Namespace:Item")).error,
+    "compatibility-prefix-busy"
+  );
+  assert.equal(f.state.commands.length, 0);
+  const captured = await f.service.capture(
+    "Namespace:Item",
+    new AbortController().signal
+  );
+  captured.linuxPrefixLeaseId = f.state.leaseId;
+  await f.service.runLaunchGate("Namespace:Item", () =>
+    f.service.beforeLaunch(captured)
+  );
+  await f.service.markSessionStarted(captured);
+  await fsp.writeFile(path.join(f.local, "profile.sav"), "played");
+  assert.equal((await f.service.afterClose(captured))?.status, "up-to-date");
+  assert.equal(f.state.mutationLeases.at(-1), f.state.leaseId);
+  assert.equal(f.state.uploads, 2);
+});
+
+test("Linux generation changes after capture block launch and preserve pending post-exit saves", async (t) => {
+  const f = await fixture(t, { linux: true });
+  const captured = await f.service.capture(
+    "Namespace:Item",
+    new AbortController().signal
+  );
+  await f.service.markSessionStarted(captured);
+  f.state.prefixGeneration = "recreated";
+  await assert.rejects(
+    f.service.markSessionStarted(captured),
+    /compatibility-prefix-invalid/
+  );
+  const result = await f.service.afterClose(captured);
+  assert.equal(result?.status, "pending-upload");
+  assert.equal(result?.error, "compatibility-prefix-invalid");
+  assert.equal(f.state.commands.length, 0);
+  assert.equal(f.game().epicInstallation?.pendingSaveUpload, true);
 });

@@ -278,6 +278,16 @@ test("Linux unknown external Windows writers prevent close and symlink escapes n
   const writer = path.join(f.prefix, "save-helper.exe");
   await fs.writeFile(writer, "MZfixture");
   assert.deepEqual(
+    await f.tracker.scan([
+      f.node({
+        parentPid: 1,
+        invocationId: null,
+        peExecutablePath: writer,
+      }),
+    ]),
+    { complete: false, paths: [] }
+  );
+  assert.deepEqual(
     await f.tracker.scan([f.node({ peExecutablePath: writer })]),
     { complete: false, paths: [] }
   );
@@ -288,6 +298,23 @@ test("Linux unknown external Windows writers prevent close and symlink escapes n
       f.node({ peExecutablePath: path.join(link, "save-helper.exe") }),
     ]),
     { complete: false, paths: [] }
+  );
+  assert.deepEqual(
+    await f.tracker.scan([
+      f.node({
+        pid: 103,
+        invocationId: null,
+        parentPid: 1,
+        peExecutablePath: f.overlay,
+      }),
+      f.node({
+        pid: 104,
+        invocationId: null,
+        parentPid: 1,
+        peExecutablePath: null,
+      }),
+    ]),
+    { complete: true, paths: [] }
   );
 });
 

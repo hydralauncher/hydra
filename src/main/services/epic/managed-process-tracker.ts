@@ -121,6 +121,18 @@ export class EpicManagedProcessTracker {
   private async scanLinux(processes: EpicProcessNode[]) {
     const context = this.linuxContext!;
     const byPid = new Map(processes.map((entry) => [entry.pid, entry]));
+    const isKnownNonWriter = (canonical: string) => {
+      const name = path.basename(canonical).toLowerCase();
+      return (
+        (infrastructurePeNames.has(name) &&
+          isPathInside(
+            path.join(context.winePrefixPath, "drive_c", "windows"),
+            canonical
+          )) ||
+        (overlayPeNames.has(name) &&
+          isPathInside(context.winePrefixPath, canonical))
+      );
+    };
     const identityMatches = (entry: EpicProcessNode) =>
       Boolean(
         entry.startTime &&
@@ -169,15 +181,23 @@ export class EpicManagedProcessTracker {
       const attributed =
         entry.invocationId === context.invocationId ||
         hasCapturedAncestor(entry);
-      const possibleUnattributedGame =
+      const samePrefix =
         !entry.invocationId &&
         entry.winePrefixPath &&
-        linuxPathEquals(entry.winePrefixPath, context.winePrefixPath) &&
-        entry.peExecutablePath &&
-        isPathInside(this.installPath, entry.peExecutablePath);
+        linuxPathEquals(entry.winePrefixPath, context.winePrefixPath);
       if (!attributed) {
-        // A PE in our prefix with unavailable ancestry must not prove a close.
-        if (possibleUnattributedGame) complete = false;
+        // A detached helper may lose its token before our first snapshot. The
+        // prefix alone cannot prove ownership or playtime, but an unknown PE
+        // in that prefix also cannot prove that all save writers have closed.
+        if (samePrefix) {
+          if (entry.inspectionComplete !== true) complete = false;
+          else if (entry.peExecutablePath) {
+            const canonical = await fs
+              .realpath(entry.peExecutablePath)
+              .catch(() => null);
+            if (!canonical || !isKnownNonWriter(canonical)) complete = false;
+          }
+        }
         continue;
       }
       if (
@@ -204,18 +224,7 @@ export class EpicManagedProcessTracker {
         !isPathInside(this.installPath, canonical)
       ) {
         // Known Wine infrastructure/overlays can outlive the actual game.
-        const name = path.basename(canonical).toLowerCase();
-        const isSystemInfrastructure =
-          infrastructurePeNames.has(name) &&
-          isPathInside(
-            path.join(context.winePrefixPath, "drive_c", "windows"),
-            canonical
-          );
-        const isPrefixOverlay =
-          overlayPeNames.has(name) &&
-          isPathInside(context.winePrefixPath, canonical);
-        if (!isSystemInfrastructure && !isPrefixOverlay)
-          complete = false;
+        if (!isKnownNonWriter(canonical)) complete = false;
         continue;
       }
       paths.add(canonical);

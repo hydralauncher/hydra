@@ -69,6 +69,7 @@ import {
   onManagedEpicClosed,
   onManagedEpicDetected,
   getManagedEpicProcessMatch,
+  hasManagedEpicSession,
   interruptManagedEpicPlaytime,
 } from "./epic/launch";
 import { runWithHydraSaveGuard } from "./epic/cloud-saves";
@@ -77,6 +78,13 @@ export { gamesPlaytime };
 export { isGameRunning } from "./game-running-state";
 
 const runAutomaticCloudSaveOnOpen = async (game: Game) => {
+  // A disconnected managed game still owns its files/prefix until proven exit,
+  // even though its captured account can no longer receive session callbacks.
+  if (
+    game.shop === "epic" &&
+    hasManagedEpicSession(levelKeys.game(game.shop, game.objectId))
+  )
+    return;
   const mode = await getCloudSaveAutomaticSyncMode(game.objectId, game.shop);
 
   if (shouldRunLegacyAutomaticCloudSave(mode)) {
