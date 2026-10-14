@@ -989,6 +989,17 @@
     "view_fullscreen": "Ver em tela cheia",
     "previous_media": "Anterior",
     "next_media": "Próximo",
+    "play_video": "Reproduzir",
+    "pause_video": "Pausar",
+    "mute": "Silenciar",
+    "unmute": "Ativar som",
+    "volume": "Volume",
+    "seek_video": "Barra de progresso",
+    "video_quality": "Qualidade",
+    "video_quality_auto": "Automática",
+    "fullscreen": "Tela cheia",
+    "exit_fullscreen": "Sair da tela cheia",
+    "keyboard_space": "Espaço",
     "not_enough_space_on_disk": "Espaço insuficiente neste disco. Necessário {{required}}, disponível {{available}}.",
     "epic_playtime_tracking_title": "Tempo de jogo Epic",
     "epic_playtime_tracking_description": "O tempo Epic já é sincronizado. Quando a instalação Epic é identificada, o Hydra não conta a mesma sessão por padrão. Ative esta opção para contar também no Hydra."
@@ -2207,7 +2218,11 @@
     "context_menu_remove_from_library": "Remover da Biblioteca",
     "context_menu_add_to_library": "Adicionar à Biblioteca",
     "library_epic": "Epic",
-    "imported_from_epic": "Importado da biblioteca Epic vinculada a este perfil."
+    "imported_from_epic": "Importado da biblioteca Epic vinculada a este perfil.",
+    "imported_from_steam_and_epic": "Importado das bibliotecas Steam e Epic Games vinculadas a este perfil.",
+    "available_on_steam_and_epic": "Disponível na Steam e Epic Games",
+    "available_on_steam": "Disponível na Steam",
+    "available_on_epic": "Disponível na Epic Games"
   },
   "notifications_page": {
     "cloud_gift_received_title": "Você recebeu Hydra Cloud",

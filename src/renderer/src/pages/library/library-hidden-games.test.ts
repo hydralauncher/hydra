@@ -138,7 +138,10 @@ async function renderLibrary(
       useUserDetails: () => ({ userDetails }),
       useAppDispatch: () => noop,
       useAppSelector: (select: (state: unknown) => unknown) =>
-        select({ library: { searchQuery: "" } }),
+        select({
+          library: { searchQuery: "" },
+          gameRunning: { gameRunning: null },
+        }),
       useGameCollections: () => ({
         collections,
         loadCollections,
@@ -162,6 +165,7 @@ async function renderLibrary(
     "react-i18next": { useTranslation: () => ({ t: translate }) },
     "@shared": {
       AuthPage: { SignIn: "sign-in" },
+      groupLibraryGames: (games: TestGame[]) => games,
       removeDiacritics: (value: string) => value,
     },
     "@renderer/components": {

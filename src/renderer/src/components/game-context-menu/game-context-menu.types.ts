@@ -6,7 +6,11 @@ export interface GameContextMenuGame {
   shop: GameShop;
   title: string;
   executablePath?: string | null;
-  download?: { downloadPath?: string | null; status?: string | null } | null;
+  download?: {
+    downloadPath?: string | null;
+    status?: string | null;
+    extracting?: boolean;
+  } | null;
   favorite?: boolean;
   isPinned?: boolean;
   isHiddenFromOthers?: boolean;

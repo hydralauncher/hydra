@@ -28,6 +28,7 @@ import { DiscSelectionModal } from "../modals/disc-selection-modal";
 
 import "./hero-panel-actions.scss";
 import { useEffect } from "react";
+import { applyLibraryGroupAction, isLibraryGameDownloading } from "@shared";
 
 export function HeroPanelActions() {
   const [toggleLibraryGameDisabled, setToggleLibraryGameDisabled] =
@@ -38,6 +39,8 @@ export function HeroPanelActions() {
 
   const {
     game,
+    downloadGame,
+    presentation,
     repacks,
     isGameRunning,
     shop,
@@ -53,10 +56,7 @@ export function HeroPanelActions() {
     transferProgress,
   } = useContext(gameDetailsContext);
 
-  const { lastPacket } = useDownload();
-
-  const isGameDownloading =
-    game?.download?.status === "active" && lastPacket?.gameId === game?.id;
+  const isGameDownloading = isLibraryGameDownloading(downloadGame);
 
   const { updateLibrary } = useLibrary();
 
@@ -159,23 +159,25 @@ export function HeroPanelActions() {
     setToggleLibraryGameDisabled(true);
 
     try {
-      if (game?.favorite && objectId) {
-        await window.electron
-          .removeGameFromFavorites(shop, objectId)
-          .then(() => {
-            showSuccessToast(t("game_removed_from_favorites"));
-          });
-      } else {
-        if (!objectId) return;
-
-        await window.electron.addGameToFavorites(shop, objectId).then(() => {
-          showSuccessToast(t("game_added_to_favorites"));
-        });
-      }
-
-      updateLibrary();
-      updateGame();
+      if (!game) return;
+      const favorite = presentation?.favorite ?? game.favorite;
+      await applyLibraryGroupAction(
+        presentation?.members ?? [game],
+        (member) =>
+          favorite
+            ? window.electron.removeGameFromFavorites(
+                member.shop,
+                member.objectId
+              )
+            : window.electron.addGameToFavorites(member.shop, member.objectId)
+      );
+      showSuccessToast(
+        t(favorite ? "game_removed_from_favorites" : "game_added_to_favorites")
+      );
+    } catch {
+      showErrorToast(t("failed_update_favorites"));
     } finally {
+      await Promise.all([updateLibrary(), updateGame()]);
       setToggleLibraryGameDisabled(false);
     }
   };
@@ -184,21 +186,18 @@ export function HeroPanelActions() {
     setToggleLibraryGameDisabled(true);
 
     try {
-      if (game?.isPinned && objectId) {
-        await window.electron.toggleGamePin(shop, objectId, false).then(() => {
-          showSuccessToast(t("game_removed_from_pinned"));
-        });
-      } else {
-        if (!objectId) return;
-
-        await window.electron.toggleGamePin(shop, objectId, true).then(() => {
-          showSuccessToast(t("game_added_to_pinned"));
-        });
-      }
-
-      updateLibrary();
-      updateGame();
+      if (!game) return;
+      const pinned = presentation?.isPinned ?? game.isPinned;
+      await applyLibraryGroupAction(presentation?.members ?? [game], (member) =>
+        window.electron.toggleGamePin(member.shop, member.objectId, !pinned)
+      );
+      showSuccessToast(
+        t(pinned ? "game_removed_from_pinned" : "game_added_to_pinned")
+      );
+    } catch {
+      showErrorToast(t("failed_update_pinned"));
     } finally {
+      await Promise.all([updateLibrary(), updateGame()]);
       setToggleLibraryGameDisabled(false);
     }
   };
@@ -403,7 +402,11 @@ export function HeroPanelActions() {
           disabled={deleting}
           className="hero-panel-actions__action"
         >
-          {game.favorite ? <HeartFillIcon /> : <HeartIcon />}
+          {(presentation?.favorite ?? game.favorite) ? (
+            <HeartFillIcon />
+          ) : (
+            <HeartIcon />
+          )}
         </Button>
 
         {userDetails && game.shop !== "custom" && (
@@ -413,7 +416,11 @@ export function HeroPanelActions() {
             disabled={deleting}
             className="hero-panel-actions__action"
           >
-            {game.isPinned ? <PinSlashIcon /> : <PinIcon />}
+            {(presentation?.isPinned ?? game.isPinned) ? (
+              <PinSlashIcon />
+            ) : (
+              <PinIcon />
+            )}
           </Button>
         )}
 
