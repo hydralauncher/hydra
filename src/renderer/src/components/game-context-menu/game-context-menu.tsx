@@ -101,7 +101,9 @@ export function GameContextMenu({
   } = useGameCollections();
   const {
     canPlay,
+    downloadGame,
     isDeleting,
+    isDownloadDeleting,
     isGameDownloading,
     isGameRunning,
     hasRepacks,
@@ -296,7 +298,11 @@ export function GameContextMenu({
           handleOpenDownloadOptions();
         }
       },
-      disabled: isDeleting,
+      disabled:
+        isDeleting ||
+        (!canPlay &&
+          !isGameRunning &&
+          (isDownloadDeleting || isGameDownloading)),
     },
     {
       id: "collection",
@@ -420,18 +426,22 @@ export function GameContextMenu({
                 label: t("open_download_options"),
                 icon: <DownloadIcon size={16} />,
                 onClick: handleOpenDownloadOptions,
-                disabled: isDeleting || isGameDownloading || !hasRepacks,
+                disabled:
+                  isDeleting ||
+                  isDownloadDeleting ||
+                  isGameDownloading ||
+                  !hasRepacks,
               },
             ]
           : []),
-        ...(game.download?.downloadPath
+        ...(downloadGame.download?.downloadPath
           ? [
               {
                 id: "download-location",
                 label: t("open_download_location"),
                 icon: <FileDirectoryIcon size={16} />,
                 onClick: handleOpenDownloadLocation,
-                disabled: isDeleting,
+                disabled: isDeleting || isDownloadDeleting,
               },
             ]
           : []),
@@ -445,14 +455,14 @@ export function GameContextMenu({
           danger: true,
           closeOnClick: false,
         },
-        ...(game.download?.downloadPath
+        ...(downloadGame.download?.downloadPath
           ? [
               {
                 id: "remove-files",
                 label: t("remove_files"),
                 icon: <TrashIcon size={16} />,
                 onClick: () => setShowConfirmRemoveFiles(true),
-                disabled: isDeleting || isGameDownloading,
+                disabled: isDeleting || isDownloadDeleting || isGameDownloading,
                 danger: true,
                 closeOnClick: false,
               },
