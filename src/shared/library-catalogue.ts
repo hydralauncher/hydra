@@ -5,6 +5,7 @@ import type {
   LibraryGame,
   LibraryGamePresentation,
 } from "@types";
+import { getLibraryCollectionIds } from "./library-group-actions.js";
 
 type RunningGameIds = readonly string[] | ReadonlySet<string>;
 
@@ -53,6 +54,36 @@ export const selectOperationalLibraryGame = (
       identityKey(a).localeCompare(identityKey(b))
   )[0];
 };
+
+export const isLibraryGameDownloading = (
+  game: Pick<LibraryGame, "download"> | null | undefined
+): boolean =>
+  game?.download?.status === "active" ||
+  game?.download?.status === "extracting" ||
+  game?.download?.extracting === true;
+
+const downloadPriority = (game: LibraryGame) => {
+  if (isLibraryGameDownloading(game)) return 3;
+  if (game.download?.queued || game.download?.status === "waiting") return 2;
+  if (game.download?.status === "paused" || game.download?.status === "error")
+    return 1;
+  return 0;
+};
+
+export const selectDownloadLibraryGame = (
+  games: readonly LibraryGame[],
+  operationalGame: LibraryGame
+): LibraryGame =>
+  [...games]
+    .filter((game) => downloadPriority(game) > 0)
+    .sort(
+      (a, b) =>
+        downloadPriority(b) - downloadPriority(a) ||
+        Number(identityKey(b) === identityKey(operationalGame)) -
+          Number(identityKey(a) === identityKey(operationalGame)) ||
+        storePriority(a.shop) - storePriority(b.shop) ||
+        identityKey(a).localeCompare(identityKey(b))
+    )[0] ?? operationalGame;
 
 const latestDate = (values: (Date | null)[]): Date | null =>
   values.reduce<Date | null>((latest, value) => {
@@ -129,6 +160,7 @@ const projectGroup = (
     customCoverImageUrl: custom("customCoverImageUrl"),
     members,
     operationalGame,
+    downloadGame: selectDownloadLibraryGame(members, operationalGame),
     catalogueGame,
     availableShops,
     playTimeInMilliseconds: sum("playTimeInMilliseconds"),
@@ -142,7 +174,7 @@ const projectGroup = (
     isConcealed: members.every((member) => member.isConcealed),
     isHiddenFromOthers: members.some((member) => member.isHiddenFromOthers),
     collectionIds: Array.from(
-      new Set(members.flatMap((member) => member.collectionIds ?? []))
+      new Set(members.flatMap(getLibraryCollectionIds))
     ),
     lastTimePlayed: latestDate(members.map((member) => member.lastTimePlayed)),
     addedToLibraryAt: earliestDate(

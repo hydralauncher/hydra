@@ -38,6 +38,7 @@ import {
 
 export const gameDetailsContext = createContext<GameDetailsContext>({
   game: null,
+  downloadGame: null,
   presentation: null,
   catalogueGame: { shop: "steam", objectId: "" },
   shopDetails: null,
@@ -119,6 +120,7 @@ export function GameDetailsContextProvider({
     (state) => state.userPreferences.value
   );
   const presentation = useLibraryGamePresentation({ shop, objectId }, game);
+  const downloadGame = presentation?.downloadGame ?? game;
   const operationalShop = presentation?.operationalGame.shop ?? shop;
   const operationalObjectId =
     presentation?.operationalGame.objectId ?? objectId;
@@ -274,7 +276,8 @@ export function GameDetailsContextProvider({
   }, [fetchGameDetails, updateGame]);
 
   const isGameDownloading =
-    lastPacket?.gameId === game?.id && game?.download?.status === "active";
+    lastPacket?.gameId === downloadGame?.id &&
+    downloadGame?.download?.status === "active";
 
   useEffect(() => {
     if (isGameDownloading || (game?.id && lastPacket?.gameId === game.id)) {
@@ -585,6 +588,7 @@ export function GameDetailsContextProvider({
     <Provider
       value={{
         game,
+        downloadGame,
         presentation: presentation ?? null,
         catalogueGame: { shop: catalogueShop, objectId: catalogueObjectId },
         shopDetails,

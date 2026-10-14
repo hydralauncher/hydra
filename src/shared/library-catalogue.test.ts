@@ -1,10 +1,11 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import type { LibraryGame } from "@types";
+import type { Download, DownloadStatus, LibraryGame } from "@types";
 import {
   findLibraryGamePresentation,
   groupLibraryGames,
   mergeLibraryCatalogueMetadata,
+  isLibraryGameDownloading,
 } from "./library-catalogue.js";
 import { getDisplayedPlayTimeInMilliseconds } from "./playtime.js";
 
@@ -30,6 +31,91 @@ const makeGame = (overrides: Partial<LibraryGame> = {}): LibraryGame => ({
 });
 
 describe("library catalogue presentation", () => {
+  it("keeps the downloading Epic member separate from the Steam operational member", () => {
+    const epic = makeGame({
+      download: { status: "active", progress: 0.25 } as Download,
+    });
+    for (const executablePath of [null, "steam.exe"]) {
+      const steam = makeGame({
+        id: "steam:123",
+        shop: "steam",
+        objectId: "123",
+        executablePath,
+      });
+      const [group] = groupLibraryGames([steam, epic]);
+      assert.equal(group.operationalGame, steam);
+      assert.equal(group.downloadGame, epic);
+      assert.equal(isLibraryGameDownloading(group.downloadGame), true);
+      assert.equal(group.catalogueGame.shop, "steam");
+    }
+    assert.equal(epic.download?.progress, 0.25);
+  });
+
+  it("follows queue, pause, extraction and completion without changing the launch member", () => {
+    const steam = makeGame({
+      id: "steam:123",
+      shop: "steam",
+      objectId: "123",
+      executablePath: "steam.exe",
+    });
+    for (const status of [
+      "active",
+      "waiting",
+      "paused",
+      "error",
+      "extracting",
+    ] as DownloadStatus[]) {
+      const epic = makeGame({ download: { status } as Download });
+      const [group] = groupLibraryGames([epic, steam]);
+      assert.equal(group.operationalGame, steam);
+      assert.equal(group.downloadGame, epic);
+      assert.equal(
+        isLibraryGameDownloading(epic),
+        status === "active" || status === "extracting"
+      );
+    }
+    for (const download of [
+      { status: "paused", queued: true } as Download,
+      { status: "complete", extracting: true } as Download,
+    ]) {
+      assert.equal(
+        groupLibraryGames([steam, makeGame({ download })])[0].downloadGame.shop,
+        "epic"
+      );
+    }
+    const epic = makeGame({
+      download: { status: "complete", extracting: false } as Download,
+    });
+    assert.equal(groupLibraryGames([steam, epic])[0].downloadGame, steam);
+    assert.equal(
+      groupLibraryGames(
+        [steam, makeGame({ download: { status: "active" } as Download })],
+        [steam.id]
+      )[0].operationalGame,
+      steam
+    );
+  });
+
+  it("keeps legacy collection membership for single games and linked store groups", () => {
+    const legacy = { ...makeGame(), collectionId: "old" };
+    const steam = makeGame({
+      id: "steam:123",
+      shop: "steam",
+      objectId: "123",
+      collectionIds: ["modern"],
+    });
+    assert.deepEqual(groupLibraryGames([legacy])[0].collectionIds, ["old"]);
+    assert.deepEqual(groupLibraryGames([legacy, steam])[0].collectionIds, [
+      "old",
+      "modern",
+    ]);
+    assert.deepEqual(
+      groupLibraryGames([{ ...legacy, collectionIds: [] }])[0].collectionIds,
+      []
+    );
+    assert.equal(legacy.collectionIds, undefined);
+  });
+
   it("presents an Epic-only import as Steam without inventing a Steam member", () => {
     const epic = makeGame();
     const [presentation] = groupLibraryGames([epic]);

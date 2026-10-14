@@ -568,6 +568,7 @@ export default function Game() {
     shopDetails,
     game,
     presentationGame,
+    downloadGame,
     catalogueGame,
     stats,
     isGameRunning,
@@ -1451,6 +1452,7 @@ export default function Game() {
           <Hero
             shopDetails={shopDetails}
             game={presentationGame ?? game}
+            downloadGame={downloadGame}
             isGameRunning={isGameRunning}
             isFavorite={presentationGame?.favorite ?? game?.favorite ?? false}
             toggleFavorite={toggleFavorite}
@@ -1813,8 +1815,8 @@ export default function Game() {
           visible={isDownloadModalOpen}
           onClose={handleCloseDownloadModal}
           game={{
-            objectId: game?.objectId ?? objectId!,
-            shop: game?.shop ?? shop!,
+            objectId: downloadGame?.objectId ?? game?.objectId ?? objectId!,
+            shop: downloadGame?.shop ?? game?.shop ?? shop!,
             title: resolvedGameTitle,
             iconUrl: preferredAssets.iconUrl,
             downloadSources:

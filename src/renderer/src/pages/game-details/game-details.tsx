@@ -86,6 +86,7 @@ export default function GameDetails() {
         {({
           isLoading,
           game,
+          downloadGame,
           gameTitle,
           shop,
           showRepacksModal,
@@ -110,10 +111,10 @@ export default function GameDetails() {
             signal?: AbortSignal
           ) => {
             const payload = {
-              objectId: game?.objectId ?? objectId!,
+              objectId: downloadGame?.objectId ?? game?.objectId ?? objectId!,
               title: gameTitle,
               downloader,
-              shop: game?.shop ?? shop,
+              shop: downloadGame?.shop ?? game?.shop ?? shop,
               downloadPath,
               uri: selectRepackUri(repack, downloader),
               automaticallyExtract,

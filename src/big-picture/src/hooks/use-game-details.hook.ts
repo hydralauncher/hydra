@@ -81,6 +81,7 @@ export function useGameDetails(objectId: string, shop: GameShop) {
     freshRouteGame && freshRouteGame.id === presentationGame?.operationalGame.id
       ? freshRouteGame
       : (presentationGame?.operationalGame ?? freshRouteGame);
+  const downloadGame = presentationGame?.downloadGame ?? game;
   const operationalGameRef = useRef(game);
   const libraryRef = useRef(downloadLibrary);
   const runningGamesRef = useRef(runningGames);
@@ -447,6 +448,7 @@ export function useGameDetails(objectId: string, shop: GameShop) {
     game,
     presentationGame,
     catalogueGame: { shop: catalogueShop, objectId: catalogueObjectId },
+    downloadGame,
     isGameRunning,
     runningSessionDurationInMillis,
     isLoading,

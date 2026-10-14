@@ -6,7 +6,7 @@ import { JSDOM } from "jsdom";
 import * as React from "react";
 import { createRoot } from "react-dom/client";
 import ts from "typescript";
-import type { LibraryGame } from "@types";
+import type { Download, LibraryGame } from "@types";
 import { applyLibraryGroupAction } from "../../../shared/library-group-actions.js";
 import { findLibraryGamePresentation } from "../../../shared/library-catalogue.js";
 
@@ -153,6 +153,7 @@ async function fixture(
     shop: string
   ) => {
     game: LibraryGame | null;
+    downloadGame: LibraryGame | null;
     presentationGame: LibraryGame & { members: LibraryGame[] };
     catalogueGame: { shop: string; objectId: string };
     isGameRunning: boolean;
@@ -186,6 +187,38 @@ async function fixture(
 }
 
 describe("Big Picture catalogue page", () => {
+  it("keeps the downloading Epic identity separate from the installed Steam launch identity", async () => {
+    const steam = {
+      ...epic,
+      id: "steam:123",
+      shop: "steam",
+      objectId: "123",
+      executablePath: "steam.exe",
+      hasActiveEpicImport: false,
+    } as LibraryGame;
+    const downloading = {
+      ...epic,
+      executablePath: null,
+      download: { status: "active", progress: 0.25 } as Download,
+    };
+    const state = await fixture([steam, downloading]);
+    try {
+      assert.equal(state.details.game, steam);
+      assert.equal(state.details.downloadGame, downloading);
+      await state.details.openGame();
+      assert.ok(
+        state.calls.some(
+          ([action, shop, id]) =>
+            action === "open" && shop === "steam" && id === steam.objectId
+        )
+      );
+      assert.equal(state.details.downloadGame?.shop, "epic");
+      assert.equal(state.details.downloadGame?.objectId, epic.objectId);
+    } finally {
+      await state.close();
+    }
+  });
+
   it("opens Steam metadata while keeping an Epic-only import operational", async () => {
     const state = await fixture([epic]);
     try {

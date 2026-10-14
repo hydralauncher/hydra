@@ -28,7 +28,7 @@ import { DiscSelectionModal } from "../modals/disc-selection-modal";
 
 import "./hero-panel-actions.scss";
 import { useEffect } from "react";
-import { applyLibraryGroupAction } from "@shared";
+import { applyLibraryGroupAction, isLibraryGameDownloading } from "@shared";
 
 export function HeroPanelActions() {
   const [toggleLibraryGameDisabled, setToggleLibraryGameDisabled] =
@@ -39,6 +39,7 @@ export function HeroPanelActions() {
 
   const {
     game,
+    downloadGame,
     presentation,
     repacks,
     isGameRunning,
@@ -55,10 +56,7 @@ export function HeroPanelActions() {
     transferProgress,
   } = useContext(gameDetailsContext);
 
-  const { lastPacket } = useDownload();
-
-  const isGameDownloading =
-    game?.download?.status === "active" && lastPacket?.gameId === game?.id;
+  const isGameDownloading = isLibraryGameDownloading(downloadGame);
 
   const { updateLibrary } = useLibrary();
 

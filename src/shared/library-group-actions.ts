@@ -1,9 +1,24 @@
 import type { GameShop } from "../types/game.types";
 
+export function getLibraryCollectionIds(
+  game:
+    | { collectionIds?: string[] | null; collectionId?: string | null }
+    | null
+    | undefined
+): string[] {
+  if (Array.isArray(game?.collectionIds)) return game.collectionIds;
+  return game?.collectionId ? [game.collectionId] : [];
+}
+
 export function getLibraryGroupCollectionAssignments<
-  T extends { shop: GameShop; objectId: string; collectionIds?: string[] },
+  T extends {
+    shop: GameShop;
+    objectId: string;
+    collectionIds?: string[];
+    collectionId?: string | null;
+  },
 >(members: readonly T[], collectionIds: readonly string[]) {
-  const previous = new Set(members.flatMap((game) => game.collectionIds ?? []));
+  const previous = new Set(members.flatMap(getLibraryCollectionIds));
   const added = collectionIds.filter((id) => !previous.has(id));
   const removed = new Set(
     [...previous].filter((id) => !collectionIds.includes(id))
@@ -11,7 +26,7 @@ export function getLibraryGroupCollectionAssignments<
   return members.map((game) => ({
     game,
     collectionIds: [
-      ...new Set([...(game.collectionIds ?? []), ...added]),
+      ...new Set([...getLibraryCollectionIds(game), ...added]),
     ].filter((id) => !removed.has(id)),
   }));
 }

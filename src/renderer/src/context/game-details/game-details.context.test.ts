@@ -6,7 +6,7 @@ import { JSDOM } from "jsdom";
 import * as React from "react";
 import { createRoot } from "react-dom/client";
 import ts from "typescript";
-import type { LibraryGame } from "@types";
+import type { Download, LibraryGame } from "@types";
 import type { GameDetailsContext } from "./game-details.context.types";
 import {
   findLibraryGamePresentation,
@@ -208,6 +208,31 @@ async function fixture(
 }
 
 describe("Desktop catalogue page", () => {
+  for (const executablePath of [null, "steam.exe"]) {
+    it(`uses the Epic download while keeping Steam operational (executable=${executablePath})`, async (t) => {
+      const steam = {
+        ...epic,
+        id: "steam:123",
+        shop: "steam",
+        objectId: "123",
+        executablePath,
+        hasActiveEpicImport: false,
+      } as LibraryGame;
+      const downloading = {
+        ...epic,
+        executablePath: null,
+        download: { status: "active", progress: 0.25 } as Download,
+      };
+      const state = await fixture(t, [steam, downloading]);
+      assert.equal(state.details.game, steam);
+      assert.equal(state.details.shop, "steam");
+      assert.equal(state.details.downloadGame, downloading);
+      assert.equal(state.details.downloadGame?.shop, "epic");
+      assert.equal(state.details.downloadGame?.objectId, epic.objectId);
+      assert.equal(state.details.downloadGame?.download?.status, "active");
+    });
+  }
+
   it("uses Steam metadata and an Epic-only owned record without creating a Steam entry", async (t) => {
     const state = await fixture(t, [epic]);
     assert.equal(state.details.game, epic);

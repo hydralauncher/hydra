@@ -10,21 +10,13 @@ import {
   setGameCollectionIds,
 } from "@renderer/features";
 import { ensureArray } from "@renderer/helpers";
-import { findLibraryGamePresentation, applyLibraryGroupAction } from "@shared";
+import {
+  findLibraryGamePresentation,
+  applyLibraryGroupAction,
+  getLibraryCollectionIds as getNormalizedCollectionIds,
+} from "@shared";
 import { getLibraryGroupCollectionAssignments } from "../../../shared/library-group-actions";
 import { useLibrary } from "./use-library";
-
-const getNormalizedCollectionIds = (
-  game: Partial<LibraryGame> | undefined
-): string[] => {
-  if (!game) return [];
-  if (Array.isArray(game.collectionIds)) return game.collectionIds;
-
-  const legacyCollectionId = (game as { collectionId?: string | null })
-    .collectionId;
-
-  return legacyCollectionId ? [legacyCollectionId] : [];
-};
 
 export function useGameCollections() {
   const dispatch = useAppDispatch();

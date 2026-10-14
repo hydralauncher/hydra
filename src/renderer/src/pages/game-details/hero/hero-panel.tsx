@@ -14,16 +14,17 @@ export function HeroPanel() {
 
   const { formatDate } = useDate();
 
-  const { game, repacks } = useContext(gameDetailsContext);
+  const { game, downloadGame, repacks } = useContext(gameDetailsContext);
 
   const { lastPacket } = useDownload();
 
   const extraction = useAppSelector((state) => state.download.extraction);
 
   const isGameDownloading =
-    game?.download?.status === "active" && lastPacket?.gameId === game?.id;
+    downloadGame?.download?.status === "active" &&
+    lastPacket?.gameId === downloadGame?.id;
 
-  const isExtracting = extraction?.visibleId === game?.id;
+  const isExtracting = extraction?.visibleId === downloadGame?.id;
 
   const getInfo = () => {
     if (!game) {
@@ -50,8 +51,9 @@ export function HeroPanel() {
   };
 
   const showProgressBar =
-    (game?.download?.status === "active" && game?.download?.progress < 1) ||
-    game?.download?.status === "paused";
+    (downloadGame?.download?.status === "active" &&
+      downloadGame.download.progress < 1) ||
+    downloadGame?.download?.status === "paused";
 
   const showExtractionProgressBar = isExtracting;
 
@@ -69,10 +71,10 @@ export function HeroPanel() {
             value={
               isGameDownloading
                 ? lastPacket?.progress
-                : game?.download?.progress
+                : downloadGame?.download?.progress
             }
             className={`hero-panel__progress-bar ${
-              game?.download?.status === "paused"
+              downloadGame?.download?.status === "paused"
                 ? "hero-panel__progress-bar--disabled"
                 : ""
             }`}

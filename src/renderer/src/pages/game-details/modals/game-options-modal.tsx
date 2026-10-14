@@ -15,6 +15,7 @@ import {
   getGameExecutableFilters,
   getGameCatalogueIdentity,
   applyLibraryGroupAction,
+  isLibraryGameDownloading,
   MANGOHUD_SITE_URL,
 } from "@shared";
 
@@ -100,6 +101,7 @@ export function GameOptionsModal({
   const { updateLibrary } = useLibrary();
   const { loadCollections } = useGameCollections();
   const presentation = useLibraryGamePresentation(game, game);
+  const downloadGame = presentation?.downloadGame ?? game;
   const catalogueGame = getGameCatalogueIdentity(presentation ?? game);
 
   const {
@@ -614,7 +616,10 @@ export function GameOptionsModal({
   };
 
   const handleOpenDownloadFolder = () =>
-    globalThis.window.electron.openGameInstallerPath(game.shop, game.objectId);
+    globalThis.window.electron.openGameInstallerPath(
+      downloadGame.shop,
+      downloadGame.objectId
+    );
   const handleDeleteGame = async () => {
     await removeGameInstaller(game.shop, game.objectId);
     updateGame();
@@ -1354,9 +1359,9 @@ export function GameOptionsModal({
               )}
             {selectedCategory === "downloads" && showDownloadSettings && (
               <DownloadsSettingsSection
-                game={game}
-                deleting={deleting}
-                isGameDownloading={isGameDownloading}
+                game={downloadGame}
+                deleting={isGameDeleting(downloadGame.id)}
+                isGameDownloading={isLibraryGameDownloading(downloadGame)}
                 repacksLength={repacks.length}
                 onOpenRepacks={() => setShowRepacksModal(true)}
                 onOpenDownloadFolder={handleOpenDownloadFolder}
