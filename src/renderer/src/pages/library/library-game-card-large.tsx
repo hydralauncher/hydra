@@ -191,6 +191,14 @@ export const LibraryGameCardLarge = memo(function LibraryGameCardLarge({
   const [unlockedAchievementsCount, setUnlockedAchievementsCount] = useState(
     game.unlockedAchievementCount ?? 0
   );
+  const [totalAchievementsCount, setTotalAchievementsCount] = useState(
+    game.achievementCount ?? 0
+  );
+  const hasStoreUnion =
+    "availableShops" in game &&
+    Array.isArray(game.availableShops) &&
+    game.availableShops.includes("steam") &&
+    game.availableShops.includes("epic");
 
   useEffect(() => {
     setHeroIndex(0);
@@ -205,14 +213,15 @@ export const LibraryGameCardLarge = memo(function LibraryGameCardLarge({
   ]);
 
   useEffect(() => {
-    if (game.unlockedAchievementCount != null) {
+    setTotalAchievementsCount(game.achievementCount ?? 0);
+    if (game.unlockedAchievementCount != null && !hasStoreUnion) {
       setUnlockedAchievementsCount(game.unlockedAchievementCount);
       return;
     }
 
     setUnlockedAchievementsCount(0);
 
-    if ((game.achievementCount ?? 0) <= 0) return;
+    if ((game.achievementCount ?? 0) <= 0 && !hasStoreUnion) return;
 
     let isStale = false;
 
@@ -223,6 +232,8 @@ export const LibraryGameCardLarge = memo(function LibraryGameCardLarge({
         setUnlockedAchievementsCount(
           achievements.filter((a) => a.unlocked).length
         );
+        if (achievements.some((a) => a.canonicalAchievementId))
+          setTotalAchievementsCount(achievements.length);
       })
       .catch(() => void 0);
 
@@ -234,6 +245,7 @@ export const LibraryGameCardLarge = memo(function LibraryGameCardLarge({
     game.objectId,
     game.shop,
     game.unlockedAchievementCount,
+    hasStoreUnion,
   ]);
 
   useEffect(() => {
@@ -347,7 +359,7 @@ export const LibraryGameCardLarge = memo(function LibraryGameCardLarge({
         />
       )}
       {!hideAchievementProgress &&
-        ((game.achievementCount ?? 0) > 0 || unlockedAchievementsCount > 0) && (
+        (totalAchievementsCount > 0 || unlockedAchievementsCount > 0) && (
           <div className="library-game-card-large__gradient" />
         )}
 
@@ -440,11 +452,10 @@ export const LibraryGameCardLarge = memo(function LibraryGameCardLarge({
 
         <div className="library-game-card-large__info-bar">
           {!hideAchievementProgress &&
-            ((game.achievementCount ?? 0) > 0 ||
-              unlockedAchievementsCount > 0) && (
+            (totalAchievementsCount > 0 || unlockedAchievementsCount > 0) && (
               <AchievementProgress
                 achievementCount={Math.max(
-                  game.achievementCount ?? 0,
+                  totalAchievementsCount,
                   unlockedAchievementsCount
                 )}
                 unlockedAchievementCount={unlockedAchievementsCount}

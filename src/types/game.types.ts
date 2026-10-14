@@ -23,6 +23,14 @@ export interface UserAchievement extends SteamAchievement {
   unlocked: boolean;
   unlockTime: number | null;
   hardcoreUnlockTime?: number | null;
-  source?: "steam" | "retroachievements";
+  source?: "steam" | "epic" | "retroachievements";
+  canonicalAchievementId?: string;
+  sourceObjectId?: string;
+  sources?: Array<{
+    shop: "steam" | "epic";
+    objectId: string;
+    name: string;
+    unlockTime: number;
+  }>;
   imageUrl?: string | null;
 }

@@ -7,6 +7,11 @@ import { AchievementMemoryStore } from "@main/services/achievements/achievement-
 import { AchievementSouvenirStore } from "@main/services/achievements/achievement-souvenir-store";
 import { fetchRemoteUserGameAchievements } from "@main/services/achievements/get-achievement-souvenirs";
 import { mergeUnlockedAchievementLists } from "@main/services/achievements/merge-unlocked-achievements";
+import { HydraApi } from "@main/services/hydra-api";
+import {
+  presentCombinedAchievements,
+  type CombinedAchievements,
+} from "@main/services/achievements/combined-achievement-presentation";
 
 export const getUnlockedAchievements = async (
   objectId: string,
@@ -22,6 +27,22 @@ export const getUnlockedAchievements = async (
 
   const showHiddenAchievementsDescription =
     userPreferences?.showHiddenAchievementsDescription || false;
+
+  if (shop === "steam" || shop === "epic") {
+    const combined = await HydraApi.get<CombinedAchievements>(
+      "/profile/achievements/combined",
+      { shop, objectId, language: userPreferences?.language ?? "en" }
+    ).catch(() => null);
+    if (combined?.achievements.length) {
+      return presentCombinedAchievements(
+        combined,
+        (sourceShop, sourceObjectId) =>
+          AchievementMemoryStore.get(sourceShop, sourceObjectId)
+            ?.unlockedAchievements ?? [],
+        showHiddenAchievementsDescription
+      );
+    }
+  }
 
   const achievementsData = await getGameAchievementData(
     objectId,
