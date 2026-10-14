@@ -109,7 +109,7 @@ const game: Game = {
   },
 };
 
-async function fixture(t: TestContext) {
+async function fixture(t: TestContext, platform: NodeJS.Platform = "win32") {
   const root = await fs.mkdtemp(path.join(os.tmpdir(), "hydra-epic-install-"));
   let local = structuredClone(game);
   let remoteOwned = true;
@@ -199,7 +199,8 @@ async function fixture(t: TestContext) {
       local = { ...local, ...patch(local) };
       return local;
     },
-    platform: "win32",
+    platform,
+    architecture: "x64",
   });
   t.after(async () => {
     await runtime.stop();
@@ -289,6 +290,18 @@ test("installation options prove exact alias identity and separate download/disk
     "verified metadata can be reused for the same owner/alias/platform"
   );
   assert.equal(f.commands.filter((args) => args.includes("info")).length, 1);
+});
+
+test("Linux x64 resolves owned Windows builds with the same installation validations", async (t) => {
+  const f = await fixture(t, "linux");
+  const options = await f.service.getOptions(objectId);
+  assert.equal(options.options[0].platform, "Windows");
+  assert.equal(options.options[0].artifactId, "Artifact1");
+  f.disown();
+  await assert.rejects(
+    f.service.capture(objectId, new AbortController().signal),
+    { code: "game-not-owned" }
+  );
 });
 
 test("preview prefetch and modal coalesce commands and reuse successful options without remote requests", async (t) => {
@@ -913,5 +926,7 @@ test("installed executable realpath cannot escape through a directory junction",
       },
     })
   );
-  assert.equal(await f.service.readInstalled(f.target, objectId), null);
+  await assert.rejects(f.service.readInstalled(f.target, objectId), {
+    code: "invalid-path",
+  });
 });
