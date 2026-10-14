@@ -404,7 +404,9 @@ export const watchProcesses = async () => {
         gameKey,
         systemProcessMap.processTree
       );
-      if (managed.path) matchedPath ??= managed.path;
+      // Managed launches own their process proof. Generic filename/cwd matches
+      // may refer to another game or another invocation in a shared prefix.
+      if (managed.managed) matchedPath = managed.path ?? undefined;
       // Missing ancestry data or a failed inspection cannot prove a real close.
       if (!matchedPath && managed.managed && !managed.complete) continue;
     }
