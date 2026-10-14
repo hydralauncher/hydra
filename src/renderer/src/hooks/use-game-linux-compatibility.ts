@@ -30,24 +30,31 @@ export function useGameLinuxCompatibility(
   const invalidate = useCallback(() => {
     generation.current++;
   }, []);
-  const read = globalThis.window?.electron?.getGameLinuxCompatibility;
   const available =
     enabled &&
     globalThis.window?.electron?.platform === "linux" &&
-    typeof read === "function";
+    typeof window.electron?.getGameLinuxCompatibility === "function";
   const refresh = useCallback(async () => {
     const current = ++generation.current;
     setResult(null);
-    if (!available || !shop || !objectId || !read) {
+    if (
+      !available ||
+      !shop ||
+      !objectId ||
+      typeof window.electron?.getGameLinuxCompatibility !== "function"
+    ) {
       return;
     }
     try {
-      const value = await read(shop, objectId);
+      const value = await window.electron.getGameLinuxCompatibility(
+        shop,
+        objectId
+      );
       if (current === generation.current) setResult({ scope, value });
     } catch {
       if (current === generation.current) setResult(null);
     }
-  }, [available, shop, objectId, read, scope]);
+  }, [available, shop, objectId, scope]);
 
   useEffect(() => {
     void refresh();

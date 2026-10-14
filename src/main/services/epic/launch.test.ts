@@ -11,8 +11,10 @@ import { EpicSaveFailure } from "./cloud-save-protocol.js";
 import { EpicManagedProcessTracker } from "./managed-process-tracker.js";
 import { isPathInside } from "./session-attribution.js";
 import type { Game } from "@types";
+import * as ownershipToken from "./ownership-token.js";
+import * as windowsPath from "./windows-path.js";
 
-async function fixture(t: TestContext) {
+async function fixture(t: TestContext, options: { linux?: boolean } = {}) {
   const root = await fsp.mkdtemp(
     path.join(os.tmpdir(), "epic-launch-session-")
   );
@@ -37,6 +39,16 @@ async function fixture(t: TestContext) {
     reportsInterrupted: 0,
     reportsFinished: 0,
     reportsDiscarded: 0,
+    order: [] as string[],
+    capturePrefixes: [] as unknown[],
+    tokenRequired: [] as boolean[],
+    leaseReleases: 0,
+    tokenDisposals: 0,
+    terminations: 0,
+    cleanupFails: false,
+    uploadWait: Promise.resolve() as Promise<void>,
+    terminateWait: Promise.resolve() as Promise<void>,
+    prepareWait: null as ((signal: AbortSignal) => Promise<void>) | null,
   };
   const session = {
     objectId: "Namespace:Item",
@@ -45,6 +57,7 @@ async function fixture(t: TestContext) {
       executablePath: executable,
       installPath: root,
       can_run_offline: true,
+      requires_ot: false,
     },
   };
   const cloud = {
@@ -55,10 +68,13 @@ async function fixture(t: TestContext) {
       localOnly: boolean
     ) => {
       if (localOnly) state.localCaptures++;
+      state.capturePrefixes.push(_prefix);
+      state.order.push("capture");
       session.installed.can_run_offline = state.canRunOffline;
       return session;
     },
     beforeLaunch: async () => {
+      state.order.push("restore");
       if (state.conflict) throw new EpicSaveFailure("save-conflict");
     },
     markSessionStarted: async () => {
@@ -66,6 +82,8 @@ async function fixture(t: TestContext) {
     },
     afterClose: async () => {
       state.closes++;
+      state.order.push("upload");
+      await state.uploadWait;
     },
     endSession: () => {},
   };
@@ -94,6 +112,59 @@ async function fixture(t: TestContext) {
     "./constants.js": { EPIC_LAUNCH_DETECTION_TIMEOUT_MS: 1000 },
     "./managed-process-tracker.js": { EpicManagedProcessTracker },
     "./session-attribution.js": { isPathInside },
+    "./ownership-token.js": options.linux
+      ? {
+          prepareEpicOwnershipToken: async (
+            _workspace: string,
+            _objectId: string,
+            required: boolean,
+            map: (directory: string) => Promise<string>
+          ) => {
+            state.tokenRequired.push(required);
+            state.order.push("token-reserve");
+            if (required) await map(root);
+            return {
+              translate: async (parameters: protocol.EpicLaunchParameters) => {
+                if (
+                  required &&
+                  !parameters.args.some((value) =>
+                    value.startsWith("-epicovt=")
+                  )
+                )
+                  throw new EpicSaveFailure("invalid-response");
+                state.order.push("token-translate");
+                return parameters;
+              },
+              dispose: async () => {
+                state.tokenDisposals++;
+                state.order.push("token-dispose");
+              },
+            };
+          },
+        }
+      : ownershipToken,
+    "./windows-path.js": windowsPath,
+    "./linux-runtime": {
+      ensureEpicLinuxPrerequisites: async (input: { signal: AbortSignal }) => {
+        state.order.push("prepare");
+        await state.prepareWait?.(input.signal);
+        return { winePrefixPath: path.join(root, "prepared-prefix") };
+      },
+      acquireEpicLinuxPrefixSession: async () => {
+        state.order.push("lease");
+        return {
+          id: "prefix-lease",
+          release: () => {
+            state.leaseReleases++;
+            state.order.push("lease-release");
+          },
+        };
+      },
+      mapEpicLinuxPath: async () => {
+        state.order.push("token-map");
+        return "Q:\\Private";
+      },
+    },
   };
   const exported = {} as typeof import("./launch");
   const compiled = ts.transpileModule(
@@ -117,6 +188,7 @@ async function fixture(t: TestContext) {
       setTimeout,
       clearTimeout,
       AbortController,
+      process: { platform: options.linux ? "linux" : "win32" },
     },
     { filename: "launch.ts" }
   );
@@ -151,16 +223,59 @@ async function fixture(t: TestContext) {
       },
       runJson: async () => {
         state.authCalls++;
-        return result();
+        state.order.push("auth");
+        return session.installed.requires_ot
+          ? { ...result(), egl_parameters: ["-epicovt=/private/token.ovt"] }
+          : result();
       },
       runOfflineLaunch: async () => {
         state.offlineCalls++;
+        state.order.push("offline-auth");
         return { ...result(), game_parameters: ["-AUTH_TYPE=offline"] };
       },
+      workspace: () => root,
     },
   } as never);
   const game = { shop: "epic", objectId: "Namespace:Item" } as Game;
-  return { exported, state, session, executable, child, game };
+  const handle = {
+    pid: 100,
+    invocationId: "invocation",
+    rootStartTime: "10",
+    exited: Promise.resolve({ code: 0, signal: null }),
+    output: Promise.resolve({ stdout: "", stderr: "" }),
+    waitForTreeExit: async () => undefined,
+    terminate: async () => {
+      state.terminations++;
+      await state.terminateWait;
+      if (state.cleanupFails) throw new EpicSaveFailure("cleanup-failed");
+    },
+  };
+  const linuxContext = {
+    invocationId: handle.invocationId,
+    winePrefixPath: path.join(root, "prepared-prefix"),
+    rootStartTime: handle.rootStartTime,
+  };
+  const linuxGameProcess = {
+    pid: 101,
+    parentPid: 100,
+    exe: process.execPath,
+    peExecutablePath: executable,
+    startTime: "11",
+    inspectionComplete: true,
+    invocationId: handle.invocationId,
+    winePrefixPath: linuxContext.winePrefixPath,
+  };
+  return {
+    exported,
+    state,
+    session,
+    executable,
+    child,
+    game,
+    handle,
+    linuxContext,
+    linuxGameProcess,
+  };
 }
 
 test("Legendary JSON exit does not close the game; actual bootstrapper/child closes upload once", async (t) => {
@@ -224,7 +339,7 @@ test("official sessions, failed launches and context changes cannot start or fin
     f.executable
   );
   await f.exported.markManagedEpicLaunched(prepared.session);
-  f.exported.cancelManagedEpicLaunch(prepared.session);
+  await f.exported.cancelManagedEpicLaunch(prepared.session);
   assert.equal(f.state.reportsStarted, 0);
   await f.exported.markManagedEpicLaunched(prepared.session);
   f.state.current = false;
@@ -242,7 +357,7 @@ test("official sessions, failed launches and context changes cannot start or fin
     await f.exported.onManagedEpicDetected(f.game, f.executable),
     true
   );
-  f.exported.clearManagedEpicSessions();
+  await f.exported.clearManagedEpicSessions();
   assert.equal(f.state.reportsDiscarded, 1);
   assert.equal(f.exported.onManagedEpicClosed(f.game), false);
   assert.equal(f.state.reportsFinished, 0);
@@ -337,4 +452,213 @@ test("conflict prevents auth launch; offline uses only confirmed local capture a
     /not-installable/
   );
   assert.equal(f.state.offlineCalls, 1);
+});
+
+test("Linux prepares prerequisites and maps ownership directory before auth, restoring with the prepared prefix lease", async (t) => {
+  const f = await fixture(t, { linux: true });
+  f.session.installed.requires_ot = true;
+  const prepared = await f.exported.prepareManagedEpicLaunch(
+    f.game,
+    f.executable
+  );
+  assert.equal(
+    prepared.linuxContext?.winePrefixPath,
+    f.linuxContext.winePrefixPath
+  );
+  assert.equal(prepared.session.linuxPrefixLeaseId, "prefix-lease");
+  assert.equal(f.state.capturePrefixes[1], f.linuxContext.winePrefixPath);
+  const before = (first: string, second: string) =>
+    assert.ok(
+      f.state.order.indexOf(first) < f.state.order.indexOf(second),
+      `${first} precedes ${second}`
+    );
+  before("prepare", "lease");
+  before("lease", "restore");
+  before("token-map", "auth");
+  before("restore", "auth");
+  before("auth", "token-translate");
+  assert.equal(f.state.leaseReleases, 0);
+  await f.exported.cancelManagedEpicLaunch(prepared.session);
+  assert.equal(f.state.leaseReleases, 1);
+  assert.equal(f.state.tokenDisposals, 1);
+});
+
+test("Linux offline ownership-token games do not require an online ownership file", async (t) => {
+  const f = await fixture(t, { linux: true });
+  f.session.installed.requires_ot = true;
+  const prepared = await f.exported.prepareManagedEpicLaunch(
+    f.game,
+    f.executable,
+    { epicOffline: true }
+  );
+  assert.deepEqual(f.state.tokenRequired, [false]);
+  assert.equal(f.state.authCalls, 0);
+  assert.equal(f.state.offlineCalls, 1);
+  assert.ok(!f.state.order.includes("token-map"));
+  await f.exported.cancelManagedEpicLaunch(prepared.session);
+});
+
+test("Linux keeps the prefix/token while wrapper has exited or inspection is unknown, then through upload completion", async (t) => {
+  const f = await fixture(t, { linux: true });
+  const prepared = await f.exported.prepareManagedEpicLaunch(
+    f.game,
+    f.executable
+  );
+  await f.exported.markManagedEpicLaunched(prepared.session);
+  f.exported.recordManagedEpicProcess(
+    prepared.session,
+    f.handle.pid,
+    f.linuxContext,
+    f.handle
+  );
+  await f.handle.exited;
+  assert.equal(f.state.leaseReleases, 0);
+  await f.exported.getManagedEpicProcessMatch("epic:Namespace:Item", [
+    f.linuxGameProcess,
+  ]);
+  assert.equal(
+    await f.exported.onManagedEpicDetected(f.game, f.executable),
+    true
+  );
+  await f.exported.getManagedEpicProcessMatch("epic:Namespace:Item", undefined);
+  assert.equal(f.exported.onManagedEpicClosed(f.game), false);
+  assert.equal(f.state.closes, 0);
+  assert.equal(f.state.leaseReleases, 0);
+  let completeUpload!: () => void;
+  f.state.uploadWait = new Promise<void>((done) => {
+    completeUpload = done;
+  });
+  await f.exported.getManagedEpicProcessMatch("epic:Namespace:Item", []);
+  assert.equal(f.exported.onManagedEpicClosed(f.game), true);
+  assert.equal(f.state.closes, 1);
+  assert.equal(f.state.leaseReleases, 0);
+  completeUpload();
+  await new Promise<void>((done) => setImmediate(done));
+  assert.equal(f.state.tokenDisposals, 1);
+  assert.equal(f.state.leaseReleases, 1);
+  assert.ok(
+    f.state.order.indexOf("upload") < f.state.order.indexOf("token-dispose")
+  );
+});
+
+test("Linux cancellation waits for termination and retains the lease/token when cleanup fails", async (t) => {
+  const f = await fixture(t, { linux: true });
+  const prepared = await f.exported.prepareManagedEpicLaunch(
+    f.game,
+    f.executable
+  );
+  await f.exported.markManagedEpicLaunched(prepared.session);
+  f.exported.recordManagedEpicProcess(
+    prepared.session,
+    f.handle.pid,
+    f.linuxContext,
+    f.handle
+  );
+  let finishTermination!: () => void;
+  f.state.terminateWait = new Promise<void>((done) => {
+    finishTermination = done;
+  });
+  let cancelled = false;
+  const pending = f.exported
+    .cancelManagedEpicLaunch(prepared.session)
+    .then(() => {
+      cancelled = true;
+    });
+  await new Promise<void>((done) => setImmediate(done));
+  assert.equal(cancelled, false);
+  assert.equal(f.state.leaseReleases, 0);
+  assert.equal(f.state.tokenDisposals, 0);
+  f.state.cleanupFails = true;
+  finishTermination();
+  await assert.rejects(pending, /cleanup-failed/);
+  assert.equal(f.state.leaseReleases, 0);
+  assert.equal(f.state.tokenDisposals, 0);
+  assert.equal(f.exported.hasManagedEpicSession("epic:Namespace:Item"), true);
+  f.state.cleanupFails = false;
+  await f.exported.cancelManagedEpicLaunch(prepared.session);
+  assert.equal(f.state.leaseReleases, 1);
+  assert.equal(f.state.tokenDisposals, 1);
+});
+
+test("Linux signout releases resources prepared before spawn exactly once", async (t) => {
+  const f = await fixture(t, { linux: true });
+  const prepared = await f.exported.prepareManagedEpicLaunch(
+    f.game,
+    f.executable
+  );
+  await f.exported.markManagedEpicLaunched(prepared.session);
+  await f.exported.clearManagedEpicSessions();
+  assert.equal(f.state.leaseReleases, 1);
+  assert.equal(f.state.tokenDisposals, 1);
+  assert.equal(f.exported.hasManagedEpicSession("epic:Namespace:Item"), false);
+});
+
+test("Linux signout keeps the running game and token until proven exit, with no remote upload to the disconnected owner", async (t) => {
+  const f = await fixture(t, { linux: true });
+  const prepared = await f.exported.prepareManagedEpicLaunch(
+    f.game,
+    f.executable
+  );
+  await f.exported.markManagedEpicLaunched(prepared.session);
+  f.exported.recordManagedEpicProcess(
+    prepared.session,
+    f.handle.pid,
+    f.linuxContext,
+    f.handle
+  );
+  await f.exported.getManagedEpicProcessMatch("epic:Namespace:Item", [
+    f.linuxGameProcess,
+  ]);
+  await f.exported.onManagedEpicDetected(f.game, f.executable);
+  await f.exported.clearManagedEpicSessions();
+  assert.equal(f.exported.hasManagedEpicSession("epic:Namespace:Item"), true);
+  assert.equal(f.state.leaseReleases, 0);
+  assert.equal(f.state.terminations, 0);
+  assert.equal(f.state.tokenDisposals, 0);
+  await f.exported.getManagedEpicProcessMatch("epic:Namespace:Item", []);
+  assert.equal(f.exported.onManagedEpicClosed(f.game), true);
+  await new Promise<void>((done) => setImmediate(done));
+  assert.equal(f.state.closes, 0);
+  assert.equal(f.state.leaseReleases, 1);
+  assert.equal(f.state.tokenDisposals, 1);
+});
+
+test("signout aborts a Linux preparation and waits for its cleanup before returning", async (t) => {
+  const f = await fixture(t, { linux: true });
+  let entered!: () => void;
+  const preparing = new Promise<void>((done) => {
+    entered = done;
+  });
+  let finishCleanup!: () => void;
+  const cleaned = new Promise<void>((done) => {
+    finishCleanup = done;
+  });
+  f.state.prepareWait = (signal) =>
+    new Promise<void>((_resolve, reject) => {
+      signal.addEventListener(
+        "abort",
+        () => {
+          void cleaned.then(() =>
+            reject(new EpicSaveFailure("operation-cancelled"))
+          );
+        },
+        { once: true }
+      );
+      entered();
+    });
+  const launch = f.exported.prepareManagedEpicLaunch(f.game, f.executable);
+  await preparing;
+  let finished = false;
+  const clearing = f.exported.clearManagedEpicSessions().then(() => {
+    finished = true;
+  });
+  await new Promise<void>((done) => setImmediate(done));
+  assert.equal(finished, false);
+  assert.equal(f.state.authCalls, 0);
+  finishCleanup();
+  await assert.rejects(launch, /operation-cancelled/);
+  await clearing;
+  assert.equal(finished, true);
+  assert.equal(f.state.authCalls, 0);
+  assert.equal(f.state.leaseReleases, 0);
 });

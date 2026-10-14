@@ -87,7 +87,16 @@ type Stream = (
   options: Parameters<typeof executeManagedLegendary>[3],
   destination: string
 ) => Promise<void>;
-async function fixture(t: TestContext, stream?: Stream, prereq?: boolean) {
+async function fixture(
+  t: TestContext,
+  stream?: Stream,
+  prereq?: boolean,
+  prepareLinuxInstallation?: NonNullable<
+    ConstructorParameters<
+      typeof EpicDownloadService
+    >[0]["prepareLinuxInstallation"]
+  >
+) {
   const root = await fs.mkdtemp(path.join(os.tmpdir(), "hydra-epic-download-"));
   const base = path.join(root, "games");
   await fs.mkdir(base);
@@ -185,6 +194,7 @@ async function fixture(t: TestContext, stream?: Stream, prereq?: boolean) {
     platform: "win32",
   });
   const service = new EpicDownloadService({
+    prepareLinuxInstallation,
     runtime,
     installation,
     getDownload: async () => (downloadRead ? downloadRead(download) : download),
@@ -647,6 +657,71 @@ test("retry after prerequisite failure completes without downloading the same bu
   await f.complete.promise;
   assert.equal(f.commands.filter((args) => args.includes("install")).length, 1);
   assert.equal(f.getDownload()?.status, "complete");
+});
+
+test("Linux runtime preparation gates completion and retries the existing transfer", async (t) => {
+  let ready = false;
+  let calls = 0;
+  const f = await fixture(
+    t,
+    undefined,
+    true,
+    async ({ installed, target, signal }) => {
+      calls++;
+      assert.equal(target.platform, "Windows");
+      assert.equal(installed.version, "build-1");
+      assert.equal(signal.aborted, false);
+      if (!ready)
+        throw new EpicManagedError("compatibility-runtime-download-failed");
+    }
+  );
+  await f.service.start(f.payload);
+  await f.service.startRuntime(f.getDownload()!, (error) =>
+    f.failed.resolve(error)
+  );
+  assert.equal(
+    ((await f.failed.promise) as EpicManagedError).code,
+    "compatibility-runtime-download-failed"
+  );
+  assert.equal(f.getGame().epicInstallation, undefined);
+  assert.notEqual(f.getDownload()?.status, "complete");
+  await f.service.stop();
+  ready = true;
+  await f.service.startRuntime(f.getDownload()!, (error) =>
+    f.failed.resolve(error)
+  );
+  await f.complete.promise;
+  assert.equal(calls, 2);
+  assert.equal(f.commands.filter((args) => args.includes("install")).length, 1);
+  assert.equal(f.getDownload()?.status, "complete");
+});
+
+test("pause during Linux preparation waits for cleanup and cannot publish completion", async (t) => {
+  const preparing = deferred<void>();
+  const cleanup = deferred<void>();
+  const f = await fixture(t, undefined, undefined, async ({ signal }) => {
+    preparing.resolve();
+    await new Promise<void>((resolve) =>
+      signal.addEventListener("abort", () => resolve(), { once: true })
+    );
+    await cleanup.promise;
+    throw new EpicManagedError("operation-cancelled");
+  });
+  await f.service.start(f.payload);
+  await f.service.startRuntime(f.getDownload()!, (error) =>
+    f.failed.resolve(error)
+  );
+  await preparing.promise;
+  let stopped = false;
+  const stop = f.service.stop().then(() => {
+    stopped = true;
+  });
+  await new Promise<void>((resolve) => setImmediate(resolve));
+  assert.equal(stopped, false);
+  cleanup.resolve();
+  await stop;
+  assert.equal(f.getGame().epicInstallation, undefined);
+  assert.notEqual(f.getDownload()?.status, "complete");
 });
 
 test("pause during finalization record read cannot publish completion afterwards", async (t) => {

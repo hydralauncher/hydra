@@ -287,6 +287,34 @@ test("Epic 100 percent telemetry does not complete or advance the queue before v
   assert.equal(f.state.notifications.length, 0);
 });
 
+test("failed Epic startup persists a retryable paused record after confirmed cleanup", async () => {
+  const f = fixture();
+  const download = {
+    ...epic("Namespace:Startup"),
+    status: "active" as const,
+    queued: true,
+  };
+  f.add(download);
+  let rejectStart!: (reason: Error) => void;
+  const cleanup = deferred<void>();
+  f.state.startGate = new Promise<void>((_resolve, reject) => {
+    rejectStart = reject;
+  });
+  f.state.stopGate = cleanup.promise;
+  const started = f.manager.startDownload(download);
+  const rejected = assert.rejects(started, /session-expired/);
+  await settle();
+  rejectStart(new Error("session-expired"));
+  await settle();
+  assert.equal(f.manager.getActiveDownloadId(), key(download));
+  assert.equal(f.downloads.get(key(download))?.status, "active");
+  cleanup.resolve();
+  await rejected;
+  assert.equal(f.manager.getActiveDownloadId(), null);
+  assert.equal(f.downloads.get(key(download))?.status, "paused");
+  assert.equal(f.downloads.get(key(download))?.queued, false);
+});
+
 test("verified Epic completion publishes once and starts the next common queued download", async () => {
   const f = fixture();
   const first = epic("Namespace:One"),

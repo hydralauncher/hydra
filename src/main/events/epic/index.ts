@@ -1,5 +1,6 @@
 import {
   getEpicConnection,
+  getGameLinuxCompatibility,
   startEpicAuth,
   cancelEpicAuth,
   disconnectEpic,
@@ -106,6 +107,14 @@ registerEvent("cancelEpicGameInstallOptions", (event, requestId: unknown) => {
   const key = parseEpicInstallOptionsRequestId(requestId);
   installOptionsRequests.get(event.sender)?.controllers.get(key)?.abort();
 });
+registerEvent(
+  "getGameLinuxCompatibility",
+  (event, shop: unknown, objectId: unknown) => {
+    assertTrustedSender(event, true);
+    if (shop !== "epic") return null;
+    return getGameLinuxCompatibility(shop, parseEpicManagedObjectId(objectId));
+  }
+);
 registerEvent("startEpicGameDownload", (event, payload: unknown) => {
   assertTrustedSender(event, true);
   return startEpicGameDownload(parseEpicDownloadPayload(payload));
