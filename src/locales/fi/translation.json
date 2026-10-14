@@ -566,6 +566,7 @@
     "epic_play_local_saves": "Pelaa paikallisilla tallennuksilla",
     "epic_play_local_saves_description": "Avaa tämä istunto palauttamatta pilvitallennuksia. Paikalliset muutokset odottavat synkronointia.",
     "epic_managed_error_generic": "Epic-toiminto epäonnistui. Tarkista yhteys ja yritä uudelleen.",
+    "epic_external_launcher_required": "Tämän pelin asentamiseen tarvitaan toinen käynnistysohjelma. Asenna peli virallisen käynnistysohjelman kautta.",
     "epic_play_offline": "Pelaa — Offline",
     "epic_prerequisites_required": "Hyväksy pelin edellyttämät osat ja yritä uudelleen.",
     "epic_update_required": "Päivitä peli Epic Games -vaihtoehdolla samaan kansioon.",

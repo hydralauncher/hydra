@@ -738,6 +738,7 @@
     "epic_play_local_saves": "Main dengan penyimpanan lokal",
     "epic_play_local_saves_description": "Buka sesi ini tanpa memulihkan penyimpanan awan. Perubahan lokal akan menunggu sinkronisasi.",
     "epic_managed_error_generic": "Operasi Epic gagal. Periksa koneksi dan coba lagi.",
+    "epic_external_launcher_required": "Gim ini memerlukan launcher lain untuk diinstal. Instal gim melalui launcher resmi.",
     "epic_play_offline": "Main — Offline",
     "epic_prerequisites_required": "Izinkan prasyarat gim dan coba lagi.",
     "epic_update_required": "Perbarui gim melalui opsi Epic Games menggunakan folder yang sama.",

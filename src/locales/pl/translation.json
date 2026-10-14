@@ -776,6 +776,7 @@
     "epic_play_local_saves": "Graj z lokalnymi zapisami",
     "epic_play_local_saves_description": "Rozpocznij tę sesję bez przywracania zapisów z chmury. Lokalne zmiany będą oczekiwać na synchronizację.",
     "epic_managed_error_generic": "Operacja Epic nie powiodła się. Sprawdź połączenie i spróbuj ponownie.",
+    "epic_external_launcher_required": "Do zainstalowania tej gry potrzebny jest inny launcher. Zainstaluj ją za pomocą oficjalnego launchera.",
     "epic_play_offline": "Graj — Offline",
     "epic_prerequisites_required": "Zezwól na instalację składników wymaganych przez grę i spróbuj ponownie.",
     "epic_update_required": "Zaktualizuj grę przez opcję Epic Games, używając tego samego folderu.",

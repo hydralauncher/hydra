@@ -1036,6 +1036,7 @@
     "epic_play_local_saves": "Jogar com saves locais",
     "epic_play_local_saves_description": "Abra esta sessão sem restaurar saves da nuvem. As alterações locais ficam pendentes de sincronização.",
     "epic_managed_error_generic": "A operação Epic falhou. Verifique a conexão e tente novamente.",
+    "epic_external_launcher_required": "Este jogo depende de outro launcher para ser instalado. Instale-o pelo launcher oficial.",
     "epic_play_offline": "Jogar — Offline",
     "epic_prerequisites_required": "Autorize os pré-requisitos do jogo e tente novamente.",
     "epic_update_required": "Atualize o jogo pela opção Epic Games, usando a mesma pasta.",

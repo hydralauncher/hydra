@@ -566,6 +566,7 @@
     "epic_play_local_saves": "Spela med lokala sparfiler",
     "epic_play_local_saves_description": "Öppna denna session utan att återställa molnsparfiler. Lokala ändringar väntar på synkronisering.",
     "epic_managed_error_generic": "Epic-åtgärden misslyckades. Kontrollera anslutningen och försök igen.",
+    "epic_external_launcher_required": "Det här spelet kräver en annan spelklient för installation. Installera det via den officiella spelklienten.",
     "epic_play_offline": "Spela — Offline",
     "epic_prerequisites_required": "Godkänn spelets förutsättningar och försök igen.",
     "epic_update_required": "Uppdatera spelet via Epic Games-alternativet i samma mapp.",

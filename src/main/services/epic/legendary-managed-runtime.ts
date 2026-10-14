@@ -31,6 +31,7 @@ import {
   EPIC_SYNC_TIMEOUT_MS,
 } from "./constants.js";
 import { epicPrerequisiteSupervisorScript } from "./windows-process-job.js";
+import { queueEpicOperation } from "./operation-queue.js";
 
 export class EpicManagedError extends Error {
   constructor(public readonly code: EpicInstallError) {
@@ -434,31 +435,42 @@ export class LegendaryManagedRuntime {
   }
   async serializeWorkspace<T>(
     target: EpicManagedTarget,
-    task: (directory: string) => Promise<T>
+    task: (directory: string) => Promise<T>,
+    signal?: AbortSignal
   ): Promise<T> {
-    return this.serializeLocalWorkspace(target, async (directory) => {
-      this.assertCurrent(target);
-      return task(directory);
-    });
+    return this.serializeLocalWorkspace(
+      target,
+      async (directory) => {
+        this.assertCurrent(target, signal);
+        return task(directory);
+      },
+      signal
+    );
   }
   /** Local metadata cleanup needs no Epic session and never executes the CLI. */
   async serializeLocalWorkspace<T>(
     target: Pick<EpicManagedTarget, "owner" | "artifactId" | "platform">,
-    task: (directory: string) => Promise<T>
+    task: (directory: string) => Promise<T>,
+    signal?: AbortSignal
   ): Promise<T> {
     const directory = this.workspace(target);
-    const result = (this.queues.get(directory) ?? Promise.resolve())
-      .catch(() => undefined)
-      .then(async () => {
+    const { queued, result } = queueEpicOperation(
+      this.queues.get(directory),
+      async () => {
         await this.prepareDirectory(directory);
+        if (signal?.aborted) throw new EpicManagedError("operation-cancelled");
         return task(directory);
-      });
-    this.queues.set(directory, result);
-    try {
-      return await result;
-    } finally {
-      if (this.queues.get(directory) === result) this.queues.delete(directory);
-    }
+      },
+      signal
+    );
+    this.queues.set(directory, queued);
+    void queued
+      .finally(() => {
+        if (this.queues.get(directory) === queued)
+          this.queues.delete(directory);
+      })
+      .catch(() => undefined);
+    return result;
   }
   private async prepareDirectory(directory: string) {
     const managedRoot = path.join(this.options.userData, "epic-managed");
@@ -535,8 +547,10 @@ export class LegendaryManagedRuntime {
     args: string[],
     options: { signal: AbortSignal; timeout?: number }
   ) {
-    return this.serializeWorkspace(target, () =>
-      this.runRawUnlocked(target, args, options)
+    return this.serializeWorkspace(
+      target,
+      () => this.runRawUnlocked(target, args, options),
+      options.signal
     );
   }
   async runRawUnlocked(

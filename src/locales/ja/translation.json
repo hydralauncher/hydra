@@ -588,6 +588,7 @@
     "epic_play_local_saves": "ローカルセーブでプレイ",
     "epic_play_local_saves_description": "クラウドセーブを復元せずに今回のプレイを開始します。ローカルの変更は同期待ちになります。",
     "epic_managed_error_generic": "Epic の操作に失敗しました。接続を確認して再試行してください。",
+    "epic_external_launcher_required": "このゲームをインストールするには別のランチャーが必要です。公式ランチャーからインストールしてください。",
     "epic_play_offline": "プレイ — Offline",
     "epic_prerequisites_required": "ゲームの前提コンポーネントを許可して再試行してください。",
     "epic_update_required": "Epic Games のオプションから同じフォルダーにゲームを更新してください。",

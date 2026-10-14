@@ -566,6 +566,7 @@
     "epic_play_local_saves": "Spill med lokale lagringer",
     "epic_play_local_saves_description": "Åpne denne økten uten å gjenopprette skylagringer. Lokale endringer venter på synkronisering.",
     "epic_managed_error_generic": "Epic-handlingen mislyktes. Kontroller tilkoblingen og prøv igjen.",
+    "epic_external_launcher_required": "Dette spillet krever en annen spillstarter for å kunne installeres. Installer det via den offisielle spillstarteren.",
     "epic_play_offline": "Spil — Offline",
     "epic_prerequisites_required": "Godkjenn spillets forutsetninger og prøv igjen.",
     "epic_update_required": "Oppdater spillet via Epic Games-alternativet i den samme mappen.",

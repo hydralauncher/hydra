@@ -1230,8 +1230,10 @@ declare global {
     onEpicSyncFinished: (cb: (result: EpicSyncFinished) => void) => () => void;
     getEpicConnection: () => Promise<EpicConnectionState>;
     getEpicGameInstallOptions: (
-      epicObjectId: string
+      epicObjectId: string,
+      requestId?: string
     ) => Promise<EpicGameInstallOptions>;
+    cancelEpicGameInstallOptions?: (requestId: string) => Promise<void>;
     startEpicGameDownload: (
       payload: StartEpicGameDownloadPayload
     ) => Promise<EpicManagedOperationResult>;

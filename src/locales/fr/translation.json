@@ -1034,6 +1034,7 @@
     "epic_play_local_saves": "Jouer avec les sauvegardes locales",
     "epic_play_local_saves_description": "Ouvrir cette session sans restaurer les sauvegardes du cloud. Les modifications locales restent en attente de synchronisation.",
     "epic_managed_error_generic": "L’opération Epic a échoué. Vérifiez la connexion et réessayez.",
+    "epic_external_launcher_required": "Ce jeu nécessite un autre lanceur pour être installé. Installez-le via le lanceur officiel.",
     "epic_play_offline": "Jouer — Hors ligne",
     "epic_prerequisites_required": "Autorisez les prérequis du jeu et réessayez.",
     "epic_update_required": "Mettez le jeu à jour via l’option Epic Games en utilisant le même dossier.",

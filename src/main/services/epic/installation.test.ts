@@ -13,11 +13,21 @@ import {
 import {
   EpicManagedError,
   LegendaryManagedRuntime,
+  type executeManagedLegendary,
 } from "./legendary-managed-runtime.js";
-import { EPIC_INSTALL_OPTIONS_CACHE_MS } from "./constants.js";
+import {
+  EPIC_INSTALL_OPTIONS_CACHE_MS,
+  EPIC_INSTALL_OPTIONS_TIMEOUT_MS,
+  EPIC_INSTALL_LIBRARY_CACHE_MS,
+} from "./constants.js";
 import { EpicSessionProvider } from "./session-provider.js";
 import { EpicConnectionStore } from "./store.js";
-import { MemoryDatabase, bundle, connection } from "./store-test-helpers.js";
+import {
+  MemoryDatabase,
+  bundle,
+  connection,
+  deferred,
+} from "./store-test-helpers.js";
 
 const objectId = "Namespace1:Item1";
 const auth = {
@@ -54,6 +64,30 @@ const metadata = {
     },
   },
 };
+type FixtureMetadata = Omit<typeof metadata, "metadata" | "asset_infos"> & {
+  metadata: Omit<typeof metadata.metadata, "customAttributes"> & {
+    customAttributes: Record<string, { value: string; type?: string }>;
+  };
+  asset_infos: Record<string, typeof metadata.asset_infos.Windows>;
+};
+const squadronsMetadata = {
+  app_name: "bobcat",
+  app_title: "Star Wars Squadrons",
+  metadata: {
+    namespace: "bc2b0372eaa448469cb9a769f27acea1",
+    id: "8cf2931625ac41cead9f0baf2c3fdfde",
+    categories: [
+      { path: "public" },
+      { path: "games" },
+      { path: "applications" },
+    ],
+    customAttributes: {
+      ThirdPartyManagedApp: { type: "STRING", value: "Origin" },
+    },
+  },
+  asset_infos: {},
+};
+const squadronsObjectId = `${squadronsMetadata.metadata.namespace}:${squadronsMetadata.metadata.id}`;
 const game: Game = {
   title: "Game",
   objectId,
@@ -80,9 +114,19 @@ async function fixture(t: TestContext) {
   let local = structuredClone(game);
   let remoteOwned = true;
   let activeAuth = auth;
+  let localAuth: typeof auth | undefined;
   let infoResponse = structuredClone(info);
   let failInfo = false;
   let ownershipRequests = 0;
+  const games = new Map<string, Game>();
+  const library: FixtureMetadata[] = [structuredClone(metadata)];
+  let beforeExecute:
+    | ((
+        args: string[],
+        options: Parameters<typeof executeManagedLegendary>[3]
+      ) => Promise<void>)
+    | undefined;
+  let beforeCapture: (() => Promise<void>) | undefined;
   const db = new MemoryDatabase();
   const store = new EpicConnectionStore({
     userDataPath: root,
@@ -101,37 +145,56 @@ async function fixture(t: TestContext) {
     binary: async () => "fixture",
     session,
     current: (target) => target.auth.generation === activeAuth.generation,
-    execute: async (_binary, args, directory) => {
+    execute: async (_binary, args, directory, options) => {
       commands.push(args);
+      await beforeExecute?.(args, options);
       if (args.includes("list")) {
         await fs.mkdir(path.join(directory, "metadata"), { recursive: true });
-        await fs.writeFile(
-          path.join(directory, "metadata", "Artifact1.json"),
-          JSON.stringify(metadata)
+        await Promise.all(
+          library.map((entry) =>
+            fs.writeFile(
+              path.join(directory, "metadata", `${entry.app_name}.json`),
+              JSON.stringify(entry)
+            )
+          )
         );
-        return { stdout: JSON.stringify([metadata]), stderr: "" };
+        return { stdout: JSON.stringify(library), stderr: "" };
       }
       if (failInfo) throw new EpicManagedError("network");
-      return { stdout: JSON.stringify(infoResponse), stderr: "" };
+      return {
+        stdout: JSON.stringify({
+          ...infoResponse,
+          game: { ...infoResponse.game, app_name: args[3] },
+        }),
+        stderr: "",
+      };
     },
   });
   const service = new EpicInstallationService({
     runtime,
-    capture: async () => ({ auth: activeAuth, connection }),
-    captureLocal: () => ({ auth: activeAuth, connection }),
+    capture: async () => {
+      await beforeCapture?.();
+      return { auth: activeAuth, connection };
+    },
+    captureLocal: () => ({ auth: localAuth ?? activeAuth, connection }),
     current: (context) => context.auth.generation === activeAuth.generation,
-    ownGame: async () => {
+    ownGame: async (_context, id) => {
       ownershipRequests++;
       return remoteOwned
         ? {
             epicImport: {
               connectionId: connection.connectionId,
-              artifactIds: ["Artifact1"],
+              artifactIds: library
+                .filter(
+                  (entry) =>
+                    `${entry.metadata.namespace}:${entry.metadata.id}` === id
+                )
+                .map((entry) => entry.app_name),
             },
           }
         : null;
     },
-    getGame: async () => local,
+    getGame: async (id) => (id === local.objectId ? local : games.get(id)),
     updateGame: async (_id, patch) => {
       local = { ...local, ...patch(local) };
       return local;
@@ -149,6 +212,7 @@ async function fixture(t: TestContext) {
     root,
     service,
     runtime,
+    session,
     target,
     owned,
     commands,
@@ -162,6 +226,9 @@ async function fixture(t: TestContext) {
     nextGeneration: () => {
       activeAuth = { ...activeAuth, generation: activeAuth.generation + 1 };
     },
+    useStaleLocalContext: () => {
+      localAuth = auth;
+    },
     failInfo: (value: boolean) => {
       failInfo = value;
     },
@@ -169,6 +236,33 @@ async function fixture(t: TestContext) {
       infoResponse = value;
     },
     ownershipRequests: () => ownershipRequests,
+    addGame: (id: string, artifactId: string) => {
+      games.set(id, { ...structuredClone(game), objectId: id });
+      const [namespace, item] = id.split(":");
+      library.push({
+        ...structuredClone(metadata),
+        app_name: artifactId,
+        metadata: {
+          ...structuredClone(metadata.metadata),
+          namespace,
+          id: item,
+        },
+        asset_infos: {
+          Windows: { app_name: artifactId, namespace, catalog_item_id: item },
+        },
+      });
+    },
+    addMetadata: (entry: FixtureMetadata) => {
+      const id = `${entry.metadata.namespace}:${entry.metadata.id}`;
+      games.set(id, { ...structuredClone(game), objectId: id });
+      library.push(structuredClone(entry));
+    },
+    beforeExecute: (hook: typeof beforeExecute) => {
+      beforeExecute = hook;
+    },
+    beforeCapture: (hook: typeof beforeCapture) => {
+      beforeCapture = hook;
+    },
   };
 }
 
@@ -232,6 +326,13 @@ test("preview expires and is never reused across auth generations or a removed l
   });
 });
 
+test("preview rechecks the connection when its local context is not confirmed current", async (t) => {
+  const f = await fixture(t);
+  f.nextGeneration();
+  f.useStaleLocalContext();
+  assert.equal((await f.service.getOptions(objectId)).options.length, 1);
+});
+
 test("preview failures are retryable and fresh prepare/ownership do not trust cached options", async (t) => {
   const f = await fixture(t);
   f.failInfo(true);
@@ -260,6 +361,207 @@ test("preview failures are retryable and fresh prepare/ownership do not trust ca
   );
 });
 
+test("cancelling one preview consumer preserves another consumer of the same game", async (t) => {
+  const f = await fixture(t);
+  const entered = deferred<AbortSignal>();
+  const finish = deferred<void>();
+  f.beforeExecute(async (args, options) => {
+    if (args.includes("info")) {
+      entered.resolve(options.signal);
+      await finish.promise;
+    }
+  });
+  t.after(() => finish.resolve());
+  const controller = new AbortController();
+  const prefetch = f.service.getOptions(objectId, controller.signal);
+  const modal = f.service.getOptions(objectId);
+  const processSignal = await entered.promise;
+  controller.abort();
+  assert.equal((await prefetch).error, "operation-cancelled");
+  assert.equal(processSignal.aborted, false);
+  finish.resolve();
+  assert.equal((await modal).options.length, 1);
+  assert.equal(f.commands.filter((args) => args.includes("info")).length, 1);
+});
+
+test("cancelling the last preview consumer aborts work and reopening immediately retries", async (t) => {
+  const f = await fixture(t);
+  const entered = deferred<AbortSignal>();
+  const stopped = deferred<void>();
+  f.beforeExecute(async (args, options) => {
+    if (!args.includes("info")) return;
+    entered.resolve(options.signal);
+    await new Promise<void>((_resolve, reject) =>
+      options.signal.addEventListener(
+        "abort",
+        () => {
+          stopped.resolve();
+          reject(new EpicManagedError("operation-cancelled"));
+        },
+        { once: true }
+      )
+    );
+  });
+  const controller = new AbortController();
+  const pending = f.service.getOptions(objectId, controller.signal);
+  const processSignal = await entered.promise;
+  controller.abort();
+  assert.equal((await pending).error, "operation-cancelled");
+  await stopped.promise;
+  assert.equal(processSignal.aborted, true);
+  f.beforeExecute(undefined);
+  assert.equal((await f.service.getOptions(objectId)).options.length, 1);
+  assert.equal(f.commands.filter((args) => args.includes("info")).length, 2);
+});
+
+test("preview deadline includes connection capture and a timeout remains retryable", async (t) => {
+  const f = await fixture(t);
+  const entered = deferred<void>();
+  const release = deferred<void>();
+  f.beforeCapture(async () => {
+    entered.resolve();
+    await release.promise;
+  });
+  t.after(() => release.resolve());
+  t.mock.timers.enable({ apis: ["setTimeout"] });
+  const pending = f.service.getOptions(objectId);
+  await entered.promise;
+  t.mock.timers.tick(EPIC_INSTALL_OPTIONS_TIMEOUT_MS);
+  assert.deepEqual(await pending, { options: [], error: "timeout" });
+  f.beforeCapture(undefined);
+  release.resolve();
+  assert.equal((await f.service.getOptions(objectId)).options.length, 1);
+});
+
+test("preview deadline includes the global Epic session queue", async (t) => {
+  const f = await fixture(t);
+  const gate = deferred<void>();
+  const entered = deferred<void>();
+  const lease = f.session.serialize(() => gate.promise);
+  t.after(() => gate.resolve());
+  const original = f.runtime.runJson.bind(f.runtime);
+  t.mock.method(
+    f.runtime,
+    "runJson",
+    async (...args: Parameters<typeof original>) => {
+      entered.resolve();
+      return original(...args);
+    }
+  );
+  t.mock.timers.enable({ apis: ["setTimeout"] });
+  const pending = f.service.getOptions(objectId);
+  await entered.promise;
+  t.mock.timers.tick(EPIC_INSTALL_OPTIONS_TIMEOUT_MS);
+  assert.deepEqual(await pending, { options: [], error: "timeout" });
+  assert.equal(f.commands.length, 0);
+  gate.resolve();
+  await lease;
+  assert.equal((await f.service.getOptions(objectId)).options.length, 1);
+});
+
+test("navigation cancels ten queued game previews before the newest modal executes Legendary", async (t) => {
+  const f = await fixture(t);
+  const ids = Array.from(
+    { length: 11 },
+    (_value, index) => `Navigation:Item${index}`
+  );
+  ids.forEach((id, index) => f.addGame(id, `NavigationArtifact${index}`));
+  const gate = deferred<void>();
+  const lease = f.session.serialize(() => gate.promise);
+  t.after(() => gate.resolve());
+  const original = f.runtime.runJson.bind(f.runtime);
+  let entered = deferred<AbortSignal>();
+  t.mock.method(
+    f.runtime,
+    "runJson",
+    async (...args: Parameters<typeof original>) => {
+      if (args[1].includes("list")) entered.resolve(args[2].signal);
+      return original(...args);
+    }
+  );
+  for (const id of ids.slice(0, 10)) {
+    entered = deferred<AbortSignal>();
+    const controller = new AbortController();
+    const preview = f.service.getOptions(id, controller.signal);
+    const librarySignal = await entered.promise;
+    controller.abort();
+    assert.equal((await preview).error, "operation-cancelled");
+    await new Promise<void>((resolve) => setImmediate(resolve));
+    assert.equal(librarySignal.aborted, true);
+  }
+  entered = deferred<AbortSignal>();
+  const modal = f.service.getOptions(ids[10]);
+  await entered.promise;
+  assert.equal(f.commands.length, 0);
+  gate.resolve();
+  await lease;
+  const result = await modal;
+  assert.equal(result.options[0].artifactId, "NavigationArtifact10");
+  assert.deepEqual(
+    f.commands.map((args) => args.slice(2)),
+    [
+      ["list", "--json", "--include-non-installable", "--platform", "Windows"],
+      ["info", "NavigationArtifact10", "--json", "--platform", "Windows"],
+    ]
+  );
+  assert.equal(
+    (await f.service.getOptions(ids[0])).options[0].artifactId,
+    "NavigationArtifact0"
+  );
+  assert.equal(
+    f.commands.filter((args) => args.includes("list")).length,
+    1,
+    "the completed library stays warm for subsequent game previews"
+  );
+});
+
+test("different game previews reuse one account library but validate metadata in each workspace", async (t) => {
+  const f = await fixture(t);
+  const secondId = "Namespace2:Item2";
+  f.addGame(secondId, "Artifact2");
+  const [first, second] = await Promise.all([
+    f.service.getOptions(objectId),
+    f.service.getOptions(secondId),
+  ]);
+  assert.equal(first.options[0].artifactId, "Artifact1");
+  assert.equal(second.options[0].artifactId, "Artifact2");
+  assert.equal(f.commands.filter((args) => args.includes("list")).length, 1);
+  assert.equal(f.commands.filter((args) => args.includes("info")).length, 2);
+  const owned = await f.service.capture(secondId, new AbortController().signal);
+  const target = epicManagedTarget(owned, "Artifact2", "Windows");
+  await f.service.metadata(target, secondId);
+  await assert.rejects(f.service.metadata(target, objectId), {
+    code: "invalid-artifact",
+  });
+});
+
+test("preview library refreshes for a newly owned alias missing from the cached listing", async (t) => {
+  const f = await fixture(t);
+  await f.service.getOptions(objectId);
+  const secondId = "Namespace2:Item2";
+  f.addGame(secondId, "Artifact2");
+  assert.equal(
+    (await f.service.getOptions(secondId)).options[0].artifactId,
+    "Artifact2"
+  );
+  assert.equal(f.commands.filter((args) => args.includes("list")).length, 2);
+});
+
+test("preview library expires and cannot cross an auth generation", async (t) => {
+  let now = Date.now();
+  t.mock.method(Date, "now", () => now);
+  const f = await fixture(t);
+  f.addGame("Namespace2:Item2", "Artifact2");
+  f.addGame("Namespace3:Item3", "Artifact3");
+  await f.service.getOptions(objectId);
+  now += EPIC_INSTALL_LIBRARY_CACHE_MS;
+  await f.service.getOptions("Namespace2:Item2");
+  assert.equal(f.commands.filter((args) => args.includes("list")).length, 2);
+  f.nextGeneration();
+  await f.service.getOptions("Namespace3:Item3");
+  assert.equal(f.commands.filter((args) => args.includes("list")).length, 3);
+});
+
 test("install info rejects external platforms, DLC, preload and invalid sizes", () => {
   assert.deepEqual(parseEpicInstallInfo(info, "Artifact1"), {
     downloadSizeInBytes: 100,
@@ -274,6 +576,177 @@ test("install info rejects external platforms, DLC, preload and invalid sizes", 
     { ...info, manifest: { ...info.manifest, disk_size: -1 } },
   ])
     assert.throws(() => parseEpicInstallInfo(value, "Artifact1"));
+});
+
+test("Squadrons metadata reports its Origin requirement before missing assets without requesting a manifest", async (t) => {
+  const f = await fixture(t);
+  f.addMetadata(squadronsMetadata);
+  const result = await f.service.getOptions(squadronsObjectId);
+  assert.deepEqual(result, {
+    connectionId: connection.connectionId,
+    options: [],
+    error: "external-launcher-required",
+  });
+  assert.equal(f.commands.filter((args) => args.includes("list")).length, 1);
+  assert.equal(f.commands.filter((args) => args.includes("info")).length, 0);
+  const owned = await f.service.capture(
+    squadronsObjectId,
+    new AbortController().signal
+  );
+  await assert.rejects(
+    f.service.prepare(owned, "bobcat", "Windows", new AbortController().signal),
+    {
+      code: "external-launcher-required",
+    }
+  );
+  assert.equal(f.commands.filter((args) => args.includes("info")).length, 0);
+  assert.equal(
+    (await f.service.getOptions(objectId)).options[0].artifactId,
+    "Artifact1"
+  );
+  assert.equal(
+    f.commands.filter((args) => args.includes("list")).length,
+    1,
+    "an external launcher requirement cannot discard the verified account library"
+  );
+});
+
+test("external-launcher metadata must still prove the exact artifact and catalog identity", async (t) => {
+  const f = await fixture(t);
+  const target = { ...f.target, artifactId: "bobcat" };
+  assert.throws(
+    () =>
+      validateEpicMetadata(
+        squadronsMetadata,
+        target,
+        "DifferentNamespace:DifferentItem"
+      ),
+    {
+      code: "invalid-artifact",
+    }
+  );
+  assert.throws(
+    () => validateEpicMetadata(squadronsMetadata, f.target, squadronsObjectId),
+    {
+      code: "invalid-artifact",
+    }
+  );
+  assert.throws(
+    () =>
+      validateEpicMetadata(
+        {
+          ...squadronsMetadata,
+          metadata: { ...squadronsMetadata.metadata, id: undefined },
+        },
+        target
+      ),
+    {
+      code: "invalid-artifact",
+    }
+  );
+  for (const name of [
+    "ThirdPartyManagedApp",
+    "ThirdPartyManagedProvider",
+    "partnerLinkType",
+  ]) {
+    assert.throws(
+      () =>
+        validateEpicMetadata(
+          {
+            ...squadronsMetadata,
+            metadata: {
+              ...squadronsMetadata.metadata,
+              customAttributes: { [name]: { value: "ubisoft" } },
+            },
+          },
+          target,
+          squadronsObjectId
+        ),
+      {
+        code: "external-launcher-required",
+      }
+    );
+  }
+});
+
+test("an external alias does not prevent another verified alias of the game from being installable", async (t) => {
+  const f = await fixture(t);
+  f.addMetadata({
+    ...squadronsMetadata,
+    app_name: "Artifact0",
+    metadata: {
+      ...squadronsMetadata.metadata,
+      namespace: metadata.metadata.namespace,
+      id: metadata.metadata.id,
+    },
+  });
+  const result = await f.service.getOptions(objectId);
+  assert.equal(result.error, undefined);
+  assert.deepEqual(
+    result.options.map((option) => option.artifactId),
+    ["Artifact1"]
+  );
+  assert.deepEqual(
+    f.commands.filter((args) => args.includes("info")).map((args) => args[3]),
+    ["Artifact1"]
+  );
+});
+
+test("the external launcher requirement remains the error when every alias is unavailable", async (t) => {
+  const f = await fixture(t);
+  f.addMetadata(squadronsMetadata);
+  f.addMetadata({
+    ...squadronsMetadata,
+    app_name: "zUnavailableAlias",
+    metadata: {
+      ...squadronsMetadata.metadata,
+      categories: [{ path: "addons" }],
+      customAttributes: {},
+    },
+  });
+  assert.equal(
+    (await f.service.getOptions(squadronsObjectId)).error,
+    "external-launcher-required"
+  );
+  assert.equal(f.commands.filter((args) => args.includes("info")).length, 0);
+});
+
+test("install info identifies an external launcher even without a native version or manifest", () => {
+  for (const external_activation of [
+    "Origin",
+    "the ea app",
+    "ubisoft",
+    "UbisoftConnect",
+  ]) {
+    const externalInfo = {
+      ...info,
+      game: { ...info.game, external_activation, version: null },
+      manifest: {},
+    };
+    assert.throws(() => parseEpicInstallInfo(externalInfo, "Artifact1"), {
+      code: "external-launcher-required",
+    });
+    assert.throws(
+      () =>
+        parseEpicInstallInfo(
+          { ...externalInfo, game: { ...externalInfo.game, is_dlc: true } },
+          "Artifact1"
+        ),
+      {
+        code: "not-installable",
+      }
+    );
+    assert.throws(
+      () =>
+        parseEpicInstallInfo(
+          { ...externalInfo, manifest: { is_preloaded: true } },
+          "Artifact1"
+        ),
+      {
+        code: "not-installable",
+      }
+    );
+  }
 });
 
 test("metadata does not associate by title or namespace alone", async (t) => {

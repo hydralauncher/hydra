@@ -33,6 +33,8 @@ export const getEpicManagedError = (error: EpicSaveError | undefined) => {
     return { key: "epic_prerequisites_required", ns: "game_details" };
   if (error === "update-required")
     return { key: "epic_update_required", ns: "game_details" };
+  if (error === "external-launcher-required")
+    return { key: "epic_external_launcher_required", ns: "game_details" };
   if (
     error === "saves-unsupported" ||
     error === "not-installable" ||
@@ -59,6 +61,7 @@ const LAUNCH_ERROR_CODES = new Set<string>([
   "invalid-path",
   "game-running",
   "not-installable",
+  "external-launcher-required",
   "process-failed",
 ]);
 

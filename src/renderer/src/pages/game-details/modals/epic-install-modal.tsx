@@ -38,6 +38,8 @@ export function EpicInstallModal({
   const { t } = useTranslation("game_details");
   const navigate = useNavigate();
   const install = useEpicInstall(game, onStarted);
+  const requiresOfficialLauncher =
+    install.error === "external-launcher-required";
   const { lastPacket } = useDownload();
   const hasActiveDownload = lastPacket !== null;
   const displayedGame = presentationGame ?? game;
@@ -52,6 +54,7 @@ export function EpicInstallModal({
   const [coverIndex, setCoverIndex] = useState(0);
   useEffect(() => setCoverIndex(0), [coverSourcesKey]);
   const disabled =
+    requiresOfficialLauncher ||
     install.loading ||
     install.starting ||
     !install.option ||
@@ -62,7 +65,7 @@ export function EpicInstallModal({
       visible={!!game}
       title={t("download_settings")}
       description={
-        install.diskFreeSpace === null
+        requiresOfficialLauncher || install.diskFreeSpace === null
           ? undefined
           : t("space_left_on_disk", {
               space: formatBytes(install.diskFreeSpace),
@@ -89,95 +92,101 @@ export function EpicInstallModal({
           >
             {displayedGame?.title}
           </strong>
-          <div
-            className="epic-install-modal__sizes"
-            aria-busy={install.loading}
-            aria-label={
-              install.loading ? t("epic_preparing_install") : undefined
-            }
-          >
-            {install.loading ? (
-              <>
-                <Skeleton
-                  width={100}
-                  height={14}
-                  containerClassName="epic-install-modal__size-skeleton"
-                />
-                <Skeleton
-                  width={150}
-                  height={14}
-                  containerClassName="epic-install-modal__size-skeleton"
-                />
-              </>
-            ) : (
-              <>
-                <span>
-                  <Trans
-                    i18nKey="download_size"
-                    ns="game_details"
-                    values={{
-                      size:
-                        install.option?.downloadSizeInBytes == null
-                          ? "—"
-                          : formatBytes(install.option.downloadSizeInBytes),
-                    }}
+          {!requiresOfficialLauncher && (
+            <div
+              className="epic-install-modal__sizes"
+              aria-busy={install.loading}
+              aria-label={
+                install.loading ? t("epic_preparing_install") : undefined
+              }
+            >
+              {install.loading ? (
+                <>
+                  <Skeleton
+                    width={100}
+                    height={14}
+                    containerClassName="epic-install-modal__size-skeleton"
                   />
-                </span>
-                <span>
-                  <Trans
-                    i18nKey="required_storage_space"
-                    ns="game_details"
-                    values={{
-                      size:
-                        install.option?.diskSizeInBytes == null
-                          ? "—"
-                          : formatBytes(install.option.diskSizeInBytes),
-                    }}
+                  <Skeleton
+                    width={150}
+                    height={14}
+                    containerClassName="epic-install-modal__size-skeleton"
                   />
-                </span>
-              </>
-            )}
+                </>
+              ) : (
+                <>
+                  <span>
+                    <Trans
+                      i18nKey="download_size"
+                      ns="game_details"
+                      values={{
+                        size:
+                          install.option?.downloadSizeInBytes == null
+                            ? "—"
+                            : formatBytes(install.option.downloadSizeInBytes),
+                      }}
+                    />
+                  </span>
+                  <span>
+                    <Trans
+                      i18nKey="required_storage_space"
+                      ns="game_details"
+                      values={{
+                        size:
+                          install.option?.diskSizeInBytes == null
+                            ? "—"
+                            : formatBytes(install.option.diskSizeInBytes),
+                      }}
+                    />
+                  </span>
+                </>
+              )}
+            </div>
+          )}
+        </div>
+        {!requiresOfficialLauncher &&
+          install.result &&
+          install.result.options.length > 1 && (
+            <SelectField
+              label={t("epic_install_build")}
+              value={install.selected}
+              disabled={install.starting}
+              onChange={(event) => install.setSelected(event.target.value)}
+              options={[
+                { key: "", value: "", label: t("epic_select_build") },
+                ...install.result.options.map((option, index) => ({
+                  key: String(index),
+                  value: String(index),
+                  label: `${option.artifactId} (${option.platform})`,
+                })),
+              ]}
+            />
+          )}
+        {!requiresOfficialLauncher && (
+          <div className="download-settings-modal__downloads-path-field">
+            <TextField
+              label={t("download_path")}
+              value={install.path}
+              readOnly
+              disabled
+              rightContent={
+                <Button
+                  className="download-settings-modal__change-path-button"
+                  theme="outline"
+                  disabled={install.starting}
+                  onClick={() => void install.chooseDirectory()}
+                >
+                  {t("change")}
+                </Button>
+              }
+            />
+            <p className="download-settings-modal__hint-text">
+              <Trans i18nKey="select_folder_hint" ns="game_details">
+                <Link to="/settings" />
+              </Trans>
+            </p>
           </div>
-        </div>
-        {install.result && install.result.options.length > 1 && (
-          <SelectField
-            label={t("epic_install_build")}
-            value={install.selected}
-            disabled={install.starting}
-            onChange={(event) => install.setSelected(event.target.value)}
-            options={[
-              { key: "", value: "", label: t("epic_select_build") },
-              ...install.result.options.map((option, index) => ({
-                key: String(index),
-                value: String(index),
-                label: `${option.artifactId} (${option.platform})`,
-              })),
-            ]}
-          />
         )}
-        <div className="download-settings-modal__downloads-path-field">
-          <TextField
-            label={t("download_path")}
-            value={install.path}
-            readOnly
-            disabled
-            rightContent={
-              <Button
-                className="download-settings-modal__change-path-button"
-                theme="outline"
-                disabled={install.starting}
-                onClick={() => void install.chooseDirectory()}
-              >
-                {t("change")}
-              </Button>
-            }
-          />
-          <p className="download-settings-modal__hint-text">
-            <Trans i18nKey="select_folder_hint" ns="game_details">
-              <Link to="/settings" />
-            </Trans>
-          </p>
-        </div>
         {install.error && (
           <>
             <p role="alert">
@@ -185,34 +194,38 @@ export function EpicInstallModal({
                 ns: getEpicManagedError(install.error).ns,
               })}
             </p>
-            <Button
-              theme="outline"
-              disabled={install.loading || install.starting}
-              onClick={() => void install.retry()}
-            >
-              {t("epic_retry")}
-            </Button>
-            <Button
-              theme="outline"
-              onClick={() => {
-                onClose();
-                navigate("/settings?tab=integrations");
-              }}
-            >
-              {t("integrations", { ns: "settings" })}
-            </Button>
+            {!requiresOfficialLauncher && (
+              <>
+                <Button
+                  theme="outline"
+                  disabled={install.loading || install.starting}
+                  onClick={() => void install.retry()}
+                >
+                  {t("epic_retry")}
+                </Button>
+                <Button
+                  theme="outline"
+                  onClick={() => {
+                    onClose();
+                    navigate("/settings?tab=integrations");
+                  }}
+                >
+                  {t("integrations", { ns: "settings" })}
+                </Button>
+              </>
+            )}
           </>
         )}
         <Button
           disabled={disabled}
           onClick={() => void install.start(hasActiveDownload)}
         >
-          {install.starting ? (
+          {install.starting && !requiresOfficialLauncher ? (
             <>
               <SyncIcon className="download-settings-modal__loading-spinner" />
               {t("loading")}
             </>
-          ) : hasActiveDownload ? (
+          ) : hasActiveDownload && !requiresOfficialLauncher ? (
             <>
               <PlusIcon />
               {t("add_to_queue")}

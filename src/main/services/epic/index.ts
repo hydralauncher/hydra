@@ -499,9 +499,16 @@ export const scheduleEpicGameExitSync = (game: import("@types").Game) =>
 export const suspendEpicPlaytime = () => managedPlaytime?.suspend();
 export const resumeEpicPlaytime = () => managedPlaytime?.resume();
 
-export const getEpicGameInstallOptions = async (objectId: string) => {
+export const getEpicGameInstallOptions = async (
+  objectId: string,
+  signal?: AbortSignal
+) => {
+  if (signal?.aborted)
+    return { options: [], error: "operation-cancelled" as const };
   await awaitManagedEpicReady();
-  return managedDownloads!.getOptions(objectId);
+  if (signal?.aborted)
+    return { options: [], error: "operation-cancelled" as const };
+  return managedDownloads!.getOptions(objectId, signal);
 };
 export const startEpicGameDownload = async (
   payload: StartEpicGameDownloadPayload

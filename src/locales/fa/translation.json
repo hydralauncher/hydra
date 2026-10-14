@@ -562,6 +562,7 @@
     "epic_play_local_saves": "بازی با ذخیره‌های محلی",
     "epic_play_local_saves_description": "این نشست را بدون بازیابی ذخیره‌های ابری باز کنید. تغییرات محلی در انتظار همگام‌سازی می‌مانند.",
     "epic_managed_error_generic": "عملیات Epic ناموفق بود. اتصال را بررسی کنید و دوباره تلاش کنید.",
+    "epic_external_launcher_required": "برای نصب این بازی به لانچر دیگری نیاز دارید. آن را از طریق لانچر رسمی نصب کنید.",
     "epic_play_offline": "بازی — Offline",
     "epic_prerequisites_required": "پیش‌نیازهای بازی را تأیید کنید و دوباره تلاش کنید.",
     "epic_update_required": "بازی را از گزینهٔ Epic Games با همان پوشه به‌روزرسانی کنید.",

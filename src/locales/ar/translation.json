@@ -566,6 +566,7 @@
     "epic_play_local_saves": "اللعب بملفات الحفظ المحلية",
     "epic_play_local_saves_description": "افتح هذه الجلسة دون استعادة ملفات الحفظ السحابية. ستظل التغييرات المحلية بانتظار المزامنة.",
     "epic_managed_error_generic": "فشلت عملية Epic. تحقق من الاتصال وحاول مجددًا.",
+    "epic_external_launcher_required": "تتطلب هذه اللعبة مشغّل ألعاب آخر لتثبيتها. ثبّتها عبر المشغّل الرسمي.",
     "epic_play_offline": "تشغيل — Offline",
     "epic_prerequisites_required": "اسمح بمتطلبات اللعبة وحاول مجددًا.",
     "epic_update_required": "حدّث اللعبة عبر خيار Epic Games باستخدام المجلد نفسه.",

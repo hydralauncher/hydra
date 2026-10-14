@@ -128,6 +128,68 @@ test("managed workspace isolates account, environment, artifact and platform", (
   assert.ok(!first.includes(target.owner.epicAccountId));
 });
 
+test("an obsolete preview waiting for the session cancels before running Legendary", async (t) => {
+  let executed = false;
+  const f = await fixture(t, async () => {
+    executed = true;
+    return { stdout: "{}", stderr: "" };
+  });
+  const release = deferred<void>();
+  const leased = deferred<void>();
+  const blocker = f.session.serialize(async () => {
+    leased.resolve();
+    await release.promise;
+  });
+  await leased.promise;
+  const controller = new AbortController();
+  const request = f.runtime.runRaw(target, ["info", "Artifact1", "--json"], {
+    signal: controller.signal,
+  });
+  const cancelled = assert.rejects(request, { code: "operation-cancelled" });
+  controller.abort();
+  await cancelled;
+  assert.equal(executed, false);
+  release.resolve();
+  await blocker;
+  await f.session.serialize(async () => {});
+  assert.equal(executed, false);
+  await f.runtime.runRaw(target, ["info", "Artifact1", "--json"], {
+    signal: new AbortController().signal,
+  });
+  assert.equal(executed, true);
+});
+
+test("an obsolete preview waiting for its workspace cancels without releasing the active task", async (t) => {
+  let executed = false;
+  const f = await fixture(t, async () => {
+    executed = true;
+    return { stdout: "{}", stderr: "" };
+  });
+  const release = deferred<void>();
+  const leased = deferred<void>();
+  const blocker = f.runtime.serializeWorkspace(target, async () => {
+    leased.resolve();
+    await release.promise;
+  });
+  await leased.promise;
+  const controller = new AbortController();
+  const request = f.runtime.runRaw(target, ["info", "Artifact1", "--json"], {
+    signal: controller.signal,
+  });
+  const cancelled = assert.rejects(request, { code: "operation-cancelled" });
+  controller.abort();
+  await cancelled;
+  const latest = f.runtime.runRaw(target, ["info", "Artifact1", "--json"], {
+    signal: new AbortController().signal,
+  });
+  await Promise.resolve();
+  assert.equal(executed, false);
+  release.resolve();
+  await blocker;
+  await latest;
+  assert.equal(executed, true);
+});
+
 test("download releases credential lease at preparation and persists rotation before transfer ends", async (t) => {
   const transfer = deferred<void>();
   const prepared = deferred<void>();

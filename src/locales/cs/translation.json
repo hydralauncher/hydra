@@ -566,6 +566,7 @@
     "epic_play_local_saves": "Hrát s místními pozicemi",
     "epic_play_local_saves_description": "Spusťte tuto relaci bez obnovení pozic z cloudu. Místní změny zůstanou čekat na synchronizaci.",
     "epic_managed_error_generic": "Operace Epic se nezdařila. Zkontrolujte připojení a zkuste to znovu.",
+    "epic_external_launcher_required": "K instalaci této hry je potřeba jiný launcher. Nainstalujte ji prostřednictvím oficiálního launcheru.",
     "epic_play_offline": "Hrát — Offline",
     "epic_prerequisites_required": "Povolte požadované součásti hry a zkuste to znovu.",
     "epic_update_required": "Aktualizujte hru přes možnost Epic Games do stejné složky.",

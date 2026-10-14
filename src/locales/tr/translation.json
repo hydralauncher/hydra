@@ -566,6 +566,7 @@
     "epic_play_local_saves": "Yerel kayıtlarla oyna",
     "epic_play_local_saves_description": "Bu oturumu bulut kayıtlarını geri yüklemeden açın. Yerel değişiklikler eşitleme için bekleyecek.",
     "epic_managed_error_generic": "Epic işlemi başarısız oldu. Bağlantınızı kontrol edip tekrar deneyin.",
+    "epic_external_launcher_required": "Bu oyunu yüklemek için başka bir başlatıcı gerekiyor. Oyunu resmî başlatıcı üzerinden yükleyin.",
     "epic_play_offline": "Oyna — Offline",
     "epic_prerequisites_required": "Oyunun ön gereksinimlerine izin verin ve tekrar deneyin.",
     "epic_update_required": "Oyunu aynı klasörü kullanarak Epic Games seçeneğinden güncelleyin.",

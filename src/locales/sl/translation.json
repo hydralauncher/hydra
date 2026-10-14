@@ -568,6 +568,7 @@
     "epic_play_local_saves": "Igraj z lokalnimi shranjenimi igrami",
     "epic_play_local_saves_description": "Odprite to sejo brez obnovitve shranjenih iger iz oblaka. Lokalne spremembe čakajo na sinhronizacijo.",
     "epic_managed_error_generic": "Operacija Epic ni uspela. Preverite povezavo in poskusite znova.",
+    "epic_external_launcher_required": "Za namestitev te igre je potreben drug zaganjalnik. Namestite jo prek uradnega zaganjalnika.",
     "epic_play_offline": "Igraj — Offline",
     "epic_prerequisites_required": "Dovolite zahtevane komponente igre in poskusite znova.",
     "epic_update_required": "Posodobite igro prek možnosti Epic Games v isti mapi.",

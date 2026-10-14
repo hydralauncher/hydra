@@ -36,6 +36,12 @@ export const parseEpicManagedObjectId = (value: unknown): string => {
   return value;
 };
 
+export const parseEpicInstallOptionsRequestId = (value: unknown): string => {
+  if (typeof value !== "string" || !/^[a-zA-Z0-9_-]{1,128}$/.test(value))
+    return invalid();
+  return value;
+};
+
 export function parseEpicDownloadPayload(
   value: unknown
 ): StartEpicGameDownloadPayload {

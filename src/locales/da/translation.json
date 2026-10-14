@@ -566,6 +566,7 @@
     "epic_play_local_saves": "Spil med lokale gemte spil",
     "epic_play_local_saves_description": "Åbn denne session uden at gendanne gemte spil fra skyen. Lokale ændringer afventer synkronisering.",
     "epic_managed_error_generic": "Epic-handlingen mislykkedes. Kontroller forbindelsen, og prøv igen.",
+    "epic_external_launcher_required": "Dette spil kræver en anden launcher for at blive installeret. Installer det via den officielle launcher.",
     "epic_play_offline": "Spil — Offline",
     "epic_prerequisites_required": "Godkend spillets forudsætninger, og prøv igen.",
     "epic_update_required": "Opdater spillet via Epic Games-indstillingen i den samme mappe.",

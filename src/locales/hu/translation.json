@@ -588,6 +588,7 @@
     "epic_play_local_saves": "Játék helyi mentésekkel",
     "epic_play_local_saves_description": "Indítsd el ezt a munkamenetet a felhőmentések visszaállítása nélkül. A helyi változások szinkronizálásra várnak.",
     "epic_managed_error_generic": "Az Epic művelet sikertelen. Ellenőrizd a kapcsolatot, és próbáld újra.",
+    "epic_external_launcher_required": "A játék telepítéséhez egy másik indítóprogramra van szükség. Telepítsd a hivatalos indítóprogramon keresztül.",
     "epic_play_offline": "Játék — Offline",
     "epic_prerequisites_required": "Engedélyezd a játék előfeltételeit, és próbáld újra.",
     "epic_update_required": "Frissítsd a játékot az Epic Games lehetőséggel ugyanabba a mappába.",

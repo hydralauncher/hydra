@@ -26,6 +26,7 @@ export function useEpicInstall(
   const directoryChosen = useRef(false);
   const directoryScope = useRef("");
   const startGeneration = useRef<number | null>(null);
+  const optionsRequestId = useRef<string | null>(null);
   const objectId = game?.objectId;
   const scopeConnectionId = game?.epicImportScope?.connectionId;
   const scopeUserId = game?.epicImportScope?.userId;
@@ -33,13 +34,23 @@ export function useEpicInstall(
   const invalidateDirectory = useCallback(() => {
     directoryGeneration.current++;
   }, []);
+  const cancelOptionsRequest = useCallback(() => {
+    const requestId = optionsRequestId.current;
+    optionsRequestId.current = null;
+    if (requestId)
+      void window.electron
+        .cancelEpicGameInstallOptions?.(requestId)
+        .catch(() => {});
+  }, []);
   const invalidate = useCallback(() => {
     generation.current++;
     invalidateDirectory();
-  }, [invalidateDirectory]);
+    cancelOptionsRequest();
+  }, [invalidateDirectory, cancelOptionsRequest]);
 
   const retry = useCallback(async () => {
     const current = ++generation.current;
+    cancelOptionsRequest();
     setResult(null);
     setSelected("");
     setError(null);
@@ -54,9 +65,13 @@ export function useEpicInstall(
       return;
     }
     setLoading(true);
+    const requestId = globalThis.crypto.randomUUID();
+    optionsRequestId.current = requestId;
     try {
-      const options =
-        await window.electron.getEpicGameInstallOptions?.(objectId);
+      const options = await window.electron.getEpicGameInstallOptions?.(
+        objectId,
+        requestId
+      );
       if (generation.current !== current) return;
       if (!options) {
         setError("api-unavailable");
@@ -68,9 +83,11 @@ export function useEpicInstall(
     } catch {
       if (generation.current === current) setError("network");
     } finally {
+      if (optionsRequestId.current === requestId)
+        optionsRequestId.current = null;
       if (generation.current === current) setLoading(false);
     }
-  }, [objectId]);
+  }, [objectId, cancelOptionsRequest]);
 
   useEffect(() => {
     void retry();

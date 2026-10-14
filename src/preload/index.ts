@@ -1771,11 +1771,17 @@ contextBridge.exposeInMainWorld("electron", {
   },
   getEpicConnection: () =>
     ipcRenderer.invoke("getEpicConnection") as Promise<EpicConnectionState>,
-  getEpicGameInstallOptions: (epicObjectId: string) =>
+  getEpicGameInstallOptions: (epicObjectId: string, requestId?: string) =>
     ipcRenderer.invoke(
       "getEpicGameInstallOptions",
-      epicObjectId
+      epicObjectId,
+      requestId
     ) as Promise<EpicGameInstallOptions>,
+  cancelEpicGameInstallOptions: (requestId: string) =>
+    ipcRenderer.invoke(
+      "cancelEpicGameInstallOptions",
+      requestId
+    ) as Promise<void>,
   startEpicGameDownload: (payload: StartEpicGameDownloadPayload) =>
     ipcRenderer.invoke(
       "startEpicGameDownload",

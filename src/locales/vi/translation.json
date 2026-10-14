@@ -776,6 +776,7 @@
     "epic_play_local_saves": "Chơi với bản lưu cục bộ",
     "epic_play_local_saves_description": "Mở phiên chơi này mà không khôi phục bản lưu đám mây. Thay đổi cục bộ sẽ chờ đồng bộ hóa.",
     "epic_managed_error_generic": "Thao tác Epic thất bại. Kiểm tra kết nối và thử lại.",
+    "epic_external_launcher_required": "Trò chơi này cần một trình khởi chạy khác để cài đặt. Hãy cài đặt trò chơi qua trình khởi chạy chính thức.",
     "epic_play_offline": "Chơi — Ngoại tuyến",
     "epic_prerequisites_required": "Cho phép cài đặt các thành phần cần thiết của trò chơi và thử lại.",
     "epic_update_required": "Cập nhật trò chơi qua tùy chọn Epic Games vào cùng thư mục.",

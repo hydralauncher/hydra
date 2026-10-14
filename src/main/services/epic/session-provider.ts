@@ -3,6 +3,7 @@ import type { EpicAuthContext } from "./integration-core";
 import type { EpicConnectionStore, EpicSessionBundle } from "./store";
 import { EpicIntegrationError } from "./auth-protocol.js";
 import { LegendarySyncRunner } from "./legendary-sync.js";
+import { queueEpicOperation } from "./operation-queue.js";
 
 export class EpicSessionProvider {
   private tail: Promise<unknown> = Promise.resolve();
@@ -15,9 +16,9 @@ export class EpicSessionProvider {
       connection: EpicConnectedConnection
     ) => boolean
   ) {}
-  serialize<T>(task: () => Promise<T>): Promise<T> {
-    const result = this.tail.catch(() => undefined).then(task);
-    this.tail = result.catch(() => undefined);
+  serialize<T>(task: () => Promise<T>, signal?: AbortSignal): Promise<T> {
+    const { queued, result } = queueEpicOperation(this.tail, task, signal);
+    this.tail = queued.catch(() => undefined);
     return result;
   }
   /** A managed install releases this lease once Legendary prepared its transfer. */
@@ -52,7 +53,7 @@ export class EpicSessionProvider {
           source
         );
       });
-    });
+    }, signal);
   }
   /** Offline launch needs account identity, not refreshed Epic credentials. */
   async useLocalIdentity<T>(
@@ -78,7 +79,7 @@ export class EpicSessionProvider {
         account_id: connection.epicAccountId,
         displayName: connection.displayName,
       });
-    });
+    }, signal);
   }
   async use<T>(
     context: EpicAuthContext,
@@ -123,7 +124,7 @@ export class EpicSessionProvider {
       } finally {
         await runner.cleanup();
       }
-    });
+    }, signal);
   }
   async token(
     context: EpicAuthContext,

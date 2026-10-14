@@ -7,6 +7,7 @@ import {
   parseEpicDownloadPayload,
   parseEpicLaunchOptions,
   parseEpicManagedObjectId,
+  parseEpicInstallOptionsRequestId,
 } from "./managed-ipc-contract.js";
 
 const payload = {
@@ -18,6 +19,11 @@ const payload = {
 };
 
 describe("managed Epic IPC contracts", () => {
+  it("bounds cancellation IDs without accepting arbitrary IPC payloads", () => {
+    assert.equal(parseEpicInstallOptionsRequestId("preview-1"), "preview-1");
+    for (const value of [undefined, null, {}, "", "a".repeat(129), "../id"])
+      assert.throws(() => parseEpicInstallOptionsRequestId(value));
+  });
   it("accepts only store identities and captured install inputs", () => {
     assert.equal(parseEpicManagedObjectId("namespace:item"), "namespace:item");
     assert.deepEqual(parseEpicDownloadPayload(payload), payload);

@@ -1070,6 +1070,7 @@
     "epic_play_local_saves": "Play with local saves",
     "epic_play_local_saves_description": "Open this session without restoring cloud saves. Local changes remain pending for synchronization.",
     "epic_managed_error_generic": "The Epic operation failed. Check your connection and try again.",
+    "epic_external_launcher_required": "This game requires another launcher to install. Install it through the official launcher.",
     "epic_play_offline": "Play — Offline",
     "epic_prerequisites_required": "Authorize the game's prerequisites and try again.",
     "epic_update_required": "Update the game through the Epic Games option using the same folder.",

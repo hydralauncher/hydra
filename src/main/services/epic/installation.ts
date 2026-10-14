@@ -16,6 +16,8 @@ import {
   EPIC_MAX_ARTIFACTS,
   EPIC_INSTALL_OPTIONS_CACHE_MS,
   EPIC_INSTALL_OPTIONS_CACHE_MAX_ENTRIES,
+  EPIC_INSTALL_OPTIONS_TIMEOUT_MS,
+  EPIC_INSTALL_LIBRARY_CACHE_MS,
 } from "./constants.js";
 import {
   EpicManagedError,
@@ -64,6 +66,42 @@ interface InstallationOptions {
     patch: (game: Game) => Partial<Game>
   ) => Promise<Game | undefined>;
   platform?: NodeJS.Platform;
+}
+
+interface SharedEpicRequest<T> {
+  context: EpicSyncContext;
+  controller: AbortController;
+  expiresAt: number;
+  waiters: number;
+  settled: boolean;
+  value?: T;
+  promise: Promise<T>;
+}
+
+const abortError = (signal: AbortSignal) =>
+  signal.reason instanceof EpicManagedError
+    ? signal.reason
+    : new EpicManagedError("operation-cancelled");
+
+function waitWithSignal<T>(
+  promise: Promise<T>,
+  signal: AbortSignal
+): Promise<T> {
+  return new Promise((resolve, reject) => {
+    const abort = () => reject(abortError(signal));
+    if (signal.aborted) abort();
+    else signal.addEventListener("abort", abort, { once: true });
+    promise.then(
+      (value) => {
+        signal.removeEventListener("abort", abort);
+        resolve(value);
+      },
+      (error) => {
+        signal.removeEventListener("abort", abort);
+        reject(error);
+      }
+    );
+  });
 }
 
 export const isSafeEpicArtifact = (value: unknown): value is string =>
@@ -131,17 +169,14 @@ export function validateEpicMetadata(
   if (
     !isRecord(value) ||
     value.app_name !== target.artifactId ||
-    !isRecord(value.metadata) ||
-    !isRecord(value.asset_infos)
+    !isRecord(value.metadata)
   )
     throw new EpicManagedError("invalid-artifact");
   const metadata = value.metadata;
-  const asset = value.asset_infos[target.platform];
   if (
-    !isRecord(asset) ||
-    asset.app_name !== target.artifactId ||
-    asset.namespace !== metadata.namespace ||
-    asset.catalog_item_id !== metadata.id ||
+    typeof metadata.namespace !== "string" ||
+    typeof metadata.id !== "string" ||
+    !isEpicObjectId(`${metadata.namespace}:${metadata.id}`) ||
     (objectId && `${metadata.namespace}:${metadata.id}` !== objectId)
   )
     throw new EpicManagedError("invalid-artifact");
@@ -159,6 +194,33 @@ export function validateEpicMetadata(
     )
   )
     throw new EpicManagedError("not-installable");
+  const attributes = metadata.customAttributes;
+  if (
+    isRecord(attributes) &&
+    [
+      "ThirdPartyManagedApp",
+      "ThirdPartyManagedProvider",
+      "partnerLinkType",
+    ].some((name) => {
+      const attribute = attributes[name];
+      return (
+        isRecord(attribute) &&
+        typeof attribute.value === "string" &&
+        attribute.value.trim().length > 0
+      );
+    })
+  )
+    throw new EpicManagedError("external-launcher-required");
+  if (!isRecord(value.asset_infos))
+    throw new EpicManagedError("invalid-artifact");
+  const asset = value.asset_infos[target.platform];
+  if (
+    !isRecord(asset) ||
+    asset.app_name !== target.artifactId ||
+    asset.namespace !== metadata.namespace ||
+    asset.catalog_item_id !== metadata.id
+  )
+    throw new EpicManagedError("invalid-artifact");
   return value;
 }
 
@@ -174,17 +236,27 @@ export function parseEpicInstallInfo(
   if (
     !isRecord(value) ||
     !isRecord(value.game) ||
-    value.game.app_name !== artifactId ||
-    !isRecord(value.manifest)
+    value.game.app_name !== artifactId
   )
     throw new EpicManagedError("not-installable");
   const game = value.game;
   const manifest = value.manifest;
-  if (typeof game.version !== "string" || !game.version)
-    throw new EpicManagedError("invalid-response");
-  const external = game.external_activation;
   if (
     game.is_dlc !== false ||
+    (isRecord(manifest) && manifest.is_preloaded === true)
+  )
+    throw new EpicManagedError("not-installable");
+  const external = game.external_activation;
+  if (
+    typeof external === "string" &&
+    external.trim().length > 0 &&
+    external !== "No"
+  )
+    throw new EpicManagedError("external-launcher-required");
+  if (!isRecord(manifest)) throw new EpicManagedError("not-installable");
+  if (typeof game.version !== "string" || !game.version)
+    throw new EpicManagedError("invalid-response");
+  if (
     (external !== false &&
       external !== null &&
       external !== undefined &&
@@ -213,14 +285,80 @@ export class EpicInstallationService {
   readonly runtime: LegendaryManagedRuntime;
   private readonly optionsCache = new Map<
     string,
-    {
-      context: EpicSyncContext;
-      expiresAt: number;
-      promise: Promise<EpicGameInstallOptions>;
-    }
+    SharedEpicRequest<EpicGameInstallOptions>
+  >();
+  private readonly libraryCache = new Map<
+    string,
+    SharedEpicRequest<unknown[]>
   >();
   constructor(private readonly options: InstallationOptions) {
     this.runtime = options.runtime;
+  }
+  private pruneCache<T>(cache: Map<string, SharedEpicRequest<T>>) {
+    for (const [key, entry] of cache)
+      if (
+        entry.expiresAt <= Date.now() ||
+        entry.controller.signal.aborted ||
+        !this.options.current(entry.context)
+      ) {
+        cache.delete(key);
+        if (!entry.settled) entry.controller.abort();
+      }
+  }
+  private createRequest<T>(
+    cache: Map<string, SharedEpicRequest<T>>,
+    key: string,
+    context: EpicSyncContext,
+    ttl: number,
+    task: (signal: AbortSignal) => Promise<T>,
+    cacheable: (value: T) => boolean = () => true
+  ): SharedEpicRequest<T> {
+    const controller = new AbortController();
+    const entry: SharedEpicRequest<T> = {
+      context,
+      controller,
+      expiresAt: Infinity,
+      waiters: 0,
+      settled: false,
+      promise: Promise.resolve().then(() => task(controller.signal)),
+    };
+    entry.promise = entry.promise.then(
+      (value) => {
+        entry.settled = true;
+        entry.value = value;
+        if (!controller.signal.aborted && cacheable(value))
+          entry.expiresAt = Date.now() + ttl;
+        else if (cache.get(key) === entry) cache.delete(key);
+        return value;
+      },
+      (error) => {
+        entry.settled = true;
+        if (cache.get(key) === entry) cache.delete(key);
+        throw error;
+      }
+    );
+    cache.set(key, entry);
+    while (cache.size > EPIC_INSTALL_OPTIONS_CACHE_MAX_ENTRIES)
+      cache.delete(cache.keys().next().value!);
+    return entry;
+  }
+  private async waitForRequest<T>(
+    cache: Map<string, SharedEpicRequest<T>>,
+    key: string,
+    entry: SharedEpicRequest<T>,
+    signal: AbortSignal
+  ): Promise<T> {
+    entry.waiters++;
+    try {
+      return await waitWithSignal(entry.promise, signal);
+    } finally {
+      entry.waiters--;
+      // Closing one modal cannot cancel another consumer of the same preview.
+      if (!entry.settled && entry.waiters === 0) {
+        if (cache.get(key) === entry) cache.delete(key);
+        entry.controller.abort(signal.reason);
+      }
+    }
   }
   async captureLocal(
     objectId: string,
@@ -348,7 +486,8 @@ export class EpicInstallationService {
     owned: EpicOwnedGame,
     artifactId: string,
     platform: EpicInstallPlatform,
-    signal: AbortSignal
+    signal: AbortSignal,
+    reuseLibrary = false
   ) {
     const target = epicManagedTarget(owned, artifactId, platform);
     this.assertAlias(owned, target);
@@ -356,19 +495,67 @@ export class EpicInstallationService {
       await this.metadata(target, owned.game.objectId);
     } catch (error) {
       if ((error as NodeJS.ErrnoException).code !== "ENOENT") throw error;
-      const library = await this.runtime.runJson(
-        target,
-        ["list", "--json", "--include-non-installable", "--platform", platform],
-        { signal }
-      );
+      const library = reuseLibrary
+        ? await this.previewLibrary(target, signal)
+        : await this.runtime.runJson(
+            target,
+            [
+              "list",
+              "--json",
+              "--include-non-installable",
+              "--platform",
+              platform,
+            ],
+            { signal }
+          );
       if (!Array.isArray(library))
         throw new EpicManagedError("invalid-response");
       const entries = library.filter(
         (entry) => isRecord(entry) && entry.app_name === artifactId
       );
-      if (entries.length !== 1) throw new EpicManagedError("invalid-artifact");
-      validateEpicMetadata(entries[0], target, owned.game.objectId);
-      // Legendary writes its verified metadata while listing; re-read the durable file.
+      if (entries.length !== 1) {
+        if (reuseLibrary) this.invalidatePreviewLibrary(target, library);
+        throw new EpicManagedError("invalid-artifact");
+      }
+      let metadata: Record<string, unknown>;
+      try {
+        metadata = validateEpicMetadata(
+          entries[0],
+          target,
+          owned.game.objectId
+        );
+      } catch (error) {
+        if (
+          reuseLibrary &&
+          error instanceof EpicManagedError &&
+          error.code === "invalid-artifact"
+        )
+          this.invalidatePreviewLibrary(target, library);
+        throw error;
+      }
+      if (reuseLibrary)
+        await this.runtime.serializeWorkspace(
+          target,
+          async (directory) => {
+            this.runtime.assertCurrent(target, signal);
+            try {
+              await this.metadata(target, owned.game.objectId);
+              return;
+            } catch (error) {
+              if ((error as NodeJS.ErrnoException).code !== "ENOENT")
+                throw error;
+            }
+            const metadataDirectory = path.join(directory, "metadata");
+            await fs.mkdir(metadataDirectory, { recursive: true, mode: 0o700 });
+            this.runtime.assertCurrent(target, signal);
+            await writeManagedJson(
+              path.join(metadataDirectory, `${artifactId}.json`),
+              metadata
+            );
+          },
+          signal
+        );
+      // Re-read durable metadata, including cached entries copied to a new workspace.
       await this.metadata(target, owned.game.objectId);
     }
     const info = await this.runtime.runJson(
@@ -378,6 +565,71 @@ export class EpicInstallationService {
     );
     await this.metadata(target, owned.game.objectId);
     return { target, ...parseEpicInstallInfo(info, artifactId) };
+  }
+  private libraryKey(target: EpicManagedTarget) {
+    return JSON.stringify([
+      target.auth.environment,
+      target.auth.userId,
+      target.auth.generation,
+      target.owner.epicAccountId,
+      target.connection.connectionId,
+      target.platform,
+    ]);
+  }
+  private invalidatePreviewLibrary(target: EpicManagedTarget, value: unknown) {
+    const key = this.libraryKey(target);
+    const entry = this.libraryCache.get(key);
+    if (entry?.value === value) this.libraryCache.delete(key);
+  }
+  private async previewLibrary(
+    target: EpicManagedTarget,
+    signal: AbortSignal,
+    refreshMissing = true
+  ): Promise<unknown[]> {
+    this.pruneCache(this.libraryCache);
+    const key = this.libraryKey(target);
+    const reused = this.libraryCache.has(key);
+    const entry =
+      this.libraryCache.get(key) ??
+      this.createRequest(
+        this.libraryCache,
+        key,
+        target,
+        EPIC_INSTALL_LIBRARY_CACHE_MS,
+        async (librarySignal) => {
+          const library = await this.runtime.runJson(
+            target,
+            [
+              "list",
+              "--json",
+              "--include-non-installable",
+              "--platform",
+              target.platform,
+            ],
+            { signal: librarySignal }
+          );
+          if (!Array.isArray(library))
+            throw new EpicManagedError("invalid-response");
+          return library;
+        }
+      );
+    const library = await this.waitForRequest(
+      this.libraryCache,
+      key,
+      entry,
+      signal
+    );
+    if (
+      reused &&
+      refreshMissing &&
+      !library.some(
+        (value) => isRecord(value) && value.app_name === target.artifactId
+      )
+    ) {
+      if (this.libraryCache.get(key) === entry) this.libraryCache.delete(key);
+      return this.previewLibrary(target, signal, false);
+    }
+    return library;
   }
   private optionsKey(context: EpicSyncContext, objectId: string) {
     return JSON.stringify([
@@ -390,95 +642,122 @@ export class EpicInstallationService {
       "Windows",
     ]);
   }
-  async getOptions(objectId: string): Promise<EpicGameInstallOptions> {
+  async getOptions(
+    objectId: string,
+    signal?: AbortSignal
+  ): Promise<EpicGameInstallOptions> {
+    const controller = new AbortController();
+    const abort = () => controller.abort(signal?.reason);
+    signal?.addEventListener("abort", abort, { once: true });
+    if (signal?.aborted) abort();
+    const timer = setTimeout(
+      () => controller.abort(new EpicManagedError("timeout")),
+      EPIC_INSTALL_OPTIONS_TIMEOUT_MS
+    );
     try {
-      this.assertPlatform("Windows");
-      if (!isEpicObjectId(objectId))
-        throw new EpicManagedError("invalid-artifact");
-      for (const [key, entry] of this.optionsCache)
-        if (
-          entry.expiresAt <= Date.now() ||
-          !this.options.current(entry.context)
-        )
-          this.optionsCache.delete(key);
-      const context = this.options.captureLocal?.();
-      if (!context || !this.options.current(context))
-        return this.loadOptions(objectId);
-      const game = await this.options.getGame(objectId);
-      if (
-        !game ||
-        game.isDeleted ||
-        game.shop !== "epic" ||
-        game.objectId !== objectId ||
-        !game.hasActiveEpicImport ||
-        game.epicImportScope?.environment !== context.auth.environment ||
-        game.epicImportScope.userId !== context.auth.userId ||
-        game.epicImportScope.connectionId !== context.connection.connectionId
-      )
-        throw new EpicManagedError("game-not-owned");
-      if (!this.options.current(context))
-        throw new EpicManagedError("operation-cancelled");
-      const key = this.optionsKey(context, objectId);
-      let entry = this.optionsCache.get(key);
-      const reused = !!entry;
-      if (!entry) {
-        entry = {
-          context,
-          expiresAt: Infinity,
-          promise: this.loadOptions(objectId, context),
-        };
-        this.optionsCache.set(key, entry);
-        while (this.optionsCache.size > EPIC_INSTALL_OPTIONS_CACHE_MAX_ENTRIES)
-          this.optionsCache.delete(this.optionsCache.keys().next().value!);
-      }
-      const result = await entry.promise;
-      if (!this.options.current(context))
-        throw new EpicManagedError("operation-cancelled");
-      if (result.error || !result.options.length) {
-        if (this.optionsCache.get(key) === entry) this.optionsCache.delete(key);
-        return result;
-      }
-      if (!reused) entry.expiresAt = Date.now() + EPIC_INSTALL_OPTIONS_CACHE_MS;
-      // Cached options are a preview, never authorization to install. Start still
-      // captures ownership and runs prepare again with fresh Legendary info.
-      const owner: EpicLocalOwner = {
-        environment: context.auth.environment,
-        userId: context.auth.userId,
-        epicAccountId: context.connection.epicAccountId,
-      };
-      const options = await Promise.all(
-        result.options.map(async (option) => ({
-          ...option,
-          ...(reused
-            ? {
-                installed: !!(await this.readInstalledForRepair(
-                  {
-                    ...context,
-                    owner,
-                    artifactId: option.artifactId,
-                    platform: option.platform,
-                  },
-                  objectId
-                )),
-              }
-            : {}),
-        }))
+      return await waitWithSignal(
+        this.getOptionsWithSignal(objectId, controller.signal),
+        controller.signal
       );
-      if (!this.options.current(context))
-        throw new EpicManagedError("operation-cancelled");
-      return { ...result, options };
     } catch (error) {
       return { options: [], error: epicManagedErrorCode(error) };
+    } finally {
+      clearTimeout(timer);
+      signal?.removeEventListener("abort", abort);
     }
+  }
+  private async getOptionsWithSignal(
+    objectId: string,
+    signal: AbortSignal
+  ): Promise<EpicGameInstallOptions> {
+    if (signal.aborted) throw abortError(signal);
+    this.assertPlatform("Windows");
+    if (!isEpicObjectId(objectId))
+      throw new EpicManagedError("invalid-artifact");
+    this.pruneCache(this.optionsCache);
+    const localContext = this.options.captureLocal?.();
+    const context =
+      localContext && this.options.current(localContext)
+        ? localContext
+        : await waitWithSignal(this.options.capture(), signal);
+    if (!this.options.current(context) || signal.aborted)
+      throw abortError(signal);
+    const game = await waitWithSignal(this.options.getGame(objectId), signal);
+    if (
+      !game ||
+      game.isDeleted ||
+      game.shop !== "epic" ||
+      game.objectId !== objectId ||
+      !game.hasActiveEpicImport ||
+      game.epicImportScope?.environment !== context.auth.environment ||
+      game.epicImportScope.userId !== context.auth.userId ||
+      game.epicImportScope.connectionId !== context.connection.connectionId
+    )
+      throw new EpicManagedError("game-not-owned");
+    if (!this.options.current(context) || signal.aborted)
+      throw new EpicManagedError("operation-cancelled");
+    const key = this.optionsKey(context, objectId);
+    let entry = this.optionsCache.get(key);
+    const reused = !!entry;
+    if (!entry) {
+      entry = this.createRequest(
+        this.optionsCache,
+        key,
+        context,
+        EPIC_INSTALL_OPTIONS_CACHE_MS,
+        (requestSignal) => this.loadOptions(objectId, requestSignal, context),
+        (result) => !result.error && result.options.length > 0
+      );
+    }
+    const result = await this.waitForRequest(
+      this.optionsCache,
+      key,
+      entry,
+      signal
+    );
+    if (!this.options.current(context) || signal.aborted)
+      throw new EpicManagedError("operation-cancelled");
+    if (result.error || !result.options.length) {
+      if (this.optionsCache.get(key) === entry) this.optionsCache.delete(key);
+      return result;
+    }
+    // Cached options are a preview, never authorization to install. Start still
+    // captures ownership and runs prepare again with fresh Legendary info.
+    const owner: EpicLocalOwner = {
+      environment: context.auth.environment,
+      userId: context.auth.userId,
+      epicAccountId: context.connection.epicAccountId,
+    };
+    const options = await Promise.all(
+      result.options.map(async (option) => ({
+        ...option,
+        ...(reused
+          ? {
+              installed: !!(await this.readInstalledForRepair(
+                {
+                  ...context,
+                  owner,
+                  artifactId: option.artifactId,
+                  platform: option.platform,
+                },
+                objectId
+              )),
+            }
+          : {}),
+      }))
+    );
+    if (!this.options.current(context) || signal.aborted)
+      throw new EpicManagedError("operation-cancelled");
+    return { ...result, options };
   }
   private async loadOptions(
     objectId: string,
+    signal: AbortSignal,
     expectedContext?: EpicSyncContext
   ): Promise<EpicGameInstallOptions> {
-    const controller = new AbortController();
     try {
       this.assertPlatform("Windows");
-      const owned = await this.capture(objectId, controller.signal);
+      const owned = await this.capture(objectId, signal);
       if (
         expectedContext &&
         (!this.options.current(expectedContext) ||
@@ -494,7 +773,8 @@ export class EpicInstallationService {
             owned,
             artifactId,
             "Windows",
-            controller.signal
+            signal,
+            true
           );
           const installed = await this.readInstalledForRepair(
             prepared.target,
@@ -511,9 +791,17 @@ export class EpicInstallationService {
         } catch (error) {
           if (
             error instanceof EpicManagedError &&
-            ["invalid-artifact", "not-installable"].includes(error.code)
+            [
+              "invalid-artifact",
+              "not-installable",
+              "external-launcher-required",
+            ].includes(error.code)
           )
-            invalid = error;
+            invalid =
+              invalid instanceof EpicManagedError &&
+              invalid.code === "external-launcher-required"
+                ? invalid
+                : error;
           else throw error;
         }
       }
@@ -534,8 +822,6 @@ export class EpicInstallationService {
         options: [],
         error: epicManagedErrorCode(error),
       };
-    } finally {
-      controller.abort();
     }
   }
   async readInstalledForRepair(

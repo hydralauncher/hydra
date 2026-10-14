@@ -99,9 +99,20 @@ export function RepacksModal({
   const epicPrefetchConnectionId = epicGame?.epicImportScope?.connectionId;
   useEffect(() => {
     if (!epicPrefetchObjectId) return;
+    const requestId = globalThis.crypto.randomUUID();
+    let pending = true;
     void window.electron
-      .getEpicGameInstallOptions?.(epicPrefetchObjectId)
-      .catch(() => {});
+      .getEpicGameInstallOptions?.(epicPrefetchObjectId, requestId)
+      .catch(() => {})
+      .finally(() => {
+        pending = false;
+      });
+    return () => {
+      if (pending)
+        void window.electron
+          .cancelEpicGameInstallOptions?.(requestId)
+          .catch(() => {});
+    };
   }, [
     epicPrefetchObjectId,
     epicPrefetchEnvironment,
@@ -112,6 +123,21 @@ export function RepacksModal({
   const [epicInstallGame, setEpicInstallGame] = useState<LibraryGame | null>(
     null
   );
+  const activeEpicInstallGame =
+    epicInstallGame?.epicImportScope &&
+    epicGame &&
+    epicInstallGame.objectId === epicGame.objectId &&
+    epicInstallGame.epicImportScope.environment ===
+      epicGame.epicImportScope?.environment &&
+    epicInstallGame.epicImportScope.userId ===
+      epicGame.epicImportScope?.userId &&
+    epicInstallGame.epicImportScope.connectionId ===
+      epicGame.epicImportScope?.connectionId
+      ? epicInstallGame
+      : null;
+  useEffect(() => {
+    if (epicInstallGame && !activeEpicInstallGame) setEpicInstallGame(null);
+  }, [epicInstallGame, activeEpicInstallGame]);
 
   const { t } = useTranslation("game_details");
 
@@ -320,8 +346,8 @@ export function RepacksModal({
         repack={repack}
       />
       <EpicInstallModal
-        game={epicInstallGame}
-        presentationGame={presentation ?? game}
+        game={activeEpicInstallGame}
+        presentationGame={activeEpicInstallGame ? (presentation ?? game) : null}
         onClose={() => setEpicInstallGame(null)}
         onStarted={() => {
           setEpicInstallGame(null);

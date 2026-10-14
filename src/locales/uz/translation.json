@@ -566,6 +566,7 @@
     "epic_play_local_saves": "Mahalliy saqlanmalar bilan o‘ynash",
     "epic_play_local_saves_description": "Bu seansni bulut saqlanmalarini tiklamasdan oching. Mahalliy o‘zgarishlar sinxronlashni kutadi.",
     "epic_managed_error_generic": "Epic amali bajarilmadi. Ulanishni tekshirib, qayta urinib ko‘ring.",
+    "epic_external_launcher_required": "Bu o‘yinni o‘rnatish uchun boshqa ishga tushirish dasturi kerak. Uni rasmiy ishga tushirish dasturi orqali o‘rnating.",
     "epic_play_offline": "O'ynash — Offline",
     "epic_prerequisites_required": "O‘yin uchun zarur komponentlarga ruxsat bering va qayta urinib ko‘ring.",
     "epic_update_required": "O‘yinni Epic Games opsiyasi orqali o‘sha papkaga yangilang.",

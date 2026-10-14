@@ -38,6 +38,7 @@ export type EpicInstallError =
   | "invalid-artifact"
   | "ambiguous-artifact"
   | "not-installable"
+  | "external-launcher-required"
   | "invalid-path"
   | "insufficient-space"
   | "installation-incomplete"

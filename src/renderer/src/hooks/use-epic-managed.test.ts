@@ -74,7 +74,8 @@ function loadInstallHook(downloadsPath?: string | (() => string | undefined)) {
 
 function loadInstallModal(
   hook: typeof useEpicInstall,
-  lastPacket: unknown = null
+  lastPacket: unknown = null,
+  translations: Record<string, string> = {}
 ) {
   return loadModule("../pages/game-details/modals/epic-install-modal.tsx", {
     "@renderer/hooks/use-epic-install": { useEpicInstall: hook },
@@ -147,7 +148,8 @@ function loadInstallModal(
     "react-i18next": {
       useTranslation: () => ({
         t: (key: string, values?: { space?: string; size?: string }) =>
-          values ? `${key}:${values.space ?? values.size}` : key,
+          translations[key] ??
+          (values ? `${key}:${values.space ?? values.size}` : key),
       }),
       Trans: ({
         children,
@@ -180,9 +182,14 @@ function loadInstallModal(
     ),
     "react-router-dom": { useNavigate: () => () => {} },
     "@shared": { formatBytes: (size: number) => `${size}B` },
-    "@renderer/helpers/epic-managed-error": {
-      getEpicManagedError: () => ({ key: "error", ns: "game_details" }),
-    },
+    "@renderer/helpers/epic-managed-error": loadModule(
+      "../helpers/epic-managed-error.ts",
+      {
+        "../pages/settings/settings-epic-state": {
+          getEpicErrorTranslation: (code: string) => `epic_error_${code}`,
+        },
+      }
+    ),
     "./epic-install-modal.scss": {},
     "./download-settings-modal.scss": {},
   }).EpicInstallModal as React.FunctionComponent<{
@@ -224,8 +231,14 @@ async function fixture(t: TestContext, bridge: Record<string, unknown>) {
     },
   });
   const root = createRoot(dom.window.document.getElementById("root")!);
-  t.after(async () => {
+  let unmounted = false;
+  const unmount = async () => {
+    if (unmounted) return;
+    unmounted = true;
     await React.act(async () => root.unmount());
+  };
+  t.after(async () => {
+    await unmount();
     dom.window.close();
     for (const [key, descriptor] of previous) {
       if (descriptor) Object.defineProperty(globalThis, key, descriptor);
@@ -234,7 +247,7 @@ async function fixture(t: TestContext, bridge: Record<string, unknown>) {
   });
   const render = async (component: React.ReactElement) =>
     React.act(async () => root.render(component));
-  return { render };
+  return { render, unmount };
 }
 const state = (
   overrides: Partial<EpicCloudSaveState> = {}
@@ -250,12 +263,16 @@ const state = (
 });
 
 describe("Epic managed UI lifecycle", () => {
-  it("prefetches only the confirmed real Epic copy on page entry and stays quiet on failures or old bridges", async (t) => {
-    const calls: string[] = [];
+  it("prefetches on page entry and cancels older pages without restarting when the selector opens", async (t) => {
+    const calls: Array<{ objectId: string; requestId: string }> = [];
+    const cancelled: string[] = [];
     const { render } = await fixture(t, {
-      getEpicGameInstallOptions: async (objectId: string) => {
-        calls.push(objectId);
-        throw new Error("preview unavailable");
+      getEpicGameInstallOptions: (objectId: string, requestId: string) => {
+        calls.push({ objectId, requestId });
+        return new Promise(() => {});
+      },
+      cancelEpicGameInstallOptions: async (requestId: string) => {
+        cancelled.push(requestId);
       },
     });
     const electron = Reflect.get(window, "electron") as unknown as Record<
@@ -345,33 +362,339 @@ describe("Epic managed UI lifecycle", () => {
       onClose: () => void;
       startDownload: () => Promise<{ ok: boolean }>;
     }>;
-    const element = (currentGame = game) =>
+    const element = (currentGame = game, visible = false) =>
       React.createElement(
         context.Provider,
         { value: { ...contextValue, game: currentGame } },
         React.createElement(Repacks, {
-          visible: false,
+          visible,
           onClose: () => {},
           startDownload: async () => ({ ok: true }),
         })
       );
-    await render(element());
-    assert.deepEqual(calls, []);
+    await render(element(game, true));
+    assert.equal(calls.length, 0);
     connection = { ...connection, verification: "confirmed" };
-    await render(element());
-    assert.deepEqual(calls, ["actual:epic"]);
-    await render(element({ ...game, title: "updated metadata" }));
-    assert.deepEqual(calls, ["actual:epic"]);
+    for (let index = 0; index < 10; index++)
+      await render(element({ ...game, objectId: `page-${index}:epic` }));
+    assert.equal(
+      calls.length,
+      10,
+      "each current page starts its preview before the selector opens"
+    );
+    assert.deepEqual(
+      cancelled,
+      calls.slice(0, -1).map((call) => call.requestId),
+      "only the latest page keeps its pending preview"
+    );
+    await render(element(game, true));
+    assert.equal(calls[10].objectId, "actual:epic");
+    await render(element({ ...game, title: "updated metadata" }, true));
+    assert.equal(calls.length, 11);
+    await render(element(game));
+    await render(element(game, true));
+    assert.equal(
+      calls.length,
+      11,
+      "opening the selector reuses its page preview"
+    );
+    assert.deepEqual(
+      cancelled,
+      calls.slice(0, 10).map((call) => call.requestId)
+    );
     const nextGame = { ...game, objectId: "next:epic" };
+    await render(element(nextGame, true));
+    assert.deepEqual(
+      calls.slice(10).map((call) => call.objectId),
+      ["actual:epic", "next:epic"]
+    );
+    assert.deepEqual(
+      cancelled,
+      calls.slice(0, 11).map((call) => call.requestId)
+    );
     await render(element(nextGame));
-    assert.deepEqual(calls, ["actual:epic", "next:epic"]);
+    assert.deepEqual(
+      cancelled,
+      calls.slice(0, 11).map((call) => call.requestId),
+      "closing the selector preserves the current page prefetch"
+    );
+    await render(element(game, true));
     connection = { ...connection, hydraUserId: "other-user" };
-    await render(element());
-    assert.equal(calls.length, 2);
+    await render(element(game, true));
+    assert.equal(calls.length, 13);
+    assert.deepEqual(
+      cancelled,
+      calls.map((call) => call.requestId)
+    );
+    assert.equal(new Set(cancelled).size, 13);
     connection = { ...connection, hydraUserId: "user" };
     Object.assign(electron, { getEpicGameInstallOptions: undefined });
+    await render(element(game, true));
+    assert.equal(calls.length, 13);
+  });
+
+  it("closes an Epic install from an older page or scope without tying its lifetime to selector visibility", async (t) => {
+    const requests: Array<{ objectId: string; requestId: string }> = [];
+    const cancelled: string[] = [];
+    const { render } = await fixture(t, {
+      getEpicGameInstallOptions: (objectId: string, requestId: string) => {
+        requests.push({ objectId, requestId });
+        return new Promise(() => {});
+      },
+      cancelEpicGameInstallOptions: async (requestId: string) => {
+        cancelled.push(requestId);
+      },
+      startEpicGameDownload: async () => ({ ok: true }),
+    });
+    const hook = loadInstallHook("D:\\downloads");
+    const seen: Array<{ objectId: string | null; title: string | null }> = [];
+    function Install({
+      game,
+      presentationGame,
+    }: {
+      game: LibraryGame | null;
+      presentationGame: LibraryGame | null;
+    }) {
+      hook(game, () => {});
+      seen.push({
+        objectId: game?.objectId ?? null,
+        title: presentationGame?.title ?? null,
+      });
+      return game
+        ? React.createElement("div", { "data-install": true }, game.objectId)
+        : null;
+    }
+    const game = {
+      shop: "epic",
+      objectId: "first:epic",
+      title: "First game",
+      hasActiveEpicImport: true,
+      epicImportScope: {
+        environment: "test",
+        userId: "user",
+        connectionId: "connection",
+      },
+    } as LibraryGame;
+    const contextValue = {
+      game,
+      presentation: null,
+      repacks: [],
+      updateGame: async () => {},
+    };
+    const context = React.createContext(contextValue);
+    let connection = {
+      verification: "confirmed",
+      hydraUserId: "user",
+      availability: { available: true },
+      connection: { connected: true, connectionId: "connection" },
+    };
+    const Repacks = loadModule(
+      "../pages/game-details/modals/repacks-modal.tsx",
+      {
+        "@renderer/context": { gameDetailsContext: context },
+        "@renderer/hooks/use-epic-managed": {
+          useEpicManagedConnection: () => ({ available: true, connection }),
+        },
+        "@renderer/hooks": {
+          useDate: () => ({ formatDate: () => "" }),
+          useAppDispatch: () => () => {},
+          useAppSelector: () => ({}),
+          useIsNonSteamExecutable: () => false,
+          useLibrary: () => ({ updateLibrary: async () => {} }),
+        },
+        "@shared": { getOfficialStoreMembers, isEpicMemberInCurrentScope },
+        "@renderer/components": {
+          Badge: () => null,
+          Button: ({
+            onClick,
+            children,
+            className,
+          }: React.ComponentProps<"button">) =>
+            React.createElement("button", { onClick, className }, children),
+          Modal: ({
+            visible,
+            children,
+          }: {
+            visible: boolean;
+            children: React.ReactNode;
+          }) =>
+            visible ? React.createElement("section", null, children) : null,
+          TextField: () => null,
+          CheckboxField: () => null,
+          SteamIcon: () => null,
+        },
+        "@renderer/helpers": {
+          canDownloadOnSteam: () => false,
+          isSteamImportedGame: () => false,
+          getGameKey: () => "unused",
+        },
+        "@renderer/features": { clearNewDownloadOptions: () => ({}) },
+        "@renderer/services/leveldb.service": {
+          levelDBService: { values: async () => [], get: async () => null },
+        },
+        "lodash-es": { orderBy: (items: unknown[]) => items },
+        "react-i18next": {
+          useTranslation: () => ({ t: (key: string) => key }),
+        },
+        "react-router-dom": { useNavigate: () => () => {} },
+        "react-tooltip": { Tooltip: () => null },
+        "@primer/octicons-react": {
+          PlusCircleIcon: () => null,
+          ChevronDownIcon: () => null,
+          ChevronUpIcon: () => null,
+        },
+        "./download-settings-modal": { DownloadSettingsModal: () => null },
+        "./epic-install-modal": { EpicInstallModal: Install },
+        "@renderer/assets/epic-integration-logo.svg?react": () => null,
+        "./repacks-modal.scss": {},
+      }
+    ).RepacksModal as React.FunctionComponent<{
+      visible: boolean;
+      onClose: () => void;
+      startDownload: () => Promise<{ ok: boolean }>;
+    }>;
+    const element = (currentGame = game, visible = true) =>
+      React.createElement(
+        context.Provider,
+        { value: { ...contextValue, game: currentGame } },
+        React.createElement(Repacks, {
+          visible,
+          onClose: () => {},
+          startDownload: async () => ({ ok: true }),
+        })
+      );
+    const openInstall = async () => {
+      const button = document.querySelector<HTMLButtonElement>(
+        ".repacks-modal__repack-button"
+      );
+      assert.ok(button);
+      await React.act(async () => button.click());
+      assert.ok(document.querySelector("[data-install]"));
+      return requests.at(-1)!.requestId;
+    };
     await render(element());
-    assert.equal(calls.length, 2);
+    const modalRequest = await openInstall();
+    const requestCount = requests.length;
+    await render(element(game, false));
+    await render(element());
+    assert.ok(document.querySelector("[data-install]"));
+    assert.equal(requests.length, requestCount);
+    assert.equal(cancelled.includes(modalRequest), false);
+    const nextGame = { ...game, objectId: "second:epic", title: "Second game" };
+    seen.length = 0;
+    await render(element(nextGame));
+    assert.equal(document.querySelector("[data-install]"), null);
+    assert.ok(cancelled.includes(modalRequest));
+    assert.ok(
+      seen.every((value) => value.objectId === null && value.title === null)
+    );
+    await render(element());
+    assert.equal(
+      document.querySelector("[data-install]"),
+      null,
+      "returning to an older page does not reopen its modal"
+    );
+    for (const scope of [
+      { ...game.epicImportScope!, environment: "other-environment" },
+      { ...game.epicImportScope!, userId: "other-user" },
+      { ...game.epicImportScope!, connectionId: "other-connection" },
+    ]) {
+      const scopeRequest = await openInstall();
+      connection = {
+        ...connection,
+        hydraUserId: scope.userId,
+        connection: { connected: true, connectionId: scope.connectionId },
+      };
+      await render(element({ ...game, epicImportScope: scope }));
+      assert.equal(document.querySelector("[data-install]"), null);
+      assert.ok(cancelled.includes(scopeRequest));
+      connection = {
+        ...connection,
+        hydraUserId: "user",
+        connection: { connected: true, connectionId: "connection" },
+      };
+      await render(element());
+      assert.equal(document.querySelector("[data-install]"), null);
+    }
+  });
+
+  it("cancels pending install metadata on retry, game change, closing and unmount while ignoring stale replies", async (t) => {
+    const requests: Array<{
+      objectId: string;
+      requestId: string;
+      reply: (options: EpicGameInstallOptions) => void;
+    }> = [];
+    const cancelled: string[] = [];
+    const { render, unmount } = await fixture(t, {
+      getEpicGameInstallOptions: (objectId: string, requestId: string) =>
+        new Promise<EpicGameInstallOptions>((reply) =>
+          requests.push({ objectId, requestId, reply })
+        ),
+      cancelEpicGameInstallOptions: async (requestId: string) => {
+        cancelled.push(requestId);
+      },
+      startEpicGameDownload: async () => ({ ok: true }),
+    });
+    const hook = loadInstallHook("D:\\downloads");
+    let game: LibraryGame | null = {
+      shop: "epic",
+      objectId: "first:epic",
+    } as LibraryGame;
+    let current!: ReturnType<typeof useEpicInstall>;
+    function Harness() {
+      current = hook(game, () => {});
+      return null;
+    }
+    await render(React.createElement(Harness));
+    await React.act(async () => {
+      void current.retry();
+    });
+    assert.deepEqual(cancelled, [requests[0].requestId]);
+    game = { ...game, objectId: "second:epic" };
+    await render(React.createElement(Harness));
+    assert.deepEqual(
+      cancelled,
+      requests.slice(0, 2).map((item) => item.requestId)
+    );
+    await React.act(async () =>
+      requests[0].reply({
+        connectionId: "stale",
+        options: [
+          {
+            artifactId: "stale-app",
+            platform: "Windows",
+            downloadSizeInBytes: 1,
+            diskSizeInBytes: 2,
+            supportsCloudSaves: false,
+            installed: false,
+          },
+        ],
+      })
+    );
+    assert.equal(current.loading, true);
+    assert.equal(current.result, null);
+    game = null;
+    await render(React.createElement(Harness));
+    assert.deepEqual(
+      cancelled,
+      requests.map((item) => item.requestId)
+    );
+    assert.equal(current.loading, false);
+    game = { shop: "epic", objectId: "third:epic" } as LibraryGame;
+    await render(React.createElement(Harness));
+    await React.act(async () =>
+      requests[2].reply({ options: [], error: "operation-cancelled" })
+    );
+    assert.equal(current.loading, true);
+    assert.equal(current.error, null);
+    await unmount();
+    assert.deepEqual(
+      cancelled,
+      requests.map((item) => item.requestId)
+    );
+    assert.equal(new Set(cancelled).size, 4);
+    for (const requestId of cancelled)
+      assert.match(requestId, /^[\da-f]{8}(?:-[\da-f]{4}){3}-[\da-f]{12}$/i);
   });
 
   it("uses the Hydra modal header, directory and preferred presentation while downloading the actual Epic identity", async (t) => {
@@ -1235,7 +1558,7 @@ describe("Epic managed UI lifecycle", () => {
     assert.equal(available, false);
   });
 
-  it("explains serialized launch prerequisites and update errors without exposing raw messages", () => {
+  it("explains serialized launch prerequisites, external launchers and update errors without exposing raw messages", () => {
     const helpers = loadModule("../helpers/epic-managed-error.ts", {
       "../pages/settings/settings-epic-state": {
         getEpicErrorTranslation: (code: string) => `epic_error_${code}`,
@@ -1247,6 +1570,7 @@ describe("Epic managed UI lifecycle", () => {
     for (const [code, key] of [
       ["prerequisites-required", "epic_prerequisites_required"],
       ["update-required", "epic_update_required"],
+      ["external-launcher-required", "epic_external_launcher_required"],
       ["session-expired", "epic_error_session-expired"],
     ]) {
       const error = new Error(
@@ -1262,6 +1586,96 @@ describe("Epic managed UI lifecycle", () => {
       ),
       undefined
     );
+  });
+
+  it("shows only the game card, official launcher guidance and disabled download for external installation", async (t) => {
+    let startCalls = 0;
+    const { render } = await fixture(t, {
+      getEpicGameInstallOptions: async () => ({
+        options: [],
+        error: "external-launcher-required",
+      }),
+      startEpicGameDownload: async () => {
+        startCalls++;
+        return { ok: true };
+      },
+      getDiskFreeSpace: async () => ({ free: 200 }),
+    });
+    const translations = JSON.parse(
+      fs.readFileSync(
+        new URL("../../../locales/pt-BR/translation.json", import.meta.url),
+        "utf8"
+      )
+    ).game_details as Record<string, string>;
+    const Modal = loadInstallModal(
+      loadInstallHook("D:\\downloads"),
+      { active: true },
+      translations
+    );
+    await render(
+      React.createElement(Modal, {
+        game: {
+          shop: "epic",
+          objectId: "actual:epic",
+          title: "External game",
+          coverImageUrl: "https://example.test/external-cover.jpg",
+        } as LibraryGame,
+        onClose: () => {},
+        onStarted: () => {},
+      })
+    );
+    assert.equal(
+      document.querySelector("[role='alert']")?.textContent,
+      translations.epic_external_launcher_required
+    );
+    assert.match(
+      document.querySelector("[role='alert']")!.textContent!,
+      /depende de outro launcher/
+    );
+    assert.match(
+      document.querySelector("[role='alert']")!.textContent!,
+      /launcher oficial/
+    );
+    assert.doesNotMatch(
+      document.querySelector("[role='alert']")!.textContent!,
+      /Epic/
+    );
+    assert.equal(
+      document.querySelector(".epic-install-modal__title")?.textContent,
+      "External game"
+    );
+    assert.equal(
+      document
+        .querySelector(".epic-install-modal__cover img")
+        ?.getAttribute("src"),
+      "https://example.test/external-cover.jpg"
+    );
+    assert.equal(document.querySelector(".epic-install-modal__sizes"), null);
+    assert.equal(
+      document.querySelector(".download-settings-modal__downloads-path-field"),
+      null
+    );
+    assert.equal(
+      document.querySelector("[data-header-description]")?.textContent,
+      ""
+    );
+    assert.equal(document.querySelector("input"), null);
+    assert.equal(document.querySelector("select"), null);
+    const buttons = Array.from(document.querySelectorAll("button"));
+    assert.equal(
+      buttons.some((button) =>
+        [translations.epic_retry, "integrations"].includes(
+          button.textContent ?? ""
+        )
+      ),
+      false
+    );
+    const download = buttons.at(-1)!;
+    assert.equal(buttons.length, 1);
+    assert.equal(download.textContent, translations.download_now);
+    assert.equal(download.disabled, true);
+    await React.act(async () => download.click());
+    assert.equal(startCalls, 0);
   });
 
   it("remains unavailable on an OTA renderer with no managed Epic bridge", async (t) => {

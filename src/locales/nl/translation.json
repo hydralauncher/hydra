@@ -563,6 +563,7 @@
     "epic_play_local_saves": "Spelen met lokale opgeslagen spellen",
     "epic_play_local_saves_description": "Open deze sessie zonder cloudgegevens te herstellen. Lokale wijzigingen wachten op synchronisatie.",
     "epic_managed_error_generic": "De Epic-bewerking is mislukt. Controleer je verbinding en probeer opnieuw.",
+    "epic_external_launcher_required": "Om dit spel te installeren, heb je een andere launcher nodig. Installeer het via de officiële launcher.",
     "epic_play_offline": "Speel — Offline",
     "epic_prerequisites_required": "Sta de vereisten van het spel toe en probeer opnieuw.",
     "epic_update_required": "Werk het spel bij via de Epic Games-optie met dezelfde map.",

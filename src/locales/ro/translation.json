@@ -562,6 +562,7 @@
     "epic_play_local_saves": "Joacă folosind salvările locale",
     "epic_play_local_saves_description": "Deschide această sesiune fără restaurarea salvărilor din cloud. Modificările locale rămân în așteptarea sincronizării.",
     "epic_managed_error_generic": "Operațiunea Epic a eșuat. Verifică conexiunea și încearcă din nou.",
+    "epic_external_launcher_required": "Acest joc necesită un alt launcher pentru instalare. Instalează-l prin launcherul oficial.",
     "epic_play_offline": "Joacă — Offline",
     "epic_prerequisites_required": "Autorizează componentele necesare jocului și încearcă din nou.",
     "epic_update_required": "Actualizează jocul prin opțiunea Epic Games folosind același folder.",

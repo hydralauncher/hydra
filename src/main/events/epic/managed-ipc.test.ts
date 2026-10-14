@@ -2,11 +2,12 @@ import assert from "node:assert/strict";
 import fs from "node:fs";
 import os from "node:os";
 import vm from "node:vm";
+import { EventEmitter } from "node:events";
 import ts from "typescript";
 import { test } from "node:test";
 import * as contracts from "./managed-ipc-contract.js";
 
-function fixture() {
+function fixture(overrides: Record<string, unknown> = {}) {
   const calls: { name: string; args: unknown[] }[] = [];
   const handlers = new Map<
     string,
@@ -37,7 +38,7 @@ function fixture() {
     ])
   );
   const modules: Record<string, unknown> = {
-    "../../services/epic": services,
+    "../../services/epic": { ...services, ...overrides },
     "../register-event": {
       registerEvent: (
         name: string,
@@ -67,6 +68,7 @@ function fixture() {
     ).outputText,
     {
       exports: {},
+      AbortController,
       require: (name: string) =>
         modules[name] ?? assert.fail(`Unexpected dependency ${name}`),
     }
@@ -78,6 +80,7 @@ test("managed operations reject an untrusted sender before any process or save a
   const f = fixture();
   for (const name of [
     "getEpicGameInstallOptions",
+    "cancelEpicGameInstallOptions",
     "startEpicGameDownload",
     "getEpicCloudSaveState",
     "setEpicCloudSaveSettings",
@@ -90,6 +93,70 @@ test("managed operations reject an untrusted sender before any process or save a
     );
   }
   assert.equal(f.calls.length, 0);
+});
+
+test("preview cancellation belongs to its sender and releases listeners after completion", async () => {
+  let signal: AbortSignal | undefined;
+  const f = fixture({
+    getEpicGameInstallOptions: (_id: string, current: AbortSignal) => {
+      signal = current;
+      return new Promise((resolve) => {
+        current.addEventListener(
+          "abort",
+          () =>
+            resolve({
+              options: [],
+              error: "operation-cancelled",
+            }),
+          { once: true }
+        );
+      });
+    },
+  });
+  const sender = new EventEmitter();
+  const event = { trusted: true, sender };
+  const requestId = "preview-1";
+  const pending = f.handlers.get("getEpicGameInstallOptions")!(
+    event,
+    "namespace:item",
+    requestId
+  );
+  await Promise.resolve();
+  assert.equal(sender.listenerCount("destroyed"), 1);
+  f.handlers.get("cancelEpicGameInstallOptions")!(
+    { trusted: true, sender: new EventEmitter() },
+    requestId
+  );
+  assert.equal(signal?.aborted, false);
+  f.handlers.get("cancelEpicGameInstallOptions")!(event, requestId);
+  await pending;
+  assert.equal(signal?.aborted, true);
+  assert.equal(sender.listenerCount("destroyed"), 0);
+});
+
+test("destroying a renderer cancels all its pending previews", async () => {
+  const signals: AbortSignal[] = [];
+  const f = fixture({
+    getEpicGameInstallOptions: (_id: string, signal: AbortSignal) => {
+      signals.push(signal);
+      return new Promise((resolve) => {
+        signal.addEventListener("abort", () => resolve({ options: [] }), {
+          once: true,
+        });
+      });
+    },
+  });
+  const sender = new EventEmitter();
+  const event = { trusted: true, sender };
+  const pending = ["first", "second"].map((id) =>
+    f.handlers.get("getEpicGameInstallOptions")!(event, "namespace:item", id)
+  );
+  await Promise.resolve();
+  sender.emit("destroyed");
+  await Promise.all(pending);
+  assert.equal(signals.length, 2);
+  assert.ok(signals.every((signal) => signal.aborted));
+  assert.equal(sender.listenerCount("destroyed"), 0);
 });
 
 test("desktop and Big Picture pass only parsed Epic inputs to managed services", () => {

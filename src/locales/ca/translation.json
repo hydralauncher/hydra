@@ -565,6 +565,7 @@
     "epic_play_local_saves": "Juga amb partides locals",
     "epic_play_local_saves_description": "Obre aquesta sessió sense restaurar les partides del núvol. Els canvis locals quedaran pendents de sincronització.",
     "epic_managed_error_generic": "L’operació d’Epic ha fallat. Comprova la connexió i torna-ho a provar.",
+    "epic_external_launcher_required": "Aquest joc requereix un altre llançador per instal·lar-lo. Instal·la'l a través del llançador oficial.",
     "epic_play_offline": "Inicia — Offline",
     "epic_prerequisites_required": "Autoritza els requisits previs del joc i torna-ho a provar.",
     "epic_update_required": "Actualitza el joc amb l’opció Epic Games fent servir la mateixa carpeta.",

@@ -224,8 +224,8 @@ export class EpicDownloadService {
     { controller: AbortController; done: Promise<EpicManagedOperationResult> }
   >();
   constructor(private readonly options: DownloadServiceOptions) {}
-  getOptions(objectId: string) {
-    return this.options.installation.getOptions(objectId);
+  getOptions(objectId: string, signal?: AbortSignal) {
+    return this.options.installation.getOptions(objectId, signal);
   }
   private id(objectId: string) {
     return `epic:${objectId}`;
