@@ -296,3 +296,130 @@ test("Epic icons use a bounded PNG cache with safe fallbacks", async () => {
     "PASS: large PNG, ICO preview, small PNG, disk cache, concurrency, failed download retry, untrusted URL, invalid image, Steam unchanged, user selection precedence"
   );
 });
+function runSourceFragment(relative, select, suffix, globals, prefix = "") {
+  const filename = path.join(repo, relative);
+  const source = ts.createSourceFile(
+    filename,
+    fs.readFileSync(filename, "utf8"),
+    ts.ScriptTarget.Latest,
+    true
+  );
+  const fragment = select(source)
+    .map((node) => node.getText(source))
+    .join("\n");
+  const output = ts.transpileModule(prefix + fragment + suffix, {
+    compilerOptions: { target: ts.ScriptTarget.ES2022 },
+  }).outputText;
+  return vm.runInNewContext(output, globals, { filename });
+}
+
+test("local cached icons reach notifications and automatic shortcuts", async () => {
+  const outputDirectory = path.join(cacheDirectory, "consumers");
+  fs.mkdirSync(outputDirectory);
+  cacheDirectories.push(outputDirectory);
+  const sourcePath = path.join(outputDirectory, "shared.png");
+  const image = await sharp({
+    create: { width: 64, height: 64, channels: 4, background: "red" },
+  })
+    .png()
+    .toBuffer();
+  fs.writeFileSync(sourcePath, image);
+  const logger = {
+    error: () => undefined,
+    warn: () => undefined,
+    log: () => undefined,
+  };
+  let requests = 0;
+  const axios = {
+    async get() {
+      requests += 1;
+      return { data: image };
+    },
+  };
+  const notificationIcons = load(
+    "src/main/services/notifications/notification-icon.ts"
+  );
+  const downloadImage = runSourceFragment(
+    "src/main/services/notifications/index.ts",
+    (source) =>
+      source.statements.filter(
+        (node) =>
+          (ts.isFunctionDeclaration(node) &&
+            node.name?.text === "downloadImage") ||
+          (ts.isVariableStatement(node) &&
+            node.declarationList.declarations.some(
+              (declaration) =>
+                declaration.name.getText(source) === "getStaticImage"
+            ))
+      ),
+    "\ndownloadImage;",
+    {
+      fs,
+      path,
+      axios,
+      logger,
+      ...notificationIcons,
+      getNotificationIconDirectory: async () => outputDirectory,
+    }
+  );
+  const notificationPath = await downloadImage(`local:${sourcePath}`);
+  assert.ok(notificationPath);
+  assert.equal((await sharp(notificationPath).metadata()).format, "png");
+  assert.equal(fs.existsSync(sourcePath), true);
+  assert.equal(await downloadImage(`local:${sourcePath}.missing`), undefined);
+  assert.equal(
+    await downloadImage(`local:${sourcePath}`, { aborted: true }),
+    undefined
+  );
+  assert.equal(requests, 0);
+
+  let shortcutUrl = `local:${sourcePath}`;
+  const Manager = runSourceFragment(
+    "src/main/services/game-files-manager.ts",
+    (source) =>
+      source.statements
+        .find(
+          (node) =>
+            ts.isClassDeclaration(node) &&
+            node.name?.text === "GameFilesManager"
+        )
+        .members.filter((node) =>
+          ["isValidIconUrl", "isIcoUrl", "downloadGameIcon"].includes(
+            node.name?.getText(source)
+          )
+        ),
+    "\n}\nManager;",
+    {
+      fs,
+      path,
+      axios,
+      logger,
+      sharp,
+      Buffer,
+      pngToIco: (await import("png-to-ico")).default,
+      ASSETS_PATH: cacheDirectory,
+      gamesSublevel: { get: async () => ({ iconUrl: null }) },
+      getGameAssets: async () => ({ iconUrl: shortcutUrl }),
+    },
+    "class Manager {"
+  );
+  const manager = new Manager();
+  manager.shop = "epic";
+  manager.objectId = "consumer";
+  manager.gameKey = "epic:consumer";
+  cacheDirectories.push(path.join(cacheDirectory, "epic-consumer"));
+  const shortcutPath = await manager.downloadGameIcon();
+  assert.ok(shortcutPath);
+  assert.deepEqual(
+    [...fs.readFileSync(shortcutPath).subarray(0, 4)],
+    [0, 0, 1, 0]
+  );
+  assert.equal(fs.existsSync(sourcePath), true);
+  assert.equal(requests, 0);
+  manager.objectId = "remote";
+  const remoteDirectory = path.join(cacheDirectory, "epic-remote");
+  cacheDirectories.push(remoteDirectory);
+  shortcutUrl = "https://cdn2.steamgriddb.com/icon/native.png";
+  assert.ok(await manager.downloadGameIcon());
+  assert.equal(requests, 1);
+});

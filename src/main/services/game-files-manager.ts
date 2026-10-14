@@ -521,8 +521,13 @@ export class GameFilesManager {
     }
   }
 
-  private isValidHttpUrl(url: string | null | undefined): url is string {
-    return !!url && (url.startsWith("http://") || url.startsWith("https://"));
+  private isValidIconUrl(url: string | null | undefined): url is string {
+    return (
+      !!url &&
+      (url.startsWith("http://") ||
+        url.startsWith("https://") ||
+        url.startsWith("local:"))
+    );
   }
 
   private isIcoUrl(url: string): boolean {
@@ -552,7 +557,7 @@ export class GameFilesManager {
       assets?.iconUrl,
       game?.iconUrl,
       assets?.coverImageUrl,
-    ].filter(this.isValidHttpUrl);
+    ].filter(this.isValidIconUrl);
 
     if (iconUrls.length === 0) {
       logger.warn(
@@ -568,10 +573,17 @@ export class GameFilesManager {
         logger.log(
           `[GameFilesManager] Trying to download icon from: ${iconUrl}`
         );
-        const response = await axios.get(iconUrl, {
-          responseType: "arraybuffer",
-        });
-        const imageBuffer = Buffer.from(response.data);
+        let imageBuffer: Buffer;
+        if (iconUrl.startsWith("local:")) {
+          imageBuffer = await fs.promises.readFile(
+            iconUrl.slice("local:".length)
+          );
+        } else {
+          const response = await axios.get(iconUrl, {
+            responseType: "arraybuffer",
+          });
+          imageBuffer = Buffer.from(response.data);
+        }
 
         // If source is already ICO, use it directly
         if (this.isIcoUrl(iconUrl)) {
