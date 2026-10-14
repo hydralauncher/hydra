@@ -273,7 +273,7 @@ function GalleryLightboxContent({
     if (ownsFullscreenRef.current || pendingFullscreenRequestsRef.current > 0) {
       ownsFullscreenRef.current = false;
       leavingFullscreenRef.current = true;
-      leaveFullscreen();
+      void leaveFullscreen();
     }
     onClose(currentIndex, playback);
   }, [items, getVideoHandle, onClose]);
@@ -412,7 +412,7 @@ function GalleryLightboxContent({
       return;
     ownsFullscreenRef.current = false;
     leavingFullscreenRef.current = true;
-    leaveFullscreen();
+    void leaveFullscreen();
   }, []);
 
   const toggleFullscreen = useCallback(() => {
@@ -513,7 +513,7 @@ function GalleryLightboxContent({
           pendingFullscreenRequestsRef.current > 0;
         ownsFullscreenRef.current = false;
         if (needsExit) {
-          leaveFullscreen().finally(releasePage);
+          void leaveFullscreen().finally(releasePage);
         } else {
           releasePage();
         }
