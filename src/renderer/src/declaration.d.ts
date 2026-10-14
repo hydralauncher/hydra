@@ -75,6 +75,8 @@ import type {
   ArtworkKind,
   ArtworkPage,
   GameArtworkSelection,
+  GameArtworkOptions,
+  GameAssetsOptions,
   GameLauncherStatusPayload,
   CloudSaveAutomaticSyncModeChangedEvent,
   CloudSaveAutomaticSyncEvent,
@@ -322,14 +324,15 @@ declare global {
     getGameShopDetails: (
       objectId: string,
       shop: GameShop,
-      language: string
+      language: string,
+      options?: GameArtworkOptions
     ) => Promise<ShopDetailsWithAssets | null>;
     getRandomGame: () => Promise<Steam250Game>;
     getGameStats: (objectId: string, shop: GameShop) => Promise<GameStats>;
     getGameAssets: (
       objectId: string,
       shop: GameShop,
-      options?: { forceFresh?: boolean }
+      options?: GameAssetsOptions
     ) => Promise<ShopAssets | null>;
     onUpdateAchievements: (
       objectId: string,

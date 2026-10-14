@@ -56,7 +56,10 @@ export const selectOperationalLibraryGame = (
 };
 
 export const isLibraryGameDownloading = (
-  game: Pick<LibraryGame, "download"> | null | undefined
+  game:
+    | { download?: { status?: string | null; extracting?: boolean } | null }
+    | null
+    | undefined
 ): boolean =>
   game?.download?.status === "active" ||
   game?.download?.status === "extracting" ||

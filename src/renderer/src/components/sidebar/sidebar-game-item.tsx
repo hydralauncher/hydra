@@ -73,7 +73,7 @@ export function SidebarGameItem({
     if (isCustomGame) {
       return null;
     }
-    if (catalogueIdentity.shop === "epic") {
+    if (game.shop === "epic") {
       return <EpicLogo className="sidebar__game-icon" />;
     }
     return <SteamLogo className="sidebar__game-icon" />;

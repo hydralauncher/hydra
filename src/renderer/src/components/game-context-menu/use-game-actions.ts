@@ -16,7 +16,7 @@ import { logger } from "@renderer/logger";
 import { useGameOptionsModal } from "@renderer/context/game-options-modal/game-options-modal.context";
 import type { GameSettingsCategoryId } from "@renderer/pages/game-details/modals/game-options-modal/types";
 import type { GameContextMenuGame } from "./game-context-menu.types";
-import { applyLibraryGroupAction } from "@shared";
+import { applyLibraryGroupAction, isLibraryGameDownloading } from "@shared";
 
 export function useGameActions(requestedGame: GameContextMenuGame) {
   const { t } = useTranslation("game_details");
@@ -24,17 +24,14 @@ export function useGameActions(requestedGame: GameContextMenuGame) {
   const { library, updateLibrary } = useLibrary();
   const group = useLibraryGamePresentation(requestedGame);
   const game = group?.operationalGame ?? requestedGame;
+  const downloadGame = group?.downloadGame ?? game;
   const members = group?.members ?? [game];
   const { loadCollections } = useGameCollections();
   const navigate = useNavigate();
   const location = useLocation();
   const { openGameOptionsModal } = useGameOptionsModal();
-  const {
-    removeGameInstaller,
-    removeGameFromLibrary,
-    isGameDeleting,
-    lastPacket,
-  } = useDownload();
+  const { removeGameInstaller, removeGameFromLibrary, isGameDeleting } =
+    useDownload();
 
   const [creatingSteamShortcut, setCreatingSteamShortcut] = useState(false);
   const [creatingShortcut, setCreatingShortcut] = useState(false);
@@ -47,9 +44,9 @@ export function useGameActions(requestedGame: GameContextMenuGame) {
   const hasClassicsDiscs = (game.discs?.length ?? 0) > 0;
   const canPlay =
     Boolean(game.executablePath) || (isClassics && hasClassicsDiscs);
-  const isDeleting = isGameDeleting(game.id ?? "");
-  const isGameDownloading =
-    game.download?.status === "active" && lastPacket?.gameId === game.id;
+  const isDeleting = isGameDeleting(game.objectId);
+  const isDownloadDeleting = isGameDeleting(downloadGame.objectId);
+  const isGameDownloading = isLibraryGameDownloading(downloadGame);
   const hasRepacks = true;
   useEffect(() => {
     const unsubscribe = window.electron.onGamesRunning((gamesIds) => {
@@ -327,7 +324,10 @@ export function useGameActions(requestedGame: GameContextMenuGame) {
 
   const handleOpenDownloadLocation = async () => {
     try {
-      await window.electron.openGameInstallerPath(game.shop, game.objectId);
+      await window.electron.openGameInstallerPath(
+        downloadGame.shop,
+        downloadGame.objectId
+      );
     } catch (error) {
       showErrorToast("Failed to open download location");
       logger.error("Failed to open download location", error);
@@ -364,14 +364,23 @@ export function useGameActions(requestedGame: GameContextMenuGame) {
   };
 
   const handleRemoveFiles = async () => {
+    if (
+      isLibraryGameDownloading(downloadGame) ||
+      isGameDeleting(downloadGame.objectId)
+    )
+      return;
+
     try {
-      await removeGameInstaller(game.shop, game.objectId);
-      updateLibrary();
+      await removeGameInstaller(downloadGame.shop, downloadGame.objectId);
+      await updateLibrary();
       showSuccessToast(t("files_removed_success"));
       try {
         window.dispatchEvent(
           new CustomEvent("hydra:game-files-removed", {
-            detail: { shop: game.shop, objectId: game.objectId },
+            detail: {
+              shop: downloadGame.shop,
+              objectId: downloadGame.objectId,
+            },
           })
         );
       } catch {
@@ -385,7 +394,9 @@ export function useGameActions(requestedGame: GameContextMenuGame) {
 
   return {
     canPlay,
+    downloadGame,
     isDeleting,
+    isDownloadDeleting,
     isGameDownloading,
     isGameRunning,
     hasRepacks,

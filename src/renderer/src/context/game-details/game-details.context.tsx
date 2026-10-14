@@ -183,7 +183,12 @@ export function GameDetailsContextProvider({
     abortControllerRef.current = abortController;
 
     const shopDetailsPromise = window.electron
-      .getGameShopDetails(catalogueObjectId, catalogueShop, i18n.language)
+      .getGameShopDetails(catalogueObjectId, catalogueShop, i18n.language, {
+        artworkIdentity: {
+          shop: operationalShop,
+          objectId: operationalObjectId,
+        },
+      })
       .then((result) => {
         if (abortController.signal.aborted) return;
 
@@ -238,17 +243,27 @@ export function GameDetailsContextProvider({
       });
 
     if (shop !== "custom") {
-      window.electron
+      void window.electron
         .getGameStats(catalogueObjectId, catalogueShop)
         .then((result) => {
           if (abortController.signal.aborted) return;
           setStats(result);
+        })
+        .catch(() => {
+          if (abortController.signal.aborted) return;
+          setStats(null);
         });
     }
 
     const assetsPromise = window.electron.getGameAssets(
       catalogueObjectId,
-      catalogueShop
+      catalogueShop,
+      {
+        artworkIdentity: {
+          shop: operationalShop,
+          objectId: operationalObjectId,
+        },
+      }
     );
 
     Promise.all([shopDetailsPromise, assetsPromise])
@@ -574,24 +589,22 @@ export function GameDetailsContextProvider({
       }
     );
 
-    return window.electron
-      .showOpenDialog({
-        properties: ["openFile"],
-        defaultPath: downloadsPath,
-        filters,
-      })
-      .then(({ filePaths }) => {
-        if (filePaths && filePaths.length > 0) {
-          return filePaths[0];
-        }
+    const { filePaths } = await window.electron.showOpenDialog({
+      properties: ["openFile"],
+      defaultPath: downloadsPath,
+      filters,
+    });
 
-        return null;
-      });
+    return filePaths?.[0] ?? null;
   };
 
   // Handlers for cancel
   const cancelTransfer = () => {
-    window.electron.cancelGameTransfer?.(operationalShop, operationalObjectId);
+    void window.electron
+      .cancelGameTransfer?.(operationalShop, operationalObjectId)
+      .catch((error) => {
+        console.error("Failed to cancel game transfer:", error);
+      });
     setIsTransferring(false);
     setTransferProgress(0);
   };
