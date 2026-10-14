@@ -1,4 +1,6 @@
 import { updateGameRecord } from "@main/services/game-record-updater";
+import { getEpicDownloadService } from "../epic/download";
+import { epicManagedErrorCode } from "../epic/legendary-managed-runtime";
 import {
   Downloader,
   DownloadError,
@@ -105,6 +107,8 @@ export class DownloadManager {
   private static downloadingGameId: string | null = null;
   private static jsDownloader: JsHttpDownloader | null = null;
   private static usingJsDownloader = false;
+  private static usingEpicDownloader = false;
+  private static readonly epicCompletions = new Set<string>();
   private static isPreparingDownload = false;
   private static allDebridBatch: AllDebridBatchState | null = null;
   private static maxDownloadSpeedBytesPerSecond: number | null = null;
@@ -287,7 +291,7 @@ export class DownloadManager {
   }
 
   private static isHttpDownloader(downloader: Downloader): boolean {
-    return downloader !== Downloader.Torrent;
+    return downloader !== Downloader.Torrent && downloader !== Downloader.Epic;
   }
 
   private static normalizeDownloadSpeedLimit(
@@ -615,6 +619,38 @@ export class DownloadManager {
   }
 
   private static async getDownloadStatus(): Promise<DownloadProgress | null> {
+    if (this.usingEpicDownloader && this.downloadingGameId) {
+      const id = this.downloadingGameId;
+      const generation = this.startGeneration;
+      const download = await downloadsSublevel.get(id);
+      if (
+        !download ||
+        this.downloadingGameId !== id ||
+        this.startGeneration !== generation
+      )
+        return null;
+      const status = getEpicDownloadService().progress(download);
+      if (!status) {
+        if (!this.isPreparingDownload) return null;
+        return {
+          download,
+          gameId: id,
+          progress: download.progress,
+          downloadSpeed: 0,
+          timeRemaining: -1,
+          numPeers: 0,
+          numSeeds: 0,
+          isDownloadingMetadata: true,
+          isCheckingFiles: false,
+        };
+      }
+      if (this.downloadingGameId !== id || this.startGeneration !== generation)
+        return null;
+      await downloadsSublevel.put(id, status.download);
+      if (this.downloadingGameId !== id || this.startGeneration !== generation)
+        return null;
+      return status;
+    }
     if (this.usingJsDownloader) {
       return this.getDownloadStatusFromJs();
     }
@@ -644,6 +680,7 @@ export class DownloadManager {
 
   public static async watchDownloads() {
     const activeDownloadKey = this.downloadingGameId;
+    const generation = this.startGeneration;
 
     if (activeDownloadKey) {
       const activeDownload = await downloadsSublevel.get(activeDownloadKey);
@@ -661,7 +698,7 @@ export class DownloadManager {
     }
 
     const status = await this.getDownloadStatus();
-    if (!status) return;
+    if (!status || generation !== this.startGeneration) return;
 
     const { gameId, progress } = status;
     const [download, game] = await Promise.all([
@@ -669,7 +706,7 @@ export class DownloadManager {
       gamesSublevel.get(gameId),
     ]);
 
-    if (!download || !game) return;
+    if (!download || !game || generation !== this.startGeneration) return;
 
     if (!status.isCheckingFiles && !status.isDownloadingMetadata) {
       const live = status.download
@@ -683,11 +720,14 @@ export class DownloadManager {
         return;
     }
 
+    if (generation !== this.startGeneration) return;
+
     this.sendProgressUpdate(progress, status, game);
 
     if (
       shouldFinalizeDownload({
         usingJsDownloader: this.usingJsDownloader,
+        usingEpicDownloader: this.usingEpicDownloader,
         isCheckingFiles: status.isCheckingFiles,
         isDownloadingMetadata: status.isDownloadingMetadata,
         progress,
@@ -801,6 +841,29 @@ export class DownloadManager {
     game: Game,
     gameId: string
   ) {
+    if (download.downloader === Downloader.Epic) {
+      if (
+        !this.usingEpicDownloader ||
+        this.downloadingGameId !== gameId ||
+        this.epicCompletions.has(gameId)
+      )
+        return;
+      this.epicCompletions.add(gameId);
+      try {
+        // The adapter verified installed.json, prerequisites and executable before completion.
+        await this.updateDownloadStatus(download, gameId, false);
+        await publishDownloadCompleteNotification(game).catch((error) =>
+          logger.error(
+            "[DownloadManager] Failed to publish Epic completion",
+            error
+          )
+        );
+        await this.processNextQueuedDownload();
+      } finally {
+        this.epicCompletions.delete(gameId);
+      }
+      return;
+    }
     publishDownloadCompleteNotification(game);
 
     const userPreferences = await db.get<string, UserPreferences | null>(
@@ -1016,8 +1079,11 @@ export class DownloadManager {
   }
 
   private static async processNextQueuedDownload() {
+    if (this.downloadingGameId) return;
+    const generation = this.startGeneration;
     const downloads = await downloadsSublevel.values().all();
     const layoutState = await getDownloadLayoutStateRecord();
+    if (this.downloadingGameId || generation !== this.startGeneration) return;
     const nextItemOnQueue = getNextQueuedDownloadFromLayout(
       downloads,
       layoutState
@@ -1046,6 +1112,8 @@ export class DownloadManager {
 
       this.queueHeldForDiskSpace = false;
 
+      if (this.downloadingGameId || generation !== this.startGeneration) return;
+
       const nextDownloadId = levelKeys.game(
         nextItemOnQueue.shop,
         nextItemOnQueue.objectId
@@ -1068,9 +1136,11 @@ export class DownloadManager {
         await this.handleRuntimeDownloadError(nextDownloadId, error);
       }
     } else {
+      if (this.downloadingGameId || generation !== this.startGeneration) return;
       this.queueHeldForDiskSpace = false;
       this.downloadingGameId = null;
       this.usingJsDownloader = false;
+      this.usingEpicDownloader = false;
       this.jsDownloader = null;
       this.allDebridBatch = null;
     }
@@ -1089,8 +1159,15 @@ export class DownloadManager {
 
   private static async handleRuntimeDownloadError(
     downloadId: string,
-    error: unknown
+    error: unknown,
+    expectedGeneration?: number
   ) {
+    if (
+      expectedGeneration !== undefined &&
+      this.startGeneration !== expectedGeneration
+    )
+      return;
+    const generation = this.startGeneration;
     if (this.downloadingGameId && this.downloadingGameId !== downloadId) {
       const message = this.getErrorMessage(error);
       logger.warn(
@@ -1105,9 +1182,19 @@ export class DownloadManager {
       error
     );
 
+    if (this.usingEpicDownloader)
+      await getEpicDownloadService().stop(downloadId);
+
+    if (
+      this.startGeneration !== generation ||
+      (this.downloadingGameId && this.downloadingGameId !== downloadId)
+    )
+      return;
+
     this.downloadingGameId = null;
     this.isPreparingDownload = false;
     this.usingJsDownloader = false;
+    this.usingEpicDownloader = false;
     this.jsDownloader = null;
     this.allDebridBatch = null;
     WindowManager.mainWindow?.setProgressBar(-1);
@@ -1115,6 +1202,7 @@ export class DownloadManager {
 
     try {
       const download = await downloadsSublevel.get(downloadId);
+      if (this.startGeneration !== generation) return;
       if (download) {
         await downloadsSublevel.put(downloadId, {
           ...download,
@@ -1122,7 +1210,11 @@ export class DownloadManager {
           queued: false,
           pinnedToHero: false,
           extracting: false,
+          epic: download.epic
+            ? { ...download.epic, error: epicManagedErrorCode(error) }
+            : undefined,
         });
+        if (this.startGeneration !== generation) return;
 
         const downloads = await downloadsSublevel.values().all();
         const layoutState = await getDownloadLayoutStateRecord();
@@ -1198,7 +1290,12 @@ export class DownloadManager {
   }
 
   static async pauseDownload(downloadKey = this.downloadingGameId) {
-    if (this.usingJsDownloader && this.jsDownloader) {
+    if (this.usingEpicDownloader && downloadKey === this.downloadingGameId) {
+      this.startGeneration += 1;
+      await getEpicDownloadService().stop(downloadKey ?? undefined);
+      this.usingEpicDownloader = false;
+      this.isPreparingDownload = false;
+    } else if (this.usingJsDownloader && this.jsDownloader) {
       logger.log("[DownloadManager] Pausing JS download");
       this.jsDownloader.pauseDownload();
     } else if (downloadKey) {
@@ -1226,7 +1323,10 @@ export class DownloadManager {
       // late-resolving prepare cannot spawn a downloader after cancellation.
       this.startGeneration += 1;
 
-      if (this.usingJsDownloader && this.jsDownloader) {
+      if (this.usingEpicDownloader) {
+        await getEpicDownloadService().stop(downloadKey ?? undefined);
+        this.usingEpicDownloader = false;
+      } else if (this.usingJsDownloader && this.jsDownloader) {
         logger.log("[DownloadManager] Cancelling JS download");
         this.jsDownloader.cancelDownload();
         this.jsDownloader = null;
@@ -1244,8 +1344,14 @@ export class DownloadManager {
       this.downloadingGameId = null;
       this.isPreparingDownload = false;
       this.usingJsDownloader = false;
+      this.usingEpicDownloader = false;
       this.allDebridBatch = null;
     } else if (downloadKey) {
+      const download = await downloadsSublevel.get(downloadKey);
+      if (download?.downloader === Downloader.Epic) {
+        await getEpicDownloadService().stop(downloadKey);
+        return;
+      }
       await TorrentService.call("action", {
         action: "cancel",
         game_id: downloadKey,
@@ -2027,6 +2133,54 @@ export class DownloadManager {
     // The generation token lets a concurrent cancel/restart for the same id
     // invalidate this in-flight preparation before it spawns a downloader.
     const myGeneration = ++this.startGeneration;
+
+    if (download.downloader === Downloader.Epic) {
+      this.downloadingGameId = downloadId;
+      this.isPreparingDownload = true;
+      this.usingEpicDownloader = true;
+      this.usingJsDownloader = false;
+      this.jsDownloader = null;
+      this.allDebridBatch = null;
+      try {
+        await getEpicDownloadService().startRuntime(
+          download,
+          (error) => {
+            if (
+              this.startGeneration !== myGeneration ||
+              this.downloadingGameId !== downloadId
+            )
+              return;
+            void this.handleRuntimeDownloadError(
+              downloadId,
+              error,
+              myGeneration
+            ).catch((failure) =>
+              logger.error(
+                "[DownloadManager] Failed to handle Epic download error",
+                failure
+              )
+            );
+          },
+          () =>
+            this.startGeneration === myGeneration &&
+            this.downloadingGameId === downloadId
+        );
+        if (
+          this.startGeneration === myGeneration &&
+          this.downloadingGameId === downloadId
+        )
+          this.isPreparingDownload = false;
+      } catch (error) {
+        if (this.startGeneration === myGeneration) {
+          this.downloadingGameId = null;
+          this.isPreparingDownload = false;
+          this.usingEpicDownloader = false;
+        }
+        throw error;
+      }
+      return;
+    }
+    this.usingEpicDownloader = false;
 
     if (isHttp) {
       logger.log("[DownloadManager] Using JS HTTP downloader");

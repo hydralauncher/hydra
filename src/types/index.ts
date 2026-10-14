@@ -736,6 +736,7 @@ export * from "./game.types";
 export * from "./steam.types";
 export * from "./steam-integration.types";
 export * from "./epic-integration.types";
+export * from "./epic-managed.types";
 export * from "./download.types";
 export * from "./ludusavi.types";
 export * from "./how-long-to-beat.types";

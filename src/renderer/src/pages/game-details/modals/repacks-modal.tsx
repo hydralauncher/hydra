@@ -20,7 +20,11 @@ import type { DownloadSource, Game, GameRepack } from "@types";
 
 import { DownloadSettingsModal } from "./download-settings-modal";
 import { gameDetailsContext } from "@renderer/context";
-import { Downloader } from "@shared";
+import {
+  Downloader,
+  getOfficialStoreMembers,
+  isEpicMemberInCurrentScope,
+} from "@shared";
 import { orderBy } from "lodash-es";
 import {
   useDate,
@@ -36,6 +40,11 @@ import {
   isSteamImportedGame,
 } from "@renderer/helpers";
 import "./repacks-modal.scss";
+import EpicLogo from "@renderer/assets/epic-integration-logo.svg?react";
+import { EpicInstallModal } from "./epic-install-modal";
+import { useEpicManagedConnection } from "@renderer/hooks/use-epic-managed";
+import { useLibrary } from "@renderer/hooks";
+import type { LibraryGame } from "@types";
 
 export interface RepacksModalProps {
   visible: boolean;
@@ -75,7 +84,34 @@ export function RepacksModal({
     new Set()
   );
 
-  const { game, repacks } = useContext(gameDetailsContext);
+  const { game, presentation, repacks, updateGame } =
+    useContext(gameDetailsContext);
+  const { steam: steamGame, epic: epicGame } = getOfficialStoreMembers(
+    presentation?.members ?? (game ? [game] : [])
+  );
+  const { available: epicAvailable, connection } = useEpicManagedConnection();
+  const epicPrefetchObjectId =
+    epicAvailable && isEpicMemberInCurrentScope(epicGame, connection)
+      ? (epicGame?.objectId ?? null)
+      : null;
+  const epicPrefetchEnvironment = epicGame?.epicImportScope?.environment;
+  const epicPrefetchUserId = epicGame?.epicImportScope?.userId;
+  const epicPrefetchConnectionId = epicGame?.epicImportScope?.connectionId;
+  useEffect(() => {
+    if (!epicPrefetchObjectId) return;
+    void window.electron
+      .getEpicGameInstallOptions?.(epicPrefetchObjectId)
+      .catch(() => {});
+  }, [
+    epicPrefetchObjectId,
+    epicPrefetchEnvironment,
+    epicPrefetchUserId,
+    epicPrefetchConnectionId,
+  ]);
+  const { updateLibrary } = useLibrary();
+  const [epicInstallGame, setEpicInstallGame] = useState<LibraryGame | null>(
+    null
+  );
 
   const { t } = useTranslation("game_details");
 
@@ -244,19 +280,26 @@ export function RepacksModal({
 
   const [isFilterDrawerOpen, setIsFilterDrawerOpen] = useState(false);
   const steamOptionTerm = filterTerm.trim().toLowerCase();
-  const isNonSteamExecutable = useIsNonSteamExecutable(game);
+  const isNonSteamExecutable = useIsNonSteamExecutable(steamGame);
   const showSteamOption =
-    (canDownloadOnSteam(game) ||
-      (isSteamImportedGame(game) && isNonSteamExecutable)) &&
+    (canDownloadOnSteam(steamGame) ||
+      (isSteamImportedGame(steamGame) && isNonSteamExecutable)) &&
     selectedFingerprints.length === 0 &&
     (!steamOptionTerm ||
       "steam".includes(steamOptionTerm) ||
       (game?.title ?? "").toLowerCase().includes(steamOptionTerm));
+  const showEpicOption =
+    epicAvailable &&
+    isEpicMemberInCurrentScope(epicGame, connection) &&
+    selectedFingerprints.length === 0 &&
+    (!steamOptionTerm ||
+      "epic games".includes(steamOptionTerm) ||
+      (game?.title ?? "").toLowerCase().includes(steamOptionTerm));
 
   const handleSteamOptionClick = () => {
-    if (!game) return;
+    if (!steamGame) return;
 
-    void window.electron.installGameOnSteam(game.objectId);
+    void window.electron.installGameOnSteam(steamGame.objectId);
     onClose();
   };
 
@@ -275,6 +318,16 @@ export function RepacksModal({
         onClose={() => setShowSelectFolderModal(false)}
         startDownload={startDownload}
         repack={repack}
+      />
+      <EpicInstallModal
+        game={epicInstallGame}
+        presentationGame={presentation ?? game}
+        onClose={() => setEpicInstallGame(null)}
+        onStarted={() => {
+          setEpicInstallGame(null);
+          void Promise.all([updateLibrary(), updateGame()]);
+          onClose();
+        }}
       />
 
       <Modal
@@ -364,12 +417,30 @@ export function RepacksModal({
             </Button>
           )}
 
-          {showSteamOption && filteredRepacks.length > 0 && (
-            <div className="repacks-modal__separator" />
+          {showEpicOption && epicGame && (
+            <Button
+              theme="dark"
+              onClick={() => setEpicInstallGame(epicGame)}
+              className="repacks-modal__repack-button"
+            >
+              <p className="repacks-modal__repack-title repacks-modal__steam-title">
+                <EpicLogo width={16} height={16} aria-hidden="true" />
+                {game?.title ?? epicGame.title}
+              </p>
+              <p className="repacks-modal__repack-info">
+                {t("download_on_epic")}
+              </p>
+            </Button>
           )}
 
+          {(showSteamOption || showEpicOption) &&
+            filteredRepacks.length > 0 && (
+              <div className="repacks-modal__separator" />
+            )}
+
           {filteredRepacks.length === 0
-            ? !showSteamOption && (
+            ? !showSteamOption &&
+              !showEpicOption && (
                 <div className="repacks-modal__no-results">
                   <div className="repacks-modal__no-results-content">
                     <div className="repacks-modal__no-results-text">

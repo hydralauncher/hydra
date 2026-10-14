@@ -50,6 +50,10 @@ import {
 } from "./library-normalizer";
 import { isEpicInstallExecutable } from "./session-attribution";
 import { matchesEpicImportScope } from "./import-cleanup";
+import {
+  managedWorkspacePath,
+  epicOwnerMatches,
+} from "./legendary-managed-runtime";
 
 type OwnGame = ImportedProfileGame & {
   epicImport: { connectionId: string; artifactIds: string[] } | null;
@@ -78,7 +82,7 @@ export class EpicSyncRuntime {
   private attemptedStartup = new Set<string>();
   constructor(
     store: EpicConnectionStore,
-    userData: string,
+    private readonly userData: string,
     binary: () => Promise<string>,
     private readonly connection: () => Promise<EpicConnectionState>,
     private readonly peek: () => EpicConnectionState | null
@@ -235,6 +239,25 @@ export class EpicSyncRuntime {
       state.connection.epicAccountId === context.connection.epicAccountId
     );
   }
+  /** Previously linked private cache is sufficient only for explicit offline launch. */
+  currentLocal(context: EpicSyncContext) {
+    const state = this.peek();
+    return (
+      HydraApi.isAuthContextCurrent(context.auth) &&
+      state?.hydraUserId === context.auth.userId &&
+      !state.operation &&
+      state.connection?.connected === true &&
+      state.connection.connectionId === context.connection.connectionId &&
+      state.connection.epicAccountId === context.connection.epicAccountId
+    );
+  }
+  captureLocal(): EpicSyncContext | null {
+    const auth = HydraApi.getAuthContext();
+    const state = this.peek();
+    if (!auth || !state?.connection?.connected) return null;
+    const context = { auth, connection: state.connection };
+    return this.currentLocal(context) ? context : null;
+  }
   async capture(): Promise<EpicSyncContext> {
     const auth = HydraApi.getAuthContext();
     if (!auth) throw new EpicIntegrationError("hydra-auth-required");
@@ -306,7 +329,7 @@ export class EpicSyncRuntime {
       [...this.individual.values()].map((entry) => entry.promise)
     );
   }
-  private async ownGame(
+  async ownGame(
     context: EpicSyncContext,
     objectId: string,
     signal: AbortSignal
@@ -508,7 +531,22 @@ export class EpicSyncRuntime {
           artifacts,
           matchedPath,
           game.winePrefixPath,
-          signal
+          signal,
+          game.epicInstallation &&
+            epicOwnerMatches(game.epicInstallation.owner, {
+              environment: context.auth.environment,
+              userId: context.auth.userId,
+              epicAccountId: context.connection.epicAccountId,
+            })
+            ? [
+                managedWorkspacePath(
+                  this.userData,
+                  game.epicInstallation.owner,
+                  game.epicInstallation.artifactId,
+                  game.epicInstallation.platform
+                ),
+              ]
+            : []
         );
     }
     return resolveEpicSessionPlaytimePolicy(

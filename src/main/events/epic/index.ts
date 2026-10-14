@@ -1,7 +1,3 @@
-import { app, type IpcMainInvokeEvent } from "electron";
-import path from "node:path";
-import { pathToFileURL } from "node:url";
-import { WindowManager } from "../../services/window-manager";
 import {
   getEpicConnection,
   startEpicAuth,
@@ -11,49 +7,24 @@ import {
   getEpicSyncState,
   cancelEpicSync,
   syncEpicGameOnGamePage,
+  getEpicGameInstallOptions,
+  startEpicGameDownload,
+  getEpicCloudSaveState,
+  setEpicCloudSaveSettings,
+  syncEpicCloudSaves,
+  resolveEpicCloudSaveConflict,
 } from "../../services/epic";
 import { registerEvent } from "../register-event";
-import { isTrustedEpicSender } from "./epic-ipc-sender";
-
-function assertTrustedSender(
-  event: IpcMainInvokeEvent,
-  allowBigPicture = false
-) {
-  const window = allowBigPicture
-    ? WindowManager.appWindows.find(
-        (candidate) => candidate?.webContents.id === event.sender.id
-      )
-    : WindowManager.mainWindow;
-  const rendererUrls = [
-    pathToFileURL(path.join(__dirname, "../renderer/index.html")).href,
-  ];
-  if (!app.isPackaged && process.env.ELECTRON_RENDERER_URL) {
-    rendererUrls.push(process.env.ELECTRON_RENDERER_URL);
-  }
-  const subdomain = import.meta.env.MAIN_VITE_LAUNCHER_SUBDOMAIN;
-  if (subdomain) {
-    rendererUrls.push(
-      `https://release-v${app.getVersion().replaceAll(".", "-")}.${subdomain}`
-    );
-  }
-  if (
-    !isTrustedEpicSender(
-      {
-        id: event.sender.id,
-        isMainFrame:
-          !!window && event.senderFrame === window.webContents.mainFrame,
-        url: event.senderFrame?.url ?? "",
-      },
-      window && !window.isDestroyed() ? window.webContents.id : null,
-      rendererUrls
-    )
-  ) {
-    throw new Error("epic-ipc-untrusted");
-  }
-}
+import { assertTrustedEpicSender as assertTrustedSender } from "./assert-trusted-sender";
+import {
+  parseEpicManagedObjectId,
+  parseEpicDownloadPayload,
+  parseEpicCloudSaveSettings,
+  parseEpicCloudSaveConflict,
+} from "./managed-ipc-contract";
 
 registerEvent("getEpicConnection", (event) => {
-  assertTrustedSender(event);
+  assertTrustedSender(event, true);
   return getEpicConnection();
 });
 registerEvent("startEpicAuth", (event) => {
@@ -84,4 +55,35 @@ registerEvent("cancelEpicSync", (event, connectionId: string) => {
 registerEvent("syncEpicGameOnGamePage", (event, objectId: string) => {
   assertTrustedSender(event, true);
   return syncEpicGameOnGamePage(objectId);
+});
+
+registerEvent("getEpicGameInstallOptions", (event, objectId: unknown) => {
+  assertTrustedSender(event, true);
+  return getEpicGameInstallOptions(parseEpicManagedObjectId(objectId));
+});
+registerEvent("startEpicGameDownload", (event, payload: unknown) => {
+  assertTrustedSender(event, true);
+  return startEpicGameDownload(parseEpicDownloadPayload(payload));
+});
+registerEvent("getEpicCloudSaveState", (event, objectId: unknown) => {
+  assertTrustedSender(event, true);
+  return getEpicCloudSaveState(parseEpicManagedObjectId(objectId));
+});
+registerEvent(
+  "setEpicCloudSaveSettings",
+  (event, objectId: unknown, settings: unknown) => {
+    assertTrustedSender(event, true);
+    return setEpicCloudSaveSettings(
+      parseEpicManagedObjectId(objectId),
+      parseEpicCloudSaveSettings(settings)
+    );
+  }
+);
+registerEvent("syncEpicCloudSaves", (event, objectId: unknown) => {
+  assertTrustedSender(event, true);
+  return syncEpicCloudSaves(parseEpicManagedObjectId(objectId));
+});
+registerEvent("resolveEpicCloudSaveConflict", (event, payload: unknown) => {
+  assertTrustedSender(event, true);
+  return resolveEpicCloudSaveConflict(parseEpicCloudSaveConflict(payload));
 });

@@ -13,6 +13,8 @@ import {
 import { EpicConnectionStore } from "./store.ts";
 import { connection, deferred, MemoryDatabase } from "./store-test-helpers.ts";
 import type { EpicConnection } from "../../../types/epic-integration.types";
+import type { Download } from "../../../types/level.types";
+import { Downloader } from "../../../shared/constants.js";
 
 function fixture(t: TestContext) {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), "epic-lifecycle-"));
@@ -27,6 +29,11 @@ function fixture(t: TestContext) {
     connection: { connected: false } as EpicConnection,
     events: [] as string[],
     merge: async () => false,
+    downloads: [] as Download[],
+    activeDownloadId: null as string | null,
+    managedEvents: [] as string[],
+    managedStopGate: Promise.resolve(),
+    saveStopGate: Promise.resolve(),
   };
   const modules: Record<string, unknown> = {
     "../library-sync/library-write-queue": {
@@ -88,6 +95,7 @@ function fixture(t: TestContext) {
       WindowManager: {
         mainWindow: null,
         sendToAppWindows: (channel: string) => state.events.push(channel),
+        sendDownloadsUpdated: () => {},
       },
     },
     "./auth-window": {
@@ -121,6 +129,70 @@ function fixture(t: TestContext) {
         }
       },
     },
+    "../../level": {
+      levelKeys: { game: (shop: string, id: string) => `${shop}:${id}` },
+      gamesSublevel: { get: async () => undefined },
+      downloadsSublevel: {
+        get: async (id: string) =>
+          state.downloads.find(
+            (entry) => `${entry.shop}:${entry.objectId}` === id
+          ),
+        values: () => ({ all: async () => state.downloads }),
+        put: async (id: string, value: Download) => {
+          state.downloads = state.downloads.map((entry) =>
+            `${entry.shop}:${entry.objectId}` === id ? value : entry
+          );
+          state.managedEvents.push("paused");
+        },
+      },
+    },
+    "../game-record-updater": { updateGameRecord: async () => undefined },
+    "../download-orchestrator": { DownloadOrchestrator: {} },
+    "../download/download-manager": {
+      DownloadManager: {
+        getActiveDownloadId: () => state.activeDownloadId,
+        pauseDownload: async () => {
+          state.activeDownloadId = null;
+          state.managedEvents.push("slot-released");
+        },
+      },
+    },
+    "../disk-usage": { getDiskUsage: async () => null },
+    "../game-running-state": { isGameRunning: () => false },
+    "../../../shared/constants": { Downloader },
+    "./legendary-managed-runtime": {
+      LegendaryManagedRuntime: class {
+        stop = async () => {
+          state.managedEvents.push("process-stopping");
+          await state.managedStopGate;
+          state.managedEvents.push("process-stopped");
+        };
+        cleanupCredentials = async () => {
+          state.managedEvents.push("credentials-cleared");
+        };
+      },
+    },
+    "./installation": { EpicInstallationService: class {} },
+    "./download": {
+      EpicDownloadService: class {
+        stop = async () => {};
+      },
+      setEpicDownloadService: () => {},
+    },
+    "./cloud-saves": {
+      configureEpicCloudSaves: () => ({
+        invalidate: async () => {
+          state.managedEvents.push("saves-stopping");
+          await state.saveStopGate;
+          state.managedEvents.push("saves-stopped");
+        },
+      }),
+    },
+    "./launch": {
+      configureEpicLaunch: () => {},
+      clearManagedEpicSessions: () => {},
+      hasManagedEpicSession: () => false,
+    },
   };
   const integration = {} as typeof import("./index");
   const source = fs.readFileSync(
@@ -139,6 +211,7 @@ function fixture(t: TestContext) {
     require: (specifier: string) =>
       modules[specifier] ?? assert.fail(`Unexpected dependency: ${specifier}`),
     process,
+    queueMicrotask,
   });
   t.after(async () => {
     await integration.shutdownEpicIntegration();
@@ -207,11 +280,10 @@ test("unlink refreshes app libraries after cleanup even if remote merge fails", 
       ok: true,
     }
   );
-  assert.deepEqual(f.state.events, [
-    "cleanup",
-    "merge",
-    "on-library-batch-complete",
-  ]);
+  assert.deepEqual(
+    f.state.events.filter((event) => event !== "on-epic-connection-changed"),
+    ["cleanup", "merge", "on-library-batch-complete"]
+  );
 });
 
 test("unlink cannot notify a different user's library after context changes", async (t) => {
@@ -235,5 +307,68 @@ test("unlink cannot notify a different user's library after context changes", as
   };
 
   await f.integration.disconnectEpic(connection.connectionId);
-  assert.deepEqual(f.state.events, ["cleanup", "merge"]);
+  assert.deepEqual(
+    f.state.events.filter((event) => event !== "on-epic-connection-changed"),
+    ["cleanup", "merge"]
+  );
+});
+
+test("shutdown waits for managed processes and saves before clearing credentials and the Epic queue", async (t) => {
+  const f = fixture(t);
+  await f.integration.initializeEpicIntegration();
+  const releaseProcess = deferred<void>();
+  const releaseSaves = deferred<void>();
+  f.state.managedStopGate = releaseProcess.promise;
+  f.state.saveStopGate = releaseSaves.promise;
+  f.state.downloads = [
+    {
+      shop: "epic",
+      objectId: "ns:active",
+      downloader: Downloader.Epic,
+      status: "active",
+      queued: false,
+    },
+    {
+      shop: "epic",
+      objectId: "ns:queued",
+      downloader: Downloader.Epic,
+      status: "paused",
+      queued: true,
+    },
+    {
+      shop: "steam",
+      objectId: "123",
+      downloader: Downloader.Torrent,
+      status: "paused",
+      queued: true,
+    },
+  ] as Download[];
+  f.state.activeDownloadId = "epic:ns:active";
+  f.state.managedEvents = [];
+  const stopped = f.integration.shutdownEpicIntegration();
+  await new Promise<void>((resolve) => setImmediate(resolve));
+  assert.equal(f.state.activeDownloadId, "epic:ns:active");
+  assert.equal(f.state.managedEvents.includes("credentials-cleared"), false);
+  releaseProcess.resolve();
+  await new Promise<void>((resolve) => setImmediate(resolve));
+  assert.equal(f.state.managedEvents.includes("credentials-cleared"), false);
+  releaseSaves.resolve();
+  await stopped;
+  assert.equal(f.state.activeDownloadId, null);
+  assert.deepEqual(
+    f.state.downloads.map(({ status, queued }) => ({ status, queued })),
+    [
+      { status: "paused", queued: false },
+      { status: "paused", queued: false },
+      { status: "paused", queued: true },
+    ]
+  );
+  assert.ok(
+    f.state.managedEvents.indexOf("slot-released") >
+      f.state.managedEvents.indexOf("process-stopped")
+  );
+  assert.ok(
+    f.state.managedEvents.indexOf("credentials-cleared") >
+      f.state.managedEvents.indexOf("saves-stopped")
+  );
 });

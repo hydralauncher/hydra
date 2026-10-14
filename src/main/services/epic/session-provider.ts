@@ -1,6 +1,6 @@
 import type { EpicConnectedConnection } from "../../../types/epic-integration.types";
 import type { EpicAuthContext } from "./integration-core";
-import type { EpicConnectionStore } from "./store";
+import type { EpicConnectionStore, EpicSessionBundle } from "./store";
 import { EpicIntegrationError } from "./auth-protocol.js";
 import { LegendarySyncRunner } from "./legendary-sync.js";
 
@@ -19,6 +19,66 @@ export class EpicSessionProvider {
     const result = this.tail.catch(() => undefined).then(task);
     this.tail = result.catch(() => undefined);
     return result;
+  }
+  /** A managed install releases this lease once Legendary prepared its transfer. */
+  async useBundle<T>(
+    context: EpicAuthContext,
+    connection: EpicConnectedConnection,
+    signal: AbortSignal,
+    task: (
+      bundle: EpicSessionBundle,
+      save: (rotated: EpicSessionBundle) => Promise<void>
+    ) => Promise<T>
+  ): Promise<T> {
+    return this.serialize(async () => {
+      if (signal.aborted || !this.current(context, connection))
+        throw new EpicIntegrationError("operation-cancelled");
+      const stored = await this.store.read(context);
+      if (
+        !stored?.bundle ||
+        stored.connection.connectionId !== connection.connectionId ||
+        stored.connection.epicAccountId !== connection.epicAccountId ||
+        Date.parse(stored.bundle.user.refresh_expires_at as string) <=
+          Date.now()
+      )
+        throw new EpicIntegrationError("session-expired");
+      const source = stored.bundle;
+      return task(source, async (rotated) => {
+        await this.store.refreshSession(
+          context,
+          connection,
+          rotated,
+          () => this.current(context, connection),
+          source
+        );
+      });
+    });
+  }
+  /** Offline launch needs account identity, not refreshed Epic credentials. */
+  async useLocalIdentity<T>(
+    context: EpicAuthContext,
+    connection: EpicConnectedConnection,
+    signal: AbortSignal,
+    task: (identity: { account_id: string; displayName: string }) => Promise<T>,
+    isCurrent: () => boolean = () => this.current(context, connection)
+  ): Promise<T> {
+    return this.serialize(async () => {
+      if (signal.aborted || !isCurrent())
+        throw new EpicIntegrationError("operation-cancelled");
+      const stored = await this.store.read(context);
+      if (
+        !stored ||
+        stored.connection.connectionId !== connection.connectionId ||
+        stored.connection.epicAccountId !== connection.epicAccountId
+      )
+        throw new EpicIntegrationError("stale-connection");
+      if (signal.aborted || !isCurrent())
+        throw new EpicIntegrationError("operation-cancelled");
+      return task({
+        account_id: connection.epicAccountId,
+        displayName: connection.displayName,
+      });
+    });
   }
   async use<T>(
     context: EpicAuthContext,
@@ -49,8 +109,12 @@ export class EpicSessionProvider {
         signal,
         (bundle) =>
           this.store
-            .refreshSession(context, connection, bundle, () =>
-              this.current(context, connection)
+            .refreshSession(
+              context,
+              connection,
+              bundle,
+              () => this.current(context, connection),
+              stored.bundle
             )
             .then(() => undefined)
       );

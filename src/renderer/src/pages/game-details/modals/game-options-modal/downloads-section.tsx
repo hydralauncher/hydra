@@ -8,6 +8,7 @@ interface DownloadsSettingsSectionProps {
   deleting: boolean;
   isGameDownloading: boolean;
   repacksLength: number;
+  hasOfficialSource?: boolean;
   onOpenRepacks: () => void;
   onOpenDownloadFolder: () => Promise<void>;
 }
@@ -17,6 +18,7 @@ export function DownloadsSettingsSection({
   deleting,
   isGameDownloading,
   repacksLength,
+  hasOfficialSource = false,
   onOpenRepacks,
   onOpenDownloadFolder,
 }: Readonly<DownloadsSettingsSectionProps>) {
@@ -43,7 +45,11 @@ export function DownloadsSettingsSection({
         <Button
           onClick={onOpenRepacks}
           theme="outline"
-          disabled={deleting || isGameDownloading || !repacksLength}
+          disabled={
+            deleting ||
+            isGameDownloading ||
+            (!repacksLength && !hasOfficialSource)
+          }
         >
           {t("open_download_options")}
         </Button>

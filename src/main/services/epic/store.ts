@@ -350,7 +350,8 @@ export class EpicConnectionStore {
     scope: EpicStoreScope,
     connection: EpicConnectedConnection,
     bundle: EpicSessionBundle,
-    isCurrent: () => boolean
+    isCurrent: () => boolean,
+    sourceBundle?: EpicSessionBundle
   ) {
     const key = getEpicStoreScopeKey(scope);
     return this.enqueue(key, async () => {
@@ -365,6 +366,15 @@ export class EpicConnectionStore {
         throw new EpicStoreError("stale-connection");
       if (!isBundle(bundle, connection.epicAccountId))
         throw new EpicStoreError("invalid-response");
+      // A completed operation cannot overwrite credentials rotated by a newer lease.
+      if (
+        sourceBundle &&
+        isBundle(previous.bundle, connection.epicAccountId) &&
+        (previous.bundle.user.refresh_token !==
+          sourceBundle.user.refresh_token ||
+          previous.bundle.user.access_token !== sourceBundle.user.access_token)
+      )
+        return this.describe(previous);
       return this.writeRecord(
         key,
         previous,

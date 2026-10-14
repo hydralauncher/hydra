@@ -18,6 +18,7 @@ export const LEGACY_STEAM_LIBRARY_CATEGORY = "steam_library";
 
 export interface LibraryCategoryGame {
   shop: string;
+  isDeleted?: boolean;
   hasActiveSteamImport?: boolean;
   hasActiveEpicImport?: boolean;
   canonicalId?: string | null;
@@ -221,8 +222,12 @@ export const hasImportedLibraryGames = (games: LibraryCategoryGame[]) =>
 export const getLibraryPresentationBadgeSource = (
   game: LibraryCategoryGame
 ): "steam" | "epic" | null => {
-  if (game.canonicalId && game.catalogueGame?.shop === "steam") return "steam";
-  if (game.canonicalId && game.catalogueGame?.shop === "epic") return "epic";
-  if (shouldShowSteamLibraryBadge(game)) return "steam";
-  return shouldShowEpicLibraryBadge(game) ? "epic" : null;
+  const activeMembers = (game.members ?? [game]).filter(
+    (member) => !member.isDeleted
+  );
+  if (activeMembers.some((member) => member.hasActiveSteamImport === true))
+    return "steam";
+  return activeMembers.some((member) => member.hasActiveEpicImport === true)
+    ? "epic"
+    : null;
 };

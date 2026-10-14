@@ -149,12 +149,14 @@ export function GameDetailsContextProvider({
     if (pageSyncKey.current === key) return;
     pageSyncKey.current = key;
     for (const member of eligible) {
-      const sync =
-        member.shop === "epic"
-          ? window.electron.syncEpicGameOnGamePage
-          : window.electron.syncSteamGameOnGamePage;
-      if (typeof sync === "function")
-        void sync(member.objectId).catch(() => {});
+      if (member.shop === "epic")
+        void window.electron
+          .syncEpicGameOnGamePage?.(member.objectId)
+          .catch(() => {});
+      else
+        void window.electron
+          .syncSteamGameOnGamePage?.(member.objectId)
+          .catch(() => {});
     }
   }, [presentation, game, shop, objectId, userDetails?.id]);
 

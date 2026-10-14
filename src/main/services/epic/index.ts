@@ -15,6 +15,30 @@ import {
   LegendaryAuthRunner,
 } from "./legendary-auth";
 import { EpicConnectionStore } from "./store";
+import { downloadsSublevel, gamesSublevel, levelKeys } from "../../level";
+import { updateGameRecord } from "../game-record-updater";
+import { DownloadOrchestrator } from "../download-orchestrator";
+import { DownloadManager } from "../download/download-manager";
+import { getDiskUsage } from "../disk-usage";
+import { isGameRunning } from "../game-running-state";
+import { Downloader } from "../../../shared/constants";
+import { LegendaryManagedRuntime } from "./legendary-managed-runtime";
+import { EpicInstallationService } from "./installation";
+import { EpicDownloadService, setEpicDownloadService } from "./download";
+import {
+  configureEpicCloudSaves,
+  type EpicCloudSaveService,
+} from "./cloud-saves";
+import {
+  configureEpicLaunch,
+  clearManagedEpicSessions,
+  hasManagedEpicSession,
+} from "./launch";
+import type {
+  EpicCloudSaveSettings,
+  ResolveEpicCloudSaveConflictPayload,
+  StartEpicGameDownloadPayload,
+} from "../../../types/epic-managed.types";
 
 const EPIC_CONNECTION_ENDPOINT = "/profile/integrations/epic";
 let integration: EpicIntegrationCore | null = null;
@@ -24,6 +48,125 @@ let firstLinkPending = false;
 let unsubscribeAuth: (() => void) | null = null;
 let temporaryCleanupFailed = false;
 let stopping = false;
+let managedRuntime: LegendaryManagedRuntime | null = null;
+let managedDownloads: EpicDownloadService | null = null;
+let managedSaves: EpicCloudSaveService | null = null;
+let managedStop: Promise<void> | null = null;
+let managedCleanupFailed = false;
+
+function configureManagedEpic() {
+  managedRuntime = new LegendaryManagedRuntime({
+    userData: app.getPath("userData"),
+    binary: checkBinary,
+    session: runtime!.session,
+    current: (target) =>
+      !stopping &&
+      !managedStop &&
+      (target.localOnly
+        ? runtime!.currentLocal(target)
+        : runtime!.current(target)),
+  });
+  const installation = new EpicInstallationService({
+    runtime: managedRuntime,
+    capture: () => runtime!.capture(),
+    captureLocal: () => runtime!.captureLocal(),
+    current: (context) =>
+      !stopping && !managedStop && runtime!.current(context),
+    ownGame: (context, objectId, signal) =>
+      runtime!.ownGame(context, objectId, signal),
+    getGame: (objectId) => gamesSublevel.get(levelKeys.game("epic", objectId)),
+    updateGame: (objectId, patch) =>
+      updateGameRecord(levelKeys.game("epic", objectId), patch),
+  });
+  managedDownloads = new EpicDownloadService({
+    runtime: managedRuntime,
+    installation,
+    getDownload: (id) => downloadsSublevel.get(id),
+    putDownload: (id, download) => downloadsSublevel.put(id, download),
+    startPreparedDownload: (download) =>
+      DownloadOrchestrator.startPreparedDownload(download),
+    enqueuePreparedDownload: (download) =>
+      DownloadOrchestrator.enqueuePreparedDownload(download),
+    isGameRunning: (game) =>
+      isGameRunning(game.objectId, game.shop) ||
+      hasManagedEpicSession(levelKeys.game(game.shop, game.objectId)),
+    getDiskUsage,
+    afterGameUpdated: () =>
+      WindowManager.sendToAppWindows("on-library-batch-complete"),
+  });
+  setEpicDownloadService(managedDownloads);
+  const dependencies = {
+    runtime: managedRuntime,
+    installation,
+    emit: (
+      state: import("../../../types/epic-managed.types").EpicCloudSaveState
+    ) =>
+      WindowManager.sendToAppWindows("on-epic-cloud-save-state-changed", state),
+  };
+  managedSaves = configureEpicCloudSaves(dependencies);
+  configureEpicLaunch(dependencies);
+}
+
+/** Stop the process tree before releasing its queue slot or removing credentials. */
+function stopManagedEpic(): Promise<void> {
+  if (managedStop) return managedStop;
+  const operation = Promise.resolve()
+    .then(async () => {
+      clearManagedEpicSessions();
+      const savesStopped = managedSaves?.invalidate();
+      const processesStopped = managedRuntime?.stop();
+      const stopped = await Promise.allSettled([
+        savesStopped,
+        processesStopped,
+        managedDownloads?.stop(),
+      ]);
+      if (stopped.some((result) => result.status === "rejected"))
+        throw new EpicIntegrationError("cleanup-failed");
+      const activeId = DownloadManager.getActiveDownloadId();
+      const active = activeId
+        ? await downloadsSublevel.get(activeId)
+        : undefined;
+      if (active?.downloader === Downloader.Epic) {
+        await DownloadManager.pauseDownload(activeId!);
+        WindowManager.sendToAppWindows("on-download-progress", null);
+      }
+      for (const download of await downloadsSublevel.values().all()) {
+        if (
+          download.downloader !== Downloader.Epic ||
+          (!download.queued && download.status !== "active")
+        )
+          continue;
+        await downloadsSublevel.put(
+          levelKeys.game(download.shop, download.objectId),
+          {
+            ...download,
+            status: "paused",
+            queued: false,
+            pinnedToHero: false,
+          }
+        );
+      }
+      await managedRuntime?.cleanupCredentials();
+      managedCleanupFailed = false;
+      WindowManager.sendDownloadsUpdated();
+    })
+    .catch(() => {
+      managedCleanupFailed = true;
+      throw new EpicIntegrationError("cleanup-failed");
+    })
+    .finally(() => {
+      if (managedStop === operation) managedStop = null;
+    });
+  managedStop = operation;
+  return operation;
+}
+
+async function awaitManagedEpicReady() {
+  getIntegration();
+  await managedStop;
+  if (managedCleanupFailed) throw new EpicIntegrationError("cleanup-failed");
+  if (stopping) throw new EpicIntegrationError("operation-cancelled");
+}
 
 const binaryFailure = (error: unknown) =>
   isRecord(error) && (error.code === "ENOENT" || error.code === "ENOTDIR")
@@ -31,6 +174,8 @@ const binaryFailure = (error: unknown) =>
     : "legendary-unavailable";
 
 function availability(): EpicConnectionState["availability"] {
+  if (managedCleanupFailed)
+    return { available: false, reason: "cleanup-failed" };
   if (!["linux", "win32", "darwin"].includes(process.platform))
     return { available: false, reason: "unsupported-platform" };
   if (process.arch !== "x64" && process.arch !== "arm64")
@@ -47,6 +192,7 @@ function availability(): EpicConnectionState["availability"] {
 }
 
 async function checkBinary() {
+  if (managedCleanupFailed) throw new EpicIntegrationError("cleanup-failed");
   if (temporaryCleanupFailed) {
     try {
       await cleanupEpicTemporarySessions(app.getPath("userData"));
@@ -136,6 +282,7 @@ function getIntegration() {
             verification: "confirmed",
           };
         runtime?.invalidate();
+        await stopManagedEpic();
         if (previous)
           await clearEpicImports(
             context,
@@ -188,11 +335,11 @@ function getIntegration() {
           else void runtime?.startup(firstLink);
         });
       }
-      const window = WindowManager.mainWindow;
-      if (window && !window.isDestroyed())
-        window.webContents.send("on-epic-connection-changed", state);
+      if (JSON.stringify(old) !== JSON.stringify(state))
+        WindowManager.sendToAppWindows("on-epic-connection-changed", state);
     },
   });
+  configureManagedEpic();
   return integration;
 }
 
@@ -209,12 +356,21 @@ export async function initializeEpicIntegration() {
     temporaryCleanupFailed = true;
   }
   if (stopping) return;
+  getIntegration();
+  try {
+    await managedRuntime?.cleanupCredentials();
+  } catch {
+    managedCleanupFailed = true;
+  }
   if (!unsubscribeAuth) {
     unsubscribeAuth = HydraApi.onAuthContextChanged(() => {
       runtime?.invalidate();
+      lastPublicState = null;
       firstLinkPending = false;
       if (integration)
-        void integration.authContextChanged().catch(() => undefined);
+        void stopManagedEpic()
+          .then(() => integration?.authContextChanged())
+          .catch(() => undefined);
     });
   }
   await getIntegration().initialize();
@@ -224,6 +380,7 @@ export async function shutdownEpicIntegration() {
   stopping = true;
   unsubscribeAuth?.();
   unsubscribeAuth = null;
+  await stopManagedEpic();
   await runtime?.stop();
   await integration?.shutdown();
 }
@@ -231,6 +388,7 @@ export async function shutdownEpicIntegration() {
 export const getEpicConnection = () => getIntegration().getConnection();
 export const startEpicAuth = async () => {
   getIntegration();
+  await stopManagedEpic();
   await runtime?.stop();
   return getIntegration().startAuth();
 };
@@ -238,6 +396,7 @@ export const cancelEpicAuth = (operationId: string) =>
   getIntegration().cancelAuth(operationId);
 export const disconnectEpic = async (connectionId: string) => {
   getIntegration();
+  await stopManagedEpic();
   await runtime?.stop();
   return getIntegration().disconnect(connectionId);
 };
@@ -285,3 +444,35 @@ export const cancelEpicGameExitSync = (objectId: string) =>
   runtime?.cancelExit(objectId);
 export const scheduleEpicGameExitSync = (game: import("@types").Game) =>
   runtime?.scheduleExit(game);
+
+export const getEpicGameInstallOptions = async (objectId: string) => {
+  await awaitManagedEpicReady();
+  return managedDownloads!.getOptions(objectId);
+};
+export const startEpicGameDownload = async (
+  payload: StartEpicGameDownloadPayload
+) => {
+  await awaitManagedEpicReady();
+  return managedDownloads!.start(payload);
+};
+export const getEpicCloudSaveState = async (objectId: string) => {
+  await awaitManagedEpicReady();
+  return managedSaves!.getState(objectId);
+};
+export const setEpicCloudSaveSettings = async (
+  objectId: string,
+  settings: EpicCloudSaveSettings
+) => {
+  await awaitManagedEpicReady();
+  return managedSaves!.setSettings(objectId, settings);
+};
+export const syncEpicCloudSaves = async (objectId: string) => {
+  await awaitManagedEpicReady();
+  return managedSaves!.sync(objectId);
+};
+export const resolveEpicCloudSaveConflict = async (
+  payload: ResolveEpicCloudSaveConflictPayload
+) => {
+  await awaitManagedEpicReady();
+  return managedSaves!.resolveConflict(payload);
+};

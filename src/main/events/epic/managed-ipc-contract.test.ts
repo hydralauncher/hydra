@@ -1,0 +1,91 @@
+import assert from "node:assert/strict";
+import os from "node:os";
+import { describe, it } from "node:test";
+import {
+  parseEpicCloudSaveConflict,
+  parseEpicCloudSaveSettings,
+  parseEpicDownloadPayload,
+  parseEpicLaunchOptions,
+  parseEpicManagedObjectId,
+} from "./managed-ipc-contract.js";
+
+const payload = {
+  epicObjectId: "namespace:item",
+  connectionId: "abcdefgh",
+  artifactId: "Artifact1",
+  platform: "Windows",
+  downloadPath: os.tmpdir(),
+};
+
+describe("managed Epic IPC contracts", () => {
+  it("accepts only store identities and captured install inputs", () => {
+    assert.equal(parseEpicManagedObjectId("namespace:item"), "namespace:item");
+    assert.deepEqual(parseEpicDownloadPayload(payload), payload);
+    for (const overrides of [
+      { epicObjectId: "steam:123:extra" },
+      { connectionId: "../account" },
+      { artifactId: "--override-exe" },
+      { artifactId: "app\0command" },
+      { platform: "Linux" },
+      { downloadPath: "relative/path" },
+      { addToQueueOnly: "true" },
+      { command: "install" },
+      { accessToken: "credential" },
+    ]) {
+      assert.throws(() =>
+        parseEpicDownloadPayload({ ...payload, ...overrides })
+      );
+    }
+  });
+
+  it("separates save settings from a single-session launch choice", () => {
+    assert.deepEqual(
+      parseEpicCloudSaveSettings({ automaticSync: true, savePath: null }),
+      { automaticSync: true, savePath: null }
+    );
+    assert.deepEqual(parseEpicLaunchOptions(undefined), {});
+    assert.deepEqual(
+      parseEpicLaunchOptions({
+        epicSavePolicy: "local-once",
+        epicOffline: false,
+      }),
+      { epicSavePolicy: "local-once", epicOffline: false }
+    );
+    assert.throws(() => parseEpicCloudSaveSettings({ automaticSync: "yes" }));
+    assert.throws(() =>
+      parseEpicCloudSaveSettings({ automaticSync: true, savePath: "relative" })
+    );
+    assert.throws(() =>
+      parseEpicLaunchOptions({ epicSavePolicy: "force-upload" })
+    );
+    assert.throws(() =>
+      parseEpicLaunchOptions({ extraArguments: "--offline" })
+    );
+  });
+
+  it("requires a bounded remote version for resolving a save conflict", () => {
+    const conflict = {
+      epicObjectId: "namespace:item",
+      expectedRemoteManifest: "2026.10.14-12.00.00.manifest",
+      choice: "remote",
+    };
+    assert.deepEqual(parseEpicCloudSaveConflict(conflict), conflict);
+    assert.equal(
+      parseEpicCloudSaveConflict({ ...conflict, expectedRemoteManifest: null })
+        .expectedRemoteManifest,
+      null
+    );
+    assert.throws(() =>
+      parseEpicCloudSaveConflict({
+        ...conflict,
+        expectedRemoteManifest: "../save",
+      })
+    );
+    assert.throws(() =>
+      parseEpicCloudSaveConflict({ ...conflict, choice: "both" })
+    );
+    assert.throws(() =>
+      parseEpicCloudSaveConflict({ ...conflict, force: true })
+    );
+  });
+});

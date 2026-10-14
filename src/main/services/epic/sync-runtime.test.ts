@@ -13,6 +13,10 @@ import { mergeImportedProfileGame } from "../library-sync/merge-imported-profile
 import { EpicSyncOrchestrator } from "./sync-orchestrator.js";
 import type { EpicConnectionState } from "../../../types/epic-integration.types";
 import type { Game } from "@types";
+import {
+  managedWorkspacePath,
+  epicOwnerMatches,
+} from "./legendary-managed-runtime.js";
 
 const connection = {
   connected: true as const,
@@ -213,6 +217,7 @@ function fixture() {
     "./library-normalizer": normalizer,
     "./playtime-policy": policy,
     "./session-attribution": { isEpicInstallExecutable: async () => false },
+    "./legendary-managed-runtime": { managedWorkspacePath, epicOwnerMatches },
     "./import-cleanup": {
       matchesEpicImportScope: (
         game: Game,
@@ -297,6 +302,22 @@ test("individual sync rehydrates owner aliases after restart and preserves Hydra
       playTimeInSeconds: 100,
     })
   );
+});
+
+test("explicit offline context uses only the current cached account and never performs ownership requests", () => {
+  const f = fixture();
+  f.connectionState.verification = "unconfirmed";
+  assert.equal(
+    f.runtime.captureLocal()?.connection.connectionId,
+    connection.connectionId
+  );
+  assert.equal(f.runtime.current({ auth, connection }), false);
+  assert.equal(f.state.ownerReads, 0);
+  f.connectionState.operation = { id: "disconnect", status: "disconnecting" };
+  assert.equal(f.runtime.captureLocal(), null);
+  f.connectionState.operation = null;
+  f.connectionState.hydraUserId = "another-user";
+  assert.equal(f.runtime.captureLocal(), null);
 });
 
 test("individual sync merges remote Hydra fields when the revision is unchanged", async () => {
