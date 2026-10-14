@@ -75,6 +75,11 @@ import type {
   SteamSyncRunStatus,
   SteamConnectErrorCode,
   ExtractionFailure,
+  EpicConnectionState,
+  EpicSyncState,
+  EpicSyncFinished,
+  EpicOperationResult,
+  EpicStartAuthResult,
 } from "@types";
 import type { AuthPage, Downloader } from "@shared";
 import type { AxiosProgressEvent } from "axios";
@@ -1755,6 +1760,56 @@ contextBridge.exposeInMainWorld("electron", {
     ipcRenderer.on("on-retroachievements-connected", listener);
     return () =>
       ipcRenderer.removeListener("on-retroachievements-connected", listener);
+  },
+  getEpicConnection: () =>
+    ipcRenderer.invoke("getEpicConnection") as Promise<EpicConnectionState>,
+  startEpicAuth: () =>
+    ipcRenderer.invoke("startEpicAuth") as Promise<EpicStartAuthResult>,
+  cancelEpicAuth: (operationId: string) =>
+    ipcRenderer.invoke(
+      "cancelEpicAuth",
+      operationId
+    ) as Promise<EpicOperationResult>,
+  disconnectEpic: (connectionId: string) =>
+    ipcRenderer.invoke(
+      "disconnectEpic",
+      connectionId
+    ) as Promise<EpicOperationResult>,
+  onEpicConnectionChanged: (cb: (state: EpicConnectionState) => void) => {
+    const listener = (
+      _event: Electron.IpcRendererEvent,
+      state: EpicConnectionState
+    ) => cb(state);
+    ipcRenderer.on("on-epic-connection-changed", listener);
+    return () =>
+      ipcRenderer.removeListener("on-epic-connection-changed", listener);
+  },
+  startEpicSync: (connectionId: string) =>
+    ipcRenderer.invoke("startEpicSync", connectionId) as Promise<EpicSyncState>,
+  getEpicSyncState: () =>
+    ipcRenderer.invoke("getEpicSyncState") as Promise<EpicSyncState>,
+  cancelEpicSync: (connectionId: string) =>
+    ipcRenderer.invoke(
+      "cancelEpicSync",
+      connectionId
+    ) as Promise<EpicOperationResult>,
+  syncEpicGameOnGamePage: (objectId: string) =>
+    ipcRenderer.invoke("syncEpicGameOnGamePage", objectId) as Promise<boolean>,
+  onEpicSyncProgress: (cb: (state: EpicSyncState) => void) => {
+    const listener = (
+      _event: Electron.IpcRendererEvent,
+      state: EpicSyncState
+    ) => cb(state);
+    ipcRenderer.on("on-epic-sync-progress", listener);
+    return () => ipcRenderer.removeListener("on-epic-sync-progress", listener);
+  },
+  onEpicSyncFinished: (cb: (result: EpicSyncFinished) => void) => {
+    const listener = (
+      _event: Electron.IpcRendererEvent,
+      result: EpicSyncFinished
+    ) => cb(result);
+    ipcRenderer.on("on-epic-sync-finished", listener);
+    return () => ipcRenderer.removeListener("on-epic-sync-finished", listener);
   },
   startSteamOAuth: (lng: string) => ipcRenderer.invoke("startSteamOAuth", lng),
   disconnectSteam: (deleteImportedData: boolean) =>

@@ -1,3 +1,7 @@
+import {
+  initializeEpicIntegration,
+  startEpicSyncOnStartup,
+} from "./services/epic";
 import { downloadsSublevel } from "./level/sublevels/downloads";
 import { orderBy } from "lodash-es";
 import { Downloader } from "@shared";
@@ -118,6 +122,7 @@ export const loadState = async () => {
   void watchSteamLibraries();
 
   await HydraApi.setupApi().then(async () => {
+    await initializeEpicIntegration();
     uploadGamesBatch();
     void migrateDownloadSources();
 
@@ -133,6 +138,7 @@ export const loadState = async () => {
       SSEClient.connect();
       void groupedSouvenirWorker.trigger();
       void startSteamSyncOnStartup();
+      void startEpicSyncOnStartup();
     }
   });
 

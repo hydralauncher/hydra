@@ -91,9 +91,15 @@ describe("Library categories", () => {
   });
 
   it("reads a single known library from storage", () => {
-    assert.deepEqual(parseStoredLibrarySources('["steam","epic"]'), ["steam"]);
+    assert.deepEqual(parseStoredLibrarySources('["steam","epic"]'), [
+      "steam",
+      "epic",
+    ]);
     assert.deepEqual(parseStoredLibrarySources('["hydra"]'), ["hydra"]);
-    assert.deepEqual(parseStoredLibrarySources('["steam","hydra"]'), []);
+    assert.deepEqual(parseStoredLibrarySources('["steam","hydra"]'), [
+      "hydra",
+      "steam",
+    ]);
     assert.deepEqual(parseStoredLibrarySources("not json"), []);
     assert.deepEqual(parseStoredLibrarySources('{"steam":true}'), []);
     assert.deepEqual(parseStoredLibrarySources(null), []);
@@ -112,11 +118,11 @@ describe("Library and console filters", () => {
     ];
 
     assert.deepEqual(getLibraryFilterOptions(visibleGames), {
-      hasSteamGames: false,
+      hasImportedGames: false,
       platforms: [],
     });
     assert.deepEqual(getLibraryFilterOptions(hiddenGames), {
-      hasSteamGames: true,
+      hasImportedGames: true,
       platforms: ["N64", "SNES"],
     });
     assert.deepEqual(
@@ -130,7 +136,7 @@ describe("Library and console filters", () => {
       ["hidden-steam", "hidden-snes"]
     );
     assert.deepEqual(getLibraryFilterOptions([]), {
-      hasSteamGames: false,
+      hasImportedGames: false,
       platforms: [],
     });
   });
@@ -245,14 +251,16 @@ describe("Library and console filters", () => {
 
 describe("Profile library filter", () => {
   it("maps profile platforms to shops", () => {
-    assert.deepEqual(getProfileLibraryFilter("pc"), { shops: ["steam"] });
+    assert.deepEqual(getProfileLibraryFilter("pc"), {
+      shops: ["steam", "epic"],
+    });
     assert.deepEqual(getProfileLibraryFilter("classics"), {
       shops: ["launchbox"],
     });
 
     const params = new URLSearchParams();
     appendProfileLibraryFilterParams(params, getProfileLibraryFilter("all"));
-    assert.equal(params.toString(), "shop=steam&shop=launchbox");
+    assert.equal(params.toString(), "shop=steam&shop=epic&shop=launchbox");
   });
 });
 
@@ -264,4 +272,33 @@ describe("Steam badge", () => {
     assert.equal(shouldShowSteamLibraryBadge(games[1]), false);
     assert.equal(isSteamLibraryGame(games[0]), true);
   });
+});
+
+it("keeps Epic imports distinct and preserves two selected sources", () => {
+  const games = [
+    { shop: "epic", hasActiveEpicImport: true },
+    { shop: "epic", hasActiveEpicImport: false },
+    { shop: "steam", hasActiveSteamImport: true },
+  ];
+  assert.deepEqual(
+    filterLibraryGames(games, {
+      category: "pc",
+      sources: ["epic"],
+      platforms: [],
+    }),
+    [games[0]]
+  );
+  assert.deepEqual(
+    filterLibraryGames(games, {
+      category: "pc",
+      sources: ["epic", "steam"],
+      platforms: [],
+    }),
+    [games[0], games[2]]
+  );
+  assert.deepEqual(parseStoredLibrarySources('["epic","hydra"]'), [
+    "hydra",
+    "epic",
+  ]);
+  assert.deepEqual(parseStoredLibrarySources('["epic","hydra","steam"]'), []);
 });

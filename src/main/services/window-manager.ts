@@ -181,6 +181,10 @@ export class WindowManager {
     main.setSkipTaskbar(false);
   }
 
+  public static get appWindows() {
+    return [this.mainWindow, this.bigPicture];
+  }
+
   public static sendToAppWindows(channel: string, ...args: unknown[]) {
     const windows = [this.mainWindow, this.bigPicture, this.friendsWindow];
 

@@ -8,6 +8,7 @@ import {
   readRangeState,
   savedRangeBytes,
 } from "./range-download-state";
+import { updateGameRecord } from "@main/services/game-record-updater";
 import {
   Downloader,
   DownloadError,
@@ -969,8 +970,7 @@ export class DownloadManager {
         const currentGame = await gamesSublevel.get(gameId);
         if (!currentGame) return;
 
-        await gamesSublevel.put(gameId, {
-          ...currentGame,
+        await updateGameRecord(gameId, {
           installerSizeInBytes,
         });
       });

@@ -336,12 +336,14 @@ const supportsTrackingExecutables = (executablePath?: string | null) =>
   !!executablePath && /\.(bat|cmd|exe)$/i.test(executablePath);
 
 interface SteamPlaytimeSectionProps {
+  source?: "steam" | "epic";
   enableHydraPlaytimeTracking: LibraryGame["enableHydraPlaytimeTracking"];
   isNonSteamExecutable: boolean;
   onToggleHydraPlaytimeEnabled: (enabled: boolean) => Promise<void>;
 }
 
 function SteamPlaytimeSection({
+  source = "steam",
   enableHydraPlaytimeTracking,
   isNonSteamExecutable,
   onToggleHydraPlaytimeEnabled,
@@ -352,9 +354,9 @@ function SteamPlaytimeSection({
   return (
     <div className="game-options-modal__section">
       <div className="game-options-modal__header">
-        <h2>{t("steam_playtime_tracking_title")}</h2>
+        <h2>{t(`${source}_playtime_tracking_title`)}</h2>
         <h4 className="game-options-modal__header-description">
-          {t("steam_playtime_tracking_description")}
+          {t(`${source}_playtime_tracking_description`)}
         </h4>
       </div>
 
@@ -435,7 +437,9 @@ export function GeneralSettingsSection({
   const [customPath, setCustomPath] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [isPreparing, setIsPreparing] = useState(false);
-  const isSteamImport = game.shop === "steam" && game.hasActiveSteamImport;
+  const isSteamImport =
+    (game.shop === "steam" && game.hasActiveSteamImport) ||
+    (game.shop === "epic" && game.hasActiveEpicImport);
 
   const gameSize = game.installedSizeInBytes ?? 0;
   const progressPercent = Math.round(transferProgress * 100);
@@ -681,7 +685,10 @@ export function GeneralSettingsSection({
       {showSteamPlaytimeSection && isSteamImport && (
         <SteamPlaytimeSection
           enableHydraPlaytimeTracking={game.enableHydraPlaytimeTracking}
-          isNonSteamExecutable={isNonSteamExecutable}
+          isNonSteamExecutable={
+            game.shop === "epic" ? false : isNonSteamExecutable
+          }
+          source={game.shop === "epic" ? "epic" : "steam"}
           onToggleHydraPlaytimeEnabled={onToggleHydraPlaytimeEnabled}
         />
       )}

@@ -57,6 +57,10 @@ export const LibraryGameCard = memo(function LibraryGameCard({
     userPreferences?.hideLibraryReadySizeBadges ?? false;
   const hideClassicsBadges =
     userPreferences?.hideLibraryClassicsBadges ?? false;
+  const showEpicLibraryBadge =
+    game.shop === "epic" &&
+    game.hasActiveEpicImport === true &&
+    !userPreferences?.hideEpicLibraryBadges;
   const showSteamLibraryBadge = shouldShowSteamLibraryBadge(
     game,
     userPreferences?.hideSteamLibraryBadges
@@ -267,8 +271,12 @@ export const LibraryGameCard = memo(function LibraryGameCard({
             )}
           </div>
 
-          {(showSteamLibraryBadge || showPlatformBadge || showReadyBadge) && (
+          {(showSteamLibraryBadge ||
+            showEpicLibraryBadge ||
+            showPlatformBadge ||
+            showReadyBadge) && (
             <div className="library-game-card__top-right">
+              {showEpicLibraryBadge && <SteamLibraryBadge source="epic" />}
               {showSteamLibraryBadge && <SteamLibraryBadge />}
 
               {showPlatformBadge && (

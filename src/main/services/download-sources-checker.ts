@@ -1,3 +1,4 @@
+import { updateGameRecord } from "@main/services/game-record-updater";
 import { HydraApi } from "./hydra-api";
 import {
   gamesSublevel,
@@ -34,8 +35,7 @@ export class DownloadSourcesChecker {
         `Clearing stale newDownloadOptionsCount for ${previouslyFlaggedGames.length} games`
       );
       for (const game of previouslyFlaggedGames) {
-        await gamesSublevel.put(`${game.shop}:${game.objectId}`, {
-          ...game,
+        await updateGameRecord(`${game.shop}:${game.objectId}`, {
           newDownloadOptionsCount: undefined,
         });
         clearedPayload.push({
@@ -66,8 +66,7 @@ export class DownloadSourcesChecker {
         );
 
         if (game) {
-          await gamesSublevel.put(`${game.shop}:${game.objectId}`, {
-            ...game,
+          await updateGameRecord(`${game.shop}:${game.objectId}`, {
             newDownloadOptionsCount: gameUpdate.newDownloadOptionsCount,
           });
 

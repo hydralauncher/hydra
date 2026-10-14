@@ -66,6 +66,9 @@ export interface ShopAssets {
   coverImageUrl: string | null;
   downloadSources: string[];
   selectedArtworkTypes?: ArtworkAssetType[];
+  epicArtworkUpdatedAtByType?: Partial<
+    Record<"icon" | "portrait" | "landscape", number>
+  >;
 }
 
 export type ShopDetails = SteamAppDetails & {
@@ -105,6 +108,8 @@ export type UserGame = {
   achievementsPointsEarnedSum: number;
   hasManuallyUpdatedPlaytime: boolean;
   hasActiveSteamImport?: boolean;
+  hasActiveEpicImport?: boolean;
+  runtimeByPlatform?: { hydra?: number; steam?: number; epic?: number };
   isFavorite: boolean;
   isHiddenFromOthers?: boolean;
   isConcealed?: boolean;
@@ -720,6 +725,7 @@ export type UserGameDetails = ShopAssets & {
 export * from "./game.types";
 export * from "./steam.types";
 export * from "./steam-integration.types";
+export * from "./epic-integration.types";
 export * from "./download.types";
 export * from "./ludusavi.types";
 export * from "./how-long-to-beat.types";

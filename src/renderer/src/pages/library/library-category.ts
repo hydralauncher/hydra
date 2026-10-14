@@ -1,6 +1,6 @@
 export type LibraryCategory = "all" | "pc" | "classics";
 
-export type LibrarySource = "hydra" | "steam";
+export type LibrarySource = "hydra" | "steam" | "epic";
 
 export const LIBRARY_CATEGORIES: readonly LibraryCategory[] = [
   "all",
@@ -8,13 +8,18 @@ export const LIBRARY_CATEGORIES: readonly LibraryCategory[] = [
   "classics",
 ];
 
-export const LIBRARY_SOURCES: readonly LibrarySource[] = ["hydra", "steam"];
+export const LIBRARY_SOURCES: readonly LibrarySource[] = [
+  "hydra",
+  "steam",
+  "epic",
+];
 
 export const LEGACY_STEAM_LIBRARY_CATEGORY = "steam_library";
 
 export interface LibraryCategoryGame {
   shop: string;
   hasActiveSteamImport?: boolean;
+  hasActiveEpicImport?: boolean;
 }
 
 export interface LibraryFilterGame extends LibraryCategoryGame {
@@ -47,7 +52,9 @@ export const parseStoredLibrarySources = (
     if (!Array.isArray(parsed)) return [];
 
     const sources = LIBRARY_SOURCES.filter((source) => parsed.includes(source));
-    return sources.length === 1 ? sources : [];
+    return sources.length > 0 && sources.length < LIBRARY_SOURCES.length
+      ? sources
+      : [];
   } catch {
     return [];
   }
@@ -92,13 +99,18 @@ export const isClassicsGame = (game: LibraryCategoryGame) =>
 
 export const getLibraryGameSource = (
   game: LibraryCategoryGame
-): LibrarySource => (isSteamLibraryGame(game) ? "steam" : "hydra");
+): LibrarySource =>
+  game.shop === "epic" && game.hasActiveEpicImport
+    ? "epic"
+    : isSteamLibraryGame(game)
+      ? "steam"
+      : "hydra";
 
 export const hasSteamLibraryGames = (games: LibraryCategoryGame[]) =>
   games.some(isSteamLibraryGame);
 
 export const getLibraryFilterOptions = (games: LibraryFilterGame[]) => ({
-  hasSteamGames: hasSteamLibraryGames(games),
+  hasImportedGames: hasImportedLibraryGames(games),
   platforms: Array.from(
     new Set(
       games.flatMap((game) =>
@@ -173,10 +185,10 @@ export const getProfileLibraryFilter = (
   }
 
   if (platform === "pc") {
-    return { shops: ["steam"] };
+    return { shops: ["steam", "epic"] };
   }
 
-  return { shops: ["steam", "launchbox"] };
+  return { shops: ["steam", "epic", "launchbox"] };
 };
 
 export const appendProfileLibraryFilterParams = (
@@ -185,3 +197,15 @@ export const appendProfileLibraryFilterParams = (
 ) => {
   filter.shops.forEach((shop) => params.append("shop", shop));
 };
+
+export const shouldShowEpicLibraryBadge = (
+  game: LibraryCategoryGame,
+  hide = false
+) => !hide && game.shop === "epic" && game.hasActiveEpicImport === true;
+
+export const hasImportedLibraryGames = (games: LibraryCategoryGame[]) =>
+  games.some(
+    (game) =>
+      isSteamLibraryGame(game) ||
+      (game.shop === "epic" && game.hasActiveEpicImport)
+  );
