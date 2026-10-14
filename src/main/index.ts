@@ -43,6 +43,8 @@ import { steamSyncOrchestrator } from "./services/steam-integration/steam-sync-o
 import {
   initializeEpicIntegration,
   shutdownEpicIntegration,
+  suspendEpicPlaytime,
+  resumeEpicPlaytime,
 } from "./services/epic";
 
 crashReporter.start({
@@ -188,7 +190,9 @@ const initializeApp = async () => {
   });
 
   // Suspend can outlive the 60s stall watchdog; reconnect right away instead
+  powerMonitor.on("suspend", suspendEpicPlaytime);
   powerMonitor.on("resume", () => {
+    resumeEpicPlaytime();
     SSEClient.reconnectNow();
     DownloadOrchestrator.onNetworkStatusChanged({
       online: true,

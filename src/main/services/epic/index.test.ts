@@ -34,6 +34,12 @@ function fixture(t: TestContext) {
     managedEvents: [] as string[],
     managedStopGate: Promise.resolve(),
     saveStopGate: Promise.resolve(),
+    reportDrainGate: Promise.resolve(),
+    reportConfirmed: null as
+      | ConstructorParameters<
+          typeof import("./playtime-reporter").EpicPlaytimeReporter
+        >[0]["confirmed"]
+      | null,
   };
   const modules: Record<string, unknown> = {
     "../library-sync/library-write-queue": {
@@ -45,6 +51,9 @@ function fixture(t: TestContext) {
           invalidate() {
             return undefined;
           },
+          clearCache() {
+            state.managedEvents.push("playtime-cache-cleared");
+          },
         };
         session = { serialize: (task: () => Promise<unknown>) => task() };
         orchestrator = {
@@ -53,6 +62,19 @@ function fixture(t: TestContext) {
         };
         startup = async () => {};
         authenticated = async () => {};
+        current = (target: {
+          auth: EpicAuthContext;
+          connection: typeof connection;
+        }) =>
+          target.auth.userId === state.context?.userId &&
+          target.auth.environment === state.context?.environment &&
+          target.auth.generation === state.context?.generation &&
+          state.connection.connected &&
+          target.connection.connectionId === state.connection.connectionId;
+        syncGame = async (objectId: string, fresh: boolean) => {
+          assert.equal(fresh, true);
+          state.managedEvents.push(`fresh-playtime:${objectId}`);
+        };
         invalidate() {
           return undefined;
         }
@@ -173,6 +195,27 @@ function fixture(t: TestContext) {
       },
     },
     "./installation": { EpicInstallationService: class {} },
+    "../logger": { logger: { warn: () => {} } },
+    "./playtime-reporter": {
+      EpicPlaytimeReporter: class {
+        constructor(
+          options: ConstructorParameters<
+            typeof import("./playtime-reporter").EpicPlaytimeReporter
+          >[0]
+        ) {
+          state.reportConfirmed = options.confirmed;
+        }
+        invalidate = () => {
+          state.managedEvents.push("reports-aborted");
+        };
+        idle = async () => {};
+        drain = async () => {
+          state.managedEvents.push("reports-draining");
+          await state.reportDrainGate;
+          state.managedEvents.push("reports-drained");
+        };
+      },
+    },
     "./download": {
       EpicDownloadService: class {
         stop = async () => {};
@@ -371,4 +414,54 @@ test("shutdown waits for managed processes and saves before clearing credentials
     f.state.managedEvents.indexOf("credentials-cleared") >
       f.state.managedEvents.indexOf("saves-stopped")
   );
+});
+
+test("normal shutdown drains observed playtime before invalidating the runtime", async (t) => {
+  const f = fixture(t);
+  await f.integration.initializeEpicIntegration();
+  const release = deferred<void>();
+  f.state.reportDrainGate = release.promise;
+  f.state.managedEvents = [];
+  const shutdown = f.integration.shutdownEpicIntegration();
+  await new Promise<void>((resolve) => setImmediate(resolve));
+  assert.deepEqual(f.state.managedEvents, ["reports-draining"]);
+  release.resolve();
+  await shutdown;
+  assert.ok(
+    f.state.managedEvents.indexOf("reports-drained") <
+      f.state.managedEvents.indexOf("reports-aborted")
+  );
+  assert.ok(
+    f.state.managedEvents.indexOf("reports-drained") <
+      f.state.managedEvents.indexOf("process-stopping")
+  );
+});
+
+test("a confirmed write refreshes the captured game's remote total and ignores a later auth context", async (t) => {
+  const f = fixture(t);
+  f.state.context = {
+    environment: "https://api.test",
+    userId: "A",
+    generation: 1,
+  };
+  f.state.connection = connection;
+  await f.integration.initializeEpicIntegration();
+  const target = {
+    auth: { ...f.state.context },
+    connection: { ...connection },
+    artifactId: "Artifact",
+  };
+  f.state.managedEvents = [];
+  await f.state.reportConfirmed!("Namespace:Item", target);
+  assert.deepEqual(f.state.managedEvents, [
+    "playtime-cache-cleared",
+    "fresh-playtime:Namespace:Item",
+  ]);
+  f.state.context = {
+    environment: "https://api.test",
+    userId: "B",
+    generation: 2,
+  };
+  await f.state.reportConfirmed!("Namespace:Item", target);
+  assert.equal(f.state.managedEvents.length, 2);
 });

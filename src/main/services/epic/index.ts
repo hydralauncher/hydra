@@ -24,6 +24,8 @@ import { isGameRunning } from "../game-running-state";
 import { Downloader } from "../../../shared/constants";
 import { LegendaryManagedRuntime } from "./legendary-managed-runtime";
 import { EpicInstallationService } from "./installation";
+import { EpicPlaytimeReporter } from "./playtime-reporter";
+import { logger } from "../logger";
 import { EpicDownloadService, setEpicDownloadService } from "./download";
 import {
   configureEpicCloudSaves,
@@ -48,9 +50,11 @@ let firstLinkPending = false;
 let unsubscribeAuth: (() => void) | null = null;
 let temporaryCleanupFailed = false;
 let stopping = false;
+let closing = false;
 let managedRuntime: LegendaryManagedRuntime | null = null;
 let managedDownloads: EpicDownloadService | null = null;
 let managedSaves: EpicCloudSaveService | null = null;
+let managedPlaytime: EpicPlaytimeReporter | null = null;
 let managedStop: Promise<void> | null = null;
 let managedCleanupFailed = false;
 
@@ -61,6 +65,7 @@ function configureManagedEpic() {
     session: runtime!.session,
     current: (target) =>
       !stopping &&
+      !closing &&
       !managedStop &&
       (target.localOnly
         ? runtime!.currentLocal(target)
@@ -71,7 +76,7 @@ function configureManagedEpic() {
     capture: () => runtime!.capture(),
     captureLocal: () => runtime!.captureLocal(),
     current: (context) =>
-      !stopping && !managedStop && runtime!.current(context),
+      !stopping && !closing && !managedStop && runtime!.current(context),
     ownGame: (context, objectId, signal) =>
       runtime!.ownGame(context, objectId, signal),
     getGame: (objectId) => gamesSublevel.get(levelKeys.game("epic", objectId)),
@@ -104,12 +109,28 @@ function configureManagedEpic() {
       WindowManager.sendToAppWindows("on-epic-cloud-save-state-changed", state),
   };
   managedSaves = configureEpicCloudSaves(dependencies);
-  configureEpicLaunch(dependencies);
+  managedPlaytime = new EpicPlaytimeReporter({
+    session: runtime!.session,
+    current: (target) => !stopping && !managedStop && runtime!.current(target),
+    confirmed: async (objectId, target) => {
+      if (stopping || closing || managedStop || !runtime!.current(target))
+        return;
+      runtime!.source.clearCache();
+      await runtime!.syncGame(objectId, true);
+    },
+    error: (objectId, code) =>
+      logger.warn("Epic session playtime was not reconciled", {
+        objectId,
+        code,
+      }),
+  });
+  configureEpicLaunch({ ...dependencies, playtime: managedPlaytime });
 }
 
 /** Stop the process tree before releasing its queue slot or removing credentials. */
 function stopManagedEpic(): Promise<void> {
   if (managedStop) return managedStop;
+  managedPlaytime?.invalidate();
   const operation = Promise.resolve()
     .then(async () => {
       clearManagedEpicSessions();
@@ -119,6 +140,7 @@ function stopManagedEpic(): Promise<void> {
         savesStopped,
         processesStopped,
         managedDownloads?.stop(),
+        managedPlaytime?.idle(),
       ]);
       if (stopped.some((result) => result.status === "rejected"))
         throw new EpicIntegrationError("cleanup-failed");
@@ -165,7 +187,8 @@ async function awaitManagedEpicReady() {
   getIntegration();
   await managedStop;
   if (managedCleanupFailed) throw new EpicIntegrationError("cleanup-failed");
-  if (stopping) throw new EpicIntegrationError("operation-cancelled");
+  if (stopping || closing)
+    throw new EpicIntegrationError("operation-cancelled");
 }
 
 const binaryFailure = (error: unknown) =>
@@ -377,6 +400,9 @@ export async function initializeEpicIntegration() {
 }
 
 export async function shutdownEpicIntegration() {
+  closing = true;
+  // Flush only observations already captured; the actual game may keep running.
+  await managedPlaytime?.drain();
   stopping = true;
   unsubscribeAuth?.();
   unsubscribeAuth = null;
@@ -387,6 +413,7 @@ export async function shutdownEpicIntegration() {
 
 export const getEpicConnection = () => getIntegration().getConnection();
 export const startEpicAuth = async () => {
+  if (closing) throw new EpicIntegrationError("operation-cancelled");
   getIntegration();
   await stopManagedEpic();
   await runtime?.stop();
@@ -444,6 +471,8 @@ export const cancelEpicGameExitSync = (objectId: string) =>
   runtime?.cancelExit(objectId);
 export const scheduleEpicGameExitSync = (game: import("@types").Game) =>
   runtime?.scheduleExit(game);
+export const suspendEpicPlaytime = () => managedPlaytime?.suspend();
+export const resumeEpicPlaytime = () => managedPlaytime?.resume();
 
 export const getEpicGameInstallOptions = async (objectId: string) => {
   await awaitManagedEpicReady();

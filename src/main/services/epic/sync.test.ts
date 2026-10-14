@@ -349,6 +349,36 @@ describe("Epic retries and cache", () => {
     assert.equal(calls, 3);
     source.invalidate();
   });
+  it("clearing cache after a write preserves an in-flight snapshot and the next fresh read supersedes it", async () => {
+    let complete!: () => void;
+    const pending = new Promise<void>((resolve) => {
+      complete = resolve;
+    });
+    let calls = 0;
+    let requestSignal: AbortSignal | null | undefined;
+    const source = new EpicPlaytimeSource(
+      { token: async () => "private-token" },
+      async (_url, options) => {
+        calls++;
+        requestSignal = options?.signal;
+        if (calls === 1) await pending;
+        return new Response(
+          JSON.stringify([row("Artifact", calls === 1 ? 100 : 160)])
+        );
+      }
+    );
+    const signal = new AbortController().signal;
+    const snapshot = source.get(auth, connection, signal);
+    await new Promise((resolve) => setImmediate(resolve));
+    source.clearCache();
+    assert.equal(requestSignal?.aborted, false);
+    const fresh = source.get(auth, connection, signal, true);
+    complete();
+    assert.equal((await snapshot).get("Artifact"), 100);
+    assert.equal((await fresh).get("Artifact"), 160);
+    assert.equal(calls, 2);
+    source.invalidate();
+  });
 });
 
 describe("Epic installation attribution", () => {

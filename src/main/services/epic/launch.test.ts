@@ -32,6 +32,11 @@ async function fixture(t: TestContext) {
     starts: 0,
     conflict: false,
     canRunOffline: true,
+    reportsStarted: 0,
+    reportsObserved: 0,
+    reportsInterrupted: 0,
+    reportsFinished: 0,
+    reportsDiscarded: 0,
   };
   const session = {
     objectId: "Namespace:Item",
@@ -117,6 +122,28 @@ async function fixture(t: TestContext) {
   );
   t.after(() => exported.clearManagedEpicSessions());
   exported.configureEpicLaunch({
+    playtime: {
+      begin: (_objectId: string, target: unknown) => {
+        state.reportsStarted++;
+        assert.equal(target, session.target);
+        return {};
+      },
+      observe: () => {
+        state.reportsObserved++;
+      },
+      interrupt: () => {
+        state.reportsInterrupted++;
+      },
+      interruptAll: () => {
+        state.reportsInterrupted++;
+      },
+      finish: () => {
+        state.reportsFinished++;
+      },
+      discard: () => {
+        state.reportsDiscarded++;
+      },
+    },
     runtime: {
       current: () => state.current,
       assertCurrent: () => {
@@ -151,12 +178,19 @@ test("Legendary JSON exit does not close the game; actual bootstrapper/child clo
   );
   assert.equal(f.exported.onManagedEpicClosed(f.game), false);
   assert.equal(f.state.closes, 0);
+  assert.equal(f.state.reportsStarted, 0);
   const running = await f.exported.getManagedEpicProcessMatch(
     "epic:Namespace:Item",
     [{ pid: 101, parentPid: 100, exe: f.child }]
   );
   assert.equal(running.path, f.child);
   assert.equal(await f.exported.onManagedEpicDetected(f.game, f.child), true);
+  assert.equal(await f.exported.onManagedEpicDetected(f.game, f.child), true);
+  assert.equal(f.state.reportsStarted, 1);
+  await f.exported.getManagedEpicProcessMatch("epic:Namespace:Item", [
+    { pid: 101, parentPid: 100, exe: f.child },
+  ]);
+  assert.equal(f.state.reportsObserved, 1);
   assert.equal(
     (
       await f.exported.getManagedEpicProcessMatch(
@@ -174,6 +208,65 @@ test("Legendary JSON exit does not close the game; actual bootstrapper/child clo
   assert.equal(f.exported.onManagedEpicClosed(f.game), true);
   assert.equal(f.exported.onManagedEpicClosed(f.game), false);
   assert.equal(f.state.closes, 1);
+  assert.equal(f.state.reportsFinished, 1);
+  assert.equal(f.state.reportsInterrupted, 2);
+});
+
+test("official sessions, failed launches and context changes cannot start or finish managed playtime", async (t) => {
+  const f = await fixture(t);
+  assert.equal(
+    await f.exported.onManagedEpicDetected(f.game, f.executable),
+    false
+  );
+  assert.equal(f.exported.onManagedEpicClosed(f.game), false);
+  const prepared = await f.exported.prepareManagedEpicLaunch(
+    f.game,
+    f.executable
+  );
+  await f.exported.markManagedEpicLaunched(prepared.session);
+  f.exported.cancelManagedEpicLaunch(prepared.session);
+  assert.equal(f.state.reportsStarted, 0);
+  await f.exported.markManagedEpicLaunched(prepared.session);
+  f.state.current = false;
+  assert.equal(
+    await f.exported.onManagedEpicDetected(f.game, f.executable),
+    false
+  );
+  assert.equal(f.state.reportsStarted, 0);
+  f.state.current = true;
+  f.exported.recordManagedEpicProcess(prepared.session, 100);
+  await f.exported.getManagedEpicProcessMatch("epic:Namespace:Item", [
+    { pid: 101, parentPid: 100, exe: f.executable },
+  ]);
+  assert.equal(
+    await f.exported.onManagedEpicDetected(f.game, f.executable),
+    true
+  );
+  f.exported.clearManagedEpicSessions();
+  assert.equal(f.state.reportsDiscarded, 1);
+  assert.equal(f.exported.onManagedEpicClosed(f.game), false);
+  assert.equal(f.state.reportsFinished, 0);
+});
+
+test("an executable match without managed PID ancestry cannot report playtime", async (t) => {
+  const f = await fixture(t);
+  const prepared = await f.exported.prepareManagedEpicLaunch(
+    f.game,
+    f.executable
+  );
+  await f.exported.markManagedEpicLaunched(prepared.session);
+  f.exported.recordManagedEpicProcess(prepared.session, 100);
+  await f.exported.getManagedEpicProcessMatch("epic:Namespace:Item", [
+    { pid: 500, parentPid: 400, exe: f.executable },
+  ]);
+  await f.exported.onManagedEpicDetected(f.game, f.executable);
+  assert.equal(f.state.reportsStarted, 0);
+  await f.exported.getManagedEpicProcessMatch("epic:Namespace:Item", [
+    { pid: 101, parentPid: 100, exe: f.executable },
+  ]);
+  assert.equal(f.state.reportsStarted, 1);
+  f.exported.onManagedEpicClosed(f.game);
+  assert.equal(f.state.reportsFinished, 1);
 });
 
 test("conflict prevents auth launch; offline uses only confirmed local capture and the offline command", async (t) => {

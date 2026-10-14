@@ -16,6 +16,10 @@ import {
   EpicManagedProcessTracker,
   type EpicProcessNode,
 } from "./managed-process-tracker.js";
+import type {
+  EpicPlaytimeReporter,
+  EpicPlaytimeSession,
+} from "./playtime-reporter";
 
 interface ManagedSession {
   session: EpicSaveSession;
@@ -23,10 +27,15 @@ interface ManagedSession {
   timer: ReturnType<typeof setTimeout>;
   tracker?: EpicManagedProcessTracker;
   verifiedPaths: Set<string>;
+  processObserved: boolean;
+  playtime?: EpicPlaytimeSession;
 }
 const managedSessions = new Map<string, ManagedSession>();
-let dependencies: EpicCloudSaveDependencies | null = null;
-export const configureEpicLaunch = (value: EpicCloudSaveDependencies) => {
+type EpicLaunchDependencies = EpicCloudSaveDependencies & {
+  playtime?: EpicPlaytimeReporter;
+};
+let dependencies: EpicLaunchDependencies | null = null;
+export const configureEpicLaunch = (value: EpicLaunchDependencies) => {
   dependencies = value;
 };
 
@@ -103,6 +112,7 @@ export async function markManagedEpicLaunched(session: EpicSaveSession) {
   const entry: ManagedSession = {
     session,
     detected: false,
+    processObserved: false,
     verifiedPaths: new Set([session.installed.executablePath]),
     timer: setTimeout(() => {
       if (managedSessions.get(key) === entry && !entry.detected) {
@@ -131,10 +141,23 @@ export async function getManagedEpicProcessMatch(
 ) {
   const entry = managedSessions.get(gameKey);
   if (!entry) return { managed: false, complete: true, path: null };
-  if (!processes || !entry.tracker)
+  if (!processes || !entry.tracker) {
+    entry.processObserved = false;
+    if (entry.playtime) dependencies?.playtime?.interrupt(entry.playtime);
     return { managed: true, complete: false, path: null };
+  }
   const result = await entry.tracker.scan(processes);
   for (const candidate of result.paths) entry.verifiedPaths.add(candidate);
+  entry.processObserved = result.complete && result.paths.length > 0;
+  if (entry.detected && entry.processObserved && !entry.playtime)
+    entry.playtime = dependencies?.playtime?.begin(
+      entry.session.objectId,
+      entry.session.target
+    );
+  if (entry.playtime) {
+    if (entry.processObserved) dependencies?.playtime?.observe(entry.playtime);
+    else dependencies?.playtime?.interrupt(entry.playtime);
+  }
   return {
     managed: true,
     complete: result.complete,
@@ -151,6 +174,11 @@ export async function onManagedEpicDetected(
   if (!dependencies?.runtime.current(entry.session.target)) return false;
   const executable = await fs.realpath(actualExecutable).catch(() => null);
   if (!executable || !entry.verifiedPaths.has(executable)) return false;
+  if (!entry.detected && entry.processObserved)
+    entry.playtime = dependencies.playtime?.begin(
+      game.objectId,
+      entry.session.target
+    );
   entry.detected = true;
   clearTimeout(entry.timer);
   return true;
@@ -162,6 +190,7 @@ export function onManagedEpicClosed(game: Game) {
   if (!entry?.detected) return false;
   managedSessions.delete(key);
   clearTimeout(entry.timer);
+  if (entry.playtime) dependencies?.playtime?.finish(entry.playtime);
   // Only a real watcher close owns this upload; the JSON-producing CLI has already exited.
   void getEpicCloudSaveService()
     .afterClose(entry.session)
@@ -174,6 +203,10 @@ export function onManagedEpicClosed(game: Game) {
 }
 export const hasManagedEpicSession = (gameKey: string) =>
   managedSessions.has(gameKey);
+export const interruptManagedEpicPlaytime = () => {
+  for (const entry of managedSessions.values()) entry.processObserved = false;
+  dependencies?.playtime?.interruptAll();
+};
 export function cancelManagedEpicLaunch(session: EpicSaveSession) {
   const key = levelKeys.game("epic", session.objectId);
   const entry = managedSessions.get(key);
@@ -186,6 +219,7 @@ export function cancelManagedEpicLaunch(session: EpicSaveSession) {
 export function clearManagedEpicSessions() {
   for (const entry of managedSessions.values()) {
     clearTimeout(entry.timer);
+    if (entry.playtime) dependencies?.playtime?.discard(entry.playtime);
     getEpicCloudSaveService().endSession(entry.session);
   }
   managedSessions.clear();

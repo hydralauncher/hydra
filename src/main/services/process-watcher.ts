@@ -69,6 +69,7 @@ import {
   onManagedEpicClosed,
   onManagedEpicDetected,
   getManagedEpicProcessMatch,
+  interruptManagedEpicPlaytime,
 } from "./epic/launch";
 import { runWithHydraSaveGuard } from "./epic/cloud-saves";
 
@@ -334,8 +335,12 @@ export const watchProcesses = async () => {
 
   if (!games.length) return;
 
-  const systemProcessMap = await getSystemProcessMap();
+  const systemProcessMap = await getSystemProcessMap().catch((error) => {
+    interruptManagedEpicPlaytime();
+    throw error;
+  });
   if (!isValidProcessWatcherScan(systemProcessMap)) {
+    interruptManagedEpicPlaytime();
     logger.warn("Process enumeration failed; skipping process watcher tick");
     return;
   }
