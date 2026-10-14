@@ -1369,7 +1369,7 @@ export const GalleryVideoPlayer = forwardRef<
         {
           id: AUTO_QUALITY,
           label:
-            activeHeight !== null
+            selectedLevel === AUTO_QUALITY && activeHeight !== null
               ? `${t("video_quality_auto")} (${activeHeight}p)`
               : t("video_quality_auto"),
         },
@@ -1385,7 +1385,7 @@ export const GalleryVideoPlayer = forwardRef<
     }
 
     return [];
-  }, [hlsLevels, activeHeight, sources, t]);
+  }, [hlsLevels, activeHeight, selectedLevel, sources, t]);
 
   const selectedQuality = hlsLevels.length > 1 ? selectedLevel : sourceIndex;
 
