@@ -8,10 +8,26 @@ const {
 } = require("./prepare-legendary.cjs");
 const { verifyLinuxRuntime } = require("./legendary-linux-runtime.cjs");
 const { Arch } = require("builder-util");
+const {
+  verifyEpicPrerequisiteRunner,
+} = require("./build-epic-prerequisite-runner.cjs");
 
 async function afterPack(context) {
   const platform = context.electronPlatformName;
   const arch = Arch[context.arch];
+  if (
+    platform === "linux" &&
+    !(await verifyEpicPrerequisiteRunner({
+      projectDir: context.packager.projectDir,
+      directory: path.join(
+        context.packager.getResourcesDir(context.appOutDir),
+        "epic"
+      ),
+    }))
+  )
+    throw new Error(
+      "Packaged Epic prerequisite supervisor is missing or invalid"
+    );
   const artifact = getLegendaryArtifact(platform, arch);
 
   const binaryPath = path.join(
