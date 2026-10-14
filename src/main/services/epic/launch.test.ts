@@ -87,7 +87,7 @@ async function fixture(t: TestContext) {
         game: (shop: string, objectId: string) => `${shop}:${objectId}`,
       },
     },
-    "../logger": { logger: { warn: () => {} } },
+    "../logger": { logger: { warn: () => {}, info: () => {} } },
     "./cloud-saves": { getEpicCloudSaveService: () => cloud },
     "./cloud-save-protocol.js": { EpicSaveFailure },
     "./launch-protocol.js": protocol,
@@ -246,6 +246,48 @@ test("official sessions, failed launches and context changes cannot start or fin
   assert.equal(f.state.reportsDiscarded, 1);
   assert.equal(f.exported.onManagedEpicClosed(f.game), false);
   assert.equal(f.state.reportsFinished, 0);
+});
+
+test("an external Epic overlay cannot suppress verified game playtime or count time by itself", async (t) => {
+  const f = await fixture(t);
+  const overlay = `${path.dirname(f.executable)}-overlay.exe`;
+  await fsp.writeFile(overlay, "fixture");
+  t.after(() => fsp.rm(overlay, { force: true }));
+  const prepared = await f.exported.prepareManagedEpicLaunch(
+    f.game,
+    f.executable
+  );
+  await f.exported.markManagedEpicLaunched(prepared.session);
+  f.exported.recordManagedEpicProcess(prepared.session, 100);
+  const processes = [
+    { pid: 101, parentPid: 100, exe: f.child },
+    { pid: 102, parentPid: 101, exe: overlay },
+  ];
+  const match = await f.exported.getManagedEpicProcessMatch(
+    "epic:Namespace:Item",
+    processes
+  );
+  assert.equal(match.complete, false);
+  assert.equal(match.path, f.child);
+  assert.equal(await f.exported.onManagedEpicDetected(f.game, f.child), true);
+  assert.equal(f.state.reportsStarted, 1);
+  await f.exported.getManagedEpicProcessMatch("epic:Namespace:Item", processes);
+  assert.equal(f.state.reportsObserved, 1);
+  const overlayOnly = await f.exported.getManagedEpicProcessMatch(
+    "epic:Namespace:Item",
+    [processes[1]]
+  );
+  assert.equal(overlayOnly.path, null);
+  assert.equal(overlayOnly.complete, false);
+  assert.equal(f.state.reportsInterrupted, 1);
+  assert.equal(f.state.reportsObserved, 1);
+  const closed = await f.exported.getManagedEpicProcessMatch(
+    "epic:Namespace:Item",
+    []
+  );
+  assert.equal(closed.complete, true);
+  assert.equal(f.exported.onManagedEpicClosed(f.game), true);
+  assert.equal(f.state.reportsFinished, 1);
 });
 
 test("an executable match without managed PID ancestry cannot report playtime", async (t) => {

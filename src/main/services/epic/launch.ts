@@ -28,6 +28,7 @@ interface ManagedSession {
   tracker?: EpicManagedProcessTracker;
   verifiedPaths: Set<string>;
   processObserved: boolean;
+  processState?: string;
   playtime?: EpicPlaytimeSession;
 }
 const managedSessions = new Map<string, ManagedSession>();
@@ -129,11 +130,16 @@ export function recordManagedEpicProcess(
   pid: number
 ) {
   const entry = managedSessions.get(levelKeys.game("epic", session.objectId));
-  if (entry?.session === session)
+  if (entry?.session === session) {
     entry.tracker = new EpicManagedProcessTracker(
       pid,
       session.installed.installPath
     );
+    logger.info("Epic managed launch process captured", {
+      objectId: session.objectId,
+      pid,
+    });
+  }
 }
 export async function getManagedEpicProcessMatch(
   gameKey: string,
@@ -148,7 +154,18 @@ export async function getManagedEpicProcessMatch(
   }
   const result = await entry.tracker.scan(processes);
   for (const candidate of result.paths) entry.verifiedPaths.add(candidate);
-  entry.processObserved = result.complete && result.paths.length > 0;
+  // A verified game process proves active play even when an external overlay
+  // prevents the scan from proving that the entire launch tree has closed.
+  entry.processObserved = result.paths.length > 0;
+  const processState = `${result.complete}:${result.paths.length}`;
+  if (entry.processState !== processState) {
+    entry.processState = processState;
+    logger.info("Epic managed process observation changed", {
+      objectId: entry.session.objectId,
+      complete: result.complete,
+      verifiedProcesses: result.paths.length,
+    });
+  }
   if (entry.detected && entry.processObserved && !entry.playtime)
     entry.playtime = dependencies?.playtime?.begin(
       entry.session.objectId,
@@ -180,6 +197,10 @@ export async function onManagedEpicDetected(
       entry.session.target
     );
   entry.detected = true;
+  logger.info("Epic managed game session detected", {
+    objectId: game.objectId,
+    reportingPlaytime: !!entry.playtime,
+  });
   clearTimeout(entry.timer);
   return true;
 }
@@ -191,6 +212,10 @@ export function onManagedEpicClosed(game: Game) {
   managedSessions.delete(key);
   clearTimeout(entry.timer);
   if (entry.playtime) dependencies?.playtime?.finish(entry.playtime);
+  logger.info("Epic managed game session closed", {
+    objectId: game.objectId,
+    reportingPlaytime: !!entry.playtime,
+  });
   // Only a real watcher close owns this upload; the JSON-producing CLI has already exited.
   void getEpicCloudSaveService()
     .afterClose(entry.session)

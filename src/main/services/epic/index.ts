@@ -113,6 +113,7 @@ function configureManagedEpic() {
     session: runtime!.session,
     current: (target) => !stopping && !managedStop && runtime!.current(target),
     confirmed: async (objectId, target) => {
+      logger.info("Epic session playtime submission confirmed", { objectId });
       if (stopping || closing || managedStop || !runtime!.current(target))
         return;
       runtime!.source.clearCache();
