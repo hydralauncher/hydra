@@ -2,6 +2,9 @@ import { withDownloadActivation } from "./download-activation";
 import {
   configureRangeStateDirectory,
   getRangeDownloadedBytes,
+  getResourceIdentityState,
+  readResourceIdentity,
+  saveCompletedResourceIdentity,
   readRangeState,
   savedRangeBytes,
 } from "./range-download-state";
@@ -270,7 +273,13 @@ export class DownloadManager {
   private static assertSafeBatchPath(savePath: string, filename: string) {
     const root = path.resolve(savePath);
     const target = path.resolve(root, filename);
-    if (!target.startsWith(root + path.sep)) {
+    const relative = path.relative(root, target);
+    if (
+      !relative ||
+      relative === ".." ||
+      relative.startsWith(".." + path.sep) ||
+      path.isAbsolute(relative)
+    ) {
       throw new Error("The download file path is outside the selected folder.");
     }
 
@@ -1607,6 +1616,7 @@ export class DownloadManager {
     url: string
   ): JsHttpDownloaderOptions {
     const torBoxParallel = batch.provider === "torBox" && !entry.isZip;
+    const resourceId = this.getBatchResourceId(batch, entry);
     const options: JsHttpDownloaderOptions = {
       url,
       savePath: batch.savePath,
@@ -1633,10 +1643,15 @@ export class DownloadManager {
         : undefined,
       preserveFilename: true,
       requireResourceIdentity:
-        batch.provider === "realDebrid" && entry.isZip === true,
-      resourceId:
-        entry.resourceId ??
-        `${batch.provider}:${batch.sourceUri}#${entry.fileId ?? entry.fileIndex ?? entry.sourcePath ?? entry.filename}`,
+        batch.provider === "realDebrid" &&
+        (entry.isZip === true ||
+          readResourceIdentity(path.join(batch.savePath, entry.filename)) !==
+            null),
+      resourceId,
+      beforeComplete:
+        batch.provider === "realDebrid"
+          ? (filePath) => saveCompletedResourceIdentity(filePath, resourceId)
+          : undefined,
       expectedSize:
         (batch.provider === "torBox" || batch.provider === "realDebrid") &&
         !entry.isZip
@@ -1654,6 +1669,16 @@ export class DownloadManager {
     };
     options.refreshUrl = this.getBatchUrlRefresh(batch, entry, options);
     return options;
+  }
+
+  private static getBatchResourceId(
+    batch: JsBatchState,
+    entry: JsBatchEntry
+  ): string {
+    return (
+      entry.resourceId ??
+      `${batch.provider}:${batch.sourceUri}#${entry.fileId ?? entry.fileIndex ?? entry.sourcePath ?? entry.filename}`
+    );
   }
 
   private static getBatchUrlRefresh(
@@ -2774,7 +2799,20 @@ export class DownloadManager {
         path: entry.filename,
         size: entry.size,
       }))
-    );
+    ).map((file, index) => {
+      if (!file.completed) return file;
+      const identity = getResourceIdentityState(
+        path.join(batchState.savePath, file.path),
+        this.getBatchResourceId(batchState, batchState.entries[index])
+      );
+      if (identity === "changed") {
+        throw new Error(
+          "The completed download file changed. Keeping the saved file."
+        );
+      }
+      // Without a matching completion receipt, the downloader must verify saved bytes.
+      return { ...file, completed: identity === "complete" };
+    });
     while (batchState.currentIndex < batchState.entries.length - 1) {
       const file = download.files[batchState.currentIndex];
       if (!file.completed) break;

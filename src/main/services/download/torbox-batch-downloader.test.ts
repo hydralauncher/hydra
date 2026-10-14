@@ -142,7 +142,10 @@ async function fixture(
         );
         res.write(body.subarray(cursor, next));
         cursor = next;
-        if (cursor > end) res.end();
+        if (cursor > end) {
+          clearInterval(timer);
+          res.end();
+        }
       }, 3);
     }, settings.headerDelay);
     res.once("close", () => {

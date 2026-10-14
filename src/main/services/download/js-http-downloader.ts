@@ -655,7 +655,16 @@ export class JsHttpDownloader {
     this.downloadSpeed = 0;
   }
 
-  private parseFileSize(response: Response, startByte: number): void {
+  private parseFileSize(
+    response: Response,
+    startByte: number,
+    encoded: boolean
+  ): void {
+    if (encoded) {
+      // Fetch decodes the body; HTTP byte counts describe the encoded representation.
+      this.fileSize = this.currentOptions?.expectedSize ?? 0;
+      return;
+    }
     const size = computeFileSize({
       status: response.status,
       contentRange: response.headers.get("content-range"),
@@ -1005,8 +1014,12 @@ export class JsHttpDownloader {
     const contentEncoding = (response.headers.get("content-encoding") ?? "")
       .toLowerCase()
       .trim();
-    if (contentEncoding && contentEncoding !== "identity" && startByte > 0) {
-      if (this.shouldVerifyResumePrefix()) {
+    const encoded = Boolean(contentEncoding && contentEncoding !== "identity");
+    if (encoded && startByte > 0) {
+      if (
+        this.shouldVerifyResumePrefix() ||
+        this.currentOptions?.requireRangeResume
+      ) {
         throw new Error(
           "The server encoded the resumed archive response; keeping the saved partial file."
         );
@@ -1066,7 +1079,7 @@ export class JsHttpDownloader {
       );
     }
 
-    this.parseFileSize(response, startByte);
+    this.parseFileSize(response, startByte, encoded);
     if (
       this.currentOptions?.expectedSize !== undefined &&
       this.fileSize !== this.currentOptions.expectedSize
@@ -1112,10 +1125,11 @@ export class JsHttpDownloader {
       await savedPrefix?.close();
     }
 
-    if (
-      this.fileSize > 0 &&
-      fs.statSync(actualFilePath).size !== this.fileSize
-    ) {
+    const completedSize = fs.statSync(actualFilePath).size;
+    if (encoded && this.currentOptions?.expectedSize === undefined) {
+      this.fileSize = completedSize;
+    }
+    if (this.fileSize > 0 && completedSize !== this.fileSize) {
       throw new Error(
         "The archive download ended before its expected size; keeping the partial file."
       );

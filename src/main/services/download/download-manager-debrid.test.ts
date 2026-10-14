@@ -32,7 +32,8 @@ function manager(
   > = async () => manifest,
   realDebridEntries: Awaited<
     ReturnType<typeof RealDebridClient.getDownloadEntriesWithTorrent>
-  >["entries"] = []
+  >["entries"] = [],
+  pathImplementation: typeof path = path
 ) {
   const starts: JsHttpDownloaderOptions[] = [];
   let stored: Record<string, unknown> = { files: [] };
@@ -66,7 +67,7 @@ function manager(
         "./download-throttle": { DownloadThrottle },
         "./download-work-queue": { runDownloadQueue },
         "./range-download-state": rangeState,
-        "node:path": path,
+        "node:path": pathImplementation,
         "./js-http-downloader": { JsHttpDownloader: StubDownloader },
         "./js-http-downloader-helpers": batchHelpers,
         "./parallel-range-download": ranges,
@@ -79,7 +80,7 @@ function manager(
         "@shared": shared,
         "./download-activation": { withDownloadActivation },
         "node:fs": fs,
-        "node:path": path,
+        "node:path": pathImplementation,
         "../system-path": { SystemPath: { getPath: () => metadataDirectory } },
         "../logger": {
           logger: {
@@ -163,6 +164,7 @@ function manager(
     }
   );
   const instance = exports.DownloadManager as {
+    assertSafeBatchPath: (savePath: string, filename: string) => void;
     processNextQueuedDownload: () => Promise<void>;
     resumeDownload: (download: any) => Promise<void>;
     startDownload: (download: any, signal?: AbortSignal) => Promise<void>;
@@ -744,6 +746,137 @@ it("multiple TorBox files keep their folder while a selected lone ZIP is flatten
         })
       ).filename,
       "archive.zip"
+    );
+  } finally {
+    fs.rmSync(root, { recursive: true, force: true });
+  }
+});
+
+for (const [implementation, savePath, filename] of [
+  [path.posix, "/", "folder/file.bin"],
+  [path.win32, "D:\\", "folder/file.bin"],
+  [path.win32, "\\\\server\\share\\", "folder/file.bin"],
+] as const) {
+  it(`accepts files beneath the destination root ${savePath}`, () => {
+    const f = manager(undefined, undefined, [], implementation);
+    assert.doesNotThrow(() =>
+      f.instance.assertSafeBatchPath(savePath, filename)
+    );
+    for (const outside of [".", "..", "../file.bin"]) {
+      assert.throws(
+        () =>
+          f.instance.assertSafeBatchPath(
+            savePath === "/" ? "/folder" : savePath + "folder",
+            outside
+          ),
+        /outside/
+      );
+    }
+  });
+}
+
+for (const identity of [
+  "wrong-range",
+  "matching-range",
+  "missing",
+  "wrong-receipt",
+  "matching-receipt",
+  "changed-receipt",
+] as const) {
+  it(`Real-Debrid skips an existing first file only with verified completion (${identity})`, async () => {
+    const directory = fs.mkdtempSync(
+      path.join(os.tmpdir(), "rd-completed-identity-")
+    );
+    const entries = [
+      {
+        index: 1,
+        path: "folder/first.bin",
+        size: 3,
+        isLocked: false,
+        url: "https://fixture.invalid/first",
+      },
+      {
+        index: 2,
+        path: "folder/second.bin",
+        size: 5,
+        isLocked: false,
+        url: "https://fixture.invalid/second",
+      },
+    ];
+    const f = manager(undefined, undefined, entries);
+    const output = path.join(directory, entries[0].path);
+    fs.mkdirSync(path.dirname(output));
+    fs.writeFileSync(output, "OLD");
+    const resourceId = `realDebrid:magnet:${identity.startsWith("wrong") ? "old" : "new"}#1`;
+    try {
+      if (identity.endsWith("range")) {
+        await rangeState.saveRangeState(output, {
+          version: 1,
+          total: 3,
+          validator: '"fixture"',
+          resourceId: rangeState.rangeResourceId(resourceId),
+          ranges: [[0, 3]],
+        });
+      } else if (identity.endsWith("receipt")) {
+        await rangeState.saveCompletedResourceIdentity(output, resourceId);
+        if (identity === "changed-receipt")
+          fs.utimesSync(output, new Date(0), new Date(0));
+      }
+      const start = () =>
+        f.instance.startDownload({
+          shop: "steam",
+          objectId: "fixture",
+          downloader: shared.Downloader.RealDebrid,
+          uri: "magnet:new",
+          downloadPath: directory,
+        });
+      if (identity === "changed-receipt") {
+        await assert.rejects(start, /changed|verified identity/);
+        assert.equal(f.starts.length, 0);
+      } else {
+        await start();
+        await new Promise<void>((resolve) => setImmediate(resolve));
+        assert.equal(f.starts.length, 1);
+        assert.equal(
+          f.starts[0].filename,
+          entries[identity === "matching-receipt" ? 1 : 0].path
+        );
+        assert.equal(typeof f.starts[0].beforeComplete, "function");
+        if (identity === "wrong-receipt")
+          assert.equal(f.starts[0].requireResourceIdentity, true);
+      }
+      assert.equal(fs.readFileSync(output, "utf8"), "OLD");
+    } finally {
+      fs.rmSync(directory, { recursive: true, force: true });
+    }
+  });
+}
+
+it("Real-Debrid completion records the same identity used by batch resume", async () => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), "rd-completion-receipt-"));
+  const f = manager();
+  const b = batch();
+  b.savePath = root;
+  const output = path.join(root, b.entries[0].filename);
+  fs.mkdirSync(path.dirname(output), { recursive: true });
+  fs.writeFileSync(output, "NEW");
+  try {
+    const options = f.instance.getBatchDownloadOptions(
+      b,
+      b.entries[0],
+      "https://fixture.invalid/first"
+    );
+    await options.beforeComplete!(output);
+    assert.equal(
+      rangeState.hasCompletedResourceIdentity(output, options.resourceId!),
+      true
+    );
+    assert.equal(
+      rangeState.hasCompletedResourceIdentity(
+        output,
+        "realDebrid:magnet:other#1"
+      ),
+      false
     );
   } finally {
     fs.rmSync(root, { recursive: true, force: true });

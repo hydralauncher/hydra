@@ -148,6 +148,7 @@ function orchestrator() {
   const resumeSignals: AbortSignal[] = [];
   let preparedReady = true;
   let preparationCalls = 0;
+  let preparationError: Error | undefined;
   let afterResume: (() => Promise<void>) | undefined;
   let runtimeActive = false;
   let afterQueue: (() => void) | undefined;
@@ -217,6 +218,7 @@ function orchestrator() {
           preparationCalls++;
           entered();
           await preparation;
+          if (preparationError) throw preparationError;
           return preparedReady;
         },
         resumeDownload: async (d: any, signal: AbortSignal) => {
@@ -253,6 +255,9 @@ function orchestrator() {
   return {
     instance: DownloadOrchestrator,
     preparationCalls: () => preparationCalls,
+    setPreparationError: (error: Error) => {
+      preparationError = error;
+    },
     setPreparedReady: (ready: boolean) => {
       preparedReady = ready;
     },
@@ -669,9 +674,9 @@ it("Real-Debrid work cannot be selected by queue completion while preparation is
   await new Promise<void>((resolve) => setImmediate(resolve));
   assert.equal(selected, null);
   assert.equal(waitingRecord.awaitingDebrid, true);
-  assert.equal(waitingRecord.debridQueueOnly, true);
-  assert.equal(f.records.get("next").queued, true);
-  assert.deepEqual(f.resumed, []);
+  assert.equal(waitingRecord.debridQueueOnly, false);
+  assert.equal(f.records.get("next").queued, false);
+  assert.deepEqual(f.resumed, ["next"]);
 });
 
 it("background preparation never overwrites a transfer already running in the same slot", async () => {
@@ -772,7 +777,7 @@ it("shutdown cancels in-flight preparation and prevents subsequent readiness pol
   f.release();
   await new Promise<void>((resolve) => setImmediate(resolve));
   await f.instance.pollAwaitingDebridDownloads();
-  f.instance.startPreparedDownloadInBackground(f.download);
+  f.instance.prepareAndStartDownload(f.download);
   await new Promise<void>((resolve) => setImmediate(resolve));
   await assert.rejects(f.instance.resumeDownload("steam", "next"), {
     name: "AbortError",
@@ -790,7 +795,7 @@ for (const ready of [true, false]) {
     f.setPreparedReady(ready);
     let settled = false;
     const start = Promise.resolve(
-      f.instance.startPreparedDownloadInBackground(f.download)
+      f.instance.prepareAndStartDownload(f.download)
     ).then(() => {
       settled = true;
     });
@@ -829,7 +834,7 @@ it("the start event waits for initial Real-Debrid preparation before replying to
       DownloadManager: { cancelDownload: async () => undefined },
       DownloadOrchestrator: {
         preparesRealDebridInBackground: () => true,
-        startPreparedDownloadInBackground: async () => {
+        prepareAndStartDownload: async () => {
           entered.resolve();
           await prepared.promise;
         },
@@ -872,4 +877,99 @@ it("the start event waits for initial Real-Debrid preparation before replying to
     prepared.resolve();
   }
   assert.equal(((await response) as { ok: boolean }).ok, true);
+});
+
+for (const initialReady of [true, false]) {
+  it(`continues a running queue when preparation becomes ready (${initialReady})`, async () => {
+    const f = orchestrator();
+    f.setPreparedReady(initialReady);
+    await f.instance.enqueuePreparedDownload(f.download);
+    await f.preparing;
+    f.finishActive();
+    f.release();
+    await new Promise<void>((resolve) => setImmediate(resolve));
+    if (!initialReady) {
+      assert.equal(f.records.get("next").awaitingDebrid, true);
+      f.setPreparedReady(true);
+      await f.instance.pollAwaitingDebridDownloads();
+    }
+    assert.deepEqual(f.resumed, ["next"]);
+    assert.equal(f.records.get("next").status, "active");
+    assert.equal(f.records.get("next").queued, false);
+  });
+}
+
+it("initial awaited preparation propagates a non-pending provider failure", async () => {
+  const f = orchestrator();
+  const failure = new Error("Provider authorization failed");
+  f.setPreparationError(failure);
+  const started = f.instance.prepareAndStartDownload(f.download);
+  const rejected = assert.rejects(started, (error) => error === failure);
+  await f.preparing;
+  f.release();
+  await rejected;
+  assert.equal(f.records.get("next").status, "error");
+  assert.deepEqual(f.resumed, []);
+});
+
+it("background queue preparation handles a provider failure without activating it", async () => {
+  const f = orchestrator();
+  f.setPreparationError(new Error("Provider authorization failed"));
+  await f.instance.enqueuePreparedDownload(f.download);
+  await f.preparing;
+  f.release();
+  await new Promise<void>((resolve) => setImmediate(resolve));
+  assert.equal(f.records.get("next").status, "error");
+  assert.deepEqual(f.resumed, []);
+});
+
+it("initial provider failure reaches the start IPC error handler and removes the failed start", async () => {
+  const f = orchestrator();
+  const failure = new Error("Provider authorization failed");
+  f.setPreparationError(failure);
+  let receivedError: unknown;
+  let handler!: (event: unknown, payload: unknown) => Promise<unknown>;
+  load("../events/torrenting/start-game-download.ts", {
+    "../register-event": {
+      registerEvent: (_name: string, callback: typeof handler) => {
+        handler = callback;
+      },
+    },
+    "@main/services": {
+      logger,
+      DownloadManager: { cancelDownload: async () => undefined },
+      DownloadOrchestrator: f.instance,
+      HydraApi: { post: async () => undefined },
+    },
+    "@main/services/library-sync": { createGame: async () => undefined },
+    "@main/level": {
+      levelKeys: { game: (_shop: string, id: string) => id },
+      downloadsSublevel: {
+        put: async (id: string, download: unknown) => {
+          f.records.set(id, download);
+        },
+        del: async (id: string) => {
+          f.records.delete(id);
+        },
+      },
+      gamesSublevel: { get: async () => ({}) },
+    },
+    "@shared": { parseBytes: () => 8 },
+    "@main/helpers": {
+      getGlobalTrackers: async () => [],
+      prepareGameEntry: async () => undefined,
+      isKnownDownloadError: () => true,
+      handleDownloadError: (error: unknown) => {
+        receivedError = error;
+        return { ok: false };
+      },
+    },
+  });
+  const response = handler({}, { ...f.download, downloadPath: "/fixture" });
+  await f.preparing;
+  f.release();
+  assert.equal(((await response) as { ok: boolean }).ok, false);
+  assert.equal(receivedError, failure);
+  assert.equal(f.records.has("next"), false);
+  assert.deepEqual(f.resumed, []);
 });

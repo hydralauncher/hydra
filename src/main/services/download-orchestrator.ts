@@ -744,42 +744,41 @@ export class DownloadOrchestrator {
     });
   }
 
-  static startPreparedDownloadInBackground(download: Download) {
+  static async prepareAndStartDownload(download: Download) {
     if (this.isShuttingDown) return;
     const request = Symbol();
     this.pendingBackgroundStarts.set(getGameKey(download), request);
-    const start = async () => {
-      const preparation = await this.beginBackgroundPreparation(
+    const preparation = await this.beginBackgroundPreparation(
+      download,
+      request
+    );
+    if (!preparation) return;
+    try {
+      if (!preparation.isCurrent()) return;
+      await this.startPreparedDownload(
         download,
-        request
+        preparation.isCurrent,
+        preparation.signal
       );
-      if (!preparation) return;
-      try {
-        if (!preparation.isCurrent()) return;
-        await this.startPreparedDownload(
-          download,
-          preparation.isCurrent,
-          preparation.signal
-        );
-      } catch (error) {
-        if (preparation.isCurrent()) {
-          logger.error("Failed to prepare queued download", error);
-        }
-      } finally {
-        preparation.dispose();
-      }
-    };
-    return start().catch((error) => {
-      logger.error("Failed to save background download preparation", error);
-    });
+    } catch (error) {
+      if (preparation.isCurrent()) throw error;
+    } finally {
+      preparation.dispose();
+    }
   }
 
   static async enqueuePreparedDownload(download: Download) {
-    const queuedDownload = { ...download, debridQueueOnly: true };
+    // Capture intent before yielding: an idle queue stays manual, a running queue continues.
+    const queuedDownload = {
+      ...download,
+      debridQueueOnly: !DownloadManager.hasActiveDownload(),
+    };
     if (download.awaitingDebrid) {
       await this.saveAwaitingDebridDownload(queuedDownload);
     } else if (this.preparesRealDebridInBackground(download)) {
-      void this.startPreparedDownloadInBackground(queuedDownload);
+      void this.prepareAndStartDownload(queuedDownload).catch((error) => {
+        logger.error("Failed to prepare queued download", error);
+      });
     } else {
       await this.queueDownload(download);
     }

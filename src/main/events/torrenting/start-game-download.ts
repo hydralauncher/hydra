@@ -79,7 +79,7 @@ const startGameDownload = async (
     if (download.awaitingDebrid) {
       await DownloadOrchestrator.saveAwaitingDebridDownload(download);
     } else if (prepareRealDebridInBackground) {
-      await DownloadOrchestrator.startPreparedDownloadInBackground(download);
+      await DownloadOrchestrator.prepareAndStartDownload(download);
     } else {
       await DownloadOrchestrator.startPreparedDownload(download);
     }

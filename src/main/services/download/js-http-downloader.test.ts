@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import fs from "node:fs";
 import http from "node:http";
+import { gzipSync, brotliCompressSync } from "node:zlib";
 import os from "node:os";
 import path from "node:path";
 import { Readable } from "node:stream";
@@ -68,6 +69,7 @@ interface FixtureOptions {
   failureDelay?: number;
   disconnectOnce?: boolean;
   hangHeaders?: boolean;
+  encoding?: "gzip" | "br";
 }
 async function fixture(options: FixtureOptions = {}) {
   const data = Buffer.alloc(options.size ?? 1024 * 1024);
@@ -126,6 +128,16 @@ async function fixture(options: FixtureOptions = {}) {
     if (data.length > 0 && match && !options.ignoreRange) {
       res.statusCode = 206;
       res.setHeader("Content-Range", `bytes ${start}-${end}/${data.length}`);
+    }
+    if (options.encoding) {
+      const encoded =
+        options.encoding === "gzip" ? gzipSync(data) : brotliCompressSync(data);
+      res.statusCode = 200;
+      res.removeHeader("Content-Range");
+      res.setHeader("Content-Encoding", options.encoding);
+      res.setHeader("Content-Length", encoded.length);
+      res.end(encoded);
+      return;
     }
     res.setHeader("Content-Length", end - start + 1);
     active++;
@@ -1095,6 +1107,98 @@ it("archive identity rejects corrupt metadata without changing the partial file"
     );
     assert.deepEqual(fs.readFileSync(file), saved);
     assert.equal(f.requests.length, 0);
+  } finally {
+    await f.close();
+  }
+});
+
+for (const encoding of ["gzip", "br"] as const) {
+  for (const expectedSize of [undefined, 128 * 1024]) {
+    it(`accepts a complete decoded ${encoding} response with expected size ${expectedSize}`, async () => {
+      const f = await fixture({ encoding, size: 128 * 1024 });
+      const downloader = new JsHttpDownloader();
+      try {
+        await downloader.startDownload({ ...f.options, expectedSize });
+        assert.deepEqual(
+          fs.readFileSync(path.join(f.root, f.options.filename)),
+          f.data
+        );
+        const status = downloader.getDownloadStatus()!;
+        assert.equal(status.status, "complete");
+        assert.equal(status.fileSize, f.data.length);
+        assert.equal(status.bytesDownloaded, f.data.length);
+      } finally {
+        await f.close();
+      }
+    });
+  }
+  it(`rejects an encoded ${encoding} body that does not match the decoded expected size`, async () => {
+    const f = await fixture({ encoding, size: 128 * 1024 });
+    try {
+      await assert.rejects(
+        () =>
+          new JsHttpDownloader().startDownload({
+            ...f.options,
+            expectedSize: f.data.length + 1,
+          }),
+        /expected size/
+      );
+    } finally {
+      await f.close();
+    }
+  });
+  it(`preserves an existing partial when range resume is required but the server sends ${encoding}`, async () => {
+    const f = await fixture({ encoding, size: 128 * 1024 });
+    const output = path.join(f.root, f.options.filename);
+    const before = f.data.subarray(0, 64 * 1024);
+    fs.mkdirSync(path.dirname(output), { recursive: true });
+    fs.writeFileSync(output, before);
+    try {
+      await assert.rejects(
+        () =>
+          new JsHttpDownloader().startDownload({
+            ...f.options,
+            allowParallelRanges: false,
+            requireRangeResume: true,
+          }),
+        /encoded/
+      );
+      assert.deepEqual(fs.readFileSync(output), before);
+    } finally {
+      await f.close();
+    }
+  });
+}
+
+it("a full checkpoint for another Real-Debrid resource cannot complete or overwrite the file", async () => {
+  const f = await fixture({ size: 128 * 1024 });
+  const output = path.join(f.root, f.options.filename);
+  fs.mkdirSync(path.dirname(output), { recursive: true });
+  const before = Buffer.alloc(f.data.length, 7);
+  fs.writeFileSync(output, before);
+  let completed = false;
+  try {
+    await rangeState.saveRangeState(output, {
+      version: 1,
+      total: before.length,
+      validator: '"fixture-v1"',
+      resourceId: rangeState.rangeResourceId("realDebrid:magnet:old#1"),
+      ranges: [[0, before.length]],
+    });
+    await assert.rejects(
+      () =>
+        new JsHttpDownloader().startDownload({
+          ...f.options,
+          resourceId: "realDebrid:magnet:new#1",
+          beforeComplete: async () => {
+            completed = true;
+          },
+        }),
+      /different download/
+    );
+    assert.equal(completed, false);
+    assert.equal(f.requests.length, 0);
+    assert.deepEqual(fs.readFileSync(output), before);
   } finally {
     await f.close();
   }
