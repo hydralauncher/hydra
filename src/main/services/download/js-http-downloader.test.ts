@@ -66,6 +66,7 @@ interface FixtureOptions {
   contentType?: string;
   failNextStatus?: number;
   failRequests?: Record<number, number>;
+  failRequest?: () => number | undefined;
   failureDelay?: number;
   disconnectOnce?: boolean;
   hangHeaders?: boolean;
@@ -96,9 +97,11 @@ async function fixture(options: FixtureOptions = {}) {
       ifRange: req.headers["if-range"] as string | undefined,
     });
     if (options.hangHeaders) return;
-    if (options.failNextStatus || options.failRequests?.[requests.length]) {
-      const status =
-        options.failNextStatus ?? options.failRequests![requests.length];
+    const status =
+      options.failNextStatus ??
+      options.failRequests?.[requests.length] ??
+      options.failRequest?.();
+    if (status) {
       delete options.failNextStatus;
       setTimeout(() => {
         res.writeHead(status, { "Content-Length": 0, "Retry-After": "0" });
@@ -828,15 +831,32 @@ it("an expired parallel chunk refreshes the link without downgrading connections
   }
 });
 it("separate link expirations can refresh again after verified progress", async () => {
-  const f = await fixture({
-    failRequests: { 2: 403, 6: 403 },
-    failureDelay: 40,
-  });
+  const downloader = new JsHttpDownloader();
   let refreshes = 0;
+  let bytesAtFirstRefresh = 0;
+  let expiredAgain = false;
+  const f = await fixture({
+    size: 2 * 1024 * 1024,
+    failRequests: { 2: 403 },
+    failureDelay: 40,
+    failRequest: () => {
+      if (
+        refreshes === 1 &&
+        !expiredAgain &&
+        downloader.getDownloadStatus()!.bytesDownloaded > bytesAtFirstRefresh
+      ) {
+        expiredAgain = true;
+        return 403;
+      }
+      return undefined;
+    },
+  });
   try {
-    await new JsHttpDownloader().startDownload({
+    await downloader.startDownload({
       ...f.options,
       refreshUrl: async () => {
+        if (refreshes === 0)
+          bytesAtFirstRefresh = downloader.getDownloadStatus()!.bytesDownloaded;
         refreshes++;
         return f.url + "?fresh=" + refreshes;
       },
