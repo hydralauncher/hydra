@@ -188,7 +188,7 @@ const reconcileAchievementMemory = async (
   ownerId: string
 ) => {
   const context = HydraApi.getAuthContext();
-  if (!context || context.userId !== ownerId)
+  if (context?.userId !== ownerId)
     throw new Error("achievement-sync-context-changed");
   return achievementSyncCoordinator.runMerge(
     levelKeys.game(response.shop, response.objectId),
@@ -203,7 +203,7 @@ const synchronizeAchievements = (
   includeSouvenir: boolean
 ) => {
   const context = HydraApi.getAuthContext();
-  if (!context || context.userId !== pending.ownerId)
+  if (context?.userId !== pending.ownerId)
     throw new Error("achievement-sync-context-changed");
   return achievementSyncCoordinator.runRequest(
     pending.gameKey,

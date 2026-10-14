@@ -507,3 +507,49 @@ test("reset invalidates an achievement view that was already fetching", async (t
     0
   );
 });
+
+test("new unlocks preserve a rate-limit retry deadline", async (t) => {
+  const f = await fixture(t);
+  await f.mergeAchievements(f.game, [{ name: "A", unlockTime: 1 }], false);
+  await f.untilRequest(1);
+  f.requests[0]!.gate.reject({
+    isAxiosError: true,
+    response: { status: 429, headers: { "retry-after": "2" } },
+  });
+  await f.achievementSyncWorker.trigger();
+  f.achievementSyncWorker.stop();
+  const original = [...f.records.values()][0]!;
+  await f.mergeAchievements(f.game, [{ name: "B", unlockTime: 2 }], false);
+  const latest = [...f.records.values()][0]!;
+  assert.equal(latest.nextAttemptAt, original.nextAttemptAt);
+  assert.equal(latest.attempts, original.attempts);
+  await f.achievementSyncWorker.trigger();
+  assert.equal(f.requests.length, 1);
+  assert.deepEqual(
+    latest.achievements.map((item: { name: string }) => item.name),
+    ["A", "B"]
+  );
+});
+
+test("a failed in-flight request defers the newer coalesced snapshot", async (t) => {
+  const f = await fixture(t);
+  await f.mergeAchievements(f.game, [{ name: "A", unlockTime: 1 }], false);
+  await f.untilRequest(1);
+  await f.mergeAchievements(f.game, [{ name: "B", unlockTime: 2 }], false);
+  f.requests[0]!.gate.reject({
+    isAxiosError: true,
+    response: { status: 503, headers: { "retry-after": "2" } },
+  });
+  // Let the failed request record its delay without waiting on a wrongly-sent second request.
+  await new Promise((resolve) => setImmediate(resolve));
+  await new Promise((resolve) => setImmediate(resolve));
+  const latest = [...f.records.values()][0]!;
+  assert.ok(latest.nextAttemptAt >= Date.now() + 1500);
+  assert.equal(latest.attempts, 1);
+  assert.deepEqual(
+    latest.achievements.map((item: { name: string }) => item.name),
+    ["A", "B"]
+  );
+  await f.achievementSyncWorker.trigger();
+  assert.equal(f.requests.length, 1);
+});

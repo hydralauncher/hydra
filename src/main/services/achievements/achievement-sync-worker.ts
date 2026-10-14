@@ -1,4 +1,4 @@
-import { randomUUID } from "node:crypto";
+import { randomInt, randomUUID } from "node:crypto";
 import type {
   GameShop,
   UnlockedAchievement,
@@ -17,6 +17,8 @@ import {
   ACHIEVEMENT_SYNC_REQUEST_TIMEOUT_MS,
   ACHIEVEMENT_SYNC_RETRY_DELAY_MS,
   ACHIEVEMENT_SYNC_MAX_RETRY_DELAY_MS,
+  ACHIEVEMENT_SYNC_MAX_RETRY_EXPONENT,
+  ACHIEVEMENT_SYNC_RETRY_JITTER_DIVISOR,
   ACHIEVEMENT_SYNC_MAX_TIMER_DELAY_MS,
 } from "./achievement-sync-coordinator";
 import { isAxiosError } from "axios";
@@ -52,18 +54,22 @@ export const getAchievementSyncRetryDelay = (
   const seconds =
     typeof retryAfter === "string" || typeof retryAfter === "number"
       ? Number(retryAfter)
-      : NaN;
-  const date = typeof retryAfter === "string" ? Date.parse(retryAfter) : NaN;
-  const serverDelay = Number.isFinite(seconds)
-    ? Math.max(0, seconds * 1000)
-    : Number.isFinite(date)
-      ? Math.max(0, date - Date.now())
-      : 0;
+      : Number.NaN;
+  const date =
+    typeof retryAfter === "string" ? Date.parse(retryAfter) : Number.NaN;
+  let serverDelay = 0;
+  if (Number.isFinite(seconds)) serverDelay = Math.max(0, seconds * 1000);
+  else if (Number.isFinite(date)) serverDelay = Math.max(0, date - Date.now());
   const backoff = Math.min(
     ACHIEVEMENT_SYNC_MAX_RETRY_DELAY_MS,
-    ACHIEVEMENT_SYNC_RETRY_DELAY_MS * 2 ** Math.min(attempts, 6)
+    ACHIEVEMENT_SYNC_RETRY_DELAY_MS *
+      2 ** Math.min(attempts, ACHIEVEMENT_SYNC_MAX_RETRY_EXPONENT)
   );
-  return Math.max(serverDelay, backoff + (Math.random() * backoff) / 4);
+  const jitter = randomInt(
+    0,
+    Math.floor(backoff / ACHIEVEMENT_SYNC_RETRY_JITTER_DIVISOR) + 1
+  );
+  return Math.max(serverDelay, backoff + jitter);
 };
 
 export const toAchievementSyncPayload = (item: PendingAchievementSync) => ({
@@ -90,6 +96,7 @@ export class AchievementSyncWorker {
     if (!HydraApi.isAuthContextCurrent(item.context)) return;
     const key = keyOf(item.context, item.gameKey);
     const previous = await pending.get(key).catch(() => null);
+    const retry = previous?.terminal ? undefined : previous;
     await pending.put(key, {
       ...item,
       achievements: mergeUnlockedAchievementLists(
@@ -97,8 +104,8 @@ export class AchievementSyncWorker {
         previous?.achievements ?? []
       ),
       revision: randomUUID(),
-      attempts: 0,
-      nextAttemptAt: 0,
+      attempts: retry?.attempts ?? 0,
+      nextAttemptAt: retry?.nextAttemptAt ?? 0,
     });
   }
 
@@ -152,77 +159,94 @@ export class AchievementSyncWorker {
         (row) => !row.terminal && row.nextAttemptAt <= Date.now()
       );
       if (!item) return;
-      const key = keyOf(item.context, item.gameKey);
-      try {
-        const response = await achievementSyncCoordinator.runRequest(
-          item.gameKey,
-          () =>
-            HydraApi.put<UpdatedUnlockedAchievements | undefined>(
-              "/profile/games/achievements",
-              toAchievementSyncPayload(item),
-              {
-                authContext: item.context,
-                timeout: ACHIEVEMENT_SYNC_REQUEST_TIMEOUT_MS,
-              }
-            ),
-          () => HydraApi.isAuthContextCurrent(item.context)
-        );
-        await achievementSyncCoordinator.runMerge(
-          item.gameKey,
-          async (current) => {
-            if (response) await reconcileAchievementMemory(response, current);
-            if (!current()) throw new AchievementSyncCancelledError();
-            await PendingAchievementSouvenirStore.clearSynced(
-              item.gameKey,
-              item.achievements
-            );
-            const latest = await pending.get(key).catch(() => null);
-            if (latest?.revision === item.revision) await pending.del(key);
-          },
-          () => HydraApi.isAuthContextCurrent(item.context)
-        );
-      } catch (error) {
-        if (
-          error instanceof AchievementSyncCancelledError ||
-          !HydraApi.isAuthContextCurrent(item.context)
-        )
-          return;
-        try {
-          await achievementSyncCoordinator.runMerge(
-            item.gameKey,
-            async () => {
-              const latest = await pending.get(key).catch(() => null);
-              if (latest?.revision !== item.revision) return;
-              // Keep local unlocks durable even if an older server cannot accept them yet.
-              await pending.put(key, {
-                ...item,
-                terminal:
-                  isAxiosError(error) &&
-                  Boolean(
-                    error.response?.status &&
-                      error.response.status < 500 &&
-                      ![408, 409, 429].includes(error.response.status)
-                  ),
-                attempts: item.attempts + 1,
-                nextAttemptAt:
-                  Date.now() +
-                  getAchievementSyncRetryDelay(error, item.attempts),
-              });
-            },
-            () => HydraApi.isAuthContextCurrent(item.context)
-          );
-        } catch (persistenceError) {
-          if (persistenceError instanceof AchievementSyncCancelledError) return;
-          throw persistenceError;
-        }
-        if (!HydraApi.isAuthContextCurrent(item.context)) return;
-        achievementsLogger.error(
-          "Achievement synchronization retained for retry",
-          item.gameKey,
-          error
-        );
-      }
+      if (!(await this.synchronize(item))) return;
     }
+  }
+
+  private async synchronize(item: PendingAchievementSync): Promise<boolean> {
+    const key = keyOf(item.context, item.gameKey);
+    const current = () => HydraApi.isAuthContextCurrent(item.context);
+    try {
+      const response = await achievementSyncCoordinator.runRequest(
+        item.gameKey,
+        () =>
+          HydraApi.put<UpdatedUnlockedAchievements | undefined>(
+            "/profile/games/achievements",
+            toAchievementSyncPayload(item),
+            {
+              authContext: item.context,
+              timeout: ACHIEVEMENT_SYNC_REQUEST_TIMEOUT_MS,
+            }
+          ),
+        current
+      );
+      await achievementSyncCoordinator.runMerge(
+        item.gameKey,
+        async (valid) => {
+          if (response) await reconcileAchievementMemory(response, valid);
+          if (!valid()) throw new AchievementSyncCancelledError();
+          await PendingAchievementSouvenirStore.clearSynced(
+            item.gameKey,
+            item.achievements
+          );
+          const latest = await pending.get(key).catch(() => null);
+          if (latest?.revision === item.revision) await pending.del(key);
+        },
+        current
+      );
+      return true;
+    } catch (error) {
+      if (error instanceof AchievementSyncCancelledError || !current())
+        return false;
+      return this.retainForRetry(item, error);
+    }
+  }
+
+  private async retainForRetry(
+    item: PendingAchievementSync,
+    error: unknown
+  ): Promise<boolean> {
+    const current = () => HydraApi.isAuthContextCurrent(item.context);
+    const key = keyOf(item.context, item.gameKey);
+    try {
+      await achievementSyncCoordinator.runMerge(
+        item.gameKey,
+        async () => {
+          const latest = await pending.get(key).catch(() => null);
+          if (!latest) return;
+          const attempts = Math.max(latest.attempts, item.attempts);
+          const status = isAxiosError(error)
+            ? error.response?.status
+            : undefined;
+          const terminal =
+            status !== undefined &&
+            status < 500 &&
+            ![408, 409, 429].includes(status);
+          // Apply server backoff to newer snapshots too, without losing their unlocks.
+          await pending.put(key, {
+            ...latest,
+            terminal: latest.revision === item.revision && terminal,
+            attempts: attempts + 1,
+            nextAttemptAt: Math.max(
+              latest.nextAttemptAt,
+              Date.now() + getAchievementSyncRetryDelay(error, attempts)
+            ),
+          });
+        },
+        current
+      );
+    } catch (persistenceError) {
+      if (persistenceError instanceof AchievementSyncCancelledError)
+        return false;
+      throw persistenceError;
+    }
+    if (!current()) return false;
+    achievementsLogger.error(
+      "Achievement synchronization retained for retry",
+      item.gameKey,
+      error
+    );
+    return true;
   }
 
   private async schedule() {

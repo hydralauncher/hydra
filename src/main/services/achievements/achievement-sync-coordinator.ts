@@ -3,6 +3,8 @@ import { GameRequestQueue } from "../library-sync/game-request-queue.js";
 export const ACHIEVEMENT_SYNC_REQUEST_TIMEOUT_MS = 20_000;
 export const ACHIEVEMENT_SYNC_RETRY_DELAY_MS = 1_000;
 export const ACHIEVEMENT_SYNC_MAX_RETRY_DELAY_MS = 60_000;
+export const ACHIEVEMENT_SYNC_MAX_RETRY_EXPONENT = 6;
+export const ACHIEVEMENT_SYNC_RETRY_JITTER_DIVISOR = 4;
 export const ACHIEVEMENT_SYNC_MAX_TIMER_DELAY_MS = 2_147_483_647;
 
 export class AchievementSyncCancelledError extends Error {
