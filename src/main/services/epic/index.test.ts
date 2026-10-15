@@ -79,9 +79,11 @@ function fixture(t: TestContext, options: { linux?: boolean } = {}) {
     toolLeaseReleases: 0,
     managedSessionActive: false,
     warnings: [] as string[],
-    prepareLinuxInstallation: undefined as ConstructorParameters<
-      typeof import("./download").EpicDownloadService
-    >[0]["prepareLinuxInstallation"],
+    downloadOptions: null as
+      | ConstructorParameters<
+          typeof import("./download").EpicDownloadService
+        >[0]
+      | null,
     activeDownloadId: null as string | null,
     managedEvents: [] as string[],
     managedStopGate: Promise.resolve(),
@@ -354,7 +356,7 @@ function fixture(t: TestContext, options: { linux?: boolean } = {}) {
             typeof import("./download").EpicDownloadService
           >[0]
         ) {
-          state.prepareLinuxInstallation = options.prepareLinuxInstallation;
+          state.downloadOptions = options;
         }
         stop = async () => {};
         getOptions = async () => ({ options: [] });
@@ -589,30 +591,14 @@ test("managed Winetricks waits for proven termination after inspection failure a
   ]);
 });
 
-test("Linux startup reconciles ownership tokens and finalization prepares prerequisites before acknowledgement", async (t) => {
+test("Linux startup reconciles ownership tokens without attaching compatibility preparation to downloads", async (t) => {
   const f = fixture(t, { linux: true });
   f.state.games = [{ shop: "epic", objectId: "Namespace:Item" }] as Game[];
   await f.integration.initializeEpicIntegration();
   assert.deepEqual(f.state.reconciledGames, [f.state.games]);
-  assert.ok(f.state.prepareLinuxInstallation);
-  const input = {
-    game: f.state.games[0],
-    target: { artifactId: "Artifact" },
-    installed: { app_name: "Artifact" },
-    signal: new AbortController().signal,
-  } as Parameters<NonNullable<typeof f.state.prepareLinuxInstallation>>[0];
-  f.state.managedEvents = [];
-  await f.state.prepareLinuxInstallation(input);
-  assert.deepEqual(f.state.managedEvents, [
-    "linux-prepared",
-    "prerequisites-confirmed",
-  ]);
-  assert.equal(f.state.preparedLinux.length, 1);
-  const prepared = f.state.preparedLinux[0] as typeof input;
-  assert.equal(prepared.game, input.game);
-  assert.equal(prepared.target, input.target);
-  assert.equal(prepared.installed, input.installed);
-  assert.equal(prepared.signal, input.signal);
+  assert.ok(f.state.downloadOptions);
+  assert.equal("prepareLinuxInstallation" in f.state.downloadOptions, false);
+  assert.equal(f.state.preparedLinux.length, 0);
   await f.integration.initializeEpicIntegration();
   assert.equal(f.state.reconciledGames.length, 1);
 });
@@ -620,7 +606,8 @@ test("Linux startup reconciles ownership tokens and finalization prepares prereq
 test("Windows startup skips Linux reconciliation and preserves native prerequisite finalization", async (t) => {
   const f = fixture(t);
   await f.integration.initializeEpicIntegration();
-  assert.equal(f.state.prepareLinuxInstallation, undefined);
+  assert.ok(f.state.downloadOptions);
+  assert.equal("prepareLinuxInstallation" in f.state.downloadOptions, false);
   assert.equal(f.state.reconciledGames.length, 0);
 });
 

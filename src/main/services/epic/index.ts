@@ -102,21 +102,6 @@ function configureManagedEpic() {
     getDiskUsage,
     afterGameUpdated: () =>
       WindowManager.sendToAppWindows("on-library-batch-complete"),
-    prepareLinuxInstallation:
-      process.platform === "linux"
-        ? async ({ game, target, installed, signal }) => {
-            const { ensureEpicLinuxPrerequisites } = await import(
-              "./linux-runtime"
-            );
-            await ensureEpicLinuxPrerequisites({
-              game,
-              target,
-              installed,
-              signal,
-            });
-            await installation.confirmPrerequisites(target, installed, signal);
-          }
-        : undefined,
   });
   setEpicDownloadService(managedDownloads);
   const dependencies = {

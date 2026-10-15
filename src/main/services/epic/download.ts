@@ -122,6 +122,7 @@ export class EpicDownloadProgressParser {
 }
 
 interface DownloadServiceOptions {
+  platform?: NodeJS.Platform;
   runtime: LegendaryManagedRuntime;
   installation: EpicInstallationService;
   getDownload: (id: string) => Promise<Download | undefined>;
@@ -131,12 +132,6 @@ interface DownloadServiceOptions {
   isGameRunning: (game: Game) => boolean;
   getDiskUsage: (directory: string) => Promise<{ free: number } | null>;
   afterGameUpdated?: () => void;
-  prepareLinuxInstallation?: (input: {
-    game: Game;
-    target: EpicManagedTarget;
-    installed: EpicInstalledGame;
-    signal: AbortSignal;
-  }) => Promise<void>;
   runPrerequisite?: (
     executable: string,
     args: string[],
@@ -235,6 +230,9 @@ export class EpicDownloadService {
   }
   private id(objectId: string) {
     return `epic:${objectId}`;
+  }
+  private isWindows() {
+    return (this.options.platform ?? process.platform) === "win32";
   }
   async start(
     payload: StartEpicGameDownloadPayload
@@ -551,15 +549,7 @@ export class EpicDownloadService {
       assertActive();
       if (!installed || installed.version !== active.version)
         throw new EpicManagedError("installation-incomplete");
-      if (this.options.prepareLinuxInstallation) {
-        active.download.epic!.phase = "prerequisites";
-        await this.options.prepareLinuxInstallation({
-          game: owned.game,
-          target,
-          installed,
-          signal: controller.signal,
-        });
-      } else await this.prerequisites(active, installed);
+      if (this.isWindows()) await this.prerequisites(active, installed);
       assertActive();
       await this.options.installation.bind(
         owned,
