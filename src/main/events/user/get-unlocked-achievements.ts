@@ -131,8 +131,7 @@ export const getUnlockedAchievements = async (
     }
   }
 
-  // Definitions from the associated catalogue are presentation only. Never
-  // transfer its unlocks, souvenirs or cache into the imported Epic copy.
+  // Catalogue definitions are display-only: never copy their unlocks, souvenirs or cache.
   if (
     shop === "epic" &&
     catalogueAchievements.length === 0 &&
@@ -150,22 +149,23 @@ export const getUnlockedAchievements = async (
         useCachedData
       ).catch(() => []);
       assertOwner();
-      return definitions.map((achievement) => ({
-        ...achievement,
-        unlocked: false,
-        unlockTime: null,
-        source: "steam" as const,
-        sourceObjectId: catalogue.objectId,
-        description:
-          !achievement.hidden || showHiddenAchievementsDescription
-            ? achievement.description
-            : undefined,
-        icongray: achievement.icongray.endsWith("/")
-          ? achievement.icon
-          : achievement.icongray,
-      }));
+      return definitions
+        .map((achievement) => ({
+          ...achievement,
+          unlocked: false,
+          unlockTime: null,
+          source: "steam" as const,
+          sourceObjectId: catalogue.objectId,
+          description:
+            !achievement.hidden || showHiddenAchievementsDescription
+              ? achievement.description
+              : undefined,
+          icongray: achievement.icongray.endsWith("/")
+            ? achievement.icon
+            : achievement.icongray,
+        }))
+        .sort((a, b) => Number(a.hidden) - Number(b.hidden));
     }
-    assertOwner();
   }
   return catalogueAchievements
     .map((achievementData) => {

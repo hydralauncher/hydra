@@ -59,6 +59,14 @@ for (const linked of [false, true]) {
                     icon: "icon",
                     icongray: "gray/",
                   },
+                  {
+                    name: "SECOND",
+                    displayName: "Second",
+                    hidden: false,
+                    description: "visible",
+                    icon: "icon2",
+                    icongray: "gray2",
+                  },
                 ]
               : [];
           },
@@ -88,6 +96,7 @@ for (const linked of [false, true]) {
           cached: boolean
         ) => Promise<
           Array<{
+            name: string;
             unlocked: boolean;
             unlockTime: number | null;
             description?: string;
@@ -100,17 +109,24 @@ for (const linked of [false, true]) {
         return stubs[name];
       });
       const rows = await exported.getUnlockedAchievements("game", "epic", true);
-      assert.equal(rows.length, linked ? 1 : 0);
+      assert.equal(rows.length, linked ? 2 : 0);
       assert.deepEqual(
         reads,
         linked ? ["epic:game", "steam:752590"] : ["epic:game"]
       );
       assert.deepEqual(writes, ["epic"]);
       if (linked) {
-        assert.equal(rows[0].unlocked, false);
-        assert.equal(rows[0].unlockTime, null);
-        assert.equal(rows[0].description, undefined);
-        assert.equal(rows[0].icongray, "icon");
+        assert.deepEqual(
+          rows.map((row) => row.name),
+          ["SECOND", "FIRST"]
+        );
+        assert.ok(
+          rows.every((row) => !row.unlocked && row.unlockTime === null)
+        );
+        assert.equal(rows[0].description, "visible");
+        assert.equal(rows[0].icongray, "gray2");
+        assert.equal(rows[1].description, undefined);
+        assert.equal(rows[1].icongray, "icon");
       }
     });
   }
