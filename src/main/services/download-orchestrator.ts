@@ -393,17 +393,21 @@ export class DownloadOrchestrator {
     );
   }
 
+  private static hasActiveTransfer(downloads: Download[]) {
+    // Extraction runs independently and does not reserve the transfer slot.
+    return (
+      DownloadManager.hasActiveDownload() ||
+      downloads.some((download) => download.status === "active")
+    );
+  }
+
   private static async activateNextQueuedDownload(
     downloads?: Download[],
     prepared?: { id: string; isCurrent: () => boolean; signal: AbortSignal }
   ) {
     if (prepared && !prepared.isCurrent()) return null;
     const currentDownloads = downloads ?? (await this.getAllDownloads());
-    if (
-      DownloadManager.hasActiveDownload() ||
-      currentDownloads.some(isActiveLikeDownload)
-    )
-      return null;
+    if (this.hasActiveTransfer(currentDownloads)) return null;
     const layoutState =
       await getNormalizedDownloadLayoutState(currentDownloads);
     if (DownloadManager.hasActiveDownload()) return null;
@@ -521,7 +525,7 @@ export class DownloadOrchestrator {
 
     if (options.startNextQueued && !DownloadManager.hasActiveDownload()) {
       const downloads = await this.getAllDownloads();
-      if (!downloads.some(isActiveLikeDownload)) {
+      if (!this.hasActiveTransfer(downloads)) {
         await this.startNextQueuedDownload(
           downloads.filter(
             (entry) => getDownloadId(entry) !== getDownloadId(nextDownload)
@@ -930,9 +934,7 @@ export class DownloadOrchestrator {
     if (!isCurrent()) return;
     const layout = await getNormalizedDownloadLayoutState(downloads);
     if (!isCurrent()) return;
-    const hasActive =
-      DownloadManager.hasActiveDownload() ||
-      downloads.some(isActiveLikeDownload);
+    const hasActive = this.hasActiveTransfer(downloads);
     if (
       hasActive ||
       getQueuedDownloadsOrderedByLayout(downloads, layout).length > 0

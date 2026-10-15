@@ -188,9 +188,8 @@ function orchestrator() {
     },
     "../../types": {
       getDownloadId: (d: any) => d.objectId,
-      isActiveLikeDownload: (d: any) => d.status === "active",
-      isCompletedLikeDownload: (d: any) =>
-        ["complete", "seeding"].includes(d.status),
+      isActiveLikeDownload: downloadContract.isActiveLikeDownload,
+      isCompletedLikeDownload: downloadContract.isCompletedLikeDownload,
       getBigPictureDownloadView: (downloads: any[], state: any) => ({
         heroId: downloads.find((d) => d.status === "active")?.objectId,
         queueIds: state.queueOrder,
@@ -1215,4 +1214,114 @@ it("Big Picture queue retry respects earlier queued items when the active downlo
   assert.deepEqual(f.resumed, ["first"]);
   assert.equal(f.records.get("next").queued, true);
   assert.deepEqual(f.queueOrders.at(-1), ["first", "next"]);
+});
+
+for (const readiness of ["initial", "poll"] as const) {
+  for (const status of ["complete", "seeding", "extracting"] as const) {
+    for (const queuedFirst of [false, true]) {
+      it(`starts the next transfer during ${status} extraction (${readiness}, earlier queued=${queuedFirst})`, async () => {
+        const f = orchestrator();
+        if (queuedFirst) {
+          f.records.set("earlier", {
+            ...f.download,
+            objectId: "earlier",
+            queued: true,
+          });
+        }
+        f.setPreparedReady(readiness === "initial");
+        const preparing = f.instance.startPreparedDownload(f.download);
+        await f.preparing;
+        f.finishActive();
+        const extracting = {
+          ...f.records.get("active"),
+          status,
+          progress: 1,
+          extracting: true,
+        };
+        f.records.set("active", extracting);
+        assert.equal(downloadContract.isActiveLikeDownload(extracting), true);
+        f.release();
+        await preparing;
+        if (readiness === "poll") {
+          assert.equal(f.records.get("next").awaitingDebrid, true);
+          f.setPreparedReady(true);
+          await f.instance.pollAwaitingDebridDownloads();
+        }
+        assert.deepEqual(f.resumed, [queuedFirst ? "earlier" : "next"]);
+        assert.deepEqual(f.records.get("active"), extracting);
+        assert.deepEqual(f.paused, []);
+        assert.equal(!!f.records.get("next").awaitingDebrid, false);
+        assert.equal(f.records.get("next").queued, queuedFirst);
+      });
+    }
+  }
+}
+
+for (const owner of ["runtime", "record"] as const) {
+  it(`a ${owner} transfer owner still blocks activation beside extraction`, async () => {
+    const f = orchestrator();
+    if (owner === "record") f.finishActive();
+    f.records.set("active", {
+      ...f.records.get("active"),
+      status: owner === "record" ? "active" : "complete",
+      extracting: true,
+    });
+    f.release();
+    await f.instance.startPreparedDownload(f.download);
+    assert.deepEqual(f.resumed, []);
+    assert.equal(f.records.get("next").queued, true);
+  });
+}
+
+it("an explicitly idle debrid queue stays manual while another item extracts", async () => {
+  const f = orchestrator();
+  f.finishActive();
+  f.records.set("active", { ...f.records.get("active"), extracting: true });
+  f.release();
+  await f.instance.enqueuePreparedDownload({
+    ...f.download,
+    awaitingDebrid: true,
+  });
+  await f.instance.pollAwaitingDebridDownloads();
+  assert.deepEqual(f.resumed, []);
+  assert.equal(f.records.get("next").queued, true);
+  assert.equal(f.records.get("active").extracting, true);
+});
+
+it("pausing a transfer advances its queue while another item extracts", async () => {
+  const f = orchestrator();
+  f.records.set("extracting", {
+    ...f.download,
+    objectId: "extracting",
+    status: "complete",
+    progress: 1,
+    extracting: true,
+  });
+  f.records.set("next", { ...f.download, queued: true });
+  await f.instance.pauseDownload(f.records.get("active"), {
+    reason: "paused",
+    startNextQueued: true,
+  });
+  assert.deepEqual(f.resumed, ["next"]);
+  assert.equal(f.records.get("extracting").extracting, true);
+});
+
+it("two preparations beside extraction still claim only one transfer slot", async () => {
+  const f = orchestrator();
+  const first = f.instance.startPreparedDownload(f.download);
+  const second = f.instance.startPreparedDownload({
+    ...f.download,
+    objectId: "second",
+  });
+  await f.preparing;
+  f.finishActive();
+  f.records.set("active", { ...f.records.get("active"), extracting: true });
+  f.release();
+  await Promise.all([first, second]);
+  assert.equal(f.resumed.length, 1);
+  assert.equal(
+    [...f.records.values()].filter((record) => record.queued).length,
+    1
+  );
+  assert.equal(f.records.get("active").extracting, true);
 });
