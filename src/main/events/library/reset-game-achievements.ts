@@ -3,7 +3,7 @@ import { isAxiosError } from "axios";
 import {
   achievementSyncCoordinator,
   AchievementSyncCancelledError,
-  ACHIEVEMENT_RESET_MAX_ATTEMPTS,
+  ACHIEVEMENT_RESET_RETRY_BUDGET_MS,
   ACHIEVEMENT_SYNC_REQUEST_TIMEOUT_MS,
 } from "@main/services/achievements/achievement-sync-coordinator";
 import type { HydraApiAuthContext } from "@main/services/hydra-auth-context";
@@ -33,6 +33,7 @@ const deleteRemoteAchievements = async (
   remoteId: string | null,
   context: HydraApiAuthContext,
   current: () => boolean,
+  deadline = Date.now() + ACHIEVEMENT_RESET_RETRY_BUDGET_MS,
   attempt = 0
 ): Promise<void> => {
   try {
@@ -47,8 +48,9 @@ const deleteRemoteAchievements = async (
     );
   } catch (error) {
     const status = isAxiosError(error) ? error.response?.status : undefined;
+    const remaining = deadline - Date.now();
     if (
-      attempt + 1 >= ACHIEVEMENT_RESET_MAX_ATTEMPTS ||
+      remaining <= 0 ||
       status === undefined ||
       !isRetryableAchievementSyncStatus(status)
     )
@@ -58,12 +60,15 @@ const deleteRemoteAchievements = async (
       levelKey,
       status
     );
-    await setTimeout(getAchievementSyncRetryDelay(error, attempt));
+    await setTimeout(
+      Math.min(getAchievementSyncRetryDelay(error, attempt), remaining)
+    );
     await deleteRemoteAchievements(
       levelKey,
       remoteId,
       context,
       current,
+      deadline,
       attempt + 1
     );
   }

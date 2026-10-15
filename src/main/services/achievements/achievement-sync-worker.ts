@@ -58,8 +58,8 @@ export const getAchievementSyncRetryDelay = (
   const date =
     typeof retryAfter === "string" ? Date.parse(retryAfter) : Number.NaN;
   let serverDelay = 0;
-  if (Number.isFinite(seconds)) serverDelay = Math.max(0, seconds * 1000);
-  else if (Number.isFinite(date)) serverDelay = Math.max(0, date - Date.now());
+  if (Number.isFinite(seconds)) serverDelay = seconds * 1000;
+  else if (Number.isFinite(date)) serverDelay = date - Date.now();
   const backoff = Math.min(
     ACHIEVEMENT_SYNC_MAX_RETRY_DELAY_MS,
     ACHIEVEMENT_SYNC_RETRY_DELAY_MS *
@@ -69,7 +69,10 @@ export const getAchievementSyncRetryDelay = (
     0,
     Math.floor(backoff / ACHIEVEMENT_SYNC_RETRY_JITTER_DIVISOR) + 1
   );
-  return Math.max(serverDelay, backoff + jitter);
+  return Math.max(
+    Math.min(serverDelay, ACHIEVEMENT_SYNC_MAX_RETRY_DELAY_MS),
+    backoff + jitter
+  );
 };
 
 export const isRetryableAchievementSyncStatus = (status: number) =>

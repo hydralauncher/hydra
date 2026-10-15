@@ -400,9 +400,19 @@ test("ordinary PUT payloads follow the API achievement schema", async (t) => {
   });
   assert.ok(
     f.getAchievementSyncRetryDelay(
-      { isAxiosError: true, response: { headers: { "retry-after": "120" } } },
+      { isAxiosError: true, response: { headers: { "retry-after": "30" } } },
       0
-    ) >= 120000
+    ) >= 30000
+  );
+  assert.equal(
+    f.getAchievementSyncRetryDelay(
+      {
+        isAxiosError: true,
+        response: { headers: { "retry-after": String(30 * 24 * 60 * 60) } },
+      },
+      0
+    ),
+    60000
   );
 });
 
