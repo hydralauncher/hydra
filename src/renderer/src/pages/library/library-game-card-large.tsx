@@ -237,12 +237,25 @@ export const LibraryGameCardLarge = memo(function LibraryGameCardLarge({
       setTotalAchievementsCount(game.achievementCount ?? 0);
       setUnlockedAchievementsCount(game.unlockedAchievementCount ?? 0);
     }
-    if (game.unlockedAchievementCount != null && !hasStoreUnion) {
+    const needsCatalogueTotal =
+      game.shop === "epic" &&
+      (game.achievementCount ?? 0) <= 0 &&
+      game.catalogueGame?.shop === "steam";
+    if (
+      game.unlockedAchievementCount != null &&
+      !hasStoreUnion &&
+      !needsCatalogueTotal
+    ) {
       setUnlockedAchievementsCount(game.unlockedAchievementCount);
       return;
     }
 
-    if ((game.achievementCount ?? 0) <= 0 && !hasStoreUnion) return;
+    if (
+      (game.achievementCount ?? 0) <= 0 &&
+      !hasStoreUnion &&
+      !needsCatalogueTotal
+    )
+      return;
 
     let isStale = false;
 
@@ -266,6 +279,7 @@ export const LibraryGameCardLarge = memo(function LibraryGameCardLarge({
     };
   }, [
     game.achievementCount,
+    game.catalogueGame?.shop,
     game.objectId,
     game.shop,
     game.unlockedAchievementCount,

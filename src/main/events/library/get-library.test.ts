@@ -84,6 +84,8 @@ function fixture(
         iterator: () => ({
           all: async () => options.records ?? [[key, { ...game }]],
         }),
+        get: async (gameKey: string) =>
+          (options.records ?? [[key, game]]).find(([k]) => k === gameKey)?.[1],
       },
       downloadsSublevel: { get: async () => download },
       gamesArtworkSelectionSublevel: {
@@ -127,7 +129,11 @@ function fixture(
       },
     },
     "@main/services/achievements/achievement-memory-store": {
-      resolveAchievementCount: () => 0,
+      resolveAchievementCount: (
+        _shop: string,
+        _objectId: string,
+        persisted?: number | null
+      ) => persisted ?? 0,
       resolveUnlockedAchievementCount: () => 0,
     },
   };
@@ -284,6 +290,39 @@ describe("library size cleanup", () => {
     assert.equal(game.catalogueGame?.shop, "steam");
     assert.equal(game.playTimeInMilliseconds, f.game.playTimeInMilliseconds);
     assert.equal(f.writes.length, 0);
+  });
+
+  it("presents the linked Steam total for an Epic copy without its own definitions", async () => {
+    const template = fixture("none").game;
+    const epic = {
+      ...template,
+      shop: "epic",
+      objectId: "namespace:item",
+      achievementCount: 0,
+      catalogueGame: { shop: "steam", objectId: "456" },
+    } as Game;
+    const steam = { ...template, objectId: "456", achievementCount: 35 };
+    const own = {
+      ...epic,
+      objectId: "namespace:own",
+      achievementCount: 12,
+    } as Game;
+    const f = fixture(
+      "none",
+      {},
+      {
+        records: [
+          ["epic:namespace:item", epic],
+          ["steam:456", steam],
+          ["epic:namespace:own", own],
+        ],
+      }
+    );
+    const games = await f.read();
+    const count = (objectId: string) =>
+      games.find((game) => game.objectId === objectId)?.achievementCount;
+    assert.equal(count("namespace:item"), 35);
+    assert.equal(count("namespace:own"), 12);
   });
 
   it("uses the catalogue cache instead of old Epic assets and keeps the real artwork selection", async () => {
