@@ -19,6 +19,8 @@ export interface EpicInstallation {
   automaticSaveSync?: boolean;
   saveAnchor?: {
     remoteManifest: string | null;
+    /** Missing on legacy anchors, which must recheck the remote version. */
+    remoteModifiedAt?: string | null;
     localDigest: string;
   };
   pendingSaveUpload?: boolean;
@@ -130,6 +132,7 @@ export interface EpicCloudSaveSettings {
 export interface ResolveEpicCloudSaveConflictPayload {
   epicObjectId: string;
   expectedRemoteManifest: string | null;
+  expectedRemoteModifiedAt: string | null;
   choice: "local" | "remote";
 }
 

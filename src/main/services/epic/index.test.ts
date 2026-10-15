@@ -253,6 +253,7 @@ function fixture(t: TestContext, options: { linux?: boolean } = {}) {
         };
       },
     },
+    "./cloud-save-source": { EpicCloudSaveSource: class {} },
     "./installation": {
       EpicInstallationService: class {
         confirmPrerequisites = async () => {

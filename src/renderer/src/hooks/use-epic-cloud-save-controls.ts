@@ -96,6 +96,7 @@ export function useEpicCloudSaveControls(game: LibraryGame | null) {
   const resolve = async (choice: "local" | "remote") => {
     if (!game || cloud.state?.status !== "conflict") return;
     const expectedRemoteManifest = cloud.state.remoteManifest;
+    const expectedRemoteModifiedAt = cloud.state.remoteModifiedAt ?? null;
     const generation = cloud.getGeneration();
     setFailure(false);
     try {
@@ -104,6 +105,7 @@ export function useEpicCloudSaveControls(game: LibraryGame | null) {
           window.electron.resolveEpicCloudSaveConflict?.({
             epicObjectId: game.objectId,
             expectedRemoteManifest,
+            expectedRemoteModifiedAt,
             choice,
           }) ?? Promise.reject(new Error("api-unavailable"))
       );
