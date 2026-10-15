@@ -152,7 +152,7 @@ export const getUnlockedAchievements = async (
     const game = await gamesSublevel
       .get(levelKeys.game(shop, objectId))
       .catch(() => undefined);
-    assertOwner();
+    assertCurrent();
     const catalogue = game?.catalogueGame;
     if (catalogue?.shop === "steam") {
       const steamDefinitions = await getGameAchievementData(
@@ -160,7 +160,7 @@ export const getUnlockedAchievements = async (
         catalogue.shop,
         true
       ).catch(() => []);
-      assertOwner();
+      assertCurrent();
       if (steamDefinitions.length > 0) catalogueAchievements = steamDefinitions;
     }
   }
