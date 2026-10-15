@@ -1,7 +1,67 @@
+import { createHash } from "node:crypto";
+import fs from "node:fs/promises";
+import path from "node:path";
+
 export const quoteWindowsEpicArgument = (value: string) =>
   `"${value.replace(/(\\*)"/g, '$1$1\\"').replace(/(\\+)$/, "$1$1")}"`;
 
 const PREREQUISITE_POLL_INTERVAL_MS = 100;
+const MANAGED_PROCESS_PROTOCOL = 1;
+const MANAGED_PROCESS_BINARY = "hydra-epic-process.exe";
+const MANAGED_PROCESS_RECEIPT = "hydra-epic-process.json";
+const verifiedSupervisors = new Map<string, Promise<string>>();
+
+const verifyManagedEpicProcessSupervisor = async (directory: string) => {
+  const binary = path.join(directory, MANAGED_PROCESS_BINARY);
+  const receipt = JSON.parse(
+    await fs.readFile(path.join(directory, MANAGED_PROCESS_RECEIPT), "utf8")
+  );
+  if (
+    receipt.protocol !== MANAGED_PROCESS_PROTOCOL ||
+    receipt.fileName !== MANAGED_PROCESS_BINARY ||
+    typeof receipt.sourceSha256 !== "string" ||
+    !/^[a-f0-9]{64}$/.test(receipt.sourceSha256) ||
+    typeof receipt.sha256 !== "string" ||
+    !/^[a-f0-9]{64}$/.test(receipt.sha256) ||
+    createHash("sha256")
+      .update(await fs.readFile(binary))
+      .digest("hex") !== receipt.sha256
+  )
+    throw new Error("Invalid Epic process supervisor");
+  return binary;
+};
+
+/** The caller owns the private cancellation directory and removes it on close. */
+export async function getManagedEpicProcessCommand(
+  helperDirectory: string,
+  executable: string,
+  args: string[],
+  cancellation: string
+): Promise<{ binary: string; args: string[] }> {
+  let verified = verifiedSupervisors.get(helperDirectory);
+  if (!verified) {
+    verified = verifyManagedEpicProcessSupervisor(helperDirectory).catch(
+      (error) => {
+        verifiedSupervisors.delete(helperDirectory);
+        throw error;
+      }
+    );
+    verifiedSupervisors.set(helperDirectory, verified);
+  }
+  const binary = await verified;
+  const request = path.join(path.dirname(cancellation), "request.json");
+  await fs.writeFile(
+    request,
+    JSON.stringify({
+      protocol: MANAGED_PROCESS_PROTOCOL,
+      executable,
+      arguments: args,
+      cancellation,
+    }),
+    { mode: 0o600, flag: "wx" }
+  );
+  return { binary, args: ["--request", request] };
+}
 
 // A UAC child is brokered outside the launcher's tree. The elevated supervisor
 // owns a job, including every descendant, and is the only process that cancels it.
