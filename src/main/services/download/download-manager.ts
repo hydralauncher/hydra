@@ -1344,7 +1344,7 @@ export class DownloadManager {
     }
   }
 
-  private static async handleRuntimeDownloadError(
+  static async handleRuntimeDownloadError(
     downloadId: string,
     error: unknown,
     generation = this.startGeneration

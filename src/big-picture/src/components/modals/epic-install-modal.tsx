@@ -108,6 +108,7 @@ export function EpicInstallModal({
         )}
         <HorizontalFocusGroup>
           <Button
+            data-epic-install-submit={game?.objectId}
             variant="secondary"
             disabled={disabled}
             loading={install.starting}
@@ -116,6 +117,7 @@ export function EpicInstallModal({
             {t("add_to_queue")}
           </Button>
           <Button
+            data-epic-install-submit={game?.objectId}
             variant="primary"
             disabled={disabled}
             loading={install.starting}

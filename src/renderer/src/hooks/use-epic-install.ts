@@ -1,5 +1,9 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useAppSelector } from "./redux";
+import {
+  afterEpicInstallReadyPaint,
+  epicInstallTiming,
+} from "../helpers/epic-install-timing";
 import type {
   EpicGameInstallOptions,
   EpicSaveError,
@@ -17,6 +21,7 @@ export function useEpicInstall(
   const [selected, setSelected] = useState("");
   const [path, setPath] = useState("");
   const [diskFreeSpace, setDiskFreeSpace] = useState<number | null>(null);
+  const [diskChecking, setDiskChecking] = useState(false);
   const [contextRevision, setContextRevision] = useState(0);
   const [loading, setLoading] = useState(false);
   const [starting, setStarting] = useState(false);
@@ -166,14 +171,22 @@ export function useEpicInstall(
     let cancelled = false;
     const current = directoryGeneration.current;
     setDiskFreeSpace(null);
-    if (!path || !objectId) return;
+    if (!path || !objectId) {
+      setDiskChecking(false);
+      return;
+    }
+    if (epicInstallTiming.enabled) setDiskChecking(true);
     void window.electron
       .getDiskFreeSpace?.(path)
       .then((space) => {
         if (!cancelled && directoryGeneration.current === current)
           setDiskFreeSpace(space?.free ?? null);
       })
-      .catch(() => {});
+      .catch(() => {})
+      .finally(() => {
+        if (!cancelled && directoryGeneration.current === current)
+          setDiskChecking(false);
+      });
     return () => {
       cancelled = true;
     };
@@ -201,6 +214,30 @@ export function useEpicInstall(
 
   const option =
     selected === "" ? null : (result?.options[Number(selected)] ?? null);
+  useEffect(() => {
+    if (
+      objectId &&
+      !loading &&
+      !starting &&
+      option &&
+      result?.connectionId &&
+      path
+    )
+      return afterEpicInstallReadyPaint(
+        objectId,
+        epicInstallTiming,
+        !diskChecking
+      );
+    return;
+  }, [
+    objectId,
+    loading,
+    starting,
+    diskChecking,
+    option,
+    result?.connectionId,
+    path,
+  ]);
   const start = async (addToQueueOnly: boolean) => {
     if (
       !game ||
@@ -211,6 +248,7 @@ export function useEpicInstall(
     )
       return;
     const current = generation.current;
+    const timing = epicInstallTiming.beginSubmit();
     startGeneration.current = current;
     setStarting(true);
     setError(null);
@@ -220,12 +258,17 @@ export function useEpicInstall(
         connectionId: result.connectionId,
         artifactId: option.artifactId,
         platform: option.platform,
+        ...(option.preparationId
+          ? { preparationId: option.preparationId }
+          : {}),
         downloadPath: path.trim(),
         addToQueueOnly,
       });
       if (current !== generation.current) return;
-      if (response?.ok) onStarted();
-      else setError(response?.error ?? "api-unavailable");
+      if (response?.ok) {
+        onStarted();
+        epicInstallTiming.accepted(timing);
+      } else setError(response?.error ?? "api-unavailable");
     } catch {
       if (current === generation.current) setError("process-failed");
     } finally {

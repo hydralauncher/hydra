@@ -55,6 +55,7 @@ export function parseEpicDownloadPayload(
       "platform",
       "downloadPath",
       "addToQueueOnly",
+      "preparationId",
     ]) ||
     !isEpicObjectId(value.epicObjectId) ||
     typeof value.connectionId !== "string" ||
@@ -62,6 +63,11 @@ export function parseEpicDownloadPayload(
     !isSafeEpicArtifact(value.artifactId) ||
     (value.platform !== "Windows" && value.platform !== "Mac") ||
     !isLocalPath(value.downloadPath) ||
+    (value.preparationId !== undefined &&
+      (typeof value.preparationId !== "string" ||
+        !/^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/i.test(
+          value.preparationId
+        ))) ||
     (value.addToQueueOnly !== undefined &&
       typeof value.addToQueueOnly !== "boolean")
   ) {
@@ -73,6 +79,9 @@ export function parseEpicDownloadPayload(
     artifactId: value.artifactId,
     platform: value.platform,
     downloadPath: value.downloadPath,
+    ...(value.preparationId !== undefined
+      ? { preparationId: value.preparationId }
+      : {}),
     ...(value.addToQueueOnly !== undefined
       ? { addToQueueOnly: value.addToQueueOnly }
       : {}),

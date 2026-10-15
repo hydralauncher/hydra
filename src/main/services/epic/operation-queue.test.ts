@@ -2,8 +2,12 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 import { queueEpicOperation } from "./operation-queue.js";
 import { deferred } from "./store-test-helpers.js";
+import { configureEpicTiming, type EpicTimingEntry } from "./timing.js";
 
-test("queued cancellation skips obsolete work without overtaking the active lease", async () => {
+test("queued cancellation skips obsolete work without overtaking the active lease", async (t) => {
+  const entries: EpicTimingEntry[] = [];
+  configureEpicTiming((entry) => entries.push(entry), true);
+  t.after(() => configureEpicTiming(() => undefined, false));
   const lease = deferred<void>();
   const started = deferred<void>();
   const active = queueEpicOperation(undefined, async () => {
@@ -18,7 +22,8 @@ test("queued cancellation skips obsolete work without overtaking the active leas
     async () => {
       obsoleteRan = true;
     },
-    controller.signal
+    controller.signal,
+    { queue: "workspace" }
   );
   let latestRan = false;
   const latest = queueEpicOperation(obsolete.queued, async () => {
@@ -35,6 +40,22 @@ test("queued cancellation skips obsolete work without overtaking the active leas
   await latest.result;
   assert.equal(obsoleteRan, false);
   assert.equal(latestRan, true);
+  assert.equal(
+    entries.filter(
+      (entry) =>
+        entry.stage === "queue.wait" &&
+        entry.event === "end" &&
+        entry.queue === "workspace" &&
+        entry.outcome === "cancelled"
+    ).length,
+    1
+  );
+  assert.equal(
+    entries.some(
+      (entry) => entry.stage === "queue.execute" && entry.queue === "workspace"
+    ),
+    false
+  );
 });
 
 test("aborting a running task retains its lease until cleanup completes", async () => {

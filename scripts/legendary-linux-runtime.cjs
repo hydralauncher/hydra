@@ -280,4 +280,5 @@ function prepareLinuxLegendary(options) {
 module.exports = {
   prepareLinuxLegendary,
   verifyLinuxRuntime,
+  runtimeFiles,
 };

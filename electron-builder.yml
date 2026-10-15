@@ -38,6 +38,13 @@ win:
       to: legendary
       filter:
         - legendary.exe
+        - managed.py
+        - managed-legendary.pyz
+        - managed-native/**
+        - managed-runtime.json
+        - python/**
+        - hydra-epic-process.exe
+        - hydra-epic-process.json
     - from: resources/legendary
       to: legendary
       filter:
@@ -93,6 +100,10 @@ linux:
       filter:
         - legendary
         - legendary.pyz
+        - managed.py
+        - managed-legendary.pyz
+        - managed-native/**
+        - managed-runtime.json
         - python-runner
         - python/**
         - glibc/**
