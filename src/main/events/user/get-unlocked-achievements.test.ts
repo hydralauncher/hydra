@@ -19,6 +19,7 @@ for (const combinedAvailable of [false, true]) {
         },
         "@main/services/hydra-api": {
           HydraApi: {
+            getAuthContext: () => null,
             get: async (
               _url: string,
               params: { shop: string; objectId: string },

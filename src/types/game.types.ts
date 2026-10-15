@@ -17,6 +17,8 @@ export interface SteamAchievement {
   icongray: string;
   hidden: boolean;
   points?: number;
+  externalSetId?: string;
+  externalId?: string;
 }
 
 export interface UserAchievement extends SteamAchievement {
@@ -32,5 +34,11 @@ export interface UserAchievement extends SteamAchievement {
     name: string;
     unlockTime: number;
   }>;
+  unlockedOn?: {
+    hydra: boolean;
+    retroachievements: boolean;
+    steam: boolean;
+    epic?: boolean;
+  };
   imageUrl?: string | null;
 }

@@ -18,6 +18,7 @@ import { ComparedAchievementPanel } from "./compared-achievement-panel";
 import { useSubscription } from "@renderer/hooks/use-subscription";
 import { RetroAchievementsConnectBanner } from "@renderer/components/retro-achievements-connect-banner/retro-achievements-connect-banner";
 import "./achievements-content.scss";
+import { useSearchParams } from "react-router-dom";
 
 interface UserInfo {
   id: string;
@@ -134,12 +135,25 @@ export function AchievementsContent({
   otherUser,
   comparedAchievements,
 }: AchievementsContentProps) {
+  const { t } = useTranslation("achievement");
   const heroRef = useRef<HTMLDivElement | null>(null);
   const containerRef = useRef<HTMLDivElement | null>(null);
   const [isHeaderStuck, setIsHeaderStuck] = useState(false);
 
-  const { gameTitle, objectId, shop, game, shopDetails, achievements } =
-    useContext(gameDetailsContext);
+  const {
+    gameTitle,
+    objectId,
+    shop,
+    game,
+    shopDetails,
+    achievements,
+    presentation,
+  } = useContext(gameDetailsContext);
+  const [searchParams, setSearchParams] = useSearchParams();
+  const achievementStores =
+    presentation?.members.filter(
+      (member) => member.shop === "steam" || member.shop === "epic"
+    ) ?? [];
 
   const dispatch = useAppDispatch();
 
@@ -189,6 +203,34 @@ export function AchievementsContent({
 
   return (
     <div className="achievements-content__achievements-list">
+      {!otherUser && achievementStores.length > 1 && (
+        <label>
+          {t("achievement_store")}
+          <select
+            value={`${shop}:${objectId}`}
+            onChange={(event) => {
+              const member = achievementStores.find(
+                (member) =>
+                  `${member.shop}:${member.objectId}` === event.target.value
+              );
+              if (!member) return;
+              const params = new URLSearchParams(searchParams);
+              params.set("shop", member.shop);
+              params.set("objectId", member.objectId);
+              setSearchParams(params);
+            }}
+          >
+            {achievementStores.map((member) => (
+              <option
+                key={`${member.shop}:${member.objectId}`}
+                value={`${member.shop}:${member.objectId}`}
+              >
+                {member.shop === "epic" ? "Epic Games" : "Steam"}
+              </option>
+            ))}
+          </select>
+        </label>
+      )}
       <section
         ref={containerRef}
         onScroll={onScroll}

@@ -106,6 +106,10 @@ function validateEpicConnection(response: unknown): EpicConnection {
     epicAccountId: response.epicAccountId,
     displayName: response.displayName,
     connectedAt: response.connectedAt,
+    ...(isRecord(response.capabilities) &&
+    response.capabilities.achievementsSnapshotVersion === 1
+      ? { capabilities: { achievementsSnapshotVersion: 1 as const } }
+      : {}),
     lastSyncedAt:
       response.lastSyncedAt === undefined || response.lastSyncedAt === null
         ? null
@@ -822,8 +826,11 @@ export class EpicIntegrationCore {
         await Promise.allSettled(this.reads);
         if (!(await this.retryCleanup()))
           throw new EpicIntegrationError("cleanup-failed");
-      } finally {
         await this.dependencies.store.close();
+      } catch (error) {
+        this.stopping = false;
+        this.shuttingDown = null;
+        throw error;
       }
     })();
     return this.shuttingDown;

@@ -9,6 +9,7 @@ import ts from "typescript";
 import type {
   Download,
   DownloadProgress,
+  EpicCloudSaveState,
   GameArtworkOptions,
   GameShop,
   GameStats,
@@ -613,6 +614,362 @@ describe("Desktop catalogue page", () => {
       ).length,
       1
     );
+  });
+});
+
+async function epicCloudSettingsFixture(t: TestContext) {
+  const dom = new JSDOM("<div id='root'></div>");
+  const globals = {
+    window: dom.window,
+    document: dom.window.document,
+    Event: dom.window.Event,
+    IS_REACT_ACT_ENVIRONMENT: true,
+  };
+  const previous = new Map(
+    Object.keys(globals).map((key) => [
+      key,
+      Object.getOwnPropertyDescriptor(globalThis, key),
+    ])
+  );
+  for (const [key, value] of Object.entries(globals)) {
+    Object.defineProperty(globalThis, key, {
+      value,
+      configurable: true,
+      writable: true,
+    });
+  }
+  const game = {
+    ...epic,
+    epicInstallation: {
+      artifactId: "artifact",
+      platform: "Windows",
+      owner: {
+        environment: "staging",
+        userId: "owner",
+        epicAccountId: "account",
+      },
+    },
+  } as LibraryGame;
+  const state: EpicCloudSaveState = {
+    epicObjectId: game.objectId,
+    status: "up-to-date",
+    supportsCloudSaves: true,
+    automaticSync: true,
+    savePath: "C:\\Saves\\Epic",
+    pendingUpload: false,
+    remoteManifest: "manifest",
+  };
+  const calls: [string, ...unknown[]][] = [];
+  const hookGames: (LibraryGame | null)[] = [];
+  const cloud = {
+    available: true,
+    state: null as EpicCloudSaveState | null,
+    busy: false,
+    failure: false,
+    loading: true,
+    readError: false,
+    refresh: async () => {
+      calls.push(["refresh", game.objectId]);
+    },
+    updateSettings: async (
+      automaticSync: boolean,
+      savePath?: string | null
+    ) => {
+      calls.push(["settings", game.objectId, automaticSync, savePath]);
+    },
+    choosePath: async () => {
+      calls.push(["choosePath", game.objectId]);
+    },
+    sync: async () => {
+      calls.push(["sync", game.objectId]);
+    },
+    resolve: async (choice: "local" | "remote") => {
+      calls.push(["resolve", game.objectId, choice]);
+    },
+  };
+  const icon = () => React.createElement("span", { "aria-hidden": true });
+  const Section = loadModule(
+    "src/renderer/src/pages/game-details/modals/game-options-modal/epic-cloud-section.tsx",
+    {
+      "react-i18next": {
+        useTranslation: () => ({ t: (key: string) => key }),
+      },
+      "react-loading-skeleton": () =>
+        React.createElement("span", { "data-skeleton": true }),
+      "@phosphor-icons/react": {
+        ArrowClockwiseIcon: icon,
+        CircleNotchIcon: icon,
+        CloudIcon: icon,
+        FolderOpenIcon: icon,
+      },
+      "@renderer/components": {
+        Button: ({
+          theme: _theme,
+          ...props
+        }: React.ButtonHTMLAttributes<HTMLButtonElement> & {
+          theme?: string;
+        }) => React.createElement("button", props),
+        Link: ({
+          to,
+          ...props
+        }: React.AnchorHTMLAttributes<HTMLAnchorElement> & {
+          to: string;
+        }) => React.createElement("a", { ...props, href: to }),
+        TextField: ({
+          label,
+          rightContent,
+          ...props
+        }: React.InputHTMLAttributes<HTMLInputElement> & {
+          label?: string;
+          rightContent?: React.ReactNode;
+        }) =>
+          React.createElement(
+            "label",
+            null,
+            label,
+            React.createElement("input", props),
+            rightContent
+          ),
+      },
+      "@renderer/hooks": {
+        useDate: () => ({
+          formatDateTime: (date: string) => `formatted:${date}`,
+        }),
+      },
+      "@renderer/hooks/use-epic-cloud-save-controls": {
+        useEpicCloudSaveControls: (input: LibraryGame | null) => {
+          hookGames.push(input);
+          return cloud;
+        },
+      },
+      "@renderer/helpers/epic-managed-error": {
+        getEpicManagedError: (error: string) => ({
+          key: `error:${error}`,
+          ns: "game_details",
+        }),
+      },
+      "../../cloud-save-v2/cloud-save-status-icon": {
+        CloudSaveStatusIcon: icon,
+      },
+      "../../cloud-save-v2/cloud-save-v2.scss": {},
+      "./epic-cloud-section.scss": {},
+    }
+  ).EpicCloudSettingsSection as React.ElementType;
+  const root = createRoot(dom.window.document.getElementById("root")!);
+  t.after(async () => {
+    await React.act(async () => root.unmount());
+    dom.window.close();
+    for (const [key, descriptor] of previous) {
+      if (descriptor) Object.defineProperty(globalThis, key, descriptor);
+      else Reflect.deleteProperty(globalThis, key);
+    }
+  });
+  const render = async (isGameRunning = false) => {
+    await React.act(async () => {
+      root.render(React.createElement(Section, { game, isGameRunning }));
+    });
+  };
+  const button = (key: string) => {
+    const found = [...dom.window.document.querySelectorAll("button")].find(
+      (candidate) => candidate.textContent === key
+    );
+    assert.ok(found, `button ${key} must be visible`);
+    return found;
+  };
+  const click = async (target: HTMLButtonElement) => {
+    await React.act(async () => target.click());
+  };
+  await render();
+  return { dom, game, state, cloud, calls, hookGames, render, button, click };
+}
+
+describe("Desktop Epic cloud settings", () => {
+  it("shows loading, retries read errors and controls the real Epic record", async (t) => {
+    const view = await epicCloudSettingsFixture(t);
+    const document = view.dom.window.document;
+    assert.equal(document.querySelectorAll("[data-skeleton]").length, 2);
+    assert.equal(document.querySelector("[role=switch]"), null);
+    assert.equal(document.querySelector("input"), null);
+    assert.equal(view.calls.length, 0);
+
+    Object.assign(view.cloud, { loading: false, readError: true });
+    await view.render();
+    assert.equal(document.querySelectorAll("[data-skeleton]").length, 0);
+    assert.match(
+      document.querySelector("[role=alert]")!.textContent!,
+      /network/
+    );
+    assert.equal(
+      document.querySelector("[role=status]")!.textContent,
+      "epic_save_status_unavailable"
+    );
+    assert.equal(
+      document.querySelector("a")?.getAttribute("href"),
+      "/settings?tab=integrations"
+    );
+    await view.click(view.button("epic_retry"));
+    assert.deepEqual(view.calls, [["refresh", epic.objectId]]);
+
+    view.cloud.state = view.state;
+    await view.render();
+    assert.equal(
+      document.querySelector("[role=status]")!.textContent,
+      "epic_save_status_unavailable"
+    );
+    assert.equal(view.button("epic_save_sync_now").disabled, true);
+
+    Object.assign(view.cloud, { state: view.state, readError: false });
+    await view.render();
+    assert.equal(document.querySelector("input")!.value, view.state.savePath);
+    assert.equal(document.querySelector("input")!.readOnly, true);
+    assert.equal(
+      document.querySelector("[role=status]")!.textContent,
+      "epic_save_status_up-to-date"
+    );
+    await view.click(
+      document.querySelector<HTMLButtonElement>("[role=switch]")!
+    );
+    await view.click(view.button("epic_save_select_path"));
+    await view.click(view.button("epic_save_sync_now"));
+    assert.deepEqual(view.calls.slice(1), [
+      ["settings", epic.objectId, false, undefined],
+      ["choosePath", epic.objectId],
+      ["sync", epic.objectId],
+    ]);
+    view.cloud.state = {
+      ...view.state,
+      status: "unavailable",
+      error: "save-sync-failed",
+    };
+    await view.render();
+    assert.equal(view.button("epic_retry").disabled, false);
+    await view.click(view.button("epic_retry"));
+    assert.deepEqual(view.calls.at(-1), ["sync", epic.objectId]);
+    const completedCalls = view.calls.length;
+    for (const blockedBy of ["running", "busy", "loading"] as const) {
+      view.cloud.busy = blockedBy === "busy";
+      view.cloud.loading = blockedBy === "loading";
+      await view.render(blockedBy === "running");
+      assert.equal(view.button("epic_retry").disabled, true, blockedBy);
+      await view.click(view.button("epic_retry"));
+      assert.equal(view.calls.length, completedCalls);
+    }
+    assert.ok(view.hookGames.every((game) => game === view.game));
+    assert.equal(view.game.catalogueGame?.shop, "steam");
+  });
+
+  it("blocks unsafe actions and permits choosing a required save folder", async (t) => {
+    const view = await epicCloudSettingsFixture(t);
+    view.cloud.state = view.state;
+    view.cloud.loading = false;
+    for (const blockedBy of ["running", "busy", "unavailable"] as const) {
+      view.cloud.busy = blockedBy === "busy";
+      view.cloud.available = blockedBy !== "unavailable";
+      await view.render(blockedBy === "running");
+      const controls = [
+        view.dom.window.document.querySelector<HTMLButtonElement>(
+          "[role=switch]"
+        )!,
+        view.button("epic_save_select_path"),
+        view.button(
+          blockedBy === "busy"
+            ? "epic_save_status_syncing"
+            : "epic_save_sync_now"
+        ),
+      ];
+      for (const control of controls) {
+        assert.equal(control.disabled, true, blockedBy);
+        await view.click(control);
+      }
+      assert.equal(view.calls.length, 0);
+    }
+    view.cloud.busy = false;
+    view.cloud.available = true;
+    for (const error of ["save-path-required", "invalid-path"] as const) {
+      view.cloud.state = {
+        ...view.state,
+        status: "unavailable",
+        error,
+        savePath: error === "save-path-required" ? null : "C:\\Invalid",
+      };
+      await view.render();
+      assert.equal(view.button("epic_save_sync_now").disabled, true, error);
+      assert.equal(view.button("epic_save_select_path").disabled, false, error);
+      await view.click(view.button("epic_save_select_path"));
+      await view.click(view.button("epic_save_sync_now"));
+    }
+    assert.deepEqual(view.calls, [
+      ["choosePath", epic.objectId],
+      ["choosePath", epic.objectId],
+    ]);
+  });
+
+  it("keeps recovery settings available after a save check fails", async (t) => {
+    const view = await epicCloudSettingsFixture(t);
+    view.cloud.loading = false;
+    for (const error of ["network", "save-sync-failed"] as const) {
+      view.cloud.state = { ...view.state, status: "unavailable", error };
+      await view.render();
+      const toggle =
+        view.dom.window.document.querySelector<HTMLButtonElement>(
+          "[role=switch]"
+        )!;
+      assert.equal(toggle.disabled, false, error);
+      assert.equal(view.button("epic_save_select_path").disabled, false, error);
+      assert.equal(view.button("epic_save_sync_now").disabled, true, error);
+      await view.click(toggle);
+      await view.click(view.button("epic_save_select_path"));
+    }
+    assert.deepEqual(
+      view.calls.map(([action]) => action),
+      ["settings", "choosePath", "settings", "choosePath"]
+    );
+  });
+
+  it("explains unsupported saves and resolves dated local/remote conflict cards", async (t) => {
+    const view = await epicCloudSettingsFixture(t);
+    Object.assign(view.cloud, {
+      loading: false,
+      state: {
+        ...view.state,
+        status: "unavailable",
+        supportsCloudSaves: false,
+        error: "saves-unsupported",
+      },
+    });
+    await view.render();
+    const document = view.dom.window.document;
+    assert.equal(document.querySelector("[role=switch]"), null);
+    assert.equal(document.querySelector("input"), null);
+    assert.equal(document.querySelectorAll("button").length, 0);
+    assert.match(document.body.textContent!, /epic_save_unsupported/);
+
+    view.cloud.state = {
+      ...view.state,
+      status: "conflict",
+      error: "save-conflict",
+      localModifiedAt: "2026-10-14T12:00:00Z",
+      remoteModifiedAt: "2026-10-14T11:00:00Z",
+    };
+    await view.render();
+    const cards = document.querySelectorAll(
+      ".epic-cloud-settings__conflict-copy"
+    );
+    assert.equal(cards.length, 2);
+    assert.match(cards[0]!.textContent!, /formatted:2026-10-14T12:00:00Z/);
+    assert.match(cards[1]!.textContent!, /formatted:2026-10-14T11:00:00Z/);
+    await view.click(view.button("epic_save_use_local"));
+    await view.click(view.button("epic_save_use_remote"));
+    assert.deepEqual(view.calls, [
+      ["resolve", epic.objectId, "local"],
+      ["resolve", epic.objectId, "remote"],
+    ]);
+    await view.render(true);
+    for (const key of ["epic_save_use_local", "epic_save_use_remote"]) {
+      assert.equal(view.button(key).disabled, true);
+      await view.click(view.button(key));
+    }
+    assert.equal(view.calls.length, 2);
   });
 });
 

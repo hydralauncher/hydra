@@ -20,6 +20,15 @@ export const getUnlockedAchievements = async (
   shop: GameShop,
   useCachedData: boolean
 ): Promise<UserAchievement[]> => {
+  const owner = HydraApi.getAuthContext();
+  const assertOwner = () => {
+    if (
+      owner
+        ? !HydraApi.isAuthContextCurrent(owner)
+        : HydraApi.getAuthContext() !== null
+    )
+      throw new Error("achievement-owner-changed");
+  };
   const userPreferences = await db.get<string, UserPreferences | null>(
     levelKeys.userPreferences,
     {
@@ -43,17 +52,22 @@ export const getUnlockedAchievements = async (
     shop,
     userPreferences?.language ?? "en"
   ).catch(() => ({
+    unavailable: true,
     souvenirs: new Map<string, string>(),
     unlocked: [],
     achievements: [],
   }));
+  assertOwner();
 
   AchievementSouvenirStore.set(shop, objectId, remote.souvenirs);
 
-  const unlockedAchievements = mergeUnlockedAchievementLists(
-    remote.unlocked,
-    AchievementMemoryStore.get(shop, objectId)?.unlockedAchievements ?? []
-  );
+  const unlockedAchievements =
+    shop === "epic" && !("unavailable" in remote)
+      ? remote.unlocked
+      : mergeUnlockedAchievementLists(
+          remote.unlocked,
+          AchievementMemoryStore.get(shop, objectId)?.unlockedAchievements ?? []
+        );
 
   const current = AchievementMemoryStore.get(shop, objectId);
   if (current) {
@@ -136,6 +150,14 @@ export const getUnlockedAchievements = async (
           ...achievementData,
           unlocked: true,
           unlockTime: unlockedAchievementData.unlockTime,
+          source: remote.achievements.find(
+            (item) =>
+              item.name.toUpperCase() === achievementData.name.toUpperCase()
+          )?.source,
+          unlockedOn: remote.achievements.find(
+            (item) =>
+              item.name.toUpperCase() === achievementData.name.toUpperCase()
+          )?.unlockedOn,
           imageUrl: souvenirs.get(achievementData.name.toUpperCase()) ?? null,
         };
       }

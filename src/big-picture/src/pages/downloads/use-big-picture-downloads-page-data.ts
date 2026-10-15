@@ -1,4 +1,5 @@
 import { Downloader, formatBytes, formatBytesToMbps } from "@shared";
+import { getEpicManagedError } from "@renderer/helpers/epic-managed-error";
 import type { LibraryGame, UserPreferences } from "../../../../types";
 import { getBigPictureDownloadView } from "../../../../types";
 import { addMilliseconds } from "date-fns";
@@ -313,6 +314,9 @@ export function useBigPictureDownloadsPageData() {
       extractionProgressByGameId[activeGame.id] ?? download.extractionProgress;
     const shouldUseLivePacket =
       !isPausedHero && lastPacket?.gameId === activeGame.id;
+    const epicPhase = shouldUseLivePacket
+      ? (lastPacket?.download.epic?.phase ?? download.epic?.phase)
+      : download.epic?.phase;
     const packetProgress = lastPacket?.progress ?? download.progress;
     const progress = isExtracting
       ? extractionProgress
@@ -354,6 +358,11 @@ export function useBigPictureDownloadsPageData() {
       pauseOrResumeAction = "resume";
     } else if (isExtracting) {
       statusLabel = "Extracting";
+    } else if (
+      download.downloader === Downloader.Epic &&
+      (epicPhase === "finalizing" || epicPhase === "prerequisites")
+    ) {
+      statusLabel = t("epic_finalizing_install", { ns: "game_details" });
     } else if (lastPacket?.isRecovering) {
       statusLabel = `Recovering download… ${Math.round(
         (lastPacket.recoveryProgress ?? 0) * 100
@@ -403,6 +412,7 @@ export function useBigPictureDownloadsPageData() {
     lastPacket,
     renderTick,
     userPreferences,
+    t,
   ]);
 
   const queuedDownloads = useMemo((): BigPictureDownloadListItem[] => {
@@ -455,8 +465,12 @@ export function useBigPictureDownloadsPageData() {
         progress: download?.progress ?? 0,
         trailingLabel: formatProgress(download?.progress ?? 0),
         secondaryLabel:
-          formatTransfer(download?.bytesDownloaded, download?.fileSize) ??
-          getDownloadSize(download),
+          isError && download?.downloader === Downloader.Epic
+            ? t(getEpicManagedError(download.epic?.error).key, {
+                ns: getEpicManagedError(download.epic?.error).ns,
+              })
+            : (formatTransfer(download?.bytesDownloaded, download?.fileSize) ??
+              getDownloadSize(download)),
         rightStatusLabel: null,
         progressLabel: formatProgress(download?.progress ?? 0),
         transferLabel: formatTransfer(
@@ -471,7 +485,7 @@ export function useBigPictureDownloadsPageData() {
         game,
       };
     });
-  }, [pausedGames]);
+  }, [pausedGames, t]);
 
   const completedDownloads = useMemo((): BigPictureDownloadListItem[] => {
     return completedGames.map((game) => {

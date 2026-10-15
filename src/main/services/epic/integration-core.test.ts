@@ -519,6 +519,23 @@ test("shutdown waits for native cancellation and closes without late events or r
   });
 });
 
+test("a failed store close keeps the integration usable and shutdown can be retried", async (t) => {
+  const db = new MemoryDatabase();
+  const f = fixture(t, db);
+  await f.core.initialize();
+  const close = db.close.bind(db);
+  let failing = true;
+  db.close = () =>
+    failing ? Promise.reject(new Error("temporary close failure")) : close();
+  await assert.rejects(f.core.shutdown(), { code: "persistence-failed" });
+  assert.equal(db.closed, false);
+  await f.core.initialize();
+  assert.equal((await f.core.getConnection()).verification, "confirmed");
+  failing = false;
+  await f.core.shutdown();
+  assert.equal(db.closed, true);
+});
+
 function fixture(t: TestContext, database?: EpicStoreDatabase) {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), "epic-regression-"));
   const f = {

@@ -75,6 +75,7 @@ for (const scenario of [
       },
       "@main/services/hydra-api": {
         HydraApi: {
+          getAuthContext: () => null,
           get: async () => ({
             canonicalId: scenario.canonicalId,
             achievements: [

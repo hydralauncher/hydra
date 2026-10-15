@@ -8,6 +8,7 @@ interface GamePlaytimeState {
   countHydraPlaytime: boolean;
   syncSteamOnExit?: boolean;
   syncEpicOnExit?: boolean;
+  managedEpicSession?: boolean;
 }
 
 export const getGamePlaytimeDeltas = (

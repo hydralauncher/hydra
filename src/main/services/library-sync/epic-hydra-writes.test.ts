@@ -183,6 +183,18 @@ function fixture() {
           }),
           cancelEpicGameExitSync: () => {},
         },
+        "./epic/launch": {
+          onManagedEpicClosed: () => false,
+          onManagedEpicDetected: async () => false,
+          getManagedEpicProcessMatch: async () => ({
+            managed: false,
+            complete: true,
+            path: null,
+          }),
+        },
+        "./epic/cloud-saves": {
+          runWithHydraSaveGuard: (task: () => Promise<unknown>) => task(),
+        },
         "./window-manager": {
           WindowManager: { closeGameLauncherWindow: () => {} },
         },
