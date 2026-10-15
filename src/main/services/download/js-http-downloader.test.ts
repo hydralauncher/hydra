@@ -147,8 +147,9 @@ async function fixture(options: FixtureOptions = {}) {
     peak = Math.max(peak, active);
     let cursor = start;
     const timer = setInterval(() => {
-      if (cursor > end) {
-        res.end();
+      if (res.destroyed || cursor > end) {
+        clearInterval(timer);
+        if (!res.destroyed) res.end();
         return;
       }
       const next = Math.min(cursor + 4096, end + 1);
