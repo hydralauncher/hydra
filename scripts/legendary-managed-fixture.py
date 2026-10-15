@@ -228,12 +228,23 @@ class AdapterTests(unittest.TestCase):
 
     def test_read_access_does_not_resume_verify_or_refresh(self):
         expiry = (datetime.now(timezone.utc) + timedelta(minutes=5)).isoformat()
-        core = SimpleNamespace(lgd=SimpleNamespace(userdata=dict(access_token="private-access", refresh_token="private-refresh", account_id="account", expires_at=expiry)), egs=SimpleNamespace(session=SimpleNamespace(headers={})))
+        core = SimpleNamespace(lgd=SimpleNamespace(userdata=dict(access_token="private-access", refresh_token="private-refresh", account_id="account", expires_at=expiry)), egs=SimpleNamespace(session=SimpleNamespace(headers={})), apply_lgd_config=lambda: None)
         managed.initialize_access(core)
         self.assertNotIn("refresh_token", core.egs.user)
         self.assertTrue(core.login())
         with self.assertRaisesRegex(managed.ManagedError, "non-target-operation"):
             core.egs.start_session()
+
+    def test_cached_api_configuration_is_applied_without_network_or_library(self):
+        calls = []
+        expiry = (datetime.now(timezone.utc) + timedelta(minutes=5)).isoformat()
+        cached = dict(version="cached-launcher", data_keys=[])
+        core = LegendaryCore.__new__(LegendaryCore)
+        core.lgd = SimpleNamespace(userdata=dict(access_token="private-access", account_id="account", expires_at=expiry), get_cached_version=lambda: dict(data=dict(egl_config=cached)))
+        core.egs = SimpleNamespace(session=SimpleNamespace(headers={}), update_egs_params=lambda value: calls.append(value))
+        managed.initialize_access(core)
+        self.assertEqual(calls, [cached])
+        self.assertEqual(core._egl_version, "cached-launcher")
 
     def test_install_reuses_upstream_with_target_only_getters(self):
         import legendary.cli as cli

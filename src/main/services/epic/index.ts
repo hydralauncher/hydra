@@ -83,9 +83,10 @@ function configureManagedEpic() {
         ? runtime!.currentLocal(target)
         : runtime!.current(target)),
   });
-  runtime!.session.setRefreshOperation((auth, connection, bundle, signal) =>
-    managedRuntime!.refreshSession(auth, connection, bundle, signal)
-  );
+  if (process.platform === "win32" || process.platform === "linux")
+    runtime!.session.setRefreshOperation((auth, connection, bundle, signal) =>
+      managedRuntime!.refreshSession(auth, connection, bundle, signal)
+    );
   const installation = new EpicInstallationService({
     runtime: managedRuntime,
     capture: () => runtime!.capture(),

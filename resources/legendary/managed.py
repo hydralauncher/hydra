@@ -72,6 +72,9 @@ def initialize_access(core):
     core.login = lambda *args, **kwargs: True
     core.egs.start_session = lambda *args, **kwargs: denied()
     core.egs.resume_session = lambda *args, **kwargs: denied()
+    # Preserve upstream API parameters and game workarounds from version.json.
+    # This reads the local cache only and is also safe when no cache exists.
+    core.apply_lgd_config()
 
 
 def denied(*args, **kwargs):

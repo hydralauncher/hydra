@@ -16,13 +16,14 @@ import type { EpicConnection } from "../../../types/epic-integration.types";
 import type { Download } from "../../../types/level.types";
 import { Downloader } from "../../../shared/constants.js";
 
-function fixture(t: TestContext) {
+function fixture(t: TestContext, platform = process.platform) {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), "epic-lifecycle-"));
   const stores: EpicConnectionStore[] = [];
   const state = {
     cleanup: async () => {},
     open: async () => {},
     cleanupCalls: 0,
+    refreshHooks: 0,
     subscriptions: 0,
     unsubscriptions: 0,
     context: null as EpicAuthContext | null,
@@ -59,6 +60,7 @@ function fixture(t: TestContext) {
           serialize: (task: () => Promise<unknown>) => task(),
           setRefreshOperation: (operation: unknown) => {
             assert.equal(typeof operation, "function");
+            state.refreshHooks++;
           },
         };
         orchestrator = {
@@ -273,7 +275,7 @@ function fixture(t: TestContext) {
     exports: integration,
     require: (specifier: string) =>
       modules[specifier] ?? assert.fail(`Unexpected dependency: ${specifier}`),
-    process,
+    process: { ...process, platform },
     queueMicrotask,
   });
   t.after(async () => {
@@ -283,6 +285,20 @@ function fixture(t: TestContext) {
   });
   return { state, stores, integration };
 }
+
+test("macOS preserves the existing Epic credential refresh runner", async (t) => {
+  const f = fixture(t, "darwin");
+  await f.integration.initializeEpicIntegration();
+  assert.equal(f.state.refreshHooks, 0);
+});
+
+test("Windows and Linux configure the target runtime's central refresh", async (t) => {
+  for (const platform of ["win32", "linux"] as const) {
+    const f = fixture(t, platform);
+    await f.integration.initializeEpicIntegration();
+    assert.equal(f.state.refreshHooks, 1);
+  }
+});
 
 test("shutdown during startup cleanup prevents late database creation and subscription", async (t) => {
   const f = fixture(t),
