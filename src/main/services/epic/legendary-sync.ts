@@ -115,6 +115,7 @@ export class LegendarySyncRunner {
           signal: this.signal,
           timeout: EPIC_SYNC_TIMEOUT_MS,
           maxBuffer: EPIC_SYNC_MAX_OUTPUT_BYTES,
+          sessionRequired: true,
           env: { ...process.env, LEGENDARY_CONFIG_PATH: this.directory },
         }
       );
@@ -125,6 +126,12 @@ export class LegendarySyncRunner {
       }
       failure = error;
     }
+    // Legendary deletes invalid credentials, so reading them would mask reconnection.
+    if (
+      failure instanceof EpicIntegrationError &&
+      failure.code === "session-expired"
+    )
+      throw failure;
     // The process tree is stopped before reading; cancellation does not discard a rotated refresh token.
     await this.saveRotatedSession();
     if (failure) throw failure;

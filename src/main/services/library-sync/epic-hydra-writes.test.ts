@@ -44,6 +44,10 @@ function fixture() {
     putGate: Promise.resolve(),
     now: 60_000,
     acceptedPlayTimeInSeconds: 0,
+    managedEpicSession: false,
+    legacySavesEnabled: false,
+    cloudUploads: 0,
+    lifecycleErrors: [] as unknown[],
     calls: [] as { method: string; body: unknown }[],
   };
   const modules: Record<string, unknown> = {
@@ -183,10 +187,29 @@ function fixture() {
           }),
           cancelEpicGameExitSync: () => {},
         },
+        "./epic/launch": {
+          hasManagedEpicSession: () => state.managedEpicSession,
+          onManagedEpicClosed: () => false,
+          onManagedEpicDetected: async () => false,
+          getManagedEpicProcessMatch: async () => ({
+            managed: false,
+            complete: true,
+            path: null,
+          }),
+        },
+        "./epic/cloud-saves": {
+          runWithHydraSaveGuard: (task: () => Promise<unknown>) => task(),
+        },
         "./window-manager": {
           WindowManager: { closeGameLauncherWindow: () => {} },
         },
-        "./logger": { networkLogger: { info: () => {} } },
+        "./logger": {
+          networkLogger: { info: () => {} },
+          logger: {
+            error: (_message: string, details: unknown) =>
+              state.lifecycleErrors.push(details),
+          },
+        },
         "./power-save-blocker": {
           PowerSaveBlockerManager: { markGameClosed: () => {} },
         },
@@ -203,8 +226,10 @@ function fixture() {
           shouldScheduleSteamGameExitSync: () => false,
         },
         "./cloud-save": {
-          getCloudSaveAutomaticSyncMode: async () => "off",
-          shouldRunLegacyAutomaticCloudSave: () => false,
+          getCloudSaveAutomaticSyncMode: async () =>
+            state.legacySavesEnabled ? "legacy" : "off",
+          shouldRunLegacyAutomaticCloudSave: (mode: string) =>
+            mode === "legacy",
           shouldRunV2AutomaticCloudSave: () => false,
         },
         "./linux-game-capture-session": {
@@ -216,7 +241,14 @@ function fixture() {
         },
         "@main/helpers/update-executable-path": {},
         axios: {},
-        "./cloud-sync": {},
+        "./cloud-sync": {
+          CloudSync: {
+            getBackupLabel: () => "automatic",
+            uploadSaveGame: async () => {
+              state.cloudUploads++;
+            },
+          },
+        },
         "node:path": {},
         "./wine": {},
         "./native-addon": {},
@@ -404,11 +436,81 @@ for (const shop of ["steam", "epic"] as const) {
         ),
         [60, 60]
       );
+      assert.deepEqual(f.state.lifecycleErrors, []);
     } finally {
       running.clearGamesPlaytimeState();
     }
   });
 }
+
+for (const managed of [false, true]) {
+  test(`Epic legacy save uploads on open and close ${managed ? "stay suppressed for a disconnected managed session" : "continue for an unmanaged session"}`, async () => {
+    const f = fixture();
+    f.state.legacySavesEnabled = true;
+    f.state.game.automaticCloudSync = true;
+    f.state.managedEpicSession = managed;
+    const watcher = f.watcher();
+    try {
+      // Detection deliberately returns false: a disconnected captured account
+      // cannot accept callbacks, but its running game still owns the prefix.
+      await watcher.onOpenGame({ ...f.state.game }, "game.exe");
+      await new Promise<void>((resolve) => setImmediate(resolve));
+      await queue.libraryWriteQueue.drain();
+      assert.equal(f.state.cloudUploads, managed ? 0 : 1);
+      await watcher.onCloseGame({ ...f.state.game });
+      await new Promise<void>((resolve) => setImmediate(resolve));
+      await queue.libraryWriteQueue.drain();
+      assert.equal(f.state.cloudUploads, managed ? 0 : 2);
+      assert.deepEqual(f.state.lifecycleErrors, []);
+    } finally {
+      running.clearGamesPlaytimeState();
+    }
+  });
+}
+
+test("a managed Epic game surviving Hydra restart skips legacy uploads on open and close and preserves its pending Epic save", async () => {
+  const f = fixture();
+  f.state.game = {
+    ...base,
+    source: "epic",
+    automaticCloudSync: true,
+    winePrefixPath: "/custom/epic-prefix",
+    epicInstallation: {
+      owner: {
+        environment: auth.environment,
+        userId: auth.userId,
+        epicAccountId: "a".repeat(32),
+      },
+      artifactId: "Artifact",
+      platform: "Windows",
+      automaticSaveSync: true,
+      pendingSaveUpload: true,
+      saveAnchor: { remoteManifest: "old.manifest", localDigest: "old" },
+    },
+  };
+  f.state.legacySavesEnabled = true;
+  const savedInstallation = structuredClone(f.state.game.epicInstallation);
+  const watcher = f.watcher();
+  try {
+    assert.equal(f.state.managedEpicSession, false);
+    assert.ok(f.state.game.remoteId);
+    await watcher.onOpenGame({ ...f.state.game }, "game.exe");
+    await new Promise<void>((resolve) => setImmediate(resolve));
+    await queue.libraryWriteQueue.drain();
+    assert.equal(running.gamesPlaytime.get(key)?.managedEpicSession, false);
+    assert.equal(f.state.cloudUploads, 0);
+    assert.deepEqual(f.state.game.epicInstallation, savedInstallation);
+    await watcher.onCloseGame({ ...f.state.game });
+    await new Promise<void>((resolve) => setImmediate(resolve));
+    await queue.libraryWriteQueue.drain();
+    assert.equal(f.state.cloudUploads, 0);
+    assert.equal(f.state.game.winePrefixPath, "/custom/epic-prefix");
+    assert.deepEqual(f.state.game.epicInstallation, savedInstallation);
+    assert.deepEqual(f.state.lifecycleErrors, []);
+  } finally {
+    running.clearGamesPlaytimeState();
+  }
+});
 
 test("a tracking failure after a context change does not write into the new account", async () => {
   const f = fixture();

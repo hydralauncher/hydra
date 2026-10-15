@@ -108,16 +108,34 @@ function fixture(records = [pending()]) {
           isDeleted: state.deleted,
         }),
       },
-      levelKeys: { user: "user" },
+      levelKeys: {
+        user: "user",
+        game: (shop: string, objectId: string) => `${shop}:${objectId}`,
+      },
     },
     "@shared": { composeAssetsWithArtwork },
-    "@main/events/user/get-unlocked-achievements": {
-      getUnlockedAchievements: async () => null,
+    "./achievement-sync-coordinator": {
+      ACHIEVEMENT_SYNC_REQUEST_TIMEOUT_MS: 20_000,
+      achievementSyncCoordinator: {
+        captureCurrent: (_key: string, current: () => boolean) => current,
+        runRequest: async (_key: string, task: () => Promise<unknown>) =>
+          task(),
+        runMerge: async (
+          _key: string,
+          task: (current: () => boolean) => Promise<unknown>
+        ) => task(() => true),
+      },
+    },
+    "./reconcile-achievement-memory": {
+      reconcileAchievementMemory: async () => undefined,
     },
     "../hydra-api": {
       HydraApi: {
         isLoggedIn: () => state.loggedIn,
         hasActiveSubscription: () => state.active,
+        getAuthContext: () =>
+          state.loggedIn ? { userId: state.user.id } : null,
+        isAuthContextCurrent: () => state.loggedIn,
         put: async () => {
           calls.push("sync");
           if (state.syncError) throw state.syncError;
@@ -195,6 +213,7 @@ function fixture(records = [pending()]) {
         _objectId: string,
         _shop: string,
         _cached: boolean,
+        _current: unknown,
         options?: { signal?: AbortSignal }
       ) => {
         calls.push("catalogue");
@@ -210,9 +229,6 @@ function fixture(records = [pending()]) {
       },
     },
     "./grouped-souvenir-sync-item": syncItem,
-    "./merge-unlocked-achievements": {
-      mergeUnlockedAchievementLists: (value: unknown) => value,
-    },
     "./grouped-souvenir-payload": payload,
     "../user/get-user-data": {
       getUserData: async (options: unknown) => {

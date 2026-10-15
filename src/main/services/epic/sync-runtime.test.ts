@@ -11,8 +11,16 @@ import * as policy from "./playtime-policy.js";
 import * as queue from "../library-sync/library-write-queue.js";
 import { mergeImportedProfileGame } from "../library-sync/merge-imported-profile-game.js";
 import { EpicSyncOrchestrator } from "./sync-orchestrator.js";
+import { EpicAchievementSource } from "./achievement-source.js";
+import * as achievementProtocol from "./achievement-protocol.js";
+import * as snapshot from "./sync-snapshot.js";
+import { AchievementMemoryStore } from "../achievements/achievement-memory-store.js";
 import type { EpicConnectionState } from "../../../types/epic-integration.types";
 import type { Game } from "@types";
+import {
+  managedWorkspacePath,
+  epicOwnerMatches,
+} from "./legendary-managed-runtime.js";
 
 const connection = {
   connected: true as const,
@@ -64,6 +72,7 @@ function fixture() {
     starts: 0,
     journal: null as import("./sync-orchestrator").EpicSyncJournal | null,
     deletedJournals: 0,
+    storeImports: 0,
     requested: [] as string[],
     playtimeReads: 0,
     puts: [] as unknown[],
@@ -89,6 +98,18 @@ function fixture() {
   const timers = new Map<object, { callback: () => void; delay: number }>();
   const events: string[] = [];
   const modules: Record<string, unknown> = {
+    "../logger": { logger: { error: () => {} } },
+    "./download": { getEpicDownloadService: () => assert.fail("no download") },
+    "./egs-auto-import": {
+      scheduleEpicStoreAutoImport: async () => {
+        state.storeImports++;
+        return 0;
+      },
+    },
+    "./achievement-source": { EpicAchievementSource },
+    "./achievement-protocol": achievementProtocol,
+    "./sync-snapshot": snapshot,
+    "../achievements/achievement-memory-store": { AchievementMemoryStore },
     "node:crypto": {
       createHash: () => ({ update: () => ({ digest: () => "scope-key" }) }),
     },
@@ -212,7 +233,11 @@ function fixture() {
     "./constants": constants,
     "./library-normalizer": normalizer,
     "./playtime-policy": policy,
-    "./session-attribution": { isEpicInstallExecutable: async () => false },
+    "./session-attribution": {
+      isEpicInstallExecutable: async () => false,
+      listEpicStoreInstallations: async () => [],
+    },
+    "./legendary-managed-runtime": { managedWorkspacePath, epicOwnerMatches },
     "./import-cleanup": {
       matchesEpicImportScope: (
         game: Game,
@@ -297,6 +322,22 @@ test("individual sync rehydrates owner aliases after restart and preserves Hydra
       playTimeInSeconds: 100,
     })
   );
+});
+
+test("explicit offline context uses only the current cached account and never performs ownership requests", () => {
+  const f = fixture();
+  f.connectionState.verification = "unconfirmed";
+  assert.equal(
+    f.runtime.captureLocal()?.connection.connectionId,
+    connection.connectionId
+  );
+  assert.equal(f.runtime.current({ auth, connection }), false);
+  assert.equal(f.state.ownerReads, 0);
+  f.connectionState.operation = { id: "disconnect", status: "disconnecting" };
+  assert.equal(f.runtime.captureLocal(), null);
+  f.connectionState.operation = null;
+  f.connectionState.hydraUserId = "another-user";
+  assert.equal(f.runtime.captureLocal(), null);
 });
 
 test("individual sync merges remote Hydra fields when the revision is unchanged", async () => {

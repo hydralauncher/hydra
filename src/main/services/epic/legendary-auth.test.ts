@@ -73,6 +73,14 @@ async function main() {
     process.exitCode = 1;
     return;
   }
+  if (mode === "revoked-credentials" || mode === "offline-refresh") {
+    await write(process.stderr, settings.canary);
+    await write(process.stderr, mode === "revoked-credentials"
+      ? '\n[Core] ERROR: Stored credentials are no longer valid! Please login again.\n'
+      : '\n[Core] ERROR: HTTP request for login failed: ConnectionError, please try again later.\n');
+    process.exitCode = 1;
+    return;
+  }
   const files = { "user.json": settings.bundle.user, "version.json": settings.bundle.version };
   if (mode === "invalid-session") files["user.json"].account_id = "invalid";
   if (mode === "session-client") files["user.json"].client_id = "wrong";
@@ -362,6 +370,26 @@ async function expectSafeError(promise: Promise<unknown>, code: string) {
     assert.equal("cause" in error, false);
     assert.equal(JSON.stringify(error).includes(CREDENTIAL_CANARY), false);
     return true;
+  });
+}
+
+for (const mode of ["revoked-credentials", "offline-refresh"] as const) {
+  test(`existing session classifies ${mode} without exposing diagnostic credentials`, async (t) => {
+    const f = await fixture(t);
+    const { directory } = await f.create();
+    await expectSafeError(
+      f.module.executeLegendaryCommand(
+        TEST_BINARY,
+        ["--api-timeout", "15", "auth", "--code", mode],
+        {
+          encoding: "utf8",
+          env: { ...process.env, LEGENDARY_CONFIG_PATH: directory },
+          sessionRequired: true,
+          timeout: TEST_TIMEOUT_MS,
+        }
+      ),
+      mode === "revoked-credentials" ? "session-expired" : "auth-failed"
+    );
   });
 }
 

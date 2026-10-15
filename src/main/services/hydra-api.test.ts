@@ -111,6 +111,8 @@ async function fixture(t: TestContext, apiUrl = "http://localhost:3000") {
     WindowManager: {
       mainWindow: null,
       sendToAppWindows: (event: string) => effects.push(event),
+      closeFriendsWindow: () => {},
+      closeChatWindow: () => {},
     },
     logger: Object.fromEntries(
       ["log", "info", "error"].map((method) => [
@@ -155,6 +157,12 @@ async function fixture(t: TestContext, apiUrl = "http://localhost:3000") {
     "./steam-integration/steam-startup-sync":
       "export const startSteamSyncOnStartup = () => harness.effects.push('steam-start'); export const resetSteamStartupSync = () => {};",
     "./user": "export const syncDownloadSourcesFromApi = async () => {};",
+    "./friends-snapshot": "export const FriendsSnapshotCache = { clear() {} };",
+    "./chat/chat-unread-store":
+      "export const ChatUnreadStore = { clear() {} };",
+    "./chat/chat-sender-profiles":
+      "export const clearChatSenderProfiles = () => {};",
+    "./notifications": "export const closeChatNotifications = () => {};",
   };
   const bundlePath = path.join(root, "api.mjs");
   // Exercise real auth, HTTP interceptors and profile code; replace environment boundaries only.

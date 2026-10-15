@@ -1,3 +1,7 @@
+import {
+  achievementSyncCoordinator,
+  ACHIEVEMENT_SYNC_REQUEST_TIMEOUT_MS,
+} from "./achievement-sync-coordinator";
 import { randomUUID } from "node:crypto";
 import fs from "node:fs";
 
@@ -16,7 +20,6 @@ import {
   levelKeys,
 } from "@main/level";
 import { composeAssetsWithArtwork } from "@shared";
-import { getUnlockedAchievements } from "@main/events/user/get-unlocked-achievements";
 import type {
   AchievementSouvenirSyncCleanupResult,
   AchievementSouvenirSyncDetails,
@@ -57,7 +60,7 @@ import {
   prepareAchievementSouvenirForRetry,
 } from "./grouped-souvenir-sync-status";
 import { getGameAchievementData } from "./get-game-achievement-data";
-import { mergeUnlockedAchievementLists } from "./merge-unlocked-achievements";
+import { reconcileAchievementMemory as reconcileMemory } from "./reconcile-achievement-memory";
 import { buildGroupedSouvenirSyncPayload } from "./grouped-souvenir-payload";
 import { buildAchievementSouvenirSyncItem } from "./grouped-souvenir-sync-item";
 
@@ -135,7 +138,7 @@ const getCleanupAchievementData = async (game: Game) => {
   });
   try {
     return await Promise.race([
-      getGameAchievementData(game.objectId, game.shop, true, {
+      getGameAchievementData(game.objectId, game.shop, true, undefined, {
         signal: controller.signal,
         timeout: SOUVENIR_SYNC_METADATA_TIMEOUT_MS,
       }).catch(fallback),
@@ -271,42 +274,38 @@ const removeExpiredRecords = async (
 };
 
 const reconcileAchievementMemory = async (
-  response: UpdatedUnlockedAchievements
+  response: UpdatedUnlockedAchievements,
+  ownerId: string
 ) => {
-  const current = AchievementMemoryStore.get(response.shop, response.objectId);
-  AchievementMemoryStore.set(response.shop, response.objectId, {
-    achievements: current?.achievements ?? [],
-    unlockedAchievements: mergeUnlockedAchievementLists(
-      response.achievements,
-      current?.unlockedAchievements ?? []
-    ),
-    language: current?.language,
-    catalogueValidator: current?.catalogueValidator,
-  });
-
-  const achievements = await getUnlockedAchievements(
-    response.objectId,
-    response.shop,
-    true
-  ).catch(() => null);
-
-  if (achievements) {
-    WindowManager.mainWindow?.webContents.send(
-      `on-update-achievements-${response.objectId}-${response.shop}`,
-      achievements
-    );
-  }
+  const context = HydraApi.getAuthContext();
+  if (context?.userId !== ownerId)
+    throw new Error("achievement-sync-context-changed");
+  return achievementSyncCoordinator.runMerge(
+    levelKeys.game(response.shop, response.objectId),
+    (current) => reconcileMemory(response, current),
+    () => HydraApi.isAuthContextCurrent(context)
+  );
 };
 
 const synchronizeAchievements = (
   pending: PendingAchievementSouvenir,
   achievements: PendingSouvenirAchievement[],
   includeSouvenir: boolean
-) =>
-  HydraApi.put<UpdatedUnlockedAchievements>(
-    "/profile/games/achievements",
-    buildGroupedSouvenirSyncPayload(pending, achievements, includeSouvenir)
+) => {
+  const context = HydraApi.getAuthContext();
+  if (context?.userId !== pending.ownerId)
+    throw new Error("achievement-sync-context-changed");
+  return achievementSyncCoordinator.runRequest(
+    pending.gameKey,
+    () =>
+      HydraApi.put<UpdatedUnlockedAchievements>(
+        "/profile/games/achievements",
+        buildGroupedSouvenirSyncPayload(pending, achievements, includeSouvenir),
+        { authContext: context, timeout: ACHIEVEMENT_SYNC_REQUEST_TIMEOUT_MS }
+      ),
+    () => HydraApi.isAuthContextCurrent(context)
   );
+};
 
 const waitForConcurrentUpdate = (attempt: number) =>
   new Promise((resolve) => {
@@ -496,7 +495,7 @@ const completeAchievementOnlyRecovery = async (
   );
 
   try {
-    await reconcileAchievementMemory(response);
+    await reconcileAchievementMemory(response, pending.ownerId);
   } catch (error) {
     achievementsLogger.error(
       "Failed to refresh local achievements after abandoning a souvenir",
@@ -685,7 +684,7 @@ const processPendingSouvenir = async (
         .get(authorized.gameKey)
         .catch(() => null);
       if (game) AchievementSouvenirStore.invalidate(game.shop, game.objectId);
-      await reconcileAchievementMemory(response);
+      await reconcileAchievementMemory(response, authorized.ownerId);
       await ScreenshotService.cleanupOldScreenshots();
     } catch (error) {
       achievementsLogger.error(

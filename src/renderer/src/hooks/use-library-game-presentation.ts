@@ -6,6 +6,7 @@ import {
 } from "@shared";
 import { useLibrary } from "./use-library";
 import { useAppSelector } from "./redux";
+import { selectLibraryPresentationIndex } from "../features/library-presentation";
 
 export function useLibraryGamePresentation(
   { shop, objectId }: { shop: GameShop; objectId: string },
@@ -14,7 +15,12 @@ export function useLibraryGamePresentation(
   const { downloadLibrary } = useLibrary();
   const runningGame = useAppSelector((state) => state.gameRunning.gameRunning);
   const runningId = runningGame?.id;
+  const index = useAppSelector(selectLibraryPresentationIndex);
   return useMemo(() => {
+    if (!currentGame) {
+      const key = `${shop}:${objectId}`;
+      return index.owned.get(key) ?? index.catalogue.get(key) ?? undefined;
+    }
     const games = downloadLibrary.map((cached) => {
       if (
         !currentGame ||
@@ -53,5 +59,5 @@ export function useLibraryGamePresentation(
       { shop, objectId },
       runningId ? [runningId] : []
     );
-  }, [downloadLibrary, shop, objectId, runningId, currentGame]);
+  }, [downloadLibrary, shop, objectId, runningId, currentGame, index]);
 }

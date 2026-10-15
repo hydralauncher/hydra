@@ -14,6 +14,10 @@ import { db } from "@main/level";
 import { levelKeys } from "@main/level/sublevels";
 import type { Auth, User } from "@types";
 import { SSEClient } from "./sse";
+import { FriendsSnapshotCache } from "./friends-snapshot";
+import { ChatUnreadStore } from "./chat/chat-unread-store";
+import { clearChatSenderProfiles } from "./chat/chat-sender-profiles";
+import { closeChatNotifications } from "./notifications";
 import { trimTrailingSlashes } from "../../shared/trim-trailing-slashes.js";
 import {
   sanitizeNetworkLogPayload,
@@ -472,6 +476,13 @@ export class HydraApi {
   }
 
   private static sendSignOutEvent() {
+    FriendsSnapshotCache.clear();
+    ChatUnreadStore.clear();
+    clearChatSenderProfiles();
+    closeChatNotifications();
+    // Covers the 401 path too, which never goes through the sign-out event.
+    WindowManager.closeFriendsWindow();
+    WindowManager.closeChatWindow();
     WindowManager.sendToAppWindows("on-signout");
   }
 

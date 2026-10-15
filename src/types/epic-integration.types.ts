@@ -11,6 +11,7 @@ export interface EpicConnectedConnection {
   connectedAt: string;
   lastSyncedAt?: string | null;
   latestSyncRun?: EpicSyncRun | null;
+  capabilities?: { achievementsSnapshotVersion?: 1 | null };
 }
 
 export type EpicConnection = { connected: false } | EpicConnectedConnection;
@@ -50,6 +51,10 @@ export interface EpicConnectionState {
   hydraLoggedIn: boolean;
   hydraUserId: string | null;
   availability: { available: boolean; reason?: EpicErrorCode };
+  managedInstallation?: {
+    available: boolean;
+    reason?: import("./epic-managed.types").EpicInstallError;
+  };
   connection: EpicConnection | null;
   /** Confirmation of the persisted Hydra link, independent of the local Epic session. */
   verification: "confirmed" | "unconfirmed";
@@ -83,11 +88,31 @@ export interface EpicSyncRun {
   startedAt: string | null;
   completedAt: string | null;
   createdAt: string;
+  achievementSnapshotVersion?: 1 | null;
+  achievementSummary?: EpicAchievementSummary | null;
+}
+export interface EpicAchievementSummary {
+  status: "not-requested" | "complete" | "partial";
+  gamesApplied: number;
+  gamesPending: number;
+  gamesUnsupported: number;
+  unlocksApplied: number;
+}
+export interface EpicSnapshotAchievement {
+  externalSetId: string;
+  externalId: string;
+  unlockTime: string;
+}
+export interface EpicAchievementTarget {
+  objectId: string;
+  status: "supported" | "unsupported" | "unavailable";
+  achievementSandboxId?: string;
 }
 export type EpicSyncPhase =
   | "starting"
   | "library"
   | "playtime"
+  | "achievements"
   | "publishing"
   | "merging"
   | "finishing";
@@ -101,6 +126,7 @@ export interface EpicSyncState {
   total?: number | null;
   requiresReconnect?: boolean;
   error?: EpicErrorCode;
+  achievementSummary?: EpicAchievementSummary;
 }
 export interface EpicSyncFinished {
   hydraUserId: string;
@@ -110,6 +136,7 @@ export interface EpicSyncFinished {
   error?: EpicErrorCode;
   publication: "not-published" | "published" | "unknown";
   requiresMerge: boolean;
+  achievementSummary?: EpicAchievementSummary;
 }
 export interface EpicSnapshotGame {
   namespace: string;
@@ -117,4 +144,5 @@ export interface EpicSnapshotGame {
   artifactIds: string[];
   name: string;
   playTimeInSeconds: number;
+  achievements?: EpicSnapshotAchievement[] | null;
 }

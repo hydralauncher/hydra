@@ -1,3 +1,4 @@
+import { achievementSyncCoordinator } from "./achievement-sync-coordinator";
 import { HydraApi } from "../hydra-api";
 import type { HydraApiOptions } from "../hydra-api";
 import type { GameShop, SteamAchievement } from "@types";
@@ -10,8 +11,20 @@ export const getGameAchievementData = async (
   objectId: string,
   shop: GameShop,
   useCachedData: boolean,
+  current?: () => boolean,
   requestOptions?: Pick<HydraApiOptions, "signal" | "timeout">
 ) => {
+  const context = HydraApi.getAuthContext();
+  const valid =
+    current ??
+    achievementSyncCoordinator.captureCurrent(
+      levelKeys.game(shop, objectId),
+      () =>
+        context
+          ? HydraApi.isAuthContextCurrent(context)
+          : HydraApi.getAuthContext() === null
+    );
+
   if (shop === "custom") {
     return [];
   }
@@ -23,6 +36,8 @@ export const getGameAchievementData = async (
       valueEncoding: "utf8",
     })
     .then((language) => language || "en");
+
+  if (!valid()) return [];
 
   if (
     useCachedData &&
@@ -46,17 +61,20 @@ export const getGameAchievementData = async (
     }
   )
     .then(async (response) => {
+      if (!valid()) return [];
       if (response.status === 304) {
         return cachedAchievements?.achievements ?? [];
       }
 
       const achievements =
-        response.data.length > 0
+        response.data.length > 0 || shop === "epic"
           ? response.data
           : (cachedAchievements?.achievements ?? []);
 
       AchievementMemoryStore.set(shop, objectId, {
-        unlockedAchievements: cachedAchievements?.unlockedAchievements ?? [],
+        unlockedAchievements:
+          AchievementMemoryStore.get(shop, objectId)?.unlockedAchievements ??
+          [],
         achievements,
         language,
         catalogueValidator:

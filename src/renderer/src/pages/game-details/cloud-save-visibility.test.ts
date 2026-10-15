@@ -8,6 +8,17 @@ const { getCloudSaveVisibility, isLegacyCloudSaveSettingsAvailable } =
   visibilityModule;
 
 describe("cloud save visibility", () => {
+  it("offers V2 for Epic games and never offers legacy saves", () => {
+    const visibility = getCloudSaveVisibility("epic");
+    assert.deepEqual(visibility, {
+      hero: "v2",
+      settings: { showV2: true, showLegacy: false, legacyPurpose: "archive" },
+    });
+    assert.equal(
+      isLegacyCloudSaveSettingsAvailable(visibility.settings, true, 5),
+      false
+    );
+  });
   it("uses V2 for Steam and keeps legacy saves as an archive", () => {
     assert.deepEqual(getCloudSaveVisibility("steam"), {
       hero: "v2",

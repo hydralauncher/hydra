@@ -33,6 +33,7 @@ export function SettingsEpic() {
   const [state, setState] = useState<EpicConnectionState | null>(null);
   const [isLoading, setIsLoading] = useState(Boolean(userId));
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isDisconnecting, setIsDisconnecting] = useState(false);
   const [disconnectId, setDisconnectId] = useState<string | null>(null);
   const [requestError, setRequestError] = useState<EpicErrorCode | null>(null);
 
@@ -117,6 +118,7 @@ export function SettingsEpic() {
     ++operationGeneration.current;
     submittingRef.current = false;
     setIsSubmitting(false);
+    setIsDisconnecting(false);
     void refreshStatus(true);
     return invalidateRequests;
   }, [invalidateRequests, refreshStatus, userId]);
@@ -137,6 +139,7 @@ export function SettingsEpic() {
       ++operationGeneration.current;
       submittingRef.current = false;
       setIsSubmitting(false);
+      setIsDisconnecting(false);
       stateRef.current = null;
       setState(null);
       setRequestError(null);
@@ -180,7 +183,15 @@ export function SettingsEpic() {
       if (!current?.connected || result.connectionId !== current.connectionId)
         return;
       if (result.origin === "manual") {
-        if (result.ok) showSuccessToast(t("epic_sync_success"));
+        if (result.ok)
+          showSuccessToast(
+            t(
+              result.achievementSummary?.status === "partial"
+                ? "epic_sync_partial"
+                : "epic_sync_success",
+              { count: result.achievementSummary?.gamesPending ?? 0 }
+            )
+          );
         else if (result.error !== "operation-cancelled")
           showErrorToast(
             t(
@@ -234,6 +245,7 @@ export function SettingsEpic() {
     const actionGeneration = ++operationGeneration.current;
     submittingRef.current = true;
     setIsSubmitting(true);
+    setIsDisconnecting(options?.disconnected === true);
     setRequestError(null);
     try {
       const result = await action();
@@ -264,6 +276,7 @@ export function SettingsEpic() {
       if (actionGeneration === operationGeneration.current) {
         submittingRef.current = false;
         setIsSubmitting(false);
+        setIsDisconnecting(false);
       }
     }
   };
@@ -318,6 +331,8 @@ export function SettingsEpic() {
     ? visibleState.connection
     : null;
   const operation = visibleState?.operation;
+  const disconnecting =
+    isDisconnecting || operation?.status === "disconnecting";
   const requiresReconnect =
     presentation.requiresReconnect || syncState.requiresReconnect === true;
   const supportsSync = typeof window.electron.startEpicSync === "function";
@@ -346,6 +361,8 @@ export function SettingsEpic() {
         </Button>
       );
     }
+
+    if (disconnecting) return null;
 
     if (operation) {
       return (
@@ -419,12 +436,18 @@ export function SettingsEpic() {
         title={t("epic_games")}
         logo={<EpicLogo />}
         status={t(
-          syncState.requiresReconnect
-            ? "epic_status_reconnect_required"
-            : presentation.statusKey
+          disconnecting
+            ? "epic_status_disconnecting"
+            : syncState.requiresReconnect
+              ? "epic_status_reconnect_required"
+              : presentation.statusKey
         )}
         statusTone={
-          syncState.requiresReconnect ? "warning" : presentation.statusTone
+          disconnecting
+            ? "neutral"
+            : syncState.requiresReconnect
+              ? "warning"
+              : presentation.statusTone
         }
         actions={renderActions()}
         loading={isLoading}
@@ -451,31 +474,44 @@ export function SettingsEpic() {
           </p>
         )}
 
-        {syncState.status !== "idle" && syncState.hydraUserId === userId && (
-          <div
-            className="settings-integration-card__progress"
-            role="status"
-            aria-live="polite"
-          >
+        {disconnecting ? (
+          <output className="settings-integration-card__progress">
             <div className="settings-integration-card__progress-header">
-              <span>
-                {t(
-                  `epic_sync_${syncState.status === "cancelling" ? "cancelling" : (syncState.phase ?? "starting")}`
-                )}
-              </span>
-              {typeof syncState.total === "number" &&
-                syncState.total > 0 &&
-                (syncState.phase === "publishing" ||
-                  syncState.phase === "merging") && (
-                  <span className="settings-integration-card__progress-count">
-                    {syncState.processed ?? 0} / {syncState.total}
-                  </span>
-                )}
+              <span>{t("epic_status_disconnecting")}</span>
             </div>
             <div className="settings-integration-card__progress-track">
               <div className="settings-integration-card__progress-fill settings-integration-card__progress-fill--indeterminate" />
             </div>
-          </div>
+          </output>
+        ) : (
+          syncState.status !== "idle" &&
+          syncState.hydraUserId === userId && (
+            <div
+              className="settings-integration-card__progress"
+              role="status"
+              aria-live="polite"
+            >
+              <div className="settings-integration-card__progress-header">
+                <span>
+                  {t(
+                    `epic_sync_${syncState.status === "cancelling" ? "cancelling" : (syncState.phase ?? "starting")}`
+                  )}
+                </span>
+                {typeof syncState.total === "number" &&
+                  syncState.total > 0 &&
+                  (syncState.phase === "publishing" ||
+                    syncState.phase === "achievements" ||
+                    syncState.phase === "merging") && (
+                    <span className="settings-integration-card__progress-count">
+                      {syncState.processed ?? 0} / {syncState.total}
+                    </span>
+                  )}
+              </div>
+              <div className="settings-integration-card__progress-track">
+                <div className="settings-integration-card__progress-fill settings-integration-card__progress-fill--indeterminate" />
+              </div>
+            </div>
+          )
         )}
         {showReconnectMessage && (
           <p

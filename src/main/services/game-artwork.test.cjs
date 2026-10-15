@@ -52,7 +52,7 @@ const item = (overrides = {}) => ({
   height: 512,
   ...overrides,
 });
-function service(items, download) {
+function service(items, download, grids = () => []) {
   let downloads = 0;
   const apiRequests = [];
   const api = {
@@ -61,7 +61,10 @@ function service(items, download) {
       return {
         status: 200,
         headers: {},
-        data: { success: true, data: route.endsWith("/icons") ? items : [] },
+        data: {
+          success: true,
+          data: route.endsWith("/icons") ? items : grids(query),
+        },
       };
     },
   };
@@ -91,6 +94,62 @@ const assets = (id) => ({
   libraryImageUrl: null,
   libraryHeroImageUrl: null,
 });
+test("no-logo grids fall back to other dimensions without selecting logos or wrong ratios", async () => {
+  const portrait = item({
+    url: "https://cdn2.steamgriddb.com/grid/portrait.png",
+    style: "no_logo",
+    width: 512,
+    height: 768,
+  });
+  const landscape = item({
+    url: "https://cdn2.steamgriddb.com/grid/landscape.png",
+    style: "no_logo",
+    width: 1024,
+    height: 512,
+  });
+  const instance = service(
+    [],
+    async () => {
+      throw Error("unexpected download");
+    },
+    (query) =>
+      query.dimensions
+        ? []
+        : [portrait, landscape, item({ style: "alternate", score: 999 })]
+  );
+  const result = await instance.resolveEpicDefaultArtwork(
+    assets("different-dimensions")
+  );
+  assert.equal(result.coverImageUrl, portrait.url);
+  assert.equal(result.libraryImageUrl, portrait.url);
+  assert.equal(result.libraryHeroImageUrl, landscape.url);
+  assert.ok(
+    instance.apiRequests
+      .filter((r) => r.route.endsWith("/grids"))
+      .every((r) => r.query.styles === "no_logo")
+  );
+});
+
+test("missing icons retry sooner without discarding fresh grids", async () => {
+  const instance = service([], async () => {
+    throw Error("unexpected download");
+  });
+  const now = Date.now();
+  const cached = {
+    ...assets("missing-retry"),
+    coverImageUrl: "https://cdn2.steamgriddb.com/grid/kept.png",
+    epicArtworkUpdatedAtByType: { icon: now, portrait: now, landscape: now },
+  };
+  await instance.resolveEpicDefaultArtwork(cached, cached);
+  assert.equal(instance.apiRequests.length, 0);
+  cached.epicArtworkUpdatedAtByType.icon =
+    now - instance.EPIC_ARTWORK_MISSING_ICON_RETRY_MS - 1;
+  const retried = await instance.resolveEpicDefaultArtwork(cached, cached);
+  assert.equal(instance.apiRequests.length, 1);
+  assert.ok(instance.apiRequests[0].route.endsWith("/icons"));
+  assert.equal(retried.coverImageUrl, cached.coverImageUrl);
+});
+
 test("Epic icons use a bounded PNG cache with safe fallbacks", async () => {
   const png = await sharp({
     create: { width: 512, height: 512, channels: 4, background: "#336699" },

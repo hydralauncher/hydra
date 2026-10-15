@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import {
   getStoreDetailsWithFallback,
+  formatEpicDescription,
   mapEpicShopDetails,
   sanitizeEpicHtml,
   type EpicShopDetails,
@@ -111,6 +112,55 @@ describe("store-first details", () => {
 });
 
 describe("Epic details mapping", () => {
+  it("renders Horizon Chase 2 Markdown from the live Epic store", () => {
+    const description =
+      "<!--textBlock-->\n<!--title-->\n# CORRIDA PARA TODOS\n\n<!--text-->\n**Horizon Chase 2** é uma corrida.\n\n*Fácil de jogar*, difícil de dominar.\n\n* Arcade\n* Multijogador";
+    const result = mapEpicShopDetails("id", { ...epic, description }, "pt");
+    assert.match(result.detailed_description, /<h1>CORRIDA PARA TODOS<\/h1>/);
+    assert.match(
+      result.detailed_description,
+      /<strong>Horizon Chase 2<\/strong>/
+    );
+    assert.match(result.detailed_description, /<em>Fácil de jogar<\/em>/);
+    assert.match(
+      result.detailed_description,
+      /<ul>\s*<li>Arcade<\/li>\s*<li>Multijogador<\/li>\s*<\/ul>/
+    );
+    assert.ok(!result.detailed_description.includes("**"));
+    assert.ok(!result.detailed_description.includes("<!--"));
+  });
+
+  it("preserves formatted API fallback HTML without double encoding", async () => {
+    const description =
+      "<p><strong>Horizon Chase 2</strong> &amp; amigos</p>\n<ul>\n<li>Arcade</li>\n</ul>";
+    const result = await getStoreDetailsWithFallback(
+      async () => null,
+      async () => mapEpicShopDetails("id", { ...epic, description }, "pt"),
+      null
+    );
+    assert.equal(result?.detailed_description, description);
+    assert.equal(formatEpicDescription(description), description);
+  });
+
+  it("renders BioShock bullets and sanitizes embedded HTML in Markdown", () => {
+    const result = formatEpicDescription(
+      'Também inclui:\n\n• Museu\n• Salas\n\n**Seguro** <img src="javascript:alert(1)" onerror="alert(2)"><script>alert(3)</script>'
+    );
+    assert.match(result, /<li>Museu<\/li>/);
+    assert.match(result, /<li>Salas<\/li>/);
+    assert.match(result, /<strong>Seguro<\/strong>/);
+    assert.doesNotMatch(result, /javascript:|onerror|<script|alert\(/);
+  });
+
+  it("formats legacy cached Markdown and remains stable on repeated reads", () => {
+    const cached =
+      "CORRIDA PARA TODOS<br><br>**Horizon Chase 2** é uma corrida.";
+    const formatted = formatEpicDescription(cached);
+    assert.match(formatted, /<strong>Horizon Chase 2<\/strong>/);
+    assert.doesNotMatch(formatted, /\*\*/);
+    assert.equal(formatEpicDescription(formatted), formatted);
+  });
+
   it("sanitizes mapped description fields without escaping entities again", () => {
     const mapped = mapEpicShopDetails(
       "namespace:item",
@@ -132,7 +182,7 @@ describe("Epic details mapping", () => {
     }
     assert.equal(
       sanitizeEpicHtml(mapped.detailed_description),
-      "First &amp; second"
+      "<p>First &amp; second</p>"
     );
     assert.equal(
       sanitizeEpicHtml(
@@ -204,7 +254,7 @@ describe("Epic details mapping", () => {
     };
     assert.equal(
       mapEpicShopDetails("id", data, "pt").detailed_description,
-      '<img alt="Vbucks" src="https://cdn2.unrealengine.com/banner.png"><br>Store'
+      '<p><img src="https://cdn2.unrealengine.com/banner.png" alt="Vbucks">\nStore</p>'
     );
   });
   it("renders Markdown store images without allowing attribute injection", () => {
@@ -215,12 +265,12 @@ describe("Epic details mapping", () => {
     };
     assert.equal(
       mapEpicShopDetails("id", data, "en").detailed_description,
-      '<img alt="KeyArt &quot;Image&quot;" src="https://cdn1.epicgames.com/art.jpg"><br>Season text'
+      '<p><img src="https://cdn1.epicgames.com/art.jpg" alt="KeyArt &quot;Image&quot;">\nSeason text</p>'
     );
     const invalid = { ...epic, description: "![Image](javascript:alert)" };
     assert.equal(
       mapEpicShopDetails("id", invalid, "en").detailed_description,
-      invalid.description
+      "<p>![Image](javascript:alert)</p>"
     );
   });
   it("formats ISO release dates in the requested locale without shifting the day", () => {
@@ -243,7 +293,7 @@ describe("Epic details mapping", () => {
     };
     assert.equal(
       mapEpicShopDetails("id", data, "en").detailed_description,
-      "First &amp; second<br><br> Heading<br>Text &lt; 5"
+      "<p>First &amp; second</p>\n<p>Heading\nText &lt; 5</p>"
     );
   });
 
@@ -267,7 +317,7 @@ describe("Epic details mapping", () => {
     assert.equal(
       mapEpicShopDetails("namespace:item", { ...epic, description: null }, "en")
         .detailed_description,
-      "Short"
+      "<p>Short</p>"
     );
   });
 

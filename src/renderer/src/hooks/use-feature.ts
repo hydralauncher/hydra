@@ -10,6 +10,7 @@ enum Feature {
   AllDebrid = "ALLDEBRID",
   Nimbus = "NIMBUS",
   NimbusPreview = "NIMBUS_PREVIEW",
+  ChatImages = "CHAT_IMAGES",
 }
 
 const readCachedFeatures = (): string[] => {

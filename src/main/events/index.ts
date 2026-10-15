@@ -12,6 +12,7 @@ import "./auth";
 import "./autoupdater";
 import "./big-picture";
 import "./catalogue";
+import "./chat";
 import "./cloud-save";
 import "./connectivity";
 import "./download-sources";

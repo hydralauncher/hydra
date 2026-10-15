@@ -14,6 +14,7 @@ import {
   mergeLibraryCatalogueMetadata,
 } from "../../../../shared/library-catalogue.js";
 import { applyLibraryGroupAction } from "../../../../shared/library-group-actions.js";
+import { selectLibraryPresentationIndex } from "../../features/library-presentation.js";
 
 const requireModule = createRequire(import.meta.url);
 const directory = "src/renderer/src/components/game-context-menu";
@@ -187,9 +188,13 @@ async function fixture(
     {
       "@shared": shared,
       "./use-library": { useLibrary: hooks.useLibrary },
+      "../features/library-presentation": { selectLibraryPresentationIndex },
       "./redux": {
         useAppSelector: (select: (state: unknown) => unknown) =>
-          select({ gameRunning: { gameRunning: null } }),
+          select({
+            library: { downloadLibrary: library },
+            gameRunning: { gameRunning: null },
+          }),
       },
     }
   );

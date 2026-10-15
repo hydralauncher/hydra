@@ -26,6 +26,58 @@ export type RealtimeEnvelope = RealtimeEnvelopeBase &
         event: "notification";
         payload: { invalidate: "notifications" };
       }
+    | {
+        event: "chatMessage";
+        payload: {
+          senderId: string;
+          recipientId: string;
+          seq: number;
+          body: string;
+          clientNonce: string;
+          createdAt: string;
+          replyToSeq?: number;
+          replyTo?: {
+            senderId: string;
+            body: string;
+            attachmentCount?: number;
+          };
+          attachments?: {
+            id: string;
+            contentType: "image/jpeg" | "image/png" | "image/gif";
+            width: number;
+            height: number;
+            spoiler: boolean;
+            url: string;
+          }[];
+        };
+      }
+    | {
+        event: "chatMessageRejected";
+        payload: {
+          senderId: string;
+          recipientId: string;
+          clientNonce: string;
+          reason: "blocked" | "failed";
+        };
+      }
+    | {
+        event: "chatTyping";
+        payload: { senderId: string };
+      }
+    | {
+        event: "chatReaction";
+        payload: {
+          senderId: string;
+          recipientId: string;
+          seq: number;
+          emoji: string | null;
+          updatedAt: string;
+        };
+      }
+    | {
+        event: "chatMessageHidden" | "chatMessageRestored";
+        payload: { senderId: string; recipientId: string; seq: number };
+      }
   );
 
 export interface RealtimeToken {
@@ -123,6 +175,67 @@ const isValidPublishedAt = (publishedAt: unknown) =>
     publishedAt.length > 0 &&
     !Number.isNaN(Date.parse(publishedAt)));
 
+const isValidChatReply = (payload: Record<string, unknown>) => {
+  const { replyToSeq, replyTo } = payload;
+  if (replyToSeq === undefined && replyTo === undefined) return true;
+
+  return (
+    typeof replyToSeq === "number" &&
+    Number.isSafeInteger(replyToSeq) &&
+    replyToSeq > 0 &&
+    (replyTo === undefined ||
+      (typeof replyTo === "object" &&
+        replyTo !== null &&
+        typeof (replyTo as Record<string, unknown>).senderId === "string" &&
+        typeof (replyTo as Record<string, unknown>).body === "string" &&
+        isOptionalCount((replyTo as Record<string, unknown>).attachmentCount)))
+  );
+};
+
+const isOptionalCount = (value: unknown) =>
+  value === undefined ||
+  (typeof value === "number" && Number.isSafeInteger(value) && value >= 0);
+
+const CHAT_ATTACHMENT_CONTENT_TYPES = new Set([
+  "image/jpeg",
+  "image/png",
+  "image/gif",
+]);
+
+const isPositiveSize = (value: unknown) =>
+  typeof value === "number" && Number.isSafeInteger(value) && value > 0;
+
+const isValidChatAttachment = (value: unknown) => {
+  if (typeof value !== "object" || value === null || Array.isArray(value)) {
+    return false;
+  }
+
+  const attachment = value as Record<string, unknown>;
+  return (
+    typeof attachment.id === "string" &&
+    attachment.id.length > 0 &&
+    CHAT_ATTACHMENT_CONTENT_TYPES.has(attachment.contentType as string) &&
+    isPositiveSize(attachment.width) &&
+    isPositiveSize(attachment.height) &&
+    typeof attachment.spoiler === "boolean" &&
+    typeof attachment.url === "string" &&
+    attachment.url.length > 0
+  );
+};
+
+// Images-only messages have an empty body.
+const isValidChatContent = (payload: Record<string, unknown>) => {
+  const { body, attachments } = payload;
+  if (typeof body !== "string") return false;
+  if (attachments === undefined) return true;
+
+  return (
+    Array.isArray(attachments) &&
+    attachments.length > 0 &&
+    attachments.every(isValidChatAttachment)
+  );
+};
+
 const isValidEnvelopePayload = (
   event: unknown,
   payload: Record<string, unknown>
@@ -149,6 +262,50 @@ const isValidEnvelopePayload = (
       );
     case "notification":
       return payload.invalidate === "notifications";
+    case "chatMessage":
+      return (
+        typeof payload.senderId === "string" &&
+        typeof payload.recipientId === "string" &&
+        typeof payload.seq === "number" &&
+        Number.isSafeInteger(payload.seq) &&
+        payload.seq > 0 &&
+        isValidChatContent(payload) &&
+        typeof payload.clientNonce === "string" &&
+        typeof payload.createdAt === "string" &&
+        !Number.isNaN(Date.parse(payload.createdAt)) &&
+        isValidChatReply(payload)
+      );
+    case "chatMessageRejected":
+      return (
+        typeof payload.senderId === "string" &&
+        typeof payload.recipientId === "string" &&
+        typeof payload.clientNonce === "string" &&
+        payload.clientNonce.length > 0 &&
+        (payload.reason === "blocked" || payload.reason === "failed")
+      );
+    case "chatTyping":
+      return typeof payload.senderId === "string";
+    case "chatReaction":
+      return (
+        typeof payload.senderId === "string" &&
+        typeof payload.recipientId === "string" &&
+        typeof payload.seq === "number" &&
+        Number.isSafeInteger(payload.seq) &&
+        payload.seq > 0 &&
+        (payload.emoji === null ||
+          (typeof payload.emoji === "string" && payload.emoji.length > 0)) &&
+        typeof payload.updatedAt === "string" &&
+        !Number.isNaN(Date.parse(payload.updatedAt))
+      );
+    case "chatMessageHidden":
+    case "chatMessageRestored":
+      return (
+        typeof payload.senderId === "string" &&
+        typeof payload.recipientId === "string" &&
+        typeof payload.seq === "number" &&
+        Number.isSafeInteger(payload.seq) &&
+        payload.seq > 0
+      );
     default:
       return false;
   }

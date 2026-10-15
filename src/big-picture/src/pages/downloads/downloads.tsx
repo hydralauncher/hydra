@@ -5,6 +5,8 @@ import {
   monitorForElements,
 } from "@atlaskit/pragmatic-drag-and-drop/element/adapter";
 import type { LibraryGame } from "@types";
+import { Downloader } from "@shared";
+import { useTranslation } from "react-i18next";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { type FocusItemActions } from "../../types";
@@ -38,6 +40,7 @@ import {
   type BigPictureDownloadListItem,
 } from "./use-big-picture-downloads-page-data";
 import { useNavigationSnapshot } from "../../stores";
+import { ConfirmationModal } from "../../components/modals";
 
 import "./downloads.scss";
 
@@ -921,6 +924,7 @@ function Section({
 
 export default function Downloads() {
   const navigate = useNavigate();
+  const { t } = useTranslation("downloads");
   const { setFocus } = useNavigation();
   const { currentFocusId, nodes } = useNavigationSnapshot();
   const {
@@ -930,11 +934,12 @@ export default function Downloads() {
     pausedDownloads,
     completedDownloads,
     hasDownloads,
-    pauseDownload,
+    pauseDownload: pauseDownloadNow,
+    getPauseWarning,
     resumeDownload,
     startNow,
     sendToQueue,
-    moveToPaused,
+    moveToPaused: moveToPausedNow,
     cancelDownload,
     removeDownload,
     moveQueuedDownload,
@@ -963,6 +968,43 @@ export default function Downloads() {
   const [optimisticCommitState, setOptimisticCommitState] =
     useState<OptimisticCommitState | null>(null);
   const [pendingFocusId, setPendingFocusId] = useState<string | null>(null);
+  const [pauseWarningRequest, setPauseWarningRequest] = useState<{
+    game: LibraryGame;
+    action: "pause" | "move";
+    targetIndex?: number;
+  } | null>(null);
+  const pauseDownload = useCallback(
+    async (game: LibraryGame) => {
+      if (await getPauseWarning(game)) {
+        setOptimisticCommitState(null);
+        setPauseWarningRequest({ game, action: "pause" });
+        return;
+      }
+      await pauseDownloadNow(game);
+    },
+    [getPauseWarning, pauseDownloadNow]
+  );
+  const moveToPaused = useCallback(
+    async (game: LibraryGame, targetIndex?: number) => {
+      if (await getPauseWarning(game)) {
+        setOptimisticCommitState(null);
+        setPauseWarningRequest({ game, action: "move", targetIndex });
+        return;
+      }
+      await moveToPausedNow(game, targetIndex);
+    },
+    [getPauseWarning, moveToPausedNow]
+  );
+  const confirmPause = useCallback(async () => {
+    const request = pauseWarningRequest;
+    setPauseWarningRequest(null);
+    if (!request) return;
+    if (request.action === "pause") {
+      await pauseDownloadNow(request.game, true);
+    } else {
+      await moveToPausedNow(request.game, request.targetIndex, true);
+    }
+  }, [moveToPausedNow, pauseDownloadNow, pauseWarningRequest]);
   const [menuState, setMenuState] = useState<DownloadMenuState>({
     item: null,
     section: null,
@@ -2151,6 +2193,17 @@ export default function Downloads() {
 
     if (menuState.section === "paused") {
       return [
+        ...(item.game.download?.downloader === Downloader.Epic &&
+        item.game.download.status === "error"
+          ? [
+              {
+                id: "epic-integrations",
+                label: t("integrations", { ns: "settings" }),
+                disabled: interactionsLocked,
+                onSelect: () => navigate("/settings?tab=integrations"),
+              },
+            ]
+          : []),
         {
           id: "cancel",
           label: "Cancel",
@@ -2206,6 +2259,8 @@ export default function Downloads() {
     resumeSeeding,
     sendToQueue,
     startNow,
+    navigate,
+    t,
   ]);
 
   useEffect(() => {
@@ -2801,6 +2856,15 @@ export default function Downloads() {
           restoreFocusId={menuState.restoreFocusId}
           visible={menuState.visible && downloadMenuItems.length > 0}
           onClose={closeDownloadMenu}
+        />
+        <ConfirmationModal
+          visible={pauseWarningRequest !== null}
+          title={t("generated_zip_pause_title")}
+          description={t("generated_zip_pause_message")}
+          confirmLabel={t("pause")}
+          cancelLabel={t("generated_zip_keep_downloading")}
+          onConfirm={confirmPause}
+          onClose={() => setPauseWarningRequest(null)}
         />
       </div>
     </VerticalFocusGroup>

@@ -2,6 +2,7 @@ import {
   app,
   BrowserWindow,
   crashReporter,
+  dialog,
   net,
   powerMonitor,
   protocol,
@@ -23,6 +24,7 @@ import {
 } from "@main/services";
 import resources from "@locales";
 import { TorrentService } from "./services/torrent-service";
+import { DownloadManager } from "./services/download/download-manager";
 import { db, gamesSublevel, levelKeys } from "./level";
 import { GameShop, UserPreferences } from "@types";
 import { launchGame, openClassicsGame } from "./helpers";
@@ -42,6 +44,8 @@ import { steamSyncOrchestrator } from "./services/steam-integration/steam-sync-o
 import {
   initializeEpicIntegration,
   shutdownEpicIntegration,
+  suspendEpicPlaytime,
+  resumeEpicPlaytime,
 } from "./services/epic";
 
 crashReporter.start({
@@ -187,7 +191,9 @@ const initializeApp = async () => {
   });
 
   // Suspend can outlive the 60s stall watchdog; reconnect right away instead
+  powerMonitor.on("suspend", suspendEpicPlaytime);
   powerMonitor.on("resume", () => {
+    resumeEpicPlaytime();
     SSEClient.reconnectNow();
     DownloadOrchestrator.onNetworkStatusChanged({
       online: true,
@@ -398,13 +404,31 @@ app.on("before-quit", async (e) => {
     e.preventDefault();
     if (isAppClosing) return;
     isAppClosing = true;
+    try {
+      await shutdownEpicIntegration();
+    } catch {
+      isAppClosing = false;
+      logger.error(
+        "Epic operation shutdown is unconfirmed; application remains open"
+      );
+      dialog.showErrorBox(
+        i18n.t("settings.epic_games"),
+        i18n.t("settings.epic_shutdown_failed")
+      );
+      return;
+    }
+    DownloadOrchestrator.cancelPendingDebridPreparations();
     PowerSaveBlockerManager.reset();
+    try {
+      await DownloadManager.pauseDownload();
+    } catch (error) {
+      logger.error("Could not save active download before quitting", error);
+    }
     const results = await Promise.allSettled([
       Lock.releaseLock(),
       TorrentService.shutdown(),
       clearGamesPlaytime(),
       emulators.stopAllEmulatorSouvenirCaptureSessions(),
-      shutdownEpicIntegration(),
     ]);
     for (const result of results) {
       if (result.status === "rejected") {
