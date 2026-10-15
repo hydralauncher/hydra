@@ -131,6 +131,42 @@ export const getUnlockedAchievements = async (
     }
   }
 
+  // Definitions from the associated catalogue are presentation only. Never
+  // transfer its unlocks, souvenirs or cache into the imported Epic copy.
+  if (
+    shop === "epic" &&
+    catalogueAchievements.length === 0 &&
+    unlockedAchievements.length === 0
+  ) {
+    const game = await gamesSublevel
+      .get(levelKeys.game(shop, objectId))
+      .catch(() => undefined);
+    assertOwner();
+    const catalogue = game?.catalogueGame;
+    if (catalogue?.shop === "steam") {
+      const definitions = await getGameAchievementData(
+        catalogue.objectId,
+        catalogue.shop,
+        useCachedData
+      ).catch(() => []);
+      assertOwner();
+      return definitions.map((achievement) => ({
+        ...achievement,
+        unlocked: false,
+        unlockTime: null,
+        source: "steam" as const,
+        sourceObjectId: catalogue.objectId,
+        description:
+          !achievement.hidden || showHiddenAchievementsDescription
+            ? achievement.description
+            : undefined,
+        icongray: achievement.icongray.endsWith("/")
+          ? achievement.icon
+          : achievement.icongray,
+      }));
+    }
+    assertOwner();
+  }
   return catalogueAchievements
     .map((achievementData) => {
       const unlockedAchievementData = unlockedAchievements.find(
