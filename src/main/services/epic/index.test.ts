@@ -195,6 +195,7 @@ function fixture(t: TestContext) {
       },
     },
     "./installation": { EpicInstallationService: class {} },
+    "./cloud-save-source": { EpicCloudSaveSource: class {} },
     "../logger": { logger: { warn: () => {}, info: () => {} } },
     "./playtime-reporter": {
       EpicPlaytimeReporter: class {

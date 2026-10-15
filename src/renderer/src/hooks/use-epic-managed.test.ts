@@ -1402,11 +1402,15 @@ describe("Epic managed UI lifecycle", () => {
     assert.equal(stopped, 1);
   });
 
-  it("passes the observed manifest in an explicit conflict decision", async (t) => {
+  it("passes the observed manifest and upload date in an explicit conflict decision", async (t) => {
     const calls: unknown[] = [];
     const { render } = await fixture(t, {
       getEpicCloudSaveState: async () =>
-        state({ status: "conflict", remoteManifest: "remote-v2" }),
+        state({
+          status: "conflict",
+          remoteManifest: "remote-v2",
+          remoteModifiedAt: "2026-10-15T12:00:00.000Z",
+        }),
       onEpicCloudSaveStateChanged: () => () => {},
       resolveEpicCloudSaveConflict: async (payload: unknown) => {
         calls.push(payload);
@@ -1428,6 +1432,7 @@ describe("Epic managed UI lifecycle", () => {
       {
         epicObjectId: "namespace:executable",
         expectedRemoteManifest: "remote-v2",
+        expectedRemoteModifiedAt: "2026-10-15T12:00:00.000Z",
         choice: "remote",
       },
     ]);

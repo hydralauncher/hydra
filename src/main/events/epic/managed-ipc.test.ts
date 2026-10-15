@@ -180,6 +180,7 @@ test("desktop and Big Picture pass only parsed Epic inputs to managed services",
   f.handlers.get("resolveEpicCloudSaveConflict")!(event, {
     epicObjectId: payload.epicObjectId,
     expectedRemoteManifest: null,
+    expectedRemoteModifiedAt: null,
     choice: "local",
   });
   assert.equal(f.calls.length, 7);

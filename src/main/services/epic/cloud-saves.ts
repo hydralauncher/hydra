@@ -36,13 +36,14 @@ import {
 import {
   assertEpicSaveCommandSucceeded,
   decideEpicSaveSync,
-  getEpicRemoteManifestModifiedAt,
   EpicSaveFailure,
-  parseEpicRemoteManifest,
+  sameEpicRemoteSaveManifest,
   parseEpicSaveMetadata,
   resolveEpicSavePath,
   type EpicSaveMetadata,
+  type EpicRemoteSaveManifest,
 } from "./cloud-save-protocol.js";
+import type { EpicCloudSaveSource } from "./cloud-save-source";
 import {
   applyEpicSaveSnapshot,
   copyEpicSaveSnapshot,
@@ -55,6 +56,7 @@ import {
 export interface EpicCloudSaveDependencies {
   runtime: LegendaryManagedRuntime;
   installation: EpicInstallationService;
+  source: Pick<EpicCloudSaveSource, "latest">;
   emit(state: EpicCloudSaveState): void;
 }
 export interface EpicSaveSession {
@@ -309,6 +311,8 @@ export class EpicCloudSaveService {
         pendingUpload: game?.epicInstallation?.pendingSaveUpload === true,
         remoteManifest:
           game?.epicInstallation?.saveAnchor?.remoteManifest ?? null,
+        remoteModifiedAt:
+          game?.epicInstallation?.saveAnchor?.remoteModifiedAt ?? null,
         error,
       });
     } catch (error) {
@@ -327,6 +331,8 @@ export class EpicCloudSaveService {
           pendingUpload: game?.epicInstallation?.pendingSaveUpload === true,
           remoteManifest:
             game?.epicInstallation?.saveAnchor?.remoteManifest ?? null,
+          remoteModifiedAt:
+            game?.epicInstallation?.saveAnchor?.remoteModifiedAt ?? null,
           error: this.errorCode(error),
         });
       } catch {
@@ -374,20 +380,14 @@ export class EpicCloudSaveService {
     return { ok: true as const };
   }
   private async listRemote(session: EpicSaveSession, signal: AbortSignal) {
-    const result = await this.dependencies.runtime.runRawUnlocked(
+    const manifest = await this.dependencies.source.latest(
       session.target,
-      ["list-saves", session.target.artifactId],
-      { signal, timeout: EPIC_SAVE_SYNC_TIMEOUT_MS }
+      signal
     );
-    assertEpicSaveCommandSucceeded(result);
     this.assertCurrent(session, signal);
-    const manifest = parseEpicRemoteManifest(
-      result.stdout,
-      session.target.artifactId
-    );
     this.publish(session, {
-      remoteManifest: manifest,
-      remoteModifiedAt: getEpicRemoteManifestModifiedAt(manifest),
+      remoteManifest: manifest?.name ?? null,
+      remoteModifiedAt: manifest?.lastModified ?? null,
     });
     return manifest;
   }
@@ -435,11 +435,15 @@ export class EpicCloudSaveService {
   private async commitAnchor(
     session: EpicSaveSession,
     snapshot: EpicSaveSnapshot,
-    remoteManifest: string | null
+    remote: EpicRemoteSaveManifest | null
   ) {
     await this.persist(session, {
       savePath: session.savePath,
-      saveAnchor: { remoteManifest, localDigest: snapshot.digest },
+      saveAnchor: {
+        remoteManifest: remote?.name ?? null,
+        remoteModifiedAt: remote?.lastModified ?? null,
+        localDigest: snapshot.digest,
+      },
       pendingSaveUpload: false,
     });
     return this.publish(session, {
@@ -447,14 +451,19 @@ export class EpicCloudSaveService {
       localModifiedAt: getEpicSaveSnapshotModifiedAt(snapshot),
       phase: undefined,
       pendingUpload: false,
-      remoteManifest,
+      remoteManifest: remote?.name ?? null,
+      remoteModifiedAt: remote?.lastModified ?? null,
       error: undefined,
     });
   }
   private async synchronize(
     session: EpicSaveSession,
     signal: AbortSignal,
-    choice?: { remoteManifest: string | null; value: "local" | "remote" },
+    choice?: {
+      remoteManifest: string | null;
+      remoteModifiedAt: string | null;
+      value: "local" | "remote";
+    },
     postExit?: EpicPostExitTask
   ): Promise<EpicCloudSaveState> {
     if (!session.metadata.folder)
@@ -497,11 +506,15 @@ export class EpicCloudSaveService {
             levelKeys.game("epic", session.objectId)
           );
           this.assertCurrent(session, signal);
-          if (choice && choice.remoteManifest !== remote)
+          if (
+            choice &&
+            (choice.remoteManifest !== (remote?.name ?? null) ||
+              choice.remoteModifiedAt !== (remote?.lastModified ?? null))
+          )
             return this.publish(session, {
               status: "conflict",
               phase: undefined,
-              remoteManifest: remote,
+              remoteManifest: remote?.name ?? null,
               error: "save-conflict",
             });
           const action = choice
@@ -519,7 +532,7 @@ export class EpicCloudSaveService {
             return this.publish(session, {
               status: "conflict",
               phase: undefined,
-              remoteManifest: remote,
+              remoteManifest: remote?.name ?? null,
               error: "save-conflict",
             });
           if (action === "same")
@@ -536,12 +549,17 @@ export class EpicCloudSaveService {
                 return this.publish(session, {
                   status: "conflict",
                   phase: undefined,
-                  remoteManifest: remote,
+                  remoteManifest: null,
                   error: "save-conflict",
                 });
               this.publish(session, { phase: "downloading" });
               await this.transfer(session, signal, staging, "download");
-              if ((await this.listRemote(session, signal)) !== remote)
+              if (
+                !sameEpicRemoteSaveManifest(
+                  await this.listRemote(session, signal),
+                  remote
+                )
+              )
                 throw new EpicSaveFailure("save-conflict");
               await this.assertStopped(session);
               this.publish(session, { phase: "restoring" });
@@ -577,7 +595,12 @@ export class EpicCloudSaveService {
               throw new EpicSaveFailure("save-operation-active");
             if (!stable.files.length)
               throw new EpicSaveFailure("save-verification-failed");
-            if ((await this.listRemote(session, signal)) !== remote)
+            if (
+              !sameEpicRemoteSaveManifest(
+                await this.listRemote(session, signal),
+                remote
+              )
+            )
               throw new EpicSaveFailure("save-conflict");
             await this.assertStopped(session);
             this.publish(session, { phase: "uploading", pendingUpload: true });
@@ -596,7 +619,10 @@ export class EpicCloudSaveService {
             );
             if (
               readback.digest !== stable.digest ||
-              (await this.listRemote(session, signal)) !== uploadedManifest
+              !sameEpicRemoteSaveManifest(
+                await this.listRemote(session, signal),
+                uploadedManifest
+              )
             )
               throw new EpicSaveFailure("save-verification-failed");
             // The anchor records what was uploaded, so an external local edit remains detectable.
@@ -621,7 +647,11 @@ export class EpicCloudSaveService {
   }
   private operation(
     session: EpicSaveSession,
-    choice?: { remoteManifest: string | null; value: "local" | "remote" },
+    choice?: {
+      remoteManifest: string | null;
+      remoteModifiedAt: string | null;
+      value: "local" | "remote";
+    },
     postExit?: EpicPostExitTask
   ) {
     if (
@@ -696,6 +726,7 @@ export class EpicCloudSaveService {
       throw new EpicSaveFailure("save-conflict");
     return this.operation(session, {
       remoteManifest: payload.expectedRemoteManifest,
+      remoteModifiedAt: payload.expectedRemoteModifiedAt,
       value: payload.choice,
     });
   }
