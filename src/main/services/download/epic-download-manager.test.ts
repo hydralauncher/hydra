@@ -3,6 +3,7 @@ import fs from "node:fs";
 import path from "node:path";
 import os from "node:os";
 import vm from "node:vm";
+import { setTimeout as sleep } from "node:timers/promises";
 import { test } from "node:test";
 import ts from "typescript";
 import type { Download, Game } from "../../../types/level.types";
@@ -12,6 +13,7 @@ import * as downloadContract from "../../../types/download-contract.js";
 import * as downloaderTypes from "./types.js";
 import * as completion from "./download-completion.js";
 import * as queueVerify from "./download-queue-verify.js";
+import { withDownloadActivation } from "./download-activation.ts";
 import { deferred } from "../epic/store-test-helpers.js";
 
 const key = (download: Pick<Download, "shop" | "objectId">) =>
@@ -123,6 +125,11 @@ function fixture() {
     }),
   };
   const modules: Record<string, unknown> = {
+    "./download-activation": { withDownloadActivation },
+    "./download/download-activation": { withDownloadActivation },
+    "./range-download-state": { configureRangeStateDirectory: () => {} },
+    "../system-path": { SystemPath: { getPath: () => os.tmpdir() } },
+    "./download/debrid-files": { isDebridPendingError: () => false },
     "@shared": { Downloader },
     "../../types": downloadContract,
     "./types": downloaderTypes,
@@ -131,6 +138,7 @@ function fixture() {
     "node:path": path,
     "node:fs": fs,
     "node:os": os,
+    "node:timers/promises": { setTimeout: sleep },
     "@main/level": {
       downloadsSublevel: sublevel,
       gamesSublevel: { get: async (id: string) => games.get(id) },
@@ -189,6 +197,10 @@ function fixture() {
     "./premiumize",
     "./all-debrid",
     "./js-http-downloader",
+    "./torbox-batch-downloader",
+    "./torbox-files",
+    "./debrid-files",
+    "./parallel-range-download",
     "./js-http-downloader-helpers",
     "@main/events/helpers/get-directory-size",
     "@main/helpers/download-error-handler",
@@ -226,6 +238,8 @@ function fixture() {
       ).outputText,
       {
         exports,
+        AbortController,
+        AbortSignal,
         require: (name: string) =>
           modules[name] ?? assert.fail(`Unexpected dependency ${name}`),
         Date,
@@ -633,7 +647,8 @@ test("Epic completion cannot replace a new active slot while its notification is
   const completion = f.manager.watchDownloads();
   await settle();
   assert.equal(f.manager.getActiveDownloadId(), null);
-  await f.orchestrator.startPreparedDownload(third);
+  // Explicit resume claims the slot; prepared downloads preserve queue order.
+  await f.orchestrator.resumeDownload(third.shop, third.objectId);
   notification.resolve();
   await completion;
   assert.equal(f.manager.getActiveDownloadId(), key(third));

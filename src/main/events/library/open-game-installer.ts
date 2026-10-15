@@ -118,13 +118,13 @@ const openGameInstaller = async (
     return true;
   }
 
-  if (process.platform === "darwin") {
-    shell.openPath(gamePath);
+  if (fs.lstatSync(gamePath).isFile()) {
+    shell.showItemInFolder(gamePath);
     return true;
   }
 
-  if (fs.lstatSync(gamePath).isFile()) {
-    shell.showItemInFolder(gamePath);
+  if (process.platform === "darwin") {
+    shell.openPath(gamePath);
     return true;
   }
 
