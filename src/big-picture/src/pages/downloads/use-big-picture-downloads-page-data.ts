@@ -364,7 +364,7 @@ export function useBigPictureDownloadsPageData() {
     ) {
       statusLabel = t("epic_finalizing_install", { ns: "game_details" });
     } else if (lastPacket?.isRecovering) {
-      statusLabel = `Recovering download… ${Math.round(
+      statusLabel = `Re-downloading saved portion… ${Math.round(
         (lastPacket.recoveryProgress ?? 0) * 100
       )}%`;
     } else if (lastPacket?.isReconnecting) {
@@ -654,20 +654,29 @@ export function useBigPictureDownloadsPageData() {
   ]);
 
   const pauseDownload = useCallback(
-    async (game: LibraryGame) => {
+    async (game: LibraryGame, confirmed = false) => {
       if (!IS_DESKTOP) return;
 
-      await globalThis.window.electron.pauseGameDownload(
+      const paused = await globalThis.window.electron.pauseGameDownload(
         game.shop,
-        game.objectId
+        game.objectId,
+        confirmed
       );
 
-      if (lastPacket?.gameId === game.id) {
+      if (paused && lastPacket?.gameId === game.id) {
         setLastPacket(null);
       }
     },
     [lastPacket?.gameId]
   );
+
+  const getPauseWarning = useCallback(async (game: LibraryGame) => {
+    if (!IS_DESKTOP) return false;
+    return globalThis.window.electron.getDownloadPauseWarning(
+      game.shop,
+      game.objectId
+    );
+  }, []);
 
   const startNow = useCallback(async (game: LibraryGame) => {
     if (!IS_DESKTOP) return;
@@ -706,7 +715,7 @@ export function useBigPictureDownloadsPageData() {
   );
 
   const moveToPaused = useCallback(
-    async (game: LibraryGame, targetIndex?: number) => {
+    async (game: LibraryGame, targetIndex?: number, confirmed = false) => {
       if (!IS_DESKTOP) return;
 
       const resolvedTargetIndex = targetIndex ?? pausedGames.length;
@@ -715,7 +724,8 @@ export function useBigPictureDownloadsPageData() {
         game.shop,
         game.objectId,
         "paused",
-        resolvedTargetIndex
+        resolvedTargetIndex,
+        confirmed
       );
     },
     [pausedGames.length]
@@ -821,6 +831,7 @@ export function useBigPictureDownloadsPageData() {
     completedDownloads,
     hasDownloads,
     pauseDownload,
+    getPauseWarning,
     resumeDownload,
     startNow,
     sendToQueue,

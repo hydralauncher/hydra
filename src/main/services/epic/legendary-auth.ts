@@ -18,6 +18,7 @@ export const EPIC_LEGENDARY_PROCESS_TIMEOUT_MS = 60_000;
 export const EPIC_LEGENDARY_API_TIMEOUT_SECONDS = 15;
 export const EPIC_LEGENDARY_MAX_OUTPUT_BYTES = 128 * 1024;
 export const EPIC_SESSION_MAX_FILE_BYTES = 1024 * 1024;
+const EPIC_LEGENDARY_DIAGNOSTIC_TAIL_LENGTH = 512;
 const EPIC_LEGENDARY_TERMINATION_TIMEOUT_MS = 10_000;
 const EPIC_LEGENDARY_TERMINATION_MAX_OUTPUT_BYTES = 16 * 1024;
 
@@ -76,7 +77,7 @@ const waitForProcessClose = (closed: Promise<void>) =>
 export function executeLegendaryCommand(
   binaryPath: string,
   args: string[],
-  options: ExecFileOptionsWithStringEncoding
+  options: ExecFileOptionsWithStringEncoding & { sessionRequired?: boolean }
 ): Promise<string> {
   if (options.signal?.aborted)
     return Promise.reject(new EpicIntegrationError("operation-cancelled"));
@@ -98,6 +99,9 @@ export function executeLegendaryCommand(
     }
     let output = "";
     const decoder = new StringDecoder("utf8");
+    const diagnosticDecoder = new StringDecoder("utf8");
+    let diagnosticTail = "";
+    let sessionExpired = false;
     let bytes = 0;
     let spawnFailed = false;
     let closed = false;
@@ -164,6 +168,16 @@ export function executeLegendaryCommand(
       bytes += chunk.length;
       if (bytes > (options.maxBuffer ?? EPIC_LEGENDARY_MAX_OUTPUT_BYTES))
         stop("auth-failed");
+      else if (options.sessionRequired && !interruption) {
+        diagnosticTail += diagnosticDecoder.write(chunk);
+        sessionExpired ||=
+          /Stored credentials are no longer valid|Invalid refresh token|invalid_refresh_token|invalid_grant/i.test(
+            diagnosticTail
+          );
+        diagnosticTail = diagnosticTail.slice(
+          -EPIC_LEGENDARY_DIAGNOSTIC_TAIL_LENGTH
+        );
+      }
     });
     child.on("close", (code) => {
       closed = true;
@@ -172,7 +186,9 @@ export function executeLegendaryCommand(
       if (!interruption)
         settle(
           spawnFailed || code !== 0
-            ? new EpicIntegrationError("auth-failed")
+            ? new EpicIntegrationError(
+                sessionExpired ? "session-expired" : "auth-failed"
+              )
             : undefined
         );
     });

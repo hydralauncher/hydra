@@ -3,6 +3,7 @@ import fs from "node:fs";
 import path from "node:path";
 import os from "node:os";
 import vm from "node:vm";
+import { setTimeout as sleep } from "node:timers/promises";
 import { test } from "node:test";
 import ts from "typescript";
 import type { Download, Game } from "../../../types/level.types";
@@ -12,6 +13,7 @@ import * as downloadContract from "../../../types/download-contract.js";
 import * as downloaderTypes from "./types.js";
 import * as completion from "./download-completion.js";
 import * as queueVerify from "./download-queue-verify.js";
+import { withDownloadActivation } from "./download-activation.ts";
 import { deferred } from "../epic/store-test-helpers.js";
 
 const key = (download: Pick<Download, "shop" | "objectId">) =>
@@ -117,6 +119,11 @@ function fixture() {
     }),
   };
   const modules: Record<string, unknown> = {
+    "./download-activation": { withDownloadActivation },
+    "./download/download-activation": { withDownloadActivation },
+    "./range-download-state": { configureRangeStateDirectory: () => {} },
+    "../system-path": { SystemPath: { getPath: () => os.tmpdir() } },
+    "./download/debrid-files": { isDebridPendingError: () => false },
     "@shared": { Downloader },
     "../../types": downloadContract,
     "./types": downloaderTypes,
@@ -125,6 +132,7 @@ function fixture() {
     "node:path": path,
     "node:fs": fs,
     "node:os": os,
+    "node:timers/promises": { setTimeout: sleep },
     "@main/level": {
       downloadsSublevel: sublevel,
       gamesSublevel: { get: async (id: string) => games.get(id) },
@@ -183,6 +191,10 @@ function fixture() {
     "./premiumize",
     "./all-debrid",
     "./js-http-downloader",
+    "./torbox-batch-downloader",
+    "./torbox-files",
+    "./debrid-files",
+    "./parallel-range-download",
     "./js-http-downloader-helpers",
     "@main/events/helpers/get-directory-size",
     "@main/helpers/download-error-handler",
@@ -203,6 +215,8 @@ function fixture() {
       ).outputText,
       {
         exports,
+        AbortController,
+        AbortSignal,
         require: (name: string) =>
           modules[name] ?? assert.fail(`Unexpected dependency ${name}`),
         Date,
@@ -287,6 +301,34 @@ test("Epic 100 percent telemetry does not complete or advance the queue before v
   assert.equal(f.state.notifications.length, 0);
 });
 
+test("failed Epic startup persists a retryable paused record after confirmed cleanup", async () => {
+  const f = fixture();
+  const download = {
+    ...epic("Namespace:Startup"),
+    status: "active" as const,
+    queued: true,
+  };
+  f.add(download);
+  let rejectStart!: (reason: Error) => void;
+  const cleanup = deferred<void>();
+  f.state.startGate = new Promise<void>((_resolve, reject) => {
+    rejectStart = reject;
+  });
+  f.state.stopGate = cleanup.promise;
+  const started = f.manager.startDownload(download);
+  const rejected = assert.rejects(started, /session-expired/);
+  await settle();
+  rejectStart(new Error("session-expired"));
+  await settle();
+  assert.equal(f.manager.getActiveDownloadId(), key(download));
+  assert.equal(f.downloads.get(key(download))?.status, "active");
+  cleanup.resolve();
+  await rejected;
+  assert.equal(f.manager.getActiveDownloadId(), null);
+  assert.equal(f.downloads.get(key(download))?.status, "paused");
+  assert.equal(f.downloads.get(key(download))?.queued, false);
+});
+
 test("verified Epic completion publishes once and starts the next common queued download", async () => {
   const f = fixture();
   const first = epic("Namespace:One"),
@@ -335,7 +377,8 @@ test("Epic completion cannot replace a new active slot while its notification is
   const completion = f.manager.watchDownloads();
   await settle();
   assert.equal(f.manager.getActiveDownloadId(), null);
-  await f.orchestrator.startPreparedDownload(third);
+  // Explicit resume claims the slot; prepared downloads preserve queue order.
+  await f.orchestrator.resumeDownload(third.shop, third.objectId);
   notification.resolve();
   await completion;
   assert.equal(f.manager.getActiveDownloadId(), key(third));
@@ -382,4 +425,56 @@ test("Epic runtime failure waits for shutdown then marks error and advances the 
   assert.equal(f.downloads.get(key(first))?.epic?.error, "insufficient-space");
   assert.equal(f.manager.getActiveDownloadId(), key(second));
   assert.equal(f.requests.length, 2);
+});
+
+test("a busy Linux prefix waits for cleanup and resumes finalization at full progress", async () => {
+  const f = fixture();
+  const download = {
+    ...epic("Namespace:BusyPrefix"),
+    progress: 1,
+    bytesDownloaded: 1000,
+    epic: {
+      ...epic("Namespace:BusyPrefix").epic!,
+      phase: "prerequisites" as const,
+    },
+  };
+  f.add(download);
+  await f.orchestrator.startPreparedDownload(download);
+  const stopped = deferred<void>();
+  f.state.stopGate = stopped.promise;
+  f.requests[0].failure({ code: "compatibility-prefix-busy" });
+  await settle();
+  assert.equal(f.manager.getActiveDownloadId(), key(download));
+  assert.equal(f.downloads.get(key(download))?.status, "active");
+  assert.equal(f.state.notifications.length, 0);
+  stopped.resolve();
+  await settle();
+
+  const failed = f.downloads.get(key(download))!;
+  assert.equal(f.manager.getActiveDownloadId(), null);
+  assert.equal(failed.status, "error");
+  assert.equal(failed.epic?.error, "compatibility-prefix-busy");
+  assert.equal(failed.progress, download.progress);
+  assert.equal(failed.bytesDownloaded, download.bytesDownloaded);
+  assert.equal(failed.folderName, download.folderName);
+  assert.equal(failed.epic?.artifactId, download.epic.artifactId);
+  assert.equal(f.state.notifications.length, 0);
+
+  assert.equal(
+    await f.orchestrator.resumeDownload(download.shop, download.objectId),
+    true
+  );
+  assert.equal(f.requests.length, 2);
+  assert.equal(f.requests[0].current(), false);
+  assert.equal(f.requests[1].current(), true);
+  assert.equal(f.requests[1].download.progress, download.progress);
+  assert.equal(
+    f.requests[1].download.bytesDownloaded,
+    download.bytesDownloaded
+  );
+  f.state.completed.add(key(download));
+  await f.manager.watchDownloads();
+  assert.equal(f.downloads.get(key(download))?.status, "complete");
+  assert.equal(f.state.notifications.length, 1);
+  assert.equal(f.manager.getActiveDownloadId(), null);
 });

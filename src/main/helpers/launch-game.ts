@@ -51,6 +51,7 @@ import {
   prepareManagedEpicLaunch,
   cancelManagedEpicLaunch,
   recordManagedEpicProcess,
+  launchPreparedEpicLinuxGame,
 } from "@main/services/epic/launch";
 import type { EpicLaunchParameters } from "@main/services/epic/launch-protocol";
 import { EpicSaveFailure } from "@main/services/epic/cloud-save-protocol";
@@ -744,24 +745,35 @@ const launchGameWithCloudSaveChecks = async (
   clearGameLauncherStatuses(gameKey);
   await WindowManager.createGameLauncherWindow(shop, objectId);
 
-  const shouldRunV2AutomaticSync = await canRunAutomaticCloudSaveSync(
-    objectId,
-    shop
-  );
+  const shouldRunV2AutomaticSync =
+    !managedEpic && (await canRunAutomaticCloudSaveSync(objectId, shop));
+  let preparedCompatibility: PreparedLinuxCompatibility;
+  if (managedEpic) {
+    preparedCompatibility = {
+      context: null,
+      prefixReadyForRestore: false,
+      prefixSafeForUpload: false,
+      prefixGenerationOverride: undefined,
+    };
+  } else if (steamCompatibilityPrefixPath) {
+    preparedCompatibility = prepareSteamCompatibilityForCloudSave(
+      steamCompatibilityPrefixPath
+    );
+  } else {
+    preparedCompatibility = await prepareLinuxCompatibilityForLaunch(
+      parsedPath,
+      launchGameRecord,
+      objectId,
+      shop,
+      shouldRunV2AutomaticSync || managedEpic
+    );
+  }
   const {
     context: compatibilityContext,
     prefixReadyForRestore,
     prefixSafeForUpload,
     prefixGenerationOverride,
-  } = steamCompatibilityPrefixPath
-    ? prepareSteamCompatibilityForCloudSave(steamCompatibilityPrefixPath)
-    : await prepareLinuxCompatibilityForLaunch(
-        parsedPath,
-        launchGameRecord,
-        objectId,
-        shop,
-        shouldRunV2AutomaticSync || managedEpic
-      );
+  } = preparedCompatibility;
 
   if (managedEpic && launchGameRecord) {
     return getEpicCloudSaveService().runLaunchGate(objectId, async () => {
@@ -773,23 +785,39 @@ const launchGameWithCloudSaveChecks = async (
             winePrefixPath: compatibilityContext?.winePrefixPath,
             epicSavePolicy: options.epicSavePolicy,
             epicOffline: options.epicOffline,
+            onStatus: createUmuStatusReporter(gameKey),
           }
         );
         await runCommonRedistPreflight(shop, objectId);
-        await markManagedEpicLaunched(prepared.session);
         let pid: number;
         try {
+          await markManagedEpicLaunched(prepared.session);
           getEpicCloudSaveService().assertSessionCurrent(prepared.session);
-          pid = await launchAuthenticatedEpicGame(
-            prepared.parameters,
-            launchOptions
-          );
+          if (prepared.linuxContext) {
+            const handle = await launchPreparedEpicLinuxGame(
+              prepared.session,
+              prepared.parameters,
+              {
+                launchOptions,
+                useGamemode,
+                useMangohud,
+                onStatus: createUmuStatusReporter(gameKey),
+              }
+            );
+            pid = handle.pid;
+            PowerSaveBlockerManager.markCompatibilityLaunchStarted(gameKey);
+          } else {
+            pid = await launchAuthenticatedEpicGame(
+              prepared.parameters,
+              launchOptions
+            );
+            recordManagedEpicProcess(prepared.session, pid);
+          }
         } catch (error) {
-          cancelManagedEpicLaunch(prepared.session);
+          await cancelManagedEpicLaunch(prepared.session);
           throw error;
         }
         launchedGamePids.set(gameKey, pid);
-        recordManagedEpicProcess(prepared.session, pid);
         return pid;
       } catch (error) {
         WindowManager.closeGameLauncherWindow();

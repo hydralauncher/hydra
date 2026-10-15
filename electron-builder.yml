@@ -20,6 +20,8 @@ files:
   - "!src/*"
   - "!native/hydra-native/target"
   - "!native/hydra-native/target/**"
+  - "!native/epic-prerequisite-runner/**"
+  - "!binaries/epic-prerequisite-runner/**"
   - "!electron.vite.config.{js,ts,mjs,cjs}"
   - "!{.eslintignore,.eslintrc.cjs,.prettierignore,.prettierrc.yaml,dev-app-update.yml,CHANGELOG.md,README.md}"
   - "!{.env,.env.*,.npmrc,pnpm-lock.yaml}"
@@ -81,6 +83,11 @@ dmg:
   artifactName: ${name}-${version}.${ext}
 linux:
   extraResources:
+    - from: binaries/epic-prerequisite-runner/x64
+      to: epic
+      filter:
+        - epic-prerequisite-runner.exe
+        - .build.json
     - from: legendary/linux/${arch}
       to: legendary
       filter:

@@ -58,4 +58,7 @@ export const hasCloudSaveExecutableSelection = (game: {
 export const isCloudSaveV2Eligible = (
   shop: GameShop,
   platform?: string | null
-) => shop === "steam" || getCloudSaveEmulatorProvider(shop, platform) !== null;
+) =>
+  shop === "steam" ||
+  shop === "epic" ||
+  getCloudSaveEmulatorProvider(shop, platform) !== null;

@@ -190,6 +190,56 @@ test("an obsolete preview waiting for its workspace cancels without releasing th
   assert.equal(executed, true);
 });
 
+for (const kind of ["offline launch", "download stream"] as const) {
+  test(`a queued ${kind} cancels without executing Legendary or releasing the active workspace`, async (t) => {
+    let executed = false;
+    const f = await fixture(t, async () => {
+      executed = true;
+      return { stdout: "{}", stderr: "" };
+    });
+    const release = deferred<void>();
+    const entered = deferred<void>();
+    const active = f.runtime.serializeWorkspace(target, async () => {
+      entered.resolve();
+      await release.promise;
+    });
+    await entered.promise;
+    const controller = new AbortController();
+    const operation =
+      kind === "offline launch"
+        ? f.runtime.runOfflineLaunch(
+            { ...target, localOnly: true },
+            { signal: controller.signal }
+          )
+        : f.runtime.stream(target, ["-y", "install", target.artifactId], {
+            signal: controller.signal,
+            onLine: () => {},
+          });
+    const cancelled = assert.rejects(operation, {
+      code: "operation-cancelled",
+    });
+    let nextRan = false;
+    const next = f.runtime.serializeWorkspace(target, async () => {
+      nextRan = true;
+    });
+    try {
+      controller.abort();
+      await cancelled;
+      assert.equal(executed, false);
+      assert.equal(nextRan, false);
+    } finally {
+      release.resolve();
+      await active;
+      await next;
+    }
+    assert.equal(executed, false);
+    await assert.rejects(
+      fs.stat(path.join(f.runtime.workspace(target), "user.json")),
+      { code: "ENOENT" }
+    );
+  });
+}
+
 test("download releases credential lease at preparation and persists rotation before transfer ends", async (t) => {
   const transfer = deferred<void>();
   const prepared = deferred<void>();
