@@ -13,6 +13,14 @@ const {
   FILE_NAME,
 } = require("./build-epic-prerequisite-runner.cjs");
 
+const WINE_COMMAND_TIMEOUT_MS = 120_000;
+const WINE_COMMAND_MAX_OUTPUT_BYTES = 1024 * 1024;
+const DESCENDANT_COMPLETION_DELAY_MS = 200;
+const CANCELLATION_CHILD_DELAY_MS = 1200;
+const CANCELLATION_START_MAX_ATTEMPTS = 100;
+const CANCELLATION_START_POLL_INTERVAL_MS = 20;
+const CANCELLATION_OBSERVATION_DELAY_MS = 1500;
+
 async function smoke() {
   if (process.platform !== "linux")
     throw new Error("Wine fixture requires Linux");
@@ -59,8 +67,8 @@ async function smoke() {
   const run = (file, args, options = {}) =>
     execute(file, args, {
       env,
-      timeout: 120_000,
-      maxBuffer: 1024 * 1024,
+      timeout: WINE_COMMAND_TIMEOUT_MS,
+      maxBuffer: WINE_COMMAND_MAX_OUTPUT_BYTES,
       ...options,
     });
   const windowsPath = async (file) =>
@@ -134,7 +142,11 @@ async function smoke() {
     );
     const marker = path.join(directory, "child-finished");
     await invoke(
-      await request(["--spawn-child", "200", await windowsPath(marker)])
+      await request([
+        "--spawn-child",
+        String(DESCENDANT_COMPLETION_DELAY_MS),
+        await windowsPath(marker),
+      ])
     );
     assert.equal(await fs.readFile(marker, "utf8"), "child-complete");
     const msi = path.join(directory, "fixture.msi");
@@ -195,7 +207,7 @@ async function smoke() {
     const cancellationMarker = path.join(directory, "cancelled-child");
     const input = await request([
       "--spawn-child",
-      "1200",
+      String(CANCELLATION_CHILD_DELAY_MS),
       await windowsPath(cancellationMarker),
     ]);
     const child = spawn(wine, [helper, await windowsPath(input.config)], {
@@ -207,7 +219,7 @@ async function smoke() {
       child.once("error", reject);
     });
     const started = cancellationMarker + ".started";
-    for (let index = 0; index < 100; index++) {
+    for (let index = 0; index < CANCELLATION_START_MAX_ATTEMPTS; index++) {
       if (
         await fs.stat(started).then(
           () => true,
@@ -215,7 +227,9 @@ async function smoke() {
         )
       )
         break;
-      await new Promise((resolve) => setTimeout(resolve, 20));
+      await new Promise((resolve) =>
+        setTimeout(resolve, CANCELLATION_START_POLL_INTERVAL_MS)
+      );
     }
     assert.ok(
       await fs.stat(started).then(
@@ -225,7 +239,9 @@ async function smoke() {
     );
     child.kill("SIGKILL");
     await closed;
-    await new Promise((resolve) => setTimeout(resolve, 1500));
+    await new Promise((resolve) =>
+      setTimeout(resolve, CANCELLATION_OBSERVATION_DELAY_MS)
+    );
     assert.equal(
       await fs.stat(input.result).then(
         () => true,

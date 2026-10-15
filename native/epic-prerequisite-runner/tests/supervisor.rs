@@ -6,6 +6,12 @@ use std::{
     time::{Duration, SystemTime, UNIX_EPOCH},
 };
 
+const DESCENDANT_COMPLETION_DELAY_MS: u64 = 150;
+const CANCELLATION_CHILD_DELAY_MS: u64 = 1000;
+const CANCELLATION_START_MAX_ATTEMPTS: usize = 100;
+const CANCELLATION_START_POLL_INTERVAL_MS: u64 = 20;
+const CANCELLATION_OBSERVATION_DELAY_MS: u64 = 1200;
+
 fn fixture(args: &[String], kind: &str) -> (PathBuf, PathBuf, PathBuf) {
     let dir = std::env::temp_dir().join(format!(
         "hydra prerequisite {} {}",
@@ -93,7 +99,11 @@ fn actual_process_preserves_argv_unicode_cwd_and_waits_for_children() {
     fs::remove_file(result).unwrap();
     let marker = dir.join("child-finished");
     let mut value: serde_json::Value = serde_json::from_slice(&fs::read(&config).unwrap()).unwrap();
-    value["args"] = serde_json::json!(["--spawn-child", "150", marker]);
+    value["args"] = serde_json::json!([
+        "--spawn-child",
+        DESCENDANT_COMPLETION_DELAY_MS.to_string(),
+        marker
+    ]);
     fs::write(&config, serde_json::to_vec(&value).unwrap()).unwrap();
     assert!(Command::new(env!("CARGO_BIN_EXE_epic-prerequisite-runner"))
         .arg(&config)
@@ -110,22 +120,26 @@ fn killing_supervisor_terminates_the_installer_job_without_publishing_a_result()
     let marker = dir.join("child-finished");
     let started = marker.with_extension("started");
     let mut value: serde_json::Value = serde_json::from_slice(&fs::read(&config).unwrap()).unwrap();
-    value["args"] = serde_json::json!(["--spawn-child", "1000", marker]);
+    value["args"] = serde_json::json!([
+        "--spawn-child",
+        CANCELLATION_CHILD_DELAY_MS.to_string(),
+        marker
+    ]);
     fs::write(&config, serde_json::to_vec(&value).unwrap()).unwrap();
     let mut supervisor = Command::new(env!("CARGO_BIN_EXE_epic-prerequisite-runner"))
         .arg(&config)
         .spawn()
         .unwrap();
-    for _ in 0..100 {
+    for _ in 0..CANCELLATION_START_MAX_ATTEMPTS {
         if started.exists() {
             break;
         }
-        std::thread::sleep(Duration::from_millis(20));
+        std::thread::sleep(Duration::from_millis(CANCELLATION_START_POLL_INTERVAL_MS));
     }
     assert!(started.exists());
     supervisor.kill().unwrap();
     supervisor.wait().unwrap();
-    std::thread::sleep(Duration::from_millis(1200));
+    std::thread::sleep(Duration::from_millis(CANCELLATION_OBSERVATION_DELAY_MS));
     assert!(!marker.exists());
     assert!(!result.exists());
     fs::remove_dir_all(dir).unwrap();
