@@ -13,6 +13,7 @@ import { gamesSublevel, levelKeys } from "@main/level";
 import { updateGameRecord } from "../game-record-updater";
 import { isGameRunning } from "../game-running-state";
 import { Wine } from "../wine";
+import { logger } from "../logger";
 import {
   getEpicLinuxPrefixGeneration,
   resolveEpicLinuxPrefixPath,
@@ -663,6 +664,8 @@ export class EpicCloudSaveService {
     try {
       const staging = path.join(temporary, "staging");
       await fs.mkdir(staging, { mode: 0o700 });
+      await this.assertStopped(session);
+      this.publish(session, { phase: "downloading" });
       await this.transfer(session, signal, staging, "download");
       const incoming = await inspectEpicSaveFiles(
         staging,
@@ -682,15 +685,20 @@ export class EpicCloudSaveService {
         session.metadata,
         signal
       );
-      return local.digest === localDigest;
+      if (local.digest !== localDigest) return false;
+      await this.assertStopped(session);
+      return true;
     } catch (error) {
       this.assertCurrent(session, signal);
       if (
         error instanceof EpicSaveFailure &&
-        error.code === "operation-cancelled"
+        (error.code === "operation-cancelled" ||
+          error.code === "game-running" ||
+          error.code === "installation-incomplete")
       )
         throw error;
       // A failed comparison falls back to asking the user.
+      logger.warn("Epic save comparison failed; reporting a conflict", error);
       return false;
     } finally {
       await fs.rm(temporary, { recursive: true, force: true });

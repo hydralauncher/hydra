@@ -210,6 +210,7 @@ async function fixture(t: TestContext, options: { linux?: boolean } = {}) {
       },
     },
     "../game-running-state": { isGameRunning: () => state.running },
+    "../logger": { logger: { warn: () => {} } },
     "../wine": {
       Wine: {
         getPrefixUserProfile: () =>
