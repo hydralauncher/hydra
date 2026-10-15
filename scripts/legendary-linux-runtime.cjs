@@ -126,6 +126,16 @@ async function verifyLinuxRuntime(directory, fingerprint, sha256File) {
       await fs.readFile(path.join(directory, CACHE_MANIFEST), "utf8")
     );
     if (fingerprint && installed.fingerprint !== fingerprint) return false;
+    for (const required of [
+      "legendary",
+      "legendary.pyz",
+      "python-runner",
+      "python/bin/python3.13",
+    ]) {
+      const entry = installed.files?.find((file) => file.name === required);
+      if (!entry?.sha256 || (required !== "legendary.pyz" && !entry.executable))
+        return false;
+    }
     const actual = await runtimeFiles(directory, sha256File);
     return JSON.stringify(actual) === JSON.stringify(installed.files);
   } catch (error) {

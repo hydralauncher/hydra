@@ -93,15 +93,17 @@ export function EpicInstallModal({
             >
               {t("epic_retry")}
             </Button>
-            <Button
-              variant="secondary"
-              onClick={() => {
-                onClose();
-                navigate("/settings?tab=integrations");
-              }}
-            >
-              {t("integrations", { ns: "settings" })}
-            </Button>
+            {getEpicManagedError(install.error).ns === "settings" && (
+              <Button
+                variant="secondary"
+                onClick={() => {
+                  onClose();
+                  navigate("/settings?tab=integrations");
+                }}
+              >
+                {t("integrations", { ns: "settings" })}
+              </Button>
+            )}
           </>
         )}
         <HorizontalFocusGroup>

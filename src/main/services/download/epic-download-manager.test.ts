@@ -301,6 +301,34 @@ test("Epic 100 percent telemetry does not complete or advance the queue before v
   assert.equal(f.state.notifications.length, 0);
 });
 
+test("failed Epic startup persists a retryable paused record after confirmed cleanup", async () => {
+  const f = fixture();
+  const download = {
+    ...epic("Namespace:Startup"),
+    status: "active" as const,
+    queued: true,
+  };
+  f.add(download);
+  let rejectStart!: (reason: Error) => void;
+  const cleanup = deferred<void>();
+  f.state.startGate = new Promise<void>((_resolve, reject) => {
+    rejectStart = reject;
+  });
+  f.state.stopGate = cleanup.promise;
+  const started = f.manager.startDownload(download);
+  const rejected = assert.rejects(started, /session-expired/);
+  await settle();
+  rejectStart(new Error("session-expired"));
+  await settle();
+  assert.equal(f.manager.getActiveDownloadId(), key(download));
+  assert.equal(f.downloads.get(key(download))?.status, "active");
+  cleanup.resolve();
+  await rejected;
+  assert.equal(f.manager.getActiveDownloadId(), null);
+  assert.equal(f.downloads.get(key(download))?.status, "paused");
+  assert.equal(f.downloads.get(key(download))?.queued, false);
+});
+
 test("verified Epic completion publishes once and starts the next common queued download", async () => {
   const f = fixture();
   const first = epic("Namespace:One"),
@@ -397,4 +425,56 @@ test("Epic runtime failure waits for shutdown then marks error and advances the 
   assert.equal(f.downloads.get(key(first))?.epic?.error, "insufficient-space");
   assert.equal(f.manager.getActiveDownloadId(), key(second));
   assert.equal(f.requests.length, 2);
+});
+
+test("a busy Linux prefix waits for cleanup and resumes finalization at full progress", async () => {
+  const f = fixture();
+  const download = {
+    ...epic("Namespace:BusyPrefix"),
+    progress: 1,
+    bytesDownloaded: 1000,
+    epic: {
+      ...epic("Namespace:BusyPrefix").epic!,
+      phase: "prerequisites" as const,
+    },
+  };
+  f.add(download);
+  await f.orchestrator.startPreparedDownload(download);
+  const stopped = deferred<void>();
+  f.state.stopGate = stopped.promise;
+  f.requests[0].failure({ code: "compatibility-prefix-busy" });
+  await settle();
+  assert.equal(f.manager.getActiveDownloadId(), key(download));
+  assert.equal(f.downloads.get(key(download))?.status, "active");
+  assert.equal(f.state.notifications.length, 0);
+  stopped.resolve();
+  await settle();
+
+  const failed = f.downloads.get(key(download))!;
+  assert.equal(f.manager.getActiveDownloadId(), null);
+  assert.equal(failed.status, "error");
+  assert.equal(failed.epic?.error, "compatibility-prefix-busy");
+  assert.equal(failed.progress, download.progress);
+  assert.equal(failed.bytesDownloaded, download.bytesDownloaded);
+  assert.equal(failed.folderName, download.folderName);
+  assert.equal(failed.epic?.artifactId, download.epic.artifactId);
+  assert.equal(f.state.notifications.length, 0);
+
+  assert.equal(
+    await f.orchestrator.resumeDownload(download.shop, download.objectId),
+    true
+  );
+  assert.equal(f.requests.length, 2);
+  assert.equal(f.requests[0].current(), false);
+  assert.equal(f.requests[1].current(), true);
+  assert.equal(f.requests[1].download.progress, download.progress);
+  assert.equal(
+    f.requests[1].download.bytesDownloaded,
+    download.bytesDownloaded
+  );
+  f.state.completed.add(key(download));
+  await f.manager.watchDownloads();
+  assert.equal(f.downloads.get(key(download))?.status, "complete");
+  assert.equal(f.state.notifications.length, 1);
+  assert.equal(f.manager.getActiveDownloadId(), null);
 });

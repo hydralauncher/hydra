@@ -138,6 +138,15 @@ test("a failed forced refresh never persists synthetic expiry", async (t) => {
   await assert.rejects(f.runner.refresh(true));
   assert.equal(f.sessions.length, 0);
 });
+
+test("revoked credentials request reconnection even when Legendary deletes user.json", async (t) => {
+  const f = await fixture(t, async (directory) => {
+    await fs.rm(path.join(directory, "user.json"));
+    throw new protocol.EpicIntegrationError("session-expired");
+  });
+  await assert.rejects(f.runner.library(), /session-expired/);
+  assert.equal(f.sessions.length, 0);
+});
 test("rotated token survives cancellation but no collected library is returned", async (t) => {
   const f = await fixture(t, async (directory) => {
     await fs.writeFile(

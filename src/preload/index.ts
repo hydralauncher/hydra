@@ -89,6 +89,7 @@ import type {
   EpicCloudSaveSettings,
   ResolveEpicCloudSaveConflictPayload,
   EpicLaunchOptions,
+  EpicLinuxCompatibility,
 } from "@types";
 import type { AuthPage, Downloader } from "@shared";
 import type { AxiosProgressEvent } from "axios";
@@ -1779,6 +1780,12 @@ contextBridge.exposeInMainWorld("electron", {
   },
   getEpicConnection: () =>
     ipcRenderer.invoke("getEpicConnection") as Promise<EpicConnectionState>,
+  getGameLinuxCompatibility: (shop: GameShop, objectId: string) =>
+    ipcRenderer.invoke(
+      "getGameLinuxCompatibility",
+      shop,
+      objectId
+    ) as Promise<EpicLinuxCompatibility | null>,
   getEpicGameInstallOptions: (epicObjectId: string, requestId?: string) =>
     ipcRenderer.invoke(
       "getEpicGameInstallOptions",

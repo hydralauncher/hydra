@@ -122,6 +122,7 @@ export class EpicDownloadProgressParser {
 }
 
 interface DownloadServiceOptions {
+  platform?: NodeJS.Platform;
   runtime: LegendaryManagedRuntime;
   installation: EpicInstallationService;
   getDownload: (id: string) => Promise<Download | undefined>;
@@ -229,6 +230,9 @@ export class EpicDownloadService {
   }
   private id(objectId: string) {
     return `epic:${objectId}`;
+  }
+  private isWindows() {
+    return (this.options.platform ?? process.platform) === "win32";
   }
   async start(
     payload: StartEpicGameDownloadPayload
@@ -545,7 +549,7 @@ export class EpicDownloadService {
       assertActive();
       if (!installed || installed.version !== active.version)
         throw new EpicManagedError("installation-incomplete");
-      await this.prerequisites(active, installed);
+      if (this.isWindows()) await this.prerequisites(active, installed);
       assertActive();
       await this.options.installation.bind(
         owned,
@@ -574,7 +578,7 @@ export class EpicDownloadService {
         bytesDownloaded: active.parser.state.fileSize,
         fileSize: active.parser.state.fileSize,
         status: "complete",
-        epic: { ...current.epic, phase: "finalizing" },
+        epic: { ...current.epic, phase: "finalizing", error: undefined },
       };
       await this.options.putDownload(active.id, active.download);
       assertActive();
