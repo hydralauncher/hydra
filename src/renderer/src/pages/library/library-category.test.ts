@@ -9,6 +9,7 @@ const {
   filterLibraryGames,
   filterLibraryGamesByCategory,
   getLibraryFilterOptions,
+  getLibraryPresentationBadgeSource,
   getProfileLibraryFilter,
   hasSteamLibraryGames,
   isSteamLibraryGame,
@@ -305,6 +306,81 @@ describe("Profile library filter", () => {
 });
 
 describe("Steam badge", () => {
+  it("uses real imports instead of catalogue availability or preferred metadata", () => {
+    const catalogue = {
+      shop: "epic",
+      canonicalId: "same-game",
+      catalogueGame: { shop: "steam", objectId: "123" },
+      availableShops: ["steam", "epic"],
+    };
+    assert.equal(getLibraryPresentationBadgeSource(catalogue), null);
+    assert.equal(
+      getLibraryPresentationBadgeSource({
+        ...catalogue,
+        hasActiveSteamImport: false,
+        hasActiveEpicImport: false,
+      }),
+      null
+    );
+    assert.equal(
+      getLibraryPresentationBadgeSource({
+        ...catalogue,
+        hasActiveEpicImport: true,
+      }),
+      "epic"
+    );
+    assert.equal(
+      getLibraryPresentationBadgeSource({
+        ...catalogue,
+        hasActiveSteamImport: true,
+      }),
+      "steam"
+    );
+    assert.equal(
+      getLibraryPresentationBadgeSource({
+        ...catalogue,
+        hasActiveSteamImport: true,
+        hasActiveEpicImport: true,
+      }),
+      "steam"
+    );
+    assert.deepEqual(catalogue.catalogueGame, {
+      shop: "steam",
+      objectId: "123",
+    });
+    assert.deepEqual(catalogue.availableShops, ["steam", "epic"]);
+  });
+
+  it("uses active real members and updates the badge when an import is removed", () => {
+    const epic = { shop: "epic", hasActiveEpicImport: true };
+    const steam = { shop: "steam", hasActiveSteamImport: true };
+    const group = {
+      shop: "steam",
+      hasActiveSteamImport: true,
+      hasActiveEpicImport: true,
+      members: [steam, epic],
+    };
+    assert.equal(getLibraryPresentationBadgeSource(group), "steam");
+    assert.equal(
+      getLibraryPresentationBadgeSource({
+        ...group,
+        members: [{ ...steam, isDeleted: true }, epic],
+      }),
+      "epic"
+    );
+    assert.equal(
+      getLibraryPresentationBadgeSource({
+        ...group,
+        members: [{ ...steam, hasActiveSteamImport: false }, epic],
+      }),
+      "epic"
+    );
+    assert.equal(
+      getLibraryPresentationBadgeSource({ ...group, members: [] }),
+      null
+    );
+  });
+
   it("hides Steam badges without changing import membership", () => {
     assert.equal(shouldShowSteamLibraryBadge(games[0]), true);
     assert.equal(shouldShowSteamLibraryBadge(games[0], false), true);

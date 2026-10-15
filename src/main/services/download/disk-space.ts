@@ -1,4 +1,6 @@
-import { MINIMUM_FREE_DISK_SPACE_BYTES } from "@shared";
+import { Downloader, MINIMUM_FREE_DISK_SPACE_BYTES } from "@shared";
+import path from "node:path";
+import { getReusableEpicDiskBytes } from "../epic/download";
 import type { Download } from "@types";
 import { getDiskUsage } from "../disk-usage";
 
@@ -34,10 +36,19 @@ export const getDownloadDiskSpace = async (
 
   if (!usage) return null;
 
-  const requiredBytes = Math.max(
-    getRemainingBytes(download, live),
-    MINIMUM_FREE_DISK_SPACE_BYTES
-  );
+  const remaining =
+    download.downloader === Downloader.Epic &&
+    download.epic &&
+    download.folderName
+      ? Math.max(
+          0,
+          download.epic.diskSizeInBytes -
+            (await getReusableEpicDiskBytes(
+              path.join(download.downloadPath, download.folderName)
+            ))
+        )
+      : getRemainingBytes(download, live);
+  const requiredBytes = Math.max(remaining, MINIMUM_FREE_DISK_SPACE_BYTES);
 
   return {
     freeBytes: usage.free,

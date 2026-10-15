@@ -42,6 +42,7 @@ export * from "./controller-support";
 export * from "./artwork-resolver";
 export * from "./library-catalogue";
 export * from "./library-group-actions";
+export * from "./official-store-options";
 export * from "./download-directories";
 export * from "./html-sanitizer";
 export * from "./language-flags";

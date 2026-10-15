@@ -163,7 +163,11 @@ function renderCatalogueBadge(
       if (name.endsWith(".scss")) return {};
       if (name.endsWith(".svg?react"))
         return function SvgFixture() {
-          return React.createElement("svg");
+          return React.createElement("svg", {
+            "data-store": name.includes("epic-integration-logo")
+              ? "epic"
+              : "steam",
+          });
         };
       return stubs[name] ?? requireModule(name);
     },
@@ -261,25 +265,19 @@ describe("visibility and playtime badge layout", () => {
     assert.equal(calls.remove, presentation);
     assert.equal(member.playTimeInMilliseconds, 5);
   });
-  it("marks both catalogue stores with a plus and an availability tooltip", () => {
+  it("preserves an explicit legacy source without claiming both catalogue stores were imported", () => {
     const dom = renderCatalogueBadge("steam", ["steam", "epic"]);
     const badge = dom.window.document.querySelector(".steam-library-badge")!;
-    assert.equal(
-      badge.querySelector(".steam-library-badge__additional")?.textContent,
-      "+"
-    );
+    assert.equal(badge.querySelector(".steam-library-badge__additional"), null);
     assert.equal(
       badge.getAttribute("data-tooltip-content"),
-      "available_on_steam_and_epic"
+      "imported_from_steam"
     );
-    assert.equal(
-      badge.getAttribute("aria-label"),
-      "available_on_steam_and_epic"
-    );
+    assert.equal(badge.getAttribute("aria-label"), "imported_from_steam");
     dom.window.close();
   });
 
-  it("omits the plus for an Epic-only catalogue", () => {
+  it("preserves an explicit Epic source for callers with old undefined flags", () => {
     const dom = renderCatalogueBadge("epic", ["epic"]);
     assert.equal(
       dom.window.document.querySelector(".steam-library-badge__additional"),
@@ -289,12 +287,12 @@ describe("visibility and playtime badge layout", () => {
       dom.window.document
         .querySelector(".steam-library-badge")
         ?.getAttribute("data-tooltip-content"),
-      "available_on_epic"
+      "imported_from_epic"
     );
     dom.window.close();
   });
   it("describes imports from both libraries when both are active", () => {
-    const dom = renderCatalogueBadge("steam", ["steam", "epic"], {
+    const dom = renderCatalogueBadge("epic", [], {
       hasActiveSteamImport: true,
       hasActiveEpicImport: true,
     });
@@ -306,6 +304,14 @@ describe("visibility and playtime badge layout", () => {
     assert.equal(
       badge.getAttribute("aria-label"),
       "imported_from_steam_and_epic"
+    );
+    assert.equal(
+      badge.querySelector(".steam-library-badge__additional")?.textContent,
+      "+"
+    );
+    assert.equal(
+      badge.querySelector("svg")?.getAttribute("data-store"),
+      "steam"
     );
     dom.window.close();
   });
@@ -322,13 +328,17 @@ describe("visibility and playtime badge layout", () => {
         `imported_from_${source}`
       );
       assert.equal(
-        badge.querySelector(".steam-library-badge__additional")?.textContent,
-        "+"
+        badge.querySelector(".steam-library-badge__additional"),
+        null
+      );
+      assert.equal(
+        badge.querySelector("svg")?.getAttribute("data-store"),
+        source
       );
       dom.window.close();
     }
   });
-  it("shows Steam presentation for a game owned only on Epic", () => {
+  it("shows an Epic import badge while preserving Steam catalogue presentation", () => {
     const dom = renderCard(layouts[0], {
       shop: "epic",
       canonicalId: "same-game",
@@ -338,19 +348,58 @@ describe("visibility and playtime badge layout", () => {
       hasActiveSteamImport: false,
     });
     assert.equal(
-      dom.window.document.querySelectorAll('[data-store="steam"]').length,
+      dom.window.document.querySelectorAll('[data-store="epic"]').length,
       1
     );
     assert.equal(
-      dom.window.document.querySelector('[data-store="epic"]'),
+      dom.window.document.querySelector('[data-store="steam"]'),
       null
     );
     assert.equal(
       dom.window.document
-        .querySelector('[data-store="steam"]')
+        .querySelector('[data-store="epic"]')
         ?.getAttribute("data-available-shops"),
       "steam,epic"
     );
+    dom.window.close();
+  });
+
+  it("does not add an import badge from catalogue metadata when imports are absent", () => {
+    for (const imports of [
+      {},
+      { hasActiveSteamImport: false, hasActiveEpicImport: false },
+    ]) {
+      const dom = renderCard(layouts[0], {
+        shop: "epic",
+        canonicalId: "same-game",
+        catalogueGame: { shop: "steam", objectId: "123" },
+        availableShops: ["steam", "epic"],
+        ...imports,
+      });
+      assert.equal(
+        dom.window.document.querySelector('[data-store="steam"]'),
+        null
+      );
+      assert.equal(
+        dom.window.document.querySelector('[data-store="epic"]'),
+        null
+      );
+      dom.window.close();
+    }
+  });
+
+  it("drops the plus and uses the surviving Epic import after Steam is disconnected", () => {
+    const dom = renderCatalogueBadge("steam", ["steam", "epic"], {
+      hasActiveSteamImport: false,
+      hasActiveEpicImport: true,
+    });
+    const badge = dom.window.document.querySelector(".steam-library-badge")!;
+    assert.equal(badge.querySelector(".steam-library-badge__additional"), null);
+    assert.equal(
+      badge.querySelector("svg")?.getAttribute("data-store"),
+      "epic"
+    );
+    assert.equal(badge.getAttribute("aria-label"), "imported_from_epic");
     dom.window.close();
   });
 

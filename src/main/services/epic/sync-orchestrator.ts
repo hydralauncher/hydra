@@ -6,6 +6,7 @@ import type {
   EpicSyncRun,
   EpicSyncState,
   EpicSyncTrigger,
+  EpicAchievementSummary,
 } from "../../../types/epic-integration.types";
 import type { EpicAuthContext } from "./integration-core";
 import {
@@ -23,6 +24,10 @@ import {
 import { applyEpicPlaytime } from "./library-normalizer.js";
 import { epicWait } from "./source-retry.js";
 import { epicSyncHttpError } from "./sync-protocol.js";
+import {
+  EPIC_ACHIEVEMENT_BUDGET_MS,
+  EPIC_ACHIEVEMENT_PUBLICATION_RESERVE_MS,
+} from "./constants.js";
 
 export interface EpicSyncContext {
   auth: EpicAuthContext;
@@ -32,6 +37,7 @@ export interface EpicSyncJournal {
   syncRunId: string;
   totalChunks: number | null;
   mergePending: boolean;
+  requiresReconnect?: boolean;
 }
 export interface EpicSyncDependencies {
   capture(): Promise<EpicSyncContext>;
@@ -45,6 +51,13 @@ export interface EpicSyncDependencies {
     signal: AbortSignal,
     fresh: boolean
   ): Promise<Map<string, number>>;
+  achievements?(
+    context: EpicSyncContext,
+    games: EpicSnapshotGame[],
+    signal: AbortSignal,
+    progress: (processed: number, total: number) => void,
+    budget: number
+  ): Promise<{ games: EpicSnapshotGame[]; requiresReconnect: boolean }>;
   start(
     context: EpicSyncContext,
     trigger: EpicSyncTrigger,
@@ -210,6 +223,21 @@ export class EpicSyncOrchestrator {
     let requiresMerge = false;
     let error: EpicErrorCode | undefined;
     let journal: EpicSyncJournal | null = null;
+    const startedAt = Date.now();
+    let requiresReconnect = false;
+    let achievementSummary: EpicAchievementSummary | undefined;
+    let achievementsRequested =
+      context.connection.capabilities?.achievementsSnapshotVersion === 1;
+    const startRun = async () => {
+      const id = await this.deps.start(
+        context,
+        operation.trigger,
+        controller.signal
+      );
+      achievementsRequested =
+        context.connection.capabilities?.achievementsSnapshotVersion === 1;
+      return id;
+    };
     try {
       journal = await this.deps.journal(context);
       let resuming = !!journal;
@@ -217,6 +245,8 @@ export class EpicSyncOrchestrator {
         operation.id = journal.syncRunId;
         publication = "unknown";
         let run = await this.deps.run(context, operation.id, controller.signal);
+        if (run.achievementSnapshotVersion !== 1) achievementsRequested = false;
+        requiresReconnect = journal.requiresReconnect ?? false;
         const expired =
           (run.status === "PENDING" &&
             Date.now() - Date.parse(run.createdAt) >=
@@ -227,11 +257,7 @@ export class EpicSyncOrchestrator {
               EPIC_RUNNING_EXPIRATION_MS);
         if (expired) {
           // The server decides expiry under its lock; never claim RUNNING locally.
-          operation.id = await this.deps.start(
-            context,
-            operation.trigger,
-            controller.signal
-          );
+          operation.id = await startRun();
           journal = {
             syncRunId: operation.id,
             totalChunks: null,
@@ -248,16 +274,24 @@ export class EpicSyncOrchestrator {
           await this.deps.saveJournal(context, null);
           journal = null;
           operation.id = null;
+          resuming = false;
+        } else if (
+          run.status === "PENDING" &&
+          run.achievementSnapshotVersion !== 1 &&
+          context.connection.capabilities?.achievementsSnapshotVersion === 1
+        ) {
+          // Replace legacy staging before collecting a snapshot for a versioned run.
+          await this.deps.cancel(context, operation.id!, controller.signal);
+          await this.deps.saveJournal(context, null);
+          journal = null;
+          operation.id = null;
+          resuming = false;
         }
       }
       if (publication !== "published") {
         // Only IDs returned to this launcher (or recovered from its journal) are writable.
         if (!operation.id) {
-          operation.id = await this.deps.start(
-            context,
-            operation.trigger,
-            controller.signal
-          );
+          operation.id = await startRun();
           this.assert(context);
           journal = {
             syncRunId: operation.id,
@@ -266,14 +300,39 @@ export class EpicSyncOrchestrator {
           };
           await this.deps.saveJournal(context, journal);
         }
+        // Replace warnings from an older attempt before collecting a fresh snapshot.
+        // A later staging replacement must retain this collection's reconnect result.
+        requiresReconnect = false;
         this.publish(operation, "library");
         const games = await this.deps.library(context, controller.signal);
         this.publish(operation, "playtime", 0, games.length);
-        const snapshot = applyEpicPlaytime(
+        let snapshot = applyEpicPlaytime(
           games,
           await this.deps.playtime(context, controller.signal, true)
         );
         this.assert(context);
+        if (achievementsRequested && this.deps.achievements) {
+          this.publish(operation, "achievements", 0, snapshot.length);
+          const result = await this.deps.achievements(
+            context,
+            snapshot,
+            controller.signal,
+            (processed, total) =>
+              this.publish(operation, "achievements", processed, total),
+            Math.min(
+              EPIC_ACHIEVEMENT_BUDGET_MS,
+              Math.max(
+                1,
+                EPIC_SYNC_TIMEOUT_MS -
+                  (Date.now() - startedAt) -
+                  EPIC_ACHIEVEMENT_PUBLICATION_RESERVE_MS
+              )
+            )
+          );
+          this.assert(context);
+          snapshot = result.games;
+          requiresReconnect = result.requiresReconnect;
+        }
         const chunks = buildEpicSnapshotChunks(
           context.connection.connectionId,
           snapshot
@@ -285,16 +344,13 @@ export class EpicSyncOrchestrator {
             journal.totalChunks !== chunks.length)
         ) {
           await this.deps.cancel(context, operation.id!, controller.signal);
-          operation.id = await this.deps.start(
-            context,
-            operation.trigger,
-            controller.signal
-          );
+          operation.id = await startRun();
         }
         journal = {
           syncRunId: operation.id!,
           totalChunks: chunks.length,
           mergePending: false,
+          requiresReconnect,
         };
         await this.deps.saveJournal(context, journal);
         for (const [index, chunk] of chunks.entries()) {
@@ -325,12 +381,22 @@ export class EpicSyncOrchestrator {
           }
         }
       }
+      if (achievementsRequested) {
+        const run = await this.deps.run(
+          context,
+          operation.id!,
+          AbortSignal.timeout(EPIC_HYDRA_TIMEOUT_MS)
+        );
+        this.assert(context);
+        achievementSummary = run.achievementSummary ?? undefined;
+      }
       this.assert(context);
       requiresMerge = true;
       await this.deps.saveJournal(context, {
         syncRunId: operation.id!,
         totalChunks: journal?.totalChunks ?? null,
         mergePending: true,
+        requiresReconnect,
       });
       this.publish(operation, "merging");
       if (
@@ -376,7 +442,8 @@ export class EpicSyncOrchestrator {
           status: "idle",
           hydraUserId: context.auth.userId,
           connectionId: context.connection.connectionId,
-          requiresReconnect: error === "session-expired",
+          requiresReconnect: requiresReconnect || error === "session-expired",
+          ...(achievementSummary ? { achievementSummary } : {}),
           ...(error ? { error } : {}),
         };
         this.deps.emit(this.getState());
@@ -393,6 +460,7 @@ export class EpicSyncOrchestrator {
           ...(error ? { error } : {}),
           publication,
           requiresMerge,
+          ...(achievementSummary ? { achievementSummary } : {}),
         });
       }
     }

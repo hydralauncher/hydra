@@ -117,6 +117,11 @@ type HydraNativeModule = {
 export type SystemProcessMap = {
   processMap: Record<string, string[]>;
   winePrefixMap: Record<string, string>;
+  processTree?: Array<{
+    pid: number;
+    parentPid?: number | null;
+    exe: string | null;
+  }>;
   linuxProcesses: Array<{
     name: string;
     cwd: string;
@@ -145,8 +150,10 @@ function buildMaps(processes) {
   const processMap = Object.create(null);
   const winePrefixMap = Object.create(null);
   const linuxProcesses = [];
+  const processTree = [];
 
   for (const proc of processes) {
+    processTree.push({ pid: proc.pid, parentPid: proc.parentPid, exe: proc.exe });
     const key = proc.name && proc.name.toLowerCase();
     const value = platform === 'win32'
       ? proc.exe
@@ -173,7 +180,7 @@ function buildMaps(processes) {
     processMap[key].push(value);
   }
 
-  return { processMap, winePrefixMap, linuxProcesses };
+  return { processMap, winePrefixMap, linuxProcesses, processTree };
 }
 
 parentPort.on('message', (type) => {

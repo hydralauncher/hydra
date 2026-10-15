@@ -161,7 +161,7 @@ export default function GameLauncher() {
     });
 
     window.electron
-      .getGameLauncherStatuses(shop, objectId)
+      .getGameLauncherStatuses?.(shop, objectId)
       .then((statuses) => {
         statusReplay.selectCachedStatuses(statuses).forEach(applyStatus);
       })
