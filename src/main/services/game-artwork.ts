@@ -24,7 +24,6 @@ export const ARTWORK_PAGE_SIZE = 50;
 const PORTRAIT_GRID_DIMENSIONS = "600x900,342x482,660x930";
 const LANDSCAPE_GRID_DIMENSIONS = "460x215,920x430";
 export const EPIC_ARTWORK_CACHE_DURATION_MS = 8 * 60 * 60 * 1000;
-export const EPIC_ARTWORK_MISSING_ICON_RETRY_MS = 5 * 60 * 1000;
 const EPIC_DEFAULT_ARTWORK_TIMEOUT_MS = 10_000;
 const EPIC_DEFAULT_ARTWORK_LIMIT = 10;
 export const EPIC_ICON_SIZE = 64;
@@ -305,12 +304,10 @@ export async function resolveEpicDefaultArtwork(
   const now = Date.now();
   const isFresh = (type: EpicArtworkType) => {
     const timestamp = preserved.epicArtworkUpdatedAtByType?.[type];
-    const duration =
-      type === "icon" && !preserved.iconUrl
-        ? EPIC_ARTWORK_MISSING_ICON_RETRY_MS
-        : EPIC_ARTWORK_CACHE_DURATION_MS;
     return (
-      timestamp !== undefined && timestamp <= now && timestamp + duration > now
+      timestamp !== undefined &&
+      timestamp <= now &&
+      timestamp + EPIC_ARTWORK_CACHE_DURATION_MS > now
     );
   };
   if (

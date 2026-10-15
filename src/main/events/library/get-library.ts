@@ -86,6 +86,26 @@ const getLibrary = async (
               game.objectId,
               game.unlockedAchievementCount
             );
+            let achievementCount = resolveAchievementCount(
+              game.shop,
+              game.objectId,
+              game.achievementCount
+            );
+            // An Epic copy without its own definitions presents its linked Steam catalogue.
+            if (
+              game.shop === "epic" &&
+              achievementCount === 0 &&
+              game.catalogueGame?.shop === "steam"
+            ) {
+              const steamGame = await gamesSublevel
+                .get(levelKeys.game("steam", game.catalogueGame.objectId))
+                .catch(() => undefined);
+              achievementCount = resolveAchievementCount(
+                "steam",
+                game.catalogueGame.objectId,
+                steamGame?.achievementCount
+              );
+            }
 
             // Verify installer still exists, clear if deleted externally
             let installerSizeInBytes = game.installerSizeInBytes;
@@ -150,11 +170,7 @@ const getLibrary = async (
               shop: game.shop,
               objectId: game.objectId,
               unlockedAchievementCount,
-              achievementCount: resolveAchievementCount(
-                game.shop,
-                game.objectId,
-                game.achievementCount
-              ),
+              achievementCount,
               ...(game.shop === "epic" &&
                 game.catalogueGame?.shop !== "steam" && {
                   iconUrl: composedAssets?.iconUrl ?? null,

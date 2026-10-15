@@ -233,16 +233,29 @@ export const LibraryGameCardLarge = memo(function LibraryGameCardLarge({
     const gameChanged =
       previousAchievementGameKey.current !== achievementGameKey;
     previousAchievementGameKey.current = achievementGameKey;
-    if (gameChanged || !hasStoreUnion) {
+    const needsCatalogueTotal =
+      game.shop === "epic" &&
+      (game.achievementCount ?? 0) <= 0 &&
+      game.catalogueGame?.shop === "steam";
+    if (gameChanged || (!hasStoreUnion && !needsCatalogueTotal)) {
       setTotalAchievementsCount(game.achievementCount ?? 0);
       setUnlockedAchievementsCount(game.unlockedAchievementCount ?? 0);
     }
-    if (game.unlockedAchievementCount != null && !hasStoreUnion) {
+    if (
+      game.unlockedAchievementCount != null &&
+      !hasStoreUnion &&
+      !needsCatalogueTotal
+    ) {
       setUnlockedAchievementsCount(game.unlockedAchievementCount);
       return;
     }
 
-    if ((game.achievementCount ?? 0) <= 0 && !hasStoreUnion) return;
+    if (
+      (game.achievementCount ?? 0) <= 0 &&
+      !hasStoreUnion &&
+      !needsCatalogueTotal
+    )
+      return;
 
     let isStale = false;
 
@@ -252,7 +265,8 @@ export const LibraryGameCardLarge = memo(function LibraryGameCardLarge({
         if (isStale) return;
         // An empty legacy fallback cannot distinguish unavailable definitions
         // from an authoritative empty catalogue. Preserve known grouped totals.
-        if (hasStoreUnion && achievements.length === 0) return;
+        if ((hasStoreUnion || needsCatalogueTotal) && achievements.length === 0)
+          return;
         setUnlockedAchievementsCount(
           achievements.filter((a) => a.unlocked).length
         );
@@ -266,6 +280,8 @@ export const LibraryGameCardLarge = memo(function LibraryGameCardLarge({
     };
   }, [
     game.achievementCount,
+    game.catalogueGame?.shop,
+    game.catalogueGame?.objectId,
     game.objectId,
     game.shop,
     game.unlockedAchievementCount,

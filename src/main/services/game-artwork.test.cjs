@@ -130,7 +130,7 @@ test("no-logo grids fall back to other dimensions without selecting logos or wro
   );
 });
 
-test("missing icons retry sooner without discarding fresh grids", async () => {
+test("confirmed missing icons wait for the artwork cache before retrying", async () => {
   const instance = service([], async () => {
     throw Error("unexpected download");
   });
@@ -142,8 +142,13 @@ test("missing icons retry sooner without discarding fresh grids", async () => {
   };
   await instance.resolveEpicDefaultArtwork(cached, cached);
   assert.equal(instance.apiRequests.length, 0);
+  const PREVIOUS_MISSING_ICON_RETRY_MS = 5 * 60 * 1000;
   cached.epicArtworkUpdatedAtByType.icon =
-    now - instance.EPIC_ARTWORK_MISSING_ICON_RETRY_MS - 1;
+    now - PREVIOUS_MISSING_ICON_RETRY_MS - 1;
+  await instance.resolveEpicDefaultArtwork(cached, cached);
+  assert.equal(instance.apiRequests.length, 0);
+  cached.epicArtworkUpdatedAtByType.icon =
+    now - instance.EPIC_ARTWORK_CACHE_DURATION_MS - 1;
   const retried = await instance.resolveEpicDefaultArtwork(cached, cached);
   assert.equal(instance.apiRequests.length, 1);
   assert.ok(instance.apiRequests[0].route.endsWith("/icons"));

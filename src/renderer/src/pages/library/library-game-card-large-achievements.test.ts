@@ -102,6 +102,30 @@ it("refreshes grouped progress on member changes and preserves known offline tot
     );
   };
   try {
+    const emptyEpic = {
+      id: "epic:copy",
+      objectId: "copy",
+      shop: "epic",
+      title: "Epic Copy",
+      achievementCount: 0,
+      unlockedAchievementCount: 0,
+      catalogueGame: { shop: "steam", objectId: "752590" },
+    };
+    response = [{ unlocked: true }, { unlocked: false }, { unlocked: false }];
+    const fallback = await render(emptyEpic as unknown as typeof game);
+    assert.equal(calls, 1);
+    assert.equal(fallback.achievementCount, 3);
+    assert.equal(fallback.unlockedAchievementCount, 1);
+    response = [];
+    const unavailable = await render({
+      ...emptyEpic,
+      catalogueGame: { shop: "steam", objectId: "999" },
+    } as unknown as typeof game);
+    assert.equal(calls, 2);
+    assert.deepEqual(unavailable, fallback);
+    await act(async () => root.render(React.createElement("div")));
+    calls = 0;
+    response = [];
     const first = await render(game);
     assert.equal(calls, 1);
     assert.equal(first.achievementCount, 3);

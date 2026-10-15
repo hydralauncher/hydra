@@ -158,3 +158,28 @@ it("includes games added during a running pass without duplicating active games"
   await tick();
   assert.deepEqual(calls, ["one", "two", "new"]);
 });
+
+it("keeps cooldowns for games omitted by a partial read after a pass ends", async () => {
+  let now = 0;
+  const calls: string[] = [];
+  const queue = new EpicLibraryArtworkQueue(
+    async (g) => {
+      calls.push(g.id);
+      return false;
+    },
+    () => {},
+    () => now,
+    async () => {}
+  );
+  queue.schedule([game("visible"), game("hidden")]);
+  await tick();
+  queue.schedule([game("hidden")]);
+  await tick();
+  queue.schedule([game("visible"), game("hidden")]);
+  await tick();
+  assert.deepEqual(calls, ["visible", "hidden"]);
+  now += EPIC_LIBRARY_ARTWORK_RETRY_MS;
+  queue.schedule([game("visible"), game("hidden")]);
+  await tick();
+  assert.deepEqual(calls, ["visible", "hidden", "visible", "hidden"]);
+});

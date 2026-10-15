@@ -31,12 +31,9 @@ export class EpicLibraryArtworkQueue {
           ).values(),
         ]
       : games;
-    const ids = new Set(this.library.map((game) => game.id));
+    // Expire by time only: a partial read must not reset cooldowns it omits.
     for (const [key, attempted] of this.attemptedAt) {
-      if (
-        !ids.has(key) ||
-        this.now() - attempted >= EPIC_LIBRARY_ARTWORK_RETRY_MS
-      )
+      if (this.now() - attempted >= EPIC_LIBRARY_ARTWORK_RETRY_MS)
         this.attemptedAt.delete(key);
     }
     this.cursor = 0;
