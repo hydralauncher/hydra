@@ -996,49 +996,9 @@
     flex-shrink: 0;
   }
 
+  // Look comes from the shared small Button.
   &__browser-path-action {
-    display: inline-flex;
-    align-items: center;
-    gap: calc(globals.$spacing-unit / 2);
     flex-shrink: 0;
-    padding: calc(globals.$spacing-unit / 2) globals.$spacing-unit;
-    border: 1px solid globals.$border-color;
-    border-radius: 4px;
-    color: globals.$muted-color;
-    cursor: pointer;
-    font-size: 11px;
-
-    > svg {
-      width: 15px;
-      height: 15px;
-      flex: 0 0 15px;
-    }
-
-    &:hover:not(:disabled) {
-      border-color: rgba(255, 255, 255, 0.18);
-      background: rgba(255, 255, 255, 0.05);
-      color: globals.$body-color;
-    }
-
-    &--remove:hover:not(:disabled) {
-      border-color: rgba(255, 82, 82, 0.35);
-      color: #ff7373;
-    }
-
-    &--rebind:hover:not(:disabled) {
-      border-color: rgba(255, 255, 255, 0.25);
-      color: globals.$body-color;
-    }
-
-    &:disabled {
-      cursor: default;
-      opacity: globals.$disabled-opacity;
-    }
-
-    &:focus-visible {
-      outline: 2px solid var(--color-primary);
-      outline-offset: 2px;
-    }
   }
 
   &__browser-missing-side {
