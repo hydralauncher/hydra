@@ -2264,8 +2264,7 @@
     "available_points": "Available points:",
     "how_to_earn_achievements_points": "How to earn achievement points?",
     "view_souvenir": "View souvenir",
-    "souvenir_alt": "Screenshot taken when {{achievement}} was unlocked",
-    "achievement_store": "Achievement store"
+    "souvenir_alt": "Screenshot taken when {{achievement}} was unlocked"
   },
   "hydra_cloud": {
     "subscription_tour_title": "Hydra Cloud Subscription",
