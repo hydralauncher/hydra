@@ -18,6 +18,7 @@ export const EPIC_LEGENDARY_PROCESS_TIMEOUT_MS = 60_000;
 export const EPIC_LEGENDARY_API_TIMEOUT_SECONDS = 15;
 export const EPIC_LEGENDARY_MAX_OUTPUT_BYTES = 128 * 1024;
 export const EPIC_SESSION_MAX_FILE_BYTES = 1024 * 1024;
+const EPIC_LEGENDARY_DIAGNOSTIC_TAIL_LENGTH = 512;
 const EPIC_LEGENDARY_TERMINATION_TIMEOUT_MS = 10_000;
 const EPIC_LEGENDARY_TERMINATION_MAX_OUTPUT_BYTES = 16 * 1024;
 
@@ -173,7 +174,9 @@ export function executeLegendaryCommand(
           /Stored credentials are no longer valid|Invalid refresh token|invalid_refresh_token|invalid_grant/i.test(
             diagnosticTail
           );
-        diagnosticTail = diagnosticTail.slice(-512);
+        diagnosticTail = diagnosticTail.slice(
+          -EPIC_LEGENDARY_DIAGNOSTIC_TAIL_LENGTH
+        );
       }
     });
     child.on("close", (code) => {
