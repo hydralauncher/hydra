@@ -37,7 +37,7 @@ ipcMain.handle(
         `/profile/chats/${friendId}/read`,
         { seq }
       );
-      ChatUnreadStore.setUnread(friendId, unreadCount, generation);
+      ChatUnreadStore.setUnread(friendId, unreadCount, seq, generation);
       return true;
     } catch (error) {
       logger.error("Failed to mark chat as read", error);

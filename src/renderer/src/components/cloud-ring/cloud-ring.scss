@@ -1,3 +1,5 @@
+$spin-duration: 3.2s;
+
 @keyframes cloud-ring-spin {
   to {
     transform: rotate(360deg);
@@ -5,7 +7,7 @@
 }
 
 // Same as the mobile app: a sweep gradient through the Cloud colours that
-// turns once every 3.2s, with a 2px ring and a cyan glow.
+// turns once every $spin-duration, with a 2px ring and a cyan glow.
 .cloud-ring {
   position: relative;
   display: flex;
@@ -33,7 +35,7 @@
       #14b9bb,
       #0a86d9
     );
-    animation: cloud-ring-spin 3.2s linear infinite;
+    animation: cloud-ring-spin $spin-duration linear infinite;
   }
 
   .profile-avatar,
