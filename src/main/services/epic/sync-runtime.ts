@@ -9,6 +9,7 @@ import type {
 import { db, gamesSublevel, levelKeys } from "@main/level";
 import { HydraApi } from "../hydra-api";
 import { WindowManager } from "../window-manager";
+import { logger } from "../logger";
 import { mergeWithRemoteGames } from "../library-sync/merge-with-remote-games";
 import {
   mergeImportedProfileGame,
@@ -25,6 +26,10 @@ import {
 } from "./sync-orchestrator";
 import { EpicSessionProvider } from "./session-provider";
 import { EpicPlaytimeSource } from "./playtime-source";
+import { EpicAchievementSource } from "./achievement-source";
+import { parseEpicAchievementTargets } from "./achievement-protocol";
+import { buildEpicSnapshotChunks } from "./sync-snapshot";
+import { AchievementMemoryStore } from "../achievements/achievement-memory-store";
 import { EpicConnectionStore } from "./store";
 import {
   EpicIntegrationError,
@@ -50,6 +55,10 @@ import {
 } from "./library-normalizer";
 import { isEpicInstallExecutable } from "./session-attribution";
 import { matchesEpicImportScope } from "./import-cleanup";
+import {
+  managedWorkspacePath,
+  epicOwnerMatches,
+} from "./legendary-managed-runtime";
 
 type OwnGame = ImportedProfileGame & {
   epicImport: { connectionId: string; artifactIds: string[] } | null;
@@ -78,7 +87,7 @@ export class EpicSyncRuntime {
   private attemptedStartup = new Set<string>();
   constructor(
     store: EpicConnectionStore,
-    userData: string,
+    private readonly userData: string,
     binary: () => Promise<string>,
     private readonly connection: () => Promise<EpicConnectionState>,
     private readonly peek: () => EpicConnectionState | null
@@ -90,6 +99,7 @@ export class EpicSyncRuntime {
       (auth, connection) => this.current({ auth, connection })
     );
     this.source = new EpicPlaytimeSource(this.session);
+    const achievementSource = new EpicAchievementSource(this.session);
     const options = (context: EpicSyncContext, signal: AbortSignal) => ({
       authContext: context.auth,
       signal,
@@ -114,16 +124,79 @@ export class EpicSyncRuntime {
           context.auth,
           context.connection,
           signal,
-          async (runner) => normalizeEpicLibrary(await runner.library())
+          async (runner) =>
+            normalizeEpicLibrary(await runner.library(), (diagnostic) =>
+              logger.error("Epic library validation failed", diagnostic)
+            )
         ),
       playtime: (context, signal, fresh) =>
         this.source.get(context.auth, context.connection, signal, fresh),
+      achievements: async (context, games, signal, progress, budget) => {
+        const key = `${journalKey(context)}:achievementPending`;
+        const pending = await db
+          .get<string, string[]>(key, { valueEncoding: "json" })
+          .catch(() => []);
+        const result = await achievementSource.collect(
+          context,
+          games,
+          signal,
+          async (objectIds, sourceSignal) =>
+            parseEpicAchievementTargets(
+              await HydraApi.post(
+                `${EPIC_ENDPOINT}/achievement-targets`,
+                { connectionId: context.connection.connectionId, objectIds },
+                options(context, sourceSignal)
+              ),
+              objectIds
+            ),
+          Array.isArray(pending) ? pending : [],
+          progress,
+          budget
+        );
+        if (!this.current(context) || signal.aborted)
+          throw new EpicIntegrationError("operation-cancelled");
+        try {
+          buildEpicSnapshotChunks(
+            context.connection.connectionId,
+            result.games
+          );
+        } catch (error) {
+          if (
+            !(error instanceof EpicIntegrationError) ||
+            error.code !== "snapshot-too-large"
+          )
+            throw error;
+          result.games = result.games.map((game) => ({
+            ...game,
+            achievements: null,
+          }));
+          buildEpicSnapshotChunks(
+            context.connection.connectionId,
+            result.games
+          );
+          result.pendingObjectIds = result.games.map(
+            (game) => `${game.namespace}:${game.catalogItemId}`
+          );
+        }
+        await libraryWriteQueue.run(
+          () => db.put(key, result.pendingObjectIds, { valueEncoding: "json" }),
+          () => this.current(context)
+        );
+        return result;
+      },
       start: async (context, trigger, signal) => {
         let result: { syncRunId: string };
         try {
           result = await HydraApi.post<{ syncRunId: string }>(
             `${EPIC_ENDPOINT}/sync`,
-            { connectionId: context.connection.connectionId, trigger },
+            {
+              connectionId: context.connection.connectionId,
+              trigger,
+              ...(context.connection.capabilities
+                ?.achievementsSnapshotVersion === 1
+                ? { achievementSnapshotVersion: 1 }
+                : {}),
+            },
             options(context, signal)
           );
         } catch (error) {
@@ -202,6 +275,10 @@ export class EpicSyncRuntime {
           () => this.current(context)
         ),
       merge: async (context, progress, signal) => {
+        if (this.current(context))
+          for (const [key] of AchievementMemoryStore.all())
+            if (key.startsWith("epic:"))
+              AchievementMemoryStore.delete("epic", key.slice("epic:".length));
         const result = await mergeWithRemoteGames(
           progress,
           context.auth,
@@ -234,6 +311,25 @@ export class EpicSyncRuntime {
       state.connection.connectionId === context.connection.connectionId &&
       state.connection.epicAccountId === context.connection.epicAccountId
     );
+  }
+  /** Previously linked private cache is sufficient only for explicit offline launch. */
+  currentLocal(context: EpicSyncContext) {
+    const state = this.peek();
+    return (
+      HydraApi.isAuthContextCurrent(context.auth) &&
+      state?.hydraUserId === context.auth.userId &&
+      !state.operation &&
+      state.connection?.connected === true &&
+      state.connection.connectionId === context.connection.connectionId &&
+      state.connection.epicAccountId === context.connection.epicAccountId
+    );
+  }
+  captureLocal(): EpicSyncContext | null {
+    const auth = HydraApi.getAuthContext();
+    const state = this.peek();
+    if (!auth || !state?.connection?.connected) return null;
+    const context = { auth, connection: state.connection };
+    return this.currentLocal(context) ? context : null;
   }
   async capture(): Promise<EpicSyncContext> {
     const auth = HydraApi.getAuthContext();
@@ -294,6 +390,9 @@ export class EpicSyncRuntime {
   }
   invalidate() {
     this.source.invalidate();
+    for (const [key] of AchievementMemoryStore.all())
+      if (key.startsWith("epic:"))
+        AchievementMemoryStore.delete("epic", key.slice("epic:".length));
     this.aliases.clear();
     for (const entry of this.individual.values()) entry.controller.abort();
     for (const id of this.exitTimers.keys()) this.cancelExit(id);
@@ -306,7 +405,7 @@ export class EpicSyncRuntime {
       [...this.individual.values()].map((entry) => entry.promise)
     );
   }
-  private async ownGame(
+  async ownGame(
     context: EpicSyncContext,
     objectId: string,
     signal: AbortSignal
@@ -508,7 +607,22 @@ export class EpicSyncRuntime {
           artifacts,
           matchedPath,
           game.winePrefixPath,
-          signal
+          signal,
+          game.epicInstallation &&
+            epicOwnerMatches(game.epicInstallation.owner, {
+              environment: context.auth.environment,
+              userId: context.auth.userId,
+              epicAccountId: context.connection.epicAccountId,
+            })
+            ? [
+                managedWorkspacePath(
+                  this.userData,
+                  game.epicInstallation.owner,
+                  game.epicInstallation.artifactId,
+                  game.epicInstallation.platform
+                ),
+              ]
+            : []
         );
     }
     return resolveEpicSessionPlaytimePolicy(

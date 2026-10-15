@@ -1,4 +1,5 @@
 import { downloadsSublevel, levelKeys } from "@main/level";
+import { Downloader } from "@shared";
 import { DownloadManager } from "./download/download-manager";
 import { WindowManager } from "./window-manager";
 import { logger } from "./logger";
@@ -424,7 +425,7 @@ export class DownloadOrchestrator {
     if (
       !download ||
       !["paused", "active", "error"].includes(download.status ?? "") ||
-      download.progress === 1
+      (download.progress === 1 && download.downloader !== Downloader.Epic)
     ) {
       return false;
     }
