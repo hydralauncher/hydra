@@ -151,6 +151,7 @@ function orchestrator() {
   const resumed: string[] = [];
   const paused: string[] = [];
   const resumeSignals: AbortSignal[] = [];
+  const queueOrders: string[][] = [];
   let preparedReady = true;
   let preparationCalls = 0;
   let preparationError: Error | undefined;
@@ -244,7 +245,11 @@ function orchestrator() {
     "./download-layout-state": {
       syncDownloadLayoutState: async () => layout(),
       getNormalizedDownloadLayoutState: async () => layout(),
-      setDownloadLayoutQueues: async () => {
+      setDownloadLayoutQueues: async (
+        _downloads: unknown,
+        queueIds: string[]
+      ) => {
+        queueOrders.push([...queueIds]);
         afterQueue?.();
       },
       removeDownloadFromLayoutState: async () => undefined,
@@ -272,6 +277,7 @@ function orchestrator() {
     records,
     resumed,
     resumeSignals,
+    queueOrders,
     paused,
     afterResume: (callback: () => Promise<void>) => {
       afterResume = callback;
@@ -1154,4 +1160,59 @@ it("Big Picture queue retry continues if the active download finishes during pre
   assert.equal(await moved, true);
   assert.deepEqual(f.resumed, ["next"]);
   assert.equal(f.records.get("next").queued, false);
+});
+
+for (const ready of [true, false]) {
+  for (const idle of [true, false]) {
+    for (const targetIndex of [0, 1, 99]) {
+      it(`Big Picture retains queue position ${targetIndex} after retry (ready=${ready}, idle=${idle})`, async () => {
+        const f = orchestrator();
+        if (idle) f.finishActive();
+        f.records.set("next", {
+          ...f.download,
+          awaitingDebrid: true,
+          debridAutoResume: false,
+        });
+        for (const objectId of ["first", "second"]) {
+          f.records.set(objectId, { ...f.download, objectId, queued: true });
+        }
+        f.setPreparedReady(ready);
+        f.release();
+        await f.instance.moveDownloadPlacement(
+          "steam",
+          "next",
+          "queue",
+          targetIndex
+        );
+        if (!ready) {
+          assert.equal(f.records.get("next").debridQueuePosition, targetIndex);
+          f.setPreparedReady(true);
+          await f.instance.pollAwaitingDebridDownloads();
+        }
+        const expected = ["first", "second"];
+        expected.splice(Math.min(targetIndex, expected.length), 0, "next");
+        assert.deepEqual(f.queueOrders.at(-1), expected);
+        assert.equal(f.records.get("next").debridQueuePosition, undefined);
+        assert.deepEqual(f.resumed, []);
+      });
+    }
+  }
+}
+
+it("Big Picture queue retry respects earlier queued items when the active download finishes", async () => {
+  const f = orchestrator();
+  f.records.set("first", { ...f.download, objectId: "first", queued: true });
+  f.records.set("next", {
+    ...f.download,
+    awaitingDebrid: true,
+    debridAutoResume: false,
+  });
+  const moved = f.instance.moveDownloadPlacement("steam", "next", "queue", 1);
+  await f.preparing;
+  f.finishActive();
+  f.release();
+  assert.equal(await moved, true);
+  assert.deepEqual(f.resumed, ["first"]);
+  assert.equal(f.records.get("next").queued, true);
+  assert.deepEqual(f.queueOrders.at(-1), ["first", "next"]);
 });

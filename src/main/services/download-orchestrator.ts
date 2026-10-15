@@ -286,6 +286,7 @@ export class DownloadOrchestrator {
       awaitingDebrid: false,
       debridAutoResume: false,
       debridQueueOnly: undefined,
+      debridQueuePosition: undefined,
       debridPreparationDeadline: undefined,
       status: "active",
       queued: false,
@@ -323,6 +324,7 @@ export class DownloadOrchestrator {
         awaitingDebrid: false,
         debridAutoResume: false,
         debridQueueOnly: undefined,
+        debridQueuePosition: undefined,
         debridPreparationDeadline: undefined,
       });
 
@@ -438,7 +440,11 @@ export class DownloadOrchestrator {
     } = {}
   ) {
     const nextDownload = await this.setDownloadPausedState(
-      { ...download, debridQueueOnly: undefined },
+      {
+        ...download,
+        debridQueueOnly: undefined,
+        debridQueuePosition: undefined,
+      },
       { queued: true }
     );
     const downloads = await this.getAllDownloads();
@@ -446,7 +452,9 @@ export class DownloadOrchestrator {
     const nextQueueOrder = withInsertedId(
       layoutState.queueOrder,
       getDownloadId(download),
-      options.toFront ? 0 : options.targetIndex
+      options.toFront
+        ? 0
+        : (options.targetIndex ?? download.debridQueuePosition)
     );
 
     await setDownloadLayoutQueues(
@@ -484,6 +492,7 @@ export class DownloadOrchestrator {
         ...savedDownload,
         debridAutoResume: false,
         debridQueueOnly: undefined,
+        debridQueuePosition: undefined,
         debridPreparationDeadline: undefined,
       },
       {
@@ -538,6 +547,7 @@ export class DownloadOrchestrator {
       download.awaitingDebrid = false;
       download.debridAutoResume = false;
       download.debridQueueOnly = undefined;
+      download.debridQueuePosition = undefined;
       download.debridPreparationDeadline = undefined;
       return;
     }
@@ -550,6 +560,7 @@ export class DownloadOrchestrator {
     ) {
       download.debridAutoResume = false;
       download.debridQueueOnly = undefined;
+      download.debridQueuePosition = undefined;
       download.debridPreparationDeadline = undefined;
     }
   }
@@ -653,6 +664,7 @@ export class DownloadOrchestrator {
         awaitingDebrid: false,
         debridAutoResume: false,
         debridQueueOnly: undefined,
+        debridQueuePosition: undefined,
         debridPreparationDeadline: undefined,
       });
       WindowManager.sendDownloadsUpdated();
@@ -830,6 +842,7 @@ export class DownloadOrchestrator {
         awaitingDebrid: false,
         debridAutoResume: false,
         debridQueueOnly: undefined,
+        debridQueuePosition: undefined,
         debridPreparationDeadline: undefined,
       },
       { status: "error" }
@@ -854,6 +867,7 @@ export class DownloadOrchestrator {
       queued: false,
       debridAutoResume: false,
       debridQueueOnly: undefined,
+      debridQueuePosition: undefined,
       debridPreparationDeadline: undefined,
     });
     WindowManager.sendDownloadsUpdated();
@@ -1038,7 +1052,8 @@ export class DownloadOrchestrator {
   static async resumeDownload(
     shop: GameShop,
     objectId: string,
-    strategy: ResumeIntent = "interruptActive"
+    strategy: ResumeIntent = "interruptActive",
+    targetIndex?: number
   ) {
     const preparation = this.beginPreparation(levelKeys.game(shop, objectId));
     try {
@@ -1047,7 +1062,8 @@ export class DownloadOrchestrator {
         objectId,
         strategy,
         preparation.isCurrent,
-        preparation.signal
+        preparation.signal,
+        targetIndex
       );
     } finally {
       preparation.dispose();
@@ -1059,7 +1075,8 @@ export class DownloadOrchestrator {
     objectId: string,
     strategy: ResumeIntent,
     isCurrent: () => boolean,
-    signal: AbortSignal
+    signal: AbortSignal,
+    targetIndex?: number
   ) {
     const download = await this.getDownload(shop, objectId);
 
@@ -1077,6 +1094,7 @@ export class DownloadOrchestrator {
       debridAutoResume: true,
       debridQueueOnly:
         strategy === "queue" && !DownloadManager.hasActiveDownload(),
+      debridQueuePosition: strategy === "queue" ? targetIndex : undefined,
       debridPreparationDeadline: Date.now() + DEBRID_PREPARATION_WINDOW_MS,
     };
     try {
@@ -1117,8 +1135,8 @@ export class DownloadOrchestrator {
       ) ?? null;
 
     if (
-      (strategy === "queue" && readyDownload.debridQueueOnly) ||
-      (currentActiveDownload && strategy !== "interruptActive")
+      strategy === "queue" ||
+      (currentActiveDownload && strategy === "queueIfActive")
     ) {
       await this.queueDownload(
         {
@@ -1127,8 +1145,15 @@ export class DownloadOrchestrator {
           debridQueueOnly: undefined,
           debridPreparationDeadline: undefined,
         },
-        { toFront: true }
+        { toFront: strategy !== "queue" }
       );
+      if (strategy === "queue" && !readyDownload.debridQueueOnly) {
+        await this.activateNextQueuedDownload(undefined, {
+          id: getDownloadId(readyDownload),
+          isCurrent,
+          signal,
+        });
+      }
       WindowManager.sendDownloadsUpdated();
       return true;
     }
@@ -1197,6 +1222,7 @@ export class DownloadOrchestrator {
       awaitingDebrid: false,
       debridAutoResume: false,
       debridQueueOnly: undefined,
+      debridQueuePosition: undefined,
       debridPreparationDeadline: undefined,
     });
 
@@ -1229,6 +1255,7 @@ export class DownloadOrchestrator {
     this.invalidateBackgroundStart(getGameKey(download));
     download.debridAutoResume = false;
     download.debridQueueOnly = undefined;
+    download.debridQueuePosition = undefined;
     download.debridPreparationDeadline = undefined;
     return true;
   }
@@ -1243,15 +1270,12 @@ export class DownloadOrchestrator {
     const download = await this.getDownload(shop, objectId);
     if (download?.awaitingDebrid && targetArea !== "paused") {
       // Prepare outside the activation lock, just like the normal Resume action.
-      const resumed = await this.resumeDownload(
+      return this.resumeDownload(
         shop,
         objectId,
-        targetArea === "queue" ? "queue" : "interruptActive"
+        targetArea === "queue" ? "queue" : "interruptActive",
+        targetIndex
       );
-      if (resumed && targetArea === "queue" && targetIndex !== undefined) {
-        await this.setQueuePosition(shop, objectId, targetIndex);
-      }
-      return resumed;
     }
     const move = () =>
       this.applyDownloadPlacement(

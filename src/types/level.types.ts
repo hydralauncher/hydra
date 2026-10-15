@@ -128,6 +128,7 @@ export interface Download {
   awaitingDebrid?: boolean;
   debridAutoResume?: boolean;
   debridQueueOnly?: boolean;
+  debridQueuePosition?: number;
   debridPreparationDeadline?: number;
   customTrackers?: string[];
 }
