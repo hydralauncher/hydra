@@ -10,6 +10,16 @@ import ts from "typescript";
 import * as protocol from "./linux-runtime-protocol.js";
 import * as constants from "./linux-runtime-constants.js";
 import { observeEpicLinuxLaunch } from "./linux-launch-monitor.js";
+import type { PreparedEpicLinuxContext } from "./linux-runtime";
+import type { UmuProcessHandle } from "../umu-supervised-process";
+
+function gate() {
+  let open!: () => void;
+  const promise = new Promise<void>((resolve) => {
+    open = resolve;
+  });
+  return { promise, open };
+}
 
 async function fixture(t: TestContext) {
   const root = await fsp.mkdtemp(path.join(os.tmpdir(), "epic-linux-runtime-"));
@@ -42,6 +52,14 @@ async function fixture(t: TestContext) {
     terminated: 0,
     code: 0,
     launchCode: 0,
+    launchExit: null as Promise<{
+      code: number | null;
+      signal: NodeJS.Signals | null;
+    }> | null,
+    terminateWait: Promise.resolve() as Promise<void>,
+    terminateFails: false,
+    beforePython: null as (() => Promise<void>) | null,
+    beforeSpawn: null as ((args: string[]) => Promise<void>) | null,
     rebootCode: 0,
     requests: [] as Array<{ kind: string; executable: string; args: string[] }>,
     umuVersion: "1.4.4",
@@ -88,7 +106,10 @@ async function fixture(t: TestContext) {
       },
     },
     "../legendary-runtime-paths": {
-      getLegendaryLinuxPythonRunnerPath: async () => "/private/python-runner",
+      getLegendaryLinuxPythonRunnerPath: async () => {
+        await state.beforePython?.();
+        return "/private/python-runner";
+      },
     },
     "../umu-supervised-process": {
       hasLinuxPrefixProcesses: async () => state.occupied,
@@ -109,6 +130,7 @@ async function fixture(t: TestContext) {
           cwd: string;
           onLine?: (line: string) => void;
         }) => {
+          await state.beforeSpawn?.(options.args);
           state.calls.push(options);
           const command = options.args[1];
           let stdout = "";
@@ -142,10 +164,15 @@ async function fixture(t: TestContext) {
           return {
             pid: 123,
             invocationId: "invocation",
-            exited: Promise.resolve({ code: state.launchCode, signal: null }),
+            exited:
+              state.launchExit ??
+              Promise.resolve({ code: state.launchCode, signal: null }),
             output: Promise.resolve({ stdout, stderr: "" }),
             terminate: async () => {
               state.terminated++;
+              await state.terminateWait;
+              if (state.terminateFails)
+                throw new ManagedError("cleanup-failed");
             },
             waitForTreeExit: async () => undefined,
           };
@@ -459,6 +486,169 @@ test("truncated POSIX-looking results and forged nonces never complete a prerequ
     }),
     { code: "prerequisites-required" }
   );
+});
+
+test("shared-prefix leases and save mutations wait for bootstrap and prerequisites", async (t) => {
+  for (const phase of ["bootstrap", "prerequisite"] as const) {
+    const f = await fixture(t);
+    const context = (await f.api.prepareEpicLinuxRuntime(
+      f.game,
+      f.target,
+      f.options()
+    )) as PreparedEpicLinuxContext;
+    const entered = gate(),
+      resume = gate();
+    const pause = async () => {
+      entered.open();
+      await resume.promise;
+    };
+    if (phase === "bootstrap") f.state.beforePython = pause;
+    else
+      f.state.beforeSpawn = async (args) => {
+        if (
+          args[1] ===
+            path.join(f.root, "epic", "epic-prerequisite-runner.exe") &&
+          args[2] !== "--probe"
+        )
+          await pause();
+      };
+    const game = {
+      ...f.game,
+      objectId: "Namespace:Other",
+      winePrefixPath: context.winePrefixPath,
+    };
+    const target = { ...f.target, artifactId: "Other" };
+    const preparing =
+      phase === "bootstrap"
+        ? f.api.prepareEpicLinuxRuntime(game, target, f.options())
+        : f.api.ensureEpicLinuxPrerequisites({
+            game,
+            target,
+            installed: f.installed,
+            ...f.options(),
+          });
+    await entered.promise;
+    let acquired = false,
+      mutated = false;
+    const acquiring = f.api
+      .acquireEpicLinuxPrefixSession(context)
+      .then((lease) => {
+        acquired = true;
+        return lease as { release(): void };
+      });
+    const mutation = assert.rejects(
+      f.api.withEpicLinuxPrefixMutation(context.winePrefixPath, async () => {
+        mutated = true;
+      }),
+      { code: "compatibility-prefix-busy" }
+    );
+    try {
+      await new Promise<void>((resolve) => setImmediate(resolve));
+      assert.equal(acquired, false, phase);
+      assert.equal(mutated, false, phase);
+    } finally {
+      resume.open();
+      await preparing;
+      const lease = await acquiring;
+      await mutation;
+      lease.release();
+    }
+  }
+});
+
+test("a cancelled queued lease cannot reserve the prefix after preparation finishes", async (t) => {
+  const f = await fixture(t);
+  const context = (await f.api.prepareEpicLinuxRuntime(
+    f.game,
+    f.target,
+    f.options()
+  )) as PreparedEpicLinuxContext;
+  const entered = gate(),
+    resume = gate();
+  const mutation = f.api.withEpicLinuxPrefixMutation(
+    context.winePrefixPath,
+    async () => {
+      entered.open();
+      await resume.promise;
+    }
+  );
+  await entered.promise;
+  const controller = new AbortController();
+  const cancelled = assert.rejects(
+    f.api.acquireEpicLinuxPrefixSession(context, controller.signal),
+    { code: "operation-cancelled" }
+  );
+  controller.abort();
+  await cancelled;
+  resume.open();
+  await mutation;
+  const lease = (await f.api.acquireEpicLinuxPrefixSession(context)) as {
+    release(): void;
+  };
+  lease.release();
+});
+
+test("startup cancellation awaits termination and retains a failed handle for cleanup retries", async (t) => {
+  for (const cleanupFails of [false, true]) {
+    const f = await fixture(t);
+    const context = await f.api.prepareEpicLinuxRuntime(
+      f.game,
+      f.target,
+      f.options()
+    );
+    const lease = (await f.api.acquireEpicLinuxPrefixSession(context)) as {
+      release(): void;
+    };
+    const spawned = gate(),
+      terminated = gate();
+    f.state.launchExit = new Promise(() => {});
+    f.state.terminateWait = terminated.promise;
+    f.state.terminateFails = cleanupFails;
+    const controller = new AbortController();
+    let captured: UmuProcessHandle | undefined,
+      settled = false;
+    const launching = f.api
+      .launchEpicLinuxGame(
+        {
+          executable: "Game.exe",
+          args: [],
+          workingDirectory: f.root,
+          environment: {},
+        },
+        context,
+        {
+          lease,
+          signal: controller.signal,
+          onSpawn: (handle: UmuProcessHandle) => {
+            captured = handle;
+            spawned.open();
+          },
+        }
+      )
+      .finally(() => {
+        settled = true;
+      });
+    const rejected = assert.rejects(launching, {
+      code: cleanupFails ? "cleanup-failed" : "operation-cancelled",
+    });
+    await spawned.promise;
+    controller.abort();
+    await new Promise<void>((resolve) => setImmediate(resolve));
+    assert.equal(f.state.terminated, 1);
+    assert.equal(settled, false);
+    await assert.rejects(f.api.acquireEpicLinuxPrefixSession(context), {
+      code: "compatibility-prefix-busy",
+    });
+    terminated.open();
+    await rejected;
+    assert.ok(captured);
+    if (cleanupFails) {
+      f.state.terminateFails = false;
+      await captured.terminate();
+      assert.equal(f.state.terminated, 2);
+    }
+    lease.release();
+  }
 });
 
 test("session lease reserves a custom prefix across restore/spawn and blocks other mutations", async (t) => {

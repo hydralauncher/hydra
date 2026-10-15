@@ -53,6 +53,7 @@ async function fixture(t: TestContext, options: { linux?: boolean } = {}) {
     terminateWait: Promise.resolve() as Promise<void>,
     prepareWait: null as ((signal: AbortSignal) => Promise<void>) | null,
     launchWait: null as ((signal?: AbortSignal) => Promise<void>) | null,
+    observeWait: null as ((signal?: AbortSignal) => Promise<void>) | null,
     launchCalls: 0,
     launchSignals: [] as Array<AbortSignal | undefined>,
   };
@@ -185,7 +186,7 @@ async function fixture(t: TestContext, options: { linux?: boolean } = {}) {
       launchEpicLinuxGame: async (
         _parameters: protocol.EpicLaunchParameters,
         _context: unknown,
-        options: { signal?: AbortSignal }
+        options: { signal?: AbortSignal; onSpawn?: (handle: unknown) => void }
       ) => {
         if (options.signal?.aborted)
           throw new EpicSaveFailure("operation-cancelled");
@@ -195,6 +196,13 @@ async function fixture(t: TestContext, options: { linux?: boolean } = {}) {
         await state.launchWait?.(options.signal);
         // Native spawn may already have crossed the cancellation boundary.
         state.order.push("spawn-handle");
+        options.onSpawn?.(handle);
+        try {
+          await state.observeWait?.(options.signal);
+        } catch (error) {
+          await handle.terminate();
+          throw error;
+        }
         return handle;
       },
     },
@@ -753,6 +761,65 @@ test("a prepared Linux launch cannot spawn after signout released its resources"
   assert.equal(f.state.terminations, 0);
   assert.equal(f.state.tokenDisposals, 1);
   assert.equal(f.state.leaseReleases, 1);
+});
+
+test("signout during startup observation retains its captured handle until cleanup succeeds", async (t) => {
+  for (const cleanupFails of [false, true]) {
+    const f = await fixture(t, { linux: true });
+    const prepared = await f.exported.prepareManagedEpicLaunch(
+      f.game,
+      f.executable
+    );
+    await f.exported.markManagedEpicLaunched(prepared.session);
+    let observed!: () => void;
+    const observing = new Promise<void>((resolve) => {
+      observed = resolve;
+    });
+    f.state.observeWait = (signal) =>
+      new Promise<void>((_resolve, reject) => {
+        observed();
+        signal?.addEventListener(
+          "abort",
+          () => reject(new EpicSaveFailure("operation-cancelled")),
+          { once: true }
+        );
+      });
+    let finishTermination!: () => void;
+    f.state.terminateWait = new Promise<void>((resolve) => {
+      finishTermination = resolve;
+    });
+    f.state.cleanupFails = cleanupFails;
+    const launch = f.exported.launchPreparedEpicLinuxGame(
+      prepared.session,
+      prepared.parameters
+    );
+    const rejectedLaunch = assert.rejects(launch, {
+      code: cleanupFails ? "cleanup-failed" : "operation-cancelled",
+    });
+    await observing;
+    let settled = false;
+    const clearing = f.exported.clearManagedEpicSessions().finally(() => {
+      settled = true;
+    });
+    const checkedCleanup = cleanupFails
+      ? assert.rejects(clearing, { code: "cleanup-failed" })
+      : clearing;
+    await new Promise<void>((resolve) => setImmediate(resolve));
+    assert.equal(settled, false);
+    assert.equal(f.state.leaseReleases, 0);
+    assert.equal(f.state.tokenDisposals, 0);
+    finishTermination();
+    await Promise.all([rejectedLaunch, checkedCleanup]);
+    if (cleanupFails) {
+      assert.equal(f.state.leaseReleases, 0);
+      assert.equal(f.state.tokenDisposals, 0);
+      f.state.cleanupFails = false;
+      await f.exported.clearManagedEpicSessions();
+      await f.exported.cancelManagedEpicLaunch(prepared.session);
+    }
+    assert.equal(f.state.leaseReleases, 1);
+    assert.equal(f.state.tokenDisposals, 1);
+  }
 });
 
 test("signout waits for a pending Linux spawn and confirmed termination before disposing its token or lease", async (t) => {

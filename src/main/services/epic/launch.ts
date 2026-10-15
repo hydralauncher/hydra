@@ -57,6 +57,7 @@ interface LaunchResources {
   handle?: UmuProcessHandle;
   controller: AbortController;
   spawnPromise?: Promise<UmuProcessHandle>;
+  spawnPending?: boolean;
   releasePromise?: Promise<void>;
 }
 const preparedResources = new Map<EpicSaveSession, LaunchResources>();
@@ -71,11 +72,16 @@ async function releaseResources(session: EpicSaveSession, terminate = false) {
       try {
         resources.handle = await resources.spawnPromise;
       } catch (error) {
-        if ((error as { code?: string }).code === "cleanup-failed") throw error;
+        if (
+          (error as { code?: string }).code === "cleanup-failed" &&
+          !resources.handle
+        )
+          throw error;
       }
     }
     // A failed termination must retain the prefix lease and ownership token.
-    if (terminate && resources.handle) await resources.handle.terminate();
+    if ((terminate || resources.controller.signal.aborted) && resources.handle)
+      await resources.handle.terminate();
     await resources.token?.dispose();
     resources.lease.release();
     preparedResources.delete(session);
@@ -177,7 +183,10 @@ async function prepareLaunch(
           session.installed,
           controller.signal
         );
-      const lease = await runtime.acquireEpicLinuxPrefixSession(context);
+      const lease = await runtime.acquireEpicLinuxPrefixSession(
+        context,
+        controller.signal
+      );
       resources = { linuxContext: context, lease, controller };
       // Prefix preparation can create or replace its profile; capture save paths again.
       session = await cloud.capture(
@@ -294,6 +303,7 @@ export async function launchPreparedEpicLinuxGame(
     resources.controller.signal.aborted
   )
     throw new EpicSaveFailure("operation-cancelled");
+  resources.spawnPending = true;
   resources.spawnPromise = runtime.launchEpicLinuxGame(
     parameters,
     resources.linuxContext,
@@ -301,6 +311,9 @@ export async function launchPreparedEpicLinuxGame(
       ...options,
       lease: resources.lease,
       signal: resources.controller.signal,
+      onSpawn: (handle) => {
+        resources.handle = handle;
+      },
       wasGameDetected: () => {
         const entry = managedSessions.get(
           levelKeys.game("epic", session.objectId)
@@ -312,13 +325,17 @@ export async function launchPreparedEpicLinuxGame(
       },
     }
   );
-  const handle = await resources.spawnPromise;
-  resources.handle = handle;
-  if (resources.controller.signal.aborted) {
-    await handle.terminate();
-    throw new EpicSaveFailure("operation-cancelled");
+  try {
+    const handle = await resources.spawnPromise;
+    resources.handle = handle;
+    if (resources.controller.signal.aborted) {
+      await handle.terminate();
+      throw new EpicSaveFailure("operation-cancelled");
+    }
+    return handle;
+  } finally {
+    resources.spawnPending = false;
   }
-  return handle;
 }
 
 export async function markManagedEpicLaunched(session: EpicSaveSession) {
@@ -499,7 +516,8 @@ export async function cancelManagedEpicLaunch(session: EpicSaveSession) {
 export async function clearManagedEpicSessions() {
   for (const controller of preparations.keys()) controller.abort();
   for (const resources of preparedResources.values()) {
-    if (!resources.handle) resources.controller.abort();
+    if (!resources.handle || resources.spawnPending)
+      resources.controller.abort();
   }
   const preparationResults = await Promise.allSettled([
     ...preparations.values(),
@@ -516,7 +534,11 @@ export async function clearManagedEpicSessions() {
       continue;
     }
     if (entry.playtime) dependencies?.playtime?.discard(entry.playtime);
-    if (entry.resources?.handle) {
+    if (
+      entry.resources?.handle &&
+      !entry.resources.spawnPending &&
+      !entry.resources.controller.signal.aborted
+    ) {
       entry.playtime = undefined;
       entry.disconnected = true;
       // Keep only process/resource attribution until real exit, even after signout.
@@ -528,7 +550,8 @@ export async function clearManagedEpicSessions() {
     managedSessions.delete(levelKeys.game("epic", entry.session.objectId));
   }
   for (const [session, resources] of preparedResources) {
-    if (!resources.handle) cleanup.push(releaseResources(session, true));
+    if (!resources.handle || resources.controller.signal.aborted)
+      cleanup.push(releaseResources(session, true));
   }
   // Cancellation is an expected result; a cleanup failure retains its lease.
   const results = [

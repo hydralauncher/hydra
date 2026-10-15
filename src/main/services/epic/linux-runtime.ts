@@ -346,20 +346,17 @@ export async function getEpicLinuxPrefixGeneration(
     return null;
   }
 }
-export async function acquireEpicLinuxPrefixSession(
-  context: PreparedEpicLinuxContext
-): Promise<EpicLinuxPrefixLease> {
-  if (activePrefixes.has(context.winePrefixPath))
+async function reservePrefix(prefix: string): Promise<EpicLinuxPrefixLease> {
+  if (activePrefixes.has(prefix))
     throw new EpicManagedError("compatibility-prefix-busy");
   const id = randomUUID();
   // Reserve synchronously before checking /proc so competing callers cannot pass.
-  activePrefixes.set(context.winePrefixPath, id);
+  activePrefixes.set(prefix, id);
   const release = () => {
-    if (activePrefixes.get(context.winePrefixPath) === id)
-      activePrefixes.delete(context.winePrefixPath);
+    if (activePrefixes.get(prefix) === id) activePrefixes.delete(prefix);
   };
   try {
-    if (await hasLinuxPrefixProcesses(context.winePrefixPath))
+    if (await hasLinuxPrefixProcesses(prefix))
       throw new EpicManagedError("compatibility-prefix-busy");
     return { id, release };
   } catch (error) {
@@ -368,28 +365,41 @@ export async function acquireEpicLinuxPrefixSession(
   }
 }
 
+export async function acquireEpicLinuxPrefixSession(
+  context: PreparedEpicLinuxContext,
+  signal = new AbortController().signal
+): Promise<EpicLinuxPrefixLease> {
+  return serializePrefix(context.winePrefixPath, signal, async () => {
+    const lease = await reservePrefix(context.winePrefixPath);
+    try {
+      assertSignal(signal);
+      return lease;
+    } catch (error) {
+      lease.release();
+      throw error;
+    }
+  });
+}
+
 /** Shared by manual saves and the launch lease; never mutates a running prefix. */
 export async function withEpicLinuxPrefixMutation<T>(
   prefix: string,
   task: () => Promise<T>,
-  allowedLeaseId?: string
+  allowedLeaseId?: string,
+  signal = new AbortController().signal
 ): Promise<T> {
-  return serializePrefix(prefix, new AbortController().signal, async () => {
+  return serializePrefix(prefix, signal, async () => {
     if (allowedLeaseId) {
       if (activePrefixes.get(prefix) !== allowedLeaseId)
         throw new EpicManagedError("compatibility-prefix-busy");
       return task();
     }
-    if (activePrefixes.has(prefix))
-      throw new EpicManagedError("compatibility-prefix-busy");
-    const id = randomUUID();
-    activePrefixes.set(prefix, id);
+    const lease = await reservePrefix(prefix);
     try {
-      if (await hasLinuxPrefixProcesses(prefix))
-        throw new EpicManagedError("compatibility-prefix-busy");
+      assertSignal(signal);
       return await task();
     } finally {
-      if (activePrefixes.get(prefix) === id) activePrefixes.delete(prefix);
+      lease.release();
     }
   });
 }
@@ -479,8 +489,18 @@ export async function prepareEpicLinuxRuntime(
     target.owner,
     target.artifactId
   );
-  return serializePrefix(prefix, options.signal, () =>
-    prepareUnlocked(game, target, prefix, options, options.buildVersion ?? null)
+  return withEpicLinuxPrefixMutation(
+    prefix,
+    () =>
+      prepareUnlocked(
+        game,
+        target,
+        prefix,
+        options,
+        options.buildVersion ?? null
+      ),
+    undefined,
+    options.signal
   );
 }
 
@@ -502,7 +522,7 @@ async function prepareUnlocked(
   });
   if (!(await fs.stat(installPath)).isDirectory())
     throw new EpicManagedError("invalid-path");
-  if (activePrefixes.has(prefix) || (await hasLinuxPrefixProcesses(prefix)))
+  if (await hasLinuxPrefixProcesses(prefix))
     throw new EpicManagedError("compatibility-prefix-busy");
   const pythonRunnerPath = await getLegendaryLinuxPythonRunnerPath().catch(
     () => {
@@ -692,142 +712,147 @@ export async function ensureEpicLinuxPrerequisites(input: {
     input.target.owner,
     input.target.artifactId
   );
-  return serializePrefix(prefix, input.signal, async () => {
-    const context = await prepareUnlocked(
-      input.game,
-      input.target,
-      prefix,
-      { ...input, installPath: input.installed.installPath },
-      input.installed.version
-    );
-    const info = input.installed.prereq_info;
-    if (!info) return context;
-    if (typeof info.path !== "string" || typeof info.args !== "string")
-      throw new EpicManagedError("prerequisites-required");
-    const executable = await resolveEpicWindowsPath(
-      input.installed.installPath,
-      info.path
-    );
-    if (!executable || !/\.(?:exe|msi)$/i.test(executable))
-      throw new EpicManagedError("prerequisites-required");
-    const args = stringArgv(info.args);
-    const fingerprint = epicLinuxPrerequisiteIdentity(
-      input.installed.version,
-      await fileHash(executable, input.signal),
-      args,
-      context.prefixGeneration,
-      context.protonFingerprint
-    );
-    const receipt = await loadReceipt(input.target);
-    if (receipt?.prerequisite === fingerprint) return context;
-    if (input.offline) throw new EpicManagedError("prerequisites-required");
-    const helper = prerequisiteHelperPath();
-    if (!(await fs.stat(helper).catch(() => null))?.isFile())
-      throw new EpicManagedError("compatibility-runtime-unavailable");
-    const directory = await fs.mkdtemp(
-      path.join(prefix, ".hydra-prerequisite-")
-    );
-    const requestFile = path.join(directory, "request.json"),
-      resultFile = path.join(directory, "result.json");
-    let preserveDirectory = false;
-    try {
-      // Each UMU mapping touches the same prefix/runtime. Keep these operations
-      // ordered instead of launching four concurrent Wine/container sessions.
-      const windowsExecutable = await mapEpicLinuxPath(
-        context,
-        executable,
-        input.signal
+  return withEpicLinuxPrefixMutation(
+    prefix,
+    async () => {
+      const context = await prepareUnlocked(
+        input.game,
+        input.target,
+        prefix,
+        { ...input, installPath: input.installed.installPath },
+        input.installed.version
       );
-      const cwd = await mapEpicLinuxPath(
-        context,
-        path.dirname(executable),
-        input.signal
-      );
-      const resultPath = await mapEpicLinuxPath(
-        context,
-        resultFile,
-        input.signal
-      );
-      const requestPath = await mapEpicLinuxPath(
-        context,
-        requestFile,
-        input.signal
-      );
-      const executeRequest = async (
-        kind: "exe" | "msi" | "reboot",
-        executable: string,
-        args: string[]
-      ) => {
-        const nonce = randomUUID();
-        await fs.rm(resultFile, { force: true });
-        await writePrivateJson(requestFile, {
-          schemaVersion: 1,
-          kind,
-          executable,
-          args,
-          cwd,
-          nonce,
-          resultPath,
-        });
-        await runTool(context, helper, [requestPath], {
-          ...input,
-          captureOutput: false,
-          timeoutMs: EPIC_PREREQUISITE_TIMEOUT_MS,
-        });
-        try {
-          return parseEpicPrerequisiteResult(
-            await privateJson(resultFile),
-            nonce
-          );
-        } catch {
-          throw new EpicManagedError("prerequisites-required");
-        }
-      };
-      const exitCode = await executeRequest(
-        /\.msi$/i.test(executable) ? "msi" : "exe",
-        windowsExecutable,
-        args
-      );
-      if (![0, 3010, 1641].includes(exitCode))
+      const info = input.installed.prereq_info;
+      if (!info) return context;
+      if (typeof info.path !== "string" || typeof info.args !== "string")
         throw new EpicManagedError("prerequisites-required");
-      if (exitCode !== 0 && (await executeRequest("reboot", "", [])) !== 0)
+      const executable = await resolveEpicWindowsPath(
+        input.installed.installPath,
+        info.path
+      );
+      if (!executable || !/\.(?:exe|msi)$/i.test(executable))
         throw new EpicManagedError("prerequisites-required");
-      assertSignal(input.signal);
-      if (await hasLinuxPrefixProcesses(prefix))
-        throw new EpicManagedError("compatibility-prefix-busy");
-      if (
-        !Wine.isPrefixReadyForRestore(prefix) ||
-        (await getEpicLinuxPrefixGeneration(prefix)) !==
-          context.prefixGeneration ||
-        (await protonFingerprint(context.protonPath)) !==
-          context.protonFingerprint
-      )
+      const args = stringArgv(info.args);
+      const fingerprint = epicLinuxPrerequisiteIdentity(
+        input.installed.version,
+        await fileHash(executable, input.signal),
+        args,
+        context.prefixGeneration,
+        context.protonFingerprint
+      );
+      const receipt = await loadReceipt(input.target);
+      if (receipt?.prerequisite === fingerprint) return context;
+      if (input.offline) throw new EpicManagedError("prerequisites-required");
+      const helper = prerequisiteHelperPath();
+      if (!(await fs.stat(helper).catch(() => null))?.isFile())
         throw new EpicManagedError("compatibility-runtime-unavailable");
-      await writePrivateJson(receiptPath(input.target), {
-        ...receipt,
-        schemaVersion: EPIC_LINUX_RECEIPT_SCHEMA,
-        umuVersion: context.umuVersion,
-        umuFingerprint: context.umuFingerprint,
-        artifactId: input.target.artifactId,
-        platform: input.target.platform,
-        buildVersion: input.installed.version,
-        installPath: context.installPath,
-        winePrefixPath: prefix,
-        prefixGeneration: context.prefixGeneration,
-        protonPath: context.protonPath,
-        protonFingerprint: context.protonFingerprint,
-        prerequisite: fingerprint,
-      });
-      return context;
-    } catch (error) {
-      preserveDirectory =
-        (error as { code?: string }).code === "cleanup-failed";
-      throw error;
-    } finally {
-      if (!preserveDirectory)
-        await fs.rm(directory, { recursive: true, force: true });
-    }
-  });
+      const directory = await fs.mkdtemp(
+        path.join(prefix, ".hydra-prerequisite-")
+      );
+      const requestFile = path.join(directory, "request.json"),
+        resultFile = path.join(directory, "result.json");
+      let preserveDirectory = false;
+      try {
+        // Each UMU mapping touches the same prefix/runtime. Keep these operations
+        // ordered instead of launching four concurrent Wine/container sessions.
+        const windowsExecutable = await mapEpicLinuxPath(
+          context,
+          executable,
+          input.signal
+        );
+        const cwd = await mapEpicLinuxPath(
+          context,
+          path.dirname(executable),
+          input.signal
+        );
+        const resultPath = await mapEpicLinuxPath(
+          context,
+          resultFile,
+          input.signal
+        );
+        const requestPath = await mapEpicLinuxPath(
+          context,
+          requestFile,
+          input.signal
+        );
+        const executeRequest = async (
+          kind: "exe" | "msi" | "reboot",
+          executable: string,
+          args: string[]
+        ) => {
+          const nonce = randomUUID();
+          await fs.rm(resultFile, { force: true });
+          await writePrivateJson(requestFile, {
+            schemaVersion: 1,
+            kind,
+            executable,
+            args,
+            cwd,
+            nonce,
+            resultPath,
+          });
+          await runTool(context, helper, [requestPath], {
+            ...input,
+            captureOutput: false,
+            timeoutMs: EPIC_PREREQUISITE_TIMEOUT_MS,
+          });
+          try {
+            return parseEpicPrerequisiteResult(
+              await privateJson(resultFile),
+              nonce
+            );
+          } catch {
+            throw new EpicManagedError("prerequisites-required");
+          }
+        };
+        const exitCode = await executeRequest(
+          /\.msi$/i.test(executable) ? "msi" : "exe",
+          windowsExecutable,
+          args
+        );
+        if (![0, 3010, 1641].includes(exitCode))
+          throw new EpicManagedError("prerequisites-required");
+        if (exitCode !== 0 && (await executeRequest("reboot", "", [])) !== 0)
+          throw new EpicManagedError("prerequisites-required");
+        assertSignal(input.signal);
+        if (await hasLinuxPrefixProcesses(prefix))
+          throw new EpicManagedError("compatibility-prefix-busy");
+        if (
+          !Wine.isPrefixReadyForRestore(prefix) ||
+          (await getEpicLinuxPrefixGeneration(prefix)) !==
+            context.prefixGeneration ||
+          (await protonFingerprint(context.protonPath)) !==
+            context.protonFingerprint
+        )
+          throw new EpicManagedError("compatibility-runtime-unavailable");
+        await writePrivateJson(receiptPath(input.target), {
+          ...receipt,
+          schemaVersion: EPIC_LINUX_RECEIPT_SCHEMA,
+          umuVersion: context.umuVersion,
+          umuFingerprint: context.umuFingerprint,
+          artifactId: input.target.artifactId,
+          platform: input.target.platform,
+          buildVersion: input.installed.version,
+          installPath: context.installPath,
+          winePrefixPath: prefix,
+          prefixGeneration: context.prefixGeneration,
+          protonPath: context.protonPath,
+          protonFingerprint: context.protonFingerprint,
+          prerequisite: fingerprint,
+        });
+        return context;
+      } catch (error) {
+        preserveDirectory =
+          (error as { code?: string }).code === "cleanup-failed";
+        throw error;
+      } finally {
+        if (!preserveDirectory)
+          await fs.rm(directory, { recursive: true, force: true });
+      }
+    },
+    undefined,
+    input.signal
+  );
 }
 
 export async function launchEpicLinuxGame(
@@ -840,11 +865,14 @@ export async function launchEpicLinuxGame(
     signal?: AbortSignal;
     onStatus?: UmuStatusListener;
     wasGameDetected?: () => boolean;
+    onSpawn?: (handle: UmuProcessHandle) => void;
     lease?: EpicLinuxPrefixLease;
   } = {}
 ): Promise<UmuProcessHandle> {
   assertSignal(options.signal);
-  const lease = options.lease ?? (await acquireEpicLinuxPrefixSession(context));
+  const lease =
+    options.lease ??
+    (await acquireEpicLinuxPrefixSession(context, options.signal));
   if (activePrefixes.get(context.winePrefixPath) !== lease.id)
     throw new EpicManagedError("compatibility-prefix-busy");
   let handle: UmuProcessHandle | undefined;
@@ -890,10 +918,14 @@ export async function launchEpicLinuxGame(
       },
       signal: options.signal,
     });
+    // Startup observation may reject; publish ownership as soon as spawn succeeds.
+    options.onSpawn?.(handle);
     // Keep the lease beyond wrapper exit until the token's whole tree is gone.
-    if (!options.lease)
-      void handle.exited
+    if (!options.lease) {
+      const launched = handle;
+      void launched.exited
         .then(async () => {
+          await launched.waitForTreeExit();
           while (await hasLinuxPrefixProcesses(context.winePrefixPath))
             await new Promise<void>((done) => {
               const timer = setTimeout(done, EPIC_LINUX_PATH_TIMEOUT_MS);
@@ -902,6 +934,7 @@ export async function launchEpicLinuxGame(
         })
         .then(lease.release)
         .catch(() => undefined);
+    }
     await observeEpicLinuxLaunch(handle, {
       signal: options.signal,
       onStatus: options.onStatus,
@@ -910,8 +943,21 @@ export async function launchEpicLinuxGame(
     });
     return handle;
   } catch (error) {
-    if (!options.lease && !handle) lease.release();
-    if ((error as { code?: string }).code === "operation-cancelled")
+    // Abort listeners request termination; this boundary must await its proof.
+    // The captured handle remains available to the caller if termination fails.
+    if (handle) {
+      try {
+        await handle.terminate();
+      } catch {
+        throw new EpicManagedError("cleanup-failed");
+      }
+    }
+    if (!options.lease) lease.release();
+    if (
+      ["operation-cancelled", "cleanup-failed"].includes(
+        (error as { code?: string }).code ?? ""
+      )
+    )
       throw error;
     throw new EpicManagedError("compatibility-launch-failed");
   }
