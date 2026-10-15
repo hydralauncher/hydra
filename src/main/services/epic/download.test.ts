@@ -88,7 +88,9 @@ type Stream = (
   destination: string
 ) => Promise<void>;
 async function fixture(t: TestContext, stream?: Stream, prereq?: boolean) {
-  const root = await fs.mkdtemp(path.join(os.tmpdir(), "hydra-epic-download-"));
+  const root = await fs.realpath(
+    await fs.mkdtemp(path.join(os.tmpdir(), "hydra-epic-download-"))
+  );
   const base = path.join(root, "games");
   await fs.mkdir(base);
   let game = structuredClone(initial);
