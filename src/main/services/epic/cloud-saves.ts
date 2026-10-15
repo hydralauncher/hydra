@@ -650,6 +650,52 @@ export class EpicCloudSaveService {
       error: undefined,
     });
   }
+  // Identical content is not a conflict: EGS and Hydra installs share save folders,
+  // and an upload whose verification failed already left the local content remote.
+  private async remoteMatchesLocal(
+    session: EpicSaveSession,
+    signal: AbortSignal,
+    workspace: string,
+    remote: EpicRemoteSaveManifest,
+    localDigest: string
+  ) {
+    const temporary = await fs.mkdtemp(path.join(workspace, "save-transfer-"));
+    try {
+      const staging = path.join(temporary, "staging");
+      await fs.mkdir(staging, { mode: 0o700 });
+      await this.transfer(session, signal, staging, "download");
+      const incoming = await inspectEpicSaveFiles(
+        staging,
+        session.metadata,
+        signal
+      );
+      if (incoming.digest !== localDigest) return false;
+      if (
+        !sameEpicRemoteSaveManifest(
+          await this.listRemote(session, signal),
+          remote
+        )
+      )
+        return false;
+      const local = await inspectEpicSaveFiles(
+        session.savePath!,
+        session.metadata,
+        signal
+      );
+      return local.digest === localDigest;
+    } catch (error) {
+      this.assertCurrent(session, signal);
+      if (
+        error instanceof EpicSaveFailure &&
+        error.code === "operation-cancelled"
+      )
+        throw error;
+      // A failed comparison falls back to asking the user.
+      return false;
+    } finally {
+      await fs.rm(temporary, { recursive: true, force: true });
+    }
+  }
   private async synchronize(
     session: EpicSaveSession,
     signal: AbortSignal,
@@ -723,13 +769,26 @@ export class EpicCloudSaveService {
                   remote,
                   game?.epicInstallation?.pendingSaveUpload === true
                 );
-            if (action === "conflict")
+            if (action === "conflict") {
+              if (
+                remote &&
+                before.files.length &&
+                (await this.remoteMatchesLocal(
+                  session,
+                  signal,
+                  workspace,
+                  remote,
+                  before.digest
+                ))
+              )
+                return this.commitAnchor(session, before, remote);
               return this.publish(session, {
                 status: "conflict",
                 phase: undefined,
                 remoteManifest: remote?.name ?? null,
                 error: "save-conflict",
               });
+            }
             if (action === "same")
               return this.commitAnchor(session, before, remote);
             const temporary = await fs.mkdtemp(
