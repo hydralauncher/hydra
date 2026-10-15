@@ -33,7 +33,10 @@ import { AchievementMemoryStore } from "../achievements/achievement-memory-store
 import { EpicConnectionStore } from "./store";
 import { getEpicDownloadService } from "./download";
 import { scheduleEpicStoreAutoImport } from "./egs-auto-import";
-import { listEpicStoreInstallations } from "./session-attribution";
+import {
+  isEpicInstallExecutable,
+  listEpicStoreInstallations,
+} from "./session-attribution";
 import {
   EpicIntegrationError,
   EPIC_CONNECTION_ID_PATTERN,
@@ -56,7 +59,6 @@ import {
   getEpicGamePlaytime,
   isEpicObjectId,
 } from "./library-normalizer";
-import { isEpicInstallExecutable } from "./session-attribution";
 import { matchesEpicImportScope } from "./import-cleanup";
 import {
   managedWorkspacePath,

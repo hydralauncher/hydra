@@ -126,7 +126,7 @@ function waitWithSignal<T>(
 
 function assertLegendarySucceeded(result: { stdout: string; stderr: string }) {
   if (
-    /(?:ERROR|FATAL|CRITICAL):/i.test(`${result.stdout}
+    /\b(?:ERROR|FATAL|CRITICAL):/i.test(`${result.stdout}
 ${result.stderr}`)
   )
     throw new EpicManagedError("process-failed");
@@ -1130,8 +1130,9 @@ export class EpicInstallationService {
         );
         assertLegendarySucceeded(verified);
         if (
-          !`${verified.stdout}
-${verified.stderr}`.includes("Verification finished successfully.")
+          !`${verified.stdout}\n${verified.stderr}`.includes(
+            "Verification finished successfully."
+          )
         )
           throw new EpicManagedError("installation-incomplete");
         await this.markVerified(target, installPath, signal);
