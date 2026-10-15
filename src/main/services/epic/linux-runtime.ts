@@ -83,6 +83,12 @@ interface LinuxReceipt {
 }
 const prefixQueues = new Map<string, Promise<unknown>>();
 const activePrefixes = new Map<string, string>();
+interface PendingPrefixCleanup {
+  handles: Set<UmuProcessHandle>;
+  release?: () => void;
+  retry?: Promise<void>;
+}
+const pendingPrefixCleanups = new Map<string, PendingPrefixCleanup>();
 export interface EpicLinuxPrefixLease {
   id: string;
   release(): void;
@@ -346,7 +352,43 @@ export async function getEpicLinuxPrefixGeneration(
     return null;
   }
 }
+async function retryPrefixCleanup(prefix: string) {
+  const pending = pendingPrefixCleanups.get(prefix);
+  if (!pending) return;
+  pending.retry ??= (async () => {
+    while (pending.handles.size) {
+      await Promise.all(
+        [...pending.handles].map(async (handle) => {
+          await handle.terminate();
+          pending.handles.delete(handle);
+        })
+      );
+    }
+    pending.release?.();
+    pendingPrefixCleanups.delete(prefix);
+  })().catch(() => {
+    pending.retry = undefined;
+    throw new EpicManagedError("cleanup-failed");
+  });
+  return pending.retry;
+}
+
+/** Retained preparation handles remain owned until a later cleanup proves exit. */
+export async function retryEpicLinuxCleanup(prefix?: string) {
+  const prefixes = prefix ? [prefix] : [...pendingPrefixCleanups.keys()];
+  const results = await Promise.allSettled(
+    prefixes.map((value) =>
+      serializePrefix(value, new AbortController().signal, () =>
+        retryPrefixCleanup(value)
+      )
+    )
+  );
+  if (results.some((result) => result.status === "rejected"))
+    throw new EpicManagedError("cleanup-failed");
+}
+
 async function reservePrefix(prefix: string): Promise<EpicLinuxPrefixLease> {
+  await retryPrefixCleanup(prefix);
   if (activePrefixes.has(prefix))
     throw new EpicManagedError("compatibility-prefix-busy");
   const id = randomUUID();
@@ -399,7 +441,9 @@ export async function withEpicLinuxPrefixMutation<T>(
       assertSignal(signal);
       return await task();
     } finally {
-      lease.release();
+      const cleanup = pendingPrefixCleanups.get(prefix);
+      if (cleanup) cleanup.release = lease.release;
+      else lease.release();
     }
   });
 }
@@ -459,16 +503,28 @@ async function runTool(
     timeoutMs: options.timeoutMs ?? EPIC_LINUX_PREPARE_TIMEOUT_MS,
   });
   try {
-    const exit = await handle.exited;
-    const output = await handle.output;
-    // A successful wrapper is insufficient: its children must finish naturally.
-    await handle.waitForTreeExit();
+    // Observe cancellation/cleanup alongside wrapper exit: failed termination
+    // can leave the wrapper alive, so awaiting exited first would never settle.
+    const [exit, output] = await Promise.all([
+      handle.exited,
+      handle.output,
+      handle.waitForTreeExit(),
+    ]);
     assertSignal(options.signal);
     if (exit.code !== 0 || exit.signal)
       throw new EpicManagedError("compatibility-runtime-download-failed");
     return output;
   } catch (error) {
-    await handle.terminate();
+    try {
+      await handle.terminate();
+    } catch {
+      const pending = pendingPrefixCleanups.get(context.winePrefixPath) ?? {
+        handles: new Set<UmuProcessHandle>(),
+      };
+      pending.handles.add(handle);
+      pendingPrefixCleanups.set(context.winePrefixPath, pending);
+      throw new EpicManagedError("cleanup-failed");
+    }
     throw error;
   }
 }
@@ -606,9 +662,9 @@ async function prepareUnlocked(
     debug: true,
     onLine: (line) => decoder.push(`${line}\n`),
   }).catch((error) => {
+    if ((error as { code?: string }).code === "cleanup-failed") throw error;
     if (options.signal.aborted)
       throw new EpicManagedError("operation-cancelled");
-    if ((error as { code?: string }).code === "cleanup-failed") throw error;
     throw new EpicManagedError("compatibility-runtime-download-failed");
   });
   const effective = decoder.finish();

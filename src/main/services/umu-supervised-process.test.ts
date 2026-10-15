@@ -209,6 +209,86 @@ test(
   }
 );
 
+for (const interruption of ["cancel", "timeout"] as const) {
+  test(
+    `an unreadable known process cannot leave ${interruption} waiting for wrapper exit`,
+    { skip: process.platform !== "linux" },
+    async (t) => {
+      const fixture = fakeSpawn();
+      const controller = new AbortController();
+      let alive = true,
+        denied = false;
+      const readdir = fs.readdir.bind(fs),
+        stat = fs.stat.bind(fs),
+        readFile = fs.readFile.bind(fs);
+      const directory = `/proc/${fixture.child.pid}`;
+      t.mock.method(
+        fs,
+        "readdir",
+        async (...args: Parameters<typeof fs.readdir>) =>
+          args[0] === "/proc"
+            ? alive
+              ? [String(fixture.child.pid)]
+              : []
+            : readdir(...args)
+      );
+      t.mock.method(fs, "stat", async (...args: Parameters<typeof fs.stat>) =>
+        args[0] === directory ? { uid: process.getuid!() } : stat(...args)
+      );
+      t.mock.method(
+        fs,
+        "readFile",
+        async (...args: Parameters<typeof fs.readFile>) => {
+          if (String(args[0]).startsWith(directory + "/")) {
+            if (denied)
+              throw Object.assign(new Error("denied"), { code: "EACCES" });
+            if (String(args[0]).endsWith("/stat"))
+              return `${fixture.child.pid} (umu) ${["S", "1", ...Array(17).fill("0"), "10"].join(" ")}`;
+            const options = fixture.received()[2] as {
+              env: Record<string, string>;
+            };
+            return Buffer.from(
+              `HYDRA_EPIC_INVOCATION_ID=${options.env.HYDRA_EPIC_INVOCATION_ID}\0`
+            );
+          }
+          return readFile(...args);
+        }
+      );
+      const handle = await spawnSupervisedUmu({
+        executable: "python",
+        args: ["umu", "--probe"],
+        cwd: "/prefix",
+        environment: {},
+        signal: controller.signal,
+        timeoutMs: interruption === "timeout" ? 30 : undefined,
+        spawnProcess: fixture.spawn as never,
+      });
+      t.after(async () => {
+        denied = false;
+        alive = false;
+        fixture.child.emit("close", 0, null);
+        await handle.terminate();
+      });
+      let wrapperExited = false;
+      void handle.exited.then(() => {
+        wrapperExited = true;
+      });
+      denied = true;
+      if (interruption === "cancel") controller.abort();
+      await assert.rejects(
+        handle.waitForTreeExit(),
+        (error: { code?: string }) =>
+          [
+            "cleanup-failed",
+            interruption === "cancel" ? "operation-cancelled" : "timeout",
+          ].includes(error.code ?? "")
+      );
+      assert.equal(wrapperExited, false);
+      await assert.rejects(handle.terminate(), { code: "cleanup-failed" });
+    }
+  );
+}
+
 function processInspectionPort(options: {
   environment?: string;
   denied?: boolean | "EACCES" | "EPERM";

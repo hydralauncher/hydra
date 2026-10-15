@@ -82,6 +82,8 @@ async function releaseResources(session: EpicSaveSession, terminate = false) {
     // A failed termination must retain the prefix lease and ownership token.
     if ((terminate || resources.controller.signal.aborted) && resources.handle)
       await resources.handle.terminate();
+    const runtime = await import("./linux-runtime");
+    await runtime.retryEpicLinuxCleanup(resources.linuxContext.winePrefixPath);
     await resources.token?.dispose();
     resources.lease.release();
     preparedResources.delete(session);
@@ -313,6 +315,16 @@ export async function launchPreparedEpicLinuxGame(
       signal: resources.controller.signal,
       onSpawn: (handle) => {
         resources.handle = handle;
+        recordManagedEpicProcess(
+          session,
+          handle.pid,
+          {
+            invocationId: handle.invocationId,
+            winePrefixPath: resources.linuxContext.winePrefixPath,
+            rootStartTime: handle.rootStartTime,
+          },
+          handle
+        );
       },
       wasGameDetected: () => {
         const entry = managedSessions.get(
@@ -514,6 +526,11 @@ export async function cancelManagedEpicLaunch(session: EpicSaveSession) {
   }
 }
 export async function clearManagedEpicSessions() {
+  // Snapshot previously failed preparations before aborting current operations.
+  const retryCleanup =
+    process.platform === "linux"
+      ? (await import("./linux-runtime")).retryEpicLinuxCleanup()
+      : Promise.resolve();
   for (const controller of preparations.keys()) controller.abort();
   for (const resources of preparedResources.values()) {
     if (!resources.handle || resources.spawnPending)
@@ -521,6 +538,7 @@ export async function clearManagedEpicSessions() {
   }
   const preparationResults = await Promise.allSettled([
     ...preparations.values(),
+    retryCleanup,
   ]);
   const cleanup: Promise<unknown>[] = [];
   for (const entry of managedSessions.values()) {

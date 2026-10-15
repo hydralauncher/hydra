@@ -805,16 +805,6 @@ const launchGameWithCloudSaveChecks = async (
               }
             );
             pid = handle.pid;
-            recordManagedEpicProcess(
-              prepared.session,
-              pid,
-              {
-                invocationId: handle.invocationId,
-                winePrefixPath: prepared.linuxContext.winePrefixPath,
-                rootStartTime: handle.rootStartTime,
-              },
-              handle
-            );
             PowerSaveBlockerManager.markCompatibilityLaunchStarted(gameKey);
           } else {
             pid = await launchAuthenticatedEpicGame(

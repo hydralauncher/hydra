@@ -49,6 +49,8 @@ async function fixture(t: TestContext, options: { linux?: boolean } = {}) {
     tokenDisposeWait: Promise.resolve() as Promise<void>,
     terminations: 0,
     cleanupFails: false,
+    pendingPreparationCleanup: false,
+    preparationCleanupRetries: 0,
     uploadWait: Promise.resolve() as Promise<void>,
     terminateWait: Promise.resolve() as Promise<void>,
     prepareWait: null as ((signal: AbortSignal) => Promise<void>) | null,
@@ -161,6 +163,12 @@ async function fixture(t: TestContext, options: { linux?: boolean } = {}) {
       : ownershipToken,
     "./windows-path.js": windowsPath,
     "./linux-runtime": {
+      retryEpicLinuxCleanup: async () => {
+        if (!state.pendingPreparationCleanup) return;
+        state.preparationCleanupRetries++;
+        if (state.cleanupFails) throw new EpicSaveFailure("cleanup-failed");
+        state.pendingPreparationCleanup = false;
+      },
       ensureEpicLinuxPrerequisites: async (input: { signal: AbortSignal }) => {
         state.order.push("prepare");
         await state.prepareWait?.(input.signal);
@@ -763,6 +771,51 @@ test("a prepared Linux launch cannot spawn after signout released its resources"
   assert.equal(f.state.leaseReleases, 1);
 });
 
+test("a short Linux game is tracked and uploads saves before startup observation returns", async (t) => {
+  const f = await fixture(t, { linux: true });
+  const prepared = await f.exported.prepareManagedEpicLaunch(
+    f.game,
+    f.executable
+  );
+  await f.exported.markManagedEpicLaunched(prepared.session);
+  let observing!: () => void;
+  const observed = new Promise<void>((resolve) => {
+    observing = resolve;
+  });
+  let finishObservation!: () => void;
+  const observation = new Promise<void>((resolve) => {
+    finishObservation = resolve;
+  });
+  f.state.observeWait = () => {
+    observing();
+    return observation;
+  };
+  const launching = f.exported.launchPreparedEpicLinuxGame(
+    prepared.session,
+    prepared.parameters
+  );
+  await observed;
+  const match = await f.exported.getManagedEpicProcessMatch(
+    "epic:Namespace:Item",
+    [f.linuxGameProcess]
+  );
+  assert.equal(match.path, f.executable);
+  assert.equal(
+    await f.exported.onManagedEpicDetected(f.game, f.executable),
+    true
+  );
+  await f.exported.getManagedEpicProcessMatch("epic:Namespace:Item", []);
+  assert.equal(f.exported.onManagedEpicClosed(f.game), true);
+  assert.equal(f.state.closes, 1);
+  assert.equal(f.state.leaseReleases, 0);
+  finishObservation();
+  await launching;
+  await new Promise<void>((resolve) => setImmediate(resolve));
+  assert.equal(f.state.reportsFinished, 1);
+  assert.equal(f.state.tokenDisposals, 1);
+  assert.equal(f.state.leaseReleases, 1);
+});
+
 test("signout during startup observation retains its captured handle until cleanup succeeds", async (t) => {
   for (const cleanupFails of [false, true]) {
     const f = await fixture(t, { linux: true });
@@ -950,6 +1003,43 @@ test("Linux signout keeps the running game and token until proven exit, with no 
   assert.equal(f.state.closes, 0);
   assert.equal(f.state.leaseReleases, 1);
   assert.equal(f.state.tokenDisposals, 1);
+});
+
+test("signout reports failed bootstrap cleanup and retries it on later signout attempts", async (t) => {
+  const f = await fixture(t, { linux: true });
+  let entered!: () => void;
+  const preparing = new Promise<void>((resolve) => {
+    entered = resolve;
+  });
+  f.state.cleanupFails = true;
+  f.state.prepareWait = (signal) =>
+    new Promise<void>((_resolve, reject) => {
+      signal.addEventListener(
+        "abort",
+        () => {
+          f.state.pendingPreparationCleanup = true;
+          reject(new EpicSaveFailure("cleanup-failed"));
+        },
+        { once: true }
+      );
+      entered();
+    });
+  const launch = f.exported.prepareManagedEpicLaunch(f.game, f.executable);
+  const rejected = assert.rejects(launch, { code: "cleanup-failed" });
+  await preparing;
+  await assert.rejects(f.exported.clearManagedEpicSessions(), {
+    code: "cleanup-failed",
+  });
+  await rejected;
+  assert.equal(f.state.preparationCleanupRetries, 0);
+  await assert.rejects(f.exported.clearManagedEpicSessions(), {
+    code: "cleanup-failed",
+  });
+  assert.equal(f.state.preparationCleanupRetries, 1);
+  f.state.cleanupFails = false;
+  await f.exported.clearManagedEpicSessions();
+  assert.equal(f.state.preparationCleanupRetries, 2);
+  assert.equal(f.state.pendingPreparationCleanup, false);
 });
 
 test("signout aborts a Linux preparation and waits for its cleanup before returning", async (t) => {

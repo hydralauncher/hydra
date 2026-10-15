@@ -58,6 +58,7 @@ async function fixture(t: TestContext) {
     }> | null,
     terminateWait: Promise.resolve() as Promise<void>,
     terminateFails: false,
+    treeExit: null as ((signal?: AbortSignal) => Promise<void>) | null,
     beforePython: null as (() => Promise<void>) | null,
     beforeSpawn: null as ((args: string[]) => Promise<void>) | null,
     rebootCode: 0,
@@ -129,6 +130,7 @@ async function fixture(t: TestContext) {
           environment: Record<string, string>;
           cwd: string;
           onLine?: (line: string) => void;
+          signal?: AbortSignal;
         }) => {
           await state.beforeSpawn?.(options.args);
           state.calls.push(options);
@@ -174,7 +176,7 @@ async function fixture(t: TestContext) {
               if (state.terminateFails)
                 throw new ManagedError("cleanup-failed");
             },
-            waitForTreeExit: async () => undefined,
+            waitForTreeExit: async () => state.treeExit?.(options.signal),
           };
         },
       },
@@ -487,6 +489,61 @@ test("truncated POSIX-looking results and forged nonces never complete a prerequ
     { code: "prerequisites-required" }
   );
 });
+
+for (const interruption of ["cancel", "timeout"] as const) {
+  test(`bootstrap ${interruption} reports and retains failed cleanup while its wrapper stays alive`, async (t) => {
+    const f = await fixture(t);
+    const controller = new AbortController();
+    const entered = gate();
+    f.state.launchExit = new Promise(() => {});
+    f.state.terminateFails = true;
+    f.state.treeExit = (signal) => {
+      entered.open();
+      if (interruption === "timeout")
+        return Promise.reject(
+          Object.assign(new Error("timeout"), { code: "timeout" })
+        );
+      return new Promise<void>((_resolve, reject) => {
+        signal?.addEventListener(
+          "abort",
+          () =>
+            reject(
+              Object.assign(new Error("cancelled"), {
+                code: "operation-cancelled",
+              })
+            ),
+          { once: true }
+        );
+      });
+    };
+    const preparing = f.api.prepareEpicLinuxRuntime(f.game, f.target, {
+      ...f.options(),
+      signal: controller.signal,
+    });
+    const rejected = assert.rejects(preparing, { code: "cleanup-failed" });
+    await entered.promise;
+    if (interruption === "cancel") controller.abort();
+    await rejected;
+    const prefix = f.state.calls[0].environment.WINEPREFIX;
+    let mutated = false;
+    await assert.rejects(
+      f.api.withEpicLinuxPrefixMutation(prefix, async () => {
+        mutated = true;
+      }),
+      { code: "cleanup-failed" }
+    );
+    assert.equal(mutated, false);
+    await assert.rejects(f.api.retryEpicLinuxCleanup(), {
+      code: "cleanup-failed",
+    });
+    f.state.terminateFails = false;
+    await f.api.retryEpicLinuxCleanup();
+    await f.api.withEpicLinuxPrefixMutation(prefix, async () => {
+      mutated = true;
+    });
+    assert.equal(mutated, true);
+  });
+}
 
 test("shared-prefix leases and save mutations wait for bootstrap and prerequisites", async (t) => {
   for (const phase of ["bootstrap", "prerequisite"] as const) {
