@@ -1,16 +1,44 @@
 """Offline integration: real pinned CLI, manifest analysis, workers and install record."""
 
+import argparse
 import hashlib
 import http.server
 import importlib.util
 import json
 import os
+import re
 import subprocess
 import sys
 import tempfile
 import threading
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
+from urllib.parse import urlsplit
+
+
+def runtime_directory(value):
+    base = Path(__file__).resolve().parents[1] / "legendary" / sys.platform
+    supplied = Path(value)
+    resolved = supplied.resolve(strict=True)
+    if supplied.is_symlink() or supplied.is_junction() or resolved.parent != base.resolve(strict=True) or resolved.name not in ("x64", "arm64"):
+        raise ValueError("Invalid fixture runtime directory")
+    return base / resolved.name
+
+
+def fixture_directory(value):
+    base = Path(tempfile.gettempdir()).resolve()
+    supplied = Path(value)
+    resolved = supplied.resolve(strict=True)
+    if supplied.is_symlink() or supplied.is_junction() or resolved.parent != base or not re.fullmatch(r"hydra-real-install-[a-z0-9_]{8}", resolved.name):
+        raise ValueError("Invalid isolated fixture directory")
+    return base / resolved.name
+
+
+def loopback_url(value):
+    parsed = urlsplit(value)
+    if parsed.scheme != "http" or parsed.hostname != "127.0.0.1" or not parsed.port or value != "http://127.0.0.1:" + str(parsed.port):
+        raise ValueError("Invalid fixture loopback URL")
+    return value
 
 
 def bootstrap(root):
@@ -55,7 +83,8 @@ def generate(root, directory):
     for name, content in files.items():
         file = FileManifest()
         file.filename = name
-        file.hash = hashlib.sha1(content).digest()
+        # Epic's file format requires SHA-1; these bytes are synthetic fixtures.
+        file.hash = hashlib.sha1(content, usedforsecurity=False).digest()
         file.chunk_parts = [ChunkPart(guid=chunk.guid, offset=offset, size=len(content))]
         file.file_size = len(content)
         offset += len(content)
@@ -66,7 +95,13 @@ def generate(root, directory):
     return files
 
 
-def worker(root, fixtures, workspace, destination, url):
+def worker(root, directory, url):
+    fixtures = directory / "cdn"
+    workspace = directory / "workspace"
+    destination = directory / "Downloads"
+    for child in (fixtures, workspace, destination):
+        if child.is_symlink() or child.is_junction() or child.resolve().parent != directory:
+            raise ValueError("Fixture child escapes isolated directory")
     os.environ["LEGENDARY_CONFIG_PATH"] = str(workspace)
     workspace.mkdir(mode=0o700)
     expiry = (datetime.now(timezone.utc) + timedelta(hours=1)).isoformat()
@@ -87,7 +122,7 @@ def worker(root, fixtures, workspace, destination, url):
     target = dict(artifactId="Example", namespace="namespace", catalogItemId="item", platform="Windows")
     metadata = dict(id="item", namespace="namespace", title="Offline fixture", categories=[dict(path="games")], customAttributes=dict(CanRunOffline=dict(value="false"), OwnershipToken=dict(value="true")))
     data = (fixtures / "manifest").read_bytes()
-    element = dict(appName="Example", namespace="namespace", catalogItemId="item", platform="Windows", hash=hashlib.sha1(data).hexdigest(), manifests=[dict(uri=url + "/manifest")])
+    element = dict(appName="Example", namespace="namespace", catalogItemId="item", platform="Windows", hash=hashlib.sha1(data, usedforsecurity=False).hexdigest(), manifests=[dict(uri=url + "/manifest")])
     core.egs.get_game_info = lambda namespace, item: metadata
     core.egs.get_game_manifest = lambda namespace, item, artifact, platform: dict(elements=[element])
     request = dict(protocolVersion=1, operation="install", target=target, args=["-y", "install", "Example", "--platform", "Windows", "--base-path", str(destination), "--game-folder", "Espaço Game", "--skip-dlcs", "--skip-sdl"])
@@ -124,9 +159,13 @@ def worker(root, fixtures, workspace, destination, url):
 
 
 def main():
-    root = Path(sys.argv[1]).resolve()
-    if len(sys.argv) > 2 and sys.argv[2] == "--worker":
-        worker(root, Path(sys.argv[3]), Path(sys.argv[4]), Path(sys.argv[5]), sys.argv[6])
+    parser = argparse.ArgumentParser()
+    parser.add_argument("runtime", type=runtime_directory)
+    parser.add_argument("--worker", nargs=2, metavar=("DIRECTORY", "URL"))
+    args = parser.parse_args()
+    root = args.runtime
+    if args.worker:
+        worker(root, fixture_directory(args.worker[0]), loopback_url(args.worker[1]))
         return
     with tempfile.TemporaryDirectory(prefix="hydra-real-install-") as temporary:
         directory = Path(temporary)
@@ -147,7 +186,7 @@ def main():
         thread = threading.Thread(target=server.serve_forever, daemon=True)
         thread.start()
         try:
-            result = subprocess.run([sys.executable, "-I", "-B", str(Path(__file__).resolve()), str(root), "--worker", str(fixtures), str(directory / "workspace"), str(directory / "Downloads"), "http://127.0.0.1:" + str(server.server_address[1])], capture_output=True, text=True, encoding="utf-8", errors="replace", timeout=45)
+            result = subprocess.run([sys.executable, "-I", "-B", str(Path(__file__).resolve()), str(root), "--worker", str(directory), "http://127.0.0.1:" + str(server.server_address[1])], capture_output=True, text=True, encoding="utf-8", errors="replace", timeout=45)
             print(result.stdout)
             print(result.stderr, file=sys.stderr)
             if result.returncode == 0:

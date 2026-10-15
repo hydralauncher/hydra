@@ -33,6 +33,34 @@ def private_path(value):
     return Path(absolute)
 
 
+def path_identity(value):
+    text = str(value)
+    if os.name == "nt":
+        if text.startswith("\\\\?\\UNC\\"):
+            text = "\\\\" + text[8:]
+        elif text.startswith("\\\\?\\"):
+            text = text[4:]
+        text = os.path.normcase(text)
+    return Path(text)
+
+
+def load_request(value):
+    config = os.environ.get("LEGENDARY_CONFIG_PATH")
+    if not isinstance(value, str) or not os.path.isabs(value) or not config or not os.path.isabs(config):
+        raise ManagedError("invalid-request")
+    workspace = private_path(config).resolve(strict=True)
+    expected = workspace / "managed-request.json"
+    supplied = private_path(value)
+    if supplied.is_symlink() or supplied.is_junction() or path_identity(supplied.resolve()) != path_identity(expected) or not expected.is_file():
+        raise ManagedError("invalid-request")
+    # The CLI may identify only the parent's fixed request file. Never read an
+    # arbitrary CLI path, even when it happens to contain valid protocol JSON.
+    request = json.loads(expected.read_text(encoding="utf-8"))
+    if not isinstance(request, dict) or request.get("protocolVersion") != PROTOCOL_VERSION or request.get("operation") not in ("inspect", "install", "refresh"):
+        raise ManagedError("invalid-request")
+    return workspace, request
+
+
 def bootstrap(archive):
     root = Path(__file__).resolve().parent
     sys.path.insert(0, str(Path(archive).resolve()))
@@ -142,18 +170,9 @@ def validate_metadata(metadata, target):
 
 
 def receipt_path(path, workspace):
-    resolved = Path(path).resolve()
-    def identity(value):
-        text = str(value)
-        if os.name == "nt":
-            if text.startswith("\\\\?\\UNC\\"):
-                text = "\\\\" + text[8:]
-            elif text.startswith("\\\\?\\"):
-                text = text[4:]
-            text = os.path.normcase(text)
-        return Path(text)
-    root = identity(workspace.resolve())
-    normalized = identity(resolved)
+    resolved = private_path(path).resolve()
+    root = path_identity(workspace.resolve())
+    normalized = path_identity(resolved)
     if not normalized.is_relative_to(root) or resolved.suffix != ".manifest":
         raise ManagedError("invalid-receipt")
     # Retain the workspace's long-path prefix for actual filesystem access.
@@ -167,7 +186,9 @@ def cached_manifest(receipt, workspace, target, source_hash):
         file = receipt_path(receipt["manifestPath"], workspace)
         data = file.read_bytes()
         state = json.loads(Path(str(file) + ".json").read_text(encoding="utf-8"))
-        if state["target"] != target or state["sourceHash"] != source_hash or hashlib.sha256(data).hexdigest() != receipt["sha256"] or hashlib.sha1(data).hexdigest() != source_hash:
+        # SHA-1 is Epic's manifest wire identifier, never our security digest;
+        # cached bytes must independently match the parent's SHA-256 receipt.
+        if state["target"] != target or state["sourceHash"] != source_hash or hashlib.sha256(data).hexdigest() != receipt["sha256"] or hashlib.sha1(data, usedforsecurity=False).hexdigest() != source_hash:
             return None
         return data
     except (OSError, KeyError, TypeError, ValueError):
@@ -289,10 +310,7 @@ def main():
     if args.capabilities:
         print(json.dumps(dict(protocolVersion=PROTOCOL_VERSION, legendaryVersion=LEGENDARY_VERSION, capabilities=CAPABILITIES)))
         return
-    request = json.loads(private_path(args.request).read_text(encoding="utf-8"))
-    if request.get("protocolVersion") != PROTOCOL_VERSION or request.get("operation") not in ("inspect", "install", "refresh"):
-        raise ManagedError("invalid-request")
-    workspace = Path(os.environ["LEGENDARY_CONFIG_PATH"]).resolve()
+    workspace, request = load_request(args.request)
     from legendary.core import LegendaryCore
     # Upstream may log URLs on network failures. Parent gets only the adapter's
     # fixed error code; progress output is enabled after authenticated queries.

@@ -730,6 +730,8 @@ test("obsolete target inspections discard late results", async (t) => {
 for (const fault of [
   "protocol",
   "hash",
+  "contents",
+  "source-target",
   "path",
   "metadata-target",
   "info-target",
@@ -740,6 +742,9 @@ for (const fault of [
       const value = await response(directory);
       if (fault === "protocol") value.protocolVersion = 2;
       if (fault === "hash") value.receipt.sha256 = "0".repeat(64);
+      if (fault === "contents")
+        await fs.writeFile(value.receipt.manifestPath, "modified manifest");
+      if (fault === "source-target") value.receipt.sourceHash = "0".repeat(40);
       if (fault === "path")
         value.receipt.manifestPath = path.join(
           directory,

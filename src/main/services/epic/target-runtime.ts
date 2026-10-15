@@ -327,11 +327,11 @@ export class EpicTargetRuntime {
     )
       throw new EpicManagedError("invalid-artifact");
     const contents = await fs.readFile(receipt.manifestPath);
-    if (
-      createHash("sha1").update(contents).digest("hex") !==
-        receipt.sourceHash ||
-      createHash("sha256").update(contents).digest("hex") !== receipt.sha256
-    )
+    // The pinned adapter verifies Epic's protocol SHA-1 against the authenticated
+    // descriptor. Protect the private cached bytes here with SHA-256; sourceHash
+    // remains bound to the target/version sidecar above and is rechecked against
+    // the current descriptor before installation.
+    if (createHash("sha256").update(contents).digest("hex") !== receipt.sha256)
       throw new EpicManagedError("invalid-response");
   }
   async streamInstall(

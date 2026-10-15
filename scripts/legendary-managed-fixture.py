@@ -93,7 +93,7 @@ class Fixture:
         self.data = data
         self.calls = []
         self.metadata = dict(id="item", namespace="namespace", title="Example", categories=[dict(path="games")])
-        self.element = dict(appName="Example", namespace="namespace", catalogItemId="item", platform="Windows", hash=hashlib.sha1(data).hexdigest(), manifests=[dict(uri="https://cdn.example/game/manifest")], secrets=secrets or {})
+        self.element = dict(appName="Example", namespace="namespace", catalogItemId="item", platform="Windows", hash=hashlib.sha1(data, usedforsecurity=False).hexdigest(), manifests=[dict(uri="https://cdn.example/game/manifest")], secrets=secrets or {})
         self.core = LegendaryCore.__new__(LegendaryCore)
         self.core.log = logging.getLogger("test")
         self.core.lgd = SimpleNamespace(set_game_meta=lambda *args: self.calls.append("write-target"))
@@ -133,6 +133,51 @@ class AdapterTests(unittest.TestCase):
         self.assertEqual(game.app_name, "Example")
         self.assertEqual(json.loads(json.dumps(result))["metadata"]["asset_infos"]["Windows"]["catalog_item_id"], "item")
         self.assertEqual(sorted(self.fixture.calls), ["catalog-target", "cdn-target", "manifest-target", "write-target"])
+
+    def test_request_file_is_fixed_to_private_workspace_and_not_a_link(self):
+        request_file = self.workspace / "managed-request.json"
+        request_file.write_text(json.dumps(self.request), encoding="utf-8")
+        nested = self.workspace / "nested"
+        nested.mkdir()
+        (nested / "managed-request.json").write_text(json.dumps(self.request), encoding="utf-8")
+        with patch.dict(os.environ, LEGENDARY_CONFIG_PATH=str(self.workspace)):
+            workspace, request = managed.load_request(str(request_file))
+            self.assertEqual(managed.path_identity(workspace), self.workspace.resolve())
+            self.assertEqual(request, self.request)
+            for candidate in ("managed-request.json", self.workspace / "other.json", nested / "managed-request.json", self.workspace.parent / "managed-request.json"):
+                with self.assertRaisesRegex(managed.ManagedError, "invalid-request"):
+                    managed.load_request(str(candidate))
+            with patch.object(Path, "is_symlink", return_value=True):
+                with self.assertRaisesRegex(managed.ManagedError, "invalid-request"):
+                    managed.load_request(str(request_file))
+
+    def test_request_protocol_must_be_an_object(self):
+        request_file = self.workspace / "managed-request.json"
+        with patch.dict(os.environ, LEGENDARY_CONFIG_PATH=str(self.workspace)):
+            for value in ([], None, "inspect", dict(protocolVersion=2, operation="inspect")):
+                request_file.write_text(json.dumps(value), encoding="utf-8")
+                with self.assertRaisesRegex(managed.ManagedError, "invalid-request"):
+                    managed.load_request(str(request_file))
+
+    def test_real_install_fixture_validates_runtime_workspace_and_loopback(self):
+        spec = importlib.util.spec_from_file_location("install_fixture", Path(__file__).with_name("legendary-managed-install-fixture.py"))
+        fixture = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(fixture)
+        self.assertEqual(fixture.runtime_directory(str(root)).resolve(), root)
+        with self.assertRaises(ValueError):
+            fixture.runtime_directory(str(self.workspace))
+        with tempfile.TemporaryDirectory(prefix="hydra-real-install-") as directory:
+            self.assertEqual(fixture.fixture_directory(directory), Path(directory).resolve())
+            nested = Path(directory) / "hydra-real-install-abcdefgh"
+            nested.mkdir()
+            with self.assertRaises(ValueError):
+                fixture.fixture_directory(str(nested))
+        with self.assertRaises(ValueError):
+            fixture.fixture_directory(str(self.workspace))
+        self.assertEqual(fixture.loopback_url("http://127.0.0.1:12345"), "http://127.0.0.1:12345")
+        for address in ("http://example.com:12345", "http://127.0.0.1:12345/path", "http://127.0.0.1:12345?query", "http://user@127.0.0.1:12345", "https://127.0.0.1:12345"):
+            with self.assertRaises(ValueError):
+                fixture.loopback_url(address)
 
     def test_cache_reuses_bytes_but_fresh_flags_and_descriptor(self):
         result, _, _ = self.inspect()
@@ -190,7 +235,7 @@ class AdapterTests(unittest.TestCase):
             self.request.update(operation="install", receipt=receipt, args=["-y", "install", "Example"])
             self.fixture = Fixture(manifest_bytes(version=version, app_name=embedded_name)[0])
             self.fixture.core.exit = lambda: None
-            request_file = self.workspace / "request.json"
+            request_file = self.workspace / "managed-request.json"
             request_file.write_text(json.dumps(self.request), encoding="utf-8")
             with patch.object(managed, "bootstrap"), patch.object(managed, "initialize_access"), patch.object(upstream_core, "LegendaryCore", return_value=self.fixture.core), patch.object(managed, "run_install") as transfer, patch.object(sys, "argv", ["managed", "unused.pyz", "--request", str(request_file)]), patch.dict(os.environ, LEGENDARY_CONFIG_PATH=str(self.workspace)):
                 with self.assertRaisesRegex(managed.ManagedError, "update-required"):
