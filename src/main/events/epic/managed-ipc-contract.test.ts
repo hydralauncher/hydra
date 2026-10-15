@@ -80,6 +80,7 @@ describe("managed Epic IPC contracts", () => {
     const conflict = {
       epicObjectId: "namespace:item",
       expectedRemoteManifest: "2026.10.14-12.00.00.manifest",
+      expectedRemoteModifiedAt: "2026-10-15T12:00:00.000Z",
       choice: "remote",
     };
     assert.deepEqual(parseEpicCloudSaveConflict(conflict), conflict);
@@ -97,6 +98,15 @@ describe("managed Epic IPC contracts", () => {
     assert.throws(() =>
       parseEpicCloudSaveConflict({ ...conflict, choice: "both" })
     );
+    for (const expectedRemoteModifiedAt of [
+      undefined,
+      "invalid",
+      "2026-02-31T12:00:00Z",
+      1,
+    ])
+      assert.throws(() =>
+        parseEpicCloudSaveConflict({ ...conflict, expectedRemoteModifiedAt })
+      );
     assert.throws(() =>
       parseEpicCloudSaveConflict({ ...conflict, force: true })
     );

@@ -228,6 +228,16 @@ export class EpicSyncOrchestrator {
     let achievementSummary: EpicAchievementSummary | undefined;
     let achievementsRequested =
       context.connection.capabilities?.achievementsSnapshotVersion === 1;
+    const startRun = async () => {
+      const id = await this.deps.start(
+        context,
+        operation.trigger,
+        controller.signal
+      );
+      achievementsRequested =
+        context.connection.capabilities?.achievementsSnapshotVersion === 1;
+      return id;
+    };
     try {
       journal = await this.deps.journal(context);
       let resuming = !!journal;
@@ -247,11 +257,7 @@ export class EpicSyncOrchestrator {
               EPIC_RUNNING_EXPIRATION_MS);
         if (expired) {
           // The server decides expiry under its lock; never claim RUNNING locally.
-          operation.id = await this.deps.start(
-            context,
-            operation.trigger,
-            controller.signal
-          );
+          operation.id = await startRun();
           journal = {
             syncRunId: operation.id,
             totalChunks: null,
@@ -268,16 +274,24 @@ export class EpicSyncOrchestrator {
           await this.deps.saveJournal(context, null);
           journal = null;
           operation.id = null;
+          resuming = false;
+        } else if (
+          run.status === "PENDING" &&
+          run.achievementSnapshotVersion !== 1 &&
+          context.connection.capabilities?.achievementsSnapshotVersion === 1
+        ) {
+          // Replace legacy staging before collecting a snapshot for a versioned run.
+          await this.deps.cancel(context, operation.id!, controller.signal);
+          await this.deps.saveJournal(context, null);
+          journal = null;
+          operation.id = null;
+          resuming = false;
         }
       }
       if (publication !== "published") {
         // Only IDs returned to this launcher (or recovered from its journal) are writable.
         if (!operation.id) {
-          operation.id = await this.deps.start(
-            context,
-            operation.trigger,
-            controller.signal
-          );
+          operation.id = await startRun();
           this.assert(context);
           journal = {
             syncRunId: operation.id,
@@ -286,6 +300,9 @@ export class EpicSyncOrchestrator {
           };
           await this.deps.saveJournal(context, journal);
         }
+        // Replace warnings from an older attempt before collecting a fresh snapshot.
+        // A later staging replacement must retain this collection's reconnect result.
+        requiresReconnect = false;
         this.publish(operation, "library");
         const games = await this.deps.library(context, controller.signal);
         this.publish(operation, "playtime", 0, games.length);
@@ -327,11 +344,7 @@ export class EpicSyncOrchestrator {
             journal.totalChunks !== chunks.length)
         ) {
           await this.deps.cancel(context, operation.id!, controller.signal);
-          operation.id = await this.deps.start(
-            context,
-            operation.trigger,
-            controller.signal
-          );
+          operation.id = await startRun();
         }
         journal = {
           syncRunId: operation.id!,

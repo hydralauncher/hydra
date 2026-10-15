@@ -2172,6 +2172,26 @@ export class DownloadManager {
           this.isPreparingDownload = false;
       } catch (error) {
         if (this.startGeneration === myGeneration) {
+          // A startup/preflight failure has no progress callback to repair its
+          // persisted active record. Confirm cleanup before releasing the slot.
+          await getEpicDownloadService().stop(downloadId);
+          const current = await downloadsSublevel.get(downloadId);
+          if (this.startGeneration !== myGeneration) throw error;
+          if (
+            current?.downloader === Downloader.Epic &&
+            current.timestamp === download.timestamp &&
+            current.epic
+          ) {
+            await downloadsSublevel.put(downloadId, {
+              ...current,
+              status: "paused",
+              queued: false,
+              pinnedToHero: false,
+              epic: { ...current.epic, error: epicManagedErrorCode(error) },
+            });
+            WindowManager.sendDownloadsUpdated();
+          }
+          if (this.startGeneration !== myGeneration) throw error;
           this.downloadingGameId = null;
           this.isPreparingDownload = false;
           this.usingEpicDownloader = false;

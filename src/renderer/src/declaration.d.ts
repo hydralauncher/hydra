@@ -117,6 +117,7 @@ import type {
   EpicCloudSaveSettings,
   ResolveEpicCloudSaveConflictPayload,
   EpicLaunchOptions,
+  EpicLinuxCompatibility,
 } from "@types";
 import type { AxiosProgressEvent } from "axios";
 
@@ -1229,6 +1230,10 @@ declare global {
     onEpicSyncProgress: (cb: (state: EpicSyncState) => void) => () => void;
     onEpicSyncFinished: (cb: (result: EpicSyncFinished) => void) => () => void;
     getEpicConnection: () => Promise<EpicConnectionState>;
+    getGameLinuxCompatibility?: (
+      shop: GameShop,
+      objectId: string
+    ) => Promise<EpicLinuxCompatibility | null>;
     getEpicGameInstallOptions: (
       epicObjectId: string,
       requestId?: string

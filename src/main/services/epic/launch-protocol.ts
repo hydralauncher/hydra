@@ -18,7 +18,8 @@ export function parseEpicLaunchParameters(
   input: unknown,
   installPath: string,
   expectedExecutable: string,
-  paths: typeof path = path
+  paths: typeof path = path,
+  windowsManifestPaths = false
 ): EpicLaunchParameters {
   if (
     !isRecord(input) ||
@@ -52,7 +53,9 @@ export function parseEpicLaunchParameters(
     !paths.isAbsolute(input.working_directory) ||
     !inside(directory) ||
     !inside(cwd) ||
-    paths.relative(expectedExecutable, executable) !== ""
+    (paths.relative(expectedExecutable, executable) !== "" &&
+      (!windowsManifestPaths ||
+        expectedExecutable.toLowerCase() !== executable.toLowerCase()))
   )
     throw new EpicSaveFailure("invalid-path");
   const environment: Record<string, string> = {};

@@ -43,6 +43,9 @@ export const EPIC_PENDING_EXPIRATION_MS = 60 * 60_000;
 export const EPIC_RUNNING_EXPIRATION_MS = 15 * 60_000;
 export const EPIC_DOWNLOAD_STALL_TIMEOUT_MS = 5 * 60_000;
 export const EPIC_SAVE_SYNC_TIMEOUT_MS = 5 * 60_000;
+export const EPIC_SAVE_MAX_RESPONSE_BYTES = 4 * 1024 * 1024;
+export const EPIC_SAVE_STORAGE_ORIGIN =
+  "https://datastorage-public-service-liveegs.live.use1a.on.epicgames.com";
 export const EPIC_PROGRESS_PERSIST_INTERVAL_MS = 1_000;
 export const EPIC_PROCESS_MAX_LINE_BYTES = 65_536;
 export const EPIC_PROCESS_TERMINATION_TIMEOUT_MS = 10_000;

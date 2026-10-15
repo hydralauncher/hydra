@@ -203,15 +203,17 @@ export function EpicInstallModal({
                 >
                   {t("epic_retry")}
                 </Button>
-                <Button
-                  theme="outline"
-                  onClick={() => {
-                    onClose();
-                    navigate("/settings?tab=integrations");
-                  }}
-                >
-                  {t("integrations", { ns: "settings" })}
-                </Button>
+                {getEpicManagedError(install.error).ns === "settings" && (
+                  <Button
+                    theme="outline"
+                    onClick={() => {
+                      onClose();
+                      navigate("/settings?tab=integrations");
+                    }}
+                  >
+                    {t("integrations", { ns: "settings" })}
+                  </Button>
+                )}
               </>
             )}
           </>

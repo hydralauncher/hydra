@@ -13,6 +13,15 @@ import { gamesSublevel, levelKeys } from "@main/level";
 import { updateGameRecord } from "../game-record-updater";
 import { isGameRunning } from "../game-running-state";
 import { Wine } from "../wine";
+import {
+  getEpicLinuxPrefixGeneration,
+  resolveEpicLinuxPrefixPath,
+  withEpicLinuxPrefixMutation,
+} from "./linux-runtime";
+import {
+  linuxEpicSaveVariables,
+  resolveLinuxEpicSavePath,
+} from "./cloud-save-linux-path.js";
 import type {
   LegendaryManagedRuntime,
   EpicManagedTarget,
@@ -36,13 +45,14 @@ import {
 import {
   assertEpicSaveCommandSucceeded,
   decideEpicSaveSync,
-  getEpicRemoteManifestModifiedAt,
   EpicSaveFailure,
-  parseEpicRemoteManifest,
+  sameEpicRemoteSaveManifest,
   parseEpicSaveMetadata,
   resolveEpicSavePath,
   type EpicSaveMetadata,
+  type EpicRemoteSaveManifest,
 } from "./cloud-save-protocol.js";
+import type { EpicCloudSaveSource } from "./cloud-save-source";
 import {
   applyEpicSaveSnapshot,
   copyEpicSaveSnapshot,
@@ -55,6 +65,7 @@ import {
 export interface EpicCloudSaveDependencies {
   runtime: LegendaryManagedRuntime;
   installation: EpicInstallationService;
+  source: Pick<EpicCloudSaveSource, "latest">;
   emit(state: EpicCloudSaveState): void;
 }
 export interface EpicSaveSession {
@@ -65,6 +76,11 @@ export interface EpicSaveSession {
   savePath: string | null;
   automaticSync: boolean;
   generation: number;
+  winePrefixPath?: string;
+  prefixGeneration?: string | null;
+  savePathSource?: "automatic" | "custom";
+  /** The launch owns this lease until its post-exit save operation finishes. */
+  linuxPrefixLeaseId?: string;
 }
 interface EpicPostExitTask {
   session: EpicSaveSession;
@@ -102,6 +118,7 @@ export class EpicCloudSaveService {
   private readonly operations = new Map<string, Promise<EpicCloudSaveState>>();
   private readonly postExits = new Map<string, EpicPostExitTask>();
   private readonly controllers = new Set<AbortController>();
+  private readonly captures = new Set<Promise<EpicSaveSession>>();
   private readonly sessions = new Map<string, EpicSaveSession>();
   private readonly launching = new Set<string>();
   private generation = 0;
@@ -117,6 +134,7 @@ export class EpicCloudSaveService {
   }
   private async assertStopped(session: EpicSaveSession) {
     this.assertCurrent(session);
+    await this.assertPrefixCurrent(session);
     const games = await gamesSublevel.values().all();
     const selected = games.find(
       (game) => game.shop === "epic" && game.objectId === session.objectId
@@ -134,6 +152,25 @@ export class EpicCloudSaveService {
     )
       throw new EpicSaveFailure("game-running");
   }
+  private async assertPrefixCurrent(session: EpicSaveSession) {
+    if (!session.winePrefixPath) return;
+    const game = await gamesSublevel.get(
+      levelKeys.game("epic", session.objectId)
+    );
+    if (
+      !game ||
+      !session.prefixGeneration ||
+      (await getEpicLinuxPrefixGeneration(session.winePrefixPath)) !==
+        session.prefixGeneration ||
+      (await resolveEpicLinuxPrefixPath(
+        game,
+        session.target.owner,
+        session.target.artifactId
+      )) !== session.winePrefixPath
+    )
+      throw new EpicSaveFailure("compatibility-prefix-invalid");
+    this.assertCurrent(session);
+  }
   private publish(
     session: EpicSaveSession,
     patch: Partial<EpicCloudSaveState>
@@ -143,13 +180,13 @@ export class EpicCloudSaveService {
     const state: EpicCloudSaveState = {
       epicObjectId: session.objectId,
       status: "idle",
-      supportsCloudSaves: !!session.metadata.folder,
-      automaticSync: session.automaticSync,
-      savePath: session.savePath,
       pendingUpload: false,
       remoteManifest: null,
       canRunOffline: session.installed.can_run_offline === true,
       ...previous,
+      supportsCloudSaves: !!session.metadata.folder,
+      automaticSync: session.automaticSync,
+      savePath: session.savePath,
       ...patch,
     };
     this.states.set(session.objectId, state);
@@ -158,11 +195,12 @@ export class EpicCloudSaveService {
   }
   private async persist(
     session: EpicSaveSession,
-    patch: Partial<EpicInstallation>
+    patch: Partial<EpicInstallation>,
+    signal?: AbortSignal
   ) {
-    this.assertCurrent(session);
+    this.assertCurrent(session, signal);
     await updateGameRecord(levelKeys.game("epic", session.objectId), (game) => {
-      this.assertCurrent(session);
+      this.assertCurrent(session, signal);
       if (
         !game.epicInstallation ||
         !epicOwnerMatches(game.epicInstallation.owner, session.target.owner) ||
@@ -175,23 +213,30 @@ export class EpicCloudSaveService {
       };
     });
   }
-  private variables(
+  private async variables(
     owned: EpicOwnedGame,
     installed: EpicInstalledGame,
     winePrefixPath?: string | null
   ) {
-    const profile =
-      process.platform === "linux" && winePrefixPath
-        ? Wine.getPrefixUserProfile(winePrefixPath)?.path
-        : app.getPath("home");
+    if (process.platform === "linux") {
+      const profile =
+        winePrefixPath && Wine.isPrefixReadyForRestore(winePrefixPath)
+          ? Wine.getPrefixUserProfile(winePrefixPath)
+          : null;
+      return {
+        "{installdir}": installed.installPath,
+        "{epicid}": owned.owner.epicAccountId,
+        ...(profile && winePrefixPath
+          ? await linuxEpicSaveVariables(winePrefixPath, profile)
+          : {}),
+      };
+    }
+    const profile = app.getPath("home");
     const variables: Record<string, string> = {
       "{installdir}": installed.installPath,
       "{epicid}": owned.owner.epicAccountId,
       "{userprofile}": profile ?? "",
-      "{userdir}":
-        process.platform === "linux" && profile
-          ? path.join(profile, "Documents")
-          : app.getPath("documents"),
+      "{userdir}": app.getPath("documents"),
       "{usersavedgames}": profile ? path.join(profile, "Saved Games") : "",
     };
     if (process.platform === "win32")
@@ -203,22 +248,54 @@ export class EpicCloudSaveService {
         "Application Support"
       );
       variables["{userlibrary}"] = path.join(app.getPath("home"), "Library");
-    } else if (profile) {
-      variables["{appdata}"] = path.join(profile, "AppData", "Local");
-      variables["{roaming}"] = path.join(profile, "AppData", "Roaming");
-      variables["{locallow}"] = path.join(profile, "AppData", "LocalLow");
     }
     return variables;
   }
-  async capture(
+  capture(
     objectId: string,
     signal: AbortSignal,
     winePrefixPath?: string | null,
     localOnly = false
   ): Promise<EpicSaveSession> {
+    const generation = this.generation;
+    const controller = new AbortController();
+    const cancel = () => controller.abort(signal.reason);
+    signal.addEventListener("abort", cancel, { once: true });
+    if (signal.aborted) cancel();
+    this.controllers.add(controller);
+    const promise = this.captureCurrent(
+      objectId,
+      controller.signal,
+      generation,
+      winePrefixPath,
+      localOnly
+    );
+    this.captures.add(promise);
+    void promise
+      .finally(() => {
+        this.captures.delete(promise);
+        this.controllers.delete(controller);
+        signal.removeEventListener("abort", cancel);
+      })
+      .catch(() => undefined);
+    return promise;
+  }
+  private async captureCurrent(
+    objectId: string,
+    signal: AbortSignal,
+    generation: number,
+    winePrefixPath?: string | null,
+    localOnly = false
+  ): Promise<EpicSaveSession> {
+    const assertCaptureCurrent = () => {
+      if (signal.aborted || generation !== this.generation)
+        throw new EpicSaveFailure("operation-cancelled");
+    };
+    assertCaptureCurrent();
     const owned = localOnly
       ? await this.dependencies.installation.captureLocal(objectId, signal)
       : await this.dependencies.installation.capture(objectId, signal);
+    assertCaptureCurrent();
     const installation = owned.game.epicInstallation;
     if (!installation || !epicOwnerMatches(installation.owner, owned.owner))
       throw new EpicSaveFailure("installation-missing");
@@ -231,53 +308,170 @@ export class EpicCloudSaveService {
       ...(localOnly ? { localOnly: true } : {}),
     };
     this.dependencies.installation.assertPlatform(target.platform);
-    const installed = await this.dependencies.installation.readInstalled(
+    return this.dependencies.runtime.serializeWorkspace(
       target,
-      objectId
-    );
-    if (!installed) throw new EpicSaveFailure("installation-missing");
-    const metadata = parseEpicSaveMetadata(
-      await this.dependencies.installation.metadata(target),
-      installation.platform
-    );
-    const configured = installation.savePath ?? installed.save_path;
-    const variables = this.variables(
-      owned,
-      installed,
-      winePrefixPath ?? owned.game.winePrefixPath
-    );
-    const resolved = configured
-      ? resolveEpicSavePath(configured, variables)
-      : resolveEpicSavePath(
+      async (workspace) => {
+        assertCaptureCurrent();
+        const installed = await this.dependencies.installation.readInstalled(
+          target,
+          objectId
+        );
+        if (!installed) throw new EpicSaveFailure("installation-missing");
+        const metadata = parseEpicSaveMetadata(
+          await this.dependencies.installation.metadata(target),
+          installation.platform
+        );
+        let effectivePrefix: string | undefined;
+        let prefixGeneration: string | null | undefined;
+        if (process.platform === "linux") {
+          effectivePrefix = await resolveEpicLinuxPrefixPath(
+            owned.game,
+            owned.owner,
+            installation.artifactId
+          );
+          if (
+            winePrefixPath &&
+            (await Wine.resolvePrefixPath(winePrefixPath)) !== effectivePrefix
+          )
+            throw new EpicSaveFailure("compatibility-prefix-invalid");
+          prefixGeneration =
+            await getEpicLinuxPrefixGeneration(effectivePrefix);
+        }
+        const variables = await this.variables(
+          owned,
+          installed,
+          effectivePrefix
+        );
+        const interruptedTransfer =
+          typeof installed.save_path === "string" &&
+          /^save-transfer-[^\\/]+(?:[\\/]|$)/.test(
+            path.relative(workspace, installed.save_path)
+          );
+        const configured =
+          installation.savePath ??
+          (interruptedTransfer ? undefined : installed.save_path);
+        const automatic = resolveEpicSavePath(
           metadata.folder?.replace(/\\/g, "/") ?? null,
           variables
         );
-    const home = path.resolve(app.getPath("home"));
-    const savePath =
-      resolved && path.resolve(resolved) !== home ? resolved : null;
-    return {
-      objectId,
-      target,
-      installed,
-      metadata,
-      savePath,
-      automaticSync:
-        installation.automaticSaveSync !== false && !!metadata.folder,
-      generation: this.generation,
-    };
+        let source = installation.savePathSource;
+        let resolved =
+          source === "automatic" || !configured
+            ? automatic
+            : resolveEpicSavePath(configured, variables);
+        let clearAnchor = false;
+        let needsPathChoice = false;
+        if (process.platform === "linux") {
+          if (!prefixGeneration || !variables["{userprofile}"]) resolved = null;
+          else {
+            const automaticPath = automatic
+              ? await resolveLinuxEpicSavePath(automatic)
+              : null;
+            const configuredPath = resolved
+              ? await Wine.resolvePrefixPath(resolved)
+              : null;
+            if (!source && (!configured || configuredPath === automaticPath))
+              source = "automatic";
+            const changedGeneration =
+              installation.savePathPrefixGeneration !== prefixGeneration;
+            // A legacy absolute path has no proven provenance. It may belong to an
+            // older prefix even when no generation was ever recorded.
+            needsPathChoice =
+              !source &&
+              Boolean(configured) &&
+              configuredPath !== automaticPath;
+            clearAnchor =
+              changedGeneration ||
+              (source === "automatic" &&
+                installation.savePath !== automaticPath);
+            if (needsPathChoice) resolved = null;
+            else
+              resolved =
+                source === "automatic" ? automaticPath : configuredPath;
+          }
+        }
+        const home = path.resolve(app.getPath("home"));
+        const savePath =
+          resolved && path.resolve(resolved) !== home ? resolved : null;
+        const session: EpicSaveSession = {
+          objectId,
+          target,
+          installed,
+          metadata,
+          savePath,
+          automaticSync:
+            installation.automaticSaveSync !== false && !!metadata.folder,
+          generation,
+          ...(effectivePrefix
+            ? { winePrefixPath: effectivePrefix, prefixGeneration }
+            : {}),
+          ...(source ? { savePathSource: source } : {}),
+        };
+        this.assertCurrent(session, signal);
+        if (
+          process.platform === "linux" &&
+          prefixGeneration &&
+          (clearAnchor ||
+            source !== installation.savePathSource ||
+            (!needsPathChoice &&
+              installation.savePathPrefixGeneration !== prefixGeneration))
+        ) {
+          await this.persist(
+            session,
+            {
+              ...(source ? { savePathSource: source } : {}),
+              ...(!needsPathChoice
+                ? { savePathPrefixGeneration: prefixGeneration }
+                : {}),
+              ...(source === "automatic" ? { savePath } : {}),
+              ...(clearAnchor ? { saveAnchor: undefined } : {}),
+            },
+            signal
+          );
+          this.assertCurrent(session, signal);
+          this.states.delete(objectId);
+        }
+        if (interruptedTransfer) {
+          // An unresolved Linux prefix or legacy path still requires an explicit choice.
+          if (process.platform !== "linux" || savePath !== null)
+            await this.persist(session, { savePath }, signal);
+          this.assertCurrent(session, signal);
+          await this.restoreRealSavePath(
+            session,
+            path.join(workspace, "installed.json")
+          );
+          installed.save_path = savePath;
+        }
+        this.assertCurrent(session, signal);
+        return session;
+      },
+      signal
+    );
   }
   async getState(objectId: string): Promise<EpicCloudSaveState> {
     const retained = this.states.get(objectId);
-    if (retained) return retained;
+    if (retained && process.platform !== "linux") return retained;
+    const generation = this.generation;
     const controller = new AbortController();
     try {
-      const session = await this.capture(objectId, controller.signal);
+      const session = await this.capture(
+        objectId,
+        controller.signal,
+        undefined,
+        process.platform === "linux" && Boolean(retained)
+      );
       const game = await gamesSublevel.get(levelKeys.game("epic", objectId));
       const error = !session.metadata.folder
         ? "saves-unsupported"
         : !session.savePath
           ? "save-path-required"
           : undefined;
+      const currentState = this.states.get(objectId);
+      if (!error && currentState && currentState.savePath === session.savePath)
+        return this.publish(session, {
+          ...currentState,
+          automaticSync: session.automaticSync,
+        });
       return this.publish(session, {
         status: error
           ? "unavailable"
@@ -287,9 +481,12 @@ export class EpicCloudSaveService {
         pendingUpload: game?.epicInstallation?.pendingSaveUpload === true,
         remoteManifest:
           game?.epicInstallation?.saveAnchor?.remoteManifest ?? null,
+        remoteModifiedAt:
+          game?.epicInstallation?.saveAnchor?.remoteModifiedAt ?? null,
         error,
       });
     } catch (error) {
+      if (generation !== this.generation) controller.abort();
       // A previously verified installed game can advertise its offline capability
       // without performing a remote save operation or trusting a new identity.
       try {
@@ -305,6 +502,8 @@ export class EpicCloudSaveService {
           pendingUpload: game?.epicInstallation?.pendingSaveUpload === true,
           remoteManifest:
             game?.epicInstallation?.saveAnchor?.remoteManifest ?? null,
+          remoteModifiedAt:
+            game?.epicInstallation?.saveAnchor?.remoteModifiedAt ?? null,
           error: this.errorCode(error),
         });
       } catch {
@@ -323,7 +522,12 @@ export class EpicCloudSaveService {
   }
   async setSettings(objectId: string, settings: EpicCloudSaveSettings) {
     const controller = new AbortController();
-    const session = await this.capture(objectId, controller.signal);
+    const session = await this.capture(
+      objectId,
+      controller.signal,
+      undefined,
+      true
+    );
     await this.assertStopped(session);
     if (
       this.operations.has(objectId) ||
@@ -337,30 +541,40 @@ export class EpicCloudSaveService {
       !resolveEpicSavePath(settings.savePath, {})
     )
       throw new EpicSaveFailure("invalid-path");
-    await this.persist(session, {
-      automaticSaveSync: settings.automaticSync,
-      ...(settings.savePath !== undefined
-        ? { savePath: settings.savePath, saveAnchor: undefined }
-        : {}),
-    });
+    const saveSettings = () =>
+      this.persist(session, {
+        automaticSaveSync: settings.automaticSync,
+        ...(settings.savePath !== undefined
+          ? {
+              savePath: settings.savePath,
+              savePathSource:
+                settings.savePath === null ? "automatic" : "custom",
+              savePathPrefixGeneration: session.prefixGeneration ?? undefined,
+              saveAnchor: undefined,
+            }
+          : {}),
+      });
+    await withSaveFileGate(() =>
+      session.winePrefixPath
+        ? withEpicLinuxPrefixMutation(
+            session.winePrefixPath,
+            saveSettings,
+            session.linuxPrefixLeaseId
+          )
+        : saveSettings()
+    );
     this.states.delete(objectId);
     return { ok: true as const };
   }
   private async listRemote(session: EpicSaveSession, signal: AbortSignal) {
-    const result = await this.dependencies.runtime.runRawUnlocked(
+    const manifest = await this.dependencies.source.latest(
       session.target,
-      ["list-saves", session.target.artifactId],
-      { signal, timeout: EPIC_SAVE_SYNC_TIMEOUT_MS }
+      signal
     );
-    assertEpicSaveCommandSucceeded(result);
     this.assertCurrent(session, signal);
-    const manifest = parseEpicRemoteManifest(
-      result.stdout,
-      session.target.artifactId
-    );
     this.publish(session, {
-      remoteManifest: manifest,
-      remoteModifiedAt: getEpicRemoteManifestModifiedAt(manifest),
+      remoteManifest: manifest?.name ?? null,
+      remoteModifiedAt: manifest?.lastModified ?? null,
     });
     return manifest;
   }
@@ -372,6 +586,8 @@ export class EpicCloudSaveService {
   ) {
     const workspace = this.dependencies.runtime.workspace(session.target);
     const installedFile = path.join(workspace, "installed.json");
+    // This durable path survives a crash before the CLI's staging path is restored.
+    await this.persist(session, { savePath: session.savePath });
     try {
       const result = await this.dependencies.runtime.runRawUnlocked(
         session.target,
@@ -406,11 +622,22 @@ export class EpicCloudSaveService {
   private async commitAnchor(
     session: EpicSaveSession,
     snapshot: EpicSaveSnapshot,
-    remoteManifest: string | null
+    remote: EpicRemoteSaveManifest | null
   ) {
+    await this.assertPrefixCurrent(session);
     await this.persist(session, {
       savePath: session.savePath,
-      saveAnchor: { remoteManifest, localDigest: snapshot.digest },
+      ...(session.savePathSource
+        ? { savePathSource: session.savePathSource }
+        : {}),
+      ...(session.prefixGeneration
+        ? { savePathPrefixGeneration: session.prefixGeneration }
+        : {}),
+      saveAnchor: {
+        remoteManifest: remote?.name ?? null,
+        remoteModifiedAt: remote?.lastModified ?? null,
+        localDigest: snapshot.digest,
+      },
       pendingSaveUpload: false,
     });
     return this.publish(session, {
@@ -418,14 +645,19 @@ export class EpicCloudSaveService {
       localModifiedAt: getEpicSaveSnapshotModifiedAt(snapshot),
       phase: undefined,
       pendingUpload: false,
-      remoteManifest,
+      remoteManifest: remote?.name ?? null,
+      remoteModifiedAt: remote?.lastModified ?? null,
       error: undefined,
     });
   }
   private async synchronize(
     session: EpicSaveSession,
     signal: AbortSignal,
-    choice?: { remoteManifest: string | null; value: "local" | "remote" },
+    choice?: {
+      remoteManifest: string | null;
+      remoteModifiedAt: string | null;
+      value: "local" | "remote";
+    },
     postExit?: EpicPostExitTask
   ): Promise<EpicCloudSaveState> {
     if (!session.metadata.folder)
@@ -439,149 +671,178 @@ export class EpicCloudSaveService {
         error: "save-path-required",
       });
     await this.assertStopped(session);
-    return withSaveFileGate(() =>
-      this.dependencies.runtime.serializeWorkspace(
-        session.target,
-        async (workspace) => {
-          await this.assertStopped(session);
-          this.publish(session, {
-            status: "syncing",
-            phase: "checking",
-            error: undefined,
-            localModifiedAt: null,
-            remoteModifiedAt: null,
-          });
-          const before = await inspectEpicSaveFiles(
-            session.savePath!,
-            session.metadata,
-            signal
-          );
-          this.assertCurrent(session, signal);
-          this.publish(session, {
-            localModifiedAt: getEpicSaveSnapshotModifiedAt(before),
-          });
-          // Reopening can cancel inspection until the first cloud command starts.
-          // Once a command is requested, its captured task must finish before launch.
-          if (postExit) postExit.commandStarted = true;
-          const remote = await this.listRemote(session, signal);
-          const game = await gamesSublevel.get(
-            levelKeys.game("epic", session.objectId)
-          );
-          this.assertCurrent(session, signal);
-          if (choice && choice.remoteManifest !== remote)
-            return this.publish(session, {
-              status: "conflict",
-              phase: undefined,
-              remoteManifest: remote,
-              error: "save-conflict",
+    return withSaveFileGate(() => {
+      const synchronizeFiles = () =>
+        this.dependencies.runtime.serializeWorkspace(
+          session.target,
+          async (workspace) => {
+            await this.assertStopped(session);
+            this.publish(session, {
+              status: "syncing",
+              phase: "checking",
+              error: undefined,
+              localModifiedAt: null,
+              remoteModifiedAt: null,
             });
-          const action = choice
-            ? choice.value === "local"
-              ? "upload"
-              : "download"
-            : decideEpicSaveSync(
-                game?.epicInstallation?.saveAnchor,
-                before.digest,
-                before.files.length,
-                remote,
-                game?.epicInstallation?.pendingSaveUpload === true
+            const before = await inspectEpicSaveFiles(
+              session.savePath!,
+              session.metadata,
+              signal
+            );
+            this.assertCurrent(session, signal);
+            this.publish(session, {
+              localModifiedAt: getEpicSaveSnapshotModifiedAt(before),
+            });
+            // Reopening can cancel inspection until the first cloud command starts.
+            // Once a command is requested, its captured task must finish before launch.
+            if (postExit) postExit.commandStarted = true;
+            const remote = await this.listRemote(session, signal);
+            const game = await gamesSublevel.get(
+              levelKeys.game("epic", session.objectId)
+            );
+            this.assertCurrent(session, signal);
+            if (
+              choice &&
+              (choice.remoteManifest !== (remote?.name ?? null) ||
+                choice.remoteModifiedAt !== (remote?.lastModified ?? null))
+            )
+              return this.publish(session, {
+                status: "conflict",
+                phase: undefined,
+                remoteManifest: remote?.name ?? null,
+                error: "save-conflict",
+              });
+            const action = choice
+              ? choice.value === "local"
+                ? "upload"
+                : "download"
+              : decideEpicSaveSync(
+                  game?.epicInstallation?.saveAnchor,
+                  before.digest,
+                  before.files.length,
+                  remote,
+                  game?.epicInstallation?.pendingSaveUpload === true
+                );
+            if (action === "conflict")
+              return this.publish(session, {
+                status: "conflict",
+                phase: undefined,
+                remoteManifest: remote?.name ?? null,
+                error: "save-conflict",
+              });
+            if (action === "same")
+              return this.commitAnchor(session, before, remote);
+            const temporary = await fs.mkdtemp(
+              path.join(workspace, "save-transfer-")
+            );
+            let preserveRecovery = false;
+            try {
+              const staging = path.join(temporary, "staging");
+              await fs.mkdir(staging, { mode: 0o700 });
+              if (action === "download") {
+                if (!remote)
+                  return this.publish(session, {
+                    status: "conflict",
+                    phase: undefined,
+                    remoteManifest: null,
+                    error: "save-conflict",
+                  });
+                this.publish(session, { phase: "downloading" });
+                await this.transfer(session, signal, staging, "download");
+                if (
+                  !sameEpicRemoteSaveManifest(
+                    await this.listRemote(session, signal),
+                    remote
+                  )
+                )
+                  throw new EpicSaveFailure("save-conflict");
+                await this.assertStopped(session);
+                this.publish(session, { phase: "restoring" });
+                await this.persist(session, { pendingSaveUpload: true });
+                const restored = await applyEpicSaveSnapshot(
+                  staging,
+                  session.savePath!,
+                  path.join(temporary, "backup"),
+                  session.metadata,
+                  before.digest,
+                  () => this.assertCurrent(session, signal)
+                );
+                return this.commitAnchor(session, restored, remote);
+              }
+              // An upload always starts from a stable private copy, never from live save files.
+              await this.persist(session, { pendingSaveUpload: true });
+              await copyEpicSaveSnapshot(session.savePath!, staging, before);
+              const stable = await inspectEpicSaveFiles(
+                staging,
+                session.metadata,
+                signal
               );
-          if (action === "conflict")
-            return this.publish(session, {
-              status: "conflict",
-              phase: undefined,
-              remoteManifest: remote,
-              error: "save-conflict",
-            });
-          if (action === "same")
-            return this.commitAnchor(session, before, remote);
-          const temporary = await fs.mkdtemp(
-            path.join(workspace, "save-transfer-")
-          );
-          let preserveRecovery = false;
-          try {
-            const staging = path.join(temporary, "staging");
-            await fs.mkdir(staging, { mode: 0o700 });
-            if (action === "download") {
-              if (!remote)
-                return this.publish(session, {
-                  status: "conflict",
-                  phase: undefined,
-                  remoteManifest: remote,
-                  error: "save-conflict",
-                });
-              this.publish(session, { phase: "downloading" });
-              await this.transfer(session, signal, staging, "download");
-              if ((await this.listRemote(session, signal)) !== remote)
+              if (
+                stable.digest !== before.digest ||
+                (
+                  await inspectEpicSaveFiles(
+                    session.savePath!,
+                    session.metadata,
+                    signal
+                  )
+                ).digest !== before.digest
+              )
+                throw new EpicSaveFailure("save-operation-active");
+              if (!stable.files.length)
+                throw new EpicSaveFailure("save-verification-failed");
+              if (
+                !sameEpicRemoteSaveManifest(
+                  await this.listRemote(session, signal),
+                  remote
+                )
+              )
                 throw new EpicSaveFailure("save-conflict");
               await this.assertStopped(session);
-              this.publish(session, { phase: "restoring" });
-              await this.persist(session, { pendingSaveUpload: true });
-              const restored = await applyEpicSaveSnapshot(
-                staging,
-                session.savePath!,
-                path.join(temporary, "backup"),
+              this.publish(session, {
+                phase: "uploading",
+                pendingUpload: true,
+              });
+              await this.transfer(session, signal, staging, "upload");
+              const uploadedManifest = await this.listRemote(session, signal);
+              if (!uploadedManifest)
+                throw new EpicSaveFailure("save-verification-failed");
+              this.publish(session, { phase: "verifying" });
+              const verification = path.join(temporary, "verification");
+              await fs.mkdir(verification);
+              await this.transfer(session, signal, verification, "download");
+              const readback = await inspectEpicSaveFiles(
+                verification,
                 session.metadata,
-                before.digest,
-                () => this.assertCurrent(session, signal)
+                signal
               );
-              return this.commitAnchor(session, restored, remote);
-            }
-            // An upload always starts from a stable private copy, never from live save files.
-            await this.persist(session, { pendingSaveUpload: true });
-            await copyEpicSaveSnapshot(session.savePath!, staging, before);
-            const stable = await inspectEpicSaveFiles(
-              staging,
-              session.metadata,
-              signal
-            );
-            if (
-              stable.digest !== before.digest ||
-              (
-                await inspectEpicSaveFiles(
-                  session.savePath!,
-                  session.metadata,
-                  signal
+              if (
+                readback.digest !== stable.digest ||
+                !sameEpicRemoteSaveManifest(
+                  await this.listRemote(session, signal),
+                  uploadedManifest
                 )
-              ).digest !== before.digest
-            )
-              throw new EpicSaveFailure("save-operation-active");
-            if (!stable.files.length)
-              throw new EpicSaveFailure("save-verification-failed");
-            if ((await this.listRemote(session, signal)) !== remote)
-              throw new EpicSaveFailure("save-conflict");
-            await this.assertStopped(session);
-            this.publish(session, { phase: "uploading", pendingUpload: true });
-            await this.transfer(session, signal, staging, "upload");
-            const uploadedManifest = await this.listRemote(session, signal);
-            if (!uploadedManifest)
-              throw new EpicSaveFailure("save-verification-failed");
-            this.publish(session, { phase: "verifying" });
-            const verification = path.join(temporary, "verification");
-            await fs.mkdir(verification);
-            await this.transfer(session, signal, verification, "download");
-            const readback = await inspectEpicSaveFiles(
-              verification,
-              session.metadata,
-              signal
-            );
-            if (
-              readback.digest !== stable.digest ||
-              (await this.listRemote(session, signal)) !== uploadedManifest
-            )
-              throw new EpicSaveFailure("save-verification-failed");
-            // The anchor records what was uploaded, so an external local edit remains detectable.
-            return this.commitAnchor(session, stable, uploadedManifest);
-          } catch (error) {
-            preserveRecovery = error instanceof EpicSaveRollbackFailure;
-            throw error;
-          } finally {
-            if (!preserveRecovery)
-              await fs.rm(temporary, { recursive: true, force: true });
-          }
-        }
-      )
-    );
+              )
+                throw new EpicSaveFailure("save-verification-failed");
+              // The anchor records what was uploaded, so an external local edit remains detectable.
+              return this.commitAnchor(session, stable, uploadedManifest);
+            } catch (error) {
+              preserveRecovery = error instanceof EpicSaveRollbackFailure;
+              throw error;
+            } finally {
+              if (!preserveRecovery)
+                await fs.rm(temporary, { recursive: true, force: true });
+            }
+          },
+          signal
+        );
+      return session.winePrefixPath
+        ? withEpicLinuxPrefixMutation(
+            session.winePrefixPath,
+            synchronizeFiles,
+            session.linuxPrefixLeaseId
+          )
+        : synchronizeFiles();
+    });
   }
   private errorCode(
     error: unknown
@@ -592,7 +853,11 @@ export class EpicCloudSaveService {
   }
   private operation(
     session: EpicSaveSession,
-    choice?: { remoteManifest: string | null; value: "local" | "remote" },
+    choice?: {
+      remoteManifest: string | null;
+      remoteModifiedAt: string | null;
+      value: "local" | "remote";
+    },
     postExit?: EpicPostExitTask
   ) {
     if (
@@ -667,6 +932,7 @@ export class EpicCloudSaveService {
       throw new EpicSaveFailure("save-conflict");
     return this.operation(session, {
       remoteManifest: payload.expectedRemoteManifest,
+      remoteModifiedAt: payload.expectedRemoteModifiedAt,
       value: payload.choice,
     });
   }
@@ -706,6 +972,7 @@ export class EpicCloudSaveService {
   }
   async markSessionStarted(session: EpicSaveSession) {
     this.assertCurrent(session);
+    await this.assertPrefixCurrent(session);
     if (session.metadata.folder && session.automaticSync)
       await this.persist(session, { pendingSaveUpload: true });
     this.assertCurrent(session);
@@ -754,6 +1021,7 @@ export class EpicCloudSaveService {
   ) {
     const signal = task.controller.signal;
     this.assertCurrent(session, signal);
+    await this.assertPrefixCurrent(session);
     if (!session.metadata.folder || !session.automaticSync) return;
     if (session.savePath) {
       let previous = await inspectEpicSaveFiles(
@@ -793,6 +1061,7 @@ export class EpicCloudSaveService {
     for (const controller of this.controllers) controller.abort();
     for (const task of this.postExits.values()) task.controller.abort();
     await Promise.allSettled([
+      ...this.captures,
       ...this.operations.values(),
       ...[...this.postExits.values()].map((task) => task.promise),
     ]);

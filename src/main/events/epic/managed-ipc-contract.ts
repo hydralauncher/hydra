@@ -12,6 +12,7 @@ import {
 } from "../../services/epic/auth-protocol.js";
 import { isEpicObjectId } from "../../services/epic/library-normalizer.js";
 import { isSafeEpicArtifact } from "../../services/epic/installation.js";
+import { isEpicRemoteSaveTimestamp } from "../../services/epic/cloud-save-protocol.js";
 
 const MAX_EPIC_LOCAL_PATH_LENGTH = 32_768;
 const EPIC_SAVE_MANIFEST_PATTERN =
@@ -114,12 +115,15 @@ export function parseEpicCloudSaveConflict(
     !hasOnlyFields(value, [
       "epicObjectId",
       "expectedRemoteManifest",
+      "expectedRemoteModifiedAt",
       "choice",
     ]) ||
     !isEpicObjectId(value.epicObjectId) ||
     (value.expectedRemoteManifest !== null &&
       (typeof value.expectedRemoteManifest !== "string" ||
         !EPIC_SAVE_MANIFEST_PATTERN.test(value.expectedRemoteManifest))) ||
+    (value.expectedRemoteModifiedAt !== null &&
+      !isEpicRemoteSaveTimestamp(value.expectedRemoteModifiedAt)) ||
     (value.choice !== "local" && value.choice !== "remote")
   ) {
     return invalid();
@@ -127,6 +131,7 @@ export function parseEpicCloudSaveConflict(
   return {
     epicObjectId: value.epicObjectId,
     expectedRemoteManifest: value.expectedRemoteManifest,
+    expectedRemoteModifiedAt: value.expectedRemoteModifiedAt,
     choice: value.choice,
   };
 }

@@ -100,49 +100,60 @@ export function resolveEpicSavePath(
 }
 
 const manifestPattern = /^\d{4}\.\d{2}\.\d{2}-\d{2}\.\d{2}\.\d{2}\.manifest$/;
-export function getEpicRemoteManifestModifiedAt(
-  manifest: string | null
-): string | null {
-  if (!manifest || !manifestPattern.test(manifest)) return null;
-  const [year, month, day, hour, minute, second] = manifest
-    .replace(".manifest", "")
-    .split(/[.-]/);
-  // Legendary generates manifest names with datetime.utcnow().
-  const timestamp = `${year}-${month}-${day}T${hour}:${minute}:${second}.000Z`;
-  const date = new Date(timestamp);
-  return Number.isFinite(date.getTime()) && date.toISOString() === timestamp
-    ? timestamp
-    : null;
+export interface EpicRemoteSaveManifest {
+  name: string;
+  lastModified: string;
 }
 
-export function parseEpicRemoteManifest(
-  stdout: string,
-  artifactId: string
-): string | null {
-  const lines = stdout.replace(/\r/g, "").split("\n");
-  const nonempty = lines.filter((line) => line.trim());
-  if (nonempty.shift() !== "Save games:")
-    throw new EpicSaveFailure("save-sync-failed");
-  let selected = false;
-  const manifests: string[] = [];
-  for (const line of nonempty) {
-    if (line.startsWith("- ")) {
-      if (selected || !line.endsWith(`("${artifactId}")`))
-        throw new EpicSaveFailure("save-sync-failed");
-      selected = true;
-    } else if (line.startsWith(" +")) {
-      const manifest = line.slice(2).trim();
-      if (!selected || !manifestPattern.test(manifest))
-        throw new EpicSaveFailure("save-sync-failed");
-      manifests.push(manifest);
-    } else throw new EpicSaveFailure("save-sync-failed");
-  }
-  if (selected && !manifests.length)
-    throw new EpicSaveFailure("save-sync-failed");
+export function isEpicRemoteSaveTimestamp(value: unknown): value is string {
+  if (
+    typeof value !== "string" ||
+    !/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{1,6})?Z$/.test(value)
+  )
+    return false;
+  const date = new Date(value);
   return (
-    manifests.sort((left, right) => left.localeCompare(right, "en")).at(-1) ??
-    null
+    Number.isFinite(date.getTime()) &&
+    date.toISOString().slice(0, 19) === value.slice(0, 19)
   );
+}
+
+export const sameEpicRemoteSaveManifest = (
+  left: EpicRemoteSaveManifest | null,
+  right: EpicRemoteSaveManifest | null
+) => left?.name === right?.name && left?.lastModified === right?.lastModified;
+
+export function parseEpicRemoteManifest(
+  input: unknown,
+  artifactId: string,
+  accountId: string
+): EpicRemoteSaveManifest | null {
+  if (!isRecord(input) || !isRecord(input.files))
+    throw new EpicSaveFailure("save-sync-failed");
+  const prefix = `savesync/${accountId}/${artifactId}/manifests/`;
+  let selected: EpicRemoteSaveManifest | null = null;
+  let latest = "";
+  for (const [filename, metadata] of Object.entries(input.files)) {
+    const name = filename.slice(prefix.length);
+    if (
+      !filename.startsWith(prefix) ||
+      !manifestPattern.test(name) ||
+      !isRecord(metadata) ||
+      !isEpicRemoteSaveTimestamp(metadata.lastModified)
+    )
+      throw new EpicSaveFailure("save-sync-failed");
+    // Legendary sorts by remote lastModified, retaining response order for ties.
+    // Preserve Python datetime's microsecond precision rather than truncating to JS milliseconds.
+    const [seconds, fraction = ""] = metadata.lastModified
+      .slice(0, -1)
+      .split(".");
+    const timestamp = `${seconds}.${fraction.padEnd(6, "0")}Z`;
+    if (timestamp >= latest) {
+      latest = timestamp;
+      selected = { name, lastModified: metadata.lastModified };
+    }
+  }
+  return selected;
 }
 
 export function assertEpicSaveCommandSucceeded(
@@ -169,9 +180,10 @@ export function decideEpicSaveSync(
   anchor: EpicInstallation["saveAnchor"],
   localDigest: string,
   localFiles: number,
-  remoteManifest: string | null,
+  remote: EpicRemoteSaveManifest | null,
   pending: boolean
 ) {
+  const remoteManifest = remote?.name ?? null;
   if (!anchor) {
     if (localFiles && remoteManifest) return "conflict" as const;
     return remoteManifest
@@ -181,7 +193,9 @@ export function decideEpicSaveSync(
         : ("same" as const);
   }
   const localChanged = localDigest !== anchor.localDigest;
-  const remoteChanged = remoteManifest !== anchor.remoteManifest;
+  const remoteChanged =
+    remoteManifest !== anchor.remoteManifest ||
+    (remote?.lastModified ?? null) !== (anchor.remoteModifiedAt ?? null);
   if ((localChanged || pending) && remoteChanged) return "conflict" as const;
   if (remoteChanged)
     return remoteManifest

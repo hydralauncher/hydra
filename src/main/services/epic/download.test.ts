@@ -87,7 +87,12 @@ type Stream = (
   options: Parameters<typeof executeManagedLegendary>[3],
   destination: string
 ) => Promise<void>;
-async function fixture(t: TestContext, stream?: Stream, prereq?: boolean) {
+async function fixture(
+  t: TestContext,
+  stream?: Stream,
+  prereq?: boolean,
+  platform: NodeJS.Platform = "win32"
+) {
   const root = await fs.mkdtemp(path.join(os.tmpdir(), "hydra-epic-download-"));
   const base = path.join(root, "games");
   await fs.mkdir(base);
@@ -101,6 +106,7 @@ async function fixture(t: TestContext, stream?: Stream, prereq?: boolean) {
     | ((value: Download | undefined) => Promise<Download | undefined>)
     | undefined;
   let prerequisiteResult = prereq ?? true;
+  let prerequisiteCalls = 0;
   const enqueued: Download[] = [];
   const started: Download[] = [];
   const complete = deferred<void>();
@@ -205,9 +211,10 @@ async function fixture(t: TestContext, stream?: Stream, prereq?: boolean) {
       game = { ...game, ...patch(game) };
       return game;
     },
-    platform: "win32",
+    platform,
   });
   const service = new EpicDownloadService({
+    platform,
     runtime,
     installation,
     getDownload: async () => (downloadRead ? downloadRead(download) : download),
@@ -227,6 +234,7 @@ async function fixture(t: TestContext, stream?: Stream, prereq?: boolean) {
     },
     afterGameUpdated: () => complete.resolve(),
     runPrerequisite: async (_exe, args) => {
+      prerequisiteCalls++;
       assert.deepEqual(args, ["/quiet", "/quoted argument"]);
       return prerequisiteResult;
     },
@@ -265,6 +273,7 @@ async function fixture(t: TestContext, stream?: Stream, prereq?: boolean) {
     },
     getDownload: () => download,
     getGame: () => game,
+    getPrerequisiteCalls: () => prerequisiteCalls,
     invalidate: () => {
       current = false;
     },
@@ -748,6 +757,103 @@ test("retry after prerequisite failure completes without downloading the same bu
   assert.equal(f.commands.filter((args) => args.includes("install")).length, 1);
   assert.equal(f.getDownload()?.status, "complete");
 });
+
+test("Linux download completes without preparing Wine, Proton or Windows prerequisites", async (t) => {
+  const f = await fixture(t, undefined, false, "linux");
+  await f.service.start(f.payload);
+  await f.service.startRuntime(f.getDownload()!, (error) =>
+    f.failed.resolve(error)
+  );
+  await f.complete.promise;
+  const owned = await f.installation.capture(
+    objectId,
+    new AbortController().signal
+  );
+  const installed = await f.installation.readInstalled(
+    epicManagedTarget(owned, "Artifact1", "Windows"),
+    objectId
+  );
+  assert.equal(f.getDownload()?.status, "complete");
+  assert.equal(f.getDownload()?.progress, 1);
+  assert.ok(f.getGame().epicInstallation);
+  assert.ok(f.getGame().executablePath?.endsWith("Game.exe"));
+  assert.equal(f.getGame().winePrefixPath, undefined);
+  assert.equal(f.getPrerequisiteCalls(), 0);
+  assert.equal(installed?.prereq_info?.installed, false);
+  assert.equal(f.commands.filter((args) => args.includes("install")).length, 1);
+});
+
+for (const error of [
+  "compatibility-prefix-busy",
+  "compatibility-runtime-unavailable",
+] as const) {
+  test(`Linux retry after ${error} completes the existing transfer without compatibility setup`, async (t) => {
+    const f = await fixture(t, undefined, false, "linux");
+    await f.service.start(f.payload);
+    const owned = await f.installation.capture(
+      objectId,
+      new AbortController().signal
+    );
+    const target = epicManagedTarget(owned, "Artifact1", "Windows");
+    const prepared = await f.installation.prepare(
+      owned,
+      "Artifact1",
+      "Windows",
+      new AbortController().signal
+    );
+    await f.installation.persistPreparation(
+      prepared,
+      objectId,
+      new AbortController().signal
+    );
+    const destination = path.join(f.base, "EpicGame");
+    await fs.mkdir(destination);
+    await fs.writeFile(path.join(destination, "Game.exe"), "downloaded-game");
+    await fs.writeFile(
+      path.join(f.runtime.workspace(target), "installed.json"),
+      JSON.stringify({
+        Artifact1: {
+          app_name: "Artifact1",
+          platform: "Windows",
+          install_path: destination,
+          executable: "Game.exe",
+          install_size: 4 * MIB,
+          version: "build-1",
+          prereq_info: {
+            path: "Prerequisite.exe",
+            args: "/quiet",
+            installed: false,
+          },
+        },
+      })
+    );
+    f.setDownload({
+      ...f.getDownload()!,
+      status: "error",
+      progress: 0.9907,
+      bytesDownloaded: 2 * MIB,
+      epic: { ...f.getDownload()!.epic!, phase: "prerequisites", error },
+    });
+    await f.service.startRuntime(f.getDownload()!, (failure) =>
+      f.failed.resolve(failure)
+    );
+    await f.complete.promise;
+    assert.equal(
+      f.commands.filter((args) => args.includes("install")).length,
+      0
+    );
+    assert.equal(f.getPrerequisiteCalls(), 0);
+    assert.equal(f.getDownload()?.status, "complete");
+    assert.equal(f.getDownload()?.progress, 1);
+    assert.equal(f.getDownload()?.bytesDownloaded, 2 * MIB);
+    assert.equal(f.getDownload()?.epic?.error, undefined);
+    assert.ok(f.getGame().epicInstallation);
+    assert.equal(
+      await fs.readFile(path.join(destination, "Game.exe"), "utf8"),
+      "downloaded-game"
+    );
+  });
+}
 
 test("pause during finalization record read cannot publish completion afterwards", async (t) => {
   const f = await fixture(t);

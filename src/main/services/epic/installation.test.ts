@@ -109,7 +109,7 @@ const game: Game = {
   },
 };
 
-async function fixture(t: TestContext) {
+async function fixture(t: TestContext, platform: NodeJS.Platform = "win32") {
   const root = await fs.mkdtemp(path.join(os.tmpdir(), "hydra-epic-install-"));
   let local = structuredClone(game);
   let remoteOwned = true;
@@ -226,7 +226,8 @@ async function fixture(t: TestContext) {
       local = { ...local, ...patch(local) };
       return local;
     },
-    platform: "win32",
+    platform,
+    architecture: "x64",
   });
   t.after(async () => {
     await runtime.stop();
@@ -318,6 +319,18 @@ test("installation options prove exact alias identity and separate download/disk
     "verified metadata can be reused for the same owner/alias/platform"
   );
   assert.equal(f.commands.filter((args) => args.includes("info")).length, 1);
+});
+
+test("Linux x64 resolves owned Windows builds with the same installation validations", async (t) => {
+  const f = await fixture(t, "linux");
+  const options = await f.service.getOptions(objectId);
+  assert.equal(options.options[0].platform, "Windows");
+  assert.equal(options.options[0].artifactId, "Artifact1");
+  f.disown();
+  await assert.rejects(
+    f.service.capture(objectId, new AbortController().signal),
+    { code: "game-not-owned" }
+  );
 });
 
 test("preview prefetch and modal coalesce commands and reuse successful options without remote requests", async (t) => {
@@ -443,6 +456,46 @@ test("cancelling the last preview consumer aborts work and reopening immediately
   assert.equal(f.commands.filter((args) => args.includes("info")).length, 2);
 });
 
+test("cancelling a capture releases connection cleanup before the captured query resolves without checking ownership", async (t) => {
+  const f = await fixture(t);
+  const entered = deferred<void>();
+  const releaseQuery = deferred<void>();
+  let querySettled = false;
+  f.beforeCapture(async () => {
+    entered.resolve();
+    await releaseQuery.promise;
+    querySettled = true;
+  });
+  const ownershipRequests = f.ownershipRequests();
+  const controller = new AbortController();
+  const pending = f.service.capture(objectId, controller.signal);
+  let cleanupSettled = false;
+  const cleanup = assert
+    .rejects(pending, { code: "operation-cancelled" })
+    .then(() => {
+      cleanupSettled = true;
+    });
+  await entered.promise;
+  controller.abort();
+  try {
+    // A connection transition waits for launch cleanup before resolving its
+    // query. Cancellation must break that dependency without awaiting the query.
+    await new Promise<void>((resolve) => setImmediate(resolve));
+    assert.equal(cleanupSettled, true);
+    assert.equal(querySettled, false);
+    assert.equal(f.ownershipRequests(), ownershipRequests);
+    assert.equal(f.commands.length, 0);
+  } finally {
+    releaseQuery.resolve();
+    await cleanup;
+  }
+  await new Promise<void>((resolve) => setImmediate(resolve));
+  assert.equal(querySettled, true);
+  assert.equal(f.ownershipRequests(), ownershipRequests);
+  f.beforeCapture(undefined);
+  await f.service.capture(objectId, new AbortController().signal);
+  assert.equal(f.ownershipRequests(), ownershipRequests + 1);
+});
 test("preview deadline includes connection capture and a timeout remains retryable", async (t) => {
   const f = await fixture(t);
   const entered = deferred<void>();
@@ -929,6 +982,88 @@ test("installed metadata binds the manifest executable preserving import provena
   }
 });
 
+test("queued prerequisite confirmation cancels without modifying installation or releasing the active workspace", async (t) => {
+  const f = await fixture(t, "linux");
+  const prepared = await f.service.prepare(
+    f.owned,
+    "Artifact1",
+    "Windows",
+    new AbortController().signal
+  );
+  await f.service.persistPreparation(
+    prepared,
+    objectId,
+    new AbortController().signal
+  );
+  const installPath = path.join(f.root, "EpicGame");
+  await fs.mkdir(installPath);
+  await fs.writeFile(path.join(installPath, "Game.exe"), "game");
+  const file = path.join(f.runtime.workspace(f.target), "installed.json");
+  await fs.writeFile(
+    file,
+    JSON.stringify({
+      Artifact1: {
+        app_name: "Artifact1",
+        platform: "Windows",
+        version: "build-1",
+        install_path: installPath,
+        executable: "Game.exe",
+        install_size: 1000,
+        prereq_info: { path: "Redist.exe", args: "/quiet", installed: false },
+      },
+    })
+  );
+  const installed = await f.service.readInstalled(f.target, objectId);
+  assert.ok(installed);
+  const release = deferred<void>();
+  const entered = deferred<void>();
+  const active = f.runtime.serializeWorkspace(f.target, async () => {
+    entered.resolve();
+    await release.promise;
+  });
+  await entered.promise;
+  const controller = new AbortController();
+  const confirmation = f.service.confirmPrerequisites(
+    f.target,
+    installed,
+    controller.signal
+  );
+  const cancelled = assert.rejects(confirmation, {
+    code: "operation-cancelled",
+  });
+  let nextRan = false;
+  const next = f.runtime.serializeWorkspace(f.target, async () => {
+    nextRan = true;
+  });
+  try {
+    controller.abort();
+    await cancelled;
+    assert.equal(nextRan, false);
+    assert.equal(
+      JSON.parse(await fs.readFile(file, "utf8")).Artifact1.prereq_info
+        .installed,
+      false
+    );
+  } finally {
+    release.resolve();
+    await active;
+    await next;
+  }
+  assert.equal(
+    JSON.parse(await fs.readFile(file, "utf8")).Artifact1.prereq_info.installed,
+    false
+  );
+  await f.service.confirmPrerequisites(
+    f.target,
+    installed,
+    new AbortController().signal
+  );
+  assert.equal(
+    JSON.parse(await fs.readFile(file, "utf8")).Artifact1.prereq_info.installed,
+    true
+  );
+});
+
 test("installed executable realpath cannot escape through a directory junction", async (t) => {
   const f = await fixture(t);
   const prepared = await f.service.prepare(
@@ -961,5 +1096,7 @@ test("installed executable realpath cannot escape through a directory junction",
       },
     })
   );
-  assert.equal(await f.service.readInstalled(f.target, objectId), null);
+  await assert.rejects(f.service.readInstalled(f.target, objectId), {
+    code: "invalid-path",
+  });
 });

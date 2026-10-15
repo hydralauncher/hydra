@@ -90,7 +90,8 @@ export function RepacksModal({
   const { steam: steamGame, epic: epicGame } = getOfficialStoreMembers(
     presentation?.members ?? (game ? [game] : [])
   );
-  const { available: epicAvailable, connection } = useEpicManagedConnection();
+  const { installationAvailable: epicAvailable, connection } =
+    useEpicManagedConnection();
   const { updateLibrary } = useLibrary();
   const [epicInstallGame, setEpicInstallGame] = useState<LibraryGame | null>(
     null

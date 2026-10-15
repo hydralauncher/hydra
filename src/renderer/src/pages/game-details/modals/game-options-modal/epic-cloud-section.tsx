@@ -62,6 +62,8 @@ export function EpicCloudSettingsSection({
       state.error !== "save-path-required" &&
       state.error !== "invalid-path");
   const disabled = unavailable || cloud.loading || cloud.busy || isGameRunning;
+  const settingsDisabled =
+    !cloud.available || !state || cloud.loading || cloud.busy || isGameRunning;
   const error =
     cloud.readError || !cloud.available
       ? "network"
@@ -115,7 +117,7 @@ export function EpicCloudSettingsSection({
                 role="switch"
                 aria-checked={state.automaticSync}
                 aria-label={t("epic_save_automatic")}
-                disabled={disabled}
+                disabled={settingsDisabled}
                 className={`cloud-save-v2__switch ${state.automaticSync ? "cloud-save-v2__switch--enabled" : ""}`}
                 onClick={() => void cloud.updateSettings(!state.automaticSync)}
               >
@@ -184,7 +186,7 @@ export function EpicCloudSettingsSection({
                   rightContent={
                     <Button
                       theme="outline"
-                      disabled={disabled}
+                      disabled={settingsDisabled}
                       onClick={() => void cloud.choosePath()}
                     >
                       <FolderOpenIcon size={16} />

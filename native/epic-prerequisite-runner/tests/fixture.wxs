@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Wix xmlns="http://schemas.microsoft.com/wix/2006/wi">
+  <Product Id="62EE9AAB-4665-4682-B152-D804B5D1A16A" Name="Hydra Epic prerequisite fixture" Language="1033" Version="1.0.0" Manufacturer="Hydra" UpgradeCode="52FD07F2-A693-4708-A128-93E10B0122FB">
+    <Package InstallerVersion="200" Compressed="yes" InstallScope="perUser" />
+    <Directory Id="TARGETDIR" Name="SourceDir">
+      <Component Id="FixtureRegistry" Guid="75A93842-F1B9-4A2E-B7C3-EEEBB2546DC1" Win64="yes">
+        <RegistryValue Root="HKCU" Key="Software\Hydra\EpicPrerequisiteFixture" Name="Installed" Type="string" Value="yes" KeyPath="yes" />
+      </Component>
+    </Directory>
+    <Feature Id="FixtureFeature" Level="1"><ComponentRef Id="FixtureRegistry" /></Feature>
+  </Product>
+</Wix>

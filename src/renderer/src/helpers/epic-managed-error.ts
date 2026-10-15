@@ -18,7 +18,23 @@ const CONNECTION_ERRORS = new Set<EpicErrorCode>([
   "oauth-client-mismatch",
 ]);
 
+const COMPATIBILITY_ERRORS = {
+  "compatibility-runtime-unavailable": "epic_compatibility_runtime_unavailable",
+  "compatibility-runtime-download-failed":
+    "epic_compatibility_runtime_download_failed",
+  "compatibility-prefix-invalid": "epic_compatibility_prefix_invalid",
+  "compatibility-prefix-busy": "epic_compatibility_prefix_busy",
+  "compatibility-launch-failed": "epic_compatibility_launch_failed",
+} as const;
+
 export const getEpicManagedError = (error: EpicSaveError | undefined) => {
+  if (error && Object.hasOwn(COMPATIBILITY_ERRORS, error))
+    return {
+      key: COMPATIBILITY_ERRORS[error as keyof typeof COMPATIBILITY_ERRORS],
+      ns: "game_details",
+    };
+  if (error === "unsupported-platform" || error === "unsupported-architecture")
+    return { key: "epic_install_platform_unsupported", ns: "game_details" };
   if (error && CONNECTION_ERRORS.has(error as EpicErrorCode)) {
     return {
       key: getEpicErrorTranslation(error as EpicErrorCode),
@@ -35,11 +51,7 @@ export const getEpicManagedError = (error: EpicSaveError | undefined) => {
     return { key: "epic_update_required", ns: "game_details" };
   if (error === "external-launcher-required")
     return { key: "epic_external_launcher_required", ns: "game_details" };
-  if (
-    error === "saves-unsupported" ||
-    error === "not-installable" ||
-    error === "unsupported-platform"
-  ) {
+  if (error === "saves-unsupported" || error === "not-installable") {
     return { key: "epic_save_status_unavailable", ns: "game_details" };
   }
   return { key: "epic_managed_error_generic", ns: "game_details" };
@@ -47,6 +59,7 @@ export const getEpicManagedError = (error: EpicSaveError | undefined) => {
 
 const LAUNCH_ERROR_CODES = new Set<string>([
   ...CONNECTION_ERRORS,
+  ...Object.keys(COMPATIBILITY_ERRORS),
   "save-path-required",
   "save-conflict",
   "save-sync-failed",

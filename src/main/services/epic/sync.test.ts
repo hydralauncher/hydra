@@ -572,6 +572,96 @@ function syncFixture() {
   return { state, deps, sync: new EpicSyncOrchestrator(deps) };
 }
 describe("Epic publication reconciliation", () => {
+  it("preserves fresh reconnect warnings when replacing resumed staging", async () => {
+    for (const totalChunks of [null, 2]) {
+      for (const requiresReconnect of [false, true]) {
+        const f = syncFixture();
+        f.state.journal = {
+          syncRunId: runId,
+          totalChunks,
+          mergePending: false,
+          requiresReconnect: !requiresReconnect,
+        };
+        f.deps.capture = async () => ({
+          ...context,
+          connection: {
+            ...connection,
+            capabilities: { achievementsSnapshotVersion: 1 },
+          },
+        });
+        const readRun = f.deps.run;
+        f.deps.run = async (...args) => ({
+          ...(await readRun(...args)),
+          achievementSnapshotVersion: 1,
+        });
+        f.deps.achievements = async (_context, games) => ({
+          games,
+          requiresReconnect,
+        });
+        f.deps.merge = async () => {
+          assert.equal(f.state.journal?.requiresReconnect, requiresReconnect);
+          return true;
+        };
+        await f.sync.start(connection.connectionId);
+        await f.sync.wait();
+        assert.equal(f.state.starts, 1);
+        assert.equal(f.state.result?.ok, true);
+        assert.equal(f.sync.getState().requiresReconnect, requiresReconnect);
+      }
+    }
+  });
+
+  it("collects achievements when replacing expired, failed or legacy staging", async () => {
+    for (const previous of ["expired", "FAILED", "PENDING"] as const) {
+      const f = syncFixture();
+      f.state.journal = {
+        syncRunId: runId,
+        totalChunks: 1,
+        mergePending: false,
+      };
+      f.state.status = previous === "FAILED" ? "FAILED" : "PENDING";
+      if (previous === "expired")
+        f.state.createdAt = new Date(
+          Date.now() - 2 * EPIC_PENDING_EXPIRATION_MS
+        ).toISOString();
+      f.deps.capture = async () => ({
+        ...context,
+        connection: {
+          ...connection,
+          capabilities: { achievementsSnapshotVersion: 1 },
+        },
+      });
+      let achievementCalls = 0;
+      f.deps.achievements = async (_context, games) => {
+        achievementCalls++;
+        return { games, requiresReconnect: false };
+      };
+      const readRun = f.deps.run;
+      const summary = {
+        status: "complete" as const,
+        gamesApplied: 1,
+        gamesPending: 0,
+        gamesUnsupported: 0,
+        unlocksApplied: 1,
+      };
+      f.deps.run = async (...args) => ({
+        ...(await readRun(...args)),
+        ...(f.state.starts
+          ? {
+              achievementSnapshotVersion: 1 as const,
+              achievementSummary: summary,
+            }
+          : {}),
+      });
+      await f.sync.start(connection.connectionId);
+      await f.sync.wait();
+      assert.equal(f.state.starts, 1, previous);
+      assert.equal(achievementCalls, 1, previous);
+      assert.equal(f.state.result?.ok, true, previous);
+      assert.deepEqual(f.state.result?.achievementSummary, summary, previous);
+    }
+  });
+
   it("publishes games and playtime when Legendary also lists applications and additional game labels", async () => {
     const f = syncFixture();
     const game = {

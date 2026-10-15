@@ -19,6 +19,7 @@ import type {
   useEpicManagedConnection,
 } from "./use-epic-managed";
 import type { useEpicCloudSaveControls } from "./use-epic-cloud-save-controls";
+import type { useGameLinuxCompatibility } from "./use-game-linux-compatibility";
 import type {
   getEpicLaunchError,
   getEpicManagedError,
@@ -226,6 +227,7 @@ async function fixture(t: TestContext, bridge: Record<string, unknown>) {
     });
   Object.assign(dom.window, {
     electron: {
+      platform: "win32",
       getEpicConnection: async () => ({ connection: { connected: false } }),
       onEpicConnectionChanged: () => () => {},
       setEpicCloudSaveSettings: async () => ({ ok: true }),
@@ -268,6 +270,236 @@ const state = (
 });
 
 describe("Epic managed UI lifecycle", () => {
+  for (const [platform, capability, expected] of [
+    ["win32", undefined, true],
+    ["linux", undefined, false],
+    ["linux", true, true],
+    ["linux", false, false],
+    ["win32", false, false],
+    ["darwin", undefined, false],
+  ] as const) {
+    it(`keeps bridge availability separate from installation support on ${platform} (${capability})`, async (t) => {
+      const { render } = await fixture(t, {
+        platform,
+        getEpicGameInstallOptions: async () => ({ options: [] }),
+        startEpicGameDownload: async () => ({ ok: true }),
+        getEpicConnection: async () => ({
+          connection: { connected: false },
+          ...(capability === undefined
+            ? {}
+            : { managedInstallation: { available: capability } }),
+        }),
+      });
+      const hook = loadModule("./use-epic-managed.ts")
+        .useEpicManagedConnection as typeof useEpicManagedConnection;
+      let current!: ReturnType<typeof hook>;
+      function Harness() {
+        current = hook();
+        return null;
+      }
+      await render(React.createElement(Harness));
+      assert.equal(current.available, true);
+      assert.equal(current.installationAvailable, expected);
+    });
+  }
+
+  it("reads the real game's effective Linux context and ignores older identities and preferences", async (t) => {
+    const requests: Array<{
+      shop: string;
+      objectId: string;
+      resolve: (value: unknown) => void;
+    }> = [];
+    const { render } = await fixture(t, {
+      platform: "linux",
+      getGameLinuxCompatibility: (shop: string, objectId: string) =>
+        new Promise((resolve) => requests.push({ shop, objectId, resolve })),
+    });
+    const hook = loadModule("./use-game-linux-compatibility.ts")
+      .useGameLinuxCompatibility as typeof useGameLinuxCompatibility;
+    let game = {
+      shop: "epic",
+      objectId: "actual:epic",
+      catalogueGame: { shop: "steam", objectId: "presentation" },
+    } as LibraryGame;
+    let current!: ReturnType<typeof hook>;
+    function Harness() {
+      current = hook(game);
+      return null;
+    }
+    await render(React.createElement(Harness));
+    assert.equal(requests[0].shop, "epic");
+    assert.equal(requests[0].objectId, "actual:epic");
+    game = { ...game, objectId: "second:epic" };
+    await render(React.createElement(Harness));
+    await React.act(async () =>
+      requests[0].resolve({
+        winePrefixPath: "/stale",
+        protonName: "old",
+        protonSource: "umu",
+      })
+    );
+    assert.equal(current.compatibility, null);
+    await React.act(async () =>
+      requests[1].resolve({
+        winePrefixPath: "/prefixes/epic/confirmed",
+        protonName: "UMU-Proton",
+        protonSource: "umu",
+      })
+    );
+    assert.equal(
+      (current as ReturnType<typeof hook>).compatibility?.winePrefixPath,
+      "/prefixes/epic/confirmed"
+    );
+    game = { ...game, protonPath: "/custom/Proton" };
+    await render(React.createElement(Harness));
+    assert.equal(current.compatibility, null);
+    assert.equal(requests.length, 3);
+    await render(React.createElement("div"));
+    await React.act(async () => requests[2].resolve(null));
+  });
+
+  it("keeps the Linux context read optional for older bridges and inactive controls", async (t) => {
+    const { render } = await fixture(t, { platform: "linux" });
+    const hook = loadModule("./use-game-linux-compatibility.ts")
+      .useGameLinuxCompatibility as typeof useGameLinuxCompatibility;
+    const game = { shop: "epic", objectId: "actual:epic" } as LibraryGame;
+    let current!: ReturnType<typeof hook>;
+    let enabled = true;
+    function Harness() {
+      current = hook(game, enabled);
+      return null;
+    }
+    await render(React.createElement(Harness));
+    assert.equal(current.compatibility, null);
+    let reads = 0;
+    Object.assign(Reflect.get(window, "electron") as object, {
+      getGameLinuxCompatibility: async () => {
+        reads++;
+        throw new Error("context unavailable");
+      },
+    });
+    enabled = false;
+    await render(React.createElement(Harness));
+    assert.equal(reads, 0);
+    enabled = true;
+    await render(React.createElement(Harness));
+    assert.equal(reads, 1);
+    assert.equal(current.compatibility, null);
+  });
+
+  it("shows the effective automatic prefix in the existing Big Picture controls and restores it after clearing a custom prefix", async (t) => {
+    const selected: unknown[][] = [];
+    const { render } = await fixture(t, {
+      platform: "linux",
+      getGameLinuxCompatibility: async () => ({
+        winePrefixPath: "/prefixes/epic/automatic",
+        protonName: "UMU-Proton-test",
+        protonSource: "umu",
+      }),
+      getInstalledProtonVersions: async () => [],
+      isGamemodeAvailable: async () => false,
+      isMangohudAvailable: async () => false,
+      selectGameWinePrefix: async (...args: unknown[]) => selected.push(args),
+    });
+    const wrap = ({ children }: { children: React.ReactNode }) =>
+      React.createElement("div", null, children);
+    const hook = loadModule("./use-game-linux-compatibility.ts");
+    const Tab = loadModule(
+      "../../../big-picture/src/components/pages/game/game-settings-modal/compatibility-tab.tsx",
+      {
+        "@renderer/hooks/use-game-linux-compatibility": hook,
+        "react-i18next": {
+          useTranslation: () => ({ t: (key: string) => key }),
+        },
+        "@phosphor-icons/react": {
+          FolderOpenIcon: () => null,
+          TrashIcon: () => null,
+        },
+        "../../../../hooks/use-user-preferences.hook": {
+          useUserPreferences: () => null,
+        },
+        "../../../../pages/settings/settings-section": {
+          SettingsSection: wrap,
+        },
+        "../../../common": {
+          VerticalFocusGroup: wrap,
+          HorizontalFocusGroup: wrap,
+          Input: ({
+            value,
+            placeholder,
+          }: {
+            value: string;
+            placeholder: string;
+          }) =>
+            React.createElement("input", {
+              value,
+              placeholder,
+              readOnly: true,
+            }),
+          Button: ({ children, onClick }: React.ComponentProps<"button">) =>
+            React.createElement("button", { onClick }, children),
+          Radio: ({ label }: { label: React.ReactNode }) => label,
+          Checkbox: () => null,
+          FileExplorerModal: () => null,
+        },
+        "./compatibility-tab.scss": {},
+      }
+    ).GameCompatibilitySettingsTab as React.FunctionComponent<{
+      game: LibraryGame;
+    }>;
+    const game = { shop: "epic", objectId: "actual:epic" } as LibraryGame;
+    await render(React.createElement(Tab, { game }));
+    assert.equal(
+      document.querySelector("input")?.value,
+      "/prefixes/epic/automatic"
+    );
+    assert.ok(document.body.textContent?.includes("UMU-Proton-test"));
+    assert.ok(!document.body.textContent?.includes("Clear"));
+    await render(
+      React.createElement(Tab, { game: { ...game, winePrefixPath: "/custom" } })
+    );
+    assert.equal(document.querySelector("input")?.value, "/custom");
+    const clear = [...document.querySelectorAll("button")].find(
+      (button) => button.textContent === "Clear"
+    );
+    assert.ok(clear);
+    await React.act(async () => clear.click());
+    assert.deepEqual(selected, [["epic", "actual:epic", null]]);
+    assert.equal(
+      document.querySelector("input")?.value,
+      "/prefixes/epic/automatic"
+    );
+  });
+
+  it("provides every compatibility error and preparation label in every locale", () => {
+    const localeRoot = new URL("../../../locales/", import.meta.url);
+    const keys = [
+      "epic_compatibility_runtime_unavailable",
+      "epic_compatibility_runtime_download_failed",
+      "epic_compatibility_prefix_invalid",
+      "epic_compatibility_prefix_busy",
+      "epic_compatibility_launch_failed",
+      "epic_install_platform_unsupported",
+      "epic_compatibility_automatic",
+      "epic_finalizing_install",
+      "epic_prerequisites_required",
+    ];
+    for (const locale of fs.readdirSync(localeRoot, { withFileTypes: true })) {
+      if (!locale.isDirectory()) continue;
+      const { game_details: translations } = JSON.parse(
+        fs.readFileSync(
+          new URL(`${locale.name}/translation.json`, localeRoot),
+          "utf8"
+        )
+      );
+      for (const key of keys)
+        assert.ok(
+          typeof translations[key] === "string" && translations[key].length > 0,
+          `${locale.name}: ${key}`
+        );
+    }
+  });
+
   it("finishes the options measurement only after a painted enabled button and cancels abandoned frames", async (t) => {
     await fixture(t, {});
     const previous = ["requestAnimationFrame", "cancelAnimationFrame"].map(
@@ -415,6 +647,8 @@ describe("Epic managed UI lifecycle", () => {
         "@renderer/hooks/use-epic-managed": {
           useEpicManagedConnection: () => ({
             available: typeof electron.getEpicGameInstallOptions === "function",
+            installationAvailable:
+              typeof electron.getEpicGameInstallOptions === "function",
             connection,
           }),
         },
@@ -556,7 +790,11 @@ describe("Epic managed UI lifecycle", () => {
       {
         "@renderer/context": { gameDetailsContext: context },
         "@renderer/hooks/use-epic-managed": {
-          useEpicManagedConnection: () => ({ available: true, connection }),
+          useEpicManagedConnection: () => ({
+            available: true,
+            installationAvailable: true,
+            connection,
+          }),
         },
         "@renderer/hooks": {
           useDate: () => ({ formatDate: () => "" }),
@@ -1470,11 +1708,15 @@ describe("Epic managed UI lifecycle", () => {
     assert.equal(stopped, 1);
   });
 
-  it("passes the observed manifest in an explicit conflict decision", async (t) => {
+  it("passes the observed manifest and upload date in an explicit conflict decision", async (t) => {
     const calls: unknown[] = [];
     const { render } = await fixture(t, {
       getEpicCloudSaveState: async () =>
-        state({ status: "conflict", remoteManifest: "remote-v2" }),
+        state({
+          status: "conflict",
+          remoteManifest: "remote-v2",
+          remoteModifiedAt: "2026-10-15T12:00:00.000Z",
+        }),
       onEpicCloudSaveStateChanged: () => () => {},
       resolveEpicCloudSaveConflict: async (payload: unknown) => {
         calls.push(payload);
@@ -1496,6 +1738,7 @@ describe("Epic managed UI lifecycle", () => {
       {
         epicObjectId: "namespace:executable",
         expectedRemoteManifest: "remote-v2",
+        expectedRemoteModifiedAt: "2026-10-15T12:00:00.000Z",
         choice: "remote",
       },
     ]);
@@ -1640,6 +1883,17 @@ describe("Epic managed UI lifecycle", () => {
       ["update-required", "epic_update_required"],
       ["external-launcher-required", "epic_external_launcher_required"],
       ["session-expired", "epic_error_session-expired"],
+      [
+        "compatibility-runtime-unavailable",
+        "epic_compatibility_runtime_unavailable",
+      ],
+      [
+        "compatibility-runtime-download-failed",
+        "epic_compatibility_runtime_download_failed",
+      ],
+      ["compatibility-prefix-invalid", "epic_compatibility_prefix_invalid"],
+      ["compatibility-prefix-busy", "epic_compatibility_prefix_busy"],
+      ["compatibility-launch-failed", "epic_compatibility_launch_failed"],
     ]) {
       const error = new Error(
         `Error invoking remote method 'openGame': EpicSaveFailure: ${code}`
@@ -1647,6 +1901,8 @@ describe("Epic managed UI lifecycle", () => {
       const parsed = helpers.getEpicLaunchError(error);
       assert.equal(parsed, code);
       assert.equal(helpers.getEpicManagedError(parsed).key, key);
+      if (code.startsWith("compatibility-"))
+        assert.equal(helpers.getEpicManagedError(parsed).ns, "game_details");
     }
     assert.equal(
       helpers.getEpicLaunchError(
@@ -1654,6 +1910,10 @@ describe("Epic managed UI lifecycle", () => {
       ),
       undefined
     );
+    assert.deepEqual(helpers.getEpicManagedError("unsupported-platform"), {
+      key: "epic_install_platform_unsupported",
+      ns: "game_details",
+    });
   });
 
   it("shows only the game card, official launcher guidance and disabled download for external installation", async (t) => {
@@ -1770,7 +2030,7 @@ describe("Epic managed UI lifecycle", () => {
     { canRunOffline: true, launchError: "save-conflict", conflict: true },
     { canRunOffline: true, launchError: "network", conflict: true },
   ]) {
-    it(`routes launch failure ${launchError} to conflict resolution (${conflict}) or supported offline retry (${canRunOffline}) for the real Epic copy`, async (t) => {
+    it(`launches the selected Epic copy with both stores installed and routes ${launchError} to conflict (${conflict}) or offline retry (${canRunOffline})`, async (t) => {
       const calls: unknown[][] = [];
       const { render } = await fixture(t, {
         openGame: async (...args: unknown[]) => {
@@ -1803,7 +2063,12 @@ describe("Epic managed UI lifecycle", () => {
       } as LibraryGame;
       const context = React.createContext({
         game,
-        presentation: null,
+        presentation: {
+          members: [
+            game,
+            { ...game, id: "steam:123", shop: "steam", objectId: "123" },
+          ],
+        },
         downloadGame: null,
         repacks: [],
         updateGame: async () => {},

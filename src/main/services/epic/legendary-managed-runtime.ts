@@ -739,140 +739,148 @@ export class LegendaryManagedRuntime {
   ): Promise<unknown> {
     if (target.localOnly !== true)
       throw new EpicManagedError("invalid-operation");
-    return this.serializeWorkspace(target, async (directory) => {
-      const controller = new AbortController();
-      const abort = () => controller.abort();
-      options.signal.addEventListener("abort", abort, { once: true });
-      if (options.signal.aborted) controller.abort();
-      const operation = this.options.session.useLocalIdentity(
-        target.auth,
-        target.connection,
-        controller.signal,
-        async (identity) => {
-          try {
-            await this.clearCredentials(directory);
-            await fs.writeFile(
-              path.join(directory, "user.json"),
-              JSON.stringify(identity),
-              { mode: 0o600, flag: "wx" }
-            );
-            this.assertCurrent(target, controller.signal);
-            const result = await (
-              this.options.execute ?? executeManagedLegendary
-            )(
-              await withEpicTiming("runtime.binary.resolve", () =>
-                this.options.binary()
-              ),
-              [
-                "--api-timeout",
-                String(EPIC_LEGENDARY_API_TIMEOUT_SECONDS),
-                "launch",
-                target.artifactId,
-                "--offline",
-                "--json",
-                "--no-wine",
-              ],
-              directory,
-              { signal: controller.signal, timeout: EPIC_SYNC_TIMEOUT_MS }
-            );
-            this.assertCurrent(target, controller.signal);
+    return this.serializeWorkspace(
+      target,
+      async (directory) => {
+        const controller = new AbortController();
+        const abort = () => controller.abort();
+        options.signal.addEventListener("abort", abort, { once: true });
+        if (options.signal.aborted) controller.abort();
+        const operation = this.options.session.useLocalIdentity(
+          target.auth,
+          target.connection,
+          controller.signal,
+          async (identity) => {
             try {
-              return JSON.parse(result.stdout);
-            } catch {
-              throw new EpicManagedError("invalid-response");
+              await this.clearCredentials(directory);
+              await fs.writeFile(
+                path.join(directory, "user.json"),
+                JSON.stringify(identity),
+                { mode: 0o600, flag: "wx" }
+              );
+              this.assertCurrent(target, controller.signal);
+              const result = await (
+                this.options.execute ?? executeManagedLegendary
+              )(
+                await withEpicTiming("runtime.binary.resolve", () =>
+                  this.options.binary()
+                ),
+                [
+                  "--api-timeout",
+                  String(EPIC_LEGENDARY_API_TIMEOUT_SECONDS),
+                  "launch",
+                  target.artifactId,
+                  "--offline",
+                  "--json",
+                  "--no-wine",
+                ],
+                directory,
+                { signal: controller.signal, timeout: EPIC_SYNC_TIMEOUT_MS }
+              );
+              this.assertCurrent(target, controller.signal);
+              try {
+                return JSON.parse(result.stdout);
+              } catch {
+                throw new EpicManagedError("invalid-response");
+              }
+            } finally {
+              await this.clearCredentials(directory);
             }
-          } finally {
-            await this.clearCredentials(directory);
-          }
-        },
-        () => this.current(target)
-      );
-      this.active.set(controller, operation);
-      try {
-        return await operation;
-      } finally {
-        options.signal.removeEventListener("abort", abort);
-        this.active.delete(controller);
-      }
-    });
+          },
+          () => this.current(target)
+        );
+        this.active.set(controller, operation);
+        try {
+          return await operation;
+        } finally {
+          options.signal.removeEventListener("abort", abort);
+          this.active.delete(controller);
+        }
+      },
+      options.signal
+    );
   }
   async stream(
     target: EpicManagedTarget,
     args: string[],
     options: { signal: AbortSignal; onLine: (line: string) => void }
   ) {
-    return this.serializeWorkspace(target, async (directory) => {
-      const controller = new AbortController();
-      const abort = () => controller.abort();
-      options.signal.addEventListener("abort", abort, { once: true });
-      if (options.signal.aborted) controller.abort();
-      let processOperation: Promise<unknown> | undefined;
-      const operation = this.options.session.useBundle(
-        target.auth,
-        target.connection,
-        controller.signal,
-        async (bundle, save) => {
-          let prepared!: () => void;
-          const boundary = new Promise<void>((done) => {
-            prepared = done;
-          });
-          let hasBoundary = false;
-          try {
-            await this.credentials(directory, bundle);
-            this.assertCurrent(target, controller.signal);
-            processOperation = (
-              this.options.execute ?? executeManagedLegendary
-            )(
-              await withEpicTiming("runtime.binary.resolve", () =>
-                this.options.binary()
-              ),
-              [
-                "--api-timeout",
-                String(EPIC_LEGENDARY_API_TIMEOUT_SECONDS),
-                ...args,
-              ],
-              directory,
-              {
-                signal: controller.signal,
-                streaming: true,
-                onLine: (line) => {
-                  if (
-                    !hasBoundary &&
-                    /\bDownload size(?::| is 0\b)/.test(line)
-                  ) {
-                    hasBoundary = true;
-                    markEpicTiming("runtime.transfer.prepared");
-                    prepared();
-                  }
-                  options.onLine(line);
-                },
-              }
-            );
-            // The token lease ends after preparation, not after hours of transfer.
-            await Promise.race([boundary, processOperation]);
-            await this.saveSession(directory, target, save);
-          } catch (error) {
-            controller.abort();
-            await processOperation?.catch(() => undefined);
-            // On preparation failures a refresh may already have rotated credentials.
-            await this.saveSession(directory, target, save);
-            throw error;
-          } finally {
-            await this.clearCredentials(directory);
+    return this.serializeWorkspace(
+      target,
+      async (directory) => {
+        const controller = new AbortController();
+        const abort = () => controller.abort();
+        options.signal.addEventListener("abort", abort, { once: true });
+        if (options.signal.aborted) controller.abort();
+        let processOperation: Promise<unknown> | undefined;
+        const operation = this.options.session.useBundle(
+          target.auth,
+          target.connection,
+          controller.signal,
+          async (bundle, save) => {
+            let prepared!: () => void;
+            const boundary = new Promise<void>((done) => {
+              prepared = done;
+            });
+            let hasBoundary = false;
+            try {
+              await this.credentials(directory, bundle);
+              this.assertCurrent(target, controller.signal);
+              processOperation = (
+                this.options.execute ?? executeManagedLegendary
+              )(
+                await withEpicTiming("runtime.binary.resolve", () =>
+                  this.options.binary()
+                ),
+                [
+                  "--api-timeout",
+                  String(EPIC_LEGENDARY_API_TIMEOUT_SECONDS),
+                  ...args,
+                ],
+                directory,
+                {
+                  signal: controller.signal,
+                  streaming: true,
+                  onLine: (line) => {
+                    if (
+                      !hasBoundary &&
+                      /\bDownload size(?::| is 0\b)/.test(line)
+                    ) {
+                      hasBoundary = true;
+                      markEpicTiming("runtime.transfer.prepared");
+                      prepared();
+                    }
+                    options.onLine(line);
+                  },
+                }
+              );
+              // The token lease ends after preparation, not after hours of transfer.
+              await Promise.race([boundary, processOperation]);
+              await this.saveSession(directory, target, save);
+            } catch (error) {
+              controller.abort();
+              await processOperation?.catch(() => undefined);
+              // On preparation failures a refresh may already have rotated credentials.
+              await this.saveSession(directory, target, save);
+              throw error;
+            } finally {
+              await this.clearCredentials(directory);
+            }
           }
+        );
+        const all = operation.then(() => processOperation);
+        this.active.set(controller, all);
+        try {
+          await all;
+          this.assertCurrent(target, options.signal);
+        } finally {
+          options.signal.removeEventListener("abort", abort);
+          this.active.delete(controller);
+          await this.clearCredentials(directory);
         }
-      );
-      const all = operation.then(() => processOperation);
-      this.active.set(controller, all);
-      try {
-        await all;
-        this.assertCurrent(target, options.signal);
-      } finally {
-        options.signal.removeEventListener("abort", abort);
-        this.active.delete(controller);
-        await this.clearCredentials(directory);
-      }
-    });
+      },
+      options.signal
+    );
   }
   async stop() {
     for (const controller of this.active.keys()) controller.abort();

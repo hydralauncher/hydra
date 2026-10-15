@@ -13,6 +13,8 @@ import type { EpicSyncContext } from "./sync-orchestrator";
 import { isRecord } from "./auth-protocol.js";
 import { isEpicObjectId } from "./library-normalizer.js";
 import { markEpicTiming, withEpicTiming } from "./timing.js";
+import { epicManagedInstallationSupport } from "./managed-platform.js";
+import { resolveEpicWindowsPath } from "./windows-path.js";
 import {
   EPIC_SYNC_MAX_OUTPUT_BYTES,
   EPIC_MAX_ARTIFACTS,
@@ -82,6 +84,7 @@ interface InstallationOptions {
     patch: (game: Game) => Partial<Game>
   ) => Promise<Game | undefined>;
   platform?: NodeJS.Platform;
+  architecture?: string;
 }
 
 interface SharedEpicRequest<T> {
@@ -472,11 +475,13 @@ export class EpicInstallationService {
     };
   }
   assertPlatform(platform: EpicInstallPlatform) {
-    // Other platform builds are intentionally not advertised before validation.
-    if (
-      (this.options.platform ?? process.platform) !== "win32" ||
-      platform !== "Windows"
-    )
+    const support = epicManagedInstallationSupport(
+      this.options.platform ?? process.platform,
+      this.options.architecture ?? process.arch
+    );
+    if (!support.available)
+      throw new EpicManagedError(support.reason ?? "unsupported-platform");
+    if (platform !== "Windows")
       throw new EpicManagedError("unsupported-platform");
   }
   private assertAlias(owned: EpicOwnedGame, target: EpicManagedTarget) {
@@ -933,7 +938,10 @@ export class EpicInstallationService {
     const candidate = path.resolve(installPath, normalizedExe);
     if (!isPathContained(installPath, candidate))
       throw new EpicManagedError("invalid-path");
-    const executablePath = await fs.realpath(candidate).catch(() => null);
+    const executablePath = await resolveEpicWindowsPath(
+      installPath,
+      normalizedExe
+    );
     if (
       !executablePath ||
       !isPathContained(installPath, executablePath) ||
@@ -956,6 +964,33 @@ export class EpicInstallationService {
       installPath,
       executablePath,
     } as EpicInstalledGame;
+  }
+  async confirmPrerequisites(
+    target: EpicManagedTarget,
+    installed: EpicInstalledGame,
+    signal: AbortSignal
+  ) {
+    if (!installed.prereq_info) return;
+    await this.runtime.serializeWorkspace(
+      target,
+      async (directory) => {
+        this.runtime.assertCurrent(target, signal);
+        const file = path.join(directory, "installed.json");
+        const values = await readManagedJson(file);
+        const entry = isRecord(values) ? values[target.artifactId] : null;
+        if (
+          !isRecord(values) ||
+          !isRecord(entry) ||
+          !isRecord(entry.prereq_info) ||
+          entry.version !== installed.version ||
+          entry.install_path !== installed.install_path
+        )
+          throw new EpicManagedError("installation-incomplete");
+        entry.prereq_info.installed = true;
+        await writeManagedJson(file, values);
+      },
+      signal
+    );
   }
   async folderName(target: EpicManagedTarget, objectId: string) {
     const entry = await this.metadata(target, objectId);

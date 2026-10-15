@@ -14,9 +14,13 @@ export interface EpicInstallation {
   artifactId: string;
   platform: EpicInstallPlatform;
   savePath?: string | null;
+  savePathSource?: "automatic" | "custom";
+  savePathPrefixGeneration?: string;
   automaticSaveSync?: boolean;
   saveAnchor?: {
     remoteManifest: string | null;
+    /** Missing on legacy anchors, which must recheck the remote version. */
+    remoteModifiedAt?: string | null;
     localDigest: string;
   };
   pendingSaveUpload?: boolean;
@@ -46,7 +50,18 @@ export type EpicInstallError =
   | "process-failed"
   | "prerequisites-required"
   | "game-running"
-  | "update-required";
+  | "update-required"
+  | "compatibility-runtime-unavailable"
+  | "compatibility-runtime-download-failed"
+  | "compatibility-prefix-invalid"
+  | "compatibility-prefix-busy"
+  | "compatibility-launch-failed";
+
+export interface EpicLinuxCompatibility {
+  winePrefixPath: string | null;
+  protonName: string | null;
+  protonSource: "game" | "global" | "umu";
+}
 
 export interface EpicGameInstallOption {
   preparationId?: string;
@@ -119,6 +134,7 @@ export interface EpicCloudSaveSettings {
 export interface ResolveEpicCloudSaveConflictPayload {
   epicObjectId: string;
   expectedRemoteManifest: string | null;
+  expectedRemoteModifiedAt: string | null;
   choice: "local" | "remote";
 }
 

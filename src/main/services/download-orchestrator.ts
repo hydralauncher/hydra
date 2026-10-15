@@ -197,9 +197,11 @@ export class DownloadOrchestrator {
             download.shop,
             download.objectId
           );
+          // A failed Epic startup parks its own record as paused; while the
+          // ticket is current no user pause or cancel has replaced it.
           if (
             this.acceptedEpicActivations.get(downloadId) !== ticket ||
-            current?.status !== "active" ||
+            (current?.status !== "active" && current?.status !== "paused") ||
             current.timestamp !== activeDownload.timestamp
           )
             return;
