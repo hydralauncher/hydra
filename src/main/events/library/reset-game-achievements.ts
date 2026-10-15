@@ -32,34 +32,40 @@ const deleteRemoteAchievements = async (
   levelKey: string,
   remoteId: string | null,
   context: HydraApiAuthContext,
-  current: () => boolean
-) => {
-  for (let attempt = 0; ; attempt++) {
-    try {
-      return await achievementSyncCoordinator.runResetRequest(
-        levelKey,
-        () =>
-          HydraApi.delete(`/profile/games/achievements/${remoteId}`, {
-            authContext: context,
-            timeout: ACHIEVEMENT_SYNC_REQUEST_TIMEOUT_MS,
-          }),
-        current
-      );
-    } catch (error) {
-      const status = isAxiosError(error) ? error.response?.status : undefined;
-      if (
-        attempt + 1 >= ACHIEVEMENT_RESET_MAX_ATTEMPTS ||
-        status === undefined ||
-        !isRetryableAchievementSyncStatus(status)
-      )
-        throw error;
-      achievementsLogger.warn(
-        "Achievement reset request failed, retrying",
-        levelKey,
-        status
-      );
-      await setTimeout(getAchievementSyncRetryDelay(error, attempt));
-    }
+  current: () => boolean,
+  attempt = 0
+): Promise<void> => {
+  try {
+    await achievementSyncCoordinator.runResetRequest(
+      levelKey,
+      () =>
+        HydraApi.delete(`/profile/games/achievements/${remoteId}`, {
+          authContext: context,
+          timeout: ACHIEVEMENT_SYNC_REQUEST_TIMEOUT_MS,
+        }),
+      current
+    );
+  } catch (error) {
+    const status = isAxiosError(error) ? error.response?.status : undefined;
+    if (
+      attempt + 1 >= ACHIEVEMENT_RESET_MAX_ATTEMPTS ||
+      status === undefined ||
+      !isRetryableAchievementSyncStatus(status)
+    )
+      throw error;
+    achievementsLogger.warn(
+      "Achievement reset request failed, retrying",
+      levelKey,
+      status
+    );
+    await setTimeout(getAchievementSyncRetryDelay(error, attempt));
+    await deleteRemoteAchievements(
+      levelKey,
+      remoteId,
+      context,
+      current,
+      attempt + 1
+    );
   }
 };
 
