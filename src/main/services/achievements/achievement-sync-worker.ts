@@ -19,6 +19,7 @@ import {
   ACHIEVEMENT_SYNC_MAX_RETRY_EXPONENT,
   ACHIEVEMENT_SYNC_RETRY_JITTER_DIVISOR,
   ACHIEVEMENT_SYNC_MAX_TIMER_DELAY_MS,
+  ACHIEVEMENT_SYNC_RETRYABLE_CLIENT_STATUSES,
 } from "./achievement-sync-coordinator";
 import { isAxiosError } from "axios";
 
@@ -70,6 +71,9 @@ export const getAchievementSyncRetryDelay = (
   );
   return Math.max(serverDelay, backoff + jitter);
 };
+
+export const isRetryableAchievementSyncStatus = (status: number) =>
+  status >= 500 || ACHIEVEMENT_SYNC_RETRYABLE_CLIENT_STATUSES.includes(status);
 
 export const toAchievementSyncPayload = (item: PendingAchievementSync) => ({
   id: item.remoteId,
@@ -222,9 +226,7 @@ export class AchievementSyncWorker {
             ? error.response?.status
             : undefined;
           const terminal =
-            status !== undefined &&
-            status < 500 &&
-            ![408, 409, 429].includes(status);
+            status !== undefined && !isRetryableAchievementSyncStatus(status);
           // Apply server backoff to newer snapshots too, without losing their unlocks.
           await pending.put(key, {
             ...latest,

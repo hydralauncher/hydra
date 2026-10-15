@@ -1,10 +1,17 @@
+import { setTimeout } from "node:timers/promises";
+import { isAxiosError } from "axios";
 import {
   achievementSyncCoordinator,
   AchievementSyncCancelledError,
+  ACHIEVEMENT_RESET_MAX_ATTEMPTS,
   ACHIEVEMENT_SYNC_REQUEST_TIMEOUT_MS,
 } from "@main/services/achievements/achievement-sync-coordinator";
 import type { HydraApiAuthContext } from "@main/services/hydra-auth-context";
-import { achievementSyncWorker } from "@main/services/achievements/achievement-sync-worker";
+import {
+  achievementSyncWorker,
+  getAchievementSyncRetryDelay,
+  isRetryableAchievementSyncStatus,
+} from "@main/services/achievements/achievement-sync-worker";
 import { registerEvent } from "../register-event";
 import { collectGameAchievementFiles } from "@main/services/achievements/collect-game-achievement-files";
 import fs from "fs";
@@ -20,6 +27,41 @@ import {
 } from "@main/services/achievements/grouped-souvenir-worker";
 import { AchievementWatcherManager } from "@main/services/achievements/achievement-watcher-manager";
 import { updateGameRecord } from "@main/services/game-record-updater";
+
+const deleteRemoteAchievements = async (
+  levelKey: string,
+  remoteId: string | null,
+  context: HydraApiAuthContext,
+  current: () => boolean
+) => {
+  for (let attempt = 0; ; attempt++) {
+    try {
+      return await achievementSyncCoordinator.runResetRequest(
+        levelKey,
+        () =>
+          HydraApi.delete(`/profile/games/achievements/${remoteId}`, {
+            authContext: context,
+            timeout: ACHIEVEMENT_SYNC_REQUEST_TIMEOUT_MS,
+          }),
+        current
+      );
+    } catch (error) {
+      const status = isAxiosError(error) ? error.response?.status : undefined;
+      if (
+        attempt + 1 >= ACHIEVEMENT_RESET_MAX_ATTEMPTS ||
+        status === undefined ||
+        !isRetryableAchievementSyncStatus(status)
+      )
+        throw error;
+      achievementsLogger.warn(
+        "Achievement reset request failed, retrying",
+        levelKey,
+        status
+      );
+      await setTimeout(getAchievementSyncRetryDelay(error, attempt));
+    }
+  }
+};
 
 const resetGameAchievementsNow = async (
   shop: GameShop,
@@ -69,15 +111,7 @@ const resetGameAchievementsNow = async (
       });
     }
 
-    await achievementSyncCoordinator.runResetRequest(
-      levelKey,
-      () =>
-        HydraApi.delete(`/profile/games/achievements/${game.remoteId}`, {
-          authContext: context,
-          timeout: ACHIEVEMENT_SYNC_REQUEST_TIMEOUT_MS,
-        }),
-      current
-    );
+    await deleteRemoteAchievements(levelKey, game.remoteId, context, current);
     assertCurrent();
     const gameAchievements = AchievementMemoryStore.get(shop, objectId);
     if (gameAchievements) {

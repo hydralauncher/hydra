@@ -6,6 +6,8 @@ export const ACHIEVEMENT_SYNC_MAX_RETRY_DELAY_MS = 60_000;
 export const ACHIEVEMENT_SYNC_MAX_RETRY_EXPONENT = 6;
 export const ACHIEVEMENT_SYNC_RETRY_JITTER_DIVISOR = 4;
 export const ACHIEVEMENT_SYNC_MAX_TIMER_DELAY_MS = 2_147_483_647;
+export const ACHIEVEMENT_SYNC_RETRYABLE_CLIENT_STATUSES = [408, 409, 429];
+export const ACHIEVEMENT_RESET_MAX_ATTEMPTS = 4;
 
 export class AchievementSyncCancelledError extends Error {
   constructor() {
