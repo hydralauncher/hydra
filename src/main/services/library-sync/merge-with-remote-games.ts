@@ -499,6 +499,80 @@ const hideGamesRemovedFromSteamImport = async (remoteKeys: Set<string>) => {
   }
 };
 
+// Owner GETs do not hydrate a 200 response. Once removal fields already match,
+// another probe cannot change import/visibility state; a positive full snapshot
+// still reconciles and reactivates the game before orphan checks run.
+const hasCompletedEpicRemoval = (game: Game) =>
+  game.isDeleted === true &&
+  game.hasActiveEpicImport === false &&
+  game.epicImportScope === undefined &&
+  game.epicPlayTimeInMilliseconds === 0;
+
+const needsEpicOwnerProbe = (
+  key: string,
+  game: Game,
+  remoteKeys: Set<string>
+) =>
+  game.shop === "epic" &&
+  !!game.remoteId &&
+  !remoteKeys.has(key) &&
+  !hasPendingHydraClaim(key) &&
+  (game.unsyncedDeltaPlayTimeInMilliseconds ?? 0) <= 0 &&
+  !hasCompletedEpicRemoval(game);
+
+const reconcileMissingEpicGame = async (
+  key: string,
+  game: Game,
+  remoteKeys: Set<string>,
+  context: HydraApiAuthContext | null,
+  current: () => boolean,
+  networkOptions: Pick<HydraApiOptions, "signal" | "timeout">
+) => {
+  if (!current()) throw new Error("library-context-changed");
+  const local = await gamesSublevel.get(key);
+  if (!current()) throw new Error("library-context-changed");
+  if (
+    !local ||
+    local.remoteId !== game.remoteId ||
+    !needsEpicOwnerProbe(key, local, remoteKeys)
+  )
+    return;
+  try {
+    await HydraApi.get(
+      `/profile/games/epic/${encodeURIComponent(game.objectId)}`,
+      undefined,
+      {
+        ...networkOptions,
+        ...(context ? { authContext: context } : {}),
+        logResponseBody: false,
+      }
+    );
+  } catch (error) {
+    if (!current()) throw new Error("library-context-changed");
+    if ((error as { response?: { status?: number } }).response?.status !== 404)
+      return;
+    await libraryWriteQueue.run(async () => {
+      const latest = await gamesSublevel.get(key);
+      if (
+        !current() ||
+        !latest ||
+        latest.remoteId !== game.remoteId ||
+        !needsEpicOwnerProbe(key, latest, remoteKeys)
+      )
+        return;
+      await gamesSublevel.put(key, {
+        ...latest,
+        remoteId: null,
+        epicPlayTimeInMilliseconds: 0,
+        hasActiveEpicImport: false,
+        epicImportScope: undefined,
+        isDeleted: true,
+      });
+    }, current);
+  }
+  if (!current()) throw new Error("library-context-changed");
+};
+
 const mergeWithRemoteGamesOnce = async (
   onProgress?: RemoteGamesMergeProgress,
   capturedContext?: HydraApiAuthContext,
@@ -539,11 +613,21 @@ const mergeWithRemoteGamesOnce = async (
       if (!connection.connected) return false;
       epicConnectionId = connection.connectionId;
     }
+    if (!current()) return false;
+    const remoteKeys = new Set(
+      remoteGames.map((game) => levelKeys.game(game.shop, game.objectId))
+    );
+    const candidates = (await gamesSublevel.iterator().all()).filter(
+      ([key, game]) => needsEpicOwnerProbe(key, game, remoteKeys)
+    );
+    if (!current()) return false;
+    const total = remoteGames.length + candidates.length;
     let processed = 0;
 
-    onProgress?.(processed, remoteGames.length);
+    onProgress?.(processed, total);
 
     for (const remoteChunk of chunk(remoteGames, MERGE_WRITE_CHUNK_SIZE)) {
+      if (!current()) return false;
       await mergeRemoteGamesChunk(
         remoteChunk,
         canReconcileCustomArtwork,
@@ -552,72 +636,39 @@ const mergeWithRemoteGamesOnce = async (
         hydraRevision,
         current
       );
-
+      if (!current()) return false;
       processed += remoteChunk.length;
-      onProgress?.(processed, remoteGames.length);
+      onProgress?.(processed, total);
     }
 
     // Keep installations, but hide games removed by destructive Steam cleanup.
     await libraryWriteQueue.run(
-      () =>
-        hideGamesRemovedFromSteamImport(
-          new Set(
-            remoteGames.map((game) => levelKeys.game(game.shop, game.objectId))
-          )
-        ),
+      () => hideGamesRemovedFromSteamImport(remoteKeys),
       current
     );
 
     if (!current()) return false;
-    const remoteKeys = new Set(
-      remoteGames.map((game) => levelKeys.game(game.shop, game.objectId))
-    );
-    for (const [key, game] of await gamesSublevel.iterator().all()) {
-      if (
-        game.shop !== "epic" ||
-        !game.remoteId ||
-        remoteKeys.has(key) ||
-        hasPendingHydraClaim(key) ||
-        (game.unsyncedDeltaPlayTimeInMilliseconds ?? 0) > 0
-      )
-        continue;
-      try {
-        await HydraApi.get(
-          `/profile/games/epic/${encodeURIComponent(game.objectId)}`,
-          undefined,
-          {
-            ...networkOptions,
-            ...(context ? { authContext: context } : {}),
-            logResponseBody: false,
-          }
-        );
-      } catch (error) {
-        if (
-          (error as { response?: { status?: number } }).response?.status !==
-            404 ||
-          !current()
-        )
-          continue;
-        await libraryWriteQueue.run(async () => {
-          const latest = await gamesSublevel.get(key);
-          if (
-            !latest ||
-            latest.remoteId !== game.remoteId ||
-            hasPendingHydraClaim(key) ||
-            (latest.unsyncedDeltaPlayTimeInMilliseconds ?? 0) > 0
-          )
-            return;
-          await gamesSublevel.put(key, {
-            ...latest,
-            epicPlayTimeInMilliseconds: 0,
-            hasActiveEpicImport: false,
-            epicImportScope: undefined,
-            isDeleted: true,
-          });
-        }, current);
-      }
+    for (const batch of chunk(candidates, TARGETED_MERGE_CONCURRENCY)) {
+      if (!current()) return false;
+      const results = await Promise.allSettled(
+        batch.map(async ([key, game]) => {
+          await reconcileMissingEpicGame(
+            key,
+            game,
+            remoteKeys,
+            context,
+            current,
+            networkOptions
+          );
+          if (!current()) throw new Error("library-context-changed");
+          processed++;
+          onProgress?.(processed, total);
+        })
+      );
+      if (!current() || results.some((result) => result.status === "rejected"))
+        return false;
     }
-    return true;
+    return current();
   } catch {
     // Keep local library available when remote sync fails.
     return false;
