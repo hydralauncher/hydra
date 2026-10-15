@@ -38,7 +38,6 @@ import { useEffect } from "react";
 import {
   applyLibraryGroupAction,
   isLibraryGameDownloading,
-  getInstalledStoreMembers,
   getOfficialStoreMembers,
 } from "@shared";
 
@@ -77,7 +76,6 @@ export function HeroPanelActions() {
   const navigate = useNavigate();
 
   const [showDiscSelectionModal, setShowDiscSelectionModal] = useState(false);
-  const [showStoreSelection, setShowStoreSelection] = useState(false);
   const [localSaveRetry, setLocalSaveRetry] = useState<LibraryGame | null>(
     null
   );
@@ -86,9 +84,6 @@ export function HeroPanelActions() {
   );
   const [canRetryOffline, setCanRetryOffline] = useState(false);
   const [canRetryLocalSaves, setCanRetryLocalSaves] = useState(false);
-  const installedMembers = getInstalledStoreMembers(
-    presentation?.members ?? (game ? [game] : [])
-  );
   const officialMembers = getOfficialStoreMembers(
     presentation?.members ?? (game ? [game] : [])
   );
@@ -104,7 +99,6 @@ export function HeroPanelActions() {
   useEffect(() => {
     const invalidate = () => {
       invalidateLaunch();
-      setShowStoreSelection(false);
       setLocalSaveRetry(null);
       setEpicSaveConflict(null);
     };
@@ -317,14 +311,6 @@ export function HeroPanelActions() {
       return;
     }
 
-    if (
-      installedMembers.some((member) => member.shop === "steam") &&
-      installedMembers.some((member) => member.shop === "epic")
-    ) {
-      setShowStoreSelection(true);
-      return;
-    }
-
     if (game.executablePath) {
       await launchMember(game);
       return;
@@ -345,7 +331,6 @@ export function HeroPanelActions() {
     offline = false
   ) => {
     if (!member.executablePath) return;
-    setShowStoreSelection(false);
     setLocalSaveRetry(null);
     setEpicSaveConflict(null);
     setCanRetryOffline(false);
@@ -508,19 +493,6 @@ export function HeroPanelActions() {
           isGameRunning={isGameRunning}
           onClose={() => setEpicSaveConflict(null)}
         />
-        <Modal
-          visible={showStoreSelection}
-          title={t("choose_game_store")}
-          onClose={() => setShowStoreSelection(false)}
-        >
-          <div className="hero-panel-actions__epic-actions">
-            {installedMembers.map((member) => (
-              <Button key={member.id} onClick={() => void launchMember(member)}>
-                {t(member.shop === "steam" ? "play_on_steam" : "play_on_epic")}
-              </Button>
-            ))}
-          </div>
-        </Modal>
         <Modal
           visible={!!localSaveRetry}
           title={t("epic_play_local_saves")}
