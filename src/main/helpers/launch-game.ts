@@ -515,6 +515,8 @@ const prepareSteamCompatibilityForCloudSave = (
   };
 };
 
+class ManagedEpicLaunchBlockedError extends Error {}
+
 const prepareLinuxCompatibilityForLaunch = async (
   parsedPath: string,
   game: Game | undefined,
@@ -745,14 +747,16 @@ const launchGameWithCloudSaveChecks = async (
   clearGameLauncherStatuses(gameKey);
   await WindowManager.createGameLauncherWindow(shop, objectId);
 
-  const shouldRunV2AutomaticSync =
-    !managedEpic && (await canRunAutomaticCloudSaveSync(objectId, shop));
+  const shouldRunV2AutomaticSync = await canRunAutomaticCloudSaveSync(
+    objectId,
+    shop
+  );
   let preparedCompatibility: PreparedLinuxCompatibility;
   if (managedEpic) {
     preparedCompatibility = {
       context: null,
-      prefixReadyForRestore: false,
-      prefixSafeForUpload: false,
+      prefixReadyForRestore: true,
+      prefixSafeForUpload: true,
       prefixGenerationOverride: undefined,
     };
   } else if (steamCompatibilityPrefixPath) {
@@ -775,6 +779,117 @@ const launchGameWithCloudSaveChecks = async (
     prefixGenerationOverride,
   } = preparedCompatibility;
 
+  // Returns false when Hydra's pre-launch sync blocked the launch.
+  const runHydraPreLaunchSync = async (
+    winePrefixPath: string | undefined
+  ): Promise<boolean> => {
+    const cloudSaveContext = shouldRunV2AutomaticSync
+      ? await getCloudSaveGameContext(objectId, shop, {
+          executablePath: parsedPath,
+          winePrefixPath,
+          prefixGenerationOverride,
+        }).catch((error: unknown) => {
+          logger.error(
+            "Failed to resolve cloud save launch environment",
+            error
+          );
+          return null;
+        })
+      : null;
+    const customPathApproval =
+      prefixReadyForRestore && cloudSaveContext
+        ? await createPendingCloudSaveCustomPathApproval(
+            options,
+            cloudSaveContext
+          ).catch((error: unknown) => {
+            logger.error(
+              "[Cloud Save] Failed to inspect custom restore destinations",
+              error
+            );
+            return null;
+          })
+        : null;
+
+    if (customPathApproval) {
+      logger.warn(
+        "[Cloud Save] Game launch blocked by an unapproved custom restore path",
+        {
+          shop,
+          objectId,
+          rawPath: customPathApproval.rawPath,
+        }
+      );
+      redirectBlockedCloudSaveLaunch(
+        shop,
+        objectId,
+        launchGameRecord?.title ?? objectId,
+        "openCloudSavePathApproval"
+      );
+      return false;
+    }
+
+    const preLaunchOutcome =
+      shouldRunV2AutomaticSync && prefixReadyForRestore
+        ? await runAutomaticCloudSaveSyncDetailed(
+            objectId,
+            shop,
+            "pre-launch",
+            cloudSaveContext ?? undefined
+          )
+        : { status: "skipped" as const, result: null };
+    const preLaunchResult = preLaunchOutcome.result;
+    const hasPreLaunchConflict =
+      preLaunchResult?.trigger === "pre-launch" &&
+      preLaunchResult.action === "conflict";
+
+    if (shouldRunV2AutomaticSync && !prefixReadyForRestore) {
+      logger.warn(
+        "[Cloud Save] Pre-launch restore skipped because Wine prefix is invalid",
+        { shop, objectId }
+      );
+    }
+
+    if (
+      shouldBlockGameLaunchForCloudSave(
+        preLaunchResult,
+        preLaunchOutcome.status === "failed"
+      )
+    ) {
+      logger.warn("[Cloud Save] Game launch blocked by pre-launch sync", {
+        shop,
+        objectId,
+        reason: hasPreLaunchConflict ? "conflict" : "restore_failed",
+      });
+      if (hasPreLaunchConflict) {
+        redirectBlockedCloudSaveLaunch(
+          shop,
+          objectId,
+          launchGameRecord?.title ?? objectId,
+          "openCloudSaveConflict"
+        );
+      } else {
+        clearCloudSaveLaunchGuard(objectId, shop);
+        WindowManager.closeGameLauncherWindow();
+      }
+      return false;
+    }
+
+    if (cloudSaveContext) {
+      setCloudSaveLaunchGuard(objectId, shop, {
+        environmentId: cloudSaveContext.environmentId,
+        baseRemoteHash: preLaunchResult?.remoteHash ?? null,
+        uploadAllowed: canCreateCloudSaveUploadGuard(
+          prefixSafeForUpload &&
+            cloudSaveContext.prefixIdentityMode !== "session",
+          cloudSaveContext.environmentId,
+          preLaunchResult
+        ),
+        createdAt: new Date().toISOString(),
+      });
+    }
+    return true;
+  };
+
   if (managedEpic && launchGameRecord) {
     return getEpicCloudSaveService().runLaunchGate(objectId, async () => {
       try {
@@ -786,6 +901,12 @@ const launchGameWithCloudSaveChecks = async (
             epicSavePolicy: options.epicSavePolicy,
             epicOffline: options.epicOffline,
             onStatus: createUmuStatusReporter(gameKey),
+            // Runs once the Linux prefix exists, so Hydra restores into it and
+            // records its upload guard against the prepared environment.
+            beforeSaveSync: async (winePrefixPath) => {
+              if (!(await runHydraPreLaunchSync(winePrefixPath)))
+                throw new ManagedEpicLaunchBlockedError();
+            },
           }
         );
         await runCommonRedistPreflight(shop, objectId);
@@ -820,6 +941,7 @@ const launchGameWithCloudSaveChecks = async (
         launchedGamePids.set(gameKey, pid);
         return pid;
       } catch (error) {
+        if (error instanceof ManagedEpicLaunchBlockedError) return null;
         WindowManager.closeGameLauncherWindow();
         // Auth or save preparation failures must never fall through to a raw launch.
         throw error;
@@ -827,107 +949,12 @@ const launchGameWithCloudSaveChecks = async (
     });
   }
 
-  const cloudSaveContext = shouldRunV2AutomaticSync
-    ? await getCloudSaveGameContext(objectId, shop, {
-        executablePath: parsedPath,
-        winePrefixPath: compatibilityContext?.winePrefixPath,
-        prefixGenerationOverride,
-      }).catch((error: unknown) => {
-        logger.error("Failed to resolve cloud save launch environment", error);
-        return null;
-      })
-    : null;
-  const customPathApproval =
-    prefixReadyForRestore && cloudSaveContext
-      ? await createPendingCloudSaveCustomPathApproval(
-          options,
-          cloudSaveContext
-        ).catch((error: unknown) => {
-          logger.error(
-            "[Cloud Save] Failed to inspect custom restore destinations",
-            error
-          );
-          return null;
-        })
-      : null;
-
-  if (customPathApproval) {
-    logger.warn(
-      "[Cloud Save] Game launch blocked by an unapproved custom restore path",
-      {
-        shop,
-        objectId,
-        rawPath: customPathApproval.rawPath,
-      }
-    );
-    redirectBlockedCloudSaveLaunch(
-      shop,
-      objectId,
-      launchGameRecord?.title ?? objectId,
-      "openCloudSavePathApproval"
-    );
-    return null;
-  }
-
-  const preLaunchOutcome =
-    shouldRunV2AutomaticSync && prefixReadyForRestore
-      ? await runAutomaticCloudSaveSyncDetailed(
-          objectId,
-          shop,
-          "pre-launch",
-          cloudSaveContext ?? undefined
-        )
-      : { status: "skipped" as const, result: null };
-  const preLaunchResult = preLaunchOutcome.result;
-  const hasPreLaunchConflict =
-    preLaunchResult?.trigger === "pre-launch" &&
-    preLaunchResult.action === "conflict";
-
-  if (shouldRunV2AutomaticSync && !prefixReadyForRestore) {
-    logger.warn(
-      "[Cloud Save] Pre-launch restore skipped because Wine prefix is invalid",
-      { shop, objectId }
-    );
-  }
-
   if (
-    shouldBlockGameLaunchForCloudSave(
-      preLaunchResult,
-      preLaunchOutcome.status === "failed"
-    )
-  ) {
-    logger.warn("[Cloud Save] Game launch blocked by pre-launch sync", {
-      shop,
-      objectId,
-      reason: hasPreLaunchConflict ? "conflict" : "restore_failed",
-    });
-    if (hasPreLaunchConflict) {
-      redirectBlockedCloudSaveLaunch(
-        shop,
-        objectId,
-        launchGameRecord?.title ?? objectId,
-        "openCloudSaveConflict"
-      );
-    } else {
-      clearCloudSaveLaunchGuard(objectId, shop);
-      WindowManager.closeGameLauncherWindow();
-    }
+    !(await runHydraPreLaunchSync(
+      compatibilityContext?.winePrefixPath ?? undefined
+    ))
+  )
     return null;
-  }
-
-  if (cloudSaveContext) {
-    setCloudSaveLaunchGuard(objectId, shop, {
-      environmentId: cloudSaveContext.environmentId,
-      baseRemoteHash: preLaunchResult?.remoteHash ?? null,
-      uploadAllowed: canCreateCloudSaveUploadGuard(
-        prefixSafeForUpload &&
-          cloudSaveContext.prefixIdentityMode !== "session",
-        cloudSaveContext.environmentId,
-        preLaunchResult
-      ),
-      createdAt: new Date().toISOString(),
-    });
-  }
 
   // Run preflight check for common redistributables (Windows only)
   // Wrapped in try/catch to ensure game launch is never blocked
