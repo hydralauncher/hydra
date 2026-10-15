@@ -33,7 +33,7 @@ import { useDate, useToast } from "@renderer/hooks";
 import {
   getPrimarySouvenirAchievement,
   getSouvenirKey,
-  getSouvenirSyncErrorTranslationKeys,
+  getSouvenirSyncMessage,
   getSouvenirVisualVariant,
   shouldShowSouvenirContentWarning,
 } from "@shared";
@@ -598,11 +598,8 @@ export function SouvenirsTab({
       if (remainingCount === 0) {
         showSuccessToast(tSettings("souvenir_sync_retry_succeeded"));
       } else {
-        showErrorToast(
-          tSettings("souvenir_sync_retry_incomplete", {
-            count: remainingCount,
-          })
-        );
+        const message = getSouvenirSyncMessage(result.status);
+        showErrorToast(tSettings(message.key, { count: remainingCount }));
       }
     } catch {
       const currentStatus = await window.electron
@@ -662,22 +659,9 @@ export function SouvenirsTab({
   };
 
   const hasSyncIssues =
-    syncStatus.pendingCount > 0 || syncStatus.failedCount > 0;
-  const syncMessages = [
-    syncStatus.pendingCount > 0
-      ? tSettings("souvenir_sync_pending", {
-          count: syncStatus.pendingCount,
-        })
-      : null,
-    syncStatus.failedCount > 0
-      ? tSettings("souvenir_sync_failed", {
-          count: syncStatus.failedCount,
-        })
-      : null,
-    ...getSouvenirSyncErrorTranslationKeys(syncStatus.errorCodes).map((key) =>
-      tSettings(key)
-    ),
-  ].filter((message): message is string => Boolean(message));
+    hasActiveSubscription &&
+    (syncStatus.pendingCount > 0 || syncStatus.failedCount > 0);
+  const syncMessage = getSouvenirSyncMessage(syncStatus);
 
   const dismissPrivacyNotice = () => {
     localStorage.setItem(
@@ -723,7 +707,7 @@ export function SouvenirsTab({
       exit={{ opacity: 0, x: 10 }}
       transition={{ duration: 0.2 }}
     >
-      {isMe && isPrivacyNoticeVisible ? (
+      {isMe && hasActiveSubscription && isPrivacyNoticeVisible ? (
         <aside className="profile-content__souvenirs-notice">
           <span className="profile-content__souvenirs-notice-icon">
             <PrivacyIcon size={18} />
@@ -760,8 +744,10 @@ export function SouvenirsTab({
         <aside className="profile-content__souvenirs-sync-status">
           <AlertIcon size={20} />
           <div className="profile-content__souvenirs-sync-status-copy">
-            <strong>{tSettings("souvenir_sync_status_title")}</strong>
-            <span>{syncMessages.join(" ")}</span>
+            <strong>{tSettings(syncMessage.titleKey)}</strong>
+            <span>
+              {tSettings(syncMessage.key, { count: syncMessage.count })}
+            </span>
           </div>
           <div className="profile-content__souvenirs-sync-status-actions">
             {syncStatus.pendingCount > 0 ? (
