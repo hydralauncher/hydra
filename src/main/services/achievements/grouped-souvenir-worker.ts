@@ -5,6 +5,7 @@ import {
   SOUVENIR_RETRY_BASE_DELAY_MS,
   SOUVENIR_RETRY_MAX_DELAY_MS,
   SOUVENIR_TERMINAL_RETENTION_MS,
+  SOUVENIR_PAUSED_RETENTION_MS,
   SOUVENIR_SYNC_METADATA_TIMEOUT_MS,
 } from "@main/constants";
 import {
@@ -45,6 +46,8 @@ import {
   getGroupedSouvenirFailure,
   GAME_NOT_FOUND_ERROR_CODE,
   isMissingGroupedSouvenirScreenshot,
+  isRejectedGroupedSouvenirRequest,
+  type GroupedSouvenirFailure,
   type GroupedSouvenirRequestStage,
 } from "./grouped-souvenir-retry-policy";
 import {
@@ -59,6 +62,14 @@ import { buildAchievementSouvenirSyncItem } from "./grouped-souvenir-sync-item";
 const CONCURRENT_UPDATE_ATTEMPTS = 3;
 const CONCURRENT_UPDATE_RETRY_DELAY_MS = 250;
 const INCOMPLETE_UPLOAD_REAUTHORIZE_ATTEMPTS = 3;
+const REJECTED_REQUEST_ATTEMPTS = 20;
+
+const RETENTION_BY_STATUS: Partial<
+  Record<PendingAchievementSouvenir["status"], number>
+> = {
+  terminal: SOUVENIR_TERMINAL_RETENTION_MS,
+  paused: SOUVENIR_PAUSED_RETENTION_MS,
+};
 
 const getRetryDelay = (attemptCount: number) =>
   Math.min(
@@ -225,16 +236,21 @@ const pauseSouvenirForSubscription = async (
   });
 };
 
-const cleanupExpiredTerminalRecords = async (
+const getRetentionExpiresAt = (souvenir: PendingAchievementSouvenir) => {
+  const retention = RETENTION_BY_STATUS[souvenir.status];
+  if (!retention || !souvenir.lastAttemptAt) return undefined;
+  return souvenir.lastAttemptAt + retention;
+};
+
+const removeExpiredRecords = async (
   pending: PendingAchievementSouvenir[],
   now: number
 ) => {
+  const retained: PendingAchievementSouvenir[] = [];
   for (const souvenir of pending) {
-    if (
-      souvenir.status !== "terminal" ||
-      !souvenir.lastAttemptAt ||
-      now - souvenir.lastAttemptAt < SOUVENIR_TERMINAL_RETENTION_MS
-    ) {
+    const expiresAt = getRetentionExpiresAt(souvenir);
+    if (expiresAt === undefined || now < expiresAt) {
+      retained.push(souvenir);
       continue;
     }
 
@@ -248,6 +264,7 @@ const cleanupExpiredTerminalRecords = async (
         );
       });
   }
+  return retained;
 };
 
 const reconcileAchievementMemory = async (
@@ -362,6 +379,35 @@ const authorizePendingSouvenir = async (
   return authorized;
 };
 
+const getFailureState = (
+  pending: PendingAchievementSouvenir,
+  errorCode: string
+) => ({
+  lastErrorCode: errorCode,
+  lastErrorCount:
+    pending.lastErrorCode === errorCode ? (pending.lastErrorCount ?? 0) + 1 : 1,
+});
+
+const classifyFailure = (
+  pending: PendingAchievementSouvenir,
+  error: unknown,
+  stage: GroupedSouvenirRequestStage
+): {
+  failure: GroupedSouvenirFailure;
+  failureState: ReturnType<typeof getFailureState>;
+} => {
+  const failure = getGroupedSouvenirFailure(error, pending.clientId, stage);
+  const failureState = getFailureState(pending, failure.code);
+  const rejectionsExhausted =
+    failure.action === "retry" &&
+    isRejectedGroupedSouvenirRequest(error) &&
+    failureState.lastErrorCount >= REJECTED_REQUEST_ATTEMPTS;
+  return {
+    failure: rejectionsExhausted ? { ...failure, action: "terminal" } : failure,
+    failureState,
+  };
+};
+
 const completeAchievementOnlyRecovery = async (
   pending: PendingAchievementSouvenir
 ) => {
@@ -376,21 +422,25 @@ const completeAchievementOnlyRecovery = async (
       false
     );
   } catch (error) {
-    const failure = getGroupedSouvenirFailure(
+    const { failure, failureState } = classifyFailure(
+      pending,
       error,
-      pending.clientId,
       "synchronization"
     );
     if (failure.action === "terminal") {
-      await markSouvenirTerminal(pending, failure.code);
+      await markSouvenirTerminal({ ...pending, ...failureState }, failure.code);
       return;
     }
     if (failure.action === "pause") {
-      await pauseSouvenirForSubscription(pending, failure.code);
+      await pauseSouvenirForSubscription(
+        { ...pending, ...failureState },
+        failure.code
+      );
       return;
     }
     await PendingGroupedSouvenirStore.put({
       ...pending,
+      ...failureState,
       status: "pending",
       lastAttemptAt: Date.now(),
     });
@@ -440,15 +490,6 @@ const prepareAchievementOnlyRecovery = async (
   await completeAchievementOnlyRecovery(recovery);
 };
 
-const getFailureState = (
-  pending: PendingAchievementSouvenir,
-  errorCode: string
-) => ({
-  lastErrorCode: errorCode,
-  lastErrorCount:
-    pending.lastErrorCode === errorCode ? (pending.lastErrorCount ?? 0) + 1 : 1,
-});
-
 const getCurrentCatalogueAchievements = async (
   pending: PendingAchievementSouvenir
 ) => {
@@ -481,8 +522,7 @@ const persistGroupedSouvenirFailure = async (
   error: unknown,
   stage: GroupedSouvenirRequestStage
 ) => {
-  const failure = getGroupedSouvenirFailure(error, pending.clientId, stage);
-  const failureState = getFailureState(pending, failure.code);
+  const { failure, failureState } = classifyFailure(pending, error, stage);
 
   if (failure.action === "terminal") {
     await markSouvenirTerminal({ ...pending, ...failureState }, failure.code);
@@ -567,21 +607,23 @@ const persistGroupedSouvenirFailure = async (
   });
 };
 
+const getSubscriptionExpiryAtAttempt = async (ownerId: string) => {
+  const user = await getCurrentUser().catch(() => null);
+  if (user?.id !== ownerId) return null;
+  const expiresAt = new Date(user.subscription?.expiresAt ?? 0).getTime();
+  return Number.isFinite(expiresAt) && expiresAt > 0 ? expiresAt : null;
+};
+
 const processPendingSouvenir = async (
   pending: PendingAchievementSouvenir
 ): Promise<"synced" | "missing-screenshot" | "failed"> => {
-  const user = await getCurrentUser().catch(() => null);
-  const expiresAt =
-    user?.id === pending.ownerId
-      ? new Date(user.subscription?.expiresAt ?? 0).getTime()
-      : 0;
   const attempted: PendingAchievementSouvenir = {
     ...pending,
     attemptCount: pending.attemptCount + 1,
     lastAttemptAt: Date.now(),
-    // Keep the rejected attempt's subscription even if renewal arrives in flight.
-    pausedSubscriptionExpiresAt:
-      Number.isFinite(expiresAt) && expiresAt > 0 ? expiresAt : null,
+    pausedSubscriptionExpiresAt: await getSubscriptionExpiryAtAttempt(
+      pending.ownerId
+    ),
   };
   await PendingGroupedSouvenirStore.put(attempted);
 
@@ -704,11 +746,12 @@ class GroupedSouvenirWorker {
 
       const pending = await PendingGroupedSouvenirStore.list();
       for (const souvenir of pending) {
+        const rejectedUnderSameSubscription =
+          souvenir.pausedSubscriptionExpiresAt === expiration;
         if (
           souvenir.ownerId !== ownerId ||
           souvenir.status !== "paused" ||
-          // Repeated refreshes of the rejected subscription must keep it paused.
-          souvenir.pausedSubscriptionExpiresAt === expiration
+          rejectedUnderSameSubscription
         )
           continue;
 
@@ -731,8 +774,10 @@ class GroupedSouvenirWorker {
     if (!user?.id) return EMPTY_RUN_RESULT;
 
     const now = Date.now();
-    const pending = await PendingGroupedSouvenirStore.list();
-    await cleanupExpiredTerminalRecords(pending, now);
+    const pending = await removeExpiredRecords(
+      await PendingGroupedSouvenirStore.list(),
+      now
+    );
     const result = { ...EMPTY_RUN_RESULT };
 
     for (const souvenir of pending) {

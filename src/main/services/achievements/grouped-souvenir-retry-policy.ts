@@ -17,6 +17,7 @@ export interface GroupedSouvenirFailure {
 }
 
 const TERMINAL_HTTP_STATUSES = new Set([400, 404, 409, 422]);
+const RETRYABLE_CLIENT_ERROR_STATUSES = new Set([408, 429]);
 const SOUVENIR_CONFLICT_CODE = "achievements/souvenir-conflict";
 export const SOUVENIR_LIMIT_ERROR_CODE = "achievements/souvenir-limit-reached";
 export const SOUVENIR_NOT_FOUND_ERROR_CODE = "achievements/souvenir-not-found";
@@ -135,6 +136,16 @@ export const getGroupedSouvenirFailure = (
   }
 
   return { code, action: "retry" };
+};
+
+export const isRejectedGroupedSouvenirRequest = (error: unknown) => {
+  if (!isAxiosError(error) || !error.response?.status) return false;
+  const { status } = error.response;
+  return (
+    status >= 400 &&
+    status < 500 &&
+    !RETRYABLE_CLIENT_ERROR_STATUSES.has(status)
+  );
 };
 
 export const isTerminalGroupedSouvenirError = (

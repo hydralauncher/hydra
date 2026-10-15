@@ -15,6 +15,7 @@ import * as syncItem from "./grouped-souvenir-sync-item.js";
 import { composeAssetsWithArtwork } from "../../../shared/artwork-resolver.js";
 
 const RETENTION_MS = 7 * 24 * 60 * 60_000;
+const PAUSED_RETENTION_MS = 30 * 24 * 60 * 60_000;
 const METADATA_TIMEOUT_MS = 5_000;
 const noop = () => undefined;
 const deferred = () => {
@@ -89,6 +90,7 @@ function fixture(records = [pending()]) {
       SOUVENIR_RETRY_BASE_DELAY_MS: 10_000,
       SOUVENIR_RETRY_MAX_DELAY_MS: 15 * 60_000,
       SOUVENIR_TERMINAL_RETENTION_MS: RETENTION_MS,
+      SOUVENIR_PAUSED_RETENTION_MS: PAUSED_RETENTION_MS,
       SOUVENIR_SYNC_METADATA_TIMEOUT_MS: METADATA_TIMEOUT_MS,
     },
     "@main/level": {
