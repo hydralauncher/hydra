@@ -67,6 +67,7 @@ export function SidebarGameItem({
   const sidebarIcon = isCustomGame
     ? game.libraryImageUrl || game.iconUrl
     : game.customIconUrl || game.iconUrl;
+  const [failedIcon, setFailedIcon] = useState<string | null>(null);
 
   // Determine fallback icon based on game type
   const getFallbackIcon = () => {
@@ -119,12 +120,13 @@ export function SidebarGameItem({
           onContextMenu={handleContextMenu}
         >
           <span className="sidebar__game-icon-container">
-            {sidebarIcon ? (
+            {sidebarIcon && sidebarIcon !== failedIcon ? (
               <img
                 className="sidebar__game-icon"
                 src={sidebarIcon}
                 alt={game.title}
                 loading="lazy"
+                onError={() => setFailedIcon(sidebarIcon)}
               />
             ) : (
               getFallbackIcon()

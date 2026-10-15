@@ -55,6 +55,9 @@ function fixture(missing: MissingFolder, overrides: Partial<Game> = {}) {
   const assets = new Map<string, Partial<ShopAssets>>();
   const selections = new Map<string, unknown>();
   const dependencies: Record<string, unknown> = {
+    "@main/services/epic-library-artwork": {
+      epicLibraryArtworkQueue: { schedule: () => {} },
+    },
     "node:path": path,
     "node:fs": {
       existsSync: (filePath: string) => !missingPaths.has(filePath),
