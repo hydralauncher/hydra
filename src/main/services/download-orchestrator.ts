@@ -203,6 +203,8 @@ export class DownloadOrchestrator {
             current.timestamp !== activeDownload.timestamp
           )
             return;
+          await DownloadManager.handleRuntimeDownloadError(downloadId, error);
+          return;
         }
         await downloadsSublevel.put(getGameKey(download), {
           ...activeDownload,

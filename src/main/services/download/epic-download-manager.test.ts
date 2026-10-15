@@ -410,20 +410,47 @@ for (const action of ["cancel-and-start", "pause-and-resume"] as const) {
   });
 }
 
-test("a current accepted Epic preparation failure becomes error after the manager clears its active id", async () => {
-  const f = fixture();
-  const download = epic("Namespace:Failed");
-  f.add(download);
-  let fail!: (error: Error) => void;
-  f.state.startGate = new Promise<void>((_resolve, reject) => {
-    fail = reject;
+for (const [code, nextDownloader] of [
+  ["insufficient-space", "epic"],
+  ["stale-connection", "http"],
+] as const) {
+  test(`accepted Epic preparation failure preserves ${code} and starts the next ${nextDownloader} download`, async () => {
+    const f = fixture();
+    const download = epic("Namespace:Failed");
+    const next: Download =
+      nextDownloader === "epic"
+        ? epic("Namespace:Next")
+        : {
+            ...epic("NextHttp"),
+            shop: "steam",
+            downloader: Downloader.PixelDrain,
+            epic: undefined,
+          };
+    f.add(download);
+    f.add(next);
+    if (nextDownloader === "http") f.prepareHttp(next);
+    let fail!: (error: Error) => void;
+    f.state.startGate = new Promise<void>((_resolve, reject) => {
+      fail = reject;
+    });
+    await f.orchestrator.acceptPreparedEpicDownload(download);
+    await f.orchestrator.startPreparedDownload(next);
+    assert.equal(f.downloads.get(key(next))?.queued, true);
+    f.state.startGate = Promise.resolve();
+    fail(Object.assign(new Error("current preparation failed"), { code }));
+    await settle();
+    assert.equal(f.downloads.get(key(download))?.status, "error");
+    assert.equal(f.downloads.get(key(download))?.epic?.error, code);
+    assert.equal(f.manager.getActiveDownloadId(), key(next));
+    assert.equal(f.downloads.get(key(next))?.status, "active");
+    assert.equal(f.downloads.get(key(next))?.queued, false);
+    const layout = await f.orchestrator.getLayoutState();
+    assert.equal(layout.queueOrder.length, 0);
+    assert.ok(layout.pausedOrder.includes(key(download)));
+    if (nextDownloader === "epic") assert.equal(f.requests.length, 2);
+    else assert.equal(f.state.httpStarted.length, 1);
   });
-  await f.orchestrator.acceptPreparedEpicDownload(download);
-  fail(new Error("current preparation failed"));
-  await settle();
-  assert.equal(f.manager.getActiveDownloadId(), null);
-  assert.equal(f.downloads.get(key(download))?.status, "error");
-});
+}
 
 test("resuming a non-Epic download after Epic acknowledgement stops the reserved Epic preparation first", async () => {
   const f = fixture();

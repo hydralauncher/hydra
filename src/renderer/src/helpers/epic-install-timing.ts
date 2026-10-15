@@ -4,6 +4,8 @@ declare global {
   }
 }
 
+const EPIC_INSTALL_TIMING_MAX_ENTRIES = 32;
+
 export class EpicInstallTiming {
   private readonly options = new Map<
     string,
@@ -19,7 +21,7 @@ export class EpicInstallTiming {
     if (!this.enabled) return;
     this.options.delete(objectId);
     this.options.set(objectId, { started: this.now(), reported: false });
-    while (this.options.size > 32)
+    while (this.options.size > EPIC_INSTALL_TIMING_MAX_ENTRIES)
       this.options.delete(this.options.keys().next().value!);
   }
   optionsReady(objectId: string, spaceReady = false) {

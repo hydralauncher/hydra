@@ -15,6 +15,7 @@ import { queueEpicOperation } from "./operation-queue.js";
 import {
   EPIC_SYNC_MAX_OUTPUT_BYTES,
   EPIC_SYNC_TIMEOUT_MS,
+  EPIC_TARGET_AUTH_ATTEMPTS,
 } from "./constants.js";
 import {
   EpicManagedError,
@@ -193,12 +194,16 @@ export class EpicTargetRuntime {
         if (!this.options.session.accessSnapshot)
           throw new EpicManagedError("legendary-unavailable");
         try {
-          for (let attempt = 0; attempt < 2; attempt++) {
+          for (
+            let attempt = 0;
+            attempt < EPIC_TARGET_AUTH_ATTEMPTS;
+            attempt++
+          ) {
             const access = await this.options.session.accessSnapshot(
               target.auth,
               target.connection,
               controller.signal,
-              attempt === 1
+              attempt > 0
             );
             this.assert(target, controller.signal);
             await this.privateJson(path.join(directory, "user.json"), access);
@@ -378,7 +383,11 @@ export class EpicTargetRuntime {
           receipt = { ...prepared.manifest, manifestPath: destination };
         }
         try {
-          for (let attempt = 0; attempt < 2; attempt++) {
+          for (
+            let attempt = 0;
+            attempt < EPIC_TARGET_AUTH_ATTEMPTS;
+            attempt++
+          ) {
             this.assert(target, controller.signal);
             // Refresh outside useBundle: refreshing inside the same credential
             // lease would deadlock behind itself.
@@ -387,7 +396,7 @@ export class EpicTargetRuntime {
                 target.auth,
                 target.connection,
                 controller.signal,
-                attempt === 1
+                attempt > 0
               );
             this.assert(target, controller.signal);
             let processOperation: Promise<unknown> | undefined;

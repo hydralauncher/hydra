@@ -19,6 +19,7 @@ sys.dont_write_bytecode = True
 
 PROTOCOL_VERSION = 1
 LEGENDARY_VERSION = "0.21.1"
+LEGENDARY_REQUEST_TIMEOUT_SECONDS = 15
 CAPABILITIES = ["inspect-target", "install-target", "access-only", "refresh-session"]
 
 
@@ -315,7 +316,7 @@ def main():
     # Upstream may log URLs on network failures. Parent gets only the adapter's
     # fixed error code; progress output is enabled after authenticated queries.
     logging.disable(logging.CRITICAL)
-    core = LegendaryCore(timeout=15)
+    core = LegendaryCore(timeout=LEGENDARY_REQUEST_TIMEOUT_SECONDS)
     try:
         if request["operation"] == "refresh":
             # Only the parent's central credential lease invokes this mode.
