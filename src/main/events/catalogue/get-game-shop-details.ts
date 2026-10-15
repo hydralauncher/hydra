@@ -25,6 +25,7 @@ import {
 import { composeAssetsWithArtwork } from "@shared";
 import {
   getStoreDetailsWithFallback,
+  formatEpicDescription,
   mapEpicShopDetails,
   STORE_DETAILS_TIMEOUT_MS,
   type EpicShopDetails,
@@ -414,8 +415,10 @@ const getGameShopDetails = async (
     if (!selected) return null;
     return {
       ...selected,
-      detailed_description: sanitizeEpicHtml(selected.detailed_description),
-      about_the_game: sanitizeEpicHtml(selected.about_the_game),
+      detailed_description: formatEpicDescription(
+        selected.detailed_description
+      ),
+      about_the_game: formatEpicDescription(selected.about_the_game),
       short_description: sanitizeEpicHtml(selected.short_description),
       assets: await applyArtworkToAssets(
         shop,
