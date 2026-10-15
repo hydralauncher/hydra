@@ -3,6 +3,10 @@ import { readFileSync } from "node:fs";
 import { it } from "node:test";
 import ts from "typescript";
 import { mergeUnlockedAchievementLists } from "../../services/achievements/merge-unlocked-achievements.ts";
+import {
+  achievementSyncCoordinator,
+  AchievementSyncCancelledError,
+} from "../../services/achievements/achievement-sync-coordinator.ts";
 
 for (const ownerChanged of [false, true]) {
   for (const combinedAvailable of [false, true]) {
@@ -17,7 +21,10 @@ for (const ownerChanged of [false, true]) {
           "../register-event": { registerEvent: () => undefined },
           "@main/level": {
             db: { get: async () => null },
-            levelKeys: { userPreferences: "preferences" },
+            levelKeys: {
+              userPreferences: "preferences",
+              game: (shop: string, id: string) => `${shop}:${id}`,
+            },
           },
           "@main/services/hydra-api": {
             HydraApi: {
@@ -52,6 +59,10 @@ for (const ownerChanged of [false, true]) {
                 };
               },
             },
+          },
+          "@main/services/achievements/achievement-sync-coordinator": {
+            achievementSyncCoordinator,
+            AchievementSyncCancelledError,
           },
           "@main/services/achievements/achievement-watcher-manager": {
             AchievementWatcherManager: {},
@@ -135,7 +146,7 @@ for (const ownerChanged of [false, true]) {
         if (ownerChanged) {
           await assert.rejects(
             exported.getUnlockedAchievements("10", "steam", true),
-            /achievement-owner-changed/
+            AchievementSyncCancelledError
           );
           return;
         }

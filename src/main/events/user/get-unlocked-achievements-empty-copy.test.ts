@@ -4,6 +4,10 @@ import { it } from "node:test";
 import ts from "typescript";
 import { presentCombinedAchievements } from "../../services/achievements/combined-achievement-presentation.ts";
 import { mergeUnlockedAchievementLists } from "../../services/achievements/merge-unlocked-achievements.ts";
+import {
+  achievementSyncCoordinator,
+  AchievementSyncCancelledError,
+} from "../../services/achievements/achievement-sync-coordinator.ts";
 
 for (const scenario of [
   {
@@ -98,6 +102,10 @@ for (const scenario of [
             ],
           }),
         },
+      },
+      "@main/services/achievements/achievement-sync-coordinator": {
+        achievementSyncCoordinator,
+        AchievementSyncCancelledError,
       },
       "@main/services/achievements/achievement-watcher-manager": {
         AchievementWatcherManager: {},
