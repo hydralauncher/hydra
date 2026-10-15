@@ -93,6 +93,9 @@ async function fixture(t: TestContext, stream?: Stream, prereq?: boolean) {
   await fs.mkdir(base);
   let game = structuredClone(initial);
   let current = true;
+  let remoteOwned = true;
+  let freeSpace = 100 * 1024 * MIB;
+  let diskRequests = 0;
   let download: Download | undefined;
   let downloadRead:
     | ((value: Download | undefined) => Promise<Download | undefined>)
@@ -167,16 +170,36 @@ async function fixture(t: TestContext, stream?: Stream, prereq?: boolean) {
       return { stdout: "", stderr: "" };
     },
   });
+  t.mock.method(runtime, "inspect", async (target, _id, signal) => {
+    runtime.assertCurrent(target, signal);
+    commands.push([
+      "info",
+      target.artifactId,
+      "--json",
+      "--platform",
+      target.platform,
+    ]);
+    return { info, metadata };
+  });
+  t.mock.method(
+    runtime,
+    "streamInstall",
+    (target, _id, _prepared, args, options) =>
+      runtime.stream(target, args, options)
+  );
   const installation = new EpicInstallationService({
     runtime,
     capture: async () => ({ auth, connection }),
     current: () => current,
-    ownGame: async () => ({
-      epicImport: {
-        connectionId: connection.connectionId,
-        artifactIds: ["Artifact1"],
-      },
-    }),
+    ownGame: async () =>
+      remoteOwned
+        ? {
+            epicImport: {
+              connectionId: connection.connectionId,
+              artifactIds: ["Artifact1"],
+            },
+          }
+        : null,
     getGame: async () => game,
     updateGame: async (_id, patch) => {
       game = { ...game, ...patch(game) };
@@ -198,7 +221,10 @@ async function fixture(t: TestContext, stream?: Stream, prereq?: boolean) {
       enqueued.push(value);
     },
     isGameRunning: () => false,
-    getDiskUsage: async () => ({ free: 100 * 1024 * MIB }),
+    getDiskUsage: async () => {
+      diskRequests++;
+      return { free: freeSpace };
+    },
     afterGameUpdated: () => complete.resolve(),
     runPrerequisite: async (_exe, args) => {
       assert.deepEqual(args, ["/quiet", "/quoted argument"]);
@@ -230,6 +256,13 @@ async function fixture(t: TestContext, stream?: Stream, prereq?: boolean) {
     enqueued,
     started,
     commands,
+    diskRequests: () => diskRequests,
+    disown: () => {
+      remoteOwned = false;
+    },
+    setFreeSpace: (value: number) => {
+      freeSpace = value;
+    },
     getDownload: () => download,
     getGame: () => game,
     invalidate: () => {
@@ -362,6 +395,57 @@ test("dedicated Epic enqueue preserves imported identity/provenance and separate
   );
 });
 
+test("a prepared preview enqueues without CLI, remote ownership or disk scans", async (t) => {
+  const f = await fixture(t);
+  const preview = await f.service.getOptions(objectId);
+  const count = f.commands.length;
+  const capture = t.mock.method(f.installation, "capture", async () => {
+    throw new Error("enqueue must reuse the validated preview");
+  });
+  assert.deepEqual(
+    await f.service.start({
+      ...f.payload,
+      preparationId: preview.options[0].preparationId,
+      addToQueueOnly: true,
+    }),
+    { ok: true }
+  );
+  assert.equal(f.commands.length, count);
+  assert.equal(f.diskRequests(), 0);
+  capture.mock.restore();
+  f.disown();
+  await assert.rejects(
+    f.service.startRuntime(f.getDownload()!, () => {}),
+    { code: "game-not-owned" }
+  );
+  assert.equal(
+    f.commands.some((args) => args.includes("install")),
+    false
+  );
+});
+
+test("space is checked immediately before transfer even when enqueue reused a preview", async (t) => {
+  const f = await fixture(t);
+  const preview = await f.service.getOptions(objectId);
+  assert.deepEqual(
+    await f.service.start({
+      ...f.payload,
+      preparationId: preview.options[0].preparationId,
+    }),
+    { ok: true }
+  );
+  f.setFreeSpace(0);
+  await assert.rejects(
+    f.service.startRuntime(f.getDownload()!, () => {}),
+    { code: "insufficient-space" }
+  );
+  assert.equal(f.diskRequests(), 1);
+  assert.equal(
+    f.commands.some((args) => args.includes("install")),
+    false
+  );
+});
+
 test("an incomplete cancelled installation can load options, enqueue and finish its repair", async (t) => {
   const f = await fixture(t);
   const owned = await f.installation.capture(
@@ -372,6 +456,11 @@ test("an incomplete cancelled installation can load options, enqueue and finish 
     owned,
     "Artifact1",
     "Windows",
+    new AbortController().signal
+  );
+  await f.installation.persistPreparation(
+    prepared,
+    objectId,
     new AbortController().signal
   );
   const destination = path.join(f.base, "EpicGame");
@@ -598,6 +687,17 @@ test("resume repairs an installed manifest left needing verification", async (t)
     new AbortController().signal
   );
   const target = epicManagedTarget(owned, "Artifact1", "Windows");
+  const prepared = await f.installation.prepare(
+    owned,
+    "Artifact1",
+    "Windows",
+    new AbortController().signal
+  );
+  await f.installation.persistPreparation(
+    prepared,
+    objectId,
+    new AbortController().signal
+  );
   const destination = path.join(f.base, "EpicGame");
   await fs.mkdir(destination);
   await fs.writeFile(path.join(destination, "Game.exe"), "partial");

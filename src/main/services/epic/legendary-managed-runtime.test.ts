@@ -13,6 +13,7 @@ import {
 import { EpicConnectionStore } from "./store.js";
 import { EpicSessionProvider } from "./session-provider.js";
 import { EPIC_PROCESS_MAX_LINE_BYTES } from "./constants.js";
+import { configureEpicTiming, type EpicTimingEntry } from "./timing.js";
 import {
   MemoryDatabase,
   bundle,
@@ -78,6 +79,21 @@ async function fixture(
     },
   };
 }
+
+test("install timing identifies the real command behind the global yes flag", async (t) => {
+  const entries: EpicTimingEntry[] = [];
+  const f = await fixture(t, async () => ({ stdout: "{}", stderr: "" }));
+  configureEpicTiming((entry) => entries.push(entry), true);
+  t.after(() => configureEpicTiming(() => undefined, false));
+  await f.runtime.runRaw(target, ["-y", "install", "Artifact1"], {
+    signal: new AbortController().signal,
+  });
+  assert.ok(
+    entries.some(
+      (entry) => entry.stage === "runtime.raw" && entry.command === "install"
+    )
+  );
+});
 
 test("stream decoder handles fragmented Unicode, CR/LF, and bounded lines", () => {
   const lines: string[] = [];
@@ -393,7 +409,10 @@ test("managed process abort waits for actual tree termination", async () => {
   await assert.rejects(operation, { code: "operation-cancelled" });
 });
 
-test("managed JSON commands retain early diagnostics beyond the streaming tail cap", async () => {
+test("managed JSON commands retain early diagnostics beyond the streaming tail cap", async (t) => {
+  const entries: EpicTimingEntry[] = [];
+  configureEpicTiming((entry) => entries.push(entry), true);
+  t.after(() => configureEpicTiming(() => undefined, false));
   const output = await executeManagedLegendary(
     process.execPath,
     [
@@ -405,6 +424,13 @@ test("managed JSON commands retain early diagnostics beyond the streaming tail c
   );
   assert.ok(output.stderr.startsWith("[cli] ERROR: cloud save failed"));
   assert.deepEqual(JSON.parse(output.stdout), {});
+  for (const stage of ["process.first-stdout", "process.first-stderr"])
+    assert.equal(entries.filter((entry) => entry.stage === stage).length, 1);
+  assert.ok(entries.some((entry) => entry.stage === "process.closed"));
+  const diagnostics = JSON.stringify(entries);
+  assert.equal(diagnostics.includes("cloud save failed"), false);
+  assert.equal(diagnostics.includes("x".repeat(64)), false);
+  assert.equal(diagnostics.includes(process.execPath), false);
 });
 
 test("managed process reports native missing-binary failure without leaking arguments", async () => {

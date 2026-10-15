@@ -6,6 +6,7 @@ import { JSDOM } from "jsdom";
 import * as React from "react";
 import { createRoot } from "react-dom/client";
 import ts from "typescript";
+import * as epicInstallTimingModule from "../helpers/epic-install-timing.js";
 import type {
   EpicCloudSaveState,
   EpicGameInstallOptions,
@@ -45,7 +46,11 @@ function loadModule(filename: string, stubs: Record<string, unknown> = {}) {
   const exports: Record<string, unknown> = {};
   new Function("exports", "require", outputText)(
     exports,
-    (name: string) => stubs[name] ?? requireModule(name)
+    (name: string) =>
+      stubs[name] ??
+      (name.endsWith("/epic-install-timing")
+        ? epicInstallTimingModule
+        : requireModule(name))
   );
   return exports;
 }
@@ -263,7 +268,106 @@ const state = (
 });
 
 describe("Epic managed UI lifecycle", () => {
-  it("prefetches on page entry and cancels older pages without restarting when the selector opens", async (t) => {
+  it("finishes the options measurement only after a painted enabled button and cancels abandoned frames", async (t) => {
+    await fixture(t, {});
+    const previous = ["requestAnimationFrame", "cancelAnimationFrame"].map(
+      (key) => [key, Object.getOwnPropertyDescriptor(globalThis, key)] as const
+    );
+    let id = 0;
+    const frames = new Map<number, FrameRequestCallback>();
+    Object.defineProperty(globalThis, "requestAnimationFrame", {
+      configurable: true,
+      value: (callback: FrameRequestCallback) => {
+        frames.set(++id, callback);
+        return id;
+      },
+    });
+    Object.defineProperty(globalThis, "cancelAnimationFrame", {
+      configurable: true,
+      value: (frame: number) => frames.delete(frame),
+    });
+    t.after(() => {
+      for (const [key, descriptor] of previous) {
+        if (descriptor) Object.defineProperty(globalThis, key, descriptor);
+        else Reflect.deleteProperty(globalThis, key);
+      }
+    });
+    const paint = () => {
+      const current = [...frames.values()];
+      frames.clear();
+      current.forEach((callback) => callback(0));
+    };
+    let now = 0;
+    const events: number[] = [];
+    const timing = new epicInstallTimingModule.EpicInstallTiming(
+      true,
+      () => now,
+      (_stage, duration) => events.push(duration)
+    );
+    const button = document.createElement("button");
+    button.dataset.epicInstallSubmit = "private:game";
+    button.disabled = true;
+    document.body.append(button);
+    timing.beginOptions("private:game");
+    epicInstallTimingModule.afterEpicInstallReadyPaint("private:game", timing);
+    paint();
+    paint();
+    assert.deepEqual(events, []);
+    button.disabled = false;
+    const cancel = epicInstallTimingModule.afterEpicInstallReadyPaint(
+      "private:game",
+      timing
+    );
+    cancel?.();
+    assert.equal(frames.size, 0);
+    epicInstallTimingModule.afterEpicInstallReadyPaint("private:game", timing);
+    now = 10;
+    paint();
+    assert.deepEqual(events, []);
+    now = 25;
+    paint();
+    assert.deepEqual(events, [25]);
+  });
+  it("records only numeric opt-in UI durations and never lets diagnostic failures affect submit", () => {
+    let now = 100;
+    const events: Array<[string, number]> = [];
+    const timing = new epicInstallTimingModule.EpicInstallTiming(
+      true,
+      () => now,
+      (stage, duration) => events.push([stage, duration])
+    );
+    timing.beginOptions("private:game");
+    now = 145;
+    timing.optionsReady("private:game");
+    timing.optionsReady("private:game");
+    timing.optionsReady("private:game", true);
+    const started = timing.beginSubmit();
+    now = 160;
+    timing.accepted(started);
+    assert.deepEqual(events, [
+      ["options-ready", 45],
+      ["options-and-space-ready", 45],
+      ["accepted", 15],
+    ]);
+    assert.doesNotMatch(JSON.stringify(events), /private|game/);
+    const disabled = new epicInstallTimingModule.EpicInstallTiming(
+      false,
+      () => assert.fail("disabled timing must not read clocks"),
+      () => assert.fail("disabled timing must not log")
+    );
+    disabled.beginOptions("private:game");
+    disabled.optionsReady("private:game");
+    disabled.accepted(disabled.beginSubmit());
+    const broken = new epicInstallTimingModule.EpicInstallTiming(
+      true,
+      () => now,
+      () => {
+        throw new Error("broken diagnostic sink");
+      }
+    );
+    assert.doesNotThrow(() => broken.accepted(broken.beginSubmit()));
+  });
+  it("does not query Epic install metadata while navigating or opening the repack selector", async (t) => {
     const calls: Array<{ objectId: string; requestId: string }> = [];
     const cancelled: string[] = [];
     const { render } = await fixture(t, {
@@ -377,60 +481,19 @@ describe("Epic managed UI lifecycle", () => {
     connection = { ...connection, verification: "confirmed" };
     for (let index = 0; index < 10; index++)
       await render(element({ ...game, objectId: `page-${index}:epic` }));
-    assert.equal(
-      calls.length,
-      10,
-      "each current page starts its preview before the selector opens"
-    );
-    assert.deepEqual(
-      cancelled,
-      calls.slice(0, -1).map((call) => call.requestId),
-      "only the latest page keeps its pending preview"
-    );
+    assert.equal(calls.length, 0);
+    assert.deepEqual(cancelled, []);
     await render(element(game, true));
-    assert.equal(calls[10].objectId, "actual:epic");
     await render(element({ ...game, title: "updated metadata" }, true));
-    assert.equal(calls.length, 11);
     await render(element(game));
     await render(element(game, true));
-    assert.equal(
-      calls.length,
-      11,
-      "opening the selector reuses its page preview"
-    );
-    assert.deepEqual(
-      cancelled,
-      calls.slice(0, 10).map((call) => call.requestId)
-    );
-    const nextGame = { ...game, objectId: "next:epic" };
-    await render(element(nextGame, true));
-    assert.deepEqual(
-      calls.slice(10).map((call) => call.objectId),
-      ["actual:epic", "next:epic"]
-    );
-    assert.deepEqual(
-      cancelled,
-      calls.slice(0, 11).map((call) => call.requestId)
-    );
-    await render(element(nextGame));
-    assert.deepEqual(
-      cancelled,
-      calls.slice(0, 11).map((call) => call.requestId),
-      "closing the selector preserves the current page prefetch"
-    );
-    await render(element(game, true));
+    await render(element({ ...game, objectId: "next:epic" }, true));
     connection = { ...connection, hydraUserId: "other-user" };
     await render(element(game, true));
-    assert.equal(calls.length, 13);
-    assert.deepEqual(
-      cancelled,
-      calls.map((call) => call.requestId)
-    );
-    assert.equal(new Set(cancelled).size, 13);
-    connection = { ...connection, hydraUserId: "user" };
     Object.assign(electron, { getEpicGameInstallOptions: undefined });
     await render(element(game, true));
-    assert.equal(calls.length, 13);
+    assert.equal(calls.length, 0);
+    assert.deepEqual(cancelled, []);
   });
 
   it("closes an Epic install from an older page or scope without tying its lifetime to selector visibility", async (t) => {
@@ -708,6 +771,7 @@ describe("Epic managed UI lifecycle", () => {
             platform: "Windows",
             downloadSizeInBytes: 50,
             diskSizeInBytes: 100,
+            preparationId: "550e8400-e29b-41d4-a716-446655440000",
           },
         ],
       }),
@@ -768,6 +832,10 @@ describe("Epic managed UI lifecycle", () => {
     );
     await React.act(async () => buttons[1].click());
     assert.equal(calls[0].epicObjectId, "actual:epic");
+    assert.equal(
+      calls[0].preparationId,
+      "550e8400-e29b-41d4-a716-446655440000"
+    );
     assert.equal(calls[0].addToQueueOnly, false);
   });
 

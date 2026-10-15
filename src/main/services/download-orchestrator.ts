@@ -71,6 +71,7 @@ const NO_INTERNET_GRACE_MS = 15000;
 const RECONNECT_DEBOUNCE_MS = 2000;
 
 export class DownloadOrchestrator {
+  private static epicActivationTail: Promise<unknown> = Promise.resolve();
   private static isOnline = true;
   private static reconnectGraceTimer: NodeJS.Timeout | null = null;
   private static lastReconnectAt = 0;
@@ -405,6 +406,28 @@ export class DownloadOrchestrator {
     await removeDownloadFromLayoutState(download, nextDownloads);
     WindowManager.sendDownloadsUpdated();
 
+    return { ok: true };
+  }
+
+  /** Acknowledge durable Epic queue placement before network preparation starts. */
+  static async acceptPreparedEpicDownload(download: Download) {
+    if (download.downloader !== Downloader.Epic)
+      throw new Error("Expected Epic download");
+    await this.queueDownload(download);
+    WindowManager.sendDownloadsUpdated();
+    this.epicActivationTail = this.epicActivationTail
+      .catch(() => undefined)
+      .then(async () => {
+        const downloads = await this.getAllDownloads();
+        if (downloads.some(isActiveLikeDownload)) return;
+        await this.startNextQueuedDownload(downloads);
+      })
+      .catch((error) => {
+        logger.error(
+          "[DownloadOrchestrator] Failed to activate accepted Epic download",
+          error
+        );
+      });
     return { ok: true };
   }
 

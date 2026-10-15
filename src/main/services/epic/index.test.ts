@@ -55,7 +55,12 @@ function fixture(t: TestContext) {
             state.managedEvents.push("playtime-cache-cleared");
           },
         };
-        session = { serialize: (task: () => Promise<unknown>) => task() };
+        session = {
+          serialize: (task: () => Promise<unknown>) => task(),
+          setRefreshOperation: (operation: unknown) => {
+            assert.equal(typeof operation, "function");
+          },
+        };
         orchestrator = {
           getState: () => ({ status: "idle" }),
           abortAndWait: async () => {},
@@ -95,6 +100,7 @@ function fixture(t: TestContext) {
     },
     electron: { app: { getPath: () => root } },
     "node:fs": fs,
+    "node:path": path,
     "../hydra-api": {
       HydraApi: {
         getAuthContext: () => state.context,
@@ -112,7 +118,12 @@ function fixture(t: TestContext) {
         },
       },
     },
-    "../legendary": { Legendary: { getBinaryPath: () => null } },
+    "../legendary": {
+      Legendary: {
+        getBinaryPath: () => null,
+        getManagedCommand: () => assert.fail("unexpected managed invocation"),
+      },
+    },
     "../window-manager": {
       WindowManager: {
         mainWindow: null,
@@ -183,6 +194,7 @@ function fixture(t: TestContext) {
     "../game-running-state": { isGameRunning: () => false },
     "../../../shared/constants": { Downloader },
     "./legendary-managed-runtime": {
+      configureManagedEpicProcessSupervisor: () => {},
       LegendaryManagedRuntime: class {
         stop = async () => {
           state.managedEvents.push("process-stopping");
@@ -196,6 +208,10 @@ function fixture(t: TestContext) {
     },
     "./installation": { EpicInstallationService: class {} },
     "../logger": { logger: { warn: () => {}, info: () => {} } },
+    "./timing": {
+      configureEpicTiming: () => {},
+      withEpicTiming: (_stage: string, task: () => unknown) => task(),
+    },
     "./playtime-reporter": {
       EpicPlaytimeReporter: class {
         constructor(

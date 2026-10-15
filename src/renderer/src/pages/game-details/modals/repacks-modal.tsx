@@ -45,6 +45,7 @@ import { EpicInstallModal } from "./epic-install-modal";
 import { useEpicManagedConnection } from "@renderer/hooks/use-epic-managed";
 import { useLibrary } from "@renderer/hooks";
 import type { LibraryGame } from "@types";
+import { epicInstallTiming } from "@renderer/helpers/epic-install-timing";
 
 export interface RepacksModalProps {
   visible: boolean;
@@ -90,35 +91,6 @@ export function RepacksModal({
     presentation?.members ?? (game ? [game] : [])
   );
   const { available: epicAvailable, connection } = useEpicManagedConnection();
-  const epicPrefetchObjectId =
-    epicAvailable && isEpicMemberInCurrentScope(epicGame, connection)
-      ? (epicGame?.objectId ?? null)
-      : null;
-  const epicPrefetchEnvironment = epicGame?.epicImportScope?.environment;
-  const epicPrefetchUserId = epicGame?.epicImportScope?.userId;
-  const epicPrefetchConnectionId = epicGame?.epicImportScope?.connectionId;
-  useEffect(() => {
-    if (!epicPrefetchObjectId) return;
-    const requestId = globalThis.crypto.randomUUID();
-    let pending = true;
-    void window.electron
-      .getEpicGameInstallOptions?.(epicPrefetchObjectId, requestId)
-      .catch(() => {})
-      .finally(() => {
-        pending = false;
-      });
-    return () => {
-      if (pending)
-        void window.electron
-          .cancelEpicGameInstallOptions?.(requestId)
-          .catch(() => {});
-    };
-  }, [
-    epicPrefetchObjectId,
-    epicPrefetchEnvironment,
-    epicPrefetchUserId,
-    epicPrefetchConnectionId,
-  ]);
   const { updateLibrary } = useLibrary();
   const [epicInstallGame, setEpicInstallGame] = useState<LibraryGame | null>(
     null
@@ -446,7 +418,10 @@ export function RepacksModal({
           {showEpicOption && epicGame && (
             <Button
               theme="dark"
-              onClick={() => setEpicInstallGame(epicGame)}
+              onClick={() => {
+                if (epicGame) epicInstallTiming.beginOptions(epicGame.objectId);
+                setEpicInstallGame(epicGame);
+              }}
               className="repacks-modal__repack-button"
             >
               <p className="repacks-modal__repack-title repacks-modal__steam-title">

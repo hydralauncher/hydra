@@ -14,6 +14,7 @@ import {
 } from "../../../shared/constants.js";
 import { isRecord } from "./auth-protocol.js";
 import { EPIC_PREREQUISITE_TIMEOUT_MS } from "./constants.js";
+import { markEpicTiming, withEpicTiming } from "./timing.js";
 import {
   EpicManagedError,
   EpicManagedSpawnError,
@@ -30,6 +31,7 @@ import {
   type EpicInstallationService,
   type EpicInstalledGame,
   type EpicOwnedGame,
+  type EpicPreparedInstallation,
 } from "./installation.js";
 
 const MIB_BYTES = 1024 * 1024;
@@ -138,6 +140,7 @@ interface DownloadServiceOptions {
   ) => Promise<boolean>;
 }
 interface ActiveEpicDownload {
+  prepared: EpicPreparedInstallation;
   id: string;
   controller: AbortController;
   target: EpicManagedTarget;
@@ -237,7 +240,9 @@ export class EpicDownloadService {
     if (this.enqueues.has(id) || this.removals.has(id))
       return { ok: false, error: "operation-in-progress" };
     const controller = new AbortController();
-    const done = this.enqueue(payload, controller);
+    const done = withEpicTiming("download.enqueue", () =>
+      this.enqueue(payload, controller)
+    );
     const operation = { controller, done };
     this.enqueues.set(id, operation);
     try {
@@ -253,9 +258,13 @@ export class EpicDownloadService {
   ): Promise<EpicManagedOperationResult> {
     const id = this.id(payload.epicObjectId);
     try {
-      const owned = await this.options.installation.capture(
-        payload.epicObjectId,
-        controller.signal
+      const { owned, prepared } = await withEpicTiming(
+        "download.enqueue-preparation",
+        () =>
+          this.options.installation.resolvePreparation(
+            payload,
+            controller.signal
+          )
       );
       if (owned.connection.connectionId !== payload.connectionId)
         throw new EpicManagedError("stale-connection");
@@ -264,34 +273,24 @@ export class EpicDownloadService {
       const existing = await this.options.getDownload(id);
       if (existing && (existing.status === "active" || existing.queued))
         throw new EpicManagedError("operation-in-progress");
-      const prepared = await this.options.installation.prepare(
-        owned,
-        payload.artifactId,
-        payload.platform,
-        controller.signal
+      const downloadPath = await withEpicTiming("download.base-path", () =>
+        this.validateBasePath(payload.downloadPath)
       );
-      const downloadPath = await this.validateBasePath(payload.downloadPath);
       const installed = await this.options.installation.readInstalledForRepair(
         prepared.target,
         payload.epicObjectId
       );
       const folderName = installed
         ? path.basename(installed.installPath)
-        : await this.options.installation.folderName(
-            prepared.target,
-            payload.epicObjectId
+        : this.options.installation.folderNameFromMetadata(
+            prepared.metadata,
+            prepared.target
           );
       if (
         installed &&
         path.relative(downloadPath, path.dirname(installed.installPath)) !== ""
       )
         throw new EpicManagedError("invalid-path");
-      const destination = path.resolve(downloadPath, folderName);
-      await this.validateSpace(
-        destination,
-        downloadPath,
-        prepared.diskSizeInBytes
-      );
       this.options.runtime.assertCurrent(prepared.target, controller.signal);
       const download: Download = {
         shop: "epic",
@@ -320,12 +319,19 @@ export class EpicDownloadService {
         },
       };
       // Never create/promote the imported Game or send a Hydra download mutation.
-      await this.options.putDownload(id, download);
+      await withEpicTiming("download.persist", () =>
+        this.options.putDownload(id, download)
+      );
       try {
         this.options.runtime.assertCurrent(prepared.target, controller.signal);
         if (payload.addToQueueOnly)
-          await this.options.enqueuePreparedDownload(download);
-        else await this.options.startPreparedDownload(download);
+          await withEpicTiming("download.orchestrator-enqueue", () =>
+            this.options.enqueuePreparedDownload(download)
+          );
+        else
+          await withEpicTiming("download.orchestrator-start", () =>
+            this.options.startPreparedDownload(download)
+          );
       } catch (error) {
         const latest = await this.options.getDownload(id);
         if (
@@ -365,8 +371,12 @@ export class EpicDownloadService {
   private async validateSpace(destination: string, base: string, size: number) {
     if (!isPathContained(base, destination))
       throw new EpicManagedError("invalid-path");
-    const used = await getReusableEpicDiskBytes(destination);
-    const disk = await this.options.getDiskUsage(base);
+    const used = await withEpicTiming("download.existing-files", () =>
+      getReusableEpicDiskBytes(destination)
+    );
+    const disk = await withEpicTiming("download.free-space", () =>
+      this.options.getDiskUsage(base)
+    );
     if (
       !disk ||
       disk.free < Math.max(size - used, MINIMUM_FREE_DISK_SPACE_BYTES)
@@ -385,11 +395,8 @@ export class EpicDownloadService {
     )
       throw new EpicManagedError("operation-in-progress");
     const controller = new AbortController();
-    const done = this.prepareRuntime(
-      download,
-      onFailure,
-      controller,
-      isCurrent
+    const done = withEpicTiming("download.prepare-runtime", () =>
+      this.prepareRuntime(download, onFailure, controller, isCurrent)
     );
     const preparing = { id: this.id(download.objectId), controller, done };
     this.preparing = preparing;
@@ -413,9 +420,8 @@ export class EpicDownloadService {
       !download.folderName
     )
       throw new EpicManagedError("invalid-response");
-    const owned = await this.options.installation.capture(
-      download.objectId,
-      controller.signal
+    const owned = await withEpicTiming("download.runtime-capture", () =>
+      this.options.installation.capture(download.objectId, controller.signal)
     );
     if (
       owned.connection.connectionId !== metadata.connectionId ||
@@ -424,15 +430,24 @@ export class EpicDownloadService {
       throw new EpicManagedError("stale-connection");
     if (this.options.isGameRunning(owned.game))
       throw new EpicManagedError("game-running");
-    const prepared = await this.options.installation.prepare(
-      owned,
-      metadata.artifactId,
-      metadata.platform,
+    const prepared = await withEpicTiming("download.runtime-prepare", () =>
+      this.options.installation.prepare(
+        owned,
+        metadata.artifactId,
+        metadata.platform,
+        controller.signal
+      )
+    );
+    await this.options.installation.persistPreparation(
+      prepared,
+      download.objectId,
       controller.signal
     );
     if (controller.signal.aborted || !isCurrent())
       throw new EpicManagedError("operation-cancelled");
-    const base = await this.validateBasePath(download.downloadPath);
+    const base = await withEpicTiming("download.base-path", () =>
+      this.validateBasePath(download.downloadPath)
+    );
     if (path.relative(download.downloadPath, base) !== "")
       throw new EpicManagedError("invalid-path");
     const folder = await this.options.installation.folderName(
@@ -446,6 +461,7 @@ export class EpicDownloadService {
     if (controller.signal.aborted || !isCurrent())
       throw new EpicManagedError("operation-cancelled");
     const active: ActiveEpicDownload = {
+      prepared,
       id: this.id(download.objectId),
       controller,
       target: prepared.target,
@@ -488,6 +504,7 @@ export class EpicDownloadService {
     destination: string
   ) {
     const { target, controller } = active;
+    let transferStarted = false;
     const assertActive = () => {
       this.options.runtime.assertCurrent(target, controller.signal);
       if (this.active !== active || !active.isCurrent())
@@ -501,8 +518,10 @@ export class EpicDownloadService {
       );
       assertActive();
       if (!existing || existing.version !== active.version) {
-        await this.options.runtime.stream(
+        await this.options.runtime.streamInstall(
           target,
+          owned.game.objectId,
+          active.prepared,
           [
             "-y",
             "install",
@@ -526,6 +545,10 @@ export class EpicDownloadService {
               )
                 return;
               active.parser.line(line);
+              if (!transferStarted && !active.parser.state.preparing) {
+                transferStarted = true;
+                markEpicTiming("download.transfer-ready", { first: true });
+              }
               active.download.epic!.phase = active.parser.state.preparing
                 ? "preparing"
                 : "downloading";

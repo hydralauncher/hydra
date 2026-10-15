@@ -240,6 +240,29 @@ function fixture() {
   return { downloads, state, requests, manager, orchestrator, add };
 }
 
+test("Epic acceptance returns before preparation and concurrent clicks keep one active slot", async () => {
+  const f = fixture();
+  const first = epic("Namespace:FastOne"),
+    second = epic("Namespace:FastTwo");
+  f.add(first);
+  f.add(second);
+  const preparation = deferred<void>();
+  f.state.startGate = preparation.promise;
+  try {
+    await Promise.all([
+      f.orchestrator.acceptPreparedEpicDownload(first),
+      f.orchestrator.acceptPreparedEpicDownload(second),
+    ]);
+    await settle();
+    assert.equal(f.requests.length, 1);
+    assert.equal(f.manager.getActiveDownloadId(), key(first));
+    assert.equal(f.downloads.get(key(second))?.queued, true);
+  } finally {
+    preparation.resolve();
+    await settle();
+  }
+});
+
 test("production manager dispatches Epic preparation and retains the slot until pause stops it", async () => {
   const f = fixture();
   const download = epic("Namespace:One");
