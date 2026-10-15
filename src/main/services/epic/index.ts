@@ -631,7 +631,15 @@ export const setEpicCloudSaveSettings = async (
   settings: EpicCloudSaveSettings
 ) => {
   await awaitManagedEpicReady();
-  return managedSaves!.setSettings(objectId, settings);
+  const result = await managedSaves!.setSettings(objectId, settings);
+  // Epic and Hydra automatic save sync are mutually exclusive.
+  if (settings.automaticSync) {
+    const { setCloudSaveAutomaticSyncEnabled } = await import(
+      "../cloud-save/automatic-sync-settings"
+    );
+    await setCloudSaveAutomaticSyncEnabled(objectId, "epic", false);
+  }
+  return result;
 };
 export const syncEpicCloudSaves = async (objectId: string) => {
   await awaitManagedEpicReady();
