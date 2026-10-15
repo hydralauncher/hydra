@@ -696,6 +696,71 @@ test("Linux runtime preparation gates completion and retries the existing transf
   assert.equal(f.getDownload()?.status, "complete");
 });
 
+test("retry after a busy Linux prefix preserves the transfer and clears the error on completion", async (t) => {
+  const retryPreparing = deferred<void>();
+  const ready = deferred<void>();
+  let preparationCalls = 0;
+  const f = await fixture(t, undefined, true, async () => {
+    preparationCalls++;
+    if (preparationCalls === 1)
+      throw new EpicManagedError("compatibility-prefix-busy");
+    retryPreparing.resolve();
+    await ready.promise;
+  });
+  await f.service.start(f.payload);
+  const persisted = {
+    ...f.getDownload()!,
+    progress: 0.9907,
+    bytesDownloaded: 2 * MIB - 1000,
+  };
+  f.setDownload(persisted);
+  await f.service.startRuntime(persisted, (error) => f.failed.resolve(error));
+  const error = (await f.failed.promise) as EpicManagedError;
+  assert.equal(error.code, "compatibility-prefix-busy");
+  assert.equal(f.getGame().epicInstallation, undefined);
+  assert.notEqual(f.getDownload()?.status, "complete");
+  const failed = f.service.progress(persisted)!.download;
+  await f.service.stop();
+  f.setDownload({
+    ...failed,
+    status: "error",
+    epic: { ...failed.epic!, error: error.code },
+  });
+
+  await f.service.startRuntime(f.getDownload()!, (failure) => {
+    assert.fail(`Retry failed: ${(failure as EpicManagedError).code}`);
+  });
+  await retryPreparing.promise;
+  try {
+    const retrying = f.service.progress(f.getDownload()!)!;
+    assert.equal(retrying.progress, failed.progress);
+    assert.equal(retrying.download.bytesDownloaded, failed.bytesDownloaded);
+    assert.equal(retrying.download.epic?.error, undefined);
+    assert.equal(retrying.isCheckingFiles, true);
+    assert.equal(f.getGame().epicInstallation, undefined);
+    assert.notEqual(f.getDownload()?.status, "complete");
+    assert.equal(
+      f.commands.filter((args) => args.includes("install")).length,
+      1
+    );
+  } finally {
+    ready.resolve();
+  }
+  await f.complete.promise;
+
+  assert.equal(preparationCalls, 2);
+  assert.equal(f.commands.filter((args) => args.includes("install")).length, 1);
+  assert.equal(f.getDownload()?.status, "complete");
+  assert.equal(f.getDownload()?.progress, 1);
+  assert.equal(f.getDownload()?.bytesDownloaded, 2 * MIB);
+  assert.equal(f.getDownload()?.epic?.error, undefined);
+  assert.ok(f.getGame().epicInstallation);
+  assert.equal(
+    await fs.readFile(path.join(f.base, "EpicGame", "Game.exe"), "utf8"),
+    "fixture-game"
+  );
+});
+
 test("pause during Linux preparation waits for cleanup and cannot publish completion", async (t) => {
   const preparing = deferred<void>();
   const cleanup = deferred<void>();

@@ -1,8 +1,8 @@
 import { randomUUID } from "node:crypto";
 import { spawn, type ChildProcess } from "node:child_process";
 import fs from "node:fs/promises";
+import path from "node:path";
 import { StringDecoder } from "node:string_decoder";
-import { isVerifiedLinuxUserService } from "./linux-user-service-proof.js";
 import {
   EPIC_LINUX_INVOCATION_ENV,
   EPIC_LINUX_MAX_LINE_BYTES,
@@ -66,69 +66,105 @@ const failure = (code: string) => Object.assign(new Error(code), { code });
 const pause = (duration: number) =>
   new Promise<void>((done) => setTimeout(done, duration));
 
-/** Observe only process identities and our noncredential invocation marker. */
-async function invocationProcesses(
-  invocationId: string,
-  known: Map<number, string>
-): Promise<ProcessIdentity[]> {
-  const entries = await fs.readdir("/proc", { withFileTypes: true });
-  const candidates: ProcessIdentity[] = [];
-  const tagged = new Set<number>();
-  await Promise.all(
+type ProcessFilesystem = Pick<
+  typeof fs,
+  "readdir" | "stat" | "readFile" | "realpath"
+>;
+interface ProcessSnapshot {
+  pid: number;
+  identity?: ProcessIdentity;
+  environment?: string[];
+  complete: boolean;
+}
+const processGone = (error: unknown) =>
+  ["ENOENT", "ESRCH"].includes((error as NodeJS.ErrnoException).code ?? "");
+
+async function readProcessSnapshot(
+  pid: number,
+  filesystem: ProcessFilesystem
+): Promise<ProcessSnapshot | null> {
+  // Retry a reused PID once rather than attaching an old environment to its
+  // replacement. Persistent churn provides no token or prefix evidence.
+  for (let attempt = 0; attempt < 2; attempt++) {
+    let identity: ProcessIdentity | undefined;
+    let environment: string[] | undefined;
+    try {
+      const directory = `/proc/${pid}`;
+      const info = await filesystem.stat(directory);
+      if (process.getuid && info.uid !== process.getuid()) return null;
+      identity = parseLinuxProcessIdentity(
+        pid,
+        await filesystem.readFile(`${directory}/stat`, "utf8")
+      );
+      if (identity.state === "Z") return null;
+      try {
+        environment = (await filesystem.readFile(`${directory}/environ`))
+          .toString()
+          .split("\0");
+      } catch (error) {
+        if (processGone(error)) return null;
+      }
+      const after = parseLinuxProcessIdentity(
+        pid,
+        await filesystem.readFile(`${directory}/stat`, "utf8")
+      );
+      if (identity.startTime !== after.startTime) {
+        if (attempt === 0) continue;
+        return { pid, identity: after, complete: false };
+      }
+      return { pid, identity: after, environment, complete: !!environment };
+    } catch (error) {
+      if (processGone(error)) return null;
+      // Partial observations matter only after attribution. A protected desktop
+      // daemon belonging to this UID is not evidence about any Wine prefix.
+      return { pid, identity, environment, complete: false };
+    }
+  }
+  return null;
+}
+
+async function processSnapshots(filesystem: ProcessFilesystem) {
+  const entries = await filesystem.readdir("/proc", { withFileTypes: true });
+  const snapshots = await Promise.all(
     entries
       .filter((entry) => /^\d+$/.test(entry.name))
-      .map(async (entry) => {
-        const pid = Number(entry.name);
-        let ownProcess = false;
-        try {
-          const directory = `/proc/${pid}`;
-          const info = await fs.stat(directory);
-          if (process.getuid && info.uid !== process.getuid()) return;
-          ownProcess = true;
-          const identity = parseLinuxProcessIdentity(
-            pid,
-            await fs.readFile(`${directory}/stat`, "utf8")
-          );
-          if (identity.state === "Z") return;
-          candidates.push(identity);
-          try {
-            const env = await fs.readFile(`${directory}/environ`);
-            if (
-              env
-                .toString()
-                .split("\0")
-                .includes(`${EPIC_LINUX_INVOCATION_ENV}=${invocationId}`)
-            )
-              tagged.add(pid);
-          } catch (error) {
-            if ((error as NodeJS.ErrnoException).code !== "ENOENT") throw error;
-          }
-        } catch (error) {
-          if (
-            !["ENOENT", "ESRCH", "EACCES", "EPERM"].includes(
-              (error as NodeJS.ErrnoException).code ?? ""
-            )
-          )
-            throw error;
-          // An inaccessible previously attributed process cannot be proved closed.
-          if (
-            (ownProcess || known.has(pid)) &&
-            ["EACCES", "EPERM"].includes(
-              (error as NodeJS.ErrnoException).code ?? ""
-            )
-          ) {
-            if (!known.has(pid) && (await isVerifiedLinuxUserService(pid)))
-              return;
-            throw failure("cleanup-failed");
-          }
-        }
-      })
+      .map((entry) => readProcessSnapshot(Number(entry.name), filesystem))
   );
-  const selected = new Map<number, ProcessIdentity>();
+  return snapshots.filter((entry): entry is ProcessSnapshot => entry !== null);
+}
+
+/** Observe only process identities and our noncredential invocation marker. */
+export async function inspectLinuxInvocationProcesses(
+  invocationId: string,
+  known: Map<number, string>,
+  filesystem: ProcessFilesystem = fs
+): Promise<ProcessIdentity[]> {
+  const snapshots = await processSnapshots(filesystem);
+  const candidates: ProcessSnapshot[] = [];
+  const tagged = new Set<number>();
+  for (const snapshot of snapshots) {
+    if (!snapshot.identity) {
+      if (known.has(snapshot.pid)) throw failure("cleanup-failed");
+      continue;
+    }
+    if (
+      known.has(snapshot.pid) &&
+      known.get(snapshot.pid) !== snapshot.identity.startTime
+    )
+      known.delete(snapshot.pid);
+    candidates.push(snapshot);
+    if (
+      snapshot.environment?.includes(
+        `${EPIC_LINUX_INVOCATION_ENV}=${invocationId}`
+      )
+    )
+      tagged.add(snapshot.pid);
+  }
+  const selected = new Map<number, ProcessSnapshot>();
   for (const candidate of candidates) {
     if (
       tagged.has(candidate.pid) ||
-      known.get(candidate.pid) === candidate.startTime
+      known.get(candidate.pid) === candidate.identity!.startTime
     )
       selected.set(candidate.pid, candidate);
   }
@@ -136,96 +172,90 @@ async function invocationProcesses(
   while (changed) {
     changed = false;
     for (const candidate of candidates) {
-      if (!selected.has(candidate.pid) && selected.has(candidate.parentPid)) {
+      if (
+        !selected.has(candidate.pid) &&
+        selected.has(candidate.identity!.parentPid)
+      ) {
         selected.set(candidate.pid, candidate);
         changed = true;
       }
     }
   }
+  // Record descendants before reporting an incomplete snapshot: a child can
+  // become reparented before the next scan, including during privileged exec.
   for (const candidate of selected.values())
-    known.set(candidate.pid, candidate.startTime);
-  return [...selected.values()];
+    known.set(candidate.pid, candidate.identity!.startTime);
+  if ([...selected.values()].some((candidate) => !candidate.complete))
+    throw failure("cleanup-failed");
+  return [...selected.values()].map((candidate) => candidate.identity!);
 }
 
+const observedPrefixes = new Map<string, Map<number, string>>();
 export async function hasLinuxPrefixProcesses(prefix: string) {
   if (process.platform !== "linux") return false;
-  return inspectLinuxPrefixProcesses(prefix);
+  const canonical = await fs
+    .realpath(prefix)
+    .catch(() => path.posix.resolve(prefix));
+  const known = observedPrefixes.get(canonical) ?? new Map<number, string>();
+  observedPrefixes.set(canonical, known);
+  try {
+    return await inspectLinuxPrefixProcesses(canonical, fs, known);
+  } finally {
+    if (!known.size && observedPrefixes.get(canonical) === known)
+      observedPrefixes.delete(canonical);
+  }
 }
 
 export async function inspectLinuxPrefixProcesses(
   prefix: string,
-  filesystem: Pick<typeof fs, "readdir" | "stat" | "readFile" | "realpath"> = fs
+  filesystem: ProcessFilesystem = fs,
+  known = new Map<number, string>()
 ) {
-  const entries = await filesystem.readdir("/proc", { withFileTypes: true });
+  const canonical = await filesystem
+    .realpath(prefix)
+    .catch(() => path.posix.resolve(prefix));
+  const snapshots = await processSnapshots(filesystem);
+  const byPid = new Map(snapshots.map((snapshot) => [snapshot.pid, snapshot]));
+  for (const [pid, startTime] of known) {
+    const snapshot = byPid.get(pid);
+    if (
+      !snapshot ||
+      (snapshot.identity && snapshot.identity.startTime !== startTime)
+    )
+      known.delete(pid);
+  }
   const results = await Promise.all(
-    entries
-      .filter((entry) => /^\d+$/.test(entry.name))
-      .map(async (entry) => {
-        try {
-          const directory = `/proc/${entry.name}`;
-          const info = await filesystem.stat(directory);
-          if (process.getuid && info.uid !== process.getuid()) return false;
-          // After proving same UID, inability to inspect a live process is an
-          // unknown result, never evidence that the prefix is idle.
-          try {
-            const before = parseLinuxProcessIdentity(
-              Number(entry.name),
-              await filesystem.readFile(`${directory}/stat`, "utf8")
-            );
-            if (before.state === "Z") return false;
-            const environment = (
-              await filesystem.readFile(`${directory}/environ`)
-            )
-              .toString()
-              .split("\0");
-            const after = parseLinuxProcessIdentity(
-              Number(entry.name),
-              await filesystem.readFile(`${directory}/stat`, "utf8")
-            );
-            if (before.startTime !== after.startTime) return true;
-            const configured = environment
-              .filter((value) =>
-                /^(?:WINEPREFIX|STEAM_COMPAT_DATA_PATH)=/.test(value)
-              )
-              .map((value) => value.slice(value.indexOf("=") + 1));
-            for (const candidate of configured) {
-              for (const possible of [candidate, `${candidate}/pfx`]) {
-                try {
-                  if ((await filesystem.realpath(possible)) === prefix)
-                    return true;
-                } catch (error) {
-                  if (
-                    !["ENOENT", "ENOTDIR"].includes(
-                      (error as NodeJS.ErrnoException).code ?? ""
-                    )
-                  )
-                    return true;
-                }
-              }
+    snapshots.map(async (snapshot) => {
+      if (known.has(snapshot.pid)) return true;
+      if (!snapshot.environment) return false;
+      for (const variable of snapshot.environment) {
+        const match = /^(WINEPREFIX|STEAM_COMPAT_DATA_PATH)=(.+)$/.exec(
+          variable
+        );
+        if (!match || !path.posix.isAbsolute(match[2])) continue;
+        const configured = match[2];
+        const paths =
+          match[1] === "STEAM_COMPAT_DATA_PATH"
+            ? [configured, path.posix.join(configured, "pfx")]
+            : [configured];
+        for (const possible of paths) {
+          let matches = path.posix.normalize(possible) === canonical;
+          if (!matches) {
+            try {
+              matches = (await filesystem.realpath(possible)) === canonical;
+            } catch {
+              // An inaccessible foreign path cannot occupy every prefix.
             }
-            return false;
-          } catch (error) {
-            if (
-              ["EACCES", "EPERM"].includes(
-                (error as NodeJS.ErrnoException).code ?? ""
-              ) &&
-              (await isVerifiedLinuxUserService(Number(entry.name), filesystem))
-            )
-              return false;
-            return !["ENOENT", "ESRCH"].includes(
-              (error as NodeJS.ErrnoException).code ?? ""
-            );
           }
-        } catch (error) {
-          if (
-            ["ENOENT", "ESRCH", "EACCES", "EPERM"].includes(
-              (error as NodeJS.ErrnoException).code ?? ""
-            )
-          )
-            return false;
-          throw failure("cleanup-failed");
+          if (matches) {
+            if (snapshot.identity)
+              known.set(snapshot.pid, snapshot.identity.startTime);
+            return true;
+          }
         }
-      })
+      }
+      return false;
+    })
   );
   return results.some(Boolean);
 }
@@ -282,7 +312,10 @@ export async function spawnSupervisedUmu(
       const forceAt = Date.now() + EPIC_LINUX_TERMINATE_GRACE_MS;
       for (;;) {
         const closedBeforeSnapshot = wrapperClosed;
-        const alive = await invocationProcesses(invocationId, known);
+        const alive = await inspectLinuxInvocationProcesses(
+          invocationId,
+          known
+        );
         if (!alive.length && closedBeforeSnapshot && wrapperClosed) return;
         const signal = Date.now() >= forceAt ? "SIGKILL" : "SIGTERM";
         for (const identity of alive) {
@@ -391,7 +424,7 @@ export async function spawnSupervisedUmu(
     scanner = setInterval(() => {
       if (scanning) return;
       scanning = true;
-      void invocationProcesses(invocationId, known)
+      void inspectLinuxInvocationProcesses(invocationId, known)
         .then((alive) => {
           if (wrapperClosed && !alive.length) clearInterval(scanner);
         })
@@ -420,7 +453,7 @@ export async function spawnSupervisedUmu(
         try {
           alive =
             process.platform === "linux"
-              ? await invocationProcesses(invocationId, known)
+              ? await inspectLinuxInvocationProcesses(invocationId, known)
               : [];
         } catch (error) {
           // Privileged exec transitions can briefly protect /proc. An unknown

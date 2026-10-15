@@ -117,6 +117,38 @@ test(
   "natural tree completion waits for a child in a new session after its wrapper exits",
   { skip: process.platform !== "linux" },
   async (t) => {
+    // Exercise the production supervisor with real children while an unrelated
+    // same-UID process has a protected environment, as desktop daemons can.
+    const protectedPid = 87654320;
+    const readdir = fs.readdir.bind(fs);
+    const stat = fs.stat.bind(fs);
+    const readFile = fs.readFile.bind(fs);
+    t.mock.method(
+      fs,
+      "readdir",
+      async (...args: Parameters<typeof fs.readdir>) => {
+        const entries = await readdir(...args);
+        return args[0] === "/proc"
+          ? [...entries, { name: String(protectedPid) }]
+          : entries;
+      }
+    );
+    t.mock.method(fs, "stat", async (...args: Parameters<typeof fs.stat>) =>
+      args[0] === `/proc/${protectedPid}`
+        ? { uid: process.getuid!() }
+        : stat(...args)
+    );
+    t.mock.method(
+      fs,
+      "readFile",
+      async (...args: Parameters<typeof fs.readFile>) => {
+        if (args[0] === `/proc/${protectedPid}/environ`)
+          throw Object.assign(new Error("denied"), { code: "EACCES" });
+        if (args[0] === `/proc/${protectedPid}/stat`)
+          return `${protectedPid} (desktop-daemon) ${["S", "1", ...Array(17).fill("0"), "10"].join(" ")}`;
+        return readFile(...args);
+      }
+    );
     const directory = await fs.mkdtemp(path.join(os.tmpdir(), "umu-tree-"));
     t.after(() => fs.rm(directory, { recursive: true, force: true }));
     const marker = path.join(directory, "completed");
@@ -179,7 +211,7 @@ test(
 
 function processInspectionPort(options: {
   environment?: string;
-  denied?: boolean;
+  denied?: boolean | "EACCES" | "EPERM";
   reused?: boolean;
   vanished?: boolean;
   zombie?: boolean;
@@ -193,18 +225,21 @@ function processInspectionPort(options: {
         throw Object.assign(new Error("gone"), { code: "ENOENT" });
       if (file.endsWith("/environ")) {
         if (options.denied)
-          throw Object.assign(new Error("denied"), { code: "EACCES" });
+          throw Object.assign(new Error("denied"), {
+            code:
+              typeof options.denied === "string" ? options.denied : "EACCES",
+          });
         return Buffer.from(options.environment ?? "");
       }
       statReads++;
       return `100 (wine) ${[options.zombie ? "Z" : "S", "1", ...Array(17).fill("0"), options.reused && statReads > 1 ? "20" : "10"].join(" ")}`;
     },
     realpath: async (value: string) =>
-      value === "/compat/pfx" ? "/prefix" : value,
+      ["/compat/pfx", "/alias"].includes(value) ? "/prefix" : value,
   };
 }
 
-test("prefix inspection accepts either Wine or Steam compatibility identity and fails closed on denied/reused live processes", async () => {
+test("prefix inspection requires evidence of the target Wine or Steam prefix", async () => {
   assert.equal(
     await inspectLinuxPrefixProcesses(
       "/prefix",
@@ -226,14 +261,14 @@ test("prefix inspection accepts either Wine or Steam compatibility identity and 
       "/prefix",
       processInspectionPort({ denied: true }) as never
     ),
-    true
+    false
   );
   assert.equal(
     await inspectLinuxPrefixProcesses(
       "/prefix",
       processInspectionPort({ reused: true }) as never
     ),
-    true
+    false
   );
   assert.equal(
     await inspectLinuxPrefixProcesses(
@@ -253,6 +288,42 @@ test("prefix inspection accepts either Wine or Steam compatibility identity and 
     await inspectLinuxPrefixProcesses(
       "/prefix",
       processInspectionPort({ zombie: true, denied: true }) as never
+    ),
+    false
+  );
+  assert.equal(
+    await inspectLinuxPrefixProcesses(
+      "/prefix",
+      processInspectionPort({ denied: "EPERM" }) as never
+    ),
+    false
+  );
+  assert.equal(
+    await inspectLinuxPrefixProcesses(
+      "/alias",
+      processInspectionPort({ environment: "WINEPREFIX=/prefix\0" }) as never
+    ),
+    true
+  );
+  assert.equal(
+    await inspectLinuxPrefixProcesses(
+      "/prefix",
+      processInspectionPort({ environment: "WINEPREFIX=/alias\0" }) as never
+    ),
+    true
+  );
+  const inaccessibleForeignPath = processInspectionPort({
+    environment: "WINEPREFIX=/other\0",
+  });
+  inaccessibleForeignPath.realpath = async (value: string) => {
+    if (value === "/other")
+      throw Object.assign(new Error("denied"), { code: "EACCES" });
+    return value;
+  };
+  assert.equal(
+    await inspectLinuxPrefixProcesses(
+      "/prefix",
+      inaccessibleForeignPath as never
     ),
     false
   );

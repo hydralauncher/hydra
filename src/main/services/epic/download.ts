@@ -588,7 +588,7 @@ export class EpicDownloadService {
         bytesDownloaded: active.parser.state.fileSize,
         fileSize: active.parser.state.fileSize,
         status: "complete",
-        epic: { ...current.epic, phase: "finalizing" },
+        epic: { ...current.epic, phase: "finalizing", error: undefined },
       };
       await this.options.putDownload(active.id, active.download);
       assertActive();
