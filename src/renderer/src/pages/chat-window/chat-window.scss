@@ -1512,7 +1512,10 @@ $cooldown-ring-length: 2 * math.$pi * 11;
   }
 
   &__message-action:hover &__message-action-tooltip,
-  &__message-action:focus-visible &__message-action-tooltip,
+  &__message-action:focus-visible &__message-action-tooltip {
+    opacity: 1;
+  }
+
   // The replied-to message, quoted at the top of a reply's bubble.
   &__message-quote {
     display: flex;

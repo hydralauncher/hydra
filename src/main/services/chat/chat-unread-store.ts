@@ -23,6 +23,9 @@ export class ChatUnreadStore {
   private static unread = new Map<string, number>();
   private static lastMessageAt = new Map<string, string>();
   private static readonly lastSeenSeq = new Map<string, number>();
+  // Unread messages seen here, by seq, so a mark-read response that predates
+  // one of them can't drop it.
+  private static readonly unreadSeqs = new Map<string, Set<number>>();
   private static isLoaded = false;
   private static loading: Promise<void> | null = null;
   private static pendingChanges: Map<string, PendingUnreadChange> | null = null;
@@ -57,6 +60,10 @@ export class ChatUnreadStore {
 
     if (!countAsUnread) return true;
 
+    const seqs = this.unreadSeqs.get(friendId) ?? new Set<number>();
+    seqs.add(seq);
+    this.unreadSeqs.set(friendId, seqs);
+
     if (this.pendingChanges) {
       const change = this.pendingChanges.get(friendId) ?? { incoming: [] };
       change.incoming.push(createdAt);
@@ -85,15 +92,24 @@ export class ChatUnreadStore {
   }
 
   /**
-   * Applies a mark-read response. One from a request started before sign-out,
-   * an earlier `generation`, is dropped: it belongs to the previous account.
+   * Applies a mark-read response up to `readSeq`. One from a request started
+   * before sign-out, an earlier `generation`, is dropped: it belongs to the
+   * previous account.
    */
   public static setUnread(
     friendId: string,
-    unreadCount: number,
+    reportedCount: number,
+    readSeq: number,
     generation = this.generation
   ) {
     if (generation !== this.generation) return;
+
+    const seqs = this.unreadSeqs.get(friendId);
+    for (const seq of seqs ?? []) {
+      if (seq <= readSeq) seqs?.delete(seq);
+    }
+    // Both count the messages after readSeq; the response may predate some.
+    const unreadCount = Math.max(reportedCount, seqs?.size ?? 0);
 
     this.pendingChanges?.set(friendId, { unreadCount, incoming: [] });
 
@@ -107,6 +123,7 @@ export class ChatUnreadStore {
     this.unread.clear();
     this.lastMessageAt.clear();
     this.lastSeenSeq.clear();
+    this.unreadSeqs.clear();
     this.isLoaded = false;
     this.loading = null;
     this.pendingChanges = null;
