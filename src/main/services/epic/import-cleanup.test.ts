@@ -70,13 +70,19 @@ function fixture() {
 test("unlinking Epic removes only its contribution and hides only exclusive imports", async () => {
   const f = fixture();
   const hydra = game("hydra");
+  const exclusive = game("epic");
   f.games.set("hydra", hydra);
-  f.games.set("exclusive", game("epic"));
+  f.games.set("steam", game("steam"));
+  f.games.set("exclusive", exclusive);
   f.games.set("other-connection", game("epic", "connection-B"));
   await f.clearEpicImports(context, "connection-A");
   const remaining = f.games.get("hydra")!;
   assert.equal(remaining.isDeleted, false);
   assert.equal(f.games.get("exclusive")?.isDeleted, true);
+  assert.equal(f.games.get("exclusive")?.remoteId, null);
+  assert.equal(f.games.get("steam")?.remoteId, "Remote");
+  assert.equal(f.games.get("steam")?.isDeleted, false);
+  assert.equal(f.games.size, 4);
   assert.equal(
     f.games.get("other-connection")?.epicPlayTimeInMilliseconds,
     300
@@ -92,8 +98,35 @@ test("unlinking Epic removes only its contribution and hides only exclusive impo
     "isPinned",
     "executablePath",
     "customCoverImageUrl",
-  ] as const)
+  ] as const) {
     assert.equal(remaining[field], hydra[field]);
+    assert.equal(f.games.get("exclusive")?.[field], exclusive[field]);
+  }
+});
+
+test("Epic disconnect and stale connection cleanup preserve a pending Hydra claim", async () => {
+  for (const mode of ["disconnect", "disabled", "replaced"] as const) {
+    const f = fixture();
+    f.games.set("pending", game("epic"));
+    await queue.withHydraClaim("pending", async () => {
+      if (mode === "disconnect")
+        await f.clearEpicImports(context, "connection-A");
+      else
+        await f.clearStaleEpicImports(
+          context,
+          () => true,
+          mode === "disabled" ? null : "connection-new"
+        );
+    });
+    const pending = f.games.get("pending")!;
+    assert.equal(pending.remoteId, "Remote");
+    assert.equal(pending.isDeleted, false);
+    assert.equal(pending.hasActiveEpicImport, false);
+    assert.equal(pending.epicImportScope, undefined);
+    assert.equal(pending.epicPlayTimeInMilliseconds, 0);
+    assert.equal(pending.playTimeInMilliseconds, 100);
+    assert.equal(pending.steamPlayTimeInMilliseconds, 200);
+  }
 });
 
 test("account/environment changes clear stale Epic data before uploading, including A to B to A", async () => {
@@ -109,6 +142,7 @@ test("account/environment changes clear stale Epic data before uploading, includ
   });
   await f.clearStaleEpicImports({ ...context, generation: 3 });
   assert.equal(f.games.get("game")?.isDeleted, false);
+  assert.equal(f.games.get("game")?.remoteId, null);
   assert.equal(f.games.get("game")?.epicPlayTimeInMilliseconds, 0);
   assert.equal(f.games.get("game")?.playTimeInMilliseconds, 100);
   f.games.set("game", game("epic"));
@@ -116,15 +150,43 @@ test("account/environment changes clear stale Epic data before uploading, includ
   assert.equal(f.games.get("game")?.epicPlayTimeInMilliseconds, 0);
 });
 
+test("Hydra account changes still invalidate remote IDs for shared games and pending claims", async () => {
+  for (const mode of ["explicit", "stale"] as const) {
+    const f = fixture();
+    for (const source of ["hydra", "steam", "epic"] as const)
+      f.games.set(source, game(source));
+    await queue.withHydraClaim("epic", async () => {
+      if (mode === "explicit")
+        await f.clearEpicImports(context, "connection-A", true);
+      else await f.clearStaleEpicImports({ ...context, userId: "B" });
+    });
+    for (const record of f.games.values()) {
+      assert.equal(record.remoteId, null);
+      assert.equal(record.playTimeInMilliseconds, 100);
+      assert.equal(record.steamPlayTimeInMilliseconds, 200);
+    }
+  }
+});
+
 test("cleanup invalidated during its read cannot clear a new account's imports", async () => {
-  const f = fixture();
-  f.games.set("game", game("epic"));
-  f.state.read = async () => {
-    f.state.current = false;
-  };
-  await f.clearStaleEpicImports(null, () => f.state.current);
-  assert.equal(f.games.get("game")?.epicPlayTimeInMilliseconds, 300);
-  assert.equal(f.games.get("game")?.isDeleted, false);
+  for (const mode of ["disconnect", "stale"] as const) {
+    const f = fixture();
+    f.games.set("game", game("epic"));
+    f.state.read = async () => {
+      f.state.current = false;
+    };
+    if (mode === "disconnect")
+      await f.clearEpicImports(
+        context,
+        "connection-A",
+        false,
+        () => f.state.current
+      );
+    else await f.clearStaleEpicImports(null, () => f.state.current);
+    assert.equal(f.games.get("game")?.epicPlayTimeInMilliseconds, 300);
+    assert.equal(f.games.get("game")?.isDeleted, false);
+    assert.equal(f.games.get("game")?.remoteId, "Remote");
+  }
 });
 
 test("confirmed remote unlink or replacement cleans imports even when the connection store is missing", async () => {
@@ -139,6 +201,7 @@ test("confirmed remote unlink or replacement cleans imports even when the connec
     );
     assert.equal(count, 2);
     assert.equal(f.games.get("exclusive")?.isDeleted, true);
+    assert.equal(f.games.get("exclusive")?.remoteId, null);
     assert.equal(f.games.get("hydra")?.isDeleted, false);
     assert.equal(f.games.get("hydra")?.remoteId, "Remote");
     assert.equal(f.games.get("hydra")?.playTimeInMilliseconds, 100);
