@@ -181,6 +181,22 @@ class AdapterTests(unittest.TestCase):
         with self.assertRaisesRegex(managed.ManagedError, "invalid-manifest"):
             self.inspect()
 
+    def test_install_build_drift_stops_actual_entry_before_cli_invocation(self):
+        from legendary import core as upstream_core
+        for version, embedded_name in (("2", "Example"), ("1", "LegacyArtifactName")):
+            self.fixture = Fixture(manifest_bytes()[0])
+            self.request = dict(protocolVersion=1, operation="inspect", target=TARGET)
+            receipt = self.inspect()[0]["receipt"]
+            self.request.update(operation="install", receipt=receipt, args=["-y", "install", "Example"])
+            self.fixture = Fixture(manifest_bytes(version=version, app_name=embedded_name)[0])
+            self.fixture.core.exit = lambda: None
+            request_file = self.workspace / "request.json"
+            request_file.write_text(json.dumps(self.request), encoding="utf-8")
+            with patch.object(managed, "bootstrap"), patch.object(managed, "initialize_access"), patch.object(upstream_core, "LegendaryCore", return_value=self.fixture.core), patch.object(managed, "run_install") as transfer, patch.object(sys, "argv", ["managed", "unused.pyz", "--request", str(request_file)]), patch.dict(os.environ, LEGENDARY_CONFIG_PATH=str(self.workspace)):
+                with self.assertRaisesRegex(managed.ManagedError, "update-required"):
+                    managed.main()
+                transfer.assert_not_called()
+
     def test_corrupt_cached_file_refetches(self):
         self.request["receipt"] = self.inspect()[0]["receipt"]
         Path(self.request["receipt"]["manifestPath"]).write_bytes(b"corrupt")

@@ -72,6 +72,7 @@ const RECONNECT_DEBOUNCE_MS = 2000;
 
 export class DownloadOrchestrator {
   private static epicActivationTail: Promise<unknown> = Promise.resolve();
+  private static acceptedEpicActivations = new Map<string, object>();
   private static isOnline = true;
   private static reconnectGraceTimer: NodeJS.Timeout | null = null;
   private static lastReconnectAt = 0;
@@ -159,7 +160,20 @@ export class DownloadOrchestrator {
       .catch(() => null);
   }
 
-  private static async activateDownload(download: Download) {
+  private static async activateDownload(
+    download: Download,
+    awaitPreparation = true,
+    acceptedTicket?: object
+  ) {
+    const downloadId = getDownloadId(download);
+    if (
+      acceptedTicket &&
+      this.acceptedEpicActivations.get(downloadId) !== acceptedTicket
+    )
+      return undefined;
+    const ticket = awaitPreparation ? undefined : (acceptedTicket ?? {});
+    if (ticket) this.acceptedEpicActivations.set(downloadId, ticket);
+    else this.acceptedEpicActivations.delete(downloadId);
     const activeDownload: Download = {
       ...download,
       status: "active",
@@ -171,31 +185,57 @@ export class DownloadOrchestrator {
     };
 
     await downloadsSublevel.put(getGameKey(download), activeDownload);
+    if (ticket && this.acceptedEpicActivations.get(downloadId) !== ticket)
+      return undefined;
 
-    try {
-      await DownloadManager.resumeDownload(activeDownload);
-    } catch (error) {
-      const downloadId = getDownloadId(download);
-      await downloadsSublevel.put(getGameKey(download), {
-        ...activeDownload,
-        status: "error",
-        queued: false,
-      });
+    const prepare = async () => {
+      try {
+        await DownloadManager.resumeDownload(activeDownload);
+      } catch (error) {
+        if (ticket) {
+          const current = await this.getDownload(
+            download.shop,
+            download.objectId
+          );
+          if (
+            this.acceptedEpicActivations.get(downloadId) !== ticket ||
+            current?.status !== "active" ||
+            current.timestamp !== activeDownload.timestamp
+          )
+            return;
+        }
+        await downloadsSublevel.put(getGameKey(download), {
+          ...activeDownload,
+          status: "error",
+          queued: false,
+        });
 
-      const downloads = await this.getAllDownloads();
-      const layoutState = await getNormalizedDownloadLayoutState(downloads);
-      await setDownloadLayoutQueues(
-        downloads,
-        layoutState.queueOrder.filter((id) => id !== downloadId),
-        [
-          downloadId,
-          ...layoutState.pausedOrder.filter((id) => id !== downloadId),
-        ]
+        const downloads = await this.getAllDownloads();
+        const layoutState = await getNormalizedDownloadLayoutState(downloads);
+        await setDownloadLayoutQueues(
+          downloads,
+          layoutState.queueOrder.filter((id) => id !== downloadId),
+          [
+            downloadId,
+            ...layoutState.pausedOrder.filter((id) => id !== downloadId),
+          ]
+        );
+
+        WindowManager.sendDownloadsUpdated();
+        throw error;
+      } finally {
+        if (ticket && this.acceptedEpicActivations.get(downloadId) === ticket)
+          this.acceptedEpicActivations.delete(downloadId);
+      }
+    };
+    if (awaitPreparation) await prepare();
+    else
+      void prepare().catch((error) =>
+        logger.error(
+          "[DownloadOrchestrator] Accepted Epic preparation failed",
+          error
+        )
       );
-
-      WindowManager.sendDownloadsUpdated();
-      throw error;
-    }
 
     return activeDownload;
   }
@@ -280,6 +320,7 @@ export class DownloadOrchestrator {
       startNextQueued?: boolean;
     } = {}
   ) {
+    this.acceptedEpicActivations.delete(getDownloadId(download));
     const shouldPauseRuntime = isActiveLikeDownload(download);
 
     if (shouldPauseRuntime) {
@@ -409,26 +450,60 @@ export class DownloadOrchestrator {
     return { ok: true };
   }
 
-  /** Acknowledge durable Epic queue placement before network preparation starts. */
+  /** Acknowledge durable Epic queue placement without waiting for network preparation. */
   static async acceptPreparedEpicDownload(download: Download) {
     if (download.downloader !== Downloader.Epic)
       throw new Error("Expected Epic download");
-    await this.queueDownload(download);
-    WindowManager.sendDownloadsUpdated();
-    this.epicActivationTail = this.epicActivationTail
-      .catch(() => undefined)
-      .then(async () => {
-        const downloads = await this.getAllDownloads();
-        if (downloads.some(isActiveLikeDownload)) return;
-        await this.startNextQueuedDownload(downloads);
-      })
-      .catch((error) => {
+    const id = getDownloadId(download);
+    const ticket = {};
+    this.acceptedEpicActivations.set(id, ticket);
+    let reserved = false;
+    try {
+      const accepted = await this.queueDownload(download);
+      WindowManager.sendDownloadsUpdated();
+      const activation = this.epicActivationTail
+        .catch(() => undefined)
+        .then(async () => {
+          // An explicit Start retains its historical behavior: reserve the
+          // selected game when idle, leaving existing queued items in place.
+          const current = await this.getDownload(
+            download.shop,
+            download.objectId
+          );
+          if (
+            this.acceptedEpicActivations.get(id) !== ticket ||
+            current?.status !== "paused" ||
+            !current.queued ||
+            current.timestamp !== accepted.timestamp
+          )
+            return;
+          const downloads = await this.getAllDownloads();
+          if (
+            this.acceptedEpicActivations.get(id) !== ticket ||
+            downloads.some(isActiveLikeDownload)
+          )
+            return;
+          const active = await this.activateDownload(current, false, ticket);
+          if (!active) return;
+          reserved = true;
+          await removeDownloadFromLayoutState(
+            active,
+            await this.getAllDownloads()
+          );
+          WindowManager.sendDownloadsUpdated();
+        });
+      this.epicActivationTail = activation.catch((error) => {
         logger.error(
           "[DownloadOrchestrator] Failed to activate accepted Epic download",
           error
         );
       });
-    return { ok: true };
+      await activation;
+      return { ok: true };
+    } finally {
+      if (!reserved && this.acceptedEpicActivations.get(id) === ticket)
+        this.acceptedEpicActivations.delete(id);
+    }
   }
 
   static async enqueuePreparedDownload(download: Download) {
@@ -495,6 +570,7 @@ export class DownloadOrchestrator {
   }
 
   static async cancelDownloadById(shop: GameShop, objectId: string) {
+    this.acceptedEpicActivations.delete(levelKeys.game(shop, objectId));
     const download = await this.getDownload(shop, objectId);
     if (!download) return false;
 
@@ -536,6 +612,7 @@ export class DownloadOrchestrator {
     targetArea: "hero" | "queue" | "paused",
     targetIndex?: number
   ) {
+    this.acceptedEpicActivations.delete(levelKeys.game(shop, objectId));
     const download = await this.getDownload(shop, objectId);
 
     if (

@@ -57,7 +57,7 @@ test(
       ],
       { windowsHide: true, timeout: 20_000 }
     );
-    assert.match(result.stderr, /Ran 18 tests/);
+    assert.match(result.stderr, /Ran 19 tests/);
     assert.match(result.stderr, /\bOK\b/);
   }
 );

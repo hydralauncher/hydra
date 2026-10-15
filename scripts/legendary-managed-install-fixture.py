@@ -93,6 +93,16 @@ def worker(root, fixtures, workspace, destination, url):
     request = dict(protocolVersion=1, operation="install", target=target, args=["-y", "install", "Example", "--platform", "Windows", "--base-path", str(destination), "--game-folder", "Espaço Game", "--skip-dlcs", "--skip-sdl"])
     result, game, manifest = managed.inspect_target(core, request, workspace)
     request["receipt"] = result["receipt"]
+    for key, stale_value in (("version", "stale-build"), ("sourceHash", "0" * 40)):
+        stale = dict(request, receipt={**request["receipt"], key: stale_value})
+        try:
+            managed.inspect_target(core, stale, workspace)
+        except managed.ManagedError as error:
+            assert managed.error_code(error) == "update-required"
+        else:
+            raise AssertionError("A changed build reached the install boundary")
+        assert not destination.exists()
+        assert core.lgd.get_installed_game("Example") is None
     try:
         managed.run_install(core, request, game, manifest)
     except SystemExit as error:

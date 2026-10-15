@@ -92,6 +92,7 @@ def error_code(error):
             "preload-unavailable": "not-installable",
             "external-launcher-required": "external-launcher-required",
             "unsupported-platform": "not-installable",
+            "update-required": "update-required",
         }.get(str(error), "invalid-response")
     status = getattr(getattr(error, "response", None), "status_code", None)
     if status in (401, 403):
@@ -218,6 +219,14 @@ def inspect_target(core, request, workspace):
     # descriptor may attest that alias; its SHA-1 still binds the actual bytes.
     if not parsed.meta.build_version or (parsed.meta.app_name != target["artifactId"] and element.get("appName") != target["artifactId"]):
         raise ManagedError("invalid-manifest")
+    if request.get("operation") == "install" and request.get("receipt") is not None:
+        expected = request["receipt"]
+        if not isinstance(expected, dict):
+            raise ManagedError("invalid-receipt")
+        if expected.get("version") != parsed.meta.build_version or expected.get("sourceHash") != source_hash:
+            # Preparation was for a different build, even if the publisher
+            # reused the version string. Stop before invoking the downloader.
+            raise ManagedError("update-required")
     game.asset_infos = {"Windows": GameAsset(app_name=target["artifactId"], namespace=target["namespace"], catalog_item_id=target["catalogItemId"], build_version=parsed.meta.build_version, label_name="Live")}
     game.base_urls = base_urls
     core.lgd.set_game_meta(game.app_name, game)
