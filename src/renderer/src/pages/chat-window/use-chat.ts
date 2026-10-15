@@ -332,25 +332,44 @@ export function useChat({
     pendingChecksRef.current.delete(clientNonce);
   }, []);
 
-  const watchPending = useCallback((friendId: string, clientNonce: string) => {
-    const previous = pendingChecksRef.current.get(clientNonce);
-    if (previous) clearTimeout(previous.timer);
+  const watchPendingRef = useRef<
+    (friendId: string, clientNonce: string) => void
+  >(() => {});
+  const watchPending = useCallback(
+    (friendId: string, clientNonce: string) => {
+      const previous = pendingChecksRef.current.get(clientNonce);
+      if (previous) clearTimeout(previous.timer);
 
-    const lookups = previous?.lookups ?? 0;
-    if (lookups >= PENDING_CHECK_MAX_LOOKUPS) {
-      pendingChecksRef.current.delete(clientNonce);
-      return;
-    }
+      const lookups = previous?.lookups ?? 0;
+      if (lookups >= PENDING_CHECK_MAX_LOOKUPS) {
+        pendingChecksRef.current.delete(clientNonce);
+        // Out of lookups: Retry and Remove beat waiting on "Checking" forever.
+        updateConversation(friendId, (conversation) => ({
+          ...conversation,
+          messages: setMessageFailed(conversation.messages, clientNonce),
+        }));
+        return;
+      }
 
-    const timer = setTimeout(() => {
-      pendingChecksRef.current.set(clientNonce, {
-        timer,
-        lookups: lookups + 1,
-      });
-      void lookUpPendingRef.current(friendId);
-    }, PENDING_CHECK_TIMEOUT_MS);
-    pendingChecksRef.current.set(clientNonce, { timer, lookups });
-  }, []);
+      const timer = setTimeout(() => {
+        pendingChecksRef.current.set(clientNonce, {
+          timer,
+          lookups: lookups + 1,
+        });
+        void lookUpPendingRef.current(friendId).finally(() => {
+          // A failed lookup leaves this check untouched, so it looks again.
+          if (pendingChecksRef.current.get(clientNonce)?.timer === timer) {
+            watchPendingRef.current(friendId, clientNonce);
+          }
+        });
+      }, PENDING_CHECK_TIMEOUT_MS);
+      pendingChecksRef.current.set(clientNonce, { timer, lookups });
+    },
+    [updateConversation]
+  );
+  useEffect(() => {
+    watchPendingRef.current = watchPending;
+  }, [watchPending]);
 
   useEffect(() => {
     if (!reactionError) return;
