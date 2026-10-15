@@ -22,7 +22,16 @@ export class EpicLibraryArtworkQueue {
   ) {}
 
   schedule(games: LibraryGame[]) {
-    const ids = new Set(games.map((game) => game.id));
+    // Collection reads may be partial or empty. Keep unvisited work until the
+    // active pass finishes, while allowing newer records to update its entries.
+    this.library = this.running
+      ? [
+          ...new Map(
+            [...this.library, ...games].map((game) => [game.id, game])
+          ).values(),
+        ]
+      : games;
+    const ids = new Set(this.library.map((game) => game.id));
     for (const [key, attempted] of this.attemptedAt) {
       if (
         !ids.has(key) ||
@@ -30,7 +39,6 @@ export class EpicLibraryArtworkQueue {
       )
         this.attemptedAt.delete(key);
     }
-    this.library = games;
     this.cursor = 0;
     for (const game of games) {
       if (this.pending.has(game.id)) this.pending.set(game.id, game);
