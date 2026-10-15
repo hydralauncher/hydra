@@ -18,7 +18,12 @@ import "./hero-panel-playtime.scss";
 export function HeroPanelPlaytime() {
   const [lastTimePlayed, setLastTimePlayed] = useState("");
 
-  const { game, isGameRunning } = useContext(gameDetailsContext);
+  const {
+    game: operationalGame,
+    presentation,
+    isGameRunning,
+  } = useContext(gameDetailsContext);
+  const game = presentation ?? operationalGame;
   const { t } = useTranslation("game_details");
   const { numberFormatter } = useFormat();
   const { progress, lastPacket } = useDownload();

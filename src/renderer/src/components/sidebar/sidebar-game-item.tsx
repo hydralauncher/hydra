@@ -1,6 +1,7 @@
 import SteamLogo from "@renderer/assets/steam-logo.svg?react";
 import EpicLogo from "@renderer/assets/epic-integration-logo.svg?react";
 import { LibraryGame } from "@types";
+import { getGameCatalogueIdentity, getLibraryOperationalGame } from "@shared";
 import cn from "classnames";
 import { useLocation } from "react-router-dom";
 import { useState } from "react";
@@ -14,7 +15,7 @@ import {
 import { HeartFillIcon } from "@primer/octicons-react";
 import { useAppSelector, useToast } from "@renderer/hooks";
 import { useCollectionContextMenu } from "@renderer/context";
-import { shouldShowSteamLibraryBadge } from "@renderer/helpers";
+import { getLibraryPresentationBadgeSource } from "@renderer/pages/library/library-category";
 
 interface SidebarGameItemProps {
   game: LibraryGame;
@@ -36,7 +37,7 @@ export function SidebarGameItem({
     rpcs3ConfirmPending,
     handleConfirmRpcs3Launch,
     handleCancelRpcs3Launch,
-  } = useGameActions(game);
+  } = useGameActions(getLibraryOperationalGame(game));
   const userPreferences = useAppSelector(
     (state) => state.userPreferences.value
   );
@@ -61,6 +62,8 @@ export function SidebarGameItem({
   };
 
   const isCustomGame = game.shop === "custom";
+  const catalogueIdentity = getGameCatalogueIdentity(game);
+  const badgeSource = getLibraryPresentationBadgeSource(game);
   const sidebarIcon = isCustomGame
     ? game.libraryImageUrl || game.iconUrl
     : game.customIconUrl || game.iconUrl;
@@ -82,7 +85,8 @@ export function SidebarGameItem({
         key={game.id}
         className={cn("sidebar__menu-item", {
           "sidebar__menu-item--active":
-            location.pathname === `/game/${game.shop}/${game.objectId}`,
+            location.pathname ===
+            `/game/${catalogueIdentity.shop}/${catalogueIdentity.objectId}`,
           "sidebar__menu-item--muted": game.download?.status === "removed",
         })}
       >
@@ -125,15 +129,25 @@ export function SidebarGameItem({
             ) : (
               getFallbackIcon()
             )}
-            {game.shop === "epic" &&
-              game.hasActiveEpicImport &&
+            {badgeSource === "epic" &&
               !userPreferences?.hideEpicLibraryBadges && (
-                <SteamLibraryBadge source="epic" variant="sidebar" />
+                <SteamLibraryBadge
+                  source="epic"
+                  variant="sidebar"
+                  availableShops={game.availableShops}
+                  hasActiveSteamImport={game.hasActiveSteamImport}
+                  hasActiveEpicImport={game.hasActiveEpicImport}
+                />
               )}
-            {shouldShowSteamLibraryBadge(
-              game,
-              userPreferences?.hideSteamLibraryBadges
-            ) && <SteamLibraryBadge variant="sidebar" />}
+            {badgeSource === "steam" &&
+              !userPreferences?.hideSteamLibraryBadges && (
+                <SteamLibraryBadge
+                  variant="sidebar"
+                  availableShops={game.availableShops}
+                  hasActiveSteamImport={game.hasActiveSteamImport}
+                  hasActiveEpicImport={game.hasActiveEpicImport}
+                />
+              )}
           </span>
 
           <span className="sidebar__menu-item-button-label">
@@ -154,7 +168,7 @@ export function SidebarGameItem({
       </li>
 
       <GameContextMenu
-        game={game}
+        game={getLibraryOperationalGame(game)}
         visible={contextMenu.visible}
         position={contextMenu.position}
         onClose={handleCloseContextMenu}

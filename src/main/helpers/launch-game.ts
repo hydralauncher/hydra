@@ -46,12 +46,23 @@ import {
   buildWindowsBatchCommand,
   isWindowsBatchFile,
 } from "./windows-batch-command";
+import {
+  markManagedEpicLaunched,
+  prepareManagedEpicLaunch,
+  cancelManagedEpicLaunch,
+  recordManagedEpicProcess,
+} from "@main/services/epic/launch";
+import type { EpicLaunchParameters } from "@main/services/epic/launch-protocol";
+import { EpicSaveFailure } from "@main/services/epic/cloud-save-protocol";
+import { getEpicCloudSaveService } from "@main/services/epic/cloud-saves";
 
 export interface LaunchGameOptions {
   shop: GameShop;
   objectId: string;
   executablePath: string;
   launchOptions?: string | null;
+  epicSavePolicy?: "local-once";
+  epicOffline?: boolean;
 }
 
 const LAUNCH_DELAY_IN_MS = 2_000;
@@ -635,6 +646,35 @@ const launchResolvedGame = async (
   return pid;
 };
 
+const launchAuthenticatedEpicGame = (
+  parameters: EpicLaunchParameters,
+  launchOptions?: string | null
+): Promise<number> => {
+  const resolved = resolveLaunchCommand({
+    baseCommand: parameters.executable,
+    baseArgs: parameters.args,
+    launchOptions,
+  });
+  if (isWindowsBatchFile(resolved.command))
+    return Promise.reject(new EpicSaveFailure("invalid-path"));
+  return new Promise((resolve, reject) => {
+    const child = spawn(resolved.command, resolved.args, {
+      shell: false,
+      detached: true,
+      stdio: "ignore",
+      cwd: parameters.workingDirectory,
+      env: { ...process.env, ...parameters.environment, ...resolved.env },
+    });
+    child.once("spawn", () => {
+      child.unref();
+      if (child.pid) resolve(child.pid);
+      else reject(new EpicSaveFailure("process-failed"));
+    });
+    // Never serialize the spawn error: it includes authentication arguments.
+    child.once("error", () => reject(new EpicSaveFailure("process-failed")));
+  });
+};
+
 /**
  * Shows the launcher window and launches the game executable
  * Shared between deep link handler and openGame event
@@ -699,6 +739,7 @@ const launchGameWithCloudSaveChecks = async (
       }))
     : null;
   const launchGameRecord = updatedGame ?? game;
+  const managedEpic = shop === "epic" && !!launchGameRecord?.epicInstallation;
 
   clearGameLauncherStatuses(gameKey);
   await WindowManager.createGameLauncherWindow(shop, objectId);
@@ -719,8 +760,44 @@ const launchGameWithCloudSaveChecks = async (
         launchGameRecord,
         objectId,
         shop,
-        shouldRunV2AutomaticSync
+        shouldRunV2AutomaticSync || managedEpic
       );
+
+  if (managedEpic && launchGameRecord) {
+    return getEpicCloudSaveService().runLaunchGate(objectId, async () => {
+      try {
+        const prepared = await prepareManagedEpicLaunch(
+          launchGameRecord,
+          parsedPath,
+          {
+            winePrefixPath: compatibilityContext?.winePrefixPath,
+            epicSavePolicy: options.epicSavePolicy,
+            epicOffline: options.epicOffline,
+          }
+        );
+        await runCommonRedistPreflight(shop, objectId);
+        await markManagedEpicLaunched(prepared.session);
+        let pid: number;
+        try {
+          getEpicCloudSaveService().assertSessionCurrent(prepared.session);
+          pid = await launchAuthenticatedEpicGame(
+            prepared.parameters,
+            launchOptions
+          );
+        } catch (error) {
+          cancelManagedEpicLaunch(prepared.session);
+          throw error;
+        }
+        launchedGamePids.set(gameKey, pid);
+        recordManagedEpicProcess(prepared.session, pid);
+        return pid;
+      } catch (error) {
+        WindowManager.closeGameLauncherWindow();
+        // Auth or save preparation failures must never fall through to a raw launch.
+        throw error;
+      }
+    });
+  }
 
   const cloudSaveContext = shouldRunV2AutomaticSync
     ? await getCloudSaveGameContext(objectId, shop, {

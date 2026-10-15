@@ -4,7 +4,11 @@ import { useTranslation } from "react-i18next";
 import { useLocation, useNavigate } from "react-router-dom";
 
 import type { LibraryGame } from "@types";
-import { removeDiacritics } from "@shared";
+import {
+  getGameCatalogueIdentity,
+  groupLibraryGames,
+  removeDiacritics,
+} from "@shared";
 
 import { ConfirmationModal, TextField } from "@renderer/components";
 import {
@@ -84,6 +88,9 @@ export function Sidebar() {
   const { t } = useTranslation(["sidebar", "library"]);
   const { library, updateLibrary } = useLibrary();
   const isLibraryLoading = useAppSelector(selectIsLibraryLoading);
+  const runningGameId = useAppSelector(
+    (state) => state.gameRunning.gameRunning?.id
+  );
   const [deckyPluginInfo, setDeckyPluginInfo] = useState<{
     installed: boolean;
     version: string | null;
@@ -176,8 +183,11 @@ export function Sidebar() {
   );
 
   const orderedLibrary = useMemo(
-    () => orderSidebarGames(library),
-    [library, orderSidebarGames]
+    () =>
+      orderSidebarGames(
+        groupLibraryGames(library, runningGameId ? [runningGameId] : [])
+      ),
+    [library, orderSidebarGames, runningGameId]
   );
 
   const sortedLibrary = useMemo(
@@ -468,7 +478,7 @@ export function Sidebar() {
   const handleSidebarGameClick = (game: LibraryGame) => {
     const path = buildGameDetailsPath({
       ...game,
-      objectId: game.objectId,
+      ...getGameCatalogueIdentity(game),
     });
     if (path !== location.pathname) {
       navigate(path);

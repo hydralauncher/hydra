@@ -75,6 +75,8 @@ import type {
   ArtworkKind,
   ArtworkPage,
   GameArtworkSelection,
+  GameArtworkOptions,
+  GameAssetsOptions,
   GameLauncherStatusPayload,
   CloudSaveAutomaticSyncModeChangedEvent,
   CloudSaveAutomaticSyncEvent,
@@ -108,6 +110,13 @@ import type {
   EpicSyncFinished,
   EpicOperationResult,
   EpicStartAuthResult,
+  EpicGameInstallOptions,
+  StartEpicGameDownloadPayload,
+  EpicManagedOperationResult,
+  EpicCloudSaveState,
+  EpicCloudSaveSettings,
+  ResolveEpicCloudSaveConflictPayload,
+  EpicLaunchOptions,
 } from "@types";
 import type { AxiosProgressEvent } from "axios";
 
@@ -330,14 +339,15 @@ declare global {
     getGameShopDetails: (
       objectId: string,
       shop: GameShop,
-      language: string
+      language: string,
+      options?: GameArtworkOptions
     ) => Promise<ShopDetailsWithAssets | null>;
     getRandomGame: () => Promise<Steam250Game>;
     getGameStats: (objectId: string, shop: GameShop) => Promise<GameStats>;
     getGameAssets: (
       objectId: string,
       shop: GameShop,
-      options?: { forceFresh?: boolean }
+      options?: GameAssetsOptions
     ) => Promise<ShopAssets | null>;
     onUpdateAchievements: (
       objectId: string,
@@ -529,7 +539,8 @@ declare global {
       shop: GameShop,
       objectId: string,
       executablePath: string,
-      launchOptions?: string | null
+      launchOptions?: string | null,
+      epicLaunchOptions?: EpicLaunchOptions
     ) => Promise<void>;
     openClassicsGame: (
       shop: GameShop,
@@ -1233,6 +1244,28 @@ declare global {
     onEpicSyncProgress: (cb: (state: EpicSyncState) => void) => () => void;
     onEpicSyncFinished: (cb: (result: EpicSyncFinished) => void) => () => void;
     getEpicConnection: () => Promise<EpicConnectionState>;
+    getEpicGameInstallOptions: (
+      epicObjectId: string,
+      requestId?: string
+    ) => Promise<EpicGameInstallOptions>;
+    cancelEpicGameInstallOptions?: (requestId: string) => Promise<void>;
+    startEpicGameDownload: (
+      payload: StartEpicGameDownloadPayload
+    ) => Promise<EpicManagedOperationResult>;
+    getEpicCloudSaveState: (
+      epicObjectId: string
+    ) => Promise<EpicCloudSaveState>;
+    setEpicCloudSaveSettings: (
+      epicObjectId: string,
+      settings: EpicCloudSaveSettings
+    ) => Promise<EpicManagedOperationResult>;
+    syncEpicCloudSaves: (epicObjectId: string) => Promise<EpicCloudSaveState>;
+    resolveEpicCloudSaveConflict: (
+      payload: ResolveEpicCloudSaveConflictPayload
+    ) => Promise<EpicCloudSaveState>;
+    onEpicCloudSaveStateChanged: (
+      callback: (state: EpicCloudSaveState) => void
+    ) => () => void;
     startEpicAuth: () => Promise<EpicStartAuthResult>;
     cancelEpicAuth: (operationId: string) => Promise<EpicOperationResult>;
     disconnectEpic: (connectionId: string) => Promise<EpicOperationResult>;

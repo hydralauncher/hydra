@@ -554,7 +554,45 @@
     "delete_shortcut_error": "Steamショートカットの削除に失敗しました",
     "delete_steam_shortcut": "Steamショートカットを削除",
     "epic_playtime_tracking_title": "Epic playtime",
-    "epic_playtime_tracking_description": "Epic playtime is already synced. When an Epic installation is identified, Hydra does not count the same session by default. Enable this option to also count it in Hydra."
+    "epic_playtime_tracking_description": "Epic playtime is already synced. When an Epic installation is identified, Hydra does not count the same session by default. Enable this option to also count it in Hydra.",
+    "download_on_epic": "Epic Gamesでダウンロード",
+    "epic_preparing_install": "読み込み中...",
+    "epic_install_build": "バージョンを選択",
+    "epic_select_build": "バージョンを選択",
+    "epic_install_sizes": "ダウンロード: {{download}} · インストール: {{disk}}",
+    "download_size": "ダウンロード: <strong>{{size}}</strong>",
+    "required_storage_space": "ストレージ: <strong>{{size}}</strong>",
+    "epic_finalizing_install": "インストールを完了しています",
+    "epic_cloud_saves": "クラウドセーブ — Epic Games",
+    "epic_cloud_saves_description": "このゲームのセーブデータをEpic Gamesアカウントと同期します。",
+    "epic_save_unsupported": "このゲームはEpic Gamesのクラウドセーブに対応していません。",
+    "epic_save_status_idle": "Checking",
+    "epic_save_status_syncing": "同期中",
+    "epic_save_status_conflict": "Conflict",
+    "epic_save_status_pending-upload": "アップロード待ち",
+    "epic_save_status_unavailable": "Unavailable",
+    "epic_save_status_up-to-date": "同期済み",
+    "epic_save_automatic": "自動クラウド同期を有効にする",
+    "epic_save_automatic_description": "ゲームの起動前と終了後に同期します。",
+    "epic_save_folder": "セーブフォルダー",
+    "epic_save_path_required": "Location required",
+    "epic_save_select_path": "フォルダを選択",
+    "epic_save_sync_now": "Sync now",
+    "epic_save_conflict_description": "Your local saves will replace the active cloud version. The local saves on this device will be replaced by the active cloud version.",
+    "epic_save_use_local": "Keep local saves",
+    "epic_save_use_remote": "Use cloud saves — Epic Games",
+    "choose_game_store": "プレイするストアを選択",
+    "play_on_steam": "プレイ — Steam",
+    "play_on_epic": "プレイ — Epic Games",
+    "epic_launch_failed": "Failed to launch game",
+    "epic_play_local_saves": "ローカルセーブでプレイ",
+    "epic_play_local_saves_description": "クラウドセーブを復元せずに今回のプレイを開始します。ローカルの変更は同期待ちになります。",
+    "epic_managed_error_generic": "Epic の操作に失敗しました。接続を確認して再試行してください。",
+    "epic_external_launcher_required": "このゲームをインストールするには別のランチャーが必要です。公式ランチャーからインストールしてください。",
+    "epic_play_offline": "プレイ — Offline",
+    "epic_prerequisites_required": "ゲームの前提コンポーネントを許可して再試行してください。",
+    "epic_update_required": "Epic Games のオプションから同じフォルダーにゲームを更新してください。",
+    "epic_retry": "再試行"
   },
   "activation": {
     "title": "Hydraをアクティベート",
@@ -611,6 +649,7 @@
     "move_down": "下に移動"
   },
   "settings": {
+    "epic_sync_partial": "ゲームとプレイ時間を同期しました。{{count}}本のゲームの実績の同期を再試行します。",
     "hide_library_steam_badges": "Steamライブラリ接続バッジを非表示",
     "epic_games": "Epic Games",
     "epic_description": "Link your Epic Games account to Hydra.",
@@ -869,7 +908,8 @@
     "epic_sync_permission": "Epic did not allow access to playtime. Your previous library was preserved.",
     "epic_sync_rate_limit": "Epic is limiting requests. Try again later.",
     "epic_sync_merge_pending": "The server synced your Epic library. Retry sync to update the local library.",
-    "hide_library_epic_badges": "Epicライブラリ接続バッジを非表示"
+    "hide_library_epic_badges": "Epicライブラリ接続バッジを非表示",
+    "epic_shutdown_failed": "Epicの処理を停止できませんでした。もう一度Hydraを閉じてください。"
   },
   "notifications": {
     "download_complete": "ダウンロード完了",
@@ -1092,7 +1132,11 @@
     "disk_usage_tooltip": "ディスクのインストールサイズ",
     "installer_size_tooltip": "インストーラーサイズ",
     "library_epic": "Epic",
-    "imported_from_epic": "このプロフィールにリンクされたEpicライブラリからインポートされました。"
+    "imported_from_epic": "このプロフィールにリンクされたEpicライブラリからインポートされました。",
+    "imported_from_steam_and_epic": "このプロフィールに連携された Steam と Epic Games のライブラリからインポートされました。",
+    "available_on_steam_and_epic": "Steam と Epic Games で利用可能",
+    "available_on_steam": "Steam で利用可能",
+    "available_on_epic": "Epic Games で利用可能"
   },
   "achievement": {
     "achievement_unlocked": "実績アンロック",

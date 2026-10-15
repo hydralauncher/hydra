@@ -1085,7 +1085,7 @@ export class DownloadOrchestrator {
     if (
       !download ||
       !["paused", "active", "error"].includes(download.status ?? "") ||
-      download.progress === 1
+      (download.progress === 1 && download.downloader !== Downloader.Epic)
     ) {
       return false;
     }

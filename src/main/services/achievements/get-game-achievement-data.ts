@@ -10,6 +10,7 @@ export const getGameAchievementData = async (
   shop: GameShop,
   useCachedData: boolean
 ) => {
+  const owner = HydraApi.getAuthContext();
   if (shop === "custom") {
     return [];
   }
@@ -43,12 +44,18 @@ export const getGameAchievementData = async (
     }
   )
     .then(async (response) => {
+      if (
+        owner
+          ? !HydraApi.isAuthContextCurrent(owner)
+          : HydraApi.getAuthContext() !== null
+      )
+        throw new Error("achievement-owner-changed");
       if (response.status === 304) {
         return cachedAchievements?.achievements ?? [];
       }
 
       const achievements =
-        response.data.length > 0
+        response.data.length > 0 || shop === "epic"
           ? response.data
           : (cachedAchievements?.achievements ?? []);
 

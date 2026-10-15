@@ -6,10 +6,11 @@ import { test } from "node:test";
 import { chunk } from "lodash-es";
 import * as playtime from "../../../shared/playtime.js";
 import { preserveEpicDefaultArtwork } from "../../../shared/artwork-resolver.js";
+import { mergeLibraryCatalogueMetadata } from "../../../shared/library-catalogue.js";
 import * as source from "./resolve-library-source.js";
 import * as queue from "./library-write-queue.js";
 import { mergeImportedProfileGame } from "./merge-imported-profile-game.js";
-import type { Game } from "@types";
+import type { Game, ShopAssets } from "@types";
 
 const context = {
   environment: "https://api.test",
@@ -60,8 +61,9 @@ const remote = {
 function fixture() {
   queue.setEpicLibraryConnection(context, connectionId);
   const local = new Map<string, Game>([[key, { ...game }]]);
+  const assets = new Map<string, ShopAssets>();
   const state = {
-    remote: [remote] as (typeof remote)[],
+    remote: [{ ...remote }] as (typeof remote)[],
     current: true,
     reads: 0,
     ownerReads: 0,
@@ -82,7 +84,11 @@ function fixture() {
   };
   const modules: Record<string, unknown> = {
     "lodash-es": { chunk },
-    "@shared": { ...playtime, preserveEpicDefaultArtwork },
+    "@shared": {
+      ...playtime,
+      preserveEpicDefaultArtwork,
+      mergeLibraryCatalogueMetadata,
+    },
     "./library-write-queue": queue,
     "../hydra-api": {
       HydraApi: {
@@ -106,7 +112,7 @@ function fixture() {
       gamesArtworkSelectionSublevel: {},
       markArtworkSelectionSynced: async () => {},
       gamesShopAssetsSublevel: {
-        getMany: async (keys: string[]) => keys.map(() => undefined),
+        getMany: async (keys: string[]) => keys.map((key) => assets.get(key)),
       },
       db: {
         batch: () => {
@@ -122,6 +128,11 @@ function fixture() {
               for (const operation of operations)
                 if (operation.options.sublevel === games)
                   local.set(operation.key, operation.value);
+                else
+                  assets.set(
+                    operation.key,
+                    operation.value as unknown as ShopAssets
+                  );
             },
           };
         },
@@ -179,7 +190,7 @@ function fixture() {
       Object,
     }
   );
-  return { merge: module.mergeWithRemoteGames, state, local };
+  return { merge: module.mergeWithRemoteGames, state, local, assets };
 }
 test("Epic merge preserves Hydra runtime, preferences, installs and achievement fields", async () => {
   const f = fixture();
@@ -307,4 +318,50 @@ test("a remote Epic-only entry cannot acknowledge an unpublished Hydra claim", a
   assert.equal(f.local.get(key)?.source, "hydra");
   assert.equal(f.local.get(key)?.playTimeInMilliseconds, 1234);
   assert.equal(f.local.get(key)?.epicPlayTimeInMilliseconds, 100000);
+});
+
+test("catalogue presentation metadata and Steam defaults keep Epic storage identity", async () => {
+  const f = fixture();
+  const metadata = {
+    canonicalId: "canonical-game",
+    catalogueGame: { shop: "steam" as const, objectId: "123" },
+    availableShops: ["steam", "epic"] as Game["availableShops"],
+  };
+  Object.assign(f.state.remote[0], metadata, {
+    title: "Steam preferred title",
+    iconUrl: "steam-icon",
+    libraryHeroImageUrl: "steam-hero",
+  });
+  assert.equal(await f.merge(), true);
+  const result = f.local.get(key)!;
+  assert.equal(result.shop, "epic");
+  assert.equal(result.objectId, game.objectId);
+  assert.equal(result.canonicalId, metadata.canonicalId);
+  assert.deepEqual(result.catalogueGame, metadata.catalogueGame);
+  assert.equal(result.title, "Steam preferred title");
+  assert.equal(result.playTimeInMilliseconds, 500);
+  assert.equal(result.customIconUrl, game.customIconUrl);
+  assert.equal(f.assets.get(key)?.shop, "epic");
+  assert.equal(f.assets.get(key)?.objectId, game.objectId);
+  assert.equal(f.assets.get(key)?.iconUrl, "steam-icon");
+  assert.equal(f.local.has("steam:123"), false);
+  assert.equal(f.assets.get("steam:123")?.shop, "steam");
+  assert.equal(f.assets.get("steam:123")?.objectId, "123");
+  assert.equal(f.assets.get("steam:123")?.iconUrl, "steam-icon");
+  assert.equal(
+    f.assets.get(key)?.coverImageUrl,
+    "https://shared.steamstatic.com/store_item_assets/steam/apps/123/library_600x900_2x.jpg"
+  );
+
+  const individual = mergeImportedProfileGame(result, {
+    id: "Remote1",
+    shop: "epic",
+    objectId: game.objectId,
+    runtimeByPlatform: { hydra: 0, steam: 0, epic: 101 },
+    hasActiveEpicImport: true,
+  });
+  assert.deepEqual(individual.catalogueGame, metadata.catalogueGame);
+  assert.equal(individual.canonicalId, metadata.canonicalId);
+  assert.deepEqual(individual.availableShops, metadata.availableShops);
+  assert.equal(individual.epicPlayTimeInMilliseconds, 101000);
 });

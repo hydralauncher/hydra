@@ -733,7 +733,45 @@
     "create_steam_shortcut_modal_create_button": "Create",
     "create_steam_shortcut_modal_cancel_button": "Cancel",
     "epic_playtime_tracking_title": "Epic playtime",
-    "epic_playtime_tracking_description": "Epic playtime is already synced. When an Epic installation is identified, Hydra does not count the same session by default. Enable this option to also count it in Hydra."
+    "epic_playtime_tracking_description": "Epic playtime is already synced. When an Epic installation is identified, Hydra does not count the same session by default. Enable this option to also count it in Hydra.",
+    "download_on_epic": "Scarica su Epic Games",
+    "epic_preparing_install": "Caricamento…",
+    "epic_install_build": "Scegli una versione",
+    "epic_select_build": "Scegli una versione",
+    "epic_install_sizes": "Scarica: {{download}} · Installa: {{disk}}",
+    "download_size": "Download: <strong>{{size}}</strong>",
+    "required_storage_space": "Archiviazione: <strong>{{size}}</strong>",
+    "epic_finalizing_install": "Completamento dell’installazione",
+    "epic_cloud_saves": "Salvataggio cloud — Epic Games",
+    "epic_cloud_saves_description": "Sincronizza i salvataggi di questo gioco con il tuo account Epic Games.",
+    "epic_save_unsupported": "Questo gioco non supporta i salvataggi cloud tramite Epic Games.",
+    "epic_save_status_idle": "Controllo",
+    "epic_save_status_syncing": "Sincronizzazione",
+    "epic_save_status_conflict": "Conflitto",
+    "epic_save_status_pending-upload": "Caricamento in attesa",
+    "epic_save_status_unavailable": "Non disponibile",
+    "epic_save_status_up-to-date": "Sincronizzato",
+    "epic_save_automatic": "Abilita sincronizzazione cloud automatica",
+    "epic_save_automatic_description": "Sincronizza prima dell'avvio e dopo la chiusura del gioco.",
+    "epic_save_folder": "Cartella dei salvataggi",
+    "epic_save_path_required": "Posizione richiesta",
+    "epic_save_select_path": "Seleziona cartella",
+    "epic_save_sync_now": "Sincronizza ora",
+    "epic_save_conflict_description": "I tuoi salvataggi locali sostituiranno la versione cloud attiva. I salvataggi locali su questo dispositivo saranno sostituiti dalla versione cloud attiva.",
+    "epic_save_use_local": "Mantieni i salvataggi locali",
+    "epic_save_use_remote": "Usa i salvataggi cloud — Epic Games",
+    "choose_game_store": "Scegli dove giocare",
+    "play_on_steam": "Gioca — Steam",
+    "play_on_epic": "Gioca — Epic Games",
+    "epic_launch_failed": "Failed to launch game",
+    "epic_play_local_saves": "Gioca con i salvataggi locali",
+    "epic_play_local_saves_description": "Apri questa sessione senza ripristinare i salvataggi cloud. Le modifiche locali restano in attesa di sincronizzazione.",
+    "epic_managed_error_generic": "L’operazione Epic non è riuscita. Controlla la connessione e riprova.",
+    "epic_external_launcher_required": "Questo gioco richiede un altro launcher per essere installato. Installalo tramite il launcher ufficiale.",
+    "epic_play_offline": "Gioca — Offline",
+    "epic_prerequisites_required": "Autorizza i prerequisiti del gioco e riprova.",
+    "epic_update_required": "Aggiorna il gioco dall’opzione Epic Games usando la stessa cartella.",
+    "epic_retry": "Riprova"
   },
   "activation": {
     "title": "Attiva Hydra",
@@ -788,6 +826,7 @@
     "files": "FILES"
   },
   "settings": {
+    "epic_sync_partial": "Giochi e tempo di gioco sincronizzati; la sincronizzazione degli obiettivi di {{count}} giochi verrà ritentata.",
     "hide_library_steam_badges": "Nascondi i badge della connessione alla libreria di Steam",
     "epic_games": "Epic Games",
     "epic_description": "Link your Epic Games account to Hydra.",
@@ -1046,7 +1085,8 @@
     "epic_sync_permission": "Epic did not allow access to playtime. Your previous library was preserved.",
     "epic_sync_rate_limit": "Epic is limiting requests. Try again later.",
     "epic_sync_merge_pending": "The server synced your Epic library. Retry sync to update the local library.",
-    "hide_library_epic_badges": "Nascondi i badge della connessione alla libreria di Epic"
+    "hide_library_epic_badges": "Nascondi i badge della connessione alla libreria di Epic",
+    "epic_shutdown_failed": "Impossibile terminare l'operazione Epic. Prova a chiudere di nuovo Hydra."
   },
   "notifications": {
     "download_complete": "Download completato",
@@ -1269,7 +1309,11 @@
     "empty_collection_title": "This collection is empty",
     "empty_collection_description": "Right-click any game, open Collection, and add it here.",
     "library_epic": "Epic",
-    "imported_from_epic": "Importato dalla libreria di Epic collegata a questo profilo."
+    "imported_from_epic": "Importato dalla libreria di Epic collegata a questo profilo.",
+    "imported_from_steam_and_epic": "Importato dalle librerie Steam ed Epic Games collegate a questo profilo.",
+    "available_on_steam_and_epic": "Disponibile su Steam ed Epic Games",
+    "available_on_steam": "Disponibile su Steam",
+    "available_on_epic": "Disponibile su Epic Games"
   },
   "achievement": {
     "achievement_unlocked": "Obiettivo sbloccato",

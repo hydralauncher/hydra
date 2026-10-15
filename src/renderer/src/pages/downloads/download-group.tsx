@@ -53,9 +53,11 @@ import {
   UnlinkIcon,
   XCircleIcon,
   GraphIcon,
+  GearIcon,
 } from "@primer/octicons-react";
 import { MoreVertical, Folder } from "lucide-react";
 import { average } from "color.js";
+import { getEpicManagedError } from "@renderer/helpers/epic-managed-error";
 
 function hexToRgb(hex: string): [number, number, number] {
   let h = hex.replace("#", "");
@@ -312,8 +314,17 @@ function HeroDownloadTime({
     game.download?.downloader === Downloader.Torrent;
 
   let label: ReactNode = tGameDetails("calculating_eta");
+  const epicPhase =
+    lastPacket?.gameId === game.id
+      ? (lastPacket.download.epic?.phase ?? game.download?.epic?.phase)
+      : game.download?.epic?.phase;
 
-  if (isDownloadingMetadata) {
+  if (
+    game.download?.downloader === Downloader.Epic &&
+    (epicPhase === "finalizing" || epicPhase === "prerequisites")
+  ) {
+    label = tGameDetails("epic_finalizing_install");
+  } else if (isDownloadingMetadata) {
     label = (
       <GuideLink article="downloading-metadata">
         {t("downloading_metadata")}
@@ -866,10 +877,15 @@ export function DownloadGroup({
 
     const deleting = isGameDeleting(game.id);
 
-    if (game.download?.progress === 1) {
+    if (
+      game.download?.progress === 1 &&
+      (game.download.downloader !== Downloader.Epic ||
+        game.download.status === "complete")
+    ) {
       const actions = [
         {
           label: t("extract"),
+          show: game.download.downloader !== Downloader.Epic,
           disabled: game.download.extracting,
           icon: <FileDirectoryIcon />,
           onClick: () => {
@@ -954,6 +970,14 @@ export function DownloadGroup({
         icon: <ColumnsIcon />,
       },
       {
+        label: t("integrations", { ns: "settings" }),
+        show:
+          game.download?.downloader === Downloader.Epic &&
+          game.download.status === "error",
+        onClick: () => navigate("/settings?tab=integrations"),
+        icon: <GearIcon />,
+      },
+      {
         label: t("resume"),
         disabled: isResumeDisabled,
         onClick: () => {
@@ -1010,10 +1034,16 @@ export function DownloadGroup({
   useEffect(() => {
     const fetchActionTypes = async () => {
       const completedGames = library.filter(
-        (game) => game.download?.progress === 1
+        (game) =>
+          game.download?.progress === 1 &&
+          (game.download.downloader !== Downloader.Epic ||
+            game.download.status === "complete")
       );
 
       const actionTypesPromises = completedGames.map(async (game) => {
+        if (game.download?.downloader === Downloader.Epic) {
+          return { gameId: game.id, actionType: "open-folder" as const };
+        }
         try {
           const actionType = await window.electron.getGameInstallerActionType(
             game.shop,
@@ -1174,6 +1204,18 @@ export function DownloadGroup({
                     </h3>
                   </button>
                   <div className="download-group__simple-meta">
+                    {game.download?.downloader === Downloader.Epic &&
+                      game.download.status === "error" && (
+                        <p role="alert">
+                          {t(
+                            getEpicManagedError(game.download.epic?.error).key,
+                            {
+                              ns: getEpicManagedError(game.download.epic?.error)
+                                .ns,
+                            }
+                          )}
+                        </p>
+                      )}
                     <div className="download-group__simple-meta-row">
                       <Badge>
                         {DOWNLOADER_NAME[Number(game.download!.downloader)]}
@@ -1222,16 +1264,25 @@ export function DownloadGroup({
 
                 <div className="download-group__simple-actions">
                   {game.download?.progress === 1 &&
+                    (game.download.downloader !== Downloader.Epic ||
+                      game.download.status === "complete") &&
                     (() => {
                       const actionType =
                         gameActionTypes[game.id] || "open-folder";
-                      const isInstall = actionType === "install";
+                      const isInstall =
+                        game.download?.downloader !== Downloader.Epic &&
+                        actionType === "install";
 
                       return (
                         <Button
                           theme="primary"
                           onClick={() =>
-                            openGameInstaller(game.shop, game.objectId)
+                            game.download?.downloader === Downloader.Epic
+                              ? window.electron.openGameInstallerPath(
+                                  game.shop,
+                                  game.objectId
+                                )
+                              : openGameInstaller(game.shop, game.objectId)
                           }
                           disabled={isGameDeleting(game.id)}
                           className="download-group__simple-action-btn"
@@ -1250,16 +1301,19 @@ export function DownloadGroup({
                         </Button>
                       );
                     })()}
-                  {isQueuedGroup && game.download?.progress !== 1 && (
-                    <Button
-                      theme="primary"
-                      onClick={() => resumeDownload(game.shop, game.objectId)}
-                      className="download-group__simple-menu-btn"
-                      tooltip={t("resume")}
-                    >
-                      <DownloadIcon size={16} />
-                    </Button>
-                  )}
+                  {isQueuedGroup &&
+                    (game.download?.progress !== 1 ||
+                      (game.download.downloader === Downloader.Epic &&
+                        game.download.status !== "complete")) && (
+                      <Button
+                        theme="primary"
+                        onClick={() => resumeDownload(game.shop, game.objectId)}
+                        className="download-group__simple-menu-btn"
+                        tooltip={t("resume")}
+                      >
+                        <DownloadIcon size={16} />
+                      </Button>
+                    )}
                   <DropdownMenu align="end" items={getGameActions(game)}>
                     <Button
                       theme="outline"

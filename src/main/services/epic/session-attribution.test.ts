@@ -107,6 +107,81 @@ test("does not attribute incomplete, preloaded or DLC Legendary installations", 
   assert.equal(parseLegendaryInstalledGame({ app_name: "Artifact" }), null);
 });
 
+test("recognizes the Hydra managed workspace only with exact metadata identity", async (t) => {
+  const root = await fs.mkdtemp(
+    path.join(os.tmpdir(), "hydra-managed-attribution-")
+  );
+  t.after(() => fs.rm(root, { recursive: true, force: true }));
+  const install = path.join(root, "install"),
+    workspace = path.join(root, "managed");
+  await Promise.all([
+    fs.mkdir(install),
+    fs.mkdir(path.join(workspace, "metadata"), { recursive: true }),
+  ]);
+  const executable = path.join(install, "game.exe");
+  await fs.writeFile(executable, "fixture");
+  await fs.writeFile(
+    path.join(workspace, "installed.json"),
+    JSON.stringify({
+      Artifact: {
+        app_name: "Artifact",
+        install_path: install,
+        is_dlc: false,
+        needs_verification: false,
+      },
+    })
+  );
+  const metadata = path.join(workspace, "metadata", "Artifact.json");
+  await fs.writeFile(
+    metadata,
+    JSON.stringify({
+      app_name: "Artifact",
+      metadata: { namespace: "Namespace", id: "Item" },
+    })
+  );
+  assert.equal(
+    await isEpicInstallExecutable(
+      "Namespace:Item",
+      ["Artifact"],
+      executable,
+      null,
+      undefined,
+      [workspace]
+    ),
+    true
+  );
+  await fs.writeFile(
+    metadata,
+    JSON.stringify({
+      app_name: "Artifact",
+      metadata: { namespace: "Namespace", id: "Other" },
+    })
+  );
+  assert.equal(
+    await isEpicInstallExecutable(
+      "Namespace:Item",
+      ["Artifact"],
+      executable,
+      null,
+      undefined,
+      [workspace]
+    ),
+    false
+  );
+  await fs.rm(metadata);
+  assert.equal(
+    await isEpicInstallExecutable(
+      "Namespace:Item",
+      ["Artifact"],
+      executable,
+      null,
+      undefined,
+      [workspace]
+    ),
+    false
+  );
+});
+
 test("hides stale exclusive imports and preserves Hydra data across A to B to A", () => {
   const context = { environment: "staging", userId: "A" };
   const game = {

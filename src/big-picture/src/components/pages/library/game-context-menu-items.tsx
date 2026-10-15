@@ -1,3 +1,4 @@
+import { getLibraryOperationalGame } from "@shared";
 import type { LibraryGame, ShopAssets } from "@types";
 import {
   BookmarkSimpleIcon,
@@ -40,6 +41,7 @@ export function buildLibraryGameContextMenuItems(
     onRemoveFromLibrary,
   } = handlers;
   const isPlayable = isLibraryGamePlayable(game);
+  const operationalGame = getLibraryOperationalGame(game);
 
   const nextItems: ContextMenuItem[] = [
     {
@@ -50,7 +52,7 @@ export function buildLibraryGameContextMenuItems(
       ) : (
         <DownloadSimpleIcon size={18} />
       ),
-      onSelect: () => onLaunchOrDownload(game),
+      onSelect: () => onLaunchOrDownload(operationalGame),
     },
     {
       id: "favorite",
@@ -85,7 +87,7 @@ export function buildLibraryGameContextMenuItems(
       id: "options",
       label: t ? t("game_options") : "Game Options",
       icon: <GearIcon size={18} />,
-      onSelect: () => onOptions(game),
+      onSelect: () => onOptions(operationalGame),
     });
   }
 
@@ -96,7 +98,7 @@ export function buildLibraryGameContextMenuItems(
       icon: <TrashIcon size={18} />,
       danger: true,
       restoreFocusOnClose: false,
-      onSelect: () => onUninstall(game),
+      onSelect: () => onUninstall(operationalGame),
     });
   }
 

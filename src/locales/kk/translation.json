@@ -531,7 +531,45 @@
     "create_steam_shortcut_modal_create_button": "Create",
     "create_steam_shortcut_modal_cancel_button": "Cancel",
     "epic_playtime_tracking_title": "Epic playtime",
-    "epic_playtime_tracking_description": "Epic playtime is already synced. When an Epic installation is identified, Hydra does not count the same session by default. Enable this option to also count it in Hydra."
+    "epic_playtime_tracking_description": "Epic playtime is already synced. When an Epic installation is identified, Hydra does not count the same session by default. Enable this option to also count it in Hydra.",
+    "download_on_epic": "Download on Epic Games",
+    "epic_preparing_install": "Loading...",
+    "epic_install_build": "Нұсқаны таңдаңыз",
+    "epic_select_build": "Нұсқаны таңдаңыз",
+    "epic_install_sizes": "Download: {{download}} · Орнату: {{disk}}",
+    "download_size": "Жүктеу: <strong>{{size}}</strong>",
+    "required_storage_space": "Сақтау орны: <strong>{{size}}</strong>",
+    "epic_finalizing_install": "Орнату аяқталуда",
+    "epic_cloud_saves": "Cloud save — Epic Games",
+    "epic_cloud_saves_description": "Осы ойынның сақталған деректерін Epic Games есептік жазбаңызбен синхрондаңыз.",
+    "epic_save_unsupported": "Бұл ойын Epic Games арқылы бұлтқа сақтауды қолдамайды.",
+    "epic_save_status_idle": "Checking",
+    "epic_save_status_syncing": "Синхрондалуда",
+    "epic_save_status_conflict": "Conflict",
+    "epic_save_status_pending-upload": "Жүктеп жіберу күтілуде",
+    "epic_save_status_unavailable": "Unavailable",
+    "epic_save_status_up-to-date": "Синхрондалды",
+    "epic_save_automatic": "Enable automatic cloud sync",
+    "epic_save_automatic_description": "Ойынды іске қосар алдында және жапқаннан кейін синхрондау.",
+    "epic_save_folder": "Сақтау қалтасы",
+    "epic_save_path_required": "Location required",
+    "epic_save_select_path": "Select folder",
+    "epic_save_sync_now": "Sync now",
+    "epic_save_conflict_description": "Your local saves will replace the active cloud version. The local saves on this device will be replaced by the active cloud version.",
+    "epic_save_use_local": "Keep local saves",
+    "epic_save_use_remote": "Use cloud saves — Epic Games",
+    "choose_game_store": "Ойын платформасын таңдаңыз",
+    "play_on_steam": "Ойнау — Steam",
+    "play_on_epic": "Ойнау — Epic Games",
+    "epic_launch_failed": "Failed to launch game",
+    "epic_play_local_saves": "Жергілікті сақтаулармен ойнау",
+    "epic_play_local_saves_description": "Бұл сеансты бұлттағы сақтауларды қалпына келтірмей ашыңыз. Жергілікті өзгерістер синхрондауды күтеді.",
+    "epic_managed_error_generic": "Epic әрекеті орындалмады. Қосылымды тексеріп, қайталап көріңіз.",
+    "epic_external_launcher_required": "Бұл ойынды орнату үшін басқа іске қосу бағдарламасы қажет. Ойынды ресми іске қосу бағдарламасы арқылы орнатыңыз.",
+    "epic_play_offline": "Ойнау — Offline",
+    "epic_prerequisites_required": "Ойынға қажетті құрамдастарға рұқсат беріп, қайталап көріңіз.",
+    "epic_update_required": "Ойынды Epic Games опциясы арқылы сол қалтаға жаңартыңыз.",
+    "epic_retry": "Қайта көру"
   },
   "activation": {
     "title": "Hydra-ны белсендіру",
@@ -586,6 +624,7 @@
     "move_down": "Move down"
   },
   "settings": {
+    "epic_sync_partial": "Ойындар мен ойын уақыты синхрондалды; {{count}} ойынның жетістіктерін синхрондау қайта орындалады.",
     "hide_library_steam_badges": "Steam кітапханасына қосылу белгілерін жасыру",
     "epic_games": "Epic Games",
     "epic_description": "Link your Epic Games account to Hydra.",
@@ -844,7 +883,8 @@
     "epic_sync_permission": "Epic did not allow access to playtime. Your previous library was preserved.",
     "epic_sync_rate_limit": "Epic is limiting requests. Try again later.",
     "epic_sync_merge_pending": "The server synced your Epic library. Retry sync to update the local library.",
-    "hide_library_epic_badges": "Epic кітапханасына қосылу белгілерін жасыру"
+    "hide_library_epic_badges": "Epic кітапханасына қосылу белгілерін жасыру",
+    "epic_shutdown_failed": "Epic әрекетін тоқтату мүмкін болмады. Hydra қолданбасын қайта жауып көріңіз."
   },
   "notifications": {
     "download_complete": "Жүктеу аяқталды",
@@ -1067,7 +1107,11 @@
     "disk_usage_tooltip": "Installed size on disk",
     "installer_size_tooltip": "Installer size",
     "library_epic": "Epic",
-    "imported_from_epic": "Осы профильге байланыстырылған Epic кітапханасынан импортталды."
+    "imported_from_epic": "Осы профильге байланыстырылған Epic кітапханасынан импортталды.",
+    "imported_from_steam_and_epic": "Осы профильге байланыстырылған Steam және Epic Games кітапханаларынан импортталған.",
+    "available_on_steam_and_epic": "Steam және Epic Games дүкендерінде қолжетімді",
+    "available_on_steam": "Steam дүкенінде қолжетімді",
+    "available_on_epic": "Epic Games дүкенінде қолжетімді"
   },
   "achievement": {
     "achievement_unlocked": "Achievement unlocked",

@@ -529,7 +529,45 @@
     "create_steam_shortcut_modal_create_button": "Create",
     "create_steam_shortcut_modal_cancel_button": "Cancel",
     "epic_playtime_tracking_title": "Epic playtime",
-    "epic_playtime_tracking_description": "Epic playtime is already synced. When an Epic installation is identified, Hydra does not count the same session by default. Enable this option to also count it in Hydra."
+    "epic_playtime_tracking_description": "Epic playtime is already synced. When an Epic installation is identified, Hydra does not count the same session by default. Enable this option to also count it in Hydra.",
+    "download_on_epic": "Downloaden op Epic Games",
+    "epic_preparing_install": "Loading...",
+    "epic_install_build": "Kies een versie",
+    "epic_select_build": "Kies een versie",
+    "epic_install_sizes": "Download: {{download}} · Installeren: {{disk}}",
+    "download_size": "Download: <strong>{{size}}</strong>",
+    "required_storage_space": "Opslag: <strong>{{size}}</strong>",
+    "epic_finalizing_install": "Installatie afronden",
+    "epic_cloud_saves": "Cloud save — Epic Games",
+    "epic_cloud_saves_description": "Synchroniseer de opgeslagen spelgegevens van dit spel met je Epic Games-account.",
+    "epic_save_unsupported": "Dit spel ondersteunt geen cloudopslag via Epic Games.",
+    "epic_save_status_idle": "Checking",
+    "epic_save_status_syncing": "Bezig met synchroniseren",
+    "epic_save_status_conflict": "Conflict",
+    "epic_save_status_pending-upload": "Upload in afwachting",
+    "epic_save_status_unavailable": "Unavailable",
+    "epic_save_status_up-to-date": "Gesynchroniseerd",
+    "epic_save_automatic": "Enable automatic cloud sync",
+    "epic_save_automatic_description": "Synchroniseer vóór het starten en na het sluiten van het spel.",
+    "epic_save_folder": "Map met spelgegevens",
+    "epic_save_path_required": "Location required",
+    "epic_save_select_path": "Select folder",
+    "epic_save_sync_now": "Sync now",
+    "epic_save_conflict_description": "Your local saves will replace the active cloud version. The local saves on this device will be replaced by the active cloud version.",
+    "epic_save_use_local": "Keep local saves",
+    "epic_save_use_remote": "Use cloud saves — Epic Games",
+    "choose_game_store": "Kies waar je speelt",
+    "play_on_steam": "Speel — Steam",
+    "play_on_epic": "Speel — Epic Games",
+    "epic_launch_failed": "Failed to launch game",
+    "epic_play_local_saves": "Spelen met lokale opgeslagen spellen",
+    "epic_play_local_saves_description": "Open deze sessie zonder cloudgegevens te herstellen. Lokale wijzigingen wachten op synchronisatie.",
+    "epic_managed_error_generic": "De Epic-bewerking is mislukt. Controleer je verbinding en probeer opnieuw.",
+    "epic_external_launcher_required": "Om dit spel te installeren, heb je een andere launcher nodig. Installeer het via de officiële launcher.",
+    "epic_play_offline": "Speel — Offline",
+    "epic_prerequisites_required": "Sta de vereisten van het spel toe en probeer opnieuw.",
+    "epic_update_required": "Werk het spel bij via de Epic Games-optie met dezelfde map.",
+    "epic_retry": "Opnieuw proberen"
   },
   "activation": {
     "title": "Activeer Hydra",
@@ -584,6 +622,7 @@
     "move_down": "Move down"
   },
   "settings": {
+    "epic_sync_partial": "Games en speeltijd zijn gesynchroniseerd; prestaties voor {{count}} games worden opnieuw geprobeerd.",
     "hide_library_steam_badges": "Steam-bibliotheekverbindingsbadges verbergen",
     "epic_games": "Epic Games",
     "epic_description": "Link your Epic Games account to Hydra.",
@@ -842,7 +881,8 @@
     "epic_sync_permission": "Epic did not allow access to playtime. Your previous library was preserved.",
     "epic_sync_rate_limit": "Epic is limiting requests. Try again later.",
     "epic_sync_merge_pending": "The server synced your Epic library. Retry sync to update the local library.",
-    "hide_library_epic_badges": "Epic-bibliotheekverbindingsbadges verbergen"
+    "hide_library_epic_badges": "Epic-bibliotheekverbindingsbadges verbergen",
+    "epic_shutdown_failed": "De Epic-bewerking kon niet worden gestopt. Probeer Hydra opnieuw te sluiten."
   },
   "notifications": {
     "download_complete": "Download compleet",
@@ -1068,7 +1108,11 @@
     "disk_usage_tooltip": "Installed size on disk",
     "installer_size_tooltip": "Installer size",
     "library_epic": "Epic",
-    "imported_from_epic": "Geïmporteerd uit de Epic-bibliotheek die aan dit profiel is gekoppeld."
+    "imported_from_epic": "Geïmporteerd uit de Epic-bibliotheek die aan dit profiel is gekoppeld.",
+    "imported_from_steam_and_epic": "Geïmporteerd uit de Steam- en Epic Games-bibliotheken die aan dit profiel zijn gekoppeld.",
+    "available_on_steam_and_epic": "Beschikbaar op Steam en Epic Games",
+    "available_on_steam": "Beschikbaar op Steam",
+    "available_on_epic": "Beschikbaar op Epic Games"
   },
   "achievement": {
     "achievement_unlocked": "Achievement unlocked",

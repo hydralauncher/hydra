@@ -13,6 +13,7 @@ export enum Downloader {
   Premiumize = 12,
   AllDebrid = 13,
   ArchiveOrg = 14,
+  Epic = 15,
 }
 
 export enum DownloadSourceStatus {

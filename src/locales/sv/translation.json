@@ -532,7 +532,45 @@
     "create_steam_shortcut_modal_create_button": "Create",
     "create_steam_shortcut_modal_cancel_button": "Cancel",
     "epic_playtime_tracking_title": "Epic playtime",
-    "epic_playtime_tracking_description": "Epic playtime is already synced. When an Epic installation is identified, Hydra does not count the same session by default. Enable this option to also count it in Hydra."
+    "epic_playtime_tracking_description": "Epic playtime is already synced. When an Epic installation is identified, Hydra does not count the same session by default. Enable this option to also count it in Hydra.",
+    "download_on_epic": "Ladda ner på Epic Games",
+    "epic_preparing_install": "Loading...",
+    "epic_install_build": "Välj en version",
+    "epic_select_build": "Välj en version",
+    "epic_install_sizes": "Ladda ner: {{download}} · Installera: {{disk}}",
+    "download_size": "Nedladdning: <strong>{{size}}</strong>",
+    "required_storage_space": "Lagring: <strong>{{size}}</strong>",
+    "epic_finalizing_install": "Slutför installationen",
+    "epic_cloud_saves": "Molnspara — Epic Games",
+    "epic_cloud_saves_description": "Synkronisera spelets sparfiler med ditt Epic Games-konto.",
+    "epic_save_unsupported": "Det här spelet stöder inte molnsparning via Epic Games.",
+    "epic_save_status_idle": "Checking",
+    "epic_save_status_syncing": "Synkroniserar",
+    "epic_save_status_conflict": "Conflict",
+    "epic_save_status_pending-upload": "Uppladdning väntar",
+    "epic_save_status_unavailable": "Unavailable",
+    "epic_save_status_up-to-date": "Synkroniserat",
+    "epic_save_automatic": "Aktivera automatisk molnsynkronisering",
+    "epic_save_automatic_description": "Synkronisera innan spelet startas och efter att det stängs.",
+    "epic_save_folder": "Mapp för sparfiler",
+    "epic_save_path_required": "Location required",
+    "epic_save_select_path": "Välj mapp",
+    "epic_save_sync_now": "Sync now",
+    "epic_save_conflict_description": "Your local saves will replace the active cloud version. The local saves on this device will be replaced by the active cloud version.",
+    "epic_save_use_local": "Keep local saves",
+    "epic_save_use_remote": "Use cloud saves — Epic Games",
+    "choose_game_store": "Välj var du vill spela",
+    "play_on_steam": "Spela — Steam",
+    "play_on_epic": "Spela — Epic Games",
+    "epic_launch_failed": "Failed to launch game",
+    "epic_play_local_saves": "Spela med lokala sparfiler",
+    "epic_play_local_saves_description": "Öppna denna session utan att återställa molnsparfiler. Lokala ändringar väntar på synkronisering.",
+    "epic_managed_error_generic": "Epic-åtgärden misslyckades. Kontrollera anslutningen och försök igen.",
+    "epic_external_launcher_required": "Det här spelet kräver en annan spelklient för installation. Installera det via den officiella spelklienten.",
+    "epic_play_offline": "Spela — Offline",
+    "epic_prerequisites_required": "Godkänn spelets förutsättningar och försök igen.",
+    "epic_update_required": "Uppdatera spelet via Epic Games-alternativet i samma mapp.",
+    "epic_retry": "Försök igen"
   },
   "activation": {
     "title": "Aktivera Hydra",
@@ -587,6 +625,7 @@
     "move_down": "Move down"
   },
   "settings": {
+    "epic_sync_partial": "Spel och speltid har synkroniserats; prestationer för {{count}} spel kommer att försökas igen.",
     "hide_library_steam_badges": "Dölj märken för anslutningen till Steam-biblioteket",
     "epic_games": "Epic Games",
     "epic_description": "Link your Epic Games account to Hydra.",
@@ -845,7 +884,8 @@
     "epic_sync_permission": "Epic did not allow access to playtime. Your previous library was preserved.",
     "epic_sync_rate_limit": "Epic is limiting requests. Try again later.",
     "epic_sync_merge_pending": "The server synced your Epic library. Retry sync to update the local library.",
-    "hide_library_epic_badges": "Dölj märken för anslutningen till Epic-biblioteket"
+    "hide_library_epic_badges": "Dölj märken för anslutningen till Epic-biblioteket",
+    "epic_shutdown_failed": "Kunde inte avsluta Epic-åtgärden. Försök stänga Hydra igen."
   },
   "notifications": {
     "download_complete": "Nedladdning klar",
@@ -1103,7 +1143,11 @@
     "disk_usage_tooltip": "Installed size on disk",
     "installer_size_tooltip": "Installer size",
     "library_epic": "Epic",
-    "imported_from_epic": "Importerat från Epic-biblioteket som är länkat till den här profilen."
+    "imported_from_epic": "Importerat från Epic-biblioteket som är länkat till den här profilen.",
+    "imported_from_steam_and_epic": "Importerat från Steam- och Epic Games-biblioteken som är kopplade till den här profilen.",
+    "available_on_steam_and_epic": "Tillgängligt på Steam och Epic Games",
+    "available_on_steam": "Tillgängligt på Steam",
+    "available_on_epic": "Tillgängligt på Epic Games"
   },
   "game_launcher": {
     "launching": "Launching...",

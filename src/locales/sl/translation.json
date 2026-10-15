@@ -534,7 +534,45 @@
     "download_options_two": "{{count}} možnosti prenosa",
     "download_options_few": "{{count}} možnosti prenosa",
     "epic_playtime_tracking_title": "Epic playtime",
-    "epic_playtime_tracking_description": "Epic playtime is already synced. When an Epic installation is identified, Hydra does not count the same session by default. Enable this option to also count it in Hydra."
+    "epic_playtime_tracking_description": "Epic playtime is already synced. When an Epic installation is identified, Hydra does not count the same session by default. Enable this option to also count it in Hydra.",
+    "download_on_epic": "Prenesi v Epic Gamesu",
+    "epic_preparing_install": "Nalaganje...",
+    "epic_install_build": "Izberite različico",
+    "epic_select_build": "Izberite različico",
+    "epic_install_sizes": "Prenesi: {{download}} · Namesti: {{disk}}",
+    "download_size": "Prenos: <strong>{{size}}</strong>",
+    "required_storage_space": "Shranjevanje: <strong>{{size}}</strong>",
+    "epic_finalizing_install": "Zaključevanje namestitve",
+    "epic_cloud_saves": "Shranjevanje v oblaku — Epic Games",
+    "epic_cloud_saves_description": "Sinhronizirajte shranjene igre s svojim računom Epic Games.",
+    "epic_save_unsupported": "Ta igra ne podpira shranjevanja v oblaku prek Epic Games.",
+    "epic_save_status_idle": "Checking",
+    "epic_save_status_syncing": "Sinhroniziranje",
+    "epic_save_status_conflict": "Conflict",
+    "epic_save_status_pending-upload": "Čaka na nalaganje",
+    "epic_save_status_unavailable": "Unavailable",
+    "epic_save_status_up-to-date": "Sinhronizirano",
+    "epic_save_automatic": "Omogoči samodejno sinhronizacijo v oblaku",
+    "epic_save_automatic_description": "Sinhroniziraj pred zagonom in po zaprtju igre.",
+    "epic_save_folder": "Mapa shranjenih iger",
+    "epic_save_path_required": "Location required",
+    "epic_save_select_path": "Izberite mapo",
+    "epic_save_sync_now": "Sync now",
+    "epic_save_conflict_description": "Your local saves will replace the active cloud version. The local saves on this device will be replaced by the active cloud version.",
+    "epic_save_use_local": "Keep local saves",
+    "epic_save_use_remote": "Use cloud saves — Epic Games",
+    "choose_game_store": "Izberite, kje igrati",
+    "play_on_steam": "Igraj — Steam",
+    "play_on_epic": "Igraj — Epic Games",
+    "epic_launch_failed": "Failed to launch game",
+    "epic_play_local_saves": "Igraj z lokalnimi shranjenimi igrami",
+    "epic_play_local_saves_description": "Odprite to sejo brez obnovitve shranjenih iger iz oblaka. Lokalne spremembe čakajo na sinhronizacijo.",
+    "epic_managed_error_generic": "Operacija Epic ni uspela. Preverite povezavo in poskusite znova.",
+    "epic_external_launcher_required": "Za namestitev te igre je potreben drug zaganjalnik. Namestite jo prek uradnega zaganjalnika.",
+    "epic_play_offline": "Igraj — Offline",
+    "epic_prerequisites_required": "Dovolite zahtevane komponente igre in poskusite znova.",
+    "epic_update_required": "Posodobite igro prek možnosti Epic Games v isti mapi.",
+    "epic_retry": "Poskusi znova"
   },
   "activation": {
     "title": "Aktiviraj Hydra",
@@ -589,6 +627,7 @@
     "move_down": "Move down"
   },
   "settings": {
+    "epic_sync_partial": "Igre in čas igranja so sinhronizirani; sinhronizacija dosežkov za {{count}} iger bo znova poskušana.",
     "hide_library_steam_badges": "Skrij značke povezave s knjižnico Steam",
     "epic_games": "Epic Games",
     "epic_description": "Link your Epic Games account to Hydra.",
@@ -851,7 +890,8 @@
     "epic_sync_permission": "Epic did not allow access to playtime. Your previous library was preserved.",
     "epic_sync_rate_limit": "Epic is limiting requests. Try again later.",
     "epic_sync_merge_pending": "The server synced your Epic library. Retry sync to update the local library.",
-    "hide_library_epic_badges": "Skrij značke povezave s knjižnico Epic"
+    "hide_library_epic_badges": "Skrij značke povezave s knjižnico Epic",
+    "epic_shutdown_failed": "Operacije Epic ni bilo mogoče ustaviti. Poskusi znova zapreti Hydro."
   },
   "notifications": {
     "download_complete": "Prenos končan",
@@ -1078,7 +1118,11 @@
     "disk_usage_tooltip": "Installed size on disk",
     "installer_size_tooltip": "Installer size",
     "library_epic": "Epic",
-    "imported_from_epic": "Uvoženo iz knjižnice Epic, povezane s tem profilom."
+    "imported_from_epic": "Uvoženo iz knjižnice Epic, povezane s tem profilom.",
+    "imported_from_steam_and_epic": "Uvoženo iz knjižnic Steam in Epic Games, povezanih s tem profilom.",
+    "available_on_steam_and_epic": "Na voljo v Steamu in Epic Games",
+    "available_on_steam": "Na voljo v Steamu",
+    "available_on_epic": "Na voljo v Epic Games"
   },
   "achievement": {
     "achievement_unlocked": "Dosežek odklenjen",

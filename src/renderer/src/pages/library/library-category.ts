@@ -18,8 +18,13 @@ export const LEGACY_STEAM_LIBRARY_CATEGORY = "steam_library";
 
 export interface LibraryCategoryGame {
   shop: string;
+  isDeleted?: boolean;
   hasActiveSteamImport?: boolean;
   hasActiveEpicImport?: boolean;
+  canonicalId?: string | null;
+  catalogueGame?: { shop: string; objectId: string };
+  availableShops?: string[];
+  members?: LibraryCategoryGame[];
 }
 
 export interface LibraryFilterGame extends LibraryCategoryGame {
@@ -172,7 +177,9 @@ export const filterLibraryGames = <T extends LibraryFilterGame>(
 
     return (
       selectedSources.size === 0 ||
-      selectedSources.has(getLibraryGameSource(game))
+      (game.members ?? [game]).some((member) =>
+        selectedSources.has(getLibraryGameSource(member))
+      )
     );
   });
 };
@@ -204,8 +211,23 @@ export const shouldShowEpicLibraryBadge = (
 ) => !hide && game.shop === "epic" && game.hasActiveEpicImport === true;
 
 export const hasImportedLibraryGames = (games: LibraryCategoryGame[]) =>
-  games.some(
-    (game) =>
-      isSteamLibraryGame(game) ||
-      (game.shop === "epic" && game.hasActiveEpicImport)
+  games.some((game) =>
+    (game.members ?? [game]).some(
+      (member) =>
+        isSteamLibraryGame(member) ||
+        (member.shop === "epic" && member.hasActiveEpicImport)
+    )
   );
+
+export const getLibraryPresentationBadgeSource = (
+  game: LibraryCategoryGame
+): "steam" | "epic" | null => {
+  const activeMembers = (game.members ?? [game]).filter(
+    (member) => !member.isDeleted
+  );
+  if (activeMembers.some((member) => member.hasActiveSteamImport === true))
+    return "steam";
+  return activeMembers.some((member) => member.hasActiveEpicImport === true)
+    ? "epic"
+    : null;
+};

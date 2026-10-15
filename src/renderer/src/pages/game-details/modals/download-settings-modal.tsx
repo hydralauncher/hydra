@@ -420,7 +420,7 @@ export function DownloadSettingsModal({
     }
 
     const allDownloaders = Object.values(Downloader).filter(
-      (value) => typeof value === "number"
+      (value) => typeof value === "number" && value !== Downloader.Epic
     ) as Downloader[];
 
     const getDownloaderPriority = (option: {

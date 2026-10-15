@@ -1,4 +1,5 @@
 import type { LibraryGame } from "@types";
+import { getGameCatalogueIdentity, getLibraryOperationalGame } from "@shared";
 import { AnimatePresence, motion } from "framer-motion";
 import {
   useCallback,
@@ -160,6 +161,7 @@ export default function LibraryPage() {
       ? selectedFilterTab
       : "all";
   const {
+    groupedLibrary,
     filteredLibrary,
     filterCounts,
     firstGridItemId,
@@ -255,14 +257,14 @@ export default function LibraryPage() {
   const handleOpenHeroSettings = useCallback((game: LibraryGame) => {
     settingsModalRestoreFocusIdRef.current =
       LIBRARY_HERO_OPEN_SETTINGS_BUTTON_ID;
-    setSettingsModalGame(game);
+    setSettingsModalGame(getLibraryOperationalGame(game));
     setIsGameSettingsModalOpen(true);
   }, []);
 
   const handleOpenGameSettingsFromContextMenu = useCallback(
     (game: LibraryGame) => {
       settingsModalRestoreFocusIdRef.current = contextMenuState.restoreFocusId;
-      setSettingsModalGame(game);
+      setSettingsModalGame(getLibraryOperationalGame(game));
       setIsGameSettingsModalOpen(true);
     },
     [contextMenuState.restoreFocusId]
@@ -293,7 +295,12 @@ export default function LibraryPage() {
 
   const handleViewAchievements = useCallback(
     (game: LibraryGame) => {
-      navigate(getBigPictureGameAchievementsPath(game));
+      navigate(
+        getBigPictureGameAchievementsPath({
+          ...game,
+          ...getGameCatalogueIdentity(game),
+        })
+      );
     },
     [navigate]
   );
@@ -446,7 +453,7 @@ export default function LibraryPage() {
             search={search}
             onSearchChange={setSearch}
             counts={filterCounts}
-            library={library}
+            library={groupedLibrary}
             collections={collections}
             firstContentItemId={firstContentItemId}
           />

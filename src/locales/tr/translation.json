@@ -532,7 +532,45 @@
     "create_steam_shortcut_modal_create_button": "Create",
     "create_steam_shortcut_modal_cancel_button": "Cancel",
     "epic_playtime_tracking_title": "Epic playtime",
-    "epic_playtime_tracking_description": "Epic playtime is already synced. When an Epic installation is identified, Hydra does not count the same session by default. Enable this option to also count it in Hydra."
+    "epic_playtime_tracking_description": "Epic playtime is already synced. When an Epic installation is identified, Hydra does not count the same session by default. Enable this option to also count it in Hydra.",
+    "download_on_epic": "Epic Games'de İndir",
+    "epic_preparing_install": "Loading...",
+    "epic_install_build": "Bir sürüm seçin",
+    "epic_select_build": "Bir sürüm seçin",
+    "epic_install_sizes": "İndir: {{download}} · Yükle: {{disk}}",
+    "download_size": "İndirme: <strong>{{size}}</strong>",
+    "required_storage_space": "Depolama: <strong>{{size}}</strong>",
+    "epic_finalizing_install": "Kurulum tamamlanıyor",
+    "epic_cloud_saves": "Bulut Kaydı — Epic Games",
+    "epic_cloud_saves_description": "Bu oyunun kayıtlarını Epic Games hesabınızla senkronize edin.",
+    "epic_save_unsupported": "Bu oyun Epic Games üzerinden bulut kayıtlarını desteklemiyor.",
+    "epic_save_status_idle": "Checking",
+    "epic_save_status_syncing": "Senkronize ediliyor",
+    "epic_save_status_conflict": "Conflict",
+    "epic_save_status_pending-upload": "Yükleme bekliyor",
+    "epic_save_status_unavailable": "Unavailable",
+    "epic_save_status_up-to-date": "Senkronize",
+    "epic_save_automatic": "Otomatik bulut eşitlemesini etkinleştir",
+    "epic_save_automatic_description": "Oyunu başlatmadan önce ve kapattıktan sonra senkronize et.",
+    "epic_save_folder": "Kayıt klasörü",
+    "epic_save_path_required": "Location required",
+    "epic_save_select_path": "Klasör seç",
+    "epic_save_sync_now": "Sync now",
+    "epic_save_conflict_description": "Your local saves will replace the active cloud version. The local saves on this device will be replaced by the active cloud version.",
+    "epic_save_use_local": "Keep local saves",
+    "epic_save_use_remote": "Use cloud saves — Epic Games",
+    "choose_game_store": "Nerede oynayacağınızı seçin",
+    "play_on_steam": "Oyna — Steam",
+    "play_on_epic": "Oyna — Epic Games",
+    "epic_launch_failed": "Failed to launch game",
+    "epic_play_local_saves": "Yerel kayıtlarla oyna",
+    "epic_play_local_saves_description": "Bu oturumu bulut kayıtlarını geri yüklemeden açın. Yerel değişiklikler eşitleme için bekleyecek.",
+    "epic_managed_error_generic": "Epic işlemi başarısız oldu. Bağlantınızı kontrol edip tekrar deneyin.",
+    "epic_external_launcher_required": "Bu oyunu yüklemek için başka bir başlatıcı gerekiyor. Oyunu resmî başlatıcı üzerinden yükleyin.",
+    "epic_play_offline": "Oyna — Offline",
+    "epic_prerequisites_required": "Oyunun ön gereksinimlerine izin verin ve tekrar deneyin.",
+    "epic_update_required": "Oyunu aynı klasörü kullanarak Epic Games seçeneğinden güncelleyin.",
+    "epic_retry": "Tekrar dene"
   },
   "activation": {
     "title": "Hydra'yı Etkinleştir",
@@ -587,6 +625,7 @@
     "move_down": "Move down"
   },
   "settings": {
+    "epic_sync_partial": "Oyunlar ve oynama süresi senkronize edildi; {{count}} oyunun başarımları için yeniden denenecek.",
     "hide_library_steam_badges": "Steam Kütüphanesi bağlantı rozetlerini gizle",
     "epic_games": "Epic Games",
     "epic_description": "Link your Epic Games account to Hydra.",
@@ -845,7 +884,8 @@
     "epic_sync_permission": "Epic did not allow access to playtime. Your previous library was preserved.",
     "epic_sync_rate_limit": "Epic is limiting requests. Try again later.",
     "epic_sync_merge_pending": "The server synced your Epic library. Retry sync to update the local library.",
-    "hide_library_epic_badges": "Epic Kütüphanesi bağlantı rozetlerini gizle"
+    "hide_library_epic_badges": "Epic Kütüphanesi bağlantı rozetlerini gizle",
+    "epic_shutdown_failed": "Epic işlemi sonlandırılamadı. Hydra'yı tekrar kapatmayı deneyin."
   },
   "notifications": {
     "download_complete": "İndirme tamamlandı",
@@ -1068,7 +1108,11 @@
     "disk_usage_tooltip": "Installed size on disk",
     "installer_size_tooltip": "Installer size",
     "library_epic": "Epic",
-    "imported_from_epic": "Bu profile bağlı Epic kütüphanesinden içe aktarıldı."
+    "imported_from_epic": "Bu profile bağlı Epic kütüphanesinden içe aktarıldı.",
+    "imported_from_steam_and_epic": "Bu profile bağlı Steam ve Epic Games kütüphanelerinden içe aktarıldı.",
+    "available_on_steam_and_epic": "Steam ve Epic Games üzerinde mevcut",
+    "available_on_steam": "Steam üzerinde mevcut",
+    "available_on_epic": "Epic Games üzerinde mevcut"
   },
   "achievement": {
     "achievement_unlocked": "Başarım açıldı",

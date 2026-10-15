@@ -11,6 +11,7 @@ import ts from "typescript";
 import type { LibraryGame } from "@types";
 import { getBigPictureDownloadView } from "../../../types/download-contract.js";
 import { readActiveLibraryDownload } from "../components/modals/download-game/download-queue.js";
+import { Downloader } from "../../../shared/constants.js";
 
 const requireModule = createRequire(import.meta.url);
 
@@ -169,9 +170,13 @@ describe("Big Picture operational download library", () => {
           useEffect: () => {},
         },
         "@shared": {
-          Downloader: {},
+          Downloader,
           formatBytes: String,
           formatBytesToMbps: String,
+        },
+        "@renderer/helpers/epic-managed-error": {
+          getEpicManagedError: () =>
+            assert.fail("This fixture contains no Epic download errors"),
         },
         "../../../../types": { getBigPictureDownloadView },
         "react-i18next": {

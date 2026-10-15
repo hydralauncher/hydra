@@ -5,9 +5,10 @@ import {
   monitorForElements,
 } from "@atlaskit/pragmatic-drag-and-drop/element/adapter";
 import type { LibraryGame } from "@types";
+import { Downloader } from "@shared";
+import { useTranslation } from "react-i18next";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { useTranslation } from "react-i18next";
 import { type FocusItemActions } from "../../types";
 import type { FocusOverrides } from "../../services";
 import { useNavigation, useNavigationScreenActions } from "../../hooks";
@@ -2192,6 +2193,17 @@ export default function Downloads() {
 
     if (menuState.section === "paused") {
       return [
+        ...(item.game.download?.downloader === Downloader.Epic &&
+        item.game.download.status === "error"
+          ? [
+              {
+                id: "epic-integrations",
+                label: t("integrations", { ns: "settings" }),
+                disabled: interactionsLocked,
+                onSelect: () => navigate("/settings?tab=integrations"),
+              },
+            ]
+          : []),
         {
           id: "cancel",
           label: "Cancel",
@@ -2247,6 +2259,8 @@ export default function Downloads() {
     resumeSeeding,
     sendToQueue,
     startNow,
+    navigate,
+    t,
   ]);
 
   useEffect(() => {

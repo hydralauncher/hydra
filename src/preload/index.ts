@@ -47,6 +47,8 @@ import type {
   ArtworkKind,
   ArtworkPage,
   GameArtworkSelection,
+  GameArtworkOptions,
+  GameAssetsOptions,
   GameLauncherStatusPayload,
   CloudSaveAutomaticSyncModeChangedEvent,
   CloudSaveAutomaticSyncEvent,
@@ -80,6 +82,13 @@ import type {
   EpicSyncFinished,
   EpicOperationResult,
   EpicStartAuthResult,
+  EpicGameInstallOptions,
+  StartEpicGameDownloadPayload,
+  EpicManagedOperationResult,
+  EpicCloudSaveState,
+  EpicCloudSaveSettings,
+  ResolveEpicCloudSaveConflictPayload,
+  EpicLaunchOptions,
 } from "@types";
 import type { AuthPage, Downloader } from "@shared";
 import type { AxiosProgressEvent } from "axios";
@@ -484,15 +493,20 @@ contextBridge.exposeInMainWorld("electron", {
     >,
 
   /* Catalogue */
-  getGameShopDetails: (objectId: string, shop: GameShop, language: string) =>
-    ipcRenderer.invoke("getGameShopDetails", objectId, shop, language),
+  getGameShopDetails: (
+    objectId: string,
+    shop: GameShop,
+    language: string,
+    options?: GameArtworkOptions
+  ) =>
+    ipcRenderer.invoke("getGameShopDetails", objectId, shop, language, options),
   getRandomGame: () => ipcRenderer.invoke("getRandomGame"),
   getGameStats: (objectId: string, shop: GameShop) =>
     ipcRenderer.invoke("getGameStats", objectId, shop),
   getGameAssets: (
     objectId: string,
     shop: GameShop,
-    options?: { forceFresh?: boolean }
+    options?: GameAssetsOptions
   ) => ipcRenderer.invoke("getGameAssets", objectId, shop, options),
   onUpdateAchievements: (
     objectId: string,
@@ -1171,14 +1185,16 @@ contextBridge.exposeInMainWorld("electron", {
     shop: GameShop,
     objectId: string,
     executablePath: string,
-    launchOptions?: string | null
+    launchOptions?: string | null,
+    epicLaunchOptions?: EpicLaunchOptions
   ) =>
     ipcRenderer.invoke(
       "openGame",
       shop,
       objectId,
       executablePath,
-      launchOptions
+      launchOptions,
+      epicLaunchOptions
     ),
   openClassicsGame: (
     shop: GameShop,
@@ -1763,6 +1779,58 @@ contextBridge.exposeInMainWorld("electron", {
   },
   getEpicConnection: () =>
     ipcRenderer.invoke("getEpicConnection") as Promise<EpicConnectionState>,
+  getEpicGameInstallOptions: (epicObjectId: string, requestId?: string) =>
+    ipcRenderer.invoke(
+      "getEpicGameInstallOptions",
+      epicObjectId,
+      requestId
+    ) as Promise<EpicGameInstallOptions>,
+  cancelEpicGameInstallOptions: (requestId: string) =>
+    ipcRenderer.invoke(
+      "cancelEpicGameInstallOptions",
+      requestId
+    ) as Promise<void>,
+  startEpicGameDownload: (payload: StartEpicGameDownloadPayload) =>
+    ipcRenderer.invoke(
+      "startEpicGameDownload",
+      payload
+    ) as Promise<EpicManagedOperationResult>,
+  getEpicCloudSaveState: (epicObjectId: string) =>
+    ipcRenderer.invoke(
+      "getEpicCloudSaveState",
+      epicObjectId
+    ) as Promise<EpicCloudSaveState>,
+  setEpicCloudSaveSettings: (
+    epicObjectId: string,
+    settings: EpicCloudSaveSettings
+  ) =>
+    ipcRenderer.invoke(
+      "setEpicCloudSaveSettings",
+      epicObjectId,
+      settings
+    ) as Promise<EpicManagedOperationResult>,
+  syncEpicCloudSaves: (epicObjectId: string) =>
+    ipcRenderer.invoke(
+      "syncEpicCloudSaves",
+      epicObjectId
+    ) as Promise<EpicCloudSaveState>,
+  resolveEpicCloudSaveConflict: (
+    payload: ResolveEpicCloudSaveConflictPayload
+  ) =>
+    ipcRenderer.invoke(
+      "resolveEpicCloudSaveConflict",
+      payload
+    ) as Promise<EpicCloudSaveState>,
+  onEpicCloudSaveStateChanged: (cb: (state: EpicCloudSaveState) => void) => {
+    const listener = (
+      _event: Electron.IpcRendererEvent,
+      state: EpicCloudSaveState
+    ) => cb(state);
+    ipcRenderer.on("on-epic-cloud-save-state-changed", listener);
+    return () => {
+      ipcRenderer.removeListener("on-epic-cloud-save-state-changed", listener);
+    };
+  },
   startEpicAuth: () =>
     ipcRenderer.invoke("startEpicAuth") as Promise<EpicStartAuthResult>,
   cancelEpicAuth: (operationId: string) =>

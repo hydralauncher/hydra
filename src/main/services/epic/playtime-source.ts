@@ -26,8 +26,11 @@ export class EpicPlaytimeSource {
     private readonly session: Pick<EpicSessionProvider, "token">,
     private readonly fetchImpl = fetch
   ) {}
-  invalidate() {
+  clearCache() {
     this.cache.clear();
+  }
+  invalidate() {
+    this.clearCache();
     for (const flight of this.flights.values()) flight.controller.abort();
   }
   private consume(

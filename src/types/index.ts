@@ -4,6 +4,8 @@ import type {
   AchievementCustomNotificationPosition,
   Download,
   Game,
+  CatalogueGameIdentity,
+  LibraryCatalogueMetadata,
   Subscription,
 } from "./level.types";
 import type { GameShop, UnlockedAchievement } from "./game.types";
@@ -97,7 +99,7 @@ export interface TorrentFilesResponse {
   archiveOnly?: boolean;
 }
 
-export type UserGame = {
+export type UserGame = LibraryCatalogueMetadata & {
   objectId: string;
   shop: GameShop;
   title: string;
@@ -705,6 +707,16 @@ export type LibraryGame = Game &
     achievementCount?: number;
   };
 
+/** Read-only catalogue projection; writes must use its original members. */
+export type LibraryGamePresentation = LibraryGame & {
+  members: LibraryGame[];
+  operationalGame: LibraryGame;
+  achievementGame?: LibraryGame;
+  downloadGame: LibraryGame;
+  catalogueGame: CatalogueGameIdentity;
+  availableShops: GameShop[];
+};
+
 export type UserGameDetails = ShopAssets & {
   id: string;
   playTimeInSeconds: number;
@@ -726,6 +738,7 @@ export * from "./game.types";
 export * from "./steam.types";
 export * from "./steam-integration.types";
 export * from "./epic-integration.types";
+export * from "./epic-managed.types";
 export * from "./download.types";
 export * from "./ludusavi.types";
 export * from "./how-long-to-beat.types";

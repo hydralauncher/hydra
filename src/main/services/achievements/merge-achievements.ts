@@ -289,6 +289,7 @@ export const mergeAchievements = async (
   publishNotification: boolean
 ) => {
   const gameKey = levelKeys.game(game.shop, game.objectId);
+  if (game.shop === "epic") return 0;
 
   let localGameAchievement = AchievementMemoryStore.get(
     game.shop,

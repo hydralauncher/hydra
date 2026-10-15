@@ -532,7 +532,45 @@
     "create_steam_shortcut_modal_create_button": "Create",
     "create_steam_shortcut_modal_cancel_button": "Cancel",
     "epic_playtime_tracking_title": "Epic playtime",
-    "epic_playtime_tracking_description": "Epic playtime is already synced. When an Epic installation is identified, Hydra does not count the same session by default. Enable this option to also count it in Hydra."
+    "epic_playtime_tracking_description": "Epic playtime is already synced. When an Epic installation is identified, Hydra does not count the same session by default. Enable this option to also count it in Hydra.",
+    "download_on_epic": "Stáhnout na Epic Gamesu",
+    "epic_preparing_install": "Loading...",
+    "epic_install_build": "Vyberte verzi",
+    "epic_select_build": "Vyberte verzi",
+    "epic_install_sizes": "Stáhnout: {{download}} · Instalovat: {{disk}}",
+    "download_size": "Stažení: <strong>{{size}}</strong>",
+    "required_storage_space": "Úložiště: <strong>{{size}}</strong>",
+    "epic_finalizing_install": "Dokončování instalace",
+    "epic_cloud_saves": "Uložení v cloudu — Epic Games",
+    "epic_cloud_saves_description": "Synchronizujte uložené pozice této hry se svým účtem Epic Games.",
+    "epic_save_unsupported": "Tato hra nepodporuje ukládání do cloudu přes Epic Games.",
+    "epic_save_status_idle": "Checking",
+    "epic_save_status_syncing": "Synchronizace",
+    "epic_save_status_conflict": "Conflict",
+    "epic_save_status_pending-upload": "Čeká na nahrání",
+    "epic_save_status_unavailable": "Unavailable",
+    "epic_save_status_up-to-date": "Synchronizováno",
+    "epic_save_automatic": "Povolit automatické zálohy v cloudu",
+    "epic_save_automatic_description": "Synchronizovat před spuštěním a po ukončení hry.",
+    "epic_save_folder": "Složka uložených pozic",
+    "epic_save_path_required": "Location required",
+    "epic_save_select_path": "Vybrat složku",
+    "epic_save_sync_now": "Sync now",
+    "epic_save_conflict_description": "Your local saves will replace the active cloud version. The local saves on this device will be replaced by the active cloud version.",
+    "epic_save_use_local": "Keep local saves",
+    "epic_save_use_remote": "Use cloud saves — Epic Games",
+    "choose_game_store": "Vyberte, kde hrát",
+    "play_on_steam": "Hrát — Steam",
+    "play_on_epic": "Hrát — Epic Games",
+    "epic_launch_failed": "Failed to launch game",
+    "epic_play_local_saves": "Hrát s místními pozicemi",
+    "epic_play_local_saves_description": "Spusťte tuto relaci bez obnovení pozic z cloudu. Místní změny zůstanou čekat na synchronizaci.",
+    "epic_managed_error_generic": "Operace Epic se nezdařila. Zkontrolujte připojení a zkuste to znovu.",
+    "epic_external_launcher_required": "K instalaci této hry je potřeba jiný launcher. Nainstalujte ji prostřednictvím oficiálního launcheru.",
+    "epic_play_offline": "Hrát — Offline",
+    "epic_prerequisites_required": "Povolte požadované součásti hry a zkuste to znovu.",
+    "epic_update_required": "Aktualizujte hru přes možnost Epic Games do stejné složky.",
+    "epic_retry": "Zkusit znovu"
   },
   "activation": {
     "title": "Aktivovat hydru",
@@ -587,6 +625,7 @@
     "move_down": "Move down"
   },
   "settings": {
+    "epic_sync_partial": "Hry a herní čas byly synchronizovány; synchronizace úspěchů pro {{count}} her bude znovu vyzkoušena.",
     "hide_library_steam_badges": "Skrýt odznaky připojení ke knihovně Steam",
     "epic_games": "Epic Games",
     "epic_description": "Link your Epic Games account to Hydra.",
@@ -845,7 +884,8 @@
     "epic_sync_permission": "Epic did not allow access to playtime. Your previous library was preserved.",
     "epic_sync_rate_limit": "Epic is limiting requests. Try again later.",
     "epic_sync_merge_pending": "The server synced your Epic library. Retry sync to update the local library.",
-    "hide_library_epic_badges": "Skrýt odznaky připojení ke knihovně Epic"
+    "hide_library_epic_badges": "Skrýt odznaky připojení ke knihovně Epic",
+    "epic_shutdown_failed": "Operaci Epic se nepodařilo ukončit. Zkuste znovu zavřít Hydru."
   },
   "notifications": {
     "download_complete": "Stahování dokončeno",
@@ -1105,7 +1145,11 @@
     "disk_usage_tooltip": "Installed size on disk",
     "installer_size_tooltip": "Installer size",
     "library_epic": "Epic",
-    "imported_from_epic": "Importováno z knihovny Epic propojené s tímto profilem."
+    "imported_from_epic": "Importováno z knihovny Epic propojené s tímto profilem.",
+    "imported_from_steam_and_epic": "Importováno z knihoven Steam a Epic Games propojených s tímto profilem.",
+    "available_on_steam_and_epic": "Dostupné na Steamu a Epic Games",
+    "available_on_steam": "Dostupné na Steamu",
+    "available_on_epic": "Dostupné na Epic Games"
   },
   "game_launcher": {
     "launching": "Launching...",

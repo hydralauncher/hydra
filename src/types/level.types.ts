@@ -2,6 +2,10 @@ import type { Downloader } from "@shared";
 import type { GameShop } from "./game.types";
 import type { DownloadStatus } from "./download.types";
 import type { ClassicsDisc } from "./emulator.types";
+import type {
+  EpicDownloadMetadata,
+  EpicInstallation,
+} from "./epic-managed.types";
 
 export type SubscriptionStatus = "active" | "pending" | "cancelled";
 
@@ -28,7 +32,18 @@ export interface User {
   subscription: Subscription | null;
 }
 
-export interface Game {
+export interface CatalogueGameIdentity {
+  shop: GameShop;
+  objectId: string;
+}
+
+export interface LibraryCatalogueMetadata {
+  canonicalId?: string;
+  catalogueGame?: CatalogueGameIdentity;
+  availableShops?: GameShop[];
+}
+
+export interface Game extends LibraryCatalogueMetadata {
   title: string;
   iconUrl: string | null;
   libraryHeroImageUrl: string | null;
@@ -47,6 +62,7 @@ export interface Game {
   playTimeInMilliseconds: number;
   steamPlayTimeInMilliseconds?: number;
   epicPlayTimeInMilliseconds?: number;
+  epicInstallation?: EpicInstallation;
   hasActiveEpicImport?: boolean;
   epicImportScope?: {
     environment: string;
@@ -103,6 +119,7 @@ export interface DownloadFile {
 }
 
 export interface Download {
+  epic?: EpicDownloadMetadata;
   shop: GameShop;
   objectId: string;
   uri: string;
