@@ -50,12 +50,18 @@ const readCloudSaveAutomaticSyncMode = async (
     gamesSublevel.get(key),
   ]);
   const legacyEnabled = game?.automaticCloudSync === true;
-  // Managed Epic installs start on Epic's own save sync; Hydra is opt-in.
+  // Managed Epic installs start on Epic's own save sync; Hydra is opt-in and
+  // stays off while Epic's sync is on, including values stored before this.
   const managedEpic = shop === "epic" && !!game?.epicInstallation;
+  const epicSyncEnabled =
+    managedEpic && game?.epicInstallation?.automaticSaveSync !== false;
+  let v2Enabled = storedV2Enabled;
+  if (epicSyncEnabled) v2Enabled = false;
+  else if (managedEpic) v2Enabled = storedV2Enabled ?? false;
   const mode = resolveStoredCloudSaveAutomaticSyncModeForShop(
     shop,
     legacyEnabled,
-    storedV2Enabled ?? (managedEpic ? false : undefined),
+    v2Enabled,
     game?.platform
   );
 
