@@ -36,15 +36,18 @@ interface SteamLibraryBadgeProps {
 export function SteamLibraryBadge({
   variant = "cover",
   source = "steam",
-  availableShops,
   hasActiveSteamImport = false,
   hasActiveEpicImport = false,
   className,
 }: SteamLibraryBadgeProps) {
   const { t } = useTranslation("library");
   const tooltipId = useId();
-  const hasBothStores =
-    availableShops?.includes("steam") && availableShops.includes("epic");
+  const hasBothImports = hasActiveSteamImport && hasActiveEpicImport;
+  const badgeSource = hasActiveSteamImport
+    ? "steam"
+    : hasActiveEpicImport
+      ? "epic"
+      : source;
   let labelKey: string;
   if (hasActiveSteamImport && hasActiveEpicImport) {
     labelKey = "imported_from_steam_and_epic";
@@ -52,18 +55,15 @@ export function SteamLibraryBadge({
     labelKey = "imported_from_steam";
   } else if (hasActiveEpicImport) {
     labelKey = "imported_from_epic";
-  } else if (hasBothStores) {
-    labelKey = "available_on_steam_and_epic";
-  } else if (availableShops?.length) {
-    labelKey = source === "epic" ? "available_on_epic" : "available_on_steam";
   } else {
-    labelKey = source === "epic" ? "imported_from_epic" : "imported_from_steam";
+    labelKey =
+      badgeSource === "epic" ? "imported_from_epic" : "imported_from_steam";
   }
   const label = t(labelKey);
   const classes = [
     "steam-library-badge",
     `steam-library-badge--${variant}`,
-    hasBothStores && "steam-library-badge--multiple",
+    hasBothImports && "steam-library-badge--multiple",
     className,
   ]
     .filter(Boolean)
@@ -78,7 +78,7 @@ export function SteamLibraryBadge({
         aria-label={label}
         role="img"
       >
-        {source === "epic" ? (
+        {badgeSource === "epic" ? (
           <EpicLogo
             width={variant === "sidebar" ? 8 : 13}
             height={variant === "sidebar" ? 8 : 13}
@@ -89,7 +89,7 @@ export function SteamLibraryBadge({
             size={variant === "sidebar" ? 8 : variant === "large" ? 13 : 12}
           />
         )}
-        {hasBothStores && (
+        {hasBothImports && (
           <span className="steam-library-badge__additional" aria-hidden="true">
             +
           </span>

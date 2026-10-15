@@ -20,14 +20,19 @@ import {
   useUserDetails,
 } from "../../hooks";
 import "./styles.scss";
+import { Button, HorizontalFocusGroup } from "../../components";
+import { useTranslation } from "react-i18next";
 
 export default function GameAchievements() {
   const { shop, objectId } = useParams<{ shop: GameShop; objectId: string }>();
   const navigate = useNavigate();
-  const { shopDetails, game, achievements, isLoading } = useGameDetails(
-    objectId!,
-    shop!
-  );
+  const { shopDetails, game, achievements, isLoading, presentationGame } =
+    useGameDetails(objectId!, shop!, true);
+  const { t } = useTranslation("achievement");
+  const achievementStores =
+    presentationGame?.members.filter(
+      (member) => member.shop === "steam" || member.shop === "epic"
+    ) ?? [];
   const { userDetails } = useUserDetails();
   const [souvenir, setSouvenir] = useState<UserAchievement | null>(null);
 
@@ -95,13 +100,47 @@ export default function GameAchievements() {
         <GameAchievementsHero shopDetails={shopDetails} game={game} />
 
         <div className="game-achievements-page__content">
+          {achievementStores.length > 1 && (
+            <HorizontalFocusGroup regionId="achievement-stores" asChild>
+              <div
+                aria-label={t("achievement_store")}
+                className="game-achievements-page__stores"
+              >
+                {achievementStores.map((member) => (
+                  <Button
+                    key={`${member.shop}:${member.objectId}`}
+                    focusId={`achievement-store-${member.shop}`}
+                    variant={member.shop === shop ? "primary" : "secondary"}
+                    aria-pressed={member.shop === shop}
+                    focusNavigationOverrides={{
+                      down: {
+                        type: "item",
+                        itemId: GAME_ACHIEVEMENTS_SUMMARY_FOCUS_ID,
+                      },
+                    }}
+                    onClick={() =>
+                      navigate(
+                        `/game/${member.shop}/${encodeURIComponent(member.objectId)}/achievements`,
+                        { replace: true }
+                      )
+                    }
+                  >
+                    {member.shop === "epic" ? "Epic Games" : "Steam"}
+                  </Button>
+                ))}
+              </div>
+            </HorizontalFocusGroup>
+          )}
           <UserAchievementsSummary
             userDetails={userDetails}
             unlockedCount={unlockedCount}
             totalCount={achievements.length}
             stealFocusOnAppear
             navigationOverrides={{
-              up: { type: "block" },
+              up:
+                achievementStores.length > 1
+                  ? { type: "item", itemId: `achievement-store-${shop}` }
+                  : { type: "block" },
               down: firstAchievementRowId
                 ? { type: "item", itemId: firstAchievementRowId }
                 : { type: "block" },

@@ -76,6 +76,7 @@ export interface GameDetailsContextProps {
   gameTitle: string;
   shop: GameShop;
   syncHeaderTitle?: boolean;
+  lockAchievementIdentity?: boolean;
 }
 
 export function GameDetailsContextProvider({
@@ -84,6 +85,7 @@ export function GameDetailsContextProvider({
   gameTitle,
   shop,
   syncHeaderTitle = true,
+  lockAchievementIdentity = false,
 }: Readonly<GameDetailsContextProps>) {
   const [shopDetails, setShopDetails] = useState<ShopDetailsWithAssets | null>(
     null
@@ -131,6 +133,12 @@ export function GameDetailsContextProvider({
     game?.catalogueGame?.objectId ??
     objectId;
   const gameRequestId = useRef(0);
+  const achievementShop = lockAchievementIdentity
+    ? shop
+    : (presentation?.achievementGame?.shop ?? operationalShop);
+  const achievementObjectId = lockAchievementIdentity
+    ? objectId
+    : (presentation?.achievementGame?.objectId ?? operationalObjectId);
   const pageSyncKey = useRef("");
 
   useEffect(() => {
@@ -149,12 +157,14 @@ export function GameDetailsContextProvider({
     if (pageSyncKey.current === key) return;
     pageSyncKey.current = key;
     for (const member of eligible) {
-      const sync =
-        member.shop === "epic"
-          ? window.electron.syncEpicGameOnGamePage
-          : window.electron.syncSteamGameOnGamePage;
-      if (typeof sync === "function")
-        void sync(member.objectId).catch(() => {});
+      if (member.shop === "epic")
+        void window.electron
+          .syncEpicGameOnGamePage?.(member.objectId)
+          .catch(() => {});
+      else
+        void window.electron
+          .syncSteamGameOnGamePage?.(member.objectId)
+          .catch(() => {});
     }
   }, [presentation, game, shop, objectId, userDetails?.id]);
 
@@ -222,7 +232,7 @@ export function GameDetailsContextProvider({
               });
           } else {
             globalThis.window.electron
-              .getUnlockedAchievements(operationalObjectId, operationalShop)
+              .getUnlockedAchievements(achievementObjectId, achievementShop)
               .then((achievements) => {
                 if (isStaleAchievementResult()) return;
                 if (achievements) setAchievements(achievements);
@@ -281,6 +291,8 @@ export function GameDetailsContextProvider({
     catalogueObjectId,
     operationalShop,
     operationalObjectId,
+    achievementShop,
+    achievementObjectId,
     userDetails,
     userPreferences?.disableNsfwAlert,
     userPreferences?.retroAchievementsWebApiKey,
@@ -488,20 +500,37 @@ export function GameDetailsContextProvider({
   }, [location]);
 
   useEffect(() => {
-    const unsubscribe = window.electron.onUpdateAchievements(
-      operationalObjectId,
-      operationalShop,
-      (achievements) => {
-        if (!userDetails) return;
-        achievementUpdateCountRef.current += 1;
-        setAchievements(achievements);
-      }
+    const members =
+      presentation?.availableShops.includes("steam") &&
+      presentation.availableShops.includes("epic")
+        ? presentation.members.filter(
+            (member) => member.shop === "steam" || member.shop === "epic"
+          )
+        : [{ objectId: achievementObjectId, shop: achievementShop }];
+    const unsubscribe = members.map((member) =>
+      window.electron.onUpdateAchievements(
+        member.objectId,
+        member.shop,
+        (achievements) => {
+          if (!userDetails) return;
+          if (
+            (member.objectId !== achievementObjectId ||
+              member.shop !== achievementShop) &&
+            !achievements.some(
+              (achievement) => achievement.canonicalAchievementId
+            )
+          )
+            return;
+          achievementUpdateCountRef.current += 1;
+          setAchievements(achievements);
+        }
+      )
     );
 
     return () => {
-      unsubscribe();
+      unsubscribe.forEach((stop) => stop());
     };
-  }, [operationalObjectId, operationalShop, userDetails]);
+  }, [achievementObjectId, achievementShop, userDetails, presentation]);
 
   useEffect(() => {
     if (shop === "custom") return;
@@ -605,12 +634,14 @@ export function GameDetailsContextProvider({
         presentation: presentation ?? null,
         catalogueGame: { shop: catalogueShop, objectId: catalogueObjectId },
         shopDetails,
-        shop: operationalShop,
+        shop: lockAchievementIdentity ? achievementShop : operationalShop,
         repacks,
         gameTitle: presentation?.title ?? shopDetails?.name ?? gameTitle,
         isGameRunning,
         isLoading,
-        objectId: operationalObjectId,
+        objectId: lockAchievementIdentity
+          ? achievementObjectId
+          : operationalObjectId,
         showGameOptionsModal,
         gameOptionsInitialCategory,
         showRepacksModal,
