@@ -500,20 +500,37 @@ export function GameDetailsContextProvider({
   }, [location]);
 
   useEffect(() => {
-    const unsubscribe = window.electron.onUpdateAchievements(
-      achievementObjectId,
-      achievementShop,
-      (achievements) => {
-        if (!userDetails) return;
-        achievementUpdateCountRef.current += 1;
-        setAchievements(achievements);
-      }
+    const members =
+      presentation?.availableShops.includes("steam") &&
+      presentation.availableShops.includes("epic")
+        ? presentation.members.filter(
+            (member) => member.shop === "steam" || member.shop === "epic"
+          )
+        : [{ objectId: achievementObjectId, shop: achievementShop }];
+    const unsubscribe = members.map((member) =>
+      window.electron.onUpdateAchievements(
+        member.objectId,
+        member.shop,
+        (achievements) => {
+          if (!userDetails) return;
+          if (
+            (member.objectId !== achievementObjectId ||
+              member.shop !== achievementShop) &&
+            !achievements.some(
+              (achievement) => achievement.canonicalAchievementId
+            )
+          )
+            return;
+          achievementUpdateCountRef.current += 1;
+          setAchievements(achievements);
+        }
+      )
     );
 
     return () => {
-      unsubscribe();
+      unsubscribe.forEach((stop) => stop());
     };
-  }, [achievementObjectId, achievementShop, userDetails]);
+  }, [achievementObjectId, achievementShop, userDetails, presentation]);
 
   useEffect(() => {
     if (shop === "custom") return;

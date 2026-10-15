@@ -27,7 +27,10 @@ export function AchievementList({
   return (
     <ul className="achievements__list">
       {achievements.map((achievement) => (
-        <li key={achievement.name} className="achievements__item">
+        <li
+          key={achievement.canonicalAchievementId ?? achievement.name}
+          className="achievements__item"
+        >
           <img
             className={`achievements__item-image ${!achievement.unlocked ? "achievements__item-image--locked" : ""}`}
             src={achievement.icon}
