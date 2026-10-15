@@ -110,15 +110,26 @@ export function useDownload() {
     return response;
   };
 
-  const pauseDownload = async (shop: GameShop, objectId: string) => {
-    await window.electron.pauseGameDownload(shop, objectId);
+  const pauseDownload = async (
+    shop: GameShop,
+    objectId: string,
+    confirmed = false
+  ) => {
+    const paused = await window.electron.pauseGameDownload(
+      shop,
+      objectId,
+      confirmed
+    );
+    if (paused === false) return false;
     await updateLibrary();
     if (lastPacket?.gameId === `${shop}:${objectId}`) dispatch(clearDownload());
+    return paused;
   };
 
   const resumeDownload = async (shop: GameShop, objectId: string) => {
-    await window.electron.resumeGameDownload(shop, objectId);
-    return updateLibrary();
+    const resumed = await window.electron.resumeGameDownload(shop, objectId);
+    await updateLibrary();
+    return resumed;
   };
 
   const removeGameInstaller = async (shop: GameShop, objectId: string) => {

@@ -24,6 +24,7 @@ import {
 } from "@main/services";
 import resources from "@locales";
 import { TorrentService } from "./services/torrent-service";
+import { DownloadManager } from "./services/download/download-manager";
 import { db, gamesSublevel, levelKeys } from "./level";
 import { GameShop, UserPreferences } from "@types";
 import { launchGame, openClassicsGame } from "./helpers";
@@ -416,7 +417,13 @@ app.on("before-quit", async (e) => {
       );
       return;
     }
+    DownloadOrchestrator.cancelPendingDebridPreparations();
     PowerSaveBlockerManager.reset();
+    try {
+      await DownloadManager.pauseDownload();
+    } catch (error) {
+      logger.error("Could not save active download before quitting", error);
+    }
     const results = await Promise.allSettled([
       Lock.releaseLock(),
       TorrentService.shutdown(),

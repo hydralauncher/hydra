@@ -33,7 +33,7 @@ export async function clearEpicImports(
         continue;
       if (context && !matchesEpicImportScope(game, context, connectionId))
         continue;
-      const exclusive = game.source === "epic";
+      const exclusive = game.source === "epic" && !hasPendingHydraClaim(key);
       updates.push({
         type: "put",
         key,
@@ -42,10 +42,8 @@ export async function clearEpicImports(
           epicPlayTimeInMilliseconds: 0,
           hasActiveEpicImport: false,
           epicImportScope: undefined,
-          ...(accountChanged ? { remoteId: null } : {}),
-          ...(exclusive && !hasPendingHydraClaim(key)
-            ? { isDeleted: true }
-            : {}),
+          ...(accountChanged || exclusive ? { remoteId: null } : {}),
+          ...(exclusive ? { isDeleted: true } : {}),
         },
       });
     }
@@ -75,6 +73,7 @@ export async function clearStaleEpicImports(
               game.epicImportScope?.connectionId === connectionId)))
       )
         continue;
+      const exclusive = game.source === "epic" && !hasPendingHydraClaim(key);
       updates.push({
         type: "put",
         key,
@@ -83,10 +82,10 @@ export async function clearStaleEpicImports(
           epicPlayTimeInMilliseconds: 0,
           hasActiveEpicImport: false,
           epicImportScope: undefined,
-          ...(context && matchesEpicImportScope(game, context)
+          ...(context && matchesEpicImportScope(game, context) && !exclusive
             ? {}
             : { remoteId: null }),
-          ...(game.source === "epic" ? { isDeleted: true } : {}),
+          ...(exclusive ? { isDeleted: true } : {}),
         },
       });
     }

@@ -110,6 +110,14 @@ export interface Game extends LibraryCatalogueMetadata {
   romSizeBytes?: number | null;
 }
 
+export interface DownloadFile {
+  index: number;
+  path: string;
+  size: number;
+  bytesDownloaded: number;
+  completed: boolean;
+}
+
 export interface Download {
   epic?: EpicDownloadMetadata;
   shop: GameShop;
@@ -131,7 +139,14 @@ export interface Download {
   automaticallyExtract: boolean;
   automaticallyDeleteArchiveFiles: boolean;
   fileIndices?: number[];
+  files?: DownloadFile[];
   selectedFilesSize?: number | null;
+  realDebridTorrentId?: string;
+  awaitingDebrid?: boolean;
+  debridAutoResume?: boolean;
+  debridQueueOnly?: boolean;
+  debridQueuePosition?: number;
+  debridPreparationDeadline?: number;
   customTrackers?: string[];
 }
 

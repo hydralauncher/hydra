@@ -26,6 +26,14 @@ export interface UserAchievement extends SteamAchievement {
   unlockTime: number | null;
   hardcoreUnlockTime?: number | null;
   source?: "steam" | "epic" | "retroachievements";
+  canonicalAchievementId?: string;
+  sourceObjectId?: string;
+  sources?: Array<{
+    shop: "steam" | "epic";
+    objectId: string;
+    name: string;
+    unlockTime: number;
+  }>;
   unlockedOn?: {
     hydra: boolean;
     retroachievements: boolean;
