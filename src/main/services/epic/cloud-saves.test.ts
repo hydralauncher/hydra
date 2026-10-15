@@ -83,6 +83,8 @@ async function fixture(t: TestContext, options: { linux?: boolean } = {}) {
     workspaceSignals: [] as Array<AbortSignal | undefined>,
     workspaceExecutions: 0,
     onWorkspaceQueued: null as (() => void) | null,
+    beforeMetadata: null as (() => Promise<void>) | null,
+    captureSignals: [] as AbortSignal[],
   };
   const installed: {
     app_name: string;
@@ -287,7 +289,8 @@ async function fixture(t: TestContext, options: { linux?: boolean } = {}) {
   const service = exported.configureEpicCloudSaves({
     runtime,
     installation: {
-      capture: async () => {
+      capture: async (_objectId: string, signal: AbortSignal) => {
+        state.captureSignals.push(signal);
         if (state.offline) throw new Error("offline");
         return {
           ...target,
@@ -309,14 +312,17 @@ async function fixture(t: TestContext, options: { linux?: boolean } = {}) {
           await fsp.readFile(path.join(workspace, "installed.json"), "utf8")
         ).Artifact,
       }),
-      metadata: async () => ({
-        metadata: {
-          customAttributes: {
-            CloudSaveFolder: { value: state.folder },
-            CloudIncludeList: { value: "*.sav" },
+      metadata: async () => {
+        await state.beforeMetadata?.();
+        return {
+          metadata: {
+            customAttributes: {
+              CloudSaveFolder: { value: state.folder },
+              CloudIncludeList: { value: "*.sav" },
+            },
           },
-        },
-      }),
+        };
+      },
     },
     emit: (event) => state.events.push(event),
   } as never);
@@ -769,6 +775,71 @@ for (const linux of [false, true]) {
     assert.equal(f.state.uploads, 1);
   });
 }
+
+test("invalidation waits for an active capture and prevents its old generation from persisting or returning", async (t) => {
+  const f = await fixture(t, { linux: true });
+  const entered = deferred<void>();
+  const release = deferred<void>();
+  f.state.beforeMetadata = async () => {
+    entered.resolve();
+    await release.promise;
+  };
+  const capture = f.service.capture(
+    "Namespace:Item",
+    new AbortController().signal
+  );
+  const cancelled = assert.rejects(capture, /operation-cancelled/);
+  await entered.promise;
+  let invalidated = false;
+  const invalidation = f.service.invalidate().then(() => {
+    invalidated = true;
+  });
+  try {
+    await new Promise<void>((resolve) => setImmediate(resolve));
+    assert.equal(invalidated, false);
+    assert.equal(f.state.workspaceSignals.at(-1)?.aborted, true);
+  } finally {
+    release.resolve();
+    await Promise.all([invalidation, cancelled]);
+  }
+  assert.equal(f.game().epicInstallation?.savePathSource, undefined);
+  assert.equal(f.game().epicInstallation?.savePathPrefixGeneration, undefined);
+  assert.equal(f.state.events.length, 0);
+  assert.equal(f.state.commands.length, 0);
+});
+
+test("state invalidation cannot start a fresh local fallback capture", async (t) => {
+  const f = await fixture(t);
+  const entered = deferred<void>();
+  const release = deferred<void>();
+  f.state.beforeMetadata = async () => {
+    entered.resolve();
+    await release.promise;
+  };
+  const state = f.service.getState("Namespace:Item");
+  await entered.promise;
+  const invalidation = f.service.invalidate();
+  release.resolve();
+  await invalidation;
+  assert.equal((await state).error, "operation-cancelled");
+  assert.equal(f.state.workspaceExecutions, 1);
+  assert.equal(f.state.events.length, 0);
+});
+
+test("settled captures detach cancellation after success and ownership lookup failure", async (t) => {
+  for (const offline of [false, true]) {
+    const f = await fixture(t);
+    f.state.offline = offline;
+    const controller = new AbortController();
+    const capture = f.service.capture("Namespace:Item", controller.signal);
+    if (offline) await assert.rejects(capture, /offline/);
+    else await capture;
+    const capturedSignal = f.state.captureSignals.at(-1)!;
+    await f.service.invalidate();
+    controller.abort();
+    assert.equal(capturedSignal.aborted, false);
+  }
+});
 
 test("a launched session blocks manual restore before the watcher first detects its process", async (t) => {
   const f = await fixture(t);

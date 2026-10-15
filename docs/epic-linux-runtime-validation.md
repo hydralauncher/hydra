@@ -87,9 +87,12 @@ The feature starts at the published #2906 head
 `codex/epic-achievements-sync`; the original checkout's uncommitted changes were
 not copied. Before publication, the feature was rebased onto the dependency's
 updated published head `6d3a53f0a424dd01f27717b92f14ed836a7954d2`, preserving its
-preview cancellation, shared caches and external-launcher checks. The Linux
-validation copy uses an independent ext4 checkout of the
-same feature commit and its own dependencies and Rust targets.
+preview cancellation, shared caches and external-launcher checks. The branch was
+subsequently rebased onto `719b1c363e9a3a02f182d9d9816ea7b18a1f4dd4`, preserving
+the dependency's interrupted-save recovery and replacement-sync warnings. That
+commit is now the Linux branch's dependency boundary; the sync-fix PR retains its
+separate original boundary. The Linux validation copy uses an independent ext4
+checkout of the same feature commit and its own dependencies and Rust targets.
 
 The validation environment is Ubuntu WSL2 x86_64 with Node 22.21.0, Yarn 1.22.22,
 Rust/MinGW, WSLg and Vulkan. Native addon loading is verified with Electron on
@@ -109,7 +112,7 @@ same version can avoid the configured download mirror:
 yarn build:linux --config.electronDist=node_modules/electron/dist --publish never
 ```
 
-The PR stays draft until the authenticated product cases in the SDD are accepted:
+The authenticated product cases in the SDD remain pending acceptance:
 real Epic ownership/authentication and `requires_ot`, a real game download and
 pause/restart/resume, prerequisite failure/retry, offline play, actual cloud
 account restore/upload/conflicts and real graphical close on desktop, Big Picture
@@ -121,7 +124,7 @@ the dependency was squash merged:
 
 ```sh
 git fetch origin main
-git rebase --onto origin/main 6d3a53f0a424dd01f27717b92f14ed836a7954d2 codex/epic-linux-download-launch
+git rebase --onto origin/main 719b1c363e9a3a02f182d9d9816ea7b18a1f4dd4 codex/epic-linux-download-launch
 git push --force-with-lease origin codex/epic-linux-download-launch
 gh pr edit <linux-pr-number> --base main
 ```

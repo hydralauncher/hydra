@@ -116,6 +116,7 @@ export class EpicCloudSaveService {
   private readonly operations = new Map<string, Promise<EpicCloudSaveState>>();
   private readonly postExits = new Map<string, EpicPostExitTask>();
   private readonly controllers = new Set<AbortController>();
+  private readonly captures = new Set<Promise<EpicSaveSession>>();
   private readonly sessions = new Map<string, EpicSaveSession>();
   private readonly launching = new Set<string>();
   private generation = 0;
@@ -192,11 +193,12 @@ export class EpicCloudSaveService {
   }
   private async persist(
     session: EpicSaveSession,
-    patch: Partial<EpicInstallation>
+    patch: Partial<EpicInstallation>,
+    signal?: AbortSignal
   ) {
-    this.assertCurrent(session);
+    this.assertCurrent(session, signal);
     await updateGameRecord(levelKeys.game("epic", session.objectId), (game) => {
-      this.assertCurrent(session);
+      this.assertCurrent(session, signal);
       if (
         !game.epicInstallation ||
         !epicOwnerMatches(game.epicInstallation.owner, session.target.owner) ||
@@ -247,15 +249,51 @@ export class EpicCloudSaveService {
     }
     return variables;
   }
-  async capture(
+  capture(
     objectId: string,
     signal: AbortSignal,
     winePrefixPath?: string | null,
     localOnly = false
   ): Promise<EpicSaveSession> {
+    const generation = this.generation;
+    const controller = new AbortController();
+    const cancel = () => controller.abort(signal.reason);
+    signal.addEventListener("abort", cancel, { once: true });
+    if (signal.aborted) cancel();
+    this.controllers.add(controller);
+    const promise = this.captureCurrent(
+      objectId,
+      controller.signal,
+      generation,
+      winePrefixPath,
+      localOnly
+    );
+    this.captures.add(promise);
+    void promise
+      .finally(() => {
+        this.captures.delete(promise);
+        this.controllers.delete(controller);
+        signal.removeEventListener("abort", cancel);
+      })
+      .catch(() => undefined);
+    return promise;
+  }
+  private async captureCurrent(
+    objectId: string,
+    signal: AbortSignal,
+    generation: number,
+    winePrefixPath?: string | null,
+    localOnly = false
+  ): Promise<EpicSaveSession> {
+    const assertCaptureCurrent = () => {
+      if (signal.aborted || generation !== this.generation)
+        throw new EpicSaveFailure("operation-cancelled");
+    };
+    assertCaptureCurrent();
     const owned = localOnly
       ? await this.dependencies.installation.captureLocal(objectId, signal)
       : await this.dependencies.installation.capture(objectId, signal);
+    assertCaptureCurrent();
     const installation = owned.game.epicInstallation;
     if (!installation || !epicOwnerMatches(installation.owner, owned.owner))
       throw new EpicSaveFailure("installation-missing");
@@ -271,6 +309,7 @@ export class EpicCloudSaveService {
     return this.dependencies.runtime.serializeWorkspace(
       target,
       async (workspace) => {
+        assertCaptureCurrent();
         const installed = await this.dependencies.installation.readInstalled(
           target,
           objectId
@@ -361,12 +400,13 @@ export class EpicCloudSaveService {
           savePath,
           automaticSync:
             installation.automaticSaveSync !== false && !!metadata.folder,
-          generation: this.generation,
+          generation,
           ...(effectivePrefix
             ? { winePrefixPath: effectivePrefix, prefixGeneration }
             : {}),
           ...(source ? { savePathSource: source } : {}),
         };
+        this.assertCurrent(session, signal);
         if (
           process.platform === "linux" &&
           prefixGeneration &&
@@ -375,26 +415,33 @@ export class EpicCloudSaveService {
             (!needsPathChoice &&
               installation.savePathPrefixGeneration !== prefixGeneration))
         ) {
-          await this.persist(session, {
-            ...(source ? { savePathSource: source } : {}),
-            ...(!needsPathChoice
-              ? { savePathPrefixGeneration: prefixGeneration }
-              : {}),
-            ...(source === "automatic" ? { savePath } : {}),
-            ...(clearAnchor ? { saveAnchor: undefined } : {}),
-          });
+          await this.persist(
+            session,
+            {
+              ...(source ? { savePathSource: source } : {}),
+              ...(!needsPathChoice
+                ? { savePathPrefixGeneration: prefixGeneration }
+                : {}),
+              ...(source === "automatic" ? { savePath } : {}),
+              ...(clearAnchor ? { saveAnchor: undefined } : {}),
+            },
+            signal
+          );
+          this.assertCurrent(session, signal);
           this.states.delete(objectId);
         }
         if (interruptedTransfer) {
           // An unresolved Linux prefix or legacy path still requires an explicit choice.
           if (process.platform !== "linux" || savePath !== null)
-            await this.persist(session, { savePath });
+            await this.persist(session, { savePath }, signal);
+          this.assertCurrent(session, signal);
           await this.restoreRealSavePath(
             session,
             path.join(workspace, "installed.json")
           );
           installed.save_path = savePath;
         }
+        this.assertCurrent(session, signal);
         return session;
       },
       signal
@@ -403,6 +450,7 @@ export class EpicCloudSaveService {
   async getState(objectId: string): Promise<EpicCloudSaveState> {
     const retained = this.states.get(objectId);
     if (retained && process.platform !== "linux") return retained;
+    const generation = this.generation;
     const controller = new AbortController();
     try {
       const session = await this.capture(
@@ -435,6 +483,7 @@ export class EpicCloudSaveService {
         error,
       });
     } catch (error) {
+      if (generation !== this.generation) controller.abort();
       // A previously verified installed game can advertise its offline capability
       // without performing a remote save operation or trusting a new identity.
       try {
@@ -982,6 +1031,7 @@ export class EpicCloudSaveService {
     for (const controller of this.controllers) controller.abort();
     for (const task of this.postExits.values()) task.controller.abort();
     await Promise.allSettled([
+      ...this.captures,
       ...this.operations.values(),
       ...[...this.postExits.values()].map((task) => task.promise),
     ]);
