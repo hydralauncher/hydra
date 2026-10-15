@@ -41,6 +41,38 @@
       }
     }
   },
+  "managedRuntime": {
+    "protocolVersion": 1,
+    "adapterSha256": "a9720481aa3435a48ed743ae38d89931800be84a28ed12fd08701a0f38fe0dcb",
+    "capabilities": [
+      "inspect-target",
+      "install-target",
+      "access-only",
+      "refresh-session"
+    ],
+    "windows": {
+      "x64": {
+        "python": {
+          "url": "https://www.python.org/ftp/python/3.13.16/python-3.13.16-embed-amd64.zip",
+          "sha256": "97dae5274cc54867065e8d5a3226e48c35017ed332a0fdb0e27d5b5821961297"
+        },
+        "crypto": {
+          "url": "https://files.pythonhosted.org/packages/69/96/11f36f71a865dd6df03716d33bd07a67e9d20f6b8d39820470b766af323c/pycryptodomex-3.23.0-cp37-abi3-win_amd64.whl",
+          "sha256": "52e5ca58c3a0b0bd5e100a9fbc8015059b05cffc6c66ce9d98b4b45e023443b9"
+        }
+      },
+      "arm64": {
+        "python": {
+          "url": "https://www.python.org/ftp/python/3.13.16/python-3.13.16-embed-arm64.zip",
+          "sha256": "790d097697a2020477549a6764d89d22194c88d6e42caebcb2db63791e004c94"
+        },
+        "crypto": {
+          "url": "https://files.pythonhosted.org/packages/f9/93/45c1cdcbeb182ccd2e144c693eaa097763b08b38cded279f0053ed53c553/pycryptodomex-3.23.0-cp37-abi3-win_arm64.whl",
+          "sha256": "02d87b80778c171445d67e23d1caef279bf4b25c3597050ccd2e13970b57fd51"
+        }
+      }
+    }
+  },
   "linuxRuntime": {
     "pythonVersion": "3.13.16",
     "pythonRelease": "20261003",

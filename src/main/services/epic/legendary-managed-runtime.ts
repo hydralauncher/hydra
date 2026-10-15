@@ -30,8 +30,22 @@ import {
   EPIC_SYNC_MAX_OUTPUT_BYTES,
   EPIC_SYNC_TIMEOUT_MS,
 } from "./constants.js";
-import { epicPrerequisiteSupervisorScript } from "./windows-process-job.js";
+import { getManagedEpicProcessCommand } from "./windows-process-job.js";
+import {
+  EpicTargetRuntime,
+  type EpicManagedCommand,
+} from "./target-runtime.js";
 import { queueEpicOperation } from "./operation-queue.js";
+import { markEpicTiming, withEpicTiming } from "./timing.js";
+
+const commandTiming = (args: string[]) => {
+  let index = args[0] === "--api-timeout" ? 2 : 0;
+  if (args[index] === "-y") index++;
+  const command = args[index];
+  return command === "list" || command === "info" || command === "install"
+    ? command
+    : "other";
+};
 
 export class EpicManagedError extends Error {
   constructor(public readonly code: EpicInstallError) {
@@ -67,6 +81,21 @@ export function epicManagedErrorCode(error: unknown): EpicInstallError {
 }
 
 const classifyLegendaryFailure = (stderr: string): EpicInstallError => {
+  const managed = /^HYDRA_MANAGED_ERROR:([a-z-]+)$/m.exec(stderr)?.[1];
+  if (
+    managed &&
+    [
+      "session-expired",
+      "invalid-artifact",
+      "not-installable",
+      "external-launcher-required",
+      "invalid-response",
+      "network",
+      "operation-cancelled",
+      "update-required",
+    ].includes(managed)
+  )
+    return managed as EpicInstallError;
   if (
     /Game is out of date|please update (?:the game|before launching)/i.test(
       stderr
@@ -159,6 +188,16 @@ interface ProcessOptions {
   spawnProcess?: typeof spawn;
   env?: NodeJS.ProcessEnv;
   successExitCodes?: number[];
+  supervisorDirectory?: string;
+}
+
+let managedSupervisorDirectory = path.resolve(
+  "legendary",
+  "win32",
+  process.arch
+);
+export function configureManagedEpicProcessSupervisor(directory: string) {
+  managedSupervisorDirectory = directory;
 }
 
 /** Returns only after the full bootloader/process tree has stopped. */
@@ -171,243 +210,257 @@ export async function executeManagedLegendary(
   if (options.signal.aborted) throw new EpicManagedError("operation-cancelled");
   const jobDirectory =
     process.platform === "win32" && !options.spawnProcess
-      ? await fs.mkdtemp(path.join(os.tmpdir(), "hydra-epic-process-"))
+      ? await withEpicTiming("process.windows.job-directory", () =>
+          fs.mkdtemp(path.join(os.tmpdir(), "hydra-epic-process-"))
+        )
       : null;
   const cancellation = jobDirectory ? path.join(jobDirectory, "cancel") : null;
   if (jobDirectory) await fs.chmod(jobDirectory, 0o700);
-  const powershell = path.win32.join(
-    process.env.SystemRoot || String.raw`C:\Windows`,
-    "System32",
-    "WindowsPowerShell",
-    "v1.0",
-    "powershell.exe"
-  );
   try {
-    const jobScript =
+    const command =
       jobDirectory && cancellation
-        ? path.join(jobDirectory, "supervisor.ps1")
-        : null;
-    if (jobScript && cancellation)
-      await fs.writeFile(
-        jobScript,
-        epicPrerequisiteSupervisorScript(binary, args, cancellation),
-        { mode: 0o600, flag: "wx" }
-      );
-    return await new Promise((resolve, reject) => {
-      let child: ChildProcess;
-      try {
-        child = (options.spawnProcess ?? spawn)(
-          jobScript ? powershell : binary,
-          jobScript
-            ? [
-                "-NoProfile",
-                "-NonInteractive",
-                "-ExecutionPolicy",
-                "Bypass",
-                "-File",
-                jobScript,
-              ]
-            : args,
-          {
-            shell: false,
-            windowsHide: true,
-            detached: process.platform !== "win32",
-            stdio: ["ignore", "pipe", "pipe"],
-            env: {
-              ...process.env,
-              ...options.env,
-              LEGENDARY_CONFIG_PATH:
-                process.platform === "win32"
-                  ? path.toNamespacedPath(directory)
-                  : directory,
-            },
-          }
-        );
-      } catch {
-        reject(new EpicManagedError("process-failed"));
-        return;
-      }
-      let stdout = "";
-      let stderr = "";
-      let bytes = 0;
-      let failure: unknown;
-      let stopped = false;
-      let stopping: Promise<void> | undefined;
-      let timeout: ReturnType<typeof setTimeout> | undefined;
-      let activityTimer: ReturnType<typeof setTimeout> | undefined;
-      let completeClose!: () => void;
-      const closed = new Promise<void>((done) => {
-        completeClose = done;
-      });
-      const closeDeadline = async () => {
-        let deadline: ReturnType<typeof setTimeout> | undefined;
-        try {
-          await Promise.race([
-            closed,
-            new Promise<never>((_, fail) => {
-              deadline = setTimeout(
-                () => fail(new EpicManagedError("cleanup-failed")),
-                EPIC_PROCESS_TERMINATION_TIMEOUT_MS
-              );
-            }),
-          ]);
-        } finally {
-          clearTimeout(deadline);
-        }
-      };
-      const stopTree = async () => {
-        if (stopped) return;
-        if (cancellation) {
-          await fs.writeFile(cancellation, "cancel", { mode: 0o600 });
-        } else if (child.pid) {
-          try {
-            if (process.platform === "win32") {
-              const killer = path.win32.join(
-                process.env.SystemRoot || String.raw`C:\Windows`,
-                "System32",
-                "taskkill.exe"
-              );
-              await new Promise<void>((done, fail) =>
-                execFile(
-                  killer,
-                  ["/PID", String(child.pid), "/T", "/F"],
-                  {
-                    windowsHide: true,
-                    shell: false,
-                    timeout: EPIC_PROCESS_TERMINATION_TIMEOUT_MS,
-                    maxBuffer: EPIC_LEGENDARY_MAX_OUTPUT_BYTES,
-                  },
-                  (error) =>
-                    error
-                      ? fail(new EpicManagedError("cleanup-failed"))
-                      : done()
-                )
-              );
-            } else process.kill(-child.pid, "SIGKILL");
-          } catch (error) {
-            if (!stopped && (error as NodeJS.ErrnoException).code !== "ESRCH")
-              throw error;
-          }
-        }
-        try {
-          await closeDeadline();
-        } catch {
-          // A delayed termination keeps the process lease and workspace occupied.
-          // Never clear credentials or release a slot while a job can still run.
-          await closed;
-        }
-      };
-      const interrupt = (error: unknown) => {
-        failure ??= error;
-        stopping ??= stopTree();
-        void stopping.catch((cleanupError) => {
-          failure = cleanupError;
-        });
-      };
-      const abort = () =>
-        interrupt(new EpicManagedError("operation-cancelled"));
-      const touch = () => {
-        if (!options.streaming) return;
-        clearTimeout(activityTimer);
-        activityTimer = setTimeout(
-          () => interrupt(new EpicManagedError("timeout")),
-          EPIC_DOWNLOAD_STALL_TIMEOUT_MS
-        );
-      };
-      const line = (value: string) => {
-        options.onLine?.(value);
-      };
-      const outDecoder = new LegendaryLineDecoder(line);
-      const errDecoder = new LegendaryLineDecoder(line);
-      const rawOutDecoder = new StringDecoder("utf8");
-      const rawErrDecoder = new StringDecoder("utf8");
-      const collect = (chunk: Buffer, output: "stdout" | "stderr") => {
-        try {
-          touch();
-          bytes += chunk.length;
-          if (options.streaming) {
-            (output === "stdout" ? outDecoder : errDecoder).push(chunk);
-            if (output === "stderr")
-              stderr = (stderr + chunk.toString("utf8")).slice(
-                -EPIC_LEGENDARY_MAX_OUTPUT_BYTES
-              );
-            // Streaming commands do not expose diagnostic logs or auth material.
-          } else {
-            if (bytes > (options.maxOutputBytes ?? EPIC_SYNC_MAX_OUTPUT_BYTES))
-              throw new EpicManagedError("invalid-response");
-            if (output === "stdout") stdout += rawOutDecoder.write(chunk);
-            else stderr += rawErrDecoder.write(chunk);
-          }
-        } catch (error) {
-          interrupt(error);
-        }
-      };
-      child.stdout?.on("data", (chunk: Buffer) => collect(chunk, "stdout"));
-      child.stderr?.on("data", (chunk: Buffer) => collect(chunk, "stderr"));
-      child.once("error", (error: NodeJS.ErrnoException) => {
-        failure ??= new EpicManagedSpawnError(error.code);
-      });
-      child.once("close", (code) => {
-        stopped = true;
-        completeClose();
-        clearTimeout(timeout);
-        clearTimeout(activityTimer);
-        options.signal.removeEventListener("abort", abort);
-        try {
-          if (options.streaming) {
-            outDecoder.end();
-            errDecoder.end();
-          } else {
-            stdout += rawOutDecoder.end();
-            stderr += rawErrDecoder.end();
-          }
-        } catch (error) {
-          failure ??= error;
-        }
-        void (stopping ?? Promise.resolve()).then(() => {
-          if (failure) reject(failure);
-          else if (/HYDRA_PROCESS_SPAWN_ERROR:(\d+)/.test(stderr)) {
-            const native = Number(
-              /HYDRA_PROCESS_SPAWN_ERROR:(\d+)/.exec(stderr)![1]
-            );
-            reject(
-              new EpicManagedSpawnError(
-                [5, 740].includes(native)
-                  ? "EACCES"
-                  : native === 2
-                    ? "ENOENT"
-                    : "UNKNOWN"
-              )
-            );
-          } else if (
-            code === null ||
-            !(options.successExitCodes ?? [0]).includes(code)
+        ? await withEpicTiming("process.windows.supervisor-request", () =>
+            getManagedEpicProcessCommand(
+              options.supervisorDirectory ?? managedSupervisorDirectory,
+              binary,
+              args,
+              cancellation
+            )
           )
-            reject(new EpicManagedError(classifyLegendaryFailure(stderr)));
-          else resolve({ stdout, stderr });
-        }, reject);
-      });
-      options.signal.addEventListener("abort", abort, { once: true });
-      if (options.signal.aborted) abort();
-      else {
-        touch();
-        if (options.timeout)
-          timeout = setTimeout(
-            () => interrupt(new EpicManagedError("timeout")),
-            options.timeout
-          );
-      }
-    });
+        : { binary, args };
+    return await withEpicTiming(
+      jobDirectory ? "process.native-supervisor" : "process.legendary",
+      () =>
+        new Promise<{ stdout: string; stderr: string }>((resolve, reject) => {
+          let child: ChildProcess;
+          try {
+            markEpicTiming("process.spawn.requested");
+            child = (options.spawnProcess ?? spawn)(
+              command.binary,
+              command.args,
+              {
+                shell: false,
+                windowsHide: true,
+                detached: process.platform !== "win32",
+                stdio: ["ignore", "pipe", "pipe"],
+                env: {
+                  ...process.env,
+                  ...options.env,
+                  LEGENDARY_CONFIG_PATH:
+                    process.platform === "win32"
+                      ? path.toNamespacedPath(directory)
+                      : directory,
+                },
+              }
+            );
+            child.once("spawn", () => markEpicTiming("process.spawned"));
+          } catch {
+            reject(new EpicManagedError("process-failed"));
+            return;
+          }
+          let stdout = "";
+          let stderr = "";
+          let bytes = 0;
+          let hasStdout = false;
+          let hasStderr = false;
+          let failure: unknown;
+          let stopped = false;
+          let stopping: Promise<void> | undefined;
+          let timeout: ReturnType<typeof setTimeout> | undefined;
+          let activityTimer: ReturnType<typeof setTimeout> | undefined;
+          let completeClose!: () => void;
+          const closed = new Promise<void>((done) => {
+            completeClose = done;
+          });
+          const closeDeadline = async () => {
+            let deadline: ReturnType<typeof setTimeout> | undefined;
+            try {
+              await Promise.race([
+                closed,
+                new Promise<never>((_, fail) => {
+                  deadline = setTimeout(
+                    () => fail(new EpicManagedError("cleanup-failed")),
+                    EPIC_PROCESS_TERMINATION_TIMEOUT_MS
+                  );
+                }),
+              ]);
+            } finally {
+              clearTimeout(deadline);
+            }
+          };
+          const stopTree = async () => {
+            if (stopped) return;
+            if (cancellation) {
+              await fs.writeFile(cancellation, "cancel", { mode: 0o600 });
+            } else if (child.pid) {
+              try {
+                if (process.platform === "win32") {
+                  const killer = path.win32.join(
+                    process.env.SystemRoot || String.raw`C:\Windows`,
+                    "System32",
+                    "taskkill.exe"
+                  );
+                  await new Promise<void>((done, fail) =>
+                    execFile(
+                      killer,
+                      ["/PID", String(child.pid), "/T", "/F"],
+                      {
+                        windowsHide: true,
+                        shell: false,
+                        timeout: EPIC_PROCESS_TERMINATION_TIMEOUT_MS,
+                        maxBuffer: EPIC_LEGENDARY_MAX_OUTPUT_BYTES,
+                      },
+                      (error) =>
+                        error
+                          ? fail(new EpicManagedError("cleanup-failed"))
+                          : done()
+                    )
+                  );
+                } else process.kill(-child.pid, "SIGKILL");
+              } catch (error) {
+                if (
+                  !stopped &&
+                  (error as NodeJS.ErrnoException).code !== "ESRCH"
+                )
+                  throw error;
+              }
+            }
+            try {
+              await closeDeadline();
+            } catch {
+              // A delayed termination keeps the process lease and workspace occupied.
+              // Never clear credentials or release a slot while a job can still run.
+              await closed;
+            }
+          };
+          const interrupt = (error: unknown) => {
+            failure ??= error;
+            stopping ??= stopTree();
+            void stopping.catch((cleanupError) => {
+              failure = cleanupError;
+            });
+          };
+          const abort = () =>
+            interrupt(new EpicManagedError("operation-cancelled"));
+          const touch = () => {
+            if (!options.streaming) return;
+            clearTimeout(activityTimer);
+            activityTimer = setTimeout(
+              () => interrupt(new EpicManagedError("timeout")),
+              EPIC_DOWNLOAD_STALL_TIMEOUT_MS
+            );
+          };
+          const line = (value: string) => {
+            options.onLine?.(value);
+          };
+          const outDecoder = new LegendaryLineDecoder(line);
+          const errDecoder = new LegendaryLineDecoder(line);
+          const rawOutDecoder = new StringDecoder("utf8");
+          const rawErrDecoder = new StringDecoder("utf8");
+          const collect = (chunk: Buffer, output: "stdout" | "stderr") => {
+            try {
+              if (output === "stdout" && !hasStdout) {
+                hasStdout = true;
+                markEpicTiming("process.first-stdout", { first: true });
+              } else if (output === "stderr" && !hasStderr) {
+                hasStderr = true;
+                markEpicTiming("process.first-stderr", { first: true });
+              }
+              touch();
+              bytes += chunk.length;
+              if (options.streaming) {
+                (output === "stdout" ? outDecoder : errDecoder).push(chunk);
+                if (output === "stderr")
+                  stderr = (stderr + chunk.toString("utf8")).slice(
+                    -EPIC_LEGENDARY_MAX_OUTPUT_BYTES
+                  );
+                // Streaming commands do not expose diagnostic logs or auth material.
+              } else {
+                if (
+                  bytes > (options.maxOutputBytes ?? EPIC_SYNC_MAX_OUTPUT_BYTES)
+                )
+                  throw new EpicManagedError("invalid-response");
+                if (output === "stdout") stdout += rawOutDecoder.write(chunk);
+                else stderr += rawErrDecoder.write(chunk);
+              }
+            } catch (error) {
+              interrupt(error);
+            }
+          };
+          child.stdout?.on("data", (chunk: Buffer) => collect(chunk, "stdout"));
+          child.stderr?.on("data", (chunk: Buffer) => collect(chunk, "stderr"));
+          child.once("error", (error: NodeJS.ErrnoException) => {
+            failure ??= new EpicManagedSpawnError(error.code);
+          });
+          child.once("close", (code) => {
+            markEpicTiming("process.closed", { bytes });
+            stopped = true;
+            completeClose();
+            clearTimeout(timeout);
+            clearTimeout(activityTimer);
+            options.signal.removeEventListener("abort", abort);
+            try {
+              if (options.streaming) {
+                outDecoder.end();
+                errDecoder.end();
+              } else {
+                stdout += rawOutDecoder.end();
+                stderr += rawErrDecoder.end();
+              }
+            } catch (error) {
+              failure ??= error;
+            }
+            void (stopping ?? Promise.resolve()).then(() => {
+              if (failure) reject(failure);
+              else if (/HYDRA_PROCESS_SPAWN_ERROR:(\d+)/.test(stderr)) {
+                const native = Number(
+                  /HYDRA_PROCESS_SPAWN_ERROR:(\d+)/.exec(stderr)![1]
+                );
+                reject(
+                  new EpicManagedSpawnError(
+                    [5, 740].includes(native)
+                      ? "EACCES"
+                      : native === 2
+                        ? "ENOENT"
+                        : "UNKNOWN"
+                  )
+                );
+              } else if (
+                code === null ||
+                !(options.successExitCodes ?? [0]).includes(code)
+              )
+                reject(new EpicManagedError(classifyLegendaryFailure(stderr)));
+              else resolve({ stdout, stderr });
+            }, reject);
+          });
+          options.signal.addEventListener("abort", abort, { once: true });
+          if (options.signal.aborted) abort();
+          else {
+            touch();
+            if (options.timeout)
+              timeout = setTimeout(
+                () => interrupt(new EpicManagedError("timeout")),
+                options.timeout
+              );
+          }
+        }),
+      { command: commandTiming(args), streaming: Boolean(options.streaming) }
+    );
   } finally {
     if (jobDirectory)
-      await fs.rm(jobDirectory, { recursive: true, force: true });
+      await withEpicTiming("process.windows.cleanup", () =>
+        fs.rm(jobDirectory, { recursive: true, force: true })
+      );
   }
 }
 
 interface ManagedRuntimeOptions {
   userData: string;
   binary: () => Promise<string>;
-  session: Pick<EpicSessionProvider, "useBundle" | "useLocalIdentity">;
+  session: Pick<EpicSessionProvider, "useBundle" | "useLocalIdentity"> &
+    Partial<Pick<EpicSessionProvider, "accessSnapshot">>;
+  managedCommand?: () => Promise<EpicManagedCommand>;
+  supervisorDirectory?: string;
   current: (target: EpicManagedTarget) => boolean;
   execute?: typeof executeManagedLegendary;
 }
@@ -415,7 +468,56 @@ interface ManagedRuntimeOptions {
 export class LegendaryManagedRuntime {
   private readonly queues = new Map<string, Promise<unknown>>();
   private readonly active = new Map<AbortController, Promise<unknown>>();
-  constructor(private readonly options: ManagedRuntimeOptions) {}
+  private readonly targeted: EpicTargetRuntime;
+  constructor(private readonly options: ManagedRuntimeOptions) {
+    this.targeted = new EpicTargetRuntime({
+      userData: options.userData,
+      command:
+        options.managedCommand ??
+        (async () => {
+          throw new EpicManagedError("legendary-unavailable");
+        }),
+      session: options.session,
+      execute: options.execute ?? executeManagedLegendary,
+      supervisorDirectory: options.supervisorDirectory,
+      current: (target) => this.current(target),
+      workspace: (target) => this.workspace(target),
+      serialize: (target, task, signal) =>
+        this.serializeWorkspace(target, task, signal),
+      active: this.active,
+    });
+  }
+  inspect(
+    target: EpicManagedTarget,
+    objectId: string,
+    signal: AbortSignal,
+    cached?: { manifest?: unknown }
+  ) {
+    return this.targeted.inspect(target, objectId, signal, cached);
+  }
+  streamInstall(
+    target: EpicManagedTarget,
+    objectId: string,
+    prepared: { manifest?: unknown },
+    args: string[],
+    options: { signal: AbortSignal; onLine: (line: string) => void }
+  ) {
+    return this.targeted.streamInstall(
+      target,
+      objectId,
+      prepared,
+      args,
+      options
+    );
+  }
+  refreshSession(
+    auth: EpicManagedTarget["auth"],
+    connection: EpicManagedTarget["connection"],
+    bundle: EpicSessionBundle,
+    signal: AbortSignal
+  ) {
+    return this.targeted.refresh(auth, connection, bundle, signal);
+  }
   workspace(
     target: Pick<EpicManagedTarget, "owner" | "artifactId" | "platform">
   ) {
@@ -457,11 +559,14 @@ export class LegendaryManagedRuntime {
     const { queued, result } = queueEpicOperation(
       this.queues.get(directory),
       async () => {
-        await this.prepareDirectory(directory);
+        await withEpicTiming("runtime.workspace.prepare", () =>
+          this.prepareDirectory(directory)
+        );
         if (signal?.aborted) throw new EpicManagedError("operation-cancelled");
         return task(directory);
       },
-      signal
+      signal,
+      { queue: "workspace" }
     );
     this.queues.set(directory, queued);
     void queued
@@ -496,61 +601,72 @@ export class LegendaryManagedRuntime {
     );
   }
   private async credentials(directory: string, bundle: EpicSessionBundle) {
-    for (const [name, value] of [
-      ["user.json", validateLegendarySession(bundle.user)],
-      ["version.json", validateLegendaryVersion(bundle.version)],
-    ] as const) {
-      const contents = JSON.stringify(value);
-      if (Buffer.byteLength(contents) > EPIC_SESSION_MAX_FILE_BYTES)
-        throw new EpicManagedError("invalid-response");
-      await fs.rm(path.join(directory, name), { force: true });
-      await fs.writeFile(path.join(directory, name), contents, {
-        mode: 0o600,
-        flag: "wx",
-      });
-    }
+    return withEpicTiming("runtime.credentials.write", async () => {
+      for (const [name, value] of [
+        ["user.json", validateLegendarySession(bundle.user)],
+        ["version.json", validateLegendaryVersion(bundle.version)],
+      ] as const) {
+        const contents = JSON.stringify(value);
+        if (Buffer.byteLength(contents) > EPIC_SESSION_MAX_FILE_BYTES)
+          throw new EpicManagedError("invalid-response");
+        await fs.rm(path.join(directory, name), { force: true });
+        await fs.writeFile(path.join(directory, name), contents, {
+          mode: 0o600,
+          flag: "wx",
+        });
+      }
+    });
   }
   private async saveSession(
     directory: string,
     target: EpicManagedTarget,
     save: (bundle: EpicSessionBundle) => Promise<void>
   ) {
-    const read = async (name: string) => {
-      const file = path.join(directory, name);
-      const stat = await fs.lstat(file);
-      if (
-        !stat.isFile() ||
-        stat.isSymbolicLink() ||
-        stat.size > EPIC_SESSION_MAX_FILE_BYTES
-      )
-        throw new EpicManagedError("invalid-response");
-      return JSON.parse(await fs.readFile(file, "utf8"));
-    };
-    const user = validateLegendarySession(await read("user.json"));
-    const version = validateLegendaryVersion(await read("version.json"));
-    if (String(user.account_id).toLowerCase() !== target.owner.epicAccountId)
-      throw new EpicManagedError("different-account");
-    if (Date.parse(user.expires_at as string) > Date.now())
-      await save({ user, version });
+    return withEpicTiming("runtime.session.save", async () => {
+      const read = async (name: string) => {
+        const file = path.join(directory, name);
+        const stat = await fs.lstat(file);
+        if (
+          !stat.isFile() ||
+          stat.isSymbolicLink() ||
+          stat.size > EPIC_SESSION_MAX_FILE_BYTES
+        )
+          throw new EpicManagedError("invalid-response");
+        return JSON.parse(await fs.readFile(file, "utf8"));
+      };
+      const user = validateLegendarySession(await read("user.json"));
+      const version = validateLegendaryVersion(await read("version.json"));
+      if (String(user.account_id).toLowerCase() !== target.owner.epicAccountId)
+        throw new EpicManagedError("different-account");
+      if (Date.parse(user.expires_at as string) > Date.now())
+        await save({ user, version });
+    });
   }
   private async clearCredentials(directory: string) {
-    const results = await Promise.allSettled(
-      ["user.json", "version.json"].map((name) =>
-        fs.rm(path.join(directory, name), { force: true })
-      )
-    );
-    if (results.some((result) => result.status === "rejected"))
-      throw new EpicManagedError("cleanup-failed");
+    return withEpicTiming("runtime.credentials.cleanup", async () => {
+      const results = await Promise.allSettled(
+        ["user.json", "version.json", "managed-request.json"].map((name) =>
+          fs.rm(path.join(directory, name), { force: true })
+        )
+      );
+      if (results.some((result) => result.status === "rejected"))
+        throw new EpicManagedError("cleanup-failed");
+    });
   }
   runRaw(
     target: EpicManagedTarget,
     args: string[],
     options: { signal: AbortSignal; timeout?: number }
   ) {
-    return this.serializeWorkspace(
-      target,
-      () => this.runRawUnlocked(target, args, options),
-      options.signal
+    return withEpicTiming(
+      "runtime.raw",
+      () =>
+        this.serializeWorkspace(
+          target,
+          () => this.runRawUnlocked(target, args, options),
+          options.signal
+        ),
+      { command: commandTiming(args) }
     );
   }
   async runRawUnlocked(
@@ -572,7 +688,9 @@ export class LegendaryManagedRuntime {
           await this.credentials(directory, bundle);
           this.assertCurrent(target, controller.signal);
           return await (this.options.execute ?? executeManagedLegendary)(
-            await this.options.binary(),
+            await withEpicTiming("runtime.binary.resolve", () =>
+              this.options.binary()
+            ),
             [
               "--api-timeout",
               String(EPIC_LEGENDARY_API_TIMEOUT_SECONDS),
@@ -644,7 +762,9 @@ export class LegendaryManagedRuntime {
               const result = await (
                 this.options.execute ?? executeManagedLegendary
               )(
-                await this.options.binary(),
+                await withEpicTiming("runtime.binary.resolve", () =>
+                  this.options.binary()
+                ),
                 [
                   "--api-timeout",
                   String(EPIC_LEGENDARY_API_TIMEOUT_SECONDS),
@@ -709,7 +829,9 @@ export class LegendaryManagedRuntime {
               processOperation = (
                 this.options.execute ?? executeManagedLegendary
               )(
-                await this.options.binary(),
+                await withEpicTiming("runtime.binary.resolve", () =>
+                  this.options.binary()
+                ),
                 [
                   "--api-timeout",
                   String(EPIC_LEGENDARY_API_TIMEOUT_SECONDS),
@@ -725,6 +847,7 @@ export class LegendaryManagedRuntime {
                       /\bDownload size(?::| is 0\b)/.test(line)
                     ) {
                       hasBoundary = true;
+                      markEpicTiming("runtime.transfer.prepared");
                       prepared();
                     }
                     options.onLine(line);
@@ -771,23 +894,36 @@ export class LegendaryManagedRuntime {
       throw new EpicManagedError("cleanup-failed");
   }
   async cleanupCredentials() {
-    const root = path.join(this.options.userData, "epic-managed");
-    let scopes;
-    try {
-      const stat = await fs.lstat(root);
-      if (!stat.isDirectory() || stat.isSymbolicLink())
-        throw new EpicManagedError("invalid-path");
-      scopes = await fs.readdir(root, { withFileTypes: true });
-    } catch (error) {
-      if ((error as NodeJS.ErrnoException).code === "ENOENT") return;
-      throw error;
-    }
-    for (const scope of scopes) {
-      if (!scope.isDirectory() || !/^[a-f0-9]{64}$/.test(scope.name)) continue;
-      const scopeRoot = path.join(root, scope.name);
-      for (const game of await fs.readdir(scopeRoot, { withFileTypes: true })) {
-        if (game.isDirectory() && /^[a-f0-9]{64}$/.test(game.name))
-          await this.clearCredentials(path.join(scopeRoot, game.name));
+    for (const name of ["epic-managed", "epic-managed-previews"]) {
+      const root = path.join(this.options.userData, name);
+      let scopes;
+      try {
+        const stat = await fs.lstat(root);
+        if (!stat.isDirectory() || stat.isSymbolicLink())
+          throw new EpicManagedError("invalid-path");
+        scopes = await fs.readdir(root, { withFileTypes: true });
+      } catch (error) {
+        if ((error as NodeJS.ErrnoException).code === "ENOENT") continue;
+        throw error;
+      }
+      for (const scope of scopes) {
+        if (!scope.isDirectory() || !/^[a-f0-9]{64}$/.test(scope.name))
+          continue;
+        const scopeRoot = path.join(root, scope.name);
+        const scopeStat = await fs.lstat(scopeRoot);
+        if (!scopeStat.isDirectory() || scopeStat.isSymbolicLink())
+          throw new EpicManagedError("invalid-path");
+        for (const game of await fs.readdir(scopeRoot, {
+          withFileTypes: true,
+        })) {
+          if (game.isDirectory() && /^[a-f0-9]{64}$/.test(game.name)) {
+            const directory = path.join(scopeRoot, game.name);
+            const stat = await fs.lstat(directory);
+            if (!stat.isDirectory() || stat.isSymbolicLink())
+              throw new EpicManagedError("invalid-path");
+            await this.clearCredentials(directory);
+          }
+        }
       }
     }
   }

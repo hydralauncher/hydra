@@ -27,6 +27,11 @@ describe("managed Epic IPC contracts", () => {
   it("accepts only store identities and captured install inputs", () => {
     assert.equal(parseEpicManagedObjectId("namespace:item"), "namespace:item");
     assert.deepEqual(parseEpicDownloadPayload(payload), payload);
+    const prepared = {
+      ...payload,
+      preparationId: "ecb21ce2-bd02-4672-a2fb-ce13f481b00a",
+    };
+    assert.deepEqual(parseEpicDownloadPayload(prepared), prepared);
     for (const overrides of [
       { epicObjectId: "steam:123:extra" },
       { connectionId: "../account" },
@@ -37,6 +42,8 @@ describe("managed Epic IPC contracts", () => {
       { addToQueueOnly: "true" },
       { command: "install" },
       { accessToken: "credential" },
+      { preparationId: "../../private/manifest" },
+      { preparationId: {} },
     ]) {
       assert.throws(() =>
         parseEpicDownloadPayload({ ...payload, ...overrides })

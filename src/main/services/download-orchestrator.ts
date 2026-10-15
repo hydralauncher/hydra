@@ -76,6 +76,8 @@ const DEBRID_PREPARATION_WINDOW_MS = 5 * 60 * 1000;
 const DEBRID_READINESS_POLL_MS = 5000;
 
 export class DownloadOrchestrator {
+  private static epicActivationTail: Promise<unknown> = Promise.resolve();
+  private static acceptedEpicActivations = new Map<string, object>();
   static preparesRealDebridInBackground(download: Download): boolean {
     return (
       download.downloader === Downloader.RealDebrid &&
@@ -262,25 +264,42 @@ export class DownloadOrchestrator {
   private static async activateDownload(
     download: Download,
     isCurrent: () => boolean = () => true,
-    signal?: AbortSignal
+    signal?: AbortSignal,
+    acceptedTicket?: object,
+    detach?: (preparation: Promise<unknown>) => void
   ): Promise<Download | null> {
     if (!signal) {
       const preparation = this.beginPreparation(getGameKey(download));
+      let detached: Promise<unknown> | undefined;
       try {
         return await this.activateDownload(
           download,
           () => isCurrent() && preparation.isCurrent(),
-          preparation.signal
+          preparation.signal,
+          acceptedTicket,
+          (task) => {
+            detached = task;
+          }
         );
       } finally {
-        preparation.dispose();
+        // Accepted Epic preparation outlives activation and keeps its signal.
+        if (detached)
+          void detached.then(preparation.dispose, preparation.dispose);
+        else preparation.dispose();
       }
     }
     if (!isCurrent()) return null;
+    const downloadId = getDownloadId(download);
+    if (
+      acceptedTicket &&
+      this.acceptedEpicActivations.get(downloadId) !== acceptedTicket
+    )
+      return null;
     // A repeated manual action must retain the downloader already owning this slot.
     if (DownloadManager.hasRunningDownload(getGameKey(download))) {
       return download;
     }
+    if (!acceptedTicket) this.acceptedEpicActivations.delete(downloadId);
     const activeDownload: Download = {
       ...download,
       awaitingDebrid: false,
@@ -298,51 +317,88 @@ export class DownloadOrchestrator {
 
     await downloadsSublevel.put(getGameKey(download), activeDownload);
     if (!isCurrent()) return null;
+    if (
+      acceptedTicket &&
+      this.acceptedEpicActivations.get(downloadId) !== acceptedTicket
+    )
+      return null;
 
-    try {
-      await DownloadManager.resumeDownload(activeDownload, signal);
-    } catch (error) {
-      if (isDebridPendingError(error, download.downloader)) {
+    const prepare = async (): Promise<Download | null> => {
+      try {
+        await DownloadManager.resumeDownload(activeDownload, signal);
+      } catch (error) {
+        if (acceptedTicket) {
+          const current = await this.getDownload(
+            download.shop,
+            download.objectId
+          );
+          // A failed Epic startup parks its own record as paused; while the
+          // ticket is current no user pause or cancel has replaced it.
+          if (
+            !isCurrent() ||
+            this.acceptedEpicActivations.get(downloadId) !== acceptedTicket ||
+            (current?.status !== "active" && current?.status !== "paused") ||
+            current.timestamp !== activeDownload.timestamp
+          )
+            return null;
+          await DownloadManager.handleRuntimeDownloadError(downloadId, error);
+          return null;
+        }
+        if (isDebridPendingError(error, download.downloader)) {
+          if (!isCurrent()) return null;
+          await this.saveAwaitingDebridDownload(
+            {
+              ...activeDownload,
+              debridAutoResume: download.debridAutoResume,
+              debridPreparationDeadline: download.debridPreparationDeadline,
+            },
+            isCurrent
+          );
+          return null;
+        }
+
         if (!isCurrent()) return null;
-        await this.saveAwaitingDebridDownload(
-          {
-            ...activeDownload,
-            debridAutoResume: download.debridAutoResume,
-            debridPreparationDeadline: download.debridPreparationDeadline,
-          },
-          isCurrent
+        await downloadsSublevel.put(getGameKey(download), {
+          ...activeDownload,
+          status: "error",
+          queued: false,
+          awaitingDebrid: false,
+          debridAutoResume: false,
+          debridQueueOnly: undefined,
+          debridQueuePosition: undefined,
+          debridPreparationDeadline: undefined,
+        });
+
+        const downloads = await this.getAllDownloads();
+        const layoutState = await getNormalizedDownloadLayoutState(downloads);
+        await setDownloadLayoutQueues(
+          downloads,
+          layoutState.queueOrder.filter((id) => id !== downloadId),
+          [
+            downloadId,
+            ...layoutState.pausedOrder.filter((id) => id !== downloadId),
+          ]
         );
-        return null;
+
+        WindowManager.sendDownloadsUpdated();
+        throw error;
+      } finally {
+        if (
+          acceptedTicket &&
+          this.acceptedEpicActivations.get(downloadId) === acceptedTicket
+        )
+          this.acceptedEpicActivations.delete(downloadId);
       }
-
-      const downloadId = getDownloadId(download);
-      if (!isCurrent()) return null;
-      await downloadsSublevel.put(getGameKey(download), {
-        ...activeDownload,
-        status: "error",
-        queued: false,
-        awaitingDebrid: false,
-        debridAutoResume: false,
-        debridQueueOnly: undefined,
-        debridQueuePosition: undefined,
-        debridPreparationDeadline: undefined,
-      });
-
-      const downloads = await this.getAllDownloads();
-      const layoutState = await getNormalizedDownloadLayoutState(downloads);
-      await setDownloadLayoutQueues(
-        downloads,
-        layoutState.queueOrder.filter((id) => id !== downloadId),
-        [
-          downloadId,
-          ...layoutState.pausedOrder.filter((id) => id !== downloadId),
-        ]
-      );
-
-      WindowManager.sendDownloadsUpdated();
-      throw error;
-    }
-
+      return activeDownload;
+    };
+    if (!acceptedTicket) return prepare();
+    const preparation = prepare().catch((error) =>
+      logger.error(
+        "[DownloadOrchestrator] Accepted Epic preparation failed",
+        error
+      )
+    );
+    detach?.(preparation);
     return activeDownload;
   }
 
@@ -480,6 +536,7 @@ export class DownloadOrchestrator {
       startNextQueued?: boolean;
     } = {}
   ) {
+    this.acceptedEpicActivations.delete(getDownloadId(download));
     this.invalidateBackgroundStart(getGameKey(download));
     const shouldPauseRuntime = isActiveLikeDownload(download);
 
@@ -781,6 +838,67 @@ export class DownloadOrchestrator {
       if (preparation.isCurrent()) throw error;
     } finally {
       preparation.dispose();
+    }
+  }
+
+  /** Acknowledge durable Epic queue placement without waiting for network preparation. */
+  static async acceptPreparedEpicDownload(download: Download) {
+    if (download.downloader !== Downloader.Epic)
+      throw new Error("Expected Epic download");
+    const id = getDownloadId(download);
+    const ticket = {};
+    this.acceptedEpicActivations.set(id, ticket);
+    let reserved = false;
+    try {
+      const accepted = await this.queueDownload(download);
+      WindowManager.sendDownloadsUpdated();
+      const activation = this.epicActivationTail
+        .catch(() => undefined)
+        .then(async () => {
+          // An explicit Start retains its historical behavior: reserve the
+          // selected game when idle, leaving existing queued items in place.
+          const current = await this.getDownload(
+            download.shop,
+            download.objectId
+          );
+          if (
+            this.acceptedEpicActivations.get(id) !== ticket ||
+            current?.status !== "paused" ||
+            !current.queued ||
+            current.timestamp !== accepted.timestamp
+          )
+            return;
+          const downloads = await this.getAllDownloads();
+          if (
+            this.acceptedEpicActivations.get(id) !== ticket ||
+            downloads.some(isActiveLikeDownload)
+          )
+            return;
+          const active = await this.activateDownload(
+            current,
+            undefined,
+            undefined,
+            ticket
+          );
+          if (!active) return;
+          reserved = true;
+          await removeDownloadFromLayoutState(
+            active,
+            await this.getAllDownloads()
+          );
+          WindowManager.sendDownloadsUpdated();
+        });
+      this.epicActivationTail = activation.catch((error) => {
+        logger.error(
+          "[DownloadOrchestrator] Failed to activate accepted Epic download",
+          error
+        );
+      });
+      await activation;
+      return { ok: true };
+    } finally {
+      if (!reserved && this.acceptedEpicActivations.get(id) === ticket)
+        this.acceptedEpicActivations.delete(id);
     }
   }
 
@@ -1204,6 +1322,7 @@ export class DownloadOrchestrator {
   }
 
   static async cancelDownloadById(shop: GameShop, objectId: string) {
+    this.acceptedEpicActivations.delete(levelKeys.game(shop, objectId));
     this.invalidateBackgroundStart(levelKeys.game(shop, objectId));
     const download = await this.getDownload(shop, objectId);
     if (!download) return false;
@@ -1269,6 +1388,7 @@ export class DownloadOrchestrator {
     targetIndex?: number,
     confirmed = false
   ) {
+    this.acceptedEpicActivations.delete(levelKeys.game(shop, objectId));
     const download = await this.getDownload(shop, objectId);
     if (download?.awaitingDebrid && targetArea !== "paused") {
       // Prepare outside the activation lock, just like the normal Resume action.

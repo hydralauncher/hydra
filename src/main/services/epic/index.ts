@@ -3,6 +3,7 @@ import { EpicSyncRuntime } from "./sync-runtime";
 import { clearEpicImports, clearStaleEpicImports } from "./import-cleanup";
 import { app } from "electron";
 import fs from "node:fs";
+import path from "node:path";
 import type { EpicConnectionState } from "../../../types/epic-integration.types";
 import { HydraApi } from "../hydra-api";
 import { Legendary } from "../legendary";
@@ -22,12 +23,16 @@ import { DownloadManager } from "../download/download-manager";
 import { getDiskUsage } from "../disk-usage";
 import { isGameRunning } from "../game-running-state";
 import { Downloader } from "../../../shared/constants";
-import { LegendaryManagedRuntime } from "./legendary-managed-runtime";
+import {
+  LegendaryManagedRuntime,
+  configureManagedEpicProcessSupervisor,
+} from "./legendary-managed-runtime";
 import { EpicInstallationService } from "./installation";
 import { epicManagedInstallationSupport } from "./managed-platform";
 import { EpicPlaytimeReporter } from "./playtime-reporter";
 import { EpicCloudSaveSource } from "./cloud-save-source";
 import { logger } from "../logger";
+import { configureEpicTiming, withEpicTiming } from "./timing";
 import { EpicDownloadService, setEpicDownloadService } from "./download";
 import {
   configureEpicCloudSaves,
@@ -43,6 +48,8 @@ import type {
   ResolveEpicCloudSaveConflictPayload,
   StartEpicGameDownloadPayload,
 } from "../../../types/epic-managed.types";
+
+configureEpicTiming((entry) => logger.info("[epic-timing]", entry));
 
 const EPIC_CONNECTION_ENDPOINT = "/profile/integrations/epic";
 let integration: EpicIntegrationCore | null = null;
@@ -61,9 +68,14 @@ let managedStop: Promise<void> | null = null;
 let managedCleanupFailed = false;
 
 function configureManagedEpic() {
+  const binary = Legendary.getBinaryPath();
+  if (binary && process.platform === "win32")
+    configureManagedEpicProcessSupervisor(path.dirname(binary));
   managedRuntime = new LegendaryManagedRuntime({
     userData: app.getPath("userData"),
     binary: checkBinary,
+    managedCommand: () => Legendary.getManagedCommand(),
+    supervisorDirectory: binary ? path.dirname(binary) : undefined,
     session: runtime!.session,
     current: (target) =>
       !stopping &&
@@ -73,6 +85,10 @@ function configureManagedEpic() {
         ? runtime!.currentLocal(target)
         : runtime!.current(target)),
   });
+  if (process.platform === "win32" || process.platform === "linux")
+    runtime!.session.setRefreshOperation((auth, connection, bundle, signal) =>
+      managedRuntime!.refreshSession(auth, connection, bundle, signal)
+    );
   const installation = new EpicInstallationService({
     runtime: managedRuntime,
     capture: () => runtime!.capture(),
@@ -94,7 +110,7 @@ function configureManagedEpic() {
     getDownload: (id) => downloadsSublevel.get(id),
     putDownload: (id, download) => downloadsSublevel.put(id, download),
     startPreparedDownload: (download) =>
-      DownloadOrchestrator.startPreparedDownload(download),
+      DownloadOrchestrator.acceptPreparedEpicDownload(download),
     enqueuePreparedDownload: (download) =>
       DownloadOrchestrator.enqueuePreparedDownload(download),
     isGameRunning: (game) =>
@@ -543,14 +559,15 @@ export const resumeEpicPlaytime = () => managedPlaytime?.resume();
 export const getEpicGameInstallOptions = async (
   objectId: string,
   signal?: AbortSignal
-) => {
-  if (signal?.aborted)
-    return { options: [], error: "operation-cancelled" as const };
-  await awaitManagedEpicReady();
-  if (signal?.aborted)
-    return { options: [], error: "operation-cancelled" as const };
-  return managedDownloads!.getOptions(objectId, signal);
-};
+) =>
+  withEpicTiming("request.install-options", async () => {
+    if (signal?.aborted)
+      return { options: [], error: "operation-cancelled" as const };
+    await withEpicTiming("integration.ready", () => awaitManagedEpicReady());
+    if (signal?.aborted)
+      return { options: [], error: "operation-cancelled" as const };
+    return managedDownloads!.getOptions(objectId, signal);
+  });
 export const openManagedEpicWinetricks = async (
   objectId: string
 ): Promise<boolean> => {
@@ -600,10 +617,11 @@ export const openManagedEpicWinetricks = async (
 };
 export const startEpicGameDownload = async (
   payload: StartEpicGameDownloadPayload
-) => {
-  await awaitManagedEpicReady();
-  return managedDownloads!.start(payload);
-};
+) =>
+  withEpicTiming("request.start-download", async () => {
+    await withEpicTiming("integration.ready", () => awaitManagedEpicReady());
+    return managedDownloads!.start(payload);
+  });
 export const getEpicCloudSaveState = async (objectId: string) => {
   await awaitManagedEpicReady();
   return managedSaves!.getState(objectId);

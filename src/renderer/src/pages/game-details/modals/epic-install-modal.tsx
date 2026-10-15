@@ -219,6 +219,7 @@ export function EpicInstallModal({
           </>
         )}
         <Button
+          data-epic-install-submit={game?.objectId}
           disabled={disabled}
           onClick={() => void install.start(hasActiveDownload)}
         >

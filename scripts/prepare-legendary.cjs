@@ -97,13 +97,24 @@ async function prepareLegendary({
   const artifact = getLegendaryArtifact(platform, arch);
   if (platform === "linux") {
     const { prepareLinuxLegendary } = require("./legendary-linux-runtime.cjs");
-    return prepareLinuxLegendary({
+    const result = await prepareLinuxLegendary({
       projectDir,
       arch,
       artifact,
       download: downloadVerifiedArtifact,
       sha256File,
     });
+    const {
+      prepareManagedLegendary,
+    } = require("./legendary-managed-runtime.cjs");
+    await prepareManagedLegendary({
+      projectDir,
+      platform,
+      arch,
+      download: downloadVerifiedArtifact,
+      sha256File,
+    });
+    return result;
   }
 
   const binaryPath = path.join(
@@ -118,6 +129,22 @@ async function prepareLegendary({
     binaryPath,
     platform === "darwin"
   );
+  if (platform === "win32") {
+    const {
+      prepareManagedLegendary,
+    } = require("./legendary-managed-runtime.cjs");
+    const {
+      prepareEpicProcessSupervisor,
+    } = require("./prepare-epic-process-supervisor.cjs");
+    await prepareManagedLegendary({
+      projectDir,
+      platform,
+      arch,
+      download: downloadVerifiedArtifact,
+      sha256File,
+    });
+    await prepareEpicProcessSupervisor({ projectDir, platform, arch });
+  }
   return { binaryPath, cached, platform, arch };
 }
 

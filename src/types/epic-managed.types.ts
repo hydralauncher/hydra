@@ -64,6 +64,7 @@ export interface EpicLinuxCompatibility {
 }
 
 export interface EpicGameInstallOption {
+  preparationId?: string;
   artifactId: string;
   platform: EpicInstallPlatform;
   downloadSizeInBytes: number | null;
@@ -79,6 +80,7 @@ export interface EpicGameInstallOptions {
 }
 
 export interface StartEpicGameDownloadPayload {
+  preparationId?: string;
   epicObjectId: string;
   connectionId: string;
   artifactId: string;

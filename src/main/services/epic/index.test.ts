@@ -19,7 +19,10 @@ import * as managedPlatform from "./managed-platform.js";
 import type { EpicSaveSession } from "./cloud-saves";
 import type { PreparedEpicLinuxContext } from "./linux-runtime";
 
-function fixture(t: TestContext, options: { linux?: boolean } = {}) {
+function fixture(
+  t: TestContext,
+  options: { linux?: boolean; platform?: NodeJS.Platform } = {}
+) {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), "epic-lifecycle-"));
   const stores: EpicConnectionStore[] = [];
   const localOwner = {
@@ -46,6 +49,7 @@ function fixture(t: TestContext, options: { linux?: boolean } = {}) {
     cleanup: async () => {},
     open: async () => {},
     cleanupCalls: 0,
+    refreshHooks: 0,
     subscriptions: 0,
     unsubscriptions: 0,
     context: null as EpicAuthContext | null,
@@ -110,7 +114,13 @@ function fixture(t: TestContext, options: { linux?: boolean } = {}) {
             state.managedEvents.push("playtime-cache-cleared");
           },
         };
-        session = { serialize: (task: () => Promise<unknown>) => task() };
+        session = {
+          serialize: (task: () => Promise<unknown>) => task(),
+          setRefreshOperation: (operation: unknown) => {
+            assert.equal(typeof operation, "function");
+            state.refreshHooks++;
+          },
+        };
         orchestrator = {
           getState: () => ({ status: "idle" }),
           abortAndWait: async () => {},
@@ -150,6 +160,7 @@ function fixture(t: TestContext, options: { linux?: boolean } = {}) {
     },
     electron: { app: { getPath: () => root } },
     "node:fs": fs,
+    "node:path": path,
     "../hydra-api": {
       HydraApi: {
         getAuthContext: () => state.context,
@@ -167,7 +178,12 @@ function fixture(t: TestContext, options: { linux?: boolean } = {}) {
         },
       },
     },
-    "../legendary": { Legendary: { getBinaryPath: () => null } },
+    "../legendary": {
+      Legendary: {
+        getBinaryPath: () => null,
+        getManagedCommand: () => assert.fail("unexpected managed invocation"),
+      },
+    },
     "../window-manager": {
       WindowManager: {
         mainWindow: null,
@@ -242,6 +258,7 @@ function fixture(t: TestContext, options: { linux?: boolean } = {}) {
     "../game-running-state": { isGameRunning: () => false },
     "../../../shared/constants": { Downloader },
     "./legendary-managed-runtime": {
+      configureManagedEpicProcessSupervisor: () => {},
       LegendaryManagedRuntime: class {
         stop = async () => {
           state.managedEvents.push("process-stopping");
@@ -326,6 +343,10 @@ function fixture(t: TestContext, options: { linux?: boolean } = {}) {
         warn: (message: string) => state.warnings.push(message),
         info: () => {},
       },
+    },
+    "./timing": {
+      configureEpicTiming: () => {},
+      withEpicTiming: (_stage: string, task: () => unknown) => task(),
     },
     "./playtime-reporter": {
       EpicPlaytimeReporter: class {
@@ -416,7 +437,10 @@ function fixture(t: TestContext, options: { linux?: boolean } = {}) {
     exports: integration,
     require: (specifier: string) =>
       modules[specifier] ?? assert.fail(`Unexpected dependency: ${specifier}`),
-    process: { ...process, platform: options.linux ? "linux" : "win32" },
+    process: {
+      ...process,
+      platform: options.platform ?? (options.linux ? "linux" : "win32"),
+    },
     queueMicrotask,
     AbortController,
   });
@@ -427,6 +451,20 @@ function fixture(t: TestContext, options: { linux?: boolean } = {}) {
   });
   return { state, stores, integration };
 }
+
+test("macOS preserves the existing Epic credential refresh runner", async (t) => {
+  const f = fixture(t, { platform: "darwin" });
+  await f.integration.initializeEpicIntegration();
+  assert.equal(f.state.refreshHooks, 0);
+});
+
+test("Windows and Linux configure the target runtime's central refresh", async (t) => {
+  for (const platform of ["win32", "linux"] as const) {
+    const f = fixture(t, { platform });
+    await f.integration.initializeEpicIntegration();
+    assert.equal(f.state.refreshHooks, 1);
+  }
+});
 
 async function winetricksFixture(t: TestContext) {
   const f = fixture(t, { linux: true });
