@@ -879,6 +879,32 @@ describe("grouped souvenir worker recovery", () => {
     assert.equal(f.saved().status, "terminal");
     assert.equal(f.saved().recoveryMode, undefined);
     f.worker.groupedSouvenirWorker.stop();
+
+    const offline = fixture([pending({ rejectedAttemptCount: 19 })]);
+    offline.state.authorizationError = conflictResponse(
+      "achievement_already_assigned"
+    );
+    offline.state.syncError = networkError;
+    await offline.run();
+    assert.equal(offline.saved().status, "pending");
+    assert.equal(offline.saved().recoveryMode, "sync_achievements_only");
+    offline.worker.groupedSouvenirWorker.stop();
+  });
+
+  it("does not pause again when the attempt after Retry is a network failure", async () => {
+    const f = fixture([
+      pending({ status: "paused", answeredFailureCount: 200 }),
+    ]);
+    f.state.fresh = f.state.user;
+    f.state.authorizationError = networkError;
+    await f.worker.retryAchievementSouvenirSync();
+    await f.settle();
+    assert.equal(f.saved().status, "pending");
+    f.state.now += 15 * 60_000;
+    f.state.authorizationError = errorResponse("temporary", 503);
+    await retryUntilStopped(f, 1);
+    assert.equal(f.saved().status, "paused");
+    f.worker.groupedSouvenirWorker.stop();
   });
 
   it("pauses after 200 answered failures, never for network errors, and Retry resumes it", async () => {
