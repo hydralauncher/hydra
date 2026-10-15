@@ -38,6 +38,7 @@ const load = (options: {
 }) => {
   const reads: string[] = [];
   const writes: string[] = [];
+  const steamCached: boolean[] = [];
   let ownerCurrent = true;
   const stubs: Record<string, unknown> = {
     "../register-event": { registerEvent: () => undefined },
@@ -80,11 +81,17 @@ const load = (options: {
     "@main/services/achievements/achievement-souvenir-store": {
       AchievementSouvenirStore: {
         set: (shop: string) => writes.push(shop),
+        invalidate: () => undefined,
       },
     },
     "@main/services/achievements/get-game-achievement-data": {
-      getGameAchievementData: async (id: string, shop: string) => {
+      getGameAchievementData: async (
+        id: string,
+        shop: string,
+        cached: boolean
+      ) => {
         reads.push(`${shop}:${id}`);
+        if (shop === "steam") steamCached.push(cached);
         if (shop !== "steam") return [];
         if (options.switchAccountDuring === "steam-read") ownerCurrent = false;
         return steamDefinitions;
@@ -93,9 +100,14 @@ const load = (options: {
     "@main/services/achievements/get-achievement-souvenirs": {
       fetchRemoteUserGameAchievements: async () => {
         if (!options.remoteAvailable) throw Error("Epic disconnected");
+        const unlocked = options.unlocked ?? [];
         return {
-          unlocked: options.unlocked ?? [],
-          achievements: [],
+          unlocked,
+          achievements: unlocked.map(({ name }) => ({
+            name,
+            displayName: name,
+            icon: "remote",
+          })),
           souvenirs: new Map(),
         };
       },
@@ -123,7 +135,7 @@ const load = (options: {
     assert.ok(name in stubs, name);
     return stubs[name];
   });
-  return { exported, reads, writes };
+  return { exported, reads, writes, steamCached };
 };
 
 for (const linked of [false, true]) {
@@ -155,12 +167,13 @@ for (const linked of [false, true]) {
 }
 
 it("keeps catalogue definitions after the Epic copy records an unlock", async () => {
-  const { exported } = load({
+  const { exported, steamCached } = load({
     linked: true,
     remoteAvailable: true,
     unlocked: [{ name: "first", unlockTime: 1_000 }],
   });
-  const rows = await exported.getUnlockedAchievements("game", "epic", true);
+  const rows = await exported.getUnlockedAchievements("game", "epic", false);
+  assert.deepEqual(steamCached, [true]);
   assert.deepEqual(
     rows.map((row) => [row.name, row.unlocked, row.unlockTime]),
     [
@@ -184,3 +197,17 @@ for (const switchAccountDuring of ["game-read", "steam-read"] as const) {
     );
   });
 }
+
+it("keeps the remote Epic list when the copy has no Steam catalogue", async () => {
+  const { exported, reads } = load({
+    linked: false,
+    remoteAvailable: true,
+    unlocked: [{ name: "only", unlockTime: 2_000 }],
+  });
+  const rows = await exported.getUnlockedAchievements("game", "epic", true);
+  assert.deepEqual(reads, ["epic:game"]);
+  assert.deepEqual(
+    rows.map((row) => [row.name, row.unlocked, row.unlockTime]),
+    [["only", true, 2_000]]
+  );
+});

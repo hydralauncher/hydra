@@ -132,19 +132,20 @@ export const getUnlockedAchievements = async (
   }
 
   // Catalogue definitions are display-only: never copy their unlocks, souvenirs or cache.
-  if (shop === "epic" && catalogueAchievements.length === 0) {
+  if (shop === "epic" && achievementsData.length === 0) {
     const game = await gamesSublevel
       .get(levelKeys.game(shop, objectId))
       .catch(() => undefined);
     assertOwner();
     const catalogue = game?.catalogueGame;
     if (catalogue?.shop === "steam") {
-      catalogueAchievements = await getGameAchievementData(
+      const steamDefinitions = await getGameAchievementData(
         catalogue.objectId,
         catalogue.shop,
-        useCachedData
+        true
       ).catch(() => []);
       assertOwner();
+      if (steamDefinitions.length > 0) catalogueAchievements = steamDefinitions;
     }
   }
   return catalogueAchievements
