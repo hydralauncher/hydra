@@ -4,7 +4,7 @@ import { LibraryGame } from "@types";
 import { getGameCatalogueIdentity, getLibraryOperationalGame } from "@shared";
 import cn from "classnames";
 import { useLocation } from "react-router-dom";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
   ConfirmationModal,
@@ -16,6 +16,8 @@ import { HeartFillIcon } from "@primer/octicons-react";
 import { useAppSelector, useToast } from "@renderer/hooks";
 import { useCollectionContextMenu } from "@renderer/context";
 import { getLibraryPresentationBadgeSource } from "@renderer/pages/library/library-category";
+
+const FAILED_ICON_RETRY_MS = 60_000;
 
 interface SidebarGameItemProps {
   game: LibraryGame;
@@ -67,6 +69,16 @@ export function SidebarGameItem({
   const sidebarIcon = isCustomGame
     ? game.libraryImageUrl || game.iconUrl
     : game.customIconUrl || game.iconUrl;
+  const [failedIcon, setFailedIcon] = useState<string | null>(null);
+  useEffect(() => setFailedIcon(null), [sidebarIcon]);
+  useEffect(() => {
+    if (!failedIcon) return;
+    const retry = window.setTimeout(
+      () => setFailedIcon(null),
+      FAILED_ICON_RETRY_MS
+    );
+    return () => window.clearTimeout(retry);
+  }, [failedIcon]);
 
   // Determine fallback icon based on game type
   const getFallbackIcon = () => {
@@ -119,12 +131,13 @@ export function SidebarGameItem({
           onContextMenu={handleContextMenu}
         >
           <span className="sidebar__game-icon-container">
-            {sidebarIcon ? (
+            {sidebarIcon && sidebarIcon !== failedIcon ? (
               <img
                 className="sidebar__game-icon"
                 src={sidebarIcon}
                 alt={game.title}
                 loading="lazy"
+                onError={() => setFailedIcon(sidebarIcon)}
               />
             ) : (
               getFallbackIcon()
