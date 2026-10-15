@@ -447,7 +447,6 @@ export class AchievementWatcherManager {
   }
 
   public static watchAchievements() {
-    // Resume persisted work after startup even when no achievement file changed.
     void achievementSyncWorker.trigger();
     if (!this.hasFinishedPreSearch || this.batchDepth > 0) return;
 

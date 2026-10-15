@@ -3,7 +3,6 @@ import { WindowManager } from "../window-manager";
 import { AchievementMemoryStore } from "./achievement-memory-store";
 import { mergeUnlockedAchievementLists } from "./merge-unlocked-achievements";
 
-/** The caller holds the game's merge queue while reconciling and notifying. */
 export const reconcileAchievementMemory = async (
   response: UpdatedUnlockedAchievements,
   current: () => boolean

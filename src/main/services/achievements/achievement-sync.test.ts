@@ -229,7 +229,6 @@ test("a busy response retains work, respects Retry-After and retries after a wor
     f.AchievementMemoryStore.get("steam", "620").unlockedAchievements.length,
     1
   );
-  // Simulate elapsed backoff and a fresh worker reading the persisted record.
   entry.nextAttemptAt = 0;
   const restarted = new f.AchievementSyncWorker();
   t.after(() => restarted.stop());
@@ -645,7 +644,6 @@ test("a failed in-flight request defers the newer coalesced snapshot", async (t)
     isAxiosError: true,
     response: { status: 503, headers: { "retry-after": "2" } },
   });
-  // Let the failed request record its delay without waiting on a wrongly-sent second request.
   await new Promise((resolve) => setImmediate(resolve));
   await new Promise((resolve) => setImmediate(resolve));
   const latest = [...f.records.values()][0]!;

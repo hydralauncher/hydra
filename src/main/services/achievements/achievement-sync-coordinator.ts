@@ -21,7 +21,6 @@ const assertCurrent = (current: () => boolean) => {
   return true;
 };
 
-/** Local game merges and account-wide HTTP writes have separate queues. */
 export class AchievementSyncCoordinator {
   private readonly merges = new GameRequestQueue();
   private readonly requests = new GameRequestQueue();
@@ -42,7 +41,6 @@ export class AchievementSyncCoordinator {
     current: () => boolean = () => true
   ) {
     const valid = this.captureCurrent(key, current);
-    // A reset may be waiting for this worker. Reject before joining its queue.
     assertCurrent(valid);
     return this.merges.run(
       [key],
@@ -76,6 +74,14 @@ export class AchievementSyncCoordinator {
     return this.request(task, () => this.resets.has(key) && current());
   }
 
+  private drainSentRequests() {
+    return this.requests.run(
+      ["achievements"],
+      async () => {},
+      () => true
+    );
+  }
+
   async resetGame<T>(
     key: string,
     task: () => Promise<T>,
@@ -87,12 +93,7 @@ export class AchievementSyncCoordinator {
       return await this.merges.run(
         [key],
         async () => {
-          // Already-sent PUTs finish before the DELETE. Queued stale PUTs reject.
-          await this.requests.run(
-            ["achievements"],
-            async () => {},
-            () => true
-          );
+          await this.drainSentRequests();
           assertCurrent(current);
           return task();
         },

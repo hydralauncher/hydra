@@ -195,7 +195,6 @@ export class AchievementSyncWorker {
         async (valid) => {
           if (response) await reconcileAchievementMemory(response, valid);
           if (!valid()) throw new AchievementSyncCancelledError();
-          // Ordinary PUTs do not acknowledge legacy screenshot keys.
           const latest = await pending.get(key).catch(() => null);
           if (latest?.revision === item.revision) await pending.del(key);
         },
@@ -227,7 +226,6 @@ export class AchievementSyncWorker {
             : undefined;
           const terminal =
             status !== undefined && !isRetryableAchievementSyncStatus(status);
-          // Apply server backoff to newer snapshots too, without losing their unlocks.
           await pending.put(key, {
             ...latest,
             terminal: latest.revision === item.revision && terminal,

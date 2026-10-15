@@ -148,7 +148,6 @@ test("reset can wait for a worker whose reconciliation is canceled", async () =>
   const queue = new AchievementSyncCoordinator();
   await withinDeadline(
     queue.resetGame("A", async () => {
-      // A grouped worker finishes HTTP while reset waits for it to become idle.
       await assert.rejects(queue.runMerge("A", async () => {}));
     })
   );
