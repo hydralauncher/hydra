@@ -210,6 +210,7 @@ async function fixture(t: TestContext, options: { linux?: boolean } = {}) {
       },
     },
     "../game-running-state": { isGameRunning: () => state.running },
+    "../logger": { logger: { warn: () => {} } },
     "../wine": {
       Wine: {
         getPrefixUserProfile: () =>
@@ -591,6 +592,54 @@ test("exit zero with partial PUT never confirms upload and keeps pending local s
   assert.equal(f.game().epicInstallation?.pendingSaveUpload, false);
 });
 
+test("identical initial copies commit an anchor instead of conflicting", async (t) => {
+  const f = await fixture(t);
+  await fsp.writeFile(path.join(f.local, "profile.sav"), "shared with EGS");
+  await fsp.writeFile(path.join(f.remote, "profile.sav"), "shared with EGS");
+  f.state.manifest = "2026.10.14-10.00.00.manifest";
+  const result = await f.service.sync("Namespace:Item");
+  assert.equal(result.status, "up-to-date");
+  assert.equal(f.state.uploads, 0);
+  assert.equal(
+    f.game().epicInstallation?.saveAnchor?.remoteManifest,
+    f.state.manifest
+  );
+  assert.equal(
+    await fsp.readFile(path.join(f.local, "profile.sav"), "utf8"),
+    "shared with EGS"
+  );
+  assert.deepEqual(
+    (await fsp.readdir(f.workspace)).filter((name) =>
+      name.startsWith("save-transfer-")
+    ),
+    []
+  );
+});
+
+test("an upload that failed verification resolves on the next sync without a conflict", async (t) => {
+  const f = await fixture(t);
+  await fsp.writeFile(path.join(f.local, "profile.sav"), "local save");
+  let failVerification = true;
+  f.state.beforeDownload = async () => {
+    if (!failVerification) return;
+    failVerification = false;
+    throw new Error("network");
+  };
+  assert.equal(
+    (await f.service.sync("Namespace:Item")).status,
+    "pending-upload"
+  );
+  assert.equal(f.state.uploads, 1);
+  const result = await f.service.sync("Namespace:Item");
+  assert.equal(result.status, "up-to-date");
+  assert.equal(f.state.uploads, 1);
+  assert.equal(f.game().epicInstallation?.pendingSaveUpload, false);
+  assert.equal(
+    f.game().epicInstallation?.saveAnchor?.remoteManifest,
+    f.state.manifest
+  );
+});
+
 test("a later upload of an older backup downloads or conflicts instead of silently uploading", async (t) => {
   for (const edited of [false, true]) {
     const f = await fixture(t);
@@ -618,7 +667,8 @@ test("a later upload of an older backup downloads or conflicts instead of silent
     assert.equal(result.remoteManifest, f.state.manifest);
     assert.equal(result.remoteModifiedAt, f.state.lastModified);
     assert.equal(f.state.uploads, 0);
-    assert.equal(f.state.downloads, edited ? 1 : 2);
+    // An edited copy downloads the remote once more to compare its content.
+    assert.equal(f.state.downloads, 2);
     assert.equal(
       await fsp.readFile(path.join(f.local, "profile.sav"), "utf8"),
       edited ? "local edits" : "reuploaded backup"
@@ -664,7 +714,7 @@ test("a same-name reupload invalidates the anchor and the displayed conflict cho
   });
   assert.equal(result.status, "conflict");
   assert.equal(f.state.uploads, 0);
-  assert.equal(f.state.downloads, 1);
+  assert.equal(f.state.downloads, 2);
   assert.equal(
     await fsp.readFile(path.join(f.remote, "profile.sav"), "utf8"),
     "reuploaded remote"
@@ -996,7 +1046,12 @@ test("a launched session blocks manual restore before the watcher first detects 
   await fsp.writeFile(path.join(f.local, "profile.sav"), "session save");
   // Pending local state is preserved, so a remote copy still requires a choice.
   assert.equal((await f.service.sync("Namespace:Item")).status, "conflict");
-  assert.equal(f.state.downloads, 0);
+  // Only the comparison download ran; the local save was not replaced.
+  assert.equal(f.state.downloads, 1);
+  assert.equal(
+    await fsp.readFile(path.join(f.local, "profile.sav"), "utf8"),
+    "session save"
+  );
 });
 
 test("opt-out, unsupported and offline sessions reject invalidated scope after launch preflight", async (t) => {
@@ -1189,7 +1244,11 @@ test("Linux recreated prefix recalculates automatic paths and invalidates an old
   assert.equal(f.game().epicInstallation?.saveAnchor, undefined);
   assert.equal((await f.service.sync("Namespace:Item")).status, "conflict");
   assert.equal(f.state.uploads, 0);
-  assert.equal(f.state.downloads, 0);
+  assert.equal(f.state.downloads, 1);
+  assert.equal(
+    await fsp.readFile(path.join(expected, "profile.sav"), "utf8"),
+    "new prefix local"
+  );
 });
 
 test("Linux first migration cannot adopt an ambiguous legacy path without recorded generation", async (t) => {
