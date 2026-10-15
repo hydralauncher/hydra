@@ -6,13 +6,23 @@ import { friendRequestEvent } from "./events/friend-request";
 import { friendGameSessionEvent } from "./events/friend-game-session";
 import { friendPresenceEvent } from "./events/friend-presence";
 import { notificationEvent } from "./events/notification";
+import { chatMessageEvent } from "./events/chat-message";
+import { chatTypingEvent } from "./events/chat-typing";
+import { chatReactionEvent } from "./events/chat-reaction";
 import { resyncAfterEventFailure, resyncAfterReconnect } from "./resync";
+import {
+  cancelChatCatchUp,
+  catchUpChatUnread,
+} from "../chat/chat-unread-catch-up";
 import {
   RealtimeWebSocketClient,
   type RealtimeEnvelope,
   type RealtimeToken,
 } from "./websocket-client";
 import type {
+  ChatMessage,
+  ChatReaction,
+  ChatTyping,
   FriendGameSession,
   FriendPresence,
   FriendRequest,
@@ -35,6 +45,15 @@ const dispatchEvent = async (
       break;
     case "notification":
       await notificationEvent(payload satisfies Notification, signal);
+      break;
+    case "chatMessage":
+      await chatMessageEvent(payload satisfies ChatMessage, signal);
+      break;
+    case "chatTyping":
+      chatTypingEvent(payload satisfies ChatTyping, signal);
+      break;
+    case "chatReaction":
+      await chatReactionEvent(payload satisfies ChatReaction, signal);
       break;
   }
 };
@@ -73,10 +92,16 @@ const client = new RealtimeWebSocketClient({
 export class SSEClient {
   static connect() {
     client.connect();
+    // Startup and sign-in: messages sent while the launcher was closed are
+    // never pushed, so load and announce them once.
+    void catchUpChatUnread();
   }
 
   static close() {
     client.close();
+    // Sign-out and sign-in both close first; a catch-up still running belongs
+    // to the previous account.
+    cancelChatCatchUp();
   }
 
   static reconnectNow() {

@@ -8,6 +8,8 @@ import {
   ToolsIcon,
 } from "@primer/octicons-react";
 import HydraIcon from "@renderer/assets/icons/hydra.svg?react";
+// Direct import keeps this lightweight window off the components barrel.
+import { Button } from "@renderer/components/button/button";
 import { MAX_MINUTES_TO_SHOW_IN_PLAYTIME } from "@renderer/constants";
 import { darkenColor } from "@renderer/helpers";
 import { logger } from "@renderer/logger";
@@ -484,23 +486,23 @@ export default function GameLauncher() {
             {(launcherActions.showOpenHydra || launcherActions.showClose) && (
               <div className="game-launcher__actions">
                 {launcherActions.showOpenHydra && (
-                  <button
-                    type="button"
+                  <Button
+                    theme="primary"
                     className="game-launcher__button"
                     onClick={handleOpenHydra}
                   >
                     {t("open_hydra")}
-                  </button>
+                  </Button>
                 )}
 
                 {launcherActions.showClose && (
-                  <button
-                    type="button"
-                    className="game-launcher__button game-launcher__button--secondary"
+                  <Button
+                    theme="outline"
+                    className="game-launcher__button"
                     onClick={handleClose}
                   >
                     {t("close")}
-                  </button>
+                  </Button>
                 )}
               </div>
             )}
