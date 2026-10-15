@@ -11,6 +11,21 @@ bundled resources instead of system Python or libc. No system packages are
 installed. The small sitecustomize module keeps Python worker processes on the
 same private runtime. Legendary itself is unmodified.
 
+The separately shipped `managed.py` adapter imports that pinned Legendary
+core for exact-target inspection and installation. The original CLI's auth,
+library synchronization, launch and save commands are unchanged. The adapter
+source is included verbatim in the package. Its protocol and SHA-256 are pinned
+in Hydra's Legendary manifest, alongside all upstream archive checksums.
+
+On Windows the adapter uses the private official CPython 3.13.16 embeddable
+distribution and PyCryptodomeX 3.23.0 wheel for the installer's architecture.
+Their original license texts are retained under `python/` and
+`managed-native/pycryptodomex-3.23.0.dist-info/`. No system Python is required.
+
+- Windows Python: https://www.python.org/downloads/release/python-31316/
+- PyCryptodomeX release/source: https://pypi.org/project/pycryptodomex/3.23.0/
+- PyCryptodomeX source: https://github.com/Legrandin/pycryptodome/tree/v3.23.0
+
 Complete Python component and glibc license texts are consolidated in
 licenses/THIRD_PARTY_NOTICES.txt, including the selected Debian libc6 copyright
 notice. The original Python archive's notices remain in python/.
