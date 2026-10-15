@@ -6,6 +6,7 @@ import http.server
 import importlib.util
 import json
 import os
+import platform
 import re
 import subprocess
 import sys
@@ -16,13 +17,11 @@ from pathlib import Path
 from urllib.parse import urlsplit
 
 
-def runtime_directory(value):
-    base = Path(__file__).resolve().parents[1] / "legendary" / sys.platform
-    supplied = Path(value)
-    resolved = supplied.resolve(strict=True)
-    if supplied.is_symlink() or supplied.is_junction() or resolved.parent != base.resolve(strict=True) or resolved.name not in ("x64", "arm64"):
-        raise ValueError("Invalid fixture runtime directory")
-    return base / resolved.name
+def runtime_directory():
+    architecture = {"amd64": "x64", "x86_64": "x64", "arm64": "arm64", "aarch64": "arm64"}.get(platform.machine().lower())
+    if architecture is None:
+        raise ValueError("Unsupported fixture runtime architecture")
+    return Path(__file__).resolve().parents[1] / "legendary" / sys.platform / architecture
 
 
 def fixture_directory(value):
@@ -160,10 +159,9 @@ def worker(root, directory, url):
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument("runtime", type=runtime_directory)
     parser.add_argument("--worker", nargs=2, metavar=("DIRECTORY", "URL"))
     args = parser.parse_args()
-    root = args.runtime
+    root = runtime_directory()
     if args.worker:
         worker(root, fixture_directory(args.worker[0]), loopback_url(args.worker[1]))
         return
@@ -186,7 +184,7 @@ def main():
         thread = threading.Thread(target=server.serve_forever, daemon=True)
         thread.start()
         try:
-            result = subprocess.run([sys.executable, "-I", "-B", str(Path(__file__).resolve()), str(root), "--worker", str(directory), "http://127.0.0.1:" + str(server.server_address[1])], capture_output=True, text=True, encoding="utf-8", errors="replace", timeout=45)
+            result = subprocess.run([sys.executable, "-I", "-B", str(Path(__file__).resolve()), "--worker", str(directory), "http://127.0.0.1:" + str(server.server_address[1])], shell=False, capture_output=True, text=True, encoding="utf-8", errors="replace", timeout=45)
             print(result.stdout)
             print(result.stderr, file=sys.stderr)
             if result.returncode == 0:

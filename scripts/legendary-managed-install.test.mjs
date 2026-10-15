@@ -28,7 +28,6 @@ test(
       [
         ...(process.platform === "win32" ? ["-I", "-B"] : []),
         path.resolve("scripts/legendary-managed-install-fixture.py"),
-        directory,
       ],
       {
         shell: false,

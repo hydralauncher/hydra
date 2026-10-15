@@ -163,9 +163,18 @@ class AdapterTests(unittest.TestCase):
         spec = importlib.util.spec_from_file_location("install_fixture", Path(__file__).with_name("legendary-managed-install-fixture.py"))
         fixture = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(fixture)
-        self.assertEqual(fixture.runtime_directory(str(root)).resolve(), root)
-        with self.assertRaises(ValueError):
-            fixture.runtime_directory(str(self.workspace))
+        self.assertEqual(fixture.runtime_directory().resolve(), root)
+        base = Path(fixture.__file__).resolve().parents[1] / "legendary" / sys.platform
+        for machine, architecture in (("AMD64", "x64"), ("x86_64", "x64"), ("ARM64", "arm64"), ("aarch64", "arm64")):
+            with patch.object(fixture.platform, "machine", return_value=machine):
+                self.assertEqual(fixture.runtime_directory(), base / architecture)
+        with patch.object(fixture.platform, "machine", return_value="../outside"):
+            with self.assertRaises(ValueError):
+                fixture.runtime_directory()
+        with patch.object(sys, "argv", [fixture.__file__, str(self.workspace)]), patch.object(sys, "stderr", io.StringIO()):
+            with self.assertRaises(SystemExit) as rejected:
+                fixture.main()
+            self.assertEqual(rejected.exception.code, 2)
         with tempfile.TemporaryDirectory(prefix="hydra-real-install-") as directory:
             self.assertEqual(fixture.fixture_directory(directory), Path(directory).resolve())
             nested = Path(directory) / "hydra-real-install-abcdefgh"
