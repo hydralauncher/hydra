@@ -126,6 +126,8 @@ export function prepareManagedEpicLaunch(
     epicSavePolicy?: "local-once";
     epicOffline?: boolean;
     onStatus?: UmuStatusListener;
+    /** Called with the prepared prefix right before Epic's own save sync. */
+    beforeSaveSync?: (winePrefixPath: string | undefined) => Promise<void>;
   } = {}
 ): Promise<{
   parameters: EpicLaunchParameters;
@@ -207,6 +209,7 @@ async function prepareLaunch(
           runtime.mapEpicLinuxPath(context, directory, controller.signal)
       );
     }
+    await options.beforeSaveSync?.(resources?.linuxContext.winePrefixPath);
     await cloud.beforeLaunch(
       session,
       options.epicSavePolicy === "local-once" || options.epicOffline === true

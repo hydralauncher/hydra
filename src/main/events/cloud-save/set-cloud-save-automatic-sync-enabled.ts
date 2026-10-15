@@ -1,5 +1,8 @@
 import { gamesSublevel, levelKeys } from "@main/level";
-import { setCloudSaveAutomaticSyncEnabled } from "@main/services/cloud-save";
+import {
+  setCloudSaveAutomaticSyncEnabled,
+  withAutomaticSaveProviderLock,
+} from "@main/services/cloud-save";
 import { setEpicCloudSaveSettings } from "@main/services/epic";
 import type { GameShop } from "@types";
 
@@ -13,12 +16,14 @@ registerEvent(
     shop: GameShop,
     enabled: boolean
   ) => {
+    if (!enabled || shop !== "epic")
+      return setCloudSaveAutomaticSyncEnabled(objectId, shop, enabled);
     // Epic and Hydra automatic save sync are mutually exclusive.
-    if (enabled && shop === "epic") {
+    return withAutomaticSaveProviderLock(objectId, async () => {
       const game = await gamesSublevel.get(levelKeys.game(shop, objectId));
       if (game?.epicInstallation)
         await setEpicCloudSaveSettings(objectId, { automaticSync: false });
-    }
-    return setCloudSaveAutomaticSyncEnabled(objectId, shop, enabled);
+      return setCloudSaveAutomaticSyncEnabled(objectId, shop, enabled);
+    });
   }
 );

@@ -103,6 +103,24 @@ export const getCloudSaveAutomaticSyncEnabled = async (
   shop: GameShop
 ) => (await getCloudSaveAutomaticSyncMode(objectId, shop)) === "v2";
 
+const saveProviderLocks = new Map<string, Promise<unknown>>();
+
+/** Serializes the paired Epic/Hydra automatic save toggle writes per game. */
+export const withAutomaticSaveProviderLock = <T>(
+  objectId: string,
+  task: () => Promise<T>
+): Promise<T> => {
+  const previous = saveProviderLocks.get(objectId) ?? Promise.resolve();
+  const result = previous.catch(() => undefined).then(task);
+  const tail = result.catch(() => undefined);
+  saveProviderLocks.set(objectId, tail);
+  void tail.then(() => {
+    if (saveProviderLocks.get(objectId) === tail)
+      saveProviderLocks.delete(objectId);
+  });
+  return result;
+};
+
 export const setCloudSaveAutomaticSyncEnabled = async (
   objectId: string,
   shop: GameShop,
