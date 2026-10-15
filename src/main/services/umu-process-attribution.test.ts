@@ -24,8 +24,14 @@ function processFilesystem(initial: [number, ProcessFixture][]) {
     return values.length > 1 ? values.shift()! : values[0];
   };
   const filesystem = {
-    readdir: async () =>
-      [...processes.keys()].map((pid) => ({ name: String(pid) })),
+    readdir: async (_directory: string, options?: unknown) => {
+      assert.equal(
+        options,
+        undefined,
+        "enumerate names without racing Dirent lstat"
+      );
+      return [...processes.keys()].map(String);
+    },
     stat: async () => ({ uid: process.getuid?.() ?? 0 }),
     realpath: async (value: string) => value,
     readFile: async (file: string) => {

@@ -124,11 +124,13 @@ async function readProcessSnapshot(
 }
 
 async function processSnapshots(filesystem: ProcessFilesystem) {
-  const entries = await filesystem.readdir("/proc", { withFileTypes: true });
+  // Dirent conversion can lstat an already vanished PID and reject the entire
+  // enumeration. Names suffice; disappearing processes are handled per PID.
+  const entries = await filesystem.readdir("/proc");
   const snapshots = await Promise.all(
     entries
-      .filter((entry) => /^\d+$/.test(entry.name))
-      .map((entry) => readProcessSnapshot(Number(entry.name), filesystem))
+      .filter((entry) => /^\d+$/.test(entry))
+      .map((entry) => readProcessSnapshot(Number(entry), filesystem))
   );
   return snapshots.filter((entry): entry is ProcessSnapshot => entry !== null);
 }

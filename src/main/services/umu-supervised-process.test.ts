@@ -129,7 +129,7 @@ test(
       async (...args: Parameters<typeof fs.readdir>) => {
         const entries = await readdir(...args);
         return args[0] === "/proc"
-          ? [...entries, { name: String(protectedPid) }]
+          ? [...entries, String(protectedPid)]
           : entries;
       }
     );
@@ -218,7 +218,7 @@ function processInspectionPort(options: {
 }) {
   let statReads = 0;
   return {
-    readdir: async () => [{ name: "100", isDirectory: () => true }],
+    readdir: async () => ["100"],
     stat: async () => ({ uid: process.getuid?.() ?? 0 }),
     readFile: async (file: string) => {
       if (options.vanished)
