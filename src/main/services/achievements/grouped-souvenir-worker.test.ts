@@ -70,6 +70,7 @@ function fixture(records = [pending()]) {
       | undefined,
     metadataSignal: undefined as AbortSignal | undefined,
     onList: undefined as (() => Promise<void>) | undefined,
+    rmError: undefined as unknown,
   };
   const saved = (id = "client-1") => store.get(id)!;
   const response = {
@@ -82,6 +83,7 @@ function fixture(records = [pending()]) {
     "node:fs": {
       promises: {
         rm: async (path: string) => {
+          if (state.rmError) throw state.rmError;
           removed.push(path);
         },
       },
@@ -172,6 +174,13 @@ function fixture(records = [pending()]) {
           );
           await state.onList?.();
           return records;
+        },
+        replaceClientId: async (
+          clientId: string,
+          record: PendingAchievementSouvenir
+        ) => {
+          store.delete(clientId);
+          store.set(record.clientId, structuredClone(record));
         },
         acknowledge: async (record: PendingAchievementSouvenir) => {
           store.delete(record.clientId);
@@ -281,6 +290,31 @@ function fixture(records = [pending()]) {
     run,
   };
 }
+
+const networkError = { isAxiosError: true, message: "Network Error" };
+const conflictResponse = (reason: string) => ({
+  isAxiosError: true,
+  response: {
+    status: 409,
+    data: {
+      message: "achievements/souvenir-conflict",
+      clientId: "client-1",
+      reason,
+    },
+  },
+});
+
+const retryUntilStopped = async (
+  f: ReturnType<typeof fixture>,
+  limit: number
+) => {
+  for (let attempt = 1; attempt <= limit; attempt++) {
+    await f.run();
+    f.state.now += 15 * 60_000;
+    if ([...f.store.values()][0]?.status !== "pending") return attempt;
+  }
+  return limit;
+};
 
 describe("grouped souvenir worker recovery", () => {
   it("returns cleanup items with raw names when optional catalogue loading never completes", async () => {
@@ -767,6 +801,130 @@ describe("grouped souvenir worker recovery", () => {
     await f.run();
     assert.equal(f.store.size, 0);
     assert.deepEqual(f.calls, ["authorize", "upload", "sync"]);
+    f.worker.groupedSouvenirWorker.stop();
+  });
+
+  it("stops at 20 rejections even when transient failures interleave", async () => {
+    const f = fixture();
+    f.state.authorizationError = errorResponse("unknown", 404);
+    assert.equal(await retryUntilStopped(f, 19), 19);
+    for (const error of [
+      networkError,
+      errorResponse("capacity", 429),
+      errorResponse("temporary", 503),
+    ]) {
+      f.state.authorizationError = error;
+      await retryUntilStopped(f, 1);
+    }
+    assert.equal(f.saved().status, "pending");
+    f.state.authorizationError = errorResponse("unknown", 404);
+    assert.equal(await retryUntilStopped(f, 1), 1);
+    assert.equal(f.saved().status, "terminal");
+    assert.equal(f.saved().rejectedAttemptCount, 20);
+    f.worker.groupedSouvenirWorker.stop();
+  });
+
+  it("stops at 20 rejections when the error message changes each time", async () => {
+    const f = fixture();
+    let rejection = 0;
+    f.state.authorizationError = errorResponse("invalid", 400);
+    f.state.onAuthorize = async () => {
+      rejection += 1;
+      f.state.authorizationError = errorResponse(`invalid ${rejection}`, 400);
+    };
+    assert.equal(await retryUntilStopped(f, 40), 20);
+    assert.equal(f.saved().status, "terminal");
+    f.worker.groupedSouvenirWorker.stop();
+  });
+
+  it("stops reauthorize, rotate, rebuild and recovery loops at the rejection cap", async () => {
+    const cases = [
+      {
+        records: [pending()],
+        error: conflictResponse("reservation_not_found"),
+      },
+      { records: [pending()], error: conflictResponse("image_key_in_use") },
+      {
+        records: [pending()],
+        error: conflictResponse("achievement_not_found"),
+      },
+      {
+        records: [pending({ recoveryMode: "sync_achievements_only" })],
+        error: errorResponse("unknown", 422),
+      },
+    ];
+    for (const { records, error } of cases) {
+      const f = fixture(records);
+      f.state.syncError = error;
+      f.state.catalogueFetch = () => Promise.reject(new Error("unavailable"));
+      assert.equal(await retryUntilStopped(f, 40), 20);
+      const [record] = [...f.store.values()];
+      assert.equal(record.status, "terminal");
+      assert.equal(record.attemptCount, 20);
+      f.worker.groupedSouvenirWorker.stop();
+    }
+  });
+
+  it("pauses after 200 answered failures, never for network errors, and Retry resumes it", async () => {
+    const offline = fixture();
+    offline.state.authorizationError = networkError;
+    assert.equal(await retryUntilStopped(offline, 250), 250);
+    assert.equal(offline.saved().status, "pending");
+    offline.worker.groupedSouvenirWorker.stop();
+
+    const f = fixture();
+    f.state.authorizationError = errorResponse("temporary", 503);
+    assert.equal(await retryUntilStopped(f, 250), 200);
+    assert.equal(f.saved().status, "paused");
+    f.state.fresh = f.state.user;
+    f.state.authorizationError = undefined;
+    const result = await f.worker.retryAchievementSouvenirSync();
+    await f.settle();
+    assert.equal(result.syncedCount, 1);
+    assert.equal(f.store.size, 0);
+    f.worker.groupedSouvenirWorker.stop();
+  });
+
+  it("removes a paused souvenir and its screenshot after 30 days", async () => {
+    const f = fixture();
+    f.state.authorizationError = errorResponse(
+      "subscription/active-subscription-required",
+      400
+    );
+    await f.run();
+    const pausedAt = f.saved().lastAttemptAt!;
+    f.state.now = pausedAt + PAUSED_RETENTION_MS - 1;
+    await f.run();
+    assert.equal(f.saved().status, "paused");
+    assert.deepEqual(f.removed, []);
+    f.state.now += 1;
+    await f.run();
+    assert.equal(f.store.size, 0);
+    assert.deepEqual(f.removed, ["/fixture/photo.jpeg"]);
+    assert.equal(f.timers.size, 0);
+    assert.deepEqual(f.calls, ["authorize"]);
+    f.worker.groupedSouvenirWorker.stop();
+  });
+
+  it("does not write back an expired paused souvenir whose game was deleted", async () => {
+    const f = fixture([pending({ status: "paused", lastAttemptAt: 1 })]);
+    f.state.deleted = true;
+    await f.run();
+    assert.equal(f.store.size, 0);
+    assert.deepEqual(f.removed, ["/fixture/photo.jpeg"]);
+    f.worker.groupedSouvenirWorker.stop();
+  });
+
+  it("keeps an expired record until its screenshot can be removed", async () => {
+    const f = fixture([pending({ status: "terminal", lastAttemptAt: 1 })]);
+    f.state.rmError = Object.assign(new Error("busy"), { code: "EBUSY" });
+    await f.run();
+    assert.equal(f.saved().status, "terminal");
+    assert.equal(f.timers.size, 0);
+    f.state.rmError = undefined;
+    await f.run();
+    assert.equal(f.store.size, 0);
+    assert.deepEqual(f.removed, ["/fixture/photo.jpeg"]);
     f.worker.groupedSouvenirWorker.stop();
   });
 });

@@ -4,7 +4,9 @@ import { describe, it } from "node:test";
 import {
   getGroupedSouvenirErrorCode,
   getGroupedSouvenirFailure,
+  isGroupedSouvenirNetworkFailure,
   isMissingGroupedSouvenirScreenshot,
+  isRejectedGroupedSouvenirRequest,
   isTerminalGroupedSouvenirError,
   SOUVENIR_LIMIT_ERROR_CODE,
 } from "./grouped-souvenir-retry-policy.js";
@@ -214,5 +216,28 @@ describe("grouped souvenir retry policy", () => {
         "retry"
       );
     }
+  });
+
+  it("counts only definitive client rejections toward the retry cap", () => {
+    for (const status of [400, 403, 404, 409, 422]) {
+      assert.equal(isRejectedGroupedSouvenirRequest(axiosError(status)), true);
+    }
+    for (const status of [401, 408, 429, 500, 503]) {
+      assert.equal(isRejectedGroupedSouvenirRequest(axiosError(status)), false);
+    }
+    assert.equal(
+      isRejectedGroupedSouvenirRequest({ isAxiosError: true }),
+      false
+    );
+    assert.equal(isRejectedGroupedSouvenirRequest(new Error("busy")), false);
+  });
+
+  it("treats only requests without a response as network failures", () => {
+    assert.equal(isGroupedSouvenirNetworkFailure({ isAxiosError: true }), true);
+    assert.equal(isGroupedSouvenirNetworkFailure(axiosError(503)), false);
+    assert.equal(
+      isGroupedSouvenirNetworkFailure(new Error("missing acknowledgement")),
+      false
+    );
   });
 });
