@@ -76,7 +76,7 @@ it("retries failures after cooldown without breaking the remaining library", asy
   assert.equal(changes, 0);
 });
 
-it("bounds large libraries without repeatedly evicting recent attempts", async () => {
+it("finishes large libraries without repeating recent attempts", async () => {
   let calls = 0;
   const queue = new EpicLibraryArtworkQueue(
     async () => {
@@ -90,8 +90,71 @@ it("bounds large libraries without repeatedly evicting recent attempts", async (
   const games = Array.from({ length: 1000 }, (_, index) => game(String(index)));
   queue.schedule(games);
   await tick();
-  assert.equal(calls, 512);
+  assert.equal(calls, games.length);
   queue.schedule(games);
   await tick();
-  assert.equal(calls, 512);
+  assert.equal(calls, games.length);
+});
+
+it("reaches game 129 without another library read or any change notification", async () => {
+  let calls = 0;
+  const queue = new EpicLibraryArtworkQueue(
+    async () => {
+      calls++;
+      return false;
+    },
+    () => assert.fail("fresh artwork must not notify"),
+    Date.now,
+    async () => {}
+  );
+  queue.schedule(
+    Array.from({ length: 129 }, (_, index) => game(String(index)))
+  );
+  await tick();
+  assert.equal(calls, 129);
+});
+
+it("does not restart a running pass when reads continue beyond cooldown", async () => {
+  let now = 0;
+  const calls: string[] = [];
+  const games = Array.from({ length: 129 }, (_, index) => game(String(index)));
+  const queue = new EpicLibraryArtworkQueue(
+    async (g) => {
+      calls.push(g.id);
+      queue.schedule(games);
+      return false;
+    },
+    () => assert.fail("fresh artwork must not notify"),
+    () => now,
+    async (ms) => {
+      now += ms;
+    }
+  );
+  queue.schedule(games);
+  await tick();
+  assert.deepEqual(
+    calls,
+    games.map((g) => g.id)
+  );
+  assert.ok(now > EPIC_LIBRARY_ARTWORK_RETRY_MS);
+});
+
+it("includes games added during a running pass without duplicating active games", async () => {
+  let release!: () => void;
+  const calls: string[] = [];
+  const queue = new EpicLibraryArtworkQueue(
+    async (g) => {
+      calls.push(g.id);
+      if (g.id === "one") await new Promise<void>((r) => (release = r));
+      return false;
+    },
+    () => {},
+    Date.now,
+    async () => {}
+  );
+  queue.schedule([game("one"), game("two")]);
+  queue.schedule([game("new"), game("two"), game("one")]);
+  release();
+  await tick();
+  assert.deepEqual(calls, ["one", "two", "new"]);
 });
