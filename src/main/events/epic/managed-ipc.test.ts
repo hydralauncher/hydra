@@ -16,6 +16,7 @@ function fixture(overrides: Record<string, unknown> = {}) {
   const services = Object.fromEntries(
     [
       "getEpicConnection",
+      "getGameLinuxCompatibility",
       "startEpicAuth",
       "cancelEpicAuth",
       "disconnectEpic",
@@ -81,6 +82,7 @@ test("managed operations reject an untrusted sender before any process or save a
   for (const name of [
     "getEpicGameInstallOptions",
     "cancelEpicGameInstallOptions",
+    "getGameLinuxCompatibility",
     "startEpicGameDownload",
     "getEpicCloudSaveState",
     "setEpicCloudSaveSettings",
@@ -198,4 +200,21 @@ test("desktop and Big Picture pass only parsed Epic inputs to managed services",
     f.handlers.get("syncEpicCloudSaves")!(event, "../steam-game")
   );
   assert.equal(f.calls.length, 7);
+  f.handlers.get("getGameLinuxCompatibility")!(
+    event,
+    "epic",
+    payload.epicObjectId
+  );
+  assert.deepEqual(f.calls[7], {
+    name: "getGameLinuxCompatibility",
+    args: ["epic", payload.epicObjectId],
+  });
+  assert.throws(() =>
+    f.handlers.get("getGameLinuxCompatibility")!(event, "epic", "../escape")
+  );
+  assert.equal(
+    f.handlers.get("getGameLinuxCompatibility")!(event, "steam", "123"),
+    null
+  );
+  assert.equal(f.calls.length, 8);
 });

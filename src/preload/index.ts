@@ -18,6 +18,7 @@ import type {
   FriendRequestSync,
   FriendPresenceSync,
   NotificationSync,
+  UserFriend,
   ShortcutLocation,
   CreateSteamShortcutOptions,
   AchievementCustomNotificationPosition,
@@ -77,6 +78,12 @@ import type {
   SteamSyncRunStatus,
   SteamConnectErrorCode,
   ExtractionFailure,
+  FriendsSnapshot,
+  ChatMessageSync,
+  ChatReactionSync,
+  ChatTypingSync,
+  ChatUnreadState,
+  ChatWindowState,
   EpicConnectionState,
   EpicSyncState,
   EpicSyncFinished,
@@ -89,6 +96,7 @@ import type {
   EpicCloudSaveSettings,
   ResolveEpicCloudSaveConflictPayload,
   EpicLaunchOptions,
+  EpicLinuxCompatibility,
 } from "@types";
 import type { AuthPage, Downloader } from "@shared";
 import type { AxiosProgressEvent } from "axios";
@@ -1779,6 +1787,12 @@ contextBridge.exposeInMainWorld("electron", {
   },
   getEpicConnection: () =>
     ipcRenderer.invoke("getEpicConnection") as Promise<EpicConnectionState>,
+  getGameLinuxCompatibility: (shop: GameShop, objectId: string) =>
+    ipcRenderer.invoke(
+      "getGameLinuxCompatibility",
+      shop,
+      objectId
+    ) as Promise<EpicLinuxCompatibility | null>,
   getEpicGameInstallOptions: (epicObjectId: string, requestId?: string) =>
     ipcRenderer.invoke(
       "getEpicGameInstallOptions",
@@ -2111,10 +2125,79 @@ contextBridge.exposeInMainWorld("electron", {
   openFriendsWindow: () => ipcRenderer.invoke("openFriendsWindow"),
   minimizeFriendsWindow: () => ipcRenderer.invoke("minimizeFriendsWindow"),
   closeFriendsWindow: () => ipcRenderer.invoke("closeFriendsWindow"),
+  friendsWindowReady: () => ipcRenderer.invoke("friendsWindowReady"),
+  prefetchFriends: () => ipcRenderer.invoke("prefetchFriends"),
+  getFriendsSnapshot: () =>
+    ipcRenderer.invoke("getFriendsSnapshot") as Promise<FriendsSnapshot | null>,
   openFriendProfileInMainWindow: (userId: string) =>
     ipcRenderer.invoke("openFriendProfileInMainWindow", userId),
   openAddFriendModalInMainWindow: () =>
     ipcRenderer.invoke("openAddFriendModalInMainWindow"),
+
+  /* Chat */
+  openChatWindow: (friend: UserFriend) =>
+    ipcRenderer.invoke("openChatWindow", friend),
+  minimizeChatWindow: () => ipcRenderer.invoke("minimizeChatWindow"),
+  closeChatWindow: () => ipcRenderer.invoke("closeChatWindow"),
+  openGameInMainWindow: (gamePath: string) =>
+    ipcRenderer.invoke("openGameInMainWindow", gamePath),
+  consumePendingChatFriends: () =>
+    ipcRenderer.invoke("consumePendingChatFriends") as Promise<UserFriend[]>,
+  onChatFriendsPending: (cb: () => void) => {
+    const listener = () => cb();
+    ipcRenderer.on("on-chat-friends-pending", listener);
+    return () =>
+      ipcRenderer.removeListener("on-chat-friends-pending", listener);
+  },
+  setChatWindowState: (state: ChatWindowState) =>
+    ipcRenderer.invoke("setChatWindowState", state),
+  getChatUnreadState: () =>
+    ipcRenderer.invoke("getChatUnreadState") as Promise<ChatUnreadState>,
+  markChatRead: (friendId: string, seq: number) =>
+    ipcRenderer.invoke("markChatRead", friendId, seq),
+  onChatMessage: (cb: (sync: ChatMessageSync) => void) => {
+    const listener = (
+      _event: Electron.IpcRendererEvent,
+      sync: ChatMessageSync
+    ) => cb(sync);
+    ipcRenderer.on("on-chat-message", listener);
+    return () => ipcRenderer.removeListener("on-chat-message", listener);
+  },
+  onChatTyping: (cb: (sync: ChatTypingSync) => void) => {
+    const listener = (
+      _event: Electron.IpcRendererEvent,
+      sync: ChatTypingSync
+    ) => cb(sync);
+    ipcRenderer.on("on-chat-typing", listener);
+    return () => ipcRenderer.removeListener("on-chat-typing", listener);
+  },
+  onChatReaction: (cb: (sync: ChatReactionSync) => void) => {
+    const listener = (
+      _event: Electron.IpcRendererEvent,
+      sync: ChatReactionSync
+    ) => cb(sync);
+    ipcRenderer.on("on-chat-reaction", listener);
+    return () => ipcRenderer.removeListener("on-chat-reaction", listener);
+  },
+  onChatMessageSound: (cb: () => void) => {
+    const listener = () => cb();
+    ipcRenderer.on("on-chat-message-sound", listener);
+    return () => ipcRenderer.removeListener("on-chat-message-sound", listener);
+  },
+  onChatUnreadUpdated: (cb: (state: ChatUnreadState) => void) => {
+    const listener = (
+      _event: Electron.IpcRendererEvent,
+      state: ChatUnreadState
+    ) => cb(state);
+    ipcRenderer.on("on-chat-unread-updated", listener);
+    return () => ipcRenderer.removeListener("on-chat-unread-updated", listener);
+  },
+  onChatResync: (cb: () => void) => {
+    const listener = () => cb();
+    ipcRenderer.on("on-chat-resync", listener);
+    return () => ipcRenderer.removeListener("on-chat-resync", listener);
+  },
+
   onOpenAddFriendModal: (cb: () => void) => {
     const listener = () => cb();
     ipcRenderer.on("on-open-add-friend-modal", listener);

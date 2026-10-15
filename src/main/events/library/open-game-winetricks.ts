@@ -18,12 +18,21 @@ const openGameWinetricks = async (
 
   if (!game) return false;
 
-  const winePrefixPath = Wine.getEffectivePrefixPath(
+  if (shop === "epic" && game.epicInstallation) {
+    try {
+      return await (
+        await import("@main/services/epic")
+      ).openManagedEpicWinetricks(objectId);
+    } catch {
+      return false;
+    }
+  }
+  const effectivePrefix = Wine.getEffectivePrefixPath(
     game.winePrefixPath,
     objectId
   );
 
-  if (!winePrefixPath) {
+  if (!effectivePrefix) {
     return false;
   }
 
@@ -35,7 +44,7 @@ const openGameWinetricks = async (
         shell: false,
         env: {
           ...process.env,
-          WINEPREFIX: winePrefixPath,
+          WINEPREFIX: effectivePrefix,
         },
       });
 

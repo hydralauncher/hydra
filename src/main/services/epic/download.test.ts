@@ -87,7 +87,12 @@ type Stream = (
   options: Parameters<typeof executeManagedLegendary>[3],
   destination: string
 ) => Promise<void>;
-async function fixture(t: TestContext, stream?: Stream, prereq?: boolean) {
+async function fixture(
+  t: TestContext,
+  stream?: Stream,
+  prereq?: boolean,
+  platform: NodeJS.Platform = "win32"
+) {
   const root = await fs.realpath(
     await fs.mkdtemp(path.join(os.tmpdir(), "hydra-epic-download-"))
   );
@@ -95,11 +100,15 @@ async function fixture(t: TestContext, stream?: Stream, prereq?: boolean) {
   await fs.mkdir(base);
   let game = structuredClone(initial);
   let current = true;
+  let remoteOwned = true;
+  let freeSpace = 100 * 1024 * MIB;
+  let diskRequests = 0;
   let download: Download | undefined;
   let downloadRead:
     | ((value: Download | undefined) => Promise<Download | undefined>)
     | undefined;
   let prerequisiteResult = prereq ?? true;
+  let prerequisiteCalls = 0;
   const enqueued: Download[] = [];
   const started: Download[] = [];
   const complete = deferred<void>();
@@ -169,24 +178,45 @@ async function fixture(t: TestContext, stream?: Stream, prereq?: boolean) {
       return { stdout: "", stderr: "" };
     },
   });
+  t.mock.method(runtime, "inspect", async (target, _id, signal) => {
+    runtime.assertCurrent(target, signal);
+    commands.push([
+      "info",
+      target.artifactId,
+      "--json",
+      "--platform",
+      target.platform,
+    ]);
+    return { info, metadata };
+  });
+  t.mock.method(
+    runtime,
+    "streamInstall",
+    (target, _id, _prepared, args, options) =>
+      runtime.stream(target, args, options)
+  );
   const installation = new EpicInstallationService({
     runtime,
     capture: async () => ({ auth, connection }),
     current: () => current,
-    ownGame: async () => ({
-      epicImport: {
-        connectionId: connection.connectionId,
-        artifactIds: ["Artifact1"],
-      },
-    }),
+    ownGame: async () =>
+      remoteOwned
+        ? {
+            epicImport: {
+              connectionId: connection.connectionId,
+              artifactIds: ["Artifact1"],
+            },
+          }
+        : null,
     getGame: async () => game,
     updateGame: async (_id, patch) => {
       game = { ...game, ...patch(game) };
       return game;
     },
-    platform: "win32",
+    platform,
   });
   const service = new EpicDownloadService({
+    platform,
     runtime,
     installation,
     getDownload: async () => (downloadRead ? downloadRead(download) : download),
@@ -200,9 +230,13 @@ async function fixture(t: TestContext, stream?: Stream, prereq?: boolean) {
       enqueued.push(value);
     },
     isGameRunning: () => false,
-    getDiskUsage: async () => ({ free: 100 * 1024 * MIB }),
+    getDiskUsage: async () => {
+      diskRequests++;
+      return { free: freeSpace };
+    },
     afterGameUpdated: () => complete.resolve(),
     runPrerequisite: async (_exe, args) => {
+      prerequisiteCalls++;
       assert.deepEqual(args, ["/quiet", "/quoted argument"]);
       return prerequisiteResult;
     },
@@ -232,8 +266,16 @@ async function fixture(t: TestContext, stream?: Stream, prereq?: boolean) {
     enqueued,
     started,
     commands,
+    diskRequests: () => diskRequests,
+    disown: () => {
+      remoteOwned = false;
+    },
+    setFreeSpace: (value: number) => {
+      freeSpace = value;
+    },
     getDownload: () => download,
     getGame: () => game,
+    getPrerequisiteCalls: () => prerequisiteCalls,
     invalidate: () => {
       current = false;
     },
@@ -364,6 +406,57 @@ test("dedicated Epic enqueue preserves imported identity/provenance and separate
   );
 });
 
+test("a prepared preview enqueues without CLI, remote ownership or disk scans", async (t) => {
+  const f = await fixture(t);
+  const preview = await f.service.getOptions(objectId);
+  const count = f.commands.length;
+  const capture = t.mock.method(f.installation, "capture", async () => {
+    throw new Error("enqueue must reuse the validated preview");
+  });
+  assert.deepEqual(
+    await f.service.start({
+      ...f.payload,
+      preparationId: preview.options[0].preparationId,
+      addToQueueOnly: true,
+    }),
+    { ok: true }
+  );
+  assert.equal(f.commands.length, count);
+  assert.equal(f.diskRequests(), 0);
+  capture.mock.restore();
+  f.disown();
+  await assert.rejects(
+    f.service.startRuntime(f.getDownload()!, () => {}),
+    { code: "game-not-owned" }
+  );
+  assert.equal(
+    f.commands.some((args) => args.includes("install")),
+    false
+  );
+});
+
+test("space is checked immediately before transfer even when enqueue reused a preview", async (t) => {
+  const f = await fixture(t);
+  const preview = await f.service.getOptions(objectId);
+  assert.deepEqual(
+    await f.service.start({
+      ...f.payload,
+      preparationId: preview.options[0].preparationId,
+    }),
+    { ok: true }
+  );
+  f.setFreeSpace(0);
+  await assert.rejects(
+    f.service.startRuntime(f.getDownload()!, () => {}),
+    { code: "insufficient-space" }
+  );
+  assert.equal(f.diskRequests(), 1);
+  assert.equal(
+    f.commands.some((args) => args.includes("install")),
+    false
+  );
+});
+
 test("an incomplete cancelled installation can load options, enqueue and finish its repair", async (t) => {
   const f = await fixture(t);
   const owned = await f.installation.capture(
@@ -374,6 +467,11 @@ test("an incomplete cancelled installation can load options, enqueue and finish 
     owned,
     "Artifact1",
     "Windows",
+    new AbortController().signal
+  );
+  await f.installation.persistPreparation(
+    prepared,
+    objectId,
     new AbortController().signal
   );
   const destination = path.join(f.base, "EpicGame");
@@ -600,6 +698,17 @@ test("resume repairs an installed manifest left needing verification", async (t)
     new AbortController().signal
   );
   const target = epicManagedTarget(owned, "Artifact1", "Windows");
+  const prepared = await f.installation.prepare(
+    owned,
+    "Artifact1",
+    "Windows",
+    new AbortController().signal
+  );
+  await f.installation.persistPreparation(
+    prepared,
+    objectId,
+    new AbortController().signal
+  );
   const destination = path.join(f.base, "EpicGame");
   await fs.mkdir(destination);
   await fs.writeFile(path.join(destination, "Game.exe"), "partial");
@@ -650,6 +759,103 @@ test("retry after prerequisite failure completes without downloading the same bu
   assert.equal(f.commands.filter((args) => args.includes("install")).length, 1);
   assert.equal(f.getDownload()?.status, "complete");
 });
+
+test("Linux download completes without preparing Wine, Proton or Windows prerequisites", async (t) => {
+  const f = await fixture(t, undefined, false, "linux");
+  await f.service.start(f.payload);
+  await f.service.startRuntime(f.getDownload()!, (error) =>
+    f.failed.resolve(error)
+  );
+  await f.complete.promise;
+  const owned = await f.installation.capture(
+    objectId,
+    new AbortController().signal
+  );
+  const installed = await f.installation.readInstalled(
+    epicManagedTarget(owned, "Artifact1", "Windows"),
+    objectId
+  );
+  assert.equal(f.getDownload()?.status, "complete");
+  assert.equal(f.getDownload()?.progress, 1);
+  assert.ok(f.getGame().epicInstallation);
+  assert.ok(f.getGame().executablePath?.endsWith("Game.exe"));
+  assert.equal(f.getGame().winePrefixPath, undefined);
+  assert.equal(f.getPrerequisiteCalls(), 0);
+  assert.equal(installed?.prereq_info?.installed, false);
+  assert.equal(f.commands.filter((args) => args.includes("install")).length, 1);
+});
+
+for (const error of [
+  "compatibility-prefix-busy",
+  "compatibility-runtime-unavailable",
+] as const) {
+  test(`Linux retry after ${error} completes the existing transfer without compatibility setup`, async (t) => {
+    const f = await fixture(t, undefined, false, "linux");
+    await f.service.start(f.payload);
+    const owned = await f.installation.capture(
+      objectId,
+      new AbortController().signal
+    );
+    const target = epicManagedTarget(owned, "Artifact1", "Windows");
+    const prepared = await f.installation.prepare(
+      owned,
+      "Artifact1",
+      "Windows",
+      new AbortController().signal
+    );
+    await f.installation.persistPreparation(
+      prepared,
+      objectId,
+      new AbortController().signal
+    );
+    const destination = path.join(f.base, "EpicGame");
+    await fs.mkdir(destination);
+    await fs.writeFile(path.join(destination, "Game.exe"), "downloaded-game");
+    await fs.writeFile(
+      path.join(f.runtime.workspace(target), "installed.json"),
+      JSON.stringify({
+        Artifact1: {
+          app_name: "Artifact1",
+          platform: "Windows",
+          install_path: destination,
+          executable: "Game.exe",
+          install_size: 4 * MIB,
+          version: "build-1",
+          prereq_info: {
+            path: "Prerequisite.exe",
+            args: "/quiet",
+            installed: false,
+          },
+        },
+      })
+    );
+    f.setDownload({
+      ...f.getDownload()!,
+      status: "error",
+      progress: 0.9907,
+      bytesDownloaded: 2 * MIB,
+      epic: { ...f.getDownload()!.epic!, phase: "prerequisites", error },
+    });
+    await f.service.startRuntime(f.getDownload()!, (failure) =>
+      f.failed.resolve(failure)
+    );
+    await f.complete.promise;
+    assert.equal(
+      f.commands.filter((args) => args.includes("install")).length,
+      0
+    );
+    assert.equal(f.getPrerequisiteCalls(), 0);
+    assert.equal(f.getDownload()?.status, "complete");
+    assert.equal(f.getDownload()?.progress, 1);
+    assert.equal(f.getDownload()?.bytesDownloaded, 2 * MIB);
+    assert.equal(f.getDownload()?.epic?.error, undefined);
+    assert.ok(f.getGame().epicInstallation);
+    assert.equal(
+      await fs.readFile(path.join(destination, "Game.exe"), "utf8"),
+      "downloaded-game"
+    );
+  });
+}
 
 test("pause during finalization record read cannot publish completion afterwards", async (t) => {
   const f = await fixture(t);

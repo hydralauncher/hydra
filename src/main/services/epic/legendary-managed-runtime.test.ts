@@ -13,6 +13,7 @@ import {
 import { EpicConnectionStore } from "./store.js";
 import { EpicSessionProvider } from "./session-provider.js";
 import { EPIC_PROCESS_MAX_LINE_BYTES } from "./constants.js";
+import { configureEpicTiming, type EpicTimingEntry } from "./timing.js";
 import {
   MemoryDatabase,
   bundle,
@@ -78,6 +79,21 @@ async function fixture(
     },
   };
 }
+
+test("install timing identifies the real command behind the global yes flag", async (t) => {
+  const entries: EpicTimingEntry[] = [];
+  const f = await fixture(t, async () => ({ stdout: "{}", stderr: "" }));
+  configureEpicTiming((entry) => entries.push(entry), true);
+  t.after(() => configureEpicTiming(() => undefined, false));
+  await f.runtime.runRaw(target, ["-y", "install", "Artifact1"], {
+    signal: new AbortController().signal,
+  });
+  assert.ok(
+    entries.some(
+      (entry) => entry.stage === "runtime.raw" && entry.command === "install"
+    )
+  );
+});
 
 test("stream decoder handles fragmented Unicode, CR/LF, and bounded lines", () => {
   const lines: string[] = [];
@@ -189,6 +205,56 @@ test("an obsolete preview waiting for its workspace cancels without releasing th
   await latest;
   assert.equal(executed, true);
 });
+
+for (const kind of ["offline launch", "download stream"] as const) {
+  test(`a queued ${kind} cancels without executing Legendary or releasing the active workspace`, async (t) => {
+    let executed = false;
+    const f = await fixture(t, async () => {
+      executed = true;
+      return { stdout: "{}", stderr: "" };
+    });
+    const release = deferred<void>();
+    const entered = deferred<void>();
+    const active = f.runtime.serializeWorkspace(target, async () => {
+      entered.resolve();
+      await release.promise;
+    });
+    await entered.promise;
+    const controller = new AbortController();
+    const operation =
+      kind === "offline launch"
+        ? f.runtime.runOfflineLaunch(
+            { ...target, localOnly: true },
+            { signal: controller.signal }
+          )
+        : f.runtime.stream(target, ["-y", "install", target.artifactId], {
+            signal: controller.signal,
+            onLine: () => {},
+          });
+    const cancelled = assert.rejects(operation, {
+      code: "operation-cancelled",
+    });
+    let nextRan = false;
+    const next = f.runtime.serializeWorkspace(target, async () => {
+      nextRan = true;
+    });
+    try {
+      controller.abort();
+      await cancelled;
+      assert.equal(executed, false);
+      assert.equal(nextRan, false);
+    } finally {
+      release.resolve();
+      await active;
+      await next;
+    }
+    assert.equal(executed, false);
+    await assert.rejects(
+      fs.stat(path.join(f.runtime.workspace(target), "user.json")),
+      { code: "ENOENT" }
+    );
+  });
+}
 
 test("download releases credential lease at preparation and persists rotation before transfer ends", async (t) => {
   const transfer = deferred<void>();
@@ -393,7 +459,10 @@ test("managed process abort waits for actual tree termination", async () => {
   await assert.rejects(operation, { code: "operation-cancelled" });
 });
 
-test("managed JSON commands retain early diagnostics beyond the streaming tail cap", async () => {
+test("managed JSON commands retain early diagnostics beyond the streaming tail cap", async (t) => {
+  const entries: EpicTimingEntry[] = [];
+  configureEpicTiming((entry) => entries.push(entry), true);
+  t.after(() => configureEpicTiming(() => undefined, false));
   const output = await executeManagedLegendary(
     process.execPath,
     [
@@ -405,6 +474,13 @@ test("managed JSON commands retain early diagnostics beyond the streaming tail c
   );
   assert.ok(output.stderr.startsWith("[cli] ERROR: cloud save failed"));
   assert.deepEqual(JSON.parse(output.stdout), {});
+  for (const stage of ["process.first-stdout", "process.first-stderr"])
+    assert.equal(entries.filter((entry) => entry.stage === stage).length, 1);
+  assert.ok(entries.some((entry) => entry.stage === "process.closed"));
+  const diagnostics = JSON.stringify(entries);
+  assert.equal(diagnostics.includes("cloud save failed"), false);
+  assert.equal(diagnostics.includes("x".repeat(64)), false);
+  assert.equal(diagnostics.includes(process.execPath), false);
 });
 
 test("managed process reports native missing-binary failure without leaking arguments", async () => {

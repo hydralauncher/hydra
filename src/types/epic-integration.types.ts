@@ -51,6 +51,10 @@ export interface EpicConnectionState {
   hydraLoggedIn: boolean;
   hydraUserId: string | null;
   availability: { available: boolean; reason?: EpicErrorCode };
+  managedInstallation?: {
+    available: boolean;
+    reason?: import("./epic-managed.types").EpicInstallError;
+  };
   connection: EpicConnection | null;
   /** Confirmation of the persisted Hydra link, independent of the local Epic session. */
   verification: "confirmed" | "unconfirmed";

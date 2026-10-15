@@ -35,8 +35,11 @@ const signOut = async (_event: Electron.IpcMainInvokeEvent) => {
     if (failed?.status === "rejected") throw failed.reason;
   });
 
-  /* The friends window is only meaningful while signed in */
-  if (!HydraApi.isLoggedIn()) WindowManager.closeFriendsWindow();
+  /* The friends and chat windows are only meaningful while signed in */
+  if (!HydraApi.isLoggedIn()) {
+    WindowManager.closeFriendsWindow();
+    WindowManager.closeChatWindow();
+  }
 };
 
 registerEvent("signOut", signOut);

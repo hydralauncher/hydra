@@ -78,6 +78,7 @@ import {
 import "./styles.scss";
 import { readActiveLibraryDownload } from "./download-queue";
 import { EpicInstallModal } from "../epic-install-modal";
+import { epicInstallTiming } from "@renderer/helpers/epic-install-timing";
 import { EpicDownloadOption } from "../../common/download-source-option/epic-download-option";
 import { useEpicManagedConnection } from "@renderer/hooks/use-epic-managed";
 import { useLibrary } from "../../../hooks/use-library.hook";
@@ -574,7 +575,8 @@ function DownloadGameModalSession({
   const { steam: libraryGame, epic: epicGame } = getOfficialStoreMembers(
     presentation?.members ?? []
   );
-  const { available: epicAvailable, connection } = useEpicManagedConnection();
+  const { installationAvailable: epicAvailable, connection } =
+    useEpicManagedConnection();
   const [epicInstallGame, setEpicInstallGame] = useState<LibraryGame | null>(
     null
   );
@@ -604,7 +606,13 @@ function DownloadGameModalSession({
       epicAvailable &&
       isEpicMemberInCurrentScope(epicGame, connection) &&
       epicGame
-        ? { title: game.title, onSelect: () => setEpicInstallGame(epicGame) }
+        ? {
+            title: game.title,
+            onSelect: () => {
+              epicInstallTiming.beginOptions(epicGame.objectId);
+              setEpicInstallGame(epicGame);
+            },
+          }
         : null,
     [epicAvailable, epicGame, connection, game.title]
   );

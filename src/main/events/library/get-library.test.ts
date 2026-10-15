@@ -8,6 +8,7 @@ import type { IpcMainInvokeEvent } from "electron";
 import type { Game, LibraryGame, ShopAssets } from "@types";
 import { getContextualEpicGame } from "../../services/epic/import-visibility.js";
 import { belongsToLibraryCollection } from "../../services/library-sync/game-visibility.js";
+import { EpicLibraryArtworkQueue } from "../../services/epic-library-artwork-queue.js";
 
 const handlerCode = ts.transpileModule(
   fs.readFileSync(new URL("./get-library.ts", import.meta.url), "utf8"),
@@ -19,10 +20,20 @@ const handlerCode = ts.transpileModule(
   }
 ).outputText;
 
-type LibraryHandler = (event: IpcMainInvokeEvent) => Promise<LibraryGame[]>;
+type LibraryHandler = (
+  event: IpcMainInvokeEvent,
+  includeConcealed?: boolean
+) => Promise<LibraryGame[]>;
 type MissingFolder = "installer" | "installed" | "both" | "none";
 
-function fixture(missing: MissingFolder, overrides: Partial<Game> = {}) {
+function fixture(
+  missing: MissingFolder,
+  overrides: Partial<Game> = {},
+  options: {
+    records?: Array<[string, Game]>;
+    queue?: EpicLibraryArtworkQueue;
+  } = {}
+) {
   const game: Game = {
     shop: "steam",
     objectId: "123",
@@ -55,6 +66,9 @@ function fixture(missing: MissingFolder, overrides: Partial<Game> = {}) {
   const assets = new Map<string, Partial<ShopAssets>>();
   const selections = new Map<string, unknown>();
   const dependencies: Record<string, unknown> = {
+    "@main/services/epic-library-artwork": {
+      epicLibraryArtworkQueue: options.queue ?? { schedule: () => {} },
+    },
     "node:path": path,
     "node:fs": {
       existsSync: (filePath: string) => !missingPaths.has(filePath),
@@ -67,7 +81,9 @@ function fixture(missing: MissingFolder, overrides: Partial<Game> = {}) {
     "@main/level": {
       levelKeys: { game: (shop: string, id: string) => `${shop}:${id}` },
       gamesSublevel: {
-        iterator: () => ({ all: async () => [[key, { ...game }]] }),
+        iterator: () => ({
+          all: async () => options.records ?? [[key, { ...game }]],
+        }),
       },
       downloadsSublevel: { get: async () => download },
       gamesArtworkSelectionSublevel: {
@@ -135,7 +151,53 @@ function fixture(missing: MissingFolder, overrides: Partial<Game> = {}) {
     pendingWrites,
     errors,
     read: () => handlers.get("getLibrary")!({} as IpcMainInvokeEvent),
+    readAll: () => handlers.get("getLibrary")!({} as IpcMainInvokeEvent, true),
+    readHidden: () =>
+      handlers.get("getHiddenLibrary")!({} as IpcMainInvokeEvent),
   };
+}
+
+for (const hiddenCount of [0, 2]) {
+  it(`retains the full artwork backlog after reading ${hiddenCount} hidden games`, async () => {
+    const template = fixture("none").game;
+    const records: Array<[string, Game]> = Array.from(
+      { length: 200 },
+      (_, index) => [
+        `epic:${index}`,
+        {
+          ...template,
+          shop: "epic",
+          objectId: String(index),
+          remoteId: null,
+          installerSizeInBytes: null,
+          installedSizeInBytes: null,
+          isConcealed: index < hiddenCount,
+        },
+      ]
+    );
+    let release!: () => void;
+    const attempted: string[] = [];
+    const queue = new EpicLibraryArtworkQueue(
+      async (game) => {
+        attempted.push(game.id);
+        if (attempted.length === 1)
+          await new Promise<void>((resolve) => {
+            release = resolve;
+          });
+        return false;
+      },
+      () => assert.fail("unchanged artwork must not notify"),
+      Date.now,
+      async () => {}
+    );
+    const f = fixture("none", {}, { records, queue });
+    assert.equal((await f.readAll()).length, 200);
+    assert.equal(attempted.length, 1);
+    assert.equal((await f.readHidden()).length, hiddenCount);
+    release();
+    await new Promise<void>((resolve) => setImmediate(resolve));
+    assert.deepEqual([...attempted].sort(), records.map(([key]) => key).sort());
+  });
 }
 
 describe("library size cleanup", () => {

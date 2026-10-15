@@ -1,5 +1,6 @@
 export * from "./achievement-progress/achievement-progress";
 export * from "./avatar/avatar";
+export * from "./cloud-ring/cloud-ring";
 export * from "./bottom-panel/bottom-panel";
 export * from "./button/button";
 export * from "./game-card/game-card";

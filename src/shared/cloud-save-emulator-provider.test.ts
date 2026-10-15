@@ -8,6 +8,13 @@ import {
   isCloudSaveV2Eligible,
 } from "./cloud-save-emulator-provider.js";
 
+it("offers V2 for Epic catalogue games without exposing emulator file selection", () => {
+  assert.equal(isCloudSaveV2Eligible("epic"), true);
+  assert.equal(isCloudSaveV2Eligible("steam"), true);
+  assert.equal(isCloudSaveV2Eligible("custom"), false);
+  assert.equal(canSelectCloudSaveCustomFile("epic"), false);
+});
+
 it("recognizes legacy custom save files only for LaunchBox emulator V2 games", () => {
   assert.equal(canSelectCloudSaveCustomFile("steam"), false);
   assert.equal(canSelectCloudSaveCustomFile("steam", "Super Nintendo"), false);

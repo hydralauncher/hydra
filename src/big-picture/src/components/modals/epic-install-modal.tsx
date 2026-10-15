@@ -93,19 +93,22 @@ export function EpicInstallModal({
             >
               {t("epic_retry")}
             </Button>
-            <Button
-              variant="secondary"
-              onClick={() => {
-                onClose();
-                navigate("/settings?tab=integrations");
-              }}
-            >
-              {t("integrations", { ns: "settings" })}
-            </Button>
+            {getEpicManagedError(install.error).ns === "settings" && (
+              <Button
+                variant="secondary"
+                onClick={() => {
+                  onClose();
+                  navigate("/settings?tab=integrations");
+                }}
+              >
+                {t("integrations", { ns: "settings" })}
+              </Button>
+            )}
           </>
         )}
         <HorizontalFocusGroup>
           <Button
+            data-epic-install-submit={game?.objectId}
             variant="secondary"
             disabled={disabled}
             loading={install.starting}
@@ -114,6 +117,7 @@ export function EpicInstallModal({
             {t("add_to_queue")}
           </Button>
           <Button
+            data-epic-install-submit={game?.objectId}
             variant="primary"
             disabled={disabled}
             loading={install.starting}

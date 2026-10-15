@@ -17,8 +17,8 @@ import {
 } from "./legendary-managed-runtime.js";
 import {
   EPIC_INSTALL_OPTIONS_CACHE_MS,
+  EPIC_INSTALL_OPTIONS_CACHE_MAX_ENTRIES,
   EPIC_INSTALL_OPTIONS_TIMEOUT_MS,
-  EPIC_INSTALL_LIBRARY_CACHE_MS,
 } from "./constants.js";
 import { EpicSessionProvider } from "./session-provider.js";
 import { EpicConnectionStore } from "./store.js";
@@ -109,7 +109,7 @@ const game: Game = {
   },
 };
 
-async function fixture(t: TestContext) {
+async function fixture(t: TestContext, platform: NodeJS.Platform = "win32") {
   const root = await fs.mkdtemp(path.join(os.tmpdir(), "hydra-epic-install-"));
   let local = structuredClone(game);
   let remoteOwned = true;
@@ -170,6 +170,33 @@ async function fixture(t: TestContext) {
       };
     },
   });
+  t.mock.method(runtime, "inspect", async (target, id, signal) => {
+    const entry = library.find((entry) => entry.app_name === target.artifactId);
+    const verified = validateEpicMetadata(entry, target, id);
+    const args = [
+      "--config",
+      root,
+      "info",
+      target.artifactId,
+      "--json",
+      "--platform",
+      target.platform,
+    ];
+    commands.push(args);
+    await beforeExecute?.(args, {
+      signal,
+      timeout: EPIC_INSTALL_OPTIONS_TIMEOUT_MS,
+    });
+    runtime.assertCurrent(target, signal);
+    if (failInfo) throw new EpicManagedError("network");
+    return {
+      info: {
+        ...infoResponse,
+        game: { ...infoResponse.game, app_name: target.artifactId },
+      },
+      metadata: verified,
+    };
+  });
   const service = new EpicInstallationService({
     runtime,
     capture: async () => {
@@ -199,7 +226,8 @@ async function fixture(t: TestContext) {
       local = { ...local, ...patch(local) };
       return local;
     },
-    platform: "win32",
+    platform,
+    architecture: "x64",
   });
   t.after(async () => {
     await runtime.stop();
@@ -272,6 +300,8 @@ test("installation options prove exact alias identity and separate download/disk
     connectionId: connection.connectionId,
     options: [
       {
+        preparationId: (await f.service.getOptions(objectId)).options[0]
+          .preparationId,
         artifactId: "Artifact1",
         platform: "Windows",
         downloadSizeInBytes: 100,
@@ -281,14 +311,26 @@ test("installation options prove exact alias identity and separate download/disk
       },
     ],
   });
-  assert.equal(f.commands.filter((args) => args.includes("list")).length, 1);
+  assert.equal(f.commands.filter((args) => args.includes("list")).length, 0);
   await f.service.getOptions(objectId);
   assert.equal(
     f.commands.filter((args) => args.includes("list")).length,
-    1,
+    0,
     "verified metadata can be reused for the same owner/alias/platform"
   );
   assert.equal(f.commands.filter((args) => args.includes("info")).length, 1);
+});
+
+test("Linux x64 resolves owned Windows builds with the same installation validations", async (t) => {
+  const f = await fixture(t, "linux");
+  const options = await f.service.getOptions(objectId);
+  assert.equal(options.options[0].platform, "Windows");
+  assert.equal(options.options[0].artifactId, "Artifact1");
+  f.disown();
+  await assert.rejects(
+    f.service.capture(objectId, new AbortController().signal),
+    { code: "game-not-owned" }
+  );
 });
 
 test("preview prefetch and modal coalesce commands and reuse successful options without remote requests", async (t) => {
@@ -414,6 +456,46 @@ test("cancelling the last preview consumer aborts work and reopening immediately
   assert.equal(f.commands.filter((args) => args.includes("info")).length, 2);
 });
 
+test("cancelling a capture releases connection cleanup before the captured query resolves without checking ownership", async (t) => {
+  const f = await fixture(t);
+  const entered = deferred<void>();
+  const releaseQuery = deferred<void>();
+  let querySettled = false;
+  f.beforeCapture(async () => {
+    entered.resolve();
+    await releaseQuery.promise;
+    querySettled = true;
+  });
+  const ownershipRequests = f.ownershipRequests();
+  const controller = new AbortController();
+  const pending = f.service.capture(objectId, controller.signal);
+  let cleanupSettled = false;
+  const cleanup = assert
+    .rejects(pending, { code: "operation-cancelled" })
+    .then(() => {
+      cleanupSettled = true;
+    });
+  await entered.promise;
+  controller.abort();
+  try {
+    // A connection transition waits for launch cleanup before resolving its
+    // query. Cancellation must break that dependency without awaiting the query.
+    await new Promise<void>((resolve) => setImmediate(resolve));
+    assert.equal(cleanupSettled, true);
+    assert.equal(querySettled, false);
+    assert.equal(f.ownershipRequests(), ownershipRequests);
+    assert.equal(f.commands.length, 0);
+  } finally {
+    releaseQuery.resolve();
+    await cleanup;
+  }
+  await new Promise<void>((resolve) => setImmediate(resolve));
+  assert.equal(querySettled, true);
+  assert.equal(f.ownershipRequests(), ownershipRequests);
+  f.beforeCapture(undefined);
+  await f.service.capture(objectId, new AbortController().signal);
+  assert.equal(f.ownershipRequests(), ownershipRequests + 1);
+});
 test("preview deadline includes connection capture and a timeout remains retryable", async (t) => {
   const f = await fixture(t);
   const entered = deferred<void>();
@@ -433,89 +515,7 @@ test("preview deadline includes connection capture and a timeout remains retryab
   assert.equal((await f.service.getOptions(objectId)).options.length, 1);
 });
 
-test("preview deadline includes the global Epic session queue", async (t) => {
-  const f = await fixture(t);
-  const gate = deferred<void>();
-  const entered = deferred<void>();
-  const lease = f.session.serialize(() => gate.promise);
-  t.after(() => gate.resolve());
-  const original = f.runtime.runJson.bind(f.runtime);
-  t.mock.method(
-    f.runtime,
-    "runJson",
-    async (...args: Parameters<typeof original>) => {
-      entered.resolve();
-      return original(...args);
-    }
-  );
-  t.mock.timers.enable({ apis: ["setTimeout"] });
-  const pending = f.service.getOptions(objectId);
-  await entered.promise;
-  t.mock.timers.tick(EPIC_INSTALL_OPTIONS_TIMEOUT_MS);
-  assert.deepEqual(await pending, { options: [], error: "timeout" });
-  assert.equal(f.commands.length, 0);
-  gate.resolve();
-  await lease;
-  assert.equal((await f.service.getOptions(objectId)).options.length, 1);
-});
-
-test("navigation cancels ten queued game previews before the newest modal executes Legendary", async (t) => {
-  const f = await fixture(t);
-  const ids = Array.from(
-    { length: 11 },
-    (_value, index) => `Navigation:Item${index}`
-  );
-  ids.forEach((id, index) => f.addGame(id, `NavigationArtifact${index}`));
-  const gate = deferred<void>();
-  const lease = f.session.serialize(() => gate.promise);
-  t.after(() => gate.resolve());
-  const original = f.runtime.runJson.bind(f.runtime);
-  let entered = deferred<AbortSignal>();
-  t.mock.method(
-    f.runtime,
-    "runJson",
-    async (...args: Parameters<typeof original>) => {
-      if (args[1].includes("list")) entered.resolve(args[2].signal);
-      return original(...args);
-    }
-  );
-  for (const id of ids.slice(0, 10)) {
-    entered = deferred<AbortSignal>();
-    const controller = new AbortController();
-    const preview = f.service.getOptions(id, controller.signal);
-    const librarySignal = await entered.promise;
-    controller.abort();
-    assert.equal((await preview).error, "operation-cancelled");
-    await new Promise<void>((resolve) => setImmediate(resolve));
-    assert.equal(librarySignal.aborted, true);
-  }
-  entered = deferred<AbortSignal>();
-  const modal = f.service.getOptions(ids[10]);
-  await entered.promise;
-  assert.equal(f.commands.length, 0);
-  gate.resolve();
-  await lease;
-  const result = await modal;
-  assert.equal(result.options[0].artifactId, "NavigationArtifact10");
-  assert.deepEqual(
-    f.commands.map((args) => args.slice(2)),
-    [
-      ["list", "--json", "--include-non-installable", "--platform", "Windows"],
-      ["info", "NavigationArtifact10", "--json", "--platform", "Windows"],
-    ]
-  );
-  assert.equal(
-    (await f.service.getOptions(ids[0])).options[0].artifactId,
-    "NavigationArtifact0"
-  );
-  assert.equal(
-    f.commands.filter((args) => args.includes("list")).length,
-    1,
-    "the completed library stays warm for subsequent game previews"
-  );
-});
-
-test("different game previews reuse one account library but validate metadata in each workspace", async (t) => {
+test("different previews inspect only their selected aliases and do not mutate installation workspaces", async (t) => {
   const f = await fixture(t);
   const secondId = "Namespace2:Item2";
   f.addGame(secondId, "Artifact2");
@@ -525,43 +525,134 @@ test("different game previews reuse one account library but validate metadata in
   ]);
   assert.equal(first.options[0].artifactId, "Artifact1");
   assert.equal(second.options[0].artifactId, "Artifact2");
-  assert.equal(f.commands.filter((args) => args.includes("list")).length, 1);
-  assert.equal(f.commands.filter((args) => args.includes("info")).length, 2);
-  const owned = await f.service.capture(secondId, new AbortController().signal);
-  const target = epicManagedTarget(owned, "Artifact2", "Windows");
-  await f.service.metadata(target, secondId);
-  await assert.rejects(f.service.metadata(target, objectId), {
-    code: "invalid-artifact",
+  assert.deepEqual(f.commands.map((args) => args[3]).sort(), [
+    "Artifact1",
+    "Artifact2",
+  ]);
+  assert.equal(
+    f.commands.some((args) => args.includes("list")),
+    false
+  );
+  await assert.rejects(fs.stat(f.runtime.workspace(f.target)), {
+    code: "ENOENT",
   });
 });
 
-test("preview library refreshes for a newly owned alias missing from the cached listing", async (t) => {
-  const f = await fixture(t);
-  await f.service.getOptions(objectId);
-  const secondId = "Namespace2:Item2";
-  f.addGame(secondId, "Artifact2");
-  assert.equal(
-    (await f.service.getOptions(secondId)).options[0].artifactId,
-    "Artifact2"
-  );
-  assert.equal(f.commands.filter((args) => args.includes("list")).length, 2);
-});
-
-test("preview library expires and cannot cross an auth generation", async (t) => {
+test("preparation receipts reuse only the exact validated local context and expire conservatively", async (t) => {
   let now = Date.now();
   t.mock.method(Date, "now", () => now);
   const f = await fixture(t);
-  f.addGame("Namespace2:Item2", "Artifact2");
-  f.addGame("Namespace3:Item3", "Artifact3");
-  await f.service.getOptions(objectId);
-  now += EPIC_INSTALL_LIBRARY_CACHE_MS;
-  await f.service.getOptions("Namespace2:Item2");
-  assert.equal(f.commands.filter((args) => args.includes("list")).length, 2);
-  f.nextGeneration();
-  await f.service.getOptions("Namespace3:Item3");
-  assert.equal(f.commands.filter((args) => args.includes("list")).length, 3);
+  const options = await f.service.getOptions(objectId);
+  const payload = {
+    epicObjectId: objectId,
+    connectionId: connection.connectionId,
+    artifactId: "Artifact1",
+    platform: "Windows" as const,
+    preparationId: options.options[0].preparationId,
+    downloadPath: f.root,
+  };
+  const count = f.commands.length;
+  const requests = f.ownershipRequests();
+  assert.equal(
+    (await f.service.resolvePreparation(payload, new AbortController().signal))
+      .prepared.preparationId,
+    payload.preparationId
+  );
+  assert.equal(f.commands.length, count);
+  assert.equal(f.ownershipRequests(), requests);
+  now += EPIC_INSTALL_OPTIONS_CACHE_MS;
+  const refreshed = await f.service.resolvePreparation(
+    payload,
+    new AbortController().signal
+  );
+  assert.notEqual(refreshed.prepared.preparationId, payload.preparationId);
+  assert.equal(f.commands.length, count + 1);
+  assert.equal(f.ownershipRequests(), requests + 1);
+  f.setGame({ ...f.getGame(), hasActiveEpicImport: false });
+  await assert.rejects(
+    f.service.resolvePreparation(
+      { ...payload, preparationId: refreshed.prepared.preparationId },
+      new AbortController().signal
+    ),
+    { code: "game-not-owned" }
+  );
 });
 
+test("an old renderer reuses the same validated preparation without a receipt field", async (t) => {
+  const f = await fixture(t);
+  await f.service.getOptions(objectId);
+  const commands = f.commands.length;
+  await f.service.resolvePreparation(
+    {
+      epicObjectId: objectId,
+      connectionId: connection.connectionId,
+      artifactId: "Artifact1",
+      platform: "Windows",
+      downloadPath: f.root,
+    },
+    new AbortController().signal
+  );
+  assert.equal(f.commands.length, commands);
+});
+
+test("preparation receipts stay bounded and cannot survive a different auth generation", async (t) => {
+  const f = await fixture(t);
+  const first = await f.service.getOptions(objectId);
+  const payload = {
+    epicObjectId: objectId,
+    connectionId: connection.connectionId,
+    artifactId: "Artifact1",
+    platform: "Windows" as const,
+    downloadPath: f.root,
+    preparationId: first.options[0].preparationId,
+  };
+  for (let index = 0; index < EPIC_INSTALL_OPTIONS_CACHE_MAX_ENTRIES; index++) {
+    const id = `Another:Item${index}`;
+    f.addGame(id, `Another${index}`);
+    await f.service.getOptions(id);
+  }
+  const count = f.commands.length;
+  const refreshed = await f.service.resolvePreparation(
+    payload,
+    new AbortController().signal
+  );
+  assert.equal(f.commands.length, count + 1);
+  assert.notEqual(refreshed.prepared.preparationId, payload.preparationId);
+  f.nextGeneration();
+  const generation = await f.service.resolvePreparation(
+    { ...payload, preparationId: refreshed.prepared.preparationId },
+    new AbortController().signal
+  );
+  assert.equal(generation.owned.auth.generation, auth.generation + 1);
+  assert.notEqual(
+    generation.prepared.preparationId,
+    refreshed.prepared.preparationId
+  );
+});
+
+test("revalidating the same build preserves its preview receipt but a new build invalidates cached options", async (t) => {
+  const f = await fixture(t);
+  const first = await f.service.getOptions(objectId);
+  const current = await f.service.prepare(
+    f.owned,
+    "Artifact1",
+    "Windows",
+    new AbortController().signal
+  );
+  assert.equal(current.preparationId, first.options[0].preparationId);
+  f.setInfo({ ...info, game: { ...info.game, version: "build-2" } });
+  const newer = await f.service.prepare(
+    f.owned,
+    "Artifact1",
+    "Windows",
+    new AbortController().signal
+  );
+  assert.notEqual(newer.preparationId, first.options[0].preparationId);
+  assert.equal(
+    (await f.service.getOptions(objectId)).options[0].preparationId,
+    newer.preparationId
+  );
+});
 test("install info rejects external platforms, DLC, preload and invalid sizes", () => {
   assert.deepEqual(parseEpicInstallInfo(info, "Artifact1"), {
     downloadSizeInBytes: 100,
@@ -587,7 +678,7 @@ test("Squadrons metadata reports its Origin requirement before missing assets wi
     options: [],
     error: "external-launcher-required",
   });
-  assert.equal(f.commands.filter((args) => args.includes("list")).length, 1);
+  assert.equal(f.commands.filter((args) => args.includes("list")).length, 0);
   assert.equal(f.commands.filter((args) => args.includes("info")).length, 0);
   const owned = await f.service.capture(
     squadronsObjectId,
@@ -606,8 +697,8 @@ test("Squadrons metadata reports its Origin requirement before missing assets wi
   );
   assert.equal(
     f.commands.filter((args) => args.includes("list")).length,
-    1,
-    "an external launcher requirement cannot discard the verified account library"
+    0,
+    "external aliases do not require any library enumeration"
   );
 });
 
@@ -801,10 +892,15 @@ test("installation rejects missing remote ownership and unsupported builds", asy
 
 test("installed metadata binds the manifest executable preserving import provenance/time/preferences", async (t) => {
   const f = await fixture(t);
-  await f.service.prepare(
+  const prepared = await f.service.prepare(
     f.owned,
     "Artifact1",
     "Windows",
+    new AbortController().signal
+  );
+  await f.service.persistPreparation(
+    prepared,
+    objectId,
     new AbortController().signal
   );
   const installPath = path.join(f.root, "EpicGame");
@@ -886,12 +982,99 @@ test("installed metadata binds the manifest executable preserving import provena
   }
 });
 
-test("installed executable realpath cannot escape through a directory junction", async (t) => {
-  const f = await fixture(t);
-  await f.service.prepare(
+test("queued prerequisite confirmation cancels without modifying installation or releasing the active workspace", async (t) => {
+  const f = await fixture(t, "linux");
+  const prepared = await f.service.prepare(
     f.owned,
     "Artifact1",
     "Windows",
+    new AbortController().signal
+  );
+  await f.service.persistPreparation(
+    prepared,
+    objectId,
+    new AbortController().signal
+  );
+  const installPath = path.join(f.root, "EpicGame");
+  await fs.mkdir(installPath);
+  await fs.writeFile(path.join(installPath, "Game.exe"), "game");
+  const file = path.join(f.runtime.workspace(f.target), "installed.json");
+  await fs.writeFile(
+    file,
+    JSON.stringify({
+      Artifact1: {
+        app_name: "Artifact1",
+        platform: "Windows",
+        version: "build-1",
+        install_path: installPath,
+        executable: "Game.exe",
+        install_size: 1000,
+        prereq_info: { path: "Redist.exe", args: "/quiet", installed: false },
+      },
+    })
+  );
+  const installed = await f.service.readInstalled(f.target, objectId);
+  assert.ok(installed);
+  const release = deferred<void>();
+  const entered = deferred<void>();
+  const active = f.runtime.serializeWorkspace(f.target, async () => {
+    entered.resolve();
+    await release.promise;
+  });
+  await entered.promise;
+  const controller = new AbortController();
+  const confirmation = f.service.confirmPrerequisites(
+    f.target,
+    installed,
+    controller.signal
+  );
+  const cancelled = assert.rejects(confirmation, {
+    code: "operation-cancelled",
+  });
+  let nextRan = false;
+  const next = f.runtime.serializeWorkspace(f.target, async () => {
+    nextRan = true;
+  });
+  try {
+    controller.abort();
+    await cancelled;
+    assert.equal(nextRan, false);
+    assert.equal(
+      JSON.parse(await fs.readFile(file, "utf8")).Artifact1.prereq_info
+        .installed,
+      false
+    );
+  } finally {
+    release.resolve();
+    await active;
+    await next;
+  }
+  assert.equal(
+    JSON.parse(await fs.readFile(file, "utf8")).Artifact1.prereq_info.installed,
+    false
+  );
+  await f.service.confirmPrerequisites(
+    f.target,
+    installed,
+    new AbortController().signal
+  );
+  assert.equal(
+    JSON.parse(await fs.readFile(file, "utf8")).Artifact1.prereq_info.installed,
+    true
+  );
+});
+
+test("installed executable realpath cannot escape through a directory junction", async (t) => {
+  const f = await fixture(t);
+  const prepared = await f.service.prepare(
+    f.owned,
+    "Artifact1",
+    "Windows",
+    new AbortController().signal
+  );
+  await f.service.persistPreparation(
+    prepared,
+    objectId,
     new AbortController().signal
   );
   const installPath = path.join(f.root, "EpicGame");
@@ -913,5 +1096,7 @@ test("installed executable realpath cannot escape through a directory junction",
       },
     })
   );
-  assert.equal(await f.service.readInstalled(f.target, objectId), null);
+  await assert.rejects(f.service.readInstalled(f.target, objectId), {
+    code: "invalid-path",
+  });
 });

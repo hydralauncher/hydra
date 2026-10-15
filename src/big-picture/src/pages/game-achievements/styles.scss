@@ -1,9 +1,4 @@
 .game-achievements-page {
-  &__stores {
-    display: flex;
-    gap: calc(var(--spacing-unit) * 2);
-    margin-bottom: calc(var(--spacing-unit) * 4);
-  }
   margin-top: calc(-1 * var(--big-picture-header-height));
   width: 100%;
   min-width: 0;

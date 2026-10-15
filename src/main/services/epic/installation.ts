@@ -7,17 +7,20 @@ import type {
   EpicGameInstallOptions,
   EpicInstallPlatform,
   EpicLocalOwner,
+  StartEpicGameDownloadPayload,
 } from "../../../types/epic-managed.types";
 import type { EpicSyncContext } from "./sync-orchestrator";
 import { isRecord } from "./auth-protocol.js";
 import { isEpicObjectId } from "./library-normalizer.js";
+import { markEpicTiming, withEpicTiming } from "./timing.js";
+import { epicManagedInstallationSupport } from "./managed-platform.js";
+import { resolveEpicWindowsPath } from "./windows-path.js";
 import {
   EPIC_SYNC_MAX_OUTPUT_BYTES,
   EPIC_MAX_ARTIFACTS,
   EPIC_INSTALL_OPTIONS_CACHE_MS,
   EPIC_INSTALL_OPTIONS_CACHE_MAX_ENTRIES,
   EPIC_INSTALL_OPTIONS_TIMEOUT_MS,
-  EPIC_INSTALL_LIBRARY_CACHE_MS,
 } from "./constants.js";
 import {
   EpicManagedError,
@@ -31,6 +34,21 @@ export interface EpicOwnedGame extends EpicSyncContext {
   game: Game;
   owner: EpicLocalOwner;
   artifactIds: string[];
+}
+export interface EpicPreparedInstallation {
+  target: EpicManagedTarget;
+  downloadSizeInBytes: number;
+  diskSizeInBytes: number;
+  supportsCloudSaves: boolean;
+  version: string;
+  metadata: Record<string, unknown>;
+  manifest?: unknown;
+  preparationId: string;
+}
+interface EpicPreparationReceipt {
+  owned: EpicOwnedGame;
+  prepared: EpicPreparedInstallation;
+  expiresAt: number;
 }
 export interface EpicInstalledGame {
   app_name: string;
@@ -66,6 +84,7 @@ interface InstallationOptions {
     patch: (game: Game) => Partial<Game>
   ) => Promise<Game | undefined>;
   platform?: NodeJS.Platform;
+  architecture?: string;
 }
 
 interface SharedEpicRequest<T> {
@@ -287,10 +306,7 @@ export class EpicInstallationService {
     string,
     SharedEpicRequest<EpicGameInstallOptions>
   >();
-  private readonly libraryCache = new Map<
-    string,
-    SharedEpicRequest<unknown[]>
-  >();
+  private readonly preparations = new Map<string, EpicPreparationReceipt>();
   constructor(private readonly options: InstallationOptions) {
     this.runtime = options.runtime;
   }
@@ -369,7 +385,9 @@ export class EpicInstallationService {
     const context = this.options.captureLocal?.();
     if (!context || signal.aborted)
       throw new EpicManagedError("stale-connection");
-    const game = await this.options.getGame(objectId);
+    const game = await withEpicTiming("installation.local-game", () =>
+      this.options.getGame(objectId)
+    );
     const owner: EpicLocalOwner = {
       environment: context.auth.environment,
       userId: context.auth.userId,
@@ -411,10 +429,14 @@ export class EpicInstallationService {
   async capture(objectId: string, signal: AbortSignal): Promise<EpicOwnedGame> {
     if (!isEpicObjectId(objectId))
       throw new EpicManagedError("invalid-artifact");
-    const context = await this.options.capture();
+    const context = await withEpicTiming("installation.connection", () =>
+      waitWithSignal(this.options.capture(), signal)
+    );
     if (signal.aborted || !this.options.current(context))
       throw new EpicManagedError("operation-cancelled");
-    const game = await this.options.getGame(objectId);
+    const game = await withEpicTiming("installation.local-game", () =>
+      this.options.getGame(objectId)
+    );
     if (
       !game ||
       game.isDeleted ||
@@ -426,7 +448,9 @@ export class EpicInstallationService {
       game.epicImportScope.connectionId !== context.connection.connectionId
     )
       throw new EpicManagedError("game-not-owned");
-    const owned = await this.options.ownGame(context, objectId, signal);
+    const owned = await withEpicTiming("installation.ownership", () =>
+      this.options.ownGame(context, objectId, signal)
+    );
     if (signal.aborted || !this.options.current(context))
       throw new EpicManagedError("operation-cancelled");
     if (
@@ -451,11 +475,13 @@ export class EpicInstallationService {
     };
   }
   assertPlatform(platform: EpicInstallPlatform) {
-    // Other platform builds are intentionally not advertised before validation.
-    if (
-      (this.options.platform ?? process.platform) !== "win32" ||
-      platform !== "Windows"
-    )
+    const support = epicManagedInstallationSupport(
+      this.options.platform ?? process.platform,
+      this.options.architecture ?? process.arch
+    );
+    if (!support.available)
+      throw new EpicManagedError(support.reason ?? "unsupported-platform");
+    if (platform !== "Windows")
       throw new EpicManagedError("unsupported-platform");
   }
   private assertAlias(owned: EpicOwnedGame, target: EpicManagedTarget) {
@@ -473,163 +499,169 @@ export class EpicInstallationService {
   ): Promise<Record<string, unknown>> {
     if (!isSafeEpicArtifact(target.artifactId))
       throw new EpicManagedError("invalid-artifact");
-    const value = await readManagedJson(
-      path.join(
-        this.runtime.workspace(target),
-        "metadata",
-        `${target.artifactId}.json`
+    const value = await withEpicTiming("installation.metadata-read", () =>
+      readManagedJson(
+        path.join(
+          this.runtime.workspace(target),
+          "metadata",
+          `${target.artifactId}.json`
+        )
       )
     );
     return validateEpicMetadata(value, target, objectId);
+  }
+  private preparationKey(
+    context: EpicSyncContext,
+    objectId: string,
+    artifactId: string,
+    platform: EpicInstallPlatform
+  ) {
+    return JSON.stringify([
+      this.optionsKey(context, objectId),
+      artifactId,
+      platform,
+    ]);
+  }
+  private prunePreparations() {
+    for (const [key, receipt] of this.preparations)
+      if (
+        receipt.expiresAt <= Date.now() ||
+        !this.options.current(receipt.owned)
+      )
+        this.preparations.delete(key);
   }
   async prepare(
     owned: EpicOwnedGame,
     artifactId: string,
     platform: EpicInstallPlatform,
-    signal: AbortSignal,
-    reuseLibrary = false
-  ) {
+    signal: AbortSignal
+  ): Promise<EpicPreparedInstallation> {
     const target = epicManagedTarget(owned, artifactId, platform);
     this.assertAlias(owned, target);
-    try {
-      await this.metadata(target, owned.game.objectId);
-    } catch (error) {
-      if ((error as NodeJS.ErrnoException).code !== "ENOENT") throw error;
-      const library = reuseLibrary
-        ? await this.previewLibrary(target, signal)
-        : await this.runtime.runJson(
-            target,
-            [
-              "list",
-              "--json",
-              "--include-non-installable",
-              "--platform",
-              platform,
-            ],
-            { signal }
-          );
-      if (!Array.isArray(library))
-        throw new EpicManagedError("invalid-response");
-      const entries = library.filter(
-        (entry) => isRecord(entry) && entry.app_name === artifactId
-      );
-      if (entries.length !== 1) {
-        if (reuseLibrary) this.invalidatePreviewLibrary(target, library);
-        throw new EpicManagedError("invalid-artifact");
-      }
-      let metadata: Record<string, unknown>;
-      try {
-        metadata = validateEpicMetadata(
-          entries[0],
-          target,
-          owned.game.objectId
-        );
-      } catch (error) {
-        if (
-          reuseLibrary &&
-          error instanceof EpicManagedError &&
-          error.code === "invalid-artifact"
-        )
-          this.invalidatePreviewLibrary(target, library);
-        throw error;
-      }
-      if (reuseLibrary)
-        await this.runtime.serializeWorkspace(
-          target,
-          async (directory) => {
-            this.runtime.assertCurrent(target, signal);
-            try {
-              await this.metadata(target, owned.game.objectId);
-              return;
-            } catch (error) {
-              if ((error as NodeJS.ErrnoException).code !== "ENOENT")
-                throw error;
-            }
-            const metadataDirectory = path.join(directory, "metadata");
-            await fs.mkdir(metadataDirectory, { recursive: true, mode: 0o700 });
-            this.runtime.assertCurrent(target, signal);
-            await writeManagedJson(
-              path.join(metadataDirectory, `${artifactId}.json`),
-              metadata
-            );
-          },
-          signal
-        );
-      // Re-read durable metadata, including cached entries copied to a new workspace.
-      await this.metadata(target, owned.game.objectId);
-    }
-    const info = await this.runtime.runJson(
-      target,
-      ["info", artifactId, "--json", "--platform", platform],
-      { signal }
+    this.prunePreparations();
+    const key = this.preparationKey(
+      owned,
+      owned.game.objectId,
+      artifactId,
+      platform
     );
-    await this.metadata(target, owned.game.objectId);
-    return { target, ...parseEpicInstallInfo(info, artifactId) };
-  }
-  private libraryKey(target: EpicManagedTarget) {
-    return JSON.stringify([
-      target.auth.environment,
-      target.auth.userId,
-      target.auth.generation,
-      target.owner.epicAccountId,
-      target.connection.connectionId,
-      target.platform,
-    ]);
-  }
-  private invalidatePreviewLibrary(target: EpicManagedTarget, value: unknown) {
-    const key = this.libraryKey(target);
-    const entry = this.libraryCache.get(key);
-    if (entry?.value === value) this.libraryCache.delete(key);
-  }
-  private async previewLibrary(
-    target: EpicManagedTarget,
-    signal: AbortSignal,
-    refreshMissing = true
-  ): Promise<unknown[]> {
-    this.pruneCache(this.libraryCache);
-    const key = this.libraryKey(target);
-    const reused = this.libraryCache.has(key);
-    const entry =
-      this.libraryCache.get(key) ??
-      this.createRequest(
-        this.libraryCache,
-        key,
+    const cached = this.preparations.get(key)?.prepared;
+    const inspection = await withEpicTiming(
+      "installation.info",
+      () => this.runtime.inspect(target, owned.game.objectId, signal, cached),
+      { command: "info" }
+    );
+    this.runtime.assertCurrent(target, signal);
+    const prepared: EpicPreparedInstallation = {
+      target,
+      ...parseEpicInstallInfo(inspection.info, artifactId),
+      metadata: validateEpicMetadata(
+        inspection.metadata,
         target,
-        EPIC_INSTALL_LIBRARY_CACHE_MS,
-        async (librarySignal) => {
-          const library = await this.runtime.runJson(
-            target,
-            [
-              "list",
-              "--json",
-              "--include-non-installable",
-              "--platform",
-              target.platform,
-            ],
-            { signal: librarySignal }
-          );
-          if (!Array.isArray(library))
-            throw new EpicManagedError("invalid-response");
-          return library;
-        }
+        owned.game.objectId
+      ),
+      manifest: inspection.manifest,
+      preparationId: randomUUID(),
+    };
+    if (
+      cached &&
+      cached.version === prepared.version &&
+      cached.downloadSizeInBytes === prepared.downloadSizeInBytes &&
+      cached.diskSizeInBytes === prepared.diskSizeInBytes &&
+      cached.supportsCloudSaves === prepared.supportsCloudSaves &&
+      JSON.stringify(cached.metadata) === JSON.stringify(prepared.metadata)
+    )
+      prepared.preparationId = cached.preparationId;
+    else if (cached)
+      this.optionsCache.delete(this.optionsKey(owned, owned.game.objectId));
+    // Validate the eventual folder before advertising an installable choice.
+    this.folderNameFromMetadata(prepared.metadata, target);
+    this.preparations.delete(key);
+    this.preparations.set(key, {
+      owned,
+      prepared,
+      expiresAt: Date.now() + EPIC_INSTALL_OPTIONS_CACHE_MS,
+    });
+    while (this.preparations.size > EPIC_INSTALL_OPTIONS_CACHE_MAX_ENTRIES)
+      this.preparations.delete(this.preparations.keys().next().value!);
+    return prepared;
+  }
+  async resolvePreparation(
+    payload: StartEpicGameDownloadPayload,
+    signal: AbortSignal
+  ) {
+    if (signal.aborted) throw abortError(signal);
+    this.assertPlatform(payload.platform);
+    this.prunePreparations();
+    const localContext = this.options.captureLocal?.();
+    const receipt = [...this.preparations.values()].find(
+      ({ owned, prepared }) =>
+        owned.game.objectId === payload.epicObjectId &&
+        owned.connection.connectionId === payload.connectionId &&
+        prepared.target.artifactId === payload.artifactId &&
+        prepared.target.platform === payload.platform &&
+        (!payload.preparationId ||
+          prepared.preparationId === payload.preparationId) &&
+        (!localContext ||
+          this.optionsKey(localContext, payload.epicObjectId) ===
+            this.optionsKey(owned, payload.epicObjectId))
+    );
+    if (receipt) {
+      const game = await waitWithSignal(
+        this.options.getGame(payload.epicObjectId),
+        signal
       );
-    const library = await this.waitForRequest(
-      this.libraryCache,
-      key,
-      entry,
+      const { owned, prepared } = receipt;
+      if (
+        !game ||
+        game.isDeleted ||
+        game.shop !== "epic" ||
+        game.objectId !== payload.epicObjectId ||
+        !game.hasActiveEpicImport ||
+        game.epicImportScope?.environment !== owned.auth.environment ||
+        game.epicImportScope.userId !== owned.auth.userId ||
+        game.epicImportScope.connectionId !== owned.connection.connectionId
+      )
+        throw new EpicManagedError("game-not-owned");
+      this.runtime.assertCurrent(prepared.target, signal);
+      return { owned: { ...owned, game }, prepared };
+    }
+    // Old renderers and expired previews perform one targeted preparation only.
+    const owned = await this.capture(payload.epicObjectId, signal);
+    if (owned.connection.connectionId !== payload.connectionId)
+      throw new EpicManagedError("stale-connection");
+    const prepared = await this.prepare(
+      owned,
+      payload.artifactId,
+      payload.platform,
       signal
     );
-    if (
-      reused &&
-      refreshMissing &&
-      !library.some(
-        (value) => isRecord(value) && value.app_name === target.artifactId
-      )
-    ) {
-      if (this.libraryCache.get(key) === entry) this.libraryCache.delete(key);
-      return this.previewLibrary(target, signal, false);
-    }
-    return library;
+    return { owned, prepared };
+  }
+  async persistPreparation(
+    prepared: EpicPreparedInstallation,
+    objectId: string,
+    signal: AbortSignal
+  ) {
+    const metadata = validateEpicMetadata(
+      prepared.metadata,
+      prepared.target,
+      objectId
+    );
+    await this.runtime.serializeWorkspace(
+      prepared.target,
+      async (directory) => {
+        this.runtime.assertCurrent(prepared.target, signal);
+        const metadataDirectory = path.join(directory, "metadata");
+        await fs.mkdir(metadataDirectory, { recursive: true, mode: 0o700 });
+        this.runtime.assertCurrent(prepared.target, signal);
+        await writeManagedJson(
+          path.join(metadataDirectory, `${prepared.target.artifactId}.json`),
+          metadata
+        );
+      },
+      signal
+    );
   }
   private optionsKey(context: EpicSyncContext, objectId: string) {
     return JSON.stringify([
@@ -679,10 +711,14 @@ export class EpicInstallationService {
     const context =
       localContext && this.options.current(localContext)
         ? localContext
-        : await waitWithSignal(this.options.capture(), signal);
+        : await withEpicTiming("installation.connection", () =>
+            waitWithSignal(this.options.capture(), signal)
+          );
     if (!this.options.current(context) || signal.aborted)
       throw abortError(signal);
-    const game = await waitWithSignal(this.options.getGame(objectId), signal);
+    const game = await withEpicTiming("installation.local-game", () =>
+      waitWithSignal(this.options.getGame(objectId), signal)
+    );
     if (
       !game ||
       game.isDeleted ||
@@ -699,6 +735,9 @@ export class EpicInstallationService {
     const key = this.optionsKey(context, objectId);
     let entry = this.optionsCache.get(key);
     const reused = !!entry;
+    markEpicTiming("installation.options-cache", {
+      cache: entry ? (entry.settled ? "hit" : "shared") : "miss",
+    });
     if (!entry) {
       entry = this.createRequest(
         this.optionsCache,
@@ -709,11 +748,8 @@ export class EpicInstallationService {
         (result) => !result.error && result.options.length > 0
       );
     }
-    const result = await this.waitForRequest(
-      this.optionsCache,
-      key,
-      entry,
-      signal
+    const result = await withEpicTiming("installation.options-wait", () =>
+      this.waitForRequest(this.optionsCache, key, entry, signal)
     );
     if (!this.options.current(context) || signal.aborted)
       throw new EpicManagedError("operation-cancelled");
@@ -721,8 +757,8 @@ export class EpicInstallationService {
       if (this.optionsCache.get(key) === entry) this.optionsCache.delete(key);
       return result;
     }
-    // Cached options are a preview, never authorization to install. Start still
-    // captures ownership and runs prepare again with fresh Legendary info.
+    // Installation status may change while the preview is warm. Ownership is
+    // confirmed again when the queued transfer actually starts.
     const owner: EpicLocalOwner = {
       environment: context.auth.environment,
       userId: context.auth.userId,
@@ -766,21 +802,21 @@ export class EpicInstallationService {
       )
         throw new EpicManagedError("operation-cancelled");
       const options: EpicGameInstallOption[] = [];
+      markEpicTiming("installation.aliases", {
+        count: owned.artifactIds.length,
+      });
       let invalid: unknown;
       for (const artifactId of owned.artifactIds) {
         try {
-          const prepared = await this.prepare(
-            owned,
-            artifactId,
-            "Windows",
-            signal,
-            true
+          const prepared = await withEpicTiming("installation.prepare", () =>
+            this.prepare(owned, artifactId, "Windows", signal)
           );
           const installed = await this.readInstalledForRepair(
             prepared.target,
             objectId
           );
           options.push({
+            preparationId: prepared.preparationId,
             artifactId,
             platform: "Windows",
             downloadSizeInBytes: prepared.downloadSizeInBytes,
@@ -830,10 +866,8 @@ export class EpicInstallationService {
     expectedInstallPath?: string
   ): Promise<EpicInstalledGame | null> {
     try {
-      return await this.readInstalled(
-        target,
-        expectedObjectId,
-        expectedInstallPath
+      return await withEpicTiming("installation.read-installed", () =>
+        this.readInstalled(target, expectedObjectId, expectedInstallPath)
       );
     } catch (error) {
       if (
@@ -904,7 +938,10 @@ export class EpicInstallationService {
     const candidate = path.resolve(installPath, normalizedExe);
     if (!isPathContained(installPath, candidate))
       throw new EpicManagedError("invalid-path");
-    const executablePath = await fs.realpath(candidate).catch(() => null);
+    const executablePath = await resolveEpicWindowsPath(
+      installPath,
+      normalizedExe
+    );
     if (
       !executablePath ||
       !isPathContained(installPath, executablePath) ||
@@ -928,8 +965,41 @@ export class EpicInstallationService {
       executablePath,
     } as EpicInstalledGame;
   }
+  async confirmPrerequisites(
+    target: EpicManagedTarget,
+    installed: EpicInstalledGame,
+    signal: AbortSignal
+  ) {
+    if (!installed.prereq_info) return;
+    await this.runtime.serializeWorkspace(
+      target,
+      async (directory) => {
+        this.runtime.assertCurrent(target, signal);
+        const file = path.join(directory, "installed.json");
+        const values = await readManagedJson(file);
+        const entry = isRecord(values) ? values[target.artifactId] : null;
+        if (
+          !isRecord(values) ||
+          !isRecord(entry) ||
+          !isRecord(entry.prereq_info) ||
+          entry.version !== installed.version ||
+          entry.install_path !== installed.install_path
+        )
+          throw new EpicManagedError("installation-incomplete");
+        entry.prereq_info.installed = true;
+        await writeManagedJson(file, values);
+      },
+      signal
+    );
+  }
   async folderName(target: EpicManagedTarget, objectId: string) {
     const entry = await this.metadata(target, objectId);
+    return this.folderNameFromMetadata(entry, target);
+  }
+  folderNameFromMetadata(
+    entry: Record<string, unknown>,
+    target: EpicManagedTarget
+  ) {
     const metadata = entry.metadata as Record<string, unknown>;
     const attributes = isRecord(metadata.customAttributes)
       ? metadata.customAttributes

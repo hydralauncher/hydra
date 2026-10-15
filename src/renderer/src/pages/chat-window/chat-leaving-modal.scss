@@ -1,0 +1,185 @@
+@use "../../scss/globals.scss";
+
+$faded-text: rgba(globals.$body-color, 0.7);
+$meta-text: rgba(globals.$body-color, 0.6);
+
+// Extends `.modal`; the chat window can be narrower than its min-width. It is
+// a native <dialog>, so its default placement and padding are reset.
+.chat-leaving-modal {
+  position: relative;
+  inset: auto;
+  margin: 0;
+  padding: 0;
+  width: 400px;
+  min-width: 0;
+  max-width: 100%;
+  overflow-y: auto;
+
+  &__close {
+    position: absolute;
+    top: calc(globals.$spacing-unit * 1.5);
+    right: calc(globals.$spacing-unit * 1.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    padding: 0;
+    background: none;
+    border: none;
+    border-radius: 6px;
+    color: globals.$body-color;
+    cursor: pointer;
+    transition:
+      background-color 0.15s ease,
+      color 0.15s ease;
+
+    &:hover,
+    &:focus-visible {
+      background-color: rgba(255, 255, 255, 0.08);
+      color: globals.$muted-color;
+    }
+  }
+
+  &__header {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: calc(globals.$spacing-unit * 2);
+    padding: calc(globals.$spacing-unit * 4) calc(globals.$spacing-unit * 3) 0;
+    text-align: center;
+  }
+
+  &__icon {
+    display: block;
+    flex-shrink: 0;
+  }
+
+  &__icon-badge {
+    fill: globals.$muted-color;
+  }
+
+  &__icon--insecure &__icon-badge {
+    fill: globals.$warning-color;
+  }
+
+  &__icon-mark {
+    fill: none;
+    stroke: globals.$background-color;
+    stroke-width: 2.2;
+    stroke-linecap: round;
+  }
+
+  &__icon-dot {
+    fill: globals.$background-color;
+  }
+
+  &__heading {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  &__title {
+    margin: 0;
+    font-size: 18px;
+    font-weight: 700;
+    line-height: 24px;
+    color: globals.$muted-color;
+  }
+
+  &__description {
+    margin: 0;
+    font-size: 13px;
+    line-height: 18px;
+    color: $faded-text;
+  }
+
+  &__content {
+    display: flex;
+    flex-direction: column;
+    gap: calc(globals.$spacing-unit * 2);
+    padding: calc(globals.$spacing-unit * 3) calc(globals.$spacing-unit * 2)
+      calc(globals.$spacing-unit * 2);
+  }
+
+  &__destination {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    padding: calc(globals.$spacing-unit * 1.5);
+    background-color: globals.$dark-background-color;
+    border: 1px solid globals.$border-color;
+    border-radius: 8px;
+
+    &--insecure {
+      border-color: rgba(globals.$warning-color, 0.35);
+    }
+  }
+
+  &__host {
+    display: flex;
+    align-items: center;
+    gap: globals.$spacing-unit;
+    min-width: 0;
+  }
+
+  &__host-icon {
+    flex-shrink: 0;
+    color: $faded-text;
+  }
+
+  &__destination--insecure &__host-icon {
+    color: globals.$warning-color;
+  }
+
+  &__host-name {
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-size: globals.$body-font-size;
+    font-weight: 600;
+    color: globals.$muted-color;
+  }
+
+  &__not-secure {
+    flex-shrink: 0;
+    padding: 2px globals.$spacing-unit;
+    border-radius: 999px;
+    background-color: rgba(globals.$warning-color, 0.12);
+    color: globals.$warning-color;
+    font-size: 11px;
+    font-weight: 600;
+  }
+
+  // Long links stop after a few lines; the full one is in the tooltip.
+  &__url {
+    display: -webkit-box;
+    -webkit-line-clamp: 4;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    font-size: globals.$small-font-size;
+    line-height: 18px;
+    color: $meta-text;
+    overflow-wrap: anywhere;
+    user-select: text;
+  }
+
+  &__warning {
+    margin: 0;
+    font-size: 13px;
+    line-height: 20px;
+  }
+
+  &__actions {
+    display: flex;
+    gap: globals.$spacing-unit;
+    padding-top: 4px;
+
+    > * {
+      flex: 1;
+    }
+  }
+}

@@ -1,4 +1,5 @@
 import { getContextualEpicGame } from "@main/services/epic/import-visibility";
+import { epicLibraryArtworkQueue } from "@main/services/epic-library-artwork";
 import { updateGameRecord } from "@main/services/game-record-updater";
 import { logger } from "@main/services/logger";
 import path from "node:path";
@@ -167,9 +168,13 @@ const getLibrary = async (
               customCoverImageUrl: game.customCoverImageUrl,
             };
           })
-      ).then((games) =>
-        games.filter((game): game is NonNullable<typeof game> => game !== null)
-      );
+      ).then((games) => {
+        const library = games.filter(
+          (game): game is NonNullable<typeof game> => game !== null
+        );
+        if (HydraApi.isLoggedIn()) epicLibraryArtworkQueue.schedule(library);
+        return library;
+      });
     });
 };
 
