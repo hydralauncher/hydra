@@ -1,7 +1,7 @@
 import type { GameShop, UserAchievement, UserPreferences } from "@types";
 import { registerEvent } from "../register-event";
 import { getGameAchievementData } from "@main/services/achievements/get-game-achievement-data";
-import { db, levelKeys } from "@main/level";
+import { db, gamesSublevel, levelKeys } from "@main/level";
 import { AchievementWatcherManager } from "@main/services/achievements/achievement-watcher-manager";
 import { AchievementMemoryStore } from "@main/services/achievements/achievement-memory-store";
 import { AchievementSouvenirStore } from "@main/services/achievements/achievement-souvenir-store";
@@ -90,7 +90,22 @@ export const getUnlockedAchievements = async (
         (variant) => variant.shop === shop && variant.objectId === objectId
       )
     );
-    if (combined?.achievements.length && includesRequestedCopy) {
+    // An empty copy contributes no variants. Confirm its canonical membership
+    // separately, without hiding any selected-source catalogue or local unlocks.
+    const emptyCopyInGroup =
+      !includesRequestedCopy &&
+      combined?.canonicalId &&
+      catalogueAchievements.length === 0 &&
+      unlockedAchievements.length === 0 &&
+      (
+        await gamesSublevel
+          .get(levelKeys.game(shop, objectId))
+          .catch(() => undefined)
+      )?.canonicalId === combined.canonicalId;
+    if (
+      combined?.achievements.length &&
+      (includesRequestedCopy || emptyCopyInGroup)
+    ) {
       return presentCombinedAchievements(
         combined,
         (sourceShop, sourceObjectId) =>
