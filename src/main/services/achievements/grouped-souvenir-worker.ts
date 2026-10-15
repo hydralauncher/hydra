@@ -958,42 +958,31 @@ export const deleteLocalSouvenirAsset = async (souvenirId: string) => {
   await LocalSouvenirAssetStore.delete(souvenirId);
 };
 
-const deletePendingSouvenirs = async (
+const deletePendingSouvenirs = (
   matches: (souvenir: PendingAchievementSouvenir) => boolean
-) => {
-  const pending = await PendingGroupedSouvenirStore.list();
+) =>
+  groupedSouvenirWorker.serializeQueueChanges(async () => {
+    const pending = await PendingGroupedSouvenirStore.list();
 
-  for (const souvenir of pending) {
-    if (!matches(souvenir)) continue;
-    await PendingGroupedSouvenirStore.delete(souvenir.clientId);
-    await fs.promises
-      .rm(souvenir.screenshotPath, { force: true })
-      .catch((error) => {
-        achievementsLogger.error(
-          "Failed to delete cancelled grouped souvenir screenshot",
-          { clientId: souvenir.clientId, error }
-        );
-      });
-  }
-};
+    for (const souvenir of pending) {
+      if (!matches(souvenir)) continue;
+      await PendingGroupedSouvenirStore.delete(souvenir.clientId);
+      await fs.promises
+        .rm(souvenir.screenshotPath, { force: true })
+        .catch((error) => {
+          achievementsLogger.error(
+            "Failed to delete cancelled grouped souvenir screenshot",
+            { clientId: souvenir.clientId, error }
+          );
+        });
+    }
+  });
 
-export const cancelPendingSouvenirsForGame = async (gameKey: string) => {
-  const matchesGame = (souvenir: PendingAchievementSouvenir) =>
-    souvenir.gameKey === gameKey;
+export const cancelPendingSouvenirsForGame = (gameKey: string) =>
+  deletePendingSouvenirs((souvenir) => souvenir.gameKey === gameKey);
 
-  await deletePendingSouvenirs(matchesGame);
-  await groupedSouvenirWorker.waitForIdle();
-  await deletePendingSouvenirs(matchesGame);
-};
-
-export const cancelPendingSouvenirsForShop = async (shop: string) => {
-  const matchesShop = (souvenir: PendingAchievementSouvenir) =>
-    souvenir.gameKey.startsWith(`${shop}:`);
-
-  await deletePendingSouvenirs(matchesShop);
-  await groupedSouvenirWorker.waitForIdle();
-  await deletePendingSouvenirs(matchesShop);
-};
+export const cancelPendingSouvenirsForShop = (shop: string) =>
+  deletePendingSouvenirs((souvenir) => souvenir.gameKey.startsWith(`${shop}:`));
 
 export const deleteLocalSouvenirAssetsForGame = async (gameKey: string) => {
   const assets = await LocalSouvenirAssetStore.list();

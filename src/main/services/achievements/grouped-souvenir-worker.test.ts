@@ -330,6 +330,138 @@ describe("grouped souvenir worker recovery", () => {
     f.worker.groupedSouvenirWorker.stop();
   });
 
+  for (const scope of ["game", "shop"] as const) {
+    for (const recoveryMode of [undefined, "sync_achievements_only"] as const) {
+      it(`does not let renewal undo ${scope} cancellation of a paused ${recoveryMode ?? "souvenir"}`, async () => {
+        const gameKey = scope === "game" ? "steam:game" : "launchbox:game";
+        const f = fixture([
+          pending({ gameKey, status: "paused", recoveryMode }),
+        ]);
+        const snapshotRead = deferred();
+        const releaseSnapshot = deferred();
+        f.state.onList = async () => {
+          f.state.onList = undefined;
+          snapshotRead.resolve();
+          await releaseSnapshot.promise;
+        };
+        const renewal =
+          f.worker.groupedSouvenirWorker.resumeAfterSubscriptionRefresh(
+            "owner",
+            new Date(f.state.now + RETENTION_MS)
+          );
+        await snapshotRead.promise;
+        const cancellation =
+          scope === "game"
+            ? f.worker.cancelPendingSouvenirsForGame(gameKey)
+            : f.worker.cancelPendingSouvenirsForShop("launchbox");
+        await f.settle();
+        releaseSnapshot.resolve();
+        await Promise.all([renewal, cancellation]);
+        await f.run();
+        assert.deepEqual(
+          f.calls,
+          [],
+          "reset progress must never be uploaded by renewal"
+        );
+        assert.equal(
+          f.store.size,
+          0,
+          "cancellation must not be undone by a stale renewal snapshot"
+        );
+        assert.deepEqual(f.removed, ["/fixture/photo.jpeg"]);
+        f.worker.groupedSouvenirWorker.stop();
+      });
+    }
+  }
+
+  for (const scope of ["game", "shop"] as const) {
+    const gameKey = scope === "game" ? "steam:game" : "launchbox:game";
+    const cancel = (f: ReturnType<typeof fixture>) =>
+      scope === "game"
+        ? f.worker.cancelPendingSouvenirsForGame(gameKey)
+        : f.worker.cancelPendingSouvenirsForShop("launchbox");
+
+    it(`keeps ${scope} cancellation ahead of a later renewal`, async () => {
+      const f = fixture([
+        pending({
+          gameKey,
+          status: "paused",
+          recoveryMode: "sync_achievements_only",
+        }),
+      ]);
+      const snapshotRead = deferred();
+      const releaseSnapshot = deferred();
+      f.state.onList = async () => {
+        f.state.onList = undefined;
+        snapshotRead.resolve();
+        await releaseSnapshot.promise;
+      };
+      const cancellation = cancel(f);
+      await snapshotRead.promise;
+      const renewal =
+        f.worker.groupedSouvenirWorker.resumeAfterSubscriptionRefresh(
+          "owner",
+          new Date(f.state.now + RETENTION_MS)
+        );
+      await f.settle();
+      releaseSnapshot.resolve();
+      await Promise.all([cancellation, renewal]);
+      await f.run();
+      assert.deepEqual(f.calls, []);
+      assert.equal(f.store.size, 0);
+      assert.deepEqual(f.removed, ["/fixture/photo.jpeg"]);
+      f.worker.groupedSouvenirWorker.stop();
+    });
+
+    it(`waits for an in-flight upload before finishing ${scope} cancellation`, async () => {
+      const f = fixture([pending({ gameKey })]);
+      const requestStarted = deferred();
+      const releaseRequest = deferred();
+      f.state.authorizationError = new Error("network unavailable");
+      f.state.onAuthorize = async () => {
+        requestStarted.resolve();
+        await releaseRequest.promise;
+      };
+      const upload = f.worker.groupedSouvenirWorker.trigger();
+      await requestStarted.promise;
+      let cancelled = false;
+      const cancellation = cancel(f).then(() => {
+        cancelled = true;
+      });
+      await f.settle();
+      assert.equal(cancelled, false);
+      releaseRequest.resolve();
+      await Promise.all([upload, cancellation]);
+      await f.run();
+      assert.deepEqual(f.calls, ["authorize"]);
+      assert.equal(f.store.size, 0);
+      assert.deepEqual(f.removed, ["/fixture/photo.jpeg"]);
+      f.worker.groupedSouvenirWorker.stop();
+    });
+
+    it(`preserves records outside the cancelled ${scope}`, async () => {
+      const f = fixture([
+        pending({ gameKey, status: "paused" }),
+        pending({
+          clientId: "other-game",
+          gameKey: "steam:game-other",
+          status: "paused",
+          screenshotPath: "/fixture/other-game.jpeg",
+        }),
+        pending({
+          clientId: "other-shop",
+          gameKey: "launchbox-other:game",
+          status: "paused",
+          screenshotPath: "/fixture/other-shop.jpeg",
+        }),
+      ]);
+      await cancel(f);
+      assert.deepEqual([...f.store.keys()], ["other-game", "other-shop"]);
+      assert.deepEqual(f.removed, ["/fixture/photo.jpeg"]);
+      assert.deepEqual(f.calls, []);
+    });
+  }
+
   it("serializes overlapping renewal refreshes without duplicate uploads", async () => {
     const f = fixture([pending({ status: "paused" })]);
     const expiry = new Date(f.state.now + RETENTION_MS);
