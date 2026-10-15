@@ -166,14 +166,17 @@ const EMPTY_MESSAGES_RANGE: MessagesRange = {
   isComplete: false,
 };
 
+type FetchMessages = typeof fetchMessages;
+
 const fetchMessagesAfter = async (
   friendId: string,
   afterSeq: number,
+  fetchPage: FetchMessages,
   range = EMPTY_MESSAGES_RANGE
 ): Promise<MessagesRange> => {
   let page: ChatMessagesPage;
   try {
-    page = await fetchMessages(friendId, {
+    page = await fetchPage(friendId, {
       after: afterSeq,
       take: MAX_PAGE_SIZE,
     });
@@ -191,7 +194,7 @@ const fetchMessagesAfter = async (
     return { ...next, isComplete: true };
   }
 
-  return fetchMessagesAfter(friendId, lastSeq, next);
+  return fetchMessagesAfter(friendId, lastSeq, fetchPage, next);
 };
 
 const isNotFriendsError = (error: unknown) =>
@@ -283,6 +286,22 @@ export function useChat({
 
   // Messages with images, by client nonce, until the server answers for them.
   const outgoingRef = useRef(new Map<string, OutgoingImages>());
+
+  // When each message was last hidden, so a fetch that started earlier can't
+  // bring it back.
+  const hiddenAtRef = useRef(new Map<string, number>());
+  const fetchPage = useCallback<FetchMessages>(async (friendId, params) => {
+    const startedAt = Date.now();
+    const page = await fetchMessages(friendId, params);
+    return {
+      ...page,
+      messages: page.messages.map((message) =>
+        (hiddenAtRef.current.get(`${friendId}:${message.seq}`) ?? 0) > startedAt
+          ? { ...message, hidden: true }
+          : message
+      ),
+    };
+  }, []);
   // Held messages waiting for a realtime answer, by client nonce. Each one
   // looks the conversation up again if the answer doesn't come.
   const pendingChecksRef = useRef(
@@ -379,7 +398,7 @@ export function useChat({
       }));
 
       try {
-        const page = await fetchMessages(friendId, { take: PAGE_SIZE });
+        const page = await fetchPage(friendId, { take: PAGE_SIZE });
         const messages = page.messages.map((message) =>
           toChatMessage(message, friendId, true)
         );
@@ -432,7 +451,7 @@ export function useChat({
         }));
       }
     },
-    [stopPendingCheck, updateConversation, watchPending]
+    [fetchPage, stopPendingCheck, updateConversation, watchPending]
   );
 
   useEffect(() => {
@@ -451,7 +470,7 @@ export function useChat({
 
       const load = (async () => {
         try {
-          const page = await fetchMessages(friendId, {
+          const page = await fetchPage(friendId, {
             after: afterSeq,
             take: MAX_PAGE_SIZE,
           });
@@ -492,7 +511,7 @@ export function useChat({
       newerLoadsRef.current.set(friendId, load);
       return load;
     },
-    [loadLatest, updateConversation]
+    [fetchPage, loadLatest, updateConversation]
   );
 
   /**
@@ -509,7 +528,11 @@ export function useChat({
         return;
       }
 
-      const range = await fetchMessagesAfter(friendId, oldestSeq - 1);
+      const range = await fetchMessagesAfter(
+        friendId,
+        oldestSeq - 1,
+        fetchPage
+      );
       const loaded = range.messages.map((message) =>
         toChatMessage(message, friendId, true)
       );
@@ -521,7 +544,7 @@ export function useChat({
         messages: mergeChatMessages(conversation.messages, loaded),
       }));
     },
-    [findConversation, loadLatest, updateConversation]
+    [fetchPage, findConversation, loadLatest, updateConversation]
   );
 
   const resyncConversation = useCallback(
@@ -572,7 +595,7 @@ export function useChat({
       }));
 
       try {
-        const page = await fetchMessages(friendId, {
+        const page = await fetchPage(friendId, {
           before: oldestSeq,
           take: PAGE_SIZE,
         });
@@ -595,7 +618,7 @@ export function useChat({
         }));
       }
     },
-    [findConversation, updateConversation]
+    [fetchPage, findConversation, updateConversation]
   );
 
   /**
@@ -628,7 +651,7 @@ export function useChat({
 
       try {
         while (hasMoreBefore && oldestSeq > seq) {
-          const page = await fetchMessages(friendId, {
+          const page = await fetchPage(friendId, {
             before: oldestSeq,
             take: MAX_PAGE_SIZE,
           });
@@ -658,14 +681,14 @@ export function useChat({
 
       return loaded.some((message) => message.seq === seq);
     },
-    [findConversation, updateConversation]
+    [fetchPage, findConversation, updateConversation]
   );
 
   /** Puts back a message moderation removed; the event carries no text. */
   const restoreMessage = useCallback(
     async (friendId: string, seq: number) => {
       try {
-        const page = await fetchMessages(friendId, { after: seq - 1, take: 1 });
+        const page = await fetchPage(friendId, { after: seq - 1, take: 1 });
         const restored = page.messages.find((message) => message.seq === seq);
         if (!restored || restored.hidden) return;
 
@@ -681,7 +704,7 @@ export function useChat({
         // It stays removed until the next resync reloads it.
       }
     },
-    [updateConversation]
+    [fetchPage, updateConversation]
   );
 
   const startRateLimitWindow = useCallback(() => {
@@ -738,7 +761,9 @@ export function useChat({
       const windowStart = startRateLimitWindow();
 
       try {
-        await Promise.all(
+        // Every upload settles before Retry shows, so a retry never uploads
+        // an image that is still on its way.
+        const uploads = await Promise.allSettled(
           outgoing.files.map(async (file, index) => {
             if (outgoing.ids[index]) return;
 
@@ -751,6 +776,11 @@ export function useChat({
             outgoing.ids[index] = id;
           })
         );
+        const failedUpload = uploads.find(
+          (upload): upload is PromiseRejectedResult =>
+            upload.status === "rejected"
+        );
+        if (failedUpload) throw failedUpload.reason;
 
         const ids = outgoing.ids.filter((id): id is string => id !== null);
         updateConversation(friendId, (conversation) => ({
@@ -1200,7 +1230,9 @@ export function useChat({
       ({ friendId, seq, hidden }) => {
         if (!findConversation(friendId)) return;
 
+        const key = `${friendId}:${seq}`;
         if (hidden) {
+          hiddenAtRef.current.set(key, Date.now());
           updateConversation(friendId, (conversation) => ({
             ...conversation,
             // A removed message can't be replied to.
@@ -1211,6 +1243,7 @@ export function useChat({
           return;
         }
 
+        hiddenAtRef.current.delete(key);
         void restoreMessage(friendId, seq);
       }
     );
@@ -1366,10 +1399,27 @@ export function useChat({
     updateConversation,
   ]);
 
+  /** Frees a closed conversation's local images and unsent uploads. */
+  const forgetConversation = useCallback(
+    (friendId: string, messages: ChatMessage[]) => {
+      for (const message of messages) {
+        revokeLocalCopies(message.attachments);
+        stopPendingCheck(message.clientNonce);
+      }
+      for (const [clientNonce, outgoing] of outgoingRef.current) {
+        if (outgoing.friendId === friendId) {
+          outgoingRef.current.delete(clientNonce);
+        }
+      }
+    },
+    [stopPendingCheck]
+  );
+
   return {
     send,
     retry,
     remove,
+    forgetConversation,
     react,
     reactionError,
     loadOlder,

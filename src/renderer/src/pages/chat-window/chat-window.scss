@@ -802,6 +802,9 @@ $cooldown-ring-length: 2 * math.$pi * 11;
   &__picker {
     position: absolute;
     top: calc(100% + 4px);
+    right: auto;
+    margin: 0;
+    color: inherit;
     display: flex;
     flex-direction: column;
     width: 288px;
@@ -1042,6 +1045,7 @@ $cooldown-ring-length: 2 * math.$pi * 11;
   }
 
   &__conversation {
+    position: relative;
     display: flex;
     flex-direction: column;
     flex: 1;
@@ -2784,10 +2788,6 @@ $cooldown-ring-length: 2 * math.$pi * 11;
       background-color: globals.$muted-color;
       color: globals.$background-color;
     }
-  }
-
-  &__conversation {
-    position: relative;
   }
 
   // Covers messages and composer while files are dragged over the window.

@@ -1,4 +1,5 @@
 import { useTranslation } from "react-i18next";
+import type { TFunction } from "i18next";
 import { EyeClosedIcon, SyncIcon } from "@primer/octicons-react";
 import cn from "classnames";
 
@@ -22,6 +23,19 @@ export interface ChatMessageImagesProps {
   onOpen: (attachment: ChatAttachment) => void;
   onRetry: () => void;
 }
+
+const getImageLabel = (
+  t: TFunction<"chat_window">,
+  isCovered: boolean,
+  index: number,
+  count: number
+) => {
+  if (count === 1) return t(isCovered ? "show_spoiler_image" : "open_image");
+  return t(isCovered ? "show_spoiler_image_of" : "open_image_of", {
+    index: index + 1,
+    count,
+  });
+};
 
 /** A message's images: one keeps its shape, more share a grid. */
 export function ChatMessageImages({
@@ -77,13 +91,7 @@ export function ChatMessageImages({
         const src = attachment.localUrl ?? attachment.url;
         const isCovered =
           attachment.spoiler && !isBlocked && !revealedIds.has(attachment.id);
-        const label =
-          attachments.length > 1
-            ? t(isCovered ? "show_spoiler_image_of" : "open_image_of", {
-                index: index + 1,
-                count: attachments.length,
-              })
-            : t(isCovered ? "show_spoiler_image" : "open_image");
+        const label = getImageLabel(t, isCovered, index, attachments.length);
 
         return (
           <button
@@ -172,24 +180,21 @@ export function ChatMessageImagesStatus({
   switch (message.status) {
     case "pending":
       return (
-        <p className="chat-window__message-status" role="status">
+        <output className="chat-window__message-status">
           {t("sending_progress", {
             percent: Math.round((message.uploadProgress ?? 0) * 100),
           })}
-        </p>
+        </output>
       );
     case "checking":
       return (
-        <p
-          className="chat-window__message-status chat-window__message-status--checking"
-          role="status"
-        >
+        <output className="chat-window__message-status chat-window__message-status--checking">
           {t("checking_images", { count })}
-        </p>
+        </output>
       );
     case "blocked":
       return (
-        <p className="chat-window__message-status" role="status">
+        <output className="chat-window__message-status">
           <span>{t("images_blocked", { count })}</span>
           <button
             type="button"
@@ -198,11 +203,11 @@ export function ChatMessageImagesStatus({
           >
             {t("remove")}
           </button>
-        </p>
+        </output>
       );
     case "failed":
       return (
-        <p className="chat-window__message-status" role="status">
+        <output className="chat-window__message-status">
           <span>
             {message.failure === "daily_limit"
               ? t("images_daily_limit")
@@ -222,7 +227,7 @@ export function ChatMessageImagesStatus({
           >
             {t("remove")}
           </button>
-        </p>
+        </output>
       );
     default:
       return null;

@@ -270,6 +270,8 @@ export function ChatTabStrip({
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.key !== "Tab" || !event.ctrlKey || event.altKey) return;
+      // Switching tabs would unmount an open dialog and lose what was typed.
+      if (document.querySelector("[data-hydra-dialog]")) return;
 
       event.preventDefault();
       const nextId = getAdjacentTabId(

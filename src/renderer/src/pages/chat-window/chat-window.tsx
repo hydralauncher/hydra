@@ -61,6 +61,14 @@ export default function ChatWindow() {
 
   const chat = useChat({ conversations, activeId, updateConversation });
 
+  // Images that finish preparing after their tab closed are freed, not kept.
+  const openIdsRef = useRef(new Set<string>());
+  useEffect(() => {
+    openIdsRef.current = new Set(
+      conversations.map((conversation) => conversation.friend.id)
+    );
+  }, [conversations]);
+
   // Friend updates arrive in bursts; only the latest refresh may write, so a
   // slow, older response can't roll presence back.
   const friendsRequestIdRef = useRef(0);
@@ -142,7 +150,7 @@ export default function ChatWindow() {
 
     // A background tab leaves the open conversation in place; it only gets
     // picked when no conversation is open yet.
-    const foreground = pending.filter((entry) => !entry.isBackground).at(-1);
+    const foreground = pending.findLast((entry) => !entry.isBackground);
     setActiveId(
       (activeId) => foreground?.friend.id ?? activeId ?? last.friend.id
     );
@@ -234,9 +242,11 @@ export default function ChatWindow() {
     }
 
     setConversations(remaining);
+    openIdsRef.current.delete(friendId);
     for (const image of conversations[index].draftImages) {
       URL.revokeObjectURL(image.url);
     }
+    chat.forgetConversation(friendId, conversations[index].messages);
 
     if (activeId === friendId) {
       // Like browser tabs, focus the right neighbour, else the left one.
@@ -317,15 +327,17 @@ export default function ChatWindow() {
             );
             chat.notifyTyping(activeConversation.friend.id, draft);
           }}
-          onDraftImagesChange={(update) =>
-            updateConversation(
-              activeConversation.friend.id,
-              (conversation) => ({
-                ...conversation,
-                draftImages: update(conversation.draftImages),
-              })
-            )
-          }
+          onDraftImagesChange={(update) => {
+            const friendId = activeConversation.friend.id;
+            if (!openIdsRef.current.has(friendId)) {
+              for (const image of update([])) URL.revokeObjectURL(image.url);
+              return;
+            }
+            updateConversation(friendId, (conversation) => ({
+              ...conversation,
+              draftImages: update(conversation.draftImages),
+            }));
+          }}
           onReplyChange={(replyToSeq) =>
             updateConversation(
               activeConversation.friend.id,

@@ -69,6 +69,16 @@ export function ChatReportModal({
     if (!isSending) close();
   }, [close, isSending]);
 
+  // The dialog sits outside the app root, so this keeps Tab and clicks inside it.
+  useEffect(() => {
+    const root = document.getElementById("root");
+    if (!root) return;
+    root.inert = true;
+    return () => {
+      root.inert = false;
+    };
+  }, []);
+
   // Typed details would be lost to a stray click, so only Escape closes it.
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {

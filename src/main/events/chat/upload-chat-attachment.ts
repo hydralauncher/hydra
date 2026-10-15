@@ -13,6 +13,9 @@ import type {
 const FRIEND_ID_PATTERN = /^[A-Za-z0-9]{8}$/;
 const UPLOAD_ID_MAX_LENGTH = 128;
 const PROGRESS_STEP = 0.02;
+// The upload URL expires after five minutes, so a slower upload can't succeed.
+const UPLOAD_DEADLINE_MS = 5 * 60 * 1_000;
+const UPLOAD_STALL_TIMEOUT_MS = 30_000;
 
 // Mirrors the API's limits, so a file it would refuse never leaves the machine.
 const MAX_BYTES: Record<ChatAttachmentContentType, number> = {
@@ -74,6 +77,8 @@ const uploadChatAttachment = async (
     await axios.put(reservation.uploadUrl, Buffer.from(bytes), {
       headers: { "Content-Type": contentType },
       maxBodyLength: Infinity,
+      timeout: UPLOAD_STALL_TIMEOUT_MS,
+      signal: AbortSignal.timeout(UPLOAD_DEADLINE_MS),
       onUploadProgress: ({ loaded }) => {
         if (loaded - lastReported < size * PROGRESS_STEP && loaded < size) {
           return;

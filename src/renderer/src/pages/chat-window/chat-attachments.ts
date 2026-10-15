@@ -13,6 +13,10 @@ const SINGLE_IMAGE_MIN_WIDTH = 96;
 const SINGLE_IMAGE_MIN_HEIGHT = 64;
 const GROUP_WIDTH = 280;
 const DEFAULT_ASPECT_RATIO = 16 / 9;
+const PAIR_CELL_HEIGHT = 160;
+const TRIO_WIDE_CELL_HEIGHT = 156;
+const TRIO_CELL_HEIGHT = 104;
+const QUAD_CELL_HEIGHT = 120;
 
 /** An image in the composer, ready to send. */
 export interface ChatDraftImage {
@@ -116,7 +120,7 @@ export const getChatImageLayout = (
     return {
       width: GROUP_WIDTH,
       columns: 2,
-      cells: sizes.map(() => ({ height: 160, isWide: false })),
+      cells: sizes.map(() => ({ height: PAIR_CELL_HEIGHT, isWide: false })),
     };
   }
 
@@ -125,9 +129,9 @@ export const getChatImageLayout = (
       width: GROUP_WIDTH,
       columns: 2,
       cells: [
-        { height: 156, isWide: true },
-        { height: 104, isWide: false },
-        { height: 104, isWide: false },
+        { height: TRIO_WIDE_CELL_HEIGHT, isWide: true },
+        { height: TRIO_CELL_HEIGHT, isWide: false },
+        { height: TRIO_CELL_HEIGHT, isWide: false },
       ],
     };
   }
@@ -135,7 +139,7 @@ export const getChatImageLayout = (
   return {
     width: GROUP_WIDTH,
     columns: 2,
-    cells: sizes.map(() => ({ height: 120, isWide: false })),
+    cells: sizes.map(() => ({ height: QUAD_CELL_HEIGHT, isWide: false })),
   };
 };
 

@@ -7,6 +7,7 @@ import {
   useState,
 } from "react";
 import { useTranslation } from "react-i18next";
+import type { TFunction } from "i18next";
 import {
   AlertIcon,
   ArrowDownIcon,
@@ -92,6 +93,10 @@ const TOAST_SPRING = {
   damping: 34,
   mass: 0.75,
 } as const;
+const TOAST_EXIT_SECONDS = 0.18;
+const TOAST_ICON_DELAY_SECONDS = 0.06;
+const TOAST_REDUCED_MOTION_SECONDS = 0.15;
+const TOAST_CHECK_DELAY_SECONDS = 0.16;
 const TOAST_HIDDEN = { opacity: 0, y: 22, scale: 0.96, filter: "blur(10px)" };
 const TOAST_SHOWN = { opacity: 1, y: 0, scale: 1, filter: "blur(0px)" };
 const TOAST_EXIT = {
@@ -99,13 +104,13 @@ const TOAST_EXIT = {
   y: 8,
   scale: 0.96,
   filter: "blur(8px)",
-  transition: { duration: 0.18, ease: CHAT_REPORT_EASE_OUT },
+  transition: { duration: TOAST_EXIT_SECONDS, ease: CHAT_REPORT_EASE_OUT },
 };
 const TOAST_ICON_SPRING = {
   type: "spring",
   stiffness: 500,
   damping: 28,
-  delay: 0.06,
+  delay: TOAST_ICON_DELAY_SECONDS,
 } as const;
 /** Room the quick reaction bar needs above a message before it opens below. */
 const REACTION_BAR_CLEARANCE_PX = 56;
@@ -114,6 +119,49 @@ const isSameDay = (a: Date, b: Date) => a.toDateString() === b.toDateString();
 
 const prefersReducedMotion = () =>
   window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+const countNewMessages = (
+  messages: ChatMessage[],
+  awayFromId: string | null
+) => (awayFromId === null ? 0 : countFriendMessagesAfter(messages, awayFromId));
+
+const findFirstNewId = (messages: ChatMessage[], newSinceId: string | null) =>
+  newSinceId === null
+    ? null
+    : (findFirstFriendMessageAfter(messages, newSinceId)?.id ?? null);
+
+interface OpenImage {
+  messageId: string;
+  attachmentId: string;
+}
+
+/** The open image, or null once its message is gone or removed. */
+const findOpenImage = (messages: ChatMessage[], open: OpenImage | null) => {
+  if (!open) return null;
+  const message = messages.find((current) => current.id === open.messageId);
+  if (!message || message.isHidden) return null;
+  const attachment = message.attachments?.find(
+    (current) => current.id === open.attachmentId
+  );
+  const src = attachment?.localUrl ?? attachment?.url;
+  return src ? { message, src } : null;
+};
+
+const getQuotedText = (
+  quoted: NonNullable<ChatMessageReply["quoted"]>,
+  t: TFunction<"chat_window">
+) => {
+  if (quoted.isHidden) return t("message_removed");
+  if (quoted.text) return quoted.text;
+  return quoted.attachmentCount
+    ? t("quoted_images", { count: quoted.attachmentCount })
+    : "";
+};
+
+const getJumpLabel = (newMessageCount: number, t: TFunction<"chat_window">) =>
+  newMessageCount > 0
+    ? t("jump_to_new_messages", { count: newMessageCount })
+    : t("jump_to_latest");
 
 interface ChatMessageQuoteProps {
   reply: ChatMessageReply;
@@ -152,12 +200,7 @@ function ChatMessageQuote({
           "chat-window__message-quote-text--removed": reply.quoted.isHidden,
         })}
       >
-        {reply.quoted.isHidden
-          ? t("message_removed")
-          : reply.quoted.text ||
-            (reply.quoted.attachmentCount
-              ? t("quoted_images", { count: reply.quoted.attachmentCount })
-              : "")}
+        {getQuotedText(reply.quoted, t)}
       </span>
     </button>
   );
@@ -185,10 +228,12 @@ export function ChatMessageList({
   const [revealedIds, setRevealedIds] = useState<ReadonlySet<string>>(
     () => new Set()
   );
-  const [lightbox, setLightbox] = useState<{
-    src: string;
-    caption: string;
-  } | null>(null);
+  const [lightbox, setLightbox] = useState<OpenImage | null>(null);
+  const revealImage = useCallback(
+    (attachment: ChatAttachment) =>
+      setRevealedIds((current) => new Set([...current, attachment.id])),
+    []
+  );
 
   const scrollRef = useRef<HTMLDivElement>(null);
   const dayDividerRefs = useRef(new Map<string, HTMLDivElement>());
@@ -224,16 +269,12 @@ export function ChatMessageList({
   // While scrolled away from the newest message: the newest message at that
   // moment. Whatever the friend sends after it counts as new.
   const [awayFromId, setAwayFromId] = useState<string | null>(null);
-  const newMessageCount =
-    awayFromId === null ? 0 : countFriendMessagesAfter(messages, awayFromId);
+  const newMessageCount = countNewMessages(messages, awayFromId);
 
   // Where the "New messages" divider goes from. Unlike `awayFromId` it stays
   // once the user is back at the bottom, until they reply.
   const [newSinceId, setNewSinceId] = useState<string | null>(null);
-  const firstNewId =
-    newSinceId === null
-      ? null
-      : (findFirstFriendMessageAfter(messages, newSinceId)?.id ?? null);
+  const firstNewId = findFirstNewId(messages, newSinceId);
 
   // Keeps the jump button on screen while it animates out, with the count it
   // had when the user got back to the bottom.
@@ -533,16 +574,18 @@ export function ChatMessageList({
   };
 
   const openImage = (message: ChatMessage, attachment: ChatAttachment) => {
-    const src = attachment.localUrl ?? attachment.url;
-    if (!src) return;
-
-    setLightbox({
-      src,
-      caption: `${message.fromMe ? t("you") : friendName} · ${timeFormat.format(
-        new Date(message.createdAt)
-      )}`,
-    });
+    if (!attachment.localUrl && !attachment.url) return;
+    setLightbox({ messageId: message.id, attachmentId: attachment.id });
   };
+
+  const openImageView = findOpenImage(messages, lightbox);
+  const getImageCaption = (message: ChatMessage) =>
+    `${message.fromMe ? t("you") : friendName} · ${timeFormat.format(
+      new Date(message.createdAt)
+    )}`;
+  useEffect(() => {
+    if (lightbox && !openImageView) setLightbox(null);
+  }, [lightbox, openImageView]);
 
   const scrollToLatest = useCallback(() => {
     scrollRef.current?.scrollTo({
@@ -570,10 +613,7 @@ export function ChatMessageList({
   const isJumpLeaving = awayFromId === null && leavingJump !== null;
   const jumpCount = isJumpLeaving ? leavingJump.count : newMessageCount;
 
-  const jumpLabel =
-    newMessageCount > 0
-      ? t("jump_to_new_messages", { count: newMessageCount })
-      : t("jump_to_latest");
+  const jumpLabel = getJumpLabel(newMessageCount, t);
 
   const getDayLabel = (date: Date) => {
     const today = new Date();
@@ -729,12 +769,7 @@ export function ChatMessageList({
                                   isHighlighted={isHighlighted}
                                   isFlashing={isFlashing}
                                   revealedIds={revealedIds}
-                                  onReveal={(attachment) =>
-                                    setRevealedIds(
-                                      (current) =>
-                                        new Set([...current, attachment.id])
-                                    )
-                                  }
+                                  onReveal={revealImage}
                                   onOpen={(attachment) =>
                                     openImage(message, attachment)
                                   }
@@ -901,10 +936,10 @@ export function ChatMessageList({
         />
       )}
 
-      {lightbox && (
+      {openImageView && (
         <ChatImageLightbox
-          src={lightbox.src}
-          caption={lightbox.caption}
+          src={openImageView.src}
+          caption={getImageCaption(openImageView.message)}
           onClose={() => setLightbox(null)}
         />
       )}
@@ -944,7 +979,11 @@ export function ChatMessageList({
             initial={shouldReduceMotion ? { opacity: 0 } : TOAST_HIDDEN}
             animate={TOAST_SHOWN}
             exit={shouldReduceMotion ? { opacity: 0 } : TOAST_EXIT}
-            transition={shouldReduceMotion ? { duration: 0.15 } : TOAST_SPRING}
+            transition={
+              shouldReduceMotion
+                ? { duration: TOAST_REDUCED_MOTION_SECONDS }
+                : TOAST_SPRING
+            }
           >
             <motion.span
               className="chat-window__toast-icon"
@@ -953,7 +992,7 @@ export function ChatMessageList({
               animate={{ scale: 1, opacity: 1 }}
               transition={TOAST_ICON_SPRING}
             >
-              <ChatReportCheck size={14} delay={0.16} />
+              <ChatReportCheck size={14} delay={TOAST_CHECK_DELAY_SECONDS} />
             </motion.span>
             <span className="chat-window__toast-text">
               <span className="chat-window__toast-title">

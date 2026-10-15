@@ -175,6 +175,8 @@ export function ChatConversationView({
   const dragDepthRef = useRef(0);
   // Images still being prepared hold their place against the per-message limit.
   const preparingCountRef = useRef(0);
+  const [preparingCount, setPreparingCount] = useState(0);
+  // Ahead of rendering, so preparations finishing together see each other.
   const draftImagesRef = useRef(draftImages);
 
   useEffect(() => {
@@ -199,6 +201,7 @@ export function ChatConversationView({
 
     for (const file of picked) {
       preparingCountRef.current += 1;
+      setPreparingCount((count) => count + 1);
 
       void prepareChatImage(file)
         .then((prepared) => {
@@ -208,10 +211,13 @@ export function ChatConversationView({
             return;
           }
 
-          onDraftImagesChange((images) => [
-            ...images,
-            { ...prepared, id: crypto.randomUUID(), spoiler: false },
-          ]);
+          const image = {
+            ...prepared,
+            id: crypto.randomUUID(),
+            spoiler: false,
+          };
+          draftImagesRef.current = [...draftImagesRef.current, image];
+          onDraftImagesChange((images) => [...images, image]);
         })
         .catch((prepError: unknown) => {
           setImageNote(
@@ -222,6 +228,7 @@ export function ChatConversationView({
         })
         .finally(() => {
           preparingCountRef.current -= 1;
+          setPreparingCount((count) => count - 1);
         });
     }
 
@@ -316,7 +323,10 @@ export function ChatConversationView({
   const showCounter = shouldShowLengthCounter(text.length);
   const hasImages = draftImages.length > 0;
   const canSend =
-    conversation.canSend && (text.length > 0 || hasImages) && !isTooLong;
+    conversation.canSend &&
+    (text.length > 0 || hasImages) &&
+    !isTooLong &&
+    preparingCount === 0;
   const placeholder = hasImages
     ? t("add_message_placeholder")
     : t("message_placeholder", { name: friend.displayName });

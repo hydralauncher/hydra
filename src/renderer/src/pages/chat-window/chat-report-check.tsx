@@ -2,6 +2,8 @@ import { motion, useReducedMotion } from "framer-motion";
 
 /** A fast start that settles gently, for confirmations. */
 export const CHAT_REPORT_EASE_OUT = [0.16, 1, 0.3, 1] as const;
+const CHECK_DRAW_SECONDS = 0.35;
+const CHECK_DEFAULT_DELAY_SECONDS = 0.1;
 
 export interface ChatReportCheckProps {
   size: number;
@@ -12,7 +14,7 @@ export interface ChatReportCheckProps {
 /** A check mark that draws itself in, for a sent report. */
 export function ChatReportCheck({
   size,
-  delay = 0.1,
+  delay = CHECK_DEFAULT_DELAY_SECONDS,
 }: Readonly<ChatReportCheckProps>) {
   const shouldReduceMotion = useReducedMotion();
 
@@ -35,7 +37,11 @@ export function ChatReportCheck({
         transition={
           shouldReduceMotion
             ? { duration: 0 }
-            : { duration: 0.35, ease: CHAT_REPORT_EASE_OUT, delay }
+            : {
+                duration: CHECK_DRAW_SECONDS,
+                ease: CHAT_REPORT_EASE_OUT,
+                delay,
+              }
         }
       />
     </svg>

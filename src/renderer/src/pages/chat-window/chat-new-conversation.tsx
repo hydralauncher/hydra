@@ -212,7 +212,9 @@ export function ChatNewConversation({
     }
   };
 
-  const handleAnimationEnd = (event: React.AnimationEvent<HTMLDivElement>) => {
+  const handleAnimationEnd = (
+    event: React.AnimationEvent<HTMLDialogElement>
+  ) => {
     if (event.target !== event.currentTarget) return;
 
     if (event.animationName === "chat-window-picker-reveal") {
@@ -245,12 +247,12 @@ export function ChatNewConversation({
       </button>
 
       {phase !== "closed" && placement && (
-        <div
+        <dialog
+          open
           className={cn("chat-window__picker", {
             "chat-window__picker--closing": phase === "closing",
             "chat-window__picker--settled": isSettled,
           })}
-          role="dialog"
           aria-label={t("new_conversation")}
           style={
             {
@@ -328,7 +330,7 @@ export function ChatNewConversation({
               </div>
             </div>
           )}
-        </div>
+        </dialog>
       )}
     </div>
   );

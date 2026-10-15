@@ -81,7 +81,7 @@ export function getAdjacentTabId(
   if (ids.length < 2) return null;
 
   const index = activeId === null ? -1 : ids.indexOf(activeId);
-  if (index === -1) return step === 1 ? ids[0] : ids[ids.length - 1];
+  if (index === -1) return (step === 1 ? ids[0] : ids.at(-1)) ?? null;
 
   return ids[(index + step + ids.length) % ids.length];
 }
