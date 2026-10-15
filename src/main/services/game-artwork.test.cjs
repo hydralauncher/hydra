@@ -142,7 +142,9 @@ test("confirmed missing icons wait for the artwork cache before retrying", async
   };
   await instance.resolveEpicDefaultArtwork(cached, cached);
   assert.equal(instance.apiRequests.length, 0);
-  cached.epicArtworkUpdatedAtByType.icon = now - 5 * 60 * 1000 - 1;
+  const PREVIOUS_MISSING_ICON_RETRY_MS = 5 * 60 * 1000;
+  cached.epicArtworkUpdatedAtByType.icon =
+    now - PREVIOUS_MISSING_ICON_RETRY_MS - 1;
   await instance.resolveEpicDefaultArtwork(cached, cached);
   assert.equal(instance.apiRequests.length, 0);
   cached.epicArtworkUpdatedAtByType.icon =
