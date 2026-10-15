@@ -72,6 +72,7 @@ function fixture() {
     starts: 0,
     journal: null as import("./sync-orchestrator").EpicSyncJournal | null,
     deletedJournals: 0,
+    storeImports: 0,
     requested: [] as string[],
     playtimeReads: 0,
     puts: [] as unknown[],
@@ -98,6 +99,13 @@ function fixture() {
   const events: string[] = [];
   const modules: Record<string, unknown> = {
     "../logger": { logger: { error: () => {} } },
+    "./download": { getEpicDownloadService: () => assert.fail("no download") },
+    "./egs-auto-import": {
+      scheduleEpicStoreAutoImport: async () => {
+        state.storeImports++;
+        return 0;
+      },
+    },
     "./achievement-source": { EpicAchievementSource },
     "./achievement-protocol": achievementProtocol,
     "./sync-snapshot": snapshot,
@@ -225,7 +233,10 @@ function fixture() {
     "./constants": constants,
     "./library-normalizer": normalizer,
     "./playtime-policy": policy,
-    "./session-attribution": { isEpicInstallExecutable: async () => false },
+    "./session-attribution": {
+      isEpicInstallExecutable: async () => false,
+      listEpicStoreInstallations: async () => [],
+    },
     "./legendary-managed-runtime": { managedWorkspacePath, epicOwnerMatches },
     "./import-cleanup": {
       matchesEpicImportScope: (
