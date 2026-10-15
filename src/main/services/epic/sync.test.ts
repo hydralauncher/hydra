@@ -572,6 +572,45 @@ function syncFixture() {
   return { state, deps, sync: new EpicSyncOrchestrator(deps) };
 }
 describe("Epic publication reconciliation", () => {
+  it("preserves fresh reconnect warnings when replacing resumed staging", async () => {
+    for (const totalChunks of [null, 2]) {
+      for (const requiresReconnect of [false, true]) {
+        const f = syncFixture();
+        f.state.journal = {
+          syncRunId: runId,
+          totalChunks,
+          mergePending: false,
+          requiresReconnect: !requiresReconnect,
+        };
+        f.deps.capture = async () => ({
+          ...context,
+          connection: {
+            ...connection,
+            capabilities: { achievementsSnapshotVersion: 1 },
+          },
+        });
+        const readRun = f.deps.run;
+        f.deps.run = async (...args) => ({
+          ...(await readRun(...args)),
+          achievementSnapshotVersion: 1,
+        });
+        f.deps.achievements = async (_context, games) => ({
+          games,
+          requiresReconnect,
+        });
+        f.deps.merge = async () => {
+          assert.equal(f.state.journal?.requiresReconnect, requiresReconnect);
+          return true;
+        };
+        await f.sync.start(connection.connectionId);
+        await f.sync.wait();
+        assert.equal(f.state.starts, 1);
+        assert.equal(f.state.result?.ok, true);
+        assert.equal(f.sync.getState().requiresReconnect, requiresReconnect);
+      }
+    }
+  });
+
   it("collects achievements when replacing expired, failed or legacy staging", async () => {
     for (const previous of ["expired", "FAILED", "PENDING"] as const) {
       const f = syncFixture();

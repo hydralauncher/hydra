@@ -236,7 +236,6 @@ export class EpicSyncOrchestrator {
       );
       achievementsRequested =
         context.connection.capabilities?.achievementsSnapshotVersion === 1;
-      requiresReconnect = false;
       return id;
     };
     try {
@@ -301,6 +300,9 @@ export class EpicSyncOrchestrator {
           };
           await this.deps.saveJournal(context, journal);
         }
+        // Replace warnings from an older attempt before collecting a fresh snapshot.
+        // A later staging replacement must retain this collection's reconnect result.
+        requiresReconnect = false;
         this.publish(operation, "library");
         const games = await this.deps.library(context, controller.signal);
         this.publish(operation, "playtime", 0, games.length);
