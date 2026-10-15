@@ -21,6 +21,7 @@ import {
   EPIC_INSTALL_OPTIONS_CACHE_MS,
   EPIC_INSTALL_OPTIONS_CACHE_MAX_ENTRIES,
   EPIC_INSTALL_OPTIONS_TIMEOUT_MS,
+  EPIC_IMPORT_VERIFY_TIMEOUT_MS,
 } from "./constants.js";
 import {
   EpicManagedError,
@@ -121,6 +122,14 @@ function waitWithSignal<T>(
       }
     );
   });
+}
+
+function assertLegendarySucceeded(result: { stdout: string; stderr: string }) {
+  if (
+    /(?:ERROR|FATAL|CRITICAL):/i.test(`${result.stdout}
+${result.stderr}`)
+  )
+    throw new EpicManagedError("process-failed");
 }
 
 export const isSafeEpicArtifact = (value: unknown): value is string =>
@@ -1066,6 +1075,109 @@ export class EpicInstallationService {
     );
     if (!updated) throw new EpicManagedError("game-not-owned");
     return updated;
+  }
+  /**
+   * Registers a complete Epic Games Store installation in the managed workspace
+   * instead of downloading the game again. Game files are only read: Legendary
+   * imports the store's `.egstore` data and verifies hashes when it cannot.
+   */
+  async importExisting(
+    objectId: string,
+    store: { artifactId: string; installLocation: string },
+    signal: AbortSignal
+  ) {
+    const owned = await this.capture(objectId, signal);
+    if (owned.game.epicInstallation)
+      throw new EpicManagedError("operation-in-progress");
+    const target = epicManagedTarget(owned, store.artifactId, "Windows");
+    this.assertAlias(owned, target);
+    const installPath = await fs
+      .realpath(store.installLocation)
+      .catch(() => null);
+    if (!installPath) throw new EpicManagedError("installation-missing");
+    const [installStat, storeStat] = await Promise.all([
+      fs.lstat(installPath),
+      fs.lstat(path.join(installPath, ".egstore")).catch(() => null),
+    ]);
+    if (
+      !installStat.isDirectory() ||
+      installStat.isSymbolicLink() ||
+      !storeStat?.isDirectory()
+    )
+      throw new EpicManagedError("invalid-path");
+    try {
+      // Legendary also writes the game's metadata that readInstalled validates.
+      assertLegendarySucceeded(
+        await this.runtime.runRaw(
+          target,
+          [
+            "-y",
+            "import",
+            target.artifactId,
+            installPath,
+            "--platform",
+            "Windows",
+          ],
+          { signal, timeout: EPIC_INSTALL_OPTIONS_TIMEOUT_MS }
+        )
+      );
+      this.runtime.assertCurrent(target, signal);
+      if (await this.needsVerification(target)) {
+        const verified = await this.runtime.runRaw(
+          target,
+          ["verify", target.artifactId],
+          { signal, timeout: EPIC_IMPORT_VERIFY_TIMEOUT_MS }
+        );
+        assertLegendarySucceeded(verified);
+        if (
+          !`${verified.stdout}
+${verified.stderr}`.includes("Verification finished successfully.")
+        )
+          throw new EpicManagedError("installation-incomplete");
+        await this.markVerified(target, installPath, signal);
+      }
+      const installed = await this.readInstalled(target, objectId, installPath);
+      if (!installed) throw new EpicManagedError("installation-incomplete");
+      await this.bind(owned, target, installed, signal);
+      return { owned, target, installed };
+    } catch (error) {
+      // An unverifiable store install stays a normal download in Hydra.
+      await this.forgetInstallation(target).catch(() => undefined);
+      throw error;
+    }
+  }
+  private async needsVerification(target: EpicManagedTarget) {
+    const value = await readManagedJson(
+      path.join(this.runtime.workspace(target), "installed.json")
+    ).catch(() => null);
+    const entry = isRecord(value) ? value[target.artifactId] : null;
+    return isRecord(entry) && entry.needs_verification === true;
+  }
+  /** Mirrors Legendary's repair: a clean verification clears the flag. */
+  private async markVerified(
+    target: EpicManagedTarget,
+    installPath: string,
+    signal: AbortSignal
+  ) {
+    await this.runtime.serializeWorkspace(
+      target,
+      async (directory) => {
+        const file = path.join(directory, "installed.json");
+        const values = await readManagedJson(file);
+        const entry = isRecord(values) ? values[target.artifactId] : null;
+        if (
+          !isRecord(values) ||
+          !isRecord(entry) ||
+          typeof entry.install_path !== "string" ||
+          (await fs.realpath(entry.install_path).catch(() => null)) !==
+            installPath
+        )
+          throw new EpicManagedError("installation-incomplete");
+        entry.needs_verification = false;
+        await writeManagedJson(file, values);
+      },
+      signal
+    );
   }
   async forgetInstallation(target: EpicManagedTarget) {
     await this.runtime.serializeWorkspace(target, async (directory) => {

@@ -117,6 +117,7 @@ async function fixture(t: TestContext, platform: NodeJS.Platform = "win32") {
   let localAuth: typeof auth | undefined;
   let infoResponse = structuredClone(info);
   let failInfo = false;
+  let verifyOutput = "[cli] INFO: Verification finished successfully.";
   let ownershipRequests = 0;
   const games = new Map<string, Game>();
   const library: FixtureMetadata[] = [structuredClone(metadata)];
@@ -160,6 +161,7 @@ async function fixture(t: TestContext, platform: NodeJS.Platform = "win32") {
         );
         return { stdout: JSON.stringify(library), stderr: "" };
       }
+      if (args.includes("verify")) return { stdout: "", stderr: verifyOutput };
       if (failInfo) throw new EpicManagedError("network");
       return {
         stdout: JSON.stringify({
@@ -259,6 +261,9 @@ async function fixture(t: TestContext, platform: NodeJS.Platform = "win32") {
     },
     failInfo: (value: boolean) => {
       failInfo = value;
+    },
+    setVerifyOutput: (value: string) => {
+      verifyOutput = value;
     },
     setInfo: (value: typeof info) => {
       infoResponse = value;
@@ -1099,4 +1104,145 @@ test("installed executable realpath cannot escape through a directory junction",
   await assert.rejects(f.service.readInstalled(f.target, objectId), {
     code: "invalid-path",
   });
+});
+
+async function epicStoreInstall(root: string, withStoreFolder = true) {
+  const installPath = path.join(root, "Epic Games", "EpicGame");
+  await fs.mkdir(path.join(installPath, "bin"), { recursive: true });
+  await fs.writeFile(path.join(installPath, "bin", "Game.exe"), "game");
+  if (withStoreFolder)
+    await fs.mkdir(path.join(installPath, ".egstore"), { recursive: true });
+  return installPath;
+}
+
+function importWritesInstalled(
+  f: Awaited<ReturnType<typeof fixture>>,
+  installPath: string,
+  extra: Record<string, unknown> = {}
+) {
+  f.beforeExecute(async (args) => {
+    if (!args.includes("import")) return;
+    // Legendary's import saves the game's metadata in the workspace.
+    await fs.mkdir(path.join(f.runtime.workspace(f.target), "metadata"), {
+      recursive: true,
+    });
+    await fs.writeFile(
+      path.join(f.runtime.workspace(f.target), "metadata", "Artifact1.json"),
+      JSON.stringify(metadata)
+    );
+    await fs.writeFile(
+      path.join(f.runtime.workspace(f.target), "installed.json"),
+      JSON.stringify({
+        Artifact1: {
+          app_name: "Artifact1",
+          platform: "Windows",
+          install_path: args[args.indexOf("import") + 2],
+          executable: "/bin/Game.exe",
+          install_size: 1000,
+          version: "build-1",
+          is_dlc: false,
+          needs_verification: false,
+          ...extra,
+        },
+      })
+    );
+    assert.equal(
+      await fs.realpath(args[args.indexOf("import") + 2]),
+      await fs.realpath(installPath)
+    );
+  });
+}
+
+test("an Epic Games Store install is imported in place and bound to the game", async (t) => {
+  const f = await fixture(t);
+  const installPath = await epicStoreInstall(f.root);
+  importWritesInstalled(f, installPath);
+  const { installed } = await f.service.importExisting(
+    objectId,
+    { artifactId: "Artifact1", installLocation: installPath },
+    new AbortController().signal
+  );
+  const command = f.commands.find((args) => args.includes("import"))!;
+  assert.deepEqual(command.slice(command.indexOf("-y")), [
+    "-y",
+    "import",
+    "Artifact1",
+    await fs.realpath(installPath),
+    "--platform",
+    "Windows",
+  ]);
+  assert.equal(installed.installPath, await fs.realpath(installPath));
+  assert.equal(
+    f.getGame().executablePath,
+    await fs.realpath(path.join(installPath, "bin", "Game.exe"))
+  );
+  assert.equal(f.getGame().epicInstallation?.artifactId, "Artifact1");
+  assert.equal(
+    await fs.readFile(path.join(installPath, "bin", "Game.exe"), "utf8"),
+    "game"
+  );
+});
+
+test("a folder without Epic Games Store data is never imported", async (t) => {
+  const f = await fixture(t);
+  const installPath = await epicStoreInstall(f.root, false);
+  await assert.rejects(
+    f.service.importExisting(
+      objectId,
+      { artifactId: "Artifact1", installLocation: installPath },
+      new AbortController().signal
+    ),
+    { code: "invalid-path" }
+  );
+  assert.equal(
+    f.commands.some((args) => args.includes("import")),
+    false
+  );
+  assert.equal(f.getGame().epicInstallation, undefined);
+});
+
+test("an import without store manifest data is verified before it is bound", async (t) => {
+  const f = await fixture(t);
+  const installPath = await epicStoreInstall(f.root);
+  importWritesInstalled(f, installPath, { needs_verification: true });
+  await f.service.importExisting(
+    objectId,
+    { artifactId: "Artifact1", installLocation: installPath },
+    new AbortController().signal
+  );
+  assert.ok(f.commands.some((args) => args.includes("verify")));
+  assert.equal(f.getGame().epicInstallation?.artifactId, "Artifact1");
+  const workspaceInstalled = JSON.parse(
+    await fs.readFile(
+      path.join(f.runtime.workspace(f.target), "installed.json"),
+      "utf8"
+    )
+  );
+  assert.equal(workspaceInstalled.Artifact1.needs_verification, false);
+});
+
+test("an import that fails verification is forgotten and stays a normal download", async (t) => {
+  const f = await fixture(t);
+  const installPath = await epicStoreInstall(f.root);
+  importWritesInstalled(f, installPath, { needs_verification: true });
+  f.setVerifyOutput(
+    "[cli] ERROR: Verification failed, 1 file(s) corrupted, 0 file(s) are missing."
+  );
+  await assert.rejects(
+    f.service.importExisting(
+      objectId,
+      { artifactId: "Artifact1", installLocation: installPath },
+      new AbortController().signal
+    ),
+    { code: "process-failed" }
+  );
+  assert.equal(f.getGame().epicInstallation, undefined);
+  assert.equal(f.getGame().executablePath, undefined);
+  const workspaceInstalled = JSON.parse(
+    await fs.readFile(
+      path.join(f.runtime.workspace(f.target), "installed.json"),
+      "utf8"
+    )
+  );
+  assert.equal(workspaceInstalled.Artifact1, undefined);
 });

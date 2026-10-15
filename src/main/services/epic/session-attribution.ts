@@ -197,43 +197,69 @@ export async function isEpicInstallExecutable(
       )
     );
   // Do not infer a macOS installation from account ownership or search global prefixes.
-  for (const root of roots) {
-    let names: string[];
-    try {
-      names = await fs.readdir(root);
-    } catch {
-      continue;
-    }
-    for (const name of names.filter((name) => name.endsWith(".item"))) {
+  for (const root of roots)
+    for (const manifest of await readEpicStoreManifests(root, signal)) {
       if (signal?.aborted) return false;
       try {
-        const file = path.join(root, name);
-        const stat = await fs.lstat(file);
         if (
-          !stat.isFile() ||
-          stat.isSymbolicLink() ||
-          stat.size > EPIC_SESSION_MAX_FILE_BYTES
-        )
-          continue;
-        const manifest = parseEpicInstallManifest(
-          JSON.parse(await fs.readFile(file, "utf8"))
-        );
-        if (
-          manifest &&
-          (await verifyInstall(
+          await verifyInstall(
             manifest,
             objectId,
             artifactIds,
             matchedPath,
             winePrefix,
             signal
-          ))
+          )
         )
           return true;
       } catch {
         /* Unverifiable installations keep the Hydra policy. */
       }
     }
-  }
   return false;
+}
+
+/** Reads the Epic Games Store install records in one manifests directory. */
+async function readEpicStoreManifests(root: string, signal?: AbortSignal) {
+  const manifests: EpicInstallManifest[] = [];
+  let names: string[];
+  try {
+    names = await fs.readdir(root);
+  } catch {
+    return manifests;
+  }
+  for (const name of names.filter((name) => name.endsWith(".item"))) {
+    if (signal?.aborted) break;
+    try {
+      const file = path.join(root, name);
+      const stat = await fs.lstat(file);
+      if (
+        !stat.isFile() ||
+        stat.isSymbolicLink() ||
+        stat.size > EPIC_SESSION_MAX_FILE_BYTES
+      )
+        continue;
+      const manifest = parseEpicInstallManifest(
+        JSON.parse(await fs.readFile(file, "utf8"))
+      );
+      if (manifest) manifests.push(manifest);
+    } catch {
+      /* Unreadable records are not installations. */
+    }
+  }
+  return manifests;
+}
+
+/** Complete Epic Games Store installations on this Windows machine. */
+export async function listEpicStoreInstallations(
+  signal?: AbortSignal,
+  programData = process.env.PROGRAMDATA,
+  platform: NodeJS.Platform = process.platform
+) {
+  if (platform !== "win32" || !programData || !path.isAbsolute(programData))
+    return [];
+  return readEpicStoreManifests(
+    path.join(programData, "Epic", "EpicGamesLauncher", "Data", "Manifests"),
+    signal
+  );
 }
