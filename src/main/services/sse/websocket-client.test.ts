@@ -209,12 +209,27 @@ describe("realtime WebSocket helpers", () => {
     createdAt: "2026-10-05T12:00:00.000Z",
   };
 
+  const chatAttachment = {
+    id: "0b5f1f0e-61c5-4a5e-9d4e-3c0a8f1e2b7d",
+    contentType: "image/jpeg",
+    width: 1568,
+    height: 882,
+    spoiler: false,
+    url: "https://images.example/attachment",
+  };
+
   const chatReactionPayload = {
     senderId: "sender01",
     recipientId: "recipie1",
     seq: 3,
     emoji: "🔥",
     updatedAt: "2026-10-05T12:00:00.000Z",
+  };
+
+  const chatVisibilityPayload = {
+    senderId: "sender01",
+    recipientId: "recipie1",
+    seq: 3,
   };
 
   it("accepts chat message and typing events", () => {
@@ -228,12 +243,33 @@ describe("realtime WebSocket helpers", () => {
           replyTo: { senderId: "recipie1", body: "hi" },
         },
       },
+      {
+        event: "chatMessage",
+        payload: {
+          ...chatMessagePayload,
+          body: "",
+          replyToSeq: 2,
+          replyTo: { senderId: "recipie1", body: "", attachmentCount: 1 },
+          attachments: [chatAttachment],
+        },
+      },
+      {
+        event: "chatMessageRejected",
+        payload: {
+          senderId: "sender01",
+          recipientId: "recipie1",
+          clientNonce: chatMessagePayload.clientNonce,
+          reason: "blocked",
+        },
+      },
       { event: "chatTyping", payload: { senderId: "sender01" } },
       { event: "chatReaction", payload: chatReactionPayload },
       {
         event: "chatReaction",
         payload: { ...chatReactionPayload, emoji: null },
       },
+      { event: "chatMessageHidden", payload: chatVisibilityPayload },
+      { event: "chatMessageRestored", payload: chatVisibilityPayload },
     ]) {
       const envelope = parseRealtimeEnvelope(
         JSON.stringify({
@@ -260,6 +296,21 @@ describe("realtime WebSocket helpers", () => {
       { ...chatMessagePayload, replyToSeq: 0 },
       { ...chatMessagePayload, replyTo: { senderId: "recipie1", body: "hi" } },
       { ...chatMessagePayload, replyToSeq: 2, replyTo: { body: "hi" } },
+      {
+        ...chatMessagePayload,
+        replyToSeq: 2,
+        replyTo: { senderId: "recipie1", body: "", attachmentCount: -1 },
+      },
+      { ...chatMessagePayload, attachments: [] },
+      {
+        ...chatMessagePayload,
+        attachments: [{ ...chatAttachment, url: null }],
+      },
+      {
+        ...chatMessagePayload,
+        attachments: [{ ...chatAttachment, contentType: "image/webp" }],
+      },
+      { ...chatMessagePayload, attachments: [{ ...chatAttachment, width: 0 }] },
     ];
 
     for (const [index, payload] of invalidPayloads.entries()) {
@@ -312,6 +363,55 @@ describe("realtime WebSocket helpers", () => {
         ),
         null
       );
+    }
+
+    const rejectedPayload = {
+      senderId: "sender01",
+      recipientId: "recipie1",
+      clientNonce: chatMessagePayload.clientNonce,
+      reason: "failed",
+    };
+    for (const [index, payload] of [
+      { ...rejectedPayload, reason: "removed" },
+      { ...rejectedPayload, clientNonce: "" },
+      { ...rejectedPayload, recipientId: undefined },
+    ].entries()) {
+      assert.equal(
+        parseRealtimeEnvelope(
+          JSON.stringify({
+            v: 1,
+            eventId: `invalid-rejected-${index}`,
+            publishedAt: Date.now(),
+            event: "chatMessageRejected",
+            payload,
+          })
+        ),
+        null
+      );
+    }
+
+    const invalidVisibilityPayloads = [
+      { ...chatVisibilityPayload, seq: 0 },
+      { ...chatVisibilityPayload, seq: "3" },
+      { ...chatVisibilityPayload, senderId: undefined },
+      { ...chatVisibilityPayload, recipientId: 42 },
+    ];
+
+    for (const event of ["chatMessageHidden", "chatMessageRestored"]) {
+      for (const [index, payload] of invalidVisibilityPayloads.entries()) {
+        assert.equal(
+          parseRealtimeEnvelope(
+            JSON.stringify({
+              v: 1,
+              eventId: `invalid-${event}-${index}`,
+              publishedAt: Date.now(),
+              event,
+              payload,
+            })
+          ),
+          null
+        );
+      }
     }
   });
 

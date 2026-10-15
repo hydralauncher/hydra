@@ -105,11 +105,16 @@ import type {
   SteamConnectErrorCode,
   ExtractionFailure,
   FriendsSnapshot,
+  ChatAttachmentUploadProgress,
+  ChatAttachmentUploadRequest,
+  ChatMessageRejectedSync,
   ChatMessageSync,
+  ChatMessageVisibilitySync,
   ChatReactionSync,
   ChatTypingSync,
   ChatUnreadState,
   ChatWindowState,
+  PendingChatFriend,
 } from "@types";
 import type { AxiosProgressEvent } from "axios";
 
@@ -1364,7 +1369,7 @@ declare global {
     minimizeChatWindow: () => Promise<void>;
     closeChatWindow: () => Promise<void>;
     openGameInMainWindow: (gamePath: string) => Promise<void>;
-    consumePendingChatFriends: () => Promise<UserFriend[]>;
+    consumePendingChatFriends: () => Promise<PendingChatFriend[]>;
     onChatFriendsPending: (cb: () => void) => () => Electron.IpcRenderer;
     setChatWindowState: (state: ChatWindowState) => Promise<void>;
     getChatUnreadState: () => Promise<ChatUnreadState>;
@@ -1378,6 +1383,19 @@ declare global {
     ) => () => Electron.IpcRenderer;
     onChatReaction: (
       cb: (sync: ChatReactionSync) => void
+    ) => () => Electron.IpcRenderer;
+    onChatMessageVisibility: (
+      cb: (sync: ChatMessageVisibilitySync) => void
+    ) => () => Electron.IpcRenderer;
+    onChatMessageRejected: (
+      cb: (sync: ChatMessageRejectedSync) => void
+    ) => () => Electron.IpcRenderer;
+    /** Reserves an upload and sends the bytes; resolves to the attachment id. */
+    uploadChatAttachment: (
+      request: ChatAttachmentUploadRequest
+    ) => Promise<{ id: string }>;
+    onChatAttachmentUploadProgress: (
+      cb: (progress: ChatAttachmentUploadProgress) => void
     ) => () => Electron.IpcRenderer;
     onChatMessageSound: (cb: () => void) => () => Electron.IpcRenderer;
     onChatUnreadUpdated: (

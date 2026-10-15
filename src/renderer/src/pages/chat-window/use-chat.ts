@@ -1,17 +1,24 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 
 import type {
+  ChatAttachmentContentType,
   ChatMessageDto,
   ChatMessageReactionsDto,
   ChatMessagesPage,
+  ChatPendingMessageDto,
 } from "@types";
 
+import { getUploadProgress } from "./chat-attachments";
 import {
   createSendCooldown,
   getRateLimitWindowStart,
   type ChatSendCooldown,
 } from "./chat-rate-limit";
-import type { ChatMessage, ChatReaction } from "./chat-message-groups";
+import type {
+  ChatAttachment,
+  ChatMessage,
+  ChatReaction,
+} from "./chat-message-groups";
 import {
   applyReaction,
   mergeReactions,
@@ -23,9 +30,17 @@ import {
   findGapAfter,
   getLatestSeq,
   mergeChatMessages,
+  mergePendingMessages,
+  removeUnsentMessage,
+  setMessageAttachmentIds,
+  setMessageFailed,
   setMessageStatus,
+  setMessageUploadProgress,
+  setMessageVisibility,
+  settleSendingMessage,
   toChatMessage,
   toChatReactions,
+  toPendingChatMessage,
 } from "./chat-state";
 import type { ChatConversation } from "./chat-types";
 
@@ -38,8 +53,47 @@ const TYPING_PING_INTERVAL_MS = 3_000;
 const TYPING_INDICATOR_TIMEOUT_MS = 5_000;
 const MARK_READ_DEBOUNCE_MS = 500;
 const REACTION_ERROR_DURATION_MS = 5_000;
+/** A held message the server said nothing about for this long gets looked up. */
+const PENDING_CHECK_TIMEOUT_MS = 20_000;
+const PENDING_CHECK_MAX_LOOKUPS = 6;
 const NOT_FRIENDS_ERROR = "chat/not-friends";
 const RATE_LIMITED_ERROR = "chat/rate-limited";
+const ATTACHMENT_NOT_FOUND_ERROR = "chat/attachment-not-found";
+const ATTACHMENTS_DAILY_LIMIT_ERROR = "chat/attachments-daily-limit";
+
+/** A message with images, from the composer until the server answers. */
+interface OutgoingImages {
+  friendId: string;
+  text: string;
+  replyToSeq?: number;
+  /** Empty for a message restored from the server: its images are uploaded. */
+  files: { blob: Blob; contentType: ChatAttachmentContentType }[];
+  spoilers: boolean[];
+  /** The server's attachment ids, filled in as uploads are reserved. */
+  ids: (string | null)[];
+  /** Bytes sent per image, for the progress bar. */
+  loaded: number[];
+}
+
+const toUploadId = (clientNonce: string, index: number) =>
+  `${clientNonce}:${index}`;
+
+const fromUploadId = (uploadId: string) => {
+  const separator = uploadId.lastIndexOf(":");
+  return {
+    clientNonce: uploadId.slice(0, separator),
+    index: Number(uploadId.slice(separator + 1)),
+  };
+};
+
+/** Progress in whole percent, so a burst of events renders once per step. */
+const roundProgress = (progress: number) => Math.floor(progress * 100) / 100;
+
+const revokeLocalCopies = (attachments: ChatAttachment[] = []) => {
+  for (const attachment of attachments) {
+    if (attachment.localUrl) URL.revokeObjectURL(attachment.localUrl);
+  }
+};
 
 const chatPath = (friendId: string, suffix: string) =>
   `/profile/chats/${friendId}/${suffix}`;
@@ -140,6 +194,13 @@ const isNotFriendsError = (error: unknown) =>
 const isRateLimitedError = (error: unknown) =>
   error instanceof Error && error.message.includes(RATE_LIMITED_ERROR);
 
+const isAttachmentNotFoundError = (error: unknown) =>
+  error instanceof Error && error.message.includes(ATTACHMENT_NOT_FOUND_ERROR);
+
+const isAttachmentsDailyLimitError = (error: unknown) =>
+  error instanceof Error &&
+  error.message.includes(ATTACHMENTS_DAILY_LIMIT_ERROR);
+
 export type ChatReactionErrorKind = "failed" | "rate_limited";
 
 const byUpdatedAt = (a: ChatReaction, b: ChatReaction) =>
@@ -214,6 +275,17 @@ export function useChat({
   // can't undo a newer pick and a failure can restore the saved reaction.
   const reactionTargetsRef = useRef(new Map<string, string | null>());
 
+  // Messages with images, by client nonce, until the server answers for them.
+  const outgoingRef = useRef(new Map<string, OutgoingImages>());
+  // Held messages waiting for a realtime answer, by client nonce. Each one
+  // looks the conversation up again if the answer doesn't come.
+  const pendingChecksRef = useRef(
+    new Map<string, { timer: ReturnType<typeof setTimeout>; lookups: number }>()
+  );
+  const lookUpPendingRef = useRef<(friendId: string) => Promise<void>>(
+    async () => {}
+  );
+
   useEffect(() => {
     conversationsRef.current = conversations;
     activeIdRef.current = activeId;
@@ -222,7 +294,37 @@ export function useChat({
 
   useEffect(() => {
     const timers = typingTimersRef.current;
-    return () => timers.forEach(clearTimeout);
+    const pendingChecks = pendingChecksRef.current;
+    return () => {
+      timers.forEach(clearTimeout);
+      pendingChecks.forEach((check) => clearTimeout(check.timer));
+    };
+  }, []);
+
+  const stopPendingCheck = useCallback((clientNonce: string) => {
+    const check = pendingChecksRef.current.get(clientNonce);
+    if (check) clearTimeout(check.timer);
+    pendingChecksRef.current.delete(clientNonce);
+  }, []);
+
+  const watchPending = useCallback((friendId: string, clientNonce: string) => {
+    const previous = pendingChecksRef.current.get(clientNonce);
+    if (previous) clearTimeout(previous.timer);
+
+    const lookups = previous?.lookups ?? 0;
+    if (lookups >= PENDING_CHECK_MAX_LOOKUPS) {
+      pendingChecksRef.current.delete(clientNonce);
+      return;
+    }
+
+    const timer = setTimeout(() => {
+      pendingChecksRef.current.set(clientNonce, {
+        timer,
+        lookups: lookups + 1,
+      });
+      void lookUpPendingRef.current(friendId);
+    }, PENDING_CHECK_TIMEOUT_MS);
+    pendingChecksRef.current.set(clientNonce, { timer, lookups });
   }, []);
 
   useEffect(() => {
@@ -275,6 +377,15 @@ export function useChat({
         const messages = page.messages.map((message) =>
           toChatMessage(message, friendId, true)
         );
+        const pendingDtos = page.pendingMessages ?? [];
+        const pending = pendingDtos.map((dto) => {
+          const message = toPendingChatMessage(dto);
+          const target = messages.find(
+            (current) => current.seq === dto.replyToSeq
+          );
+          const replyTo = target ? createReply(target) : null;
+          return replyTo ? { ...message, replyTo } : message;
+        });
 
         updateConversation(friendId, (conversation) => {
           const isFirstLoad = conversation.loadState !== "loaded";
@@ -286,7 +397,10 @@ export function useChat({
 
           return {
             ...conversation,
-            messages: mergeChatMessages(kept, messages),
+            messages: mergePendingMessages(
+              mergeChatMessages(kept, messages),
+              pending
+            ),
             canSend: page.canSend,
             hasMoreBefore:
               isFirstLoad || replace
@@ -296,6 +410,15 @@ export function useChat({
             loadState: "loaded",
           };
         });
+
+        for (const message of page.messages) {
+          stopPendingCheck(message.clientNonce);
+        }
+        for (const dto of pendingDtos) {
+          if (dto.status === "checking")
+            watchPending(friendId, dto.clientNonce);
+          else stopPendingCheck(dto.clientNonce);
+        }
       } catch {
         updateConversation(friendId, (conversation) => ({
           ...conversation,
@@ -303,8 +426,12 @@ export function useChat({
         }));
       }
     },
-    [updateConversation]
+    [stopPendingCheck, updateConversation, watchPending]
   );
+
+  useEffect(() => {
+    lookUpPendingRef.current = (friendId) => loadLatest(friendId);
+  }, [loadLatest]);
 
   /**
    * Loads the messages after `afterSeq`. Resolves to true when there were too
@@ -406,6 +533,13 @@ export function useChat({
       );
       // A fresh latest page already has current reactions.
       if (!isReplaced) await refreshLoaded(friendId);
+
+      // Held messages are only reported with the latest page; an answer for
+      // one may have been lost while offline.
+      const isChecking = conversation.messages.some(
+        (message) => message.status === "checking"
+      );
+      if (!isReplaced && isChecking) await loadLatest(friendId);
     },
     [loadLatest, loadNewerThan, refreshLoaded]
   );
@@ -521,6 +655,155 @@ export function useChat({
     [findConversation, updateConversation]
   );
 
+  /** Puts back a message moderation removed; the event carries no text. */
+  const restoreMessage = useCallback(
+    async (friendId: string, seq: number) => {
+      try {
+        const page = await fetchMessages(friendId, { after: seq - 1, take: 1 });
+        const restored = page.messages.find((message) => message.seq === seq);
+        if (!restored || restored.hidden) return;
+
+        updateConversation(friendId, (conversation) => ({
+          ...conversation,
+          // The stored copy brings back the image URLs as well.
+          messages: mergeChatMessages(
+            setMessageVisibility(conversation.messages, seq, restored.body),
+            [toChatMessage(restored, friendId, true)]
+          ),
+        }));
+      } catch {
+        // It stays removed until the next resync reloads it.
+      }
+    },
+    [updateConversation]
+  );
+
+  const startRateLimitWindow = useCallback(() => {
+    const windowStart = getRateLimitWindowStart(
+      rateLimitWindowRef.current,
+      Date.now()
+    );
+    rateLimitWindowRef.current = windowStart;
+    return windowStart;
+  }, []);
+
+  const failSend = useCallback(
+    (
+      friendId: string,
+      clientNonce: string,
+      error: unknown,
+      windowStart: number
+    ) => {
+      if (isRateLimitedError(error)) {
+        // Sends in flight together can all be turned away; the first one
+        // starts the countdown and the rest leave it running.
+        if (!isCoolingDown()) {
+          const cooldown = createSendCooldown(windowStart, Date.now());
+          sendCooldownRef.current = cooldown;
+          setSendCooldown(cooldown);
+        }
+        rejectSend();
+      }
+
+      updateConversation(friendId, (conversation) => ({
+        ...conversation,
+        canSend: isNotFriendsError(error) ? false : conversation.canSend,
+        messages: setMessageFailed(
+          conversation.messages,
+          clientNonce,
+          isAttachmentsDailyLimitError(error) ? "daily_limit" : undefined
+        ),
+      }));
+    },
+    [isCoolingDown, rejectSend, updateConversation]
+  );
+
+  /**
+   * Uploads whatever images of the message are not up yet, then posts it. The
+   * server holds it until the images pass moderation; a realtime event says
+   * how that went.
+   */
+  const deliverImages = useCallback(
+    async (clientNonce: string) => {
+      const outgoing = outgoingRef.current.get(clientNonce);
+      if (!outgoing) return;
+
+      const { friendId } = outgoing;
+      const windowStart = startRateLimitWindow();
+
+      try {
+        await Promise.all(
+          outgoing.files.map(async (file, index) => {
+            if (outgoing.ids[index]) return;
+
+            const { id } = await electron.uploadChatAttachment({
+              friendId,
+              uploadId: toUploadId(clientNonce, index),
+              contentType: file.contentType,
+              bytes: await file.blob.arrayBuffer(),
+            });
+            outgoing.ids[index] = id;
+          })
+        );
+
+        const ids = outgoing.ids.filter((id): id is string => id !== null);
+        updateConversation(friendId, (conversation) => ({
+          ...conversation,
+          messages: setMessageAttachmentIds(
+            setMessageUploadProgress(conversation.messages, clientNonce, 1),
+            clientNonce,
+            ids
+          ),
+        }));
+
+        const response = await electron.hydraApi.postResponse<
+          ChatMessageDto | ChatPendingMessageDto
+        >(chatPath(friendId, "messages"), {
+          data: {
+            ...(outgoing.text ? { body: outgoing.text } : {}),
+            clientNonce,
+            ...(outgoing.replyToSeq ? { replyToSeq: outgoing.replyToSeq } : {}),
+            attachments: ids.map((id, index) => ({
+              id,
+              spoiler: outgoing.spoilers[index] ?? false,
+            })),
+          },
+          acceptedStatuses: [201, 202],
+        });
+
+        if (response.status === 201) {
+          outgoingRef.current.delete(clientNonce);
+          updateConversation(friendId, (conversation) => ({
+            ...conversation,
+            messages: mergeChatMessages(conversation.messages, [
+              toChatMessage(response.data as ChatMessageDto, friendId),
+            ]),
+          }));
+          return;
+        }
+
+        const { status } = response.data as ChatPendingMessageDto;
+        updateConversation(friendId, (conversation) => ({
+          ...conversation,
+          messages: settleSendingMessage(
+            conversation.messages,
+            clientNonce,
+            status
+          ),
+        }));
+        if (status === "checking") watchPending(friendId, clientNonce);
+      } catch (error) {
+        // Reserved uploads that the server no longer has go up again on retry.
+        if (isAttachmentNotFoundError(error) && outgoing.files.length > 0) {
+          outgoing.ids.fill(null);
+          outgoing.loaded.fill(0);
+        }
+        failSend(friendId, clientNonce, error, windowStart);
+      }
+    },
+    [failSend, startRateLimitWindow, updateConversation, watchPending]
+  );
+
   const deliver = useCallback(
     async (
       friendId: string,
@@ -528,11 +811,7 @@ export function useChat({
       clientNonce: string,
       replyToSeq?: number
     ) => {
-      const windowStart = getRateLimitWindowStart(
-        rateLimitWindowRef.current,
-        Date.now()
-      );
-      rateLimitWindowRef.current = windowStart;
+      const windowStart = startRateLimitWindow();
 
       try {
         const stored = await electron.hydraApi.post<ChatMessageDto>(
@@ -553,31 +832,13 @@ export function useChat({
           ]),
         }));
       } catch (error) {
-        if (isRateLimitedError(error)) {
-          // Sends in flight together can all be turned away; the first one
-          // starts the countdown and the rest leave it running.
-          if (!isCoolingDown()) {
-            const cooldown = createSendCooldown(windowStart, Date.now());
-            sendCooldownRef.current = cooldown;
-            setSendCooldown(cooldown);
-          }
-          rejectSend();
-        }
-
-        updateConversation(friendId, (conversation) => ({
-          ...conversation,
-          canSend: isNotFriendsError(error) ? false : conversation.canSend,
-          messages: setMessageStatus(
-            conversation.messages,
-            clientNonce,
-            "failed"
-          ),
-        }));
+        failSend(friendId, clientNonce, error, windowStart);
       }
     },
-    [isCoolingDown, rejectSend, updateConversation]
+    [failSend, startRateLimitWindow, updateConversation]
   );
 
+  /** Sends the conversation's draft: its text, and its images if it has any. */
   const send = useCallback(
     (friendId: string, text: string) => {
       if (isCoolingDown()) {
@@ -588,6 +849,7 @@ export function useChat({
       const clientNonce = crypto.randomUUID();
 
       const conversation = findConversation(friendId);
+      const images = conversation?.draftImages ?? [];
       const replyToSeq = conversation?.replyToSeq ?? null;
       const replyTarget =
         replyToSeq === null
@@ -597,20 +859,58 @@ export function useChat({
             );
       const replyTo = replyTarget ? createReply(replyTarget) : null;
 
+      const attachments: ChatAttachment[] = images.map((image) => ({
+        id: image.id,
+        contentType: image.contentType,
+        width: image.width,
+        height: image.height,
+        spoiler: image.spoiler,
+        url: null,
+        localUrl: image.url,
+      }));
+
       updateConversation(friendId, (current) => ({
         ...current,
         draft: "",
+        draftImages: [],
         replyToSeq: null,
         messages: [
           ...current.messages,
-          createPendingMessage(text, clientNonce, undefined, replyTo),
+          createPendingMessage(
+            text,
+            clientNonce,
+            undefined,
+            replyTo,
+            attachments
+          ),
         ],
       }));
       lastTypingPingRef.current.delete(friendId);
 
-      void deliver(friendId, text, clientNonce, replyTo?.seq);
+      if (images.length === 0) {
+        void deliver(friendId, text, clientNonce, replyTo?.seq);
+        return;
+      }
+
+      outgoingRef.current.set(clientNonce, {
+        friendId,
+        text,
+        replyToSeq: replyTo?.seq,
+        files: images.map(({ blob, contentType }) => ({ blob, contentType })),
+        spoilers: images.map((image) => image.spoiler),
+        ids: images.map(() => null),
+        loaded: images.map(() => 0),
+      });
+      void deliverImages(clientNonce);
     },
-    [deliver, findConversation, isCoolingDown, rejectSend, updateConversation]
+    [
+      deliver,
+      deliverImages,
+      findConversation,
+      isCoolingDown,
+      rejectSend,
+      updateConversation,
+    ]
   );
 
   const retry = useCallback(
@@ -625,18 +925,89 @@ export function useChat({
         return;
       }
 
+      if (!message.attachments?.length) {
+        updateConversation(friendId, (conversation) => ({
+          ...conversation,
+          messages: setMessageStatus(
+            conversation.messages,
+            clientNonce,
+            "pending"
+          ),
+        }));
+
+        void deliver(friendId, message.text, clientNonce, message.replyTo?.seq);
+        return;
+      }
+
+      // A message restored from the server has its images up already.
+      let outgoing = outgoingRef.current.get(clientNonce);
+      if (!outgoing) {
+        outgoing = {
+          friendId,
+          text: message.text,
+          replyToSeq: message.replyTo?.seq,
+          files: [],
+          spoilers: message.attachments.map((attachment) => attachment.spoiler),
+          ids: message.attachments.map((attachment) => attachment.id),
+          loaded: message.attachments.map(() => 0),
+        };
+        outgoingRef.current.set(clientNonce, outgoing);
+      }
+
+      const sizes = outgoing.files.map((file) => file.blob.size);
+      const progress = outgoing.ids.every(Boolean)
+        ? 1
+        : getUploadProgress(outgoing.loaded, sizes);
+
       updateConversation(friendId, (conversation) => ({
         ...conversation,
-        messages: setMessageStatus(
-          conversation.messages,
+        messages: setMessageUploadProgress(
+          setMessageStatus(conversation.messages, clientNonce, "pending"),
           clientNonce,
-          "pending"
+          roundProgress(progress)
         ),
       }));
 
-      void deliver(friendId, message.text, clientNonce, message.replyTo?.seq);
+      void deliverImages(clientNonce);
     },
-    [deliver, findConversation, isCoolingDown, rejectSend, updateConversation]
+    [
+      deliver,
+      deliverImages,
+      findConversation,
+      isCoolingDown,
+      rejectSend,
+      updateConversation,
+    ]
+  );
+
+  /** Drops a message that was not sent, and tells the server to forget it. */
+  const remove = useCallback(
+    (friendId: string, clientNonce: string) => {
+      const message = findConversation(friendId)?.messages.find(
+        (current) =>
+          current.clientNonce === clientNonce && current.seq === undefined
+      );
+      if (message?.status !== "failed" && message?.status !== "blocked") {
+        return;
+      }
+
+      outgoingRef.current.delete(clientNonce);
+      stopPendingCheck(clientNonce);
+      revokeLocalCopies(message.attachments);
+
+      updateConversation(friendId, (conversation) => ({
+        ...conversation,
+        messages: removeUnsentMessage(conversation.messages, clientNonce),
+      }));
+
+      // Not found means the server never stored it.
+      if (message.attachments?.length) {
+        electron.hydraApi
+          .delete(chatPath(friendId, `pending/${clientNonce}`))
+          .catch(() => {});
+      }
+    },
+    [findConversation, stopPendingCheck, updateConversation]
   );
 
   const react = useCallback(
@@ -754,6 +1125,10 @@ export function useChat({
         if (!conversation) return;
 
         const incoming = toChatMessage(message, friendId);
+        if (incoming.fromMe) {
+          outgoingRef.current.delete(incoming.clientNonce);
+          stopPendingCheck(incoming.clientNonce);
+        }
         const isKnown = conversation.messages.some(
           (current) =>
             current.clientNonce === incoming.clientNonce &&
@@ -815,6 +1190,67 @@ export function useChat({
       }
     );
 
+    const unsubscribeVisibility = electron.onChatMessageVisibility(
+      ({ friendId, seq, hidden }) => {
+        if (!findConversation(friendId)) return;
+
+        if (hidden) {
+          updateConversation(friendId, (conversation) => ({
+            ...conversation,
+            // A removed message can't be replied to.
+            replyToSeq:
+              conversation.replyToSeq === seq ? null : conversation.replyToSeq,
+            messages: setMessageVisibility(conversation.messages, seq, null),
+          }));
+          return;
+        }
+
+        void restoreMessage(friendId, seq);
+      }
+    );
+
+    const unsubscribeRejected = electron.onChatMessageRejected(
+      ({ friendId, clientNonce, reason }) => {
+        stopPendingCheck(clientNonce);
+        if (reason === "blocked") outgoingRef.current.delete(clientNonce);
+        if (!findConversation(friendId)) return;
+
+        updateConversation(friendId, (conversation) => ({
+          ...conversation,
+          messages: setMessageStatus(
+            conversation.messages,
+            clientNonce,
+            reason
+          ),
+        }));
+      }
+    );
+
+    const unsubscribeUploadProgress = electron.onChatAttachmentUploadProgress(
+      ({ uploadId, loaded }) => {
+        const { clientNonce, index } = fromUploadId(uploadId);
+        const outgoing = outgoingRef.current.get(clientNonce);
+        if (!outgoing || !(index in outgoing.loaded)) return;
+
+        outgoing.loaded[index] = loaded;
+        const progress = roundProgress(
+          getUploadProgress(
+            outgoing.loaded,
+            outgoing.files.map((file) => file.blob.size)
+          )
+        );
+
+        updateConversation(outgoing.friendId, (conversation) => ({
+          ...conversation,
+          messages: setMessageUploadProgress(
+            conversation.messages,
+            clientNonce,
+            progress
+          ),
+        }));
+      }
+    );
+
     const unsubscribeResync = electron.onChatResync(() => {
       setResyncCount((count) => count + 1);
 
@@ -844,13 +1280,18 @@ export function useChat({
       unsubscribeMessage();
       unsubscribeTyping();
       unsubscribeReaction();
+      unsubscribeVisibility();
+      unsubscribeRejected();
+      unsubscribeUploadProgress();
       unsubscribeResync();
       unsubscribeUnread();
     };
   }, [
     findConversation,
     loadNewerThan,
+    restoreMessage,
     resyncConversation,
+    stopPendingCheck,
     stopTyping,
     updateConversation,
   ]);
@@ -922,6 +1363,7 @@ export function useChat({
   return {
     send,
     retry,
+    remove,
     react,
     reactionError,
     loadOlder,

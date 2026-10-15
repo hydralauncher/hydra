@@ -9,11 +9,14 @@ import { useTranslation } from "react-i18next";
 import { ChevronDownIcon, DashIcon, XIcon } from "@primer/octicons-react";
 import cn from "classnames";
 
+import type { UserFriend } from "@types";
+
 import {
   ChatFriendAvatar,
   ChatFriendStatus,
   ChatTypingDots,
 } from "./chat-friend-status";
+import { ChatNewConversation } from "./chat-new-conversation";
 import {
   clampDragOffset,
   getDragTargetIndex,
@@ -25,6 +28,8 @@ import {
 import {
   CHAT_TAB_COMPACT_WIDTH,
   CHAT_TAB_GAP,
+  CHAT_TAB_NEW_BUTTON_WIDTH,
+  getAdjacentTabId,
   getChatTabLayout,
 } from "./chat-tab-layout";
 import type { ChatConversation } from "./chat-types";
@@ -196,6 +201,10 @@ export interface ChatTabStripProps {
   onClose: (friendId: string) => void;
   /** New order of the tabs shown in the strip, after a drag. */
   onReorder: (visibleOrder: string[]) => void;
+  /** Friends the new conversation picker offers. */
+  friends: UserFriend[];
+  onRefreshFriends: () => void;
+  onOpenConversation: (friend: UserFriend) => void;
   onMinimize: () => void;
   onCloseWindow: () => void;
 }
@@ -206,6 +215,9 @@ export function ChatTabStrip({
   onSelect,
   onClose,
   onReorder,
+  friends,
+  onRefreshFriends,
+  onOpenConversation,
   onMinimize,
   onCloseWindow,
 }: Readonly<ChatTabStripProps>) {
@@ -243,11 +255,34 @@ export function ChatTabStrip({
     conversations.map((conversation) => [conversation.friend.id, conversation])
   );
 
-  const layout = getChatTabLayout(
-    conversations.map((conversation) => conversation.friend.id),
-    activeId,
-    tabsWidth
+  const conversationIds = conversations.map(
+    (conversation) => conversation.friend.id
   );
+
+  const layout = getChatTabLayout(
+    conversationIds,
+    activeId,
+    tabsWidth - CHAT_TAB_NEW_BUTTON_WIDTH
+  );
+
+  // Like browser tabs: Ctrl+Tab and Ctrl+Shift+Tab cycle through every tab,
+  // hidden ones included.
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key !== "Tab" || !event.ctrlKey || event.altKey) return;
+
+      event.preventDefault();
+      const nextId = getAdjacentTabId(
+        conversations.map((conversation) => conversation.friend.id),
+        activeId,
+        event.shiftKey ? -1 : 1
+      );
+      if (nextId) onSelect(nextId);
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [conversations, activeId, onSelect]);
 
   const visibleTabs = layout.visibleIds.flatMap((id) => {
     const conversation = conversationsById.get(id);
@@ -530,6 +565,13 @@ export function ChatTabStrip({
             )}
           </div>
         )}
+
+        <ChatNewConversation
+          friends={friends}
+          openFriendIds={new Set(conversationIds)}
+          onOpen={onRefreshFriends}
+          onPick={onOpenConversation}
+        />
       </div>
 
       <div className="chat-window__window-controls">

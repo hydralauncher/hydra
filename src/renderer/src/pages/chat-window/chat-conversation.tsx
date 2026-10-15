@@ -10,6 +10,7 @@ import { Trans, useTranslation } from "react-i18next";
 import type { TFunction } from "i18next";
 import {
   AlertFillIcon,
+  ImageIcon,
   PaperAirplaneIcon,
   ReplyIcon,
   SmileyIcon,
@@ -17,7 +18,16 @@ import {
 } from "@primer/octicons-react";
 import cn from "classnames";
 
+import {
+  CHAT_ATTACHMENTS_PER_MESSAGE,
+  fitsMessageBudget,
+  selectImageFiles,
+  type ChatDraftImage,
+  type ChatDraftImageError,
+} from "./chat-attachments";
+import { ChatComposerImages } from "./chat-composer-images";
 import { ChatEmojiPicker } from "./chat-emoji-picker";
+import { ChatImagePrepError, prepareChatImage } from "./chat-image-prep";
 import { ChatEmptyIcon } from "./chat-empty-icon";
 import { ChatTypingDots } from "./chat-friend-status";
 import {
@@ -35,6 +45,10 @@ import type { ChatReactionErrorKind } from "./use-chat";
 
 /** Five lines of text plus the input's vertical padding. */
 const COMPOSER_MAX_HEIGHT = 110;
+const IMAGE_NOTE_DURATION_MS = 4_000;
+
+const hasFiles = (event: React.DragEvent) =>
+  Array.from(event.dataTransfer.types).includes("Files");
 
 type ComposerHintKind = "info" | "typing" | "offline" | "error";
 
@@ -47,6 +61,8 @@ interface ComposerHintState {
   canSend: boolean;
   isRateLimited: boolean;
   reactionError: ChatReactionErrorKind | null;
+  /** Why picked images were left out of the composer, if any were. */
+  imageError: ChatDraftImageError | null;
   /** Characters over the length limit; null within it. */
   tooLongBy: number | null;
   isTyping: boolean;
@@ -77,6 +93,15 @@ const getComposerHint = (
           : t("reaction_failed_hint"),
     };
   }
+  if (state.imageError) {
+    return {
+      kind: "error",
+      text:
+        state.imageError === "too_many"
+          ? t("image_error_too_many", { count: CHAT_ATTACHMENTS_PER_MESSAGE })
+          : t(`image_error_${state.imageError}`),
+    };
+  }
   if (state.tooLongBy !== null) {
     return {
       kind: "error",
@@ -93,10 +118,15 @@ const getComposerHint = (
 
 export interface ChatConversationViewProps {
   conversation: ChatConversation;
+  /** Whether the server accepts images right now (the CHAT_IMAGES feature). */
+  imagesEnabled: boolean;
   sendCooldown: ChatSendCooldown | null;
   /** Changes whenever the rate limit turns a send away. */
   sendRejections: number;
   onDraftChange: (draft: string) => void;
+  onDraftImagesChange: (
+    update: (images: ChatDraftImage[]) => ChatDraftImage[]
+  ) => void;
   onReplyChange: (replyToSeq: number | null) => void;
   onSend: (text: string) => void;
   /** Sets the user's reaction on the message with `seq`; null removes it. */
@@ -104,6 +134,8 @@ export interface ChatConversationViewProps {
   /** Why the user's last reaction change was not saved, if it wasn't. */
   reactionError: ChatReactionErrorKind | null;
   onRetry: (clientNonce: string) => void;
+  /** Drops a message that was not sent. */
+  onRemove: (clientNonce: string) => void;
   onLoadOlder: () => void;
   /** Resolves to whether the message with `seq` is loaded afterwards. */
   onLoadThrough: (seq: number) => Promise<boolean>;
@@ -112,24 +144,131 @@ export interface ChatConversationViewProps {
 
 export function ChatConversationView({
   conversation,
+  imagesEnabled,
   sendCooldown,
   sendRejections,
   onDraftChange,
+  onDraftImagesChange,
   onReplyChange,
   onSend,
   onReact,
   reactionError,
   onRetry,
+  onRemove,
   onLoadOlder,
   onLoadThrough,
   onReload,
 }: Readonly<ChatConversationViewProps>) {
   const { t, i18n } = useTranslation("chat_window");
-  const { friend, messages, isTyping, draft, loadState } = conversation;
+  const { friend, messages, isTyping, draft, draftImages, loadState } =
+    conversation;
+  const canAttachImages = imagesEnabled && conversation.canSend;
 
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const mirrorRef = useRef<HTMLDivElement>(null);
   const emojiButtonRef = useRef<HTMLButtonElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const [imageNote, setImageNote] = useState<ChatDraftImageError | null>(null);
+  const [isDraggingFiles, setIsDraggingFiles] = useState(false);
+  // Drag events fire for every element crossed; only the last leave counts.
+  const dragDepthRef = useRef(0);
+  // Images still being prepared hold their place against the per-message limit.
+  const preparingCountRef = useRef(0);
+  const draftImagesRef = useRef(draftImages);
+
+  useEffect(() => {
+    draftImagesRef.current = draftImages;
+  }, [draftImages]);
+
+  useEffect(() => {
+    if (!imageNote) return;
+
+    const timer = setTimeout(() => setImageNote(null), IMAGE_NOTE_DURATION_MS);
+    return () => clearTimeout(timer);
+  }, [imageNote]);
+
+  const addImages = (files: File[]) => {
+    if (!conversation.canSend || files.length === 0) return;
+
+    const { files: picked, error } = selectImageFiles(
+      files,
+      draftImagesRef.current.length + preparingCountRef.current
+    );
+    if (error) setImageNote(error);
+
+    for (const file of picked) {
+      preparingCountRef.current += 1;
+
+      void prepareChatImage(file)
+        .then((prepared) => {
+          if (!fitsMessageBudget(draftImagesRef.current, prepared.blob.size)) {
+            URL.revokeObjectURL(prepared.url);
+            setImageNote("too_large");
+            return;
+          }
+
+          onDraftImagesChange((images) => [
+            ...images,
+            { ...prepared, id: crypto.randomUUID(), spoiler: false },
+          ]);
+        })
+        .catch((prepError: unknown) => {
+          setImageNote(
+            prepError instanceof ChatImagePrepError
+              ? prepError.reason
+              : "unreadable"
+          );
+        })
+        .finally(() => {
+          preparingCountRef.current -= 1;
+        });
+    }
+
+    inputRef.current?.focus();
+  };
+
+  const removeImage = (id: string) => {
+    const image = draftImages.find((current) => current.id === id);
+    if (image) URL.revokeObjectURL(image.url);
+    onDraftImagesChange((images) =>
+      images.filter((current) => current.id !== id)
+    );
+    inputRef.current?.focus();
+  };
+
+  const toggleSpoiler = (id: string) =>
+    onDraftImagesChange((images) =>
+      images.map((image) =>
+        image.id === id ? { ...image, spoiler: !image.spoiler } : image
+      )
+    );
+
+  const dropHandlers = {
+    onDragEnter: (event: React.DragEvent) => {
+      if (!hasFiles(event) || !canAttachImages) return;
+      event.preventDefault();
+      dragDepthRef.current += 1;
+      setIsDraggingFiles(true);
+    },
+    onDragOver: (event: React.DragEvent) => {
+      if (!hasFiles(event) || !canAttachImages) return;
+      event.preventDefault();
+      event.dataTransfer.dropEffect = "copy";
+    },
+    onDragLeave: (event: React.DragEvent) => {
+      if (!hasFiles(event)) return;
+      dragDepthRef.current = Math.max(dragDepthRef.current - 1, 0);
+      if (dragDepthRef.current === 0) setIsDraggingFiles(false);
+    },
+    onDrop: (event: React.DragEvent) => {
+      if (!hasFiles(event) || !canAttachImages) return;
+      event.preventDefault();
+      dragDepthRef.current = 0;
+      setIsDraggingFiles(false);
+      addImages(Array.from(event.dataTransfer.files));
+    },
+  };
 
   const [isEmojiPickerOpen, setIsEmojiPickerOpen] = useState(false);
   // Where picked emoji go while focus is in the picker: the textarea's
@@ -175,7 +314,12 @@ export function ChatConversationView({
   const overflow = getOverflowRange(draft);
   const isTooLong = overflow !== null;
   const showCounter = shouldShowLengthCounter(text.length);
-  const canSend = conversation.canSend && text.length > 0 && !isTooLong;
+  const hasImages = draftImages.length > 0;
+  const canSend =
+    conversation.canSend && (text.length > 0 || hasImages) && !isTooLong;
+  const placeholder = hasImages
+    ? t("add_message_placeholder")
+    : t("message_placeholder", { name: friend.displayName });
   const hasNoMessages = messages.length === 0;
   const isEmpty = hasNoMessages && loadState === "loaded";
   const hasLoadFailed = hasNoMessages && loadState === "error";
@@ -271,6 +415,7 @@ export function ChatConversationView({
       canSend: conversation.canSend,
       isRateLimited: sendCooldown !== null,
       reactionError,
+      imageError: imageNote,
       tooLongBy: isTooLong ? text.length - CHAT_MESSAGE_MAX_LENGTH : null,
       isTyping,
       isFriendOnline: Boolean(friend.isOnline),
@@ -281,7 +426,24 @@ export function ChatConversationView({
   );
 
   return (
-    <div className="chat-window__conversation">
+    // Drops are a shortcut for the image button, which stays the way in for
+    // keyboard users.
+    // eslint-disable-next-line jsx-a11y/no-static-element-interactions
+    <div className="chat-window__conversation" {...dropHandlers}>
+      {isDraggingFiles && (
+        <div className="chat-window__drop" aria-hidden="true">
+          <div className="chat-window__drop-target">
+            <ImageIcon size={24} />
+            <span className="chat-window__drop-title">
+              {t("drop_images", { name: friend.displayName })}
+            </span>
+            <span className="chat-window__drop-description">
+              {t("drop_images_limit", { count: CHAT_ATTACHMENTS_PER_MESSAGE })}
+            </span>
+          </div>
+        </div>
+      )}
+
       {hasLoadFailed && (
         <div className="chat-window__empty">
           <div className="chat-window__empty-text">
@@ -317,6 +479,7 @@ export function ChatConversationView({
 
       {!hasNoMessages && (
         <ChatMessageList
+          friendId={friend.id}
           messages={messages}
           initialMessageIds={initialMessageIds}
           hasMoreBefore={conversation.hasMoreBefore}
@@ -327,6 +490,7 @@ export function ChatConversationView({
           onReply={startReply}
           onReact={onReact}
           onRetry={onRetry}
+          onRemove={onRemove}
           onLoadOlder={onLoadOlder}
           onLoadThrough={onLoadThrough}
         />
@@ -387,7 +551,12 @@ export function ChatConversationView({
                     )}
                   </span>
                   <span className="chat-window__composer-reply-text">
-                    {replyTarget.text}
+                    {replyTarget.text ||
+                      (replyTarget.attachments?.length
+                        ? t("quoted_images", {
+                            count: replyTarget.attachments.length,
+                          })
+                        : "")}
                   </span>
                 </span>
               </button>
@@ -403,7 +572,44 @@ export function ChatConversationView({
             </div>
           )}
 
+          {hasImages && (
+            <ChatComposerImages
+              images={draftImages}
+              onToggleSpoiler={toggleSpoiler}
+              onRemove={removeImage}
+            />
+          )}
+
           <div className="chat-window__composer-row">
+            {imagesEnabled && (
+              <>
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/*"
+                  multiple
+                  hidden
+                  onChange={(event) => {
+                    addImages(Array.from(event.target.files ?? []));
+                    // The same file can be picked again after it is removed.
+                    event.target.value = "";
+                  }}
+                />
+                <button
+                  type="button"
+                  className="chat-window__composer-emoji"
+                  onClick={() => fileInputRef.current?.click()}
+                  disabled={
+                    !canAttachImages ||
+                    draftImages.length >= CHAT_ATTACHMENTS_PER_MESSAGE
+                  }
+                  title={t("add_images")}
+                  aria-label={t("add_images")}
+                >
+                  <ImageIcon size={16} />
+                </button>
+              </>
+            )}
             <button
               ref={emojiButtonRef}
               type="button"
@@ -440,15 +646,17 @@ export function ChatConversationView({
                 className="chat-window__composer-input"
                 rows={1}
                 value={draft}
-                placeholder={t("message_placeholder", {
-                  name: friend.displayName,
-                })}
-                aria-label={t("message_placeholder", {
-                  name: friend.displayName,
-                })}
+                placeholder={placeholder}
+                aria-label={placeholder}
                 aria-invalid={isTooLong}
                 onChange={(event) => onDraftChange(event.target.value)}
                 onKeyDown={handleKeyDown}
+                onPaste={(event) => {
+                  const files = Array.from(event.clipboardData.files);
+                  if (files.length === 0 || !canAttachImages) return;
+                  event.preventDefault();
+                  addImages(files);
+                }}
                 onScroll={(event) => {
                   if (mirrorRef.current) {
                     mirrorRef.current.scrollTop = event.currentTarget.scrollTop;

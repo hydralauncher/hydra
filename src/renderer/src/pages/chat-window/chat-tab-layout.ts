@@ -6,6 +6,8 @@ export const CHAT_TAB_COMPACT_WIDTH = 88;
 export const CHAT_TAB_GAP = 4;
 /** Overflow button plus its left margin. */
 export const CHAT_TAB_OVERFLOW_WIDTH = 44;
+/** New conversation button plus its left margin. */
+export const CHAT_TAB_NEW_BUTTON_WIDTH = 28;
 
 export interface ChatTabLayout {
   visibleIds: string[];
@@ -65,4 +67,21 @@ export function getChatTabLayout(
       : 0;
 
   return { visibleIds, hiddenIds, tabWidth };
+}
+
+/**
+ * The tab Ctrl+Tab (step 1) or Ctrl+Shift+Tab (step -1) moves to, wrapping
+ * around the ends. Null when there is no other tab.
+ */
+export function getAdjacentTabId(
+  ids: string[],
+  activeId: string | null,
+  step: 1 | -1
+): string | null {
+  if (ids.length < 2) return null;
+
+  const index = activeId === null ? -1 : ids.indexOf(activeId);
+  if (index === -1) return step === 1 ? ids[0] : ids[ids.length - 1];
+
+  return ids[(index + step + ids.length) % ids.length];
 }

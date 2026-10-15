@@ -77,11 +77,16 @@ import type {
   SteamConnectErrorCode,
   ExtractionFailure,
   FriendsSnapshot,
+  ChatAttachmentUploadProgress,
+  ChatAttachmentUploadRequest,
+  ChatMessageRejectedSync,
   ChatMessageSync,
+  ChatMessageVisibilitySync,
   ChatReactionSync,
   ChatTypingSync,
   ChatUnreadState,
   ChatWindowState,
+  PendingChatFriend,
 } from "@types";
 import type { AuthPage } from "@shared";
 import type { AxiosProgressEvent } from "axios";
@@ -2004,7 +2009,9 @@ contextBridge.exposeInMainWorld("electron", {
   openGameInMainWindow: (gamePath: string) =>
     ipcRenderer.invoke("openGameInMainWindow", gamePath),
   consumePendingChatFriends: () =>
-    ipcRenderer.invoke("consumePendingChatFriends") as Promise<UserFriend[]>,
+    ipcRenderer.invoke("consumePendingChatFriends") as Promise<
+      PendingChatFriend[]
+    >,
   onChatFriendsPending: (cb: () => void) => {
     const listener = () => cb();
     ipcRenderer.on("on-chat-friends-pending", listener);
@@ -2040,6 +2047,42 @@ contextBridge.exposeInMainWorld("electron", {
     ) => cb(sync);
     ipcRenderer.on("on-chat-reaction", listener);
     return () => ipcRenderer.removeListener("on-chat-reaction", listener);
+  },
+  onChatMessageVisibility: (cb: (sync: ChatMessageVisibilitySync) => void) => {
+    const listener = (
+      _event: Electron.IpcRendererEvent,
+      sync: ChatMessageVisibilitySync
+    ) => cb(sync);
+    ipcRenderer.on("on-chat-message-visibility", listener);
+    return () =>
+      ipcRenderer.removeListener("on-chat-message-visibility", listener);
+  },
+  onChatMessageRejected: (cb: (sync: ChatMessageRejectedSync) => void) => {
+    const listener = (
+      _event: Electron.IpcRendererEvent,
+      sync: ChatMessageRejectedSync
+    ) => cb(sync);
+    ipcRenderer.on("on-chat-message-rejected", listener);
+    return () =>
+      ipcRenderer.removeListener("on-chat-message-rejected", listener);
+  },
+  uploadChatAttachment: (request: ChatAttachmentUploadRequest) =>
+    ipcRenderer.invoke("uploadChatAttachment", request) as Promise<{
+      id: string;
+    }>,
+  onChatAttachmentUploadProgress: (
+    cb: (progress: ChatAttachmentUploadProgress) => void
+  ) => {
+    const listener = (
+      _event: Electron.IpcRendererEvent,
+      progress: ChatAttachmentUploadProgress
+    ) => cb(progress);
+    ipcRenderer.on("on-chat-attachment-upload-progress", listener);
+    return () =>
+      ipcRenderer.removeListener(
+        "on-chat-attachment-upload-progress",
+        listener
+      );
   },
   onChatMessageSound: (cb: () => void) => {
     const listener = () => cb();

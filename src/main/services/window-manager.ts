@@ -15,6 +15,7 @@ import type {
   AchievementCustomNotificationPosition,
   AchievementNotificationInfo,
   ChatWindowState,
+  PendingChatFriend,
   ScreenState,
   UserFriend,
   UserPreferences,
@@ -72,7 +73,7 @@ export class WindowManager {
   private static chatWindow: Electron.BrowserWindow | null = null;
   // Held until the chat renderer drains them, so conversations requested while
   // the window is still loading are not lost.
-  private static pendingChatFriends: UserFriend[] = [];
+  private static pendingChatFriends: PendingChatFriend[] = [];
   private static chatWindowState: ChatWindowState = EMPTY_CHAT_WINDOW_STATE;
   private static authWindow: Electron.BrowserWindow | null = null;
   private static retroAchievementsConnectionWindow: Electron.BrowserWindow | null =
@@ -649,7 +650,7 @@ export class WindowManager {
   // taskbar button instead, so a message never takes focus from a game or
   // whatever the user is typing in.
   public static openChatWindow(friend: UserFriend, { activate = true } = {}) {
-    this.pendingChatFriends.push(friend);
+    this.pendingChatFriends.push({ friend, isBackground: !activate });
 
     if (this.chatWindow && !this.chatWindow.isDestroyed()) {
       if (activate) {
@@ -702,8 +703,17 @@ export class WindowManager {
         this.chatWindow?.flashFrame(true);
       }
       if (!app.isPackaged || isStaging) {
-        // Detached: docked devtools would squeeze the small window.
-        this.chatWindow?.webContents.openDevTools({ mode: "detach", activate });
+        // Detached: docked devtools would squeeze the small window. Opening
+        // them focuses the window even with activate false, so a window
+        // opened in the background waits until the user focuses it.
+        const openDevTools = () =>
+          this.chatWindow?.webContents.openDevTools({
+            mode: "detach",
+            activate,
+          });
+
+        if (activate) openDevTools();
+        else this.chatWindow?.once("focus", openDevTools);
       }
     });
 
@@ -719,7 +729,8 @@ export class WindowManager {
   }
 
   // Draws attention to a message the user cannot see: a closed chat window
-  // opens in the background on the sender's conversation, an open one flashes.
+  // opens in the background on the sender's conversation, an open one flashes
+  // and gets a background tab for a sender without one.
   public static showIncomingChatMessage(friend: UserFriend) {
     const chatWindow = this.chatWindow;
 
@@ -729,6 +740,11 @@ export class WindowManager {
 
       this.openChatWindow(friend, { activate: false });
       return;
+    }
+
+    if (!this.chatWindowState.openFriendIds.includes(friend.id)) {
+      this.pendingChatFriends.push({ friend, isBackground: true });
+      chatWindow.webContents.send("on-chat-friends-pending");
     }
 
     // A window still loading gets focus or a flash once shown (see

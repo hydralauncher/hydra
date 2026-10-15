@@ -1,5 +1,6 @@
 import type { UserFriend } from "@types";
 
+import type { ChatDraftImage } from "./chat-attachments";
 import type { ChatMessage } from "./chat-message-groups";
 
 export type ChatLoadState = "idle" | "loading" | "loaded" | "error";
@@ -10,6 +11,8 @@ export interface ChatConversation {
   isTyping: boolean;
   unreadCount: number;
   draft: string;
+  /** Images in the composer, sent with the draft. */
+  draftImages: ChatDraftImage[];
   /** Seq of the message the next send replies to. */
   replyToSeq: number | null;
   /** False after an unfriend or block: history stays readable, sending stops. */
