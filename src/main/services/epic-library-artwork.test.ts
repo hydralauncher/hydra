@@ -14,9 +14,14 @@ const source = ts.transpileModule(
   { compilerOptions: { module: ts.ModuleKind.CommonJS } }
 ).outputText;
 
-it("refreshes the catalogue cache while preserving the operational selection identity", async () => {
+function createRefresh(options: {
+  before: Record<string, unknown>;
+  after: Record<string, unknown>;
+  selection?: unknown;
+}) {
   let refresh!: (game: LibraryGame) => Promise<boolean>;
-  let cachedKey = "";
+  const cacheReads: string[] = [];
+  const selectionReads: string[] = [];
   const calls: unknown[][] = [];
   const dependencies: Record<string, unknown> = {
     "./epic-library-artwork-queue": {
@@ -29,16 +34,21 @@ it("refreshes the catalogue cache while preserving the operational selection ide
     "../events/catalogue/get-game-assets": {
       getGameAssets: async (...args: unknown[]) => {
         calls.push(args);
-        return { iconUrl: "resolved-icon" };
+        return options.after;
       },
     },
     "@main/level": {
-      gamesArtworkSelectionSublevel: { get: async () => null },
+      gamesArtworkSelectionSublevel: {
+        get: async (key: string) => {
+          selectionReads.push(key);
+          return options.selection ?? null;
+        },
+      },
       levelKeys: { game: (shop: string, id: string) => `${shop}:${id}` },
       gamesShopAssetsSublevel: {
         get: async (key: string) => {
-          cachedKey = key;
-          return { iconUrl: null };
+          cacheReads.push(key);
+          return options.before;
         },
       },
     },
@@ -58,17 +68,25 @@ it("refreshes the catalogue cache while preserving the operational selection ide
       return dependencies[name];
     },
   });
+  return { refresh, calls, cacheReads, selectionReads };
+}
+
+const operationalGame = {
+  shop: "epic",
+  objectId: "namespace:executable",
+  catalogueGame: { shop: "epic", objectId: "namespace:item" },
+} as LibraryGame;
+
+it("refreshes the catalogue cache while preserving the operational selection identity", async () => {
+  const fixture = createRefresh({
+    before: { iconUrl: null },
+    after: { iconUrl: "resolved-icon" },
+  });
+  assert.equal(await fixture.refresh(operationalGame), true);
+  assert.deepEqual(fixture.cacheReads, ["epic:namespace:item"]);
+  assert.deepEqual(fixture.selectionReads, ["epic:namespace:executable"]);
   assert.equal(
-    await refresh({
-      shop: "epic",
-      objectId: "namespace:executable",
-      catalogueGame: { shop: "epic", objectId: "namespace:item" },
-    } as LibraryGame),
-    true
-  );
-  assert.equal(cachedKey, "epic:namespace:item");
-  assert.equal(
-    JSON.stringify(calls),
+    JSON.stringify(fixture.calls),
     JSON.stringify([
       [
         "namespace:item",
@@ -81,59 +99,21 @@ it("refreshes the catalogue cache while preserving the operational selection ide
 
 for (const changed of [false, true]) {
   it(`compares manual selections consistently when defaults ${changed ? "change" : "stay unchanged"}`, async () => {
-    let refresh!: (game: LibraryGame) => Promise<boolean>;
-    const defaults = { shop: "epic", iconUrl: "default-icon" };
-    const selection = {
-      selected: { icon: { url: "manual-icon" }, grid: { url: "manual-grid" } },
-    };
-    const dependencies: Record<string, unknown> = {
-      "./epic-library-artwork-queue": {
-        EpicLibraryArtworkQueue: class {
-          constructor(callback: typeof refresh) {
-            refresh = callback;
-          }
+    const fixture = createRefresh({
+      before: { shop: "epic", iconUrl: "default-icon" },
+      selection: {
+        selected: {
+          icon: { url: "manual-icon" },
+          grid: { url: "manual-grid" },
         },
       },
-      "../events/catalogue/get-game-assets": {
-        getGameAssets: async () => ({
-          iconUrl: "manual-icon",
-          coverImageUrl: "manual-grid",
-          libraryHeroImageUrl: changed ? "new-hero" : undefined,
-        }),
-      },
-      "@main/level": {
-        levelKeys: { game: (shop: string, id: string) => `${shop}:${id}` },
-        gamesShopAssetsSublevel: { get: async () => defaults },
-        gamesArtworkSelectionSublevel: {
-          get: async (key: string) => {
-            assert.equal(key, "epic:namespace:executable");
-            return selection;
-          },
-        },
-      },
-      "@shared": { composeAssetsWithArtwork },
-      "./window-manager": { WindowManager: { sendToAppWindows: () => {} } },
-      "./hydra-api": {
-        HydraApi: {
-          getAuthContext: () => ({ generation: 1 }),
-          isAuthContextCurrent: () => true,
-        },
-      },
-    };
-    runInNewContext(source, {
-      exports: {},
-      require: (name: string) => {
-        assert.ok(Object.hasOwn(dependencies, name), name);
-        return dependencies[name];
+      after: {
+        iconUrl: "manual-icon",
+        coverImageUrl: "manual-grid",
+        libraryHeroImageUrl: changed ? "new-hero" : undefined,
       },
     });
-    assert.equal(
-      await refresh({
-        shop: "epic",
-        objectId: "namespace:executable",
-        catalogueGame: { shop: "epic", objectId: "namespace:item" },
-      } as LibraryGame),
-      changed
-    );
+    assert.equal(await fixture.refresh(operationalGame), changed);
+    assert.deepEqual(fixture.selectionReads, ["epic:namespace:executable"]);
   });
 }
