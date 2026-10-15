@@ -5,7 +5,7 @@ import { describe, it } from "node:test";
 import { runInNewContext } from "node:vm";
 import ts from "typescript";
 import type { IpcMainInvokeEvent } from "electron";
-import type { Game, LibraryGame } from "@types";
+import type { Game, LibraryGame, ShopAssets } from "@types";
 import { getContextualEpicGame } from "../../services/epic/import-visibility.js";
 import { belongsToLibraryCollection } from "../../services/library-sync/game-visibility.js";
 
@@ -22,8 +22,7 @@ const handlerCode = ts.transpileModule(
 type LibraryHandler = (event: IpcMainInvokeEvent) => Promise<LibraryGame[]>;
 type MissingFolder = "installer" | "installed" | "both" | "none";
 
-function fixture(missing: MissingFolder) {
-  const key = "steam:123";
+function fixture(missing: MissingFolder, overrides: Partial<Game> = {}) {
   const game: Game = {
     shop: "steam",
     objectId: "123",
@@ -39,7 +38,9 @@ function fixture(missing: MissingFolder) {
     installedSizeInBytes: 200,
     executablePath: path.join("games", "game", "game.exe"),
     customHeroImageUrl: "custom-hero",
+    ...overrides,
   };
+  const key = `${game.shop}:${game.objectId}`;
   const download = { downloadPath: "downloads", folderName: "installer" };
   const missingPaths = new Set<string>();
   if (missing === "installer" || missing === "both")
@@ -51,7 +52,8 @@ function fixture(missing: MissingFolder) {
   const pendingWrites: { resolve: () => void; reject: () => void }[] = [];
   const errors: { message: string; error: unknown }[] = [];
   const handlers = new Map<string, LibraryHandler>();
-  const emptySublevel = { get: async () => null };
+  const assets = new Map<string, Partial<ShopAssets>>();
+  const selections = new Map<string, unknown>();
   const dependencies: Record<string, unknown> = {
     "node:path": path,
     "node:fs": {
@@ -63,15 +65,29 @@ function fixture(missing: MissingFolder) {
       },
     },
     "@main/level": {
+      levelKeys: { game: (shop: string, id: string) => `${shop}:${id}` },
       gamesSublevel: {
         iterator: () => ({ all: async () => [[key, { ...game }]] }),
       },
       downloadsSublevel: { get: async () => download },
-      gamesArtworkSelectionSublevel: emptySublevel,
-      gamesShopAssetsSublevel: emptySublevel,
+      gamesArtworkSelectionSublevel: {
+        get: async (gameKey: string) => selections.get(gameKey) ?? null,
+      },
+      gamesShopAssetsSublevel: {
+        get: async (gameKey: string) => assets.get(gameKey) ?? null,
+      },
       gamesShopCacheSublevel: { iterator: () => ({ all: async () => [] }) },
     },
-    "@shared": { composeAssetsWithArtwork: () => ({ iconUrl: "sgdb-icon" }) },
+    "@shared": {
+      composeAssetsWithArtwork: (
+        defaults: Partial<ShopAssets> | null,
+        selection: unknown
+      ) => ({
+        ...defaults,
+        iconUrl: defaults?.iconUrl ?? "sgdb-icon",
+        selection,
+      }),
+    },
     "@main/services/hydra-api": {
       HydraApi: { getAuthContext: () => null, isLoggedIn: () => true },
     },
@@ -111,6 +127,8 @@ function fixture(missing: MissingFolder) {
   });
   return {
     key,
+    assets,
+    selections,
     game,
     writeError,
     writes,
@@ -186,5 +204,53 @@ describe("library size cleanup", () => {
     assert.equal(games[0].installedSizeInBytes, f.game.installedSizeInBytes);
     assert.equal(f.writes.length, 0);
     assert.equal(f.errors.length, 0);
+  });
+
+  it("keeps the Steam presentation icon on an underlying Epic record", async () => {
+    const f = fixture("none");
+    Object.assign(f.game, {
+      shop: "epic",
+      objectId: "namespace:item",
+      canonicalId: "canonical-game",
+      catalogueGame: { shop: "steam", objectId: "123" },
+      availableShops: ["steam", "epic"],
+    });
+    const [game] = await f.read();
+    assert.equal(game.shop, "epic");
+    assert.equal(game.objectId, "namespace:item");
+    assert.equal(game.iconUrl, "sgdb-icon");
+    assert.equal(game.catalogueGame?.shop, "steam");
+    assert.equal(game.playTimeInMilliseconds, f.game.playTimeInMilliseconds);
+    assert.equal(f.writes.length, 0);
+  });
+
+  it("uses the catalogue cache instead of old Epic assets and keeps the real artwork selection", async () => {
+    const f = fixture("none", {
+      shop: "epic",
+      objectId: "namespace:item",
+      catalogueGame: { shop: "steam", objectId: "456" },
+    });
+    f.assets.set(f.key, { title: "Epic title", iconUrl: "epic-icon" });
+    f.assets.set("steam:456", {
+      shop: "steam",
+      objectId: "456",
+      title: "Steam title",
+      iconUrl: "steam-icon",
+      coverImageUrl: "steam-cover",
+    });
+    const selection = { selected: { hero: { url: "picked-hero" } } };
+    f.selections.set(f.key, selection);
+    const [game] = await f.read();
+    assert.equal(game.title, "Steam title");
+    assert.equal(game.iconUrl, "steam-icon");
+    assert.equal(game.coverImageUrl, "steam-cover");
+    assert.equal(game.shop, "epic");
+    assert.equal(game.objectId, "namespace:item");
+    assert.deepEqual(
+      (game as LibraryGame & { selection: unknown }).selection,
+      selection
+    );
+    assert.equal(game.customHeroImageUrl, "custom-hero");
+    assert.equal(f.writes.length, 0);
   });
 });

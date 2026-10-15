@@ -12,6 +12,7 @@ import {
   gamesShopAssetsSublevel,
   gamesShopCacheSublevel,
   gamesSublevel,
+  levelKeys,
 } from "@main/level";
 import { composeAssetsWithArtwork } from "@shared";
 import { HydraApi } from "@main/services/hydra-api";
@@ -61,11 +62,18 @@ const getLibrary = async (
             );
             if (game.isDeleted) return null;
             const download = await downloadsSublevel.get(key);
-            const gameAssets = await gamesShopAssetsSublevel.get(key);
+            const catalogueKey = game.catalogueGame
+              ? levelKeys.game(
+                  game.catalogueGame.shop,
+                  game.catalogueGame.objectId
+                )
+              : key;
+            const gameAssets = await gamesShopAssetsSublevel.get(catalogueKey);
             const artworkSelection =
               await gamesArtworkSelectionSublevel.get(key);
             const composedAssets = composeAssetsWithArtwork(
               game.shop === "epic" &&
+                game.catalogueGame?.shop !== "steam" &&
                 gameAssets &&
                 !gameAssets.epicArtworkUpdatedAtByType?.icon
                 ? { ...gameAssets, iconUrl: null }
@@ -136,17 +144,20 @@ const getLibrary = async (
               installerSizeInBytes,
               installedSizeInBytes,
               download: download ?? null,
+              // Spread composed assets last to ensure all image URLs are properly set
+              ...composedAssets,
+              shop: game.shop,
+              objectId: game.objectId,
               unlockedAchievementCount,
               achievementCount: resolveAchievementCount(
                 game.shop,
                 game.objectId,
                 game.achievementCount
               ),
-              // Spread composed assets last to ensure all image URLs are properly set
-              ...composedAssets,
-              ...(game.shop === "epic" && {
-                iconUrl: composedAssets?.iconUrl ?? null,
-              }),
+              ...(game.shop === "epic" &&
+                game.catalogueGame?.shop !== "steam" && {
+                  iconUrl: composedAssets?.iconUrl ?? null,
+                }),
               title: composedAssets?.title || game.title,
               platform: game.platform ?? null,
               // Preserve custom image URLs from game if they exist

@@ -1103,7 +1103,11 @@
     "disk_usage_tooltip": "Installed size on disk",
     "installer_size_tooltip": "Installer size",
     "library_epic": "Epic",
-    "imported_from_epic": "从关联到此个人资料的 Epic 库中导入。"
+    "imported_from_epic": "从关联到此个人资料的 Epic 库中导入。",
+    "imported_from_steam_and_epic": "从与此个人资料关联的 Steam 和 Epic Games 游戏库导入。",
+    "available_on_steam_and_epic": "可在 Steam 和 Epic Games 获取",
+    "available_on_steam": "可在 Steam 获取",
+    "available_on_epic": "可在 Epic Games 获取"
   },
   "game_launcher": {
     "launching": "Launching...",

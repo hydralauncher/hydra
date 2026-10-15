@@ -1645,7 +1645,11 @@
     "context_menu_remove_from_library": "Διαγραφή από τη βιβλιοθήκη",
     "context_menu_add_to_library": "Προσθήκη στη βιβλιοθήκη",
     "library_epic": "Epic",
-    "imported_from_epic": "Εισήχθη από τη βιβλιοθήκη Epic που είναι συνδεδεμένη με αυτό το προφίλ."
+    "imported_from_epic": "Εισήχθη από τη βιβλιοθήκη Epic που είναι συνδεδεμένη με αυτό το προφίλ.",
+    "imported_from_steam_and_epic": "Εισήχθη από τις βιβλιοθήκες Steam και Epic Games που είναι συνδεδεμένες με αυτό το προφίλ.",
+    "available_on_steam_and_epic": "Διαθέσιμο στο Steam και στο Epic Games",
+    "available_on_steam": "Διαθέσιμο στο Steam",
+    "available_on_epic": "Διαθέσιμο στο Epic Games"
   },
   "achievement": {
     "achievement_unlocked": "Το επίτευγμα ξεκλειδώθηκε",

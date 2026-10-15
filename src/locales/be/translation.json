@@ -1067,7 +1067,11 @@
     "disk_usage_tooltip": "Installed size on disk",
     "installer_size_tooltip": "Installer size",
     "library_epic": "Epic",
-    "imported_from_epic": "Імпартавана з бібліятэкі Epic, звязанай з гэтым профілем."
+    "imported_from_epic": "Імпартавана з бібліятэкі Epic, звязанай з гэтым профілем.",
+    "imported_from_steam_and_epic": "Імпартавана з бібліятэк Steam і Epic Games, прывязаных да гэтага профілю.",
+    "available_on_steam_and_epic": "Даступна ў Steam і Epic Games",
+    "available_on_steam": "Даступна ў Steam",
+    "available_on_epic": "Даступна ў Epic Games"
   },
   "achievement": {
     "achievement_unlocked": "Achievement unlocked",

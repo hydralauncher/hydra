@@ -39,6 +39,46 @@ const games = [
 const ids = (list: { id: string }[]) => list.map((game) => game.id);
 
 describe("Library categories", () => {
+  it("filters grouped games by real imported sources instead of presentation", () => {
+    const epicOwned = {
+      id: "group",
+      shop: "epic",
+      catalogueGame: { shop: "steam", objectId: "123" },
+      availableShops: ["steam", "epic"],
+      members: [{ shop: "epic", hasActiveEpicImport: true }],
+    };
+    const filters = { category: "pc" as const, platforms: [] };
+    assert.deepEqual(
+      ids(filterLibraryGames([epicOwned], { ...filters, sources: ["epic"] })),
+      ["group"]
+    );
+    assert.deepEqual(
+      filterLibraryGames([epicOwned], { ...filters, sources: ["steam"] }),
+      []
+    );
+    const ownedOnBoth = {
+      ...epicOwned,
+      members: [
+        ...epicOwned.members,
+        { shop: "steam", hasActiveSteamImport: true },
+      ],
+    };
+    assert.deepEqual(
+      ids(
+        filterLibraryGames([ownedOnBoth], { ...filters, sources: ["steam"] })
+      ),
+      ["group"]
+    );
+    assert.deepEqual(
+      ids(
+        filterLibraryGames([ownedOnBoth], {
+          ...filters,
+          sources: ["steam", "epic"],
+        })
+      ),
+      ["group"]
+    );
+  });
   it("splits PC and classics games", () => {
     assert.deepEqual(ids(filterLibraryGamesByCategory(games, "pc")), [
       "steam-import",

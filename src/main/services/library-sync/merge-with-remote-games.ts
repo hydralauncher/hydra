@@ -9,6 +9,7 @@ import type { EpicConnection } from "../../../types/epic-integration.types";
 import type {
   ArtworkAssetType,
   Game,
+  LibraryCatalogueMetadata,
   GameArtworkSelection,
   SelectedArtwork,
   ShopAssets,
@@ -40,6 +41,7 @@ import {
 } from "./resolve-library-source";
 import {
   mergeLocalAndRemotePlayTime,
+  mergeLibraryCatalogueMetadata,
   preserveEpicDefaultArtwork,
 } from "@shared";
 import { mergePersistedAchievementTotals } from "../achievements/achievement-memory-store";
@@ -70,7 +72,8 @@ type ProfileGame = {
   customLibraryHeroImageUrl?: string | null;
   customLogoImageUrl?: string | null;
   customIconUrl?: string | null;
-} & ShopAssets;
+} & ShopAssets &
+  LibraryCatalogueMetadata;
 
 const reconcileCustomAsset = (
   localValue: string | null | undefined,
@@ -182,9 +185,10 @@ const getLatestLastTimePlayed = (
 
 const getRemoteCoverImageUrl = (game: ProfileGame): string | null => {
   if (game.coverImageUrl) return game.coverImageUrl;
-  if (game.shop !== "steam") return null;
+  const identity = game.catalogueGame ?? game;
+  if (identity.shop !== "steam") return null;
 
-  return `https://shared.steamstatic.com/store_item_assets/steam/apps/${game.objectId}/library_600x900_2x.jpg`;
+  return `https://shared.steamstatic.com/store_item_assets/steam/apps/${identity.objectId}/library_600x900_2x.jpg`;
 };
 
 const MERGE_WRITE_CHUNK_SIZE = 250;
@@ -217,6 +221,13 @@ const mergeExistingGame = (
   canReconcileCustomArtwork: boolean
 ): Game => ({
   ...localGame,
+  ...mergeLibraryCatalogueMetadata(localGame, remoteGame),
+  ...(remoteGame.catalogueGame && {
+    title: remoteGame.title,
+    iconUrl: remoteGame.iconUrl,
+    libraryHeroImageUrl: remoteGame.libraryHeroImageUrl,
+    logoImageUrl: remoteGame.logoImageUrl,
+  }),
   remoteId:
     localGame.source === "hydra" &&
     localGame.remoteId === null &&
@@ -276,6 +287,7 @@ const createLocalGame = (
   collectionIds: string[],
   addedToLibraryAt: Date | null
 ): Game => ({
+  ...mergeLibraryCatalogueMetadata(undefined, remoteGame),
   objectId: remoteGame.objectId,
   title: remoteGame.title,
   remoteId: remoteGame.id,
@@ -313,24 +325,28 @@ const buildRemoteGameShopAssets = (
   remoteGame: ProfileGame,
   localGame: Game | undefined,
   localShopAssets: ShopAssets | undefined
-) =>
-  preserveEpicDefaultArtwork(
-    {
-      updatedAt: Date.now(),
-      ...localShopAssets,
-      shop: remoteGame.shop,
-      objectId: remoteGame.objectId,
-      title: localGame?.title || remoteGame.title,
-      coverImageUrl: getRemoteCoverImageUrl(remoteGame),
-      libraryHeroImageUrl: remoteGame.libraryHeroImageUrl,
-      libraryImageUrl: remoteGame.libraryImageUrl,
-      logoImageUrl: remoteGame.logoImageUrl,
-      iconUrl: remoteGame.iconUrl,
-      logoPosition: remoteGame.logoPosition,
-      downloadSources: remoteGame.downloadSources,
-    },
-    localShopAssets
-  );
+) => {
+  const assets = {
+    updatedAt: Date.now(),
+    ...localShopAssets,
+    shop: remoteGame.shop,
+    objectId: remoteGame.objectId,
+    title: remoteGame.catalogueGame
+      ? remoteGame.title
+      : localGame?.title || remoteGame.title,
+    coverImageUrl: getRemoteCoverImageUrl(remoteGame),
+    libraryHeroImageUrl: remoteGame.libraryHeroImageUrl,
+    libraryImageUrl: remoteGame.libraryImageUrl,
+    logoImageUrl: remoteGame.logoImageUrl,
+    iconUrl: remoteGame.iconUrl,
+    logoPosition: remoteGame.logoPosition,
+    downloadSources: remoteGame.downloadSources,
+  };
+  return (remoteGame.catalogueGame ?? localGame?.catalogueGame)?.shop ===
+    "steam"
+    ? assets
+    : preserveEpicDefaultArtwork(assets, localShopAssets);
+};
 
 const buildMergedGame = (
   remoteGame: ProfileGame,
@@ -409,15 +425,36 @@ const mergeRemoteGamesChunk = async (
         else if (remoteGame.hasActiveEpicImport === false)
           merged.epicImportScope = undefined;
         batch.put(gameKey, merged, { sublevel: gamesSublevel });
-        batch.put(
-          gameKey,
-          buildRemoteGameShopAssets(
-            remoteGame,
-            localGame,
-            localShopAssets[index]
-          ),
-          { sublevel: gamesShopAssetsSublevel }
+        const assets = buildRemoteGameShopAssets(
+          remoteGame,
+          localGame,
+          localShopAssets[index]
         );
+        batch.put(gameKey, assets, { sublevel: gamesShopAssetsSublevel });
+        if (remoteGame.catalogueGame) {
+          const catalogueKey = levelKeys.game(
+            remoteGame.catalogueGame.shop,
+            remoteGame.catalogueGame.objectId
+          );
+          if (catalogueKey !== gameKey) {
+            batch.put(
+              catalogueKey,
+              {
+                ...remoteGame.catalogueGame,
+                updatedAt: assets.updatedAt,
+                title: assets.title,
+                iconUrl: assets.iconUrl,
+                libraryHeroImageUrl: assets.libraryHeroImageUrl,
+                libraryImageUrl: assets.libraryImageUrl,
+                coverImageUrl: assets.coverImageUrl,
+                logoImageUrl: assets.logoImageUrl,
+                logoPosition: assets.logoPosition,
+                downloadSources: assets.downloadSources,
+              },
+              { sublevel: gamesShopAssetsSublevel }
+            );
+          }
+        }
       });
 
       if (!current()) throw new Error("library-context-changed");

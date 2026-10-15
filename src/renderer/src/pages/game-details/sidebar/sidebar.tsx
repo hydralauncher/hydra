@@ -123,8 +123,15 @@ export function Sidebar() {
   const [activeRequirement, setActiveRequirement] =
     useState<keyof SteamAppDetails["pc_requirements"]>("minimum");
 
-  const { gameTitle, shopDetails, objectId, shop, stats, achievements } =
-    useContext(gameDetailsContext);
+  const {
+    gameTitle,
+    shopDetails,
+    objectId,
+    shop,
+    catalogueGame,
+    stats,
+    achievements,
+  } = useContext(gameDetailsContext);
   const userPreferences = useAppSelector(
     (state) => state.userPreferences.value
   );
@@ -147,7 +154,7 @@ export function Sidebar() {
       // Directly fetch from API without checking cache
       window.electron.hydraApi
         .get<HowLongToBeatCategory[] | null>(
-          `/games/${shop}/${objectId}/how-long-to-beat`,
+          `/games/${catalogueGame.shop}/${catalogueGame.objectId}/how-long-to-beat`,
           {
             needsAuth: false,
           }
@@ -162,7 +169,7 @@ export function Sidebar() {
           setHowLongToBeat({ isLoading: false, data: null });
         });
     }
-  }, [objectId, shop]);
+  }, [objectId, catalogueGame.shop, catalogueGame.objectId]);
 
   useEffect(() => {
     if (!shouldShowProtonFeatures || !objectId) {
@@ -172,14 +179,19 @@ export function Sidebar() {
 
     setProtonDB({ isLoading: true, data: null });
 
-    getProtonDBData(shop, objectId)
+    getProtonDBData(catalogueGame.shop, catalogueGame.objectId)
       .then((protonData) => {
         setProtonDB({ isLoading: false, data: protonData });
       })
       .catch(() => {
         setProtonDB({ isLoading: false, data: null });
       });
-  }, [shouldShowProtonFeatures, objectId, shop]);
+  }, [
+    shouldShowProtonFeatures,
+    objectId,
+    catalogueGame.shop,
+    catalogueGame.objectId,
+  ]);
 
   return (
     <aside className="content-sidebar">
@@ -188,7 +200,7 @@ export function Sidebar() {
           <ProtonDBSection
             protonDBData={protonDB.data}
             isLoading={protonDB.isLoading}
-            objectId={objectId ?? ""}
+            objectId={catalogueGame.objectId}
           />
         </Suspense>
       )}

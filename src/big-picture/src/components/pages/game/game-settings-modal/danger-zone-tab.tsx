@@ -1,6 +1,7 @@
 import { useState, useCallback } from "react";
 import { useTranslation } from "react-i18next";
 import type { LibraryGame } from "@types";
+import { applyLibraryGroupAction, findLibraryGamePresentation } from "@shared";
 import { Button, VerticalFocusGroup } from "../../../common";
 import { ConfirmationModal } from "../../../modals";
 import { SettingsSection } from "../../../../pages/settings/settings-section";
@@ -71,17 +72,28 @@ export function GameDangerZoneSettingsTab({
   const handleRemoveFromLibrary = useCallback(async () => {
     setActionLoading(true);
     try {
-      await globalThis.window.electron.removeGameFromLibrary(
-        game.shop,
-        game.objectId
-      );
-      globalThis.window.dispatchEvent(new Event("library-update"));
+      const library = await globalThis.window.electron.getLibrary(true);
+      const members = findLibraryGamePresentation(library, game)?.members ?? [
+        game,
+      ];
+      await applyLibraryGroupAction(members, async (member) => {
+        if (member.download)
+          await globalThis.window.electron.cancelGameDownload(
+            member.shop,
+            member.objectId
+          );
+        await globalThis.window.electron.removeGameFromLibrary(
+          member.shop,
+          member.objectId
+        );
+      });
       showSuccessToast("Game removed from library");
       setPendingAction(null);
       onClose();
     } catch {
       showErrorToast("Failed to remove from library");
     } finally {
+      globalThis.window.dispatchEvent(new Event("library-update"));
       setActionLoading(false);
     }
   }, [game, onClose, showSuccessToast, showErrorToast]);
