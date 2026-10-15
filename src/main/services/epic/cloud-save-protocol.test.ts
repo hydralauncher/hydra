@@ -4,7 +4,7 @@ import test from "node:test";
 import {
   assertEpicSaveCommandSucceeded,
   decideEpicSaveSync,
-  getEpicRemoteManifestModifiedAt,
+  isEpicRemoteSaveTimestamp,
   isEpicSaveFile,
   matchesEpicSaveFilter,
   parseEpicRemoteManifest,
@@ -12,18 +12,27 @@ import {
   resolveEpicSavePath,
 } from "./cloud-save-protocol.js";
 
-test("remote save manifest dates are UTC and invalid dates remain unknown", () => {
-  assert.equal(
-    getEpicRemoteManifestModifiedAt("2026.10.14-10.00.00.manifest"),
-    "2026-10-14T10:00:00.000Z"
-  );
-  for (const manifest of [
+const accountId = "a".repeat(32);
+const manifestPath = (
+  name: string,
+  artifact = "Artifact",
+  account = accountId
+) => `savesync/${account}/${artifact}/manifests/${name}`;
+
+test("remote upload dates must be valid UTC timestamps, retaining microseconds", () => {
+  for (const timestamp of [
+    "2026-10-14T10:00:00Z",
+    "2026-10-14T10:00:00.000Z",
+    "2026-10-14T10:00:00.123456Z",
+  ])
+    assert.equal(isEpicRemoteSaveTimestamp(timestamp), true);
+  for (const timestamp of [
     null,
     "invalid",
-    "2026.02.31-10.00.00.manifest",
-    "2026.10.14-25.00.00.manifest",
+    "2026-02-31T10:00:00.000Z",
+    "2026-10-14T25:00:00.000Z",
   ])
-    assert.equal(getEpicRemoteManifestModifiedAt(manifest), null);
+    assert.equal(isEpicRemoteSaveTimestamp(timestamp), false);
 });
 
 test("reads actual Epic save metadata and Legendary inclusion/exclusion semantics", () => {
@@ -79,37 +88,97 @@ test("resolves save folders only from known variables and absolute paths", () =>
   assert.equal(resolveEpicSavePath("C:/", {}, path.win32), null);
 });
 
-test("reads latest exact-artifact manifest and rejects malformed/foreign responses", () => {
+test("selects the most recent upload even when its save filename is older", () => {
+  const older = "2026.10.13-12.00.00.manifest";
+  const newer = "2026.10.14-12.00.00.manifest";
+  assert.deepEqual(
+    parseEpicRemoteManifest(
+      {
+        files: {
+          [manifestPath(older)]: { lastModified: "2026-10-15T12:00:00.000Z" },
+          [manifestPath(newer)]: { lastModified: "2026-10-14T12:00:00.000Z" },
+        },
+      },
+      "Artifact",
+      accountId
+    ),
+    { name: older, lastModified: "2026-10-15T12:00:00.000Z" }
+  );
+});
+
+test("matches Legendary ordering for equal dates and sub-millisecond uploads", () => {
+  const names = [
+    "2026.10.13-12.00.00.manifest",
+    "2026.10.14-12.00.00.manifest",
+  ];
+  for (const dates of [
+    ["2026-10-15T12:00:00.123457Z", "2026-10-15T12:00:00.123456Z"],
+    ["2026-10-15T12:00:00.1Z", "2026-10-15T12:00:00.099999Z"],
+  ])
+    assert.equal(
+      parseEpicRemoteManifest(
+        {
+          files: Object.fromEntries(
+            names.map((name, index) => [
+              manifestPath(name),
+              { lastModified: dates[index] },
+            ])
+          ),
+        },
+        "Artifact",
+        accountId
+      )?.name,
+      names[0]
+    );
   assert.equal(
     parseEpicRemoteManifest(
-      'Save games:\n- Example ("Artifact")\n + 2026.10.14-10.00.00.manifest\n + 2026.10.14-11.00.00.manifest\n',
-      "Artifact"
-    ),
-    "2026.10.14-11.00.00.manifest"
+      {
+        files: Object.fromEntries(
+          names.map((name) => [
+            manifestPath(name),
+            { lastModified: "2026-10-15T12:00:00Z" },
+          ])
+        ),
+      },
+      "Artifact",
+      accountId
+    )?.name,
+    names[1]
   );
-  assert.equal(parseEpicRemoteManifest("Save games:\n", "Artifact"), null);
-  assert.throws(() => parseEpicRemoteManifest("", "Artifact"));
-  assert.throws(() =>
-    parseEpicRemoteManifest("Save games:\nUnknown response", "Artifact")
+});
+
+test("rejects malformed, foreign or undated listings rather than assuming no save exists", () => {
+  const name = "2026.10.14-12.00.00.manifest";
+  assert.equal(
+    parseEpicRemoteManifest({ files: {} }, "Artifact", accountId),
+    null
   );
-  assert.throws(() =>
-    parseEpicRemoteManifest("Save games:\nSave games:\n", "Artifact")
-  );
-  assert.throws(() =>
-    parseEpicRemoteManifest('Save games:\n- Example ("Artifact")\n', "Artifact")
-  );
-  assert.throws(() =>
-    parseEpicRemoteManifest(
-      'Save games:\n- Example ("Other")\n + 2026.10.14-10.00.00.manifest',
-      "Artifact"
-    )
-  );
-  assert.throws(() =>
-    parseEpicRemoteManifest(
-      'Save games:\n- Example ("Artifact")\n + broken',
-      "Artifact"
-    )
-  );
+  for (const input of [
+    null,
+    "Save games:\n",
+    {},
+    { files: [] },
+    {
+      files: {
+        [manifestPath(name, "Other")]: { lastModified: "2026-10-14T12:00:00Z" },
+      },
+    },
+    {
+      files: {
+        [manifestPath(name, "Artifact", "other")]: {
+          lastModified: "2026-10-14T12:00:00Z",
+        },
+      },
+    },
+    {
+      files: {
+        [manifestPath("broken")]: { lastModified: "2026-10-14T12:00:00Z" },
+      },
+    },
+    { files: { [manifestPath(name)]: {} } },
+    { files: { [manifestPath(name)]: { lastModified: "invalid" } } },
+  ])
+    assert.throws(() => parseEpicRemoteManifest(input, "Artifact", accountId));
 });
 
 test("does not treat exit zero, skips or incomplete chunks as successful transfers", () => {
@@ -151,37 +220,66 @@ test("does not treat exit zero, skips or incomplete chunks as successful transfe
 });
 
 test("anchors detect local/remote changes without trusting dates and preserve pending local saves", () => {
-  const anchor = { localDigest: "local", remoteManifest: "manifest" };
+  const remote = { name: "manifest", lastModified: "2026-10-14T12:00:00Z" };
+  const changed = { ...remote, name: "changed" };
+  const anchor = {
+    localDigest: "local",
+    remoteManifest: remote.name,
+    remoteModifiedAt: remote.lastModified,
+  };
   assert.equal(
-    decideEpicSaveSync(undefined, "local", 1, "manifest", false),
+    decideEpicSaveSync(undefined, "local", 1, remote, false),
     "conflict"
   );
   assert.equal(
-    decideEpicSaveSync(undefined, "empty", 0, "manifest", false),
+    decideEpicSaveSync(undefined, "empty", 0, remote, false),
     "download"
   );
   assert.equal(
     decideEpicSaveSync(undefined, "local", 1, null, false),
     "upload"
   );
+  assert.equal(decideEpicSaveSync(anchor, "local", 1, remote, true), "same");
   assert.equal(
-    decideEpicSaveSync(anchor, "local", 1, "manifest", true),
-    "same"
-  );
-  assert.equal(
-    decideEpicSaveSync(anchor, "changed", 1, "manifest", false),
+    decideEpicSaveSync(anchor, "changed", 1, remote, false),
     "upload"
   );
   assert.equal(
-    decideEpicSaveSync(anchor, "local", 1, "changed", false),
+    decideEpicSaveSync(anchor, "local", 1, changed, false),
     "download"
   );
   assert.equal(
-    decideEpicSaveSync(anchor, "changed", 1, "changed", false),
+    decideEpicSaveSync(anchor, "changed", 1, changed, false),
     "conflict"
   );
   assert.equal(
-    decideEpicSaveSync(anchor, "local", 1, "changed", true),
+    decideEpicSaveSync(anchor, "local", 1, changed, true),
     "conflict"
   );
+});
+
+test("detects same-name reuploads and safely replaces anchors without upload metadata", () => {
+  const remote = {
+    name: "2026.10.14-12.00.00.manifest",
+    lastModified: "2026-10-15T12:00:00Z",
+  };
+  for (const remoteModifiedAt of [undefined, "2026-10-14T12:00:00Z"]) {
+    const anchor = {
+      localDigest: "local",
+      remoteManifest: remote.name,
+      remoteModifiedAt,
+    };
+    assert.equal(
+      decideEpicSaveSync(anchor, "local", 1, remote, false),
+      "download"
+    );
+    assert.equal(
+      decideEpicSaveSync(anchor, "edited", 1, remote, false),
+      "conflict"
+    );
+    assert.equal(
+      decideEpicSaveSync(anchor, "local", 1, remote, true),
+      "conflict"
+    );
+  }
 });

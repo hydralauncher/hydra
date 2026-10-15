@@ -26,6 +26,7 @@ import { LegendaryManagedRuntime } from "./legendary-managed-runtime";
 import { EpicInstallationService } from "./installation";
 import { epicManagedInstallationSupport } from "./managed-platform";
 import { EpicPlaytimeReporter } from "./playtime-reporter";
+import { EpicCloudSaveSource } from "./cloud-save-source";
 import { logger } from "../logger";
 import { EpicDownloadService, setEpicDownloadService } from "./download";
 import {
@@ -107,6 +108,7 @@ function configureManagedEpic() {
   const dependencies = {
     runtime: managedRuntime,
     installation,
+    source: new EpicCloudSaveSource(runtime!.session),
     emit: (
       state: import("../../../types/epic-managed.types").EpicCloudSaveState
     ) =>
