@@ -76,7 +76,7 @@ const waitForProcessClose = (closed: Promise<void>) =>
 export function executeLegendaryCommand(
   binaryPath: string,
   args: string[],
-  options: ExecFileOptionsWithStringEncoding
+  options: ExecFileOptionsWithStringEncoding & { sessionRequired?: boolean }
 ): Promise<string> {
   if (options.signal?.aborted)
     return Promise.reject(new EpicIntegrationError("operation-cancelled"));
@@ -98,6 +98,9 @@ export function executeLegendaryCommand(
     }
     let output = "";
     const decoder = new StringDecoder("utf8");
+    const diagnosticDecoder = new StringDecoder("utf8");
+    let diagnosticTail = "";
+    let sessionExpired = false;
     let bytes = 0;
     let spawnFailed = false;
     let closed = false;
@@ -164,6 +167,14 @@ export function executeLegendaryCommand(
       bytes += chunk.length;
       if (bytes > (options.maxBuffer ?? EPIC_LEGENDARY_MAX_OUTPUT_BYTES))
         stop("auth-failed");
+      else if (options.sessionRequired && !interruption) {
+        diagnosticTail += diagnosticDecoder.write(chunk);
+        sessionExpired ||=
+          /Stored credentials are no longer valid|Invalid refresh token|invalid_refresh_token|invalid_grant/i.test(
+            diagnosticTail
+          );
+        diagnosticTail = diagnosticTail.slice(-512);
+      }
     });
     child.on("close", (code) => {
       closed = true;
@@ -172,7 +183,9 @@ export function executeLegendaryCommand(
       if (!interruption)
         settle(
           spawnFailed || code !== 0
-            ? new EpicIntegrationError("auth-failed")
+            ? new EpicIntegrationError(
+                sessionExpired ? "session-expired" : "auth-failed"
+              )
             : undefined
         );
     });
