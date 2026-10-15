@@ -77,15 +77,15 @@ import { runWithHydraSaveGuard } from "./epic/cloud-saves";
 export { gamesPlaytime };
 export { isGameRunning } from "./game-running-state";
 
+// Persisted ownership survives a Hydra restart. Legacy sync must not read a
+// managed game's files while its captured session/close proof is unavailable.
+const isManagedEpicGame = (game: Game) =>
+  game.shop === "epic" &&
+  (!!game.epicInstallation ||
+    hasManagedEpicSession(levelKeys.game(game.shop, game.objectId)));
+
 const runAutomaticCloudSaveOnOpen = async (game: Game) => {
-  // Persisted ownership survives a Hydra restart. Legacy sync must not read a
-  // managed game's files while its captured session/close proof is unavailable.
-  if (
-    game.shop === "epic" &&
-    (game.epicInstallation ||
-      hasManagedEpicSession(levelKeys.game(game.shop, game.objectId)))
-  )
-    return;
+  if (isManagedEpicGame(game)) return;
   const mode = await getCloudSaveAutomaticSyncMode(game.objectId, game.shop);
 
   if (shouldRunLegacyAutomaticCloudSave(mode)) {
@@ -101,16 +101,10 @@ const runAutomaticCloudSaveOnOpen = async (game: Game) => {
 };
 
 const runAutomaticCloudSaveOnClose = async (game: Game) => {
-  if (
-    game.shop === "epic" &&
-    (game.epicInstallation ||
-      hasManagedEpicSession(levelKeys.game(game.shop, game.objectId)))
-  )
-    return;
   const mode = await getCloudSaveAutomaticSyncMode(game.objectId, game.shop);
 
   if (shouldRunLegacyAutomaticCloudSave(mode)) {
-    if (game.remoteId) {
+    if (game.remoteId && !isManagedEpicGame(game)) {
       await runWithHydraSaveGuard(() =>
         CloudSync.uploadSaveGame(
           game.objectId,
@@ -756,7 +750,7 @@ const onCloseGame = (game: Game) => {
   if (game.shop === "custom") return;
 
   const closedManagedEpic = onManagedEpicClosed(game);
-  if (!gamePlaytime.managedEpicSession && !closedManagedEpic)
+  if (!gamePlaytime.managedEpicSession || closedManagedEpic)
     void runAutomaticCloudSaveOnClose(game).catch((error: unknown) => {
       handleAutomaticCloudSaveLifecycleError("close", game, error);
     });

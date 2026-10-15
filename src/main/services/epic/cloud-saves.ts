@@ -565,6 +565,10 @@ export class EpicCloudSaveService {
         : saveSettings()
     );
     this.states.delete(objectId);
+    // Settings may change from Hydra's cloud save toggle; refresh open views.
+    void this.getState(objectId)
+      .then((state) => this.dependencies.emit(state))
+      .catch(() => undefined);
     return { ok: true as const };
   }
   private async listRemote(session: EpicSaveSession, signal: AbortSignal) {
