@@ -128,6 +128,8 @@ export function ChatNewConversation({
         event.key.toLowerCase() === "t"
       ) {
         event.preventDefault();
+        // An open dialog makes the window inert, so the picker couldn't focus.
+        if (document.querySelector("[data-hydra-dialog]")) return;
         toggle();
       }
     };
