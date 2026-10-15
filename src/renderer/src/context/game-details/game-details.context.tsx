@@ -501,7 +501,6 @@ export function GameDetailsContextProvider({
 
   useEffect(() => {
     const members =
-      !lockAchievementIdentity &&
       presentation?.availableShops.includes("steam") &&
       presentation.availableShops.includes("epic")
         ? presentation.members.filter(
@@ -531,13 +530,7 @@ export function GameDetailsContextProvider({
     return () => {
       unsubscribe.forEach((stop) => stop());
     };
-  }, [
-    achievementObjectId,
-    achievementShop,
-    userDetails,
-    presentation,
-    lockAchievementIdentity,
-  ]);
+  }, [achievementObjectId, achievementShop, userDetails, presentation]);
 
   useEffect(() => {
     if (shop === "custom") return;

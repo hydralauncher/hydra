@@ -116,6 +116,7 @@ export const getUnlockedAchievements = async (
           .get(levelKeys.game(shop, objectId))
           .catch(() => undefined)
       )?.canonicalId === combined.canonicalId;
+    assertOwner();
     if (
       combined?.achievements.length &&
       (includesRequestedCopy || emptyCopyInGroup)
