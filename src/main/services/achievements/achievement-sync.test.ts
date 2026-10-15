@@ -395,7 +395,7 @@ test("ordinary PUT payloads follow the API achievement schema", async (t) => {
   });
   assert.deepEqual(payload, {
     id: "game",
-    achievements: [{ name: "A", unlockTime: 1, hardcoreUnlockTime: 2 }],
+    achievements: [{ name: "A", unlockTime: 2, hardcore: true }],
   });
   assert.ok(
     f.getAchievementSyncRetryDelay(

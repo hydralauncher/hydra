@@ -8,7 +8,10 @@ import type {
   UserPreferences,
 } from "@types";
 import { achievementSyncCoordinator } from "./achievement-sync-coordinator";
-import { achievementSyncWorker } from "./achievement-sync-worker";
+import {
+  achievementSyncWorker,
+  toAchievementSyncEntry,
+} from "./achievement-sync-worker";
 import { isAchievementSouvenirsEnabled } from "@shared";
 import { randomUUID } from "node:crypto";
 import { WindowManager } from "../window-manager";
@@ -117,13 +120,7 @@ const captureAchievementSouvenirs = async (
       gameKey,
       screenshotPath,
       capturedAt,
-      achievements: newAchievements.map((achievement) => ({
-        name: achievement.name,
-        unlockTime: achievement.unlockTime,
-        ...(achievement.hardcoreUnlockTime != null && {
-          hardcoreUnlockTime: achievement.hardcoreUnlockTime,
-        }),
-      })),
+      achievements: newAchievements.map(toAchievementSyncEntry),
       status: "pending" as const,
       attemptCount: 0,
     };

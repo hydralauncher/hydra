@@ -75,15 +75,18 @@ export const getAchievementSyncRetryDelay = (
 export const isRetryableAchievementSyncStatus = (status: number) =>
   status >= 500 || ACHIEVEMENT_SYNC_RETRYABLE_CLIENT_STATUSES.includes(status);
 
+export const toAchievementSyncEntry = ({
+  name,
+  unlockTime,
+  hardcoreUnlockTime,
+}: UnlockedAchievement) =>
+  hardcoreUnlockTime == null
+    ? { name, unlockTime }
+    : { name, unlockTime: hardcoreUnlockTime, hardcore: true };
+
 export const toAchievementSyncPayload = (item: PendingAchievementSync) => ({
   id: item.remoteId,
-  achievements: item.achievements.map((achievement) => ({
-    name: achievement.name,
-    unlockTime: achievement.unlockTime,
-    ...(achievement.hardcoreUnlockTime != null && {
-      hardcoreUnlockTime: achievement.hardcoreUnlockTime,
-    }),
-  })),
+  achievements: item.achievements.map(toAchievementSyncEntry),
 });
 
 export class AchievementSyncWorker {
