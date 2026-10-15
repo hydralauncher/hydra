@@ -540,7 +540,7 @@
     "epic_install_sizes": "Stáhnout: {{download}} · Instalovat: {{disk}}",
     "download_size": "Stažení: <strong>{{size}}</strong>",
     "required_storage_space": "Úložiště: <strong>{{size}}</strong>",
-    "epic_finalizing_install": "Preparing installation",
+    "epic_finalizing_install": "Dokončování instalace",
     "epic_cloud_saves": "Uložení v cloudu — Epic Games",
     "epic_cloud_saves_description": "Synchronizujte uložené pozice této hry se svým účtem Epic Games.",
     "epic_save_unsupported": "Tato hra nepodporuje ukládání do cloudu přes Epic Games.",
@@ -575,7 +575,7 @@
     "epic_install_platform_unsupported": "Epic Games downloads are not available for this platform or architecture.",
     "epic_compatibility_automatic": "Automatic",
     "epic_play_offline": "Hrát — Offline",
-    "epic_prerequisites_required": "The game's dependencies could not be prepared. Try again.",
+    "epic_prerequisites_required": "Povolte požadované součásti hry a zkuste to znovu.",
     "epic_update_required": "Aktualizujte hru přes možnost Epic Games do stejné složky.",
     "epic_retry": "Zkusit znovu"
   },

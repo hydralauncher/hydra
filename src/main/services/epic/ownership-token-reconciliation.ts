@@ -10,8 +10,8 @@ import { disposeEpicOwnershipTokenIfStopped } from "./ownership-token.js";
 
 /** A surviving game or an incomplete process inspection keeps its token. */
 export async function reconcileEpicLinuxOwnershipTokens(games: Game[]) {
+  if (process.platform !== "linux") return { removed: 0, preserved: 0 };
   const result = { removed: 0, preserved: 0 };
-  if (process.platform !== "linux") return result;
   for (const game of games) {
     const installation = game.epicInstallation;
     if (

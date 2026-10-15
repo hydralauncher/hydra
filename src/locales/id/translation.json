@@ -712,7 +712,7 @@
     "epic_install_sizes": "Unduh: {{download}} · Instal: {{disk}}",
     "download_size": "Unduhan: <strong>{{size}}</strong>",
     "required_storage_space": "Penyimpanan: <strong>{{size}}</strong>",
-    "epic_finalizing_install": "Preparing installation",
+    "epic_finalizing_install": "Menyelesaikan instalasi",
     "epic_cloud_saves": "Cloud save — Epic Games",
     "epic_cloud_saves_description": "Sinkronkan data simpanan game ini dengan akun Epic Games Anda.",
     "epic_save_unsupported": "Game ini tidak mendukung penyimpanan cloud melalui Epic Games.",
@@ -747,7 +747,7 @@
     "epic_install_platform_unsupported": "Epic Games downloads are not available for this platform or architecture.",
     "epic_compatibility_automatic": "Automatic",
     "epic_play_offline": "Main — Offline",
-    "epic_prerequisites_required": "The game's dependencies could not be prepared. Try again.",
+    "epic_prerequisites_required": "Izinkan prasyarat gim dan coba lagi.",
     "epic_update_required": "Perbarui gim melalui opsi Epic Games menggunakan folder yang sama.",
     "epic_retry": "Coba lagi"
   },

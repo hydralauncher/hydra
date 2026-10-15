@@ -695,7 +695,7 @@
     "epic_install_sizes": "Изтегли: {{download}} · Инсталирай: {{disk}}",
     "download_size": "Изтегляне: <strong>{{size}}</strong>",
     "required_storage_space": "Съхранение: <strong>{{size}}</strong>",
-    "epic_finalizing_install": "Preparing installation",
+    "epic_finalizing_install": "Завършване на инсталацията",
     "epic_cloud_saves": "Облачно запазване — Epic Games",
     "epic_cloud_saves_description": "Синхронизирайте запазените игри с вашия акаунт в Epic Games.",
     "epic_save_unsupported": "Тази игра не поддържа запазване в облака чрез Epic Games.",
@@ -730,7 +730,7 @@
     "epic_install_platform_unsupported": "Epic Games downloads are not available for this platform or architecture.",
     "epic_compatibility_automatic": "Automatic",
     "epic_play_offline": "Играй — Офлайн",
-    "epic_prerequisites_required": "The game's dependencies could not be prepared. Try again.",
+    "epic_prerequisites_required": "Разрешете необходимите компоненти на играта и опитайте отново.",
     "epic_update_required": "Обновете играта чрез опцията Epic Games, като използвате същата папка.",
     "epic_retry": "Опитайте отново"
   },

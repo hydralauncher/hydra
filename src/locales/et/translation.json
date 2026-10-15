@@ -540,7 +540,7 @@
     "epic_install_sizes": "Laadi alla: {{download}} · Installi: {{disk}}",
     "download_size": "Allalaadimine: <strong>{{size}}</strong>",
     "required_storage_space": "Salvestusruum: <strong>{{size}}</strong>",
-    "epic_finalizing_install": "Preparing installation",
+    "epic_finalizing_install": "Paigalduse lõpetamine",
     "epic_cloud_saves": "Pilvesalvestus — Epic Games",
     "epic_cloud_saves_description": "Sünkrooni selle mängu salvestused oma Epic Gamesi kontoga.",
     "epic_save_unsupported": "See mäng ei toeta pilvesalvestusi Epic Gamesi kaudu.",
@@ -575,7 +575,7 @@
     "epic_install_platform_unsupported": "Epic Games downloads are not available for this platform or architecture.",
     "epic_compatibility_automatic": "Automatic",
     "epic_play_offline": "Mängi — Offline",
-    "epic_prerequisites_required": "The game's dependencies could not be prepared. Try again.",
+    "epic_prerequisites_required": "Luba mängu vajalikud komponendid ja proovi uuesti.",
     "epic_update_required": "Uuenda mängu Epic Gamesi valiku kaudu samasse kausta.",
     "epic_retry": "Proovi uuesti"
   },

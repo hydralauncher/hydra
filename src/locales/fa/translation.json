@@ -536,7 +536,7 @@
     "epic_install_sizes": "Download: {{download}} · نصف: {{disk}}",
     "download_size": "دانلود: <strong>{{size}}</strong>",
     "required_storage_space": "فضای ذخیره‌سازی: <strong>{{size}}</strong>",
-    "epic_finalizing_install": "Preparing installation",
+    "epic_finalizing_install": "در حال تکمیل نصب",
     "epic_cloud_saves": "Cloud save — Epic Games",
     "epic_cloud_saves_description": "ذخیره‌های این بازی را با حساب Epic Games خود همگام‌سازی کنید.",
     "epic_save_unsupported": "این بازی از ذخیره ابری از طریق Epic Games پشتیبانی نمی‌کند.",
@@ -571,7 +571,7 @@
     "epic_install_platform_unsupported": "Epic Games downloads are not available for this platform or architecture.",
     "epic_compatibility_automatic": "Automatic",
     "epic_play_offline": "بازی — Offline",
-    "epic_prerequisites_required": "The game's dependencies could not be prepared. Try again.",
+    "epic_prerequisites_required": "پیش‌نیازهای بازی را تأیید کنید و دوباره تلاش کنید.",
     "epic_update_required": "بازی را از گزینهٔ Epic Games با همان پوشه به‌روزرسانی کنید.",
     "epic_retry": "تلاش دوباره"
   },

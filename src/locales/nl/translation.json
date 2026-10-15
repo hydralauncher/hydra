@@ -537,7 +537,7 @@
     "epic_install_sizes": "Download: {{download}} · Installeren: {{disk}}",
     "download_size": "Download: <strong>{{size}}</strong>",
     "required_storage_space": "Opslag: <strong>{{size}}</strong>",
-    "epic_finalizing_install": "Preparing installation",
+    "epic_finalizing_install": "Installatie afronden",
     "epic_cloud_saves": "Cloud save — Epic Games",
     "epic_cloud_saves_description": "Synchroniseer de opgeslagen spelgegevens van dit spel met je Epic Games-account.",
     "epic_save_unsupported": "Dit spel ondersteunt geen cloudopslag via Epic Games.",
@@ -572,7 +572,7 @@
     "epic_install_platform_unsupported": "Epic Games downloads are not available for this platform or architecture.",
     "epic_compatibility_automatic": "Automatic",
     "epic_play_offline": "Speel — Offline",
-    "epic_prerequisites_required": "The game's dependencies could not be prepared. Try again.",
+    "epic_prerequisites_required": "Sta de vereisten van het spel toe en probeer opnieuw.",
     "epic_update_required": "Werk het spel bij via de Epic Games-optie met dezelfde map.",
     "epic_retry": "Opnieuw proberen"
   },

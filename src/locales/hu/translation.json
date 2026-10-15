@@ -562,7 +562,7 @@
     "epic_install_sizes": "Letöltés: {{download}} · Telepít: {{disk}}",
     "download_size": "Letöltés: <strong>{{size}}</strong>",
     "required_storage_space": "Tárhely: <strong>{{size}}</strong>",
-    "epic_finalizing_install": "Preparing installation",
+    "epic_finalizing_install": "Telepítés befejezése",
     "epic_cloud_saves": "Mentés felhőben — Epic Games",
     "epic_cloud_saves_description": "Szinkronizáld a játék mentéseit az Epic Games-fiókoddal.",
     "epic_save_unsupported": "Ez a játék nem támogatja a felhőmentéseket az Epic Gamesen keresztül.",
@@ -597,7 +597,7 @@
     "epic_install_platform_unsupported": "Epic Games downloads are not available for this platform or architecture.",
     "epic_compatibility_automatic": "Automatic",
     "epic_play_offline": "Játék — Offline",
-    "epic_prerequisites_required": "The game's dependencies could not be prepared. Try again.",
+    "epic_prerequisites_required": "Engedélyezd a játék előfeltételeit, és próbáld újra.",
     "epic_update_required": "Frissítsd a játékot az Epic Games lehetőséggel ugyanabba a mappába.",
     "epic_retry": "Próbáld újra"
   },

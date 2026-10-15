@@ -382,11 +382,10 @@ export class EpicCloudSaveService {
               changedGeneration ||
               (source === "automatic" &&
                 installation.savePath !== automaticPath);
-            resolved = needsPathChoice
-              ? null
-              : source === "automatic"
-                ? automaticPath
-                : configuredPath;
+            if (needsPathChoice) resolved = null;
+            else
+              resolved =
+                source === "automatic" ? automaticPath : configuredPath;
           }
         }
         const home = path.resolve(app.getPath("home"));

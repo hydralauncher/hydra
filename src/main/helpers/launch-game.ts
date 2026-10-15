@@ -747,27 +747,33 @@ const launchGameWithCloudSaveChecks = async (
 
   const shouldRunV2AutomaticSync =
     !managedEpic && (await canRunAutomaticCloudSaveSync(objectId, shop));
+  let preparedCompatibility: PreparedLinuxCompatibility;
+  if (managedEpic) {
+    preparedCompatibility = {
+      context: null,
+      prefixReadyForRestore: false,
+      prefixSafeForUpload: false,
+      prefixGenerationOverride: undefined,
+    };
+  } else if (steamCompatibilityPrefixPath) {
+    preparedCompatibility = prepareSteamCompatibilityForCloudSave(
+      steamCompatibilityPrefixPath
+    );
+  } else {
+    preparedCompatibility = await prepareLinuxCompatibilityForLaunch(
+      parsedPath,
+      launchGameRecord,
+      objectId,
+      shop,
+      shouldRunV2AutomaticSync || managedEpic
+    );
+  }
   const {
     context: compatibilityContext,
     prefixReadyForRestore,
     prefixSafeForUpload,
     prefixGenerationOverride,
-  } = managedEpic
-    ? {
-        context: null,
-        prefixReadyForRestore: false,
-        prefixSafeForUpload: false,
-        prefixGenerationOverride: undefined,
-      }
-    : steamCompatibilityPrefixPath
-      ? prepareSteamCompatibilityForCloudSave(steamCompatibilityPrefixPath)
-      : await prepareLinuxCompatibilityForLaunch(
-          parsedPath,
-          launchGameRecord,
-          objectId,
-          shop,
-          shouldRunV2AutomaticSync || managedEpic
-        );
+  } = preparedCompatibility;
 
   if (managedEpic && launchGameRecord) {
     return getEpicCloudSaveService().runLaunchGate(objectId, async () => {

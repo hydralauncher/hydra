@@ -540,7 +540,7 @@
     "epic_install_sizes": "تنزيل: {{download}} · تثبيت: {{disk}}",
     "download_size": "التنزيل: <strong>{{size}}</strong>",
     "required_storage_space": "التخزين: <strong>{{size}}</strong>",
-    "epic_finalizing_install": "Preparing installation",
+    "epic_finalizing_install": "جارٍ إكمال التثبيت",
     "epic_cloud_saves": "حفظ سحابي — Epic Games",
     "epic_cloud_saves_description": "زامن ملفات حفظ هذه اللعبة مع حسابك في Epic Games.",
     "epic_save_unsupported": "هذه اللعبة لا تدعم الحفظ السحابي عبر Epic Games.",
@@ -575,7 +575,7 @@
     "epic_install_platform_unsupported": "Epic Games downloads are not available for this platform or architecture.",
     "epic_compatibility_automatic": "Automatic",
     "epic_play_offline": "تشغيل — Offline",
-    "epic_prerequisites_required": "The game's dependencies could not be prepared. Try again.",
+    "epic_prerequisites_required": "اسمح بمتطلبات اللعبة وحاول مجددًا.",
     "epic_update_required": "حدّث اللعبة عبر خيار Epic Games باستخدام المجلد نفسه.",
     "epic_retry": "حاول مرة أخرى"
   },

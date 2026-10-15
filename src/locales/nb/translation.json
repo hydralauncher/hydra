@@ -540,7 +540,7 @@
     "epic_install_sizes": "Last ned: {{download}} · Installér: {{disk}}",
     "download_size": "Nedlasting: <strong>{{size}}</strong>",
     "required_storage_space": "Lagringsplass: <strong>{{size}}</strong>",
-    "epic_finalizing_install": "Preparing installation",
+    "epic_finalizing_install": "Fullfører installasjonen",
     "epic_cloud_saves": "Cloud save — Epic Games",
     "epic_cloud_saves_description": "Synkroniser spillets lagringsdata med Epic Games-kontoen din.",
     "epic_save_unsupported": "Dette spillet støtter ikke skylagring via Epic Games.",
@@ -575,7 +575,7 @@
     "epic_install_platform_unsupported": "Epic Games downloads are not available for this platform or architecture.",
     "epic_compatibility_automatic": "Automatic",
     "epic_play_offline": "Spil — Offline",
-    "epic_prerequisites_required": "The game's dependencies could not be prepared. Try again.",
+    "epic_prerequisites_required": "Godkjenn spillets forutsetninger og prøv igjen.",
     "epic_update_required": "Oppdater spillet via Epic Games-alternativet i den samme mappen.",
     "epic_retry": "Prøv igjen"
   },

@@ -21,6 +21,7 @@ import {
 } from "./umu-launch-monitor";
 import { getFileSize } from "./umu-output-monitor";
 import { spawnSupervisedUmu } from "./umu-supervised-process";
+import { EPIC_LINUX_MANAGED_UMU_MAX_BYTES } from "./epic/linux-runtime-constants.js";
 import supervisedRuntimeManifest from "../../shared/epic-linux-runtime-manifest.json";
 export type { UmuProcessHandle } from "./umu-supervised-process";
 
@@ -162,7 +163,7 @@ export class Umu {
         const info = fs.statSync(managed);
         if (
           info.isFile() &&
-          info.size <= 20 * 1024 * 1024 &&
+          info.size <= EPIC_LINUX_MANAGED_UMU_MAX_BYTES &&
           createHash("sha256")
             .update(fs.readFileSync(managed))
             .digest("hex") === contract.sha256

@@ -540,7 +540,7 @@
     "epic_install_sizes": "下载: {{download}} · 安装: {{disk}}",
     "download_size": "下载: <strong>{{size}}</strong>",
     "required_storage_space": "存储: <strong>{{size}}</strong>",
-    "epic_finalizing_install": "Preparing installation",
+    "epic_finalizing_install": "正在完成安装",
     "epic_cloud_saves": "云存档 — Epic Games",
     "epic_cloud_saves_description": "将此游戏的存档与您的 Epic Games 账户同步。",
     "epic_save_unsupported": "此游戏不支持通过 Epic Games 进行云存档。",
@@ -575,7 +575,7 @@
     "epic_install_platform_unsupported": "Epic Games downloads are not available for this platform or architecture.",
     "epic_compatibility_automatic": "Automatic",
     "epic_play_offline": "开始游戏 — Offline",
-    "epic_prerequisites_required": "The game's dependencies could not be prepared. Try again.",
+    "epic_prerequisites_required": "请授权安装游戏所需组件并重试。",
     "epic_update_required": "请通过 Epic Games 选项将游戏更新到同一文件夹。",
     "epic_retry": "重试"
   },

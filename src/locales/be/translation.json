@@ -536,7 +536,7 @@
     "epic_install_sizes": "Download: {{download}} · Усталяваць: {{disk}}",
     "download_size": "Спампоўка: <strong>{{size}}</strong>",
     "required_storage_space": "Сховішча: <strong>{{size}}</strong>",
-    "epic_finalizing_install": "Preparing installation",
+    "epic_finalizing_install": "Завяршэнне ўсталявання",
     "epic_cloud_saves": "Cloud save — Epic Games",
     "epic_cloud_saves_description": "Сінхранізуйце захаванні гэтай гульні са сваім уліковым запісам Epic Games.",
     "epic_save_unsupported": "Гэтая гульня не падтрымлівае воблачныя захаванні праз Epic Games.",
@@ -571,7 +571,7 @@
     "epic_install_platform_unsupported": "Epic Games downloads are not available for this platform or architecture.",
     "epic_compatibility_automatic": "Automatic",
     "epic_play_offline": "Гуляць — Offline",
-    "epic_prerequisites_required": "The game's dependencies could not be prepared. Try again.",
+    "epic_prerequisites_required": "Дазвольце ўсталяванне неабходных кампанентаў гульні і паспрабуйце зноў.",
     "epic_update_required": "Абнавіце гульню праз варыянт Epic Games, выкарыстоўваючы тую ж папку.",
     "epic_retry": "Паспрабаваць яшчэ раз"
   },

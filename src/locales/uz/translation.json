@@ -540,7 +540,7 @@
     "epic_install_sizes": "Yuklab olish: {{download}} · O'rnatish: {{disk}}",
     "download_size": "Yuklab olish: <strong>{{size}}</strong>",
     "required_storage_space": "Saqlash: <strong>{{size}}</strong>",
-    "epic_finalizing_install": "Preparing installation",
+    "epic_finalizing_install": "O‘rnatish yakunlanmoqda",
     "epic_cloud_saves": "Bulutli saqlash — Epic Games",
     "epic_cloud_saves_description": "Ushbu oʻyinning saqlangan maʼlumotlarini Epic Games hisobingiz bilan sinxronlang.",
     "epic_save_unsupported": "Bu oʻyin Epic Games orqali bulutga saqlashni qoʻllab-quvvatlamaydi.",
@@ -575,7 +575,7 @@
     "epic_install_platform_unsupported": "Epic Games downloads are not available for this platform or architecture.",
     "epic_compatibility_automatic": "Automatic",
     "epic_play_offline": "O'ynash — Offline",
-    "epic_prerequisites_required": "The game's dependencies could not be prepared. Try again.",
+    "epic_prerequisites_required": "O‘yin uchun zarur komponentlarga ruxsat bering va qayta urinib ko‘ring.",
     "epic_update_required": "O‘yinni Epic Games opsiyasi orqali o‘sha papkaga yangilang.",
     "epic_retry": "Qayta urinish"
   },

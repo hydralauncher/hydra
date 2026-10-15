@@ -25,6 +25,7 @@ import {
 import type { EpicInstalledGame } from "./installation";
 import type { EpicLaunchParameters } from "./launch-protocol";
 import type { UmuStatusListener } from "../umu-launch-monitor";
+import { observeEpicLinuxLaunch } from "./linux-launch-monitor.js";
 import { resolveEpicWindowsPath } from "./windows-path";
 import { EPIC_PREREQUISITE_TIMEOUT_MS } from "./constants";
 import {
@@ -838,6 +839,7 @@ export async function launchEpicLinuxGame(
     useMangohud?: boolean;
     signal?: AbortSignal;
     onStatus?: UmuStatusListener;
+    wasGameDetected?: () => boolean;
     lease?: EpicLinuxPrefixLease;
   } = {}
 ): Promise<UmuProcessHandle> {
@@ -845,6 +847,7 @@ export async function launchEpicLinuxGame(
   const lease = options.lease ?? (await acquireEpicLinuxPrefixSession(context));
   if (activePrefixes.get(context.winePrefixPath) !== lease.id)
     throw new EpicManagedError("compatibility-prefix-busy");
+  let handle: UmuProcessHandle | undefined;
   try {
     if (
       (await protonFingerprint(context.protonPath)) !==
@@ -874,7 +877,7 @@ export async function launchEpicLinuxGame(
     assertSignal(options.signal);
     if (activePrefixes.get(context.winePrefixPath) !== lease.id)
       throw new EpicManagedError("compatibility-prefix-busy");
-    const handle = await Umu.launchSupervised({
+    handle = await Umu.launchSupervised({
       executable: resolved.command,
       args: resolved.args,
       cwd: parameters.workingDirectory,
@@ -899,9 +902,15 @@ export async function launchEpicLinuxGame(
         })
         .then(lease.release)
         .catch(() => undefined);
+    await observeEpicLinuxLaunch(handle, {
+      signal: options.signal,
+      onStatus: options.onStatus,
+      wasGameDetected: options.wasGameDetected,
+      hasGameProcesses: () => hasLinuxPrefixProcesses(context.winePrefixPath),
+    });
     return handle;
   } catch (error) {
-    if (!options.lease) lease.release();
+    if (!options.lease && !handle) lease.release();
     if ((error as { code?: string }).code === "operation-cancelled")
       throw error;
     throw new EpicManagedError("compatibility-launch-failed");

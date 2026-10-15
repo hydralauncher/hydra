@@ -540,7 +540,7 @@
     "epic_install_sizes": "Завантажити: {{download}} · Встановити: {{disk}}",
     "download_size": "Завантаження: <strong>{{size}}</strong>",
     "required_storage_space": "Сховище: <strong>{{size}}</strong>",
-    "epic_finalizing_install": "Preparing installation",
+    "epic_finalizing_install": "Завершення встановлення",
     "epic_cloud_saves": "Хмарне Збереження — Epic Games",
     "epic_cloud_saves_description": "Синхронізуйте збереження цієї гри зі своїм обліковим записом Epic Games.",
     "epic_save_unsupported": "Ця гра не підтримує хмарні збереження через Epic Games.",
@@ -575,7 +575,7 @@
     "epic_install_platform_unsupported": "Epic Games downloads are not available for this platform or architecture.",
     "epic_compatibility_automatic": "Automatic",
     "epic_play_offline": "Грати — Offline",
-    "epic_prerequisites_required": "The game's dependencies could not be prepared. Try again.",
+    "epic_prerequisites_required": "Дозвольте встановлення необхідних компонентів гри та спробуйте ще раз.",
     "epic_update_required": "Оновіть гру через варіант Epic Games, використовуючи ту саму папку.",
     "epic_retry": "Спробувати ще раз"
   },

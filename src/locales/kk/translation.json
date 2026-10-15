@@ -539,7 +539,7 @@
     "epic_install_sizes": "Download: {{download}} · Орнату: {{disk}}",
     "download_size": "Жүктеу: <strong>{{size}}</strong>",
     "required_storage_space": "Сақтау орны: <strong>{{size}}</strong>",
-    "epic_finalizing_install": "Preparing installation",
+    "epic_finalizing_install": "Орнату аяқталуда",
     "epic_cloud_saves": "Cloud save — Epic Games",
     "epic_cloud_saves_description": "Осы ойынның сақталған деректерін Epic Games есептік жазбаңызбен синхрондаңыз.",
     "epic_save_unsupported": "Бұл ойын Epic Games арқылы бұлтқа сақтауды қолдамайды.",
@@ -574,7 +574,7 @@
     "epic_install_platform_unsupported": "Epic Games downloads are not available for this platform or architecture.",
     "epic_compatibility_automatic": "Automatic",
     "epic_play_offline": "Ойнау — Offline",
-    "epic_prerequisites_required": "The game's dependencies could not be prepared. Try again.",
+    "epic_prerequisites_required": "Ойынға қажетті құрамдастарға рұқсат беріп, қайталап көріңіз.",
     "epic_update_required": "Ойынды Epic Games опциясы арқылы сол қалтаға жаңартыңыз.",
     "epic_retry": "Қайта көру"
   },

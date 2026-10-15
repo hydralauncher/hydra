@@ -301,6 +301,15 @@ export async function launchPreparedEpicLinuxGame(
       ...options,
       lease: resources.lease,
       signal: resources.controller.signal,
+      wasGameDetected: () => {
+        const entry = managedSessions.get(
+          levelKeys.game("epic", session.objectId)
+        );
+        return (
+          entry?.session === session &&
+          (entry.detected || entry.processObserved)
+        );
+      },
     }
   );
   const handle = await resources.spawnPromise;

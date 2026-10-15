@@ -536,7 +536,7 @@
     "epic_install_sizes": "Download: {{download}} · Instalează: {{disk}}",
     "download_size": "Descărcare: <strong>{{size}}</strong>",
     "required_storage_space": "Stocare: <strong>{{size}}</strong>",
-    "epic_finalizing_install": "Preparing installation",
+    "epic_finalizing_install": "Finalizarea instalării",
     "epic_cloud_saves": "Cloud save — Epic Games",
     "epic_cloud_saves_description": "Sincronizează salvările acestui joc cu contul tău Epic Games.",
     "epic_save_unsupported": "Acest joc nu acceptă salvări în cloud prin Epic Games.",
@@ -571,7 +571,7 @@
     "epic_install_platform_unsupported": "Epic Games downloads are not available for this platform or architecture.",
     "epic_compatibility_automatic": "Automatic",
     "epic_play_offline": "Joacă — Offline",
-    "epic_prerequisites_required": "The game's dependencies could not be prepared. Try again.",
+    "epic_prerequisites_required": "Autorizează componentele necesare jocului și încearcă din nou.",
     "epic_update_required": "Actualizează jocul prin opțiunea Epic Games folosind același folder.",
     "epic_retry": "Încearcă din nou"
   },

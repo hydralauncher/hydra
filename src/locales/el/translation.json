@@ -741,7 +741,7 @@
     "epic_install_sizes": "Λήψη: {{download}} · Εγκατάσταση: {{disk}}",
     "download_size": "Λήψη: <strong>{{size}}</strong>",
     "required_storage_space": "Αποθήκευση: <strong>{{size}}</strong>",
-    "epic_finalizing_install": "Preparing installation",
+    "epic_finalizing_install": "Ολοκλήρωση εγκατάστασης",
     "epic_cloud_saves": "Αποθήκευση στο cloud — Epic Games",
     "epic_cloud_saves_description": "Συγχρονίστε τις αποθηκεύσεις αυτού του παιχνιδιού με τον λογαριασμό σας στην Epic Games.",
     "epic_save_unsupported": "Αυτό το παιχνίδι δεν υποστηρίζει αποθήκευση στο cloud μέσω της Epic Games.",
@@ -776,7 +776,7 @@
     "epic_install_platform_unsupported": "Epic Games downloads are not available for this platform or architecture.",
     "epic_compatibility_automatic": "Automatic",
     "epic_play_offline": "Παίξτε — Εκτός σύνδεσης",
-    "epic_prerequisites_required": "The game's dependencies could not be prepared. Try again.",
+    "epic_prerequisites_required": "Εγκρίνετε τα προαπαιτούμενα του παιχνιδιού και δοκιμάστε ξανά.",
     "epic_update_required": "Ενημερώστε το παιχνίδι μέσω της επιλογής Epic Games στον ίδιο φάκελο.",
     "epic_retry": "Δοκιμάστε ξανά"
   },

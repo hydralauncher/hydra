@@ -8,6 +8,7 @@ import {
   EPIC_LINUX_MAX_LINE_BYTES,
   EPIC_LINUX_MAX_OUTPUT_BYTES,
   EPIC_LINUX_PROCESS_POLL_MS,
+  EPIC_LINUX_PROCESS_SNAPSHOT_ATTEMPTS,
   EPIC_LINUX_TERMINATE_GRACE_MS,
   EPIC_LINUX_TERMINATE_TIMEOUT_MS,
 } from "./epic/linux-runtime-constants.js";
@@ -85,7 +86,11 @@ async function readProcessSnapshot(
 ): Promise<ProcessSnapshot | null> {
   // Retry a reused PID once rather than attaching an old environment to its
   // replacement. Persistent churn provides no token or prefix evidence.
-  for (let attempt = 0; attempt < 2; attempt++) {
+  for (
+    let attempt = 0;
+    attempt < EPIC_LINUX_PROCESS_SNAPSHOT_ATTEMPTS;
+    attempt++
+  ) {
     let identity: ProcessIdentity | undefined;
     let environment: string[] | undefined;
     try {

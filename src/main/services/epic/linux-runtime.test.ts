@@ -9,6 +9,7 @@ import test, { type TestContext } from "node:test";
 import ts from "typescript";
 import * as protocol from "./linux-runtime-protocol.js";
 import * as constants from "./linux-runtime-constants.js";
+import { observeEpicLinuxLaunch } from "./linux-launch-monitor.js";
 
 async function fixture(t: TestContext) {
   const root = await fsp.mkdtemp(path.join(os.tmpdir(), "epic-linux-runtime-"));
@@ -40,6 +41,7 @@ async function fixture(t: TestContext) {
     }>,
     terminated: 0,
     code: 0,
+    launchCode: 0,
     rebootCode: 0,
     requests: [] as Array<{ kind: string; executable: string; args: string[] }>,
     umuVersion: "1.4.4",
@@ -140,7 +142,7 @@ async function fixture(t: TestContext) {
           return {
             pid: 123,
             invocationId: "invocation",
-            exited: Promise.resolve({ code: 0, signal: null }),
+            exited: Promise.resolve({ code: state.launchCode, signal: null }),
             output: Promise.resolve({ stdout, stderr: "" }),
             terminate: async () => {
               state.terminated++;
@@ -165,6 +167,7 @@ async function fixture(t: TestContext) {
     },
     "./constants": { EPIC_PREREQUISITE_TIMEOUT_MS: 300_000 },
     "./linux-runtime-constants": constants,
+    "./linux-launch-monitor.js": { observeEpicLinuxLaunch },
     "./linux-runtime-protocol": {
       ...protocol,
       parseEpicLinuxMappedPath: (output: string) => output,
@@ -480,6 +483,40 @@ test("session lease reserves a custom prefix across restore/spawn and blocks oth
     release(): void;
   };
   next.release();
+});
+
+test("a failed wrapper reports launch failure while retaining the caller's prefix lease", async (t) => {
+  const f = await fixture(t);
+  const context = await f.api.prepareEpicLinuxRuntime(
+    f.game,
+    f.target,
+    f.options()
+  );
+  const lease = (await f.api.acquireEpicLinuxPrefixSession(context)) as {
+    release(): void;
+  };
+  const statuses: unknown[] = [];
+  f.state.launchCode = 37;
+  await assert.rejects(
+    f.api.launchEpicLinuxGame(
+      {
+        executable: "Game.exe",
+        args: [],
+        workingDirectory: f.root,
+        environment: {},
+      },
+      context,
+      { lease, onStatus: (status: unknown) => statuses.push(status) }
+    ),
+    { code: "compatibility-launch-failed" }
+  );
+  assert.deepEqual(JSON.parse(JSON.stringify(statuses)), [
+    { type: "failed", message: "compatibility-launch-failed" },
+  ]);
+  await assert.rejects(f.api.acquireEpicLinuxPrefixSession(context), {
+    code: "compatibility-prefix-busy",
+  });
+  lease.release();
 });
 
 test("a failed launch never releases the caller's prefix lease before token cleanup", async (t) => {

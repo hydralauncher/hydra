@@ -540,7 +540,7 @@
     "epic_install_sizes": "İndir: {{download}} · Yükle: {{disk}}",
     "download_size": "İndirme: <strong>{{size}}</strong>",
     "required_storage_space": "Depolama: <strong>{{size}}</strong>",
-    "epic_finalizing_install": "Preparing installation",
+    "epic_finalizing_install": "Kurulum tamamlanıyor",
     "epic_cloud_saves": "Bulut Kaydı — Epic Games",
     "epic_cloud_saves_description": "Bu oyunun kayıtlarını Epic Games hesabınızla senkronize edin.",
     "epic_save_unsupported": "Bu oyun Epic Games üzerinden bulut kayıtlarını desteklemiyor.",
@@ -575,7 +575,7 @@
     "epic_install_platform_unsupported": "Epic Games downloads are not available for this platform or architecture.",
     "epic_compatibility_automatic": "Automatic",
     "epic_play_offline": "Oyna — Offline",
-    "epic_prerequisites_required": "The game's dependencies could not be prepared. Try again.",
+    "epic_prerequisites_required": "Oyunun ön gereksinimlerine izin verin ve tekrar deneyin.",
     "epic_update_required": "Oyunu aynı klasörü kullanarak Epic Games seçeneğinden güncelleyin.",
     "epic_retry": "Tekrar dene"
   },

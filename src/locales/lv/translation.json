@@ -540,7 +540,7 @@
     "epic_install_sizes": "Lejupielādēt: {{download}} · Instalēt: {{disk}}",
     "download_size": "Lejupielāde: <strong>{{size}}</strong>",
     "required_storage_space": "Krātuve: <strong>{{size}}</strong>",
-    "epic_finalizing_install": "Preparing installation",
+    "epic_finalizing_install": "Instalēšanas pabeigšana",
     "epic_cloud_saves": "Mākoņglabāšana — Epic Games",
     "epic_cloud_saves_description": "Sinhronizējiet šīs spēles saglabātos datus ar savu Epic Games kontu.",
     "epic_save_unsupported": "Šī spēle neatbalsta saglabāšanu mākonī, izmantojot Epic Games.",
@@ -575,7 +575,7 @@
     "epic_install_platform_unsupported": "Epic Games downloads are not available for this platform or architecture.",
     "epic_compatibility_automatic": "Automatic",
     "epic_play_offline": "Spēlēt — Offline",
-    "epic_prerequisites_required": "The game's dependencies could not be prepared. Try again.",
+    "epic_prerequisites_required": "Atļaujiet spēles nepieciešamos komponentus un mēģiniet vēlreiz.",
     "epic_update_required": "Atjauniniet spēli ar Epic Games opciju tajā pašā mapē.",
     "epic_retry": "Mēģināt vēlreiz"
   },

@@ -4,6 +4,7 @@ use std::path::Path;
 
 const MAX_CONFIG_BYTES: u64 = 1024 * 1024;
 const MAX_ARGUMENTS: usize = 256;
+const MAX_NONCE_LENGTH: usize = 128;
 pub const MAX_COMMAND_UNITS: usize = 32_767;
 
 #[derive(Debug, Deserialize)]
@@ -66,7 +67,7 @@ impl Config {
         if self.schema_version != 1
             || self.args.len() > MAX_ARGUMENTS
             || self.nonce.is_empty()
-            || self.nonce.len() > 128
+            || self.nonce.len() > MAX_NONCE_LENGTH
             || !self
                 .nonce
                 .bytes()
@@ -191,6 +192,10 @@ mod tests {
         )
         .is_err());
         request.nonce = "../other".into();
+        assert!(request.validate().is_err());
+        request.nonce = "a".repeat(MAX_NONCE_LENGTH);
+        request.validate().unwrap();
+        request.nonce.push('a');
         assert!(request.validate().is_err());
     }
     #[test]

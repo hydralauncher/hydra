@@ -750,7 +750,7 @@
     "epic_install_sizes": "Pobierz: {{download}} · Zainstaluj: {{disk}}",
     "download_size": "Pobieranie: <strong>{{size}}</strong>",
     "required_storage_space": "Miejsce na dysku: <strong>{{size}}</strong>",
-    "epic_finalizing_install": "Preparing installation",
+    "epic_finalizing_install": "Kończenie instalacji",
     "epic_cloud_saves": "Zapisy w chmurze — Epic Games",
     "epic_cloud_saves_description": "Synchronizuj zapisy tej gry ze swoim kontem Epic Games.",
     "epic_save_unsupported": "Ta gra nie obsługuje zapisów w chmurze przez Epic Games.",
@@ -785,7 +785,7 @@
     "epic_install_platform_unsupported": "Epic Games downloads are not available for this platform or architecture.",
     "epic_compatibility_automatic": "Automatic",
     "epic_play_offline": "Graj — Offline",
-    "epic_prerequisites_required": "The game's dependencies could not be prepared. Try again.",
+    "epic_prerequisites_required": "Zezwól na instalację składników wymaganych przez grę i spróbuj ponownie.",
     "epic_update_required": "Zaktualizuj grę przez opcję Epic Games, używając tego samego folderu.",
     "epic_retry": "Spróbuj ponownie"
   },

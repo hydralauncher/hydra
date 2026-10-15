@@ -750,7 +750,7 @@
     "epic_install_sizes": "Tải về: {{download}} · Cài đặt: {{disk}}",
     "download_size": "Tải xuống: <strong>{{size}}</strong>",
     "required_storage_space": "Lưu trữ: <strong>{{size}}</strong>",
-    "epic_finalizing_install": "Preparing installation",
+    "epic_finalizing_install": "Đang hoàn tất cài đặt",
     "epic_cloud_saves": "Lưu trữ đám mây — Epic Games",
     "epic_cloud_saves_description": "Đồng bộ dữ liệu lưu của trò chơi này với tài khoản Epic Games của bạn.",
     "epic_save_unsupported": "Trò chơi này không hỗ trợ lưu trên đám mây qua Epic Games.",
@@ -785,7 +785,7 @@
     "epic_install_platform_unsupported": "Epic Games downloads are not available for this platform or architecture.",
     "epic_compatibility_automatic": "Automatic",
     "epic_play_offline": "Chơi — Ngoại tuyến",
-    "epic_prerequisites_required": "The game's dependencies could not be prepared. Try again.",
+    "epic_prerequisites_required": "Cho phép cài đặt các thành phần cần thiết của trò chơi và thử lại.",
     "epic_update_required": "Cập nhật trò chơi qua tùy chọn Epic Games vào cùng thư mục.",
     "epic_retry": "Thử lại"
   },

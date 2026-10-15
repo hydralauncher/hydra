@@ -539,7 +539,7 @@
     "epic_install_sizes": "Download: {{download}} · Instal·la: {{disk}}",
     "download_size": "Baixada: <strong>{{size}}</strong>",
     "required_storage_space": "Emmagatzematge: <strong>{{size}}</strong>",
-    "epic_finalizing_install": "Preparing installation",
+    "epic_finalizing_install": "Finalitzant la instal·lació",
     "epic_cloud_saves": "Cloud save — Epic Games",
     "epic_cloud_saves_description": "Sincronitza les partides desades d'aquest joc amb el teu compte d'Epic Games.",
     "epic_save_unsupported": "Aquest joc no ofereix desament al núvol a través d'Epic Games.",
@@ -574,7 +574,7 @@
     "epic_install_platform_unsupported": "Epic Games downloads are not available for this platform or architecture.",
     "epic_compatibility_automatic": "Automatic",
     "epic_play_offline": "Inicia — Offline",
-    "epic_prerequisites_required": "The game's dependencies could not be prepared. Try again.",
+    "epic_prerequisites_required": "Autoritza els requisits previs del joc i torna-ho a provar.",
     "epic_update_required": "Actualitza el joc amb l’opció Epic Games fent servir la mateixa carpeta.",
     "epic_retry": "Torna-ho a provar"
   },

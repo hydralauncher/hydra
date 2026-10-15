@@ -536,7 +536,7 @@
     "epic_install_sizes": "Download: {{download}} · 설치: {{disk}}",
     "download_size": "다운로드: <strong>{{size}}</strong>",
     "required_storage_space": "저장 공간: <strong>{{size}}</strong>",
-    "epic_finalizing_install": "Preparing installation",
+    "epic_finalizing_install": "설치 마무리 중",
     "epic_cloud_saves": "Cloud save — Epic Games",
     "epic_cloud_saves_description": "이 게임의 저장 데이터를 Epic Games 계정과 동기화하세요.",
     "epic_save_unsupported": "이 게임은 Epic Games를 통한 클라우드 저장을 지원하지 않습니다.",
@@ -571,7 +571,7 @@
     "epic_install_platform_unsupported": "Epic Games downloads are not available for this platform or architecture.",
     "epic_compatibility_automatic": "Automatic",
     "epic_play_offline": "실행 — Offline",
-    "epic_prerequisites_required": "The game's dependencies could not be prepared. Try again.",
+    "epic_prerequisites_required": "게임 필수 구성 요소를 허용하고 다시 시도하세요.",
     "epic_update_required": "Epic Games 옵션에서 같은 폴더를 사용해 게임을 업데이트하세요.",
     "epic_retry": "다시 시도"
   },
