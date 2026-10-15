@@ -1,8 +1,8 @@
 out
 dist
-legendary
-hydra-native
-.cache
+/legendary/
+/hydra-native/
+/.cache/
 seeds
 pnpm-lock.yaml
 LICENSE.md
