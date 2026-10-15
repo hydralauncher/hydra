@@ -393,22 +393,29 @@ const getFailureState = (
   rejectedAttemptCount:
     (pending.rejectedAttemptCount ?? 0) +
     (isRejectedGroupedSouvenirRequest(error) ? 1 : 0),
+  answeredFailureCount:
+    (pending.answeredFailureCount ?? 0) +
+    (isGroupedSouvenirNetworkFailure(error) ? 0 : 1),
 });
 
 const getLimitedAction = (
   pending: PendingAchievementSouvenir,
   failure: GroupedSouvenirFailure,
-  rejectedAttemptCount: number,
-  error: unknown
+  failureState: ReturnType<typeof getFailureState>
 ): GroupedSouvenirRecoveryAction => {
-  if (failure.action === "terminal" || failure.action === "pause") {
+  const startsAchievementOnlyRecovery =
+    failure.action === "abandon" && !pending.recoveryMode;
+  if (
+    failure.action === "terminal" ||
+    failure.action === "pause" ||
+    startsAchievementOnlyRecovery
+  ) {
     return failure.action;
   }
-  if (rejectedAttemptCount >= REJECTED_REQUEST_ATTEMPTS) return "terminal";
-  if (
-    pending.attemptCount >= AUTOMATIC_RETRY_ATTEMPTS &&
-    !isGroupedSouvenirNetworkFailure(error)
-  ) {
+  if (failureState.rejectedAttemptCount >= REJECTED_REQUEST_ATTEMPTS) {
+    return "terminal";
+  }
+  if (failureState.answeredFailureCount >= AUTOMATIC_RETRY_ATTEMPTS) {
     return "pause";
   }
   return failure.action;
@@ -424,12 +431,7 @@ const classifyFailure = (
 } => {
   const failure = getGroupedSouvenirFailure(error, pending.clientId, stage);
   const failureState = getFailureState(pending, failure.code, error);
-  const action = getLimitedAction(
-    pending,
-    failure,
-    failureState.rejectedAttemptCount,
-    error
-  );
+  const action = getLimitedAction(pending, failure, failureState);
   return { failure: { ...failure, action }, failureState };
 };
 

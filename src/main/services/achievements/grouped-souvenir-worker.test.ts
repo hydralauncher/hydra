@@ -852,6 +852,10 @@ describe("grouped souvenir worker recovery", () => {
         records: [pending({ recoveryMode: "sync_achievements_only" })],
         error: errorResponse("unknown", 422),
       },
+      {
+        records: [pending({ recoveryMode: "sync_achievements_only" })],
+        error: conflictResponse("achievement_already_assigned"),
+      },
     ];
     for (const { records, error } of cases) {
       const f = fixture(records);
@@ -865,11 +869,27 @@ describe("grouped souvenir worker recovery", () => {
     }
   });
 
+  it("starts achievement-only recovery when the 20th rejection abandons the souvenir", async () => {
+    const f = fixture([pending({ rejectedAttemptCount: 19 })]);
+    f.state.authorizationError = conflictResponse(
+      "achievement_already_assigned"
+    );
+    await f.run();
+    assert.deepEqual(f.calls, ["authorize", "sync"]);
+    assert.equal(f.saved().status, "terminal");
+    assert.equal(f.saved().recoveryMode, undefined);
+    f.worker.groupedSouvenirWorker.stop();
+  });
+
   it("pauses after 200 answered failures, never for network errors, and Retry resumes it", async () => {
     const offline = fixture();
     offline.state.authorizationError = networkError;
-    assert.equal(await retryUntilStopped(offline, 250), 250);
+    assert.equal(await retryUntilStopped(offline, 200), 200);
+    offline.state.authorizationError = errorResponse("temporary", 503);
+    await retryUntilStopped(offline, 1);
     assert.equal(offline.saved().status, "pending");
+    assert.equal(offline.saved().attemptCount, 201);
+    assert.equal(offline.saved().answeredFailureCount, 1);
     offline.worker.groupedSouvenirWorker.stop();
 
     const f = fixture();
