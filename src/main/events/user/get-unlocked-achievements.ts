@@ -1,3 +1,8 @@
+import { HydraApi } from "@main/services/hydra-api";
+import {
+  achievementSyncCoordinator,
+  AchievementSyncCancelledError,
+} from "@main/services/achievements/achievement-sync-coordinator";
 import type { GameShop, UserAchievement, UserPreferences } from "@types";
 import { registerEvent } from "../register-event";
 import { getGameAchievementData } from "@main/services/achievements/get-game-achievement-data";
@@ -7,7 +12,6 @@ import { AchievementMemoryStore } from "@main/services/achievements/achievement-
 import { AchievementSouvenirStore } from "@main/services/achievements/achievement-souvenir-store";
 import { fetchRemoteUserGameAchievements } from "@main/services/achievements/get-achievement-souvenirs";
 import { mergeUnlockedAchievementLists } from "@main/services/achievements/merge-unlocked-achievements";
-import { HydraApi } from "@main/services/hydra-api";
 import {
   presentCombinedAchievements,
   type CombinedAchievements,
@@ -18,17 +22,23 @@ const COMBINED_ACHIEVEMENTS_TIMEOUT_MS = 5_000;
 export const getUnlockedAchievements = async (
   objectId: string,
   shop: GameShop,
-  useCachedData: boolean
+  useCachedData: boolean,
+  current?: () => boolean
 ): Promise<UserAchievement[]> => {
-  const owner = HydraApi.getAuthContext();
-  const assertOwner = () => {
-    if (
-      owner
-        ? !HydraApi.isAuthContextCurrent(owner)
-        : HydraApi.getAuthContext() !== null
-    )
-      throw new Error("achievement-owner-changed");
+  const context = HydraApi.getAuthContext();
+  const valid =
+    current ??
+    achievementSyncCoordinator.captureCurrent(
+      levelKeys.game(shop, objectId),
+      () =>
+        context
+          ? HydraApi.isAuthContextCurrent(context)
+          : HydraApi.getAuthContext() === null
+    );
+  const assertCurrent = () => {
+    if (!valid()) throw new AchievementSyncCancelledError();
   };
+
   const userPreferences = await db.get<string, UserPreferences | null>(
     levelKeys.userPreferences,
     {
@@ -36,14 +46,19 @@ export const getUnlockedAchievements = async (
     }
   );
 
+  assertCurrent();
+
   const showHiddenAchievementsDescription =
     userPreferences?.showHiddenAchievementsDescription || false;
 
   const achievementsData = await getGameAchievementData(
     objectId,
     shop,
-    useCachedData
+    useCachedData,
+    valid
   );
+
+  assertCurrent();
 
   if (!useCachedData) AchievementSouvenirStore.invalidate(shop, objectId);
 
@@ -57,7 +72,8 @@ export const getUnlockedAchievements = async (
     unlocked: [],
     achievements: [],
   }));
-  assertOwner();
+
+  assertCurrent();
 
   AchievementSouvenirStore.set(shop, objectId, remote.souvenirs);
 
@@ -69,10 +85,10 @@ export const getUnlockedAchievements = async (
           AchievementMemoryStore.get(shop, objectId)?.unlockedAchievements ?? []
         );
 
-  const current = AchievementMemoryStore.get(shop, objectId);
-  if (current) {
+  const stored = AchievementMemoryStore.get(shop, objectId);
+  if (stored) {
     AchievementMemoryStore.set(shop, objectId, {
-      ...current,
+      ...stored,
       unlockedAchievements,
     });
   }
@@ -116,7 +132,7 @@ export const getUnlockedAchievements = async (
           .get(levelKeys.game(shop, objectId))
           .catch(() => undefined)
       )?.canonicalId === combined.canonicalId;
-    assertOwner();
+    assertCurrent();
     if (
       combined?.achievements.length &&
       (includesRequestedCopy || emptyCopyInGroup)
@@ -136,7 +152,7 @@ export const getUnlockedAchievements = async (
     const game = await gamesSublevel
       .get(levelKeys.game(shop, objectId))
       .catch(() => undefined);
-    assertOwner();
+    assertCurrent();
     const catalogue = game?.catalogueGame;
     if (catalogue?.shop === "steam") {
       const steamDefinitions = await getGameAchievementData(
@@ -144,7 +160,7 @@ export const getUnlockedAchievements = async (
         catalogue.shop,
         true
       ).catch(() => []);
-      assertOwner();
+      assertCurrent();
       if (steamDefinitions.length > 0) catalogueAchievements = steamDefinitions;
     }
   }

@@ -7,13 +7,20 @@ import {
   useState,
 } from "react";
 import { useTranslation } from "react-i18next";
+import type { TFunction } from "i18next";
 import {
   AlertIcon,
   ArrowDownIcon,
+  CircleSlashIcon,
   ReplyIcon,
+  ReportIcon,
   SmileyIcon,
+  XIcon,
 } from "@primer/octicons-react";
+import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import cn from "classnames";
+
+import { ContextMenu, type ContextMenuItemData } from "@renderer/components";
 
 import { LARGE_EMOJI_MAX_COUNT, countEmojiOnly } from "./chat-emoji";
 import {
@@ -23,13 +30,22 @@ import {
 } from "./chat-emoji-picker";
 import {
   groupChatMessages,
+  type ChatAttachment,
   type ChatMessage,
   type ChatMessageReply,
 } from "./chat-message-groups";
+import { ChatImageLightbox } from "./chat-image-lightbox";
 import { ChatLeavingModal } from "./chat-leaving-modal";
+import {
+  ChatMessageImages,
+  ChatMessageImagesStatus,
+} from "./chat-message-images";
 import { ChatReactionBar, ChatReactionPills } from "./chat-message-reactions";
 import { ChatMessageText } from "./chat-message-text";
 import { getMyReaction, toReactionPills } from "./chat-reactions";
+import { CHAT_REPORT_EASE_OUT, ChatReportCheck } from "./chat-report-check";
+import { ChatReportModal } from "./chat-report-modal";
+import type { ChatReportReason } from "./chat-reports";
 import { ChatScrollbar } from "./chat-scrollbar";
 import {
   countFriendMessagesAfter,
@@ -40,6 +56,7 @@ import { isTrustedLink } from "./chat-trusted-links";
 const electron = globalThis.electron as Electron;
 
 export interface ChatMessageListProps {
+  friendId: string;
   messages: ChatMessage[];
   /** Messages that render without the entrance animation. */
   initialMessageIds: Set<string>;
@@ -55,6 +72,8 @@ export interface ChatMessageListProps {
   /** Sets the user's reaction on the message with `seq`; null removes it. */
   onReact: (seq: number, emoji: string | null) => void;
   onRetry: (clientNonce: string) => void;
+  /** Drops a message that was not sent. */
+  onRemove: (clientNonce: string) => void;
   onLoadOlder: () => void;
   onLoadThrough: (seq: number) => Promise<boolean>;
 }
@@ -65,6 +84,34 @@ const LOAD_OLDER_THRESHOLD_PX = 120;
 const JUMP_TO_LATEST_THRESHOLD_PX = 200;
 const MAX_NEW_MESSAGES_SHOWN = 99;
 const FLASH_DURATION_MS = 1_600;
+const REPORT_SENT_DURATION_MS = 3_000;
+
+// The report confirmation springs up out of a blur and sinks back into one.
+const TOAST_SPRING = {
+  type: "spring",
+  stiffness: 420,
+  damping: 34,
+  mass: 0.75,
+} as const;
+const TOAST_EXIT_SECONDS = 0.18;
+const TOAST_ICON_DELAY_SECONDS = 0.06;
+const TOAST_REDUCED_MOTION_SECONDS = 0.15;
+const TOAST_CHECK_DELAY_SECONDS = 0.16;
+const TOAST_HIDDEN = { opacity: 0, y: 22, scale: 0.96, filter: "blur(10px)" };
+const TOAST_SHOWN = { opacity: 1, y: 0, scale: 1, filter: "blur(0px)" };
+const TOAST_EXIT = {
+  opacity: 0,
+  y: 8,
+  scale: 0.96,
+  filter: "blur(8px)",
+  transition: { duration: TOAST_EXIT_SECONDS, ease: CHAT_REPORT_EASE_OUT },
+};
+const TOAST_ICON_SPRING = {
+  type: "spring",
+  stiffness: 500,
+  damping: 28,
+  delay: TOAST_ICON_DELAY_SECONDS,
+} as const;
 /** Room the quick reaction bar needs above a message before it opens below. */
 const REACTION_BAR_CLEARANCE_PX = 56;
 
@@ -72,6 +119,49 @@ const isSameDay = (a: Date, b: Date) => a.toDateString() === b.toDateString();
 
 const prefersReducedMotion = () =>
   window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+const countNewMessages = (
+  messages: ChatMessage[],
+  awayFromId: string | null
+) => (awayFromId === null ? 0 : countFriendMessagesAfter(messages, awayFromId));
+
+const findFirstNewId = (messages: ChatMessage[], newSinceId: string | null) =>
+  newSinceId === null
+    ? null
+    : (findFirstFriendMessageAfter(messages, newSinceId)?.id ?? null);
+
+interface OpenImage {
+  messageId: string;
+  attachmentId: string;
+}
+
+/** The open image, or null once its message is gone or removed. */
+const findOpenImage = (messages: ChatMessage[], open: OpenImage | null) => {
+  if (!open) return null;
+  const message = messages.find((current) => current.id === open.messageId);
+  if (!message || message.isHidden) return null;
+  const attachment = message.attachments?.find(
+    (current) => current.id === open.attachmentId
+  );
+  const src = attachment?.localUrl ?? attachment?.url;
+  return src ? { message, src } : null;
+};
+
+const getQuotedText = (
+  quoted: NonNullable<ChatMessageReply["quoted"]>,
+  t: TFunction<"chat_window">
+) => {
+  if (quoted.isHidden) return t("message_removed");
+  if (quoted.text) return quoted.text;
+  return quoted.attachmentCount
+    ? t("quoted_images", { count: quoted.attachmentCount })
+    : "";
+};
+
+const getJumpLabel = (newMessageCount: number, t: TFunction<"chat_window">) =>
+  newMessageCount > 0
+    ? t("jump_to_new_messages", { count: newMessageCount })
+    : t("jump_to_latest");
 
 interface ChatMessageQuoteProps {
   reply: ChatMessageReply;
@@ -105,14 +195,19 @@ function ChatMessageQuote({
         <ReplyIcon size={12} />
         {reply.quoted.fromMe ? t("you") : friendName}
       </span>
-      <span className="chat-window__message-quote-text">
-        {reply.quoted.text}
+      <span
+        className={cn("chat-window__message-quote-text", {
+          "chat-window__message-quote-text--removed": reply.quoted.isHidden,
+        })}
+      >
+        {getQuotedText(reply.quoted, t)}
       </span>
     </button>
   );
 }
 
 export function ChatMessageList({
+  friendId,
   messages,
   initialMessageIds,
   hasMoreBefore,
@@ -123,10 +218,22 @@ export function ChatMessageList({
   onReply,
   onReact,
   onRetry,
+  onRemove,
   onLoadOlder,
   onLoadThrough,
 }: Readonly<ChatMessageListProps>) {
   const { t, i18n } = useTranslation("chat_window");
+
+  // Spoiler images this viewer uncovered, by attachment id.
+  const [revealedIds, setRevealedIds] = useState<ReadonlySet<string>>(
+    () => new Set()
+  );
+  const [lightbox, setLightbox] = useState<OpenImage | null>(null);
+  const revealImage = useCallback(
+    (attachment: ChatAttachment) =>
+      setRevealedIds((current) => new Set([...current, attachment.id])),
+    []
+  );
 
   const scrollRef = useRef<HTMLDivElement>(null);
   const dayDividerRefs = useRef(new Map<string, HTMLDivElement>());
@@ -149,19 +256,25 @@ export function ChatMessageList({
   );
   const reactionAnchorRef = useRef<HTMLButtonElement | null>(null);
 
+  // The message whose right-click menu is open, and where it opened.
+  const [menu, setMenu] = useState<{
+    seq: number;
+    position: { x: number; y: number };
+  } | null>(null);
+  const [reportSeq, setReportSeq] = useState<number | null>(null);
+  // Bumped for each sent report, so the confirmation plays again.
+  const [reportSentId, setReportSentId] = useState<number | null>(null);
+  const shouldReduceMotion = useReducedMotion();
+
   // While scrolled away from the newest message: the newest message at that
   // moment. Whatever the friend sends after it counts as new.
   const [awayFromId, setAwayFromId] = useState<string | null>(null);
-  const newMessageCount =
-    awayFromId === null ? 0 : countFriendMessagesAfter(messages, awayFromId);
+  const newMessageCount = countNewMessages(messages, awayFromId);
 
   // Where the "New messages" divider goes from. Unlike `awayFromId` it stays
   // once the user is back at the bottom, until they reply.
   const [newSinceId, setNewSinceId] = useState<string | null>(null);
-  const firstNewId =
-    newSinceId === null
-      ? null
-      : (findFirstFriendMessageAfter(messages, newSinceId)?.id ?? null);
+  const firstNewId = findFirstNewId(messages, newSinceId);
 
   // Keeps the jump button on screen while it animates out, with the count it
   // had when the user got back to the bottom.
@@ -336,6 +449,121 @@ export function ChatMessageList({
       ? null
       : (messages.find((message) => message.seq === reactionPickerSeq) ?? null);
 
+  // Only stored messages have a seq to reply, react to or report.
+  const canAct = (message: ChatMessage) =>
+    canReply &&
+    message.seq !== undefined &&
+    message.status === "sent" &&
+    !message.isHidden;
+
+  // Reports work after an unfriend or block, but only on the friend's messages.
+  const canReport = (message: ChatMessage) =>
+    !message.fromMe && message.seq !== undefined && !message.isHidden;
+
+  const openMenu = (event: React.MouseEvent, message: ChatMessage) => {
+    const target = event.target as Element;
+    const isOnMessage = target.closest(
+      ".chat-window__message-body, .chat-window__message-actions"
+    );
+    if (
+      !isOnMessage ||
+      message.seq === undefined ||
+      (!canAct(message) && !canReport(message))
+    ) {
+      return;
+    }
+
+    event.preventDefault();
+    setReactionBar(null);
+    setMenu({
+      seq: message.seq,
+      position: { x: event.clientX, y: event.clientY },
+    });
+  };
+
+  const closeMenu = useCallback(() => setMenu(null), []);
+
+  const openReactionBar = (seq: number) => {
+    const button = messageRefs.current
+      .get(seq)
+      ?.querySelector<HTMLButtonElement>(".chat-window__message-action");
+    if (button) toggleReactionBar(seq, button);
+  };
+
+  const getMenuItems = (message: ChatMessage): ContextMenuItemData[] => {
+    const { seq } = message;
+    if (seq === undefined) return [];
+
+    const items: ContextMenuItemData[] = [];
+
+    if (canAct(message)) {
+      items.push(
+        {
+          id: "react",
+          label: t("add_reaction"),
+          icon: <SmileyIcon size={16} />,
+          onClick: () => openReactionBar(seq),
+        },
+        {
+          id: "reply",
+          label: t("reply"),
+          icon: <ReplyIcon size={16} />,
+          onClick: () => onReply(message),
+        }
+      );
+    }
+
+    // The menu draws its own line above danger items.
+    if (canReport(message)) {
+      items.push({
+        id: "report",
+        label: t("report_message"),
+        icon: <ReportIcon size={16} />,
+        danger: true,
+        onClick: () => setReportSeq(seq),
+      });
+    }
+
+    return items;
+  };
+
+  const menuMessage =
+    menu === null
+      ? null
+      : (messages.find((message) => message.seq === menu.seq) ?? null);
+  // Empty once the message is removed while the menu is open.
+  const menuItems = menuMessage ? getMenuItems(menuMessage) : [];
+
+  const submitReport = async (
+    seq: number,
+    reason: ChatReportReason,
+    description: string
+  ) => {
+    // The server keeps earlier messages with it as context, and reporting
+    // the same message again changes nothing.
+    const details = description.trim();
+    await electron.hydraApi.post(
+      `/profile/chats/${friendId}/messages/${seq}/report`,
+      { data: { reason, ...(details ? { description: details } : {}) } }
+    );
+  };
+
+  // The confirmation comes up once the dialog is gone.
+  const closeReport = (isSent: boolean) => {
+    setReportSeq(null);
+    if (isSent) setReportSentId((id) => (id ?? 0) + 1);
+  };
+
+  useEffect(() => {
+    if (reportSentId === null) return;
+
+    const timer = setTimeout(
+      () => setReportSentId(null),
+      REPORT_SENT_DURATION_MS
+    );
+    return () => clearTimeout(timer);
+  }, [reportSentId]);
+
   const openLink = (url: string) => {
     if (isTrustedLink(url)) {
       void electron.openExternal(url);
@@ -344,6 +572,20 @@ export function ChatMessageList({
 
     setLeavingUrl(url);
   };
+
+  const openImage = (message: ChatMessage, attachment: ChatAttachment) => {
+    if (!attachment.localUrl && !attachment.url) return;
+    setLightbox({ messageId: message.id, attachmentId: attachment.id });
+  };
+
+  const openImageView = findOpenImage(messages, lightbox);
+  const getImageCaption = (message: ChatMessage) =>
+    `${message.fromMe ? t("you") : friendName} · ${timeFormat.format(
+      new Date(message.createdAt)
+    )}`;
+  useEffect(() => {
+    if (lightbox && !openImageView) setLightbox(null);
+  }, [lightbox, openImageView]);
 
   const scrollToLatest = useCallback(() => {
     scrollRef.current?.scrollTo({
@@ -371,10 +613,7 @@ export function ChatMessageList({
   const isJumpLeaving = awayFromId === null && leavingJump !== null;
   const jumpCount = isJumpLeaving ? leavingJump.count : newMessageCount;
 
-  const jumpLabel =
-    newMessageCount > 0
-      ? t("jump_to_new_messages", { count: newMessageCount })
-      : t("jump_to_latest");
+  const jumpLabel = getJumpLabel(newMessageCount, t);
 
   const getDayLabel = (date: Date) => {
     const today = new Date();
@@ -434,17 +673,25 @@ export function ChatMessageList({
                         const isReacting =
                           isReactionBarOpen ||
                           (seq !== undefined && reactionPickerSeq === seq);
-                        // Replies keep their bubble to hold the quote.
-                        const emojiCount = message.replyTo
-                          ? 0
-                          : countEmojiOnly(message.text);
+                        const hasImages = Boolean(message.attachments?.length);
+                        const hasBubble =
+                          message.text.length > 0 || Boolean(message.replyTo);
+                        const isHighlighted =
+                          seq !== undefined &&
+                          (seq === replyToSeq || isReacting);
+                        const isFlashing =
+                          seq !== undefined && seq === flashSeq;
+                        // Replies keep their bubble to hold the quote, and
+                        // captions to sit under their images.
+                        const emojiCount =
+                          message.replyTo || hasImages
+                            ? 0
+                            : countEmojiOnly(message.text);
                         const pills = toReactionPills(message.reactions ?? []);
                         const align = group.fromMe ? "end" : "start";
 
-                        // Only stored messages have a seq to reply or react to.
-                        const actions = canReply &&
-                          seq !== undefined &&
-                          message.status === "sent" && (
+                        const actions = seq !== undefined &&
+                          canAct(message) && (
                             <div
                               className={cn("chat-window__message-actions", {
                                 "chat-window__message-actions--visible":
@@ -497,45 +744,72 @@ export function ChatMessageList({
                                 messageRefs.current.set(seq, element);
                               else messageRefs.current.delete(seq);
                             }}
+                            onContextMenu={(event) => openMenu(event, message)}
                             className={cn("chat-window__message-row", {
                               "chat-window__message-row--enter":
                                 !isStatic(message),
                               "chat-window__message-row--pending":
-                                message.status === "pending",
+                                message.status === "pending" ||
+                                message.status === "checking",
                               "chat-window__message-row--failed":
-                                message.status === "failed",
+                                message.status === "failed" && !hasImages,
+                              "chat-window__message-row--unsent":
+                                hasImages &&
+                                (message.status === "failed" ||
+                                  message.status === "blocked"),
                             })}
                           >
                             {/* Actions sit on the side away from the sender. */}
                             {group.fromMe && actions}
                             <div className="chat-window__message-body">
-                              <p
-                                className={cn("chat-window__message", {
-                                  "chat-window__message--reply":
-                                    message.replyTo,
-                                  "chat-window__message--emoji": emojiCount > 0,
-                                  "chat-window__message--emoji-small":
-                                    emojiCount > LARGE_EMOJI_MAX_COUNT,
-                                  "chat-window__message--replying":
-                                    seq !== undefined &&
-                                    (seq === replyToSeq || isReacting),
-                                  "chat-window__message--flash":
-                                    seq !== undefined && seq === flashSeq,
-                                })}
-                              >
-                                {message.replyTo && (
-                                  <ChatMessageQuote
-                                    reply={message.replyTo}
-                                    friendName={friendName}
-                                    onJump={jumpToMessage}
-                                  />
-                                )}
-                                <ChatMessageText
-                                  text={message.text}
-                                  onOpenLink={openLink}
+                              {hasImages && (
+                                <ChatMessageImages
+                                  message={message}
+                                  isCaptioned={hasBubble && !message.isHidden}
+                                  isHighlighted={isHighlighted}
+                                  isFlashing={isFlashing}
+                                  revealedIds={revealedIds}
+                                  onReveal={revealImage}
+                                  onOpen={(attachment) =>
+                                    openImage(message, attachment)
+                                  }
+                                  onRetry={() => onRetry(message.clientNonce)}
                                 />
-                              </p>
-                              {seq !== undefined && (
+                              )}
+                              {message.isHidden && !hasImages && (
+                                <p className="chat-window__message chat-window__message--removed">
+                                  <CircleSlashIcon size={14} />
+                                  {t("message_removed")}
+                                </p>
+                              )}
+                              {!message.isHidden && hasBubble && (
+                                <p
+                                  className={cn("chat-window__message", {
+                                    "chat-window__message--reply":
+                                      message.replyTo,
+                                    "chat-window__message--emoji":
+                                      emojiCount > 0,
+                                    "chat-window__message--emoji-small":
+                                      emojiCount > LARGE_EMOJI_MAX_COUNT,
+                                    "chat-window__message--replying":
+                                      isHighlighted,
+                                    "chat-window__message--flash": isFlashing,
+                                  })}
+                                >
+                                  {message.replyTo && (
+                                    <ChatMessageQuote
+                                      reply={message.replyTo}
+                                      friendName={friendName}
+                                      onJump={jumpToMessage}
+                                    />
+                                  )}
+                                  <ChatMessageText
+                                    text={message.text}
+                                    onOpenLink={openLink}
+                                  />
+                                </p>
+                              )}
+                              {seq !== undefined && !message.isHidden && (
                                 <ChatReactionPills
                                   pills={pills}
                                   friendName={friendName}
@@ -566,7 +840,7 @@ export function ChatMessageList({
                               )}
                             </div>
                             {!group.fromMe && actions}
-                            {message.status === "failed" && (
+                            {message.status === "failed" && !hasImages && (
                               <button
                                 type="button"
                                 className="chat-window__message-retry"
@@ -575,6 +849,13 @@ export function ChatMessageList({
                                 <AlertIcon size={12} />
                                 {t("send_failed")} · {t("retry")}
                               </button>
+                            )}
+                            {hasImages && message.status !== "sent" && (
+                              <ChatMessageImagesStatus
+                                message={message}
+                                onRetry={() => onRetry(message.clientNonce)}
+                                onRemove={() => onRemove(message.clientNonce)}
+                              />
                             )}
                           </div>
                         );
@@ -655,12 +936,83 @@ export function ChatMessageList({
         />
       )}
 
+      {openImageView && (
+        <ChatImageLightbox
+          src={openImageView.src}
+          caption={getImageCaption(openImageView.message)}
+          onClose={() => setLightbox(null)}
+        />
+      )}
+
       {leavingUrl && (
         <ChatLeavingModal
           url={leavingUrl}
           onClose={() => setLeavingUrl(null)}
         />
       )}
+
+      {menu && menuItems.length > 0 && (
+        <ContextMenu
+          visible
+          items={menuItems}
+          position={menu.position}
+          onClose={closeMenu}
+          className="chat-window__message-menu"
+        />
+      )}
+
+      {reportSeq !== null && (
+        <ChatReportModal
+          onSubmit={(reason, description) =>
+            submitReport(reportSeq, reason, description)
+          }
+          onClose={closeReport}
+        />
+      )}
+
+      <AnimatePresence>
+        {reportSentId !== null && (
+          <motion.div
+            key={reportSentId}
+            className="chat-window__toast"
+            role="status"
+            initial={shouldReduceMotion ? { opacity: 0 } : TOAST_HIDDEN}
+            animate={TOAST_SHOWN}
+            exit={shouldReduceMotion ? { opacity: 0 } : TOAST_EXIT}
+            transition={
+              shouldReduceMotion
+                ? { duration: TOAST_REDUCED_MOTION_SECONDS }
+                : TOAST_SPRING
+            }
+          >
+            <motion.span
+              className="chat-window__toast-icon"
+              aria-hidden="true"
+              initial={shouldReduceMotion ? false : { scale: 0.6, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              transition={TOAST_ICON_SPRING}
+            >
+              <ChatReportCheck size={14} delay={TOAST_CHECK_DELAY_SECONDS} />
+            </motion.span>
+            <span className="chat-window__toast-text">
+              <span className="chat-window__toast-title">
+                {t("report_sent")}
+              </span>
+              <span className="chat-window__toast-description">
+                {t("report_sent_description")}
+              </span>
+            </span>
+            <button
+              type="button"
+              className="chat-window__toast-dismiss"
+              onClick={() => setReportSentId(null)}
+              aria-label={t("dismiss")}
+            >
+              <XIcon size={14} />
+            </button>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

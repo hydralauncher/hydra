@@ -2,6 +2,10 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { it } from "node:test";
 import ts from "typescript";
+import {
+  achievementSyncCoordinator,
+  AchievementSyncCancelledError,
+} from "../../services/achievements/achievement-sync-coordinator.ts";
 
 type Row = {
   name: string;
@@ -68,6 +72,10 @@ const load = (options: {
           throw Error("optional union unavailable");
         },
       },
+    },
+    "@main/services/achievements/achievement-sync-coordinator": {
+      achievementSyncCoordinator,
+      AchievementSyncCancelledError,
     },
     "@main/services/achievements/achievement-watcher-manager": {
       AchievementWatcherManager: {},
@@ -193,7 +201,7 @@ for (const switchAccountDuring of ["game-read", "steam-read"] as const) {
     });
     await assert.rejects(
       exported.getUnlockedAchievements("game", "epic", true),
-      /achievement-owner-changed/
+      AchievementSyncCancelledError
     );
   });
 }

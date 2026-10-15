@@ -1,3 +1,4 @@
+import { t } from "i18next";
 import type { ChatMessageSync, User, UserPreferences } from "@types";
 import { db, levelKeys } from "@main/level";
 import { advanceChatNotificationCursor } from "@main/services/chat/chat-unread-catch-up";
@@ -51,6 +52,7 @@ export const chatMessageEvent = async (
       createdAt: payload.createdAt,
       replyToSeq: payload.replyToSeq ?? null,
       replyTo: payload.replyTo ?? null,
+      ...(payload.attachments ? { attachments: payload.attachments } : {}),
     },
   } satisfies ChatMessageSync);
 
@@ -90,9 +92,16 @@ export const chatMessageEvent = async (
   });
   if (!shouldNotify) return;
 
+  const body =
+    payload.body ||
+    t("chat_message_images", {
+      ns: "notifications",
+      count: payload.attachments?.length ?? 1,
+    });
+
   // A failed notification must not fail the event: the client would treat it
   // as a lost event and resync every scope.
-  await notifyChatMessage(friendId, payload.body, signal).catch((error) =>
+  await notifyChatMessage(friendId, body, signal).catch((error) =>
     logger.error("Failed to show chat message notification", error)
   );
 };
