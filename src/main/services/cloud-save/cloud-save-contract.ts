@@ -304,7 +304,9 @@ export const validateRestoreManifest = (
     typeof snapshot.version !== "number" ||
     !Number.isSafeInteger(snapshot.version) ||
     snapshot.version < 1 ||
-    (snapshot.shop !== "steam" && snapshot.shop !== "launchbox") ||
+    (snapshot.shop !== "steam" &&
+      snapshot.shop !== "epic" &&
+      snapshot.shop !== "launchbox") ||
     !isNonEmptyString(snapshot.objectId)
   ) {
     throw new Error("Invalid restore manifest snapshot");

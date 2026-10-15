@@ -1,5 +1,6 @@
 import type { IncomingMessage } from "node:http";
 import WebSocket, { type ClientOptions, type RawData } from "ws";
+import { summarizeNetworkError } from "../network-error-summary.js";
 
 interface RealtimeEnvelopeBase {
   v: 1;
@@ -382,7 +383,10 @@ export class RealtimeWebSocketClient {
           }
           if (this.options.shouldStop?.(error)) return TERMINAL_ATTEMPT;
           if (!signal.aborted)
-            this.log.error("Realtime WebSocket error", error);
+            this.log.error(
+              "Realtime WebSocket error",
+              summarizeNetworkError(error)
+            );
           return {
             connected: false,
             retryAfterMs: null,
@@ -599,12 +603,15 @@ export class RealtimeWebSocketClient {
             if (!isActive()) return;
             this.log.error(
               `Failed to handle realtime ${envelope.event} event`,
-              error
+              summarizeNetworkError(error)
             );
             try {
               this.options.onEventFailure?.(signal);
             } catch (resyncError) {
-              this.log.error("Failed to start realtime resync", resyncError);
+              this.log.error(
+                "Failed to start realtime resync",
+                summarizeNetworkError(resyncError)
+              );
             }
           })
           .finally(() => {
@@ -630,7 +637,8 @@ export class RealtimeWebSocketClient {
         finish(response.statusCode === 503);
       });
       socket.on("error", (error) => {
-        if (isActive()) this.log.error("Realtime socket error", error);
+        if (isActive())
+          this.log.error("Realtime socket error", summarizeNetworkError(error));
       });
       socket.on("close", (code, reason) => {
         if (epoch !== this.epoch) return finish();

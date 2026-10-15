@@ -140,7 +140,6 @@ export function AchievementsContent({
 
   const { gameTitle, objectId, shop, game, shopDetails, achievements } =
     useContext(gameDetailsContext);
-
   const dispatch = useAppDispatch();
 
   const { userDetails, hasActiveSubscription } = useUserDetails();

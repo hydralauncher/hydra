@@ -44,12 +44,6 @@ export default function GameDetails() {
   const navigate = useNavigate();
 
   useEffect(() => {
-    if (shop !== "steam" || !objectId) return;
-
-    void window.electron.syncSteamGameOnGamePage(objectId).catch(() => {});
-  }, [objectId, shop]);
-
-  useEffect(() => {
     setRandomGame(null);
     window.electron.getRandomGame().then((randomGame) => {
       setRandomGame(randomGame);
@@ -92,6 +86,7 @@ export default function GameDetails() {
         {({
           isLoading,
           game,
+          downloadGame,
           gameTitle,
           shop,
           showRepacksModal,
@@ -116,10 +111,10 @@ export default function GameDetails() {
             signal?: AbortSignal
           ) => {
             const payload = {
-              objectId: objectId!,
+              objectId: downloadGame?.objectId ?? game?.objectId ?? objectId!,
               title: gameTitle,
               downloader,
-              shop,
+              shop: downloadGame?.shop ?? game?.shop ?? shop,
               downloadPath,
               uri: selectRepackUri(repack, downloader),
               automaticallyExtract,
@@ -149,8 +144,14 @@ export default function GameDetails() {
           };
 
           return (
-            <CloudSaveV2Provider objectId={objectId!} shop={shop}>
-              <CloudSyncContextProvider objectId={objectId!} shop={shop}>
+            <CloudSaveV2Provider
+              objectId={game?.objectId ?? objectId!}
+              shop={game?.shop ?? shop}
+            >
+              <CloudSyncContextProvider
+                objectId={game?.objectId ?? objectId!}
+                shop={game?.shop ?? shop}
+              >
                 <CloudSyncContextConsumer>
                   {({
                     showCloudSyncFilesModal,

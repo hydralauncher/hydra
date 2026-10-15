@@ -1,139 +1,427 @@
 @use "../../../scss/globals.scss";
+@use "./gallery-fullscreen-button" as fullscreen-button;
 
-.gallery-lightbox__overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100vw;
-  height: 100vh;
-  background-color: rgba(0, 0, 0, 0.85);
-  backdrop-filter: blur(2px);
-  z-index: globals.$backdrop-z-index;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  padding: 0;
-  margin: 0;
+$lightbox-ease: cubic-bezier(0.22, 1, 0.36, 1);
+$lightbox-top-bar-height: 64px;
+$lightbox-filmstrip-height: 104px;
+$lightbox-side-gutter: 88px;
+$lightbox-titlebar-height: 35px;
+
+.gallery-lightbox-dialog {
+  display: contents;
 }
 
 .gallery-lightbox {
-  display: flex;
-  justify-content: center;
-  align-items: center;
+  position: fixed;
+  inset: 0;
   width: 100%;
   height: 100%;
-  position: relative;
+  max-width: none;
+  max-height: none;
   margin: 0;
   padding: 0;
   border: none;
-  background: transparent;
-  max-width: none;
-  max-height: none;
+  z-index: globals.$backdrop-z-index;
+  background-color: rgba(0, 0, 0, 0.9);
+  backdrop-filter: blur(6px);
+  color: globals.$body-color;
+  overflow: hidden;
+  user-select: none;
+  outline: none;
+  -webkit-app-region: no-drag;
+  animation: gallery-lightbox-fade-in var(--open-fade-duration, 200ms) ease-out;
 
-  &__close-button {
+  &--fullscreen {
+    background-color: #000;
+    backdrop-filter: none;
+  }
+
+  &::backdrop {
+    background: transparent;
+  }
+
+  &--chrome-hidden {
+    cursor: none;
+  }
+
+  &__chrome {
+    transition: opacity 0.3s ease;
+  }
+
+  &--chrome-hidden &__chrome {
+    opacity: 0;
+    pointer-events: none;
+  }
+
+  &__stage {
     position: absolute;
-    top: calc(globals.$spacing-unit * 5);
-    right: calc(globals.$spacing-unit * 4);
-    cursor: pointer;
-    color: globals.$body-color;
-    background-color: rgba(0, 0, 0, 0.5);
-    border-radius: 50%;
-    border: 1px solid globals.$border-color;
-    padding: globals.$spacing-unit;
+    inset: 0;
+    padding: $lightbox-top-bar-height $lightbox-side-gutter
+      calc(globals.$spacing-unit * 3);
+    animation: gallery-lightbox-media-in 0.32s $lightbox-ease;
+  }
+
+  &--with-filmstrip &__stage {
+    padding-bottom: $lightbox-filmstrip-height;
+  }
+
+  &--titlebar-offset &__stage {
+    padding-top: $lightbox-top-bar-height + $lightbox-titlebar-height;
+  }
+
+  &--fullscreen &__stage,
+  &--fullscreen.gallery-lightbox--with-filmstrip &__stage {
+    padding: 0;
+    animation: none;
+  }
+
+  &__layer {
+    position: absolute;
+    inset: 0;
+    padding: inherit;
+    box-sizing: border-box;
+    container-type: size;
     display: flex;
     align-items: center;
     justify-content: center;
-    transition: all ease 0.2s;
-    z-index: 10;
+    opacity: 0;
+    transition: opacity var(--layer-fade-duration, 280ms) ease-out;
+
+    &--visible {
+      opacity: 1;
+    }
+
+    &--inactive {
+      pointer-events: none;
+    }
+
+    &--leaving {
+      opacity: 0;
+      transition-timing-function: cubic-bezier(0.55, 0, 1, 0.45);
+    }
+  }
+
+  &__layer--inactive &__chrome,
+  &__layer--inactive .gallery-video__controls,
+  &__layer--inactive .gallery-video__big-play,
+  &__layer--inactive .gallery-video__flash {
+    visibility: hidden;
+  }
+
+  &__frame {
+    position: relative;
+    flex-shrink: 0;
+    aspect-ratio: var(--media-aspect);
+    width: min(100cqw, calc(100cqh * var(--media-aspect)));
+    border-radius: 8px;
+    overflow: hidden;
+    box-shadow: 0 16px 48px rgba(0, 0, 0, 0.6);
+  }
+
+  &--fullscreen &__frame {
+    border-radius: 0;
+    box-shadow: none;
+  }
+
+  &__frame--image {
+    background-color: transparent;
+  }
+
+  &__image {
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+  }
+
+  &__frame-button {
+    @include fullscreen-button.placed(
+      fullscreen-button.$viewer-offset-right,
+      fullscreen-button.$viewer-offset-bottom,
+      fullscreen-button.$viewer-size
+    );
+  }
+
+  &__corner-button {
+    @include fullscreen-button.placed(
+      fullscreen-button.$fullscreen-offset-right,
+      fullscreen-button.$fullscreen-offset-bottom,
+      fullscreen-button.$fullscreen-size
+    );
+    z-index: 3;
+  }
+
+  &__top-bar {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: $lightbox-top-bar-height;
+    padding: 0 calc(globals.$spacing-unit * 2) 0 calc(globals.$spacing-unit * 3);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: calc(globals.$spacing-unit * 2);
+    z-index: 2;
+  }
+
+  &--titlebar-offset &__top-bar {
+    top: $lightbox-titlebar-height;
+  }
+
+  &--fullscreen &__top-bar {
+    background: linear-gradient(
+      to bottom,
+      rgba(0, 0, 0, 0.7) 0%,
+      rgba(0, 0, 0, 0) 100%
+    );
+  }
+
+  &__heading {
+    display: flex;
+    align-items: baseline;
+    gap: calc(globals.$spacing-unit * 1.5);
+    min-width: 0;
+  }
+
+  &__counter {
+    font-size: globals.$small-font-size;
+    font-variant-numeric: tabular-nums;
+    color: rgba(255, 255, 255, 0.5);
+    flex-shrink: 0;
+  }
+
+  &__title {
+    color: globals.$muted-color;
+    font-weight: 600;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  &__icon-button {
+    width: 40px;
+    height: 40px;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    border: 1px solid globals.$border-color;
+    background-color: rgba(0, 0, 0, 0.5);
+    color: globals.$muted-color;
+    cursor: pointer;
+    transition:
+      background-color 0.15s ease,
+      transform 0.15s ease;
 
     &:hover {
-      background-color: rgba(0, 0, 0, 0.8);
-      transform: scale(1.1);
+      background-color: rgba(255, 255, 255, 0.12);
+    }
+
+    &:active {
+      transform: scale(0.92);
     }
   }
 
   &__nav-button {
     position: absolute;
     top: 50%;
-    transform: translateY(-50%);
-    cursor: pointer;
-    background-color: rgba(0, 0, 0, 0.5);
-    border: 1px solid globals.$border-color;
-    color: globals.$body-color;
-    border-radius: 50%;
     width: 48px;
     height: 48px;
+    margin-top: -24px;
     display: flex;
     align-items: center;
     justify-content: center;
-    opacity: 1;
+    border-radius: 50%;
+    border: 1px solid globals.$border-color;
+    background-color: rgba(0, 0, 0, 0.5);
+    color: globals.$muted-color;
+    cursor: pointer;
+    z-index: 2;
     transition:
-      background-color ease 0.2s,
-      transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1),
-      opacity 0.2s ease;
-    z-index: 10;
+      background-color 0.15s ease,
+      transform 0.2s $lightbox-ease,
+      opacity 0.3s ease;
 
     &:hover {
-      background-color: rgba(0, 0, 0, 0.8);
+      background-color: rgba(255, 255, 255, 0.12);
     }
 
     &:active {
-      transform: translateY(-50%) scale(0.95);
-    }
-
-    &--hidden {
-      opacity: 0;
-      pointer-events: none;
-      transform: translateY(-50%) scale(0.5);
-      transition:
-        background-color ease 0.2s,
-        transform 0.2s ease,
-        opacity 0.2s ease;
+      transform: scale(0.92);
     }
 
     &--left {
-      left: calc(globals.$spacing-unit * 4);
+      left: calc(globals.$spacing-unit * 2);
     }
 
     &--right {
-      right: calc(globals.$spacing-unit * 4);
+      right: calc(globals.$spacing-unit * 2);
+    }
+
+    &--hidden,
+    &--hidden:hover {
+      opacity: 0;
+      pointer-events: none;
+      transform: scale(0.6);
     }
   }
 
-  &__media-container {
-    max-width: 90%;
-    max-height: 90%;
+  &--fullscreen &__nav-button {
+    background-color: rgba(0, 0, 0, 0.35);
+  }
+
+  &__filmstrip {
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    height: $lightbox-filmstrip-height;
     display: flex;
-    justify-content: center;
     align-items: center;
+    gap: globals.$spacing-unit;
+    padding: 0 calc(globals.$spacing-unit * 3);
+    z-index: 2;
+  }
 
-    .gallery-slider__video-wrapper {
-      width: auto;
-      height: auto;
-      max-width: 100%;
-      max-height: 90vh;
+  &--fullscreen &__filmstrip {
+    background: linear-gradient(
+      to top,
+      rgba(0, 0, 0, 0.75) 0%,
+      rgba(0, 0, 0, 0) 100%
+    );
+  }
+
+  &--fullscreen &__thumbnail {
+    opacity: 0.8;
+    border-color: rgba(255, 255, 255, 0.25);
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.6);
+
+    &:hover {
+      opacity: 1;
+      border-color: rgba(255, 255, 255, 0.6);
     }
   }
 
-  &__media {
-    max-width: 100%;
-    max-height: 90vh;
-    object-fit: contain;
-    border-radius: 8px;
-    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
-    animation: gallery-lightbox-media-appear 0.3s
-      cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+  &--fullscreen &__thumbnail--active,
+  &--fullscreen &__thumbnail--active:hover {
+    opacity: 1;
+    border-color: globals.$muted-color;
+  }
+
+  &__filmstrip-track {
+    position: relative;
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    gap: globals.$spacing-unit;
+    overflow-x: auto;
+    overflow-y: hidden;
+    padding: 4px;
+    scrollbar-width: none;
+
+    &::-webkit-scrollbar {
+      display: none;
+    }
+
+    &--dragging,
+    &--dragging * {
+      cursor: grabbing;
+    }
+
+    &--dragging .gallery-lightbox__thumbnail {
+      pointer-events: none;
+    }
+  }
+
+  &__thumbnail {
+    position: relative;
+
+    &:first-child {
+      margin-left: auto;
+    }
+
+    &:last-child {
+      margin-right: auto;
+    }
+
+    flex-shrink: 0;
+    height: 64px;
+    aspect-ratio: 16 / 9;
+    padding: 0;
+    border-radius: 6px;
+    border: 2px solid transparent;
+    overflow: hidden;
+    background-color: globals.$dark-background-color;
+    cursor: pointer;
+    opacity: 0.4;
+    transition:
+      opacity 0.2s ease,
+      border-color 0.2s ease,
+      transform 0.2s $lightbox-ease;
+
+    img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+    }
+
+    &:hover {
+      opacity: 0.85;
+      transform: translateY(-2px);
+    }
+
+    &--active,
+    &--active:hover {
+      opacity: 1;
+      border-color: globals.$muted-color;
+      transform: none;
+    }
+  }
+
+  &__filmstrip-exit {
+    @include fullscreen-button.look;
+    @include fullscreen-button.size(64px);
+    flex-shrink: 0;
+  }
+
+  &__thumbnail-play {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 26px;
+    height: 26px;
+    margin: -13px 0 0 -13px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    background-color: rgba(0, 0, 0, 0.6);
+    color: #fff;
+    pointer-events: none;
   }
 }
 
-@keyframes gallery-lightbox-media-appear {
-  0% {
+@keyframes gallery-lightbox-fade-in {
+  from {
     opacity: 0;
-    transform: scale(0.85);
   }
 
-  100% {
+  to {
     opacity: 1;
-    transform: scale(1);
+  }
+}
+
+@keyframes gallery-lightbox-media-in {
+  from {
+    opacity: 0;
+    transform: scale(0.96);
+  }
+
+  to {
+    opacity: 1;
+    transform: none;
   }
 }

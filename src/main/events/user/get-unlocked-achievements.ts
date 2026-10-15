@@ -1,18 +1,34 @@
 import type { GameShop, UserAchievement, UserPreferences } from "@types";
 import { registerEvent } from "../register-event";
 import { getGameAchievementData } from "@main/services/achievements/get-game-achievement-data";
-import { db, levelKeys } from "@main/level";
+import { db, gamesSublevel, levelKeys } from "@main/level";
 import { AchievementWatcherManager } from "@main/services/achievements/achievement-watcher-manager";
 import { AchievementMemoryStore } from "@main/services/achievements/achievement-memory-store";
 import { AchievementSouvenirStore } from "@main/services/achievements/achievement-souvenir-store";
 import { fetchRemoteUserGameAchievements } from "@main/services/achievements/get-achievement-souvenirs";
 import { mergeUnlockedAchievementLists } from "@main/services/achievements/merge-unlocked-achievements";
+import { HydraApi } from "@main/services/hydra-api";
+import {
+  presentCombinedAchievements,
+  type CombinedAchievements,
+} from "@main/services/achievements/combined-achievement-presentation";
+
+const COMBINED_ACHIEVEMENTS_TIMEOUT_MS = 5_000;
 
 export const getUnlockedAchievements = async (
   objectId: string,
   shop: GameShop,
   useCachedData: boolean
 ): Promise<UserAchievement[]> => {
+  const owner = HydraApi.getAuthContext();
+  const assertOwner = () => {
+    if (
+      owner
+        ? !HydraApi.isAuthContextCurrent(owner)
+        : HydraApi.getAuthContext() !== null
+    )
+      throw new Error("achievement-owner-changed");
+  };
   const userPreferences = await db.get<string, UserPreferences | null>(
     levelKeys.userPreferences,
     {
@@ -36,17 +52,22 @@ export const getUnlockedAchievements = async (
     shop,
     userPreferences?.language ?? "en"
   ).catch(() => ({
+    unavailable: true,
     souvenirs: new Map<string, string>(),
     unlocked: [],
     achievements: [],
   }));
+  assertOwner();
 
   AchievementSouvenirStore.set(shop, objectId, remote.souvenirs);
 
-  const unlockedAchievements = mergeUnlockedAchievementLists(
-    remote.unlocked,
-    AchievementMemoryStore.get(shop, objectId)?.unlockedAchievements ?? []
-  );
+  const unlockedAchievements =
+    shop === "epic" && !("unavailable" in remote)
+      ? remote.unlocked
+      : mergeUnlockedAchievementLists(
+          remote.unlocked,
+          AchievementMemoryStore.get(shop, objectId)?.unlockedAchievements ?? []
+        );
 
   const current = AchievementMemoryStore.get(shop, objectId);
   if (current) {
@@ -56,7 +77,7 @@ export const getUnlockedAchievements = async (
     });
   }
 
-  const catalogueAchievements =
+  let catalogueAchievements =
     achievementsData.length > 0
       ? achievementsData
       : remote.achievements.map((achievement) => ({
@@ -70,6 +91,63 @@ export const getUnlockedAchievements = async (
 
   const souvenirs = remote.souvenirs;
 
+  // Preserve the selected copy's catalogue/cache refresh and sync side effects.
+  // The union is a display projection and must never replace that source state.
+  if (shop === "steam" || shop === "epic") {
+    const combined = await HydraApi.get<CombinedAchievements>(
+      "/profile/achievements/combined",
+      { shop, objectId, language: userPreferences?.language ?? "en" },
+      { timeout: COMBINED_ACHIEVEMENTS_TIMEOUT_MS }
+    ).catch(() => null);
+    const includesRequestedCopy = combined?.achievements.some((achievement) =>
+      achievement.variants.some(
+        (variant) => variant.shop === shop && variant.objectId === objectId
+      )
+    );
+    // An empty copy contributes no variants. Confirm its canonical membership
+    // separately, without hiding any selected-source catalogue or local unlocks.
+    const emptyCopyInGroup =
+      !includesRequestedCopy &&
+      combined?.canonicalId &&
+      catalogueAchievements.length === 0 &&
+      unlockedAchievements.length === 0 &&
+      (
+        await gamesSublevel
+          .get(levelKeys.game(shop, objectId))
+          .catch(() => undefined)
+      )?.canonicalId === combined.canonicalId;
+    assertOwner();
+    if (
+      combined?.achievements.length &&
+      (includesRequestedCopy || emptyCopyInGroup)
+    ) {
+      return presentCombinedAchievements(
+        combined,
+        (sourceShop, sourceObjectId) =>
+          AchievementMemoryStore.get(sourceShop, sourceObjectId)
+            ?.unlockedAchievements ?? [],
+        showHiddenAchievementsDescription
+      );
+    }
+  }
+
+  // Catalogue definitions are display-only: never copy their unlocks, souvenirs or cache.
+  if (shop === "epic" && achievementsData.length === 0) {
+    const game = await gamesSublevel
+      .get(levelKeys.game(shop, objectId))
+      .catch(() => undefined);
+    assertOwner();
+    const catalogue = game?.catalogueGame;
+    if (catalogue?.shop === "steam") {
+      const steamDefinitions = await getGameAchievementData(
+        catalogue.objectId,
+        catalogue.shop,
+        true
+      ).catch(() => []);
+      assertOwner();
+      if (steamDefinitions.length > 0) catalogueAchievements = steamDefinitions;
+    }
+  }
   return catalogueAchievements
     .map((achievementData) => {
       const unlockedAchievementData = unlockedAchievements.find(
@@ -90,6 +168,14 @@ export const getUnlockedAchievements = async (
           ...achievementData,
           unlocked: true,
           unlockTime: unlockedAchievementData.unlockTime,
+          source: remote.achievements.find(
+            (item) =>
+              item.name.toUpperCase() === achievementData.name.toUpperCase()
+          )?.source,
+          unlockedOn: remote.achievements.find(
+            (item) =>
+              item.name.toUpperCase() === achievementData.name.toUpperCase()
+          )?.unlockedOn,
           imageUrl: souvenirs.get(achievementData.name.toUpperCase()) ?? null,
         };
       }

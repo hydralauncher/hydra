@@ -29,6 +29,7 @@ import { ExtractionProgress, SevenZip } from "./7zip";
 import * as emulators from "./emulators";
 import * as retroarch from "./retroarch";
 import { getPathType } from "./extraction-path";
+import { listArchiveFiles } from "./archive-entry";
 import { GameExecutables } from "./game-executables";
 import { logger } from "./logger";
 import { platformToRetroArchPlatform, platformToSystem } from "@main/helpers";
@@ -40,6 +41,8 @@ import { WindowManager } from "./window-manager";
 import { runAutomaticCloudSaveSync } from "./cloud-save";
 
 const PROGRESS_THROTTLE_MS = 1000;
+
+const MAX_ARCHIVE_EXTRACTION_PASSES = 2;
 
 export class GameFilesManager {
   private lastProgressUpdateTime = 0;
@@ -160,88 +163,66 @@ export class GameFilesManager {
     this.updateExtractionProgress(progress.percent / 100);
   };
 
-  async extractFilesInDirectory(directoryPath: string): Promise<boolean> {
-    let pathType: Awaited<ReturnType<typeof getPathType>>;
-    try {
-      pathType = await getPathType(directoryPath);
-    } catch (error) {
-      await this.setExtractionFailedState(error, directoryPath);
-      return false;
-    }
-
-    if (pathType === "missing") {
-      await this.failMissingExtractionSource(directoryPath);
-      return false;
-    }
-
-    if (pathType !== "directory") {
-      await this.setExtractionFailedState(
-        new Error(
-          `Expected extraction directory but got "${pathType}" for ${directoryPath}`
-        ),
-        directoryPath
-      );
-      return false;
-    }
-
-    let files: string[];
-    try {
-      files = await fs.promises.readdir(directoryPath);
-    } catch (error) {
-      await this.setExtractionFailedState(error, directoryPath);
-      return false;
-    }
-
-    const compressedFiles = files.filter((file) =>
-      FILE_EXTENSIONS_TO_EXTRACT.some((ext) => file.toLowerCase().endsWith(ext))
-    );
-
-    const filesToExtract = compressedFiles.filter(
-      (file) => /part1\.rar$/i.test(file) || !/part\d+\.rar$/i.test(file)
-    );
-
-    if (filesToExtract.length === 0) return true;
-
-    this.updateExtractionProgress(0, true);
-
-    const totalFiles = filesToExtract.length;
+  private async extractArchivePass(
+    directoryPath: string,
+    filesToExtract: string[],
+    pass: number,
+    extractedFiles: Set<string>
+  ): Promise<boolean> {
     let completedFiles = 0;
-
     for (const file of filesToExtract) {
+      const filePath = path.join(directoryPath, file);
       try {
         const result = await SevenZip.extractFile(
           {
-            filePath: path.join(directoryPath, file),
-            cwd: directoryPath,
+            filePath,
+            cwd: path.dirname(filePath),
             passwords: ["online-fix.me", "steamrip.com"],
           },
           (progress) => {
-            const overallProgress =
-              (completedFiles + progress.percent / 100) / totalFiles;
-            this.updateExtractionProgress(overallProgress);
+            const passProgress =
+              (completedFiles + progress.percent / 100) / filesToExtract.length;
+            this.updateExtractionProgress(
+              (pass + passProgress) / MAX_ARCHIVE_EXTRACTION_PASSES
+            );
           }
         );
 
-        if (result.success) {
-          completedFiles++;
-          this.updateExtractionProgress(completedFiles / totalFiles, true);
-        } else {
+        if (!result.success) {
           await this.setExtractionFailedState(
             new Error(`7zip returned unsuccessful extraction for ${file}`),
-            path.join(directoryPath, file)
+            filePath
           );
           return false;
         }
-      } catch (err) {
-        await this.setExtractionFailedState(
-          err,
-          path.join(directoryPath, file)
+        completedFiles++;
+        extractedFiles.add(file);
+        this.updateExtractionProgress(
+          (pass + completedFiles / filesToExtract.length) /
+            MAX_ARCHIVE_EXTRACTION_PASSES,
+          true
         );
+      } catch (error) {
+        await this.setExtractionFailedState(error, filePath);
         return false;
       }
     }
+    return true;
+  }
 
-    const archivePaths = compressedFiles
+  private async finishArchiveExtraction(
+    directoryPath: string,
+    outerArchivePath: string | undefined,
+    compressedFiles: Set<string>,
+    extractedFiles: Set<string>
+  ): Promise<void> {
+    if (extractedFiles.size === 0) return;
+    this.updateExtractionProgress(1, true);
+
+    // The caller applies the user's retention preference to the outer archive.
+    if (outerArchivePath) return;
+
+    const archivePaths = [...compressedFiles]
       .map((file) => path.join(directoryPath, file))
       .filter((archivePath) => fs.existsSync(archivePath));
 
@@ -269,7 +250,81 @@ export class GameFilesManager {
         );
       }
     }
+  }
 
+  async extractFilesInDirectory(
+    directoryPath: string,
+    outerArchivePath?: string
+  ): Promise<boolean> {
+    let pathType: Awaited<ReturnType<typeof getPathType>>;
+    try {
+      pathType = await getPathType(directoryPath);
+    } catch (error) {
+      await this.setExtractionFailedState(error, directoryPath);
+      return false;
+    }
+
+    if (pathType === "missing") {
+      await this.failMissingExtractionSource(directoryPath);
+      return false;
+    }
+
+    if (pathType !== "directory") {
+      await this.setExtractionFailedState(
+        new Error(
+          `Expected extraction directory but got "${pathType}" for ${directoryPath}`
+        ),
+        directoryPath
+      );
+      return false;
+    }
+
+    const compressedFiles = new Set<string>();
+    const extractedFiles = new Set<string>();
+
+    // Only process archives at the extraction root. Archives in game subfolders
+    // may be runtime assets and must remain intact.
+    for (let pass = 0; pass < MAX_ARCHIVE_EXTRACTION_PASSES; pass++) {
+      let archives: string[];
+      try {
+        archives = await listArchiveFiles(
+          directoryPath,
+          FILE_EXTENSIONS_TO_EXTRACT
+        );
+      } catch (error) {
+        await this.setExtractionFailedState(error, directoryPath);
+        return false;
+      }
+
+      archives.forEach((file) => compressedFiles.add(file));
+      const filesToExtract = archives.filter(
+        (file) =>
+          !extractedFiles.has(file) &&
+          (/part1\.rar$/i.test(file) || !/part\d+\.rar$/i.test(file))
+      );
+
+      if (filesToExtract.length === 0) continue;
+
+      if (pass === 0) this.updateExtractionProgress(0, true);
+
+      if (
+        !(await this.extractArchivePass(
+          directoryPath,
+          filesToExtract,
+          pass,
+          extractedFiles
+        ))
+      ) {
+        return false;
+      }
+    }
+
+    await this.finishArchiveExtraction(
+      directoryPath,
+      outerArchivePath,
+      compressedFiles,
+      extractedFiles
+    );
     return true;
   }
 
@@ -521,8 +576,13 @@ export class GameFilesManager {
     }
   }
 
-  private isValidHttpUrl(url: string | null | undefined): url is string {
-    return !!url && (url.startsWith("http://") || url.startsWith("https://"));
+  private isValidIconUrl(url: string | null | undefined): url is string {
+    return (
+      !!url &&
+      (url.startsWith("http://") ||
+        url.startsWith("https://") ||
+        url.startsWith("local:"))
+    );
   }
 
   private isIcoUrl(url: string): boolean {
@@ -552,7 +612,7 @@ export class GameFilesManager {
       assets?.iconUrl,
       game?.iconUrl,
       assets?.coverImageUrl,
-    ].filter(this.isValidHttpUrl);
+    ].filter(this.isValidIconUrl);
 
     if (iconUrls.length === 0) {
       logger.warn(
@@ -568,10 +628,17 @@ export class GameFilesManager {
         logger.log(
           `[GameFilesManager] Trying to download icon from: ${iconUrl}`
         );
-        const response = await axios.get(iconUrl, {
-          responseType: "arraybuffer",
-        });
-        const imageBuffer = Buffer.from(response.data);
+        let imageBuffer: Buffer;
+        if (iconUrl.startsWith("local:")) {
+          imageBuffer = await fs.promises.readFile(
+            iconUrl.slice("local:".length)
+          );
+        } else {
+          const response = await axios.get(iconUrl, {
+            responseType: "arraybuffer",
+          });
+          imageBuffer = Buffer.from(response.data);
+        }
 
         // If source is already ICO, use it directly
         if (this.isIcoUrl(iconUrl)) {
@@ -828,9 +895,11 @@ export class GameFilesManager {
       return false;
     }
 
+    const archivePath = path.parse(download.folderName);
+    const extractedFolderName = path.join(archivePath.dir, archivePath.name);
     const extractionPath = path.join(
       download.downloadPath,
-      path.parse(download.folderName!).name
+      extractedFolderName
     );
 
     this.updateExtractionProgress(0, true);
@@ -846,8 +915,10 @@ export class GameFilesManager {
       );
 
       if (result.success) {
-        const extractedNestedArchives =
-          await this.extractFilesInDirectory(extractionPath);
+        const extractedNestedArchives = await this.extractFilesInDirectory(
+          extractionPath,
+          filePath
+        );
 
         if (!extractedNestedArchives) {
           return false;
@@ -875,7 +946,7 @@ export class GameFilesManager {
 
         await downloadsSublevel.put(this.gameKey, {
           ...download,
-          folderName: path.parse(download.folderName!).name,
+          folderName: extractedFolderName,
         });
 
         await this.setExtractionComplete();

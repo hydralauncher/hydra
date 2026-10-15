@@ -10,6 +10,7 @@ import "./change-game-playtime-modal.scss";
 export interface ChangeGamePlaytimeModalProps {
   visible: boolean;
   game: Game;
+  playtimePreview?: Game | null;
   onClose: () => void;
   changePlaytime: (playTimeInSeconds: number) => Promise<void>;
   onSuccess?: (message: string) => void;
@@ -19,6 +20,7 @@ export interface ChangeGamePlaytimeModalProps {
 export function ChangeGamePlaytimeModal({
   onClose,
   game,
+  playtimePreview,
   visible,
   changePlaytime,
   onSuccess,
@@ -113,7 +115,12 @@ export function ChangeGamePlaytimeModal({
   const isUnchanged =
     (Number.parseInt(hours) || 0) * 60 + (Number.parseInt(minutes) || 0) ===
     Math.floor((game.playTimeInMilliseconds ?? 0) / 60_000);
-  const steamPlayTimeInMilliseconds = game.steamPlayTimeInMilliseconds ?? 0;
+  const preview = playtimePreview ?? game;
+  const steamPlayTimeInMilliseconds = preview.steamPlayTimeInMilliseconds ?? 0;
+  const otherHydraPlayTimeInMilliseconds = Math.max(
+    0,
+    preview.playTimeInMilliseconds - game.playTimeInMilliseconds
+  );
   const nextHydraPlayTimeInMilliseconds =
     ((parseInt(hours) || 0) * 3600 + (parseInt(minutes) || 0) * 60) * 1000;
 
@@ -123,7 +130,7 @@ export function ChangeGamePlaytimeModal({
       onClose={onClose}
       title={t("update_playtime_title")}
       description={t("update_playtime_description", {
-        game: game.title,
+        game: preview.title,
       })}
     >
       <div className="change-game-playtime-modal__content">
@@ -157,11 +164,16 @@ export function ChangeGamePlaytimeModal({
           />
         </div>
 
-        {steamPlayTimeInMilliseconds > 0 ? (
+        {steamPlayTimeInMilliseconds > 0 ||
+        (preview.epicPlayTimeInMilliseconds ?? 0) > 0 ||
+        otherHydraPlayTimeInMilliseconds > 0 ? (
           <PlaytimeBreakdownTable
-            hydraPlayTimeInMilliseconds={game.playTimeInMilliseconds ?? 0}
-            nextHydraPlayTimeInMilliseconds={nextHydraPlayTimeInMilliseconds}
+            hydraPlayTimeInMilliseconds={preview.playTimeInMilliseconds ?? 0}
+            nextHydraPlayTimeInMilliseconds={
+              otherHydraPlayTimeInMilliseconds + nextHydraPlayTimeInMilliseconds
+            }
             steamPlayTimeInMilliseconds={steamPlayTimeInMilliseconds}
+            epicPlayTimeInMilliseconds={preview.epicPlayTimeInMilliseconds ?? 0}
           />
         ) : null}
 

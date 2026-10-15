@@ -1,0 +1,61 @@
+@use "../../../scss/globals.scss";
+
+$page-offset-right: globals.$spacing-unit;
+$page-offset-bottom: 4px;
+$page-size: 36px;
+
+$viewer-offset-right: calc(globals.$spacing-unit * 2);
+$viewer-offset-bottom: globals.$spacing-unit;
+$viewer-size: 40px;
+
+$fullscreen-offset-right: calc(globals.$spacing-unit * 4);
+$fullscreen-offset-bottom: calc(globals.$spacing-unit * 2);
+$fullscreen-size: 52px;
+
+%fullscreen-button-states {
+  &:hover {
+    background-color: rgba(255, 255, 255, 0.1);
+  }
+
+  &:active {
+    transform: scale(0.92);
+  }
+}
+
+@mixin look {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  border: none;
+  border-radius: 6px;
+  background-color: transparent;
+  color: globals.$muted-color;
+  cursor: pointer;
+  transition:
+    background-color 0.15s ease,
+    transform 0.15s ease,
+    opacity 0.3s ease;
+
+  svg {
+    filter: drop-shadow(0 1px 3px rgba(0, 0, 0, 0.8))
+      drop-shadow(0 0 8px rgba(0, 0, 0, 0.45));
+  }
+
+  @extend %fullscreen-button-states;
+}
+
+@mixin size($size) {
+  width: $size;
+  min-width: $size;
+  height: $size;
+  padding: 0;
+}
+
+@mixin placed($right, $bottom, $size) {
+  @include look;
+  @include size($size);
+  position: absolute;
+  right: $right;
+  bottom: $bottom;
+}

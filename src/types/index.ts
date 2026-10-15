@@ -4,6 +4,8 @@ import type {
   AchievementCustomNotificationPosition,
   Download,
   Game,
+  CatalogueGameIdentity,
+  LibraryCatalogueMetadata,
   Subscription,
 } from "./level.types";
 import type { GameShop, UnlockedAchievement } from "./game.types";
@@ -66,6 +68,9 @@ export interface ShopAssets {
   coverImageUrl: string | null;
   downloadSources: string[];
   selectedArtworkTypes?: ArtworkAssetType[];
+  epicArtworkUpdatedAtByType?: Partial<
+    Record<"icon" | "portrait" | "landscape", number>
+  >;
 }
 
 export type ShopDetails = SteamAppDetails & {
@@ -91,9 +96,10 @@ export interface TorrentFilesResponse {
   name: string;
   totalSize: number;
   files: TorrentFile[];
+  archiveOnly?: boolean;
 }
 
-export type UserGame = {
+export type UserGame = LibraryCatalogueMetadata & {
   objectId: string;
   shop: GameShop;
   title: string;
@@ -104,6 +110,8 @@ export type UserGame = {
   achievementsPointsEarnedSum: number;
   hasManuallyUpdatedPlaytime: boolean;
   hasActiveSteamImport?: boolean;
+  hasActiveEpicImport?: boolean;
+  runtimeByPlatform?: { hydra?: number; steam?: number; epic?: number };
   isFavorite: boolean;
   isHiddenFromOthers?: boolean;
   isConcealed?: boolean;
@@ -785,6 +793,16 @@ export type LibraryGame = Game &
     achievementCount?: number;
   };
 
+/** Read-only catalogue projection; writes must use its original members. */
+export type LibraryGamePresentation = LibraryGame & {
+  members: LibraryGame[];
+  operationalGame: LibraryGame;
+  achievementGame?: LibraryGame;
+  downloadGame: LibraryGame;
+  catalogueGame: CatalogueGameIdentity;
+  availableShops: GameShop[];
+};
+
 export type UserGameDetails = ShopAssets & {
   id: string;
   playTimeInSeconds: number;
@@ -805,6 +823,8 @@ export type UserGameDetails = ShopAssets & {
 export * from "./game.types";
 export * from "./steam.types";
 export * from "./steam-integration.types";
+export * from "./epic-integration.types";
+export * from "./epic-managed.types";
 export * from "./download.types";
 export * from "./ludusavi.types";
 export * from "./how-long-to-beat.types";

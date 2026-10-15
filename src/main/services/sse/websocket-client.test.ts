@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { EventEmitter } from "node:events";
 import { describe, it } from "node:test";
+import { AxiosError, type AxiosResponse } from "axios";
 import type { IncomingMessage } from "node:http";
 import type { ClientOptions, RawData } from "ws";
 import {
@@ -101,6 +102,128 @@ const makeHarness = () => {
     getResyncs: () => resyncs,
   };
 };
+
+describe("realtime credential logging", () => {
+  it("sanitizes failed token minting without changing reconnect behavior", async () => {
+    const secret = "test-only-sensitive-value";
+    const error = new AxiosError(
+      `Request failed ${secret}`,
+      "ERR_BAD_RESPONSE",
+      {
+        headers: { Authorization: `Bearer ${secret}` },
+        data: JSON.stringify({ exchangeCode: secret }),
+      } as never,
+      undefined,
+      { status: 502, data: { token: secret } } as AxiosResponse
+    );
+    const logs: unknown[][] = [];
+    let retries = 0;
+    const client = new RealtimeWebSocketClient({
+      mintToken: async () => {
+        throw error;
+      },
+      onEvent: () => {},
+      onReconnect: () => {},
+      random: () => 0.5,
+      sleep: (_ms, signal) => {
+        retries++;
+        return new Promise<void>((resolve) => {
+          signal.addEventListener("abort", () => resolve(), { once: true });
+        });
+      },
+      log: {
+        info: (...args) => {
+          logs.push(args);
+        },
+        warn: (...args) => {
+          logs.push(args);
+        },
+        error: (...args) => {
+          logs.push(args);
+        },
+      },
+    });
+    client.connect();
+    await tick();
+    client.close();
+    await tick();
+    assert.equal(retries, 1);
+    assert.equal(JSON.stringify(logs).includes(secret), false);
+    assert.ok(
+      logs.some(
+        ([message, summary]) =>
+          message === "Realtime WebSocket error" &&
+          JSON.stringify(summary) ===
+            JSON.stringify({
+              name: "AxiosError",
+              code: "ERR_BAD_RESPONSE",
+              status: 502,
+            })
+      )
+    );
+  });
+
+  it("sanitizes socket, event and resync errors while retaining event recovery", async () => {
+    const secret = "test-only-sensitive-value";
+    const error = Object.assign(new Error(`Authorization: ${secret}`), {
+      code: "ECONNRESET",
+      config: { headers: { Authorization: secret } },
+    });
+    const logs: unknown[][] = [];
+    const socket = new FakeSocket();
+    let recoveries = 0;
+    const client = new RealtimeWebSocketClient({
+      mintToken: async () => ({
+        token: "test-token",
+        url: "wss://example.test",
+        expiresIn: 300,
+      }),
+      createSocket: () => socket,
+      onEvent: async () => {
+        throw error;
+      },
+      onEventFailure: () => {
+        recoveries++;
+        throw error;
+      },
+      onReconnect: () => {},
+      log: {
+        info: (...args) => {
+          logs.push(args);
+        },
+        warn: (...args) => {
+          logs.push(args);
+        },
+        error: (...args) => {
+          logs.push(args);
+        },
+      },
+    });
+    client.connect();
+    await tick();
+    socket.open();
+    socket.emit("error", error);
+    socket.message({
+      v: 1,
+      eventId: "failed-event",
+      event: "notification",
+      payload: { invalidate: "notifications" },
+      publishedAt: Date.now(),
+    });
+    await tick();
+    client.close();
+    assert.equal(recoveries, 1);
+    assert.equal(JSON.stringify(logs).includes(secret), false);
+    for (const [message, summary] of logs.filter(
+      ([message]) =>
+        typeof message === "string" &&
+        message !== "Realtime WebSocket connected"
+    )) {
+      assert.ok(typeof message === "string");
+      assert.deepEqual(summary, { name: "Error", code: "ECONNRESET" });
+    }
+  });
+});
 
 describe("realtime WebSocket helpers", () => {
   it("uses full jitter bounded by exponential cap", () => {

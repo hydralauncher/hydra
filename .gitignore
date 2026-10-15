@@ -7,11 +7,16 @@ out
 *.log*
 *.tsbuildinfo
 .env
+.env.local
+.env.*.local
 .vite
 ludusavi/**
 !ludusavi/config.yaml
 /hydra-native/
+/legendary/
 native/hydra-native/target/
+native/epic-prerequisite-runner/target/
+binaries/epic-prerequisite-runner/
 
 # Sentry Config File
 .env.sentry-build-plugin

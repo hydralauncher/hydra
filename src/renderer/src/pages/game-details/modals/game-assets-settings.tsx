@@ -19,10 +19,12 @@ import { useToast, useAppSelector, useUserDetails } from "@renderer/hooks";
 import { useSubscription } from "@renderer/hooks/use-subscription";
 import type {
   Game,
+  CatalogueGameIdentity,
   GameArtworkSelection,
   LibraryGame,
   ShopDetailsWithAssets,
 } from "@types";
+import { getGameCatalogueIdentity } from "@shared";
 
 import { GameArtworkPicker } from "./game-artwork-picker";
 
@@ -186,15 +188,18 @@ const getGameCustomAssetUrl = (
 
 export interface GameAssetsSettingsProps {
   game: LibraryGame;
+  catalogueGame?: CatalogueGameIdentity;
   shopDetails: ShopDetailsWithAssets | null;
   onGameUpdated: () => Promise<void> | void;
 }
 
 export function GameAssetsSettings({
   game,
+  catalogueGame: catalogueIdentity,
   shopDetails,
   onGameUpdated,
 }: Readonly<GameAssetsSettingsProps>) {
+  const catalogueGame = catalogueIdentity ?? getGameCatalogueIdentity(game);
   const { t } = useTranslation("sidebar");
   const { t: tProfile } = useTranslation("user_profile");
   const { showSuccessToast, showErrorToast } = useToast();
@@ -450,7 +455,7 @@ export function GameAssetsSettings({
     let cancelled = false;
 
     window.electron
-      .getGameAssets(game.objectId, game.shop)
+      .getGameAssets(catalogueGame.objectId, catalogueGame.shop)
       .then((assets) => {
         if (cancelled || !assets) return;
 
@@ -466,7 +471,7 @@ export function GameAssetsSettings({
     return () => {
       cancelled = true;
     };
-  }, [game.objectId, game.shop]);
+  }, [game.shop, catalogueGame.objectId, catalogueGame.shop]);
 
   const handleAssetTypeChange = (assetType: AssetType) => {
     if (assetFlowBusyRef.current) return;
@@ -1243,8 +1248,9 @@ export function GameAssetsSettings({
 
         {!isCustomGame(game) && (
           <GameArtworkPicker
-            key={`${game.shop}:${game.objectId}:${selectedAssetType}`}
+            key={`${game.shop}:${game.objectId}:${catalogueGame.shop}:${catalogueGame.objectId}:${selectedAssetType}`}
             game={game}
+            lookupIdentity={catalogueGame}
             assetType={selectedAssetType}
             onChanged={handleArtworkChanged}
             disabled={isAssetFlowBusy}

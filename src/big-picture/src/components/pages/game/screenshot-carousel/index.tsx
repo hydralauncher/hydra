@@ -1,4 +1,20 @@
 import { CaretLeftIcon, CaretRightIcon, PlayIcon } from "@phosphor-icons/react";
+import { createPortal } from "react-dom";
+import {
+  GalleryVideoHost,
+  GalleryVideoSlot,
+} from "@renderer/pages/game-details/gallery-slider/gallery-video-host";
+import {
+  GalleryVideoPlayer,
+  type GalleryPlaybackState,
+  type GalleryVideoPlayerHandle,
+} from "@renderer/pages/game-details/gallery-slider/gallery-video-player";
+import type { GalleryMediaItem } from "@renderer/pages/game-details/gallery-slider/gallery-slider";
+import { getSteamMovieSource } from "@renderer/pages/game-details/gallery-slider/gallery-media-sources";
+import {
+  isDialogOpen,
+  isEditableTarget,
+} from "@renderer/pages/game-details/gallery-slider/gallery-shortcuts";
 import type { SteamMovie, SteamScreenshot } from "@types";
 import useEmblaCarousel from "embla-carousel-react";
 import type { FocusOverrideTarget } from "../../../../services";
@@ -10,18 +26,27 @@ import {
   useRef,
   useState,
 } from "react";
+import { useTranslation } from "react-i18next";
 import { getItemFocusTarget } from "../../../../helpers";
 import { useUserPreferences } from "../../../../hooks";
 import { BIG_PICTURE_SIDEBAR_ITEM_IDS } from "../../../../layout";
 import { FocusItem, HorizontalFocusGroup } from "../../../common";
 import { useNavigationIsFocused, useNavigationStore } from "../../../../stores";
-import { NavigationService } from "../../../../services";
+import {
+  NavigationAudioService,
+  NavigationService,
+} from "../../../../services";
 import {
   GAME_HERO_ACTIONS_REGION_ID,
   GAME_MEDIA_CAROUSEL_REGION_ID,
   getGameMediaCarouselItemId,
 } from "../navigation";
-import { VideoPlayer } from "./video-player";
+import {
+  MEDIA_VIEWER_IDLE_TIMEOUT_MS,
+  MEDIA_VIEWER_INDICATOR_TIMEOUT_MS,
+  MediaViewer,
+  type MediaViewerPresentation,
+} from "../media-viewer";
 
 const PLAY_ICON_SIZE = 28;
 
@@ -33,29 +58,18 @@ interface ScreenshotCarouselProps {
   sidebarEntryTarget?: FocusOverrideTarget;
 }
 
-type MediaItem = {
-  id: string;
+type MediaItem = GalleryMediaItem & {
   focusId: string;
-  type: "video" | "image";
-  src?: string;
-  poster?: string;
-  videoSrc?: string;
-  videoType?: string;
 };
 
 interface ScreenshotCarouselSlideProps {
   item: MediaItem;
   index: number;
-  isSelected: boolean;
   autoplayEnabled: boolean;
   preferencesLoaded: boolean;
-  started: boolean;
-  isPlaying: boolean;
+  videoHost?: GalleryVideoHost;
   onFocused: (index: number) => void;
-  onSelectItem: (index: number, target: EventTarget | null) => void;
-  setVideoRef: (index: number, element: HTMLVideoElement | null) => void;
-  onVideoPlay: (index: number) => void;
-  onVideoPause: (index: number) => void;
+  onSelectItem: (index: number) => void;
   leftNavigationTarget?: FocusOverrideTarget;
   downNavigationTarget?: FocusOverrideTarget;
   rightNavigationTarget?: FocusOverrideTarget;
@@ -64,21 +78,27 @@ interface ScreenshotCarouselSlideProps {
 function ScreenshotCarouselSlide({
   item,
   index,
-  isSelected,
   autoplayEnabled,
   preferencesLoaded,
-  started,
-  isPlaying,
+  videoHost,
   onFocused,
   onSelectItem,
-  setVideoRef,
-  onVideoPlay,
-  onVideoPause,
   leftNavigationTarget,
   downNavigationTarget,
   rightNavigationTarget,
 }: Readonly<ScreenshotCarouselSlideProps>) {
   const isFocused = useNavigationIsFocused(item.focusId);
+  const surfaceRef = useRef<HTMLButtonElement>(null);
+
+  useEffect(() => {
+    const surface = surfaceRef.current;
+    if (!surface) return undefined;
+
+    const onClick = () => onSelectItem(index);
+    surface.addEventListener("click", onClick);
+
+    return () => surface.removeEventListener("click", onClick);
+  }, [index, onSelectItem]);
 
   useEffect(() => {
     if (!isFocused) return;
@@ -102,36 +122,16 @@ function ScreenshotCarouselSlide({
         asChild
       >
         <button
+          ref={surfaceRef}
           type="button"
           className="game-page__media-carousel-surface"
-          onClick={(event) => onSelectItem(index, event.target)}
           aria-label={`Media item ${index + 1}`}
         >
           {item.type === "video" ? (
             <>
-              <VideoPlayer
-                videoSrc={item.videoSrc}
-                videoType={item.videoType}
-                poster={item.poster}
-                autoplay={autoplayEnabled ? isSelected : started}
-                load={autoplayEnabled || started}
-                muted
-                loop
-                controls={autoplayEnabled || started}
-                style={{
-                  width: "100%",
-                  borderRadius: 8,
-                  objectFit: "cover",
-                  aspectRatio: "16 / 9",
-                }}
-                videoRef={(element) => {
-                  setVideoRef(index, element);
-                }}
-                onPlay={() => onVideoPlay(index)}
-                onPause={() => onVideoPause(index)}
-              />
+              {videoHost && <GalleryVideoSlot host={videoHost} mode="home" />}
 
-              {preferencesLoaded && !autoplayEnabled && !isPlaying && (
+              {preferencesLoaded && !autoplayEnabled && (
                 <div className="game-page__media-carousel-play-overlay">
                   <div className="game-page__media-carousel-play-icon">
                     <PlayIcon size={PLAY_ICON_SIZE} weight="fill" />
@@ -142,7 +142,7 @@ function ScreenshotCarouselSlide({
           ) : (
             <img
               src={item.src}
-              alt={`Screenshot ${index + 1}`}
+              alt={item.alt}
               loading="lazy"
               className="game-page__media-carousel-image"
             />
@@ -161,11 +161,15 @@ export function ScreenshotCarousel({
   sidebarEntryTarget,
 }: Readonly<ScreenshotCarouselProps>) {
   const [emblaRef, emblaApi] = useEmblaCarousel({ loop: false });
+  const { t } = useTranslation("game_details");
   const [selectedIndex, setSelectedIndex] = useState(0);
-  const [startedIndices, setStartedIndices] = useState<Set<number>>(new Set());
-  const [playingIndex, setPlayingIndex] = useState<number | null>(null);
+  const [viewerIndex, setViewerIndex] = useState<number | null>(null);
+  const [presentation, setPresentation] =
+    useState<MediaViewerPresentation | null>(null);
+  const [videoHoldsChrome, setVideoHoldsChrome] = useState(true);
   const carouselContainerRef = useRef<HTMLDivElement | null>(null);
-  const videoRefs = useRef<Array<HTMLVideoElement | null>>([]);
+  const playerHandlesRef = useRef(new Map<string, GalleryVideoPlayerHandle>());
+  const videoHostsRef = useRef(new Map<string, GalleryVideoHost>());
   const isFocusDrivenScrollRef = useRef(false);
   const navigation = NavigationService.getInstance();
   const currentFocusId = useNavigationStore((state) => state.currentFocusId);
@@ -178,52 +182,49 @@ export function ScreenshotCarousel({
   const mediaItems: MediaItem[] = useMemo(() => {
     const items: MediaItem[] = [];
 
-    videos.forEach((video) => {
-      let videoSrc: string | undefined;
-      let videoType: string | undefined;
+    videos.forEach((video, videoIndex) => {
+      const movieSource = getSteamMovieSource(video);
+      if (!movieSource) return;
 
-      if (video.hls_h264) {
-        videoSrc = video.hls_h264;
-        videoType = "application/x-mpegURL";
-      } else if (video.dash_h264) {
-        videoSrc = video.dash_h264;
-        videoType = "application/dash+xml";
-      } else if (video.dash_av1) {
-        videoSrc = video.dash_av1;
-        videoType = "application/dash+xml";
-      } else if (video.mp4?.max) {
-        videoSrc = video.mp4.max;
-        videoType = "video/mp4";
-      } else if (video.webm?.max) {
-        videoSrc = video.webm.max;
-        videoType = "video/webm";
-      }
-
-      if (videoSrc) {
-        items.push({
-          id: `video-${video.id}`,
-          focusId: getGameMediaCarouselItemId(items.length),
-          type: "video",
-          poster: video.thumbnail,
-          videoSrc: videoSrc.startsWith("http://")
-            ? videoSrc.replace("http://", "https://")
-            : videoSrc,
-          videoType,
-        });
-      }
+      items.push({
+        id: `video-${video.id}`,
+        focusId: getGameMediaCarouselItemId(items.length),
+        type: "video",
+        poster: video.thumbnail,
+        thumbnail: video.thumbnail,
+        ...movieSource,
+        alt: video.name || t("video", { number: String(videoIndex + 1) }),
+      });
     });
 
-    screenshots.forEach((image) => {
+    screenshots.forEach((image, imageIndex) => {
       items.push({
         id: `screenshot-${image.id}`,
         focusId: getGameMediaCarouselItemId(items.length),
         type: "image",
         src: image.path_full,
+        thumbnail: image.path_thumbnail,
+        alt: t("screenshot", { number: String(imageIndex + 1) }),
       });
     });
 
     return items;
-  }, [videos, screenshots]);
+  }, [videos, screenshots, t]);
+
+  const videoHosts = useMemo(() => {
+    const hosts = videoHostsRef.current;
+    mediaItems.forEach((item) => {
+      if (item.type === "video" && !hosts.has(item.id)) {
+        hosts.set(item.id, new GalleryVideoHost());
+      }
+    });
+    return hosts;
+  }, [mediaItems]);
+
+  const getVideoHandle = useCallback(
+    (id: string) => playerHandlesRef.current.get(id),
+    []
+  );
 
   const itemFocusIds = useMemo(
     () => mediaItems.map((item) => item.focusId),
@@ -277,16 +278,6 @@ export function ScreenshotCarousel({
     const index = emblaApi.selectedScrollSnap();
     setSelectedIndex(index);
 
-    videoRefs.current.forEach((video, videoIndex) => {
-      if (!video) return;
-
-      if (videoIndex === index && autoplayEnabled) {
-        video.play().catch(() => {});
-      } else {
-        video.pause();
-      }
-    });
-
     if (
       !isFocusDrivenScrollRef.current &&
       isFocusInsideCarousel &&
@@ -298,7 +289,6 @@ export function ScreenshotCarousel({
 
     isFocusDrivenScrollRef.current = false;
   }, [
-    autoplayEnabled,
     currentFocusId,
     emblaApi,
     isFocusInsideCarousel,
@@ -317,15 +307,41 @@ export function ScreenshotCarousel({
     };
   }, [emblaApi, onSelect]);
 
+  const viewerOpenRef = useRef(false);
+  viewerOpenRef.current = viewerIndex !== null;
+
+  useEffect(() => {
+    if (!emblaApi) return undefined;
+
+    const syncPlayback = () => {
+      if (viewerOpenRef.current) return;
+      const index = emblaApi.selectedScrollSnap();
+
+      mediaItems.forEach((item, itemIndex) => {
+        if (item.type !== "video") return;
+        const handle = playerHandlesRef.current.get(item.id);
+        if (!handle) return;
+
+        if (itemIndex === index && autoplayEnabled) {
+          handle.play();
+        } else {
+          handle.pause();
+        }
+      });
+    };
+
+    emblaApi.on("select", syncPlayback);
+    syncPlayback();
+
+    return () => {
+      emblaApi.off("select", syncPlayback);
+    };
+  }, [autoplayEnabled, emblaApi, mediaItems]);
+
   useEffect(() => {
     if (selectedIndex < mediaItems.length) return;
     setSelectedIndex(0);
   }, [mediaItems.length, selectedIndex]);
-
-  useEffect(() => {
-    setStartedIndices(new Set());
-    setPlayingIndex(null);
-  }, [mediaItems]);
 
   useEffect(() => {
     if (!emblaApi || !currentFocusId) return;
@@ -359,49 +375,130 @@ export function ScreenshotCarousel({
   );
 
   const handleSelectItem = useCallback(
-    (index: number, target: EventTarget | null) => {
+    (index: number, startPlayback = true) => {
       emblaApi?.scrollTo(index);
+      const target = mediaItems[index];
 
-      if (autoplayEnabled || index !== selectedIndex) return;
+      mediaItems.forEach((item) => {
+        if (item.type === "video" && item.id !== target?.id) {
+          playerHandlesRef.current.get(item.id)?.pause();
+        }
+      });
 
-      const video = videoRefs.current[index];
+      if (startPlayback && target?.type === "video") {
+        const handle = playerHandlesRef.current.get(target.id);
+        const state = handle?.getState();
+        if (state && !state.playing) handle?.play();
+      }
 
-      if (!startedIndices.has(index)) {
-        setStartedIndices((prev) => {
-          const next = new Set(prev);
-          next.add(index);
-          return next;
-        });
-        video?.play().catch(() => {});
+      setVideoHoldsChrome(true);
+      setViewerIndex(index);
+    },
+    [emblaApi, mediaItems]
+  );
+
+  const handleViewerClose = useCallback(
+    (index: number) => {
+      const closedItem = mediaItems[index];
+      const handle =
+        closedItem?.type === "video"
+          ? playerHandlesRef.current.get(closedItem.id)
+          : undefined;
+      const playback: GalleryPlaybackState | null | undefined =
+        handle?.getState();
+
+      setViewerIndex(null);
+      setPresentation(null);
+
+      if (emblaApi && emblaApi.selectedScrollSnap() !== index) {
+        emblaApi.scrollTo(index, true);
+      }
+
+      window.setTimeout(() => {
+        if (closedItem) navigation.setFocus(closedItem.focusId);
+        if (playback && handle) handle.restore(playback);
+      }, 0);
+    },
+    [emblaApi, mediaItems, navigation]
+  );
+
+  const inViewRef = useRef(false);
+  const focusIdRef = useRef(currentFocusId);
+  focusIdRef.current = currentFocusId;
+
+  useEffect(() => {
+    if (viewerIndex !== null) return undefined;
+
+    const onSpaceKeyDown = (event: KeyboardEvent) => {
+      if (event.key !== " " || event.repeat) return;
+      if (event.ctrlKey || event.metaKey || event.altKey || event.shiftKey) {
         return;
       }
 
-      if (target instanceof HTMLVideoElement) return;
+      const focusedIndex = focusIdRef.current
+        ? itemFocusIds.indexOf(focusIdRef.current)
+        : -1;
+      const item = mediaItems[focusedIndex];
+      if (item?.type !== "video") return;
 
-      if (video && !video.paused) {
-        video.pause();
+      event.preventDefault();
+      event.stopImmediatePropagation();
+      playerHandlesRef.current.get(item.id)?.togglePlay();
+      NavigationAudioService.getInstance().play("select");
+    };
+
+    window.addEventListener("keydown", onSpaceKeyDown, true);
+
+    return () => {
+      window.removeEventListener("keydown", onSpaceKeyDown, true);
+    };
+  }, [itemFocusIds, mediaItems, viewerIndex]);
+
+  useEffect(() => {
+    const container = carouselContainerRef.current;
+    if (!container) return undefined;
+
+    const observer = new IntersectionObserver(([entry]) => {
+      inViewRef.current = entry.isIntersecting;
+    });
+    observer.observe(container);
+
+    return () => observer.disconnect();
+  }, [mediaItems.length]);
+
+  useEffect(() => {
+    if (viewerIndex !== null) return undefined;
+
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.defaultPrevented || event.repeat) return;
+      if (event.ctrlKey || event.metaKey || event.altKey || event.shiftKey) {
+        return;
+      }
+      if (!inViewRef.current) return;
+
+      if (isEditableTarget(event.target) || isDialogOpen()) return;
+
+      const item = mediaItems[selectedIndex];
+      if (!item) return;
+
+      const key = event.key.toLowerCase();
+      if (key === "f") {
+        handleSelectItem(selectedIndex, false);
+      } else if (key === "m" && item.type === "video") {
+        playerHandlesRef.current.get(item.id)?.toggleMute();
+      } else {
         return;
       }
 
-      video?.play().catch(() => {});
-    },
-    [autoplayEnabled, emblaApi, selectedIndex, startedIndices]
-  );
+      event.preventDefault();
+    };
 
-  const handleVideoPlay = useCallback((index: number) => {
-    setPlayingIndex(index);
-  }, []);
+    window.addEventListener("keydown", onKeyDown);
 
-  const handleVideoPause = useCallback((index: number) => {
-    setPlayingIndex((current) => (current === index ? null : current));
-  }, []);
-
-  const setVideoRef = useCallback(
-    (index: number, element: HTMLVideoElement | null) => {
-      videoRefs.current[index] = element;
-    },
-    []
-  );
+    return () => {
+      window.removeEventListener("keydown", onKeyDown);
+    };
+  }, [handleSelectItem, mediaItems, selectedIndex, viewerIndex]);
 
   const scrollPrev = () => emblaApi?.scrollPrev();
   const scrollNext = () => emblaApi?.scrollNext();
@@ -424,16 +521,11 @@ export function ScreenshotCarousel({
                 key={item.id}
                 item={item}
                 index={index}
-                isSelected={index === selectedIndex}
                 autoplayEnabled={autoplayEnabled}
                 preferencesLoaded={preferencesLoaded}
-                started={startedIndices.has(index)}
-                isPlaying={playingIndex === index}
+                videoHost={videoHosts.get(item.id)}
                 onFocused={handleSlideFocused}
                 onSelectItem={handleSelectItem}
-                setVideoRef={setVideoRef}
-                onVideoPlay={handleVideoPlay}
-                onVideoPause={handleVideoPause}
                 leftNavigationTarget={
                   index === 0
                     ? getItemFocusTarget(BIG_PICTURE_SIDEBAR_ITEM_IDS.home)
@@ -488,6 +580,63 @@ export function ScreenshotCarousel({
           <CaretRightIcon size={24} color="#fff" />
         </button>
       </div>
+
+      {mediaItems.map((item, index) => {
+        const host = videoHosts.get(item.id);
+        if (item.type !== "video" || !host) return null;
+
+        const viewerItemId =
+          viewerIndex !== null ? mediaItems[viewerIndex]?.id : undefined;
+        const borrowed =
+          viewerIndex !== null &&
+          (item.id === viewerItemId ||
+            !!presentation?.borrowedVideoIds.includes(item.id));
+        const active = borrowed && presentation?.activeVideoId === item.id;
+
+        return createPortal(
+          <GalleryVideoPlayer
+            ref={(handle) => {
+              if (handle) {
+                playerHandlesRef.current.set(item.id, handle);
+              } else {
+                playerHandlesRef.current.delete(item.id);
+              }
+            }}
+            variant={borrowed ? "viewer" : "inline"}
+            className={borrowed ? "media-viewer__frame" : undefined}
+            interactive={borrowed}
+            item={item}
+            autoPlay={autoplayEnabled && index === selectedIndex}
+            loadOnDemand={!autoplayEnabled}
+            isFullscreen={borrowed}
+            idleTimeoutMs={borrowed ? MEDIA_VIEWER_IDLE_TIMEOUT_MS : undefined}
+            indicatorTimeoutMs={
+              borrowed ? MEDIA_VIEWER_INDICATOR_TIMEOUT_MS : undefined
+            }
+            controlsHidden={borrowed && !!presentation?.chromeHidden}
+            onHoldChromeChange={active ? setVideoHoldsChrome : undefined}
+            onToggleFullscreen={() => {
+              if (viewerIndex !== null) handleViewerClose(viewerIndex);
+            }}
+          />,
+          host.container,
+          item.id
+        );
+      })}
+
+      {viewerIndex !== null && (
+        <MediaViewer
+          items={mediaItems}
+          index={viewerIndex}
+          autoplay={autoplayEnabled}
+          videoHosts={videoHosts}
+          videoHoldsChrome={videoHoldsChrome}
+          getVideoHandle={getVideoHandle}
+          onPresentationChange={setPresentation}
+          onNavigate={setViewerIndex}
+          onClose={handleViewerClose}
+        />
+      )}
     </div>
   );
 }
