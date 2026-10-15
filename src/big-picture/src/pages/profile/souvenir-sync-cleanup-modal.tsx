@@ -1,6 +1,7 @@
 import { TrashIcon } from "@phosphor-icons/react";
 import type { AchievementSouvenirSyncItem } from "@types";
 import { useTranslation } from "react-i18next";
+import { SouvenirSyncPreview } from "../../../../shared/souvenir-sync-preview";
 import {
   Button,
   FocusItem,
@@ -56,26 +57,17 @@ export function SouvenirSyncCleanupModal({
           asChild
         >
           <ul className="profile-page__souvenirs-cleanup-list">
-            {items.map((item) => {
-              const achievementNames = item.achievementNames.join(", ");
-
-              return (
-                <FocusItem
-                  key={item.clientId}
-                  id={`souvenir-sync-cleanup-item-${item.clientId}`}
-                  asChild
-                >
-                  <li>
-                    <div className="profile-page__souvenirs-cleanup-item-header">
-                      <strong>
-                        {item.gameTitle ?? t("souvenir_sync_unknown_game")}
-                      </strong>
-                    </div>
-                    <p title={achievementNames}>{achievementNames}</p>
-                  </li>
-                </FocusItem>
-              );
-            })}
+            {items.map((item) => (
+              <FocusItem
+                key={item.clientId}
+                id={`souvenir-sync-cleanup-item-${item.clientId}`}
+                asChild
+              >
+                <li>
+                  <SouvenirSyncPreview item={item} />
+                </li>
+              </FocusItem>
+            ))}
           </ul>
         </VerticalFocusGroup>
 

@@ -1196,29 +1196,6 @@
       outline: 2px solid var(--primary);
       outline-offset: -2px;
     }
-
-    p {
-      display: -webkit-box;
-      overflow: hidden;
-      color: var(--text-secondary);
-      font-size: 14px;
-      line-height: 1.4;
-      -webkit-box-orient: vertical;
-      -webkit-line-clamp: 2;
-    }
-  }
-}
-
-.profile-page__souvenirs-cleanup-item-header {
-  display: flex;
-  align-items: center;
-  gap: calc(var(--spacing-unit) * 2);
-
-  strong {
-    overflow: hidden;
-    color: var(--text);
-    text-overflow: ellipsis;
-    white-space: nowrap;
   }
 }
 

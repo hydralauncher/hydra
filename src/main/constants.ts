@@ -86,6 +86,8 @@ export const DEFAULT_ACHIEVEMENT_SOUND_VOLUME = 0.15;
 export const SOUVENIR_RETRY_BASE_DELAY_MS = 10_000;
 export const SOUVENIR_RETRY_MAX_DELAY_MS = 15 * 60_000;
 export const SOUVENIR_TERMINAL_RETENTION_MS = 7 * 24 * 60 * 60_000;
+export const SOUVENIR_PAUSED_RETENTION_MS = 30 * 24 * 60 * 60_000;
+export const SOUVENIR_SYNC_METADATA_TIMEOUT_MS = 5_000;
 
 export const DECKY_PLUGINS_LOCATION = path.join(
   SystemPath.getPath("home"),

@@ -9,6 +9,7 @@ import {
 import { updateGameExecutablePath } from "@main/helpers/update-executable-path";
 import type { GameShop, Game } from "@types";
 import fs from "node:fs";
+import { groupedSouvenirWorker } from "@main/services/achievements/grouped-souvenir-worker";
 
 const collectAssetPathsToDelete = (game: Game): string[] => {
   const assetPathsToDelete: string[] = [];
@@ -95,6 +96,12 @@ const removeGameFromLibrary = async (
   const assetPathsToDelete = collectAssetPathsToDelete(game);
 
   await updateGameAsDeleted(game, gameKey);
+  void groupedSouvenirWorker.trigger().catch((error) => {
+    logger.warn(
+      "Failed to stop souvenir synchronization for a removed game",
+      error
+    );
+  });
 
   if (game.shop !== "custom") {
     await resetShopAssets(gameKey);

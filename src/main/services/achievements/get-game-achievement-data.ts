@@ -1,5 +1,6 @@
 import { achievementSyncCoordinator } from "./achievement-sync-coordinator";
 import { HydraApi } from "../hydra-api";
+import type { HydraApiOptions } from "../hydra-api";
 import type { GameShop, SteamAchievement } from "@types";
 import { UserNotLoggedInError } from "@shared";
 import { logger } from "../logger";
@@ -10,7 +11,8 @@ export const getGameAchievementData = async (
   objectId: string,
   shop: GameShop,
   useCachedData: boolean,
-  current?: () => boolean
+  current?: () => boolean,
+  requestOptions?: Pick<HydraApiOptions, "signal" | "timeout">
 ) => {
   const context = HydraApi.getAuthContext();
   const valid =
@@ -49,6 +51,7 @@ export const getGameAchievementData = async (
     `/games/${shop}/${objectId}/achievements`,
     { language },
     {
+      ...requestOptions,
       ifNoneMatch:
         cachedAchievements?.language === language
           ? cachedAchievements.catalogueValidator
