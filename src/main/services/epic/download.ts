@@ -234,6 +234,48 @@ export class EpicDownloadService {
   private id(objectId: string) {
     return `epic:${objectId}`;
   }
+  /** Adopts an Epic Games Store install as a completed Hydra download. */
+  async importStoreInstallation(
+    objectId: string,
+    store: { artifactId: string; installLocation: string },
+    signal: AbortSignal
+  ) {
+    const id = this.id(objectId);
+    if (this.enqueues.has(id) || this.removals.has(id))
+      throw new EpicManagedError("operation-in-progress");
+    if (await this.options.getDownload(id))
+      throw new EpicManagedError("operation-in-progress");
+    const { owned, target, installed } =
+      await this.options.installation.importExisting(objectId, store, signal);
+    // Removing files later deletes downloadPath/folderName, like any Hydra install.
+    await this.options.putDownload(id, {
+      shop: "epic",
+      objectId,
+      uri: "",
+      folderName: path.basename(installed.installPath),
+      downloadPath: path.dirname(installed.installPath),
+      downloader: Downloader.Epic,
+      progress: 1,
+      bytesDownloaded: installed.install_size,
+      fileSize: installed.install_size,
+      shouldSeed: false,
+      status: "complete",
+      queued: false,
+      timestamp: Date.now(),
+      extracting: false,
+      automaticallyExtract: false,
+      automaticallyDeleteArchiveFiles: false,
+      epic: {
+        owner: owned.owner,
+        connectionId: owned.connection.connectionId,
+        artifactId: target.artifactId,
+        platform: target.platform,
+        diskSizeInBytes: installed.install_size,
+        phase: "finalizing",
+      },
+    });
+    this.options.afterGameUpdated?.();
+  }
   private isWindows() {
     return (this.options.platform ?? process.platform) === "win32";
   }

@@ -6,7 +6,7 @@ import type {
   EpicSyncTrigger,
   EpicSyncRun,
 } from "../../../types/epic-integration.types";
-import { db, gamesSublevel, levelKeys } from "@main/level";
+import { db, downloadsSublevel, gamesSublevel, levelKeys } from "@main/level";
 import { HydraApi } from "../hydra-api";
 import { WindowManager } from "../window-manager";
 import { logger } from "../logger";
@@ -31,6 +31,12 @@ import { parseEpicAchievementTargets } from "./achievement-protocol";
 import { buildEpicSnapshotChunks } from "./sync-snapshot";
 import { AchievementMemoryStore } from "../achievements/achievement-memory-store";
 import { EpicConnectionStore } from "./store";
+import { getEpicDownloadService } from "./download";
+import { scheduleEpicStoreAutoImport } from "./egs-auto-import";
+import {
+  isEpicInstallExecutable,
+  listEpicStoreInstallations,
+} from "./session-attribution";
 import {
   EpicIntegrationError,
   EPIC_CONNECTION_ID_PATTERN,
@@ -53,7 +59,6 @@ import {
   getEpicGamePlaytime,
   isEpicObjectId,
 } from "./library-normalizer";
-import { isEpicInstallExecutable } from "./session-attribution";
 import { matchesEpicImportScope } from "./import-cleanup";
 import {
   managedWorkspacePath,
@@ -287,6 +292,8 @@ export class EpicSyncRuntime {
           { signal, timeout: EPIC_HYDRA_TIMEOUT_MS }
         );
         if (result && !signal.aborted) await this.connection();
+        if (result && !signal.aborted && this.current(context))
+          void this.importEpicStoreInstallations();
         return result;
       },
       emit: (state) => this.send("on-epic-sync-progress", state),
@@ -294,6 +301,24 @@ export class EpicSyncRuntime {
         this.send("on-epic-sync-finished", result);
         this.send("on-library-batch-complete");
       },
+    });
+  }
+  private importEpicStoreInstallations() {
+    return scheduleEpicStoreAutoImport({
+      listInstallations: (signal) => listEpicStoreInstallations(signal),
+      listGames: () => gamesSublevel.values().all(),
+      hasDownload: async (objectId) =>
+        Boolean(
+          await downloadsSublevel.get(`epic:${objectId}`).catch(() => undefined)
+        ),
+      importInstallation: (objectId, store, signal) =>
+        getEpicDownloadService().importStoreInstallation(
+          objectId,
+          store,
+          signal
+        ),
+      afterImported: () => this.send("on-library-batch-complete"),
+      warn: (message, details) => logger.warn(message, details),
     });
   }
   private send(channel: string, data?: unknown) {
