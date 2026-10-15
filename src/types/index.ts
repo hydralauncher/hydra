@@ -224,13 +224,37 @@ export interface FriendPresenceSync {
 
 export interface ChatReplyDto {
   senderId: string;
+  /* Empty when `hidden` is true, or when the message is images only. */
   body: string;
+  /* Removed by moderation. */
+  hidden?: boolean;
+  /* Images on the replied-to message. */
+  attachmentCount?: number;
+}
+
+export type ChatAttachmentContentType =
+  | "image/jpeg"
+  | "image/png"
+  | "image/gif";
+
+export interface ChatAttachmentDto {
+  id: string;
+  contentType: ChatAttachmentContentType;
+  /* Null while the image is still being checked. */
+  width: number | null;
+  height: number | null;
+  spoiler: boolean;
+  /* Signed for at least a day; null when moderation removed the message. */
+  url: string | null;
 }
 
 export interface ChatMessageDto {
   seq: number;
   senderId: string;
+  /* Empty when `hidden` is true, or when the message is images only. */
   body: string;
+  /* Removed by moderation. Realtime messages leave it out. */
+  hidden?: boolean;
   clientNonce: string;
   createdAt: string;
   /* Seq of the message this one replies to. */
@@ -239,6 +263,40 @@ export interface ChatMessageDto {
   replyTo?: ChatReplyDto | null;
   /* Oldest first, at most one per user. Realtime messages leave it out. */
   reactions?: ChatReactionDto[];
+  /* In the order they were sent. */
+  attachments?: ChatAttachmentDto[];
+}
+
+export type ChatPendingMessageStatus = "checking" | "blocked" | "failed";
+
+/* The user's own message with images, held until the images are checked. */
+export interface ChatPendingMessageDto {
+  clientNonce: string;
+  status: ChatPendingMessageStatus;
+  body: string;
+  replyToSeq: number | null;
+  createdAt: string;
+  attachments: ChatAttachmentDto[];
+}
+
+export interface ChatAttachmentReservation {
+  id: string;
+  uploadUrl: string;
+  expiresAt: string;
+}
+
+export interface ChatAttachmentUploadRequest {
+  friendId: string;
+  /* Chosen by the caller; progress events carry it back. */
+  uploadId: string;
+  contentType: ChatAttachmentContentType;
+  bytes: ArrayBuffer;
+}
+
+export interface ChatAttachmentUploadProgress {
+  uploadId: string;
+  loaded: number;
+  total: number;
 }
 
 export interface ChatReactionDto {
@@ -258,6 +316,8 @@ export interface ChatMessagesPage {
   canSend: boolean;
   lastReadSeq: number;
   unreadCount: number;
+  /* The user's own held messages, oldest first. Empty for paged requests. */
+  pendingMessages?: ChatPendingMessageDto[];
 }
 
 export interface ChatUnreadSummary {
@@ -295,9 +355,30 @@ export interface ChatReactionSync {
   updatedAt: string;
 }
 
+/* The message with `seq` was removed by moderation, or put back. */
+export interface ChatMessageVisibilitySync {
+  friendId: string;
+  seq: number;
+  hidden: boolean;
+}
+
+/* The user's message with images was not delivered. */
+export interface ChatMessageRejectedSync {
+  friendId: string;
+  clientNonce: string;
+  reason: "blocked" | "failed";
+}
+
 export interface ChatWindowState {
   activeFriendId: string | null;
   openFriendIds: string[];
+}
+
+/** A conversation waiting for the chat window to open its tab. */
+export interface PendingChatFriend {
+  friend: UserFriend;
+  /** Opened for a message the user hasn't seen: the tab doesn't take focus. */
+  isBackground: boolean;
 }
 
 export interface NotificationSync {
