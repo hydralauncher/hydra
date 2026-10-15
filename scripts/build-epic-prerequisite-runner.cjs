@@ -1,4 +1,6 @@
 const fs = require("node:fs/promises");
+const { constants } = require("node:fs");
+const os = require("node:os");
 const path = require("node:path");
 const crypto = require("node:crypto");
 const { spawnSync } = require("node:child_process");
@@ -8,6 +10,76 @@ const FILE_NAME = "epic-prerequisite-runner.exe";
 const MANIFEST_NAME = ".build.json";
 const SOURCE_DIRECTORY = "native/epic-prerequisite-runner";
 const OUTPUT_DIRECTORY = "binaries/epic-prerequisite-runner/x64";
+const SYSTEM_EXECUTABLE_DIRECTORIES = [
+  "/usr/bin",
+  "/usr/local/bin",
+  "/usr/lib/wine",
+  "/usr/lib/x86_64-linux-gnu/wine",
+];
+
+async function verifySystemOwnership(file) {
+  let current = await fs.realpath(file);
+  for (;;) {
+    const info = await fs.stat(current);
+    if (info.uid !== 0 || (info.mode & 0o022) !== 0)
+      throw new Error("Invalid system executable permissions");
+    const parent = path.dirname(current);
+    if (parent === current) return;
+    current = parent;
+  }
+}
+
+async function findExecutable(candidates, requireSystemOwnership = false) {
+  for (const candidate of candidates) {
+    try {
+      if (!path.isAbsolute(candidate)) continue;
+      if (!(await fs.stat(candidate)).isFile()) continue;
+      await fs.access(candidate, constants.X_OK);
+      if (requireSystemOwnership) {
+        await verifySystemOwnership(candidate);
+        await verifySystemOwnership(path.dirname(candidate));
+      }
+      // Keep the absolute alias: Rustup and wineapploader dispatch by argv[0].
+      return candidate;
+    } catch {
+      // Try only the next explicit location; never search PATH.
+    }
+  }
+  throw new Error("Required build or fixture executable is unavailable");
+}
+
+async function resolveCargoExecutable({
+  environment = process.env,
+  homeDirectory = os.homedir(),
+} = {}) {
+  const name = process.platform === "win32" ? "cargo.exe" : "cargo";
+  const configuredHome = environment.CARGO_HOME;
+  const homes = [
+    ...(configuredHome && path.isAbsolute(configuredHome)
+      ? [configuredHome]
+      : []),
+    path.join(homeDirectory, ".cargo"),
+  ];
+  const systemDirectories =
+    process.platform === "win32"
+      ? []
+      : ["/usr/bin", "/usr/local/bin", "/opt/homebrew/bin"];
+  return findExecutable([
+    ...homes.map((home) => path.join(home, "bin", name)),
+    ...systemDirectories.map((directory) => path.join(directory, name)),
+  ]);
+}
+
+async function resolveSystemExecutable(name) {
+  if (!/^[A-Za-z0-9_.-]+$/.test(name))
+    throw new Error("Invalid system executable name");
+  return findExecutable(
+    SYSTEM_EXECUTABLE_DIRECTORIES.map((directory) =>
+      path.join(directory, name)
+    ),
+    true
+  );
+}
 
 async function sourceDigest(projectDir) {
   const directory = path.join(projectDir, SOURCE_DIRECTORY);
@@ -24,7 +96,10 @@ async function sourceDigest(projectDir) {
   }
   await walk("src");
   const digest = crypto.createHash("sha256");
-  for (const file of files.sort()) {
+  const sortedFiles = files.toSorted((left, right) =>
+    left.localeCompare(right, "en")
+  );
+  for (const file of sortedFiles) {
     digest.update(file).update("\0");
     digest.update(await fs.readFile(path.join(directory, file))).update("\0");
   }
@@ -78,7 +153,7 @@ async function buildEpicPrerequisiteRunner({
     "link-arg=-Wl,--no-insert-timestamp",
   ].join("\x1f");
   const result = spawnSync(
-    "cargo",
+    await resolveCargoExecutable(),
     [
       "build",
       "--locked",
@@ -131,6 +206,8 @@ module.exports = {
   buildEpicPrerequisiteRunner,
   verifyEpicPrerequisiteRunner,
   sourceDigest,
+  resolveCargoExecutable,
+  resolveSystemExecutable,
   verifyPe,
   TARGET,
   FILE_NAME,

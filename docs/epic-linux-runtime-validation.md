@@ -16,8 +16,14 @@ node scripts/test-epic-linux-runtime.cjs \
 ```
 
 Optional `--helper` and `--fixture` paths override the built development PE files.
-`--dependencies` selects a checkout containing Linux-installed `node_modules`
-when the source is mounted from another host. The data directory contains only
+Use Node 22.15 or newer (validated with 22.21.0). The smoke uses Node's normal
+module loader with TypeScript transformation limited to real files inside this
+checkout's `src` directory. Its Electron/database/account ports are objects,
+not generated code. TypeScript and `string-argv` come only from this checkout's
+installed dependencies; both are portable JavaScript, including when a Linux
+Node executable runs the source from a Windows/NTFS mount. There is no dependency
+directory or source-code override in the CLI. Other product builds still need
+their platform's own native dependencies. The data directory contains only
 synthetic smoke state and can be retained to inspect the runtime receipt. The
 first execution downloads UMU-Proton and its Steam runtime into UMU's normal
 per-user cache; later executions reuse that installation.

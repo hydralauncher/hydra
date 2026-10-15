@@ -10,10 +10,68 @@ const {
   verifyPe,
   verifyEpicPrerequisiteRunner,
   sourceDigest,
+  resolveCargoExecutable,
+  resolveSystemExecutable,
   TARGET,
   FILE_NAME,
   MANIFEST_NAME,
 } = require("./build-epic-prerequisite-runner.cjs");
+
+test("Cargo resolves its explicit home without searching a poisoned PATH", async (t) => {
+  const root = await fs.mkdtemp(path.join(os.tmpdir(), "hydra-epic-cargo-"));
+  t.after(() => fs.rm(root, { recursive: true, force: true }));
+  const cargoHome = path.join(root, "Cargo home with spaces");
+  const name = process.platform === "win32" ? "cargo.exe" : "cargo";
+  const cargo = path.join(cargoHome, "bin", name);
+  await fs.mkdir(path.dirname(cargo), { recursive: true });
+  await fs.writeFile(cargo, "benign resolver fixture", { mode: 0o755 });
+  assert.equal(
+    await resolveCargoExecutable({
+      environment: {
+        CARGO_HOME: cargoHome,
+        PATH: path.join(root, "untrusted"),
+      },
+      homeDirectory: path.join(root, "unused-home"),
+    }),
+    cargo
+  );
+});
+
+test("Cargo rejects a relative configured home and keeps its absolute user-home alias", async (t) => {
+  const root = await fs.mkdtemp(path.join(os.tmpdir(), "hydra-epic-cargo-"));
+  t.after(() => fs.rm(root, { recursive: true, force: true }));
+  const cargo = path.join(
+    root,
+    ".cargo",
+    "bin",
+    process.platform === "win32" ? "cargo.exe" : "cargo"
+  );
+  await fs.mkdir(path.dirname(cargo), { recursive: true });
+  await fs.writeFile(cargo, "benign resolver fixture", { mode: 0o755 });
+  assert.equal(
+    await resolveCargoExecutable({
+      environment: { CARGO_HOME: "relative-home", PATH: "relative-bin" },
+      homeDirectory: root,
+    }),
+    cargo
+  );
+});
+
+test("system fixture tools reject path components", async () => {
+  await assert.rejects(resolveSystemExecutable("../wine"), /Invalid system/);
+  await assert.rejects(resolveSystemExecutable("/tmp/wine"), /Invalid system/);
+});
+
+test(
+  "Linux fixture tools resolve only an executable in root-owned system directories",
+  { skip: process.platform !== "linux" },
+  async () => {
+    const executable = await resolveSystemExecutable("true");
+    assert.ok(path.isAbsolute(executable));
+    assert.equal((await fs.stat(executable)).uid, 0);
+    assert.equal(path.basename(executable), "true");
+  }
+);
 
 function pe() {
   const bytes = Buffer.alloc(128);

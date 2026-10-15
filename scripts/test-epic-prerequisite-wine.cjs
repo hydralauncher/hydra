@@ -1,6 +1,5 @@
 const assert = require("node:assert/strict");
 const fs = require("node:fs/promises");
-const { existsSync } = require("node:fs");
 const os = require("node:os");
 const path = require("node:path");
 const { promisify } = require("node:util");
@@ -8,6 +7,8 @@ const { execFile, spawn } = require("node:child_process");
 const execute = promisify(execFile);
 const {
   buildEpicPrerequisiteRunner,
+  resolveCargoExecutable,
+  resolveSystemExecutable,
   TARGET,
   FILE_NAME,
 } = require("./build-epic-prerequisite-runner.cjs");
@@ -16,9 +17,17 @@ async function smoke() {
   if (process.platform !== "linux")
     throw new Error("Wine fixture requires Linux");
   const projectDir = path.resolve(__dirname, "..");
+  const [cargo, wine, wineboot, winepath, wineserver, wixl] = await Promise.all(
+    [
+      resolveCargoExecutable(),
+      ...["wine", "wineboot", "winepath", "wineserver", "wixl"].map((name) =>
+        resolveSystemExecutable(name)
+      ),
+    ]
+  );
   const output = await buildEpicPrerequisiteRunner({ projectDir });
   await execute(
-    "cargo",
+    cargo,
     [
       "build",
       "--locked",
@@ -40,12 +49,6 @@ async function smoke() {
   const directory = await fs.mkdtemp(
     path.join(os.tmpdir(), "hydra-epic-wine-")
   );
-  const wineserver = [
-    "/usr/bin/wineserver",
-    "/usr/lib/wine/wineserver",
-    "/usr/lib/x86_64-linux-gnu/wine/wineserver",
-  ].find(existsSync);
-  if (!wineserver) throw new Error("Wine server executable is unavailable");
   const env = {
     ...process.env,
     WINEPREFIX: path.join(directory, "prefix"),
@@ -61,7 +64,7 @@ async function smoke() {
       ...options,
     });
   const windowsPath = async (file) =>
-    (await run("winepath", ["-w", file])).stdout.trim();
+    (await run(winepath, ["-w", file])).stdout.trim();
   const quiet = (file, args) =>
     new Promise((resolve, reject) => {
       const child = spawn(file, args, { env, stdio: "ignore" });
@@ -73,7 +76,7 @@ async function smoke() {
   try {
     await fs.mkdir(env.WINEPREFIX, { recursive: true, mode: 0o700 });
     await quiet(wineserver, ["-p"]);
-    await quiet("wineboot", ["-u"]);
+    await quiet(wineboot, ["-u"]);
     const helper = path.join(output, FILE_NAME);
     const fixture = path.join(
       projectDir,
@@ -102,7 +105,7 @@ async function smoke() {
       return { config, result, nonce };
     };
     const invoke = async (input) => {
-      await run("wine", [helper, await windowsPath(input.config)]);
+      await run(wine, [helper, await windowsPath(input.config)]);
       const result = JSON.parse(await fs.readFile(input.result, "utf8"));
       assert.equal(result.schemaVersion, 1);
       assert.equal(result.nonce, input.nonce);
@@ -135,7 +138,7 @@ async function smoke() {
     );
     assert.equal(await fs.readFile(marker, "utf8"), "child-complete");
     const msi = path.join(directory, "fixture.msi");
-    await run("wixl", [
+    await run(wixl, [
       "-a",
       "x64",
       "-o",
@@ -149,7 +152,7 @@ async function smoke() {
       (await invoke(await request(["/qn", "/norestart"], "msi", msi))).exitCode,
       0
     );
-    const registry = await run("wine", [
+    const registry = await run(wine, [
       "reg",
       "query",
       "HKCU\\Software\\Hydra\\EpicPrerequisiteFixture",
@@ -195,7 +198,7 @@ async function smoke() {
       "1200",
       await windowsPath(cancellationMarker),
     ]);
-    const child = spawn("wine", [helper, await windowsPath(input.config)], {
+    const child = spawn(wine, [helper, await windowsPath(input.config)], {
       env,
       stdio: "pipe",
     });

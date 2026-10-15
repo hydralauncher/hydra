@@ -64,10 +64,10 @@ const preparations = new Map<AbortController, Promise<unknown>>();
 async function releaseResources(session: EpicSaveSession, terminate = false) {
   const resources = preparedResources.get(session);
   if (!resources) return;
-  if (resources.releasePromise) return resources.releasePromise;
+  if (resources.releasePromise !== undefined) return resources.releasePromise;
   resources.releasePromise = (async () => {
     if (terminate || !resources.handle) resources.controller.abort();
-    if (resources.spawnPromise) {
+    if (resources.spawnPromise !== undefined) {
       try {
         resources.handle = await resources.spawnPromise;
       } catch (error) {

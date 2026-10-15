@@ -354,7 +354,7 @@ export async function spawnSupervisedUmu(
     });
   });
   const output = exited.then(async () => {
-    if (terminatePromise) await terminatePromise;
+    if (terminatePromise !== undefined) await terminatePromise;
     if (outputFailure) throw outputFailure;
     if (options.captureOutput) {
       for (const stream of ["stdout", "stderr"] as const) {
@@ -412,7 +412,7 @@ export async function spawnSupervisedUmu(
   const waitForTreeExit = () => {
     treeExit ??= (async () => {
       for (;;) {
-        if (terminatePromise) await terminatePromise;
+        if (terminatePromise !== undefined) await terminatePromise;
         if (outputFailure) throw outputFailure;
         if (options.signal?.aborted) throw failure("operation-cancelled");
         const closedBeforeSnapshot = wrapperClosed;
