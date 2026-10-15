@@ -77,7 +77,7 @@ export const getUnlockedAchievements = async (
     });
   }
 
-  const catalogueAchievements =
+  let catalogueAchievements =
     achievementsData.length > 0
       ? achievementsData
       : remote.achievements.map((achievement) => ({
@@ -132,39 +132,19 @@ export const getUnlockedAchievements = async (
   }
 
   // Catalogue definitions are display-only: never copy their unlocks, souvenirs or cache.
-  if (
-    shop === "epic" &&
-    catalogueAchievements.length === 0 &&
-    unlockedAchievements.length === 0
-  ) {
+  if (shop === "epic" && catalogueAchievements.length === 0) {
     const game = await gamesSublevel
       .get(levelKeys.game(shop, objectId))
       .catch(() => undefined);
     assertOwner();
     const catalogue = game?.catalogueGame;
     if (catalogue?.shop === "steam") {
-      const definitions = await getGameAchievementData(
+      catalogueAchievements = await getGameAchievementData(
         catalogue.objectId,
         catalogue.shop,
         useCachedData
       ).catch(() => []);
       assertOwner();
-      return definitions
-        .map((achievement) => ({
-          ...achievement,
-          unlocked: false,
-          unlockTime: null,
-          source: "steam" as const,
-          sourceObjectId: catalogue.objectId,
-          description:
-            !achievement.hidden || showHiddenAchievementsDescription
-              ? achievement.description
-              : undefined,
-          icongray: achievement.icongray.endsWith("/")
-            ? achievement.icon
-            : achievement.icongray,
-        }))
-        .sort((a, b) => Number(a.hidden) - Number(b.hidden));
     }
   }
   return catalogueAchievements
