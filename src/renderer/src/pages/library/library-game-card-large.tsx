@@ -24,7 +24,7 @@ import {
   FileZipIcon,
   CheckCircleFillIcon,
 } from "@primer/octicons-react";
-import { memo, useEffect, useMemo, useState } from "react";
+import { memo, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
   EMULATOR_ICONS,
@@ -200,6 +200,20 @@ export const LibraryGameCardLarge = memo(function LibraryGameCardLarge({
     game.availableShops.includes("steam") &&
     game.availableShops.includes("epic");
 
+  const achievementMembersKey =
+    "members" in game && Array.isArray(game.members)
+      ? JSON.stringify(
+          (game.members as LibraryGame[])
+            .map((member) => [
+              member.shop,
+              member.objectId,
+              member.achievementCount,
+              member.unlockedAchievementCount,
+            ])
+            .sort((a, b) => JSON.stringify(a).localeCompare(JSON.stringify(b)))
+        )
+      : "";
+
   useEffect(() => {
     setHeroIndex(0);
   }, [
@@ -212,14 +226,21 @@ export const LibraryGameCardLarge = memo(function LibraryGameCardLarge({
     game.iconUrl,
   ]);
 
+  const achievementGameKey = `${game.shop}:${game.objectId}`;
+  const previousAchievementGameKey = useRef(achievementGameKey);
+
   useEffect(() => {
-    setTotalAchievementsCount(game.achievementCount ?? 0);
+    const gameChanged =
+      previousAchievementGameKey.current !== achievementGameKey;
+    previousAchievementGameKey.current = achievementGameKey;
+    if (gameChanged || !hasStoreUnion) {
+      setTotalAchievementsCount(game.achievementCount ?? 0);
+      setUnlockedAchievementsCount(game.unlockedAchievementCount ?? 0);
+    }
     if (game.unlockedAchievementCount != null && !hasStoreUnion) {
       setUnlockedAchievementsCount(game.unlockedAchievementCount);
       return;
     }
-
-    setUnlockedAchievementsCount(game.unlockedAchievementCount ?? 0);
 
     if ((game.achievementCount ?? 0) <= 0 && !hasStoreUnion) return;
 
@@ -229,6 +250,9 @@ export const LibraryGameCardLarge = memo(function LibraryGameCardLarge({
       .getUnlockedAchievements(game.objectId, game.shop)
       .then((achievements) => {
         if (isStale) return;
+        // An empty legacy fallback cannot distinguish unavailable definitions
+        // from an authoritative empty catalogue. Preserve known grouped totals.
+        if (hasStoreUnion && achievements.length === 0) return;
         setUnlockedAchievementsCount(
           achievements.filter((a) => a.unlocked).length
         );
@@ -246,6 +270,8 @@ export const LibraryGameCardLarge = memo(function LibraryGameCardLarge({
     game.shop,
     game.unlockedAchievementCount,
     hasStoreUnion,
+    achievementMembersKey,
+    achievementGameKey,
   ]);
 
   useEffect(() => {

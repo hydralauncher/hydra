@@ -85,7 +85,12 @@ export const getUnlockedAchievements = async (
       { shop, objectId, language: userPreferences?.language ?? "en" },
       { timeout: COMBINED_ACHIEVEMENTS_TIMEOUT_MS }
     ).catch(() => null);
-    if (combined?.achievements.length) {
+    const includesRequestedCopy = combined?.achievements.some((achievement) =>
+      achievement.variants.some(
+        (variant) => variant.shop === shop && variant.objectId === objectId
+      )
+    );
+    if (combined?.achievements.length && includesRequestedCopy) {
       return presentCombinedAchievements(
         combined,
         (sourceShop, sourceObjectId) =>
