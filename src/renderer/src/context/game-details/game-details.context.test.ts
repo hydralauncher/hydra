@@ -23,6 +23,7 @@ import {
   mergeLibraryCatalogueMetadata,
 } from "../../../../shared/library-catalogue.js";
 import { getDisplayedPlayTimeInMilliseconds } from "../../../../shared/playtime.js";
+import { selectLibraryPresentationIndex } from "../../features/library-presentation.js";
 
 const requireModule = createRequire(import.meta.url);
 
@@ -206,11 +207,13 @@ async function fixture(
       "./redux": {
         useAppSelector: (select: (state: unknown) => unknown) =>
           select({
+            library: { downloadLibrary: libraryGames },
             gameRunning: {
               gameRunning: runningGameId ? { id: runningGameId } : null,
             },
           }),
       },
+      "../features/library-presentation": { selectLibraryPresentationIndex },
     }
   );
   const stubs: Record<string, unknown> = {

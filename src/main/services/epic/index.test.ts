@@ -253,7 +253,6 @@ function fixture(t: TestContext, options: { linux?: boolean } = {}) {
         };
       },
     },
-    "./cloud-save-source": { EpicCloudSaveSource: class {} },
     "./installation": {
       EpicInstallationService: class {
         confirmPrerequisites = async () => {
@@ -261,6 +260,7 @@ function fixture(t: TestContext, options: { linux?: boolean } = {}) {
         };
       },
     },
+    "./cloud-save-source": { EpicCloudSaveSource: class {} },
     "./linux-runtime": {
       ensureEpicLinuxPrerequisites: async (input: unknown) => {
         state.preparedLinux.push(input);

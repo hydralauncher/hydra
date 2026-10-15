@@ -1962,7 +1962,7 @@ describe("Epic managed UI lifecycle", () => {
     { canRunOffline: true, launchError: "save-conflict", conflict: true },
     { canRunOffline: true, launchError: "network", conflict: true },
   ]) {
-    it(`routes launch failure ${launchError} to conflict resolution (${conflict}) or supported offline retry (${canRunOffline}) for the real Epic copy`, async (t) => {
+    it(`launches the selected Epic copy with both stores installed and routes ${launchError} to conflict (${conflict}) or offline retry (${canRunOffline})`, async (t) => {
       const calls: unknown[][] = [];
       const { render } = await fixture(t, {
         openGame: async (...args: unknown[]) => {
@@ -1995,7 +1995,12 @@ describe("Epic managed UI lifecycle", () => {
       } as LibraryGame;
       const context = React.createContext({
         game,
-        presentation: null,
+        presentation: {
+          members: [
+            game,
+            { ...game, id: "steam:123", shop: "steam", objectId: "123" },
+          ],
+        },
         downloadGame: null,
         repacks: [],
         updateGame: async () => {},

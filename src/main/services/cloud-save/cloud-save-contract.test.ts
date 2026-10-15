@@ -22,6 +22,32 @@ const file = (variantId: string) => ({
 });
 
 describe("Cloud Save launcher API contract", () => {
+  it("accepts Epic restores without accepting Steam account variants", () => {
+    const manifest = {
+      snapshot: {
+        id: "epic-snapshot",
+        version: 1,
+        shop: "epic",
+        objectId: "namespace:game",
+      },
+      customPathRawPaths: [],
+      variants: [{ variantId: firstVariantId, kind: "default" }],
+      files: [{ ...file(firstVariantId), rawPath: "<winAppData>/Game" }],
+    };
+    assert.equal(validateRestoreManifest(manifest).snapshot.shop, "epic");
+    assert.throws(() =>
+      validateRestoreManifest({
+        ...manifest,
+        variants: [
+          {
+            variantId: firstVariantId,
+            kind: "steam-account",
+            steamId64: "76561197960265729",
+          },
+        ],
+      })
+    );
+  });
   it("downloads Steam files and emulator states with optional metadata", () => {
     const steamFile = {
       ...file(firstVariantId),
