@@ -56,6 +56,8 @@ async function fixture(t: TestContext) {
     current: true,
     running: false,
     partialUpload: false,
+    offline: false,
+    metadataFolder: local as string | null,
     beforeUpload: null as (() => Promise<void>) | null,
     uploads: 0,
     downloads: 0,
@@ -217,18 +219,32 @@ async function fixture(t: TestContext) {
   const service = exported.configureEpicCloudSaves({
     runtime,
     installation: {
-      capture: async () => ({
+      capture: async () => {
+        if (state.offline) throw new Error("offline");
+        return {
+          ...target,
+          game,
+          owner,
+          artifactIds: ["Artifact"],
+        };
+      },
+      captureLocal: async () => ({
         ...target,
         game,
         owner,
         artifactIds: ["Artifact"],
       }),
       assertPlatform: () => {},
-      readInstalled: async () => installed,
+      readInstalled: async () => ({
+        ...installed,
+        ...JSON.parse(
+          await fsp.readFile(path.join(workspace, "installed.json"), "utf8")
+        ).Artifact,
+      }),
       metadata: async () => ({
         metadata: {
           customAttributes: {
-            CloudSaveFolder: { value: local },
+            CloudSaveFolder: { value: state.metadataFolder },
             CloudIncludeList: { value: "*.sav" },
           },
         },
@@ -247,6 +263,58 @@ async function fixture(t: TestContext) {
     game: () => game,
   };
 }
+
+test("persists the real path before the first transfer can be interrupted", async (t) => {
+  const f = await fixture(t);
+  delete f.game().epicInstallation!.savePath;
+  await fsp.writeFile(path.join(f.local, "profile.sav"), "local save");
+  f.state.beforeUpload = async () => {
+    assert.equal(f.game().epicInstallation?.savePath, f.local);
+  };
+  assert.equal((await f.service.sync("Namespace:Item")).status, "up-to-date");
+  assert.equal(f.state.uploads, 1);
+});
+
+test("recovers interrupted transfer paths before capture, including legacy transfers", async (t) => {
+  for (const persisted of [true, false]) {
+    const f = await fixture(t);
+    if (!persisted) delete f.game().epicInstallation!.savePath;
+    const staging = path.join(
+      f.workspace,
+      "save-transfer-interrupted",
+      "staging"
+    );
+    const installedFile = path.join(f.workspace, "installed.json");
+    const installed = JSON.parse(await fsp.readFile(installedFile, "utf8"));
+    installed.Artifact.save_path = staging;
+    await fsp.writeFile(installedFile, JSON.stringify(installed));
+    const session = await f.service.capture(
+      "Namespace:Item",
+      new AbortController().signal
+    );
+    assert.equal(session.savePath, f.local);
+    assert.equal(session.installed.save_path, f.local);
+    assert.equal(f.game().epicInstallation?.savePath, f.local);
+    assert.equal(
+      JSON.parse(await fsp.readFile(installedFile, "utf8")).Artifact.save_path,
+      f.local
+    );
+    assert.equal(f.state.commands.length, 0);
+  }
+});
+
+test("local recovery settings remain writable while Epic is offline", async (t) => {
+  const f = await fixture(t);
+  f.state.offline = true;
+  const savePath = path.join(f.root, "replacement");
+  await f.service.setSettings("Namespace:Item", {
+    automaticSync: false,
+    savePath,
+  });
+  assert.equal(f.game().epicInstallation?.automaticSaveSync, false);
+  assert.equal(f.game().epicInstallation?.savePath, savePath);
+  assert.equal(f.state.commands.length, 0);
+});
 
 test("uploads a private stable copy, verifies readback and repeats without accumulating work", async (t) => {
   const f = await fixture(t);
@@ -311,6 +379,12 @@ test("first restore uses staging and preserves files excluded by Epic metadata",
 test("two initial copies require a choice and stale conflict choices cannot overwrite remote changes", async (t) => {
   const f = await fixture(t);
   await fsp.writeFile(path.join(f.local, "profile.sav"), "local");
+  const localModifiedAt = new Date("2026-10-14T09:00:00.000Z");
+  await fsp.utimes(
+    path.join(f.local, "profile.sav"),
+    localModifiedAt,
+    localModifiedAt
+  );
   await fsp.writeFile(path.join(f.remote, "profile.sav"), "cloud");
   f.state.manifest = "2026.10.14-10.00.00.manifest";
   const conflict = await f.service.sync("Namespace:Item");

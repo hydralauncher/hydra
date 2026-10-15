@@ -859,6 +859,28 @@ describe("Desktop Epic cloud settings", () => {
     ]);
   });
 
+  it("keeps recovery settings available after a save check fails", async (t) => {
+    const view = await epicCloudSettingsFixture(t);
+    view.cloud.loading = false;
+    for (const error of ["network", "save-sync-failed"] as const) {
+      view.cloud.state = { ...view.state, status: "unavailable", error };
+      await view.render();
+      const toggle =
+        view.dom.window.document.querySelector<HTMLButtonElement>(
+          "[role=switch]"
+        )!;
+      assert.equal(toggle.disabled, false, error);
+      assert.equal(view.button("epic_save_select_path").disabled, false, error);
+      assert.equal(view.button("epic_save_sync_now").disabled, true, error);
+      await view.click(toggle);
+      await view.click(view.button("epic_save_select_path"));
+    }
+    assert.deepEqual(
+      view.calls.map(([action]) => action),
+      ["settings", "choosePath", "settings", "choosePath"]
+    );
+  });
+
   it("explains unsupported saves and resolves dated local/remote conflict cards", async (t) => {
     const view = await epicCloudSettingsFixture(t);
     Object.assign(view.cloud, {

@@ -231,40 +231,62 @@ export class EpicCloudSaveService {
       ...(localOnly ? { localOnly: true } : {}),
     };
     this.dependencies.installation.assertPlatform(target.platform);
-    const installed = await this.dependencies.installation.readInstalled(
+    return this.dependencies.runtime.serializeWorkspace(
       target,
-      objectId
-    );
-    if (!installed) throw new EpicSaveFailure("installation-missing");
-    const metadata = parseEpicSaveMetadata(
-      await this.dependencies.installation.metadata(target),
-      installation.platform
-    );
-    const configured = installation.savePath ?? installed.save_path;
-    const variables = this.variables(
-      owned,
-      installed,
-      winePrefixPath ?? owned.game.winePrefixPath
-    );
-    const resolved = configured
-      ? resolveEpicSavePath(configured, variables)
-      : resolveEpicSavePath(
-          metadata.folder?.replace(/\\/g, "/") ?? null,
-          variables
+      async (workspace) => {
+        const installed = await this.dependencies.installation.readInstalled(
+          target,
+          objectId
         );
-    const home = path.resolve(app.getPath("home"));
-    const savePath =
-      resolved && path.resolve(resolved) !== home ? resolved : null;
-    return {
-      objectId,
-      target,
-      installed,
-      metadata,
-      savePath,
-      automaticSync:
-        installation.automaticSaveSync !== false && !!metadata.folder,
-      generation: this.generation,
-    };
+        if (!installed) throw new EpicSaveFailure("installation-missing");
+        const metadata = parseEpicSaveMetadata(
+          await this.dependencies.installation.metadata(target),
+          installation.platform
+        );
+        const interruptedTransfer =
+          typeof installed.save_path === "string" &&
+          /^save-transfer-[^\\/]+(?:[\\/]|$)/.test(
+            path.relative(workspace, installed.save_path)
+          );
+        const configured =
+          installation.savePath ??
+          (interruptedTransfer ? undefined : installed.save_path);
+        const variables = this.variables(
+          owned,
+          installed,
+          winePrefixPath ?? owned.game.winePrefixPath
+        );
+        const resolved = configured
+          ? resolveEpicSavePath(configured, variables)
+          : resolveEpicSavePath(
+              metadata.folder?.replace(/\\/g, "/") ?? null,
+              variables
+            );
+        const home = path.resolve(app.getPath("home"));
+        const savePath =
+          resolved && path.resolve(resolved) !== home ? resolved : null;
+        const session: EpicSaveSession = {
+          objectId,
+          target,
+          installed,
+          metadata,
+          savePath,
+          automaticSync:
+            installation.automaticSaveSync !== false && !!metadata.folder,
+          generation: this.generation,
+        };
+        if (interruptedTransfer) {
+          await this.persist(session, { savePath });
+          await this.restoreRealSavePath(
+            session,
+            path.join(workspace, "installed.json")
+          );
+          installed.save_path = savePath;
+        }
+        return session;
+      },
+      signal
+    );
   }
   async getState(objectId: string): Promise<EpicCloudSaveState> {
     const retained = this.states.get(objectId);
@@ -323,7 +345,12 @@ export class EpicCloudSaveService {
   }
   async setSettings(objectId: string, settings: EpicCloudSaveSettings) {
     const controller = new AbortController();
-    const session = await this.capture(objectId, controller.signal);
+    const session = await this.capture(
+      objectId,
+      controller.signal,
+      undefined,
+      true
+    );
     await this.assertStopped(session);
     if (
       this.operations.has(objectId) ||
@@ -372,6 +399,8 @@ export class EpicCloudSaveService {
   ) {
     const workspace = this.dependencies.runtime.workspace(session.target);
     const installedFile = path.join(workspace, "installed.json");
+    // This durable path survives a crash before the CLI's staging path is restored.
+    await this.persist(session, { savePath: session.savePath });
     try {
       const result = await this.dependencies.runtime.runRawUnlocked(
         session.target,
