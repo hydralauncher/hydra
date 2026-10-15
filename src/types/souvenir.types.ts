@@ -17,6 +17,7 @@ export interface PendingAchievementSouvenir {
   status: "pending" | "paused" | "terminal";
   pausedSubscriptionExpiresAt?: number | null;
   attemptCount: number;
+  rejectedAttemptCount?: number;
   lastAttemptAt?: number;
   lastErrorCode?: string;
   lastErrorCount?: number;

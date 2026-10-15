@@ -45,9 +45,11 @@ import {
 import {
   getGroupedSouvenirFailure,
   GAME_NOT_FOUND_ERROR_CODE,
+  isGroupedSouvenirNetworkFailure,
   isMissingGroupedSouvenirScreenshot,
   isRejectedGroupedSouvenirRequest,
   type GroupedSouvenirFailure,
+  type GroupedSouvenirRecoveryAction,
   type GroupedSouvenirRequestStage,
 } from "./grouped-souvenir-retry-policy";
 import {
@@ -63,6 +65,7 @@ const CONCURRENT_UPDATE_ATTEMPTS = 3;
 const CONCURRENT_UPDATE_RETRY_DELAY_MS = 250;
 const INCOMPLETE_UPLOAD_REAUTHORIZE_ATTEMPTS = 3;
 const REJECTED_REQUEST_ATTEMPTS = 20;
+const AUTOMATIC_RETRY_ATTEMPTS = 200;
 
 const RETENTION_BY_STATUS: Partial<
   Record<PendingAchievementSouvenir["status"], number>
@@ -221,7 +224,7 @@ const markSouvenirTerminal = async (
   });
 };
 
-const pauseSouvenirForSubscription = async (
+const pauseSouvenir = async (
   pending: PendingAchievementSouvenir,
   errorCode: string
 ) => {
@@ -254,15 +257,16 @@ const removeExpiredRecords = async (
       continue;
     }
 
+    try {
+      await fs.promises.rm(souvenir.screenshotPath, { force: true });
+    } catch (error) {
+      achievementsLogger.error(
+        "Failed to delete expired grouped souvenir screenshot",
+        { clientId: souvenir.clientId, error }
+      );
+      continue;
+    }
     await PendingGroupedSouvenirStore.delete(souvenir.clientId);
-    await fs.promises
-      .rm(souvenir.screenshotPath, { force: true })
-      .catch((error) => {
-        achievementsLogger.error(
-          "Failed to delete expired grouped souvenir screenshot",
-          { clientId: souvenir.clientId, error }
-        );
-      });
   }
   return retained;
 };
@@ -381,12 +385,35 @@ const authorizePendingSouvenir = async (
 
 const getFailureState = (
   pending: PendingAchievementSouvenir,
-  errorCode: string
+  errorCode: string,
+  error: unknown
 ) => ({
   lastErrorCode: errorCode,
   lastErrorCount:
     pending.lastErrorCode === errorCode ? (pending.lastErrorCount ?? 0) + 1 : 1,
+  rejectedAttemptCount:
+    (pending.rejectedAttemptCount ?? 0) +
+    (isRejectedGroupedSouvenirRequest(error) ? 1 : 0),
 });
+
+const getLimitedAction = (
+  pending: PendingAchievementSouvenir,
+  failure: GroupedSouvenirFailure,
+  rejectedAttemptCount: number,
+  error: unknown
+): GroupedSouvenirRecoveryAction => {
+  if (failure.action === "terminal" || failure.action === "pause") {
+    return failure.action;
+  }
+  if (rejectedAttemptCount >= REJECTED_REQUEST_ATTEMPTS) return "terminal";
+  if (
+    pending.attemptCount >= AUTOMATIC_RETRY_ATTEMPTS &&
+    !isGroupedSouvenirNetworkFailure(error)
+  ) {
+    return "pause";
+  }
+  return failure.action;
+};
 
 const classifyFailure = (
   pending: PendingAchievementSouvenir,
@@ -397,15 +424,14 @@ const classifyFailure = (
   failureState: ReturnType<typeof getFailureState>;
 } => {
   const failure = getGroupedSouvenirFailure(error, pending.clientId, stage);
-  const failureState = getFailureState(pending, failure.code);
-  const rejectionsExhausted =
-    failure.action === "retry" &&
-    isRejectedGroupedSouvenirRequest(error) &&
-    failureState.lastErrorCount >= REJECTED_REQUEST_ATTEMPTS;
-  return {
-    failure: rejectionsExhausted ? { ...failure, action: "terminal" } : failure,
-    failureState,
-  };
+  const failureState = getFailureState(pending, failure.code, error);
+  const action = getLimitedAction(
+    pending,
+    failure,
+    failureState.rejectedAttemptCount,
+    error
+  );
+  return { failure: { ...failure, action }, failureState };
 };
 
 const completeAchievementOnlyRecovery = async (
@@ -432,10 +458,7 @@ const completeAchievementOnlyRecovery = async (
       return;
     }
     if (failure.action === "pause") {
-      await pauseSouvenirForSubscription(
-        { ...pending, ...failureState },
-        failure.code
-      );
+      await pauseSouvenir({ ...pending, ...failureState }, failure.code);
       return;
     }
     await PendingGroupedSouvenirStore.put({
@@ -528,10 +551,7 @@ const persistGroupedSouvenirFailure = async (
     await markSouvenirTerminal({ ...pending, ...failureState }, failure.code);
     return;
   } else if (failure.action === "pause") {
-    await pauseSouvenirForSubscription(
-      { ...pending, ...failureState },
-      failure.code
-    );
+    await pauseSouvenir({ ...pending, ...failureState }, failure.code);
     return;
   } else if (failure.action === "reauthorize_same_id") {
     await PendingGroupedSouvenirStore.put({
@@ -818,6 +838,7 @@ class GroupedSouvenirWorker {
     const user = await getCurrentUser().catch(() => null);
     if (!user?.id) return;
 
+    const now = Date.now();
     const pending = await PendingGroupedSouvenirStore.list();
     const nextRetryAt = pending
       .filter(
@@ -839,13 +860,14 @@ class GroupedSouvenirWorker {
       .map(
         (souvenir) => souvenir.lastAttemptAt! + SOUVENIR_TERMINAL_RETENTION_MS
       )
+      .filter((cleanupAt) => cleanupAt > now)
       .toSorted((a, b) => a - b)[0];
     const nextRunAt = [nextRetryAt, nextTerminalCleanupAt]
       .filter((value): value is number => value !== undefined)
       .toSorted((a, b) => a - b)[0];
 
     if (nextRunAt === undefined) return;
-    const delay = Math.max(0, nextRunAt - Date.now());
+    const delay = Math.max(0, nextRunAt - now);
     this.retryTimer = setTimeout(() => void this.trigger(), delay);
     this.retryTimer.unref?.();
   }
