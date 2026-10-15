@@ -90,6 +90,9 @@ const publicConnection = (
   epicAccountId: connection.epicAccountId,
   displayName: connection.displayName,
   connectedAt: connection.connectedAt,
+  ...(connection.capabilities?.achievementsSnapshotVersion === 1
+    ? { capabilities: { achievementsSnapshotVersion: 1 as const } }
+    : {}),
   lastSyncedAt: connection.lastSyncedAt ?? null,
   latestSyncRun: connection.latestSyncRun
     ? parseEpicSyncRun(connection.latestSyncRun)
@@ -350,7 +353,8 @@ export class EpicConnectionStore {
     scope: EpicStoreScope,
     connection: EpicConnectedConnection,
     bundle: EpicSessionBundle,
-    isCurrent: () => boolean
+    isCurrent: () => boolean,
+    sourceBundle?: EpicSessionBundle
   ) {
     const key = getEpicStoreScopeKey(scope);
     return this.enqueue(key, async () => {
@@ -365,6 +369,15 @@ export class EpicConnectionStore {
         throw new EpicStoreError("stale-connection");
       if (!isBundle(bundle, connection.epicAccountId))
         throw new EpicStoreError("invalid-response");
+      // A completed operation cannot overwrite credentials rotated by a newer lease.
+      if (
+        sourceBundle &&
+        isBundle(previous.bundle, connection.epicAccountId) &&
+        (previous.bundle.user.refresh_token !==
+          sourceBundle.user.refresh_token ||
+          previous.bundle.user.access_token !== sourceBundle.user.access_token)
+      )
+        return this.describe(previous);
       return this.writeRecord(
         key,
         previous,
@@ -404,10 +417,10 @@ export class EpicConnectionStore {
       await this.opening?.catch(() => undefined);
       try {
         await this.database?.close();
-      } catch {
-        throw new EpicStoreError("persistence-failed");
-      } finally {
         this.database = null;
+      } catch {
+        this.closing = null;
+        throw new EpicStoreError("persistence-failed");
       }
     })();
     return this.closing;

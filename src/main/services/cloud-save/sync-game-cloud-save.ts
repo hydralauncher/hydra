@@ -38,6 +38,7 @@ import {
   shouldRetryCloudSaveStateChange,
 } from "./snapshot-retry-policy";
 import { cloudSaveOperationGate } from "./operation-gate";
+import { runWithHydraSaveGuard } from "../epic/cloud-saves";
 import { assertCloudSaveDeletionNotPending } from "./pending-deletion";
 import {
   type ProgressCallback,
@@ -949,16 +950,17 @@ const runCloudSaveOperation = (
     progressState.latestProgress = progress;
     for (const listener of progressState.listeners) listener(progress);
   };
-  const promise = cloudSaveOperationGate
-    .runSync(
+  // Take the provider file gate first, before the per-game gate, for every entry point.
+  const promise = runWithHydraSaveGuard(() =>
+    cloudSaveOperationGate.runSync(
       key,
       operationKey,
       () => run(emitProgress),
       () => assertCloudSaveDeletionNotPending(objectId, shop)
     )
-    .finally(() => {
-      if (activeSyncs.get(key)?.promise === promise) activeSyncs.delete(key);
-    });
+  ).finally(() => {
+    if (activeSyncs.get(key)?.promise === promise) activeSyncs.delete(key);
+  });
   activeSyncs.set(key, { operationKey, promise, progress: progressState });
   return promise;
 };

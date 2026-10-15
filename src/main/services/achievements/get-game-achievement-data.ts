@@ -64,7 +64,7 @@ export const getGameAchievementData = async (
       }
 
       const achievements =
-        response.data.length > 0
+        response.data.length > 0 || shop === "epic"
           ? response.data
           : (cachedAchievements?.achievements ?? []);
 

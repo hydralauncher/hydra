@@ -1,5 +1,8 @@
 import type { ShopDetailsWithAssets } from "@types";
 import { JSDOM } from "jsdom";
+import MarkdownIt from "markdown-it";
+
+const epicMarkdown = new MarkdownIt({ html: true });
 
 export const STORE_DETAILS_TIMEOUT_MS = 15_000;
 
@@ -108,35 +111,15 @@ export function mapEpicShopDetails(
 }
 
 export function formatEpicDescription(description: string): string {
-  const content = description.replace(/<!--[\s\S]*?-->/g, "").trim();
-  if (/<\/?[a-z][^>]*>/i.test(content)) {
-    return sanitizeEpicHtml(content.replace(/={3,}/g, "<br><br>"));
-  }
-
-  return sanitizeEpicHtml(
-    content
-      .replace(/={3,}/g, "\n\n")
-      .replace(/\r\n/g, "\n")
-      .replace(/\n[\t ]*\n(?:[\t ]*\n)+/g, "\n\n")
-      .replace(/&/g, "&amp;")
-      .replace(/</g, "&lt;")
-      .replace(/>/g, "&gt;")
-      .replace(/"/g, "&quot;")
-      .replace(
-        /!\[([^\]\n]*)\]\((https?:\/\/[^\s)]+)\)/g,
-        '<img alt="$1" src="$2">'
-      )
-      .replace(
-        /\[([^\]\n]+)\]\((https?:\/\/[^\s)]+|\/(?!\/)[^\s)]*)\)/g,
-        (_, label: string, destination: string) => {
-          const href = destination.startsWith("/")
-            ? `https://store.epicgames.com${destination}`
-            : destination;
-          return `<a href="${href}">${label}</a>`;
-        }
-      )
-      .replace(/\r?\n/g, "<br>")
-  );
+  const content = description
+    .replace(/<!--[\s\S]*?-->/g, "")
+    .replace(/\r\n/g, "\n")
+    .replace(/={3,}/g, "\n\n")
+    .replace(/^(\s*)•[\t ]+/gm, "$1- ")
+    .trim();
+  // Both the live store and API fallback pass through this boundary. Parse
+  // Markdown once and sanitize embedded HTML before returning it to the renderer.
+  return sanitizeEpicHtml(epicMarkdown.render(content)).trim();
 }
 
 function formatEpicRequirements(requirements: string): string {

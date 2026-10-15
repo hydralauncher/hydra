@@ -85,12 +85,13 @@ async function fixture(
     export const isAxiosError = value => Boolean(value?.isAxiosError);
     export const isAchievementSouvenirsEnabled = () => false;
     export class UserNotLoggedInError extends Error {};
-    export const HydraApi = { getResponse: async () => state.catalogueGate ? await state.catalogueGate : {status:200,data:[],headers:{}}, delete: async (url, options) => {state.deletes.push({url, options});}, getAuthContext: () => state.context, isAuthContextCurrent: context => Boolean(state.context && state.context.userId === context.userId && state.context.generation === context.generation), put: async (_url, body, options) => { let resolve, reject; const promise = new Promise((done, fail) => {resolve = done; reject = fail;}); state.requests.push({body, options, gate: {promise, resolve, reject}}); return promise; } };
+    export const HydraApi = { get: async () => null, getResponse: async () => state.catalogueGate ? await state.catalogueGate : {status:200,data:[],headers:{}}, delete: async (url, options) => {state.deletes.push({url, options});}, getAuthContext: () => state.context, isAuthContextCurrent: context => Boolean(state.context && state.context.userId === context.userId && state.context.generation === context.generation), put: async (_url, body, options) => { let resolve, reject; const promise = new Promise((done, fail) => {resolve = done; reject = fail;}); state.requests.push({body, options, gate: {promise, resolve, reject}}); return promise; } };
     export const db = { get: async key => { if (state.preferenceGate) await state.preferenceGate; return key === "language" ? "en" : { achievementNotificationsEnabled: false }; }, sublevel: () => ({ get: async key => { const item = state.records.get(key); state.recordReadStarted?.(); if (state.recordReadGate) await state.recordReadGate; if (!item) throw new Error('missing'); return item; }, put: async (key, item) => state.records.set(key, item), del: async key => state.records.delete(key), values: () => ({all: async () => {const rows = [...state.records.values()]; state.recordsReadStarted?.(); if (state.recordsReadGate) await state.recordsReadGate; return rows;}}) }) };
     export const pendingAchievementSouvenirsSublevel = {get: async key => state.pendingSouvenirs.get(key), put: async (key, value) => state.pendingSouvenirs.set(key, value), del: async key => state.pendingSouvenirs.delete(key)};
     export const levelKeys = {game: (shop, id) => shop + ':' + id, userPreferences: 'preferences', language: 'language'};
     export const WindowManager = { mainWindow: { webContents: { send: (channel, achievements) => state.updates.push({channel, achievements}) } } };
     export const getUnlockedAchievements = async () => [];
+    export const presentCombinedAchievements = () => [];
     export const publishNewAchievementNotification = () => {};
     export const registerEvent = (name, handler) => state.events.set(name, handler);
     export const gamesSublevel = {get: async () => state.game};
@@ -579,7 +580,7 @@ test("stale achievement view responses cannot update the next account's memory",
     unlocked: [{ name: "OLD-ACCOUNT", unlockTime: 2 }],
     achievements: [],
   });
-  await view;
+  await assert.rejects(view, { name: "AchievementSyncCancelledError" });
   assert.deepEqual(
     f.AchievementMemoryStore.get("steam", "620").unlockedAchievements.map(
       (item: { name: string }) => item.name
@@ -605,7 +606,7 @@ test("reset invalidates an achievement view that was already fetching", async (t
     unlocked: [{ name: "BEFORE-RESET", unlockTime: 2 }],
     achievements: [],
   });
-  await view;
+  await assert.rejects(view, { name: "AchievementSyncCancelledError" });
   assert.equal(
     f.AchievementMemoryStore.get("steam", "620").unlockedAchievements.length,
     0

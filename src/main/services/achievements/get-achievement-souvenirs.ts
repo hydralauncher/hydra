@@ -15,6 +15,7 @@ export const fetchRemoteUserGameAchievements = async (
   shop: GameShop,
   language: string
 ) => {
+  const owner = HydraApi.getAuthContext();
   const empty = {
     souvenirs: new Map<string, string>(),
     unlocked: [] as UnlockedAchievement[],
@@ -29,8 +30,11 @@ export const fetchRemoteUserGameAchievements = async (
 
   const remoteAchievements = await HydraApi.get<UserAchievement[]>(
     `/users/${user.id}/games/achievements`,
-    { shop, objectId, language }
+    { shop, objectId, language },
+    owner ? { authContext: owner } : undefined
   );
+  if (owner && !HydraApi.isAuthContextCurrent(owner))
+    throw new Error("achievement-owner-changed");
 
   return {
     souvenirs: new Map(

@@ -180,7 +180,15 @@ export function SettingsEpic() {
       if (!current?.connected || result.connectionId !== current.connectionId)
         return;
       if (result.origin === "manual") {
-        if (result.ok) showSuccessToast(t("epic_sync_success"));
+        if (result.ok)
+          showSuccessToast(
+            t(
+              result.achievementSummary?.status === "partial"
+                ? "epic_sync_partial"
+                : "epic_sync_success",
+              { count: result.achievementSummary?.gamesPending ?? 0 }
+            )
+          );
         else if (result.error !== "operation-cancelled")
           showErrorToast(
             t(
@@ -466,6 +474,7 @@ export function SettingsEpic() {
               {typeof syncState.total === "number" &&
                 syncState.total > 0 &&
                 (syncState.phase === "publishing" ||
+                  syncState.phase === "achievements" ||
                   syncState.phase === "merging") && (
                   <span className="settings-integration-card__progress-count">
                     {syncState.processed ?? 0} / {syncState.total}

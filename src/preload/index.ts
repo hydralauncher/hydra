@@ -82,8 +82,15 @@ import type {
   EpicSyncFinished,
   EpicOperationResult,
   EpicStartAuthResult,
+  EpicGameInstallOptions,
+  StartEpicGameDownloadPayload,
+  EpicManagedOperationResult,
+  EpicCloudSaveState,
+  EpicCloudSaveSettings,
+  ResolveEpicCloudSaveConflictPayload,
+  EpicLaunchOptions,
 } from "@types";
-import type { AuthPage } from "@shared";
+import type { AuthPage, Downloader } from "@shared";
 import type { AxiosProgressEvent } from "axios";
 
 const fileExplorerApi = {
@@ -395,8 +402,10 @@ contextBridge.exposeInMainWorld("electron", {
     ipcRenderer.invoke("addGameToQueue", payload),
   cancelGameDownload: (shop: GameShop, objectId: string) =>
     ipcRenderer.invoke("cancelGameDownload", shop, objectId),
-  pauseGameDownload: (shop: GameShop, objectId: string) =>
-    ipcRenderer.invoke("pauseGameDownload", shop, objectId),
+  pauseGameDownload: (shop: GameShop, objectId: string, confirmed?: boolean) =>
+    ipcRenderer.invoke("pauseGameDownload", shop, objectId, confirmed),
+  getDownloadPauseWarning: (shop: GameShop, objectId: string) =>
+    ipcRenderer.invoke("getDownloadPauseWarning", shop, objectId),
   resumeGameDownload: (
     shop: GameShop,
     objectId: string,
@@ -438,14 +447,16 @@ contextBridge.exposeInMainWorld("electron", {
     shop: GameShop,
     objectId: string,
     targetArea: "hero" | "queue" | "paused",
-    targetIndex?: number
+    targetIndex?: number,
+    confirmed?: boolean
   ) =>
     ipcRenderer.invoke(
       "moveDownloadPlacement",
       shop,
       objectId,
       targetArea,
-      targetIndex
+      targetIndex,
+      confirmed
     ),
   getDownloadLayoutState: () =>
     ipcRenderer.invoke(
@@ -474,6 +485,10 @@ contextBridge.exposeInMainWorld("electron", {
   },
   getTorrentFiles: (magnet: string) =>
     ipcRenderer.invoke("getTorrentFiles", magnet) as Promise<
+      { ok: true; data: TorrentFilesResponse } | { ok: false; error: string }
+    >,
+  getDebridFiles: (magnet: string, provider: Downloader) =>
+    ipcRenderer.invoke("getDebridFiles", magnet, provider) as Promise<
       { ok: true; data: TorrentFilesResponse } | { ok: false; error: string }
     >,
 
@@ -1170,14 +1185,16 @@ contextBridge.exposeInMainWorld("electron", {
     shop: GameShop,
     objectId: string,
     executablePath: string,
-    launchOptions?: string | null
+    launchOptions?: string | null,
+    epicLaunchOptions?: EpicLaunchOptions
   ) =>
     ipcRenderer.invoke(
       "openGame",
       shop,
       objectId,
       executablePath,
-      launchOptions
+      launchOptions,
+      epicLaunchOptions
     ),
   openClassicsGame: (
     shop: GameShop,
@@ -1762,6 +1779,58 @@ contextBridge.exposeInMainWorld("electron", {
   },
   getEpicConnection: () =>
     ipcRenderer.invoke("getEpicConnection") as Promise<EpicConnectionState>,
+  getEpicGameInstallOptions: (epicObjectId: string, requestId?: string) =>
+    ipcRenderer.invoke(
+      "getEpicGameInstallOptions",
+      epicObjectId,
+      requestId
+    ) as Promise<EpicGameInstallOptions>,
+  cancelEpicGameInstallOptions: (requestId: string) =>
+    ipcRenderer.invoke(
+      "cancelEpicGameInstallOptions",
+      requestId
+    ) as Promise<void>,
+  startEpicGameDownload: (payload: StartEpicGameDownloadPayload) =>
+    ipcRenderer.invoke(
+      "startEpicGameDownload",
+      payload
+    ) as Promise<EpicManagedOperationResult>,
+  getEpicCloudSaveState: (epicObjectId: string) =>
+    ipcRenderer.invoke(
+      "getEpicCloudSaveState",
+      epicObjectId
+    ) as Promise<EpicCloudSaveState>,
+  setEpicCloudSaveSettings: (
+    epicObjectId: string,
+    settings: EpicCloudSaveSettings
+  ) =>
+    ipcRenderer.invoke(
+      "setEpicCloudSaveSettings",
+      epicObjectId,
+      settings
+    ) as Promise<EpicManagedOperationResult>,
+  syncEpicCloudSaves: (epicObjectId: string) =>
+    ipcRenderer.invoke(
+      "syncEpicCloudSaves",
+      epicObjectId
+    ) as Promise<EpicCloudSaveState>,
+  resolveEpicCloudSaveConflict: (
+    payload: ResolveEpicCloudSaveConflictPayload
+  ) =>
+    ipcRenderer.invoke(
+      "resolveEpicCloudSaveConflict",
+      payload
+    ) as Promise<EpicCloudSaveState>,
+  onEpicCloudSaveStateChanged: (cb: (state: EpicCloudSaveState) => void) => {
+    const listener = (
+      _event: Electron.IpcRendererEvent,
+      state: EpicCloudSaveState
+    ) => cb(state);
+    ipcRenderer.on("on-epic-cloud-save-state-changed", listener);
+    return () => {
+      ipcRenderer.removeListener("on-epic-cloud-save-state-changed", listener);
+    };
+  },
   startEpicAuth: () =>
     ipcRenderer.invoke("startEpicAuth") as Promise<EpicStartAuthResult>,
   cancelEpicAuth: (operationId: string) =>

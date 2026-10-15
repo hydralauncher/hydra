@@ -381,6 +381,7 @@ export const mergeAchievements = async (
   achievements: UnlockedAchievement[],
   publishNotification: boolean
 ) => {
+  if (game.shop === "epic") return 0;
   const context = HydraApi.getAuthContext();
   const current = () =>
     context
