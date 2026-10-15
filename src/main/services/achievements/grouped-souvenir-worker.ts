@@ -245,30 +245,29 @@ const getRetentionExpiresAt = (souvenir: PendingAchievementSouvenir) => {
   return souvenir.lastAttemptAt + retention;
 };
 
+const removeExpiredRecord = async (souvenir: PendingAchievementSouvenir) => {
+  try {
+    await fs.promises.rm(souvenir.screenshotPath, { force: true });
+  } catch (error) {
+    achievementsLogger.error(
+      "Failed to delete expired grouped souvenir screenshot",
+      { clientId: souvenir.clientId, error }
+    );
+    return;
+  }
+  await PendingGroupedSouvenirStore.delete(souvenir.clientId);
+};
+
 const removeExpiredRecords = async (
   pending: PendingAchievementSouvenir[],
   now: number
 ) => {
-  const retained: PendingAchievementSouvenir[] = [];
-  for (const souvenir of pending) {
+  const isExpired = (souvenir: PendingAchievementSouvenir) => {
     const expiresAt = getRetentionExpiresAt(souvenir);
-    if (expiresAt === undefined || now < expiresAt) {
-      retained.push(souvenir);
-      continue;
-    }
-
-    try {
-      await fs.promises.rm(souvenir.screenshotPath, { force: true });
-    } catch (error) {
-      achievementsLogger.error(
-        "Failed to delete expired grouped souvenir screenshot",
-        { clientId: souvenir.clientId, error }
-      );
-      continue;
-    }
-    await PendingGroupedSouvenirStore.delete(souvenir.clientId);
-  }
-  return retained;
+    return expiresAt !== undefined && now >= expiresAt;
+  };
+  await Promise.all(pending.filter(isExpired).map(removeExpiredRecord));
+  return pending.filter((souvenir) => !isExpired(souvenir));
 };
 
 const reconcileAchievementMemory = async (
