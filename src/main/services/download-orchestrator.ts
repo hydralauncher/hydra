@@ -27,6 +27,7 @@ import {
 } from "./download-layout-state";
 
 export type ResumeDownloadStrategy = "interruptActive" | "queueIfActive";
+type ResumeIntent = ResumeDownloadStrategy | "queue";
 
 function getGameKey(download: Pick<Download, "shop" | "objectId">) {
   return levelKeys.game(download.shop, download.objectId);
@@ -1037,7 +1038,7 @@ export class DownloadOrchestrator {
   static async resumeDownload(
     shop: GameShop,
     objectId: string,
-    strategy: ResumeDownloadStrategy = "interruptActive"
+    strategy: ResumeIntent = "interruptActive"
   ) {
     const preparation = this.beginPreparation(levelKeys.game(shop, objectId));
     try {
@@ -1056,7 +1057,7 @@ export class DownloadOrchestrator {
   private static async resumeDownloadWithPreparation(
     shop: GameShop,
     objectId: string,
-    strategy: ResumeDownloadStrategy,
+    strategy: ResumeIntent,
     isCurrent: () => boolean,
     signal: AbortSignal
   ) {
@@ -1074,7 +1075,8 @@ export class DownloadOrchestrator {
     const resumingDownload: Download = {
       ...download,
       debridAutoResume: true,
-      debridQueueOnly: undefined,
+      debridQueueOnly:
+        strategy === "queue" && !DownloadManager.hasActiveDownload(),
       debridPreparationDeadline: Date.now() + DEBRID_PREPARATION_WINDOW_MS,
     };
     try {
@@ -1100,7 +1102,7 @@ export class DownloadOrchestrator {
 
   private static async activateResumedDownload(
     readyDownload: Download,
-    strategy: ResumeDownloadStrategy,
+    strategy: ResumeIntent,
     isCurrent: () => boolean,
     signal: AbortSignal
   ) {
@@ -1114,7 +1116,10 @@ export class DownloadOrchestrator {
           getDownloadId(entry) !== getDownloadId(readyDownload)
       ) ?? null;
 
-    if (currentActiveDownload && strategy === "queueIfActive") {
+    if (
+      (strategy === "queue" && readyDownload.debridQueueOnly) ||
+      (currentActiveDownload && strategy !== "interruptActive")
+    ) {
       await this.queueDownload(
         {
           ...readyDownload,
@@ -1228,13 +1233,26 @@ export class DownloadOrchestrator {
     return true;
   }
 
-  static moveDownloadPlacement(
+  static async moveDownloadPlacement(
     shop: GameShop,
     objectId: string,
     targetArea: "hero" | "queue" | "paused",
     targetIndex?: number,
     confirmed = false
   ) {
+    const download = await this.getDownload(shop, objectId);
+    if (download?.awaitingDebrid && targetArea !== "paused") {
+      // Prepare outside the activation lock, just like the normal Resume action.
+      const resumed = await this.resumeDownload(
+        shop,
+        objectId,
+        targetArea === "queue" ? "queue" : "interruptActive"
+      );
+      if (resumed && targetArea === "queue" && targetIndex !== undefined) {
+        await this.setQueuePosition(shop, objectId, targetIndex);
+      }
+      return resumed;
+    }
     const move = () =>
       this.applyDownloadPlacement(
         shop,

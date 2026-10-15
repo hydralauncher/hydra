@@ -64,6 +64,7 @@ for (const archiveName of [
         path.parse(archiveName).name
       );
       const extracted = path.join(directory, extractedName);
+      const runtimeAsset = path.join(extracted, "content/assets.zip");
       fs.mkdirSync(path.dirname(outer), { recursive: true });
       fs.writeFileSync(outer, "saved archive");
       let record: any = {
@@ -111,11 +112,14 @@ for (const archiveName of [
               if (options.outputPath) {
                 assert.equal(options.outputPath, extracted);
                 fs.mkdirSync(extracted, { recursive: true });
+                fs.mkdirSync(path.dirname(runtimeAsset), { recursive: true });
+                fs.writeFileSync(runtimeAsset, "runtime asset");
                 fs.writeFileSync(
                   path.join(extracted, "inner.zip"),
                   "inner archive"
                 );
               }
+              assert.notEqual(options.filePath, runtimeAsset);
               return { success: true };
             },
           },
@@ -131,6 +135,7 @@ for (const archiveName of [
         assert.equal(record.folderName, extractedName);
         assert.equal(fs.existsSync(outer), !shouldDelete);
         assert.equal(fs.existsSync(path.join(extracted, "inner.zip")), true);
+        assert.equal(fs.readFileSync(runtimeAsset, "utf8"), "runtime asset");
         assert.deepEqual(
           prompts.map((p) => [...p]),
           shouldDelete ? [] : [[outer]]
@@ -975,17 +980,20 @@ it("initial provider failure reaches the start IPC error handler and removes the
 });
 
 for (const shouldDelete of [false, true]) {
-  it(`finds archives throughout preserved folders while limiting extraction passes (${shouldDelete})`, async () => {
+  it(`extracts root installer archives without touching nested runtime assets (${shouldDelete})`, async () => {
     const root = fs.mkdtempSync(
       path.join(os.tmpdir(), "deep-archive-discovery-")
     );
     const outside = fs.mkdtempSync(
       path.join(os.tmpdir(), "outside-archive-discovery-")
     );
-    const first = path.join(root, "branch/one/two/payload.part1.rar");
+    const first = path.join(root, "payload.part1.rar");
     const secondPart = path.join(path.dirname(first), "payload.part2.rar");
-    const inner = path.join(path.dirname(first), "nested/deeper/inner.zip");
-    const third = path.join(path.dirname(inner), "another/deep/third.zip");
+    const inner = path.join(root, "inner.zip");
+    const third = path.join(root, "third.zip");
+    const asset = path.join(root, "content/vehicles/asset.zip");
+    fs.mkdirSync(path.dirname(asset), { recursive: true });
+    fs.writeFileSync(asset, "runtime asset");
     const external = path.join(outside, "external.rar");
     fs.mkdirSync(path.dirname(first), { recursive: true });
     fs.writeFileSync(first, "first part");
@@ -1027,6 +1035,7 @@ for (const shouldDelete of [false, true]) {
           extractFile: async (options: { filePath: string; cwd: string }) => {
             calls.push(options.filePath);
             assert.equal(options.cwd, path.dirname(options.filePath));
+            assert.notEqual(options.filePath, asset);
             const output = options.filePath === first ? inner : third;
             fs.mkdirSync(path.dirname(output), { recursive: true });
             fs.writeFileSync(output, "nested archive");
@@ -1049,6 +1058,7 @@ for (const shouldDelete of [false, true]) {
         "the extraction pass limit stays independent of folder depth"
       );
       assert.equal(fs.readFileSync(external, "utf8"), "outside file");
+      assert.equal(fs.readFileSync(asset, "utf8"), "runtime asset");
       for (const file of [first, secondPart, inner])
         assert.equal(fs.existsSync(file), !shouldDelete);
       assert.deepEqual(
@@ -1061,3 +1071,87 @@ for (const shouldDelete of [false, true]) {
     }
   });
 }
+
+for (const target of ["hero", "queue"] as const) {
+  for (const ready of [true, false]) {
+    it(`Big Picture ${target} restarts expired preparation when ready=${ready}`, async () => {
+      const f = orchestrator();
+      f.records.set("next", {
+        ...f.download,
+        awaitingDebrid: true,
+        debridAutoResume: false,
+      });
+      f.setPreparedReady(ready);
+      f.release();
+      const moved = await f.instance.moveDownloadPlacement(
+        "steam",
+        "next",
+        target,
+        0
+      );
+      assert.equal(f.preparationCalls(), 1);
+      const record = f.records.get("next");
+      if (!ready) {
+        assert.equal(record.awaitingDebrid, true);
+        assert.equal(record.debridAutoResume, true);
+        assert.ok(record.debridPreparationDeadline > Date.now());
+        assert.deepEqual(f.paused, []);
+        assert.deepEqual(f.resumed, []);
+        f.setPreparedReady(true);
+        await f.instance.pollAwaitingDebridDownloads();
+        assert.equal(f.records.get("next").awaitingDebrid, false);
+        assert.equal(f.records.get("next").queued, true);
+      } else if (target === "hero") {
+        assert.equal(moved, true);
+        assert.deepEqual(f.paused, ["active"]);
+        assert.deepEqual(f.resumed, ["next"]);
+        assert.equal(record.status, "active");
+      } else {
+        assert.equal(moved, true);
+        assert.deepEqual(f.paused, []);
+        assert.deepEqual(f.resumed, []);
+        assert.equal(record.queued, true);
+        assert.equal(record.awaitingDebrid, false);
+      }
+    });
+  }
+}
+
+for (const ready of [true, false]) {
+  it(`Big Picture queue retry keeps an idle queue manual when ready=${ready}`, async () => {
+    const f = orchestrator();
+    f.finishActive();
+    f.records.set("next", {
+      ...f.download,
+      awaitingDebrid: true,
+      debridAutoResume: false,
+    });
+    f.setPreparedReady(ready);
+    f.release();
+    await f.instance.moveDownloadPlacement("steam", "next", "queue");
+    if (!ready) {
+      assert.equal(f.records.get("next").debridQueueOnly, true);
+      f.setPreparedReady(true);
+      await f.instance.pollAwaitingDebridDownloads();
+    }
+    assert.equal(f.records.get("next").queued, true);
+    assert.equal(f.records.get("next").awaitingDebrid, false);
+    assert.deepEqual(f.resumed, []);
+  });
+}
+
+it("Big Picture queue retry continues if the active download finishes during preparation", async () => {
+  const f = orchestrator();
+  f.records.set("next", {
+    ...f.download,
+    awaitingDebrid: true,
+    debridAutoResume: false,
+  });
+  const moved = f.instance.moveDownloadPlacement("steam", "next", "queue");
+  await f.preparing;
+  f.finishActive();
+  f.release();
+  assert.equal(await moved, true);
+  assert.deepEqual(f.resumed, ["next"]);
+  assert.equal(f.records.get("next").queued, false);
+});

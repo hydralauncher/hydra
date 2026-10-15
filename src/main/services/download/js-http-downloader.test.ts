@@ -1259,3 +1259,44 @@ for (const matches of [true, false]) {
     }
   });
 }
+
+it("a failed legacy prefix check does not claim the partial for a different resource", async () => {
+  const f = await fixture({ size: 128 * 1024 });
+  const file = path.join(f.root, f.options.filename);
+  const correct = Buffer.from(f.data);
+  const original = correct.subarray(0, 96 * 1024);
+  f.data[64 * 1024] ^= 255;
+  fs.mkdirSync(path.dirname(file), { recursive: true });
+  fs.writeFileSync(file, original);
+  try {
+    const options = {
+      ...f.options,
+      allowParallelRanges: false,
+      verifyResumePrefix: true,
+      requireRangeResume: true,
+      beforeComplete: async () => undefined,
+    };
+    await assert.rejects(
+      new JsHttpDownloader().startDownload({
+        ...options,
+        resourceId: "realDebrid:other#1",
+      }),
+      /archive changed/
+    );
+    assert.equal(rangeState.readResourceIdentity(file), null);
+    assert.deepEqual(fs.readFileSync(file), original);
+    f.data.set(correct);
+    await new JsHttpDownloader().startDownload({
+      ...options,
+      resourceId: "realDebrid:original#1",
+      requireResourceIdentity: rangeState.readResourceIdentity(file) !== null,
+    });
+    assert.deepEqual(fs.readFileSync(file), f.data);
+    assert.equal(
+      rangeState.readResourceIdentity(file),
+      rangeState.rangeResourceId("realDebrid:original#1")
+    );
+  } finally {
+    await f.close();
+  }
+});

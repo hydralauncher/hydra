@@ -1102,10 +1102,11 @@ export class JsHttpDownloader {
       throw new Error("Response body is null");
     }
 
-    await this.persistResourceIdentity(actualFilePath);
     let savedPrefix: FileHandle | null = null;
     if (this.shouldVerifyResumePrefix() && skipBytes > 0) {
       savedPrefix = await fs.promises.open(actualFilePath, "r");
+    } else {
+      await this.persistResourceIdentity(actualFilePath);
     }
 
     try {
@@ -1116,7 +1117,10 @@ export class JsHttpDownloader {
         savedPrefix,
         response.status === 200
           ? 0
-          : (this.parseContentRangeStart(response) ?? 0)
+          : (this.parseContentRangeStart(response) ?? 0),
+        savedPrefix
+          ? () => this.persistResourceIdentity(actualFilePath)
+          : undefined
       );
       await pipeline(readableStream, this.writeStream, {
         signal: this.abortController!.signal,
@@ -1310,7 +1314,8 @@ export class JsHttpDownloader {
     reader: ReadableStreamDefaultReader<Uint8Array>,
     skipBytes = 0,
     savedPrefix: FileHandle | null = null,
-    prefixOffset = 0
+    prefixOffset = 0,
+    onPrefixVerified?: () => Promise<void>
   ): Readable {
     const applyThrottle = this.applyThrottle.bind(this);
     const markReadPending = () => {
@@ -1365,6 +1370,10 @@ export class JsHttpDownloader {
           skipped
         );
         prefixOffset += skipped;
+        if (remainingToSkip === 0) {
+          await onPrefixVerified?.();
+          onPrefixVerified = undefined;
+        }
       }
       applyRecoveryTracking(plan, value.length);
       if (!plan.shouldWrite) return false;

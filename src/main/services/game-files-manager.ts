@@ -282,8 +282,8 @@ export class GameFilesManager {
     const compressedFiles = new Set<string>();
     const extractedFiles = new Set<string>();
 
-    // Scan every folder on each pass. A provider ZIP can contain another archive,
-    // but extraction still stops after one nested archive layer.
+    // Only process archives at the extraction root. Archives in game subfolders
+    // may be runtime assets and must remain intact.
     for (let pass = 0; pass < MAX_ARCHIVE_EXTRACTION_PASSES; pass++) {
       let archives: string[];
       try {
