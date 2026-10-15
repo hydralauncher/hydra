@@ -11,6 +11,11 @@ import {
   inspectLinuxPrefixProcesses,
 } from "./umu-supervised-process.js";
 
+const DESCENDANT_COMPLETION_DELAY_MS = 700;
+const TOOL_TIMEOUT_MS = 10_000;
+const DEADLINE_DESCENDANT_LIFETIME_MS = 10_000;
+const TOOL_DEADLINE_MS = 600;
+
 function fakeSpawn() {
   const child = Object.assign(new EventEmitter(), {
     pid: 87654321,
@@ -152,8 +157,7 @@ test(
     const directory = await fs.mkdtemp(path.join(os.tmpdir(), "umu-tree-"));
     t.after(() => fs.rm(directory, { recursive: true, force: true }));
     const marker = path.join(directory, "completed");
-    const descendant =
-      "setTimeout(() => require('node:fs').writeFileSync(process.argv[1], 'complete'), 700)";
+    const descendant = `setTimeout(() => require('node:fs').writeFileSync(process.argv[1], 'complete'), ${DESCENDANT_COMPLETION_DELAY_MS})`;
     const wrapper =
       "const p=require('node:child_process').spawn(process.execPath,['-e',process.argv[1],process.argv[2]],{env:process.env,detached:true,stdio:'ignore'});p.unref();";
     const handle = await spawnSupervisedUmu({
@@ -161,7 +165,7 @@ test(
       args: ["-e", wrapper, descendant, marker],
       cwd: directory,
       environment: process.env,
-      timeoutMs: 10_000,
+      timeoutMs: TOOL_TIMEOUT_MS,
     });
     t.after(() => handle.terminate());
     assert.equal((await handle.exited).code, 0);
@@ -184,8 +188,7 @@ test(
     const directory = await fs.mkdtemp(path.join(os.tmpdir(), "umu-timeout-"));
     t.after(() => fs.rm(directory, { recursive: true, force: true }));
     const marker = path.join(directory, "must-not-complete");
-    const descendant =
-      "setTimeout(() => require('node:fs').writeFileSync(process.argv[1], 'wrong'), 10000)";
+    const descendant = `setTimeout(() => require('node:fs').writeFileSync(process.argv[1], 'wrong'), ${DEADLINE_DESCENDANT_LIFETIME_MS})`;
     const wrapper =
       "const p=require('node:child_process').spawn(process.execPath,['-e',process.argv[1],process.argv[2]],{env:process.env,detached:true,stdio:'ignore'});p.unref();";
     const handle = await spawnSupervisedUmu({
@@ -193,7 +196,7 @@ test(
       args: ["-e", wrapper, descendant, marker],
       cwd: directory,
       environment: process.env,
-      timeoutMs: 600,
+      timeoutMs: TOOL_DEADLINE_MS,
     });
     t.after(() => handle.terminate());
     assert.equal((await handle.exited).code, 0);
