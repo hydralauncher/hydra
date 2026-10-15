@@ -311,6 +311,12 @@ test("first restore uses staging and preserves files excluded by Epic metadata",
 test("two initial copies require a choice and stale conflict choices cannot overwrite remote changes", async (t) => {
   const f = await fixture(t);
   await fsp.writeFile(path.join(f.local, "profile.sav"), "local");
+  const localModifiedAt = new Date("2026-10-14T09:00:00.000Z");
+  await fsp.utimes(
+    path.join(f.local, "profile.sav"),
+    localModifiedAt,
+    localModifiedAt
+  );
   await fsp.writeFile(path.join(f.remote, "profile.sav"), "cloud");
   f.state.manifest = "2026.10.14-10.00.00.manifest";
   const conflict = await f.service.sync("Namespace:Item");
