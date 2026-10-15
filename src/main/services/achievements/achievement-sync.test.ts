@@ -47,6 +47,11 @@ async function fixture(
     context: context as typeof context | null,
     preferenceGate: null as Promise<unknown> | null,
     records,
+    pendingSouvenirs: new Map<string, Record<string, string>>(),
+    recordsReadGate: null as Promise<void> | null,
+    recordsReadStarted: null as (() => void) | null,
+    recordReadGate: null as Promise<void> | null,
+    recordReadStarted: null as (() => void) | null,
     requests,
     updates: [] as Array<{ channel: string; achievements: unknown }>,
     catalogueGate: null as Promise<unknown> | null,
@@ -70,6 +75,7 @@ async function fixture(
     "achievement-sync-coordinator",
     "achievement-sync-worker",
     "merge-unlocked-achievements",
+    "pending-achievement-souvenir-store",
     "game-request-queue",
   ]);
   if (options.metadata || options.view) actual.add("get-game-achievement-data");
@@ -80,7 +86,8 @@ async function fixture(
     export const isAchievementSouvenirsEnabled = () => false;
     export class UserNotLoggedInError extends Error {};
     export const HydraApi = { getResponse: async () => state.catalogueGate ? await state.catalogueGate : {status:200,data:[],headers:{}}, delete: async (url, options) => {state.deletes.push({url, options});}, getAuthContext: () => state.context, isAuthContextCurrent: context => Boolean(state.context && state.context.userId === context.userId && state.context.generation === context.generation), put: async (_url, body, options) => { let resolve, reject; const promise = new Promise((done, fail) => {resolve = done; reject = fail;}); state.requests.push({body, options, gate: {promise, resolve, reject}}); return promise; } };
-    export const db = { get: async key => { if (state.preferenceGate) await state.preferenceGate; return key === "language" ? "en" : { achievementNotificationsEnabled: false }; }, sublevel: () => ({ get: async key => { if (!state.records.has(key)) throw new Error('missing'); return state.records.get(key); }, put: async (key, item) => state.records.set(key, item), del: async key => state.records.delete(key), values: () => ({all: async () => [...state.records.values()]}) }) };
+    export const db = { get: async key => { if (state.preferenceGate) await state.preferenceGate; return key === "language" ? "en" : { achievementNotificationsEnabled: false }; }, sublevel: () => ({ get: async key => { const item = state.records.get(key); state.recordReadStarted?.(); if (state.recordReadGate) await state.recordReadGate; if (!item) throw new Error('missing'); return item; }, put: async (key, item) => state.records.set(key, item), del: async key => state.records.delete(key), values: () => ({all: async () => {const rows = [...state.records.values()]; state.recordsReadStarted?.(); if (state.recordsReadGate) await state.recordsReadGate; return rows;}}) }) };
+    export const pendingAchievementSouvenirsSublevel = {get: async key => state.pendingSouvenirs.get(key), put: async (key, value) => state.pendingSouvenirs.set(key, value), del: async key => state.pendingSouvenirs.delete(key)};
     export const levelKeys = {game: (shop, id) => shop + ':' + id, userPreferences: 'preferences', language: 'language'};
     export const WindowManager = { mainWindow: { webContents: { send: (channel, achievements) => state.updates.push({channel, achievements}) } } };
     export const getUnlockedAchievements = async () => [];
@@ -281,6 +288,104 @@ test("reset removes durable work after an in-flight PUT and prevents resurrectio
   );
   assert.equal(f.requests.length, 1);
 });
+test("reset invalidates a durable queue read that completes afterward", async (t) => {
+  const f = await fixture(t);
+  await f.achievementSyncWorker.enqueue({
+    context: f.state.context!,
+    gameKey: "steam:620",
+    remoteId: f.game.remoteId!,
+    shop: "steam",
+    objectId: "620",
+    achievements: [{ name: "BEFORE_RESET", unlockTime: 1 }],
+  });
+  const gate = deferred<void>();
+  const started = deferred<void>();
+  f.state.recordsReadGate = gate.promise;
+  f.state.recordsReadStarted = () => started.resolve();
+  const run = f.achievementSyncWorker.trigger();
+  await started.promise;
+  await f.achievementSyncCoordinator.resetGame("steam:620", () =>
+    f.achievementSyncWorker.cancelGame("steam:620")
+  );
+  gate.resolve();
+  await new Promise((resolve) => setImmediate(resolve));
+  for (const request of f.requests) request.gate.resolve(undefined);
+  await run;
+  assert.equal(f.requests.length, 0);
+  assert.equal(f.records.size, 0);
+});
+
+test("a queued PUT revalidates durable work before dispatch", async (t) => {
+  const f = await fixture(t);
+  const gate = deferred<void>();
+  const otherRequest = f.achievementSyncCoordinator.runRequest(
+    "steam:other",
+    () => gate.promise,
+    () => true
+  );
+  await f.achievementSyncWorker.enqueue({
+    context: f.state.context!,
+    gameKey: "steam:620",
+    remoteId: f.game.remoteId!,
+    shop: "steam",
+    objectId: "620",
+    achievements: [{ name: "CANCELED", unlockTime: 1 }],
+  });
+  const run = f.achievementSyncWorker.trigger();
+  await new Promise((resolve) => setImmediate(resolve));
+  await f.achievementSyncWorker.cancelGame("steam:620");
+  gate.resolve();
+  await otherRequest;
+  await new Promise((resolve) => setImmediate(resolve));
+  for (const request of f.requests) request.gate.resolve(undefined);
+  await run;
+  assert.equal(f.requests.length, 0);
+  assert.equal(f.records.size, 0);
+});
+
+test("reset invalidates a pending record read before the PUT is sent", async (t) => {
+  const f = await fixture(t);
+  await f.achievementSyncWorker.enqueue({
+    context: f.state.context!,
+    gameKey: "steam:620",
+    remoteId: f.game.remoteId!,
+    shop: "steam",
+    objectId: "620",
+    achievements: [{ name: "BEFORE_RESET", unlockTime: 1 }],
+  });
+  const gate = deferred<void>();
+  const started = deferred<void>();
+  f.state.recordReadGate = gate.promise;
+  f.state.recordReadStarted = () => started.resolve();
+  const run = f.achievementSyncWorker.trigger();
+  await started.promise;
+  const reset = f.achievementSyncCoordinator.resetGame("steam:620", () =>
+    f.achievementSyncWorker.cancelGame("steam:620")
+  );
+  gate.resolve();
+  await new Promise((resolve) => setImmediate(resolve));
+  for (const request of f.requests) request.gate.resolve(undefined);
+  await Promise.all([run, reset]);
+  assert.equal(f.requests.length, 0);
+  assert.equal(f.records.size, 0);
+});
+
+test("ordinary sync retains legacy souvenir keys that were not acknowledged", async (t) => {
+  const f = await fixture(t);
+  f.state.pendingSouvenirs.set("steam:620", { A: "legacy-image" });
+  await f.mergeAchievements(f.game, [{ name: "A", unlockTime: 1 }], false);
+  await f.untilRequest(1);
+  assert.deepEqual(f.requests[0]!.body.achievements, [
+    { name: "A", unlockTime: 1 },
+  ]);
+  f.requests[0]!.gate.resolve(undefined);
+  await f.achievementSyncWorker.trigger();
+  assert.deepEqual(f.state.pendingSouvenirs.get("steam:620"), {
+    A: "legacy-image",
+  });
+  assert.equal(f.records.size, 0);
+});
+
 test("ordinary PUT payloads follow the API achievement schema", async (t) => {
   const f = await fixture(t);
   const payload = f.toAchievementSyncPayload({
@@ -323,7 +428,7 @@ test(
         async set(key, value) { super.set(key, value); await storage.put(key, value); return this; }
         async delete(key) { const deleted = super.delete(key); await storage.del(key); return deleted; }
       }
-      const state = {context: {environment:'local', userId:'fixture-user', generation:1}, preferenceGate:null, records:new Records(), requests:[], updates:[]};
+      const state = {context: {environment:'local', userId:'fixture-user', generation:1}, preferenceGate:null, records:new Records(), pendingSouvenirs:new Map(), requests:[], updates:[]};
       globalThis[${JSON.stringify(f.key)}] = state;
       const source = await import(${JSON.stringify(pathToFileURL(f.outfile).href)});
       source.AchievementMemoryStore.set('steam','620',{achievements:[],unlockedAchievements:[]});

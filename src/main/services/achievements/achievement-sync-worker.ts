@@ -10,7 +10,6 @@ import { db } from "@main/level";
 import { achievementsLogger } from "../logger";
 import { reconcileAchievementMemory } from "./reconcile-achievement-memory";
 import { mergeUnlockedAchievementLists } from "./merge-unlocked-achievements";
-import { PendingAchievementSouvenirStore } from "./pending-achievement-souvenir-store";
 import {
   achievementSyncCoordinator,
   AchievementSyncCancelledError,
@@ -165,19 +164,26 @@ export class AchievementSyncWorker {
 
   private async synchronize(item: PendingAchievementSync): Promise<boolean> {
     const key = keyOf(item.context, item.gameKey);
-    const current = () => HydraApi.isAuthContextCurrent(item.context);
+    const current = achievementSyncCoordinator.captureCurrent(
+      item.gameKey,
+      () => HydraApi.isAuthContextCurrent(item.context)
+    );
     try {
       const response = await achievementSyncCoordinator.runRequest(
         item.gameKey,
-        () =>
-          HydraApi.put<UpdatedUnlockedAchievements | undefined>(
+        async () => {
+          const latest = await pending.get(key).catch(() => null);
+          if (!current() || latest?.revision !== item.revision)
+            throw new AchievementSyncCancelledError();
+          return HydraApi.put<UpdatedUnlockedAchievements | undefined>(
             "/profile/games/achievements",
             toAchievementSyncPayload(item),
             {
               authContext: item.context,
               timeout: ACHIEVEMENT_SYNC_REQUEST_TIMEOUT_MS,
             }
-          ),
+          );
+        },
         current
       );
       await achievementSyncCoordinator.runMerge(
@@ -185,10 +191,7 @@ export class AchievementSyncWorker {
         async (valid) => {
           if (response) await reconcileAchievementMemory(response, valid);
           if (!valid()) throw new AchievementSyncCancelledError();
-          await PendingAchievementSouvenirStore.clearSynced(
-            item.gameKey,
-            item.achievements
-          );
+          // Ordinary PUTs do not acknowledge legacy screenshot keys.
           const latest = await pending.get(key).catch(() => null);
           if (latest?.revision === item.revision) await pending.del(key);
         },
