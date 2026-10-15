@@ -414,7 +414,7 @@ export class EpicInstallationService {
   async capture(objectId: string, signal: AbortSignal): Promise<EpicOwnedGame> {
     if (!isEpicObjectId(objectId))
       throw new EpicManagedError("invalid-artifact");
-    const context = await this.options.capture();
+    const context = await waitWithSignal(this.options.capture(), signal);
     if (signal.aborted || !this.options.current(context))
       throw new EpicManagedError("operation-cancelled");
     const game = await this.options.getGame(objectId);

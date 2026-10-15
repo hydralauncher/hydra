@@ -427,6 +427,46 @@ test("cancelling the last preview consumer aborts work and reopening immediately
   assert.equal(f.commands.filter((args) => args.includes("info")).length, 2);
 });
 
+test("cancelling a capture releases connection cleanup before the captured query resolves without checking ownership", async (t) => {
+  const f = await fixture(t);
+  const entered = deferred<void>();
+  const releaseQuery = deferred<void>();
+  let querySettled = false;
+  f.beforeCapture(async () => {
+    entered.resolve();
+    await releaseQuery.promise;
+    querySettled = true;
+  });
+  const ownershipRequests = f.ownershipRequests();
+  const controller = new AbortController();
+  const pending = f.service.capture(objectId, controller.signal);
+  let cleanupSettled = false;
+  const cleanup = assert
+    .rejects(pending, { code: "operation-cancelled" })
+    .then(() => {
+      cleanupSettled = true;
+    });
+  await entered.promise;
+  controller.abort();
+  try {
+    // A connection transition waits for launch cleanup before resolving its
+    // query. Cancellation must break that dependency without awaiting the query.
+    await new Promise<void>((resolve) => setImmediate(resolve));
+    assert.equal(cleanupSettled, true);
+    assert.equal(querySettled, false);
+    assert.equal(f.ownershipRequests(), ownershipRequests);
+    assert.equal(f.commands.length, 0);
+  } finally {
+    releaseQuery.resolve();
+    await cleanup;
+  }
+  await new Promise<void>((resolve) => setImmediate(resolve));
+  assert.equal(querySettled, true);
+  assert.equal(f.ownershipRequests(), ownershipRequests);
+  f.beforeCapture(undefined);
+  await f.service.capture(objectId, new AbortController().signal);
+  assert.equal(f.ownershipRequests(), ownershipRequests + 1);
+});
 test("preview deadline includes connection capture and a timeout remains retryable", async (t) => {
   const f = await fixture(t);
   const entered = deferred<void>();
