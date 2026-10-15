@@ -11,8 +11,16 @@ import {
   getLatestSeq,
   hasGapBefore,
   mergeChatMessages,
+  mergePendingMessages,
+  removeUnsentMessage,
+  setMessageAttachmentIds,
+  setMessageFailed,
   setMessageStatus,
+  setMessageUploadProgress,
+  setMessageVisibility,
+  settleSendingMessage,
   toChatMessage,
+  toPendingChatMessage,
 } from "./chat-state.js";
 
 const FRIEND_ID = "friend01";
@@ -108,6 +116,31 @@ describe("toChatMessage", () => {
   });
 });
 
+describe("toChatMessage with removed messages", () => {
+  it("marks messages and quotes moderation removed", () => {
+    const message = toChatMessage(
+      {
+        seq: 8,
+        senderId: MY_ID,
+        body: "",
+        hidden: true,
+        clientNonce: "nonce-8",
+        createdAt: CREATED_AT,
+        replyToSeq: 7,
+        replyTo: { senderId: FRIEND_ID, body: "", hidden: true },
+      },
+      FRIEND_ID
+    );
+
+    assert.equal(message.isHidden, true);
+    assert.deepEqual(message.replyTo, {
+      seq: 7,
+      quoted: { fromMe: false, text: "", isHidden: true },
+    });
+    assert.equal("isHidden" in stored(3), false);
+  });
+});
+
 describe("createReply", () => {
   it("quotes stored messages by seq", () => {
     assert.deepEqual(createReply(stored(3)), {
@@ -118,6 +151,10 @@ describe("createReply", () => {
 
   it("refuses messages the server has not stored", () => {
     assert.equal(createReply(createPendingMessage("hi", "nonce-9")), null);
+  });
+
+  it("refuses removed messages", () => {
+    assert.equal(createReply({ ...stored(3), isHidden: true }), null);
   });
 
   it("is carried by the optimistic copy of a reply", () => {
@@ -238,6 +275,65 @@ describe("setMessageStatus", () => {
   });
 });
 
+describe("setMessageFailed", () => {
+  it("keeps why it failed until the next failure", () => {
+    const pending = createPendingMessage("", "nonce-9", CREATED_AT);
+    const capped = setMessageFailed([pending], "nonce-9", "daily_limit");
+
+    assert.equal(capped[0].status, "failed");
+    assert.equal(capped[0].failure, "daily_limit");
+    assert.equal(setMessageFailed(capped, "nonce-9")[0].failure, undefined);
+  });
+});
+
+describe("setMessageVisibility", () => {
+  const reply = (seq: number, replyToSeq: number): ChatMessage =>
+    toChatMessage(
+      {
+        seq,
+        senderId: MY_ID,
+        body: "lol",
+        clientNonce: `nonce-${seq}`,
+        createdAt: CREATED_AT,
+        replyToSeq,
+        replyTo: { senderId: FRIEND_ID, body: `message ${replyToSeq}` },
+      },
+      FRIEND_ID
+    );
+
+  it("removes the message and its quotes", () => {
+    const messages = setMessageVisibility(
+      [stored(1), stored(2), reply(3, 2)],
+      2,
+      null
+    );
+
+    assert.equal(messages[0].isHidden, undefined);
+    assert.equal(messages[1].isHidden, true);
+    assert.equal(messages[1].text, "");
+    assert.deepEqual(messages[2].replyTo?.quoted, {
+      fromMe: false,
+      text: "",
+      isHidden: true,
+    });
+    assert.equal(messages[2].text, "lol");
+  });
+
+  it("puts the message and its quotes back with their text", () => {
+    const removed = setMessageVisibility([stored(2), reply(3, 2)], 2, null);
+    const messages = setMessageVisibility(removed, 2, "message 2");
+
+    assert.deepEqual(messages, [stored(2), reply(3, 2)]);
+  });
+
+  it("leaves other messages as they are", () => {
+    const messages = [stored(1), reply(3, 1)];
+
+    assert.equal(setMessageVisibility(messages, 2, null)[0], messages[0]);
+    assert.equal(setMessageVisibility(messages, 2, null)[1], messages[1]);
+  });
+});
+
 describe("gap detection", () => {
   it("finds the latest stored seq", () => {
     assert.equal(getLatestSeq([]), 0);
@@ -298,5 +394,233 @@ describe("findFirstFriendMessageAfter", () => {
     const messages = [stored(1), stored(2, MY_ID)];
 
     assert.equal(findFirstFriendMessageAfter(messages, messages[0].id), null);
+  });
+});
+
+const IMAGE = {
+  id: "attachment-1",
+  contentType: "image/jpeg" as const,
+  width: 1568,
+  height: 882,
+  spoiler: false,
+  url: "https://images.example/attachment-1",
+};
+
+describe("messages with images", () => {
+  it("keeps the images of stored messages, and reply image counts", () => {
+    const message = toChatMessage(
+      {
+        seq: 9,
+        senderId: FRIEND_ID,
+        body: "",
+        clientNonce: "nonce-9",
+        createdAt: CREATED_AT,
+        replyToSeq: 8,
+        replyTo: { senderId: MY_ID, body: "", attachmentCount: 2 },
+        attachments: [IMAGE],
+      },
+      FRIEND_ID
+    );
+
+    assert.deepEqual(message.attachments, [IMAGE]);
+    assert.deepEqual(message.replyTo, {
+      seq: 8,
+      quoted: { fromMe: true, text: "", attachmentCount: 2 },
+    });
+    assert.equal(stored(10).attachments, undefined);
+  });
+
+  it("quotes how many images a replied-to message has", () => {
+    const target = { ...stored(11), attachments: [IMAGE, IMAGE] };
+
+    assert.equal(createReply(target)?.quoted?.attachmentCount, 2);
+  });
+
+  it("restores the user's held messages from the server", () => {
+    const message = toPendingChatMessage({
+      clientNonce: "nonce-held",
+      status: "blocked",
+      body: "look",
+      replyToSeq: 4,
+      createdAt: CREATED_AT,
+      attachments: [IMAGE],
+    });
+
+    assert.deepEqual(message, {
+      id: "nonce-held",
+      clientNonce: "nonce-held",
+      fromMe: true,
+      text: "look",
+      createdAt: CREATED_AT,
+      status: "blocked",
+      replyTo: { seq: 4 },
+      attachments: [IMAGE],
+      fromHistory: true,
+    });
+  });
+
+  it("starts a message with images at no progress", () => {
+    const local = { ...IMAGE, id: "local-1", url: null, localUrl: "blob:1" };
+    const message = createPendingMessage("", "nonce-new", CREATED_AT, null, [
+      local,
+    ]);
+
+    assert.equal(message.status, "pending");
+    assert.equal(message.uploadProgress, 0);
+    assert.deepEqual(message.attachments, [local]);
+  });
+
+  it("keeps the sender's local copies once the message is stored", () => {
+    const local = { ...IMAGE, id: "local-1", url: null, localUrl: "blob:1" };
+    const pending = createPendingMessage("", "nonce-9", CREATED_AT, null, [
+      local,
+    ]);
+    const delivered = toChatMessage(
+      {
+        seq: 9,
+        senderId: MY_ID,
+        body: "",
+        clientNonce: "nonce-9",
+        createdAt: CREATED_AT,
+        attachments: [IMAGE],
+      },
+      FRIEND_ID
+    );
+
+    const [merged] = mergeChatMessages([pending], [delivered]);
+
+    assert.equal(merged.status, "sent");
+    assert.deepEqual(merged.attachments, [{ ...IMAGE, localUrl: "blob:1" }]);
+  });
+
+  it("swaps local attachment ids for the reserved ones", () => {
+    const local = { ...IMAGE, id: "local-1", url: null, localUrl: "blob:1" };
+    const messages = setMessageAttachmentIds(
+      [createPendingMessage("", "nonce-9", CREATED_AT, null, [local])],
+      "nonce-9",
+      ["server-1"]
+    );
+
+    assert.equal(messages[0].attachments?.[0].id, "server-1");
+    assert.equal(messages[0].attachments?.[0].localUrl, "blob:1");
+  });
+
+  it("tracks upload progress on unsent messages only", () => {
+    const messages = setMessageUploadProgress(
+      [createPendingMessage("hi", "nonce-x", CREATED_AT), stored(1)],
+      "nonce-x",
+      0.5
+    );
+
+    assert.equal(messages[0].uploadProgress, 0.5);
+    assert.equal(messages[1].uploadProgress, undefined);
+  });
+
+  it("settles a sending message unless an event got there first", () => {
+    const sending = {
+      ...createPendingMessage("", "nonce-a", CREATED_AT),
+      uploadProgress: 1,
+    };
+    const blocked = {
+      ...sending,
+      clientNonce: "nonce-b",
+      status: "blocked" as const,
+    };
+
+    const [checking, untouched] = settleSendingMessage(
+      settleSendingMessage([sending, blocked], "nonce-a", "checking"),
+      "nonce-b",
+      "checking"
+    );
+
+    assert.equal(checking.status, "checking");
+    assert.equal("uploadProgress" in checking, false);
+    assert.equal(untouched.status, "blocked");
+  });
+
+  it("drops only unsent copies", () => {
+    const unsent = setMessageStatus(
+      [createPendingMessage("hi", "nonce-x", CREATED_AT)],
+      "nonce-x",
+      "failed"
+    );
+
+    assert.deepEqual(removeUnsentMessage([...unsent, stored(1)], "nonce-x"), [
+      stored(1),
+    ]);
+    assert.deepEqual(removeUnsentMessage([stored(1)], "nonce-1"), [stored(1)]);
+  });
+
+  it("hides the image URLs of a removed message but keeps their size", () => {
+    const message = {
+      ...stored(9),
+      attachments: [{ ...IMAGE, localUrl: "blob:1" }],
+    };
+
+    const [removed] = setMessageVisibility([message], 9, null);
+
+    assert.equal(removed.isHidden, true);
+    assert.deepEqual(removed.attachments, [
+      { ...IMAGE, url: null, localUrl: undefined },
+    ]);
+  });
+});
+
+describe("mergePendingMessages", () => {
+  const held = (clientNonce: string, status: "checking" | "blocked") =>
+    toPendingChatMessage({
+      clientNonce,
+      status,
+      body: "",
+      replyToSeq: null,
+      createdAt: CREATED_AT,
+      attachments: [IMAGE],
+    });
+
+  it("adds held messages the window didn't know about", () => {
+    const merged = mergePendingMessages(
+      [stored(1)],
+      [held("nonce-h", "checking")]
+    );
+
+    assert.deepEqual(
+      merged.map((message) => message.clientNonce),
+      ["nonce-1", "nonce-h"]
+    );
+  });
+
+  it("applies the server's status to messages already settled locally", () => {
+    const local = setMessageStatus(
+      [createPendingMessage("", "nonce-h", CREATED_AT)],
+      "nonce-h",
+      "checking"
+    );
+
+    const [merged] = mergePendingMessages(local, [held("nonce-h", "blocked")]);
+
+    assert.equal(merged.status, "blocked");
+  });
+
+  it("leaves messages still uploading or posting alone", () => {
+    const local = [createPendingMessage("", "nonce-h", CREATED_AT)];
+
+    const [merged] = mergePendingMessages(local, [held("nonce-h", "blocked")]);
+
+    assert.equal(merged.status, "pending");
+  });
+
+  it("never brings back a message that was delivered meanwhile", () => {
+    const delivered = {
+      ...stored(5, MY_ID),
+      clientNonce: "nonce-h",
+      id: "nonce-h",
+    };
+
+    const merged = mergePendingMessages(
+      [delivered],
+      [held("nonce-h", "checking")]
+    );
+
+    assert.deepEqual(merged, [delivered]);
   });
 });

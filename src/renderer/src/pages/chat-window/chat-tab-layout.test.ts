@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 
-import { getChatTabLayout } from "./chat-tab-layout.js";
+import { getAdjacentTabId, getChatTabLayout } from "./chat-tab-layout.js";
 
 const ids = (count: number) =>
   Array.from({ length: count }, (_, index) => `friend-${index}`);
@@ -68,5 +68,28 @@ describe("getChatTabLayout", () => {
 
   it("returns an empty layout when there are no tabs", () => {
     assert.deepEqual(getChatTabLayout([], null, 468).visibleIds, []);
+  });
+});
+
+describe("getAdjacentTabId", () => {
+  const tabs = ["a", "b", "c"];
+
+  it("moves to the next and previous tab", () => {
+    assert.equal(getAdjacentTabId(tabs, "a", 1), "b");
+    assert.equal(getAdjacentTabId(tabs, "c", -1), "b");
+  });
+
+  it("wraps around both ends", () => {
+    assert.equal(getAdjacentTabId(tabs, "c", 1), "a");
+    assert.equal(getAdjacentTabId(tabs, "a", -1), "c");
+  });
+
+  it("starts from an end when no tab is active", () => {
+    assert.equal(getAdjacentTabId(tabs, null, 1), "a");
+    assert.equal(getAdjacentTabId(tabs, null, -1), "c");
+  });
+
+  it("has nowhere to go with a single tab", () => {
+    assert.equal(getAdjacentTabId(["a"], "a", 1), null);
   });
 });

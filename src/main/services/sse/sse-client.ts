@@ -9,6 +9,8 @@ import { notificationEvent } from "./events/notification";
 import { chatMessageEvent } from "./events/chat-message";
 import { chatTypingEvent } from "./events/chat-typing";
 import { chatReactionEvent } from "./events/chat-reaction";
+import { chatMessageVisibilityEvent } from "./events/chat-message-visibility";
+import { chatMessageRejectedEvent } from "./events/chat-message-rejected";
 import { resyncAfterEventFailure, resyncAfterReconnect } from "./resync";
 import {
   cancelChatCatchUp,
@@ -21,6 +23,8 @@ import {
 } from "./websocket-client";
 import type {
   ChatMessage,
+  ChatMessageRejected,
+  ChatMessageVisibility,
   ChatReaction,
   ChatTyping,
   FriendGameSession,
@@ -54,6 +58,26 @@ const dispatchEvent = async (
       break;
     case "chatReaction":
       await chatReactionEvent(payload satisfies ChatReaction, signal);
+      break;
+    case "chatMessageHidden":
+      await chatMessageVisibilityEvent(
+        payload satisfies ChatMessageVisibility,
+        true,
+        signal
+      );
+      break;
+    case "chatMessageRestored":
+      await chatMessageVisibilityEvent(
+        payload satisfies ChatMessageVisibility,
+        false,
+        signal
+      );
+      break;
+    case "chatMessageRejected":
+      await chatMessageRejectedEvent(
+        payload satisfies ChatMessageRejected,
+        signal
+      );
       break;
   }
 };

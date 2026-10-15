@@ -1,9 +1,40 @@
-export type ChatMessageStatus = "sent" | "pending" | "failed";
+/**
+ * `pending` is a message on its way (images uploading), `checking` one with
+ * images the server holds until they pass moderation, and `blocked` one the
+ * check turned away.
+ */
+export type ChatMessageStatus =
+  | "sent"
+  | "pending"
+  | "checking"
+  | "blocked"
+  | "failed";
 
 export interface ChatMessageReply {
   seq: number;
   /** Unset once the replied-to message is past chat retention. */
-  quoted?: { fromMe: boolean; text: string };
+  quoted?: {
+    fromMe: boolean;
+    /** Empty while the replied-to message is removed, or images only. */
+    text: string;
+    /** Removed by moderation. */
+    isHidden?: boolean;
+    /** Images on the replied-to message. */
+    attachmentCount?: number;
+  };
+}
+
+export interface ChatAttachment {
+  /** The server's id; a local one until its upload is reserved. */
+  id: string;
+  contentType: string;
+  width: number | null;
+  height: number | null;
+  spoiler: boolean;
+  /** Null while removed by moderation, or before the upload. */
+  url: string | null;
+  /** The sender's own copy, kept past delivery so the image doesn't reload. */
+  localUrl?: string;
 }
 
 export interface ChatReaction {
@@ -22,14 +53,23 @@ export interface ChatMessage {
   /** Position in the conversation; unset until the server stores the message. */
   seq?: number;
   fromMe: boolean;
+  /** Empty while the message is removed. */
   text: string;
   createdAt: string;
   status: ChatMessageStatus;
+  /** Removed by moderation: shown as a placeholder, with no actions. */
+  isHidden?: boolean;
   replyTo?: ChatMessageReply;
   /** Oldest first, at most one from each side, removals included. */
   reactions?: ChatReaction[];
   /** Loaded from history rather than sent or received live: no entrance animation. */
   fromHistory?: boolean;
+  /** Images, in the order they were sent. */
+  attachments?: ChatAttachment[];
+  /** Share of the images uploaded, 0 to 1, while the status is `pending`. */
+  uploadProgress?: number;
+  /** Why a `failed` message failed, when the user can do something about it. */
+  failure?: "daily_limit";
 }
 
 export interface ChatMessageGroup {
