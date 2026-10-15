@@ -1,0 +1,323 @@
+@use "../../../../../../renderer/src/pages/game-details/gallery-slider/gallery-video-player";
+@use "../../../../../../renderer/src/pages/game-details/gallery-slider/gallery-fullscreen-button"
+  as fullscreen-button;
+
+$media-viewer-ease: cubic-bezier(0.22, 1, 0.36, 1);
+$media-viewer-layer-fade: 280ms;
+
+.media-viewer {
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  max-width: none;
+  max-height: none;
+  margin: 0;
+  padding: 0;
+  border: none;
+  z-index: 1000;
+  overflow: hidden;
+  background-color: #000;
+  color: var(--text);
+  user-select: none;
+  animation: media-viewer-fade-in 0.2s ease-out;
+
+  &--chrome-hidden {
+    cursor: none;
+  }
+
+  &__chrome {
+    transition: opacity 0.3s ease;
+  }
+
+  &--chrome-hidden &__chrome {
+    opacity: 0;
+    pointer-events: none;
+  }
+
+  &__stage-region,
+  &__stage {
+    position: absolute;
+    inset: 0;
+  }
+
+  &__stage {
+    outline: none;
+  }
+
+  &__layer {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    container-type: size;
+    opacity: 0;
+    transition: opacity $media-viewer-layer-fade ease-out;
+
+    &--visible {
+      opacity: 1;
+    }
+
+    &--inactive {
+      pointer-events: none;
+    }
+
+    &--leaving {
+      opacity: 0;
+      transition-timing-function: cubic-bezier(0.55, 0, 1, 0.45);
+    }
+  }
+
+  &__layer--inactive .gallery-video__controls,
+  &__layer--inactive .gallery-video__big-play,
+  &__layer--inactive .gallery-video__flash,
+  &__layer--inactive .gallery-video__seek-indicator,
+  &__layer--inactive .gallery-video__volume-indicator {
+    visibility: hidden;
+  }
+
+  &__frame {
+    position: relative;
+    flex-shrink: 0;
+    aspect-ratio: var(--media-aspect);
+    width: min(100cqw, calc(100cqh * var(--media-aspect)));
+    overflow: hidden;
+  }
+
+  &__image {
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+  }
+
+  &__top-bar {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 2;
+    display: flex;
+    align-items: baseline;
+    gap: calc(var(--spacing-unit) * 4);
+    padding: calc(var(--spacing-unit) * 8) calc(var(--spacing-unit) * 12)
+      calc(var(--spacing-unit) * 16);
+    background: linear-gradient(
+      to bottom,
+      rgba(0, 0, 0, 0.7) 0%,
+      rgba(0, 0, 0, 0) 100%
+    );
+    pointer-events: none;
+  }
+
+  &__counter {
+    flex-shrink: 0;
+    color: var(--text-secondary);
+    font-size: 16px;
+    font-variant-numeric: tabular-nums;
+  }
+
+  &__title {
+    min-width: 0;
+    overflow: hidden;
+    color: var(--primary);
+    font-size: 22px;
+    font-weight: 700;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+  }
+
+  &__nav {
+    position: absolute;
+    top: 50%;
+    z-index: 2;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: calc(var(--spacing-unit) * 2.5);
+    transform: translateY(-50%);
+
+    &--left {
+      left: calc(var(--spacing-unit) * 8);
+    }
+
+    &--right {
+      right: calc(var(--spacing-unit) * 8);
+    }
+
+    &--hidden {
+      opacity: 0;
+      pointer-events: none;
+    }
+  }
+
+  &__nav-button {
+    width: 64px;
+    height: 64px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid var(--secondary-border);
+    border-radius: 50%;
+    background-color: rgba(0, 0, 0, 0.5);
+    color: var(--primary);
+    cursor: pointer;
+    transition:
+      background-color 0.15s ease,
+      transform 0.15s ease;
+
+    &:hover {
+      background-color: var(--secondary-hover);
+    }
+
+    &:active {
+      transform: scale(0.92);
+    }
+  }
+
+  &__footer {
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 2;
+    display: flex;
+    align-items: center;
+    gap: calc(var(--spacing-unit) * 3);
+    padding: calc(var(--spacing-unit) * 6) calc(var(--spacing-unit) * 8)
+      calc(var(--spacing-unit) * 8);
+    background: linear-gradient(
+      to top,
+      rgba(0, 0, 0, 0.75) 0%,
+      rgba(0, 0, 0, 0) 100%
+    );
+  }
+
+  &__filmstrip {
+    position: relative;
+    cursor: grab;
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    gap: calc(var(--spacing-unit) * 3);
+    overflow-x: auto;
+    overflow-y: hidden;
+    scrollbar-width: none;
+
+    &::-webkit-scrollbar {
+      display: none;
+    }
+
+    &--dragging,
+    &--dragging * {
+      cursor: grabbing;
+    }
+
+    &--dragging .media-viewer__thumbnail {
+      pointer-events: none;
+    }
+  }
+
+  &__thumbnail {
+    position: relative;
+
+    &:first-child {
+      margin-left: auto;
+    }
+
+    &:last-child {
+      margin-right: auto;
+    }
+
+    flex-shrink: 0;
+    height: 72px;
+    aspect-ratio: 16 / 9;
+    padding: 0;
+    overflow: hidden;
+    border: 2px solid rgba(255, 255, 255, 0.25);
+    border-radius: 8px;
+    background-color: var(--surface);
+    opacity: 0.8;
+    cursor: pointer;
+    transition:
+      opacity 0.2s ease,
+      border-color 0.2s ease;
+
+    img {
+      display: block;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+    &:hover {
+      opacity: 1;
+      border-color: rgba(255, 255, 255, 0.6);
+    }
+
+    &--active,
+    &--active:hover {
+      opacity: 1;
+      border-color: var(--primary);
+    }
+  }
+
+  &__thumbnail-play {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 28px;
+    height: 28px;
+    margin: -14px 0 0 -14px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    background-color: rgba(0, 0, 0, 0.6);
+    color: #fff;
+    pointer-events: none;
+  }
+
+  &__tooltip {
+    z-index: 1100;
+    padding: calc(var(--spacing-unit) * 2) calc(var(--spacing-unit) * 4);
+    border-radius: var(--spacing-unit);
+    background-color: var(--secondary);
+    color: #fff;
+    font-size: 14px;
+    font-weight: 400;
+    white-space: nowrap;
+  }
+
+  &__tooltip-arrow {
+    background-color: var(--secondary);
+  }
+
+  &__exit-button {
+    @include fullscreen-button.look;
+    @include fullscreen-button.size(72px);
+    flex-shrink: 0;
+  }
+}
+
+.game-page__media-carousel-surface:has(.gallery-video[data-playing])
+  .game-page__media-carousel-play-overlay {
+  display: none;
+}
+
+.game-page__media-carousel-surface .gallery-video--inline {
+  aspect-ratio: 16 / 9;
+  height: auto;
+  border-radius: 8px;
+}
+
+@keyframes media-viewer-fade-in {
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
+}

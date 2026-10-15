@@ -1,0 +1,9 @@
+{
+  "schemaVersion": 1,
+  "umu": {
+    "version": "1.4.4",
+    "sha256": "d0005a58602041229cc467dab03dc0c0b9e8cce09a8145b16b7683244cf17804",
+    "source": "https://github.com/Open-Wine-Components/umu-launcher/tree/1.4.4",
+    "compatibleManagedRuntimes": []
+  }
+}

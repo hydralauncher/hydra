@@ -113,7 +113,7 @@ export function getDownloaderAvailabilityOptions(
     }
   >();
   const allDownloaders = Object.values(Downloader).filter(
-    (value) => typeof value === "number"
+    (value) => typeof value === "number" && value !== Downloader.Epic
   ) as Downloader[];
 
   for (const uri of repack.uris) {

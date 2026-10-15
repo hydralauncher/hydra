@@ -1,6 +1,14 @@
 import { app } from "electron";
 import path from "node:path";
+import fs from "node:fs";
 import { SystemPath } from "./services/system-path";
+
+// Opt-in isolation for local API testing; packaged installs keep their paths.
+const developmentUserDataPath = import.meta.env.MAIN_VITE_USER_DATA_PATH;
+if (!app.isPackaged && developmentUserDataPath) {
+  fs.mkdirSync(developmentUserDataPath, { recursive: true, mode: 0o700 });
+  app.setPath("userData", developmentUserDataPath);
+}
 
 export const defaultDownloadsPath = SystemPath.getPath("downloads");
 
@@ -65,6 +73,7 @@ export const THEMES_PATH = path.join(SystemPath.getPath("userData"), "themes");
 export const INTERVALS = {
   processWatcher: 2_000,
   downloadWatcher: 2_000,
+  debridReadinessWatcher: 5_000,
   achievementWatcher: 2_000,
   emulatorSouvenirWatcher: 2_000,
   seedStatusWatcher: 2_000,

@@ -38,7 +38,7 @@ export const resolveStoredCloudSaveAutomaticSyncModeForShop = (
       storedV2Enabled
     );
   }
-  if (getCloudSaveEmulatorProvider(shop, platform)) {
+  if (shop === "epic" || getCloudSaveEmulatorProvider(shop, platform)) {
     return resolveCloudSaveAutomaticSyncMode({
       legacyEnabled: false,
       v2Enabled: storedV2Enabled ?? true,

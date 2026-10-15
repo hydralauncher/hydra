@@ -26,7 +26,8 @@ export default function GameAchievements() {
   const navigate = useNavigate();
   const { shopDetails, game, achievements, isLoading } = useGameDetails(
     objectId!,
-    shop!
+    shop!,
+    true
   );
   const { userDetails } = useUserDetails();
   const [souvenir, setSouvenir] = useState<UserAchievement | null>(null);

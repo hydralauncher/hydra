@@ -1,4 +1,5 @@
 import { Downloader, formatBytes, formatBytesToMbps } from "@shared";
+import { getEpicManagedError } from "@renderer/helpers/epic-managed-error";
 import type { LibraryGame, UserPreferences } from "../../../../types";
 import { getBigPictureDownloadView } from "../../../../types";
 import { addMilliseconds } from "date-fns";
@@ -313,6 +314,9 @@ export function useBigPictureDownloadsPageData() {
       extractionProgressByGameId[activeGame.id] ?? download.extractionProgress;
     const shouldUseLivePacket =
       !isPausedHero && lastPacket?.gameId === activeGame.id;
+    const epicPhase = shouldUseLivePacket
+      ? (lastPacket?.download.epic?.phase ?? download.epic?.phase)
+      : download.epic?.phase;
     const packetProgress = lastPacket?.progress ?? download.progress;
     const progress = isExtracting
       ? extractionProgress
@@ -354,8 +358,13 @@ export function useBigPictureDownloadsPageData() {
       pauseOrResumeAction = "resume";
     } else if (isExtracting) {
       statusLabel = "Extracting";
+    } else if (
+      download.downloader === Downloader.Epic &&
+      (epicPhase === "finalizing" || epicPhase === "prerequisites")
+    ) {
+      statusLabel = t("epic_finalizing_install", { ns: "game_details" });
     } else if (lastPacket?.isRecovering) {
-      statusLabel = `Recovering download… ${Math.round(
+      statusLabel = `Re-downloading saved portion… ${Math.round(
         (lastPacket.recoveryProgress ?? 0) * 100
       )}%`;
     } else if (lastPacket?.isReconnecting) {
@@ -403,6 +412,7 @@ export function useBigPictureDownloadsPageData() {
     lastPacket,
     renderTick,
     userPreferences,
+    t,
   ]);
 
   const queuedDownloads = useMemo((): BigPictureDownloadListItem[] => {
@@ -455,8 +465,12 @@ export function useBigPictureDownloadsPageData() {
         progress: download?.progress ?? 0,
         trailingLabel: formatProgress(download?.progress ?? 0),
         secondaryLabel:
-          formatTransfer(download?.bytesDownloaded, download?.fileSize) ??
-          getDownloadSize(download),
+          isError && download?.downloader === Downloader.Epic
+            ? t(getEpicManagedError(download.epic?.error).key, {
+                ns: getEpicManagedError(download.epic?.error).ns,
+              })
+            : (formatTransfer(download?.bytesDownloaded, download?.fileSize) ??
+              getDownloadSize(download)),
         rightStatusLabel: null,
         progressLabel: formatProgress(download?.progress ?? 0),
         transferLabel: formatTransfer(
@@ -471,7 +485,7 @@ export function useBigPictureDownloadsPageData() {
         game,
       };
     });
-  }, [pausedGames]);
+  }, [pausedGames, t]);
 
   const completedDownloads = useMemo((): BigPictureDownloadListItem[] => {
     return completedGames.map((game) => {
@@ -640,20 +654,29 @@ export function useBigPictureDownloadsPageData() {
   ]);
 
   const pauseDownload = useCallback(
-    async (game: LibraryGame) => {
+    async (game: LibraryGame, confirmed = false) => {
       if (!IS_DESKTOP) return;
 
-      await globalThis.window.electron.pauseGameDownload(
+      const paused = await globalThis.window.electron.pauseGameDownload(
         game.shop,
-        game.objectId
+        game.objectId,
+        confirmed
       );
 
-      if (lastPacket?.gameId === game.id) {
+      if (paused && lastPacket?.gameId === game.id) {
         setLastPacket(null);
       }
     },
     [lastPacket?.gameId]
   );
+
+  const getPauseWarning = useCallback(async (game: LibraryGame) => {
+    if (!IS_DESKTOP) return false;
+    return globalThis.window.electron.getDownloadPauseWarning(
+      game.shop,
+      game.objectId
+    );
+  }, []);
 
   const startNow = useCallback(async (game: LibraryGame) => {
     if (!IS_DESKTOP) return;
@@ -692,7 +715,7 @@ export function useBigPictureDownloadsPageData() {
   );
 
   const moveToPaused = useCallback(
-    async (game: LibraryGame, targetIndex?: number) => {
+    async (game: LibraryGame, targetIndex?: number, confirmed = false) => {
       if (!IS_DESKTOP) return;
 
       const resolvedTargetIndex = targetIndex ?? pausedGames.length;
@@ -701,7 +724,8 @@ export function useBigPictureDownloadsPageData() {
         game.shop,
         game.objectId,
         "paused",
-        resolvedTargetIndex
+        resolvedTargetIndex,
+        confirmed
       );
     },
     [pausedGames.length]
@@ -807,6 +831,7 @@ export function useBigPictureDownloadsPageData() {
     completedDownloads,
     hasDownloads,
     pauseDownload,
+    getPauseWarning,
     resumeDownload,
     startNow,
     sendToQueue,

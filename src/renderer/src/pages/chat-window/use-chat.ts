@@ -160,10 +160,16 @@ interface MessagesRange {
  * Every stored message after `afterSeq`, a page at a time. Whatever loaded
  * before a failure is kept.
  */
+const EMPTY_MESSAGES_RANGE: MessagesRange = {
+  messages: [],
+  canSend: null,
+  isComplete: false,
+};
+
 const fetchMessagesAfter = async (
   friendId: string,
   afterSeq: number,
-  range: MessagesRange = { messages: [], canSend: null, isComplete: false }
+  range = EMPTY_MESSAGES_RANGE
 ): Promise<MessagesRange> => {
   let page: ChatMessagesPage;
   try {

@@ -1,3 +1,4 @@
+import { updateGameRecord } from "@main/services/game-record-updater";
 import { registerEvent } from "../register-event";
 import type { GameShop } from "@types";
 import { gamesSublevel, levelKeys } from "@main/level";
@@ -92,8 +93,7 @@ const deleteSteamShortcutHandler = async (
   }
 
   // Clear Steam shortcut AppID in DB
-  await gamesSublevel.put(gameKey, {
-    ...game,
+  await updateGameRecord(gameKey, {
     steamShortcutAppId: undefined,
   });
 

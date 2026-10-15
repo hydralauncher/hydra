@@ -1,4 +1,4 @@
-import type { GameShop, ShopAssets } from "@types";
+import type { GameAssetsOptions, GameShop, ShopAssets } from "@types";
 import { registerEvent } from "../register-event";
 import { HydraApi } from "@main/services";
 import {
@@ -7,6 +7,7 @@ import {
   levelKeys,
 } from "@main/level";
 import { composeAssetsWithArtwork } from "@shared";
+import { resolveEpicDefaultArtwork } from "@main/services/game-artwork";
 
 const LOCAL_CACHE_EXPIRATION = 1000 * 60 * 60 * 8; // 8 hours
 
@@ -24,13 +25,18 @@ const applyArtworkSelection = async <T extends ShopAssets | null>(
 export const getGameAssets = async (
   objectId: string,
   shop: GameShop,
-  options?: { forceFresh?: boolean }
+  options?: GameAssetsOptions
 ) => {
   if (shop === "custom") {
     return null;
   }
 
   const gameKey = levelKeys.game(shop, objectId);
+  const artworkIdentity = options?.artworkIdentity ?? { shop, objectId };
+  const artworkKey = levelKeys.game(
+    artworkIdentity.shop,
+    artworkIdentity.objectId
+  );
   const cachedAssets = await gamesShopAssetsSublevel.get(gameKey);
 
   if (
@@ -38,7 +44,16 @@ export const getGameAssets = async (
     cachedAssets &&
     cachedAssets.updatedAt + LOCAL_CACHE_EXPIRATION > Date.now()
   ) {
-    return applyArtworkSelection(gameKey, cachedAssets);
+    if (shop !== "epic") return applyArtworkSelection(artworkKey, cachedAssets);
+    const resolved = await resolveEpicDefaultArtwork(
+      cachedAssets,
+      cachedAssets
+    );
+    await gamesShopAssetsSublevel.put(gameKey, {
+      ...resolved,
+      updatedAt: cachedAssets.updatedAt,
+    });
+    return applyArtworkSelection(artworkKey, resolved);
   }
 
   return HydraApi.get<ShopAssets | null>(
@@ -49,6 +64,11 @@ export const getGameAssets = async (
     }
   ).then(async (assets) => {
     if (!assets) return null;
+    if (shop === "epic")
+      assets = await resolveEpicDefaultArtwork(
+        assets,
+        options?.forceFresh ? null : cachedAssets
+      );
 
     const shouldPreserveTitle =
       !options?.forceFresh &&
@@ -61,7 +81,7 @@ export const getGameAssets = async (
       updatedAt: Date.now(),
     });
 
-    return applyArtworkSelection(gameKey, assets);
+    return applyArtworkSelection(artworkKey, assets);
   });
 };
 
@@ -69,7 +89,7 @@ const getGameAssetsEvent = async (
   _event: Electron.IpcMainInvokeEvent,
   objectId: string,
   shop: GameShop,
-  options?: { forceFresh?: boolean }
+  options?: GameAssetsOptions
 ) => getGameAssets(objectId, shop, options);
 
 registerEvent("getGameAssets", getGameAssetsEvent);

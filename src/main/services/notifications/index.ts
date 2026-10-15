@@ -45,7 +45,7 @@ const getNotificationIconDirectory = () => {
   return notificationIconDirectory;
 };
 
-const getStaticImage = async (imagePath: string) => {
+const getStaticImage = async (imagePath: string, removeSource = true) => {
   try {
     return await transcodeNotificationIcon(
       imagePath,
@@ -55,14 +55,20 @@ const getStaticImage = async (imagePath: string) => {
     logger.error("Failed to transcode notification icon", imagePath, error);
     return undefined;
   } finally {
-    // The download is only ever an input to the transcode.
-    await fs.promises.unlink(imagePath).catch(() => undefined);
+    // Downloaded inputs can be removed; shared local icons must be preserved.
+    if (removeSource) {
+      await fs.promises.unlink(imagePath).catch(() => undefined);
+    }
   }
 };
 
 async function downloadImage(url: string | null, signal?: AbortSignal) {
   if (signal?.aborted) return undefined;
   if (!url) return undefined;
+  if (url.startsWith("local:")) {
+    const image = await getStaticImage(url.slice("local:".length), false);
+    return signal?.aborted ? undefined : image;
+  }
   if (!url.startsWith("http")) return undefined;
 
   const fileName = buildDownloadFileName(url);

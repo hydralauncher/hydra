@@ -65,6 +65,7 @@ export default function Achievements() {
       gameTitle={title!}
       shop={shop as GameShop}
       objectId={objectId!}
+      lockAchievementIdentity
     >
       <GameDetailsContextConsumer>
         {({ isLoading, achievements }) => {

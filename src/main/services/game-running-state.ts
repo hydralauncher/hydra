@@ -7,6 +7,8 @@ interface GamePlaytimeState {
   lastSyncTick: number;
   countHydraPlaytime: boolean;
   syncSteamOnExit?: boolean;
+  syncEpicOnExit?: boolean;
+  managedEpicSession?: boolean;
 }
 
 export const getGamePlaytimeDeltas = (
@@ -54,6 +56,19 @@ export const enableHydraPlaytimeForRunningSession = (
 
 export const deleteGamePlaytime = (gameKey: string) =>
   mutableGamesPlaytime.delete(gameKey);
+
+export const resetHydraPlaytimeTicks = (
+  gameKey: string,
+  now = performance.now()
+) => {
+  const session = mutableGamesPlaytime.get(gameKey);
+  if (session)
+    mutableGamesPlaytime.set(gameKey, {
+      ...session,
+      lastTick: now,
+      lastSyncTick: now,
+    });
+};
 
 export const clearGamesPlaytimeState = () => {
   mutableGamesPlaytime.clear();

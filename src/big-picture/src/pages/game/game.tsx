@@ -6,8 +6,12 @@ import {
   getSkuRegionFlag,
   type SkuRegion,
 } from "@renderer/helpers";
-import type { GameShop, ShopAssets } from "@types";
-import { hasCloudSaveExecutableSelection } from "@shared";
+import type { GameShop, ShopAssets, LibraryGame } from "@types";
+import {
+  hasCloudSaveExecutableSelection,
+  getInstalledStoreMembers,
+  getOfficialStoreMembers,
+} from "@shared";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useNavigate, useParams } from "react-router-dom";
@@ -83,9 +87,16 @@ import {
 } from "../../components/pages/game/navigation";
 import { NavigationService, type FocusOverrideTarget } from "../../services";
 import { useNavigationStore } from "../../stores";
-import { IS_DESKTOP } from "../../constants";
 import { extractGenreNames } from "./game-metadata";
 import "./game.scss";
+import { EpicCloudSaves } from "../../components/pages/game/epic-cloud-saves";
+import { EpicCloudSaveConflictModal } from "../../components/modals/epic-cloud-save-conflict-modal";
+import { Button, Modal, HorizontalFocusGroup } from "../../components/common";
+import {
+  canRetryEpicLaunchWithLocalSaves,
+  getEpicLaunchError,
+  getEpicManagedError,
+} from "@renderer/helpers/epic-managed-error";
 
 const DESCRIPTION_HEADING_SELECTOR = "h1, h2, h3, h4, h5, h6";
 const DESCRIPTION_MEDIA_SELECTOR = "img, video";
@@ -499,14 +510,6 @@ export default function Game() {
   const { shop, objectId } = useParams<{ shop: GameShop; objectId: string }>();
   const navigate = useNavigate();
 
-  useEffect(() => {
-    if (!IS_DESKTOP || shop !== "steam" || !objectId) return;
-
-    void globalThis.window.electron
-      .syncSteamGameOnGamePage(objectId)
-      .catch(() => {});
-  }, [objectId, shop]);
-
   const [isDownloadModalOpen, setIsDownloadModalOpen] = useState(false);
   const [isDiscSelectionModalOpen, setIsDiscSelectionModalOpen] =
     useState(false);
@@ -576,6 +579,9 @@ export default function Game() {
   const {
     shopDetails,
     game,
+    presentationGame,
+    downloadGame,
+    catalogueGame,
     stats,
     isGameRunning,
     runningSessionDurationInMillis,
@@ -590,6 +596,96 @@ export default function Game() {
     updateGame,
     refreshGameDetails,
   } = useGameDetails(objectId!, shop!);
+  const members = presentationGame?.members ?? (game ? [game] : []);
+  const installedMembers = getInstalledStoreMembers(members);
+  const epicMember = getOfficialStoreMembers(members).epic;
+  const [showStoreSelection, setShowStoreSelection] = useState(false);
+  const [localSaveRetry, setLocalSaveRetry] = useState<LibraryGame | null>(
+    null
+  );
+  const [epicSaveConflict, setEpicSaveConflict] = useState<LibraryGame | null>(
+    null
+  );
+  const [canRetryOffline, setCanRetryOffline] = useState(false);
+  const [canRetryLocalSaves, setCanRetryLocalSaves] = useState(false);
+  const launchGeneration = useRef(0);
+  const invalidateLaunch = useCallback(() => {
+    launchGeneration.current++;
+  }, []);
+  useEffect(() => {
+    const invalidate = () => {
+      invalidateLaunch();
+      setShowStoreSelection(false);
+      setLocalSaveRetry(null);
+      setEpicSaveConflict(null);
+    };
+    invalidate();
+    const stop = window.electron?.onEpicConnectionChanged?.(invalidate);
+    return () => {
+      invalidateLaunch();
+      stop?.();
+    };
+  }, [shop, objectId, invalidateLaunch]);
+  const launchMember = useCallback(
+    async (member: LibraryGame, localOnce = false, offline = false) => {
+      if (!member.executablePath) return;
+      setShowStoreSelection(false);
+      setLocalSaveRetry(null);
+      setEpicSaveConflict(null);
+      setCanRetryOffline(false);
+      setCanRetryLocalSaves(false);
+      const generation = launchGeneration.current;
+      try {
+        await window.electron.openGame(
+          member.shop,
+          member.objectId,
+          member.executablePath,
+          member.launchOptions,
+          offline
+            ? { epicOffline: true }
+            : localOnce
+              ? { epicSavePolicy: "local-once" }
+              : undefined
+        );
+      } catch (error) {
+        if (generation !== launchGeneration.current) return;
+        const code =
+          member.shop === "epic" ? getEpicLaunchError(error) : undefined;
+        if (code === "save-conflict") {
+          setEpicSaveConflict(member);
+          return;
+        }
+        const translation = code ? getEpicManagedError(code) : null;
+        showErrorToast(
+          translation
+            ? t(translation.key, { ns: translation.ns })
+            : t("epic_launch_failed", { ns: "game_details" })
+        );
+        if (
+          member.shop === "epic" &&
+          typeof window.electron.getEpicCloudSaveState === "function"
+        ) {
+          const state = await window.electron
+            .getEpicCloudSaveState(member.objectId)
+            .catch(() => null);
+          if (generation !== launchGeneration.current) return;
+          if (state?.status === "conflict") {
+            setEpicSaveConflict(member);
+            return;
+          }
+          if (
+            canRetryEpicLaunchWithLocalSaves(state) ||
+            state?.canRunOffline === true
+          ) {
+            setLocalSaveRetry(member);
+            setCanRetryOffline(state?.canRunOffline === true);
+            setCanRetryLocalSaves(canRetryEpicLaunchWithLocalSaves(state));
+          }
+        }
+      }
+    },
+    [showErrorToast, t]
+  );
   const { launchSettings, customizationSettings, cloudSettings } =
     useGameSettingsModalState({
       game,
@@ -645,8 +741,8 @@ export default function Game() {
     isLoading: areSimilarGamesLoading,
     isEligible: areSimilarGamesEligible,
   } = useSimilarGames({
-    objectId: objectId ?? "",
-    shop: shop ?? "custom",
+    objectId: catalogueGame.objectId,
+    shop: catalogueGame.shop,
   });
   const similarCarouselGames = useMemo<ShopAssets[]>(
     () =>
@@ -948,6 +1044,17 @@ export default function Game() {
     if (!game) return;
 
     if (game.shop !== "launchbox") {
+      if (
+        installedMembers.some((member) => member.shop === "steam") &&
+        installedMembers.some((member) => member.shop === "epic")
+      ) {
+        setShowStoreSelection(true);
+        return;
+      }
+      if (game.shop === "epic" && game.epicInstallation) {
+        await launchMember(game);
+        return;
+      }
       await openGame();
       return;
     }
@@ -968,7 +1075,13 @@ export default function Game() {
     }
 
     setIsDiscSelectionModalOpen(true);
-  }, [game, launchClassicsWithErrorHandling, openGame]);
+  }, [
+    game,
+    installedMembers,
+    launchMember,
+    launchClassicsWithErrorHandling,
+    openGame,
+  ]);
 
   const handleDiscSelectionConfirm = useCallback(
     async (discPath: string, dontAskAgain: boolean) => {
@@ -1445,9 +1558,65 @@ export default function Game() {
   return (
     <VerticalFocusGroup regionId={GAME_PAGE_REGION_ID} asChild>
       <div ref={pageRef} className="game-page">
+        <EpicCloudSaveConflictModal
+          game={epicSaveConflict}
+          isGameRunning={isGameRunning}
+          onClose={() => setEpicSaveConflict(null)}
+        />
+        <Modal
+          visible={showStoreSelection}
+          title={t("choose_game_store", { ns: "game_details" })}
+          onClose={() => setShowStoreSelection(false)}
+        >
+          <HorizontalFocusGroup>
+            {installedMembers.map((member) => (
+              <Button
+                key={member.id}
+                variant="primary"
+                onClick={() => void launchMember(member)}
+              >
+                {t(member.shop === "steam" ? "play_on_steam" : "play_on_epic", {
+                  ns: "game_details",
+                })}
+              </Button>
+            ))}
+          </HorizontalFocusGroup>
+        </Modal>
+        <Modal
+          visible={!!localSaveRetry}
+          title={t("epic_play_local_saves", { ns: "game_details" })}
+          description={t("epic_play_local_saves_description", {
+            ns: "game_details",
+          })}
+          onClose={() => setLocalSaveRetry(null)}
+        >
+          <HorizontalFocusGroup>
+            {canRetryLocalSaves && (
+              <Button
+                variant="primary"
+                onClick={() => {
+                  if (localSaveRetry) void launchMember(localSaveRetry, true);
+                }}
+              >
+                {t("epic_play_local_saves", { ns: "game_details" })}
+              </Button>
+            )}
+            {canRetryOffline && (
+              <Button
+                variant="secondary"
+                onClick={() => {
+                  if (localSaveRetry)
+                    void launchMember(localSaveRetry, false, true);
+                }}
+              >
+                {t("epic_play_offline", { ns: "game_details" })}
+              </Button>
+            )}
+          </HorizontalFocusGroup>
+        </Modal>
         <BigPictureCloudSaveProvider
-          objectId={objectId!}
-          shop={shop!}
+          objectId={game?.objectId ?? objectId!}
+          shop={game?.shop ?? shop!}
           platform={game?.platform}
           hasExecutablePath={
             game ? hasCloudSaveExecutableSelection(game) : false
@@ -1457,9 +1626,10 @@ export default function Game() {
         >
           <Hero
             shopDetails={shopDetails}
-            game={game}
+            game={presentationGame ?? game}
+            downloadGame={downloadGame}
             isGameRunning={isGameRunning}
-            isFavorite={game?.favorite ?? false}
+            isFavorite={presentationGame?.favorite ?? game?.favorite ?? false}
             toggleFavorite={toggleFavorite}
             onPlay={handlePlayGame}
             onDownload={handleOpenDownloadModal}
@@ -1487,9 +1657,11 @@ export default function Game() {
         <section className="game-page__content">
           <PlaytimeBar
             game={game}
+            presentationGame={presentationGame}
             isGameRunning={isGameRunning}
             runningSessionDurationInMillis={runningSessionDurationInMillis}
           />
+          <EpicCloudSaves game={epicMember} isGameRunning={isGameRunning} />
 
           <div className="game-page__main-layout">
             <div className="game-page__main-column">
@@ -1602,8 +1774,8 @@ export default function Game() {
                   <Divider />
 
                   <GameReviews
-                    shop={shop!}
-                    objectId={objectId!}
+                    shop={game?.shop ?? shop!}
+                    objectId={game?.objectId ?? objectId!}
                     topNavigationTarget={commentsTopNavigationTarget}
                     onHasNavigableActionsChange={setHasNavigableComments}
                   />
@@ -1689,7 +1861,7 @@ export default function Game() {
                 )}
 
                 <ControllerSupportBox
-                  shop={shop}
+                  shop={catalogueGame.shop}
                   shopDetails={shopDetails}
                   focusId={GAME_SIDEBAR_CONTROLLER_SUPPORT_ID}
                   focusNavigationOrder={3}
@@ -1819,8 +1991,8 @@ export default function Game() {
           visible={isDownloadModalOpen}
           onClose={handleCloseDownloadModal}
           game={{
-            objectId: objectId!,
-            shop: shop!,
+            objectId: downloadGame?.objectId ?? game?.objectId ?? objectId!,
+            shop: downloadGame?.shop ?? game?.shop ?? shop!,
             title: resolvedGameTitle,
             iconUrl: preferredAssets.iconUrl,
             downloadSources:

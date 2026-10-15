@@ -5,6 +5,7 @@ import { WindowManager } from "@main/services/window-manager";
 import { logger } from "@main/services/logger";
 import { catchUpChatUnread } from "@main/services/chat/chat-unread-catch-up";
 import { ResyncCoordinator } from "./resync-coordinator";
+import { summarizeNetworkError } from "../network-error-summary.js";
 
 type ResyncScope = "friends" | "friendRequests" | "notifications" | "chat";
 
@@ -112,7 +113,7 @@ const runResync = async (
     } catch (error) {
       if (signal.aborted) return;
       firstError ??= error;
-      logger.error(errorMessage, error);
+      logger.error(errorMessage, summarizeNetworkError(error));
     }
   }
 
