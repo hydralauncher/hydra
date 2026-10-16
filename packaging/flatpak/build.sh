@@ -22,7 +22,11 @@ for name in "${required_env[@]}"; do
   fi
 done
 
-rm -rf "$output_dir" "$flatpak_dir/build/hydra-files" "$repo_root/.flatpak-builder"
+rm -rf "$output_dir" "$flatpak_dir/build/hydra-files"
+# Older flatpak-builder runs may leave root-level cache data that Electron
+# would accidentally package. Preserve a possibly mounted rofiles directory.
+rm -rf "$repo_root/.flatpak-builder/cache" "$repo_root/.flatpak-builder/build"
+rmdir "$repo_root/.flatpak-builder/rofiles" "$repo_root/.flatpak-builder" 2>/dev/null || true
 mkdir -p "$output_dir" "$flatpak_dir/build"
 
 cd "$repo_root"
