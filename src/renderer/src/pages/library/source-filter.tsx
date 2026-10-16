@@ -21,6 +21,7 @@ export function SourceFilter({
   const sourceLabels: Record<LibrarySource, string> = {
     hydra: t("library_hydra"),
     steam: t("library_steam"),
+    epic: t("library_epic"),
   };
 
   const selectedSource =
@@ -33,11 +34,14 @@ export function SourceFilter({
         disabled={disabled}
         ariaLabel={allLabel}
         allLabel={allLabel}
-        triggerLabel={selectedSource ? sourceLabels[selectedSource] : allLabel}
+        triggerLabel={
+          selectedSources.length
+            ? selectedSources.map((source) => sourceLabels[source]).join(", ")
+            : allLabel
+        }
         triggerIcon={
           selectedSource ? <SourceIcon source={selectedSource} /> : undefined
         }
-        singleSelect
         onChange={(sources) =>
           onSourcesChange(
             LIBRARY_SOURCES.filter((source) => sources.includes(source))

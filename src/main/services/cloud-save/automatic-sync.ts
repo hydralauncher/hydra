@@ -79,7 +79,7 @@ export const canRunAutomaticCloudSaveSync = async (
     .get(levelKeys.game(shop, objectId))
     .catch(() => null);
   if (!game || !isCloudSaveV2Eligible(shop, game.platform)) return false;
-  if (shop === "steam") return Boolean(game.executablePath);
+  if (shop === "steam" || shop === "epic") return Boolean(game.executablePath);
   if (
     getCloudSaveEmulatorProvider(shop, game.platform) === "rpcs3" &&
     !hasRpcs3CloudSaveDisc(game)

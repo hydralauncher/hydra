@@ -9,17 +9,28 @@ const INTEGRATION_DISPLAY_KEYS = [
   "integration_reconnect",
   "integration_status_not_connected",
   "integration_sync",
+  "integration_last_synced",
+  "integration_never_synced",
   "retroachievements_connect_title",
   "retroachievements_status_invalid_credentials",
   "retroachievements_invalid_credentials_description",
-  "retroachievements_last_checked",
   "steam_status_reconnect_required",
+  "epic_status_connected",
+  "epic_status_reconnect_required",
+  "epic_status_unconfirmed",
+  "epic_status_unknown",
+  "epic_description",
+  "epic_login_in_window",
+  "epic_disconnect_description",
 ] as const;
 
 const INTEGRATION_SOURCE_FILES = [
+  "src/renderer/src/pages/settings/settings-integration-card.tsx",
   "src/renderer/src/pages/settings/settings-steam.tsx",
   "src/renderer/src/pages/settings/settings-steam-state.ts",
   "src/renderer/src/pages/settings/settings-retroachievements.tsx",
+  "src/renderer/src/pages/settings/settings-epic.tsx",
+  "src/renderer/src/pages/settings/settings-epic-state.ts",
   "src/renderer/src/pages/retroachievements-connection-window/retroachievements-connection-window.tsx",
 ] as const;
 
@@ -27,6 +38,7 @@ const LANGUAGE_NEUTRAL_KEYS = new Set([
   "retroachievements",
   "steam",
   "steam_sync_progress",
+  "epic_games",
 ]);
 
 const readSettingsTranslations = (locale: string) => {
@@ -44,7 +56,7 @@ const readSettingsTranslations = (locale: string) => {
 const getIntegrationKeys = () => {
   const keys = new Set(["cancel", "retroachievements", "steam"]);
   const integrationKeyPattern =
-    /["']((?:integration|retroachievements|steam)_[a-z0-9_]+)["']/g;
+    /["']((?:integration|retroachievements|steam|epic)_[a-z0-9_]+)["']/g;
 
   for (const sourceFile of INTEGRATION_SOURCE_FILES) {
     const source = fs.readFileSync(
@@ -75,7 +87,10 @@ describe("integration translations", () => {
 
       const translation = JSON.parse(fs.readFileSync(translationPath, "utf8"));
 
-      for (const key of INTEGRATION_DISPLAY_KEYS) {
+      for (const key of new Set([
+        ...INTEGRATION_DISPLAY_KEYS,
+        ...[...getIntegrationKeys()].filter((key) => key.startsWith("epic_")),
+      ])) {
         assert.equal(
           typeof translation.settings?.[key],
           "string",
@@ -107,6 +122,41 @@ describe("integration translations", () => {
           english[key],
           `settings.${key} still uses the English copy in pt-BR`
         );
+      }
+    }
+  });
+
+  it("localizes shared sync metadata and preserves the date placeholder", () => {
+    const english = readSettingsTranslations("en");
+    const localesPath = path.resolve(process.cwd(), "src/locales");
+
+    for (const locale of fs.readdirSync(localesPath)) {
+      if (!fs.existsSync(path.join(localesPath, locale, "translation.json")))
+        continue;
+
+      const settings = readSettingsTranslations(locale);
+      assert.deepEqual(
+        settings.integration_last_synced.match(/\{\{.*?\}\}/g),
+        ["{{date}}"],
+        `${locale} must interpolate the sync date exactly once`
+      );
+      assert.equal(
+        settings.integration_never_synced.match(/\{\{.*?\}\}/g),
+        null,
+        `${locale} must not interpolate a date before the first sync`
+      );
+
+      if (locale !== "en") {
+        for (const key of [
+          "integration_last_synced",
+          "integration_never_synced",
+        ]) {
+          assert.notEqual(
+            settings[key],
+            english[key],
+            `${locale} still uses the English copy of settings.${key}`
+          );
+        }
       }
     }
   });

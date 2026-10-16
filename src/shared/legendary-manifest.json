@@ -1,0 +1,107 @@
+{
+  "version": "0.21.1",
+  "releaseUrl": "https://github.com/legendary-gl/legendary/releases/tag/0.21.1",
+  "sourceUrl": "https://github.com/legendary-gl/legendary/tree/0.21.1",
+  "license": "GPL-3.0-or-later",
+  "artifacts": {
+    "linux": {
+      "x64": {
+        "fileName": "legendary",
+        "url": "https://github.com/legendary-gl/legendary/releases/download/0.21.1/legendary_linux_x64",
+        "sha256": "dbed33bbe96031e65858233e4badf0a1d401bb6cb0cc995d1237cf3a0c826a45"
+      },
+      "arm64": {
+        "fileName": "legendary",
+        "url": "https://github.com/legendary-gl/legendary/releases/download/0.21.1/legendary_linux_arm64",
+        "sha256": "e901cb52ada10d5cef6ffb2a0985099958124457bfb455a571023d1e042143d9"
+      }
+    },
+    "win32": {
+      "x64": {
+        "fileName": "legendary.exe",
+        "url": "https://github.com/legendary-gl/legendary/releases/download/0.21.1/legendary_windows_x64.exe",
+        "sha256": "6be77857dc0a6dd33ea7442ce8b5291944ec6da53757f81ca95b57ce794baf5b"
+      },
+      "arm64": {
+        "fileName": "legendary.exe",
+        "url": "https://github.com/legendary-gl/legendary/releases/download/0.21.1/legendary_windows_arm64.exe",
+        "sha256": "5ca178d75713cb92ee24daa5df1905c75f05b8b403383669ca7aa32a5809fba3"
+      }
+    },
+    "darwin": {
+      "x64": {
+        "fileName": "legendary",
+        "url": "https://github.com/legendary-gl/legendary/releases/download/0.21.1/legendary_macOS_x64",
+        "sha256": "3dfab50277284b5bb0104f8710e4ff1d9ff00c992e44f5843fd0c977c5cc99c4"
+      },
+      "arm64": {
+        "fileName": "legendary",
+        "url": "https://github.com/legendary-gl/legendary/releases/download/0.21.1/legendary_macOS_arm64",
+        "sha256": "d87978321dba9cb731fab40c72f0a30bed55baca8b5341ab21024c5733cd837e"
+      }
+    }
+  },
+  "managedRuntime": {
+    "protocolVersion": 1,
+    "adapterSha256": "a9720481aa3435a48ed743ae38d89931800be84a28ed12fd08701a0f38fe0dcb",
+    "capabilities": [
+      "inspect-target",
+      "install-target",
+      "access-only",
+      "refresh-session"
+    ],
+    "windows": {
+      "x64": {
+        "python": {
+          "url": "https://www.python.org/ftp/python/3.13.16/python-3.13.16-embed-amd64.zip",
+          "sha256": "97dae5274cc54867065e8d5a3226e48c35017ed332a0fdb0e27d5b5821961297"
+        },
+        "crypto": {
+          "url": "https://files.pythonhosted.org/packages/69/96/11f36f71a865dd6df03716d33bd07a67e9d20f6b8d39820470b766af323c/pycryptodomex-3.23.0-cp37-abi3-win_amd64.whl",
+          "sha256": "52e5ca58c3a0b0bd5e100a9fbc8015059b05cffc6c66ce9d98b4b45e023443b9"
+        }
+      },
+      "arm64": {
+        "python": {
+          "url": "https://www.python.org/ftp/python/3.13.16/python-3.13.16-embed-arm64.zip",
+          "sha256": "790d097697a2020477549a6764d89d22194c88d6e42caebcb2db63791e004c94"
+        },
+        "crypto": {
+          "url": "https://files.pythonhosted.org/packages/f9/93/45c1cdcbeb182ccd2e144c693eaa097763b08b38cded279f0053ed53c553/pycryptodomex-3.23.0-cp37-abi3-win_arm64.whl",
+          "sha256": "02d87b80778c171445d67e23d1caef279bf4b25c3597050ccd2e13970b57fd51"
+        }
+      }
+    }
+  },
+  "linuxRuntime": {
+    "pythonVersion": "3.13.16",
+    "pythonRelease": "20261003",
+    "glibcVersion": "2.36-9+deb12u14",
+    "artifacts": {
+      "x64": {
+        "python": {
+          "url": "https://github.com/astral-sh/python-build-standalone/releases/download/20261003/cpython-3.13.16%2B20261003-x86_64-unknown-linux-gnu-install_only_stripped.tar.gz",
+          "sha256": "4595c5589fff7bf0cb158d9a88a797e0d791fa33830770fcb7bf3f4b104feeae"
+        },
+        "glibc": {
+          "url": "https://deb.debian.org/debian/pool/main/g/glibc/libc6_2.36-9+deb12u14_amd64.deb",
+          "sha256": "ba4f88f73dbc3ae9055f3c20f4523bfdbaf1ad13ff95e258924f77d20b4fbedf",
+          "libraryDirectory": "lib/x86_64-linux-gnu",
+          "loader": "ld-linux-x86-64.so.2"
+        }
+      },
+      "arm64": {
+        "python": {
+          "url": "https://github.com/astral-sh/python-build-standalone/releases/download/20261003/cpython-3.13.16%2B20261003-aarch64-unknown-linux-gnu-install_only_stripped.tar.gz",
+          "sha256": "6e9641400f8debd9b7924b27b5ff0662c372852382e291a76c450c7b67414cf6"
+        },
+        "glibc": {
+          "url": "https://deb.debian.org/debian/pool/main/g/glibc/libc6_2.36-9+deb12u14_arm64.deb",
+          "sha256": "01f4330719fd4f65580e16ea5a0527f372fca750e8f588d26deaf09f2d3b1cf4",
+          "libraryDirectory": "lib/aarch64-linux-gnu",
+          "loader": "ld-linux-aarch64.so.1"
+        }
+      }
+    }
+  }
+}

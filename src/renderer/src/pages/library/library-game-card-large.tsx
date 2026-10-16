@@ -1,4 +1,5 @@
 import cn from "classnames";
+import { getLibraryPresentationBadgeSource } from "./library-category";
 
 import { LibraryGame } from "@types";
 import {
@@ -12,7 +13,6 @@ import {
   CLASSICS_PS_PLATFORM_LABELS,
   isGameReadyToPlay,
   resolveClassicsBadge,
-  shouldShowSteamLibraryBadge,
 } from "@renderer/helpers";
 import { AchievementProgress, SteamLibraryBadge } from "@renderer/components";
 import { GameVisibilityBadge } from "@renderer/components/game-visibility-badge/game-visibility-badge";
@@ -24,7 +24,7 @@ import {
   FileZipIcon,
   CheckCircleFillIcon,
 } from "@primer/octicons-react";
-import { memo, useEffect, useMemo, useState } from "react";
+import { memo, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
   EMULATOR_ICONS,
@@ -94,10 +94,11 @@ export const LibraryGameCardLarge = memo(function LibraryGameCardLarge({
     userPreferences?.hideLibraryReadySizeBadges ?? false;
   const hideClassicsBadges =
     userPreferences?.hideLibraryClassicsBadges ?? false;
-  const showSteamLibraryBadge = shouldShowSteamLibraryBadge(
-    game,
-    userPreferences?.hideSteamLibraryBadges
-  );
+  const badgeSource = getLibraryPresentationBadgeSource(game);
+  const showEpicLibraryBadge =
+    badgeSource === "epic" && !userPreferences?.hideEpicLibraryBadges;
+  const showSteamLibraryBadge =
+    badgeSource === "steam" && !userPreferences?.hideSteamLibraryBadges;
   const hideAchievementProgress =
     userPreferences?.hideLibraryAchievementProgress ?? false;
   const autoplayAnimatedArtwork =
@@ -190,6 +191,28 @@ export const LibraryGameCardLarge = memo(function LibraryGameCardLarge({
   const [unlockedAchievementsCount, setUnlockedAchievementsCount] = useState(
     game.unlockedAchievementCount ?? 0
   );
+  const [totalAchievementsCount, setTotalAchievementsCount] = useState(
+    game.achievementCount ?? 0
+  );
+  const hasStoreUnion =
+    "availableShops" in game &&
+    Array.isArray(game.availableShops) &&
+    game.availableShops.includes("steam") &&
+    game.availableShops.includes("epic");
+
+  const achievementMembersKey =
+    "members" in game && Array.isArray(game.members)
+      ? JSON.stringify(
+          (game.members as LibraryGame[])
+            .map((member) => [
+              member.shop,
+              member.objectId,
+              member.achievementCount,
+              member.unlockedAchievementCount,
+            ])
+            .sort((a, b) => JSON.stringify(a).localeCompare(JSON.stringify(b)))
+        )
+      : "";
 
   useEffect(() => {
     setHeroIndex(0);
@@ -203,15 +226,36 @@ export const LibraryGameCardLarge = memo(function LibraryGameCardLarge({
     game.iconUrl,
   ]);
 
+  const achievementGameKey = `${game.shop}:${game.objectId}`;
+  const previousAchievementGameKey = useRef(achievementGameKey);
+
   useEffect(() => {
-    if (game.unlockedAchievementCount != null) {
+    const gameChanged =
+      previousAchievementGameKey.current !== achievementGameKey;
+    previousAchievementGameKey.current = achievementGameKey;
+    const needsCatalogueTotal =
+      game.shop === "epic" &&
+      (game.achievementCount ?? 0) <= 0 &&
+      game.catalogueGame?.shop === "steam";
+    if (gameChanged || (!hasStoreUnion && !needsCatalogueTotal)) {
+      setTotalAchievementsCount(game.achievementCount ?? 0);
+      setUnlockedAchievementsCount(game.unlockedAchievementCount ?? 0);
+    }
+    if (
+      game.unlockedAchievementCount != null &&
+      !hasStoreUnion &&
+      !needsCatalogueTotal
+    ) {
       setUnlockedAchievementsCount(game.unlockedAchievementCount);
       return;
     }
 
-    setUnlockedAchievementsCount(0);
-
-    if ((game.achievementCount ?? 0) <= 0) return;
+    if (
+      (game.achievementCount ?? 0) <= 0 &&
+      !hasStoreUnion &&
+      !needsCatalogueTotal
+    )
+      return;
 
     let isStale = false;
 
@@ -219,9 +263,15 @@ export const LibraryGameCardLarge = memo(function LibraryGameCardLarge({
       .getUnlockedAchievements(game.objectId, game.shop)
       .then((achievements) => {
         if (isStale) return;
+        // An empty legacy fallback cannot distinguish unavailable definitions
+        // from an authoritative empty catalogue. Preserve known grouped totals.
+        if ((hasStoreUnion || needsCatalogueTotal) && achievements.length === 0)
+          return;
         setUnlockedAchievementsCount(
           achievements.filter((a) => a.unlocked).length
         );
+        // Both counts must describe the returned list, including a one-store fallback.
+        setTotalAchievementsCount(achievements.length);
       })
       .catch(() => void 0);
 
@@ -230,9 +280,14 @@ export const LibraryGameCardLarge = memo(function LibraryGameCardLarge({
     };
   }, [
     game.achievementCount,
+    game.catalogueGame?.shop,
+    game.catalogueGame?.objectId,
     game.objectId,
     game.shop,
     game.unlockedAchievementCount,
+    hasStoreUnion,
+    achievementMembersKey,
+    achievementGameKey,
   ]);
 
   useEffect(() => {
@@ -346,7 +401,7 @@ export const LibraryGameCardLarge = memo(function LibraryGameCardLarge({
         />
       )}
       {!hideAchievementProgress &&
-        ((game.achievementCount ?? 0) > 0 || unlockedAchievementsCount > 0) && (
+        (totalAchievementsCount > 0 || unlockedAchievementsCount > 0) && (
           <div className="library-game-card-large__gradient" />
         )}
 
@@ -395,7 +450,23 @@ export const LibraryGameCardLarge = memo(function LibraryGameCardLarge({
               </div>
             )}
 
-            {showSteamLibraryBadge && <SteamLibraryBadge variant="large" />}
+            {showEpicLibraryBadge && (
+              <SteamLibraryBadge
+                source="epic"
+                variant="large"
+                availableShops={game.availableShops}
+                hasActiveSteamImport={game.hasActiveSteamImport}
+                hasActiveEpicImport={game.hasActiveEpicImport}
+              />
+            )}
+            {showSteamLibraryBadge && (
+              <SteamLibraryBadge
+                variant="large"
+                availableShops={game.availableShops}
+                hasActiveSteamImport={game.hasActiveSteamImport}
+                hasActiveEpicImport={game.hasActiveEpicImport}
+              />
+            )}
 
             {!hideClassicsBadges && classicsPlatformLabel && (
               <div className="library-game-card-large__classics-badges">
@@ -423,11 +494,10 @@ export const LibraryGameCardLarge = memo(function LibraryGameCardLarge({
 
         <div className="library-game-card-large__info-bar">
           {!hideAchievementProgress &&
-            ((game.achievementCount ?? 0) > 0 ||
-              unlockedAchievementsCount > 0) && (
+            (totalAchievementsCount > 0 || unlockedAchievementsCount > 0) && (
               <AchievementProgress
                 achievementCount={Math.max(
-                  game.achievementCount ?? 0,
+                  totalAchievementsCount,
                   unlockedAchievementsCount
                 )}
                 unlockedAchievementCount={unlockedAchievementsCount}

@@ -37,7 +37,8 @@ export default function GameAchievements() {
   const navigate = useNavigate();
   const { shopDetails, game, achievements, isLoading } = useGameDetails(
     objectId!,
-    shop!
+    shop!,
+    true
   );
   const { t } = useTranslation("achievement");
   const { userDetails, hasActiveSubscription } = useUserDetails();

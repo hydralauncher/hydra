@@ -212,7 +212,7 @@ export function AchievementList({
 
           return (
             <li
-              key={achievement.name}
+              key={achievement.canonicalAchievementId ?? achievement.name}
               className={cn("achievements__item", {
                 "achievements__item--unlocked": achievement.unlocked,
                 "achievements__item--concealed": concealed,

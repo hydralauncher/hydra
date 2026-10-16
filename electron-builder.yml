@@ -1,5 +1,8 @@
 appId: gg.hydralauncher.hydra
 productName: Hydra
+beforePack: scripts/legendary-before-pack.cjs
+afterPack: scripts/legendary-after-pack.cjs
+afterSign: scripts/legendary-after-pack.cjs
 directories:
   buildResources: build
 extraResources:
@@ -8,13 +11,19 @@ extraResources:
   - seeds
   - from: node_modules/create-desktop-shortcuts/src/windows.vbs
   - from: resources/achievement.wav
+  - from: "src/big-picture/src/assets/audio/Favorite Sound.wav"
+    to: chat-message.wav
 files:
   - "!.cache/**"
+  - "!legendary/**"
+  - "!resources/legendary/**"
   - "!native/torrent-bridge/**"
   - "!**/.vscode/*"
   - "!src/*"
   - "!native/hydra-native/target"
   - "!native/hydra-native/target/**"
+  - "!native/epic-prerequisite-runner/**"
+  - "!binaries/epic-prerequisite-runner/**"
   - "!electron.vite.config.{js,ts,mjs,cjs}"
   - "!{.eslintignore,.eslintrc.cjs,.prettierignore,.prettierrc.yaml,dev-app-update.yml,CHANGELOG.md,README.md}"
   - "!{.env,.env.*,.npmrc,pnpm-lock.yaml}"
@@ -27,6 +36,22 @@ asarUnpack:
 win:
   executableName: Hydra
   extraResources:
+    - from: legendary/win32/${arch}
+      to: legendary
+      filter:
+        - legendary.exe
+        - managed.py
+        - managed-legendary.pyz
+        - managed-native/**
+        - managed-runtime.json
+        - python/**
+        - hydra-epic-process.exe
+        - hydra-epic-process.json
+    - from: resources/legendary
+      to: legendary
+      filter:
+        - LICENSE
+        - NOTICE.md
     - from: binaries/7z.exe
     - from: binaries/7z.dll
   target:
@@ -44,8 +69,18 @@ portable:
   artifactName: ${name}-${version}-portable.${ext}
   unpackDirName: false
 mac:
+  sign: scripts/legendary-mac-sign.cjs
   entitlementsInherit: build/entitlements.mac.plist
   extraResources:
+    - from: legendary/darwin/${arch}
+      to: legendary
+      filter:
+        - legendary
+    - from: resources/legendary
+      to: legendary
+      filter:
+        - LICENSE
+        - NOTICE.md
     - from: binaries/7zz
   extendInfo:
     - NSCameraUsageDescription: Application requests access to the device's camera.
@@ -57,6 +92,30 @@ dmg:
   artifactName: ${name}-${version}.${ext}
 linux:
   extraResources:
+    - from: binaries/epic-prerequisite-runner/x64
+      to: epic
+      filter:
+        - epic-prerequisite-runner.exe
+        - .build.json
+    - from: legendary/linux/${arch}
+      to: legendary
+      filter:
+        - legendary
+        - legendary.pyz
+        - managed.py
+        - managed-legendary.pyz
+        - managed-native/**
+        - managed-runtime.json
+        - python-runner
+        - python/**
+        - glibc/**
+        - licenses/**
+        - .runtime-files.json
+    - from: resources/legendary
+      to: legendary
+      filter:
+        - LICENSE
+        - NOTICE.md
     - from: binaries/7zzs
     - from: binaries/umu/umu-run
   target:

@@ -1,3 +1,7 @@
+import { getContextualEpicGame } from "@main/services/epic/import-visibility";
+import { epicLibraryArtworkQueue } from "@main/services/epic-library-artwork";
+import { updateGameRecord } from "@main/services/game-record-updater";
+import { logger } from "@main/services/logger";
 import path from "node:path";
 import fs from "node:fs";
 
@@ -9,6 +13,7 @@ import {
   gamesShopAssetsSublevel,
   gamesShopCacheSublevel,
   gamesSublevel,
+  levelKeys,
 } from "@main/level";
 import { composeAssetsWithArtwork } from "@shared";
 import { HydraApi } from "@main/services/hydra-api";
@@ -51,13 +56,29 @@ const getLibrary = async (
           .filter(([_key, game]) =>
             belongsToLibraryCollection(game, collection)
           )
-          .map(async ([key, game]) => {
+          .map(async ([key, storedGame]) => {
+            const game = getContextualEpicGame(
+              storedGame,
+              HydraApi.getAuthContext()
+            );
+            if (game.isDeleted) return null;
             const download = await downloadsSublevel.get(key);
-            const gameAssets = await gamesShopAssetsSublevel.get(key);
+            const catalogueKey = game.catalogueGame
+              ? levelKeys.game(
+                  game.catalogueGame.shop,
+                  game.catalogueGame.objectId
+                )
+              : key;
+            const gameAssets = await gamesShopAssetsSublevel.get(catalogueKey);
             const artworkSelection =
               await gamesArtworkSelectionSublevel.get(key);
             const composedAssets = composeAssetsWithArtwork(
-              gameAssets ?? null,
+              game.shop === "epic" &&
+                game.catalogueGame?.shop !== "steam" &&
+                gameAssets &&
+                !gameAssets.epicArtworkUpdatedAtByType?.icon
+                ? { ...gameAssets, iconUrl: null }
+                : (gameAssets ?? null),
               artworkSelection
             );
             const unlockedAchievementCount = resolveUnlockedAchievementCount(
@@ -65,6 +86,26 @@ const getLibrary = async (
               game.objectId,
               game.unlockedAchievementCount
             );
+            let achievementCount = resolveAchievementCount(
+              game.shop,
+              game.objectId,
+              game.achievementCount
+            );
+            // An Epic copy without its own definitions presents its linked Steam catalogue.
+            if (
+              game.shop === "epic" &&
+              achievementCount === 0 &&
+              game.catalogueGame?.shop === "steam"
+            ) {
+              const steamGame = await gamesSublevel
+                .get(levelKeys.game("steam", game.catalogueGame.objectId))
+                .catch(() => undefined);
+              achievementCount = resolveAchievementCount(
+                "steam",
+                game.catalogueGame.objectId,
+                steamGame?.achievementCount
+              );
+            }
 
             // Verify installer still exists, clear if deleted externally
             let installerSizeInBytes = game.installerSizeInBytes;
@@ -76,7 +117,13 @@ const getLibrary = async (
 
               if (!fs.existsSync(installerPath)) {
                 installerSizeInBytes = null;
-                gamesSublevel.put(key, { ...game, installerSizeInBytes: null });
+                updateGameRecord(key, { installerSizeInBytes: null }).catch(
+                  (error) =>
+                    logger.error(
+                      `Failed to clear missing installer size for ${key}`,
+                      error
+                    )
+                );
               }
             }
 
@@ -87,7 +134,9 @@ const getLibrary = async (
               const cachedPlatform = await lookupCachedPlatform(key);
               if (cachedPlatform) {
                 game.platform = cachedPlatform;
-                gamesSublevel.put(key, game).catch(() => {});
+                updateGameRecord(key, { platform: game.platform }).catch(
+                  () => {}
+                );
               }
             }
 
@@ -98,11 +147,15 @@ const getLibrary = async (
 
               if (!fs.existsSync(executableDir)) {
                 installedSizeInBytes = null;
-                gamesSublevel.put(key, {
-                  ...game,
+                updateGameRecord(key, {
                   installerSizeInBytes,
                   installedSizeInBytes: null,
-                });
+                }).catch((error) =>
+                  logger.error(
+                    `Failed to clear missing installed size for ${key}`,
+                    error
+                  )
+                );
               }
             }
 
@@ -112,14 +165,16 @@ const getLibrary = async (
               installerSizeInBytes,
               installedSizeInBytes,
               download: download ?? null,
-              unlockedAchievementCount,
-              achievementCount: resolveAchievementCount(
-                game.shop,
-                game.objectId,
-                game.achievementCount
-              ),
               // Spread composed assets last to ensure all image URLs are properly set
               ...composedAssets,
+              shop: game.shop,
+              objectId: game.objectId,
+              unlockedAchievementCount,
+              achievementCount,
+              ...(game.shop === "epic" &&
+                game.catalogueGame?.shop !== "steam" && {
+                  iconUrl: composedAssets?.iconUrl ?? null,
+                }),
               title: composedAssets?.title || game.title,
               platform: game.platform ?? null,
               // Preserve custom image URLs from game if they exist
@@ -129,7 +184,13 @@ const getLibrary = async (
               customCoverImageUrl: game.customCoverImageUrl,
             };
           })
-      );
+      ).then((games) => {
+        const library = games.filter(
+          (game): game is NonNullable<typeof game> => game !== null
+        );
+        if (HydraApi.isLoggedIn()) epicLibraryArtworkQueue.schedule(library);
+        return library;
+      });
     });
 };
 

@@ -1,4 +1,4 @@
-import type { AuthPage } from "@shared";
+import type { AuthPage, Downloader } from "@shared";
 import type {
   SystemPowerAction,
   AppUpdaterEvent,
@@ -19,6 +19,7 @@ import type {
   FriendRequestSync,
   FriendPresenceSync,
   NotificationSync,
+  UserFriend,
   GameArtifact,
   LudusaviBackup,
   UserAchievement,
@@ -75,6 +76,8 @@ import type {
   ArtworkKind,
   ArtworkPage,
   GameArtworkSelection,
+  GameArtworkOptions,
+  GameAssetsOptions,
   GameLauncherStatusPayload,
   CloudSaveAutomaticSyncModeChangedEvent,
   CloudSaveAutomaticSyncEvent,
@@ -103,6 +106,30 @@ import type {
   SteamSyncRunStatus,
   SteamConnectErrorCode,
   ExtractionFailure,
+  FriendsSnapshot,
+  ChatAttachmentUploadProgress,
+  ChatAttachmentUploadRequest,
+  ChatMessageRejectedSync,
+  ChatMessageSync,
+  ChatMessageVisibilitySync,
+  ChatReactionSync,
+  ChatTypingSync,
+  ChatUnreadState,
+  ChatWindowState,
+  PendingChatFriend,
+  EpicConnectionState,
+  EpicSyncState,
+  EpicSyncFinished,
+  EpicOperationResult,
+  EpicStartAuthResult,
+  EpicGameInstallOptions,
+  StartEpicGameDownloadPayload,
+  EpicManagedOperationResult,
+  EpicCloudSaveState,
+  EpicCloudSaveSettings,
+  ResolveEpicCloudSaveConflictPayload,
+  EpicLaunchOptions,
+  EpicLinuxCompatibility,
 } from "@types";
 import type { AxiosProgressEvent } from "axios";
 
@@ -257,12 +284,20 @@ declare global {
       payload: StartGameDownloadPayload
     ) => Promise<{ ok: boolean; error?: string }>;
     cancelGameDownload: (shop: GameShop, objectId: string) => Promise<void>;
-    pauseGameDownload: (shop: GameShop, objectId: string) => Promise<void>;
+    pauseGameDownload: (
+      shop: GameShop,
+      objectId: string,
+      confirmed?: boolean
+    ) => Promise<boolean>;
+    getDownloadPauseWarning: (
+      shop: GameShop,
+      objectId: string
+    ) => Promise<boolean>;
     resumeGameDownload: (
       shop: GameShop,
       objectId: string,
       strategy?: "interruptActive" | "queueIfActive"
-    ) => Promise<void>;
+    ) => Promise<boolean>;
     pauseGameSeed: (shop: GameShop, objectId: string) => Promise<void>;
     resumeGameSeed: (shop: GameShop, objectId: string) => Promise<void>;
     saveGlobalTrackers: (
@@ -290,7 +325,8 @@ declare global {
       shop: GameShop,
       objectId: string,
       targetArea: "hero" | "queue" | "paused",
-      targetIndex?: number
+      targetIndex?: number,
+      confirmed?: boolean
     ) => Promise<boolean>;
     getDownloadLayoutState: () => Promise<DownloadLayoutState>;
     onDownloadProgress: (
@@ -305,19 +341,26 @@ declare global {
     ) => Promise<
       { ok: true; data: TorrentFilesResponse } | { ok: false; error: string }
     >;
+    getDebridFiles: (
+      magnet: string,
+      provider: Downloader
+    ) => Promise<
+      { ok: true; data: TorrentFilesResponse } | { ok: false; error: string }
+    >;
 
     /* Catalogue */
     getGameShopDetails: (
       objectId: string,
       shop: GameShop,
-      language: string
+      language: string,
+      options?: GameArtworkOptions
     ) => Promise<ShopDetailsWithAssets | null>;
     getRandomGame: () => Promise<Steam250Game>;
     getGameStats: (objectId: string, shop: GameShop) => Promise<GameStats>;
     getGameAssets: (
       objectId: string,
       shop: GameShop,
-      options?: { forceFresh?: boolean }
+      options?: GameAssetsOptions
     ) => Promise<ShopAssets | null>;
     onUpdateAchievements: (
       objectId: string,
@@ -509,7 +552,8 @@ declare global {
       shop: GameShop,
       objectId: string,
       executablePath: string,
-      launchOptions?: string | null
+      launchOptions?: string | null,
+      epicLaunchOptions?: EpicLaunchOptions
     ) => Promise<void>;
     openClassicsGame: (
       shop: GameShop,
@@ -1206,6 +1250,45 @@ declare global {
     onRetroAchievementsConnected: (
       cb: () => void
     ) => () => Electron.IpcRenderer;
+    startEpicSync: (connectionId: string) => Promise<EpicSyncState>;
+    getEpicSyncState: () => Promise<EpicSyncState>;
+    cancelEpicSync: (connectionId: string) => Promise<EpicOperationResult>;
+    syncEpicGameOnGamePage: (objectId: string) => Promise<boolean>;
+    onEpicSyncProgress: (cb: (state: EpicSyncState) => void) => () => void;
+    onEpicSyncFinished: (cb: (result: EpicSyncFinished) => void) => () => void;
+    getEpicConnection: () => Promise<EpicConnectionState>;
+    getGameLinuxCompatibility?: (
+      shop: GameShop,
+      objectId: string
+    ) => Promise<EpicLinuxCompatibility | null>;
+    getEpicGameInstallOptions: (
+      epicObjectId: string,
+      requestId?: string
+    ) => Promise<EpicGameInstallOptions>;
+    cancelEpicGameInstallOptions?: (requestId: string) => Promise<void>;
+    startEpicGameDownload: (
+      payload: StartEpicGameDownloadPayload
+    ) => Promise<EpicManagedOperationResult>;
+    getEpicCloudSaveState: (
+      epicObjectId: string
+    ) => Promise<EpicCloudSaveState>;
+    setEpicCloudSaveSettings: (
+      epicObjectId: string,
+      settings: EpicCloudSaveSettings
+    ) => Promise<EpicManagedOperationResult>;
+    syncEpicCloudSaves: (epicObjectId: string) => Promise<EpicCloudSaveState>;
+    resolveEpicCloudSaveConflict: (
+      payload: ResolveEpicCloudSaveConflictPayload
+    ) => Promise<EpicCloudSaveState>;
+    onEpicCloudSaveStateChanged: (
+      callback: (state: EpicCloudSaveState) => void
+    ) => () => void;
+    startEpicAuth: () => Promise<EpicStartAuthResult>;
+    cancelEpicAuth: (operationId: string) => Promise<EpicOperationResult>;
+    disconnectEpic: (connectionId: string) => Promise<EpicOperationResult>;
+    onEpicConnectionChanged: (
+      cb: (state: EpicConnectionState) => void
+    ) => () => void;
     startSteamOAuth: (lng: string) => Promise<void>;
     disconnectSteam: (deleteImportedData: boolean) => Promise<void>;
     startSteamSync: () => Promise<SteamSyncState>;
@@ -1346,8 +1429,51 @@ declare global {
     openFriendsWindow: () => Promise<void>;
     minimizeFriendsWindow: () => Promise<void>;
     closeFriendsWindow: () => Promise<void>;
+    friendsWindowReady: () => Promise<void>;
+    prefetchFriends: () => Promise<void>;
+    getFriendsSnapshot: () => Promise<FriendsSnapshot | null>;
     openFriendProfileInMainWindow: (userId: string) => Promise<void>;
     openAddFriendModalInMainWindow: () => Promise<void>;
+
+    /* Chat Window */
+    openChatWindow: (friend: UserFriend) => Promise<void>;
+    minimizeChatWindow: () => Promise<void>;
+    closeChatWindow: () => Promise<void>;
+    openGameInMainWindow: (gamePath: string) => Promise<void>;
+    consumePendingChatFriends: () => Promise<PendingChatFriend[]>;
+    onChatFriendsPending: (cb: () => void) => () => Electron.IpcRenderer;
+    setChatWindowState: (state: ChatWindowState) => Promise<void>;
+    getChatUnreadState: () => Promise<ChatUnreadState>;
+    /** Resolves to false when the read could not be saved. */
+    markChatRead: (friendId: string, seq: number) => Promise<boolean>;
+    onChatMessage: (
+      cb: (sync: ChatMessageSync) => void
+    ) => () => Electron.IpcRenderer;
+    onChatTyping: (
+      cb: (sync: ChatTypingSync) => void
+    ) => () => Electron.IpcRenderer;
+    onChatReaction: (
+      cb: (sync: ChatReactionSync) => void
+    ) => () => Electron.IpcRenderer;
+    onChatMessageVisibility: (
+      cb: (sync: ChatMessageVisibilitySync) => void
+    ) => () => Electron.IpcRenderer;
+    onChatMessageRejected: (
+      cb: (sync: ChatMessageRejectedSync) => void
+    ) => () => Electron.IpcRenderer;
+    /** Reserves an upload and sends the bytes; resolves to the attachment id. */
+    uploadChatAttachment: (
+      request: ChatAttachmentUploadRequest
+    ) => Promise<{ id: string }>;
+    onChatAttachmentUploadProgress: (
+      cb: (progress: ChatAttachmentUploadProgress) => void
+    ) => () => Electron.IpcRenderer;
+    onChatMessageSound: (cb: () => void) => () => Electron.IpcRenderer;
+    onChatUnreadUpdated: (
+      cb: (state: ChatUnreadState) => void
+    ) => () => Electron.IpcRenderer;
+    onChatResync: (cb: () => void) => () => Electron.IpcRenderer;
+
     onOpenAddFriendModal: (cb: () => void) => () => Electron.IpcRenderer;
     onFriendsUpdated: (cb: () => void) => () => Electron.IpcRenderer;
     onFriendPresence: (

@@ -1,4 +1,10 @@
+import type { AchievementSouvenirSyncStatus } from "@types";
+
 const SOUVENIR_SYNC_ERROR_TRANSLATION_KEYS: Record<string, string> = {
+  "achievements/souvenir-not-found": "souvenir_sync_error_game_missing",
+  "game/not-found": "souvenir_sync_error_game_missing",
+  "subscription/active-subscription-required":
+    "souvenir_sync_error_subscription_required",
   reservation_not_found: "souvenir_sync_error_reservation_not_found",
   reservation_mismatch: "souvenir_sync_error_reservation_mismatch",
   image_key_in_use: "souvenir_sync_error_image_key_in_use",
@@ -27,3 +33,24 @@ export const getSouvenirSyncErrorTranslationKeys = (errorCodes: string[]) =>
         )
     )
   );
+
+export const getSouvenirSyncMessage = (
+  status: AchievementSouvenirSyncStatus
+) => {
+  const keys = getSouvenirSyncErrorTranslationKeys(status.errorCodes);
+  if (
+    status.pendingCount > 0 &&
+    keys.includes("souvenir_sync_error_subscription_required")
+  ) {
+    return {
+      titleKey: "souvenir_sync_paused_title",
+      key: "souvenir_sync_error_subscription_required",
+    };
+  }
+
+  return {
+    titleKey: "souvenir_sync_status_title",
+    key: keys.length === 1 ? keys[0] : "souvenir_sync_issues",
+    count: status.pendingCount + status.failedCount,
+  };
+};
