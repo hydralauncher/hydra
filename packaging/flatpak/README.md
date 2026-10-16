@@ -73,9 +73,8 @@ The API and authentication URLs have defaults in the build script. Set the check
 
     export MAIN_VITE_CHECKOUT_URL=https://checkout.hydralauncher.gg
     export MAIN_VITE_EXTERNAL_RESOURCES_URL=https://assets.hydralauncher.gg
-    export RENDERER_VITE_EXTERNAL_RESOURCES_URL=https://assets.hydralauncher.gg
 
-These values are embedded in the application at build time. They are public service addresses, not credentials. Leave MAIN_VITE_LAUNCHER_SUBDOMAIN unset to bundle and use the renderer built from this checkout.
+The script embeds `https://assets.hydralauncher.gg` in the renderer by default and checks the generated bundle before packaging. Set `RENDERER_VITE_EXTERNAL_RESOURCES_URL` only to override that default. These are public service addresses, not credentials. Leave `MAIN_VITE_LAUNCHER_SUBDOMAIN` unset to bundle and use the renderer built from this checkout.
 
 ## 4. Install the Flatpak SDK and build
 
@@ -99,12 +98,22 @@ Install the local build from the repository directory, then launch it:
 
 Hydra's online features need network access. The app can access Downloads, ~/Games, and game controllers. Windows games run inside the Flatpak: the standalone UMU integration downloads its own Proton and Steam Linux Runtime to Hydra's private application data on first launch. No Steam installation or host Steam directory is required. The first game launch needs network access and may take longer while those components are downloaded.
 
+## Controller access in Proton games
+
+Hydra can detect a controller in its own interface while Proton cannot read the controller's HID device. Flatpak's `--device=all` permission makes device nodes visible to the app, but the host still controls their Unix permissions. On this Fedora Atomic machine, the DualShock 4 Slim Bluetooth node (`054c:09cc`) was owned by `root:root` with mode `0600`, so Proton could not open it.
+
+For that controller, install the included host udev rule once:
+
+    ./packaging/flatpak/install-controller-rule.sh
+
+The script asks for administrator authentication to install a rule only for the DualShock 4 Slim HID node. Reconnect the controller and restart Hydra after installing it. This is a host rule, so it also applies to Proton games launched by other applications. Other controller models may need a rule matching their own vendor and product IDs; do not broaden the rule to every `hidraw` device.
+
 ## Troubleshooting
 
 - **Missing build tool or target:** rerun the matching package command above, then check node, yarn, rustc, x86_64-w64-mingw32-gcc, flatpak, and flatpak-builder are on PATH. Run rustup target add x86_64-pc-windows-gnu if the script reports that target missing.
 - **Electron reports missing shared libraries during the build:** install the Electron runtime library packages listed for Debian or Arch above. Fedora Toolbox images normally already include these GUI libraries; otherwise install their Fedora equivalents (nspr, nss, atk, at-spi2-core, cups-libs, gtk3, libXcomposite, libXdamage, libXrandr, libxkbcommon, and alsa-lib).
 - **Flatpak Builder cannot create a sandbox or reports user namespace errors:** confirm that your kernel and container configuration allow unprivileged user namespaces and that Bubblewrap is installed. Debian documents/ships this differently across releases; do not run the build as root to work around it.
-- **Hydra has an empty API, login, checkout, or asset configuration:** confirm the three exported URLs in step 3 and rebuild. The API/auth defaults are embedded by build.sh.
+- **Hydra has an empty API, login, checkout, or asset configuration:** confirm the checkout and main asset URLs in step 3 and rebuild. The API/auth and renderer asset defaults are embedded by build.sh.
 - **Toolbox build reports an issue with rofiles-fuse:** the build recipe already passes --disable-rofiles-fuse to Flatpak Builder for container compatibility.
 - **The app cannot access a game directory:** choose the directory through Hydra's file picker or place games in ~/Games/Downloads, which the manifest exposes to the app.
 
