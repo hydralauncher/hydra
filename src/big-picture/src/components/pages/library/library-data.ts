@@ -19,6 +19,7 @@ export type LibraryFilterTab = string;
 export type LibraryViewMode = "grid" | "list";
 export type LibrarySortOption =
   | "last_played"
+  | "recently_downloaded"
   | "playtime"
   | "title_asc"
   | "title_desc"
@@ -215,6 +216,15 @@ export function sortLibraryGames(
       return sortByLastPlayed(a, b);
     }
 
+    if (sortBy === "recently_downloaded") {
+      const downloadDifference =
+        (b.download?.timestamp ?? 0) - (a.download?.timestamp ?? 0);
+
+      return downloadDifference !== 0
+        ? downloadDifference
+        : compareTitles(a, b);
+    }
+
     if (sortBy === "playtime") {
       const playtimeDifference =
         getDisplayedPlayTimeInMilliseconds(b) -
@@ -276,6 +286,7 @@ export function isLibrarySortOption(
 ): value is LibrarySortOption {
   return (
     value === "last_played" ||
+    value === "recently_downloaded" ||
     value === "playtime" ||
     value === "title_asc" ||
     value === "title_desc" ||

@@ -99,6 +99,7 @@ const readStoredPlatforms = (): string[] => {
 const SORT_OPTIONS: SortOption[] = [
   "title_asc",
   "recently_played",
+  "recently_downloaded",
   "most_played",
   "achievements",
   "installed_first",
