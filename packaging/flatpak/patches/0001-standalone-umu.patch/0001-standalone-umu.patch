@@ -1,0 +1,61 @@
+diff --git a/src/main/services/steam-integration/steam-install-watcher.ts b/src/main/services/steam-integration/steam-install-watcher.ts
+index 8109cca..cc0ce29 100644
+--- a/src/main/services/steam-integration/steam-install-watcher.ts
++++ b/src/main/services/steam-integration/steam-install-watcher.ts
+@@ -118,0 +119 @@ export const watchSteamLibraries = async () => {
++    if (!fs.existsSync(watchedDirectory)) continue;
+diff --git a/src/main/services/umu.ts b/src/main/services/umu.ts
+index 3d2342f..18530b4 100644
+--- a/src/main/services/umu.ts
++++ b/src/main/services/umu.ts
+@@ -47,0 +48,15 @@ const getUmuLogPath = (gameId?: string | null) =>
++const getUmuHomeEnvironment = (): NodeJS.ProcessEnv => {
++  // Keep UMU's managed Proton installation in Hydra's private Flatpak data.
++  if (process.env.FLATPAK_ID !== "gg.hydralauncher.hydra") return {};
++
++  const umuHomePath = path.join(SystemPath.getPath("userData"), "umu-home");
++  fs.mkdirSync(umuHomePath, { recursive: true });
++  return { HOME: umuHomePath };
++};
++
++const isHydraFlatpak = () =>
++  process.env.FLATPAK_ID === "gg.hydralauncher.hydra";
++
++const getHydraManagedSteamRoot = () =>
++  path.join(SystemPath.getPath("userData"), "umu-home", ".local", "share", "Steam");
++
+@@ -194,4 +209,7 @@ export class Umu {
+-    const steamRoots = STEAM_ROOT_SEGMENTS.map((segments) =>
+-      path.join(homePath, ...segments)
+-    );
+-    const libraryFolders = await getSteamLibraryFolders().catch(() => []);
++    // Flatpak must not depend on host Steam paths or libraries.
++    const steamRoots = isHydraFlatpak()
++      ? [getHydraManagedSteamRoot()]
++      : STEAM_ROOT_SEGMENTS.map((segments) => path.join(homePath, ...segments));
++    const libraryFolders = isHydraFlatpak()
++      ? []
++      : await getSteamLibraryFolders().catch(() => []);
+@@ -206,4 +224,6 @@ export class Umu {
+-    const compatibilityToolPaths = [
+-      ...steamRoots.map((root) => path.join(root, "compatibilitytools.d")),
+-      path.join("/usr", "share", "steam", "compatibilitytools.d"),
+-    ];
++    const compatibilityToolPaths = isHydraFlatpak()
++      ? [path.join(getHydraManagedSteamRoot(), "compatibilitytools.d")]
++      : [
++          ...steamRoots.map((root) => path.join(root, "compatibilitytools.d")),
++          path.join("/usr", "share", "steam", "compatibilitytools.d"),
++        ];
+@@ -297,0 +318 @@ export class Umu {
++      ...getUmuHomeEnvironment(),
+@@ -301,0 +323,3 @@ export class Umu {
++      ...(!options.protonPath && isHydraFlatpak()
++        ? { PROTONPATH: "UMU-Proton" }
++        : {}),
+@@ -452,0 +477,3 @@ export class Umu {
++      ...(!options?.protonPath && isHydraFlatpak()
++        ? { PROTONPATH: "UMU-Proton" }
++        : {}),
+@@ -454,0 +482 @@ export class Umu {
++      ...getUmuHomeEnvironment(),
