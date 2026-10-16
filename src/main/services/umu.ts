@@ -462,7 +462,8 @@ export class Umu {
         : {}),
       ...(options?.protonPath ? { PROTONPATH: options.protonPath } : {}),
       ...(options?.useMangohud ? { MANGOHUD: "1" } : {}),
-      ...resolvedLaunchCommand.env, ...getUmuHomeEnvironment(),
+      ...getUmuHomeEnvironment(),
+      ...resolvedLaunchCommand.env,
     };
 
     const envCommandPart = Object.entries(launchEnv)
