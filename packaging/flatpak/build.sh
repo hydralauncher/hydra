@@ -16,6 +16,10 @@ for name in "${required_env[@]}"; do
     exit 1
   fi
 done
+patch_file="$flatpak_dir/patches/0001-standalone-umu.patch"
+if ! git -C "$repo_root" apply --reverse --check "$patch_file" >/dev/null 2>&1; then
+  git -C "$repo_root" apply "$patch_file"
+fi
 rm -rf "$output_dir" "$flatpak_dir/build/hydra-files"
 # Preserve mounted rofiles data; an earlier build may leave Electron to package it.
 rm -rf "$repo_root/.flatpak-builder/cache" "$repo_root/.flatpak-builder/build"
