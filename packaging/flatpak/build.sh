@@ -22,8 +22,8 @@ for name in "${required_env[@]}"; do
   fi
 done
 
-rm -rf "$output_dir" "$flatpak_dir/build/hydra-files"
-mkdir -p "$flatpak_dir/build"
+rm -rf "$output_dir" "$flatpak_dir/build/hydra-files" "$repo_root/.flatpak-builder"
+mkdir -p "$output_dir" "$flatpak_dir/build"
 
 cd "$repo_root"
 yarn --frozen-lockfile
@@ -41,6 +41,7 @@ flatpak-builder \
   --disable-rofiles-fuse \
   --install-deps-from=flathub \
   --force-clean \
+  --state-dir="$output_dir/state" \
   --repo="$output_dir/repo" \
   "$output_dir/build-dir" \
   "$flatpak_dir/gg.hydralauncher.hydra.yml"
