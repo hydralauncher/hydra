@@ -61,7 +61,7 @@ From the repository root, run:
 bash packaging/flatpak/build.sh
 ```
 
-The script fetches the pinned Hydra source revision, installs locked Yarn dependencies, builds the unpacked Linux app and creates the local Flatpak repository at `packaging/flatpak/output/repo`. The first build needs network access for source and dependency downloads.
+The script applies the Flatpak patch to the checked-out Hydra source, installs locked Yarn dependencies, builds the unpacked Linux app and creates the local Flatpak repository at `packaging/flatpak/output/repo`. The checkout is selected in step 2; the first build needs network access for source and dependency downloads.
 
 ### 5. Install and launch
 
