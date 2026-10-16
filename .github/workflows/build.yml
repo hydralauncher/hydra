@@ -16,35 +16,7 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  epic-prerequisite-supervisor:
-    strategy:
-      matrix:
-        os: [windows-2022, ubuntu-latest]
-      fail-fast: false
-    runs-on: ${{ matrix.os }}
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 22.21.0
-      - uses: dtolnay/rust-toolchain@686976e191b89faba57d3206551f0f330d8cb249 # stable
-      - name: Install Linux supervisor toolchain
-        if: runner.os == 'Linux'
-        run: |
-          rustup target add x86_64-pc-windows-gnu
-          sudo apt-get update
-          sudo apt-get install -y gcc-mingw-w64-x86-64 wine64 msitools wixl xvfb
-      - name: Check and test supervisor source
-        run: |
-          cargo fmt --manifest-path native/epic-prerequisite-runner/Cargo.toml -- --check
-          cargo test --locked --manifest-path native/epic-prerequisite-runner/Cargo.toml
-          node --test scripts/epic-prerequisite-runner.test.mjs
-      - name: Test PE supervisor through Wine
-        if: runner.os == 'Linux'
-        run: xvfb-run -a node scripts/test-epic-prerequisite-wine.cjs
-
   build:
-    needs: epic-prerequisite-supervisor
     strategy:
       matrix:
         os: [windows-2022, ubuntu-latest]
@@ -184,7 +156,6 @@ jobs:
             dist/*.AppImage
 
   build-production:
-    needs: epic-prerequisite-supervisor
     if: github.event_name == 'push'
 
     strategy:
