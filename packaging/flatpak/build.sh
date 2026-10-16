@@ -34,6 +34,9 @@ required_env=(MAIN_VITE_API_URL MAIN_VITE_AUTH_URL MAIN_VITE_CHECKOUT_URL MAIN_V
 # Public Hydra API endpoints used by the working local build.
 MAIN_VITE_API_URL="${MAIN_VITE_API_URL:-https://hydra-api-us-east-1.losbroxas.org}"
 MAIN_VITE_AUTH_URL="${MAIN_VITE_AUTH_URL:-https://auth.hydra.losbroxas.org}"
+RENDERER_VITE_EXTERNAL_RESOURCES_URL="${RENDERER_VITE_EXTERNAL_RESOURCES_URL:-https://assets.hydralauncher.gg}"
+RENDERER_VITE_EXTERNAL_RESOURCES_URL="${RENDERER_VITE_EXTERNAL_RESOURCES_URL%/}"
+export RENDERER_VITE_EXTERNAL_RESOURCES_URL
 export MAIN_VITE_API_URL MAIN_VITE_AUTH_URL
 for name in "${required_env[@]}"; do
   if [[ -z "${!name:-}" ]]; then
@@ -42,7 +45,7 @@ for name in "${required_env[@]}"; do
   fi
 done
 patch_file="$flatpak_dir/patches/0001-standalone-umu.patch/0001-standalone-umu.patch"
-if ! git -C "$repo_root" apply --unidiff-zero --reverse --check "$patch_file" >/dev/null 2>&1; then
+if ! grep -q 'isHydraFlatpak' "$repo_root/src/main/services/umu.ts"; then
   git -C "$repo_root" apply --unidiff-zero "$patch_file"
 fi
 rm -rf "$output_dir" "$flatpak_dir/build/hydra-files"
@@ -52,7 +55,13 @@ rmdir "$repo_root/.flatpak-builder/rofiles" "$repo_root/.flatpak-builder" 2>/dev
 mkdir -p "$output_dir" "$flatpak_dir/build"
 cd "$repo_root"
 yarn --frozen-lockfile
+rm -rf "$repo_root/dist/linux-unpacked"
 yarn build:unpack
+if ! grep -R --fixed-strings --quiet -- "$RENDERER_VITE_EXTERNAL_RESOURCES_URL" "$repo_root/out/renderer" \
+  || ! grep -R --fixed-strings --quiet -- 'bundle.js' "$repo_root/out/renderer"; then
+  echo "The renderer bundle does not contain the configured external resources URL" >&2
+  exit 1
+fi
 app_dir="$repo_root/dist/linux-unpacked"
 if [[ ! -x "$app_dir/hydralauncher" ]]; then
   echo "Expected Electron's unpacked application at $app_dir" >&2
