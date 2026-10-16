@@ -34,3 +34,8 @@ if [[ ! -x "$app_dir/hydralauncher" ]]; then
   exit 1
 fi
 cp -a "$app_dir" "$flatpak_dir/build/hydra-files"
+flatpak-builder --disable-rofiles-fuse --force-clean \
+  --state-dir="$output_dir/state" \
+  --repo="$output_dir/repo" \
+  "$output_dir/build-dir" \
+  "$flatpak_dir/gg.hydralauncher.hydra.yml"
