@@ -16,8 +16,6 @@ finish-args:
   - --talk-name=org.kde.StatusNotifierWatcher
   - --filesystem=xdg-download
   - --filesystem=~/Games:create
-  - --filesystem=~/.local/share/Steam:ro
-  - --filesystem=~/.var/app/com.valvesoftware.Steam:ro
 
 modules:
   - name: hydra
