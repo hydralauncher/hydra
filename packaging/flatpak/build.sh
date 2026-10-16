@@ -16,7 +16,7 @@ for name in "${required_env[@]}"; do
     exit 1
   fi
 done
-patch_file="$flatpak_dir/patches/0001-standalone-umu.patch"
+patch_file="$flatpak_dir/patches/0001-standalone-umu.patch/0001-standalone-umu.patch"
 if ! git -C "$repo_root" apply --reverse --check "$patch_file" >/dev/null 2>&1; then
   git -C "$repo_root" apply "$patch_file"
 fi
@@ -34,4 +34,3 @@ if [[ ! -x "$app_dir/hydralauncher" ]]; then
   exit 1
 fi
 cp -a "$app_dir" "$flatpak_dir/build/hydra-files"
-flatpak-builder --disable-rofiles-fuse --install-deps-from=flathub --force-clean --state-dir="$output_dir/state" --repo="$output_dir/repo" "$output_dir/build-dir" "$flatpak_dir/gg.hydralauncher.hydra.yml"
