@@ -21,6 +21,7 @@ import {
 } from "./umu-launch-monitor";
 import { getFileSize } from "./umu-output-monitor";
 import { spawnSupervisedUmu } from "./umu-supervised-process";
+import { seedPrefixSteamClientFiles } from "./umu-steam-client-files";
 import { EPIC_LINUX_MANAGED_UMU_MAX_BYTES } from "./epic/linux-runtime-constants.js";
 import supervisedRuntimeManifest from "../../shared/epic-linux-runtime-manifest.json";
 export type { UmuProcessHandle } from "./umu-supervised-process";
@@ -453,6 +454,28 @@ export class Umu {
       ...(options?.useMangohud ? { MANGOHUD: "1" } : {}),
       ...resolvedLaunchCommand.env,
     };
+
+    const steamClientInstallPath =
+      resolvedLaunchCommand.env.STEAM_COMPAT_CLIENT_INSTALL_PATH;
+    if (options?.winePrefixPath && steamClientInstallPath) {
+      try {
+        const copiedFiles = seedPrefixSteamClientFiles(
+          options.winePrefixPath,
+          steamClientInstallPath
+        );
+        if (copiedFiles.length > 0) {
+          logger.info("Copied Steam client files into Wine prefix", {
+            winePrefixPath: options.winePrefixPath,
+            copiedFiles,
+          });
+        }
+      } catch (error) {
+        logger.error("Failed to copy Steam client files into Wine prefix", {
+          winePrefixPath: options.winePrefixPath,
+          error,
+        });
+      }
+    }
 
     const envCommandPart = Object.entries(launchEnv)
       .map(([key, value]) => `${key}=${shellQuote(value)}`)
