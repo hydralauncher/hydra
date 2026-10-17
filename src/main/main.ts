@@ -1,3 +1,7 @@
+import {
+  initializeEpicIntegration,
+  startEpicSyncOnStartup,
+} from "./services/epic";
 import { downloadsSublevel } from "./level/sublevels/downloads";
 import { orderBy } from "lodash-es";
 import { Downloader } from "@shared";
@@ -31,9 +35,14 @@ import {
 } from "@main/services";
 import { migrateDownloadSources } from "./helpers/migrate-download-sources";
 import { getDirSize } from "./services/download/helpers";
+import { isDebridPendingError } from "./services/download/debrid-files";
 import { GofileApi } from "./services/hosters";
 import { clearLegacyAchievementPersistence } from "./level/clear-legacy-achievements";
 import { startSteamSyncOnStartup } from "./services/steam-integration/steam-startup-sync";
+import { migrateEmulatorCloudSaveDefaults } from "./services/cloud-save/automatic-sync-emulator-migration";
+import { watchSteamLibraries } from "./services/steam-integration/steam-install-watcher";
+import { migrateGameVisibilityFields } from "./services/library-sync/game-visibility-migration";
+import { UmuUpdater } from "./services/umu-updater";
 
 const hasMissingSeedFiles = async (download: Download): Promise<boolean> => {
   if (!download.folderName) return false;
@@ -61,6 +70,8 @@ export const loadState = async () => {
   await Lock.acquireLock();
   await clearLegacyAchievementPersistence();
   await migrateCloudSaveAutomaticSyncDefaults();
+  await migrateEmulatorCloudSaveDefaults();
+  await migrateGameVisibilityFields();
 
   const userPreferences = await db.get<string, UserPreferences | null>(
     levelKeys.userPreferences,
@@ -105,9 +116,13 @@ export const loadState = async () => {
 
   if (process.platform === "linux") {
     DeckyPlugin.checkAndUpdateIfOutdated();
+    void UmuUpdater.checkForUpdates();
   }
 
+  void watchSteamLibraries();
+
   await HydraApi.setupApi().then(async () => {
+    await initializeEpicIntegration();
     uploadGamesBatch();
     void migrateDownloadSources();
 
@@ -123,6 +138,7 @@ export const loadState = async () => {
       SSEClient.connect();
       void groupedSouvenirWorker.trigger();
       void startSteamSyncOnStartup();
+      void startEpicSyncOnStartup();
     }
   });
 
@@ -185,9 +201,11 @@ export const loadState = async () => {
   if (downloadToResume && !isTorrent) {
     // Initialize torrent seeding, then resume the HTTP download with JS.
     await DownloadManager.initializeTorrentService(undefined, downloadsToSeed);
-    await DownloadManager.startDownload(downloadToResume).catch((err) => {
-      // If resume fails, just log it - user can manually retry
+    await DownloadManager.startDownload(downloadToResume).catch(async (err) => {
       logger.error("Failed to auto-resume download:", err);
+      if (isDebridPendingError(err, downloadToResume.downloader)) {
+        await DownloadOrchestrator.saveAwaitingDebridDownload(downloadToResume);
+      }
     });
   } else {
     await DownloadManager.initializeTorrentService(

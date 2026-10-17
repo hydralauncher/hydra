@@ -23,16 +23,22 @@
     }
   }
 
-  &__note {
-    margin: 0;
-    color: var(--text-secondary);
-    line-height: 1.5;
-  }
-
   &__inputs {
     display: flex;
     gap: globals.$spacing-unit;
     align-items: flex-end;
+  }
+
+  &__action-tooltip {
+    display: inline-flex;
+
+    &:has(button:disabled) {
+      cursor: not-allowed;
+    }
+
+    button:disabled {
+      pointer-events: none;
+    }
   }
 
   &__actions {

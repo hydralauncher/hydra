@@ -1,3 +1,4 @@
+import type { ReactNode } from "react";
 import * as DropdownMenuPrimitive from "@radix-ui/react-dropdown-menu";
 import { CheckIcon, ChevronDownIcon } from "@primer/octicons-react";
 import { useCloseOnLibraryScroll } from "./use-close-on-library-scroll";
@@ -13,6 +14,7 @@ const ITEM_INDICATOR_ICON_SIZE = 14;
 interface LibraryMultiSelectOption {
   value: string;
   label: string;
+  icon?: ReactNode;
 }
 
 interface LibraryMultiSelectProps {
@@ -20,7 +22,9 @@ interface LibraryMultiSelectProps {
   options: LibraryMultiSelectOption[];
   allLabel: string;
   triggerLabel: string;
+  triggerIcon?: ReactNode;
   onChange: (value: string[]) => void;
+  singleSelect?: boolean;
   disabled?: boolean;
   ariaLabel?: string;
 }
@@ -30,13 +34,24 @@ export function LibraryMultiSelect({
   options,
   allLabel,
   triggerLabel,
+  triggerIcon,
   onChange,
+  singleSelect = false,
   disabled = false,
   ariaLabel,
 }: Readonly<LibraryMultiSelectProps>) {
   const [open, setOpen] = useCloseOnLibraryScroll();
 
+  const handleSelect = (event: Event) => {
+    if (!singleSelect) event.preventDefault();
+  };
+
   const handleToggle = (option: string, checked: boolean) => {
+    if (singleSelect) {
+      onChange([option]);
+      return;
+    }
+
     if (checked) {
       if (value.includes(option)) return;
       onChange([...value, option]);
@@ -64,6 +79,7 @@ export function LibraryMultiSelect({
           aria-label={ariaLabel}
           disabled={disabled}
         >
+          {triggerIcon}
           <span className="library-multi-select__trigger-label">
             {triggerLabel}
           </span>
@@ -86,7 +102,7 @@ export function LibraryMultiSelect({
             onCheckedChange={(checked) => {
               if (checked === true) onChange([]);
             }}
-            onSelect={(event) => event.preventDefault()}
+            onSelect={handleSelect}
             className="library-multi-select__item"
           >
             <span className="library-multi-select__item-label">{allLabel}</span>
@@ -105,9 +121,10 @@ export function LibraryMultiSelect({
               onCheckedChange={(checked) =>
                 handleToggle(option.value, checked === true)
               }
-              onSelect={(event) => event.preventDefault()}
+              onSelect={handleSelect}
               className="library-multi-select__item"
             >
+              {option.icon}
               <span className="library-multi-select__item-label">
                 {option.label}
               </span>

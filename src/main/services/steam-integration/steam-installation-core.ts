@@ -88,6 +88,135 @@ export const buildSteamGameLaunchUrl = (
   return `steam://run/${appId}//${encodeURIComponent(args)}/`;
 };
 
+const STEAM_APP_STATE_FULLY_INSTALLED = 4;
+
+export interface InstalledSteamApp {
+  appId: string;
+  name: string | null;
+  installDirectory: string;
+}
+
+const readInstalledSteamApp = async (
+  libraryFolder: string,
+  manifestPath: string,
+  fileNameAppId: string
+): Promise<InstalledSteamApp | null> => {
+  const content = await fs.promises
+    .readFile(manifestPath, "utf8")
+    .catch(() => null);
+
+  if (!content || readManifestValue(content, "appid") !== fileNameAppId) {
+    return null;
+  }
+
+  const stateFlags = Number(readManifestValue(content, "StateFlags"));
+  if (
+    !Number.isInteger(stateFlags) ||
+    (stateFlags & STEAM_APP_STATE_FULLY_INSTALLED) === 0
+  ) {
+    return null;
+  }
+
+  const installDirectoryName = readManifestValue(content, "installdir");
+  if (!installDirectoryName) return null;
+
+  const installDirectory = resolveInstallDirectory(
+    libraryFolder,
+    installDirectoryName
+  );
+  if (!installDirectory) return null;
+
+  const isDirectory = await fs.promises
+    .stat(installDirectory)
+    .then((stats) => stats.isDirectory())
+    .catch(() => false);
+
+  if (!isDirectory) return null;
+
+  return {
+    appId: fileNameAppId,
+    name: readManifestValue(content, "name"),
+    installDirectory,
+  };
+};
+
+const pathExists = (filePath: string) =>
+  fs.promises
+    .access(filePath)
+    .then(() => true)
+    .catch(() => false);
+
+export const isStaleSteamLibraryExecutable = async (
+  executablePath: string,
+  libraryFolders: string[],
+  platform: NodeJS.Platform = process.platform
+): Promise<boolean> => {
+  const libraryFolder = libraryFolders.find((folder) =>
+    isPathInsideSteamInstallDirectory(
+      executablePath,
+      path.join(folder, "steamapps", "common"),
+      platform
+    )
+  );
+
+  if (!libraryFolder || (await pathExists(executablePath))) return false;
+
+  return pathExists(path.join(libraryFolder, "steamapps"));
+};
+
+export const steamAppIdFromManifestFileName = (
+  fileName: string
+): string | null => /^appmanifest_(\d+)\.acf/i.exec(fileName)?.[1] ?? null;
+
+export const findInstalledSteamApp = async (
+  appId: string,
+  libraryFolders: string[]
+): Promise<InstalledSteamApp | null> => {
+  if (!/^\d+$/.test(appId)) return null;
+
+  for (const libraryFolder of libraryFolders) {
+    const installedApp = await readInstalledSteamApp(
+      libraryFolder,
+      path.join(libraryFolder, "steamapps", `appmanifest_${appId}.acf`),
+      appId
+    );
+
+    if (installedApp) return installedApp;
+  }
+
+  return null;
+};
+
+export const listInstalledSteamApps = async (
+  libraryFolders: string[]
+): Promise<InstalledSteamApp[]> => {
+  const installedApps = new Map<string, InstalledSteamApp>();
+
+  for (const libraryFolder of libraryFolders) {
+    const steamAppsDirectory = path.join(libraryFolder, "steamapps");
+    const entries = await fs.promises
+      .readdir(steamAppsDirectory, { withFileTypes: true })
+      .catch(() => [] as fs.Dirent[]);
+
+    for (const entry of entries) {
+      if (!entry.isFile()) continue;
+
+      const fileNameAppId = entry.name.match(APP_MANIFEST_PATTERN)?.[1];
+      if (!fileNameAppId || installedApps.has(fileNameAppId)) continue;
+
+      const installedApp = await readInstalledSteamApp(
+        libraryFolder,
+        path.join(steamAppsDirectory, entry.name),
+        fileNameAppId
+      );
+
+      if (installedApp) installedApps.set(fileNameAppId, installedApp);
+    }
+  }
+
+  return [...installedApps.values()];
+};
+
 export const findSteamAppInstallDirectories = async (
   appIds: Iterable<string>,
   libraryFolders: string[]

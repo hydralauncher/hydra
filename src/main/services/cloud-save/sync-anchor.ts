@@ -87,6 +87,32 @@ export const getCloudSaveSyncAnchorForEnvironment = async (
   return anchor;
 };
 
+export const getCloudSaveSyncAnchorForSnapshot = async (
+  shop: GameShop,
+  objectId: string,
+  snapshotId: string
+) => {
+  const userId = await getCurrentUserId();
+  let matched: CloudSaveSyncAnchor | null = null;
+  for await (const [key, anchor] of cloudSaveSyncAnchorsSublevel.iterator()) {
+    const environmentId = getCloudSaveSyncAnchorEnvironmentFromKey(
+      key,
+      userId,
+      shop,
+      objectId
+    );
+    if (
+      environmentId &&
+      isValidAnchor(anchor, environmentId) &&
+      anchor.baseSnapshotId === snapshotId &&
+      (!matched || Date.parse(anchor.updatedAt) > Date.parse(matched.updatedAt))
+    ) {
+      matched = anchor;
+    }
+  }
+  return matched;
+};
+
 export const getCloudSaveSyncAnchor = async (
   shop: GameShop,
   objectId: string,

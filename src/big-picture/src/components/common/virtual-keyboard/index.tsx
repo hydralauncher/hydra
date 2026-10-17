@@ -8,6 +8,7 @@ import { GridFocusGroup } from "../grid-focus-group";
 import { NavigationLayer } from "../navigation-layer";
 import { FocusRegionContext } from "../../context";
 import { IS_BROWSER } from "../../../constants";
+import { isPhysicalKeyboardFocus } from "../../../helpers/physical-keyboard-focus";
 import type { FocusDirection, FocusOverrides } from "../../../services";
 import {
   GAMEPAD_REPEAT_INITIAL_DELAY,
@@ -678,6 +679,9 @@ export function VirtualKeyboardProvider() {
   const setVirtualKeyboardTarget = useVirtualKeyboardStore(
     (state) => state.setTarget
   );
+  const setOpenVirtualKeyboard = useVirtualKeyboardStore(
+    (state) => state.setOpenKeyboard
+  );
   const setCloseVirtualKeyboard = useVirtualKeyboardStore(
     (state) => state.setCloseKeyboard
   );
@@ -1083,15 +1087,12 @@ export function VirtualKeyboardProvider() {
   useEffect(() => {
     if (!IS_BROWSER) return;
 
-    const handleFocusIn = (event: FocusEvent) => {
-      const nextTarget = event.target instanceof Element ? event.target : null;
-
+    const openKeyboard = (nextTarget: HTMLElement) => {
       if (!isEditableTarget(nextTarget)) return;
       if (!isVirtualKeyboardEnabled) return;
       if (useInputModeStore.getState().mode !== "gamepad") return;
 
-      if (suppressedTargetRef.current === nextTarget) return;
-
+      suppressedTargetRef.current = null;
       const isNewTarget = activeTargetRef.current !== nextTarget;
 
       activeTargetRef.current = nextTarget;
@@ -1105,6 +1106,13 @@ export function VirtualKeyboardProvider() {
       }
 
       setTarget(nextTarget);
+    };
+
+    const handleFocusIn = (event: FocusEvent) => {
+      if (!(event.target instanceof HTMLElement)) return;
+      if (isPhysicalKeyboardFocus(event.target)) return;
+      if (suppressedTargetRef.current === event.target) return;
+      openKeyboard(event.target);
     };
 
     const handleFocusOut = (event: FocusEvent) => {
@@ -1141,6 +1149,7 @@ export function VirtualKeyboardProvider() {
       });
     };
 
+    setOpenVirtualKeyboard(openKeyboard);
     globalThis.window.addEventListener("focusin", handleFocusIn);
     globalThis.window.addEventListener("focusout", handleFocusOut);
 
@@ -1150,10 +1159,16 @@ export function VirtualKeyboardProvider() {
         focusOutFrameRef.current = null;
       }
 
+      setOpenVirtualKeyboard(null);
       globalThis.window.removeEventListener("focusin", handleFocusIn);
       globalThis.window.removeEventListener("focusout", handleFocusOut);
     };
-  }, [closeKeyboard, isVirtualKeyboardEnabled, setVirtualKeyboardTarget]);
+  }, [
+    closeKeyboard,
+    isVirtualKeyboardEnabled,
+    setVirtualKeyboardTarget,
+    setOpenVirtualKeyboard,
+  ]);
 
   useEffect(() => {
     if (!IS_BROWSER || !target) return;

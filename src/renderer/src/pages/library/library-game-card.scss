@@ -84,6 +84,14 @@
     }
   }
 
+  &__top-left {
+    display: flex;
+    justify-content: flex-start;
+    align-items: center;
+    gap: 4px;
+    min-width: 0;
+  }
+
   &__playtime {
     white-space: nowrap;
     background: rgba(0, 0, 0, 0.4);

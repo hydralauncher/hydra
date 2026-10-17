@@ -2,6 +2,7 @@ import { TrashIcon } from "@primer/octicons-react";
 import type { AchievementSouvenirSyncItem } from "@types";
 import { Button, Modal } from "@renderer/components";
 import { useTranslation } from "react-i18next";
+import { SouvenirSyncPreview } from "../../../../../shared/souvenir-sync-preview";
 
 interface SouvenirSyncCleanupModalProps {
   visible: boolean;
@@ -34,20 +35,11 @@ export function SouvenirSyncCleanupModal({
         </p>
 
         <ul className="profile-content__souvenirs-cleanup-list">
-          {items.map((item) => {
-            const achievementNames = item.achievementNames.join(", ");
-
-            return (
-              <li key={item.clientId}>
-                <div className="profile-content__souvenirs-cleanup-item-header">
-                  <strong>
-                    {item.gameTitle ?? t("souvenir_sync_unknown_game")}
-                  </strong>
-                </div>
-                <p title={achievementNames}>{achievementNames}</p>
-              </li>
-            );
-          })}
+          {items.map((item) => (
+            <li key={item.clientId}>
+              <SouvenirSyncPreview item={item} />
+            </li>
+          ))}
         </ul>
 
         <div className="profile-content__souvenirs-cleanup-actions">

@@ -59,6 +59,7 @@ export function ConfirmationModal({
       visible={visible}
       onClose={onClose}
       title={title}
+      initialFocusId={CONFIRMATION_MODAL_CANCEL_BUTTON_ID}
       description={description}
       closeOnBackdrop={closeOnBackdrop && !loading}
       closeOnEscape={!loading}

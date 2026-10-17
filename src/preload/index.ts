@@ -4,6 +4,7 @@ import { contextBridge, ipcRenderer } from "electron";
 import { randomUUID } from "node:crypto";
 
 import type {
+  SystemPowerAction,
   GameShop,
   DownloadProgress,
   UserPreferences,
@@ -17,6 +18,7 @@ import type {
   FriendRequestSync,
   FriendPresenceSync,
   NotificationSync,
+  UserFriend,
   ShortcutLocation,
   CreateSteamShortcutOptions,
   AchievementCustomNotificationPosition,
@@ -46,11 +48,15 @@ import type {
   ArtworkKind,
   ArtworkPage,
   GameArtworkSelection,
+  GameArtworkOptions,
+  GameAssetsOptions,
   GameLauncherStatusPayload,
   CloudSaveAutomaticSyncModeChangedEvent,
   CloudSaveAutomaticSyncEvent,
   CloudSaveConflictResolution,
   CloudSaveOverview,
+  RetroArchLocalBatteryCandidate,
+  RetroArchLegacyBatteryCandidate,
   CloudSaveV2FileDetails,
   CloudSaveSyncIpcProgressPayload,
   CloudSaveSyncProgressPayload,
@@ -73,8 +79,32 @@ import type {
   SteamSyncRunStatus,
   SteamConnectErrorCode,
   ExtractionFailure,
+  FriendsSnapshot,
+  ChatAttachmentUploadProgress,
+  ChatAttachmentUploadRequest,
+  ChatMessageRejectedSync,
+  ChatMessageSync,
+  ChatMessageVisibilitySync,
+  ChatReactionSync,
+  ChatTypingSync,
+  ChatUnreadState,
+  ChatWindowState,
+  PendingChatFriend,
+  EpicConnectionState,
+  EpicSyncState,
+  EpicSyncFinished,
+  EpicOperationResult,
+  EpicStartAuthResult,
+  EpicGameInstallOptions,
+  StartEpicGameDownloadPayload,
+  EpicManagedOperationResult,
+  EpicCloudSaveState,
+  EpicCloudSaveSettings,
+  ResolveEpicCloudSaveConflictPayload,
+  EpicLaunchOptions,
+  EpicLinuxCompatibility,
 } from "@types";
-import type { AuthPage } from "@shared";
+import type { AuthPage, Downloader } from "@shared";
 import type { AxiosProgressEvent } from "axios";
 
 const fileExplorerApi = {
@@ -171,18 +201,85 @@ contextBridge.exposeInMainWorld("electron", {
       objectId,
       shop
     ) as Promise<CloudSaveV2FileDetails>,
+  getRetroArchLocalBatteryCandidates: (objectId: string, shop: GameShop) =>
+    ipcRenderer.invoke(
+      "getRetroArchLocalBatteryCandidates",
+      objectId,
+      shop
+    ) as Promise<RetroArchLocalBatteryCandidate[]>,
+  selectRetroArchLocalBattery: (
+    objectId: string,
+    shop: GameShop,
+    romPath: string,
+    signature: string
+  ) =>
+    ipcRenderer.invoke(
+      "selectRetroArchLocalBattery",
+      objectId,
+      shop,
+      romPath,
+      signature
+    ) as Promise<void>,
+  getRetroArchLegacyBatteryCandidates: (objectId: string, shop: GameShop) =>
+    ipcRenderer.invoke(
+      "getRetroArchLegacyBatteryCandidates",
+      objectId,
+      shop
+    ) as Promise<RetroArchLegacyBatteryCandidate[]>,
+  selectRetroArchLegacyBattery: (
+    objectId: string,
+    shop: GameShop,
+    rawPath: string
+  ) =>
+    ipcRenderer.invoke(
+      "selectRetroArchLegacyBattery",
+      objectId,
+      shop,
+      rawPath
+    ) as Promise<void>,
   deleteGameCloudSaveData: (objectId: string, shop: GameShop) =>
     ipcRenderer.invoke(
       "deleteGameCloudSaveData",
       objectId,
       shop
     ) as Promise<void>,
-  selectCloudSaveCustomPath: (objectId: string, shop: GameShop) =>
+  selectCloudSaveCustomPath: (
+    objectId: string,
+    shop: GameShop,
+    kind: "file" | "dir" = "dir"
+  ) =>
     ipcRenderer.invoke(
       "selectCloudSaveCustomPath",
       objectId,
-      shop
+      shop,
+      kind
     ) as Promise<SelectCloudSaveCustomPathResult>,
+  selectEmulatorDestination: (
+    objectId: string,
+    shop: GameShop,
+    rawPath: string,
+    kind: "save" | "state"
+  ) =>
+    ipcRenderer.invoke(
+      "selectEmulatorDestination",
+      objectId,
+      shop,
+      rawPath,
+      kind
+    ) as Promise<{ canceled: boolean }>,
+  removeEmulatorDestination: (
+    objectId: string,
+    shop: GameShop,
+    rawPath: string,
+    kind: "save" | "state"
+  ) =>
+    ipcRenderer.invoke(
+      "removeEmulatorDestination",
+      objectId,
+      shop,
+      rawPath,
+      kind
+    ) as Promise<void>,
   createCloudSaveCustomPathRebindApproval: (
     objectId: string,
     shop: GameShop,
@@ -213,12 +310,14 @@ contextBridge.exposeInMainWorld("electron", {
     ) as Promise<CloudSaveCustomPathApproval | null>,
   selectCloudSaveCustomPathApproval: (
     approvalId: string,
-    selectedPath?: string
+    selectedPath?: string,
+    selectionMode?: "file" | "dir"
   ) =>
     ipcRenderer.invoke(
       "selectCloudSaveCustomPathApproval",
       approvalId,
-      selectedPath
+      selectedPath,
+      selectionMode
     ) as Promise<SelectCloudSaveCustomPathApprovalResult>,
   confirmCloudSaveCustomPathApproval: (approvalId: string) =>
     ipcRenderer.invoke(
@@ -317,8 +416,10 @@ contextBridge.exposeInMainWorld("electron", {
     ipcRenderer.invoke("addGameToQueue", payload),
   cancelGameDownload: (shop: GameShop, objectId: string) =>
     ipcRenderer.invoke("cancelGameDownload", shop, objectId),
-  pauseGameDownload: (shop: GameShop, objectId: string) =>
-    ipcRenderer.invoke("pauseGameDownload", shop, objectId),
+  pauseGameDownload: (shop: GameShop, objectId: string, confirmed?: boolean) =>
+    ipcRenderer.invoke("pauseGameDownload", shop, objectId, confirmed),
+  getDownloadPauseWarning: (shop: GameShop, objectId: string) =>
+    ipcRenderer.invoke("getDownloadPauseWarning", shop, objectId),
   resumeGameDownload: (
     shop: GameShop,
     objectId: string,
@@ -360,14 +461,16 @@ contextBridge.exposeInMainWorld("electron", {
     shop: GameShop,
     objectId: string,
     targetArea: "hero" | "queue" | "paused",
-    targetIndex?: number
+    targetIndex?: number,
+    confirmed?: boolean
   ) =>
     ipcRenderer.invoke(
       "moveDownloadPlacement",
       shop,
       objectId,
       targetArea,
-      targetIndex
+      targetIndex,
+      confirmed
     ),
   getDownloadLayoutState: () =>
     ipcRenderer.invoke(
@@ -398,17 +501,26 @@ contextBridge.exposeInMainWorld("electron", {
     ipcRenderer.invoke("getTorrentFiles", magnet) as Promise<
       { ok: true; data: TorrentFilesResponse } | { ok: false; error: string }
     >,
+  getDebridFiles: (magnet: string, provider: Downloader) =>
+    ipcRenderer.invoke("getDebridFiles", magnet, provider) as Promise<
+      { ok: true; data: TorrentFilesResponse } | { ok: false; error: string }
+    >,
 
   /* Catalogue */
-  getGameShopDetails: (objectId: string, shop: GameShop, language: string) =>
-    ipcRenderer.invoke("getGameShopDetails", objectId, shop, language),
+  getGameShopDetails: (
+    objectId: string,
+    shop: GameShop,
+    language: string,
+    options?: GameArtworkOptions
+  ) =>
+    ipcRenderer.invoke("getGameShopDetails", objectId, shop, language, options),
   getRandomGame: () => ipcRenderer.invoke("getRandomGame"),
   getGameStats: (objectId: string, shop: GameShop) =>
     ipcRenderer.invoke("getGameStats", objectId, shop),
   getGameAssets: (
     objectId: string,
     shop: GameShop,
-    options?: { forceFresh?: boolean }
+    options?: GameAssetsOptions
   ) => ipcRenderer.invoke("getGameAssets", objectId, shop, options),
   onUpdateAchievements: (
     objectId: string,
@@ -429,6 +541,12 @@ contextBridge.exposeInMainWorld("electron", {
 
   /* Emulators */
   getEmulatorConfigs: () => ipcRenderer.invoke("getEmulatorConfigs"),
+  getRpcs3ConfigRootStatus: () =>
+    ipcRenderer.invoke("getRpcs3ConfigRootStatus"),
+  getRpcs3DiscIdentityStatus: (objectId: string, shop: GameShop) =>
+    ipcRenderer.invoke("getRpcs3DiscIdentityStatus", objectId, shop),
+  setRpcs3ConfigRoot: (root: string) =>
+    ipcRenderer.invoke("setRpcs3ConfigRoot", root),
   detectEmulators: () => ipcRenderer.invoke("detectEmulators"),
   detectEmulator: (system: EmulatorSystem) =>
     ipcRenderer.invoke("detectEmulator", system),
@@ -882,6 +1000,10 @@ contextBridge.exposeInMainWorld("electron", {
   ) =>
     ipcRenderer.invoke("toggleGameGamemode", shop, objectId, autoRunGamemode),
   isGamemodeAvailable: () => ipcRenderer.invoke("isGamemodeAvailable"),
+  isSteamAppExecutable: (appId: string, executablePath: string) =>
+    ipcRenderer.invoke("isSteamAppExecutable", appId, executablePath),
+  installGameOnSteam: (steamAppId: string) =>
+    ipcRenderer.invoke("installGameOnSteam", steamAppId),
   isMangohudAvailable: () => ipcRenderer.invoke("isMangohudAvailable"),
   isWinetricksAvailable: () => ipcRenderer.invoke("isWinetricksAvailable"),
   addGameToLibrary: (
@@ -999,6 +1121,13 @@ contextBridge.exposeInMainWorld("electron", {
     collectionIds: string[]
   ) =>
     ipcRenderer.invoke("assignGameToCollection", shop, objectId, collectionIds),
+  setGameVisibility: (
+    shop: GameShop,
+    objectId: string,
+    field: "isHiddenFromOthers" | "isConcealed",
+    value: boolean
+  ): Promise<{ isHiddenFromOthers: boolean; isConcealed: boolean }> =>
+    ipcRenderer.invoke("setGameVisibility", shop, objectId, field, value),
   clearNewDownloadOptions: (shop: GameShop, objectId: string) =>
     ipcRenderer.invoke("clearNewDownloadOptions", shop, objectId),
   toggleGamePin: (shop: GameShop, objectId: string, pinned: boolean) =>
@@ -1034,8 +1163,12 @@ contextBridge.exposeInMainWorld("electron", {
     ipcRenderer.invoke("getGameLaunchProtonVersion", shop, objectId),
   verifyExecutablePathInUse: (executablePath: string) =>
     ipcRenderer.invoke("verifyExecutablePathInUse", executablePath),
-  getLibrary: () => ipcRenderer.invoke("getLibrary"),
+  getLibrary: (includeConcealed = false) =>
+    ipcRenderer.invoke("getLibrary", includeConcealed),
+  getHiddenLibrary: () => ipcRenderer.invoke("getHiddenLibrary"),
   refreshLibraryAssets: () => ipcRenderer.invoke("refreshLibraryAssets"),
+  getRemoteLibrarySyncState: () =>
+    ipcRenderer.invoke("getRemoteLibrarySyncState"),
   getClassicsImportStatus: (): Promise<boolean> =>
     ipcRenderer.invoke("getClassicsImportStatus"),
   getActiveClassicsImport: (): Promise<{
@@ -1073,6 +1206,7 @@ contextBridge.exposeInMainWorld("electron", {
     objectId: string,
     executablePath: string,
     launchOptions?: string | null,
+    epicLaunchOptions?: EpicLaunchOptions,
     skipSteamOverlayCheck?: boolean
   ) =>
     ipcRenderer.invoke(
@@ -1081,6 +1215,7 @@ contextBridge.exposeInMainWorld("electron", {
       objectId,
       executablePath,
       launchOptions,
+      epicLaunchOptions,
       skipSteamOverlayCheck
     ),
   openClassicsGame: (
@@ -1135,8 +1270,8 @@ contextBridge.exposeInMainWorld("electron", {
     ),
   cancelScanInstalledGames: (requestId: string) =>
     ipcRenderer.invoke("cancelScanInstalledGames", requestId),
-  addScannedGame: (objectId: string, executablePath: string) =>
-    ipcRenderer.invoke("addScannedGame", objectId, executablePath),
+  addScannedGames: (picks: { objectId: string; executablePath: string }[]) =>
+    ipcRenderer.invoke("addScannedGames", picks),
   getDefaultWinePrefixSelectionPath: () =>
     ipcRenderer.invoke("getDefaultWinePrefixSelectionPath"),
   createSteamShortcut: (
@@ -1164,6 +1299,13 @@ contextBridge.exposeInMainWorld("electron", {
     ipcRenderer.on("on-library-batch-complete", listener);
     return () =>
       ipcRenderer.removeListener("on-library-batch-complete", listener);
+  },
+  onRemoteLibrarySyncStateChange: (cb: (syncing: boolean) => void) => {
+    const listener = (_event: Electron.IpcRendererEvent, syncing: boolean) =>
+      cb(syncing);
+    ipcRenderer.on("on-remote-library-sync-state", listener);
+    return () =>
+      ipcRenderer.removeListener("on-remote-library-sync-state", listener);
   },
   onDownloadsUpdated: (cb: () => void) => {
     const listener = (_event: Electron.IpcRendererEvent) => cb();
@@ -1575,6 +1717,8 @@ contextBridge.exposeInMainWorld("electron", {
     ipcRenderer.on("game-launcher-status", listener);
     return () => ipcRenderer.removeListener("game-launcher-status", listener);
   },
+  getGameLauncherStatuses: (shop: GameShop, objectId: string) =>
+    ipcRenderer.invoke("getGameLauncherStatuses", shop, objectId),
   resetCommonRedistPreflight: () =>
     ipcRenderer.invoke("resetCommonRedistPreflight"),
   checkForUpdates: () => ipcRenderer.invoke("checkForUpdates"),
@@ -1673,6 +1817,114 @@ contextBridge.exposeInMainWorld("electron", {
     ipcRenderer.on("on-retroachievements-connected", listener);
     return () =>
       ipcRenderer.removeListener("on-retroachievements-connected", listener);
+  },
+  getEpicConnection: () =>
+    ipcRenderer.invoke("getEpicConnection") as Promise<EpicConnectionState>,
+  getGameLinuxCompatibility: (shop: GameShop, objectId: string) =>
+    ipcRenderer.invoke(
+      "getGameLinuxCompatibility",
+      shop,
+      objectId
+    ) as Promise<EpicLinuxCompatibility | null>,
+  getEpicGameInstallOptions: (epicObjectId: string, requestId?: string) =>
+    ipcRenderer.invoke(
+      "getEpicGameInstallOptions",
+      epicObjectId,
+      requestId
+    ) as Promise<EpicGameInstallOptions>,
+  cancelEpicGameInstallOptions: (requestId: string) =>
+    ipcRenderer.invoke(
+      "cancelEpicGameInstallOptions",
+      requestId
+    ) as Promise<void>,
+  startEpicGameDownload: (payload: StartEpicGameDownloadPayload) =>
+    ipcRenderer.invoke(
+      "startEpicGameDownload",
+      payload
+    ) as Promise<EpicManagedOperationResult>,
+  getEpicCloudSaveState: (epicObjectId: string) =>
+    ipcRenderer.invoke(
+      "getEpicCloudSaveState",
+      epicObjectId
+    ) as Promise<EpicCloudSaveState>,
+  setEpicCloudSaveSettings: (
+    epicObjectId: string,
+    settings: EpicCloudSaveSettings
+  ) =>
+    ipcRenderer.invoke(
+      "setEpicCloudSaveSettings",
+      epicObjectId,
+      settings
+    ) as Promise<EpicManagedOperationResult>,
+  syncEpicCloudSaves: (epicObjectId: string) =>
+    ipcRenderer.invoke(
+      "syncEpicCloudSaves",
+      epicObjectId
+    ) as Promise<EpicCloudSaveState>,
+  resolveEpicCloudSaveConflict: (
+    payload: ResolveEpicCloudSaveConflictPayload
+  ) =>
+    ipcRenderer.invoke(
+      "resolveEpicCloudSaveConflict",
+      payload
+    ) as Promise<EpicCloudSaveState>,
+  onEpicCloudSaveStateChanged: (cb: (state: EpicCloudSaveState) => void) => {
+    const listener = (
+      _event: Electron.IpcRendererEvent,
+      state: EpicCloudSaveState
+    ) => cb(state);
+    ipcRenderer.on("on-epic-cloud-save-state-changed", listener);
+    return () => {
+      ipcRenderer.removeListener("on-epic-cloud-save-state-changed", listener);
+    };
+  },
+  startEpicAuth: () =>
+    ipcRenderer.invoke("startEpicAuth") as Promise<EpicStartAuthResult>,
+  cancelEpicAuth: (operationId: string) =>
+    ipcRenderer.invoke(
+      "cancelEpicAuth",
+      operationId
+    ) as Promise<EpicOperationResult>,
+  disconnectEpic: (connectionId: string) =>
+    ipcRenderer.invoke(
+      "disconnectEpic",
+      connectionId
+    ) as Promise<EpicOperationResult>,
+  onEpicConnectionChanged: (cb: (state: EpicConnectionState) => void) => {
+    const listener = (
+      _event: Electron.IpcRendererEvent,
+      state: EpicConnectionState
+    ) => cb(state);
+    ipcRenderer.on("on-epic-connection-changed", listener);
+    return () =>
+      ipcRenderer.removeListener("on-epic-connection-changed", listener);
+  },
+  startEpicSync: (connectionId: string) =>
+    ipcRenderer.invoke("startEpicSync", connectionId) as Promise<EpicSyncState>,
+  getEpicSyncState: () =>
+    ipcRenderer.invoke("getEpicSyncState") as Promise<EpicSyncState>,
+  cancelEpicSync: (connectionId: string) =>
+    ipcRenderer.invoke(
+      "cancelEpicSync",
+      connectionId
+    ) as Promise<EpicOperationResult>,
+  syncEpicGameOnGamePage: (objectId: string) =>
+    ipcRenderer.invoke("syncEpicGameOnGamePage", objectId) as Promise<boolean>,
+  onEpicSyncProgress: (cb: (state: EpicSyncState) => void) => {
+    const listener = (
+      _event: Electron.IpcRendererEvent,
+      state: EpicSyncState
+    ) => cb(state);
+    ipcRenderer.on("on-epic-sync-progress", listener);
+    return () => ipcRenderer.removeListener("on-epic-sync-progress", listener);
+  },
+  onEpicSyncFinished: (cb: (result: EpicSyncFinished) => void) => {
+    const listener = (
+      _event: Electron.IpcRendererEvent,
+      result: EpicSyncFinished
+    ) => cb(result);
+    ipcRenderer.on("on-epic-sync-finished", listener);
+    return () => ipcRenderer.removeListener("on-epic-sync-finished", listener);
   },
   startSteamOAuth: (lng: string) => ipcRenderer.invoke("startSteamOAuth", lng),
   disconnectSteam: (deleteImportedData: boolean) =>
@@ -1899,15 +2151,124 @@ contextBridge.exposeInMainWorld("electron", {
 
   /* Big Picture */
   openBigPictureWindow: () => ipcRenderer.invoke("openBigPictureWindow"),
+  executeSystemPowerAction: (action: SystemPowerAction) =>
+    ipcRenderer.invoke("executeSystemPowerAction", action),
 
   /* Friends */
   openFriendsWindow: () => ipcRenderer.invoke("openFriendsWindow"),
   minimizeFriendsWindow: () => ipcRenderer.invoke("minimizeFriendsWindow"),
   closeFriendsWindow: () => ipcRenderer.invoke("closeFriendsWindow"),
+  friendsWindowReady: () => ipcRenderer.invoke("friendsWindowReady"),
+  prefetchFriends: () => ipcRenderer.invoke("prefetchFriends"),
+  getFriendsSnapshot: () =>
+    ipcRenderer.invoke("getFriendsSnapshot") as Promise<FriendsSnapshot | null>,
   openFriendProfileInMainWindow: (userId: string) =>
     ipcRenderer.invoke("openFriendProfileInMainWindow", userId),
   openAddFriendModalInMainWindow: () =>
     ipcRenderer.invoke("openAddFriendModalInMainWindow"),
+
+  /* Chat */
+  openChatWindow: (friend: UserFriend) =>
+    ipcRenderer.invoke("openChatWindow", friend),
+  minimizeChatWindow: () => ipcRenderer.invoke("minimizeChatWindow"),
+  closeChatWindow: () => ipcRenderer.invoke("closeChatWindow"),
+  openGameInMainWindow: (gamePath: string) =>
+    ipcRenderer.invoke("openGameInMainWindow", gamePath),
+  consumePendingChatFriends: () =>
+    ipcRenderer.invoke("consumePendingChatFriends") as Promise<
+      PendingChatFriend[]
+    >,
+  onChatFriendsPending: (cb: () => void) => {
+    const listener = () => cb();
+    ipcRenderer.on("on-chat-friends-pending", listener);
+    return () =>
+      ipcRenderer.removeListener("on-chat-friends-pending", listener);
+  },
+  setChatWindowState: (state: ChatWindowState) =>
+    ipcRenderer.invoke("setChatWindowState", state),
+  getChatUnreadState: () =>
+    ipcRenderer.invoke("getChatUnreadState") as Promise<ChatUnreadState>,
+  markChatRead: (friendId: string, seq: number) =>
+    ipcRenderer.invoke("markChatRead", friendId, seq),
+  onChatMessage: (cb: (sync: ChatMessageSync) => void) => {
+    const listener = (
+      _event: Electron.IpcRendererEvent,
+      sync: ChatMessageSync
+    ) => cb(sync);
+    ipcRenderer.on("on-chat-message", listener);
+    return () => ipcRenderer.removeListener("on-chat-message", listener);
+  },
+  onChatTyping: (cb: (sync: ChatTypingSync) => void) => {
+    const listener = (
+      _event: Electron.IpcRendererEvent,
+      sync: ChatTypingSync
+    ) => cb(sync);
+    ipcRenderer.on("on-chat-typing", listener);
+    return () => ipcRenderer.removeListener("on-chat-typing", listener);
+  },
+  onChatReaction: (cb: (sync: ChatReactionSync) => void) => {
+    const listener = (
+      _event: Electron.IpcRendererEvent,
+      sync: ChatReactionSync
+    ) => cb(sync);
+    ipcRenderer.on("on-chat-reaction", listener);
+    return () => ipcRenderer.removeListener("on-chat-reaction", listener);
+  },
+  onChatMessageVisibility: (cb: (sync: ChatMessageVisibilitySync) => void) => {
+    const listener = (
+      _event: Electron.IpcRendererEvent,
+      sync: ChatMessageVisibilitySync
+    ) => cb(sync);
+    ipcRenderer.on("on-chat-message-visibility", listener);
+    return () =>
+      ipcRenderer.removeListener("on-chat-message-visibility", listener);
+  },
+  onChatMessageRejected: (cb: (sync: ChatMessageRejectedSync) => void) => {
+    const listener = (
+      _event: Electron.IpcRendererEvent,
+      sync: ChatMessageRejectedSync
+    ) => cb(sync);
+    ipcRenderer.on("on-chat-message-rejected", listener);
+    return () =>
+      ipcRenderer.removeListener("on-chat-message-rejected", listener);
+  },
+  uploadChatAttachment: (request: ChatAttachmentUploadRequest) =>
+    ipcRenderer.invoke("uploadChatAttachment", request) as Promise<{
+      id: string;
+    }>,
+  onChatAttachmentUploadProgress: (
+    cb: (progress: ChatAttachmentUploadProgress) => void
+  ) => {
+    const listener = (
+      _event: Electron.IpcRendererEvent,
+      progress: ChatAttachmentUploadProgress
+    ) => cb(progress);
+    ipcRenderer.on("on-chat-attachment-upload-progress", listener);
+    return () =>
+      ipcRenderer.removeListener(
+        "on-chat-attachment-upload-progress",
+        listener
+      );
+  },
+  onChatMessageSound: (cb: () => void) => {
+    const listener = () => cb();
+    ipcRenderer.on("on-chat-message-sound", listener);
+    return () => ipcRenderer.removeListener("on-chat-message-sound", listener);
+  },
+  onChatUnreadUpdated: (cb: (state: ChatUnreadState) => void) => {
+    const listener = (
+      _event: Electron.IpcRendererEvent,
+      state: ChatUnreadState
+    ) => cb(state);
+    ipcRenderer.on("on-chat-unread-updated", listener);
+    return () => ipcRenderer.removeListener("on-chat-unread-updated", listener);
+  },
+  onChatResync: (cb: () => void) => {
+    const listener = () => cb();
+    ipcRenderer.on("on-chat-resync", listener);
+    return () => ipcRenderer.removeListener("on-chat-resync", listener);
+  },
+
   onOpenAddFriendModal: (cb: () => void) => {
     const listener = () => cb();
     ipcRenderer.on("on-open-add-friend-modal", listener);

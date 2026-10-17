@@ -3,10 +3,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { describe, it } from "node:test";
 
-const STEAM_LIBRARY_KEYS = [
-  "category_steam_library",
-  "imported_from_steam",
-] as const;
+const STEAM_LIBRARY_KEYS = ["imported_from_steam"] as const;
 
 const STEAM_SETTINGS_KEYS = ["hide_library_steam_badges"] as const;
 
@@ -33,6 +30,19 @@ describe("Steam Library translations", () => {
         assert.ok(
           translation.library[key].trim(),
           `${locale} has an empty library.${key}`
+        );
+      }
+
+      for (const key of [
+        "imported_from_steam_and_epic",
+        "available_on_steam_and_epic",
+        "available_on_steam",
+        "available_on_epic",
+      ]) {
+        assert.ok(
+          typeof translation.library?.[key] === "string" &&
+            translation.library[key].trim(),
+          `${locale} is missing library.${key}`
         );
       }
 
@@ -63,17 +73,33 @@ describe("Steam Library translations", () => {
 
     assert.deepEqual(
       STEAM_LIBRARY_KEYS.map((key) => readLibrary("en")[key]),
-      [
-        "Steam Library",
-        "Imported from the Steam library linked to this profile.",
-      ]
+      ["Imported from the Steam library linked to this profile."]
     );
     assert.deepEqual(
       STEAM_LIBRARY_KEYS.map((key) => readLibrary("pt-BR")[key]),
+      ["Importado da biblioteca Steam vinculada a este perfil."]
+    );
+
+    assert.equal(readLibrary("en").category_steam_library, undefined);
+    assert.equal(
+      readLibrary("en").imported_from_steam_and_epic,
+      "Imported from the Steam and Epic Games libraries linked to this profile."
+    );
+    assert.equal(
+      readLibrary("pt-BR").imported_from_steam_and_epic,
+      "Importado das bibliotecas Steam e Epic Games vinculadas a este perfil."
+    );
+    assert.equal(
+      readLibrary("pt-BR").available_on_steam_and_epic,
+      "Disponível na Steam e Epic Games"
+    );
+    assert.deepEqual(
       [
-        "Biblioteca Steam",
-        "Importado da biblioteca Steam vinculada a este perfil.",
-      ]
+        readLibrary("en").all_libraries,
+        readLibrary("en").library_hydra,
+        readLibrary("en").library_steam,
+      ],
+      ["All Libraries", "Hydra", "Steam"]
     );
 
     const readSettings = (locale: string) => {

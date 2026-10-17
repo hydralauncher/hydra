@@ -1,3 +1,4 @@
+import { updateGameRecord } from "@main/services/game-record-updater";
 import { registerEvent } from "../register-event";
 import path from "node:path";
 
@@ -38,8 +39,7 @@ const pinGameWinePrefix = async (game: Game) => {
   );
   if (!resolvedWinePrefixPath) return;
 
-  await gamesSublevel.put(levelKeys.game(game.shop, game.objectId), {
-    ...game,
+  await updateGameRecord(levelKeys.game(game.shop, game.objectId), {
     winePrefixPath: resolvedWinePrefixPath,
   });
 };

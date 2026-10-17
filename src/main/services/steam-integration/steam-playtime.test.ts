@@ -2,76 +2,10 @@ import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 
 import {
-  isSteamLibraryExecutablePath,
   resolveActiveSteamImport,
   resolveSteamSessionPlaytimePolicy,
   STEAM_PLAYTIME_LOOKUP_TIMEOUT_MS,
 } from "./steam-playtime.js";
-
-describe("Steam installation paths", () => {
-  it("recognizes secondary Windows libraries with either separator and casing", () => {
-    assert.equal(
-      isSteamLibraryExecutablePath(
-        "d:/steamlibrary/SteamApps/Common/Portal/bin/portal.exe",
-        ["C:\\Program Files (x86)\\Steam", "D:\\SteamLibrary"],
-        "win32"
-      ),
-      true
-    );
-  });
-
-  it("recognizes Linux and macOS executables, including nested app bundles", () => {
-    assert.equal(
-      isSteamLibraryExecutablePath(
-        "/mnt/games/steamapps/common/Portal/portal",
-        ["/mnt/games"],
-        "linux"
-      ),
-      true
-    );
-    assert.equal(
-      isSteamLibraryExecutablePath(
-        "/Users/me/Library/Application Support/Steam/steamapps/common/Game/Game.app/Contents/MacOS/Game",
-        ["/Users/me/Library/Application Support/Steam"],
-        "darwin"
-      ),
-      true
-    );
-  });
-
-  it("rejects sibling folders, traversal, other drives, and unregistered libraries", () => {
-    for (const executable of [
-      "D:\\SteamLibrary\\steamapps\\common-copy\\game.exe",
-      "D:\\SteamLibrary\\steamapps\\common\\..\\game.exe",
-      "D:\\SteamLibrary-copy\\steamapps\\common\\Game\\game.exe",
-      "C:\\SteamLibrary\\steamapps\\common\\Game\\game.exe",
-      "steamapps\\common\\Game\\game.exe",
-      "D:\\SteamLibrary\\steamapps\\common",
-    ]) {
-      assert.equal(
-        isSteamLibraryExecutablePath(executable, ["D:\\SteamLibrary"], "win32"),
-        false,
-        executable
-      );
-    }
-    assert.equal(
-      isSteamLibraryExecutablePath(
-        "/Steam/steamapps/common/Game/game",
-        ["/steam"],
-        "linux"
-      ),
-      false
-    );
-    assert.equal(
-      isSteamLibraryExecutablePath(
-        "/steam/steamapps/common/Game/game",
-        [],
-        "linux"
-      ),
-      false
-    );
-  });
-});
 
 describe("Steam import lookup", () => {
   it("uses the server's current link instead of the cached value", async () => {
@@ -131,14 +65,14 @@ describe("Steam session playtime policy", () => {
     );
   });
 
-  it("deduplicates imported games outside Steam libraries by default", () => {
+  it("counts imported games launched from outside Steam libraries", () => {
     assert.deepEqual(
       resolveSteamSessionPlaytimePolicy({
         hasActiveSteamImport: true,
         isSteamLibraryPath: false,
         enableHydraPlaytimeTracking: false,
       }),
-      { countHydraPlaytime: false, syncSteamOnExit: false }
+      { countHydraPlaytime: true, syncSteamOnExit: false }
     );
   });
 

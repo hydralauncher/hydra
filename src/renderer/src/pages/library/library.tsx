@@ -15,7 +15,7 @@ import {
   useGameCollections,
   useUserDetails,
 } from "@renderer/hooks";
-import { setHeaderTitle } from "@renderer/features";
+import { selectIsLibraryLoading, setHeaderTitle } from "@renderer/features";
 import {
   HeartIcon,
   TelescopeIcon,
@@ -24,12 +24,11 @@ import {
   SyncIcon,
 } from "@primer/octicons-react";
 import { useTranslation } from "react-i18next";
-import { AuthPage, removeDiacritics } from "@shared";
+import { AuthPage, groupLibraryGames, removeDiacritics } from "@shared";
 import { GameCollection, LibraryGame } from "@types";
 import { CreateCollectionModal, GameContextMenu } from "@renderer/components";
 import { useCollectionContextMenu } from "@renderer/context";
 import {
-  filterLibraryGamesByCategory,
   getGameCollectionIds,
   isGameInstalled,
   sortLibraryGames,
@@ -42,10 +41,21 @@ import { FilterOptions, SortOption } from "./filter-options";
 import { CategoryFilter, LibraryCategory } from "./category-filter";
 import { InstalledFilter } from "./installed-filter";
 import { PlatformFilter } from "./platform-filter";
+import { SourceFilter } from "./source-filter";
 import { CollectionsFilter } from "./collections-filter";
+import { LibraryGamesSkeleton } from "./library-games-skeleton";
+import {
+  categoryShowsPlatforms,
+  categoryShowsSources,
+  filterLibraryGames,
+  getLibraryFilterOptions,
+  readStoredLibraryFilters,
+  type LibrarySource,
+} from "./library-category";
 import {
   LIBRARY_INSTALLED_ONLY_STORAGE_KEY,
   LIBRARY_PLATFORMS_STORAGE_KEY,
+  LIBRARY_SOURCES_STORAGE_KEY,
 } from "@renderer/session-state";
 import {
   ClassicsOnboardingModal,
@@ -54,6 +64,8 @@ import {
 import "./library.scss";
 
 const FAVORITES_COLLECTION_ID = "__favorites__";
+const HIDDEN_COLLECTION_ID = "__hidden__";
+const EMPTY_HIDDEN_GAMES: LibraryGame[] = [];
 const GAP = 16;
 const LARGE_CARD_ESTIMATED_HEIGHT = 300;
 const FALLBACK_ITEM_WIDTH = 150;
@@ -96,6 +108,57 @@ const SORT_OPTIONS: SortOption[] = [
 export default function Library() {
   const { library, updateLibrary } = useLibrary();
   const { userDetails } = useUserDetails();
+  const accountId = userDetails?.id ?? null;
+  const activeAccountIdRef = useRef(accountId);
+  activeAccountIdRef.current = accountId;
+  const [hiddenGamesState, setHiddenGamesState] = useState<{
+    ownerId: string | null;
+    games: LibraryGame[];
+  }>({ ownerId: null, games: [] });
+  const hiddenGames =
+    accountId && hiddenGamesState.ownerId === accountId
+      ? hiddenGamesState.games
+      : EMPTY_HIDDEN_GAMES;
+  const [hiddenGamesLoadFailed, setHiddenGamesLoadFailed] = useState(false);
+  const [hiddenGamesLoading, setHiddenGamesLoading] = useState(true);
+  const updateHiddenGames = useCallback(async () => {
+    if (!accountId) {
+      setHiddenGamesState({ ownerId: null, games: [] });
+      setHiddenGamesLoading(false);
+      return;
+    }
+    try {
+      const games = await window.electron.getHiddenLibrary();
+      if (activeAccountIdRef.current === accountId) {
+        setHiddenGamesState({ ownerId: accountId, games });
+        setHiddenGamesLoadFailed(false);
+      }
+    } catch {
+      if (activeAccountIdRef.current === accountId) {
+        setHiddenGamesLoadFailed(true);
+      }
+    } finally {
+      if (activeAccountIdRef.current === accountId) {
+        setHiddenGamesLoading(false);
+      }
+    }
+  }, [accountId]);
+
+  const retryHiddenGames = useCallback(async () => {
+    setHiddenGamesLoading(true);
+    await window.electron.refreshLibraryAssets().catch(() => {});
+    if (activeAccountIdRef.current === accountId) {
+      await Promise.allSettled([updateLibrary(), updateHiddenGames()]);
+    }
+  }, [accountId, updateLibrary, updateHiddenGames]);
+  useEffect(() => {
+    if (accountId) {
+      void updateHiddenGames();
+    } else {
+      setHiddenGamesState({ ownerId: null, games: [] });
+      setHiddenGamesLoadFailed(false);
+    }
+  }, [accountId, updateHiddenGames]);
   const {
     collections,
     loadCollections,
@@ -125,18 +188,19 @@ export default function Library() {
   const [showCreateCollectionModal, setShowCreateCollectionModal] =
     useState(false);
 
-  const [category, setCategory] = useState<LibraryCategory>(() => {
-    const saved = localStorage.getItem("library-category");
-    if (
-      saved === "all" ||
-      saved === "pc" ||
-      saved === "steam_library" ||
-      saved === "classics"
-    ) {
-      return saved;
-    }
-    return "all";
-  });
+  const [storedFilters] = useState(() =>
+    readStoredLibraryFilters(
+      localStorage,
+      "library-category",
+      LIBRARY_SOURCES_STORAGE_KEY
+    )
+  );
+  const [category, setCategory] = useState<LibraryCategory>(
+    storedFilters.category
+  );
+  const [selectedSources, setSelectedSources] = useState<LibrarySource[]>(
+    storedFilters.sources
+  );
   const [selectedPlatforms, setSelectedPlatforms] =
     useState<string[]>(readStoredPlatforms);
   const [showInstalledOnly, setShowInstalledOnly] = useState<boolean>(
@@ -144,8 +208,6 @@ export default function Library() {
   );
   const [isImportingClassics, setIsImportingClassics] = useState(false);
 
-  // The category switch and platform filter are always available, so the
-  // selected category is honoured even before any classics games exist.
   const effectiveCategory: LibraryCategory = category;
 
   const [showClassicsOnboarding, setShowClassicsOnboarding] = useState(false);
@@ -220,6 +282,11 @@ export default function Library() {
     localStorage.setItem(LIBRARY_PLATFORMS_STORAGE_KEY, JSON.stringify(next));
   }, []);
 
+  const handleSourcesChange = useCallback((next: LibrarySource[]) => {
+    setSelectedSources(next);
+    localStorage.setItem(LIBRARY_SOURCES_STORAGE_KEY, JSON.stringify(next));
+  }, []);
+
   const handleShowInstalledOnlyChange = useCallback((next: boolean) => {
     setShowInstalledOnly(next);
     localStorage.setItem(LIBRARY_INSTALLED_ONLY_STORAGE_KEY, String(next));
@@ -229,14 +296,21 @@ export default function Library() {
     (next: LibraryCategory) => {
       setCategory(next);
       localStorage.setItem("library-category", next);
-      if (next === "pc" || next === "steam_library") {
+      if (!categoryShowsPlatforms(next)) {
         handlePlatformsChange([]);
       }
+      if (!categoryShowsSources(next)) {
+        handleSourcesChange([]);
+      }
     },
-    [handlePlatformsChange]
+    [handlePlatformsChange, handleSourcesChange]
   );
 
   const searchQuery = useAppSelector((state) => state.library.searchQuery);
+  const isLibraryLoading = useAppSelector(selectIsLibraryLoading);
+  const runningGameId = useAppSelector(
+    (state) => state.gameRunning.gameRunning?.id
+  );
   const deferredSearchQuery = useDeferredValue(searchQuery);
   const dispatch = useAppDispatch();
   const { t } = useTranslation(["library", "sidebar"]);
@@ -291,6 +365,7 @@ export default function Library() {
 
     const unsubscribe = window.electron.onLibraryBatchComplete(() => {
       updateLibrary();
+      void updateHiddenGames();
       void loadCollections();
     });
 
@@ -302,19 +377,46 @@ export default function Library() {
       .getClassicsImportStatus()
       .then((importing) => setIsImportingClassics(importing));
 
-    window.electron.refreshLibraryAssets().finally(() => {
-      const collectionsPromise = hasLoadedCollections
-        ? Promise.resolve([])
-        : loadCollections();
+    window.electron
+      .refreshLibraryAssets()
+      .catch(() => {})
+      .finally(() => {
+        const collectionsPromise = hasLoadedCollections
+          ? Promise.resolve([])
+          : loadCollections();
 
-      void Promise.all([updateLibrary(), collectionsPromise]);
-    });
+        void Promise.all([
+          updateLibrary(),
+          updateHiddenGames(),
+          collectionsPromise,
+        ]);
+      });
 
     return () => {
       unsubscribe();
       unsubscribeClassicsImport();
     };
-  }, [dispatch, t, updateLibrary, loadCollections, hasLoadedCollections]);
+  }, [
+    dispatch,
+    t,
+    updateLibrary,
+    updateHiddenGames,
+    loadCollections,
+    hasLoadedCollections,
+  ]);
+
+  useEffect(() => {
+    const refresh = () => {
+      void Promise.all([
+        updateLibrary(),
+        updateHiddenGames(),
+        loadCollections(),
+      ]);
+    };
+    window.addEventListener("hydra:game-visibility-updated", refresh);
+    return () =>
+      window.removeEventListener("hydra:game-visibility-updated", refresh);
+  }, [updateLibrary, updateHiddenGames, loadCollections]);
 
   const handleOpenContextMenu = useCallback(
     (game: LibraryGame, position: { x: number; y: number }) => {
@@ -350,6 +452,10 @@ export default function Library() {
   useEffect(() => {
     if (!selectedCollectionId) return;
     if (selectedCollectionId === FAVORITES_COLLECTION_ID) return;
+    if (selectedCollectionId === HIDDEN_COLLECTION_ID) {
+      if (!userDetails) handleCollectionSelect(null);
+      return;
+    }
 
     if (hasLoadedCollections) {
       const hasCollection = collections.some(
@@ -378,19 +484,48 @@ export default function Library() {
     handleCollectionSelect,
     hasLoadedCollections,
     hasFailedToLoadCollections,
+    userDetails,
   ]);
 
+  const groupedLibrary = useMemo(
+    () => groupLibraryGames(library, runningGameId ? [runningGameId] : []),
+    [library, runningGameId]
+  );
+  const groupedHiddenGames = useMemo(
+    () => groupLibraryGames(hiddenGames, runningGameId ? [runningGameId] : []),
+    [hiddenGames, runningGameId]
+  );
   const sortedLibrary = useMemo(
-    () => sortLibraryGames(library, sortBy),
-    [library, sortBy]
+    () => sortLibraryGames(groupedLibrary, sortBy),
+    [groupedLibrary, sortBy]
   );
 
+  const { platforms: uniquePlatforms, hasImportedGames } = useMemo(
+    () =>
+      getLibraryFilterOptions(
+        selectedCollectionId === HIDDEN_COLLECTION_ID ? hiddenGames : library
+      ),
+    [library, hiddenGames, selectedCollectionId]
+  );
+  const hasPlatforms = uniquePlatforms.length > 0;
+  const showSourceFilter =
+    categoryShowsSources(effectiveCategory) && hasImportedGames;
+  const showPlatformFilter =
+    categoryShowsPlatforms(effectiveCategory) && hasPlatforms;
+
   const filteredLibrary = useMemo(() => {
-    let filtered = sortedLibrary;
+    let filtered =
+      selectedCollectionId === HIDDEN_COLLECTION_ID
+        ? userDetails
+          ? sortLibraryGames(groupedHiddenGames, sortBy)
+          : []
+        : sortedLibrary;
 
     if (selectedCollectionId) {
       if (selectedCollectionId === FAVORITES_COLLECTION_ID) {
         filtered = filtered.filter((game) => game.favorite);
+      } else if (selectedCollectionId === HIDDEN_COLLECTION_ID) {
+        // Hidden games are populated by the authenticated owner's private list.
       } else {
         filtered = filtered.filter((game) =>
           getGameCollectionIds(game).includes(selectedCollectionId)
@@ -398,23 +533,11 @@ export default function Library() {
       }
     }
 
-    filtered = filterLibraryGamesByCategory(filtered, effectiveCategory);
-
-    const platforms = new Set(selectedPlatforms);
-
-    if (effectiveCategory === "classics") {
-      if (platforms.size > 0) {
-        filtered = filtered.filter(
-          (game) => game.platform && platforms.has(game.platform)
-        );
-      }
-    } else if (effectiveCategory === "all" && platforms.size > 0) {
-      filtered = filtered.filter(
-        (game) =>
-          game.shop !== "launchbox" ||
-          (game.platform && platforms.has(game.platform))
-      );
-    }
+    filtered = filterLibraryGames(filtered, {
+      category: effectiveCategory,
+      sources: hasImportedGames ? selectedSources : [],
+      platforms: hasPlatforms ? selectedPlatforms : [],
+    });
 
     if (showInstalledOnly) {
       filtered = filtered.filter(isGameInstalled);
@@ -442,24 +565,18 @@ export default function Library() {
     });
   }, [
     sortedLibrary,
+    groupedHiddenGames,
+    userDetails,
+    sortBy,
     deferredSearchQuery,
     selectedCollectionId,
     effectiveCategory,
+    hasImportedGames,
+    selectedSources,
+    hasPlatforms,
     selectedPlatforms,
     showInstalledOnly,
   ]);
-
-  const uniquePlatforms = useMemo(() => {
-    const set = new Set<string>();
-    for (const game of library) {
-      if (game.shop === "launchbox" && game.platform) {
-        set.add(game.platform);
-      }
-    }
-    return Array.from(set).sort((a, b) =>
-      a.localeCompare(b, undefined, { sensitivity: "base" })
-    );
-  }, [library]);
 
   useEffect(() => {
     if (uniquePlatforms.length === 0 || selectedPlatforms.length === 0) return;
@@ -475,8 +592,8 @@ export default function Library() {
   }, [uniquePlatforms, selectedPlatforms, handlePlatformsChange]);
 
   const favoritesCount = useMemo(() => {
-    return library.filter((game) => game.favorite).length;
-  }, [library]);
+    return groupedLibrary.filter((game) => game.favorite).length;
+  }, [groupedLibrary]);
 
   const libraryCollections = useMemo<GameCollection[]>(() => {
     return [
@@ -485,9 +602,30 @@ export default function Library() {
         name: t("favorites"),
         gamesCount: favoritesCount,
       },
-      ...collections,
+      ...(userDetails
+        ? [
+            {
+              id: HIDDEN_COLLECTION_ID,
+              name: t("hidden_games"),
+              gamesCount: groupedHiddenGames.length,
+            },
+          ]
+        : []),
+      ...collections.map((collection) => ({
+        ...collection,
+        gamesCount: groupedLibrary.filter((game) =>
+          getGameCollectionIds(game).includes(collection.id)
+        ).length,
+      })),
     ];
-  }, [collections, favoritesCount, t]);
+  }, [
+    collections,
+    groupedLibrary,
+    favoritesCount,
+    groupedHiddenGames,
+    t,
+    userDetails,
+  ]);
 
   const columnsCount = useMemo(
     () => getColumnsCount(containerWidth, viewMode),
@@ -527,6 +665,7 @@ export default function Library() {
     setHeaderHidden(false);
   }, [
     effectiveCategory,
+    selectedSources,
     selectedPlatforms,
     showInstalledOnly,
     sortBy,
@@ -534,8 +673,14 @@ export default function Library() {
     setHeaderHidden,
   ]);
 
-  const hasGames = library.length > 0;
+  const hasGames =
+    library.length > 0 ||
+    (Boolean(userDetails) && hiddenGames.length > 0) ||
+    (selectedCollectionId === HIDDEN_COLLECTION_ID && Boolean(userDetails));
+  const showControls = hasGames || Boolean(userDetails);
   const hasNoFilteredGames = filteredLibrary.length === 0;
+  const isHiddenCollectionSelected =
+    selectedCollectionId === HIDDEN_COLLECTION_ID;
   const isFavoritesCollectionSelected =
     selectedCollectionId === FAVORITES_COLLECTION_ID;
   const shouldShowFavoritesEmptyState =
@@ -543,6 +688,10 @@ export default function Library() {
   const shouldShowCollectionEmptyState =
     hasGames &&
     !shouldShowFavoritesEmptyState &&
+    !(
+      isHiddenCollectionSelected &&
+      (hiddenGamesLoadFailed || hiddenGamesLoading)
+    ) &&
     Boolean(selectedCollectionId) &&
     !isFavoritesCollectionSelected &&
     hasNoFilteredGames;
@@ -555,13 +704,17 @@ export default function Library() {
     hasNoFilteredGames &&
     !shouldShowFavoritesEmptyState &&
     !shouldShowCollectionEmptyState &&
+    !(
+      isHiddenCollectionSelected &&
+      (hiddenGamesLoadFailed || hiddenGamesLoading)
+    ) &&
     !shouldShowClassicsImporting;
 
   return (
     <section
       className={`library__content${hasGames && isHeaderHidden ? " library__content--header-hidden" : ""}`}
     >
-      {hasGames && (
+      {showControls && (
         <div
           className={`library__page-header${isHeaderHidden ? " library__page-header--hidden" : ""}`}
         >
@@ -575,10 +728,24 @@ export default function Library() {
                 collections={libraryCollections}
                 selectedCollectionId={selectedCollectionId}
                 favoritesCollectionId={FAVORITES_COLLECTION_ID}
+                hiddenCollectionId={HIDDEN_COLLECTION_ID}
                 onSelect={handleCollectionSelect}
                 onCreate={handleCreateCollectionButtonClick}
                 onCollectionContextMenu={openCollectionContextMenu}
               />
+              {showSourceFilter && (
+                <SourceFilter
+                  selectedSources={selectedSources}
+                  onSourcesChange={handleSourcesChange}
+                />
+              )}
+              {showPlatformFilter && (
+                <PlatformFilter
+                  selectedPlatforms={selectedPlatforms}
+                  platforms={uniquePlatforms}
+                  onPlatformsChange={handlePlatformsChange}
+                />
+              )}
               <InstalledFilter
                 showInstalledOnly={showInstalledOnly}
                 onShowInstalledOnlyChange={handleShowInstalledOnlyChange}
@@ -587,14 +754,6 @@ export default function Library() {
 
             <div className="library__controls-right">
               <FilterOptions sortBy={sortBy} onSortChange={handleSortChange} />
-              {effectiveCategory !== "pc" &&
-                effectiveCategory !== "steam_library" && (
-                  <PlatformFilter
-                    selectedPlatforms={selectedPlatforms}
-                    platforms={uniquePlatforms}
-                    onPlatformsChange={handlePlatformsChange}
-                  />
-                )}
               <ViewOptions
                 viewMode={viewMode}
                 onViewModeChange={handleViewModeChange}
@@ -604,7 +763,7 @@ export default function Library() {
         </div>
       )}
 
-      {!hasGames && !shouldShowClassicsImporting && (
+      {!hasGames && !shouldShowClassicsImporting && !isLibraryLoading && (
         <div className="library__no-games">
           <div className="library__telescope-icon">
             <TelescopeIcon size={24} />
@@ -639,10 +798,40 @@ export default function Library() {
           <div className="library__icon-container">
             <FileDirectoryIcon size={24} />
           </div>
-          <h2>{t("empty_collection_title")}</h2>
-          <p>{t("empty_collection_description")}</p>
+          <h2>
+            {t(
+              selectedCollectionId === HIDDEN_COLLECTION_ID
+                ? "empty_hidden_title"
+                : "empty_collection_title"
+            )}
+          </h2>
+          <p>
+            {t(
+              selectedCollectionId === HIDDEN_COLLECTION_ID
+                ? "empty_hidden_description"
+                : "empty_collection_description"
+            )}
+          </p>
         </div>
       )}
+
+      {hasGames && isHiddenCollectionSelected && hiddenGamesLoading && (
+        <div className="library__empty">
+          <h2>{t("loading")}</h2>
+        </div>
+      )}
+
+      {hasGames &&
+        isHiddenCollectionSelected &&
+        hiddenGamesLoadFailed &&
+        !hiddenGamesLoading && (
+          <div className="library__empty">
+            <h2>{t("hidden_games_load_failed")}</h2>
+            <button type="button" onClick={() => void retryHiddenGames()}>
+              {t("retry_hidden_games")}
+            </button>
+          </div>
+        )}
 
       {shouldShowNoResultsEmptyState && (
         <div className="library__empty">
@@ -662,6 +851,17 @@ export default function Library() {
         <div
           className={`library__scroll-shadow${isGamesScrolled && isHeaderHidden ? " library__scroll-shadow--visible" : ""}`}
         />
+        {containerWidth > 0 && isLibraryLoading && (
+          <LibraryGamesSkeleton
+            viewMode={viewMode}
+            columns={columnsCount}
+            rows={Math.max(
+              2,
+              Math.ceil(window.innerHeight / estimatedRowHeight)
+            )}
+            gap={GAP}
+          />
+        )}
         {containerWidth > 0 &&
           hasGames &&
           !shouldShowFavoritesEmptyState &&

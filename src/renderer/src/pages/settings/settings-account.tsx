@@ -185,8 +185,6 @@ export function SettingsAccount() {
                 }))}
                 disabled={isSubmitting}
               />
-
-              <small>{t("profile_visibility_description")}</small>
             </section>
           );
         }}
@@ -216,8 +214,6 @@ export function SettingsAccount() {
                 }))}
                 disabled={isSubmitting}
               />
-
-              <small>{t("souvenirs_visibility_description")}</small>
             </section>
           );
         }}
@@ -282,7 +278,6 @@ export function SettingsAccount() {
                 void handleSubmit(onSubmit)();
               }}
             />
-            <small>{t("allow_cloud_gifts_description")}</small>
           </section>
         )}
       />

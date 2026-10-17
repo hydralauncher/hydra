@@ -15,6 +15,7 @@ import { buildGameDetailsPath } from "@renderer/helpers";
 import {
   Avatar,
   Button,
+  ConfirmationModal,
   FullscreenMediaModal,
   Link,
 } from "@renderer/components";
@@ -29,6 +30,7 @@ import { addSeconds } from "date-fns";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { AuthPage } from "@shared";
+import { GameVisibilityBadge } from "@renderer/components/game-visibility-badge/game-visibility-badge";
 
 import type { FriendRequestAction } from "@types";
 import { EditProfileModal } from "../edit-profile-modal/edit-profile-modal";
@@ -44,6 +46,7 @@ export function ProfileHero() {
   const [showEditProfileModal, setShowEditProfileModal] = useState(false);
   const [showFullscreenAvatar, setShowFullscreenAvatar] = useState(false);
   const [isPerformingAction, setIsPerformingAction] = useState(false);
+  const [showSignOutModal, setShowSignOutModal] = useState(false);
   const [isCopyButtonHovered, setIsCopyButtonHovered] = useState(false);
   const [isCopied, setIsCopied] = useState(false);
 
@@ -76,6 +79,7 @@ export function ProfileHero() {
       showSuccessToast(t("successfully_signed_out"));
     } finally {
       setIsPerformingAction(false);
+      setShowSignOutModal(false);
     }
     navigate("/");
   }, [navigate, signOut, showSuccessToast, t]);
@@ -176,7 +180,7 @@ export function ProfileHero() {
 
           <Button
             theme="danger"
-            onClick={handleSignOut}
+            onClick={() => setShowSignOutModal(true)}
             disabled={isPerformingAction}
           >
             <SignOutIcon />
@@ -275,14 +279,7 @@ export function ProfileHero() {
         </Button>
       </>
     );
-  }, [
-    handleFriendAction,
-    handleSignOut,
-    isMe,
-    t,
-    isPerformingAction,
-    userProfile,
-  ]);
+  }, [handleFriendAction, isMe, t, isPerformingAction, userProfile]);
 
   const handleAvatarClick = useCallback(() => {
     if (userProfile?.profileImageUrl) {
@@ -332,6 +329,18 @@ export function ProfileHero() {
       <EditProfileModal
         visible={showEditProfileModal}
         onClose={() => setShowEditProfileModal(false)}
+      />
+
+      <ConfirmationModal
+        visible={showSignOutModal}
+        title={t("sign_out_modal_title")}
+        descriptionText={t("sign_out_modal_text")}
+        confirmButtonLabel={t("sign_out")}
+        cancelButtonLabel={t("cancel")}
+        confirmButtonTheme="danger"
+        buttonsIsDisabled={isPerformingAction}
+        onConfirm={() => void handleSignOut()}
+        onClose={() => setShowSignOutModal(false)}
       />
 
       <FullscreenMediaModal
@@ -426,6 +435,12 @@ export function ProfileHero() {
                     >
                       {currentGame.title}
                     </Link>
+                    <GameVisibilityBadge
+                      isHiddenFromOthers={
+                        "isHiddenFromOthers" in currentGame &&
+                        currentGame.isHiddenFromOthers === true
+                      }
+                    />
                   </div>
 
                   <small>

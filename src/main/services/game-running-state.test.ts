@@ -6,12 +6,15 @@ import { levelKeys } from "../level/sublevels/keys.js";
 import {
   clearGamesPlaytimeState,
   deleteGamePlaytime,
+  deleteEmulatorGameRunning,
   enableHydraPlaytimeForRunningSession,
   gamesPlaytime,
   getGamePlaytimeDeltas,
   getTrackedGamesRunning,
   isGameRunning,
   setGamePlaytime,
+  setEmulatorGameRunning,
+  resetHydraPlaytimeTicks,
 } from "./game-running-state.js";
 import {
   getDisplayedPlayTimeInMilliseconds,
@@ -32,6 +35,15 @@ describe("game running state", () => {
     assert.equal(isGameRunning("10", "steam"), true);
     assert.equal(isGameRunning("20", "steam"), false);
     assert.equal(gamesPlaytime.size, 1);
+  });
+
+  it("blocks cloud save operations during an emulator session", () => {
+    const key = levelKeys.game("launchbox", "ps3-game");
+    setEmulatorGameRunning(key);
+    assert.equal(isGameRunning("ps3-game", "launchbox"), true);
+    assert.equal(isGameRunning("ps3-game", "steam"), false);
+    deleteEmulatorGameRunning(key);
+    assert.equal(isGameRunning("ps3-game", "launchbox"), false);
   });
 
   it("deletes and clears entries through the shared state helpers", () => {
@@ -172,4 +184,44 @@ describe("game running state", () => {
       4_200_000
     );
   });
+});
+
+it("enabling Hydra during an Epic session keeps its Epic exit policy and does not count earlier time", () => {
+  const key = levelKeys.game("epic", "Namespace:Item");
+  setGamePlaytime(key, {
+    firstTick: 0,
+    lastTick: 60000,
+    lastSyncTick: 60000,
+    countHydraPlaytime: false,
+    syncEpicOnExit: true,
+  });
+  enableHydraPlaytimeForRunningSession(key, 300000);
+  const session = gamesPlaytime.get(key)!;
+  assert.equal(session.firstTick, 0);
+  assert.equal(session.syncEpicOnExit, true);
+  assert.deepEqual(getGamePlaytimeDeltas(session, 360000), {
+    localDelta: 60000,
+    syncDelta: 60000,
+  });
+  deleteGamePlaytime(key);
+});
+it("resetting Hydra ticks preserves the frozen policy and session duration for an Epic session", () => {
+  const key = levelKeys.game("epic", "Namespace:Item");
+  setGamePlaytime(key, {
+    firstTick: 0,
+    lastTick: 60000,
+    lastSyncTick: 60000,
+    countHydraPlaytime: false,
+    syncEpicOnExit: true,
+  });
+  resetHydraPlaytimeTicks(key, 300000);
+  const session = gamesPlaytime.get(key)!;
+  assert.equal(session.firstTick, 0);
+  assert.equal(session.countHydraPlaytime, false);
+  assert.equal(session.syncEpicOnExit, true);
+  assert.deepEqual(getGamePlaytimeDeltas(session, 360000), {
+    localDelta: 0,
+    syncDelta: 0,
+  });
+  deleteGamePlaytime(key);
 });

@@ -206,6 +206,7 @@ export default function App() {
       objectId,
       executablePath,
       launchOptions,
+      undefined,
       true
     );
     setBlockedSteamOverlayLaunch(null);

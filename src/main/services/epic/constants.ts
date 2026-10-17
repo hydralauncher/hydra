@@ -1,0 +1,62 @@
+export const EPIC_SYNC_TIMEOUT_MS = 5 * 60_000;
+export const EPIC_ACHIEVEMENT_BUDGET_MS = 90_000;
+export const EPIC_ACHIEVEMENT_CONCURRENCY = 4;
+export const EPIC_ACHIEVEMENT_MAX_PER_GAME = 2_000;
+export const EPIC_ACHIEVEMENT_MAX_PER_SNAPSHOT = 100_000;
+export const EPIC_ACHIEVEMENT_MAX_RESPONSE_BYTES = 4 * 1024 * 1024;
+export const EPIC_ACHIEVEMENT_GRAPHQL_URL =
+  "https://launcher.store.epicgames.com/graphql";
+export const EPIC_ACHIEVEMENT_PUBLICATION_RESERVE_MS = 60_000;
+export const EPIC_SOURCE_TIMEOUT_MS = 15_000;
+export const EPIC_HYDRA_TIMEOUT_MS = 20_000;
+export const EPIC_SYNC_MAX_OUTPUT_BYTES = 64 * 1024 * 1024;
+export const EPIC_PLAYTIME_CACHE_MS = 15_000;
+export const EPIC_PLAYTIME_REPORT_INTERVAL_MS = 60_000;
+export const EPIC_PLAYTIME_OBSERVATION_GAP_MS = 10_000;
+export const EPIC_PLAYTIME_MAX_PENDING_SEGMENTS = 2;
+export const EPIC_PLAYTIME_AUTH_ATTEMPTS = 2;
+export const EPIC_IMPORT_LOOKUP_TIMEOUT_MS = 3_000;
+export const EPIC_EXIT_SYNC_DELAYS_MS = [10_000, 30_000] as const;
+export const EPIC_RECONCILE_INTERVAL_MS = 2_000;
+export const EPIC_SNAPSHOT_MAX_GAMES = 10_000;
+export const EPIC_SNAPSHOT_CHUNK_GAMES = 250;
+export const EPIC_SNAPSHOT_MAX_CHUNKS = 100;
+export const EPIC_SNAPSHOT_MAX_CHUNK_BYTES = 1024 * 1024;
+export const EPIC_ACHIEVEMENT_MAX_GAME_BYTES =
+  EPIC_SNAPSHOT_MAX_CHUNK_BYTES / 2;
+export const EPIC_MAX_ARTIFACTS = 16;
+export const EPIC_ID_MAX_LENGTH = 255;
+export const EPIC_GAME_NAME_MAX_LENGTH = 256;
+export const EPIC_MAX_PLAYTIME_SECONDS = 2_147_483_647;
+export const EPIC_RATE_LIMIT_ATTEMPTS = 5;
+export const EPIC_NETWORK_ATTEMPTS = 3;
+export const EPIC_RATE_LIMIT_BACKOFF_MS = 1_000;
+export const EPIC_NETWORK_BACKOFF_MS = 500;
+export const EPIC_MAX_BACKOFF_MS = 30_000;
+export const EPIC_SYNC_RUN_ID_MIN_LENGTH = 8;
+export const EPIC_SYNC_RUN_ID_MAX_LENGTH = 128;
+export const EPIC_ENDPOINT = "/profile/integrations/epic";
+export const EPIC_PLAYTIME_ORIGIN =
+  "https://library-service.live.use1a.on.epicgames.com";
+
+export const EPIC_PENDING_EXPIRATION_MS = 60 * 60_000;
+export const EPIC_RUNNING_EXPIRATION_MS = 15 * 60_000;
+export const EPIC_DOWNLOAD_STALL_TIMEOUT_MS = 5 * 60_000;
+export const EPIC_SAVE_SYNC_TIMEOUT_MS = 5 * 60_000;
+export const EPIC_SAVE_MAX_RESPONSE_BYTES = 4 * 1024 * 1024;
+export const EPIC_SAVE_STORAGE_ORIGIN =
+  "https://datastorage-public-service-liveegs.live.use1a.on.epicgames.com";
+export const EPIC_PROGRESS_PERSIST_INTERVAL_MS = 1_000;
+export const EPIC_PROCESS_MAX_LINE_BYTES = 65_536;
+export const EPIC_PROCESS_TERMINATION_TIMEOUT_MS = 10_000;
+export const EPIC_SAVE_STABILITY_DELAY_MS = 1_000;
+export const EPIC_SAVE_STABILITY_ATTEMPTS = 5;
+export const EPIC_PREREQUISITE_TIMEOUT_MS = 5 * 60_000;
+export const EPIC_LAUNCH_DETECTION_TIMEOUT_MS = 60_000;
+export const EPIC_INSTALL_OPTIONS_CACHE_MS = 5 * 60_000;
+export const EPIC_INSTALL_OPTIONS_CACHE_MAX_ENTRIES = 32;
+export const EPIC_INSTALL_OPTIONS_TIMEOUT_MS = 90_000;
+// Hashing a large store install can take a long time on slow disks.
+export const EPIC_IMPORT_VERIFY_TIMEOUT_MS = 60 * 60_000;
+export const EPIC_INSTALL_LIBRARY_CACHE_MS = EPIC_INSTALL_OPTIONS_CACHE_MS;
+export const EPIC_TARGET_AUTH_ATTEMPTS = 2;

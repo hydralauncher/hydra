@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 
 import { Button, Modal } from "@renderer/components";
-import { useDate, useToast, useUserDetails } from "@renderer/hooks";
+import { useToast, useUserDetails } from "@renderer/hooks";
 import { LinkExternalIcon, PersonIcon, SyncIcon } from "@primer/octicons-react";
 import {
   AuthPage,
@@ -15,10 +15,17 @@ import type {
   SteamSyncFinishedPayload,
   SteamSyncState,
 } from "@types";
-import SteamLogo from "@renderer/assets/steam-logo.svg?react";
-import { SettingsIntegrationCard } from "./settings-integration-card";
+import SteamLogo from "@renderer/assets/steam-integration-logo.svg?react";
+import {
+  SettingsIntegrationCard,
+  SettingsIntegrationLastSynced,
+} from "./settings-integration-card";
 import { getSteamProgressPresentation } from "./settings-integration-progress";
 import { getSteamIntegrationPresentation } from "./settings-steam-state";
+import {
+  getPendingSteamDisconnect,
+  runSteamDisconnect,
+} from "./steam-disconnect-state";
 
 import "./settings-steam.scss";
 
@@ -56,14 +63,18 @@ const isSteamAlreadyLinkedError = (message?: string) =>
 export function SettingsSteam() {
   const { userDetails } = useUserDetails();
   const { showSuccessToast, showErrorToast } = useToast();
-  const { formatDateTime } = useDate();
   const { t, i18n } = useTranslation("settings");
 
-  const [isLoading, setIsLoading] = useState(() => Boolean(userDetails));
+  const [isLoading, setIsLoading] = useState(
+    () => Boolean(userDetails) && !getPendingSteamDisconnect()
+  );
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [isDisconnecting, setIsDisconnecting] = useState(false);
-  const [integration, setIntegration] =
-    useState<SteamIntegrationStatus>(DISCONNECTED_STATUS);
+  const [isDisconnecting, setIsDisconnecting] = useState(() =>
+    Boolean(getPendingSteamDisconnect())
+  );
+  const [integration, setIntegration] = useState<SteamIntegrationStatus>(
+    () => getPendingSteamDisconnect()?.integration ?? DISCONNECTED_STATUS
+  );
   const [avatarError, setAvatarError] = useState(false);
   const [showDeleteDataModal, setShowDeleteDataModal] = useState(false);
   const [syncState, setSyncState] = useState<SteamSyncState>({
@@ -81,6 +92,7 @@ export function SettingsSteam() {
     integration.connected || integration.snapshotPreserved ? integration : null;
   const isSyncing =
     syncState.status === "running" || syncState.status === "cancelling";
+  const isBusy = isSubmitting || isDisconnecting;
   const needsReconnect = integrationViewState === "reconnect-required";
 
   useEffect(() => {
@@ -201,6 +213,11 @@ export function SettingsSteam() {
         return;
       }
 
+      if (getPendingSteamDisconnect()) {
+        setIsLoading(false);
+        return;
+      }
+
       if (!options?.silent) {
         setIsLoading(true);
       }
@@ -253,6 +270,26 @@ export function SettingsSteam() {
 
   useEffect(() => {
     void refreshStatus({ fromMount: true });
+  }, [refreshStatus]);
+
+  useEffect(() => {
+    const pendingDisconnect = getPendingSteamDisconnect();
+    if (!pendingDisconnect) return;
+
+    let cancelled = false;
+
+    void pendingDisconnect.promise
+      .catch(() => {})
+      .finally(() => {
+        if (cancelled) return;
+
+        setIsDisconnecting(false);
+        void refreshStatus({ silent: true });
+      });
+
+    return () => {
+      cancelled = true;
+    };
   }, [refreshStatus]);
 
   useEffect(() => {
@@ -377,7 +414,9 @@ export function SettingsSteam() {
     setIsDisconnecting(true);
 
     try {
-      await globalThis.window.electron.disconnectSteam(true);
+      await runSteamDisconnect(integration, () =>
+        globalThis.window.electron.disconnectSteam(true)
+      );
 
       showSuccessToast(t("steam_account_unlinked"));
       await refreshStatus({ silent: true });
@@ -421,23 +460,26 @@ export function SettingsSteam() {
                 {steamAccount.username}
               </span>
               {integration.connected ? (
-                <span className="settings-integration-card__meta">
-                  {steamAccount.lastSyncedAt
-                    ? t("steam_last_synced", {
-                        date: formatDateTime(steamAccount.lastSyncedAt),
-                      })
-                    : t("steam_never_synced")}
-                </span>
+                <SettingsIntegrationLastSynced
+                  lastSyncedAt={steamAccount.lastSyncedAt}
+                />
               ) : null}
             </div>
           </div>
 
           {isDisconnecting ? (
-            <p className="settings-integration-card__message" role="status">
-              {integration.connected
-                ? t("steam_disconnecting")
-                : t("steam_removing_imported_data")}
-            </p>
+            <output className="settings-integration-card__progress">
+              <div className="settings-integration-card__progress-header">
+                <span>
+                  {integration.connected
+                    ? t("steam_disconnecting")
+                    : t("steam_removing_imported_data")}
+                </span>
+              </div>
+              <div className="settings-integration-card__progress-track">
+                <div className="settings-integration-card__progress-fill settings-integration-card__progress-fill--indeterminate" />
+              </div>
+            </output>
           ) : integration.connected && needsReconnect ? (
             <p className="settings-integration-card__message">
               {t("steam_error_session_required")}
@@ -445,7 +487,9 @@ export function SettingsSteam() {
           ) : integration.connected && isSyncing ? (
             <div className="settings-integration-card__progress" role="status">
               <div className="settings-integration-card__progress-header">
-                <span>{t("steam_syncing")}</span>
+                <span>
+                  {t(progressPresentation?.labelKey ?? "steam_syncing")}
+                </span>
                 {progressPresentation?.showCount &&
                 syncState.status === "running" ? (
                   <span className="settings-integration-card__progress-count">
@@ -500,7 +544,7 @@ export function SettingsSteam() {
 
     if (!steamAccount) {
       return (
-        <Button onClick={handleConnect} disabled={isSubmitting}>
+        <Button onClick={handleConnect} disabled={isBusy}>
           <LinkExternalIcon size={STATUS_ICON_SIZE} />
           {t("integration_connect")}
         </Button>
@@ -510,14 +554,14 @@ export function SettingsSteam() {
     if (integrationViewState === "snapshot-preserved") {
       return (
         <>
-          <Button onClick={handleConnect} disabled={isSubmitting || isSyncing}>
+          <Button onClick={handleConnect} disabled={isBusy || isSyncing}>
             <LinkExternalIcon size={STATUS_ICON_SIZE} />
             {t("integration_reconnect")}
           </Button>
           <Button
             theme="danger"
             onClick={() => setShowDeleteDataModal(true)}
-            disabled={isSubmitting || isSyncing}
+            disabled={isBusy || isSyncing}
           >
             {t("steam_remove_imported_data")}
           </Button>
@@ -528,7 +572,7 @@ export function SettingsSteam() {
     return (
       <>
         {needsReconnect ? (
-          <Button onClick={handleConnect} disabled={isSubmitting}>
+          <Button onClick={handleConnect} disabled={isBusy}>
             <LinkExternalIcon size={STATUS_ICON_SIZE} />
             {t("integration_reconnect")}
           </Button>
@@ -541,7 +585,7 @@ export function SettingsSteam() {
             {t("cancel")}
           </Button>
         ) : (
-          <Button theme="outline" onClick={handleSync} disabled={isSubmitting}>
+          <Button theme="outline" onClick={handleSync} disabled={isBusy}>
             <SyncIcon size={STATUS_ICON_SIZE} />
             {t("integration_sync")}
           </Button>
@@ -549,7 +593,7 @@ export function SettingsSteam() {
         <Button
           theme="danger"
           onClick={() => setShowDeleteDataModal(true)}
-          disabled={isSubmitting || isSyncing}
+          disabled={isBusy || isSyncing}
         >
           {t("integration_disconnect")}
         </Button>
@@ -585,14 +629,14 @@ export function SettingsSteam() {
           <Button
             theme="outline"
             onClick={() => setShowDeleteDataModal(false)}
-            disabled={isSubmitting}
+            disabled={isBusy}
           >
             {t("cancel")}
           </Button>
           <Button
             theme="danger"
             onClick={() => void handleDisconnect()}
-            disabled={isSubmitting}
+            disabled={isBusy}
           >
             {integration.connected
               ? t("steam_delete_confirm_button")

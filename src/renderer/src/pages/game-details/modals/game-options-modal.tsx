@@ -15,6 +15,10 @@ import {
   getCloudSaveAccessAction,
   getGameExecutableFilters,
   mergeLaunchOptionEnvVars,
+  getGameCatalogueIdentity,
+  applyLibraryGroupAction,
+  isLibraryGameDownloading,
+  getOfficialStoreMembers,
   MANGOHUD_SITE_URL,
 } from "@shared";
 
@@ -32,11 +36,14 @@ import {
   useAppSelector,
   useDownload,
   useGameCollections,
+  useIsNonSteamExecutable,
   useLibrary,
+  useLibraryGamePresentation,
   useToast,
   useUserDetails,
 } from "@renderer/hooks";
 import { useSubscription } from "@renderer/hooks/use-subscription";
+import { useGameLinuxCompatibility } from "@renderer/hooks/use-game-linux-compatibility";
 import { RemoveGameFromLibraryModal } from "./remove-from-library-modal";
 import { ResetAchievementsModal } from "./reset-achievements-modal";
 import { ChangeGamePlaytimeModal } from "./change-game-playtime-modal";
@@ -51,10 +58,11 @@ import {
   ImageIcon,
 } from "@primer/octicons-react";
 import { Wrench } from "lucide-react";
+import EpicLogo from "@renderer/assets/epic-integration-logo.svg?react";
 import { GameAssetsSettings } from "./game-assets-settings";
 import { debounce } from "lodash-es";
 import { levelDBService } from "@renderer/services/leveldb.service";
-import { getGameKey } from "@renderer/helpers";
+import { getGameKey, getGameTitleFromExecutablePath } from "@renderer/helpers";
 import "./game-options-modal.scss";
 import { logger } from "@renderer/logger";
 import { GameOptionsSidebar } from "./game-options-modal/sidebar";
@@ -64,6 +72,7 @@ import { DownloadsSettingsSection } from "./game-options-modal/downloads-section
 import { DangerZoneSection } from "./game-options-modal/danger-zone-section";
 import { HydraCloudLegacySettingsSection } from "./game-options-modal/hydra-cloud-section";
 import { HydraCloudV2SettingsSection } from "./game-options-modal/hydra-cloud-v2-section";
+import { EpicCloudSettingsSection } from "./game-options-modal/epic-cloud-section";
 import type { GameSettingsCategoryId } from "./game-options-modal/types";
 import { CreateSteamShortcutModal } from "./create-steam-shortcut-modal";
 import {
@@ -73,6 +82,8 @@ import {
 import { LegacySavesSection } from "./game-options-modal/legacy-saves-section";
 import {
   getAvailableGameSettingsCategory,
+  getCloudGameSettingsCategories,
+  isEpicCloudSettingsAvailable,
   shouldInitializeGameSettingsCategory,
   type GameSettingsCategoryInitializationState,
 } from "./game-options-modal/category-selection";
@@ -97,6 +108,18 @@ export function GameOptionsModal({
   const { showSuccessToast, showErrorToast } = useToast();
   const { updateLibrary } = useLibrary();
   const { loadCollections } = useGameCollections();
+  const presentation = useLibraryGamePresentation(game, game);
+  const epicGame = getOfficialStoreMembers(
+    presentation?.members ?? [game]
+  ).epic;
+  const showEpicCloudSettings = isEpicCloudSettingsAvailable(
+    epicGame,
+    globalThis.window.electron
+  );
+  const downloadGame = presentation?.downloadGame ?? game;
+  const catalogueGame = getGameCatalogueIdentity(presentation ?? game);
+  const { compatibility: linuxCompatibility, refresh: refreshCompatibility } =
+    useGameLinuxCompatibility(game, visible);
 
   const {
     updateGame,
@@ -107,6 +130,7 @@ export function GameOptionsModal({
     achievements,
     shopDetails,
     isTransferring,
+    isGameRunning,
   } = useContext(gameDetailsContext);
 
   const [transferProgress, setTransferProgress] = useState(0);
@@ -161,7 +185,6 @@ export function GameOptionsModal({
   const [legacySaveDownloadProgress, setLegacySaveDownloadProgress] =
     useState<LegacySaveExportProgress | null>(null);
   const legacySaveExportInProgressRef = useRef(false);
-
   const cancelLegacySaveExport = useCallback(() => {
     if (!legacySaveExportInProgressRef.current) return;
 
@@ -233,12 +256,8 @@ export function GameOptionsModal({
     [game.objectId, game.shop]
   );
 
-  const {
-    removeGameInstaller,
-    removeGameFromLibrary,
-    isGameDeleting,
-    cancelDownload,
-  } = useDownload();
+  const { removeGameInstaller, removeGameFromLibrary, isGameDeleting } =
+    useDownload();
   const { userDetails, hasActiveSubscription } = useUserDetails();
   const { artifacts } = useContext(cloudSyncContext);
   const { showHydraCloudModal } = useSubscription();
@@ -246,7 +265,10 @@ export function GameOptionsModal({
     Boolean(userDetails),
     hasActiveSubscription
   );
-  const cloudSaveSettings = getCloudSaveVisibility(game.shop).settings;
+  const cloudSaveSettings = getCloudSaveVisibility(
+    game.shop,
+    game.platform
+  ).settings;
   const { showV2: showCloudSaveV2Settings, legacyPurpose } = cloudSaveSettings;
   const showLegacyCloudSaveSettings = isLegacyCloudSaveSettingsAvailable(
     cloudSaveSettings,
@@ -265,6 +287,8 @@ export function GameOptionsModal({
   const { lastPacket } = useDownload();
   const isGameDownloading =
     game.download?.status === "active" && lastPacket?.gameId === game.id;
+
+  const isNonSteamExecutable = useIsNonSteamExecutable(game);
 
   useEffect(() => {
     if (visible) {
@@ -412,15 +436,31 @@ export function GameOptionsModal({
   ).current;
 
   const handleRemoveGameFromLibrary = async () => {
-    if (isGameDownloading) await cancelDownload(game.shop, game.objectId);
-    await removeGameFromLibrary(game.shop, game.objectId);
-    await Promise.all([
-      refreshGameDetails(),
-      updateLibrary(),
-      loadCollections(),
-    ]);
-    onClose();
-    if (game.shop === "custom" && onNavigateHome) onNavigateHome();
+    try {
+      await applyLibraryGroupAction(
+        presentation?.members ?? [game],
+        async (member) => {
+          if (member.download?.status === "active") {
+            await globalThis.window.electron.cancelGameDownload(
+              member.shop,
+              member.objectId
+            );
+          }
+          await removeGameFromLibrary(member.shop, member.objectId);
+        }
+      );
+      onClose();
+      if (game.shop === "custom" && onNavigateHome) onNavigateHome();
+    } catch (error) {
+      logger.error("Failed to remove catalogue game from library", error);
+      showErrorToast(t("failed_remove_from_library"));
+    } finally {
+      await Promise.allSettled([
+        refreshGameDetails(),
+        updateLibrary(),
+        loadCollections(),
+      ]);
+    }
   };
 
   const handleCancelTransfer = () => {
@@ -594,7 +634,10 @@ export function GameOptionsModal({
   };
 
   const handleOpenDownloadFolder = () =>
-    globalThis.window.electron.openGameInstallerPath(game.shop, game.objectId);
+    globalThis.window.electron.openGameInstallerPath(
+      downloadGame.shop,
+      downloadGame.objectId
+    );
   const handleDeleteGame = async () => {
     await removeGameInstaller(game.shop, game.objectId);
     updateGame();
@@ -662,7 +705,7 @@ export function GameOptionsModal({
       await globalThis.window.electron.getDefaultWinePrefixSelectionPath();
     const { filePaths } = await globalThis.window.electron.showOpenDialog({
       properties: ["openDirectory"],
-      defaultPath: game?.winePrefixPath ?? defaultPath ?? "",
+      defaultPath: displayedWinePrefixPath ?? defaultPath ?? "",
     });
     if (filePaths?.length) {
       try {
@@ -672,6 +715,7 @@ export function GameOptionsModal({
           filePaths[0]
         );
         await updateGame();
+        await refreshCompatibility();
       } catch {
         showErrorToast(
           t("invalid_wine_prefix_path"),
@@ -687,7 +731,8 @@ export function GameOptionsModal({
       game.objectId,
       null
     );
-    updateGame();
+    await updateGame();
+    await refreshCompatibility();
   };
   const handleOpenWinetricks = async () => {
     const success = await globalThis.window.electron.openGameWinetricks(
@@ -726,6 +771,7 @@ export function GameOptionsModal({
         protonPath || null
       );
       await updateGame();
+      await refreshCompatibility();
     } catch {
       setSelectedProtonPath(game.protonPath ?? "");
       showErrorToast(t("proton_version_update_error"));
@@ -785,14 +831,41 @@ export function GameOptionsModal({
   };
 
   const handleResetGameTitle = useCallback(async () => {
-    if (!game || updatingGameTitle || game.shop === "custom") return;
+    if (!game || updatingGameTitle) return;
+
+    if (game.shop === "custom") {
+      const defaultTitle = game.executablePath
+        ? getGameTitleFromExecutablePath(game.executablePath).trim()
+        : "";
+      if (!defaultTitle) return;
+
+      setUpdatingGameTitle(true);
+
+      try {
+        await globalThis.window.electron.updateCustomGame({
+          shop: game.shop,
+          objectId: game.objectId,
+          title: defaultTitle,
+          iconUrl: game.iconUrl || undefined,
+          logoImageUrl: game.logoImageUrl || undefined,
+          libraryHeroImageUrl: game.libraryHeroImageUrl || undefined,
+        });
+        await Promise.all([updateGame(), updateLibrary()]);
+        setGameTitle(defaultTitle);
+      } catch {
+        showErrorToast(t("edit_game_modal_failed"));
+      } finally {
+        setUpdatingGameTitle(false);
+      }
+      return;
+    }
 
     setUpdatingGameTitle(true);
 
     try {
       const assets = await globalThis.window.electron.getGameAssets(
-        game.objectId,
-        game.shop,
+        catalogueGame.objectId,
+        catalogueGame.shop,
         { forceFresh: true }
       );
 
@@ -811,7 +884,16 @@ export function GameOptionsModal({
     } finally {
       setUpdatingGameTitle(false);
     }
-  }, [game, updatingGameTitle, showErrorToast, t, updateGame, updateLibrary]);
+  }, [
+    game,
+    catalogueGame.objectId,
+    catalogueGame.shop,
+    updatingGameTitle,
+    showErrorToast,
+    t,
+    updateGame,
+    updateLibrary,
+  ]);
 
   const handleChangeProtonVersion = (value: string) => {
     setSelectedProtonPath(value);
@@ -879,11 +961,14 @@ export function GameOptionsModal({
   const showDownloadSettings = game.shop !== "custom";
   const shouldShowWinePrefixConfiguration =
     globalThis.window.electron.platform === "linux";
-  const defaultHydraWinePrefixPath = defaultWinePrefixPath
-    ? `${defaultWinePrefixPath}/${game.objectId}`
-    : null;
+  const defaultHydraWinePrefixPath =
+    game.shop !== "epic" && defaultWinePrefixPath
+      ? `${defaultWinePrefixPath}/${game.objectId}`
+      : null;
   const displayedWinePrefixPath =
-    game.winePrefixPath ?? defaultHydraWinePrefixPath;
+    linuxCompatibility?.winePrefixPath ??
+    game.winePrefixPath ??
+    defaultHydraWinePrefixPath;
 
   const categories = useMemo(
     () => [
@@ -906,32 +991,33 @@ export function GameOptionsModal({
         label: t("settings_category_customization"),
         icon: <ImageIcon size={16} />,
       },
-      ...(showCloudSaveV2Settings && cloudSaveAccessAction !== "sign-in"
-        ? [
-            {
-              id: "hydra_cloud" as const,
-              label: t("settings_category_hydra_cloud"),
-              icon: <CloudIcon size={16} />,
-            },
-          ]
-        : []),
-      ...(showLegacyCloudSaveSettings && cloudSaveAccessAction !== "sign-in"
-        ? [
-            {
-              id: "hydra_cloud_legacy" as const,
-              label:
-                legacyPurpose === "active"
-                  ? t("settings_category_hydra_cloud")
-                  : t("settings_category_legacy_saves"),
-              icon:
-                legacyPurpose === "active" ? (
-                  <CloudIcon size={16} />
-                ) : (
-                  <HistoryIcon size={16} />
-                ),
-            },
-          ]
-        : []),
+      ...getCloudGameSettingsCategories(
+        {
+          cloudSaveAccessAction,
+          showCloudSaveV2Settings,
+          showLegacyCloudSaveSettings,
+          showEpicCloudSettings,
+          showDownloadSettings,
+        },
+        legacyPurpose
+      ).map((id) => ({
+        id,
+        label:
+          id === "epic_cloud"
+            ? "Epic Games"
+            : id === "hydra_cloud_legacy" &&
+                (legacyPurpose !== "active" || showCloudSaveV2Settings)
+              ? t("settings_category_legacy_saves")
+              : t("settings_category_hydra_cloud"),
+        icon:
+          id === "epic_cloud" ? (
+            <EpicLogo width={16} height={16} aria-hidden="true" />
+          ) : id === "hydra_cloud_legacy" && legacyPurpose === "archive" ? (
+            <HistoryIcon size={16} />
+          ) : (
+            <CloudIcon size={16} />
+          ),
+      })),
       ...(shouldShowWinePrefixConfiguration
         ? [
             {
@@ -962,6 +1048,7 @@ export function GameOptionsModal({
       legacyPurpose,
       showCloudSaveV2Settings,
       showLegacyCloudSaveSettings,
+      showEpicCloudSettings,
       showDownloadSettings,
       shouldShowWinePrefixConfiguration,
       t,
@@ -983,6 +1070,7 @@ export function GameOptionsModal({
       cloudSaveAccessAction,
       showCloudSaveV2Settings,
       showLegacyCloudSaveSettings,
+      showEpicCloudSettings,
       showDownloadSettings,
     });
 
@@ -1004,6 +1092,7 @@ export function GameOptionsModal({
     showDownloadSettings,
     showCloudSaveV2Settings,
     showLegacyCloudSaveSettings,
+    showEpicCloudSettings,
     showHydraCloudModal,
     visible,
   ]);
@@ -1016,6 +1105,7 @@ export function GameOptionsModal({
         cloudSaveAccessAction,
         showCloudSaveV2Settings,
         showLegacyCloudSaveSettings,
+        showEpicCloudSettings,
         showDownloadSettings,
       })
     );
@@ -1023,6 +1113,7 @@ export function GameOptionsModal({
     cloudSaveAccessAction,
     showCloudSaveV2Settings,
     showLegacyCloudSaveSettings,
+    showEpicCloudSettings,
     showDownloadSettings,
     visible,
   ]);
@@ -1030,7 +1121,8 @@ export function GameOptionsModal({
   const handleSelectCategory = (category: typeof selectedCategory) => {
     if (
       (category === "hydra_cloud" && !showCloudSaveV2Settings) ||
-      (category === "hydra_cloud_legacy" && !showLegacyCloudSaveSettings)
+      (category === "hydra_cloud_legacy" && !showLegacyCloudSaveSettings) ||
+      (category === "epic_cloud" && !showEpicCloudSettings)
     ) {
       return;
     }
@@ -1153,6 +1245,7 @@ export function GameOptionsModal({
       onClearLaunchOptions: handleClearLaunchOptions,
       onDetectWineDllOverrides: handleDetectWineDllOverrides,
       onToggleHydraPlaytimeEnabled: handleToggleHydraPlaytimeEnabled,
+      isNonSteamExecutable,
       isTransferring,
       transferProgress,
       drives,
@@ -1189,6 +1282,7 @@ export function GameOptionsModal({
       handleClearLaunchOptions,
       handleDetectWineDllOverrides,
       handleToggleHydraPlaytimeEnabled,
+      isNonSteamExecutable,
       isTransferring,
       transferProgress,
       drives,
@@ -1224,12 +1318,14 @@ export function GameOptionsModal({
         onClose={() => setShowChangePlaytimeModal(false)}
         changePlaytime={handleChangePlaytime}
         game={game}
+        playtimePreview={presentation}
       />
       <ResetPlaytimeModal
         visible={showResetPlaytimeModal}
         onClose={() => setShowResetPlaytimeModal(false)}
         resetPlaytime={handleResetPlaytime}
         game={game}
+        playtimePreview={presentation}
       />
       <CreateSteamShortcutModal
         visible={showSteamShortcutModal}
@@ -1240,7 +1336,7 @@ export function GameOptionsModal({
 
       <Modal
         visible={visible}
-        title={game.title}
+        title={presentation?.title ?? game.title}
         onClose={onClose}
         onCloseStart={cancelLegacySaveExport}
         large={true}
@@ -1281,13 +1377,16 @@ export function GameOptionsModal({
             {selectedCategory === "assets" && (
               <GameAssetsSettings
                 game={game}
+                catalogueGame={catalogueGame}
                 shopDetails={shopDetails}
                 onGameUpdated={updateGame}
               />
             )}
             {selectedCategory === "hydra_cloud" && showCloudSaveV2Settings && (
               <HydraCloudV2SettingsSection
-                onSelectExecutable={() => setSelectedCategory("locations")}
+                onSelectExecutable={() =>
+                  setSelectedCategory(isLaunchbox ? "general" : "locations")
+                }
               />
             )}
             {selectedCategory === "hydra_cloud_legacy" &&
@@ -1297,6 +1396,15 @@ export function GameOptionsModal({
                   game={game}
                   automaticCloudSync={automaticCloudSync}
                   onToggleAutomaticCloudSync={handleToggleAutomaticCloudSync}
+                />
+              )}
+            {visible &&
+              selectedCategory === "epic_cloud" &&
+              showEpicCloudSettings &&
+              epicGame && (
+                <EpicCloudSettingsSection
+                  game={epicGame}
+                  isGameRunning={isGameRunning}
                 />
               )}
             {selectedCategory === "hydra_cloud_legacy" &&
@@ -1313,6 +1421,12 @@ export function GameOptionsModal({
                 <CompatibilitySettingsSection
                   game={game}
                   displayedWinePrefixPath={displayedWinePrefixPath}
+                  winePrefixPlaceholder={
+                    game.shop === "epic"
+                      ? t("epic_compatibility_automatic")
+                      : undefined
+                  }
+                  effectiveProtonName={linuxCompatibility?.protonName}
                   protonVersions={protonVersions}
                   selectedProtonPath={selectedProtonPath}
                   autoRunGamemode={autoRunGamemode}
@@ -1334,10 +1448,13 @@ export function GameOptionsModal({
               )}
             {selectedCategory === "downloads" && showDownloadSettings && (
               <DownloadsSettingsSection
-                game={game}
-                deleting={deleting}
-                isGameDownloading={isGameDownloading}
+                game={downloadGame}
+                deleting={isGameDeleting(downloadGame.id)}
+                isGameDownloading={isLibraryGameDownloading(downloadGame)}
                 repacksLength={repacks.length}
+                hasOfficialSource={Object.values(
+                  getOfficialStoreMembers(presentation?.members ?? [game])
+                ).some(Boolean)}
                 onOpenRepacks={() => setShowRepacksModal(true)}
                 onOpenDownloadFolder={handleOpenDownloadFolder}
               />

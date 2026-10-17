@@ -2,12 +2,15 @@ import { useCallback, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 
 import { Button, CheckboxField, GuideLink, Modal } from "@renderer/components";
-import { useDate, useToast, useUserDetails } from "@renderer/hooks";
+import { useToast, useUserDetails } from "@renderer/hooks";
 import { LinkExternalIcon, PersonIcon, SyncIcon } from "@primer/octicons-react";
 import { AuthPage } from "@shared";
 
 import retroAchievementsLogo from "@renderer/assets/icons/retroachievements.png";
-import { SettingsIntegrationCard } from "./settings-integration-card";
+import {
+  SettingsIntegrationCard,
+  SettingsIntegrationLastSynced,
+} from "./settings-integration-card";
 import {
   RETRO_ACHIEVEMENTS_INTEGRATION_ENDPOINT,
   type RetroAchievementsIntegration,
@@ -24,7 +27,6 @@ const AVATAR_FALLBACK_ICON_SIZE = 28;
 export function SettingsRetroAchievements() {
   const { userDetails } = useUserDetails();
   const { showSuccessToast, showErrorToast } = useToast();
-  const { formatDateTime } = useDate();
   const { t } = useTranslation("settings");
 
   const [isLoading, setIsLoading] = useState(() => Boolean(userDetails));
@@ -207,13 +209,7 @@ export function SettingsRetroAchievements() {
               <span className="settings-integration-card__username">
                 {integration.username}
               </span>
-              {lastCheckedAt ? (
-                <span className="settings-integration-card__meta">
-                  {t("retroachievements_last_checked", {
-                    date: formatDateTime(lastCheckedAt),
-                  })}
-                </span>
-              ) : null}
+              <SettingsIntegrationLastSynced lastSyncedAt={lastCheckedAt} />
             </div>
           </div>
 

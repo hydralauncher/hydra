@@ -16,9 +16,20 @@ import {
 
 export const getSteamLocation = async () => {
   if (process.platform === "linux") {
+    const home = SystemPath.getPath("home");
     const possiblePaths = [
-      path.join(SystemPath.getPath("home"), ".steam", "steam"),
-      path.join(SystemPath.getPath("home"), ".local", "share", "Steam"),
+      path.join(home, ".steam", "steam"),
+      path.join(home, ".local", "share", "Steam"),
+      path.join(
+        home,
+        ".var",
+        "app",
+        "com.valvesoftware.Steam",
+        ".local",
+        "share",
+        "Steam"
+      ),
+      path.join(home, "snap", "steam", "common", ".local", "share", "Steam"),
     ];
 
     return possiblePaths.find((p) => fs.existsSync(p)) || possiblePaths[0];

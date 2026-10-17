@@ -1,9 +1,11 @@
-import type { Game, GameShop } from "@types";
+import type { Game, GameShop, LibraryCatalogueMetadata } from "@types";
 import { mergeLocalAndRemotePlayTime } from "../../../shared/playtime.js";
+import { mergeLibraryCatalogueMetadata } from "../../../shared/library-catalogue.js";
 import { resolveLibraryIsDeleted } from "./resolve-library-source.js";
 
-export interface ImportedProfileGame {
+export interface ImportedProfileGame extends LibraryCatalogueMetadata {
   id: string;
+  source?: string;
   objectId: string;
   shop: GameShop;
   createdAt?: Date | string | null;
@@ -11,9 +13,14 @@ export interface ImportedProfileGame {
   playTimeInSeconds?: number | null;
   playTimeInMilliseconds?: number | null;
   runtime?: number | null;
-  runtimeByPlatform?: { hydra?: number | null; steam?: number | null } | null;
+  runtimeByPlatform?: {
+    hydra?: number | null;
+    epic?: number;
+    steam?: number | null;
+  } | null;
   hasManuallyUpdatedPlaytime?: boolean;
   hasActiveSteamImport?: boolean;
+  hasActiveEpicImport?: boolean;
   isFavorite?: boolean;
   isPinned?: boolean;
   collectionIds?: string[];
@@ -40,7 +47,13 @@ export const mergeImportedProfileGame = (
   remoteGame: ImportedProfileGame
 ): Game => ({
   ...localGame,
-  remoteId: remoteGame.id,
+  ...mergeLibraryCatalogueMetadata(localGame, remoteGame),
+  remoteId:
+    localGame.source === "hydra" &&
+    localGame.remoteId === null &&
+    remoteGame.source === "epic"
+      ? null
+      : remoteGame.id,
   addedToLibraryAt:
     localGame.addedToLibraryAt ?? parseDate(remoteGame.createdAt),
   lastTimePlayed: latestDate(
@@ -49,10 +62,13 @@ export const mergeImportedProfileGame = (
   ),
   ...mergeLocalAndRemotePlayTime(localGame, remoteGame),
   hasActiveSteamImport: remoteGame.hasActiveSteamImport === true,
+  hasActiveEpicImport:
+    remoteGame.hasActiveEpicImport ?? localGame.hasActiveEpicImport ?? false,
   isDeleted: resolveLibraryIsDeleted(
     localGame.isDeleted,
     undefined,
-    remoteGame.hasActiveSteamImport === true
+    remoteGame.hasActiveSteamImport === true,
+    remoteGame.hasActiveEpicImport === true
   ),
   hasManuallyUpdatedPlaytime:
     remoteGame.hasManuallyUpdatedPlaytime ??

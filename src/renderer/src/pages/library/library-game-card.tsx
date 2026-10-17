@@ -1,6 +1,7 @@
 import { LibraryGame } from "@types";
 import { getDisplayedPlayTimeInMilliseconds } from "@shared";
 import cn from "classnames";
+import { getLibraryPresentationBadgeSource } from "./library-category";
 import {
   useGameCard,
   useCoverPoster,
@@ -12,9 +13,9 @@ import {
   CLASSICS_PS_PLATFORM_LABELS,
   isGameReadyToPlay,
   resolveClassicsBadge,
-  shouldShowSteamLibraryBadge,
 } from "@renderer/helpers";
 import { AchievementProgress, SteamLibraryBadge } from "@renderer/components";
+import { GameVisibilityBadge } from "@renderer/components/game-visibility-badge/game-visibility-badge";
 import { memo, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
@@ -56,10 +57,11 @@ export const LibraryGameCard = memo(function LibraryGameCard({
     userPreferences?.hideLibraryReadySizeBadges ?? false;
   const hideClassicsBadges =
     userPreferences?.hideLibraryClassicsBadges ?? false;
-  const showSteamLibraryBadge = shouldShowSteamLibraryBadge(
-    game,
-    userPreferences?.hideSteamLibraryBadges
-  );
+  const badgeSource = getLibraryPresentationBadgeSource(game);
+  const showEpicLibraryBadge =
+    badgeSource === "epic" && !userPreferences?.hideEpicLibraryBadges;
+  const showSteamLibraryBadge =
+    badgeSource === "steam" && !userPreferences?.hideSteamLibraryBadges;
   const hideAchievementProgress =
     userPreferences?.hideLibraryAchievementProgress ?? false;
   const autoplayAnimatedArtwork =
@@ -238,28 +240,54 @@ export const LibraryGameCard = memo(function LibraryGameCard({
         })}
       >
         <div className="library-game-card__top-section">
-          {!hideBadges && (
-            <div className="library-game-card__playtime">
-              {game.hasManuallyUpdatedPlaytime ? (
-                <AlertFillIcon
-                  size={11}
-                  className="library-game-card__manual-playtime"
-                />
-              ) : (
-                <ClockIcon size={11} />
-              )}
-              <span className="library-game-card__playtime-long">
-                {formatPlayTime(getDisplayedPlayTimeInMilliseconds(game))}
-              </span>
-              <span className="library-game-card__playtime-short">
-                {formatPlayTime(getDisplayedPlayTimeInMilliseconds(game), true)}
-              </span>
-            </div>
-          )}
+          <div className="library-game-card__top-left">
+            <GameVisibilityBadge
+              isHiddenFromOthers={game.isHiddenFromOthers}
+              isConcealed={game.isConcealed}
+            />
+            {!hideBadges && (
+              <div className="library-game-card__playtime">
+                {game.hasManuallyUpdatedPlaytime ? (
+                  <AlertFillIcon
+                    size={11}
+                    className="library-game-card__manual-playtime"
+                  />
+                ) : (
+                  <ClockIcon size={11} />
+                )}
+                <span className="library-game-card__playtime-long">
+                  {formatPlayTime(getDisplayedPlayTimeInMilliseconds(game))}
+                </span>
+                <span className="library-game-card__playtime-short">
+                  {formatPlayTime(
+                    getDisplayedPlayTimeInMilliseconds(game),
+                    true
+                  )}
+                </span>
+              </div>
+            )}
+          </div>
 
-          {(showSteamLibraryBadge || showPlatformBadge || showReadyBadge) && (
+          {(showSteamLibraryBadge ||
+            showEpicLibraryBadge ||
+            showPlatformBadge ||
+            showReadyBadge) && (
             <div className="library-game-card__top-right">
-              {showSteamLibraryBadge && <SteamLibraryBadge />}
+              {showEpicLibraryBadge && (
+                <SteamLibraryBadge
+                  source="epic"
+                  availableShops={game.availableShops}
+                  hasActiveSteamImport={game.hasActiveSteamImport}
+                  hasActiveEpicImport={game.hasActiveEpicImport}
+                />
+              )}
+              {showSteamLibraryBadge && (
+                <SteamLibraryBadge
+                  availableShops={game.availableShops}
+                  hasActiveSteamImport={game.hasActiveSteamImport}
+                  hasActiveEpicImport={game.hasActiveEpicImport}
+                />
+              )}
 
               {showPlatformBadge && (
                 <div className="library-game-card__classics-badges">

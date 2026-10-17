@@ -16,6 +16,7 @@ import {
   steamCommunityOwnerStatsHtmlUrl,
   steamCommunityStatsHtmlUrl,
   steamCommunityStatsXmlUrl,
+  steamCommunityStatsXmlUrlForPage,
 } from "./steam-community-achievements.ts";
 const token = {
   steamId64: "76561199208012825",
@@ -227,6 +228,53 @@ describe("fetchSteamCommunityPlayerAchievements", () => {
       (payload as { playerstats: { achievements: unknown[] } }).playerstats
         .achievements.length,
       2
+    );
+  });
+
+  it("follows legacy Valve short-name stats pages to their XML feed", async () => {
+    const legacyPage = "https://steamcommunity.com/id/player/stats/TF2";
+    const requested: string[] = [];
+
+    const payload = await fetchSteamCommunityPlayerAchievements({
+      steamId64: token.steamId64,
+      steamAppId: "440",
+      loadSchema: async () => {
+        throw new Error("schema should not be loaded for public XML");
+      },
+      communityFetch: (input) => {
+        const url = String(input);
+        requested.push(url);
+
+        if (url === `${legacyPage}/?xml=1`) {
+          return Promise.resolve(textResponse(200, unlockedXml, url));
+        }
+
+        return Promise.resolve(
+          textResponse(200, "<html>class stats</html>", legacyPage)
+        );
+      },
+    });
+
+    assert.equal(requested.at(-1), `${legacyPage}/?xml=1`);
+    assert.equal(
+      (payload as { playerstats: { achievements: unknown[] } }).playerstats
+        .achievements.length,
+      2
+    );
+  });
+
+  it("builds the XML feed URL for a redirected stats page", () => {
+    assert.equal(
+      steamCommunityStatsXmlUrlForPage(
+        "https://steamcommunity.com/id/player/stats/CS:S"
+      ),
+      "https://steamcommunity.com/id/player/stats/CS:S/?xml=1"
+    );
+    assert.equal(
+      steamCommunityStatsXmlUrlForPage(
+        "https://steamcommunity.com/id/player/stats/TF2/?tab=achievements"
+      ),
+      "https://steamcommunity.com/id/player/stats/TF2/?xml=1"
     );
   });
 
