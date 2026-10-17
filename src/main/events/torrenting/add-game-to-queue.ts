@@ -55,7 +55,7 @@ const addGameToQueue = async (
       fileSize: selectedFilesSize ?? parsedFileSize,
       shouldSeed: false,
       timestamp: Date.now(),
-      queued: true,
+      queued: false,
       pinnedToHero: false,
       extracting: false,
       automaticallyExtract,
@@ -65,7 +65,9 @@ const addGameToQueue = async (
       customTrackers: globalTrackers,
     };
 
-    await DownloadManager.validateDownloadUrl(download);
+    if (!DownloadOrchestrator.preparesRealDebridInBackground(download)) {
+      await DownloadOrchestrator.validateDownloadOrMarkPending(download);
+    }
     await prepareGameEntry({ gameKey, title, objectId, shop });
     await DownloadManager.cancelDownload(gameKey).catch(() => null);
   } catch (err: unknown) {

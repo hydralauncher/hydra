@@ -162,6 +162,7 @@ export function BigPictureCloudSaveCustomPathModal({
             : undefined)
         }
         selectDirectory
+        selectFileAndDirectory={approval?.kind === "file"}
         onClose={onCloseFileExplorer}
         onSelect={onSelectPath}
       />

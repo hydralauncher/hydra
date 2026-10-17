@@ -18,7 +18,12 @@ import "./hero-panel-playtime.scss";
 export function HeroPanelPlaytime() {
   const [lastTimePlayed, setLastTimePlayed] = useState("");
 
-  const { game, isGameRunning } = useContext(gameDetailsContext);
+  const {
+    game: operationalGame,
+    presentation,
+    isGameRunning,
+  } = useContext(gameDetailsContext);
+  const game = presentation ?? operationalGame;
   const { t } = useTranslation("game_details");
   const { numberFormatter } = useFormat();
   const { progress, lastPacket } = useDownload();
@@ -34,13 +39,14 @@ export function HeroPanelPlaytime() {
           addSuffix: true,
         })
       );
-    }
+    } else setLastTimePlayed("");
   }, [game?.lastTimePlayed, formatDistance]);
 
   const formattedPlayTime = useMemo(() => {
     const milliseconds = getDisplayedPlayTimeInMilliseconds({
       playTimeInMilliseconds: game?.playTimeInMilliseconds || 0,
       steamPlayTimeInMilliseconds: game?.steamPlayTimeInMilliseconds,
+      epicPlayTimeInMilliseconds: game?.epicPlayTimeInMilliseconds,
     });
     const seconds = milliseconds / 1000;
     const minutes = seconds / 60;
@@ -56,6 +62,7 @@ export function HeroPanelPlaytime() {
   }, [
     game?.playTimeInMilliseconds,
     game?.steamPlayTimeInMilliseconds,
+    game?.epicPlayTimeInMilliseconds,
     numberFormatter,
     t,
   ]);
@@ -65,6 +72,7 @@ export function HeroPanelPlaytime() {
   const displayedPlayTimeInMilliseconds = getDisplayedPlayTimeInMilliseconds({
     playTimeInMilliseconds: game.playTimeInMilliseconds || 0,
     steamPlayTimeInMilliseconds: game.steamPlayTimeInMilliseconds,
+    epicPlayTimeInMilliseconds: game.epicPlayTimeInMilliseconds,
   });
 
   const hasDownload =
@@ -149,7 +157,7 @@ export function HeroPanelPlaytime() {
 
       {isExtracting && extractionInProgressInfo}
       {!isExtracting && hasDownload && downloadInProgressInfo}
-      {!isExtracting && !hasDownload && (
+      {!isExtracting && !hasDownload && !!lastTimePlayed && (
         <p>
           {t("last_time_played", {
             period: lastTimePlayed,

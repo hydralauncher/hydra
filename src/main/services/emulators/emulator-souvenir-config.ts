@@ -26,6 +26,12 @@ import {
   enablePPSSPPAchievementLog,
 } from "./ppsspp-souvenir-config-value";
 import { ppssppConfigCandidates } from "./ppsspp-paths";
+import {
+  retroArchConfigCandidates,
+  retroArchConfigRoots,
+} from "../retroarch/retroarch-config-paths";
+
+export { retroArchConfigRoots };
 
 interface RetroArchSouvenirConfigBackup {
   configPath: string;
@@ -54,40 +60,8 @@ const getRetroArchSouvenirConfigBackups = async () =>
     { valueEncoding: "json" }
   )) ?? [];
 
-export const retroArchConfigRoots = (executablePath: string): string[] => {
-  const home = os.homedir();
-
-  if (executablePath.includes("org.libretro.RetroArch")) {
-    return [
-      path.join(
-        home,
-        ".var",
-        "app",
-        "org.libretro.RetroArch",
-        "config",
-        "retroarch"
-      ),
-    ];
-  }
-
-  const roots = [path.dirname(executablePath)];
-
-  if (process.platform === "win32") {
-    const appData = process.env.APPDATA;
-    if (appData) roots.push(path.join(appData, "RetroArch"));
-  } else {
-    roots.push(path.join(home, ".config", "retroarch"));
-  }
-
-  return roots;
-};
-
 export const findRetroArchConfig = (executablePath: string) =>
-  findExistingConfig(
-    retroArchConfigRoots(executablePath).map((root) =>
-      path.join(root, "retroarch.cfg")
-    )
-  );
+  findExistingConfig(retroArchConfigCandidates(executablePath));
 
 const uniqueDirectories = (directories: Array<string | null>) =>
   Array.from(new Set(directories.filter((value): value is string => !!value)));

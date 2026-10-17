@@ -30,6 +30,7 @@ import { addSeconds } from "date-fns";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { AuthPage } from "@shared";
+import { GameVisibilityBadge } from "@renderer/components/game-visibility-badge/game-visibility-badge";
 
 import type { FriendRequestAction } from "@types";
 import { EditProfileModal } from "../edit-profile-modal/edit-profile-modal";
@@ -434,6 +435,12 @@ export function ProfileHero() {
                     >
                       {currentGame.title}
                     </Link>
+                    <GameVisibilityBadge
+                      isHiddenFromOthers={
+                        "isHiddenFromOthers" in currentGame &&
+                        currentGame.isHiddenFromOthers === true
+                      }
+                    />
                   </div>
 
                   <small>

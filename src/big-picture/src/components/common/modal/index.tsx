@@ -1,4 +1,10 @@
-import { useCallback, useEffect, useRef, type ReactNode } from "react";
+import {
+  useCallback,
+  useEffect,
+  useRef,
+  type KeyboardEvent as ReactKeyboardEvent,
+  type ReactNode,
+} from "react";
 import { createPortal } from "react-dom";
 import { AnimatePresence, motion, type Transition } from "framer-motion";
 import cn from "classnames";
@@ -6,7 +12,10 @@ import { Backdrop } from "../backdrop";
 import { IS_BROWSER } from "../../../constants";
 import { FocusRegionContext } from "../../context";
 import { useNavigationScreenActions } from "../../../hooks";
-import { useVirtualKeyboardStore } from "../../../stores";
+import { useInputModeStore, useVirtualKeyboardStore } from "../../../stores";
+import { NavigationService } from "../../../services";
+import { trapModalTabFocus } from "./tab-focus";
+import { focusWithPhysicalKeyboard } from "../../../helpers/physical-keyboard-focus";
 
 import "./styles.scss";
 import { ArrowLeftIcon, XIcon } from "@phosphor-icons/react";
@@ -69,6 +78,16 @@ export function Modal({
     onClose();
   }, [onClose]);
 
+  const handleHeaderKeyDown = (
+    event: ReactKeyboardEvent<HTMLButtonElement>
+  ) => {
+    // Header buttons use native keyboard activation rather than the last
+    // focused controller action.
+    if (event.key === "Enter" || event.key === " ") {
+      event.stopPropagation();
+    }
+  };
+
   const shouldCloseOnB = visible && closeOnB && !isVirtualKeyboardOpen;
   const resolvedLayoutTransition = layoutTransition ?? {
     duration: 0.4,
@@ -83,6 +102,34 @@ export function Modal({
   useNavigationScreenActions(
     shouldCloseOnB ? { press: { b: handleBPress } } : {}
   );
+
+  useEffect(() => {
+    if (!visible) return;
+
+    const onTabKeyDown = (event: KeyboardEvent) => {
+      if (event.key !== "Tab" || event.ctrlKey || event.altKey || event.metaKey)
+        return;
+      if (useVirtualKeyboardStore.getState().target !== null) return;
+      if (!isTopMostModal() || !modalContentRef.current) return;
+
+      const nextControl = trapModalTabFocus(event, modalContentRef.current);
+      const inputMode = useInputModeStore.getState();
+      inputMode.setGamepadMode();
+      inputMode.clearPendingGamepadFocus();
+
+      const navigationItem = nextControl.closest<HTMLElement>(
+        '[data-navigation-state="active"]'
+      );
+      if (navigationItem) {
+        NavigationService.getInstance().setFocus(navigationItem.id);
+      }
+      focusWithPhysicalKeyboard(nextControl);
+    };
+
+    globalThis.window.addEventListener("keydown", onTabKeyDown, true);
+    return () =>
+      globalThis.window.removeEventListener("keydown", onTabKeyDown, true);
+  }, [visible]);
 
   useEffect(() => {
     if (!visible || !closeOnEscape) return;
@@ -144,6 +191,7 @@ export function Modal({
               aria-label={ariaLabel}
               ref={modalContentRef}
               data-hydra-dialog
+              tabIndex={-1}
               className={cn("modal", className)}
               initial={{ opacity: 0, y: 24, scale: 0.96 }}
               animate={{ opacity: 1, y: 0, scale: 1 }}
@@ -169,6 +217,7 @@ export function Modal({
                       <button
                         className="modal__header-back-button"
                         onClick={onBack}
+                        onKeyDown={handleHeaderKeyDown}
                       >
                         <ArrowLeftIcon size={20} />
                       </button>
@@ -184,6 +233,7 @@ export function Modal({
                   <button
                     className="modal__header-close-button"
                     onClick={handleCloseClick}
+                    onKeyDown={handleHeaderKeyDown}
                   >
                     <XIcon size={24} />
                   </button>

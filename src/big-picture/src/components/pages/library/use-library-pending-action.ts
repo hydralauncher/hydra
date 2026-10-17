@@ -1,8 +1,14 @@
+import {
+  applyLibraryGroupAction,
+  getLibraryOperationalGame,
+  getLibraryGameMembers,
+} from "@shared";
 import { useCallback, useState } from "react";
 import type { LibraryGame } from "@types";
 import { logger } from "@renderer/logger";
 import type { BigPictureToastOptions } from "../../../stores";
 import { IS_DESKTOP } from "../../../constants";
+import { useBigPictureToast } from "../../../hooks";
 
 export interface PendingAction {
   type: "remove-files" | "remove-from-library";
@@ -118,6 +124,7 @@ export function useLibraryPendingAction({
     null
   );
   const [isSubmittingAction, setIsSubmittingAction] = useState(false);
+  const { showErrorToast } = useBigPictureToast();
 
   const requestRemoveFiles = useCallback(
     (game: LibraryGame) => {
@@ -160,10 +167,19 @@ export function useLibraryPendingAction({
     setIsSubmittingAction(true);
 
     try {
-      await stopGameActivity(currentAction);
-      await executePendingAction(currentAction);
-
-      await onDataRefresh();
+      const members =
+        currentAction.type === "remove-from-library"
+          ? getLibraryGameMembers(currentAction.game)
+          : [getLibraryOperationalGame(currentAction.game)];
+      try {
+        await applyLibraryGroupAction(members, async (game) => {
+          const action = { ...currentAction, game };
+          await stopGameActivity(action);
+          await executePendingAction(action);
+        });
+      } finally {
+        await onDataRefresh();
+      }
       await showRemoveFromLibraryToast(
         currentAction,
         buildToastOptions,
@@ -182,6 +198,9 @@ export function useLibraryPendingAction({
       }
     } catch (error) {
       logger.error("Failed to execute library action", error);
+      showErrorToast("Failed to update library", {
+        message: currentAction.game.title,
+      });
       setIsSubmittingAction(false);
     }
   }, [
@@ -192,6 +211,7 @@ export function useLibraryPendingAction({
     buildToastOptions,
     fallbackFocusId,
     restoreFocusOnConfirm,
+    showErrorToast,
   ]);
 
   return {

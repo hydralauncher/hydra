@@ -47,6 +47,7 @@ import { AddFriendModal } from "./pages/profile/profile-content/add-friend-modal
 import { ClassicsScanModal } from "./pages/settings/emulation/classics-scan-modal";
 import { RetroArchScanModal } from "./pages/settings/emulation/retroarch-scan-modal";
 import { CloudGiftNotificationModal } from "./pages/shared-modals/cloud-gift-notification-modal";
+import { playMessageSound } from "./pages/chat-window/chat-sounds";
 
 import type { UserPreferences } from "@types";
 import "./app.scss";
@@ -71,7 +72,7 @@ type WorkWondersWithKnowledge = WorkWonders & {
 
 export function App() {
   const contentRef = useRef<HTMLDivElement>(null);
-  const { updateLibrary, library } = useLibrary();
+  const { updateLibrary, library, downloadLibrary } = useLibrary();
 
   // Listen for new download options updates
   useDownloadOptionsListener();
@@ -174,12 +175,14 @@ export function App() {
   useEffect(() => {
     if (!lastPacket?.gameId) return;
 
-    const activeGame = library.find((game) => game.id === lastPacket.gameId);
+    const activeGame = downloadLibrary.find(
+      (game) => game.id === lastPacket.gameId
+    );
 
     if (!activeGame || activeGame.download?.status !== "active") {
       clearDownload();
     }
-  }, [clearDownload, lastPacket?.gameId, library]);
+  }, [clearDownload, lastPacket?.gameId, downloadLibrary]);
 
   const setupWorkWonders = useCallback(
     async (token?: string, locale?: string) => {
@@ -614,6 +617,13 @@ export function App() {
       unsubscribe();
     };
   }, [playAudio]);
+
+  // Sent here when the chat window is closed or still loading.
+  useEffect(() => {
+    return window.electron.onChatMessageSound(() => {
+      void playMessageSound();
+    });
+  }, []);
 
   const handleToastClose = useCallback(() => {
     dispatch(closeToast());

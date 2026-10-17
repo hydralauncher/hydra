@@ -1,3 +1,12 @@
+@use "../../../../../renderer/src/components/steam-library-badge/steam-library-badge";
+
+.library-catalogue-badge {
+  position: absolute;
+  top: calc(var(--spacing-unit) * 2);
+  right: calc(var(--spacing-unit) * 2);
+  pointer-events: auto;
+}
+
 .library-focus-grid__card--classics {
   --library-classics-rainbow: conic-gradient(
     from 0deg,

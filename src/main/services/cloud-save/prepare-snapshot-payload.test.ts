@@ -15,6 +15,20 @@ const file = {
 };
 
 describe("prepare snapshot payload", () => {
+  it("retains the RetroArch v2 marker even if the proposal has no emulator files", () => {
+    const payload = buildPrepareSnapshotPayload({
+      shop: "launchbox",
+      objectId: "131",
+      platform: "mac",
+      snapshotHash: "b".repeat(64),
+      baseVersion: 2,
+      retroArchFormatVersion: 2,
+      customPathRawPaths: [],
+      variants: [variant],
+      files: [file],
+    });
+    assert.equal(payload.retroArchFormatVersion, 2);
+  });
   it("uses baseVersion 0 when there is no active snapshot", () => {
     const payload = buildPrepareSnapshotPayload({
       shop: "steam",

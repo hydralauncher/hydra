@@ -52,6 +52,7 @@ export interface TorBoxFile {
   size: number;
   mimetype: string;
   short_name: string;
+  zipped?: boolean;
 }
 
 export interface TorBoxTorrentInfo {

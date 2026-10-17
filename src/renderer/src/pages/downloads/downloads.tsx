@@ -23,7 +23,7 @@ import { orderBy } from "lodash-es";
 import { ArrowDownIcon } from "@primer/octicons-react";
 
 export default function Downloads() {
-  const { library, updateLibrary } = useLibrary();
+  const { downloadLibrary: library, updateLibrary } = useLibrary();
   const { layoutState } = useDownloadLayout();
   const extraction = useAppSelector((state) => state.download.extraction);
 

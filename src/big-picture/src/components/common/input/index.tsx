@@ -9,6 +9,7 @@ import {
   useRef,
 } from "react";
 import { FocusItem } from "..";
+import { useVirtualKeyboardStore } from "../../../stores/virtual-keyboard.store";
 import type { FocusOverrides, NavigationNodeState } from "../../../services";
 
 export interface InputProps extends InputHTMLAttributes<HTMLInputElement> {
@@ -64,7 +65,14 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(function Input(
       <div className="input-wrapper">
         <FocusItem
           id={focusId}
-          actions={{ primary: () => inputRef.current?.focus() }}
+          actions={{
+            primary: () => {
+              const input = inputRef.current;
+              if (!input) return;
+              input.focus();
+              useVirtualKeyboardStore.getState().openKeyboard?.(input);
+            },
+          }}
           navigationOverrides={focusNavigationOverrides}
           navigationState={resolvedFocusNavigationState}
         >

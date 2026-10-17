@@ -46,6 +46,7 @@ import "./add-scanned-game";
 import "./select-game-proton-path";
 import "./select-game-wine-prefix";
 import "./set-game-hydra-playtime-enabled";
+import "./set-game-visibility";
 import "./toggle-automatic-cloud-sync";
 import "./toggle-game-gamemode";
 import "./toggle-game-mangohud";

@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { EventEmitter } from "node:events";
 import { describe, it } from "node:test";
+import { AxiosError, type AxiosResponse } from "axios";
 import type { IncomingMessage } from "node:http";
 import type { ClientOptions, RawData } from "ws";
 import {
@@ -102,6 +103,128 @@ const makeHarness = () => {
   };
 };
 
+describe("realtime credential logging", () => {
+  it("sanitizes failed token minting without changing reconnect behavior", async () => {
+    const secret = "test-only-sensitive-value";
+    const error = new AxiosError(
+      `Request failed ${secret}`,
+      "ERR_BAD_RESPONSE",
+      {
+        headers: { Authorization: `Bearer ${secret}` },
+        data: JSON.stringify({ exchangeCode: secret }),
+      } as never,
+      undefined,
+      { status: 502, data: { token: secret } } as AxiosResponse
+    );
+    const logs: unknown[][] = [];
+    let retries = 0;
+    const client = new RealtimeWebSocketClient({
+      mintToken: async () => {
+        throw error;
+      },
+      onEvent: () => {},
+      onReconnect: () => {},
+      random: () => 0.5,
+      sleep: (_ms, signal) => {
+        retries++;
+        return new Promise<void>((resolve) => {
+          signal.addEventListener("abort", () => resolve(), { once: true });
+        });
+      },
+      log: {
+        info: (...args) => {
+          logs.push(args);
+        },
+        warn: (...args) => {
+          logs.push(args);
+        },
+        error: (...args) => {
+          logs.push(args);
+        },
+      },
+    });
+    client.connect();
+    await tick();
+    client.close();
+    await tick();
+    assert.equal(retries, 1);
+    assert.equal(JSON.stringify(logs).includes(secret), false);
+    assert.ok(
+      logs.some(
+        ([message, summary]) =>
+          message === "Realtime WebSocket error" &&
+          JSON.stringify(summary) ===
+            JSON.stringify({
+              name: "AxiosError",
+              code: "ERR_BAD_RESPONSE",
+              status: 502,
+            })
+      )
+    );
+  });
+
+  it("sanitizes socket, event and resync errors while retaining event recovery", async () => {
+    const secret = "test-only-sensitive-value";
+    const error = Object.assign(new Error(`Authorization: ${secret}`), {
+      code: "ECONNRESET",
+      config: { headers: { Authorization: secret } },
+    });
+    const logs: unknown[][] = [];
+    const socket = new FakeSocket();
+    let recoveries = 0;
+    const client = new RealtimeWebSocketClient({
+      mintToken: async () => ({
+        token: "test-token",
+        url: "wss://example.test",
+        expiresIn: 300,
+      }),
+      createSocket: () => socket,
+      onEvent: async () => {
+        throw error;
+      },
+      onEventFailure: () => {
+        recoveries++;
+        throw error;
+      },
+      onReconnect: () => {},
+      log: {
+        info: (...args) => {
+          logs.push(args);
+        },
+        warn: (...args) => {
+          logs.push(args);
+        },
+        error: (...args) => {
+          logs.push(args);
+        },
+      },
+    });
+    client.connect();
+    await tick();
+    socket.open();
+    socket.emit("error", error);
+    socket.message({
+      v: 1,
+      eventId: "failed-event",
+      event: "notification",
+      payload: { invalidate: "notifications" },
+      publishedAt: Date.now(),
+    });
+    await tick();
+    client.close();
+    assert.equal(recoveries, 1);
+    assert.equal(JSON.stringify(logs).includes(secret), false);
+    for (const [message, summary] of logs.filter(
+      ([message]) =>
+        typeof message === "string" &&
+        message !== "Realtime WebSocket connected"
+    )) {
+      assert.ok(typeof message === "string");
+      assert.deepEqual(summary, { name: "Error", code: "ECONNRESET" });
+    }
+  });
+});
+
 describe("realtime WebSocket helpers", () => {
   it("uses full jitter bounded by exponential cap", () => {
     assert.equal(
@@ -197,6 +320,221 @@ describe("realtime WebSocket helpers", () => {
         ),
         null
       );
+    }
+  });
+
+  const chatMessagePayload = {
+    senderId: "sender01",
+    recipientId: "recipie1",
+    seq: 3,
+    body: "hello",
+    clientNonce: "4d7c9a4e-6b1f-4c9e-9a51-0c2d6f8e1b23",
+    createdAt: "2026-10-05T12:00:00.000Z",
+  };
+
+  const chatAttachment = {
+    id: "0b5f1f0e-61c5-4a5e-9d4e-3c0a8f1e2b7d",
+    contentType: "image/jpeg",
+    width: 1568,
+    height: 882,
+    spoiler: false,
+    url: "https://images.example/attachment",
+  };
+
+  const chatReactionPayload = {
+    senderId: "sender01",
+    recipientId: "recipie1",
+    seq: 3,
+    emoji: "🔥",
+    updatedAt: "2026-10-05T12:00:00.000Z",
+  };
+
+  const chatVisibilityPayload = {
+    senderId: "sender01",
+    recipientId: "recipie1",
+    seq: 3,
+  };
+
+  it("accepts chat message and typing events", () => {
+    for (const message of [
+      { event: "chatMessage", payload: chatMessagePayload },
+      {
+        event: "chatMessage",
+        payload: {
+          ...chatMessagePayload,
+          replyToSeq: 2,
+          replyTo: { senderId: "recipie1", body: "hi" },
+        },
+      },
+      {
+        event: "chatMessage",
+        payload: {
+          ...chatMessagePayload,
+          body: "",
+          replyToSeq: 2,
+          replyTo: { senderId: "recipie1", body: "", attachmentCount: 1 },
+          attachments: [chatAttachment],
+        },
+      },
+      {
+        event: "chatMessageRejected",
+        payload: {
+          senderId: "sender01",
+          recipientId: "recipie1",
+          clientNonce: chatMessagePayload.clientNonce,
+          reason: "blocked",
+        },
+      },
+      { event: "chatTyping", payload: { senderId: "sender01" } },
+      { event: "chatReaction", payload: chatReactionPayload },
+      {
+        event: "chatReaction",
+        payload: { ...chatReactionPayload, emoji: null },
+      },
+      { event: "chatMessageHidden", payload: chatVisibilityPayload },
+      { event: "chatMessageRestored", payload: chatVisibilityPayload },
+    ]) {
+      const envelope = parseRealtimeEnvelope(
+        JSON.stringify({
+          v: 1,
+          eventId: `chat-${message.event}`,
+          publishedAt: "2026-10-05T12:00:00.000Z",
+          ...message,
+        })
+      );
+
+      assert.equal(envelope?.event, message.event);
+      assert.deepEqual(envelope?.payload, message.payload);
+    }
+  });
+
+  it("rejects malformed chat payloads", () => {
+    const invalidPayloads = [
+      { ...chatMessagePayload, seq: 0 },
+      { ...chatMessagePayload, seq: 1.5 },
+      { ...chatMessagePayload, seq: "3" },
+      { ...chatMessagePayload, body: 42 },
+      { ...chatMessagePayload, createdAt: "not a date" },
+      { ...chatMessagePayload, recipientId: undefined },
+      { ...chatMessagePayload, replyToSeq: 0 },
+      { ...chatMessagePayload, replyTo: { senderId: "recipie1", body: "hi" } },
+      { ...chatMessagePayload, replyToSeq: 2, replyTo: { body: "hi" } },
+      {
+        ...chatMessagePayload,
+        replyToSeq: 2,
+        replyTo: { senderId: "recipie1", body: "", attachmentCount: -1 },
+      },
+      { ...chatMessagePayload, attachments: [] },
+      {
+        ...chatMessagePayload,
+        attachments: [{ ...chatAttachment, url: null }],
+      },
+      {
+        ...chatMessagePayload,
+        attachments: [{ ...chatAttachment, contentType: "image/webp" }],
+      },
+      { ...chatMessagePayload, attachments: [{ ...chatAttachment, width: 0 }] },
+    ];
+
+    for (const [index, payload] of invalidPayloads.entries()) {
+      assert.equal(
+        parseRealtimeEnvelope(
+          JSON.stringify({
+            v: 1,
+            eventId: `invalid-chat-${index}`,
+            publishedAt: Date.now(),
+            event: "chatMessage",
+            payload,
+          })
+        ),
+        null
+      );
+    }
+
+    assert.equal(
+      parseRealtimeEnvelope(
+        JSON.stringify({
+          v: 1,
+          eventId: "invalid-typing",
+          publishedAt: Date.now(),
+          event: "chatTyping",
+          payload: {},
+        })
+      ),
+      null
+    );
+
+    const invalidReactions = [
+      { ...chatReactionPayload, seq: 0 },
+      { ...chatReactionPayload, emoji: "" },
+      { ...chatReactionPayload, emoji: 42 },
+      { ...chatReactionPayload, emoji: undefined },
+      { ...chatReactionPayload, updatedAt: "not a date" },
+      { ...chatReactionPayload, recipientId: undefined },
+    ];
+
+    for (const [index, payload] of invalidReactions.entries()) {
+      assert.equal(
+        parseRealtimeEnvelope(
+          JSON.stringify({
+            v: 1,
+            eventId: `invalid-reaction-${index}`,
+            publishedAt: Date.now(),
+            event: "chatReaction",
+            payload,
+          })
+        ),
+        null
+      );
+    }
+
+    const rejectedPayload = {
+      senderId: "sender01",
+      recipientId: "recipie1",
+      clientNonce: chatMessagePayload.clientNonce,
+      reason: "failed",
+    };
+    for (const [index, payload] of [
+      { ...rejectedPayload, reason: "removed" },
+      { ...rejectedPayload, clientNonce: "" },
+      { ...rejectedPayload, recipientId: undefined },
+    ].entries()) {
+      assert.equal(
+        parseRealtimeEnvelope(
+          JSON.stringify({
+            v: 1,
+            eventId: `invalid-rejected-${index}`,
+            publishedAt: Date.now(),
+            event: "chatMessageRejected",
+            payload,
+          })
+        ),
+        null
+      );
+    }
+
+    const invalidVisibilityPayloads = [
+      { ...chatVisibilityPayload, seq: 0 },
+      { ...chatVisibilityPayload, seq: "3" },
+      { ...chatVisibilityPayload, senderId: undefined },
+      { ...chatVisibilityPayload, recipientId: 42 },
+    ];
+
+    for (const event of ["chatMessageHidden", "chatMessageRestored"]) {
+      for (const [index, payload] of invalidVisibilityPayloads.entries()) {
+        assert.equal(
+          parseRealtimeEnvelope(
+            JSON.stringify({
+              v: 1,
+              eventId: `invalid-${event}-${index}`,
+              publishedAt: Date.now(),
+              event,
+              payload,
+            })
+          ),
+          null
+        );
+      }
     }
   });
 

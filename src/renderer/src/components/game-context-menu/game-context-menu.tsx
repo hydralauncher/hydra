@@ -18,6 +18,8 @@ import {
   XIcon,
   PinIcon,
   PinSlashIcon,
+  EyeClosedIcon,
+  LockIcon,
 } from "@primer/octicons-react";
 import SteamLogo from "@renderer/assets/steam-logo.svg?react";
 import {
@@ -28,7 +30,14 @@ import {
   CreateCollectionModal,
   useGameActions,
 } from "..";
-import { useGameCollections, useToast, useUserDetails } from "@renderer/hooks";
+import {
+  useGameCollections,
+  useToast,
+  useUserDetails,
+  useLibrary,
+  useLibraryGamePresentation,
+} from "@renderer/hooks";
+import { applyLibraryGroupAction } from "@shared";
 import { useCollectionContextMenu } from "@renderer/context";
 import { getGameCollectionIds } from "@renderer/helpers";
 import { RemoveGameFromLibraryModal } from "@renderer/pages/game-details/modals/remove-from-library-modal";
@@ -60,6 +69,9 @@ export function GameContextMenu({
   const { t } = useTranslation("game_details");
   const { showSuccessToast, showErrorToast } = useToast();
   const { userDetails } = useUserDetails();
+  const group = useLibraryGamePresentation(game);
+  const preferenceGame = group ?? game;
+  const { updateLibrary } = useLibrary();
   const [searchParams] = useSearchParams();
   const [showConfirmRemoveLibrary, setShowConfirmRemoveLibrary] =
     useState(false);
@@ -67,15 +79,20 @@ export function GameContextMenu({
   const [showCreateCollectionModal, setShowCreateCollectionModal] =
     useState(false);
   const [localCollectionIds, setLocalCollectionIds] = useState<string[]>(() =>
-    getGameCollectionIds(game)
+    getGameCollectionIds(preferenceGame)
   );
   const [isFavoriteSelected, setIsFavoriteSelected] = useState(
-    Boolean(game.favorite)
+    Boolean(preferenceGame.favorite)
   );
   const [pendingCollectionId, setPendingCollectionId] = useState<string | null>(
     null
   );
   const [isFavoritePending, setIsFavoritePending] = useState(false);
+  const [isVisibilityPending, setIsVisibilityPending] = useState(false);
+  const [visibility, setVisibility] = useState({
+    isHiddenFromOthers: Boolean(preferenceGame.isHiddenFromOthers),
+    isConcealed: Boolean(preferenceGame.isConcealed),
+  });
   const {
     collections,
     isLoading: isCollectionsLoading,
@@ -84,7 +101,9 @@ export function GameContextMenu({
   } = useGameCollections();
   const {
     canPlay,
+    downloadGame,
     isDeleting,
+    isDownloadDeleting,
     isGameDownloading,
     isGameRunning,
     hasRepacks,
@@ -117,11 +136,40 @@ export function GameContextMenu({
   useEffect(() => {
     if (!visible) return;
 
-    setLocalCollectionIds(getGameCollectionIds(game));
-    setIsFavoriteSelected(Boolean(game.favorite));
-    setPendingCollectionId(null);
-    setIsFavoritePending(false);
-  }, [visible, game]);
+    setLocalCollectionIds(getGameCollectionIds(preferenceGame));
+    setIsFavoriteSelected(Boolean(preferenceGame.favorite));
+    setVisibility({
+      isHiddenFromOthers: Boolean(preferenceGame.isHiddenFromOthers),
+      isConcealed: Boolean(preferenceGame.isConcealed),
+    });
+  }, [visible, preferenceGame]);
+
+  const handleVisibilityChange = async (
+    field: "isHiddenFromOthers" | "isConcealed",
+    value: boolean
+  ) => {
+    if (isVisibilityPending) return;
+    setIsVisibilityPending(true);
+    try {
+      await applyLibraryGroupAction(group?.members ?? [game], (member) =>
+        window.electron.setGameVisibility(
+          member.shop,
+          member.objectId,
+          field,
+          value
+        )
+      );
+      setVisibility((previous) => ({ ...previous, [field]: value }));
+      window.dispatchEvent(new Event("hydra:game-visibility-updated"));
+      showSuccessToast(t("game_visibility_updated"));
+      onClose();
+    } catch {
+      showErrorToast(t("failed_update_game_visibility"));
+    } finally {
+      await updateLibrary();
+      setIsVisibilityPending(false);
+    }
+  };
 
   const handleAssignGameCollection = async (collectionId: string) => {
     if (pendingCollectionId || isFavoritePending) return;
@@ -250,7 +298,11 @@ export function GameContextMenu({
           handleOpenDownloadOptions();
         }
       },
-      disabled: isDeleting,
+      disabled:
+        isDeleting ||
+        (!canPlay &&
+          !isGameRunning &&
+          (isDownloadDeleting || isGameDownloading)),
     },
     {
       id: "collection",
@@ -304,13 +356,44 @@ export function GameContextMenu({
       disabled: isDeleting,
       submenu: [
         {
+          id: "hide-game",
+          label: visibility.isHiddenFromOthers
+            ? t("unhide_game")
+            : t("hide_game"),
+          icon: <EyeClosedIcon size={16} />,
+          onClick: () =>
+            void handleVisibilityChange(
+              "isHiddenFromOthers",
+              !visibility.isHiddenFromOthers
+            ),
+          closeOnClick: false,
+          disabled:
+            isDeleting ||
+            isVisibilityPending ||
+            !userDetails ||
+            game.shop === "custom",
+        },
+        {
+          id: "conceal-game",
+          label: visibility.isConcealed ? t("reveal_game") : t("conceal_game"),
+          icon: <LockIcon size={16} />,
+          onClick: () =>
+            void handleVisibilityChange("isConcealed", !visibility.isConcealed),
+          closeOnClick: false,
+          disabled:
+            isDeleting ||
+            isVisibilityPending ||
+            !userDetails ||
+            game.shop === "custom",
+        },
+        {
           id: "pin-game",
           label:
-            (isPinned ?? game.isPinned ?? false)
+            (isPinned ?? preferenceGame.isPinned ?? false)
               ? t("unpin_game")
               : t("pin_game"),
           icon:
-            (isPinned ?? game.isPinned ?? false) ? (
+            (isPinned ?? preferenceGame.isPinned ?? false) ? (
               <PinSlashIcon size={16} />
             ) : (
               <PinIcon size={16} />
@@ -343,18 +426,22 @@ export function GameContextMenu({
                 label: t("open_download_options"),
                 icon: <DownloadIcon size={16} />,
                 onClick: handleOpenDownloadOptions,
-                disabled: isDeleting || isGameDownloading || !hasRepacks,
+                disabled:
+                  isDeleting ||
+                  isDownloadDeleting ||
+                  isGameDownloading ||
+                  !hasRepacks,
               },
             ]
           : []),
-        ...(game.download?.downloadPath
+        ...(downloadGame.download?.downloadPath
           ? [
               {
                 id: "download-location",
                 label: t("open_download_location"),
                 icon: <FileDirectoryIcon size={16} />,
                 onClick: handleOpenDownloadLocation,
-                disabled: isDeleting,
+                disabled: isDeleting || isDownloadDeleting,
               },
             ]
           : []),
@@ -368,14 +455,14 @@ export function GameContextMenu({
           danger: true,
           closeOnClick: false,
         },
-        ...(game.download?.downloadPath
+        ...(downloadGame.download?.downloadPath
           ? [
               {
                 id: "remove-files",
                 label: t("remove_files"),
                 icon: <TrashIcon size={16} />,
                 onClick: () => setShowConfirmRemoveFiles(true),
-                disabled: isDeleting || isGameDownloading,
+                disabled: isDeleting || isDownloadDeleting || isGameDownloading,
                 danger: true,
                 closeOnClick: false,
               },

@@ -5,6 +5,7 @@ import type { LibraryGame } from "@types";
 
 export interface LibraryState {
   value: LibraryGame[];
+  downloadLibrary: LibraryGame[];
   searchQuery: string;
   hasLoaded: boolean;
   isSyncingRemote: boolean;
@@ -12,6 +13,7 @@ export interface LibraryState {
 
 const initialState: LibraryState = {
   value: [],
+  downloadLibrary: [],
   searchQuery: "",
   hasLoaded: false,
   isSyncingRemote: false,
@@ -22,7 +24,8 @@ export const librarySlice = createSlice({
   initialState,
   reducers: {
     setLibrary: (state, action: PayloadAction<LibraryState["value"]>) => {
-      state.value = action.payload;
+      state.value = action.payload.filter((game) => !game.isConcealed);
+      state.downloadLibrary = action.payload;
       state.hasLoaded = true;
     },
     setLibrarySyncingRemote: (state, action: PayloadAction<boolean>) => {
@@ -33,18 +36,22 @@ export const librarySlice = createSlice({
       state,
       action: PayloadAction<{ gameId: string; count: number }>
     ) => {
-      const game = state.value.find((g) => g.id === action.payload.gameId);
-      if (game) {
-        game.newDownloadOptionsCount = action.payload.count;
+      for (const library of [state.value, state.downloadLibrary]) {
+        const game = library.find((g) => g.id === action.payload.gameId);
+        if (game) {
+          game.newDownloadOptionsCount = action.payload.count;
+        }
       }
     },
     clearNewDownloadOptions: (
       state,
       action: PayloadAction<{ gameId: string }>
     ) => {
-      const game = state.value.find((g) => g.id === action.payload.gameId);
-      if (game) {
-        game.newDownloadOptionsCount = undefined;
+      for (const library of [state.value, state.downloadLibrary]) {
+        const game = library.find((g) => g.id === action.payload.gameId);
+        if (game) {
+          game.newDownloadOptionsCount = undefined;
+        }
       }
     },
     setLibrarySearchQuery: (state, action: PayloadAction<string>) => {
@@ -58,14 +65,16 @@ export const librarySlice = createSlice({
         collectionIds: string[];
       }>
     ) => {
-      const game = state.value.find(
-        (g) =>
-          g.shop === action.payload.shop &&
-          g.objectId === action.payload.objectId
-      );
+      for (const library of [state.value, state.downloadLibrary]) {
+        const game = library.find(
+          (g) =>
+            g.shop === action.payload.shop &&
+            g.objectId === action.payload.objectId
+        );
 
-      if (game) {
-        game.collectionIds = action.payload.collectionIds;
+        if (game) {
+          game.collectionIds = action.payload.collectionIds;
+        }
       }
     },
   },

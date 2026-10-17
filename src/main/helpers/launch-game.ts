@@ -25,7 +25,14 @@ import {
   Wine,
   NativeAddon,
   launchedGamePids,
+  type UmuStatus,
 } from "@main/services";
+import {
+  clearGameLauncherStatuses,
+  sendGameLauncherStatus,
+  wasGameLauncherGameDetected,
+} from "@main/services/game-launcher-status";
+import { UmuUpdater } from "@main/services/umu-updater";
 import { updateGameRecord } from "@main/services/game-record-updater";
 import { dispatchSteamProtocolLaunch } from "@main/services/steam-integration/steam-protocol-launch-dispatch";
 import { resolveSteamProtocolLaunch } from "@main/services/steam-integration/steam-protocol-launch";
@@ -39,15 +46,50 @@ import {
   buildWindowsBatchCommand,
   isWindowsBatchFile,
 } from "./windows-batch-command";
+import {
+  markManagedEpicLaunched,
+  prepareManagedEpicLaunch,
+  cancelManagedEpicLaunch,
+  recordManagedEpicProcess,
+  launchPreparedEpicLinuxGame,
+} from "@main/services/epic/launch";
+import type { EpicLaunchParameters } from "@main/services/epic/launch-protocol";
+import { EpicSaveFailure } from "@main/services/epic/cloud-save-protocol";
+import { getEpicCloudSaveService } from "@main/services/epic/cloud-saves";
 
 export interface LaunchGameOptions {
   shop: GameShop;
   objectId: string;
   executablePath: string;
   launchOptions?: string | null;
+  epicSavePolicy?: "local-once";
+  epicOffline?: boolean;
 }
 
 const LAUNCH_DELAY_IN_MS = 2_000;
+
+const createUmuStatusReporter =
+  (gameKey: string) =>
+  (status: UmuStatus): void => {
+    if (status.type === "progress") {
+      if (wasGameLauncherGameDetected(gameKey)) return;
+      sendGameLauncherStatus(
+        gameKey,
+        "preparing_compatibility_layer",
+        status.message
+      );
+      return;
+    }
+    if (status.type === "failed") {
+      sendGameLauncherStatus(
+        gameKey,
+        "compatibility_layer_failed",
+        status.message
+      );
+      return;
+    }
+    sendGameLauncherStatus(gameKey, "compatibility_layer_ready");
+  };
 
 const isWindowsExecutable = (executablePath: string) =>
   path.extname(executablePath).toLowerCase() === ".exe";
@@ -244,6 +286,7 @@ interface CloudSavePrefixPreparationResult {
 
 const prepareWinePrefixIfNeeded = async (
   context: LinuxCompatibilityLaunchContext,
+  gameKey: string,
   objectId: string,
   prefixWasReadyForRestore: boolean
 ) => {
@@ -254,6 +297,7 @@ const prepareWinePrefixIfNeeded = async (
       winePrefixPath: context.winePrefixPath!,
       protonPath: context.protonPath,
       gameId: objectId,
+      onStatus: createUmuStatusReporter(gameKey),
     });
     return false;
   } catch (error) {
@@ -267,6 +311,7 @@ const prepareWinePrefixIfNeeded = async (
 
 const prepareCompatibilityPrefixForCloudSave = async (
   context: LinuxCompatibilityLaunchContext,
+  gameKey: string,
   objectId: string
 ): Promise<CloudSavePrefixPreparationResult> => {
   const winePrefixPath = context.winePrefixPath;
@@ -283,6 +328,7 @@ const prepareCompatibilityPrefixForCloudSave = async (
     prefixWasValid && Wine.isPrefixReadyForRestore(winePrefixPath);
   const preparationFailed = await prepareWinePrefixIfNeeded(
     context,
+    gameKey,
     objectId,
     prefixWasReadyForRestore
   );
@@ -395,6 +441,9 @@ const launchWindowsBinaryOnLinux = async (
   useGamemode: boolean
 ): Promise<boolean> => {
   const { protonPath, winePrefixPath } = compatibilityContext;
+  const reportUmuStatus = createUmuStatusReporter(gameKey);
+  let umuFailureMessage = "umu-run failed to launch the game";
+  void UmuUpdater.checkForUpdates();
 
   try {
     await Umu.launchExecutable(parsedPath, [], {
@@ -404,11 +453,16 @@ const launchWindowsBinaryOnLinux = async (
       launchOptions,
       useGamemode,
       useMangohud,
+      onStatus: reportUmuStatus,
+      wasGameDetected: () => wasGameLauncherGameDetected(gameKey),
     });
     PowerSaveBlockerManager.markCompatibilityLaunchStarted(gameKey);
     return true;
   } catch (error) {
     logger.error("Failed to launch game with umu-run, falling back", error);
+    if (error instanceof Error && error.message) {
+      umuFailureMessage = error.message;
+    }
   }
 
   const launchedWithWine = await launchWithWine(
@@ -420,10 +474,12 @@ const launchWindowsBinaryOnLinux = async (
   );
 
   if (launchedWithWine) {
+    reportUmuStatus({ type: "ready" });
     PowerSaveBlockerManager.markCompatibilityLaunchStarted(gameKey);
     return true;
   }
 
+  reportUmuStatus({ type: "failed", message: umuFailureMessage });
   return false;
 };
 
@@ -458,6 +514,8 @@ const prepareSteamCompatibilityForCloudSave = (
     prefixSafeForUpload: prefixReadyForRestore,
   };
 };
+
+class ManagedEpicLaunchBlockedError extends Error {}
 
 const prepareLinuxCompatibilityForLaunch = async (
   parsedPath: string,
@@ -501,6 +559,7 @@ const prepareLinuxCompatibilityForLaunch = async (
 
   const prefixPreparation = await prepareCompatibilityPrefixForCloudSave(
     context,
+    levelKeys.game(shop, objectId),
     objectId
   );
   context = {
@@ -590,6 +649,35 @@ const launchResolvedGame = async (
   return pid;
 };
 
+const launchAuthenticatedEpicGame = (
+  parameters: EpicLaunchParameters,
+  launchOptions?: string | null
+): Promise<number> => {
+  const resolved = resolveLaunchCommand({
+    baseCommand: parameters.executable,
+    baseArgs: parameters.args,
+    launchOptions,
+  });
+  if (isWindowsBatchFile(resolved.command))
+    return Promise.reject(new EpicSaveFailure("invalid-path"));
+  return new Promise((resolve, reject) => {
+    const child = spawn(resolved.command, resolved.args, {
+      shell: false,
+      detached: true,
+      stdio: "ignore",
+      cwd: parameters.workingDirectory,
+      env: { ...process.env, ...parameters.environment, ...resolved.env },
+    });
+    child.once("spawn", () => {
+      child.unref();
+      if (child.pid) resolve(child.pid);
+      else reject(new EpicSaveFailure("process-failed"));
+    });
+    // Never serialize the spawn error: it includes authentication arguments.
+    child.once("error", () => reject(new EpicSaveFailure("process-failed")));
+  });
+};
+
 /**
  * Shows the launcher window and launches the game executable
  * Shared between deep link handler and openGame event
@@ -654,129 +742,219 @@ const launchGameWithCloudSaveChecks = async (
       }))
     : null;
   const launchGameRecord = updatedGame ?? game;
+  const managedEpic = shop === "epic" && !!launchGameRecord?.epicInstallation;
 
+  clearGameLauncherStatuses(gameKey);
   await WindowManager.createGameLauncherWindow(shop, objectId);
 
   const shouldRunV2AutomaticSync = await canRunAutomaticCloudSaveSync(
     objectId,
     shop
   );
+  let preparedCompatibility: PreparedLinuxCompatibility;
+  if (managedEpic) {
+    preparedCompatibility = {
+      context: null,
+      prefixReadyForRestore: true,
+      prefixSafeForUpload: true,
+      prefixGenerationOverride: undefined,
+    };
+  } else if (steamCompatibilityPrefixPath) {
+    preparedCompatibility = prepareSteamCompatibilityForCloudSave(
+      steamCompatibilityPrefixPath
+    );
+  } else {
+    preparedCompatibility = await prepareLinuxCompatibilityForLaunch(
+      parsedPath,
+      launchGameRecord,
+      objectId,
+      shop,
+      shouldRunV2AutomaticSync || managedEpic
+    );
+  }
   const {
     context: compatibilityContext,
     prefixReadyForRestore,
     prefixSafeForUpload,
     prefixGenerationOverride,
-  } = steamCompatibilityPrefixPath
-    ? prepareSteamCompatibilityForCloudSave(steamCompatibilityPrefixPath)
-    : await prepareLinuxCompatibilityForLaunch(
-        parsedPath,
-        launchGameRecord,
-        objectId,
-        shop,
-        shouldRunV2AutomaticSync
-      );
+  } = preparedCompatibility;
 
-  const cloudSaveContext = shouldRunV2AutomaticSync
-    ? await getCloudSaveGameContext(objectId, shop, {
-        executablePath: parsedPath,
-        winePrefixPath: compatibilityContext?.winePrefixPath,
-        prefixGenerationOverride,
-      }).catch((error: unknown) => {
-        logger.error("Failed to resolve cloud save launch environment", error);
-        return null;
-      })
-    : null;
-  const customPathApproval =
-    prefixReadyForRestore && cloudSaveContext
-      ? await createPendingCloudSaveCustomPathApproval(
-          options,
-          cloudSaveContext
-        ).catch((error: unknown) => {
+  // Returns false when Hydra's pre-launch sync blocked the launch.
+  const runHydraPreLaunchSync = async (
+    winePrefixPath: string | undefined
+  ): Promise<boolean> => {
+    const cloudSaveContext = shouldRunV2AutomaticSync
+      ? await getCloudSaveGameContext(objectId, shop, {
+          executablePath: parsedPath,
+          winePrefixPath,
+          prefixGenerationOverride,
+        }).catch((error: unknown) => {
           logger.error(
-            "[Cloud Save] Failed to inspect custom restore destinations",
+            "Failed to resolve cloud save launch environment",
             error
           );
           return null;
         })
       : null;
+    const customPathApproval =
+      prefixReadyForRestore && cloudSaveContext
+        ? await createPendingCloudSaveCustomPathApproval(
+            options,
+            cloudSaveContext
+          ).catch((error: unknown) => {
+            logger.error(
+              "[Cloud Save] Failed to inspect custom restore destinations",
+              error
+            );
+            return null;
+          })
+        : null;
 
-  if (customPathApproval) {
-    logger.warn(
-      "[Cloud Save] Game launch blocked by an unapproved custom restore path",
-      {
-        shop,
-        objectId,
-        rawPath: customPathApproval.rawPath,
-      }
-    );
-    redirectBlockedCloudSaveLaunch(
-      shop,
-      objectId,
-      launchGameRecord?.title ?? objectId,
-      "openCloudSavePathApproval"
-    );
-    return null;
-  }
-
-  const preLaunchOutcome =
-    shouldRunV2AutomaticSync && prefixReadyForRestore
-      ? await runAutomaticCloudSaveSyncDetailed(
-          objectId,
+    if (customPathApproval) {
+      logger.warn(
+        "[Cloud Save] Game launch blocked by an unapproved custom restore path",
+        {
           shop,
-          "pre-launch",
-          cloudSaveContext ?? undefined
-        )
-      : { status: "skipped" as const, result: null };
-  const preLaunchResult = preLaunchOutcome.result;
-  const hasPreLaunchConflict =
-    preLaunchResult?.trigger === "pre-launch" &&
-    preLaunchResult.action === "conflict";
-
-  if (shouldRunV2AutomaticSync && !prefixReadyForRestore) {
-    logger.warn(
-      "[Cloud Save] Pre-launch restore skipped because Wine prefix is invalid",
-      { shop, objectId }
-    );
-  }
-
-  if (
-    shouldBlockGameLaunchForCloudSave(
-      preLaunchResult,
-      preLaunchOutcome.status === "failed"
-    )
-  ) {
-    logger.warn("[Cloud Save] Game launch blocked by pre-launch sync", {
-      shop,
-      objectId,
-      reason: hasPreLaunchConflict ? "conflict" : "restore_failed",
-    });
-    if (hasPreLaunchConflict) {
+          objectId,
+          rawPath: customPathApproval.rawPath,
+        }
+      );
       redirectBlockedCloudSaveLaunch(
         shop,
         objectId,
         launchGameRecord?.title ?? objectId,
-        "openCloudSaveConflict"
+        "openCloudSavePathApproval"
       );
-    } else {
-      clearCloudSaveLaunchGuard(objectId, shop);
-      WindowManager.closeGameLauncherWindow();
+      return false;
     }
-    return null;
-  }
 
-  if (cloudSaveContext) {
-    setCloudSaveLaunchGuard(objectId, shop, {
-      environmentId: cloudSaveContext.environmentId,
-      baseRemoteHash: preLaunchResult?.remoteHash ?? null,
-      uploadAllowed: canCreateCloudSaveUploadGuard(
-        prefixSafeForUpload &&
-          cloudSaveContext.prefixIdentityMode !== "session",
-        cloudSaveContext.environmentId,
-        preLaunchResult
-      ),
-      createdAt: new Date().toISOString(),
+    const preLaunchOutcome =
+      shouldRunV2AutomaticSync && prefixReadyForRestore
+        ? await runAutomaticCloudSaveSyncDetailed(
+            objectId,
+            shop,
+            "pre-launch",
+            cloudSaveContext ?? undefined
+          )
+        : { status: "skipped" as const, result: null };
+    const preLaunchResult = preLaunchOutcome.result;
+    const hasPreLaunchConflict =
+      preLaunchResult?.trigger === "pre-launch" &&
+      preLaunchResult.action === "conflict";
+
+    if (shouldRunV2AutomaticSync && !prefixReadyForRestore) {
+      logger.warn(
+        "[Cloud Save] Pre-launch restore skipped because Wine prefix is invalid",
+        { shop, objectId }
+      );
+    }
+
+    if (
+      shouldBlockGameLaunchForCloudSave(
+        preLaunchResult,
+        preLaunchOutcome.status === "failed"
+      )
+    ) {
+      logger.warn("[Cloud Save] Game launch blocked by pre-launch sync", {
+        shop,
+        objectId,
+        reason: hasPreLaunchConflict ? "conflict" : "restore_failed",
+      });
+      if (hasPreLaunchConflict) {
+        redirectBlockedCloudSaveLaunch(
+          shop,
+          objectId,
+          launchGameRecord?.title ?? objectId,
+          "openCloudSaveConflict"
+        );
+      } else {
+        clearCloudSaveLaunchGuard(objectId, shop);
+        WindowManager.closeGameLauncherWindow();
+      }
+      return false;
+    }
+
+    if (cloudSaveContext) {
+      setCloudSaveLaunchGuard(objectId, shop, {
+        environmentId: cloudSaveContext.environmentId,
+        baseRemoteHash: preLaunchResult?.remoteHash ?? null,
+        uploadAllowed: canCreateCloudSaveUploadGuard(
+          prefixSafeForUpload &&
+            cloudSaveContext.prefixIdentityMode !== "session",
+          cloudSaveContext.environmentId,
+          preLaunchResult
+        ),
+        createdAt: new Date().toISOString(),
+      });
+    }
+    return true;
+  };
+
+  if (managedEpic && launchGameRecord) {
+    return getEpicCloudSaveService().runLaunchGate(objectId, async () => {
+      try {
+        const prepared = await prepareManagedEpicLaunch(
+          launchGameRecord,
+          parsedPath,
+          {
+            winePrefixPath: compatibilityContext?.winePrefixPath,
+            epicSavePolicy: options.epicSavePolicy,
+            epicOffline: options.epicOffline,
+            onStatus: createUmuStatusReporter(gameKey),
+            // Runs once the Linux prefix exists, so Hydra restores into it and
+            // records its upload guard against the prepared environment.
+            beforeSaveSync: async (winePrefixPath) => {
+              if (!(await runHydraPreLaunchSync(winePrefixPath)))
+                throw new ManagedEpicLaunchBlockedError();
+            },
+          }
+        );
+        await runCommonRedistPreflight(shop, objectId);
+        let pid: number;
+        try {
+          await markManagedEpicLaunched(prepared.session);
+          getEpicCloudSaveService().assertSessionCurrent(prepared.session);
+          if (prepared.linuxContext) {
+            const handle = await launchPreparedEpicLinuxGame(
+              prepared.session,
+              prepared.parameters,
+              {
+                launchOptions,
+                useGamemode,
+                useMangohud,
+                onStatus: createUmuStatusReporter(gameKey),
+              }
+            );
+            pid = handle.pid;
+            PowerSaveBlockerManager.markCompatibilityLaunchStarted(gameKey);
+          } else {
+            pid = await launchAuthenticatedEpicGame(
+              prepared.parameters,
+              launchOptions
+            );
+            recordManagedEpicProcess(prepared.session, pid);
+          }
+        } catch (error) {
+          await cancelManagedEpicLaunch(prepared.session);
+          throw error;
+        }
+        launchedGamePids.set(gameKey, pid);
+        return pid;
+      } catch (error) {
+        if (error instanceof ManagedEpicLaunchBlockedError) return null;
+        WindowManager.closeGameLauncherWindow();
+        // Auth or save preparation failures must never fall through to a raw launch.
+        throw error;
+      }
     });
   }
+
+  if (
+    !(await runHydraPreLaunchSync(
+      compatibilityContext?.winePrefixPath ?? undefined
+    ))
+  )
+    return null;
 
   // Run preflight check for common redistributables (Windows only)
   // Wrapped in try/catch to ensure game launch is never blocked

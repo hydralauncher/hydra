@@ -22,6 +22,15 @@
     cursor: not-allowed;
   }
 
+  // Compact size for tight rows (list headers, card footers).
+  &--small {
+    min-height: 28px;
+    padding: 0 calc(globals.$spacing-unit * 1.25);
+    gap: calc(globals.$spacing-unit * 0.75);
+    border-radius: 6px;
+    font-size: globals.$small-font-size;
+  }
+
   &--primary {
     &:hover {
       background-color: #dadbe1;

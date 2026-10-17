@@ -5,7 +5,9 @@ import { Worker } from "node:worker_threads";
 
 import { app } from "electron";
 import type { ProcessPayload } from "./download/types";
+import type { EpicProcessNode } from "./epic/managed-process-tracker";
 import type {
+  BuildLocalGameSnapshotInput,
   BuildLocalGameSnapshotPipelineInput,
   BuildSnapshotAggregateHashInput,
   DeleteLocalSaveTarget,
@@ -44,6 +46,16 @@ type NativeActiveWindowResponse = {
   process_id?: number;
 };
 
+export type NativeProcessPayload = ProcessPayload &
+  Pick<
+    EpicProcessNode,
+    | "startTime"
+    | "invocationId"
+    | "winePrefixPath"
+    | "peExecutablePath"
+    | "inspectionComplete"
+  >;
+
 type HydraNativeModule = {
   torrentInitialize: (port: number) => Promise<void>;
   torrentRequest: (method: string, paramsJson: string) => Promise<string>;
@@ -59,10 +71,13 @@ type HydraNativeModule = {
     height: number,
     preserveAnimation: boolean
   ) => Promise<NativeProcessSizedImageResponse>;
-  listProcesses: () => ProcessPayload[];
+  listProcesses: () => NativeProcessPayload[];
   getLinuxActiveWindow: () => NativeActiveWindowResponse | null;
   buildLocalGameSnapshotPipeline: (
     input: BuildLocalGameSnapshotPipelineInput
+  ) => Promise<NativeLocalGameSnapshotPipelineResult>;
+  buildLocalGameSnapshot: (
+    input: BuildLocalGameSnapshotInput
   ) => Promise<NativeLocalGameSnapshotPipelineResult>;
   getSaveRulesForGame: (
     input: GetSaveRulesForGameInput
@@ -113,6 +128,7 @@ type HydraNativeModule = {
 export type SystemProcessMap = {
   processMap: Record<string, string[]>;
   winePrefixMap: Record<string, string>;
+  processTree?: EpicProcessNode[];
   linuxProcesses: Array<{
     name: string;
     cwd: string;
@@ -141,8 +157,20 @@ function buildMaps(processes) {
   const processMap = Object.create(null);
   const winePrefixMap = Object.create(null);
   const linuxProcesses = [];
+  const processTree = [];
 
   for (const proc of processes) {
+    processTree.push({
+      pid: proc.pid,
+      parentPid: proc.parentPid,
+      exe: proc.exe,
+      cwd: proc.cwd,
+      startTime: proc.startTime,
+      invocationId: proc.invocationId,
+      winePrefixPath: proc.winePrefixPath,
+      peExecutablePath: proc.peExecutablePath,
+      inspectionComplete: proc.inspectionComplete,
+    });
     const key = proc.name && proc.name.toLowerCase();
     const value = platform === 'win32'
       ? proc.exe
@@ -169,7 +197,7 @@ function buildMaps(processes) {
     processMap[key].push(value);
   }
 
-  return { processMap, winePrefixMap, linuxProcesses };
+  return { processMap, winePrefixMap, linuxProcesses, processTree };
 }
 
 parentPort.on('message', (type) => {
@@ -191,7 +219,7 @@ parentPort.on('message', (type) => {
 `;
 
 type PendingResolver =
-  | { type: "list"; resolve: (p: ProcessPayload[]) => void }
+  | { type: "list"; resolve: (p: NativeProcessPayload[]) => void }
   | { type: "map"; resolve: (m: SystemProcessMap | null) => void };
 
 export class NativeAddon {
@@ -266,9 +294,9 @@ export class NativeAddon {
       const pending = this.pendingResolvers.shift();
       if (!pending) return;
       if (pending.type === "list") {
-        (pending.resolve as (p: ProcessPayload[]) => void)(
-          (result as ProcessPayload[]).filter(
-            (p): p is ProcessPayload =>
+        (pending.resolve as (p: NativeProcessPayload[]) => void)(
+          (result as NativeProcessPayload[]).filter(
+            (p): p is NativeProcessPayload =>
               typeof p?.pid === "number" &&
               typeof p?.name === "string" &&
               p.name.length > 0
@@ -367,7 +395,7 @@ export class NativeAddon {
     }
   }
 
-  public static listProcesses(): Promise<ProcessPayload[]> {
+  public static listProcesses(): Promise<NativeProcessPayload[]> {
     return new Promise((resolve) => {
       try {
         const worker = this.getWorker();
@@ -415,6 +443,10 @@ export class NativeAddon {
     input: BuildLocalGameSnapshotPipelineInput
   ) {
     return this.load().buildLocalGameSnapshotPipeline(input);
+  }
+
+  public static buildLocalGameSnapshot(input: BuildLocalGameSnapshotInput) {
+    return this.load().buildLocalGameSnapshot(input);
   }
 
   public static getSaveRulesForGame(input: GetSaveRulesForGameInput) {

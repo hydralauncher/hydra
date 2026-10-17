@@ -1,6 +1,7 @@
 mod active_window;
 mod cloud_save;
 mod constants;
+mod linux_process;
 mod torrent;
 
 pub use cloud_save::hashing::{build_snapshot_aggregate_hash, hash_local_save_file};
@@ -52,6 +53,11 @@ pub struct NativeProcessPayload {
     pub name: String,
     pub environ: Option<HashMap<String, String>>,
     pub cwd: Option<String>,
+    pub start_time: Option<String>,
+    pub invocation_id: Option<String>,
+    pub wine_prefix_path: Option<String>,
+    pub pe_executable_path: Option<String>,
+    pub inspection_complete: Option<bool>,
 }
 
 #[napi(object)]
@@ -185,6 +191,14 @@ pub fn list_processes() -> Vec<NativeProcessPayload> {
         .values()
         .map(|process| {
             let include_linux_extras = !cfg!(target_os = "windows");
+            let linux = cfg!(target_os = "linux").then(|| {
+                linux_process::inspect_process(
+                    process.pid().as_u32(),
+                    process.exe(),
+                    &process.name().to_string_lossy(),
+                    process.cwd(),
+                )
+            });
 
             NativeProcessPayload {
                 exe: process
@@ -201,20 +215,24 @@ pub fn list_processes() -> Vec<NativeProcessPayload> {
                     None
                 },
                 environ: if include_linux_extras {
-                    let env_map: HashMap<String, String> = process
-                        .environ()
-                        .iter()
-                        .filter_map(|entry| {
-                            let entry_value = entry.to_string_lossy();
-                            entry_value.split_once('=').and_then(|(key, value)| {
-                                if key.is_empty() {
-                                    None
-                                } else {
-                                    Some((key.to_string(), value.to_string()))
-                                }
+                    let env_map: HashMap<String, String> = if let Some(inspection) = &linux {
+                        inspection.environment.clone()
+                    } else {
+                        process
+                            .environ()
+                            .iter()
+                            .filter_map(|entry| {
+                                let entry_value = entry.to_string_lossy();
+                                entry_value.split_once('=').and_then(|(key, value)| {
+                                    if key.is_empty() {
+                                        None
+                                    } else {
+                                        Some((key.to_string(), value.to_string()))
+                                    }
+                                })
                             })
-                        })
-                        .collect();
+                            .collect()
+                    };
 
                     if env_map.is_empty() {
                         None
@@ -224,6 +242,15 @@ pub fn list_processes() -> Vec<NativeProcessPayload> {
                 } else {
                     None
                 },
+                start_time: linux.as_ref().and_then(|value| value.start_time.clone()),
+                invocation_id: linux.as_ref().and_then(|value| value.invocation_id.clone()),
+                wine_prefix_path: linux
+                    .as_ref()
+                    .and_then(|value| value.wine_prefix_path.clone()),
+                pe_executable_path: linux
+                    .as_ref()
+                    .and_then(|value| value.pe_executable_path.clone()),
+                inspection_complete: linux.as_ref().map(|value| value.complete),
             }
         })
         .collect();
