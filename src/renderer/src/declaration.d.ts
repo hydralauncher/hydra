@@ -1,5 +1,10 @@
 import type { AuthPage, Downloader } from "@shared";
 import type {
+  ModGameStatus,
+  ModLoaderId,
+  ModProgressEvent,
+  ModSearchOptions,
+  ModSearchResult,
   SystemPowerAction,
   AppUpdaterEvent,
   GameShop,
@@ -537,6 +542,41 @@ declare global {
       objectId: string
     ) => Promise<"install" | "open-folder">;
     openGameInstallerPath: (shop: GameShop, objectId: string) => Promise<void>;
+    modsGetStatus: (shop: GameShop, objectId: string) => Promise<ModGameStatus>;
+    modsListCommunities: () => Promise<
+      { identifier: string; name: string; packageLoader: string | null }[]
+    >;
+    modsSetCommunity: (
+      shop: GameShop,
+      objectId: string,
+      community: string,
+      loader?: ModLoaderId
+    ) => Promise<void>;
+    modsSearch: (
+      community: string,
+      options: ModSearchOptions
+    ) => Promise<ModSearchResult>;
+    modsRefreshIndex: (community: string) => Promise<void>;
+    modsInstall: (
+      shop: GameShop,
+      objectId: string,
+      fullName: string,
+      version?: string
+    ) => Promise<{ installed: string[]; missing: string[] }>;
+    modsUninstall: (
+      shop: GameShop,
+      objectId: string,
+      fullName: string,
+      removeOrphans?: boolean
+    ) => Promise<{ removed: string[] }>;
+    modsSetEnabled: (
+      shop: GameShop,
+      objectId: string,
+      fullName: string,
+      enabled: boolean
+    ) => Promise<void>;
+    modsOpenFolder: (shop: GameShop, objectId: string) => Promise<void>;
+    onModProgress: (cb: (event: ModProgressEvent) => void) => () => void;
     openGameWinetricks: (shop: GameShop, objectId: string) => Promise<boolean>;
     openGameExecutablePath: (shop: GameShop, objectId: string) => Promise<void>;
     getGameSaveFolder: (

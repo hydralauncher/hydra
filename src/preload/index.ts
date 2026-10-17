@@ -4,6 +4,9 @@ import { contextBridge, ipcRenderer } from "electron";
 import { randomUUID } from "node:crypto";
 
 import type {
+  ModLoaderId,
+  ModProgressEvent,
+  ModSearchOptions,
   SystemPowerAction,
   GameShop,
   DownloadProgress,
@@ -1183,6 +1186,57 @@ contextBridge.exposeInMainWorld("electron", {
     ipcRenderer.invoke("getGameInstallerActionType", shop, objectId),
   openGameInstallerPath: (shop: GameShop, objectId: string) =>
     ipcRenderer.invoke("openGameInstallerPath", shop, objectId),
+
+  /* Mods (Thunderstore) */
+  modsGetStatus: (shop: GameShop, objectId: string) =>
+    ipcRenderer.invoke("modsGetStatus", shop, objectId),
+  modsListCommunities: () => ipcRenderer.invoke("modsListCommunities"),
+  modsSetCommunity: (
+    shop: GameShop,
+    objectId: string,
+    community: string,
+    loader?: ModLoaderId
+  ) =>
+    ipcRenderer.invoke("modsSetCommunity", shop, objectId, community, loader),
+  modsSearch: (community: string, options: ModSearchOptions) =>
+    ipcRenderer.invoke("modsSearch", community, options),
+  modsRefreshIndex: (community: string) =>
+    ipcRenderer.invoke("modsRefreshIndex", community),
+  modsInstall: (
+    shop: GameShop,
+    objectId: string,
+    fullName: string,
+    version?: string
+  ) => ipcRenderer.invoke("modsInstall", shop, objectId, fullName, version),
+  modsUninstall: (
+    shop: GameShop,
+    objectId: string,
+    fullName: string,
+    removeOrphans?: boolean
+  ) =>
+    ipcRenderer.invoke(
+      "modsUninstall",
+      shop,
+      objectId,
+      fullName,
+      removeOrphans
+    ),
+  modsSetEnabled: (
+    shop: GameShop,
+    objectId: string,
+    fullName: string,
+    enabled: boolean
+  ) => ipcRenderer.invoke("modsSetEnabled", shop, objectId, fullName, enabled),
+  modsOpenFolder: (shop: GameShop, objectId: string) =>
+    ipcRenderer.invoke("modsOpenFolder", shop, objectId),
+  onModProgress: (cb: (event: ModProgressEvent) => void) => {
+    const listener = (
+      _event: Electron.IpcRendererEvent,
+      payload: ModProgressEvent
+    ) => cb(payload);
+    ipcRenderer.on("on-mod-progress", listener);
+    return () => ipcRenderer.removeListener("on-mod-progress", listener);
+  },
   openGameWinetricks: (shop: GameShop, objectId: string) =>
     ipcRenderer.invoke("openGameWinetricks", shop, objectId),
   openGameExecutablePath: (shop: GameShop, objectId: string) =>
