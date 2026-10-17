@@ -32,6 +32,7 @@ import {
 } from "@renderer/helpers";
 import { DiscSelectionModal } from "../modals/disc-selection-modal";
 import { EpicCloudSaveConflictModal } from "../modals/epic-cloud-save-conflict-modal";
+import { ModsModal } from "../modals/mods-modal";
 
 import "./hero-panel-actions.scss";
 import { useEffect } from "react";
@@ -87,11 +88,13 @@ export function HeroPanelActions() {
   const officialMembers = getOfficialStoreMembers(
     presentation?.members ?? (game ? [game] : [])
   );
+  const [showModsModal, setShowModsModal] = useState(false);
   const [pendingClassicsLaunch, setPendingClassicsLaunch] = useState<{
     discPath: string | undefined;
   } | null>(null);
 
   const { t } = useTranslation("game_details");
+  const { t: tMods } = useTranslation("mods");
   const launchGeneration = useRef(0);
   const invalidateLaunch = useCallback(() => {
     launchGeneration.current++;
@@ -564,6 +567,19 @@ export function HeroPanelActions() {
           <GearIcon />
           {t("options")}
         </Button>
+
+        <Button
+          onClick={() => setShowModsModal(true)}
+          theme="outline"
+          disabled={deleting}
+          className="hero-panel-actions__action"
+        >
+          {tMods("button")}
+        </Button>
+        <ModsModal
+          visible={showModsModal}
+          onClose={() => setShowModsModal(false)}
+        />
 
         {game.shop === "launchbox" && (
           <DiscSelectionModal

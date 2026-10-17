@@ -1,0 +1,105 @@
+@use "../../../../scss/globals.scss";
+
+.mods-modal {
+  display: flex;
+  flex-direction: column;
+  gap: calc(globals.$spacing-unit * 1.5);
+  min-height: 480px;
+  max-height: 70vh;
+
+  &__toolbar {
+    display: flex;
+    gap: globals.$spacing-unit;
+    align-items: center;
+  }
+
+  &__input,
+  &__select {
+    background: globals.$dark-background-color;
+    border: 1px solid globals.$border-color;
+    color: inherit;
+    border-radius: 4px;
+    padding: globals.$spacing-unit;
+  }
+
+  &__input {
+    flex: 1;
+  }
+
+  &__tabs {
+    display: flex;
+    gap: globals.$spacing-unit;
+  }
+
+  &__list {
+    flex: 1;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: globals.$spacing-unit;
+  }
+
+  &__item {
+    display: flex;
+    gap: calc(globals.$spacing-unit * 1.5);
+    align-items: center;
+    padding: globals.$spacing-unit;
+    border: 1px solid globals.$border-color;
+    border-radius: 6px;
+    background: globals.$dark-background-color;
+  }
+
+  &__icon {
+    width: 48px;
+    height: 48px;
+    border-radius: 4px;
+    object-fit: cover;
+    flex-shrink: 0;
+  }
+
+  &__info {
+    flex: 1;
+    min-width: 0;
+
+    h4 {
+      margin: 0;
+    }
+  }
+
+  &__meta {
+    color: globals.$muted-color;
+    font-size: 12px;
+  }
+
+  &__desc {
+    color: globals.$muted-color;
+    font-size: 13px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  &__actions {
+    display: flex;
+    gap: globals.$spacing-unit;
+    align-items: center;
+  }
+
+  &__message {
+    color: globals.$muted-color;
+    text-align: center;
+    padding: calc(globals.$spacing-unit * 3);
+  }
+
+  &__error {
+    color: #e5484d;
+    font-size: 13px;
+  }
+
+  &__pager {
+    display: flex;
+    justify-content: center;
+    gap: globals.$spacing-unit;
+    align-items: center;
+  }
+}
