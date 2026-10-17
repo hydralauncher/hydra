@@ -683,7 +683,7 @@ export function App() {
 
     const { shop, objectId, executablePath, launchOptions } =
       blockedSteamOverlayLaunch;
-    window.electron.openGame(
+    void window.electron.openGame(
       shop,
       objectId,
       executablePath,

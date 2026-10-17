@@ -68,12 +68,16 @@ export const detectWineDllOverridesForGame = async (
     (entry) => entry.isFile() && DLL_LIST_FILE_PATTERN.test(entry.name)
   );
 
-  const namesFromListFiles: string[] = [];
-  for (const listFile of listFiles) {
-    const content = await fs.promises
-      .readFile(path.join(gameFolder, listFile.name), "utf8")
-      .catch(() => "");
+  const listFileContents = await Promise.all(
+    listFiles.map((listFile) =>
+      fs.promises
+        .readFile(path.join(gameFolder, listFile.name), "utf8")
+        .catch(() => "")
+    )
+  );
 
+  const namesFromListFiles: string[] = [];
+  for (const content of listFileContents) {
     for (const line of content.split(/\r?\n/)) {
       const trimmed = line.trim();
       if (!trimmed.toLowerCase().endsWith(".dll")) continue;

@@ -143,6 +143,31 @@ const STEAM_ROOT_SEGMENTS = [
 
 const shellQuote = (value: string) => `'${value.replaceAll("'", "'\\''")}'`;
 
+const seedSteamClientFilesForLaunch = (
+  winePrefixPath: string | null | undefined,
+  steamClientInstallPath: string | undefined
+) => {
+  if (!winePrefixPath || !steamClientInstallPath) return;
+
+  try {
+    const copiedFiles = seedPrefixSteamClientFiles(
+      winePrefixPath,
+      steamClientInstallPath
+    );
+    if (copiedFiles.length > 0) {
+      logger.info("Copied Steam client files into Wine prefix", {
+        winePrefixPath,
+        copiedFiles,
+      });
+    }
+  } catch (error) {
+    logger.error("Failed to copy Steam client files into Wine prefix", {
+      winePrefixPath,
+      error,
+    });
+  }
+};
+
 export class Umu {
   private static readonly supervisedFallbacks = new Set<string>();
   /** Authenticated integrations use a bounded, private process API. */
@@ -455,27 +480,10 @@ export class Umu {
       ...resolvedLaunchCommand.env,
     };
 
-    const steamClientInstallPath =
-      resolvedLaunchCommand.env.STEAM_COMPAT_CLIENT_INSTALL_PATH;
-    if (options?.winePrefixPath && steamClientInstallPath) {
-      try {
-        const copiedFiles = seedPrefixSteamClientFiles(
-          options.winePrefixPath,
-          steamClientInstallPath
-        );
-        if (copiedFiles.length > 0) {
-          logger.info("Copied Steam client files into Wine prefix", {
-            winePrefixPath: options.winePrefixPath,
-            copiedFiles,
-          });
-        }
-      } catch (error) {
-        logger.error("Failed to copy Steam client files into Wine prefix", {
-          winePrefixPath: options.winePrefixPath,
-          error,
-        });
-      }
-    }
+    seedSteamClientFilesForLaunch(
+      options?.winePrefixPath,
+      resolvedLaunchCommand.env.STEAM_COMPAT_CLIENT_INSTALL_PATH
+    );
 
     const envCommandPart = Object.entries(launchEnv)
       .map(([key, value]) => `${key}=${shellQuote(value)}`)
