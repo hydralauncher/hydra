@@ -234,6 +234,7 @@ export interface UserPreferences {
   defaultProtonPath?: string | null;
   autoRunMangohud?: boolean;
   autoRunGamemode?: boolean;
+  autoDetectWineDllOverrides?: boolean;
   hideClassicsBookmark?: boolean;
   classicsUseHeroLayout?: boolean;
   hideLibraryGameBadges?: boolean;

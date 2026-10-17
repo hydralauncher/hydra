@@ -45,6 +45,7 @@ import type {
   DownloadSource,
   LocalNotification,
   ProtonVersion,
+  WineDllOverridesDetectionResult,
   CreateSteamShortcutOptions,
   TorrentFilesResponse,
   DownloadLayoutState,
@@ -505,6 +506,10 @@ declare global {
       objectId: string,
       launchOptions: string | null
     ) => Promise<void>;
+    detectWineDllOverrides: (
+      shop: GameShop,
+      objectId: string
+    ) => Promise<WineDllOverridesDetectionResult>;
     selectGameWinePrefix: (
       shop: GameShop,
       objectId: string,
@@ -553,7 +558,8 @@ declare global {
       objectId: string,
       executablePath: string,
       launchOptions?: string | null,
-      epicLaunchOptions?: EpicLaunchOptions
+      epicLaunchOptions?: EpicLaunchOptions,
+      skipSteamOverlayCheck?: boolean
     ) => Promise<void>;
     openClassicsGame: (
       shop: GameShop,
@@ -995,6 +1001,14 @@ declare global {
     ) => () => Electron.IpcRenderer;
     onGameExecutableNotFound: (
       cb: (shop: GameShop, objectId: string) => void
+    ) => () => Electron.IpcRenderer;
+    onSteamOverlayUnavailable: (
+      cb: (
+        shop: GameShop,
+        objectId: string,
+        executablePath: string,
+        launchOptions: string | null
+      ) => void
     ) => () => Electron.IpcRenderer;
     onArchiveDeletionPrompt: (
       cb: (archivePaths: string[]) => void
