@@ -3,6 +3,7 @@ import {
   DownloadSimpleIcon,
   FileMagnifyingGlassIcon,
   GearIcon,
+  HourglassIcon,
   HeartIcon,
   PlayIcon,
   PlusCircleIcon,
@@ -57,6 +58,7 @@ export interface HeroProps {
   onDownload: () => void;
   installStep?: FinishedDownloadStep | null;
   onInstall: () => void;
+  onExtract: () => void;
   onSelectExecutable: () => void;
   onAddToLibrary: () => void;
   onOpenDownloadOptions: () => void;
@@ -102,6 +104,7 @@ export function Hero({
   onDownload,
   installStep = null,
   onInstall,
+  onExtract,
   onSelectExecutable,
   onAddToLibrary,
   onOpenDownloadOptions,
@@ -202,6 +205,23 @@ export function Hero({
       };
     }
 
+    if (installStep === "extract") {
+      return {
+        label: t("extract", { ns: "downloads" }),
+        icon: <ArchiveIcon size={24} />,
+        onClick: onExtract,
+        disabled: false,
+      };
+    }
+
+    if (installStep === "installing") {
+      return {
+        label: t("installing", { ns: "downloads" }),
+        icon: <HourglassIcon size={24} />,
+        disabled: true,
+      };
+    }
+
     if (installStep === "install") {
       return {
         label: t("install"),
@@ -229,6 +249,7 @@ export function Hero({
   }, [
     installStep,
     isDownloading,
+    onExtract,
     onDownload,
     onInstall,
     onSelectExecutable,

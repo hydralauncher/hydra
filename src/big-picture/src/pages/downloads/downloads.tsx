@@ -8,8 +8,10 @@ import type { LibraryGame } from "@types";
 import { Downloader, getFinishedDownloadStep } from "@shared";
 import { useInstallerAvailability } from "@renderer/hooks/use-installer-availability";
 import {
+  ArchiveIcon,
   DownloadSimpleIcon,
   FileMagnifyingGlassIcon,
+  HourglassIcon,
   PlayIcon,
 } from "@phosphor-icons/react";
 import { useTranslation } from "react-i18next";
@@ -1089,7 +1091,12 @@ export default function Downloads() {
   const getCompletedAction = useCallback(
     (
       game: LibraryGame
-    ): { label: string; icon: ReactNode; run: () => void } | null => {
+    ): {
+      label: string;
+      icon: ReactNode;
+      run: () => void;
+      disabled?: boolean;
+    } | null => {
       if (!game.executablePath && !(game.id in installerAvailability)) {
         return null;
       }
@@ -1104,6 +1111,29 @@ export default function Downloads() {
           label: t("play", { ns: "game_details" }),
           icon: <PlayIcon size={22} weight="fill" />,
           run: () => void launchGame(game),
+        };
+      }
+
+      if (step === "extract") {
+        return {
+          label: t("extract"),
+          icon: <ArchiveIcon size={22} />,
+          run: () => {
+            void globalThis.window.electron
+              .extractGameDownload(game.shop, game.objectId)
+              .then(() =>
+                globalThis.window.dispatchEvent(new Event("library-update"))
+              );
+          },
+        };
+      }
+
+      if (step === "installing") {
+        return {
+          label: t("installing"),
+          icon: <HourglassIcon size={22} />,
+          run: () => undefined,
+          disabled: true,
         };
       }
 
@@ -2965,7 +2995,9 @@ export default function Downloads() {
                     onPrimaryAction={completedAction?.run}
                     primaryActionLabel={completedAction?.label}
                     primaryActionIcon={completedAction?.icon}
-                    primaryActionDisabled={interactionsLocked}
+                    primaryActionDisabled={
+                      interactionsLocked || completedAction?.disabled
+                    }
                     onOpenOptions={(event) => {
                       openDownloadMenu(
                         item,
@@ -2988,7 +3020,9 @@ export default function Downloads() {
                       item,
                       "completed",
                       interactionsLocked,
-                      interactionsLocked ? undefined : completedAction?.run
+                      interactionsLocked || completedAction?.disabled
+                        ? undefined
+                        : completedAction?.run
                     )}
                     optionsFocusId={getDownloadOptionsActionFocusId(item.id)}
                   />

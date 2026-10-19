@@ -15,7 +15,7 @@ import {
   getEpicLaunchError,
   getEpicManagedError,
 } from "@renderer/helpers/epic-managed-error";
-import { FileSearch, XCircle } from "lucide-react";
+import { FileArchive, FileSearch, FolderOpen, XCircle } from "lucide-react";
 import {
   useDownload,
   useGameExecutablePicker,
@@ -494,6 +494,38 @@ export function HeroPanelActions() {
         );
       }
 
+      if (finishedDownloadStep === "extract") {
+        return (
+          <Button
+            onClick={async () => {
+              await window.electron.extractGameDownload(
+                downloadGame.shop,
+                downloadGame.objectId
+              );
+              updateLibrary();
+            }}
+            theme="outline"
+            disabled={deleting}
+            className="hero-panel-actions__action"
+          >
+            <FileArchive size={16} />
+            {t("extract", { ns: "downloads" })}
+          </Button>
+        );
+      }
+
+      if (finishedDownloadStep === "installing") {
+        return (
+          <Button
+            theme="outline"
+            disabled
+            className="hero-panel-actions__action"
+          >
+            {t("installing", { ns: "downloads" })}
+          </Button>
+        );
+      }
+
       if (finishedDownloadStep === "install") {
         return (
           <Button
@@ -522,22 +554,38 @@ export function HeroPanelActions() {
       }
 
       return (
-        <Button
-          onClick={async () => {
-            const picked = await pickGameExecutable(
-              downloadGame.shop,
-              downloadGame.objectId
-            );
+        <>
+          <Button
+            onClick={async () => {
+              const picked = await pickGameExecutable(
+                downloadGame.shop,
+                downloadGame.objectId
+              );
 
-            if (picked) updateGame();
-          }}
-          theme="outline"
-          disabled={deleting}
-          className="hero-panel-actions__action"
-        >
-          <FileSearch size={16} />
-          {t("select_executable", { ns: "downloads" })}
-        </Button>
+              if (picked) updateGame();
+            }}
+            theme="outline"
+            disabled={deleting}
+            className="hero-panel-actions__action"
+          >
+            <FileSearch size={16} />
+            {t("select_executable", { ns: "downloads" })}
+          </Button>
+          <Button
+            onClick={() =>
+              window.electron.openGameInstallerPath(
+                downloadGame.shop,
+                downloadGame.objectId
+              )
+            }
+            theme="outline"
+            disabled={deleting}
+            className="hero-panel-actions__action"
+          >
+            <FolderOpen size={16} />
+            {t("open_folder")}
+          </Button>
+        </>
       );
     }
 

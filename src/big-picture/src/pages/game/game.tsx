@@ -980,6 +980,17 @@ export default function Game() {
     await refreshGameDetails();
   }, [downloadGame, refreshGameDetails, showErrorToast, t]);
 
+  const handleExtract = useCallback(async () => {
+    if (!downloadGame) return;
+
+    await globalThis.window.electron.extractGameDownload(
+      downloadGame.shop,
+      downloadGame.objectId
+    );
+    globalThis.window.dispatchEvent(new Event("library-update"));
+    await refreshGameDetails();
+  }, [downloadGame, refreshGameDetails]);
+
   const handleSelectExecutable = useCallback(() => {
     if (!downloadGame) return;
 
@@ -1683,6 +1694,7 @@ export default function Game() {
             onDownload={handleOpenDownloadModal}
             installStep={installStep}
             onInstall={() => void handleInstall()}
+            onExtract={() => void handleExtract()}
             onSelectExecutable={handleSelectExecutable}
             onAddToLibrary={handleAddToLibrary}
             onOpenDownloadOptions={handleOpenDownloadModal}

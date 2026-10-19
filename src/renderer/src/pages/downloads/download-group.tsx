@@ -55,7 +55,6 @@ import {
   ClockIcon,
   ColumnsIcon,
   DownloadIcon,
-  FileDirectoryIcon,
   LinkIcon,
   PlayIcon,
   TrashIcon,
@@ -64,7 +63,12 @@ import {
   GraphIcon,
   GearIcon,
 } from "@primer/octicons-react";
-import { MoreVertical, Folder, FileSearch } from "lucide-react";
+import {
+  MoreVertical,
+  FileArchive,
+  FileSearch,
+  FolderOpen,
+} from "lucide-react";
 import { average } from "color.js";
 import { getEpicManagedError } from "@renderer/helpers/epic-managed-error";
 
@@ -922,7 +926,7 @@ export function DownloadGroup({
           label: tGameDetails("open_folder"),
           show: !isEpic,
           disabled: deleting,
-          icon: <Folder size={16} />,
+          icon: <FolderOpen size={16} />,
           onClick: () => {
             void window.electron.openGameInstallerPath(
               game.shop,
@@ -934,7 +938,7 @@ export function DownloadGroup({
           label: t("extract"),
           show: game.download.downloader !== Downloader.Epic,
           disabled: game.download.extracting,
-          icon: <FileDirectoryIcon />,
+          icon: <FileArchive size={16} />,
           onClick: () => {
             extractGameDownload(game.shop, game.objectId);
           },
@@ -1122,7 +1126,7 @@ export function DownloadGroup({
           disabled={disabled}
           className="download-group__simple-action-btn"
         >
-          <Folder size={16} />
+          <FolderOpen size={16} />
           {tGameDetails("open_folder")}
         </Button>
       );
@@ -1142,6 +1146,32 @@ export function DownloadGroup({
       );
     }
 
+    if (step === "extract") {
+      return (
+        <Button
+          theme="primary"
+          onClick={() => extractGameDownload(game.shop, game.objectId)}
+          disabled={disabled}
+          className="download-group__simple-action-btn"
+        >
+          <FileArchive size={16} />
+          {t("extract")}
+        </Button>
+      );
+    }
+
+    if (step === "installing") {
+      return (
+        <Button
+          theme="primary"
+          disabled
+          className="download-group__simple-action-btn"
+        >
+          {t("installing")}
+        </Button>
+      );
+    }
+
     if (step === "install") {
       return (
         <Button
@@ -1157,28 +1187,48 @@ export function DownloadGroup({
     }
 
     return (
-      <Button
-        theme="primary"
-        onClick={() => pickGameExecutable(game.shop, game.objectId)}
-        disabled={disabled}
-        className="download-group__simple-action-btn"
-      >
-        <FileSearch size={16} />
-        {t("select_executable")}
-      </Button>
+      <>
+        <Button
+          theme="outline"
+          onClick={() =>
+            window.electron.openGameInstallerPath(game.shop, game.objectId)
+          }
+          disabled={disabled}
+          className="download-group__simple-action-btn"
+        >
+          <FolderOpen size={16} />
+          {tGameDetails("open_folder")}
+        </Button>
+        <Button
+          theme="primary"
+          onClick={() => pickGameExecutable(game.shop, game.objectId)}
+          disabled={disabled}
+          className="download-group__simple-action-btn"
+        >
+          <FileSearch size={16} />
+          {t("select_executable")}
+        </Button>
+      </>
     );
   };
 
-  const renderCompletedHint = (game: LibraryGame) => {
-    if (getCompletedDownloadStep(game) !== "select-executable") return null;
+  const getCompletedHint = (game: LibraryGame) => {
+    const step = getCompletedDownloadStep(game);
 
-    return (
-      <span className="download-group__simple-hint">
-        {game.download?.installerLaunched
-          ? t("installer_closed_hint")
-          : t("no_installer_hint")}
-      </span>
-    );
+    if (step === "extract") return t("extract_hint");
+    if (step === "installing") return t("installing_hint");
+    if (step !== "select-executable") return null;
+
+    return game.download?.installerLaunched
+      ? t("installer_closed_hint")
+      : t("no_installer_hint");
+  };
+
+  const renderCompletedHint = (game: LibraryGame) => {
+    const hint = getCompletedHint(game);
+    if (!hint) return null;
+
+    return <span className="download-group__simple-hint">{hint}</span>;
   };
 
   const handleConfirmPause = async () => {

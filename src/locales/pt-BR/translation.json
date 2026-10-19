@@ -1127,7 +1127,10 @@
     "game_installed_description": "O Hydra encontrou o executável do jogo. Já dá para jogar.",
     "installed_game_not_found_title": "Não foi possível encontrar o jogo instalado",
     "installed_game_not_found_description": "Selecione o executável do jogo para concluir a configuração.",
-    "installer_launch_failed": "Não foi possível iniciar o instalador"
+    "installer_launch_failed": "Não foi possível iniciar o instalador",
+    "installing": "Instalando…",
+    "extract_hint": "Este download ainda está compactado. Extraia para instalar ou jogar.",
+    "installing_hint": "Conclua o instalador para continuar."
   },
   "settings": {
     "rpcs3_config_title": "Pasta de configuração do RPCS3",

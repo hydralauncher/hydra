@@ -1,9 +1,11 @@
 import type { Download, LibraryGame } from "@types";
-import { Downloader } from "./constants.js";
+import { Downloader, FILE_EXTENSIONS_TO_EXTRACT } from "./constants.js";
 
 export type FinishedDownloadStep =
   | "extracting"
+  | "extract"
   | "play"
+  | "installing"
   | "install"
   | "select-executable";
 
@@ -18,6 +20,17 @@ export const getFinishedDownload = (
   return download;
 };
 
+export const isUnextractedArchive = (download: Download) => {
+  const folderName = download.folderName?.toLowerCase();
+
+  return (
+    !!folderName &&
+    FILE_EXTENSIONS_TO_EXTRACT.some((extension) =>
+      folderName.endsWith(extension)
+    )
+  );
+};
+
 export const getFinishedDownloadStep = (
   game: LibraryGame,
   hasInstaller: boolean
@@ -27,6 +40,8 @@ export const getFinishedDownloadStep = (
   if (!download) return null;
   if (download.extracting) return "extracting";
   if (game.executablePath) return "play";
+  if (isUnextractedArchive(download)) return "extract";
+  if (download.installerRunning) return "installing";
   if (hasInstaller && !download.installerLaunched) return "install";
 
   return "select-executable";

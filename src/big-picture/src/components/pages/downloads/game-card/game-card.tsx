@@ -224,7 +224,9 @@ export function DownloadsGameCard({
                     {isLabeledPrimaryAction ? (
                       <span className="downloads-game-card__action-label">
                         {primaryActionLabel}
-                        <ControllerButtonGlyph button="X" />
+                        {primaryActionDisabled ? null : (
+                          <ControllerButtonGlyph button="X" />
+                        )}
                       </span>
                     ) : null}
                   </Button>

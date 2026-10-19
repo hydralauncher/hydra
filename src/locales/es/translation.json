@@ -1110,7 +1110,10 @@
     "game_installed_description": "Hydra encontró el ejecutable del juego. Ya puedes jugar.",
     "installed_game_not_found_title": "No se pudo encontrar el juego instalado",
     "installed_game_not_found_description": "Selecciona el ejecutable del juego para terminar de configurarlo.",
-    "installer_launch_failed": "No se pudo iniciar el instalador"
+    "installer_launch_failed": "No se pudo iniciar el instalador",
+    "installing": "Instalando…",
+    "extract_hint": "Esta descarga sigue comprimida. Extráela para instalar o jugar el juego.",
+    "installing_hint": "Termina el instalador para continuar."
   },
   "settings": {
     "epic_sync_partial": "Juegos y tiempo de juego sincronizados; se volverá a intentar sincronizar los logros de {{count}} juegos.",

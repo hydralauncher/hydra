@@ -78,6 +78,24 @@ describe("getFinishedDownloadStep", () => {
     assert.equal(getFinishedDownloadStep(game, true), "select-executable");
   });
 
+  it("asks to extract a download that is still an archive", () => {
+    const game = makeGame({ folderName: "Game.ZIP" });
+    assert.equal(getFinishedDownloadStep(game, false), "extract");
+  });
+
+  it("prefers play over extract once an executable is set", () => {
+    const game = makeGame(
+      { folderName: "Game.rar" },
+      { executablePath: "C:\\Games\\Game\\game.exe" }
+    );
+    assert.equal(getFinishedDownloadStep(game, false), "play");
+  });
+
+  it("shows installing while the installer is running", () => {
+    const game = makeGame({ installerLaunched: true, installerRunning: true });
+    assert.equal(getFinishedDownloadStep(game, true), "installing");
+  });
+
   it("asks for the executable when there is no installer", () => {
     assert.equal(
       getFinishedDownloadStep(makeGame({}), false),
