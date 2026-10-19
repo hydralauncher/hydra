@@ -4,6 +4,7 @@ export * from "./use-library";
 export * from "./use-library-game-presentation";
 export * from "./use-non-steam-executable";
 export * from "./use-game-executable-picker";
+export * from "./use-installer-availability";
 export * from "./use-date";
 export * from "./use-toast";
 export * from "./redux";

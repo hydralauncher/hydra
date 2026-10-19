@@ -5,13 +5,30 @@ import {
   monitorForElements,
 } from "@atlaskit/pragmatic-drag-and-drop/element/adapter";
 import type { LibraryGame } from "@types";
-import { Downloader } from "@shared";
+import { Downloader, getFinishedDownloadStep } from "@shared";
+import { useInstallerAvailability } from "@renderer/hooks/use-installer-availability";
+import {
+  DownloadSimpleIcon,
+  FileMagnifyingGlassIcon,
+  PlayIcon,
+} from "@phosphor-icons/react";
 import { useTranslation } from "react-i18next";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import {
+  type ReactNode,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import { useNavigate } from "react-router-dom";
 import { type FocusItemActions } from "../../types";
 import type { FocusOverrides } from "../../services";
-import { useNavigation, useNavigationScreenActions } from "../../hooks";
+import {
+  useBigPictureToast,
+  useNavigation,
+  useNavigationScreenActions,
+} from "../../hooks";
 import { BIG_PICTURE_HEADER_REGION_ID } from "../../layout";
 import {
   ContextMenu,
@@ -40,7 +57,12 @@ import {
   type BigPictureDownloadListItem,
 } from "./use-big-picture-downloads-page-data";
 import { useNavigationSnapshot } from "../../stores";
-import { ConfirmationModal } from "../../components/modals";
+import {
+  ConfirmationModal,
+  ExecutablePickerModal,
+  type ExecutablePickerTarget,
+} from "../../components/modals";
+import { useLibraryLaunchGame } from "../../components/pages/library";
 
 import "./downloads.scss";
 
@@ -1043,6 +1065,72 @@ export default function Downloads() {
 
   const canPromoteToHero = !activeDownload || activeDownload.canPromoteToHero;
   const interactionsLocked = Boolean(moveMode);
+
+  const { showErrorToast } = useBigPictureToast();
+  const launchGame = useLibraryLaunchGame(() => undefined);
+  const installerAvailability = useInstallerAvailability(
+    completedDownloads.map((item) => item.game)
+  );
+  const [executablePickerTarget, setExecutablePickerTarget] =
+    useState<ExecutablePickerTarget | null>(null);
+
+  const runInstaller = useCallback(
+    async (game: LibraryGame) => {
+      const opened = await globalThis.window.electron.openGameInstaller(
+        game.shop,
+        game.objectId
+      );
+
+      if (!opened) showErrorToast(t("installer_launch_failed"));
+    },
+    [showErrorToast, t]
+  );
+
+  const getCompletedAction = useCallback(
+    (
+      game: LibraryGame
+    ): { label: string; icon: ReactNode; run: () => void } | null => {
+      if (!game.executablePath && !(game.id in installerAvailability)) {
+        return null;
+      }
+
+      const step = getFinishedDownloadStep(
+        game,
+        installerAvailability[game.id] === true
+      );
+
+      if (step === "play") {
+        return {
+          label: t("play", { ns: "game_details" }),
+          icon: <PlayIcon size={22} weight="fill" />,
+          run: () => void launchGame(game),
+        };
+      }
+
+      if (step === "install") {
+        return {
+          label: t("install"),
+          icon: <DownloadSimpleIcon size={22} />,
+          run: () => void runInstaller(game),
+        };
+      }
+
+      if (step === "select-executable") {
+        return {
+          label: t("select_executable"),
+          icon: <FileMagnifyingGlassIcon size={22} />,
+          run: () =>
+            setExecutablePickerTarget({
+              shop: game.shop,
+              objectId: game.objectId,
+            }),
+        };
+      }
+
+      return null;
+    },
+    [installerAvailability, launchGame, runInstaller, t]
+  );
   const previewLayoutState =
     moveMode ?? dragPreviewState ?? optimisticCommitState?.layout ?? null;
   const stopDragEdgeAutoScroll = useCallback(() => {
@@ -2215,7 +2303,52 @@ export default function Downloads() {
       ];
     }
 
+    const completedStep = getFinishedDownloadStep(
+      item.game,
+      installerAvailability[item.game.id] === true
+    );
+    const hasInstaller = installerAvailability[item.game.id] === true;
+    const isEpic = item.game.download?.downloader === Downloader.Epic;
+
     return [
+      ...(hasInstaller && completedStep !== "install"
+        ? [
+            {
+              id: "run-installer",
+              label: t("run_installer"),
+              disabled: interactionsLocked,
+              onSelect: () => runInstaller(item.game),
+            } satisfies ContextMenuItem,
+          ]
+        : []),
+      ...(completedStep === "install"
+        ? [
+            {
+              id: "select-executable",
+              label: t("select_executable"),
+              disabled: interactionsLocked,
+              onSelect: () =>
+                setExecutablePickerTarget({
+                  shop: item.game.shop,
+                  objectId: item.game.objectId,
+                }),
+            } satisfies ContextMenuItem,
+          ]
+        : []),
+      ...(isEpic
+        ? []
+        : [
+            {
+              id: "open-folder",
+              label: t("open_folder", { ns: "game_details" }),
+              disabled: interactionsLocked,
+              onSelect: () =>
+                globalThis.window.electron.openGameInstallerPath(
+                  item.game.shop,
+                  item.game.objectId
+                ),
+            } satisfies ContextMenuItem,
+          ]),
       ...(item.seedAction
         ? [
             {
@@ -2250,6 +2383,7 @@ export default function Downloads() {
     canPromoteToHero,
     handleCompletedRemoval,
     handleRemovalCancel,
+    installerAvailability,
     interactionsLocked,
     menuState.item,
     menuState.section,
@@ -2257,6 +2391,7 @@ export default function Downloads() {
     moveToPaused,
     pauseSeeding,
     resumeSeeding,
+    runInstaller,
     sendToQueue,
     startNow,
     navigate,
@@ -2516,34 +2651,39 @@ export default function Downloads() {
       canEnterMoveMode: boolean,
       listItem: BigPictureDownloadListItem,
       section: "queue" | "paused" | "completed",
-      optionsDisabled: boolean
-    ): FocusItemActions => ({
-      primary: moveMode ? "off" : "auto",
-      press: {
-        x:
-          canEnterMoveMode && !moveMode
-            ? () => {
-                beginMoveMode(itemId);
-              }
-            : undefined,
-        y:
-          optionsDisabled || moveMode
-            ? undefined
-            : () => {
-                const optionsFocusId = getDownloadOptionsActionFocusId(itemId);
-                const element =
-                  globalThis.document.getElementById(optionsFocusId);
-                if (!(element instanceof HTMLElement)) return;
+      optionsDisabled: boolean,
+      completedAction?: () => void
+    ): FocusItemActions => {
+      const pressX = canEnterMoveMode
+        ? () => {
+            beginMoveMode(itemId);
+          }
+        : completedAction;
 
-                openDownloadMenu(
-                  listItem,
-                  section,
-                  getDownloadMenuPosition(element),
-                  optionsFocusId
-                );
-              },
-      },
-    }),
+      return {
+        primary: moveMode ? "off" : "auto",
+        press: {
+          x: moveMode ? undefined : pressX,
+          y:
+            optionsDisabled || moveMode
+              ? undefined
+              : () => {
+                  const optionsFocusId =
+                    getDownloadOptionsActionFocusId(itemId);
+                  const element =
+                    globalThis.document.getElementById(optionsFocusId);
+                  if (!(element instanceof HTMLElement)) return;
+
+                  openDownloadMenu(
+                    listItem,
+                    section,
+                    getDownloadMenuPosition(element),
+                    optionsFocusId
+                  );
+                },
+        },
+      };
+    },
     [beginMoveMode, moveMode, openDownloadMenu]
   );
 
@@ -2807,47 +2947,62 @@ export default function Downloads() {
               className="downloads-page__list"
               navigationOrder={DOWNLOADS_REGION_NAVIGATION_ORDER.completed}
             >
-              {completedDownloads.map((item, index) => (
-                <DownloadsGameCard
-                  key={item.id}
-                  gameId={item.id}
-                  variant="completed"
-                  title={item.title}
-                  coverImageUrl={item.coverImageUrl}
-                  logoImageUrl={getDownloadLogoImageUrl(item.game)}
-                  metaLabel={item.metaLabel}
-                  secondaryLabel={item.secondaryLabel}
-                  rightStatusLabel={item.rightStatusLabel}
-                  onOpen={() => handleOpen(item.href)}
-                  onOpenOptions={(event) => {
-                    openDownloadMenu(
+              {completedDownloads.map((item, index) => {
+                const completedAction = getCompletedAction(item.game);
+
+                return (
+                  <DownloadsGameCard
+                    key={item.id}
+                    gameId={item.id}
+                    variant="completed"
+                    title={item.title}
+                    coverImageUrl={item.coverImageUrl}
+                    logoImageUrl={getDownloadLogoImageUrl(item.game)}
+                    metaLabel={item.metaLabel}
+                    secondaryLabel={item.secondaryLabel}
+                    rightStatusLabel={item.rightStatusLabel}
+                    onOpen={() => handleOpen(item.href)}
+                    onPrimaryAction={completedAction?.run}
+                    primaryActionLabel={completedAction?.label}
+                    primaryActionIcon={completedAction?.icon}
+                    primaryActionDisabled={interactionsLocked}
+                    onOpenOptions={(event) => {
+                      openDownloadMenu(
+                        item,
+                        "completed",
+                        getDownloadMenuPosition(event.currentTarget),
+                        getDownloadOptionsActionFocusId(item.id)
+                      );
+                    }}
+                    optionsDisabled={interactionsLocked}
+                    navigationOrder={index}
+                    focusId={getDownloadMainFocusId(item.id)}
+                    navigationOverrides={
+                      mainNavigationOverridesByFocusId[
+                        getDownloadMainFocusId(item.id)
+                      ]
+                    }
+                    focusActions={getDownloadCardFocusActions(
+                      item.id,
+                      false,
                       item,
                       "completed",
-                      getDownloadMenuPosition(event.currentTarget),
-                      getDownloadOptionsActionFocusId(item.id)
-                    );
-                  }}
-                  optionsDisabled={interactionsLocked}
-                  navigationOrder={index}
-                  focusId={getDownloadMainFocusId(item.id)}
-                  navigationOverrides={
-                    mainNavigationOverridesByFocusId[
-                      getDownloadMainFocusId(item.id)
-                    ]
-                  }
-                  focusActions={getDownloadCardFocusActions(
-                    item.id,
-                    false,
-                    item,
-                    "completed",
-                    interactionsLocked
-                  )}
-                  optionsFocusId={getDownloadOptionsActionFocusId(item.id)}
-                />
-              ))}
+                      interactionsLocked,
+                      interactionsLocked ? undefined : completedAction?.run
+                    )}
+                    optionsFocusId={getDownloadOptionsActionFocusId(item.id)}
+                  />
+                );
+              })}
             </VerticalFocusGroup>
           </Section>
         ) : null}
+
+        <ExecutablePickerModal
+          target={executablePickerTarget}
+          onClose={() => setExecutablePickerTarget(null)}
+          onSaved={() => undefined}
+        />
 
         <ContextMenu
           ariaLabel="Download options"

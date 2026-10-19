@@ -1,0 +1,104 @@
+import type { GameShop } from "@types";
+import { getGameExecutableFilters } from "@shared";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
+import { useBigPictureToast } from "../../../hooks";
+import { FileExplorerModal } from "../../common";
+
+export interface ExecutablePickerTarget {
+  shop: GameShop;
+  objectId: string;
+}
+
+interface ExecutablePickerModalProps {
+  target: ExecutablePickerTarget | null;
+  onClose: () => void;
+  onSaved: () => void;
+}
+
+const getDownloadsPath = async () => {
+  const userPreferences = await globalThis.window.electron
+    .getUserPreferences()
+    .catch(() => null);
+
+  return (
+    userPreferences?.downloadsPath ??
+    (await globalThis.window.electron.getDefaultDownloadsPath())
+  );
+};
+
+export function ExecutablePickerModal({
+  target,
+  onClose,
+  onSaved,
+}: Readonly<ExecutablePickerModalProps>) {
+  const { t } = useTranslation("game_details");
+  const { showErrorToast } = useBigPictureToast();
+  const [initialPath, setInitialPath] = useState("");
+
+  const filters = useMemo(
+    () =>
+      getGameExecutableFilters(globalThis.window.electron.platform, {
+        executable: t("game_executable"),
+        allFiles: t("all_files"),
+      }),
+    [t]
+  );
+
+  useEffect(() => {
+    if (!target) return;
+
+    let cancelled = false;
+
+    getDownloadsPath().then((path) => {
+      if (!cancelled) setInitialPath(path);
+    });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [target]);
+
+  const handleSelect = useCallback(
+    async (executablePath: string) => {
+      if (!target) return;
+
+      onClose();
+
+      const gameUsingPath =
+        await globalThis.window.electron.verifyExecutablePathInUse(
+          executablePath
+        );
+
+      if (
+        gameUsingPath &&
+        (gameUsingPath.objectId !== target.objectId ||
+          gameUsingPath.shop !== target.shop)
+      ) {
+        showErrorToast(
+          t("executable_path_in_use", { game: gameUsingPath.title })
+        );
+        return;
+      }
+
+      await globalThis.window.electron.updateExecutablePath(
+        target.shop,
+        target.objectId,
+        executablePath
+      );
+      onSaved();
+    },
+    [onClose, onSaved, showErrorToast, t, target]
+  );
+
+  return (
+    <FileExplorerModal
+      visible={target !== null}
+      onClose={onClose}
+      onSelect={(executablePath) => void handleSelect(executablePath)}
+      title={t("select_executable", { ns: "downloads" })}
+      initialPath={initialPath}
+      filters={filters}
+    />
+  );
+}

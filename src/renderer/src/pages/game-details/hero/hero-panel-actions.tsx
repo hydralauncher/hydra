@@ -19,6 +19,7 @@ import { FileSearch, XCircle } from "lucide-react";
 import {
   useDownload,
   useGameExecutablePicker,
+  useInstallerAvailability,
   useLibrary,
   useToast,
   useUserDetails,
@@ -38,7 +39,7 @@ import "./hero-panel-actions.scss";
 import { useEffect } from "react";
 import {
   applyLibraryGroupAction,
-  Downloader,
+  getFinishedDownloadStep,
   isLibraryGameDownloading,
   getOfficialStoreMembers,
 } from "@shared";
@@ -71,41 +72,16 @@ export function HeroPanelActions() {
 
   const isGameDownloading = isLibraryGameDownloading(downloadGame);
 
-  const finishedDownload =
-    downloadGame?.download?.progress === 1 &&
-    downloadGame.download.downloader !== Downloader.Epic
-      ? downloadGame.download
-      : null;
-
   const pickGameExecutable = useGameExecutablePicker();
-  const [hasInstaller, setHasInstaller] = useState(false);
-
-  const downloadShop = downloadGame?.shop;
-  const downloadObjectId = downloadGame?.objectId;
-  const downloadFolderName = finishedDownload?.folderName;
-  const isDownloadFinished = finishedDownload !== null;
-
-  useEffect(() => {
-    if (!downloadShop || !downloadObjectId || !isDownloadFinished) {
-      setHasInstaller(false);
-      return;
-    }
-
-    let cancelled = false;
-
-    window.electron
-      .hasGameInstaller(downloadShop, downloadObjectId)
-      .then((available) => {
-        if (!cancelled) setHasInstaller(available);
-      })
-      .catch(() => {
-        if (!cancelled) setHasInstaller(false);
-      });
-
-    return () => {
-      cancelled = true;
-    };
-  }, [downloadShop, downloadObjectId, downloadFolderName, isDownloadFinished]);
+  const installerAvailability = useInstallerAvailability(
+    downloadGame ? [downloadGame] : []
+  );
+  const finishedDownloadStep = downloadGame
+    ? getFinishedDownloadStep(
+        downloadGame,
+        installerAvailability[downloadGame.id] === true
+      )
+    : null;
 
   const { updateLibrary } = useLibrary();
 
@@ -501,8 +477,12 @@ export function HeroPanelActions() {
       );
     }
 
-    if (downloadGame && finishedDownload) {
-      if (finishedDownload.extracting) {
+    if (
+      downloadGame &&
+      finishedDownloadStep &&
+      finishedDownloadStep !== "play"
+    ) {
+      if (finishedDownloadStep === "extracting") {
         return (
           <Button
             theme="outline"
@@ -514,7 +494,7 @@ export function HeroPanelActions() {
         );
       }
 
-      if (hasInstaller && !finishedDownload.installerLaunched) {
+      if (finishedDownloadStep === "install") {
         return (
           <Button
             onClick={async () => {

@@ -11,7 +11,13 @@ import {
   buildGameDetailsPath,
 } from "@renderer/helpers";
 
-import { Downloader, formatBytes, formatBytesToMbps } from "@shared";
+import {
+  Downloader,
+  type FinishedDownloadStep,
+  formatBytes,
+  formatBytesToMbps,
+  getFinishedDownloadStep,
+} from "@shared";
 import { addMilliseconds } from "date-fns";
 import {
   DOWNLOADER_NAME,
@@ -21,6 +27,7 @@ import {
   useAppSelector,
   useDownload,
   useGameExecutablePicker,
+  useInstallerAvailability,
   useLibrary,
   useDate,
 } from "@renderer/hooks";
@@ -580,12 +587,7 @@ function HeroDownloadView({
   );
 }
 
-type CompletedDownloadStep =
-  | "checking"
-  | "play"
-  | "install"
-  | "select-executable"
-  | "open-folder";
+type CompletedDownloadStep = FinishedDownloadStep | "checking" | "open-folder";
 
 const isDownloadFinished = (
   game: LibraryGame
@@ -711,9 +713,7 @@ export function DownloadGroup({
   const [gameToCancelObjectId, setGameToCancelObjectId] = useState<
     string | null
   >(null);
-  const [installerAvailability, setInstallerAvailability] = useState<
-    Record<string, boolean>
-  >({});
+  const installerAvailability = useInstallerAvailability(library);
 
   const extractDominantColor = useCallback(
     async (imageUrl: string, gameId: string) => {
@@ -1074,46 +1074,22 @@ export function DownloadGroup({
     ]
   );
 
-  useEffect(() => {
-    const finishedGames = library.filter(
-      (game) =>
-        isDownloadFinished(game) &&
-        game.download?.downloader !== Downloader.Epic
-    );
-
-    const fetchInstallerAvailability = async () => {
-      const results = await Promise.all(
-        finishedGames.map(async (game) => {
-          const hasInstaller = await window.electron
-            .hasGameInstaller(game.shop, game.objectId)
-            .catch(() => false);
-
-          return [game.id, hasInstaller] as const;
-        })
-      );
-
-      setInstallerAvailability((prev) => ({
-        ...prev,
-        ...Object.fromEntries(results),
-      }));
-    };
-
-    fetchInstallerAvailability();
-  }, [library]);
-
   const getCompletedDownloadStep = (
     game: LibraryGame
   ): CompletedDownloadStep => {
-    const download = game.download!;
+    if (game.download?.downloader === Downloader.Epic) return "open-folder";
 
-    if (download.downloader === Downloader.Epic) return "open-folder";
-    if (game.executablePath) return "play";
-    if (!(game.id in installerAvailability)) return "checking";
-    if (installerAvailability[game.id] && !download.installerLaunched) {
-      return "install";
+    const step = getFinishedDownloadStep(
+      game,
+      installerAvailability[game.id] === true
+    );
+
+    if (step === "extracting") return "checking";
+    if (step === "select-executable" && !(game.id in installerAvailability)) {
+      return "checking";
     }
 
-    return "select-executable";
+    return step ?? "checking";
   };
 
   const playGame = (game: LibraryGame) => {

@@ -1,5 +1,7 @@
 import {
+  ArchiveIcon,
   DownloadSimpleIcon,
+  FileMagnifyingGlassIcon,
   GearIcon,
   HeartIcon,
   PlayIcon,
@@ -7,8 +9,12 @@ import {
   XCircleIcon,
 } from "@phosphor-icons/react";
 import type { LibraryGame, ShopDetailsWithAssets } from "@types";
-import { isCloudSaveV2Eligible, isLibraryGameDownloading } from "@shared";
-import { useEffect, useMemo, useRef } from "react";
+import {
+  type FinishedDownloadStep,
+  isCloudSaveV2Eligible,
+  isLibraryGameDownloading,
+} from "@shared";
+import { type ReactNode, useEffect, useMemo, useRef } from "react";
 import { useTranslation } from "react-i18next";
 import {
   FocusOverrides,
@@ -49,6 +55,9 @@ export interface HeroProps {
   toggleFavorite: () => void;
   onPlay: () => void;
   onDownload: () => void;
+  installStep?: FinishedDownloadStep | null;
+  onInstall: () => void;
+  onSelectExecutable: () => void;
   onAddToLibrary: () => void;
   onOpenDownloadOptions: () => void;
   onOpenSettings: () => void;
@@ -91,6 +100,9 @@ export function Hero({
   toggleFavorite,
   onPlay,
   onDownload,
+  installStep = null,
+  onInstall,
+  onSelectExecutable,
   onAddToLibrary,
   onOpenDownloadOptions,
   onOpenSettings,
@@ -293,9 +305,45 @@ export function Hero({
         };
       }
 
+      const installActions: Record<
+        Exclude<FinishedDownloadStep, "play">,
+        { label: string; icon: ReactNode; onClick?: () => void }
+      > = {
+        extracting: {
+          label: t("extracting"),
+          icon: <ArchiveIcon size={24} />,
+        },
+        install: {
+          label: t("install"),
+          icon: <DownloadSimpleIcon size={24} />,
+          onClick: onInstall,
+        },
+        "select-executable": {
+          label: t("select_executable", { ns: "downloads" }),
+          icon: <FileMagnifyingGlassIcon size={24} />,
+          onClick: onSelectExecutable,
+        },
+      };
+      const installAction =
+        game && installStep && installStep !== "play"
+          ? installActions[installStep]
+          : null;
+
       if (game) {
         return {
-          primaryActionButton: (
+          primaryActionButton: installAction ? (
+            <Button
+              focusId={GAME_HERO_PRIMARY_ACTION_ID}
+              focusNavigationOverrides={primaryActionNavigationOverrides}
+              variant="primary"
+              color={dominantColor ?? undefined}
+              icon={installAction.icon}
+              onClick={installAction.onClick}
+              disabled={!installAction.onClick}
+            >
+              {installAction.label}
+            </Button>
+          ) : (
             <Button
               focusId={GAME_HERO_PRIMARY_ACTION_ID}
               focusNavigationOverrides={primaryActionNavigationOverrides}
@@ -365,6 +413,7 @@ export function Hero({
       game,
       hasPrimaryAction,
       heroDownNavigationTarget,
+      installStep,
       isAddingToLibrary,
       isGameRunning,
       isDownloading,
@@ -372,9 +421,11 @@ export function Hero({
       onAddToLibrary,
       onClose,
       onDownload,
+      onInstall,
       onOpenDownloadOptions,
       onOpenSettings,
       onPlay,
+      onSelectExecutable,
       shouldShowCatalogActions,
       shouldShowCloudSaveButton,
       shouldShowFavoriteButton,
