@@ -137,6 +137,7 @@ const handleInstallerExit = async (
     objectId
   ).searchAndBindInstalledExecutable(installerStartedAt, winePrefixPath);
 
+  WindowManager.sendToAppWindows("on-library-batch-complete");
   WindowManager.sendToAppWindows(
     "on-game-installer-closed",
     shop,
