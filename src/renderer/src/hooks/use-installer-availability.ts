@@ -28,7 +28,7 @@ export function useInstallerAvailability(games: LibraryGame[]) {
       getFinishedDownload(game)
     );
 
-    Promise.all(
+    void Promise.all(
       finishedGames.map(async (game) => {
         const hasInstaller = await electron
           .hasGameInstaller(game.shop, game.objectId)

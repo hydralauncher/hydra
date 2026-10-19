@@ -188,6 +188,53 @@ export function Hero({
     down: heroDownNavigationTarget,
   };
 
+  const libraryGameAction = useMemo<{
+    label: string;
+    icon: ReactNode;
+    onClick?: () => void;
+    disabled: boolean;
+  }>(() => {
+    if (installStep === "extracting") {
+      return {
+        label: t("extracting"),
+        icon: <ArchiveIcon size={24} />,
+        disabled: true,
+      };
+    }
+
+    if (installStep === "install") {
+      return {
+        label: t("install"),
+        icon: <DownloadSimpleIcon size={24} />,
+        onClick: onInstall,
+        disabled: false,
+      };
+    }
+
+    if (installStep === "select-executable") {
+      return {
+        label: t("select_executable", { ns: "downloads" }),
+        icon: <FileMagnifyingGlassIcon size={24} />,
+        onClick: onSelectExecutable,
+        disabled: false,
+      };
+    }
+
+    return {
+      label: "Download Game",
+      icon: <DownloadSimpleIcon size={24} />,
+      onClick: onDownload,
+      disabled: isDownloading,
+    };
+  }, [
+    installStep,
+    isDownloading,
+    onDownload,
+    onInstall,
+    onSelectExecutable,
+    t,
+  ]);
+
   const { primaryActionButton, downloadOptionsButton, settingsButton } =
     useMemo(() => {
       const primaryActionRightTarget = shouldShowCatalogActions
@@ -305,55 +352,19 @@ export function Hero({
         };
       }
 
-      const installActions: Record<
-        Exclude<FinishedDownloadStep, "play">,
-        { label: string; icon: ReactNode; onClick?: () => void }
-      > = {
-        extracting: {
-          label: t("extracting"),
-          icon: <ArchiveIcon size={24} />,
-        },
-        install: {
-          label: t("install"),
-          icon: <DownloadSimpleIcon size={24} />,
-          onClick: onInstall,
-        },
-        "select-executable": {
-          label: t("select_executable", { ns: "downloads" }),
-          icon: <FileMagnifyingGlassIcon size={24} />,
-          onClick: onSelectExecutable,
-        },
-      };
-      const installAction =
-        game && installStep && installStep !== "play"
-          ? installActions[installStep]
-          : null;
-
       if (game) {
         return {
-          primaryActionButton: installAction ? (
+          primaryActionButton: (
             <Button
               focusId={GAME_HERO_PRIMARY_ACTION_ID}
               focusNavigationOverrides={primaryActionNavigationOverrides}
               variant="primary"
               color={dominantColor ?? undefined}
-              icon={installAction.icon}
-              onClick={installAction.onClick}
-              disabled={!installAction.onClick}
+              icon={libraryGameAction.icon}
+              onClick={libraryGameAction.onClick}
+              disabled={libraryGameAction.disabled}
             >
-              {installAction.label}
-            </Button>
-          ) : (
-            <Button
-              focusId={GAME_HERO_PRIMARY_ACTION_ID}
-              focusNavigationOverrides={primaryActionNavigationOverrides}
-              variant="primary"
-              color={dominantColor ?? undefined}
-              icon={<DownloadSimpleIcon size={24} />}
-              onClick={onDownload}
-              disabled={isDownloading}
-            >
-              Download Game
+              {libraryGameAction.label}
             </Button>
           ),
           downloadOptionsButton: null,
@@ -413,19 +424,15 @@ export function Hero({
       game,
       hasPrimaryAction,
       heroDownNavigationTarget,
-      installStep,
       isAddingToLibrary,
       isGameRunning,
-      isDownloading,
       isPlayableClassicsGame,
       onAddToLibrary,
       onClose,
-      onDownload,
-      onInstall,
+      libraryGameAction,
       onOpenDownloadOptions,
       onOpenSettings,
       onPlay,
-      onSelectExecutable,
       shouldShowCatalogActions,
       shouldShowCloudSaveButton,
       shouldShowFavoriteButton,

@@ -924,7 +924,10 @@ export function DownloadGroup({
           disabled: deleting,
           icon: <Folder size={16} />,
           onClick: () => {
-            window.electron.openGameInstallerPath(game.shop, game.objectId);
+            void window.electron.openGameInstallerPath(
+              game.shop,
+              game.objectId
+            );
           },
         },
         {

@@ -42,6 +42,7 @@ const collectInstallerCandidates = async (
   }
 
   const candidates: InstallerCandidate[] = [];
+  const subdirectories: string[] = [];
 
   for (const entry of entries) {
     const entryPath = path.join(directoryPath, entry.name);
@@ -51,9 +52,7 @@ const collectInstallerCandidates = async (
         depth < MAX_INSTALLER_DEPTH &&
         !isRedistributableDirectory(entry.name)
       ) {
-        candidates.push(
-          ...(await collectInstallerCandidates(rootPath, entryPath, depth + 1))
-        );
+        subdirectories.push(entryPath);
       }
       continue;
     }
@@ -67,7 +66,13 @@ const collectInstallerCandidates = async (
     candidates.push({ filePath: entryPath, depth, priority });
   }
 
-  return candidates;
+  const nestedCandidates = await Promise.all(
+    subdirectories.map((subdirectory) =>
+      collectInstallerCandidates(rootPath, subdirectory, depth + 1)
+    )
+  );
+
+  return [...candidates, ...nestedCandidates.flat()];
 };
 
 const compareCandidates = (a: InstallerCandidate, b: InstallerCandidate) =>
@@ -81,7 +86,8 @@ export const findGameInstaller = async (
     folderPath,
     0
   );
-  const [best, runnerUp] = candidates.sort(compareCandidates);
+  candidates.sort(compareCandidates);
+  const [best, runnerUp] = candidates;
 
   if (!best) return null;
   if (runnerUp && compareCandidates(best, runnerUp) === 0) return null;

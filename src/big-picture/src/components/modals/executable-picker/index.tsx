@@ -50,7 +50,7 @@ export function ExecutablePickerModal({
 
     let cancelled = false;
 
-    getDownloadsPath().then((path) => {
+    void getDownloadsPath().then((path) => {
       if (!cancelled) setInitialPath(path);
     });
 

@@ -12,7 +12,7 @@ export const getFinishedDownload = (
 ): Download | null => {
   const download = game?.download;
 
-  if (!download || download.progress !== 1) return null;
+  if (download?.progress !== 1) return null;
   if (download.downloader === Downloader.Epic) return null;
 
   return download;
