@@ -7,7 +7,12 @@ import cn from "classnames";
 import type { MouseEvent as ReactMouseEvent, ReactNode } from "react";
 import type { FocusItemActions } from "../../../../types";
 import type { FocusOverrides } from "../../../../services";
-import { Button, FocusItem, HorizontalFocusGroup } from "../../../common";
+import {
+  Button,
+  ControllerButtonGlyph,
+  FocusItem,
+  HorizontalFocusGroup,
+} from "../../../common";
 
 import "./game-card.scss";
 
@@ -216,7 +221,12 @@ export function DownloadsGameCard({
                     onMouseDown={stopCardOpen}
                     focusId={primaryActionFocusId}
                   >
-                    {isLabeledPrimaryAction ? primaryActionLabel : null}
+                    {isLabeledPrimaryAction ? (
+                      <span className="downloads-game-card__action-label">
+                        {primaryActionLabel}
+                        <ControllerButtonGlyph button="X" />
+                      </span>
+                    ) : null}
                   </Button>
                 ) : null}
 
