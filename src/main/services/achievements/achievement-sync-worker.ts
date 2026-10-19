@@ -122,11 +122,11 @@ export class AchievementSyncWorker {
       item.achievements,
       previous?.achievements ?? []
     );
-    const fingerprint = fingerprintOf(item.remoteId, achievements);
-    const syncedFingerprint = retry
-      ? fingerprintOf(retry.remoteId, retry.achievements)
-      : !previous && this.acknowledged.get(key);
-    if (syncedFingerprint === fingerprint) return;
+    if (
+      this.syncedFingerprint(key, previous) ===
+      fingerprintOf(item.remoteId, achievements)
+    )
+      return;
     await pending.put(key, {
       ...item,
       achievements,
@@ -137,6 +137,15 @@ export class AchievementSyncWorker {
         (this.dispatchedAt.get(key) ?? 0) + ACHIEVEMENT_SYNC_COALESCE_WINDOW_MS
       ),
     });
+  }
+
+  private syncedFingerprint(
+    key: string,
+    previous?: PendingAchievementSync | null
+  ) {
+    if (!previous) return this.acknowledged.get(key);
+    if (previous.terminal && !this.dispatchedAt.has(key)) return undefined;
+    return fingerprintOf(previous.remoteId, previous.achievements);
   }
 
   trigger() {

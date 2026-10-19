@@ -811,3 +811,38 @@ test("the worker wakes itself to send coalesced unlocks when the window ends", a
   await acknowledgeAll(f);
   assert.equal(f.records.size, 0);
 });
+
+test("a rejected list is not resent in the same session but is retried after a restart", async (t) => {
+  const f = await fixture(t);
+  await f.mergeAchievements(f.game, rewrittenUnlocks, true);
+  await f.untilRequest(1);
+  f.requests[0]!.gate.reject({
+    isAxiosError: true,
+    response: { status: 400, headers: {} },
+  });
+  await acknowledgeAll(f);
+  const rejected = [...f.records.values()][0]!;
+  assert.equal(rejected.terminal, true);
+  for (let tick = 0; tick < 16; tick++)
+    await f.mergeAchievements(f.game, rewrittenUnlocks, true);
+  assert.equal([...f.records.values()][0], rejected);
+  const restarted = new f.AchievementSyncWorker();
+  t.after(() => restarted.stop());
+  await restarted.enqueue({
+    context: f.state.context!,
+    gameKey: "steam:620",
+    remoteId: f.game.remoteId!,
+    shop: "steam",
+    objectId: "620",
+    achievements: rewrittenUnlocks,
+  });
+  const retried = [...f.records.values()][0]!;
+  assert.notEqual(retried.revision, rejected.revision);
+  assert.equal(retried.terminal, undefined);
+  retried.nextAttemptAt = 0;
+  void restarted.trigger();
+  await f.untilRequest(2);
+  f.requests[1]!.gate.resolve(undefined);
+  await acknowledgeAll(f);
+  assert.equal(f.records.size, 0);
+});
