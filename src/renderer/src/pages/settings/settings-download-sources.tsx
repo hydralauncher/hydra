@@ -9,7 +9,7 @@ import {
 } from "@renderer/components";
 import { useTranslation } from "react-i18next";
 
-import type { DownloadSource, DownloadSourceImportResult } from "@types";
+import type { DownloadSource } from "@types";
 import {
   DownloadIcon,
   UploadIcon,
@@ -29,6 +29,7 @@ import { levelDBService } from "@renderer/services/leveldb.service";
 import { orderBy } from "lodash-es";
 import "./settings-download-sources.scss";
 import { logger } from "@renderer/logger";
+import { useDownloadSourceTransferStore } from "@renderer/features/download-source-transfer";
 
 export function SettingsDownloadSources() {
   const [
@@ -45,12 +46,9 @@ export function SettingsDownloadSources() {
   const [isRemovingDownloadSource, setIsRemovingDownloadSource] =
     useState(false);
 
-  const [activeTransfer, setActiveTransfer] = useState<
-    "import" | "export" | null
-  >(null);
+  const { activeTransfer, setActiveTransfer, importResult, setImportResult } =
+    useDownloadSourceTransferStore();
   const isTransferringSources = activeTransfer !== null;
-  const [importResult, setImportResult] =
-    useState<DownloadSourceImportResult | null>(null);
 
   const { sourceUrl, clearSourceUrl } = useContext(settingsContext);
 
@@ -67,17 +65,24 @@ export function SettingsDownloadSources() {
   }, [sourceUrl]);
 
   useEffect(() => {
+    let cancelled = false;
     const fetchDownloadSources = async () => {
       const sources = (await levelDBService.values(
         "downloadSources"
       )) as DownloadSource[];
       const sorted = orderBy(sources, "createdAt", "desc");
+      if (cancelled) return;
       setDownloadSources(sorted);
       setHasLoadedDownloadSources(true);
     };
 
-    fetchDownloadSources();
-  }, []);
+    fetchDownloadSources().catch((error) =>
+      logger.error("Failed to fetch download sources:", error)
+    );
+    return () => {
+      cancelled = true;
+    };
+  }, [activeTransfer]);
 
   useEffect(() => {
     const hasPendingOrMatchingSource = downloadSources.some(
@@ -86,7 +91,11 @@ export function SettingsDownloadSources() {
         source.status === DownloadSourceStatus.Matching
     );
 
-    if (!hasPendingOrMatchingSource || !downloadSources.length) {
+    if (
+      isTransferringSources ||
+      !hasPendingOrMatchingSource ||
+      !downloadSources.length
+    ) {
       return;
     }
 
@@ -104,7 +113,7 @@ export function SettingsDownloadSources() {
     }, 5000);
 
     return () => clearInterval(intervalId);
-  }, [downloadSources]);
+  }, [downloadSources, isTransferringSources]);
 
   const handleRemoveSource = async (downloadSource: DownloadSource) => {
     setIsRemovingDownloadSource(true);
@@ -175,7 +184,6 @@ export function SettingsDownloadSources() {
       const result = await window.electron.importDownloadSources();
       if (result) {
         setImportResult(result);
-        await handleAddDownloadSource();
       }
     } catch (error) {
       logger.error("Failed to import download sources:", error);
@@ -235,7 +243,7 @@ export function SettingsDownloadSources() {
   return (
     <>
       <AddDownloadSourceModal
-        visible={showAddDownloadSourceModal}
+        visible={showAddDownloadSourceModal && !isTransferringSources}
         onClose={handleModalClose}
         onAddDownloadSource={handleAddDownloadSource}
       />
@@ -248,7 +256,7 @@ export function SettingsDownloadSources() {
         visible={showConfirmationDeleteAllSourcesModal}
         title={t("title_confirmation_delete_all_sources")}
         onClose={() => setShowConfirmationDeleteAllSourcesModal(false)}
-        buttonsIsDisabled={isRemovingDownloadSource}
+        buttonsIsDisabled={isBusy}
       />
 
       <Modal
@@ -275,7 +283,7 @@ export function SettingsDownloadSources() {
               </>
             )}
             <Button type="button" onClick={() => setImportResult(null)}>
-              {t("close")}
+              {t("header:close")}
             </Button>
           </div>
         )}

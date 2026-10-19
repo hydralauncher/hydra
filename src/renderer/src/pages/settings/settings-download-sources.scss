@@ -1,5 +1,9 @@
 @use "../../scss/globals.scss";
 
+$source-import-result-max-width: 560px;
+$source-import-failed-urls-max-height: 200px;
+$source-import-spacing: globals.$spacing-unit * 2;
+
 @keyframes spin {
   from {
     transform: rotate(0deg);
@@ -90,13 +94,13 @@
 .settings-download-sources__import-result {
   display: flex;
   flex-direction: column;
-  gap: calc(globals.$spacing-unit * 2);
-  max-width: 560px;
+  gap: $source-import-spacing;
+  max-width: $source-import-result-max-width;
 }
 
 .settings-download-sources__failed-urls {
-  padding-left: calc(globals.$spacing-unit * 2);
-  max-height: 200px;
+  padding-left: $source-import-spacing;
+  max-height: $source-import-failed-urls-max-height;
   overflow-y: auto;
   overflow-wrap: anywhere;
 }

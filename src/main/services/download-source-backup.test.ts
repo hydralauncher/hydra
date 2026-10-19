@@ -112,6 +112,27 @@ describe("download source backups", () => {
     assert.equal(result.skipped, 1);
   });
 
+  it("registers sources sequentially instead of making concurrent requests", async () => {
+    const started: string[] = [];
+    let releaseFirst!: () => void;
+    const firstRegistration = new Promise<void>((resolve) => {
+      releaseFirst = resolve;
+    });
+    const importing = importDownloadSourceUrls(
+      [firstUrl, secondUrl],
+      [],
+      async (url) => {
+        started.push(url);
+        if (url === firstUrl) await firstRegistration;
+      }
+    );
+    await Promise.resolve();
+    assert.deepEqual(started, [firstUrl]);
+    releaseFirst();
+    assert.deepEqual(await importing, { imported: 2, skipped: 0, failed: [] });
+    assert.deepEqual(started, [firstUrl, secondUrl]);
+  });
+
   it("continues after a failed source and reports URLs that can be retried", async () => {
     const added: string[] = [];
     const result = await importDownloadSourceUrls(

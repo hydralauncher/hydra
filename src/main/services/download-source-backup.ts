@@ -28,8 +28,7 @@ export const parseDownloadSourceBackup = (contents: string): string[] => {
 
   const backup = JSON.parse(contents.replace(/^\uFEFF/, ""));
   if (
-    !backup ||
-    backup.version !== 1 ||
+    backup?.version !== 1 ||
     !Array.isArray(backup.sources) ||
     backup.sources.length === 0
   ) {
@@ -72,11 +71,11 @@ export const importDownloadSourceUrls = async (
     failed: [],
   };
 
-  for (const url of urls) {
+  const importSource = async (url: string) => {
     const key = sourceUrlKey(url);
     if (knownUrls.has(key)) {
       result.skipped++;
-      continue;
+      return;
     }
     knownUrls.add(key);
 
@@ -86,7 +85,13 @@ export const importDownloadSourceUrls = async (
     } catch {
       result.failed.push(url);
     }
-  }
+  };
+
+  // Register one source at a time to avoid flooding the source API.
+  await urls.reduce(
+    (previous, url) => previous.then(() => importSource(url)),
+    Promise.resolve()
+  );
 
   return result;
 };

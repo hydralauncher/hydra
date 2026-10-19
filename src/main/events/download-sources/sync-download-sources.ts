@@ -2,6 +2,7 @@ import { HydraApi } from "@main/services";
 import { registerEvent } from "../register-event";
 import { downloadSourcesSublevel } from "@main/level";
 import type { DownloadSource } from "@types";
+import { downloadSourceOperationGate } from "@main/services/download-source-operation-gate";
 
 const syncDownloadSources = async (_event: Electron.IpcMainInvokeEvent) => {
   const downloadSources = await downloadSourcesSublevel.values().all();
@@ -26,4 +27,6 @@ const syncDownloadSources = async (_event: Electron.IpcMainInvokeEvent) => {
   }
 };
 
-registerEvent("syncDownloadSources", syncDownloadSources);
+registerEvent("syncDownloadSources", (event) =>
+  downloadSourceOperationGate.run(() => syncDownloadSources(event))
+);

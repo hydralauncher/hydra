@@ -9,6 +9,9 @@ Hydra's normal source registration flow. Importing requires an internet
 connection. Existing sources are preserved, and repeated URLs are skipped. The
 result lists added and skipped counts, as well as any failed URLs. Import the
 same file again to retry failures without duplicating successful additions.
+An ongoing transfer stays busy when navigating away from settings and back.
+Conflicting source changes are also blocked in the main process until the active
+source operation finishes.
 
 The backup contains URLs only; game downloads, cached catalogue data, account
 credentials, and local database IDs are not included. Source URLs are preserved
@@ -32,6 +35,7 @@ dialog performs no operation.
 
 ```sh
 node --import ./scripts/register-ts-node.mjs --test src/main/services/download-source-backup.test.ts
+node --import ./scripts/register-ts-node.mjs --test src/main/services/download-source-operation-gate.test.ts src/renderer/src/features/download-source-transfer.test.ts
 ```
 
 For manual verification, export at least two sources, import that file in a fresh
@@ -39,3 +43,6 @@ profile, then import it again. Check that the second import skips every URL.
 Also check invalid JSON, cancelling both dialogs, and a backup containing an
 unavailable source: other sources should still be added, and the failed URL
 should appear in the result.
+During a long import, switch settings categories and return: source controls
+should remain disabled. When it finishes, the full source list and import result
+should be available, and the result button should use the selected language.
