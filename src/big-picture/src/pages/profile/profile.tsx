@@ -125,6 +125,7 @@ import {
   shouldShowSouvenirContentWarning,
   useSouvenirContentWarning,
   getDisplayedPlayTimeInMilliseconds,
+  groupLibraryGames,
 } from "@shared";
 
 const SOUVENIR_REPORT_RESPONSE_STATUSES = [201, 400, 404, 429];
@@ -1782,7 +1783,7 @@ function useProfileGames(
   );
   const libraryCarouselGames = useMemo(() => {
     const sourceGames = profileUser?.isOwnProfile
-      ? library
+      ? groupLibraryGames(library)
       : remoteLibraryGames;
     return sourceGames.map((game) =>
       toProfileLibraryCarouselGame(
