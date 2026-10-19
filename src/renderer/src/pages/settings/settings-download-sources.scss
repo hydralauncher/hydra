@@ -86,3 +86,17 @@
     flex-wrap: wrap;
   }
 }
+
+.settings-download-sources__import-result {
+  display: flex;
+  flex-direction: column;
+  gap: calc(globals.$spacing-unit * 2);
+  max-width: 560px;
+}
+
+.settings-download-sources__failed-urls {
+  padding-left: calc(globals.$spacing-unit * 2);
+  max-height: 200px;
+  overflow-y: auto;
+  overflow-wrap: anywhere;
+}
