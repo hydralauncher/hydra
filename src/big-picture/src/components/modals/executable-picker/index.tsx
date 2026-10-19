@@ -16,7 +16,13 @@ interface ExecutablePickerModalProps {
   onSaved?: () => void;
 }
 
-const getDownloadsPath = async () => {
+const getInitialPath = async (target: ExecutablePickerTarget) => {
+  const gameFolderPath = await globalThis.window.electron
+    .getExecutablePickerPath(target.shop, target.objectId)
+    .catch(() => null);
+
+  if (gameFolderPath) return gameFolderPath;
+
   const userPreferences = await globalThis.window.electron
     .getUserPreferences()
     .catch(() => null);
@@ -50,7 +56,7 @@ export function ExecutablePickerModal({
 
     let cancelled = false;
 
-    void getDownloadsPath().then((path) => {
+    void getInitialPath(target).then((path) => {
       if (!cancelled) setInitialPath(path);
     });
 

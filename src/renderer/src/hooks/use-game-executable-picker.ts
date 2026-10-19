@@ -21,10 +21,16 @@ export function useGameExecutablePicker() {
         allFiles: t("all_files"),
       });
 
+      const gameFolderPath = await window.electron
+        .getExecutablePickerPath(shop, objectId)
+        .catch(() => null);
+
       const { filePaths } = await window.electron.showOpenDialog({
         properties: ["openFile"],
         defaultPath:
-          downloadsPath ?? (await window.electron.getDefaultDownloadsPath()),
+          gameFolderPath ??
+          downloadsPath ??
+          (await window.electron.getDefaultDownloadsPath()),
         filters,
       });
 

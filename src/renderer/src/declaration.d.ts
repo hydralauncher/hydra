@@ -533,6 +533,10 @@ declare global {
     getRemoteLibrarySyncState: () => Promise<boolean>;
     openGameInstaller: (shop: GameShop, objectId: string) => Promise<boolean>;
     hasGameInstaller: (shop: GameShop, objectId: string) => Promise<boolean>;
+    getExecutablePickerPath: (
+      shop: GameShop,
+      objectId: string
+    ) => Promise<string | null>;
     openGameInstallerPath: (shop: GameShop, objectId: string) => Promise<void>;
     openGameWinetricks: (shop: GameShop, objectId: string) => Promise<boolean>;
     openGameExecutablePath: (shop: GameShop, objectId: string) => Promise<void>;
