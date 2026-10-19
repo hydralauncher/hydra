@@ -555,9 +555,11 @@ export default function FriendsWindow() {
           <CommentIcon size={16} />
           {unreadCount > 0 && (
             <span className="friends-window__unread-badge" aria-hidden="true">
-              {unreadCount > MAX_UNREAD_BADGE_COUNT
-                ? `${MAX_UNREAD_BADGE_COUNT}+`
-                : unreadCount}
+              <span className="friends-window__badge-value">
+                {unreadCount > MAX_UNREAD_BADGE_COUNT
+                  ? `${MAX_UNREAD_BADGE_COUNT}+`
+                  : unreadCount}
+              </span>
             </span>
           )}
         </button>
@@ -571,7 +573,7 @@ export default function FriendsWindow() {
         tone ? ` friends-window__count--${tone}` : ""
       }`}
     >
-      {count}
+      <span className="friends-window__badge-value">{count}</span>
     </span>
   );
 

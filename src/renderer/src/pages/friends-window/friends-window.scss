@@ -315,6 +315,7 @@
 
   &__search-input {
     flex: 1;
+    min-width: 0;
     background: none;
     border: none;
     outline: none;
@@ -433,6 +434,10 @@
       background-color: #6d6d6d;
       color: #ffffff;
     }
+  }
+
+  &__badge-value {
+    text-box: trim-both cap alphabetic;
   }
 
   // Shimmer block. Each row sets --skeleton-delay so the sweep runs down the
