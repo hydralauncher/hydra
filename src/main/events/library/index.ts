@@ -21,7 +21,7 @@ import "./install-game-on-steam";
 import "./is-mangohud-available";
 import "./is-winetricks-available";
 import "./get-game-by-object-id";
-import "./get-game-installer-action-type";
+import "./has-game-installer";
 import "./get-game-launch-proton-version";
 import "./get-game-save-folder";
 import "./get-games-running";

@@ -467,6 +467,12 @@
     color: globals.$muted-color;
   }
 
+  &__simple-hint {
+    font-size: 12px;
+    color: globals.$muted-color;
+    line-height: 1.4;
+  }
+
   &__simple-seeding {
     color: #4ade80;
     font-weight: 600;

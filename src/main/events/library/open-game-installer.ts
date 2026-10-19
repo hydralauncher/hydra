@@ -1,49 +1,50 @@
 import { shell } from "electron";
-import path from "node:path";
 import fs from "node:fs";
 import { spawn } from "node:child_process";
 
-import { getDownloadsPath } from "../helpers/get-downloads-path";
 import { registerEvent } from "../register-event";
 import { downloadsSublevel, gamesSublevel, levelKeys } from "@main/level";
 import { GameShop } from "@types";
-import { logger, Umu, Wine } from "@main/services";
+import {
+  GameFilesManager,
+  logger,
+  Umu,
+  Wine,
+  WindowManager,
+} from "@main/services";
+import {
+  findDownloadInstaller,
+  getDownloadFolderPath,
+} from "@main/helpers/find-game-installer";
 
-const launchInstallerWithWine = async (filePath: string): Promise<boolean> => {
+interface InstallerLaunchOptions {
+  gameId?: string;
+  winePrefixPath?: string | null;
+  protonPath?: string | null;
+  onExit: () => void;
+}
+
+const spawnInstaller = async (
+  command: string,
+  args: string[],
+  onExit: () => void,
+  failureMessage: string
+): Promise<boolean> => {
   return await new Promise<boolean>((resolve) => {
-    const child = spawn("wine", [filePath], {
+    const child = spawn(command, args, {
       detached: true,
       stdio: "ignore",
       shell: false,
     });
 
     child.once("spawn", () => {
+      child.once("exit", onExit);
       child.unref();
       resolve(true);
     });
 
     child.once("error", (error) => {
-      logger.error("Failed to execute game installer with wine", error);
-      resolve(false);
-    });
-  });
-};
-
-const launchInstallerDirectly = async (filePath: string): Promise<boolean> => {
-  return await new Promise<boolean>((resolve) => {
-    const child = spawn(filePath, [], {
-      detached: true,
-      stdio: "ignore",
-      shell: false,
-    });
-
-    child.once("spawn", () => {
-      child.unref();
-      resolve(true);
-    });
-
-    child.once("error", (error) => {
-      logger.error("Failed to execute game installer directly", error);
+      logger.error(failureMessage, error);
       resolve(false);
     });
   });
@@ -54,16 +55,35 @@ const openPathAndCheck = async (filePath: string): Promise<boolean> => {
   return openError.length === 0;
 };
 
+const launchInstallerWithUmu = async (
+  filePath: string,
+  options: InstallerLaunchOptions
+) => {
+  let launched = false;
+
+  await Umu.launchExecutable(filePath, [], {
+    gameId: options.gameId,
+    winePrefixPath: options.winePrefixPath,
+    protonPath: options.protonPath,
+    onExit: () => {
+      if (launched) options.onExit();
+    },
+  });
+
+  launched = true;
+};
+
 const executeGameInstaller = async (
   filePath: string,
-  options?: {
-    gameId?: string;
-    winePrefixPath?: string | null;
-    protonPath?: string | null;
-  }
+  options: InstallerLaunchOptions
 ) => {
   if (process.platform === "win32") {
-    const launchedDirectly = await launchInstallerDirectly(filePath);
+    const launchedDirectly = await spawnInstaller(
+      filePath,
+      [],
+      options.onExit,
+      "Failed to execute game installer directly"
+    );
     if (launchedDirectly) {
       return true;
     }
@@ -73,16 +93,17 @@ const executeGameInstaller = async (
 
   if (process.platform === "linux") {
     try {
-      await Umu.launchExecutable(filePath, [], {
-        gameId: options?.gameId,
-        winePrefixPath: options?.winePrefixPath,
-        protonPath: options?.protonPath,
-      });
+      await launchInstallerWithUmu(filePath, options);
       return true;
     } catch (error) {
       logger.error("Failed to execute game installer with umu-run", error);
 
-      const launchedWithWine = await launchInstallerWithWine(filePath);
+      const launchedWithWine = await spawnInstaller(
+        "wine",
+        [filePath],
+        options.onExit,
+        "Failed to execute game installer with wine"
+      );
       if (launchedWithWine) {
         return true;
       }
@@ -94,27 +115,52 @@ const executeGameInstaller = async (
   return await openPathAndCheck(filePath);
 };
 
+const markInstallerLaunched = async (gameKey: string) => {
+  const download = await downloadsSublevel.get(gameKey);
+  if (!download) return;
+
+  await downloadsSublevel.put(gameKey, {
+    ...download,
+    installerLaunched: true,
+  });
+  WindowManager.sendDownloadsUpdated();
+};
+
+const handleInstallerExit = async (
+  shop: GameShop,
+  objectId: string,
+  installerStartedAt: number,
+  winePrefixPath: string | null
+) => {
+  const executableFound = await new GameFilesManager(
+    shop,
+    objectId
+  ).searchAndBindInstalledExecutable(installerStartedAt, winePrefixPath);
+
+  WindowManager.sendToAppWindows(
+    "on-game-installer-closed",
+    shop,
+    objectId,
+    executableFound
+  );
+};
+
 const openGameInstaller = async (
   _event: Electron.IpcMainInvokeEvent,
   shop: GameShop,
   objectId: string
 ) => {
-  const downloadKey = levelKeys.game(shop, objectId);
-  const download = await downloadsSublevel.get(downloadKey);
-  const game = await gamesSublevel.get(downloadKey).catch(() => null);
-  const effectiveWinePrefixPath = Wine.getEffectivePrefixPath(
+  const gameKey = levelKeys.game(shop, objectId);
+  const download = await downloadsSublevel.get(gameKey);
+  const game = await gamesSublevel.get(gameKey).catch(() => null);
+  const winePrefixPath = Wine.getEffectivePrefixPath(
     game?.winePrefixPath,
     objectId
   );
 
-  if (!download?.folderName) return true;
+  const gamePath = download ? await getDownloadFolderPath(download) : null;
 
-  const gamePath = path.join(
-    download.downloadPath ?? (await getDownloadsPath()),
-    download.folderName
-  );
-
-  if (!fs.existsSync(gamePath)) {
+  if (!gamePath || !fs.existsSync(gamePath)) {
     return true;
   }
 
@@ -123,38 +169,36 @@ const openGameInstaller = async (
     return true;
   }
 
-  if (process.platform === "darwin") {
+  const installerPath = await findDownloadInstaller(download);
+
+  if (!installerPath) {
     shell.openPath(gamePath);
     return true;
   }
 
-  const setupPath = path.join(gamePath, "setup.exe");
-  if (fs.existsSync(setupPath)) {
-    return await executeGameInstaller(setupPath, {
-      gameId: objectId,
-      winePrefixPath: effectiveWinePrefixPath,
-      protonPath: game?.protonPath,
-    });
+  const installerStartedAt = Date.now();
+
+  const launched = await executeGameInstaller(installerPath, {
+    gameId: objectId,
+    winePrefixPath,
+    protonPath: game?.protonPath,
+    onExit: () => {
+      void handleInstallerExit(
+        shop,
+        objectId,
+        installerStartedAt,
+        winePrefixPath
+      ).catch((error) => {
+        logger.error("Failed to detect the installed game", error);
+      });
+    },
+  });
+
+  if (launched) {
+    await markInstallerLaunched(gameKey);
   }
 
-  const gamePathFileNames = fs.readdirSync(gamePath);
-  const gamePathExecutableFiles = gamePathFileNames.filter(
-    (fileName: string) => path.extname(fileName).toLowerCase() === ".exe"
-  );
-
-  if (gamePathExecutableFiles.length === 1) {
-    return await executeGameInstaller(
-      path.join(gamePath, gamePathExecutableFiles[0]),
-      {
-        gameId: objectId,
-        winePrefixPath: effectiveWinePrefixPath,
-        protonPath: game?.protonPath,
-      }
-    );
-  }
-
-  shell.openPath(gamePath);
-  return true;
+  return launched;
 };
 
 registerEvent("openGameInstaller", openGameInstaller);

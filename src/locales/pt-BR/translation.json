@@ -1118,7 +1118,16 @@
     "extraction_file_not_found_title": "Arquivo não encontrado",
     "extraction_file_not_found_description": "O Hydra não encontrou o arquivo baixado para extrair. Ele pode ter sido movido, renomeado ou excluído.",
     "download_halted_title": "Download interrompido",
-    "download_halted_description": "{{title}} foi interrompido porque a pasta de download ficou sem espaço. Libere espaço e retome o download."
+    "download_halted_description": "{{title}} foi interrompido porque a pasta de download ficou sem espaço. Libere espaço e retome o download.",
+    "select_executable": "Selecionar executável",
+    "run_installer": "Executar instalador",
+    "no_installer_hint": "Nenhum instalador encontrado. Se o jogo já estiver instalado, selecione o executável dele.",
+    "installer_closed_hint": "Terminou de instalar? Selecione o executável do jogo para jogar.",
+    "game_installed_title": "Jogo instalado",
+    "game_installed_description": "O Hydra encontrou o executável do jogo. Já dá para jogar.",
+    "installed_game_not_found_title": "Não foi possível encontrar o jogo instalado",
+    "installed_game_not_found_description": "Selecione o executável do jogo para concluir a configuração.",
+    "installer_launch_failed": "Não foi possível iniciar o instalador"
   },
   "settings": {
     "rpcs3_config_title": "Pasta de configuração do RPCS3",

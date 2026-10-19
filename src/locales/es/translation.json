@@ -1101,7 +1101,16 @@
     "extraction_failed_title": "Extracción fallida",
     "download_halted_title": "Descarga detenida",
     "download_halted_description": "La descarga de {{title}} se detuvo porque la carpeta de descargas se quedó sin espacio. Libera espacio y reanuda la descarga.",
-    "files": "FILES"
+    "files": "FILES",
+    "select_executable": "Seleccionar ejecutable",
+    "run_installer": "Ejecutar instalador",
+    "no_installer_hint": "No se encontró un instalador. Si el juego ya está instalado, selecciona su ejecutable.",
+    "installer_closed_hint": "¿Terminaste de instalar? Selecciona el ejecutable del juego para jugar.",
+    "game_installed_title": "Juego instalado",
+    "game_installed_description": "Hydra encontró el ejecutable del juego. Ya puedes jugar.",
+    "installed_game_not_found_title": "No se pudo encontrar el juego instalado",
+    "installed_game_not_found_description": "Selecciona el ejecutable del juego para terminar de configurarlo.",
+    "installer_launch_failed": "No se pudo iniciar el instalador"
   },
   "settings": {
     "epic_sync_partial": "Juegos y tiempo de juego sincronizados; se volverá a intentar sincronizar los logros de {{count}} juegos.",

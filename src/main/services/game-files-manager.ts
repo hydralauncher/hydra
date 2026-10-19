@@ -2,6 +2,10 @@ import { ASSETS_PATH } from "@main/constants";
 import { getGameAssets } from "@main/events/catalogue/get-game-assets";
 import { getDirectorySize } from "@main/events/helpers/get-directory-size";
 import { findGameExecutableInFolder } from "@main/helpers/find-game-executable";
+import {
+  getInstallerTargetDirectories,
+  listFoldersChangedSince,
+} from "@main/helpers/installer-target-directories";
 import { updateGameExecutablePath } from "@main/helpers/update-executable-path";
 import { runAchievementMetadataExport } from "@main/services/achievements/metadata-export";
 import { db, downloadsSublevel, gamesSublevel, levelKeys } from "@main/level";
@@ -513,25 +517,24 @@ export class GameFilesManager {
     }
   }
 
-  async searchAndBindExecutable(): Promise<void> {
+  async searchAndBindExecutable(): Promise<boolean> {
     try {
       const [download, game] = await Promise.all([
         downloadsSublevel.get(this.gameKey),
         gamesSublevel.get(this.gameKey),
       ]);
 
-      if (!download || !game || game.executablePath) {
-        return;
-      }
+      if (!download || !game) return false;
+      if (game.executablePath) return true;
 
       const executables = GameExecutables.getExecutablesForGame(this.objectId);
 
       if (!executables || executables.length === 0) {
-        return;
+        return false;
       }
 
       if (!download.folderName) {
-        return;
+        return false;
       }
 
       const gameFolderPath = path.join(
@@ -540,7 +543,7 @@ export class GameFilesManager {
       );
 
       if (!fs.existsSync(gameFolderPath)) {
-        return;
+        return false;
       }
 
       const foundExePath = await findGameExecutableInFolder(
@@ -548,32 +551,85 @@ export class GameFilesManager {
         executables
       );
 
-      if (foundExePath) {
-        logger.info(
-          `[GameFilesManager] Auto-detected executable for ${this.objectId}: ${foundExePath}`
-        );
+      if (!foundExePath) return false;
 
-        const updatedGame = updateGameExecutablePath(game, foundExePath);
-
-        await gamesSublevel.put(this.gameKey, { ...updatedGame });
-        void runAutomaticCloudSaveSync(
-          this.objectId,
-          this.shop,
-          "environment-changed"
-        );
-
-        void runAchievementMetadataExport(this.gameKey, updatedGame);
-
-        WindowManager.sendToAppWindows("on-library-batch-complete");
-
-        await this.createDesktopShortcutForGame(game.title);
-      }
+      await this.bindExecutable(game, foundExePath);
+      return true;
     } catch (err) {
       logger.error(
         `[GameFilesManager] Error searching for executable: ${this.objectId}`,
         err
       );
+      return false;
     }
+  }
+
+  async searchAndBindInstalledExecutable(
+    installerStartedAt: number,
+    winePrefixPath: string | null
+  ): Promise<boolean> {
+    if (await this.searchAndBindExecutable()) return true;
+
+    try {
+      const [download, game] = await Promise.all([
+        downloadsSublevel.get(this.gameKey),
+        gamesSublevel.get(this.gameKey),
+      ]);
+
+      if (!download || !game) return false;
+
+      const executables = GameExecutables.getExecutablesForGame(this.objectId);
+
+      if (!executables || executables.length === 0) {
+        return false;
+      }
+
+      const changedFolders = await listFoldersChangedSince(
+        getInstallerTargetDirectories(download.downloadPath, winePrefixPath),
+        installerStartedAt
+      );
+
+      for (const folderPath of changedFolders) {
+        const foundExePath = await findGameExecutableInFolder(
+          folderPath,
+          executables
+        );
+
+        if (foundExePath) {
+          await this.bindExecutable(game, foundExePath);
+          return true;
+        }
+      }
+
+      return false;
+    } catch (err) {
+      logger.error(
+        `[GameFilesManager] Error searching for installed executable: ${this.objectId}`,
+        err
+      );
+      return false;
+    }
+  }
+
+  private async bindExecutable(game: Game, executablePath: string) {
+    logger.info(
+      `[GameFilesManager] Auto-detected executable for ${this.objectId}: ${executablePath}`
+    );
+
+    const updatedGame = updateGameExecutablePath(game, executablePath);
+
+    await gamesSublevel.put(this.gameKey, { ...updatedGame });
+    void runAutomaticCloudSaveSync(
+      this.objectId,
+      this.shop,
+      "environment-changed"
+    );
+
+    void runAchievementMetadataExport(this.gameKey, updatedGame);
+
+    WindowManager.sendToAppWindows("on-library-batch-complete");
+
+    await this.createDesktopShortcutForGame(game.title);
   }
 
   private isValidIconUrl(url: string | null | undefined): url is string {

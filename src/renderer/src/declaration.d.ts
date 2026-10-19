@@ -532,10 +532,7 @@ declare global {
     refreshLibraryAssets: () => Promise<void>;
     getRemoteLibrarySyncState: () => Promise<boolean>;
     openGameInstaller: (shop: GameShop, objectId: string) => Promise<boolean>;
-    getGameInstallerActionType: (
-      shop: GameShop,
-      objectId: string
-    ) => Promise<"install" | "open-folder">;
+    hasGameInstaller: (shop: GameShop, objectId: string) => Promise<boolean>;
     openGameInstallerPath: (shop: GameShop, objectId: string) => Promise<void>;
     openGameWinetricks: (shop: GameShop, objectId: string) => Promise<boolean>;
     openGameExecutablePath: (shop: GameShop, objectId: string) => Promise<void>;
@@ -977,6 +974,9 @@ declare global {
         iconUrl: string | null;
       }[]
     >;
+    onGameInstallerClosed: (
+      cb: (shop: GameShop, objectId: string, executableFound: boolean) => void
+    ) => () => Electron.IpcRenderer;
     onExtractionComplete: (
       cb: (shop: GameShop, objectId: string) => void
     ) => () => Electron.IpcRenderer;
