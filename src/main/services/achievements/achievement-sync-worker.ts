@@ -20,6 +20,7 @@ import {
   ACHIEVEMENT_SYNC_RETRY_JITTER_DIVISOR,
   ACHIEVEMENT_SYNC_MAX_TIMER_DELAY_MS,
   ACHIEVEMENT_SYNC_RETRYABLE_CLIENT_STATUSES,
+  ACHIEVEMENT_SYNC_COALESCE_WINDOW_MS,
 } from "./achievement-sync-coordinator";
 import { isAxiosError } from "axios";
 
@@ -92,9 +93,20 @@ export const toAchievementSyncPayload = (item: PendingAchievementSync) => ({
   achievements: item.achievements.map(toAchievementSyncEntry),
 });
 
+const fingerprintOf = (remoteId: string, achievements: UnlockedAchievement[]) =>
+  JSON.stringify([
+    remoteId,
+    achievements
+      .map(toAchievementSyncEntry)
+      .map((entry) => ({ ...entry, name: entry.name.toUpperCase() }))
+      .toSorted((a, b) => a.name.localeCompare(b.name)),
+  ]);
+
 export class AchievementSyncWorker {
   private running: Promise<void> | null = null;
   private timer: ReturnType<typeof setTimeout> | null = null;
+  private readonly acknowledged = new Map<string, string>();
+  private readonly dispatchedAt = new Map<string, number>();
 
   async enqueue(
     item: Omit<
@@ -106,15 +118,24 @@ export class AchievementSyncWorker {
     const key = keyOf(item.context, item.gameKey);
     const previous = await pending.get(key).catch(() => null);
     const retry = previous?.terminal ? undefined : previous;
+    const achievements = mergeUnlockedAchievementLists(
+      item.achievements,
+      previous?.achievements ?? []
+    );
+    const fingerprint = fingerprintOf(item.remoteId, achievements);
+    const syncedFingerprint = retry
+      ? fingerprintOf(retry.remoteId, retry.achievements)
+      : !previous && this.acknowledged.get(key);
+    if (syncedFingerprint === fingerprint) return;
     await pending.put(key, {
       ...item,
-      achievements: mergeUnlockedAchievementLists(
-        item.achievements,
-        previous?.achievements ?? []
-      ),
+      achievements,
       revision: randomUUID(),
       attempts: retry?.attempts ?? 0,
-      nextAttemptAt: retry?.nextAttemptAt ?? 0,
+      nextAttemptAt: Math.max(
+        retry?.nextAttemptAt ?? 0,
+        (this.dispatchedAt.get(key) ?? 0) + ACHIEVEMENT_SYNC_COALESCE_WINDOW_MS
+      ),
     });
   }
 
@@ -147,7 +168,11 @@ export class AchievementSyncWorker {
 
   async cancelGame(gameKey: string) {
     const context = HydraApi.getAuthContext();
-    if (context) await pending.del(keyOf(context, gameKey));
+    if (!context) return;
+    const key = keyOf(context, gameKey);
+    this.acknowledged.delete(key);
+    this.dispatchedAt.delete(key);
+    await pending.del(key);
   }
 
   private async records() {
@@ -185,6 +210,7 @@ export class AchievementSyncWorker {
           const latest = await pending.get(key).catch(() => null);
           if (!current() || latest?.revision !== item.revision)
             throw new AchievementSyncCancelledError();
+          this.dispatchedAt.set(key, Date.now());
           return HydraApi.put<UpdatedUnlockedAchievements | undefined>(
             "/profile/games/achievements",
             toAchievementSyncPayload(item),
@@ -201,6 +227,18 @@ export class AchievementSyncWorker {
         async (valid) => {
           if (response) await reconcileAchievementMemory(response, valid);
           if (!valid()) throw new AchievementSyncCancelledError();
+          this.acknowledged.set(
+            key,
+            fingerprintOf(
+              item.remoteId,
+              response
+                ? mergeUnlockedAchievementLists(
+                    response.achievements,
+                    item.achievements
+                  )
+                : item.achievements
+            )
+          );
           const latest = await pending.get(key).catch(() => null);
           if (latest?.revision === item.revision) await pending.del(key);
         },
