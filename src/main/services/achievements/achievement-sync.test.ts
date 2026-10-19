@@ -698,9 +698,9 @@ test("a failed in-flight request defers the newer coalesced snapshot", async (t)
 
 const acknowledgeAll = async (f: Awaited<ReturnType<typeof fixture>>) => {
   for (let round = 0; round < 20; round++) {
-    await new Promise((resolve) => setImmediate(resolve));
     for (const request of f.requests) request.gate.resolve(undefined);
     void f.achievementSyncWorker.trigger();
+    await new Promise((resolve) => setImmediate(resolve));
   }
 };
 
@@ -785,5 +785,29 @@ test("a reset forgets the acknowledged payload so the same unlocks sync again", 
   [...f.records.values()][0]!.nextAttemptAt = 0;
   await acknowledgeAll(f);
   assert.equal(f.requests.length, 2);
+  assert.equal(f.records.size, 0);
+});
+
+test("the worker wakes itself to send coalesced unlocks when the window ends", async (t) => {
+  const f = await fixture(t);
+  t.mock.timers.enable({ apis: ["setTimeout", "Date"], now: Date.now() });
+  await f.mergeAchievements(f.game, [{ name: "N0", unlockTime: 1 }], true);
+  await f.untilRequest(1);
+  f.requests[0]!.gate.resolve(undefined);
+  await acknowledgeAll(f);
+  await f.mergeAchievements(f.game, [{ name: "N1", unlockTime: 2 }], true);
+  await acknowledgeAll(f);
+  assert.equal(f.requests.length, 1);
+  t.mock.timers.tick(4_000);
+  await acknowledgeAll(f);
+  assert.equal(f.requests.length, 1);
+  t.mock.timers.tick(1_000);
+  await f.untilRequest(2);
+  assert.deepEqual(
+    f.requests[1]!.body.achievements.map((item) => item.name),
+    ["N0", "N1"]
+  );
+  f.requests[1]!.gate.resolve(undefined);
+  await acknowledgeAll(f);
   assert.equal(f.records.size, 0);
 });
