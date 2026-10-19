@@ -1,5 +1,5 @@
 import type { Download, LibraryGame } from "@types";
-import { Downloader } from "./constants";
+import { Downloader } from "./constants.js";
 
 export type FinishedDownloadStep =
   | "extracting"

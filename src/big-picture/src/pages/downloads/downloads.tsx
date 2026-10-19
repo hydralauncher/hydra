@@ -3001,7 +3001,6 @@ export default function Downloads() {
         <ExecutablePickerModal
           target={executablePickerTarget}
           onClose={() => setExecutablePickerTarget(null)}
-          onSaved={() => undefined}
         />
 
         <ContextMenu

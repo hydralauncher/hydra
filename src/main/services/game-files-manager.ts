@@ -43,6 +43,7 @@ import { publishExtractionCompleteNotification } from "./notifications";
 import { SystemPath } from "./system-path";
 import { WindowManager } from "./window-manager";
 import { runAutomaticCloudSaveSync } from "./cloud-save";
+import { updateGameRecord } from "./game-record-updater";
 
 const PROGRESS_THROTTLE_MS = 1000;
 
@@ -553,8 +554,7 @@ export class GameFilesManager {
 
       if (!foundExePath) return false;
 
-      await this.bindExecutable(game, foundExePath);
-      return true;
+      return await this.bindExecutable(foundExePath);
     } catch (err) {
       logger.error(
         `[GameFilesManager] Error searching for executable: ${this.objectId}`,
@@ -571,12 +571,8 @@ export class GameFilesManager {
     if (await this.searchAndBindExecutable()) return true;
 
     try {
-      const [download, game] = await Promise.all([
-        downloadsSublevel.get(this.gameKey),
-        gamesSublevel.get(this.gameKey),
-      ]);
-
-      if (!download || !game) return false;
+      const download = await downloadsSublevel.get(this.gameKey);
+      if (!download) return false;
 
       const executables = GameExecutables.getExecutablesForGame(this.objectId);
 
@@ -589,19 +585,25 @@ export class GameFilesManager {
         installerStartedAt
       );
 
-      for (const folderPath of changedFolders) {
-        const foundExePath = await findGameExecutableInFolder(
-          folderPath,
-          executables
-        );
+      const matches = await Promise.all(
+        changedFolders.map((folderPath) =>
+          findGameExecutableInFolder(folderPath, executables)
+        )
+      );
+      const distinctMatches = [
+        ...new Set(matches.filter((match): match is string => !!match)),
+      ];
 
-        if (foundExePath) {
-          await this.bindExecutable(game, foundExePath);
-          return true;
-        }
+      if (distinctMatches.length > 1) {
+        logger.warn(
+          `[GameFilesManager] Not binding ${this.objectId}, several installed copies match: ${distinctMatches.join(", ")}`
+        );
+        return false;
       }
 
-      return false;
+      if (distinctMatches.length === 0) return false;
+
+      return await this.bindExecutable(distinctMatches[0]);
     } catch (err) {
       logger.error(
         `[GameFilesManager] Error searching for installed executable: ${this.objectId}`,
@@ -611,14 +613,23 @@ export class GameFilesManager {
     }
   }
 
-  private async bindExecutable(game: Game, executablePath: string) {
+  private async bindExecutable(executablePath: string): Promise<boolean> {
+    let bound = false;
+
+    const updatedGame = await updateGameRecord(this.gameKey, (current) => {
+      if (current.executablePath) return {};
+
+      bound = true;
+      return updateGameExecutablePath(current, executablePath);
+    });
+
+    if (!updatedGame) return false;
+    if (!bound) return Boolean(updatedGame.executablePath);
+
     logger.info(
       `[GameFilesManager] Auto-detected executable for ${this.objectId}: ${executablePath}`
     );
 
-    const updatedGame = updateGameExecutablePath(game, executablePath);
-
-    await gamesSublevel.put(this.gameKey, { ...updatedGame });
     void runAutomaticCloudSaveSync(
       this.objectId,
       this.shop,
@@ -629,7 +640,8 @@ export class GameFilesManager {
 
     WindowManager.sendToAppWindows("on-library-batch-complete");
 
-    await this.createDesktopShortcutForGame(game.title);
+    await this.createDesktopShortcutForGame(updatedGame.title);
+    return true;
   }
 
   private isValidIconUrl(url: string | null | undefined): url is string {

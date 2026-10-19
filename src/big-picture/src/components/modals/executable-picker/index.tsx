@@ -13,7 +13,7 @@ export interface ExecutablePickerTarget {
 interface ExecutablePickerModalProps {
   target: ExecutablePickerTarget | null;
   onClose: () => void;
-  onSaved: () => void;
+  onSaved?: () => void;
 }
 
 const getDownloadsPath = async () => {
@@ -86,7 +86,8 @@ export function ExecutablePickerModal({
         target.objectId,
         executablePath
       );
-      onSaved();
+      globalThis.window.dispatchEvent(new Event("library-update"));
+      onSaved?.();
     },
     [onClose, onSaved, showErrorToast, t, target]
   );
