@@ -2,6 +2,7 @@ import { ASSETS_PATH } from "@main/constants";
 import { getGameAssets } from "@main/events/catalogue/get-game-assets";
 import { getDirectorySize } from "@main/events/helpers/get-directory-size";
 import { findGameExecutableInFolder } from "@main/helpers/find-game-executable";
+import { findDownloadInstaller } from "@main/helpers/find-game-installer";
 import {
   getInstallerTargetDirectories,
   listFoldersChangedSince,
@@ -96,11 +97,14 @@ export class GameFilesManager {
           : "complete"
         : download.status;
 
+    const hasInstaller = (await findDownloadInstaller(download)) !== null;
+
     await downloadsSublevel.put(this.gameKey, {
       ...download,
       status,
       queued: false,
       extracting: false,
+      hasInstaller,
     });
     WindowManager.sendDownloadsUpdated();
   }
@@ -146,6 +150,8 @@ export class GameFilesManager {
   ) {
     const format = path.extname(filePath).toLowerCase();
 
+    await this.searchAndBindExecutable();
+
     if (notify) {
       await this.setExtractionFailedState(
         new Error(`Unsupported extraction format "${format}" for ${filePath}`),
@@ -159,7 +165,6 @@ export class GameFilesManager {
       await this.resetExtractingState();
     }
 
-    await this.searchAndBindExecutable();
     await this.autoLinkClassicsDiscs();
   }
 
@@ -334,6 +339,14 @@ export class GameFilesManager {
   }
 
   async setExtractionComplete(publishNotification = true) {
+    const extractedDownload = await downloadsSublevel.get(this.gameKey);
+
+    if (!extractedDownload) return;
+
+    await this.searchAndBindExecutable();
+    const hasInstaller =
+      (await findDownloadInstaller(extractedDownload)) !== null;
+
     const [download, game] = await Promise.all([
       downloadsSublevel.get(this.gameKey),
       gamesSublevel.get(this.gameKey),
@@ -344,6 +357,7 @@ export class GameFilesManager {
     await downloadsSublevel.put(this.gameKey, {
       ...download,
       extracting: false,
+      hasInstaller,
     });
     WindowManager.sendDownloadsUpdated();
 
@@ -352,10 +366,7 @@ export class GameFilesManager {
       const gamePath = path.join(download.downloadPath, download.folderName);
       const installedSizeInBytes = await getDirectorySize(gamePath);
 
-      await gamesSublevel.put(this.gameKey, {
-        ...game,
-        installedSizeInBytes,
-      });
+      await updateGameRecord(this.gameKey, { installedSizeInBytes });
     }
 
     WindowManager.sendToAppWindows(
@@ -371,7 +382,6 @@ export class GameFilesManager {
     this.lastProgressUpdateTime = 0;
     this.lastProgressUpdateValue = 0;
 
-    await this.searchAndBindExecutable();
     await this.autoLinkClassicsDiscs();
   }
 

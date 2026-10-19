@@ -50,5 +50,11 @@ export function useInstallerAvailability(games: LibraryGame[]) {
     };
   }, [requestKey]);
 
-  return availability;
+  const storedAvailability = Object.fromEntries(
+    games
+      .filter((game) => game.download?.hasInstaller !== undefined)
+      .map((game) => [game.id, game.download?.hasInstaller === true])
+  );
+
+  return { ...availability, ...storedAvailability };
 }
