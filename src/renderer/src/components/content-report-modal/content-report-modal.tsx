@@ -56,10 +56,7 @@ export function ContentReportModal<Reason extends string>({
   );
   const defaultReason = reasonValues[0];
   const schema = yup.object({
-    reason: yup
-      .string()
-      .oneOf(reasonValues)
-      .required(t("required_field")),
+    reason: yup.string().oneOf(reasonValues).required(t("required_field")),
     description: yup
       .string()
       .trim()

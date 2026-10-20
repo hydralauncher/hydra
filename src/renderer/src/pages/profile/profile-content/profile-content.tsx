@@ -17,6 +17,7 @@ import { ProfileHero } from "../profile-hero/profile-hero";
 import {
   useAppDispatch,
   useAppSelector,
+  useFeature,
   useFormat,
   useUserDetails,
 } from "@renderer/hooks";
@@ -43,6 +44,7 @@ import { ProfileTabs, type ProfileTabType } from "./profile-tabs";
 import { LibraryTab } from "./library-tab";
 import { ReviewsTab } from "./reviews-tab";
 import { SouvenirsTab } from "./souvenirs-tab";
+import { ScreenshotsTab } from "./screenshots-tab";
 import { SouvenirLightbox } from "./souvenir-lightbox";
 import { useSouvenirActions } from "./use-souvenir-actions";
 import type { ProfilePlatform } from "./library-tab";
@@ -52,6 +54,21 @@ import { ConfirmationModal } from "@renderer/components";
 import "./profile-content.scss";
 
 type SortOption = "playtime" | "achievementCount" | "playedRecently";
+
+const getRequestedProfileTab = (
+  requestedTab: string | null,
+  hasRequestedScreenshot: boolean,
+  isScreenshotsEnabled: boolean
+): ProfileTabType => {
+  if (requestedTab === "souvenirs") return "souvenirs";
+  if (
+    isScreenshotsEnabled &&
+    (requestedTab === "screenshots" || hasRequestedScreenshot)
+  ) {
+    return "screenshots";
+  }
+  return "library";
+};
 
 interface UserReview {
   id: string;
@@ -131,6 +148,9 @@ export function ProfileContent() {
   const [searchParams, setSearchParams] = useSearchParams();
   const requestedTab = searchParams.get("tab");
   const requestedSouvenir = searchParams.get("souvenir");
+  const requestedScreenshot = searchParams.get("screenshot");
+  const { isFeatureEnabled, Feature } = useFeature();
+  const isScreenshotsEnabled = isFeatureEnabled(Feature.Screenshots);
   const attemptedDeepLinkPagesRef = useRef(new Set<string>());
   const souvenirsEnabled = useAppSelector((state) =>
     isAchievementSouvenirsEnabled(
@@ -174,9 +194,14 @@ export function ProfileContent() {
     [platform]
   );
 
-  const [activeTab, setActiveTab] = useState<ProfileTabType>(
-    requestedTab === "souvenirs" ? "souvenirs" : "library"
+  const [activeTab, setActiveTab] = useState<ProfileTabType>(() =>
+    getRequestedProfileTab(
+      requestedTab,
+      Boolean(requestedScreenshot),
+      isScreenshotsEnabled
+    )
   );
+  const [screenshotsTotal, setScreenshotsTotal] = useState<number | null>(null);
 
   // User reviews state
   const [reviews, setReviews] = useState<UserReview[]>([]);
@@ -227,6 +252,17 @@ export function ProfileContent() {
     nextParams.delete("souvenir");
     setSearchParams(nextParams, { replace: true });
   }, [searchParams, setSearchParams]);
+
+  const clearRequestedScreenshot = useCallback(() => {
+    setSearchParams(
+      (current) => {
+        const nextParams = new URLSearchParams(current);
+        nextParams.delete("screenshot");
+        return nextParams;
+      },
+      { replace: true }
+    );
+  }, [setSearchParams]);
 
   useEffect(() => {
     attemptedDeepLinkPagesRef.current.clear();
@@ -347,7 +383,28 @@ export function ProfileContent() {
     setIsLoadingReviews(false);
     setActiveTab(requestedTab === "souvenirs" ? "souvenirs" : "library");
     setPlatform(readStoredProfilePlatform());
+    setScreenshotsTotal(null);
   }, [requestedTab, userProfile?.id]);
+
+  useEffect(() => {
+    if (
+      isScreenshotsEnabled &&
+      (requestedScreenshot || requestedTab === "screenshots")
+    ) {
+      setActiveTab("screenshots");
+    }
+  }, [
+    isScreenshotsEnabled,
+    requestedScreenshot,
+    requestedTab,
+    userProfile?.id,
+  ]);
+
+  useEffect(() => {
+    if (!isScreenshotsEnabled && activeTab === "screenshots") {
+      setActiveTab("library");
+    }
+  }, [activeTab, isScreenshotsEnabled]);
 
   const fetchUserReviews = useCallback(async () => {
     if (!userProfile?.id) return;
@@ -549,6 +606,10 @@ export function ProfileContent() {
             activeTab={activeTab}
             reviewsTotalCount={reviewsTotalCount}
             souvenirsCount={souvenirsTotal}
+            screenshotsCount={
+              screenshotsTotal ?? userProfile.screenshotCount ?? 0
+            }
+            showScreenshots={isScreenshotsEnabled}
             onTabChange={setActiveTab}
           />
 
@@ -613,6 +674,16 @@ export function ProfileContent() {
                       "/settings?tab=content_gameplay#achievement-souvenirs"
                     )
                   }
+                />
+              )}
+
+              {activeTab === "screenshots" && isScreenshotsEnabled && (
+                <ScreenshotsTab
+                  userId={userProfile.id}
+                  isMe={isMe}
+                  requestedScreenshotId={requestedScreenshot}
+                  onRequestedScreenshotHandled={clearRequestedScreenshot}
+                  onTotalChange={setScreenshotsTotal}
                 />
               )}
             </AnimatePresence>
