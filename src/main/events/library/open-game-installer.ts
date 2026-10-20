@@ -23,6 +23,7 @@ interface InstallerLaunchOptions {
   protonPath?: string | null;
   onExit: () => void;
   onCancel: () => void;
+  onUntrackedLaunch: () => void;
 }
 
 interface InstallerLaunchResult {
@@ -30,8 +31,23 @@ interface InstallerLaunchResult {
   tracked: boolean;
 }
 
-const ELEVATED_INSTALLER_COMMAND =
-  "Start-Process -FilePath $env:HYDRA_INSTALLER_PATH -WorkingDirectory (Split-Path -Parent $env:HYDRA_INSTALLER_PATH) -Verb RunAs -Wait";
+const ELEVATION_CANCELLED_EXIT_CODE = 2;
+
+const ELEVATED_INSTALLER_COMMAND = [
+  "$ErrorActionPreference = 'Stop'",
+  "try {",
+  "$info = New-Object System.Diagnostics.ProcessStartInfo",
+  "$info.FileName = $env:HYDRA_INSTALLER_PATH",
+  "$info.WorkingDirectory = [System.IO.Path]::GetDirectoryName($env:HYDRA_INSTALLER_PATH)",
+  "$info.Verb = 'runas'",
+  "$info.UseShellExecute = $true",
+  "[System.Diagnostics.Process]::Start($info).WaitForExit()",
+  "exit 0",
+  "} catch {",
+  `if ($_.Exception.GetBaseException().NativeErrorCode -eq 1223) { exit ${ELEVATION_CANCELLED_EXIT_CODE} }`,
+  "exit 1",
+  "}",
+].join("; ");
 
 const spawnInstaller = async (
   command: string,
@@ -41,13 +57,21 @@ const spawnInstaller = async (
   env?: NodeJS.ProcessEnv
 ): Promise<boolean> => {
   return await new Promise<boolean>((resolve) => {
-    const child = spawn(command, args, {
-      detached: true,
-      stdio: "ignore",
-      shell: false,
-      windowsHide: true,
-      env: env ?? process.env,
-    });
+    let child: ReturnType<typeof spawn>;
+
+    try {
+      child = spawn(command, args, {
+        detached: true,
+        stdio: "ignore",
+        shell: false,
+        windowsHide: true,
+        env: env ?? process.env,
+      });
+    } catch (error) {
+      logger.error(failureMessage, error);
+      resolve(false);
+      return;
+    }
 
     child.once("spawn", () => {
       child.once("exit", onExit);
@@ -60,6 +84,25 @@ const spawnInstaller = async (
       resolve(false);
     });
   });
+};
+
+const openPathAndCheck = async (filePath: string): Promise<boolean> => {
+  const openError = await shell.openPath(filePath);
+  return openError.length === 0;
+};
+
+const handleElevatedInstallerExit = async (
+  code: number | null,
+  filePath: string,
+  options: InstallerLaunchOptions
+) => {
+  if (code === 0) return options.onExit();
+  if (code === ELEVATION_CANCELLED_EXIT_CODE) return options.onCancel();
+
+  logger.error(`Elevated installer launch exited with code ${code}`);
+
+  if (await openPathAndCheck(filePath)) return options.onUntrackedLaunch();
+  options.onCancel();
 };
 
 const launchInstallerElevated = async (
@@ -76,15 +119,10 @@ const launchInstallerElevated = async (
       "-Command",
       ELEVATED_INSTALLER_COMMAND,
     ],
-    (code) => (code === 0 ? options.onExit() : options.onCancel()),
+    (code) => void handleElevatedInstallerExit(code, filePath, options),
     "Failed to execute game installer with elevation",
     { ...process.env, HYDRA_INSTALLER_PATH: filePath }
   );
-
-const openPathAndCheck = async (filePath: string): Promise<boolean> => {
-  const openError = await shell.openPath(filePath);
-  return openError.length === 0;
-};
 
 const launchInstallerWithUmu = async (
   filePath: string,
@@ -241,6 +279,13 @@ const openGameInstaller = async (
       afterLaunchRecorded(() =>
         updateInstallerState(gameKey, {
           installerLaunched: false,
+          installerRunning: false,
+        })
+      ),
+    onUntrackedLaunch: () =>
+      afterLaunchRecorded(() =>
+        updateInstallerState(gameKey, {
+          installerLaunched: true,
           installerRunning: false,
         })
       ),
