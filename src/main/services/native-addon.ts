@@ -68,6 +68,12 @@ export interface ScreenshotInputNativeStatus {
   gamepadError?: string | null;
   waylandSession: boolean;
 }
+type NativeForegroundWindowResponse = {
+  windowHandle?: string;
+  window_handle?: string;
+  processId?: number;
+  process_id?: number;
+};
 
 export type NativeProcessPayload = ProcessPayload &
   Pick<
@@ -107,6 +113,12 @@ type HydraNativeModule = {
   probeScreenshotInput: (
     config: ScreenshotInputNativeConfig
   ) => ScreenshotInputNativeStatus;
+  getWindowsForegroundWindow?: () => NativeForegroundWindowResponse | null;
+  placeWindowBelow?: (
+    windowHandle: string,
+    insertAfterHandle: string
+  ) => boolean;
+  getLinuxWindowClientPid?: (windowId: string) => number | null;
   buildLocalGameSnapshotPipeline: (
     input: BuildLocalGameSnapshotPipelineInput
   ) => Promise<NativeLocalGameSnapshotPipelineResult>;
@@ -480,6 +492,54 @@ export class NativeAddon {
 
   public static probeScreenshotInput(config: ScreenshotInputNativeConfig) {
     return this.load().probeScreenshotInput(config);
+  }
+
+  public static getWindowsForegroundWindow() {
+    if (process.platform !== "win32") return null;
+
+    try {
+      const getForegroundWindow = this.load().getWindowsForegroundWindow;
+      if (!getForegroundWindow) return undefined;
+
+      const response = getForegroundWindow();
+      if (!response) return null;
+
+      const windowHandle = response.windowHandle ?? response.window_handle;
+      const processId = response.processId ?? response.process_id;
+      if (!windowHandle || !processId) return null;
+
+      return { windowHandle, processId };
+    } catch (error) {
+      logger.error("Failed to identify the Windows foreground window", error);
+      return undefined;
+    }
+  }
+
+  public static placeWindowBelow(
+    windowHandle: string,
+    insertAfterHandle: string
+  ) {
+    if (process.platform !== "win32") return false;
+
+    try {
+      return (
+        this.load().placeWindowBelow?.(windowHandle, insertAfterHandle) ?? false
+      );
+    } catch (error) {
+      logger.error("Failed to place a window below another window", error);
+      return false;
+    }
+  }
+
+  public static getLinuxWindowClientPid(windowId: string) {
+    if (process.platform !== "linux") return null;
+
+    try {
+      return this.load().getLinuxWindowClientPid?.(windowId) ?? null;
+    } catch (error) {
+      logger.error("Failed to resolve the Linux window client process", error);
+      return null;
+    }
   }
 
   public static getSystemProcessMap(): Promise<SystemProcessMap | null> {
