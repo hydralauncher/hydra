@@ -749,6 +749,12 @@
     "epic_play_offline": "Main — Offline",
     "epic_prerequisites_required": "Izinkan prasyarat gim dan coba lagi.",
     "epic_update_required": "Perbarui gim melalui opsi Epic Games menggunakan folder yang sama.",
+    "epic_update": "Perbarui",
+    "epic_update_resume": "Lanjutkan pembaruan",
+    "epic_updating": "Memperbarui…",
+    "epic_play_without_update": "Main tanpa memperbarui",
+    "epic_update_available": "Versi {{version}} tersedia",
+    "epic_update_failed": "Tidak dapat memperbarui game",
     "epic_retry": "Coba lagi"
   },
   "activation": {

@@ -732,6 +732,12 @@
     "epic_play_offline": "Играй — Офлайн",
     "epic_prerequisites_required": "Разрешете необходимите компоненти на играта и опитайте отново.",
     "epic_update_required": "Обновете играта чрез опцията Epic Games, като използвате същата папка.",
+    "epic_update": "Актуализирай",
+    "epic_update_resume": "Продължи актуализацията",
+    "epic_updating": "Актуализиране…",
+    "epic_play_without_update": "Играй без актуализиране",
+    "epic_update_available": "Налична е версия {{version}}",
+    "epic_update_failed": "Играта не можа да бъде актуализирана",
     "epic_retry": "Опитайте отново"
   },
   "activation": {

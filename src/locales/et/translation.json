@@ -577,6 +577,12 @@
     "epic_play_offline": "Mängi — Offline",
     "epic_prerequisites_required": "Luba mängu vajalikud komponendid ja proovi uuesti.",
     "epic_update_required": "Uuenda mängu Epic Gamesi valiku kaudu samasse kausta.",
+    "epic_update": "Uuenda",
+    "epic_update_resume": "Jätka uuendamist",
+    "epic_updating": "Uuendamine…",
+    "epic_play_without_update": "Mängi uuendamata",
+    "epic_update_available": "Versioon {{version}} on saadaval",
+    "epic_update_failed": "Mängu ei õnnestunud uuendada",
     "epic_retry": "Proovi uuesti"
   },
   "activation": {

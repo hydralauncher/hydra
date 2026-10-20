@@ -573,6 +573,12 @@
     "epic_play_offline": "بازی — Offline",
     "epic_prerequisites_required": "پیش‌نیازهای بازی را تأیید کنید و دوباره تلاش کنید.",
     "epic_update_required": "بازی را از گزینهٔ Epic Games با همان پوشه به‌روزرسانی کنید.",
+    "epic_update": "به‌روزرسانی",
+    "epic_update_resume": "ادامهٔ به‌روزرسانی",
+    "epic_updating": "در حال به‌روزرسانی…",
+    "epic_play_without_update": "بازی بدون به‌روزرسانی",
+    "epic_update_available": "نسخهٔ {{version}} در دسترس است",
+    "epic_update_failed": "به‌روزرسانی بازی ممکن نشد",
     "epic_retry": "تلاش دوباره"
   },
   "activation": {

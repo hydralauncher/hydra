@@ -22,6 +22,8 @@ import {
   useToast,
   useUserDetails,
 } from "@renderer/hooks";
+import { useEpicManagedConnection } from "@renderer/hooks/use-epic-managed";
+import { useEpicGameUpdate } from "@renderer/hooks/use-epic-game-update";
 import { useCallback, useContext, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
@@ -37,7 +39,10 @@ import "./hero-panel-actions.scss";
 import { useEffect } from "react";
 import {
   applyLibraryGroupAction,
+  isEpicMemberInCurrentScope,
+  isEpicUpdateInterrupted,
   isLibraryGameDownloading,
+  getEpicLaunchOptions,
   getOfficialStoreMembers,
 } from "@shared";
 
@@ -45,7 +50,7 @@ export function HeroPanelActions() {
   const [toggleLibraryGameDisabled, setToggleLibraryGameDisabled] =
     useState(false);
 
-  const { isGameDeleting } = useDownload();
+  const { isGameDeleting, lastPacket } = useDownload();
   const { userDetails } = useUserDetails();
 
   const {
@@ -68,6 +73,20 @@ export function HeroPanelActions() {
   } = useContext(gameDetailsContext);
 
   const isGameDownloading = isLibraryGameDownloading(downloadGame);
+  const { installationAvailable: epicInstallationAvailable, connection } =
+    useEpicManagedConnection();
+  const epicUpdate = useEpicGameUpdate(
+    game,
+    epicInstallationAvailable && isEpicMemberInCurrentScope(game, connection)
+  );
+  const epicDownload = game?.shop === "epic" ? downloadGame?.download : null;
+  const epicUpdateInterrupted =
+    !!epicDownload && isEpicUpdateInterrupted(epicDownload);
+  const epicDownloadStatus = epicDownload?.status;
+  const refreshEpicUpdate = epicUpdate.refresh;
+  useEffect(() => {
+    if (epicDownloadStatus === "complete") void refreshEpicUpdate();
+  }, [epicDownloadStatus, refreshEpicUpdate]);
 
   const { updateLibrary } = useLibrary();
 
@@ -328,7 +347,8 @@ export function HeroPanelActions() {
   const launchMember = async (
     member: LibraryGame,
     localOnce = false,
-    offline = false
+    offline = false,
+    skipUpdateCheck = false
   ) => {
     if (!member.executablePath) return;
     setLocalSaveRetry(null);
@@ -342,11 +362,7 @@ export function HeroPanelActions() {
         member.objectId,
         member.executablePath,
         member.launchOptions,
-        offline
-          ? { epicOffline: true }
-          : localOnce
-            ? { epicSavePolicy: "local-once" }
-            : undefined
+        getEpicLaunchOptions(localOnce, offline, skipUpdateCheck)
       );
     } catch (error) {
       if (generation !== launchGeneration.current) return;
@@ -356,6 +372,8 @@ export function HeroPanelActions() {
         setEpicSaveConflict(member);
         return;
       }
+      // The cached preview predates the published build: check it again.
+      if (code === "update-required") void epicUpdate.refresh();
       const translation = code ? getEpicManagedError(code) : null;
       showErrorToast(
         translation
@@ -384,6 +402,33 @@ export function HeroPanelActions() {
         }
       }
     }
+  };
+
+  const startEpicUpdate = async () => {
+    const result = await epicUpdate.start(lastPacket !== null);
+    if (result.ok) {
+      await Promise.all([updateLibrary(), updateGame()]);
+      return;
+    }
+    const translation = getEpicManagedError(result.error);
+    showErrorToast(
+      t("epic_update_failed"),
+      t(translation.key, { ns: translation.ns })
+    );
+  };
+
+  const resumeEpicUpdate = async () => {
+    if (!game) return;
+    if (epicDownload?.status !== "paused" && epicDownload?.status !== "error") {
+      await startEpicUpdate();
+      return;
+    }
+    try {
+      await window.electron.resumeGameDownload(game.shop, game.objectId);
+    } catch {
+      showErrorToast(t("epic_update_failed"));
+    }
+    await Promise.all([updateLibrary(), updateGame()]);
   };
 
   const closeGame = () => {
@@ -448,6 +493,62 @@ export function HeroPanelActions() {
 
     const isPlayableClassics =
       game?.shop === "launchbox" && (game?.discs?.length ?? 0) > 0;
+
+    if (game?.executablePath && epicDownload?.epic?.update) {
+      if (isGameDownloading)
+        return (
+          <Button
+            theme="outline"
+            disabled
+            className="hero-panel-actions__action"
+          >
+            <DownloadIcon />
+            {t("epic_updating")}
+          </Button>
+        );
+      if (epicUpdateInterrupted)
+        return (
+          <Button
+            onClick={resumeEpicUpdate}
+            theme="outline"
+            disabled={deleting || epicUpdate.starting}
+            className="hero-panel-actions__action"
+          >
+            <DownloadIcon />
+            {t("epic_update_resume")}
+          </Button>
+        );
+    }
+
+    if (game?.executablePath && epicUpdate.update && !isGameDownloading) {
+      return (
+        <>
+          <Button
+            onClick={startEpicUpdate}
+            theme="outline"
+            disabled={deleting || epicUpdate.starting}
+            className="hero-panel-actions__action"
+            title={t("epic_update_available", {
+              version: epicUpdate.update.version,
+            })}
+          >
+            <DownloadIcon />
+            {t("epic_update")}
+          </Button>
+          <Button
+            onClick={() => {
+              if (game) void launchMember(game, false, false, true);
+            }}
+            theme="outline"
+            disabled={deleting}
+            className="hero-panel-actions__action"
+          >
+            <PlayIcon />
+            {t("epic_play_without_update")}
+          </Button>
+        </>
+      );
+    }
 
     if (game?.executablePath || isPlayableClassics) {
       return (

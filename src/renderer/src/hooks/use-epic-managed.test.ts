@@ -483,6 +483,12 @@ describe("Epic managed UI lifecycle", () => {
       "epic_compatibility_automatic",
       "epic_finalizing_install",
       "epic_prerequisites_required",
+      "epic_update",
+      "epic_update_resume",
+      "epic_updating",
+      "epic_play_without_update",
+      "epic_update_available",
+      "epic_update_failed",
     ];
     for (const locale of fs.readdirSync(localeRoot, { withFileTypes: true })) {
       if (!locale.isDirectory()) continue;

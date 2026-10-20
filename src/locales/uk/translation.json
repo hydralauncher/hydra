@@ -577,6 +577,12 @@
     "epic_play_offline": "Грати — Offline",
     "epic_prerequisites_required": "Дозвольте встановлення необхідних компонентів гри та спробуйте ще раз.",
     "epic_update_required": "Оновіть гру через варіант Epic Games, використовуючи ту саму папку.",
+    "epic_update": "Оновити",
+    "epic_update_resume": "Продовжити оновлення",
+    "epic_updating": "Оновлення…",
+    "epic_play_without_update": "Грати без оновлення",
+    "epic_update_available": "Доступна версія {{version}}",
+    "epic_update_failed": "Не вдалося оновити гру",
     "epic_retry": "Спробувати ще раз"
   },
   "activation": {
