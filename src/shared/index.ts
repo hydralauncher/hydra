@@ -53,6 +53,8 @@ export * from "./retroarch-platform";
 export * from "./tracker-list";
 export * from "./souvenirs";
 export * from "./souvenir-sync";
+export * from "./game-content-warning";
+export * from "./screenshot-preferences";
 
 export class UserNotLoggedInError extends Error {
   constructor() {

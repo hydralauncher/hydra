@@ -220,4 +220,44 @@ export interface LocalScreenshot {
   uploadProgress: number | null;
   lastError: string | null;
   gameSessionId: string | null;
+  uploadQuality?: ScreenshotQuality | null;
+  uploadClientId?: string | null;
+  uploadAttempts?: number;
+  nextUploadAttemptAt?: number | null;
+  uploadedAt?: number | null;
 }
+
+export interface LocalScreenshotUploadOptions {
+  isSpoiler: boolean;
+  visibility: ProfileVisibility;
+  customGameTitle: string | null;
+}
+
+export interface ScreenshotUploadProgress {
+  clientId: string;
+  state: LocalScreenshotState;
+  progress: number | null;
+}
+
+export interface ScreenshotReviewRequest {
+  gameKey: string;
+  shop: ScreenshotShop;
+  objectId: string;
+  gameTitle: string;
+  clientIds: string[];
+}
+
+export type ScreenshotTelemetryEventType = "capture" | "upload" | "review";
+
+export interface ScreenshotTelemetryEvent {
+  type: ScreenshotTelemetryEventType;
+  outcome: string;
+  reason?: string;
+  platform: "win32" | "linux";
+  count: number;
+}
+
+export type ScreenshotFeedbackToast =
+  | { kind: "captured"; gameTitle: string; thumbnailPath: string }
+  | { kind: "saved_locally"; gameTitle: string; thumbnailPath: string }
+  | { kind: "disabled_for_game"; gameTitle: string };

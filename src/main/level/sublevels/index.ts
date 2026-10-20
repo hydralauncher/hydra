@@ -14,6 +14,7 @@ export * from "./emulators";
 export * from "./retroarch";
 export * from "./pending-achievement-souvenirs";
 export * from "./grouped-achievement-souvenirs";
+export * from "./screenshots";
 export * from "./ps2-memory-card-saves";
 export * from "./ps1-memory-card-saves";
 export * from "./cloud-save-local-hash-cache";
