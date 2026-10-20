@@ -2561,5 +2561,17 @@
     "next": "Próximo",
     "explore": "Explorar",
     "dont_show_again": "Não mostrar novamente"
+  },
+  "screenshots_input": {
+    "gamepad_combo_too_long": "Use no máximo 4 botões no combo de captura de tela",
+    "gamepad_combo_too_short": "Use pelo menos 2 botões no combo de captura de tela",
+    "gamepad_combo_unsupported_button": "Este botão não pode ser usado no combo de captura de tela",
+    "gamepad_unavailable": "O Hydra não consegue ler o seu controle. Verifique se o seu usuário tem acesso aos dispositivos de entrada.",
+    "hotkey_modifier_required": "Adicione Ctrl ou Alt a esta tecla para que ela não seja acionada enquanto você digita ou se move",
+    "hotkey_reserved": "Este atalho é reservado pelo sistema. Escolha outro.",
+    "hotkey_unavailable": "O atalho de captura de tela não está disponível no momento. Você pode associar hydralauncher://screenshot a um atalho nas configurações do sistema.",
+    "hotkey_unavailable_wayland": "O Hydra não consegue ler o teclado nesta sessão Wayland. Adicione o seu usuário ao grupo input ou associe hydralauncher://screenshot a um atalho nas configurações da área de trabalho.",
+    "hotkey_unsupported_key": "Esta tecla não pode ser usada para capturas de tela",
+    "hotkey_xwayland_only": "O atalho de captura de tela só funciona em jogos executados pelo XWayland. Adicione o seu usuário ao grupo input para usá-lo em todos os jogos."
   }
 }

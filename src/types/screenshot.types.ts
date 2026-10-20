@@ -173,16 +173,22 @@ export type ScreenshotGamepadButton =
 
 export type ScreenshotInputBackend =
   | "windows-raw-input"
+  | "xinput"
   | "x11-xinput2"
   | "evdev"
-  | "global-shortcuts-portal"
   | "unavailable";
+
+export type ScreenshotInputHint =
+  | "gamepad_unavailable"
+  | "hotkey_unavailable"
+  | "hotkey_unavailable_wayland"
+  | "hotkey_xwayland_only";
 
 export interface ScreenshotInputStatus {
   active: boolean;
   keyboardBackend: ScreenshotInputBackend;
   gamepadBackend: ScreenshotInputBackend;
-  hint: string | null;
+  hint: ScreenshotInputHint | null;
 }
 
 export type LocalScreenshotState =
