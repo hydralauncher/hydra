@@ -775,7 +775,8 @@ export class EpicInstallationService {
     };
     const options = await Promise.all(
       result.options.map(async (option) => {
-        if (!reused) return option;
+        // Callers own the result; never hand out the cached option itself.
+        if (!reused) return { ...option };
         const installed = await this.readInstalledForRepair(
           {
             ...context,
