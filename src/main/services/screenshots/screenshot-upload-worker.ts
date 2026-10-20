@@ -46,6 +46,13 @@ class UploadPutError extends Error {
   }
 }
 
+const MODERATION_STATUSES = new Set<string>(["PENDING", "APPROVED", "BLOCKED"]);
+
+const isModerationStatus = (
+  value: unknown
+): value is ScreenshotModerationState["moderationStatus"] =>
+  typeof value === "string" && MODERATION_STATUSES.has(value);
+
 const isActiveUploadState = (state: LocalScreenshot["state"]) =>
   state === "queued" || state === "uploading";
 
@@ -359,7 +366,9 @@ class ScreenshotUploadWorker {
       await LocalScreenshotStore.update(clientId, {
         state: "uploaded",
         screenshotId: presign.id,
-        moderationStatus: result?.moderationStatus ?? "PENDING",
+        moderationStatus: isModerationStatus(result?.moderationStatus)
+          ? result.moderationStatus
+          : "PENDING",
         moderationReason: result?.moderationReason ?? null,
         uploadProgress: 1,
         uploadedAt: Date.now(),
@@ -495,7 +504,10 @@ class ScreenshotUploadWorker {
           undefined,
           { authContext, timeout: REQUEST_TIMEOUT_MS }
         );
-        if (status?.moderationStatus !== screenshot.moderationStatus) {
+        if (
+          isModerationStatus(status?.moderationStatus) &&
+          status.moderationStatus !== screenshot.moderationStatus
+        ) {
           await LocalScreenshotStore.update(screenshot.clientId, {
             moderationStatus: status.moderationStatus,
             moderationReason: status.moderationReason ?? null,
