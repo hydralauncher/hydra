@@ -59,6 +59,28 @@ function ExtraName({
   );
 }
 
+/** Whether a scrollable list still has items below its visible area. */
+function useListHasMore(open: boolean, length: number) {
+  const listRef = useRef<HTMLUListElement>(null);
+  const [hasMore, setHasMore] = useState(false);
+  const measure = () => {
+    const list = listRef.current;
+    setHasMore(
+      !!list && list.scrollTop + list.clientHeight < list.scrollHeight - 1
+    );
+  };
+  useEffect(() => {
+    const list = listRef.current;
+    if (!list) return setHasMore(false);
+    measure();
+    if (typeof ResizeObserver === "undefined") return;
+    const observer = new ResizeObserver(measure);
+    observer.observe(list);
+    return () => observer.disconnect();
+  }, [open, length]);
+  return { listRef, hasMore, measure };
+}
+
 export function EpicInstallModal({
   game,
   presentationGame,
@@ -100,23 +122,11 @@ export function EpicInstallModal({
   const [openExtrasFor, setOpenExtrasFor] = useState<string | null>(null);
   const extrasOpen = !!game && openExtrasFor === game.objectId;
   const extrasPanelId = useId();
-  const listRef = useRef<HTMLUListElement>(null);
-  const [listHasMore, setListHasMore] = useState(false);
-  const measureList = () => {
-    const list = listRef.current;
-    setListHasMore(
-      !!list && list.scrollTop + list.clientHeight < list.scrollHeight - 1
-    );
-  };
-  useEffect(() => {
-    const list = listRef.current;
-    if (!list) return setListHasMore(false);
-    measureList();
-    if (typeof ResizeObserver === "undefined") return;
-    const observer = new ResizeObserver(measureList);
-    observer.observe(list);
-    return () => observer.disconnect();
-  }, [extrasOpen, install.extras.length]);
+  const {
+    listRef,
+    hasMore: listHasMore,
+    measure: measureList,
+  } = useListHasMore(extrasOpen, install.extras.length);
   const extrasTooltipId = useId();
   const sizeLabel = (download: number) =>
     t("epic_selection_size", { size: formatBytes(download) });
