@@ -1768,9 +1768,16 @@ function useProfileGames(
   remoteRecentActivityGames: UserGame[]
 ): ProfileGames {
   const runningGames = useBigPictureRunningGames();
+  const runningIdsKey = Object.keys(runningGames).sort().join(",");
   const groupedLibrary = useMemo(
-    () => groupLibraryGames(library, Object.keys(runningGames)),
-    [library, runningGames]
+    () =>
+      isOwnProfile
+        ? groupLibraryGames(
+            library,
+            runningIdsKey ? runningIdsKey.split(",") : []
+          )
+        : [],
+    [isOwnProfile, library, runningIdsKey]
   );
   const localFavoriteGame = useMemo(
     () => getLocalFavoriteGame(groupedLibrary, isOwnProfile),
