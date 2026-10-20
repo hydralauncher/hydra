@@ -1,0 +1,760 @@
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum TriggerSource {
+    Keyboard,
+    Gamepad,
+}
+
+impl TriggerSource {
+    pub fn as_str(self) -> &'static str {
+        match self {
+            TriggerSource::Keyboard => "keyboard",
+            TriggerSource::Gamepad => "gamepad",
+        }
+    }
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum Backend {
+    #[cfg(target_os = "windows")]
+    WindowsRawInput,
+    #[cfg(target_os = "windows")]
+    XInput,
+    #[cfg(target_os = "linux")]
+    X11XInput2,
+    #[cfg(target_os = "linux")]
+    Evdev,
+    Unavailable,
+}
+
+impl Backend {
+    pub fn as_str(self) -> &'static str {
+        match self {
+            #[cfg(target_os = "windows")]
+            Backend::WindowsRawInput => "windows-raw-input",
+            #[cfg(target_os = "windows")]
+            Backend::XInput => "xinput",
+            #[cfg(target_os = "linux")]
+            Backend::X11XInput2 => "x11-xinput2",
+            #[cfg(target_os = "linux")]
+            Backend::Evdev => "evdev",
+            Backend::Unavailable => "unavailable",
+        }
+    }
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct KeyDefinition {
+    pub name: &'static str,
+    pub evdev: u16,
+    pub windows: u16,
+}
+
+const fn key(name: &'static str, evdev: u16) -> KeyDefinition {
+    KeyDefinition {
+        name,
+        evdev,
+        windows: evdev,
+    }
+}
+
+const fn extended(name: &'static str, evdev: u16, windows: u16) -> KeyDefinition {
+    KeyDefinition {
+        name,
+        evdev,
+        windows,
+    }
+}
+
+pub const KEYS: &[KeyDefinition] = &[
+    key("Escape", 1),
+    key("Digit1", 2),
+    key("Digit2", 3),
+    key("Digit3", 4),
+    key("Digit4", 5),
+    key("Digit5", 6),
+    key("Digit6", 7),
+    key("Digit7", 8),
+    key("Digit8", 9),
+    key("Digit9", 10),
+    key("Digit0", 11),
+    key("Minus", 12),
+    key("Equal", 13),
+    key("Backspace", 14),
+    key("Tab", 15),
+    key("KeyQ", 16),
+    key("KeyW", 17),
+    key("KeyE", 18),
+    key("KeyR", 19),
+    key("KeyT", 20),
+    key("KeyY", 21),
+    key("KeyU", 22),
+    key("KeyI", 23),
+    key("KeyO", 24),
+    key("KeyP", 25),
+    key("BracketLeft", 26),
+    key("BracketRight", 27),
+    key("Enter", 28),
+    key("KeyA", 30),
+    key("KeyS", 31),
+    key("KeyD", 32),
+    key("KeyF", 33),
+    key("KeyG", 34),
+    key("KeyH", 35),
+    key("KeyJ", 36),
+    key("KeyK", 37),
+    key("KeyL", 38),
+    key("Semicolon", 39),
+    key("Quote", 40),
+    key("Backquote", 41),
+    key("Backslash", 43),
+    key("KeyZ", 44),
+    key("KeyX", 45),
+    key("KeyC", 46),
+    key("KeyV", 47),
+    key("KeyB", 48),
+    key("KeyN", 49),
+    key("KeyM", 50),
+    key("Comma", 51),
+    key("Period", 52),
+    key("Slash", 53),
+    key("NumpadMultiply", 55),
+    key("Space", 57),
+    key("F1", 59),
+    key("F2", 60),
+    key("F3", 61),
+    key("F4", 62),
+    key("F5", 63),
+    key("F6", 64),
+    key("F7", 65),
+    key("F8", 66),
+    key("F9", 67),
+    key("F10", 68),
+    key("ScrollLock", 70),
+    key("Numpad7", 71),
+    key("Numpad8", 72),
+    key("Numpad9", 73),
+    key("NumpadSubtract", 74),
+    key("Numpad4", 75),
+    key("Numpad5", 76),
+    key("Numpad6", 77),
+    key("NumpadAdd", 78),
+    key("Numpad1", 79),
+    key("Numpad2", 80),
+    key("Numpad3", 81),
+    key("Numpad0", 82),
+    key("NumpadDecimal", 83),
+    key("F11", 87),
+    key("F12", 88),
+    extended("NumpadEnter", 96, 0xE01C),
+    extended("NumpadDivide", 98, 0xE035),
+    extended("PrintScreen", 99, 0xE037),
+    extended("Home", 102, 0xE047),
+    extended("ArrowUp", 103, 0xE048),
+    extended("PageUp", 104, 0xE049),
+    extended("ArrowLeft", 105, 0xE04B),
+    extended("ArrowRight", 106, 0xE04D),
+    extended("End", 107, 0xE04F),
+    extended("ArrowDown", 108, 0xE050),
+    extended("PageDown", 109, 0xE051),
+    extended("Insert", 110, 0xE052),
+    extended("Delete", 111, 0xE053),
+    extended("Pause", 119, 0xE11D),
+    extended("F13", 183, 0x64),
+    extended("F14", 184, 0x65),
+    extended("F15", 185, 0x66),
+    extended("F16", 186, 0x67),
+    extended("F17", 187, 0x68),
+    extended("F18", 188, 0x69),
+    extended("F19", 189, 0x6A),
+    extended("F20", 190, 0x6B),
+    extended("F21", 191, 0x6C),
+    extended("F22", 192, 0x6D),
+    extended("F23", 193, 0x6E),
+    extended("F24", 194, 0x76),
+];
+
+pub fn find_key(name: &str) -> Option<KeyDefinition> {
+    KEYS.iter().copied().find(|entry| entry.name == name)
+}
+
+impl KeyDefinition {
+    pub fn platform_code(&self) -> u16 {
+        if cfg!(target_os = "windows") {
+            self.windows
+        } else {
+            self.evdev
+        }
+    }
+}
+
+pub mod gamepad {
+    pub const DPAD_UP: u32 = 0x0001;
+    pub const DPAD_DOWN: u32 = 0x0002;
+    pub const DPAD_LEFT: u32 = 0x0004;
+    pub const DPAD_RIGHT: u32 = 0x0008;
+    pub const START: u32 = 0x0010;
+    pub const BACK: u32 = 0x0020;
+    pub const LS: u32 = 0x0040;
+    pub const RS: u32 = 0x0080;
+    pub const LB: u32 = 0x0100;
+    pub const RB: u32 = 0x0200;
+    pub const A: u32 = 0x1000;
+    pub const B: u32 = 0x2000;
+    pub const X: u32 = 0x4000;
+    pub const Y: u32 = 0x8000;
+    pub const LT: u32 = 0x1_0000;
+    pub const RT: u32 = 0x2_0000;
+
+    #[cfg(any(target_os = "windows", test))]
+    const XINPUT_BUTTONS: u32 = 0xF3FF;
+    #[cfg(any(target_os = "windows", test))]
+    const TRIGGER_THRESHOLD: u8 = 30;
+
+    pub fn button_mask(name: &str) -> Option<u32> {
+        Some(match name {
+            "a" => A,
+            "b" => B,
+            "x" => X,
+            "y" => Y,
+            "lb" => LB,
+            "rb" => RB,
+            "lt" => LT,
+            "rt" => RT,
+            "back" => BACK,
+            "start" => START,
+            "ls" => LS,
+            "rs" => RS,
+            "dpadUp" => DPAD_UP,
+            "dpadDown" => DPAD_DOWN,
+            "dpadLeft" => DPAD_LEFT,
+            "dpadRight" => DPAD_RIGHT,
+            _ => return None,
+        })
+    }
+
+    pub fn combo_mask<S: AsRef<str>>(names: &[S]) -> Option<u32> {
+        let mut mask = 0;
+        for name in names {
+            mask |= button_mask(name.as_ref())?;
+        }
+        (mask.count_ones() >= 2).then_some(mask)
+    }
+
+    #[cfg(any(target_os = "windows", test))]
+    pub fn xinput_mask(buttons: u16, left_trigger: u8, right_trigger: u8) -> u32 {
+        let mut mask = u32::from(buttons) & XINPUT_BUTTONS;
+        if left_trigger > TRIGGER_THRESHOLD {
+            mask |= LT;
+        }
+        if right_trigger > TRIGGER_THRESHOLD {
+            mask |= RT;
+        }
+        mask
+    }
+}
+
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+pub struct Modifiers {
+    pub ctrl: bool,
+    pub alt: bool,
+    pub shift: bool,
+    pub meta: bool,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct HotkeyBinding {
+    pub key: KeyDefinition,
+    pub ctrl: bool,
+    pub alt: bool,
+    pub shift: bool,
+}
+
+impl HotkeyBinding {
+    pub fn matches_modifiers(&self, modifiers: Modifiers) -> bool {
+        modifiers.ctrl == self.ctrl
+            && modifiers.alt == self.alt
+            && modifiers.shift == self.shift
+            && !modifiers.meta
+    }
+}
+
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+pub struct InputBinding {
+    pub hotkey: Option<HotkeyBinding>,
+    pub gamepad_mask: u32,
+}
+
+#[derive(Default)]
+pub struct HotkeyMatcher {
+    held: bool,
+}
+
+impl HotkeyMatcher {
+    pub fn on_key(
+        &mut self,
+        code: u16,
+        pressed: bool,
+        binding: &HotkeyBinding,
+        modifiers: Modifiers,
+    ) -> bool {
+        if code != binding.key.platform_code() {
+            return false;
+        }
+        if !pressed {
+            self.held = false;
+            return false;
+        }
+        if self.held {
+            return false;
+        }
+        self.held = true;
+        binding.matches_modifiers(modifiers)
+    }
+}
+
+#[derive(Default)]
+pub struct ComboMatcher {
+    satisfied: bool,
+}
+
+impl ComboMatcher {
+    pub fn update(&mut self, buttons: u32, combo: u32) -> bool {
+        let satisfied = combo != 0 && buttons & combo == combo;
+        let fire = satisfied && !self.satisfied;
+        self.satisfied = satisfied;
+        fire
+    }
+}
+
+#[cfg(any(target_os = "linux", test))]
+pub mod evdev_codes {
+    pub const KEY_ENTER: u16 = 28;
+    pub const KEY_LEFTCTRL: u16 = 29;
+    pub const KEY_A: u16 = 30;
+    pub const KEY_LEFTSHIFT: u16 = 42;
+    pub const KEY_Z: u16 = 44;
+    pub const KEY_RIGHTSHIFT: u16 = 54;
+    pub const KEY_LEFTALT: u16 = 56;
+    pub const KEY_RIGHTCTRL: u16 = 97;
+    pub const KEY_RIGHTALT: u16 = 100;
+    pub const KEY_LEFTMETA: u16 = 125;
+    pub const KEY_RIGHTMETA: u16 = 126;
+
+    pub const BTN_SOUTH: u16 = 0x130;
+    pub const BTN_EAST: u16 = 0x131;
+    pub const BTN_X: u16 = 0x133;
+    pub const BTN_Y: u16 = 0x134;
+    pub const BTN_TL: u16 = 0x136;
+    pub const BTN_TR: u16 = 0x137;
+    pub const BTN_TL2: u16 = 0x138;
+    pub const BTN_TR2: u16 = 0x139;
+    pub const BTN_SELECT: u16 = 0x13a;
+    pub const BTN_START: u16 = 0x13b;
+    pub const BTN_THUMBL: u16 = 0x13d;
+    pub const BTN_THUMBR: u16 = 0x13e;
+    pub const BTN_DPAD_UP: u16 = 0x220;
+    pub const BTN_DPAD_DOWN: u16 = 0x221;
+    pub const BTN_DPAD_LEFT: u16 = 0x222;
+    pub const BTN_DPAD_RIGHT: u16 = 0x223;
+
+    pub const ABS_Z: u16 = 0x02;
+    pub const ABS_RX: u16 = 0x03;
+    pub const ABS_RY: u16 = 0x04;
+    pub const ABS_RZ: u16 = 0x05;
+    pub const ABS_HAT0X: u16 = 0x10;
+    pub const ABS_HAT0Y: u16 = 0x11;
+}
+
+#[cfg(any(target_os = "linux", test))]
+#[derive(Default)]
+pub struct ModifierTracker {
+    ctrl: u8,
+    alt: u8,
+    shift: u8,
+    meta: u8,
+}
+
+#[cfg(any(target_os = "linux", test))]
+impl ModifierTracker {
+    pub fn update(&mut self, code: u16, pressed: bool) -> bool {
+        use evdev_codes::*;
+        let (bit, slot) = match code {
+            KEY_LEFTCTRL => (1, &mut self.ctrl),
+            KEY_RIGHTCTRL => (2, &mut self.ctrl),
+            KEY_LEFTALT => (1, &mut self.alt),
+            KEY_RIGHTALT => (2, &mut self.alt),
+            KEY_LEFTSHIFT => (1, &mut self.shift),
+            KEY_RIGHTSHIFT => (2, &mut self.shift),
+            KEY_LEFTMETA => (1, &mut self.meta),
+            KEY_RIGHTMETA => (2, &mut self.meta),
+            _ => return false,
+        };
+        if pressed {
+            *slot |= bit;
+        } else {
+            *slot &= !bit;
+        }
+        true
+    }
+
+    pub fn current(&self) -> Modifiers {
+        Modifiers {
+            ctrl: self.ctrl != 0,
+            alt: self.alt != 0,
+            shift: self.shift != 0,
+            meta: self.meta != 0,
+        }
+    }
+}
+
+#[cfg(any(target_os = "linux", test))]
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct AxisRange {
+    pub minimum: i32,
+    pub maximum: i32,
+}
+
+#[cfg(any(target_os = "linux", test))]
+impl AxisRange {
+    fn is_pressed(self, value: i32) -> bool {
+        let span = i64::from(self.maximum) - i64::from(self.minimum);
+        span > 0 && (i64::from(value) - i64::from(self.minimum)) * 4 > span
+    }
+}
+
+#[cfg(any(target_os = "linux", test))]
+#[derive(Default)]
+pub struct LinuxGamepadState {
+    pub buttons: u32,
+    pub left_trigger: Option<AxisRange>,
+    pub right_trigger: Option<AxisRange>,
+}
+
+#[cfg(any(target_os = "linux", test))]
+impl LinuxGamepadState {
+    pub fn key_mask(code: u16) -> u32 {
+        use evdev_codes::*;
+        match code {
+            BTN_SOUTH => gamepad::A,
+            BTN_EAST => gamepad::B,
+            BTN_X => gamepad::X,
+            BTN_Y => gamepad::Y,
+            BTN_TL => gamepad::LB,
+            BTN_TR => gamepad::RB,
+            BTN_TL2 => gamepad::LT,
+            BTN_TR2 => gamepad::RT,
+            BTN_SELECT => gamepad::BACK,
+            BTN_START => gamepad::START,
+            BTN_THUMBL => gamepad::LS,
+            BTN_THUMBR => gamepad::RS,
+            BTN_DPAD_UP => gamepad::DPAD_UP,
+            BTN_DPAD_DOWN => gamepad::DPAD_DOWN,
+            BTN_DPAD_LEFT => gamepad::DPAD_LEFT,
+            BTN_DPAD_RIGHT => gamepad::DPAD_RIGHT,
+            _ => 0,
+        }
+    }
+
+    pub fn apply_key(&mut self, code: u16, value: i32) {
+        let mask = Self::key_mask(code);
+        if mask == 0 {
+            return;
+        }
+        if value != 0 {
+            self.buttons |= mask;
+        } else {
+            self.buttons &= !mask;
+        }
+    }
+
+    pub fn apply_axis(&mut self, code: u16, value: i32) {
+        use evdev_codes::*;
+        match code {
+            ABS_HAT0X => {
+                self.buttons &= !(gamepad::DPAD_LEFT | gamepad::DPAD_RIGHT);
+                if value < 0 {
+                    self.buttons |= gamepad::DPAD_LEFT;
+                } else if value > 0 {
+                    self.buttons |= gamepad::DPAD_RIGHT;
+                }
+            }
+            ABS_HAT0Y => {
+                self.buttons &= !(gamepad::DPAD_UP | gamepad::DPAD_DOWN);
+                if value < 0 {
+                    self.buttons |= gamepad::DPAD_UP;
+                } else if value > 0 {
+                    self.buttons |= gamepad::DPAD_DOWN;
+                }
+            }
+            ABS_Z => Self::apply_trigger(&mut self.buttons, self.left_trigger, gamepad::LT, value),
+            ABS_RZ => {
+                Self::apply_trigger(&mut self.buttons, self.right_trigger, gamepad::RT, value)
+            }
+            _ => {}
+        }
+    }
+
+    fn apply_trigger(buttons: &mut u32, range: Option<AxisRange>, mask: u32, value: i32) {
+        let Some(range) = range else {
+            return;
+        };
+        if range.is_pressed(value) {
+            *buttons |= mask;
+        } else {
+            *buttons &= !mask;
+        }
+    }
+}
+
+#[cfg(any(target_os = "linux", test))]
+pub fn is_linux_keyboard(supports_key: impl Fn(u16) -> bool) -> bool {
+    use evdev_codes::*;
+    supports_key(KEY_A) && supports_key(KEY_Z) && supports_key(KEY_ENTER)
+}
+
+#[cfg(any(target_os = "linux", test))]
+pub fn is_linux_gamepad(supports_key: impl Fn(u16) -> bool) -> bool {
+    use evdev_codes::*;
+    !is_linux_keyboard(&supports_key) && (supports_key(BTN_SOUTH) || supports_key(BTN_START))
+}
+
+#[cfg(any(target_os = "linux", test))]
+pub fn linux_trigger_ranges(
+    supports_axis: impl Fn(u16) -> bool,
+    range_of: impl Fn(u16) -> Option<AxisRange>,
+) -> (Option<AxisRange>, Option<AxisRange>) {
+    use evdev_codes::*;
+    if !(supports_axis(ABS_RX) && supports_axis(ABS_RY)) {
+        return (None, None);
+    }
+    let left = supports_axis(ABS_Z).then(|| range_of(ABS_Z)).flatten();
+    let right = supports_axis(ABS_RZ).then(|| range_of(ABS_RZ)).flatten();
+    (left, right)
+}
+
+#[cfg(any(target_os = "windows", test))]
+pub fn windows_scan_code(make_code: u16, flags: u16) -> u16 {
+    const RI_KEY_E0: u16 = 2;
+    const RI_KEY_E1: u16 = 4;
+    let make = make_code & 0x7F;
+    if flags & RI_KEY_E1 != 0 {
+        0xE100 | make
+    } else if flags & RI_KEY_E0 != 0 {
+        0xE000 | make
+    } else {
+        make
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::evdev_codes::*;
+    use super::*;
+
+    fn f10() -> HotkeyBinding {
+        HotkeyBinding {
+            key: find_key("F10").unwrap(),
+            ctrl: false,
+            alt: false,
+            shift: false,
+        }
+    }
+
+    #[test]
+    fn key_table_has_unique_names_and_codes() {
+        for (index, entry) in KEYS.iter().enumerate() {
+            for other in &KEYS[index + 1..] {
+                assert_ne!(entry.name, other.name);
+                assert_ne!(entry.evdev, other.evdev, "{}", entry.name);
+                assert_ne!(entry.windows, other.windows, "{}", entry.name);
+            }
+        }
+    }
+
+    #[test]
+    fn function_keys_map_to_expected_codes() {
+        assert_eq!(find_key("F10").unwrap().evdev, 68);
+        assert_eq!(find_key("F10").unwrap().windows, 0x44);
+        assert_eq!(find_key("F12").unwrap().evdev, 88);
+        assert_eq!(find_key("F13").unwrap().evdev, 183);
+        assert_eq!(find_key("F13").unwrap().windows, 0x64);
+        assert_eq!(find_key("Insert").unwrap().windows, 0xE052);
+        assert!(find_key("MetaLeft").is_none());
+    }
+
+    #[test]
+    fn hotkey_fires_once_per_press_and_ignores_repeats() {
+        let binding = f10();
+        let code = binding.key.platform_code();
+        let mut matcher = HotkeyMatcher::default();
+        let none = Modifiers::default();
+        assert!(matcher.on_key(code, true, &binding, none));
+        assert!(!matcher.on_key(code, true, &binding, none));
+        assert!(!matcher.on_key(code, false, &binding, none));
+        assert!(matcher.on_key(code, true, &binding, none));
+        assert!(!matcher.on_key(67, true, &binding, none));
+    }
+
+    #[test]
+    fn hotkey_requires_exact_modifiers() {
+        let binding = HotkeyBinding {
+            ctrl: true,
+            ..f10()
+        };
+        let code = binding.key.platform_code();
+        let mut matcher = HotkeyMatcher::default();
+        assert!(!matcher.on_key(code, true, &binding, Modifiers::default()));
+        matcher.on_key(code, false, &binding, Modifiers::default());
+        let ctrl = Modifiers {
+            ctrl: true,
+            ..Modifiers::default()
+        };
+        assert!(matcher.on_key(code, true, &binding, ctrl));
+        matcher.on_key(code, false, &binding, ctrl);
+        let ctrl_shift = Modifiers {
+            shift: true,
+            ..ctrl
+        };
+        assert!(!matcher.on_key(code, true, &binding, ctrl_shift));
+        matcher.on_key(code, false, &binding, ctrl);
+        let ctrl_meta = Modifiers { meta: true, ..ctrl };
+        assert!(!matcher.on_key(code, true, &binding, ctrl_meta));
+    }
+
+    #[test]
+    fn modifier_tracker_handles_both_sides() {
+        let mut tracker = ModifierTracker::default();
+        assert!(tracker.update(KEY_LEFTCTRL, true));
+        assert!(tracker.update(KEY_RIGHTCTRL, true));
+        tracker.update(KEY_LEFTCTRL, false);
+        assert!(tracker.current().ctrl);
+        tracker.update(KEY_RIGHTCTRL, false);
+        assert!(!tracker.current().ctrl);
+        tracker.update(KEY_RIGHTALT, true);
+        tracker.update(KEY_LEFTMETA, true);
+        assert_eq!(
+            tracker.current(),
+            Modifiers {
+                ctrl: false,
+                alt: true,
+                shift: false,
+                meta: true
+            }
+        );
+        assert!(!tracker.update(68, true));
+    }
+
+    #[test]
+    fn combo_mask_requires_two_known_buttons() {
+        assert_eq!(
+            gamepad::combo_mask(&["back", "rb"]),
+            Some(gamepad::BACK | gamepad::RB)
+        );
+        assert_eq!(gamepad::combo_mask(&["back"]), None);
+        assert_eq!(gamepad::combo_mask(&["back", "guide"]), None);
+        assert_eq!(gamepad::combo_mask::<&str>(&[]), None);
+    }
+
+    #[test]
+    fn combo_fires_on_edge_only() {
+        let combo = gamepad::BACK | gamepad::RB;
+        let mut matcher = ComboMatcher::default();
+        assert!(!matcher.update(gamepad::BACK, combo));
+        assert!(matcher.update(gamepad::BACK | gamepad::RB, combo));
+        assert!(!matcher.update(gamepad::BACK | gamepad::RB | gamepad::A, combo));
+        assert!(!matcher.update(gamepad::RB, combo));
+        assert!(matcher.update(combo, combo));
+        assert!(!matcher.update(combo, 0));
+    }
+
+    #[test]
+    fn xinput_mask_maps_triggers_with_threshold() {
+        assert_eq!(
+            gamepad::xinput_mask(0x0220, 0, 0),
+            gamepad::BACK | gamepad::RB
+        );
+        assert_eq!(gamepad::xinput_mask(0, 31, 30), gamepad::LT);
+        assert_eq!(gamepad::xinput_mask(0x0400, 0, 255), gamepad::RT);
+    }
+
+    #[test]
+    fn linux_gamepad_buttons_and_hat() {
+        let mut state = LinuxGamepadState::default();
+        state.apply_key(BTN_SELECT, 1);
+        state.apply_key(BTN_TR, 1);
+        assert_eq!(state.buttons, gamepad::BACK | gamepad::RB);
+        state.apply_key(BTN_TR, 0);
+        assert_eq!(state.buttons, gamepad::BACK);
+        state.apply_axis(ABS_HAT0X, -1);
+        assert_eq!(state.buttons, gamepad::BACK | gamepad::DPAD_LEFT);
+        state.apply_axis(ABS_HAT0X, 1);
+        assert_eq!(state.buttons, gamepad::BACK | gamepad::DPAD_RIGHT);
+        state.apply_axis(ABS_HAT0X, 0);
+        state.apply_axis(ABS_HAT0Y, -1);
+        assert_eq!(state.buttons, gamepad::BACK | gamepad::DPAD_UP);
+        state.apply_axis(ABS_HAT0Y, 1);
+        assert_eq!(state.buttons, gamepad::BACK | gamepad::DPAD_DOWN);
+        state.apply_key(BTN_X, 1);
+        state.apply_key(BTN_Y, 1);
+        state.apply_key(0x110, 1);
+        assert_eq!(
+            state.buttons,
+            gamepad::BACK | gamepad::DPAD_DOWN | gamepad::X | gamepad::Y
+        );
+    }
+
+    #[test]
+    fn linux_analog_triggers_only_with_right_stick() {
+        let range = AxisRange {
+            minimum: 0,
+            maximum: 255,
+        };
+        let generic = linux_trigger_ranges(|axis| axis == ABS_Z || axis == ABS_RZ, |_| Some(range));
+        assert_eq!(generic, (None, None));
+        let xpad = linux_trigger_ranges(
+            |axis| matches!(axis, ABS_Z | ABS_RZ | ABS_RX | ABS_RY),
+            |_| Some(range),
+        );
+        assert_eq!(xpad, (Some(range), Some(range)));
+
+        let mut state = LinuxGamepadState {
+            left_trigger: xpad.0,
+            right_trigger: xpad.1,
+            ..LinuxGamepadState::default()
+        };
+        state.apply_axis(ABS_RZ, 60);
+        assert_eq!(state.buttons, 0);
+        state.apply_axis(ABS_RZ, 200);
+        assert_eq!(state.buttons, gamepad::RT);
+        state.apply_axis(ABS_RZ, 0);
+        assert_eq!(state.buttons, 0);
+        state.apply_axis(ABS_Z, 255);
+        assert_eq!(state.buttons, gamepad::LT);
+    }
+
+    #[test]
+    fn linux_device_classification() {
+        let keyboard = |code: u16| matches!(code, KEY_A | KEY_Z | KEY_ENTER | KEY_LEFTSHIFT);
+        let pad = |code: u16| matches!(code, BTN_SOUTH | BTN_EAST | BTN_START | BTN_SELECT);
+        let power_button = |code: u16| code == 116;
+        assert!(is_linux_keyboard(keyboard));
+        assert!(!is_linux_gamepad(keyboard));
+        assert!(is_linux_gamepad(pad));
+        assert!(!is_linux_keyboard(pad));
+        assert!(!is_linux_keyboard(power_button));
+        assert!(!is_linux_gamepad(power_button));
+    }
+
+    #[test]
+    fn windows_scan_codes_cover_prefixes() {
+        assert_eq!(windows_scan_code(0x44, 0), 0x44);
+        assert_eq!(windows_scan_code(0x44, 1), 0x44);
+        assert_eq!(windows_scan_code(0x52, 2), 0xE052);
+        assert_eq!(windows_scan_code(0x52, 3), 0xE052);
+        assert_eq!(windows_scan_code(0x1D, 4), 0xE11D);
+        assert_eq!(
+            windows_scan_code(0x37, 2),
+            find_key("PrintScreen").unwrap().windows
+        );
+    }
+}
