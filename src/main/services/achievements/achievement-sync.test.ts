@@ -208,6 +208,13 @@ test("sixteen local merges preserve every unlock and coalesce into at most two P
   );
   assert.equal(f.requests.length, 1);
   f.requests[0]!.gate.resolve(undefined);
+  for (let round = 0; round < 20; round++)
+    await new Promise((resolve) => setImmediate(resolve));
+  assert.equal(f.requests.length, 1);
+  const coalesced = [...f.records.values()][0]!;
+  assert.ok(coalesced.nextAttemptAt > Date.now());
+  coalesced.nextAttemptAt = 0;
+  void f.achievementSyncWorker.trigger();
   await f.untilRequest(2);
   assert.equal(f.requests[1]!.body.achievements.length, 16);
   f.requests[1]!.gate.resolve(undefined);
@@ -451,6 +458,8 @@ test(
       while (!state.requests.length) await new Promise(resolve=>setImmediate(resolve));
       const acknowledgements = setInterval(() => { for (const request of state.requests) { if (!request.completed) { request.completed = true; request.gate.resolve(undefined); } } }, 5);
       await source.achievementSyncWorker.trigger();
+      for (const item of state.records.values()) item.nextAttemptAt = 0;
+      await source.achievementSyncWorker.trigger();
       clearInterval(acknowledgements);
       assert.ok(state.requests.length <= 2);
       assert.equal(source.AchievementMemoryStore.get('steam','620').unlockedAchievements.length,16);
@@ -655,7 +664,7 @@ test("new unlocks preserve a rate-limit retry deadline", async (t) => {
   const original = [...f.records.values()][0]!;
   await f.mergeAchievements(f.game, [{ name: "B", unlockTime: 2 }], false);
   const latest = [...f.records.values()][0]!;
-  assert.equal(latest.nextAttemptAt, original.nextAttemptAt);
+  assert.ok(latest.nextAttemptAt >= original.nextAttemptAt);
   assert.equal(latest.attempts, original.attempts);
   await f.achievementSyncWorker.trigger();
   assert.equal(f.requests.length, 1);
@@ -685,4 +694,155 @@ test("a failed in-flight request defers the newer coalesced snapshot", async (t)
   );
   await f.achievementSyncWorker.trigger();
   assert.equal(f.requests.length, 1);
+});
+
+const acknowledgeAll = async (f: Awaited<ReturnType<typeof fixture>>) => {
+  for (let round = 0; round < 20; round++) {
+    for (const request of f.requests) request.gate.resolve(undefined);
+    void f.achievementSyncWorker.trigger();
+    await new Promise((resolve) => setImmediate(resolve));
+  }
+};
+
+const rewrittenUnlocks = [
+  { name: "A", unlockTime: 1 },
+  { name: "B", unlockTime: 2 },
+];
+
+test("watcher rewrites of an unchanged achievement file send one PUT", async (t) => {
+  const f = await fixture(t);
+  for (let tick = 0; tick < 16; tick++) {
+    await f.mergeAchievements(f.game, rewrittenUnlocks, true);
+    await acknowledgeAll(f);
+  }
+  assert.equal(f.requests.length, 1);
+  assert.equal(f.records.size, 0);
+});
+
+test("an unchanged merge during an in-flight PUT does not resend", async (t) => {
+  const f = await fixture(t);
+  await f.mergeAchievements(f.game, rewrittenUnlocks, true);
+  await f.untilRequest(1);
+  await f.mergeAchievements(f.game, [], false);
+  await acknowledgeAll(f);
+  assert.equal(f.requests.length, 1);
+  assert.equal(f.records.size, 0);
+});
+
+test("unlocks inside the coalesce window are sent together once it elapses", async (t) => {
+  const f = await fixture(t);
+  for (let tick = 0; tick < 4; tick++) {
+    await f.mergeAchievements(
+      f.game,
+      [{ name: `N${tick}`, unlockTime: tick + 1 }],
+      true
+    );
+    await acknowledgeAll(f);
+  }
+  assert.equal(f.requests.length, 1);
+  const coalesced = [...f.records.values()][0]!;
+  assert.ok(coalesced.nextAttemptAt > Date.now());
+  coalesced.nextAttemptAt = 0;
+  await acknowledgeAll(f);
+  assert.equal(f.requests.length, 2);
+  assert.deepEqual(
+    f.requests[1]!.body.achievements.map((item) => item.name),
+    ["N0", "N1", "N2", "N3"]
+  );
+  assert.equal(f.records.size, 0);
+});
+
+test("a reordered server response does not cause a resend of the same unlocks", async (t) => {
+  const f = await fixture(t);
+  await f.mergeAchievements(f.game, rewrittenUnlocks, true);
+  await f.untilRequest(1);
+  f.requests[0]!.gate.resolve({
+    shop: "steam",
+    objectId: "620",
+    achievements: [
+      { name: "b", unlockTime: 2 },
+      { name: "a", unlockTime: 1 },
+    ],
+  });
+  await acknowledgeAll(f);
+  await f.mergeAchievements(f.game, rewrittenUnlocks, true);
+  await acknowledgeAll(f);
+  assert.equal(f.requests.length, 1);
+  assert.equal(f.records.size, 0);
+});
+
+test("a reset forgets the acknowledged payload so the same unlocks sync again", async (t) => {
+  const f = await fixture(t);
+  await f.mergeAchievements(f.game, rewrittenUnlocks, true);
+  await acknowledgeAll(f);
+  await f.achievementSyncWorker.cancelGame("steam:620");
+  f.AchievementMemoryStore.set("steam", "620", {
+    achievements: [],
+    unlockedAchievements: [],
+  });
+  await f.mergeAchievements(f.game, rewrittenUnlocks, true);
+  assert.equal(f.records.size, 1);
+  [...f.records.values()][0]!.nextAttemptAt = 0;
+  await acknowledgeAll(f);
+  assert.equal(f.requests.length, 2);
+  assert.equal(f.records.size, 0);
+});
+
+test("the worker wakes itself to send coalesced unlocks when the window ends", async (t) => {
+  const f = await fixture(t);
+  t.mock.timers.enable({ apis: ["setTimeout", "Date"], now: Date.now() });
+  await f.mergeAchievements(f.game, [{ name: "N0", unlockTime: 1 }], true);
+  await f.untilRequest(1);
+  f.requests[0]!.gate.resolve(undefined);
+  await acknowledgeAll(f);
+  await f.mergeAchievements(f.game, [{ name: "N1", unlockTime: 2 }], true);
+  await acknowledgeAll(f);
+  assert.equal(f.requests.length, 1);
+  t.mock.timers.tick(4_000);
+  await acknowledgeAll(f);
+  assert.equal(f.requests.length, 1);
+  t.mock.timers.tick(1_000);
+  await f.untilRequest(2);
+  assert.deepEqual(
+    f.requests[1]!.body.achievements.map((item) => item.name),
+    ["N0", "N1"]
+  );
+  f.requests[1]!.gate.resolve(undefined);
+  await acknowledgeAll(f);
+  assert.equal(f.records.size, 0);
+});
+
+test("a rejected list is not resent in the same session but is retried after a restart", async (t) => {
+  const f = await fixture(t);
+  await f.mergeAchievements(f.game, rewrittenUnlocks, true);
+  await f.untilRequest(1);
+  f.requests[0]!.gate.reject({
+    isAxiosError: true,
+    response: { status: 400, headers: {} },
+  });
+  await acknowledgeAll(f);
+  const rejected = [...f.records.values()][0]!;
+  assert.equal(rejected.terminal, true);
+  for (let tick = 0; tick < 16; tick++)
+    await f.mergeAchievements(f.game, rewrittenUnlocks, true);
+  assert.equal([...f.records.values()][0], rejected);
+  const restarted = new f.AchievementSyncWorker();
+  t.after(() => restarted.stop());
+  await restarted.enqueue({
+    context: f.state.context!,
+    gameKey: "steam:620",
+    remoteId: f.game.remoteId!,
+    shop: "steam",
+    objectId: "620",
+    achievements: rewrittenUnlocks,
+  });
+  const retried = [...f.records.values()][0]!;
+  assert.notEqual(retried.revision, rejected.revision);
+  assert.equal(retried.terminal, undefined);
+  retried.nextAttemptAt = 0;
+  void restarted.trigger();
+  await f.untilRequest(2);
+  f.requests[1]!.gate.resolve(undefined);
+  await acknowledgeAll(f);
+  assert.equal(f.records.size, 0);
 });
