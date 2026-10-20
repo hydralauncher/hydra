@@ -54,6 +54,7 @@ import type {
 import {
   buildScreenshotNotificationTarget,
   buildSouvenirNotificationTarget,
+  isScreenshotNotificationType,
   CLOUD_GIFT_ID_VARIABLE,
   CLOUD_GIFT_RECEIVED_NOTIFICATION,
   NOTIFICATIONS_FETCH_FILTER,
@@ -183,12 +184,6 @@ function getApiNotificationContent(
   }
 }
 
-const SCREENSHOT_NOTIFICATION_TYPES = new Set<Notification["type"]>([
-  "SCREENSHOT_LIKE",
-  "SCREENSHOT_COMMENT",
-  "SCREENSHOT_BLOCKED",
-]);
-
 function getScreenshotNotificationKeyPrefix(type: Notification["type"]) {
   if (type === "SCREENSHOT_COMMENT") return "screenshots_notification_comment";
   if (type === "SCREENSHOT_BLOCKED") return "screenshots_notification_blocked";
@@ -250,7 +245,7 @@ function isAchievementNotification(notification: MergedNotification) {
 function getNotificationUrl(notification: MergedNotification) {
   if (
     notification.source === "api" &&
-    SCREENSHOT_NOTIFICATION_TYPES.has(notification.type)
+    isScreenshotNotificationType(notification.type)
   ) {
     const ownerId = notification.variables.ownerId;
     const baseUrl =
