@@ -15,7 +15,13 @@ import {
   VerticalFocusGroup,
 } from "../../components";
 import { ConfirmationModal } from "../../components/modals";
-import { useUserDetails, useUserPreferences } from "../../hooks";
+import { IS_DESKTOP } from "../../constants";
+import {
+  Feature,
+  useFeature,
+  useUserDetails,
+  useUserPreferences,
+} from "../../hooks";
 import type { FocusOverrides } from "../../services";
 import {
   CONTENT_ITEM_FOCUS_IDS,
@@ -23,6 +29,10 @@ import {
   SETTINGS_HEADER_RETURN_TARGET,
 } from "./settings-navigation";
 import { SettingsSection } from "./settings-section";
+import {
+  SCREENSHOT_SETTINGS_FOCUS_IDS,
+  ScreenshotSettingsSection,
+} from "./screenshots-section";
 import { isAchievementSouvenirsEnabled } from "@shared";
 import type { UserPreferences } from "@types";
 
@@ -47,6 +57,13 @@ interface ContentItem {
   checked: boolean;
   onChange: (checked: boolean) => void;
 }
+
+const getContentBottomTarget = (
+  showScreenshotSettings: boolean
+): FocusOverrides["down"] =>
+  showScreenshotSettings
+    ? { type: "item", itemId: SCREENSHOT_SETTINGS_FOCUS_IDS.enabled }
+    : { type: "block" };
 
 const DEFAULT_FORM: ContentForm = {
   autoplayGameTrailers: true,
@@ -84,6 +101,9 @@ export function ContentSettingsSection({
   const { t } = useTranslation("settings");
   const userPreferences = useUserPreferences();
   const { hasActiveSubscription } = useUserDetails();
+  const { isFeatureEnabled } = useFeature();
+  const showScreenshotSettings =
+    IS_DESKTOP && isFeatureEnabled(Feature.Screenshots);
   const [form, setForm] = useState<ContentForm>(() =>
     buildForm(userPreferences)
   );
@@ -130,8 +150,10 @@ export function ContentSettingsSection({
   }, [updateUserPreferences]);
 
   const supportsSouvenirs = hasActiveSubscription;
+  const showSouvenirScreenshotsDirectory =
+    supportsSouvenirs && !showScreenshotSettings;
   const canManageScreenshots =
-    supportsSouvenirs && form.enableAchievementSouvenirs;
+    showSouvenirScreenshotsDirectory && form.enableAchievementSouvenirs;
 
   const handleChooseScreenshotsPath = useCallback(async () => {
     if (!canManageScreenshots) return;
@@ -283,14 +305,12 @@ export function ContentSettingsSection({
                   type: "item",
                   itemId: nextFocusId,
                 }
-              : {
-                  type: "block",
-                },
+              : getContentBottomTarget(showScreenshotSettings),
           } satisfies FocusOverrides,
         ];
       })
     );
-  }, [navigationFocusIds]);
+  }, [navigationFocusIds, showScreenshotSettings]);
 
   const renderItem = (item: ContentItem) => (
     <Checkbox
@@ -321,7 +341,7 @@ export function ContentSettingsSection({
           <div className="content-settings-section__content">
             {items.map(renderItem)}
 
-            {supportsSouvenirs && (
+            {showSouvenirScreenshotsDirectory && (
               <div className="content-settings-section__screenshots-directory">
                 <span className="content-settings-section__screenshots-label">
                   {t("screenshots_directory")}
@@ -417,6 +437,12 @@ export function ContentSettingsSection({
           </div>
         </VerticalFocusGroup>
       </SettingsSection>
+
+      {showScreenshotSettings ? (
+        <ScreenshotSettingsSection
+          upFocusId={navigationFocusIds.at(-1) ?? null}
+        />
+      ) : null}
 
       <ConfirmationModal
         visible={showWaylandSouvenirsWarning}

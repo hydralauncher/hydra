@@ -11,8 +11,8 @@ import type {
 } from "@types";
 import {
   buildUserScreenshotGamesPath,
+  DEFAULT_SCREENSHOT_HOTKEY,
   buildUserScreenshotsPath,
-  formatScreenshotHotkey,
 } from "@shared";
 import { logger } from "@renderer/logger";
 
@@ -24,6 +24,7 @@ import {
 } from "../../components";
 import {
   ScreenshotRow,
+  formatScreenshotHotkeyLabel,
   useScreenshotFeed,
 } from "../../components/pages/screenshots";
 import { BIG_PICTURE_SIDEBAR_PROFILE_ID } from "../../layout";
@@ -232,7 +233,7 @@ function getEmptyStateCopy({
     return {
       title: "screenshots_empty_own",
       description: "screenshots_empty_own_hint",
-      hotkey: formatScreenshotHotkey(hotkey),
+      hotkey: formatScreenshotHotkeyLabel(hotkey ?? DEFAULT_SCREENSHOT_HOTKEY),
     };
 
   return { title: "screenshots_empty_other", description: null };
