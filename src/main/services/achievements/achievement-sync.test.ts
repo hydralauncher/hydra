@@ -852,8 +852,10 @@ const serverError = {
   response: { status: 500, headers: {} },
 };
 
+const SETTLE_EVENT_LOOP_TURNS = 20;
+
 const settle = async () => {
-  for (let round = 0; round < 20; round++)
+  for (let round = 0; round < SETTLE_EVENT_LOOP_TURNS; round++)
     await new Promise((resolve) => setImmediate(resolve));
 };
 
