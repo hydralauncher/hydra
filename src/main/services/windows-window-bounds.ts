@@ -10,6 +10,8 @@ import {
 
 const execFileAsync = promisify(execFile);
 
+const WINDOW_BOUNDS_TIMEOUT_MS = 5_000;
+
 const buildWindowBoundsScript = (windowHandle: string) =>
   [
     'Add-Type -TypeDefinition \'using System; using System.Runtime.InteropServices; public static class HydraWindowBounds { [StructLayout(LayoutKind.Sequential)] public struct RECT { public int Left; public int Top; public int Right; public int Bottom; } [StructLayout(LayoutKind.Sequential)] public struct POINT { public int X; public int Y; } [DllImport("user32.dll")] public static extern IntPtr SetThreadDpiAwarenessContext(IntPtr context); [DllImport("dwmapi.dll")] public static extern int DwmGetWindowAttribute(IntPtr hWnd, int attribute, out RECT value, int size); [DllImport("user32.dll")] public static extern bool GetClientRect(IntPtr hWnd, out RECT rect); [DllImport("user32.dll")] public static extern bool ClientToScreen(IntPtr hWnd, ref POINT point); }\'',
@@ -42,7 +44,7 @@ export const cropToWindowClientArea = async (
         "-Command",
         buildWindowBoundsScript(windowHandle),
       ],
-      { windowsHide: true }
+      { windowsHide: true, timeout: WINDOW_BOUNDS_TIMEOUT_MS }
     );
     const [frameBounds, clientBounds] = stdout.split(/\r?\n/);
     const clientArea = getClientAreaCrop(

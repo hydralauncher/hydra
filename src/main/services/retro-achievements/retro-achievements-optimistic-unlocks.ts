@@ -4,6 +4,21 @@ import type { DetectedRetroAchievementUnlock } from "./retro-achievements-unlock
 
 export const retroAchievementKey = (name: string) => name.toUpperCase();
 
+export const countSessionUnlocks = (
+  catalogue: SteamAchievement[],
+  unlockedNames: Iterable<string>,
+  notifiedKeys: ReadonlySet<string>
+) => {
+  const unlockedKeys = new Set(
+    Array.from(unlockedNames, (name) => retroAchievementKey(name))
+  );
+
+  return catalogue.filter((achievement) => {
+    const key = retroAchievementKey(achievement.name);
+    return unlockedKeys.has(key) || notifiedKeys.has(key);
+  }).length;
+};
+
 export const selectOptimisticUnlocks = (
   detected: DetectedRetroAchievementUnlock[],
   catalogue: SteamAchievement[],

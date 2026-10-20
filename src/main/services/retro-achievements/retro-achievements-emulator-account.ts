@@ -77,7 +77,7 @@ export const saveRetroAchievementsEmulatorAccount = async (
   );
 };
 
-const readStoredAccount = async () =>
+const readStoredAccount = () =>
   db
     .get<
       string,

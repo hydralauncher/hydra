@@ -11,6 +11,7 @@ import {
   type DetectedRetroAchievementUnlock,
 } from "./retro-achievements-unlock-confirmer";
 import {
+  countSessionUnlocks,
   retroAchievementKey,
   selectOptimisticUnlocks,
 } from "./retro-achievements-optimistic-unlocks";
@@ -93,9 +94,11 @@ export const createRetroAchievementsRealtimeUnlocks = (game: Game) => {
       notifiedKeys.add(retroAchievementKey(name));
     }
 
-    const unlockedAchievementCount =
-      new Set(unlockedNames.map(retroAchievementKey)).size +
-      achievements.length;
+    const unlockedAchievementCount = countSessionUnlocks(
+      cached.achievements,
+      unlockedNames,
+      notifiedKeys
+    );
 
     achievementsLogger.info("Notified detected RetroAchievements unlocks", {
       objectId: game.objectId,

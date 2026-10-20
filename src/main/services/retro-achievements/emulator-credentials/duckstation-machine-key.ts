@@ -11,7 +11,7 @@ const readWindowsMachineGuid = async () => {
     "reg.exe",
     [
       "query",
-      "HKLM\\SOFTWARE\\Microsoft\\Cryptography",
+      String.raw`HKLM\SOFTWARE\Microsoft\Cryptography`,
       "/v",
       "MachineGuid",
       "/reg:64",

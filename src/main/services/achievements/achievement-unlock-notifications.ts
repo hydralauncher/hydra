@@ -86,7 +86,7 @@ export const publishAchievementUnlockNotifications = ({
       WindowManager.sendAchievementToFocusedWindow(position, achievementsInfo);
 
     if (!shownInApp) {
-      publishOsNotification();
+      void publishOsNotification();
     }
   } else if (customEnabled) {
     // No OS fallback: the user opted into the custom notification, so a failure
@@ -96,6 +96,6 @@ export const publishAchievementUnlockNotifications = ({
       achievementsInfo
     );
   } else {
-    publishOsNotification();
+    void publishOsNotification();
   }
 };

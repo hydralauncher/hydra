@@ -125,13 +125,16 @@ const absolutePaths = (paths: string[]) =>
 const readText = (filePath: string) =>
   fs.promises.readFile(filePath, "utf8").catch(() => null);
 
+const CREDENTIAL_FILE_MODE = 0o600;
+
 const writeIfChanged = async (
   filePath: string,
   original: string,
-  updated: string
+  updated: string,
+  mode?: number
 ) => {
   if (updated === original) return;
-  await fs.promises.writeFile(filePath, updated, "utf8");
+  await fs.promises.writeFile(filePath, updated, { encoding: "utf8", mode });
 };
 
 const unixTimestamp = () => Math.floor(Date.now() / 1000);
@@ -344,16 +347,19 @@ const HANDLERS: Record<CredentialEmulator, CredentialHandler> = {
           )
         );
       } else {
-        await writeIfChanged(
-          secretsPath,
-          secretsContent,
-          writePcsx2Token(secretsContent, account.token)
-        );
-        await writeIfChanged(
-          configPath,
-          content,
-          writePcsx2Account(content, account.username, unixTimestamp())
-        );
+        const updatedSecrets = writePcsx2Token(secretsContent, account.token);
+        await writeIfChanged(secretsPath, secretsContent, updatedSecrets);
+
+        try {
+          await writeIfChanged(
+            configPath,
+            content,
+            writePcsx2Account(content, account.username, unixTimestamp())
+          );
+        } catch (error) {
+          await writeIfChanged(secretsPath, updatedSecrets, secretsContent);
+          throw error;
+        }
       }
 
       return configPath;
@@ -407,12 +413,22 @@ const HANDLERS: Record<CredentialEmulator, CredentialHandler> = {
         return null;
       }
 
-      await fs.promises.writeFile(tokenPath, account.token, "utf8");
-      await writeIfChanged(
-        configPath,
-        content,
-        writePpssppUsername(content, account.username)
-      );
+      await fs.promises.writeFile(tokenPath, account.token, {
+        encoding: "utf8",
+        mode: CREDENTIAL_FILE_MODE,
+      });
+
+      try {
+        await writeIfChanged(
+          configPath,
+          content,
+          writePpssppUsername(content, account.username)
+        );
+      } catch (error) {
+        await fs.promises.rm(tokenPath, { force: true });
+        throw error;
+      }
+
       return configPath;
     },
     clear: async (configPath, username) => {
@@ -453,7 +469,8 @@ const HANDLERS: Record<CredentialEmulator, CredentialHandler> = {
       await writeIfChanged(
         configPath,
         content,
-        writeDolphinAccount(content, account.username, account.token)
+        writeDolphinAccount(content, account.username, account.token),
+        CREDENTIAL_FILE_MODE
       );
       return configPath;
     },
@@ -557,6 +574,39 @@ const enqueue = (task: () => Promise<void>) => {
   return queue;
 };
 
+const signInEmulator = async (
+  target: CredentialTarget,
+  account: RetroAchievementsEmulatorAccount,
+  processes: Awaited<ReturnType<typeof NativeAddon.listProcesses>>
+): Promise<CredentialWrite | null> => {
+  if (isEmulatorRunning(processes, target)) {
+    logger.info("Skipped RetroAchievements sign-in for a running emulator", {
+      emulator: target.emulator,
+    });
+    return null;
+  }
+
+  try {
+    const configPath = await HANDLERS[target.emulator].apply(
+      target.executablePath,
+      account
+    );
+    if (!configPath) return null;
+
+    logger.info("Signed emulator into RetroAchievements", {
+      emulator: target.emulator,
+      configPath,
+    });
+    return { emulator: target.emulator, configPath };
+  } catch (error) {
+    logger.error("Failed to sign emulator into RetroAchievements", {
+      emulator: target.emulator,
+      error,
+    });
+    return null;
+  }
+};
+
 export const syncRetroAchievementsEmulatorCredentials = (
   only?: CredentialEmulator | null
 ) =>
@@ -572,48 +622,25 @@ export const syncRetroAchievementsEmulatorCredentials = (
     if (targets.length === 0) return;
 
     const processes = await NativeAddon.listProcesses().catch(() => []);
+    const signedInWrites = await Promise.all(
+      targets.map((target) => signInEmulator(target, account, processes))
+    );
     const writes = await loadCredentialWrites();
     let changed = false;
 
-    for (const target of targets) {
-      if (isEmulatorRunning(processes, target)) {
-        logger.info(
-          "Skipped RetroAchievements sign-in for a running emulator",
-          {
-            emulator: target.emulator,
-          }
-        );
+    for (const write of signedInWrites) {
+      if (
+        !write ||
+        writes.some(
+          (existing) =>
+            existing.emulator === write.emulator &&
+            existing.configPath === write.configPath
+        )
+      ) {
         continue;
       }
-
-      try {
-        const configPath = await HANDLERS[target.emulator].apply(
-          target.executablePath,
-          account
-        );
-        if (!configPath) continue;
-
-        logger.info("Signed emulator into RetroAchievements", {
-          emulator: target.emulator,
-          configPath,
-        });
-
-        if (
-          !writes.some(
-            (write) =>
-              write.emulator === target.emulator &&
-              write.configPath === configPath
-          )
-        ) {
-          writes.push({ emulator: target.emulator, configPath });
-          changed = true;
-        }
-      } catch (error) {
-        logger.error("Failed to sign emulator into RetroAchievements", {
-          emulator: target.emulator,
-          error,
-        });
-      }
+      writes.push(write);
+      changed = true;
     }
 
     if (changed) await saveCredentialWrites(writes);
