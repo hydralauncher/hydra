@@ -23,9 +23,12 @@ LEGENDARY_REQUEST_TIMEOUT_SECONDS = 15
 CAPABILITIES = ["inspect-target", "install-target", "access-only", "refresh-session", "install-components"]
 SDL_MAX_PACKS = 64
 SDL_MAX_TAGS = 64
+SDL_ID_MAX_LENGTH = 64
+SDL_NAME_MAX_LENGTH = 128
+INSTALL_TAG_MAX_LENGTH = 128
 IDENTITY = re.compile(r"[A-Za-z0-9_.-]{1,256}")
-SDL_ID = re.compile(r"[A-Za-z0-9_.-]{1,64}")
-INSTALL_TAG = re.compile(r"[A-Za-z0-9_.-]{0,128}")
+SDL_ID = re.compile(r"[A-Za-z0-9_.-]{1,%d}" % SDL_ID_MAX_LENGTH)
+INSTALL_TAG = re.compile(r"[A-Za-z0-9_.-]{0,%d}" % INSTALL_TAG_MAX_LENGTH)
 
 
 class ManagedError(Exception):
@@ -226,7 +229,7 @@ def valid_sdl(data):
         tags, name = pack.get("tags"), pack.get("name")
         if not isinstance(tags, list) or not tags or len(tags) > SDL_MAX_TAGS or not all(isinstance(tag, str) and INSTALL_TAG.fullmatch(tag) for tag in tags):
             return False
-        if not isinstance(name, str) or not name.strip() or len(name) > 128:
+        if not isinstance(name, str) or not name.strip() or len(name) > SDL_NAME_MAX_LENGTH:
             return False
     return any(key != "__required" for key in data)
 
@@ -237,6 +240,8 @@ def selective_packs(definition, parsed):
     chunks = {chunk.guid_num: chunk.file_size for chunk in parsed.chunk_data_list.elements}
     files = parsed.file_manifest_list.elements
     base_files = [file for file in files if not file.install_tags or required.intersection(file.install_tags)]
+    # Partitioned once: each pack only scans the files outside the required set.
+    optional_files = [file for file in files if file.install_tags and not required.intersection(file.install_tags)]
     base_chunks = {part.guid_num for file in base_files for part in file.chunk_parts}
 
     def sizes(selected):
@@ -249,7 +254,7 @@ def selective_packs(definition, parsed):
         if key == "__required":
             continue
         tags = set(pack["tags"])
-        download, disk = sizes([file for file in files if file not in base_files and tags.intersection(file.install_tags)])
+        download, disk = sizes([file for file in optional_files if tags.intersection(file.install_tags)])
         packs.append({"id": key, "name": pack["name"].strip(), "tags": list(pack["tags"]), "download_size": download, "disk_size": disk})
     return {"required_tags": sorted(required), "download_size": base_download, "disk_size": sum(file.file_size for file in base_files), "packs": packs}
 

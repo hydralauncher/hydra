@@ -60,8 +60,7 @@ export function EpicInstallModal({
     install.starting ||
     !install.option ||
     !install.result?.connectionId ||
-    !install.path ||
-    install.insufficientSpace;
+    !install.path;
   const components = install.option?.components ?? [];
   const dlcs = install.option?.dlcs ?? [];
   const pendingDlcs = dlcs.filter((dlc) => !dlc.installed);

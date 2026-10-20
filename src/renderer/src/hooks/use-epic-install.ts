@@ -263,6 +263,7 @@ export function useEpicInstall(
       ),
     [option]
   );
+  // Advisory only: the main process subtracts files already in the folder.
   const insufficientSpace =
     diskFreeSpace !== null &&
     choice.diskSizeInBytes !== null &&

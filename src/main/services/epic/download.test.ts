@@ -1374,11 +1374,18 @@ test("a failed DLC keeps the game bound and resumes with only the DLC", async (t
   await f.service.stop();
   failDlc = false;
   const before = f.commands.length;
+  // Paused halfway through the DLC: the game's 2 MiB plus 0.5 MiB of DLC.
   await f.service.startRuntime(
-    { ...f.getDownload()!, status: "paused" },
+    {
+      ...f.getDownload()!,
+      status: "paused",
+      bytesDownloaded: 2.5 * MIB,
+      progress: 2.5 / 3,
+    },
     () => {}
   );
   await f.waitForStatus("complete");
+  assert.equal(f.getDownload()?.fileSize, 3 * MIB);
   assert.deepEqual(
     f.commands
       .slice(before)
@@ -1386,4 +1393,32 @@ test("a failed DLC keeps the game bound and resumes with only the DLC", async (t
       .map((args) => args[args.indexOf("install") + 1]),
     ["Dlc1"]
   );
+});
+
+test("a resumed install keeps the tags it started with when the pack definition changes", async (t) => {
+  const f = await selectionFixture(t);
+  assert.deepEqual(
+    await f.service.start({ ...f.payload, components: ["de"] }),
+    { ok: true }
+  );
+  t.mock.method(f.runtime, "inspect", async (target, _id, signal) => {
+    f.runtime.assertCurrent(target, signal);
+    return {
+      info: {
+        ...info,
+        sdl: { ...sdl, packs: sdl.packs.filter((pack) => pack.id !== "de") },
+      },
+      metadata,
+    };
+  });
+  await f.service.startRuntime(f.getDownload()!, (error) =>
+    f.failed.resolve(error)
+  );
+  await f.waitForStatus("complete");
+  const install = f.commands.find((args) => args.includes("install"))!;
+  assert.deepEqual(
+    install.filter((arg) => arg.startsWith("--install-tag")),
+    ["--install-tag=", "--install-tag=chunk0", "--install-tag=voice_de"]
+  );
+  assert.equal(f.getDownload()?.fileSize, 1.5 * MIB);
 });

@@ -668,10 +668,7 @@ export class EpicDownloadService {
     if (folder !== download.folderName)
       throw new EpicManagedError("invalid-path");
     const destination = path.resolve(base, folder);
-    const resolved = resolveEpicSelection(prepared, {
-      components: metadata.selection?.components,
-      dlcs: metadata.selection?.dlcs,
-    });
+    const resolved = resumeEpicSelection(prepared, download);
     await this.validateSpace(destination, base, resolved.diskSizeInBytes);
     if (controller.signal.aborted || !isCurrent())
       throw new EpicManagedError("operation-cancelled");
@@ -863,7 +860,9 @@ export class EpicDownloadService {
     const update = !!active.download.epic?.update;
     for (const dlc of pending) {
       const previous = active.parser.state;
-      active.offset += Math.max(previous.fileSize, previous.bytesDownloaded);
+      // A finished run counts its planned size; an update's run its reported bytes.
+      active.offset +=
+        previous.fileSize > 0 ? previous.fileSize : previous.bytesDownloaded;
       const size =
         update || current.has(dlc.artifactId) ? 0 : dlc.downloadSizeInBytes;
       const resumed = Math.max(
@@ -1050,6 +1049,62 @@ export class EpicDownloadService {
       this.removals.delete(id);
     }
   }
+}
+
+/**
+ * A started download keeps the tags it began with: a pack definition fetched
+ * later may have changed or be unavailable. DLC that can no longer be
+ * prepared is skipped instead of failing the game.
+ */
+export function resumeEpicSelection(
+  prepared: EpicPreparedInstallation,
+  download: Download
+): ResolvedEpicSelection {
+  const saved = download.epic?.selection;
+  if (!saved) return resolveEpicSelection(prepared, {});
+  if (
+    !Array.isArray(saved.installTags) ||
+    saved.installTags.length > EPIC_MAX_INSTALL_TAGS ||
+    !saved.installTags.every(isEpicInstallTag)
+  )
+    throw new EpicManagedError("invalid-selection");
+  const dlcs = saved.dlcs.filter((artifactId) =>
+    prepared.dlcs?.some((dlc) => dlc.artifactId === artifactId)
+  );
+  let fresh: ResolvedEpicSelection | null = null;
+  try {
+    fresh = resolveEpicSelection(prepared, {
+      components: saved.components,
+      dlcs,
+    });
+  } catch (error) {
+    if (
+      !(error instanceof EpicManagedError) ||
+      error.code !== "invalid-selection"
+    )
+      throw error;
+  }
+  const preparedDlcs = (prepared.dlcs ?? []).filter((dlc) =>
+    dlcs.includes(dlc.artifactId)
+  );
+  const dlcDownload = preparedDlcs.reduce(
+    (total, dlc) => total + dlc.downloadSizeInBytes,
+    0
+  );
+  const savedDownload = download.fileSize ?? prepared.downloadSizeInBytes;
+  return {
+    selection: { ...saved, installTags: [...saved.installTags], dlcs },
+    dlcs: preparedDlcs,
+    // Without a matching definition, the saved sizes are the best estimate.
+    gameDownloadSizeInBytes:
+      fresh?.gameDownloadSizeInBytes ??
+      Math.max(0, savedDownload - dlcDownload),
+    downloadSizeInBytes: fresh?.downloadSizeInBytes ?? savedDownload,
+    diskSizeInBytes:
+      fresh?.diskSizeInBytes ??
+      download.epic?.diskSizeInBytes ??
+      prepared.diskSizeInBytes,
+  };
 }
 
 /** Where a (re)started download picks up: totals, persisted bytes and the first run. */
