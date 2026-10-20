@@ -180,8 +180,12 @@ export async function getReusableEpicDiskBytes(
 export { quoteWindowsEpicArgument } from "./prerequisite-runtime.js";
 
 const EPIC_MAX_INSTALL_TAGS = 256;
+const EPIC_INSTALL_TAG_MAX_LENGTH = 128;
+const EPIC_INSTALL_TAG_PATTERN = new RegExp(
+  `^[A-Za-z0-9_.-]{0,${EPIC_INSTALL_TAG_MAX_LENGTH}}$`
+);
 const isEpicInstallTag = (value: unknown): value is string =>
-  typeof value === "string" && /^[A-Za-z0-9_.-]{0,128}$/.test(value);
+  typeof value === "string" && EPIC_INSTALL_TAG_PATTERN.test(value);
 
 /** Legendary's own `install_tags` record; an empty list means every file. */
 export function epicInstallTags(value: unknown): string[] {
@@ -278,6 +282,9 @@ export class EpicDownloadService {
   constructor(private readonly options: DownloadServiceOptions) {}
   getOptions(objectId: string, signal?: AbortSignal) {
     return this.options.installation.getOptions(objectId, signal);
+  }
+  invalidateOptions(objectId: string) {
+    this.options.installation.invalidateOptions(objectId);
   }
   private id(objectId: string) {
     return `epic:${objectId}`;

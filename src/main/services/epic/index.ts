@@ -569,6 +569,10 @@ export const getEpicGameInstallOptions = async (
       return { options: [], error: "operation-cancelled" as const };
     return managedDownloads!.getOptions(objectId, signal);
   });
+export const invalidateEpicGameInstallOptions = async (objectId: string) => {
+  await awaitManagedEpicReady();
+  managedDownloads!.invalidateOptions(objectId);
+};
 export const openManagedEpicWinetricks = async (
   objectId: string
 ): Promise<boolean> => {

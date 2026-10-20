@@ -44,43 +44,52 @@ export function useEpicGameUpdate(game: LibraryGame | null, enabled: boolean) {
     cancelRequest();
   }, [cancelRequest]);
 
-  const refresh = useCallback(async () => {
-    const current = ++generation.current;
-    cancelRequest();
-    if (
-      !objectId ||
-      !artifactId ||
-      !platform ||
-      typeof window.electron.getEpicGameInstallOptions !== "function" ||
-      typeof window.electron.startEpicGameUpdate !== "function"
-    ) {
-      setUpdate(null);
-      setChecking(false);
-      return;
-    }
-    setChecking(true);
-    const id = globalThis.crypto.randomUUID();
-    requestId.current = id;
-    try {
-      const result = await window.electron.getEpicGameInstallOptions(
-        objectId,
-        id
-      );
-      if (generation.current !== current) return;
-      // Opening a page never reports Epic errors; Play keeps working as before.
-      setConnectionId(result?.connectionId ?? null);
-      setUpdate(
-        result && !result.error
-          ? getEpicGameUpdate(result.options, { artifactId, platform })
-          : null
-      );
-    } catch {
-      if (generation.current === current) setUpdate(null);
-    } finally {
-      if (requestId.current === id) requestId.current = null;
-      if (generation.current === current) setChecking(false);
-    }
-  }, [objectId, artifactId, platform, cancelRequest]);
+  /** `fresh` discards the main process's cached preview first. */
+  const refresh = useCallback(
+    async (fresh = false) => {
+      const current = ++generation.current;
+      cancelRequest();
+      if (
+        !objectId ||
+        !artifactId ||
+        !platform ||
+        typeof window.electron.getEpicGameInstallOptions !== "function" ||
+        typeof window.electron.startEpicGameUpdate !== "function"
+      ) {
+        setUpdate(null);
+        setChecking(false);
+        return;
+      }
+      setChecking(true);
+      const id = globalThis.crypto.randomUUID();
+      requestId.current = id;
+      try {
+        if (fresh)
+          await window.electron
+            .invalidateEpicGameInstallOptions?.(objectId)
+            .catch(() => undefined);
+        if (generation.current !== current) return;
+        const result = await window.electron.getEpicGameInstallOptions(
+          objectId,
+          id
+        );
+        if (generation.current !== current) return;
+        // Opening a page never reports Epic errors; Play keeps working as before.
+        setConnectionId(result?.connectionId ?? null);
+        setUpdate(
+          result && !result.error
+            ? getEpicGameUpdate(result.options, { artifactId, platform })
+            : null
+        );
+      } catch {
+        if (generation.current === current) setUpdate(null);
+      } finally {
+        if (requestId.current === id) requestId.current = null;
+        if (generation.current === current) setChecking(false);
+      }
+    },
+    [objectId, artifactId, platform, cancelRequest]
+  );
 
   useEffect(() => {
     void refresh();
@@ -94,9 +103,20 @@ export function useEpicGameUpdate(game: LibraryGame | null, enabled: boolean) {
     };
   }, [objectId, refresh, invalidate]);
 
+  /**
+   * `resume` restarts an interrupted update for the installed artifact even
+   * when Legendary already recorded the new build (for example after a
+   * prerequisite failure), so no newer version is reported anymore.
+   */
   const start = useCallback(
-    async (addToQueueOnly = false): Promise<EpicManagedOperationResult> => {
-      if (!objectId || !update || !connectionId)
+    async (
+      addToQueueOnly = false,
+      resume = false
+    ): Promise<EpicManagedOperationResult> => {
+      const target =
+        update ??
+        (resume && artifactId && platform ? { artifactId, platform } : null);
+      if (!objectId || !target || !connectionId)
         return { ok: false, error: "stale-connection" };
       if (starting) return { ok: false, error: "operation-in-progress" };
       setStarting(true);
@@ -104,9 +124,9 @@ export function useEpicGameUpdate(game: LibraryGame | null, enabled: boolean) {
         const response = await window.electron.startEpicGameUpdate?.({
           epicObjectId: objectId,
           connectionId,
-          artifactId: update.artifactId,
-          platform: update.platform,
-          ...(update.preparationId
+          artifactId: target.artifactId,
+          platform: target.platform,
+          ...(update?.preparationId
             ? { preparationId: update.preparationId }
             : {}),
           addToQueueOnly,
@@ -118,7 +138,7 @@ export function useEpicGameUpdate(game: LibraryGame | null, enabled: boolean) {
         setStarting(false);
       }
     },
-    [objectId, update, connectionId, starting]
+    [objectId, update, connectionId, starting, artifactId, platform]
   );
 
   return { update, checking, starting, start, refresh };
