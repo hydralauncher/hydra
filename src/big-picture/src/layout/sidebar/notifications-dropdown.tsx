@@ -52,6 +52,7 @@ import type {
   NotificationsResponse,
 } from "@types";
 import {
+  buildScreenshotNotificationTarget,
   buildSouvenirNotificationTarget,
   CLOUD_GIFT_ID_VARIABLE,
   CLOUD_GIFT_RECEIVED_NOTIFICATION,
@@ -170,12 +171,51 @@ function getApiNotificationContent(
         description: `Your souvenir received ${likeCount} new ${likeCount === 1 ? "like" : "likes"}`,
       };
     }
+    case "SCREENSHOT_LIKE":
+    case "SCREENSHOT_COMMENT":
+    case "SCREENSHOT_BLOCKED":
+      return getScreenshotNotificationContent(notification, t);
     default:
       return {
         title: "Notification",
         description: "",
       };
   }
+}
+
+const SCREENSHOT_NOTIFICATION_TYPES = new Set<Notification["type"]>([
+  "SCREENSHOT_LIKE",
+  "SCREENSHOT_COMMENT",
+  "SCREENSHOT_BLOCKED",
+]);
+
+function getScreenshotNotificationKeyPrefix(type: Notification["type"]) {
+  if (type === "SCREENSHOT_COMMENT") return "screenshots_notification_comment";
+  if (type === "SCREENSHOT_BLOCKED") return "screenshots_notification_blocked";
+
+  return "screenshots_notification_like";
+}
+
+function getScreenshotNotificationContent(
+  notification: Notification,
+  t: (key: string, options?: Record<string, unknown>) => string
+) {
+  const game =
+    notification.variables.gameTitle ||
+    t("screenshots_notification_fallback_game", { ns: "big_picture" });
+  const count = Number(
+    notification.variables.likeCount ?? notification.variables.commentCount ?? 1
+  );
+  const prefix = getScreenshotNotificationKeyPrefix(notification.type);
+
+  return {
+    title: t(`${prefix}_title`, { ns: "big_picture", game }),
+    description: t(`${prefix}_description`, {
+      ns: "big_picture",
+      game,
+      count: Number.isFinite(count) ? count : 1,
+    }),
+  };
 }
 
 function getNotificationContent(
@@ -208,6 +248,21 @@ function isAchievementNotification(notification: MergedNotification) {
 }
 
 function getNotificationUrl(notification: MergedNotification) {
+  if (
+    notification.source === "api" &&
+    SCREENSHOT_NOTIFICATION_TYPES.has(notification.type)
+  ) {
+    const ownerId = notification.variables.ownerId;
+    const baseUrl =
+      notification.url ?? (ownerId ? `/profile/${ownerId}` : null);
+    if (!baseUrl) return null;
+
+    return buildScreenshotNotificationTarget(
+      parseApiNotificationPath(baseUrl),
+      notification.variables
+    );
+  }
+
   if (!notification.url) return null;
   const target =
     notification.source === "api"
