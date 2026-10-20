@@ -319,7 +319,13 @@ export function ScreenshotReviewModal() {
     setPendingAction(action);
 
     try {
-      await task();
+      const result = await task();
+      if (action === "upload" && !result) {
+        showErrorToast(t("screenshots_settings_sign_in_to_upload"), {
+          fallbackVisual: "settings",
+        });
+        return false;
+      }
       setDecisions((existing) => ({
         ...existing,
         [current.clientId]: action,

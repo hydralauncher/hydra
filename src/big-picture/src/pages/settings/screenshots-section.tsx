@@ -424,7 +424,7 @@ export function ScreenshotSettingsSection({
 
   const uploadLocal = async (screenshot: LocalScreenshot) => {
     try {
-      await globalThis.window.electron.uploadLocalScreenshot(
+      const queued = await globalThis.window.electron.uploadLocalScreenshot(
         screenshot.clientId,
         {
           isSpoiler: screenshot.isSpoiler,
@@ -432,6 +432,12 @@ export function ScreenshotSettingsSection({
           customGameTitle: screenshot.customGameTitle,
         }
       );
+
+      if (!queued) {
+        showErrorToast(t("screenshots_settings_sign_in_to_upload"), {
+          fallbackVisual: "settings",
+        });
+      }
     } catch (error) {
       logger.error("Failed to queue the screenshot upload", error);
       showErrorToast(t("screenshots_review_action_failed"), {
