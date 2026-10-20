@@ -10,6 +10,7 @@ import {
   syncEpicGameOnGamePage,
   getEpicGameInstallOptions,
   startEpicGameDownload,
+  startEpicGameUpdate,
   getEpicCloudSaveState,
   setEpicCloudSaveSettings,
   syncEpicCloudSaves,
@@ -21,6 +22,7 @@ import {
   parseEpicManagedObjectId,
   parseEpicInstallOptionsRequestId,
   parseEpicDownloadPayload,
+  parseEpicUpdatePayload,
   parseEpicCloudSaveSettings,
   parseEpicCloudSaveConflict,
 } from "./managed-ipc-contract";
@@ -118,6 +120,10 @@ registerEvent(
 registerEvent("startEpicGameDownload", (event, payload: unknown) => {
   assertTrustedSender(event, true);
   return startEpicGameDownload(parseEpicDownloadPayload(payload));
+});
+registerEvent("startEpicGameUpdate", (event, payload: unknown) => {
+  assertTrustedSender(event, true);
+  return startEpicGameUpdate(parseEpicUpdatePayload(payload));
 });
 registerEvent("getEpicCloudSaveState", (event, objectId: unknown) => {
   assertTrustedSender(event, true);
