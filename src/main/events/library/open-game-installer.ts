@@ -31,8 +31,8 @@ interface InstallerLaunchResult {
   tracked: boolean;
 }
 
-const ELEVATED_LAUNCH_FAILED_EXIT_CODE = 0x48594452;
 const UAC_DECLINED_EXIT_CODE = 1223;
+const INSTALLER_EXIT_MARKER = "HYDRA_INSTALLER_EXIT=";
 
 const ELEVATED_INSTALLER_COMMAND = [
   "$ErrorActionPreference = 'Stop'",
@@ -43,28 +43,40 @@ const ELEVATED_INSTALLER_COMMAND = [
   "$info.Verb = 'runas'",
   "$info.UseShellExecute = $true",
   "$installer = [System.Diagnostics.Process]::Start($info)",
+  "Write-Output ('Started installer process ' + $installer.Id)",
   "$installer.WaitForExit()",
-  "exit $installer.ExitCode",
+  `Write-Output ('${INSTALLER_EXIT_MARKER}' + $installer.ExitCode)`,
   "} catch {",
-  `if ($_.Exception.GetBaseException().NativeErrorCode -eq ${UAC_DECLINED_EXIT_CODE}) { exit ${UAC_DECLINED_EXIT_CODE} }`,
-  `exit ${ELEVATED_LAUNCH_FAILED_EXIT_CODE}`,
+  "$failure = $_.Exception.GetBaseException()",
+  `if ($failure.NativeErrorCode -eq ${UAC_DECLINED_EXIT_CODE}) { Write-Output '${INSTALLER_EXIT_MARKER}${UAC_DECLINED_EXIT_CODE}' } else { Write-Output $failure.Message }`,
   "}",
 ].join("; ");
 
-const spawnInstaller = async (
-  command: string,
-  args: string[],
-  onExit: (code: number | null) => void,
-  failureMessage: string,
-  env?: NodeJS.ProcessEnv
-): Promise<boolean> => {
+interface SpawnInstallerConfig {
+  command: string;
+  args: string[];
+  failureMessage: string;
+  onExit: (code: number | null, output: string) => void;
+  env?: NodeJS.ProcessEnv;
+  captureOutput?: boolean;
+}
+
+const spawnInstaller = async ({
+  command,
+  args,
+  failureMessage,
+  onExit,
+  env,
+  captureOutput = false,
+}: SpawnInstallerConfig): Promise<boolean> => {
   return await new Promise<boolean>((resolve) => {
     let child: ReturnType<typeof spawn>;
+    let output = "";
 
     try {
       child = spawn(command, args, {
-        detached: true,
-        stdio: "ignore",
+        detached: !captureOutput,
+        stdio: captureOutput ? ["ignore", "pipe", "pipe"] : "ignore",
         shell: false,
         windowsHide: true,
         env: env ?? process.env,
@@ -75,9 +87,15 @@ const spawnInstaller = async (
       return;
     }
 
+    const appendOutput = (chunk: Buffer) => {
+      output += chunk.toString();
+    };
+    child.stdout?.on("data", appendOutput);
+    child.stderr?.on("data", appendOutput);
+
     child.once("spawn", () => {
-      child.once("exit", onExit);
-      child.unref();
+      child.once("close", (code) => onExit(code, output.trim()));
+      if (!captureOutput) child.unref();
       resolve(true);
     });
 
@@ -93,12 +111,28 @@ const openPathAndCheck = async (filePath: string): Promise<boolean> => {
   return openError.length === 0;
 };
 
+const readInstallerExitCode = (output: string) => {
+  const markerLine = output
+    .split(/\r?\n/)
+    .find((line) => line.startsWith(INSTALLER_EXIT_MARKER));
+
+  return markerLine
+    ? Number(markerLine.slice(INSTALLER_EXIT_MARKER.length))
+    : null;
+};
+
 const handleElevatedInstallerExit = async (
   code: number | null,
+  output: string,
   filePath: string,
   options: InstallerLaunchOptions
 ) => {
-  if (code !== ELEVATED_LAUNCH_FAILED_EXIT_CODE) return options.onExit(code);
+  logger.info(
+    `[GameInstaller] PowerShell exited with code ${code}: ${output || "no output"}`
+  );
+
+  const installerExitCode = readInstallerExitCode(output);
+  if (installerExitCode !== null) return options.onExit(installerExitCode);
 
   logger.error("Failed to launch game installer with elevation");
 
@@ -115,9 +149,9 @@ const launchInstallerElevated = async (
   filePath: string,
   options: InstallerLaunchOptions
 ) =>
-  spawnInstaller(
-    "powershell.exe",
-    [
+  spawnInstaller({
+    command: "powershell.exe",
+    args: [
       "-NoProfile",
       "-NonInteractive",
       "-ExecutionPolicy",
@@ -125,10 +159,12 @@ const launchInstallerElevated = async (
       "-Command",
       ELEVATED_INSTALLER_COMMAND,
     ],
-    (code) => void handleElevatedInstallerExit(code, filePath, options),
-    "Failed to execute game installer with elevation",
-    { ...process.env, HYDRA_INSTALLER_PATH: filePath }
-  );
+    failureMessage: "Failed to execute game installer with elevation",
+    onExit: (code, output) =>
+      void handleElevatedInstallerExit(code, output, filePath, options),
+    env: { ...process.env, HYDRA_INSTALLER_PATH: filePath },
+    captureOutput: true,
+  });
 
 const launchInstallerWithUmu = async (
   filePath: string,
@@ -172,12 +208,12 @@ const executeGameInstaller = async (
   options: InstallerLaunchOptions
 ): Promise<InstallerLaunchResult> => {
   if (process.platform === "win32") {
-    const launchedDirectly = await spawnInstaller(
-      filePath,
-      [],
-      options.onExit,
-      "Failed to execute game installer directly"
-    );
+    const launchedDirectly = await spawnInstaller({
+      command: filePath,
+      args: [],
+      failureMessage: "Failed to execute game installer directly",
+      onExit: options.onExit,
+    });
     if (launchedDirectly) return trackedLaunch(filePath, "directly");
 
     const launchedElevated = await launchInstallerElevated(filePath, options);
@@ -193,12 +229,12 @@ const executeGameInstaller = async (
     } catch (error) {
       logger.error("Failed to execute game installer with umu-run", error);
 
-      const launchedWithWine = await spawnInstaller(
-        "wine",
-        [filePath],
-        options.onExit,
-        "Failed to execute game installer with wine"
-      );
+      const launchedWithWine = await spawnInstaller({
+        command: "wine",
+        args: [filePath],
+        failureMessage: "Failed to execute game installer with wine",
+        onExit: options.onExit,
+      });
       if (launchedWithWine) return trackedLaunch(filePath, "with wine");
 
       return await openUntracked(filePath);
