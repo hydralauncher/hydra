@@ -59,6 +59,33 @@ function ExtraName({
   );
 }
 
+function EpicInstallSubmitLabel({
+  starting,
+  queue,
+}: Readonly<{ starting: boolean; queue: boolean }>) {
+  const { t } = useTranslation("game_details");
+  if (starting)
+    return (
+      <>
+        <SyncIcon className="download-settings-modal__loading-spinner" />
+        {t("loading")}
+      </>
+    );
+  if (queue)
+    return (
+      <>
+        <PlusIcon />
+        {t("add_to_queue")}
+      </>
+    );
+  return (
+    <>
+      <DownloadIcon />
+      {t("download_now")}
+    </>
+  );
+}
+
 /** Whether a scrollable list still has items below its visible area. */
 function useListHasMore(open: boolean, length: number) {
   const listRef = useRef<HTMLUListElement>(null);
@@ -400,22 +427,10 @@ export function EpicInstallModal({
           disabled={disabled}
           onClick={() => void install.start(hasActiveDownload)}
         >
-          {install.starting && !requiresOfficialLauncher ? (
-            <>
-              <SyncIcon className="download-settings-modal__loading-spinner" />
-              {t("loading")}
-            </>
-          ) : hasActiveDownload && !requiresOfficialLauncher ? (
-            <>
-              <PlusIcon />
-              {t("add_to_queue")}
-            </>
-          ) : (
-            <>
-              <DownloadIcon />
-              {t("download_now")}
-            </>
-          )}
+          <EpicInstallSubmitLabel
+            starting={install.starting && !requiresOfficialLauncher}
+            queue={hasActiveDownload && !requiresOfficialLauncher}
+          />
         </Button>
       </div>
     </Modal>
