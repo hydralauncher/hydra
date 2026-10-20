@@ -1,20 +1,55 @@
 import { BrowserWindow, desktopCapturer, nativeImage } from "electron";
 import type { UserPreferences } from "@types";
-import { isAchievementSouvenirsEnabled } from "@shared";
+import {
+  isAchievementSouvenirsEnabled,
+  resolveScreenshotPreferences,
+} from "@shared";
 import capturePagePath from "@resources/linux-game-capture.html?asset";
 
 import { db, levelKeys } from "@main/level";
 import { HydraApi } from "./hydra-api";
 import { logger } from "./logger";
+import {
+  addCaptureSessionReason,
+  removeCaptureSessionReason,
+  type CaptureSessionReason,
+} from "./linux-game-capture-session-reasons";
+
+export type { CaptureSessionReason } from "./linux-game-capture-session-reasons";
 
 interface CaptureSessionRegistration {
   token: object;
   window: BrowserWindow | null;
   subscriptionTimer: ReturnType<typeof setInterval> | null;
   preparation: Promise<void>;
+  reasons: Set<CaptureSessionReason>;
 }
 
 const sessions = new Map<string, CaptureSessionRegistration>();
+
+const isReasonEligible = (
+  reason: CaptureSessionReason,
+  userPreferences: UserPreferences | null
+) => {
+  if (reason === "screenshot") {
+    return resolveScreenshotPreferences(userPreferences).enabled;
+  }
+
+  return (
+    HydraApi.hasActiveSubscription() &&
+    isAchievementSouvenirsEnabled(
+      userPreferences?.enableAchievementSouvenirs,
+      process.platform
+    )
+  );
+};
+
+const readUserPreferences = () =>
+  db
+    .get<string, UserPreferences | null>(levelKeys.userPreferences, {
+      valueEncoding: "json",
+    })
+    .catch(() => null);
 
 export const isWaylandSession = () =>
   process.platform === "linux" &&
@@ -85,9 +120,22 @@ const createCaptureWindow = async (sourceId: string) => {
   }
 };
 
-export const prepareLinuxGameCaptureSession = async (gameKey: string) => {
-  if (!isWaylandSession() || sessions.has(gameKey)) return;
-  if (!HydraApi.hasActiveSubscription()) return;
+export const prepareLinuxGameCaptureSession = async (
+  gameKey: string,
+  reason: CaptureSessionReason = "souvenir"
+) => {
+  if (!isWaylandSession()) return;
+  if (reason === "souvenir" && !HydraApi.hasActiveSubscription()) return;
+
+  const existing = sessions.get(gameKey);
+  if (existing) {
+    const userPreferences = await readUserPreferences();
+    if (sessions.get(gameKey) !== existing) return;
+    if (isReasonEligible(reason, userPreferences)) {
+      existing.reasons = addCaptureSessionReason(existing.reasons, reason);
+    }
+    return;
+  }
 
   const token = {};
   const registration: CaptureSessionRegistration = {
@@ -95,21 +143,19 @@ export const prepareLinuxGameCaptureSession = async (gameKey: string) => {
     window: null,
     subscriptionTimer: null,
     preparation: Promise.resolve(),
+    reasons: new Set([reason]),
   };
 
   registration.preparation = (async () => {
-    const userPreferences = await db.get<string, UserPreferences | null>(
-      levelKeys.userPreferences,
-      { valueEncoding: "json" }
+    const userPreferences = await readUserPreferences();
+
+    registration.reasons = new Set(
+      [...registration.reasons].filter((candidate) =>
+        isReasonEligible(candidate, userPreferences)
+      )
     );
 
-    if (
-      !isAchievementSouvenirsEnabled(
-        userPreferences?.enableAchievementSouvenirs,
-        process.platform
-      ) ||
-      !HydraApi.hasActiveSubscription()
-    ) {
+    if (!registration.reasons.size) {
       if (sessions.get(gameKey)?.token === token) sessions.delete(gameKey);
       return;
     }
@@ -139,7 +185,7 @@ export const prepareLinuxGameCaptureSession = async (gameKey: string) => {
     logger.info("Wayland game-window capture was prepared", { gameKey });
     registration.subscriptionTimer = setInterval(() => {
       if (!HydraApi.hasActiveSubscription()) {
-        stopLinuxGameCaptureSession(gameKey);
+        stopLinuxGameCaptureSession(gameKey, "souvenir");
       }
     }, 60_000);
     registration.subscriptionTimer.unref?.();
@@ -217,9 +263,20 @@ export const captureLinuxGameSessionFrame = async (gameKey: string) => {
   return image;
 };
 
-export const stopLinuxGameCaptureSession = (gameKey: string) => {
+export const stopLinuxGameCaptureSession = (
+  gameKey: string,
+  reason?: CaptureSessionReason
+) => {
   const registration = sessions.get(gameKey);
   if (!registration) return;
+
+  if (reason) {
+    registration.reasons = removeCaptureSessionReason(
+      registration.reasons,
+      reason
+    );
+    if (registration.reasons.size) return;
+  }
 
   sessions.delete(gameKey);
   if (registration.subscriptionTimer) {
@@ -228,6 +285,16 @@ export const stopLinuxGameCaptureSession = (gameKey: string) => {
   destroyCaptureWindow(registration.window);
 };
 
-export const stopAllLinuxGameCaptureSessions = () => {
-  for (const gameKey of sessions.keys()) stopLinuxGameCaptureSession(gameKey);
+export const stopAllLinuxGameCaptureSessions = (
+  reason?: CaptureSessionReason
+) => {
+  for (const gameKey of [...sessions.keys()]) {
+    stopLinuxGameCaptureSession(gameKey, reason);
+  }
 };
+
+export const hasLinuxGameCaptureSession = (gameKey: string) =>
+  sessions.has(gameKey);
+
+export const getLinuxGameCaptureSessionReasons = (gameKey: string) =>
+  new Set(sessions.get(gameKey)?.reasons ?? []);

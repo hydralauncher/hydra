@@ -77,7 +77,8 @@ const prepareRunningLinuxCaptureSessions = async () => {
 
   for (const gameKey of runningGameKeys) {
     const game = await gamesSublevel.get(gameKey).catch(() => null);
-    if (game?.remoteId) void prepareLinuxGameCaptureSession(gameKey);
+    if (game?.remoteId)
+      void prepareLinuxGameCaptureSession(gameKey, "souvenir");
   }
 };
 
@@ -96,7 +97,7 @@ const updateAchievementSouvenirPreference = async (
     return;
   }
 
-  stopAllLinuxGameCaptureSessions();
+  stopAllLinuxGameCaptureSessions("souvenir");
   const { stopAllEmulatorSouvenirCaptureSessions } = await import(
     "@main/services/emulators/emulator-session-tracker"
   );
@@ -105,6 +106,17 @@ const updateAchievementSouvenirPreference = async (
     restoreRetroArchAchievementScreenshots(),
     restoreDuckStationFileLogging(),
   ]);
+};
+
+const updateScreenshotsPreference = async (
+  preferences: Partial<UserPreferences>
+) => {
+  if (!Object.hasOwn(preferences, "screenshotsEnabled")) return;
+
+  const { applyScreenshotsEnabledPreference } = await import(
+    "@main/services/screenshots"
+  );
+  await applyScreenshotsEnabledPreference(preferences.screenshotsEnabled);
 };
 
 const applyDownloadManagerPreferences = async (
@@ -158,6 +170,7 @@ const updateUserPreferences = async (
   ScreenshotInputService.syncUserPreferences(updatedPreferences);
 
   await updateAchievementSouvenirPreference(preferences);
+  await updateScreenshotsPreference(preferences);
 
   WindowManager.sendToAppWindows(
     "on-user-preferences-updated",
