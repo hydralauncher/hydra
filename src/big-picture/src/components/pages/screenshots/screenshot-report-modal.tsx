@@ -2,8 +2,11 @@ import "./screenshot-report-modal.scss";
 
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
-import type { ScreenshotReportReason } from "@types";
-import { SCREENSHOT_REPORT_DESCRIPTION_MAX_LENGTH } from "@shared";
+import type { ScreenshotReportReason, ScreenshotReportValues } from "@types";
+import {
+  SCREENSHOT_REPORT_DESCRIPTION_MAX_LENGTH,
+  normalizeScreenshotReportValues,
+} from "@shared";
 
 import {
   Button,
@@ -13,11 +16,6 @@ import {
   Modal,
   VerticalFocusGroup,
 } from "../../common";
-
-export interface ScreenshotReportValues {
-  reason: ScreenshotReportReason;
-  description?: string;
-}
 
 const REGION_ID = "screenshot-report-modal";
 const REASON_FOCUS_ID = "screenshot-report-reason";
@@ -55,11 +53,9 @@ export function ScreenshotReportModal({
   }, [defaultReason, visible]);
 
   const submit = async () => {
-    const trimmedDescription = description.trim();
-    const wasAccepted = await onSubmit({
-      reason,
-      ...(trimmedDescription ? { description: trimmedDescription } : {}),
-    });
+    const wasAccepted = await onSubmit(
+      normalizeScreenshotReportValues({ reason, description })
+    );
 
     if (wasAccepted) onClose();
   };

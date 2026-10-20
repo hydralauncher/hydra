@@ -25,6 +25,7 @@ import type {
   ScreenshotCommentsResponse,
   ScreenshotCommentVoteResponse,
   ScreenshotCommentVoteType,
+  ScreenshotReportValues,
 } from "@types";
 import {
   AuthPage,
@@ -34,8 +35,10 @@ import {
   buildUserScreenshotCommentReportPath,
   buildUserScreenshotCommentVotePath,
   buildUserScreenshotCommentsPath,
-  buildUserScreenshotPath,
-  getScreenshotErrorCode,
+  mergeScreenshotPages,
+  normalizeScreenshotCommentBody,
+  normalizeScreenshotReportValues,
+  getScreenshotApiErrorCode,
 } from "@shared";
 import { logger } from "@renderer/logger";
 
@@ -54,10 +57,7 @@ import { formatRelativeDate } from "../../../../helpers";
 import { useBigPictureToast, useNavigation } from "../../../../hooks";
 import type { FocusOverrideTarget } from "../../../../services";
 import { getScreenshotErrorKey } from "../helpers";
-import {
-  ScreenshotReportModal,
-  type ScreenshotReportValues,
-} from "../screenshot-report-modal";
+import { ScreenshotReportModal } from "../screenshot-report-modal";
 
 export interface ScreenshotCommentsPanelFocusIds {
   region: string;
@@ -135,7 +135,7 @@ function useScreenshotComments(
 
     globalThis.window.electron.hydraApi
       .get<ScreenshotCommentsResponse>(
-        buildUserScreenshotCommentsPath({ userId: ownerId, screenshotId }),
+        buildUserScreenshotCommentsPath(ownerId, screenshotId),
         { needsAuth }
       )
       .then((response) => {
@@ -163,9 +163,7 @@ function useScreenshotComments(
     try {
       const response =
         await globalThis.window.electron.hydraApi.get<ScreenshotCommentsResponse>(
-          buildUserScreenshotCommentsPath({
-            userId: ownerId,
-            screenshotId,
+          buildUserScreenshotCommentsPath(ownerId, screenshotId, {
             cursor: nextCursor,
           }),
           { needsAuth }
@@ -173,15 +171,9 @@ function useScreenshotComments(
 
       if (generationRef.current !== generation) return;
 
-      setComments((current) => {
-        const knownIds = new Set(current.map((comment) => comment.id));
-        return [
-          ...current,
-          ...(response?.items ?? []).filter(
-            (comment) => !knownIds.has(comment.id)
-          ),
-        ];
-      });
+      setComments((current) =>
+        mergeScreenshotPages(current, response?.items ?? [])
+      );
       setTotal(response?.total ?? total);
       setNextCursor(response?.nextCursor ?? null);
     } catch (error) {
@@ -521,9 +513,12 @@ export function ScreenshotCommentsPanel({
 
   const showError = useCallback(
     (error: unknown) => {
-      showErrorToast(t(getScreenshotErrorKey(getScreenshotErrorCode(error))), {
-        fallbackVisual: "settings",
-      });
+      showErrorToast(
+        t(getScreenshotErrorKey(getScreenshotApiErrorCode(error))),
+        {
+          fallbackVisual: "settings",
+        }
+      );
     },
     [showErrorToast, t]
   );
@@ -540,7 +535,7 @@ export function ScreenshotCommentsPanel({
   );
 
   const submit = useCallback(async () => {
-    const body = draft.trim();
+    const body = normalizeScreenshotCommentBody(draft);
     if (!body || isSubmitting) return;
 
     setIsSubmitting(true);
@@ -561,7 +556,7 @@ export function ScreenshotCommentsPanel({
       } else {
         const created =
           await globalThis.window.electron.hydraApi.post<ScreenshotComment>(
-            `${buildUserScreenshotPath(ownerId, screenshot.id)}/comments`,
+            buildUserScreenshotCommentsPath(ownerId, screenshot.id),
             { data: { body }, needsAuth: true }
           );
         if (created) {
@@ -685,14 +680,14 @@ export function ScreenshotCommentsPanel({
             screenshot.id,
             reportingComment.id
           ),
-          { data: values, needsAuth: true }
+          { data: normalizeScreenshotReportValues(values), needsAuth: true }
         );
         showSuccessToast(t("screenshots_comment_reported"), {
           fallbackVisual: "settings",
         });
         return true;
       } catch (error) {
-        const code = getScreenshotErrorCode(error);
+        const code = getScreenshotApiErrorCode(error);
         showError(error);
         return code === "screenshots/already-reported";
       } finally {

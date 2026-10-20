@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { ProfileScreenshot, ScreenshotsHiddenReason } from "@types";
+import { mergeScreenshotPages } from "@shared";
 import { logger } from "@renderer/logger";
 
 interface ScreenshotFeedResponse {
@@ -90,14 +91,9 @@ export function useScreenshotFeed({
 
       if (generationRef.current !== generation) return;
 
-      setItems((current) => {
-        const knownIds = new Set(current.map((item) => item.id));
-        const nextItems = (response?.items ?? []).filter(
-          (item) => !knownIds.has(item.id)
-        );
-
-        return [...current, ...nextItems];
-      });
+      setItems((current) =>
+        mergeScreenshotPages(current, response?.items ?? [])
+      );
       if (typeof response?.total === "number") setTotal(response.total);
       setNextCursor(response?.nextCursor ?? null);
     } catch (error) {

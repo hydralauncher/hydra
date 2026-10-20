@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { ProfileScreenshot } from "@types";
-import { buildUserScreenshotPath, getScreenshotErrorCode } from "@shared";
+import { buildUserScreenshotPath, getScreenshotApiErrorCode } from "@shared";
 import { logger } from "@renderer/logger";
 
 import type {
@@ -90,7 +90,7 @@ export function useScreenshotLightbox({
       } catch (error) {
         if (requestRef.current !== request) return;
 
-        const code = getScreenshotErrorCode(error);
+        const code = getScreenshotApiErrorCode(error);
         if (code !== "screenshots/private" && code !== "screenshots/not-found")
           logger.error("Failed to open screenshot", error);
 

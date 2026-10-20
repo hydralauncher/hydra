@@ -12,6 +12,7 @@ import type {
 import {
   buildUserScreenshotGamesPath,
   buildUserScreenshotsPath,
+  formatScreenshotHotkey,
 } from "@shared";
 import { logger } from "@renderer/logger";
 
@@ -38,12 +39,6 @@ import {
 const ALL_GAMES_FILTER = "all";
 const SORT_STORAGE_KEY = "big-picture:screenshots-sort";
 const FILTER_STORAGE_KEY_PREFIX = "big-picture:screenshots-filter:";
-const DEFAULT_HOTKEY: ScreenshotHotkeyBinding = {
-  key: "F10",
-  ctrl: false,
-  alt: false,
-  shift: false,
-};
 
 function readStoredValue(key: string) {
   try {
@@ -67,20 +62,6 @@ function readStoredSort(): ScreenshotSort {
 
 export function getScreenshotFilterKey(item: ScreenshotGameFilterItem) {
   return `${item.shop}:${item.objectId ?? ""}`;
-}
-
-export function formatScreenshotHotkey(
-  binding: ScreenshotHotkeyBinding | undefined
-) {
-  const resolved = binding ?? DEFAULT_HOTKEY;
-  const parts = [
-    resolved.ctrl ? "Ctrl" : null,
-    resolved.alt ? "Alt" : null,
-    resolved.shift ? "Shift" : null,
-    resolved.key,
-  ].filter((part): part is string => Boolean(part));
-
-  return parts.join(" + ");
 }
 
 interface UseProfileScreenshotsOptions {

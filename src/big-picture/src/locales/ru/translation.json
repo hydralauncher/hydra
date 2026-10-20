@@ -922,6 +922,17 @@
     "screenshots_visibility_friends": "Только друзья",
     "screenshots_visibility_label": "Кто может видеть",
     "screenshots_visibility_private": "Только я",
-    "screenshots_visibility_public": "Все"
+    "screenshots_visibility_public": "Все",
+    "screenshots_copied": "Изображение скопировано в буфер обмена",
+    "screenshots_copy_failed": "Не удалось скопировать изображение",
+    "screenshots_copy_image": "Копировать изображение",
+    "screenshots_comments_policy_everyone": "Все",
+    "screenshots_comments_policy_friends": "Только друзья",
+    "screenshots_comments_policy_nobody": "Никто",
+    "screenshots_comments_policy_setting": "Кто может комментировать мои скриншоты",
+    "screenshots_privacy_update_failed": "Не удалось изменить приватность скриншотов",
+    "screenshots_visibility_setting": "Видимость скриншотов",
+    "screenshots_visibility_updated": "Видимость скриншотов обновлена",
+    "screenshots_visibility_updated_description": "Ваши скриншоты теперь видны: {{visibility}}."
   }
 }

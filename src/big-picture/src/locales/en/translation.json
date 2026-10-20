@@ -936,6 +936,17 @@
     "screenshots_visibility_friends": "Friends only",
     "screenshots_visibility_label": "Who can see it",
     "screenshots_visibility_private": "Only me",
-    "screenshots_visibility_public": "Everyone"
+    "screenshots_visibility_public": "Everyone",
+    "screenshots_copied": "Image copied to the clipboard",
+    "screenshots_copy_failed": "Couldn't copy the image",
+    "screenshots_copy_image": "Copy image",
+    "screenshots_comments_policy_everyone": "Everyone",
+    "screenshots_comments_policy_friends": "Friends only",
+    "screenshots_comments_policy_nobody": "Nobody",
+    "screenshots_comments_policy_setting": "Who can comment on my screenshots",
+    "screenshots_privacy_update_failed": "Couldn't update your screenshot privacy",
+    "screenshots_visibility_setting": "Screenshots visibility",
+    "screenshots_visibility_updated": "Screenshots visibility updated",
+    "screenshots_visibility_updated_description": "Your screenshots are now visible to: {{visibility}}."
   }
 }

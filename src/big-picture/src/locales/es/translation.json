@@ -897,6 +897,17 @@
     "screenshots_visibility_friends": "Solo amigos",
     "screenshots_visibility_label": "Quién puede verla",
     "screenshots_visibility_private": "Solo yo",
-    "screenshots_visibility_public": "Todos"
+    "screenshots_visibility_public": "Todos",
+    "screenshots_copied": "Imagen copiada al portapapeles",
+    "screenshots_copy_failed": "No se pudo copiar la imagen",
+    "screenshots_copy_image": "Copiar imagen",
+    "screenshots_comments_policy_everyone": "Todos",
+    "screenshots_comments_policy_friends": "Solo amigos",
+    "screenshots_comments_policy_nobody": "Nadie",
+    "screenshots_comments_policy_setting": "Quién puede comentar mis capturas",
+    "screenshots_privacy_update_failed": "No se pudo actualizar la privacidad de tus capturas",
+    "screenshots_visibility_setting": "Visibilidad de las capturas",
+    "screenshots_visibility_updated": "Visibilidad de las capturas actualizada",
+    "screenshots_visibility_updated_description": "Ahora tus capturas son visibles para: {{visibility}}."
   }
 }

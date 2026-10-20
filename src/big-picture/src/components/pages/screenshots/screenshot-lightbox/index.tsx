@@ -4,6 +4,7 @@ import {
   CaretLeftIcon,
   CaretRightIcon,
   ClockIcon,
+  CopyIcon,
   EyeIcon,
   FlagIcon,
   GameControllerIcon,
@@ -22,6 +23,7 @@ import { useTranslation } from "react-i18next";
 import type {
   ProfileScreenshot,
   ScreenshotLikeResponse,
+  ScreenshotReportValues,
   ScreenshotUpdateRequest,
 } from "@types";
 import {
@@ -30,7 +32,7 @@ import {
   buildProfileScreenshotPath,
   buildUserScreenshotLikePath,
   buildUserScreenshotReportPath,
-  getScreenshotErrorCode,
+  getScreenshotApiErrorCode,
 } from "@shared";
 import { logger } from "@renderer/logger";
 
@@ -62,10 +64,7 @@ import {
   shouldBlurScreenshot,
 } from "../helpers";
 import { ScreenshotManageModal } from "../screenshot-manage-modal";
-import {
-  ScreenshotReportModal,
-  type ScreenshotReportValues,
-} from "../screenshot-report-modal";
+import { ScreenshotReportModal } from "../screenshot-report-modal";
 import { useRevealedScreenshotSpoilers } from "../use-revealed-spoilers";
 import { ScreenshotCommentsPanel } from "./comments-panel";
 
@@ -103,6 +102,7 @@ const getLightboxFocusIds = (screenshotId: string) => ({
   report: `screenshot-lightbox-report:${screenshotId}`,
   manage: `screenshot-lightbox-manage:${screenshotId}`,
   remove: `screenshot-lightbox-delete:${screenshotId}`,
+  copy: `screenshot-lightbox-copy:${screenshotId}`,
 });
 
 function getModerationReasonKey(reason: string | null | undefined) {
@@ -344,7 +344,9 @@ interface LightboxActionsProps {
   isSignedIn: boolean;
   isLiking: boolean;
   isReported: boolean;
+  isCopying: boolean;
   onLike: () => void;
+  onCopy: () => void;
   onReport: () => void;
   onManage: () => void;
   onDelete: () => void;
@@ -357,7 +359,9 @@ function LightboxActions({
   isSignedIn,
   isLiking,
   isReported,
+  isCopying,
   onLike,
+  onCopy,
   onReport,
   onManage,
   onDelete,
@@ -394,6 +398,21 @@ function LightboxActions({
       >
         {String(screenshot.likeCount)}
       </Button>
+
+      {screenshot.imageUrl ? (
+        <Button
+          variant="secondary"
+          size="icon"
+          focusId={focusIds.copy}
+          loading={isCopying}
+          icon={<CopyIcon size={20} />}
+          aria-label={t("screenshots_copy_image")}
+          title={t("screenshots_copy_image")}
+          onClick={onCopy}
+        >
+          {null}
+        </Button>
+      ) : null}
 
       {isOwner ? (
         <>
@@ -452,11 +471,12 @@ function useLightboxSocialActions({
   const [isReporting, setIsReporting] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [isCopying, setIsCopying] = useState(false);
 
   const showError = useCallback(
     (error: unknown) => {
       showErrorToast(
-        t(getScreenshotErrorKey(getScreenshotErrorCode(error))),
+        t(getScreenshotErrorKey(getScreenshotApiErrorCode(error))),
         SETTINGS_TOAST
       );
     },
@@ -528,7 +548,7 @@ function useLightboxSocialActions({
         showSuccessToast(t("screenshots_reported_toast"), SETTINGS_TOAST);
         return true;
       } catch (error) {
-        const code = getScreenshotErrorCode(error);
+        const code = getScreenshotApiErrorCode(error);
         showError(error);
 
         if (code === "screenshots/already-reported") {
@@ -596,7 +616,32 @@ function useLightboxSocialActions({
     }
   }, [onRemove, screenshot, showError, showSuccessToast, t]);
 
+  const copyImage = useCallback(async () => {
+    if (!screenshot?.imageUrl || isCopying) return;
+
+    setIsCopying(true);
+
+    try {
+      const copied = await globalThis.window.electron.clipboard.writeImage(
+        screenshot.imageUrl
+      );
+
+      if (copied) {
+        showSuccessToast(t("screenshots_copied"), SETTINGS_TOAST);
+      } else {
+        showErrorToast(t("screenshots_copy_failed"), SETTINGS_TOAST);
+      }
+    } catch (error) {
+      logger.error("Failed to copy screenshot", error);
+      showErrorToast(t("screenshots_copy_failed"), SETTINGS_TOAST);
+    } finally {
+      setIsCopying(false);
+    }
+  }, [isCopying, screenshot, showErrorToast, showSuccessToast, t]);
+
   return {
+    isCopying,
+    copyImage,
     isLiking: Boolean(screenshot && likingIds.has(screenshot.id)),
     isReported: Boolean(screenshot && reportedIds.has(screenshot.id)),
     isReporting,
@@ -824,7 +869,9 @@ export function ScreenshotLightbox({
                           isSignedIn={Boolean(viewerId)}
                           isLiking={social.isLiking}
                           isReported={social.isReported}
+                          isCopying={social.isCopying}
                           onLike={() => void social.toggleLike()}
+                          onCopy={() => void social.copyImage()}
                           onReport={() => {
                             if (!viewerId) {
                               void globalThis.window.electron.openAuthWindow(
