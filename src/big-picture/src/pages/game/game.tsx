@@ -697,6 +697,32 @@ export default function Game() {
     },
     []
   );
+  const reportLaunchFailure = useCallback(
+    async (
+      member: LibraryGame,
+      error: unknown,
+      generation: number,
+      skipUpdateCheck: boolean
+    ) => {
+      const code =
+        member.shop === "epic" ? getEpicLaunchError(error) : undefined;
+      if (code === "save-conflict") {
+        setEpicSaveConflict(member);
+        return;
+      }
+      // The cached preview predates the published build: fetch a fresh one.
+      if (code === "update-required") void refreshEpicUpdate(true);
+      const translation = code ? getEpicManagedError(code) : null;
+      showErrorToast(
+        translation
+          ? t(translation.key, { ns: translation.ns })
+          : t("epic_launch_failed", { ns: "game_details" })
+      );
+      if (member.shop === "epic")
+        await offerEpicLaunchRecovery(member, generation, skipUpdateCheck);
+    },
+    [showErrorToast, t, refreshEpicUpdate, offerEpicLaunchRecovery]
+  );
   const launchMember = useCallback(
     async (
       member: LibraryGame,
@@ -721,25 +747,10 @@ export default function Game() {
         );
       } catch (error) {
         if (generation !== launchGeneration.current) return;
-        const code =
-          member.shop === "epic" ? getEpicLaunchError(error) : undefined;
-        if (code === "save-conflict") {
-          setEpicSaveConflict(member);
-          return;
-        }
-        // The cached preview predates the published build: fetch a fresh one.
-        if (code === "update-required") void refreshEpicUpdate(true);
-        const translation = code ? getEpicManagedError(code) : null;
-        showErrorToast(
-          translation
-            ? t(translation.key, { ns: translation.ns })
-            : t("epic_launch_failed", { ns: "game_details" })
-        );
-        if (member.shop === "epic")
-          await offerEpicLaunchRecovery(member, generation, skipUpdateCheck);
+        await reportLaunchFailure(member, error, generation, skipUpdateCheck);
       }
     },
-    [showErrorToast, t, refreshEpicUpdate, offerEpicLaunchRecovery]
+    [reportLaunchFailure]
   );
   const playEpicMember = useCallback(
     (member: LibraryGame) => {
