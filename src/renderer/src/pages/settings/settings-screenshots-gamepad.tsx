@@ -5,11 +5,11 @@ import { Button } from "@renderer/components";
 import {
   DEFAULT_SCREENSHOT_GAMEPAD_COMBO,
   SCREENSHOT_GAMEPAD_BUTTONS,
+  SCREENSHOT_GAMEPAD_COMBO_MAX_BUTTONS,
+  SCREENSHOT_GAMEPAD_COMBO_MIN_BUTTONS,
+  isSameScreenshotGamepadCombo,
 } from "@shared";
 import type { ScreenshotGamepadButton } from "@types";
-
-export const MIN_SCREENSHOT_GAMEPAD_COMBO_SIZE = 2;
-export const MAX_SCREENSHOT_GAMEPAD_COMBO_SIZE = 4;
 
 export const toggleScreenshotGamepadButton = (
   combo: ScreenshotGamepadButton[],
@@ -17,11 +17,11 @@ export const toggleScreenshotGamepadButton = (
 ): ScreenshotGamepadButton[] | null => {
   const isSelected = combo.includes(button);
 
-  if (isSelected && combo.length <= MIN_SCREENSHOT_GAMEPAD_COMBO_SIZE) {
+  if (isSelected && combo.length <= SCREENSHOT_GAMEPAD_COMBO_MIN_BUTTONS) {
     return null;
   }
 
-  if (!isSelected && combo.length >= MAX_SCREENSHOT_GAMEPAD_COMBO_SIZE) {
+  if (!isSelected && combo.length >= SCREENSHOT_GAMEPAD_COMBO_MAX_BUTTONS) {
     return null;
   }
 
@@ -33,10 +33,6 @@ export const toggleScreenshotGamepadButton = (
     nextSelection.includes(candidate)
   );
 };
-
-const isDefaultCombo = (combo: ScreenshotGamepadButton[]) =>
-  combo.length === DEFAULT_SCREENSHOT_GAMEPAD_COMBO.length &&
-  DEFAULT_SCREENSHOT_GAMEPAD_COMBO.every((button) => combo.includes(button));
 
 export interface SettingsScreenshotsGamepadProps {
   combo: ScreenshotGamepadButton[];
@@ -67,12 +63,15 @@ export function SettingsScreenshotsGamepad({
           {t("screenshots_gamepad_combo")}
         </span>
 
-        {!isDefaultCombo(combo) && (
+        {!isSameScreenshotGamepadCombo(
+          combo,
+          DEFAULT_SCREENSHOT_GAMEPAD_COMBO
+        ) && (
           <Button
             theme="outline"
             size="small"
             disabled={disabled}
-            onClick={() => onChange(DEFAULT_SCREENSHOT_GAMEPAD_COMBO)}
+            onClick={() => onChange([...DEFAULT_SCREENSHOT_GAMEPAD_COMBO])}
           >
             {t("screenshots_gamepad_reset")}
           </Button>

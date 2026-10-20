@@ -1938,7 +1938,6 @@
     "screenshots_gamepad_reset": "Reset to default",
     "screenshots_hotkey": "Keyboard shortcut",
     "screenshots_hotkey_change": "Change",
-    "screenshots_hotkey_invalid": "This key can't be used as a shortcut",
     "screenshots_hotkey_recording": "Press a key",
     "screenshots_hotkey_reset": "Reset to default",
     "screenshots_input_active": "The shortcut is active",

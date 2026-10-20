@@ -1830,7 +1830,6 @@
     "screenshots_gamepad_reset": "Restablecer valores predeterminados",
     "screenshots_hotkey": "Atajo de teclado",
     "screenshots_hotkey_change": "Cambiar",
-    "screenshots_hotkey_invalid": "Esta tecla no se puede usar como atajo",
     "screenshots_hotkey_recording": "Pulsa una tecla",
     "screenshots_hotkey_reset": "Restablecer valores predeterminados",
     "screenshots_input_active": "El atajo está activo",
