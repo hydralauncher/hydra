@@ -15,7 +15,7 @@ export function CheckboxField({
   label,
   indeterminate = false,
   ...props
-}: CheckboxFieldProps) {
+}: Readonly<CheckboxFieldProps>) {
   const id = useId();
   const inputRef = useRef<HTMLInputElement>(null);
 

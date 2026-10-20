@@ -1,6 +1,8 @@
 @use "../../../scss/globals.scss";
 
-@mixin extras-row {
+// Shared by the "select all" row and each extra; both are rows of the panel.
+.epic-install-modal__extras-all,
+.epic-install-modal__extra {
   position: relative;
   display: flex;
   align-items: center;
@@ -145,8 +147,6 @@
   }
 
   &__extras-all {
-    @include extras-row;
-
     gap: globals.$spacing-unit;
   }
 
@@ -156,10 +156,6 @@
     list-style: none;
     max-height: 236px;
     overflow-y: auto;
-  }
-
-  &__extra {
-    @include extras-row;
   }
 
   &__extra-label {
