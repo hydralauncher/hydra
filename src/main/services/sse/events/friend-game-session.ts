@@ -1,17 +1,9 @@
 import type { FriendGameSession } from "../types";
 import { db, levelKeys } from "@main/level";
-import { WindowManager } from "@main/services/window-manager";
 import { publishFriendStartedPlayingGameNotification } from "@main/services/notifications";
 import type { UserPreferences } from "@types";
 import { toFriendGameSessionNotification } from "../friend-game-session-notification";
-import { createFriendsUpdateThrottle } from "../friends-update-throttle";
-
-const broadcastFriendsUpdated = createFriendsUpdateThrottle(() =>
-  WindowManager.sendToAppWindows("on-friends-updated")
-);
-
-export const cancelFriendsUpdatedBroadcast = () =>
-  broadcastFriendsUpdated.cancel();
+import { broadcastFriendsUpdated } from "../friends-updated-broadcast";
 
 export const friendGameSessionEvent = async (
   payload: FriendGameSession,

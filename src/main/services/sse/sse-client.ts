@@ -3,10 +3,8 @@ import { HydraApi } from "../hydra-api";
 import { logger } from "../logger";
 import { summarizeNetworkError } from "../network-error-summary.js";
 import { friendRequestEvent } from "./events/friend-request";
-import {
-  cancelFriendsUpdatedBroadcast,
-  friendGameSessionEvent,
-} from "./events/friend-game-session";
+import { friendGameSessionEvent } from "./events/friend-game-session";
+import { broadcastFriendsUpdated } from "./friends-updated-broadcast";
 import { friendPresenceEvent } from "./events/friend-presence";
 import { notificationEvent } from "./events/notification";
 import { chatMessageEvent } from "./events/chat-message";
@@ -129,7 +127,7 @@ export class SSEClient {
     // Sign-out and sign-in both close first; a catch-up still running belongs
     // to the previous account.
     cancelChatCatchUp();
-    cancelFriendsUpdatedBroadcast();
+    broadcastFriendsUpdated.cancel();
   }
 
   static reconnectNow() {
