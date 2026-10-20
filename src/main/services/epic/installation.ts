@@ -774,22 +774,23 @@ export class EpicInstallationService {
       epicAccountId: context.connection.epicAccountId,
     };
     const options = await Promise.all(
-      result.options.map(async (option) => ({
-        ...option,
-        ...(reused
-          ? {
-              installed: !!(await this.readInstalledForRepair(
-                {
-                  ...context,
-                  owner,
-                  artifactId: option.artifactId,
-                  platform: option.platform,
-                },
-                objectId
-              )),
-            }
-          : {}),
-      }))
+      result.options.map(async (option) => {
+        if (!reused) return option;
+        const installed = await this.readInstalledForRepair(
+          {
+            ...context,
+            owner,
+            artifactId: option.artifactId,
+            platform: option.platform,
+          },
+          objectId
+        );
+        return {
+          ...option,
+          installed: !!installed,
+          installedVersion: installed?.version ?? null,
+        };
+      })
     );
     if (!this.options.current(context) || signal.aborted)
       throw new EpicManagedError("operation-cancelled");
@@ -832,6 +833,8 @@ export class EpicInstallationService {
             diskSizeInBytes: prepared.diskSizeInBytes,
             supportsCloudSaves: prepared.supportsCloudSaves,
             installed: !!installed,
+            version: prepared.version,
+            installedVersion: installed?.version ?? null,
           });
         } catch (error) {
           if (

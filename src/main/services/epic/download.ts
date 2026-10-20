@@ -6,6 +6,7 @@ import type { Download, Game } from "../../../types/level.types";
 import type { DownloadProgress } from "../../../types/download.types";
 import type {
   StartEpicGameDownloadPayload,
+  StartEpicGameUpdatePayload,
   EpicManagedOperationResult,
 } from "../../../types/epic-managed.types";
 import {
@@ -25,6 +26,7 @@ import {
   type LegendaryManagedRuntime,
 } from "./legendary-managed-runtime.js";
 import {
+  epicManagedTarget,
   isPathContained,
   readManagedJson,
   writeManagedJson,
@@ -82,6 +84,9 @@ export class EpicDownloadProgressParser {
     const downloadSize = /Download size:\s*([\d.]+)\s*MiB/i.exec(line);
     if (downloadSize) {
       const remaining = Number(downloadSize[1]) * MIB_BYTES;
+      // An update's delta is unknown until Legendary compares both manifests.
+      if (Number.isFinite(remaining) && this.state.fileSize <= 0)
+        this.state.fileSize = Math.round(remaining);
       if (Number.isFinite(remaining))
         this.reusedBytes = Math.max(0, this.state.fileSize - remaining);
       this.state.bytesDownloaded = Math.max(
@@ -173,6 +178,49 @@ export async function getReusableEpicDiskBytes(
 }
 
 export { quoteWindowsEpicArgument } from "./prerequisite-runtime.js";
+
+const EPIC_MAX_INSTALL_TAGS = 256;
+const isEpicInstallTag = (value: unknown): value is string =>
+  typeof value === "string" && /^[A-Za-z0-9_.-]{0,128}$/.test(value);
+
+/** Legendary's own `install_tags` record; an empty list means every file. */
+export function epicInstallTags(value: unknown): string[] {
+  if (value === undefined || value === null) return [];
+  if (
+    !Array.isArray(value) ||
+    value.length > EPIC_MAX_INSTALL_TAGS ||
+    !value.every(isEpicInstallTag)
+  )
+    throw new EpicManagedError("installation-incomplete");
+  return [...new Set(value)];
+}
+
+/**
+ * The managed workspace rewrites config.ini for every operation, so Legendary
+ * never remembers selected tags: every install, resume and update repeats them.
+ */
+export function epicInstallArgs(options: {
+  artifactId: string;
+  platform: string;
+  basePath: string;
+  folderName: string;
+  installTags?: string[];
+}) {
+  return [
+    "-y",
+    "install",
+    options.artifactId,
+    "--platform",
+    options.platform,
+    "--base-path",
+    options.basePath,
+    "--game-folder",
+    options.folderName,
+    "--skip-dlcs",
+    "--skip-sdl",
+    ...(options.installTags ?? []).map((tag) => `--install-tag=${tag}`),
+  ];
+}
 
 async function runDirectEpicPrerequisite(
   executable: string,
@@ -298,6 +346,36 @@ export class EpicDownloadService {
       if (this.enqueues.get(id) === operation) this.enqueues.delete(id);
     }
   }
+  /** Updates reuse the install command; the folder is the existing install's. */
+  async startUpdate(
+    payload: StartEpicGameUpdatePayload
+  ): Promise<EpicManagedOperationResult> {
+    try {
+      const signal = new AbortController().signal;
+      const owned = await this.options.installation.captureLocal(
+        payload.epicObjectId,
+        signal
+      );
+      const installation = owned.game.epicInstallation;
+      if (!installation) throw new EpicManagedError("installation-missing");
+      if (
+        installation.artifactId !== payload.artifactId ||
+        installation.platform !== payload.platform
+      )
+        throw new EpicManagedError("invalid-artifact");
+      const installed = await this.options.installation.readInstalledForRepair(
+        epicManagedTarget(owned, payload.artifactId, payload.platform),
+        payload.epicObjectId
+      );
+      if (!installed) throw new EpicManagedError("installation-missing");
+      return await this.start({
+        ...payload,
+        downloadPath: path.dirname(installed.installPath),
+      });
+    } catch (error) {
+      return { ok: false, error: epicManagedErrorCode(error) };
+    }
+  }
   private async enqueue(
     payload: StartEpicGameDownloadPayload,
     controller: AbortController
@@ -338,6 +416,10 @@ export class EpicDownloadService {
       )
         throw new EpicManagedError("invalid-path");
       this.options.runtime.assertCurrent(prepared.target, controller.signal);
+      const update =
+        installed && installed.version !== prepared.version
+          ? { fromVersion: installed.version, toVersion: prepared.version }
+          : undefined;
       const download: Download = {
         shop: "epic",
         objectId: payload.epicObjectId,
@@ -347,7 +429,8 @@ export class EpicDownloadService {
         downloader: Downloader.Epic,
         progress: 0,
         bytesDownloaded: 0,
-        fileSize: prepared.downloadSizeInBytes,
+        // Legendary reports an update's delta once it compares both manifests.
+        fileSize: update ? 0 : prepared.downloadSizeInBytes,
         shouldSeed: false,
         status: "paused",
         queued: false,
@@ -362,6 +445,7 @@ export class EpicDownloadService {
           platform: payload.platform,
           diskSizeInBytes: prepared.diskSizeInBytes,
           phase: "preparing",
+          ...(update ? { update } : {}),
         },
       };
       // Never create/promote the imported Game or send a Hydra download mutation.
@@ -506,6 +590,10 @@ export class EpicDownloadService {
     await this.validateSpace(destination, base, prepared.diskSizeInBytes);
     if (controller.signal.aborted || !isCurrent())
       throw new EpicManagedError("operation-cancelled");
+    // A resumed update keeps its persisted delta unless Epic published another build.
+    const sameUpdate = metadata.update?.toVersion === prepared.version;
+    let fileSize = prepared.downloadSizeInBytes;
+    if (metadata.update) fileSize = sameUpdate ? (download.fileSize ?? 0) : 0;
     const active: ActiveEpicDownload = {
       prepared,
       id: this.id(download.objectId),
@@ -513,18 +601,21 @@ export class EpicDownloadService {
       target: prepared.target,
       download: {
         ...download,
-        fileSize: prepared.downloadSizeInBytes,
+        fileSize,
         epic: {
           ...metadata,
           diskSizeInBytes: prepared.diskSizeInBytes,
           phase: "preparing",
           error: undefined,
+          ...(metadata.update
+            ? { update: { ...metadata.update, toVersion: prepared.version } }
+            : {}),
         },
       },
       parser: new EpicDownloadProgressParser(
-        prepared.downloadSizeInBytes,
-        download.bytesDownloaded,
-        download.progress
+        fileSize,
+        metadata.update && !sameUpdate ? 0 : download.bytesDownloaded,
+        metadata.update && !sameUpdate ? 0 : download.progress
       ),
       done: Promise.resolve(),
       completed: false,
@@ -568,19 +659,13 @@ export class EpicDownloadService {
           target,
           owned.game.objectId,
           active.prepared,
-          [
-            "-y",
-            "install",
-            target.artifactId,
-            "--platform",
-            target.platform,
-            "--base-path",
-            active.download.downloadPath,
-            "--game-folder",
-            active.download.folderName!,
-            "--skip-dlcs",
-            "--skip-sdl",
-          ],
+          epicInstallArgs({
+            artifactId: target.artifactId,
+            platform: target.platform,
+            basePath: active.download.downloadPath,
+            folderName: active.download.folderName!,
+            installTags: epicInstallTags(existing?.raw.install_tags),
+          }),
           {
             signal: controller.signal,
             onLine: (line) => {
@@ -643,7 +728,12 @@ export class EpicDownloadService {
         bytesDownloaded: active.parser.state.fileSize,
         fileSize: active.parser.state.fileSize,
         status: "complete",
-        epic: { ...current.epic, phase: "finalizing", error: undefined },
+        epic: {
+          ...current.epic,
+          phase: "finalizing",
+          error: undefined,
+          update: undefined,
+        },
       };
       await this.options.putDownload(active.id, active.download);
       assertActive();
