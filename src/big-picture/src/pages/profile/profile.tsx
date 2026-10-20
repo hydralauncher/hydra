@@ -74,7 +74,7 @@ import {
 import { useHeroBackgroundLayers } from "../../components/pages/library/hero/use-hero-background-layers";
 import { useFocusAnimatedCover } from "../../components/pages/library/card-presentation";
 import {
-  useBigPictureRunningGames,
+  useRunningGameIds,
   useBigPictureToast,
   useFormat,
   useLibrary,
@@ -153,6 +153,8 @@ type ProfileFavoriteGame = {
   libraryImageUrl?: string | null;
   playTimeInSeconds?: number;
   playTimeInMilliseconds?: number;
+  steamPlayTimeInMilliseconds?: number;
+  epicPlayTimeInMilliseconds?: number;
 };
 
 type ProfileActivityGame = {
@@ -340,7 +342,7 @@ function getFavoriteGamePlaytimeInSeconds(game: ProfileFavoriteGame | null) {
   }
 
   if (typeof game.playTimeInMilliseconds === "number") {
-    return game.playTimeInMilliseconds / 1000;
+    return getDisplayedPlayTimeInMilliseconds(game) / 1000;
   }
 
   return null;
@@ -531,7 +533,7 @@ function toProfileLibraryCarouselGame(
   return {
     objectId: game.objectId,
     shop: game.shop,
-    catalogueGame: "catalogueGame" in game ? game.catalogueGame : undefined,
+    catalogueGame: game.catalogueGame,
     title: game.title,
     iconUrl: game.iconUrl ?? null,
     libraryHeroImageUrl: game.libraryHeroImageUrl ?? null,
@@ -1767,15 +1769,11 @@ function useProfileGames(
   remoteFavoriteGame: UserGame | null,
   remoteRecentActivityGames: UserGame[]
 ): ProfileGames {
-  const runningGames = useBigPictureRunningGames();
-  const runningIdsKey = Object.keys(runningGames)
-    .sort((a, b) => a.localeCompare(b))
-    .join(",");
+  const runningGameIds = useRunningGameIds();
   const groupedLibrary = useMemo(() => {
     if (!isOwnProfile) return [];
-    const runningIds = runningIdsKey ? runningIdsKey.split(",") : [];
-    return groupLibraryGames(library, runningIds);
-  }, [isOwnProfile, library, runningIdsKey]);
+    return groupLibraryGames(library, runningGameIds);
+  }, [isOwnProfile, library, runningGameIds]);
   const localFavoriteGame = useMemo(
     () => getLocalFavoriteGame(groupedLibrary, isOwnProfile),
     [isOwnProfile, groupedLibrary]
