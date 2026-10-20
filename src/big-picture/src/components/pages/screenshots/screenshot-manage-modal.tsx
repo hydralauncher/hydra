@@ -7,7 +7,7 @@ import type {
   ProfileVisibility,
   ScreenshotUpdateRequest,
 } from "@types";
-import { SCREENSHOT_CUSTOM_TITLE_MAX_LENGTH } from "@shared";
+import { SCREENSHOT_CUSTOM_GAME_TITLE_MAX_LENGTH } from "@shared";
 
 import {
   Button,
@@ -140,7 +140,7 @@ export function ScreenshotManageModal({
             label={t("screenshots_custom_title_label")}
             placeholder={t("screenshots_custom_game")}
             value={customGameTitle}
-            maxLength={SCREENSHOT_CUSTOM_TITLE_MAX_LENGTH}
+            maxLength={SCREENSHOT_CUSTOM_GAME_TITLE_MAX_LENGTH}
             disabled={isSaving}
             focusId={TITLE_FOCUS_ID}
             onChange={(event) => setCustomGameTitle(event.target.value)}

@@ -14,12 +14,17 @@ import type {
   LocalScreenshot,
   ProfileVisibility,
   ScreenshotGamepadButton,
+  ScreenshotInputStatus,
   UserPreferences,
 } from "@types";
 import {
   DEFAULT_SCREENSHOT_HOTKEY,
   SCREENSHOT_GAMEPAD_BUTTONS,
+  formatScreenshotHotkey,
+  isSameScreenshotHotkey,
   resolveScreenshotPreferences,
+  validateScreenshotHotkey,
+  type ScreenshotHotkeyError,
 } from "@shared";
 import { logger } from "@renderer/logger";
 
@@ -35,12 +40,8 @@ import {
 import { ConfirmationModal } from "../../components/modals";
 import {
   formatScreenshotDate,
-  formatScreenshotHotkeyLabel,
   getHotkeyFromKeyboardEvent,
   isModifierKeyCode,
-  isSameScreenshotHotkey,
-  validateScreenshotHotkey,
-  type ScreenshotHotkeyError,
 } from "../../components/pages/screenshots";
 import { resolveImageSource } from "../../helpers";
 import {
@@ -70,6 +71,11 @@ export const SCREENSHOT_SETTINGS_FOCUS_IDS = {
 } as const;
 
 const SECTION_REGION_ID = "screenshot-settings-section";
+const HOTKEY_ERROR_KEYS: Record<ScreenshotHotkeyError, string> = {
+  hotkey_reserved: "screenshots_hotkey_error_reserved",
+  hotkey_modifier_required: "screenshots_hotkey_error_typing",
+  hotkey_unsupported_key: "screenshots_hotkey_error_unsupported",
+};
 const BLOCK_TARGET: FocusOverrideTarget = { type: "block" };
 
 const getLocalUploadFocusId = (clientId: string) =>
@@ -215,8 +221,10 @@ function useHotkeyRecorder(
 
       if (isModifierKeyCode(event.code)) return;
 
-      const binding = getHotkeyFromKeyboardEvent(event);
-      const error = validateScreenshotHotkey(binding, event.metaKey);
+      const candidate = getHotkeyFromKeyboardEvent(event);
+      const validation = validateScreenshotHotkey(candidate);
+      const { meta: _meta, ...binding } = candidate;
+      const error = validation.valid ? null : validation.error;
 
       setIsRecording(false);
       onRecorded(error);
@@ -229,6 +237,61 @@ function useHotkeyRecorder(
   }, [isRecording, onRecorded, save]);
 
   return { isRecording, setIsRecording };
+}
+
+function useScreenshotInputStatus() {
+  const [status, setStatus] = useState<ScreenshotInputStatus | null>(null);
+
+  useEffect(() => {
+    let isCurrent = true;
+
+    globalThis.window.electron
+      .getScreenshotInputStatus()
+      .then((nextStatus) => {
+        if (isCurrent) setStatus(nextStatus);
+      })
+      .catch((error: unknown) => {
+        logger.error("Failed to read the screenshot input status", error);
+      });
+
+    const unsubscribe =
+      globalThis.window.electron.onScreenshotInputStatusChange(setStatus);
+
+    return () => {
+      isCurrent = false;
+      unsubscribe();
+    };
+  }, []);
+
+  return status;
+}
+
+function getInputStatusKey(status: ScreenshotInputStatus) {
+  if (status.active) return "screenshots_input_active";
+  if (status.keyboardBackend === "unavailable")
+    return "screenshots_input_unavailable";
+
+  return "screenshots_input_idle";
+}
+
+function ScreenshotInputStatusLine({
+  status,
+}: Readonly<{ status: ScreenshotInputStatus | null }>) {
+  const { t } = useTranslation("settings");
+
+  if (!status) return null;
+
+  const hint =
+    status.active || !status.hint
+      ? ""
+      : ` ${t(status.hint, { ns: "screenshots_input" })}`;
+
+  return (
+    <span className="screenshot-settings__hint">
+      {t(getInputStatusKey(status))}
+      {hint}
+    </span>
+  );
 }
 
 interface LocalScreenshotRowProps {
@@ -336,6 +399,10 @@ export function ScreenshotSettingsSection({
   const [deleting, setDeleting] = useState<LocalScreenshot | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
   const localScreenshots = useLocalScreenshotList();
+  const inputStatus = useScreenshotInputStatus();
+  const isBorderFlashUnavailable = Boolean(
+    globalThis.window.electron.isWayland
+  );
   const language = i18n.resolvedLanguage ?? i18n.language ?? "en";
   const preferences = resolveScreenshotPreferences({
     ...userPreferences,
@@ -382,7 +449,7 @@ export function ScreenshotSettingsSection({
     (error: ScreenshotHotkeyError | null) => {
       if (!error) return;
 
-      showErrorToast(t(`screenshots_hotkey_error_${error}`), {
+      showErrorToast(t(HOTKEY_ERROR_KEYS[error]), {
         fallbackVisual: "settings",
       });
     },
@@ -580,11 +647,13 @@ export function ScreenshotSettingsSection({
     label: string,
     checked: boolean,
     onChange: (checked: boolean) => void,
-    disabled = settingsDisabled
+    disabled = settingsDisabled,
+    secondaryText?: string
   ) => (
     <Checkbox
       block
       label={label}
+      secondaryText={secondaryText}
       checked={checked}
       disabled={disabled}
       focusId={focusId}
@@ -624,7 +693,7 @@ export function ScreenshotSettingsSection({
               >
                 {isRecording
                   ? t("screenshots_settings_hotkey_recording")
-                  : formatScreenshotHotkeyLabel(preferences.hotkey)}
+                  : formatScreenshotHotkey(preferences.hotkey)}
               </Button>
               {isDefaultHotkey ? null : (
                 <Button
@@ -651,6 +720,7 @@ export function ScreenshotSettingsSection({
                   : "screenshots_settings_hotkey_hint"
               )}
             </span>
+            <ScreenshotInputStatusLine status={inputStatus} />
           </div>
 
           {renderCheckbox(
@@ -712,9 +782,13 @@ export function ScreenshotSettingsSection({
           {renderCheckbox(
             ids.borderFlash,
             t("screenshots_settings_border_flash"),
-            preferences.borderFlashEnabled,
+            preferences.borderFlashEnabled && !isBorderFlashUnavailable,
             (screenshotBorderFlashEnabled) =>
-              void update({ screenshotBorderFlashEnabled })
+              void update({ screenshotBorderFlashEnabled }),
+            settingsDisabled || isBorderFlashUnavailable,
+            isBorderFlashUnavailable
+              ? t("screenshots_border_flash_unavailable", { ns: "settings" })
+              : undefined
           )}
           {renderCheckbox(
             ids.askToUpload,
