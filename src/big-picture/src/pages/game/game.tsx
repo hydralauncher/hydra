@@ -51,6 +51,7 @@ import {
   ProtonDBSection,
   RequirementsToPlay,
   ScreenshotCarousel,
+  GameCommunityScreenshots,
   SupportedLanguages,
 } from "../../components/pages/game";
 import { useGameSettingsModalState } from "../../components/pages/game/game-settings-modal/use-game-settings-modal-state";
@@ -67,6 +68,7 @@ import {
 } from "../../layout";
 import {
   GAME_COMMENTS_ACTION_ROWS_REGION_ID,
+  GAME_COMMUNITY_SCREENSHOTS_REGION_ID,
   GAME_DESCRIPTION_BOTTOM_ENTRY_ID,
   GAME_DESCRIPTION_BODY_ID,
   GAME_DESCRIPTION_REGION_ID,
@@ -519,6 +521,7 @@ export default function Game() {
   } | null>(null);
   const [isAddingToLibrary, setIsAddingToLibrary] = useState(false);
   const [hasNavigableComments, setHasNavigableComments] = useState(false);
+  const [hasCommunityScreenshots, setHasCommunityScreenshots] = useState(false);
   const [activeMediaItemId, setActiveMediaItemId] = useState<string | null>(
     null
   );
@@ -808,7 +811,28 @@ export default function Game() {
       preferRememberedFocus: true,
     };
   }, [hasSimilarGames]);
+  const communityScreenshotsEntryTarget = useMemo(() => {
+    if (!hasCommunityScreenshots) return undefined;
+
+    return {
+      type: "region" as const,
+      regionId: GAME_COMMUNITY_SCREENSHOTS_REGION_ID,
+      entryDirection: "down" as const,
+      preferRememberedFocus: true,
+    };
+  }, [hasCommunityScreenshots]);
+  const communityScreenshotsBottomEntryTarget = useMemo(
+    () =>
+      communityScreenshotsEntryTarget
+        ? { ...communityScreenshotsEntryTarget, entryDirection: "up" as const }
+        : undefined,
+    [communityScreenshotsEntryTarget]
+  );
   const bodyUpNavigationTarget = useMemo<FocusOverrideTarget>(() => {
+    if (communityScreenshotsBottomEntryTarget) {
+      return communityScreenshotsBottomEntryTarget;
+    }
+
     if (activeMediaItemId) {
       return getItemFocusTarget(activeMediaItemId);
     }
@@ -828,11 +852,23 @@ export default function Game() {
       entryDirection: "up",
       preferRememberedFocus: true,
     };
-  }, [activeMediaItemId, hasMedia]);
+  }, [activeMediaItemId, communityScreenshotsBottomEntryTarget, hasMedia]);
   const sidebarStatsEntryTarget = useMemo(
     () => getItemFocusTarget(GAME_SIDEBAR_STATS_ID),
     []
   );
+  const communityScreenshotsUpTarget = useMemo<FocusOverrideTarget>(() => {
+    if (activeMediaItemId) return getItemFocusTarget(activeMediaItemId);
+
+    return {
+      type: "region",
+      regionId: hasMedia
+        ? GAME_MEDIA_CAROUSEL_REGION_ID
+        : GAME_HERO_ACTIONS_REGION_ID,
+      entryDirection: "up",
+      preferRememberedFocus: true,
+    };
+  }, [activeMediaItemId, hasMedia]);
   const bodyRightNavigationTarget = useMemo<FocusOverrideTarget>(
     () => sidebarStatsEntryTarget,
     [sidebarStatsEntryTarget]
@@ -852,11 +888,15 @@ export default function Game() {
     }
 
     return (
-      descriptionEntryTarget ?? similarGamesEntryTarget ?? commentsEntryTarget
+      communityScreenshotsEntryTarget ??
+      descriptionEntryTarget ??
+      similarGamesEntryTarget ??
+      commentsEntryTarget
     );
   }, [
     activeMediaItemId,
     commentsEntryTarget,
+    communityScreenshotsEntryTarget,
     descriptionEntryTarget,
     hasMedia,
     similarGamesEntryTarget,
@@ -886,12 +926,17 @@ export default function Game() {
       return descriptionBottomEntryTarget;
     }
 
+    if (communityScreenshotsBottomEntryTarget) {
+      return communityScreenshotsBottomEntryTarget;
+    }
+
     if (hasMedia) {
       return contentBelowHeroTarget ?? heroActionsLeftNavigationTarget;
     }
 
     return heroActionsLeftNavigationTarget;
   }, [
+    communityScreenshotsBottomEntryTarget,
     contentBelowHeroTarget,
     descriptionBottomEntryTarget,
     hasMedia,
@@ -901,6 +946,8 @@ export default function Game() {
 
   const similarGamesTopNavigationTarget = useMemo<FocusOverrideTarget>(() => {
     if (descriptionBottomEntryTarget) return descriptionBottomEntryTarget;
+    if (communityScreenshotsBottomEntryTarget)
+      return communityScreenshotsBottomEntryTarget;
     if (activeMediaItemId) return getItemFocusTarget(activeMediaItemId);
 
     if (hasMedia) {
@@ -915,6 +962,7 @@ export default function Game() {
     return heroActionsLeftNavigationTarget;
   }, [
     activeMediaItemId,
+    communityScreenshotsBottomEntryTarget,
     descriptionBottomEntryTarget,
     hasMedia,
     heroActionsLeftNavigationTarget,
@@ -1670,11 +1718,24 @@ export default function Game() {
                 screenshots={shopDetails.screenshots ?? []}
                 onActiveItemChange={setActiveMediaItemId}
                 nextContentEntryTarget={
+                  communityScreenshotsEntryTarget ??
                   descriptionEntryTarget ??
                   similarGamesEntryTarget ??
                   commentsEntryTarget
                 }
                 sidebarEntryTarget={sidebarStatsEntryTarget}
+              />
+
+              <GameCommunityScreenshots
+                shop={shop!}
+                objectId={objectId!}
+                upTarget={communityScreenshotsUpTarget}
+                downTarget={
+                  descriptionEntryTarget ??
+                  similarGamesEntryTarget ??
+                  commentsEntryTarget
+                }
+                onAvailabilityChange={setHasCommunityScreenshots}
               />
 
               {hasDescription && (

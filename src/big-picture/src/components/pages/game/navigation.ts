@@ -43,3 +43,14 @@ export function getGameCommentVoteItemId(
 ) {
   return `game-comment-${reviewId}-${voteType}`;
 }
+
+export const GAME_COMMUNITY_SCREENSHOTS_REGION_ID =
+  "game-community-screenshots";
+export const GAME_COMMUNITY_SCREENSHOTS_ROW_REGION_ID =
+  "game-community-screenshots-row";
+export const GAME_COMMUNITY_SCREENSHOTS_SORT_ID =
+  "game-community-screenshots-sort";
+
+export function getGameCommunityScreenshotItemId(screenshotId: string) {
+  return `game-community-screenshot-${screenshotId}`;
+}
