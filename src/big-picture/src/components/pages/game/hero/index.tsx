@@ -1,7 +1,7 @@
 import {
   ArchiveIcon,
   DownloadSimpleIcon,
-  FileMagnifyingGlassIcon,
+  FileIcon,
   GearIcon,
   HourglassIcon,
   HeartIcon,
@@ -234,7 +234,7 @@ export function Hero({
     if (installStep === "select-executable") {
       return {
         label: t("select_executable", { ns: "downloads" }),
-        icon: <FileMagnifyingGlassIcon size={24} />,
+        icon: <FileIcon size={24} />,
         onClick: onSelectExecutable,
         disabled: false,
       };

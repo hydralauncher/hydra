@@ -10,7 +10,7 @@ import { useInstallerAvailability } from "@renderer/hooks/use-installer-availabi
 import {
   ArchiveIcon,
   DownloadSimpleIcon,
-  FileMagnifyingGlassIcon,
+  FileIcon,
   HourglassIcon,
   PlayIcon,
 } from "@phosphor-icons/react";
@@ -1148,7 +1148,7 @@ export default function Downloads() {
       if (step === "select-executable") {
         return {
           label: t("select_executable"),
-          icon: <FileMagnifyingGlassIcon size={22} />,
+          icon: <FileIcon size={22} />,
           run: () =>
             setExecutablePickerTarget({
               shop: game.shop,

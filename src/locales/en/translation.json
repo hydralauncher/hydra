@@ -1155,16 +1155,12 @@
     "move_down": "Move down",
     "select_executable": "Select executable",
     "run_installer": "Run installer",
-    "no_installer_hint": "No installer found. If the game is already installed, select its executable.",
-    "installer_closed_hint": "Done installing? Select the game's executable to play it.",
     "game_installed_title": "Game installed",
     "game_installed_description": "Hydra found the game's executable. It's ready to play.",
     "installed_game_not_found_title": "Couldn't find the installed game",
     "installed_game_not_found_description": "Select the game's executable to finish setting it up.",
     "installer_launch_failed": "Couldn't start the installer",
-    "installing": "Installing…",
-    "extract_hint": "This download is still compressed. Extract it to install or play the game.",
-    "installing_hint": "Finish the installer window to continue."
+    "installing": "Installing…"
   },
   "settings": {
     "rpcs3_config_title": "RPCS3 configuration folder",
