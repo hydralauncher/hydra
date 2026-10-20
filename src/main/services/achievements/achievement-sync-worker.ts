@@ -253,6 +253,8 @@ export class AchievementSyncWorker {
           );
           const latest = await pending.get(key).catch(() => null);
           if (latest?.revision === item.revision) await pending.del(key);
+          else if (latest?.serverErrors)
+            await pending.put(key, { ...latest, serverErrors: 0 });
         },
         current
       );
