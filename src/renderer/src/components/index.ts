@@ -37,3 +37,4 @@ export * from "./classics-spinner/classics-spinner";
 export * from "./window-title-bar/window-title-bar";
 export * from "./error-boundary/error-fallback";
 export * from "./error-boundary/error-boundary";
+export * from "./content-report-modal/content-report-modal";
