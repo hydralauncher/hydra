@@ -911,24 +911,34 @@ test("ten consecutive server errors park the pending sync", async (t) => {
   assert.equal(f.requests.length, 10);
 });
 
-test("a failure without a server error resets the server error count", async (t) => {
+test("failures without a server error keep the server error count", async (t) => {
   const f = await fixture(t);
   await f.mergeAchievements(f.game, [{ name: "A", unlockTime: 1 }], false);
   await f.untilRequest(1);
   await rejectLatest(f, serverError);
   await failRepeatedly(f, serverError, 8);
-  await failRepeatedly(f, { isAxiosError: true }, 1);
-  assert.equal([...f.records.values()][0]!.serverErrors, 0);
-  await failRepeatedly(f, serverError, 1);
   await failRepeatedly(
     f,
     { isAxiosError: true, response: { status: 429, headers: {} } },
     1
   );
-  await failRepeatedly(f, serverError, 9);
+  await failRepeatedly(f, { isAxiosError: true }, 1);
   const row = [...f.records.values()][0]!;
   assert.equal(row.terminal, false);
   assert.equal(row.serverErrors, 9);
+  await failRepeatedly(f, serverError, 1);
+  assert.equal([...f.records.values()][0]!.terminal, true);
+});
+
+test("network failures alone never park the pending sync", async (t) => {
+  const f = await fixture(t);
+  await f.mergeAchievements(f.game, [{ name: "A", unlockTime: 1 }], false);
+  await f.untilRequest(1);
+  await rejectLatest(f, { isAxiosError: true });
+  await failRepeatedly(f, { isAxiosError: true }, 29);
+  const row = [...f.records.values()][0]!;
+  assert.equal(row.terminal, false);
+  assert.equal(row.serverErrors, 0);
 });
 
 test("a parked sync stays parked on rewrites and resumes on the next unlock", async (t) => {

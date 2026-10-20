@@ -286,9 +286,8 @@ export class AchievementSyncWorker {
           const rejected =
             status !== undefined && !isRetryableAchievementSyncStatus(status);
           const serverErrors =
-            status !== undefined && status >= 500
-              ? (latest.serverErrors ?? 0) + 1
-              : 0;
+            (latest.serverErrors ?? 0) +
+            (status !== undefined && status >= 500 ? 1 : 0);
           const sameRevision = latest.revision === item.revision;
           parked =
             sameRevision && serverErrors >= ACHIEVEMENT_SYNC_MAX_SERVER_ERRORS;
