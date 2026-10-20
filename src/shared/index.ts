@@ -56,6 +56,7 @@ export * from "./souvenir-sync";
 export * from "./game-content-warning";
 export * from "./screenshot-preferences";
 export * from "./screenshot-moderation";
+export * from "./screenshots";
 
 export class UserNotLoggedInError extends Error {
   constructor() {

@@ -23,6 +23,13 @@ export type ScreenshotCommentReportReason = Exclude<
   "not_game_screenshot"
 >;
 
+export interface ScreenshotReportValues<
+  Reason extends ScreenshotReportReason = ScreenshotReportReason,
+> {
+  reason: Reason;
+  description?: string;
+}
+
 export interface ScreenshotAuthor {
   id: string;
   displayName: string;

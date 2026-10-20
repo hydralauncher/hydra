@@ -22,6 +22,8 @@ const getCachedUserData = async (
       email: null,
       profileVisibility: "PUBLIC",
       souvenirsVisibility: "PRIVATE",
+      screenshotsVisibility: "PUBLIC",
+      screenshotCommentsPolicy: "EVERYONE",
       quirks: { backupsPerGameLimit: 0 },
       subscription: user.subscription
         ? {
