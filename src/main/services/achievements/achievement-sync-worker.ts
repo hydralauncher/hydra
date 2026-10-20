@@ -113,7 +113,7 @@ export class AchievementSyncWorker {
   async enqueue(
     item: Omit<
       PendingAchievementSync,
-      "revision" | "attempts" | "nextAttemptAt"
+      "revision" | "attempts" | "nextAttemptAt" | "serverErrors"
     >
   ) {
     if (!HydraApi.isAuthContextCurrent(item.context)) return;
