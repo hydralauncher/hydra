@@ -37,8 +37,11 @@ function ScreenshotInputStatusLine({
   status,
 }: Readonly<{ status: ScreenshotInputStatus | null }>) {
   const { t } = useTranslation("settings");
+  const { t: tInput } = useTranslation("screenshots_input");
 
   if (!status) return null;
+
+  const hint = status.hint ? tInput(status.hint) : null;
 
   if (status.active) {
     return (
@@ -52,7 +55,7 @@ function ScreenshotInputStatusLine({
     return (
       <small className="settings-screenshots__input-status settings-screenshots__input-status--unavailable">
         {t("screenshots_input_unavailable")}
-        {status.hint ? ` ${status.hint}` : ""}
+        {hint ? ` ${hint}` : ""}
       </small>
     );
   }
@@ -60,6 +63,7 @@ function ScreenshotInputStatusLine({
   return (
     <small className="settings-screenshots__input-status">
       {t("screenshots_input_idle")}
+      {hint ? ` ${hint}` : ""}
     </small>
   );
 }
