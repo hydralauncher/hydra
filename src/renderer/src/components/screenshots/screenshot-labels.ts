@@ -4,7 +4,7 @@ import type { ProfileScreenshot } from "@types";
 
 const KNOWN_MODERATION_REASONS = new Set([
   "explicit_imagery",
-  "graphic_violence",
+  "real_world_gore",
   "hate_symbols",
   "personal_information",
   "invalid_image",
