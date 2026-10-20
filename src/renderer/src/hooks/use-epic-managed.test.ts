@@ -97,12 +97,20 @@ function loadInstallModal(
         React.createElement("a", { href: to }, "settings"),
       CheckboxField: ({
         label,
+        indeterminate,
         ...props
-      }: React.ComponentProps<"input"> & { label: React.ReactNode }) =>
+      }: React.ComponentProps<"input"> & {
+        label: React.ReactNode;
+        indeterminate?: boolean;
+      }) =>
         React.createElement(
           "label",
           { "data-checkbox": true },
-          React.createElement("input", { type: "checkbox", ...props }),
+          React.createElement("input", {
+            type: "checkbox",
+            "data-indeterminate": String(!!indeterminate),
+            ...props,
+          }),
           label
         ),
       Modal: ({
@@ -167,9 +175,19 @@ function loadInstallModal(
       ),
     "react-i18next": {
       useTranslation: () => ({
-        t: (key: string, values?: { space?: string; size?: string }) =>
+        t: (
+          key: string,
+          values?: {
+            space?: string;
+            size?: string;
+            selected?: number;
+            total?: number;
+          }
+        ) =>
           translations[key] ??
-          (values ? `${key}:${values.space ?? values.size}` : key),
+          (values
+            ? `${key}:${values.space ?? values.size ?? `${values.selected}/${values.total}`}`
+            : key),
       }),
       Trans: ({
         children,
@@ -195,11 +213,18 @@ function loadInstallModal(
             ),
     },
     "@primer/octicons-react": Object.fromEntries(
-      ["DownloadIcon", "ImageIcon", "PlusIcon", "SyncIcon"].map((name) => [
+      [
+        "ChevronDownIcon",
+        "DownloadIcon",
+        "ImageIcon",
+        "PlusIcon",
+        "SyncIcon",
+      ].map((name) => [
         name,
         () => React.createElement("svg", { "data-icon": name }),
       ])
     ),
+    "react-tooltip": { Tooltip: () => null },
     "react-router-dom": { useNavigate: () => () => {} },
     "@shared": { formatBytes: (size: number) => `${size}B` },
     "@renderer/helpers/epic-managed-error": loadModule(
@@ -497,9 +522,9 @@ describe("Epic managed UI lifecycle", () => {
       "epic_compatibility_automatic",
       "epic_finalizing_install",
       "epic_prerequisites_required",
-      "epic_components",
-      "epic_dlcs",
-      "epic_install_all_dlcs",
+      "epic_extras_title",
+      "epic_extras_selected",
+      "epic_select_all",
       "epic_dlc_installed",
       "epic_selection_size",
       "epic_not_enough_space",
@@ -2033,7 +2058,7 @@ describe("Epic managed UI lifecycle", () => {
     assert.equal(startCalls, 0);
   });
 
-  it("lets the user opt out of components and DLC and sizes the download by the choice", async (t) => {
+  it("starts with DLC selected and components off, and sizes the download by the choice", async (t) => {
     const calls: StartEpicGameDownloadPayload[] = [];
     let free = 1_000;
     const { render } = await fixture(t, {
@@ -2107,14 +2132,38 @@ describe("Epic managed UI lifecycle", () => {
       [...document.querySelectorAll("[data-checkbox]")]
         .find((label) => label.textContent?.startsWith(text))!
         .querySelector("input")!;
-    assert.match(document.body.textContent!, /download_size:112B/);
-    assert.match(document.body.textContent!, /required_storage_space:224B/);
+    const header = document.querySelector<HTMLButtonElement>(
+      "button[aria-expanded]"
+    )!;
+    assert.equal(header.getAttribute("aria-expanded"), "false");
+    assert.equal(document.querySelectorAll("[data-checkbox]").length, 0);
+    assert.match(header.textContent!, /epic_extras_selected:2\/4/);
+    assert.match(header.textContent!, /\+12B/);
+    assert.match(document.body.textContent!, /download_size:62B/);
+    assert.match(document.body.textContent!, /required_storage_space:124B/);
+    await React.act(async () => header.click());
+    assert.equal(header.getAttribute("aria-expanded"), "true");
+    assert.equal(checkbox("DLC A").checked, true);
+    assert.equal(checkbox("DLC B").checked, true);
+    assert.equal(checkbox("Save the World").checked, false);
+    assert.equal(checkbox("HD textures").checked, false);
     assert.equal(checkbox("DLC C").disabled, true);
     assert.match(document.body.textContent!, /epic_dlc_installed/);
-    await React.act(async () => checkbox("HD textures").click());
-    await React.act(async () => checkbox("DLC B").click());
+    const selectAll = () => checkbox("epic_select_all");
+    assert.equal(selectAll().checked, false);
+    assert.equal(selectAll().dataset.indeterminate, "true");
+    await React.act(async () => selectAll().click());
+    assert.equal(selectAll().checked, true);
+    assert.equal(checkbox("HD textures").checked, true);
+    assert.match(document.body.textContent!, /download_size:112B/);
+    await React.act(async () => selectAll().click());
+    assert.equal(checkbox("DLC A").checked, false);
+    assert.equal(checkbox("DLC C").checked, true);
+    assert.match(document.body.textContent!, /download_size:50B/);
+    await React.act(async () => checkbox("Save the World").click());
+    await React.act(async () => checkbox("DLC A").click());
     assert.match(document.body.textContent!, /download_size:85B/);
-    assert.equal(checkbox("epic_install_all_dlcs").checked, false);
+    assert.equal(selectAll().dataset.indeterminate, "true");
     await React.act(async () =>
       document
         .querySelector<HTMLButtonElement>("[data-epic-install-submit]")!
@@ -2139,6 +2188,66 @@ describe("Epic managed UI lifecycle", () => {
         .disabled,
       false
     );
+  });
+
+  it("offers select all even when a single extra is pending", async (t) => {
+    const calls: StartEpicGameDownloadPayload[] = [];
+    const { render } = await fixture(t, {
+      getEpicGameInstallOptions: async () => ({
+        connectionId: "confirmed",
+        options: [
+          {
+            artifactId: "Gotg",
+            platform: "Windows",
+            downloadSizeInBytes: 100,
+            diskSizeInBytes: 200,
+            supportsCloudSaves: false,
+            installed: false,
+            preparationId: "550e8400-e29b-41d4-a716-446655440000",
+            dlcs: [
+              {
+                artifactId: "Outfit",
+                name: "Outfit",
+                downloadSizeInBytes: 5,
+                diskSizeInBytes: 10,
+                installed: false,
+              },
+            ],
+          },
+        ],
+      }),
+      getDiskFreeSpace: async () => ({ free: 1_000 }),
+      startEpicGameDownload: async (payload: StartEpicGameDownloadPayload) => {
+        calls.push(payload);
+        return { ok: true };
+      },
+    });
+    const Modal = loadInstallModal(loadInstallHook("D:\\configured"));
+    await render(
+      React.createElement(Modal, {
+        game: { shop: "epic", objectId: "gotg:gotg" } as LibraryGame,
+        onClose: () => {},
+        onStarted: () => {},
+      })
+    );
+    await React.act(async () =>
+      document
+        .querySelector<HTMLButtonElement>("button[aria-expanded]")!
+        .click()
+    );
+    const selectAll = [...document.querySelectorAll("[data-checkbox]")]
+      .find((label) => label.textContent?.startsWith("epic_select_all"))!
+      .querySelector("input")!;
+    assert.equal(selectAll.checked, true);
+    assert.match(document.body.textContent!, /1\/1/);
+    await React.act(async () => selectAll.click());
+    assert.match(document.body.textContent!, /download_size:100B/);
+    await React.act(async () =>
+      document
+        .querySelector<HTMLButtonElement>("[data-epic-install-submit]")!
+        .click()
+    );
+    assert.equal(calls[0].dlcs, undefined);
   });
 
   it("remains unavailable on an OTA renderer with no managed Epic bridge", async (t) => {

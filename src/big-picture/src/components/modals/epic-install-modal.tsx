@@ -3,6 +3,7 @@ import type { LibraryGame } from "@types";
 import { formatBytes } from "@shared";
 import { useEpicInstall } from "@renderer/hooks/use-epic-install";
 import {
+  Accordion,
   Button,
   Checkbox,
   DropdownSelect,
@@ -32,9 +33,7 @@ export function EpicInstallModal({
     !install.option ||
     !install.result?.connectionId ||
     !install.path;
-  const components = install.option?.components ?? [];
-  const dlcs = install.option?.dlcs ?? [];
-  const pendingDlcs = dlcs.filter((dlc) => !dlc.installed);
+  const summary = install.extrasSummary;
   return (
     <Modal
       visible={!!game}
@@ -75,62 +74,51 @@ export function EpicInstallModal({
             })}
           </p>
         )}
-        {components.length > 0 && (
-          <VerticalFocusGroup>
-            <p>{t("epic_components")}</p>
-            {components.map((component) => (
-              <Checkbox
-                key={component.id}
-                block
-                label={component.name}
-                secondaryText={t("epic_selection_size", {
-                  size: formatBytes(component.downloadSizeInBytes),
-                })}
-                checked={!install.excludedComponents.has(component.id)}
-                disabled={install.starting}
-                onChange={(checked) =>
-                  install.toggleComponent(component.id, checked)
-                }
-              />
-            ))}
-          </VerticalFocusGroup>
-        )}
-        {dlcs.length > 0 && (
-          <VerticalFocusGroup>
-            <p>{t("epic_dlcs")}</p>
-            {pendingDlcs.length > 1 && (
-              <Checkbox
-                block
-                label={t("epic_install_all_dlcs")}
-                checked={pendingDlcs.every(
-                  (dlc) => !install.excludedDlcs.has(dlc.artifactId)
-                )}
-                disabled={install.starting}
-                onChange={install.setAllDlcs}
-              />
-            )}
-            {dlcs.map((dlc) => (
-              <Checkbox
-                key={dlc.artifactId}
-                block
-                label={dlc.name}
-                secondaryText={
-                  dlc.installed
-                    ? t("epic_dlc_installed")
-                    : t("epic_selection_size", {
-                        size: formatBytes(dlc.downloadSizeInBytes),
-                      })
-                }
-                checked={
-                  dlc.installed || !install.excludedDlcs.has(dlc.artifactId)
-                }
-                disabled={dlc.installed || install.starting}
-                onChange={(checked) =>
-                  install.toggleDlc(dlc.artifactId, checked)
-                }
-              />
-            ))}
-          </VerticalFocusGroup>
+        {install.extras.length > 0 && (
+          <Accordion
+            key={game?.objectId}
+            title={t("epic_extras_title")}
+            hint={[
+              t("epic_extras_selected", {
+                selected: summary.selected,
+                total: summary.total,
+              }),
+              ...(summary.selected > 0
+                ? [`+${formatBytes(summary.selectedDownloadSizeInBytes)}`]
+                : []),
+            ].join(" · ")}
+            focusId="epic-install-extras"
+          >
+            <VerticalFocusGroup>
+              {summary.total > 0 && (
+                <Checkbox
+                  block
+                  label={t("epic_select_all")}
+                  secondaryText={`${summary.selected}/${summary.total}`}
+                  checked={summary.selected === summary.total}
+                  disabled={install.starting}
+                  onChange={install.setAllExtras}
+                />
+              )}
+              {install.extras.map((extra) => (
+                <Checkbox
+                  key={extra.key}
+                  block
+                  label={extra.name}
+                  secondaryText={
+                    extra.installed
+                      ? t("epic_dlc_installed")
+                      : t("epic_selection_size", {
+                          size: formatBytes(extra.downloadSizeInBytes),
+                        })
+                  }
+                  checked={extra.checked}
+                  disabled={extra.installed || install.starting}
+                  onChange={(checked) => install.toggleExtra(extra, checked)}
+                />
+              ))}
+            </VerticalFocusGroup>
+          </Accordion>
         )}
         {install.insufficientSpace && (
           <p role="alert">{t("epic_not_enough_space")}</p>
