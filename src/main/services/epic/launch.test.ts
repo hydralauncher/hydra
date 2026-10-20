@@ -486,10 +486,14 @@ test("launching an outdated build skips Legendary's version check only when aske
   await f.exported.prepareManagedEpicLaunch(f.game, f.executable, {
     epicSkipUpdateCheck: true,
   });
-  assert.deepEqual(f.state.authArgs, [
-    ["launch", "Artifact", "--json", "--no-wine"],
-    ["launch", "Artifact", "--json", "--no-wine", "--skip-version-check"],
-  ]);
+  // The module runs in its own VM realm; compare contents, not prototypes.
+  assert.deepEqual(
+    f.state.authArgs.map((args) => [...args]),
+    [
+      ["launch", "Artifact", "--json", "--no-wine"],
+      ["launch", "Artifact", "--json", "--no-wine", "--skip-version-check"],
+    ]
+  );
 });
 
 test("conflict prevents auth launch; offline uses only confirmed local capture and the offline command", async (t) => {
