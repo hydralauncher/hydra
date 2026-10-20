@@ -1,7 +1,7 @@
 import type { LibraryGame } from "@types";
 import { groupLibraryGames } from "@shared";
 import { useDeferredValue, useMemo } from "react";
-import { useBigPictureRunningGames } from "../../../hooks/use-big-picture-running-games.hook";
+import { useRunningGameIds } from "../../../hooks/use-running-game-ids.hook";
 import {
   getFirstLibraryFocusGridItemId,
   getFirstLibraryFocusListItemId,
@@ -27,10 +27,10 @@ export function useLibraryPageData(
   secondaryFilter: LibrarySecondaryFilter
 ) {
   const deferredSearch = useDeferredValue(search);
-  const runningGames = useBigPictureRunningGames();
+  const runningGameIds = useRunningGameIds();
   const groupedLibrary = useMemo(
-    () => groupLibraryGames(library, Object.keys(runningGames)),
-    [library, runningGames]
+    () => groupLibraryGames(library, runningGameIds),
+    [library, runningGameIds]
   );
 
   const lastPlayedSortedLibrary = useMemo(() => {
