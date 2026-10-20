@@ -16,7 +16,7 @@ import {
   getEpicLaunchError,
   getEpicManagedError,
 } from "@renderer/helpers/epic-managed-error";
-import { FileArchive, FolderOpen, XCircle } from "lucide-react";
+import { FileArchive, XCircle } from "lucide-react";
 import {
   useDownload,
   useGameExecutablePicker,
@@ -501,38 +501,22 @@ export function HeroPanelActions() {
     }
 
     return (
-      <>
-        <Button
-          onClick={() =>
-            window.electron.openGameInstallerPath(
-              downloadGame.shop,
-              downloadGame.objectId
-            )
-          }
-          theme="outline"
-          disabled={deleting}
-          className="hero-panel-actions__action"
-        >
-          <FolderOpen size={16} />
-          {t("open_folder")}
-        </Button>
-        <Button
-          onClick={async () => {
-            const picked = await pickGameExecutable(
-              downloadGame.shop,
-              downloadGame.objectId
-            );
+      <Button
+        onClick={async () => {
+          const picked = await pickGameExecutable(
+            downloadGame.shop,
+            downloadGame.objectId
+          );
 
-            if (picked) updateGame();
-          }}
-          theme="outline"
-          disabled={deleting}
-          className="hero-panel-actions__action"
-        >
-          <FileIcon size={16} />
-          {t("select_executable", { ns: "downloads" })}
-        </Button>
-      </>
+          if (picked) updateGame();
+        }}
+        theme="outline"
+        disabled={deleting}
+        className="hero-panel-actions__action"
+      >
+        <FileIcon size={16} />
+        {t("select_executable", { ns: "downloads" })}
+      </Button>
     );
   };
 
