@@ -4,6 +4,7 @@ import os from "node:os";
 import path from "node:path";
 import { test, type TestContext } from "node:test";
 import type { Download, Game } from "../../../types/level.types";
+import type { EpicSnapshotDlc } from "../../../types/epic-integration.types";
 import { Downloader } from "../../../shared/constants.js";
 import {
   EpicDownloadService,
@@ -103,6 +104,7 @@ async function fixture(
   let game = structuredClone(initial);
   let current = true;
   let remoteOwned = true;
+  let ownedDlcs: EpicSnapshotDlc[] = [];
   let freeSpace = 100 * 1024 * MIB;
   let diskRequests = 0;
   let download: Download | undefined;
@@ -207,6 +209,7 @@ async function fixture(
             epicImport: {
               connectionId: connection.connectionId,
               artifactIds: ["Artifact1"],
+              dlcs: ownedDlcs,
             },
           }
         : null,
@@ -271,6 +274,9 @@ async function fixture(
     diskRequests: () => diskRequests,
     disown: () => {
       remoteOwned = false;
+    },
+    setOwnedDlcs: (value: EpicSnapshotDlc[]) => {
+      ownedDlcs = value;
     },
     setFreeSpace: (value: number) => {
       freeSpace = value;
@@ -1108,4 +1114,270 @@ test("an Epic update reuses the install command in the installed folder with its
   assert.equal(f.getDownload()?.epic?.update, undefined);
   const updated = await f.service.getOptions(objectId);
   assert.equal(updated.options[0].installedVersion, "build-2");
+});
+
+const sdl = {
+  required_tags: ["chunk0"],
+  download_size: 1 * MIB,
+  disk_size: 2 * MIB,
+  packs: [
+    {
+      id: "de",
+      name: "Deutsch",
+      tags: ["voice_de"],
+      download_size: 0.5 * MIB,
+      disk_size: 1 * MIB,
+    },
+    {
+      id: "fr",
+      name: "Français",
+      tags: ["voice_fr"],
+      download_size: 0.25 * MIB,
+      disk_size: 0.5 * MIB,
+    },
+  ],
+};
+const dlcInfo = (artifactId: string, version = "dlc-1") => ({
+  info: {
+    game: { app_name: artifactId, version, is_dlc: true },
+    manifest: { is_preloaded: false, download_size: 1 * MIB, disk_size: MIB },
+  },
+  metadata: {
+    app_name: artifactId,
+    metadata: {
+      namespace: "Namespace1",
+      id: `${artifactId}Item`,
+      categories: [{ path: "addons" }],
+      mainGameItem: {
+        id: "Item1",
+        namespace: "Namespace1",
+        releaseInfo: [{ appId: "Artifact1" }],
+      },
+    },
+    asset_infos: {
+      Windows: {
+        app_name: artifactId,
+        namespace: "Namespace1",
+        catalog_item_id: `${artifactId}Item`,
+      },
+    },
+  },
+});
+const ownedDlc = (artifactId: string): EpicSnapshotDlc => ({
+  artifactId,
+  namespace: "Namespace1",
+  catalogItemId: `${artifactId}Item`,
+  name: `DLC ${artifactId}`,
+});
+
+async function selectionFixture(
+  t: TestContext,
+  onInstall?: (
+    args: string[],
+    options: { onLine?: (line: string) => void }
+  ) => boolean
+) {
+  const installed: Record<string, unknown> = {};
+  const f = await fixture(t, async (directory, options, destination) => {
+    const args = f.commands[f.commands.length - 1];
+    // Legendary records nothing for a run that failed.
+    if (onInstall?.(args, options) === false) return;
+    const artifact = args[args.indexOf("install") + 1];
+    options.onLine?.("[cli] INFO: Download size: 1.00 MiB");
+    await fs.mkdir(destination, { recursive: true });
+    await fs.writeFile(path.join(destination, "Game.exe"), "fixture-game");
+    installed[artifact] =
+      artifact === "Artifact1"
+        ? {
+            app_name: "Artifact1",
+            platform: "Windows",
+            install_path: destination,
+            executable: "Game.exe",
+            install_size: 4 * MIB,
+            version: "build-1",
+            install_tags: args
+              .filter((arg) => arg.startsWith("--install-tag="))
+              .map((arg) => arg.slice("--install-tag=".length)),
+          }
+        : {
+            app_name: artifact,
+            platform: "Windows",
+            install_path: destination,
+            executable: "",
+            install_size: MIB,
+            version: "dlc-1",
+            is_dlc: true,
+          };
+    await fs.writeFile(
+      path.join(directory, "installed.json"),
+      JSON.stringify(installed)
+    );
+  });
+  t.mock.method(
+    f.runtime,
+    "inspect",
+    async (target, _id, signal, _cached, base) => {
+      f.runtime.assertCurrent(target, signal);
+      if (!base) return { info: { ...info, sdl }, metadata };
+      if (target.artifactId === "Broken")
+        throw new EpicManagedError("not-installable");
+      return dlcInfo(target.artifactId);
+    }
+  );
+  const waitForStatus = async (status: Download["status"]) => {
+    for (let attempt = 0; attempt < 500; attempt++) {
+      if (f.getDownload()?.status === status) return;
+      await new Promise((resolve) => setTimeout(resolve, 5));
+    }
+    assert.fail(`download did not reach ${status}`);
+  };
+  return { ...f, installed, waitForStatus };
+}
+
+test("a component selection installs only its tags and sizes the download by it", async (t) => {
+  const f = await selectionFixture(t);
+  const preview = await f.service.getOptions(objectId);
+  assert.deepEqual(
+    preview.options[0].components?.map(({ id }) => id),
+    ["de", "fr"]
+  );
+  assert.equal(preview.options[0].requiredDownloadSizeInBytes, 1 * MIB);
+  assert.equal(preview.options[0].requiredDiskSizeInBytes, 2 * MIB);
+  for (const components of [["xx"], ["de", "de"]])
+    assert.deepEqual(await f.service.start({ ...f.payload, components }), {
+      ok: false,
+      error: "invalid-selection",
+    });
+  assert.deepEqual(
+    await f.service.start({ ...f.payload, components: ["de"] }),
+    { ok: true }
+  );
+  const queued = f.getDownload()!;
+  assert.equal(queued.fileSize, 1.5 * MIB);
+  assert.equal(queued.epic?.diskSizeInBytes, 3 * MIB);
+  assert.deepEqual(queued.epic?.selection, {
+    components: ["de"],
+    installTags: ["", "chunk0", "voice_de"],
+    dlcs: [],
+  });
+  await f.service.startRuntime(queued, (error) => f.failed.resolve(error));
+  await f.waitForStatus("complete");
+  const install = f.commands.find((args) => args.includes("install"))!;
+  assert.deepEqual(
+    install.filter((arg) => arg.startsWith("--install-tag")),
+    ["--install-tag=", "--install-tag=chunk0", "--install-tag=voice_de"]
+  );
+  assert.equal(f.getDownload()?.fileSize, 1.5 * MIB);
+});
+
+test("selecting every component or none of the API is the complete game", async (t) => {
+  const f = await selectionFixture(t);
+  for (const components of [["de", "fr"], undefined]) {
+    assert.deepEqual(
+      await f.service.start({
+        ...f.payload,
+        ...(components ? { components } : {}),
+      }),
+      { ok: true }
+    );
+    assert.equal(f.getDownload()?.fileSize, 2 * MIB);
+    assert.deepEqual(f.getDownload()?.epic?.selection?.installTags, []);
+  }
+  assert.deepEqual(await f.service.start({ ...f.payload, components: [] }), {
+    ok: true,
+  });
+  assert.equal(f.getDownload()?.fileSize, 1 * MIB);
+  assert.deepEqual(f.getDownload()?.epic?.selection?.installTags, [
+    "",
+    "chunk0",
+  ]);
+});
+
+test("owned DLC is offered, installed after the game and forgotten with it", async (t) => {
+  const f = await selectionFixture(t);
+  f.setOwnedDlcs([ownedDlc("Dlc1"), ownedDlc("Broken")]);
+  const preview = await f.service.getOptions(objectId);
+  assert.deepEqual(preview.options[0].dlcs, [
+    {
+      artifactId: "Dlc1",
+      name: "DLC Dlc1",
+      downloadSizeInBytes: 1 * MIB,
+      diskSizeInBytes: MIB,
+      installed: false,
+    },
+  ]);
+  assert.deepEqual(await f.service.start({ ...f.payload, dlcs: ["Broken"] }), {
+    ok: false,
+    error: "invalid-selection",
+  });
+  assert.deepEqual(await f.service.start({ ...f.payload, dlcs: ["Dlc1"] }), {
+    ok: true,
+  });
+  assert.equal(f.getDownload()?.fileSize, 3 * MIB);
+  assert.equal(f.getDownload()?.epic?.diskSizeInBytes, 5 * MIB);
+  await f.service.startRuntime(f.getDownload()!, (error) =>
+    f.failed.resolve(error)
+  );
+  await f.waitForStatus("complete");
+  const installs = f.commands
+    .filter((args) => args.includes("install"))
+    .map((args) => args[args.indexOf("install") + 1]);
+  assert.deepEqual(installs, ["Artifact1", "Dlc1"]);
+  assert.equal(f.getDownload()?.fileSize, 3 * MIB);
+  assert.equal(f.getDownload()?.bytesDownloaded, 3 * MIB);
+  await f.service.stop();
+  const after = await f.service.getOptions(objectId);
+  assert.equal(after.options[0].dlcs?.[0].installed, true);
+  await f.service.forgetInstallation(f.getDownload()!);
+  const target = epicManagedTarget(
+    await f.installation.capture(objectId, new AbortController().signal),
+    "Artifact1",
+    "Windows"
+  );
+  assert.deepEqual(
+    JSON.parse(
+      await fs.readFile(
+        path.join(f.runtime.workspace(target), "installed.json"),
+        "utf8"
+      )
+    ),
+    {}
+  );
+});
+
+test("a failed DLC keeps the game bound and resumes with only the DLC", async (t) => {
+  let failDlc = true;
+  const f = await selectionFixture(t, (args, options) => {
+    if (!args.includes("Dlc1") || !failDlc) return true;
+    options.onLine?.("[cli] ERROR: DLC transfer failed");
+    return false;
+  });
+  f.setOwnedDlcs([ownedDlc("Dlc1")]);
+  assert.deepEqual(await f.service.start({ ...f.payload, dlcs: ["Dlc1"] }), {
+    ok: true,
+  });
+  await f.service.startRuntime(f.getDownload()!, (error) =>
+    f.failed.resolve(error)
+  );
+  assert.deepEqual(
+    await f.failed.promise,
+    new EpicManagedError("process-failed")
+  );
+  assert.ok(f.getGame().executablePath);
+  assert.equal(f.getGame().epicInstallation?.artifactId, "Artifact1");
+  await f.service.stop();
+  failDlc = false;
+  const before = f.commands.length;
+  await f.service.startRuntime(
+    { ...f.getDownload()!, status: "paused" },
+    () => {}
+  );
+  await f.waitForStatus("complete");
+  assert.deepEqual(
+    f.commands
+      .slice(before)
+      .filter((args) => args.includes("install"))
+      .map((args) => args[args.indexOf("install") + 1]),
+    ["Dlc1"]
+  );
 });

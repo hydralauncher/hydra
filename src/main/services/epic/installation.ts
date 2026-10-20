@@ -9,6 +9,7 @@ import type {
   EpicLocalOwner,
   StartEpicGameDownloadPayload,
 } from "../../../types/epic-managed.types";
+import type { EpicSnapshotDlc } from "../../../types/epic-integration.types";
 import type { EpicSyncContext } from "./sync-orchestrator";
 import { isRecord } from "./auth-protocol.js";
 import { isEpicObjectId } from "./library-normalizer.js";
@@ -35,6 +36,33 @@ export interface EpicOwnedGame extends EpicSyncContext {
   game: Game;
   owner: EpicLocalOwner;
   artifactIds: string[];
+  /** Owned DLC reported by the API; empty when unknown. */
+  dlcs: EpicSnapshotDlc[];
+}
+export interface EpicSelectivePack {
+  id: string;
+  name: string;
+  tags: string[];
+  downloadSizeInBytes: number;
+  diskSizeInBytes: number;
+}
+/** Legendary's selective-download packs and the files every selection installs. */
+export interface EpicSelectiveInstall {
+  requiredTags: string[];
+  downloadSizeInBytes: number;
+  diskSizeInBytes: number;
+  packs: EpicSelectivePack[];
+}
+export interface EpicPreparedDlc {
+  target: EpicManagedTarget;
+  objectId: string;
+  artifactId: string;
+  name: string;
+  version: string;
+  downloadSizeInBytes: number;
+  diskSizeInBytes: number;
+  metadata: Record<string, unknown>;
+  manifest?: unknown;
 }
 export interface EpicPreparedInstallation {
   target: EpicManagedTarget;
@@ -45,6 +73,8 @@ export interface EpicPreparedInstallation {
   metadata: Record<string, unknown>;
   manifest?: unknown;
   preparationId: string;
+  selective?: EpicSelectiveInstall;
+  dlcs?: EpicPreparedDlc[];
 }
 interface EpicPreparationReceipt {
   owned: EpicOwnedGame;
@@ -77,7 +107,11 @@ interface InstallationOptions {
     objectId: string,
     signal: AbortSignal
   ) => Promise<{
-    epicImport: { connectionId: string; artifactIds: string[] } | null;
+    epicImport: {
+      connectionId: string;
+      artifactIds: string[];
+      dlcs?: EpicSnapshotDlc[];
+    } | null;
   } | null>;
   getGame: (objectId: string) => Promise<Game | undefined>;
   updateGame: (
@@ -309,6 +343,143 @@ export function parseEpicInstallInfo(
   };
 }
 
+const EPIC_MAX_SELECTIVE_PACKS = 64;
+const EPIC_MAX_PACK_TAGS = 64;
+export const EPIC_MAX_INSTALL_TAGS = 256;
+export const isEpicInstallTag = (value: unknown): value is string =>
+  typeof value === "string" && /^[A-Za-z0-9_.-]{0,128}$/.test(value);
+export const isEpicSelectionId = (value: unknown): value is string =>
+  typeof value === "string" && /^[A-Za-z0-9_.-]{1,64}$/.test(value);
+const isByteCount = (value: unknown): value is number =>
+  Number.isSafeInteger(value) && Number(value) >= 0;
+
+/** Optional packs are an enhancement: malformed data means a game without them. */
+export function parseEpicSelectiveInstall(
+  value: unknown
+): EpicSelectiveInstall | undefined {
+  if (
+    !isRecord(value) ||
+    !Array.isArray(value.required_tags) ||
+    value.required_tags.length > EPIC_MAX_PACK_TAGS ||
+    !value.required_tags.every(isEpicInstallTag) ||
+    !isByteCount(value.download_size) ||
+    !isByteCount(value.disk_size) ||
+    !Array.isArray(value.packs) ||
+    !value.packs.length ||
+    value.packs.length > EPIC_MAX_SELECTIVE_PACKS
+  )
+    return undefined;
+  const packs: EpicSelectivePack[] = [];
+  for (const pack of value.packs) {
+    if (
+      !isRecord(pack) ||
+      !isEpicSelectionId(pack.id) ||
+      pack.id === "__required" ||
+      packs.some((existing) => existing.id === pack.id) ||
+      typeof pack.name !== "string" ||
+      !pack.name.trim() ||
+      pack.name.length > 128 ||
+      !Array.isArray(pack.tags) ||
+      !pack.tags.length ||
+      pack.tags.length > EPIC_MAX_PACK_TAGS ||
+      !pack.tags.every(isEpicInstallTag) ||
+      !isByteCount(pack.download_size) ||
+      !isByteCount(pack.disk_size)
+    )
+      return undefined;
+    packs.push({
+      id: pack.id,
+      name: pack.name.trim(),
+      tags: [...pack.tags],
+      downloadSizeInBytes: pack.download_size,
+      diskSizeInBytes: pack.disk_size,
+    });
+  }
+  return {
+    requiredTags: [...value.required_tags],
+    downloadSizeInBytes: value.download_size,
+    diskSizeInBytes: value.disk_size,
+    packs,
+  };
+}
+
+/** A DLC installs into its game's folder and may never stand alone. */
+export function validateEpicDlcMetadata(
+  value: unknown,
+  target: EpicManagedTarget,
+  dlc: EpicSnapshotDlc,
+  base: { artifactId: string; objectId: string }
+): Record<string, unknown> {
+  const [baseNamespace, baseCatalogItemId] = base.objectId.split(":");
+  if (
+    !isRecord(value) ||
+    value.app_name !== target.artifactId ||
+    target.artifactId !== dlc.artifactId ||
+    !isRecord(value.metadata)
+  )
+    throw new EpicManagedError("invalid-artifact");
+  const metadata = value.metadata;
+  const main = metadata.mainGameItem;
+  const release =
+    isRecord(main) && Array.isArray(main.releaseInfo)
+      ? main.releaseInfo[0]
+      : undefined;
+  if (
+    metadata.namespace !== dlc.namespace ||
+    metadata.id !== dlc.catalogItemId ||
+    !isRecord(main) ||
+    main.id !== baseCatalogItemId ||
+    (main.namespace !== undefined && main.namespace !== baseNamespace) ||
+    !isRecord(release) ||
+    release.appId !== base.artifactId ||
+    !Array.isArray(metadata.categories) ||
+    !metadata.categories.some(
+      (category) => isRecord(category) && category.path === "addons"
+    ) ||
+    metadata.categories.some(
+      (category) => isRecord(category) && category.path === "addons/launchable"
+    )
+  )
+    throw new EpicManagedError("not-installable");
+  const asset = isRecord(value.asset_infos)
+    ? value.asset_infos[target.platform]
+    : undefined;
+  if (
+    !isRecord(asset) ||
+    asset.app_name !== target.artifactId ||
+    asset.namespace !== dlc.namespace ||
+    asset.catalog_item_id !== dlc.catalogItemId
+  )
+    throw new EpicManagedError("invalid-artifact");
+  return value;
+}
+
+export function parseEpicDlcInstallInfo(
+  value: unknown,
+  artifactId: string
+): { downloadSizeInBytes: number; diskSizeInBytes: number; version: string } {
+  const game = isRecord(value) ? value.game : undefined;
+  const manifest = isRecord(value) ? value.manifest : undefined;
+  if (
+    !isRecord(game) ||
+    game.app_name !== artifactId ||
+    game.is_dlc !== true ||
+    typeof game.version !== "string" ||
+    !game.version ||
+    !isRecord(manifest) ||
+    manifest.is_preloaded !== false ||
+    !isByteCount(manifest.download_size) ||
+    !isByteCount(manifest.disk_size) ||
+    Number(manifest.disk_size) === 0
+  )
+    throw new EpicManagedError("not-installable");
+  return {
+    downloadSizeInBytes: manifest.download_size,
+    diskSizeInBytes: manifest.disk_size,
+    version: game.version,
+  };
+}
+
 export class EpicInstallationService {
   readonly runtime: LegendaryManagedRuntime;
   private readonly optionsCache = new Map<
@@ -421,6 +592,7 @@ export class EpicInstallationService {
       game,
       owner,
       artifactIds: [game.epicInstallation.artifactId],
+      dlcs: [],
     };
     const target = {
       ...epicManagedTarget(
@@ -476,6 +648,7 @@ export class EpicInstallationService {
       artifactIds: [...new Set(owned.epicImport.artifactIds)].sort(
         (left, right) => left.localeCompare(right, "en")
       ),
+      dlcs: owned.epicImport.dlcs ?? [],
       owner: {
         environment: context.auth.environment,
         userId: context.auth.userId,
@@ -561,6 +734,9 @@ export class EpicInstallationService {
       { command: "info" }
     );
     this.runtime.assertCurrent(target, signal);
+    const selective = isRecord(inspection.info)
+      ? parseEpicSelectiveInstall(inspection.info.sdl)
+      : undefined;
     const prepared: EpicPreparedInstallation = {
       target,
       ...parseEpicInstallInfo(inspection.info, artifactId),
@@ -571,14 +747,24 @@ export class EpicInstallationService {
       ),
       manifest: inspection.manifest,
       preparationId: randomUUID(),
+      ...(selective ? { selective } : {}),
     };
+    const dlcs = await this.prepareDlcs(owned, target, signal, cached?.dlcs);
+    if (dlcs.length) prepared.dlcs = dlcs;
     if (
       cached &&
       cached.version === prepared.version &&
       cached.downloadSizeInBytes === prepared.downloadSizeInBytes &&
       cached.diskSizeInBytes === prepared.diskSizeInBytes &&
       cached.supportsCloudSaves === prepared.supportsCloudSaves &&
-      JSON.stringify(cached.metadata) === JSON.stringify(prepared.metadata)
+      JSON.stringify(cached.metadata) === JSON.stringify(prepared.metadata) &&
+      JSON.stringify(cached.selective) === JSON.stringify(prepared.selective) &&
+      JSON.stringify(
+        cached.dlcs?.map(({ artifactId, version }) => [artifactId, version])
+      ) ===
+        JSON.stringify(
+          prepared.dlcs?.map(({ artifactId, version }) => [artifactId, version])
+        )
     )
       prepared.preparationId = cached.preparationId;
     else if (cached)
@@ -593,6 +779,64 @@ export class EpicInstallationService {
     });
     while (this.preparations.size > EPIC_INSTALL_OPTIONS_CACHE_MAX_ENTRIES)
       this.preparations.delete(this.preparations.keys().next().value!);
+    return prepared;
+  }
+  /**
+   * Inspects each owned DLC in its game's context. A DLC that cannot be
+   * prepared is left out; it never prevents installing the game itself.
+   */
+  private async prepareDlcs(
+    owned: EpicOwnedGame,
+    base: EpicManagedTarget,
+    signal: AbortSignal,
+    cached?: EpicPreparedDlc[]
+  ): Promise<EpicPreparedDlc[]> {
+    const prepared: EpicPreparedDlc[] = [];
+    for (const dlc of owned.dlcs) {
+      if (signal.aborted) throw abortError(signal);
+      const target = epicManagedTarget(owned, dlc.artifactId, base.platform);
+      const objectId = `${dlc.namespace}:${dlc.catalogItemId}`;
+      if (
+        !isSafeEpicArtifact(dlc.artifactId) ||
+        !isEpicObjectId(objectId) ||
+        owned.artifactIds.includes(dlc.artifactId)
+      )
+        continue;
+      try {
+        const inspection = await withEpicTiming(
+          "installation.dlc-info",
+          () =>
+            this.runtime.inspect(
+              target,
+              objectId,
+              signal,
+              cached?.find((item) => item.artifactId === dlc.artifactId),
+              { target: base, objectId: owned.game.objectId }
+            ),
+          { command: "info" }
+        );
+        this.runtime.assertCurrent(target, signal);
+        prepared.push({
+          target,
+          objectId,
+          artifactId: dlc.artifactId,
+          name: dlc.name,
+          ...parseEpicDlcInstallInfo(inspection.info, dlc.artifactId),
+          metadata: validateEpicDlcMetadata(inspection.metadata, target, dlc, {
+            artifactId: base.artifactId,
+            objectId: owned.game.objectId,
+          }),
+          manifest: inspection.manifest,
+        });
+      } catch (error) {
+        if (
+          signal.aborted ||
+          (error instanceof EpicManagedError &&
+            ["operation-cancelled", "stale-connection"].includes(error.code))
+        )
+          throw error;
+      }
+    }
     return prepared;
   }
   async resolvePreparation(
@@ -786,10 +1030,29 @@ export class EpicInstallationService {
           },
           objectId
         );
+        const installedDlcs = installed
+          ? await this.readInstalledDlcs(
+              {
+                ...context,
+                owner,
+                artifactId: option.artifactId,
+                platform: option.platform,
+              },
+              installed.installPath
+            )
+          : new Map<string, string>();
         return {
           ...option,
           installed: !!installed,
           installedVersion: installed?.version ?? null,
+          ...(option.dlcs
+            ? {
+                dlcs: option.dlcs.map((dlc) => ({
+                  ...dlc,
+                  installed: installedDlcs.has(dlc.artifactId),
+                })),
+              }
+            : {}),
         };
       })
     );
@@ -836,6 +1099,15 @@ export class EpicInstallationService {
             installed: !!installed,
             version: prepared.version,
             installedVersion: installed?.version ?? null,
+            ...epicSelectionOptions(
+              prepared,
+              installed
+                ? await this.readInstalledDlcs(
+                    prepared.target,
+                    installed.installPath
+                  )
+                : new Map()
+            ),
           });
         } catch (error) {
           if (
@@ -977,6 +1249,33 @@ export class EpicInstallationService {
       installPath,
       executablePath,
     } as EpicInstalledGame;
+  }
+  /** DLC Legendary installed into this game's folder, by artifact and version. */
+  async readInstalledDlcs(
+    target: EpicManagedTarget,
+    installPath: string
+  ): Promise<Map<string, string>> {
+    const value = await readManagedJson(
+      path.join(this.runtime.workspace(target), "installed.json")
+    ).catch(() => null);
+    const installed = new Map<string, string>();
+    if (!isRecord(value)) return installed;
+    for (const [artifactId, entry] of Object.entries(value))
+      if (
+        artifactId !== target.artifactId &&
+        isSafeEpicArtifact(artifactId) &&
+        isRecord(entry) &&
+        entry.is_dlc === true &&
+        entry.app_name === artifactId &&
+        typeof entry.version === "string" &&
+        entry.version &&
+        entry.needs_verification !== true &&
+        typeof entry.install_path === "string" &&
+        (await fs.realpath(entry.install_path).catch(() => null)) ===
+          installPath
+      )
+        installed.set(artifactId, entry.version);
+    return installed;
   }
   async confirmPrerequisites(
     target: EpicManagedTarget,
@@ -1195,8 +1494,61 @@ export class EpicInstallationService {
         throw error;
       }
       if (!isRecord(value)) throw new EpicManagedError("invalid-response");
-      delete value[target.artifactId];
+      forgetEpicInstalledEntries(value, target.artifactId);
       await writeManagedJson(file, value);
     });
   }
 }
+
+/** Removes a game and the DLC Legendary recorded inside its folder. */
+export function forgetEpicInstalledEntries(
+  installed: Record<string, unknown>,
+  artifactId: string
+) {
+  const game = installed[artifactId];
+  const installPath =
+    isRecord(game) && typeof game.install_path === "string"
+      ? path.resolve(game.install_path)
+      : null;
+  delete installed[artifactId];
+  if (!installPath) return;
+  for (const [key, entry] of Object.entries(installed))
+    if (
+      isRecord(entry) &&
+      entry.is_dlc === true &&
+      typeof entry.install_path === "string" &&
+      path.resolve(entry.install_path) === installPath
+    )
+      delete installed[key];
+}
+
+const epicSelectionOptions = (
+  prepared: EpicPreparedInstallation,
+  installedDlcs: Map<string, string>
+): Partial<EpicGameInstallOption> => ({
+  ...(prepared.selective
+    ? {
+        components: prepared.selective.packs.map(
+          ({ id, name, downloadSizeInBytes, diskSizeInBytes }) => ({
+            id,
+            name,
+            downloadSizeInBytes,
+            diskSizeInBytes,
+          })
+        ),
+        requiredDownloadSizeInBytes: prepared.selective.downloadSizeInBytes,
+        requiredDiskSizeInBytes: prepared.selective.diskSizeInBytes,
+      }
+    : {}),
+  ...(prepared.dlcs?.length
+    ? {
+        dlcs: prepared.dlcs.map((dlc) => ({
+          artifactId: dlc.artifactId,
+          name: dlc.name,
+          downloadSizeInBytes: dlc.downloadSizeInBytes,
+          diskSizeInBytes: dlc.diskSizeInBytes,
+          installed: installedDlcs.has(dlc.artifactId),
+        })),
+      }
+    : {}),
+});

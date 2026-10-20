@@ -52,6 +52,32 @@ describe("managed Epic IPC contracts", () => {
     }
   });
 
+  it("accepts a bounded component and DLC selection", () => {
+    const selected = {
+      ...payload,
+      components: ["stw", "lang_de"],
+      dlcs: ["DlcArtifact"],
+    };
+    assert.deepEqual(parseEpicDownloadPayload(selected), selected);
+    assert.deepEqual(
+      parseEpicDownloadPayload({ ...payload, components: [], dlcs: [] }),
+      { ...payload, components: [], dlcs: [] }
+    );
+    for (const overrides of [
+      { components: "stw" },
+      { components: ["stw", "stw"] },
+      { components: ["../x"] },
+      { components: [""] },
+      { components: Array.from({ length: 65 }, (_, i) => `pack${i}`) },
+      { dlcs: ["--with-dlcs"] },
+      { dlcs: [1] },
+      { dlcs: ["Dlc", "Dlc"] },
+    ])
+      assert.throws(() =>
+        parseEpicDownloadPayload({ ...payload, ...overrides })
+      );
+  });
+
   it("accepts update targets without letting the renderer choose a folder", () => {
     const { downloadPath: _downloadPath, ...target } = payload;
     assert.deepEqual(parseEpicUpdatePayload(target), target);
