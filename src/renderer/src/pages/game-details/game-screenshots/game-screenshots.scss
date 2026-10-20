@@ -1,0 +1,101 @@
+@use "../../../scss/globals.scss";
+
+.game-screenshots {
+  display: flex;
+  flex-direction: column;
+  gap: calc(globals.$spacing-unit * 2);
+  width: 100%;
+  margin: calc(globals.$spacing-unit * 3) auto 0;
+  padding-top: calc(globals.$spacing-unit * 3);
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+
+  @media (min-width: 1280px) {
+    width: 60%;
+  }
+
+  @media (min-width: 1536px) {
+    width: 50%;
+  }
+
+  &__header {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: globals.$spacing-unit;
+  }
+
+  &__title {
+    margin: 0;
+    color: globals.$muted-color;
+    font-size: 1.25rem;
+    font-weight: 600;
+  }
+
+  &__sort {
+    display: inline-flex;
+    padding: 2px;
+    border: 1px solid globals.$border-color;
+    border-radius: 8px;
+    background: rgba(255, 255, 255, 0.03);
+  }
+
+  &__sort-option {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    height: 30px;
+    padding: 0 calc(globals.$spacing-unit * 1.5);
+    border: 0;
+    border-radius: 6px;
+    background: transparent;
+    color: rgba(255, 255, 255, 0.55);
+    cursor: pointer;
+    font-family: inherit;
+    font-size: 13px;
+    font-weight: 500;
+    transition:
+      background-color 0.15s ease,
+      color 0.15s ease;
+
+    &:hover {
+      color: rgba(255, 255, 255, 0.85);
+    }
+
+    &--active {
+      background: rgba(255, 255, 255, 0.1);
+      color: globals.$muted-color;
+    }
+
+    &:focus-visible {
+      outline: 2px solid globals.$muted-color;
+      outline-offset: 1px;
+    }
+  }
+
+  &__skeleton {
+    display: block;
+    width: 100%;
+    aspect-ratio: 16 / 9;
+    border-radius: 8px;
+  }
+
+  &__empty {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: globals.$spacing-unit;
+    padding: calc(globals.$spacing-unit * 2);
+    border: 1px dashed globals.$border-color;
+    border-radius: 8px;
+    color: globals.$body-color;
+
+    p {
+      margin: 0;
+    }
+  }
+
+  &__load-more {
+    align-self: center;
+  }
+}

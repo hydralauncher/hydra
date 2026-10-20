@@ -22,6 +22,7 @@ import { GameLogo } from "./game-logo";
 import { CloudSaveWidget } from "./cloud-save-v2";
 import { getCloudSaveVisibility } from "./cloud-save-visibility";
 import { SimilarGames } from "./similar-games/similar-games";
+import { GameScreenshots } from "./game-screenshots/game-screenshots";
 
 import { AuthPage, getDisplayedPlayTimeInMilliseconds } from "@shared";
 import { cloudSyncContext, gameDetailsContext } from "@renderer/context";
@@ -517,6 +518,13 @@ export function GameDetailsContent() {
               <SimilarGames
                 objectId={catalogueGame.objectId}
                 shop={catalogueGame.shop}
+              />
+            )}
+
+            {shop !== "custom" && shop && objectId && (
+              <GameScreenshots
+                shop={catalogueGame.shop}
+                objectId={catalogueGame.objectId}
               />
             )}
 
