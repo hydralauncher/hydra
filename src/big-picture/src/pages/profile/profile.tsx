@@ -1768,17 +1768,14 @@ function useProfileGames(
   remoteRecentActivityGames: UserGame[]
 ): ProfileGames {
   const runningGames = useBigPictureRunningGames();
-  const runningIdsKey = Object.keys(runningGames).sort().join(",");
-  const groupedLibrary = useMemo(
-    () =>
-      isOwnProfile
-        ? groupLibraryGames(
-            library,
-            runningIdsKey ? runningIdsKey.split(",") : []
-          )
-        : [],
-    [isOwnProfile, library, runningIdsKey]
-  );
+  const runningIdsKey = Object.keys(runningGames)
+    .sort((a, b) => a.localeCompare(b))
+    .join(",");
+  const groupedLibrary = useMemo(() => {
+    if (!isOwnProfile) return [];
+    const runningIds = runningIdsKey ? runningIdsKey.split(",") : [];
+    return groupLibraryGames(library, runningIds);
+  }, [isOwnProfile, library, runningIdsKey]);
   const localFavoriteGame = useMemo(
     () => getLocalFavoriteGame(groupedLibrary, isOwnProfile),
     [isOwnProfile, groupedLibrary]
