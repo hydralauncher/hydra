@@ -1,0 +1,34 @@
+.screenshot-flash {
+  position: fixed;
+  inset: 0;
+  overflow: hidden;
+  background: transparent;
+  pointer-events: none;
+  user-select: none;
+
+  &__glow {
+    position: absolute;
+    inset: 0;
+    box-shadow:
+      inset 0 0 0 3px rgba(255, 255, 255, 0.85),
+      inset 0 0 48px 12px rgba(255, 255, 255, 0.35);
+    opacity: 0;
+    pointer-events: none;
+    animation: screenshot-flash-glow 650ms ease-out forwards;
+    will-change: opacity;
+  }
+}
+
+@keyframes screenshot-flash-glow {
+  0% {
+    opacity: 0;
+  }
+
+  8% {
+    opacity: 1;
+  }
+
+  100% {
+    opacity: 0;
+  }
+}
