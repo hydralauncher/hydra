@@ -73,6 +73,7 @@ import {
 import { useHeroBackgroundLayers } from "../../components/pages/library/hero/use-hero-background-layers";
 import { useFocusAnimatedCover } from "../../components/pages/library/card-presentation";
 import {
+  useBigPictureRunningGames,
   useBigPictureToast,
   useFormat,
   useLibrary,
@@ -126,6 +127,7 @@ import {
   useSouvenirContentWarning,
   getDisplayedPlayTimeInMilliseconds,
   groupLibraryGames,
+  getGameCatalogueIdentity,
 } from "@shared";
 
 const SOUVENIR_REPORT_RESPONSE_STATUSES = [201, 400, 404, 429];
@@ -1748,6 +1750,7 @@ interface ProfileGames {
   favoriteGame: ProfileFavoriteGame | null;
   recentActivityGames: ProfileActivityGame[];
   libraryCarouselGames: ProfileLibraryCarouselGame[];
+  localLibraryCount: number;
 }
 
 function useProfileGames(
@@ -1759,17 +1762,26 @@ function useProfileGames(
   remoteFavoriteGame: UserGame | null,
   remoteRecentActivityGames: UserGame[]
 ): ProfileGames {
+  const runningGames = useBigPictureRunningGames();
+  const groupedLibrary = useMemo(
+    () =>
+      groupLibraryGames(library, Object.keys(runningGames)).map((game) => ({
+        ...game,
+        ...getGameCatalogueIdentity(game),
+      })),
+    [library, runningGames]
+  );
   const localFavoriteGame = useMemo(
-    () => getLocalFavoriteGame(library, isOwnProfile),
-    [isOwnProfile, library]
+    () => getLocalFavoriteGame(groupedLibrary, isOwnProfile),
+    [isOwnProfile, groupedLibrary]
   );
   const remoteFavoriteFallback = useMemo(
     () => getRemoteFavoriteGame(remoteLibraryGames),
     [remoteLibraryGames]
   );
   const localRecentGames = useMemo(
-    () => (isOwnProfile ? getRecentGames(library) : []),
-    [isOwnProfile, library]
+    () => (isOwnProfile ? getRecentGames(groupedLibrary) : []),
+    [isOwnProfile, groupedLibrary]
   );
   const remoteRecentFallback = useMemo(
     () => getRecentGames(remoteLibraryGames),
@@ -1783,7 +1795,7 @@ function useProfileGames(
   );
   const libraryCarouselGames = useMemo(() => {
     const sourceGames = profileUser?.isOwnProfile
-      ? groupLibraryGames(library)
+      ? groupedLibrary
       : remoteLibraryGames;
     return sourceGames.map((game) =>
       toProfileLibraryCarouselGame(
@@ -1793,13 +1805,14 @@ function useProfileGames(
       )
     );
   }, [
+    groupedLibrary,
     hasActiveSubscription,
-    library,
     profileUser?.isOwnProfile,
     remoteLibraryGames,
   ]);
 
   return {
+    localLibraryCount: groupedLibrary.length,
     favoriteGame: profileUser?.isOwnProfile
       ? localFavoriteGame
       : (remoteFavoriteGame ?? remoteFavoriteFallback),
@@ -3186,18 +3199,22 @@ function ProfileContent({ userId }: Readonly<ProfileContentProps>) {
       .map((badgeName) => badges.find((badge) => badge.name === badgeName))
       .filter((badge): badge is Badge => Boolean(badge));
   }, [badges, profileUser?.badges]);
-  const { favoriteGame, recentActivityGames, libraryCarouselGames } =
-    useProfileGames(
-      profileUser,
-      isOwnProfileTarget,
-      targetHasActiveSubscription,
-      library,
-      remoteLibraryGames,
-      remoteFavoriteGame,
-      remoteRecentActivityGames
-    );
+  const {
+    favoriteGame,
+    recentActivityGames,
+    libraryCarouselGames,
+    localLibraryCount,
+  } = useProfileGames(
+    profileUser,
+    isOwnProfileTarget,
+    targetHasActiveSubscription,
+    library,
+    remoteLibraryGames,
+    remoteFavoriteGame,
+    remoteRecentActivityGames
+  );
   const totalLibraryGames = profileUser?.isOwnProfile
-    ? library.length
+    ? localLibraryCount
     : (userStats?.libraryCount ?? remoteLibraryTotalCount);
   const canViewRecentAchievements =
     Boolean(profileUser) && targetHasActiveSubscription;
