@@ -116,11 +116,10 @@ const placeBelowGameWindow = (
   const reviewHandle = getWindowHandle(window);
   if (!reviewHandle) return;
 
+  const gameWindowHandle = session.gameWindowHandle;
+  NativeAddon.placeWindowBelow(reviewHandle, gameWindowHandle);
   window.showInactive();
-  const placed = NativeAddon.placeWindowBelow(
-    reviewHandle,
-    session.gameWindowHandle
-  );
+  const placed = NativeAddon.placeWindowBelow(reviewHandle, gameWindowHandle);
 
   if (!placed) {
     logger.warn("Could not place the screenshot review window below the game");
@@ -145,7 +144,11 @@ const attachWindow = (
       void releaseUnreviewedScreenshots(entry.clientIds);
     }
     for (const listener of windowClosedListeners) listener();
-    if (!session.windows.length && !session.isGameRunning) {
+    if (
+      !session.windows.length &&
+      !session.isGameRunning &&
+      sessions.get(session.gameKey) === session
+    ) {
       sessions.delete(session.gameKey);
     }
   });
@@ -245,11 +248,6 @@ export class ScreenshotReviewWindows {
     );
   }
 
-  public static getSessionId(gameKey: string) {
-    const session = sessions.get(gameKey);
-    return session?.isGameRunning ? session.sessionId : null;
-  }
-
   public static async onGameClosed(gameKey: string) {
     const session = sessions.get(gameKey);
     if (!session) return;
@@ -304,12 +302,6 @@ export class ScreenshotReviewWindows {
         if (entry.isGrid || !entry.clientIds.includes(clientId)) continue;
         if (!entry.window.isDestroyed()) entry.window.close();
       }
-    }
-  }
-
-  public static closeAll() {
-    for (const window of reviewWindows) {
-      if (!window.isDestroyed()) window.close();
     }
   }
 }
