@@ -1,0 +1,408 @@
+import { useCallback, useEffect, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
+
+import { useToast } from "@renderer/hooks";
+import { logger } from "@renderer/logger";
+import {
+  SCREENSHOT_COMMENTS_PAGE_SIZE,
+  buildUserScreenshotCommentPath,
+  buildUserScreenshotCommentReportPath,
+  buildUserScreenshotCommentsPath,
+  buildUserScreenshotCommentVotePath,
+  getScreenshotApiErrorCode,
+  getVotedScreenshotComment,
+  mergeScreenshotPages,
+  normalizeScreenshotCommentBody,
+  normalizeScreenshotReportValues,
+} from "@shared";
+import type {
+  ProfileScreenshot,
+  ScreenshotComment,
+  ScreenshotCommentReportReason,
+  ScreenshotCommentsResponse,
+  ScreenshotCommentVoteResponse,
+  ScreenshotCommentVoteType,
+  ScreenshotReportValues,
+} from "@types";
+
+import type { ScreenshotFailure } from "./use-screenshot-actions";
+
+interface UseScreenshotCommentsOptions {
+  screenshot: ProfileScreenshot;
+  isEnabled: boolean;
+  isSignedIn: boolean;
+  onPatch: (screenshotId: string, patch: Partial<ProfileScreenshot>) => void;
+  onFailure: (screenshotId: string, failure: ScreenshotFailure) => void;
+}
+
+export function useScreenshotComments({
+  screenshot,
+  isEnabled,
+  isSignedIn,
+  onPatch,
+  onFailure,
+}: UseScreenshotCommentsOptions) {
+  const { t } = useTranslation("screenshots");
+  const { showErrorToast, showSuccessToast } = useToast();
+  const ownerId = screenshot.owner.id;
+  const screenshotId = screenshot.id;
+  const [comments, setComments] = useState<ScreenshotComment[]>([]);
+  const [total, setTotal] = useState<number | null>(null);
+  const [nextCursor, setNextCursor] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
+  const [hasFailed, setHasFailed] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [pendingCommentIds, setPendingCommentIds] = useState<
+    ReadonlySet<string>
+  >(() => new Set());
+  const [reportedCommentIds, setReportedCommentIds] = useState<
+    ReadonlySet<string>
+  >(() => new Set());
+  const requestIdRef = useRef(0);
+  const commentCountRef = useRef(screenshot.commentCount);
+  commentCountRef.current = screenshot.commentCount;
+
+  const setPending = useCallback((commentId: string, isPending: boolean) => {
+    setPendingCommentIds((current) => {
+      const next = new Set(current);
+      if (isPending) next.add(commentId);
+      else next.delete(commentId);
+      return next;
+    });
+  }, []);
+
+  const fetchPage = useCallback(
+    (cursor: string | null) =>
+      window.electron.hydraApi.get<ScreenshotCommentsResponse>(
+        buildUserScreenshotCommentsPath(ownerId, screenshotId, {
+          cursor,
+          take: SCREENSHOT_COMMENTS_PAGE_SIZE,
+        }),
+        { needsAuth: isSignedIn }
+      ),
+    [isSignedIn, ownerId, screenshotId]
+  );
+
+  const handleAccessError = useCallback(
+    (error: unknown) => {
+      const code = getScreenshotApiErrorCode(error);
+      if (code === "screenshots/not-found") {
+        onFailure(screenshotId, "unavailable");
+        return true;
+      }
+      if (code === "screenshots/private") {
+        onFailure(screenshotId, "private");
+        return true;
+      }
+      return false;
+    },
+    [onFailure, screenshotId]
+  );
+
+  const reload = useCallback(async () => {
+    const requestId = ++requestIdRef.current;
+    setIsLoading(true);
+    setHasFailed(false);
+
+    try {
+      const response = await fetchPage(null);
+      if (requestId !== requestIdRef.current) return;
+
+      setComments(response?.items ?? []);
+      setTotal(response?.total ?? 0);
+      setNextCursor(response?.nextCursor ?? null);
+    } catch (error) {
+      if (requestId !== requestIdRef.current) return;
+      logger.error("Failed to load screenshot comments", error);
+      if (!handleAccessError(error)) setHasFailed(true);
+    } finally {
+      if (requestId === requestIdRef.current) setIsLoading(false);
+    }
+  }, [fetchPage, handleAccessError]);
+
+  const loadMore = useCallback(async () => {
+    if (isLoading || !nextCursor) return;
+
+    const requestId = requestIdRef.current;
+    setIsLoading(true);
+
+    try {
+      const response = await fetchPage(nextCursor);
+      if (requestId !== requestIdRef.current || !response) return;
+
+      setComments((current) => mergeScreenshotPages(current, response.items));
+      setTotal(response.total);
+      setNextCursor(response.nextCursor);
+    } catch (error) {
+      if (requestId !== requestIdRef.current) return;
+      logger.error("Failed to load more screenshot comments", error);
+      showErrorToast(t("comments_load_failed"));
+    } finally {
+      if (requestId === requestIdRef.current) setIsLoading(false);
+    }
+  }, [fetchPage, isLoading, nextCursor, showErrorToast, t]);
+
+  useEffect(() => {
+    requestIdRef.current += 1;
+    setComments([]);
+    setTotal(null);
+    setNextCursor(null);
+    setHasFailed(false);
+    setIsLoading(false);
+
+    if (isEnabled) void reload();
+  }, [isEnabled, reload]);
+
+  const handleWriteError = useCallback(
+    (error: unknown, fallbackKey: string) => {
+      const code = getScreenshotApiErrorCode(error);
+
+      if (code === "screenshots/comments-disabled") {
+        onPatch(screenshotId, { commentsEnabled: false, canComment: false });
+        showErrorToast(t("comments_turned_off"));
+        return;
+      }
+
+      if (code === "screenshots/comment-not-allowed") {
+        showErrorToast(t("comment_not_allowed"));
+        return;
+      }
+
+      if (code === "screenshots/comment-rate-limited") {
+        showErrorToast(t("comment_rate_limited"));
+        return;
+      }
+
+      if (code === "screenshots/comment-not-found") {
+        void reload();
+        showErrorToast(t("comment_unavailable"));
+        return;
+      }
+
+      if (handleAccessError(error)) return;
+      showErrorToast(t(fallbackKey));
+    },
+    [handleAccessError, onPatch, reload, screenshotId, showErrorToast, t]
+  );
+
+  const createComment = useCallback(
+    async (body: string) => {
+      const normalizedBody = normalizeScreenshotCommentBody(body);
+      if (!normalizedBody || isSubmitting) return false;
+
+      setIsSubmitting(true);
+      try {
+        const comment = await window.electron.hydraApi.post<ScreenshotComment>(
+          buildUserScreenshotCommentsPath(ownerId, screenshotId),
+          { data: { body: normalizedBody }, needsAuth: true }
+        );
+
+        setComments((current) => [comment, ...current]);
+        setTotal((current) => (current ?? 0) + 1);
+        onPatch(screenshotId, { commentCount: commentCountRef.current + 1 });
+        return true;
+      } catch (error) {
+        logger.error("Failed to post screenshot comment", error);
+        handleWriteError(error, "comment_post_failed");
+        return false;
+      } finally {
+        setIsSubmitting(false);
+      }
+    },
+    [handleWriteError, isSubmitting, onPatch, ownerId, screenshotId]
+  );
+
+  const editComment = useCallback(
+    async (comment: ScreenshotComment, body: string) => {
+      const normalizedBody = normalizeScreenshotCommentBody(body);
+      if (!normalizedBody) return false;
+      if (normalizedBody === comment.body) return true;
+      if (pendingCommentIds.has(comment.id)) return false;
+
+      setPending(comment.id, true);
+      try {
+        const updated = await window.electron.hydraApi.patch<ScreenshotComment>(
+          buildUserScreenshotCommentPath(ownerId, screenshotId, comment.id),
+          { data: { body: normalizedBody }, needsAuth: true }
+        );
+
+        setComments((current) =>
+          current.map((item) =>
+            item.id === comment.id
+              ? (updated ?? {
+                  ...item,
+                  body: normalizedBody,
+                  editedAt: Date.now(),
+                })
+              : item
+          )
+        );
+        return true;
+      } catch (error) {
+        logger.error("Failed to edit screenshot comment", error);
+        handleWriteError(error, "comment_edit_failed");
+        return false;
+      } finally {
+        setPending(comment.id, false);
+      }
+    },
+    [handleWriteError, ownerId, pendingCommentIds, screenshotId, setPending]
+  );
+
+  const deleteComment = useCallback(
+    async (comment: ScreenshotComment) => {
+      if (pendingCommentIds.has(comment.id)) return false;
+
+      setPending(comment.id, true);
+      try {
+        await window.electron.hydraApi.delete(
+          buildUserScreenshotCommentPath(ownerId, screenshotId, comment.id),
+          { needsAuth: true }
+        );
+
+        setComments((current) =>
+          current.filter((item) => item.id !== comment.id)
+        );
+        setTotal((current) => Math.max(0, (current ?? 1) - 1));
+        if (!comment.isHidden) {
+          onPatch(screenshotId, {
+            commentCount: Math.max(0, commentCountRef.current - 1),
+          });
+        }
+        showSuccessToast(t("comment_deleted"));
+        return true;
+      } catch (error) {
+        logger.error("Failed to delete screenshot comment", error);
+        handleWriteError(error, "comment_delete_failed");
+        return false;
+      } finally {
+        setPending(comment.id, false);
+      }
+    },
+    [
+      handleWriteError,
+      onPatch,
+      ownerId,
+      pendingCommentIds,
+      screenshotId,
+      setPending,
+      showSuccessToast,
+      t,
+    ]
+  );
+
+  const voteComment = useCallback(
+    async (comment: ScreenshotComment, vote: ScreenshotCommentVoteType) => {
+      if (pendingCommentIds.has(comment.id)) return;
+
+      const previous = {
+        upvotes: comment.upvotes,
+        downvotes: comment.downvotes,
+        myVote: comment.myVote,
+      };
+      const applyVote = (
+        patch: Pick<ScreenshotComment, "upvotes" | "downvotes" | "myVote">
+      ) =>
+        setComments((current) =>
+          current.map((item) =>
+            item.id === comment.id ? { ...item, ...patch } : item
+          )
+        );
+
+      setPending(comment.id, true);
+      applyVote(getVotedScreenshotComment(comment, vote));
+
+      try {
+        const response =
+          await window.electron.hydraApi.put<ScreenshotCommentVoteResponse>(
+            buildUserScreenshotCommentVotePath(
+              ownerId,
+              screenshotId,
+              comment.id,
+              vote
+            ),
+            { needsAuth: true }
+          );
+        if (response) applyVote(response);
+      } catch (error) {
+        applyVote(previous);
+        logger.error("Failed to vote on screenshot comment", error);
+        handleWriteError(error, "comment_vote_failed");
+      } finally {
+        setPending(comment.id, false);
+      }
+    },
+    [handleWriteError, ownerId, pendingCommentIds, screenshotId, setPending]
+  );
+
+  const reportComment = useCallback(
+    async (
+      comment: ScreenshotComment,
+      values: ScreenshotReportValues<ScreenshotCommentReportReason>
+    ) => {
+      if (pendingCommentIds.has(comment.id)) return false;
+
+      setPending(comment.id, true);
+      try {
+        await window.electron.hydraApi.post(
+          buildUserScreenshotCommentReportPath(
+            ownerId,
+            screenshotId,
+            comment.id
+          ),
+          { data: normalizeScreenshotReportValues(values), needsAuth: true }
+        );
+        setReportedCommentIds((current) => new Set(current).add(comment.id));
+        showSuccessToast(t("comment_reported"));
+        return true;
+      } catch (error) {
+        logger.error("Failed to report screenshot comment", error);
+        const code = getScreenshotApiErrorCode(error);
+
+        if (code === "screenshots/already-reported") {
+          setReportedCommentIds((current) => new Set(current).add(comment.id));
+          showSuccessToast(t("comment_already_reported"));
+          return true;
+        }
+
+        if (code === "screenshots/report-rate-limited") {
+          showErrorToast(t("report_rate_limited"));
+          return false;
+        }
+
+        handleWriteError(error, "report_failed");
+        return false;
+      } finally {
+        setPending(comment.id, false);
+      }
+    },
+    [
+      handleWriteError,
+      ownerId,
+      pendingCommentIds,
+      screenshotId,
+      setPending,
+      showErrorToast,
+      showSuccessToast,
+      t,
+    ]
+  );
+
+  return {
+    comments,
+    total,
+    hasMore: nextCursor !== null,
+    isLoading,
+    hasFailed,
+    isSubmitting,
+    pendingCommentIds,
+    reportedCommentIds,
+    reload,
+    loadMore,
+    createComment,
+    editComment,
+    deleteComment,
+    voteComment,
+    reportComment,
+  };
+}
