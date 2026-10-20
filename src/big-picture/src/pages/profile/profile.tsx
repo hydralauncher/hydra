@@ -25,6 +25,7 @@ import type {
   AchievementSouvenirSyncStatus,
   ArtworkAssetType,
   Badge,
+  CatalogueGameIdentity,
   FriendRequestAction,
   ProfileSouvenir,
   SouvenirsHiddenReason,
@@ -157,6 +158,7 @@ type ProfileFavoriteGame = {
 type ProfileActivityGame = {
   objectId: string;
   shop: ShopAssets["shop"];
+  catalogueGame?: CatalogueGameIdentity;
   title: string;
   iconUrl?: string | null;
   coverImageUrl?: string | null;
@@ -171,6 +173,7 @@ type ProfileActivityGame = {
 };
 
 type ProfileLibraryCarouselGame = ShopAssets & {
+  catalogueGame?: CatalogueGameIdentity;
   platform?: string | null;
   customIconUrl?: string | null;
   customHeroImageUrl?: string | null;
@@ -483,9 +486,10 @@ function getLibraryCarouselPlaytimeInMilliseconds(
 }
 
 function getDefaultCoverImageUrl(game: LibraryGame | UserGame): string | null {
-  if (game.shop !== "steam") return null;
+  const { shop, objectId } = getGameCatalogueIdentity(game);
+  if (shop !== "steam") return null;
 
-  return `https://shared.steamstatic.com/store_item_assets/steam/apps/${game.objectId}/library_600x900_2x.jpg`;
+  return `https://shared.steamstatic.com/store_item_assets/steam/apps/${objectId}/library_600x900_2x.jpg`;
 }
 
 function stripSelectedArtwork<T extends LibraryGame | UserGame>(
@@ -527,6 +531,7 @@ function toProfileLibraryCarouselGame(
   return {
     objectId: game.objectId,
     shop: game.shop,
+    catalogueGame: "catalogueGame" in game ? game.catalogueGame : undefined,
     title: game.title,
     iconUrl: game.iconUrl ?? null,
     libraryHeroImageUrl: game.libraryHeroImageUrl ?? null,
@@ -1764,11 +1769,7 @@ function useProfileGames(
 ): ProfileGames {
   const runningGames = useBigPictureRunningGames();
   const groupedLibrary = useMemo(
-    () =>
-      groupLibraryGames(library, Object.keys(runningGames)).map((game) => ({
-        ...game,
-        ...getGameCatalogueIdentity(game),
-      })),
+    () => groupLibraryGames(library, Object.keys(runningGames)),
     [library, runningGames]
   );
   const localFavoriteGame = useMemo(
@@ -3302,7 +3303,12 @@ function ProfileContent({ userId }: Readonly<ProfileContentProps>) {
               upFocusId={activityUpFocusId}
               downFocusId={activityDownFocusId}
               onActivate={(game) =>
-                navigate(getBigPictureGameDetailsPath(game))
+                navigate(
+                  getBigPictureGameDetailsPath({
+                    ...game,
+                    ...getGameCatalogueIdentity(game),
+                  })
+                )
               }
             />
 
@@ -3312,7 +3318,12 @@ function ProfileContent({ userId }: Readonly<ProfileContentProps>) {
               upFocusId={libraryUpFocusId}
               downFocusId={libraryDownFocusId}
               onActivate={(game) =>
-                navigate(getBigPictureGameDetailsPath(game))
+                navigate(
+                  getBigPictureGameDetailsPath({
+                    ...game,
+                    ...getGameCatalogueIdentity(game),
+                  })
+                )
               }
             />
 
