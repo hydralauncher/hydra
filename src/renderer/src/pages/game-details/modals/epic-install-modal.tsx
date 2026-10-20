@@ -100,6 +100,23 @@ export function EpicInstallModal({
   const [openExtrasFor, setOpenExtrasFor] = useState<string | null>(null);
   const extrasOpen = !!game && openExtrasFor === game.objectId;
   const extrasPanelId = useId();
+  const listRef = useRef<HTMLUListElement>(null);
+  const [listHasMore, setListHasMore] = useState(false);
+  const measureList = () => {
+    const list = listRef.current;
+    setListHasMore(
+      !!list && list.scrollTop + list.clientHeight < list.scrollHeight - 1
+    );
+  };
+  useEffect(() => {
+    const list = listRef.current;
+    if (!list) return setListHasMore(false);
+    measureList();
+    if (typeof ResizeObserver === "undefined") return;
+    const observer = new ResizeObserver(measureList);
+    observer.observe(list);
+    return () => observer.disconnect();
+  }, [extrasOpen, install.extras.length]);
   const extrasTooltipId = useId();
   const sizeLabel = (download: number) =>
     t("epic_selection_size", { size: formatBytes(download) });
@@ -260,38 +277,48 @@ export function EpicInstallModal({
                     </span>
                   </div>
                 )}
-                <ul className="epic-install-modal__extras-list">
-                  {install.extras.map((extra) => (
-                    <li key={extra.key} className="epic-install-modal__extra">
-                      <CheckboxField
-                        label={
-                          <span className="epic-install-modal__extra-label">
-                            <ExtraName
-                              name={extra.name}
-                              tooltipId={extrasTooltipId}
-                              tooltip={`${extra.name} · ${sizeLabel(extra.downloadSizeInBytes)}`}
-                            />
-                            {extra.installed && (
-                              <span className="epic-install-modal__extra-badge">
-                                {t("epic_dlc_installed")}
+                <div
+                  className={`epic-install-modal__extras-scroll ${
+                    listHasMore ? "epic-install-modal__extras-scroll--more" : ""
+                  }`}
+                >
+                  <ul
+                    ref={listRef}
+                    className="epic-install-modal__extras-list"
+                    onScroll={measureList}
+                  >
+                    {install.extras.map((extra) => (
+                      <li key={extra.key} className="epic-install-modal__extra">
+                        <CheckboxField
+                          label={
+                            <span className="epic-install-modal__extra-label">
+                              <ExtraName
+                                name={extra.name}
+                                tooltipId={extrasTooltipId}
+                                tooltip={`${extra.name} · ${sizeLabel(extra.downloadSizeInBytes)}`}
+                              />
+                              {extra.installed && (
+                                <span className="epic-install-modal__extra-badge">
+                                  {t("epic_dlc_installed")}
+                                </span>
+                              )}
+                              <span className="epic-install-modal__extra-size">
+                                {extra.installed
+                                  ? "—"
+                                  : formatBytes(extra.downloadSizeInBytes)}
                               </span>
-                            )}
-                            <span className="epic-install-modal__extra-size">
-                              {extra.installed
-                                ? "—"
-                                : formatBytes(extra.downloadSizeInBytes)}
                             </span>
-                          </span>
-                        }
-                        checked={extra.checked}
-                        disabled={extra.installed || install.starting}
-                        onChange={(event) =>
-                          install.toggleExtra(extra, event.target.checked)
-                        }
-                      />
-                    </li>
-                  ))}
-                </ul>
+                          }
+                          checked={extra.checked}
+                          disabled={extra.installed || install.starting}
+                          onChange={(event) =>
+                            install.toggleExtra(extra, event.target.checked)
+                          }
+                        />
+                      </li>
+                    ))}
+                  </ul>
+                </div>
                 <Tooltip id={extrasTooltipId} place="top-start" />
               </div>
             )}

@@ -150,6 +150,25 @@
     gap: globals.$spacing-unit;
   }
 
+  &__extras-scroll {
+    position: relative;
+
+    &::after {
+      content: "";
+      position: absolute;
+      inset: auto 0 0;
+      height: 32px;
+      background: linear-gradient(transparent, globals.$background-color);
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.15s ease;
+    }
+
+    &--more::after {
+      opacity: 1;
+    }
+  }
+
   &__extras-list {
     margin: 0;
     padding: 0;
