@@ -74,3 +74,9 @@ export interface ChatMessageVisibility {
   recipientId: string;
   seq: number;
 }
+
+export interface ScreenshotModerated {
+  screenshotId: string;
+  moderationStatus: "APPROVED" | "BLOCKED";
+  moderationReason: string | null;
+}
