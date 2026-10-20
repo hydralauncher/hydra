@@ -21,6 +21,7 @@ import {
   ACHIEVEMENT_SYNC_MAX_TIMER_DELAY_MS,
   ACHIEVEMENT_SYNC_RETRYABLE_CLIENT_STATUSES,
   ACHIEVEMENT_SYNC_COALESCE_WINDOW_MS,
+  ACHIEVEMENT_SYNC_MAX_SERVER_ERRORS,
 } from "./achievement-sync-coordinator";
 import { isAxiosError } from "axios";
 
@@ -34,6 +35,7 @@ export type PendingAchievementSync = {
   achievements: UnlockedAchievement[];
   attempts: number;
   nextAttemptAt: number;
+  serverErrors?: number;
   terminal?: boolean;
 };
 
@@ -132,6 +134,7 @@ export class AchievementSyncWorker {
       achievements,
       revision: randomUUID(),
       attempts: retry?.attempts ?? 0,
+      serverErrors: retry?.serverErrors ?? 0,
       nextAttemptAt: Math.max(
         retry?.nextAttemptAt ?? 0,
         (this.dispatchedAt.get(key) ?? 0) + ACHIEVEMENT_SYNC_COALESCE_WINDOW_MS
@@ -267,6 +270,7 @@ export class AchievementSyncWorker {
   ): Promise<boolean> {
     const current = () => HydraApi.isAuthContextCurrent(item.context);
     const key = keyOf(item.context, item.gameKey);
+    let parked = false;
     try {
       await achievementSyncCoordinator.runMerge(
         item.gameKey,
@@ -277,11 +281,19 @@ export class AchievementSyncWorker {
           const status = isAxiosError(error)
             ? error.response?.status
             : undefined;
-          const terminal =
+          const rejected =
             status !== undefined && !isRetryableAchievementSyncStatus(status);
+          const serverErrors =
+            status !== undefined && status >= 500
+              ? (latest.serverErrors ?? 0) + 1
+              : 0;
+          const sameRevision = latest.revision === item.revision;
+          parked =
+            sameRevision && serverErrors >= ACHIEVEMENT_SYNC_MAX_SERVER_ERRORS;
           await pending.put(key, {
             ...latest,
-            terminal: latest.revision === item.revision && terminal,
+            terminal: parked || (sameRevision && rejected),
+            serverErrors,
             attempts: attempts + 1,
             nextAttemptAt: Math.max(
               latest.nextAttemptAt,
@@ -298,7 +310,9 @@ export class AchievementSyncWorker {
     }
     if (!current()) return false;
     achievementsLogger.error(
-      "Achievement synchronization retained for retry",
+      parked
+        ? "Achievement synchronization parked after repeated server errors"
+        : "Achievement synchronization retained for retry",
       item.gameKey,
       error
     );
