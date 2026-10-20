@@ -8,6 +8,7 @@ import type {
   GameShop,
   DownloadProgress,
   UserPreferences,
+  ScreenshotInputStatus,
   AppUpdaterEvent,
   StartGameDownloadPayload,
   GameRunning,
@@ -944,6 +945,19 @@ contextBridge.exposeInMainWorld("electron", {
     ipcRenderer.on("on-user-preferences-updated", listener);
     return () =>
       ipcRenderer.removeListener("on-user-preferences-updated", listener);
+  },
+  getScreenshotInputStatus: (): Promise<ScreenshotInputStatus> =>
+    ipcRenderer.invoke("getScreenshotInputStatus"),
+  onScreenshotInputStatusChange: (
+    cb: (status: ScreenshotInputStatus) => void
+  ) => {
+    const listener = (
+      _event: Electron.IpcRendererEvent,
+      status: ScreenshotInputStatus
+    ) => cb(status);
+    ipcRenderer.on("on-screenshot-input-status-change", listener);
+    return () =>
+      ipcRenderer.removeListener("on-screenshot-input-status-change", listener);
   },
   autoLaunch: (autoLaunchProps: { enabled: boolean; minimized: boolean }) =>
     ipcRenderer.invoke("autoLaunch", autoLaunchProps),
