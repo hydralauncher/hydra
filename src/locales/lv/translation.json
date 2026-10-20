@@ -583,6 +583,13 @@
     "epic_play_without_update": "Spēlēt bez atjaunināšanas",
     "epic_update_available": "Pieejama versija {{version}}",
     "epic_update_failed": "Neizdevās atjaunināt spēli",
+    "epic_components": "Komponentes",
+    "epic_dlcs": "DLC",
+    "epic_install_all_dlcs": "Instalēt visus DLC",
+    "epic_dlc_installed": "Instalēts",
+    "epic_selection_size": "{{size}} lejupielāde",
+    "epic_not_enough_space": "Šai izvēlei nepietiek vietas diskā.",
+    "epic_selection_invalid": "Izvēle mainījās. Atver lejupielādes opcijas vēlreiz un mēģini vēlreiz.",
     "epic_retry": "Mēģināt vēlreiz"
   },
   "activation": {

@@ -52,6 +52,32 @@
     line-height: 1;
   }
 
+  &__selection {
+    display: flex;
+    flex-direction: column;
+    gap: globals.$spacing-unit;
+    margin: 0;
+    padding: 0;
+    border: 0;
+    max-height: 220px;
+    overflow-y: auto;
+
+    legend {
+      margin-bottom: globals.$spacing-unit;
+      font-weight: 600;
+    }
+  }
+
+  &__selection-size {
+    margin-inline-start: globals.$spacing-unit;
+    opacity: globals.$active-opacity;
+    font-size: globals.$small-font-size;
+  }
+
+  &__warning {
+    color: globals.$warning-color;
+  }
+
   @media (max-width: 540px) {
     &__summary {
       flex-wrap: wrap;

@@ -583,6 +583,13 @@
     "epic_play_without_update": "اللعب دون تحديث",
     "epic_update_available": "الإصدار {{version}} متاح",
     "epic_update_failed": "تعذّر تحديث اللعبة",
+    "epic_components": "المكونات",
+    "epic_dlcs": "المحتوى الإضافي",
+    "epic_install_all_dlcs": "تثبيت كل المحتوى الإضافي",
+    "epic_dlc_installed": "مثبت",
+    "epic_selection_size": "تنزيل {{size}}",
+    "epic_not_enough_space": "لا توجد مساحة كافية على القرص لهذا الاختيار.",
+    "epic_selection_invalid": "تغيّر الاختيار. أعد فتح خيارات التنزيل وحاول مجددًا.",
     "epic_retry": "حاول مرة أخرى"
   },
   "activation": {

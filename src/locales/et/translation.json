@@ -583,6 +583,13 @@
     "epic_play_without_update": "Mängi uuendamata",
     "epic_update_available": "Versioon {{version}} on saadaval",
     "epic_update_failed": "Mängu ei õnnestunud uuendada",
+    "epic_components": "Komponendid",
+    "epic_dlcs": "DLC",
+    "epic_install_all_dlcs": "Paigalda kõik DLC-d",
+    "epic_dlc_installed": "Paigaldatud",
+    "epic_selection_size": "{{size}} allalaadimist",
+    "epic_not_enough_space": "Selle valiku jaoks pole piisavalt kettaruumi.",
+    "epic_selection_invalid": "Valik muutus. Ava allalaadimise valikud uuesti ja proovi uuesti.",
     "epic_retry": "Proovi uuesti"
   },
   "activation": {

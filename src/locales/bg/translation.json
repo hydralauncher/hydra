@@ -738,6 +738,13 @@
     "epic_play_without_update": "Играй без актуализиране",
     "epic_update_available": "Налична е версия {{version}}",
     "epic_update_failed": "Играта не можа да бъде актуализирана",
+    "epic_components": "Компоненти",
+    "epic_dlcs": "DLC",
+    "epic_install_all_dlcs": "Инсталирай всички DLC",
+    "epic_dlc_installed": "Инсталирано",
+    "epic_selection_size": "{{size}} за изтегляне",
+    "epic_not_enough_space": "Няма достатъчно място на диска за този избор.",
+    "epic_selection_invalid": "Изборът се промени. Отвори отново опциите за изтегляне и опитай пак.",
     "epic_retry": "Опитайте отново"
   },
   "activation": {

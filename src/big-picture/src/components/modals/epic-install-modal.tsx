@@ -4,6 +4,7 @@ import { formatBytes } from "@shared";
 import { useEpicInstall } from "@renderer/hooks/use-epic-install";
 import {
   Button,
+  Checkbox,
   DropdownSelect,
   Input,
   Modal,
@@ -30,7 +31,11 @@ export function EpicInstallModal({
     install.starting ||
     !install.option ||
     !install.result?.connectionId ||
-    !install.path;
+    !install.path ||
+    install.insufficientSpace;
+  const components = install.option?.components ?? [];
+  const dlcs = install.option?.dlcs ?? [];
+  const pendingDlcs = dlcs.filter((dlc) => !dlc.installed);
   return (
     <Modal
       visible={!!game}
@@ -61,15 +66,75 @@ export function EpicInstallModal({
           <p>
             {t("epic_install_sizes", {
               download:
-                install.option.downloadSizeInBytes == null
+                install.choice.downloadSizeInBytes == null
                   ? "—"
-                  : formatBytes(install.option.downloadSizeInBytes),
+                  : formatBytes(install.choice.downloadSizeInBytes),
               disk:
-                install.option.diskSizeInBytes == null
+                install.choice.diskSizeInBytes == null
                   ? "—"
-                  : formatBytes(install.option.diskSizeInBytes),
+                  : formatBytes(install.choice.diskSizeInBytes),
             })}
           </p>
+        )}
+        {components.length > 0 && (
+          <VerticalFocusGroup>
+            <p>{t("epic_components")}</p>
+            {components.map((component) => (
+              <Checkbox
+                key={component.id}
+                block
+                label={component.name}
+                secondaryText={t("epic_selection_size", {
+                  size: formatBytes(component.downloadSizeInBytes),
+                })}
+                checked={!install.excludedComponents.has(component.id)}
+                disabled={install.starting}
+                onChange={(checked) =>
+                  install.toggleComponent(component.id, checked)
+                }
+              />
+            ))}
+          </VerticalFocusGroup>
+        )}
+        {dlcs.length > 0 && (
+          <VerticalFocusGroup>
+            <p>{t("epic_dlcs")}</p>
+            {pendingDlcs.length > 1 && (
+              <Checkbox
+                block
+                label={t("epic_install_all_dlcs")}
+                checked={pendingDlcs.every(
+                  (dlc) => !install.excludedDlcs.has(dlc.artifactId)
+                )}
+                disabled={install.starting}
+                onChange={install.setAllDlcs}
+              />
+            )}
+            {dlcs.map((dlc) => (
+              <Checkbox
+                key={dlc.artifactId}
+                block
+                label={dlc.name}
+                secondaryText={
+                  dlc.installed
+                    ? t("epic_dlc_installed")
+                    : t("epic_selection_size", {
+                        size: formatBytes(dlc.downloadSizeInBytes),
+                      })
+                }
+                checked={
+                  dlc.installed || !install.excludedDlcs.has(dlc.artifactId)
+                }
+                disabled={dlc.installed || install.starting}
+                onChange={(checked) =>
+                  install.toggleDlc(dlc.artifactId, checked)
+                }
+              />
+            ))}
+          </VerticalFocusGroup>
+        )}
+        {install.insufficientSpace && (
+          <p role="alert">{t("epic_not_enough_space")}</p>
         )}
         <Input label={t("download_path")} value={install.path} readOnly />
         <Button

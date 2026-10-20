@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useAppSelector } from "./redux";
 import {
   afterEpicInstallReadyPaint,
@@ -9,6 +9,18 @@ import type {
   EpicSaveError,
   LibraryGame,
 } from "@types";
+import { getEpicInstallChoice } from "@shared";
+
+const toggleExcluded = (
+  excluded: ReadonlySet<string>,
+  id: string,
+  checked: boolean
+) => {
+  const next = new Set(excluded);
+  if (checked) next.delete(id);
+  else next.add(id);
+  return next;
+};
 
 export function useEpicInstall(
   game: LibraryGame | null,
@@ -26,6 +38,13 @@ export function useEpicInstall(
   const [loading, setLoading] = useState(false);
   const [starting, setStarting] = useState(false);
   const [error, setError] = useState<EpicSaveError | null>(null);
+  // Everything starts selected, like a complete install; the user opts out.
+  const [excludedComponents, setExcludedComponents] = useState<
+    ReadonlySet<string>
+  >(new Set());
+  const [excludedDlcs, setExcludedDlcs] = useState<ReadonlySet<string>>(
+    new Set()
+  );
   const generation = useRef(0);
   const directoryGeneration = useRef(0);
   const directoryChosen = useRef(false);
@@ -214,6 +233,40 @@ export function useEpicInstall(
 
   const option =
     selected === "" ? null : (result?.options[Number(selected)] ?? null);
+  const optionKey = option ? `${option.artifactId}:${option.platform}` : "";
+  useEffect(() => {
+    setExcludedComponents(new Set());
+    setExcludedDlcs(new Set());
+  }, [optionKey]);
+  const choice = useMemo(
+    () => getEpicInstallChoice(option, excludedComponents, excludedDlcs),
+    [option, excludedComponents, excludedDlcs]
+  );
+  const toggleComponent = useCallback(
+    (id: string, checked: boolean) =>
+      setExcludedComponents((previous) =>
+        toggleExcluded(previous, id, checked)
+      ),
+    []
+  );
+  const toggleDlc = useCallback(
+    (id: string, checked: boolean) =>
+      setExcludedDlcs((previous) => toggleExcluded(previous, id, checked)),
+    []
+  );
+  const setAllDlcs = useCallback(
+    (checked: boolean) =>
+      setExcludedDlcs(
+        checked
+          ? new Set()
+          : new Set(option?.dlcs?.map((dlc) => dlc.artifactId) ?? [])
+      ),
+    [option]
+  );
+  const insufficientSpace =
+    diskFreeSpace !== null &&
+    choice.diskSizeInBytes !== null &&
+    diskFreeSpace < choice.diskSizeInBytes;
   useEffect(() => {
     if (
       objectId &&
@@ -263,6 +316,8 @@ export function useEpicInstall(
           : {}),
         downloadPath: path.trim(),
         addToQueueOnly,
+        ...(choice.components ? { components: choice.components } : {}),
+        ...(choice.dlcs.length ? { dlcs: choice.dlcs } : {}),
       });
       if (current !== generation.current) return;
       if (response?.ok) {
@@ -288,6 +343,13 @@ export function useEpicInstall(
     starting,
     error,
     option,
+    choice,
+    excludedComponents,
+    excludedDlcs,
+    toggleComponent,
+    toggleDlc,
+    setAllDlcs,
+    insufficientSpace,
     chooseDirectory,
     retry,
     start,

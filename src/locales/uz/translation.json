@@ -583,6 +583,13 @@
     "epic_play_without_update": "Yangilamasdan o‘ynash",
     "epic_update_available": "{{version}} versiyasi mavjud",
     "epic_update_failed": "O‘yinni yangilab bo‘lmadi",
+    "epic_components": "Komponentlar",
+    "epic_dlcs": "DLC",
+    "epic_install_all_dlcs": "Barcha DLC’larni o‘rnatish",
+    "epic_dlc_installed": "O‘rnatilgan",
+    "epic_selection_size": "{{size}} yuklab olish",
+    "epic_not_enough_space": "Ushbu tanlov uchun diskda yetarli joy yo‘q.",
+    "epic_selection_invalid": "Tanlov o‘zgardi. Yuklab olish sozlamalarini qayta oching va yana urinib ko‘ring.",
     "epic_retry": "Qayta urinish"
   },
   "activation": {

@@ -583,6 +583,13 @@
     "epic_play_without_update": "Güncellemeden oyna",
     "epic_update_available": "{{version}} sürümü mevcut",
     "epic_update_failed": "Oyun güncellenemedi",
+    "epic_components": "Bileşenler",
+    "epic_dlcs": "DLC",
+    "epic_install_all_dlcs": "Tüm DLC’leri yükle",
+    "epic_dlc_installed": "Yüklendi",
+    "epic_selection_size": "{{size}} indirme",
+    "epic_not_enough_space": "Bu seçim için yeterli disk alanı yok.",
+    "epic_selection_invalid": "Seçim değişti. İndirme seçeneklerini yeniden açıp tekrar deneyin.",
     "epic_retry": "Tekrar dene"
   },
   "activation": {

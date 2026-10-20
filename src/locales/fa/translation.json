@@ -579,6 +579,13 @@
     "epic_play_without_update": "بازی بدون به‌روزرسانی",
     "epic_update_available": "نسخهٔ {{version}} در دسترس است",
     "epic_update_failed": "به‌روزرسانی بازی ممکن نشد",
+    "epic_components": "اجزا",
+    "epic_dlcs": "DLC",
+    "epic_install_all_dlcs": "نصب همهٔ DLCها",
+    "epic_dlc_installed": "نصب‌شده",
+    "epic_selection_size": "{{size}} دانلود",
+    "epic_not_enough_space": "فضای دیسک برای این انتخاب کافی نیست.",
+    "epic_selection_invalid": "انتخاب تغییر کرد. گزینه‌های دانلود را دوباره باز کنید و دوباره تلاش کنید.",
     "epic_retry": "تلاش دوباره"
   },
   "activation": {

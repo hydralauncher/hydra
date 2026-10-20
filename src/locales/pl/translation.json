@@ -793,6 +793,13 @@
     "epic_play_without_update": "Graj bez aktualizacji",
     "epic_update_available": "Dostępna wersja {{version}}",
     "epic_update_failed": "Nie udało się zaktualizować gry",
+    "epic_components": "Komponenty",
+    "epic_dlcs": "DLC",
+    "epic_install_all_dlcs": "Zainstaluj wszystkie DLC",
+    "epic_dlc_installed": "Zainstalowano",
+    "epic_selection_size": "{{size}} do pobrania",
+    "epic_not_enough_space": "Za mało miejsca na dysku dla tego wyboru.",
+    "epic_selection_invalid": "Wybór się zmienił. Otwórz ponownie opcje pobierania i spróbuj jeszcze raz.",
     "epic_retry": "Spróbuj ponownie"
   },
   "activation": {

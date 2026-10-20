@@ -25,6 +25,7 @@ import type {
   getEpicManagedError,
 } from "../helpers/epic-managed-error";
 import {
+  getEpicInstallChoice,
   getEpicLaunchOptions,
   getInstalledStoreMembers,
   getOfficialStoreMembers,
@@ -60,6 +61,7 @@ function loadModule(filename: string, stubs: Record<string, unknown> = {}) {
 
 function loadInstallHook(downloadsPath?: string | (() => string | undefined)) {
   return loadModule("./use-epic-install.ts", {
+    "@shared": { getEpicInstallChoice },
     "./redux": {
       useAppSelector: (
         select: (state: {
@@ -93,6 +95,16 @@ function loadInstallModal(
         React.createElement("button", props, children),
       Link: ({ to }: { to: string }) =>
         React.createElement("a", { href: to }, "settings"),
+      CheckboxField: ({
+        label,
+        ...props
+      }: React.ComponentProps<"input"> & { label: React.ReactNode }) =>
+        React.createElement(
+          "label",
+          { "data-checkbox": true },
+          React.createElement("input", { type: "checkbox", ...props }),
+          label
+        ),
       Modal: ({
         title,
         description,
@@ -485,6 +497,13 @@ describe("Epic managed UI lifecycle", () => {
       "epic_compatibility_automatic",
       "epic_finalizing_install",
       "epic_prerequisites_required",
+      "epic_components",
+      "epic_dlcs",
+      "epic_install_all_dlcs",
+      "epic_dlc_installed",
+      "epic_selection_size",
+      "epic_not_enough_space",
+      "epic_selection_invalid",
       "epic_update",
       "epic_update_resume",
       "epic_updating",
@@ -2012,6 +2031,113 @@ describe("Epic managed UI lifecycle", () => {
     assert.equal(download.disabled, true);
     await React.act(async () => download.click());
     assert.equal(startCalls, 0);
+  });
+
+  it("lets the user opt out of components and DLC and sizes the download by the choice", async (t) => {
+    const calls: StartEpicGameDownloadPayload[] = [];
+    let free = 1_000;
+    const { render } = await fixture(t, {
+      getEpicGameInstallOptions: async () => ({
+        connectionId: "confirmed",
+        options: [
+          {
+            artifactId: "Fortnite",
+            platform: "Windows",
+            downloadSizeInBytes: 100,
+            diskSizeInBytes: 200,
+            supportsCloudSaves: false,
+            installed: false,
+            preparationId: "550e8400-e29b-41d4-a716-446655440000",
+            components: [
+              {
+                id: "stw",
+                name: "Save the World",
+                downloadSizeInBytes: 30,
+                diskSizeInBytes: 60,
+              },
+              {
+                id: "hd",
+                name: "HD textures",
+                downloadSizeInBytes: 20,
+                diskSizeInBytes: 40,
+              },
+            ],
+            requiredDownloadSizeInBytes: 50,
+            requiredDiskSizeInBytes: 100,
+            dlcs: [
+              {
+                artifactId: "DlcA",
+                name: "DLC A",
+                downloadSizeInBytes: 5,
+                diskSizeInBytes: 10,
+                installed: false,
+              },
+              {
+                artifactId: "DlcB",
+                name: "DLC B",
+                downloadSizeInBytes: 7,
+                diskSizeInBytes: 14,
+                installed: false,
+              },
+              {
+                artifactId: "DlcC",
+                name: "DLC C",
+                downloadSizeInBytes: 9,
+                diskSizeInBytes: 18,
+                installed: true,
+              },
+            ],
+          },
+        ],
+      }),
+      getDiskFreeSpace: async () => ({ free }),
+      startEpicGameDownload: async (payload: StartEpicGameDownloadPayload) => {
+        calls.push(payload);
+        return { ok: true };
+      },
+    });
+    const Modal = loadInstallModal(loadInstallHook("D:\\configured"));
+    const props = {
+      game: { shop: "epic", objectId: "fn:fortnite" } as LibraryGame,
+      onClose: () => {},
+      onStarted: () => {},
+    };
+    await render(React.createElement(Modal, props));
+    const checkbox = (text: string) =>
+      [...document.querySelectorAll("[data-checkbox]")]
+        .find((label) => label.textContent?.startsWith(text))!
+        .querySelector("input")!;
+    assert.match(document.body.textContent!, /download_size:112B/);
+    assert.match(document.body.textContent!, /required_storage_space:224B/);
+    assert.equal(checkbox("DLC C").disabled, true);
+    assert.match(document.body.textContent!, /epic_dlc_installed/);
+    await React.act(async () => checkbox("HD textures").click());
+    await React.act(async () => checkbox("DLC B").click());
+    assert.match(document.body.textContent!, /download_size:85B/);
+    assert.equal(checkbox("epic_install_all_dlcs").checked, false);
+    await React.act(async () =>
+      document
+        .querySelector<HTMLButtonElement>("[data-epic-install-submit]")!
+        .click()
+    );
+    assert.deepEqual(
+      { components: calls[0].components, dlcs: calls[0].dlcs },
+      { components: ["stw"], dlcs: ["DlcA"] }
+    );
+    free = 10;
+    await render(React.createElement(Modal, { ...props }));
+    await render(
+      React.createElement(Modal, {
+        ...props,
+        game: { shop: "epic", objectId: "fn:other" } as LibraryGame,
+      })
+    );
+    assert.match(document.body.textContent!, /epic_not_enough_space/);
+    assert.equal(
+      document.querySelector<HTMLButtonElement>("[data-epic-install-submit]")!
+        .disabled,
+      true
+    );
   });
 
   it("remains unavailable on an OTA renderer with no managed Epic bridge", async (t) => {

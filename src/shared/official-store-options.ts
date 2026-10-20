@@ -84,3 +84,51 @@ export const getEpicLaunchOptions = (
     ...(skipUpdateCheck ? { epicSkipUpdateCheck: true } : {}),
   };
 };
+
+export interface EpicInstallChoice {
+  /** Selected optional pack ids; undefined when the build has none. */
+  components?: string[];
+  /** DLC to install now; already installed DLC are never resent. */
+  dlcs: string[];
+  downloadSizeInBytes: number | null;
+  diskSizeInBytes: number | null;
+}
+
+/** Mirrors the main process: every pack selected is the complete game. */
+export const getEpicInstallChoice = (
+  option: EpicGameInstallOption | null,
+  excludedComponents: ReadonlySet<string>,
+  excludedDlcs: ReadonlySet<string>
+): EpicInstallChoice => {
+  if (!option)
+    return { dlcs: [], downloadSizeInBytes: null, diskSizeInBytes: null };
+  const packs = (option.components ?? []).filter(
+    (component) => !excludedComponents.has(component.id)
+  );
+  const dlcs = (option.dlcs ?? []).filter(
+    (dlc) => !dlc.installed && !excludedDlcs.has(dlc.artifactId)
+  );
+  const sum = (values: number[]) => values.reduce((a, b) => a + b, 0);
+  const partial =
+    !!option.components && packs.length < option.components.length;
+  const gameDownload = partial
+    ? (option.requiredDownloadSizeInBytes ?? 0) +
+      sum(packs.map((pack) => pack.downloadSizeInBytes))
+    : (option.downloadSizeInBytes ?? null);
+  const gameDisk = partial
+    ? (option.requiredDiskSizeInBytes ?? 0) +
+      sum(packs.map((pack) => pack.diskSizeInBytes))
+    : (option.diskSizeInBytes ?? null);
+  return {
+    ...(option.components ? { components: packs.map((pack) => pack.id) } : {}),
+    dlcs: dlcs.map((dlc) => dlc.artifactId),
+    downloadSizeInBytes:
+      gameDownload === null
+        ? null
+        : gameDownload + sum(dlcs.map((dlc) => dlc.downloadSizeInBytes)),
+    diskSizeInBytes:
+      gameDisk === null
+        ? null
+        : gameDisk + sum(dlcs.map((dlc) => dlc.diskSizeInBytes)),
+  };
+};

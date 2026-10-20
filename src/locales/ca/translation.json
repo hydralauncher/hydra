@@ -582,6 +582,13 @@
     "epic_play_without_update": "Juga sense actualitzar",
     "epic_update_available": "Versió {{version}} disponible",
     "epic_update_failed": "No s'ha pogut actualitzar el joc",
+    "epic_components": "Components",
+    "epic_dlcs": "DLC",
+    "epic_install_all_dlcs": "Instal·la tots els DLC",
+    "epic_dlc_installed": "Instal·lat",
+    "epic_selection_size": "{{size}} de baixada",
+    "epic_not_enough_space": "No hi ha prou espai al disc per a aquesta selecció.",
+    "epic_selection_invalid": "La selecció ha canviat. Torna a obrir les opcions de baixada i torna-ho a provar.",
     "epic_retry": "Torna-ho a provar"
   },
   "activation": {

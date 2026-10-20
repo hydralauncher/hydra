@@ -9,6 +9,7 @@ import {
 } from "@primer/octicons-react";
 import {
   Button,
+  CheckboxField,
   Link,
   Modal,
   SelectField,
@@ -59,7 +60,13 @@ export function EpicInstallModal({
     install.starting ||
     !install.option ||
     !install.result?.connectionId ||
-    !install.path;
+    !install.path ||
+    install.insufficientSpace;
+  const components = install.option?.components ?? [];
+  const dlcs = install.option?.dlcs ?? [];
+  const pendingDlcs = dlcs.filter((dlc) => !dlc.installed);
+  const sizeLabel = (download: number) =>
+    t("epic_selection_size", { size: formatBytes(download) });
   return (
     <Modal
       visible={!!game}
@@ -121,9 +128,9 @@ export function EpicInstallModal({
                       ns="game_details"
                       values={{
                         size:
-                          install.option?.downloadSizeInBytes == null
+                          install.choice.downloadSizeInBytes == null
                             ? "—"
-                            : formatBytes(install.option.downloadSizeInBytes),
+                            : formatBytes(install.choice.downloadSizeInBytes),
                       }}
                     />
                   </span>
@@ -133,9 +140,9 @@ export function EpicInstallModal({
                       ns="game_details"
                       values={{
                         size:
-                          install.option?.diskSizeInBytes == null
+                          install.choice.diskSizeInBytes == null
                             ? "—"
-                            : formatBytes(install.option.diskSizeInBytes),
+                            : formatBytes(install.choice.diskSizeInBytes),
                       }}
                     />
                   </span>
@@ -162,6 +169,71 @@ export function EpicInstallModal({
               ]}
             />
           )}
+        {!requiresOfficialLauncher && components.length > 0 && (
+          <fieldset className="epic-install-modal__selection">
+            <legend>{t("epic_components")}</legend>
+            {components.map((component) => (
+              <CheckboxField
+                key={component.id}
+                label={
+                  <>
+                    {component.name}
+                    <span className="epic-install-modal__selection-size">
+                      {sizeLabel(component.downloadSizeInBytes)}
+                    </span>
+                  </>
+                }
+                checked={!install.excludedComponents.has(component.id)}
+                disabled={install.starting}
+                onChange={(event) =>
+                  install.toggleComponent(component.id, event.target.checked)
+                }
+              />
+            ))}
+          </fieldset>
+        )}
+        {!requiresOfficialLauncher && dlcs.length > 0 && (
+          <fieldset className="epic-install-modal__selection">
+            <legend>{t("epic_dlcs")}</legend>
+            {pendingDlcs.length > 1 && (
+              <CheckboxField
+                label={t("epic_install_all_dlcs")}
+                checked={pendingDlcs.every(
+                  (dlc) => !install.excludedDlcs.has(dlc.artifactId)
+                )}
+                disabled={install.starting}
+                onChange={(event) => install.setAllDlcs(event.target.checked)}
+              />
+            )}
+            {dlcs.map((dlc) => (
+              <CheckboxField
+                key={dlc.artifactId}
+                label={
+                  <>
+                    {dlc.name}
+                    <span className="epic-install-modal__selection-size">
+                      {dlc.installed
+                        ? t("epic_dlc_installed")
+                        : sizeLabel(dlc.downloadSizeInBytes)}
+                    </span>
+                  </>
+                }
+                checked={
+                  dlc.installed || !install.excludedDlcs.has(dlc.artifactId)
+                }
+                disabled={dlc.installed || install.starting}
+                onChange={(event) =>
+                  install.toggleDlc(dlc.artifactId, event.target.checked)
+                }
+              />
+            ))}
+          </fieldset>
+        )}
+        {!requiresOfficialLauncher && install.insufficientSpace && (
+          <p role="alert" className="epic-install-modal__warning">
+            {t("epic_not_enough_space")}
+          </p>
+        )}
         {!requiresOfficialLauncher && (
           <div className="download-settings-modal__downloads-path-field">
             <TextField

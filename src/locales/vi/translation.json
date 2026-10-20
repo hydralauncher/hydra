@@ -793,6 +793,13 @@
     "epic_play_without_update": "Chơi mà không cập nhật",
     "epic_update_available": "Đã có phiên bản {{version}}",
     "epic_update_failed": "Không thể cập nhật trò chơi",
+    "epic_components": "Thành phần",
+    "epic_dlcs": "DLC",
+    "epic_install_all_dlcs": "Cài tất cả DLC",
+    "epic_dlc_installed": "Đã cài",
+    "epic_selection_size": "Tải {{size}}",
+    "epic_not_enough_space": "Không đủ dung lượng đĩa cho lựa chọn này.",
+    "epic_selection_invalid": "Lựa chọn đã thay đổi. Hãy mở lại tùy chọn tải xuống và thử lại.",
     "epic_retry": "Thử lại"
   },
   "activation": {

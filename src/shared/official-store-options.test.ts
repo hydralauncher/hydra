@@ -7,6 +7,7 @@ import type {
 } from "@types";
 import {
   getEpicGameUpdate,
+  getEpicInstallChoice,
   getEpicLaunchOptions,
   getOfficialStoreMembers,
   getInstalledStoreMembers,
@@ -186,5 +187,81 @@ describe("Epic game updates", () => {
       epicSavePolicy: "local-once",
       epicSkipUpdateCheck: true,
     });
+  });
+});
+
+describe("Epic install choice", () => {
+  const option: EpicGameInstallOption = {
+    artifactId: "Artifact",
+    platform: "Windows",
+    downloadSizeInBytes: 100,
+    diskSizeInBytes: 200,
+    supportsCloudSaves: false,
+    installed: false,
+    components: [
+      { id: "a", name: "A", downloadSizeInBytes: 30, diskSizeInBytes: 60 },
+      { id: "b", name: "B", downloadSizeInBytes: 20, diskSizeInBytes: 40 },
+    ],
+    requiredDownloadSizeInBytes: 50,
+    requiredDiskSizeInBytes: 100,
+    dlcs: [
+      {
+        artifactId: "D1",
+        name: "D1",
+        downloadSizeInBytes: 5,
+        diskSizeInBytes: 10,
+        installed: false,
+      },
+      {
+        artifactId: "D2",
+        name: "D2",
+        downloadSizeInBytes: 7,
+        diskSizeInBytes: 14,
+        installed: true,
+      },
+    ],
+  };
+  const none = new Set<string>();
+
+  it("uses the complete game when every component is kept", () => {
+    assert.deepEqual(getEpicInstallChoice(option, none, none), {
+      components: ["a", "b"],
+      dlcs: ["D1"],
+      downloadSizeInBytes: 105,
+      diskSizeInBytes: 210,
+    });
+  });
+
+  it("sizes a partial selection from the required files", () => {
+    assert.deepEqual(
+      getEpicInstallChoice(option, new Set(["a", "b"]), new Set(["D1"])),
+      {
+        components: [],
+        dlcs: [],
+        downloadSizeInBytes: 50,
+        diskSizeInBytes: 100,
+      }
+    );
+  });
+
+  it("keeps unknown sizes unknown and omits components a build lacks", () => {
+    assert.deepEqual(getEpicInstallChoice(null, none, none), {
+      dlcs: [],
+      downloadSizeInBytes: null,
+      diskSizeInBytes: null,
+    });
+    assert.deepEqual(
+      getEpicInstallChoice(
+        {
+          ...option,
+          components: undefined,
+          dlcs: undefined,
+          downloadSizeInBytes: null,
+        },
+        none,
+        none
+      ),
+      { dlcs: [], downloadSizeInBytes: null, diskSizeInBytes: 200 }
+    );
   });
 });

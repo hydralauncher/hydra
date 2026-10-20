@@ -605,6 +605,13 @@
     "epic_play_without_update": "Játék frissítés nélkül",
     "epic_update_available": "Elérhető a(z) {{version}} verzió",
     "epic_update_failed": "Nem sikerült frissíteni a játékot",
+    "epic_components": "Összetevők",
+    "epic_dlcs": "DLC",
+    "epic_install_all_dlcs": "Összes DLC telepítése",
+    "epic_dlc_installed": "Telepítve",
+    "epic_selection_size": "{{size}} letöltés",
+    "epic_not_enough_space": "Nincs elég lemezterület ehhez a kiválasztáshoz.",
+    "epic_selection_invalid": "A kiválasztás megváltozott. Nyisd meg újra a letöltési beállításokat, és próbáld újra.",
     "epic_retry": "Próbáld újra"
   },
   "activation": {

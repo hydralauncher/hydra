@@ -755,6 +755,13 @@
     "epic_play_without_update": "Main tanpa memperbarui",
     "epic_update_available": "Versi {{version}} tersedia",
     "epic_update_failed": "Tidak dapat memperbarui game",
+    "epic_components": "Komponen",
+    "epic_dlcs": "DLC",
+    "epic_install_all_dlcs": "Instal semua DLC",
+    "epic_dlc_installed": "Terinstal",
+    "epic_selection_size": "{{size}} unduhan",
+    "epic_not_enough_space": "Ruang disk tidak cukup untuk pilihan ini.",
+    "epic_selection_invalid": "Pilihan berubah. Buka kembali opsi unduhan dan coba lagi.",
     "epic_retry": "Coba lagi"
   },
   "activation": {

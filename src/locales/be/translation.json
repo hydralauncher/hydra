@@ -579,6 +579,13 @@
     "epic_play_without_update": "Гуляць без абнаўлення",
     "epic_update_available": "Даступная версія {{version}}",
     "epic_update_failed": "Не ўдалося абнавіць гульню",
+    "epic_components": "Кампаненты",
+    "epic_dlcs": "DLC",
+    "epic_install_all_dlcs": "Усталяваць усе DLC",
+    "epic_dlc_installed": "Усталявана",
+    "epic_selection_size": "{{size}} для спампоўкі",
+    "epic_not_enough_space": "Недастаткова месца на дыску для гэтага выбару.",
+    "epic_selection_invalid": "Выбар змяніўся. Адкрыйце параметры спампоўкі зноў і паспрабуйце яшчэ раз.",
     "epic_retry": "Паспрабаваць яшчэ раз"
   },
   "activation": {
