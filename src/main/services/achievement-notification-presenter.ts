@@ -120,6 +120,24 @@ export class AchievementNotificationPresenter {
     this.ensureHost();
   }
 
+  public enqueueScreenshot(
+    position: AchievementCustomNotificationPosition,
+    notification: AchievementNotificationInfo,
+    fallback?: NotificationFallback
+  ): void {
+    this.queue.push({
+      request: {
+        id: this.nextRequestId(),
+        type: "screenshot",
+        position,
+        achievement: { ...notification, variant: "screenshot" },
+      },
+      fallback: { callback: fallback, invoked: false },
+    });
+
+    this.ensureHost();
+  }
+
   public notifyThemeUpdated(): void {
     if (!this.host || this.host.isDestroyed()) return;
     this.host.send("on-custom-theme-updated");

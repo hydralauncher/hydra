@@ -32,6 +32,7 @@ export function AchievementNotificationItem({
         [`${baseClassName}--hidden`]: achievement.isHidden,
         [`${baseClassName}--rare`]: achievement.isRare,
         [`${baseClassName}--platinum`]: achievement.isPlatinum,
+        [`${baseClassName}--screenshot`]: achievement.variant === "screenshot",
       })}
     >
       {achievement.points !== undefined && (

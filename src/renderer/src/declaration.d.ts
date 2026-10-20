@@ -1,5 +1,9 @@
 import type { AuthPage, Downloader } from "@shared";
 import type {
+  LocalScreenshot,
+  LocalScreenshotUploadOptions,
+  ScreenshotReviewRequest,
+  ScreenshotUploadProgress,
   SystemPowerAction,
   AppUpdaterEvent,
   GameShop,
@@ -1091,6 +1095,30 @@ declare global {
     ping: () => string;
     getDefaultDownloadsPath: () => Promise<string>;
     getScreenshotsPath: () => Promise<string>;
+    getLocalScreenshots: () => Promise<LocalScreenshot[]>;
+    uploadLocalScreenshot: (
+      clientId: string,
+      options: LocalScreenshotUploadOptions
+    ) => Promise<LocalScreenshot | null>;
+    deleteLocalScreenshot: (clientId: string) => Promise<void>;
+    skipLocalScreenshot: (clientId: string) => Promise<void>;
+    openScreenshotsFolder: () => Promise<void>;
+    getScreenshotsFolderPath: () => Promise<string>;
+    onLocalScreenshotsChange: (
+      cb: (screenshots: LocalScreenshot[]) => void
+    ) => () => Electron.IpcRenderer;
+    onScreenshotUploadProgress: (
+      cb: (progress: ScreenshotUploadProgress) => void
+    ) => () => Electron.IpcRenderer;
+    onScreenshotReviewRequested: (
+      cb: (request: ScreenshotReviewRequest) => void
+    ) => () => Electron.IpcRenderer;
+    onScreenshotReviewItemsChanged: (
+      cb: (clientIds: string[]) => void
+    ) => () => Electron.IpcRenderer;
+    onScreenshotFeedback: (
+      cb: (feedback: { flash: boolean; playSound: boolean }) => void
+    ) => () => Electron.IpcRenderer;
     getAchievementSouvenirSyncStatus: () => Promise<AchievementSouvenirSyncStatus>;
     getAchievementSouvenirSyncDetails: () => Promise<AchievementSouvenirSyncDetails>;
     retryAchievementSouvenirSync: () => Promise<AchievementSouvenirSyncRetryResult>;

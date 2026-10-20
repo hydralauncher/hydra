@@ -26,6 +26,10 @@ import {
   cleanupEmulatorSouvenirSession,
   type EmulatorSouvenirSession,
 } from "./emulator-souvenir-config";
+import {
+  onScreenshotGameClosed,
+  onScreenshotGameStarted,
+} from "../screenshots";
 
 export type EmulatorSessionSystem = EmulatorSystem | RetroArchPlatform;
 
@@ -99,6 +103,7 @@ export const startEmulatorSession = async ({
 
   emulatorSessions.set(gameKey, session);
   setEmulatorGameRunning(gameKey);
+  void onScreenshotGameStarted(gameKey, game.shop, game.objectId);
 
   if (game.shop !== "custom") {
     void sendPresencePing(gameKey);
@@ -187,6 +192,7 @@ const finalizeEmulatorSession = async (gameKey: string): Promise<void> => {
   emulatorSessions.delete(gameKey);
   deleteEmulatorGameRunning(gameKey);
   stopLinuxGameCaptureSession(gameKey);
+  onScreenshotGameClosed(gameKey);
   if (session.heartbeat) clearInterval(session.heartbeat);
   stopEmulatorSouvenirWatcher(gameKey);
   await cleanupEmulatorSouvenirSession(session.souvenirSession);

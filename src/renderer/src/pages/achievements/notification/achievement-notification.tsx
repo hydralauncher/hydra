@@ -213,18 +213,17 @@ export function AchievementNotification() {
         setPhase("idle");
 
         const sourceIcon =
-          nextRequest.type === "achievement"
-            ? nextRequest.achievement.iconUrl
-            : HydraIconUrl;
+          nextRequest.type === "combined"
+            ? HydraIconUrl
+            : nextRequest.achievement.iconUrl;
 
         void resolveImageUrl(sourceIcon)
           .then((resolvedIcon) => {
             if (preparationSequence.current !== sequence) return;
 
             const nextAchievement: AchievementNotificationInfo =
-              nextRequest.type === "achievement"
-                ? { ...nextRequest.achievement, iconUrl: resolvedIcon }
-                : {
+              nextRequest.type === "combined"
+                ? {
                     title: t("new_achievements"),
                     description: t("new_achievements_description", {
                       achievements: t("new_achievements_achievement_count", {
@@ -238,7 +237,8 @@ export function AchievementNotification() {
                     isRare: false,
                     isPlatinum: false,
                     iconUrl: resolvedIcon,
-                  };
+                  }
+                : { ...nextRequest.achievement, iconUrl: resolvedIcon };
 
             requestRef.current = nextRequest;
             setRequest(nextRequest);
@@ -317,7 +317,10 @@ export function AchievementNotification() {
           if (requestRef.current?.id !== requestId) return;
 
           setPhase("playing");
-          if (!hasPlayedSound.current) {
+          if (
+            !hasPlayedSound.current &&
+            requestRef.current.type !== "screenshot"
+          ) {
             hasPlayedSound.current = true;
             void playAudio();
           }

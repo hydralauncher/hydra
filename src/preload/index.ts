@@ -103,6 +103,10 @@ import type {
   ResolveEpicCloudSaveConflictPayload,
   EpicLaunchOptions,
   EpicLinuxCompatibility,
+  LocalScreenshot,
+  LocalScreenshotUploadOptions,
+  ScreenshotReviewRequest,
+  ScreenshotUploadProgress,
 } from "@types";
 import type { AuthPage, Downloader } from "@shared";
 import type { AxiosProgressEvent } from "axios";
@@ -1480,6 +1484,69 @@ contextBridge.exposeInMainWorld("electron", {
   getVersion: () => ipcRenderer.invoke("getVersion"),
   getDefaultDownloadsPath: () => ipcRenderer.invoke("getDefaultDownloadsPath"),
   getScreenshotsPath: () => ipcRenderer.invoke("getScreenshotsPath"),
+  getLocalScreenshots: () => ipcRenderer.invoke("getLocalScreenshots"),
+  uploadLocalScreenshot: (
+    clientId: string,
+    options: LocalScreenshotUploadOptions
+  ) => ipcRenderer.invoke("uploadLocalScreenshot", clientId, options),
+  deleteLocalScreenshot: (clientId: string) =>
+    ipcRenderer.invoke("deleteLocalScreenshot", clientId),
+  skipLocalScreenshot: (clientId: string) =>
+    ipcRenderer.invoke("skipLocalScreenshot", clientId),
+  openScreenshotsFolder: () => ipcRenderer.invoke("openScreenshotsFolder"),
+  getScreenshotsFolderPath: () =>
+    ipcRenderer.invoke("getScreenshotsFolderPath"),
+  onLocalScreenshotsChange: (cb: (screenshots: LocalScreenshot[]) => void) => {
+    const listener = (
+      _event: Electron.IpcRendererEvent,
+      screenshots: LocalScreenshot[]
+    ) => cb(screenshots);
+    ipcRenderer.on("on-local-screenshots-change", listener);
+    return () =>
+      ipcRenderer.removeListener("on-local-screenshots-change", listener);
+  },
+  onScreenshotUploadProgress: (
+    cb: (progress: ScreenshotUploadProgress) => void
+  ) => {
+    const listener = (
+      _event: Electron.IpcRendererEvent,
+      progress: ScreenshotUploadProgress
+    ) => cb(progress);
+    ipcRenderer.on("on-screenshot-upload-progress", listener);
+    return () =>
+      ipcRenderer.removeListener("on-screenshot-upload-progress", listener);
+  },
+  onScreenshotReviewRequested: (
+    cb: (request: ScreenshotReviewRequest) => void
+  ) => {
+    const listener = (
+      _event: Electron.IpcRendererEvent,
+      request: ScreenshotReviewRequest
+    ) => cb(request);
+    ipcRenderer.on("on-screenshot-review-requested", listener);
+    return () =>
+      ipcRenderer.removeListener("on-screenshot-review-requested", listener);
+  },
+  onScreenshotReviewItemsChanged: (cb: (clientIds: string[]) => void) => {
+    const listener = (_event: Electron.IpcRendererEvent, clientIds: string[]) =>
+      cb(clientIds);
+    ipcRenderer.on("on-screenshot-review-items-changed", listener);
+    return () =>
+      ipcRenderer.removeListener(
+        "on-screenshot-review-items-changed",
+        listener
+      );
+  },
+  onScreenshotFeedback: (
+    cb: (feedback: { flash: boolean; playSound: boolean }) => void
+  ) => {
+    const listener = (
+      _event: Electron.IpcRendererEvent,
+      feedback: { flash: boolean; playSound: boolean }
+    ) => cb(feedback);
+    ipcRenderer.on("on-screenshot-feedback", listener);
+    return () => ipcRenderer.removeListener("on-screenshot-feedback", listener);
+  },
   getAchievementSouvenirSyncStatus: () =>
     ipcRenderer.invoke("getAchievementSouvenirSyncStatus"),
   getAchievementSouvenirSyncDetails: () =>
