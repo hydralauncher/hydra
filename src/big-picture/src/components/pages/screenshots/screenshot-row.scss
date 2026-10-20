@@ -1,0 +1,36 @@
+.screenshot-row {
+  position: relative;
+  min-width: 0;
+
+  &::after {
+    content: "";
+    position: absolute;
+    inset: 0 0 0 auto;
+    width: clamp(80px, 12vw, 200px);
+    pointer-events: none;
+    background: linear-gradient(
+      90deg,
+      rgba(8, 8, 8, 0) 0%,
+      var(--background) 100%
+    );
+  }
+
+  &__list {
+    display: flex;
+    gap: calc(var(--spacing-unit) * 3);
+    margin: 0;
+    padding: calc(var(--spacing-unit) * 2);
+    overflow-x: auto;
+    list-style: none;
+    scrollbar-width: none;
+
+    &::-webkit-scrollbar {
+      display: none;
+    }
+  }
+
+  &__sentinel {
+    flex: 0 0 1px;
+    width: 1px;
+  }
+}

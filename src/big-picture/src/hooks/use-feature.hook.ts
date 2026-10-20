@@ -7,6 +7,8 @@ export enum Feature {
   AllDebrid = "ALLDEBRID",
   Nimbus = "NIMBUS",
   NimbusPreview = "NIMBUS_PREVIEW",
+  Screenshots = "SCREENSHOTS",
+  ScreenshotComments = "SCREENSHOT_COMMENTS",
 }
 
 const FEATURES_STORAGE_KEY = "features";

@@ -1,0 +1,71 @@
+import type { ProfileScreenshot } from "@types";
+import { isScreenshotSpoilerRevealed } from "@shared";
+
+type Translate = (key: string, options?: Record<string, unknown>) => string;
+
+export const SCREENSHOTS_TRANSLATION_NAMESPACE = "big_picture";
+
+export function getScreenshotGameTitle(
+  screenshot: Pick<ProfileScreenshot, "gameTitle" | "isCustomGame">,
+  t: Translate
+) {
+  if (screenshot.gameTitle) return screenshot.gameTitle;
+
+  return screenshot.isCustomGame
+    ? t("screenshots_custom_game")
+    : t("screenshots_unknown_game");
+}
+
+export function formatScreenshotDate(timestamp: number, language: string) {
+  return new Intl.DateTimeFormat(language, {
+    dateStyle: "medium",
+    timeStyle: "short",
+  }).format(new Date(timestamp));
+}
+
+export function getScreenshotAltText(
+  screenshot: ProfileScreenshot,
+  t: Translate,
+  language: string
+) {
+  return t("screenshots_alt_text", {
+    game: getScreenshotGameTitle(screenshot, t),
+    date: formatScreenshotDate(screenshot.capturedAt, language),
+  });
+}
+
+export function shouldBlurScreenshot(
+  screenshot: Pick<ProfileScreenshot, "id" | "isSpoiler">,
+  revealedIds: ReadonlySet<string>
+) {
+  return (
+    screenshot.isSpoiler &&
+    !revealedIds.has(screenshot.id) &&
+    !isScreenshotSpoilerRevealed(screenshot.id)
+  );
+}
+
+export function getScreenshotErrorKey(code: string | null) {
+  switch (code) {
+    case "screenshots/private":
+      return "screenshots_error_private";
+    case "screenshots/not-found":
+      return "screenshots_error_unavailable";
+    case "screenshots/comments-disabled":
+      return "screenshots_error_comments_disabled";
+    case "screenshots/comment-not-allowed":
+      return "screenshots_error_comment_not_allowed";
+    case "screenshots/comment-rate-limited":
+      return "screenshots_error_comment_rate_limited";
+    case "screenshots/comment-not-found":
+      return "screenshots_error_comment_not_found";
+    case "screenshots/already-reported":
+      return "screenshots_error_already_reported";
+    case "screenshots/report-rate-limited":
+      return "screenshots_error_report_rate_limited";
+    case "screenshots/cannot-report-own":
+      return "screenshots_error_cannot_report_own";
+    default:
+      return "screenshots_error_generic";
+  }
+}
