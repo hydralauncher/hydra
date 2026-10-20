@@ -32,6 +32,7 @@ interface InstallerLaunchResult {
 }
 
 const ELEVATED_LAUNCH_FAILED_EXIT_CODE = 0x48594452;
+const UAC_DECLINED_EXIT_CODE = 1223;
 
 const ELEVATED_INSTALLER_COMMAND = [
   "$ErrorActionPreference = 'Stop'",
@@ -45,7 +46,7 @@ const ELEVATED_INSTALLER_COMMAND = [
   "$installer.WaitForExit()",
   "exit $installer.ExitCode",
   "} catch {",
-  "if ($_.Exception.GetBaseException().NativeErrorCode -eq 1223) { exit 1223 }",
+  `if ($_.Exception.GetBaseException().NativeErrorCode -eq ${UAC_DECLINED_EXIT_CODE}) { exit ${UAC_DECLINED_EXIT_CODE} }`,
   `exit ${ELEVATED_LAUNCH_FAILED_EXIT_CODE}`,
   "}",
 ].join("; ");
@@ -101,7 +102,12 @@ const handleElevatedInstallerExit = async (
 
   logger.error("Failed to launch game installer with elevation");
 
-  if (await openPathAndCheck(filePath)) return options.onUntrackedLaunch();
+  if (await openPathAndCheck(filePath)) {
+    logger.info(`[GameInstaller] Opened ${filePath} untracked`);
+    return options.onUntrackedLaunch();
+  }
+
+  logger.error(`[GameInstaller] Could not open ${filePath}`);
   options.onCancel();
 };
 
@@ -142,12 +148,24 @@ const launchInstallerWithUmu = async (
   launched = true;
 };
 
+const trackedLaunch = (
+  filePath: string,
+  method: string
+): InstallerLaunchResult => {
+  logger.info(`[GameInstaller] Launched ${filePath} ${method}`);
+  return { launched: true, tracked: true };
+};
+
 const openUntracked = async (
   filePath: string
-): Promise<InstallerLaunchResult> => ({
-  launched: await openPathAndCheck(filePath),
-  tracked: false,
-});
+): Promise<InstallerLaunchResult> => {
+  const launched = await openPathAndCheck(filePath);
+
+  if (launched) logger.info(`[GameInstaller] Opened ${filePath} untracked`);
+  else logger.error(`[GameInstaller] Could not open ${filePath}`);
+
+  return { launched, tracked: false };
+};
 
 const executeGameInstaller = async (
   filePath: string,
@@ -160,10 +178,10 @@ const executeGameInstaller = async (
       options.onExit,
       "Failed to execute game installer directly"
     );
-    if (launchedDirectly) return { launched: true, tracked: true };
+    if (launchedDirectly) return trackedLaunch(filePath, "directly");
 
     const launchedElevated = await launchInstallerElevated(filePath, options);
-    if (launchedElevated) return { launched: true, tracked: true };
+    if (launchedElevated) return trackedLaunch(filePath, "with elevation");
 
     return await openUntracked(filePath);
   }
@@ -171,7 +189,7 @@ const executeGameInstaller = async (
   if (process.platform === "linux") {
     try {
       await launchInstallerWithUmu(filePath, options);
-      return { launched: true, tracked: true };
+      return trackedLaunch(filePath, "with umu-run");
     } catch (error) {
       logger.error("Failed to execute game installer with umu-run", error);
 
@@ -181,13 +199,20 @@ const executeGameInstaller = async (
         options.onExit,
         "Failed to execute game installer with wine"
       );
-      if (launchedWithWine) return { launched: true, tracked: true };
+      if (launchedWithWine) return trackedLaunch(filePath, "with wine");
 
       return await openUntracked(filePath);
     }
   }
 
   return await openUntracked(filePath);
+};
+
+const describeInstallerExit = (exitCode: number | null) => {
+  if (exitCode === 0) return "completed";
+  if (exitCode === UAC_DECLINED_EXIT_CODE) return "UAC prompt declined";
+  if (exitCode === null) return "terminated without an exit code";
+  return `cancelled or failed with exit code ${exitCode}`;
 };
 
 const updateInstallerState = async (
@@ -208,11 +233,14 @@ const handleInstallerExit = async (
   winePrefixPath: string | null,
   exitCode: number | null
 ) => {
-  logger.info(`Game installer for ${objectId} exited with code ${exitCode}`);
+  logger.info(
+    `[GameInstaller] Installer for ${objectId} ${describeInstallerExit(exitCode)}`
+  );
 
   const gameKey = levelKeys.game(shop, objectId);
 
   if (exitCode !== 0) {
+    logger.info(`[GameInstaller] Reset ${objectId} back to Install`);
     await updateInstallerState(gameKey, {
       installerRunning: false,
       installerLaunched: false,
@@ -224,6 +252,12 @@ const handleInstallerExit = async (
     shop,
     objectId
   ).searchAndBindInstalledExecutable(installerStartedAt, winePrefixPath);
+
+  logger.info(
+    executableFound
+      ? `[GameInstaller] Found the installed executable for ${objectId}`
+      : `[GameInstaller] No installed executable found for ${objectId}, user has to select it`
+  );
 
   await updateInstallerState(gameKey, { installerRunning: false });
 
