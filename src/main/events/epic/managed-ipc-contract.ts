@@ -4,6 +4,7 @@ import type {
   EpicLaunchOptions,
   ResolveEpicCloudSaveConflictPayload,
   StartEpicGameDownloadPayload,
+  StartEpicGameUpdatePayload,
 } from "../../../types/epic-managed.types";
 import {
   EpicIntegrationError,
@@ -43,26 +44,24 @@ export const parseEpicInstallOptionsRequestId = (value: unknown): string => {
   return value;
 };
 
-export function parseEpicDownloadPayload(
-  value: unknown
-): StartEpicGameDownloadPayload {
+const EPIC_TARGET_PAYLOAD_FIELDS = [
+  "epicObjectId",
+  "connectionId",
+  "artifactId",
+  "platform",
+  "addToQueueOnly",
+  "preparationId",
+];
+
+function parseEpicTargetPayload(
+  value: Record<string, unknown>
+): StartEpicGameUpdatePayload {
   if (
-    !isRecord(value) ||
-    !hasOnlyFields(value, [
-      "epicObjectId",
-      "connectionId",
-      "artifactId",
-      "platform",
-      "downloadPath",
-      "addToQueueOnly",
-      "preparationId",
-    ]) ||
     !isEpicObjectId(value.epicObjectId) ||
     typeof value.connectionId !== "string" ||
     !EPIC_CONNECTION_ID_PATTERN.test(value.connectionId) ||
     !isSafeEpicArtifact(value.artifactId) ||
     (value.platform !== "Windows" && value.platform !== "Mac") ||
-    !isLocalPath(value.downloadPath) ||
     (value.preparationId !== undefined &&
       (typeof value.preparationId !== "string" ||
         !/^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/i.test(
@@ -78,7 +77,6 @@ export function parseEpicDownloadPayload(
     connectionId: value.connectionId,
     artifactId: value.artifactId,
     platform: value.platform,
-    downloadPath: value.downloadPath,
     ...(value.preparationId !== undefined
       ? { preparationId: value.preparationId }
       : {}),
@@ -86,6 +84,29 @@ export function parseEpicDownloadPayload(
       ? { addToQueueOnly: value.addToQueueOnly }
       : {}),
   };
+}
+
+export function parseEpicDownloadPayload(
+  value: unknown
+): StartEpicGameDownloadPayload {
+  if (
+    !isRecord(value) ||
+    !hasOnlyFields(value, [...EPIC_TARGET_PAYLOAD_FIELDS, "downloadPath"]) ||
+    !isLocalPath(value.downloadPath)
+  ) {
+    return invalid();
+  }
+  const target = parseEpicTargetPayload(value);
+  return { ...target, downloadPath: value.downloadPath };
+}
+
+/** Updates never accept a folder: main derives it from the installation. */
+export function parseEpicUpdatePayload(
+  value: unknown
+): StartEpicGameUpdatePayload {
+  if (!isRecord(value) || !hasOnlyFields(value, EPIC_TARGET_PAYLOAD_FIELDS))
+    return invalid();
+  return parseEpicTargetPayload(value);
 }
 
 export function parseEpicCloudSaveSettings(
@@ -140,10 +161,17 @@ export function parseEpicLaunchOptions(value: unknown): EpicLaunchOptions {
   if (value === undefined) return {};
   if (
     !isRecord(value) ||
-    !hasOnlyFields(value, ["epicSavePolicy", "epicOffline"]) ||
+    !hasOnlyFields(value, [
+      "epicSavePolicy",
+      "epicOffline",
+      "epicSkipUpdateCheck",
+    ]) ||
     (value.epicSavePolicy !== undefined &&
       value.epicSavePolicy !== "local-once") ||
-    (value.epicOffline !== undefined && typeof value.epicOffline !== "boolean")
+    (value.epicOffline !== undefined &&
+      typeof value.epicOffline !== "boolean") ||
+    (value.epicSkipUpdateCheck !== undefined &&
+      typeof value.epicSkipUpdateCheck !== "boolean")
   ) {
     return invalid();
   }
@@ -151,6 +179,9 @@ export function parseEpicLaunchOptions(value: unknown): EpicLaunchOptions {
     ...(value.epicSavePolicy ? { epicSavePolicy: value.epicSavePolicy } : {}),
     ...(value.epicOffline !== undefined
       ? { epicOffline: value.epicOffline }
+      : {}),
+    ...(value.epicSkipUpdateCheck
+      ? { epicSkipUpdateCheck: value.epicSkipUpdateCheck }
       : {}),
   };
 }

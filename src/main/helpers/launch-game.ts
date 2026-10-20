@@ -64,6 +64,7 @@ export interface LaunchGameOptions {
   launchOptions?: string | null;
   epicSavePolicy?: "local-once";
   epicOffline?: boolean;
+  epicSkipUpdateCheck?: boolean;
 }
 
 const LAUNCH_DELAY_IN_MS = 2_000;
@@ -900,6 +901,7 @@ const launchGameWithCloudSaveChecks = async (
             winePrefixPath: compatibilityContext?.winePrefixPath,
             epicSavePolicy: options.epicSavePolicy,
             epicOffline: options.epicOffline,
+            epicSkipUpdateCheck: options.epicSkipUpdateCheck,
             onStatus: createUmuStatusReporter(gameKey),
             // Runs once the Linux prefix exists, so Hydra restores into it and
             // records its upload guard against the prepared environment.
