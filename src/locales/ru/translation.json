@@ -1041,6 +1041,12 @@
     "epic_play_offline": "Играть — Не в сети",
     "epic_prerequisites_required": "Разрешите установку необходимых компонентов игры и повторите попытку.",
     "epic_update_required": "Обновите игру через вариант Epic Games, используя ту же папку.",
+    "epic_update": "Обновить",
+    "epic_update_resume": "Продолжить обновление",
+    "epic_updating": "Обновление…",
+    "epic_play_without_update": "Играть без обновления",
+    "epic_update_available": "Доступна версия {{version}}",
+    "epic_update_failed": "Не удалось обновить игру",
     "epic_retry": "Повторить"
   },
   "activation": {

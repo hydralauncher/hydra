@@ -599,6 +599,12 @@
     "epic_play_offline": "プレイ — Offline",
     "epic_prerequisites_required": "ゲームの前提コンポーネントを許可して再試行してください。",
     "epic_update_required": "Epic Games のオプションから同じフォルダーにゲームを更新してください。",
+    "epic_update": "アップデート",
+    "epic_update_resume": "アップデートを再開",
+    "epic_updating": "アップデート中…",
+    "epic_play_without_update": "アップデートせずにプレイ",
+    "epic_update_available": "バージョン {{version}} が利用可能です",
+    "epic_update_failed": "ゲームをアップデートできませんでした",
     "epic_retry": "再試行"
   },
   "activation": {

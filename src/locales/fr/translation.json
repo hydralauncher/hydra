@@ -1045,6 +1045,12 @@
     "epic_play_offline": "Jouer — Hors ligne",
     "epic_prerequisites_required": "Autorisez les prérequis du jeu et réessayez.",
     "epic_update_required": "Mettez le jeu à jour via l’option Epic Games en utilisant le même dossier.",
+    "epic_update": "Mettre à jour",
+    "epic_update_resume": "Reprendre la mise à jour",
+    "epic_updating": "Mise à jour…",
+    "epic_play_without_update": "Jouer sans mettre à jour",
+    "epic_update_available": "Version {{version}} disponible",
+    "epic_update_failed": "Impossible de mettre à jour le jeu",
     "epic_retry": "Réessayer"
   },
   "activation": {

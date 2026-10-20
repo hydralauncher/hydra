@@ -577,6 +577,12 @@
     "epic_play_offline": "Oyna — Offline",
     "epic_prerequisites_required": "Oyunun ön gereksinimlerine izin verin ve tekrar deneyin.",
     "epic_update_required": "Oyunu aynı klasörü kullanarak Epic Games seçeneğinden güncelleyin.",
+    "epic_update": "Güncelle",
+    "epic_update_resume": "Güncellemeye devam et",
+    "epic_updating": "Güncelleniyor…",
+    "epic_play_without_update": "Güncellemeden oyna",
+    "epic_update_available": "{{version}} sürümü mevcut",
+    "epic_update_failed": "Oyun güncellenemedi",
     "epic_retry": "Tekrar dene"
   },
   "activation": {

@@ -577,6 +577,12 @@
     "epic_play_offline": "Pelaa — Offline",
     "epic_prerequisites_required": "Hyväksy pelin edellyttämät osat ja yritä uudelleen.",
     "epic_update_required": "Päivitä peli Epic Games -vaihtoehdolla samaan kansioon.",
+    "epic_update": "Päivitä",
+    "epic_update_resume": "Jatka päivitystä",
+    "epic_updating": "Päivitetään…",
+    "epic_play_without_update": "Pelaa päivittämättä",
+    "epic_update_available": "Versio {{version}} on saatavilla",
+    "epic_update_failed": "Pelin päivittäminen epäonnistui",
     "epic_retry": "Yritä uudelleen"
   },
   "activation": {

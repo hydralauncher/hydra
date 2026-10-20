@@ -577,6 +577,12 @@
     "epic_play_offline": "开始游戏 — Offline",
     "epic_prerequisites_required": "请授权安装游戏所需组件并重试。",
     "epic_update_required": "请通过 Epic Games 选项将游戏更新到同一文件夹。",
+    "epic_update": "更新",
+    "epic_update_resume": "继续更新",
+    "epic_updating": "正在更新…",
+    "epic_play_without_update": "不更新直接游玩",
+    "epic_update_available": "版本 {{version}} 可用",
+    "epic_update_failed": "无法更新游戏",
     "epic_retry": "重试"
   },
   "activation": {

@@ -579,6 +579,12 @@
     "epic_play_offline": "Igraj — Offline",
     "epic_prerequisites_required": "Dovolite zahtevane komponente igre in poskusite znova.",
     "epic_update_required": "Posodobite igro prek možnosti Epic Games v isti mapi.",
+    "epic_update": "Posodobi",
+    "epic_update_resume": "Nadaljuj posodobitev",
+    "epic_updating": "Posodabljanje…",
+    "epic_play_without_update": "Igraj brez posodobitve",
+    "epic_update_available": "Na voljo je različica {{version}}",
+    "epic_update_failed": "Igre ni bilo mogoče posodobiti",
     "epic_retry": "Poskusi znova"
   },
   "activation": {

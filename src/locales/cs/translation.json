@@ -577,6 +577,12 @@
     "epic_play_offline": "Hrát — Offline",
     "epic_prerequisites_required": "Povolte požadované součásti hry a zkuste to znovu.",
     "epic_update_required": "Aktualizujte hru přes možnost Epic Games do stejné složky.",
+    "epic_update": "Aktualizovat",
+    "epic_update_resume": "Pokračovat v aktualizaci",
+    "epic_updating": "Aktualizace…",
+    "epic_play_without_update": "Hrát bez aktualizace",
+    "epic_update_available": "Je dostupná verze {{version}}",
+    "epic_update_failed": "Hru se nepodařilo aktualizovat",
     "epic_retry": "Zkusit znovu"
   },
   "activation": {

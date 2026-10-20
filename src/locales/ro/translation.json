@@ -573,6 +573,12 @@
     "epic_play_offline": "Joacă — Offline",
     "epic_prerequisites_required": "Autorizează componentele necesare jocului și încearcă din nou.",
     "epic_update_required": "Actualizează jocul prin opțiunea Epic Games folosind același folder.",
+    "epic_update": "Actualizează",
+    "epic_update_resume": "Reia actualizarea",
+    "epic_updating": "Se actualizează…",
+    "epic_play_without_update": "Joacă fără actualizare",
+    "epic_update_available": "Versiunea {{version}} este disponibilă",
+    "epic_update_failed": "Jocul nu a putut fi actualizat",
     "epic_retry": "Încearcă din nou"
   },
   "activation": {

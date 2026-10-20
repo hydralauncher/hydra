@@ -9,9 +9,14 @@ import {
 import type { GameShop, ShopAssets, LibraryGame } from "@types";
 import {
   hasCloudSaveExecutableSelection,
+  getEpicLaunchOptions,
   getInstalledStoreMembers,
   getOfficialStoreMembers,
+  isEpicMemberInCurrentScope,
+  isEpicUpdateInterrupted,
 } from "@shared";
+import { useEpicManagedConnection } from "@renderer/hooks/use-epic-managed";
+import { useEpicGameUpdate } from "@renderer/hooks/use-epic-game-update";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useNavigate, useParams } from "react-router-dom";
@@ -87,6 +92,7 @@ import {
 } from "../../components/pages/game/navigation";
 import { NavigationService, type FocusOverrideTarget } from "../../services";
 import { useNavigationStore } from "../../stores";
+import { useBigPictureDownloadsStore } from "../../stores/downloads.store";
 import { extractGenreNames } from "./game-metadata";
 import "./game.scss";
 import { EpicCloudSaves } from "../../components/pages/game/epic-cloud-saves";
@@ -600,6 +606,22 @@ export default function Game() {
   const installedMembers = getInstalledStoreMembers(members);
   const epicMember = getOfficialStoreMembers(members).epic;
   const [showStoreSelection, setShowStoreSelection] = useState(false);
+  const [showEpicUpdate, setShowEpicUpdate] = useState(false);
+  const lastPacket = useBigPictureDownloadsStore((state) => state.lastPacket);
+  const { installationAvailable: epicInstallationAvailable, connection } =
+    useEpicManagedConnection();
+  const epicUpdate = useEpicGameUpdate(
+    game,
+    epicInstallationAvailable && isEpicMemberInCurrentScope(game, connection)
+  );
+  const epicDownload = game?.shop === "epic" ? downloadGame?.download : null;
+  const epicUpdateInterrupted =
+    !!epicDownload && isEpicUpdateInterrupted(epicDownload);
+  const epicDownloadStatus = epicDownload?.status;
+  const refreshEpicUpdate = epicUpdate.refresh;
+  useEffect(() => {
+    if (epicDownloadStatus === "complete") void refreshEpicUpdate();
+  }, [epicDownloadStatus, refreshEpicUpdate]);
   const [localSaveRetry, setLocalSaveRetry] = useState<LibraryGame | null>(
     null
   );
@@ -627,7 +649,12 @@ export default function Game() {
     };
   }, [shop, objectId, invalidateLaunch]);
   const launchMember = useCallback(
-    async (member: LibraryGame, localOnce = false, offline = false) => {
+    async (
+      member: LibraryGame,
+      localOnce = false,
+      offline = false,
+      skipUpdateCheck = false
+    ) => {
       if (!member.executablePath) return;
       setShowStoreSelection(false);
       setLocalSaveRetry(null);
@@ -641,11 +668,7 @@ export default function Game() {
           member.objectId,
           member.executablePath,
           member.launchOptions,
-          offline
-            ? { epicOffline: true }
-            : localOnce
-              ? { epicSavePolicy: "local-once" }
-              : undefined
+          getEpicLaunchOptions(localOnce, offline, skipUpdateCheck)
         );
       } catch (error) {
         if (generation !== launchGeneration.current) return;
@@ -655,6 +678,8 @@ export default function Game() {
           setEpicSaveConflict(member);
           return;
         }
+        // The cached preview predates the published build: check it again.
+        if (code === "update-required") void refreshEpicUpdate();
         const translation = code ? getEpicManagedError(code) : null;
         showErrorToast(
           translation
@@ -684,8 +709,42 @@ export default function Game() {
         }
       }
     },
-    [showErrorToast, t]
+    [showErrorToast, t, refreshEpicUpdate]
   );
+  const startEpicUpdate = useCallback(async () => {
+    setShowEpicUpdate(false);
+    const result = await epicUpdate.start(lastPacket !== null);
+    if (result.ok) {
+      await updateGame();
+      globalThis.window.dispatchEvent(new Event("library-update"));
+      return;
+    }
+    const translation = getEpicManagedError(result.error);
+    showErrorToast(t("epic_update_failed", { ns: "game_details" }), {
+      message: t(translation.key, { ns: translation.ns }),
+    });
+  }, [epicUpdate, lastPacket, updateGame, showErrorToast, t]);
+  const resumeEpicUpdate = useCallback(async () => {
+    if (!game) return;
+    if (epicDownload?.status !== "paused" && epicDownload?.status !== "error") {
+      await startEpicUpdate();
+      return;
+    }
+    setShowEpicUpdate(false);
+    try {
+      await window.electron.resumeGameDownload(game.shop, game.objectId);
+    } catch {
+      showErrorToast(t("epic_update_failed", { ns: "game_details" }));
+    }
+    await updateGame();
+  }, [
+    game,
+    epicDownload?.status,
+    startEpicUpdate,
+    showErrorToast,
+    t,
+    updateGame,
+  ]);
   const { launchSettings, customizationSettings, cloudSettings } =
     useGameSettingsModalState({
       game,
@@ -1052,6 +1111,10 @@ export default function Game() {
         return;
       }
       if (game.shop === "epic" && game.epicInstallation) {
+        if (epicUpdate.update || epicUpdateInterrupted) {
+          setShowEpicUpdate(true);
+          return;
+        }
         await launchMember(game);
         return;
       }
@@ -1081,6 +1144,8 @@ export default function Game() {
     launchMember,
     launchClassicsWithErrorHandling,
     openGame,
+    epicUpdate.update,
+    epicUpdateInterrupted,
   ]);
 
   const handleDiscSelectionConfirm = useCallback(
@@ -1580,6 +1645,53 @@ export default function Game() {
                 })}
               </Button>
             ))}
+          </HorizontalFocusGroup>
+        </Modal>
+        <Modal
+          visible={showEpicUpdate}
+          title={t(
+            epicUpdateInterrupted ? "epic_update_resume" : "epic_update",
+            { ns: "game_details" }
+          )}
+          description={
+            epicUpdate.update?.version
+              ? t("epic_update_available", {
+                  ns: "game_details",
+                  version: epicUpdate.update.version,
+                })
+              : undefined
+          }
+          onClose={() => setShowEpicUpdate(false)}
+        >
+          <HorizontalFocusGroup>
+            {epicUpdateInterrupted ? (
+              <Button
+                variant="primary"
+                disabled={epicUpdate.starting}
+                onClick={() => void resumeEpicUpdate()}
+              >
+                {t("epic_update_resume", { ns: "game_details" })}
+              </Button>
+            ) : (
+              <>
+                <Button
+                  variant="primary"
+                  disabled={epicUpdate.starting}
+                  onClick={() => void startEpicUpdate()}
+                >
+                  {t("epic_update", { ns: "game_details" })}
+                </Button>
+                <Button
+                  variant="secondary"
+                  onClick={() => {
+                    setShowEpicUpdate(false);
+                    if (game) void launchMember(game, false, false, true);
+                  }}
+                >
+                  {t("epic_play_without_update", { ns: "game_details" })}
+                </Button>
+              </>
+            )}
           </HorizontalFocusGroup>
         </Modal>
         <Modal
