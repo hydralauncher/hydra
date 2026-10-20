@@ -1025,6 +1025,7 @@ export class GameFilesManager {
         await downloadsSublevel.put(this.gameKey, {
           ...download,
           folderName: extractedFolderName,
+          sourceArchiveName: download.folderName,
         });
 
         await this.setExtractionComplete();

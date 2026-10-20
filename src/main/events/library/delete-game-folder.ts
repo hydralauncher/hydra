@@ -181,6 +181,21 @@ const deleteGameFolder = async (
     await deleteFile(metaPath);
   }
 
+  const sourceArchivePath = download.sourceArchiveName
+    ? path.join(
+        download.downloadPath ?? (await getDownloadsPath()),
+        download.sourceArchiveName
+      )
+    : null;
+
+  if (
+    sourceArchivePath &&
+    sourceArchivePath !== folderPath &&
+    isWithin(sourceArchivePath, download.downloadPath)
+  ) {
+    await deleteFile(sourceArchivePath);
+  }
+
   await downloadsSublevel.del(gameKey);
   await DownloadOrchestrator.syncAfterDownloadRemoved({ shop, objectId });
 
