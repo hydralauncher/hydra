@@ -1,8 +1,8 @@
 import type {
+  EpicAchievementSummary,
   EpicConnectedConnection,
   EpicSyncRun,
 } from "../../../types/epic-integration.types";
-import type { EpicAchievementSummary } from "../../../types/epic-integration.types";
 import { EpicIntegrationError, isRecord } from "./auth-protocol.js";
 import {
   EPIC_SYNC_RUN_ID_MIN_LENGTH,

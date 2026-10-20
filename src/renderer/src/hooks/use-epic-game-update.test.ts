@@ -190,6 +190,55 @@ describe("useEpicGameUpdate", () => {
     });
   });
 
+  it("discards the cached preview only for a fresh refresh", async (t) => {
+    const invalidated: string[] = [];
+    let response = options({ installedVersion: "build-2" });
+    const f = await fixture(t, {
+      getEpicGameInstallOptions: async () => response,
+      invalidateEpicGameInstallOptions: async (objectId: string) => {
+        invalidated.push(objectId);
+        response = options({ version: "build-3" });
+      },
+      startEpicGameUpdate: async () => ({ ok: true }),
+    });
+    await f.render(game);
+    assert.deepEqual(invalidated, []);
+    await React.act(async () => f.current.value!.refresh(true));
+    assert.deepEqual(invalidated, ["Namespace:Item"]);
+    assert.equal(f.current.value?.update?.version, "build-3");
+  });
+
+  it("resumes an interrupted update for the installed artifact without a newer build", async (t) => {
+    const starts: StartEpicGameUpdatePayload[] = [];
+    const f = await fixture(t, {
+      getEpicGameInstallOptions: async () =>
+        options({ installedVersion: "build-2" }),
+      startEpicGameUpdate: async (payload: StartEpicGameUpdatePayload) => {
+        starts.push(payload);
+        return { ok: true };
+      },
+    });
+    await f.render(game);
+    assert.deepEqual(await f.current.value!.start(), {
+      ok: false,
+      error: "stale-connection",
+    });
+    let result;
+    await React.act(async () => {
+      result = await f.current.value!.start(false, true);
+    });
+    assert.deepEqual(result, { ok: true });
+    assert.deepEqual(starts, [
+      {
+        epicObjectId: "Namespace:Item",
+        connectionId: "connection",
+        artifactId: "Artifact",
+        platform: "Windows",
+        addToQueueOnly: false,
+      },
+    ]);
+  });
+
   it("refreshes after a launch reports the build is out of date", async (t) => {
     let response = options({ installedVersion: "build-2" });
     const f = await fixture(t, {

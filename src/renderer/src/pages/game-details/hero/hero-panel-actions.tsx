@@ -102,6 +102,8 @@ export function HeroPanelActions() {
     null
   );
   const [canRetryOffline, setCanRetryOffline] = useState(false);
+  // A retry keeps the player's choice to launch the outdated build.
+  const [retrySkipsUpdateCheck, setRetrySkipsUpdateCheck] = useState(false);
   const [canRetryLocalSaves, setCanRetryLocalSaves] = useState(false);
   const officialMembers = getOfficialStoreMembers(
     presentation?.members ?? (game ? [game] : [])
@@ -372,8 +374,8 @@ export function HeroPanelActions() {
         setEpicSaveConflict(member);
         return;
       }
-      // The cached preview predates the published build: check it again.
-      if (code === "update-required") void epicUpdate.refresh();
+      // The cached preview predates the published build: fetch a fresh one.
+      if (code === "update-required") void epicUpdate.refresh(true);
       const translation = code ? getEpicManagedError(code) : null;
       showErrorToast(
         translation
@@ -397,6 +399,7 @@ export function HeroPanelActions() {
           state?.canRunOffline === true
         ) {
           setLocalSaveRetry(member);
+          setRetrySkipsUpdateCheck(skipUpdateCheck);
           setCanRetryOffline(state?.canRunOffline === true);
           setCanRetryLocalSaves(canRetryEpicLaunchWithLocalSaves(state));
         }
@@ -404,8 +407,8 @@ export function HeroPanelActions() {
     }
   };
 
-  const startEpicUpdate = async () => {
-    const result = await epicUpdate.start(lastPacket !== null);
+  const startEpicUpdate = async (resume = false) => {
+    const result = await epicUpdate.start(lastPacket !== null, resume);
     if (result.ok) {
       await Promise.all([updateLibrary(), updateGame()]);
       return;
@@ -420,7 +423,7 @@ export function HeroPanelActions() {
   const resumeEpicUpdate = async () => {
     if (!game) return;
     if (epicDownload?.status !== "paused" && epicDownload?.status !== "error") {
-      await startEpicUpdate();
+      await startEpicUpdate(true);
       return;
     }
     try {
@@ -524,7 +527,7 @@ export function HeroPanelActions() {
       return (
         <>
           <Button
-            onClick={startEpicUpdate}
+            onClick={() => void startEpicUpdate()}
             theme="outline"
             disabled={deleting || epicUpdate.starting}
             className="hero-panel-actions__action"
@@ -604,7 +607,13 @@ export function HeroPanelActions() {
             {canRetryLocalSaves && (
               <Button
                 onClick={() => {
-                  if (localSaveRetry) void launchMember(localSaveRetry, true);
+                  if (localSaveRetry)
+                    void launchMember(
+                      localSaveRetry,
+                      true,
+                      false,
+                      retrySkipsUpdateCheck
+                    );
                 }}
               >
                 {t("epic_play_local_saves")}

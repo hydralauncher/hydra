@@ -355,6 +355,9 @@ export class EpicDownloadService {
   getOptions(objectId: string, signal?: AbortSignal) {
     return this.options.installation.getOptions(objectId, signal);
   }
+  invalidateOptions(objectId: string) {
+    this.options.installation.invalidateOptions(objectId);
+  }
   private id(objectId: string) {
     return `epic:${objectId}`;
   }
@@ -672,17 +675,7 @@ export class EpicDownloadService {
     await this.validateSpace(destination, base, resolved.diskSizeInBytes);
     if (controller.signal.aborted || !isCurrent())
       throw new EpicManagedError("operation-cancelled");
-    // A resumed update keeps its persisted delta unless Epic published another build.
-    const sameUpdate = metadata.update?.toVersion === prepared.version;
-    let fileSize = resolved.downloadSizeInBytes;
-    if (metadata.update) fileSize = sameUpdate ? (download.fileSize ?? 0) : 0;
-    const restarted = !!metadata.update && !sameUpdate;
-    const previousBytes = restarted ? 0 : download.bytesDownloaded;
-    const previousProgress = restarted ? 0 : download.progress;
-    // The game is the first run; an update's runs learn their size from Legendary.
-    const segmentSize = metadata.update
-      ? fileSize
-      : resolved.gameDownloadSizeInBytes;
+    const resume = epicRuntimeResume(download, prepared, resolved);
     const active: ActiveEpicDownload = {
       prepared,
       id: this.id(download.objectId),
@@ -690,9 +683,9 @@ export class EpicDownloadService {
       target: prepared.target,
       download: {
         ...download,
-        fileSize,
-        bytesDownloaded: previousBytes,
-        progress: previousProgress,
+        fileSize: resume.fileSize,
+        bytesDownloaded: resume.previousBytes,
+        progress: resume.previousProgress,
         epic: {
           ...metadata,
           diskSizeInBytes: resolved.diskSizeInBytes,
@@ -704,15 +697,9 @@ export class EpicDownloadService {
             : {}),
         },
       },
-      parser: new EpicDownloadProgressParser(
-        segmentSize,
-        previousBytes,
-        segmentSize > 0
-          ? (previousProgress * Math.max(fileSize, segmentSize)) / segmentSize
-          : previousProgress
-      ),
+      parser: resume.parser,
       offset: 0,
-      total: metadata.update ? 0 : fileSize,
+      total: metadata.update ? 0 : resume.fileSize,
       selection: resolved,
       done: Promise.resolve(),
       completed: false,
@@ -1063,6 +1050,38 @@ export class EpicDownloadService {
       this.removals.delete(id);
     }
   }
+}
+
+/** Where a (re)started download picks up: totals, persisted bytes and the first run. */
+function epicRuntimeResume(
+  download: Download,
+  prepared: EpicPreparedInstallation,
+  resolved: ResolvedEpicSelection
+) {
+  const update = download.epic?.update;
+  // A resumed update keeps its persisted delta unless Epic published another build.
+  const sameUpdate = update?.toVersion === prepared.version;
+  const restarted = !!update && !sameUpdate;
+  let fileSize = resolved.downloadSizeInBytes;
+  if (update) fileSize = sameUpdate ? (download.fileSize ?? 0) : 0;
+  const previousBytes = restarted ? 0 : download.bytesDownloaded;
+  const previousProgress = restarted ? 0 : download.progress;
+  // The game is the first run; an update's runs learn their size from Legendary.
+  const segmentSize = update ? fileSize : resolved.gameDownloadSizeInBytes;
+  const segmentProgress =
+    segmentSize > 0
+      ? (previousProgress * Math.max(fileSize, segmentSize)) / segmentSize
+      : previousProgress;
+  return {
+    fileSize,
+    previousBytes,
+    previousProgress,
+    parser: new EpicDownloadProgressParser(
+      segmentSize,
+      previousBytes,
+      segmentProgress
+    ),
+  };
 }
 
 /** The planned total, or what the runs have reported when an update's size is unknown. */

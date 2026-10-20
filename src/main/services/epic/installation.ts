@@ -345,11 +345,20 @@ export function parseEpicInstallInfo(
 
 const EPIC_MAX_SELECTIVE_PACKS = 64;
 const EPIC_MAX_PACK_TAGS = 64;
+const EPIC_PACK_NAME_MAX_LENGTH = 128;
+const EPIC_INSTALL_TAG_MAX_LENGTH = 128;
+const EPIC_SELECTION_ID_MAX_LENGTH = 64;
+const EPIC_INSTALL_TAG_PATTERN = new RegExp(
+  `^[A-Za-z0-9_.-]{0,${EPIC_INSTALL_TAG_MAX_LENGTH}}$`
+);
+const EPIC_SELECTION_ID_PATTERN = new RegExp(
+  `^[A-Za-z0-9_.-]{1,${EPIC_SELECTION_ID_MAX_LENGTH}}$`
+);
 export const EPIC_MAX_INSTALL_TAGS = 256;
 export const isEpicInstallTag = (value: unknown): value is string =>
-  typeof value === "string" && /^[A-Za-z0-9_.-]{0,128}$/.test(value);
+  typeof value === "string" && EPIC_INSTALL_TAG_PATTERN.test(value);
 export const isEpicSelectionId = (value: unknown): value is string =>
-  typeof value === "string" && /^[A-Za-z0-9_.-]{1,64}$/.test(value);
+  typeof value === "string" && EPIC_SELECTION_ID_PATTERN.test(value);
 const isByteCount = (value: unknown): value is number =>
   Number.isSafeInteger(value) && Number(value) >= 0;
 
@@ -378,7 +387,7 @@ export function parseEpicSelectiveInstall(
       packs.some((existing) => existing.id === pack.id) ||
       typeof pack.name !== "string" ||
       !pack.name.trim() ||
-      pack.name.length > 128 ||
+      pack.name.length > EPIC_PACK_NAME_MAX_LENGTH ||
       !Array.isArray(pack.tags) ||
       !pack.tags.length ||
       pack.tags.length > EPIC_MAX_PACK_TAGS ||
@@ -792,52 +801,64 @@ export class EpicInstallationService {
     cached?: EpicPreparedDlc[]
   ): Promise<EpicPreparedDlc[]> {
     const prepared: EpicPreparedDlc[] = [];
+    // One Legendary process at a time: a game can own dozens of DLC.
     for (const dlc of owned.dlcs) {
-      if (signal.aborted) throw abortError(signal);
-      const target = epicManagedTarget(owned, dlc.artifactId, base.platform);
-      const objectId = `${dlc.namespace}:${dlc.catalogItemId}`;
-      if (
-        !isSafeEpicArtifact(dlc.artifactId) ||
-        !isEpicObjectId(objectId) ||
-        owned.artifactIds.includes(dlc.artifactId)
-      )
-        continue;
-      try {
-        const inspection = await withEpicTiming(
-          "installation.dlc-info",
-          () =>
-            this.runtime.inspect(
-              target,
-              objectId,
-              signal,
-              cached?.find((item) => item.artifactId === dlc.artifactId),
-              { target: base, objectId: owned.game.objectId }
-            ),
-          { command: "info" }
-        );
-        this.runtime.assertCurrent(target, signal);
-        prepared.push({
-          target,
-          objectId,
-          artifactId: dlc.artifactId,
-          name: dlc.name,
-          ...parseEpicDlcInstallInfo(inspection.info, dlc.artifactId),
-          metadata: validateEpicDlcMetadata(inspection.metadata, target, dlc, {
-            artifactId: base.artifactId,
-            objectId: owned.game.objectId,
-          }),
-          manifest: inspection.manifest,
-        });
-      } catch (error) {
-        if (
-          signal.aborted ||
-          (error instanceof EpicManagedError &&
-            ["operation-cancelled", "stale-connection"].includes(error.code))
-        )
-          throw error;
-      }
+      const item = await this.prepareDlc(owned, base, dlc, signal, cached);
+      if (item) prepared.push(item);
     }
     return prepared;
+  }
+  private async prepareDlc(
+    owned: EpicOwnedGame,
+    base: EpicManagedTarget,
+    dlc: EpicSnapshotDlc,
+    signal: AbortSignal,
+    cached?: EpicPreparedDlc[]
+  ): Promise<EpicPreparedDlc | null> {
+    if (signal.aborted) throw abortError(signal);
+    const target = epicManagedTarget(owned, dlc.artifactId, base.platform);
+    const objectId = `${dlc.namespace}:${dlc.catalogItemId}`;
+    if (
+      !isSafeEpicArtifact(dlc.artifactId) ||
+      !isEpicObjectId(objectId) ||
+      owned.artifactIds.includes(dlc.artifactId)
+    )
+      return null;
+    try {
+      const inspection = await withEpicTiming(
+        "installation.dlc-info",
+        () =>
+          this.runtime.inspect(
+            target,
+            objectId,
+            signal,
+            cached?.find((item) => item.artifactId === dlc.artifactId),
+            { target: base, objectId: owned.game.objectId }
+          ),
+        { command: "info" }
+      );
+      this.runtime.assertCurrent(target, signal);
+      return {
+        target,
+        objectId,
+        artifactId: dlc.artifactId,
+        name: dlc.name,
+        ...parseEpicDlcInstallInfo(inspection.info, dlc.artifactId),
+        metadata: validateEpicDlcMetadata(inspection.metadata, target, dlc, {
+          artifactId: base.artifactId,
+          objectId: owned.game.objectId,
+        }),
+        manifest: inspection.manifest,
+      };
+    } catch (error) {
+      if (
+        signal.aborted ||
+        (error instanceof EpicManagedError &&
+          ["operation-cancelled", "stale-connection"].includes(error.code))
+      )
+        throw error;
+      return null;
+    }
   }
   async resolvePreparation(
     payload: StartEpicGameDownloadPayload,
@@ -926,6 +947,12 @@ export class EpicInstallationService {
       objectId,
       "Windows",
     ]);
+  }
+  /** Drops a game's settled preview after Epic reported a newer build. */
+  invalidateOptions(objectId: string) {
+    for (const [key, entry] of this.optionsCache)
+      if (entry.settled && JSON.parse(key).at(-2) === objectId)
+        this.optionsCache.delete(key);
   }
   async getOptions(
     objectId: string,
@@ -1258,24 +1285,36 @@ export class EpicInstallationService {
     const value = await readManagedJson(
       path.join(this.runtime.workspace(target), "installed.json")
     ).catch(() => null);
-    const installed = new Map<string, string>();
-    if (!isRecord(value)) return installed;
-    for (const [artifactId, entry] of Object.entries(value))
-      if (
-        artifactId !== target.artifactId &&
-        isSafeEpicArtifact(artifactId) &&
-        isRecord(entry) &&
-        entry.is_dlc === true &&
-        entry.app_name === artifactId &&
-        typeof entry.version === "string" &&
-        entry.version &&
-        entry.needs_verification !== true &&
-        typeof entry.install_path === "string" &&
-        (await fs.realpath(entry.install_path).catch(() => null)) ===
-          installPath
+    if (!isRecord(value)) return new Map();
+    const candidates = Object.entries(value).flatMap(([artifactId, entry]) =>
+      artifactId !== target.artifactId &&
+      isSafeEpicArtifact(artifactId) &&
+      isRecord(entry) &&
+      entry.is_dlc === true &&
+      entry.app_name === artifactId &&
+      typeof entry.version === "string" &&
+      entry.version &&
+      entry.needs_verification !== true &&
+      typeof entry.install_path === "string"
+        ? [
+            {
+              artifactId,
+              version: entry.version,
+              installPath: entry.install_path,
+            },
+          ]
+        : []
+    );
+    const paths = await Promise.all(
+      candidates.map((candidate) =>
+        fs.realpath(candidate.installPath).catch(() => null)
       )
-        installed.set(artifactId, entry.version);
-    return installed;
+    );
+    return new Map(
+      candidates
+        .filter((_, index) => paths[index] === installPath)
+        .map(({ artifactId, version }) => [artifactId, version])
+    );
   }
   async confirmPrerequisites(
     target: EpicManagedTarget,

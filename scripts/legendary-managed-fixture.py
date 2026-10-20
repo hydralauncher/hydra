@@ -456,7 +456,7 @@ class AdapterTests(unittest.TestCase):
                 with self.assertRaisesRegex(managed.ManagedError, "invalid-request"):
                     managed.run_install(self.fixture.core, self.request, game, manifest)
                 continue
-            with patch.object(cli, "main", lambda: captured.append(list(sys.argv))), patch.object(cli, "LegendaryCLI", cli.LegendaryCLI):
+            with patch.object(cli, "main", side_effect=lambda: captured.append(list(sys.argv))), patch.object(cli, "LegendaryCLI", cli.LegendaryCLI):
                 managed.run_install(self.fixture.core, self.request, game, manifest)
         self.assertIn("--install-tag=voice_de", captured[0])
         self.assertIn("--disable-sdl", captured[0])

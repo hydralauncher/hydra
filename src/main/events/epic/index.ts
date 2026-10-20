@@ -9,6 +9,7 @@ import {
   cancelEpicSync,
   syncEpicGameOnGamePage,
   getEpicGameInstallOptions,
+  invalidateEpicGameInstallOptions,
   startEpicGameDownload,
   startEpicGameUpdate,
   getEpicCloudSaveState,
@@ -104,6 +105,13 @@ registerEvent(
   }
 );
 
+registerEvent(
+  "invalidateEpicGameInstallOptions",
+  (event, objectId: unknown) => {
+    assertTrustedSender(event, true);
+    return invalidateEpicGameInstallOptions(parseEpicManagedObjectId(objectId));
+  }
+);
 registerEvent("cancelEpicGameInstallOptions", (event, requestId: unknown) => {
   assertTrustedSender(event, true);
   const key = parseEpicInstallOptionsRequestId(requestId);

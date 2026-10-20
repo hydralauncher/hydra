@@ -31,6 +31,8 @@ import {
 } from "./store-test-helpers.js";
 
 const MIB = 1024 * 1024;
+const COMPLETION_POLL_ATTEMPTS = 500;
+const COMPLETION_POLL_INTERVAL_MS = 5;
 const auth = {
   environment: "https://api.example.test",
   userId: "managed-test",
@@ -1047,9 +1049,11 @@ test("an Epic update reuses the install command in the installed folder with its
     );
   });
   const waitForComplete = async () => {
-    for (let attempt = 0; attempt < 500; attempt++) {
+    for (let attempt = 0; attempt < COMPLETION_POLL_ATTEMPTS; attempt++) {
       if (f.getDownload()?.status === "complete") return;
-      await new Promise((resolve) => setTimeout(resolve, 5));
+      await new Promise((resolve) =>
+        setTimeout(resolve, COMPLETION_POLL_INTERVAL_MS)
+      );
     }
     assert.fail("download did not complete");
   };
@@ -1225,9 +1229,11 @@ async function selectionFixture(
     }
   );
   const waitForStatus = async (status: Download["status"]) => {
-    for (let attempt = 0; attempt < 500; attempt++) {
+    for (let attempt = 0; attempt < COMPLETION_POLL_ATTEMPTS; attempt++) {
       if (f.getDownload()?.status === status) return;
-      await new Promise((resolve) => setTimeout(resolve, 5));
+      await new Promise((resolve) =>
+        setTimeout(resolve, COMPLETION_POLL_INTERVAL_MS)
+      );
     }
     assert.fail(`download did not reach ${status}`);
   };

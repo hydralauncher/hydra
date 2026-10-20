@@ -43,7 +43,7 @@
   },
   "managedRuntime": {
     "protocolVersion": 1,
-    "adapterSha256": "897cb93f77c033760e435495908ecbb1ea7339a34fd334b08672bf22306f9cb6",
+    "adapterSha256": "d473295afb714768be4a0f320d29a7eba2d76d5a55f47ce75b5feb545c69aecc",
     "capabilities": [
       "inspect-target",
       "install-target",

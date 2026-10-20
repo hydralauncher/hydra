@@ -250,8 +250,8 @@ def selective_packs(definition, parsed):
             continue
         tags = set(pack["tags"])
         download, disk = sizes([file for file in files if file not in base_files and tags.intersection(file.install_tags)])
-        packs.append(dict(id=key, name=pack["name"].strip(), tags=list(pack["tags"]), download_size=download, disk_size=disk))
-    return dict(required_tags=sorted(required), download_size=base_download, disk_size=sum(file.file_size for file in base_files), packs=packs)
+        packs.append({"id": key, "name": pack["name"].strip(), "tags": list(pack["tags"]), "download_size": download, "disk_size": disk})
+    return {"required_tags": sorted(required), "download_size": base_download, "disk_size": sum(file.file_size for file in base_files), "packs": packs}
 
 
 def receipt_path(path, workspace):
