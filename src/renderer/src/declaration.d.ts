@@ -1247,6 +1247,10 @@ declare global {
     minimizeRetroAchievementsConnectionWindow: () => Promise<void>;
     closeRetroAchievementsConnectionWindow: () => Promise<void>;
     completeRetroAchievementsConnectionWindow: () => Promise<void>;
+    linkRetroAchievementsEmulatorAccount: (
+      username: string,
+      password: string
+    ) => Promise<boolean>;
     onRetroAchievementsConnected: (
       cb: () => void
     ) => () => Electron.IpcRenderer;

@@ -1784,6 +1784,12 @@ contextBridge.exposeInMainWorld("electron", {
     ipcRenderer.invoke("closeRetroAchievementsConnectionWindow"),
   completeRetroAchievementsConnectionWindow: () =>
     ipcRenderer.invoke("completeRetroAchievementsConnectionWindow"),
+  linkRetroAchievementsEmulatorAccount: (username: string, password: string) =>
+    ipcRenderer.invoke(
+      "linkRetroAchievementsEmulatorAccount",
+      username,
+      password
+    ),
   onRetroAchievementsConnected: (cb: () => void) => {
     const listener = (_event: Electron.IpcRendererEvent) => cb();
     ipcRenderer.on("on-retroachievements-connected", listener);

@@ -120,11 +120,6 @@ export const startEmulatorSession = async ({
       watcherToken: souvenirWatcherToken,
       logPath: souvenirSession?.logPath ?? undefined,
       logOffset: souvenirSession?.logOffset ?? undefined,
-      screenshotDirectories: souvenirSession
-        ? [souvenirSession.screenshotDirectory].filter(
-            (directory): directory is string => !!directory
-          )
-        : undefined,
     })
       .then(() => {
         if (emulatorSessions.get(gameKey) !== session) {
