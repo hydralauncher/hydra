@@ -25,9 +25,11 @@ import type {
   getEpicManagedError,
 } from "../helpers/epic-managed-error";
 import {
+  getEpicLaunchOptions,
   getInstalledStoreMembers,
   getOfficialStoreMembers,
   isEpicMemberInCurrentScope,
+  isEpicUpdateInterrupted,
 } from "../../../shared/official-store-options.js";
 
 const requireModule = createRequire(import.meta.url);
@@ -2118,6 +2120,21 @@ describe("Epic managed UI lifecycle", () => {
             ConfirmationModal: () => null,
           },
           "@renderer/hooks": hooks,
+          "@renderer/hooks/use-epic-managed": {
+            useEpicManagedConnection: () => ({
+              installationAvailable: false,
+              connection: null,
+            }),
+          },
+          "@renderer/hooks/use-epic-game-update": {
+            useEpicGameUpdate: () => ({
+              update: null,
+              checking: false,
+              starting: false,
+              start: async () => ({ ok: true }),
+              refresh: async () => {},
+            }),
+          },
           "@renderer/context": { gameDetailsContext: context },
           "react-i18next": {
             useTranslation: () => ({ t: (key: string) => key }),
@@ -2129,8 +2146,11 @@ describe("Epic managed UI lifecycle", () => {
           },
           "@renderer/helpers/epic-managed-error": ErrorHelpers,
           "@shared": {
+            getEpicLaunchOptions,
             getInstalledStoreMembers,
             getOfficialStoreMembers,
+            isEpicMemberInCurrentScope,
+            isEpicUpdateInterrupted,
             isLibraryGameDownloading: () => false,
             applyLibraryGroupAction: async () => {},
           },
