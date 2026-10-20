@@ -1267,6 +1267,7 @@ declare global {
       requestId?: string
     ) => Promise<EpicGameInstallOptions>;
     cancelEpicGameInstallOptions?: (requestId: string) => Promise<void>;
+    invalidateEpicGameInstallOptions?: (epicObjectId: string) => Promise<void>;
     startEpicGameDownload: (
       payload: StartEpicGameDownloadPayload
     ) => Promise<EpicManagedOperationResult>;

@@ -683,6 +683,12 @@ export class EpicInstallationService {
       "Windows",
     ]);
   }
+  /** Drops a game's settled preview after Epic reported a newer build. */
+  invalidateOptions(objectId: string) {
+    for (const [key, entry] of this.optionsCache)
+      if (entry.settled && JSON.parse(key).at(-2) === objectId)
+        this.optionsCache.delete(key);
+  }
   async getOptions(
     objectId: string,
     signal?: AbortSignal
