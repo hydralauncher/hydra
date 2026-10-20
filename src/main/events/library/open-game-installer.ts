@@ -210,21 +210,24 @@ const handleInstallerExit = async (
 ) => {
   logger.info(`Game installer for ${objectId} exited with code ${exitCode}`);
 
+  const gameKey = levelKeys.game(shop, objectId);
+
+  if (exitCode !== 0) {
+    await updateInstallerState(gameKey, {
+      installerRunning: false,
+      installerLaunched: false,
+    });
+    return;
+  }
+
   const executableFound = await new GameFilesManager(
     shop,
     objectId
   ).searchAndBindInstalledExecutable(installerStartedAt, winePrefixPath);
-  const installerCompleted = exitCode === 0 || executableFound;
 
-  await updateInstallerState(levelKeys.game(shop, objectId), {
-    installerRunning: false,
-    installerLaunched: installerCompleted,
-  });
+  await updateInstallerState(gameKey, { installerRunning: false });
 
   WindowManager.sendToAppWindows("on-library-batch-complete");
-
-  if (!installerCompleted) return;
-
   WindowManager.sendToAppWindows(
     "on-game-installer-closed",
     shop,
