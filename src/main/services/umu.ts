@@ -422,7 +422,7 @@ export class Umu {
       useGamemode?: boolean;
       onStatus?: UmuStatusListener;
       wasGameDetected?: () => boolean;
-      onExit?: () => void;
+      onExit?: (exitCode: number | null) => void;
     }
   ): Promise<void> {
     const QUICK_EXIT_THRESHOLD_MS = 3000;

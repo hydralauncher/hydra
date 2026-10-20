@@ -21,7 +21,7 @@ interface InstallerLaunchOptions {
   gameId?: string;
   winePrefixPath?: string | null;
   protonPath?: string | null;
-  onExit: () => void;
+  onExit: (exitCode: number | null) => void;
   onCancel: () => void;
   onUntrackedLaunch: () => void;
 }
@@ -31,7 +31,7 @@ interface InstallerLaunchResult {
   tracked: boolean;
 }
 
-const ELEVATION_CANCELLED_EXIT_CODE = 2;
+const ELEVATED_LAUNCH_FAILED_EXIT_CODE = 0x48594452;
 
 const ELEVATED_INSTALLER_COMMAND = [
   "$ErrorActionPreference = 'Stop'",
@@ -41,11 +41,12 @@ const ELEVATED_INSTALLER_COMMAND = [
   "$info.WorkingDirectory = [System.IO.Path]::GetDirectoryName($env:HYDRA_INSTALLER_PATH)",
   "$info.Verb = 'runas'",
   "$info.UseShellExecute = $true",
-  "[System.Diagnostics.Process]::Start($info).WaitForExit()",
-  "exit 0",
+  "$installer = [System.Diagnostics.Process]::Start($info)",
+  "$installer.WaitForExit()",
+  "exit $installer.ExitCode",
   "} catch {",
-  `if ($_.Exception.GetBaseException().NativeErrorCode -eq 1223) { exit ${ELEVATION_CANCELLED_EXIT_CODE} }`,
-  "exit 1",
+  "if ($_.Exception.GetBaseException().NativeErrorCode -eq 1223) { exit 1223 }",
+  `exit ${ELEVATED_LAUNCH_FAILED_EXIT_CODE}`,
   "}",
 ].join("; ");
 
@@ -96,10 +97,9 @@ const handleElevatedInstallerExit = async (
   filePath: string,
   options: InstallerLaunchOptions
 ) => {
-  if (code === 0) return options.onExit();
-  if (code === ELEVATION_CANCELLED_EXIT_CODE) return options.onCancel();
+  if (code !== ELEVATED_LAUNCH_FAILED_EXIT_CODE) return options.onExit(code);
 
-  logger.error(`Elevated installer launch exited with code ${code}`);
+  logger.error("Failed to launch game installer with elevation");
 
   if (await openPathAndCheck(filePath)) return options.onUntrackedLaunch();
   options.onCancel();
@@ -134,8 +134,8 @@ const launchInstallerWithUmu = async (
     gameId: options.gameId,
     winePrefixPath: options.winePrefixPath,
     protonPath: options.protonPath,
-    onExit: () => {
-      if (launched) options.onExit();
+    onExit: (exitCode) => {
+      if (launched) options.onExit(exitCode);
     },
   });
 
@@ -205,18 +205,26 @@ const handleInstallerExit = async (
   shop: GameShop,
   objectId: string,
   installerStartedAt: number,
-  winePrefixPath: string | null
+  winePrefixPath: string | null,
+  exitCode: number | null
 ) => {
-  await updateInstallerState(levelKeys.game(shop, objectId), {
-    installerRunning: false,
-  });
+  logger.info(`Game installer for ${objectId} exited with code ${exitCode}`);
 
   const executableFound = await new GameFilesManager(
     shop,
     objectId
   ).searchAndBindInstalledExecutable(installerStartedAt, winePrefixPath);
+  const installerCompleted = exitCode === 0 || executableFound;
+
+  await updateInstallerState(levelKeys.game(shop, objectId), {
+    installerRunning: false,
+    installerLaunched: installerCompleted,
+  });
 
   WindowManager.sendToAppWindows("on-library-batch-complete");
+
+  if (!installerCompleted) return;
+
   WindowManager.sendToAppWindows(
     "on-game-installer-closed",
     shop,
@@ -271,9 +279,15 @@ const openGameInstaller = async (
     gameId: objectId,
     winePrefixPath,
     protonPath: game?.protonPath,
-    onExit: () =>
+    onExit: (exitCode) =>
       afterLaunchRecorded(() =>
-        handleInstallerExit(shop, objectId, installerStartedAt, winePrefixPath)
+        handleInstallerExit(
+          shop,
+          objectId,
+          installerStartedAt,
+          winePrefixPath,
+          exitCode
+        )
       ),
     onCancel: () =>
       afterLaunchRecorded(() =>
