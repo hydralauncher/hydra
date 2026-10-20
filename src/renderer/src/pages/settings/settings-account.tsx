@@ -6,7 +6,7 @@ import {
 } from "@renderer/components";
 import { Controller, useForm } from "react-hook-form";
 import { useTranslation } from "react-i18next";
-import { useDate, useToast, useUserDetails } from "@renderer/hooks";
+import { useDate, useFeature, useToast, useUserDetails } from "@renderer/hooks";
 import { useCallback, useContext, useEffect, useState } from "react";
 import {
   CloudIcon,
@@ -17,16 +17,27 @@ import {
 import { settingsContext } from "@renderer/context";
 import { AuthPage } from "@shared";
 import "./settings-account.scss";
-import type { ProfileVisibility } from "@types";
+import type { ProfileVisibility, ScreenshotCommentsPolicy } from "@types";
 
 interface FormValues {
   profileVisibility: ProfileVisibility;
   allowCloudGifts: boolean;
   souvenirsVisibility: ProfileVisibility;
+  screenshotsVisibility: ProfileVisibility;
+  screenshotCommentsPolicy: ScreenshotCommentsPolicy;
 }
+
+const SCREENSHOT_COMMENTS_POLICIES: ScreenshotCommentsPolicy[] = [
+  "EVERYONE",
+  "FRIENDS",
+  "NOBODY",
+];
 
 export function SettingsAccount() {
   const { t } = useTranslation("settings");
+  const { t: tScreenshots } = useTranslation("screenshots");
+  const { isFeatureEnabled, Feature } = useFeature();
+  const isScreenshotsEnabled = isFeatureEnabled(Feature.Screenshots);
 
   const [isUnblocking, setIsUnblocking] = useState(false);
 
@@ -45,6 +56,8 @@ export function SettingsAccount() {
     defaultValues: {
       profileVisibility: "PUBLIC",
       souvenirsVisibility: "PRIVATE",
+      screenshotsVisibility: "PUBLIC",
+      screenshotCommentsPolicy: "EVERYONE",
     },
   });
 
@@ -64,6 +77,15 @@ export function SettingsAccount() {
     }
     if (userDetails?.souvenirsVisibility) {
       setValue("souvenirsVisibility", userDetails.souvenirsVisibility);
+    }
+    if (userDetails?.screenshotsVisibility) {
+      setValue("screenshotsVisibility", userDetails.screenshotsVisibility);
+    }
+    if (userDetails?.screenshotCommentsPolicy) {
+      setValue(
+        "screenshotCommentsPolicy",
+        userDetails.screenshotCommentsPolicy
+      );
     }
   }, [userDetails, setValue]);
 
@@ -89,7 +111,13 @@ export function SettingsAccount() {
   ];
 
   const onSubmit = async (values: FormValues) => {
-    await patchUser(values);
+    const { screenshotsVisibility, screenshotCommentsPolicy, ...rest } = values;
+
+    await patchUser(
+      isScreenshotsEnabled
+        ? { ...rest, screenshotsVisibility, screenshotCommentsPolicy }
+        : rest
+    );
     showSuccessToast(t("changes_saved"));
   };
 
@@ -218,6 +246,58 @@ export function SettingsAccount() {
           );
         }}
       />
+
+      {isScreenshotsEnabled ? (
+        <>
+          <Controller
+            control={control}
+            name="screenshotsVisibility"
+            render={({ field }) => (
+              <section className="settings-account__section">
+                <SelectField
+                  label={tScreenshots("privacy_screenshots_visibility")}
+                  value={field.value}
+                  onChange={(event) => {
+                    field.onChange(event);
+                    handleSubmit(onSubmit)();
+                  }}
+                  options={visibilityOptions.map((visibility) => ({
+                    key: visibility.value,
+                    value: visibility.value,
+                    label: visibility.label,
+                  }))}
+                  disabled={isSubmitting}
+                />
+              </section>
+            )}
+          />
+
+          <Controller
+            control={control}
+            name="screenshotCommentsPolicy"
+            render={({ field }) => (
+              <section className="settings-account__section">
+                <SelectField
+                  label={tScreenshots("privacy_screenshot_comments_policy")}
+                  value={field.value}
+                  onChange={(event) => {
+                    field.onChange(event);
+                    handleSubmit(onSubmit)();
+                  }}
+                  options={SCREENSHOT_COMMENTS_POLICIES.map((policy) => ({
+                    key: policy,
+                    value: policy,
+                    label: tScreenshots(
+                      `comments_policy_${policy.toLowerCase()}`
+                    ),
+                  }))}
+                  disabled={isSubmitting}
+                />
+              </section>
+            )}
+          />
+        </>
+      ) : null}
 
       <section className="settings-account__section">
         <h4>{t("current_username")}</h4>
