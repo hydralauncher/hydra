@@ -1872,7 +1872,9 @@
     "screenshots_status_uploaded": "Загружено",
     "screenshots_status_uploading": "Загрузка {{progress}}%",
     "screenshots_upload": "Загрузить",
-    "screenshots_upload_group": "Загрузка"
+    "screenshots_upload_group": "Загрузка",
+    "screenshots_show_more": "Показать ещё",
+    "screenshots_toast": "Показывать уведомление с превью"
   },
   "notifications": {
     "download_complete": "Загрузка завершена",

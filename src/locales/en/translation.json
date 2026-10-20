@@ -1960,7 +1960,9 @@
     "screenshots_status_uploaded": "Uploaded",
     "screenshots_status_uploading": "Uploading {{progress}}%",
     "screenshots_upload": "Upload",
-    "screenshots_upload_group": "Uploads"
+    "screenshots_upload_group": "Uploads",
+    "screenshots_show_more": "Show more",
+    "screenshots_toast": "Show a notification with a preview"
   },
   "notifications": {
     "download_complete": "Download complete",

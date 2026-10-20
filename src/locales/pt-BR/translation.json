@@ -1923,7 +1923,9 @@
     "screenshots_status_uploaded": "Enviada",
     "screenshots_status_uploading": "Enviando {{progress}}%",
     "screenshots_upload": "Enviar",
-    "screenshots_upload_group": "Envios"
+    "screenshots_upload_group": "Envios",
+    "screenshots_show_more": "Mostrar mais",
+    "screenshots_toast": "Mostrar uma notificação com prévia"
   },
   "notifications": {
     "download_complete": "Download concluído",

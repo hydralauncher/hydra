@@ -1852,7 +1852,9 @@
     "screenshots_status_uploaded": "Subida",
     "screenshots_status_uploading": "Subiendo {{progress}}%",
     "screenshots_upload": "Subir",
-    "screenshots_upload_group": "Subidas"
+    "screenshots_upload_group": "Subidas",
+    "screenshots_show_more": "Mostrar más",
+    "screenshots_toast": "Mostrar una notificación con vista previa"
   },
   "notifications": {
     "download_complete": "Descarga completada",
