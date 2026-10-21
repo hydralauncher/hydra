@@ -22,6 +22,19 @@
     min-width: 180px;
   }
 
+  &__error {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: calc(var(--spacing-unit) * 3);
+
+    p {
+      margin: 0;
+      color: var(--text-secondary);
+      font-size: 14px;
+    }
+  }
+
   &__loading {
     margin: 0;
     color: var(--text-secondary);

@@ -1584,3 +1584,10 @@
   color: var(--text-secondary);
   font-size: 14px;
 }
+
+.profile-page__screenshots-error {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: calc(var(--spacing-unit) * 2);
+}

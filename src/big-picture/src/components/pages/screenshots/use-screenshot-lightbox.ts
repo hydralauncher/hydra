@@ -29,7 +29,7 @@ function resolveOpenScreenshot(
   screenshotId: string | null
 ) {
   if (listItem) return listItem;
-  if (standalone && standalone.id === screenshotId) return standalone;
+  if (standalone?.id === screenshotId) return standalone;
 
   return null;
 }
@@ -117,9 +117,7 @@ export function useScreenshotLightbox({
     (screenshotId: string, patch: Partial<ProfileScreenshot>) => {
       updateItem(screenshotId, patch);
       setStandalone((current) =>
-        current && current.id === screenshotId
-          ? { ...current, ...patch }
-          : current
+        current?.id === screenshotId ? { ...current, ...patch } : current
       );
     },
     [updateItem]
@@ -129,7 +127,7 @@ export function useScreenshotLightbox({
     (screenshotId: string) => {
       removeItem(screenshotId);
       setStandalone((current) =>
-        current && current.id === screenshotId ? null : current
+        current?.id === screenshotId ? null : current
       );
     },
     [removeItem]

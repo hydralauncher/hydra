@@ -1,7 +1,13 @@
-import { ImagesIcon, SortAscendingIcon } from "@phosphor-icons/react";
+import {
+  ArrowClockwiseIcon,
+  ImagesIcon,
+  SortAscendingIcon,
+  WarningCircleIcon,
+} from "@phosphor-icons/react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import type {
+  UserProfile,
   ProfileScreenshot,
   ScreenshotGameFilterItem,
   ScreenshotGamesResponse,
@@ -18,6 +24,7 @@ import {
 import { logger } from "@renderer/logger";
 
 import {
+  Button,
   DropdownSelect,
   HorizontalFocusGroup,
   Typography,
@@ -26,12 +33,15 @@ import {
 import {
   ScreenshotRow,
   useScreenshotFeed,
+  useScreenshotLightbox,
 } from "../../components/pages/screenshots";
 import { BIG_PICTURE_SIDEBAR_PROFILE_ID } from "../../layout";
 import type { FocusOverrideTarget } from "../../services";
 import {
   PROFILE_SCREENSHOTS_CONTROLS_REGION_ID,
   PROFILE_SCREENSHOTS_FILTER_ID,
+  PROFILE_SCREENSHOTS_LOAD_MORE_RETRY_ID,
+  PROFILE_SCREENSHOTS_RETRY_ID,
   PROFILE_SCREENSHOTS_REGION_ID,
   PROFILE_SCREENSHOTS_SORT_ID,
   getProfileScreenshotItemId,
@@ -76,8 +86,8 @@ export function useProfileScreenshots({
   isEnabled,
   isSignedIn,
 }: UseProfileScreenshotsOptions) {
-  const [sort, setSortState] = useState<ScreenshotSort>(readStoredSort);
-  const [filterKey, setFilterKeyState] = useState(ALL_GAMES_FILTER);
+  const [sortState, setSortState] = useState<ScreenshotSort>(readStoredSort);
+  const [filterKeyState, setFilterKeyState] = useState(ALL_GAMES_FILTER);
   const [games, setGames] = useState<ScreenshotGameFilterItem[]>([]);
   const activeUserId = isEnabled ? (targetUserId ?? null) : null;
 
@@ -120,26 +130,27 @@ export function useProfileScreenshots({
 
   const activeFilter = useMemo(
     () =>
-      games.find((game) => getScreenshotFilterKey(game) === filterKey) ?? null,
-    [filterKey, games]
+      games.find((game) => getScreenshotFilterKey(game) === filterKeyState) ??
+      null,
+    [filterKeyState, games]
   );
-  const effectiveFilterKey = activeFilter ? filterKey : ALL_GAMES_FILTER;
+  const effectiveFilterKey = activeFilter ? filterKeyState : ALL_GAMES_FILTER;
 
   const buildPath = useCallback(
     (cursor: string | null) =>
       buildUserScreenshotsPath({
         userId: activeUserId ?? "",
         cursor,
-        sort,
+        sort: sortState,
         shop: activeFilter?.shop ?? null,
         objectId: activeFilter?.objectId ?? null,
       }),
-    [activeFilter, activeUserId, sort]
+    [activeFilter, activeUserId, sortState]
   );
 
   const feed = useScreenshotFeed({
     requestKey: activeUserId
-      ? `${activeUserId}:${sort}:${effectiveFilterKey}`
+      ? `${activeUserId}:${sortState}:${effectiveFilterKey}`
       : null,
     buildPath,
     needsAuth: isSignedIn,
@@ -165,7 +176,7 @@ export function useProfileScreenshots({
   return {
     ...feed,
     isEnabled: Boolean(activeUserId),
-    sort,
+    sort: sortState,
     setSort,
     filterKey: effectiveFilterKey,
     isFiltered: effectiveFilterKey !== ALL_GAMES_FILTER,
@@ -175,6 +186,64 @@ export function useProfileScreenshots({
 }
 
 export type ProfileScreenshotsState = ReturnType<typeof useProfileScreenshots>;
+
+interface UseProfileScreenshotsSectionOptions
+  extends UseProfileScreenshotsOptions {
+  searchParams: URLSearchParams;
+  setSearchParams: (
+    nextParams: URLSearchParams,
+    options?: { replace?: boolean }
+  ) => void;
+}
+
+export function useProfileScreenshotsSection({
+  targetUserId,
+  isEnabled,
+  isSignedIn,
+  searchParams,
+  setSearchParams,
+}: UseProfileScreenshotsSectionOptions) {
+  const state = useProfileScreenshots({ targetUserId, isEnabled, isSignedIn });
+  const { openById, open, lightboxProps } = useScreenshotLightbox({
+    items: state.items,
+    needsAuth: isSignedIn,
+    updateItem: state.updateItem,
+    removeItem: state.removeItem,
+  });
+  const requestedScreenshot = searchParams.get("screenshot");
+  const canOpenRequested = Boolean(
+    requestedScreenshot && targetUserId && state.isEnabled
+  );
+
+  useEffect(() => {
+    if (!canOpenRequested || !requestedScreenshot || !targetUserId) return;
+
+    void openById(targetUserId, requestedScreenshot);
+
+    const nextParams = new URLSearchParams(searchParams);
+    nextParams.delete("screenshot");
+    nextParams.delete("tab");
+    setSearchParams(nextParams, { replace: true });
+  }, [
+    canOpenRequested,
+    openById,
+    requestedScreenshot,
+    searchParams,
+    setSearchParams,
+    targetUserId,
+  ]);
+
+  return { state, openScreenshot: open, lightboxProps };
+}
+
+export function getProfileScreenshotCount(
+  profile: Pick<UserProfile, "id" | "screenshotCount"> | null,
+  targetUserId: string | undefined
+) {
+  if (!profile || profile.id !== targetUserId) return null;
+
+  return profile.screenshotCount ?? null;
+}
 
 export function getProfileScreenshotsFocusIds(state: ProfileScreenshotsState) {
   if (!state.isEnabled) {
@@ -187,10 +256,12 @@ export function getProfileScreenshotsFocusIds(state: ProfileScreenshotsState) {
     : null;
   const hasControls = shouldShowScreenshotControls(state);
   const controlsId = hasControls ? PROFILE_SCREENSHOTS_FILTER_ID : null;
+  const retryId =
+    state.error === "initial" ? PROFILE_SCREENSHOTS_RETRY_ID : null;
 
   return {
-    first: controlsId ?? firstItemId,
-    fromBelow: firstItemId ?? controlsId,
+    first: controlsId ?? firstItemId ?? retryId,
+    fromBelow: firstItemId ?? retryId ?? controlsId,
   };
 }
 
@@ -321,6 +392,8 @@ export function ProfileScreenshots({
     down: toTarget(firstItemFocusId ?? downFocusId),
   };
 
+  if (!state.isEnabled) return null;
+
   return (
     <section className="profile-page__screenshots-section">
       <header className="profile-page__screenshots-header">
@@ -391,10 +464,43 @@ export function ProfileScreenshots({
           )}
           downTarget={toTarget(downFocusId)}
           leftTarget={{ type: "item", itemId: BIG_PICTURE_SIDEBAR_PROFILE_ID }}
+          hasLoadMoreError={state.error === "page"}
+          retryFocusId={PROFILE_SCREENSHOTS_LOAD_MORE_RETRY_ID}
+          onRetryLoadMore={state.retry}
           onLoadMore={() => void state.loadMore()}
           onActivate={onActivate}
         />
-      ) : (
+      ) : null}
+
+      {state.items.length === 0 && state.error === "initial" ? (
+        <div className="profile-page__screenshots-empty-state">
+          <WarningCircleIcon size={36} />
+          <div className="profile-page__screenshots-error">
+            <Typography className="profile-page__screenshots-empty-title">
+              {t("screenshots_load_failed")}
+            </Typography>
+            <Button
+              variant="secondary"
+              size="small"
+              focusId={PROFILE_SCREENSHOTS_RETRY_ID}
+              icon={<ArrowClockwiseIcon size={18} />}
+              focusNavigationOverrides={{
+                up: toTarget(
+                  showControls ? PROFILE_SCREENSHOTS_FILTER_ID : upFocusId
+                ),
+                down: toTarget(downFocusId),
+                left: { type: "item", itemId: BIG_PICTURE_SIDEBAR_PROFILE_ID },
+                right: { type: "block" },
+              }}
+              onClick={state.retry}
+            >
+              {t("screenshots_retry")}
+            </Button>
+          </div>
+        </div>
+      ) : null}
+
+      {state.items.length === 0 && state.error !== "initial" ? (
         <ProfileScreenshotsEmptyState
           hiddenReason={state.hiddenReason}
           isLoading={state.isLoading}
@@ -402,7 +508,7 @@ export function ProfileScreenshots({
           isFiltered={state.isFiltered}
           hotkey={hotkey}
         />
-      )}
+      ) : null}
     </section>
   );
 }

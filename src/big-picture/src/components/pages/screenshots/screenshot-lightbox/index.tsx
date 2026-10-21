@@ -638,64 +638,39 @@ function useLightboxSocialActions({
   };
 }
 
-export function ScreenshotLightbox({
-  status,
-  screenshot,
+interface LightboxShortcutsOptions {
+  isOpen: boolean;
+  canUseShortcuts: boolean;
+  hasLocalOverlay: boolean;
+  hasPrevious: boolean;
+  hasNext: boolean;
+  onPrevious: () => void;
+  onNext: () => void;
+  onClose: () => void;
+}
+
+const isTypingInField = () => {
+  const activeElement = globalThis.document.activeElement;
+
+  return (
+    activeElement instanceof HTMLInputElement ||
+    activeElement instanceof HTMLTextAreaElement
+  );
+};
+
+function useLightboxShortcuts({
+  isOpen,
+  canUseShortcuts,
+  hasLocalOverlay,
   hasPrevious,
   hasNext,
   onPrevious,
   onNext,
   onClose,
-  onUpdate,
-  onRemove,
-}: Readonly<ScreenshotLightboxProps>) {
-  const { t } = useTranslation("big_picture");
-  const { userDetails } = useUserDetails();
-  const { isFeatureEnabled } = useFeature();
+}: LightboxShortcutsOptions) {
   const { onButtonPressed, isActiveGamepadEvent } = useGamepad();
-  const revealedIds = useRevealedScreenshotSpoilers(
-    (state) => state.revealedIds
-  );
-  const revealSpoiler = useRevealedScreenshotSpoilers((state) => state.reveal);
-  const [isManageVisible, setIsManageVisible] = useState(false);
-  const [isReportVisible, setIsReportVisible] = useState(false);
-  const [isDeleteVisible, setIsDeleteVisible] = useState(false);
-  const {
-    isCommentsOverlayOpen,
-    setIsCommentsOverlayOpen,
-    isVirtualKeyboardOpen,
-  } = useBlockingOverlayGuard();
-  const isOpen = status !== null;
-  const isReady = status === "ready" && screenshot !== null;
-  const viewerId = userDetails?.id ?? null;
-  const isOwner = Boolean(
-    viewerId && screenshot && screenshot.owner.id === viewerId
-  );
-  const showComments = isFeatureEnabled(Feature.ScreenshotComments);
-  const focusIds = getLightboxFocusIds(screenshot?.id ?? "inactive");
-  const isBlurred = screenshot
-    ? shouldBlurScreenshot(screenshot, revealedIds) &&
-      Boolean(screenshot.imageUrl)
-    : false;
-  const social = useLightboxSocialActions({
-    screenshot,
-    isSignedIn: Boolean(viewerId),
-    onUpdate,
-    onRemove,
-  });
-  const hasLocalOverlay =
-    isManageVisible ||
-    isReportVisible ||
-    isDeleteVisible ||
-    isCommentsOverlayOpen ||
-    isVirtualKeyboardOpen;
-  const canUseShortcuts = isReady && !hasLocalOverlay;
-
-  useEffect(() => {
-    setIsManageVisible(false);
-    setIsReportVisible(false);
-    setIsDeleteVisible(false);
-  }, [screenshot?.id, status]);
+  const canGoPrevious = canUseShortcuts && hasPrevious;
+  const canGoNext = canUseShortcuts && hasNext;
 
   useNavigationScreenActions(
     isOpen && !hasLocalOverlay ? { press: { b: onClose } } : {}
@@ -705,17 +680,13 @@ export function ScreenshotLightbox({
     const removeLeft = onButtonPressed(
       GamepadButtonType.LEFT_BUMPER,
       (event) => {
-        if (!canUseShortcuts || !hasPrevious || !isActiveGamepadEvent(event))
-          return;
-        onPrevious();
+        if (canGoPrevious && isActiveGamepadEvent(event)) onPrevious();
       }
     );
     const removeRight = onButtonPressed(
       GamepadButtonType.RIGHT_BUMPER,
       (event) => {
-        if (!canUseShortcuts || !hasNext || !isActiveGamepadEvent(event))
-          return;
-        onNext();
+        if (canGoNext && isActiveGamepadEvent(event)) onNext();
       }
     );
 
@@ -724,9 +695,8 @@ export function ScreenshotLightbox({
       removeRight();
     };
   }, [
-    canUseShortcuts,
-    hasNext,
-    hasPrevious,
+    canGoNext,
+    canGoPrevious,
     isActiveGamepadEvent,
     onButtonPressed,
     onNext,
@@ -737,14 +707,7 @@ export function ScreenshotLightbox({
     if (!isOpen || hasLocalOverlay) return;
 
     const onKeyDown = (event: KeyboardEvent) => {
-      if (event.defaultPrevented) return;
-
-      const activeElement = globalThis.document.activeElement;
-      if (
-        activeElement instanceof HTMLInputElement ||
-        activeElement instanceof HTMLTextAreaElement
-      )
-        return;
+      if (event.defaultPrevented || isTypingInField()) return;
 
       if (event.key === "Escape") onClose();
       if (event.key === "PageUp" && hasPrevious) onPrevious();
@@ -762,10 +725,89 @@ export function ScreenshotLightbox({
     onNext,
     onPrevious,
   ]);
+}
+
+interface LightboxNavButtonsProps {
+  hasPrevious: boolean;
+  hasNext: boolean;
+  onPrevious: () => void;
+  onNext: () => void;
+}
+
+function LightboxNavButtons({
+  hasPrevious,
+  hasNext,
+  onPrevious,
+  onNext,
+}: Readonly<LightboxNavButtonsProps>) {
+  const { t } = useTranslation("big_picture");
+
+  return (
+    <>
+      {hasPrevious ? (
+        <button
+          type="button"
+          className="screenshot-lightbox__nav screenshot-lightbox__nav--left"
+          aria-label={t("screenshots_previous")}
+          onClick={onPrevious}
+        >
+          <CaretLeftIcon size={28} />
+        </button>
+      ) : null}
+      {hasNext ? (
+        <button
+          type="button"
+          className="screenshot-lightbox__nav screenshot-lightbox__nav--right"
+          aria-label={t("screenshots_next")}
+          onClick={onNext}
+        >
+          <CaretRightIcon size={28} />
+        </button>
+      ) : null}
+    </>
+  );
+}
+
+type LightboxSocial = ReturnType<typeof useLightboxSocialActions>;
+
+interface LightboxDialogProps {
+  screenshot: ProfileScreenshot;
+  viewerId: string | null;
+  isOwner: boolean;
+  showComments: boolean;
+  social: LightboxSocial;
+  onUpdate: ScreenshotLightboxProps["onUpdate"];
+  onOverlayChange: (isOpen: boolean) => void;
+  onRequestReport: () => void;
+  onRequestManage: () => void;
+  onRequestDelete: () => void;
+}
+
+function LightboxDialog({
+  screenshot,
+  viewerId,
+  isOwner,
+  showComments,
+  social,
+  onUpdate,
+  onOverlayChange,
+  onRequestReport,
+  onRequestManage,
+  onRequestDelete,
+}: Readonly<LightboxDialogProps>) {
+  const { t } = useTranslation("big_picture");
+  const revealedIds = useRevealedScreenshotSpoilers(
+    (state) => state.revealedIds
+  );
+  const revealSpoiler = useRevealedScreenshotSpoilers((state) => state.reveal);
+  const focusIds = getLightboxFocusIds(screenshot.id);
+  const isBlurred =
+    shouldBlurScreenshot(screenshot, revealedIds) &&
+    Boolean(screenshot.imageUrl);
 
   const handleCommentCountChange = useCallback(
     (screenshotId: string, delta: number) => {
-      if (!screenshot || screenshot.id !== screenshotId) return;
+      if (screenshot.id !== screenshotId) return;
 
       onUpdate(screenshotId, {
         commentCount: Math.max(0, screenshot.commentCount + delta),
@@ -778,6 +820,179 @@ export function ScreenshotLightbox({
     () => ({ type: "item" as const, itemId: focusIds.like }),
     [focusIds.like]
   );
+
+  return (
+    <NavigationLayer
+      key={screenshot.id}
+      rootRegionId={focusIds.root}
+      initialFocusId={isBlurred ? focusIds.reveal : focusIds.like}
+      restoreFocusOnUnmount={shouldRestoreLightboxFocus}
+    >
+      <HorizontalFocusGroup regionId={focusIds.root} asChild>
+        <dialog
+          open
+          className={cn("screenshot-lightbox", {
+            "screenshot-lightbox--with-comments": showComments,
+          })}
+          aria-modal="true"
+          aria-label={getScreenshotGameTitle(screenshot, t)}
+        >
+          <VerticalFocusGroup regionId={focusIds.media} asChild>
+            <section className="screenshot-lightbox__media">
+              <LightboxImage
+                screenshot={screenshot}
+                isBlurred={isBlurred}
+                revealFocusId={focusIds.reveal}
+                onReveal={() => revealSpoiler(screenshot.id)}
+              />
+              <div className="screenshot-lightbox__info">
+                <LightboxSummary screenshot={screenshot} />
+                {isOwner ? (
+                  <OwnerModerationNotice screenshot={screenshot} />
+                ) : null}
+                <LightboxActions
+                  screenshot={screenshot}
+                  focusIds={focusIds}
+                  isOwner={isOwner}
+                  isSignedIn={viewerId !== null}
+                  isLiking={social.isLiking}
+                  isReported={social.isReported}
+                  isCopying={social.isCopying}
+                  onLike={() => void social.toggleLike()}
+                  onCopy={() => void social.copyImage()}
+                  onReport={onRequestReport}
+                  onManage={onRequestManage}
+                  onDelete={onRequestDelete}
+                />
+              </div>
+            </section>
+          </VerticalFocusGroup>
+
+          {showComments ? (
+            <ScreenshotCommentsPanel
+              screenshot={screenshot}
+              viewerId={viewerId}
+              isOwner={isOwner}
+              leftTarget={commentsLeftTarget}
+              onCommentCountChange={handleCommentCountChange}
+              onOverlayChange={onOverlayChange}
+            />
+          ) : null}
+        </dialog>
+      </HorizontalFocusGroup>
+    </NavigationLayer>
+  );
+}
+
+type LightboxModal = "manage" | "report" | "delete" | null;
+
+interface LightboxModalsProps {
+  screenshot: ProfileScreenshot;
+  openModal: LightboxModal;
+  social: LightboxSocial;
+  onCloseModal: () => void;
+  onDeleted: () => void;
+}
+
+function LightboxModals({
+  screenshot,
+  openModal,
+  social,
+  onCloseModal,
+  onDeleted,
+}: Readonly<LightboxModalsProps>) {
+  const { t } = useTranslation("big_picture");
+
+  return (
+    <>
+      <ScreenshotManageModal
+        visible={openModal === "manage"}
+        screenshot={screenshot}
+        isSaving={social.isSaving}
+        onClose={onCloseModal}
+        onSave={social.save}
+      />
+      <ScreenshotReportModal
+        visible={openModal === "report"}
+        title={t("screenshots_report_title")}
+        reasons={SCREENSHOT_REPORT_REASONS}
+        isSubmitting={social.isReporting}
+        onClose={onCloseModal}
+        onSubmit={social.report}
+      />
+      <ConfirmationModal
+        visible={openModal === "delete"}
+        backdropClassName="screenshot-lightbox__confirmation-backdrop"
+        title={t("screenshots_delete_title")}
+        description={t("screenshots_delete_description")}
+        confirmLabel={t("screenshots_delete")}
+        cancelLabel={t("screenshots_cancel")}
+        danger
+        loading={social.isDeleting}
+        onClose={onCloseModal}
+        onConfirm={async () => {
+          if (await social.remove()) onDeleted();
+        }}
+      />
+    </>
+  );
+}
+
+export function ScreenshotLightbox({
+  status,
+  screenshot,
+  hasPrevious,
+  hasNext,
+  onPrevious,
+  onNext,
+  onClose,
+  onUpdate,
+  onRemove,
+}: Readonly<ScreenshotLightboxProps>) {
+  const { userDetails } = useUserDetails();
+  const { isFeatureEnabled } = useFeature();
+  const [openModal, setOpenModal] = useState<LightboxModal>(null);
+  const {
+    isCommentsOverlayOpen,
+    setIsCommentsOverlayOpen,
+    isVirtualKeyboardOpen,
+  } = useBlockingOverlayGuard();
+  const isOpen = status !== null;
+  const readyScreenshot = status === "ready" ? screenshot : null;
+  const viewerId = userDetails?.id ?? null;
+  const isOwner = viewerId !== null && screenshot?.owner.id === viewerId;
+  const social = useLightboxSocialActions({
+    screenshot,
+    isSignedIn: viewerId !== null,
+    onUpdate,
+    onRemove,
+  });
+  const hasLocalOverlay =
+    openModal !== null || isCommentsOverlayOpen || isVirtualKeyboardOpen;
+
+  useEffect(() => {
+    setOpenModal(null);
+  }, [screenshot?.id, status]);
+
+  useLightboxShortcuts({
+    isOpen,
+    canUseShortcuts: readyScreenshot !== null && !hasLocalOverlay,
+    hasLocalOverlay,
+    hasPrevious,
+    hasNext,
+    onPrevious,
+    onNext,
+    onClose,
+  });
+
+  const requestReport = () => {
+    if (viewerId) {
+      setOpenModal("report");
+      return;
+    }
+
+    void globalThis.window.electron.openAuthWindow(AuthPage.SignIn);
+  };
 
   const portalTarget =
     document.getElementById("big-picture") ??
@@ -796,137 +1011,41 @@ export function ScreenshotLightbox({
               onClose();
           }}
         >
-          {isReady && hasPrevious ? (
-            <button
-              type="button"
-              className="screenshot-lightbox__nav screenshot-lightbox__nav--left"
-              aria-label={t("screenshots_previous")}
-              onClick={onPrevious}
-            >
-              <CaretLeftIcon size={28} />
-            </button>
-          ) : null}
-          {isReady && hasNext ? (
-            <button
-              type="button"
-              className="screenshot-lightbox__nav screenshot-lightbox__nav--right"
-              aria-label={t("screenshots_next")}
-              onClick={onNext}
-            >
-              <CaretRightIcon size={28} />
-            </button>
-          ) : null}
-
-          {isReady ? (
-            <NavigationLayer
-              key={screenshot.id}
-              rootRegionId={focusIds.root}
-              initialFocusId={isBlurred ? focusIds.reveal : focusIds.like}
-              restoreFocusOnUnmount={shouldRestoreLightboxFocus}
-            >
-              <HorizontalFocusGroup regionId={focusIds.root} asChild>
-                <dialog
-                  open
-                  className={cn("screenshot-lightbox", {
-                    "screenshot-lightbox--with-comments": showComments,
-                  })}
-                  aria-modal="true"
-                  aria-label={getScreenshotGameTitle(screenshot, t)}
-                >
-                  <VerticalFocusGroup regionId={focusIds.media} asChild>
-                    <section className="screenshot-lightbox__media">
-                      <LightboxImage
-                        screenshot={screenshot}
-                        isBlurred={isBlurred}
-                        revealFocusId={focusIds.reveal}
-                        onReveal={() => revealSpoiler(screenshot.id)}
-                      />
-                      <div className="screenshot-lightbox__info">
-                        <LightboxSummary screenshot={screenshot} />
-                        {isOwner ? (
-                          <OwnerModerationNotice screenshot={screenshot} />
-                        ) : null}
-                        <LightboxActions
-                          screenshot={screenshot}
-                          focusIds={focusIds}
-                          isOwner={isOwner}
-                          isSignedIn={Boolean(viewerId)}
-                          isLiking={social.isLiking}
-                          isReported={social.isReported}
-                          isCopying={social.isCopying}
-                          onLike={() => void social.toggleLike()}
-                          onCopy={() => void social.copyImage()}
-                          onReport={() => {
-                            if (!viewerId) {
-                              void globalThis.window.electron.openAuthWindow(
-                                AuthPage.SignIn
-                              );
-                              return;
-                            }
-                            setIsReportVisible(true);
-                          }}
-                          onManage={() => setIsManageVisible(true)}
-                          onDelete={() => setIsDeleteVisible(true)}
-                        />
-                      </div>
-                    </section>
-                  </VerticalFocusGroup>
-
-                  {showComments ? (
-                    <ScreenshotCommentsPanel
-                      screenshot={screenshot}
-                      viewerId={viewerId}
-                      isOwner={isOwner}
-                      leftTarget={commentsLeftTarget}
-                      onCommentCountChange={handleCommentCountChange}
-                      onOverlayChange={setIsCommentsOverlayOpen}
-                    />
-                  ) : null}
-                </dialog>
-              </HorizontalFocusGroup>
-            </NavigationLayer>
-          ) : null}
-
-          {status !== "ready" ? (
-            <LightboxStatusPanel status={status} onClose={onClose} />
-          ) : null}
-
-          {isReady ? (
+          {readyScreenshot ? (
             <>
-              <ScreenshotManageModal
-                visible={isManageVisible}
-                screenshot={screenshot}
-                isSaving={social.isSaving}
-                onClose={() => setIsManageVisible(false)}
-                onSave={social.save}
+              <LightboxNavButtons
+                hasPrevious={hasPrevious}
+                hasNext={hasNext}
+                onPrevious={onPrevious}
+                onNext={onNext}
               />
-              <ScreenshotReportModal
-                visible={isReportVisible}
-                title={t("screenshots_report_title")}
-                reasons={SCREENSHOT_REPORT_REASONS}
-                isSubmitting={social.isReporting}
-                onClose={() => setIsReportVisible(false)}
-                onSubmit={social.report}
+              <LightboxDialog
+                screenshot={readyScreenshot}
+                viewerId={viewerId}
+                isOwner={isOwner}
+                showComments={isFeatureEnabled(Feature.ScreenshotComments)}
+                social={social}
+                onUpdate={onUpdate}
+                onOverlayChange={setIsCommentsOverlayOpen}
+                onRequestReport={requestReport}
+                onRequestManage={() => setOpenModal("manage")}
+                onRequestDelete={() => setOpenModal("delete")}
               />
-              <ConfirmationModal
-                visible={isDeleteVisible}
-                backdropClassName="screenshot-lightbox__confirmation-backdrop"
-                title={t("screenshots_delete_title")}
-                description={t("screenshots_delete_description")}
-                confirmLabel={t("screenshots_delete")}
-                cancelLabel={t("screenshots_cancel")}
-                danger
-                loading={social.isDeleting}
-                onClose={() => setIsDeleteVisible(false)}
-                onConfirm={async () => {
-                  if (await social.remove()) {
-                    setIsDeleteVisible(false);
-                    onClose();
-                  }
+              <LightboxModals
+                screenshot={readyScreenshot}
+                openModal={openModal}
+                social={social}
+                onCloseModal={() => setOpenModal(null)}
+                onDeleted={() => {
+                  setOpenModal(null);
+                  onClose();
                 }}
               />
             </>
           ) : null}
+          {status === "ready" ? null : (
+            <LightboxStatusPanel status={status} onClose={onClose} />
+          )}
         </div>
       </Backdrop>
     </FocusRegionContext.Provider>,

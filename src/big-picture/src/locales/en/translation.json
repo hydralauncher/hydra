@@ -1013,6 +1013,9 @@
     "screenshots_settings_title": "Screenshots",
     "screenshots_settings_toast": "Show a notification on capture",
     "screenshots_review_delete_description": "The screenshot file will be deleted from this computer. This can't be undone.",
-    "screenshots_review_delete_title": "Delete this screenshot?"
+    "screenshots_review_delete_title": "Delete this screenshot?",
+    "screenshots_load_failed": "Couldn't load screenshots",
+    "screenshots_load_more_failed": "Couldn't load more screenshots",
+    "screenshots_retry": "Retry"
   }
 }

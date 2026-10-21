@@ -37,3 +37,6 @@ export const PROFILE_SCREENSHOTS_SORT_ID = "profile-screenshots-sort";
 export function getProfileScreenshotItemId(screenshotId: string) {
   return `profile-screenshot-${screenshotId}`;
 }
+export const PROFILE_SCREENSHOTS_RETRY_ID = "profile-screenshots-retry";
+export const PROFILE_SCREENSHOTS_LOAD_MORE_RETRY_ID =
+  "profile-screenshots-load-more-retry";

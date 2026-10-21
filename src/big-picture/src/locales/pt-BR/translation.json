@@ -1013,6 +1013,9 @@
     "screenshots_settings_title": "Capturas",
     "screenshots_settings_toast": "Mostrar uma notificação ao capturar",
     "screenshots_review_delete_description": "O arquivo da captura será excluído deste computador. Isso não pode ser desfeito.",
-    "screenshots_review_delete_title": "Excluir esta captura?"
+    "screenshots_review_delete_title": "Excluir esta captura?",
+    "screenshots_load_failed": "Não foi possível carregar as capturas",
+    "screenshots_load_more_failed": "Não foi possível carregar mais capturas",
+    "screenshots_retry": "Tentar novamente"
   }
 }

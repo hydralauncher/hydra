@@ -1,13 +1,14 @@
 import "./styles.scss";
 
-import { SortAscendingIcon } from "@phosphor-icons/react";
+import { ArrowClockwiseIcon, SortAscendingIcon } from "@phosphor-icons/react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
-import type { GameShop, ScreenshotSort } from "@types";
+import type { GameShop, ProfileScreenshot, ScreenshotSort } from "@types";
 import { buildGameScreenshotsPath } from "@shared";
 import { logger } from "@renderer/logger";
 
 import {
+  Button,
   DropdownSelect,
   Typography,
   VerticalFocusGroup,
@@ -24,7 +25,9 @@ import { getItemFocusTarget } from "../../../../helpers";
 import { BIG_PICTURE_SIDEBAR_ITEM_IDS } from "../../../../layout";
 import type { FocusOverrideTarget } from "../../../../services";
 import {
+  GAME_COMMUNITY_SCREENSHOTS_LOAD_MORE_RETRY_ID,
   GAME_COMMUNITY_SCREENSHOTS_REGION_ID,
+  GAME_COMMUNITY_SCREENSHOTS_RETRY_ID,
   GAME_COMMUNITY_SCREENSHOTS_ROW_REGION_ID,
   GAME_COMMUNITY_SCREENSHOTS_SORT_ID,
   getGameCommunityScreenshotItemId,
@@ -49,6 +52,18 @@ function storeSort(sort: ScreenshotSort) {
   } catch (error) {
     logger.warn("Failed to remember screenshot sort", error);
   }
+}
+
+function getSortDownTarget(
+  firstItem: ProfileScreenshot | undefined,
+  hasLoadError: boolean
+): FocusOverrideTarget {
+  if (firstItem)
+    return getItemFocusTarget(getGameCommunityScreenshotItemId(firstItem.id));
+  if (hasLoadError)
+    return getItemFocusTarget(GAME_COMMUNITY_SCREENSHOTS_RETRY_ID);
+
+  return BLOCK_TARGET;
 }
 
 export interface GameCommunityScreenshotsProps {
@@ -96,8 +111,10 @@ export function GameCommunityScreenshots({
   const gameKey = `${shop}:${objectId}`;
   const [populatedGameKey, setPopulatedGameKey] = useState<string | null>(null);
   const hasScreenshots = feed.items.length > 0;
+  const hasLoadError = feed.error === "initial";
   const isVisible =
-    isEnabled && (hasScreenshots || populatedGameKey === gameKey);
+    isEnabled &&
+    (hasScreenshots || hasLoadError || populatedGameKey === gameKey);
 
   useEffect(() => {
     if (hasScreenshots) setPopulatedGameKey(gameKey);
@@ -118,9 +135,7 @@ export function GameCommunityScreenshots({
   );
 
   const firstItem = feed.items[0];
-  const firstItemTarget = firstItem
-    ? getItemFocusTarget(getGameCommunityScreenshotItemId(firstItem.id))
-    : BLOCK_TARGET;
+  const firstItemTarget = getSortDownTarget(firstItem, hasLoadError);
 
   if (!isVisible) {
     return <ScreenshotLightbox {...lightboxProps} />;
@@ -173,16 +188,42 @@ export function GameCommunityScreenshots({
             upTarget={getItemFocusTarget(GAME_COMMUNITY_SCREENSHOTS_SORT_ID)}
             downTarget={downTarget}
             leftTarget={getItemFocusTarget(BIG_PICTURE_SIDEBAR_ITEM_IDS.home)}
+            hasLoadMoreError={feed.error === "page"}
+            retryFocusId={GAME_COMMUNITY_SCREENSHOTS_LOAD_MORE_RETRY_ID}
+            onRetryLoadMore={feed.retry}
             onLoadMore={() => void feed.loadMore()}
             onActivate={open}
           />
-        ) : (
+        ) : null}
+
+        {!hasScreenshots && hasLoadError ? (
+          <div className="game-community-screenshots__error">
+            <p>{t("screenshots_load_failed")}</p>
+            <Button
+              variant="secondary"
+              size="small"
+              focusId={GAME_COMMUNITY_SCREENSHOTS_RETRY_ID}
+              icon={<ArrowClockwiseIcon size={18} />}
+              focusNavigationOverrides={{
+                up: getItemFocusTarget(GAME_COMMUNITY_SCREENSHOTS_SORT_ID),
+                down: downTarget ?? BLOCK_TARGET,
+                left: getItemFocusTarget(BIG_PICTURE_SIDEBAR_ITEM_IDS.home),
+                right: BLOCK_TARGET,
+              }}
+              onClick={feed.retry}
+            >
+              {t("screenshots_retry")}
+            </Button>
+          </div>
+        ) : null}
+
+        {!hasScreenshots && !hasLoadError ? (
           <p className="game-community-screenshots__loading">
             {t(
               feed.isLoading ? "screenshots_loading" : "screenshots_empty_other"
             )}
           </p>
-        )}
+        ) : null}
 
         <ScreenshotLightbox {...lightboxProps} />
       </section>

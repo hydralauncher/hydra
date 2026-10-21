@@ -974,6 +974,9 @@
     "screenshots_settings_title": "Capturas",
     "screenshots_settings_toast": "Mostrar una notificación al capturar",
     "screenshots_review_delete_description": "El archivo de la captura se eliminará de este equipo. No se puede deshacer.",
-    "screenshots_review_delete_title": "¿Eliminar esta captura?"
+    "screenshots_review_delete_title": "¿Eliminar esta captura?",
+    "screenshots_load_failed": "No se pudieron cargar las capturas",
+    "screenshots_load_more_failed": "No se pudieron cargar más capturas",
+    "screenshots_retry": "Reintentar"
   }
 }

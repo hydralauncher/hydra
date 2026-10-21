@@ -54,3 +54,7 @@ export const GAME_COMMUNITY_SCREENSHOTS_SORT_ID =
 export function getGameCommunityScreenshotItemId(screenshotId: string) {
   return `game-community-screenshot-${screenshotId}`;
 }
+export const GAME_COMMUNITY_SCREENSHOTS_RETRY_ID =
+  "game-community-screenshots-retry";
+export const GAME_COMMUNITY_SCREENSHOTS_LOAD_MORE_RETRY_ID =
+  "game-community-screenshots-load-more-retry";

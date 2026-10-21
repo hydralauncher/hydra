@@ -10,6 +10,8 @@ interface ScreenshotFeedResponse {
   nextCursor?: string | null;
 }
 
+export type ScreenshotFeedError = "initial" | "page" | null;
+
 interface UseScreenshotFeedOptions {
   requestKey: string | null;
   buildPath: (cursor: string | null) => string;
@@ -29,6 +31,7 @@ export function useScreenshotFeed({
   const [loadedKey, setLoadedKey] = useState<string | null>(null);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [refreshToken, setRefreshToken] = useState(0);
+  const [error, setError] = useState<ScreenshotFeedError>(null);
   const generationRef = useRef(0);
   const isLoadingMoreRef = useRef(false);
   const buildPathRef = useRef(buildPath);
@@ -48,6 +51,7 @@ export function useScreenshotFeed({
     setHiddenReason(null);
     setNextCursor(null);
     setLoadedKey(null);
+    setError(null);
 
     if (!requestKey) return;
 
@@ -67,6 +71,7 @@ export function useScreenshotFeed({
         if (generationRef.current !== generation) return;
 
         logger.error("Failed to load screenshots", error);
+        setError("initial");
       })
       .finally(() => {
         if (generationRef.current !== generation) return;
@@ -75,7 +80,7 @@ export function useScreenshotFeed({
       });
   }, [needsAuth, refreshToken, requestKey]);
 
-  const loadMore = useCallback(async () => {
+  const fetchNextPage = useCallback(async () => {
     if (!requestKey || !nextCursor || isLoadingMoreRef.current) return;
 
     const generation = generationRef.current;
@@ -96,8 +101,9 @@ export function useScreenshotFeed({
       );
       if (typeof response?.total === "number") setTotal(response.total);
       setNextCursor(response?.nextCursor ?? null);
-    } catch (error) {
-      logger.error("Failed to load more screenshots", error);
+    } catch (loadError) {
+      logger.error("Failed to load more screenshots", loadError);
+      if (generationRef.current === generation) setError("page");
     } finally {
       if (generationRef.current === generation) {
         isLoadingMoreRef.current = false;
@@ -106,9 +112,26 @@ export function useScreenshotFeed({
     }
   }, [needsAuth, nextCursor, requestKey]);
 
+  const loadMore = useCallback(async () => {
+    if (error) return;
+
+    await fetchNextPage();
+  }, [error, fetchNextPage]);
+
   const refresh = useCallback(() => {
     setRefreshToken((current) => current + 1);
   }, []);
+
+  const retry = useCallback(() => {
+    setError(null);
+
+    if (error === "page") {
+      void fetchNextPage();
+      return;
+    }
+
+    refresh();
+  }, [error, fetchNextPage, refresh]);
 
   const updateItem = useCallback(
     (screenshotId: string, update: Partial<ProfileScreenshot>) => {
@@ -139,6 +162,8 @@ export function useScreenshotFeed({
     isLoading: Boolean(requestKey) && !isLoaded,
     isLoadingMore,
     hasMore: isLoaded && Boolean(nextCursor),
+    error: isLoaded ? error : null,
+    retry,
     loadMore,
     refresh,
     updateItem,

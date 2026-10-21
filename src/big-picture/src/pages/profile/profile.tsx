@@ -114,14 +114,12 @@ import {
 } from "./use-profile-data";
 import { SouvenirLightbox } from "../../components/pages/profile/souvenir-lightbox";
 import { SouvenirSyncCleanupModal } from "./souvenir-sync-cleanup-modal";
-import {
-  ScreenshotLightbox,
-  useScreenshotLightbox,
-} from "../../components/pages/screenshots";
+import { ScreenshotLightbox } from "../../components/pages/screenshots";
 import {
   ProfileScreenshots,
+  getProfileScreenshotCount,
   getProfileScreenshotsFocusIds,
-  useProfileScreenshots,
+  useProfileScreenshotsSection,
 } from "./profile-screenshots";
 import {
   buildProfileSouvenirVisibilityPath,
@@ -2655,7 +2653,6 @@ function ProfileContent({ userId }: Readonly<ProfileContentProps>) {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const requestedSouvenir = searchParams.get("souvenir");
-  const requestedScreenshot = searchParams.get("screenshot");
   const attemptedDeepLinkPagesRef = useRef(new Set<string>());
   const { t } = useTranslation("user_profile");
   const { t: tSettings } = useTranslation("settings");
@@ -2774,20 +2771,16 @@ function ProfileContent({ userId }: Readonly<ProfileContentProps>) {
     updateSouvenir,
     removeSouvenir,
   } = useProfileSouvenirs(targetUserId, Boolean(userDetails));
-  const profileScreenshots = useProfileScreenshots({
+  const {
+    state: profileScreenshots,
+    openScreenshot,
+    lightboxProps: screenshotLightboxProps,
+  } = useProfileScreenshotsSection({
     targetUserId,
     isEnabled: isFeatureEnabled(Feature.Screenshots),
     isSignedIn: Boolean(userDetails),
-  });
-  const {
-    openById: openScreenshotById,
-    open: openScreenshot,
-    lightboxProps: screenshotLightboxProps,
-  } = useScreenshotLightbox({
-    items: profileScreenshots.items,
-    needsAuth: Boolean(userDetails),
-    updateItem: profileScreenshots.updateItem,
-    removeItem: profileScreenshots.removeItem,
+    searchParams,
+    setSearchParams,
   });
   const { showErrorToast, showSuccessToast } = useBigPictureToast();
   const [souvenirSyncStatus, setSouvenirSyncStatus] =
@@ -2994,25 +2987,6 @@ function ProfileContent({ userId }: Readonly<ProfileContentProps>) {
     requestOpenSouvenir,
     requestedSouvenir,
     souvenirs,
-    targetUserId,
-  ]);
-
-  useEffect(() => {
-    if (!requestedScreenshot || !targetUserId || !profileScreenshots.isEnabled)
-      return;
-
-    void openScreenshotById(targetUserId, requestedScreenshot);
-
-    const nextParams = new URLSearchParams(searchParams);
-    nextParams.delete("screenshot");
-    nextParams.delete("tab");
-    setSearchParams(nextParams, { replace: true });
-  }, [
-    openScreenshotById,
-    profileScreenshots.isEnabled,
-    requestedScreenshot,
-    searchParams,
-    setSearchParams,
     targetUserId,
   ]);
 
@@ -3334,21 +3308,18 @@ function ProfileContent({ userId }: Readonly<ProfileContentProps>) {
               onOpenCleanup={() => void handleOpenSouvenirSyncCleanup()}
             />
 
-            {profileScreenshots.isEnabled ? (
-              <ProfileScreenshots
-                state={profileScreenshots}
-                totalCount={
-                  externalProfile?.id === targetUserId
-                    ? (externalProfile?.screenshotCount ?? null)
-                    : null
-                }
-                isOwnProfile={isOwnProfileTarget}
-                hotkey={userPreferences?.screenshotHotkey}
-                upFocusId={screenshotsUpFocusId}
-                downFocusId={screenshotsDownFocusId}
-                onActivate={openScreenshot}
-              />
-            ) : null}
+            <ProfileScreenshots
+              state={profileScreenshots}
+              totalCount={getProfileScreenshotCount(
+                externalProfile,
+                targetUserId
+              )}
+              isOwnProfile={isOwnProfileTarget}
+              hotkey={userPreferences?.screenshotHotkey}
+              upFocusId={screenshotsUpFocusId}
+              downFocusId={screenshotsDownFocusId}
+              onActivate={openScreenshot}
+            />
 
             <ProfileActivity
               games={recentActivityGames}
