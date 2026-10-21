@@ -88,6 +88,57 @@ export const selectDownloadLibraryGame = (
         identityKey(a).localeCompare(identityKey(b))
     )[0] ?? operationalGame;
 
+export type RemoveFilesTarget =
+  | { kind: "hydra"; game: LibraryGame }
+  | { kind: "steam"; game: LibraryGame; appId: string };
+
+const STEAM_APP_ID_PATTERN = /^[1-9]\d{0,9}$/;
+
+const isActiveSteamImportMember = (game: LibraryGame) =>
+  game.shop === "steam" &&
+  game.isDeleted !== true &&
+  game.hasActiveSteamImport === true;
+
+export const getRemoveFilesTarget = (
+  game: LibraryGame,
+  steamUninstallAvailable: boolean
+): RemoveFilesTarget | null => {
+  const members = getLibraryGameMembers(game);
+  const operationalGame = getLibraryOperationalGame(game);
+  const preferredDownloadGame = selectDownloadLibraryGame(
+    members,
+    operationalGame
+  );
+
+  const hydraMember =
+    (preferredDownloadGame.download?.downloadPath
+      ? preferredDownloadGame
+      : undefined) ??
+    members.find((member) => Boolean(member.download?.downloadPath));
+
+  if (hydraMember) {
+    return { kind: "hydra", game: hydraMember };
+  }
+
+  if (members.some((member) => member.download)) return null;
+
+  if (!steamUninstallAvailable) return null;
+
+  const steamMember = isActiveSteamImportMember(operationalGame)
+    ? operationalGame
+    : members.find(isActiveSteamImportMember);
+
+  if (!steamMember || !STEAM_APP_ID_PATTERN.test(steamMember.objectId)) {
+    return null;
+  }
+
+  return {
+    kind: "steam",
+    game: steamMember,
+    appId: steamMember.objectId,
+  };
+};
+
 const latestDate = (values: (Date | null)[]): Date | null =>
   values.reduce<Date | null>((latest, value) => {
     if (!value || Number.isNaN(new Date(value).getTime())) return latest;

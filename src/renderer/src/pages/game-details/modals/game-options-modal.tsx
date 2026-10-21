@@ -7,17 +7,19 @@ import {
   useState,
 } from "react";
 import { useTranslation } from "react-i18next";
-import { Modal } from "@renderer/components";
+import { ConfirmationModal, Modal } from "@renderer/components";
 import {
   formatBytes,
   GAMEMODE_SITE_URL,
   getCloudSaveAccessAction,
   getGameExecutableFilters,
   getGameCatalogueIdentity,
+  getRemoveFilesTarget,
   applyLibraryGroupAction,
   isLibraryGameDownloading,
   getOfficialStoreMembers,
   MANGOHUD_SITE_URL,
+  type RemoveFilesTarget,
 } from "@shared";
 
 import type {
@@ -137,7 +139,9 @@ export function GameOptionsModal({
   const [transferETA, setTransferETA] = useState(0);
   const [showCancelConfirm, setShowCancelConfirm] = useState(false);
 
-  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [pendingRemoveFilesTarget, setPendingRemoveFilesTarget] =
+    useState<RemoveFilesTarget | null>(null);
+  const [steamUninstalling, setSteamUninstalling] = useState(false);
   const [showRemoveGameModal, setShowRemoveGameModal] = useState(false);
   const [gameTitle, setGameTitle] = useState(game.title ?? "");
   const [updatingGameTitle, setUpdatingGameTitle] = useState(false);
@@ -282,9 +286,18 @@ export function GameOptionsModal({
   const hasAchievements =
     (achievements?.filter((a) => a.unlocked).length ?? 0) > 0;
   const deleting = isGameDeleting(game.id);
-  const { lastPacket } = useDownload();
+  const steamUninstallAvailable =
+    typeof globalThis.window.electron.uninstallGameOnSteam === "function";
+  const removeFilesTarget = useMemo(
+    () => getRemoveFilesTarget(presentation ?? game, steamUninstallAvailable),
+    [presentation, game, steamUninstallAvailable]
+  );
+  const removeFilesDeleting =
+    removeFilesTarget?.kind === "hydra" &&
+    isGameDeleting(removeFilesTarget.game.objectId);
   const isGameDownloading =
-    game.download?.status === "active" && lastPacket?.gameId === game.id;
+    removeFilesTarget?.kind === "hydra" &&
+    isLibraryGameDownloading(removeFilesTarget.game);
 
   const isNonSteamExecutable = useIsNonSteamExecutable(game);
 
@@ -637,8 +650,86 @@ export function GameOptionsModal({
       downloadGame.objectId
     );
   const handleDeleteGame = async () => {
-    await removeGameInstaller(game.shop, game.objectId);
-    updateGame();
+    const pendingTarget = pendingRemoveFilesTarget;
+    if (pendingTarget?.kind !== "hydra") return;
+
+    const liveTarget = getRemoveFilesTarget(
+      presentation ?? game,
+      steamUninstallAvailable
+    );
+    if (
+      !liveTarget ||
+      liveTarget.kind !== "hydra" ||
+      liveTarget.game.shop !== pendingTarget.game.shop ||
+      liveTarget.game.objectId !== pendingTarget.game.objectId ||
+      isLibraryGameDownloading(liveTarget.game) ||
+      isGameDeleting(liveTarget.game.objectId)
+    ) {
+      showErrorToast(
+        !liveTarget ||
+          liveTarget.kind !== "hydra" ||
+          liveTarget.game.shop !== pendingTarget.game.shop ||
+          liveTarget.game.objectId !== pendingTarget.game.objectId
+          ? t("remove_files_target_changed")
+          : isLibraryGameDownloading(liveTarget.game)
+            ? t("remove_files_downloading")
+            : t("remove_files_failed")
+      );
+      return;
+    }
+
+    try {
+      await removeGameInstaller(liveTarget.game.shop, liveTarget.game.objectId);
+      updateGame();
+    } catch {
+      showErrorToast(t("remove_files_failed"));
+    }
+  };
+  const handleSteamUninstall = async () => {
+    const pendingTarget = pendingRemoveFilesTarget;
+    if (pendingTarget?.kind !== "steam") return;
+
+    const liveTarget = getRemoveFilesTarget(
+      presentation ?? game,
+      steamUninstallAvailable
+    );
+    if (
+      !liveTarget ||
+      liveTarget.kind !== "steam" ||
+      liveTarget.appId !== pendingTarget.appId ||
+      isLibraryGameDownloading(liveTarget.game) ||
+      isGameDeleting(liveTarget.game.objectId)
+    ) {
+      showErrorToast(
+        !liveTarget ||
+          liveTarget.kind !== "steam" ||
+          liveTarget.appId !== pendingTarget.appId
+          ? t("remove_files_target_changed")
+          : isLibraryGameDownloading(liveTarget.game)
+            ? t("remove_files_downloading")
+            : t("remove_files_failed")
+      );
+      return;
+    }
+
+    if (typeof globalThis.window.electron.uninstallGameOnSteam !== "function") {
+      showErrorToast(t("steam_uninstall_failed"));
+      return;
+    }
+
+    setSteamUninstalling(true);
+    try {
+      await globalThis.window.electron.uninstallGameOnSteam(liveTarget.appId);
+      showSuccessToast(
+        t("steam_uninstall_requested"),
+        t("steam_uninstall_requested_description")
+      );
+      setPendingRemoveFilesTarget(null);
+    } catch {
+      showErrorToast(t("steam_uninstall_failed"));
+    } finally {
+      setSteamUninstalling(false);
+    }
   };
   const handleOpenGameExecutablePath = () =>
     globalThis.window.electron.openGameExecutablePath(game.shop, game.objectId);
@@ -1252,9 +1343,25 @@ export function GameOptionsModal({
   return (
     <>
       <DeleteGameModal
-        visible={showDeleteModal}
-        onClose={() => setShowDeleteModal(false)}
+        visible={pendingRemoveFilesTarget?.kind === "hydra"}
+        onClose={() => setPendingRemoveFilesTarget(null)}
         deleteGame={handleDeleteGame}
+      />
+      <ConfirmationModal
+        visible={pendingRemoveFilesTarget?.kind === "steam"}
+        title={t("steam_uninstall_title")}
+        descriptionText={t("steam_uninstall_description", {
+          game: pendingRemoveFilesTarget?.game.title ?? game.title,
+        })}
+        confirmButtonLabel={t("steam_uninstall_confirm")}
+        cancelButtonLabel={t("cancel")}
+        confirmButtonTheme="danger"
+        buttonsIsDisabled={steamUninstalling}
+        clickOutsideToClose={!steamUninstalling}
+        onConfirm={() => void handleSteamUninstall()}
+        onClose={() => {
+          if (!steamUninstalling) setPendingRemoveFilesTarget(null);
+        }}
       />
       <RemoveGameFromLibraryModal
         visible={showRemoveGameModal}
@@ -1421,6 +1528,8 @@ export function GameOptionsModal({
                 isDeletingAchievements={isDeletingAchievements}
                 hasAchievements={hasAchievements}
                 isGameDownloading={isGameDownloading}
+                removeFilesDeleting={removeFilesDeleting}
+                removeFilesTarget={removeFilesTarget}
                 userDetails={userDetails}
                 onOpenRemoveFromLibrary={() => setShowRemoveGameModal(true)}
                 onOpenResetAchievements={() =>
@@ -1428,7 +1537,9 @@ export function GameOptionsModal({
                 }
                 onOpenChangePlaytime={() => setShowChangePlaytimeModal(true)}
                 onOpenResetPlaytime={() => setShowResetPlaytimeModal(true)}
-                onOpenRemoveFiles={() => setShowDeleteModal(true)}
+                onOpenRemoveFiles={(target) =>
+                  setPendingRemoveFilesTarget(target)
+                }
               />
             )}
           </div>
