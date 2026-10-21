@@ -79,44 +79,6 @@
     }
   }
 
-  &__chips {
-    display: flex;
-    flex-wrap: wrap;
-    gap: calc(globals.$spacing-unit * 0.75);
-    min-width: 0;
-    margin: 0;
-    padding: 0;
-    border: 0;
-  }
-
-  &__chip {
-    padding: calc(globals.$spacing-unit / 2) calc(globals.$spacing-unit * 1.25);
-    border: 1px solid globals.$border-color;
-    border-radius: 999px;
-    background-color: transparent;
-    color: globals.$body-color;
-    font-size: globals.$small-font-size;
-    cursor: pointer;
-    transition:
-      background-color 0.15s ease,
-      border-color 0.15s ease,
-      color 0.15s ease;
-
-    &:hover:not(:disabled) {
-      background-color: rgba(255, 255, 255, 0.08);
-    }
-
-    &--selected {
-      border-color: globals.$brand-teal;
-      background-color: rgba(22, 177, 149, 0.15);
-      color: globals.$muted-color;
-    }
-
-    &:disabled {
-      cursor: not-allowed;
-    }
-  }
-
   &__select {
     max-width: 320px;
   }
@@ -172,28 +134,110 @@
     border: 1px solid globals.$border-color;
     border-radius: 8px;
     background-color: globals.$dark-background-color;
+    transition:
+      border-color 0.2s ease,
+      transform 0.2s ease;
+
+    &:hover {
+      border-color: rgba(255, 255, 255, 0.24);
+    }
+
+    &:hover img {
+      transform: scale(1.03);
+    }
   }
 
   &__thumbnail {
+    position: relative;
     aspect-ratio: 16 / 9;
     overflow: hidden;
-    background-color: rgba(255, 255, 255, 0.04);
+    background-color: #000000;
 
     img {
       display: block;
       width: 100%;
       height: 100%;
       object-fit: cover;
+      transition: transform 0.3s ease;
     }
+  }
+
+  &__status {
+    position: absolute;
+    top: globals.$spacing-unit;
+    left: globals.$spacing-unit;
+    max-width: calc(100% - globals.$spacing-unit * 2);
+    overflow: hidden;
+    padding: 2px globals.$spacing-unit;
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 999px;
+    background-color: rgba(0, 0, 0, 0.55);
+    backdrop-filter: blur(8px);
+    color: #ffffff;
+    font-size: 11px;
+    font-weight: 500;
+    line-height: 16px;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+
+    &::before {
+      content: "";
+      display: inline-block;
+      width: 6px;
+      height: 6px;
+      margin-right: 6px;
+      border-radius: 50%;
+      vertical-align: 1px;
+      background-color: globals.$body-color;
+    }
+
+    &--progress::before {
+      background-color: #f4a510;
+    }
+
+    &--success::before {
+      background-color: globals.$success-color;
+    }
+
+    &--warning::before {
+      background-color: globals.$warning-color;
+    }
+
+    &--danger::before {
+      background-color: globals.$error-color;
+    }
+  }
+
+  &__progress-track {
+    position: absolute;
+    right: 0;
+    bottom: 0;
+    left: 0;
+    height: 3px;
+    overflow: hidden;
+    background-color: rgba(0, 0, 0, 0.5);
+  }
+
+  &__progress-bar {
+    height: 100%;
+    background-color: globals.$brand-teal;
+    transition: width 0.2s ease;
   }
 
   &__card-body {
     display: flex;
+    align-items: center;
+    gap: globals.$spacing-unit;
+    min-width: 0;
+    padding: globals.$spacing-unit calc(globals.$spacing-unit * 1.5);
+  }
+
+  &__card-text {
+    display: flex;
     flex: 1;
     flex-direction: column;
-    gap: calc(globals.$spacing-unit / 2);
+    gap: 2px;
     min-width: 0;
-    padding: globals.$spacing-unit;
   }
 
   &__card-title {
@@ -206,63 +250,62 @@
   }
 
   &__card-date {
-    color: globals.$body-color;
-    font-size: globals.$small-font-size;
-  }
-
-  &__status {
-    align-self: flex-start;
-    max-width: 100%;
     overflow: hidden;
-    padding: 2px globals.$spacing-unit;
-    border-radius: 4px;
+    color: globals.$body-color;
     font-size: globals.$small-font-size;
     text-overflow: ellipsis;
     white-space: nowrap;
-    background-color: rgba(255, 255, 255, 0.08);
-    color: globals.$body-color;
-
-    &--progress {
-      background-color: rgba(62, 98, 192, 0.25);
-      color: globals.$muted-color;
-    }
-
-    &--success {
-      background-color: rgba(28, 151, 73, 0.25);
-      color: globals.$muted-color;
-    }
-
-    &--warning {
-      background-color: rgba(255, 193, 7, 0.15);
-      color: globals.$warning-color;
-    }
-
-    &--danger {
-      background-color: rgba(225, 29, 72, 0.2);
-      color: globals.$muted-color;
-    }
-  }
-
-  &__progress-track {
-    width: 100%;
-    height: 3px;
-    overflow: hidden;
-    border-radius: 999px;
-    background-color: rgba(255, 255, 255, 0.08);
-  }
-
-  &__progress-bar {
-    height: 100%;
-    background-color: globals.$brand-teal;
-    transition: width 0.2s ease;
   }
 
   &__card-actions {
     display: flex;
-    flex-wrap: wrap;
+    flex-shrink: 0;
     gap: calc(globals.$spacing-unit / 2);
-    margin-top: auto;
-    padding-top: calc(globals.$spacing-unit / 2);
+  }
+
+  &__card-detail {
+    padding: 0 calc(globals.$spacing-unit * 1.5) globals.$spacing-unit;
+    color: globals.$body-color;
+    font-size: globals.$small-font-size;
+    line-height: 16px;
+  }
+
+  &__icon-action {
+    width: 28px;
+    min-width: 28px;
+    padding: 0;
+    justify-content: center;
+
+    &--danger:not(:disabled):hover {
+      border-color: globals.$error-color;
+      color: globals.$error-color;
+    }
+  }
+
+  &__combo {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: globals.$spacing-unit;
+    min-width: 0;
+    margin: 0;
+    padding: 0;
+    border: 0;
+  }
+
+  &__combo-slot {
+    display: flex;
+    align-items: center;
+    gap: globals.$spacing-unit;
+  }
+
+  &__combo-select {
+    min-width: 150px;
+  }
+
+  &__combo-plus {
+    color: globals.$body-color;
+    font-weight: 600;
   }
 
   &__show-more {
