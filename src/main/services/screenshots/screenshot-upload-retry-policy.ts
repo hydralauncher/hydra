@@ -10,6 +10,7 @@ import {
 
 export type ScreenshotUploadRecoveryAction =
   | "already_uploaded"
+  | "wait"
   | "retry"
   | "wait_for_game"
   | "recompress_standard"
@@ -28,6 +29,7 @@ export const SCREENSHOT_UPLOAD_MAX_GAME_WAITS = 30;
 export const SCREENSHOT_UPLOAD_RETRY_BASE_DELAY_MS = 5_000;
 export const SCREENSHOT_UPLOAD_RETRY_MAX_DELAY_MS = 10 * 60_000;
 export const SCREENSHOT_UPLOAD_GAME_WAIT_DELAY_MS = 30_000;
+export const SCREENSHOT_UPLOAD_CAPACITY_WAIT_DELAY_MS = 60_000;
 export const SCREENSHOT_UPLOAD_PAUSE_DELAY_MS = 30 * 60_000;
 
 export const SCREENSHOT_MISSING_FILE_CODE = "screenshot_missing";
@@ -44,6 +46,7 @@ const RECOVERY_BY_ERROR_CODE: Record<string, ScreenshotUploadRecoveryAction> = {
   "screenshots/upload-incomplete": "retry",
   "screenshots/upload-mismatch": "retry",
   "screenshots/upload-rate-limited": "retry",
+  "screenshots/upload-capacity-reached": "wait",
   "screenshots/disabled-for-game": "terminal",
   "screenshots/limit-reached": "terminal",
   screenshot_too_large: "terminal",
@@ -136,6 +139,12 @@ export const planScreenshotUploadRecovery = (
       return state.uploadAttempts >= SCREENSHOT_UPLOAD_MAX_ATTEMPTS
         ? { kind: "failed" }
         : { kind: "retry_now", rotateClientId: true };
+    case "wait":
+      return {
+        kind: "retry_at",
+        delay: SCREENSHOT_UPLOAD_CAPACITY_WAIT_DELAY_MS,
+        countsAsAttempt: false,
+      };
     case "retry":
       return state.uploadAttempts >= SCREENSHOT_UPLOAD_MAX_ATTEMPTS
         ? { kind: "failed" }
