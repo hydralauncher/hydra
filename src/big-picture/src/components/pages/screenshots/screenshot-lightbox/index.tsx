@@ -90,7 +90,15 @@ export interface ScreenshotLightboxProps {
   onClose: () => void;
   onUpdate: (screenshotId: string, update: Partial<ProfileScreenshot>) => void;
   onRemove: (screenshotId: string) => void;
+  onUnavailable: (screenshotId: string) => void;
 }
+
+const getLikePatch = (
+  response: Partial<ScreenshotLikeResponse>
+): Partial<ProfileScreenshot> =>
+  typeof response.likeCount === "number"
+    ? { likedByMe: Boolean(response.likedByMe), likeCount: response.likeCount }
+    : { likedByMe: Boolean(response.likedByMe) };
 
 const SETTINGS_TOAST = { fallbackVisual: "settings" as const };
 const STATUS_CLOSE_FOCUS_ID = "screenshot-lightbox-status-close";
@@ -436,11 +444,13 @@ function useLightboxSocialActions({
   isSignedIn,
   onUpdate,
   onRemove,
+  onUnavailable,
 }: {
   screenshot: ProfileScreenshot | null;
   isSignedIn: boolean;
   onUpdate: ScreenshotLightboxProps["onUpdate"];
   onRemove: ScreenshotLightboxProps["onRemove"];
+  onUnavailable: ScreenshotLightboxProps["onUnavailable"];
 }) {
   const { t } = useTranslation("big_picture");
   const { showErrorToast, showSuccessToast } = useBigPictureToast();
@@ -498,8 +508,13 @@ function useLightboxSocialActions({
             { needsAuth: true }
           );
 
-      if (response) onUpdate(screenshot.id, response);
+      if (response) onUpdate(screenshot.id, getLikePatch(response));
     } catch (error) {
+      if (getScreenshotApiErrorCode(error) === "screenshots/not-found") {
+        onUnavailable(screenshot.id);
+        return;
+      }
+
       onUpdate(screenshot.id, previous);
       showError(error);
     } finally {
@@ -509,7 +524,7 @@ function useLightboxSocialActions({
         return next;
       });
     }
-  }, [isSignedIn, likingIds, onUpdate, screenshot, showError]);
+  }, [isSignedIn, likingIds, onUnavailable, onUpdate, screenshot, showError]);
 
   const report = useCallback(
     async (values: ScreenshotReportValues) => {
@@ -535,7 +550,7 @@ function useLightboxSocialActions({
         }
 
         if (code === "screenshots/not-found") {
-          onRemove(screenshot.id);
+          onUnavailable(screenshot.id);
           return true;
         }
 
@@ -544,7 +559,7 @@ function useLightboxSocialActions({
         setIsReporting(false);
       }
     },
-    [onRemove, screenshot, showError, showSuccessToast, t]
+    [onUnavailable, screenshot, showError, showSuccessToast, t]
   );
 
   const save = useCallback(
@@ -969,6 +984,7 @@ export function ScreenshotLightbox({
   onClose,
   onUpdate,
   onRemove,
+  onUnavailable,
 }: Readonly<ScreenshotLightboxProps>) {
   const { userDetails } = useUserDetails();
   const { isFeatureEnabled } = useFeature();
@@ -987,6 +1003,7 @@ export function ScreenshotLightbox({
     isSignedIn: viewerId !== null,
     onUpdate,
     onRemove,
+    onUnavailable,
   });
   const hasLocalOverlay =
     openModal !== null || isCommentsOverlayOpen || isVirtualKeyboardOpen;

@@ -143,6 +143,17 @@ export function useScreenshotLightbox({
     [removeItem]
   );
 
+  const markUnavailable = useCallback(
+    (screenshotId: string) => {
+      removeItem(screenshotId);
+      setStandalone((current) =>
+        current?.screenshot.id === screenshotId ? null : current
+      );
+      setState({ screenshotId, status: "unavailable" });
+    },
+    [removeItem]
+  );
+
   const hasPrevious = index > 0;
   const hasNext = index >= 0 && index < items.length - 1;
 
@@ -163,6 +174,7 @@ export function useScreenshotLightbox({
       onClose: close,
       onUpdate: update,
       onRemove: remove,
+      onUnavailable: markUnavailable,
     }),
     [
       close,
@@ -170,6 +182,7 @@ export function useScreenshotLightbox({
       hasPrevious,
       index,
       items,
+      markUnavailable,
       open,
       remove,
       screenshot,
