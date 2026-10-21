@@ -30,6 +30,7 @@ import {
   normalizeScreenshotCommentBody,
   normalizeScreenshotReportValues,
   getScreenshotApiErrorCode,
+  getVotedScreenshotComment,
 } from "@shared";
 import { logger } from "@renderer/logger";
 
@@ -230,7 +231,6 @@ interface CommentVoteButtonProps {
   voteType: ScreenshotCommentVoteType;
   count: number;
   isActive: boolean;
-  isFocusable: boolean;
   isDisabled: boolean;
   label: string;
   navigationOverrides?: FocusOverrides;
@@ -242,7 +242,6 @@ function CommentVoteButton({
   voteType,
   count,
   isActive,
-  isFocusable,
   isDisabled,
   label,
   navigationOverrides,
@@ -251,18 +250,13 @@ function CommentVoteButton({
   const Icon = voteType === "UPVOTE" ? ArrowFatUpIcon : ArrowFatDownIcon;
 
   return (
-    <FocusItem
-      id={focusId}
-      navigationState={isFocusable ? "active" : "disabled"}
-      navigationOverrides={navigationOverrides}
-      asChild
-    >
+    <FocusItem id={focusId} navigationOverrides={navigationOverrides} asChild>
       <button
         type="button"
         className={cn("screenshot-comments__vote", {
           "screenshot-comments__vote--active": isActive,
         })}
-        disabled={!isFocusable || isDisabled}
+        disabled={isDisabled}
         aria-label={label}
         aria-pressed={isActive}
         title={label}
@@ -288,7 +282,6 @@ function CommentItem({
   const { t } = useTranslation("big_picture");
   const focusIds = getCommentFocusIds(comment.id);
   const moreButtonRef = useRef<HTMLDivElement | null>(null);
-  const canVote = !comment.isOwn;
 
   return (
     <li className="screenshot-comments__item">
@@ -334,7 +327,6 @@ function CommentItem({
               voteType="UPVOTE"
               count={comment.upvotes}
               isActive={comment.myVote === "UPVOTE"}
-              isFocusable={canVote}
               isDisabled={isVoting}
               label={t(
                 isSignedIn
@@ -349,7 +341,6 @@ function CommentItem({
               voteType="DOWNVOTE"
               count={comment.downvotes}
               isActive={comment.myVote === "DOWNVOTE"}
-              isFocusable={canVote}
               isDisabled={isVoting}
               label={t(
                 isSignedIn
@@ -369,11 +360,7 @@ function CommentItem({
                 icon={<DotsThreeVerticalIcon size={18} weight="bold" />}
                 aria-label={t("screenshots_comment_options")}
                 title={t("screenshots_comment_options")}
-                focusNavigationOverrides={
-                  canVote
-                    ? { right: { type: "block" } }
-                    : { left: leftTarget, right: { type: "block" } }
-                }
+                focusNavigationOverrides={{ right: { type: "block" } }}
                 onClick={() => {
                   if (moreButtonRef.current)
                     onOpenMenu(comment, moreButtonRef.current);
@@ -561,9 +548,15 @@ export function ScreenshotCommentsPanel({
         void globalThis.window.electron.openAuthWindow(AuthPage.SignIn);
         return;
       }
-      if (comment.isOwn || votingIds.has(comment.id)) return;
+      if (votingIds.has(comment.id)) return;
 
+      const previous = {
+        upvotes: comment.upvotes,
+        downvotes: comment.downvotes,
+        myVote: comment.myVote,
+      };
       setVotingIds((current) => new Set(current).add(comment.id));
+      replaceComment(comment.id, getVotedScreenshotComment(comment, voteType));
 
       try {
         const response =
@@ -578,6 +571,7 @@ export function ScreenshotCommentsPanel({
           );
         if (response) replaceComment(comment.id, response);
       } catch (error) {
+        replaceComment(comment.id, previous);
         showError(error);
       } finally {
         setVotingIds((current) => {
