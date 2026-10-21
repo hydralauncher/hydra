@@ -19,11 +19,7 @@ import {
   resolveEmulatorAchievementTracking,
 } from "@main/services/emulators/emulator-achievement-tracking";
 import { HydraApi } from "@main/services/hydra-api";
-import {
-  deleteRetroAchievementsEmulatorAccount,
-  loadStoredRetroAchievementsEmulatorUsername,
-} from "@main/services/retro-achievements/retro-achievements-emulator-account";
-import { clearRetroAchievementsEmulatorCredentials } from "@main/services/retro-achievements/emulator-credentials/emulator-credential-sync";
+import { deleteRetroAchievementsEmulatorAccount } from "@main/services/retro-achievements/retro-achievements-emulator-account";
 import {
   prepareLinuxGameCaptureSession,
   stopAllLinuxGameCaptureSessions,
@@ -150,8 +146,6 @@ const unlinkRetroAchievementsEmulatorAccount = async (
     return;
   }
 
-  const username = await loadStoredRetroAchievementsEmulatorUsername();
-  if (username) await clearRetroAchievementsEmulatorCredentials(username);
   await deleteRetroAchievementsEmulatorAccount();
 };
 

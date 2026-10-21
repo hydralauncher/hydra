@@ -117,9 +117,6 @@ export const loadRetroAchievementsEmulatorAccount =
     }
   };
 
-export const loadStoredRetroAchievementsEmulatorUsername = async () =>
-  (await readStoredAccount())?.username ?? null;
-
 export const deleteRetroAchievementsEmulatorAccount = async () => {
   await db
     .del(levelKeys.retroAchievementsEmulatorAccount)

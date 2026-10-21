@@ -2,11 +2,6 @@ import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 
 import {
-  clearDolphinAccount,
-  clearDuckStationAccount,
-  clearPcsx2Account,
-  clearRetroArchAccount,
-  isEmulatorAccountOwnedBy,
   readDolphinAccount,
   readDuckStationAccount,
   readPcsx2Account,
@@ -55,20 +50,6 @@ describe("emulator RetroAchievements account decisions", () => {
       false
     );
   });
-
-  it("matches account ownership case-insensitively", () => {
-    assert.equal(
-      isEmulatorAccountOwnedBy(
-        { username: "PLAYER", hasToken: true },
-        "player"
-      ),
-      true
-    );
-    assert.equal(
-      isEmulatorAccountOwnedBy({ username: null, hasToken: false }, "player"),
-      false
-    );
-  });
 });
 
 describe("emulator RetroAchievements config values", () => {
@@ -87,10 +68,6 @@ describe("emulator RetroAchievements config values", () => {
     });
     assert.match(signedIn, /cheevos_enable = "false"/);
     assert.match(signedIn, /cheevos_password = ""/);
-    assert.deepEqual(readRetroArchAccount(clearRetroArchAccount(signedIn)), {
-      username: null,
-      hasToken: false,
-    });
   });
 
   it("signs DuckStation in within the Cheevos section", () => {
@@ -103,10 +80,6 @@ describe("emulator RetroAchievements config values", () => {
     });
     assert.match(signedIn, /Enabled = false/);
     assert.match(signedIn, /LoginTimestamp = 10/);
-    assert.equal(
-      readDuckStationAccount(clearDuckStationAccount(signedIn)).username,
-      null
-    );
   });
 
   it("reads PCSX2 tokens from either the base or secrets file", () => {
@@ -129,10 +102,6 @@ describe("emulator RetroAchievements config values", () => {
       readPcsx2Account(writePcsx2Token(base, "TOKEN"), null).hasToken,
       true
     );
-    assert.equal(
-      readPcsx2Account(clearPcsx2Account(base), null).username,
-      null
-    );
   });
 
   it("sets the PPSSPP username", () => {
@@ -151,10 +120,6 @@ describe("emulator RetroAchievements config values", () => {
     assert.deepEqual(readDolphinAccount(signedIn), {
       username: "Player",
       hasToken: true,
-    });
-    assert.deepEqual(readDolphinAccount(clearDolphinAccount(signedIn)), {
-      username: null,
-      hasToken: false,
     });
   });
 });

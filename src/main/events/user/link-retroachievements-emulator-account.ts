@@ -1,14 +1,10 @@
 import { registerEvent } from "../register-event";
 import { logger } from "@main/services";
 import {
-  loadStoredRetroAchievementsEmulatorUsername,
   requestRetroAchievementsConnectToken,
   saveRetroAchievementsEmulatorAccount,
 } from "@main/services/retro-achievements/retro-achievements-emulator-account";
-import {
-  clearRetroAchievementsEmulatorCredentials,
-  syncRetroAchievementsEmulatorCredentials,
-} from "@main/services/retro-achievements/emulator-credentials/emulator-credential-sync";
+import { syncRetroAchievementsEmulatorCredentials } from "@main/services/retro-achievements/emulator-credentials/emulator-credential-sync";
 
 const linkRetroAchievementsEmulatorAccount = async (
   _event: Electron.IpcMainInvokeEvent,
@@ -20,15 +16,6 @@ const linkRetroAchievementsEmulatorAccount = async (
       username,
       password
     );
-    const previousUsername =
-      await loadStoredRetroAchievementsEmulatorUsername();
-
-    if (
-      previousUsername &&
-      previousUsername.toLowerCase() !== account.username.toLowerCase()
-    ) {
-      await clearRetroAchievementsEmulatorCredentials(previousUsername);
-    }
 
     await saveRetroAchievementsEmulatorAccount(account);
     void syncRetroAchievementsEmulatorCredentials();

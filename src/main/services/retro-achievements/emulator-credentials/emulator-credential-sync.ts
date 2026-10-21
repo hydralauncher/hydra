@@ -4,7 +4,6 @@ import path from "node:path";
 
 import type { EmulatorBinary, EmulatorSystem } from "@types";
 
-import { db, levelKeys } from "@main/level";
 import { logger } from "../../logger";
 import { NativeAddon } from "../../native-addon";
 import { getAllEmulatorConfigs } from "../../emulators/emulators-repository";
@@ -25,11 +24,6 @@ import {
   type RetroAchievementsEmulatorAccount,
 } from "../retro-achievements-emulator-account";
 import {
-  clearDolphinAccount,
-  clearDuckStationAccount,
-  clearPcsx2Account,
-  clearRetroArchAccount,
-  isEmulatorAccountOwnedBy,
   readDolphinAccount,
   readDuckStationAccount,
   readPcsx2Account,
@@ -42,8 +36,6 @@ import {
   writePcsx2Token,
   writePpssppUsername,
   writeRetroArchAccount,
-  PPSSPP_SECTION,
-  removeIniValue,
 } from "./emulator-credential-config";
 import { encryptDuckStationLoginToken } from "./duckstation-login-token";
 import { readDuckStationMachineKey } from "./duckstation-machine-key";
@@ -55,11 +47,6 @@ export type CredentialEmulator =
   | "ppsspp"
   | "dolphin";
 
-interface CredentialWrite {
-  emulator: CredentialEmulator;
-  configPath: string;
-}
-
 interface CredentialTarget {
   emulator: CredentialEmulator;
   executablePath: string | null;
@@ -70,7 +57,6 @@ interface CredentialHandler {
     executablePath: string | null,
     account: RetroAchievementsEmulatorAccount
   ) => Promise<string | null>;
-  clear: (configPath: string, username: string) => Promise<void>;
 }
 
 const BINARY_TO_EMULATOR: Partial<Record<EmulatorBinary, CredentialEmulator>> =
@@ -255,14 +241,6 @@ const HANDLERS: Record<CredentialEmulator, CredentialHandler> = {
       );
       return configPath;
     },
-    clear: async (configPath, username) => {
-      const content = await readText(configPath);
-      if (content === null) return;
-      if (!isEmulatorAccountOwnedBy(readRetroArchAccount(content), username)) {
-        return;
-      }
-      await writeIfChanged(configPath, content, clearRetroArchAccount(content));
-    },
   },
   duckstation: {
     apply: async (executablePath, account) => {
@@ -300,20 +278,6 @@ const HANDLERS: Record<CredentialEmulator, CredentialHandler> = {
         )
       );
       return config.configPath;
-    },
-    clear: async (configPath, username) => {
-      const content = await readText(configPath);
-      if (content === null) return;
-      if (
-        !isEmulatorAccountOwnedBy(readDuckStationAccount(content), username)
-      ) {
-        return;
-      }
-      await writeIfChanged(
-        configPath,
-        content,
-        clearDuckStationAccount(content)
-      );
     },
   },
   pcsx2: {
@@ -364,30 +328,6 @@ const HANDLERS: Record<CredentialEmulator, CredentialHandler> = {
 
       return configPath;
     },
-    clear: async (configPath, username) => {
-      const content = await readText(configPath);
-      if (content === null) return;
-
-      const secretsPath = pcsx2SecretsPath(configPath);
-      const secretsContent = await readText(secretsPath);
-      if (
-        !isEmulatorAccountOwnedBy(
-          readPcsx2Account(content, secretsContent),
-          username
-        )
-      ) {
-        return;
-      }
-
-      await writeIfChanged(configPath, content, clearPcsx2Account(content));
-      if (secretsContent !== null) {
-        await writeIfChanged(
-          secretsPath,
-          secretsContent,
-          clearPcsx2Account(secretsContent)
-        );
-      }
-    },
   },
   ppsspp: {
     apply: async (executablePath, account) => {
@@ -431,25 +371,6 @@ const HANDLERS: Record<CredentialEmulator, CredentialHandler> = {
 
       return configPath;
     },
-    clear: async (configPath, username) => {
-      const content = await readText(configPath);
-      if (content === null) return;
-      if (
-        !isEmulatorAccountOwnedBy(
-          { username: readPpssppUsername(content), hasToken: true },
-          username
-        )
-      ) {
-        return;
-      }
-
-      await fs.promises.rm(ppssppTokenPath(configPath), { force: true });
-      await writeIfChanged(
-        configPath,
-        content,
-        removeIniValue(content, PPSSPP_SECTION, "AchievementsUserName")
-      );
-    },
   },
   dolphin: {
     apply: async (executablePath, account) => {
@@ -473,14 +394,6 @@ const HANDLERS: Record<CredentialEmulator, CredentialHandler> = {
         CREDENTIAL_FILE_MODE
       );
       return configPath;
-    },
-    clear: async (configPath, username) => {
-      const content = await readText(configPath);
-      if (content === null) return;
-      if (!isEmulatorAccountOwnedBy(readDolphinAccount(content), username)) {
-        return;
-      }
-      await writeIfChanged(configPath, content, clearDolphinAccount(content));
     },
   },
 };
@@ -542,29 +455,6 @@ const isEmulatorRunning = (
   );
 };
 
-const loadCredentialWrites = async () =>
-  (await db
-    .get<
-      string,
-      CredentialWrite[] | null
-    >(levelKeys.retroAchievementsEmulatorCredentialWrites, { valueEncoding: "json" })
-    .catch(() => null)) ?? [];
-
-const saveCredentialWrites = async (writes: CredentialWrite[]) => {
-  if (writes.length === 0) {
-    await db
-      .del(levelKeys.retroAchievementsEmulatorCredentialWrites)
-      .catch(() => undefined);
-    return;
-  }
-
-  await db.put<string, CredentialWrite[]>(
-    levelKeys.retroAchievementsEmulatorCredentialWrites,
-    writes,
-    { valueEncoding: "json" }
-  );
-};
-
 let queue: Promise<void> = Promise.resolve();
 
 const enqueue = (task: () => Promise<void>) => {
@@ -578,12 +468,12 @@ const signInEmulator = async (
   target: CredentialTarget,
   account: RetroAchievementsEmulatorAccount,
   processes: Awaited<ReturnType<typeof NativeAddon.listProcesses>>
-): Promise<CredentialWrite | null> => {
+): Promise<void> => {
   if (isEmulatorRunning(processes, target)) {
     logger.info("Skipped RetroAchievements sign-in for a running emulator", {
       emulator: target.emulator,
     });
-    return null;
+    return;
   }
 
   try {
@@ -591,19 +481,17 @@ const signInEmulator = async (
       target.executablePath,
       account
     );
-    if (!configPath) return null;
+    if (!configPath) return;
 
     logger.info("Signed emulator into RetroAchievements", {
       emulator: target.emulator,
       configPath,
     });
-    return { emulator: target.emulator, configPath };
   } catch (error) {
     logger.error("Failed to sign emulator into RetroAchievements", {
       emulator: target.emulator,
       error,
     });
-    return null;
   }
 };
 
@@ -622,44 +510,7 @@ export const syncRetroAchievementsEmulatorCredentials = (
     if (targets.length === 0) return;
 
     const processes = await NativeAddon.listProcesses().catch(() => []);
-    const signedInWrites = await Promise.all(
+    await Promise.all(
       targets.map((target) => signInEmulator(target, account, processes))
     );
-    const writes = await loadCredentialWrites();
-    let changed = false;
-
-    for (const write of signedInWrites) {
-      if (
-        !write ||
-        writes.some(
-          (existing) =>
-            existing.emulator === write.emulator &&
-            existing.configPath === write.configPath
-        )
-      ) {
-        continue;
-      }
-      writes.push(write);
-      changed = true;
-    }
-
-    if (changed) await saveCredentialWrites(writes);
-  });
-
-export const clearRetroAchievementsEmulatorCredentials = (username: string) =>
-  enqueue(async () => {
-    const writes = await loadCredentialWrites();
-
-    for (const write of writes) {
-      try {
-        await HANDLERS[write.emulator].clear(write.configPath, username);
-      } catch (error) {
-        logger.error("Failed to sign emulator out of RetroAchievements", {
-          emulator: write.emulator,
-          error,
-        });
-      }
-    }
-
-    await saveCredentialWrites([]);
   });

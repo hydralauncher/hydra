@@ -4,7 +4,6 @@ import {
 } from "../../emulators/retroarch-souvenir-config-value.js";
 import {
   getIniLine,
-  restoreIniValue,
   setIniValue,
 } from "../../emulators/duckstation-souvenir-config-value.js";
 
@@ -21,9 +20,6 @@ export const getIniValue = (content: string, section: string, key: string) => {
   return value || null;
 };
 
-export const removeIniValue = (content: string, section: string, key: string) =>
-  restoreIniValue(content, section, key, null);
-
 export const setIniValues = (
   content: string,
   section: string,
@@ -33,13 +29,6 @@ export const setIniValues = (
     (updated, [key, value]) => setIniValue(updated, section, key, value),
     content
   );
-
-export const removeIniValues = (
-  content: string,
-  section: string,
-  keys: string[]
-) =>
-  keys.reduce((updated, key) => removeIniValue(updated, section, key), content);
 
 export const shouldWriteEmulatorAccount = (
   state: EmulatorAccountState,
@@ -51,11 +40,6 @@ export const shouldWriteEmulatorAccount = (
     state.username.toLowerCase() === username.toLowerCase() && !state.hasToken
   );
 };
-
-export const isEmulatorAccountOwnedBy = (
-  state: EmulatorAccountState,
-  username: string
-) => state.username?.toLowerCase() === username.toLowerCase();
 
 const RETROARCH_USERNAME_KEY = "cheevos_username";
 const RETROARCH_TOKEN_KEY = "cheevos_token";
@@ -83,13 +67,6 @@ export const writeRetroArchAccount = (
     ""
   );
 
-export const clearRetroArchAccount = (content: string) =>
-  setCfgValue(
-    setCfgValue(content, RETROARCH_USERNAME_KEY, ""),
-    RETROARCH_TOKEN_KEY,
-    ""
-  );
-
 export const DUCKSTATION_SECTION = "Cheevos";
 export const PCSX2_SECTION = "Achievements";
 export const PPSSPP_SECTION = "Achievements";
@@ -111,13 +88,6 @@ export const writeDuckStationAccount = (
     Token: encryptedToken,
     LoginTimestamp: String(loginTimestamp),
   });
-
-export const clearDuckStationAccount = (content: string) =>
-  removeIniValues(content, DUCKSTATION_SECTION, [
-    "Username",
-    "Token",
-    "LoginTimestamp",
-  ]);
 
 export const readPcsx2Account = (
   content: string,
@@ -143,13 +113,6 @@ export const writePcsx2Account = (
 export const writePcsx2Token = (content: string, token: string) =>
   setIniValue(content, PCSX2_SECTION, "Token", token);
 
-export const clearPcsx2Account = (content: string) =>
-  removeIniValues(content, PCSX2_SECTION, [
-    "Username",
-    "Token",
-    "LoginTimestamp",
-  ]);
-
 export const readPpssppUsername = (content: string) =>
   getIniValue(content, PPSSPP_SECTION, "AchievementsUserName");
 
@@ -170,6 +133,3 @@ export const writeDolphinAccount = (
     Username: username,
     ApiToken: token,
   });
-
-export const clearDolphinAccount = (content: string) =>
-  removeIniValues(content, DOLPHIN_SECTION, ["Username", "ApiToken"]);
