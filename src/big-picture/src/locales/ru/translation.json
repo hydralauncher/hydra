@@ -1006,6 +1006,8 @@
     "screenshots_all_spoilers": "Все скриншоты здесь отмечены как спойлеры",
     "screenshots_hide_spoilers": "Скрыть спойлеры",
     "screenshots_load_more": "Загрузить ещё",
-    "screenshots_view_all": "Показать все"
+    "screenshots_view_all": "Показать все",
+    "screenshots_comment_bold": "Жирный",
+    "screenshots_comment_italic": "Курсив"
   }
 }

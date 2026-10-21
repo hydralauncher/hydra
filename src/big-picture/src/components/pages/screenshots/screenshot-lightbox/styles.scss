@@ -345,13 +345,90 @@
   &__composer-row {
     display: flex;
     min-width: 0;
-    align-items: flex-end;
+    align-items: center;
     gap: var(--spacing-unit);
   }
 
-  &__input {
-    flex: 1;
-    min-width: 0;
+  &__editor {
+    position: relative;
+    min-height: 64px;
+    max-height: 180px;
+    padding: calc(var(--spacing-unit) * 2) calc(var(--spacing-unit) * 3);
+    overflow-y: auto;
+    border: 1px solid var(--secondary-border);
+    border-radius: 8px;
+    background: var(--background);
+    cursor: text;
+
+    &[data-focused="true"] {
+      border-color: rgba(255, 255, 255, 0.6);
+    }
+
+    &--disabled {
+      opacity: 0.6;
+    }
+
+    .ProseMirror {
+      min-height: 40px;
+      color: var(--text);
+      font-size: 14px;
+      line-height: 1.45;
+      outline: none;
+      overflow-wrap: anywhere;
+
+      p {
+        margin: 0 0 4px;
+
+        &:last-child {
+          margin-bottom: 0;
+        }
+      }
+    }
+
+    .ProseMirror:has(
+        > p:only-child > br.ProseMirror-trailingBreak:only-child
+      )::before {
+      content: attr(data-placeholder);
+      position: absolute;
+      color: var(--text-secondary);
+      pointer-events: none;
+    }
+  }
+
+  &__format {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    padding: 0;
+    border: none;
+    border-radius: 8px;
+    background: transparent;
+    color: var(--text-secondary);
+    cursor: pointer;
+    appearance: none;
+
+    &:focus,
+    &:focus-visible {
+      outline: none;
+    }
+
+    &:hover:not(:disabled),
+    &[data-focused="true"] {
+      background: rgba(255, 255, 255, 0.1);
+      color: var(--text);
+    }
+
+    &[data-focused="true"] {
+      outline: 2px solid #fff;
+      outline-offset: 2px;
+    }
+
+    &--active {
+      background: rgba(255, 255, 255, 0.14);
+      color: var(--text);
+    }
   }
 
   &__editing-label {
@@ -362,9 +439,13 @@
   }
 
   &__counter {
-    align-self: flex-end;
+    margin-left: auto;
     color: var(--text-secondary);
     font-size: 12px;
+
+    &--over {
+      color: var(--error);
+    }
   }
 
   &__notice {
@@ -500,12 +581,53 @@
   }
 
   &__body {
-    margin: 0;
     color: var(--text);
     font-size: 14px;
     line-height: 1.45;
     overflow-wrap: anywhere;
-    white-space: pre-wrap;
+
+    p {
+      min-height: 1em;
+      margin: 0 0 4px;
+
+      &:last-child {
+        margin-bottom: 0;
+      }
+    }
+
+    strong,
+    b {
+      font-weight: 700;
+    }
+
+    em,
+    i {
+      font-style: italic;
+    }
+
+    ul,
+    ol {
+      margin: 0 0 4px;
+      padding-left: 20px;
+    }
+
+    blockquote {
+      margin: 0 0 4px;
+      padding-left: calc(var(--spacing-unit) * 3);
+      border-left: 2px solid var(--secondary-border);
+      color: var(--text-secondary);
+    }
+
+    code,
+    pre {
+      font-family: monospace;
+      font-size: 13px;
+    }
+
+    pre {
+      margin: 0 0 4px;
+      white-space: pre-wrap;
+    }
 
     &--hidden {
       opacity: 0.6;

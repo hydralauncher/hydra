@@ -981,6 +981,8 @@
     "screenshots_all_spoilers": "Todas las capturas aquí están marcadas como spoiler",
     "screenshots_hide_spoilers": "Ocultar spoilers",
     "screenshots_load_more": "Cargar más",
-    "screenshots_view_all": "Ver todas"
+    "screenshots_view_all": "Ver todas",
+    "screenshots_comment_bold": "Negrita",
+    "screenshots_comment_italic": "Cursiva"
   }
 }

@@ -1020,6 +1020,8 @@
     "screenshots_all_spoilers": "Every screenshot here is marked as a spoiler",
     "screenshots_hide_spoilers": "Hide spoilers",
     "screenshots_load_more": "Load more",
-    "screenshots_view_all": "View all"
+    "screenshots_view_all": "View all",
+    "screenshots_comment_bold": "Bold",
+    "screenshots_comment_italic": "Italic"
   }
 }

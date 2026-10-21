@@ -1,13 +1,25 @@
 import cn from "classnames";
+import { useMemo } from "react";
+import { sanitizeHtml, toRichTextHtml } from "@shared";
 
 interface ScreenshotCommentBodyProps {
-  body: string;
+  bodyHtml: string;
   className?: string;
 }
 
 export function ScreenshotCommentBody({
-  body,
+  bodyHtml,
   className,
 }: Readonly<ScreenshotCommentBodyProps>) {
-  return <p className={cn("screenshot-comments__body", className)}>{body}</p>;
+  const safeHtml = useMemo(
+    () => sanitizeHtml(toRichTextHtml(bodyHtml)),
+    [bodyHtml]
+  );
+
+  return (
+    <div
+      className={cn("screenshot-comments__body", className)}
+      dangerouslySetInnerHTML={{ __html: safeHtml }}
+    />
+  );
 }

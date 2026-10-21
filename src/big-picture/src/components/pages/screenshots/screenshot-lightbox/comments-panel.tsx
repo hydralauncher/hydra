@@ -5,21 +5,11 @@ import {
   ChatsCircleIcon,
   DotsThreeVerticalIcon,
   FlagIcon,
-  PaperPlaneRightIcon,
   PencilSimpleIcon,
-  SignInIcon,
   TrashIcon,
-  XIcon,
 } from "@phosphor-icons/react";
 import cn from "classnames";
-import {
-  useCallback,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-  type FormEvent,
-} from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import type {
   ProfileScreenshot,
@@ -31,7 +21,6 @@ import type {
 } from "@types";
 import {
   AuthPage,
-  SCREENSHOT_COMMENT_MAX_LENGTH,
   SCREENSHOT_COMMENT_REPORT_REASONS,
   buildUserScreenshotCommentPath,
   buildUserScreenshotCommentReportPath,
@@ -49,7 +38,6 @@ import {
   ContextMenu,
   FocusItem,
   HorizontalFocusGroup,
-  Input,
   UserProfileAvatar,
   VerticalFocusGroup,
   type ContextMenuItem,
@@ -61,41 +49,16 @@ import type { FocusOverrides, FocusOverrideTarget } from "../../../../services";
 import { getScreenshotErrorKey } from "../helpers";
 import { ScreenshotReportModal } from "../screenshot-report-modal";
 import { ScreenshotCommentBody } from "./comment-body";
+import { CommentComposer } from "./comment-composer";
+import {
+  getCommentFocusIds,
+  getScreenshotCommentsPanelFocusIds,
+} from "./comment-focus-ids";
 import {
   applyCommentWrites,
   type ScreenshotCommentWrite,
   type ScreenshotCommentWriteInput,
 } from "./comment-writes";
-
-export interface ScreenshotCommentsPanelFocusIds {
-  region: string;
-  composerRegion: string;
-  input: string;
-  send: string;
-  cancelEdit: string;
-  signIn: string;
-  loadMore: string;
-}
-
-export const getScreenshotCommentsPanelFocusIds = (
-  screenshotId: string
-): ScreenshotCommentsPanelFocusIds => ({
-  region: `screenshot-comments:${screenshotId}`,
-  composerRegion: `screenshot-comments-composer:${screenshotId}`,
-  input: `screenshot-comments-input:${screenshotId}`,
-  send: `screenshot-comments-send:${screenshotId}`,
-  cancelEdit: `screenshot-comments-cancel-edit:${screenshotId}`,
-  signIn: `screenshot-comments-sign-in:${screenshotId}`,
-  loadMore: `screenshot-comments-load-more:${screenshotId}`,
-});
-
-const getCommentFocusIds = (commentId: string) => ({
-  region: `screenshot-comment:${commentId}`,
-  upvote: `screenshot-comment-upvote:${commentId}`,
-  downvote: `screenshot-comment-downvote:${commentId}`,
-  edit: `screenshot-comment-edit:${commentId}`,
-  more: `screenshot-comment-more:${commentId}`,
-});
 
 type CommentsStatus = "idle" | "loading" | "ready" | "error";
 
@@ -362,7 +325,7 @@ function CommentItem({
       ) : null}
 
       <ScreenshotCommentBody
-        body={comment.body}
+        bodyHtml={comment.bodyHtml}
         className={cn({
           "screenshot-comments__body--hidden": comment.isHidden,
         })}
@@ -446,142 +409,6 @@ function CommentItem({
   );
 }
 
-interface CommentComposerProps {
-  screenshot: ProfileScreenshot;
-  viewerId: string | null;
-  isOwner: boolean;
-  focusIds: ScreenshotCommentsPanelFocusIds;
-  leftTarget: FocusOverrideTarget;
-  value: string;
-  isEditing: boolean;
-  isSubmitting: boolean;
-  onChange: (value: string) => void;
-  onSubmit: () => void;
-  onCancelEdit: () => void;
-}
-
-function getComposerNoticeKey(screenshot: ProfileScreenshot, isOwner: boolean) {
-  const isAwaitingApproval =
-    screenshot.moderationStatus !== undefined &&
-    screenshot.moderationStatus !== "APPROVED";
-
-  if (isOwner && isAwaitingApproval) return null;
-  if (!screenshot.commentsEnabled) return "screenshots_comments_disabled";
-
-  return "screenshots_comments_not_allowed";
-}
-
-function CommentComposer({
-  screenshot,
-  viewerId,
-  isOwner,
-  focusIds,
-  leftTarget,
-  value,
-  isEditing,
-  isSubmitting,
-  onChange,
-  onSubmit,
-  onCancelEdit,
-}: Readonly<CommentComposerProps>) {
-  const { t } = useTranslation("big_picture");
-
-  if (!viewerId) {
-    return (
-      <div className="screenshot-comments__notice">
-        <p>{t("screenshots_comments_sign_in")}</p>
-        <Button
-          variant="secondary"
-          size="small"
-          focusId={focusIds.signIn}
-          icon={<SignInIcon size={18} />}
-          focusNavigationOverrides={{ left: leftTarget }}
-          onClick={() =>
-            void globalThis.window.electron.openAuthWindow(AuthPage.SignIn)
-          }
-        >
-          {t("screenshots_sign_in")}
-        </Button>
-      </div>
-    );
-  }
-
-  if (!screenshot.canComment && !isEditing) {
-    const noticeKey = getComposerNoticeKey(screenshot, isOwner);
-    if (!noticeKey) return null;
-
-    return (
-      <div className="screenshot-comments__notice">
-        <p>{t(noticeKey)}</p>
-      </div>
-    );
-  }
-
-  const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-    onSubmit();
-  };
-
-  return (
-    <form className="screenshot-comments__composer" onSubmit={handleSubmit}>
-      {isEditing ? (
-        <span className="screenshot-comments__editing-label">
-          {t("screenshots_comment_editing")}
-        </span>
-      ) : null}
-      <HorizontalFocusGroup regionId={focusIds.composerRegion} asChild>
-        <div className="screenshot-comments__composer-row">
-          <Input
-            className="screenshot-comments__input"
-            placeholder={t("screenshots_comment_placeholder")}
-            value={value}
-            maxLength={SCREENSHOT_COMMENT_MAX_LENGTH}
-            disabled={isSubmitting}
-            focusId={focusIds.input}
-            focusNavigationOverrides={{ left: leftTarget }}
-            aria-label={t("screenshots_comment_placeholder")}
-            onChange={(event) => onChange(event.target.value)}
-          />
-          {isEditing ? (
-            <Button
-              variant="secondary"
-              size="icon"
-              focusId={focusIds.cancelEdit}
-              disabled={isSubmitting}
-              icon={<XIcon size={18} />}
-              aria-label={t("screenshots_cancel")}
-              title={t("screenshots_cancel")}
-              onClick={onCancelEdit}
-            >
-              {null}
-            </Button>
-          ) : null}
-          <Button
-            size="icon"
-            focusId={focusIds.send}
-            loading={isSubmitting}
-            disabled={value.trim().length === 0}
-            icon={<PaperPlaneRightIcon size={18} />}
-            aria-label={t(
-              isEditing ? "screenshots_save" : "screenshots_comment_send"
-            )}
-            title={t(
-              isEditing ? "screenshots_save" : "screenshots_comment_send"
-            )}
-            focusNavigationOverrides={{ right: { type: "block" } }}
-            onClick={onSubmit}
-          >
-            {null}
-          </Button>
-        </div>
-      </HorizontalFocusGroup>
-      <span className="screenshot-comments__counter">
-        {value.length}/{SCREENSHOT_COMMENT_MAX_LENGTH}
-      </span>
-    </form>
-  );
-}
-
 interface CommentsListStatusProps {
   status: CommentsStatus;
   isEmpty: boolean;
@@ -648,7 +475,6 @@ export function ScreenshotCommentsPanel({
     setComments,
     setTotal,
   } = useScreenshotComments(screenshot, isAvailable, Boolean(viewerId));
-  const [draft, setDraft] = useState("");
   const [editingComment, setEditingComment] =
     useState<ScreenshotComment | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -665,7 +491,6 @@ export function ScreenshotCommentsPanel({
   const isOverlayOpen = Boolean(menu || deletingComment || reportingComment);
 
   useEffect(() => {
-    setDraft("");
     setEditingComment(null);
     setMenu(null);
   }, [screenshot.id]);
@@ -700,30 +525,36 @@ export function ScreenshotCommentsPanel({
     [recordWrite, setComments]
   );
 
-  const submit = useCallback(async () => {
-    const body = normalizeScreenshotCommentBody(draft);
-    if (!body || isSubmitting) return;
+  const submit = useCallback(
+    async (html: string) => {
+      const bodyHtml = normalizeScreenshotCommentBody(html);
+      if (!bodyHtml || isSubmitting) return false;
 
-    setIsSubmitting(true);
+      setIsSubmitting(true);
 
-    try {
-      if (editingComment) {
-        const updated =
-          await globalThis.window.electron.hydraApi.patch<ScreenshotComment>(
-            buildUserScreenshotCommentPath(
-              ownerId,
-              screenshot.id,
-              editingComment.id
-            ),
-            { data: { body }, needsAuth: true }
+      try {
+        if (editingComment) {
+          const updated =
+            await globalThis.window.electron.hydraApi.patch<ScreenshotComment>(
+              buildUserScreenshotCommentPath(
+                ownerId,
+                screenshot.id,
+                editingComment.id
+              ),
+              { data: { bodyHtml }, needsAuth: true }
+            );
+          replaceComment(
+            editingComment.id,
+            updated ?? { bodyHtml, editedAt: Date.now() }
           );
-        replaceComment(editingComment.id, updated ?? { body });
-        setEditingComment(null);
-      } else {
+          setEditingComment(null);
+          return true;
+        }
+
         const created =
           await globalThis.window.electron.hydraApi.post<ScreenshotComment>(
             buildUserScreenshotCommentsPath(ownerId, screenshot.id),
-            { data: { body }, needsAuth: true }
+            { data: { bodyHtml }, needsAuth: true }
           );
         if (created) {
           recordWrite({ kind: "add", comment: created });
@@ -731,26 +562,27 @@ export function ScreenshotCommentsPanel({
           setTotal((current) => current + 1);
           onCommentCountChange(screenshot.id, 1);
         }
+        return true;
+      } catch (error) {
+        showError(error);
+        return false;
+      } finally {
+        setIsSubmitting(false);
       }
-      setDraft("");
-    } catch (error) {
-      showError(error);
-    } finally {
-      setIsSubmitting(false);
-    }
-  }, [
-    draft,
-    editingComment,
-    recordWrite,
-    isSubmitting,
-    onCommentCountChange,
-    ownerId,
-    replaceComment,
-    screenshot.id,
-    setComments,
-    setTotal,
-    showError,
-  ]);
+    },
+    [
+      editingComment,
+      recordWrite,
+      isSubmitting,
+      onCommentCountChange,
+      ownerId,
+      replaceComment,
+      screenshot.id,
+      setComments,
+      setTotal,
+      showError,
+    ]
+  );
 
   const vote = useCallback(
     async (comment: ScreenshotComment, voteType: ScreenshotCommentVoteType) => {
@@ -811,10 +643,7 @@ export function ScreenshotCommentsPanel({
       );
       setTotal((current) => Math.max(0, current - 1));
       if (!deletingComment.isHidden) onCommentCountChange(screenshot.id, -1);
-      if (editingComment?.id === deletingComment.id) {
-        setEditingComment(null);
-        setDraft("");
-      }
+      if (editingComment?.id === deletingComment.id) setEditingComment(null);
       setDeletingComment(null);
       showSuccessToast(t("screenshots_comment_deleted"), {
         fallbackVisual: "settings",
@@ -908,7 +737,6 @@ export function ScreenshotCommentsPanel({
 
   const startEditing = (comment: ScreenshotComment) => {
     setEditingComment(comment);
-    setDraft(comment.body);
     globalThis.window.requestAnimationFrame(() => {
       setFocus(focusIds.input);
     });
@@ -982,15 +810,10 @@ export function ScreenshotCommentsPanel({
           isOwner={isOwner}
           focusIds={focusIds}
           leftTarget={leftTarget}
-          value={draft}
-          isEditing={Boolean(editingComment)}
+          editingComment={editingComment}
           isSubmitting={isSubmitting}
-          onChange={setDraft}
-          onSubmit={() => void submit()}
-          onCancelEdit={() => {
-            setEditingComment(null);
-            setDraft("");
-          }}
+          onSubmit={submit}
+          onCancelEdit={() => setEditingComment(null)}
         />
 
         <ContextMenu
