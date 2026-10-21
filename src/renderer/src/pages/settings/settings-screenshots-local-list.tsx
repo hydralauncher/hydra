@@ -7,11 +7,15 @@ import { Button, ConfirmationModal, ProgressBar } from "@renderer/components";
 import { useUserDetails } from "@renderer/hooks";
 import { logger } from "@renderer/logger";
 import {
+  toLocalScreenshotUrl,
+  useLocalScreenshotViewer,
   getScreenshotModerationReasonKey,
   getScreenshotUploadErrorKey,
   isScreenshotUploadRetryable,
 } from "@shared";
 import type { LocalScreenshot, ScreenshotUploadProgress } from "@types";
+
+import { SettingsScreenshotsViewer } from "./settings-screenshots-viewer";
 
 const SCREENSHOTS_PAGE_SIZE = 24;
 
@@ -41,8 +45,6 @@ const toVisibleScreenshots = (screenshots: LocalScreenshot[]) =>
   screenshots
     .filter((screenshot) => screenshot.state !== "deleted")
     .toSorted((a, b) => b.capturedAt - a.capturedAt);
-
-const toLocalImageSrc = (path: string) => `local:${path.replaceAll("\\", "/")}`;
 
 const getScreenshotTitle = (screenshot: LocalScreenshot) =>
   (screenshot.shop === "custom" && screenshot.customGameTitle) ||
@@ -95,6 +97,8 @@ export function SettingsScreenshotsLocalList() {
     () => toVisibleScreenshots(screenshots),
     [screenshots]
   );
+
+  const viewer = useLocalScreenshotViewer(visibleScreenshots);
 
   const setBusy = (clientId: string, isBusy: boolean) =>
     setBusyClientIds((previous) =>
@@ -175,6 +179,28 @@ export function SettingsScreenshotsLocalList() {
     [t, tCapture, tModeration]
   );
 
+  const isRetryable = (screenshot: LocalScreenshot) =>
+    screenshot.state === "failed" &&
+    isScreenshotUploadRetryable(screenshot.lastError);
+
+  const canOfferUploadFor = (screenshot: LocalScreenshot) =>
+    screenshot.state === "local" || screenshot.state === "reviewing";
+
+  const getUploadActionLabel = (screenshot: LocalScreenshot) =>
+    isRetryable(screenshot)
+      ? t("screenshots_retry_tooltip")
+      : t("screenshots_upload_tooltip");
+
+  const getViewerUploadAction = (screenshot: LocalScreenshot) => {
+    if (!canOfferUploadFor(screenshot) && !isRetryable(screenshot)) return null;
+    const blocker = getUploadBlocker(screenshot);
+    return {
+      label: blocker ?? getUploadActionLabel(screenshot),
+      isRetry: isRetryable(screenshot),
+      disabled: blocker !== null || busyClientIds.includes(screenshot.clientId),
+    };
+  };
+
   const getUploadBlocker = (screenshot: LocalScreenshot) => {
     if (!userDetails) return t("screenshots_sign_in_to_upload");
     if (screenshot.ownerId !== null && screenshot.ownerId !== userDetails.id) {
@@ -213,15 +239,10 @@ export function SettingsScreenshotsLocalList() {
             const title = getScreenshotTitle(screenshot);
             const capturedAt = new Date(screenshot.capturedAt).toLocaleString();
             const isBusy = busyClientIds.includes(screenshot.clientId);
-            const canOfferUpload =
-              screenshot.state === "local" || screenshot.state === "reviewing";
-            const canRetry =
-              screenshot.state === "failed" &&
-              isScreenshotUploadRetryable(screenshot.lastError);
+            const canRetry = isRetryable(screenshot);
+            const canOfferUpload = canOfferUploadFor(screenshot);
             const uploadBlocker = getUploadBlocker(screenshot);
-            const uploadActionLabel = canRetry
-              ? t("screenshots_retry_tooltip")
-              : t("screenshots_upload_tooltip");
+            const uploadActionLabel = getUploadActionLabel(screenshot);
             const showOwnerHint =
               (canOfferUpload || canRetry) &&
               Boolean(userDetails) &&
@@ -235,14 +256,21 @@ export function SettingsScreenshotsLocalList() {
                 data-state={screenshot.state}
               >
                 <div className="settings-screenshots__thumbnail">
-                  <img
-                    src={toLocalImageSrc(screenshot.path)}
-                    alt={tCapture("screenshot_alt", {
-                      game: title,
-                      date: capturedAt,
-                    })}
-                    loading="lazy"
-                  />
+                  <button
+                    type="button"
+                    className="settings-screenshots__thumbnail-button"
+                    aria-label={t("screenshots_open_viewer", { title })}
+                    onClick={() => viewer.open(screenshot.clientId)}
+                  >
+                    <img
+                      src={toLocalScreenshotUrl(screenshot.path)}
+                      alt={tCapture("screenshot_alt", {
+                        game: title,
+                        date: capturedAt,
+                      })}
+                      loading="lazy"
+                    />
+                  </button>
 
                   <span
                     className={cn(
@@ -333,6 +361,25 @@ export function SettingsScreenshotsLocalList() {
           {t("screenshots_show_more")}
         </Button>
       )}
+
+      <SettingsScreenshotsViewer
+        screenshot={viewer.current}
+        index={viewer.index}
+        count={visibleScreenshots.length}
+        title={viewer.current ? getScreenshotTitle(viewer.current) : ""}
+        statusLabel={viewer.current ? getStatus(viewer.current).label : ""}
+        hasPrevious={viewer.hasPrevious}
+        hasNext={viewer.hasNext}
+        uploadAction={
+          viewer.current ? getViewerUploadAction(viewer.current) : null
+        }
+        isBlocked={pendingDelete !== null}
+        onPrevious={viewer.previous}
+        onNext={viewer.next}
+        onClose={viewer.close}
+        onUpload={(screenshot) => void handleUpload(screenshot)}
+        onDelete={setPendingDelete}
+      />
 
       <ConfirmationModal
         visible={pendingDelete !== null}
