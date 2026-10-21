@@ -15,6 +15,7 @@ import cn from "classnames";
 import { Button } from "../button/button";
 import { ConfirmationModal } from "../confirmation-modal/confirmation-modal";
 import { useDate } from "@renderer/hooks";
+import { useScreenshotImageFallback } from "@shared";
 import type { ProfileScreenshot } from "@types";
 
 import { ScreenshotLightboxPanel } from "./screenshot-lightbox-panel";
@@ -28,7 +29,7 @@ import "./screenshot-lightbox.scss";
 
 interface ScreenshotMediaProps {
   screenshot: ProfileScreenshot;
-  onImageError: (screenshot: ProfileScreenshot) => void;
+  onImageError: (screenshot: ProfileScreenshot) => Promise<void>;
 }
 
 function ScreenshotMedia({
@@ -39,10 +40,10 @@ function ScreenshotMedia({
   const { formatDate } = useDate();
   const { isHidden: isSpoilerHidden, reveal } =
     useScreenshotSpoiler(screenshot);
-  const [failedImageUrl, setFailedImageUrl] = useState<string | null>(null);
-  const hasImage = Boolean(
-    screenshot.imageUrl && screenshot.imageUrl !== failedImageUrl
-  );
+  const { hasImage, isRefreshing, handleImageError } =
+    useScreenshotImageFallback(screenshot.imageUrl, () =>
+      onImageError(screenshot)
+    );
   const altText = t("screenshot_alt", {
     game: getScreenshotGameTitle(screenshot, t),
     date: formatDate(screenshot.capturedAt),
@@ -56,7 +57,9 @@ function ScreenshotMedia({
         aria-label={altText}
       >
         <ImageIcon size={48} />
-        <span>{t("image_unavailable")}</span>
+        <span>
+          {isRefreshing ? t("loading_screenshot") : t("image_unavailable")}
+        </span>
       </div>
     );
   }
@@ -70,10 +73,7 @@ function ScreenshotMedia({
         })}
         src={screenshot.imageUrl ?? undefined}
         alt={altText}
-        onError={() => {
-          setFailedImageUrl(screenshot.imageUrl);
-          onImageError(screenshot);
-        }}
+        onError={() => void handleImageError()}
       />
       {isSpoilerHidden ? (
         <button
@@ -282,7 +282,7 @@ function ScreenshotLightboxContent({
         <ScreenshotMedia
           key={screenshot.id}
           screenshot={screenshot}
-          onImageError={(item) => void lightbox.refreshScreenshot(item)}
+          onImageError={lightbox.refreshScreenshot}
         />
         <ScreenshotLightboxNav
           previousItem={previousItem}

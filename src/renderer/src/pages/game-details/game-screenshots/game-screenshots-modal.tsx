@@ -142,6 +142,7 @@ export function GameScreenshotsModal({
               showCommentCount={showCommentCount}
               onOpen={lightbox.open}
               onLike={(item) => void actions.toggleLike(item)}
+              onImageError={lightbox.refreshScreenshot}
             />
           ))}
         </ul>

@@ -79,6 +79,7 @@ function GameScreenshotsBox({
                 showCommentCount={showCommentCount}
                 onOpen={lightbox.open}
                 onLike={(item) => void actions.toggleLike(item)}
+                onImageError={lightbox.refreshScreenshot}
               />
             </li>
           ))}
