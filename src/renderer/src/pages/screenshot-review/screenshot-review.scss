@@ -123,6 +123,10 @@
       border-color: globals.$muted-color;
       opacity: 1;
     }
+
+    &:disabled {
+      cursor: progress;
+    }
   }
 
   &__thumb-status {

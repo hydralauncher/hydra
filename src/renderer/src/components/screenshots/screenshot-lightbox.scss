@@ -149,7 +149,7 @@
     min-height: 0;
     flex-direction: column;
     gap: calc(globals.$spacing-unit * 2);
-    padding: calc(globals.$spacing-unit * 2);
+    padding: calc(globals.$spacing-unit * 2) calc(globals.$spacing-unit * 2) 0;
     overflow-x: hidden;
     overflow-y: auto;
     border-left: 1px solid globals.$border-color;
@@ -305,53 +305,6 @@
     }
   }
 
-  &__notice {
-    display: flex;
-    align-items: flex-start;
-    gap: globals.$spacing-unit;
-    padding: calc(globals.$spacing-unit * 1.5);
-    border: 1px solid globals.$border-color;
-    border-radius: 8px;
-    font-size: globals.$small-font-size;
-
-    > svg {
-      flex-shrink: 0;
-      margin-top: 2px;
-    }
-
-    div {
-      display: flex;
-      min-width: 0;
-      flex-direction: column;
-      gap: 4px;
-    }
-
-    strong {
-      color: globals.$muted-color;
-      font-size: globals.$body-font-size;
-    }
-
-    &--pending {
-      border-color: rgba(255, 193, 7, 0.35);
-      background: globals.$dark-background-color;
-      color: globals.$body-color;
-
-      > svg {
-        color: globals.$warning-color;
-      }
-    }
-
-    &--blocked {
-      border-color: rgba(225, 29, 72, 0.45);
-      background: globals.$dark-background-color;
-      color: globals.$body-color;
-
-      > svg {
-        color: globals.$error-color;
-      }
-    }
-  }
-
   &__actions {
     display: flex;
     flex-wrap: wrap;
@@ -394,6 +347,16 @@
     &--active {
       color: #fff;
     }
+
+    &--icon {
+      width: 36px;
+      padding: 0;
+    }
+
+    &--danger:hover:not(:disabled) {
+      border-color: rgba(225, 29, 72, 0.6);
+      color: globals.$error-color;
+    }
   }
 
   &__section-title {
@@ -409,9 +372,58 @@
   &__owner {
     display: flex;
     flex-direction: column;
-    gap: calc(globals.$spacing-unit * 1.5);
-    padding-top: calc(globals.$spacing-unit * 2);
     border-top: 1px solid globals.$border-color;
+  }
+
+  &__owner-toggle {
+    display: flex;
+    width: 100%;
+    align-items: center;
+    gap: globals.$spacing-unit;
+    padding: calc(globals.$spacing-unit * 1.5) 0;
+    border: 0;
+    background: transparent;
+    color: globals.$muted-color;
+    cursor: pointer;
+    font-family: inherit;
+    font-size: globals.$body-font-size;
+    font-weight: 600;
+    text-align: left;
+    transition: opacity 0.2s ease;
+
+    span {
+      flex: 1;
+    }
+
+    &:hover {
+      opacity: 0.85;
+    }
+
+    &:focus-visible {
+      border-radius: 4px;
+      outline: 2px solid globals.$muted-color;
+      outline-offset: 2px;
+    }
+  }
+
+  &__owner-chevron {
+    flex-shrink: 0;
+    transition: transform 0.2s ease;
+  }
+
+  &__owner--expanded &__owner-chevron {
+    transform: rotate(180deg);
+  }
+
+  &__owner-content {
+    display: flex;
+    flex-direction: column;
+    gap: calc(globals.$spacing-unit * 1.5);
+    padding-bottom: calc(globals.$spacing-unit * 2);
+  }
+
+  &__tooltip {
+    z-index: 20;
   }
 
   &__title-form {
@@ -457,10 +469,58 @@
 
 .screenshot-comments {
   display: flex;
+  flex: 1 0 auto;
   flex-direction: column;
   gap: calc(globals.$spacing-unit * 1.5);
+  min-height: 240px;
   padding-top: calc(globals.$spacing-unit * 2);
   border-top: 1px solid globals.$border-color;
+
+  &__feed {
+    display: flex;
+    flex: 1 0 auto;
+    flex-direction: column;
+    gap: calc(globals.$spacing-unit * 1.5);
+  }
+
+  &__composer {
+    position: sticky;
+    bottom: 0;
+    z-index: 1;
+    margin: 0 calc(globals.$spacing-unit * -2);
+    padding: calc(globals.$spacing-unit * 1.5) calc(globals.$spacing-unit * 2)
+      calc(globals.$spacing-unit * 2);
+    border-top: 1px solid globals.$border-color;
+    background: globals.$background-color;
+  }
+
+  &__empty-state {
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: globals.$spacing-unit;
+    padding: calc(globals.$spacing-unit * 3) calc(globals.$spacing-unit * 2);
+    text-align: center;
+  }
+
+  &__empty-state-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.06);
+    color: rgba(255, 255, 255, 0.6);
+  }
+
+  &__empty-state-title {
+    margin: 0;
+    color: rgba(255, 255, 255, 0.9);
+    font-weight: 600;
+  }
 
   &__input {
     display: flex;

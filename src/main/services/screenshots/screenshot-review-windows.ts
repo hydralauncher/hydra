@@ -35,7 +35,6 @@ interface ReviewSession {
 const sessions = new Map<string, ReviewSession>();
 const reviewWindows = new Set<BrowserWindow>();
 const windowClosedListeners = new Set<() => void>();
-const bigPictureReviewClientIds = new Set<string>();
 const sessionQueues = new Map<string, Promise<unknown>>();
 let pendingBigPictureRequest: ScreenshotReviewRequest | null = null;
 
@@ -238,9 +237,6 @@ const watchBigPictureHandoff = (
   const release = () => {
     if (released) return;
     released = true;
-    for (const clientId of clientIds) {
-      bigPictureReviewClientIds.delete(clientId);
-    }
     if (
       pendingBigPictureRequest?.clientIds.some((clientId) =>
         clientIds.includes(clientId)
@@ -263,7 +259,6 @@ const handOffToBigPicture = (session: ReviewSession) => {
   if (!clientIds.length) return true;
 
   session.handedToBigPicture = true;
-  for (const clientId of clientIds) bigPictureReviewClientIds.add(clientId);
   watchBigPictureHandoff(bigPicture, clientIds);
   for (const { window } of session.windows) {
     if (!window.isDestroyed()) window.destroy();
@@ -335,7 +330,8 @@ export class ScreenshotReviewWindows {
       if (gameWindowHandle) session.gameWindowHandle = gameWindowHandle;
 
       const openEntry = await findOpenEntry(session);
-      if (openEntry) {
+      if (sessions.get(gameKey) !== session) sessions.set(gameKey, session);
+      if (openEntry && !openEntry.window.isDestroyed()) {
         openEntry.clientIds = [...openEntry.clientIds, screenshot.clientId];
         sendReviewItems(openEntry);
       } else {
@@ -375,12 +371,14 @@ export class ScreenshotReviewWindows {
     await showSessionWindows(session);
   }
 
-  public static async onGameClosed(gameKey: string) {
-    const session = sessions.get(gameKey);
-    if (!session) return;
+  public static onGameClosed(gameKey: string) {
+    return runInSessionQueue(gameKey, async () => {
+      const session = sessions.get(gameKey);
+      if (!session) return;
 
-    session.isGameRunning = false;
-    await presentClosedSession(session);
+      session.isGameRunning = false;
+      await presentClosedSession(session);
+    });
   }
 
   public static isScreenshotUnderReview(clientId: string) {
@@ -401,22 +399,6 @@ export class ScreenshotReviewWindows {
     };
   }
 
-  public static isScreenshotWatched(clientId: string) {
-    const hasReviewWindow = [...sessions.values()].some((session) =>
-      session.windows.some(
-        ({ window, clientIds }) =>
-          !window.isDestroyed() && clientIds.includes(clientId)
-      )
-    );
-    if (hasReviewWindow) return true;
-
-    if (!WindowManager.bigPictureWindow) {
-      bigPictureReviewClientIds.clear();
-      return false;
-    }
-    return bigPictureReviewClientIds.has(clientId);
-  }
-
   public static async requestBigPictureReview(
     request: ScreenshotReviewRequest
   ) {
@@ -430,9 +412,6 @@ export class ScreenshotReviewWindows {
         )
       )
     );
-    for (const clientId of request.clientIds) {
-      bigPictureReviewClientIds.add(clientId);
-    }
     watchBigPictureHandoff(bigPicture, request.clientIds);
     sendBigPictureRequest(bigPicture, request);
     return true;
@@ -454,10 +433,6 @@ export class ScreenshotReviewWindows {
     if (pendingBigPictureRequest === request) pendingBigPictureRequest = null;
 
     return clientIds.length ? { ...request, clientIds } : null;
-  }
-
-  public static markBigPictureReview(clientId: string) {
-    bigPictureReviewClientIds.add(clientId);
   }
 
   public static getReviewItemsForSender(sender: Electron.WebContents) {

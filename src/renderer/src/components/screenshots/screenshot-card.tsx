@@ -2,8 +2,6 @@ import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { motion } from "framer-motion";
 import {
-  BlockedIcon,
-  ClockIcon,
   EyeClosedIcon,
   HeartFillIcon,
   HeartIcon,
@@ -95,18 +93,6 @@ function ScreenshotOwnerBadges({
 
   return (
     <div className="screenshot-card__badges">
-      {screenshot.moderationStatus === "PENDING" ? (
-        <span className="screenshot-card__badge screenshot-card__badge--pending">
-          <ClockIcon size={12} />
-          {t("status_pending")}
-        </span>
-      ) : null}
-      {screenshot.moderationStatus === "BLOCKED" ? (
-        <span className="screenshot-card__badge screenshot-card__badge--blocked">
-          <BlockedIcon size={12} />
-          {t("status_blocked")}
-        </span>
-      ) : null}
       {screenshot.visibility === "PRIVATE" ? (
         <span
           className="screenshot-card__badge screenshot-card__badge--icon"
@@ -294,11 +280,7 @@ export function ScreenshotCard({
   });
 
   return (
-    <li
-      className={cn("screenshot-card", {
-        "screenshot-card--blocked": screenshot.moderationStatus === "BLOCKED",
-      })}
-    >
+    <li className="screenshot-card">
       <ScreenshotCardMedia
         screenshot={screenshot}
         altText={altText}
@@ -307,13 +289,11 @@ export function ScreenshotCard({
 
       {isOwner ? <ScreenshotOwnerBadges screenshot={screenshot} /> : null}
 
-      {isApproved ? (
-        <ScreenshotCardLike
-          screenshot={screenshot}
-          isLiking={isLiking}
-          onLike={onLike}
-        />
-      ) : null}
+      <ScreenshotCardLike
+        screenshot={screenshot}
+        isLiking={isLiking || !isApproved}
+        onLike={onLike}
+      />
 
       <ScreenshotCardDetails screenshot={screenshot} variant={variant} />
     </li>

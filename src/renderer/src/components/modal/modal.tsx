@@ -62,7 +62,7 @@ export function Modal({
     )
       return false;
 
-    const openModals = document.querySelectorAll("[role=dialog]");
+    const openModals = document.querySelectorAll("[role=dialog], dialog[open]");
 
     return (
       openModals.length &&
