@@ -49,6 +49,7 @@ const RECOVERY_BY_ERROR_CODE: Record<string, ScreenshotUploadRecoveryAction> = {
   "screenshots/upload-capacity-reached": "wait",
   "screenshots/disabled-for-game": "terminal",
   "screenshots/limit-reached": "terminal",
+  "screenshots/blocked-limit-reached": "terminal",
   screenshot_too_large: "terminal",
   screenshot_unreadable: "terminal",
   [SCREENSHOT_FEATURE_DISABLED_CODE]: "pause",

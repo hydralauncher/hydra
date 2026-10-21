@@ -73,6 +73,8 @@ const buildUploadFailure = (
       return apiError(403, { message: "screenshots/disabled-for-game" });
     case "limit_reached":
       return apiError(400, { message: "screenshots/limit-reached" });
+    case "blocked_limit_reached":
+      return apiError(403, { message: "screenshots/blocked-limit-reached" });
     case "game_not_found":
       return apiError(404, { message: "game/not-found" });
     case "already_uploaded":

@@ -3,6 +3,7 @@ import { useTranslation } from "react-i18next";
 import {
   CopyIcon,
   EyeClosedIcon,
+  GearIcon,
   HeartFillIcon,
   HeartIcon,
   ReportIcon,
@@ -18,7 +19,6 @@ import { AuthPage } from "@shared";
 import type { ProfileScreenshot } from "@types";
 
 import { ScreenshotComments } from "./screenshot-comments";
-import { ScreenshotOwnerControls } from "./screenshot-owner-controls";
 import { getScreenshotGameTitle } from "./screenshot-labels";
 import type { ScreenshotFailure } from "./use-screenshot-actions";
 import type { ScreenshotPatch } from "@shared";
@@ -114,6 +114,7 @@ interface ScreenshotPanelActionsProps {
   actions: ScreenshotActions;
   isOwner: boolean;
   isApproved: boolean;
+  onRequestManage: () => void;
   onRequestDelete: () => void;
   onRequestReport: () => void;
 }
@@ -123,6 +124,7 @@ function ScreenshotPanelActions({
   actions,
   isOwner,
   isApproved,
+  onRequestManage,
   onRequestDelete,
   onRequestReport,
 }: Readonly<ScreenshotPanelActionsProps>) {
@@ -135,6 +137,7 @@ function ScreenshotPanelActions({
   const copyLabel = t("copy_image");
   const reportLabel = t(isReported ? "reported" : "report_screenshot");
   const deleteLabel = t("delete_screenshot");
+  const manageLabel = t("manage_screenshot");
 
   const handleReportClick = () => {
     if (!userDetails) {
@@ -167,45 +170,63 @@ function ScreenshotPanelActions({
         <span>{screenshot.likeCount}</span>
       </button>
 
-      <button
-        type="button"
-        className="screenshot-lightbox__action screenshot-lightbox__action--icon screenshot-lightbox__copy"
-        onClick={() => void actions.copyImage(screenshot)}
-        disabled={!screenshot.imageUrl || actions.copyingIds.has(screenshot.id)}
-        aria-label={copyLabel}
-        data-tooltip-id={tooltipId}
-        data-tooltip-content={copyLabel}
-      >
-        <CopyIcon size={16} />
-      </button>
-
-      {isOwner ? (
+      <div className="screenshot-lightbox__action-group">
         <button
           type="button"
-          className="screenshot-lightbox__action screenshot-lightbox__action--icon screenshot-lightbox__action--danger screenshot-lightbox__delete"
-          onClick={onRequestDelete}
-          disabled={actions.deletingIds.has(screenshot.id)}
-          aria-label={deleteLabel}
+          className="screenshot-lightbox__action screenshot-lightbox__action--icon screenshot-lightbox__copy"
+          onClick={() => void actions.copyImage(screenshot)}
+          disabled={
+            !screenshot.imageUrl || actions.copyingIds.has(screenshot.id)
+          }
+          aria-label={copyLabel}
           data-tooltip-id={tooltipId}
-          data-tooltip-content={deleteLabel}
+          data-tooltip-content={copyLabel}
         >
-          <TrashIcon size={16} />
+          <CopyIcon size={16} />
         </button>
-      ) : null}
 
-      {!isOwner && isApproved ? (
-        <button
-          type="button"
-          className="screenshot-lightbox__action screenshot-lightbox__action--icon screenshot-lightbox__report"
-          onClick={handleReportClick}
-          disabled={isReported || actions.reportingIds.has(screenshot.id)}
-          aria-label={reportLabel}
-          data-tooltip-id={tooltipId}
-          data-tooltip-content={reportLabel}
-        >
-          <ReportIcon size={16} />
-        </button>
-      ) : null}
+        {isOwner ? (
+          <button
+            type="button"
+            className="screenshot-lightbox__action screenshot-lightbox__action--icon screenshot-lightbox__manage"
+            onClick={onRequestManage}
+            disabled={actions.updatingIds.has(screenshot.id)}
+            aria-label={manageLabel}
+            data-tooltip-id={tooltipId}
+            data-tooltip-content={manageLabel}
+          >
+            <GearIcon size={16} />
+          </button>
+        ) : null}
+
+        {isOwner ? (
+          <button
+            type="button"
+            className="screenshot-lightbox__action screenshot-lightbox__action--icon screenshot-lightbox__action--danger screenshot-lightbox__delete"
+            onClick={onRequestDelete}
+            disabled={actions.deletingIds.has(screenshot.id)}
+            aria-label={deleteLabel}
+            data-tooltip-id={tooltipId}
+            data-tooltip-content={deleteLabel}
+          >
+            <TrashIcon size={16} />
+          </button>
+        ) : null}
+
+        {!isOwner && isApproved ? (
+          <button
+            type="button"
+            className="screenshot-lightbox__action screenshot-lightbox__action--icon screenshot-lightbox__report"
+            onClick={handleReportClick}
+            disabled={isReported || actions.reportingIds.has(screenshot.id)}
+            aria-label={reportLabel}
+            data-tooltip-id={tooltipId}
+            data-tooltip-content={reportLabel}
+          >
+            <ReportIcon size={16} />
+          </button>
+        ) : null}
+      </div>
 
       <Tooltip
         id={tooltipId}
@@ -223,6 +244,7 @@ interface ScreenshotLightboxPanelProps {
   onPatch: (screenshotId: string, patch: ScreenshotPatch) => void;
   onFailure: (screenshotId: string, failure: ScreenshotFailure) => void;
   onClose: () => void;
+  onRequestManage: () => void;
   onRequestDelete: () => void;
   onRequestReport: () => void;
 }
@@ -233,6 +255,7 @@ export function ScreenshotLightboxPanel({
   onPatch,
   onFailure,
   onClose,
+  onRequestManage,
   onRequestDelete,
   onRequestReport,
 }: Readonly<ScreenshotLightboxPanelProps>) {
@@ -252,17 +275,10 @@ export function ScreenshotLightboxPanel({
         actions={actions}
         isOwner={isOwner}
         isApproved={isApproved}
+        onRequestManage={onRequestManage}
         onRequestDelete={onRequestDelete}
         onRequestReport={onRequestReport}
       />
-
-      {isOwner ? (
-        <ScreenshotOwnerControls
-          screenshot={screenshot}
-          isUpdating={actions.updatingIds.has(screenshot.id)}
-          onUpdate={(update) => actions.updateScreenshot(screenshot, update)}
-        />
-      ) : null}
 
       {isCommentsEnabled ? (
         <ScreenshotComments

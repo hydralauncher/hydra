@@ -127,6 +127,10 @@ export interface GalleryLightboxProps {
     context: GalleryImageRenderContext
   ) => ReactNode;
   renderSidebar?: (item: GalleryMediaItem, index: number) => ReactNode;
+  getCaption?: (
+    item: GalleryMediaItem,
+    context: { isSidebarOpen: boolean }
+  ) => string | null;
   showFilmstrip?: boolean;
   showCounter?: boolean;
   hasMoreAfter?: boolean;
@@ -267,6 +271,7 @@ function GalleryLightboxContent({
   onPresentationChange,
   renderImage,
   renderSidebar,
+  getCaption,
   showFilmstrip: allowFilmstrip = true,
   showCounter = true,
   hasMoreAfter = false,
@@ -278,6 +283,7 @@ function GalleryLightboxContent({
   const { t } = useTranslation("game_details");
   const dialogRef = useRef<HTMLDialogElement>(null);
   const rootRef = useRef<HTMLDivElement>(null);
+  const sidebarRef = useRef<HTMLDivElement>(null);
   const filmstripRef = useRef<HTMLDivElement>(null);
   const filmstripDrag = useDragScroll();
   const idleTimerRef = useRef<number>();
@@ -322,6 +328,15 @@ function GalleryLightboxContent({
     (sidebarOverride?.isFullscreen === isFullscreen
       ? sidebarOverride.isOpen
       : !isFullscreen);
+
+  useEffect(() => {
+    const sidebar = sidebarRef.current;
+    if (!sidebar) return;
+    sidebar.toggleAttribute("inert", !isSidebarOpen);
+    if (!isSidebarOpen && sidebar.contains(document.activeElement)) {
+      rootRef.current?.focus({ preventScroll: true });
+    }
+  }, [isSidebarOpen]);
 
   const toggleSidebar = () => {
     setSidebarOverride({ isFullscreen, isOpen: !isSidebarOpen });
@@ -865,6 +880,7 @@ function GalleryLightboxContent({
 
   const showFilmstrip =
     allowFilmstrip && items.length > 1 && !(isFullscreen && isVideo);
+  const caption = getCaption ? getCaption(item, { isSidebarOpen }) : item.alt;
   const sidebarLabel = isSidebarOpen
     ? t("lightbox_hide_details")
     : t("lightbox_show_details");
@@ -940,7 +956,9 @@ function GalleryLightboxContent({
                 {index + 1} / {items.length}
               </span>
             )}
-            <span className="gallery-lightbox__title">{item.alt}</span>
+            {caption && (
+              <span className="gallery-lightbox__title">{caption}</span>
+            )}
           </div>
 
           {hasSidebar && (
@@ -1088,9 +1106,11 @@ function GalleryLightboxContent({
           </div>
         )}
 
-        {isSidebarOpen && renderSidebar && (
+        {renderSidebar && (
           <div
+            ref={sidebarRef}
             className="gallery-lightbox__sidebar"
+            hidden={!isSidebarOpen}
             data-gallery-chrome
             data-gallery-scrollable
           >
