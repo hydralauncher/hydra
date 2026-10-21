@@ -1,4 +1,5 @@
 @use "../../scss/globals.scss";
+@use "./screenshot-motion.scss" as motion;
 
 .screenshot-card {
   position: relative;
@@ -54,8 +55,8 @@
     height: 100%;
     object-fit: cover;
     transition:
-      filter 0.2s ease,
-      transform 0.2s ease;
+      filter motion.$transition-duration ease,
+      transform motion.$transition-duration ease;
   }
 
   &__placeholder,
@@ -75,7 +76,7 @@
   &__hover {
     color: globals.$muted-color;
     opacity: 0;
-    transition: opacity 0.2s ease;
+    transition: opacity motion.$transition-duration ease;
     pointer-events: none;
   }
 
@@ -136,8 +137,8 @@
   &__like {
     cursor: pointer;
     transition:
-      background-color 0.2s ease,
-      color 0.2s ease;
+      background-color motion.$transition-duration ease,
+      color motion.$transition-duration ease;
 
     &:hover:not(:disabled) {
       background: rgba(0, 0, 0, 0.75);

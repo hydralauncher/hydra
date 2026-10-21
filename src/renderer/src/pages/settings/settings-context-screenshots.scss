@@ -276,6 +276,12 @@
     padding: 0;
     justify-content: center;
 
+    &--field {
+      width: 40px;
+      min-width: 40px;
+      height: 40px;
+    }
+
     &--danger:not(:disabled):hover {
       border-color: globals.$error-color;
       color: globals.$error-color;

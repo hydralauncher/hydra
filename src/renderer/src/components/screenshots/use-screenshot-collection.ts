@@ -10,8 +10,10 @@ import {
   type ScreenshotFailure,
 } from "./use-screenshot-actions";
 import {
+  applyScreenshotPatch,
   useScreenshotFeed,
   type ScreenshotFeedPage,
+  type ScreenshotPatch,
 } from "./use-screenshot-feed";
 
 const getScreenshotFailure = (error: unknown): ScreenshotFailure | null => {
@@ -80,9 +82,7 @@ export function useScreenshotCollection({
   const detachedFetchedAtRef = useRef(new Map<string, number>());
   const writeVersionsRef = useRef(new Map<string, number>());
   const lastWriteAtRef = useRef(new Map<string, number>());
-  const inFlightPatchesRef = useRef(
-    new Map<string, Partial<ProfileScreenshot>>()
-  );
+  const inFlightPatchesRef = useRef(new Map<string, ScreenshotPatch[]>());
   const refreshedIdsRef = useRef(new Set<string>());
 
   const openId = openTarget?.screenshotId ?? null;
@@ -112,22 +112,19 @@ export function useScreenshotCollection({
   );
 
   const onPatch = useCallback(
-    (screenshotId: string, patch: Partial<ProfileScreenshot>) => {
+    (screenshotId: string, patch: ScreenshotPatch) => {
       bumpWriteVersion(writeVersionsRef.current, screenshotId);
       lastWriteAtRef.current.set(screenshotId, performance.now());
-      const inFlightPatch = inFlightPatchesRef.current.get(screenshotId);
-      if (inFlightPatch) {
-        inFlightPatchesRef.current.set(screenshotId, {
-          ...inFlightPatch,
-          ...patch,
-        });
-      }
+      inFlightPatchesRef.current.get(screenshotId)?.push(patch);
       patchItem(screenshotId, patch);
       setDetachedById((current) =>
         screenshotId in current
           ? {
               ...current,
-              [screenshotId]: { ...current[screenshotId], ...patch },
+              [screenshotId]: applyScreenshotPatch(
+                current[screenshotId],
+                patch
+              ),
             }
           : current
       );
@@ -171,20 +168,20 @@ export function useScreenshotCollection({
 
     const startedAt = performance.now();
     requestTokensRef.current.set(screenshotId, token);
-    inFlightPatchesRef.current.set(screenshotId, {});
+    inFlightPatchesRef.current.set(screenshotId, []);
     fetchedIdsRef.current.add(screenshotId);
     setLoadingIds((current) => new Set(current).add(screenshotId));
 
     fetchScreenshot(ownerId, screenshotId)
       .then((item) => {
         if (!isCurrentRequest()) return;
-        const localPatch = inFlightPatchesRef.current.get(screenshotId) ?? {};
+        const localPatches = inFlightPatchesRef.current.get(screenshotId) ?? [];
         inFlightPatchesRef.current.delete(screenshotId);
         if (item) {
           detachedFetchedAtRef.current.set(screenshotId, startedAt);
           setDetachedById((current) => ({
             ...current,
-            [screenshotId]: { ...item, ...localPatch },
+            [screenshotId]: localPatches.reduce(applyScreenshotPatch, item),
           }));
         } else {
           markFailure(screenshotId, "unavailable");

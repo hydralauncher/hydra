@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { TrashIcon } from "@primer/octicons-react";
 import { useTranslation } from "react-i18next";
 import type { LocalScreenshot, ProfileVisibility } from "@types";
 import {
@@ -20,6 +21,7 @@ import {
   getLocalImageSource,
   isScreenshotAwaitingReview,
   isScreenshotEditable,
+  isScreenshotKeptLocally,
   toUploadOptions,
   type ScreenshotReviewDraft,
 } from "./screenshot-review-state";
@@ -106,6 +108,18 @@ export function ScreenshotReviewItem({
     if (visibility) onDraftChange({ ...draft, visibility });
   };
 
+  const renderDeleteButton = () => (
+    <Button
+      className="screenshot-review-item__delete"
+      theme="outline"
+      disabled={isBusy}
+      onClick={() => setIsDeleteModalVisible(true)}
+    >
+      <TrashIcon size={14} />
+      {t("delete")}
+    </Button>
+  );
+
   const renderActions = () => {
     if (isScreenshotAwaitingReview(screenshot)) {
       return (
@@ -116,13 +130,18 @@ export function ScreenshotReviewItem({
           <Button theme="outline" disabled={isBusy} onClick={handleSkip}>
             {t("skip")}
           </Button>
-          <Button
-            theme="danger"
-            disabled={isBusy}
-            onClick={() => setIsDeleteModalVisible(true)}
-          >
-            {t("delete")}
+          {renderDeleteButton()}
+        </>
+      );
+    }
+
+    if (isScreenshotKeptLocally(screenshot)) {
+      return (
+        <>
+          <Button disabled={isBusy} onClick={handleUpload}>
+            {t("upload")}
           </Button>
+          {renderDeleteButton()}
         </>
       );
     }
@@ -135,13 +154,7 @@ export function ScreenshotReviewItem({
               {t("retry")}
             </Button>
           )}
-          <Button
-            theme="danger"
-            disabled={isBusy}
-            onClick={() => setIsDeleteModalVisible(true)}
-          >
-            {t("delete")}
-          </Button>
+          {renderDeleteButton()}
           {canClose && (
             <Button theme="outline" onClick={() => window.close()}>
               {t("close")}

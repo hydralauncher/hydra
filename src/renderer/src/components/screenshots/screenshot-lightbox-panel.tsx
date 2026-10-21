@@ -16,7 +16,7 @@ import { Tooltip } from "react-tooltip";
 import { Avatar } from "../avatar/avatar";
 import { Link } from "../link/link";
 import { buildGameDetailsPath } from "@renderer/helpers";
-import { useDate, useUserDetails } from "@renderer/hooks";
+import { useDate, useFeature, useUserDetails } from "@renderer/hooks";
 import { AuthPage } from "@shared";
 import type { ProfileScreenshot } from "@types";
 
@@ -24,6 +24,7 @@ import { ScreenshotComments } from "./screenshot-comments";
 import { ScreenshotOwnerControls } from "./screenshot-owner-controls";
 import { getScreenshotGameTitle } from "./screenshot-labels";
 import type { ScreenshotFailure } from "./use-screenshot-actions";
+import type { ScreenshotPatch } from "./use-screenshot-feed";
 import type { ScreenshotCollection } from "./use-screenshot-collection";
 
 type ScreenshotActions = ScreenshotCollection["actions"];
@@ -240,7 +241,7 @@ interface ScreenshotLightboxPanelProps {
   screenshot: ProfileScreenshot;
   actions: ScreenshotActions;
   closeButtonRef: RefObject<HTMLButtonElement>;
-  onPatch: (screenshotId: string, patch: Partial<ProfileScreenshot>) => void;
+  onPatch: (screenshotId: string, patch: ScreenshotPatch) => void;
   onFailure: (screenshotId: string, failure: ScreenshotFailure) => void;
   onClose: () => void;
   onRequestDelete: () => void;
@@ -259,7 +260,9 @@ export function ScreenshotLightboxPanel({
 }: Readonly<ScreenshotLightboxPanelProps>) {
   const { t } = useTranslation("screenshots");
   const { userDetails } = useUserDetails();
+  const { isFeatureEnabled, Feature } = useFeature();
   const isOwner = userDetails?.id === screenshot.owner.id;
+  const isCommentsEnabled = isFeatureEnabled(Feature.ScreenshotComments);
   const isApproved =
     !screenshot.moderationStatus || screenshot.moderationStatus === "APPROVED";
 
@@ -298,13 +301,15 @@ export function ScreenshotLightboxPanel({
         />
       ) : null}
 
-      <ScreenshotComments
-        key={screenshot.id}
-        screenshot={screenshot}
-        onPatch={onPatch}
-        onFailure={onFailure}
-        onNavigateAway={onClose}
-      />
+      {isCommentsEnabled ? (
+        <ScreenshotComments
+          key={screenshot.id}
+          screenshot={screenshot}
+          onPatch={onPatch}
+          onFailure={onFailure}
+          onNavigateAway={onClose}
+        />
+      ) : null}
     </aside>
   );
 }

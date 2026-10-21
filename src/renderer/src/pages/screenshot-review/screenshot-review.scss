@@ -88,13 +88,42 @@
   &__strip {
     display: flex;
     gap: globals.$spacing-unit;
+    min-width: 0;
     overflow-x: auto;
-    padding-bottom: calc(globals.$spacing-unit / 2);
+    scrollbar-width: thin;
+    scrollbar-color: transparent transparent;
+
+    &:hover {
+      scrollbar-color: rgba(255, 255, 255, 0.24) transparent;
+    }
+
+    &::-webkit-scrollbar {
+      height: 4px;
+      background-color: transparent;
+    }
+
+    &::-webkit-scrollbar-thumb {
+      background-color: transparent;
+      border-radius: 4px;
+    }
+
+    &:hover::-webkit-scrollbar-thumb {
+      background-color: rgba(255, 255, 255, 0.24);
+    }
+
+    &--overflowing {
+      padding-bottom: calc(globals.$spacing-unit / 2);
+      mask-image: linear-gradient(
+        to right,
+        #000000 calc(100% - 24px),
+        transparent
+      );
+    }
   }
 
   &__thumb {
     position: relative;
-    flex: 0 0 88px;
+    flex: 0 0 calc((100% - 4 * #{globals.$spacing-unit}) / 5);
     aspect-ratio: 16 / 9;
     padding: 0;
     overflow: hidden;
@@ -140,6 +169,10 @@
 
     &--pending {
       background-color: globals.$muted-color;
+    }
+
+    &--kept {
+      background-color: globals.$body-color;
     }
 
     &--progress {
@@ -209,9 +242,9 @@
 
   &__preview {
     position: relative;
-    flex-shrink: 0;
+    flex: 1 1 252px;
     width: 100%;
-    aspect-ratio: 16 / 9;
+    min-height: 160px;
     overflow: hidden;
     background-color: #000000;
     border: 1px solid globals.$border-color;
@@ -331,5 +364,15 @@
     .screenshot-review-status__title {
       color: #fb7185;
     }
+  }
+}
+
+.screenshot-review-item__delete {
+  svg {
+    color: globals.$error-color;
+  }
+
+  &:not(:disabled):hover {
+    border-color: globals.$error-color;
   }
 }

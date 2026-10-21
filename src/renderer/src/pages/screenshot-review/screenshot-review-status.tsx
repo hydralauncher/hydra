@@ -31,6 +31,10 @@ export function ScreenshotReviewStatus({
   const { t: tModeration } = useTranslation("screenshots_moderation");
 
   const getMessage = (): StatusMessage | null => {
+    if (screenshot.state === "local") {
+      return { tone: "neutral", title: t("kept_locally"), detail: null };
+    }
+
     if (screenshot.state === "queued") {
       const detailKey = getQueuedMessageKey(screenshot.lastError);
       return {
