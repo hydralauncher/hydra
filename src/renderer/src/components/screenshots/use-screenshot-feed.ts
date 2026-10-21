@@ -28,11 +28,13 @@ const applyWritesSince = (
 ) => {
   let result = items;
   let removedCount = 0;
+  let hasRemovals = false;
 
   for (const write of writes) {
     if (write.version <= sinceVersion) continue;
 
     if (write.patch === null) {
+      hasRemovals = true;
       const next = result.filter((item) => item.id !== write.screenshotId);
       removedCount += result.length - next.length;
       result = next;
@@ -44,7 +46,7 @@ const applyWritesSince = (
     }
   }
 
-  return { items: result, removedCount };
+  return { items: result, removedCount, hasRemovals };
 };
 
 const getReadStartedAt = () => performance.now();
@@ -159,8 +161,11 @@ export function useScreenshotFeed({
       const merged = finishRead(page, sinceVersion, startedAt);
       setItems((current) => mergeScreenshotPages(current, merged.items));
       setNextCursor(page.nextCursor);
-      if (page.total !== undefined) {
-        setTotal(Math.max(0, page.total - merged.removedCount));
+      const pageTotal = page.total;
+      if (pageTotal !== undefined) {
+        setTotal((current) =>
+          merged.hasRemovals ? current : Math.max(0, pageTotal)
+        );
       }
     } catch (error) {
       if (requestId === requestIdRef.current) {
