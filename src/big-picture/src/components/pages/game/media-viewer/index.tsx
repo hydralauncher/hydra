@@ -276,10 +276,9 @@ export function MediaViewer({
   }, []);
   const isViewerOnTop = useCallback(
     () =>
-      !hasSidebar ||
-      (layerIdRef.current !== null &&
-        navigationService.getActiveLayerId() === layerIdRef.current),
-    [hasSidebar]
+      layerIdRef.current !== null &&
+      navigationService.getActiveLayerId() === layerIdRef.current,
+    []
   );
   const { t } = useTranslation("game_details");
   const { onButtonPressed, isActiveGamepadEvent } = useGamepad();
@@ -495,7 +494,7 @@ export function MediaViewer({
 
     const onKeyDown = (event: KeyboardEvent) => {
       if (isModifiedOrRepeatedKey(event)) return;
-      if (hasSidebar && (isTypingInField() || !isViewerOnTop())) return;
+      if (!isViewerOnTop() || (hasSidebar && isTypingInField())) return;
 
       const step = getKeyboardStep(event, hasSidebar);
       if (step !== 0 && (event.shiftKey || !getActiveVideo())) {
@@ -540,23 +539,19 @@ export function MediaViewer({
     wake();
   }, [getActiveVideo, wake]);
 
-  const sidebarScreenActions = isViewerLayerOnTop
+  const stageScreenActions = hasSidebar
     ? { press: { b: handleBack } }
-    : {};
+    : {
+        press: { b: handleBack, x: handleToggleMute, y: handleQualityMenu },
+        direction: {
+          left: () => handleDirection("left"),
+          right: () => handleDirection("right"),
+          up: () => handleDirection("up"),
+          down: () => handleDirection("down"),
+        },
+      };
 
-  useNavigationScreenActions(
-    hasSidebar
-      ? sidebarScreenActions
-      : {
-          press: { b: handleBack, x: handleToggleMute, y: handleQualityMenu },
-          direction: {
-            left: () => handleDirection("left"),
-            right: () => handleDirection("right"),
-            up: () => handleDirection("up"),
-            down: () => handleDirection("down"),
-          },
-        }
-  );
+  useNavigationScreenActions(isViewerLayerOnTop ? stageScreenActions : {});
 
   useEffect(() => {
     const navigateWithBumper = (nextIndex: number) => {
@@ -821,6 +816,7 @@ export function MediaViewer({
               initialFocusId={STAGE_FOCUS_ID}
               restoreFocusOnUnmount
             >
+              <MediaViewerLayerReporter onLayerChange={handleLayerChange} />
               {stageRegion}
             </NavigationLayer>
             {chrome}
