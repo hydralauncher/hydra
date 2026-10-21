@@ -211,6 +211,10 @@
   list-style: none;
   gap: calc(globals.$spacing-unit * 1.5);
   grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+
+  &--large {
+    grid-template-columns: repeat(auto-fill, minmax(290px, 1fr));
+  }
 }
 
 .screenshot-load-more-error {

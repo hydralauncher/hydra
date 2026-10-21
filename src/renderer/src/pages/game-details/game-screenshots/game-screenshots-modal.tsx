@@ -12,6 +12,7 @@ import {
   ScreenshotLoadMoreError,
   readStoredScreenshotSort,
   storeScreenshotPreference,
+  useLoadUntilScrollable,
 } from "@renderer/components/screenshots";
 import { GAME_SCREENSHOT_SORT_STORAGE_KEY } from "@renderer/session-state-keys";
 import {
@@ -97,6 +98,14 @@ export function GameScreenshotsModal({
     if (shouldAutoLoadSpoilerPage(input)) void feed.loadMore();
   }, [canLoadMore, feed, hideSpoilers, loadedCount, visibleCount]);
 
+  useLoadUntilScrollable({
+    scrollTargetId: scrollId,
+    canLoadMore:
+      visible && feed.hasLoaded && canLoadMore && !isSpoilerPagingOnHold,
+    itemCount: feed.items.length,
+    loadMore: feed.loadMore,
+  });
+
   const loadMoreByRequest = () => {
     spoilerPagingRef.current = resumeSpoilerPaging(spoilerPagingRef.current);
     setIsSpoilerPagingOnHold(false);
@@ -149,9 +158,11 @@ export function GameScreenshotsModal({
           feed.hasMore && !feed.hasLoadMoreFailed && !isSpoilerPagingOnHold
         }
         loader={
-          <output className="game-screenshots-modal__loading">
-            {t("loading_screenshots")}
-          </output>
+          feed.isLoading ? (
+            <output className="game-screenshots-modal__loading">
+              {t("loading_screenshots")}
+            </output>
+          ) : null
         }
         scrollThreshold={INFINITE_SCROLL_THRESHOLD}
         scrollableTarget={scrollId}
