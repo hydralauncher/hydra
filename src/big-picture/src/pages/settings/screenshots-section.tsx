@@ -492,6 +492,161 @@ function LocalScreenshotRow({
   );
 }
 
+interface ScreenshotSettingsRowsOptions {
+  isDefaultHotkey: boolean;
+  hasCustomFolder: boolean;
+  localScreenshots: LocalScreenshot[];
+  comboDraft: ScreenshotGamepadButton[];
+  canAddComboButton: boolean;
+  isDefaultCombo: boolean;
+  settingsDisabled: boolean;
+  isGamepadComboDisabled: boolean;
+  isSignedIn: boolean;
+}
+
+const ids = SCREENSHOT_SETTINGS_FOCUS_IDS;
+
+const getLocalScreenshotRow = (screenshot: LocalScreenshot) =>
+  canUploadLocalScreenshot(screenshot)
+    ? [
+        getLocalViewFocusId(screenshot.clientId),
+        getLocalUploadFocusId(screenshot.clientId),
+        getLocalDeleteFocusId(screenshot.clientId),
+      ]
+    : [
+        getLocalViewFocusId(screenshot.clientId),
+        getLocalDeleteFocusId(screenshot.clientId),
+      ];
+
+const getComboRow = (comboDraft: ScreenshotGamepadButton[]) =>
+  comboDraft.flatMap((_, index) =>
+    index >= SCREENSHOT_GAMEPAD_COMBO_MIN_BUTTONS
+      ? [getGamepadSlotFocusId(index), getGamepadRemoveFocusId(index)]
+      : [getGamepadSlotFocusId(index)]
+  );
+
+const getComboActionsRow = (
+  canAddComboButton: boolean,
+  isDefaultCombo: boolean
+) => {
+  const row: string[] = [];
+  if (canAddComboButton) row.push(ids.gamepadAdd);
+  if (!isDefaultCombo) row.push(ids.gamepadReset);
+  return row;
+};
+
+function getInactiveFocusIds(
+  options: ScreenshotSettingsRowsOptions,
+  comboIds: string[]
+) {
+  const inactiveIds = new Set<string>();
+
+  if (options.settingsDisabled) {
+    inactiveIds.add(ids.hotkey);
+    inactiveIds.add(ids.hotkeyReset);
+    inactiveIds.add(ids.defaultVisibility);
+  }
+  if (options.isGamepadComboDisabled) {
+    for (const focusId of comboIds) inactiveIds.add(focusId);
+  }
+  if (!options.isSignedIn) {
+    for (const screenshot of options.localScreenshots)
+      inactiveIds.add(getLocalUploadFocusId(screenshot.clientId));
+  }
+
+  return inactiveIds;
+}
+
+function buildScreenshotSettingsRows(options: ScreenshotSettingsRowsOptions) {
+  const hotkeyRow = options.isDefaultHotkey
+    ? [ids.hotkey]
+    : [ids.hotkey, ids.hotkeyReset];
+  const folderRow = options.hasCustomFolder
+    ? [ids.folder, ids.folderReset, ids.folderOpen]
+    : [ids.folder, ids.folderOpen];
+  const comboRow = getComboRow(options.comboDraft);
+  const comboActionsRow = getComboActionsRow(
+    options.canAddComboButton,
+    options.isDefaultCombo
+  );
+  const inactiveIds = getInactiveFocusIds(options, [
+    ...comboRow,
+    ...comboActionsRow,
+  ]);
+
+  return [
+    [ids.enabled],
+    hotkeyRow,
+    [ids.gamepadEnabled],
+    comboRow,
+    comboActionsRow,
+    [ids.captureSound],
+    [ids.toast],
+    [ids.borderFlash],
+    [ids.askToUpload],
+    [ids.defaultVisibility],
+    folderRow,
+    ...options.localScreenshots.map(getLocalScreenshotRow),
+  ]
+    .map((row) => row.filter((focusId) => !inactiveIds.has(focusId)))
+    .filter((row) => row.length > 0);
+}
+
+interface SettingsLocalScreenshotViewerProps {
+  viewer: ReturnType<typeof useLocalScreenshotViewer>;
+  count: number;
+  language: string;
+  isSignedIn: boolean;
+  isBlocked: boolean;
+  onUpload: (screenshot: LocalScreenshot) => void;
+  onDelete: (screenshot: LocalScreenshot) => void;
+}
+
+function getLocalScreenshotMeta(
+  screenshot: LocalScreenshot,
+  t: (key: string, options?: Record<string, unknown>) => string,
+  language: string
+) {
+  const status = t(getLocalStatusKey(screenshot), {
+    progress: Math.round((screenshot.uploadProgress ?? 0) * 100),
+  });
+
+  return `${formatScreenshotDate(screenshot.capturedAt, language)} · ${status}`;
+}
+
+function SettingsLocalScreenshotViewer({
+  viewer,
+  count,
+  language,
+  isSignedIn,
+  isBlocked,
+  onUpload,
+  onDelete,
+}: Readonly<SettingsLocalScreenshotViewerProps>) {
+  const { t } = useTranslation("big_picture");
+  const { current } = viewer;
+
+  return (
+    <LocalScreenshotViewer
+      screenshot={current}
+      index={viewer.index}
+      count={count}
+      title={current ? getLocalScreenshotTitle(current, t) : ""}
+      meta={current ? getLocalScreenshotMeta(current, t, language) : ""}
+      canUpload={current ? canUploadLocalScreenshot(current) : false}
+      isSignedIn={isSignedIn}
+      isBlocked={isBlocked}
+      hasPrevious={viewer.hasPrevious}
+      hasNext={viewer.hasNext}
+      onPrevious={viewer.previous}
+      onNext={viewer.next}
+      onClose={viewer.close}
+      onUpload={onUpload}
+      onDelete={onDelete}
+    />
+  );
+}
+
 interface ScreenshotSettingsSectionProps {
   upFocusId: string | null;
 }
@@ -685,83 +840,35 @@ export function ScreenshotSettingsSection({
     );
   };
 
-  const ids = SCREENSHOT_SETTINGS_FOCUS_IDS;
   const isDefaultHotkey = isSameScreenshotHotkey(
     preferences.hotkey,
     DEFAULT_SCREENSHOT_HOTKEY
   );
-  const rows = useMemo(() => {
-    const hotkeyRow = isDefaultHotkey
-      ? [ids.hotkey]
-      : [ids.hotkey, ids.hotkeyReset];
-    const folderRow = hasCustomFolder
-      ? [ids.folder, ids.folderReset, ids.folderOpen]
-      : [ids.folder, ids.folderOpen];
-    const localRows = localScreenshots.map((screenshot) =>
-      canUploadLocalScreenshot(screenshot)
-        ? [
-            getLocalViewFocusId(screenshot.clientId),
-            getLocalUploadFocusId(screenshot.clientId),
-            getLocalDeleteFocusId(screenshot.clientId),
-          ]
-        : [
-            getLocalViewFocusId(screenshot.clientId),
-            getLocalDeleteFocusId(screenshot.clientId),
-          ]
-    );
-
-    const comboRow = gamepadCombo.draft.flatMap((_, index) =>
-      index >= SCREENSHOT_GAMEPAD_COMBO_MIN_BUTTONS
-        ? [getGamepadSlotFocusId(index), getGamepadRemoveFocusId(index)]
-        : [getGamepadSlotFocusId(index)]
-    );
-    const comboActionsRow: string[] = [];
-    if (gamepadCombo.canAdd) comboActionsRow.push(ids.gamepadAdd);
-    if (!gamepadCombo.isDefault) comboActionsRow.push(ids.gamepadReset);
-
-    const inactiveIds = new Set<string>();
-    if (settingsDisabled) {
-      inactiveIds.add(ids.hotkey);
-      inactiveIds.add(ids.hotkeyReset);
-      inactiveIds.add(ids.defaultVisibility);
-    }
-    if (isGamepadComboDisabled) {
-      for (const focusId of [...comboRow, ...comboActionsRow])
-        inactiveIds.add(focusId);
-    }
-    if (!userDetails) {
-      for (const screenshot of localScreenshots)
-        inactiveIds.add(getLocalUploadFocusId(screenshot.clientId));
-    }
-
-    return [
-      [ids.enabled],
-      hotkeyRow,
-      [ids.gamepadEnabled],
-      comboRow,
-      comboActionsRow,
-      [ids.captureSound],
-      [ids.toast],
-      [ids.borderFlash],
-      [ids.askToUpload],
-      [ids.defaultVisibility],
-      folderRow,
-      ...localRows,
+  const rows = useMemo(
+    () =>
+      buildScreenshotSettingsRows({
+        isDefaultHotkey,
+        hasCustomFolder,
+        localScreenshots,
+        comboDraft: gamepadCombo.draft,
+        canAddComboButton: gamepadCombo.canAdd,
+        isDefaultCombo: gamepadCombo.isDefault,
+        settingsDisabled,
+        isGamepadComboDisabled,
+        isSignedIn: Boolean(userDetails),
+      }),
+    [
+      gamepadCombo.canAdd,
+      gamepadCombo.draft,
+      gamepadCombo.isDefault,
+      hasCustomFolder,
+      isDefaultHotkey,
+      isGamepadComboDisabled,
+      localScreenshots,
+      settingsDisabled,
+      userDetails,
     ]
-      .map((row) => row.filter((focusId) => !inactiveIds.has(focusId)))
-      .filter((row) => row.length > 0);
-  }, [
-    gamepadCombo.canAdd,
-    gamepadCombo.draft,
-    gamepadCombo.isDefault,
-    hasCustomFolder,
-    ids,
-    isDefaultHotkey,
-    isGamepadComboDisabled,
-    localScreenshots,
-    settingsDisabled,
-    userDetails,
-  ]);
+  );
 
   const navigation = useMemo(
     () =>
@@ -1090,35 +1197,12 @@ export function ScreenshotSettingsSection({
             )}
           </div>
 
-          <LocalScreenshotViewer
-            screenshot={viewer.current}
-            index={viewer.index}
+          <SettingsLocalScreenshotViewer
+            viewer={viewer}
             count={localScreenshots.length}
-            title={
-              viewer.current ? getLocalScreenshotTitle(viewer.current, t) : ""
-            }
-            meta={
-              viewer.current
-                ? `${formatScreenshotDate(viewer.current.capturedAt, language)} · ${t(
-                    getLocalStatusKey(viewer.current),
-                    {
-                      progress: Math.round(
-                        (viewer.current.uploadProgress ?? 0) * 100
-                      ),
-                    }
-                  )}`
-                : ""
-            }
-            canUpload={
-              viewer.current ? canUploadLocalScreenshot(viewer.current) : false
-            }
+            language={language}
             isSignedIn={Boolean(userDetails)}
             isBlocked={Boolean(deleting)}
-            hasPrevious={viewer.hasPrevious}
-            hasNext={viewer.hasNext}
-            onPrevious={viewer.previous}
-            onNext={viewer.next}
-            onClose={viewer.close}
             onUpload={(target) => void uploadLocal(target)}
             onDelete={setDeleting}
           />

@@ -184,15 +184,30 @@ export function GameScreenshotsModal({
   const canLoadMore = feed.hasMore && !feed.isLoadingMore && !feed.error;
   const { loadMore } = feed;
 
+  const requestMore = useCallback(() => {
+    loadMore().catch((error: unknown) => {
+      logger.error("Failed to load more game screenshots", error);
+    });
+  }, [loadMore]);
+
+  const loadNextPage = () => {
+    if (feed.error === "page") {
+      feed.retry();
+      return;
+    }
+
+    requestMore();
+  };
+
   useEffect(() => {
     if (
       hideSpoilers &&
       canLoadMore &&
       visibleItems.length < MIN_VISIBLE_WHEN_FILTERED
     ) {
-      void loadMore();
+      requestMore();
     }
-  }, [canLoadMore, hideSpoilers, loadMore, visibleItems.length]);
+  }, [canLoadMore, hideSpoilers, requestMore, visibleItems.length]);
 
   const sortOptions = useMemo<DropdownSelectOption<ScreenshotSort>[]>(
     () => [
@@ -258,9 +273,7 @@ export function GameScreenshotsModal({
                   focusId={GAME_SCREENSHOTS_MODAL_LOAD_MORE_ID}
                   className="game-screenshots-modal__load-more"
                   loading={feed.isLoadingMore}
-                  onClick={() =>
-                    void (feed.error === "page" ? feed.retry() : loadMore())
-                  }
+                  onClick={loadNextPage}
                 >
                   {t(
                     feed.error === "page"
