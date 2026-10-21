@@ -117,11 +117,17 @@
 
 .rank-frame {
   --rank-frame-color: var(--rank-gold-color, #{globals.$rank-gold-color});
-  --rank-frame-soft: #{rgba(globals.$rank-gold-color, 0.4)};
+  --rank-frame-soft-amount: 40%;
 
   position: relative;
 
   &::before {
+    --rank-frame-soft: color-mix(
+      in srgb,
+      var(--rank-frame-color) var(--rank-frame-soft-amount),
+      transparent
+    );
+
     content: "";
     position: absolute;
     inset: 0;
@@ -134,7 +140,7 @@
         transparent 0deg,
         transparent 190deg,
         var(--rank-frame-color) 290deg,
-        #fff 315deg,
+        var(--rank-frame-highlight, #fff) 315deg,
         var(--rank-frame-color) 335deg,
         transparent 360deg
       ),
@@ -147,7 +153,7 @@
 
   &--silver {
     --rank-frame-color: var(--rank-silver-color, #{globals.$rank-silver-color});
-    --rank-frame-soft: #{rgba(globals.$rank-silver-color, 0.34)};
+    --rank-frame-soft-amount: 34%;
 
     &::before {
       animation-delay: -1.5s;
@@ -156,7 +162,7 @@
 
   &--bronze {
     --rank-frame-color: var(--rank-bronze-color, #{globals.$rank-bronze-color});
-    --rank-frame-soft: #{rgba(globals.$rank-bronze-color, 0.42)};
+    --rank-frame-soft-amount: 42%;
 
     &::before {
       animation-delay: -3s;
