@@ -1,6 +1,7 @@
 import { gamesShopCacheSublevel } from "@main/level";
 import {
   buildSteamContentWarning,
+  isAdultGameContentWarning,
   isGameContentWarning,
   UNKNOWN_GAME_CONTENT_WARNING,
 } from "@shared";
@@ -52,6 +53,9 @@ const resolveWarning = async (
 ): Promise<GameContentWarning> => {
   if (shop === "custom") return UNKNOWN_GAME_CONTENT_WARNING;
 
+  const local = await readLocalShopCacheWarning(shop, objectId);
+  if (local && isAdultGameContentWarning(local)) return local;
+
   const remote = await fetchRemoteWarning(shop, objectId).catch((error) => {
     logger.warn("Could not fetch the game content warning", {
       shop,
@@ -63,7 +67,6 @@ const resolveWarning = async (
 
   if (remote && remote.level !== "unknown") return remote;
 
-  const local = await readLocalShopCacheWarning(shop, objectId);
   return local ?? remote ?? UNKNOWN_GAME_CONTENT_WARNING;
 };
 
