@@ -137,13 +137,16 @@ export function ScreenshotReview() {
     action: (screenshot: LocalScreenshot) => Promise<unknown>
   ) => {
     setIsBulkBusy(true);
-    try {
-      for (const screenshot of pendingScreenshots) await action(screenshot);
-    } catch (error) {
-      logger.error("Failed to apply the bulk screenshot action", error);
-    } finally {
-      setIsBulkBusy(false);
+    const results = await Promise.allSettled(pendingScreenshots.map(action));
+    for (const result of results) {
+      if (result.status === "rejected") {
+        logger.error(
+          "Failed to apply the bulk screenshot action",
+          result.reason
+        );
+      }
     }
+    setIsBulkBusy(false);
   };
 
   const handleUploadAll = () =>
