@@ -36,8 +36,9 @@ export const applyScreenshotFeedWrites = (
     hasLaterWrites = true;
 
     if (write.patch === null) {
-      result = result.filter((item) => item.id !== write.screenshotId);
-      netCountDelta -= 1;
+      const remaining = result.filter((item) => item.id !== write.screenshotId);
+      netCountDelta -= result.length - remaining.length;
+      result = remaining;
       continue;
     }
 

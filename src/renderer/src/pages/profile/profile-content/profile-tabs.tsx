@@ -8,6 +8,12 @@ export type ProfileTabType =
   | "souvenirs"
   | "screenshots";
 
+const TAB_INDICATOR_SPRING = {
+  type: "spring",
+  stiffness: 300,
+  damping: 30,
+} as const;
+
 interface ProfileTabsProps {
   activeTab: ProfileTabType;
   reviewsTotalCount: number;
@@ -65,11 +71,7 @@ export function ProfileTabs({
             <motion.div
               className="profile-content__tab-underline"
               layoutId="tab-underline"
-              transition={{
-                type: "spring",
-                stiffness: 300,
-                damping: 30,
-              }}
+              transition={TAB_INDICATOR_SPRING}
             />
           )}
         </div>
