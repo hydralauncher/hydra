@@ -79,6 +79,10 @@ export function useScreenshotCollection({
   const requestTokensRef = useRef(new Map<string, number>());
   const detachedFetchedAtRef = useRef(new Map<string, number>());
   const writeVersionsRef = useRef(new Map<string, number>());
+  const lastWriteAtRef = useRef(new Map<string, number>());
+  const inFlightPatchesRef = useRef(
+    new Map<string, Partial<ProfileScreenshot>>()
+  );
   const refreshedIdsRef = useRef(new Set<string>());
 
   const openId = openTarget?.screenshotId ?? null;
@@ -89,7 +93,12 @@ export function useScreenshotCollection({
   const detached = openId ? (detachedById[openId] ?? null) : null;
   const screenshot = pickNewerScreenshot(
     listItem,
-    listItem ? feed.getFetchedAt(listItem.id) : null,
+    listItem
+      ? Math.max(
+          feed.getFetchedAt(listItem.id) ?? 0,
+          lastWriteAtRef.current.get(listItem.id) ?? 0
+        )
+      : null,
     detached,
     detached ? (detachedFetchedAtRef.current.get(detached.id) ?? null) : null
   );
@@ -105,6 +114,14 @@ export function useScreenshotCollection({
   const onPatch = useCallback(
     (screenshotId: string, patch: Partial<ProfileScreenshot>) => {
       bumpWriteVersion(writeVersionsRef.current, screenshotId);
+      lastWriteAtRef.current.set(screenshotId, performance.now());
+      const inFlightPatch = inFlightPatchesRef.current.get(screenshotId);
+      if (inFlightPatch) {
+        inFlightPatchesRef.current.set(screenshotId, {
+          ...inFlightPatch,
+          ...patch,
+        });
+      }
       patchItem(screenshotId, patch);
       setDetachedById((current) =>
         screenshotId in current
@@ -154,21 +171,28 @@ export function useScreenshotCollection({
 
     const startedAt = performance.now();
     requestTokensRef.current.set(screenshotId, token);
+    inFlightPatchesRef.current.set(screenshotId, {});
     fetchedIdsRef.current.add(screenshotId);
     setLoadingIds((current) => new Set(current).add(screenshotId));
 
     fetchScreenshot(ownerId, screenshotId)
       .then((item) => {
         if (!isCurrentRequest()) return;
+        const localPatch = inFlightPatchesRef.current.get(screenshotId) ?? {};
+        inFlightPatchesRef.current.delete(screenshotId);
         if (item) {
           detachedFetchedAtRef.current.set(screenshotId, startedAt);
-          setDetachedById((current) => ({ ...current, [screenshotId]: item }));
+          setDetachedById((current) => ({
+            ...current,
+            [screenshotId]: { ...item, ...localPatch },
+          }));
         } else {
           markFailure(screenshotId, "unavailable");
         }
       })
       .catch((error) => {
         if (!isCurrentRequest()) return;
+        inFlightPatchesRef.current.delete(screenshotId);
         logger.error("Failed to load screenshot", error);
         markFailure(screenshotId, getScreenshotFailure(error) ?? "unavailable");
       })

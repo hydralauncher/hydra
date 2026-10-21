@@ -152,6 +152,7 @@ function ScreenshotPanelActions({
   const likeLabelKey = screenshot.likedByMe ? "unlike" : "like";
   const likeLabel = t(userDetails ? likeLabelKey : "sign_in_to_like");
   const copyLabel = t("copy_image");
+  const reportLabel = t(isReported ? "reported" : "report_screenshot");
   const deleteLabel = t("delete_screenshot");
 
   const handleReportClick = () => {
@@ -214,12 +215,14 @@ function ScreenshotPanelActions({
       {!isOwner && isApproved ? (
         <button
           type="button"
-          className="screenshot-lightbox__action screenshot-lightbox__report"
+          className="screenshot-lightbox__action screenshot-lightbox__action--icon screenshot-lightbox__report"
           onClick={handleReportClick}
           disabled={isReported || actions.reportingIds.has(screenshot.id)}
+          aria-label={reportLabel}
+          data-tooltip-id={tooltipId}
+          data-tooltip-content={reportLabel}
         >
           <ReportIcon size={16} />
-          <span>{t(isReported ? "reported" : "report")}</span>
         </button>
       ) : null}
 

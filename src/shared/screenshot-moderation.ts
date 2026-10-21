@@ -2,6 +2,7 @@ export const SCREENSHOT_MODERATION_REASON_KEYS = [
   "explicit_imagery",
   "hate_symbols",
   "invalid_image",
+  "moderation_failed",
   "personal_information",
   "real_world_gore",
 ] as const;

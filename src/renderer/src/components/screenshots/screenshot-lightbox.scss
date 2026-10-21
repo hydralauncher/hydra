@@ -149,7 +149,7 @@
     min-height: 0;
     flex-direction: column;
     gap: calc(globals.$spacing-unit * 2);
-    padding: calc(globals.$spacing-unit * 2) calc(globals.$spacing-unit * 2) 0;
+    padding: 0 calc(globals.$spacing-unit * 2);
     overflow-x: hidden;
     overflow-y: auto;
     border-left: 1px solid globals.$border-color;
@@ -157,10 +157,18 @@
   }
 
   &__header {
+    position: sticky;
+    top: 0;
+    z-index: 2;
     display: flex;
+    flex-shrink: 0;
     align-items: flex-start;
     justify-content: space-between;
     gap: globals.$spacing-unit;
+    margin: 0 calc(globals.$spacing-unit * -2);
+    padding: calc(globals.$spacing-unit * 2) calc(globals.$spacing-unit * 2)
+      globals.$spacing-unit;
+    background: globals.$background-color;
   }
 
   &__author {
@@ -185,14 +193,14 @@
     flex-direction: column;
     gap: 2px;
 
-    strong,
-    time {
+    strong {
       overflow: hidden;
       text-overflow: ellipsis;
       white-space: nowrap;
     }
 
     time {
+      overflow-wrap: anywhere;
       color: globals.$body-color;
       font-size: globals.$small-font-size;
       opacity: 0.8;
@@ -512,13 +520,13 @@
     width: 48px;
     height: 48px;
     border-radius: 50%;
-    background: rgba(255, 255, 255, 0.06);
-    color: rgba(255, 255, 255, 0.6);
+    background: globals.$dark-background-color;
+    color: globals.$body-color;
   }
 
   &__empty-state-title {
     margin: 0;
-    color: rgba(255, 255, 255, 0.9);
+    color: globals.$muted-color;
     font-weight: 600;
   }
 
@@ -744,5 +752,43 @@
 
   &__load-more {
     align-self: center;
+  }
+}
+
+@media (max-height: 560px) {
+  .screenshot-comments {
+    min-height: 160px;
+
+    &__composer {
+      padding: globals.$spacing-unit calc(globals.$spacing-unit * 2);
+    }
+
+    &__textarea {
+      height: 36px;
+      min-height: 36px;
+      padding-block: 6px;
+      resize: none;
+
+      &:focus,
+      &:not(:placeholder-shown) {
+        height: 64px;
+      }
+    }
+
+    &__input:has(.screenshot-comments__textarea:placeholder-shown):not(
+        :focus-within
+      )
+      .screenshot-comments__input-footer {
+      display: none;
+    }
+
+    &__empty-state {
+      padding: globals.$spacing-unit;
+    }
+
+    &__empty-state-icon {
+      width: 32px;
+      height: 32px;
+    }
   }
 }

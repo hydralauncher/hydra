@@ -125,6 +125,11 @@ export interface ScreenshotLikeResponse {
   likedByMe: boolean;
 }
 
+export interface ScreenshotUnlikeResponse {
+  likeCount?: number;
+  likedByMe: false;
+}
+
 export interface ScreenshotComment {
   id: string;
   body: string;
