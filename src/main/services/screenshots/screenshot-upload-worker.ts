@@ -615,7 +615,7 @@ class ScreenshotUploadWorker {
   private async pollModerationStatuses(
     ownerId: string,
     authContext: HydraApiAuthContext,
-    { includeBlocked = false }: { includeBlocked?: boolean } = {}
+    { explicit = false }: { explicit?: boolean } = {}
   ) {
     const now = Date.now();
     const candidates = (await LocalScreenshotStore.list())
@@ -625,8 +625,9 @@ class ScreenshotUploadWorker {
           screenshot.state === "uploaded" &&
           screenshot.screenshotId &&
           ((screenshot.moderationStatus === "PENDING" &&
-            now - (screenshot.uploadedAt ?? 0) < STATUS_POLL_MAX_AGE_MS) ||
-            (includeBlocked && screenshot.moderationStatus === "BLOCKED"))
+            (explicit ||
+              now - (screenshot.uploadedAt ?? 0) < STATUS_POLL_MAX_AGE_MS)) ||
+            (explicit && screenshot.moderationStatus === "BLOCKED"))
       )
       .toSorted(
         (a, b) =>
@@ -651,7 +652,7 @@ class ScreenshotUploadWorker {
 
     this.lastSettledRefreshAt = Date.now();
     await this.pollModerationStatuses(authContext.userId, authContext, {
-      includeBlocked: true,
+      explicit: true,
     });
   }
 
