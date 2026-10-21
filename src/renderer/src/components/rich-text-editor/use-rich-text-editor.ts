@@ -16,6 +16,40 @@ export const clearRichTextEditor = (editor: Editor | null | undefined) => {
   if (isRichTextEditorAvailable(editor)) editor.commands.clearContent(true);
 };
 
+export const clearRichTextEditorIfUnchanged = (
+  editor: Editor | null | undefined,
+  sentHtml: string
+) => {
+  if (isRichTextEditorAvailable(editor) && editor.getHTML() === sentHtml) {
+    editor.commands.clearContent(true);
+  }
+};
+
+interface SubmitRichTextEditorOptions {
+  clearOnSuccess?: boolean;
+}
+
+export const submitRichTextEditor = async (
+  editor: Editor | null | undefined,
+  send: (html: string) => Promise<boolean>,
+  { clearOnSuccess = false }: SubmitRichTextEditorOptions = {}
+) => {
+  if (!isRichTextEditorAvailable(editor) || !editor.isEditable) return false;
+
+  const sentHtml = editor.getHTML();
+  editor.setEditable(false, false);
+
+  try {
+    const wasSent = await send(sentHtml);
+    if (wasSent && clearOnSuccess) {
+      clearRichTextEditorIfUnchanged(editor, sentHtml);
+    }
+    return wasSent;
+  } finally {
+    if (isRichTextEditorAvailable(editor)) editor.setEditable(true, false);
+  }
+};
+
 const getHtmlTextLength = (html: string) => {
   const container = document.createElement("div");
   container.innerHTML = html;
@@ -127,6 +161,11 @@ export function useRichTextEditor({
     setHtmlLength(0);
   };
 
+  const submit = (
+    send: (html: string) => Promise<boolean>,
+    options?: SubmitRichTextEditorOptions
+  ) => submitRichTextEditor(editor, send, options);
+
   return {
     editor,
     charCount,
@@ -134,6 +173,7 @@ export function useRichTextEditor({
     isEmpty: !isRichTextEditorAvailable(editor) || !editor.getText().trim(),
     getHtml: () => (isRichTextEditorAvailable(editor) ? editor.getHTML() : ""),
     clear,
+    submit,
   };
 }
 

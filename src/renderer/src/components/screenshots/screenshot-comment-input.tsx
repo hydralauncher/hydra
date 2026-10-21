@@ -37,11 +37,15 @@ export function ScreenshotCommentInput({
   const submit = async () => {
     if (isDisabledRef.current) return;
 
-    const wasSubmitted = await onSubmit(getHtml());
-    if (wasSubmitted && !onCancel) clear();
+    await submitEditor(onSubmit, { clearOnSuccess: !onCancel });
   };
 
-  const { editor, charCount, htmlLength, getHtml, clear } = useRichTextEditor({
+  const {
+    editor,
+    charCount,
+    htmlLength,
+    submit: submitEditor,
+  } = useRichTextEditor({
     initialHtml: initialValue,
     placeholder,
     maxLength: SCREENSHOT_COMMENT_MAX_LENGTH,
