@@ -1,6 +1,6 @@
 @use "../../scss/globals.scss";
 @use "./screenshot-motion.scss" as motion;
-@use "../../scss/vote-button.scss" as vote;
+@use "../../scss/vote-button.scss";
 
 .screenshot-lightbox__overlay {
   position: fixed;
@@ -696,13 +696,13 @@
   }
 
   &__vote {
-    @include vote.vote-button;
+    @extend %vote-button;
 
     padding: 4px 10px;
     font-family: inherit;
 
     &--active {
-      @include vote.vote-button-active;
+      @extend %vote-button-active;
     }
 
     &:disabled {
