@@ -2379,7 +2379,6 @@
     "close": "Cerrar",
     "custom_game_default_title": "Juego personalizado",
     "custom_game_title_edit": "Editar el título del juego",
-    "custom_game_title_save": "Guardar",
     "delete": "Eliminar",
     "delete_confirm_button": "Eliminar captura",
     "delete_confirm_description": "El archivo se eliminará de este equipo. Las capturas que ya subiste se quedan en tu perfil.",
@@ -2514,6 +2513,7 @@
   },
   "screenshots": {
     "add_description": "Añadir descripción",
+    "edit_description": "Editar descripción",
     "all_games": "Todos los juegos",
     "all_screenshots_are_spoilers": "Todas las capturas de pantalla cargadas hasta ahora están marcadas como spoiler",
     "allow_comments": "Permitir comentarios",

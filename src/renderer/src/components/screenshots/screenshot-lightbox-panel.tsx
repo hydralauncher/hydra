@@ -80,33 +80,41 @@ function ScreenshotPanelInfo({
 }: Readonly<ScreenshotPanelInfoProps>) {
   const { t } = useTranslation("screenshots");
   const { formatDateTime } = useDate();
+  const hasDescription = Boolean(screenshot.description);
+
+  const saveDescription = async (description: string) => {
+    const update = buildScreenshotSettingsUpdate(screenshot, {
+      ...readScreenshotSettings(screenshot),
+      description,
+    });
+    if (Object.keys(update).length === 0) return true;
+    return actions.updateScreenshot(screenshot, update);
+  };
 
   return (
     <header className="screenshot-lightbox__info">
-      {screenshot.description ? (
-        <h2 className="screenshot-lightbox__description">
-          {screenshot.description}
-        </h2>
-      ) : null}
-
-      {!screenshot.description && isOwner ? (
+      {isOwner ? (
         <InlineEditField
-          key={screenshot.id}
-          label={t("add_description")}
-          saveLabel={t("save")}
+          key={`${screenshot.id}:${hasDescription}`}
+          className={cn({
+            "screenshot-lightbox__description screenshot-lightbox__description-field":
+              hasDescription,
+          })}
+          label={t(hasDescription ? "edit_description" : "add_description")}
+          placeholder={t("add_description")}
+          initialValue={screenshot.description ?? ""}
+          allowEmpty={hasDescription}
           maxLength={SCREENSHOT_DESCRIPTION_MAX_LENGTH}
           isSaving={actions.updatingIds.has(screenshot.id)}
           sanitize={sanitizeScreenshotDescriptionInput}
-          onSave={(description) =>
-            actions.updateScreenshot(
-              screenshot,
-              buildScreenshotSettingsUpdate(screenshot, {
-                ...readScreenshotSettings(screenshot),
-                description,
-              })
-            )
-          }
+          onSave={saveDescription}
         />
+      ) : null}
+
+      {!isOwner && hasDescription ? (
+        <h2 className="screenshot-lightbox__description">
+          {screenshot.description}
+        </h2>
       ) : null}
 
       <p className="screenshot-lightbox__byline">

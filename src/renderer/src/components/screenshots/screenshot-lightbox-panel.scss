@@ -2,6 +2,8 @@
 @use "./screenshot-motion.scss" as motion;
 @use "../../scss/vote-button.scss";
 
+$description-outline-fade-duration: 0.15s;
+
 .screenshot-lightbox {
   &__panel {
     display: flex;
@@ -29,6 +31,38 @@
     font-weight: 600;
     line-height: 1.35;
     overflow-wrap: anywhere;
+  }
+
+  &__description-field {
+    min-height: 0;
+
+    .inline-edit-field__trigger {
+      padding: 0;
+      color: globals.$muted-color;
+      font-size: inherit;
+      font-weight: inherit;
+      line-height: inherit;
+      overflow-wrap: anywhere;
+    }
+
+    &:not(.inline-edit-field--editing) .inline-edit-field__outline {
+      opacity: 0;
+    }
+
+    .inline-edit-field__input {
+      font-size: inherit;
+      font-weight: inherit;
+    }
+
+    .inline-edit-field__outline {
+      transition: opacity $description-outline-fade-duration ease;
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      .inline-edit-field__outline {
+        transition: none;
+      }
+    }
   }
 
   &__byline {
