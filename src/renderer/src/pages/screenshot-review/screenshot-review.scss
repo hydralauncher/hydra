@@ -4,6 +4,7 @@ $review-hover-duration: 0.2s;
 $review-progress-duration: 0.2s;
 $review-menu-duration: 0.15s;
 $review-menu-offset: 4px;
+$review-outline-hover-overlay: rgba(255, 255, 255, 0.1);
 
 .screenshot-review {
   display: flex;
@@ -407,24 +408,22 @@ $review-menu-offset: 4px;
   &__menu-item {
     width: 100%;
     white-space: nowrap;
-    outline: none;
     user-select: none;
-  }
 
-  &__menu-item.button--outline {
-    background-color: globals.$dark-background-color;
-  }
+    &.button--primary[data-highlighted] {
+      background-color: #dadbe1;
+    }
 
-  &__menu-item.button--primary[data-highlighted] {
-    background-color: #dadbe1;
-  }
+    &.button--outline {
+      background-color: globals.$dark-background-color;
 
-  &__menu-item.button--outline[data-highlighted] {
-    background-color: #2a2a2a;
-  }
-
-  &__menu-item[data-highlighted] {
-    box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.24);
+      &[data-highlighted] {
+        background-image: linear-gradient(
+          $review-outline-hover-overlay,
+          $review-outline-hover-overlay
+        );
+      }
+    }
   }
 
   @media (prefers-reduced-motion: reduce) {
