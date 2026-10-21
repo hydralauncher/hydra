@@ -9,6 +9,7 @@ $lightbox-titlebar-height: 35px;
 $lightbox-sidebar-width: min(400px, 38vw);
 $lightbox-narrow-breakpoint: 900px;
 $lightbox-sheet-height: 45%;
+$lightbox-sidebar-fade-duration: 0.2s;
 
 .gallery-lightbox-dialog {
   display: contents;
@@ -200,6 +201,10 @@ $lightbox-sheet-height: 45%;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
+  }
+
+  &__sidebar-toggle {
+    margin-left: auto;
   }
 
   &__icon-button {
@@ -436,7 +441,11 @@ $lightbox-sheet-height: 45%;
   background-color: globals.$background-color;
   cursor: auto;
   user-select: text;
-  animation: gallery-lightbox-fade-in 0.2s ease-out;
+  animation: gallery-lightbox-fade-in $lightbox-sidebar-fade-duration ease-out;
+
+  &[hidden] {
+    display: none;
+  }
 }
 
 .gallery-lightbox--titlebar-offset .gallery-lightbox__sidebar {
