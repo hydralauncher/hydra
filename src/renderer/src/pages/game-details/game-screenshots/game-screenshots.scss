@@ -1,4 +1,5 @@
 @use "../../../scss/globals.scss";
+@use "../../../components/screenshots/screenshot-motion.scss" as motion;
 
 .game-screenshots-box {
   display: flex;
@@ -63,8 +64,8 @@
     height: 100%;
     object-fit: cover;
     transition:
-      filter 0.2s ease,
-      transform 0.2s ease;
+      filter motion.$transition-duration ease,
+      transform motion.$transition-duration ease;
   }
 
   &__thumbnail-placeholder,
@@ -161,8 +162,8 @@
     font-size: 13px;
     font-weight: 500;
     transition:
-      background-color 0.15s ease,
-      color 0.15s ease;
+      background-color motion.$fast-transition-duration ease,
+      color motion.$fast-transition-duration ease;
 
     &:hover {
       color: rgba(255, 255, 255, 0.85);
