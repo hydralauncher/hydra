@@ -1,4 +1,4 @@
-import { useId, useState, type RefObject } from "react";
+import { useId, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
   CopyIcon,
@@ -8,7 +8,6 @@ import {
   ImageIcon,
   ReportIcon,
   TrashIcon,
-  XIcon,
 } from "@primer/octicons-react";
 import cn from "classnames";
 import { Tooltip } from "react-tooltip";
@@ -85,13 +84,11 @@ function ScreenshotGameTag({
 
 interface ScreenshotPanelHeaderProps {
   screenshot: ProfileScreenshot;
-  closeButtonRef: RefObject<HTMLButtonElement>;
   onClose: () => void;
 }
 
 function ScreenshotPanelHeader({
   screenshot,
-  closeButtonRef,
   onClose,
 }: Readonly<ScreenshotPanelHeaderProps>) {
   const { t } = useTranslation("screenshots");
@@ -114,17 +111,6 @@ function ScreenshotPanelHeader({
           </time>
         </span>
       </Link>
-
-      <button
-        ref={closeButtonRef}
-        type="button"
-        className="screenshot-lightbox__close"
-        onClick={onClose}
-        aria-label={t("close")}
-        title={t("close")}
-      >
-        <XIcon size={20} />
-      </button>
     </header>
   );
 }
@@ -240,7 +226,6 @@ function ScreenshotPanelActions({
 interface ScreenshotLightboxPanelProps {
   screenshot: ProfileScreenshot;
   actions: ScreenshotActions;
-  closeButtonRef: RefObject<HTMLButtonElement>;
   onPatch: (screenshotId: string, patch: ScreenshotPatch) => void;
   onFailure: (screenshotId: string, failure: ScreenshotFailure) => void;
   onClose: () => void;
@@ -251,7 +236,6 @@ interface ScreenshotLightboxPanelProps {
 export function ScreenshotLightboxPanel({
   screenshot,
   actions,
-  closeButtonRef,
   onPatch,
   onFailure,
   onClose,
@@ -268,11 +252,7 @@ export function ScreenshotLightboxPanel({
 
   return (
     <aside className="screenshot-lightbox__panel">
-      <ScreenshotPanelHeader
-        screenshot={screenshot}
-        closeButtonRef={closeButtonRef}
-        onClose={onClose}
-      />
+      <ScreenshotPanelHeader screenshot={screenshot} onClose={onClose} />
 
       <div className="screenshot-lightbox__game-row">
         <ScreenshotGameTag screenshot={screenshot} onNavigateAway={onClose} />
