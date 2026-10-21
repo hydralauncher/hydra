@@ -28,6 +28,29 @@ interface UseScreenshotActionsOptions {
   onFailure?: (screenshotId: string, failure: ScreenshotFailure) => void;
 }
 
+const getEditedFields = (
+  update: ScreenshotUpdateRequest,
+  response: ProfileScreenshot | null
+): Partial<ProfileScreenshot> => {
+  const source = response ?? {
+    ...update,
+    gameTitle: update.customGameTitle,
+  };
+  const patch: Partial<ProfileScreenshot> = {};
+
+  if (update.visibility !== undefined) patch.visibility = source.visibility;
+  if (update.isSpoiler !== undefined) patch.isSpoiler = source.isSpoiler;
+  if (update.commentsEnabled !== undefined) {
+    patch.commentsEnabled = source.commentsEnabled;
+    if (response) patch.canComment = response.canComment;
+  }
+  if (update.customGameTitle !== undefined) {
+    patch.gameTitle = source.gameTitle ?? null;
+  }
+
+  return patch;
+};
+
 function usePendingIds() {
   const pendingRef = useRef(new Set<string>());
   const [pendingIds, setPendingIds] = useState<ReadonlySet<string>>(
@@ -182,7 +205,7 @@ export function useScreenshotActions({
             { data: update, needsAuth: true }
           );
 
-        onPatch(screenshot.id, response ?? update);
+        onPatch(screenshot.id, getEditedFields(update, response));
         showSuccessToast(t("changes_saved"));
         return true;
       } catch (error) {
