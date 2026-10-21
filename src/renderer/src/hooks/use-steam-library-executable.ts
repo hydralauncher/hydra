@@ -6,26 +6,31 @@ type SteamLibraryExecutableGame = Pick<
   "shop" | "objectId" | "hasActiveSteamImport" | "executablePath"
 >;
 
+interface SteamLibraryExecutableCheck {
+  key: string;
+  value: boolean;
+}
+
 export function useIsSteamLibraryExecutable(
   game: SteamLibraryExecutableGame | null | undefined
 ) {
-  const [isSteamLibraryExecutable, setIsSteamLibraryExecutable] = useState<
-    boolean | null
-  >(null);
+  const [checked, setChecked] = useState<SteamLibraryExecutableCheck | null>(
+    null
+  );
 
   const shop = game?.shop;
   const objectId = game?.objectId;
   const hasActiveSteamImport = game?.hasActiveSteamImport;
   const executablePath = game?.executablePath;
 
+  const checkKey =
+    shop === "steam" && hasActiveSteamImport && objectId && executablePath
+      ? JSON.stringify([objectId, executablePath])
+      : null;
+
   useEffect(() => {
-    if (
-      shop !== "steam" ||
-      !hasActiveSteamImport ||
-      !objectId ||
-      !executablePath
-    ) {
-      setIsSteamLibraryExecutable(null);
+    if (!checkKey || !objectId || !executablePath) {
+      setChecked(null);
       return;
     }
 
@@ -34,16 +39,18 @@ export function useIsSteamLibraryExecutable(
     globalThis.window.electron
       .isSteamAppExecutable(objectId, executablePath)
       .then((isSteamExecutable) => {
-        if (!cancelled) setIsSteamLibraryExecutable(isSteamExecutable);
+        if (!cancelled) {
+          setChecked({ key: checkKey, value: isSteamExecutable });
+        }
       })
       .catch(() => {
-        if (!cancelled) setIsSteamLibraryExecutable(false);
+        if (!cancelled) setChecked({ key: checkKey, value: false });
       });
 
     return () => {
       cancelled = true;
     };
-  }, [shop, objectId, hasActiveSteamImport, executablePath]);
+  }, [checkKey, objectId, executablePath]);
 
-  return isSteamLibraryExecutable;
+  return checked?.key === checkKey ? checked.value : null;
 }
