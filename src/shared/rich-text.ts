@@ -19,9 +19,8 @@ export const toRichTextHtml = (value: string) => {
 
 const BLOCK_BOUNDARY_PATTERN =
   /<\/(?:p|li|blockquote|pre|h[1-6])>|<br\s*\/?>|<hr\s*\/?>/gi;
-const TAG_PATTERN = /<[^>]*>/g;
 const HTML_ENTITIES: [RegExp, string][] = [
-  [/&nbsp;/g, " "],
+  [/&nbsp;/g, "\u00a0"],
   [/&lt;/g, "<"],
   [/&gt;/g, ">"],
   [/&quot;/g, '"'],
@@ -30,14 +29,44 @@ const HTML_ENTITIES: [RegExp, string][] = [
   [/&amp;/g, "&"],
 ];
 
+const stripTags = (html: string) => {
+  let result = "";
+  let index = 0;
+
+  while (index < html.length) {
+    const tagStart = html.indexOf("<", index);
+    if (tagStart === -1) {
+      result += html.slice(index);
+      break;
+    }
+
+    result += html.slice(index, tagStart);
+    const tagEnd = html.indexOf(">", tagStart);
+    if (tagEnd === -1) break;
+    index = tagEnd + 1;
+  }
+
+  return result;
+};
+
+const trimTrailingSpacesAndTabs = (line: string) => {
+  let end = line.length;
+  while (end > 0 && (line[end - 1] === " " || line[end - 1] === "\t")) {
+    end -= 1;
+  }
+  return line.slice(0, end);
+};
+
 export const richTextToPlainText = (html: string) =>
   HTML_ENTITIES.reduce(
     (text, [pattern, replacement]) => text.replace(pattern, replacement),
-    html
-      .replace(BLOCK_BOUNDARY_PATTERN, (boundary) => `${boundary}\n`)
-      .replace(TAG_PATTERN, "")
+    stripTags(
+      html.replace(BLOCK_BOUNDARY_PATTERN, (boundary) => `${boundary}\n`)
+    )
   )
     .replaceAll(/\r\n?/g, "\n")
-    .replaceAll(/[ \t]+\n/g, "\n")
+    .split("\n")
+    .map(trimTrailingSpacesAndTabs)
+    .join("\n")
     .replaceAll(/\n{3,}/g, "\n\n")
     .trim();

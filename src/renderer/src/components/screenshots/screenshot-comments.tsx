@@ -57,6 +57,191 @@ const COMPOSER_NOTICE_KEYS: Record<Exclude<ComposerState, "ready">, string> = {
   not_allowed: "comments_not_allowed",
 };
 
+interface ScreenshotCommentPartProps {
+  comment: ScreenshotComment;
+  tooltipId: string;
+}
+
+function ScreenshotCommentMeta({
+  comment,
+  onAuthorClick,
+}: Readonly<{ comment: ScreenshotComment; onAuthorClick: () => void }>) {
+  const { t } = useTranslation("screenshots");
+  const { formatDistance, formatDateTime } = useDate();
+
+  return (
+    <div className="screenshot-comments__meta">
+      <Link
+        className="screenshot-comments__author"
+        to={`/profile/${encodeURIComponent(comment.author.id)}`}
+        onClick={onAuthorClick}
+      >
+        {comment.author.displayName}
+      </Link>
+      <time
+        className="screenshot-comments__time"
+        dateTime={new Date(comment.createdAt).toISOString()}
+        title={formatDateTime(comment.createdAt)}
+      >
+        {formatDistance(new Date(comment.createdAt), new Date(), {
+          addSuffix: true,
+        })}
+      </time>
+      {comment.editedAt ? (
+        <span
+          className="screenshot-comments__edited"
+          title={formatDateTime(comment.editedAt)}
+        >
+          {t("comment_edited")}
+        </span>
+      ) : null}
+    </div>
+  );
+}
+
+interface ScreenshotCommentVotesProps extends ScreenshotCommentPartProps {
+  isSignedIn: boolean;
+  isPending: boolean;
+  onVote: (comment: ScreenshotComment, vote: ScreenshotCommentVoteType) => void;
+}
+
+function ScreenshotCommentVotes({
+  comment,
+  tooltipId,
+  isSignedIn,
+  isPending,
+  onVote,
+}: Readonly<ScreenshotCommentVotesProps>) {
+  const { t } = useTranslation("screenshots");
+  const canVote = !comment.isOwn;
+  const voteTitle = (key: string) => {
+    if (!canVote) return t("cannot_vote_own_comment");
+    if (!isSignedIn) return t("sign_in_to_vote");
+    return t(key);
+  };
+
+  const handleVote = (vote: ScreenshotCommentVoteType) => {
+    if (!isSignedIn) {
+      void window.electron.openAuthWindow(AuthPage.SignIn);
+      return;
+    }
+
+    onVote(comment, vote);
+  };
+
+  return (
+    <div className="screenshot-comments__votes">
+      <button
+        type="button"
+        className={cn(
+          "screenshot-comments__vote screenshot-comments__vote--upvote",
+          {
+            "screenshot-comments__vote--active": comment.myVote === "UPVOTE",
+          }
+        )}
+        onClick={() => handleVote("UPVOTE")}
+        disabled={!canVote || isPending}
+        aria-pressed={comment.myVote === "UPVOTE"}
+        aria-label={t("upvote_comment")}
+        data-tooltip-id={tooltipId}
+        data-tooltip-content={voteTitle("upvote_comment")}
+      >
+        <ThumbsUp size={16} />
+        <span>{comment.upvotes}</span>
+      </button>
+      <button
+        type="button"
+        className={cn(
+          "screenshot-comments__vote screenshot-comments__vote--downvote",
+          {
+            "screenshot-comments__vote--active": comment.myVote === "DOWNVOTE",
+          }
+        )}
+        onClick={() => handleVote("DOWNVOTE")}
+        disabled={!canVote || isPending}
+        aria-pressed={comment.myVote === "DOWNVOTE"}
+        aria-label={t("downvote_comment")}
+        data-tooltip-id={tooltipId}
+        data-tooltip-content={voteTitle("downvote_comment")}
+      >
+        <ThumbsDown size={16} />
+        <span>{comment.downvotes}</span>
+      </button>
+    </div>
+  );
+}
+
+interface ScreenshotCommentToolsProps extends ScreenshotCommentPartProps {
+  isSignedIn: boolean;
+  isPending: boolean;
+  isReported: boolean;
+  onStartEdit: (comment: ScreenshotComment) => void;
+  onRequestDelete: (comment: ScreenshotComment) => void;
+  onRequestReport: (comment: ScreenshotComment) => void;
+}
+
+function ScreenshotCommentTools({
+  comment,
+  tooltipId,
+  isSignedIn,
+  isPending,
+  isReported,
+  onStartEdit,
+  onRequestDelete,
+  onRequestReport,
+}: Readonly<ScreenshotCommentToolsProps>) {
+  const { t } = useTranslation("screenshots");
+
+  return (
+    <div className="screenshot-comments__tools">
+      {comment.isOwn ? (
+        <Button
+          theme="outline"
+          size="small"
+          className="screenshot-comments__tool screenshot-comments__edit"
+          onClick={() => onStartEdit(comment)}
+          disabled={isPending}
+          aria-label={t("edit_comment")}
+          data-tooltip-id={tooltipId}
+          data-tooltip-content={t("edit_comment")}
+        >
+          <PencilIcon size={14} />
+        </Button>
+      ) : null}
+
+      {comment.canDelete ? (
+        <Button
+          theme="danger"
+          size="small"
+          className="screenshot-comments__tool screenshot-comments__delete"
+          onClick={() => onRequestDelete(comment)}
+          disabled={isPending}
+          aria-label={t("delete_comment")}
+          data-tooltip-id={tooltipId}
+          data-tooltip-content={t("delete_comment")}
+        >
+          <TrashIcon size={14} />
+        </Button>
+      ) : null}
+
+      {!comment.isOwn && isSignedIn ? (
+        <Button
+          theme="outline"
+          size="small"
+          className="screenshot-comments__tool screenshot-comments__report"
+          onClick={() => onRequestReport(comment)}
+          disabled={isPending || isReported}
+          aria-label={t(isReported ? "reported" : "report_comment")}
+          data-tooltip-id={tooltipId}
+          data-tooltip-content={t(isReported ? "reported" : "report_comment")}
+        >
+          <ReportIcon size={14} />
+        </Button>
+      ) : null}
+    </div>
+  );
+}
+
 interface ScreenshotCommentItemProps {
   comment: ScreenshotComment;
   isSignedIn: boolean;
@@ -89,22 +274,6 @@ function ScreenshotCommentItem({
   tooltipId,
 }: Readonly<ScreenshotCommentItemProps>) {
   const { t } = useTranslation("screenshots");
-  const { formatDistance, formatDateTime } = useDate();
-  const canVote = !comment.isOwn;
-  const voteTitle = (key: string) => {
-    if (!canVote) return t("cannot_vote_own_comment");
-    if (!isSignedIn) return t("sign_in_to_vote");
-    return t(key);
-  };
-
-  const handleVote = (vote: ScreenshotCommentVoteType) => {
-    if (!isSignedIn) {
-      void window.electron.openAuthWindow(AuthPage.SignIn);
-      return;
-    }
-
-    onVote(comment, vote);
-  };
 
   return (
     <li
@@ -122,32 +291,10 @@ function ScreenshotCommentItem({
       </Link>
 
       <div className="screenshot-comments__body">
-        <div className="screenshot-comments__meta">
-          <Link
-            className="screenshot-comments__author"
-            to={`/profile/${encodeURIComponent(comment.author.id)}`}
-            onClick={onAuthorClick}
-          >
-            {comment.author.displayName}
-          </Link>
-          <time
-            className="screenshot-comments__time"
-            dateTime={new Date(comment.createdAt).toISOString()}
-            title={formatDateTime(comment.createdAt)}
-          >
-            {formatDistance(new Date(comment.createdAt), new Date(), {
-              addSuffix: true,
-            })}
-          </time>
-          {comment.editedAt ? (
-            <span
-              className="screenshot-comments__edited"
-              title={formatDateTime(comment.editedAt)}
-            >
-              {t("comment_edited")}
-            </span>
-          ) : null}
-        </div>
+        <ScreenshotCommentMeta
+          comment={comment}
+          onAuthorClick={onAuthorClick}
+        />
 
         {comment.isHidden ? (
           <p className="screenshot-comments__hidden-notice">
@@ -178,95 +325,24 @@ function ScreenshotCommentItem({
 
         {isEditing ? null : (
           <div className="screenshot-comments__actions">
-            <div className="screenshot-comments__votes">
-              <button
-                type="button"
-                className={cn(
-                  "screenshot-comments__vote screenshot-comments__vote--upvote",
-                  {
-                    "screenshot-comments__vote--active":
-                      comment.myVote === "UPVOTE",
-                  }
-                )}
-                onClick={() => handleVote("UPVOTE")}
-                disabled={!canVote || isPending}
-                aria-pressed={comment.myVote === "UPVOTE"}
-                aria-label={t("upvote_comment")}
-                data-tooltip-id={tooltipId}
-                data-tooltip-content={voteTitle("upvote_comment")}
-              >
-                <ThumbsUp size={16} />
-                <span>{comment.upvotes}</span>
-              </button>
-              <button
-                type="button"
-                className={cn(
-                  "screenshot-comments__vote screenshot-comments__vote--downvote",
-                  {
-                    "screenshot-comments__vote--active":
-                      comment.myVote === "DOWNVOTE",
-                  }
-                )}
-                onClick={() => handleVote("DOWNVOTE")}
-                disabled={!canVote || isPending}
-                aria-pressed={comment.myVote === "DOWNVOTE"}
-                aria-label={t("downvote_comment")}
-                data-tooltip-id={tooltipId}
-                data-tooltip-content={voteTitle("downvote_comment")}
-              >
-                <ThumbsDown size={16} />
-                <span>{comment.downvotes}</span>
-              </button>
-            </div>
+            <ScreenshotCommentVotes
+              comment={comment}
+              tooltipId={tooltipId}
+              isSignedIn={isSignedIn}
+              isPending={isPending}
+              onVote={onVote}
+            />
 
-            <div className="screenshot-comments__tools">
-              {comment.isOwn ? (
-                <Button
-                  theme="outline"
-                  size="small"
-                  className="screenshot-comments__tool screenshot-comments__edit"
-                  onClick={() => onStartEdit(comment)}
-                  disabled={isPending}
-                  aria-label={t("edit_comment")}
-                  data-tooltip-id={tooltipId}
-                  data-tooltip-content={t("edit_comment")}
-                >
-                  <PencilIcon size={14} />
-                </Button>
-              ) : null}
-
-              {comment.canDelete ? (
-                <Button
-                  theme="danger"
-                  size="small"
-                  className="screenshot-comments__tool screenshot-comments__delete"
-                  onClick={() => onRequestDelete(comment)}
-                  disabled={isPending}
-                  aria-label={t("delete_comment")}
-                  data-tooltip-id={tooltipId}
-                  data-tooltip-content={t("delete_comment")}
-                >
-                  <TrashIcon size={14} />
-                </Button>
-              ) : null}
-
-              {!comment.isOwn && isSignedIn ? (
-                <Button
-                  theme="outline"
-                  size="small"
-                  className="screenshot-comments__tool screenshot-comments__report"
-                  onClick={() => onRequestReport(comment)}
-                  disabled={isPending || isReported}
-                  aria-label={t(isReported ? "reported" : "report_comment")}
-                  data-tooltip-id={tooltipId}
-                  data-tooltip-content={t(
-                    isReported ? "reported" : "report_comment"
-                  )}
-                >
-                  <ReportIcon size={14} />
-                </Button>
-              ) : null}
-            </div>
+            <ScreenshotCommentTools
+              comment={comment}
+              tooltipId={tooltipId}
+              isSignedIn={isSignedIn}
+              isPending={isPending}
+              isReported={isReported}
+              onStartEdit={onStartEdit}
+              onRequestDelete={onRequestDelete}
+              onRequestReport={onRequestReport}
+            />
           </div>
         )}
       </div>
