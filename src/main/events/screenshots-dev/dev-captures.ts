@@ -35,7 +35,7 @@ const isGameRunning = (gameKey: string) =>
   emulatorSessions.has(gameKey);
 
 const escapeXml = (value: string) =>
-  value.replaceAll(/[<>&'"]/g, (character) => `&#${character.charCodeAt(0)};`);
+  value.replaceAll(/[<>&'"]/g, (character) => `&#${character.codePointAt(0)};`);
 
 const buildPatternSvg = (width: number, height: number, label: string) => {
   const columns = 16;

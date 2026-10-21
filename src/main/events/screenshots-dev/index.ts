@@ -52,10 +52,15 @@ const wait = (delay: number) =>
   });
 
 const apiError = (status: number, data: Record<string, unknown>) =>
-  Object.assign(new Error(String(data.message)), {
-    isAxiosError: true,
-    response: { status, data },
-  });
+  Object.assign(
+    new Error(
+      typeof data.message === "string" ? data.message : `HTTP ${status}`
+    ),
+    {
+      isAxiosError: true,
+      response: { status, data },
+    }
+  );
 
 const buildUploadFailure = (
   failure: ScreenshotsDevUploadFailure,
@@ -164,9 +169,9 @@ const registerScreenshotsDevEvents = () => {
   registerEvent(
     "screenshotsDevCloseGame",
     (_event: Electron.IpcMainInvokeEvent, shop: GameShop, objectId: string) =>
-      run(async () => {
+      run(() => {
         simulateGameClosed(shop, objectId);
-        return { ok: true };
+        return Promise.resolve({ ok: true });
       })
   );
 
@@ -263,9 +268,11 @@ const registerScreenshotsDevEvents = () => {
       const devCaptures = (await LocalScreenshotStore.list()).filter(
         (screenshot) => screenshot.isDevCapture
       );
-      for (const screenshot of devCaptures) {
-        await deleteLocalScreenshot(screenshot.clientId);
-      }
+      await Promise.all(
+        devCaptures.map((screenshot) =>
+          deleteLocalScreenshot(screenshot.clientId)
+        )
+      );
       return { ok: true, count: devCaptures.length };
     })
   );
