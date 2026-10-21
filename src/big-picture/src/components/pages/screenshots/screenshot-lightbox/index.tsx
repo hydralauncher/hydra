@@ -69,6 +69,7 @@ import {
   getScreenshotErrorKey,
   getScreenshotGameTitle,
   shouldBlurScreenshot,
+  getEditedScreenshotFields,
 } from "../helpers";
 import { ScreenshotManageModal } from "../screenshot-manage-modal";
 import { ScreenshotReportModal } from "../screenshot-report-modal";
@@ -576,7 +577,10 @@ function useLightboxSocialActions({
             buildProfileScreenshotPath(screenshot.id),
             { data: update, needsAuth: true }
           );
-        onUpdate(screenshot.id, updated ?? update);
+        onUpdate(
+          screenshot.id,
+          getEditedScreenshotFields(update, updated ?? null)
+        );
         showSuccessToast(t("screenshots_saved"), SETTINGS_TOAST);
         return true;
       } catch (error) {

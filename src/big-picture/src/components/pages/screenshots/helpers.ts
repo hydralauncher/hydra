@@ -1,4 +1,8 @@
-import type { LocalScreenshot, ProfileScreenshot } from "@types";
+import type {
+  LocalScreenshot,
+  ProfileScreenshot,
+  ScreenshotUpdateRequest,
+} from "@types";
 import {
   getScreenshotModerationReasonKey,
   getScreenshotUploadErrorKey,
@@ -94,4 +98,27 @@ export function getLocalScreenshotStatusDetail(
   }
 
   return null;
+}
+
+export function getEditedScreenshotFields(
+  update: ScreenshotUpdateRequest,
+  response: ProfileScreenshot | null
+): Partial<ProfileScreenshot> {
+  const source = response ?? {
+    ...update,
+    gameTitle: update.customGameTitle,
+  };
+  const patch: Partial<ProfileScreenshot> = {};
+
+  if (update.visibility !== undefined) patch.visibility = source.visibility;
+  if (update.isSpoiler !== undefined) patch.isSpoiler = source.isSpoiler;
+  if (update.commentsEnabled !== undefined) {
+    patch.commentsEnabled = source.commentsEnabled;
+    if (response) patch.canComment = response.canComment;
+  }
+  if (update.customGameTitle !== undefined) {
+    patch.gameTitle = source.gameTitle ?? null;
+  }
+
+  return patch;
 }
