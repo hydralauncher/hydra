@@ -31,6 +31,7 @@ const PATTERN_RESOLUTIONS = [
   { width: 3840, height: 2160 },
 ];
 const BURST_COUNTS = [1, 2, 3, 4, 5, 6, 7, 8];
+const DEFAULT_BURST_COUNT = 6;
 const FEEDBACK_KINDS: ScreenshotsDevFeedbackKind[] = [
   "sound",
   "flash",
@@ -77,7 +78,7 @@ export function SettingsScreenshotsDevTools() {
   const [filePath, setFilePath] = useState<string | null>(null);
   const [signedOut, setSignedOut] = useState(false);
   const [adult, setAdult] = useState(false);
-  const [burstCount, setBurstCount] = useState(6);
+  const [burstCount, setBurstCount] = useState(DEFAULT_BURST_COUNT);
   const [screenshots, setScreenshots] = useState<LocalScreenshot[]>([]);
   const [clientId, setClientId] = useState("");
   const [outcome, setOutcome] =
