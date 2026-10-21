@@ -15,7 +15,7 @@ import { Avatar } from "../avatar/avatar";
 import { Button } from "../button/button";
 import { ConfirmationModal } from "../confirmation-modal/confirmation-modal";
 import { Link } from "../link/link";
-import { useDate, useFeature, useUserDetails } from "@renderer/hooks";
+import { useDate, useUserDetails } from "@renderer/hooks";
 import { AuthPage } from "@shared";
 import type {
   ProfileScreenshot,
@@ -37,14 +37,12 @@ type ComposerState =
 
 const getComposerState = (
   screenshot: ProfileScreenshot,
-  isSignedIn: boolean,
-  isWritingEnabled: boolean
+  isSignedIn: boolean
 ): ComposerState => {
   const isApproved =
     !screenshot.moderationStatus || screenshot.moderationStatus === "APPROVED";
   if (!isApproved) return "unavailable";
   if (!screenshot.commentsEnabled) return "turned_off";
-  if (!isWritingEnabled) return "unavailable";
   if (!isSignedIn) return "signed_out";
   if (!screenshot.canComment) return "not_allowed";
   return "ready";
@@ -261,7 +259,6 @@ export function ScreenshotComments({
 }: Readonly<ScreenshotCommentsProps>) {
   const { t } = useTranslation("screenshots");
   const { userDetails } = useUserDetails();
-  const { isFeatureEnabled, Feature } = useFeature();
   const isSignedIn = Boolean(userDetails);
   const [editingCommentId, setEditingCommentId] = useState<string | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<ScreenshotComment | null>(
@@ -294,11 +291,7 @@ export function ScreenshotComments({
     onFailure,
   });
 
-  const composerState = getComposerState(
-    screenshot,
-    isSignedIn,
-    isFeatureEnabled(Feature.ScreenshotComments)
-  );
+  const composerState = getComposerState(screenshot, isSignedIn);
   const commentCount = total ?? screenshot.commentCount;
   const isInitialLoading = isLoading && comments.length === 0;
 

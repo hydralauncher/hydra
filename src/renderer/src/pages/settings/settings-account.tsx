@@ -38,10 +38,12 @@ const SCREENSHOT_COMMENTS_POLICIES: ScreenshotCommentsPolicy[] = [
 
 interface ScreenshotPrivacySettingsProps {
   visibilityOptions: { value: string; label: string }[];
+  showCommentsPolicy: boolean;
 }
 
 function ScreenshotPrivacySettings({
   visibilityOptions,
+  showCommentsPolicy,
 }: Readonly<ScreenshotPrivacySettingsProps>) {
   const { t } = useTranslation("settings");
   const { t: tScreenshots } = useTranslation("screenshots");
@@ -86,7 +88,7 @@ function ScreenshotPrivacySettings({
         </section>
       ) : null}
 
-      {screenshotCommentsPolicy ? (
+      {showCommentsPolicy && screenshotCommentsPolicy ? (
         <section className="settings-account__section">
           <SelectField
             label={tScreenshots("privacy_screenshot_comments_policy")}
@@ -307,7 +309,10 @@ export function SettingsAccount() {
       />
 
       {isScreenshotsEnabled ? (
-        <ScreenshotPrivacySettings visibilityOptions={visibilityOptions} />
+        <ScreenshotPrivacySettings
+          visibilityOptions={visibilityOptions}
+          showCommentsPolicy={isFeatureEnabled(Feature.ScreenshotComments)}
+        />
       ) : null}
 
       <section className="settings-account__section">

@@ -16,7 +16,7 @@ import { Tooltip } from "react-tooltip";
 import { Avatar } from "../avatar/avatar";
 import { Link } from "../link/link";
 import { buildGameDetailsPath } from "@renderer/helpers";
-import { useDate, useUserDetails } from "@renderer/hooks";
+import { useDate, useFeature, useUserDetails } from "@renderer/hooks";
 import { AuthPage } from "@shared";
 import type { ProfileScreenshot } from "@types";
 
@@ -259,7 +259,9 @@ export function ScreenshotLightboxPanel({
 }: Readonly<ScreenshotLightboxPanelProps>) {
   const { t } = useTranslation("screenshots");
   const { userDetails } = useUserDetails();
+  const { isFeatureEnabled, Feature } = useFeature();
   const isOwner = userDetails?.id === screenshot.owner.id;
+  const isCommentsEnabled = isFeatureEnabled(Feature.ScreenshotComments);
   const isApproved =
     !screenshot.moderationStatus || screenshot.moderationStatus === "APPROVED";
 
@@ -298,13 +300,15 @@ export function ScreenshotLightboxPanel({
         />
       ) : null}
 
-      <ScreenshotComments
-        key={screenshot.id}
-        screenshot={screenshot}
-        onPatch={onPatch}
-        onFailure={onFailure}
-        onNavigateAway={onClose}
-      />
+      {isCommentsEnabled ? (
+        <ScreenshotComments
+          key={screenshot.id}
+          screenshot={screenshot}
+          onPatch={onPatch}
+          onFailure={onFailure}
+          onNavigateAway={onClose}
+        />
+      ) : null}
     </aside>
   );
 }
