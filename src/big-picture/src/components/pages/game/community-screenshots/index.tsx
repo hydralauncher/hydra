@@ -56,14 +56,15 @@ function storeSort(sort: ScreenshotSort) {
 
 function getSortDownTarget(
   firstItem: ProfileScreenshot | undefined,
-  hasLoadError: boolean
+  hasLoadError: boolean,
+  downTarget: FocusOverrideTarget | undefined
 ): FocusOverrideTarget {
   if (firstItem)
     return getItemFocusTarget(getGameCommunityScreenshotItemId(firstItem.id));
   if (hasLoadError)
     return getItemFocusTarget(GAME_COMMUNITY_SCREENSHOTS_RETRY_ID);
 
-  return BLOCK_TARGET;
+  return downTarget ?? BLOCK_TARGET;
 }
 
 export interface GameCommunityScreenshotsProps {
@@ -136,7 +137,11 @@ export function GameCommunityScreenshots({
   );
 
   const firstItem = feed.items[0];
-  const firstItemTarget = getSortDownTarget(firstItem, hasLoadError);
+  const firstItemTarget = getSortDownTarget(
+    firstItem,
+    hasLoadError,
+    downTarget
+  );
 
   if (!isVisible) {
     return <ScreenshotLightbox {...lightboxProps} />;
