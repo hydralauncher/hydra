@@ -240,7 +240,7 @@ export function getProfileScreenshotCount(
   profile: Pick<UserProfile, "id" | "screenshotCount"> | null,
   targetUserId: string | undefined
 ) {
-  if (!profile || profile.id !== targetUserId) return null;
+  if (!targetUserId || profile?.id !== targetUserId) return null;
 
   return profile.screenshotCount ?? null;
 }
