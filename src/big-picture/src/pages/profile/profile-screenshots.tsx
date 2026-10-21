@@ -389,7 +389,11 @@ export function ProfileScreenshots({
 
   const controlsNavigation = {
     up: toTarget(upFocusId),
-    down: toTarget(firstItemFocusId ?? downFocusId),
+    down: toTarget(
+      firstItemFocusId ??
+        (state.error === "initial" ? PROFILE_SCREENSHOTS_RETRY_ID : null) ??
+        downFocusId
+    ),
   };
 
   if (!state.isEnabled) return null;
