@@ -22,6 +22,7 @@ interface UseRichTextEditorOptions {
   className?: string;
   onSubmitShortcut?: () => void;
   onEscape?: () => void;
+  measureText?: (html: string) => number;
 }
 
 export function useRichTextEditor({
@@ -32,10 +33,14 @@ export function useRichTextEditor({
   className = "rich-text-editor__prose",
   onSubmitShortcut,
   onEscape,
+  measureText,
 }: UseRichTextEditorOptions) {
+  const measure = (html: string) =>
+    measureText ? measureText(html) : getHtmlTextLength(html);
   const [charCount, setCharCount] = useState(() =>
-    initialHtml ? getHtmlTextLength(initialHtml) : 0
+    initialHtml ? measure(initialHtml) : 0
   );
+  const [htmlLength, setHtmlLength] = useState(initialHtml.length);
   const onSubmitShortcutRef = useRef(onSubmitShortcut);
   onSubmitShortcutRef.current = onSubmitShortcut;
   const onEscapeRef = useRef(onEscape);
@@ -95,23 +100,29 @@ export function useRichTextEditor({
     },
     onUpdate: ({ editor: updatedEditor }) => {
       const text = updatedEditor.getText();
-      setCharCount(text.length);
 
       if (text.length > maxLength) {
         updatedEditor.commands.setContent(text.slice(0, maxLength));
-        setCharCount(maxLength);
       }
+
+      const html = updatedEditor.getHTML();
+      setCharCount(
+        measureText ? measureText(html) : updatedEditor.getText().length
+      );
+      setHtmlLength(html.length);
     },
   });
 
   const clear = () => {
     editor?.commands.clearContent(true);
     setCharCount(0);
+    setHtmlLength(0);
   };
 
   return {
     editor,
     charCount,
+    htmlLength,
     isEmpty: !editor?.getText().trim(),
     getHtml: () => editor?.getHTML() ?? "",
     clear,

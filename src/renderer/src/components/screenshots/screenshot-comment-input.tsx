@@ -4,7 +4,13 @@ import { useTranslation } from "react-i18next";
 import { Button } from "../button/button";
 import { RichTextEditorField } from "../rich-text-editor/rich-text-editor";
 import { useRichTextEditor } from "../rich-text-editor/use-rich-text-editor";
-import { SCREENSHOT_COMMENT_MAX_LENGTH } from "@shared";
+import {
+  SCREENSHOT_COMMENT_HTML_MAX_LENGTH,
+  SCREENSHOT_COMMENT_MAX_LENGTH,
+  richTextToPlainText,
+} from "@shared";
+
+const measureCommentText = (html: string) => richTextToPlainText(html).length;
 
 interface ScreenshotCommentInputProps {
   initialValue?: string;
@@ -35,7 +41,7 @@ export function ScreenshotCommentInput({
     if (wasSubmitted && !onCancel) clear();
   };
 
-  const { editor, charCount, isEmpty, getHtml, clear } = useRichTextEditor({
+  const { editor, charCount, htmlLength, getHtml, clear } = useRichTextEditor({
     initialHtml: initialValue,
     placeholder,
     maxLength: SCREENSHOT_COMMENT_MAX_LENGTH,
@@ -43,10 +49,14 @@ export function ScreenshotCommentInput({
     className: "screenshot-comments__prose",
     onSubmitShortcut: () => void submit(),
     onEscape: onCancel,
+    measureText: measureCommentText,
   });
 
   const isDisabled =
-    isEmpty || charCount > SCREENSHOT_COMMENT_MAX_LENGTH || isSubmitting;
+    charCount === 0 ||
+    charCount > SCREENSHOT_COMMENT_MAX_LENGTH ||
+    htmlLength > SCREENSHOT_COMMENT_HTML_MAX_LENGTH ||
+    isSubmitting;
   isDisabledRef.current = isDisabled;
 
   return (

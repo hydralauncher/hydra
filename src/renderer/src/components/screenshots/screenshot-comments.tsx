@@ -157,7 +157,7 @@ function ScreenshotCommentItem({
 
         {isEditing ? (
           <ScreenshotCommentInput
-            initialValue={comment.body}
+            initialValue={comment.bodyHtml}
             placeholder={t("edit_comment_placeholder")}
             submitLabel={t("save")}
             isSubmitting={isPending}
@@ -171,7 +171,7 @@ function ScreenshotCommentItem({
           />
         ) : (
           <RichTextContent
-            html={comment.body}
+            html={comment.bodyHtml}
             className="screenshot-comments__text"
           />
         )}

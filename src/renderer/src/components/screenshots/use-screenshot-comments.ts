@@ -331,7 +331,7 @@ export function useScreenshotComments({
       try {
         const comment = await window.electron.hydraApi.post<ScreenshotComment>(
           buildUserScreenshotCommentsPath(ownerId, screenshotId),
-          { data: { body: normalizedBody }, needsAuth: true }
+          { data: { bodyHtml: normalizedBody }, needsAuth: true }
         );
 
         recordWrite({ kind: "create", comment });
@@ -360,20 +360,20 @@ export function useScreenshotComments({
     async (comment: ScreenshotComment, body: string) => {
       const normalizedBody = normalizeScreenshotCommentBody(body);
       if (!normalizedBody) return false;
-      if (normalizedBody === comment.body) return true;
+      if (normalizedBody === comment.bodyHtml) return true;
       if (pendingCommentIds.has(comment.id)) return false;
 
       setPending(comment.id, true);
       try {
         const updated = await window.electron.hydraApi.patch<ScreenshotComment>(
           buildUserScreenshotCommentPath(ownerId, screenshotId, comment.id),
-          { data: { body: normalizedBody }, needsAuth: true }
+          { data: { bodyHtml: normalizedBody }, needsAuth: true }
         );
 
         recordWrite({
           kind: "patch",
           commentId: comment.id,
-          patch: updated ?? { body: normalizedBody, editedAt: Date.now() },
+          patch: updated ?? { bodyHtml: normalizedBody, editedAt: Date.now() },
         });
         return true;
       } catch (error) {
