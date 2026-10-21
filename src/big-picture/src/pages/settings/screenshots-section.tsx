@@ -62,7 +62,11 @@ import {
   useUserDetails,
   useUserPreferences,
 } from "../../hooks";
-import type { FocusOverrides, FocusOverrideTarget } from "../../services";
+import {
+  NavigationService,
+  type FocusOverrides,
+  type FocusOverrideTarget,
+} from "../../services";
 import { ScreenshotDialogPresence } from "../../components/pages/screenshots/screenshot-dialog-presence";
 import { LocalScreenshotViewer } from "./local-screenshot-viewer";
 import { SettingsSection } from "./settings-section";
@@ -85,6 +89,7 @@ export const SCREENSHOT_SETTINGS_FOCUS_IDS = {
 } as const;
 
 const SECTION_REGION_ID = "screenshot-settings-section";
+const navigationService = NavigationService.getInstance();
 const HOTKEY_ERROR_KEYS: Record<ScreenshotHotkeyError, string> = {
   hotkey_reserved: "screenshots_hotkey_error_reserved",
   hotkey_modifier_required: "screenshots_hotkey_error_typing",
@@ -244,7 +249,16 @@ function useHotkeyRecorder(
   useEffect(() => {
     if (!isRecording) return;
 
+    const recordingLayerId = navigationService.getActiveLayerId();
+    const isRecordingLayerActive = () =>
+      navigationService.getActiveLayerId() === recordingLayerId;
+    const unsubscribe = navigationService.subscribe(() => {
+      if (!isRecordingLayerActive()) setIsRecording(false);
+    });
+
     const onKeyDown = (event: KeyboardEvent) => {
+      if (!isRecordingLayerActive()) return;
+
       event.preventDefault();
       event.stopPropagation();
 
@@ -266,8 +280,10 @@ function useHotkeyRecorder(
     };
 
     globalThis.window.addEventListener("keydown", onKeyDown, true);
-    return () =>
+    return () => {
+      unsubscribe();
       globalThis.window.removeEventListener("keydown", onKeyDown, true);
+    };
   }, [isRecording, onRecorded, save]);
 
   return { isRecording, setIsRecording };

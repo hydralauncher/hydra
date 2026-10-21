@@ -314,7 +314,7 @@ export function ScreenshotReviewModal() {
   const isCustomGame = current?.shop === "custom";
   const draft: ReviewDraft = (current && drafts[current.clientId]) ?? {
     isSpoiler: currentScreenshot?.isSpoiler ?? false,
-    visibility: defaultVisibilityRef.current,
+    visibility: currentScreenshot?.visibility ?? defaultVisibilityRef.current,
     customGameTitle: currentScreenshot?.customGameTitle ?? "",
     description: currentScreenshot?.description ?? "",
   };
