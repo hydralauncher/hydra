@@ -6,6 +6,9 @@ import { logger } from "@renderer/logger";
 import {
   buildUserScreenshotsPath,
   isLocalScreenshotForGame,
+  mergeMyScreenshots,
+  selectPendingLocalScreenshots,
+  subscribeMyGameScreenshotsChanged,
   type ScreenshotWriteBus,
 } from "@shared";
 import type {
@@ -15,12 +18,7 @@ import type {
   ScreenshotsResponse,
 } from "@types";
 
-import {
-  loadLocalScreenshotsForGame,
-  mergeMyScreenshots,
-  selectPendingLocalScreenshots,
-  subscribeMyScreenshotsChanged,
-} from "./my-screenshots-store";
+import { myGameScreenshotsLocal } from "./my-game-screenshots-bridge";
 
 interface UseMyGameScreenshotsOptions {
   shop: GameShop;
@@ -77,7 +75,7 @@ export function useMyGameScreenshots({
   });
 
   const pendingLocal = useMemo(
-    () => selectPendingLocalScreenshots(localScreenshots, shop, objectId),
+    () => selectPendingLocalScreenshots(localScreenshots, { shop, objectId }),
     [localScreenshots, objectId, shop]
   );
   const pendingIdsRef = useRef<string[]>([]);
@@ -96,7 +94,8 @@ export function useMyGameScreenshots({
     let isCurrent = true;
 
     const loadLocal = () => {
-      loadLocalScreenshotsForGame(shop, objectId)
+      myGameScreenshotsLocal
+        .getLocalScreenshotsForGame(shop, objectId)
         .then((screenshots) => {
           if (!isCurrent) return;
           setLocalScreenshots(screenshots);
@@ -117,7 +116,7 @@ export function useMyGameScreenshots({
           )
         )
     );
-    const unsubscribeChanged = subscribeMyScreenshotsChanged(() => {
+    const unsubscribeChanged = subscribeMyGameScreenshotsChanged(() => {
       loadLocal();
       setReloadKey((current) => current + 1);
     });
