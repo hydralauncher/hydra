@@ -1522,6 +1522,8 @@ contextBridge.exposeInMainWorld("electron", {
     return () =>
       ipcRenderer.removeListener("on-screenshot-upload-progress", listener);
   },
+  getPendingScreenshotReviewRequest: () =>
+    ipcRenderer.invoke("getPendingScreenshotReviewRequest"),
   onScreenshotReviewRequested: (
     cb: (request: ScreenshotReviewRequest) => void
   ) => {

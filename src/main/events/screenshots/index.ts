@@ -6,3 +6,4 @@ import "./open-screenshots-folder";
 import "./get-screenshot-review-items";
 import "./open-screenshot-review";
 import "./screenshot-flash-ready";
+import "./get-pending-screenshot-review-request";

@@ -10,9 +10,14 @@ import { logger } from "@renderer/logger";
 import { ScreenshotReviewItem } from "./screenshot-review-item";
 import {
   applyUploadProgress,
-  isScreenshotReviewDone,
+  createReviewDraft,
+  getLocalImageSource,
+  getReviewTone,
+  isScreenshotAwaitingReview,
   parseClientIds,
   selectReviewScreenshots,
+  toUploadOptions,
+  type ScreenshotReviewDraft,
 } from "./screenshot-review-state";
 
 import "./screenshot-review.scss";
@@ -22,7 +27,6 @@ const closeWindow = () => window.close();
 export function ScreenshotReview() {
   const { t } = useTranslation("screenshots_capture");
   const [searchParams] = useSearchParams();
-  const isGrid = searchParams.get("grid") === "1";
 
   const [clientIds, setClientIds] = useState(() =>
     parseClientIds(searchParams.get("clientIds"))
@@ -30,7 +34,11 @@ export function ScreenshotReview() {
   const [screenshots, setScreenshots] = useState<LocalScreenshot[] | null>(
     null
   );
-  const [hiddenClientIds, setHiddenClientIds] = useState<string[]>([]);
+  const [selectedClientId, setSelectedClientId] = useState<string | null>(null);
+  const [drafts, setDrafts] = useState<Record<string, ScreenshotReviewDraft>>(
+    {}
+  );
+  const [isBulkBusy, setIsBulkBusy] = useState(false);
   const hasLiveSnapshot = useRef(false);
 
   useEffect(() => {
@@ -49,6 +57,8 @@ export function ScreenshotReview() {
         );
       }
     );
+    const unsubscribeItems =
+      window.electron.onScreenshotReviewItemsChanged(setClientIds);
 
     window.electron
       .getLocalScreenshots()
@@ -61,20 +71,6 @@ export function ScreenshotReview() {
         logger.error("Failed to load screenshots for review", error);
       });
 
-    return () => {
-      active = false;
-      unsubscribeChanges();
-      unsubscribeProgress();
-    };
-  }, []);
-
-  useEffect(() => {
-    if (!isGrid) return;
-
-    let active = true;
-    const unsubscribe =
-      window.electron.onScreenshotReviewItemsChanged(setClientIds);
-
     window.electron
       .getScreenshotReviewItems()
       .then((currentClientIds) => {
@@ -86,74 +82,94 @@ export function ScreenshotReview() {
 
     return () => {
       active = false;
-      unsubscribe();
+      unsubscribeChanges();
+      unsubscribeProgress();
+      unsubscribeItems();
     };
-  }, [isGrid]);
-
-  const reviewScreenshots = useMemo(
-    () =>
-      screenshots
-        ? selectReviewScreenshots(screenshots, clientIds, hiddenClientIds)
-        : [],
-    [screenshots, clientIds, hiddenClientIds]
-  );
-
-  const singleScreenshot = isGrid ? null : (reviewScreenshots[0] ?? null);
-  const isLoaded = screenshots !== null;
-
-  useEffect(() => {
-    if (!isGrid && isLoaded && !singleScreenshot) closeWindow();
-  }, [isGrid, isLoaded, singleScreenshot]);
-
-  const hideScreenshot = useCallback((clientId: string) => {
-    setHiddenClientIds((current) =>
-      current.includes(clientId) ? current : [...current, clientId]
-    );
   }, []);
 
-  const isAllDone = isLoaded && reviewScreenshots.every(isScreenshotReviewDone);
+  const reviewScreenshots = useMemo(
+    () => (screenshots ? selectReviewScreenshots(screenshots, clientIds) : []),
+    [screenshots, clientIds]
+  );
 
-  const title = isGrid
-    ? t("grid_title", {
-        count: isLoaded ? reviewScreenshots.length : clientIds.length,
-      })
-    : t("review_title");
+  useEffect(() => {
+    setDrafts((current) => {
+      const missing = reviewScreenshots.filter(
+        (screenshot) => !current[screenshot.clientId]
+      );
+      if (!missing.length) return current;
+      const next = { ...current };
+      for (const screenshot of missing) {
+        next[screenshot.clientId] = createReviewDraft(screenshot);
+      }
+      return next;
+    });
+  }, [reviewScreenshots]);
 
-  const renderGrid = () => {
-    if (!isLoaded) return null;
+  const isLoaded = screenshots !== null;
+  const pendingScreenshots = reviewScreenshots.filter(
+    isScreenshotAwaitingReview
+  );
+  const selectedScreenshot =
+    reviewScreenshots.find(
+      (screenshot) => screenshot.clientId === selectedClientId
+    ) ??
+    pendingScreenshots[0] ??
+    reviewScreenshots[0] ??
+    null;
+  const isMultiple = reviewScreenshots.length > 1;
+  const isAllDone =
+    isLoaded && reviewScreenshots.length > 0 && pendingScreenshots.length === 0;
 
-    return (
-      <>
-        {isAllDone && (
-          <output className="screenshot-review__done">
-            <CheckCircleIcon size={20} />
-            <p>{t("review_all_done")}</p>
-            <Button theme="outline" size="small" onClick={closeWindow}>
-              {t("close")}
-            </Button>
-          </output>
-        )}
+  useEffect(() => {
+    if (isLoaded && reviewScreenshots.length === 0) closeWindow();
+  }, [isLoaded, reviewScreenshots.length]);
 
-        {reviewScreenshots.length > 0 && (
-          <div className="screenshot-review__grid">
-            {reviewScreenshots.map((screenshot) => (
-              <ScreenshotReviewItem
-                key={screenshot.clientId}
-                screenshot={screenshot}
-                variant="grid"
-                onRemoved={hideScreenshot}
-              />
-            ))}
-          </div>
-        )}
-      </>
-    );
+  const updateDraft = useCallback(
+    (clientId: string, draft: ScreenshotReviewDraft) => {
+      setDrafts((current) => ({ ...current, [clientId]: draft }));
+    },
+    []
+  );
+
+  const runBulk = async (
+    action: (screenshot: LocalScreenshot) => Promise<unknown>
+  ) => {
+    setIsBulkBusy(true);
+    try {
+      for (const screenshot of pendingScreenshots) await action(screenshot);
+    } catch (error) {
+      logger.error("Failed to apply the bulk screenshot action", error);
+    } finally {
+      setIsBulkBusy(false);
+    }
   };
+
+  const handleUploadAll = () =>
+    runBulk((screenshot) =>
+      window.electron.uploadLocalScreenshot(
+        screenshot.clientId,
+        toUploadOptions(
+          screenshot,
+          drafts[screenshot.clientId] ?? createReviewDraft(screenshot)
+        )
+      )
+    );
+
+  const handleSkipAll = () =>
+    runBulk((screenshot) =>
+      window.electron.skipLocalScreenshot(screenshot.clientId)
+    );
+
+  const title = isMultiple
+    ? t("review_count", { count: reviewScreenshots.length })
+    : t("review_title");
 
   return (
     <div
       className={cn("screenshot-review", {
-        "screenshot-review--grid": isGrid,
+        "screenshot-review--multiple": isMultiple,
       })}
     >
       <header className="screenshot-review__title-bar">
@@ -171,16 +187,95 @@ export function ScreenshotReview() {
         </div>
       </header>
 
+      {isMultiple && (
+        <section className="screenshot-review__toolbar">
+          <div
+            className="screenshot-review__strip"
+            role="tablist"
+            aria-label={title}
+          >
+            {reviewScreenshots.map((screenshot, index) => {
+              const isSelected =
+                screenshot.clientId === selectedScreenshot?.clientId;
+              return (
+                <button
+                  key={screenshot.clientId}
+                  type="button"
+                  role="tab"
+                  aria-selected={isSelected}
+                  aria-label={t("thumbnail_label", {
+                    index: index + 1,
+                    count: reviewScreenshots.length,
+                  })}
+                  className={cn("screenshot-review__thumb", {
+                    "screenshot-review__thumb--selected": isSelected,
+                  })}
+                  onClick={() => setSelectedClientId(screenshot.clientId)}
+                >
+                  <img
+                    src={getLocalImageSource(screenshot.path)}
+                    alt=""
+                    loading="lazy"
+                    draggable={false}
+                  />
+                  <span
+                    className={cn(
+                      "screenshot-review__thumb-status",
+                      `screenshot-review__thumb-status--${getReviewTone(screenshot)}`
+                    )}
+                  />
+                </button>
+              );
+            })}
+          </div>
+
+          {pendingScreenshots.length > 1 && (
+            <div className="screenshot-review__bulk">
+              <Button
+                size="small"
+                disabled={isBulkBusy}
+                onClick={handleUploadAll}
+              >
+                {t("upload_all", { count: pendingScreenshots.length })}
+              </Button>
+              <Button
+                size="small"
+                theme="outline"
+                disabled={isBulkBusy}
+                onClick={handleSkipAll}
+              >
+                {t("skip_all")}
+              </Button>
+            </div>
+          )}
+        </section>
+      )}
+
+      {isMultiple && isAllDone && (
+        <output className="screenshot-review__done">
+          <CheckCircleIcon size={16} />
+          <span>{t("review_all_done")}</span>
+          <Button theme="outline" size="small" onClick={closeWindow}>
+            {t("close")}
+          </Button>
+        </output>
+      )}
+
       <main className="screenshot-review__content">
-        {isGrid
-          ? renderGrid()
-          : singleScreenshot && (
-              <ScreenshotReviewItem
-                key={singleScreenshot.clientId}
-                screenshot={singleScreenshot}
-                variant="single"
-              />
-            )}
+        {selectedScreenshot && (
+          <ScreenshotReviewItem
+            key={selectedScreenshot.clientId}
+            screenshot={selectedScreenshot}
+            draft={
+              drafts[selectedScreenshot.clientId] ??
+              createReviewDraft(selectedScreenshot)
+            }
+            onDraftChange={(draft) =>
+              updateDraft(selectedScreenshot.clientId, draft)
+            }
+            canClose={!isMultiple}
+          />
+        )}
       </main>
     </div>
   );

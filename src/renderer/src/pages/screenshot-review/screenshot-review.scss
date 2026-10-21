@@ -75,36 +75,111 @@
     min-height: 0;
   }
 
-  &--grid &__content {
-    gap: calc(globals.$spacing-unit * 2);
-    padding: calc(globals.$spacing-unit * 2);
-    overflow-y: auto;
+  &__toolbar {
+    display: flex;
+    flex-direction: column;
+    flex-shrink: 0;
+    gap: globals.$spacing-unit;
+    padding: globals.$spacing-unit calc(globals.$spacing-unit * 2);
+    background-color: globals.$dark-background-color;
+    border-bottom: 1px solid globals.$border-color;
   }
 
-  &__grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
-    align-items: start;
-    gap: calc(globals.$spacing-unit * 2);
+  &__strip {
+    display: flex;
+    gap: globals.$spacing-unit;
+    overflow-x: auto;
+    padding-bottom: calc(globals.$spacing-unit / 2);
+  }
+
+  &__thumb {
+    position: relative;
+    flex: 0 0 88px;
+    aspect-ratio: 16 / 9;
+    padding: 0;
+    overflow: hidden;
+    background-color: #000000;
+    border: 2px solid transparent;
+    border-radius: 6px;
+    cursor: pointer;
+    opacity: 0.7;
+    transition:
+      opacity 0.2s ease,
+      border-color 0.2s ease;
+
+    img {
+      display: block;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+    &:hover,
+    &:focus-visible {
+      opacity: 1;
+    }
+
+    &--selected {
+      border-color: globals.$muted-color;
+      opacity: 1;
+    }
+  }
+
+  &__thumb-status {
+    position: absolute;
+    top: 4px;
+    right: 4px;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    box-shadow: 0 0 0 2px rgba(0, 0, 0, 0.6);
+
+    &--pending {
+      background-color: globals.$muted-color;
+    }
+
+    &--progress {
+      background-color: #f4a510;
+    }
+
+    &--success {
+      background-color: globals.$success-color;
+    }
+
+    &--error {
+      background-color: globals.$error-color;
+    }
+  }
+
+  &__bulk {
+    display: flex;
+    gap: globals.$spacing-unit;
+
+    .button {
+      flex: 1;
+      min-width: 0;
+    }
   }
 
   &__done {
     display: flex;
     align-items: center;
     flex-shrink: 0;
-    gap: calc(globals.$spacing-unit * 1.5);
-    padding: calc(globals.$spacing-unit * 1.5) calc(globals.$spacing-unit * 2);
+    gap: globals.$spacing-unit;
+    margin: globals.$spacing-unit calc(globals.$spacing-unit * 2) 0;
+    padding: globals.$spacing-unit calc(globals.$spacing-unit * 1.5);
     background-color: rgba(28, 151, 73, 0.12);
     border: 1px solid rgba(28, 151, 73, 0.4);
     border-radius: 8px;
     color: globals.$muted-color;
+    font-size: globals.$small-font-size;
 
     svg {
       flex-shrink: 0;
       color: globals.$success-color;
     }
 
-    p {
+    span {
       flex: 1;
       min-width: 0;
     }
@@ -113,14 +188,19 @@
 
 .screenshot-review-item {
   display: flex;
+  flex: 1;
   flex-direction: column;
   min-width: 0;
+  min-height: 0;
 
   &__body {
     display: flex;
+    flex: 1;
     flex-direction: column;
     gap: globals.$spacing-unit;
     min-height: 0;
+    padding: calc(globals.$spacing-unit * 2);
+    overflow-y: auto;
   }
 
   &__preview {
@@ -183,57 +263,17 @@
 
   &__actions {
     display: flex;
+    flex-shrink: 0;
     flex-wrap: wrap;
     gap: globals.$spacing-unit;
+    padding: calc(globals.$spacing-unit * 1.5) calc(globals.$spacing-unit * 2);
+    background-color: globals.$dark-background-color;
+    border-top: 1px solid globals.$border-color;
 
     .button {
       flex: 1;
       min-width: 0;
     }
-  }
-
-  &--single {
-    flex: 1;
-    min-height: 0;
-  }
-
-  &--single &__body {
-    flex: 1;
-    padding: calc(globals.$spacing-unit * 2);
-    overflow-y: auto;
-  }
-
-  &--single &__actions {
-    flex-shrink: 0;
-    padding: calc(globals.$spacing-unit * 1.5) calc(globals.$spacing-unit * 2);
-    background-color: globals.$dark-background-color;
-    border-top: 1px solid globals.$border-color;
-  }
-
-  &--grid {
-    overflow: hidden;
-    background-color: globals.$dark-background-color;
-    border: 1px solid globals.$border-color;
-    border-radius: 8px;
-  }
-
-  &--grid &__body {
-    gap: globals.$spacing-unit;
-    padding: calc(globals.$spacing-unit * 1.5);
-  }
-
-  &--grid &__form {
-    gap: globals.$spacing-unit;
-  }
-
-  &--grid &__preview {
-    border-radius: 4px;
-  }
-
-  &--grid &__actions {
-    gap: calc(globals.$spacing-unit * 0.75);
-    padding: 0 calc(globals.$spacing-unit * 1.5)
-      calc(globals.$spacing-unit * 1.5);
   }
 }
 
