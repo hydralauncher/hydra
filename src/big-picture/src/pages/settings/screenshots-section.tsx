@@ -31,6 +31,8 @@ import {
   isSameScreenshotHotkey,
   isScreenshotUploadRetryable,
   resolveScreenshotPreferences,
+  toLocalScreenshotUrl,
+  useLocalScreenshotViewer,
   validateScreenshotGamepadCombo,
   validateScreenshotHotkey,
   type ScreenshotHotkeyError,
@@ -53,7 +55,6 @@ import {
   getLocalScreenshotStatusDetail,
   isModifierKeyCode,
 } from "../../components/pages/screenshots";
-import { resolveImageSource } from "../../helpers";
 import {
   useBigPictureToast,
   useNavigation,
@@ -62,6 +63,7 @@ import {
   useUserPreferences,
 } from "../../hooks";
 import type { FocusOverrides, FocusOverrideTarget } from "../../services";
+import { LocalScreenshotViewer } from "./local-screenshot-viewer";
 import { SettingsSection } from "./settings-section";
 
 export const SCREENSHOT_SETTINGS_FOCUS_IDS = {
@@ -94,6 +96,8 @@ const getGamepadSlotFocusId = (index: number) =>
 const getGamepadRemoveFocusId = (index: number) =>
   `screenshot-settings-gamepad-remove:${index}`;
 
+const getLocalViewFocusId = (clientId: string) =>
+  `screenshot-settings-local-view:${clientId}`;
 const getLocalUploadFocusId = (clientId: string) =>
   `screenshot-settings-local-upload:${clientId}`;
 const getLocalDeleteFocusId = (clientId: string) =>
@@ -379,8 +383,20 @@ interface LocalScreenshotRowProps {
   isSignedIn: boolean;
   language: string;
   navigation: Record<string, FocusOverrides>;
+  onView: (screenshot: LocalScreenshot) => void;
   onUpload: (screenshot: LocalScreenshot) => void;
   onDelete: (screenshot: LocalScreenshot) => void;
+}
+
+function getLocalScreenshotTitle(
+  screenshot: LocalScreenshot,
+  t: (key: string) => string
+) {
+  return (
+    screenshot.customGameTitle ||
+    screenshot.gameTitle ||
+    t("screenshots_custom_game")
+  );
 }
 
 function LocalScreenshotRow({
@@ -388,36 +404,47 @@ function LocalScreenshotRow({
   isSignedIn,
   language,
   navigation,
+  onView,
   onUpload,
   onDelete,
 }: Readonly<LocalScreenshotRowProps>) {
   const { t } = useTranslation("big_picture");
   const [hasImageError, setHasImageError] = useState(false);
-  const source = resolveImageSource(screenshot.path);
+  const source = toLocalScreenshotUrl(screenshot.path);
+  const viewFocusId = getLocalViewFocusId(screenshot.clientId);
   const uploadFocusId = getLocalUploadFocusId(screenshot.clientId);
   const deleteFocusId = getLocalDeleteFocusId(screenshot.clientId);
-  const title =
-    screenshot.customGameTitle ||
-    screenshot.gameTitle ||
-    t("screenshots_custom_game");
+  const title = getLocalScreenshotTitle(screenshot, t);
   const canUpload = canUploadLocalScreenshot(screenshot);
   const statusDetail = getLocalScreenshotStatusDetail(screenshot, t);
 
   return (
     <li className="screenshot-settings__local-item">
-      <span className="screenshot-settings__local-thumbnail">
-        {source && !hasImageError ? (
-          <img
-            src={source}
-            alt=""
-            loading="lazy"
-            draggable={false}
-            onError={() => setHasImageError(true)}
-          />
-        ) : (
-          <ImageIcon size={20} />
-        )}
-      </span>
+      <FocusItem
+        id={viewFocusId}
+        navigationOverrides={navigation[viewFocusId]}
+        asChild
+      >
+        <button
+          type="button"
+          className="screenshot-settings__local-thumbnail"
+          aria-label={t("screenshots_settings_view_local")}
+          title={t("screenshots_settings_view_local")}
+          onClick={() => onView(screenshot)}
+        >
+          {hasImageError ? (
+            <ImageIcon size={20} />
+          ) : (
+            <img
+              src={source}
+              alt=""
+              loading="lazy"
+              draggable={false}
+              onError={() => setHasImageError(true)}
+            />
+          )}
+        </button>
+      </FocusItem>
       <span className="screenshot-settings__local-copy">
         <strong title={title}>{title}</strong>
         <small>
@@ -482,6 +509,7 @@ export function ScreenshotSettingsSection({
   const [deleting, setDeleting] = useState<LocalScreenshot | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
   const localScreenshots = useLocalScreenshotList();
+  const viewer = useLocalScreenshotViewer(localScreenshots);
   const inputStatus = useScreenshotInputStatus();
   const isBorderFlashUnavailable = Boolean(
     globalThis.window.electron.isWayland
@@ -672,10 +700,14 @@ export function ScreenshotSettingsSection({
     const localRows = localScreenshots.map((screenshot) =>
       canUploadLocalScreenshot(screenshot)
         ? [
+            getLocalViewFocusId(screenshot.clientId),
             getLocalUploadFocusId(screenshot.clientId),
             getLocalDeleteFocusId(screenshot.clientId),
           ]
-        : [getLocalDeleteFocusId(screenshot.clientId)]
+        : [
+            getLocalViewFocusId(screenshot.clientId),
+            getLocalDeleteFocusId(screenshot.clientId),
+          ]
     );
 
     const comboRow = gamepadCombo.draft.flatMap((_, index) =>
@@ -1043,6 +1075,7 @@ export function ScreenshotSettingsSection({
                     isSignedIn={Boolean(userDetails)}
                     language={language}
                     navigation={navigation}
+                    onView={(target) => viewer.open(target.clientId)}
                     onUpload={(target) => void uploadLocal(target)}
                     onDelete={setDeleting}
                   />
@@ -1054,6 +1087,39 @@ export function ScreenshotSettingsSection({
               </span>
             )}
           </div>
+
+          <LocalScreenshotViewer
+            screenshot={viewer.current}
+            index={viewer.index}
+            count={localScreenshots.length}
+            title={
+              viewer.current ? getLocalScreenshotTitle(viewer.current, t) : ""
+            }
+            meta={
+              viewer.current
+                ? `${formatScreenshotDate(viewer.current.capturedAt, language)} · ${t(
+                    getLocalStatusKey(viewer.current),
+                    {
+                      progress: Math.round(
+                        (viewer.current.uploadProgress ?? 0) * 100
+                      ),
+                    }
+                  )}`
+                : ""
+            }
+            canUpload={
+              viewer.current ? canUploadLocalScreenshot(viewer.current) : false
+            }
+            isSignedIn={Boolean(userDetails)}
+            isBlocked={Boolean(deleting)}
+            hasPrevious={viewer.hasPrevious}
+            hasNext={viewer.hasNext}
+            onPrevious={viewer.previous}
+            onNext={viewer.next}
+            onClose={viewer.close}
+            onUpload={(target) => void uploadLocal(target)}
+            onDelete={setDeleting}
+          />
 
           <ConfirmationModal
             visible={Boolean(deleting)}

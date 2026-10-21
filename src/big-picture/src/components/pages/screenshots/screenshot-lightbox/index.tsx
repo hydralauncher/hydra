@@ -15,14 +15,7 @@ import {
   TrashIcon,
 } from "@phosphor-icons/react";
 import cn from "classnames";
-import {
-  useCallback,
-  useEffect,
-  useLayoutEffect,
-  useMemo,
-  useRef,
-  useState,
-} from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
@@ -53,18 +46,15 @@ import {
   UserProfileAvatar,
   VerticalFocusGroup,
 } from "../../../common";
-import { FocusRegionContext, useFocusLayerId } from "../../../context";
+import { FocusRegionContext } from "../../../context";
 import { ConfirmationModal } from "../../../modals";
 import {
   Feature,
   useBigPictureToast,
   useFeature,
-  useGamepad,
-  useNavigationScreenActions,
   useUserDetails,
 } from "../../../../hooks";
 import { useInputModeStore, useVirtualKeyboardStore } from "../../../../stores";
-import { GamepadButtonType } from "../../../../types";
 import { NavigationService } from "../../../../services";
 import {
   formatScreenshotDate,
@@ -80,6 +70,11 @@ import { ScreenshotManageModal } from "../screenshot-manage-modal";
 import { ScreenshotReportModal } from "../screenshot-report-modal";
 import { useRevealedScreenshotSpoilers } from "../use-revealed-spoilers";
 import { ScreenshotCommentsPanel } from "./comments-panel";
+import {
+  LightboxLayerReporter,
+  useActiveLayerTracker,
+  useLightboxShortcuts,
+} from "./lightbox-shortcuts";
 
 export type ScreenshotLightboxStatus =
   | "loading"
@@ -149,23 +144,6 @@ interface LightboxStatusPanelProps {
   status: Exclude<ScreenshotLightboxStatus, "ready">;
   onClose: () => void;
   onLayerChange: (layerId: string | null) => void;
-}
-
-interface LightboxLayerReporterProps {
-  onLayerChange: (layerId: string | null) => void;
-}
-
-function LightboxLayerReporter({
-  onLayerChange,
-}: Readonly<LightboxLayerReporterProps>) {
-  const layerId = useFocusLayerId();
-
-  useLayoutEffect(() => {
-    onLayerChange(layerId);
-    return () => onLayerChange(null);
-  }, [layerId, onLayerChange]);
-
-  return null;
 }
 
 function LightboxStatusPanel({
@@ -707,110 +685,6 @@ function useLightboxSocialActions({
   };
 }
 
-interface LightboxShortcutsOptions {
-  isOpen: boolean;
-  canUseShortcuts: boolean;
-  hasLocalOverlay: boolean;
-  hasPrevious: boolean;
-  hasNext: boolean;
-  onPrevious: () => void;
-  onNext: () => void;
-  onClose: () => void;
-  isActiveLayer: () => boolean;
-}
-
-const isTypingInField = () => {
-  const activeElement = globalThis.document.activeElement;
-
-  return (
-    activeElement instanceof HTMLInputElement ||
-    activeElement instanceof HTMLTextAreaElement
-  );
-};
-
-function useLightboxShortcuts({
-  isOpen,
-  canUseShortcuts,
-  hasLocalOverlay,
-  hasPrevious,
-  hasNext,
-  onPrevious,
-  onNext,
-  onClose,
-  isActiveLayer,
-}: LightboxShortcutsOptions) {
-  const { onButtonPressed, isActiveGamepadEvent } = useGamepad();
-  const canGoPrevious = canUseShortcuts && hasPrevious;
-  const canGoNext = canUseShortcuts && hasNext;
-
-  useNavigationScreenActions(
-    isOpen && !hasLocalOverlay
-      ? {
-          press: {
-            b: () => {
-              if (isActiveLayer()) onClose();
-            },
-          },
-        }
-      : {}
-  );
-
-  useEffect(() => {
-    const removeLeft = onButtonPressed(
-      GamepadButtonType.LEFT_BUMPER,
-      (event) => {
-        if (canGoPrevious && isActiveGamepadEvent(event) && isActiveLayer())
-          onPrevious();
-      }
-    );
-    const removeRight = onButtonPressed(
-      GamepadButtonType.RIGHT_BUMPER,
-      (event) => {
-        if (canGoNext && isActiveGamepadEvent(event) && isActiveLayer())
-          onNext();
-      }
-    );
-
-    return () => {
-      removeLeft();
-      removeRight();
-    };
-  }, [
-    canGoNext,
-    canGoPrevious,
-    isActiveGamepadEvent,
-    isActiveLayer,
-    onButtonPressed,
-    onNext,
-    onPrevious,
-  ]);
-
-  useEffect(() => {
-    if (!isOpen || hasLocalOverlay) return;
-
-    const onKeyDown = (event: KeyboardEvent) => {
-      if (event.defaultPrevented || isTypingInField() || !isActiveLayer())
-        return;
-
-      if (event.key === "Escape") onClose();
-      if (event.key === "PageUp" && hasPrevious) onPrevious();
-      if (event.key === "PageDown" && hasNext) onNext();
-    };
-
-    globalThis.window.addEventListener("keydown", onKeyDown);
-    return () => globalThis.window.removeEventListener("keydown", onKeyDown);
-  }, [
-    hasLocalOverlay,
-    hasNext,
-    hasPrevious,
-    isActiveLayer,
-    isOpen,
-    onClose,
-    onNext,
-    onPrevious,
-  ]);
-}
-
 interface LightboxNavButtonsProps {
   hasPrevious: boolean;
   hasNext: boolean;
@@ -1078,16 +952,7 @@ export function ScreenshotLightbox({
   });
   const hasLocalOverlay =
     openModal !== null || isCommentsOverlayOpen || isVirtualKeyboardOpen;
-  const layerIdRef = useRef<string | null>(null);
-  const handleLayerChange = useCallback((layerId: string | null) => {
-    layerIdRef.current = layerId;
-  }, []);
-  const isActiveLayer = useCallback(
-    () =>
-      layerIdRef.current !== null &&
-      navigationService.getActiveLayerId() === layerIdRef.current,
-    []
-  );
+  const { handleLayerChange, isActiveLayer } = useActiveLayerTracker();
 
   useEffect(() => {
     setOpenModal(null);

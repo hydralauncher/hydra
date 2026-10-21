@@ -983,6 +983,7 @@
     "screenshots_load_more": "Cargar más",
     "screenshots_view_all": "Ver todas",
     "screenshots_comment_bold": "Negrita",
-    "screenshots_comment_italic": "Cursiva"
+    "screenshots_comment_italic": "Cursiva",
+    "screenshots_settings_view_local": "Ver en pantalla completa"
   }
 }

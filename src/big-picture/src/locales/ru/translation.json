@@ -1008,6 +1008,7 @@
     "screenshots_load_more": "Загрузить ещё",
     "screenshots_view_all": "Показать все",
     "screenshots_comment_bold": "Жирный",
-    "screenshots_comment_italic": "Курсив"
+    "screenshots_comment_italic": "Курсив",
+    "screenshots_settings_view_local": "Открыть на весь экран"
   }
 }

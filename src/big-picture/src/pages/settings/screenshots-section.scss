@@ -145,10 +145,25 @@
     justify-content: center;
     width: 96px;
     aspect-ratio: 16 / 9;
+    padding: 0;
     overflow: hidden;
+    border: none;
     border-radius: 6px;
     background: #000;
     color: var(--text-secondary);
+    cursor: pointer;
+    appearance: none;
+
+    &:focus,
+    &:focus-visible {
+      outline: none;
+    }
+
+    &:hover,
+    &[data-focused="true"] {
+      outline: 2px solid #fff;
+      outline-offset: 2px;
+    }
 
     img {
       width: 100%;
@@ -156,6 +171,7 @@
       object-fit: cover;
     }
   }
+
 
   &__local-copy {
     display: flex;
