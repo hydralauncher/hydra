@@ -47,11 +47,11 @@ export function RankMedal({ rank, highlighted, className }: RankMedalProps) {
         <path className="rank-medal__ribbon" d="M17.5 1H13l-2.2 7.5h4.5z" />
         <circle className="rank-medal__disc" cx="12" cy="17" r="8" />
         <circle className="rank-medal__rim" cx="12" cy="17" r="6" />
+        <text className="rank-medal__rank" x="12" y="21" textAnchor="middle">
+          {rank}
+        </text>
       </svg>
       <span className="rank-medal__shine" aria-hidden="true" />
-      <span className="rank-medal__rank" aria-hidden="true">
-        {rank}
-      </span>
     </span>
   );
 }

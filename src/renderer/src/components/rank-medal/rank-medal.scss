@@ -49,18 +49,11 @@
   }
 
   &__rank {
-    position: absolute;
-    top: 10px;
-    left: 0;
-    right: 0;
-    height: 14px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
+    font-family: inherit;
     font-size: 11px;
-    line-height: 14px;
     font-weight: 800;
-    color: globals.$dark-background-color;
+    font-variant-numeric: tabular-nums;
+    fill: globals.$dark-background-color;
   }
 
   &__shine {
@@ -96,15 +89,18 @@
     font-size: 13px;
     font-weight: 700;
     font-variant-numeric: tabular-nums;
-    color: var(--rank-number-color, #{globals.$body-color});
+    color: var(
+      --rank-number-color,
+      color-mix(in srgb, currentColor 80%, transparent)
+    );
 
     &--top10 {
       font-weight: 800;
-      color: var(--rank-top10-color, #{globals.$muted-color});
+      color: var(--rank-top10-color, currentColor);
     }
 
     &--highlighted {
-      color: var(--rank-top10-color, #{globals.$muted-color});
+      color: var(--rank-top10-color, currentColor);
     }
   }
 }
