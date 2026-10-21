@@ -21,6 +21,13 @@ const getScreenshotFailure = (error: unknown): ScreenshotFailure | null => {
   return null;
 };
 
+const withoutKey = <Value>(record: Record<string, Value>, key: string) => {
+  if (!(key in record)) return record;
+  const next = { ...record };
+  delete next[key];
+  return next;
+};
+
 export type ScreenshotLightboxStatus =
   | "closed"
   | "loading"
@@ -45,12 +52,17 @@ export function useScreenshotCollection({
   const feed = useScreenshotFeed({ feedKey, fetchPage });
   const { patchItem, removeItem } = feed;
   const [openTarget, setOpenTarget] = useState<OpenTarget | null>(null);
-  const [detached, setDetached] = useState<ProfileScreenshot | null>(null);
+  const [detachedById, setDetachedById] = useState<
+    Record<string, ProfileScreenshot>
+  >({});
   const [failures, setFailures] = useState<Record<string, ScreenshotFailure>>(
     {}
   );
-  const [loadingId, setLoadingId] = useState<string | null>(null);
+  const [loadingIds, setLoadingIds] = useState<ReadonlySet<string>>(
+    () => new Set()
+  );
   const fetchedIdsRef = useRef(new Set<string>());
+  const requestTokensRef = useRef(new Map<string, number>());
   const refreshedIdsRef = useRef(new Set<string>());
 
   const openId = openTarget?.screenshotId ?? null;
@@ -58,8 +70,8 @@ export function useScreenshotCollection({
     () => feed.items.find((item) => item.id === openId) ?? null,
     [feed.items, openId]
   );
-  const screenshot =
-    listItem ?? (detached && detached.id === openId ? detached : null);
+  const detached = openId ? (detachedById[openId] ?? null) : null;
+  const screenshot = listItem ?? detached;
   const failure = openId ? (failures[openId] ?? null) : null;
 
   const markFailure = useCallback(
@@ -72,8 +84,13 @@ export function useScreenshotCollection({
   const onPatch = useCallback(
     (screenshotId: string, patch: Partial<ProfileScreenshot>) => {
       patchItem(screenshotId, patch);
-      setDetached((current) =>
-        current?.id === screenshotId ? { ...current, ...patch } : current
+      setDetachedById((current) =>
+        screenshotId in current
+          ? {
+              ...current,
+              [screenshotId]: { ...current[screenshotId], ...patch },
+            }
+          : current
       );
     },
     [patchItem]
@@ -83,7 +100,7 @@ export function useScreenshotCollection({
     (screenshotId: string) => {
       fetchedIdsRef.current.add(screenshotId);
       removeItem(screenshotId);
-      setDetached((current) => (current?.id === screenshotId ? null : current));
+      setDetachedById((current) => withoutKey(current, screenshotId));
     },
     [removeItem]
   );
@@ -105,28 +122,39 @@ export function useScreenshotCollection({
   );
 
   useEffect(() => {
-    if (!openTarget?.ownerId || listItem || failure) return;
-    if (detached?.id === openTarget.screenshotId) return;
+    if (!openTarget?.ownerId || listItem || detached || failure) return;
     if (fetchedIdsRef.current.has(openTarget.screenshotId)) return;
 
     const { ownerId, screenshotId } = openTarget;
+    const token = (requestTokensRef.current.get(screenshotId) ?? 0) + 1;
+    const isCurrentRequest = () =>
+      requestTokensRef.current.get(screenshotId) === token;
+
+    requestTokensRef.current.set(screenshotId, token);
     fetchedIdsRef.current.add(screenshotId);
-    setLoadingId(screenshotId);
+    setLoadingIds((current) => new Set(current).add(screenshotId));
 
     fetchScreenshot(ownerId, screenshotId)
       .then((item) => {
+        if (!isCurrentRequest()) return;
         if (item) {
-          setDetached(item);
+          setDetachedById((current) => ({ ...current, [screenshotId]: item }));
         } else {
           markFailure(screenshotId, "unavailable");
         }
       })
       .catch((error) => {
+        if (!isCurrentRequest()) return;
         logger.error("Failed to load screenshot", error);
         markFailure(screenshotId, getScreenshotFailure(error) ?? "unavailable");
       })
       .finally(() => {
-        setLoadingId((current) => (current === screenshotId ? null : current));
+        if (!isCurrentRequest()) return;
+        setLoadingIds((current) => {
+          const next = new Set(current);
+          next.delete(screenshotId);
+          return next;
+        });
       });
   }, [detached, failure, fetchScreenshot, listItem, markFailure, openTarget]);
 
@@ -136,12 +164,8 @@ export function useScreenshotCollection({
 
   const openById = useCallback((ownerId: string, screenshotId: string) => {
     fetchedIdsRef.current.delete(screenshotId);
-    setFailures((current) => {
-      if (!(screenshotId in current)) return current;
-      const next = { ...current };
-      delete next[screenshotId];
-      return next;
-    });
+    setFailures((current) => withoutKey(current, screenshotId));
+    setDetachedById((current) => withoutKey(current, screenshotId));
     setOpenTarget({ screenshotId, ownerId });
   }, []);
 
@@ -171,7 +195,7 @@ export function useScreenshotCollection({
     if (failure) status = failure;
     else if (screenshot) status = "ready";
     else if (
-      loadingId === openId ||
+      loadingIds.has(openId) ||
       (openTarget?.ownerId && !fetchedIdsRef.current.has(openId))
     ) {
       status = "loading";
