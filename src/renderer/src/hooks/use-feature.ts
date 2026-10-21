@@ -11,6 +11,7 @@ enum Feature {
   Nimbus = "NIMBUS",
   NimbusPreview = "NIMBUS_PREVIEW",
   ChatImages = "CHAT_IMAGES",
+  GameLeaderboardsExtended = "GAME_LEADERBOARDS_EXTENDED",
 }
 
 const readCachedFeatures = (): string[] => {
