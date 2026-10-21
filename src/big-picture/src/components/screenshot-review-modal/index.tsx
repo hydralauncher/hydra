@@ -11,11 +11,7 @@ import {
 } from "@phosphor-icons/react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
-import type {
-  LocalScreenshot,
-  ProfileVisibility,
-  ScreenshotReviewRequest,
-} from "@types";
+import type { LocalScreenshot, ProfileVisibility } from "@types";
 import {
   SCREENSHOT_CUSTOM_GAME_TITLE_MAX_LENGTH,
   isScreenshotUploadRetryable,
@@ -36,12 +32,27 @@ import {
 import { ConfirmationModal } from "../modals";
 import { IS_DESKTOP } from "../../constants";
 import { resolveImageSource } from "../../helpers";
+import { useNavigationStore } from "../../stores";
 import { getLocalScreenshotStatusDetail } from "../pages/screenshots";
 import {
   useBigPictureToast,
   useNavigation,
   useUserPreferences,
 } from "../../hooks";
+import {
+  EMPTY_REVIEW_QUEUE,
+  advanceReviewQueue,
+  closeReviewQueue,
+  dropMissingReviewItems,
+  enqueueReviewRequest,
+  getCurrentReviewItem,
+  getUndecidedReviewIds,
+  isReviewListFresh,
+  isReviewQueueOpen,
+  recordReviewDecision,
+  type ReviewDecision,
+  type ReviewQueueState,
+} from "./review-queue";
 
 const REGION_ID = "screenshot-review-modal";
 const ACTIONS_REGION_ID = "screenshot-review-modal-actions";
@@ -53,19 +64,16 @@ const SKIP_FOCUS_ID = "screenshot-review-skip";
 const DELETE_FOCUS_ID = "screenshot-review-delete";
 const NEXT_FOCUS_ID = "screenshot-review-next";
 const RETRY_FOCUS_ID = "screenshot-review-retry";
-
-type ReviewDecision = "upload" | "skip" | "delete";
+const FIELD_FOCUS_IDS = new Set([
+  TITLE_FOCUS_ID,
+  SPOILER_FOCUS_ID,
+  VISIBILITY_FOCUS_ID,
+]);
 
 interface ReviewDraft {
   isSpoiler: boolean;
   visibility: ProfileVisibility;
   customGameTitle: string;
-}
-
-interface ReviewQueueItem {
-  clientId: string;
-  shop: ScreenshotReviewRequest["shop"];
-  gameTitle: string;
 }
 
 function getUploadStatusKey(screenshot: LocalScreenshot | undefined) {
@@ -82,27 +90,44 @@ function getUploadStatusKey(screenshot: LocalScreenshot | undefined) {
   return "screenshots_review_upload_queued";
 }
 
-function useLocalScreenshots(isActive: boolean) {
+function useLocalScreenshots(isActive: boolean, requestCount: number) {
   const [screenshots, setScreenshots] = useState<LocalScreenshot[]>([]);
+  const [loadedRequestCount, setLoadedRequestCount] = useState<number | null>(
+    null
+  );
 
   useEffect(() => {
-    if (!IS_DESKTOP || !isActive) return;
+    if (!isActive) {
+      setScreenshots([]);
+      setLoadedRequestCount(null);
+      return;
+    }
+
+    if (!IS_DESKTOP) return;
 
     let isCurrent = true;
 
     globalThis.window.electron
       .getLocalScreenshots()
       .then((items) => {
-        if (isCurrent) setScreenshots(items);
+        if (!isCurrent) return;
+        setScreenshots(items);
+        setLoadedRequestCount(requestCount);
       })
       .catch((error: unknown) => {
         logger.error("Failed to load local screenshots", error);
       });
 
+    return () => {
+      isCurrent = false;
+    };
+  }, [isActive, requestCount]);
+
+  useEffect(() => {
+    if (!IS_DESKTOP || !isActive) return;
+
     const unsubscribeChange =
-      globalThis.window.electron.onLocalScreenshotsChange((items) => {
-        setScreenshots(items);
-      });
+      globalThis.window.electron.onLocalScreenshotsChange(setScreenshots);
     const unsubscribeProgress =
       globalThis.window.electron.onScreenshotUploadProgress((progress) => {
         setScreenshots((current) =>
@@ -119,14 +144,23 @@ function useLocalScreenshots(isActive: boolean) {
       });
 
     return () => {
-      isCurrent = false;
       unsubscribeChange();
       unsubscribeProgress();
     };
   }, [isActive]);
 
-  return screenshots;
+  return { screenshots, loadedRequestCount };
 }
+
+const keepScreenshotsLocally = (clientIds: string[]) => {
+  for (const clientId of clientIds) {
+    void globalThis.window.electron
+      .skipLocalScreenshot(clientId)
+      .catch((error: unknown) => {
+        logger.error("Failed to keep the screenshot locally", error);
+      });
+  }
+};
 
 interface ReviewPreviewProps {
   screenshot: LocalScreenshot | undefined;
@@ -160,23 +194,13 @@ function ReviewPreview({
 
 interface UploadStatusProps {
   screenshot: LocalScreenshot | undefined;
-  isLast: boolean;
-  onRetry: () => void;
-  onNext: () => void;
 }
 
-function UploadStatus({
-  screenshot,
-  isLast,
-  onRetry,
-  onNext,
-}: Readonly<UploadStatusProps>) {
+function UploadStatus({ screenshot }: Readonly<UploadStatusProps>) {
   const { t } = useTranslation("big_picture");
   const progress = Math.round((screenshot?.uploadProgress ?? 0) * 100);
   const isFailed = screenshot?.state === "failed";
   const isDone = screenshot?.state === "uploaded";
-  const canRetry =
-    isFailed && isScreenshotUploadRetryable(screenshot?.lastError);
   const detail = getLocalScreenshotStatusDetail(screenshot, t);
 
   return (
@@ -202,25 +226,6 @@ function UploadStatus({
           <span style={{ width: `${progress}%` }} />
         </div>
       )}
-
-      <HorizontalFocusGroup
-        regionId={ACTIONS_REGION_ID}
-        className="screenshot-review-modal__actions"
-      >
-        {canRetry ? (
-          <Button
-            variant="secondary"
-            focusId={RETRY_FOCUS_ID}
-            icon={<ArrowClockwiseIcon size={18} />}
-            onClick={onRetry}
-          >
-            {t("screenshots_review_retry")}
-          </Button>
-        ) : null}
-        <Button focusId={NEXT_FOCUS_ID} onClick={onNext}>
-          {t(isLast ? "screenshots_review_done" : "screenshots_review_next")}
-        </Button>
-      </HorizontalFocusGroup>
     </div>
   );
 }
@@ -230,18 +235,21 @@ export function ScreenshotReviewModal() {
   const userPreferences = useUserPreferences();
   const { showErrorToast } = useBigPictureToast();
   const { setFocus } = useNavigation();
-  const [queue, setQueue] = useState<ReviewQueueItem[]>([]);
-  const [index, setIndex] = useState(0);
+  const currentFocusId = useNavigationStore((state) => state.currentFocusId);
+  const [queueState, setQueueState] =
+    useState<ReviewQueueState>(EMPTY_REVIEW_QUEUE);
   const [drafts, setDrafts] = useState<Record<string, ReviewDraft>>({});
-  const [decisions, setDecisions] = useState<Record<string, ReviewDecision>>(
-    {}
-  );
   const [pendingAction, setPendingAction] = useState<ReviewDecision | null>(
     null
   );
   const [isDeleteConfirmVisible, setIsDeleteConfirmVisible] = useState(false);
-  const visible = queue.length > 0;
-  const screenshots = useLocalScreenshots(visible);
+  const visible = isReviewQueueOpen(queueState);
+  const { screenshots, loadedRequestCount } = useLocalScreenshots(
+    visible,
+    queueState.requestCount
+  );
+  const isListFresh = isReviewListFresh(queueState, loadedRequestCount);
+  const { items: queue, index, decisions } = queueState;
   const defaultVisibility =
     resolveScreenshotPreferences(userPreferences).defaultVisibility;
   const defaultVisibilityRef = useRef(defaultVisibility);
@@ -251,22 +259,11 @@ export function ScreenshotReviewModal() {
     if (!IS_DESKTOP) return;
 
     return globalThis.window.electron.onScreenshotReviewRequested((request) => {
-      setQueue((current) => {
-        const knownIds = new Set(current.map((item) => item.clientId));
-        const nextItems = request.clientIds
-          .filter((clientId) => !knownIds.has(clientId))
-          .map((clientId) => ({
-            clientId,
-            shop: request.shop,
-            gameTitle: request.gameTitle,
-          }));
-
-        return [...current, ...nextItems];
-      });
+      setQueueState((current) => enqueueReviewRequest(current, request));
     });
   }, []);
 
-  const current = queue[index];
+  const current = getCurrentReviewItem(queueState);
   const currentScreenshot = useMemo(
     () => screenshots.find((item) => item.clientId === current?.clientId),
     [current?.clientId, screenshots]
@@ -287,23 +284,17 @@ export function ScreenshotReviewModal() {
     }));
   };
 
-  const reset = useCallback(() => {
-    setQueue([]);
-    setIndex(0);
+  useEffect(() => {
+    if (visible) return;
+
     setDrafts({});
-    setDecisions({});
     setPendingAction(null);
     setIsDeleteConfirmVisible(false);
-  }, []);
+  }, [visible]);
 
   const goToNext = useCallback(() => {
-    if (index >= queue.length - 1) {
-      reset();
-      return;
-    }
-
-    setIndex(index + 1);
-  }, [index, queue.length, reset]);
+    setQueueState(advanceReviewQueue);
+  }, []);
 
   useEffect(() => {
     if (!visible) return;
@@ -320,11 +311,27 @@ export function ScreenshotReviewModal() {
   }, [decision, index, setFocus, visible]);
 
   useEffect(() => {
-    if (!visible || !current || currentScreenshot || screenshots.length === 0)
-      return;
+    if (!visible || !currentFocusId) return;
+    if (!FIELD_FOCUS_IDS.has(currentFocusId)) return;
 
-    goToNext();
-  }, [current, currentScreenshot, goToNext, screenshots.length, visible]);
+    globalThis.document
+      .getElementById(currentFocusId)
+      ?.scrollIntoView({ block: "nearest" });
+  }, [currentFocusId, visible]);
+
+  useEffect(() => {
+    if (!isListFresh) return;
+
+    const availableIds = new Set(screenshots.map((item) => item.clientId));
+    const { state: nextState, droppedIds } = dropMissingReviewItems(
+      queueState,
+      availableIds
+    );
+    if (droppedIds.length === 0) return;
+
+    keepScreenshotsLocally(droppedIds);
+    setQueueState(nextState);
+  }, [isListFresh, queueState, screenshots]);
 
   const runAction = async (
     action: ReviewDecision,
@@ -342,10 +349,9 @@ export function ScreenshotReviewModal() {
         });
         return false;
       }
-      setDecisions((existing) => ({
-        ...existing,
-        [current.clientId]: action,
-      }));
+      setQueueState((state) =>
+        recordReviewDecision(state, current.clientId, action)
+      );
       return true;
     } catch (error) {
       logger.error(`Failed to ${action} the screenshot`, error);
@@ -393,19 +399,8 @@ export function ScreenshotReviewModal() {
   };
 
   const close = () => {
-    const undecided = queue
-      .slice(index)
-      .filter((item) => !decisions[item.clientId]);
-
-    for (const item of undecided) {
-      void globalThis.window.electron
-        .skipLocalScreenshot(item.clientId)
-        .catch((error: unknown) => {
-          logger.error("Failed to keep the screenshot locally", error);
-        });
-    }
-
-    reset();
+    keepScreenshotsLocally(getUndecidedReviewIds(queueState));
+    setQueueState(closeReviewQueue);
   };
 
   const visibilityOptions = useMemo<DropdownSelectOption<ProfileVisibility>[]>(
@@ -424,6 +419,10 @@ export function ScreenshotReviewModal() {
     current.gameTitle ||
     t("screenshots_custom_game");
   const isUploading = decision === "upload";
+  const canRetry =
+    isUploading &&
+    currentScreenshot?.state === "failed" &&
+    isScreenshotUploadRetryable(currentScreenshot.lastError);
   const isBusy = pendingAction !== null;
 
   return (
@@ -453,54 +452,75 @@ export function ScreenshotReviewModal() {
         />
 
         <div className="screenshot-review-modal__form">
-          {isCustomGame ? (
-            <Input
-              label={t("screenshots_custom_title_label")}
-              placeholder={t("screenshots_custom_game")}
-              value={draft.customGameTitle}
-              maxLength={SCREENSHOT_CUSTOM_GAME_TITLE_MAX_LENGTH}
-              disabled={isUploading || isBusy}
-              focusId={TITLE_FOCUS_ID}
-              onChange={(event) =>
-                updateDraft({ customGameTitle: event.target.value })
-              }
-            />
-          ) : (
-            <p className="screenshot-review-modal__game">{gameTitle}</p>
-          )}
-
-          {isUploading ? (
-            <UploadStatus
-              screenshot={currentScreenshot}
-              isLast={index >= queue.length - 1}
-              onRetry={upload}
-              onNext={goToNext}
-            />
-          ) : (
-            <>
-              <Checkbox
-                block
-                label={t("screenshots_mark_spoiler")}
-                secondaryText={t("screenshots_mark_spoiler_description")}
-                checked={draft.isSpoiler}
-                disabled={isBusy}
-                focusId={SPOILER_FOCUS_ID}
-                onChange={(isSpoiler) => updateDraft({ isSpoiler })}
+          <div className="screenshot-review-modal__fields">
+            {isCustomGame ? (
+              <Input
+                label={t("screenshots_custom_title_label")}
+                placeholder={t("screenshots_custom_game")}
+                value={draft.customGameTitle}
+                maxLength={SCREENSHOT_CUSTOM_GAME_TITLE_MAX_LENGTH}
+                disabled={isUploading || isBusy}
+                focusId={TITLE_FOCUS_ID}
+                onChange={(event) =>
+                  updateDraft({ customGameTitle: event.target.value })
+                }
               />
+            ) : (
+              <p className="screenshot-review-modal__game">{gameTitle}</p>
+            )}
 
-              <DropdownSelect
-                label={t("screenshots_visibility_label")}
-                value={draft.visibility}
-                options={visibilityOptions}
-                disabled={isBusy}
-                focusId={VISIBILITY_FOCUS_ID}
-                onValueChange={(visibility) => updateDraft({ visibility })}
-              />
+            {isUploading ? (
+              <UploadStatus screenshot={currentScreenshot} />
+            ) : (
+              <>
+                <Checkbox
+                  block
+                  label={t("screenshots_mark_spoiler")}
+                  secondaryText={t("screenshots_mark_spoiler_description")}
+                  checked={draft.isSpoiler}
+                  disabled={isBusy}
+                  focusId={SPOILER_FOCUS_ID}
+                  onChange={(isSpoiler) => updateDraft({ isSpoiler })}
+                />
 
-              <HorizontalFocusGroup
-                regionId={ACTIONS_REGION_ID}
-                className="screenshot-review-modal__actions"
-              >
+                <DropdownSelect
+                  label={t("screenshots_visibility_label")}
+                  value={draft.visibility}
+                  options={visibilityOptions}
+                  disabled={isBusy}
+                  focusId={VISIBILITY_FOCUS_ID}
+                  onValueChange={(visibility) => updateDraft({ visibility })}
+                />
+              </>
+            )}
+          </div>
+
+          <HorizontalFocusGroup
+            regionId={ACTIONS_REGION_ID}
+            className="screenshot-review-modal__actions"
+          >
+            {isUploading ? (
+              <>
+                {canRetry ? (
+                  <Button
+                    variant="secondary"
+                    focusId={RETRY_FOCUS_ID}
+                    icon={<ArrowClockwiseIcon size={18} />}
+                    onClick={upload}
+                  >
+                    {t("screenshots_review_retry")}
+                  </Button>
+                ) : null}
+                <Button focusId={NEXT_FOCUS_ID} onClick={goToNext}>
+                  {t(
+                    index >= queue.length - 1
+                      ? "screenshots_review_done"
+                      : "screenshots_review_next"
+                  )}
+                </Button>
+              </>
+            ) : (
+              <>
                 <Button
                   variant="danger"
                   focusId={DELETE_FOCUS_ID}
@@ -530,9 +550,9 @@ export function ScreenshotReviewModal() {
                 >
                   {t("screenshots_review_upload")}
                 </Button>
-              </HorizontalFocusGroup>
-            </>
-          )}
+              </>
+            )}
+          </HorizontalFocusGroup>
         </div>
       </VerticalFocusGroup>
 

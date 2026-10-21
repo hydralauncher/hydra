@@ -53,9 +53,18 @@
   &__form {
     display: flex;
     flex-direction: column;
-    gap: calc(var(--spacing-unit) * 3);
+    gap: calc(var(--spacing-unit) * 2);
     min-width: 0;
     min-height: 0;
+  }
+
+  &__fields {
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+    gap: calc(var(--spacing-unit) * 3);
+    min-height: 0;
+    padding-right: var(--spacing-unit);
     overflow-y: auto;
   }
 
@@ -70,15 +79,13 @@
   }
 
   &__actions {
-    position: sticky;
-    bottom: 0;
     display: flex;
+    flex-shrink: 0;
     flex-wrap: wrap;
     justify-content: flex-end;
     gap: calc(var(--spacing-unit) * 2);
-    margin-top: auto;
     padding-top: calc(var(--spacing-unit) * 2);
-    background: var(--background);
+    border-top: 1px solid var(--secondary-border);
   }
 
   &__status {

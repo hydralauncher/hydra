@@ -42,6 +42,17 @@ export interface ModalProps {
 
 export const MODAL_OWNED_OVERLAY_ATTRIBUTE = "data-hydra-modal-owned-overlay";
 
+interface ModalBackActionProps {
+  enabled: boolean;
+  onBack: () => void;
+}
+
+function ModalBackAction({ enabled, onBack }: Readonly<ModalBackActionProps>) {
+  useNavigationScreenActions(enabled ? { press: { b: onBack } } : {});
+
+  return null;
+}
+
 export function Modal({
   visible,
   onClose,
@@ -98,10 +109,6 @@ export function Modal({
     if (!isTopMostModal()) return;
     handleCloseClick();
   }, [handleCloseClick]);
-
-  useNavigationScreenActions(
-    shouldCloseOnB ? { press: { b: handleBPress } } : {}
-  );
 
   useEffect(() => {
     if (!visible) return;
@@ -182,6 +189,9 @@ export function Modal({
 
   return createPortal(
     <FocusRegionContext.Provider value={null}>
+      {visible ? (
+        <ModalBackAction enabled={shouldCloseOnB} onBack={handleBPress} />
+      ) : null}
       <AnimatePresence>
         {visible && (
           <Backdrop className={backdropClassName}>
