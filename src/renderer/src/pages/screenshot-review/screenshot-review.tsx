@@ -230,7 +230,7 @@ export function ScreenshotReview() {
       )
     );
 
-  const handleSkipAll = () =>
+  const handleKeepAll = () =>
     runBulk((screenshot) =>
       window.electron.skipLocalScreenshot(screenshot.clientId)
     );
@@ -309,26 +309,6 @@ export function ScreenshotReview() {
               );
             })}
           </div>
-
-          {pendingScreenshots.length > 1 && (
-            <div className="screenshot-review__bulk">
-              <Button
-                size="small"
-                disabled={isBulkBusy}
-                onClick={handleUploadAll}
-              >
-                {t("upload_all", { count: pendingScreenshots.length })}
-              </Button>
-              <Button
-                size="small"
-                theme="outline"
-                disabled={isBulkBusy}
-                onClick={handleSkipAll}
-              >
-                {t("skip_all")}
-              </Button>
-            </div>
-          )}
         </section>
       )}
 
@@ -357,6 +337,9 @@ export function ScreenshotReview() {
             }
             canClose={!isMultiple}
             isLocked={isBulkBusy}
+            pendingCount={pendingScreenshots.length}
+            onUploadAll={handleUploadAll}
+            onKeepAll={handleKeepAll}
           />
         )}
       </main>
