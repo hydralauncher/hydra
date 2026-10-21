@@ -335,6 +335,8 @@
     "video_quality_auto": "Automática",
     "fullscreen": "Pantalla completa",
     "exit_fullscreen": "Salir de pantalla completa",
+    "lightbox_show_details": "Mostrar detalles",
+    "lightbox_hide_details": "Ocultar detalles",
     "keyboard_space": "Espacio",
     "download_settings": "Descargar ajustes",
     "downloader": "Descargador",

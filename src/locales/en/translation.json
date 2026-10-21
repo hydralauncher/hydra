@@ -334,6 +334,8 @@
     "video_quality_auto": "Auto",
     "fullscreen": "Fullscreen",
     "exit_fullscreen": "Exit fullscreen",
+    "lightbox_show_details": "Show details",
+    "lightbox_hide_details": "Hide details",
     "keyboard_space": "Space",
     "download_settings": "Download settings",
     "downloader": "Downloader",

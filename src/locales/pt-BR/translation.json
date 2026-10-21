@@ -1004,6 +1004,8 @@
     "video_quality_auto": "Automática",
     "fullscreen": "Tela cheia",
     "exit_fullscreen": "Sair da tela cheia",
+    "lightbox_show_details": "Mostrar detalhes",
+    "lightbox_hide_details": "Ocultar detalhes",
     "keyboard_space": "Espaço",
     "not_enough_space_on_disk": "Espaço insuficiente neste disco. Necessário {{required}}, disponível {{available}}.",
     "epic_playtime_tracking_title": "Tempo de jogo Epic",

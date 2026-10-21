@@ -338,6 +338,8 @@
     "video_quality_auto": "Авто",
     "fullscreen": "Полноэкранный режим",
     "exit_fullscreen": "Выйти из полноэкранного режима",
+    "lightbox_show_details": "Показать подробности",
+    "lightbox_hide_details": "Скрыть подробности",
     "keyboard_space": "Пробел",
     "download_settings": "Параметры загрузки",
     "downloader": "Загрузчик",
