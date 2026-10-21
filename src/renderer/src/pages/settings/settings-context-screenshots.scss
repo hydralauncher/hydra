@@ -1,5 +1,10 @@
 @use "../../scss/globals.scss";
 
+$screenshots-press-duration: 0.08s;
+$screenshots-hover-duration: 0.2s;
+$screenshots-zoom-duration: 0.3s;
+$screenshots-progress-duration: 0.2s;
+
 .settings-screenshots {
   min-width: 0;
 
@@ -54,9 +59,9 @@
     white-space: nowrap;
     cursor: pointer;
     transition:
-      transform 0.08s ease,
-      box-shadow 0.08s ease,
-      border-color 0.2s ease;
+      transform $screenshots-press-duration ease,
+      box-shadow $screenshots-press-duration ease,
+      border-color $screenshots-hover-duration ease;
 
     kbd {
       font-family: inherit;
@@ -158,8 +163,8 @@
     border-radius: 8px;
     background-color: globals.$dark-background-color;
     transition:
-      border-color 0.2s ease,
-      transform 0.2s ease;
+      border-color $screenshots-hover-duration ease,
+      transform $screenshots-hover-duration ease;
 
     &:hover {
       border-color: rgba(255, 255, 255, 0.24);
@@ -196,7 +201,7 @@
       width: 100%;
       height: 100%;
       object-fit: cover;
-      transition: transform 0.3s ease;
+      transition: transform $screenshots-zoom-duration ease;
     }
   }
 
@@ -259,7 +264,7 @@
   &__progress-bar {
     height: 100%;
     background-color: globals.$brand-teal;
-    transition: width 0.2s ease;
+    transition: width $screenshots-progress-duration ease;
   }
 
   &__card-body {
