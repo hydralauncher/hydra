@@ -26,6 +26,8 @@ import type { ScreenshotFailure } from "./use-screenshot-actions";
 import type { ScreenshotPatch } from "@shared";
 import type { ScreenshotCollection } from "./use-screenshot-collection";
 
+import "./screenshot-lightbox-panel.scss";
+
 type ScreenshotActions = ScreenshotCollection["actions"];
 
 function ScreenshotGameTag({
