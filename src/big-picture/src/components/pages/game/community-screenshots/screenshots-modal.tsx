@@ -3,10 +3,16 @@ import {
   ImageIcon,
   SortAscendingIcon,
 } from "@phosphor-icons/react";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import type { GameShop, ProfileScreenshot, ScreenshotSort } from "@types";
-import { buildGameScreenshotsPath } from "@shared";
+import {
+  INITIAL_SCREENSHOT_SPOILER_PAGING,
+  buildGameScreenshotsPath,
+  resumeSpoilerPaging,
+  shouldAutoLoadSpoilerPage,
+  trackSpoilerPaging,
+} from "@shared";
 import { logger } from "@renderer/logger";
 
 import {
@@ -39,7 +45,6 @@ import {
 
 const SORT_STORAGE_KEY = "big-picture:game-screenshots-sort";
 const MODAL_PAGE_SIZE = 24;
-const MIN_VISIBLE_WHEN_FILTERED = 12;
 
 function readStoredSort(): ScreenshotSort {
   try {
@@ -194,24 +199,32 @@ export function GameScreenshotsModal({
     });
   }, [loadMore]);
 
+  const spoilerPagingRef = useRef(INITIAL_SCREENSHOT_SPOILER_PAGING);
+  const loadedCount = feed.items.length;
+  const visibleCount = visibleItems.length;
+
+  useEffect(() => {
+    const paging = trackSpoilerPaging(
+      spoilerPagingRef.current,
+      loadedCount,
+      visibleCount
+    );
+    spoilerPagingRef.current = paging;
+
+    if (shouldAutoLoadSpoilerPage({ hideSpoilers, canLoadMore, paging })) {
+      requestMore();
+    }
+  }, [canLoadMore, hideSpoilers, loadedCount, requestMore, visibleCount]);
+
   const loadNextPage = () => {
     if (feed.error === "page") {
       feed.retry();
       return;
     }
 
+    spoilerPagingRef.current = resumeSpoilerPaging(spoilerPagingRef.current);
     requestMore();
   };
-
-  useEffect(() => {
-    if (
-      hideSpoilers &&
-      canLoadMore &&
-      visibleItems.length < MIN_VISIBLE_WHEN_FILTERED
-    ) {
-      requestMore();
-    }
-  }, [canLoadMore, hideSpoilers, requestMore, visibleItems.length]);
 
   const sortOptions = useMemo<DropdownSelectOption<ScreenshotSort>[]>(
     () => [
