@@ -10,7 +10,8 @@ import type {
 import {
   SCREENSHOT_CUSTOM_GAME_TITLE_MAX_LENGTH,
   SCREENSHOT_DESCRIPTION_MAX_LENGTH,
-  normalizeScreenshotDescription,
+  buildScreenshotSettingsUpdate,
+  readScreenshotSettings,
   sanitizeScreenshotDescriptionInput,
 } from "@shared";
 
@@ -43,35 +44,6 @@ interface ScreenshotManageModalProps {
   onSave: (update: ScreenshotUpdateRequest) => Promise<boolean>;
 }
 
-function buildUpdate(
-  screenshot: ProfileScreenshot,
-  values: {
-    visibility: ProfileVisibility;
-    isSpoiler: boolean;
-    commentsEnabled: boolean;
-    customGameTitle: string;
-    description: string;
-  }
-): ScreenshotUpdateRequest {
-  const update: ScreenshotUpdateRequest = {};
-  const trimmedTitle = values.customGameTitle.trim();
-  const currentTitle = screenshot.gameTitle ?? "";
-
-  if (values.visibility !== (screenshot.visibility ?? "PUBLIC"))
-    update.visibility = values.visibility;
-  if (values.isSpoiler !== screenshot.isSpoiler)
-    update.isSpoiler = values.isSpoiler;
-  if (values.commentsEnabled !== screenshot.commentsEnabled)
-    update.commentsEnabled = values.commentsEnabled;
-  if (screenshot.isCustomGame && trimmedTitle !== currentTitle)
-    update.customGameTitle = trimmedTitle || null;
-  const description = normalizeScreenshotDescription(values.description);
-  if (description !== (screenshot.description ?? null))
-    update.description = description;
-
-  return update;
-}
-
 export function ScreenshotManageModal({
   visible,
   screenshot,
@@ -93,12 +65,12 @@ export function ScreenshotManageModal({
   useEffect(() => {
     if (!visible) return;
 
-    const initial = screenshotRef.current;
-    setVisibility(initial.visibility ?? "PUBLIC");
+    const initial = readScreenshotSettings(screenshotRef.current);
+    setVisibility(initial.visibility);
     setIsSpoiler(initial.isSpoiler);
     setCommentsEnabled(initial.commentsEnabled);
-    setCustomGameTitle(initial.isCustomGame ? (initial.gameTitle ?? "") : "");
-    setDescription(initial.description ?? "");
+    setCustomGameTitle(initial.customGameTitle);
+    setDescription(initial.description);
   }, [screenshotId, visible]);
 
   const visibilityOptions = useMemo<DropdownSelectOption<ProfileVisibility>[]>(
@@ -111,7 +83,7 @@ export function ScreenshotManageModal({
   );
 
   const save = async () => {
-    const update = buildUpdate(screenshot, {
+    const update = buildScreenshotSettingsUpdate(screenshot, {
       visibility,
       isSpoiler,
       commentsEnabled,
