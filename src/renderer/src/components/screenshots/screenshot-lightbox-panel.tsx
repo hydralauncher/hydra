@@ -82,7 +82,7 @@ function ScreenshotPanelInfo({
   const { formatDateTime } = useDate();
   const hasDescription = Boolean(screenshot.description);
 
-  const saveDescription = async (description: string) => {
+  const saveDescription = (description: string) => {
     const update = buildScreenshotSettingsUpdate(screenshot, {
       ...readScreenshotSettings(screenshot),
       description,
