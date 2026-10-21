@@ -15,6 +15,7 @@ import {
 import type {
   ProfileScreenshot,
   ScreenshotLikeResponse,
+  ScreenshotUnlikeResponse,
   ScreenshotReportValues,
   ScreenshotUpdateRequest,
 } from "@types";
@@ -136,15 +137,17 @@ export function useScreenshotActions({
           ? await window.electron.hydraApi.put<ScreenshotLikeResponse>(path, {
               needsAuth: true,
             })
-          : await window.electron.hydraApi.delete<ScreenshotLikeResponse>(
+          : await window.electron.hydraApi.delete<ScreenshotUnlikeResponse>(
               path,
               { needsAuth: true }
             );
 
         if (response) {
           onPatch(screenshot.id, {
-            likeCount: response.likeCount,
             likedByMe: response.likedByMe,
+            ...(typeof response.likeCount === "number"
+              ? { likeCount: response.likeCount }
+              : {}),
           });
         }
       } catch (error) {
