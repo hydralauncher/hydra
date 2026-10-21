@@ -114,6 +114,23 @@ const isTypingInField = () => {
   );
 };
 
+const SIDEBAR_STEP_KEYS: Partial<Record<string, number>> = {
+  PageUp: -1,
+  PageDown: 1,
+};
+
+const isModifiedOrRepeatedKey = (event: KeyboardEvent) =>
+  event.ctrlKey || event.metaKey || event.altKey || event.repeat;
+
+const getKeyboardStep = (event: KeyboardEvent, hasSidebar: boolean) => {
+  if (hasSidebar) return SIDEBAR_STEP_KEYS[event.key] ?? 0;
+
+  const key = event.key.toLowerCase();
+  if (event.key === "ArrowLeft" || key === "a") return -1;
+  if (event.key === "ArrowRight" || key === "d") return 1;
+  return 0;
+};
+
 export interface MediaViewerImageRenderProps {
   item: GalleryMediaItem;
   className: string;
@@ -462,22 +479,16 @@ export function MediaViewer({
   }, [getActiveVideo, wake]);
 
   useEffect(() => {
+    const shortcuts: Partial<Record<string, () => void>> = {
+      m: handleToggleMute,
+      f: close,
+    };
+
     const onKeyDown = (event: KeyboardEvent) => {
-      if (event.ctrlKey || event.metaKey || event.altKey || event.repeat) {
-        return;
-      }
+      if (isModifiedOrRepeatedKey(event)) return;
       if (hasSidebar && (isTypingInField() || !isViewerOnTop())) return;
 
-      const key = event.key.toLowerCase();
-      let step = 0;
-      if (hasSidebar) {
-        if (event.key === "PageUp") step = -1;
-        if (event.key === "PageDown") step = 1;
-      } else {
-        if (event.key === "ArrowLeft" || key === "a") step = -1;
-        if (event.key === "ArrowRight" || key === "d") step = 1;
-      }
-
+      const step = getKeyboardStep(event, hasSidebar);
       if (step !== 0 && (event.shiftKey || !getActiveVideo())) {
         event.preventDefault();
         event.stopImmediatePropagation();
@@ -486,14 +497,10 @@ export function MediaViewer({
         return;
       }
 
-      if (key === "m") {
-        handleToggleMute();
-      } else if (key === "f") {
-        close();
-      } else {
-        return;
-      }
+      const shortcut = shortcuts[event.key.toLowerCase()];
+      if (!shortcut) return;
 
+      shortcut();
       event.preventDefault();
       event.stopPropagation();
     };
