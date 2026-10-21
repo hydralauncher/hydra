@@ -1016,6 +1016,10 @@
     "screenshots_settings_gamepad_duplicate": "Each button can only be used once",
     "screenshots_settings_gamepad_remove": "Remove this button",
     "screenshots_settings_gamepad_reset": "Reset to default",
-    "screenshots_settings_gamepad_slot": "Button {{position}}"
+    "screenshots_settings_gamepad_slot": "Button {{position}}",
+    "screenshots_all_spoilers": "Every screenshot here is marked as a spoiler",
+    "screenshots_hide_spoilers": "Hide spoilers",
+    "screenshots_load_more": "Load more",
+    "screenshots_view_all": "View all"
   }
 }

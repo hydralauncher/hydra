@@ -1002,6 +1002,10 @@
     "screenshots_settings_gamepad_duplicate": "Каждую кнопку можно использовать только один раз",
     "screenshots_settings_gamepad_remove": "Убрать эту кнопку",
     "screenshots_settings_gamepad_reset": "Сбросить по умолчанию",
-    "screenshots_settings_gamepad_slot": "Кнопка {{position}}"
+    "screenshots_settings_gamepad_slot": "Кнопка {{position}}",
+    "screenshots_all_spoilers": "Все скриншоты здесь отмечены как спойлеры",
+    "screenshots_hide_spoilers": "Скрыть спойлеры",
+    "screenshots_load_more": "Загрузить ещё",
+    "screenshots_view_all": "Показать все"
   }
 }

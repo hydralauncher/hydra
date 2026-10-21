@@ -977,6 +977,10 @@
     "screenshots_settings_gamepad_duplicate": "Cada botón solo se puede usar una vez",
     "screenshots_settings_gamepad_remove": "Quitar este botón",
     "screenshots_settings_gamepad_reset": "Restablecer valores predeterminados",
-    "screenshots_settings_gamepad_slot": "Botón {{position}}"
+    "screenshots_settings_gamepad_slot": "Botón {{position}}",
+    "screenshots_all_spoilers": "Todas las capturas aquí están marcadas como spoiler",
+    "screenshots_hide_spoilers": "Ocultar spoilers",
+    "screenshots_load_more": "Cargar más",
+    "screenshots_view_all": "Ver todas"
   }
 }
