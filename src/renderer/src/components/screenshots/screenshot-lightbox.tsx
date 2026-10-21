@@ -23,6 +23,7 @@ import { Button } from "../button/button";
 import { ConfirmationModal } from "../confirmation-modal/confirmation-modal";
 import { Link } from "../link/link";
 import { buildGameDetailsPath } from "@renderer/helpers";
+import { AuthPage } from "@shared";
 import { useDate, useUserDetails } from "@renderer/hooks";
 import type { ProfileScreenshot } from "@types";
 
@@ -364,6 +365,14 @@ export function ScreenshotLightbox({
   const isReported = Boolean(
     screenshot && actions.reportedIds.has(screenshot.id)
   );
+  const handleReportClick = () => {
+    if (!userDetails) {
+      window.electron.openAuthWindow(AuthPage.SignIn);
+      return;
+    }
+
+    setIsReportModalVisible(true);
+  };
   const getLikeLabel = () => {
     if (!userDetails) return t("sign_in_to_like");
     return t(screenshot?.likedByMe ? "unlike" : "like");
@@ -441,7 +450,9 @@ export function ScreenshotLightbox({
                       <time
                         dateTime={new Date(screenshot.capturedAt).toISOString()}
                       >
-                        {formatDateTime(screenshot.capturedAt)}
+                        {t("captured_on", {
+                          date: formatDateTime(screenshot.capturedAt),
+                        })}
                       </time>
                     </span>
                   </Link>
@@ -515,7 +526,7 @@ export function ScreenshotLightbox({
                     <button
                       type="button"
                       className="screenshot-lightbox__action"
-                      onClick={() => setIsReportModalVisible(true)}
+                      onClick={handleReportClick}
                       disabled={
                         isReported || actions.reportingIds.has(screenshot.id)
                       }

@@ -136,7 +136,7 @@ export function ScreenshotCard({
   onLike,
 }: Readonly<ScreenshotCardProps>) {
   const { t } = useTranslation("screenshots");
-  const { formatDate, formatDistance } = useDate();
+  const { formatDate, formatDateTime, formatDistance } = useDate();
   const { isHidden: isSpoilerHidden, reveal } =
     useScreenshotSpoiler(screenshot);
   const [failedImageUrl, setFailedImageUrl] = useState<string | null>(null);
@@ -148,11 +148,14 @@ export function ScreenshotCard({
     game: getScreenshotGameTitle(screenshot, t),
     date: formatDate(screenshot.capturedAt),
   });
-  const capturedAgo = formatDistance(
-    new Date(screenshot.capturedAt),
-    new Date(),
-    { addSuffix: true }
-  );
+  const shownTimestamp =
+    variant === "game" ? screenshot.createdAt : screenshot.capturedAt;
+  const shownTimeAgo = formatDistance(new Date(shownTimestamp), new Date(), {
+    addSuffix: true,
+  });
+  const shownTimeTitle = t(variant === "game" ? "uploaded_on" : "captured_on", {
+    date: formatDateTime(shownTimestamp),
+  });
 
   const handleMediaClick = () => {
     if (isSpoilerHidden) {
@@ -246,10 +249,10 @@ export function ScreenshotCard({
         )}
         <time
           className="screenshot-card__date"
-          dateTime={new Date(screenshot.capturedAt).toISOString()}
-          title={formatDate(screenshot.capturedAt)}
+          dateTime={new Date(shownTimestamp).toISOString()}
+          title={shownTimeTitle}
         >
-          {capturedAgo}
+          {shownTimeAgo}
         </time>
       </div>
     </li>
