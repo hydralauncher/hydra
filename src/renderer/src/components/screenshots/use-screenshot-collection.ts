@@ -5,6 +5,7 @@ import { logger } from "@renderer/logger";
 import {
   applyScreenshotPatch,
   buildUserScreenshotPath,
+  createScreenshotImageRefresher,
   getScreenshotApiErrorCode,
   isRelativeScreenshotPatch,
   type ScreenshotPatch,
@@ -58,7 +59,7 @@ interface UseScreenshotCollectionOptions {
   feedKey: string | null;
   fetchPage: (cursor: string | null) => Promise<ScreenshotFeedPage | null>;
   onServerTotal?: (total: number) => void;
-  onItemRemoved?: (screenshotId: string) => void;
+  onItemRemoved?: (screenshot: ProfileScreenshot) => void;
 }
 
 interface OpenTarget {
@@ -109,7 +110,7 @@ export function useScreenshotCollection({
   const lastWriteAtRef = useRef(new Map<string, number>());
   const inFlightPatchesRef = useRef(new Map<string, ScreenshotPatch[]>());
   const relativeWritesRef = useRef(new Map<string, number>());
-  const refreshedIdsRef = useRef(new Set<string>());
+  const imageRefresherRef = useRef(createScreenshotImageRefresher());
 
   const openId = openTarget?.screenshotId ?? null;
   const listItem = useMemo(
@@ -162,11 +163,11 @@ export function useScreenshotCollection({
   );
 
   const onRemove = useCallback(
-    (screenshotId: string) => {
-      fetchedIdsRef.current.add(screenshotId);
-      removeItem(screenshotId);
-      setDetachedById((current) => withoutKey(current, screenshotId));
-      onItemRemovedRef.current?.(screenshotId);
+    (removed: ProfileScreenshot) => {
+      fetchedIdsRef.current.add(removed.id);
+      removeItem(removed.id);
+      setDetachedById((current) => withoutKey(current, removed.id));
+      onItemRemovedRef.current?.(removed);
     },
     [removeItem]
   );
@@ -283,30 +284,28 @@ export function useScreenshotCollection({
   }, []);
 
   const refreshScreenshot = useCallback(
-    async (item: ProfileScreenshot) => {
-      if (refreshedIdsRef.current.has(item.id)) return;
-      refreshedIdsRef.current.add(item.id);
+    (item: ProfileScreenshot) =>
+      imageRefresherRef.current.run(item.id, async () => {
+        const startVersion = writeVersionsRef.current.get(item.id) ?? 0;
 
-      const startVersion = writeVersionsRef.current.get(item.id) ?? 0;
+        try {
+          const fresh = await fetchScreenshot(item.owner.id, item.id);
+          if (!fresh) return;
 
-      try {
-        const fresh = await fetchScreenshot(item.owner.id, item.id);
-        if (!fresh) return;
-
-        const hasLocalWrite =
-          (writeVersionsRef.current.get(item.id) ?? 0) !== startVersion;
-        onPatch(
-          item.id,
-          hasLocalWrite
-            ? { imageUrl: fresh.imageUrl, thumbnailUrl: fresh.thumbnailUrl }
-            : fresh
-        );
-      } catch (error) {
-        logger.error("Failed to refresh screenshot", error);
-        const failure = getScreenshotFailure(error);
-        if (failure) markFailure(item.id, failure);
-      }
-    },
+          const hasLocalWrite =
+            (writeVersionsRef.current.get(item.id) ?? 0) !== startVersion;
+          onPatch(
+            item.id,
+            hasLocalWrite
+              ? { imageUrl: fresh.imageUrl, thumbnailUrl: fresh.thumbnailUrl }
+              : fresh
+          );
+        } catch (error) {
+          logger.error("Failed to refresh screenshot", error);
+          const failure = getScreenshotFailure(error);
+          if (failure) markFailure(item.id, failure);
+        }
+      }),
     [fetchScreenshot, markFailure, onPatch]
   );
 

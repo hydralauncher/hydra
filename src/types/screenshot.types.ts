@@ -51,6 +51,7 @@ export interface ProfileScreenshot {
   gameTitle: string | null;
   gameIconUrl: string | null;
   isSpoiler: boolean;
+  description: string | null;
   likeCount: number;
   commentCount: number;
   likedByMe: boolean;
@@ -95,6 +96,7 @@ export interface ScreenshotPresignRequest {
   shop: ScreenshotShop;
   objectId?: string;
   customGameTitle?: string;
+  description?: string;
   capturedAt: number;
   isSpoiler?: boolean;
   visibility?: ProfileVisibility;
@@ -118,6 +120,7 @@ export interface ScreenshotUpdateRequest {
   commentsEnabled?: boolean;
   isSpoiler?: boolean;
   customGameTitle?: string | null;
+  description?: string | null;
 }
 
 export interface ScreenshotLikeResponse {
@@ -238,13 +241,17 @@ export interface LocalScreenshot {
   nextUploadAttemptAt?: number | null;
   uploadedAt?: number | null;
   isDevCapture?: boolean;
+  description?: string | null;
 }
 
 export interface LocalScreenshotUploadOptions {
   isSpoiler: boolean;
   visibility: ProfileVisibility;
   customGameTitle: string | null;
+  description?: string | null;
 }
+
+export type LocalScreenshotDraft = Partial<LocalScreenshotUploadOptions>;
 
 export interface ScreenshotUploadProgress {
   clientId: string;

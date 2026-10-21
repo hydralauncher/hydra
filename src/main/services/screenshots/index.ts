@@ -4,6 +4,7 @@ import { db, gamesSublevel, levelKeys } from "@main/level";
 import { resolveScreenshotPreferences } from "@shared";
 import type {
   GameShop,
+  LocalScreenshotDraft,
   LocalScreenshotUploadOptions,
   UserPreferences,
 } from "@types";
@@ -21,6 +22,7 @@ import { ScreenshotInputService } from "../screenshot-input";
 import { WindowManager } from "../window-manager";
 import { GameContentWarningCache } from "./content-warning-cache";
 import { LocalScreenshotStore } from "./local-screenshot-store";
+import { buildLocalScreenshotDraftPatch } from "./screenshot-draft";
 import {
   clearScreenshotGameSession,
   handleScreenshotTrigger,
@@ -175,6 +177,14 @@ export const openScreenshotReview = async (clientId: string) => {
   if (!screenshot) return;
   await ScreenshotReviewWindows.openForScreenshot(screenshot);
 };
+
+export const updateLocalScreenshotDraft = (
+  clientId: string,
+  draft: LocalScreenshotDraft
+) =>
+  LocalScreenshotStore.update(clientId, (current) =>
+    buildLocalScreenshotDraftPatch(current, draft)
+  );
 
 export const skipLocalScreenshot = async (clientId: string) => {
   const screenshot = await LocalScreenshotStore.get(clientId);

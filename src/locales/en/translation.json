@@ -2654,6 +2654,9 @@
     "delete_confirm_button": "Delete screenshot",
     "delete_confirm_description": "The file will be removed from this computer. Screenshots you already uploaded stay on your profile.",
     "delete_confirm_title": "Delete this screenshot?",
+    "description_counter": "{{count}}/{{max}}",
+    "description_label": "Description (optional)",
+    "description_placeholder": "For example: Finally beat this boss",
     "disabled_for_game": "Screenshots are disabled for this game",
     "error_disabled_for_game": "Screenshots can't be uploaded for this game",
     "error_feature_disabled": "Screenshot uploads are paused. Hydra will try again later.",
@@ -2776,6 +2779,7 @@
     "yes": "yes"
   },
   "screenshots": {
+    "add_description": "Add a description",
     "all_games": "All games",
     "all_screenshots_are_spoilers": "Every screenshot loaded so far is marked as a spoiler",
     "allow_comments": "Allow comments",
@@ -2823,6 +2827,7 @@
     "delete_screenshot": "Delete screenshot",
     "delete_screenshot_description": "This screenshot, its likes and its comments will be removed. This can't be undone.",
     "delete_screenshot_title": "Delete screenshot?",
+    "description": "Description",
     "downvote_comment": "Downvote",
     "edit_comment": "Edit comment",
     "edit_comment_placeholder": "Edit your comment",

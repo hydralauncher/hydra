@@ -1,4 +1,3 @@
-import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { EyeClosedIcon, ImageIcon } from "@primer/octicons-react";
 import cn from "classnames";
@@ -10,6 +9,7 @@ import {
   useScreenshotSpoiler,
 } from "@renderer/components/screenshots";
 import { useDate } from "@renderer/hooks";
+import { useScreenshotImageFallback } from "@shared";
 import type { ProfileScreenshot } from "@types";
 
 interface GameScreenshotThumbnailProps {
@@ -18,6 +18,7 @@ interface GameScreenshotThumbnailProps {
   showCommentCount: boolean;
   onOpen: (screenshot: ProfileScreenshot) => void;
   onLike: (screenshot: ProfileScreenshot) => void;
+  onImageError: (screenshot: ProfileScreenshot) => Promise<void>;
 }
 
 export function GameScreenshotThumbnail({
@@ -26,14 +27,17 @@ export function GameScreenshotThumbnail({
   showCommentCount,
   onOpen,
   onLike,
+  onImageError,
 }: Readonly<GameScreenshotThumbnailProps>) {
   const { t } = useTranslation("screenshots");
   const { formatDate } = useDate();
   const { isHidden: isSpoilerHidden, reveal } =
     useScreenshotSpoiler(screenshot);
-  const [failedImageUrl, setFailedImageUrl] = useState<string | null>(null);
   const imageUrl = screenshot.thumbnailUrl ?? screenshot.imageUrl;
-  const hasImage = Boolean(imageUrl && imageUrl !== failedImageUrl);
+  const { hasImage, handleImageError } = useScreenshotImageFallback(
+    imageUrl,
+    () => onImageError(screenshot)
+  );
   const altText = t("screenshot_alt", {
     game: getScreenshotGameTitle(screenshot, t),
     date: formatDate(screenshot.capturedAt),
@@ -65,7 +69,7 @@ export function GameScreenshotThumbnail({
             src={imageUrl ?? undefined}
             alt={altText}
             loading="lazy"
-            onError={() => setFailedImageUrl(imageUrl)}
+            onError={() => void handleImageError()}
           />
         ) : (
           <span className="game-screenshots-box__thumbnail-placeholder">

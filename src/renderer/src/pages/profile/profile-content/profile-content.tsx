@@ -46,8 +46,8 @@ import { ReviewsTab } from "./reviews-tab";
 import { SouvenirsTab } from "./souvenirs-tab";
 import { ScreenshotsTab } from "./screenshots-tab";
 import {
-  applyScreenshotsTotalUpdate,
-  type ScreenshotsTotalUpdate,
+  applyProfileScreenshotsTotalUpdate,
+  type ProfileScreenshotsTotalUpdate,
 } from "./screenshots-total";
 import { SouvenirLightbox } from "./souvenir-lightbox";
 import { useSouvenirActions } from "./use-souvenir-actions";
@@ -207,16 +207,19 @@ export function ProfileContent() {
     )
   );
   const [screenshotsTotal, setScreenshotsTotal] = useState<number | null>(null);
+  const screenshotsProfileRef = useRef(userProfile);
+  screenshotsProfileRef.current = userProfile;
   const handleScreenshotsTotalUpdate = useCallback(
-    (update: ScreenshotsTotalUpdate) => {
+    (update: ProfileScreenshotsTotalUpdate) => {
       setScreenshotsTotal((current) =>
-        applyScreenshotsTotalUpdate(
-          current ?? userProfile?.screenshotCount ?? 0,
-          update
+        applyProfileScreenshotsTotalUpdate(
+          current,
+          update,
+          screenshotsProfileRef.current
         )
       );
     },
-    [userProfile?.screenshotCount]
+    []
   );
 
   // User reviews state

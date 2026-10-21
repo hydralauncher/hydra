@@ -14,7 +14,7 @@ const MAX_REPLY_CHARS = 1000;
 interface ReviewReplyComposerProps {
   prefill?: string;
   submitting: boolean;
-  onSubmit: (answerHtml: string) => void;
+  onSubmit: (answerHtml: string) => Promise<void>;
   onCancel: () => void;
 }
 
@@ -25,7 +25,7 @@ export function ReviewReplyComposer({
   onCancel,
 }: Readonly<ReviewReplyComposerProps>) {
   const { t } = useTranslation("game_details");
-  const { editor, charCount, isEmpty, getHtml } = useRichTextEditor({
+  const { editor, charCount, isEmpty, submit } = useRichTextEditor({
     initialHtml: prefill ? `<p>${escapeHtmlText(prefill)}</p>` : "",
     placeholder: t("write_reply_placeholder"),
     maxLength: MAX_REPLY_CHARS,
@@ -34,7 +34,10 @@ export function ReviewReplyComposer({
   });
 
   const handleSubmit = () => {
-    onSubmit(getHtml());
+    void submit(async (answerHtml) => {
+      await onSubmit(answerHtml);
+      return false;
+    });
   };
 
   return (

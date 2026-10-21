@@ -7,6 +7,7 @@ import type {
   ScreenshotReportValues,
   ScreenshotShop,
   ScreenshotSort,
+  ScreenshotUpdateRequest,
 } from "@types";
 
 export const SCREENSHOTS_PAGE_SIZE = 24;
@@ -300,4 +301,30 @@ export const buildScreenshotNotificationTarget = (
   if (variables.screenshotId) params.set("screenshot", variables.screenshotId);
 
   return `${profilePath}?${params.toString()}`;
+};
+
+export const getEditedScreenshotFields = (
+  update: ScreenshotUpdateRequest,
+  response: ProfileScreenshot | null
+): Partial<ProfileScreenshot> => {
+  const source = response ?? {
+    ...update,
+    gameTitle: update.customGameTitle,
+  };
+  const patch: Partial<ProfileScreenshot> = {};
+
+  if (update.visibility !== undefined) patch.visibility = source.visibility;
+  if (update.isSpoiler !== undefined) patch.isSpoiler = source.isSpoiler;
+  if (update.commentsEnabled !== undefined) {
+    patch.commentsEnabled = source.commentsEnabled;
+    if (response) patch.canComment = response.canComment;
+  }
+  if (update.customGameTitle !== undefined) {
+    patch.gameTitle = source.gameTitle ?? null;
+  }
+  if (update.description !== undefined) {
+    patch.description = source.description ?? null;
+  }
+
+  return patch;
 };

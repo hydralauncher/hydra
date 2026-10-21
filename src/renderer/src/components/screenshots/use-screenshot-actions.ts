@@ -9,6 +9,7 @@ import {
   buildUserScreenshotLikePath,
   buildUserScreenshotReportPath,
   getScreenshotApiErrorCode,
+  getEditedScreenshotFields,
   getToggledScreenshotLike,
   normalizeScreenshotReportValues,
 } from "@shared";
@@ -24,32 +25,9 @@ export type ScreenshotFailure = "private" | "unavailable";
 
 interface UseScreenshotActionsOptions {
   onPatch: (screenshotId: string, patch: Partial<ProfileScreenshot>) => void;
-  onRemove: (screenshotId: string) => void;
+  onRemove: (screenshot: ProfileScreenshot) => void;
   onFailure?: (screenshotId: string, failure: ScreenshotFailure) => void;
 }
-
-const getEditedFields = (
-  update: ScreenshotUpdateRequest,
-  response: ProfileScreenshot | null
-): Partial<ProfileScreenshot> => {
-  const source = response ?? {
-    ...update,
-    gameTitle: update.customGameTitle,
-  };
-  const patch: Partial<ProfileScreenshot> = {};
-
-  if (update.visibility !== undefined) patch.visibility = source.visibility;
-  if (update.isSpoiler !== undefined) patch.isSpoiler = source.isSpoiler;
-  if (update.commentsEnabled !== undefined) {
-    patch.commentsEnabled = source.commentsEnabled;
-    if (response) patch.canComment = response.canComment;
-  }
-  if (update.customGameTitle !== undefined) {
-    patch.gameTitle = source.gameTitle ?? null;
-  }
-
-  return patch;
-};
 
 function usePendingIds() {
   const pendingRef = useRef(new Set<string>());
@@ -114,12 +92,13 @@ export function useScreenshotActions({
   }, []);
 
   const handleAccessError = useCallback(
-    (screenshotId: string, error: unknown) => {
+    (screenshot: ProfileScreenshot, error: unknown) => {
       const code = getScreenshotApiErrorCode(error);
+      const screenshotId = screenshot.id;
 
       if (code === "screenshots/not-found") {
         onFailure?.(screenshotId, "unavailable");
-        onRemove(screenshotId);
+        onRemove(screenshot);
         showErrorToast(t("screenshot_unavailable"));
         return true;
       }
@@ -176,7 +155,7 @@ export function useScreenshotActions({
       } catch (error) {
         onPatch(screenshot.id, previous);
         logger.error("Failed to update screenshot like", error);
-        if (!handleAccessError(screenshot.id, error)) {
+        if (!handleAccessError(screenshot, error)) {
           showErrorToast(t("like_failed"));
         }
       } finally {
@@ -205,12 +184,12 @@ export function useScreenshotActions({
             { data: update, needsAuth: true }
           );
 
-        onPatch(screenshot.id, getEditedFields(update, response));
+        onPatch(screenshot.id, getEditedScreenshotFields(update, response));
         showSuccessToast(t("changes_saved"));
         return true;
       } catch (error) {
         logger.error("Failed to update screenshot", error);
-        if (!handleAccessError(screenshot.id, error)) {
+        if (!handleAccessError(screenshot, error)) {
           showErrorToast(t("update_failed"));
         }
         return false;
@@ -238,13 +217,13 @@ export function useScreenshotActions({
           buildProfileScreenshotPath(screenshot.id),
           { needsAuth: true }
         );
-        onRemove(screenshot.id);
+        onRemove(screenshot);
         showSuccessToast(t("screenshot_deleted"));
         return true;
       } catch (error) {
         logger.error("Failed to delete screenshot", error);
         if (getScreenshotApiErrorCode(error) === "screenshots/not-found") {
-          onRemove(screenshot.id);
+          onRemove(screenshot);
           return true;
         }
         showErrorToast(t("delete_failed"));
@@ -295,7 +274,7 @@ export function useScreenshotActions({
           return false;
         }
 
-        if (!handleAccessError(screenshot.id, error)) {
+        if (!handleAccessError(screenshot, error)) {
           showErrorToast(t("report_failed"));
         }
         return code === "screenshots/not-found";

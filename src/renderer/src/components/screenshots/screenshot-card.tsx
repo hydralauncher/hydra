@@ -13,6 +13,7 @@ import { Avatar } from "../avatar/avatar";
 import { Link } from "../link/link";
 import { buildGameDetailsPath } from "@renderer/helpers";
 import { useDate } from "@renderer/hooks";
+import { useScreenshotImageFallback } from "@shared";
 import type { ProfileScreenshot } from "@types";
 
 import { getScreenshotGameTitle } from "./screenshot-labels";
@@ -31,6 +32,7 @@ interface ScreenshotCardProps {
   showCommentCount: boolean;
   onOpen: (screenshot: ProfileScreenshot) => void;
   onLike: (screenshot: ProfileScreenshot) => void;
+  onImageError: (screenshot: ProfileScreenshot) => Promise<void>;
 }
 
 function ScreenshotGameLabel({
@@ -116,19 +118,23 @@ interface ScreenshotCardMediaProps {
   screenshot: ProfileScreenshot;
   altText: string;
   onOpen: (screenshot: ProfileScreenshot) => void;
+  onImageError: (screenshot: ProfileScreenshot) => Promise<void>;
 }
 
 function ScreenshotCardMedia({
   screenshot,
   altText,
   onOpen,
+  onImageError,
 }: Readonly<ScreenshotCardMediaProps>) {
   const { t } = useTranslation("screenshots");
   const { isHidden: isSpoilerHidden, reveal } =
     useScreenshotSpoiler(screenshot);
-  const [failedImageUrl, setFailedImageUrl] = useState<string | null>(null);
   const imageUrl = screenshot.thumbnailUrl ?? screenshot.imageUrl;
-  const hasImage = Boolean(imageUrl && imageUrl !== failedImageUrl);
+  const { hasImage, handleImageError } = useScreenshotImageFallback(
+    imageUrl,
+    () => onImageError(screenshot)
+  );
 
   const handleClick = () => {
     if (isSpoilerHidden) {
@@ -155,7 +161,7 @@ function ScreenshotCardMedia({
           src={imageUrl ?? undefined}
           alt={altText}
           loading="lazy"
-          onError={() => setFailedImageUrl(imageUrl)}
+          onError={() => void handleImageError()}
         />
       ) : (
         <span className="screenshot-card__placeholder">
@@ -228,6 +234,7 @@ export function ScreenshotCard({
   showCommentCount,
   onOpen,
   onLike,
+  onImageError,
 }: Readonly<ScreenshotCardProps>) {
   const { t } = useTranslation("screenshots");
   const { formatDate } = useDate();
@@ -244,6 +251,7 @@ export function ScreenshotCard({
         screenshot={screenshot}
         altText={altText}
         onOpen={onOpen}
+        onImageError={onImageError}
       />
 
       {isOwner ? <ScreenshotOwnerBadges screenshot={screenshot} /> : null}

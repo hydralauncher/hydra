@@ -11,7 +11,7 @@ import { ReviewGateNotice } from "./review-gate-notice";
 import { ReviewThread } from "./review-thread";
 import { ReviewSortOptions } from "./review-sort-options";
 import "./game-reviews.scss";
-import { Button, clearRichTextEditor } from "@renderer/components";
+import { Button, clearRichTextEditorIfUnchanged } from "@renderer/components";
 import { useToast } from "@renderer/hooks";
 import { REVIEW_MIN_PLAYTIME_IN_MS } from "@renderer/constants";
 import { getDisplayedPlayTimeInMilliseconds } from "@shared";
@@ -316,7 +316,7 @@ export function GameReviews({
         }
       );
 
-      clearRichTextEditor(editor);
+      clearRichTextEditorIfUnchanged(editor, reviewHtml);
       setReviewScore(null);
       showSuccessToast(t("review_submitted_successfully"));
 
@@ -366,8 +366,8 @@ export function GameReviews({
   };
 
   useEffect(() => {
-    editor?.setEditable(!isReviewLocked);
-  }, [editor, isReviewLocked]);
+    editor?.setEditable(!isReviewLocked && !submittingReview);
+  }, [editor, isReviewLocked, submittingReview]);
 
   useEffect(() => {
     if (objectId) {

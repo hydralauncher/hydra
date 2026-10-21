@@ -2382,6 +2382,9 @@
     "delete_confirm_button": "Eliminar captura",
     "delete_confirm_description": "El archivo se eliminará de este equipo. Las capturas que ya subiste se quedan en tu perfil.",
     "delete_confirm_title": "¿Eliminar esta captura?",
+    "description_counter": "{{count}}/{{max}}",
+    "description_label": "Descripción (opcional)",
+    "description_placeholder": "Por ejemplo: por fin vencí a este jefe",
     "disabled_for_game": "Las capturas están desactivadas para este juego",
     "error_disabled_for_game": "No se pueden subir capturas de este juego",
     "error_feature_disabled": "La subida de capturas está en pausa. Hydra lo intentará más tarde.",
@@ -2504,6 +2507,7 @@
     "yes": "sí"
   },
   "screenshots": {
+    "add_description": "Añadir una descripción",
     "all_games": "Todos los juegos",
     "all_screenshots_are_spoilers": "Todas las capturas de pantalla cargadas hasta ahora están marcadas como spoiler",
     "allow_comments": "Permitir comentarios",
@@ -2551,6 +2555,7 @@
     "delete_screenshot": "Eliminar captura de pantalla",
     "delete_screenshot_description": "Esta captura de pantalla, sus Me gusta y sus comentarios se eliminarán. Esta acción no se puede deshacer.",
     "delete_screenshot_title": "¿Eliminar captura de pantalla?",
+    "description": "Descripción",
     "downvote_comment": "Votar en contra",
     "edit_comment": "Editar comentario",
     "edit_comment_placeholder": "Edita tu comentario",

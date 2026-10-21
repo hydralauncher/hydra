@@ -115,6 +115,7 @@ export function useScreenshotFeed({
     const requestId = ++requestIdRef.current;
     const sinceVersion = writeVersionRef.current;
     const startedAt = getReadStartedAt();
+    const reportServerTotal = onServerTotalRef.current;
     isReadPendingRef.current = true;
     setIsLoading(true);
     setHasFailed(false);
@@ -136,7 +137,7 @@ export function useScreenshotFeed({
           ? null
           : Math.max(0, page.total + merged.netCountDelta);
       setTotal(mergedTotal);
-      if (mergedTotal !== null) onServerTotalRef.current?.(mergedTotal);
+      if (mergedTotal !== null) reportServerTotal?.(mergedTotal);
       setHiddenReason(page?.hiddenReason ?? null);
     } catch (error) {
       if (requestId !== requestIdRef.current) return;
@@ -162,6 +163,7 @@ export function useScreenshotFeed({
     const requestId = requestIdRef.current;
     const sinceVersion = writeVersionRef.current;
     const startedAt = getReadStartedAt();
+    const reportServerTotal = onServerTotalRef.current;
     isReadPendingRef.current = true;
     setIsLoading(true);
     setHasLoadMoreFailed(false);
@@ -176,7 +178,7 @@ export function useScreenshotFeed({
       const pageTotal = page.total;
       if (pageTotal !== undefined && !merged.hasLaterWrites) {
         setTotal(Math.max(0, pageTotal));
-        onServerTotalRef.current?.(Math.max(0, pageTotal));
+        reportServerTotal?.(Math.max(0, pageTotal));
       }
     } catch (error) {
       if (requestId === requestIdRef.current) {
@@ -212,6 +214,13 @@ export function useScreenshotFeed({
 
     void reload();
   }, [feedKey, reload]);
+
+  useEffect(
+    () => () => {
+      requestIdRef.current += 1;
+    },
+    []
+  );
 
   const recordWrite = useCallback(
     (screenshotId: string, patch: ScreenshotPatch | null) => {

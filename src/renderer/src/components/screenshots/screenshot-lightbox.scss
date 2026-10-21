@@ -441,6 +441,14 @@
     z-index: 20;
   }
 
+  &__description {
+    margin: 0;
+    color: globals.$muted-color;
+    line-height: 1.45;
+    overflow-wrap: anywhere;
+  }
+
+  &__description-form,
   &__title-form {
     display: flex;
     flex-direction: column;

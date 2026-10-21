@@ -2421,6 +2421,9 @@
     "delete_confirm_button": "Удалить скриншот",
     "delete_confirm_description": "Файл будет удален с этого компьютера. Уже загруженные скриншоты останутся в вашем профиле.",
     "delete_confirm_title": "Удалить этот скриншот?",
+    "description_counter": "{{count}}/{{max}}",
+    "description_label": "Описание (необязательно)",
+    "description_placeholder": "Например: наконец победил этого босса",
     "disabled_for_game": "Скриншоты отключены для этой игры",
     "error_disabled_for_game": "Скриншоты этой игры нельзя загружать",
     "error_feature_disabled": "Загрузка скриншотов приостановлена. Hydra попробует позже.",
@@ -2553,6 +2556,7 @@
     "yes": "да"
   },
   "screenshots": {
+    "add_description": "Добавьте описание",
     "all_games": "Все игры",
     "all_screenshots_are_spoilers": "Все загруженные скриншоты отмечены как спойлеры",
     "allow_comments": "Разрешить комментарии",
@@ -2602,6 +2606,7 @@
     "delete_screenshot": "Удалить скриншот",
     "delete_screenshot_description": "Скриншот, его отметки «Нравится» и комментарии будут удалены. Это действие нельзя отменить.",
     "delete_screenshot_title": "Удалить скриншот?",
+    "description": "Описание",
     "downvote_comment": "Против",
     "edit_comment": "Изменить комментарий",
     "edit_comment_placeholder": "Измените комментарий",

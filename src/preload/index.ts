@@ -104,6 +104,7 @@ import type {
   EpicLaunchOptions,
   EpicLinuxCompatibility,
   LocalScreenshot,
+  LocalScreenshotDraft,
   LocalScreenshotUploadOptions,
   ScreenshotReviewRequest,
   ScreenshotUploadProgress,
@@ -1493,6 +1494,8 @@ contextBridge.exposeInMainWorld("electron", {
     clientId: string,
     options: LocalScreenshotUploadOptions
   ) => ipcRenderer.invoke("uploadLocalScreenshot", clientId, options),
+  updateLocalScreenshotDraft: (clientId: string, draft: LocalScreenshotDraft) =>
+    ipcRenderer.invoke("updateLocalScreenshotDraft", clientId, draft),
   deleteLocalScreenshot: (clientId: string) =>
     ipcRenderer.invoke("deleteLocalScreenshot", clientId),
   openScreenshotReview: (clientId: string) =>
