@@ -90,7 +90,14 @@
 
   &__actions {
     display: flex;
-    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: calc(globals.$spacing-unit * 2);
+  }
+
+  &__action-group {
+    display: flex;
+    margin-left: auto;
     gap: globals.$spacing-unit;
   }
 
@@ -158,75 +165,8 @@
     font-weight: 600;
   }
 
-  &__owner {
-    display: flex;
-    flex-direction: column;
-    border-top: 1px solid globals.$border-color;
-  }
-
-  &__owner-toggle {
-    display: flex;
-    width: 100%;
-    align-items: center;
-    gap: globals.$spacing-unit;
-    padding: calc(globals.$spacing-unit * 1.5) 0;
-    border: 0;
-    background: transparent;
-    color: globals.$muted-color;
-    cursor: pointer;
-    font-family: inherit;
-    font-size: globals.$body-font-size;
-    font-weight: 600;
-    text-align: left;
-    transition: opacity motion.$transition-duration ease;
-
-    span {
-      flex: 1;
-    }
-
-    &:hover {
-      opacity: 0.85;
-    }
-
-    &:focus-visible {
-      border-radius: 4px;
-      outline: 2px solid globals.$muted-color;
-      outline-offset: 2px;
-    }
-  }
-
-  &__owner-chevron {
-    flex-shrink: 0;
-    transition: transform motion.$transition-duration ease;
-  }
-
-  &__owner--expanded &__owner-chevron {
-    transform: rotate(180deg);
-  }
-
-  &__owner-content {
-    display: flex;
-    flex-direction: column;
-    gap: calc(globals.$spacing-unit * 1.5);
-    padding-bottom: calc(globals.$spacing-unit * 1.5);
-  }
-
-  &__owner + .screenshot-comments {
-    margin-top: calc(globals.$spacing-unit * -2);
-  }
-
   &__tooltip {
     z-index: 20;
-  }
-
-  &__description-form,
-  &__title-form {
-    display: flex;
-    flex-direction: column;
-  }
-
-  &__delete {
-    align-self: flex-start;
   }
 }
 
@@ -506,5 +446,21 @@
       width: 32px;
       height: 32px;
     }
+  }
+}
+
+.screenshot-manage-modal {
+  width: min(480px, calc(100vw - #{globals.$spacing-unit * 8}));
+}
+
+.screenshot-manage-form {
+  display: flex;
+  flex-direction: column;
+  gap: calc(globals.$spacing-unit * 2);
+
+  &__actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: globals.$spacing-unit;
   }
 }

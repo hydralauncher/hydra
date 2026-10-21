@@ -2882,6 +2882,7 @@
     "screenshot_private": "This screenshot is private",
     "screenshot_reported": "Screenshot reported",
     "screenshot_settings": "Screenshot settings",
+    "manage_screenshot": "Manage screenshot",
     "screenshot_unavailable": "This screenshot is no longer available",
     "screenshots_friends_only": "Only friends can see these screenshots",
     "screenshots_load_failed": "Could not load screenshots",

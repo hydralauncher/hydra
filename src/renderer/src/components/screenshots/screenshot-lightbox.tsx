@@ -21,6 +21,7 @@ import { useScreenshotImageFallback } from "@shared";
 import type { ProfileScreenshot } from "@types";
 
 import { ScreenshotLightboxPanel } from "./screenshot-lightbox-panel";
+import { ScreenshotManageModal } from "./screenshot-manage-modal";
 import { ScreenshotReportModal } from "./screenshot-report-modal";
 import { getScreenshotGameTitle } from "./screenshot-labels";
 import type {
@@ -147,8 +148,10 @@ interface ScreenshotLightboxModalsProps {
   actions: ScreenshotCollection["actions"];
   isDeleteConfirmationVisible: boolean;
   isReportModalVisible: boolean;
+  isManageModalVisible: boolean;
   onCloseDeleteConfirmation: () => void;
   onCloseReportModal: () => void;
+  onCloseManageModal: () => void;
   onDeleted: () => void;
 }
 
@@ -157,8 +160,10 @@ function ScreenshotLightboxModals({
   actions,
   isDeleteConfirmationVisible,
   isReportModalVisible,
+  isManageModalVisible,
   onCloseDeleteConfirmation,
   onCloseReportModal,
+  onCloseManageModal,
   onDeleted,
 }: Readonly<ScreenshotLightboxModalsProps>) {
   const { t } = useTranslation("screenshots");
@@ -188,6 +193,14 @@ function ScreenshotLightboxModals({
         onClose={onCloseReportModal}
         onSubmit={(values) => actions.reportScreenshot(screenshot, values)}
       />
+
+      <ScreenshotManageModal
+        visible={isManageModalVisible}
+        screenshot={screenshot}
+        isSaving={actions.updatingIds.has(screenshot.id)}
+        onClose={onCloseManageModal}
+        onSave={(update) => actions.updateScreenshot(screenshot, update)}
+      />
     </>
   );
 }
@@ -196,16 +209,21 @@ function useLightboxModals(close: () => void) {
   const [isDeleteConfirmationVisible, setIsDeleteConfirmationVisible] =
     useState(false);
   const [isReportModalVisible, setIsReportModalVisible] = useState(false);
+  const [isManageModalVisible, setIsManageModalVisible] = useState(false);
 
   const handleClose = useCallback(() => {
     setIsDeleteConfirmationVisible(false);
     setIsReportModalVisible(false);
+    setIsManageModalVisible(false);
     close();
   }, [close]);
 
   return {
     isDeleteConfirmationVisible,
     isReportModalVisible,
+    isManageModalVisible,
+    showManageModal: () => setIsManageModalVisible(true),
+    hideManageModal: () => setIsManageModalVisible(false),
     showDeleteConfirmation: () => setIsDeleteConfirmationVisible(true),
     hideDeleteConfirmation: () => setIsDeleteConfirmationVisible(false),
     showReportModal: () => setIsReportModalVisible(true),
@@ -217,6 +235,7 @@ function useLightboxModals(close: () => void) {
 function usePageAdvance(
   items: ProfileScreenshot[],
   feed: ScreenshotCollection["feed"],
+  openId: string | null,
   open: (screenshot: ProfileScreenshot) => void
 ) {
   const [pendingFromId, setPendingFromId] = useState<string | null>(null);
@@ -224,6 +243,10 @@ function usePageAdvance(
 
   useEffect(() => {
     if (!pendingFromId) return;
+    if (pendingFromId !== openId) {
+      setPendingFromId(null);
+      return;
+    }
 
     const fromIndex = items.findIndex((item) => item.id === pendingFromId);
     const nextItem = fromIndex >= 0 ? items[fromIndex + 1] : undefined;
@@ -236,7 +259,15 @@ function usePageAdvance(
     if (fromIndex < 0 || hasLoadMoreFailed || (!hasMore && !isLoading)) {
       setPendingFromId(null);
     }
-  }, [hasLoadMoreFailed, hasMore, isLoading, items, open, pendingFromId]);
+  }, [
+    hasLoadMoreFailed,
+    hasMore,
+    isLoading,
+    items,
+    open,
+    openId,
+    pendingFromId,
+  ]);
 
   return useCallback(
     (fromId: string) => {
@@ -274,7 +305,12 @@ export function ScreenshotLightbox({
     lightbox;
   const modals = useLightboxModals(close);
   const items = navigationItems ?? feed.items;
-  const advancePastEnd = usePageAdvance(items, feed, open);
+  const advancePastEnd = usePageAdvance(
+    items,
+    feed,
+    status === "closed" ? null : (screenshot?.id ?? null),
+    open
+  );
   const readyScreenshot = status === "ready" ? screenshot : null;
   const listIndex = readyScreenshot
     ? items.findIndex((item) => item.id === readyScreenshot.id)
@@ -319,6 +355,7 @@ export function ScreenshotLightbox({
         showFilmstrip={false}
         showCounter={false}
         trapFocus
+        getCaption={() => null}
         renderImage={(_item, context) => (
           <ScreenshotStateStage
             status={placeholderStatus}
@@ -366,6 +403,11 @@ export function ScreenshotLightbox({
             />
           );
         }}
+        getCaption={(item, { isSidebarOpen }) =>
+          isSidebarOpen
+            ? null
+            : (screenshotsById.get(item.id)?.description ?? null)
+        }
         renderSidebar={() => (
           <ScreenshotLightboxPanel
             screenshot={readyScreenshot}
@@ -373,6 +415,7 @@ export function ScreenshotLightbox({
             onPatch={onPatch}
             onFailure={markFailure}
             onClose={modals.handleClose}
+            onRequestManage={modals.showManageModal}
             onRequestDelete={modals.showDeleteConfirmation}
             onRequestReport={modals.showReportModal}
           />
@@ -389,8 +432,10 @@ export function ScreenshotLightbox({
         actions={actions}
         isDeleteConfirmationVisible={modals.isDeleteConfirmationVisible}
         isReportModalVisible={modals.isReportModalVisible}
+        isManageModalVisible={modals.isManageModalVisible}
         onCloseDeleteConfirmation={modals.hideDeleteConfirmation}
         onCloseReportModal={modals.hideReportModal}
+        onCloseManageModal={modals.hideManageModal}
         onDeleted={modals.handleClose}
       />
     </>
