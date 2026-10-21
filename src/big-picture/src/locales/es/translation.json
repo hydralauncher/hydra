@@ -939,7 +939,7 @@
     "screenshots_review_upload_failed": "Error al subir. La captura sigue guardada en este equipo.",
     "screenshots_review_upload_progress": "Subiendo {{progress}}%",
     "screenshots_review_upload_queued": "Esperando para subir",
-    "screenshots_settings_ask_to_upload": "Preguntar si subir al cerrar un juego",
+    "screenshots_settings_ask_to_upload": "Mostrar la revisión de subida al cerrar un juego",
     "screenshots_settings_border_flash": "Destellar el borde de la pantalla al capturar",
     "screenshots_settings_capture_sound": "Reproducir un sonido al capturar",
     "screenshots_settings_default_visibility": "Visibilidad predeterminada de las nuevas subidas",
@@ -984,6 +984,11 @@
     "screenshots_view_all": "Ver todas",
     "screenshots_comment_bold": "Negrita",
     "screenshots_comment_italic": "Cursiva",
-    "screenshots_settings_view_local": "Ver en pantalla completa"
+    "screenshots_settings_view_local": "Ver en pantalla completa",
+    "screenshots_settings_ask_to_upload_description": "Si está desactivado, las capturas solo se guardan en este equipo. Puedes subirlas más tarde desde la lista de abajo.",
+    "screenshots_comment_count_one": "{{count}} comentario",
+    "screenshots_comment_count_other": "{{count}} comentarios",
+    "screenshots_like_count_one": "{{count}} me gusta",
+    "screenshots_like_count_other": "{{count}} me gusta"
   }
 }

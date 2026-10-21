@@ -978,7 +978,7 @@
     "screenshots_review_upload_failed": "Falha no envio. A captura continua salva neste computador.",
     "screenshots_review_upload_progress": "Enviando {{progress}}%",
     "screenshots_review_upload_queued": "Aguardando envio",
-    "screenshots_settings_ask_to_upload": "Perguntar se deseja enviar ao fechar um jogo",
+    "screenshots_settings_ask_to_upload": "Mostrar a revisão de envio ao fechar um jogo",
     "screenshots_settings_border_flash": "Piscar a borda da tela ao capturar",
     "screenshots_settings_capture_sound": "Tocar um som ao capturar",
     "screenshots_settings_default_visibility": "Visibilidade padrão dos novos envios",
@@ -1023,6 +1023,11 @@
     "screenshots_view_all": "Ver todas",
     "screenshots_comment_bold": "Negrito",
     "screenshots_comment_italic": "Itálico",
-    "screenshots_settings_view_local": "Ver em tela cheia"
+    "screenshots_settings_view_local": "Ver em tela cheia",
+    "screenshots_settings_ask_to_upload_description": "Quando desativado, as capturas ficam salvas apenas neste computador. Você pode enviá-las depois pela lista abaixo.",
+    "screenshots_comment_count_one": "{{count}} comentário",
+    "screenshots_comment_count_other": "{{count}} comentários",
+    "screenshots_like_count_one": "{{count}} curtida",
+    "screenshots_like_count_other": "{{count}} curtidas"
   }
 }

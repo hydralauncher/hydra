@@ -978,7 +978,7 @@
     "screenshots_review_upload_failed": "Upload failed. The screenshot is still saved on this computer.",
     "screenshots_review_upload_progress": "Uploading {{progress}}%",
     "screenshots_review_upload_queued": "Waiting to upload",
-    "screenshots_settings_ask_to_upload": "Ask to upload after closing a game",
+    "screenshots_settings_ask_to_upload": "Show the upload review after closing a game",
     "screenshots_settings_border_flash": "Flash the screen border on capture",
     "screenshots_settings_capture_sound": "Play a sound on capture",
     "screenshots_settings_default_visibility": "Default visibility for new uploads",
@@ -1023,6 +1023,11 @@
     "screenshots_view_all": "View all",
     "screenshots_comment_bold": "Bold",
     "screenshots_comment_italic": "Italic",
-    "screenshots_settings_view_local": "View full screen"
+    "screenshots_settings_view_local": "View full screen",
+    "screenshots_settings_ask_to_upload_description": "When off, screenshots are only saved on this computer. You can upload them later from the list below.",
+    "screenshots_comment_count_one": "{{count}} comment",
+    "screenshots_comment_count_other": "{{count}} comments",
+    "screenshots_like_count_one": "{{count}} like",
+    "screenshots_like_count_other": "{{count}} likes"
   }
 }

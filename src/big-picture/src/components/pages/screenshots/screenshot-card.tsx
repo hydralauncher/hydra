@@ -16,6 +16,7 @@ import type { ProfileScreenshot } from "@types";
 
 import { FocusItem, UserProfileAvatar } from "../../common";
 import type { FocusOverrides } from "../../../services";
+import { Feature, useFeature } from "../../../hooks";
 import {
   getScreenshotAltText,
   getScreenshotGameTitle,
@@ -123,6 +124,7 @@ export function ScreenshotCard({
   onActivate,
 }: Readonly<ScreenshotCardProps>) {
   const { t, i18n } = useTranslation("big_picture");
+  const { isFeatureEnabled } = useFeature();
   const revealedIds = useRevealedScreenshotSpoilers(
     (state) => state.revealedIds
   );
@@ -186,10 +188,12 @@ export function ScreenshotCard({
               />
               {screenshot.likeCount}
             </span>
-            <span className="screenshot-card__stat">
-              <ChatCircleIcon size={14} weight="bold" />
-              {screenshot.commentCount}
-            </span>
+            {isFeatureEnabled(Feature.ScreenshotComments) ? (
+              <span className="screenshot-card__stat">
+                <ChatCircleIcon size={14} weight="bold" />
+                {screenshot.commentCount}
+              </span>
+            ) : null}
           </div>
         </div>
 

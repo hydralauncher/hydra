@@ -2,7 +2,9 @@ import "./styles.scss";
 
 import {
   ArrowClockwiseIcon,
+  ChatCircleIcon,
   EyeSlashIcon,
+  HeartIcon,
   ImageIcon,
   SquaresFourIcon,
 } from "@phosphor-icons/react";
@@ -46,6 +48,7 @@ const BLOCK_TARGET: FocusOverrideTarget = { type: "block" };
 interface CommunityScreenshotThumbnailProps {
   screenshot: ProfileScreenshot;
   focusId: string;
+  showCommentCount: boolean;
   navigationOverrides: FocusOverrides;
   onOpen: (screenshot: ProfileScreenshot) => void;
 }
@@ -53,6 +56,7 @@ interface CommunityScreenshotThumbnailProps {
 function CommunityScreenshotThumbnail({
   screenshot,
   focusId,
+  showCommentCount,
   navigationOverrides,
   onOpen,
 }: Readonly<CommunityScreenshotThumbnailProps>) {
@@ -106,6 +110,32 @@ function CommunityScreenshotThumbnail({
           </span>
         </span>
 
+        <span className="game-community-screenshots__stats">
+          <span
+            className="game-community-screenshots__stat"
+            aria-label={t("screenshots_like_count", {
+              count: screenshot.likeCount,
+            })}
+          >
+            <HeartIcon
+              size={12}
+              weight={screenshot.likedByMe ? "fill" : "bold"}
+            />
+            {screenshot.likeCount}
+          </span>
+          {showCommentCount ? (
+            <span
+              className="game-community-screenshots__stat"
+              aria-label={t("screenshots_comment_count", {
+                count: screenshot.commentCount,
+              })}
+            >
+              <ChatCircleIcon size={12} weight="bold" />
+              {screenshot.commentCount}
+            </span>
+          ) : null}
+        </span>
+
         {isBlurred ? (
           <span className="game-community-screenshots__spoiler">
             <EyeSlashIcon size={16} weight="bold" />
@@ -129,6 +159,7 @@ interface CommunityScreenshotsContentProps {
   items: ProfileScreenshot[];
   isLoading: boolean;
   hasLoadError: boolean;
+  showCommentCount: boolean;
   leftTarget: FocusOverrideTarget;
   onOpen: (screenshot: ProfileScreenshot) => void;
   onRetry: () => void;
@@ -139,6 +170,7 @@ function CommunityScreenshotsContent({
   items,
   isLoading,
   hasLoadError,
+  showCommentCount,
   leftTarget,
   onOpen,
   onRetry,
@@ -158,6 +190,7 @@ function CommunityScreenshotsContent({
               key={screenshot.id}
               screenshot={screenshot}
               focusId={getGameCommunityScreenshotItemId(screenshot.id)}
+              showCommentCount={showCommentCount}
               navigationOverrides={getThumbnailNavigation(index, leftTarget)}
               onOpen={onOpen}
             />
@@ -276,6 +309,7 @@ export function GameCommunityScreenshots({
             items={items}
             isLoading={feed.isLoading}
             hasLoadError={feed.error === "initial"}
+            showCommentCount={isFeatureEnabled(Feature.ScreenshotComments)}
             leftTarget={leftTarget}
             onOpen={open}
             onRetry={feed.retry}

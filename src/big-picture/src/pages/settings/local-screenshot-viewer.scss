@@ -84,13 +84,8 @@
     align-items: center;
     gap: calc(var(--spacing-unit) * 2);
 
-    .button:not(.button--icon) {
-      gap: calc(var(--spacing-unit) * 2);
-      padding: 0 calc(var(--spacing-unit) * 3);
-    }
-
-    .button__icon-container::before,
-    .button__icon-container::after {
+    .button--icon .button__icon-container::before,
+    .button--icon .button__icon-container::after {
       display: none;
     }
   }

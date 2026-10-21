@@ -125,6 +125,30 @@
     white-space: nowrap;
   }
 
+  &__stats {
+    position: absolute;
+    right: calc(var(--spacing-unit) * 1.5);
+    bottom: calc(var(--spacing-unit) * 1.5);
+    z-index: 2;
+    display: flex;
+    gap: var(--spacing-unit);
+  }
+
+  &__stat {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    height: 22px;
+    padding: 0 calc(var(--spacing-unit) * 1.5);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    border-radius: 999px;
+    background: rgba(0, 0, 0, 0.45);
+    backdrop-filter: blur(10px);
+    color: rgba(255, 255, 255, 0.95);
+    font-size: 12px;
+    font-weight: 600;
+  }
+
   &__spoiler {
     position: absolute;
     inset: 0;

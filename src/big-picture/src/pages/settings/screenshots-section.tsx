@@ -991,7 +991,9 @@ export function ScreenshotSettingsSection({
             t("screenshots_settings_ask_to_upload"),
             preferences.askToUploadAfterGame,
             (screenshotAskToUploadAfterGame) =>
-              void update({ screenshotAskToUploadAfterGame })
+              void update({ screenshotAskToUploadAfterGame }),
+            settingsDisabled,
+            t("screenshots_settings_ask_to_upload_description")
           )}
 
           <DropdownSelect

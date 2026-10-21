@@ -266,11 +266,6 @@
     flex-wrap: wrap;
     align-items: center;
     gap: calc(var(--spacing-unit) * 2);
-
-    .button:not(.button--icon) {
-      gap: calc(var(--spacing-unit) * 2);
-      padding: 0 calc(var(--spacing-unit) * 3);
-    }
   }
 
   &__action--pending.button--disabled {
