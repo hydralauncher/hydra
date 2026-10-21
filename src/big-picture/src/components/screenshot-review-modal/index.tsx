@@ -243,6 +243,7 @@ export function ScreenshotReviewModal() {
     null
   );
   const [isDeleteConfirmVisible, setIsDeleteConfirmVisible] = useState(false);
+  const fieldsRef = useRef<HTMLDivElement | null>(null);
   const visible = isReviewQueueOpen(queueState);
   const { screenshots, loadedRequestCount } = useLocalScreenshots(
     visible,
@@ -322,6 +323,9 @@ export function ScreenshotReviewModal() {
       globalThis.document
         .getElementById(focusId)
         ?.scrollIntoView({ block: "nearest" });
+
+      const fields = fieldsRef.current;
+      if (fields) fields.scrollTop = fields.scrollHeight;
     });
 
     return () => globalThis.window.cancelAnimationFrame(frameId);
@@ -471,7 +475,7 @@ export function ScreenshotReviewModal() {
         />
 
         <div className="screenshot-review-modal__form">
-          <div className="screenshot-review-modal__fields">
+          <div ref={fieldsRef} className="screenshot-review-modal__fields">
             {isCustomGame ? (
               <Input
                 label={t("screenshots_custom_title_label")}

@@ -129,8 +129,17 @@
   }
 
   @media (max-height: 600px) {
+    .modal__header {
+      padding-block: calc(var(--spacing-unit) * 3);
+    }
+
     &__preview {
-      max-height: 20vh;
+      max-height: 16vh;
+    }
+
+    &__fields {
+      gap: calc(var(--spacing-unit) * 2);
+      padding-bottom: calc(var(--spacing-unit) * 2);
     }
   }
 }

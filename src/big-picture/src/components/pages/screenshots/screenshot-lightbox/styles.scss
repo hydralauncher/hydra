@@ -7,12 +7,14 @@
 }
 
 .screenshot-lightbox__overlay {
+  --lightbox-gutter: clamp(56px, 6vw, 88px);
+
   position: absolute;
   inset: 0;
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: clamp(16px, 4vh, 40px) clamp(56px, 6vw, 88px);
+  padding: clamp(16px, 4vh, 40px) var(--lightbox-gutter);
 }
 
 .screenshot-lightbox__nav {
@@ -36,7 +38,7 @@
   }
 
   &--left {
-    left: calc(var(--spacing-unit) * 2);
+    left: calc(var(--lightbox-gutter) + var(--spacing-unit) * 3);
   }
 
   &--right {
@@ -464,7 +466,9 @@
 
 @media (max-width: 960px) {
   .screenshot-lightbox__overlay {
-    padding: calc(var(--spacing-unit) * 3) calc(var(--spacing-unit) * 14);
+    --lightbox-gutter: calc(var(--spacing-unit) * 14);
+
+    padding: calc(var(--spacing-unit) * 3) var(--lightbox-gutter);
   }
 
   .screenshot-lightbox__info {
@@ -474,4 +478,11 @@
   .screenshot-lightbox__game {
     font-size: 16px;
   }
+}
+
+.screenshot-lightbox__actions .button--icon .button__icon-container::before,
+.screenshot-lightbox__actions .button--icon .button__icon-container::after,
+.screenshot-comments .button--icon .button__icon-container::before,
+.screenshot-comments .button--icon .button__icon-container::after {
+  display: none;
 }
