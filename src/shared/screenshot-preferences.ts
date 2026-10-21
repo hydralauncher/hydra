@@ -57,3 +57,29 @@ export const formatScreenshotHotkey = (binding: ScreenshotHotkeyBinding) =>
   ]
     .filter((part): part is string => part !== null)
     .join(" + ");
+
+export const SCREENSHOT_DESCRIPTION_MAX_LENGTH = 200;
+
+const DESCRIPTION_LINE_BREAKS = /[\r\n\u2028\u2029]+/g;
+
+const stripControlCharacters = (value: string) =>
+  Array.from(value)
+    .filter((character) => {
+      const code = character.codePointAt(0) ?? 0;
+      return code >= 32 && (code < 127 || code > 159);
+    })
+    .join("");
+
+export const sanitizeScreenshotDescriptionInput = (value: string) =>
+  stripControlCharacters(value.replaceAll(DESCRIPTION_LINE_BREAKS, " ")).slice(
+    0,
+    SCREENSHOT_DESCRIPTION_MAX_LENGTH
+  );
+
+export const normalizeScreenshotDescription = (
+  value: string | null | undefined
+) => {
+  if (!value) return null;
+  const normalized = sanitizeScreenshotDescriptionInput(value).trim();
+  return normalized || null;
+};

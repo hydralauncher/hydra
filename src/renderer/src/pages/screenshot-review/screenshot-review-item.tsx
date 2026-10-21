@@ -4,6 +4,8 @@ import { useTranslation } from "react-i18next";
 import type { LocalScreenshot, ProfileVisibility } from "@types";
 import {
   isScreenshotUploadRetryable,
+  sanitizeScreenshotDescriptionInput,
+  SCREENSHOT_DESCRIPTION_MAX_LENGTH,
   SCREENSHOT_CUSTOM_GAME_TITLE_MAX_LENGTH,
   SCREENSHOT_VISIBILITY_OPTIONS,
 } from "@shared";
@@ -36,6 +38,7 @@ interface ScreenshotReviewItemProps {
   screenshot: LocalScreenshot;
   draft: ScreenshotReviewDraft;
   onDraftChange: (draft: ScreenshotReviewDraft) => void;
+  onDraftCommit?: () => void;
   canClose: boolean;
   isLocked?: boolean;
 }
@@ -44,6 +47,7 @@ export function ScreenshotReviewItem({
   screenshot,
   draft,
   onDraftChange,
+  onDraftCommit,
   canClose,
   isLocked = false,
 }: Readonly<ScreenshotReviewItemProps>) {
@@ -220,6 +224,28 @@ export function ScreenshotReviewItem({
               theme="dark"
             />
           )}
+
+          <TextField
+            label={t("description_label")}
+            placeholder={t("description_placeholder")}
+            hint={t("description_counter", {
+              count: draft.description.length,
+              max: SCREENSHOT_DESCRIPTION_MAX_LENGTH,
+            })}
+            maxLength={SCREENSHOT_DESCRIPTION_MAX_LENGTH}
+            value={draft.description}
+            disabled={isFormDisabled}
+            onChange={(event) =>
+              onDraftChange({
+                ...draft,
+                description: sanitizeScreenshotDescriptionInput(
+                  event.target.value
+                ),
+              })
+            }
+            onBlur={onDraftCommit}
+            theme="dark"
+          />
 
           <div className="screenshot-review-item__checkbox">
             <CheckboxField
