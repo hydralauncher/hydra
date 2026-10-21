@@ -175,6 +175,7 @@ const attachWindow = (
     session.windows = session.windows.filter(
       (candidate) => candidate !== entry
     );
+    if (entry.isGrid) removeGridItemsFromGrouping(session, entry.clientIds);
     if (!session.handedToBigPicture) {
       void releaseUnreviewedScreenshots(entry.clientIds);
     }
@@ -194,6 +195,31 @@ const attachWindow = (
     placeBelowGameWindow(entry, session);
   });
   return entry;
+};
+
+const createSession = (
+  details: Omit<ReviewSession, "grouping" | "windows" | "handedToBigPicture">
+) => {
+  const session: ReviewSession = {
+    ...details,
+    grouping: createScreenshotReviewGrouping(),
+    windows: [],
+    handedToBigPicture: false,
+  };
+  sessions.set(session.gameKey, session);
+  return session;
+};
+
+const removeGridItemsFromGrouping = (
+  session: ReviewSession,
+  clientIds: string[]
+) => {
+  session.grouping = {
+    ...session.grouping,
+    gridClientIds: session.grouping.gridClientIds.filter(
+      (clientId) => !clientIds.includes(clientId)
+    ),
+  };
 };
 
 const showSessionWindows = async (session: ReviewSession) => {
@@ -248,6 +274,17 @@ const handOffToBigPicture = (session: ReviewSession) => {
   return true;
 };
 
+const presentClosedSession = async (session: ReviewSession) => {
+  if (!session.windows.length || handOffToBigPicture(session)) {
+    if (sessions.get(session.gameKey) === session) {
+      sessions.delete(session.gameKey);
+    }
+    return;
+  }
+
+  await showSessionWindows(session);
+};
+
 export class ScreenshotReviewWindows {
   public static async releaseStaleReviews(startedAt: number) {
     const screenshots = await LocalScreenshotStore.list();
@@ -265,33 +302,31 @@ export class ScreenshotReviewWindows {
     screenshot,
     gameKey,
     gameWindowHandle,
+    isGameRunning,
   }: {
     screenshot: LocalScreenshot;
     gameKey: string;
     gameWindowHandle: string | null;
+    isGameRunning: () => boolean;
   }) {
+    await LocalScreenshotStore.update(screenshot.clientId, {
+      state: "reviewing",
+    });
+
     let session = sessions.get(gameKey);
-    if (!session || !session.isGameRunning) {
-      session = {
+    if (!session?.isGameRunning) {
+      session = createSession({
         sessionId: screenshot.gameSessionId ?? gameKey,
         gameKey,
         shop: screenshot.shop,
         objectId: screenshot.objectId ?? "",
         gameTitle: screenshot.gameTitle,
         gameWindowHandle,
-        grouping: createScreenshotReviewGrouping(),
-        windows: [],
-        isGameRunning: true,
-        handedToBigPicture: false,
-      };
-      sessions.set(gameKey, session);
+        isGameRunning: isGameRunning(),
+      });
     }
 
     if (gameWindowHandle) session.gameWindowHandle = gameWindowHandle;
-
-    await LocalScreenshotStore.update(screenshot.clientId, {
-      state: "reviewing",
-    });
 
     const { grouping, assignment } = assignScreenshotReview(
       session.grouping,
@@ -301,19 +336,48 @@ export class ScreenshotReviewWindows {
 
     if (assignment.kind === "single") {
       attachWindow(session, [assignment.clientId], false);
+    } else {
+      const grid = session.windows.find(
+        (entry) => entry.isGrid && !entry.window.isDestroyed()
+      );
+      if (grid) {
+        grid.clientIds = assignment.clientIds;
+        sendReviewItems(grid);
+      } else {
+        attachWindow(session, assignment.clientIds, true);
+      }
+    }
+
+    if (!session.isGameRunning) await presentClosedSession(session);
+  }
+
+  public static async openForScreenshot(screenshot: LocalScreenshot) {
+    const existing = [...sessions.values()]
+      .flatMap((session) => session.windows)
+      .find(
+        ({ window, clientIds }) =>
+          !window.isDestroyed() && clientIds.includes(screenshot.clientId)
+      );
+
+    if (existing) {
+      await existing.ready;
+      if (existing.window.isDestroyed()) return;
+      existing.window.show();
+      existing.window.focus();
       return;
     }
 
-    const grid = session.windows.find(
-      (entry) => entry.isGrid && !entry.window.isDestroyed()
-    );
-    if (!grid) {
-      attachWindow(session, assignment.clientIds, true);
-      return;
-    }
-
-    grid.clientIds = assignment.clientIds;
-    sendReviewItems(grid);
+    const session = createSession({
+      sessionId: `manual:${screenshot.clientId}`,
+      gameKey: `manual:${screenshot.clientId}`,
+      shop: screenshot.shop,
+      objectId: screenshot.objectId ?? "",
+      gameTitle: screenshot.gameTitle,
+      gameWindowHandle: null,
+      isGameRunning: false,
+    });
+    attachWindow(session, [screenshot.clientId], false);
+    await showSessionWindows(session);
   }
 
   public static async onGameClosed(gameKey: string) {
@@ -321,17 +385,7 @@ export class ScreenshotReviewWindows {
     if (!session) return;
 
     session.isGameRunning = false;
-    if (!session.windows.length) {
-      sessions.delete(gameKey);
-      return;
-    }
-
-    if (handOffToBigPicture(session)) {
-      sessions.delete(gameKey);
-      return;
-    }
-
-    await showSessionWindows(session);
+    await presentClosedSession(session);
   }
 
   public static isScreenshotUnderReview(clientId: string) {

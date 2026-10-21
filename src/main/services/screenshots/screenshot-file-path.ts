@@ -22,9 +22,12 @@ export const resolveManualScreenshotPath = (
   gameTitle: string,
   capturedAt: Date,
   suffix = 0
-) =>
-  path.join(
+) => {
+  const suffixPart = suffix ? `-${suffix}` : "";
+
+  return path.join(
     getManualScreenshotsDirectory(screenshotsRoot),
     sanitizePathSegment(gameTitle.replaceAll(/[#%]/g, "_")),
-    `${formatScreenshotTimestamp(capturedAt)}${suffix ? `-${suffix}` : ""}.${MANUAL_SCREENSHOT_EXTENSION}`
+    `${formatScreenshotTimestamp(capturedAt)}${suffixPart}.${MANUAL_SCREENSHOT_EXTENSION}`
   );
+};
