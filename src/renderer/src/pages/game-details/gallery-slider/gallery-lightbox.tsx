@@ -145,7 +145,7 @@ const getNoVideoHandle = (): GalleryVideoPlayerHandle | undefined => undefined;
 
 const isInsideScrollable = (target: EventTarget | null) =>
   target instanceof Element &&
-  target.closest("[data-gallery-scrollable]") !== null;
+  target.closest("[data-gallery-scrollable], [role='dialog']") !== null;
 
 interface StageLayer {
   key: number;

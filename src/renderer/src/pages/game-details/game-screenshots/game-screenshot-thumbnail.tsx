@@ -16,6 +16,7 @@ interface GameScreenshotThumbnailProps {
   screenshot: ProfileScreenshot;
   isLiking: boolean;
   showCommentCount: boolean;
+  showOwner?: boolean;
   onOpen: (screenshot: ProfileScreenshot) => void;
   onLike: (screenshot: ProfileScreenshot) => void;
   onImageError: (screenshot: ProfileScreenshot) => Promise<void>;
@@ -25,6 +26,7 @@ export function GameScreenshotThumbnail({
   screenshot,
   isLiking,
   showCommentCount,
+  showOwner = true,
   onOpen,
   onLike,
   onImageError,
@@ -85,10 +87,12 @@ export function GameScreenshotThumbnail({
         ) : null}
       </button>
 
-      <ScreenshotOwnerBadge
-        owner={screenshot.owner}
-        className="game-screenshots-box__owner"
-      />
+      {showOwner ? (
+        <ScreenshotOwnerBadge
+          owner={screenshot.owner}
+          className="game-screenshots-box__owner"
+        />
+      ) : null}
 
       <ScreenshotStats
         screenshot={screenshot}

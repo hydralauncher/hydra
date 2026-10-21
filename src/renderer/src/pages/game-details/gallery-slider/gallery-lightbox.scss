@@ -48,6 +48,11 @@ $lightbox-sidebar-fade-duration: 0.2s;
     cursor: none;
   }
 
+  [role="dialog"] {
+    cursor: auto;
+    user-select: text;
+  }
+
   &__chrome {
     transition: opacity 0.3s ease;
   }

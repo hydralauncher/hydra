@@ -1,6 +1,6 @@
 import { useEffect, useId, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { FlameIcon, HistoryIcon, ImageIcon } from "@primer/octicons-react";
+import { ImageIcon } from "@primer/octicons-react";
 import InfiniteScroll from "react-infinite-scroll-component";
 import Skeleton from "react-loading-skeleton";
 import cn from "classnames";
@@ -25,34 +25,29 @@ import {
 } from "@shared";
 import type { GameShop, ScreenshotSort } from "@types";
 
+import { MyScreenshotsPanel } from "./my-screenshots-panel";
+import { ScreenshotSortToggle } from "./screenshot-sort-toggle";
 import { useGameScreenshotsCollection } from "./use-game-screenshots-collection";
 
 const MODAL_PAGE_SIZE = 24;
 const SKELETON_COUNT = 6;
 const INFINITE_SCROLL_THRESHOLD = 0.9;
 
-const SORT_OPTIONS: { value: ScreenshotSort; icon: typeof HistoryIcon }[] = [
-  { value: "recent", icon: HistoryIcon },
-  { value: "top", icon: FlameIcon },
-];
-
-interface GameScreenshotsModalProps {
+interface ScreenshotsPanelProps {
   visible: boolean;
   showCommentCount: boolean;
   shop: GameShop;
   objectId: string;
   writeBus: ScreenshotWriteBus;
-  onClose: () => void;
 }
 
-export function GameScreenshotsModal({
+function CommunityScreenshotsPanel({
   visible,
   showCommentCount,
   shop,
   objectId,
   writeBus,
-  onClose,
-}: Readonly<GameScreenshotsModalProps>) {
+}: Readonly<ScreenshotsPanelProps>) {
   const { t } = useTranslation("screenshots");
   const scrollId = useId();
   const [sort, setSort] = useState<ScreenshotSort>(() =>
@@ -113,7 +108,6 @@ export function GameScreenshotsModal({
   };
 
   const handleSortChange = (nextSort: ScreenshotSort) => {
-    if (nextSort === sort) return;
     setSort(nextSort);
     storeScreenshotPreference(GAME_SCREENSHOT_SORT_STORAGE_KEY, nextSort);
   };
@@ -189,33 +183,9 @@ export function GameScreenshotsModal({
 
   return (
     <>
-      <Modal
-        visible={visible}
-        title={t("community_screenshots")}
-        onClose={onClose}
-        large
-        className="game-screenshots-modal"
-      >
+      <div className="game-screenshots-modal__panel">
         <div className="game-screenshots-modal__toolbar">
-          <fieldset
-            className="game-screenshots-modal__sort"
-            aria-label={t("sort_by")}
-          >
-            {SORT_OPTIONS.map(({ value, icon: Icon }) => (
-              <button
-                key={value}
-                type="button"
-                className={cn("game-screenshots-modal__sort-option", {
-                  "game-screenshots-modal__sort-option--active": sort === value,
-                })}
-                aria-pressed={sort === value}
-                onClick={() => handleSortChange(value)}
-              >
-                <Icon size={14} />
-                {t(`sort_${value}`)}
-              </button>
-            ))}
-          </fieldset>
+          <ScreenshotSortToggle sort={sort} onChange={handleSortChange} />
 
           <CheckboxField
             label={t("hide_spoilers")}
@@ -241,12 +211,87 @@ export function GameScreenshotsModal({
             <ScreenshotLoadMoreError onRetry={() => void feed.loadMore()} />
           ) : null}
         </div>
-      </Modal>
+      </div>
 
       <ScreenshotLightbox
         collection={collection}
         navigationItems={visibleItems}
       />
     </>
+  );
+}
+
+type GameScreenshotsTab = "mine" | "community";
+
+interface GameScreenshotsModalProps extends ScreenshotsPanelProps {
+  onClose: () => void;
+}
+
+export function GameScreenshotsModal({
+  visible,
+  showCommentCount,
+  shop,
+  objectId,
+  writeBus,
+  onClose,
+}: Readonly<GameScreenshotsModalProps>) {
+  const { t } = useTranslation("screenshots");
+  const [tab, setTab] = useState<GameScreenshotsTab>("mine");
+  const hasCommunity = shop !== "custom";
+  const activeTab = hasCommunity ? tab : "mine";
+  const tabs: { id: GameScreenshotsTab; label: string }[] = hasCommunity
+    ? [
+        { id: "mine", label: t("my_screenshots") },
+        { id: "community", label: t("community_screenshots_tab") },
+      ]
+    : [{ id: "mine", label: t("my_screenshots") }];
+
+  useEffect(() => {
+    if (visible) setTab("mine");
+  }, [visible]);
+
+  return (
+    <Modal
+      visible={visible}
+      title={t("tab_title")}
+      onClose={onClose}
+      large
+      className="game-screenshots-modal"
+    >
+      <div className="game-screenshots-modal__tabs" role="tablist">
+        {tabs.map(({ id, label }) => (
+          <button
+            key={id}
+            type="button"
+            role="tab"
+            aria-selected={activeTab === id}
+            className={cn("game-screenshots-modal__tab", {
+              "game-screenshots-modal__tab--active": activeTab === id,
+            })}
+            onClick={() => setTab(id)}
+          >
+            {label}
+          </button>
+        ))}
+      </div>
+
+      {activeTab === "mine" ? (
+        <MyScreenshotsPanel
+          visible={visible}
+          showCommentCount={showCommentCount}
+          shop={shop}
+          objectId={objectId}
+          writeBus={writeBus}
+        />
+      ) : (
+        <CommunityScreenshotsPanel
+          visible={visible}
+          showCommentCount={showCommentCount}
+          shop={shop}
+          objectId={objectId}
+          writeBus={writeBus}
+        />
+      )}
+    </Modal>
   );
 }

@@ -164,6 +164,6 @@ export function Modal({
         </div>
       </div>
     </Backdrop>,
-    document.body
+    document.fullscreenElement ?? document.body
   );
 }

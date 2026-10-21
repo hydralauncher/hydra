@@ -29,6 +29,14 @@ interface UseScreenshotActionsOptions {
   onFailure?: (screenshotId: string, failure: ScreenshotFailure) => void;
 }
 
+const forgetDeletedScreenshot = (screenshotId: string) => {
+  window.electron
+    .forgetPublishedScreenshots([screenshotId])
+    .catch((error) =>
+      logger.error("Failed to forget the deleted screenshot", error)
+    );
+};
+
 function usePendingIds() {
   const pendingRef = useRef(new Set<string>());
   const [pendingIds, setPendingIds] = useState<ReadonlySet<string>>(
@@ -218,12 +226,14 @@ export function useScreenshotActions({
           { needsAuth: true }
         );
         onRemove(screenshot);
+        forgetDeletedScreenshot(screenshot.id);
         showSuccessToast(t("screenshot_deleted"));
         return true;
       } catch (error) {
         logger.error("Failed to delete screenshot", error);
         if (getScreenshotApiErrorCode(error) === "screenshots/not-found") {
           onRemove(screenshot);
+          forgetDeletedScreenshot(screenshot.id);
           return true;
         }
         showErrorToast(t("delete_failed"));
