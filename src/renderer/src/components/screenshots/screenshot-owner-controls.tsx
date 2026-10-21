@@ -11,6 +11,7 @@ import {
   SCREENSHOT_CUSTOM_GAME_TITLE_MAX_LENGTH,
   SCREENSHOT_DESCRIPTION_MAX_LENGTH,
   normalizeScreenshotDescription,
+  sanitizeScreenshotDescriptionInput,
 } from "@shared";
 import type {
   ProfileScreenshot,
@@ -106,7 +107,9 @@ export function ScreenshotOwnerControls({
               disabled={isUpdating}
               hint={`${description.length}/${SCREENSHOT_DESCRIPTION_MAX_LENGTH}`}
               onChange={(event) =>
-                setDescription(event.target.value.replaceAll(/[\r\n]+/g, " "))
+                setDescription(
+                  sanitizeScreenshotDescriptionInput(event.target.value)
+                )
               }
               rightContent={
                 <Button
