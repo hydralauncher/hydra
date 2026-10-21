@@ -58,6 +58,11 @@ import { useBigPictureToast, useNavigation } from "../../../../hooks";
 import type { FocusOverrideTarget } from "../../../../services";
 import { getScreenshotErrorKey } from "../helpers";
 import { ScreenshotReportModal } from "../screenshot-report-modal";
+import {
+  applyCommentWrites,
+  type ScreenshotCommentWrite,
+  type ScreenshotCommentWriteInput,
+} from "./comment-writes";
 
 export interface ScreenshotCommentsPanelFocusIds {
   region: string;
@@ -115,12 +120,60 @@ function useScreenshotComments(
   const [status, setStatus] = useState<CommentsStatus>("idle");
   const [isLoadingMore, setIsLoadingMore] = useState(false);
   const generationRef = useRef(0);
+  const writeVersionRef = useRef(0);
+  const writesRef = useRef<ScreenshotCommentWrite[]>([]);
+  const pendingReadsRef = useRef(0);
   const ownerId = screenshot.owner.id;
   const screenshotId = screenshot.id;
 
-  useEffect(() => {
+  const beginRead = () => {
+    pendingReadsRef.current += 1;
+    return writeVersionRef.current;
+  };
+
+  const endRead = () => {
+    pendingReadsRef.current = Math.max(0, pendingReadsRef.current - 1);
+    if (pendingReadsRef.current === 0) writesRef.current = [];
+  };
+
+  const fetchFirstPage = useCallback(async () => {
     const generation = generationRef.current + 1;
     generationRef.current = generation;
+    const sinceVersion = beginRead();
+
+    try {
+      const response =
+        await globalThis.window.electron.hydraApi.get<ScreenshotCommentsResponse>(
+          buildUserScreenshotCommentsPath(ownerId, screenshotId),
+          { needsAuth }
+        );
+
+      if (generationRef.current !== generation) return;
+
+      const merged = applyCommentWrites(
+        response?.items ?? [],
+        writesRef.current,
+        sinceVersion,
+        true
+      );
+      setComments(merged.comments);
+      setTotal(Math.max(0, (response?.total ?? 0) + merged.totalDelta));
+      setNextCursor(response?.nextCursor ?? null);
+      setStatus("ready");
+    } catch (error) {
+      if (generationRef.current !== generation) return;
+
+      logger.error("Failed to load screenshot comments", error);
+      setStatus("error");
+    } finally {
+      if (generationRef.current === generation) endRead();
+    }
+  }, [needsAuth, ownerId, screenshotId]);
+
+  useEffect(() => {
+    generationRef.current += 1;
+    pendingReadsRef.current = 0;
+    writesRef.current = [];
     setComments([]);
     setTotal(0);
     setNextCursor(null);
@@ -132,32 +185,21 @@ function useScreenshotComments(
     }
 
     setStatus("loading");
+    void fetchFirstPage();
+  }, [fetchFirstPage, isAvailable]);
 
-    globalThis.window.electron.hydraApi
-      .get<ScreenshotCommentsResponse>(
-        buildUserScreenshotCommentsPath(ownerId, screenshotId),
-        { needsAuth }
-      )
-      .then((response) => {
-        if (generationRef.current !== generation) return;
+  const recordWrite = useCallback((write: ScreenshotCommentWriteInput) => {
+    writeVersionRef.current += 1;
+    if (pendingReadsRef.current === 0) return;
 
-        setComments(response?.items ?? []);
-        setTotal(response?.total ?? 0);
-        setNextCursor(response?.nextCursor ?? null);
-        setStatus("ready");
-      })
-      .catch((error: unknown) => {
-        if (generationRef.current !== generation) return;
-
-        logger.error("Failed to load screenshot comments", error);
-        setStatus("error");
-      });
-  }, [isAvailable, needsAuth, ownerId, screenshotId]);
+    writesRef.current.push({ ...write, version: writeVersionRef.current });
+  }, []);
 
   const loadMore = useCallback(async () => {
     if (!nextCursor || isLoadingMore) return;
 
     const generation = generationRef.current;
+    const sinceVersion = beginRead();
     setIsLoadingMore(true);
 
     try {
@@ -171,15 +213,22 @@ function useScreenshotComments(
 
       if (generationRef.current !== generation) return;
 
-      setComments((current) =>
-        mergeScreenshotPages(current, response?.items ?? [])
+      const merged = applyCommentWrites(
+        response?.items ?? [],
+        writesRef.current,
+        sinceVersion,
+        false
       );
-      setTotal(response?.total ?? total);
+      setComments((current) => mergeScreenshotPages(current, merged.comments));
+      setTotal(Math.max(0, (response?.total ?? total) + merged.totalDelta));
       setNextCursor(response?.nextCursor ?? null);
     } catch (error) {
       logger.error("Failed to load more screenshot comments", error);
     } finally {
-      if (generationRef.current === generation) setIsLoadingMore(false);
+      if (generationRef.current === generation) {
+        endRead();
+        setIsLoadingMore(false);
+      }
     }
   }, [isLoadingMore, needsAuth, nextCursor, ownerId, screenshotId, total]);
 
@@ -190,6 +239,7 @@ function useScreenshotComments(
     hasMore: Boolean(nextCursor),
     isLoadingMore,
     loadMore,
+    recordWrite,
     setComments,
     setTotal,
   };
@@ -480,6 +530,7 @@ export function ScreenshotCommentsPanel({
     hasMore,
     isLoadingMore,
     loadMore,
+    recordWrite,
     setComments,
     setTotal,
   } = useScreenshotComments(screenshot, isAvailable, Boolean(viewerId));
@@ -525,13 +576,14 @@ export function ScreenshotCommentsPanel({
 
   const replaceComment = useCallback(
     (commentId: string, update: Partial<ScreenshotComment>) => {
+      recordWrite({ kind: "patch", commentId, patch: update });
       setComments((current) =>
         current.map((comment) =>
           comment.id === commentId ? { ...comment, ...update } : comment
         )
       );
     },
-    [setComments]
+    [recordWrite, setComments]
   );
 
   const submit = useCallback(async () => {
@@ -560,6 +612,7 @@ export function ScreenshotCommentsPanel({
             { data: { body }, needsAuth: true }
           );
         if (created) {
+          recordWrite({ kind: "add", comment: created });
           setComments((current) => [created, ...current]);
           setTotal((current) => current + 1);
           onCommentCountChange(screenshot.id, screenshot.commentCount + 1);
@@ -574,6 +627,7 @@ export function ScreenshotCommentsPanel({
   }, [
     draft,
     editingComment,
+    recordWrite,
     isSubmitting,
     onCommentCountChange,
     screenshot.commentCount,
@@ -630,6 +684,7 @@ export function ScreenshotCommentsPanel({
         ),
         { needsAuth: true }
       );
+      recordWrite({ kind: "remove", commentId: deletingComment.id });
       setComments((current) =>
         current.filter((comment) => comment.id !== deletingComment.id)
       );
@@ -658,6 +713,7 @@ export function ScreenshotCommentsPanel({
   }, [
     deletingComment,
     editingComment,
+    recordWrite,
     focusIds.input,
     focusIds.signIn,
     onCommentCountChange,
