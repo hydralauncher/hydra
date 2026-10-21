@@ -32,6 +32,7 @@ export function useScreenshotFeed({
   const [isLoading, setIsLoading] = useState(false);
   const [hasLoaded, setHasLoaded] = useState(false);
   const [hasFailed, setHasFailed] = useState(false);
+  const [hasLoadMoreFailed, setHasLoadMoreFailed] = useState(false);
   const requestIdRef = useRef(0);
   const fetchPageRef = useRef(fetchPage);
   fetchPageRef.current = fetchPage;
@@ -40,6 +41,7 @@ export function useScreenshotFeed({
     const requestId = ++requestIdRef.current;
     setIsLoading(true);
     setHasFailed(false);
+    setHasLoadMoreFailed(false);
 
     try {
       const page = await fetchPageRef.current(null);
@@ -71,6 +73,7 @@ export function useScreenshotFeed({
 
     const requestId = requestIdRef.current;
     setIsLoading(true);
+    setHasLoadMoreFailed(false);
 
     try {
       const page = await fetchPageRef.current(nextCursor);
@@ -82,7 +85,7 @@ export function useScreenshotFeed({
     } catch (error) {
       if (requestId === requestIdRef.current) {
         logger.error("Failed to load more screenshots", error);
-        setNextCursor(null);
+        setHasLoadMoreFailed(true);
       }
     } finally {
       if (requestId === requestIdRef.current) setIsLoading(false);
@@ -97,6 +100,7 @@ export function useScreenshotFeed({
     setHiddenReason(null);
     setHasLoaded(false);
     setHasFailed(false);
+    setHasLoadMoreFailed(false);
 
     if (feedKey === null) {
       setIsLoading(false);
@@ -130,6 +134,7 @@ export function useScreenshotFeed({
     isLoading,
     hasLoaded,
     hasFailed,
+    hasLoadMoreFailed,
     reload,
     loadMore,
     patchItem,

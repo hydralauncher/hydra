@@ -25,6 +25,8 @@ import { useScreenshotSpoiler } from "./use-screenshot-spoiler";
 
 import "./screenshot-card.scss";
 
+const LIKE_TAP_SCALE = 0.92;
+
 export type ScreenshotCardVariant = "profile" | "game";
 
 interface ScreenshotCardProps {
@@ -218,7 +220,7 @@ function ScreenshotCardLike({
         aria-pressed={screenshot.likedByMe}
         aria-label={label}
         title={label}
-        whileTap={{ scale: 0.92 }}
+        whileTap={{ scale: LIKE_TAP_SCALE }}
       >
         {screenshot.likedByMe ? (
           <HeartFillIcon size={14} />

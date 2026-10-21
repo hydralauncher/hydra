@@ -14,6 +14,7 @@ import { Button } from "@renderer/components";
 import {
   ScreenshotCard,
   ScreenshotLightbox,
+  ScreenshotLoadMoreError,
   readStoredScreenshotSort,
   storeScreenshotPreference,
   useScreenshotCollection,
@@ -44,6 +45,9 @@ import { LockedProfile } from "./locked-profile";
 import "./profile-content.scss";
 
 const ALL_GAMES_FILTER = "all";
+const INFINITE_SCROLL_THRESHOLD = 0.9;
+const TAB_PANEL_SLIDE_OFFSET_PX = 10;
+const TAB_PANEL_TRANSITION_SECONDS = 0.2;
 
 const getGameFilterValue = (game: ScreenshotGameFilterItem) =>
   game.shop === "custom" ? "custom" : `${game.shop}:${game.objectId}`;
@@ -292,10 +296,10 @@ export function ScreenshotsTab({
     <motion.div
       key="screenshots"
       className="profile-content__tab-panel"
-      initial={{ opacity: 0, x: -10 }}
+      initial={{ opacity: 0, x: -TAB_PANEL_SLIDE_OFFSET_PX }}
       animate={{ opacity: 1, x: 0 }}
-      exit={{ opacity: 0, x: 10 }}
-      transition={{ duration: 0.2 }}
+      exit={{ opacity: 0, x: TAB_PANEL_SLIDE_OFFSET_PX }}
+      transition={{ duration: TAB_PANEL_TRANSITION_SECONDS }}
     >
       {showFilters ? (
         <div className="profile-content__library-filters">
@@ -347,13 +351,13 @@ export function ScreenshotsTab({
         <InfiniteScroll
           dataLength={feed.items.length}
           next={() => void feed.loadMore()}
-          hasMore={feed.hasMore}
+          hasMore={feed.hasMore && !feed.hasLoadMoreFailed}
           loader={
             <output className="profile-content__screenshots-loading">
               {t("loading_screenshots")}
             </output>
           }
-          scrollThreshold={0.9}
+          scrollThreshold={INFINITE_SCROLL_THRESHOLD}
           style={{ overflow: "visible" }}
           scrollableTarget="scrollableDiv"
         >
@@ -371,6 +375,10 @@ export function ScreenshotsTab({
             ))}
           </ul>
         </InfiniteScroll>
+      ) : null}
+
+      {feed.hasLoadMoreFailed ? (
+        <ScreenshotLoadMoreError onRetry={() => void feed.loadMore()} />
       ) : null}
 
       <ScreenshotLightbox collection={collection} />

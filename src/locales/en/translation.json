@@ -2757,6 +2757,7 @@
     "like_failed": "Could not update your like",
     "load_more": "Load more",
     "load_more_comments": "Load more comments",
+    "load_more_failed": "Could not load more screenshots",
     "loading_comments": "Loading comments...",
     "loading_screenshot": "Loading screenshot...",
     "loading_screenshots": "Loading screenshots...",

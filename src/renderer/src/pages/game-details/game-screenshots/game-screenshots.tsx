@@ -8,6 +8,7 @@ import { Button } from "@renderer/components";
 import {
   ScreenshotCard,
   ScreenshotLightbox,
+  ScreenshotLoadMoreError,
   readStoredScreenshotSort,
   storeScreenshotPreference,
   useScreenshotCollection,
@@ -130,7 +131,11 @@ function GameScreenshotsSection({
           ))}
         </ul>
 
-        {feed.hasMore ? (
+        {feed.hasLoadMoreFailed ? (
+          <ScreenshotLoadMoreError onRetry={() => void feed.loadMore()} />
+        ) : null}
+
+        {feed.hasMore && !feed.hasLoadMoreFailed ? (
           <Button
             theme="outline"
             className="game-screenshots__load-more"
