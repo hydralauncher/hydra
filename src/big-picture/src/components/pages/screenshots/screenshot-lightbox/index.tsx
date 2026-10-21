@@ -25,6 +25,7 @@ import {
 } from "react";
 import { createPortal } from "react-dom";
 import { useTranslation } from "react-i18next";
+import { useNavigate } from "react-router-dom";
 import type {
   ProfileScreenshot,
   ScreenshotLikeResponse,
@@ -46,6 +47,7 @@ import { logger } from "@renderer/logger";
 import {
   Backdrop,
   Button,
+  FocusItem,
   HorizontalFocusGroup,
   NavigationLayer,
   UserProfileAvatar,
@@ -68,7 +70,9 @@ import {
   formatScreenshotDate,
   getScreenshotAltText,
   getScreenshotErrorKey,
+  getScreenshotGamePath,
   getScreenshotGameTitle,
+  getScreenshotOwnerPath,
   shouldBlurScreenshot,
   getEditedScreenshotFields,
 } from "../helpers";
@@ -122,6 +126,10 @@ const getLightboxFocusIds = (screenshotId: string) => ({
   manage: `screenshot-lightbox-manage:${screenshotId}`,
   remove: `screenshot-lightbox-delete:${screenshotId}`,
   copy: `screenshot-lightbox-copy:${screenshotId}`,
+  summary: `screenshot-lightbox-summary:${screenshotId}`,
+  info: `screenshot-lightbox-info:${screenshotId}`,
+  game: `screenshot-lightbox-game:${screenshotId}`,
+  owner: `screenshot-lightbox-owner:${screenshotId}`,
 });
 
 function useBlockingOverlayGuard() {
@@ -268,55 +276,102 @@ function LightboxImage({
 
 interface LightboxSummaryProps {
   screenshot: ProfileScreenshot;
+  focusIds: ReturnType<typeof getLightboxFocusIds>;
+  onNavigate: (path: string) => void;
 }
 
-function LightboxSummary({ screenshot }: Readonly<LightboxSummaryProps>) {
-  const { t, i18n } = useTranslation("big_picture");
+function LightboxGameIcon({
+  screenshot,
+}: Readonly<{ screenshot: ProfileScreenshot }>) {
   const [failedIconUrl, setFailedIconUrl] = useState<string | null>(null);
-  const language = i18n.resolvedLanguage ?? i18n.language ?? "en";
   const hasGameIcon = Boolean(
     screenshot.gameIconUrl && screenshot.gameIconUrl !== failedIconUrl
   );
 
   return (
-    <div className="screenshot-lightbox__summary">
-      <div className="screenshot-lightbox__game">
-        <span className="screenshot-lightbox__game-icon">
-          {hasGameIcon ? (
-            <img
-              src={screenshot.gameIconUrl ?? undefined}
-              alt=""
-              draggable={false}
-              onError={() => setFailedIconUrl(screenshot.gameIconUrl)}
-            />
-          ) : (
-            <GameControllerIcon size={18} />
-          )}
-        </span>
-        <span className="screenshot-lightbox__game-title">
-          {getScreenshotGameTitle(screenshot, t)}
-        </span>
-        {screenshot.isCustomGame ? (
-          <span className="screenshot-lightbox__tag">
-            {t("screenshots_custom_game_tag")}
-          </span>
-        ) : null}
-      </div>
-      <div className="screenshot-lightbox__meta">
-        <UserProfileAvatar
-          image={screenshot.owner.profileImageUrl}
+    <span className="screenshot-lightbox__game-icon">
+      {hasGameIcon ? (
+        <img
+          src={screenshot.gameIconUrl ?? undefined}
           alt=""
-          className="screenshot-lightbox__avatar"
-          fallbackClassName="screenshot-lightbox__avatar--fallback"
-          width={20}
-          height={20}
-          iconSize={12}
+          draggable={false}
+          onError={() => setFailedIconUrl(screenshot.gameIconUrl)}
         />
-        <span>{screenshot.owner.displayName}</span>
-        <span className="screenshot-lightbox__meta-separator" aria-hidden />
-        <span>{formatScreenshotDate(screenshot.capturedAt, language)}</span>
+      ) : (
+        <GameControllerIcon size={18} />
+      )}
+    </span>
+  );
+}
+
+function LightboxSummary({
+  screenshot,
+  focusIds,
+  onNavigate,
+}: Readonly<LightboxSummaryProps>) {
+  const { t, i18n } = useTranslation("big_picture");
+  const language = i18n.resolvedLanguage ?? i18n.language ?? "en";
+  const gameTitle = getScreenshotGameTitle(screenshot, t);
+  const gamePath = getScreenshotGamePath(screenshot);
+  const ownerPath = getScreenshotOwnerPath(screenshot.owner.id);
+
+  return (
+    <VerticalFocusGroup regionId={focusIds.summary} asChild>
+      <div className="screenshot-lightbox__summary">
+        {gamePath ? (
+          <FocusItem id={focusIds.game} asChild>
+            <button
+              type="button"
+              className="screenshot-lightbox__game screenshot-lightbox__link"
+              title={t("screenshots_open_game")}
+              onClick={() => onNavigate(gamePath)}
+            >
+              <LightboxGameIcon screenshot={screenshot} />
+              <span className="screenshot-lightbox__game-title">
+                {gameTitle}
+              </span>
+              <CaretRightIcon
+                size={16}
+                className="screenshot-lightbox__link-caret"
+              />
+            </button>
+          </FocusItem>
+        ) : (
+          <div className="screenshot-lightbox__game">
+            <LightboxGameIcon screenshot={screenshot} />
+            <span className="screenshot-lightbox__game-title">{gameTitle}</span>
+            {screenshot.isCustomGame ? (
+              <span className="screenshot-lightbox__tag">
+                {t("screenshots_custom_game_tag")}
+              </span>
+            ) : null}
+          </div>
+        )}
+        <div className="screenshot-lightbox__meta">
+          <FocusItem id={focusIds.owner} asChild>
+            <button
+              type="button"
+              className="screenshot-lightbox__owner screenshot-lightbox__link"
+              title={t("screenshots_open_profile")}
+              onClick={() => onNavigate(ownerPath)}
+            >
+              <UserProfileAvatar
+                image={screenshot.owner.profileImageUrl}
+                alt=""
+                className="screenshot-lightbox__avatar"
+                fallbackClassName="screenshot-lightbox__avatar--fallback"
+                width={20}
+                height={20}
+                iconSize={12}
+              />
+              <span>{screenshot.owner.displayName}</span>
+            </button>
+          </FocusItem>
+          <span className="screenshot-lightbox__meta-separator" aria-hidden />
+          <span>{formatScreenshotDate(screenshot.capturedAt, language)}</span>
+        </div>
       </div>
-    </div>
+    </VerticalFocusGroup>
   );
 }
 
@@ -362,82 +417,81 @@ function LightboxActions({
   const likeLabel = t(getLikeLabelKey(screenshot.likedByMe, isSignedIn));
 
   return (
-    <HorizontalFocusGroup
-      regionId={focusIds.actions}
-      className="screenshot-lightbox__actions"
-    >
-      <Button
-        variant="secondary"
-        size="small"
-        focusId={focusIds.like}
-        disabled={!canLike}
-        loading={isLiking}
-        className={cn({
-          "screenshot-lightbox__action--pending": isLiking,
-        })}
-        icon={
-          <HeartIcon
-            size={20}
-            weight={screenshot.likedByMe ? "fill" : "regular"}
-          />
-        }
-        aria-label={likeLabel}
-        title={likeLabel}
-        onClick={onLike}
-      >
-        {String(screenshot.likeCount)}
-      </Button>
-
-      {screenshot.imageUrl ? (
-        <Button
-          variant="secondary"
-          size="icon"
-          focusId={focusIds.copy}
-          loading={isCopying}
-          icon={<CopyIcon size={20} />}
-          aria-label={t("screenshots_copy_image")}
-          title={t("screenshots_copy_image")}
-          onClick={onCopy}
-        >
-          {null}
-        </Button>
-      ) : null}
-
-      {isOwner ? (
-        <>
-          <Button
-            variant="secondary"
-            size="small"
-            focusId={focusIds.manage}
-            icon={<GearSixIcon size={20} />}
-            onClick={onManage}
-          >
-            {t("screenshots_manage")}
-          </Button>
-          <Button
-            variant="danger"
-            size="icon"
-            focusId={focusIds.remove}
-            icon={<TrashIcon size={20} />}
-            aria-label={t("screenshots_delete")}
-            title={t("screenshots_delete")}
-            onClick={onDelete}
-          >
-            {null}
-          </Button>
-        </>
-      ) : (
+    <HorizontalFocusGroup regionId={focusIds.actions} asChild>
+      <div className="screenshot-lightbox__actions">
         <Button
           variant="secondary"
           size="small"
-          focusId={focusIds.report}
-          disabled={isReported}
-          icon={<FlagIcon size={20} />}
-          onClick={onReport}
+          focusId={focusIds.like}
+          disabled={!canLike}
+          loading={isLiking}
+          className={cn({
+            "screenshot-lightbox__action--pending": isLiking,
+          })}
+          icon={
+            <HeartIcon
+              size={20}
+              weight={screenshot.likedByMe ? "fill" : "regular"}
+            />
+          }
+          aria-label={likeLabel}
+          title={likeLabel}
+          onClick={onLike}
         >
-          {t(isReported ? "screenshots_reported" : "screenshots_report")}
+          {String(screenshot.likeCount)}
         </Button>
-      )}
+
+        {screenshot.imageUrl ? (
+          <Button
+            variant="secondary"
+            size="icon"
+            focusId={focusIds.copy}
+            loading={isCopying}
+            icon={<CopyIcon size={20} />}
+            aria-label={t("screenshots_copy_image")}
+            title={t("screenshots_copy_image")}
+            onClick={onCopy}
+          >
+            {null}
+          </Button>
+        ) : null}
+
+        {isOwner ? (
+          <>
+            <Button
+              variant="secondary"
+              size="small"
+              focusId={focusIds.manage}
+              icon={<GearSixIcon size={20} />}
+              onClick={onManage}
+            >
+              {t("screenshots_manage")}
+            </Button>
+            <Button
+              variant="danger"
+              size="icon"
+              focusId={focusIds.remove}
+              icon={<TrashIcon size={20} />}
+              aria-label={t("screenshots_delete")}
+              title={t("screenshots_delete")}
+              onClick={onDelete}
+            >
+              {null}
+            </Button>
+          </>
+        ) : (
+          <Button
+            variant="secondary"
+            size="small"
+            focusId={focusIds.report}
+            disabled={isReported}
+            icon={<FlagIcon size={20} />}
+            onClick={onReport}
+          >
+            {t(isReported ? "screenshots_reported" : "screenshots_report")}
+          </Button>
+        )}
+      </div>
     </HorizontalFocusGroup>
   );
 }
@@ -812,6 +866,7 @@ interface LightboxDialogProps {
   onRequestManage: () => void;
   onRequestDelete: () => void;
   onLayerChange: (layerId: string | null) => void;
+  onNavigate: (path: string) => void;
   isActiveLayer: () => boolean;
 }
 
@@ -827,6 +882,7 @@ function LightboxDialog({
   onRequestManage,
   onRequestDelete,
   onLayerChange,
+  onNavigate,
   isActiveLayer,
 }: Readonly<LightboxDialogProps>) {
   const { t } = useTranslation("big_picture");
@@ -891,23 +947,29 @@ function LightboxDialog({
                 revealFocusId={focusIds.reveal}
                 onReveal={() => revealSpoiler(screenshot.id)}
               />
-              <div className="screenshot-lightbox__info">
-                <LightboxSummary screenshot={screenshot} />
-                <LightboxActions
-                  screenshot={screenshot}
-                  focusIds={focusIds}
-                  isOwner={isOwner}
-                  isSignedIn={viewerId !== null}
-                  isLiking={social.isLiking}
-                  isReported={social.isReported}
-                  isCopying={social.isCopying}
-                  onLike={() => void social.toggleLike()}
-                  onCopy={() => void social.copyImage()}
-                  onReport={onRequestReport}
-                  onManage={onRequestManage}
-                  onDelete={onRequestDelete}
-                />
-              </div>
+              <HorizontalFocusGroup regionId={focusIds.info} asChild>
+                <div className="screenshot-lightbox__info">
+                  <LightboxSummary
+                    screenshot={screenshot}
+                    focusIds={focusIds}
+                    onNavigate={onNavigate}
+                  />
+                  <LightboxActions
+                    screenshot={screenshot}
+                    focusIds={focusIds}
+                    isOwner={isOwner}
+                    isSignedIn={viewerId !== null}
+                    isLiking={social.isLiking}
+                    isReported={social.isReported}
+                    isCopying={social.isCopying}
+                    onLike={() => void social.toggleLike()}
+                    onCopy={() => void social.copyImage()}
+                    onReport={onRequestReport}
+                    onManage={onRequestManage}
+                    onDelete={onRequestDelete}
+                  />
+                </div>
+              </HorizontalFocusGroup>
             </section>
           </VerticalFocusGroup>
 
@@ -996,6 +1058,7 @@ export function ScreenshotLightbox({
 }: Readonly<ScreenshotLightboxProps>) {
   const { userDetails } = useUserDetails();
   const { isFeatureEnabled } = useFeature();
+  const navigate = useNavigate();
   const [openModal, setOpenModal] = useState<LightboxModal>(null);
   const {
     isCommentsOverlayOpen,
@@ -1041,6 +1104,11 @@ export function ScreenshotLightbox({
     onClose,
     isActiveLayer,
   });
+
+  const navigateAway = (path: string) => {
+    onClose();
+    navigate(path);
+  };
 
   const requestReport = () => {
     if (viewerId) {
@@ -1088,6 +1156,7 @@ export function ScreenshotLightbox({
                 onRequestManage={() => setOpenModal("manage")}
                 onRequestDelete={() => setOpenModal("delete")}
                 onLayerChange={handleLayerChange}
+                onNavigate={navigateAway}
                 isActiveLayer={isActiveLayer}
               />
               <LightboxModals

@@ -8,6 +8,8 @@ import {
   getScreenshotUploadErrorKey,
   isScreenshotSpoilerRevealed,
 } from "@shared";
+import { IS_DESKTOP } from "../../../constants";
+import { getBigPictureGameDetailsPath } from "../../../helpers";
 
 type Translate = (key: string, options?: Record<string, unknown>) => string;
 
@@ -132,4 +134,20 @@ export function pickNewerScreenshot(
   if (!listItem || !detached) return listItem ?? detached;
 
   return (detachedFetchedAt ?? 0) > (listFetchedAt ?? 0) ? detached : listItem;
+}
+
+export function getScreenshotGamePath(screenshot: ProfileScreenshot) {
+  if (screenshot.isCustomGame || !screenshot.objectId) return null;
+
+  return getBigPictureGameDetailsPath({
+    shop: screenshot.shop,
+    objectId: screenshot.objectId,
+    title: screenshot.gameTitle ?? undefined,
+  });
+}
+
+export function getScreenshotOwnerPath(ownerId: string) {
+  const basePath = IS_DESKTOP ? "/big-picture" : "";
+
+  return `${basePath}/profile/${encodeURIComponent(ownerId)}`;
 }

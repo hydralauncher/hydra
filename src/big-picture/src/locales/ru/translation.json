@@ -996,6 +996,9 @@
     "screenshots_review_delete_title": "Удалить этот скриншот?",
     "screenshots_load_failed": "Не удалось загрузить скриншоты",
     "screenshots_load_more_failed": "Не удалось загрузить остальные скриншоты",
-    "screenshots_retry": "Повторить"
+    "screenshots_retry": "Повторить",
+    "screenshots_open_game": "Открыть страницу игры",
+    "screenshots_open_profile": "Открыть профиль",
+    "screenshots_sign_in_to_vote": "Войдите, чтобы голосовать"
   }
 }

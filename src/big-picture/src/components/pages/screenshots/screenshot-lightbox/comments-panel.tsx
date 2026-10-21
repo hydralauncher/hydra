@@ -1,6 +1,8 @@
 import {
   ArrowFatDownIcon,
   ArrowFatUpIcon,
+  ChatCircleIcon,
+  ChatsCircleIcon,
   DotsThreeVerticalIcon,
   FlagIcon,
   PaperPlaneRightIcon,
@@ -55,9 +57,10 @@ import {
 import { ConfirmationModal } from "../../../modals";
 import { formatRelativeDate } from "../../../../helpers";
 import { useBigPictureToast, useNavigation } from "../../../../hooks";
-import type { FocusOverrideTarget } from "../../../../services";
+import type { FocusOverrides, FocusOverrideTarget } from "../../../../services";
 import { getScreenshotErrorKey } from "../helpers";
 import { ScreenshotReportModal } from "../screenshot-report-modal";
+import { ScreenshotCommentBody } from "./comment-body";
 import {
   applyCommentWrites,
   type ScreenshotCommentWrite,
@@ -90,6 +93,7 @@ const getCommentFocusIds = (commentId: string) => ({
   region: `screenshot-comment:${commentId}`,
   upvote: `screenshot-comment-upvote:${commentId}`,
   downvote: `screenshot-comment-downvote:${commentId}`,
+  edit: `screenshot-comment-edit:${commentId}`,
   more: `screenshot-comment-more:${commentId}`,
 });
 
@@ -249,28 +253,84 @@ function useScreenshotComments(
 
 interface CommentItemProps {
   comment: ScreenshotComment;
-  canVote: boolean;
+  isSignedIn: boolean;
+  canEdit: boolean;
   hasMenu: boolean;
   isVoting: boolean;
   language: string;
   leftTarget: FocusOverrideTarget;
   onVote: (comment: ScreenshotComment, vote: ScreenshotCommentVoteType) => void;
+  onEdit: (comment: ScreenshotComment) => void;
   onOpenMenu: (comment: ScreenshotComment, element: HTMLElement) => void;
+}
+
+interface CommentVoteButtonProps {
+  focusId: string;
+  voteType: ScreenshotCommentVoteType;
+  count: number;
+  isActive: boolean;
+  isFocusable: boolean;
+  isDisabled: boolean;
+  label: string;
+  navigationOverrides?: FocusOverrides;
+  onVote: () => void;
+}
+
+function CommentVoteButton({
+  focusId,
+  voteType,
+  count,
+  isActive,
+  isFocusable,
+  isDisabled,
+  label,
+  navigationOverrides,
+  onVote,
+}: Readonly<CommentVoteButtonProps>) {
+  const Icon = voteType === "UPVOTE" ? ArrowFatUpIcon : ArrowFatDownIcon;
+
+  return (
+    <FocusItem
+      id={focusId}
+      navigationState={isFocusable ? "active" : "disabled"}
+      navigationOverrides={navigationOverrides}
+      asChild
+    >
+      <button
+        type="button"
+        className={cn("screenshot-comments__vote", {
+          "screenshot-comments__vote--active": isActive,
+        })}
+        disabled={!isFocusable || isDisabled}
+        aria-label={label}
+        aria-pressed={isActive}
+        title={label}
+        onClick={onVote}
+      >
+        <Icon size={18} weight={isActive ? "fill" : "regular"} />
+        <span>{count}</span>
+      </button>
+    </FocusItem>
+  );
 }
 
 function CommentItem({
   comment,
-  canVote,
+  isSignedIn,
+  canEdit,
   hasMenu,
   isVoting,
   language,
   leftTarget,
   onVote,
+  onEdit,
   onOpenMenu,
 }: Readonly<CommentItemProps>) {
   const { t } = useTranslation("big_picture");
   const focusIds = getCommentFocusIds(comment.id);
   const moreButtonRef = useRef<HTMLDivElement | null>(null);
+  const canVote = !comment.isOwn;
+  const firstFocusId = canVote ? focusIds.upvote : focusIds.edit;
 
   return (
     <li className="screenshot-comments__item">
@@ -301,78 +361,86 @@ function CommentItem({
         </p>
       ) : null}
 
-      <p
-        className={cn("screenshot-comments__body", {
+      <ScreenshotCommentBody
+        body={comment.body}
+        className={cn({
           "screenshot-comments__body--hidden": comment.isHidden,
         })}
-      >
-        {comment.body}
-      </p>
+      />
 
-      <HorizontalFocusGroup
-        regionId={focusIds.region}
-        className="screenshot-comments__item-actions"
-      >
-        <Button
-          variant="secondary"
-          size="small"
-          focusId={focusIds.upvote}
-          disabled={!canVote || isVoting}
-          focusNavigationOverrides={{ left: leftTarget }}
-          className={cn("screenshot-comments__vote", {
-            "screenshot-comments__vote--active": comment.myVote === "UPVOTE",
-          })}
-          icon={
-            <ArrowFatUpIcon
-              size={16}
-              weight={comment.myVote === "UPVOTE" ? "fill" : "regular"}
+      <HorizontalFocusGroup regionId={focusIds.region} asChild>
+        <div className="screenshot-comments__item-actions">
+          <div className="screenshot-comments__votes">
+            <CommentVoteButton
+              focusId={focusIds.upvote}
+              voteType="UPVOTE"
+              count={comment.upvotes}
+              isActive={comment.myVote === "UPVOTE"}
+              isFocusable={canVote}
+              isDisabled={isVoting}
+              label={t(
+                isSignedIn
+                  ? "screenshots_comment_upvote"
+                  : "screenshots_sign_in_to_vote"
+              )}
+              navigationOverrides={{ left: leftTarget }}
+              onVote={() => onVote(comment, "UPVOTE")}
             />
-          }
-          aria-label={t("screenshots_comment_upvote")}
-          title={t("screenshots_comment_upvote")}
-          onClick={() => onVote(comment, "UPVOTE")}
-        >
-          {String(comment.upvotes)}
-        </Button>
-        <Button
-          variant="secondary"
-          size="small"
-          focusId={focusIds.downvote}
-          disabled={!canVote || isVoting}
-          className={cn("screenshot-comments__vote", {
-            "screenshot-comments__vote--active": comment.myVote === "DOWNVOTE",
-          })}
-          icon={
-            <ArrowFatDownIcon
-              size={16}
-              weight={comment.myVote === "DOWNVOTE" ? "fill" : "regular"}
+            <CommentVoteButton
+              focusId={focusIds.downvote}
+              voteType="DOWNVOTE"
+              count={comment.downvotes}
+              isActive={comment.myVote === "DOWNVOTE"}
+              isFocusable={canVote}
+              isDisabled={isVoting}
+              label={t(
+                isSignedIn
+                  ? "screenshots_comment_downvote"
+                  : "screenshots_sign_in_to_vote"
+              )}
+              onVote={() => onVote(comment, "DOWNVOTE")}
             />
-          }
-          aria-label={t("screenshots_comment_downvote")}
-          title={t("screenshots_comment_downvote")}
-          onClick={() => onVote(comment, "DOWNVOTE")}
-        >
-          {String(comment.downvotes)}
-        </Button>
-        {hasMenu ? (
-          <div ref={moreButtonRef} className="screenshot-comments__more">
+          </div>
+          {canEdit ? (
             <Button
               variant="secondary"
               size="icon"
-              focusId={focusIds.more}
-              icon={<DotsThreeVerticalIcon size={18} weight="bold" />}
-              aria-label={t("screenshots_comment_options")}
-              title={t("screenshots_comment_options")}
-              focusNavigationOverrides={{ right: { type: "block" } }}
-              onClick={() => {
-                if (moreButtonRef.current)
-                  onOpenMenu(comment, moreButtonRef.current);
-              }}
+              focusId={focusIds.edit}
+              className="screenshot-comments__icon-action"
+              icon={<PencilSimpleIcon size={16} />}
+              aria-label={t("screenshots_comment_edit")}
+              title={t("screenshots_comment_edit")}
+              focusNavigationOverrides={
+                firstFocusId === focusIds.edit
+                  ? { left: leftTarget }
+                  : undefined
+              }
+              onClick={() => onEdit(comment)}
             >
               {null}
             </Button>
-          </div>
-        ) : null}
+          ) : null}
+          {hasMenu ? (
+            <div ref={moreButtonRef} className="screenshot-comments__more">
+              <Button
+                variant="secondary"
+                size="icon"
+                focusId={focusIds.more}
+                className="screenshot-comments__icon-action"
+                icon={<DotsThreeVerticalIcon size={18} weight="bold" />}
+                aria-label={t("screenshots_comment_options")}
+                title={t("screenshots_comment_options")}
+                focusNavigationOverrides={{ right: { type: "block" } }}
+                onClick={() => {
+                  if (moreButtonRef.current)
+                    onOpenMenu(comment, moreButtonRef.current);
+                }}
+              >
+                {null}
+              </Button>
+            </div>
+          ) : null}
+        </div>
       </HorizontalFocusGroup>
     </li>
   );
@@ -461,55 +529,95 @@ function CommentComposer({
           {t("screenshots_comment_editing")}
         </span>
       ) : null}
-      <HorizontalFocusGroup
-        regionId={focusIds.composerRegion}
-        className="screenshot-comments__composer-row"
-      >
-        <Input
-          className="screenshot-comments__input"
-          placeholder={t("screenshots_comment_placeholder")}
-          value={value}
-          maxLength={SCREENSHOT_COMMENT_MAX_LENGTH}
-          disabled={isSubmitting}
-          focusId={focusIds.input}
-          focusNavigationOverrides={{ left: leftTarget }}
-          aria-label={t("screenshots_comment_placeholder")}
-          onChange={(event) => onChange(event.target.value)}
-        />
-        {isEditing ? (
-          <Button
-            variant="secondary"
-            size="icon"
-            focusId={focusIds.cancelEdit}
+      <HorizontalFocusGroup regionId={focusIds.composerRegion} asChild>
+        <div className="screenshot-comments__composer-row">
+          <Input
+            className="screenshot-comments__input"
+            placeholder={t("screenshots_comment_placeholder")}
+            value={value}
+            maxLength={SCREENSHOT_COMMENT_MAX_LENGTH}
             disabled={isSubmitting}
-            icon={<XIcon size={18} />}
-            aria-label={t("screenshots_cancel")}
-            title={t("screenshots_cancel")}
-            onClick={onCancelEdit}
+            focusId={focusIds.input}
+            focusNavigationOverrides={{ left: leftTarget }}
+            aria-label={t("screenshots_comment_placeholder")}
+            onChange={(event) => onChange(event.target.value)}
+          />
+          {isEditing ? (
+            <Button
+              variant="secondary"
+              size="icon"
+              focusId={focusIds.cancelEdit}
+              disabled={isSubmitting}
+              icon={<XIcon size={18} />}
+              aria-label={t("screenshots_cancel")}
+              title={t("screenshots_cancel")}
+              onClick={onCancelEdit}
+            >
+              {null}
+            </Button>
+          ) : null}
+          <Button
+            size="icon"
+            focusId={focusIds.send}
+            loading={isSubmitting}
+            disabled={value.trim().length === 0}
+            icon={<PaperPlaneRightIcon size={18} />}
+            aria-label={t(
+              isEditing ? "screenshots_save" : "screenshots_comment_send"
+            )}
+            title={t(
+              isEditing ? "screenshots_save" : "screenshots_comment_send"
+            )}
+            focusNavigationOverrides={{ right: { type: "block" } }}
+            onClick={onSubmit}
           >
             {null}
           </Button>
-        ) : null}
-        <Button
-          size="icon"
-          focusId={focusIds.send}
-          loading={isSubmitting}
-          disabled={value.trim().length === 0}
-          icon={<PaperPlaneRightIcon size={18} />}
-          aria-label={t(
-            isEditing ? "screenshots_save" : "screenshots_comment_send"
-          )}
-          title={t(isEditing ? "screenshots_save" : "screenshots_comment_send")}
-          focusNavigationOverrides={{ right: { type: "block" } }}
-          onClick={onSubmit}
-        >
-          {null}
-        </Button>
+        </div>
       </HorizontalFocusGroup>
       <span className="screenshot-comments__counter">
         {value.length}/{SCREENSHOT_COMMENT_MAX_LENGTH}
       </span>
     </form>
+  );
+}
+
+interface CommentsListStatusProps {
+  status: CommentsStatus;
+  isEmpty: boolean;
+}
+
+function CommentsListStatus({
+  status,
+  isEmpty,
+}: Readonly<CommentsListStatusProps>) {
+  const { t } = useTranslation("big_picture");
+
+  if (status === "loading") {
+    return (
+      <p className="screenshot-comments__status">
+        {t("screenshots_comments_loading")}
+      </p>
+    );
+  }
+
+  if (status === "error") {
+    return (
+      <p className="screenshot-comments__status">
+        {t("screenshots_comments_load_failed")}
+      </p>
+    );
+  }
+
+  if (status !== "ready" || !isEmpty) return null;
+
+  return (
+    <div className="screenshot-comments__empty">
+      <span className="screenshot-comments__empty-icon">
+        <ChatsCircleIcon size={28} />
+      </span>
+      <p>{t("screenshots_comments_empty")}</p>
+    </div>
   );
 }
 
@@ -646,7 +754,11 @@ export function ScreenshotCommentsPanel({
 
   const vote = useCallback(
     async (comment: ScreenshotComment, voteType: ScreenshotCommentVoteType) => {
-      if (!viewerId || comment.isOwn || votingIds.has(comment.id)) return;
+      if (!viewerId) {
+        void globalThis.window.electron.openAuthWindow(AuthPage.SignIn);
+        return;
+      }
+      if (comment.isOwn || votingIds.has(comment.id)) return;
 
       setVotingIds((current) => new Set(current).add(comment.id));
 
@@ -769,22 +881,6 @@ export function ScreenshotCommentsPanel({
     const { comment } = menu;
     const items: ContextMenuItem[] = [];
 
-    if (comment.isOwn && screenshot.canComment) {
-      items.push({
-        id: "edit",
-        label: t("screenshots_comment_edit"),
-        icon: <PencilSimpleIcon size={18} />,
-        restoreFocusOnClose: false,
-        onSelect: () => {
-          setEditingComment(comment);
-          setDraft(comment.body);
-          globalThis.window.requestAnimationFrame(() => {
-            setFocus(focusIds.input);
-          });
-        },
-      });
-    }
-
     if (comment.canDelete) {
       items.push({
         id: "delete",
@@ -805,56 +901,32 @@ export function ScreenshotCommentsPanel({
     }
 
     return items;
-  }, [focusIds.input, menu, screenshot.canComment, setFocus, t, viewerId]);
+  }, [menu, t, viewerId]);
 
   const hasMenu = (comment: ScreenshotComment) =>
-    (comment.isOwn && screenshot.canComment) ||
-    comment.canDelete ||
-    (!comment.isOwn && Boolean(viewerId));
+    comment.canDelete || (!comment.isOwn && Boolean(viewerId));
+
+  const startEditing = (comment: ScreenshotComment) => {
+    setEditingComment(comment);
+    setDraft(comment.body);
+    globalThis.window.requestAnimationFrame(() => {
+      setFocus(focusIds.input);
+    });
+  };
 
   return (
     <VerticalFocusGroup regionId={focusIds.region} asChild>
       <aside className="screenshot-comments">
         <header className="screenshot-comments__header">
           <h2>{t("screenshots_comments_title")}</h2>
-          {total > 0 ? (
-            <span className="screenshot-comments__count">{total}</span>
-          ) : null}
+          <span className="screenshot-comments__count">
+            <ChatCircleIcon size={14} weight="bold" />
+            {total}
+          </span>
         </header>
 
-        <CommentComposer
-          screenshot={screenshot}
-          viewerId={viewerId}
-          isOwner={isOwner}
-          focusIds={focusIds}
-          leftTarget={leftTarget}
-          value={draft}
-          isEditing={Boolean(editingComment)}
-          isSubmitting={isSubmitting}
-          onChange={setDraft}
-          onSubmit={() => void submit()}
-          onCancelEdit={() => {
-            setEditingComment(null);
-            setDraft("");
-          }}
-        />
-
         <div className="screenshot-comments__scroll">
-          {status === "loading" ? (
-            <p className="screenshot-comments__empty">
-              {t("screenshots_comments_loading")}
-            </p>
-          ) : null}
-          {status === "error" ? (
-            <p className="screenshot-comments__empty">
-              {t("screenshots_comments_load_failed")}
-            </p>
-          ) : null}
-          {status === "ready" && comments.length === 0 ? (
-            <p className="screenshot-comments__empty">
-              {t("screenshots_comments_empty")}
-            </p>
-          ) : null}
+          <CommentsListStatus status={status} isEmpty={comments.length === 0} />
 
           {comments.length > 0 ? (
             <ul className="screenshot-comments__list">
@@ -862,12 +934,14 @@ export function ScreenshotCommentsPanel({
                 <CommentItem
                   key={comment.id}
                   comment={comment}
-                  canVote={Boolean(viewerId) && !comment.isOwn}
+                  isSignedIn={Boolean(viewerId)}
+                  canEdit={comment.isOwn && screenshot.canComment}
                   hasMenu={hasMenu(comment)}
                   isVoting={votingIds.has(comment.id)}
                   language={language}
                   leftTarget={leftTarget}
                   onVote={(target, voteType) => void vote(target, voteType)}
+                  onEdit={startEditing}
                   onOpenMenu={(target, element) => {
                     const rect = element.getBoundingClientRect();
                     setMenu({
@@ -901,6 +975,23 @@ export function ScreenshotCommentsPanel({
             </FocusItem>
           ) : null}
         </div>
+
+        <CommentComposer
+          screenshot={screenshot}
+          viewerId={viewerId}
+          isOwner={isOwner}
+          focusIds={focusIds}
+          leftTarget={leftTarget}
+          value={draft}
+          isEditing={Boolean(editingComment)}
+          isSubmitting={isSubmitting}
+          onChange={setDraft}
+          onSubmit={() => void submit()}
+          onCancelEdit={() => {
+            setEditingComment(null);
+            setDraft("");
+          }}
+        />
 
         <ContextMenu
           items={menuItems}

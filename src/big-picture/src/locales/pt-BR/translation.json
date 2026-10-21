@@ -1010,6 +1010,9 @@
     "screenshots_review_delete_title": "Excluir esta captura?",
     "screenshots_load_failed": "Não foi possível carregar as capturas",
     "screenshots_load_more_failed": "Não foi possível carregar mais capturas",
-    "screenshots_retry": "Tentar novamente"
+    "screenshots_retry": "Tentar novamente",
+    "screenshots_open_game": "Abrir a página do jogo",
+    "screenshots_open_profile": "Abrir perfil",
+    "screenshots_sign_in_to_vote": "Entre para votar"
   }
 }

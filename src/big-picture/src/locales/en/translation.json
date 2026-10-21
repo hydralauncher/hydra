@@ -1010,6 +1010,9 @@
     "screenshots_review_delete_title": "Delete this screenshot?",
     "screenshots_load_failed": "Couldn't load screenshots",
     "screenshots_load_more_failed": "Couldn't load more screenshots",
-    "screenshots_retry": "Retry"
+    "screenshots_retry": "Retry",
+    "screenshots_open_game": "Open game page",
+    "screenshots_open_profile": "Open profile",
+    "screenshots_sign_in_to_vote": "Sign in to vote"
   }
 }
