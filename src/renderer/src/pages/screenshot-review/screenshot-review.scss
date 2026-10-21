@@ -340,8 +340,12 @@
       min-width: 0;
     }
 
-    > .screenshot-review-item__upload {
-      flex: 2;
+    > .screenshot-review-item__keep {
+      flex: 0 0 auto;
+
+      .screenshot-review-split-button__main {
+        flex: 0 0 auto;
+      }
     }
 
     > .screenshot-review-item__delete {
@@ -438,17 +442,5 @@
     .screenshot-review-status__title {
       color: #fb7185;
     }
-  }
-}
-
-.screenshot-review-item__delete {
-  color: globals.$error-color;
-
-  svg {
-    color: globals.$error-color;
-  }
-
-  &:not(:disabled):hover {
-    border-color: globals.$error-color;
   }
 }

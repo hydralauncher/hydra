@@ -150,7 +150,7 @@ export function ScreenshotReviewItem({
   const renderDeleteButton = () => (
     <Button
       className="screenshot-review-item__delete"
-      theme="outline"
+      theme="danger"
       disabled={isBusy}
       tooltip={t("delete")}
       aria-label={t("delete")}
@@ -179,6 +179,7 @@ export function ScreenshotReviewItem({
         <>
           {renderUploadButton()}
           <ScreenshotReviewSplitButton
+            className="screenshot-review-item__keep"
             theme="outline"
             disabled={isBusy}
             onClick={handleKeep}
