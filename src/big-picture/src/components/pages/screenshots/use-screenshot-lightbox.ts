@@ -1,13 +1,14 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { ProfileScreenshot } from "@types";
-import { buildUserScreenshotPath, getScreenshotApiErrorCode } from "@shared";
-import { logger } from "@renderer/logger";
-
 import {
   applyScreenshotPatch,
-  pickNewerScreenshot,
+  buildUserScreenshotPath,
+  getScreenshotApiErrorCode,
   type ScreenshotPatch,
-} from "./screenshot-feed-writes";
+} from "@shared";
+import { logger } from "@renderer/logger";
+
+import { pickNewerScreenshot } from "./helpers";
 
 import type {
   ScreenshotLightboxProps,

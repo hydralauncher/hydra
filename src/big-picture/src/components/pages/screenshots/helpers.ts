@@ -122,3 +122,14 @@ export function getEditedScreenshotFields(
 
   return patch;
 }
+
+export function pickNewerScreenshot(
+  listItem: ProfileScreenshot | null,
+  listFetchedAt: number | null,
+  detached: ProfileScreenshot | null,
+  detachedFetchedAt: number | null
+) {
+  if (!listItem || !detached) return listItem ?? detached;
+
+  return (detachedFetchedAt ?? 0) > (listFetchedAt ?? 0) ? detached : listItem;
+}

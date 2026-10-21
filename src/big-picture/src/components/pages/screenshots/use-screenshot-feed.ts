@@ -1,14 +1,15 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { ProfileScreenshot, ScreenshotsHiddenReason } from "@types";
-import { buildUserScreenshotPath, mergeScreenshotPages } from "@shared";
-import { logger } from "@renderer/logger";
-
 import {
   applyScreenshotFeedWrites,
   applyScreenshotPatch,
+  buildUserScreenshotPath,
+  isRelativeScreenshotPatch,
+  mergeScreenshotPages,
   type ScreenshotFeedWrite,
   type ScreenshotPatch,
-} from "./screenshot-feed-writes";
+} from "@shared";
+import { logger } from "@renderer/logger";
 
 interface ScreenshotFeedResponse {
   items?: ProfileScreenshot[] | null;
@@ -236,7 +237,7 @@ export function useScreenshotFeed({
   const updateItem = useCallback(
     (screenshotId: string, update: ScreenshotPatch) => {
       recordWrite(screenshotId, update);
-      if (typeof update === "function") {
+      if (isRelativeScreenshotPatch(update)) {
         lastDeltaVersionRef.current.set(screenshotId, writeVersionRef.current);
       }
       setItems((current) =>

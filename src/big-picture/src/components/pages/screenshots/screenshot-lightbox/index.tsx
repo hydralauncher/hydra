@@ -39,6 +39,7 @@ import {
   buildUserScreenshotLikePath,
   buildUserScreenshotReportPath,
   getScreenshotApiErrorCode,
+  type ScreenshotPatch,
 } from "@shared";
 import { logger } from "@renderer/logger";
 
@@ -75,7 +76,6 @@ import { ScreenshotManageModal } from "../screenshot-manage-modal";
 import { ScreenshotReportModal } from "../screenshot-report-modal";
 import { useRevealedScreenshotSpoilers } from "../use-revealed-spoilers";
 import { ScreenshotCommentsPanel } from "./comments-panel";
-import type { ScreenshotPatch } from "../screenshot-feed-writes";
 
 export type ScreenshotLightboxStatus =
   | "loading"
