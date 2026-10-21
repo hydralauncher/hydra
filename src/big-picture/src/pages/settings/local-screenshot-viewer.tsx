@@ -22,6 +22,7 @@ import {
 } from "../../components";
 import { FocusRegionContext } from "../../components/context";
 import {
+  LightboxBackAction,
   LightboxLayerReporter,
   useActiveLayerTracker,
   useLightboxShortcuts,
@@ -118,6 +119,11 @@ export function LocalScreenshotViewer({
 
   return createPortal(
     <FocusRegionContext.Provider value={null}>
+      <LightboxBackAction
+        enabled={!isBlocked}
+        isActiveLayer={isActiveLayer}
+        onClose={onClose}
+      />
       <Backdrop className="local-screenshot-viewer__backdrop">
         <NavigationLayer
           rootRegionId={VIEWER_REGION_ID}

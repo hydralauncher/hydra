@@ -78,7 +78,7 @@ export function Modal({
   const isVirtualKeyboardOpen = virtualKeyboardTarget !== null;
 
   const isTopMostModal = () => {
-    const openModals = document.querySelectorAll("[role=dialog]");
+    const openModals = document.querySelectorAll("[role=dialog], dialog[open]");
     return (
       openModals.length &&
       openModals[openModals.length - 1] === modalContentRef.current

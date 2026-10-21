@@ -71,6 +71,7 @@ import { ScreenshotReportModal } from "../screenshot-report-modal";
 import { useRevealedScreenshotSpoilers } from "../use-revealed-spoilers";
 import { ScreenshotCommentsPanel } from "./comments-panel";
 import {
+  LightboxBackAction,
   LightboxLayerReporter,
   useActiveLayerTracker,
   useLightboxShortcuts,
@@ -993,6 +994,11 @@ export function ScreenshotLightbox({
 
   return createPortal(
     <FocusRegionContext.Provider value={null}>
+      <LightboxBackAction
+        enabled={!hasLocalOverlay}
+        isActiveLayer={isActiveLayer}
+        onClose={onClose}
+      />
       <Backdrop className="screenshot-lightbox__backdrop">
         <div
           className="screenshot-lightbox__overlay"

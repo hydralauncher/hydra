@@ -7,6 +7,32 @@ import { NavigationService } from "../../../../services";
 
 const navigationService = NavigationService.getInstance();
 
+interface LightboxBackActionProps {
+  enabled: boolean;
+  isActiveLayer: () => boolean;
+  onClose: () => void;
+}
+
+export function LightboxBackAction({
+  enabled,
+  isActiveLayer,
+  onClose,
+}: Readonly<LightboxBackActionProps>) {
+  useNavigationScreenActions(
+    enabled
+      ? {
+          press: {
+            b: () => {
+              if (isActiveLayer()) onClose();
+            },
+          },
+        }
+      : {}
+  );
+
+  return null;
+}
+
 export function useActiveLayerTracker() {
   const layerIdRef = useRef<string | null>(null);
   const handleLayerChange = useCallback((layerId: string | null) => {
@@ -75,18 +101,6 @@ export function useLightboxShortcuts({
   const { onButtonPressed, isActiveGamepadEvent } = useGamepad();
   const canGoPrevious = canUseShortcuts && hasPrevious;
   const canGoNext = canUseShortcuts && hasNext;
-
-  useNavigationScreenActions(
-    isOpen && !hasLocalOverlay
-      ? {
-          press: {
-            b: () => {
-              if (isActiveLayer()) onClose();
-            },
-          },
-        }
-      : {}
-  );
 
   useEffect(() => {
     const removeLeft = onButtonPressed(

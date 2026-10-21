@@ -6,6 +6,10 @@
   padding: clamp(16px, 4vh, 40px) clamp(16px, 4vw, 64px);
 }
 
+.local-screenshot-viewer__confirmation-backdrop {
+  z-index: 130;
+}
+
 .local-screenshot-viewer {
   position: static;
   display: flex;

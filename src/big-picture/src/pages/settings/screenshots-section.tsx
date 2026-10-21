@@ -11,7 +11,7 @@ import {
   XIcon,
 } from "@phosphor-icons/react";
 import cn from "classnames";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import type {
   LocalScreenshot,
@@ -281,12 +281,16 @@ function useGamepadComboDraft(
   onSave: (combo: ScreenshotGamepadButton[]) => void
 ) {
   const [draft, setDraft] = useState<ScreenshotGamepadButton[]>(combo);
+  const savedComboKey = combo.join(",");
+  const savedComboRef = useRef(combo);
+  savedComboRef.current = combo;
 
   useEffect(() => {
+    const savedCombo = savedComboRef.current;
     setDraft((current) =>
-      isSameScreenshotGamepadCombo(current, combo) ? current : combo
+      isSameScreenshotGamepadCombo(current, savedCombo) ? current : savedCombo
     );
-  }, [combo]);
+  }, [savedComboKey]);
 
   const commit = (next: ScreenshotGamepadButton[]) => {
     setDraft(next);
@@ -1209,6 +1213,7 @@ export function ScreenshotSettingsSection({
 
           <ConfirmationModal
             visible={Boolean(deleting)}
+            backdropClassName="local-screenshot-viewer__confirmation-backdrop"
             title={t("screenshots_settings_delete_local_title")}
             description={t("screenshots_settings_delete_local_description")}
             confirmLabel={t("screenshots_settings_delete_local")}
