@@ -21,6 +21,16 @@ const getScreenshotFailure = (error: unknown): ScreenshotFailure | null => {
   return null;
 };
 
+const pickNewerScreenshot = (
+  listItem: ProfileScreenshot | null,
+  listFetchedAt: number | null,
+  detached: ProfileScreenshot | null,
+  detachedFetchedAt: number | null
+) => {
+  if (!listItem || !detached) return listItem ?? detached;
+  return (detachedFetchedAt ?? 0) > (listFetchedAt ?? 0) ? detached : listItem;
+};
+
 const withoutKey = <Value>(record: Record<string, Value>, key: string) => {
   if (!(key in record)) return record;
   const next = { ...record };
@@ -63,6 +73,7 @@ export function useScreenshotCollection({
   );
   const fetchedIdsRef = useRef(new Set<string>());
   const requestTokensRef = useRef(new Map<string, number>());
+  const detachedFetchedAtRef = useRef(new Map<string, number>());
   const refreshedIdsRef = useRef(new Set<string>());
 
   const openId = openTarget?.screenshotId ?? null;
@@ -71,7 +82,12 @@ export function useScreenshotCollection({
     [feed.items, openId]
   );
   const detached = openId ? (detachedById[openId] ?? null) : null;
-  const screenshot = listItem ?? detached;
+  const screenshot = pickNewerScreenshot(
+    listItem,
+    listItem ? feed.getFetchedAt(listItem.id) : null,
+    detached,
+    detached ? (detachedFetchedAtRef.current.get(detached.id) ?? null) : null
+  );
   const failure = openId ? (failures[openId] ?? null) : null;
 
   const markFailure = useCallback(
@@ -130,6 +146,7 @@ export function useScreenshotCollection({
     const isCurrentRequest = () =>
       requestTokensRef.current.get(screenshotId) === token;
 
+    const startedAt = performance.now();
     requestTokensRef.current.set(screenshotId, token);
     fetchedIdsRef.current.add(screenshotId);
     setLoadingIds((current) => new Set(current).add(screenshotId));
@@ -138,6 +155,7 @@ export function useScreenshotCollection({
       .then((item) => {
         if (!isCurrentRequest()) return;
         if (item) {
+          detachedFetchedAtRef.current.set(screenshotId, startedAt);
           setDetachedById((current) => ({ ...current, [screenshotId]: item }));
         } else {
           markFailure(screenshotId, "unavailable");
