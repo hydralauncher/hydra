@@ -172,7 +172,7 @@ export const deleteLocalScreenshot = async (clientId: string) => {
   screenshotUploadWorker.cancel(clientId);
   await fs.promises.rm(screenshot.path, { force: true });
   await LocalScreenshotStore.delete(clientId);
-  ScreenshotReviewWindows.closeWindowsForScreenshot(clientId);
+  ScreenshotReviewWindows.removeScreenshotFromWindows(clientId);
   ScreenshotTelemetry.record("review", "delete");
 };
 
@@ -189,7 +189,7 @@ export const skipLocalScreenshot = async (clientId: string) => {
   if (screenshot.state === "reviewing") {
     await LocalScreenshotStore.update(clientId, { state: "local" });
   }
-  ScreenshotReviewWindows.closeWindowsForScreenshot(clientId);
+  ScreenshotReviewWindows.removeScreenshotFromWindows(clientId);
   ScreenshotTelemetry.record("review", "skip");
 };
 

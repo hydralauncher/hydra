@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import cn from "classnames";
 
+import { SyncIcon, TrashIcon, UploadIcon } from "@primer/octicons-react";
 import { Button, ConfirmationModal, ProgressBar } from "@renderer/components";
 import { useUserDetails } from "@renderer/hooks";
 import { logger } from "@renderer/logger";
@@ -218,6 +219,9 @@ export function SettingsScreenshotsLocalList() {
               screenshot.state === "failed" &&
               isScreenshotUploadRetryable(screenshot.lastError);
             const uploadBlocker = getUploadBlocker(screenshot);
+            const uploadActionLabel = canRetry
+              ? t("screenshots_retry_tooltip")
+              : t("screenshots_upload_tooltip");
             const showOwnerHint =
               (canOfferUpload || canRetry) &&
               Boolean(userDetails) &&
@@ -227,6 +231,8 @@ export function SettingsScreenshotsLocalList() {
               <li
                 key={screenshot.clientId}
                 className="settings-screenshots__card"
+                data-client-id={screenshot.clientId}
+                data-state={screenshot.state}
               >
                 <div className="settings-screenshots__thumbnail">
                   <img
@@ -237,18 +243,6 @@ export function SettingsScreenshotsLocalList() {
                     })}
                     loading="lazy"
                   />
-                </div>
-
-                <div className="settings-screenshots__card-body">
-                  <span
-                    className="settings-screenshots__card-title"
-                    title={title}
-                  >
-                    {title}
-                  </span>
-                  <span className="settings-screenshots__card-date">
-                    {capturedAt}
-                  </span>
 
                   <span
                     className={cn(
@@ -258,12 +252,6 @@ export function SettingsScreenshotsLocalList() {
                   >
                     {status.label}
                   </span>
-
-                  {status.detail && (
-                    <small className="settings-screenshots__hint">
-                      {status.detail}
-                    </small>
-                  )}
 
                   {screenshot.state === "uploading" && (
                     <ProgressBar
@@ -275,38 +263,59 @@ export function SettingsScreenshotsLocalList() {
                       barClassName="settings-screenshots__progress-bar"
                     />
                   )}
+                </div>
 
-                  {showOwnerHint && (
-                    <small className="settings-screenshots__hint">
-                      {uploadBlocker}
-                    </small>
-                  )}
+                <div className="settings-screenshots__card-body">
+                  <div className="settings-screenshots__card-text">
+                    <span
+                      className="settings-screenshots__card-title"
+                      title={title}
+                    >
+                      {title}
+                    </span>
+                    <span className="settings-screenshots__card-date">
+                      {capturedAt}
+                    </span>
+                  </div>
 
                   <div className="settings-screenshots__card-actions">
                     {(canOfferUpload || canRetry) && (
                       <Button
+                        className="settings-screenshots__icon-action"
                         theme="outline"
                         size="small"
                         disabled={isBusy || uploadBlocker !== null}
-                        tooltip={uploadBlocker ?? undefined}
+                        tooltip={uploadBlocker ?? uploadActionLabel}
+                        aria-label={uploadActionLabel}
                         onClick={() => handleUpload(screenshot)}
                       >
-                        {canRetry
-                          ? t("screenshots_retry")
-                          : t("screenshots_upload")}
+                        {canRetry ? (
+                          <SyncIcon size={14} />
+                        ) : (
+                          <UploadIcon size={14} />
+                        )}
                       </Button>
                     )}
 
                     <Button
+                      className="settings-screenshots__icon-action settings-screenshots__icon-action--danger"
                       theme="outline"
                       size="small"
                       disabled={isBusy}
+                      tooltip={t("screenshots_delete_tooltip")}
+                      aria-label={t("screenshots_delete_tooltip")}
                       onClick={() => setPendingDelete(screenshot)}
                     >
-                      {t("screenshots_delete")}
+                      <TrashIcon size={14} />
                     </Button>
                   </div>
                 </div>
+
+                {(status.detail || showOwnerHint) && (
+                  <small className="settings-screenshots__card-detail">
+                    {status.detail ?? uploadBlocker}
+                  </small>
+                )}
               </li>
             );
           })}

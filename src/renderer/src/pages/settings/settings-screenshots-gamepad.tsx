@@ -1,38 +1,18 @@
+import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import cn from "classnames";
+import { PlusIcon, XIcon } from "@primer/octicons-react";
 
-import { Button } from "@renderer/components";
+import { Button, SelectField } from "@renderer/components";
 import {
   DEFAULT_SCREENSHOT_GAMEPAD_COMBO,
   SCREENSHOT_GAMEPAD_BUTTONS,
   SCREENSHOT_GAMEPAD_COMBO_MAX_BUTTONS,
   SCREENSHOT_GAMEPAD_COMBO_MIN_BUTTONS,
   isSameScreenshotGamepadCombo,
+  validateScreenshotGamepadCombo,
 } from "@shared";
 import type { ScreenshotGamepadButton } from "@types";
-
-export const toggleScreenshotGamepadButton = (
-  combo: ScreenshotGamepadButton[],
-  button: ScreenshotGamepadButton
-): ScreenshotGamepadButton[] | null => {
-  const isSelected = combo.includes(button);
-
-  if (isSelected && combo.length <= SCREENSHOT_GAMEPAD_COMBO_MIN_BUTTONS) {
-    return null;
-  }
-
-  if (!isSelected && combo.length >= SCREENSHOT_GAMEPAD_COMBO_MAX_BUTTONS) {
-    return null;
-  }
-
-  const nextSelection = isSelected
-    ? combo.filter((selected) => selected !== button)
-    : [...combo, button];
-
-  return SCREENSHOT_GAMEPAD_BUTTONS.filter((candidate) =>
-    nextSelection.includes(candidate)
-  );
-};
 
 export interface SettingsScreenshotsGamepadProps {
   combo: ScreenshotGamepadButton[];
@@ -40,17 +20,64 @@ export interface SettingsScreenshotsGamepadProps {
   onChange: (combo: ScreenshotGamepadButton[]) => void;
 }
 
+const toGamepadButton = (value: string) =>
+  SCREENSHOT_GAMEPAD_BUTTONS.find((button) => button === value) ?? null;
+
 export function SettingsScreenshotsGamepad({
   combo,
   disabled,
   onChange,
 }: Readonly<SettingsScreenshotsGamepadProps>) {
   const { t } = useTranslation("settings");
+  const { t: tInput } = useTranslation("screenshots_input");
+  const [draft, setDraft] = useState<ScreenshotGamepadButton[]>(combo);
 
-  const handleToggle = (button: ScreenshotGamepadButton) => {
-    const nextCombo = toggleScreenshotGamepadButton(combo, button);
-    if (nextCombo) onChange(nextCombo);
+  useEffect(() => {
+    setDraft(combo);
+  }, [combo]);
+
+  const validation = validateScreenshotGamepadCombo(draft);
+  const hasDuplicates = new Set(draft).size !== draft.length;
+
+  const updateDraft = (next: ScreenshotGamepadButton[]) => {
+    setDraft(next);
+    const nextValidation = validateScreenshotGamepadCombo(next);
+    if (nextValidation.valid && new Set(next).size === next.length) {
+      onChange(next);
+    }
   };
+
+  const handleSelect = (index: number, value: string) => {
+    const button = toGamepadButton(value);
+    if (!button) return;
+    updateDraft(
+      draft.map((current, position) => (position === index ? button : current))
+    );
+  };
+
+  const handleAdd = () => {
+    const unused = SCREENSHOT_GAMEPAD_BUTTONS.find(
+      (button) => !draft.includes(button)
+    );
+    if (unused) updateDraft([...draft, unused]);
+  };
+
+  const handleRemove = (index: number) => {
+    updateDraft(draft.filter((_, position) => position !== index));
+  };
+
+  const options = SCREENSHOT_GAMEPAD_BUTTONS.map((button) => ({
+    key: button,
+    value: button,
+    label: t(`screenshots_gamepad_button_${button}`),
+  }));
+
+  const canAdd = draft.length < SCREENSHOT_GAMEPAD_COMBO_MAX_BUTTONS;
+  const errorMessage = (() => {
+    if (!validation.valid) return tInput(validation.error);
+    if (hasDuplicates) return t("screenshots_gamepad_duplicate");
+    return null;
+  })();
 
   return (
     <div
@@ -64,14 +91,14 @@ export function SettingsScreenshotsGamepad({
         </span>
 
         {!isSameScreenshotGamepadCombo(
-          combo,
+          draft,
           DEFAULT_SCREENSHOT_GAMEPAD_COMBO
         ) && (
           <Button
             theme="outline"
             size="small"
             disabled={disabled}
-            onClick={() => onChange([...DEFAULT_SCREENSHOT_GAMEPAD_COMBO])}
+            onClick={() => updateDraft([...DEFAULT_SCREENSHOT_GAMEPAD_COMBO])}
           >
             {t("screenshots_gamepad_reset")}
           </Button>
@@ -83,28 +110,62 @@ export function SettingsScreenshotsGamepad({
       </small>
 
       <fieldset
-        className="settings-screenshots__chips"
+        className="settings-screenshots__combo"
         aria-label={t("screenshots_gamepad_combo")}
       >
-        {SCREENSHOT_GAMEPAD_BUTTONS.map((button) => {
-          const isSelected = combo.includes(button);
-
-          return (
-            <button
-              key={button}
-              type="button"
-              className={cn("settings-screenshots__chip", {
-                "settings-screenshots__chip--selected": isSelected,
-              })}
-              aria-pressed={isSelected}
+        {draft.map((button, index) => (
+          <div
+            key={`${index}-${button}`}
+            className="settings-screenshots__combo-slot"
+          >
+            {index > 0 && (
+              <span className="settings-screenshots__combo-plus" aria-hidden>
+                +
+              </span>
+            )}
+            <SelectField
+              className="settings-screenshots__combo-select"
+              value={button}
+              options={options}
               disabled={disabled}
-              onClick={() => handleToggle(button)}
-            >
-              {t(`screenshots_gamepad_button_${button}`)}
-            </button>
-          );
-        })}
+              onChange={(event) => handleSelect(index, event.target.value)}
+            />
+            {index >= SCREENSHOT_GAMEPAD_COMBO_MIN_BUTTONS && (
+              <Button
+                className="settings-screenshots__icon-action"
+                theme="outline"
+                size="small"
+                disabled={disabled}
+                tooltip={t("screenshots_gamepad_remove")}
+                aria-label={t("screenshots_gamepad_remove")}
+                onClick={() => handleRemove(index)}
+              >
+                <XIcon size={14} />
+              </Button>
+            )}
+          </div>
+        ))}
+
+        {canAdd && (
+          <Button
+            className="settings-screenshots__icon-action"
+            theme="outline"
+            size="small"
+            disabled={disabled}
+            tooltip={t("screenshots_gamepad_add")}
+            aria-label={t("screenshots_gamepad_add")}
+            onClick={handleAdd}
+          >
+            <PlusIcon size={14} />
+          </Button>
+        )}
       </fieldset>
+
+      {errorMessage && (
+        <small className="settings-screenshots__error" role="alert">
+          {errorMessage}
+        </small>
+      )}
     </div>
   );
 }
