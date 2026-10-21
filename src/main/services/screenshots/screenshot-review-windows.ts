@@ -451,8 +451,16 @@ export class ScreenshotReviewWindows {
   public static closeWindowsForScreenshot(clientId: string) {
     for (const session of sessions.values()) {
       for (const entry of session.windows) {
-        if (entry.isGrid || !entry.clientIds.includes(clientId)) continue;
-        if (!entry.window.isDestroyed()) entry.window.close();
+        if (!entry.clientIds.includes(clientId)) continue;
+        if (entry.isGrid) {
+          entry.clientIds = entry.clientIds.filter(
+            (candidate) => candidate !== clientId
+          );
+          removeGridItemsFromGrouping(session, [clientId]);
+          sendReviewItems(entry);
+        } else if (!entry.window.isDestroyed()) {
+          entry.window.close();
+        }
       }
     }
   }

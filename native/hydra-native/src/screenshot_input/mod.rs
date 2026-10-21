@@ -35,6 +35,7 @@ pub struct ScreenshotInputConfig {
 
 #[napi(object)]
 pub struct ScreenshotInputEvent {
+    pub kind: String,
     pub source: String,
     pub backend: String,
 }
@@ -85,16 +86,31 @@ pub struct PlatformStatus {
     pub wayland_session: bool,
 }
 
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum EventKind {
+    Trigger,
+    Stopped,
+}
+
+impl EventKind {
+    fn as_str(self) -> &'static str {
+        match self {
+            EventKind::Trigger => "trigger",
+            EventKind::Stopped => "stopped",
+        }
+    }
+}
+
 pub struct Context {
     stopped: AtomicBool,
     binding: RwLock<InputBinding>,
-    emit: Box<dyn Fn(TriggerSource, Backend) + Send + Sync>,
+    emit: Box<dyn Fn(EventKind, TriggerSource, Backend) + Send + Sync>,
 }
 
 impl Context {
     pub fn new(
         binding: InputBinding,
-        emit: Box<dyn Fn(TriggerSource, Backend) + Send + Sync>,
+        emit: Box<dyn Fn(EventKind, TriggerSource, Backend) + Send + Sync>,
     ) -> Self {
         Self {
             stopped: AtomicBool::new(false),
@@ -116,7 +132,13 @@ impl Context {
 
     pub fn emit(&self, source: TriggerSource, backend: Backend) {
         if !self.is_stopped() {
-            (self.emit)(source, backend);
+            (self.emit)(EventKind::Trigger, source, backend);
+        }
+    }
+
+    pub fn report_stopped(&self, source: TriggerSource, backend: Backend) {
+        if !self.is_stopped() {
+            (self.emit)(EventKind::Stopped, source, backend);
         }
     }
 
@@ -215,9 +237,10 @@ pub fn start_screenshot_input(
     let parsed = parse_config(&config);
     let context = Arc::new(Context::new(
         parsed.binding,
-        Box::new(move |source, backend| {
+        Box::new(move |kind, source, backend| {
             callback.call(
                 ScreenshotInputEvent {
+                    kind: kind.as_str().to_string(),
                     source: source.as_str().to_string(),
                     backend: backend.as_str().to_string(),
                 },
@@ -310,13 +333,15 @@ mod tests {
         let counter = count.clone();
         let context = Context::new(
             InputBinding::default(),
-            Box::new(move |_, _| {
+            Box::new(move |_, _, _| {
                 counter.fetch_add(1, Ordering::SeqCst);
             }),
         );
         context.emit(TriggerSource::Keyboard, Backend::Unavailable);
+        context.report_stopped(TriggerSource::Keyboard, Backend::Unavailable);
         context.stop();
         context.emit(TriggerSource::Keyboard, Backend::Unavailable);
-        assert_eq!(count.load(Ordering::SeqCst), 1);
+        context.report_stopped(TriggerSource::Keyboard, Backend::Unavailable);
+        assert_eq!(count.load(Ordering::SeqCst), 2);
     }
 }
