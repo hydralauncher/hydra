@@ -64,52 +64,15 @@ export const selectPendingLocalScreenshots = (
     )
   );
 
-export const selectUploadedScreenshotIds = (
-  screenshots: LocalScreenshot[],
+export const loadLocalScreenshotsForGame = (shop: GameShop, objectId: string) =>
+  window.electron.getLocalScreenshotsForGame(shop, objectId);
+
+export const deleteLocalScreenshotsForGame = (
   shop: GameShop,
   objectId: string
-) =>
-  screenshots
-    .filter(
-      (screenshot) =>
-        isLocalScreenshotForGame(screenshot, shop, objectId) &&
-        screenshot.state === "uploaded" &&
-        screenshot.screenshotId
-    )
-    .map((screenshot) => screenshot.screenshotId as string);
+) => window.electron.deleteLocalScreenshotsForGame(shop, objectId);
 
-export const loadLocalScreenshotsForGame = async (
+export const getPublishedScreenshotIdsForGame = (
   shop: GameShop,
   objectId: string
-) => {
-  const screenshots = await window.electron.getLocalScreenshots();
-  return screenshots.filter((screenshot) =>
-    isLocalScreenshotForGame(screenshot, shop, objectId)
-  );
-};
-
-export const deleteLocalScreenshotsForGame = async (
-  shop: GameShop,
-  objectId: string
-) => {
-  const screenshots = await loadLocalScreenshotsForGame(shop, objectId);
-  const pending = selectPendingLocalScreenshots(screenshots, shop, objectId);
-  let deleted = 0;
-
-  for (const screenshot of pending) {
-    await window.electron.deleteLocalScreenshot(screenshot.clientId);
-    deleted += 1;
-  }
-
-  return deleted;
-};
-
-export const getPublishedScreenshotIdsForGame = async (
-  shop: GameShop,
-  objectId: string
-) =>
-  selectUploadedScreenshotIds(
-    await loadLocalScreenshotsForGame(shop, objectId),
-    shop,
-    objectId
-  );
+) => window.electron.getPublishedScreenshotIdsForGame(shop, objectId);

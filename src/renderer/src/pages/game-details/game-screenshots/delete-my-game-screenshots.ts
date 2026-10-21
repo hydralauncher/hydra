@@ -1,6 +1,7 @@
 import {
   buildProfileGameScreenshotsPath,
   buildProfileScreenshotPath,
+  getScreenshotApiErrorCode,
 } from "@shared";
 import type { GameShop } from "@types";
 
@@ -10,6 +11,18 @@ import {
 } from "./my-screenshots-store";
 
 export type MyScreenshotsDeletion = "all" | "published" | "local";
+
+const deletePublishedScreenshot = async (id: string) => {
+  try {
+    await window.electron.hydraApi.delete(buildProfileScreenshotPath(id), {
+      needsAuth: true,
+    });
+  } catch (error) {
+    if (getScreenshotApiErrorCode(error) !== "screenshots/not-found") {
+      throw error;
+    }
+  }
+};
 
 export const deletePublishedScreenshotsForGame = async (
   shop: GameShop,
@@ -27,9 +40,7 @@ export const deletePublishedScreenshotsForGame = async (
   const ids = await getPublishedScreenshotIdsForGame(shop, objectId);
   let deleted = 0;
   for (const id of ids) {
-    await window.electron.hydraApi.delete(buildProfileScreenshotPath(id), {
-      needsAuth: true,
-    });
+    await deletePublishedScreenshot(id);
     deleted += 1;
   }
   return deleted;
