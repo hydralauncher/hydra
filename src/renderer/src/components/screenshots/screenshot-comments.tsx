@@ -1,20 +1,21 @@
-import { useState } from "react";
+import { useId, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
   CommentDiscussionIcon,
   CommentIcon,
   PencilIcon,
   ReportIcon,
-  ThumbsdownIcon,
-  ThumbsupIcon,
   TrashIcon,
 } from "@primer/octicons-react";
+import { ThumbsDown, ThumbsUp } from "lucide-react";
+import { Tooltip } from "react-tooltip";
 import cn from "classnames";
 
 import { Avatar } from "../avatar/avatar";
 import { Button } from "../button/button";
 import { ConfirmationModal } from "../confirmation-modal/confirmation-modal";
 import { Link } from "../link/link";
+import { RichTextContent } from "../rich-text-content/rich-text-content";
 import { useDate, useUserDetails } from "@renderer/hooks";
 import { AuthPage } from "@shared";
 import type {
@@ -69,6 +70,7 @@ interface ScreenshotCommentItemProps {
   onSaveEdit: (comment: ScreenshotComment, body: string) => Promise<boolean>;
   onRequestDelete: (comment: ScreenshotComment) => void;
   onRequestReport: (comment: ScreenshotComment) => void;
+  tooltipId: string;
 }
 
 function ScreenshotCommentItem({
@@ -84,6 +86,7 @@ function ScreenshotCommentItem({
   onSaveEdit,
   onRequestDelete,
   onRequestReport,
+  tooltipId,
 }: Readonly<ScreenshotCommentItemProps>) {
   const { t } = useTranslation("screenshots");
   const { formatDistance, formatDateTime } = useDate();
@@ -167,77 +170,103 @@ function ScreenshotCommentItem({
             onCancel={onCancelEdit}
           />
         ) : (
-          <p className="screenshot-comments__text">{comment.body}</p>
+          <RichTextContent
+            html={comment.body}
+            className="screenshot-comments__text"
+          />
         )}
 
         {isEditing ? null : (
           <div className="screenshot-comments__actions">
-            <button
-              type="button"
-              className={cn("screenshot-comments__vote", {
-                "screenshot-comments__vote--active":
-                  comment.myVote === "UPVOTE",
-              })}
-              onClick={() => handleVote("UPVOTE")}
-              disabled={!canVote || isPending}
-              aria-pressed={comment.myVote === "UPVOTE"}
-              aria-label={t("upvote_comment")}
-              title={voteTitle("upvote_comment")}
-            >
-              <ThumbsupIcon size={14} />
-              <span>{comment.upvotes}</span>
-            </button>
-            <button
-              type="button"
-              className={cn("screenshot-comments__vote", {
-                "screenshot-comments__vote--active":
-                  comment.myVote === "DOWNVOTE",
-              })}
-              onClick={() => handleVote("DOWNVOTE")}
-              disabled={!canVote || isPending}
-              aria-pressed={comment.myVote === "DOWNVOTE"}
-              aria-label={t("downvote_comment")}
-              title={voteTitle("downvote_comment")}
-            >
-              <ThumbsdownIcon size={14} />
-              <span>{comment.downvotes}</span>
-            </button>
-
-            {comment.isOwn ? (
+            <div className="screenshot-comments__votes">
               <button
                 type="button"
-                className="screenshot-comments__action"
-                onClick={() => onStartEdit(comment)}
-                disabled={isPending}
+                className={cn(
+                  "screenshot-comments__vote screenshot-comments__vote--upvote",
+                  {
+                    "screenshot-comments__vote--active":
+                      comment.myVote === "UPVOTE",
+                  }
+                )}
+                onClick={() => handleVote("UPVOTE")}
+                disabled={!canVote || isPending}
+                aria-pressed={comment.myVote === "UPVOTE"}
+                aria-label={t("upvote_comment")}
+                data-tooltip-id={tooltipId}
+                data-tooltip-content={voteTitle("upvote_comment")}
               >
-                <PencilIcon size={14} />
-                {t("edit")}
+                <ThumbsUp size={16} />
+                <span>{comment.upvotes}</span>
               </button>
-            ) : null}
-
-            {comment.canDelete ? (
               <button
                 type="button"
-                className="screenshot-comments__action screenshot-comments__action--danger"
-                onClick={() => onRequestDelete(comment)}
-                disabled={isPending}
+                className={cn(
+                  "screenshot-comments__vote screenshot-comments__vote--downvote",
+                  {
+                    "screenshot-comments__vote--active":
+                      comment.myVote === "DOWNVOTE",
+                  }
+                )}
+                onClick={() => handleVote("DOWNVOTE")}
+                disabled={!canVote || isPending}
+                aria-pressed={comment.myVote === "DOWNVOTE"}
+                aria-label={t("downvote_comment")}
+                data-tooltip-id={tooltipId}
+                data-tooltip-content={voteTitle("downvote_comment")}
               >
-                <TrashIcon size={14} />
-                {t("delete")}
+                <ThumbsDown size={16} />
+                <span>{comment.downvotes}</span>
               </button>
-            ) : null}
+            </div>
 
-            {!comment.isOwn && isSignedIn ? (
-              <button
-                type="button"
-                className="screenshot-comments__action"
-                onClick={() => onRequestReport(comment)}
-                disabled={isPending || isReported}
-              >
-                <ReportIcon size={14} />
-                {t(isReported ? "reported" : "report")}
-              </button>
-            ) : null}
+            <div className="screenshot-comments__tools">
+              {comment.isOwn ? (
+                <Button
+                  theme="outline"
+                  size="small"
+                  className="screenshot-comments__tool screenshot-comments__edit"
+                  onClick={() => onStartEdit(comment)}
+                  disabled={isPending}
+                  aria-label={t("edit_comment")}
+                  data-tooltip-id={tooltipId}
+                  data-tooltip-content={t("edit_comment")}
+                >
+                  <PencilIcon size={14} />
+                </Button>
+              ) : null}
+
+              {comment.canDelete ? (
+                <Button
+                  theme="danger"
+                  size="small"
+                  className="screenshot-comments__tool screenshot-comments__delete"
+                  onClick={() => onRequestDelete(comment)}
+                  disabled={isPending}
+                  aria-label={t("delete_comment")}
+                  data-tooltip-id={tooltipId}
+                  data-tooltip-content={t("delete_comment")}
+                >
+                  <TrashIcon size={14} />
+                </Button>
+              ) : null}
+
+              {!comment.isOwn && isSignedIn ? (
+                <Button
+                  theme="outline"
+                  size="small"
+                  className="screenshot-comments__tool screenshot-comments__report"
+                  onClick={() => onRequestReport(comment)}
+                  disabled={isPending || isReported}
+                  aria-label={t(isReported ? "reported" : "report_comment")}
+                  data-tooltip-id={tooltipId}
+                  data-tooltip-content={t(
+                    isReported ? "reported" : "report_comment"
+                  )}
+                >
+                  <ReportIcon size={14} />
+                </Button>
+              ) : null}
+            </div>
           </div>
         )}
       </div>
@@ -260,6 +289,7 @@ export function ScreenshotComments({
 }: Readonly<ScreenshotCommentsProps>) {
   const { t } = useTranslation("screenshots");
   const { userDetails } = useUserDetails();
+  const tooltipId = useId();
   const isSignedIn = Boolean(userDetails);
   const [editingCommentId, setEditingCommentId] = useState<string | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<ScreenshotComment | null>(
@@ -347,6 +377,7 @@ export function ScreenshotComments({
               onSaveEdit={editComment}
               onRequestDelete={setDeleteTarget}
               onRequestReport={setReportTarget}
+              tooltipId={tooltipId}
             />
           ))}
         </ul>
@@ -367,10 +398,12 @@ export function ScreenshotComments({
 
   return (
     <section className="screenshot-comments" aria-label={t("comments")}>
-      <h3 className="screenshot-lightbox__section-title">
-        <CommentIcon size={16} />
-        {t("comments_title", { count: commentCount })}
-      </h3>
+      {commentCount > 0 ? (
+        <h3 className="screenshot-lightbox__section-title">
+          <CommentIcon size={16} />
+          {t("comments_title", { count: commentCount })}
+        </h3>
+      ) : null}
 
       <div className="screenshot-comments__feed">{renderList()}</div>
 
@@ -398,6 +431,13 @@ export function ScreenshotComments({
           </div>
         )}
       </div>
+
+      <Tooltip
+        id={tooltipId}
+        place="top"
+        positionStrategy="fixed"
+        className="screenshot-lightbox__tooltip"
+      />
 
       <ConfirmationModal
         visible={Boolean(deleteTarget)}
