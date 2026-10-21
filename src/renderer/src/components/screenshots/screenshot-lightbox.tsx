@@ -1,19 +1,21 @@
-import { useCallback, useRef, useState, type RefObject } from "react";
-import { createPortal } from "react-dom";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
   AlertIcon,
-  ChevronLeftIcon,
-  ChevronRightIcon,
   EyeClosedIcon,
   ImageIcon,
   LockIcon,
-  XIcon,
 } from "@primer/octicons-react";
 import cn from "classnames";
 
 import { Button } from "../button/button";
 import { ConfirmationModal } from "../confirmation-modal/confirmation-modal";
+import {
+  GalleryLightbox,
+  GalleryLightboxImage,
+  type GalleryImageRenderContext,
+} from "@renderer/pages/game-details/gallery-slider/gallery-lightbox";
+import type { GalleryMediaItem } from "@renderer/pages/game-details/gallery-slider/gallery-slider";
 import { useDate } from "@renderer/hooks";
 import { useScreenshotImageFallback } from "@shared";
 import type { ProfileScreenshot } from "@types";
@@ -21,40 +23,52 @@ import type { ProfileScreenshot } from "@types";
 import { ScreenshotLightboxPanel } from "./screenshot-lightbox-panel";
 import { ScreenshotReportModal } from "./screenshot-report-modal";
 import { getScreenshotGameTitle } from "./screenshot-labels";
-import type { ScreenshotCollection } from "./use-screenshot-collection";
-import { useLightboxFocus, useLightboxKeyboard } from "./use-lightbox-keyboard";
+import type {
+  ScreenshotCollection,
+  ScreenshotLightboxStatus,
+} from "./use-screenshot-collection";
 import { useScreenshotSpoiler } from "./use-screenshot-spoiler";
 
 import "./screenshot-lightbox.scss";
 
-interface ScreenshotMediaProps {
+type ScreenshotPlaceholderStatus = Exclude<
+  ScreenshotLightboxStatus,
+  "closed" | "ready"
+>;
+
+interface ScreenshotStageProps {
   screenshot: ProfileScreenshot;
+  item: GalleryMediaItem;
+  context: GalleryImageRenderContext;
   onImageError: (screenshot: ProfileScreenshot) => Promise<void>;
 }
 
-function ScreenshotMedia({
+function ScreenshotStage({
   screenshot,
+  item,
+  context,
   onImageError,
-}: Readonly<ScreenshotMediaProps>) {
+}: Readonly<ScreenshotStageProps>) {
   const { t } = useTranslation("screenshots");
-  const { formatDate } = useDate();
   const { isHidden: isSpoilerHidden, reveal } =
     useScreenshotSpoiler(screenshot);
   const { hasImage, isRefreshing, handleImageError } =
     useScreenshotImageFallback(screenshot.imageUrl, () =>
       onImageError(screenshot)
     );
-  const altText = t("screenshot_alt", {
-    game: getScreenshotGameTitle(screenshot, t),
-    date: formatDate(screenshot.capturedAt),
-  });
+  const onReadyRef = useRef(context.onReady);
+  onReadyRef.current = context.onReady;
+
+  useEffect(() => {
+    if (!hasImage) onReadyRef.current();
+  }, [hasImage]);
 
   if (!hasImage) {
     return (
       <div
-        className="screenshot-lightbox__placeholder"
+        className="screenshot-stage__placeholder"
         role="img"
-        aria-label={altText}
+        aria-label={item.alt}
       >
         <ImageIcon size={48} />
         <span>
@@ -65,40 +79,43 @@ function ScreenshotMedia({
   }
 
   return (
-    <>
-      <img
-        key={screenshot.imageUrl}
-        className={cn("screenshot-lightbox__image", {
-          "screenshot-lightbox__image--spoiler": isSpoilerHidden,
-        })}
-        src={screenshot.imageUrl ?? undefined}
-        alt={altText}
-        onError={() => void handleImageError()}
-      />
+    <GalleryLightboxImage
+      key={screenshot.imageUrl}
+      item={{ ...item, src: screenshot.imageUrl ?? undefined }}
+      imageClassName={cn("screenshot-stage__image", {
+        "screenshot-stage__image--spoiler": isSpoilerHidden,
+      })}
+      onImageError={() => void handleImageError()}
+      {...context}
+    >
       {isSpoilerHidden ? (
         <button
           type="button"
-          className="screenshot-lightbox__spoiler"
+          className="screenshot-stage__spoiler"
           onClick={reveal}
         >
           <EyeClosedIcon size={24} />
           <span>{t("spoiler_reveal")}</span>
         </button>
       ) : null}
-    </>
+    </GalleryLightboxImage>
   );
 }
 
-interface ScreenshotLightboxStateProps {
-  status: "loading" | "private" | "unavailable";
+interface ScreenshotStateStageProps {
+  status: ScreenshotPlaceholderStatus;
+  context: GalleryImageRenderContext;
   onClose: () => void;
 }
 
-function ScreenshotLightboxState({
+function ScreenshotStateStage({
   status,
+  context,
   onClose,
-}: Readonly<ScreenshotLightboxStateProps>) {
+}: Readonly<ScreenshotStateStageProps>) {
   const { t } = useTranslation("screenshots");
+  const onReadyRef = useRef(context.onReady);
+  onReadyRef.current = context.onReady;
   const content = {
     loading: { icon: <ImageIcon size={32} />, text: t("loading_screenshot") },
     private: { icon: <LockIcon size={32} />, text: t("screenshot_private") },
@@ -107,6 +124,10 @@ function ScreenshotLightboxState({
       text: t("screenshot_unavailable"),
     },
   }[status];
+
+  useEffect(() => {
+    onReadyRef.current();
+  }, []);
 
   return (
     <output className="screenshot-lightbox__state">
@@ -118,46 +139,6 @@ function ScreenshotLightboxState({
         </Button>
       )}
     </output>
-  );
-}
-
-interface ScreenshotLightboxNavProps {
-  previousItem: ProfileScreenshot | null;
-  nextItem: ProfileScreenshot | null;
-  onOpen: (screenshot: ProfileScreenshot) => void;
-}
-
-function ScreenshotLightboxNav({
-  previousItem,
-  nextItem,
-  onOpen,
-}: Readonly<ScreenshotLightboxNavProps>) {
-  const { t } = useTranslation("screenshots");
-
-  return (
-    <>
-      {previousItem ? (
-        <button
-          type="button"
-          className="screenshot-lightbox__nav screenshot-lightbox__nav--previous"
-          onClick={() => onOpen(previousItem)}
-          aria-label={t("previous_screenshot")}
-        >
-          <ChevronLeftIcon size={24} />
-        </button>
-      ) : null}
-
-      {nextItem ? (
-        <button
-          type="button"
-          className="screenshot-lightbox__nav screenshot-lightbox__nav--next"
-          onClick={() => onOpen(nextItem)}
-          aria-label={t("next_screenshot")}
-        >
-          <ChevronRightIcon size={24} />
-        </button>
-      ) : null}
-    </>
   );
 }
 
@@ -211,25 +192,6 @@ function ScreenshotLightboxModals({
   );
 }
 
-const getNeighbors = (
-  items: ProfileScreenshot[],
-  screenshotId: string | null
-) => {
-  const index = screenshotId
-    ? items.findIndex((item) => item.id === screenshotId)
-    : -1;
-
-  return {
-    previousItem: index > 0 ? items[index - 1] : null,
-    nextItem: index >= 0 && index < items.length - 1 ? items[index + 1] : null,
-  };
-};
-
-const toOpener = (
-  item: ProfileScreenshot | null,
-  open: (screenshot: ProfileScreenshot) => void
-) => (item ? () => open(item) : null);
-
 function useLightboxModals(close: () => void) {
   const [isDeleteConfirmationVisible, setIsDeleteConfirmationVisible] =
     useState(false);
@@ -244,7 +206,6 @@ function useLightboxModals(close: () => void) {
   return {
     isDeleteConfirmationVisible,
     isReportModalVisible,
-    isBlockingModalVisible: isDeleteConfirmationVisible || isReportModalVisible,
     showDeleteConfirmation: () => setIsDeleteConfirmationVisible(true),
     hideDeleteConfirmation: () => setIsDeleteConfirmationVisible(false),
     showReportModal: () => setIsReportModalVisible(true),
@@ -253,87 +214,49 @@ function useLightboxModals(close: () => void) {
   };
 }
 
-interface ScreenshotLightboxContentProps {
-  screenshot: ProfileScreenshot;
-  collection: ScreenshotCollection;
-  previousItem: ProfileScreenshot | null;
-  nextItem: ProfileScreenshot | null;
-  closeButtonRef: RefObject<HTMLButtonElement>;
-  onClose: () => void;
-  onRequestDelete: () => void;
-  onRequestReport: () => void;
-}
+function usePageAdvance(
+  items: ProfileScreenshot[],
+  feed: ScreenshotCollection["feed"],
+  open: (screenshot: ProfileScreenshot) => void
+) {
+  const [pendingFromId, setPendingFromId] = useState<string | null>(null);
+  const { loadMore, hasMore, isLoading, hasLoadMoreFailed } = feed;
 
-function ScreenshotLightboxContent({
-  screenshot,
-  collection,
-  previousItem,
-  nextItem,
-  closeButtonRef,
-  onClose,
-  onRequestDelete,
-  onRequestReport,
-}: Readonly<ScreenshotLightboxContentProps>) {
-  const { actions, onPatch, lightbox } = collection;
+  useEffect(() => {
+    if (!pendingFromId) return;
 
-  return (
-    <>
-      <div className="screenshot-lightbox__media">
-        <ScreenshotMedia
-          key={screenshot.id}
-          screenshot={screenshot}
-          onImageError={lightbox.refreshScreenshot}
-        />
-        <ScreenshotLightboxNav
-          previousItem={previousItem}
-          nextItem={nextItem}
-          onOpen={lightbox.open}
-        />
-      </div>
+    const fromIndex = items.findIndex((item) => item.id === pendingFromId);
+    const nextItem = fromIndex >= 0 ? items[fromIndex + 1] : undefined;
+    if (nextItem) {
+      setPendingFromId(null);
+      open(nextItem);
+      return;
+    }
 
-      <ScreenshotLightboxPanel
-        screenshot={screenshot}
-        actions={actions}
-        closeButtonRef={closeButtonRef}
-        onPatch={onPatch}
-        onFailure={lightbox.markFailure}
-        onClose={onClose}
-        onRequestDelete={onRequestDelete}
-        onRequestReport={onRequestReport}
-      />
-    </>
+    if (fromIndex < 0 || hasLoadMoreFailed || (!hasMore && !isLoading)) {
+      setPendingFromId(null);
+    }
+  }, [hasLoadMoreFailed, hasMore, isLoading, items, open, pendingFromId]);
+
+  return useCallback(
+    (fromId: string) => {
+      setPendingFromId(fromId);
+      void loadMore();
+    },
+    [loadMore]
   );
 }
 
-interface ScreenshotLightboxPlaceholderProps {
-  status: ScreenshotLightboxStateProps["status"];
-  closeButtonRef: RefObject<HTMLButtonElement>;
-  onClose: () => void;
-}
-
-function ScreenshotLightboxPlaceholder({
-  status,
-  closeButtonRef,
-  onClose,
-}: Readonly<ScreenshotLightboxPlaceholderProps>) {
-  const { t } = useTranslation("screenshots");
-
-  return (
-    <>
-      <button
-        ref={closeButtonRef}
-        type="button"
-        className="screenshot-lightbox__close screenshot-lightbox__close--floating"
-        onClick={onClose}
-        aria-label={t("close")}
-        title={t("close")}
-      >
-        <XIcon size={20} />
-      </button>
-      <ScreenshotLightboxState status={status} onClose={onClose} />
-    </>
-  );
-}
+const toGalleryItem = (
+  screenshot: ProfileScreenshot,
+  alt: string
+): GalleryMediaItem => ({
+  id: screenshot.id,
+  type: "image",
+  src: screenshot.imageUrl ?? undefined,
+  thumbnail: screenshot.thumbnailUrl ?? undefined,
+  alt,
+});
 
 interface ScreenshotLightboxProps {
   collection: ScreenshotCollection;
@@ -345,86 +268,131 @@ export function ScreenshotLightbox({
   navigationItems,
 }: Readonly<ScreenshotLightboxProps>) {
   const { t } = useTranslation("screenshots");
-  const { feed, actions, lightbox } = collection;
-  const { status, screenshot, open, close } = lightbox;
-  const dialogRef = useRef<HTMLDialogElement>(null);
-  const closeButtonRef = useRef<HTMLButtonElement>(null);
+  const { formatDate } = useDate();
+  const { feed, actions, onPatch, lightbox } = collection;
+  const { status, screenshot, open, close, refreshScreenshot, markFailure } =
+    lightbox;
   const modals = useLightboxModals(close);
-  const isOpen = status !== "closed";
-  const { previousItem, nextItem } = getNeighbors(
-    navigationItems ?? feed.items,
-    screenshot?.id ?? null
-  );
+  const items = navigationItems ?? feed.items;
+  const advancePastEnd = usePageAdvance(items, feed, open);
   const readyScreenshot = status === "ready" ? screenshot : null;
+  const listIndex = readyScreenshot
+    ? items.findIndex((item) => item.id === readyScreenshot.id)
+    : -1;
+  const isInList = listIndex >= 0;
 
-  useLightboxFocus(isOpen, closeButtonRef, `${screenshot?.id}:${status}`);
-  useLightboxKeyboard({
-    isEnabled: isOpen && !modals.isBlockingModalVisible,
-    dialogRef,
-    onClose: modals.handleClose,
-    onPrevious: toOpener(previousItem, open),
-    onNext: toOpener(nextItem, open),
-  });
+  const viewerScreenshots = useMemo(() => {
+    if (!readyScreenshot) return [];
+    if (!isInList) return [readyScreenshot];
+    return items.map((item) =>
+      item.id === readyScreenshot.id ? readyScreenshot : item
+    );
+  }, [isInList, items, readyScreenshot]);
 
-  if (!isOpen) return null;
+  const describe = useCallback(
+    (item: ProfileScreenshot) =>
+      t("screenshot_alt", {
+        game: getScreenshotGameTitle(item, t),
+        date: formatDate(item.capturedAt),
+      }),
+    [formatDate, t]
+  );
 
-  const dialogLabel = readyScreenshot
-    ? getScreenshotGameTitle(readyScreenshot, t)
-    : t("screenshot");
+  const galleryItems = useMemo(
+    () => viewerScreenshots.map((item) => toGalleryItem(item, describe(item))),
+    [describe, viewerScreenshots]
+  );
 
-  return createPortal(
+  if (status === "closed") return null;
+
+  if (!readyScreenshot) {
+    const placeholderStatus: ScreenshotPlaceholderStatus =
+      status === "ready" ? "loading" : status;
+
+    return (
+      <GalleryLightbox
+        visible
+        items={[
+          { id: "screenshot-state", type: "image", alt: t("screenshot") },
+        ]}
+        index={0}
+        showFilmstrip={false}
+        showCounter={false}
+        trapFocus
+        renderImage={(_item, context) => (
+          <ScreenshotStateStage
+            status={placeholderStatus}
+            context={context}
+            onClose={modals.handleClose}
+          />
+        )}
+        onClose={modals.handleClose}
+        onNavigate={() => undefined}
+      />
+    );
+  }
+
+  const screenshotsById = new Map(
+    viewerScreenshots.map((item) => [item.id, item])
+  );
+
+  return (
     <>
-      <div className="screenshot-lightbox__overlay">
-        <button
-          type="button"
-          className="screenshot-lightbox__backdrop"
-          onClick={modals.handleClose}
-          aria-label={t("close")}
-          tabIndex={-1}
-        />
+      <GalleryLightbox
+        visible
+        items={galleryItems}
+        index={Math.max(listIndex, 0)}
+        showFilmstrip={false}
+        showCounter={false}
+        trapFocus
+        hasMoreAfter={
+          isInList &&
+          listIndex === items.length - 1 &&
+          feed.hasMore &&
+          !feed.hasLoadMoreFailed
+        }
+        onNavigatePastEnd={() => advancePastEnd(readyScreenshot.id)}
+        renderImage={(item, context) => {
+          const itemScreenshot = screenshotsById.get(item.id);
+          if (!itemScreenshot) return null;
 
-        <dialog
-          ref={dialogRef}
-          open
-          className={cn("screenshot-lightbox", {
-            "screenshot-lightbox--state": !readyScreenshot,
-          })}
-          aria-modal="true"
-          aria-label={dialogLabel}
-        >
-          {readyScreenshot ? (
-            <ScreenshotLightboxContent
-              screenshot={readyScreenshot}
-              collection={collection}
-              previousItem={previousItem}
-              nextItem={nextItem}
-              closeButtonRef={closeButtonRef}
-              onClose={modals.handleClose}
-              onRequestDelete={modals.showDeleteConfirmation}
-              onRequestReport={modals.showReportModal}
+          return (
+            <ScreenshotStage
+              key={item.id}
+              screenshot={itemScreenshot}
+              item={item}
+              context={context}
+              onImageError={refreshScreenshot}
             />
-          ) : (
-            <ScreenshotLightboxPlaceholder
-              status={status === "ready" ? "loading" : status}
-              closeButtonRef={closeButtonRef}
-              onClose={modals.handleClose}
-            />
-          )}
-        </dialog>
-      </div>
+          );
+        }}
+        renderSidebar={() => (
+          <ScreenshotLightboxPanel
+            screenshot={readyScreenshot}
+            actions={actions}
+            onPatch={onPatch}
+            onFailure={markFailure}
+            onClose={modals.handleClose}
+            onRequestDelete={modals.showDeleteConfirmation}
+            onRequestReport={modals.showReportModal}
+          />
+        )}
+        onClose={modals.handleClose}
+        onNavigate={(nextIndex) => {
+          const nextScreenshot = viewerScreenshots[nextIndex];
+          if (nextScreenshot) open(nextScreenshot);
+        }}
+      />
 
-      {screenshot ? (
-        <ScreenshotLightboxModals
-          screenshot={screenshot}
-          actions={actions}
-          isDeleteConfirmationVisible={modals.isDeleteConfirmationVisible}
-          isReportModalVisible={modals.isReportModalVisible}
-          onCloseDeleteConfirmation={modals.hideDeleteConfirmation}
-          onCloseReportModal={modals.hideReportModal}
-          onDeleted={modals.handleClose}
-        />
-      ) : null}
-    </>,
-    document.body
+      <ScreenshotLightboxModals
+        screenshot={readyScreenshot}
+        actions={actions}
+        isDeleteConfirmationVisible={modals.isDeleteConfirmationVisible}
+        isReportModalVisible={modals.isReportModalVisible}
+        onCloseDeleteConfirmation={modals.hideDeleteConfirmation}
+        onCloseReportModal={modals.hideReportModal}
+        onDeleted={modals.handleClose}
+      />
+    </>
   );
 }
