@@ -249,17 +249,36 @@ export function ScreenshotsTab({
     { value: "top", label: t("sort_top"), icon: FlameIcon },
   ];
 
+  const getGameTitle = (game: ScreenshotGameFilterItem) =>
+    game.shop === "custom"
+      ? t("custom_games")
+      : (game.title ?? t("unknown_game"));
+
+  const titleCounts = games.reduce<Record<string, number>>((counts, game) => {
+    const title = getGameTitle(game);
+    counts[title] = (counts[title] ?? 0) + 1;
+    return counts;
+  }, {});
+
+  const getGameOptionLabel = (game: ScreenshotGameFilterItem) => {
+    const title = getGameTitle(game);
+
+    if (game.shop === "custom" || titleCounts[title] < 2) {
+      return t("game_filter_option", { title, amount: game.count });
+    }
+
+    return t("game_filter_option_with_store", {
+      title,
+      store: t(`store_${game.shop}`),
+      amount: game.count,
+    });
+  };
+
   const gameOptions: FilterDropdownOption<string>[] = [
     { value: ALL_GAMES_FILTER, label: t("all_games"), icon: StackIcon },
     ...games.map((game) => ({
       value: getGameFilterValue(game),
-      label: t("game_filter_option", {
-        title:
-          game.shop === "custom"
-            ? t("custom_games")
-            : (game.title ?? t("unknown_game")),
-        amount: game.count,
-      }),
+      label: getGameOptionLabel(game),
       icon: ImageIcon,
       imageUrl: game.iconUrl,
     })),
