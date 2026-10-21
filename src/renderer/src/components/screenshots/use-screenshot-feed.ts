@@ -1,7 +1,15 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 
 import { logger } from "@renderer/logger";
-import { isScreenshotSort, mergeScreenshotPages } from "@shared";
+import {
+  applyScreenshotFeedWrites,
+  applyScreenshotPatch,
+  isRelativeScreenshotPatch,
+  isScreenshotSort,
+  mergeScreenshotPages,
+  type ScreenshotFeedWrite,
+  type ScreenshotPatch,
+} from "@shared";
 import type {
   ProfileScreenshot,
   ScreenshotSort,
@@ -15,64 +23,20 @@ export interface ScreenshotFeedPage {
   hiddenReason?: ScreenshotsHiddenReason;
 }
 
-export type ScreenshotPatch =
-  | Partial<ProfileScreenshot>
-  | ((screenshot: ProfileScreenshot) => Partial<ProfileScreenshot>);
-
-export const applyScreenshotPatch = (
-  screenshot: ProfileScreenshot,
-  patch: ScreenshotPatch
-): ProfileScreenshot => ({
-  ...screenshot,
-  ...(typeof patch === "function" ? patch(screenshot) : patch),
-});
-
-interface ScreenshotFeedWrite {
-  version: number;
-  screenshotId: string;
-  patch: ScreenshotPatch | null;
-}
-
-const applyWritesSince = (
-  items: ProfileScreenshot[],
-  writes: ScreenshotFeedWrite[],
-  sinceVersion: number
-) => {
-  let result = items;
-  let removedCount = 0;
-  let hasRemovals = false;
-
-  for (const write of writes) {
-    if (write.version <= sinceVersion) continue;
-
-    if (write.patch === null) {
-      hasRemovals = true;
-      const next = result.filter((item) => item.id !== write.screenshotId);
-      removedCount += result.length - next.length;
-      result = next;
-    } else {
-      const { patch } = write;
-      result = result.map((item) =>
-        item.id === write.screenshotId
-          ? applyScreenshotPatch(item, patch)
-          : item
-      );
-    }
-  }
-
-  return { items: result, removedCount, hasRemovals };
-};
-
 const getReadStartedAt = () => performance.now();
 
 interface UseScreenshotFeedOptions {
   feedKey: string | null;
   fetchPage: (cursor: string | null) => Promise<ScreenshotFeedPage | null>;
+  fetchScreenshot: (
+    screenshot: ProfileScreenshot
+  ) => Promise<ProfileScreenshot | null>;
 }
 
 export function useScreenshotFeed({
   feedKey,
   fetchPage,
+  fetchScreenshot,
 }: UseScreenshotFeedOptions) {
   const [items, setItems] = useState<ProfileScreenshot[]>([]);
   const [total, setTotal] = useState<number | null>(null);
@@ -88,8 +52,34 @@ export function useScreenshotFeed({
   const writesRef = useRef<ScreenshotFeedWrite[]>([]);
   const isReadPendingRef = useRef(false);
   const fetchedAtRef = useRef(new Map<string, number>());
+  const lastRelativeWriteRef = useRef(new Map<string, number>());
   const fetchPageRef = useRef(fetchPage);
   fetchPageRef.current = fetchPage;
+  const fetchScreenshotRef = useRef(fetchScreenshot);
+  fetchScreenshotRef.current = fetchScreenshot;
+  const patchItemRef = useRef<
+    (screenshotId: string, patch: ScreenshotPatch) => void
+  >(() => undefined);
+
+  const recountItem = useCallback(async (item: ProfileScreenshot) => {
+    const requestId = requestIdRef.current;
+    const startedVersion = writeVersionRef.current;
+
+    try {
+      const fresh = await fetchScreenshotRef.current(item);
+      if (!fresh || requestId !== requestIdRef.current) return;
+
+      const lastRelativeWrite = lastRelativeWriteRef.current.get(item.id) ?? 0;
+      if (lastRelativeWrite > startedVersion) {
+        void recountItem(item);
+        return;
+      }
+
+      patchItemRef.current(item.id, { commentCount: fresh.commentCount });
+    } catch (error) {
+      logger.warn("Failed to refresh the screenshot comment count", error);
+    }
+  }, []);
 
   const recordFetchedItems = useCallback(
     (fetchedItems: ProfileScreenshot[], startedAt: number) => {
@@ -102,16 +92,19 @@ export function useScreenshotFeed({
 
   const finishRead = useCallback(
     (page: ScreenshotFeedPage, sinceVersion: number, startedAt: number) => {
-      const merged = applyWritesSince(
+      const merged = applyScreenshotFeedWrites(
         page.items,
         writesRef.current,
         sinceVersion
       );
       writesRef.current = [];
       recordFetchedItems(merged.items, startedAt);
+      for (const item of merged.items) {
+        if (merged.recountIds.has(item.id)) void recountItem(item);
+      }
       return merged;
     },
-    [recordFetchedItems]
+    [recordFetchedItems, recountItem]
   );
 
   const reload = useCallback(async () => {
@@ -137,7 +130,7 @@ export function useScreenshotFeed({
       setTotal(
         page?.total === undefined
           ? null
-          : Math.max(0, page.total - merged.removedCount)
+          : Math.max(0, page.total + merged.netCountDelta)
       );
       setHiddenReason(page?.hiddenReason ?? null);
     } catch (error) {
@@ -178,7 +171,7 @@ export function useScreenshotFeed({
       const pageTotal = page.total;
       if (pageTotal !== undefined) {
         setTotal((current) =>
-          merged.hasRemovals ? current : Math.max(0, pageTotal)
+          merged.hasLaterWrites ? current : Math.max(0, pageTotal)
         );
       }
     } catch (error) {
@@ -199,6 +192,7 @@ export function useScreenshotFeed({
     isReadPendingRef.current = false;
     writesRef.current = [];
     fetchedAtRef.current.clear();
+    lastRelativeWriteRef.current.clear();
     setItems([]);
     setNextCursor(null);
     setTotal(null);
@@ -237,6 +231,9 @@ export function useScreenshotFeed({
   const patchItem = useCallback(
     (screenshotId: string, patch: ScreenshotPatch) => {
       recordWrite(screenshotId, patch);
+      if (isRelativeScreenshotPatch(patch)) {
+        lastRelativeWriteRef.current.set(screenshotId, writeVersionRef.current);
+      }
       setItems((current) =>
         current.map((item) =>
           item.id === screenshotId ? applyScreenshotPatch(item, patch) : item
@@ -245,6 +242,8 @@ export function useScreenshotFeed({
     },
     [recordWrite]
   );
+
+  patchItemRef.current = patchItem;
 
   const removeItem = useCallback(
     (screenshotId: string) => {

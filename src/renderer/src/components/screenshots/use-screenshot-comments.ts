@@ -26,7 +26,7 @@ import type {
 } from "@types";
 
 import type { ScreenshotFailure } from "./use-screenshot-actions";
-import type { ScreenshotPatch } from "./use-screenshot-feed";
+import type { ScreenshotPatch } from "@shared";
 
 type CommentWrite =
   | { kind: "create"; comment: ScreenshotComment }

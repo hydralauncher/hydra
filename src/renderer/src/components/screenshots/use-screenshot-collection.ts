@@ -2,7 +2,13 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { useUserDetails } from "@renderer/hooks";
 import { logger } from "@renderer/logger";
-import { buildUserScreenshotPath, getScreenshotApiErrorCode } from "@shared";
+import {
+  applyScreenshotPatch,
+  buildUserScreenshotPath,
+  getScreenshotApiErrorCode,
+  isRelativeScreenshotPatch,
+  type ScreenshotPatch,
+} from "@shared";
 import type { ProfileScreenshot } from "@types";
 
 import {
@@ -10,10 +16,8 @@ import {
   type ScreenshotFailure,
 } from "./use-screenshot-actions";
 import {
-  applyScreenshotPatch,
   useScreenshotFeed,
   type ScreenshotFeedPage,
-  type ScreenshotPatch,
 } from "./use-screenshot-feed";
 
 const getScreenshotFailure = (error: unknown): ScreenshotFailure | null => {
@@ -65,7 +69,21 @@ export function useScreenshotCollection({
   fetchPage,
 }: UseScreenshotCollectionOptions) {
   const { userDetails } = useUserDetails();
-  const feed = useScreenshotFeed({ feedKey, fetchPage });
+  const fetchScreenshot = useCallback(
+    async (ownerId: string, screenshotId: string) => {
+      return window.electron.hydraApi.get<ProfileScreenshot>(
+        buildUserScreenshotPath(ownerId, screenshotId),
+        { needsAuth: Boolean(userDetails) }
+      );
+    },
+    [userDetails]
+  );
+
+  const feed = useScreenshotFeed({
+    feedKey,
+    fetchPage,
+    fetchScreenshot: (item) => fetchScreenshot(item.owner.id, item.id),
+  });
   const { patchItem, removeItem } = feed;
   const [openTarget, setOpenTarget] = useState<OpenTarget | null>(null);
   const [detachedById, setDetachedById] = useState<
@@ -83,6 +101,7 @@ export function useScreenshotCollection({
   const writeVersionsRef = useRef(new Map<string, number>());
   const lastWriteAtRef = useRef(new Map<string, number>());
   const inFlightPatchesRef = useRef(new Map<string, ScreenshotPatch[]>());
+  const relativeWritesRef = useRef(new Map<string, number>());
   const refreshedIdsRef = useRef(new Set<string>());
 
   const openId = openTarget?.screenshotId ?? null;
@@ -116,6 +135,9 @@ export function useScreenshotCollection({
       bumpWriteVersion(writeVersionsRef.current, screenshotId);
       lastWriteAtRef.current.set(screenshotId, performance.now());
       inFlightPatchesRef.current.get(screenshotId)?.push(patch);
+      if (isRelativeScreenshotPatch(patch)) {
+        bumpWriteVersion(relativeWritesRef.current, screenshotId);
+      }
       patchItem(screenshotId, patch);
       setDetachedById((current) =>
         screenshotId in current
@@ -147,14 +169,35 @@ export function useScreenshotCollection({
     onFailure: markFailure,
   });
 
-  const fetchScreenshot = useCallback(
-    async (ownerId: string, screenshotId: string) => {
-      return window.electron.hydraApi.get<ProfileScreenshot>(
-        buildUserScreenshotPath(ownerId, screenshotId),
-        { needsAuth: Boolean(userDetails) }
-      );
+  const recountDetached = useCallback(
+    async (ownerId: string, screenshotId: string): Promise<void> => {
+      const startedVersion = relativeWritesRef.current.get(screenshotId) ?? 0;
+
+      try {
+        const fresh = await fetchScreenshot(ownerId, screenshotId);
+        if (!fresh) return;
+
+        const currentVersion = relativeWritesRef.current.get(screenshotId) ?? 0;
+        if (currentVersion !== startedVersion) {
+          return recountDetached(ownerId, screenshotId);
+        }
+
+        setDetachedById((current) =>
+          screenshotId in current
+            ? {
+                ...current,
+                [screenshotId]: {
+                  ...current[screenshotId],
+                  commentCount: fresh.commentCount,
+                },
+              }
+            : current
+        );
+      } catch (error) {
+        logger.warn("Failed to refresh the screenshot comment count", error);
+      }
     },
-    [userDetails]
+    [fetchScreenshot]
   );
 
   useEffect(() => {
@@ -181,8 +224,13 @@ export function useScreenshotCollection({
           detachedFetchedAtRef.current.set(screenshotId, startedAt);
           setDetachedById((current) => ({
             ...current,
-            [screenshotId]: localPatches.reduce(applyScreenshotPatch, item),
+            [screenshotId]: localPatches
+              .filter((patch) => !isRelativeScreenshotPatch(patch))
+              .reduce(applyScreenshotPatch, item),
           }));
+          if (localPatches.some(isRelativeScreenshotPatch)) {
+            void recountDetached(ownerId, screenshotId);
+          }
         } else {
           markFailure(screenshotId, "unavailable");
         }
@@ -201,7 +249,15 @@ export function useScreenshotCollection({
           return next;
         });
       });
-  }, [detached, failure, fetchScreenshot, listItem, markFailure, openTarget]);
+  }, [
+    detached,
+    failure,
+    fetchScreenshot,
+    listItem,
+    markFailure,
+    openTarget,
+    recountDetached,
+  ]);
 
   const open = useCallback((item: ProfileScreenshot) => {
     setOpenTarget({ screenshotId: item.id, ownerId: item.owner.id });
