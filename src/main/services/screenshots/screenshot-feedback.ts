@@ -15,6 +15,7 @@ import { SystemPath } from "../system-path";
 import { WindowManager } from "../window-manager";
 
 const FLASH_VISIBLE_DURATION_MS = 700;
+const FLASH_READY_TIMEOUT_MS = 10_000;
 const TOAST_THUMBNAIL_WIDTH = 320;
 const TOAST_THUMBNAIL_JPEG_QUALITY = 80;
 const MAX_TOAST_THUMBNAILS = 20;
@@ -26,6 +27,7 @@ interface FeedbackWindow {
 }
 
 let feedbackWindows: FeedbackWindow[] = [];
+const flashReadyResolvers = new Map<number, () => void>();
 let hideTimer: ReturnType<typeof setTimeout> | null = null;
 let displayListenersRegistered = false;
 
@@ -70,7 +72,22 @@ const createFeedbackWindow = (
   window.setAlwaysOnTop(true, "screen-saver", 1);
   window.removeMenu();
 
-  const ready = WindowManager.loadWindowURL(
+  const webContentsId = window.webContents.id;
+  const ready = new Promise<void>((resolve) => {
+    const finish = () => {
+      clearTimeout(timeout);
+      flashReadyResolvers.delete(webContentsId);
+      resolve();
+    };
+    const timeout = setTimeout(() => {
+      logger.warn("The screenshot flash window did not report ready in time");
+      finish();
+    }, FLASH_READY_TIMEOUT_MS);
+    flashReadyResolvers.set(webContentsId, finish);
+    window.once("closed", finish);
+  });
+
+  WindowManager.loadWindowURL(
     window,
     `screenshot-flash?primary=${isPrimary ? "1" : "0"}`
   ).catch((error) => {
@@ -188,6 +205,10 @@ const toLocalUrl = (filePath: string) =>
   `local:${filePath.replaceAll("\\", "/")}`;
 
 export class ScreenshotFeedback {
+  public static markFlashWindowReady(sender: Electron.WebContents) {
+    flashReadyResolvers.get(sender.id)?.();
+  }
+
   public static prepare() {
     if (feedbackWindows.length) return;
 
@@ -210,12 +231,16 @@ export class ScreenshotFeedback {
     destroyFeedbackWindows();
   }
 
-  public static async playCaptureFeedback() {
+  public static async playCaptureFeedback(
+    override?: Partial<{ flash: boolean; playSound: boolean }>
+  ) {
     const preferences = resolveScreenshotPreferences(
       await readUserPreferences()
     );
-    const flash = preferences.borderFlashEnabled && canShowFlashWindows();
-    const playSound = preferences.captureSoundEnabled;
+    const flash =
+      (override?.flash ?? preferences.borderFlashEnabled) &&
+      canShowFlashWindows();
+    const playSound = override?.playSound ?? preferences.captureSoundEnabled;
     if (!flash && !playSound) return;
 
     this.prepare();
@@ -238,10 +263,17 @@ export class ScreenshotFeedback {
     }, FLASH_VISIBLE_DURATION_MS);
   }
 
-  public static async showToast(toast: ScreenshotFeedbackToast) {
+  public static async showToast(
+    toast: ScreenshotFeedbackToast,
+    { ignorePreference = false }: { ignorePreference?: boolean } = {}
+  ) {
     const userPreferences = await readUserPreferences();
     const preferences = resolveScreenshotPreferences(userPreferences);
-    if (toast.kind !== "disabled_for_game" && !preferences.toastEnabled) {
+    if (
+      !ignorePreference &&
+      toast.kind !== "disabled_for_game" &&
+      !preferences.toastEnabled
+    ) {
       return;
     }
 

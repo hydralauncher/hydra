@@ -10,6 +10,7 @@ import {
 import type {
   GameContentWarning,
   LocalScreenshot,
+  ProfileVisibility,
   ScreenshotTriggerSource,
   UserPreferences,
 } from "@types";
@@ -22,6 +23,7 @@ import { logger } from "../logger";
 import { ScreenshotService } from "../screenshot";
 import { GameContentWarningCache } from "./content-warning-cache";
 import { resolveForegroundGame } from "./foreground-game";
+import type { ScreenshotGameTarget } from "./foreground-game-match";
 import { LocalScreenshotStore } from "./local-screenshot-store";
 import { ScreenshotFeedback } from "./screenshot-feedback";
 import { isScreenshotsFeatureEnabled } from "./screenshot-feature";
@@ -112,6 +114,102 @@ const getGameSessionId = (gameKey: string) => {
   return sessionId;
 };
 
+export const rejectAdultGameCapture = async (gameTitle: string) => {
+  ScreenshotTelemetry.record("capture", "blocked", "adult_game");
+  await ScreenshotFeedback.showToast({ kind: "disabled_for_game", gameTitle });
+};
+
+export const resolveCaptureFilePath = async (
+  gameTitle: string,
+  capturedAt: Date
+) =>
+  resolveAvailableFilePath(
+    await getAchievementScreenshotsDirectory(),
+    gameTitle,
+    capturedAt
+  );
+
+export interface FinishCaptureOptions {
+  target: Pick<ScreenshotGameTarget, "gameKey" | "shop" | "objectId">;
+  gameTitle: string;
+  filePath: string;
+  capturedAt: Date;
+  size: { width: number; height: number };
+  defaultVisibility: ProfileVisibility;
+  askToUploadAfterGame: boolean;
+  source: ScreenshotTriggerSource;
+  gameWindowHandle: string | null;
+  isGameRunning: () => boolean;
+  ownerId?: string | null;
+  extra?: Partial<LocalScreenshot>;
+}
+
+const getSignedInOwnerId = () =>
+  HydraApi.isLoggedIn() ? (HydraApi.getAuthContext()?.userId ?? null) : null;
+
+export const finishCapture = async ({
+  target,
+  gameTitle,
+  filePath,
+  capturedAt,
+  size,
+  defaultVisibility,
+  askToUploadAfterGame,
+  source,
+  gameWindowHandle,
+  isGameRunning,
+  ownerId = getSignedInOwnerId(),
+  extra = {},
+}: FinishCaptureOptions) => {
+  void ScreenshotFeedback.playCaptureFeedback().catch((error) => {
+    logger.error("Failed to play the screenshot capture feedback", error);
+  });
+
+  const screenshot = await LocalScreenshotStore.put({
+    clientId: randomUUID(),
+    ownerId,
+    shop: target.shop,
+    objectId: target.objectId,
+    gameTitle,
+    customGameTitle: getDefaultCustomGameTitle(target.shop, gameTitle),
+    path: filePath,
+    capturedAt: capturedAt.getTime(),
+    width: size.width,
+    height: size.height,
+    state: "local",
+    isSpoiler: false,
+    visibility: defaultVisibility,
+    screenshotId: null,
+    moderationStatus: null,
+    moderationReason: null,
+    uploadProgress: null,
+    lastError: null,
+    gameSessionId: getGameSessionId(target.gameKey),
+    ...extra,
+  });
+
+  ScreenshotTelemetry.record("capture", "saved", source);
+
+  void ScreenshotFeedback.showToast({
+    kind: ownerId ? "captured" : "saved_locally",
+    gameTitle,
+    thumbnailPath: filePath,
+  }).catch((error) => {
+    logger.error("Failed to show the screenshot toast", error);
+  });
+
+  if (ownerId && askToUploadAfterGame) {
+    await ScreenshotReviewWindows.addCapture({
+      screenshot,
+      gameKey: target.gameKey,
+      gameWindowHandle,
+      isGameRunning,
+    });
+  }
+
+  return screenshot;
+};
+
 const captureScreenshot = async (source: ScreenshotTriggerSource) => {
   const userPreferences = await readUserPreferences();
   const preferences = resolveScreenshotPreferences(userPreferences);
@@ -131,21 +229,12 @@ const captureScreenshot = async (source: ScreenshotTriggerSource) => {
 
   const warning = await getContentWarning(target.shop, target.objectId);
   if (isAdultGameContentWarning(warning)) {
-    ScreenshotTelemetry.record("capture", "blocked", "adult_game");
-    await ScreenshotFeedback.showToast({
-      kind: "disabled_for_game",
-      gameTitle,
-    });
+    await rejectAdultGameCapture(gameTitle);
     return;
   }
 
   const capturedAt = new Date();
-  const screenshotsRoot = await getAchievementScreenshotsDirectory();
-  const filePath = await resolveAvailableFilePath(
-    screenshotsRoot,
-    gameTitle,
-    capturedAt
-  );
+  const filePath = await resolveCaptureFilePath(gameTitle, capturedAt);
 
   let image: Electron.NativeImage;
   try {
@@ -173,58 +262,19 @@ const captureScreenshot = async (source: ScreenshotTriggerSource) => {
     return;
   }
 
-  void ScreenshotFeedback.playCaptureFeedback().catch((error) => {
-    logger.error("Failed to play the screenshot capture feedback", error);
-  });
-
-  const isSignedIn = HydraApi.isLoggedIn();
-  const ownerId = isSignedIn
-    ? (HydraApi.getAuthContext()?.userId ?? null)
-    : null;
-  const { width, height } = image.getSize();
-
-  const screenshot = await LocalScreenshotStore.put({
-    clientId: randomUUID(),
-    ownerId,
-    shop: target.shop,
-    objectId: target.objectId,
+  await finishCapture({
+    target,
     gameTitle,
-    customGameTitle: getDefaultCustomGameTitle(target.shop, gameTitle),
-    path: filePath,
-    capturedAt: capturedAt.getTime(),
-    width,
-    height,
-    state: "local",
-    isSpoiler: false,
-    visibility: preferences.defaultVisibility,
-    screenshotId: null,
-    moderationStatus: null,
-    moderationReason: null,
-    uploadProgress: null,
-    lastError: null,
-    gameSessionId: getGameSessionId(target.gameKey),
+    filePath,
+    capturedAt,
+    size: image.getSize(),
+    defaultVisibility: preferences.defaultVisibility,
+    askToUploadAfterGame: preferences.askToUploadAfterGame,
+    source,
+    gameWindowHandle: foreground?.windowHandle ?? null,
+    isGameRunning: () =>
+      gamesPlaytime.has(target.gameKey) || emulatorSessions.has(target.gameKey),
   });
-
-  ScreenshotTelemetry.record("capture", "saved", source);
-
-  void ScreenshotFeedback.showToast({
-    kind: ownerId ? "captured" : "saved_locally",
-    gameTitle,
-    thumbnailPath: filePath,
-  }).catch((error) => {
-    logger.error("Failed to show the screenshot toast", error);
-  });
-
-  if (ownerId && preferences.askToUploadAfterGame) {
-    await ScreenshotReviewWindows.addCapture({
-      screenshot,
-      gameKey: target.gameKey,
-      gameWindowHandle: foreground?.windowHandle ?? null,
-      isGameRunning: () =>
-        gamesPlaytime.has(target.gameKey) ||
-        emulatorSessions.has(target.gameKey),
-    });
-  }
 };
 
 export const handleScreenshotTrigger = async (

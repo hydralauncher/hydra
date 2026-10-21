@@ -1,5 +1,6 @@
 import type { AuthPage, Downloader } from "@shared";
 import type {
+  ScreenshotsDevApi,
   LocalScreenshot,
   LocalScreenshotUploadOptions,
   ScreenshotReviewRequest,
@@ -1096,6 +1097,7 @@ declare global {
     ping: () => string;
     getDefaultDownloadsPath: () => Promise<string>;
     getScreenshotsPath: () => Promise<string>;
+    screenshotsDev?: ScreenshotsDevApi;
     getLocalScreenshots: () => Promise<LocalScreenshot[]>;
     uploadLocalScreenshot: (
       clientId: string,
@@ -1119,6 +1121,7 @@ declare global {
     onScreenshotReviewItemsChanged: (
       cb: (clientIds: string[]) => void
     ) => () => Electron.IpcRenderer;
+    screenshotFlashReady: () => Promise<void>;
     onScreenshotFeedback: (
       cb: (feedback: { flash: boolean; playSound: boolean }) => void
     ) => () => Electron.IpcRenderer;

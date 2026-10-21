@@ -142,13 +142,31 @@ const matchesLinuxTarget = (
   return false;
 };
 
+const getForegroundOwnerPid = (foreground: ForegroundWindowInfo) =>
+  foreground.clientProcessId ?? foreground.processId;
+
+const ownsForegroundProcess = (
+  input: ForegroundGameMatchInput,
+  target: ScreenshotGameTarget
+) => {
+  const ownerPid = getForegroundOwnerPid(input.foreground);
+  if (ownerPid == null || target.processId === undefined) return false;
+  return collectDescendants(input.processes, target.processId).has(ownerPid);
+};
+
 export const findForegroundGameTarget = (
   input: ForegroundGameMatchInput
 ): ScreenshotGameTarget | null => {
   const matches =
     input.platform === "win32" ? matchesWindowsTarget : matchesLinuxTarget;
 
-  return input.targets.find((target) => matches(input, target)) ?? null;
+  const candidates = input.targets.filter((target) => matches(input, target));
+  if (candidates.length <= 1) return candidates[0] ?? null;
+
+  const owners = candidates.filter((target) =>
+    ownsForegroundProcess(input, target)
+  );
+  return owners.length === 1 ? owners[0] : null;
 };
 
 export const parseNamespacedPids = (status: string): number[] | null => {

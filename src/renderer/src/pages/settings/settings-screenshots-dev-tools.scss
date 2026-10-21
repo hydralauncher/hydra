@@ -1,0 +1,33 @@
+@use "../../scss/globals.scss";
+
+.settings-screenshots-dev {
+  padding-top: calc(globals.$spacing-unit * 2);
+  border-top: 1px dashed globals.$border-color;
+
+  &__section {
+    display: flex;
+    flex-direction: column;
+    gap: globals.$spacing-unit;
+    min-width: 0;
+
+    h4 {
+      margin: 0;
+      font-size: globals.$body-font-size;
+      color: globals.$muted-color;
+    }
+  }
+
+  &__row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-end;
+    gap: globals.$spacing-unit;
+    min-width: 0;
+  }
+
+  &__result {
+    display: block;
+    font-size: globals.$small-font-size;
+    color: globals.$muted-color;
+  }
+}
