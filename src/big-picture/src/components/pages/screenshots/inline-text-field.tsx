@@ -14,7 +14,7 @@ import { useNavigation, useNavigationScreenActions } from "../../../hooks";
 import { useVirtualKeyboardStore } from "../../../stores";
 import type { FocusOverrides } from "../../../services";
 
-const LIMIT_FEEDBACK_MS = 420;
+const LIMIT_FEEDBACK_MS = 300;
 
 function EditingBackAction({ onBack }: Readonly<{ onBack: () => void }>) {
   useNavigationScreenActions({ press: { b: onBack } });
