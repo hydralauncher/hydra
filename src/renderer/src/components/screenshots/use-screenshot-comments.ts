@@ -110,6 +110,8 @@ export function useScreenshotComments({
   const isReadInFlightRef = useRef(false);
   const writeVersionRef = useRef(0);
   const writesRef = useRef<VersionedCommentWrite[]>([]);
+  const commentsRef = useRef(comments);
+  commentsRef.current = comments;
   const commentCountRef = useRef(screenshot.commentCount);
   commentCountRef.current = screenshot.commentCount;
 
@@ -260,6 +262,24 @@ export function useScreenshotComments({
     if (isEnabled) void reload();
   }, [isEnabled, reload]);
 
+  const removeMissingComment = useCallback(
+    (commentId: string) => {
+      const removed = commentsRef.current.find(
+        (comment) => comment.id === commentId
+      );
+      if (!removed) return;
+
+      recordWrite({ kind: "delete", commentId });
+      setTotal((current) => Math.max(0, (current ?? 1) - 1));
+      if (!removed.isHidden) {
+        onPatch(screenshotId, {
+          commentCount: Math.max(0, commentCountRef.current - 1),
+        });
+      }
+    },
+    [onPatch, recordWrite, screenshotId]
+  );
+
   const handleWriteError = useCallback(
     (error: unknown, fallbackKey: string, commentId?: string) => {
       const code = getScreenshotApiErrorCode(error);
@@ -281,7 +301,7 @@ export function useScreenshotComments({
       }
 
       if (code === "screenshots/comment-not-found") {
-        if (commentId) recordWrite({ kind: "delete", commentId });
+        if (commentId) removeMissingComment(commentId);
         showErrorToast(t("comment_unavailable"));
         return;
       }
@@ -289,7 +309,14 @@ export function useScreenshotComments({
       if (handleAccessError(error)) return;
       showErrorToast(t(fallbackKey));
     },
-    [handleAccessError, onPatch, recordWrite, screenshotId, showErrorToast, t]
+    [
+      handleAccessError,
+      onPatch,
+      removeMissingComment,
+      screenshotId,
+      showErrorToast,
+      t,
+    ]
   );
 
   const createComment = useCallback(
