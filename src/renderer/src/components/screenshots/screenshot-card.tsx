@@ -127,37 +127,25 @@ function ScreenshotOwnerBadges({
   );
 }
 
-export function ScreenshotCard({
+interface ScreenshotCardMediaProps {
+  screenshot: ProfileScreenshot;
+  altText: string;
+  onOpen: (screenshot: ProfileScreenshot) => void;
+}
+
+function ScreenshotCardMedia({
   screenshot,
-  variant,
-  isOwner,
-  isLiking,
+  altText,
   onOpen,
-  onLike,
-}: Readonly<ScreenshotCardProps>) {
+}: Readonly<ScreenshotCardMediaProps>) {
   const { t } = useTranslation("screenshots");
-  const { formatDate, formatDateTime, formatDistance } = useDate();
   const { isHidden: isSpoilerHidden, reveal } =
     useScreenshotSpoiler(screenshot);
   const [failedImageUrl, setFailedImageUrl] = useState<string | null>(null);
   const imageUrl = screenshot.thumbnailUrl ?? screenshot.imageUrl;
   const hasImage = Boolean(imageUrl && imageUrl !== failedImageUrl);
-  const isApproved =
-    !screenshot.moderationStatus || screenshot.moderationStatus === "APPROVED";
-  const altText = t("screenshot_alt", {
-    game: getScreenshotGameTitle(screenshot, t),
-    date: formatDate(screenshot.capturedAt),
-  });
-  const shownTimestamp =
-    variant === "game" ? screenshot.createdAt : screenshot.capturedAt;
-  const shownTimeAgo = formatDistance(new Date(shownTimestamp), new Date(), {
-    addSuffix: true,
-  });
-  const shownTimeTitle = t(variant === "game" ? "uploaded_on" : "captured_on", {
-    date: formatDateTime(shownTimestamp),
-  });
 
-  const handleMediaClick = () => {
+  const handleClick = () => {
     if (isSpoilerHidden) {
       reveal();
       return;
@@ -167,94 +155,165 @@ export function ScreenshotCard({
   };
 
   return (
+    <button
+      type="button"
+      className={cn("screenshot-card__media", {
+        "screenshot-card__media--spoiler": isSpoilerHidden,
+      })}
+      onClick={handleClick}
+      aria-label={isSpoilerHidden ? t("spoiler_reveal") : altText}
+      title={isSpoilerHidden ? undefined : t("open_screenshot")}
+    >
+      {hasImage ? (
+        <img
+          className="screenshot-card__image"
+          src={imageUrl ?? undefined}
+          alt={altText}
+          loading="lazy"
+          onError={() => setFailedImageUrl(imageUrl)}
+        />
+      ) : (
+        <span className="screenshot-card__placeholder">
+          <ImageIcon size={28} />
+        </span>
+      )}
+
+      {isSpoilerHidden ? (
+        <span className="screenshot-card__spoiler">
+          <EyeClosedIcon size={18} />
+          <span>{t("spoiler_reveal")}</span>
+        </span>
+      ) : (
+        <span className="screenshot-card__hover">
+          <SearchIcon size={22} />
+        </span>
+      )}
+    </button>
+  );
+}
+
+interface ScreenshotCardLikeProps {
+  screenshot: ProfileScreenshot;
+  isLiking: boolean;
+  onLike: (screenshot: ProfileScreenshot) => void;
+}
+
+function ScreenshotCardLike({
+  screenshot,
+  isLiking,
+  onLike,
+}: Readonly<ScreenshotCardLikeProps>) {
+  const { t } = useTranslation("screenshots");
+  const label = t(screenshot.likedByMe ? "unlike" : "like");
+
+  return (
+    <div className="screenshot-card__actions">
+      <motion.button
+        type="button"
+        className={cn("screenshot-card__like", {
+          "screenshot-card__like--active": screenshot.likedByMe,
+        })}
+        onClick={() => onLike(screenshot)}
+        disabled={isLiking}
+        aria-pressed={screenshot.likedByMe}
+        aria-label={label}
+        title={label}
+        whileTap={{ scale: 0.92 }}
+      >
+        {screenshot.likedByMe ? (
+          <HeartFillIcon size={14} />
+        ) : (
+          <HeartIcon size={14} />
+        )}
+        <span>{screenshot.likeCount}</span>
+      </motion.button>
+    </div>
+  );
+}
+
+interface ScreenshotCardDetailsProps {
+  screenshot: ProfileScreenshot;
+  variant: ScreenshotCardVariant;
+}
+
+function ScreenshotCardDetails({
+  screenshot,
+  variant,
+}: Readonly<ScreenshotCardDetailsProps>) {
+  const { t } = useTranslation("screenshots");
+  const { formatDateTime, formatDistance } = useDate();
+  const isGameFeed = variant === "game";
+  const timestamp = isGameFeed ? screenshot.createdAt : screenshot.capturedAt;
+  const timeTitle = t(isGameFeed ? "uploaded_on" : "captured_on", {
+    date: formatDateTime(timestamp),
+  });
+
+  return (
+    <div className="screenshot-card__details">
+      {isGameFeed ? (
+        <Link
+          className="screenshot-card__author"
+          to={`/profile/${encodeURIComponent(screenshot.owner.id)}`}
+        >
+          <Avatar size={20} src={screenshot.owner.profileImageUrl} alt="" />
+          <span className="screenshot-card__author-name">
+            {screenshot.owner.displayName}
+          </span>
+        </Link>
+      ) : (
+        <ScreenshotGameLabel screenshot={screenshot} />
+      )}
+      <time
+        className="screenshot-card__date"
+        dateTime={new Date(timestamp).toISOString()}
+        title={timeTitle}
+      >
+        {formatDistance(new Date(timestamp), new Date(), { addSuffix: true })}
+      </time>
+    </div>
+  );
+}
+
+export function ScreenshotCard({
+  screenshot,
+  variant,
+  isOwner,
+  isLiking,
+  onOpen,
+  onLike,
+}: Readonly<ScreenshotCardProps>) {
+  const { t } = useTranslation("screenshots");
+  const { formatDate } = useDate();
+  const isApproved =
+    !screenshot.moderationStatus || screenshot.moderationStatus === "APPROVED";
+  const altText = t("screenshot_alt", {
+    game: getScreenshotGameTitle(screenshot, t),
+    date: formatDate(screenshot.capturedAt),
+  });
+
+  return (
     <li
       className={cn("screenshot-card", {
         "screenshot-card--blocked": screenshot.moderationStatus === "BLOCKED",
       })}
     >
-      <button
-        type="button"
-        className={cn("screenshot-card__media", {
-          "screenshot-card__media--spoiler": isSpoilerHidden,
-        })}
-        onClick={handleMediaClick}
-        aria-label={isSpoilerHidden ? t("spoiler_reveal") : altText}
-        title={isSpoilerHidden ? undefined : t("open_screenshot")}
-      >
-        {hasImage ? (
-          <img
-            className="screenshot-card__image"
-            src={imageUrl ?? undefined}
-            alt={altText}
-            loading="lazy"
-            onError={() => setFailedImageUrl(imageUrl)}
-          />
-        ) : (
-          <span className="screenshot-card__placeholder">
-            <ImageIcon size={28} />
-          </span>
-        )}
-
-        {isSpoilerHidden ? (
-          <span className="screenshot-card__spoiler">
-            <EyeClosedIcon size={18} />
-            <span>{t("spoiler_reveal")}</span>
-          </span>
-        ) : (
-          <span className="screenshot-card__hover">
-            <SearchIcon size={22} />
-          </span>
-        )}
-      </button>
+      <ScreenshotCardMedia
+        screenshot={screenshot}
+        altText={altText}
+        onOpen={onOpen}
+      />
 
       {isOwner ? <ScreenshotOwnerBadges screenshot={screenshot} /> : null}
 
       {isApproved ? (
-        <div className="screenshot-card__actions">
-          <motion.button
-            type="button"
-            className={cn("screenshot-card__like", {
-              "screenshot-card__like--active": screenshot.likedByMe,
-            })}
-            onClick={() => onLike(screenshot)}
-            disabled={isLiking}
-            aria-pressed={screenshot.likedByMe}
-            aria-label={t(screenshot.likedByMe ? "unlike" : "like")}
-            title={t(screenshot.likedByMe ? "unlike" : "like")}
-            whileTap={{ scale: 0.92 }}
-          >
-            {screenshot.likedByMe ? (
-              <HeartFillIcon size={14} />
-            ) : (
-              <HeartIcon size={14} />
-            )}
-            <span>{screenshot.likeCount}</span>
-          </motion.button>
-        </div>
+        <ScreenshotCardLike
+          screenshot={screenshot}
+          isLiking={isLiking}
+          onLike={onLike}
+        />
       ) : null}
 
-      <div className="screenshot-card__details">
-        {variant === "profile" ? (
-          <ScreenshotGameLabel screenshot={screenshot} />
-        ) : (
-          <Link
-            className="screenshot-card__author"
-            to={`/profile/${encodeURIComponent(screenshot.owner.id)}`}
-          >
-            <Avatar size={20} src={screenshot.owner.profileImageUrl} alt="" />
-            <span className="screenshot-card__author-name">
-              {screenshot.owner.displayName}
-            </span>
-          </Link>
-        )}
-        <time
-          className="screenshot-card__date"
-          dateTime={new Date(shownTimestamp).toISOString()}
-          title={shownTimeTitle}
-        >
-          {shownTimeAgo}
-        </time>
-      </div>
+      <ScreenshotCardDetails screenshot={screenshot} variant={variant} />
     </li>
   );
 }

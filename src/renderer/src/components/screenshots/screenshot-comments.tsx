@@ -93,7 +93,7 @@ function ScreenshotCommentItem({
 
   const handleVote = (vote: ScreenshotCommentVoteType) => {
     if (!isSignedIn) {
-      window.electron.openAuthWindow(AuthPage.SignIn);
+      void window.electron.openAuthWindow(AuthPage.SignIn);
       return;
     }
 
@@ -301,20 +301,20 @@ export function ScreenshotComments({
   const renderList = () => {
     if (hasFailed) {
       return (
-        <div className="screenshot-comments__empty" role="status">
+        <output className="screenshot-comments__empty">
           <p>{t("comments_load_failed")}</p>
           <Button theme="outline" onClick={() => void reload()}>
             {t("retry")}
           </Button>
-        </div>
+        </output>
       );
     }
 
     if (isInitialLoading) {
       return (
-        <p className="screenshot-comments__empty" role="status">
+        <output className="screenshot-comments__empty">
           {t("loading_comments")}
-        </p>
+        </output>
       );
     }
 
@@ -382,7 +382,9 @@ export function ScreenshotComments({
           {composerState === "signed_out" ? (
             <Button
               theme="outline"
-              onClick={() => window.electron.openAuthWindow(AuthPage.SignIn)}
+              onClick={() =>
+                void window.electron.openAuthWindow(AuthPage.SignIn)
+              }
             >
               {t("sign_in")}
             </Button>
