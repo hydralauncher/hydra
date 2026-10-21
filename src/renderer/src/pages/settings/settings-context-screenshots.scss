@@ -2,8 +2,6 @@
 
 $screenshots-press-duration: 0.08s;
 $screenshots-hover-duration: 0.2s;
-$screenshots-zoom-duration: 0.3s;
-$screenshots-progress-duration: 0.2s;
 
 .settings-screenshots {
   min-width: 0;
@@ -127,192 +125,6 @@ $screenshots-progress-duration: 0.2s;
     align-self: flex-start;
   }
 
-  &__group-header {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: baseline;
-    gap: globals.$spacing-unit;
-  }
-
-  &__count {
-    color: globals.$body-color;
-    font-size: globals.$small-font-size;
-  }
-
-  &__empty {
-    margin: 0;
-    color: globals.$body-color;
-    font-size: globals.$body-font-size;
-  }
-
-  &__grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(min(100%, 200px), 1fr));
-    gap: calc(globals.$spacing-unit * 1.5);
-    margin: 0;
-    padding: 0;
-    list-style: none;
-  }
-
-  &__card {
-    display: flex;
-    flex-direction: column;
-    min-width: 0;
-    overflow: hidden;
-    border: 1px solid globals.$border-color;
-    border-radius: 8px;
-    background-color: globals.$dark-background-color;
-    transition:
-      border-color $screenshots-hover-duration ease,
-      transform $screenshots-hover-duration ease;
-
-    &:hover {
-      border-color: rgba(255, 255, 255, 0.24);
-    }
-
-    &:hover img {
-      transform: scale(1.03);
-    }
-  }
-
-  &__thumbnail-button {
-    display: block;
-    width: 100%;
-    height: 100%;
-    padding: 0;
-    border: 0;
-    background: none;
-    cursor: zoom-in;
-
-    &:focus-visible {
-      outline: 2px solid #dadbe1;
-      outline-offset: -2px;
-    }
-  }
-
-  &__thumbnail {
-    position: relative;
-    aspect-ratio: 16 / 9;
-    overflow: hidden;
-    background-color: #000000;
-
-    img {
-      display: block;
-      width: 100%;
-      height: 100%;
-      object-fit: cover;
-      transition: transform $screenshots-zoom-duration ease;
-    }
-  }
-
-  &__status {
-    position: absolute;
-    top: globals.$spacing-unit;
-    left: globals.$spacing-unit;
-    max-width: calc(100% - globals.$spacing-unit * 2);
-    overflow: hidden;
-    padding: 2px globals.$spacing-unit;
-    border: 1px solid rgba(255, 255, 255, 0.12);
-    border-radius: 999px;
-    background-color: rgba(0, 0, 0, 0.55);
-    backdrop-filter: blur(8px);
-    color: #ffffff;
-    font-size: 11px;
-    font-weight: 500;
-    line-height: 16px;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-
-    &::before {
-      content: "";
-      display: inline-block;
-      width: 6px;
-      height: 6px;
-      margin-right: 6px;
-      border-radius: 50%;
-      vertical-align: 1px;
-      background-color: globals.$body-color;
-    }
-
-    &--progress::before {
-      background-color: #f4a510;
-    }
-
-    &--success::before {
-      background-color: globals.$success-color;
-    }
-
-    &--warning::before {
-      background-color: globals.$warning-color;
-    }
-
-    &--danger::before {
-      background-color: globals.$error-color;
-    }
-  }
-
-  &__progress-track {
-    position: absolute;
-    right: 0;
-    bottom: 0;
-    left: 0;
-    height: 3px;
-    overflow: hidden;
-    background-color: rgba(0, 0, 0, 0.5);
-  }
-
-  &__progress-bar {
-    height: 100%;
-    background-color: globals.$brand-teal;
-    transition: width $screenshots-progress-duration ease;
-  }
-
-  &__card-body {
-    display: flex;
-    align-items: center;
-    gap: globals.$spacing-unit;
-    min-width: 0;
-    padding: globals.$spacing-unit calc(globals.$spacing-unit * 1.5);
-  }
-
-  &__card-text {
-    display: flex;
-    flex: 1;
-    flex-direction: column;
-    gap: 2px;
-    min-width: 0;
-  }
-
-  &__card-title {
-    overflow: hidden;
-    color: globals.$muted-color;
-    font-size: globals.$body-font-size;
-    font-weight: 600;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-  }
-
-  &__card-date {
-    overflow: hidden;
-    color: globals.$body-color;
-    font-size: globals.$small-font-size;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-  }
-
-  &__card-actions {
-    display: flex;
-    flex-shrink: 0;
-    gap: calc(globals.$spacing-unit / 2);
-  }
-
-  &__card-detail {
-    padding: 0 calc(globals.$spacing-unit * 1.5) globals.$spacing-unit;
-    color: globals.$body-color;
-    font-size: globals.$small-font-size;
-    line-height: 16px;
-  }
-
   &__icon-action {
     width: 28px;
     min-width: 28px;
@@ -323,11 +135,6 @@ $screenshots-progress-duration: 0.2s;
       width: 40px;
       min-width: 40px;
       height: 40px;
-    }
-
-    &--danger:not(:disabled):hover {
-      border-color: globals.$error-color;
-      color: globals.$error-color;
     }
   }
 
@@ -359,9 +166,5 @@ $screenshots-progress-duration: 0.2s;
 
   &__combo-reset {
     margin-left: globals.$spacing-unit;
-  }
-
-  &__show-more {
-    align-self: center;
   }
 }

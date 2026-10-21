@@ -17,11 +17,16 @@ import {
   prepareLinuxGameCaptureSession,
   stopAllLinuxGameCaptureSessions,
 } from "../linux-game-capture-session";
+import { HydraApi } from "../hydra-api";
 import { logger } from "../logger";
 import { ScreenshotInputService } from "../screenshot-input";
 import { WindowManager } from "../window-manager";
 import { GameContentWarningCache } from "./content-warning-cache";
 import { LocalScreenshotStore } from "./local-screenshot-store";
+import {
+  findLocalScreenshotGameObjectId,
+  getPublishedScreenshotIds,
+} from "./local-screenshot-game";
 import { buildLocalScreenshotDraftPatch } from "./screenshot-draft";
 import {
   clearScreenshotGameSession,
@@ -76,6 +81,10 @@ export const initializeScreenshots = () => {
 
   ScreenshotReviewWindows.onWindowClosed(() => {
     void ScreenshotUploadNotifier.refresh();
+  });
+
+  void backfillLocalScreenshotGameIds().catch((error) => {
+    logger.error("Failed to back-fill local screenshot game ids", error);
   });
 
   void ScreenshotReviewWindows.releaseStaleReviews(SCREENSHOTS_MODULE_LOADED_AT)
@@ -139,6 +148,38 @@ export const applyScreenshotsEnabledPreference = async (
 
 export const getLocalScreenshots = () => LocalScreenshotStore.list();
 
+export const getLocalScreenshotsForGame = (shop: GameShop, objectId: string) =>
+  LocalScreenshotStore.listForGame(shop, objectId);
+
+export const getPublishedScreenshotIdsForGame = async (
+  shop: GameShop,
+  objectId: string
+) => {
+  const ownerId = HydraApi.getAuthContext()?.userId;
+  if (!ownerId) return [];
+  const screenshots = await LocalScreenshotStore.listIncludingDeleted();
+  return getPublishedScreenshotIds(screenshots, shop, objectId, ownerId);
+};
+
+const backfillLocalScreenshotGameIds = async () => {
+  const screenshots = await LocalScreenshotStore.listIncludingDeleted();
+  if (!screenshots.some((screenshot) => !screenshot.objectId)) return;
+
+  const games = await gamesSublevel.values().all();
+  const updates = screenshots.flatMap((screenshot) => {
+    const objectId = findLocalScreenshotGameObjectId(screenshot, games);
+    return objectId ? [{ clientId: screenshot.clientId, objectId }] : [];
+  });
+
+  await Promise.all(
+    updates.map(({ clientId, objectId }) =>
+      LocalScreenshotStore.update(clientId, (current) =>
+        current.objectId ? {} : { objectId }
+      )
+    )
+  );
+};
+
 export const flushScreenshotTelemetry = (timeoutMs: number) =>
   Promise.race([
     ScreenshotTelemetry.flush(),
@@ -161,16 +202,11 @@ export const uploadLocalScreenshot = async (
   return screenshotUploadWorker.enqueue(clientId, options);
 };
 
-export const deleteLocalScreenshot = async (clientId: string) => {
-  const screenshot = await LocalScreenshotStore.get(clientId);
-  if (!screenshot) return;
-
-  screenshotUploadWorker.cancel(clientId);
-  await fs.promises.rm(screenshot.path, { force: true });
-  await LocalScreenshotStore.delete(clientId);
-  ScreenshotReviewWindows.removeScreenshotFromWindows(clientId);
-  ScreenshotTelemetry.record("review", "delete");
-};
+export {
+  deleteLocalScreenshot,
+  deleteLocalScreenshotsForGame,
+  forgetPublishedScreenshots,
+} from "./local-screenshot-removal";
 
 export const openScreenshotReview = async (clientId: string) => {
   const screenshot = await LocalScreenshotStore.get(clientId);
