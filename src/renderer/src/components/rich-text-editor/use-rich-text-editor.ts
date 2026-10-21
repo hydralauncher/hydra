@@ -3,6 +3,13 @@ import { useEditor, type Editor } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
 import Underline from "@tiptap/extension-underline";
 
+import {
+  RichTextLimit,
+  measureRichTextDocHtml,
+  measureRichTextDocText,
+  pasteWithinRichTextLimit,
+} from "./rich-text-limit";
+
 export const RICH_TEXT_EXTENSIONS = [
   StarterKit.configure({ link: false }),
   Underline,
@@ -79,6 +86,9 @@ export function useRichTextEditor({
 }: UseRichTextEditorOptions) {
   const measure = (html: string) =>
     measureText ? measureText(html) : getHtmlTextLength(html);
+  const measureDoc = measureText
+    ? measureRichTextDocHtml(measureText)
+    : measureRichTextDocText;
   const [charCount, setCharCount] = useState(() =>
     initialHtml ? measure(initialHtml) : 0
   );
@@ -89,7 +99,10 @@ export function useRichTextEditor({
   onEscapeRef.current = onEscape;
 
   const editor = useEditor({
-    extensions: RICH_TEXT_EXTENSIONS,
+    extensions: [
+      ...RICH_TEXT_EXTENSIONS,
+      RichTextLimit.configure({ maxLength, measure: measureDoc }),
+    ],
     content: initialHtml,
     autofocus: autofocus ? "end" : false,
     editorProps: {
@@ -121,32 +134,10 @@ export function useRichTextEditor({
         onSubmitShortcutRef.current();
         return true;
       },
-      handlePaste: (view, event) => {
-        const htmlContent = event.clipboardData?.getData("text/html") || "";
-        const plainText = event.clipboardData?.getData("text/plain") || "";
-        const remainingChars = maxLength - view.state.doc.textContent.length;
-
-        if (!(htmlContent || plainText) || remainingChars <= 0) return false;
-
-        event.preventDefault();
-
-        if (htmlContent && getHtmlTextLength(htmlContent) <= remainingChars) {
-          return false;
-        }
-
-        view.dispatch(
-          view.state.tr.insertText(plainText.slice(0, remainingChars))
-        );
-        return true;
-      },
+      handlePaste: (view, event) =>
+        pasteWithinRichTextLimit(view, event, maxLength, measureDoc),
     },
     onUpdate: ({ editor: updatedEditor }) => {
-      const text = updatedEditor.getText();
-
-      if (text.length > maxLength) {
-        updatedEditor.commands.setContent(text.slice(0, maxLength));
-      }
-
       const html = updatedEditor.getHTML();
       setCharCount(
         measureText ? measureText(html) : updatedEditor.getText().length
