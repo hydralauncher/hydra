@@ -96,7 +96,12 @@ function CommentEditorForm({
 }: Readonly<CommentEditorFormProps>) {
   const { t } = useTranslation("big_picture");
   const isEditing = editingComment !== null;
-  const { editor, charCount, htmlLength, getHtml, clear } = useRichTextEditor({
+  const {
+    editor,
+    charCount,
+    htmlLength,
+    submit: submitEditor,
+  } = useRichTextEditor({
     initialHtml: editingComment?.bodyHtml ?? "",
     placeholder: t("screenshots_comment_placeholder"),
     maxLength: SCREENSHOT_COMMENT_MAX_LENGTH,
@@ -113,18 +118,11 @@ function CommentEditorForm({
   const submit = async () => {
     if (!canSubmit || !isRichTextEditorAvailable(editor)) return;
 
-    const sentHtml = getHtml();
     const keyboard = useVirtualKeyboardStore.getState();
     if (keyboard.target === editor.view.dom)
       keyboard.closeKeyboard?.({ restoreFocus: false });
-    editor.setEditable(false);
 
-    try {
-      const wasSubmitted = await onSubmit(sentHtml);
-      if (wasSubmitted && !isEditing && getHtml() === sentHtml) clear();
-    } finally {
-      if (isRichTextEditorAvailable(editor)) editor.setEditable(true);
-    }
+    await submitEditor(onSubmit, { clearOnSuccess: !isEditing });
   };
 
   const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
