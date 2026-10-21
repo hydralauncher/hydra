@@ -1488,6 +1488,12 @@ contextBridge.exposeInMainWorld("electron", {
   getScreenshotsPath: () => ipcRenderer.invoke("getScreenshotsPath"),
   ...(import.meta.env.DEV ? { screenshotsDev: screenshotsDevApi } : {}),
   getLocalScreenshots: () => ipcRenderer.invoke("getLocalScreenshots"),
+  getLocalScreenshotsForGame: (shop: GameShop, objectId: string) =>
+    ipcRenderer.invoke("getLocalScreenshotsForGame", shop, objectId),
+  deleteLocalScreenshotsForGame: (shop: GameShop, objectId: string) =>
+    ipcRenderer.invoke("deleteLocalScreenshotsForGame", shop, objectId),
+  getPublishedScreenshotIdsForGame: (shop: GameShop, objectId: string) =>
+    ipcRenderer.invoke("getPublishedScreenshotIdsForGame", shop, objectId),
   uploadLocalScreenshot: (
     clientId: string,
     options: LocalScreenshotUploadOptions

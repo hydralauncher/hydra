@@ -1099,6 +1099,18 @@ declare global {
     getScreenshotsPath: () => Promise<string>;
     screenshotsDev?: ScreenshotsDevApi;
     getLocalScreenshots: () => Promise<LocalScreenshot[]>;
+    getLocalScreenshotsForGame: (
+      shop: GameShop,
+      objectId: string
+    ) => Promise<LocalScreenshot[]>;
+    deleteLocalScreenshotsForGame: (
+      shop: GameShop,
+      objectId: string
+    ) => Promise<number>;
+    getPublishedScreenshotIdsForGame: (
+      shop: GameShop,
+      objectId: string
+    ) => Promise<string[]>;
     uploadLocalScreenshot: (
       clientId: string,
       options: LocalScreenshotUploadOptions
