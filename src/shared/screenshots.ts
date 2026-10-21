@@ -57,6 +57,8 @@ export const isScreenshotSort = (value: unknown): value is ScreenshotSort =>
 
 type QueryValue = string | number | null | undefined;
 
+const PROFILE_SCREENSHOTS_PATH = "/profile/screenshots";
+
 const withQuery = (path: string, query: Record<string, QueryValue>) => {
   const params = new URLSearchParams();
 
@@ -96,6 +98,14 @@ export const buildUserScreenshotsPath = ({
     shop,
     objectId: shop === "custom" ? null : objectId,
   });
+
+export const buildProfileGameScreenshotsPath = ({
+  shop,
+  objectId,
+}: {
+  shop: ScreenshotShop;
+  objectId: string;
+}) => withQuery(PROFILE_SCREENSHOTS_PATH, { shop, objectId });
 
 export const buildUserScreenshotGamesPath = (userId: string) =>
   `${userScreenshotsBasePath(userId)}/games`;
@@ -171,7 +181,7 @@ export const buildGameScreenshotsPath = ({
   );
 
 export const buildProfileScreenshotPath = (screenshotId: string) =>
-  `/profile/screenshots/${encodeURIComponent(screenshotId)}`;
+  `${PROFILE_SCREENSHOTS_PATH}/${encodeURIComponent(screenshotId)}`;
 
 export const SCREENSHOT_API_ERROR_CODES = [
   "screenshots/not-found",
@@ -183,6 +193,7 @@ export const SCREENSHOT_API_ERROR_CODES = [
   "screenshots/report-rate-limited",
   "screenshots/already-reported",
   "screenshots/cannot-report-own",
+  "screenshots/game-deletion-rate-limited",
 ] as const;
 
 export type ScreenshotApiErrorCode =

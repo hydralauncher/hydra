@@ -11,8 +11,11 @@ import type { GameShop } from "@types";
 
 import { SidebarSection } from "../sidebar-section/sidebar-section";
 import { GameScreenshotThumbnail } from "./game-screenshot-thumbnail";
+import { GameScreenshotsHotkeyTip } from "./game-screenshots-hotkey-tip";
 import { GameScreenshotsModal } from "./game-screenshots-modal";
-import { useGameScreenshotsCollection } from "./use-game-screenshots-collection";
+import { LocalScreenshotTile } from "./local-screenshot-tile";
+import { useLocalScreenshotActions } from "./use-local-screenshot-actions";
+import { useMyGameScreenshots } from "./use-my-game-screenshots";
 
 import "./game-screenshots.scss";
 
@@ -32,21 +35,21 @@ function GameScreenshotsBox({
   const { t } = useTranslation("screenshots");
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [writeBus] = useState(createScreenshotWriteBus);
-  const collection = useGameScreenshotsCollection({
+  const mine = useMyGameScreenshots({
     shop,
     objectId,
-    sort: "top",
+    sort: "recent",
     take: SIDEBAR_SCREENSHOT_COUNT,
     isEnabled: true,
     writeBus,
   });
-  const { feed, actions, lightbox } = collection;
-  const topItems = feed.items.slice(0, SIDEBAR_SCREENSHOT_COUNT);
-  const isInitialLoading =
-    !feed.hasLoaded || (feed.isLoading && feed.items.length === 0);
+  const { collection } = mine;
+  const { actions, lightbox } = collection;
+  const topItems = mine.items.slice(0, SIDEBAR_SCREENSHOT_COUNT);
+  const local = useLocalScreenshotActions(mine.pendingLocal);
 
   const renderContent = () => {
-    if (isInitialLoading) {
+    if (!mine.hasLoaded) {
       return (
         <>
           <div className="game-screenshots-box__grid" aria-busy="true">
@@ -65,8 +68,11 @@ function GameScreenshotsBox({
     if (topItems.length === 0) {
       return (
         <output className="game-screenshots-box__empty">
-          <ImageIcon size={16} />
-          <span>{t("no_screenshots")}</span>
+          <span className="game-screenshots-box__empty-title">
+            <ImageIcon size={16} />
+            {t("no_game_screenshots_yet")}
+          </span>
+          <GameScreenshotsHotkeyTip />
         </output>
       );
     }
@@ -74,16 +80,28 @@ function GameScreenshotsBox({
     return (
       <>
         <ul className="game-screenshots-box__grid">
-          {topItems.map((screenshot) => (
-            <li key={screenshot.id}>
-              <GameScreenshotThumbnail
-                screenshot={screenshot}
-                isLiking={actions.likingIds.has(screenshot.id)}
-                showCommentCount={showCommentCount}
-                onOpen={lightbox.open}
-                onLike={(item) => void actions.toggleLike(item)}
-                onImageError={lightbox.refreshScreenshot}
-              />
+          {topItems.map((item) => (
+            <li key={item.id}>
+              {item.kind === "published" ? (
+                <GameScreenshotThumbnail
+                  screenshot={item.screenshot}
+                  isLiking={actions.likingIds.has(item.screenshot.id)}
+                  showCommentCount={showCommentCount}
+                  showOwner={false}
+                  onOpen={lightbox.open}
+                  onLike={(screenshot) => void actions.toggleLike(screenshot)}
+                  onImageError={lightbox.refreshScreenshot}
+                />
+              ) : (
+                <LocalScreenshotTile
+                  screenshot={item.screenshot}
+                  alt={local.describe(item.screenshot)}
+                  isBusy={local.busyIds.has(item.screenshot.clientId)}
+                  onOpen={local.open}
+                  onUpload={local.upload}
+                  onDelete={local.requestDelete}
+                />
+              )}
             </li>
           ))}
         </ul>
@@ -100,10 +118,11 @@ function GameScreenshotsBox({
   };
 
   return (
-    <SidebarSection title={t("community_screenshots")}>
+    <SidebarSection title={t("my_screenshots")}>
       <div className="game-screenshots-box">{renderContent()}</div>
 
       <ScreenshotLightbox collection={collection} />
+      {local.elements}
 
       <GameScreenshotsModal
         visible={isModalVisible}
@@ -130,13 +149,7 @@ export function GameScreenshots({
 }: Readonly<GameScreenshotsProps>) {
   const { isFeatureEnabled, Feature } = useFeature();
 
-  if (
-    shop === "custom" ||
-    isAdultGame ||
-    !isFeatureEnabled(Feature.Screenshots)
-  ) {
-    return null;
-  }
+  if (isAdultGame || !isFeatureEnabled(Feature.Screenshots)) return null;
 
   return (
     <GameScreenshotsBox
