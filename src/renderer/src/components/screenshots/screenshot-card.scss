@@ -10,10 +10,6 @@
   border-radius: 8px;
   background-color: globals.$background-color;
 
-  &--blocked {
-    border-color: rgba(225, 29, 72, 0.45);
-  }
-
   &__media {
     position: relative;
     display: block;
@@ -124,16 +120,6 @@
   }
 
   &__badge {
-    &--pending {
-      border-color: rgba(255, 193, 7, 0.5);
-      color: #ffd36d;
-    }
-
-    &--blocked {
-      border-color: rgba(225, 29, 72, 0.6);
-      color: #ff8aa3;
-    }
-
     &--icon {
       width: 24px;
       padding: 0;
@@ -159,7 +145,7 @@
     }
 
     &:disabled {
-      cursor: progress;
+      cursor: default;
     }
 
     &--active {

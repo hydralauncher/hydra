@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
+  CommentDiscussionIcon,
   CommentIcon,
   PencilIcon,
   ReportIcon,
@@ -39,6 +40,9 @@ const getComposerState = (
   isSignedIn: boolean,
   isWritingEnabled: boolean
 ): ComposerState => {
+  const isApproved =
+    !screenshot.moderationStatus || screenshot.moderationStatus === "APPROVED";
+  if (!isApproved) return "unavailable";
   if (!screenshot.commentsEnabled) return "turned_off";
   if (!isWritingEnabled) return "unavailable";
   if (!isSignedIn) return "signed_out";
@@ -320,9 +324,14 @@ export function ScreenshotComments({
 
     if (comments.length === 0) {
       return (
-        <p className="screenshot-comments__empty">
-          {composerState === "ready" ? t("no_comments_cta") : t("no_comments")}
-        </p>
+        <div className="screenshot-comments__empty-state">
+          <span className="screenshot-comments__empty-state-icon">
+            <CommentDiscussionIcon size={24} />
+          </span>
+          <p className="screenshot-comments__empty-state-title">
+            {t("no_comments")}
+          </p>
+        </div>
       );
     }
 
@@ -369,30 +378,32 @@ export function ScreenshotComments({
         {t("comments_title", { count: commentCount })}
       </h3>
 
-      {composerState === "ready" ? (
-        <ScreenshotCommentInput
-          placeholder={t("comment_placeholder")}
-          submitLabel={t("post_comment")}
-          isSubmitting={isSubmitting}
-          onSubmit={createComment}
-        />
-      ) : (
-        <div className="screenshot-comments__notice" role="note">
-          <span>{t(COMPOSER_NOTICE_KEYS[composerState])}</span>
-          {composerState === "signed_out" ? (
-            <Button
-              theme="outline"
-              onClick={() =>
-                void window.electron.openAuthWindow(AuthPage.SignIn)
-              }
-            >
-              {t("sign_in")}
-            </Button>
-          ) : null}
-        </div>
-      )}
+      <div className="screenshot-comments__feed">{renderList()}</div>
 
-      {renderList()}
+      <div className="screenshot-comments__composer">
+        {composerState === "ready" ? (
+          <ScreenshotCommentInput
+            placeholder={t("comment_placeholder")}
+            submitLabel={t("post_comment")}
+            isSubmitting={isSubmitting}
+            onSubmit={createComment}
+          />
+        ) : (
+          <div className="screenshot-comments__notice" role="note">
+            <span>{t(COMPOSER_NOTICE_KEYS[composerState])}</span>
+            {composerState === "signed_out" ? (
+              <Button
+                theme="outline"
+                onClick={() =>
+                  void window.electron.openAuthWindow(AuthPage.SignIn)
+                }
+              >
+                {t("sign_in")}
+              </Button>
+            ) : null}
+          </div>
+        )}
+      </div>
 
       <ConfirmationModal
         visible={Boolean(deleteTarget)}

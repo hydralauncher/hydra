@@ -1,23 +1,23 @@
-import { useState, type RefObject } from "react";
+import { useId, useState, type RefObject } from "react";
 import { useTranslation } from "react-i18next";
 import {
-  BlockedIcon,
-  ClockIcon,
   CopyIcon,
   EyeClosedIcon,
   HeartFillIcon,
   HeartIcon,
   ImageIcon,
   ReportIcon,
+  TrashIcon,
   XIcon,
 } from "@primer/octicons-react";
 import cn from "classnames";
+import { Tooltip } from "react-tooltip";
 
 import { Avatar } from "../avatar/avatar";
 import { Link } from "../link/link";
 import { buildGameDetailsPath } from "@renderer/helpers";
 import { useDate, useUserDetails } from "@renderer/hooks";
-import { AuthPage, getScreenshotModerationReasonKey } from "@shared";
+import { AuthPage } from "@shared";
 import type { ProfileScreenshot } from "@types";
 
 import { ScreenshotComments } from "./screenshot-comments";
@@ -82,45 +82,6 @@ function ScreenshotGameTag({
   );
 }
 
-function ScreenshotModerationNotice({
-  screenshot,
-}: Readonly<{ screenshot: ProfileScreenshot }>) {
-  const { t } = useTranslation("screenshots");
-  const { t: tModeration } = useTranslation("screenshots_moderation");
-
-  if (screenshot.moderationStatus === "PENDING") {
-    return (
-      <div className="screenshot-lightbox__notice screenshot-lightbox__notice--pending">
-        <ClockIcon size={16} />
-        <div>
-          <strong>{t("status_pending")}</strong>
-          <span>{t("status_pending_description")}</span>
-        </div>
-      </div>
-    );
-  }
-
-  if (screenshot.moderationStatus === "BLOCKED") {
-    return (
-      <div className="screenshot-lightbox__notice screenshot-lightbox__notice--blocked">
-        <BlockedIcon size={16} />
-        <div>
-          <strong>{t("status_blocked")}</strong>
-          <span>
-            {t("status_blocked_description", {
-              reason: tModeration(
-                getScreenshotModerationReasonKey(screenshot.moderationReason)
-              ),
-            })}
-          </span>
-        </div>
-      </div>
-    );
-  }
-
-  return null;
-}
-
 interface ScreenshotPanelHeaderProps {
   screenshot: ProfileScreenshot;
   closeButtonRef: RefObject<HTMLButtonElement>;
@@ -172,6 +133,7 @@ interface ScreenshotPanelActionsProps {
   actions: ScreenshotActions;
   isOwner: boolean;
   isApproved: boolean;
+  onRequestDelete: () => void;
   onRequestReport: () => void;
 }
 
@@ -180,13 +142,17 @@ function ScreenshotPanelActions({
   actions,
   isOwner,
   isApproved,
+  onRequestDelete,
   onRequestReport,
 }: Readonly<ScreenshotPanelActionsProps>) {
   const { t } = useTranslation("screenshots");
   const { userDetails } = useUserDetails();
+  const tooltipId = useId();
   const isReported = actions.reportedIds.has(screenshot.id);
   const likeLabelKey = screenshot.likedByMe ? "unlike" : "like";
   const likeLabel = t(userDetails ? likeLabelKey : "sign_in_to_like");
+  const copyLabel = t("copy_image");
+  const deleteLabel = t("delete_screenshot");
 
   const handleReportClick = () => {
     if (!userDetails) {
@@ -199,41 +165,56 @@ function ScreenshotPanelActions({
 
   return (
     <div className="screenshot-lightbox__actions">
-      {isApproved ? (
-        <button
-          type="button"
-          className={cn("screenshot-lightbox__action", {
-            "screenshot-lightbox__action--active": screenshot.likedByMe,
-          })}
-          onClick={() => void actions.toggleLike(screenshot)}
-          disabled={actions.likingIds.has(screenshot.id)}
-          aria-pressed={screenshot.likedByMe}
-          aria-label={likeLabel}
-          title={likeLabel}
-        >
-          {screenshot.likedByMe ? (
-            <HeartFillIcon size={16} />
-          ) : (
-            <HeartIcon size={16} />
-          )}
-          <span>{screenshot.likeCount}</span>
-        </button>
-      ) : null}
+      <button
+        type="button"
+        className={cn("screenshot-lightbox__action", {
+          "screenshot-lightbox__action--active": screenshot.likedByMe,
+        })}
+        onClick={() => void actions.toggleLike(screenshot)}
+        disabled={!isApproved || actions.likingIds.has(screenshot.id)}
+        aria-pressed={screenshot.likedByMe}
+        aria-label={likeLabel}
+        data-tooltip-id={tooltipId}
+        data-tooltip-content={likeLabel}
+      >
+        {screenshot.likedByMe ? (
+          <HeartFillIcon size={16} />
+        ) : (
+          <HeartIcon size={16} />
+        )}
+        <span>{screenshot.likeCount}</span>
+      </button>
 
       <button
         type="button"
-        className="screenshot-lightbox__action"
+        className="screenshot-lightbox__action screenshot-lightbox__action--icon screenshot-lightbox__copy"
         onClick={() => void actions.copyImage(screenshot)}
         disabled={!screenshot.imageUrl || actions.copyingIds.has(screenshot.id)}
+        aria-label={copyLabel}
+        data-tooltip-id={tooltipId}
+        data-tooltip-content={copyLabel}
       >
         <CopyIcon size={16} />
-        <span>{t("copy_image")}</span>
       </button>
+
+      {isOwner ? (
+        <button
+          type="button"
+          className="screenshot-lightbox__action screenshot-lightbox__action--icon screenshot-lightbox__action--danger screenshot-lightbox__delete"
+          onClick={onRequestDelete}
+          disabled={actions.deletingIds.has(screenshot.id)}
+          aria-label={deleteLabel}
+          data-tooltip-id={tooltipId}
+          data-tooltip-content={deleteLabel}
+        >
+          <TrashIcon size={16} />
+        </button>
+      ) : null}
 
       {!isOwner && isApproved ? (
         <button
           type="button"
-          className="screenshot-lightbox__action"
+          className="screenshot-lightbox__action screenshot-lightbox__report"
           onClick={handleReportClick}
           disabled={isReported || actions.reportingIds.has(screenshot.id)}
         >
@@ -241,6 +222,13 @@ function ScreenshotPanelActions({
           <span>{t(isReported ? "reported" : "report")}</span>
         </button>
       ) : null}
+
+      <Tooltip
+        id={tooltipId}
+        place="top"
+        positionStrategy="fixed"
+        className="screenshot-lightbox__tooltip"
+      />
     </div>
   );
 }
@@ -290,13 +278,12 @@ export function ScreenshotLightboxPanel({
         ) : null}
       </div>
 
-      {isOwner ? <ScreenshotModerationNotice screenshot={screenshot} /> : null}
-
       <ScreenshotPanelActions
         screenshot={screenshot}
         actions={actions}
         isOwner={isOwner}
         isApproved={isApproved}
+        onRequestDelete={onRequestDelete}
         onRequestReport={onRequestReport}
       />
 
@@ -304,21 +291,17 @@ export function ScreenshotLightboxPanel({
         <ScreenshotOwnerControls
           screenshot={screenshot}
           isUpdating={actions.updatingIds.has(screenshot.id)}
-          isDeleting={actions.deletingIds.has(screenshot.id)}
           onUpdate={(update) => actions.updateScreenshot(screenshot, update)}
-          onRequestDelete={onRequestDelete}
         />
       ) : null}
 
-      {isApproved ? (
-        <ScreenshotComments
-          key={screenshot.id}
-          screenshot={screenshot}
-          onPatch={onPatch}
-          onFailure={onFailure}
-          onNavigateAway={onClose}
-        />
-      ) : null}
+      <ScreenshotComments
+        key={screenshot.id}
+        screenshot={screenshot}
+        onPatch={onPatch}
+        onFailure={onFailure}
+        onNavigateAway={onClose}
+      />
     </aside>
   );
 }

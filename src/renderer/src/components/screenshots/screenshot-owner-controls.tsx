@@ -1,6 +1,7 @@
-import { useEffect, useState, type FormEvent } from "react";
+import { useEffect, useId, useState, type FormEvent } from "react";
 import { useTranslation } from "react-i18next";
-import { TrashIcon } from "@primer/octicons-react";
+import { ChevronDownIcon, GearIcon } from "@primer/octicons-react";
+import cn from "classnames";
 
 import { Button } from "../button/button";
 import { CheckboxField } from "../checkbox-field/checkbox-field";
@@ -22,19 +23,17 @@ const VISIBILITY_OPTIONS: ProfileVisibility[] = [
 interface ScreenshotOwnerControlsProps {
   screenshot: ProfileScreenshot;
   isUpdating: boolean;
-  isDeleting: boolean;
   onUpdate: (update: ScreenshotUpdateRequest) => Promise<boolean>;
-  onRequestDelete: () => void;
 }
 
 export function ScreenshotOwnerControls({
   screenshot,
   isUpdating,
-  isDeleting,
   onUpdate,
-  onRequestDelete,
 }: Readonly<ScreenshotOwnerControlsProps>) {
   const { t } = useTranslation("screenshots");
+  const contentId = useId();
+  const [isExpanded, setIsExpanded] = useState(false);
   const [customTitle, setCustomTitle] = useState(screenshot.gameTitle ?? "");
 
   useEffect(() => {
@@ -54,79 +53,87 @@ export function ScreenshotOwnerControls({
 
   return (
     <section
-      className="screenshot-lightbox__owner"
-      aria-label={t("screenshot_settings")}
+      className={cn("screenshot-lightbox__owner", {
+        "screenshot-lightbox__owner--expanded": isExpanded,
+      })}
     >
-      <h3 className="screenshot-lightbox__section-title">
-        {t("screenshot_settings")}
-      </h3>
+      <button
+        type="button"
+        className="screenshot-lightbox__owner-toggle"
+        aria-expanded={isExpanded}
+        aria-controls={contentId}
+        onClick={() => setIsExpanded((current) => !current)}
+      >
+        <GearIcon size={16} />
+        <span>{t("screenshot_settings")}</span>
+        <ChevronDownIcon
+          size={16}
+          className="screenshot-lightbox__owner-chevron"
+        />
+      </button>
 
-      <SelectField
-        label={t("visibility")}
-        value={screenshot.visibility ?? "PUBLIC"}
-        disabled={isUpdating}
-        onChange={(event) =>
-          void onUpdate({
-            visibility: event.target.value as ProfileVisibility,
-          })
-        }
-        options={VISIBILITY_OPTIONS.map((visibility) => ({
-          key: visibility,
-          value: visibility,
-          label: t(`visibility_${visibility.toLowerCase()}`),
-        }))}
-      />
-
-      <CheckboxField
-        label={t("mark_as_spoiler")}
-        checked={screenshot.isSpoiler}
-        disabled={isUpdating}
-        onChange={(event) => void onUpdate({ isSpoiler: event.target.checked })}
-      />
-
-      <CheckboxField
-        label={t("allow_comments")}
-        checked={screenshot.commentsEnabled}
-        disabled={isUpdating}
-        onChange={(event) =>
-          void onUpdate({ commentsEnabled: event.target.checked })
-        }
-      />
-
-      {screenshot.isCustomGame ? (
-        <form
-          className="screenshot-lightbox__title-form"
-          onSubmit={handleCustomTitleSubmit}
-        >
-          <TextField
-            label={t("custom_game_title")}
-            placeholder={t("custom_game")}
-            value={customTitle}
-            maxLength={SCREENSHOT_CUSTOM_GAME_TITLE_MAX_LENGTH}
+      {isExpanded ? (
+        <div id={contentId} className="screenshot-lightbox__owner-content">
+          <SelectField
+            label={t("visibility")}
+            value={screenshot.visibility ?? "PUBLIC"}
             disabled={isUpdating}
-            onChange={(event) => setCustomTitle(event.target.value)}
-            rightContent={
-              <Button
-                type="submit"
-                theme="outline"
-                disabled={!isCustomTitleChanged || isUpdating}
-              >
-                {t("save")}
-              </Button>
+            onChange={(event) =>
+              void onUpdate({
+                visibility: event.target.value as ProfileVisibility,
+              })
+            }
+            options={VISIBILITY_OPTIONS.map((visibility) => ({
+              key: visibility,
+              value: visibility,
+              label: t(`visibility_${visibility.toLowerCase()}`),
+            }))}
+          />
+
+          <CheckboxField
+            label={t("mark_as_spoiler")}
+            checked={screenshot.isSpoiler}
+            disabled={isUpdating}
+            onChange={(event) =>
+              void onUpdate({ isSpoiler: event.target.checked })
             }
           />
-        </form>
-      ) : null}
 
-      <Button
-        theme="danger"
-        className="screenshot-lightbox__delete"
-        disabled={isDeleting}
-        onClick={onRequestDelete}
-      >
-        <TrashIcon size={16} />
-        {t("delete_screenshot")}
-      </Button>
+          <CheckboxField
+            label={t("allow_comments")}
+            checked={screenshot.commentsEnabled}
+            disabled={isUpdating}
+            onChange={(event) =>
+              void onUpdate({ commentsEnabled: event.target.checked })
+            }
+          />
+
+          {screenshot.isCustomGame ? (
+            <form
+              className="screenshot-lightbox__title-form"
+              onSubmit={handleCustomTitleSubmit}
+            >
+              <TextField
+                label={t("custom_game_title")}
+                placeholder={t("custom_game")}
+                value={customTitle}
+                maxLength={SCREENSHOT_CUSTOM_GAME_TITLE_MAX_LENGTH}
+                disabled={isUpdating}
+                onChange={(event) => setCustomTitle(event.target.value)}
+                rightContent={
+                  <Button
+                    type="submit"
+                    theme="outline"
+                    disabled={!isCustomTitleChanged || isUpdating}
+                  >
+                    {t("save")}
+                  </Button>
+                }
+              />
+            </form>
+          ) : null}
+        </div>
+      ) : null}
     </section>
   );
 }
