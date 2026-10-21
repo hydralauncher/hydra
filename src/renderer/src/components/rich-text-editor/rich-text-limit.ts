@@ -1,9 +1,7 @@
 import { Extension, getHTMLFromFragment } from "@tiptap/react";
-import type { Node as ProseMirrorNode } from "@tiptap/pm/model";
+import { Slice, type Node as ProseMirrorNode } from "@tiptap/pm/model";
 import { Plugin, PluginKey } from "@tiptap/pm/state";
 import type { EditorView } from "@tiptap/pm/view";
-
-const PASTE_FIT_ATTEMPTS = 5;
 
 export type RichTextMeasure = (doc: ProseMirrorNode) => number;
 
@@ -46,36 +44,40 @@ export const RichTextLimit = Extension.create<RichTextLimitOptions>({
   },
 });
 
-const getHtmlTextLength = (html: string) => {
-  const container = document.createElement("div");
-  container.innerHTML = html;
-  return container.textContent?.length ?? 0;
-};
+const fitsWithin = (
+  view: EditorView,
+  slice: Slice,
+  maxLength: number,
+  measure: RichTextMeasure
+) => measure(view.state.tr.replaceSelection(slice).doc) <= maxLength;
+
+const sliceUpTo = (slice: Slice, position: number) =>
+  Slice.maxOpen(slice.content.cut(0, position));
 
 export const pasteWithinRichTextLimit = (
   view: EditorView,
-  event: ClipboardEvent,
+  slice: Slice,
   maxLength: number,
   measure: RichTextMeasure
 ) => {
-  const htmlContent = event.clipboardData?.getData("text/html") ?? "";
-  const plainText = event.clipboardData?.getData("text/plain") ?? "";
-  const remaining = maxLength - measure(view.state.doc);
+  if (fitsWithin(view, slice, maxLength, measure)) return false;
 
-  if (!htmlContent && !plainText) return false;
-  if (htmlContent && getHtmlTextLength(htmlContent) <= remaining) return false;
+  let low = 0;
+  let high = slice.content.size;
 
-  event.preventDefault();
-  let text = plainText;
-
-  for (let attempt = 0; attempt < PASTE_FIT_ATTEMPTS && text; attempt += 1) {
-    const transaction = view.state.tr.insertText(text);
-    const overflow = measure(transaction.doc) - maxLength;
-    if (overflow <= 0) {
-      view.dispatch(transaction);
-      break;
+  while (low < high) {
+    const middle = Math.ceil((low + high) / 2);
+    if (fitsWithin(view, sliceUpTo(slice, middle), maxLength, measure)) {
+      low = middle;
+    } else {
+      high = middle - 1;
     }
-    text = text.slice(0, Math.max(0, text.length - overflow));
+  }
+
+  if (low > 0) {
+    view.dispatch(
+      view.state.tr.replaceSelection(sliceUpTo(slice, low)).scrollIntoView()
+    );
   }
 
   return true;

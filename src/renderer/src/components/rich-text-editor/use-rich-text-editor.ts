@@ -134,8 +134,8 @@ export function useRichTextEditor({
         onSubmitShortcutRef.current();
         return true;
       },
-      handlePaste: (view, event) =>
-        pasteWithinRichTextLimit(view, event, maxLength, measureDoc),
+      handlePaste: (view, _event, slice) =>
+        pasteWithinRichTextLimit(view, slice, maxLength, measureDoc),
     },
     onUpdate: ({ editor: updatedEditor }) => {
       const html = updatedEditor.getHTML();
