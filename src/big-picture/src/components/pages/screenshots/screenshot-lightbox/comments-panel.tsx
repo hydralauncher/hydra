@@ -180,7 +180,7 @@ function useScreenshotComments(
     setIsLoadingMore(false);
 
     if (!isAvailable) {
-      setStatus("idle");
+      setStatus("ready");
       return;
     }
 
@@ -393,10 +393,11 @@ interface CommentComposerProps {
 }
 
 function getComposerNoticeKey(screenshot: ProfileScreenshot, isOwner: boolean) {
-  if (isOwner && screenshot.moderationStatus === "PENDING")
-    return "screenshots_comments_after_review";
-  if (isOwner && screenshot.moderationStatus === "BLOCKED")
-    return "screenshots_comments_unavailable_blocked";
+  const isAwaitingApproval =
+    screenshot.moderationStatus !== undefined &&
+    screenshot.moderationStatus !== "APPROVED";
+
+  if (isOwner && isAwaitingApproval) return null;
   if (!screenshot.commentsEnabled) return "screenshots_comments_disabled";
 
   return "screenshots_comments_not_allowed";
@@ -438,9 +439,12 @@ function CommentComposer({
   }
 
   if (!screenshot.canComment && !isEditing) {
+    const noticeKey = getComposerNoticeKey(screenshot, isOwner);
+    if (!noticeKey) return null;
+
     return (
       <div className="screenshot-comments__notice">
-        <p>{t(getComposerNoticeKey(screenshot, isOwner))}</p>
+        <p>{t(noticeKey)}</p>
       </div>
     );
   }

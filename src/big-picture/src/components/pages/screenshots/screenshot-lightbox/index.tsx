@@ -3,7 +3,6 @@ import "./styles.scss";
 import {
   CaretLeftIcon,
   CaretRightIcon,
-  ClockIcon,
   CopyIcon,
   EyeIcon,
   FlagIcon,
@@ -14,7 +13,6 @@ import {
   LockSimpleIcon,
   ProhibitIcon,
   TrashIcon,
-  WarningCircleIcon,
 } from "@phosphor-icons/react";
 import cn from "classnames";
 import {
@@ -40,7 +38,6 @@ import {
   buildUserScreenshotLikePath,
   buildUserScreenshotReportPath,
   getScreenshotApiErrorCode,
-  getScreenshotModerationReasonKey,
 } from "@shared";
 import { logger } from "@renderer/logger";
 
@@ -256,39 +253,6 @@ function LightboxImage({
       ) : null}
     </div>
   );
-}
-
-function OwnerModerationNotice({
-  screenshot,
-}: Readonly<{ screenshot: ProfileScreenshot }>) {
-  const { t } = useTranslation("big_picture");
-
-  if (screenshot.moderationStatus === "PENDING") {
-    return (
-      <div className="screenshot-lightbox__notice screenshot-lightbox__notice--pending">
-        <ClockIcon size={18} weight="bold" />
-        <span>{t("screenshots_pending_notice")}</span>
-      </div>
-    );
-  }
-
-  if (screenshot.moderationStatus === "BLOCKED") {
-    return (
-      <div className="screenshot-lightbox__notice screenshot-lightbox__notice--blocked">
-        <WarningCircleIcon size={18} weight="bold" />
-        <span>
-          {t("screenshots_blocked_notice", {
-            reason: t(
-              getScreenshotModerationReasonKey(screenshot.moderationReason),
-              { ns: "screenshots_moderation" }
-            ),
-          })}
-        </span>
-      </div>
-    );
-  }
-
-  return null;
 }
 
 interface LightboxSummaryProps {
@@ -906,9 +870,6 @@ function LightboxDialog({
               />
               <div className="screenshot-lightbox__info">
                 <LightboxSummary screenshot={screenshot} />
-                {isOwner ? (
-                  <OwnerModerationNotice screenshot={screenshot} />
-                ) : null}
                 <LightboxActions
                   screenshot={screenshot}
                   focusIds={focusIds}

@@ -2,13 +2,11 @@ import "./screenshot-card.scss";
 
 import {
   ChatCircleIcon,
-  ClockIcon,
   EyeClosedIcon,
   EyeSlashIcon,
   GameControllerIcon,
   HeartIcon,
   ImageIcon,
-  ProhibitIcon,
   UsersIcon,
 } from "@phosphor-icons/react";
 import cn from "classnames";
@@ -42,20 +40,6 @@ function ScreenshotCardBadges({
 
   return (
     <div className="screenshot-card__badges">
-      {screenshot.moderationStatus === "PENDING" ? (
-        <span className="screenshot-card__badge screenshot-card__badge--pending">
-          <ClockIcon size={14} weight="bold" />
-          {t("screenshots_status_pending")}
-        </span>
-      ) : null}
-
-      {screenshot.moderationStatus === "BLOCKED" ? (
-        <span className="screenshot-card__badge screenshot-card__badge--blocked">
-          <ProhibitIcon size={14} weight="bold" />
-          {t("screenshots_status_blocked")}
-        </span>
-      ) : null}
-
       {screenshot.visibility === "FRIENDS" ? (
         <span
           className="screenshot-card__badge screenshot-card__badge--icon"

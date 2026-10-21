@@ -106,16 +106,6 @@
       width: 26px;
       padding: 0;
     }
-
-    &--pending {
-      border-color: var(--alert-secondary);
-      color: var(--alert);
-    }
-
-    &--blocked {
-      border-color: var(--error-secondary);
-      color: var(--error);
-    }
   }
 
   &__stats {
