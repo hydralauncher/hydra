@@ -37,7 +37,7 @@ $inline-edit-shape-duration: 0.2s;
       stroke $inline-edit-shape-duration ease;
   }
 
-  &:hover &__outline-shape {
+  &:hover:not(&--disabled) &__outline-shape {
     stroke: rgba(255, 255, 255, 0.5);
   }
 
@@ -59,8 +59,14 @@ $inline-edit-shape-duration: 0.2s;
     font-size: globals.$body-font-size;
     text-align: left;
 
-    &:hover {
+    &:hover,
+    &--filled {
       color: globals.$muted-color;
+    }
+
+    &:disabled {
+      cursor: not-allowed;
+      opacity: globals.$disabled-opacity;
     }
 
     &:focus-visible {

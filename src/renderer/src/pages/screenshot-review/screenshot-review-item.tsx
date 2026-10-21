@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { TrashIcon } from "@primer/octicons-react";
+import { TrashIcon, UploadIcon } from "@primer/octicons-react";
 import { useTranslation } from "react-i18next";
 import type { LocalScreenshot, ProfileVisibility } from "@types";
 import {
@@ -13,12 +13,17 @@ import {
   Button,
   CheckboxField,
   ConfirmationModal,
+  InlineEditField,
   SelectField,
   TextField,
 } from "@renderer/components";
 import { logger } from "@renderer/logger";
 
 import { ScreenshotReviewStatus } from "./screenshot-review-status";
+import {
+  ScreenshotReviewSplitButton,
+  type ScreenshotReviewMenuAction,
+} from "./screenshot-review-split-button";
 import {
   getLocalImageSource,
   isScreenshotAwaitingReview,
@@ -41,6 +46,9 @@ interface ScreenshotReviewItemProps {
   onDraftCommit?: () => void;
   canClose: boolean;
   isLocked?: boolean;
+  pendingCount?: number;
+  onUploadAll?: () => void;
+  onKeepAll?: () => void;
 }
 
 export function ScreenshotReviewItem({
@@ -50,6 +58,9 @@ export function ScreenshotReviewItem({
   onDraftCommit,
   canClose,
   isLocked = false,
+  pendingCount = 0,
+  onUploadAll,
+  onKeepAll,
 }: Readonly<ScreenshotReviewItemProps>) {
   const { t, i18n } = useTranslation("screenshots_capture");
   const [isActionBusy, setIsActionBusy] = useState(false);
@@ -57,6 +68,9 @@ export function ScreenshotReviewItem({
   const [isDeleteModalVisible, setIsDeleteModalVisible] = useState(false);
 
   const isCustomGame = screenshot.shop === "custom";
+  const isTitleEditable = isCustomGame && isScreenshotEditable(screenshot);
+  const displayTitle =
+    (isCustomGame && screenshot.customGameTitle) || screenshot.gameTitle;
   const isFormDisabled = isBusy || !isScreenshotEditable(screenshot);
   const capturedAt = new Date(screenshot.capturedAt).toLocaleString(
     i18n.language
@@ -89,11 +103,32 @@ export function ScreenshotReviewItem({
       "Failed to upload the screenshot"
     );
 
-  const handleSkip = () =>
+  const handleKeep = () =>
     runAction(
       () => window.electron.skipLocalScreenshot(screenshot.clientId),
-      "Failed to skip the screenshot"
+      "Failed to keep the screenshot on this computer"
     );
+
+  const hasBulkActions = pendingCount > 1;
+  const uploadMenuActions: ScreenshotReviewMenuAction[] =
+    hasBulkActions && onUploadAll
+      ? [
+          {
+            label: t("upload_all", { count: pendingCount }),
+            onSelect: onUploadAll,
+          },
+        ]
+      : [];
+  const keepMenuActions: ScreenshotReviewMenuAction[] =
+    hasBulkActions && onKeepAll
+      ? [{ label: t("keep_all", { count: pendingCount }), onSelect: onKeepAll }]
+      : [];
+
+  const handleTitleSave = (customGameTitle: string) => {
+    onDraftChange({ ...draft, customGameTitle: customGameTitle.trim() });
+    onDraftCommit?.();
+    return true;
+  };
 
   const handleDelete = () => {
     setIsDeleteModalVisible(false);
@@ -117,23 +152,41 @@ export function ScreenshotReviewItem({
       className="screenshot-review-item__delete"
       theme="outline"
       disabled={isBusy}
+      tooltip={t("delete")}
+      aria-label={t("delete")}
       onClick={() => setIsDeleteModalVisible(true)}
     >
-      <TrashIcon size={14} />
-      {t("delete")}
+      <TrashIcon size={16} />
     </Button>
+  );
+
+  const renderUploadButton = () => (
+    <ScreenshotReviewSplitButton
+      className="screenshot-review-item__upload"
+      disabled={isBusy}
+      onClick={handleUpload}
+      menuLabel={t("upload_more_options")}
+      menuActions={uploadMenuActions}
+    >
+      <UploadIcon size={16} />
+      {t("upload")}
+    </ScreenshotReviewSplitButton>
   );
 
   const renderActions = () => {
     if (isScreenshotAwaitingReview(screenshot)) {
       return (
         <>
-          <Button disabled={isBusy} onClick={handleUpload}>
-            {t("upload")}
-          </Button>
-          <Button theme="outline" disabled={isBusy} onClick={handleSkip}>
-            {t("skip")}
-          </Button>
+          {renderUploadButton()}
+          <ScreenshotReviewSplitButton
+            theme="outline"
+            disabled={isBusy}
+            onClick={handleKeep}
+            menuLabel={t("keep_more_options")}
+            menuActions={keepMenuActions}
+          >
+            {t("keep_on_computer")}
+          </ScreenshotReviewSplitButton>
           {renderDeleteButton()}
         </>
       );
@@ -142,9 +195,7 @@ export function ScreenshotReviewItem({
     if (isScreenshotKeptLocally(screenshot)) {
       return (
         <>
-          <Button disabled={isBusy} onClick={handleUpload}>
-            {t("upload")}
-          </Button>
+          {renderUploadButton()}
           {renderDeleteButton()}
         </>
       );
@@ -197,34 +248,35 @@ export function ScreenshotReviewItem({
             className="screenshot-review-item__image"
             draggable={false}
           />
+          <time
+            className="screenshot-review-item__date"
+            dateTime={new Date(screenshot.capturedAt).toISOString()}
+          >
+            {capturedAt}
+          </time>
         </div>
 
         <div className="screenshot-review-item__meta">
-          <p
-            className="screenshot-review-item__game"
-            title={screenshot.gameTitle}
-          >
-            {screenshot.gameTitle}
-          </p>
-          <small className="screenshot-review-item__date">{capturedAt}</small>
+          {isTitleEditable ? (
+            <InlineEditField
+              className="screenshot-review-item__title-field"
+              label={t("custom_game_title_edit")}
+              saveLabel={t("custom_game_title_save")}
+              placeholder={t("custom_game_default_title")}
+              initialValue={draft.customGameTitle}
+              maxLength={SCREENSHOT_CUSTOM_GAME_TITLE_MAX_LENGTH}
+              allowEmpty
+              disabled={isBusy}
+              onSave={handleTitleSave}
+            />
+          ) : (
+            <p className="screenshot-review-item__game" title={displayTitle}>
+              {displayTitle}
+            </p>
+          )}
         </div>
 
         <div className="screenshot-review-item__form">
-          {isCustomGame && (
-            <TextField
-              label={t("custom_game_title_label")}
-              placeholder={t("custom_game_default_title")}
-              hint={t("custom_game_title_hint")}
-              maxLength={SCREENSHOT_CUSTOM_GAME_TITLE_MAX_LENGTH}
-              value={draft.customGameTitle}
-              disabled={isFormDisabled}
-              onChange={(event) =>
-                onDraftChange({ ...draft, customGameTitle: event.target.value })
-              }
-              theme="dark"
-            />
-          )}
-
           <TextField
             label={t("description_label")}
             placeholder={t("description_placeholder")}
