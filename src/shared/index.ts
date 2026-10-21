@@ -59,6 +59,8 @@ export * from "./screenshot-moderation";
 export * from "./screenshots";
 export * from "./screenshot-feed-writes";
 export * from "./rich-text";
+export * from "./local-screenshots";
+export * from "./use-local-screenshot-viewer";
 
 export class UserNotLoggedInError extends Error {
   constructor() {

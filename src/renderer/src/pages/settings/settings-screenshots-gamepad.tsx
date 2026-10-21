@@ -87,25 +87,9 @@ export function SettingsScreenshotsGamepad({
         "settings-screenshots__field--disabled": disabled,
       })}
     >
-      <div className="settings-screenshots__field-header">
-        <span className="settings-screenshots__field-label">
-          {t("screenshots_gamepad_combo")}
-        </span>
-
-        {!isSameScreenshotGamepadCombo(
-          draft,
-          DEFAULT_SCREENSHOT_GAMEPAD_COMBO
-        ) && (
-          <Button
-            theme="outline"
-            size="small"
-            disabled={disabled}
-            onClick={() => updateDraft([...DEFAULT_SCREENSHOT_GAMEPAD_COMBO])}
-          >
-            {t("screenshots_gamepad_reset")}
-          </Button>
-        )}
-      </div>
+      <span className="settings-screenshots__field-label">
+        {t("screenshots_gamepad_combo")}
+      </span>
 
       <small className="settings-screenshots__hint">
         {t("screenshots_gamepad_combo_hint")}
@@ -159,6 +143,21 @@ export function SettingsScreenshotsGamepad({
             onClick={handleAdd}
           >
             <PlusIcon size={14} />
+          </Button>
+        )}
+
+        {!isSameScreenshotGamepadCombo(
+          draft,
+          DEFAULT_SCREENSHOT_GAMEPAD_COMBO
+        ) && (
+          <Button
+            className="settings-screenshots__combo-reset"
+            theme="outline"
+            size="small"
+            disabled={disabled}
+            onClick={() => updateDraft([...DEFAULT_SCREENSHOT_GAMEPAD_COMBO])}
+          >
+            {t("screenshots_gamepad_reset")}
           </Button>
         )}
       </fieldset>

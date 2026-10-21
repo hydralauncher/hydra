@@ -14,14 +14,6 @@
     }
   }
 
-  &__field-header {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    justify-content: space-between;
-    gap: globals.$spacing-unit;
-  }
-
   &__field-label {
     font-size: globals.$body-font-size;
     color: globals.$muted-color;
@@ -54,15 +46,46 @@
     border-bottom-width: 3px;
     border-radius: 6px;
     background-color: globals.$dark-background-color;
+    box-shadow: 0 2px 0 rgba(0, 0, 0, 0.35);
     color: globals.$muted-color;
     font-family: inherit;
     font-size: globals.$body-font-size;
     font-weight: 600;
     white-space: nowrap;
+    cursor: pointer;
+    transition:
+      transform 0.08s ease,
+      box-shadow 0.08s ease,
+      border-color 0.2s ease;
 
-    &--recording {
-      border-color: globals.$brand-teal;
-      color: globals.$brand-teal;
+    kbd {
+      font-family: inherit;
+    }
+
+    &:hover:not(:disabled) {
+      border-color: rgba(255, 255, 255, 0.5);
+    }
+
+    &:active:not(:disabled) {
+      border-bottom-width: 1px;
+      box-shadow: 0 0 0 rgba(0, 0, 0, 0.35);
+      transform: translateY(2px);
+    }
+
+    &:focus-visible {
+      outline: 2px solid #dadbe1;
+      outline-offset: 2px;
+    }
+
+    &:disabled {
+      cursor: not-allowed;
+      opacity: globals.$disabled-opacity;
+    }
+
+    &--recording,
+    &--recording:hover:not(:disabled) {
+      border-color: #dadbe1;
+      color: globals.$muted-color;
     }
   }
 
@@ -144,6 +167,21 @@
 
     &:hover img {
       transform: scale(1.03);
+    }
+  }
+
+  &__thumbnail-button {
+    display: block;
+    width: 100%;
+    height: 100%;
+    padding: 0;
+    border: 0;
+    background: none;
+    cursor: zoom-in;
+
+    &:focus-visible {
+      outline: 2px solid #dadbe1;
+      outline-offset: -2px;
     }
   }
 
@@ -292,7 +330,7 @@
     display: flex;
     flex-wrap: wrap;
     align-items: center;
-    gap: globals.$spacing-unit;
+    gap: 6px;
     min-width: 0;
     margin: 0;
     padding: 0;
@@ -302,16 +340,20 @@
   &__combo-slot {
     display: flex;
     align-items: center;
-    gap: globals.$spacing-unit;
+    gap: 6px;
   }
 
   &__combo-select {
-    min-width: 150px;
+    flex: 0 0 auto;
   }
 
   &__combo-plus {
     color: globals.$body-color;
     font-weight: 600;
+  }
+
+  &__combo-reset {
+    margin-left: globals.$spacing-unit;
   }
 
   &__show-more {

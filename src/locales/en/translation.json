@@ -1936,7 +1936,6 @@
     "screenshots_gamepad_enable": "Use a gamepad combination",
     "screenshots_gamepad_reset": "Reset to default",
     "screenshots_hotkey": "Keyboard shortcut",
-    "screenshots_hotkey_change": "Change",
     "screenshots_hotkey_recording": "Press a key",
     "screenshots_hotkey_reset": "Reset to default",
     "screenshots_input_active": "The shortcut is active",
@@ -1964,7 +1963,9 @@
     "screenshots_gamepad_duplicate": "Each button can only be used once",
     "screenshots_upload_tooltip": "Review and upload",
     "screenshots_retry_tooltip": "Review and retry the upload",
-    "screenshots_delete_tooltip": "Delete from this computer"
+    "screenshots_delete_tooltip": "Delete from this computer",
+    "screenshots_hotkey_change_label": "Change the keyboard shortcut, currently {{key}}",
+    "screenshots_open_viewer": "Open {{title}} full size"
   },
   "notifications": {
     "download_complete": "Download complete",

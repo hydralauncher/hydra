@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import cn from "classnames";
 import { useTranslation } from "react-i18next";
 
 import { Button } from "@renderer/components";
@@ -99,27 +100,28 @@ export function SettingsScreenshotsHotkey({
       </span>
 
       <div className="settings-screenshots__hotkey-row">
-        <kbd
-          className={`settings-screenshots__keycap ${
-            isRecording ? "settings-screenshots__keycap--recording" : ""
-          }`}
-        >
-          {isRecording
-            ? t("screenshots_hotkey_recording")
-            : formatScreenshotHotkey(binding)}
-        </kbd>
-
-        <Button
-          theme="outline"
-          size="small"
+        <button
+          type="button"
+          className={cn("settings-screenshots__keycap", {
+            "settings-screenshots__keycap--recording": isRecording,
+          })}
           disabled={disabled}
           aria-pressed={isRecording}
+          aria-label={
+            isRecording
+              ? t("screenshots_hotkey_recording")
+              : t("screenshots_hotkey_change_label", {
+                  key: formatScreenshotHotkey(binding),
+                })
+          }
           onClick={handleToggleRecording}
         >
-          {isRecording
-            ? t("screenshots_hotkey_recording")
-            : t("screenshots_hotkey_change")}
-        </Button>
+          <kbd>
+            {isRecording
+              ? t("screenshots_hotkey_recording")
+              : formatScreenshotHotkey(binding)}
+          </kbd>
+        </button>
 
         {!isDefault && (
           <Button

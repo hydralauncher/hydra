@@ -1846,7 +1846,6 @@
     "screenshots_gamepad_enable": "Использовать сочетание кнопок геймпада",
     "screenshots_gamepad_reset": "Сбросить по умолчанию",
     "screenshots_hotkey": "Сочетание клавиш",
-    "screenshots_hotkey_change": "Изменить",
     "screenshots_hotkey_recording": "Нажмите клавишу",
     "screenshots_hotkey_reset": "Сбросить по умолчанию",
     "screenshots_input_active": "Сочетание клавиш активно",
@@ -1876,7 +1875,9 @@
     "screenshots_gamepad_duplicate": "Каждую кнопку можно использовать только один раз",
     "screenshots_upload_tooltip": "Просмотреть и загрузить",
     "screenshots_retry_tooltip": "Просмотреть и повторить загрузку",
-    "screenshots_delete_tooltip": "Удалить с этого компьютера"
+    "screenshots_delete_tooltip": "Удалить с этого компьютера",
+    "screenshots_hotkey_change_label": "Изменить сочетание клавиш, сейчас {{key}}",
+    "screenshots_open_viewer": "Открыть {{title}} в полном размере"
   },
   "notifications": {
     "download_complete": "Загрузка завершена",
