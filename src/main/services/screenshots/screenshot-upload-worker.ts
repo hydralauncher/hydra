@@ -28,6 +28,7 @@ import {
   getScreenshotUploadFailure,
   planScreenshotUploadRecovery,
   type ScreenshotUploadFailure,
+  type ScreenshotUploadNextStep,
 } from "./screenshot-upload-retry-policy";
 
 const PROGRESS_THROTTLE_MS = 150;
@@ -423,6 +424,83 @@ class ScreenshotUploadWorker {
     }
   }
 
+  private async requeueCancelledUpload(clientId: string, attempt: number) {
+    await LocalScreenshotStore.update(clientId, (current) =>
+      current.state === "uploading"
+        ? {
+            state: "queued",
+            uploadProgress: 0,
+            uploadAttempts: Math.max(0, attempt - 1),
+          }
+        : {}
+    );
+  }
+
+  private planFailureRecovery(
+    current: LocalScreenshot,
+    failure: ScreenshotUploadFailure,
+    quality: ScreenshotQuality,
+    attempt: number
+  ) {
+    const gameWaits = this.gameWaits.get(current.clientId) ?? 0;
+    if (failure.action === "wait_for_game") {
+      this.gameWaits.set(current.clientId, gameWaits + 1);
+    }
+
+    if (failure.code === "screenshots/disabled-for-game" && current.objectId) {
+      GameContentWarningCache.markAdult(current.shop, current.objectId);
+    }
+
+    return planScreenshotUploadRecovery(
+      failure,
+      { uploadAttempts: attempt, gameWaits },
+      quality
+    );
+  }
+
+  private async applyRecoveryStep(
+    clientId: string,
+    failure: ScreenshotUploadFailure,
+    step: ScreenshotUploadNextStep,
+    attempt: number
+  ) {
+    switch (step.kind) {
+      case "stopped":
+        await LocalScreenshotStore.update(clientId, {
+          state: "queued",
+          uploadProgress: 0,
+          uploadAttempts: Math.max(0, attempt - 1),
+        });
+        return;
+      case "failed":
+        await this.markFailed(clientId, failure);
+        return;
+      case "retry_now":
+        await LocalScreenshotStore.update(clientId, {
+          state: "queued",
+          uploadProgress: 0,
+          lastError: failure.code,
+          nextUploadAttemptAt: null,
+          ...(step.quality ? { uploadQuality: step.quality } : {}),
+          ...(step.rotateClientId ? { uploadClientId: randomUUID() } : {}),
+        });
+        emitProgress({ clientId, state: "queued", progress: 0 });
+        this.rerunRequested = true;
+        return;
+      case "retry_at":
+        await LocalScreenshotStore.update(clientId, {
+          state: "queued",
+          uploadProgress: 0,
+          lastError: failure.code,
+          nextUploadAttemptAt: Date.now() + step.delay,
+          uploadAttempts: step.countsAsAttempt
+            ? attempt
+            : Math.max(0, attempt - 1),
+        });
+        emitProgress({ clientId, state: "queued", progress: 0 });
+    }
+  }
+
   private async handleFailure(
     screenshot: LocalScreenshot,
     quality: ScreenshotQuality,
@@ -435,13 +513,7 @@ class ScreenshotUploadWorker {
     if (!current) return;
 
     if (controller.signal.aborted || axios.isCancel(error)) {
-      if (current.state === "uploading") {
-        await LocalScreenshotStore.update(clientId, {
-          state: "queued",
-          uploadProgress: 0,
-          uploadAttempts: Math.max(0, attempt - 1),
-        });
-      }
+      await this.requeueCancelledUpload(clientId, attempt);
       return;
     }
 
@@ -456,64 +528,14 @@ class ScreenshotUploadWorker {
       return;
     }
 
-    const gameWaits = this.gameWaits.get(clientId) ?? 0;
-    if (failure.action === "wait_for_game") {
-      this.gameWaits.set(clientId, gameWaits + 1);
-    }
-
-    if (failure.code === "screenshots/disabled-for-game" && current.objectId) {
-      GameContentWarningCache.markAdult(current.shop, current.objectId);
-    }
-
-    const step = planScreenshotUploadRecovery(
-      failure,
-      { uploadAttempts: attempt, gameWaits },
-      quality
-    );
-
+    const step = this.planFailureRecovery(current, failure, quality, attempt);
     logger.warn("Screenshot upload failed", {
       clientId,
       code: failure.code,
       action: failure.action,
       step: step.kind,
     });
-
-    if (step.kind === "stopped") {
-      await LocalScreenshotStore.update(clientId, {
-        state: "queued",
-        uploadProgress: 0,
-        uploadAttempts: Math.max(0, attempt - 1),
-      });
-      return;
-    }
-
-    if (step.kind === "failed") {
-      await this.markFailed(clientId, failure);
-      return;
-    }
-
-    if (step.kind === "retry_now") {
-      await LocalScreenshotStore.update(clientId, {
-        state: "queued",
-        uploadProgress: 0,
-        lastError: failure.code,
-        nextUploadAttemptAt: null,
-        ...(step.quality ? { uploadQuality: step.quality } : {}),
-        ...(step.rotateClientId ? { uploadClientId: randomUUID() } : {}),
-      });
-      emitProgress({ clientId, state: "queued", progress: 0 });
-      this.rerunRequested = true;
-      return;
-    }
-
-    await LocalScreenshotStore.update(clientId, {
-      state: "queued",
-      uploadProgress: 0,
-      lastError: failure.code,
-      nextUploadAttemptAt: Date.now() + step.delay,
-      uploadAttempts: step.countsAsAttempt ? attempt : Math.max(0, attempt - 1),
-    });
-    emitProgress({ clientId, state: "queued", progress: 0 });
+    await this.applyRecoveryStep(clientId, failure, step, attempt);
   }
 
   private async markFailed(clientId: string, failure: ScreenshotUploadFailure) {
