@@ -121,6 +121,9 @@ export function getEditedScreenshotFields(
   if (update.customGameTitle !== undefined) {
     patch.gameTitle = source.gameTitle ?? null;
   }
+  if (update.description !== undefined) {
+    patch.description = source.description ?? null;
+  }
 
   return patch;
 }

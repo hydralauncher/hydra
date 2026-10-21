@@ -1018,6 +1018,8 @@
     "screenshots_like_count_one": "{{count}} отметка «нравится»",
     "screenshots_like_count_few": "{{count}} отметки «нравится»",
     "screenshots_like_count_many": "{{count}} отметок «нравится»",
-    "screenshots_like_count_other": "{{count}} отметки «нравится»"
+    "screenshots_like_count_other": "{{count}} отметки «нравится»",
+    "screenshots_description_label": "Описание",
+    "screenshots_description_placeholder": "Добавьте короткую заметку, например, что сейчас произошло"
   }
 }

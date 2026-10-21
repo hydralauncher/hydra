@@ -357,6 +357,11 @@ function LightboxSummary({
           <span className="screenshot-lightbox__meta-separator" aria-hidden />
           <span>{formatScreenshotDate(screenshot.capturedAt, language)}</span>
         </div>
+        {screenshot.description ? (
+          <p className="screenshot-lightbox__description">
+            {screenshot.description}
+          </p>
+        ) : null}
       </div>
     </VerticalFocusGroup>
   );

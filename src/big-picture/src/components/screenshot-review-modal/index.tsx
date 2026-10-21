@@ -18,10 +18,14 @@ import type {
 } from "@types";
 import {
   SCREENSHOT_CUSTOM_GAME_TITLE_MAX_LENGTH,
+  SCREENSHOT_DESCRIPTION_MAX_LENGTH,
+  normalizeScreenshotDescription,
+  sanitizeScreenshotDescriptionInput,
   isScreenshotUploadRetryable,
   resolveScreenshotPreferences,
 } from "@shared";
 import { logger } from "@renderer/logger";
+import { useReviewDraftSave } from "./use-review-draft-save";
 
 import {
   Button,
@@ -61,6 +65,7 @@ import {
 const REGION_ID = "screenshot-review-modal";
 const ACTIONS_REGION_ID = "screenshot-review-modal-actions";
 const TITLE_FOCUS_ID = "screenshot-review-title";
+const DESCRIPTION_FOCUS_ID = "screenshot-review-description";
 const SPOILER_FOCUS_ID = "screenshot-review-spoiler";
 const VISIBILITY_FOCUS_ID = "screenshot-review-visibility";
 const UPLOAD_FOCUS_ID = "screenshot-review-upload";
@@ -70,6 +75,7 @@ const NEXT_FOCUS_ID = "screenshot-review-next";
 const RETRY_FOCUS_ID = "screenshot-review-retry";
 const FIELD_FOCUS_IDS = new Set([
   TITLE_FOCUS_ID,
+  DESCRIPTION_FOCUS_ID,
   SPOILER_FOCUS_ID,
   VISIBILITY_FOCUS_ID,
 ]);
@@ -78,6 +84,7 @@ interface ReviewDraft {
   isSpoiler: boolean;
   visibility: ProfileVisibility;
   customGameTitle: string;
+  description: string;
 }
 
 function getUploadStatusKey(screenshot: LocalScreenshot | undefined) {
@@ -243,6 +250,12 @@ export function ScreenshotReviewModal() {
     null
   );
   const [isDeleteConfirmVisible, setIsDeleteConfirmVisible] = useState(false);
+  const {
+    schedule: scheduleDraftSave,
+    save: saveDraft,
+    cancel: cancelDraftSave,
+    flushAll: flushDraftSaves,
+  } = useReviewDraftSave();
   const fieldsRef = useRef<HTMLDivElement | null>(null);
   const visible = isReviewQueueOpen(queueState);
   const { screenshots, loadedRequestCount } = useLocalScreenshots(
@@ -292,23 +305,32 @@ export function ScreenshotReviewModal() {
     isSpoiler: currentScreenshot?.isSpoiler ?? false,
     visibility: defaultVisibilityRef.current,
     customGameTitle: currentScreenshot?.customGameTitle ?? "",
+    description: currentScreenshot?.description ?? "",
   };
 
   const updateDraft = (update: Partial<ReviewDraft>) => {
     if (!current) return;
+    const nextDraft = { ...draft, ...update };
     setDrafts((existing) => ({
       ...existing,
-      [current.clientId]: { ...draft, ...update },
+      [current.clientId]: nextDraft,
     }));
+    scheduleDraftSave(current.clientId, {
+      isSpoiler: nextDraft.isSpoiler,
+      visibility: nextDraft.visibility,
+      customGameTitle: nextDraft.customGameTitle.trim() || null,
+      description: normalizeScreenshotDescription(nextDraft.description),
+    });
   };
 
   useEffect(() => {
     if (visible) return;
 
+    flushDraftSaves();
     setDrafts({});
     setPendingAction(null);
     setIsDeleteConfirmVisible(false);
-  }, [visible]);
+  }, [flushDraftSaves, visible]);
 
   const goToNextFrom = useCallback((clientId: string) => {
     setQueueState((state) => advanceReviewQueuePast(state, clientId));
@@ -389,6 +411,7 @@ export function ScreenshotReviewModal() {
     if (!current) return;
 
     const customGameTitle = draft.customGameTitle.trim();
+    cancelDraftSave(current.clientId);
 
     void runAction("upload", () =>
       globalThis.window.electron.uploadLocalScreenshot(current.clientId, {
@@ -396,6 +419,7 @@ export function ScreenshotReviewModal() {
         visibility: draft.visibility,
         customGameTitle:
           isCustomGame && customGameTitle ? customGameTitle : null,
+        description: normalizeScreenshotDescription(draft.description),
       })
     );
   };
@@ -404,6 +428,7 @@ export function ScreenshotReviewModal() {
     if (!current) return;
 
     const { clientId } = current;
+    saveDraft(clientId);
     const done = await runAction("skip", () =>
       globalThis.window.electron.skipLocalScreenshot(clientId)
     );
@@ -414,6 +439,7 @@ export function ScreenshotReviewModal() {
     if (!current) return;
 
     const { clientId } = current;
+    cancelDraftSave(clientId);
     const done = await runAction("delete", () =>
       globalThis.window.electron.deleteLocalScreenshot(clientId)
     );
@@ -496,6 +522,23 @@ export function ScreenshotReviewModal() {
               <UploadStatus screenshot={currentScreenshot} />
             ) : (
               <>
+                <Input
+                  label={t("screenshots_description_label")}
+                  placeholder={t("screenshots_description_placeholder")}
+                  value={draft.description}
+                  maxLength={SCREENSHOT_DESCRIPTION_MAX_LENGTH}
+                  hint={`${draft.description.length}/${SCREENSHOT_DESCRIPTION_MAX_LENGTH}`}
+                  disabled={isBusy}
+                  focusId={DESCRIPTION_FOCUS_ID}
+                  onChange={(event) =>
+                    updateDraft({
+                      description: sanitizeScreenshotDescriptionInput(
+                        event.target.value
+                      ),
+                    })
+                  }
+                />
+
                 <Checkbox
                   block
                   label={t("screenshots_mark_spoiler")}

@@ -989,6 +989,8 @@
     "screenshots_comment_count_one": "{{count}} comentario",
     "screenshots_comment_count_other": "{{count}} comentarios",
     "screenshots_like_count_one": "{{count}} me gusta",
-    "screenshots_like_count_other": "{{count}} me gusta"
+    "screenshots_like_count_other": "{{count}} me gusta",
+    "screenshots_description_label": "Descripción",
+    "screenshots_description_placeholder": "Añade una nota breve, por ejemplo qué acaba de pasar"
   }
 }

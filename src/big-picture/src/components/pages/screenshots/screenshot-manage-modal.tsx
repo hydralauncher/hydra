@@ -7,7 +7,12 @@ import type {
   ProfileVisibility,
   ScreenshotUpdateRequest,
 } from "@types";
-import { SCREENSHOT_CUSTOM_GAME_TITLE_MAX_LENGTH } from "@shared";
+import {
+  SCREENSHOT_CUSTOM_GAME_TITLE_MAX_LENGTH,
+  SCREENSHOT_DESCRIPTION_MAX_LENGTH,
+  normalizeScreenshotDescription,
+  sanitizeScreenshotDescriptionInput,
+} from "@shared";
 
 import {
   Button,
@@ -25,6 +30,7 @@ const VISIBILITY_FOCUS_ID = "screenshot-manage-visibility";
 const SPOILER_FOCUS_ID = "screenshot-manage-spoiler";
 const COMMENTS_FOCUS_ID = "screenshot-manage-comments";
 const TITLE_FOCUS_ID = "screenshot-manage-title";
+const DESCRIPTION_FOCUS_ID = "screenshot-manage-description";
 const CANCEL_FOCUS_ID = "screenshot-manage-cancel";
 const SAVE_FOCUS_ID = "screenshot-manage-save";
 
@@ -43,6 +49,7 @@ function buildUpdate(
     isSpoiler: boolean;
     commentsEnabled: boolean;
     customGameTitle: string;
+    description: string;
   }
 ): ScreenshotUpdateRequest {
   const update: ScreenshotUpdateRequest = {};
@@ -57,6 +64,9 @@ function buildUpdate(
     update.commentsEnabled = values.commentsEnabled;
   if (screenshot.isCustomGame && trimmedTitle !== currentTitle)
     update.customGameTitle = trimmedTitle || null;
+  const description = normalizeScreenshotDescription(values.description);
+  if (description !== (screenshot.description ?? null))
+    update.description = description;
 
   return update;
 }
@@ -73,6 +83,7 @@ export function ScreenshotManageModal({
   const [isSpoiler, setIsSpoiler] = useState(false);
   const [commentsEnabled, setCommentsEnabled] = useState(true);
   const [customGameTitle, setCustomGameTitle] = useState("");
+  const [description, setDescription] = useState("");
   const screenshotRef = useRef(screenshot);
   screenshotRef.current = screenshot;
   const screenshotId = screenshot.id;
@@ -85,6 +96,7 @@ export function ScreenshotManageModal({
     setIsSpoiler(initial.isSpoiler);
     setCommentsEnabled(initial.commentsEnabled);
     setCustomGameTitle(initial.isCustomGame ? (initial.gameTitle ?? "") : "");
+    setDescription(initial.description ?? "");
   }, [screenshotId, visible]);
 
   const visibilityOptions = useMemo<DropdownSelectOption<ProfileVisibility>[]>(
@@ -102,6 +114,7 @@ export function ScreenshotManageModal({
       isSpoiler,
       commentsEnabled,
       customGameTitle,
+      description,
     });
 
     if (Object.keys(update).length === 0) {
@@ -148,6 +161,21 @@ export function ScreenshotManageModal({
             onChange={(event) => setCustomGameTitle(event.target.value)}
           />
         ) : null}
+
+        <Input
+          label={t("screenshots_description_label")}
+          placeholder={t("screenshots_description_placeholder")}
+          value={description}
+          maxLength={SCREENSHOT_DESCRIPTION_MAX_LENGTH}
+          hint={`${description.length}/${SCREENSHOT_DESCRIPTION_MAX_LENGTH}`}
+          disabled={isSaving}
+          focusId={DESCRIPTION_FOCUS_ID}
+          onChange={(event) =>
+            setDescription(
+              sanitizeScreenshotDescriptionInput(event.target.value)
+            )
+          }
+        />
 
         <Checkbox
           block

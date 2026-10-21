@@ -1028,6 +1028,8 @@
     "screenshots_comment_count_one": "{{count}} comentário",
     "screenshots_comment_count_other": "{{count}} comentários",
     "screenshots_like_count_one": "{{count}} curtida",
-    "screenshots_like_count_other": "{{count}} curtidas"
+    "screenshots_like_count_other": "{{count}} curtidas",
+    "screenshots_description_label": "Descrição",
+    "screenshots_description_placeholder": "Adicione uma nota curta, como o que acabou de acontecer"
   }
 }
