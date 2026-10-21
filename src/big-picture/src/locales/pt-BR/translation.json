@@ -1031,6 +1031,7 @@
     "screenshots_like_count_other": "{{count}} curtidas",
     "screenshots_description_label": "Descrição",
     "screenshots_description_placeholder": "Adicione uma nota curta, como o que acabou de acontecer",
-    "screenshots_reveal_spoiler_hint": "Pressione A para revelar"
+    "screenshots_reveal_spoiler_hint": "Pressione A para revelar",
+    "screenshots_add_description": "Adicionar descrição"
   }
 }

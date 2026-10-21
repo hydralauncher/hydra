@@ -10,7 +10,11 @@ import cn from "classnames";
 import { useCallback, useState } from "react";
 import { useTranslation } from "react-i18next";
 import type { ProfileScreenshot } from "@types";
-import type { ScreenshotPatch } from "@shared";
+import {
+  buildScreenshotSettingsUpdate,
+  readScreenshotSettings,
+  type ScreenshotPatch,
+} from "@shared";
 
 import {
   Button,
@@ -28,6 +32,7 @@ import {
   getScreenshotOwnerPath,
 } from "../helpers";
 import { ScreenshotCommentsPanel } from "./comments-panel";
+import { InlineDescriptionField } from "./inline-description-field";
 import type { LightboxSocial } from "./social-actions";
 
 const SIDEBAR_REGION_ID = "screenshot-viewer-sidebar";
@@ -41,6 +46,7 @@ export const getLightboxFocusIds = (screenshotId: string) => ({
   copy: `screenshot-lightbox-copy:${screenshotId}`,
   summary: `screenshot-lightbox-summary:${screenshotId}`,
   byline: `screenshot-lightbox-byline:${screenshotId}`,
+  description: `screenshot-lightbox-description:${screenshotId}`,
   game: `screenshot-lightbox-game:${screenshotId}`,
   owner: `screenshot-lightbox-owner:${screenshotId}`,
 });
@@ -49,6 +55,9 @@ interface LightboxSummaryProps {
   screenshot: ProfileScreenshot;
   focusIds: ReturnType<typeof getLightboxFocusIds>;
   stageTarget: FocusOverrideTarget;
+  isOwner: boolean;
+  isSaving: boolean;
+  onSaveDescription: (description: string) => Promise<boolean>;
   onNavigate: (path: string) => void;
 }
 
@@ -80,6 +89,9 @@ function LightboxSummary({
   screenshot,
   focusIds,
   stageTarget,
+  isOwner,
+  isSaving,
+  onSaveDescription,
   onNavigate,
 }: Readonly<LightboxSummaryProps>) {
   const { t, i18n } = useTranslation("big_picture");
@@ -98,6 +110,15 @@ function LightboxSummary({
   return (
     <VerticalFocusGroup regionId={focusIds.summary} asChild>
       <div className="screenshot-lightbox__summary">
+        {isOwner && !screenshot.description ? (
+          <InlineDescriptionField
+            key={screenshot.id}
+            focusId={focusIds.description}
+            stageTarget={stageTarget}
+            isSaving={isSaving}
+            onSave={onSaveDescription}
+          />
+        ) : null}
         {screenshot.description ? (
           <Typography variant="h4" className="screenshot-lightbox__description">
             {screenshot.description}
@@ -346,6 +367,16 @@ export function ScreenshotLightboxSidebar({
             screenshot={screenshot}
             focusIds={focusIds}
             stageTarget={stageTarget}
+            isOwner={isOwner}
+            isSaving={social.isSaving}
+            onSaveDescription={(description) =>
+              social.save(
+                buildScreenshotSettingsUpdate(screenshot, {
+                  ...readScreenshotSettings(screenshot),
+                  description,
+                })
+              )
+            }
             onNavigate={onNavigate}
           />
           <LightboxActions

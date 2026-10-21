@@ -1031,6 +1031,7 @@
     "screenshots_like_count_other": "{{count}} likes",
     "screenshots_description_label": "Description",
     "screenshots_description_placeholder": "Add a short note, like what just happened",
-    "screenshots_reveal_spoiler_hint": "Press A to reveal"
+    "screenshots_reveal_spoiler_hint": "Press A to reveal",
+    "screenshots_add_description": "Add description"
   }
 }

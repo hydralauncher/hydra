@@ -1021,6 +1021,7 @@
     "screenshots_like_count_other": "{{count}} отметки «нравится»",
     "screenshots_description_label": "Описание",
     "screenshots_description_placeholder": "Добавьте короткую заметку, например, что сейчас произошло",
-    "screenshots_reveal_spoiler_hint": "Нажмите A, чтобы показать"
+    "screenshots_reveal_spoiler_hint": "Нажмите A, чтобы показать",
+    "screenshots_add_description": "Добавить описание"
   }
 }
