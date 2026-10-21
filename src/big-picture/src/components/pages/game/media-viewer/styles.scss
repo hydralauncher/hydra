@@ -301,6 +301,42 @@ $media-viewer-layer-fade: 280ms;
   }
 }
 
+.media-viewer--with-sidebar {
+  .media-viewer__layout {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) clamp(340px, 30vw, 460px);
+    width: 100%;
+    height: 100%;
+  }
+
+  .media-viewer__main {
+    position: relative;
+    min-width: 0;
+    min-height: 0;
+    overflow: hidden;
+  }
+
+  .media-viewer__sidebar {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    min-height: 0;
+    overflow: hidden;
+    border-left: 1px solid var(--secondary-border);
+    background-color: var(--surface);
+    cursor: auto;
+    user-select: text;
+  }
+
+  .media-viewer__stage[data-focus-visible="true"] {
+    box-shadow: inset 0 0 0 2px rgba(255, 255, 255, 0.6);
+  }
+
+  .media-viewer__footer {
+    justify-content: flex-end;
+  }
+}
+
 .game-page__media-carousel-surface:has(.gallery-video[data-playing])
   .game-page__media-carousel-play-overlay {
   display: none;

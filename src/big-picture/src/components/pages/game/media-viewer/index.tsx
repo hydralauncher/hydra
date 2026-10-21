@@ -1,6 +1,14 @@
 import "./styles.scss";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import {
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useState,
+  type ReactNode,
+  type SyntheticEvent,
+} from "react";
 import { createPortal } from "react-dom";
 import cn from "classnames";
 import { useTranslation } from "react-i18next";
@@ -25,12 +33,16 @@ import { Tooltip as HoverTooltip } from "react-tooltip";
 import {
   BumperBadge,
   FocusItem,
+  HorizontalFocusGroup,
   NavigationLayer,
   VerticalFocusGroup,
 } from "../../../common";
-import { FocusRegionContext } from "../../../context";
+import { FocusRegionContext, useFocusLayerId } from "../../../context";
 import { useGamepad, useNavigationScreenActions } from "../../../../hooks";
-import { NavigationAudioService } from "../../../../services";
+import {
+  NavigationAudioService,
+  NavigationService,
+} from "../../../../services";
 import { GamepadButtonType } from "../../../../types";
 
 export const MEDIA_VIEWER_IDLE_TIMEOUT_MS = 1000;
@@ -39,6 +51,10 @@ const LAYER_FADE_MS = 280;
 const VOLUME_STEP = 0.05;
 const DEFAULT_ASPECT_RATIO = 16 / 9;
 const navigationAudio = NavigationAudioService.getInstance();
+const navigationService = NavigationService.getInstance();
+const EMPTY_VIDEO_HOSTS = new Map<string, GalleryVideoHost>();
+const getNoVideoHandle = (): GalleryVideoPlayerHandle | undefined => undefined;
+const ignorePresentation = () => {};
 const LAYER_CLEANUP_MARGIN_MS = 40;
 
 type ViewerDirection = "left" | "right" | "up" | "down";
@@ -86,6 +102,24 @@ const withoutLayersBelow = (layers: StageLayer[], key: number) => {
 
 const STAGE_FOCUS_ID = "game-media-viewer-stage";
 const STAGE_REGION_ID = "game-media-viewer";
+const SIDEBAR_ROOT_REGION_ID = "game-media-viewer-root";
+
+const isTypingInField = () => {
+  const activeElement = globalThis.document.activeElement;
+
+  return (
+    activeElement instanceof HTMLInputElement ||
+    activeElement instanceof HTMLTextAreaElement ||
+    (activeElement instanceof HTMLElement && activeElement.isContentEditable)
+  );
+};
+
+export interface MediaViewerImageRenderProps {
+  item: GalleryMediaItem;
+  className: string;
+  onLoad: (event: SyntheticEvent<HTMLImageElement>) => void;
+  onError: () => void;
+}
 
 export interface MediaViewerPresentation {
   chromeHidden: boolean;
@@ -96,14 +130,23 @@ export interface MediaViewerPresentation {
 export interface MediaViewerProps {
   items: GalleryMediaItem[];
   index: number;
-  autoplay: boolean;
-  videoHosts: Map<string, GalleryVideoHost>;
-  videoHoldsChrome: boolean;
-  getVideoHandle: (id: string) => GalleryVideoPlayerHandle | undefined;
-  onPresentationChange: (presentation: MediaViewerPresentation) => void;
+  autoplay?: boolean;
+  videoHosts?: Map<string, GalleryVideoHost>;
+  videoHoldsChrome?: boolean;
+  getVideoHandle?: (id: string) => GalleryVideoPlayerHandle | undefined;
+  onPresentationChange?: (presentation: MediaViewerPresentation) => void;
   onNavigate: (index: number) => void;
   onClose: (index: number) => void;
+  sidebar?: ReactNode;
+  className?: string;
+  showFilmstrip?: boolean;
+  canNavigatePastEnd?: boolean;
+  renderImage?: (props: MediaViewerImageRenderProps) => ReactNode;
+  onStagePrimary?: () => void;
+  onNavigatePastEnd?: () => void;
 }
+
+export const MEDIA_VIEWER_STAGE_FOCUS_ID = STAGE_FOCUS_ID;
 
 interface StageLayer {
   key: number;
@@ -114,9 +157,14 @@ interface StageLayer {
 interface MediaViewerImageProps {
   item: GalleryMediaItem;
   onReady: () => void;
+  renderImage?: (props: MediaViewerImageRenderProps) => ReactNode;
 }
 
-function MediaViewerImage({ item, onReady }: Readonly<MediaViewerImageProps>) {
+function MediaViewerImage({
+  item,
+  onReady,
+  renderImage,
+}: Readonly<MediaViewerImageProps>) {
   const [aspectRatio, setAspectRatio] = useState(DEFAULT_ASPECT_RATIO);
 
   const handleLoaded = (ratio: number) => {
@@ -124,41 +172,89 @@ function MediaViewerImage({ item, onReady }: Readonly<MediaViewerImageProps>) {
     onReady();
   };
 
+  const handleLoad = (event: SyntheticEvent<HTMLImageElement>) => {
+    const { naturalWidth, naturalHeight } = event.currentTarget;
+    handleLoaded(
+      naturalWidth && naturalHeight
+        ? naturalWidth / naturalHeight
+        : DEFAULT_ASPECT_RATIO
+    );
+  };
+  const handleError = () => handleLoaded(DEFAULT_ASPECT_RATIO);
+
   return (
     <div
       className="media-viewer__frame media-viewer__frame--image"
       style={{ "--media-aspect": aspectRatio } as React.CSSProperties}
     >
-      <img
-        src={item.src}
-        alt={item.alt}
-        draggable={false}
-        className="media-viewer__image"
-        onLoad={(event) => {
-          const { naturalWidth, naturalHeight } = event.currentTarget;
-          handleLoaded(
-            naturalWidth && naturalHeight
-              ? naturalWidth / naturalHeight
-              : DEFAULT_ASPECT_RATIO
-          );
-        }}
-        onError={() => handleLoaded(DEFAULT_ASPECT_RATIO)}
-      />
+      {renderImage ? (
+        renderImage({
+          item,
+          className: "media-viewer__image",
+          onLoad: handleLoad,
+          onError: handleError,
+        })
+      ) : (
+        <img
+          src={item.src}
+          alt={item.alt}
+          draggable={false}
+          className="media-viewer__image"
+          onLoad={handleLoad}
+          onError={handleError}
+        />
+      )}
     </div>
   );
+}
+
+interface MediaViewerLayerReporterProps {
+  onLayerChange: (layerId: string | null) => void;
+}
+
+function MediaViewerLayerReporter({
+  onLayerChange,
+}: Readonly<MediaViewerLayerReporterProps>) {
+  const layerId = useFocusLayerId();
+
+  useLayoutEffect(() => {
+    onLayerChange(layerId);
+    return () => onLayerChange(null);
+  }, [layerId, onLayerChange]);
+
+  return null;
 }
 
 export function MediaViewer({
   items,
   index,
-  autoplay,
-  videoHosts,
-  videoHoldsChrome,
-  getVideoHandle,
-  onPresentationChange,
+  autoplay = false,
+  videoHosts = EMPTY_VIDEO_HOSTS,
+  videoHoldsChrome = false,
+  getVideoHandle = getNoVideoHandle,
+  onPresentationChange = ignorePresentation,
   onNavigate,
   onClose,
+  sidebar,
+  className,
+  showFilmstrip = true,
+  canNavigatePastEnd = false,
+  renderImage,
+  onStagePrimary,
+  onNavigatePastEnd,
 }: Readonly<MediaViewerProps>) {
+  const hasSidebar = sidebar !== undefined && sidebar !== null;
+  const layerIdRef = useRef<string | null>(null);
+  const handleLayerChange = useCallback((layerId: string | null) => {
+    layerIdRef.current = layerId;
+  }, []);
+  const isViewerOnTop = useCallback(
+    () =>
+      !hasSidebar ||
+      (layerIdRef.current !== null &&
+        navigationService.getActiveLayerId() === layerIdRef.current),
+    [hasSidebar]
+  );
   const { t } = useTranslation("game_details");
   const { onButtonPressed, isActiveGamepadEvent } = useGamepad();
   const idleTimerRef = useRef<number>();
@@ -179,7 +275,7 @@ export function MediaViewer({
   const item = items[index];
   const isVideo = item?.type === "video";
   const hasPrevious = index > 0;
-  const hasNext = index < items.length - 1;
+  const hasNext = index < items.length - 1 || canNavigatePastEnd;
   const chromeHidden =
     chromeSuppressed || (idle && !(isVideo && videoHoldsChrome));
   chromeHiddenRef.current = chromeHidden;
@@ -292,6 +388,10 @@ export function MediaViewer({
 
   const navigate = useCallback(
     (nextIndex: number) => {
+      if (nextIndex === items.length && canNavigatePastEnd) {
+        onNavigatePastEnd?.();
+        return;
+      }
       if (nextIndex < 0 || nextIndex >= items.length || nextIndex === index) {
         return;
       }
@@ -305,7 +405,15 @@ export function MediaViewer({
       }
       onNavigate(nextIndex);
     },
-    [items, index, autoplay, getVideoHandle, onNavigate]
+    [
+      items,
+      index,
+      autoplay,
+      canNavigatePastEnd,
+      getVideoHandle,
+      onNavigate,
+      onNavigatePastEnd,
+    ]
   );
 
   const activeVideoItemId = isVideo && item ? item.id : null;
@@ -358,11 +466,17 @@ export function MediaViewer({
       if (event.ctrlKey || event.metaKey || event.altKey || event.repeat) {
         return;
       }
+      if (hasSidebar && (isTypingInField() || !isViewerOnTop())) return;
 
       const key = event.key.toLowerCase();
       let step = 0;
-      if (event.key === "ArrowLeft" || key === "a") step = -1;
-      if (event.key === "ArrowRight" || key === "d") step = 1;
+      if (hasSidebar) {
+        if (event.key === "PageUp") step = -1;
+        if (event.key === "PageDown") step = 1;
+      } else {
+        if (event.key === "ArrowLeft" || key === "a") step = -1;
+        if (event.key === "ArrowRight" || key === "d") step = 1;
+      }
 
       if (step !== 0 && (event.shiftKey || !getActiveVideo())) {
         event.preventDefault();
@@ -389,7 +503,16 @@ export function MediaViewer({
     return () => {
       window.removeEventListener("keydown", onKeyDown, true);
     };
-  }, [close, getActiveVideo, handleToggleMute, hideChrome, index, navigate]);
+  }, [
+    close,
+    getActiveVideo,
+    handleToggleMute,
+    hasSidebar,
+    hideChrome,
+    index,
+    isViewerOnTop,
+    navigate,
+  ]);
 
   const handleQualityMenu = useCallback(() => {
     const activeVideo = getActiveVideo();
@@ -401,19 +524,25 @@ export function MediaViewer({
     wake();
   }, [getActiveVideo, wake]);
 
-  useNavigationScreenActions({
-    press: { b: handleBack, x: handleToggleMute, y: handleQualityMenu },
-    direction: {
-      left: () => handleDirection("left"),
-      right: () => handleDirection("right"),
-      up: () => handleDirection("up"),
-      down: () => handleDirection("down"),
-    },
-  });
+  useNavigationScreenActions(
+    hasSidebar
+      ? { press: { b: handleBack } }
+      : {
+          press: { b: handleBack, x: handleToggleMute, y: handleQualityMenu },
+          direction: {
+            left: () => handleDirection("left"),
+            right: () => handleDirection("right"),
+            up: () => handleDirection("up"),
+            down: () => handleDirection("down"),
+          },
+        }
+  );
 
   useEffect(() => {
     const navigateWithBumper = (nextIndex: number) => {
-      if (!items[nextIndex]) return;
+      if (!isViewerOnTop()) return;
+      const isPastEnd = canNavigatePastEnd && nextIndex === items.length;
+      if (!items[nextIndex] && !isPastEnd) return;
       navigate(nextIndex);
       hideChrome();
     };
@@ -438,9 +567,11 @@ export function MediaViewer({
       removeRightBumper();
     };
   }, [
+    canNavigatePastEnd,
     hideChrome,
     index,
     isActiveGamepadEvent,
+    isViewerOnTop,
     items,
     navigate,
     onButtonPressed,
@@ -449,14 +580,17 @@ export function MediaViewer({
 
   const handlePrimary = useCallback(() => {
     const activeVideo = getActiveVideo();
-    if (!activeVideo) return;
+    if (!activeVideo) {
+      onStagePrimary?.();
+      return;
+    }
     if (activeVideo.isQualityMenuOpen()) {
       activeVideo.selectFocusedQuality();
     } else {
       activeVideo.togglePlay();
     }
     wake();
-  }, [getActiveVideo, wake]);
+  }, [getActiveVideo, onStagePrimary, wake]);
 
   const borrowedVideoKey = layers
     .map((layer) => items[layer.index])
@@ -479,117 +613,104 @@ export function MediaViewer({
     document.getElementById("root") ??
     document.body;
 
-  return createPortal(
-    <FocusRegionContext.Provider value={null}>
-      <dialog
-        open
-        ref={rootRef}
-        className={cn("media-viewer", {
-          "media-viewer--chrome-hidden": chromeHidden,
-          "media-viewer--video": isVideo,
-        })}
-        aria-modal="true"
-        aria-label={item.alt}
+  const stageRegion = (
+    <VerticalFocusGroup
+      regionId={STAGE_REGION_ID}
+      className="media-viewer__stage-region"
+    >
+      <FocusItem
+        id={STAGE_FOCUS_ID}
+        actions={{ primary: handlePrimary }}
+        asChild
       >
-        <NavigationLayer
-          rootRegionId={STAGE_REGION_ID}
-          initialFocusId={STAGE_FOCUS_ID}
-          restoreFocusOnUnmount
-        >
-          <VerticalFocusGroup
-            regionId={STAGE_REGION_ID}
-            className="media-viewer__stage-region"
-          >
-            <FocusItem
-              id={STAGE_FOCUS_ID}
-              actions={{ primary: handlePrimary }}
-              asChild
-            >
-              <div className="media-viewer__stage">
-                {layers.map((layer, position) => {
-                  const layerItem = items[layer.index];
-                  if (!layerItem) return null;
+        <div className="media-viewer__stage">
+          {layers.map((layer, position) => {
+            const layerItem = items[layer.index];
+            if (!layerItem) return null;
 
-                  const topLayer = layers[layers.length - 1];
-                  const isTop = position === layers.length - 1;
-                  const host = videoHosts.get(layerItem.id);
+            const topLayer = layers[layers.length - 1];
+            const isTop = position === layers.length - 1;
+            const host = videoHosts.get(layerItem.id);
 
-                  return (
-                    <div
-                      key={layer.key}
-                      className={cn("media-viewer__layer", {
-                        "media-viewer__layer--visible": layer.ready,
-                        "media-viewer__layer--inactive": !isTop,
-                        "media-viewer__layer--leaving":
-                          !isTop && topLayer.ready,
-                      })}
-                    >
-                      {layerItem.type === "video" ? (
-                        host && <GalleryVideoSlot host={host} mode="borrow" />
-                      ) : (
-                        <MediaViewerImage
-                          item={layerItem}
-                          onReady={() => markLayerReady(layer.key)}
-                        />
-                      )}
-                    </div>
-                  );
+            return (
+              <div
+                key={layer.key}
+                className={cn("media-viewer__layer", {
+                  "media-viewer__layer--visible": layer.ready,
+                  "media-viewer__layer--inactive": !isTop,
+                  "media-viewer__layer--leaving": !isTop && topLayer.ready,
                 })}
+              >
+                {layerItem.type === "video" ? (
+                  host && <GalleryVideoSlot host={host} mode="borrow" />
+                ) : (
+                  <MediaViewerImage
+                    item={layerItem}
+                    onReady={() => markLayerReady(layer.key)}
+                    renderImage={renderImage}
+                  />
+                )}
               </div>
-            </FocusItem>
-          </VerticalFocusGroup>
-        </NavigationLayer>
-
-        <div className="media-viewer__top-bar media-viewer__chrome">
-          <span className="media-viewer__counter">
-            {index + 1} / {items.length}
-          </span>
-          <span className="media-viewer__title">{item.alt}</span>
+            );
+          })}
         </div>
+      </FocusItem>
+    </VerticalFocusGroup>
+  );
 
+  const chrome = (
+    <>
+      <div className="media-viewer__top-bar media-viewer__chrome">
+        <span className="media-viewer__counter">
+          {index + 1} / {items.length}
+        </span>
+        <span className="media-viewer__title">{item.alt}</span>
+      </div>
+
+      <div
+        className={cn(
+          "media-viewer__nav media-viewer__nav--left media-viewer__chrome",
+          { "media-viewer__nav--hidden": !hasPrevious }
+        )}
+        data-gallery-chrome
+      >
+        <button
+          type="button"
+          className="media-viewer__nav-button"
+          onClick={() => navigate(index - 1)}
+          aria-label={t("previous_media")}
+          tabIndex={-1}
+        >
+          <CaretLeftIcon size={32} weight="bold" />
+        </button>
+        <BumperBadge label="LB" />
+      </div>
+
+      <div
+        className={cn(
+          "media-viewer__nav media-viewer__nav--right media-viewer__chrome",
+          { "media-viewer__nav--hidden": !hasNext }
+        )}
+        data-gallery-chrome
+      >
+        <button
+          type="button"
+          className="media-viewer__nav-button"
+          onClick={() => navigate(index + 1)}
+          aria-label={t("next_media")}
+          tabIndex={-1}
+        >
+          <CaretRightIcon size={32} weight="bold" />
+        </button>
+        <BumperBadge label="RB" />
+      </div>
+
+      {!isVideo && (
         <div
-          className={cn(
-            "media-viewer__nav media-viewer__nav--left media-viewer__chrome",
-            { "media-viewer__nav--hidden": !hasPrevious }
-          )}
+          className="media-viewer__footer media-viewer__chrome"
           data-gallery-chrome
         >
-          <button
-            type="button"
-            className="media-viewer__nav-button"
-            onClick={() => navigate(index - 1)}
-            aria-label={t("previous_media")}
-            tabIndex={-1}
-          >
-            <CaretLeftIcon size={32} weight="bold" />
-          </button>
-          <BumperBadge label="LB" />
-        </div>
-
-        <div
-          className={cn(
-            "media-viewer__nav media-viewer__nav--right media-viewer__chrome",
-            { "media-viewer__nav--hidden": !hasNext }
-          )}
-          data-gallery-chrome
-        >
-          <button
-            type="button"
-            className="media-viewer__nav-button"
-            onClick={() => navigate(index + 1)}
-            aria-label={t("next_media")}
-            tabIndex={-1}
-          >
-            <CaretRightIcon size={32} weight="bold" />
-          </button>
-          <BumperBadge label="RB" />
-        </div>
-
-        {!isVideo && (
-          <div
-            className="media-viewer__footer media-viewer__chrome"
-            data-gallery-chrome
-          >
+          {showFilmstrip ? (
             <div
               ref={filmstripRef}
               className={cn("media-viewer__filmstrip", {
@@ -622,20 +743,66 @@ export function MediaViewer({
                 </button>
               ))}
             </div>
+          ) : null}
 
-            <button
-              type="button"
-              className="media-viewer__exit-button"
-              onClick={close}
-              aria-label={t("exit_fullscreen")}
-              tabIndex={-1}
-              data-tooltip-id={GALLERY_VIEWER_TOOLTIP_ID}
-              data-tooltip-content={`${t("exit_fullscreen")} (F)`}
-              data-tooltip-place="top"
+          <button
+            type="button"
+            className="media-viewer__exit-button"
+            onClick={close}
+            aria-label={t("exit_fullscreen")}
+            tabIndex={-1}
+            data-tooltip-id={GALLERY_VIEWER_TOOLTIP_ID}
+            data-tooltip-content={`${t("exit_fullscreen")} (F)`}
+            data-tooltip-place="top"
+          >
+            <CornersIn size={34} weight="bold" />
+          </button>
+        </div>
+      )}
+    </>
+  );
+
+  return createPortal(
+    <FocusRegionContext.Provider value={null}>
+      <dialog
+        open
+        ref={rootRef}
+        className={cn("media-viewer", className, {
+          "media-viewer--chrome-hidden": chromeHidden,
+          "media-viewer--video": isVideo,
+          "media-viewer--with-sidebar": hasSidebar,
+        })}
+        aria-modal="true"
+        aria-label={item.alt}
+      >
+        {hasSidebar ? (
+          <NavigationLayer
+            rootRegionId={SIDEBAR_ROOT_REGION_ID}
+            initialFocusId={STAGE_FOCUS_ID}
+            restoreFocusOnUnmount
+          >
+            <MediaViewerLayerReporter onLayerChange={handleLayerChange} />
+            <HorizontalFocusGroup regionId={SIDEBAR_ROOT_REGION_ID} asChild>
+              <div className="media-viewer__layout">
+                <div className="media-viewer__main">
+                  {stageRegion}
+                  {chrome}
+                </div>
+                <aside className="media-viewer__sidebar">{sidebar}</aside>
+              </div>
+            </HorizontalFocusGroup>
+          </NavigationLayer>
+        ) : (
+          <>
+            <NavigationLayer
+              rootRegionId={STAGE_REGION_ID}
+              initialFocusId={STAGE_FOCUS_ID}
+              restoreFocusOnUnmount
             >
-              <CornersIn size={34} weight="bold" />
-            </button>
-          </div>
+              {stageRegion}
+            </NavigationLayer>
+            {chrome}
+          </>
         )}
 
         <HoverTooltip
