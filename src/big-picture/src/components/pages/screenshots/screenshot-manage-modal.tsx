@@ -1,6 +1,6 @@
 import "./screenshot-manage-modal.scss";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import type {
   ProfileScreenshot,
@@ -73,17 +73,19 @@ export function ScreenshotManageModal({
   const [isSpoiler, setIsSpoiler] = useState(false);
   const [commentsEnabled, setCommentsEnabled] = useState(true);
   const [customGameTitle, setCustomGameTitle] = useState("");
+  const screenshotRef = useRef(screenshot);
+  screenshotRef.current = screenshot;
+  const screenshotId = screenshot.id;
 
   useEffect(() => {
     if (!visible) return;
 
-    setVisibility(screenshot.visibility ?? "PUBLIC");
-    setIsSpoiler(screenshot.isSpoiler);
-    setCommentsEnabled(screenshot.commentsEnabled);
-    setCustomGameTitle(
-      screenshot.isCustomGame ? (screenshot.gameTitle ?? "") : ""
-    );
-  }, [screenshot, visible]);
+    const initial = screenshotRef.current;
+    setVisibility(initial.visibility ?? "PUBLIC");
+    setIsSpoiler(initial.isSpoiler);
+    setCommentsEnabled(initial.commentsEnabled);
+    setCustomGameTitle(initial.isCustomGame ? (initial.gameTitle ?? "") : "");
+  }, [screenshotId, visible]);
 
   const visibilityOptions = useMemo<DropdownSelectOption<ProfileVisibility>[]>(
     () => [
