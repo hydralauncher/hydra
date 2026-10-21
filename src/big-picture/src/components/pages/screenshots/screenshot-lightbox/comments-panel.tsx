@@ -105,7 +105,7 @@ interface ScreenshotCommentsPanelProps {
   viewerId: string | null;
   isOwner: boolean;
   leftTarget: FocusOverrideTarget;
-  onCommentCountChange: (screenshotId: string, commentCount: number) => void;
+  onCommentCountChange: (screenshotId: string, delta: number) => void;
   onOverlayChange: (isOpen: boolean) => void;
 }
 
@@ -621,7 +621,7 @@ export function ScreenshotCommentsPanel({
           recordWrite({ kind: "add", comment: created });
           setComments((current) => [created, ...current]);
           setTotal((current) => current + 1);
-          onCommentCountChange(screenshot.id, screenshot.commentCount + 1);
+          onCommentCountChange(screenshot.id, 1);
         }
       }
       setDraft("");
@@ -636,7 +636,6 @@ export function ScreenshotCommentsPanel({
     recordWrite,
     isSubmitting,
     onCommentCountChange,
-    screenshot.commentCount,
     ownerId,
     replaceComment,
     screenshot.id,
@@ -699,11 +698,7 @@ export function ScreenshotCommentsPanel({
         current.filter((comment) => comment.id !== deletingComment.id)
       );
       setTotal((current) => Math.max(0, current - 1));
-      if (!deletingComment.isHidden)
-        onCommentCountChange(
-          screenshot.id,
-          Math.max(0, screenshot.commentCount - 1)
-        );
+      if (!deletingComment.isHidden) onCommentCountChange(screenshot.id, -1);
       if (editingComment?.id === deletingComment.id) {
         setEditingComment(null);
         setDraft("");
@@ -727,7 +722,6 @@ export function ScreenshotCommentsPanel({
     focusIds.input,
     focusIds.signIn,
     onCommentCountChange,
-    screenshot.commentCount,
     ownerId,
     screenshot.id,
     setComments,

@@ -28,6 +28,7 @@ import { useTranslation } from "react-i18next";
 import type {
   ProfileScreenshot,
   ScreenshotLikeResponse,
+  ScreenshotUnlikeResponse,
   ScreenshotReportValues,
   ScreenshotUpdateRequest,
 } from "@types";
@@ -73,6 +74,7 @@ import { ScreenshotManageModal } from "../screenshot-manage-modal";
 import { ScreenshotReportModal } from "../screenshot-report-modal";
 import { useRevealedScreenshotSpoilers } from "../use-revealed-spoilers";
 import { ScreenshotCommentsPanel } from "./comments-panel";
+import type { ScreenshotPatch } from "../screenshot-feed-writes";
 
 export type ScreenshotLightboxStatus =
   | "loading"
@@ -88,17 +90,17 @@ export interface ScreenshotLightboxProps {
   onPrevious: () => void;
   onNext: () => void;
   onClose: () => void;
-  onUpdate: (screenshotId: string, update: Partial<ProfileScreenshot>) => void;
+  onUpdate: (screenshotId: string, update: ScreenshotPatch) => void;
   onRemove: (screenshotId: string) => void;
   onUnavailable: (screenshotId: string) => void;
 }
 
 const getLikePatch = (
-  response: Partial<ScreenshotLikeResponse>
+  response: ScreenshotLikeResponse | ScreenshotUnlikeResponse
 ): Partial<ProfileScreenshot> =>
   typeof response.likeCount === "number"
-    ? { likedByMe: Boolean(response.likedByMe), likeCount: response.likeCount }
-    : { likedByMe: Boolean(response.likedByMe) };
+    ? { likedByMe: response.likedByMe, likeCount: response.likeCount }
+    : { likedByMe: response.likedByMe };
 
 const SETTINGS_TOAST = { fallbackVisual: "settings" as const };
 const STATUS_CLOSE_FOCUS_ID = "screenshot-lightbox-status-close";
@@ -503,7 +505,7 @@ function useLightboxSocialActions({
             path,
             { needsAuth: true }
           )
-        : await globalThis.window.electron.hydraApi.delete<ScreenshotLikeResponse>(
+        : await globalThis.window.electron.hydraApi.delete<ScreenshotUnlikeResponse>(
             path,
             { needsAuth: true }
           );
@@ -834,8 +836,10 @@ function LightboxDialog({
     Boolean(screenshot.imageUrl);
 
   const handleCommentCountChange = useCallback(
-    (screenshotId: string, commentCount: number) => {
-      onUpdate(screenshotId, { commentCount });
+    (screenshotId: string, delta: number) => {
+      onUpdate(screenshotId, (current) => ({
+        commentCount: Math.max(0, current.commentCount + delta),
+      }));
     },
     [onUpdate]
   );

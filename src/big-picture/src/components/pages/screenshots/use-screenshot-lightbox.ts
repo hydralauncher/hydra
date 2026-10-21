@@ -3,7 +3,11 @@ import type { ProfileScreenshot } from "@types";
 import { buildUserScreenshotPath, getScreenshotApiErrorCode } from "@shared";
 import { logger } from "@renderer/logger";
 
-import { pickNewerScreenshot } from "./screenshot-feed-writes";
+import {
+  applyScreenshotPatch,
+  pickNewerScreenshot,
+  type ScreenshotPatch,
+} from "./screenshot-feed-writes";
 
 import type {
   ScreenshotLightboxProps,
@@ -13,10 +17,7 @@ import type {
 interface UseScreenshotLightboxOptions {
   items: ProfileScreenshot[];
   needsAuth: boolean;
-  updateItem: (
-    screenshotId: string,
-    update: Partial<ProfileScreenshot>
-  ) => void;
+  updateItem: (screenshotId: string, update: ScreenshotPatch) => void;
   removeItem: (screenshotId: string) => void;
   getFetchedAt: (screenshotId: string) => number | null;
 }
@@ -122,11 +123,14 @@ export function useScreenshotLightbox({
   }, [close, screenshot, state?.status]);
 
   const update = useCallback(
-    (screenshotId: string, patch: Partial<ProfileScreenshot>) => {
+    (screenshotId: string, patch: ScreenshotPatch) => {
       updateItem(screenshotId, patch);
       setStandalone((current) =>
         current?.screenshot.id === screenshotId
-          ? { ...current, screenshot: { ...current.screenshot, ...patch } }
+          ? {
+              ...current,
+              screenshot: applyScreenshotPatch(current.screenshot, patch),
+            }
           : current
       );
     },

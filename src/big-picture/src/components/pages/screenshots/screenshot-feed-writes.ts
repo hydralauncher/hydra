@@ -1,9 +1,21 @@
 import type { ProfileScreenshot } from "@types";
 
+export type ScreenshotPatch =
+  | Partial<ProfileScreenshot>
+  | ((screenshot: ProfileScreenshot) => Partial<ProfileScreenshot>);
+
+export const applyScreenshotPatch = (
+  screenshot: ProfileScreenshot,
+  patch: ScreenshotPatch
+): ProfileScreenshot => ({
+  ...screenshot,
+  ...(typeof patch === "function" ? patch(screenshot) : patch),
+});
+
 export interface ScreenshotFeedWrite {
   version: number;
   screenshotId: string;
-  patch: Partial<ProfileScreenshot> | null;
+  patch: ScreenshotPatch | null;
 }
 
 export function applyScreenshotFeedWrites(
@@ -27,7 +39,7 @@ export function applyScreenshotFeedWrites(
 
     const { patch } = write;
     result = result.map((item) =>
-      item.id === write.screenshotId ? { ...item, ...patch } : item
+      item.id === write.screenshotId ? applyScreenshotPatch(item, patch) : item
     );
   }
 

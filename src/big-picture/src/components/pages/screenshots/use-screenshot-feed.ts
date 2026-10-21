@@ -5,7 +5,9 @@ import { logger } from "@renderer/logger";
 
 import {
   applyScreenshotFeedWrites,
+  applyScreenshotPatch,
   type ScreenshotFeedWrite,
+  type ScreenshotPatch,
 } from "./screenshot-feed-writes";
 
 interface ScreenshotFeedResponse {
@@ -185,7 +187,7 @@ export function useScreenshotFeed({
   }, [error, fetchNextPage, refresh]);
 
   const recordWrite = useCallback(
-    (screenshotId: string, patch: Partial<ProfileScreenshot> | null) => {
+    (screenshotId: string, patch: ScreenshotPatch | null) => {
       writeVersionRef.current += 1;
       if (pendingReadsRef.current === 0) return;
 
@@ -199,11 +201,11 @@ export function useScreenshotFeed({
   );
 
   const updateItem = useCallback(
-    (screenshotId: string, update: Partial<ProfileScreenshot>) => {
+    (screenshotId: string, update: ScreenshotPatch) => {
       recordWrite(screenshotId, update);
       setItems((current) =>
         current.map((item) =>
-          item.id === screenshotId ? { ...item, ...update } : item
+          item.id === screenshotId ? applyScreenshotPatch(item, update) : item
         )
       );
     },
