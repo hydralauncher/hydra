@@ -118,8 +118,10 @@ const selectProfiles = (
   if (allProfiles || found.length <= 1) return found;
 
   return [
-    found.reduce((latest, candidate) =>
-      candidate.mtimeMs > latest.mtimeMs ? candidate : latest
+    found.reduce(
+      (latest, candidate) =>
+        candidate.mtimeMs > latest.mtimeMs ? candidate : latest,
+      found[0]
     ),
   ];
 };
