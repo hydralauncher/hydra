@@ -11,6 +11,7 @@ import {
   parseSteamOpenIdReturn,
 } from "./steam-openid-return";
 import {
+  parseSteamCommunityPageSteamId,
   parseSteamStoreSessionConfig,
   type SteamWebApiToken,
 } from "./steam-store-session-config";
@@ -24,6 +25,7 @@ export type { SteamWebApiToken } from "./steam-store-session-config";
 export const STEAM_SESSION_PARTITION = "persist:steam";
 export const STEAM_STORE_EXPLORE_URL =
   "https://store.steampowered.com/explore/";
+export const STEAM_COMMUNITY_REFRESH_URL = "https://steamcommunity.com/my/";
 export const STEAM_STORE_MAX_REDIRECTS = 5;
 
 const STEAM_CHROME_USER_AGENT =
@@ -258,40 +260,15 @@ export const openSteamOpenIdWindow = (
 
 export type SteamCommunitySession = {
   fetch: typeof fetch;
-  hasLoginCookie: boolean;
+  steamId64: string | null;
   timeZoneOffsetSeconds: number;
 };
 
-export const readSteamCommunitySession =
-  async (): Promise<SteamCommunitySession> => {
-    applySteamSessionUserAgent();
-
-    const steamSession = session.fromPartition(STEAM_SESSION_PARTITION);
-    const [communityCookies, storeCookies] = await Promise.all([
-      steamSession.cookies.get({ url: "https://steamcommunity.com/" }),
-      steamSession.cookies.get({ url: "https://store.steampowered.com/" }),
-    ]);
-    const hasLoginCookie = communityCookies.some(
-      (cookie) => cookie.name === "steamLoginSecure" && cookie.value.length > 0
-    );
-    const timezone =
-      communityCookies.find((cookie) => cookie.name === "timezoneOffset") ??
-      storeCookies.find((cookie) => cookie.name === "timezoneOffset");
-    const cookieHeader = communityCookies
-      .filter((cookie) => cookie.value.length > 0)
-      .map((cookie) => `${cookie.name}=${cookie.value}`)
-      .join("; ");
-
-    return {
-      fetch: createSteamCommunityCookieFetch(cookieHeader),
-      hasLoginCookie,
-      timeZoneOffsetSeconds: parseSteamTimezoneOffsetSeconds(timezone?.value),
-    };
-  };
-
-export const getSteamWebApiToken = async (
-  signal?: AbortSignal
-): Promise<SteamWebApiToken> => {
+const loadHiddenSteamPage = async <T>(
+  url: string,
+  signal: AbortSignal | undefined,
+  read: (window: BrowserWindow) => Promise<T>
+): Promise<T> => {
   applySteamSessionUserAgent();
 
   const window = new BrowserWindow({
@@ -321,8 +298,69 @@ export const getSteamWebApiToken = async (
       throw error;
     }
 
-    await window.loadURL(STEAM_STORE_EXPLORE_URL);
+    await window.loadURL(url);
+    return await read(window);
+  } finally {
+    signal?.removeEventListener("abort", abort);
+    if (!window.isDestroyed()) {
+      window.destroy();
+    }
+  }
+};
 
+/**
+ * Steam Community access tokens (steamLoginSecure) expire after about a day.
+ * Loading a Community page in the Steam partition lets Steam renew it through
+ * login.steampowered.com/jwt/refresh before the cookies are copied into the
+ * non-browser fetch used for scraping.
+ */
+const refreshSteamCommunityLogin = (signal?: AbortSignal) =>
+  loadHiddenSteamPage(STEAM_COMMUNITY_REFRESH_URL, signal, async (window) => {
+    const currentUrl = window.webContents.getURL();
+    const steamIdRaw: unknown = await window.webContents.executeJavaScript(
+      'typeof g_steamID === "undefined" ? null : g_steamID'
+    );
+
+    const steamId64 = parseSteamCommunityPageSteamId({
+      currentUrl,
+      steamIdRaw,
+    });
+    if (!steamId64) {
+      steamSyncLogger.log("Steam Community session is logged out", currentUrl);
+    }
+
+    return steamId64;
+  });
+
+export const readSteamCommunitySession = async (
+  signal?: AbortSignal
+): Promise<SteamCommunitySession> => {
+  const steamId64 = await refreshSteamCommunityLogin(signal);
+
+  const steamSession = session.fromPartition(STEAM_SESSION_PARTITION);
+  const [communityCookies, storeCookies] = await Promise.all([
+    steamSession.cookies.get({ url: "https://steamcommunity.com/" }),
+    steamSession.cookies.get({ url: "https://store.steampowered.com/" }),
+  ]);
+  const timezone =
+    communityCookies.find((cookie) => cookie.name === "timezoneOffset") ??
+    storeCookies.find((cookie) => cookie.name === "timezoneOffset");
+  const cookieHeader = communityCookies
+    .filter((cookie) => cookie.value.length > 0)
+    .map((cookie) => `${cookie.name}=${cookie.value}`)
+    .join("; ");
+
+  return {
+    fetch: createSteamCommunityCookieFetch(cookieHeader),
+    steamId64,
+    timeZoneOffsetSeconds: parseSteamTimezoneOffsetSeconds(timezone?.value),
+  };
+};
+
+export const getSteamWebApiToken = (
+  signal?: AbortSignal
+): Promise<SteamWebApiToken> =>
+  loadHiddenSteamPage(STEAM_STORE_EXPLORE_URL, signal, async (window) => {
     const currentUrl = window.webContents.getURL();
     const config = (await window.webContents.executeJavaScript(`
       (() => {
@@ -341,10 +379,4 @@ export const getSteamWebApiToken = async (
       ...config,
       currentUrl,
     });
-  } finally {
-    signal?.removeEventListener("abort", abort);
-    if (!window.isDestroyed()) {
-      window.destroy();
-    }
-  }
-};
+  });

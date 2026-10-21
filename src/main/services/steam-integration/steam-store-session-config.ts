@@ -67,3 +67,18 @@ export const parseSteamStoreSessionConfig = (
 
   return { steamId64, accessToken };
 };
+
+export type SteamCommunityPageState = {
+  currentUrl: string;
+  steamIdRaw: unknown;
+};
+
+/** Reads the SteamID64 Steam Community exposes as `g_steamID` (false when logged out). */
+export const parseSteamCommunityPageSteamId = (
+  input: SteamCommunityPageState
+): string | null => {
+  if (input.currentUrl.includes("/login")) return null;
+
+  const steamId64 = asTrimmedString(input.steamIdRaw);
+  return STEAM_ID_64_PATTERN.test(steamId64) ? steamId64 : null;
+};

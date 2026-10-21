@@ -385,8 +385,8 @@ class SteamSyncOrchestrator {
       | SteamSnapshotPayload["games"][number]["achievements"]
       | undefined;
     try {
-      const communitySession = await readSteamCommunitySession();
-      if (communitySession.hasLoginCookie) {
+      const communitySession = await readSteamCommunitySession(signal);
+      if (communitySession.steamId64) {
         const achievementsByAppId = await this.fetchAchievements(
           token,
           communitySession,
@@ -988,9 +988,17 @@ class SteamSyncOrchestrator {
       const token = await this.resolveSteamSession(signal);
       throwIfAborted(signal);
 
-      const communitySession = await readSteamCommunitySession();
-      if (!communitySession.hasLoginCookie) {
+      const communitySession = await readSteamCommunitySession(signal);
+      if (!communitySession.steamId64) {
         throw new SteamSessionRequiredError();
+      }
+      if (communitySession.steamId64 !== token.steamId64) {
+        steamSyncLogger.error(
+          "Steam Community session does not match linked SteamID64",
+          communitySession.steamId64,
+          token.steamId64
+        );
+        throw new SteamAccountMismatchError();
       }
 
       const games = await this.fetchLibrary(token, signal);
