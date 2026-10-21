@@ -8,6 +8,7 @@ import {
   getOfficialStoreMembers,
   getRemoveFilesTarget,
   isLibraryGameDownloading,
+  isSameRemoveFilesTarget,
   type RemoveFilesTarget,
 } from "@shared";
 import { useIsSteamLibraryExecutable } from "@renderer/hooks/use-steam-library-executable";
@@ -183,18 +184,9 @@ export function GameDangerZoneSettingsTab({
         steamUninstallAvailable,
         isSteamLibraryExecutable === true
       );
-      if (
-        !liveTarget ||
-        liveTarget.kind !== pendingTarget.kind ||
-        (liveTarget.kind === "hydra" &&
-          pendingTarget.kind === "hydra" &&
-          (liveTarget.game.shop !== pendingTarget.game.shop ||
-            liveTarget.game.objectId !== pendingTarget.game.objectId)) ||
-        (liveTarget.kind === "steam" &&
-          pendingTarget.kind === "steam" &&
-          liveTarget.appId !== pendingTarget.appId)
-      ) {
+      if (!liveTarget || !isSameRemoveFilesTarget(liveTarget, pendingTarget)) {
         showErrorToast(t("remove_game_files_target_changed"));
+        clearPendingAction();
         return;
       }
 
@@ -203,6 +195,7 @@ export function GameDangerZoneSettingsTab({
         isLibraryGameDownloading(liveTarget.game)
       ) {
         showErrorToast(t("remove_game_files_downloading"));
+        clearPendingAction();
         return;
       }
 

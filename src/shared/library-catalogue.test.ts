@@ -6,6 +6,7 @@ import {
   getRemoveFilesTarget,
   groupLibraryGames,
   isLibraryGameDownloading,
+  isSameRemoveFilesTarget,
   mergeLibraryCatalogueMetadata,
 } from "./library-catalogue.js";
 import { getDisplayedPlayTimeInMilliseconds } from "./playtime.js";
@@ -448,6 +449,57 @@ describe("library catalogue presentation", () => {
       const target = getRemoveFilesTarget(presentation, true, true);
 
       assert.deepEqual(target, { kind: "hydra", game: epic });
+    });
+
+    it("compares Hydra targets by shop and objectId", () => {
+      const game = makeGame();
+
+      assert.equal(
+        isSameRemoveFilesTarget(
+          { kind: "hydra", game },
+          { kind: "hydra", game: { ...game } }
+        ),
+        true
+      );
+      assert.equal(
+        isSameRemoveFilesTarget(
+          { kind: "hydra", game },
+          { kind: "hydra", game: { ...game, objectId: "other:item" } }
+        ),
+        false
+      );
+    });
+
+    it("compares Steam targets by appId", () => {
+      const steam = makeSteamGame();
+
+      assert.equal(
+        isSameRemoveFilesTarget(
+          { kind: "steam", game: steam, appId: "123" },
+          { kind: "steam", game: { ...steam }, appId: "123" }
+        ),
+        true
+      );
+      assert.equal(
+        isSameRemoveFilesTarget(
+          { kind: "steam", game: steam, appId: "123" },
+          { kind: "steam", game: { ...steam }, appId: "456" }
+        ),
+        false
+      );
+    });
+
+    it("does not match targets from different stores", () => {
+      const game = makeGame();
+      const steam = makeSteamGame();
+
+      assert.equal(
+        isSameRemoveFilesTarget(
+          { kind: "hydra", game },
+          { kind: "steam", game: steam, appId: "123" }
+        ),
+        false
+      );
     });
   });
 });

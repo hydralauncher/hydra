@@ -6,6 +6,7 @@ import type {
   LibraryGamePresentation,
 } from "@types";
 import { getLibraryCollectionIds } from "./library-group-actions.js";
+import { getOfficialStoreMembers } from "./official-store-options.js";
 
 type RunningGameIds = readonly string[] | ReadonlySet<string>;
 
@@ -94,10 +95,25 @@ export type RemoveFilesTarget =
 
 const STEAM_APP_ID_PATTERN = /^[1-9]\d{0,9}$/;
 
-const isActiveSteamImportMember = (game: LibraryGame) =>
-  game.shop === "steam" &&
-  game.isDeleted !== true &&
-  game.hasActiveSteamImport === true;
+export const isSameRemoveFilesTarget = (
+  target: RemoveFilesTarget,
+  other: RemoveFilesTarget
+): boolean => {
+  if (target.kind !== other.kind) return false;
+
+  if (target.kind === "hydra" && other.kind === "hydra") {
+    return (
+      target.game.shop === other.game.shop &&
+      target.game.objectId === other.game.objectId
+    );
+  }
+
+  if (target.kind === "steam" && other.kind === "steam") {
+    return target.appId === other.appId;
+  }
+
+  return false;
+};
 
 export const getRemoveFilesTarget = (
   game: LibraryGame,
@@ -125,9 +141,7 @@ export const getRemoveFilesTarget = (
 
   if (!steamUninstallAvailable) return null;
 
-  const steamMember = isActiveSteamImportMember(operationalGame)
-    ? operationalGame
-    : members.find(isActiveSteamImportMember);
+  const steamMember = getOfficialStoreMembers(members).steam;
 
   if (
     !steamMember ||

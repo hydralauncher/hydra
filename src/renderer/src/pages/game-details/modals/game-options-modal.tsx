@@ -15,6 +15,7 @@ import {
   getGameExecutableFilters,
   getGameCatalogueIdentity,
   getRemoveFilesTarget,
+  isSameRemoveFilesTarget,
   applyLibraryGroupAction,
   isLibraryGameDownloading,
   getOfficialStoreMembers,
@@ -668,24 +669,20 @@ export function GameOptionsModal({
       steamUninstallAvailable,
       isSteamLibraryExecutable === true
     );
-    if (
-      !liveTarget ||
-      liveTarget.kind !== "hydra" ||
-      liveTarget.game.shop !== pendingTarget.game.shop ||
-      liveTarget.game.objectId !== pendingTarget.game.objectId ||
-      isLibraryGameDownloading(liveTarget.game) ||
-      isGameDeleting(liveTarget.game.objectId)
-    ) {
-      showErrorToast(
-        !liveTarget ||
-          liveTarget.kind !== "hydra" ||
-          liveTarget.game.shop !== pendingTarget.game.shop ||
-          liveTarget.game.objectId !== pendingTarget.game.objectId
-          ? t("remove_files_target_changed")
-          : isLibraryGameDownloading(liveTarget.game)
-            ? t("remove_files_downloading")
-            : t("remove_files_failed")
-      );
+    if (!liveTarget || liveTarget.kind !== "hydra") {
+      showErrorToast(t("remove_files_target_changed"));
+      return;
+    }
+    if (!isSameRemoveFilesTarget(liveTarget, pendingTarget)) {
+      showErrorToast(t("remove_files_target_changed"));
+      return;
+    }
+    if (isLibraryGameDownloading(liveTarget.game)) {
+      showErrorToast(t("remove_files_downloading"));
+      return;
+    }
+    if (isGameDeleting(liveTarget.game.objectId)) {
+      showErrorToast(t("remove_files_failed"));
       return;
     }
 
@@ -705,22 +702,14 @@ export function GameOptionsModal({
       steamUninstallAvailable,
       isSteamLibraryExecutable === true
     );
-    if (
-      !liveTarget ||
-      liveTarget.kind !== "steam" ||
-      liveTarget.appId !== pendingTarget.appId ||
-      isLibraryGameDownloading(liveTarget.game) ||
-      isGameDeleting(liveTarget.game.objectId)
-    ) {
-      showErrorToast(
-        !liveTarget ||
-          liveTarget.kind !== "steam" ||
-          liveTarget.appId !== pendingTarget.appId
-          ? t("remove_files_target_changed")
-          : isLibraryGameDownloading(liveTarget.game)
-            ? t("remove_files_downloading")
-            : t("remove_files_failed")
-      );
+    if (!liveTarget || liveTarget.kind !== "steam") {
+      showErrorToast(t("remove_files_target_changed"));
+      setPendingRemoveFilesTarget(null);
+      return;
+    }
+    if (!isSameRemoveFilesTarget(liveTarget, pendingTarget)) {
+      showErrorToast(t("remove_files_target_changed"));
+      setPendingRemoveFilesTarget(null);
       return;
     }
 
