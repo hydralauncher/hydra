@@ -8,6 +8,14 @@ export const RICH_TEXT_EXTENSIONS = [
   Underline,
 ];
 
+export const isRichTextEditorAvailable = (
+  editor: Editor | null | undefined
+): editor is Editor => Boolean(editor && !editor.isDestroyed);
+
+export const clearRichTextEditor = (editor: Editor | null | undefined) => {
+  if (isRichTextEditorAvailable(editor)) editor.commands.clearContent(true);
+};
+
 const getHtmlTextLength = (html: string) => {
   const container = document.createElement("div");
   container.innerHTML = html;
@@ -114,7 +122,7 @@ export function useRichTextEditor({
   });
 
   const clear = () => {
-    editor?.commands.clearContent(true);
+    clearRichTextEditor(editor);
     setCharCount(0);
     setHtmlLength(0);
   };
@@ -123,8 +131,8 @@ export function useRichTextEditor({
     editor,
     charCount,
     htmlLength,
-    isEmpty: !editor?.getText().trim(),
-    getHtml: () => editor?.getHTML() ?? "",
+    isEmpty: !isRichTextEditorAvailable(editor) || !editor.getText().trim(),
+    getHtml: () => (isRichTextEditorAvailable(editor) ? editor.getHTML() : ""),
     clear,
   };
 }
