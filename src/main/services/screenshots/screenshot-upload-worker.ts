@@ -24,6 +24,7 @@ import { ScreenshotReviewWindows } from "./screenshot-review-windows";
 import { ScreenshotTelemetry } from "./screenshot-telemetry";
 import { ScreenshotUploadNotifier } from "./screenshot-upload-notifier";
 import {
+  getAlreadyUploadedScreenshot,
   getScreenshotUploadFailure,
   planScreenshotUploadRecovery,
   type ScreenshotUploadFailure,
@@ -377,30 +378,48 @@ class ScreenshotUploadWorker {
         { authContext, signal: controller.signal, timeout: REQUEST_TIMEOUT_MS }
       );
 
-      this.gameWaits.delete(clientId);
-      const moderationStatus = isModerationStatus(result?.moderationStatus)
-        ? result.moderationStatus
-        : "PENDING";
-      await LocalScreenshotStore.update(clientId, {
-        state: "uploaded",
-        screenshotId: presign.id,
-        moderationStatus,
-        moderationReason: result?.moderationReason ?? null,
-        uploadProgress: 1,
-        uploadedAt: Date.now(),
-        nextUploadAttemptAt: null,
-        lastError: null,
+      await this.markUploaded(clientId, {
+        id: presign.id,
+        moderationStatus: result?.moderationStatus,
+        moderationReason: result?.moderationReason,
       });
-      emitProgress({ clientId, state: "uploaded", progress: 1 });
-      if (moderationStatus === "PENDING") {
-        this.scheduleFastModerationPoll(clientId);
-      }
       ScreenshotTelemetry.record("upload", "uploaded", compressed.quality);
     } catch (error) {
       await this.handleFailure(screenshot, quality, attempt, error, controller);
     } finally {
       if (this.activeUpload?.controller === controller)
         this.activeUpload = null;
+    }
+  }
+
+  private async markUploaded(
+    clientId: string,
+    result: {
+      id: string;
+      moderationStatus: unknown;
+      moderationReason: unknown;
+    }
+  ) {
+    this.gameWaits.delete(clientId);
+    const moderationStatus = isModerationStatus(result.moderationStatus)
+      ? result.moderationStatus
+      : "PENDING";
+    await LocalScreenshotStore.update(clientId, {
+      state: "uploaded",
+      screenshotId: result.id,
+      moderationStatus,
+      moderationReason:
+        typeof result.moderationReason === "string"
+          ? result.moderationReason
+          : null,
+      uploadProgress: 1,
+      uploadedAt: Date.now(),
+      nextUploadAttemptAt: null,
+      lastError: null,
+    });
+    emitProgress({ clientId, state: "uploaded", progress: 1 });
+    if (moderationStatus === "PENDING") {
+      this.scheduleFastModerationPoll(clientId);
     }
   }
 
@@ -427,6 +446,16 @@ class ScreenshotUploadWorker {
     }
 
     const failure = getScreenshotUploadFailure(error);
+    const alreadyUploaded =
+      failure.action === "already_uploaded"
+        ? getAlreadyUploadedScreenshot(error)
+        : null;
+    if (alreadyUploaded) {
+      await this.markUploaded(clientId, alreadyUploaded);
+      ScreenshotTelemetry.record("upload", "uploaded", "already_uploaded");
+      return;
+    }
+
     const gameWaits = this.gameWaits.get(clientId) ?? 0;
     if (failure.action === "wait_for_game") {
       this.gameWaits.set(clientId, gameWaits + 1);
