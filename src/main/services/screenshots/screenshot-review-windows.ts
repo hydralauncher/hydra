@@ -428,10 +428,14 @@ export class ScreenshotReviewWindows {
     const bigPicture = WindowManager.bigPictureWindow;
     if (!bigPicture) return false;
 
+    await Promise.all(
+      request.clientIds.map((clientId) =>
+        LocalScreenshotStore.update(clientId, (current) =>
+          current.state === "local" ? { state: "reviewing" } : {}
+        )
+      )
+    );
     for (const clientId of request.clientIds) {
-      await LocalScreenshotStore.update(clientId, (current) =>
-        current.state === "local" ? { state: "reviewing" } : {}
-      );
       bigPictureReviewClientIds.add(clientId);
     }
     watchBigPictureHandoff(bigPicture, request.clientIds);
