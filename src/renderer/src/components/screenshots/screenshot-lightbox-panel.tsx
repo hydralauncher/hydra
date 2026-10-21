@@ -293,6 +293,12 @@ export function ScreenshotLightboxPanel({
         onRequestReport={onRequestReport}
       />
 
+      {screenshot.description ? (
+        <p className="screenshot-lightbox__description">
+          {screenshot.description}
+        </p>
+      ) : null}
+
       {isOwner ? (
         <ScreenshotOwnerControls
           screenshot={screenshot}

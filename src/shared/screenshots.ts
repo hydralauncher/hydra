@@ -7,12 +7,19 @@ import type {
   ScreenshotReportValues,
   ScreenshotShop,
   ScreenshotSort,
+  ScreenshotUpdateRequest,
 } from "@types";
 
 export const SCREENSHOTS_PAGE_SIZE = 24;
 export const SCREENSHOT_COMMENTS_PAGE_SIZE = 20;
 export const SCREENSHOT_COMMENT_MAX_LENGTH = 500;
 export const SCREENSHOT_COMMENT_HTML_MAX_LENGTH = 5000;
+export const SCREENSHOT_DESCRIPTION_MAX_LENGTH = 200;
+
+export const normalizeScreenshotDescription = (value: string) => {
+  const description = value.replaceAll(/[\r\n]+/g, " ").trim();
+  return description.length > 0 ? description : null;
+};
 export const SCREENSHOT_REPORT_DESCRIPTION_MAX_LENGTH = 255;
 
 export const SCREENSHOT_SORTS: ScreenshotSort[] = ["recent", "top"];
@@ -300,4 +307,30 @@ export const buildScreenshotNotificationTarget = (
   if (variables.screenshotId) params.set("screenshot", variables.screenshotId);
 
   return `${profilePath}?${params.toString()}`;
+};
+
+export const getEditedScreenshotFields = (
+  update: ScreenshotUpdateRequest,
+  response: ProfileScreenshot | null
+): Partial<ProfileScreenshot> => {
+  const source = response ?? {
+    ...update,
+    gameTitle: update.customGameTitle,
+  };
+  const patch: Partial<ProfileScreenshot> = {};
+
+  if (update.visibility !== undefined) patch.visibility = source.visibility;
+  if (update.isSpoiler !== undefined) patch.isSpoiler = source.isSpoiler;
+  if (update.commentsEnabled !== undefined) {
+    patch.commentsEnabled = source.commentsEnabled;
+    if (response) patch.canComment = response.canComment;
+  }
+  if (update.customGameTitle !== undefined) {
+    patch.gameTitle = source.gameTitle ?? null;
+  }
+  if (update.description !== undefined) {
+    patch.description = source.description ?? null;
+  }
+
+  return patch;
 };

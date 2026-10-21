@@ -2553,6 +2553,7 @@
     "yes": "да"
   },
   "screenshots": {
+    "add_description": "Добавьте описание",
     "all_games": "Все игры",
     "all_screenshots_are_spoilers": "Все загруженные скриншоты отмечены как спойлеры",
     "allow_comments": "Разрешить комментарии",
@@ -2602,6 +2603,7 @@
     "delete_screenshot": "Удалить скриншот",
     "delete_screenshot_description": "Скриншот, его отметки «Нравится» и комментарии будут удалены. Это действие нельзя отменить.",
     "delete_screenshot_title": "Удалить скриншот?",
+    "description": "Описание",
     "downvote_comment": "Против",
     "edit_comment": "Изменить комментарий",
     "edit_comment_placeholder": "Измените комментарий",

@@ -51,6 +51,7 @@ export interface ProfileScreenshot {
   gameTitle: string | null;
   gameIconUrl: string | null;
   isSpoiler: boolean;
+  description: string | null;
   likeCount: number;
   commentCount: number;
   likedByMe: boolean;
@@ -118,6 +119,7 @@ export interface ScreenshotUpdateRequest {
   commentsEnabled?: boolean;
   isSpoiler?: boolean;
   customGameTitle?: string | null;
+  description?: string | null;
 }
 
 export interface ScreenshotLikeResponse {

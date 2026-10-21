@@ -7,7 +7,11 @@ import { Button } from "../button/button";
 import { CheckboxField } from "../checkbox-field/checkbox-field";
 import { SelectField } from "../select-field/select-field";
 import { TextField } from "../text-field/text-field";
-import { SCREENSHOT_CUSTOM_GAME_TITLE_MAX_LENGTH } from "@shared";
+import {
+  SCREENSHOT_CUSTOM_GAME_TITLE_MAX_LENGTH,
+  SCREENSHOT_DESCRIPTION_MAX_LENGTH,
+  normalizeScreenshotDescription,
+} from "@shared";
 import type {
   ProfileScreenshot,
   ProfileVisibility,
@@ -35,10 +39,26 @@ export function ScreenshotOwnerControls({
   const contentId = useId();
   const [isExpanded, setIsExpanded] = useState(false);
   const [customTitle, setCustomTitle] = useState(screenshot.gameTitle ?? "");
+  const [description, setDescription] = useState(screenshot.description ?? "");
 
   useEffect(() => {
     setCustomTitle(screenshot.gameTitle ?? "");
   }, [screenshot.id, screenshot.gameTitle]);
+
+  useEffect(() => {
+    setDescription(screenshot.description ?? "");
+  }, [screenshot.id, screenshot.description]);
+
+  const normalizedDescription = normalizeScreenshotDescription(description);
+  const isDescriptionChanged =
+    normalizedDescription !== (screenshot.description ?? null);
+
+  const handleDescriptionSubmit = (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    if (!isDescriptionChanged || isUpdating) return;
+
+    void onUpdate({ description: normalizedDescription });
+  };
 
   const trimmedCustomTitle = customTitle.trim();
   const isCustomTitleChanged =
@@ -74,6 +94,32 @@ export function ScreenshotOwnerControls({
 
       {isExpanded ? (
         <div id={contentId} className="screenshot-lightbox__owner-content">
+          <form
+            className="screenshot-lightbox__description-form"
+            onSubmit={handleDescriptionSubmit}
+          >
+            <TextField
+              label={t("description")}
+              placeholder={t("add_description")}
+              value={description}
+              maxLength={SCREENSHOT_DESCRIPTION_MAX_LENGTH}
+              disabled={isUpdating}
+              hint={`${description.length}/${SCREENSHOT_DESCRIPTION_MAX_LENGTH}`}
+              onChange={(event) =>
+                setDescription(event.target.value.replaceAll(/[\r\n]+/g, " "))
+              }
+              rightContent={
+                <Button
+                  type="submit"
+                  theme="outline"
+                  disabled={!isDescriptionChanged || isUpdating}
+                >
+                  {t("save")}
+                </Button>
+              }
+            />
+          </form>
+
           <SelectField
             label={t("visibility")}
             value={screenshot.visibility ?? "PUBLIC"}

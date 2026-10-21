@@ -2780,6 +2780,7 @@
     "yes": "sim"
   },
   "screenshots": {
+    "add_description": "Adicionar uma descrição",
     "all_games": "Todos os jogos",
     "all_screenshots_are_spoilers": "Todas as capturas de tela carregadas até agora estão marcadas como spoiler",
     "allow_comments": "Permitir comentários",
@@ -2827,6 +2828,7 @@
     "delete_screenshot": "Excluir captura de tela",
     "delete_screenshot_description": "Esta captura de tela, suas curtidas e seus comentários serão removidos. Isso não pode ser desfeito.",
     "delete_screenshot_title": "Excluir captura de tela?",
+    "description": "Descrição",
     "downvote_comment": "Votar contra",
     "edit_comment": "Editar comentário",
     "edit_comment_placeholder": "Edite seu comentário",

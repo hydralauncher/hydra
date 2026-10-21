@@ -2776,6 +2776,7 @@
     "yes": "yes"
   },
   "screenshots": {
+    "add_description": "Add a description",
     "all_games": "All games",
     "all_screenshots_are_spoilers": "Every screenshot loaded so far is marked as a spoiler",
     "allow_comments": "Allow comments",
@@ -2823,6 +2824,7 @@
     "delete_screenshot": "Delete screenshot",
     "delete_screenshot_description": "This screenshot, its likes and its comments will be removed. This can't be undone.",
     "delete_screenshot_title": "Delete screenshot?",
+    "description": "Description",
     "downvote_comment": "Downvote",
     "edit_comment": "Edit comment",
     "edit_comment_placeholder": "Edit your comment",
