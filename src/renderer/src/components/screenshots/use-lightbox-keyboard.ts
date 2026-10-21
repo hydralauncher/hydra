@@ -1,7 +1,6 @@
 import { useCallback, useEffect, type RefObject } from "react";
 
-const FOCUSABLE_SELECTOR =
-  'a[href], button:not([disabled]), textarea:not([disabled]), input:not([disabled]), select:not([disabled]), [tabindex]:not([tabindex="-1"])';
+import { moveFocusWithinContainer } from "@renderer/hooks/use-focus-trap";
 
 const DIALOG_SELECTOR = "[role=dialog], dialog[open]";
 
@@ -13,26 +12,6 @@ const isTypingTarget = (target: EventTarget | null) =>
 const isTopMostDialog = (dialog: HTMLElement | null) => {
   const dialogs = Array.from(document.querySelectorAll(DIALOG_SELECTOR));
   return dialog !== null && dialogs.at(-1) === dialog;
-};
-
-const trapFocusWithin = (container: HTMLElement, event: KeyboardEvent) => {
-  const focusable = Array.from(
-    container.querySelectorAll<HTMLElement>(FOCUSABLE_SELECTOR)
-  ).filter((element) => element.offsetParent !== null);
-  const first = focusable.at(0);
-  const last = focusable.at(-1);
-  if (!first || !last) return;
-
-  const activeElement = document.activeElement;
-  const isFocusOutside = !container.contains(activeElement);
-
-  if (event.shiftKey && activeElement === first) {
-    event.preventDefault();
-    last.focus();
-  } else if ((!event.shiftKey && activeElement === last) || isFocusOutside) {
-    event.preventDefault();
-    first.focus();
-  }
 };
 
 interface UseLightboxKeyboardOptions {
@@ -70,7 +49,8 @@ export function useLightboxKeyboard({
       if (event.key === "Escape") {
         onClose();
       } else if (event.key === "Tab") {
-        trapFocusWithin(dialog, event);
+        event.preventDefault();
+        moveFocusWithinContainer(dialog, event.shiftKey);
       } else if (!isTypingTarget(event.target)) {
         handleArrowKey(event.key);
       }
