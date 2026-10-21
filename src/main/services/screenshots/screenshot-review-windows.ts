@@ -422,6 +422,23 @@ export class ScreenshotReviewWindows {
     return bigPictureReviewClientIds.has(clientId);
   }
 
+  public static async requestBigPictureReview(
+    request: ScreenshotReviewRequest
+  ) {
+    const bigPicture = WindowManager.bigPictureWindow;
+    if (!bigPicture) return false;
+
+    for (const clientId of request.clientIds) {
+      await LocalScreenshotStore.update(clientId, (current) =>
+        current.state === "local" ? { state: "reviewing" } : {}
+      );
+      bigPictureReviewClientIds.add(clientId);
+    }
+    watchBigPictureHandoff(bigPicture, request.clientIds);
+    bigPicture.webContents.send("on-screenshot-review-requested", request);
+    return true;
+  }
+
   public static markBigPictureReview(clientId: string) {
     bigPictureReviewClientIds.add(clientId);
   }

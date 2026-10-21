@@ -109,6 +109,7 @@ import type {
   ScreenshotUploadProgress,
 } from "@types";
 import type { AuthPage, Downloader } from "@shared";
+import { screenshotsDevApi } from "./screenshots-dev";
 import type { AxiosProgressEvent } from "axios";
 
 const fileExplorerApi = {
@@ -1484,6 +1485,7 @@ contextBridge.exposeInMainWorld("electron", {
   getVersion: () => ipcRenderer.invoke("getVersion"),
   getDefaultDownloadsPath: () => ipcRenderer.invoke("getDefaultDownloadsPath"),
   getScreenshotsPath: () => ipcRenderer.invoke("getScreenshotsPath"),
+  ...(import.meta.env.DEV ? { screenshotsDev: screenshotsDevApi } : {}),
   getLocalScreenshots: () => ipcRenderer.invoke("getLocalScreenshots"),
   uploadLocalScreenshot: (
     clientId: string,

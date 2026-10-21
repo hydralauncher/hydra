@@ -926,6 +926,7 @@ export * from "./artwork.types";
 export * from "./cloud-save.types";
 export * from "./souvenir.types";
 export * from "./screenshot.types";
+export * from "./screenshots-dev.types";
 
 export type ExtractionFailure =
   | { reason: "unsupported-format"; format: string }
