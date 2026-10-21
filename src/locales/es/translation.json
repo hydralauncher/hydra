@@ -2430,6 +2430,7 @@
     "generic": "Infringe las normas de contenido",
     "hate_symbols": "Símbolos de odio",
     "invalid_image": "No se pudo procesar la imagen",
+    "moderation_failed": "No pudimos revisar esta captura",
     "personal_information": "Información personal",
     "real_world_gore": "Violencia gráfica"
   },

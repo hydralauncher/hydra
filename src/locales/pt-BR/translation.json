@@ -2706,6 +2706,7 @@
     "generic": "Viola as regras de conteúdo",
     "hate_symbols": "Símbolos de ódio",
     "invalid_image": "Não foi possível processar a imagem",
+    "moderation_failed": "Não foi possível verificar esta captura",
     "personal_information": "Informações pessoais",
     "real_world_gore": "Violência gráfica"
   },
