@@ -26,6 +26,7 @@ import type {
 } from "@types";
 
 import type { ScreenshotFailure } from "./use-screenshot-actions";
+import type { ScreenshotPatch } from "./use-screenshot-feed";
 
 type CommentWrite =
   | { kind: "create"; comment: ScreenshotComment }
@@ -36,6 +37,12 @@ interface VersionedCommentWrite {
   version: number;
   write: CommentWrite;
 }
+
+const adjustCommentCount =
+  (delta: number) =>
+  (screenshot: ProfileScreenshot): Partial<ProfileScreenshot> => ({
+    commentCount: Math.max(0, screenshot.commentCount + delta),
+  });
 
 const applyCommentWrite = (
   comments: ScreenshotComment[],
@@ -79,7 +86,7 @@ interface UseScreenshotCommentsOptions {
   screenshot: ProfileScreenshot;
   isEnabled: boolean;
   isSignedIn: boolean;
-  onPatch: (screenshotId: string, patch: Partial<ProfileScreenshot>) => void;
+  onPatch: (screenshotId: string, patch: ScreenshotPatch) => void;
   onFailure: (screenshotId: string, failure: ScreenshotFailure) => void;
 }
 
@@ -112,8 +119,6 @@ export function useScreenshotComments({
   const writesRef = useRef<VersionedCommentWrite[]>([]);
   const commentsRef = useRef(comments);
   commentsRef.current = comments;
-  const commentCountRef = useRef(screenshot.commentCount);
-  commentCountRef.current = screenshot.commentCount;
 
   const setPending = useCallback((commentId: string, isPending: boolean) => {
     setPendingCommentIds((current) => {
@@ -272,9 +277,7 @@ export function useScreenshotComments({
       recordWrite({ kind: "delete", commentId });
       setTotal((current) => Math.max(0, (current ?? 1) - 1));
       if (!removed.isHidden) {
-        onPatch(screenshotId, {
-          commentCount: Math.max(0, commentCountRef.current - 1),
-        });
+        onPatch(screenshotId, adjustCommentCount(-1));
       }
     },
     [onPatch, recordWrite, screenshotId]
@@ -333,7 +336,7 @@ export function useScreenshotComments({
 
         recordWrite({ kind: "create", comment });
         setTotal((current) => (current ?? 0) + 1);
-        onPatch(screenshotId, { commentCount: commentCountRef.current + 1 });
+        onPatch(screenshotId, adjustCommentCount(1));
         return true;
       } catch (error) {
         logger.error("Failed to post screenshot comment", error);
@@ -405,9 +408,7 @@ export function useScreenshotComments({
         recordWrite({ kind: "delete", commentId: comment.id });
         setTotal((current) => Math.max(0, (current ?? 1) - 1));
         if (!comment.isHidden) {
-          onPatch(screenshotId, {
-            commentCount: Math.max(0, commentCountRef.current - 1),
-          });
+          onPatch(screenshotId, adjustCommentCount(-1));
         }
         showSuccessToast(t("comment_deleted"));
         return true;

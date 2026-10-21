@@ -15,10 +15,22 @@ export interface ScreenshotFeedPage {
   hiddenReason?: ScreenshotsHiddenReason;
 }
 
+export type ScreenshotPatch =
+  | Partial<ProfileScreenshot>
+  | ((screenshot: ProfileScreenshot) => Partial<ProfileScreenshot>);
+
+export const applyScreenshotPatch = (
+  screenshot: ProfileScreenshot,
+  patch: ScreenshotPatch
+): ProfileScreenshot => ({
+  ...screenshot,
+  ...(typeof patch === "function" ? patch(screenshot) : patch),
+});
+
 interface ScreenshotFeedWrite {
   version: number;
   screenshotId: string;
-  patch: Partial<ProfileScreenshot> | null;
+  patch: ScreenshotPatch | null;
 }
 
 const applyWritesSince = (
@@ -41,7 +53,9 @@ const applyWritesSince = (
     } else {
       const { patch } = write;
       result = result.map((item) =>
-        item.id === write.screenshotId ? { ...item, ...patch } : item
+        item.id === write.screenshotId
+          ? applyScreenshotPatch(item, patch)
+          : item
       );
     }
   }
@@ -202,7 +216,7 @@ export function useScreenshotFeed({
   }, [feedKey, reload]);
 
   const recordWrite = useCallback(
-    (screenshotId: string, patch: Partial<ProfileScreenshot> | null) => {
+    (screenshotId: string, patch: ScreenshotPatch | null) => {
       writeVersionRef.current += 1;
       if (!isReadPendingRef.current) return;
 
@@ -221,11 +235,11 @@ export function useScreenshotFeed({
   );
 
   const patchItem = useCallback(
-    (screenshotId: string, patch: Partial<ProfileScreenshot>) => {
+    (screenshotId: string, patch: ScreenshotPatch) => {
       recordWrite(screenshotId, patch);
       setItems((current) =>
         current.map((item) =>
-          item.id === screenshotId ? { ...item, ...patch } : item
+          item.id === screenshotId ? applyScreenshotPatch(item, patch) : item
         )
       );
     },

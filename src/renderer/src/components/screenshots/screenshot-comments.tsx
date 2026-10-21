@@ -26,6 +26,7 @@ import type {
 import { ScreenshotCommentInput } from "./screenshot-comment-input";
 import { ScreenshotCommentReportModal } from "./screenshot-report-modal";
 import type { ScreenshotFailure } from "./use-screenshot-actions";
+import type { ScreenshotPatch } from "./use-screenshot-feed";
 import { useScreenshotComments } from "./use-screenshot-comments";
 
 type ComposerState =
@@ -246,7 +247,7 @@ function ScreenshotCommentItem({
 
 interface ScreenshotCommentsProps {
   screenshot: ProfileScreenshot;
-  onPatch: (screenshotId: string, patch: Partial<ProfileScreenshot>) => void;
+  onPatch: (screenshotId: string, patch: ScreenshotPatch) => void;
   onFailure: (screenshotId: string, failure: ScreenshotFailure) => void;
   onNavigateAway: () => void;
 }

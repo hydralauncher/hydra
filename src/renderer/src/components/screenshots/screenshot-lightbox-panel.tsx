@@ -24,6 +24,7 @@ import { ScreenshotComments } from "./screenshot-comments";
 import { ScreenshotOwnerControls } from "./screenshot-owner-controls";
 import { getScreenshotGameTitle } from "./screenshot-labels";
 import type { ScreenshotFailure } from "./use-screenshot-actions";
+import type { ScreenshotPatch } from "./use-screenshot-feed";
 import type { ScreenshotCollection } from "./use-screenshot-collection";
 
 type ScreenshotActions = ScreenshotCollection["actions"];
@@ -240,7 +241,7 @@ interface ScreenshotLightboxPanelProps {
   screenshot: ProfileScreenshot;
   actions: ScreenshotActions;
   closeButtonRef: RefObject<HTMLButtonElement>;
-  onPatch: (screenshotId: string, patch: Partial<ProfileScreenshot>) => void;
+  onPatch: (screenshotId: string, patch: ScreenshotPatch) => void;
   onFailure: (screenshotId: string, failure: ScreenshotFailure) => void;
   onClose: () => void;
   onRequestDelete: () => void;
