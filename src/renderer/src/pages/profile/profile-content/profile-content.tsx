@@ -49,7 +49,7 @@ import { SouvenirLightbox } from "./souvenir-lightbox";
 import { useSouvenirActions } from "./use-souvenir-actions";
 import type { ProfilePlatform } from "./library-tab";
 import { AnimatePresence } from "framer-motion";
-import { useNavigate, useSearchParams } from "react-router-dom";
+import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { ConfirmationModal } from "@renderer/components";
 import "./profile-content.scss";
 
@@ -149,6 +149,7 @@ export function ProfileContent() {
   const requestedTab = searchParams.get("tab");
   const requestedSouvenir = searchParams.get("souvenir");
   const requestedScreenshot = searchParams.get("screenshot");
+  const { userId: routeUserId } = useParams();
   const { isFeatureEnabled, Feature } = useFeature();
   const isScreenshotsEnabled = isFeatureEnabled(Feature.Screenshots);
   const attemptedDeepLinkPagesRef = useRef(new Set<string>());
@@ -681,7 +682,9 @@ export function ProfileContent() {
                 <ScreenshotsTab
                   userId={userProfile.id}
                   isMe={isMe}
-                  requestedScreenshotId={requestedScreenshot}
+                  requestedScreenshotId={
+                    userProfile.id === routeUserId ? requestedScreenshot : null
+                  }
                   onRequestedScreenshotHandled={clearRequestedScreenshot}
                   onTotalChange={setScreenshotsTotal}
                 />
