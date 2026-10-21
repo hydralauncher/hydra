@@ -23,17 +23,14 @@ import { Button } from "../button/button";
 import { ConfirmationModal } from "../confirmation-modal/confirmation-modal";
 import { Link } from "../link/link";
 import { buildGameDetailsPath } from "@renderer/helpers";
-import { AuthPage } from "@shared";
+import { AuthPage, getScreenshotModerationReasonKey } from "@shared";
 import { useDate, useUserDetails } from "@renderer/hooks";
 import type { ProfileScreenshot } from "@types";
 
 import { ScreenshotComments } from "./screenshot-comments";
 import { ScreenshotOwnerControls } from "./screenshot-owner-controls";
 import { ScreenshotReportModal } from "./screenshot-report-modal";
-import {
-  getScreenshotGameTitle,
-  getScreenshotModerationReason,
-} from "./screenshot-labels";
+import { getScreenshotGameTitle } from "./screenshot-labels";
 import type { ScreenshotCollection } from "./use-screenshot-collection";
 import { useScreenshotSpoiler } from "./use-screenshot-spoiler";
 
@@ -173,6 +170,7 @@ function ScreenshotModerationNotice({
   screenshot,
 }: Readonly<{ screenshot: ProfileScreenshot }>) {
   const { t } = useTranslation("screenshots");
+  const { t: tModeration } = useTranslation("screenshots_moderation");
 
   if (screenshot.moderationStatus === "PENDING") {
     return (
@@ -194,9 +192,8 @@ function ScreenshotModerationNotice({
           <strong>{t("status_blocked")}</strong>
           <span>
             {t("status_blocked_description", {
-              reason: getScreenshotModerationReason(
-                screenshot.moderationReason,
-                t
+              reason: tModeration(
+                getScreenshotModerationReasonKey(screenshot.moderationReason)
               ),
             })}
           </span>
