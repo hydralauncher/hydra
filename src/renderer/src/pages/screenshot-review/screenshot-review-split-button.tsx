@@ -31,6 +31,9 @@ export function ScreenshotReviewSplitButton({
 }: Readonly<ScreenshotReviewSplitButtonProps>) {
   const rootRef = useRef<HTMLDivElement>(null);
   const [menuWidth, setMenuWidth] = useState<number | null>(null);
+  const [isKeyboardNavigation, setIsKeyboardNavigation] = useState(false);
+  const markKeyboardInput = () => setIsKeyboardNavigation(true);
+  const markPointerInput = () => setIsKeyboardNavigation(false);
   const hasMenu = menuActions.length > 0;
 
   const handleOpenChange = (open: boolean) => {
@@ -63,6 +66,8 @@ export function ScreenshotReviewSplitButton({
               theme={theme}
               disabled={disabled}
               aria-label={menuLabel}
+              onKeyDown={markKeyboardInput}
+              onPointerDown={markPointerInput}
             >
               <TriangleDownIcon size={16} />
             </Button>
@@ -74,7 +79,12 @@ export function ScreenshotReviewSplitButton({
               align="end"
               sideOffset={6}
               collisionPadding={12}
-              className="screenshot-review-split-button__menu"
+              className={cn("screenshot-review-split-button__menu", {
+                "screenshot-review-split-button__menu--keyboard":
+                  isKeyboardNavigation,
+              })}
+              onKeyDown={markKeyboardInput}
+              onPointerMove={markPointerInput}
               style={menuWidth ? { width: menuWidth } : undefined}
             >
               {menuActions.map((action) => (

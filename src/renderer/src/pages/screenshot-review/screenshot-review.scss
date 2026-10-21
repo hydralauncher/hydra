@@ -409,6 +409,7 @@ $review-outline-hover-overlay: rgba(255, 255, 255, 0.1);
     width: 100%;
     white-space: nowrap;
     user-select: none;
+    outline: none;
 
     &.button--primary[data-highlighted] {
       background-color: #dadbe1;
@@ -424,6 +425,11 @@ $review-outline-hover-overlay: rgba(255, 255, 255, 0.1);
         );
       }
     }
+  }
+
+  &__menu--keyboard &__menu-item[data-highlighted] {
+    outline: 2px solid globals.$muted-color;
+    outline-offset: 2px;
   }
 
   @media (prefers-reduced-motion: reduce) {
