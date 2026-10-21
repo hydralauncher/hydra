@@ -12,6 +12,7 @@ import type {
   ScreenshotUploadProgress,
 } from "@types";
 
+import { normalizeScreenshotDescription } from "@shared";
 import { GAME_NOT_FOUND_ERROR_CODE } from "../achievements/grouped-souvenir-retry-policy";
 import type { HydraApiAuthContext } from "../hydra-auth-context";
 import { HydraApi } from "../hydra-api";
@@ -70,6 +71,7 @@ const buildPresignRequest = (
 ): ScreenshotPresignRequest => {
   const isCustom = screenshot.shop === "custom";
   const customGameTitle = screenshot.customGameTitle?.trim();
+  const description = normalizeScreenshotDescription(screenshot.description);
 
   return {
     clientId: uploadClientId,
@@ -83,6 +85,7 @@ const buildPresignRequest = (
       ? {}
       : { objectId: screenshot.objectId }),
     ...(isCustom && customGameTitle ? { customGameTitle } : {}),
+    ...(description ? { description } : {}),
     capturedAt: screenshot.capturedAt,
     isSpoiler: screenshot.isSpoiler,
     visibility: screenshot.visibility,
@@ -172,6 +175,10 @@ class ScreenshotUploadWorker {
         screenshot.shop === "custom"
           ? options.customGameTitle?.trim() || null
           : screenshot.customGameTitle,
+      description:
+        options.description === undefined
+          ? (screenshot.description ?? null)
+          : normalizeScreenshotDescription(options.description),
       uploadProgress: 0,
       uploadAttempts: 0,
       nextUploadAttemptAt: null,

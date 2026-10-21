@@ -1,3 +1,4 @@
+import { normalizeScreenshotDescription } from "@shared";
 import type {
   LocalScreenshot,
   ProfileVisibility,
@@ -9,6 +10,7 @@ export interface ScreenshotReviewDraft {
   isSpoiler: boolean;
   visibility: ProfileVisibility;
   customGameTitle: string;
+  description: string;
 }
 
 export const createReviewDraft = (
@@ -17,6 +19,7 @@ export const createReviewDraft = (
   isSpoiler: screenshot.isSpoiler,
   visibility: screenshot.visibility,
   customGameTitle: screenshot.customGameTitle ?? "",
+  description: screenshot.description ?? "",
 });
 
 export const toUploadOptions = (
@@ -28,6 +31,7 @@ export const toUploadOptions = (
     isSpoiler: draft.isSpoiler,
     visibility: draft.visibility,
     customGameTitle: screenshot.shop === "custom" && title ? title : null,
+    description: normalizeScreenshotDescription(draft.description),
   };
 };
 

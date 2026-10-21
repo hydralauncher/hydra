@@ -2,6 +2,7 @@ import type { AuthPage, Downloader } from "@shared";
 import type {
   ScreenshotsDevApi,
   LocalScreenshot,
+  LocalScreenshotDraft,
   LocalScreenshotUploadOptions,
   ScreenshotReviewRequest,
   ScreenshotUploadProgress,
@@ -1101,6 +1102,10 @@ declare global {
     uploadLocalScreenshot: (
       clientId: string,
       options: LocalScreenshotUploadOptions
+    ) => Promise<LocalScreenshot | null>;
+    updateLocalScreenshotDraft: (
+      clientId: string,
+      draft: LocalScreenshotDraft
     ) => Promise<LocalScreenshot | null>;
     deleteLocalScreenshot: (clientId: string) => Promise<void>;
     skipLocalScreenshot: (clientId: string) => Promise<void>;

@@ -88,6 +88,7 @@ export interface ScreenshotPresignRequest {
   shop: ScreenshotShop;
   objectId?: string;
   customGameTitle?: string;
+  description?: string;
   capturedAt: number;
   isSpoiler?: boolean;
   visibility?: ProfileVisibility;
@@ -226,13 +227,17 @@ export interface LocalScreenshot {
   nextUploadAttemptAt?: number | null;
   uploadedAt?: number | null;
   isDevCapture?: boolean;
+  description?: string | null;
 }
 
 export interface LocalScreenshotUploadOptions {
   isSpoiler: boolean;
   visibility: ProfileVisibility;
   customGameTitle: string | null;
+  description?: string | null;
 }
+
+export type LocalScreenshotDraft = Partial<LocalScreenshotUploadOptions>;
 
 export interface ScreenshotUploadProgress {
   clientId: string;

@@ -7,3 +7,4 @@ import "./get-screenshot-review-items";
 import "./open-screenshot-review";
 import "./screenshot-flash-ready";
 import "./get-pending-screenshot-review-request";
+import "./update-local-screenshot-draft";
