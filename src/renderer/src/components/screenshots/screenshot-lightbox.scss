@@ -435,6 +435,11 @@
     display: flex;
     flex-direction: column;
     gap: calc(globals.$spacing-unit * 1.5);
+    padding-bottom: calc(globals.$spacing-unit * 1.5);
+  }
+
+  &__owner + .screenshot-comments {
+    margin-top: calc(globals.$spacing-unit * -2);
   }
 
   &__tooltip {
