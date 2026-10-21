@@ -27,10 +27,6 @@ import {
   findLocalScreenshotGameObjectId,
   getPublishedScreenshotIds,
 } from "./local-screenshot-game";
-import {
-  deleteLocalScreenshot,
-  deleteLocalScreenshotsForGame,
-} from "./local-screenshot-removal";
 import { buildLocalScreenshotDraftPatch } from "./screenshot-draft";
 import {
   clearScreenshotGameSession,
@@ -206,7 +202,11 @@ export const uploadLocalScreenshot = async (
   return screenshotUploadWorker.enqueue(clientId, options);
 };
 
-export { deleteLocalScreenshot, deleteLocalScreenshotsForGame };
+export {
+  deleteLocalScreenshot,
+  deleteLocalScreenshotsForGame,
+  forgetPublishedScreenshots,
+} from "./local-screenshot-removal";
 
 export const openScreenshotReview = async (clientId: string) => {
   const screenshot = await LocalScreenshotStore.get(clientId);
