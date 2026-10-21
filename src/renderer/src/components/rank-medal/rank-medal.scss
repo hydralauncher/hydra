@@ -1,0 +1,128 @@
+@use "../../scss/globals.scss";
+
+.rank-medal {
+  --rank-medal-color: var(--rank-gold-color, #{globals.$rank-gold-color});
+  --rank-medal-ribbon: var(--rank-gold-ribbon, #{globals.$rank-gold-ribbon});
+
+  position: relative;
+  display: inline-block;
+  width: 24px;
+  height: 26px;
+  flex-shrink: 0;
+
+  &--silver {
+    --rank-medal-color: var(--rank-silver-color, #{globals.$rank-silver-color});
+    --rank-medal-ribbon: var(
+      --rank-silver-ribbon,
+      #{globals.$rank-silver-ribbon}
+    );
+  }
+
+  &--bronze {
+    --rank-medal-color: var(--rank-bronze-color, #{globals.$rank-bronze-color});
+    --rank-medal-ribbon: var(
+      --rank-bronze-ribbon,
+      #{globals.$rank-bronze-ribbon}
+    );
+  }
+
+  &__icon {
+    position: relative;
+    display: block;
+    filter: drop-shadow(
+      0 0 4px color-mix(in srgb, var(--rank-medal-color) 45%, transparent)
+    );
+  }
+
+  &__ribbon {
+    fill: var(--rank-medal-ribbon);
+  }
+
+  &__disc {
+    fill: var(--rank-medal-color);
+  }
+
+  &__rim {
+    fill: none;
+    stroke: rgba(0, 0, 0, 0.22);
+    stroke-width: 1;
+  }
+
+  &__rank {
+    position: absolute;
+    top: 10px;
+    left: 0;
+    right: 0;
+    height: 14px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 11px;
+    line-height: 14px;
+    font-weight: 800;
+    color: globals.$dark-background-color;
+  }
+
+  &__shine {
+    position: absolute;
+    top: 9px;
+    left: 4px;
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    overflow: hidden;
+    pointer-events: none;
+
+    &::before {
+      content: "";
+      position: absolute;
+      top: -4px;
+      bottom: -4px;
+      left: -10px;
+      width: 6px;
+      background: linear-gradient(
+        90deg,
+        rgba(255, 255, 255, 0),
+        rgba(255, 255, 255, 0.85),
+        rgba(255, 255, 255, 0)
+      );
+      transform: rotate(20deg);
+      animation: rank-medal-shine 3.6s ease-in-out infinite;
+      animation-delay: var(--rank-medal-delay, 0.35s);
+    }
+  }
+
+  &__number {
+    font-size: 13px;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+    color: var(--rank-number-color, #{globals.$body-color});
+
+    &--top10 {
+      font-weight: 800;
+      color: var(--rank-top10-color, #{globals.$muted-color});
+    }
+
+    &--highlighted {
+      color: var(--rank-top10-color, #{globals.$muted-color});
+    }
+  }
+}
+
+@keyframes rank-medal-shine {
+  0%,
+  62% {
+    left: -10px;
+  }
+
+  82%,
+  100% {
+    left: 22px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .rank-medal__shine::before {
+    animation: none;
+  }
+}
