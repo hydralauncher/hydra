@@ -5,6 +5,7 @@ use super::{BackendResult, Context, PlatformStatus, StartOptions};
 use std::ffi::c_void;
 use std::mem::{size_of, zeroed};
 use std::ptr::{null, null_mut};
+use std::sync::atomic::{AtomicBool, AtomicU32, Ordering};
 use std::sync::{mpsc, Arc};
 use std::thread::{self, JoinHandle};
 use std::time::{Duration, Instant};
@@ -21,9 +22,9 @@ use windows_sys::Win32::UI::Input::{
     RIDEV_INPUTSINK, RIDEV_REMOVE, RID_INPUT, RIM_TYPEKEYBOARD,
 };
 use windows_sys::Win32::UI::WindowsAndMessaging::{
-    CreateWindowExW, DefWindowProcW, DestroyWindow, DispatchMessageW, GetMessageW,
-    PostThreadMessageW, RegisterClassW, UnregisterClassW, HWND_MESSAGE, MSG, RI_KEY_BREAK,
-    WM_INPUT, WM_QUIT, WNDCLASSW,
+    CreateWindowExW, DefWindowProcW, DestroyWindow, DispatchMessageW, GetMessageW, PeekMessageW,
+    PostThreadMessageW, RegisterClassW, UnregisterClassW, HWND_MESSAGE, MSG, PM_NOREMOVE,
+    RI_KEY_BREAK, WM_INPUT, WM_QUIT, WNDCLASSW,
 };
 
 const READY_TIMEOUT: Duration = Duration::from_secs(2);
@@ -34,9 +35,33 @@ const HID_USAGE_PAGE_GENERIC: u16 = 0x01;
 const HID_USAGE_GENERIC_KEYBOARD: u16 = 0x06;
 const KEYBOARD_OVERRUN_MAKE_CODE: u16 = 0xFF;
 
+#[derive(Default)]
+struct RawInputControl {
+    thread_id: AtomicU32,
+    cancelled: AtomicBool,
+}
+
+impl RawInputControl {
+    fn publish_thread(&self, context: &Context) -> bool {
+        self.thread_id
+            .store(unsafe { GetCurrentThreadId() }, Ordering::SeqCst);
+        !self.cancelled.load(Ordering::SeqCst) && !context.is_stopped()
+    }
+
+    fn cancel(&self) {
+        self.cancelled.store(true, Ordering::SeqCst);
+        let thread_id = self.thread_id.load(Ordering::SeqCst);
+        if thread_id != 0 {
+            unsafe {
+                PostThreadMessageW(thread_id, WM_QUIT, 0, 0);
+            }
+        }
+    }
+}
+
 struct RawInputThread {
     handle: JoinHandle<()>,
-    thread_id: u32,
+    control: Arc<RawInputControl>,
 }
 
 pub struct Runtime {
@@ -47,9 +72,7 @@ pub struct Runtime {
 impl Runtime {
     pub fn stop(self) {
         if let Some(keyboard) = self.keyboard {
-            unsafe {
-                PostThreadMessageW(keyboard.thread_id, WM_QUIT, 0, 0);
-            }
+            keyboard.control.cancel();
             let _ = keyboard.handle.join();
         }
         if let Some(gamepad) = self.gamepad {
@@ -83,20 +106,24 @@ pub fn start(context: Arc<Context>, options: StartOptions) -> (Runtime, Platform
 
     if options.keyboard {
         let (ready, receiver) = mpsc::sync_channel(1);
+        let control = Arc::new(RawInputControl::default());
+        let thread_control = control.clone();
         let thread_context = context.clone();
         match thread::Builder::new()
             .name("hydra-screenshot-raw-input".into())
-            .spawn(move || run_raw_input(&thread_context, ready))
+            .spawn(move || run_raw_input(&thread_context, &thread_control, ready))
         {
             Ok(handle) => match receiver.recv_timeout(READY_TIMEOUT) {
-                Ok(Ok(thread_id)) => {
-                    runtime.keyboard = Some(RawInputThread { handle, thread_id });
-                }
+                Ok(Ok(())) => runtime.keyboard = Some(RawInputThread { handle, control }),
                 Ok(Err(error)) => {
                     status.keyboard = BackendResult::unavailable(error);
                     let _ = handle.join();
                 }
-                Err(_) => status.keyboard = BackendResult::unavailable("raw-input-timeout"),
+                Err(_) => {
+                    status.keyboard = BackendResult::unavailable("raw-input-timeout");
+                    control.cancel();
+                    runtime.keyboard = Some(RawInputThread { handle, control });
+                }
             },
             Err(_) => status.keyboard = BackendResult::unavailable("thread-failed"),
         }
@@ -134,7 +161,18 @@ fn register_keyboard(window: HWND, remove: bool) -> bool {
     unsafe { RegisterRawInputDevices(&device, 1, size_of::<RAWINPUTDEVICE>() as u32) != 0 }
 }
 
-fn run_raw_input(context: &Context, ready: mpsc::SyncSender<Result<u32, &'static str>>) {
+fn run_raw_input(
+    context: &Context,
+    control: &RawInputControl,
+    ready: mpsc::SyncSender<Result<(), &'static str>>,
+) {
+    let mut message: MSG = unsafe { zeroed() };
+    unsafe { PeekMessageW(&mut message, null_mut(), 0, 0, PM_NOREMOVE) };
+    if !control.publish_thread(context) {
+        let _ = ready.send(Err("raw-input-cancelled"));
+        return;
+    }
+
     let class_name = wide("HydraScreenshotRawInput");
     let instance = unsafe { GetModuleHandleW(null()) };
     let class = WNDCLASSW {
@@ -181,21 +219,28 @@ fn run_raw_input(context: &Context, ready: mpsc::SyncSender<Result<u32, &'static
         return;
     }
 
-    let _ = ready.send(Ok(unsafe { GetCurrentThreadId() }));
+    let _ = ready.send(Ok(()));
 
     let mut hotkey = HotkeyMatcher::default();
-    let mut message: MSG = unsafe { zeroed() };
-    while unsafe { GetMessageW(&mut message, null_mut(), 0, 0) } > 0 {
+    let failed = loop {
+        match unsafe { GetMessageW(&mut message, null_mut(), 0, 0) } {
+            0 => break false,
+            -1 => break true,
+            _ => {}
+        }
         if message.message == WM_INPUT {
             handle_raw_input(context, &mut hotkey, message.lParam);
         }
         unsafe { DispatchMessageW(&message) };
-    }
+    };
 
     register_keyboard(window, true);
     unsafe {
         DestroyWindow(window);
         UnregisterClassW(class_name.as_ptr(), instance);
+    }
+    if failed {
+        context.report_stopped(TriggerSource::Keyboard, Backend::WindowsRawInput);
     }
 }
 

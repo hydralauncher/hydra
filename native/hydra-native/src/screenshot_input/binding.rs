@@ -205,6 +205,9 @@ pub mod gamepad {
     pub const LT: u32 = 0x1_0000;
     pub const RT: u32 = 0x2_0000;
 
+    pub const MIN_COMBO_BUTTONS: u32 = 2;
+    pub const MAX_COMBO_BUTTONS: u32 = 4;
+
     #[cfg(any(target_os = "windows", test))]
     const XINPUT_BUTTONS: u32 = 0xF3FF;
     #[cfg(any(target_os = "windows", test))]
@@ -237,7 +240,9 @@ pub mod gamepad {
         for name in names {
             mask |= button_mask(name.as_ref())?;
         }
-        (mask.count_ones() >= 2).then_some(mask)
+        (MIN_COMBO_BUTTONS..=MAX_COMBO_BUTTONS)
+            .contains(&mask.count_ones())
+            .then_some(mask)
     }
 
     #[cfg(any(target_os = "windows", test))]
@@ -259,6 +264,17 @@ pub struct Modifiers {
     pub alt: bool,
     pub shift: bool,
     pub meta: bool,
+}
+
+impl Modifiers {
+    pub fn union(self, other: Modifiers) -> Modifiers {
+        Modifiers {
+            ctrl: self.ctrl || other.ctrl,
+            alt: self.alt || other.alt,
+            shift: self.shift || other.shift,
+            meta: self.meta || other.meta,
+        }
+    }
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -286,7 +302,7 @@ pub struct InputBinding {
 
 #[derive(Default)]
 pub struct HotkeyMatcher {
-    held: bool,
+    held: Option<u16>,
 }
 
 impl HotkeyMatcher {
@@ -297,18 +313,22 @@ impl HotkeyMatcher {
         binding: &HotkeyBinding,
         modifiers: Modifiers,
     ) -> bool {
-        if code != binding.key.platform_code() {
-            return false;
-        }
         if !pressed {
-            self.held = false;
+            if self.held == Some(code) {
+                self.held = None;
+            }
             return false;
         }
-        if self.held {
+        if code != binding.key.platform_code() || self.held == Some(code) {
             return false;
         }
-        self.held = true;
+        self.held = Some(code);
         binding.matches_modifiers(modifiers)
+    }
+
+    #[cfg(target_os = "linux")]
+    pub fn reset(&mut self) {
+        self.held = None;
     }
 }
 
@@ -328,6 +348,15 @@ impl ComboMatcher {
 
 #[cfg(any(target_os = "linux", test))]
 pub mod evdev_codes {
+    #[cfg(target_os = "linux")]
+    pub const EV_SYN: u16 = 0x00;
+    #[cfg(target_os = "linux")]
+    pub const EV_KEY: u16 = 0x01;
+    #[cfg(target_os = "linux")]
+    pub const EV_ABS: u16 = 0x03;
+    #[cfg(target_os = "linux")]
+    pub const SYN_REPORT: u16 = 0;
+
     pub const KEY_ENTER: u16 = 28;
     pub const KEY_LEFTCTRL: u16 = 29;
     pub const KEY_A: u16 = 30;
@@ -376,6 +405,27 @@ pub struct ModifierTracker {
 
 #[cfg(any(target_os = "linux", test))]
 impl ModifierTracker {
+    #[cfg(target_os = "linux")]
+    pub fn from_held_keys(is_held: impl Fn(u16) -> bool) -> Self {
+        use evdev_codes::*;
+        let mut tracker = Self::default();
+        for code in [
+            KEY_LEFTCTRL,
+            KEY_RIGHTCTRL,
+            KEY_LEFTALT,
+            KEY_RIGHTALT,
+            KEY_LEFTSHIFT,
+            KEY_RIGHTSHIFT,
+            KEY_LEFTMETA,
+            KEY_RIGHTMETA,
+        ] {
+            if is_held(code) {
+                tracker.update(code, true);
+            }
+        }
+        tracker
+    }
+
     pub fn update(&mut self, code: u16, pressed: bool) -> bool {
         use evdev_codes::*;
         let (bit, slot) = match code {
@@ -415,10 +465,14 @@ pub struct AxisRange {
 }
 
 #[cfg(any(target_os = "linux", test))]
+const ANALOG_TRIGGER_PRESS_DIVISOR: i64 = 4;
+
+#[cfg(any(target_os = "linux", test))]
 impl AxisRange {
     fn is_pressed(self, value: i32) -> bool {
         let span = i64::from(self.maximum) - i64::from(self.minimum);
-        span > 0 && (i64::from(value) - i64::from(self.minimum)) * 4 > span
+        let travel = i64::from(value) - i64::from(self.minimum);
+        span > 0 && travel * ANALOG_TRIGGER_PRESS_DIVISOR > span
     }
 }
 
@@ -503,6 +557,34 @@ impl LinuxGamepadState {
         } else {
             *buttons &= !mask;
         }
+    }
+}
+
+#[cfg(target_os = "linux")]
+pub struct GamepadTracker {
+    state: LinuxGamepadState,
+    combo: ComboMatcher,
+}
+
+#[cfg(target_os = "linux")]
+impl GamepadTracker {
+    pub fn new(state: LinuxGamepadState, combo_mask: u32) -> Self {
+        let mut combo = ComboMatcher::default();
+        combo.update(state.buttons, combo_mask);
+        Self { state, combo }
+    }
+
+    pub fn handle(&mut self, event_type: u16, code: u16, value: i32, combo_mask: u32) -> bool {
+        use evdev_codes::*;
+        match event_type {
+            EV_KEY => self.state.apply_key(code, value),
+            EV_ABS => self.state.apply_axis(code, value),
+            EV_SYN if code == SYN_REPORT => {
+                return self.combo.update(self.state.buttons, combo_mask);
+            }
+            _ => {}
+        }
+        false
     }
 }
 
@@ -653,6 +735,8 @@ mod tests {
         assert_eq!(gamepad::combo_mask(&["back"]), None);
         assert_eq!(gamepad::combo_mask(&["back", "guide"]), None);
         assert_eq!(gamepad::combo_mask::<&str>(&[]), None);
+        assert!(gamepad::combo_mask(&["a", "b", "x", "y"]).is_some());
+        assert_eq!(gamepad::combo_mask(&["a", "b", "x", "y", "lb"]), None);
     }
 
     #[test]
