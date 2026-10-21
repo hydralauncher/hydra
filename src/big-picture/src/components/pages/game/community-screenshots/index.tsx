@@ -299,13 +299,15 @@ export function GameCommunityScreenshots({
     [feed.items]
   );
   const { lightboxProps, open } = useScreenshotLightbox({
-    items,
+    items: feed.items,
     needsAuth: isSignedIn,
     updateItem: feed.updateItem,
     removeItem: feed.removeItem,
     getFetchedAt: feed.getFetchedAt,
     imageRefresher: feed.imageRefresher,
     subscribeRemoteWrites: feed.subscribeRemoteWrites,
+    hasMore: feed.hasMore,
+    loadMore: feed.loadMore,
   });
 
   if (!isEnabled) return null;

@@ -28,6 +28,8 @@ interface UseScreenshotLightboxOptions {
   subscribeRemoteWrites?: (
     listener: RemoteScreenshotWriteListener
   ) => () => void;
+  hasMore?: boolean;
+  loadMore?: () => Promise<void>;
 }
 
 interface LightboxState {
@@ -48,8 +50,13 @@ export function useScreenshotLightbox({
   getFetchedAt,
   imageRefresher,
   subscribeRemoteWrites,
+  hasMore = false,
+  loadMore,
 }: UseScreenshotLightboxOptions) {
   const [state, setState] = useState<LightboxState | null>(null);
+  const [pendingNextAfterId, setPendingNextAfterId] = useState<string | null>(
+    null
+  );
   const [standalone, setStandalone] = useState<StandaloneScreenshot | null>(
     null
   );
@@ -71,6 +78,7 @@ export function useScreenshotLightbox({
   const open = useCallback(
     (target: ProfileScreenshot) => {
       requestRef.current += 1;
+      setPendingNextAfterId(null);
       setStandalone({ screenshot: target, fetchedAt: getFetchedAt(target.id) });
       setState({ screenshotId: target.id, status: "ready" });
     },
@@ -124,6 +132,7 @@ export function useScreenshotLightbox({
 
   const close = useCallback(() => {
     requestRef.current += 1;
+    setPendingNextAfterId(null);
     setState(null);
     setStandalone(null);
   }, []);
@@ -201,23 +210,34 @@ export function useScreenshotLightbox({
     [removeItem]
   );
 
-  const hasPrevious = index > 0;
-  const hasNext = index >= 0 && index < items.length - 1;
+  useEffect(() => {
+    if (!pendingNextAfterId) return;
+
+    const position = items.findIndex((item) => item.id === pendingNextAfterId);
+    const next = position >= 0 ? items[position + 1] : undefined;
+    if (next) open(next);
+  }, [items, open, pendingNextAfterId]);
+
+  const canLoadMoreAtEnd =
+    Boolean(loadMore) && hasMore && index >= 0 && index === items.length - 1;
+
+  const navigatePastEnd = useCallback(() => {
+    if (!loadMore || !screenshot) return;
+
+    setPendingNextAfterId(screenshot.id);
+    loadMore().catch((error: unknown) => {
+      logger.error("Failed to load more screenshots", error);
+    });
+  }, [loadMore, screenshot]);
 
   const lightboxProps = useMemo<ScreenshotLightboxProps>(
     () => ({
       status: state ? state.status : null,
       screenshot: state?.status === "ready" ? screenshot : null,
-      hasPrevious,
-      hasNext,
-      onPrevious: () => {
-        const previous = items[index - 1];
-        if (previous) open(previous);
-      },
-      onNext: () => {
-        const next = items[index + 1];
-        if (next) open(next);
-      },
+      items,
+      canLoadMore: canLoadMoreAtEnd,
+      onSelect: (target: ProfileScreenshot) => open(target),
+      onLoadMore: navigatePastEnd,
       onClose: close,
       onUpdate: update,
       onRemove: remove,
@@ -225,11 +245,10 @@ export function useScreenshotLightbox({
       onRefreshImage: refreshImage,
     }),
     [
+      canLoadMoreAtEnd,
       close,
+      navigatePastEnd,
       refreshImage,
-      hasNext,
-      hasPrevious,
-      index,
       items,
       markUnavailable,
       open,

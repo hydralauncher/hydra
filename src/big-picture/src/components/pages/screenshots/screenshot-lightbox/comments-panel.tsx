@@ -74,7 +74,6 @@ interface ScreenshotCommentsPanelProps {
   isOwner: boolean;
   leftTarget: FocusOverrideTarget;
   onCommentCountChange: (screenshotId: string, delta: number) => void;
-  onOverlayChange: (isOpen: boolean) => void;
 }
 
 function useScreenshotComments(
@@ -455,7 +454,6 @@ export function ScreenshotCommentsPanel({
   isOwner,
   leftTarget,
   onCommentCountChange,
-  onOverlayChange,
 }: Readonly<ScreenshotCommentsPanelProps>) {
   const { t, i18n } = useTranslation("big_picture");
   const { showErrorToast, showSuccessToast } = useBigPictureToast();
@@ -489,18 +487,10 @@ export function ScreenshotCommentsPanel({
   const [isReporting, setIsReporting] = useState(false);
   const ownerId = screenshot.owner.id;
 
-  const isOverlayOpen = Boolean(menu || deletingComment || reportingComment);
-
   useEffect(() => {
     setEditingComment(null);
     setMenu(null);
   }, [screenshot.id]);
-
-  useEffect(() => {
-    onOverlayChange(isOverlayOpen);
-  }, [isOverlayOpen, onOverlayChange]);
-
-  useEffect(() => () => onOverlayChange(false), [onOverlayChange]);
 
   const showError = useCallback(
     (error: unknown) => {

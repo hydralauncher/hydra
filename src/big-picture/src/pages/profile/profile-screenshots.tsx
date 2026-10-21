@@ -275,6 +275,8 @@ export function useProfileScreenshotsSection({
     removeItem: state.removeItem,
     getFetchedAt: state.getFetchedAt,
     imageRefresher: state.imageRefresher,
+    hasMore: state.hasMore,
+    loadMore: state.loadMore,
   });
   const requestedScreenshot = searchParams.get("screenshot");
   const canOpenRequested = Boolean(

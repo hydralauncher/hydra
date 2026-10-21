@@ -991,6 +991,7 @@
     "screenshots_like_count_one": "{{count}} me gusta",
     "screenshots_like_count_other": "{{count}} me gusta",
     "screenshots_description_label": "Descripción",
-    "screenshots_description_placeholder": "Añade una nota breve, por ejemplo qué acaba de pasar"
+    "screenshots_description_placeholder": "Añade una nota breve, por ejemplo qué acaba de pasar",
+    "screenshots_reveal_spoiler_hint": "Pulsa A para mostrarla"
   }
 }
