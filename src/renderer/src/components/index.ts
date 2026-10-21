@@ -41,4 +41,5 @@ export * from "./content-report-modal/content-report-modal";
 export * from "./rich-text-editor/rich-text-editor";
 export * from "./rich-text-editor/use-rich-text-editor";
 export * from "./rich-text-editor/rich-text-limit";
+export * from "./inline-edit-field/inline-edit-field";
 export * from "./rich-text-content/rich-text-content";
