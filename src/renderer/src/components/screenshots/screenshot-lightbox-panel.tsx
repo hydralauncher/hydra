@@ -24,7 +24,7 @@ import { ScreenshotComments } from "./screenshot-comments";
 import { ScreenshotOwnerControls } from "./screenshot-owner-controls";
 import { getScreenshotGameTitle } from "./screenshot-labels";
 import type { ScreenshotFailure } from "./use-screenshot-actions";
-import type { ScreenshotPatch } from "./use-screenshot-feed";
+import type { ScreenshotPatch } from "@shared";
 import type { ScreenshotCollection } from "./use-screenshot-collection";
 
 type ScreenshotActions = ScreenshotCollection["actions"];

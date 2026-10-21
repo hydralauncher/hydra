@@ -26,7 +26,7 @@ import type {
 import { ScreenshotCommentInput } from "./screenshot-comment-input";
 import { ScreenshotCommentReportModal } from "./screenshot-report-modal";
 import type { ScreenshotFailure } from "./use-screenshot-actions";
-import type { ScreenshotPatch } from "./use-screenshot-feed";
+import type { ScreenshotPatch } from "@shared";
 import { useScreenshotComments } from "./use-screenshot-comments";
 
 type ComposerState =
