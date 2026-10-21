@@ -1491,6 +1491,8 @@ contextBridge.exposeInMainWorld("electron", {
   ) => ipcRenderer.invoke("uploadLocalScreenshot", clientId, options),
   deleteLocalScreenshot: (clientId: string) =>
     ipcRenderer.invoke("deleteLocalScreenshot", clientId),
+  openScreenshotReview: (clientId: string) =>
+    ipcRenderer.invoke("openScreenshotReview", clientId),
   skipLocalScreenshot: (clientId: string) =>
     ipcRenderer.invoke("skipLocalScreenshot", clientId),
   openScreenshotsFolder: () => ipcRenderer.invoke("openScreenshotsFolder"),

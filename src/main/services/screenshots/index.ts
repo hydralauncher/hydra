@@ -176,6 +176,12 @@ export const deleteLocalScreenshot = async (clientId: string) => {
   ScreenshotTelemetry.record("review", "delete");
 };
 
+export const openScreenshotReview = async (clientId: string) => {
+  const screenshot = await LocalScreenshotStore.get(clientId);
+  if (!screenshot) return;
+  await ScreenshotReviewWindows.openForScreenshot(screenshot);
+};
+
 export const skipLocalScreenshot = async (clientId: string) => {
   const screenshot = await LocalScreenshotStore.get(clientId);
   if (!screenshot) return;
