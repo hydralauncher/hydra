@@ -4,6 +4,7 @@ import { db, levelKeys } from "@main/level";
 import {
   isAdultGameContentWarning,
   resolveScreenshotPreferences,
+  SCREENSHOT_CUSTOM_GAME_TITLE_MAX_LENGTH,
   UNKNOWN_GAME_CONTENT_WARNING,
 } from "@shared";
 import type {
@@ -87,6 +88,16 @@ const resolveAvailableFilePath = async (
     screenshotsRoot,
     `${gameTitle}-${randomUUID()}`,
     capturedAt
+  );
+};
+
+const getDefaultCustomGameTitle = (
+  shop: LocalScreenshot["shop"],
+  gameTitle: string
+) => {
+  if (shop !== "custom") return null;
+  return (
+    gameTitle.trim().slice(0, SCREENSHOT_CUSTOM_GAME_TITLE_MAX_LENGTH) || null
   );
 };
 
@@ -176,7 +187,7 @@ const captureScreenshot = async (source: ScreenshotTriggerSource) => {
     shop: target.shop,
     objectId: target.objectId,
     gameTitle,
-    customGameTitle: null,
+    customGameTitle: getDefaultCustomGameTitle(target.shop, gameTitle),
     path: filePath,
     capturedAt: capturedAt.getTime(),
     width,

@@ -119,7 +119,7 @@
   &__body {
     display: flex;
     flex-direction: column;
-    gap: calc(globals.$spacing-unit * 1.5);
+    gap: globals.$spacing-unit;
     min-height: 0;
   }
 
@@ -165,7 +165,7 @@
   &__form {
     display: flex;
     flex-direction: column;
-    gap: calc(globals.$spacing-unit * 1.5);
+    gap: globals.$spacing-unit;
   }
 
   &__checkbox {
