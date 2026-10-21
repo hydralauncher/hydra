@@ -54,10 +54,16 @@ export function ScreenshotFlash() {
   useTransparentDocument();
 
   useEffect(() => {
-    return window.electron.onScreenshotFeedback(({ flash, playSound }) => {
-      if (flash) setFlashKey((current) => current + 1);
-      if (playSound && isPrimary) void playCaptureSound();
+    const unsubscribe = window.electron.onScreenshotFeedback(
+      ({ flash, playSound }) => {
+        if (flash) setFlashKey((current) => current + 1);
+        if (playSound && isPrimary) void playCaptureSound();
+      }
+    );
+    window.electron.screenshotFlashReady().catch((error) => {
+      logger.error("Failed to report the screenshot flash window ready", error);
     });
+    return unsubscribe;
   }, [isPrimary]);
 
   return (

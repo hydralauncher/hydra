@@ -242,6 +242,33 @@ class ScreenshotUploadWorker {
     this.activeUpload?.controller.abort();
   }
 
+  public async applyUploadFailure(clientId: string, error: unknown) {
+    const screenshot = await LocalScreenshotStore.get(clientId);
+    if (!screenshot) return null;
+
+    const attempt = (screenshot.uploadAttempts ?? 0) + 1;
+    const quality: ScreenshotQuality =
+      screenshot.uploadQuality ??
+      (HydraApi.hasActiveSubscription() ? "CLOUD" : "STANDARD");
+    await LocalScreenshotStore.update(clientId, {
+      state: "uploading",
+      uploadAttempts: attempt,
+      uploadQuality: quality,
+    });
+
+    const current = await LocalScreenshotStore.get(clientId);
+    if (!current) return null;
+    await this.handleFailure(
+      current,
+      quality,
+      attempt,
+      error,
+      new AbortController()
+    );
+    void this.trigger();
+    return LocalScreenshotStore.get(clientId);
+  }
+
   public async handleModerationResult(result: ScreenshotModerationState) {
     const screenshot = await LocalScreenshotStore.findByScreenshotId(result.id);
     if (!screenshot) return;
@@ -588,7 +615,7 @@ class ScreenshotUploadWorker {
   private async pollModerationStatuses(
     ownerId: string,
     authContext: HydraApiAuthContext,
-    { includeBlocked = false }: { includeBlocked?: boolean } = {}
+    { explicit = false }: { explicit?: boolean } = {}
   ) {
     const now = Date.now();
     const candidates = (await LocalScreenshotStore.list())
@@ -598,8 +625,9 @@ class ScreenshotUploadWorker {
           screenshot.state === "uploaded" &&
           screenshot.screenshotId &&
           ((screenshot.moderationStatus === "PENDING" &&
-            now - (screenshot.uploadedAt ?? 0) < STATUS_POLL_MAX_AGE_MS) ||
-            (includeBlocked && screenshot.moderationStatus === "BLOCKED"))
+            (explicit ||
+              now - (screenshot.uploadedAt ?? 0) < STATUS_POLL_MAX_AGE_MS)) ||
+            (explicit && screenshot.moderationStatus === "BLOCKED"))
       )
       .toSorted(
         (a, b) =>
@@ -624,7 +652,7 @@ class ScreenshotUploadWorker {
 
     this.lastSettledRefreshAt = Date.now();
     await this.pollModerationStatuses(authContext.userId, authContext, {
-      includeBlocked: true,
+      explicit: true,
     });
   }
 

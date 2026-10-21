@@ -5,3 +5,4 @@ import "./skip-local-screenshot";
 import "./open-screenshots-folder";
 import "./get-screenshot-review-items";
 import "./open-screenshot-review";
+import "./screenshot-flash-ready";
