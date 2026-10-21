@@ -2792,7 +2792,6 @@
     "all_screenshots_are_spoilers": "Todas as capturas de tela carregadas até agora estão marcadas como spoiler",
     "allow_comments": "Permitir comentários",
     "cancel": "Cancelar",
-    "cannot_vote_own_comment": "Você não pode votar no seu próprio comentário",
     "captured_on": "Tirada em {{date}}",
     "changes_saved": "Alterações salvas",
     "close": "Fechar",

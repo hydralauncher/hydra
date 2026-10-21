@@ -2788,7 +2788,6 @@
     "all_screenshots_are_spoilers": "Every screenshot loaded so far is marked as a spoiler",
     "allow_comments": "Allow comments",
     "cancel": "Cancel",
-    "cannot_vote_own_comment": "You can't vote on your own comment",
     "captured_on": "Taken on {{date}}",
     "changes_saved": "Changes saved",
     "close": "Close",
