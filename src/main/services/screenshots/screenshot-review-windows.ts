@@ -330,7 +330,8 @@ export class ScreenshotReviewWindows {
       if (gameWindowHandle) session.gameWindowHandle = gameWindowHandle;
 
       const openEntry = await findOpenEntry(session);
-      if (openEntry) {
+      if (sessions.get(gameKey) !== session) sessions.set(gameKey, session);
+      if (openEntry && !openEntry.window.isDestroyed()) {
         openEntry.clientIds = [...openEntry.clientIds, screenshot.clientId];
         sendReviewItems(openEntry);
       } else {
@@ -370,12 +371,14 @@ export class ScreenshotReviewWindows {
     await showSessionWindows(session);
   }
 
-  public static async onGameClosed(gameKey: string) {
-    const session = sessions.get(gameKey);
-    if (!session) return;
+  public static onGameClosed(gameKey: string) {
+    return runInSessionQueue(gameKey, async () => {
+      const session = sessions.get(gameKey);
+      if (!session) return;
 
-    session.isGameRunning = false;
-    await presentClosedSession(session);
+      session.isGameRunning = false;
+      await presentClosedSession(session);
+    });
   }
 
   public static isScreenshotUnderReview(clientId: string) {
