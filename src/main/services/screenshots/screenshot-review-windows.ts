@@ -35,7 +35,6 @@ interface ReviewSession {
 const sessions = new Map<string, ReviewSession>();
 const reviewWindows = new Set<BrowserWindow>();
 const windowClosedListeners = new Set<() => void>();
-const bigPictureReviewClientIds = new Set<string>();
 const sessionQueues = new Map<string, Promise<unknown>>();
 let pendingBigPictureRequest: ScreenshotReviewRequest | null = null;
 
@@ -238,9 +237,6 @@ const watchBigPictureHandoff = (
   const release = () => {
     if (released) return;
     released = true;
-    for (const clientId of clientIds) {
-      bigPictureReviewClientIds.delete(clientId);
-    }
     if (
       pendingBigPictureRequest?.clientIds.some((clientId) =>
         clientIds.includes(clientId)
@@ -263,7 +259,6 @@ const handOffToBigPicture = (session: ReviewSession) => {
   if (!clientIds.length) return true;
 
   session.handedToBigPicture = true;
-  for (const clientId of clientIds) bigPictureReviewClientIds.add(clientId);
   watchBigPictureHandoff(bigPicture, clientIds);
   for (const { window } of session.windows) {
     if (!window.isDestroyed()) window.destroy();
@@ -401,22 +396,6 @@ export class ScreenshotReviewWindows {
     };
   }
 
-  public static isScreenshotWatched(clientId: string) {
-    const hasReviewWindow = [...sessions.values()].some((session) =>
-      session.windows.some(
-        ({ window, clientIds }) =>
-          !window.isDestroyed() && clientIds.includes(clientId)
-      )
-    );
-    if (hasReviewWindow) return true;
-
-    if (!WindowManager.bigPictureWindow) {
-      bigPictureReviewClientIds.clear();
-      return false;
-    }
-    return bigPictureReviewClientIds.has(clientId);
-  }
-
   public static async requestBigPictureReview(
     request: ScreenshotReviewRequest
   ) {
@@ -430,9 +409,6 @@ export class ScreenshotReviewWindows {
         )
       )
     );
-    for (const clientId of request.clientIds) {
-      bigPictureReviewClientIds.add(clientId);
-    }
     watchBigPictureHandoff(bigPicture, request.clientIds);
     sendBigPictureRequest(bigPicture, request);
     return true;
@@ -454,10 +430,6 @@ export class ScreenshotReviewWindows {
     if (pendingBigPictureRequest === request) pendingBigPictureRequest = null;
 
     return clientIds.length ? { ...request, clientIds } : null;
-  }
-
-  public static markBigPictureReview(clientId: string) {
-    bigPictureReviewClientIds.add(clientId);
   }
 
   public static getReviewItemsForSender(sender: Electron.WebContents) {
