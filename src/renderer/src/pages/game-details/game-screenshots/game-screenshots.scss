@@ -23,6 +23,26 @@
     border-radius: 6px;
   }
 
+  &__item {
+    position: relative;
+  }
+
+  &__owner {
+    position: absolute;
+    top: 6px;
+    left: 6px;
+    z-index: 2;
+    max-width: calc(100% - 12px);
+    pointer-events: none;
+  }
+
+  &__stats {
+    position: absolute;
+    right: 6px;
+    bottom: 6px;
+    z-index: 2;
+  }
+
   &__thumbnail {
     position: relative;
     display: block;

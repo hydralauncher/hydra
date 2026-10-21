@@ -1,10 +1,7 @@
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
-import { motion } from "framer-motion";
 import {
   EyeClosedIcon,
-  HeartFillIcon,
-  HeartIcon,
   ImageIcon,
   LockIcon,
   PeopleIcon,
@@ -19,11 +16,10 @@ import { useDate } from "@renderer/hooks";
 import type { ProfileScreenshot } from "@types";
 
 import { getScreenshotGameTitle } from "./screenshot-labels";
+import { ScreenshotStats } from "./screenshot-stats";
 import { useScreenshotSpoiler } from "./use-screenshot-spoiler";
 
 import "./screenshot-card.scss";
-
-const LIKE_TAP_SCALE = 0.92;
 
 export type ScreenshotCardVariant = "profile" | "game";
 
@@ -32,6 +28,7 @@ interface ScreenshotCardProps {
   variant: ScreenshotCardVariant;
   isOwner: boolean;
   isLiking: boolean;
+  showCommentCount: boolean;
   onOpen: (screenshot: ProfileScreenshot) => void;
   onLike: (screenshot: ProfileScreenshot) => void;
 }
@@ -180,45 +177,6 @@ function ScreenshotCardMedia({
   );
 }
 
-interface ScreenshotCardLikeProps {
-  screenshot: ProfileScreenshot;
-  isLiking: boolean;
-  onLike: (screenshot: ProfileScreenshot) => void;
-}
-
-function ScreenshotCardLike({
-  screenshot,
-  isLiking,
-  onLike,
-}: Readonly<ScreenshotCardLikeProps>) {
-  const { t } = useTranslation("screenshots");
-  const label = t(screenshot.likedByMe ? "unlike" : "like");
-
-  return (
-    <div className="screenshot-card__actions">
-      <motion.button
-        type="button"
-        className={cn("screenshot-card__like", {
-          "screenshot-card__like--active": screenshot.likedByMe,
-        })}
-        onClick={() => onLike(screenshot)}
-        disabled={isLiking}
-        aria-pressed={screenshot.likedByMe}
-        aria-label={label}
-        title={label}
-        whileTap={{ scale: LIKE_TAP_SCALE }}
-      >
-        {screenshot.likedByMe ? (
-          <HeartFillIcon size={14} />
-        ) : (
-          <HeartIcon size={14} />
-        )}
-        <span>{screenshot.likeCount}</span>
-      </motion.button>
-    </div>
-  );
-}
-
 interface ScreenshotCardDetailsProps {
   screenshot: ProfileScreenshot;
   variant: ScreenshotCardVariant;
@@ -267,6 +225,7 @@ export function ScreenshotCard({
   variant,
   isOwner,
   isLiking,
+  showCommentCount,
   onOpen,
   onLike,
 }: Readonly<ScreenshotCardProps>) {
@@ -289,9 +248,11 @@ export function ScreenshotCard({
 
       {isOwner ? <ScreenshotOwnerBadges screenshot={screenshot} /> : null}
 
-      <ScreenshotCardLike
+      <ScreenshotStats
         screenshot={screenshot}
-        isLiking={isLiking || !isApproved}
+        isLikeDisabled={isLiking || !isApproved}
+        showCommentCount={showCommentCount}
+        className="screenshot-card__actions"
         onLike={onLike}
       />
 

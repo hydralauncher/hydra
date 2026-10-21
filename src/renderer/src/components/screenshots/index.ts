@@ -5,3 +5,5 @@ export * from "./screenshot-labels";
 export * from "./use-screenshot-collection";
 export * from "./use-screenshot-feed";
 export * from "./use-screenshot-spoiler";
+export * from "./screenshot-owner-badge";
+export * from "./screenshot-stats";
