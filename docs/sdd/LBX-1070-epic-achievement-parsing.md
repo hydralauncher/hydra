@@ -86,7 +86,7 @@ flowchart LR
 ```
 
 1. `collectGameAchievementFiles` delega para `findEpicAchievementFiles` quando `shop === "epic"`.
-2. O parser devolve desbloqueios com `name = externalId` bruto. Quando o arquivo é inválido, o watcher grava `mtime = -1` para tentar de novo no próximo ciclo, em vez de tratar o arquivo como vazio.
+2. O parser devolve desbloqueios com `name = externalId` bruto. Quando o arquivo é inválido, o watcher grava `mtime = -1` para tentar de novo no próximo ciclo, em vez de tratar o arquivo como vazio. Isso vale para o polling e para a varredura inicial, que agora também registra o `mtime` antes de ler o arquivo.
 3. Para jogos Epic, `mergeAchievements` usa um caminho próprio:
    - carrega as definições (`getGameAchievementData`, com cache) e resolve `externalId → name`;
    - registra os resolvidos no `EpicLocalAchievementStore`, mantendo o horário da primeira observação;
@@ -135,6 +135,8 @@ O `<usuário>` muda conforme a instalação. Quando há mais de um perfil com ar
 
 O #2844 descartava a fonte inteira nesse caso. Isso deixava sem conquistas quem tem pastas antigas, como `Default-Epic-User` ao lado do ID real. Somar todos os perfis misturaria o progresso de pessoas diferentes.
 
+O reset é a exceção: ele apaga os arquivos de todos os perfis (`allEpicProfiles`). Se apagasse só o mais recente, um perfil antigo passaria a ser o mais recente e restauraria as conquistas resetadas.
+
 ## Casos de borda e tratamento de erros
 
 | Caso                                                    | Comportamento                                                                                                                                                                                                                                                                                                                                        |
@@ -151,7 +153,7 @@ O #2844 descartava a fonte inteira nesse caso. Isso deixava sem conquistas quem 
 | Conquistas ocultas                                      | Seguem a preferência `showHiddenAchievementsDescription`. A notificação usa `isHidden` da definição.                                                                                                                                                                                                                                                 |
 | Horário sem fonte (AW2)                                 | É o horário da primeira observação, mantido entre leituras. Se o Hydra estava fechado, o horário é o da primeira leitura.                                                                                                                                                                                                                            |
 | `savepath` absoluto ou fora da pasta do jogo            | É ignorado com um aviso, e a fonte Nemirtingas é descartada.                                                                                                                                                                                                                                                                                         |
-| Reset                                                   | Apaga os arquivos Epic locais (o jogo recria o `data.chunk` zerado), limpa o store local e mantém os desbloqueios importados da conta Epic.                                                                                                                                                                                                          |
+| Reset                                                   | Apaga os arquivos Epic locais de todos os perfis (o jogo recria o `data.chunk` zerado), limpa o store local e mantém os desbloqueios importados da conta Epic.                                                                                                                                                                                       |
 
 ## Estratégia de testes
 
