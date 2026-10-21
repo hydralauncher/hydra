@@ -3,6 +3,11 @@ import type { ProfileScreenshot, ScreenshotsHiddenReason } from "@types";
 import { mergeScreenshotPages } from "@shared";
 import { logger } from "@renderer/logger";
 
+import {
+  applyScreenshotFeedWrites,
+  type ScreenshotFeedWrite,
+} from "./screenshot-feed-writes";
+
 interface ScreenshotFeedResponse {
   items?: ProfileScreenshot[] | null;
   total?: number;
@@ -37,6 +42,38 @@ export function useScreenshotFeed({
   const buildPathRef = useRef(buildPath);
 
   const itemsRef = useRef(items);
+  const writeVersionRef = useRef(0);
+  const writesRef = useRef<ScreenshotFeedWrite[]>([]);
+  const pendingReadsRef = useRef(0);
+  const fetchedAtRef = useRef(new Map<string, number>());
+
+  const beginRead = () => {
+    pendingReadsRef.current += 1;
+    return {
+      sinceVersion: writeVersionRef.current,
+      startedAt: performance.now(),
+    };
+  };
+
+  const endRead = () => {
+    pendingReadsRef.current = Math.max(0, pendingReadsRef.current - 1);
+    if (pendingReadsRef.current === 0) writesRef.current = [];
+  };
+
+  const acceptPage = (
+    pageItems: ProfileScreenshot[],
+    read: { sinceVersion: number; startedAt: number }
+  ) => {
+    const merged = applyScreenshotFeedWrites(
+      pageItems,
+      writesRef.current,
+      read.sinceVersion
+    );
+    for (const item of merged.items) {
+      fetchedAtRef.current.set(item.id, read.startedAt);
+    }
+    return merged;
+  };
 
   buildPathRef.current = buildPath;
   itemsRef.current = items;
@@ -52,8 +89,13 @@ export function useScreenshotFeed({
     setNextCursor(null);
     setLoadedKey(null);
     setError(null);
+    pendingReadsRef.current = 0;
+    writesRef.current = [];
+    fetchedAtRef.current.clear();
 
     if (!requestKey) return;
+
+    const read = beginRead();
 
     globalThis.window.electron.hydraApi
       .get<ScreenshotFeedResponse | null>(buildPathRef.current(null), {
@@ -62,8 +104,13 @@ export function useScreenshotFeed({
       .then((response) => {
         if (generationRef.current !== generation) return;
 
-        setItems(response?.items ?? []);
-        setTotal(typeof response?.total === "number" ? response.total : null);
+        const merged = acceptPage(response?.items ?? [], read);
+        setItems(merged.items);
+        setTotal(
+          typeof response?.total === "number"
+            ? Math.max(0, response.total - merged.removedCount)
+            : null
+        );
         setHiddenReason(response?.hiddenReason ?? null);
         setNextCursor(response?.nextCursor ?? null);
       })
@@ -76,6 +123,7 @@ export function useScreenshotFeed({
       .finally(() => {
         if (generationRef.current !== generation) return;
 
+        endRead();
         setLoadedKey(requestKey);
       });
   }, [needsAuth, refreshToken, requestKey]);
@@ -86,6 +134,7 @@ export function useScreenshotFeed({
     const generation = generationRef.current;
     isLoadingMoreRef.current = true;
     setIsLoadingMore(true);
+    const read = beginRead();
 
     try {
       const response =
@@ -96,16 +145,17 @@ export function useScreenshotFeed({
 
       if (generationRef.current !== generation) return;
 
-      setItems((current) =>
-        mergeScreenshotPages(current, response?.items ?? [])
-      );
-      if (typeof response?.total === "number") setTotal(response.total);
+      const merged = acceptPage(response?.items ?? [], read);
+      setItems((current) => mergeScreenshotPages(current, merged.items));
+      if (typeof response?.total === "number")
+        setTotal(Math.max(0, response.total - merged.removedCount));
       setNextCursor(response?.nextCursor ?? null);
     } catch (loadError) {
       logger.error("Failed to load more screenshots", loadError);
       if (generationRef.current === generation) setError("page");
     } finally {
       if (generationRef.current === generation) {
+        endRead();
         isLoadingMoreRef.current = false;
         setIsLoadingMore(false);
       }
@@ -133,25 +183,50 @@ export function useScreenshotFeed({
     refresh();
   }, [error, fetchNextPage, refresh]);
 
+  const recordWrite = useCallback(
+    (screenshotId: string, patch: Partial<ProfileScreenshot> | null) => {
+      writeVersionRef.current += 1;
+      if (pendingReadsRef.current === 0) return;
+
+      writesRef.current.push({
+        version: writeVersionRef.current,
+        screenshotId,
+        patch,
+      });
+    },
+    []
+  );
+
   const updateItem = useCallback(
     (screenshotId: string, update: Partial<ProfileScreenshot>) => {
+      recordWrite(screenshotId, update);
       setItems((current) =>
         current.map((item) =>
           item.id === screenshotId ? { ...item, ...update } : item
         )
       );
     },
-    []
+    [recordWrite]
   );
 
-  const removeItem = useCallback((screenshotId: string) => {
-    if (!itemsRef.current.some((item) => item.id === screenshotId)) return;
+  const removeItem = useCallback(
+    (screenshotId: string) => {
+      recordWrite(screenshotId, null);
+      fetchedAtRef.current.delete(screenshotId);
+      if (!itemsRef.current.some((item) => item.id === screenshotId)) return;
 
-    setItems((current) => current.filter((item) => item.id !== screenshotId));
-    setTotal((currentTotal) =>
-      currentTotal === null ? null : Math.max(0, currentTotal - 1)
-    );
-  }, []);
+      setItems((current) => current.filter((item) => item.id !== screenshotId));
+      setTotal((currentTotal) =>
+        currentTotal === null ? null : Math.max(0, currentTotal - 1)
+      );
+    },
+    [recordWrite]
+  );
+
+  const getFetchedAt = useCallback(
+    (screenshotId: string) => fetchedAtRef.current.get(screenshotId) ?? null,
+    []
+  );
 
   const isLoaded = Boolean(requestKey) && loadedKey === requestKey;
 
@@ -168,5 +243,6 @@ export function useScreenshotFeed({
     refresh,
     updateItem,
     removeItem,
+    getFetchedAt,
   };
 }

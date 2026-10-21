@@ -107,6 +107,7 @@ export function GameCommunityScreenshots({
     needsAuth: isSignedIn,
     updateItem: feed.updateItem,
     removeItem: feed.removeItem,
+    getFetchedAt: feed.getFetchedAt,
   });
   const gameKey = `${shop}:${objectId}`;
   const [populatedGameKey, setPopulatedGameKey] = useState<string | null>(null);

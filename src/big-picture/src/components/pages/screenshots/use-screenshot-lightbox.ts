@@ -3,6 +3,8 @@ import type { ProfileScreenshot } from "@types";
 import { buildUserScreenshotPath, getScreenshotApiErrorCode } from "@shared";
 import { logger } from "@renderer/logger";
 
+import { pickNewerScreenshot } from "./screenshot-feed-writes";
+
 import type {
   ScreenshotLightboxProps,
   ScreenshotLightboxStatus,
@@ -16,6 +18,7 @@ interface UseScreenshotLightboxOptions {
     update: Partial<ProfileScreenshot>
   ) => void;
   removeItem: (screenshotId: string) => void;
+  getFetchedAt: (screenshotId: string) => number | null;
 }
 
 interface LightboxState {
@@ -23,15 +26,9 @@ interface LightboxState {
   status: ScreenshotLightboxStatus;
 }
 
-function resolveOpenScreenshot(
-  listItem: ProfileScreenshot | undefined,
-  standalone: ProfileScreenshot | null,
-  screenshotId: string | null
-) {
-  if (listItem) return listItem;
-  if (standalone?.id === screenshotId) return standalone;
-
-  return null;
+interface StandaloneScreenshot {
+  screenshot: ProfileScreenshot;
+  fetchedAt: number | null;
 }
 
 export function useScreenshotLightbox({
@@ -39,25 +36,35 @@ export function useScreenshotLightbox({
   needsAuth,
   updateItem,
   removeItem,
+  getFetchedAt,
 }: UseScreenshotLightboxOptions) {
   const [state, setState] = useState<LightboxState | null>(null);
-  const [standalone, setStandalone] = useState<ProfileScreenshot | null>(null);
+  const [standalone, setStandalone] = useState<StandaloneScreenshot | null>(
+    null
+  );
   const requestRef = useRef(0);
 
   const index = state?.screenshotId
     ? items.findIndex((item) => item.id === state.screenshotId)
     : -1;
-  const screenshot = resolveOpenScreenshot(
-    items[index],
-    standalone,
-    state?.screenshotId ?? null
+  const listItem = items[index] ?? null;
+  const detached =
+    standalone?.screenshot.id === state?.screenshotId ? standalone : null;
+  const screenshot = pickNewerScreenshot(
+    listItem,
+    listItem ? getFetchedAt(listItem.id) : null,
+    detached?.screenshot ?? null,
+    detached?.fetchedAt ?? null
   );
 
-  const open = useCallback((target: ProfileScreenshot) => {
-    requestRef.current += 1;
-    setStandalone(target);
-    setState({ screenshotId: target.id, status: "ready" });
-  }, []);
+  const open = useCallback(
+    (target: ProfileScreenshot) => {
+      requestRef.current += 1;
+      setStandalone({ screenshot: target, fetchedAt: getFetchedAt(target.id) });
+      setState({ screenshotId: target.id, status: "ready" });
+    },
+    [getFetchedAt]
+  );
 
   const openById = useCallback(
     async (ownerId: string, screenshotId: string) => {
@@ -69,6 +76,7 @@ export function useScreenshotLightbox({
 
       const request = requestRef.current + 1;
       requestRef.current = request;
+      const startedAt = performance.now();
       setState({ screenshotId, status: "loading" });
 
       try {
@@ -85,7 +93,7 @@ export function useScreenshotLightbox({
           return;
         }
 
-        setStandalone(response);
+        setStandalone({ screenshot: response, fetchedAt: startedAt });
         setState({ screenshotId: response.id, status: "ready" });
       } catch (error) {
         if (requestRef.current !== request) return;
@@ -117,7 +125,9 @@ export function useScreenshotLightbox({
     (screenshotId: string, patch: Partial<ProfileScreenshot>) => {
       updateItem(screenshotId, patch);
       setStandalone((current) =>
-        current?.id === screenshotId ? { ...current, ...patch } : current
+        current?.screenshot.id === screenshotId
+          ? { ...current, screenshot: { ...current.screenshot, ...patch } }
+          : current
       );
     },
     [updateItem]
@@ -127,7 +137,7 @@ export function useScreenshotLightbox({
     (screenshotId: string) => {
       removeItem(screenshotId);
       setStandalone((current) =>
-        current?.id === screenshotId ? null : current
+        current?.screenshot.id === screenshotId ? null : current
       );
     },
     [removeItem]

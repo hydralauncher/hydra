@@ -209,6 +209,7 @@ export function useProfileScreenshotsSection({
     needsAuth: isSignedIn,
     updateItem: state.updateItem,
     removeItem: state.removeItem,
+    getFetchedAt: state.getFetchedAt,
   });
   const requestedScreenshot = searchParams.get("screenshot");
   const canOpenRequested = Boolean(
