@@ -1120,6 +1120,7 @@ declare global {
     onScreenshotReviewItemsChanged: (
       cb: (clientIds: string[]) => void
     ) => () => Electron.IpcRenderer;
+    screenshotFlashReady: () => Promise<void>;
     onScreenshotFeedback: (
       cb: (feedback: { flash: boolean; playSound: boolean }) => void
     ) => () => Electron.IpcRenderer;

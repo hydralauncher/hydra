@@ -1543,6 +1543,7 @@ contextBridge.exposeInMainWorld("electron", {
         listener
       );
   },
+  screenshotFlashReady: () => ipcRenderer.invoke("screenshotFlashReady"),
   onScreenshotFeedback: (
     cb: (feedback: { flash: boolean; playSound: boolean }) => void
   ) => {
