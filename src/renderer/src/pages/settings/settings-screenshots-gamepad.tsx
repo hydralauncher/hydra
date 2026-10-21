@@ -33,7 +33,9 @@ export function SettingsScreenshotsGamepad({
   const [draft, setDraft] = useState<ScreenshotGamepadButton[]>(combo);
 
   useEffect(() => {
-    setDraft(combo);
+    setDraft((current) =>
+      isSameScreenshotGamepadCombo(current, combo) ? current : combo
+    );
   }, [combo]);
 
   const validation = validateScreenshotGamepadCombo(draft);
@@ -74,8 +76,8 @@ export function SettingsScreenshotsGamepad({
 
   const canAdd = draft.length < SCREENSHOT_GAMEPAD_COMBO_MAX_BUTTONS;
   const errorMessage = (() => {
-    if (!validation.valid) return tInput(validation.error);
     if (hasDuplicates) return t("screenshots_gamepad_duplicate");
+    if (!validation.valid) return tInput(validation.error);
     return null;
   })();
 
@@ -132,7 +134,7 @@ export function SettingsScreenshotsGamepad({
             />
             {index >= SCREENSHOT_GAMEPAD_COMBO_MIN_BUTTONS && (
               <Button
-                className="settings-screenshots__icon-action"
+                className="settings-screenshots__icon-action settings-screenshots__icon-action--field"
                 theme="outline"
                 size="small"
                 disabled={disabled}
@@ -148,7 +150,7 @@ export function SettingsScreenshotsGamepad({
 
         {canAdd && (
           <Button
-            className="settings-screenshots__icon-action"
+            className="settings-screenshots__icon-action settings-screenshots__icon-action--field"
             theme="outline"
             size="small"
             disabled={disabled}
