@@ -111,7 +111,7 @@ function CommentEditorForm({
     if (!canSubmit) return;
 
     const wasSubmitted = await onSubmit(getHtml());
-    if (wasSubmitted && !isEditing && editor && !editor.isDestroyed) clear();
+    if (wasSubmitted && !isEditing) clear();
   };
 
   const handleSubmit = (event: FormEvent<HTMLFormElement>) => {

@@ -22,6 +22,7 @@ import {
   formatScreenshotHotkey,
 } from "@shared";
 import { logger } from "@renderer/logger";
+import { applyScreenshotsTotalUpdate } from "@renderer/pages/profile/profile-content/screenshots-total";
 
 import {
   Button,
@@ -77,12 +78,50 @@ export function getScreenshotFilterKey(item: ScreenshotGameFilterItem) {
 
 interface UseProfileScreenshotsOptions {
   targetUserId: string | undefined;
+  baseTotal: number | null;
   isEnabled: boolean;
   isSignedIn: boolean;
 }
 
+function useOverallScreenshotsTotal(
+  baseTotal: number | null,
+  feedTotal: number | null,
+  isFiltered: boolean
+) {
+  const [overallTotal, setOverallTotal] = useState(baseTotal);
+
+  useEffect(() => {
+    setOverallTotal(baseTotal);
+  }, [baseTotal]);
+
+  useEffect(() => {
+    if (feedTotal === null) return;
+
+    setOverallTotal((current) => {
+      if (current === null) return isFiltered ? null : feedTotal;
+
+      return applyScreenshotsTotalUpdate(current, {
+        kind: "server",
+        total: feedTotal,
+        isFiltered,
+      });
+    });
+  }, [feedTotal, isFiltered]);
+
+  const applyRemoval = useCallback(() => {
+    setOverallTotal((current) =>
+      current === null
+        ? null
+        : applyScreenshotsTotalUpdate(current, { kind: "removed" })
+    );
+  }, []);
+
+  return { overallTotal, applyRemoval };
+}
+
 export function useProfileScreenshots({
   targetUserId,
+  baseTotal,
   isEnabled,
   isSignedIn,
 }: UseProfileScreenshotsOptions) {
@@ -173,13 +212,30 @@ export function useProfileScreenshots({
     [activeUserId]
   );
 
+  const isFiltered = effectiveFilterKey !== ALL_GAMES_FILTER;
+  const { overallTotal, applyRemoval } = useOverallScreenshotsTotal(
+    baseTotal,
+    feed.total,
+    isFiltered
+  );
+  const { removeItem: removeFeedItem } = feed;
+  const removeItem = useCallback(
+    (screenshotId: string) => {
+      removeFeedItem(screenshotId);
+      applyRemoval();
+    },
+    [applyRemoval, removeFeedItem]
+  );
+
   return {
     ...feed,
+    removeItem,
+    overallTotal,
     isEnabled: Boolean(activeUserId),
     sort: sortState,
     setSort,
     filterKey: effectiveFilterKey,
-    isFiltered: effectiveFilterKey !== ALL_GAMES_FILTER,
+    isFiltered,
     setFilterKey,
     games,
   };
@@ -198,12 +254,18 @@ interface UseProfileScreenshotsSectionOptions
 
 export function useProfileScreenshotsSection({
   targetUserId,
+  baseTotal,
   isEnabled,
   isSignedIn,
   searchParams,
   setSearchParams,
 }: UseProfileScreenshotsSectionOptions) {
-  const state = useProfileScreenshots({ targetUserId, isEnabled, isSignedIn });
+  const state = useProfileScreenshots({
+    targetUserId,
+    baseTotal,
+    isEnabled,
+    isSignedIn,
+  });
   const { openById, open, lightboxProps } = useScreenshotLightbox({
     items: state.items,
     needsAuth: isSignedIn,
@@ -336,7 +398,6 @@ function ProfileScreenshotsEmptyState(
 
 interface ProfileScreenshotsProps {
   state: ProfileScreenshotsState;
-  totalCount: number | null;
   isOwnProfile: boolean;
   hotkey: ScreenshotHotkeyBinding | undefined;
   upFocusId: string | null;
@@ -349,7 +410,6 @@ const toTarget = (focusId: string | null): FocusOverrideTarget =>
 
 export function ProfileScreenshots({
   state,
-  totalCount,
   isOwnProfile,
   hotkey,
   upFocusId,
@@ -363,8 +423,8 @@ export function ProfileScreenshots({
     ? getProfileScreenshotItemId(firstItem.id)
     : null;
   const count = state.isFiltered
-    ? (totalCount ?? state.total)
-    : (state.total ?? totalCount);
+    ? (state.overallTotal ?? state.total)
+    : (state.total ?? state.overallTotal);
 
   const filterOptions = useMemo<DropdownSelectOption[]>(
     () => [

@@ -2777,6 +2777,7 @@ function ProfileContent({ userId }: Readonly<ProfileContentProps>) {
     lightboxProps: screenshotLightboxProps,
   } = useProfileScreenshotsSection({
     targetUserId,
+    baseTotal: getProfileScreenshotCount(externalProfile, targetUserId),
     isEnabled: isFeatureEnabled(Feature.Screenshots),
     isSignedIn: Boolean(userDetails),
     searchParams,
@@ -3310,10 +3311,6 @@ function ProfileContent({ userId }: Readonly<ProfileContentProps>) {
 
             <ProfileScreenshots
               state={profileScreenshots}
-              totalCount={getProfileScreenshotCount(
-                externalProfile,
-                targetUserId
-              )}
               isOwnProfile={isOwnProfileTarget}
               hotkey={userPreferences?.screenshotHotkey}
               upFocusId={screenshotsUpFocusId}
