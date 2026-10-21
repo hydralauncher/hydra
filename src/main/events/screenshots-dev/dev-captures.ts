@@ -23,6 +23,17 @@ import {
 import { onScreenshotGameClosed } from "@main/services/screenshots";
 
 const DEV_CAPTURE_JPEG_QUALITY = 100;
+const DEV_THUMBNAIL_WIDTH = 1280;
+const DEV_THUMBNAIL_HEIGHT = 720;
+const DEV_PATTERN_COLUMNS = 16;
+const DEV_PATTERN_ROWS = 9;
+const DEV_PATTERN_SATURATION = 55;
+const DEV_PATTERN_EVEN_ROW_LIGHTNESS = 38;
+const DEV_PATTERN_ODD_ROW_LIGHTNESS = 30;
+const DEV_PATTERN_FONT_SIZE_DIVISOR = 18;
+const DEV_PATTERN_DETAIL_FONT_SCALE = 0.6;
+const DEV_PATTERN_LABEL_BOX = { x: 0.1, y: 0.38, width: 0.8, height: 0.24 };
+const FULL_HUE_DEGREES = 360;
 
 const simulatedRunningGameKeys = new Set<string>();
 
@@ -38,19 +49,24 @@ const escapeXml = (value: string) =>
   value.replaceAll(/[<>&'"]/g, (character) => `&#${character.codePointAt(0)};`);
 
 const buildPatternSvg = (width: number, height: number, label: string) => {
-  const columns = 16;
-  const rows = 9;
-  const cellWidth = width / columns;
-  const cellHeight = height / rows;
-  const cells = Array.from({ length: columns * rows }, (_, index) => {
-    const column = index % columns;
-    const row = Math.floor(index / columns);
-    const hue = Math.round((index * 360) / (columns * rows));
-    return `<rect x="${column * cellWidth}" y="${row * cellHeight}" width="${cellWidth}" height="${cellHeight}" fill="hsl(${hue},55%,${row % 2 === 0 ? 38 : 30}%)"/>`;
+  const cellCount = DEV_PATTERN_COLUMNS * DEV_PATTERN_ROWS;
+  const cellWidth = width / DEV_PATTERN_COLUMNS;
+  const cellHeight = height / DEV_PATTERN_ROWS;
+  const cells = Array.from({ length: cellCount }, (_, index) => {
+    const column = index % DEV_PATTERN_COLUMNS;
+    const row = Math.floor(index / DEV_PATTERN_COLUMNS);
+    const hue = Math.round((index * FULL_HUE_DEGREES) / cellCount);
+    const lightness =
+      row % 2 === 0
+        ? DEV_PATTERN_EVEN_ROW_LIGHTNESS
+        : DEV_PATTERN_ODD_ROW_LIGHTNESS;
+    return `<rect x="${column * cellWidth}" y="${row * cellHeight}" width="${cellWidth}" height="${cellHeight}" fill="hsl(${hue},${DEV_PATTERN_SATURATION}%,${lightness}%)"/>`;
   }).join("");
-  const fontSize = Math.round(height / 18);
+  const fontSize = Math.round(height / DEV_PATTERN_FONT_SIZE_DIVISOR);
+  const detailFontSize = Math.round(fontSize * DEV_PATTERN_DETAIL_FONT_SCALE);
+  const box = DEV_PATTERN_LABEL_BOX;
 
-  return `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}">${cells}<rect x="${width * 0.1}" y="${height * 0.38}" width="${width * 0.8}" height="${height * 0.24}" rx="${fontSize / 2}" fill="rgba(0,0,0,0.6)"/><text x="50%" y="47%" font-family="sans-serif" font-size="${fontSize}" fill="#ffffff" text-anchor="middle">${escapeXml(label)}</text><text x="50%" y="56%" font-family="sans-serif" font-size="${Math.round(fontSize * 0.6)}" fill="#dddddd" text-anchor="middle">${width}x${height} ${escapeXml(new Date().toLocaleString())}</text></svg>`;
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}">${cells}<rect x="${width * box.x}" y="${height * box.y}" width="${width * box.width}" height="${height * box.height}" rx="${fontSize / 2}" fill="rgba(0,0,0,0.6)"/><text x="50%" y="47%" font-family="sans-serif" font-size="${fontSize}" fill="#ffffff" text-anchor="middle">${escapeXml(label)}</text><text x="50%" y="56%" font-family="sans-serif" font-size="${detailFontSize}" fill="#dddddd" text-anchor="middle">${width}x${height} ${escapeXml(new Date().toLocaleString())}</text></svg>`;
 };
 
 const renderImage = async (
@@ -137,7 +153,11 @@ export const simulateGameClosed = (shop: GameShop, objectId: string) => {
 
 export const createDevThumbnail = async (label: string) => {
   const rendered = await renderImage(
-    { kind: "pattern", width: 1280, height: 720 },
+    {
+      kind: "pattern",
+      width: DEV_THUMBNAIL_WIDTH,
+      height: DEV_THUMBNAIL_HEIGHT,
+    },
     label
   );
   const directory = path.join(

@@ -157,7 +157,7 @@ export function ScreenshotReview() {
   }, []);
 
   const flushDrafts = useCallback(() => {
-    for (const clientId of [...draftSaveTimers.current.keys()]) {
+    for (const clientId of draftSaveTimers.current.keys()) {
       persistDraft(clientId);
     }
   }, [persistDraft]);
