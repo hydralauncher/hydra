@@ -274,6 +274,7 @@ export function useProfileScreenshotsSection({
     updateItem: state.updateItem,
     removeItem: state.removeItem,
     getFetchedAt: state.getFetchedAt,
+    imageRefresher: state.imageRefresher,
   });
   const requestedScreenshot = searchParams.get("screenshot");
   const canOpenRequested = Boolean(
@@ -536,6 +537,7 @@ export function ProfileScreenshots({
           onRetryLoadMore={state.retry}
           onLoadMore={() => void state.loadMore()}
           onActivate={onActivate}
+          onRefreshImage={state.refreshImage}
         />
       ) : null}
 

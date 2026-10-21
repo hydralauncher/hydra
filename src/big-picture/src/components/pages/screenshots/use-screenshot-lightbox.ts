@@ -4,11 +4,13 @@ import {
   applyScreenshotPatch,
   buildUserScreenshotPath,
   getScreenshotApiErrorCode,
+  type ScreenshotImageRefresher,
   type ScreenshotPatch,
 } from "@shared";
 import { logger } from "@renderer/logger";
 
 import { pickNewerScreenshot } from "./helpers";
+import { useScreenshotImageRefresh } from "./use-screenshot-image-refresh";
 
 import type {
   ScreenshotLightboxProps,
@@ -21,6 +23,7 @@ interface UseScreenshotLightboxOptions {
   updateItem: (screenshotId: string, update: ScreenshotPatch) => void;
   removeItem: (screenshotId: string, ownerId: string) => void;
   getFetchedAt: (screenshotId: string) => number | null;
+  imageRefresher?: ScreenshotImageRefresher;
 }
 
 interface LightboxState {
@@ -39,6 +42,7 @@ export function useScreenshotLightbox({
   updateItem,
   removeItem,
   getFetchedAt,
+  imageRefresher,
 }: UseScreenshotLightboxOptions) {
   const [state, setState] = useState<LightboxState | null>(null);
   const [standalone, setStandalone] = useState<StandaloneScreenshot | null>(
@@ -138,6 +142,12 @@ export function useScreenshotLightbox({
     [updateItem]
   );
 
+  const refreshImage = useScreenshotImageRefresh(
+    needsAuth,
+    update,
+    imageRefresher
+  );
+
   const remove = useCallback(
     (screenshotId: string, ownerId: string) => {
       removeItem(screenshotId, ownerId);
@@ -180,9 +190,11 @@ export function useScreenshotLightbox({
       onUpdate: update,
       onRemove: remove,
       onUnavailable: markUnavailable,
+      onRefreshImage: refreshImage,
     }),
     [
       close,
+      refreshImage,
       hasNext,
       hasPrevious,
       index,

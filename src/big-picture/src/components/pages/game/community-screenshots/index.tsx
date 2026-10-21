@@ -12,7 +12,7 @@ import cn from "classnames";
 import { useCallback, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import type { GameShop, ProfileScreenshot } from "@types";
-import { buildGameScreenshotsPath } from "@shared";
+import { buildGameScreenshotsPath, useScreenshotImageFallback } from "@shared";
 
 import {
   Button,
@@ -51,6 +51,7 @@ interface CommunityScreenshotThumbnailProps {
   showCommentCount: boolean;
   navigationOverrides: FocusOverrides;
   onOpen: (screenshot: ProfileScreenshot) => void;
+  onRefreshImage: (screenshot: ProfileScreenshot) => Promise<void>;
 }
 
 function CommunityScreenshotThumbnail({
@@ -59,14 +60,21 @@ function CommunityScreenshotThumbnail({
   showCommentCount,
   navigationOverrides,
   onOpen,
+  onRefreshImage,
 }: Readonly<CommunityScreenshotThumbnailProps>) {
   const { t, i18n } = useTranslation("big_picture");
   const revealedIds = useRevealedScreenshotSpoilers(
     (state) => state.revealedIds
   );
-  const [failedImageUrl, setFailedImageUrl] = useState<string | null>(null);
   const imageUrl = screenshot.thumbnailUrl ?? screenshot.imageUrl;
-  const hasImage = Boolean(imageUrl && imageUrl !== failedImageUrl);
+  const refreshImage = useCallback(
+    () => onRefreshImage(screenshot),
+    [onRefreshImage, screenshot]
+  );
+  const { hasImage, handleImageError } = useScreenshotImageFallback(
+    imageUrl,
+    refreshImage
+  );
   const isBlurred = shouldBlurScreenshot(screenshot, revealedIds);
   const language = i18n.resolvedLanguage ?? i18n.language ?? "en";
 
@@ -87,7 +95,7 @@ function CommunityScreenshotThumbnail({
             alt=""
             draggable={false}
             loading="lazy"
-            onError={() => setFailedImageUrl(imageUrl)}
+            onError={() => void handleImageError()}
           />
         ) : (
           <span className="game-community-screenshots__placeholder">
@@ -162,6 +170,7 @@ interface CommunityScreenshotsContentProps {
   showCommentCount: boolean;
   leftTarget: FocusOverrideTarget;
   onOpen: (screenshot: ProfileScreenshot) => void;
+  onRefreshImage: (screenshot: ProfileScreenshot) => Promise<void>;
   onRetry: () => void;
   onViewAll: () => void;
 }
@@ -173,6 +182,7 @@ function CommunityScreenshotsContent({
   showCommentCount,
   leftTarget,
   onOpen,
+  onRefreshImage,
   onRetry,
   onViewAll,
 }: Readonly<CommunityScreenshotsContentProps>) {
@@ -193,6 +203,7 @@ function CommunityScreenshotsContent({
               showCommentCount={showCommentCount}
               navigationOverrides={getThumbnailNavigation(index, leftTarget)}
               onOpen={onOpen}
+              onRefreshImage={onRefreshImage}
             />
           ))}
         </GridFocusGroup>
@@ -287,6 +298,7 @@ export function GameCommunityScreenshots({
     updateItem: feed.updateItem,
     removeItem: feed.removeItem,
     getFetchedAt: feed.getFetchedAt,
+    imageRefresher: feed.imageRefresher,
   });
 
   if (!isEnabled) return null;
@@ -312,6 +324,7 @@ export function GameCommunityScreenshots({
             showCommentCount={isFeatureEnabled(Feature.ScreenshotComments)}
             leftTarget={leftTarget}
             onOpen={open}
+            onRefreshImage={feed.refreshImage}
             onRetry={feed.retry}
             onViewAll={() => setIsModalOpen(true)}
           />

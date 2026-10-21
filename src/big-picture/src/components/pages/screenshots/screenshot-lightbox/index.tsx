@@ -34,6 +34,7 @@ import {
   buildUserScreenshotReportPath,
   getScreenshotApiErrorCode,
   type ScreenshotPatch,
+  useScreenshotImageFallback,
 } from "@shared";
 import { logger } from "@renderer/logger";
 
@@ -94,6 +95,7 @@ export interface ScreenshotLightboxProps {
   onUpdate: (screenshotId: string, update: ScreenshotPatch) => void;
   onRemove: (screenshotId: string, ownerId: string) => void;
   onUnavailable: (screenshotId: string, ownerId: string) => void;
+  onRefreshImage?: (screenshot: ProfileScreenshot) => Promise<void>;
 }
 
 const getLikePatch = (
@@ -202,6 +204,7 @@ interface LightboxImageProps {
   isBlurred: boolean;
   revealFocusId: string;
   onReveal: () => void;
+  onRefreshImage?: (screenshot: ProfileScreenshot) => Promise<void>;
 }
 
 function LightboxImage({
@@ -209,13 +212,16 @@ function LightboxImage({
   isBlurred,
   revealFocusId,
   onReveal,
+  onRefreshImage,
 }: Readonly<LightboxImageProps>) {
   const { t, i18n } = useTranslation("big_picture");
-  const [failedUrl, setFailedUrl] = useState<string | null>(null);
   const language = i18n.resolvedLanguage ?? i18n.language ?? "en";
-  const hasImage = Boolean(
-    screenshot.imageUrl && screenshot.imageUrl !== failedUrl
+  const refreshImage = useMemo(
+    () => (onRefreshImage ? () => onRefreshImage(screenshot) : undefined),
+    [onRefreshImage, screenshot]
   );
+  const { hasImage, isRefreshing, handleImageError } =
+    useScreenshotImageFallback(screenshot.imageUrl, refreshImage);
 
   return (
     <div className="screenshot-lightbox__stage">
@@ -227,12 +233,14 @@ function LightboxImage({
           src={screenshot.imageUrl ?? undefined}
           alt={getScreenshotAltText(screenshot, t, language)}
           draggable={false}
-          onError={() => setFailedUrl(screenshot.imageUrl)}
+          onError={() => void handleImageError()}
         />
       ) : (
         <div className="screenshot-lightbox__placeholder">
           <ImageIcon size={56} />
-          <span>{t("screenshots_image_unavailable")}</span>
+          {isRefreshing ? null : (
+            <span>{t("screenshots_image_unavailable")}</span>
+          )}
         </div>
       )}
 
@@ -742,6 +750,7 @@ interface LightboxDialogProps {
   onRequestDelete: () => void;
   onLayerChange: (layerId: string | null) => void;
   onNavigate: (path: string) => void;
+  onRefreshImage?: (screenshot: ProfileScreenshot) => Promise<void>;
   isActiveLayer: () => boolean;
 }
 
@@ -758,6 +767,7 @@ function LightboxDialog({
   onRequestDelete,
   onLayerChange,
   onNavigate,
+  onRefreshImage,
   isActiveLayer,
 }: Readonly<LightboxDialogProps>) {
   const { t } = useTranslation("big_picture");
@@ -821,6 +831,7 @@ function LightboxDialog({
                 isBlurred={isBlurred}
                 revealFocusId={focusIds.reveal}
                 onReveal={() => revealSpoiler(screenshot.id)}
+                onRefreshImage={onRefreshImage}
               />
               <HorizontalFocusGroup regionId={focusIds.info} asChild>
                 <div className="screenshot-lightbox__info">
@@ -930,6 +941,7 @@ export function ScreenshotLightbox({
   onUpdate,
   onRemove,
   onUnavailable,
+  onRefreshImage,
 }: Readonly<ScreenshotLightboxProps>) {
   const { userDetails } = useUserDetails();
   const { isFeatureEnabled } = useFeature();
@@ -1028,6 +1040,7 @@ export function ScreenshotLightbox({
                 onRequestDelete={() => setOpenModal("delete")}
                 onLayerChange={handleLayerChange}
                 onNavigate={navigateAway}
+                onRefreshImage={onRefreshImage}
                 isActiveLayer={isActiveLayer}
               />
               <LightboxModals

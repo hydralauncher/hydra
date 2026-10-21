@@ -70,6 +70,7 @@ interface ScreenshotsModalGridProps {
   isLoading: boolean;
   hasLoadError: boolean;
   onOpen: (screenshot: ProfileScreenshot) => void;
+  onRefreshImage: (screenshot: ProfileScreenshot) => Promise<void>;
   onRetry: () => void;
 }
 
@@ -79,6 +80,7 @@ function ScreenshotsModalGrid({
   isLoading,
   hasLoadError,
   onOpen,
+  onRefreshImage,
   onRetry,
 }: Readonly<ScreenshotsModalGridProps>) {
   const { t } = useTranslation("big_picture");
@@ -98,6 +100,7 @@ function ScreenshotsModalGrid({
               showOwnerDetails={false}
               showAuthor
               onActivate={onOpen}
+              onRefreshImage={onRefreshImage}
             />
           ))}
         </ul>
@@ -180,6 +183,7 @@ export function GameScreenshotsModal({
     updateItem: feed.updateItem,
     removeItem: feed.removeItem,
     getFetchedAt: feed.getFetchedAt,
+    imageRefresher: feed.imageRefresher,
   });
   const canLoadMore = feed.hasMore && !feed.isLoadingMore && !feed.error;
   const { loadMore } = feed;
@@ -263,6 +267,7 @@ export function GameScreenshotsModal({
                 isLoading={feed.isLoading}
                 hasLoadError={feed.error === "initial"}
                 onOpen={open}
+                onRefreshImage={feed.refreshImage}
                 onRetry={feed.retry}
               />
 

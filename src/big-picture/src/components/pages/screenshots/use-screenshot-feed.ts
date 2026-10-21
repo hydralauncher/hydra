@@ -4,12 +4,16 @@ import {
   applyScreenshotFeedWrites,
   applyScreenshotPatch,
   buildUserScreenshotPath,
+  createScreenshotImageRefresher,
   isRelativeScreenshotPatch,
   mergeScreenshotPages,
   type ScreenshotFeedWrite,
+  type ScreenshotImageRefresher,
   type ScreenshotPatch,
 } from "@shared";
 import { logger } from "@renderer/logger";
+
+import { useScreenshotImageRefresh } from "./use-screenshot-image-refresh";
 
 interface ScreenshotFeedResponse {
   items?: ProfileScreenshot[] | null;
@@ -266,6 +270,15 @@ export function useScreenshotFeed({
     [recordWrite]
   );
 
+  const imageRefresherRef = useRef<ScreenshotImageRefresher | null>(null);
+  imageRefresherRef.current ??= createScreenshotImageRefresher();
+  const imageRefresher = imageRefresherRef.current;
+  const refreshImage = useScreenshotImageRefresh(
+    needsAuth,
+    updateItem,
+    imageRefresher
+  );
+
   const getFetchedAt = useCallback(
     (screenshotId: string) => fetchedAtRef.current.get(screenshotId) ?? null,
     []
@@ -285,6 +298,8 @@ export function useScreenshotFeed({
     loadMore,
     refresh,
     updateItem,
+    refreshImage,
+    imageRefresher,
     removeItem,
     getFetchedAt,
   };

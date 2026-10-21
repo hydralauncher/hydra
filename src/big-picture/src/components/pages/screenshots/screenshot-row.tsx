@@ -33,6 +33,7 @@ export interface ScreenshotRowProps {
   onRetryLoadMore: () => void;
   onLoadMore: () => void;
   onActivate: (screenshot: ProfileScreenshot) => void;
+  onRefreshImage?: (screenshot: ProfileScreenshot) => Promise<void>;
 }
 
 export function ScreenshotRow({
@@ -51,6 +52,7 @@ export function ScreenshotRow({
   onRetryLoadMore,
   onLoadMore,
   onActivate,
+  onRefreshImage,
 }: Readonly<ScreenshotRowProps>) {
   const { t } = useTranslation("big_picture");
   const rowRef = useRef<HTMLUListElement | null>(null);
@@ -115,6 +117,7 @@ export function ScreenshotRow({
                 focusId={getItemFocusId(screenshot)}
                 showOwnerDetails={showOwnerDetails}
                 showAuthor={showAuthor}
+                onRefreshImage={onRefreshImage}
                 navigationOverrides={{
                   up: upTarget ?? BLOCKED_TARGET,
                   down: downTarget ?? BLOCKED_TARGET,

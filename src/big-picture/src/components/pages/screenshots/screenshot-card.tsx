@@ -10,9 +10,10 @@ import {
   UsersIcon,
 } from "@phosphor-icons/react";
 import cn from "classnames";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import type { ProfileScreenshot } from "@types";
+import { useScreenshotImageFallback } from "@shared";
 
 import { FocusItem, UserProfileAvatar } from "../../common";
 import type { FocusOverrides } from "../../../services";
@@ -32,6 +33,7 @@ export interface ScreenshotCardProps {
   navigationOverrides?: FocusOverrides;
   className?: string;
   onActivate: (screenshot: ProfileScreenshot) => void;
+  onRefreshImage?: (screenshot: ProfileScreenshot) => Promise<void>;
 }
 
 function ScreenshotCardBadges({
@@ -122,15 +124,22 @@ export function ScreenshotCard({
   navigationOverrides,
   className,
   onActivate,
+  onRefreshImage,
 }: Readonly<ScreenshotCardProps>) {
   const { t, i18n } = useTranslation("big_picture");
   const { isFeatureEnabled } = useFeature();
   const revealedIds = useRevealedScreenshotSpoilers(
     (state) => state.revealedIds
   );
-  const [failedImageUrl, setFailedImageUrl] = useState<string | null>(null);
   const imageUrl = screenshot.thumbnailUrl ?? screenshot.imageUrl;
-  const hasImage = Boolean(imageUrl && imageUrl !== failedImageUrl);
+  const refreshImage = useMemo(
+    () => (onRefreshImage ? () => onRefreshImage(screenshot) : undefined),
+    [onRefreshImage, screenshot]
+  );
+  const { hasImage, handleImageError } = useScreenshotImageFallback(
+    imageUrl,
+    refreshImage
+  );
   const isBlurred = shouldBlurScreenshot(screenshot, revealedIds);
   const language = i18n.resolvedLanguage ?? i18n.language ?? "en";
   const altText = getScreenshotAltText(screenshot, t, language);
@@ -161,7 +170,7 @@ export function ScreenshotCard({
               alt={altText}
               draggable={false}
               loading="lazy"
-              onError={() => setFailedImageUrl(imageUrl)}
+              onError={() => void handleImageError()}
             />
           ) : (
             <span className="screenshot-card__placeholder">
