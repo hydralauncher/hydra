@@ -45,6 +45,10 @@ import { LibraryTab } from "./library-tab";
 import { ReviewsTab } from "./reviews-tab";
 import { SouvenirsTab } from "./souvenirs-tab";
 import { ScreenshotsTab } from "./screenshots-tab";
+import {
+  applyScreenshotsTotalUpdate,
+  type ScreenshotsTotalUpdate,
+} from "./screenshots-total";
 import { SouvenirLightbox } from "./souvenir-lightbox";
 import { useSouvenirActions } from "./use-souvenir-actions";
 import type { ProfilePlatform } from "./library-tab";
@@ -203,6 +207,17 @@ export function ProfileContent() {
     )
   );
   const [screenshotsTotal, setScreenshotsTotal] = useState<number | null>(null);
+  const handleScreenshotsTotalUpdate = useCallback(
+    (update: ScreenshotsTotalUpdate) => {
+      setScreenshotsTotal((current) =>
+        applyScreenshotsTotalUpdate(
+          current ?? userProfile?.screenshotCount ?? 0,
+          update
+        )
+      );
+    },
+    [userProfile?.screenshotCount]
+  );
 
   // User reviews state
   const [reviews, setReviews] = useState<UserReview[]>([]);
@@ -686,7 +701,7 @@ export function ProfileContent() {
                     userProfile.id === routeUserId ? requestedScreenshot : null
                   }
                   onRequestedScreenshotHandled={clearRequestedScreenshot}
-                  onTotalChange={setScreenshotsTotal}
+                  onTotalUpdate={handleScreenshotsTotalUpdate}
                 />
               )}
             </AnimatePresence>
