@@ -1,5 +1,7 @@
 import { screenshotsSublevel } from "@main/level";
-import type { LocalScreenshot } from "@types";
+import type { GameShop, LocalScreenshot } from "@types";
+
+import { isLocalScreenshotForGame } from "./local-screenshot-game";
 
 type LocalScreenshotsChangeListener = (screenshots: LocalScreenshot[]) => void;
 
@@ -46,6 +48,17 @@ export class LocalScreenshotStore {
     const screenshots = await screenshotsSublevel.values().all();
     return sortByCapturedAtDescending(
       screenshots.filter((screenshot) => screenshot.state !== "deleted")
+    );
+  }
+
+  public static listIncludingDeleted() {
+    return screenshotsSublevel.values().all();
+  }
+
+  public static async listForGame(shop: GameShop, objectId: string) {
+    const screenshots = await LocalScreenshotStore.list();
+    return screenshots.filter((screenshot) =>
+      isLocalScreenshotForGame(screenshot, shop, objectId)
     );
   }
 

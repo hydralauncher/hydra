@@ -33,7 +33,6 @@ import type {
 
 import { SettingsScreenshotsHotkey } from "./settings-screenshots-hotkey";
 import { SettingsScreenshotsGamepad } from "./settings-screenshots-gamepad";
-import { SettingsScreenshotsLocalList } from "./settings-screenshots-local-list";
 
 import "./settings-context-screenshots.scss";
 
@@ -342,8 +341,6 @@ export function SettingsContextScreenshots() {
           </Button>
         </div>
       </div>
-
-      <SettingsScreenshotsLocalList />
 
       {SettingsScreenshotsDevTools && (
         <Suspense fallback={null}>
