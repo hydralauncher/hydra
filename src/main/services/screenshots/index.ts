@@ -37,6 +37,8 @@ export { LocalScreenshotStore } from "./local-screenshot-store";
 export { screenshotUploadWorker } from "./screenshot-upload-worker";
 export { ScreenshotReviewWindows } from "./screenshot-review-windows";
 
+const SCREENSHOTS_MODULE_LOADED_AT = Date.now();
+
 let initialized = false;
 
 const readUserPreferences = () =>
@@ -74,7 +76,11 @@ export const initializeScreenshots = () => {
     void ScreenshotUploadNotifier.refresh();
   });
 
-  screenshotUploadWorker.start();
+  void ScreenshotReviewWindows.releaseStaleReviews(SCREENSHOTS_MODULE_LOADED_AT)
+    .catch((error) => {
+      logger.error("Failed to release stale screenshot reviews", error);
+    })
+    .finally(() => screenshotUploadWorker.start());
 };
 
 export const onScreenshotGameStarted = async (

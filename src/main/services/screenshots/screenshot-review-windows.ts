@@ -206,6 +206,24 @@ const showSessionWindows = async (session: ReviewSession) => {
   if (first && !first.isDestroyed()) first.focus();
 };
 
+const watchBigPictureHandoff = (
+  bigPicture: BrowserWindow,
+  clientIds: string[]
+) => {
+  let released = false;
+  const release = () => {
+    if (released) return;
+    released = true;
+    for (const clientId of clientIds) {
+      bigPictureReviewClientIds.delete(clientId);
+    }
+    void releaseUnreviewedScreenshots(clientIds);
+  };
+
+  bigPicture.once("closed", release);
+  bigPicture.webContents.once("render-process-gone", release);
+};
+
 const handOffToBigPicture = (session: ReviewSession) => {
   const bigPicture = WindowManager.bigPictureWindow;
   if (!bigPicture) return false;
@@ -215,6 +233,7 @@ const handOffToBigPicture = (session: ReviewSession) => {
 
   session.handedToBigPicture = true;
   for (const clientId of clientIds) bigPictureReviewClientIds.add(clientId);
+  watchBigPictureHandoff(bigPicture, clientIds);
   for (const { window } of session.windows) {
     if (!window.isDestroyed()) window.destroy();
   }
@@ -230,6 +249,18 @@ const handOffToBigPicture = (session: ReviewSession) => {
 };
 
 export class ScreenshotReviewWindows {
+  public static async releaseStaleReviews(startedAt: number) {
+    const screenshots = await LocalScreenshotStore.list();
+    const stale = screenshots
+      .filter(
+        (screenshot) =>
+          screenshot.state === "reviewing" && screenshot.capturedAt < startedAt
+      )
+      .map(({ clientId }) => clientId);
+    await releaseUnreviewedScreenshots(stale);
+    return stale.length;
+  }
+
   public static async addCapture({
     screenshot,
     gameKey,
