@@ -5,6 +5,11 @@ import cn from "classnames";
 import { Button, ConfirmationModal, ProgressBar } from "@renderer/components";
 import { useUserDetails } from "@renderer/hooks";
 import { logger } from "@renderer/logger";
+import {
+  getScreenshotModerationReasonKey,
+  getScreenshotUploadErrorKey,
+  isScreenshotUploadRetryable,
+} from "@shared";
 import type { LocalScreenshot, ScreenshotUploadProgress } from "@types";
 
 const SCREENSHOTS_PAGE_SIZE = 24;
@@ -14,7 +19,7 @@ type StatusTone = "neutral" | "progress" | "success" | "warning" | "danger";
 interface ScreenshotStatus {
   label: string;
   tone: StatusTone;
-  title?: string;
+  detail?: string;
 }
 
 export const mergeScreenshotUploadProgress = (
@@ -48,6 +53,7 @@ const roundProgress = (progress: number | null) =>
 export function SettingsScreenshotsLocalList() {
   const { t } = useTranslation("settings");
   const { t: tCapture } = useTranslation("screenshots_capture");
+  const { t: tModeration } = useTranslation("screenshots_moderation");
   const { userDetails } = useUserDetails();
 
   const [screenshots, setScreenshots] = useState<LocalScreenshot[]>([]);
@@ -160,7 +166,7 @@ export function SettingsScreenshotsLocalList() {
           return {
             label: t("screenshots_status_failed"),
             tone: "danger",
-            title: screenshot.lastError ?? undefined,
+            detail: tCapture(getScreenshotUploadErrorKey(screenshot.lastError)),
           };
         case "uploaded":
           if (screenshot.moderationStatus === "APPROVED") {
@@ -170,7 +176,9 @@ export function SettingsScreenshotsLocalList() {
             return {
               label: t("screenshots_status_blocked"),
               tone: "danger",
-              title: screenshot.moderationReason ?? undefined,
+              detail: tModeration(
+                getScreenshotModerationReasonKey(screenshot.moderationReason)
+              ),
             };
           }
           return { label: t("screenshots_status_pending"), tone: "warning" };
@@ -178,7 +186,7 @@ export function SettingsScreenshotsLocalList() {
           return { label: t("screenshots_status_local"), tone: "neutral" };
       }
     },
-    [t]
+    [t, tCapture, tModeration]
   );
 
   const getUploadBlocker = (screenshot: LocalScreenshot) => {
@@ -221,7 +229,9 @@ export function SettingsScreenshotsLocalList() {
             const isBusy = busyClientIds.includes(screenshot.clientId);
             const canOfferUpload =
               screenshot.state === "local" || screenshot.state === "reviewing";
-            const canRetry = screenshot.state === "failed";
+            const canRetry =
+              screenshot.state === "failed" &&
+              isScreenshotUploadRetryable(screenshot.lastError);
             const uploadBlocker = getUploadBlocker(screenshot);
             const showOwnerHint =
               (canOfferUpload || canRetry) &&
@@ -260,10 +270,15 @@ export function SettingsScreenshotsLocalList() {
                       "settings-screenshots__status",
                       `settings-screenshots__status--${status.tone}`
                     )}
-                    title={status.title}
                   >
                     {status.label}
                   </span>
+
+                  {status.detail && (
+                    <small className="settings-screenshots__hint">
+                      {status.detail}
+                    </small>
+                  )}
 
                   {screenshot.state === "uploading" && (
                     <ProgressBar

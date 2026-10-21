@@ -3,6 +3,7 @@ import cn from "classnames";
 import { useTranslation } from "react-i18next";
 import type { LocalScreenshot, ProfileVisibility } from "@types";
 import {
+  isScreenshotUploadRetryable,
   SCREENSHOT_CUSTOM_GAME_TITLE_MAX_LENGTH,
   SCREENSHOT_VISIBILITY_OPTIONS,
 } from "@shared";
@@ -152,9 +153,11 @@ export function ScreenshotReviewItem({
     if (screenshot.state === "failed") {
       return (
         <>
-          <Button size={buttonSize} disabled={isBusy} onClick={handleUpload}>
-            {t("retry")}
-          </Button>
+          {isScreenshotUploadRetryable(screenshot.lastError) && (
+            <Button size={buttonSize} disabled={isBusy} onClick={handleUpload}>
+              {t("retry")}
+            </Button>
+          )}
           <Button
             size={buttonSize}
             theme="danger"

@@ -2,9 +2,12 @@ import cn from "classnames";
 import { useTranslation } from "react-i18next";
 import type { LocalScreenshot } from "@types";
 import { ProgressBar } from "@renderer/components";
+import {
+  getScreenshotModerationReasonKey,
+  getScreenshotUploadErrorKey,
+} from "@shared";
 
 import {
-  getFailedMessageKey,
   getQueuedMessageKey,
   getUploadPercent,
 } from "./screenshot-review-state";
@@ -25,6 +28,7 @@ export function ScreenshotReviewStatus({
   screenshot,
 }: Readonly<ScreenshotReviewStatusProps>) {
   const { t } = useTranslation("screenshots_capture");
+  const { t: tModeration } = useTranslation("screenshots_moderation");
 
   const getMessage = (): StatusMessage | null => {
     if (screenshot.state === "queued") {
@@ -40,7 +44,7 @@ export function ScreenshotReviewStatus({
       return {
         tone: "error",
         title: t("upload_failed"),
-        detail: t(getFailedMessageKey(screenshot.lastError)),
+        detail: t(getScreenshotUploadErrorKey(screenshot.lastError)),
       };
     }
 
@@ -54,9 +58,11 @@ export function ScreenshotReviewStatus({
       return {
         tone: "error",
         title: t("blocked"),
-        detail: screenshot.moderationReason
-          ? t("blocked_reason", { reason: screenshot.moderationReason })
-          : null,
+        detail: t("blocked_reason", {
+          reason: tModeration(
+            getScreenshotModerationReasonKey(screenshot.moderationReason)
+          ),
+        }),
       };
     }
 

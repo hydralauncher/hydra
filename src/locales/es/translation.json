@@ -2376,6 +2376,8 @@
     "error_limit_reached": "Alcanzaste el límite de 500 capturas",
     "error_missing_file": "No se encontró el archivo de la captura",
     "error_rate_limited": "Demasiadas subidas a la vez. Hydra lo intentará de nuevo en breve.",
+    "error_too_large": "La captura es demasiado grande para subirla",
+    "error_unreadable": "No se puede leer el archivo de la captura",
     "error_waiting_for_game": "Esperando a que este juego se sincronice con tu biblioteca",
     "grid_title_one": "{{count}} captura más de esta sesión",
     "grid_title_other": "{{count}} capturas más de esta sesión",
@@ -2407,5 +2409,13 @@
     "visibility_label": "Quién puede verla",
     "visibility_private": "Solo yo",
     "visibility_public": "Todos"
+  },
+  "screenshots_moderation": {
+    "explicit_imagery": "Imágenes explícitas",
+    "generic": "Infringe las normas de contenido",
+    "hate_symbols": "Símbolos de odio",
+    "invalid_image": "No se pudo procesar la imagen",
+    "personal_information": "Información personal",
+    "real_world_gore": "Violencia gráfica"
   }
 }

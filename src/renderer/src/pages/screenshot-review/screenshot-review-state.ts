@@ -42,15 +42,6 @@ export const getQueuedMessageKey = (lastError: string | null) => {
   return null;
 };
 
-export const getFailedMessageKey = (lastError: string | null) => {
-  if (lastError === "screenshots/limit-reached") return "error_limit_reached";
-  if (lastError === "screenshots/disabled-for-game") {
-    return "error_disabled_for_game";
-  }
-  if (lastError === "screenshot_missing") return "error_missing_file";
-  return "error_generic";
-};
-
 export const applyUploadProgress = (
   screenshots: LocalScreenshot[],
   { clientId, state, progress }: ScreenshotUploadProgress

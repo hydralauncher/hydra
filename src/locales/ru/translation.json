@@ -2411,6 +2411,8 @@
     "error_limit_reached": "Вы достигли лимита в 500 скриншотов",
     "error_missing_file": "Файл скриншота не найден",
     "error_rate_limited": "Слишком много загрузок сразу. Hydra скоро попробует снова.",
+    "error_too_large": "Скриншот слишком большой для загрузки",
+    "error_unreadable": "Не удалось прочитать файл скриншота",
     "error_waiting_for_game": "Ожидание синхронизации игры с вашей библиотекой",
     "grid_title_few": "Еще {{count}} скриншота из этой сессии",
     "grid_title_many": "Еще {{count}} скриншотов из этой сессии",
@@ -2450,5 +2452,13 @@
     "visibility_label": "Кто может видеть",
     "visibility_private": "Только я",
     "visibility_public": "Все"
+  },
+  "screenshots_moderation": {
+    "explicit_imagery": "Откровенные изображения",
+    "generic": "Нарушение правил публикации",
+    "hate_symbols": "Символы ненависти",
+    "invalid_image": "Не удалось обработать изображение",
+    "personal_information": "Личные данные",
+    "real_world_gore": "Жестокое насилие"
   }
 }

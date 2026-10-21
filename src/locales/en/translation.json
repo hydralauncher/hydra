@@ -2648,6 +2648,8 @@
     "error_limit_reached": "You reached the limit of 500 screenshots",
     "error_missing_file": "The screenshot file was not found",
     "error_rate_limited": "Too many uploads at once. Hydra will try again shortly.",
+    "error_too_large": "The screenshot is too large to upload",
+    "error_unreadable": "The screenshot file can't be read",
     "error_waiting_for_game": "Waiting for this game to sync with your library",
     "grid_title_one": "{{count}} more screenshot from this session",
     "grid_title_other": "{{count}} more screenshots from this session",
@@ -2679,5 +2681,13 @@
     "visibility_label": "Who can see it",
     "visibility_private": "Only me",
     "visibility_public": "Everyone"
+  },
+  "screenshots_moderation": {
+    "explicit_imagery": "Explicit imagery",
+    "generic": "It breaks the content rules",
+    "hate_symbols": "Hate symbols",
+    "invalid_image": "The image could not be processed",
+    "personal_information": "Personal information",
+    "real_world_gore": "Graphic violence"
   }
 }
