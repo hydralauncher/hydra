@@ -82,9 +82,8 @@ export function SettingsScreenshotsGamepad({
         {t("screenshots_gamepad_combo_hint")}
       </small>
 
-      <div
+      <fieldset
         className="settings-screenshots__chips"
-        role="group"
         aria-label={t("screenshots_gamepad_combo")}
       >
         {SCREENSHOT_GAMEPAD_BUTTONS.map((button) => {
@@ -105,7 +104,7 @@ export function SettingsScreenshotsGamepad({
             </button>
           );
         })}
-      </div>
+      </fieldset>
     </div>
   );
 }

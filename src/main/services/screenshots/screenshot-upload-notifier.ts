@@ -1,6 +1,7 @@
 import { Notification } from "electron";
 import { t } from "i18next";
 import icon from "@resources/icon.png?asset";
+import type { LocalScreenshot } from "@types";
 
 import { HydraApi } from "../hydra-api";
 import { logger } from "../logger";
@@ -44,6 +45,77 @@ const showNotification = (
   }
 };
 
+const isActiveState = (state: LocalScreenshot["state"] | undefined) =>
+  state === "queued" || state === "uploading";
+
+const pruneReviewOrigins = (byClientId: Map<string, LocalScreenshot>) => {
+  for (const clientId of reviewOriginClientIds) {
+    const isActive = isActiveState(byClientId.get(clientId)?.state);
+    if (!isActive && !batch?.clientIds.has(clientId)) {
+      reviewOriginClientIds.delete(clientId);
+    }
+  }
+};
+
+const startBatch = (unattended: LocalScreenshot[]) => {
+  batch = {
+    clientIds: new Set(unattended.map(({ clientId }) => clientId)),
+    notification: showNotification(
+      t("uploading_title", { ns: "screenshots_capture" }),
+      t("uploading_body", {
+        ns: "screenshots_capture",
+        count: unattended.length,
+      }),
+      {
+        value: 0,
+        label: t("uploading_progress", {
+          ns: "screenshots_capture",
+          done: 0,
+          total: unattended.length,
+        }),
+      }
+    ),
+  };
+};
+
+const showBatchSummary = (uploadedCount: number, failedCount: number) => {
+  if (failedCount > 0) {
+    showNotification(
+      t("upload_failed_title", { ns: "screenshots_capture" }),
+      t("upload_failed_body", { ns: "screenshots_capture", count: failedCount })
+    );
+    return;
+  }
+
+  if (uploadedCount > 0) {
+    showNotification(
+      t("uploaded_title", { ns: "screenshots_capture" }),
+      t("uploaded_body", { ns: "screenshots_capture", count: uploadedCount })
+    );
+  }
+};
+
+const finishBatchIfSettled = (
+  currentBatch: UploadBatch,
+  byClientId: Map<string, LocalScreenshot>
+) => {
+  const states = [...currentBatch.clientIds].map(
+    (clientId) => byClientId.get(clientId)?.state ?? "deleted"
+  );
+  if (states.some(isActiveState)) return;
+
+  currentBatch.notification?.close();
+  for (const clientId of currentBatch.clientIds) {
+    reviewOriginClientIds.delete(clientId);
+  }
+  batch = null;
+
+  showBatchSummary(
+    states.filter((state) => state === "uploaded").length,
+    states.filter((state) => state === "failed").length
+  );
+};
+
 export class ScreenshotUploadNotifier {
   public static markReviewOrigin(clientId: string) {
     reviewOriginClientIds.add(clientId);
@@ -65,76 +137,18 @@ export class ScreenshotUploadNotifier {
       (screenshot) =>
         reviewOriginClientIds.has(screenshot.clientId) &&
         screenshot.ownerId === ownerId &&
-        (screenshot.state === "queued" || screenshot.state === "uploading") &&
+        isActiveState(screenshot.state) &&
         !ScreenshotReviewWindows.isScreenshotUnderReview(screenshot.clientId)
     );
 
-    for (const clientId of reviewOriginClientIds) {
-      const state = byClientId.get(clientId)?.state;
-      if (state !== "queued" && state !== "uploading") {
-        if (!batch?.clientIds.has(clientId)) {
-          reviewOriginClientIds.delete(clientId);
-        }
-      }
-    }
+    pruneReviewOrigins(byClientId);
 
     if (!batch) {
-      if (!unattended.length) return;
-      batch = {
-        clientIds: new Set(unattended.map(({ clientId }) => clientId)),
-        notification: showNotification(
-          t("uploading_title", { ns: "screenshots_capture" }),
-          t("uploading_body", {
-            ns: "screenshots_capture",
-            count: unattended.length,
-          }),
-          {
-            value: 0,
-            label: t("uploading_progress", {
-              ns: "screenshots_capture",
-              done: 0,
-              total: unattended.length,
-            }),
-          }
-        ),
-      };
+      if (unattended.length) startBatch(unattended);
       return;
     }
 
     for (const { clientId } of unattended) batch.clientIds.add(clientId);
-
-    const states = [...batch.clientIds].map(
-      (clientId) => byClientId.get(clientId)?.state ?? "deleted"
-    );
-    const stillActive = states.some(
-      (state) => state === "queued" || state === "uploading"
-    );
-    if (stillActive) return;
-
-    const uploadedCount = states.filter((state) => state === "uploaded").length;
-    const failedCount = states.filter((state) => state === "failed").length;
-    batch.notification?.close();
-    for (const clientId of batch.clientIds) {
-      reviewOriginClientIds.delete(clientId);
-    }
-    batch = null;
-
-    if (failedCount > 0) {
-      showNotification(
-        t("upload_failed_title", { ns: "screenshots_capture" }),
-        t("upload_failed_body", {
-          ns: "screenshots_capture",
-          count: failedCount,
-        })
-      );
-      return;
-    }
-
-    if (uploadedCount > 0) {
-      showNotification(
-        t("uploaded_title", { ns: "screenshots_capture" }),
-        t("uploaded_body", { ns: "screenshots_capture", count: uploadedCount })
-      );
-    }
+    finishBatchIfSettled(batch, byClientId);
   }
 }

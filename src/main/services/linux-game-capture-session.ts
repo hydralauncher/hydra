@@ -288,7 +288,7 @@ export const stopLinuxGameCaptureSession = (
 export const stopAllLinuxGameCaptureSessions = (
   reason?: CaptureSessionReason
 ) => {
-  for (const gameKey of [...sessions.keys()]) {
+  for (const gameKey of sessions.keys()) {
     stopLinuxGameCaptureSession(gameKey, reason);
   }
 };

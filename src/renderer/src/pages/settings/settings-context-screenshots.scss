@@ -83,6 +83,10 @@
     display: flex;
     flex-wrap: wrap;
     gap: calc(globals.$spacing-unit * 0.75);
+    min-width: 0;
+    margin: 0;
+    padding: 0;
+    border: 0;
   }
 
   &__chip {

@@ -6,11 +6,11 @@ import type {
 
 export type ScreenshotReviewVariant = "single" | "grid";
 
-const EDITABLE_STATES: LocalScreenshotState[] = [
+const EDITABLE_STATES = new Set<LocalScreenshotState>([
   "local",
   "reviewing",
   "failed",
-];
+]);
 
 export const getLocalImageSource = (path: string) =>
   `local:${path.replaceAll("\\", "/")}`;
@@ -22,7 +22,7 @@ export const parseClientIds = (value: string | null) =>
     .filter(Boolean);
 
 export const isScreenshotEditable = (screenshot: LocalScreenshot) =>
-  EDITABLE_STATES.includes(screenshot.state);
+  EDITABLE_STATES.has(screenshot.state);
 
 export const isScreenshotAwaitingReview = (screenshot: LocalScreenshot) =>
   screenshot.state === "local" || screenshot.state === "reviewing";
