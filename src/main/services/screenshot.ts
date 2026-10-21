@@ -187,24 +187,28 @@ const captureX11WindowThumbnail = async (windowId: string) => {
   return source.thumbnail;
 };
 
-const captureX11GameWindowFrame = async (
-  captureTarget: GameScreenshotCaptureTarget
-) => {
-  const windowId = await resolveX11GameWindowId(captureTarget);
+const captureNonBlankX11Frame = async (
+  windowId: string,
+  attempt = 1
+): Promise<Electron.NativeImage> => {
+  const image = await captureX11WindowThumbnail(windowId);
+  if (!image.isEmpty() && !isBlankImage(image)) return image;
 
-  for (let attempt = 1; attempt <= X11_CAPTURE_ATTEMPTS; attempt++) {
-    const image = await captureX11WindowThumbnail(windowId);
-    if (!image.isEmpty() && !isBlankImage(image)) return image;
-
-    logger.warn("X11 game-window capture returned a blank frame", {
-      windowId,
-      attempt,
-    });
-    if (attempt < X11_CAPTURE_ATTEMPTS) await wait(X11_CAPTURE_RETRY_DELAY_MS);
+  logger.warn("X11 game-window capture returned a blank frame", {
+    windowId,
+    attempt,
+  });
+  if (attempt >= X11_CAPTURE_ATTEMPTS) {
+    throw new Error("X11 game-window capture returned only blank frames");
   }
 
-  throw new Error("X11 game-window capture returned only blank frames");
+  await wait(X11_CAPTURE_RETRY_DELAY_MS);
+  return captureNonBlankX11Frame(windowId, attempt + 1);
 };
+
+const captureX11GameWindowFrame = async (
+  captureTarget: GameScreenshotCaptureTarget
+) => captureNonBlankX11Frame(await resolveX11GameWindowId(captureTarget));
 
 const findWindowsWindowSource = async (windowHandle: string) => {
   const sources = await desktopCapturer.getSources({
@@ -280,6 +284,20 @@ const resolveWindowsGameWindowSource = async (
   return source;
 };
 
+const resolveWindowsGameWindowSourceWithRetry = async (
+  captureTarget: GameScreenshotCaptureTarget,
+  attempt = 1
+): Promise<Electron.DesktopCapturerSource> => {
+  try {
+    return await resolveWindowsGameWindowSource(captureTarget);
+  } catch (error) {
+    if (attempt >= WINDOWS_SOURCE_RESOLUTION_ATTEMPTS) throw error;
+
+    await wait(WINDOWS_SOURCE_RETRY_DELAY_MS);
+    return resolveWindowsGameWindowSourceWithRetry(captureTarget, attempt + 1);
+  }
+};
+
 const getWindowsGameWindowSource = async (
   captureTarget: GameScreenshotCaptureTarget
 ) => {
@@ -290,25 +308,7 @@ const getWindowsGameWindowSource = async (
     if (source) return source;
   }
 
-  let lastError: unknown;
-
-  for (
-    let attempt = 1;
-    attempt <= WINDOWS_SOURCE_RESOLUTION_ATTEMPTS;
-    attempt++
-  ) {
-    try {
-      return await resolveWindowsGameWindowSource(captureTarget);
-    } catch (error) {
-      lastError = error;
-
-      if (attempt < WINDOWS_SOURCE_RESOLUTION_ATTEMPTS) {
-        await wait(WINDOWS_SOURCE_RETRY_DELAY_MS);
-      }
-    }
-  }
-
-  throw lastError;
+  return resolveWindowsGameWindowSourceWithRetry(captureTarget);
 };
 
 const getGameWindowSource = async (

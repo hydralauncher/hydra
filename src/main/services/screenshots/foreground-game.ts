@@ -47,36 +47,56 @@ const getTrackedGameTarget = (
   isEmulator: false,
 });
 
+type ScreenshotGameCandidate = { target: ScreenshotGameTarget; game: Game };
+
+const readGame = (gameKey: string) =>
+  gamesSublevel.get(gameKey).catch(() => null);
+
+const getEmulatorCandidates = () =>
+  Promise.all(
+    [...emulatorSessions].map(
+      async ([gameKey, session]): Promise<ScreenshotGameCandidate | null> => {
+        const game = await readGame(gameKey);
+        if (!game) return null;
+
+        return {
+          game,
+          target: {
+            gameKey,
+            shop: session.shop,
+            objectId: session.objectId,
+            title: game.title,
+            processId: session.child.pid,
+            executablePaths: [session.executablePath],
+            winePrefixPath: null,
+            isEmulator: true,
+          },
+        };
+      }
+    )
+  );
+
+const getTrackedCandidates = () =>
+  Promise.all(
+    [...gamesPlaytime.keys()]
+      .filter((gameKey) => !emulatorSessions.has(gameKey))
+      .map(async (gameKey): Promise<ScreenshotGameCandidate | null> => {
+        const game = await readGame(gameKey);
+        return game
+          ? { game, target: getTrackedGameTarget(gameKey, game) }
+          : null;
+      })
+  );
+
 export const getScreenshotGameTargets = async () => {
-  const targets: { target: ScreenshotGameTarget; game: Game }[] = [];
+  const [emulatorCandidates, trackedCandidates] = await Promise.all([
+    getEmulatorCandidates(),
+    getTrackedCandidates(),
+  ]);
 
-  for (const [gameKey, session] of emulatorSessions) {
-    const game = await gamesSublevel.get(gameKey).catch(() => null);
-    if (!game) continue;
-
-    targets.push({
-      game,
-      target: {
-        gameKey,
-        shop: session.shop,
-        objectId: session.objectId,
-        title: game.title,
-        processId: session.child.pid,
-        executablePaths: [session.executablePath],
-        winePrefixPath: null,
-        isEmulator: true,
-      },
-    });
-  }
-
-  for (const gameKey of gamesPlaytime.keys()) {
-    if (emulatorSessions.has(gameKey)) continue;
-    const game = await gamesSublevel.get(gameKey).catch(() => null);
-    if (!game) continue;
-    targets.push({ game, target: getTrackedGameTarget(gameKey, game) });
-  }
-
-  return targets;
+  return [...emulatorCandidates, ...trackedCandidates].filter(
+    (candidate): candidate is ScreenshotGameCandidate => candidate !== null
+  );
 };
 
 const readNamespacedPids = (hostPid: number) => {

@@ -1,5 +1,7 @@
 @use "../../scss/globals.scss";
 
+$button-transition-duration: 0.2s;
+
 .rich-text-editor {
   display: flex;
   flex-direction: column;
@@ -30,7 +32,7 @@
     padding: 4px 8px;
     cursor: pointer;
     font-size: 12px;
-    transition: all 0.2s ease;
+    transition: all $button-transition-duration ease;
 
     &:hover {
       background-color: rgba(255, 255, 255, 0.08);

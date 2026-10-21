@@ -48,7 +48,7 @@ export function ScreenshotReviewItem({
   isLocked = false,
 }: Readonly<ScreenshotReviewItemProps>) {
   const { t, i18n } = useTranslation("screenshots_capture");
-  const [isActionBusy, setIsBusy] = useState(false);
+  const [isActionBusy, setIsActionBusy] = useState(false);
   const isBusy = isActionBusy || isLocked;
   const [isDeleteModalVisible, setIsDeleteModalVisible] = useState(false);
 
@@ -65,13 +65,13 @@ export function ScreenshotReviewItem({
   }));
 
   const runAction = async (action: () => Promise<unknown>, label: string) => {
-    setIsBusy(true);
+    setIsActionBusy(true);
     try {
       await action();
     } catch (error) {
       logger.error(label, error);
     } finally {
-      setIsBusy(false);
+      setIsActionBusy(false);
     }
   };
 

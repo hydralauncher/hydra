@@ -125,10 +125,14 @@ export const applyScreenshotsEnabledPreference = async (
     ...gamesPlaytime.keys(),
     ...emulatorSessions.keys(),
   ]);
-  for (const gameKey of runningGameKeys) {
-    const game = await gamesSublevel.get(gameKey).catch(() => null);
-    if (game) await onScreenshotGameStarted(gameKey, game.shop, game.objectId);
-  }
+  await Promise.all(
+    [...runningGameKeys].map(async (gameKey) => {
+      const game = await gamesSublevel.get(gameKey).catch(() => null);
+      if (game) {
+        await onScreenshotGameStarted(gameKey, game.shop, game.objectId);
+      }
+    })
+  );
 };
 
 export const getLocalScreenshots = () => LocalScreenshotStore.list();
