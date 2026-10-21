@@ -258,6 +258,7 @@ export function NotificationItem({
             gameTitle: screenshotGameTitle,
           }),
           description: t("screenshot_comment_description", {
+            gameTitle: screenshotGameTitle,
             count: Number(notification.variables.commentCount ?? 1),
           }),
           showActions: false,
