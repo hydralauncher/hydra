@@ -25,7 +25,7 @@ export type ScreenshotFailure = "private" | "unavailable";
 
 interface UseScreenshotActionsOptions {
   onPatch: (screenshotId: string, patch: Partial<ProfileScreenshot>) => void;
-  onRemove: (screenshotId: string) => void;
+  onRemove: (screenshot: ProfileScreenshot) => void;
   onFailure?: (screenshotId: string, failure: ScreenshotFailure) => void;
 }
 
@@ -92,12 +92,13 @@ export function useScreenshotActions({
   }, []);
 
   const handleAccessError = useCallback(
-    (screenshotId: string, error: unknown) => {
+    (screenshot: ProfileScreenshot, error: unknown) => {
       const code = getScreenshotApiErrorCode(error);
+      const screenshotId = screenshot.id;
 
       if (code === "screenshots/not-found") {
         onFailure?.(screenshotId, "unavailable");
-        onRemove(screenshotId);
+        onRemove(screenshot);
         showErrorToast(t("screenshot_unavailable"));
         return true;
       }
@@ -154,7 +155,7 @@ export function useScreenshotActions({
       } catch (error) {
         onPatch(screenshot.id, previous);
         logger.error("Failed to update screenshot like", error);
-        if (!handleAccessError(screenshot.id, error)) {
+        if (!handleAccessError(screenshot, error)) {
           showErrorToast(t("like_failed"));
         }
       } finally {
@@ -188,7 +189,7 @@ export function useScreenshotActions({
         return true;
       } catch (error) {
         logger.error("Failed to update screenshot", error);
-        if (!handleAccessError(screenshot.id, error)) {
+        if (!handleAccessError(screenshot, error)) {
           showErrorToast(t("update_failed"));
         }
         return false;
@@ -216,13 +217,13 @@ export function useScreenshotActions({
           buildProfileScreenshotPath(screenshot.id),
           { needsAuth: true }
         );
-        onRemove(screenshot.id);
+        onRemove(screenshot);
         showSuccessToast(t("screenshot_deleted"));
         return true;
       } catch (error) {
         logger.error("Failed to delete screenshot", error);
         if (getScreenshotApiErrorCode(error) === "screenshots/not-found") {
-          onRemove(screenshot.id);
+          onRemove(screenshot);
           return true;
         }
         showErrorToast(t("delete_failed"));
@@ -273,7 +274,7 @@ export function useScreenshotActions({
           return false;
         }
 
-        if (!handleAccessError(screenshot.id, error)) {
+        if (!handleAccessError(screenshot, error)) {
           showErrorToast(t("report_failed"));
         }
         return code === "screenshots/not-found";

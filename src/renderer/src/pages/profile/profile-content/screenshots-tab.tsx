@@ -42,7 +42,7 @@ import type {
 
 import { FilterDropdown, type FilterDropdownOption } from "./filter-dropdown";
 import { LockedProfile } from "./locked-profile";
-import type { ScreenshotsTotalUpdate } from "./screenshots-total";
+import type { ProfileScreenshotsTotalUpdate } from "./screenshots-total";
 import "./profile-content.scss";
 
 const ALL_GAMES_FILTER = "all";
@@ -159,7 +159,7 @@ interface ScreenshotsTabProps {
   isMe: boolean;
   requestedScreenshotId: string | null;
   onRequestedScreenshotHandled: () => void;
-  onTotalUpdate: (update: ScreenshotsTotalUpdate) => void;
+  onTotalUpdate: (update: ProfileScreenshotsTotalUpdate) => void;
 }
 
 export function ScreenshotsTab({
@@ -237,8 +237,9 @@ export function ScreenshotsTab({
       : null,
     fetchPage,
     onServerTotal: (total) =>
-      onTotalUpdate({ kind: "server", total, isFiltered }),
-    onItemRemoved: () => onTotalUpdate({ kind: "removed" }),
+      onTotalUpdate({ kind: "server", total, isFiltered, userId }),
+    onItemRemoved: (removed) =>
+      onTotalUpdate({ kind: "removed", userId: removed.owner.id }),
   });
   const { feed, actions, lightbox } = collection;
   const { openById } = lightbox;
@@ -374,6 +375,7 @@ export function ScreenshotsTab({
                 showCommentCount={isCommentsEnabled}
                 onOpen={lightbox.open}
                 onLike={(item) => void actions.toggleLike(item)}
+                onImageError={lightbox.refreshScreenshot}
               />
             ))}
           </ul>

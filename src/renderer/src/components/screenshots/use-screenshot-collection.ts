@@ -58,7 +58,7 @@ interface UseScreenshotCollectionOptions {
   feedKey: string | null;
   fetchPage: (cursor: string | null) => Promise<ScreenshotFeedPage | null>;
   onServerTotal?: (total: number) => void;
-  onItemRemoved?: (screenshotId: string) => void;
+  onItemRemoved?: (screenshot: ProfileScreenshot) => void;
 }
 
 interface OpenTarget {
@@ -162,11 +162,11 @@ export function useScreenshotCollection({
   );
 
   const onRemove = useCallback(
-    (screenshotId: string) => {
-      fetchedIdsRef.current.add(screenshotId);
-      removeItem(screenshotId);
-      setDetachedById((current) => withoutKey(current, screenshotId));
-      onItemRemovedRef.current?.(screenshotId);
+    (removed: ProfileScreenshot) => {
+      fetchedIdsRef.current.add(removed.id);
+      removeItem(removed.id);
+      setDetachedById((current) => withoutKey(current, removed.id));
+      onItemRemovedRef.current?.(removed);
     },
     [removeItem]
   );
