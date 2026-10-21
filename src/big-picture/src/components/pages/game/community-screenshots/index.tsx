@@ -54,6 +54,7 @@ function storeSort(sort: ScreenshotSort) {
 export interface GameCommunityScreenshotsProps {
   shop: GameShop;
   objectId: string;
+  isAdultGame: boolean;
   upTarget?: FocusOverrideTarget;
   downTarget?: FocusOverrideTarget;
   onAvailabilityChange: (hasScreenshots: boolean) => void;
@@ -62,6 +63,7 @@ export interface GameCommunityScreenshotsProps {
 export function GameCommunityScreenshots({
   shop,
   objectId,
+  isAdultGame,
   upTarget,
   downTarget,
   onAvailabilityChange,
@@ -70,7 +72,8 @@ export function GameCommunityScreenshots({
   const { userDetails } = useUserDetails();
   const { isFeatureEnabled } = useFeature();
   const [sort, setSort] = useState<ScreenshotSort>(readStoredSort);
-  const isEnabled = isFeatureEnabled(Feature.Screenshots) && shop !== "custom";
+  const isEnabled =
+    isFeatureEnabled(Feature.Screenshots) && shop !== "custom" && !isAdultGame;
   const isSignedIn = Boolean(userDetails);
 
   const buildPath = useCallback(
