@@ -1,4 +1,5 @@
 import {
+  PlusIcon,
   CopyIcon,
   FlagIcon,
   GameControllerIcon,
@@ -11,7 +12,9 @@ import { useCallback, useState } from "react";
 import { useTranslation } from "react-i18next";
 import type { ProfileScreenshot } from "@types";
 import {
+  SCREENSHOT_DESCRIPTION_MAX_LENGTH,
   buildScreenshotSettingsUpdate,
+  sanitizeScreenshotDescriptionInput,
   readScreenshotSettings,
   type ScreenshotPatch,
 } from "@shared";
@@ -32,7 +35,7 @@ import {
   getScreenshotOwnerPath,
 } from "../helpers";
 import { ScreenshotCommentsPanel } from "./comments-panel";
-import { InlineDescriptionField } from "./inline-description-field";
+import { InlineTextField } from "../inline-text-field";
 import type { LightboxSocial } from "./social-actions";
 
 const SIDEBAR_REGION_ID = "screenshot-viewer-sidebar";
@@ -110,16 +113,25 @@ function LightboxSummary({
   return (
     <VerticalFocusGroup regionId={focusIds.summary} asChild>
       <div className="screenshot-lightbox__summary">
-        {isOwner && !screenshot.description ? (
-          <InlineDescriptionField
+        {isOwner ? (
+          <InlineTextField
             key={screenshot.id}
             focusId={focusIds.description}
-            stageTarget={stageTarget}
+            className="screenshot-lightbox__description-field"
+            label={t("screenshots_description_label")}
+            value={screenshot.description ?? ""}
+            placeholder={t("screenshots_add_description")}
+            icon={<PlusIcon size={18} weight="bold" />}
+            maxLength={SCREENSHOT_DESCRIPTION_MAX_LENGTH}
+            allowEmpty
             isSaving={isSaving}
+            navigationOrder={0}
+            navigationOverrides={{ left: stageTarget }}
+            sanitize={sanitizeScreenshotDescriptionInput}
             onSave={onSaveDescription}
           />
         ) : null}
-        {screenshot.description ? (
+        {!isOwner && screenshot.description ? (
           <Typography variant="h4" className="screenshot-lightbox__description">
             {screenshot.description}
           </Typography>
@@ -369,7 +381,7 @@ export function ScreenshotLightboxSidebar({
             stageTarget={stageTarget}
             isOwner={isOwner}
             isSaving={social.isSaving}
-            onSaveDescription={(description) =>
+            onSaveDescription={(description: string) =>
               social.save(
                 buildScreenshotSettingsUpdate(screenshot, {
                   ...readScreenshotSettings(screenshot),

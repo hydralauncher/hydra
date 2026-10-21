@@ -2,10 +2,12 @@ import "./styles.scss";
 
 import {
   ArrowClockwiseIcon,
+  CaretUpIcon,
   CheckCircleIcon,
   CloudArrowUpIcon,
+  HardDrivesIcon,
   ImageIcon,
-  SkipForwardIcon,
+  PencilSimpleIcon,
   TrashIcon,
   WarningCircleIcon,
 } from "@phosphor-icons/react";
@@ -30,18 +32,24 @@ import { useReviewDraftSave } from "./use-review-draft-save";
 import {
   Button,
   Checkbox,
+  ContextMenu,
   DropdownSelect,
   HorizontalFocusGroup,
   Input,
   Modal,
   VerticalFocusGroup,
+  type ContextMenuItem,
   type DropdownSelectOption,
 } from "../common";
 import { ConfirmationModal } from "../modals";
 import { IS_DESKTOP } from "../../constants";
 import { resolveImageSource } from "../../helpers";
 import { useNavigationStore } from "../../stores";
-import { getLocalScreenshotStatusDetail } from "../pages/screenshots";
+import {
+  formatScreenshotDate,
+  getLocalScreenshotStatusDetail,
+} from "../pages/screenshots";
+import { InlineTextField } from "../pages/screenshots/inline-text-field";
 import { useScreenshotDialogPresenceStore } from "../pages/screenshots/screenshot-dialog-presence";
 import {
   useBigPictureToast,
@@ -71,6 +79,8 @@ const SPOILER_FOCUS_ID = "screenshot-review-spoiler";
 const VISIBILITY_FOCUS_ID = "screenshot-review-visibility";
 const UPLOAD_FOCUS_ID = "screenshot-review-upload";
 const SKIP_FOCUS_ID = "screenshot-review-skip";
+const SKIP_MENU_FOCUS_ID = "screenshot-review-skip-menu";
+const UPLOAD_MENU_FOCUS_ID = "screenshot-review-upload-menu";
 const DELETE_FOCUS_ID = "screenshot-review-delete";
 const NEXT_FOCUS_ID = "screenshot-review-next";
 const RETRY_FOCUS_ID = "screenshot-review-retry";
@@ -183,7 +193,8 @@ function ReviewPreview({
   screenshot,
   gameTitle,
 }: Readonly<ReviewPreviewProps>) {
-  const { t } = useTranslation("big_picture");
+  const { t, i18n } = useTranslation("big_picture");
+  const language = i18n.resolvedLanguage ?? i18n.language ?? "en";
   const [failedPath, setFailedPath] = useState<string | null>(null);
   const source = screenshot ? resolveImageSource(screenshot.path) : "";
   const hasImage = Boolean(source) && screenshot?.path !== failedPath;
@@ -200,7 +211,107 @@ function ReviewPreview({
       ) : (
         <ImageIcon size={48} />
       )}
+      {screenshot ? (
+        <time
+          className="screenshot-review-modal__date"
+          dateTime={new Date(screenshot.capturedAt).toISOString()}
+        >
+          {formatScreenshotDate(screenshot.capturedAt, language)}
+        </time>
+      ) : null}
     </div>
+  );
+}
+
+interface ReviewMenuAction {
+  label: string;
+  onSelect: () => void;
+}
+
+interface ReviewSplitButtonProps {
+  focusId: string;
+  menuFocusId: string;
+  menuLabel: string;
+  variant?: "primary" | "secondary";
+  icon: React.ReactNode;
+  disabled: boolean;
+  loading: boolean;
+  menuAction: ReviewMenuAction | null;
+  children: React.ReactNode;
+  onClick: () => void;
+}
+
+function ReviewSplitButton({
+  focusId,
+  menuFocusId,
+  menuLabel,
+  variant = "primary",
+  icon,
+  disabled,
+  loading,
+  menuAction,
+  children,
+  onClick,
+}: Readonly<ReviewSplitButtonProps>) {
+  const [menuPosition, setMenuPosition] = useState<{
+    x: number;
+    y: number;
+  } | null>(null);
+  const toggleRef = useRef<HTMLSpanElement | null>(null);
+  const menuItems: ContextMenuItem[] = menuAction
+    ? [
+        {
+          id: menuFocusId,
+          label: menuAction.label,
+          onSelect: menuAction.onSelect,
+        },
+      ]
+    : [];
+
+  return (
+    <span className="screenshot-review-modal__split">
+      <Button
+        variant={variant}
+        focusId={focusId}
+        disabled={disabled}
+        loading={loading}
+        icon={icon}
+        className="screenshot-review-modal__split-main"
+        onClick={onClick}
+      >
+        {children}
+      </Button>
+      {menuAction ? (
+        <span ref={toggleRef} className="screenshot-review-modal__split-toggle">
+          <Button
+            variant={variant}
+            size="icon"
+            focusId={menuFocusId}
+            disabled={disabled}
+            icon={<CaretUpIcon size={16} weight="bold" />}
+            aria-label={menuLabel}
+            title={menuLabel}
+            onClick={() => {
+              const rect = toggleRef.current?.getBoundingClientRect();
+              setMenuPosition({
+                x: (rect?.right ?? 0) - 240,
+                y: (rect?.top ?? 0) - 64,
+              });
+            }}
+          >
+            {null}
+          </Button>
+        </span>
+      ) : null}
+      <ContextMenu
+        items={menuItems}
+        visible={menuPosition !== null}
+        position={menuPosition ?? { x: 0, y: 0 }}
+        restoreFocusId={menuFocusId}
+        ariaLabel={menuLabel}
+        onClose={() => setMenuPosition(null)}
+      />
+    </span>
   );
 }
 
@@ -317,6 +428,18 @@ export function ScreenshotReviewModal() {
     visibility: currentScreenshot?.visibility ?? defaultVisibilityRef.current,
     customGameTitle: currentScreenshot?.customGameTitle ?? "",
     description: currentScreenshot?.description ?? "",
+  };
+
+  const getDraftFor = (clientId: string): ReviewDraft => {
+    const record = screenshots.find((item) => item.clientId === clientId);
+    return (
+      drafts[clientId] ?? {
+        isSpoiler: record?.isSpoiler ?? false,
+        visibility: record?.visibility ?? defaultVisibilityRef.current,
+        customGameTitle: record?.customGameTitle ?? "",
+        description: record?.description ?? "",
+      }
+    );
   };
 
   const updateDraft = (update: Partial<ReviewDraft>) => {
@@ -463,6 +586,56 @@ export function ScreenshotReviewModal() {
     setQueueState(closeReviewQueue);
   };
 
+  const keepAll = () => {
+    flushDraftSaves();
+    close();
+  };
+
+  const uploadAll = async () => {
+    if (pendingAction) return;
+
+    const pendingIds = getUndecidedReviewIds(queueState);
+    setPendingAction("upload");
+
+    try {
+      for (const clientId of pendingIds) {
+        const item = queueState.items.find(
+          (entry) => entry.clientId === clientId
+        );
+        const itemDraft = getDraftFor(clientId);
+        const title = itemDraft.customGameTitle.trim();
+        cancelDraftSave(clientId);
+
+        const queued = await globalThis.window.electron.uploadLocalScreenshot(
+          clientId,
+          {
+            isSpoiler: itemDraft.isSpoiler,
+            visibility: itemDraft.visibility,
+            customGameTitle: item?.shop === "custom" && title ? title : null,
+            description: normalizeScreenshotDescription(itemDraft.description),
+          }
+        );
+        if (!queued) {
+          showErrorToast(t("screenshots_settings_sign_in_to_upload"), {
+            fallbackVisual: "settings",
+          });
+          return;
+        }
+
+        setQueueState((state) =>
+          recordReviewDecision(state, clientId, "upload")
+        );
+      }
+    } catch (error) {
+      logger.error("Failed to upload the screenshots", error);
+      showErrorToast(t("screenshots_review_action_failed"), {
+        fallbackVisual: "settings",
+      });
+    } finally {
+      setPendingAction(null);
+    }
+  };
+
   const visibilityOptions = useMemo<DropdownSelectOption<ProfileVisibility>[]>(
     () => [
       { value: "PUBLIC", label: t("screenshots_visibility_public") },
@@ -484,6 +657,7 @@ export function ScreenshotReviewModal() {
     currentScreenshot?.state === "failed" &&
     isScreenshotUploadRetryable(currentScreenshot.lastError);
   const isBusy = pendingAction !== null;
+  const undecidedCount = getUndecidedReviewIds(queueState).length;
 
   return (
     <Modal
@@ -514,16 +688,21 @@ export function ScreenshotReviewModal() {
         <div className="screenshot-review-modal__form">
           <div ref={fieldsRef} className="screenshot-review-modal__fields">
             {isCustomGame ? (
-              <Input
-                label={t("screenshots_custom_title_label")}
-                placeholder={t("screenshots_custom_game")}
-                value={draft.customGameTitle}
-                maxLength={SCREENSHOT_CUSTOM_GAME_TITLE_MAX_LENGTH}
-                disabled={isUploading || isBusy}
+              <InlineTextField
+                key={current.clientId}
                 focusId={TITLE_FOCUS_ID}
-                onChange={(event) =>
-                  updateDraft({ customGameTitle: event.target.value })
-                }
+                className="screenshot-review-modal__title-field"
+                label={t("screenshots_custom_title_label")}
+                value={draft.customGameTitle.trim()}
+                placeholder={t("screenshots_custom_game")}
+                icon={<PencilSimpleIcon size={18} />}
+                maxLength={SCREENSHOT_CUSTOM_GAME_TITLE_MAX_LENGTH}
+                allowEmpty
+                disabled={isUploading || isBusy}
+                onSave={(customGameTitle) => {
+                  updateDraft({ customGameTitle });
+                  return true;
+                }}
               />
             ) : (
               <p className="screenshot-review-modal__game">{gameTitle}</p>
@@ -603,33 +782,67 @@ export function ScreenshotReviewModal() {
               <>
                 <Button
                   variant="danger"
+                  size="icon"
                   focusId={DELETE_FOCUS_ID}
                   disabled={isBusy}
                   loading={pendingAction === "delete"}
-                  icon={<TrashIcon size={18} />}
+                  icon={<TrashIcon size={20} />}
+                  aria-label={t("screenshots_review_delete")}
+                  title={t("screenshots_review_delete")}
+                  className="screenshot-review-modal__delete"
                   onClick={() => setIsDeleteConfirmVisible(true)}
                 >
-                  {t("screenshots_review_delete")}
+                  {null}
                 </Button>
-                <Button
-                  variant="secondary"
+                <ReviewSplitButton
                   focusId={SKIP_FOCUS_ID}
+                  menuFocusId={SKIP_MENU_FOCUS_ID}
+                  menuLabel={t("keep_more_options", {
+                    ns: "screenshots_capture",
+                  })}
+                  variant="secondary"
+                  icon={<HardDrivesIcon size={18} />}
                   disabled={isBusy}
                   loading={pendingAction === "skip"}
-                  icon={<SkipForwardIcon size={18} />}
+                  menuAction={
+                    undecidedCount > 1
+                      ? {
+                          label: t("keep_all", {
+                            ns: "screenshots_capture",
+                            count: undecidedCount,
+                          }),
+                          onSelect: keepAll,
+                        }
+                      : null
+                  }
                   onClick={() => void skip()}
                 >
-                  {t("screenshots_review_skip")}
-                </Button>
-                <Button
+                  {t("keep_on_computer", { ns: "screenshots_capture" })}
+                </ReviewSplitButton>
+                <ReviewSplitButton
                   focusId={UPLOAD_FOCUS_ID}
+                  menuFocusId={UPLOAD_MENU_FOCUS_ID}
+                  menuLabel={t("upload_more_options", {
+                    ns: "screenshots_capture",
+                  })}
+                  icon={<CloudArrowUpIcon size={18} />}
                   disabled={isBusy}
                   loading={pendingAction === "upload"}
-                  icon={<CloudArrowUpIcon size={18} />}
+                  menuAction={
+                    undecidedCount > 1
+                      ? {
+                          label: t("upload_all", {
+                            ns: "screenshots_capture",
+                            count: undecidedCount,
+                          }),
+                          onSelect: () => void uploadAll(),
+                        }
+                      : null
+                  }
                   onClick={upload}
                 >
                   {t("screenshots_review_upload")}
-                </Button>
+                </ReviewSplitButton>
               </>
             )}
           </HorizontalFocusGroup>
