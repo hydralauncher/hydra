@@ -14,6 +14,13 @@ import {
   type ScreenshotFeedPage,
 } from "./use-screenshot-feed";
 
+const getScreenshotFailure = (error: unknown): ScreenshotFailure | null => {
+  const code = getScreenshotApiErrorCode(error);
+  if (code === "screenshots/private") return "private";
+  if (code === "screenshots/not-found") return "unavailable";
+  return null;
+};
+
 export type ScreenshotLightboxStatus =
   | "closed"
   | "loading"
@@ -116,12 +123,7 @@ export function useScreenshotCollection({
       })
       .catch((error) => {
         logger.error("Failed to load screenshot", error);
-        markFailure(
-          screenshotId,
-          getScreenshotApiErrorCode(error) === "screenshots/private"
-            ? "private"
-            : "unavailable"
-        );
+        markFailure(screenshotId, getScreenshotFailure(error) ?? "unavailable");
       })
       .finally(() => {
         setLoadingId((current) => (current === screenshotId ? null : current));
@@ -157,9 +159,11 @@ export function useScreenshotCollection({
         if (fresh) onPatch(item.id, fresh);
       } catch (error) {
         logger.error("Failed to refresh screenshot", error);
+        const failure = getScreenshotFailure(error);
+        if (failure) markFailure(item.id, failure);
       }
     },
-    [fetchScreenshot, onPatch]
+    [fetchScreenshot, markFailure, onPatch]
   );
 
   let status: ScreenshotLightboxStatus = "closed";
