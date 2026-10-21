@@ -31,7 +31,12 @@ export const toUploadOptions = (
   };
 };
 
-export type ScreenshotReviewTone = "pending" | "progress" | "success" | "error";
+export type ScreenshotReviewTone =
+  | "pending"
+  | "kept"
+  | "progress"
+  | "success"
+  | "error";
 
 export const getReviewTone = (
   screenshot: LocalScreenshot
@@ -43,6 +48,7 @@ export const getReviewTone = (
   if (screenshot.state === "uploaded") {
     return screenshot.moderationStatus === "BLOCKED" ? "error" : "success";
   }
+  if (screenshot.state === "local") return "kept";
   return "pending";
 };
 
@@ -65,7 +71,10 @@ export const isScreenshotEditable = (screenshot: LocalScreenshot) =>
   EDITABLE_STATES.has(screenshot.state);
 
 export const isScreenshotAwaitingReview = (screenshot: LocalScreenshot) =>
-  screenshot.state === "local" || screenshot.state === "reviewing";
+  screenshot.state === "reviewing";
+
+export const isScreenshotKeptLocally = (screenshot: LocalScreenshot) =>
+  screenshot.state === "local";
 
 export const getUploadPercent = (screenshot: LocalScreenshot) =>
   Math.round(Math.min(Math.max(screenshot.uploadProgress ?? 0, 0), 1) * 100);
@@ -73,7 +82,10 @@ export const getUploadPercent = (screenshot: LocalScreenshot) =>
 export const getQueuedMessageKey = (lastError: string | null) => {
   if (lastError === "game/not-found") return "error_waiting_for_game";
   if (lastError?.startsWith("feature/")) return "error_feature_disabled";
-  if (lastError === "screenshots/upload-rate-limited") {
+  if (
+    lastError === "screenshots/upload-rate-limited" ||
+    lastError === "screenshots/upload-capacity-reached"
+  ) {
     return "error_rate_limited";
   }
   return null;

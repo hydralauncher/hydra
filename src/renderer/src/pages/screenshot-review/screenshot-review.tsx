@@ -22,6 +22,8 @@ import {
 
 import "./screenshot-review.scss";
 
+const MAX_VISIBLE_THUMBNAILS = 5;
+
 const closeWindow = () => window.close();
 
 export function ScreenshotReview() {
@@ -215,7 +217,10 @@ export function ScreenshotReview() {
       {isMultiple && (
         <section className="screenshot-review__toolbar">
           <div
-            className="screenshot-review__strip"
+            className={cn("screenshot-review__strip", {
+              "screenshot-review__strip--overflowing":
+                reviewScreenshots.length > MAX_VISIBLE_THUMBNAILS,
+            })}
             role="tablist"
             aria-label={title}
           >
@@ -228,6 +233,7 @@ export function ScreenshotReview() {
                   type="button"
                   role="tab"
                   aria-selected={isSelected}
+                  aria-current={isSelected ? "true" : undefined}
                   aria-label={t("thumbnail_label", {
                     index: index + 1,
                     count: reviewScreenshots.length,
