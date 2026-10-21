@@ -1,5 +1,9 @@
-import type { ProfileScreenshot } from "@types";
-import { isScreenshotSpoilerRevealed } from "@shared";
+import type { LocalScreenshot, ProfileScreenshot } from "@types";
+import {
+  getScreenshotModerationReasonKey,
+  getScreenshotUploadErrorKey,
+  isScreenshotSpoilerRevealed,
+} from "@shared";
 
 type Translate = (key: string, options?: Record<string, unknown>) => string;
 
@@ -68,4 +72,26 @@ export function getScreenshotErrorKey(code: string | null) {
     default:
       return "screenshots_error_generic";
   }
+}
+
+export function getLocalScreenshotStatusDetail(
+  screenshot: LocalScreenshot | undefined,
+  t: (key: string, options?: Record<string, unknown>) => string
+) {
+  if (screenshot?.state === "failed") {
+    return t(getScreenshotUploadErrorKey(screenshot.lastError), {
+      ns: "screenshots_capture",
+    });
+  }
+
+  if (
+    screenshot?.state === "uploaded" &&
+    screenshot.moderationStatus === "BLOCKED"
+  ) {
+    return t(getScreenshotModerationReasonKey(screenshot.moderationReason), {
+      ns: "screenshots_moderation",
+    });
+  }
+
+  return null;
 }

@@ -198,9 +198,11 @@ function getScreenshotNotificationContent(
   const game =
     notification.variables.gameTitle ||
     t("screenshots_notification_fallback_game", { ns: "big_picture" });
-  const count = Number(
-    notification.variables.likeCount ?? notification.variables.commentCount ?? 1
-  );
+  const countVariable =
+    notification.type === "SCREENSHOT_COMMENT"
+      ? notification.variables.commentCount
+      : notification.variables.likeCount;
+  const count = Number(countVariable ?? 1);
   const prefix = getScreenshotNotificationKeyPrefix(notification.type);
 
   return {

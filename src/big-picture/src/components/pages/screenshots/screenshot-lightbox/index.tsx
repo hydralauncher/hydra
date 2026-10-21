@@ -33,6 +33,7 @@ import {
   buildUserScreenshotLikePath,
   buildUserScreenshotReportPath,
   getScreenshotApiErrorCode,
+  getScreenshotModerationReasonKey,
 } from "@shared";
 import { logger } from "@renderer/logger";
 
@@ -104,26 +105,6 @@ const getLightboxFocusIds = (screenshotId: string) => ({
   remove: `screenshot-lightbox-delete:${screenshotId}`,
   copy: `screenshot-lightbox-copy:${screenshotId}`,
 });
-
-function getModerationReasonKey(reason: string | null | undefined) {
-  switch (reason) {
-    case "explicit_imagery":
-    case "sexual_content":
-      return "screenshots_reason_sexual_content";
-    case "gore":
-    case "violence":
-      return "screenshots_reason_violence";
-    case "hate":
-    case "hate_symbols":
-      return "screenshots_reason_hate";
-    case "personal_information":
-      return "screenshots_reason_personal_information";
-    case "invalid_image":
-      return "screenshots_reason_invalid_image";
-    default:
-      return "screenshots_reason_generic";
-  }
-}
 
 function useBlockingOverlayGuard() {
   const [isCommentsOverlayOpen, setIsCommentsOverlayOpen] = useState(false);
@@ -267,7 +248,10 @@ function OwnerModerationNotice({
         <WarningCircleIcon size={18} weight="bold" />
         <span>
           {t("screenshots_blocked_notice", {
-            reason: t(getModerationReasonKey(screenshot.moderationReason)),
+            reason: t(
+              getScreenshotModerationReasonKey(screenshot.moderationReason),
+              { ns: "screenshots_moderation" }
+            ),
           })}
         </span>
       </div>

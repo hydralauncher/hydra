@@ -18,6 +18,7 @@ import type {
 } from "@types";
 import {
   SCREENSHOT_CUSTOM_GAME_TITLE_MAX_LENGTH,
+  isScreenshotUploadRetryable,
   resolveScreenshotPreferences,
 } from "@shared";
 import { logger } from "@renderer/logger";
@@ -32,8 +33,10 @@ import {
   VerticalFocusGroup,
   type DropdownSelectOption,
 } from "../common";
+import { ConfirmationModal } from "../modals";
 import { IS_DESKTOP } from "../../constants";
 import { resolveImageSource } from "../../helpers";
+import { getLocalScreenshotStatusDetail } from "../pages/screenshots";
 import {
   useBigPictureToast,
   useNavigation,
@@ -172,6 +175,9 @@ function UploadStatus({
   const progress = Math.round((screenshot?.uploadProgress ?? 0) * 100);
   const isFailed = screenshot?.state === "failed";
   const isDone = screenshot?.state === "uploaded";
+  const canRetry =
+    isFailed && isScreenshotUploadRetryable(screenshot?.lastError);
+  const detail = getLocalScreenshotStatusDetail(screenshot, t);
 
   return (
     <div className="screenshot-review-modal__status">
@@ -180,6 +186,10 @@ function UploadStatus({
         {isDone ? <CheckCircleIcon size={20} /> : null}
         <span>{t(getUploadStatusKey(screenshot), { progress })}</span>
       </div>
+
+      {detail ? (
+        <span className="screenshot-review-modal__status-detail">{detail}</span>
+      ) : null}
 
       {isFailed || isDone ? null : (
         <div
@@ -197,7 +207,7 @@ function UploadStatus({
         regionId={ACTIONS_REGION_ID}
         className="screenshot-review-modal__actions"
       >
-        {isFailed ? (
+        {canRetry ? (
           <Button
             variant="secondary"
             focusId={RETRY_FOCUS_ID}
@@ -229,6 +239,7 @@ export function ScreenshotReviewModal() {
   const [pendingAction, setPendingAction] = useState<ReviewDecision | null>(
     null
   );
+  const [isDeleteConfirmVisible, setIsDeleteConfirmVisible] = useState(false);
   const visible = queue.length > 0;
   const screenshots = useLocalScreenshots(visible);
   const defaultVisibility =
@@ -282,6 +293,7 @@ export function ScreenshotReviewModal() {
     setDrafts({});
     setDecisions({});
     setPendingAction(null);
+    setIsDeleteConfirmVisible(false);
   }, []);
 
   const goToNext = useCallback(() => {
@@ -296,8 +308,12 @@ export function ScreenshotReviewModal() {
   useEffect(() => {
     if (!visible) return;
 
+    const focusId = decision === "upload" ? NEXT_FOCUS_ID : UPLOAD_FOCUS_ID;
     const frameId = globalThis.window.requestAnimationFrame(() => {
-      setFocus(decision === "upload" ? NEXT_FOCUS_ID : UPLOAD_FOCUS_ID);
+      setFocus(focusId);
+      globalThis.document
+        .getElementById(focusId)
+        ?.scrollIntoView({ block: "nearest" });
     });
 
     return () => globalThis.window.cancelAnimationFrame(frameId);
@@ -372,6 +388,7 @@ export function ScreenshotReviewModal() {
     const done = await runAction("delete", () =>
       globalThis.window.electron.deleteLocalScreenshot(current.clientId)
     );
+    setIsDeleteConfirmVisible(false);
     if (done) goToNext();
   };
 
@@ -490,7 +507,7 @@ export function ScreenshotReviewModal() {
                   disabled={isBusy}
                   loading={pendingAction === "delete"}
                   icon={<TrashIcon size={18} />}
-                  onClick={() => void remove()}
+                  onClick={() => setIsDeleteConfirmVisible(true)}
                 >
                   {t("screenshots_review_delete")}
                 </Button>
@@ -518,6 +535,19 @@ export function ScreenshotReviewModal() {
           )}
         </div>
       </VerticalFocusGroup>
+
+      <ConfirmationModal
+        visible={isDeleteConfirmVisible}
+        backdropClassName="screenshot-review-modal__confirm-backdrop"
+        title={t("screenshots_review_delete_title")}
+        description={t("screenshots_review_delete_description")}
+        confirmLabel={t("screenshots_review_delete")}
+        cancelLabel={t("screenshots_cancel")}
+        danger
+        loading={pendingAction === "delete"}
+        onClose={() => setIsDeleteConfirmVisible(false)}
+        onConfirm={remove}
+      />
     </Modal>
   );
 }

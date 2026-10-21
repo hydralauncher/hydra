@@ -22,6 +22,7 @@ import {
   SCREENSHOT_GAMEPAD_BUTTONS,
   formatScreenshotHotkey,
   isSameScreenshotHotkey,
+  isScreenshotUploadRetryable,
   resolveScreenshotPreferences,
   validateScreenshotHotkey,
   type ScreenshotHotkeyError,
@@ -41,6 +42,7 @@ import { ConfirmationModal } from "../../components/modals";
 import {
   formatScreenshotDate,
   getHotkeyFromKeyboardEvent,
+  getLocalScreenshotStatusDetail,
   isModifierKeyCode,
 } from "../../components/pages/screenshots";
 import { resolveImageSource } from "../../helpers";
@@ -147,7 +149,9 @@ function getLocalStatusKey(screenshot: LocalScreenshot) {
 }
 
 const canUploadLocalScreenshot = (screenshot: LocalScreenshot) =>
-  screenshot.state === "local" || screenshot.state === "failed";
+  screenshot.state === "local" ||
+  (screenshot.state === "failed" &&
+    isScreenshotUploadRetryable(screenshot.lastError));
 
 function useLocalScreenshotList() {
   const [screenshots, setScreenshots] = useState<LocalScreenshot[]>([]);
@@ -281,15 +285,16 @@ function ScreenshotInputStatusLine({
 
   if (!status) return null;
 
-  const hint =
-    status.active || !status.hint
-      ? ""
-      : ` ${t(status.hint, { ns: "screenshots_input" })}`;
-
   return (
-    <span className="screenshot-settings__hint">
-      {t(getInputStatusKey(status))}
-      {hint}
+    <span className="screenshot-settings__status">
+      <span className="screenshot-settings__hint">
+        {t(getInputStatusKey(status))}
+      </span>
+      {!status.active && status.hint ? (
+        <span className="screenshot-settings__hint">
+          {t(status.hint, { ns: "screenshots_input" })}
+        </span>
+      ) : null}
     </span>
   );
 }
@@ -321,6 +326,7 @@ function LocalScreenshotRow({
     screenshot.gameTitle ||
     t("screenshots_custom_game");
   const canUpload = canUploadLocalScreenshot(screenshot);
+  const statusDetail = getLocalScreenshotStatusDetail(screenshot, t);
 
   return (
     <li className="screenshot-settings__local-item">
@@ -346,6 +352,7 @@ function LocalScreenshotRow({
             progress: Math.round((screenshot.uploadProgress ?? 0) * 100),
           })}
         </small>
+        {statusDetail ? <small>{statusDetail}</small> : null}
       </span>
       <HorizontalFocusGroup className="screenshot-settings__local-actions">
         {canUpload ? (
@@ -417,9 +424,7 @@ export function ScreenshotSettingsSection({
 
   const refreshFolderPath = useCallback(async () => {
     try {
-      setFolderPath(
-        await globalThis.window.electron.getScreenshotsFolderPath()
-      );
+      setFolderPath(await globalThis.window.electron.getScreenshotsPath());
     } catch (error) {
       logger.error("Failed to resolve the screenshots folder", error);
     }

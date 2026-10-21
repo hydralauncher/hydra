@@ -282,6 +282,7 @@
   flex-direction: column;
   min-width: 0;
   min-height: 0;
+  overflow-x: hidden;
   border-left: 1px solid var(--secondary-border);
 
   &__header {
@@ -317,6 +318,7 @@
 
   &__composer-row {
     display: flex;
+    min-width: 0;
     align-items: flex-end;
     gap: var(--spacing-unit);
   }
@@ -358,9 +360,12 @@
 
   &__scroll {
     flex: 1;
+    min-width: 0;
     min-height: 0;
-    padding: calc(var(--spacing-unit) * 2) calc(var(--spacing-unit) * 3);
+    padding: calc(var(--spacing-unit) * 2);
+    overflow-x: hidden;
     overflow-y: auto;
+    scrollbar-gutter: stable;
     scrollbar-width: thin;
   }
 
@@ -383,6 +388,7 @@
   &__item {
     display: flex;
     flex-direction: column;
+    min-width: 0;
     gap: var(--spacing-unit);
     padding: calc(var(--spacing-unit) * 2);
     border-radius: 10px;
@@ -452,8 +458,10 @@
 
   &__item-actions {
     display: flex;
+    flex-wrap: wrap;
     align-items: center;
     gap: var(--spacing-unit);
+    min-width: 0;
   }
 
   &__vote--active {

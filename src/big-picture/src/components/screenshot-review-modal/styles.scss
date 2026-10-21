@@ -1,21 +1,41 @@
 .screenshot-review-modal {
   width: min(760px, calc(100vw - 48px));
 
+  .modal__header {
+    padding: calc(var(--spacing-unit) * 4) calc(var(--spacing-unit) * 6);
+  }
+
+  .modal__content {
+    display: flex;
+    min-height: 0;
+    padding: calc(var(--spacing-unit) * 4) calc(var(--spacing-unit) * 6);
+  }
+
   &__backdrop {
     z-index: 125;
   }
 
+  &__confirm-backdrop {
+    z-index: 130;
+  }
+
   &__content {
     display: grid;
+    flex: 1;
     grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr);
+    grid-template-rows: minmax(0, 1fr);
     gap: calc(var(--spacing-unit) * 4);
-    align-items: start;
+    align-items: stretch;
+    min-height: 0;
   }
 
   &__preview {
     display: flex;
     align-items: center;
     justify-content: center;
+    align-self: start;
+    width: 100%;
+    max-height: 100%;
     aspect-ratio: 16 / 9;
     overflow: hidden;
     border: 1px solid var(--secondary-border);
@@ -35,6 +55,8 @@
     flex-direction: column;
     gap: calc(var(--spacing-unit) * 3);
     min-width: 0;
+    min-height: 0;
+    overflow-y: auto;
   }
 
   &__game {
@@ -48,15 +70,20 @@
   }
 
   &__actions {
+    position: sticky;
+    bottom: 0;
     display: flex;
     flex-wrap: wrap;
     justify-content: flex-end;
     gap: calc(var(--spacing-unit) * 2);
-    margin-top: calc(var(--spacing-unit) * 2);
+    margin-top: auto;
+    padding-top: calc(var(--spacing-unit) * 2);
+    background: var(--background);
   }
 
   &__status {
     display: flex;
+    flex: 1;
     flex-direction: column;
     gap: calc(var(--spacing-unit) * 2);
   }
@@ -67,6 +94,11 @@
     gap: var(--spacing-unit);
     color: var(--text);
     font-size: 15px;
+  }
+
+  &__status-detail {
+    color: var(--text-secondary);
+    font-size: 13px;
   }
 
   &__progress {
@@ -83,13 +115,14 @@
     }
   }
 
-  @media (max-width: 900px), (max-height: 560px) {
+  @media (max-width: 640px) {
     &__content {
       grid-template-columns: minmax(0, 1fr);
+      grid-template-rows: auto minmax(0, 1fr);
     }
 
     &__preview {
-      max-height: 32vh;
+      max-height: 24vh;
     }
   }
 }
