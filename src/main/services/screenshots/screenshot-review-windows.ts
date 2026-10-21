@@ -8,22 +8,14 @@ import { logger } from "../logger";
 import { NativeAddon } from "../native-addon";
 import { WindowManager } from "../window-manager";
 import { LocalScreenshotStore } from "./local-screenshot-store";
-import {
-  assignScreenshotReview,
-  createScreenshotReviewGrouping,
-  getCascadedReviewWindowBounds,
-  type ScreenshotReviewGrouping,
-} from "./screenshot-review-grouping";
+import { getCascadedReviewWindowBounds } from "./screenshot-review-window-bounds";
 
-const SINGLE_REVIEW_WINDOW_SIZE = { width: 480, height: 720 };
-const GRID_REVIEW_WINDOW_SIZE = { width: 900, height: 680 };
-const SINGLE_REVIEW_WINDOW_MIN_HEIGHT = 480;
-const GRID_REVIEW_WINDOW_MIN_HEIGHT = 480;
+const REVIEW_WINDOW_SIZE = { width: 480, height: 720 };
+const REVIEW_WINDOW_MIN_HEIGHT = 480;
 
 interface ReviewWindowEntry {
   window: BrowserWindow;
   clientIds: string[];
-  isGrid: boolean;
   isReady: boolean;
   ready: Promise<void>;
 }
@@ -35,7 +27,6 @@ interface ReviewSession {
   objectId: string;
   gameTitle: string;
   gameWindowHandle: string | null;
-  grouping: ScreenshotReviewGrouping;
   windows: ReviewWindowEntry[];
   isGameRunning: boolean;
   handedToBigPicture: boolean;
@@ -45,6 +36,18 @@ const sessions = new Map<string, ReviewSession>();
 const reviewWindows = new Set<BrowserWindow>();
 const windowClosedListeners = new Set<() => void>();
 const bigPictureReviewClientIds = new Set<string>();
+const sessionQueues = new Map<string, Promise<unknown>>();
+
+const runInSessionQueue = <T>(gameKey: string, task: () => Promise<T>) => {
+  const previous = sessionQueues.get(gameKey) ?? Promise.resolve();
+  const result = previous.then(task, task);
+  const tail = result.catch(() => undefined);
+  sessionQueues.set(gameKey, tail);
+  void tail.then(() => {
+    if (sessionQueues.get(gameKey) === tail) sessionQueues.delete(gameKey);
+  });
+  return result;
+};
 
 const getWindowHandle = (window: BrowserWindow) => {
   const buffer = window.getNativeWindowHandle();
@@ -53,30 +56,19 @@ const getWindowHandle = (window: BrowserWindow) => {
   return null;
 };
 
-const buildReviewHash = (clientIds: string[], isGrid: boolean) => {
-  const query = new URLSearchParams({ clientIds: clientIds.join(",") });
-  if (isGrid) query.set("grid", "1");
-  return `screenshot-review?${query.toString()}`;
-};
+const buildReviewHash = (clientIds: string[]) =>
+  `screenshot-review?${new URLSearchParams({ clientIds: clientIds.join(",") }).toString()}`;
 
-const createReviewWindow = (
-  clientIds: string[],
-  isGrid: boolean,
-  cascadeIndex: number
-) => {
-  const size = isGrid ? GRID_REVIEW_WINDOW_SIZE : SINGLE_REVIEW_WINDOW_SIZE;
+const createReviewWindow = (clientIds: string[], cascadeIndex: number) => {
   const bounds = getCascadedReviewWindowBounds(
     cascadeIndex,
-    size,
+    REVIEW_WINDOW_SIZE,
     screen.getPrimaryDisplay().workArea
   );
   const window = new BrowserWindow({
     ...bounds,
     minWidth: bounds.width,
-    minHeight: Math.min(
-      bounds.height,
-      isGrid ? GRID_REVIEW_WINDOW_MIN_HEIGHT : SINGLE_REVIEW_WINDOW_MIN_HEIGHT
-    ),
+    minHeight: Math.min(bounds.height, REVIEW_WINDOW_MIN_HEIGHT),
     show: false,
     frame: false,
     resizable: true,
@@ -107,7 +99,7 @@ const createReviewWindow = (
     window.once("closed", () => resolve());
   });
 
-  void WindowManager.loadWindowURL(window, buildReviewHash(clientIds, isGrid));
+  void WindowManager.loadWindowURL(window, buildReviewHash(clientIds));
 
   return { window, ready };
 };
@@ -152,20 +144,14 @@ const placeBelowGameWindow = (
   }
 };
 
-const attachWindow = (
-  session: ReviewSession,
-  clientIds: string[],
-  isGrid: boolean
-) => {
-  const { window, ready } = createReviewWindow(
-    clientIds,
-    isGrid,
-    session.windows.length
-  );
+const attachWindow = (session: ReviewSession, clientIds: string[]) => {
+  const liveWindowCount = session.windows.filter(
+    ({ window }) => !window.isDestroyed()
+  ).length;
+  const { window, ready } = createReviewWindow(clientIds, liveWindowCount);
   const entry: ReviewWindowEntry = {
     window,
     clientIds,
-    isGrid,
     isReady: false,
     ready,
   };
@@ -175,7 +161,6 @@ const attachWindow = (
     session.windows = session.windows.filter(
       (candidate) => candidate !== entry
     );
-    if (entry.isGrid) removeGridItemsFromGrouping(session, entry.clientIds);
     if (!session.handedToBigPicture) {
       void releaseUnreviewedScreenshots(entry.clientIds);
     }
@@ -191,35 +176,39 @@ const attachWindow = (
 
   void ready.then(() => {
     entry.isReady = true;
-    if (entry.isGrid) sendReviewItems(entry);
+    sendReviewItems(entry);
     placeBelowGameWindow(entry, session);
   });
   return entry;
 };
 
+const hasPendingItems = async (entry: ReviewWindowEntry) => {
+  const records = await Promise.all(
+    entry.clientIds.map((clientId) => LocalScreenshotStore.get(clientId))
+  );
+  return records.some((record) => record?.state === "reviewing");
+};
+
+const findOpenEntry = async (session: ReviewSession) => {
+  const liveEntries = session.windows.filter(
+    ({ window }) => !window.isDestroyed()
+  );
+  for (const entry of liveEntries.toReversed()) {
+    if (await hasPendingItems(entry)) return entry;
+  }
+  return null;
+};
+
 const createSession = (
-  details: Omit<ReviewSession, "grouping" | "windows" | "handedToBigPicture">
+  details: Omit<ReviewSession, "windows" | "handedToBigPicture">
 ) => {
   const session: ReviewSession = {
     ...details,
-    grouping: createScreenshotReviewGrouping(),
     windows: [],
     handedToBigPicture: false,
   };
   sessions.set(session.gameKey, session);
   return session;
-};
-
-const removeGridItemsFromGrouping = (
-  session: ReviewSession,
-  clientIds: string[]
-) => {
-  session.grouping = {
-    ...session.grouping,
-    gridClientIds: session.grouping.gridClientIds.filter(
-      (clientId) => !clientIds.includes(clientId)
-    ),
-  };
 };
 
 const showSessionWindows = async (session: ReviewSession) => {
@@ -298,7 +287,7 @@ export class ScreenshotReviewWindows {
     return stale.length;
   }
 
-  public static async addCapture({
+  public static addCapture({
     screenshot,
     gameKey,
     gameWindowHandle,
@@ -309,46 +298,36 @@ export class ScreenshotReviewWindows {
     gameWindowHandle: string | null;
     isGameRunning: () => boolean;
   }) {
-    await LocalScreenshotStore.update(screenshot.clientId, {
-      state: "reviewing",
-    });
-
-    let session = sessions.get(gameKey);
-    if (!session?.isGameRunning) {
-      session = createSession({
-        sessionId: screenshot.gameSessionId ?? gameKey,
-        gameKey,
-        shop: screenshot.shop,
-        objectId: screenshot.objectId ?? "",
-        gameTitle: screenshot.gameTitle,
-        gameWindowHandle,
-        isGameRunning: isGameRunning(),
+    return runInSessionQueue(gameKey, async () => {
+      await LocalScreenshotStore.update(screenshot.clientId, {
+        state: "reviewing",
       });
-    }
 
-    if (gameWindowHandle) session.gameWindowHandle = gameWindowHandle;
-
-    const { grouping, assignment } = assignScreenshotReview(
-      session.grouping,
-      screenshot.clientId
-    );
-    session.grouping = grouping;
-
-    if (assignment.kind === "single") {
-      attachWindow(session, [assignment.clientId], false);
-    } else {
-      const grid = session.windows.find(
-        (entry) => entry.isGrid && !entry.window.isDestroyed()
-      );
-      if (grid) {
-        grid.clientIds = assignment.clientIds;
-        sendReviewItems(grid);
-      } else {
-        attachWindow(session, assignment.clientIds, true);
+      let session = sessions.get(gameKey);
+      if (!session?.isGameRunning) {
+        session = createSession({
+          sessionId: screenshot.gameSessionId ?? gameKey,
+          gameKey,
+          shop: screenshot.shop,
+          objectId: screenshot.objectId ?? "",
+          gameTitle: screenshot.gameTitle,
+          gameWindowHandle,
+          isGameRunning: isGameRunning(),
+        });
       }
-    }
 
-    if (!session.isGameRunning) await presentClosedSession(session);
+      if (gameWindowHandle) session.gameWindowHandle = gameWindowHandle;
+
+      const openEntry = await findOpenEntry(session);
+      if (openEntry) {
+        openEntry.clientIds = [...openEntry.clientIds, screenshot.clientId];
+        sendReviewItems(openEntry);
+      } else {
+        attachWindow(session, [screenshot.clientId]);
+      }
+
+      if (!session.isGameRunning) await presentClosedSession(session);
+    });
   }
 
   public static async openForScreenshot(screenshot: LocalScreenshot) {
@@ -376,7 +355,7 @@ export class ScreenshotReviewWindows {
       gameWindowHandle: null,
       isGameRunning: false,
     });
-    attachWindow(session, [screenshot.clientId], false);
+    attachWindow(session, [screenshot.clientId]);
     await showSessionWindows(session);
   }
 
@@ -469,15 +448,14 @@ export class ScreenshotReviewWindows {
     }
   }
 
-  public static closeWindowsForScreenshot(clientId: string) {
+  public static removeScreenshotFromWindows(clientId: string) {
     for (const session of sessions.values()) {
       for (const entry of session.windows) {
         if (!entry.clientIds.includes(clientId)) continue;
-        if (entry.isGrid) {
-          entry.clientIds = entry.clientIds.filter(
-            (candidate) => candidate !== clientId
-          );
-          removeGridItemsFromGrouping(session, [clientId]);
+        entry.clientIds = entry.clientIds.filter(
+          (candidate) => candidate !== clientId
+        );
+        if (entry.clientIds.length) {
           sendReviewItems(entry);
         } else if (!entry.window.isDestroyed()) {
           entry.window.close();

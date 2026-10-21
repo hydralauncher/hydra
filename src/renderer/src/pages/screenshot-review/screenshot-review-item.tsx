@@ -1,5 +1,4 @@
 import { useState } from "react";
-import cn from "classnames";
 import { useTranslation } from "react-i18next";
 import type { LocalScreenshot, ProfileVisibility } from "@types";
 import {
@@ -21,7 +20,8 @@ import {
   getLocalImageSource,
   isScreenshotAwaitingReview,
   isScreenshotEditable,
-  type ScreenshotReviewVariant,
+  toUploadOptions,
+  type ScreenshotReviewDraft,
 } from "./screenshot-review-state";
 
 const VISIBILITY_LABEL_KEYS: Record<ProfileVisibility, string> = {
@@ -32,38 +32,26 @@ const VISIBILITY_LABEL_KEYS: Record<ProfileVisibility, string> = {
 
 interface ScreenshotReviewItemProps {
   screenshot: LocalScreenshot;
-  variant: ScreenshotReviewVariant;
-  onRemoved?: (clientId: string) => void;
+  draft: ScreenshotReviewDraft;
+  onDraftChange: (draft: ScreenshotReviewDraft) => void;
+  canClose: boolean;
 }
 
 export function ScreenshotReviewItem({
   screenshot,
-  variant,
-  onRemoved,
+  draft,
+  onDraftChange,
+  canClose,
 }: Readonly<ScreenshotReviewItemProps>) {
   const { t, i18n } = useTranslation("screenshots_capture");
-
-  const [isSpoiler, setIsSpoiler] = useState(screenshot.isSpoiler);
-  const [visibility, setVisibility] = useState<ProfileVisibility>(
-    screenshot.visibility
-  );
-  const [customGameTitle, setCustomGameTitle] = useState(
-    screenshot.customGameTitle ?? ""
-  );
   const [isBusy, setIsBusy] = useState(false);
   const [isDeleteModalVisible, setIsDeleteModalVisible] = useState(false);
 
-  const isGrid = variant === "grid";
   const isCustomGame = screenshot.shop === "custom";
   const isFormDisabled = isBusy || !isScreenshotEditable(screenshot);
-  const buttonSize = isGrid ? "small" : "medium";
   const capturedAt = new Date(screenshot.capturedAt).toLocaleString(
     i18n.language
   );
-  const imageAlt = t("screenshot_alt", {
-    game: screenshot.gameTitle,
-    date: capturedAt,
-  });
 
   const visibilityOptions = SCREENSHOT_VISIBILITY_OPTIONS.map((option) => ({
     key: option,
@@ -75,71 +63,57 @@ export function ScreenshotReviewItem({
     setIsBusy(true);
     try {
       await action();
-      return true;
     } catch (error) {
       logger.error(label, error);
-      return false;
     } finally {
       setIsBusy(false);
     }
   };
 
-  const handleUpload = () => {
-    const trimmedTitle = customGameTitle.trim();
-    void runAction(
+  const handleUpload = () =>
+    runAction(
       () =>
-        window.electron.uploadLocalScreenshot(screenshot.clientId, {
-          isSpoiler,
-          visibility,
-          customGameTitle: isCustomGame && trimmedTitle ? trimmedTitle : null,
-        }),
+        window.electron.uploadLocalScreenshot(
+          screenshot.clientId,
+          toUploadOptions(screenshot, draft)
+        ),
       "Failed to upload the screenshot"
     );
-  };
 
-  const handleSkip = async () => {
-    const skipped = await runAction(
+  const handleSkip = () =>
+    runAction(
       () => window.electron.skipLocalScreenshot(screenshot.clientId),
       "Failed to skip the screenshot"
     );
-    if (skipped) onRemoved?.(screenshot.clientId);
-  };
 
-  const handleDelete = async () => {
+  const handleDelete = () => {
     setIsDeleteModalVisible(false);
-    const deleted = await runAction(
+    void runAction(
       () => window.electron.deleteLocalScreenshot(screenshot.clientId),
       "Failed to delete the screenshot"
     );
-    if (deleted) onRemoved?.(screenshot.clientId);
   };
 
   const handleVisibilityChange = (
     event: React.ChangeEvent<HTMLSelectElement>
   ) => {
-    const nextVisibility = SCREENSHOT_VISIBILITY_OPTIONS.find(
+    const visibility = SCREENSHOT_VISIBILITY_OPTIONS.find(
       (option) => option === event.target.value
     );
-    if (nextVisibility) setVisibility(nextVisibility);
+    if (visibility) onDraftChange({ ...draft, visibility });
   };
 
   const renderActions = () => {
     if (isScreenshotAwaitingReview(screenshot)) {
       return (
         <>
-          <Button size={buttonSize} disabled={isBusy} onClick={handleUpload}>
+          <Button disabled={isBusy} onClick={handleUpload}>
             {t("upload")}
           </Button>
-          <Button
-            size={buttonSize}
-            theme="outline"
-            disabled={isBusy}
-            onClick={handleSkip}
-          >
+          <Button theme="outline" disabled={isBusy} onClick={handleSkip}>
             {t("skip")}
           </Button>
           <Button
-            size={buttonSize}
             theme="danger"
             disabled={isBusy}
             onClick={() => setIsDeleteModalVisible(true)}
@@ -154,19 +128,18 @@ export function ScreenshotReviewItem({
       return (
         <>
           {isScreenshotUploadRetryable(screenshot.lastError) && (
-            <Button size={buttonSize} disabled={isBusy} onClick={handleUpload}>
+            <Button disabled={isBusy} onClick={handleUpload}>
               {t("retry")}
             </Button>
           )}
           <Button
-            size={buttonSize}
             theme="danger"
             disabled={isBusy}
             onClick={() => setIsDeleteModalVisible(true)}
           >
             {t("delete")}
           </Button>
-          {!isGrid && (
+          {canClose && (
             <Button theme="outline" onClick={() => window.close()}>
               {t("close")}
             </Button>
@@ -175,7 +148,7 @@ export function ScreenshotReviewItem({
       );
     }
 
-    if (screenshot.state === "uploaded" && !isGrid) {
+    if (screenshot.state === "uploaded" && canClose) {
       return (
         <Button theme="outline" onClick={() => window.close()}>
           {t("close")}
@@ -190,18 +163,18 @@ export function ScreenshotReviewItem({
 
   return (
     <article
-      className={cn(
-        "screenshot-review-item",
-        `screenshot-review-item--${variant}`
-      )}
+      className="screenshot-review-item"
+      data-client-id={screenshot.clientId}
     >
       <div className="screenshot-review-item__body">
         <div className="screenshot-review-item__preview">
           <img
             src={getLocalImageSource(screenshot.path)}
-            alt={imageAlt}
+            alt={t("screenshot_alt", {
+              game: screenshot.gameTitle,
+              date: capturedAt,
+            })}
             className="screenshot-review-item__image"
-            loading={isGrid ? "lazy" : "eager"}
             draggable={false}
           />
         </div>
@@ -221,11 +194,13 @@ export function ScreenshotReviewItem({
             <TextField
               label={t("custom_game_title_label")}
               placeholder={t("custom_game_default_title")}
-              hint={isGrid ? undefined : t("custom_game_title_hint")}
+              hint={t("custom_game_title_hint")}
               maxLength={SCREENSHOT_CUSTOM_GAME_TITLE_MAX_LENGTH}
-              value={customGameTitle}
+              value={draft.customGameTitle}
               disabled={isFormDisabled}
-              onChange={(event) => setCustomGameTitle(event.target.value)}
+              onChange={(event) =>
+                onDraftChange({ ...draft, customGameTitle: event.target.value })
+              }
               theme="dark"
             />
           )}
@@ -233,20 +208,20 @@ export function ScreenshotReviewItem({
           <div className="screenshot-review-item__checkbox">
             <CheckboxField
               label={t("spoiler_label")}
-              checked={isSpoiler}
+              checked={draft.isSpoiler}
               disabled={isFormDisabled}
-              onChange={(event) => setIsSpoiler(event.target.checked)}
+              onChange={(event) =>
+                onDraftChange({ ...draft, isSpoiler: event.target.checked })
+              }
             />
-            {!isGrid && (
-              <small className="screenshot-review-item__hint">
-                {t("spoiler_hint")}
-              </small>
-            )}
+            <small className="screenshot-review-item__hint">
+              {t("spoiler_hint")}
+            </small>
           </div>
 
           <SelectField
             label={t("visibility_label")}
-            value={visibility}
+            value={draft.visibility}
             options={visibilityOptions}
             disabled={isFormDisabled}
             onChange={handleVisibilityChange}
