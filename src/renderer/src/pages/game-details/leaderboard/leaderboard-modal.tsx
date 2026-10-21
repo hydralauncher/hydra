@@ -140,6 +140,7 @@ export function LeaderboardModal({
                 row={{
                   entry: viewerEntry,
                   isViewer: true,
+                  isPinned: true,
                   gapBefore: false,
                   progress: 0,
                 }}
