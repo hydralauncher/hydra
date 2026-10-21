@@ -36,14 +36,7 @@ const REQUEST_TIMEOUT_MS = 30_000;
 const UPLOAD_TIMEOUT_MS = 5 * 60_000;
 const IMAGE_PROGRESS_SHARE = 0.9;
 const THUMBNAIL_PROGRESS_SHARE = 0.07;
-const STATUS_POLL_INTERVAL_MS = 5 * 60_000;
-const STATUS_POLL_MAX_AGE_MS = 24 * 60 * 60_000;
-const MAX_STATUS_POLLS_PER_RUN = 10;
-const SETTLED_REFRESH_INTERVAL_MS = 2 * 60_000;
 const MIN_SCHEDULED_RUN_DELAY_MS = 1_000;
-const FAST_MODERATION_POLL_DELAYS_MS = [
-  10_000, 10_000, 15_000, 20_000, 30_000, 45_000, 60_000,
-];
 
 class UploadPutError extends Error {
   constructor(cause: unknown) {
@@ -140,12 +133,6 @@ class ScreenshotUploadWorker {
     controller: AbortController;
   } | null = null;
   private readonly gameWaits = new Map<string, number>();
-  private readonly fastModerationPolls = new Map<
-    string,
-    ReturnType<typeof setTimeout>
-  >();
-  private lastSettledRefreshAt = 0;
-  private readonly moderationCheckedAt = new Map<string, number>();
   private lastOwnerId: string | null = null;
   private authListenerRegistered = false;
 
@@ -155,9 +142,7 @@ class ScreenshotUploadWorker {
       HydraApi.onAuthContextChanged(() => this.handleAuthContextChange());
     }
     this.lastOwnerId = getCurrentOwnerId();
-    void this.resetInterruptedUploads()
-      .then(() => this.trigger())
-      .then(() => this.refreshSettledModerationStatuses());
+    void this.resetInterruptedUploads().then(() => this.trigger());
   }
 
   public async enqueue(
@@ -237,8 +222,6 @@ class ScreenshotUploadWorker {
   public stop() {
     if (this.retryTimer) clearTimeout(this.retryTimer);
     this.retryTimer = null;
-    for (const timer of this.fastModerationPolls.values()) clearTimeout(timer);
-    this.fastModerationPolls.clear();
     this.activeUpload?.controller.abort();
   }
 
@@ -323,7 +306,6 @@ class ScreenshotUploadWorker {
       await this.process(current, authContext);
     }
 
-    await this.pollModerationStatuses(ownerId, authContext);
     await ScreenshotUploadNotifier.refresh();
   }
 
@@ -446,9 +428,6 @@ class ScreenshotUploadWorker {
       lastError: null,
     });
     emitProgress({ clientId, state: "uploaded", progress: 1 });
-    if (moderationStatus === "PENDING") {
-      this.scheduleFastModerationPoll(clientId);
-    }
   }
 
   private async requeueCancelledUpload(clientId: string, attempt: number) {
@@ -577,119 +556,6 @@ class ScreenshotUploadWorker {
     ScreenshotTelemetry.record("upload", "failed", failure.code);
   }
 
-  private async refreshModerationStatus(
-    screenshot: LocalScreenshot,
-    authContext: HydraApiAuthContext
-  ) {
-    if (!screenshot.screenshotId) return;
-    this.moderationCheckedAt.set(screenshot.clientId, Date.now());
-
-    try {
-      const status = await HydraApi.get<ScreenshotModerationState>(
-        `/profile/screenshots/${encodeURIComponent(screenshot.screenshotId)}/status`,
-        undefined,
-        { authContext, timeout: REQUEST_TIMEOUT_MS }
-      );
-      if (!isModerationStatus(status?.moderationStatus)) return;
-
-      const moderationReason = status.moderationReason ?? null;
-      if (
-        status.moderationStatus === screenshot.moderationStatus &&
-        moderationReason === screenshot.moderationReason
-      ) {
-        return;
-      }
-
-      await LocalScreenshotStore.update(screenshot.clientId, {
-        moderationStatus: status.moderationStatus,
-        moderationReason,
-      });
-    } catch (error) {
-      logger.warn("Could not refresh the screenshot moderation status", {
-        clientId: screenshot.clientId,
-        error: error instanceof Error ? error.message : String(error),
-      });
-    }
-  }
-
-  private async pollModerationStatuses(
-    ownerId: string,
-    authContext: HydraApiAuthContext,
-    { explicit = false }: { explicit?: boolean } = {}
-  ) {
-    const now = Date.now();
-    const candidates = (await LocalScreenshotStore.list())
-      .filter(
-        (screenshot) =>
-          screenshot.ownerId === ownerId &&
-          screenshot.state === "uploaded" &&
-          screenshot.screenshotId &&
-          ((screenshot.moderationStatus === "PENDING" &&
-            (explicit ||
-              now - (screenshot.uploadedAt ?? 0) < STATUS_POLL_MAX_AGE_MS)) ||
-            (explicit && screenshot.moderationStatus === "BLOCKED"))
-      )
-      .toSorted(
-        (a, b) =>
-          (this.moderationCheckedAt.get(a.clientId) ?? 0) -
-            (this.moderationCheckedAt.get(b.clientId) ?? 0) ||
-          (b.uploadedAt ?? 0) - (a.uploadedAt ?? 0)
-      )
-      .slice(0, MAX_STATUS_POLLS_PER_RUN);
-
-    for (const screenshot of candidates) {
-      if (!HydraApi.isAuthContextCurrent(authContext)) return;
-      await this.refreshModerationStatus(screenshot, authContext);
-    }
-  }
-
-  public async refreshSettledModerationStatuses() {
-    if (Date.now() - this.lastSettledRefreshAt < SETTLED_REFRESH_INTERVAL_MS) {
-      return;
-    }
-    const authContext = HydraApi.getAuthContext();
-    if (!authContext || !HydraApi.isLoggedIn()) return;
-
-    this.lastSettledRefreshAt = Date.now();
-    await this.pollModerationStatuses(authContext.userId, authContext, {
-      explicit: true,
-    });
-  }
-
-  private scheduleFastModerationPoll(clientId: string, step = 0) {
-    const existing = this.fastModerationPolls.get(clientId);
-    if (existing) clearTimeout(existing);
-    this.fastModerationPolls.delete(clientId);
-
-    const delay = FAST_MODERATION_POLL_DELAYS_MS[step];
-    if (delay === undefined) return;
-
-    const timer = setTimeout(() => {
-      this.fastModerationPolls.delete(clientId);
-      void this.runFastModerationPoll(clientId, step);
-    }, delay);
-    timer.unref?.();
-    this.fastModerationPolls.set(clientId, timer);
-  }
-
-  private async runFastModerationPoll(clientId: string, step: number) {
-    const screenshot = await LocalScreenshotStore.get(clientId);
-    const authContext = HydraApi.getAuthContext();
-    if (
-      !screenshot ||
-      !authContext ||
-      screenshot.ownerId !== authContext.userId ||
-      screenshot.state !== "uploaded" ||
-      screenshot.moderationStatus !== "PENDING" ||
-      !ScreenshotReviewWindows.isScreenshotWatched(clientId)
-    ) {
-      return;
-    }
-
-    await this.refreshModerationStatus(screenshot, authContext);
-    this.scheduleFastModerationPoll(clientId, step + 1);
-  }
-
   private async scheduleNextRun() {
     const ownerId = getCurrentOwnerId();
     if (!ownerId) return;
@@ -703,23 +569,9 @@ class ScreenshotUploadWorker {
       .filter((screenshot) => screenshot.state === "queued")
       .map((screenshot) => screenshot.nextUploadAttemptAt ?? now)
       .toSorted((a, b) => a - b)[0];
-    const hasPendingModeration = owned.some(
-      (screenshot) =>
-        screenshot.state === "uploaded" &&
-        screenshot.moderationStatus === "PENDING" &&
-        now - (screenshot.uploadedAt ?? 0) < STATUS_POLL_MAX_AGE_MS
-    );
+    if (nextRetryAt === undefined) return;
 
-    const candidates = [
-      nextRetryAt,
-      hasPendingModeration ? now + STATUS_POLL_INTERVAL_MS : undefined,
-    ].filter((value): value is number => value !== undefined);
-    if (!candidates.length) return;
-
-    const delay = Math.max(
-      MIN_SCHEDULED_RUN_DELAY_MS,
-      Math.min(...candidates) - now
-    );
+    const delay = Math.max(MIN_SCHEDULED_RUN_DELAY_MS, nextRetryAt - now);
     this.retryTimer = setTimeout(() => void this.trigger(), delay);
     this.retryTimer.unref?.();
   }

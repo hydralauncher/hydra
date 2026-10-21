@@ -35,6 +35,7 @@ interface ScreenshotReviewItemProps {
   draft: ScreenshotReviewDraft;
   onDraftChange: (draft: ScreenshotReviewDraft) => void;
   canClose: boolean;
+  isLocked?: boolean;
 }
 
 export function ScreenshotReviewItem({
@@ -42,9 +43,11 @@ export function ScreenshotReviewItem({
   draft,
   onDraftChange,
   canClose,
+  isLocked = false,
 }: Readonly<ScreenshotReviewItemProps>) {
   const { t, i18n } = useTranslation("screenshots_capture");
-  const [isBusy, setIsBusy] = useState(false);
+  const [isActionBusy, setIsBusy] = useState(false);
+  const isBusy = isActionBusy || isLocked;
   const [isDeleteModalVisible, setIsDeleteModalVisible] = useState(false);
 
   const isCustomGame = screenshot.shop === "custom";
