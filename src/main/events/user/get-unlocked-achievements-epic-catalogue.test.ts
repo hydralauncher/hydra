@@ -123,6 +123,9 @@ const load = (options: {
     "@main/services/achievements/merge-unlocked-achievements": {
       mergeUnlockedAchievementLists: (remote: unknown[]) => remote,
     },
+    "@main/services/achievements/epic/epic-local-achievement-store": {
+      EpicLocalAchievementStore: { getResolved: () => [] },
+    },
     "@main/services/achievements/combined-achievement-presentation": {},
   };
   const output = ts.transpileModule(

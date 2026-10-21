@@ -12,6 +12,7 @@ import { AchievementMemoryStore } from "@main/services/achievements/achievement-
 import { AchievementSouvenirStore } from "@main/services/achievements/achievement-souvenir-store";
 import { fetchRemoteUserGameAchievements } from "@main/services/achievements/get-achievement-souvenirs";
 import { mergeUnlockedAchievementLists } from "@main/services/achievements/merge-unlocked-achievements";
+import { EpicLocalAchievementStore } from "@main/services/achievements/epic/epic-local-achievement-store";
 import {
   presentCombinedAchievements,
   type CombinedAchievements,
@@ -77,9 +78,14 @@ export const getUnlockedAchievements = async (
 
   AchievementSouvenirStore.set(shop, objectId, remote.souvenirs);
 
+  // Epic memory may hold stale account imports, so only local file unlocks
+  // that the API has not confirmed yet are added to the remote list.
   const unlockedAchievements =
     shop === "epic" && !("unavailable" in remote)
-      ? remote.unlocked
+      ? mergeUnlockedAchievementLists(
+          remote.unlocked,
+          EpicLocalAchievementStore.getResolved(levelKeys.game(shop, objectId))
+        )
       : mergeUnlockedAchievementLists(
           remote.unlocked,
           AchievementMemoryStore.get(shop, objectId)?.unlockedAchievements ?? []

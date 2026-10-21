@@ -1,5 +1,9 @@
 import { achievementSyncWorker } from "./achievement-sync-worker";
-import { parseAchievementFile } from "./parse-achievement-file";
+import {
+  isEpicAchievementFileType,
+  parseAchievementFile,
+  parseEpicAchievementFile,
+} from "./parse-achievement-file";
 import { mergeAchievements } from "./merge-achievements";
 import fs, { readdirSync } from "node:fs";
 import { findAllAchievementFiles } from "./find-achievement-files";
@@ -27,6 +31,7 @@ import { setTimeout } from "node:timers/promises";
 import { Wine } from "../wine";
 import { AchievementMemoryStore } from "./achievement-memory-store";
 import { achievementNotificationPresenter } from "../achievement-notification-presenter-electron";
+import { EpicLocalAchievementStore } from "./epic/epic-local-achievement-store";
 
 const fileStats: Map<string, number> = new Map();
 const fltFiles: Map<string, Set<string>> = new Map();
@@ -167,6 +172,19 @@ const hasAchievementFileChanged = (file: AchievementFile) => {
   }
 };
 
+// Epic files are rewritten in place. A read that catches a partial write is
+// retried on the next tick instead of being taken as an empty file.
+const parseChangedAchievementFile = (file: AchievementFile) => {
+  if (!isEpicAchievementFileType(file.type)) {
+    return parseAchievementFile(file.filePath, file.type);
+  }
+
+  const achievements = parseEpicAchievementFile(file.filePath, file.type);
+  if (!achievements) fileStats.set(file.filePath, -1);
+
+  return achievements ?? [];
+};
+
 const processChangedAchievementFiles = async (
   game: Game,
   achievementFiles: AchievementFile[]
@@ -179,10 +197,14 @@ const processChangedAchievementFiles = async (
   try {
     const changedFiles = achievementFiles.filter(hasAchievementFileChanged);
 
-    if (!changedFiles.length) return 0;
+    if (!changedFiles.length) {
+      return EpicLocalAchievementStore.shouldRetryUnresolved(gameKey)
+        ? await mergeAchievements(game, [], true)
+        : 0;
+    }
 
-    const unlockedAchievements = changedFiles.flatMap((file) =>
-      parseAchievementFile(file.filePath, file.type)
+    const unlockedAchievements = changedFiles.flatMap(
+      parseChangedAchievementFile
     );
 
     return await mergeDetectedAchievements(game, unlockedAchievements);
@@ -239,10 +261,12 @@ export class AchievementWatcherManager {
     void achievementSyncWorker.trigger();
     this.alreadySyncedGames.clear();
     AchievementMemoryStore.clear();
+    EpicLocalAchievementStore.clear();
   }
 
   public static forgetAchievementFiles(gameKey: string, filePaths: string[]) {
     this.alreadySyncedGames.delete(gameKey);
+    EpicLocalAchievementStore.delete(gameKey);
 
     for (const filePath of filePaths) {
       fileStats.delete(filePath);
@@ -263,7 +287,7 @@ export class AchievementWatcherManager {
     shop: GameShop,
     objectId: string
   ) {
-    if (shop === "custom" || shop === "epic") return;
+    if (shop === "custom") return;
 
     const gameKey = levelKeys.game(shop, objectId);
     if (this.alreadySyncedGames.get(gameKey)) return;

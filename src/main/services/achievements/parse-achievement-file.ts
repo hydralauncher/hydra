@@ -15,6 +15,12 @@ import {
   processSkidrow,
   processUserStats,
 } from "./parse-achievement-formats";
+import {
+  parseAlanWake2Achievements,
+  parseNemirtingasAchievements,
+  readStableFile,
+  type EpicLocalUnlock,
+} from "./epic/epic-achievement-parsers";
 
 const processFltFolder = (filePath: string): UnlockedAchievement[] =>
   readdirSync(filePath).map((achievement) => ({
@@ -51,6 +57,41 @@ const processSteamCacheAchievement = (
   return newUnlockedAchievements;
 };
 
+const EPIC_ACHIEVEMENT_PARSERS: Partial<
+  Record<Cracker, (bytes: Uint8Array) => EpicLocalUnlock[] | null>
+> = {
+  [Cracker.nemirtingas]: parseNemirtingasAchievements,
+  [Cracker.alanWake2]: parseAlanWake2Achievements,
+};
+
+export const isEpicAchievementFileType = (type: Cracker) =>
+  type in EPIC_ACHIEVEMENT_PARSERS;
+
+/**
+ * Epic files are rewritten in place, so null tells the caller the file was
+ * missing, malformed or caught mid-write and should be read again later.
+ * Unlock names are Epic external ids until resolved against the catalogue.
+ */
+export const parseEpicAchievementFile = (
+  filePath: string,
+  type: Cracker
+): UnlockedAchievement[] | null => {
+  const parseAchievements = EPIC_ACHIEVEMENT_PARSERS[type];
+  const bytes = parseAchievements ? readStableFile(filePath) : null;
+  if (!parseAchievements || !bytes) return null;
+
+  const unlocks = parseAchievements(bytes);
+  if (!unlocks) {
+    achievementsLogger.warn(`Skipping incomplete ${type} file ${filePath}`);
+    return null;
+  }
+
+  return unlocks.map(({ externalId, unlockTime }) => ({
+    name: externalId,
+    unlockTime,
+  }));
+};
+
 const ACHIEVEMENT_PARSERS: Partial<
   Record<Cracker, (filePath: string) => UnlockedAchievement[]>
 > = {
@@ -70,6 +111,10 @@ const ACHIEVEMENT_PARSERS: Partial<
   [Cracker.razor1911]: processRazor1911,
   [Cracker.Steam]: (filePath) =>
     processSteamCacheAchievement(jsonParse(filePath)),
+  [Cracker.nemirtingas]: (filePath) =>
+    parseEpicAchievementFile(filePath, Cracker.nemirtingas) ?? [],
+  [Cracker.alanWake2]: (filePath) =>
+    parseEpicAchievementFile(filePath, Cracker.alanWake2) ?? [],
 };
 
 export const parseAchievementFile = (

@@ -12,6 +12,7 @@ import {
   findNestedAchievementFiles,
   type NestedAchievementFiles,
 } from "./find-nested-achievement-files";
+import { findEpicAchievementFiles } from "./epic/epic-achievement-files";
 
 interface CollectGameAchievementFilesOptions {
   includeSteamCache?: boolean;
@@ -42,6 +43,7 @@ export const collectGameAchievementFiles = async (
     awaitGameDirectoryLocations = false,
   }: CollectGameAchievementFilesOptions = {}
 ): Promise<AchievementFile[]> => {
+  if (game.shop === "epic") return findEpicAchievementFiles(game);
   if (game.shop !== "steam") return [];
 
   const achievementFiles: AchievementFile[] = staticFilesByObjectId

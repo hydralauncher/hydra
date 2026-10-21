@@ -61,6 +61,7 @@ async function fixture(
     deleteFailures: [] as unknown[],
     events: new Map<string, (...args: unknown[]) => Promise<unknown>>(),
     game: null as Game | null,
+    definitions: [] as unknown[],
   };
   (globalThis as unknown as Record<string, unknown>)[key] = state;
   t.after(() => {
@@ -78,6 +79,8 @@ async function fixture(
     "merge-unlocked-achievements",
     "pending-achievement-souvenir-store",
     "game-request-queue",
+    "epic-local-achievement-store",
+    "resolve-epic-achievement-names",
   ]);
   if (options.metadata || options.view) actual.add("get-game-achievement-data");
   if (options.reset) actual.add("reset-game-achievements");
@@ -104,7 +107,7 @@ async function fixture(
     export const fetchRemoteUserGameAchievements = async () => state.remoteGate ? await state.remoteGate : {souvenirs:new Map(),unlocked:[],achievements:[]};
     export const logger = {error: () => {}};
     export const achievementsLogger = {error: () => {}, warn: () => {}, log: () => {}};
-    export const getGameAchievementData = async () => [];
+    export const getGameAchievementData = async () => state.definitions;
     export const AchievementWatcherManager = {hasFinishedPreSearch: true, alreadySyncedGames: new Map(), forgetAchievementFiles: () => {}};
     export const achievementNotificationPresenter = {enqueueAchievements: () => {}};
     export const ScreenshotService = {};
@@ -845,4 +848,106 @@ test("a rejected list is not resent in the same session but is retried after a r
   f.requests[1]!.gate.resolve(undefined);
   await acknowledgeAll(f);
   assert.equal(f.records.size, 0);
+});
+
+const epicGame = (
+  f: Awaited<ReturnType<typeof fixture>>,
+  source?: Game["source"]
+) => {
+  const game = {
+    shop: "epic",
+    objectId: "namespace:item",
+    remoteId: "fixture-epic-game",
+    source,
+  } as Game;
+  f.state.game = game;
+  f.state.definitions = [
+    { name: "epic_a", externalId: "38", externalSetId: "set" },
+    { name: "epic_b", externalId: "ACH_32", externalSetId: "set" },
+  ];
+  f.AchievementMemoryStore.set("epic", "namespace:item", {
+    achievements: [],
+    unlockedAchievements: [{ name: "EPIC_ACCOUNT_IMPORT", unlockTime: 1 }],
+  });
+  return game;
+};
+
+test("Epic merges upload only unlocks read from local files", async (t) => {
+  const f = await fixture(t);
+  const game = epicGame(f);
+
+  assert.equal(
+    await f.mergeAchievements(
+      game,
+      [
+        { name: "38", unlockTime: 1 },
+        { name: "32", unlockTime: 2 },
+      ],
+      false
+    ),
+    2
+  );
+  await f.untilRequest(1);
+
+  assert.deepEqual(
+    f.requests[0]!.body.achievements.map(({ name }) => name).sort(),
+    ["epic_a", "epic_b"]
+  );
+  assert.deepEqual(
+    f.AchievementMemoryStore.get("epic", "namespace:item")
+      .unlockedAchievements.map(({ name }: { name: string }) => name)
+      .sort(),
+    ["EPIC_A", "EPIC_ACCOUNT_IMPORT", "EPIC_B"]
+  );
+  f.requests[0]!.gate.resolve(undefined);
+  await acknowledgeAll(f);
+});
+
+test("Epic merges without local unlocks never upload account imports", async (t) => {
+  const f = await fixture(t);
+  const game = epicGame(f);
+
+  assert.equal(await f.mergeAchievements(game, [], false), 0);
+  await f.achievementSyncWorker.trigger();
+
+  assert.equal(f.requests.length, 0);
+  assert.equal(f.records.size, 0);
+});
+
+test("Epic library imports keep local unlocks without uploading them", async (t) => {
+  const f = await fixture(t);
+  const game = epicGame(f, "epic");
+
+  assert.equal(
+    await f.mergeAchievements(game, [{ name: "38", unlockTime: 1 }], false),
+    1
+  );
+  await f.achievementSyncWorker.trigger();
+
+  assert.equal(f.requests.length, 0);
+  assert.equal(f.records.size, 0);
+});
+
+test("Epic ids missing from the catalogue merge once the catalogue has them", async (t) => {
+  const f = await fixture(t);
+  const game = epicGame(f);
+  f.state.definitions = [];
+
+  assert.equal(
+    await f.mergeAchievements(game, [{ name: "38", unlockTime: 7 }], false),
+    0
+  );
+  assert.equal(f.requests.length, 0);
+
+  f.state.definitions = [
+    { name: "epic_a", externalId: "38", externalSetId: "set" },
+  ];
+  assert.equal(await f.mergeAchievements(game, [], false), 1);
+  await f.untilRequest(1);
+
+  assert.deepEqual(f.requests[0]!.body.achievements, [
+    { name: "epic_a", unlockTime: 7 },
+  ]);
+  f.requests[0]!.gate.resolve(undefined);
+  await acknowledgeAll(f);
 });
