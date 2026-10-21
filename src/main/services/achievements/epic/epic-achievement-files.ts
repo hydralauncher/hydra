@@ -53,7 +53,8 @@ const getNemirtingasRoots = async (game: Game, roaming: string[]) => {
 };
 
 export const findEpicAchievementFiles = async (
-  game: Game
+  game: Game,
+  options: { allProfiles?: boolean } = {}
 ): Promise<AchievementFile[]> => {
   if (game.shop !== "epic") return [];
 
@@ -63,8 +64,12 @@ export const findEpicAchievementFiles = async (
       : await getWineAppDataRoots(game);
 
   // The engine writes to LocalAppData; LBX-1070 also reports Roaming.
-  return findEpicAchievementFilesInRoots(game.objectId, {
-    nemirtingas: await getNemirtingasRoots(game, roaming),
-    alanWake2: [...local, ...roaming],
-  });
+  return findEpicAchievementFilesInRoots(
+    game.objectId,
+    {
+      nemirtingas: await getNemirtingasRoots(game, roaming),
+      alanWake2: [...local, ...roaming],
+    },
+    options
+  );
 };

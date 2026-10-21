@@ -203,3 +203,29 @@ describe("findEpicAchievementFilesInRoots", () => {
     );
   });
 });
+
+describe("findEpicAchievementFilesInRoots for reset", () => {
+  it("returns every profile so an older one cannot replace a reset", async () => {
+    const roaming = createRoot();
+    const local = createRoot();
+    const nemirtingas = [
+      writeNemirtingas(roaming, "old", ALAN_WAKE_2_NAMESPACE, 10),
+      writeNemirtingas(roaming, "new", ALAN_WAKE_2_NAMESPACE, 20),
+    ];
+    const alanWake2 = [
+      writeAlanWake2(local, "a", { mtimeSeconds: 10 }),
+      writeAlanWake2(local, "b", { mtimeSeconds: 20 }),
+    ];
+
+    const files = await findEpicAchievementFilesInRoots(
+      ALAN_WAKE_2_OBJECT_ID,
+      { nemirtingas: [roaming], alanWake2: [local] },
+      { allProfiles: true }
+    );
+
+    assert.deepEqual(
+      files.map(({ filePath }) => filePath).sort(),
+      [...nemirtingas, ...alanWake2].sort()
+    );
+  });
+});

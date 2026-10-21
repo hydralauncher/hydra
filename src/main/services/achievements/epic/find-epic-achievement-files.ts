@@ -106,51 +106,58 @@ const findAlanWake2Candidates = async (appDataRoot: string) => {
  * Each install keeps progress under a user folder whose name varies. The
  * most recently written file belongs to the profile the game is using, and
  * merging several profiles could mix progress from different players.
+ * Reset asks for every profile, so an older one cannot take over afterwards.
  */
-const pickMostRecent = (candidates: (Candidate | null)[]) =>
-  candidates
-    .filter((candidate): candidate is Candidate => candidate !== null)
-    .reduce<Candidate | null>(
-      (latest, candidate) =>
-        !latest || candidate.mtimeMs > latest.mtimeMs ? candidate : latest,
-      null
-    );
+const selectProfiles = (
+  candidates: (Candidate | null)[],
+  allProfiles: boolean
+) => {
+  const found = candidates.filter(
+    (candidate): candidate is Candidate => candidate !== null
+  );
+  if (allProfiles || found.length <= 1) return found;
+
+  return [
+    found.reduce((latest, candidate) =>
+      candidate.mtimeMs > latest.mtimeMs ? candidate : latest
+    ),
+  ];
+};
 
 export const findEpicAchievementFilesInRoots = async (
   objectId: string,
-  roots: EpicAchievementRoots
+  roots: EpicAchievementRoots,
+  { allProfiles = false }: { allProfiles?: boolean } = {}
 ): Promise<AchievementFile[]> => {
   const namespace = getEpicNamespace(objectId);
   if (!namespace) return [];
 
-  const nemirtingas = pickMostRecent(
+  const nemirtingas = selectProfiles(
     (
       await Promise.all(
         roots.nemirtingas.map((root) =>
           findNemirtingasCandidates(root, namespace)
         )
       )
-    ).flat()
+    ).flat(),
+    allProfiles
   );
 
   const alanWake2 =
     namespace === ALAN_WAKE_2_NAMESPACE
-      ? pickMostRecent(
+      ? selectProfiles(
           (
             await Promise.all(roots.alanWake2.map(findAlanWake2Candidates))
-          ).flat()
+          ).flat(),
+          allProfiles
         )
-      : null;
+      : [];
 
-  const files: AchievementFile[] = [];
-
-  if (nemirtingas) {
-    files.push({ type: Cracker.nemirtingas, filePath: nemirtingas.filePath });
-  }
-
-  if (alanWake2) {
-    files.push({ type: Cracker.alanWake2, filePath: alanWake2.filePath });
-  }
-
-  return files;
+  return [
+    ...nemirtingas.map(({ filePath }) => ({
+      type: Cracker.nemirtingas,
+      filePath,
+    })),
+    ...alanWake2.map(({ filePath }) => ({ type: Cracker.alanWake2, filePath })),
+  ];
 };
