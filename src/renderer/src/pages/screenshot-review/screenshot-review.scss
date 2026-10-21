@@ -188,16 +188,6 @@
     }
   }
 
-  &__bulk {
-    display: flex;
-    gap: globals.$spacing-unit;
-
-    .button {
-      flex: 1;
-      min-width: 0;
-    }
-  }
-
   &__done {
     display: flex;
     align-items: center;
@@ -267,16 +257,53 @@
 
   &__game {
     overflow: hidden;
+    font-size: 15px;
     font-weight: 600;
     color: globals.$muted-color;
     white-space: nowrap;
     text-overflow: ellipsis;
   }
 
+  &__title-field {
+    align-self: flex-start;
+    max-width: 100%;
+    min-height: 36px;
+
+    .inline-edit-field__trigger,
+    .inline-edit-field__input {
+      font-size: 15px;
+      font-weight: 600;
+    }
+
+    .inline-edit-field__trigger {
+      min-width: 0;
+      overflow: hidden;
+      white-space: nowrap;
+      text-overflow: ellipsis;
+    }
+
+    .inline-edit-field__input {
+      height: 34px;
+    }
+  }
+
   &__date {
-    font-size: globals.$small-font-size;
-    color: globals.$body-color;
-    opacity: 0.7;
+    position: absolute;
+    right: globals.$spacing-unit;
+    bottom: globals.$spacing-unit;
+    max-width: calc(100% - globals.$spacing-unit * 2);
+    overflow: hidden;
+    padding: 2px globals.$spacing-unit;
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 999px;
+    background-color: rgba(0, 0, 0, 0.55);
+    backdrop-filter: blur(8px);
+    color: #ffffff;
+    font-size: 11px;
+    font-weight: 500;
+    line-height: 16px;
+    text-overflow: ellipsis;
+    white-space: nowrap;
   }
 
   &__form {
@@ -307,10 +334,57 @@
     background-color: globals.$dark-background-color;
     border-top: 1px solid globals.$border-color;
 
-    .button {
+    > .button,
+    > .screenshot-review-split-button {
       flex: 1;
       min-width: 0;
     }
+
+    > .screenshot-review-item__upload {
+      flex: 2;
+    }
+
+    > .screenshot-review-item__delete {
+      flex: 0 0 40px;
+      width: 40px;
+      padding: 0;
+    }
+  }
+}
+
+.screenshot-review-split-button {
+  display: flex;
+  min-width: 0;
+
+  &__main {
+    flex: 1;
+    min-width: 0;
+    white-space: nowrap;
+  }
+
+  &--with-menu &__main {
+    border-top-right-radius: 0;
+    border-bottom-right-radius: 0;
+  }
+
+  &__toggle {
+    flex: 0 0 32px;
+    width: 32px;
+    padding: 0;
+    border-top-left-radius: 0;
+    border-bottom-left-radius: 0;
+  }
+
+  .button--primary + &__toggle {
+    border-left: 1px solid rgba(0, 0, 0, 0.18);
+  }
+
+  .button--outline + &__toggle {
+    border-left-width: 0;
+  }
+
+  &__menu {
+    min-width: 180px;
   }
 }
 
@@ -368,6 +442,8 @@
 }
 
 .screenshot-review-item__delete {
+  color: globals.$error-color;
+
   svg {
     color: globals.$error-color;
   }

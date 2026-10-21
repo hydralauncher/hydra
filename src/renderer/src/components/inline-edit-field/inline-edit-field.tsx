@@ -7,6 +7,10 @@ export interface InlineEditFieldProps {
   label: string;
   saveLabel: string;
   maxLength: number;
+  initialValue?: string;
+  placeholder?: string;
+  allowEmpty?: boolean;
+  disabled?: boolean;
   isSaving?: boolean;
   className?: string;
   sanitize?: (value: string) => string;
@@ -17,6 +21,10 @@ export function InlineEditField({
   label,
   saveLabel,
   maxLength,
+  initialValue = "",
+  placeholder = label,
+  allowEmpty = false,
+  disabled = false,
   isSaving = false,
   className,
   sanitize,
@@ -34,6 +42,14 @@ export function InlineEditField({
     wasEditingRef.current = isEditing;
   }, [isEditing]);
 
+  const triggerText = initialValue || placeholder;
+  const canSubmit = allowEmpty || Boolean(value.trim());
+
+  const startEditing = () => {
+    setValue(initialValue);
+    setIsEditing(true);
+  };
+
   const cancel = () => {
     setIsEditing(false);
     setValue("");
@@ -42,7 +58,7 @@ export function InlineEditField({
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     if (isSaving) return;
-    if (!value.trim()) {
+    if (!canSubmit) {
       cancel();
       return;
     }
@@ -56,7 +72,10 @@ export function InlineEditField({
     <div
       className={cn(
         "inline-edit-field",
-        { "inline-edit-field--editing": isEditing },
+        {
+          "inline-edit-field--editing": isEditing,
+          "inline-edit-field--disabled": disabled,
+        },
         className
       )}
     >
@@ -74,7 +93,7 @@ export function InlineEditField({
             className="inline-edit-field__input"
             value={value}
             maxLength={maxLength}
-            placeholder={label}
+            placeholder={placeholder}
             aria-label={label}
             disabled={isSaving}
             onChange={(event) =>
@@ -95,7 +114,7 @@ export function InlineEditField({
           <button
             type="submit"
             className="inline-edit-field__save"
-            disabled={isSaving || !value.trim()}
+            disabled={isSaving || !canSubmit}
           >
             {saveLabel}
           </button>
@@ -104,10 +123,14 @@ export function InlineEditField({
         <button
           ref={triggerRef}
           type="button"
-          className="inline-edit-field__trigger"
-          onClick={() => setIsEditing(true)}
+          className={cn("inline-edit-field__trigger", {
+            "inline-edit-field__trigger--filled": Boolean(initialValue),
+          })}
+          title={triggerText === label ? undefined : label}
+          disabled={disabled}
+          onClick={startEditing}
         >
-          {label}
+          {triggerText}
         </button>
       )}
     </div>
