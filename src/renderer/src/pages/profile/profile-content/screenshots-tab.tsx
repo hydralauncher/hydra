@@ -17,6 +17,7 @@ import {
   ScreenshotLoadMoreError,
   readStoredScreenshotSort,
   storeScreenshotPreference,
+  useLoadUntilScrollable,
   useScreenshotCollection,
   type ScreenshotFeedPage,
 } from "@renderer/components/screenshots";
@@ -47,6 +48,7 @@ import "./profile-content.scss";
 
 const ALL_GAMES_FILTER = "all";
 const INFINITE_SCROLL_THRESHOLD = 0.9;
+const PROFILE_SCROLL_TARGET_ID = "scrollableDiv";
 const TAB_PANEL_SLIDE_OFFSET_PX = 10;
 const TAB_PANEL_TRANSITION_SECONDS = 0.2;
 
@@ -242,6 +244,17 @@ export function ScreenshotsTab({
       onTotalUpdate({ kind: "removed", userId: removed.owner.id }),
   });
   const { feed, actions, lightbox } = collection;
+
+  useLoadUntilScrollable({
+    scrollTargetId: PROFILE_SCROLL_TARGET_ID,
+    canLoadMore:
+      feed.hasLoaded &&
+      feed.hasMore &&
+      !feed.isLoading &&
+      !feed.hasLoadMoreFailed,
+    itemCount: feed.items.length,
+    loadMore: feed.loadMore,
+  });
   const { openById } = lightbox;
 
   useEffect(() => {
@@ -356,15 +369,17 @@ export function ScreenshotsTab({
           next={() => void feed.loadMore()}
           hasMore={feed.hasMore && !feed.hasLoadMoreFailed}
           loader={
-            <output className="profile-content__screenshots-loading">
-              {t("loading_screenshots")}
-            </output>
+            feed.isLoading ? (
+              <output className="profile-content__screenshots-loading">
+                {t("loading_screenshots")}
+              </output>
+            ) : null
           }
           scrollThreshold={INFINITE_SCROLL_THRESHOLD}
           style={{ overflow: "visible" }}
-          scrollableTarget="scrollableDiv"
+          scrollableTarget={PROFILE_SCROLL_TARGET_ID}
         >
-          <ul className="screenshot-grid">
+          <ul className="screenshot-grid screenshot-grid--large">
             {feed.items.map((screenshot) => (
               <ScreenshotCard
                 key={screenshot.id}
