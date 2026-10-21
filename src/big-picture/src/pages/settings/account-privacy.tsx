@@ -118,13 +118,17 @@ export function AccountPrivacySettingsSection({
   const [souvenirsVisibility, setSouvenirsVisibility] =
     useState<ProfileVisibility>("PRIVATE");
   const [screenshotsVisibility, setScreenshotsVisibility] =
-    useState<ProfileVisibility>("PUBLIC");
+    useState<ProfileVisibility | null>(null);
   const [screenshotCommentsPolicy, setScreenshotCommentsPolicy] =
-    useState<ScreenshotCommentsPolicy>("EVERYONE");
+    useState<ScreenshotCommentsPolicy | null>(null);
   const { isFeatureEnabled } = useFeature();
-  const showScreenshotsVisibility = isFeatureEnabled(Feature.Screenshots);
+  const isScreenshotsEnabled = isFeatureEnabled(Feature.Screenshots);
+  const showScreenshotsVisibility =
+    isScreenshotsEnabled && screenshotsVisibility !== null;
   const showScreenshotCommentsPolicy =
-    showScreenshotsVisibility && isFeatureEnabled(Feature.ScreenshotComments);
+    isScreenshotsEnabled &&
+    isFeatureEnabled(Feature.ScreenshotComments) &&
+    screenshotCommentsPolicy !== null;
   const [blockedUsers, setBlockedUsers] = useState<UserFriend[]>([]);
   const [isSavingVisibility, setIsSavingVisibility] = useState(false);
   const [isSavingCloudGifts, setIsSavingCloudGifts] = useState(false);
@@ -542,7 +546,7 @@ export function AccountPrivacySettingsSection({
             }}
           />
 
-          {showScreenshotsVisibility ? (
+          {showScreenshotsVisibility && screenshotsVisibility ? (
             <DropdownSelect
               className="account-privacy-settings-section__select"
               label={t("screenshots_visibility_setting", { ns: "big_picture" })}
@@ -559,7 +563,7 @@ export function AccountPrivacySettingsSection({
             />
           ) : null}
 
-          {showScreenshotCommentsPolicy ? (
+          {showScreenshotCommentsPolicy && screenshotCommentsPolicy ? (
             <DropdownSelect
               className="account-privacy-settings-section__select"
               label={t("screenshots_comments_policy_setting", {

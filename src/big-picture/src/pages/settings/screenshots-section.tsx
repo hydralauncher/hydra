@@ -98,6 +98,17 @@ type ScreenshotPreferenceUpdate = Pick<
   | "screenshotDefaultVisibility"
 >;
 
+function withoutPreferenceKeys(
+  overrides: ScreenshotPreferenceUpdate,
+  failed: ScreenshotPreferenceUpdate
+): ScreenshotPreferenceUpdate {
+  const failedKeys = new Set(Object.keys(failed));
+
+  return Object.fromEntries(
+    Object.entries(overrides).filter(([key]) => !failedKeys.has(key))
+  ) as ScreenshotPreferenceUpdate;
+}
+
 function buildRowNavigation(
   rows: string[][],
   upTarget: FocusOverrideTarget,
@@ -442,6 +453,7 @@ export function ScreenshotSettingsSection({
         await globalThis.window.electron.updateUserPreferences(values);
       } catch (error) {
         logger.error("Failed to save screenshot preferences", error);
+        setOverrides((current) => withoutPreferenceKeys(current, values));
         showErrorToast(t("screenshots_settings_save_failed"), {
           fallbackVisual: "settings",
         });
