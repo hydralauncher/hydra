@@ -31,6 +31,7 @@
     justify-content: center;
     flex-shrink: 0;
     width: 100%;
+    max-height: 34vh;
     aspect-ratio: 16 / 9;
     overflow: hidden;
     border: 1px solid var(--secondary-border);
