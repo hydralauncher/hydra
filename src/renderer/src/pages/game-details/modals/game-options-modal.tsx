@@ -37,6 +37,7 @@ import {
   useDownload,
   useGameCollections,
   useIsNonSteamExecutable,
+  useIsSteamLibraryExecutable,
   useLibrary,
   useLibraryGamePresentation,
   useToast,
@@ -288,9 +289,18 @@ export function GameOptionsModal({
   const deleting = isGameDeleting(game.id);
   const steamUninstallAvailable =
     typeof globalThis.window.electron.uninstallGameOnSteam === "function";
+  const steamMember = getOfficialStoreMembers(
+    presentation?.members ?? [game]
+  ).steam;
+  const isSteamLibraryExecutable = useIsSteamLibraryExecutable(steamMember);
   const removeFilesTarget = useMemo(
-    () => getRemoveFilesTarget(presentation ?? game, steamUninstallAvailable),
-    [presentation, game, steamUninstallAvailable]
+    () =>
+      getRemoveFilesTarget(
+        presentation ?? game,
+        steamUninstallAvailable,
+        isSteamLibraryExecutable === true
+      ),
+    [presentation, game, steamUninstallAvailable, isSteamLibraryExecutable]
   );
   const removeFilesDeleting =
     removeFilesTarget?.kind === "hydra" &&
@@ -655,7 +665,8 @@ export function GameOptionsModal({
 
     const liveTarget = getRemoveFilesTarget(
       presentation ?? game,
-      steamUninstallAvailable
+      steamUninstallAvailable,
+      isSteamLibraryExecutable === true
     );
     if (
       !liveTarget ||
@@ -691,7 +702,8 @@ export function GameOptionsModal({
 
     const liveTarget = getRemoveFilesTarget(
       presentation ?? game,
-      steamUninstallAvailable
+      steamUninstallAvailable,
+      isSteamLibraryExecutable === true
     );
     if (
       !liveTarget ||

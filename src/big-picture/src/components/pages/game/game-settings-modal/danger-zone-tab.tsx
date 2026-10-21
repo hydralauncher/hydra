@@ -4,10 +4,13 @@ import type { LibraryGame } from "@types";
 import {
   applyLibraryGroupAction,
   findLibraryGamePresentation,
+  getLibraryGameMembers,
+  getOfficialStoreMembers,
   getRemoveFilesTarget,
   isLibraryGameDownloading,
   type RemoveFilesTarget,
 } from "@shared";
+import { useIsSteamLibraryExecutable } from "@renderer/hooks/use-steam-library-executable";
 import { Button, VerticalFocusGroup } from "../../../common";
 import { ConfirmationModal } from "../../../modals";
 import { SettingsSection } from "../../../../pages/settings/settings-section";
@@ -94,9 +97,14 @@ export function GameDangerZoneSettingsTab({
 
   const steamUninstallAvailable =
     typeof globalThis.window.electron.uninstallGameOnSteam === "function";
+  const steamMember = getOfficialStoreMembers(
+    getLibraryGameMembers(removeFilesGame ?? game)
+  ).steam;
+  const isSteamLibraryExecutable = useIsSteamLibraryExecutable(steamMember);
   const removeFilesTarget = getRemoveFilesTarget(
     removeFilesGame ?? game,
-    steamUninstallAvailable
+    steamUninstallAvailable,
+    isSteamLibraryExecutable === true
   );
   const isGameDownloading =
     removeFilesTarget?.kind === "hydra" &&
@@ -172,7 +180,8 @@ export function GameDangerZoneSettingsTab({
     try {
       const liveTarget = getRemoveFilesTarget(
         removeFilesGame ?? game,
-        steamUninstallAvailable
+        steamUninstallAvailable,
+        isSteamLibraryExecutable === true
       );
       if (
         !liveTarget ||
@@ -230,6 +239,7 @@ export function GameDangerZoneSettingsTab({
     game,
     removeFilesGame,
     steamUninstallAvailable,
+    isSteamLibraryExecutable,
     pendingRemoveFilesTarget,
     t,
     showSuccessToast,

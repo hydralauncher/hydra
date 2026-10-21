@@ -101,7 +101,8 @@ const isActiveSteamImportMember = (game: LibraryGame) =>
 
 export const getRemoveFilesTarget = (
   game: LibraryGame,
-  steamUninstallAvailable: boolean
+  steamUninstallAvailable: boolean,
+  isSteamLibraryExecutable = false
 ): RemoveFilesTarget | null => {
   const members = getLibraryGameMembers(game);
   const operationalGame = getLibraryOperationalGame(game);
@@ -128,7 +129,11 @@ export const getRemoveFilesTarget = (
     ? operationalGame
     : members.find(isActiveSteamImportMember);
 
-  if (!steamMember || !STEAM_APP_ID_PATTERN.test(steamMember.objectId)) {
+  if (
+    !steamMember ||
+    !isSteamLibraryExecutable ||
+    !STEAM_APP_ID_PATTERN.test(steamMember.objectId)
+  ) {
     return null;
   }
 
