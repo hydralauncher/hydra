@@ -1,35 +1,122 @@
 @use "../../../scss/globals.scss";
 
-.game-screenshots {
+.game-screenshots-box {
   display: flex;
   flex-direction: column;
-  gap: calc(globals.$spacing-unit * 2);
-  width: 100%;
-  margin: calc(globals.$spacing-unit * 3) auto 0;
-  padding-top: calc(globals.$spacing-unit * 3);
-  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  gap: calc(globals.$spacing-unit * 1.5);
+  padding: calc(globals.$spacing-unit * 2);
 
-  @media (min-width: 1280px) {
-    width: 60%;
+  &__grid {
+    display: grid;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    gap: globals.$spacing-unit;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
-  @media (min-width: 1536px) {
-    width: 50%;
+  &__skeleton {
+    display: block;
+    width: 100%;
+    aspect-ratio: 16 / 9;
+    border-radius: 6px;
   }
 
-  &__header {
+  &__thumbnail {
+    position: relative;
+    display: block;
+    width: 100%;
+    aspect-ratio: 16 / 9;
+    overflow: hidden;
+    padding: 0;
+    border: 1px solid globals.$border-color;
+    border-radius: 6px;
+    background: rgba(255, 255, 255, 0.04);
+    cursor: pointer;
+
+    &:hover .game-screenshots-box__thumbnail-image {
+      filter: brightness(0.75);
+    }
+
+    &:focus-visible {
+      outline: 2px solid globals.$muted-color;
+      outline-offset: 2px;
+    }
+
+    &--spoiler {
+      .game-screenshots-box__thumbnail-image {
+        filter: blur(14px) brightness(0.55);
+        transform: scale(1.12);
+      }
+
+      &:hover .game-screenshots-box__thumbnail-image {
+        filter: blur(14px) brightness(0.42);
+      }
+    }
+  }
+
+  &__thumbnail-image {
+    position: absolute;
+    inset: 0;
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    transition:
+      filter 0.2s ease,
+      transform 0.2s ease;
+  }
+
+  &__thumbnail-placeholder,
+  &__thumbnail-spoiler {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  &__thumbnail-placeholder {
+    color: globals.$body-color;
+  }
+
+  &__thumbnail-spoiler {
+    flex-direction: column;
+    gap: 4px;
+    color: globals.$muted-color;
+    font-size: globals.$small-font-size;
+    font-weight: 600;
+    pointer-events: none;
+  }
+
+  &__view-all {
+    width: 100%;
+  }
+
+  &__empty {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: globals.$spacing-unit;
+    padding: globals.$spacing-unit 0;
+    color: globals.$body-color;
+    font-size: globals.$small-font-size;
+  }
+}
+
+.game-screenshots-modal {
+  &.modal--large {
+    width: min(960px, calc(100vw - 48px));
+    max-width: min(960px, calc(100vw - 48px));
+  }
+
+  &__toolbar {
     display: flex;
     flex-wrap: wrap;
     align-items: center;
     justify-content: space-between;
-    gap: globals.$spacing-unit;
-  }
-
-  &__title {
-    margin: 0;
-    color: globals.$muted-color;
-    font-size: 1.25rem;
-    font-weight: 600;
+    gap: calc(globals.$spacing-unit * 1.5);
+    margin-bottom: calc(globals.$spacing-unit * 2);
   }
 
   &__sort {
@@ -75,6 +162,13 @@
     }
   }
 
+  &__scroll {
+    max-height: min(65vh, 720px);
+    overflow-x: hidden;
+    overflow-y: auto;
+    padding-right: 4px;
+  }
+
   &__skeleton {
     display: block;
     width: 100%;
@@ -84,20 +178,29 @@
 
   &__empty {
     display: flex;
-    flex-wrap: wrap;
+    flex-direction: column;
     align-items: center;
+    justify-content: center;
     gap: globals.$spacing-unit;
-    padding: calc(globals.$spacing-unit * 2);
-    border: 1px dashed globals.$border-color;
-    border-radius: 8px;
-    color: globals.$body-color;
-
-    p {
-      margin: 0;
-    }
+    padding: calc(globals.$spacing-unit * 6) calc(globals.$spacing-unit * 2);
+    color: rgba(255, 255, 255, 0.6);
+    text-align: center;
   }
 
-  &__load-more {
-    align-self: center;
+  &__empty-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.06);
+  }
+
+  &__loading {
+    display: block;
+    padding: calc(globals.$spacing-unit * 2);
+    color: globals.$body-color;
+    text-align: center;
   }
 }
