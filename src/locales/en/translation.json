@@ -2693,6 +2693,7 @@
     "generic": "It breaks the content rules",
     "hate_symbols": "Hate symbols",
     "invalid_image": "The image could not be processed",
+    "moderation_failed": "We couldn't check this screenshot",
     "personal_information": "Personal information",
     "real_world_gore": "Graphic violence"
   },
