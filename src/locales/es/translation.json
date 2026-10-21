@@ -1828,7 +1828,6 @@
     "screenshots_gamepad_enable": "Usar una combinación del mando",
     "screenshots_gamepad_reset": "Restablecer valores predeterminados",
     "screenshots_hotkey": "Atajo de teclado",
-    "screenshots_hotkey_change": "Cambiar",
     "screenshots_hotkey_recording": "Pulsa una tecla",
     "screenshots_hotkey_reset": "Restablecer valores predeterminados",
     "screenshots_input_active": "El atajo está activo",
@@ -1856,7 +1855,9 @@
     "screenshots_gamepad_duplicate": "Cada botón solo se puede usar una vez",
     "screenshots_upload_tooltip": "Revisar y subir",
     "screenshots_retry_tooltip": "Revisar y reintentar la subida",
-    "screenshots_delete_tooltip": "Eliminar de este equipo"
+    "screenshots_delete_tooltip": "Eliminar de este equipo",
+    "screenshots_hotkey_change_label": "Cambiar el atajo de teclado, ahora {{key}}",
+    "screenshots_open_viewer": "Abrir {{title}} a tamaño completo"
   },
   "notifications": {
     "download_complete": "Descarga completada",
