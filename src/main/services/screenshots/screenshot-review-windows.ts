@@ -358,6 +358,10 @@ export class ScreenshotReviewWindows {
       return;
     }
 
+    await LocalScreenshotStore.update(screenshot.clientId, (current) =>
+      current.state === "local" ? { state: "reviewing" } : {}
+    );
+
     const session = createSession({
       sessionId: `manual:${screenshot.clientId}`,
       gameKey: `manual:${screenshot.clientId}`,
@@ -454,6 +458,17 @@ export class ScreenshotReviewWindows {
   public static broadcast(channel: string, ...args: unknown[]) {
     for (const window of reviewWindows) {
       if (!window.isDestroyed()) window.webContents.send(channel, ...args);
+    }
+  }
+
+  public static closeSingleItemWindows(clientId: string) {
+    for (const session of sessions.values()) {
+      for (const entry of session.windows) {
+        if (entry.clientIds.length !== 1 || entry.clientIds[0] !== clientId) {
+          continue;
+        }
+        if (!entry.window.isDestroyed()) entry.window.close();
+      }
     }
   }
 

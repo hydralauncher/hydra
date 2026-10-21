@@ -179,7 +179,7 @@ export const skipLocalScreenshot = async (clientId: string) => {
   if (screenshot.state === "reviewing") {
     await LocalScreenshotStore.update(clientId, { state: "local" });
   }
-  ScreenshotReviewWindows.removeScreenshotFromWindows(clientId);
+  ScreenshotReviewWindows.closeSingleItemWindows(clientId);
   ScreenshotTelemetry.record("review", "skip");
 };
 
