@@ -183,7 +183,7 @@
     justify-content: center;
     gap: globals.$spacing-unit;
     padding: calc(globals.$spacing-unit * 6) calc(globals.$spacing-unit * 2);
-    color: rgba(255, 255, 255, 0.6);
+    color: globals.$body-color;
     text-align: center;
   }
 
@@ -194,7 +194,7 @@
     width: 48px;
     height: 48px;
     border-radius: 50%;
-    background: rgba(255, 255, 255, 0.06);
+    background: globals.$dark-background-color;
   }
 
   &__loading {
