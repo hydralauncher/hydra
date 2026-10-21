@@ -9,10 +9,12 @@ import { publishNewAchievementNotification } from "../notifications";
 import { achievementsLogger } from "../logger";
 import { achievementNotificationPresenter } from "../achievement-notification-presenter-electron";
 
+const RARE_ACHIEVEMENT_MAX_UNLOCK_PERCENTAGE = 10;
+
 const isRareAchievement = (points: number) => {
   const rawPercentage = (50 - Math.sqrt(points)) * 2;
 
-  return rawPercentage < 10;
+  return rawPercentage < RARE_ACHIEVEMENT_MAX_UNLOCK_PERCENTAGE;
 };
 
 export interface AchievementUnlockNotificationOptions {
