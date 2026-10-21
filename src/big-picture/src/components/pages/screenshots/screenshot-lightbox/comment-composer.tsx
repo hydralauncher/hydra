@@ -16,7 +16,10 @@ import {
   SCREENSHOT_COMMENT_MAX_LENGTH,
   richTextToPlainText,
 } from "@shared";
-import { useRichTextEditor } from "@renderer/components/rich-text-editor/use-rich-text-editor";
+import {
+  isRichTextEditorAvailable,
+  useRichTextEditor,
+} from "@renderer/components/rich-text-editor/use-rich-text-editor";
 
 import { Button, FocusItem, HorizontalFocusGroup } from "../../../common";
 import { useVirtualKeyboardStore } from "../../../../stores";
@@ -108,10 +111,20 @@ function CommentEditorForm({
   const canSubmit = charCount > 0 && !isTooLong && !isSubmitting;
 
   const submit = async () => {
-    if (!canSubmit) return;
+    if (!canSubmit || !isRichTextEditorAvailable(editor)) return;
 
-    const wasSubmitted = await onSubmit(getHtml());
-    if (wasSubmitted && !isEditing) clear();
+    const sentHtml = getHtml();
+    const keyboard = useVirtualKeyboardStore.getState();
+    if (keyboard.target === editor.view.dom)
+      keyboard.closeKeyboard?.({ restoreFocus: false });
+    editor.setEditable(false);
+
+    try {
+      const wasSubmitted = await onSubmit(sentHtml);
+      if (wasSubmitted && !isEditing && getHtml() === sentHtml) clear();
+    } finally {
+      if (isRichTextEditorAvailable(editor)) editor.setEditable(true);
+    }
   };
 
   const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
