@@ -71,6 +71,7 @@ import { ScreenshotManageModal } from "../screenshot-manage-modal";
 import { ScreenshotReportModal } from "../screenshot-report-modal";
 import { useRevealedScreenshotSpoilers } from "../use-revealed-spoilers";
 import { ScreenshotCommentsPanel } from "./comments-panel";
+import { ScreenshotDialogPresence } from "../screenshot-dialog-presence";
 import {
   LightboxBackAction,
   LightboxLayerReporter,
@@ -917,6 +918,7 @@ function LightboxModals({
         onClose={onCloseModal}
         onSubmit={social.report}
       />
+      <ScreenshotDialogPresence isOpen={openModal === "delete"} />
       <ConfirmationModal
         visible={openModal === "delete"}
         backdropClassName="screenshot-lightbox__confirmation-backdrop"

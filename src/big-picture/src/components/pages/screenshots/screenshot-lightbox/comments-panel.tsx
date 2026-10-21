@@ -49,6 +49,7 @@ import type { FocusOverrides, FocusOverrideTarget } from "../../../../services";
 import { getScreenshotErrorKey } from "../helpers";
 import { ScreenshotReportModal } from "../screenshot-report-modal";
 import { ScreenshotCommentBody } from "./comment-body";
+import { ScreenshotDialogPresence } from "../screenshot-dialog-presence";
 import { CommentComposer } from "./comment-composer";
 import {
   getCommentFocusIds,
@@ -827,6 +828,7 @@ export function ScreenshotCommentsPanel({
           onClose={() => setMenu(null)}
         />
 
+        <ScreenshotDialogPresence isOpen={Boolean(deletingComment)} />
         <ConfirmationModal
           visible={Boolean(deletingComment)}
           backdropClassName="screenshot-lightbox__confirmation-backdrop"

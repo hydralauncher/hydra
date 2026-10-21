@@ -16,6 +16,7 @@ import {
   Modal,
   VerticalFocusGroup,
 } from "../../common";
+import { useScreenshotDialogPresence } from "./screenshot-dialog-presence";
 
 const REGION_ID = "screenshot-report-modal";
 const REASON_FOCUS_ID = "screenshot-report-reason";
@@ -41,6 +42,7 @@ export function ScreenshotReportModal({
   onSubmit,
 }: Readonly<ScreenshotReportModalProps>) {
   const { t } = useTranslation("big_picture");
+  useScreenshotDialogPresence(visible);
   const defaultReason = reasons[0] ?? "other";
   const [reason, setReason] = useState<ScreenshotReportReason>(defaultReason);
   const [description, setDescription] = useState("");

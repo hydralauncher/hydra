@@ -42,6 +42,7 @@ import { IS_DESKTOP } from "../../constants";
 import { resolveImageSource } from "../../helpers";
 import { useNavigationStore } from "../../stores";
 import { getLocalScreenshotStatusDetail } from "../pages/screenshots";
+import { useScreenshotDialogPresenceStore } from "../pages/screenshots/screenshot-dialog-presence";
 import {
   useBigPictureToast,
   useNavigation,
@@ -257,7 +258,17 @@ export function ScreenshotReviewModal() {
     flushAll: flushDraftSaves,
   } = useReviewDraftSave();
   const fieldsRef = useRef<HTMLDivElement | null>(null);
-  const visible = isReviewQueueOpen(queueState);
+  const isQueueOpen = isReviewQueueOpen(queueState);
+  const isScreenshotDialogOpen = useScreenshotDialogPresenceStore(
+    (state) => state.openCount > 0
+  );
+  const [isPresented, setIsPresented] = useState(false);
+  const visible = isQueueOpen && isPresented;
+
+  useEffect(() => {
+    if (!isQueueOpen) setIsPresented(false);
+    else if (!isScreenshotDialogOpen) setIsPresented(true);
+  }, [isQueueOpen, isScreenshotDialogOpen]);
   const { screenshots, loadedRequestCount } = useLocalScreenshots(
     visible,
     queueState.requestCount

@@ -63,6 +63,7 @@ import {
   useUserPreferences,
 } from "../../hooks";
 import type { FocusOverrides, FocusOverrideTarget } from "../../services";
+import { ScreenshotDialogPresence } from "../../components/pages/screenshots/screenshot-dialog-presence";
 import { LocalScreenshotViewer } from "./local-screenshot-viewer";
 import { SettingsSection } from "./settings-section";
 
@@ -1211,6 +1212,7 @@ export function ScreenshotSettingsSection({
             onDelete={setDeleting}
           />
 
+          <ScreenshotDialogPresence isOpen={Boolean(deleting)} />
           <ConfirmationModal
             visible={Boolean(deleting)}
             backdropClassName="local-screenshot-viewer__confirmation-backdrop"
