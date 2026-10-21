@@ -855,14 +855,10 @@ function LightboxDialog({
     Boolean(screenshot.imageUrl);
 
   const handleCommentCountChange = useCallback(
-    (screenshotId: string, delta: number) => {
-      if (screenshot.id !== screenshotId) return;
-
-      onUpdate(screenshotId, {
-        commentCount: Math.max(0, screenshot.commentCount + delta),
-      });
+    (screenshotId: string, commentCount: number) => {
+      onUpdate(screenshotId, { commentCount });
     },
-    [onUpdate, screenshot]
+    [onUpdate]
   );
 
   const commentsLeftTarget = useMemo(
@@ -933,6 +929,7 @@ function LightboxDialog({
 
           {showComments ? (
             <ScreenshotCommentsPanel
+              key={screenshot.id}
               screenshot={screenshot}
               viewerId={viewerId}
               isOwner={isOwner}
