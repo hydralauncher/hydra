@@ -31,6 +31,10 @@ const pickNewerScreenshot = (
   return (detachedFetchedAt ?? 0) > (listFetchedAt ?? 0) ? detached : listItem;
 };
 
+const bumpWriteVersion = (versions: Map<string, number>, id: string) => {
+  versions.set(id, (versions.get(id) ?? 0) + 1);
+};
+
 const withoutKey = <Value>(record: Record<string, Value>, key: string) => {
   if (!(key in record)) return record;
   const next = { ...record };
@@ -74,6 +78,7 @@ export function useScreenshotCollection({
   const fetchedIdsRef = useRef(new Set<string>());
   const requestTokensRef = useRef(new Map<string, number>());
   const detachedFetchedAtRef = useRef(new Map<string, number>());
+  const writeVersionsRef = useRef(new Map<string, number>());
   const refreshedIdsRef = useRef(new Set<string>());
 
   const openId = openTarget?.screenshotId ?? null;
@@ -99,6 +104,7 @@ export function useScreenshotCollection({
 
   const onPatch = useCallback(
     (screenshotId: string, patch: Partial<ProfileScreenshot>) => {
+      bumpWriteVersion(writeVersionsRef.current, screenshotId);
       patchItem(screenshotId, patch);
       setDetachedById((current) =>
         screenshotId in current
@@ -196,9 +202,20 @@ export function useScreenshotCollection({
       if (refreshedIdsRef.current.has(item.id)) return;
       refreshedIdsRef.current.add(item.id);
 
+      const startVersion = writeVersionsRef.current.get(item.id) ?? 0;
+
       try {
         const fresh = await fetchScreenshot(item.owner.id, item.id);
-        if (fresh) onPatch(item.id, fresh);
+        if (!fresh) return;
+
+        const hasLocalWrite =
+          (writeVersionsRef.current.get(item.id) ?? 0) !== startVersion;
+        onPatch(
+          item.id,
+          hasLocalWrite
+            ? { imageUrl: fresh.imageUrl, thumbnailUrl: fresh.thumbnailUrl }
+            : fresh
+        );
       } catch (error) {
         logger.error("Failed to refresh screenshot", error);
         const failure = getScreenshotFailure(error);
