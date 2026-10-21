@@ -8,7 +8,9 @@ import {
   createScreenshotImageRefresher,
   getScreenshotApiErrorCode,
   isRelativeScreenshotPatch,
+  type ScreenshotBusWrite,
   type ScreenshotPatch,
+  type ScreenshotWriteBus,
 } from "@shared";
 import type { ProfileScreenshot } from "@types";
 
@@ -60,6 +62,7 @@ interface UseScreenshotCollectionOptions {
   fetchPage: (cursor: string | null) => Promise<ScreenshotFeedPage | null>;
   onServerTotal?: (total: number) => void;
   onItemRemoved?: (screenshot: ProfileScreenshot) => void;
+  writeBus?: ScreenshotWriteBus;
 }
 
 interface OpenTarget {
@@ -72,6 +75,7 @@ export function useScreenshotCollection({
   fetchPage,
   onServerTotal,
   onItemRemoved,
+  writeBus,
 }: UseScreenshotCollectionOptions) {
   const onItemRemovedRef = useRef(onItemRemoved);
   onItemRemovedRef.current = onItemRemoved;
@@ -138,7 +142,7 @@ export function useScreenshotCollection({
     []
   );
 
-  const onPatch = useCallback(
+  const applyPatch = useCallback(
     (screenshotId: string, patch: ScreenshotPatch) => {
       bumpWriteVersion(writeVersionsRef.current, screenshotId);
       lastWriteAtRef.current.set(screenshotId, performance.now());
@@ -162,14 +166,47 @@ export function useScreenshotCollection({
     [patchItem]
   );
 
-  const onRemove = useCallback(
-    (removed: ProfileScreenshot) => {
-      fetchedIdsRef.current.add(removed.id);
-      removeItem(removed.id);
-      setDetachedById((current) => withoutKey(current, removed.id));
-      onItemRemovedRef.current?.(removed);
+  const applyRemoval = useCallback(
+    (screenshotId: string) => {
+      fetchedIdsRef.current.add(screenshotId);
+      removeItem(screenshotId);
+      setDetachedById((current) => withoutKey(current, screenshotId));
     },
     [removeItem]
+  );
+
+  const publishRef = useRef<((write: ScreenshotBusWrite) => void) | null>(null);
+
+  useEffect(() => {
+    if (!writeBus) return;
+
+    const subscription = writeBus.subscribe(({ screenshotId, patch }) => {
+      if (patch === null) applyRemoval(screenshotId);
+      else applyPatch(screenshotId, patch);
+    });
+    publishRef.current = subscription.publish;
+
+    return () => {
+      subscription.unsubscribe();
+      publishRef.current = null;
+    };
+  }, [applyPatch, applyRemoval, writeBus]);
+
+  const onPatch = useCallback(
+    (screenshotId: string, patch: ScreenshotPatch) => {
+      applyPatch(screenshotId, patch);
+      publishRef.current?.({ screenshotId, patch });
+    },
+    [applyPatch]
+  );
+
+  const onRemove = useCallback(
+    (removed: ProfileScreenshot) => {
+      applyRemoval(removed.id);
+      onItemRemovedRef.current?.(removed);
+      publishRef.current?.({ screenshotId: removed.id, patch: null });
+    },
+    [applyRemoval]
   );
 
   const actions = useScreenshotActions({

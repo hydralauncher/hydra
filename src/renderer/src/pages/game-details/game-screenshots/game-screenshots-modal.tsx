@@ -20,6 +20,7 @@ import {
   resumeSpoilerPaging,
   shouldAutoLoadSpoilerPage,
   trackSpoilerPaging,
+  type ScreenshotWriteBus,
 } from "@shared";
 import type { GameShop, ScreenshotSort } from "@types";
 
@@ -39,6 +40,7 @@ interface GameScreenshotsModalProps {
   showCommentCount: boolean;
   shop: GameShop;
   objectId: string;
+  writeBus: ScreenshotWriteBus;
   onClose: () => void;
 }
 
@@ -47,6 +49,7 @@ export function GameScreenshotsModal({
   showCommentCount,
   shop,
   objectId,
+  writeBus,
   onClose,
 }: Readonly<GameScreenshotsModalProps>) {
   const { t } = useTranslation("screenshots");
@@ -61,6 +64,7 @@ export function GameScreenshotsModal({
     sort,
     take: MODAL_PAGE_SIZE,
     isEnabled: visible,
+    writeBus,
   });
   const { feed, actions, lightbox } = collection;
   const visibleItems = useMemo(

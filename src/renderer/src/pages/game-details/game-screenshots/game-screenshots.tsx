@@ -6,6 +6,7 @@ import Skeleton from "react-loading-skeleton";
 import { Button } from "@renderer/components";
 import { ScreenshotLightbox } from "@renderer/components/screenshots";
 import { useFeature } from "@renderer/hooks";
+import { createScreenshotWriteBus } from "@shared";
 import type { GameShop } from "@types";
 
 import { SidebarSection } from "../sidebar-section/sidebar-section";
@@ -30,12 +31,14 @@ function GameScreenshotsBox({
 }: Readonly<GameScreenshotsBoxProps>) {
   const { t } = useTranslation("screenshots");
   const [isModalVisible, setIsModalVisible] = useState(false);
+  const [writeBus] = useState(createScreenshotWriteBus);
   const collection = useGameScreenshotsCollection({
     shop,
     objectId,
     sort: "top",
     take: SIDEBAR_SCREENSHOT_COUNT,
     isEnabled: true,
+    writeBus,
   });
   const { feed, actions, lightbox } = collection;
   const topItems = feed.items.slice(0, SIDEBAR_SCREENSHOT_COUNT);
@@ -107,6 +110,7 @@ function GameScreenshotsBox({
         showCommentCount={showCommentCount}
         shop={shop}
         objectId={objectId}
+        writeBus={writeBus}
         onClose={() => setIsModalVisible(false)}
       />
     </SidebarSection>

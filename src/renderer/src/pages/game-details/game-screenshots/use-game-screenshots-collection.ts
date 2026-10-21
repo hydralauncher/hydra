@@ -5,7 +5,7 @@ import {
   type ScreenshotFeedPage,
 } from "@renderer/components/screenshots";
 import { useUserDetails } from "@renderer/hooks";
-import { buildGameScreenshotsPath } from "@shared";
+import { buildGameScreenshotsPath, type ScreenshotWriteBus } from "@shared";
 import type { GameScreenshotsResponse, GameShop, ScreenshotSort } from "@types";
 
 interface UseGameScreenshotsCollectionOptions {
@@ -14,6 +14,7 @@ interface UseGameScreenshotsCollectionOptions {
   sort: ScreenshotSort;
   take: number;
   isEnabled: boolean;
+  writeBus: ScreenshotWriteBus;
 }
 
 export function useGameScreenshotsCollection({
@@ -22,6 +23,7 @@ export function useGameScreenshotsCollection({
   sort,
   take,
   isEnabled,
+  writeBus,
 }: UseGameScreenshotsCollectionOptions) {
   const { userDetails } = useUserDetails();
   const viewerId = userDetails?.id ?? null;
@@ -44,5 +46,6 @@ export function useGameScreenshotsCollection({
       ? [shop, objectId, sort, take, viewerId].join(":")
       : null,
     fetchPage,
+    writeBus,
   });
 }
