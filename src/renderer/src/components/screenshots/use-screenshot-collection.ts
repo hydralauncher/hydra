@@ -57,6 +57,8 @@ export type ScreenshotLightboxStatus =
 interface UseScreenshotCollectionOptions {
   feedKey: string | null;
   fetchPage: (cursor: string | null) => Promise<ScreenshotFeedPage | null>;
+  onServerTotal?: (total: number) => void;
+  onItemRemoved?: (screenshotId: string) => void;
 }
 
 interface OpenTarget {
@@ -67,7 +69,11 @@ interface OpenTarget {
 export function useScreenshotCollection({
   feedKey,
   fetchPage,
+  onServerTotal,
+  onItemRemoved,
 }: UseScreenshotCollectionOptions) {
+  const onItemRemovedRef = useRef(onItemRemoved);
+  onItemRemovedRef.current = onItemRemoved;
   const { userDetails } = useUserDetails();
   const fetchScreenshot = useCallback(
     async (ownerId: string, screenshotId: string) => {
@@ -83,6 +89,7 @@ export function useScreenshotCollection({
     feedKey,
     fetchPage,
     fetchScreenshot: (item) => fetchScreenshot(item.owner.id, item.id),
+    onServerTotal,
   });
   const { patchItem, removeItem } = feed;
   const [openTarget, setOpenTarget] = useState<OpenTarget | null>(null);
@@ -159,6 +166,7 @@ export function useScreenshotCollection({
       fetchedIdsRef.current.add(screenshotId);
       removeItem(screenshotId);
       setDetachedById((current) => withoutKey(current, screenshotId));
+      onItemRemovedRef.current?.(screenshotId);
     },
     [removeItem]
   );

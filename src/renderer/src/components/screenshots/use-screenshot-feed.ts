@@ -31,12 +31,14 @@ interface UseScreenshotFeedOptions {
   fetchScreenshot: (
     screenshot: ProfileScreenshot
   ) => Promise<ProfileScreenshot | null>;
+  onServerTotal?: (total: number) => void;
 }
 
 export function useScreenshotFeed({
   feedKey,
   fetchPage,
   fetchScreenshot,
+  onServerTotal,
 }: UseScreenshotFeedOptions) {
   const [items, setItems] = useState<ProfileScreenshot[]>([]);
   const [total, setTotal] = useState<number | null>(null);
@@ -57,6 +59,8 @@ export function useScreenshotFeed({
   fetchPageRef.current = fetchPage;
   const fetchScreenshotRef = useRef(fetchScreenshot);
   fetchScreenshotRef.current = fetchScreenshot;
+  const onServerTotalRef = useRef(onServerTotal);
+  onServerTotalRef.current = onServerTotal;
   const patchItemRef = useRef<
     (screenshotId: string, patch: ScreenshotPatch) => void
   >(() => undefined);
@@ -127,11 +131,12 @@ export function useScreenshotFeed({
       );
       setItems(merged.items);
       setNextCursor(page?.nextCursor ?? null);
-      setTotal(
+      const mergedTotal =
         page?.total === undefined
           ? null
-          : Math.max(0, page.total + merged.netCountDelta)
-      );
+          : Math.max(0, page.total + merged.netCountDelta);
+      setTotal(mergedTotal);
+      if (mergedTotal !== null) onServerTotalRef.current?.(mergedTotal);
       setHiddenReason(page?.hiddenReason ?? null);
     } catch (error) {
       if (requestId !== requestIdRef.current) return;
@@ -169,10 +174,9 @@ export function useScreenshotFeed({
       setItems((current) => mergeScreenshotPages(current, merged.items));
       setNextCursor(page.nextCursor);
       const pageTotal = page.total;
-      if (pageTotal !== undefined) {
-        setTotal((current) =>
-          merged.hasLaterWrites ? current : Math.max(0, pageTotal)
-        );
+      if (pageTotal !== undefined && !merged.hasLaterWrites) {
+        setTotal(Math.max(0, pageTotal));
+        onServerTotalRef.current?.(Math.max(0, pageTotal));
       }
     } catch (error) {
       if (requestId === requestIdRef.current) {

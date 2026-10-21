@@ -4,7 +4,7 @@ $vote-button-transition-duration: 0.2s;
 $vote-button-background: #1e1e1e;
 $vote-button-hover-background: #2a2a2a;
 
-@mixin vote-button {
+%vote-button {
   display: flex;
   align-items: center;
   gap: 6px;
@@ -23,7 +23,7 @@ $vote-button-hover-background: #2a2a2a;
     color: #ffffff;
   }
 
-  & span {
+  span {
     font-weight: 500;
     display: inline-block;
     min-width: 1ch;
@@ -31,8 +31,8 @@ $vote-button-hover-background: #2a2a2a;
   }
 }
 
-@mixin vote-button-active {
-  & svg {
+%vote-button-active {
+  svg {
     fill: white;
   }
 }

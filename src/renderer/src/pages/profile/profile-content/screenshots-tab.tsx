@@ -42,6 +42,7 @@ import type {
 
 import { FilterDropdown, type FilterDropdownOption } from "./filter-dropdown";
 import { LockedProfile } from "./locked-profile";
+import type { ScreenshotsTotalUpdate } from "./screenshots-total";
 import "./profile-content.scss";
 
 const ALL_GAMES_FILTER = "all";
@@ -158,7 +159,7 @@ interface ScreenshotsTabProps {
   isMe: boolean;
   requestedScreenshotId: string | null;
   onRequestedScreenshotHandled: () => void;
-  onTotalChange: (total: number) => void;
+  onTotalUpdate: (update: ScreenshotsTotalUpdate) => void;
 }
 
 export function ScreenshotsTab({
@@ -166,7 +167,7 @@ export function ScreenshotsTab({
   isMe,
   requestedScreenshotId,
   onRequestedScreenshotHandled,
-  onTotalChange,
+  onTotalUpdate,
 }: Readonly<ScreenshotsTabProps>) {
   const { t } = useTranslation("screenshots");
   const { userDetails } = useUserDetails();
@@ -235,13 +236,12 @@ export function ScreenshotsTab({
       ? [userId, viewerId, sort, effectiveGameFilter].join(":")
       : null,
     fetchPage,
+    onServerTotal: (total) =>
+      onTotalUpdate({ kind: "server", total, isFiltered }),
+    onItemRemoved: () => onTotalUpdate({ kind: "removed" }),
   });
   const { feed, actions, lightbox } = collection;
   const { openById } = lightbox;
-
-  useEffect(() => {
-    if (!isFiltered && feed.total !== null) onTotalChange(feed.total);
-  }, [feed.total, isFiltered, onTotalChange]);
 
   useEffect(() => {
     if (!requestedScreenshotId) return;

@@ -1,5 +1,5 @@
 @use "../../scss/globals.scss";
-@use "../../scss/vote-button.scss" as vote;
+@use "../../scss/vote-button.scss";
 
 .game-details {
   &__review-item {
@@ -156,10 +156,10 @@
   }
 
   &__vote-button {
-    @include vote.vote-button;
+    @extend %vote-button;
 
     &--active {
-      @include vote.vote-button-active;
+      @extend %vote-button-active;
     }
   }
 
