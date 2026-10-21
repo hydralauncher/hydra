@@ -59,6 +59,7 @@ export * from "./screenshot-moderation";
 export * from "./screenshots";
 export * from "./screenshot-feed-writes";
 export * from "./screenshot-image-refresh";
+export * from "./screenshot-spoiler-paging";
 export * from "./use-screenshot-image-fallback";
 export * from "./rich-text";
 export * from "./local-screenshots";

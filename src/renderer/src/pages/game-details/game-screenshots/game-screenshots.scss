@@ -242,4 +242,9 @@
     color: globals.$body-color;
     text-align: center;
   }
+
+  &__load-more {
+    display: flex;
+    margin: calc(globals.$spacing-unit * 2) auto 0;
+  }
 }

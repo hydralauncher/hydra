@@ -1,11 +1,11 @@
-import { useEffect, useId, useMemo, useState } from "react";
+import { useEffect, useId, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { FlameIcon, HistoryIcon, ImageIcon } from "@primer/octicons-react";
 import InfiniteScroll from "react-infinite-scroll-component";
 import Skeleton from "react-loading-skeleton";
 import cn from "classnames";
 
-import { CheckboxField, Modal } from "@renderer/components";
+import { Button, CheckboxField, Modal } from "@renderer/components";
 import {
   ScreenshotCard,
   ScreenshotLightbox,
@@ -14,13 +14,19 @@ import {
   storeScreenshotPreference,
 } from "@renderer/components/screenshots";
 import { GAME_SCREENSHOT_SORT_STORAGE_KEY } from "@renderer/session-state-keys";
+import {
+  INITIAL_SCREENSHOT_SPOILER_PAGING,
+  isSpoilerPagingPaused,
+  resumeSpoilerPaging,
+  shouldAutoLoadSpoilerPage,
+  trackSpoilerPaging,
+} from "@shared";
 import type { GameShop, ScreenshotSort } from "@types";
 
 import { useGameScreenshotsCollection } from "./use-game-screenshots-collection";
 
 const MODAL_PAGE_SIZE = 24;
 const SKELETON_COUNT = 6;
-const MIN_VISIBLE_WHEN_FILTERED = 12;
 const INFINITE_SCROLL_THRESHOLD = 0.9;
 
 const SORT_OPTIONS: { value: ScreenshotSort; icon: typeof HistoryIcon }[] = [
@@ -69,15 +75,29 @@ export function GameScreenshotsModal({
   const isInitialLoading =
     !feed.hasLoaded || (feed.isLoading && feed.items.length === 0);
 
+  const spoilerPagingRef = useRef(INITIAL_SCREENSHOT_SPOILER_PAGING);
+  const [isSpoilerPagingOnHold, setIsSpoilerPagingOnHold] = useState(false);
+  const loadedCount = feed.items.length;
+  const visibleCount = visibleItems.length;
+
   useEffect(() => {
-    if (
-      hideSpoilers &&
-      canLoadMore &&
-      visibleItems.length < MIN_VISIBLE_WHEN_FILTERED
-    ) {
-      void feed.loadMore();
-    }
-  }, [canLoadMore, feed, hideSpoilers, visibleItems.length]);
+    const paging = trackSpoilerPaging(
+      spoilerPagingRef.current,
+      loadedCount,
+      visibleCount
+    );
+    spoilerPagingRef.current = paging;
+    const input = { hideSpoilers, canLoadMore, paging };
+    setIsSpoilerPagingOnHold(isSpoilerPagingPaused(input));
+
+    if (shouldAutoLoadSpoilerPage(input)) void feed.loadMore();
+  }, [canLoadMore, feed, hideSpoilers, loadedCount, visibleCount]);
+
+  const loadMoreByRequest = () => {
+    spoilerPagingRef.current = resumeSpoilerPaging(spoilerPagingRef.current);
+    setIsSpoilerPagingOnHold(false);
+    void feed.loadMore();
+  };
 
   const handleSortChange = (nextSort: ScreenshotSort) => {
     if (nextSort === sort) return;
@@ -102,7 +122,7 @@ export function GameScreenshotsModal({
       return <ScreenshotLoadMoreError onRetry={() => void feed.reload()} />;
     }
 
-    if (visibleItems.length === 0 && !feed.hasMore) {
+    if (visibleItems.length === 0 && (!feed.hasMore || isSpoilerPagingOnHold)) {
       return (
         <output className="game-screenshots-modal__empty">
           <span className="game-screenshots-modal__empty-icon">
@@ -119,9 +139,11 @@ export function GameScreenshotsModal({
 
     return (
       <InfiniteScroll
-        dataLength={visibleItems.length}
-        next={() => void feed.loadMore()}
-        hasMore={feed.hasMore && !feed.hasLoadMoreFailed}
+        dataLength={feed.items.length}
+        next={loadMoreByRequest}
+        hasMore={
+          feed.hasMore && !feed.hasLoadMoreFailed && !isSpoilerPagingOnHold
+        }
         loader={
           <output className="game-screenshots-modal__loading">
             {t("loading_screenshots")}
@@ -189,6 +211,16 @@ export function GameScreenshotsModal({
 
         <div id={scrollId} className="game-screenshots-modal__scroll">
           {renderGrid()}
+
+          {isSpoilerPagingOnHold ? (
+            <Button
+              theme="outline"
+              className="game-screenshots-modal__load-more"
+              onClick={loadMoreByRequest}
+            >
+              {t("load_more_screenshots")}
+            </Button>
+          ) : null}
 
           {feed.hasLoadMoreFailed ? (
             <ScreenshotLoadMoreError onRetry={() => void feed.loadMore()} />
