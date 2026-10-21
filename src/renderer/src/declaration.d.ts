@@ -1113,6 +1113,7 @@ declare global {
     onScreenshotReviewRequested: (
       cb: (request: ScreenshotReviewRequest) => void
     ) => () => Electron.IpcRenderer;
+    getScreenshotReviewItems: () => Promise<string[] | null>;
     onScreenshotReviewItemsChanged: (
       cb: (clientIds: string[]) => void
     ) => () => Electron.IpcRenderer;

@@ -1527,6 +1527,8 @@ contextBridge.exposeInMainWorld("electron", {
     return () =>
       ipcRenderer.removeListener("on-screenshot-review-requested", listener);
   },
+  getScreenshotReviewItems: () =>
+    ipcRenderer.invoke("getScreenshotReviewItems"),
   onScreenshotReviewItemsChanged: (cb: (clientIds: string[]) => void) => {
     const listener = (_event: Electron.IpcRendererEvent, clientIds: string[]) =>
       cb(clientIds);

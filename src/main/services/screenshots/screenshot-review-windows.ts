@@ -1,4 +1,4 @@
-import { BrowserWindow, app } from "electron";
+import { BrowserWindow, app, screen } from "electron";
 import path from "node:path";
 import icon from "@resources/icon.png?asset";
 import { isStaging } from "@main/constants";
@@ -11,16 +11,20 @@ import { LocalScreenshotStore } from "./local-screenshot-store";
 import {
   assignScreenshotReview,
   createScreenshotReviewGrouping,
+  getCascadedReviewWindowBounds,
   type ScreenshotReviewGrouping,
 } from "./screenshot-review-grouping";
 
-const SINGLE_REVIEW_WINDOW_SIZE = { width: 480, height: 640 };
+const SINGLE_REVIEW_WINDOW_SIZE = { width: 480, height: 720 };
 const GRID_REVIEW_WINDOW_SIZE = { width: 900, height: 680 };
+const SINGLE_REVIEW_WINDOW_MIN_HEIGHT = 480;
+const GRID_REVIEW_WINDOW_MIN_HEIGHT = 480;
 
 interface ReviewWindowEntry {
   window: BrowserWindow;
   clientIds: string[];
   isGrid: boolean;
+  isReady: boolean;
   ready: Promise<void>;
 }
 
@@ -54,15 +58,27 @@ const buildReviewHash = (clientIds: string[], isGrid: boolean) => {
   return `screenshot-review?${query.toString()}`;
 };
 
-const createReviewWindow = (clientIds: string[], isGrid: boolean) => {
+const createReviewWindow = (
+  clientIds: string[],
+  isGrid: boolean,
+  cascadeIndex: number
+) => {
   const size = isGrid ? GRID_REVIEW_WINDOW_SIZE : SINGLE_REVIEW_WINDOW_SIZE;
+  const bounds = getCascadedReviewWindowBounds(
+    cascadeIndex,
+    size,
+    screen.getPrimaryDisplay().workArea
+  );
   const window = new BrowserWindow({
-    ...size,
-    minWidth: size.width,
-    minHeight: isGrid ? 480 : size.height,
+    ...bounds,
+    minWidth: bounds.width,
+    minHeight: Math.min(
+      bounds.height,
+      isGrid ? GRID_REVIEW_WINDOW_MIN_HEIGHT : SINGLE_REVIEW_WINDOW_MIN_HEIGHT
+    ),
     show: false,
     frame: false,
-    resizable: isGrid,
+    resizable: true,
     maximizable: false,
     fullscreenable: false,
     backgroundColor: "#1c1c1c",
@@ -93,6 +109,14 @@ const createReviewWindow = (clientIds: string[], isGrid: boolean) => {
   void WindowManager.loadWindowURL(window, buildReviewHash(clientIds, isGrid));
 
   return { window, ready };
+};
+
+const sendReviewItems = (entry: ReviewWindowEntry) => {
+  if (!entry.isReady || entry.window.isDestroyed()) return;
+  entry.window.webContents.send(
+    "on-screenshot-review-items-changed",
+    entry.clientIds
+  );
 };
 
 const releaseUnreviewedScreenshots = async (clientIds: string[]) => {
@@ -132,8 +156,18 @@ const attachWindow = (
   clientIds: string[],
   isGrid: boolean
 ) => {
-  const { window, ready } = createReviewWindow(clientIds, isGrid);
-  const entry: ReviewWindowEntry = { window, clientIds, isGrid, ready };
+  const { window, ready } = createReviewWindow(
+    clientIds,
+    isGrid,
+    session.windows.length
+  );
+  const entry: ReviewWindowEntry = {
+    window,
+    clientIds,
+    isGrid,
+    isReady: false,
+    ready,
+  };
   session.windows.push(entry);
 
   window.once("closed", () => {
@@ -153,7 +187,11 @@ const attachWindow = (
     }
   });
 
-  void ready.then(() => placeBelowGameWindow(entry, session));
+  void ready.then(() => {
+    entry.isReady = true;
+    if (entry.isGrid) sendReviewItems(entry);
+    placeBelowGameWindow(entry, session);
+  });
   return entry;
 };
 
@@ -242,10 +280,7 @@ export class ScreenshotReviewWindows {
     }
 
     grid.clientIds = assignment.clientIds;
-    grid.window.webContents.send(
-      "on-screenshot-review-items-changed",
-      grid.clientIds
-    );
+    sendReviewItems(grid);
   }
 
   public static async onGameClosed(gameKey: string) {
@@ -282,6 +317,16 @@ export class ScreenshotReviewWindows {
     return () => {
       windowClosedListeners.delete(listener);
     };
+  }
+
+  public static getReviewItemsForSender(sender: Electron.WebContents) {
+    for (const session of sessions.values()) {
+      const entry = session.windows.find(
+        ({ window }) => !window.isDestroyed() && window.webContents === sender
+      );
+      if (entry) return [...entry.clientIds];
+    }
+    return null;
   }
 
   public static isReviewWindowSender(sender: Electron.WebContents) {

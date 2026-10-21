@@ -70,7 +70,24 @@ export function ScreenshotReview() {
 
   useEffect(() => {
     if (!isGrid) return;
-    return window.electron.onScreenshotReviewItemsChanged(setClientIds);
+
+    let active = true;
+    const unsubscribe =
+      window.electron.onScreenshotReviewItemsChanged(setClientIds);
+
+    window.electron
+      .getScreenshotReviewItems()
+      .then((currentClientIds) => {
+        if (active && currentClientIds) setClientIds(currentClientIds);
+      })
+      .catch((error) => {
+        logger.error("Failed to load the screenshot review items", error);
+      });
+
+    return () => {
+      active = false;
+      unsubscribe();
+    };
   }, [isGrid]);
 
   const reviewScreenshots = useMemo(
