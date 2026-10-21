@@ -2562,6 +2562,7 @@
   },
   "screenshots": {
     "add_description": "Добавить описание",
+    "edit_description": "Изменить описание",
     "all_games": "Все игры",
     "all_screenshots_are_spoilers": "Все загруженные скриншоты отмечены как спойлеры",
     "allow_comments": "Разрешить комментарии",
