@@ -17,9 +17,11 @@ export function applyCommentWrites(
 ) {
   let result = comments;
   let totalDelta = 0;
+  let hasLaterWrites = false;
 
   for (const write of writes) {
     if (write.version <= sinceVersion) continue;
+    hasLaterWrites = true;
 
     if (write.kind === "add") {
       if (!includeAdds) continue;
@@ -43,5 +45,5 @@ export function applyCommentWrites(
     );
   }
 
-  return { comments: result, totalDelta };
+  return { comments: result, totalDelta, hasLaterWrites };
 }

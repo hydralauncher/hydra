@@ -220,7 +220,9 @@ function useScreenshotComments(
         false
       );
       setComments((current) => mergeScreenshotPages(current, merged.comments));
-      setTotal(Math.max(0, (response?.total ?? total) + merged.totalDelta));
+      setTotal((current) =>
+        merged.hasLaterWrites ? current : (response?.total ?? current)
+      );
       setNextCursor(response?.nextCursor ?? null);
     } catch (error) {
       logger.error("Failed to load more screenshot comments", error);
@@ -230,7 +232,7 @@ function useScreenshotComments(
         setIsLoadingMore(false);
       }
     }
-  }, [isLoadingMore, needsAuth, nextCursor, ownerId, screenshotId, total]);
+  }, [isLoadingMore, needsAuth, nextCursor, ownerId, screenshotId]);
 
   return {
     comments,
