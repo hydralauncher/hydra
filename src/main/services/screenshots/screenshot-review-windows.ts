@@ -37,6 +37,15 @@ const reviewWindows = new Set<BrowserWindow>();
 const windowClosedListeners = new Set<() => void>();
 const bigPictureReviewClientIds = new Set<string>();
 const sessionQueues = new Map<string, Promise<unknown>>();
+let pendingBigPictureRequest: ScreenshotReviewRequest | null = null;
+
+const sendBigPictureRequest = (
+  bigPicture: BrowserWindow,
+  request: ScreenshotReviewRequest
+) => {
+  pendingBigPictureRequest = request;
+  bigPicture.webContents.send("on-screenshot-review-requested", request);
+};
 
 const runInSessionQueue = <T>(gameKey: string, task: () => Promise<T>) => {
   const previous = sessionQueues.get(gameKey) ?? Promise.resolve();
@@ -232,6 +241,13 @@ const watchBigPictureHandoff = (
     for (const clientId of clientIds) {
       bigPictureReviewClientIds.delete(clientId);
     }
+    if (
+      pendingBigPictureRequest?.clientIds.some((clientId) =>
+        clientIds.includes(clientId)
+      )
+    ) {
+      pendingBigPictureRequest = null;
+    }
     void releaseUnreviewedScreenshots(clientIds);
   };
 
@@ -253,13 +269,13 @@ const handOffToBigPicture = (session: ReviewSession) => {
     if (!window.isDestroyed()) window.destroy();
   }
 
-  bigPicture.webContents.send("on-screenshot-review-requested", {
+  sendBigPictureRequest(bigPicture, {
     gameKey: session.gameKey,
     shop: session.shop,
     objectId: session.objectId,
     gameTitle: session.gameTitle,
     clientIds,
-  } satisfies ScreenshotReviewRequest);
+  });
   return true;
 };
 
@@ -418,8 +434,26 @@ export class ScreenshotReviewWindows {
       bigPictureReviewClientIds.add(clientId);
     }
     watchBigPictureHandoff(bigPicture, request.clientIds);
-    bigPicture.webContents.send("on-screenshot-review-requested", request);
+    sendBigPictureRequest(bigPicture, request);
     return true;
+  }
+
+  public static async takePendingBigPictureRequest() {
+    const request = pendingBigPictureRequest;
+    if (!request || !WindowManager.bigPictureWindow) {
+      pendingBigPictureRequest = null;
+      return null;
+    }
+
+    const records = await Promise.all(
+      request.clientIds.map((clientId) => LocalScreenshotStore.get(clientId))
+    );
+    const clientIds = request.clientIds.filter(
+      (_, index) => records[index]?.state === "reviewing"
+    );
+    if (pendingBigPictureRequest === request) pendingBigPictureRequest = null;
+
+    return clientIds.length ? { ...request, clientIds } : null;
   }
 
   public static markBigPictureReview(clientId: string) {
