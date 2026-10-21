@@ -1533,6 +1533,7 @@
     "no_sound_file_selected": "No sound file selected",
     "notification_preview": "Achievement Notification Preview",
     "enable_friend_start_game_notifications": "When a friend starts playing a game",
+    "open_friends_window_on_startup": "Open the friends list when Hydra starts",
     "enable_chat_message_notifications": "When a friend sends me a message",
     "autoplay_trailers_on_game_page": "Automatically start playing trailers on the game page",
     "hide_to_tray_on_game_start": "Hide Hydra to tray on game startup",

@@ -1432,6 +1432,7 @@
     "no_sound_file_selected": "Файл звука не выбран",
     "notification_preview": "Предварительный просмотр уведомления о достижении",
     "enable_friend_start_game_notifications": "Когда друг начинает играть в игру",
+    "open_friends_window_on_startup": "Открывать список друзей при запуске Hydra",
     "autoplay_trailers_on_game_page": "Автоматически начинать воспроизведение трейлеров на странице игры",
     "hide_to_tray_on_game_start": "Скрывать Hydra в трей при запуске игры",
     "downloads": "Загрузки",

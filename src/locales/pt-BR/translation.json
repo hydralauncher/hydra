@@ -1492,6 +1492,7 @@
     "no_sound_file_selected": "Nenhum arquivo de som selecionado",
     "notification_preview": "Prévia da Notificação de Conquistas",
     "enable_friend_start_game_notifications": "Quando um amigo iniciar um jogo",
+    "open_friends_window_on_startup": "Abrir a lista de amigos ao iniciar o Hydra",
     "enable_chat_message_notifications": "Quando um amigo me enviar uma mensagem",
     "autoplay_trailers_on_game_page": "Reproduzir trailers automaticamente na página do jogo",
     "hide_to_tray_on_game_start": "Ocultar o Hydra na bandeja ao iniciar um jogo",

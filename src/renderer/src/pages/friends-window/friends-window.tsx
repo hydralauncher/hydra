@@ -20,9 +20,15 @@ import {
   useUserDetails,
 } from "@renderer/hooks";
 import SteamLogo from "@renderer/assets/steam-logo.svg?react";
-import { PROFILE_FRIENDS_PATH } from "@shared";
+import { fetchAllProfileFriends, PROFILE_FRIENDS_PATH } from "@shared";
 import type { ChatUnreadState, ProfileFriends, UserFriend } from "@types";
 
+import {
+  getBackgroundImageSizes,
+  getBannerWidth,
+  sortFriendsByUnreadMessages,
+} from "./friends-window-layout";
+import { useVisibleFriendIds } from "./use-visible-friend-ids";
 import "./friends-window.scss";
 
 const PAGE_SIZE = 100;
@@ -33,8 +39,6 @@ type FriendImageSize = { width: number; height: number };
 
 const FRIEND_AVATAR_IMAGE_SIZE = { width: 80, height: 80 };
 const PROFILE_AVATAR_IMAGE_SIZE = { width: 112, height: 112 };
-const FRIEND_BACKGROUND_IMAGE_SIZE = { width: 480, height: 96 };
-const PROFILE_BACKGROUND_IMAGE_SIZE = { width: 420, height: 180 };
 const FRIEND_IMAGE_PROCESSING_BATCH_SIZE = 6;
 
 // [name width, status width] per placeholder row; varied so the skeleton reads
@@ -83,7 +87,6 @@ export default function FriendsWindow() {
   } = useUserDetails();
 
   const [friends, setFriends] = useState<UserFriend[]>([]);
-  const [onlineCount, setOnlineCount] = useState(0);
   const [isLoadingFriends, setIsLoadingFriends] = useState(true);
   const [hasResolvedSnapshot, setHasResolvedSnapshot] = useState(false);
   const [chatUnread, setChatUnread] = useState<ChatUnreadState>({
@@ -113,51 +116,51 @@ export default function FriendsWindow() {
   const [processedImages, setProcessedImages] = useState<
     Record<string, string>
   >({});
+  const { visibleFriendIds, observeFriendElement, isObservationSupported } =
+    useVisibleFriendIds();
+  const shouldLoadFriendImages = useCallback(
+    (friendId: string) =>
+      !isObservationSupported || visibleFriendIds.has(friendId),
+    [isObservationSupported, visibleFriendIds]
+  );
+  const [bannerWidth, setBannerWidth] = useState(() =>
+    getBannerWidth(globalThis.window.innerWidth)
+  );
+  const backgroundImageSizes = useMemo(
+    () => getBackgroundImageSizes(bannerWidth),
+    [bannerWidth]
+  );
+
+  useEffect(() => {
+    const handleResize = () =>
+      setBannerWidth(getBannerWidth(globalThis.window.innerWidth));
+
+    globalThis.window.addEventListener("resize", handleResize);
+    return () => globalThis.window.removeEventListener("resize", handleResize);
+  }, []);
 
   // Presence bursts fire overlapping refetches; only the latest one may write,
-  // so a slow, older response can't roll the list or count back.
+  // so a slow, older response can't roll the list back.
   const friendsRequestIdRef = useRef(0);
-  const countRequestIdRef = useRef(0);
 
   const fetchFriends = useCallback(async () => {
     const requestId = ++friendsRequestIdRef.current;
-    const countRequestId = ++countRequestIdRef.current;
 
     try {
-      const response = await electron.hydraApi.get<ProfileFriends>(
-        PROFILE_FRIENDS_PATH,
-        { params: { take: PAGE_SIZE, skip: 0 } }
+      const response = await fetchAllProfileFriends((take, skip) =>
+        electron.hydraApi.get<ProfileFriends>(PROFILE_FRIENDS_PATH, {
+          params: { take, skip },
+        })
       );
 
       if (requestId === friendsRequestIdRef.current) {
         setFriends(response.friends);
-      }
-      if (countRequestId === countRequestIdRef.current) {
-        setOnlineCount(response.onlineFriends);
       }
     } catch {
       // ignore transient errors; the next refresh will retry
     } finally {
       // Drop the skeleton even on failure so it can't shimmer forever.
       setIsLoadingFriends(false);
-    }
-  }, []);
-
-  const fetchOnlineFriendsCount = useCallback(async () => {
-    const requestId = ++countRequestIdRef.current;
-
-    try {
-      // take: 5 is the API minimum; anything lower is rejected with a 400.
-      const response = await electron.hydraApi.get<ProfileFriends>(
-        "/profile/friends",
-        { params: { take: 5, skip: 0 } }
-      );
-
-      if (requestId === countRequestIdRef.current) {
-        setOnlineCount(response.onlineFriends);
-      }
-    } catch {
-      // ignore transient errors; the next refresh will retry
     }
   }, []);
 
@@ -189,7 +192,6 @@ export default function FriendsWindow() {
 
         if (snapshot) {
           setFriends(snapshot.friends);
-          setOnlineCount(snapshot.onlineFriends);
           dispatch(setFriendRequests(snapshot.friendRequests));
           setIsLoadingFriends(false);
         }
@@ -222,14 +224,11 @@ export default function FriendsWindow() {
     const unsubscribePresence =
       typeof electron.onFriendPresence === "function"
         ? electron.onFriendPresence(({ friendId, isOnline }) => {
-            // Patch the visible page, but refetch the total because this page is
-            // capped and the event can be for an off-page friend.
             setFriends((prev) =>
               prev.map((friend) =>
                 friend.id === friendId ? { ...friend, isOnline } : friend
               )
             );
-            fetchOnlineFriendsCount();
           })
         : () => {
             if (interval) clearInterval(interval);
@@ -251,12 +250,7 @@ export default function FriendsWindow() {
       unsubscribeRequests();
       unsubscribeProfile();
     };
-  }, [
-    fetchFriends,
-    fetchFriendRequests,
-    fetchOnlineFriendsCount,
-    refreshUserDetails,
-  ]);
+  }, [fetchFriends, fetchFriendRequests, refreshUserDetails]);
 
   // Debounced friend search
   useEffect(() => {
@@ -301,8 +295,18 @@ export default function FriendsWindow() {
     }));
   }, [searchResults, friends, onlineMap]);
 
-  const onlineFriends = displayedFriends.filter((friend) => friend.isOnline);
-  const offlineFriends = displayedFriends.filter((friend) => !friend.isOnline);
+  const sortedFriends = useMemo(
+    () =>
+      sortFriendsByUnreadMessages(
+        displayedFriends,
+        chatUnread.byFriend,
+        chatUnread.lastMessageAtByFriend ?? {}
+      ),
+    [displayedFriends, chatUnread]
+  );
+
+  const onlineFriends = sortedFriends.filter((friend) => friend.isOnline);
+  const offlineFriends = sortedFriends.filter((friend) => !friend.isOnline);
 
   // null = follow the default (collapsed when the section is empty); a boolean
   // means the user explicitly toggled it.
@@ -343,16 +347,18 @@ export default function FriendsWindow() {
     };
 
     addImage(profile?.profileImageUrl, PROFILE_AVATAR_IMAGE_SIZE);
-    addImage(profile?.backgroundImageUrl, PROFILE_BACKGROUND_IMAGE_SIZE);
+    addImage(profile?.backgroundImageUrl, backgroundImageSizes.profile);
 
     for (const friend of friends) {
+      if (!shouldLoadFriendImages(friend.id)) continue;
       addImage(friend.profileImageUrl, FRIEND_AVATAR_IMAGE_SIZE);
-      addImage(friend.backgroundImageUrl, FRIEND_BACKGROUND_IMAGE_SIZE);
+      addImage(friend.backgroundImageUrl, backgroundImageSizes.friend);
     }
 
     for (const friend of searchResults ?? []) {
+      if (!shouldLoadFriendImages(friend.id)) continue;
       addImage(friend.profileImageUrl, FRIEND_AVATAR_IMAGE_SIZE);
-      addImage(friend.backgroundImageUrl, FRIEND_BACKGROUND_IMAGE_SIZE);
+      addImage(friend.backgroundImageUrl, backgroundImageSizes.friend);
     }
 
     for (const request of friendRequests) {
@@ -407,7 +413,15 @@ export default function FriendsWindow() {
     return () => {
       cancelled = true;
     };
-  }, [friends, friendRequests, profile, processedImages, searchResults]);
+  }, [
+    friends,
+    friendRequests,
+    profile,
+    processedImages,
+    searchResults,
+    backgroundImageSizes,
+    shouldLoadFriendImages,
+  ]);
 
   const getProcessedImageUrl = (
     imageUrl: string | null | undefined,
@@ -415,7 +429,14 @@ export default function FriendsWindow() {
   ) => {
     if (!imageUrl) return imageUrl;
 
-    return processedImages[getProcessedImageKey(imageUrl, size)] ?? imageUrl;
+    const processedImageUrl =
+      processedImages[getProcessedImageKey(imageUrl, size)];
+    if (processedImageUrl) return processedImageUrl;
+
+    const canProcessImages = typeof electron.getProcessedImage === "function";
+    return canProcessImages && isRemoteImageUrl(imageUrl)
+      ? undefined
+      : imageUrl;
   };
 
   const selfGame = useAppSelector((state) => state.gameRunning.gameRunning);
@@ -473,7 +494,7 @@ export default function FriendsWindow() {
   const renderFriend = (friend: UserFriend) => {
     const backgroundImageUrl = getProcessedImageUrl(
       friend.backgroundImageUrl,
-      FRIEND_BACKGROUND_IMAGE_SIZE
+      backgroundImageSizes.friend
     );
     const unreadCount = chatUnread.byFriend[friend.id] ?? 0;
     const messageLabel =
@@ -487,6 +508,8 @@ export default function FriendsWindow() {
     return (
       <li
         key={friend.id}
+        ref={observeFriendElement(friend.id)}
+        data-friend-id={friend.id}
         className={`friends-window__friend${
           backgroundImageUrl ? " friends-window__friend--has-bg" : ""
         }`}
@@ -518,6 +541,8 @@ export default function FriendsWindow() {
                 FRIEND_AVATAR_IMAGE_SIZE
               )}
               alt={friend.displayName}
+              loading="lazy"
+              decoding="async"
             />
             <span
               className={`friends-window__status-orb${
@@ -677,7 +702,7 @@ export default function FriendsWindow() {
 
   const profileBackgroundImageUrl = getProcessedImageUrl(
     profile?.backgroundImageUrl,
-    PROFILE_BACKGROUND_IMAGE_SIZE
+    backgroundImageSizes.profile
   );
 
   return (
@@ -893,8 +918,7 @@ export default function FriendsWindow() {
 
               {renderCollapsibleSection(
                 t("online"),
-                // The total only describes the unfiltered list.
-                searchResults === null ? onlineCount : onlineFriends.length,
+                onlineFriends.length,
                 onlineFriends,
                 onlineCollapsed,
                 () => setOnlineOverride(!onlineCollapsed),

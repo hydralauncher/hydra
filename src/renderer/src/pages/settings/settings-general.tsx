@@ -58,6 +58,7 @@ export function SettingsGeneral() {
     repackUpdatesNotificationsEnabled: false,
     friendRequestNotificationsEnabled: false,
     friendStartGameNotificationsEnabled: true,
+    openFriendsWindowOnStartup: false,
     achievementNotificationsEnabled: true,
     achievementCustomNotificationsEnabled: true,
     achievementCustomNotificationPosition:
@@ -144,6 +145,8 @@ export function SettingsGeneral() {
           userPreferences.friendRequestNotificationsEnabled ?? false,
         friendStartGameNotificationsEnabled:
           userPreferences.friendStartGameNotificationsEnabled ?? true,
+        openFriendsWindowOnStartup:
+          userPreferences.openFriendsWindowOnStartup ?? false,
         language: language ?? "en",
       }));
     }
@@ -309,6 +312,16 @@ export function SettingsGeneral() {
           value: language.option,
           label: language.nativeName,
         }))}
+      />
+
+      <CheckboxField
+        label={t("open_friends_window_on_startup")}
+        checked={form.openFriendsWindowOnStartup}
+        onChange={() =>
+          handleChange({
+            openFriendsWindowOnStartup: !form.openFriendsWindowOnStartup,
+          })
+        }
       />
 
       <h2 className="settings-general__section-title">{t("downloads")}</h2>

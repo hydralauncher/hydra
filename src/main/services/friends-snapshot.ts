@@ -1,10 +1,8 @@
-import { PROFILE_FRIENDS_PATH } from "@shared";
+import { fetchAllProfileFriends, PROFILE_FRIENDS_PATH } from "@shared";
 import type { FriendRequest, FriendsSnapshot, ProfileFriends } from "@types";
 import { HydraApi } from "./hydra-api";
 import { logger } from "./logger";
 
-// Same page size the friends window fetches.
-const FRIENDS_PAGE_SIZE = 100;
 // Reopening the profile menu within this window reuses the last snapshot
 // instead of hitting the API again.
 const SNAPSHOT_MAX_AGE_MS = 15_000;
@@ -53,10 +51,9 @@ export class FriendsSnapshotCache {
   ): Promise<FriendsSnapshot | null> {
     try {
       const [profileFriends, friendRequests] = await Promise.all([
-        HydraApi.get<ProfileFriends>(PROFILE_FRIENDS_PATH, {
-          take: FRIENDS_PAGE_SIZE,
-          skip: 0,
-        }),
+        fetchAllProfileFriends((take, skip) =>
+          HydraApi.get<ProfileFriends>(PROFILE_FRIENDS_PATH, { take, skip })
+        ),
         HydraApi.get<FriendRequest[]>("/profile/friend-requests"),
       ]);
 
