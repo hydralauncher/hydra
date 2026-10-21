@@ -173,7 +173,8 @@ const hasAchievementFileChanged = (file: AchievementFile) => {
 };
 
 // Epic files are rewritten in place. A read that catches a partial write is
-// retried on the next tick instead of being taken as an empty file.
+// retried on the next tick instead of being taken as an empty file. Callers
+// record the modification time before reading.
 const parseChangedAchievementFile = (file: AchievementFile) => {
   if (!isEpicAchievementFileType(file.type)) {
     return parseAchievementFile(file.filePath, file.type);
@@ -487,17 +488,16 @@ export class AchievementWatcherManager {
   ) {
     const unlockedAchievements: UnlockedAchievement[] = [];
     for (const achievementFile of gameAchievementFiles) {
-      const parsedAchievements = parseAchievementFile(
-        achievementFile.filePath,
-        achievementFile.type
-      );
-
+      // Record the time before reading, as polling does, so a write that
+      // lands during the read still counts as a change on the next tick.
       try {
         const currentStat = fs.statSync(achievementFile.filePath);
         fileStats.set(achievementFile.filePath, currentStat.mtimeMs);
       } catch {
         fileStats.set(achievementFile.filePath, -1);
       }
+
+      const parsedAchievements = parseChangedAchievementFile(achievementFile);
 
       if (parsedAchievements.length) {
         unlockedAchievements.push(...parsedAchievements);
