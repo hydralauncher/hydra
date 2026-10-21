@@ -59,6 +59,7 @@ export function useScreenshotComments({
     ReadonlySet<string>
   >(() => new Set());
   const requestIdRef = useRef(0);
+  const isReadInFlightRef = useRef(false);
   const commentCountRef = useRef(screenshot.commentCount);
   commentCountRef.current = screenshot.commentCount;
 
@@ -101,6 +102,7 @@ export function useScreenshotComments({
 
   const reload = useCallback(async () => {
     const requestId = ++requestIdRef.current;
+    isReadInFlightRef.current = true;
     setIsLoading(true);
     setHasFailed(false);
 
@@ -116,14 +118,22 @@ export function useScreenshotComments({
       logger.error("Failed to load screenshot comments", error);
       if (!handleAccessError(error)) setHasFailed(true);
     } finally {
-      if (requestId === requestIdRef.current) setIsLoading(false);
+      if (requestId === requestIdRef.current) {
+        isReadInFlightRef.current = false;
+        setIsLoading(false);
+      }
     }
   }, [fetchPage, handleAccessError]);
+
+  const restartPendingRead = useCallback(() => {
+    if (isReadInFlightRef.current) void reload();
+  }, [reload]);
 
   const loadMore = useCallback(async () => {
     if (isLoading || !nextCursor) return;
 
     const requestId = requestIdRef.current;
+    isReadInFlightRef.current = true;
     setIsLoading(true);
 
     try {
@@ -138,12 +148,16 @@ export function useScreenshotComments({
       logger.error("Failed to load more screenshot comments", error);
       showErrorToast(t("comments_load_failed"));
     } finally {
-      if (requestId === requestIdRef.current) setIsLoading(false);
+      if (requestId === requestIdRef.current) {
+        isReadInFlightRef.current = false;
+        setIsLoading(false);
+      }
     }
   }, [fetchPage, isLoading, nextCursor, showErrorToast, t]);
 
   useEffect(() => {
     requestIdRef.current += 1;
+    isReadInFlightRef.current = false;
     setComments([]);
     setTotal(null);
     setNextCursor(null);
@@ -200,6 +214,7 @@ export function useScreenshotComments({
         setComments((current) => [comment, ...current]);
         setTotal((current) => (current ?? 0) + 1);
         onPatch(screenshotId, { commentCount: commentCountRef.current + 1 });
+        restartPendingRead();
         return true;
       } catch (error) {
         logger.error("Failed to post screenshot comment", error);
@@ -209,7 +224,14 @@ export function useScreenshotComments({
         setIsSubmitting(false);
       }
     },
-    [handleWriteError, isSubmitting, onPatch, ownerId, screenshotId]
+    [
+      handleWriteError,
+      isSubmitting,
+      onPatch,
+      ownerId,
+      restartPendingRead,
+      screenshotId,
+    ]
   );
 
   const editComment = useCallback(
@@ -237,6 +259,7 @@ export function useScreenshotComments({
               : item
           )
         );
+        restartPendingRead();
         return true;
       } catch (error) {
         logger.error("Failed to edit screenshot comment", error);
@@ -246,7 +269,14 @@ export function useScreenshotComments({
         setPending(comment.id, false);
       }
     },
-    [handleWriteError, ownerId, pendingCommentIds, screenshotId, setPending]
+    [
+      handleWriteError,
+      ownerId,
+      pendingCommentIds,
+      restartPendingRead,
+      screenshotId,
+      setPending,
+    ]
   );
 
   const deleteComment = useCallback(
@@ -269,6 +299,7 @@ export function useScreenshotComments({
             commentCount: Math.max(0, commentCountRef.current - 1),
           });
         }
+        restartPendingRead();
         showSuccessToast(t("comment_deleted"));
         return true;
       } catch (error) {
@@ -280,6 +311,7 @@ export function useScreenshotComments({
       }
     },
     [
+      restartPendingRead,
       handleWriteError,
       onPatch,
       ownerId,
@@ -324,6 +356,7 @@ export function useScreenshotComments({
             { needsAuth: true }
           );
         if (response) applyVote(response);
+        restartPendingRead();
       } catch (error) {
         applyVote(previous);
         logger.error("Failed to vote on screenshot comment", error);
@@ -332,7 +365,14 @@ export function useScreenshotComments({
         setPending(comment.id, false);
       }
     },
-    [handleWriteError, ownerId, pendingCommentIds, screenshotId, setPending]
+    [
+      handleWriteError,
+      ownerId,
+      pendingCommentIds,
+      restartPendingRead,
+      screenshotId,
+      setPending,
+    ]
   );
 
   const reportComment = useCallback(

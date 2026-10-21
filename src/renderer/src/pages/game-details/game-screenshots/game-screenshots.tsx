@@ -8,6 +8,7 @@ import { Button } from "@renderer/components";
 import {
   ScreenshotCard,
   ScreenshotLightbox,
+  ScreenshotLoadMoreError,
   readStoredScreenshotSort,
   storeScreenshotPreference,
   useScreenshotCollection,
@@ -96,21 +97,21 @@ function GameScreenshotsSection({
 
     if (feed.hasFailed) {
       return (
-        <div className="game-screenshots__empty" role="status">
+        <output className="game-screenshots__empty">
           <p>{t("screenshots_load_failed")}</p>
           <Button theme="outline" onClick={() => void feed.reload()}>
             {t("retry")}
           </Button>
-        </div>
+        </output>
       );
     }
 
     if (feed.items.length === 0) {
       return (
-        <div className="game-screenshots__empty" role="status">
+        <output className="game-screenshots__empty">
           <ImageIcon size={20} />
           <p>{t("no_game_screenshots")}</p>
-        </div>
+        </output>
       );
     }
 
@@ -130,7 +131,11 @@ function GameScreenshotsSection({
           ))}
         </ul>
 
-        {feed.hasMore ? (
+        {feed.hasLoadMoreFailed ? (
+          <ScreenshotLoadMoreError onRetry={() => void feed.loadMore()} />
+        ) : null}
+
+        {feed.hasMore && !feed.hasLoadMoreFailed ? (
           <Button
             theme="outline"
             className="game-screenshots__load-more"
@@ -154,11 +159,7 @@ function GameScreenshotsSection({
           {t("community_screenshots")}
         </h2>
 
-        <div
-          className="game-screenshots__sort"
-          role="group"
-          aria-label={t("sort_by")}
-        >
+        <fieldset className="game-screenshots__sort" aria-label={t("sort_by")}>
           {SORT_OPTIONS.map(({ value, icon: Icon }) => (
             <button
               key={value}
@@ -173,7 +174,7 @@ function GameScreenshotsSection({
               {t(`sort_${value}`)}
             </button>
           ))}
-        </div>
+        </fieldset>
       </div>
 
       {renderContent()}

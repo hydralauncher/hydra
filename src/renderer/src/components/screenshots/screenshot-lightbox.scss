@@ -31,7 +31,11 @@
   z-index: 1;
   display: grid;
   width: min(1680px, 100%);
+  max-width: none;
   height: min(960px, 100%);
+  max-height: none;
+  margin: 0;
+  padding: 0;
   grid-template-columns: minmax(0, 1fr) var(--screenshot-panel-width);
   overflow: hidden;
   border: 1px solid globals.$border-color;
@@ -329,14 +333,22 @@
 
     &--pending {
       border-color: rgba(255, 193, 7, 0.35);
-      background: rgba(255, 193, 7, 0.06);
-      color: #ffd36d;
+      background: globals.$dark-background-color;
+      color: globals.$body-color;
+
+      > svg {
+        color: globals.$warning-color;
+      }
     }
 
     &--blocked {
       border-color: rgba(225, 29, 72, 0.45);
-      background: rgba(225, 29, 72, 0.08);
-      color: #ff8aa3;
+      background: globals.$dark-background-color;
+      color: globals.$body-color;
+
+      > svg {
+        color: globals.$error-color;
+      }
     }
   }
 

@@ -253,3 +253,13 @@
   gap: calc(globals.$spacing-unit * 1.5);
   grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
 }
+
+.screenshot-load-more-error {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: globals.$spacing-unit;
+  padding: calc(globals.$spacing-unit * 2);
+  color: globals.$body-color;
+}

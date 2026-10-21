@@ -186,10 +186,16 @@ export const SCREENSHOT_API_ERROR_CODES = [
 export type ScreenshotApiErrorCode =
   (typeof SCREENSHOT_API_ERROR_CODES)[number];
 
+const getErrorMessage = (error: unknown) => {
+  if (error instanceof Error) return error.message;
+  if (typeof error === "string") return error;
+  return "";
+};
+
 export const getScreenshotApiErrorCode = (
   error: unknown
 ): ScreenshotApiErrorCode | null => {
-  const message = error instanceof Error ? error.message : String(error);
+  const message = getErrorMessage(error);
 
   return (
     SCREENSHOT_API_ERROR_CODES.find((code) => message.includes(code)) ?? null
@@ -252,7 +258,7 @@ export const getVotedScreenshotComment = (
 };
 
 export const normalizeScreenshotCommentBody = (body: string) =>
-  body.replace(/\r\n/g, "\n").trim();
+  body.replaceAll("\r\n", "\n").trim();
 
 export const normalizeScreenshotReportValues = <
   Reason extends ScreenshotReportReason,

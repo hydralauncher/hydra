@@ -114,7 +114,7 @@ export function useScreenshotActions({
   const toggleLike = useCallback(
     async (screenshot: ProfileScreenshot) => {
       if (!userDetails) {
-        window.electron.openAuthWindow(AuthPage.SignIn);
+        void window.electron.openAuthWindow(AuthPage.SignIn);
         return;
       }
 
@@ -240,7 +240,7 @@ export function useScreenshotActions({
   const reportScreenshot = useCallback(
     async (screenshot: ProfileScreenshot, values: ScreenshotReportValues) => {
       if (!userDetails) {
-        window.electron.openAuthWindow(AuthPage.SignIn);
+        void window.electron.openAuthWindow(AuthPage.SignIn);
         return false;
       }
 
