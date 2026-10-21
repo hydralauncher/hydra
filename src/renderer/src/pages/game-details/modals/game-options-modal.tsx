@@ -669,11 +669,10 @@ export function GameOptionsModal({
       steamUninstallAvailable,
       isSteamLibraryExecutable === true
     );
-    if (!liveTarget || liveTarget.kind !== "hydra") {
-      showErrorToast(t("remove_files_target_changed"));
-      return;
-    }
-    if (!isSameRemoveFilesTarget(liveTarget, pendingTarget)) {
+    if (
+      liveTarget?.kind !== "hydra" ||
+      !isSameRemoveFilesTarget(liveTarget, pendingTarget)
+    ) {
       showErrorToast(t("remove_files_target_changed"));
       return;
     }
@@ -702,25 +701,18 @@ export function GameOptionsModal({
       steamUninstallAvailable,
       isSteamLibraryExecutable === true
     );
-    if (!liveTarget || liveTarget.kind !== "steam") {
+    if (
+      liveTarget?.kind !== "steam" ||
+      !isSameRemoveFilesTarget(liveTarget, pendingTarget)
+    ) {
       showErrorToast(t("remove_files_target_changed"));
       setPendingRemoveFilesTarget(null);
-      return;
-    }
-    if (!isSameRemoveFilesTarget(liveTarget, pendingTarget)) {
-      showErrorToast(t("remove_files_target_changed"));
-      setPendingRemoveFilesTarget(null);
-      return;
-    }
-
-    if (typeof globalThis.window.electron.uninstallGameOnSteam !== "function") {
-      showErrorToast(t("steam_uninstall_failed"));
       return;
     }
 
     setSteamUninstalling(true);
     try {
-      await globalThis.window.electron.uninstallGameOnSteam(liveTarget.appId);
+      await globalThis.window.electron.uninstallGameOnSteam?.(liveTarget.appId);
       showSuccessToast(
         t("steam_uninstall_requested"),
         t("steam_uninstall_requested_description")

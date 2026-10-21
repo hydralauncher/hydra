@@ -200,13 +200,9 @@ export function GameDangerZoneSettingsTab({
       }
 
       if (liveTarget.kind === "steam") {
-        if (
-          typeof globalThis.window.electron.uninstallGameOnSteam !== "function"
-        ) {
-          showErrorToast(t("steam_uninstall_failed"));
-          return;
-        }
-        await globalThis.window.electron.uninstallGameOnSteam(liveTarget.appId);
+        await globalThis.window.electron.uninstallGameOnSteam?.(
+          liveTarget.appId
+        );
         showSuccessToast(t("steam_uninstall_requested"));
         clearPendingAction();
         return;
