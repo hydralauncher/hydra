@@ -17,7 +17,14 @@ import {
   WarningCircleIcon,
 } from "@phosphor-icons/react";
 import cn from "classnames";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import {
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import { createPortal } from "react-dom";
 import { useTranslation } from "react-i18next";
 import type {
@@ -45,7 +52,7 @@ import {
   UserProfileAvatar,
   VerticalFocusGroup,
 } from "../../../common";
-import { FocusRegionContext } from "../../../context";
+import { FocusRegionContext, useFocusLayerId } from "../../../context";
 import { ConfirmationModal } from "../../../modals";
 import {
   Feature,
@@ -57,6 +64,7 @@ import {
 } from "../../../../hooks";
 import { useInputModeStore, useVirtualKeyboardStore } from "../../../../stores";
 import { GamepadButtonType } from "../../../../types";
+import { NavigationService } from "../../../../services";
 import {
   formatScreenshotDate,
   getScreenshotAltText,
@@ -94,8 +102,10 @@ const STATUS_REGION_ID = "screenshot-lightbox-status";
 const shouldRestoreLightboxFocus = () =>
   useInputModeStore.getState().mode === "gamepad";
 
+const LIGHTBOX_ROOT_REGION_ID = "screenshot-lightbox-root";
+const navigationService = NavigationService.getInstance();
+
 const getLightboxFocusIds = (screenshotId: string) => ({
-  root: `screenshot-lightbox:${screenshotId}`,
   media: `screenshot-lightbox-media:${screenshotId}`,
   actions: `screenshot-lightbox-actions:${screenshotId}`,
   reveal: `screenshot-lightbox-reveal:${screenshotId}`,
@@ -122,11 +132,30 @@ function useBlockingOverlayGuard() {
 interface LightboxStatusPanelProps {
   status: Exclude<ScreenshotLightboxStatus, "ready">;
   onClose: () => void;
+  onLayerChange: (layerId: string | null) => void;
+}
+
+interface LightboxLayerReporterProps {
+  onLayerChange: (layerId: string | null) => void;
+}
+
+function LightboxLayerReporter({
+  onLayerChange,
+}: Readonly<LightboxLayerReporterProps>) {
+  const layerId = useFocusLayerId();
+
+  useLayoutEffect(() => {
+    onLayerChange(layerId);
+    return () => onLayerChange(null);
+  }, [layerId, onLayerChange]);
+
+  return null;
 }
 
 function LightboxStatusPanel({
   status,
   onClose,
+  onLayerChange,
 }: Readonly<LightboxStatusPanelProps>) {
   const { t } = useTranslation("big_picture");
   const messages = {
@@ -151,6 +180,7 @@ function LightboxStatusPanel({
       initialFocusId={STATUS_CLOSE_FOCUS_ID}
       restoreFocusOnUnmount={shouldRestoreLightboxFocus}
     >
+      <LightboxLayerReporter onLayerChange={onLayerChange} />
       <VerticalFocusGroup regionId={STATUS_REGION_ID} asChild>
         <div
           className="screenshot-lightbox__status"
@@ -647,6 +677,7 @@ interface LightboxShortcutsOptions {
   onPrevious: () => void;
   onNext: () => void;
   onClose: () => void;
+  isActiveLayer: () => boolean;
 }
 
 const isTypingInField = () => {
@@ -667,26 +698,37 @@ function useLightboxShortcuts({
   onPrevious,
   onNext,
   onClose,
+  isActiveLayer,
 }: LightboxShortcutsOptions) {
   const { onButtonPressed, isActiveGamepadEvent } = useGamepad();
   const canGoPrevious = canUseShortcuts && hasPrevious;
   const canGoNext = canUseShortcuts && hasNext;
 
   useNavigationScreenActions(
-    isOpen && !hasLocalOverlay ? { press: { b: onClose } } : {}
+    isOpen && !hasLocalOverlay
+      ? {
+          press: {
+            b: () => {
+              if (isActiveLayer()) onClose();
+            },
+          },
+        }
+      : {}
   );
 
   useEffect(() => {
     const removeLeft = onButtonPressed(
       GamepadButtonType.LEFT_BUMPER,
       (event) => {
-        if (canGoPrevious && isActiveGamepadEvent(event)) onPrevious();
+        if (canGoPrevious && isActiveGamepadEvent(event) && isActiveLayer())
+          onPrevious();
       }
     );
     const removeRight = onButtonPressed(
       GamepadButtonType.RIGHT_BUMPER,
       (event) => {
-        if (canGoNext && isActiveGamepadEvent(event)) onNext();
+        if (canGoNext && isActiveGamepadEvent(event) && isActiveLayer())
+          onNext();
       }
     );
 
@@ -698,6 +740,7 @@ function useLightboxShortcuts({
     canGoNext,
     canGoPrevious,
     isActiveGamepadEvent,
+    isActiveLayer,
     onButtonPressed,
     onNext,
     onPrevious,
@@ -707,7 +750,8 @@ function useLightboxShortcuts({
     if (!isOpen || hasLocalOverlay) return;
 
     const onKeyDown = (event: KeyboardEvent) => {
-      if (event.defaultPrevented || isTypingInField()) return;
+      if (event.defaultPrevented || isTypingInField() || !isActiveLayer())
+        return;
 
       if (event.key === "Escape") onClose();
       if (event.key === "PageUp" && hasPrevious) onPrevious();
@@ -720,6 +764,7 @@ function useLightboxShortcuts({
     hasLocalOverlay,
     hasNext,
     hasPrevious,
+    isActiveLayer,
     isOpen,
     onClose,
     onNext,
@@ -781,6 +826,8 @@ interface LightboxDialogProps {
   onRequestReport: () => void;
   onRequestManage: () => void;
   onRequestDelete: () => void;
+  onLayerChange: (layerId: string | null) => void;
+  isActiveLayer: () => boolean;
 }
 
 function LightboxDialog({
@@ -794,6 +841,8 @@ function LightboxDialog({
   onRequestReport,
   onRequestManage,
   onRequestDelete,
+  onLayerChange,
+  isActiveLayer,
 }: Readonly<LightboxDialogProps>) {
   const { t } = useTranslation("big_picture");
   const revealedIds = useRevealedScreenshotSpoilers(
@@ -820,15 +869,29 @@ function LightboxDialog({
     () => ({ type: "item" as const, itemId: focusIds.like }),
     [focusIds.like]
   );
+  const entryFocusId = isBlurred ? focusIds.reveal : focusIds.like;
+  const [initialFocusId] = useState(entryFocusId);
+  const lastEntryFocusIdRef = useRef(entryFocusId);
+
+  useEffect(() => {
+    if (lastEntryFocusIdRef.current === entryFocusId) return;
+    lastEntryFocusIdRef.current = entryFocusId;
+
+    const frameId = globalThis.window.requestAnimationFrame(() => {
+      if (isActiveLayer()) navigationService.setFocus(entryFocusId);
+    });
+
+    return () => globalThis.window.cancelAnimationFrame(frameId);
+  }, [entryFocusId, isActiveLayer]);
 
   return (
     <NavigationLayer
-      key={screenshot.id}
-      rootRegionId={focusIds.root}
-      initialFocusId={isBlurred ? focusIds.reveal : focusIds.like}
+      rootRegionId={LIGHTBOX_ROOT_REGION_ID}
+      initialFocusId={initialFocusId}
       restoreFocusOnUnmount={shouldRestoreLightboxFocus}
     >
-      <HorizontalFocusGroup regionId={focusIds.root} asChild>
+      <LightboxLayerReporter onLayerChange={onLayerChange} />
+      <HorizontalFocusGroup regionId={LIGHTBOX_ROOT_REGION_ID} asChild>
         <dialog
           open
           className={cn("screenshot-lightbox", {
@@ -969,6 +1032,16 @@ export function ScreenshotLightbox({
   });
   const hasLocalOverlay =
     openModal !== null || isCommentsOverlayOpen || isVirtualKeyboardOpen;
+  const layerIdRef = useRef<string | null>(null);
+  const handleLayerChange = useCallback((layerId: string | null) => {
+    layerIdRef.current = layerId;
+  }, []);
+  const isActiveLayer = useCallback(
+    () =>
+      layerIdRef.current !== null &&
+      navigationService.getActiveLayerId() === layerIdRef.current,
+    []
+  );
 
   useEffect(() => {
     setOpenModal(null);
@@ -983,6 +1056,7 @@ export function ScreenshotLightbox({
     onPrevious,
     onNext,
     onClose,
+    isActiveLayer,
   });
 
   const requestReport = () => {
@@ -1030,6 +1104,8 @@ export function ScreenshotLightbox({
                 onRequestReport={requestReport}
                 onRequestManage={() => setOpenModal("manage")}
                 onRequestDelete={() => setOpenModal("delete")}
+                onLayerChange={handleLayerChange}
+                isActiveLayer={isActiveLayer}
               />
               <LightboxModals
                 screenshot={readyScreenshot}
@@ -1044,7 +1120,11 @@ export function ScreenshotLightbox({
             </>
           ) : null}
           {status === "ready" ? null : (
-            <LightboxStatusPanel status={status} onClose={onClose} />
+            <LightboxStatusPanel
+              status={status}
+              onClose={onClose}
+              onLayerChange={handleLayerChange}
+            />
           )}
         </div>
       </Backdrop>
