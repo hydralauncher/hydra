@@ -41,7 +41,7 @@ import {
 } from "../../hooks";
 import {
   EMPTY_REVIEW_QUEUE,
-  advanceReviewQueue,
+  advanceReviewQueuePast,
   closeReviewQueue,
   dropMissingReviewItems,
   enqueueReviewRequest,
@@ -216,15 +216,11 @@ function UploadStatus({ screenshot }: Readonly<UploadStatusProps>) {
       ) : null}
 
       {isFailed || isDone ? null : (
-        <div
+        <progress
           className="screenshot-review-modal__progress"
-          role="progressbar"
-          aria-valuemin={0}
-          aria-valuemax={100}
-          aria-valuenow={progress}
-        >
-          <span style={{ width: `${progress}%` }} />
-        </div>
+          value={progress}
+          max={100}
+        />
       )}
     </div>
   );
@@ -292,8 +288,8 @@ export function ScreenshotReviewModal() {
     setIsDeleteConfirmVisible(false);
   }, [visible]);
 
-  const goToNext = useCallback(() => {
-    setQueueState(advanceReviewQueue);
+  const goToNextFrom = useCallback((clientId: string) => {
+    setQueueState((state) => advanceReviewQueuePast(state, clientId));
   }, []);
 
   useEffect(() => {
@@ -320,7 +316,7 @@ export function ScreenshotReviewModal() {
   }, [currentFocusId, visible]);
 
   useEffect(() => {
-    if (!isListFresh) return;
+    if (!isListFresh || pendingAction) return;
 
     const availableIds = new Set(screenshots.map((item) => item.clientId));
     const { state: nextState, droppedIds } = dropMissingReviewItems(
@@ -331,7 +327,7 @@ export function ScreenshotReviewModal() {
 
     keepScreenshotsLocally(droppedIds);
     setQueueState(nextState);
-  }, [isListFresh, queueState, screenshots]);
+  }, [isListFresh, pendingAction, queueState, screenshots]);
 
   const runAction = async (
     action: ReviewDecision,
@@ -382,20 +378,22 @@ export function ScreenshotReviewModal() {
   const skip = async () => {
     if (!current) return;
 
+    const { clientId } = current;
     const done = await runAction("skip", () =>
-      globalThis.window.electron.skipLocalScreenshot(current.clientId)
+      globalThis.window.electron.skipLocalScreenshot(clientId)
     );
-    if (done) goToNext();
+    if (done) goToNextFrom(clientId);
   };
 
   const remove = async () => {
     if (!current) return;
 
+    const { clientId } = current;
     const done = await runAction("delete", () =>
-      globalThis.window.electron.deleteLocalScreenshot(current.clientId)
+      globalThis.window.electron.deleteLocalScreenshot(clientId)
     );
     setIsDeleteConfirmVisible(false);
-    if (done) goToNext();
+    if (done) goToNextFrom(clientId);
   };
 
   const close = () => {
@@ -511,7 +509,10 @@ export function ScreenshotReviewModal() {
                     {t("screenshots_review_retry")}
                   </Button>
                 ) : null}
-                <Button focusId={NEXT_FOCUS_ID} onClick={goToNext}>
+                <Button
+                  focusId={NEXT_FOCUS_ID}
+                  onClick={() => goToNextFrom(current.clientId)}
+                >
                   {t(
                     index >= queue.length - 1
                       ? "screenshots_review_done"

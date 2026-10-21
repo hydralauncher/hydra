@@ -79,6 +79,15 @@ export function advanceReviewQueue(state: ReviewQueueState): ReviewQueueState {
   return { ...state, index: state.index + 1 };
 }
 
+export function advanceReviewQueuePast(
+  state: ReviewQueueState,
+  clientId: string
+): ReviewQueueState {
+  if (getCurrentReviewItem(state)?.clientId !== clientId) return state;
+
+  return advanceReviewQueue(state);
+}
+
 export function getUndecidedReviewIds(state: ReviewQueueState) {
   return state.items
     .filter((item) => !state.decisions[item.clientId])
