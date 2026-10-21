@@ -43,14 +43,17 @@ function GameScreenshotsBox({
   const renderContent = () => {
     if (isInitialLoading) {
       return (
-        <div className="game-screenshots-box__grid" aria-busy="true">
-          {Array.from({ length: SIDEBAR_SCREENSHOT_COUNT }, (_, index) => (
-            <Skeleton
-              key={`game-screenshots-box-skeleton-${index}`}
-              className="game-screenshots-box__skeleton"
-            />
-          ))}
-        </div>
+        <>
+          <div className="game-screenshots-box__grid" aria-busy="true">
+            {Array.from({ length: SIDEBAR_SCREENSHOT_COUNT }, (_, index) => (
+              <Skeleton
+                key={`game-screenshots-box-skeleton-${index}`}
+                className="game-screenshots-box__skeleton"
+              />
+            ))}
+          </div>
+          <Skeleton className="game-screenshots-box__view-all-skeleton" />
+        </>
       );
     }
 

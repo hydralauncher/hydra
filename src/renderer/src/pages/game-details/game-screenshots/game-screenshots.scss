@@ -93,6 +93,13 @@
     width: 100%;
   }
 
+  &__view-all-skeleton {
+    display: block;
+    width: 100%;
+    height: 40px;
+    border-radius: 8px;
+  }
+
   &__empty {
     display: flex;
     align-items: center;
@@ -108,10 +115,20 @@
   &.modal--large {
     width: min(960px, calc(100vw - 48px));
     max-width: min(960px, calc(100vw - 48px));
+    height: min(860px, 100%);
+  }
+
+  .modal__content {
+    display: flex;
+    min-height: 0;
+    flex: 1;
+    flex-direction: column;
+    overflow: hidden;
   }
 
   &__toolbar {
     display: flex;
+    flex-shrink: 0;
     flex-wrap: wrap;
     align-items: center;
     justify-content: space-between;
@@ -163,7 +180,8 @@
   }
 
   &__scroll {
-    max-height: min(65vh, 720px);
+    min-height: 0;
+    flex: 1;
     overflow-x: hidden;
     overflow-y: auto;
     padding-right: 4px;
