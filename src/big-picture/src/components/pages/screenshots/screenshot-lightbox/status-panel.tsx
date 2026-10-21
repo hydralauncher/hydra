@@ -37,7 +37,7 @@ export function ScreenshotLightboxStatusPanel({
   onClose,
 }: Readonly<ScreenshotLightboxStatusPanelProps>) {
   const { t } = useTranslation("big_picture");
-  const { handleLayerChange, isActiveLayer } = useActiveLayerTracker();
+  const { layerId, handleLayerChange, isActiveLayer } = useActiveLayerTracker();
   const messages = {
     loading: {
       icon: <ImageIcon size={40} />,
@@ -62,6 +62,7 @@ export function ScreenshotLightboxStatusPanel({
     <FocusRegionContext.Provider value={null}>
       <LightboxBackAction
         enabled
+        layerId={layerId}
         isActiveLayer={isActiveLayer}
         onClose={onClose}
       />

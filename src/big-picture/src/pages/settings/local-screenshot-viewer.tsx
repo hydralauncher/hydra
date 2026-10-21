@@ -95,7 +95,7 @@ export function LocalScreenshotViewer({
   onDelete,
 }: Readonly<LocalScreenshotViewerProps>) {
   const { t } = useTranslation("big_picture");
-  const { handleLayerChange, isActiveLayer } = useActiveLayerTracker();
+  const { layerId, handleLayerChange, isActiveLayer } = useActiveLayerTracker();
   const isOpen = screenshot !== null;
 
   useLightboxShortcuts({
@@ -121,6 +121,7 @@ export function LocalScreenshotViewer({
     <FocusRegionContext.Provider value={null}>
       <LightboxBackAction
         enabled={!isBlocked}
+        layerId={layerId}
         isActiveLayer={isActiveLayer}
         onClose={onClose}
       />

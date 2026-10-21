@@ -10,14 +10,20 @@ import {
 } from "react";
 
 import { FocusItem } from "../../common";
-import { useNavigation, useNavigationScreenActions } from "../../../hooks";
+import {
+  useIsLayerOnTop,
+  useNavigation,
+  useNavigationScreenActions,
+} from "../../../hooks";
+import { useFocusLayerId } from "../../context";
 import { useVirtualKeyboardStore } from "../../../stores";
 import type { FocusOverrides } from "../../../services";
 
 const LIMIT_FEEDBACK_MS = 300;
 
 function EditingBackAction({ onBack }: Readonly<{ onBack: () => void }>) {
-  useNavigationScreenActions({ press: { b: onBack } });
+  const isOnTop = useIsLayerOnTop(useFocusLayerId());
+  useNavigationScreenActions(isOnTop ? { press: { b: onBack } } : {});
   return null;
 }
 

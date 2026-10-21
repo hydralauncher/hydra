@@ -1,7 +1,17 @@
-import { useCallback, useEffect, useLayoutEffect, useRef } from "react";
+import {
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useState,
+} from "react";
 
 import { useFocusLayerId } from "../../../context";
-import { useGamepad, useNavigationScreenActions } from "../../../../hooks";
+import {
+  useGamepad,
+  useIsLayerOnTop,
+  useNavigationScreenActions,
+} from "../../../../hooks";
 import { GamepadButtonType } from "../../../../types";
 import { NavigationService } from "../../../../services";
 
@@ -9,17 +19,20 @@ const navigationService = NavigationService.getInstance();
 
 interface LightboxBackActionProps {
   enabled: boolean;
+  layerId: string | null;
   isActiveLayer: () => boolean;
   onClose: () => void;
 }
 
 export function LightboxBackAction({
   enabled,
+  layerId,
   isActiveLayer,
   onClose,
 }: Readonly<LightboxBackActionProps>) {
+  const isOnTop = useIsLayerOnTop(layerId);
   useNavigationScreenActions(
-    enabled
+    enabled && isOnTop
       ? {
           press: {
             b: () => {
@@ -35,8 +48,10 @@ export function LightboxBackAction({
 
 export function useActiveLayerTracker() {
   const layerIdRef = useRef<string | null>(null);
-  const handleLayerChange = useCallback((layerId: string | null) => {
-    layerIdRef.current = layerId;
+  const [layerId, setLayerId] = useState<string | null>(null);
+  const handleLayerChange = useCallback((nextLayerId: string | null) => {
+    layerIdRef.current = nextLayerId;
+    setLayerId(nextLayerId);
   }, []);
   const isActiveLayer = useCallback(
     () =>
@@ -45,7 +60,7 @@ export function useActiveLayerTracker() {
     []
   );
 
-  return { handleLayerChange, isActiveLayer };
+  return { layerId, handleLayerChange, isActiveLayer };
 }
 
 interface LightboxLayerReporterProps {

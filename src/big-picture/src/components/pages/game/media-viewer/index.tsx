@@ -38,7 +38,11 @@ import {
   VerticalFocusGroup,
 } from "../../../common";
 import { FocusRegionContext, useFocusLayerId } from "../../../context";
-import { useGamepad, useNavigationScreenActions } from "../../../../hooks";
+import {
+  useGamepad,
+  useIsLayerOnTop,
+  useNavigationScreenActions,
+} from "../../../../hooks";
 import {
   NavigationAudioService,
   NavigationService,
@@ -264,8 +268,11 @@ export function MediaViewer({
 }: Readonly<MediaViewerProps>) {
   const hasSidebar = sidebar !== undefined && sidebar !== null;
   const layerIdRef = useRef<string | null>(null);
+  const [viewerLayerId, setViewerLayerId] = useState<string | null>(null);
+  const isViewerLayerOnTop = useIsLayerOnTop(viewerLayerId);
   const handleLayerChange = useCallback((layerId: string | null) => {
     layerIdRef.current = layerId;
+    setViewerLayerId(layerId);
   }, []);
   const isViewerOnTop = useCallback(
     () =>
@@ -533,9 +540,13 @@ export function MediaViewer({
     wake();
   }, [getActiveVideo, wake]);
 
+  const sidebarScreenActions = isViewerLayerOnTop
+    ? { press: { b: handleBack } }
+    : {};
+
   useNavigationScreenActions(
     hasSidebar
-      ? { press: { b: handleBack } }
+      ? sidebarScreenActions
       : {
           press: { b: handleBack, x: handleToggleMute, y: handleQualityMenu },
           direction: {
