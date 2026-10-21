@@ -193,6 +193,7 @@ function ScreenshotViewer({
       index={index}
       className="screenshot-viewer"
       showFilmstrip={false}
+      showCounter={false}
       canNavigatePastEnd={canLoadMore}
       onNavigatePastEnd={onLoadMore}
       onNavigate={(nextIndex) => {

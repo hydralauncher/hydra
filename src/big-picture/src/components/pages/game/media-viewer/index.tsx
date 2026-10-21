@@ -157,6 +157,7 @@ export interface MediaViewerProps {
   sidebar?: ReactNode;
   className?: string;
   showFilmstrip?: boolean;
+  showCounter?: boolean;
   canNavigatePastEnd?: boolean;
   renderImage?: (props: MediaViewerImageRenderProps) => ReactNode;
   onStagePrimary?: () => void;
@@ -255,6 +256,7 @@ export function MediaViewer({
   sidebar,
   className,
   showFilmstrip = true,
+  showCounter = true,
   canNavigatePastEnd = false,
   renderImage,
   onStagePrimary,
@@ -668,9 +670,11 @@ export function MediaViewer({
   const chrome = (
     <>
       <div className="media-viewer__top-bar media-viewer__chrome">
-        <span className="media-viewer__counter">
-          {index + 1} / {items.length}
-        </span>
+        {showCounter ? (
+          <span className="media-viewer__counter">
+            {index + 1} / {items.length}
+          </span>
+        ) : null}
         <span className="media-viewer__title">{item.alt}</span>
       </div>
 
