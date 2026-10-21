@@ -6,6 +6,8 @@ $inline-edit-dash: 6px;
 $inline-edit-gap: 5px;
 $inline-edit-join-duration: 0.35s;
 $inline-edit-shape-duration: 0.2s;
+$inline-edit-limit-duration: 0.3s;
+$inline-edit-wiggle-offset: 3px;
 
 .inline-edit-field {
   position: relative;
@@ -76,19 +78,12 @@ $inline-edit-shape-duration: 0.2s;
     }
   }
 
-  &__form {
-    display: flex;
-    flex: 1;
-    min-width: 0;
-    align-items: center;
-    gap: globals.$spacing-unit;
-    padding: 0 6px 0 calc(globals.$spacing-unit * 1.5);
-  }
-
   &__input {
     flex: 1;
+    width: 100%;
     min-width: 0;
     height: 38px;
+    padding: 0 calc(globals.$spacing-unit * 1.5);
     border: 0;
     outline: none;
     background: transparent;
@@ -97,39 +92,39 @@ $inline-edit-shape-duration: 0.2s;
     font-size: globals.$body-font-size;
   }
 
-  &__counter {
-    flex-shrink: 0;
-    color: globals.$body-color;
-    font-size: globals.$small-font-size;
-    font-variant-numeric: tabular-nums;
+  &--limit {
+    animation: inline-edit-field-wiggle $inline-edit-limit-duration ease;
   }
 
-  &__save {
-    flex-shrink: 0;
-    height: 28px;
-    padding: 0 globals.$spacing-unit * 1.5;
-    border: 1px solid globals.$border-color;
-    border-radius: 4px;
-    background: rgba(255, 255, 255, 0.06);
-    color: globals.$muted-color;
-    cursor: pointer;
-    font-family: inherit;
-    font-size: globals.$small-font-size;
-
-    &:disabled {
-      cursor: not-allowed;
-      opacity: globals.$disabled-opacity;
-    }
-
-    &:focus-visible {
-      outline: 2px solid globals.$muted-color;
-      outline-offset: 2px;
-    }
+  &--limit &__outline-shape,
+  &--limit:hover &__outline-shape {
+    stroke: globals.$error-color;
   }
 
   @media (prefers-reduced-motion: reduce) {
+    &--limit {
+      animation: none;
+    }
+
     &__outline-shape {
       transition: none;
     }
+  }
+}
+
+@keyframes inline-edit-field-wiggle {
+  0%,
+  100% {
+    transform: translateX(0);
+  }
+
+  20%,
+  60% {
+    transform: translateX(-$inline-edit-wiggle-offset);
+  }
+
+  40%,
+  80% {
+    transform: translateX($inline-edit-wiggle-offset);
   }
 }
