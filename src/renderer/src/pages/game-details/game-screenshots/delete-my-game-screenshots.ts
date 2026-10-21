@@ -25,6 +25,17 @@ const deletePublishedScreenshot = async (id: string) => {
   }
 };
 
+const deleteSequentially = async (
+  ids: string[],
+  deletedIds: string[]
+): Promise<void> => {
+  const [head, ...tail] = ids;
+  if (head === undefined) return;
+  await deletePublishedScreenshot(head);
+  deletedIds.push(head);
+  return deleteSequentially(tail, deletedIds);
+};
+
 export const deletePublishedScreenshotsForGame = async (
   shop: GameShop,
   objectId: string
@@ -44,10 +55,7 @@ export const deletePublishedScreenshotsForGame = async (
   const deletedIds: string[] = [];
 
   try {
-    for (const id of ids) {
-      await deletePublishedScreenshot(id);
-      deletedIds.push(id);
-    }
+    await deleteSequentially(ids, deletedIds);
   } finally {
     if (deletedIds.length > 0) {
       await window.electron.forgetPublishedScreenshots(deletedIds);
