@@ -106,24 +106,9 @@ export function SettingsScreenshotsLocalList() {
     setBusy(screenshot.clientId, true);
 
     try {
-      const updated = await window.electron.uploadLocalScreenshot(
-        screenshot.clientId,
-        {
-          isSpoiler: screenshot.isSpoiler,
-          visibility: screenshot.visibility,
-          customGameTitle: screenshot.customGameTitle,
-        }
-      );
-
-      if (updated) {
-        setScreenshots((previous) =>
-          previous.map((item) =>
-            item.clientId === updated.clientId ? updated : item
-          )
-        );
-      }
+      await window.electron.openScreenshotReview(screenshot.clientId);
     } catch (error) {
-      logger.error("Failed to upload screenshot", error);
+      logger.error("Failed to open the screenshot review window", error);
     } finally {
       setBusy(screenshot.clientId, false);
     }

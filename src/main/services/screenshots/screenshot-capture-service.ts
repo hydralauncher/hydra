@@ -15,6 +15,8 @@ import type {
 } from "@types";
 
 import { getAchievementScreenshotsDirectory } from "../achievement-screenshots-directory";
+import { emulatorSessions } from "../emulators/emulator-session-tracker";
+import { gamesPlaytime } from "../game-running-state";
 import { HydraApi } from "../hydra-api";
 import { logger } from "../logger";
 import { ScreenshotService } from "../screenshot";
@@ -218,6 +220,9 @@ const captureScreenshot = async (source: ScreenshotTriggerSource) => {
       screenshot,
       gameKey: target.gameKey,
       gameWindowHandle: foreground?.windowHandle ?? null,
+      isGameRunning: () =>
+        gamesPlaytime.has(target.gameKey) ||
+        emulatorSessions.has(target.gameKey),
     });
   }
 };

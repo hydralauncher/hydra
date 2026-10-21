@@ -125,13 +125,13 @@ export function ScreenshotReview() {
     return (
       <>
         {isAllDone && (
-          <div className="screenshot-review__done" role="status">
+          <output className="screenshot-review__done">
             <CheckCircleIcon size={20} />
             <p>{t("review_all_done")}</p>
             <Button theme="outline" size="small" onClick={closeWindow}>
               {t("close")}
             </Button>
-          </div>
+          </output>
         )}
 
         {reviewScreenshots.length > 0 && (

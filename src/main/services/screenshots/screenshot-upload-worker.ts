@@ -24,6 +24,7 @@ import { ScreenshotReviewWindows } from "./screenshot-review-windows";
 import { ScreenshotTelemetry } from "./screenshot-telemetry";
 import { ScreenshotUploadNotifier } from "./screenshot-upload-notifier";
 import {
+  getAlreadyUploadedScreenshot,
   getScreenshotUploadFailure,
   planScreenshotUploadRecovery,
   type ScreenshotUploadFailure,
@@ -38,6 +39,7 @@ const STATUS_POLL_INTERVAL_MS = 5 * 60_000;
 const STATUS_POLL_MAX_AGE_MS = 24 * 60 * 60_000;
 const MAX_STATUS_POLLS_PER_RUN = 10;
 const SETTLED_REFRESH_INTERVAL_MS = 2 * 60_000;
+const MIN_SCHEDULED_RUN_DELAY_MS = 1_000;
 const FAST_MODERATION_POLL_DELAYS_MS = [
   10_000, 10_000, 15_000, 20_000, 30_000, 45_000, 60_000,
 ];
@@ -142,6 +144,7 @@ class ScreenshotUploadWorker {
     ReturnType<typeof setTimeout>
   >();
   private lastSettledRefreshAt = 0;
+  private readonly moderationCheckedAt = new Map<string, number>();
   private lastOwnerId: string | null = null;
   private authListenerRegistered = false;
 
@@ -191,7 +194,7 @@ class ScreenshotUploadWorker {
 
     emitProgress({ clientId, state: "queued", progress: 0 });
     ScreenshotTelemetry.record("review", "upload");
-    this.trigger();
+    void this.trigger();
     return updated;
   }
 
@@ -208,7 +211,7 @@ class ScreenshotUploadWorker {
       this.retryTimer = null;
     }
 
-    if (this.running) {
+    if (this.running !== null) {
       this.rerunRequested = true;
       return this.running;
     }
@@ -375,30 +378,48 @@ class ScreenshotUploadWorker {
         { authContext, signal: controller.signal, timeout: REQUEST_TIMEOUT_MS }
       );
 
-      this.gameWaits.delete(clientId);
-      const moderationStatus = isModerationStatus(result?.moderationStatus)
-        ? result.moderationStatus
-        : "PENDING";
-      await LocalScreenshotStore.update(clientId, {
-        state: "uploaded",
-        screenshotId: presign.id,
-        moderationStatus,
-        moderationReason: result?.moderationReason ?? null,
-        uploadProgress: 1,
-        uploadedAt: Date.now(),
-        nextUploadAttemptAt: null,
-        lastError: null,
+      await this.markUploaded(clientId, {
+        id: presign.id,
+        moderationStatus: result?.moderationStatus,
+        moderationReason: result?.moderationReason,
       });
-      emitProgress({ clientId, state: "uploaded", progress: 1 });
-      if (moderationStatus === "PENDING") {
-        this.scheduleFastModerationPoll(clientId);
-      }
       ScreenshotTelemetry.record("upload", "uploaded", compressed.quality);
     } catch (error) {
       await this.handleFailure(screenshot, quality, attempt, error, controller);
     } finally {
       if (this.activeUpload?.controller === controller)
         this.activeUpload = null;
+    }
+  }
+
+  private async markUploaded(
+    clientId: string,
+    result: {
+      id: string;
+      moderationStatus: unknown;
+      moderationReason: unknown;
+    }
+  ) {
+    this.gameWaits.delete(clientId);
+    const moderationStatus = isModerationStatus(result.moderationStatus)
+      ? result.moderationStatus
+      : "PENDING";
+    await LocalScreenshotStore.update(clientId, {
+      state: "uploaded",
+      screenshotId: result.id,
+      moderationStatus,
+      moderationReason:
+        typeof result.moderationReason === "string"
+          ? result.moderationReason
+          : null,
+      uploadProgress: 1,
+      uploadedAt: Date.now(),
+      nextUploadAttemptAt: null,
+      lastError: null,
+    });
+    emitProgress({ clientId, state: "uploaded", progress: 1 });
+    if (moderationStatus === "PENDING") {
+      this.scheduleFastModerationPoll(clientId);
     }
   }
 
@@ -425,6 +446,16 @@ class ScreenshotUploadWorker {
     }
 
     const failure = getScreenshotUploadFailure(error);
+    const alreadyUploaded =
+      failure.action === "already_uploaded"
+        ? getAlreadyUploadedScreenshot(error)
+        : null;
+    if (alreadyUploaded) {
+      await this.markUploaded(clientId, alreadyUploaded);
+      ScreenshotTelemetry.record("upload", "uploaded", "already_uploaded");
+      return;
+    }
+
     const gameWaits = this.gameWaits.get(clientId) ?? 0;
     if (failure.action === "wait_for_game") {
       this.gameWaits.set(clientId, gameWaits + 1);
@@ -502,6 +533,7 @@ class ScreenshotUploadWorker {
     authContext: HydraApiAuthContext
   ) {
     if (!screenshot.screenshotId) return;
+    this.moderationCheckedAt.set(screenshot.clientId, Date.now());
 
     try {
       const status = await HydraApi.get<ScreenshotModerationState>(
@@ -547,7 +579,12 @@ class ScreenshotUploadWorker {
             now - (screenshot.uploadedAt ?? 0) < STATUS_POLL_MAX_AGE_MS) ||
             (includeBlocked && screenshot.moderationStatus === "BLOCKED"))
       )
-      .toSorted((a, b) => (b.uploadedAt ?? 0) - (a.uploadedAt ?? 0))
+      .toSorted(
+        (a, b) =>
+          (this.moderationCheckedAt.get(a.clientId) ?? 0) -
+            (this.moderationCheckedAt.get(b.clientId) ?? 0) ||
+          (b.uploadedAt ?? 0) - (a.uploadedAt ?? 0)
+      )
       .slice(0, MAX_STATUS_POLLS_PER_RUN);
 
     for (const screenshot of candidates) {
@@ -629,7 +666,10 @@ class ScreenshotUploadWorker {
     ].filter((value): value is number => value !== undefined);
     if (!candidates.length) return;
 
-    const delay = Math.max(1_000, Math.min(...candidates) - now);
+    const delay = Math.max(
+      MIN_SCHEDULED_RUN_DELAY_MS,
+      Math.min(...candidates) - now
+    );
     this.retryTimer = setTimeout(() => void this.trigger(), delay);
     this.retryTimer.unref?.();
   }

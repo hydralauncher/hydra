@@ -71,7 +71,7 @@ export class GameContentWarningCache {
   public static prefetch(shop: GameShop, objectId: string) {
     const key = getCacheKey(shop, objectId);
     const pending = inFlight.get(key);
-    if (pending) return pending;
+    if (pending !== undefined) return pending;
 
     const request = resolveWarning(shop, objectId)
       .then((warning) => {

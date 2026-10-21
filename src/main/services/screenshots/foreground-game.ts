@@ -130,6 +130,7 @@ const toForegroundProcesses = (
     exe: process.exe ?? null,
     cwd: process.cwd ?? null,
     environ: process.environ ?? null,
+    appImagePath: process.environ?.APPIMAGE ?? null,
   }));
 
 export const resolveForegroundGame = async ({

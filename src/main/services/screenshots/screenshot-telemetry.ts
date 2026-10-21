@@ -49,8 +49,29 @@ const scheduleFlush = () => {
   flushTimer.unref?.();
 };
 
-const sendBatch = async (events: ScreenshotTelemetryEvent[]) => {
-  await HydraApi.post("/screenshots/telemetry", { events });
+const addToCounter = (key: string, event: ScreenshotTelemetryEvent) => {
+  const current = counters.get(key);
+  if (current) {
+    current.count = Math.min(MAX_EVENT_COUNT, current.count + event.count);
+    return;
+  }
+  if (counters.size < MAX_PENDING_KEYS) counters.set(key, { ...event });
+};
+
+const requeueCounters = (entries: [string, ScreenshotTelemetryEvent][]) => {
+  for (const [key, event] of entries) addToCounter(key, event);
+};
+
+const trySendBatch = async (
+  events: ScreenshotTelemetryEvent[]
+): Promise<"sent" | "dropped" | "retry"> => {
+  try {
+    await HydraApi.post("/screenshots/telemetry", { events });
+    return "sent";
+  } catch (error) {
+    logger.warn("Failed to send screenshot telemetry", error);
+    return isRejectedGroupedSouvenirRequest(error) ? "dropped" : "retry";
+  }
 };
 
 export class ScreenshotTelemetry {
@@ -72,15 +93,7 @@ export class ScreenshotTelemetry {
       ...(normalizedReason ? { reason: normalizedReason } : {}),
       platform,
     };
-    const key = getCounterKey(event);
-    const current = counters.get(key);
-
-    if (current) {
-      current.count = Math.min(MAX_EVENT_COUNT, current.count + 1);
-    } else if (counters.size < MAX_PENDING_KEYS) {
-      counters.set(key, { ...event, count: 1 });
-    }
-
+    addToCounter(getCounterKey(event), { ...event, count: 1 });
     scheduleFlush();
   }
 
@@ -92,8 +105,9 @@ export class ScreenshotTelemetry {
   }
 
   private static async flushPending() {
-    if (!counters.size || !HydraApi.isLoggedIn()) {
-      if (counters.size) scheduleFlush();
+    if (!counters.size) return;
+    if (!HydraApi.isLoggedIn()) {
+      scheduleFlush();
       return;
     }
 
@@ -106,20 +120,9 @@ export class ScreenshotTelemetry {
       index += MAX_EVENTS_PER_REQUEST
     ) {
       const batch = pending.slice(index, index + MAX_EVENTS_PER_REQUEST);
-      try {
-        await sendBatch(batch.map(([, event]) => event));
-      } catch (error) {
-        logger.warn("Failed to send screenshot telemetry", error);
-        if (isRejectedGroupedSouvenirRequest(error)) continue;
-        for (const [key, event] of pending.slice(index)) {
-          const current = counters.get(key);
-          if (current) {
-            current.count = Math.min(
-              MAX_EVENT_COUNT,
-              current.count + event.count
-            );
-          } else if (counters.size < MAX_PENDING_KEYS) counters.set(key, event);
-        }
+      const sent = await trySendBatch(batch.map(([, event]) => event));
+      if (sent === "retry") {
+        requeueCounters(pending.slice(index));
         scheduleFlush();
         return;
       }

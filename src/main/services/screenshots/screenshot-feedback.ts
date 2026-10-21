@@ -16,6 +16,7 @@ import { WindowManager } from "../window-manager";
 
 const FLASH_VISIBLE_DURATION_MS = 700;
 const TOAST_THUMBNAIL_WIDTH = 320;
+const TOAST_THUMBNAIL_JPEG_QUALITY = 80;
 const MAX_TOAST_THUMBNAILS = 20;
 
 interface FeedbackWindow {
@@ -137,7 +138,10 @@ const createToastThumbnail = async (imagePath: string) => {
     await getToastThumbnailDirectory(),
     `${randomUUID()}.jpeg`
   );
-  await fs.promises.writeFile(thumbnailPath, thumbnail.toJPEG(80));
+  await fs.promises.writeFile(
+    thumbnailPath,
+    thumbnail.toJPEG(TOAST_THUMBNAIL_JPEG_QUALITY)
+  );
 
   return { image: thumbnail, path: thumbnailPath };
 };
@@ -237,8 +241,9 @@ export class ScreenshotFeedback {
   public static async showToast(toast: ScreenshotFeedbackToast) {
     const userPreferences = await readUserPreferences();
     const preferences = resolveScreenshotPreferences(userPreferences);
-    const isCaptureToast = toast.kind === "captured";
-    if (isCaptureToast && !preferences.toastEnabled) return;
+    if (toast.kind !== "disabled_for_game" && !preferences.toastEnabled) {
+      return;
+    }
 
     const { title, description } = getToastText(toast);
     const thumbnail =

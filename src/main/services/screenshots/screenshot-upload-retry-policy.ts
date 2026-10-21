@@ -1,3 +1,5 @@
+import { isAxiosError } from "axios";
+
 import {
   GAME_NOT_FOUND_ERROR_CODE,
   getGroupedSouvenirErrorCode,
@@ -7,6 +9,7 @@ import {
 } from "../achievements/grouped-souvenir-retry-policy";
 
 export type ScreenshotUploadRecoveryAction =
+  | "already_uploaded"
   | "retry"
   | "wait_for_game"
   | "recompress_standard"
@@ -28,10 +31,12 @@ export const SCREENSHOT_UPLOAD_GAME_WAIT_DELAY_MS = 30_000;
 export const SCREENSHOT_UPLOAD_PAUSE_DELAY_MS = 30 * 60_000;
 
 export const SCREENSHOT_MISSING_FILE_CODE = "screenshot_missing";
+export const SCREENSHOT_ALREADY_UPLOADED_CODE = "screenshots/already-uploaded";
 export const SCREENSHOT_FEATURE_DISABLED_CODE = "feature/feature-not-enabled";
 
 const RECOVERY_BY_ERROR_CODE: Record<string, ScreenshotUploadRecoveryAction> = {
   [GAME_NOT_FOUND_ERROR_CODE]: "wait_for_game",
+  [SCREENSHOT_ALREADY_UPLOADED_CODE]: "already_uploaded",
   "screenshots/exceeds-tier-limit": "recompress_standard",
   "screenshots/client-id-conflict": "rotate_client_id",
   "screenshots/upload-expired": "rotate_client_id",
@@ -66,6 +71,18 @@ export const getScreenshotUploadFailure = (
   return { code, action: "retry" };
 };
 
+export const getAlreadyUploadedScreenshot = (error: unknown) => {
+  if (!isAxiosError(error)) return null;
+  const data = error.response?.data as Record<string, unknown> | undefined;
+  if (typeof data?.id !== "string" || !data.id) return null;
+
+  return {
+    id: data.id,
+    moderationStatus: data.moderationStatus,
+    moderationReason: data.moderationReason,
+  };
+};
+
 export const getScreenshotUploadRetryDelay = (attempt: number) =>
   Math.min(
     SCREENSHOT_UPLOAD_RETRY_BASE_DELAY_MS * 2 ** Math.max(0, attempt - 1),
@@ -89,6 +106,10 @@ export const planScreenshotUploadRecovery = (
   currentQuality: "STANDARD" | "CLOUD"
 ): ScreenshotUploadNextStep => {
   switch (failure.action) {
+    case "already_uploaded":
+      return state.uploadAttempts >= SCREENSHOT_UPLOAD_MAX_ATTEMPTS
+        ? { kind: "failed" }
+        : { kind: "retry_now" };
     case "stop":
       return { kind: "stopped" };
     case "terminal":

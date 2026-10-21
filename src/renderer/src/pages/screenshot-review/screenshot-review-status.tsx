@@ -74,7 +74,7 @@ export function ScreenshotReviewStatus({
     const label = t("uploading", { progress: percent });
 
     return (
-      <div className="screenshot-review-status" role="status">
+      <output className="screenshot-review-status">
         <ProgressBar
           now={percent}
           max={100}
@@ -84,7 +84,7 @@ export function ScreenshotReviewStatus({
           barClassName="screenshot-review-status__progress-bar"
         />
         <p className="screenshot-review-status__title">{label}</p>
-      </div>
+      </output>
     );
   }
 
@@ -92,17 +92,16 @@ export function ScreenshotReviewStatus({
   if (!message) return null;
 
   return (
-    <div
+    <output
       className={cn(
         "screenshot-review-status",
         `screenshot-review-status--${message.tone}`
       )}
-      role="status"
     >
       <p className="screenshot-review-status__title">{message.title}</p>
       {message.detail && (
         <p className="screenshot-review-status__detail">{message.detail}</p>
       )}
-    </div>
+    </output>
   );
 }
