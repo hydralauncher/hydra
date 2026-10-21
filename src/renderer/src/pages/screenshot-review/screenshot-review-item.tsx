@@ -115,6 +115,7 @@ export function ScreenshotReviewItem({
       ? [
           {
             label: t("upload_all", { count: pendingCount }),
+            icon: <UploadIcon size={16} />,
             onSelect: onUploadAll,
           },
         ]
@@ -262,7 +263,6 @@ export function ScreenshotReviewItem({
             <InlineEditField
               className="screenshot-review-item__title-field"
               label={t("custom_game_title_edit")}
-              saveLabel={t("custom_game_title_save")}
               placeholder={t("custom_game_default_title")}
               initialValue={draft.customGameTitle}
               maxLength={SCREENSHOT_CUSTOM_GAME_TITLE_MAX_LENGTH}
