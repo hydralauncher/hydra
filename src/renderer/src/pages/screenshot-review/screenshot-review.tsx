@@ -40,6 +40,10 @@ export function ScreenshotReview() {
   );
   const [isBulkBusy, setIsBulkBusy] = useState(false);
   const hasLiveSnapshot = useRef(false);
+  const clientIdsRef = useRef(clientIds);
+  const draftsRef = useRef(drafts);
+  clientIdsRef.current = clientIds;
+  draftsRef.current = drafts;
 
   useEffect(() => {
     let active = true;
@@ -134,29 +138,47 @@ export function ScreenshotReview() {
   );
 
   const runBulk = async (
-    action: (screenshot: LocalScreenshot) => Promise<unknown>
+    action: (
+      screenshot: LocalScreenshot,
+      draft: ScreenshotReviewDraft
+    ) => Promise<unknown>
   ) => {
     setIsBulkBusy(true);
-    const results = await Promise.allSettled(pendingScreenshots.map(action));
-    for (const result of results) {
-      if (result.status === "rejected") {
-        logger.error(
-          "Failed to apply the bulk screenshot action",
-          result.reason
-        );
+    try {
+      const latest = await window.electron.getLocalScreenshots();
+      const targets = selectReviewScreenshots(
+        latest,
+        clientIdsRef.current
+      ).filter(isScreenshotAwaitingReview);
+      const results = await Promise.allSettled(
+        targets.map((screenshot) =>
+          action(
+            screenshot,
+            draftsRef.current[screenshot.clientId] ??
+              createReviewDraft(screenshot)
+          )
+        )
+      );
+      for (const result of results) {
+        if (result.status === "rejected") {
+          logger.error(
+            "Failed to apply the bulk screenshot action",
+            result.reason
+          );
+        }
       }
+    } catch (error) {
+      logger.error("Failed to load screenshots for the bulk action", error);
+    } finally {
+      setIsBulkBusy(false);
     }
-    setIsBulkBusy(false);
   };
 
   const handleUploadAll = () =>
-    runBulk((screenshot) =>
+    runBulk((screenshot, draft) =>
       window.electron.uploadLocalScreenshot(
         screenshot.clientId,
-        toUploadOptions(
-          screenshot,
-          drafts[screenshot.clientId] ?? createReviewDraft(screenshot)
-        )
+        toUploadOptions(screenshot, draft)
       )
     );
 
@@ -213,6 +235,7 @@ export function ScreenshotReview() {
                   className={cn("screenshot-review__thumb", {
                     "screenshot-review__thumb--selected": isSelected,
                   })}
+                  disabled={isBulkBusy}
                   onClick={() => setSelectedClientId(screenshot.clientId)}
                 >
                   <img
@@ -277,6 +300,7 @@ export function ScreenshotReview() {
               updateDraft(selectedScreenshot.clientId, draft)
             }
             canClose={!isMultiple}
+            isLocked={isBulkBusy}
           />
         )}
       </main>
