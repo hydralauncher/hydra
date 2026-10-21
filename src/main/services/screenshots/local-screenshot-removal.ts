@@ -1,3 +1,4 @@
+import { randomUUID } from "node:crypto";
 import fs from "node:fs";
 import type { GameShop, LocalScreenshot } from "@types";
 
@@ -60,4 +61,70 @@ export const deleteLocalScreenshotsForGame = async (
     }
   }
   return deleted;
+};
+
+const UNPUBLISHED_FIELDS: Partial<LocalScreenshot> = {
+  state: "local",
+  screenshotId: null,
+  moderationStatus: null,
+  moderationReason: null,
+  uploadProgress: null,
+  uploadQuality: null,
+  uploadAttempts: 0,
+  nextUploadAttemptAt: null,
+  uploadedAt: null,
+  lastError: null,
+};
+
+const fileExists = (filePath: string) =>
+  fs.promises.access(filePath).then(
+    () => true,
+    () => false
+  );
+
+const forgetPublishedScreenshot = async (screenshot: LocalScreenshot) => {
+  const keepsFile =
+    screenshot.state === "uploaded" && (await fileExists(screenshot.path));
+
+  if (!keepsFile) {
+    await LocalScreenshotStore.delete(screenshot.clientId);
+    return true;
+  }
+
+  const updated = await LocalScreenshotStore.update(
+    screenshot.clientId,
+    (current) =>
+      current.state === "uploaded" &&
+      current.screenshotId === screenshot.screenshotId
+        ? { ...UNPUBLISHED_FIELDS, uploadClientId: randomUUID() }
+        : {}
+  );
+  return updated?.state === "local";
+};
+
+export const forgetPublishedScreenshots = async (screenshotIds: string[]) => {
+  const ids = new Set(screenshotIds);
+  if (!ids.size) return 0;
+
+  const screenshots = await LocalScreenshotStore.listIncludingDeleted();
+  const targets = screenshots.filter(
+    (screenshot) =>
+      screenshot.screenshotId !== null &&
+      ids.has(screenshot.screenshotId) &&
+      (screenshot.state === "uploaded" || screenshot.state === "deleted")
+  );
+
+  const results = await Promise.allSettled(
+    targets.map(forgetPublishedScreenshot)
+  );
+
+  let forgotten = 0;
+  for (const result of results) {
+    if (result.status === "fulfilled") {
+      if (result.value) forgotten += 1;
+    } else {
+      logger.error("Failed to forget a published screenshot", result.reason);
+    }
+  }
+  return forgotten;
 };

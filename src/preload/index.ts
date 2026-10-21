@@ -1494,6 +1494,8 @@ contextBridge.exposeInMainWorld("electron", {
     ipcRenderer.invoke("deleteLocalScreenshotsForGame", shop, objectId),
   getPublishedScreenshotIdsForGame: (shop: GameShop, objectId: string) =>
     ipcRenderer.invoke("getPublishedScreenshotIdsForGame", shop, objectId),
+  forgetPublishedScreenshots: (screenshotIds: string[]) =>
+    ipcRenderer.invoke("forgetPublishedScreenshots", screenshotIds),
   uploadLocalScreenshot: (
     clientId: string,
     options: LocalScreenshotUploadOptions

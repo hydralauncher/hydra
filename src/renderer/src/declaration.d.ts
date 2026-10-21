@@ -1111,6 +1111,7 @@ declare global {
       shop: GameShop,
       objectId: string
     ) => Promise<string[]>;
+    forgetPublishedScreenshots: (screenshotIds: string[]) => Promise<number>;
     uploadLocalScreenshot: (
       clientId: string,
       options: LocalScreenshotUploadOptions
