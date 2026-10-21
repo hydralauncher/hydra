@@ -92,8 +92,8 @@ export interface ScreenshotLightboxProps {
   onNext: () => void;
   onClose: () => void;
   onUpdate: (screenshotId: string, update: ScreenshotPatch) => void;
-  onRemove: (screenshotId: string) => void;
-  onUnavailable: (screenshotId: string) => void;
+  onRemove: (screenshotId: string, ownerId: string) => void;
+  onUnavailable: (screenshotId: string, ownerId: string) => void;
 }
 
 const getLikePatch = (
@@ -547,7 +547,7 @@ function useLightboxSocialActions({
       if (response) onUpdate(screenshot.id, getLikePatch(response));
     } catch (error) {
       if (getScreenshotApiErrorCode(error) === "screenshots/not-found") {
-        onUnavailable(screenshot.id);
+        onUnavailable(screenshot.id, screenshot.owner.id);
         return;
       }
 
@@ -586,7 +586,7 @@ function useLightboxSocialActions({
         }
 
         if (code === "screenshots/not-found") {
-          onUnavailable(screenshot.id);
+          onUnavailable(screenshot.id, screenshot.owner.id);
           return true;
         }
 
@@ -636,7 +636,7 @@ function useLightboxSocialActions({
         buildProfileScreenshotPath(screenshot.id),
         { needsAuth: true }
       );
-      onRemove(screenshot.id);
+      onRemove(screenshot.id, screenshot.owner.id);
       showSuccessToast(t("screenshots_deleted"), SETTINGS_TOAST);
       return true;
     } catch (error) {

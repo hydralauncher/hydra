@@ -19,7 +19,7 @@ interface UseScreenshotLightboxOptions {
   items: ProfileScreenshot[];
   needsAuth: boolean;
   updateItem: (screenshotId: string, update: ScreenshotPatch) => void;
-  removeItem: (screenshotId: string) => void;
+  removeItem: (screenshotId: string, ownerId: string) => void;
   getFetchedAt: (screenshotId: string) => number | null;
 }
 
@@ -139,8 +139,8 @@ export function useScreenshotLightbox({
   );
 
   const remove = useCallback(
-    (screenshotId: string) => {
-      removeItem(screenshotId);
+    (screenshotId: string, ownerId: string) => {
+      removeItem(screenshotId, ownerId);
       setStandalone((current) =>
         current?.screenshot.id === screenshotId ? null : current
       );
@@ -149,8 +149,8 @@ export function useScreenshotLightbox({
   );
 
   const markUnavailable = useCallback(
-    (screenshotId: string) => {
-      removeItem(screenshotId);
+    (screenshotId: string, ownerId: string) => {
+      removeItem(screenshotId, ownerId);
       setStandalone((current) =>
         current?.screenshot.id === screenshotId ? null : current
       );

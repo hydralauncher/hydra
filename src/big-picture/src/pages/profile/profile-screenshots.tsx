@@ -4,7 +4,7 @@ import {
   SortAscendingIcon,
   WarningCircleIcon,
 } from "@phosphor-icons/react";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import type {
   UserProfile,
@@ -219,10 +219,12 @@ export function useProfileScreenshots({
     isFiltered
   );
   const { removeItem: removeFeedItem } = feed;
+  const activeUserIdRef = useRef(activeUserId);
+  activeUserIdRef.current = activeUserId;
   const removeItem = useCallback(
-    (screenshotId: string) => {
+    (screenshotId: string, ownerId: string) => {
       removeFeedItem(screenshotId);
-      applyRemoval();
+      if (ownerId === activeUserIdRef.current) applyRemoval();
     },
     [applyRemoval, removeFeedItem]
   );
