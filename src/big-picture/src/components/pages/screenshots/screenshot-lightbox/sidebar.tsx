@@ -1,5 +1,4 @@
 import {
-  CaretRightIcon,
   CopyIcon,
   FlagIcon,
   GameControllerIcon,
@@ -17,6 +16,7 @@ import {
   Button,
   FocusItem,
   HorizontalFocusGroup,
+  Typography,
   UserProfileAvatar,
   VerticalFocusGroup,
 } from "../../../common";
@@ -40,6 +40,7 @@ export const getLightboxFocusIds = (screenshotId: string) => ({
   remove: `screenshot-lightbox-delete:${screenshotId}`,
   copy: `screenshot-lightbox-copy:${screenshotId}`,
   summary: `screenshot-lightbox-summary:${screenshotId}`,
+  byline: `screenshot-lightbox-byline:${screenshotId}`,
   game: `screenshot-lightbox-game:${screenshotId}`,
   owner: `screenshot-lightbox-owner:${screenshotId}`,
 });
@@ -87,74 +88,79 @@ function LightboxSummary({
   const gamePath = getScreenshotGamePath(screenshot);
   const ownerPath = getScreenshotOwnerPath(screenshot.owner.id);
 
+  const gameContent = (
+    <>
+      <LightboxGameIcon screenshot={screenshot} />
+      <span className="screenshot-lightbox__game-title">{gameTitle}</span>
+    </>
+  );
+
   return (
     <VerticalFocusGroup regionId={focusIds.summary} asChild>
       <div className="screenshot-lightbox__summary">
-        {gamePath ? (
-          <FocusItem
-            id={focusIds.game}
-            navigationOverrides={{ left: stageTarget }}
-            asChild
-          >
-            <button
-              type="button"
-              className="screenshot-lightbox__game screenshot-lightbox__link"
-              title={t("screenshots_open_game")}
-              onClick={() => onNavigate(gamePath)}
-            >
-              <LightboxGameIcon screenshot={screenshot} />
-              <span className="screenshot-lightbox__game-title">
-                {gameTitle}
-              </span>
-              <CaretRightIcon
-                size={16}
-                className="screenshot-lightbox__link-caret"
-              />
-            </button>
-          </FocusItem>
-        ) : (
-          <div className="screenshot-lightbox__game">
-            <LightboxGameIcon screenshot={screenshot} />
-            <span className="screenshot-lightbox__game-title">{gameTitle}</span>
-            {screenshot.isCustomGame ? (
-              <span className="screenshot-lightbox__tag">
-                {t("screenshots_custom_game_tag")}
-              </span>
-            ) : null}
-          </div>
-        )}
-        <div className="screenshot-lightbox__meta">
-          <FocusItem
-            id={focusIds.owner}
-            navigationOverrides={{ left: stageTarget }}
-            asChild
-          >
-            <button
-              type="button"
-              className="screenshot-lightbox__owner screenshot-lightbox__link"
-              title={t("screenshots_open_profile")}
-              onClick={() => onNavigate(ownerPath)}
-            >
-              <UserProfileAvatar
-                image={screenshot.owner.profileImageUrl}
-                alt=""
-                className="screenshot-lightbox__avatar"
-                fallbackClassName="screenshot-lightbox__avatar--fallback"
-                width={20}
-                height={20}
-                iconSize={12}
-              />
-              <span>{screenshot.owner.displayName}</span>
-            </button>
-          </FocusItem>
-          <span className="screenshot-lightbox__meta-separator" aria-hidden />
-          <span>{formatScreenshotDate(screenshot.capturedAt, language)}</span>
-        </div>
         {screenshot.description ? (
-          <p className="screenshot-lightbox__description">
+          <Typography variant="h4" className="screenshot-lightbox__description">
             {screenshot.description}
-          </p>
+          </Typography>
         ) : null}
+        <HorizontalFocusGroup regionId={focusIds.byline} asChild>
+          <div className="screenshot-lightbox__byline">
+            <FocusItem
+              id={focusIds.owner}
+              navigationOverrides={{ left: stageTarget }}
+              asChild
+            >
+              <button
+                type="button"
+                className="screenshot-lightbox__owner screenshot-lightbox__link"
+                title={t("screenshots_open_profile")}
+                onClick={() => onNavigate(ownerPath)}
+              >
+                <UserProfileAvatar
+                  image={screenshot.owner.profileImageUrl}
+                  alt=""
+                  className="screenshot-lightbox__avatar"
+                  fallbackClassName="screenshot-lightbox__avatar--fallback"
+                  width={20}
+                  height={20}
+                  iconSize={12}
+                />
+                <span className="screenshot-lightbox__owner-name">
+                  {screenshot.owner.displayName}
+                </span>
+              </button>
+            </FocusItem>
+            <span className="screenshot-lightbox__meta-separator" aria-hidden />
+            {gamePath ? (
+              <FocusItem
+                id={focusIds.game}
+                navigationOverrides={{ right: { type: "block" } }}
+                asChild
+              >
+                <button
+                  type="button"
+                  className="screenshot-lightbox__game screenshot-lightbox__link"
+                  title={t("screenshots_open_game")}
+                  onClick={() => onNavigate(gamePath)}
+                >
+                  {gameContent}
+                </button>
+              </FocusItem>
+            ) : (
+              <span className="screenshot-lightbox__game">
+                {gameContent}
+                {screenshot.isCustomGame ? (
+                  <span className="screenshot-lightbox__tag">
+                    {t("screenshots_custom_game_tag")}
+                  </span>
+                ) : null}
+              </span>
+            )}
+          </div>
+        </HorizontalFocusGroup>
+        <span className="screenshot-lightbox__date">
+          {formatScreenshotDate(screenshot.capturedAt, language)}
+        </span>
       </div>
     </VerticalFocusGroup>
   );
@@ -229,56 +235,62 @@ function LightboxActions({
           {String(screenshot.likeCount)}
         </Button>
 
-        {screenshot.imageUrl ? (
-          <Button
-            variant="secondary"
-            size="icon"
-            focusId={focusIds.copy}
-            loading={isCopying}
-            icon={<CopyIcon size={20} />}
-            aria-label={t("screenshots_copy_image")}
-            title={t("screenshots_copy_image")}
-            onClick={onCopy}
-          >
-            {null}
-          </Button>
-        ) : null}
-
-        {isOwner ? (
-          <>
+        <div className="screenshot-lightbox__action-group">
+          {screenshot.imageUrl ? (
             <Button
               variant="secondary"
-              size="small"
-              focusId={focusIds.manage}
-              icon={<GearSixIcon size={20} />}
-              onClick={onManage}
-            >
-              {t("screenshots_manage")}
-            </Button>
-            <Button
-              variant="danger"
               size="icon"
-              focusId={focusIds.remove}
-              icon={<TrashIcon size={20} />}
-              aria-label={t("screenshots_delete")}
-              title={t("screenshots_delete")}
-              onClick={onDelete}
+              focusId={focusIds.copy}
+              loading={isCopying}
+              icon={<CopyIcon size={20} />}
+              aria-label={t("screenshots_copy_image")}
+              title={t("screenshots_copy_image")}
+              onClick={onCopy}
             >
               {null}
             </Button>
-          </>
-        ) : (
-          <Button
-            variant="secondary"
-            size="small"
-            focusId={focusIds.report}
-            disabled={isReported}
-            icon={<FlagIcon size={20} />}
-            onClick={onReport}
-          >
-            {t(isReported ? "screenshots_reported" : "screenshots_report")}
-          </Button>
-        )}
+          ) : null}
+
+          {isOwner ? (
+            <>
+              <Button
+                variant="secondary"
+                size="icon"
+                focusId={focusIds.manage}
+                icon={<GearSixIcon size={20} />}
+                aria-label={t("screenshots_manage")}
+                title={t("screenshots_manage")}
+                onClick={onManage}
+              >
+                {null}
+              </Button>
+              <Button
+                variant="danger"
+                size="icon"
+                focusId={focusIds.remove}
+                icon={<TrashIcon size={20} />}
+                aria-label={t("screenshots_delete")}
+                title={t("screenshots_delete")}
+                focusNavigationOverrides={{ right: { type: "block" } }}
+                onClick={onDelete}
+              >
+                {null}
+              </Button>
+            </>
+          ) : (
+            <Button
+              variant="secondary"
+              size="small"
+              focusId={focusIds.report}
+              disabled={isReported}
+              icon={<FlagIcon size={20} />}
+              focusNavigationOverrides={{ right: { type: "block" } }}
+              onClick={onReport}
+            >
+              {t(isReported ? "screenshots_reported" : "screenshots_report")}
+            </Button>
+          )}
+        </div>
       </div>
     </HorizontalFocusGroup>
   );

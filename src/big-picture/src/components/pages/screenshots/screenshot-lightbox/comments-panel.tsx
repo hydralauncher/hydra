@@ -217,13 +217,11 @@ function useScreenshotComments(
 interface CommentItemProps {
   comment: ScreenshotComment;
   isSignedIn: boolean;
-  canEdit: boolean;
   hasMenu: boolean;
   isVoting: boolean;
   language: string;
   leftTarget: FocusOverrideTarget;
   onVote: (comment: ScreenshotComment, vote: ScreenshotCommentVoteType) => void;
-  onEdit: (comment: ScreenshotComment) => void;
   onOpenMenu: (comment: ScreenshotComment, element: HTMLElement) => void;
 }
 
@@ -280,20 +278,17 @@ function CommentVoteButton({
 function CommentItem({
   comment,
   isSignedIn,
-  canEdit,
   hasMenu,
   isVoting,
   language,
   leftTarget,
   onVote,
-  onEdit,
   onOpenMenu,
 }: Readonly<CommentItemProps>) {
   const { t } = useTranslation("big_picture");
   const focusIds = getCommentFocusIds(comment.id);
   const moreButtonRef = useRef<HTMLDivElement | null>(null);
   const canVote = !comment.isOwn;
-  const firstFocusId = canVote ? focusIds.upvote : focusIds.edit;
 
   return (
     <li className="screenshot-comments__item">
@@ -364,25 +359,6 @@ function CommentItem({
               onVote={() => onVote(comment, "DOWNVOTE")}
             />
           </div>
-          {canEdit ? (
-            <Button
-              variant="secondary"
-              size="icon"
-              focusId={focusIds.edit}
-              className="screenshot-comments__icon-action"
-              icon={<PencilSimpleIcon size={16} />}
-              aria-label={t("screenshots_comment_edit")}
-              title={t("screenshots_comment_edit")}
-              focusNavigationOverrides={
-                firstFocusId === focusIds.edit
-                  ? { left: leftTarget }
-                  : undefined
-              }
-              onClick={() => onEdit(comment)}
-            >
-              {null}
-            </Button>
-          ) : null}
           {hasMenu ? (
             <div ref={moreButtonRef} className="screenshot-comments__more">
               <Button
@@ -393,7 +369,11 @@ function CommentItem({
                 icon={<DotsThreeVerticalIcon size={18} weight="bold" />}
                 aria-label={t("screenshots_comment_options")}
                 title={t("screenshots_comment_options")}
-                focusNavigationOverrides={{ right: { type: "block" } }}
+                focusNavigationOverrides={
+                  canVote
+                    ? { right: { type: "block" } }
+                    : { left: leftTarget, right: { type: "block" } }
+                }
                 onClick={() => {
                   if (moreButtonRef.current)
                     onOpenMenu(comment, moreButtonRef.current);
@@ -695,11 +675,30 @@ export function ScreenshotCommentsPanel({
     [ownerId, reportingComment, screenshot.id, showError, showSuccessToast, t]
   );
 
+  const startEditing = (comment: ScreenshotComment) => {
+    setEditingComment(comment);
+    globalThis.window.requestAnimationFrame(() => {
+      setFocus(focusIds.input);
+    });
+  };
+  const startEditingRef = useRef(startEditing);
+  startEditingRef.current = startEditing;
+
   const menuItems = useMemo<ContextMenuItem[]>(() => {
     if (!menu) return [];
 
     const { comment } = menu;
     const items: ContextMenuItem[] = [];
+
+    if (comment.isOwn && screenshot.canComment) {
+      items.push({
+        id: "edit",
+        label: t("screenshots_comment_edit"),
+        icon: <PencilSimpleIcon size={18} />,
+        restoreFocusOnClose: false,
+        onSelect: () => startEditingRef.current(comment),
+      });
+    }
 
     if (comment.canDelete) {
       items.push({
@@ -721,17 +720,12 @@ export function ScreenshotCommentsPanel({
     }
 
     return items;
-  }, [menu, t, viewerId]);
+  }, [menu, screenshot.canComment, t, viewerId]);
 
   const hasMenu = (comment: ScreenshotComment) =>
-    comment.canDelete || (!comment.isOwn && Boolean(viewerId));
-
-  const startEditing = (comment: ScreenshotComment) => {
-    setEditingComment(comment);
-    globalThis.window.requestAnimationFrame(() => {
-      setFocus(focusIds.input);
-    });
-  };
+    (comment.isOwn && screenshot.canComment) ||
+    comment.canDelete ||
+    (!comment.isOwn && Boolean(viewerId));
 
   return (
     <VerticalFocusGroup regionId={focusIds.region} asChild>
@@ -754,13 +748,11 @@ export function ScreenshotCommentsPanel({
                   key={comment.id}
                   comment={comment}
                   isSignedIn={Boolean(viewerId)}
-                  canEdit={comment.isOwn && screenshot.canComment}
                   hasMenu={hasMenu(comment)}
                   isVoting={votingIds.has(comment.id)}
                   language={language}
                   leftTarget={leftTarget}
                   onVote={(target, voteType) => void vote(target, voteType)}
-                  onEdit={startEditing}
                   onOpenMenu={(target, element) => {
                     const rect = element.getBoundingClientRect();
                     setMenu({

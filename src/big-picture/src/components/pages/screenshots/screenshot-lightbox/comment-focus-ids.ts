@@ -18,6 +18,5 @@ export const getCommentFocusIds = (commentId: string) => ({
   region: `screenshot-comment:${commentId}`,
   upvote: `screenshot-comment-upvote:${commentId}`,
   downvote: `screenshot-comment-downvote:${commentId}`,
-  edit: `screenshot-comment-edit:${commentId}`,
   more: `screenshot-comment-more:${commentId}`,
 });
