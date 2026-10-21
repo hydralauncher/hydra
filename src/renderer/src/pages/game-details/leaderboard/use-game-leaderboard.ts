@@ -42,7 +42,10 @@ export function useGameLeaderboard({
   isExtended,
 }: UseGameLeaderboardOptions) {
   const { userDetails } = useUserDetails();
-  const [leaderboard, setLeaderboard] = useState<Leaderboard | null>(null);
+  const [result, setResult] = useState<{
+    leaderboard: Leaderboard;
+    metric: LeaderboardMetric;
+  } | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [hasError, setHasError] = useState(false);
   const [attempt, setAttempt] = useState(0);
@@ -70,7 +73,7 @@ export function useGameLeaderboard({
     const requestId = ++requestIdRef.current;
 
     if (!isEligible || !objectId) {
-      setLeaderboard(null);
+      setResult(null);
       setIsLoading(false);
       setHasError(false);
       return;
@@ -90,13 +93,15 @@ export function useGameLeaderboard({
     setHasError(false);
 
     getFetcher()(query)
-      .then((result) => {
-        if (requestId === requestIdRef.current) setLeaderboard(result);
+      .then((leaderboard) => {
+        if (requestId === requestIdRef.current) {
+          setResult({ leaderboard, metric: query.metric });
+        }
       })
       .catch((error) => {
         if (requestId !== requestIdRef.current) return;
         logger.error("Failed to fetch game leaderboard", error);
-        setLeaderboard(null);
+        setResult(null);
         setHasError(true);
       })
       .finally(() => {
@@ -117,7 +122,8 @@ export function useGameLeaderboard({
   const retry = useCallback(() => setAttempt((value) => value + 1), []);
 
   return {
-    leaderboard,
+    leaderboard: result?.leaderboard ?? null,
+    dataMetric: result?.metric ?? effectiveMetric,
     isLoading,
     hasError,
     isEligible,
