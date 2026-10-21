@@ -20,12 +20,8 @@
   }
 
   &__content {
-    display: grid;
     flex: 1;
-    grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr);
-    grid-template-rows: minmax(0, 1fr);
-    gap: calc(var(--spacing-unit) * 4);
-    align-items: stretch;
+    min-width: 0;
     min-height: 0;
   }
 
@@ -33,9 +29,8 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    align-self: start;
+    flex-shrink: 0;
     width: 100%;
-    max-height: 100%;
     aspect-ratio: 16 / 9;
     overflow: hidden;
     border: 1px solid var(--secondary-border);
@@ -52,6 +47,7 @@
 
   &__form {
     display: flex;
+    flex: 1;
     flex-direction: column;
     gap: calc(var(--spacing-unit) * 2);
     min-width: 0;
@@ -64,8 +60,11 @@
     flex-direction: column;
     gap: calc(var(--spacing-unit) * 3);
     min-height: 0;
-    padding-right: var(--spacing-unit);
+    padding: var(--spacing-unit) var(--spacing-unit)
+      calc(var(--spacing-unit) * 4) 0;
     overflow-y: auto;
+    scroll-padding-top: calc(var(--spacing-unit) * 2);
+    scroll-padding-bottom: calc(var(--spacing-unit) * 4);
   }
 
   &__game {
@@ -122,14 +121,9 @@
     }
   }
 
-  @media (max-width: 640px) {
-    &__content {
-      grid-template-columns: minmax(0, 1fr);
-      grid-template-rows: auto minmax(0, 1fr);
-    }
-
+  @media (max-height: 600px) {
     &__preview {
-      max-height: 24vh;
+      max-height: 20vh;
     }
   }
 }
