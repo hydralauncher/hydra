@@ -1,5 +1,11 @@
+import * as DropdownMenuPrimitive from "@radix-ui/react-dropdown-menu";
 import cn from "classnames";
-import { GlobeIcon, PeopleIcon } from "@primer/octicons-react";
+import {
+  CalendarIcon,
+  ChevronDownIcon,
+  GlobeIcon,
+  PeopleIcon,
+} from "@primer/octicons-react";
 import { useTranslation } from "react-i18next";
 
 import {
@@ -60,10 +66,80 @@ function SegmentedControl<T extends string>({
           onClick={() => onChange(option.id)}
         >
           {option.icon}
-          {option.label}
+          <span className="leaderboard-controls__segment-label">
+            {option.label}
+          </span>
         </button>
       ))}
     </div>
+  );
+}
+
+interface FilterOption<T extends string> {
+  id: T;
+  label: string;
+}
+
+interface FilterProps<T extends string> {
+  label: string;
+  icon: React.ReactNode;
+  options: FilterOption<T>[];
+  value: T;
+  onChange: (value: T) => void;
+}
+
+function Filter<T extends string>({
+  label,
+  icon,
+  options,
+  value,
+  onChange,
+}: FilterProps<T>) {
+  const selected = options.find((option) => option.id === value);
+
+  return (
+    <DropdownMenuPrimitive.Root modal={false}>
+      <DropdownMenuPrimitive.Trigger asChild>
+        <button
+          type="button"
+          className="leaderboard-controls__filter"
+          aria-label={label}
+        >
+          {icon}
+          <span className="leaderboard-controls__filter-label">
+            {selected?.label}
+          </span>
+          <ChevronDownIcon
+            size={12}
+            className="leaderboard-controls__filter-chevron"
+          />
+        </button>
+      </DropdownMenuPrimitive.Trigger>
+
+      <DropdownMenuPrimitive.Portal>
+        <DropdownMenuPrimitive.Content
+          align="start"
+          sideOffset={6}
+          collisionPadding={16}
+          className="leaderboard-controls__filter-content"
+        >
+          <DropdownMenuPrimitive.RadioGroup
+            value={value}
+            onValueChange={(next) => onChange(next as T)}
+          >
+            {options.map((option) => (
+              <DropdownMenuPrimitive.RadioItem
+                key={option.id}
+                value={option.id}
+                className="leaderboard-controls__filter-item"
+              >
+                {option.label}
+              </DropdownMenuPrimitive.RadioItem>
+            ))}
+          </DropdownMenuPrimitive.RadioGroup>
+        </DropdownMenuPrimitive.Content>
+      </DropdownMenuPrimitive.Portal>
+    </DropdownMenuPrimitive.Root>
   );
 }
 
@@ -90,29 +166,31 @@ export function LeaderboardControls({
 }: LeaderboardControlsProps) {
   const { t } = useTranslation("leaderboard");
 
-  const scopeIcons: Record<LeaderboardScope, React.ReactNode> = {
-    global: <GlobeIcon size={12} />,
-    friends: <PeopleIcon size={12} />,
-  };
-
   return (
     <div className="leaderboard-controls">
-      <div className="leaderboard-controls__row">
+      <div className="leaderboard-controls__filters">
         {showScope && (
-          <SegmentedControl
+          <Filter
             label={t("scope_label")}
+            icon={
+              scope === "friends" ? (
+                <PeopleIcon size={12} />
+              ) : (
+                <GlobeIcon size={12} />
+              )
+            }
             value={scope}
             onChange={onScopeChange}
             options={LEADERBOARD_SCOPES.map((id) => ({
               id,
               label: t(`scope_${id}`),
-              icon: scopeIcons[id],
             }))}
           />
         )}
 
-        <SegmentedControl
+        <Filter
           label={t("period_label")}
+          icon={<CalendarIcon size={12} />}
           value={period}
           onChange={onPeriodChange}
           options={LEADERBOARD_PERIODS.map((id) => ({
@@ -123,38 +201,15 @@ export function LeaderboardControls({
       </div>
 
       {showMetrics && (
-        <div
-          className="leaderboard-controls__metrics"
-          role="group"
-          aria-label={t("metric_label")}
-          style={
-            {
-              "--metric-count": LEADERBOARD_METRICS.length,
-              "--metric-index": Math.max(
-                0,
-                LEADERBOARD_METRICS.indexOf(metric)
-              ),
-            } as React.CSSProperties
-          }
-        >
-          <span
-            className="leaderboard-controls__metric-indicator"
-            aria-hidden="true"
-          />
-          {LEADERBOARD_METRICS.map((id) => (
-            <button
-              key={id}
-              type="button"
-              aria-pressed={id === metric}
-              className={cn("leaderboard-controls__metric", {
-                "leaderboard-controls__metric--selected": id === metric,
-              })}
-              onClick={() => onMetricChange(id)}
-            >
-              {t(`metric_${id}`)}
-            </button>
-          ))}
-        </div>
+        <SegmentedControl
+          label={t("metric_label")}
+          value={metric}
+          onChange={onMetricChange}
+          options={LEADERBOARD_METRICS.map((id) => ({
+            id,
+            label: t(`metric_${id}`),
+          }))}
+        />
       )}
     </div>
   );

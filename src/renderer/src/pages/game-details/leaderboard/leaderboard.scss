@@ -104,20 +104,93 @@ $leaderboard-ease: cubic-bezier(0.34, 1.4, 0.64, 1);
 .leaderboard-controls {
   display: flex;
   flex-direction: column;
-  gap: calc(globals.$spacing-unit * 1.5);
-  padding: calc(globals.$spacing-unit * 2) calc(globals.$spacing-unit * 2)
+  gap: calc(globals.$spacing-unit * 1.25);
+  padding: calc(globals.$spacing-unit * 2) globals.$spacing-unit
     calc(globals.$spacing-unit * 1.5);
 
-  &__row {
+  &__filters {
     display: flex;
     gap: globals.$spacing-unit;
+  }
+
+  &__filter {
+    display: inline-flex;
+    align-items: center;
+    gap: calc(globals.$spacing-unit * 0.75);
+    min-width: 0;
+    height: 28px;
+    padding: 0 10px;
+    border: solid 1px globals.$border-color;
+    border-radius: 8px;
+    background-color: globals.$dark-background-color;
+    color: globals.$muted-color;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: border-color 0.2s ease;
+
+    &:hover {
+      border-color: rgba(255, 255, 255, 0.5);
+    }
+
+    &[data-state="open"] {
+      border-color: #dadbe1;
+    }
+
+    &[data-state="open"] .leaderboard-controls__filter-chevron {
+      transform: rotate(180deg);
+    }
+  }
+
+  &__filter-label {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  &__filter-chevron {
+    flex-shrink: 0;
+    color: globals.$body-color;
+    transition: transform 0.15s ease;
+  }
+
+  &__filter-content {
+    min-width: var(--radix-dropdown-menu-trigger-width);
+    padding: 4px;
+    border: solid 1px globals.$border-color;
+    border-radius: 6px;
+    background-color: globals.$dark-background-color;
+    z-index: globals.$backdrop-z-index;
+    animation: leaderboard-filter-in 0.15s ease-out;
+  }
+
+  &__filter-item {
+    display: flex;
+    align-items: center;
+    height: 30px;
+    padding: 0 10px;
+    border-radius: 4px;
+    color: globals.$muted-color;
+    font-size: 12px;
+    white-space: nowrap;
+    cursor: pointer;
+    outline: none;
+    transition: background-color 0.1s ease-in-out;
+
+    &[data-state="checked"] {
+      background-color: rgba(255, 255, 255, 0.1);
+    }
+
+    &:hover,
+    &[data-highlighted] {
+      background-color: rgba(255, 255, 255, 0.15);
+    }
   }
 
   &__segmented {
     --segment-gap: 2px;
 
     position: relative;
-    flex: 1;
     display: flex;
     gap: var(--segment-gap);
     padding: 2px;
@@ -169,62 +242,21 @@ $leaderboard-ease: cubic-bezier(0.34, 1.4, 0.64, 1);
     }
   }
 
-  &__metrics {
-    --metric-gap: #{calc(globals.$spacing-unit / 2)};
-
-    position: relative;
-    display: grid;
-    grid-template-columns: repeat(var(--metric-count), minmax(0, 1fr));
-    gap: var(--metric-gap);
-  }
-
-  &__metric-indicator {
-    position: absolute;
-    top: 0;
-    bottom: 0;
-    left: 0;
-    width: calc(
-      (100% - (var(--metric-count) - 1) * var(--metric-gap)) /
-        var(--metric-count)
-    );
-    border-radius: 999px;
-    background-color: globals.$muted-color;
-    transform: translateX(
-      calc(var(--metric-index) * (100% + var(--metric-gap)))
-    );
-    transition: transform 0.46s $leaderboard-ease;
-    pointer-events: none;
-  }
-
-  &__metric {
-    position: relative;
-    z-index: 1;
-    min-width: 0;
-    height: 26px;
-    padding: 0 calc(globals.$spacing-unit * 0.75);
+  &__segment-label {
     overflow: hidden;
     text-overflow: ellipsis;
-    white-space: nowrap;
-    border: solid 1px globals.$border-color;
-    border-radius: 999px;
-    background: transparent;
-    color: globals.$body-color;
-    font-size: 11px;
-    font-weight: 500;
-    cursor: pointer;
-    transition:
-      background-color 0.2s ease,
-      color 0.2s ease,
-      border-color 0.2s ease;
+  }
+}
 
-    &:hover {
-      border-color: rgba(255, 255, 255, 0.5);
-    }
+@keyframes leaderboard-filter-in {
+  0% {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
 
-    &--selected {
-      border-color: transparent;
-      color: globals.$dark-background-color;
-    }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
   }
 }
 
@@ -438,7 +470,7 @@ $leaderboard-ease: cubic-bezier(0.34, 1.4, 0.64, 1);
 
 @media (prefers-reduced-motion: reduce) {
   .leaderboard-controls__indicator,
-  .leaderboard-controls__metric-indicator,
+  .leaderboard-controls__filter-content,
   .leaderboard-controls__segment,
   .leaderboard-row__progress-fill {
     transition: none;

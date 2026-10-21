@@ -67,6 +67,7 @@ export type LeaderboardGet = (
 export interface LeaderboardRow {
   entry: LeaderboardEntry;
   isViewer: boolean;
+  isPinned: boolean;
   gapBefore: boolean;
   progress: number;
 }
@@ -208,24 +209,34 @@ const getProgress = (value: number, topValue: number) => {
 export const buildLeaderboardRows = (
   leaderboard: Pick<Leaderboard, "entries" | "viewer">,
   viewerUser: LeaderboardUser | null,
-  size: number
+  size: number,
+  { pinViewer = false }: { pinViewer?: boolean } = {}
 ): LeaderboardRow[] => {
   const topValue = leaderboard.entries[0]?.value ?? 0;
   const viewerEntry = findViewerEntry(leaderboard, viewerUser);
 
-  const toRow = (entry: LeaderboardEntry, gapBefore = false) => ({
+  const toRow = (
+    entry: LeaderboardEntry,
+    gapBefore = false,
+    isPinned = false
+  ): LeaderboardRow => ({
     entry,
     isViewer: entry.user.id === viewerUser?.id,
+    isPinned,
     gapBefore,
     progress: getProgress(entry.value, topValue),
   });
 
   const rows = leaderboard.entries.slice(0, size).map((entry) => toRow(entry));
+  if (!viewerEntry) return rows;
 
-  if (viewerEntry && !rows.some((row) => row.isViewer)) {
-    const lastRank = rows.at(-1)?.entry.rank ?? 0;
-    rows.push(toRow(viewerEntry, viewerEntry.rank > lastRank + 1));
-  }
+  const isListed = rows.some((row) => row.isViewer);
+  if (isListed && !pinViewer) return rows;
+
+  const lastRank = rows.at(-1)?.entry.rank ?? 0;
+  rows.push(
+    toRow(viewerEntry, isListed || viewerEntry.rank > lastRank + 1, pinViewer)
+  );
 
   return rows;
 };
