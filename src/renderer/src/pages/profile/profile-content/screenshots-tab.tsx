@@ -20,7 +20,7 @@ import {
   useScreenshotCollection,
   type ScreenshotFeedPage,
 } from "@renderer/components/screenshots";
-import { useAppSelector, useUserDetails } from "@renderer/hooks";
+import { useAppSelector, useFeature, useUserDetails } from "@renderer/hooks";
 import { logger } from "@renderer/logger";
 import {
   PROFILE_SCREENSHOT_GAME_STORAGE_KEY,
@@ -170,6 +170,8 @@ export function ScreenshotsTab({
 }: Readonly<ScreenshotsTabProps>) {
   const { t } = useTranslation("screenshots");
   const { userDetails } = useUserDetails();
+  const { isFeatureEnabled, Feature } = useFeature();
+  const isCommentsEnabled = isFeatureEnabled(Feature.ScreenshotComments);
   const viewerId = userDetails?.id ?? null;
   const [sort, setSort] = useState<ScreenshotSort>(() =>
     readStoredScreenshotSort(PROFILE_SCREENSHOT_SORT_STORAGE_KEY)
@@ -369,6 +371,7 @@ export function ScreenshotsTab({
                 variant="profile"
                 isOwner={isMe}
                 isLiking={actions.likingIds.has(screenshot.id)}
+                showCommentCount={isCommentsEnabled}
                 onOpen={lightbox.open}
                 onLike={(item) => void actions.toggleLike(item)}
               />

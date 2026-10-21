@@ -1,5 +1,6 @@
 @use "../../scss/globals.scss";
 @use "./screenshot-motion.scss" as motion;
+@use "../../scss/vote-button.scss" as vote;
 
 .screenshot-lightbox__overlay {
   position: fixed;
@@ -362,9 +363,15 @@
       padding: 0;
     }
 
-    &--danger:hover:not(:disabled) {
-      border-color: rgba(225, 29, 72, 0.6);
-      color: globals.$error-color;
+    &--danger {
+      border-color: transparent;
+      background: globals.$danger-color;
+      color: globals.$muted-color;
+
+      &:hover:not(:disabled) {
+        background: #b3203f;
+        color: globals.$muted-color;
+      }
     }
   }
 
@@ -428,7 +435,6 @@
     display: flex;
     flex-direction: column;
     gap: calc(globals.$spacing-unit * 1.5);
-    padding-bottom: calc(globals.$spacing-unit * 2);
   }
 
   &__tooltip {
@@ -537,58 +543,33 @@
     gap: globals.$spacing-unit;
   }
 
-  &__textarea {
-    width: 100%;
-    min-height: 64px;
-    max-height: 200px;
-    padding: globals.$spacing-unit calc(globals.$spacing-unit * 1.25);
-    resize: vertical;
-    border: 1px solid globals.$border-color;
-    border-radius: 6px;
-    background: globals.$dark-background-color;
-    color: globals.$muted-color;
-    font-family: inherit;
-    font-size: globals.$body-font-size;
-    line-height: 1.45;
+  &__editor {
+    .rich-text-editor__input {
+      position: relative;
+      min-height: 64px;
+      max-height: 200px;
+      overflow-y: auto;
+      padding: globals.$spacing-unit calc(globals.$spacing-unit * 1.25);
 
-    &:focus {
-      border-color: rgba(255, 255, 255, 0.4);
-      outline: none;
+      .ProseMirror {
+        min-height: 44px;
+      }
+
+      .ProseMirror:has(
+          > p:only-child > br.ProseMirror-trailingBreak:only-child
+        )::before {
+        content: attr(data-placeholder);
+        position: absolute;
+        color: rgba(255, 255, 255, 0.4);
+        pointer-events: none;
+      }
     }
-
-    &::placeholder {
-      color: rgba(255, 255, 255, 0.4);
-    }
-
-    &:disabled {
-      opacity: globals.$disabled-opacity;
-    }
-  }
-
-  &__input-footer {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    justify-content: space-between;
-    gap: globals.$spacing-unit;
   }
 
   &__input-actions {
     display: flex;
+    justify-content: flex-end;
     gap: globals.$spacing-unit;
-    margin-left: auto;
-  }
-
-  &__counter {
-    color: globals.$body-color;
-    font-size: globals.$small-font-size;
-    font-variant-numeric: tabular-nums;
-    opacity: 0.7;
-
-    &--limit {
-      color: globals.$error-color;
-      opacity: 1;
-    }
   }
 
   &__notice {
@@ -694,42 +675,34 @@
   }
 
   &__text {
-    margin: 0;
     color: globals.$muted-color;
     line-height: 1.45;
-    overflow-wrap: anywhere;
-    white-space: pre-wrap;
   }
 
   &__actions {
     display: flex;
     flex-wrap: wrap;
     align-items: center;
-    gap: 4px;
-    margin-left: -6px;
+    justify-content: space-between;
+    gap: globals.$spacing-unit;
+    margin-top: 4px;
   }
 
-  &__vote,
-  &__action {
-    display: inline-flex;
-    min-height: 26px;
+  &__votes,
+  &__tools {
+    display: flex;
     align-items: center;
-    gap: 4px;
-    padding: 0 6px;
-    border: 0;
-    border-radius: 4px;
-    background: transparent;
-    color: rgba(255, 255, 255, 0.55);
-    cursor: pointer;
-    font-family: inherit;
-    font-size: globals.$small-font-size;
-    transition:
-      background-color motion.$transition-duration ease,
-      color motion.$transition-duration ease;
+    gap: globals.$spacing-unit;
+  }
 
-    &:hover:not(:disabled) {
-      background: rgba(255, 255, 255, 0.08);
-      color: globals.$muted-color;
+  &__vote {
+    @include vote.vote-button;
+
+    padding: 4px 10px;
+    font-family: inherit;
+
+    &--active {
+      @include vote.vote-button-active;
     }
 
     &:disabled {
@@ -743,12 +716,9 @@
     }
   }
 
-  &__vote--active {
-    color: globals.$muted-color;
-  }
-
-  &__action--danger:hover:not(:disabled) {
-    color: globals.$error-color;
+  &__tool {
+    width: 30px;
+    padding: 0;
   }
 
   &__load-more {
@@ -764,23 +734,20 @@
       padding: globals.$spacing-unit calc(globals.$spacing-unit * 2);
     }
 
-    &__textarea {
-      height: 36px;
+    &__composer .screenshot-comments__editor .rich-text-editor__input {
       min-height: 36px;
       padding-block: 6px;
-      resize: none;
 
-      &:focus,
-      &:not(:placeholder-shown) {
-        height: 64px;
+      .ProseMirror {
+        min-height: 22px;
       }
     }
 
-    &__input:has(.screenshot-comments__textarea:placeholder-shown):not(
-        :focus-within
-      )
-      .screenshot-comments__input-footer {
-      display: none;
+    &__composer:not(:focus-within) {
+      .rich-text-editor__header,
+      .screenshot-comments__input-actions {
+        display: none;
+      }
     }
 
     &__empty-state {

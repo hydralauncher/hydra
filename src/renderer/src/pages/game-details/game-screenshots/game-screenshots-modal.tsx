@@ -30,6 +30,7 @@ const SORT_OPTIONS: { value: ScreenshotSort; icon: typeof HistoryIcon }[] = [
 
 interface GameScreenshotsModalProps {
   visible: boolean;
+  showCommentCount: boolean;
   shop: GameShop;
   objectId: string;
   onClose: () => void;
@@ -37,6 +38,7 @@ interface GameScreenshotsModalProps {
 
 export function GameScreenshotsModal({
   visible,
+  showCommentCount,
   shop,
   objectId,
   onClose,
@@ -137,6 +139,7 @@ export function GameScreenshotsModal({
               variant="game"
               isOwner={false}
               isLiking={actions.likingIds.has(screenshot.id)}
+              showCommentCount={showCommentCount}
               onOpen={lightbox.open}
               onLike={(item) => void actions.toggleLike(item)}
             />

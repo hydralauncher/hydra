@@ -103,8 +103,7 @@
     pointer-events: none;
   }
 
-  &__badge,
-  &__like {
+  &__badge {
     display: inline-flex;
     align-items: center;
     justify-content: center;
@@ -132,31 +131,6 @@
     top: globals.$spacing-unit;
     right: globals.$spacing-unit;
     z-index: 2;
-  }
-
-  &__like {
-    cursor: pointer;
-    transition:
-      background-color motion.$transition-duration ease,
-      color motion.$transition-duration ease;
-
-    &:hover:not(:disabled) {
-      background: rgba(0, 0, 0, 0.75);
-      color: globals.$muted-color;
-    }
-
-    &:disabled {
-      cursor: default;
-    }
-
-    &--active {
-      color: #fff;
-    }
-
-    &:focus-visible {
-      outline: 2px solid globals.$muted-color;
-      outline-offset: 2px;
-    }
   }
 
   &__details {

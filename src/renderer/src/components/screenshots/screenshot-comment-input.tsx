@@ -1,9 +1,16 @@
-import { useEffect, useId, useRef, useState, type KeyboardEvent } from "react";
+import { useRef } from "react";
 import { useTranslation } from "react-i18next";
-import cn from "classnames";
 
 import { Button } from "../button/button";
-import { SCREENSHOT_COMMENT_MAX_LENGTH } from "@shared";
+import { RichTextEditorField } from "../rich-text-editor/rich-text-editor";
+import { useRichTextEditor } from "../rich-text-editor/use-rich-text-editor";
+import {
+  SCREENSHOT_COMMENT_HTML_MAX_LENGTH,
+  SCREENSHOT_COMMENT_MAX_LENGTH,
+  richTextToPlainText,
+} from "@shared";
+
+const measureCommentText = (html: string) => richTextToPlainText(html).length;
 
 interface ScreenshotCommentInputProps {
   initialValue?: string;
@@ -25,86 +32,55 @@ export function ScreenshotCommentInput({
   onCancel,
 }: Readonly<ScreenshotCommentInputProps>) {
   const { t } = useTranslation("screenshots");
-  const counterId = useId();
-  const [value, setValue] = useState(initialValue);
-  const textareaRef = useRef<HTMLTextAreaElement>(null);
-
-  useEffect(() => {
-    if (!focusOnMount) return;
-
-    const textarea = textareaRef.current;
-    textarea?.focus();
-    textarea?.setSelectionRange(textarea.value.length, textarea.value.length);
-  }, [focusOnMount]);
-  const length = value.length;
-  const isEmpty = value.trim().length === 0;
-  const isOverLimit = length > SCREENSHOT_COMMENT_MAX_LENGTH;
-  const isDisabled = isEmpty || isOverLimit || isSubmitting;
+  const isDisabledRef = useRef(true);
 
   const submit = async () => {
-    if (isDisabled) return;
+    if (isDisabledRef.current) return;
 
-    const wasSubmitted = await onSubmit(value);
-    if (wasSubmitted && !onCancel) setValue("");
+    const wasSubmitted = await onSubmit(getHtml());
+    if (wasSubmitted && !onCancel) clear();
   };
 
-  const handleKeyDown = (event: KeyboardEvent<HTMLTextAreaElement>) => {
-    if (event.key === "Escape" && onCancel) {
-      event.preventDefault();
-      event.stopPropagation();
-      onCancel();
-      return;
-    }
+  const { editor, charCount, htmlLength, getHtml, clear } = useRichTextEditor({
+    initialHtml: initialValue,
+    placeholder,
+    maxLength: SCREENSHOT_COMMENT_MAX_LENGTH,
+    autofocus: focusOnMount,
+    className: "screenshot-comments__prose",
+    onSubmitShortcut: () => void submit(),
+    onEscape: onCancel,
+    measureText: measureCommentText,
+  });
 
-    if (
-      event.key === "Enter" &&
-      !event.shiftKey &&
-      !event.nativeEvent.isComposing
-    ) {
-      event.preventDefault();
-      void submit();
-    }
-  };
+  const isDisabled =
+    charCount === 0 ||
+    charCount > SCREENSHOT_COMMENT_MAX_LENGTH ||
+    htmlLength > SCREENSHOT_COMMENT_HTML_MAX_LENGTH ||
+    isSubmitting;
+  isDisabledRef.current = isDisabled;
 
   return (
     <div className="screenshot-comments__input">
-      <textarea
-        className="screenshot-comments__textarea"
-        value={value}
-        placeholder={placeholder}
-        aria-label={placeholder}
-        aria-describedby={counterId}
+      <RichTextEditorField
+        editor={editor}
+        charCount={charCount}
         maxLength={SCREENSHOT_COMMENT_MAX_LENGTH}
-        rows={2}
-        disabled={isSubmitting}
-        ref={textareaRef}
-        onChange={(event) => setValue(event.target.value)}
-        onKeyDown={handleKeyDown}
+        className="screenshot-comments__editor"
+        tooltipStrategy="fixed"
       />
-      <div className="screenshot-comments__input-footer">
-        <span
-          id={counterId}
-          className={cn("screenshot-comments__counter", {
-            "screenshot-comments__counter--limit":
-              length >= SCREENSHOT_COMMENT_MAX_LENGTH,
-          })}
-        >
-          {length}/{SCREENSHOT_COMMENT_MAX_LENGTH}
-        </span>
-        <div className="screenshot-comments__input-actions">
-          {onCancel ? (
-            <Button theme="outline" onClick={onCancel} disabled={isSubmitting}>
-              {t("cancel")}
-            </Button>
-          ) : null}
-          <Button
-            theme="primary"
-            onClick={() => void submit()}
-            disabled={isDisabled}
-          >
-            {submitLabel}
+      <div className="screenshot-comments__input-actions">
+        {onCancel ? (
+          <Button theme="outline" onClick={onCancel} disabled={isSubmitting}>
+            {t("cancel")}
           </Button>
-        </div>
+        ) : null}
+        <Button
+          theme="primary"
+          onClick={() => void submit()}
+          disabled={isDisabled}
+        >
+          {submitLabel}
+        </Button>
       </div>
     </div>
   );

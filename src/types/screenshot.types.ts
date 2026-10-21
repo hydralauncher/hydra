@@ -132,7 +132,7 @@ export interface ScreenshotUnlikeResponse {
 
 export interface ScreenshotComment {
   id: string;
-  body: string;
+  bodyHtml: string;
   createdAt: number;
   editedAt: number | null;
   author: ScreenshotAuthor;

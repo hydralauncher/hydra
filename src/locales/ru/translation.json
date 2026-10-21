@@ -1846,7 +1846,6 @@
     "screenshots_gamepad_enable": "Использовать сочетание кнопок геймпада",
     "screenshots_gamepad_reset": "Сбросить по умолчанию",
     "screenshots_hotkey": "Сочетание клавиш",
-    "screenshots_hotkey_change": "Изменить",
     "screenshots_hotkey_recording": "Нажмите клавишу",
     "screenshots_hotkey_reset": "Сбросить по умолчанию",
     "screenshots_input_active": "Сочетание клавиш активно",
@@ -1876,7 +1875,9 @@
     "screenshots_gamepad_duplicate": "Каждую кнопку можно использовать только один раз",
     "screenshots_upload_tooltip": "Просмотреть и загрузить",
     "screenshots_retry_tooltip": "Просмотреть и повторить загрузку",
-    "screenshots_delete_tooltip": "Удалить с этого компьютера"
+    "screenshots_delete_tooltip": "Удалить с этого компьютера",
+    "screenshots_hotkey_change_label": "Изменить сочетание клавиш, сейчас {{key}}",
+    "screenshots_open_viewer": "Открыть {{title}} в полном размере"
   },
   "notifications": {
     "download_complete": "Загрузка завершена",
@@ -2594,6 +2595,7 @@
     "custom_game_title": "Название игры",
     "custom_games": "Свои игры",
     "delete": "Удалить",
+    "delete_comment": "Удалить комментарий",
     "delete_comment_description": "Этот комментарий будет удалён для всех.",
     "delete_comment_title": "Удалить комментарий?",
     "delete_failed": "Не удалось удалить скриншот",
@@ -2601,7 +2603,7 @@
     "delete_screenshot_description": "Скриншот, его отметки «Нравится» и комментарии будут удалены. Это действие нельзя отменить.",
     "delete_screenshot_title": "Удалить скриншот?",
     "downvote_comment": "Против",
-    "edit": "Изменить",
+    "edit_comment": "Изменить комментарий",
     "edit_comment_placeholder": "Измените комментарий",
     "game": "Игра",
     "game_filter_option": "{{title}} ({{amount}})",
@@ -2630,7 +2632,6 @@
     "previous_screenshot": "Предыдущий скриншот",
     "privacy_screenshot_comments_policy": "Кто может комментировать мои скриншоты",
     "privacy_screenshots_visibility": "Видимость скриншотов",
-    "report": "Пожаловаться",
     "report_comment": "Пожаловаться на комментарий",
     "report_comment_reason_label": "Почему вы жалуетесь на этот комментарий?",
     "report_failed": "Не удалось отправить жалобу",

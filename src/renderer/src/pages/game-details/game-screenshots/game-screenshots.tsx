@@ -15,16 +15,18 @@ import { useGameScreenshotsCollection } from "./use-game-screenshots-collection"
 
 import "./game-screenshots.scss";
 
-const SIDEBAR_SCREENSHOT_COUNT = 2;
+const SIDEBAR_SCREENSHOT_COUNT = 4;
 
 interface GameScreenshotsBoxProps {
   shop: GameShop;
   objectId: string;
+  showCommentCount: boolean;
 }
 
 function GameScreenshotsBox({
   shop,
   objectId,
+  showCommentCount,
 }: Readonly<GameScreenshotsBoxProps>) {
   const { t } = useTranslation("screenshots");
   const [isModalVisible, setIsModalVisible] = useState(false);
@@ -35,7 +37,7 @@ function GameScreenshotsBox({
     take: SIDEBAR_SCREENSHOT_COUNT,
     isEnabled: true,
   });
-  const { feed, lightbox } = collection;
+  const { feed, actions, lightbox } = collection;
   const topItems = feed.items.slice(0, SIDEBAR_SCREENSHOT_COUNT);
   const isInitialLoading =
     !feed.hasLoaded || (feed.isLoading && feed.items.length === 0);
@@ -73,7 +75,10 @@ function GameScreenshotsBox({
             <li key={screenshot.id}>
               <GameScreenshotThumbnail
                 screenshot={screenshot}
+                isLiking={actions.likingIds.has(screenshot.id)}
+                showCommentCount={showCommentCount}
                 onOpen={lightbox.open}
+                onLike={(item) => void actions.toggleLike(item)}
               />
             </li>
           ))}
@@ -98,6 +103,7 @@ function GameScreenshotsBox({
 
       <GameScreenshotsModal
         visible={isModalVisible}
+        showCommentCount={showCommentCount}
         shop={shop}
         objectId={objectId}
         onClose={() => setIsModalVisible(false)}
@@ -106,7 +112,9 @@ function GameScreenshotsBox({
   );
 }
 
-interface GameScreenshotsProps extends GameScreenshotsBoxProps {
+interface GameScreenshotsProps {
+  shop: GameShop;
+  objectId: string;
   isAdultGame: boolean;
 }
 
@@ -125,5 +133,11 @@ export function GameScreenshots({
     return null;
   }
 
-  return <GameScreenshotsBox shop={shop} objectId={objectId} />;
+  return (
+    <GameScreenshotsBox
+      shop={shop}
+      objectId={objectId}
+      showCommentCount={isFeatureEnabled(Feature.ScreenshotComments)}
+    />
+  );
 }

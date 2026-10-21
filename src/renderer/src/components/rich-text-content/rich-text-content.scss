@@ -1,0 +1,30 @@
+.rich-text-content {
+  overflow-wrap: anywhere;
+
+  p {
+    min-height: 1em;
+    margin: 0 0 4px;
+
+    &:last-child {
+      margin-bottom: 0;
+    }
+  }
+
+  strong {
+    font-weight: bold;
+  }
+
+  em {
+    font-style: italic;
+  }
+
+  u {
+    text-decoration: underline;
+  }
+
+  ul,
+  ol {
+    margin: 0 0 4px;
+    padding-left: 20px;
+  }
+}
