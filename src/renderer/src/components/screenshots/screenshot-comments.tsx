@@ -113,12 +113,8 @@ function ScreenshotCommentVotes({
   onVote,
 }: Readonly<ScreenshotCommentVotesProps>) {
   const { t } = useTranslation("screenshots");
-  const canVote = !comment.isOwn;
-  const voteTitle = (key: string) => {
-    if (!canVote) return t("cannot_vote_own_comment");
-    if (!isSignedIn) return t("sign_in_to_vote");
-    return t(key);
-  };
+  const voteTitle = (key: string) =>
+    isSignedIn ? t(key) : t("sign_in_to_vote");
 
   const handleVote = (vote: ScreenshotCommentVoteType) => {
     if (!isSignedIn) {
@@ -140,7 +136,7 @@ function ScreenshotCommentVotes({
           }
         )}
         onClick={() => handleVote("UPVOTE")}
-        disabled={!canVote || isPending}
+        disabled={isPending}
         aria-pressed={comment.myVote === "UPVOTE"}
         aria-label={t("upvote_comment")}
         data-tooltip-id={tooltipId}
@@ -158,7 +154,7 @@ function ScreenshotCommentVotes({
           }
         )}
         onClick={() => handleVote("DOWNVOTE")}
-        disabled={!canVote || isPending}
+        disabled={isPending}
         aria-pressed={comment.myVote === "DOWNVOTE"}
         aria-label={t("downvote_comment")}
         data-tooltip-id={tooltipId}

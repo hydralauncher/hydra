@@ -2,7 +2,6 @@ import { useId } from "react";
 import { useTranslation } from "react-i18next";
 import {
   CopyIcon,
-  EyeClosedIcon,
   GearIcon,
   HeartFillIcon,
   HeartIcon,
@@ -12,10 +11,17 @@ import {
 import cn from "classnames";
 import { Tooltip } from "react-tooltip";
 
+import { InlineEditField } from "../inline-edit-field/inline-edit-field";
 import { Link } from "../link/link";
 import { buildGameDetailsPath } from "@renderer/helpers";
 import { useDate, useFeature, useUserDetails } from "@renderer/hooks";
-import { AuthPage } from "@shared";
+import {
+  AuthPage,
+  SCREENSHOT_DESCRIPTION_MAX_LENGTH,
+  buildScreenshotSettingsUpdate,
+  readScreenshotSettings,
+  sanitizeScreenshotDescriptionInput,
+} from "@shared";
 import type { ProfileScreenshot } from "@types";
 
 import { ScreenshotComments } from "./screenshot-comments";
@@ -61,11 +67,15 @@ function ScreenshotGameLink({
 
 interface ScreenshotPanelInfoProps {
   screenshot: ProfileScreenshot;
+  actions: ScreenshotActions;
+  isOwner: boolean;
   onClose: () => void;
 }
 
 function ScreenshotPanelInfo({
   screenshot,
+  actions,
+  isOwner,
   onClose,
 }: Readonly<ScreenshotPanelInfoProps>) {
   const { t } = useTranslation("screenshots");
@@ -77,6 +87,26 @@ function ScreenshotPanelInfo({
         <h2 className="screenshot-lightbox__description">
           {screenshot.description}
         </h2>
+      ) : null}
+
+      {!screenshot.description && isOwner ? (
+        <InlineEditField
+          key={screenshot.id}
+          label={t("add_description")}
+          saveLabel={t("save")}
+          maxLength={SCREENSHOT_DESCRIPTION_MAX_LENGTH}
+          isSaving={actions.updatingIds.has(screenshot.id)}
+          sanitize={sanitizeScreenshotDescriptionInput}
+          onSave={(description) =>
+            actions.updateScreenshot(
+              screenshot,
+              buildScreenshotSettingsUpdate(screenshot, {
+                ...readScreenshotSettings(screenshot),
+                description,
+              })
+            )
+          }
+        />
       ) : null}
 
       <p className="screenshot-lightbox__byline">
@@ -91,12 +121,6 @@ function ScreenshotPanelInfo({
           ·
         </span>
         <ScreenshotGameLink screenshot={screenshot} onNavigateAway={onClose} />
-        {screenshot.isSpoiler ? (
-          <span className="screenshot-lightbox__tag screenshot-lightbox__tag--spoiler">
-            <EyeClosedIcon size={12} />
-            {t("spoiler")}
-          </span>
-        ) : null}
       </p>
 
       <time
@@ -268,7 +292,12 @@ export function ScreenshotLightboxPanel({
 
   return (
     <aside className="screenshot-lightbox__panel">
-      <ScreenshotPanelInfo screenshot={screenshot} onClose={onClose} />
+      <ScreenshotPanelInfo
+        screenshot={screenshot}
+        actions={actions}
+        isOwner={isOwner}
+        onClose={onClose}
+      />
 
       <ScreenshotPanelActions
         screenshot={screenshot}

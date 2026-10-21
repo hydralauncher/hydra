@@ -81,11 +81,6 @@
     color: globals.$body-color;
     font-size: globals.$small-font-size;
     font-weight: 500;
-
-    &--spoiler {
-      border-color: rgba(255, 193, 7, 0.4);
-      color: #ffd36d;
-    }
   }
 
   &__actions {
