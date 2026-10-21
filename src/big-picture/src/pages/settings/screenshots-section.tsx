@@ -2,19 +2,15 @@ import "./screenshots-section.scss";
 
 import {
   ArrowCounterClockwiseIcon,
-  CloudArrowUpIcon,
   FolderOpenIcon,
-  ImageIcon,
   KeyboardIcon,
   PlusIcon,
-  TrashIcon,
   XIcon,
 } from "@phosphor-icons/react";
 import cn from "classnames";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import type {
-  LocalScreenshot,
   ProfileVisibility,
   ScreenshotGamepadButton,
   ScreenshotInputStatus,
@@ -29,10 +25,7 @@ import {
   formatScreenshotHotkey,
   isSameScreenshotGamepadCombo,
   isSameScreenshotHotkey,
-  isScreenshotUploadRetryable,
   resolveScreenshotPreferences,
-  toLocalScreenshotUrl,
-  useLocalScreenshotViewer,
   validateScreenshotGamepadCombo,
   validateScreenshotHotkey,
   type ScreenshotHotkeyError,
@@ -48,11 +41,8 @@ import {
   VerticalFocusGroup,
   type DropdownSelectOption,
 } from "../../components";
-import { ConfirmationModal } from "../../components/modals";
 import {
-  formatScreenshotDate,
   getHotkeyFromKeyboardEvent,
-  getLocalScreenshotStatusDetail,
   isModifierKeyCode,
 } from "../../components/pages/screenshots";
 import {
@@ -67,8 +57,6 @@ import {
   type FocusOverrides,
   type FocusOverrideTarget,
 } from "../../services";
-import { ScreenshotDialogPresence } from "../../components/pages/screenshots/screenshot-dialog-presence";
-import { LocalScreenshotViewer } from "./local-screenshot-viewer";
 import { SettingsSection } from "./settings-section";
 
 export const SCREENSHOT_SETTINGS_FOCUS_IDS = {
@@ -101,13 +89,6 @@ const getGamepadSlotFocusId = (index: number) =>
   `screenshot-settings-gamepad-slot:${index}`;
 const getGamepadRemoveFocusId = (index: number) =>
   `screenshot-settings-gamepad-remove:${index}`;
-
-const getLocalViewFocusId = (clientId: string) =>
-  `screenshot-settings-local-view:${clientId}`;
-const getLocalUploadFocusId = (clientId: string) =>
-  `screenshot-settings-local-upload:${clientId}`;
-const getLocalDeleteFocusId = (clientId: string) =>
-  `screenshot-settings-local-delete:${clientId}`;
 
 type ScreenshotPreferenceUpdate = Pick<
   UserPreferences,
@@ -160,80 +141,6 @@ function buildRowNavigation(
   });
 
   return overrides;
-}
-
-function getLocalStatusKey(screenshot: LocalScreenshot) {
-  switch (screenshot.state) {
-    case "reviewing":
-      return "screenshots_local_status_reviewing";
-    case "queued":
-      return "screenshots_local_status_queued";
-    case "uploading":
-      return "screenshots_local_status_uploading";
-    case "failed":
-      return "screenshots_local_status_failed";
-    case "uploaded":
-      if (screenshot.moderationStatus === "APPROVED")
-        return "screenshots_local_status_published";
-      if (screenshot.moderationStatus === "BLOCKED")
-        return "screenshots_local_status_blocked";
-      return "screenshots_local_status_in_review";
-    default:
-      return "screenshots_local_status_local";
-  }
-}
-
-const canUploadLocalScreenshot = (screenshot: LocalScreenshot) =>
-  screenshot.state === "local" ||
-  (screenshot.state === "failed" &&
-    isScreenshotUploadRetryable(screenshot.lastError));
-
-function useLocalScreenshotList() {
-  const [screenshots, setScreenshots] = useState<LocalScreenshot[]>([]);
-
-  useEffect(() => {
-    let isCurrent = true;
-
-    globalThis.window.electron
-      .getLocalScreenshots()
-      .then((items) => {
-        if (isCurrent) setScreenshots(items);
-      })
-      .catch((error: unknown) => {
-        logger.error("Failed to load local screenshots", error);
-      });
-
-    const unsubscribeChange =
-      globalThis.window.electron.onLocalScreenshotsChange(setScreenshots);
-    const unsubscribeProgress =
-      globalThis.window.electron.onScreenshotUploadProgress((progress) => {
-        setScreenshots((current) =>
-          current.map((item) =>
-            item.clientId === progress.clientId
-              ? {
-                  ...item,
-                  state: progress.state,
-                  uploadProgress: progress.progress,
-                }
-              : item
-          )
-        );
-      });
-
-    return () => {
-      isCurrent = false;
-      unsubscribeChange();
-      unsubscribeProgress();
-    };
-  }, []);
-
-  return useMemo(
-    () =>
-      screenshots
-        .filter((screenshot) => screenshot.state !== "deleted")
-        .sort((left, right) => right.capturedAt - left.capturedAt),
-    [screenshots]
-  );
 }
 
 function useHotkeyRecorder(
@@ -399,124 +306,9 @@ function ScreenshotInputStatusLine({
   );
 }
 
-interface LocalScreenshotRowProps {
-  screenshot: LocalScreenshot;
-  isSignedIn: boolean;
-  language: string;
-  navigation: Record<string, FocusOverrides>;
-  onView: (screenshot: LocalScreenshot) => void;
-  onUpload: (screenshot: LocalScreenshot) => void;
-  onDelete: (screenshot: LocalScreenshot) => void;
-}
-
-function getLocalScreenshotTitle(
-  screenshot: LocalScreenshot,
-  t: (key: string) => string
-) {
-  return (
-    screenshot.customGameTitle ||
-    screenshot.gameTitle ||
-    t("screenshots_custom_game")
-  );
-}
-
-function LocalScreenshotRow({
-  screenshot,
-  isSignedIn,
-  language,
-  navigation,
-  onView,
-  onUpload,
-  onDelete,
-}: Readonly<LocalScreenshotRowProps>) {
-  const { t } = useTranslation("big_picture");
-  const [hasImageError, setHasImageError] = useState(false);
-  const source = toLocalScreenshotUrl(screenshot.path);
-  const viewFocusId = getLocalViewFocusId(screenshot.clientId);
-  const uploadFocusId = getLocalUploadFocusId(screenshot.clientId);
-  const deleteFocusId = getLocalDeleteFocusId(screenshot.clientId);
-  const title = getLocalScreenshotTitle(screenshot, t);
-  const canUpload = canUploadLocalScreenshot(screenshot);
-  const statusDetail = getLocalScreenshotStatusDetail(screenshot, t);
-
-  return (
-    <li className="screenshot-settings__local-item">
-      <FocusItem
-        id={viewFocusId}
-        navigationOverrides={navigation[viewFocusId]}
-        asChild
-      >
-        <button
-          type="button"
-          className="screenshot-settings__local-thumbnail"
-          aria-label={t("screenshots_settings_view_local")}
-          title={t("screenshots_settings_view_local")}
-          onClick={() => onView(screenshot)}
-        >
-          {hasImageError ? (
-            <ImageIcon size={20} />
-          ) : (
-            <img
-              src={source}
-              alt=""
-              loading="lazy"
-              draggable={false}
-              onError={() => setHasImageError(true)}
-            />
-          )}
-        </button>
-      </FocusItem>
-      <span className="screenshot-settings__local-copy">
-        <strong title={title}>{title}</strong>
-        <small>
-          {formatScreenshotDate(screenshot.capturedAt, language)}
-          {" · "}
-          {t(getLocalStatusKey(screenshot), {
-            progress: Math.round((screenshot.uploadProgress ?? 0) * 100),
-          })}
-        </small>
-        {statusDetail ? <small>{statusDetail}</small> : null}
-      </span>
-      <HorizontalFocusGroup className="screenshot-settings__local-actions">
-        {canUpload ? (
-          <Button
-            variant="secondary"
-            size="small"
-            focusId={uploadFocusId}
-            disabled={!isSignedIn}
-            icon={<CloudArrowUpIcon size={18} />}
-            title={t(
-              isSignedIn
-                ? "screenshots_review_upload"
-                : "screenshots_settings_sign_in_to_upload"
-            )}
-            focusNavigationOverrides={navigation[uploadFocusId]}
-            onClick={() => onUpload(screenshot)}
-          >
-            {t("screenshots_review_upload")}
-          </Button>
-        ) : null}
-        <Button
-          variant="danger"
-          size="icon"
-          focusId={deleteFocusId}
-          icon={<TrashIcon size={18} />}
-          aria-label={t("screenshots_settings_delete_local")}
-          title={t("screenshots_settings_delete_local")}
-          focusNavigationOverrides={navigation[deleteFocusId]}
-          onClick={() => onDelete(screenshot)}
-        >
-          {null}
-        </Button>
-      </HorizontalFocusGroup>
-    </li>
-  );
-}
-
 interface ScreenshotSettingsRowsOptions {
   isDefaultHotkey: boolean;
   hasCustomFolder: boolean;
-  localScreenshots: LocalScreenshot[];
   comboDraft: ScreenshotGamepadButton[];
   canAddComboButton: boolean;
   isDefaultCombo: boolean;
@@ -526,18 +318,6 @@ interface ScreenshotSettingsRowsOptions {
 }
 
 const ids = SCREENSHOT_SETTINGS_FOCUS_IDS;
-
-const getLocalScreenshotRow = (screenshot: LocalScreenshot) =>
-  canUploadLocalScreenshot(screenshot)
-    ? [
-        getLocalViewFocusId(screenshot.clientId),
-        getLocalUploadFocusId(screenshot.clientId),
-        getLocalDeleteFocusId(screenshot.clientId),
-      ]
-    : [
-        getLocalViewFocusId(screenshot.clientId),
-        getLocalDeleteFocusId(screenshot.clientId),
-      ];
 
 const getComboRow = (comboDraft: ScreenshotGamepadButton[]) =>
   comboDraft.flatMap((_, index) =>
@@ -569,10 +349,6 @@ function getInactiveFocusIds(
   }
   if (options.isGamepadComboDisabled) {
     for (const focusId of comboIds) inactiveIds.add(focusId);
-  }
-  if (!options.isSignedIn) {
-    for (const screenshot of options.localScreenshots)
-      inactiveIds.add(getLocalUploadFocusId(screenshot.clientId));
   }
 
   return inactiveIds;
@@ -607,65 +383,9 @@ function buildScreenshotSettingsRows(options: ScreenshotSettingsRowsOptions) {
     [ids.askToUpload],
     [ids.defaultVisibility],
     folderRow,
-    ...options.localScreenshots.map(getLocalScreenshotRow),
   ]
     .map((row) => row.filter((focusId) => !inactiveIds.has(focusId)))
     .filter((row) => row.length > 0);
-}
-
-interface SettingsLocalScreenshotViewerProps {
-  viewer: ReturnType<typeof useLocalScreenshotViewer>;
-  count: number;
-  language: string;
-  isSignedIn: boolean;
-  isBlocked: boolean;
-  onUpload: (screenshot: LocalScreenshot) => void;
-  onDelete: (screenshot: LocalScreenshot) => void;
-}
-
-function getLocalScreenshotMeta(
-  screenshot: LocalScreenshot,
-  t: (key: string, options?: Record<string, unknown>) => string,
-  language: string
-) {
-  const status = t(getLocalStatusKey(screenshot), {
-    progress: Math.round((screenshot.uploadProgress ?? 0) * 100),
-  });
-
-  return `${formatScreenshotDate(screenshot.capturedAt, language)} · ${status}`;
-}
-
-function SettingsLocalScreenshotViewer({
-  viewer,
-  count,
-  language,
-  isSignedIn,
-  isBlocked,
-  onUpload,
-  onDelete,
-}: Readonly<SettingsLocalScreenshotViewerProps>) {
-  const { t } = useTranslation("big_picture");
-  const { current } = viewer;
-
-  return (
-    <LocalScreenshotViewer
-      screenshot={current}
-      index={viewer.index}
-      count={count}
-      title={current ? getLocalScreenshotTitle(current, t) : ""}
-      meta={current ? getLocalScreenshotMeta(current, t, language) : ""}
-      canUpload={current ? canUploadLocalScreenshot(current) : false}
-      isSignedIn={isSignedIn}
-      isBlocked={isBlocked}
-      hasPrevious={viewer.hasPrevious}
-      hasNext={viewer.hasNext}
-      onPrevious={viewer.previous}
-      onNext={viewer.next}
-      onClose={viewer.close}
-      onUpload={onUpload}
-      onDelete={onDelete}
-    />
-  );
 }
 
 interface ScreenshotSettingsSectionProps {
@@ -675,22 +395,17 @@ interface ScreenshotSettingsSectionProps {
 export function ScreenshotSettingsSection({
   upFocusId,
 }: Readonly<ScreenshotSettingsSectionProps>) {
-  const { t, i18n } = useTranslation("big_picture");
+  const { t } = useTranslation("big_picture");
   const userPreferences = useUserPreferences();
   const { userDetails } = useUserDetails();
-  const { showErrorToast, showSuccessToast } = useBigPictureToast();
+  const { showErrorToast } = useBigPictureToast();
   const { setFocus } = useNavigation();
   const [overrides, setOverrides] = useState<ScreenshotPreferenceUpdate>({});
   const [folderPath, setFolderPath] = useState("");
-  const [deleting, setDeleting] = useState<LocalScreenshot | null>(null);
-  const [isDeleting, setIsDeleting] = useState(false);
-  const localScreenshots = useLocalScreenshotList();
-  const viewer = useLocalScreenshotViewer(localScreenshots);
   const inputStatus = useScreenshotInputStatus();
   const isBorderFlashUnavailable = Boolean(
     globalThis.window.electron.isWayland
   );
-  const language = i18n.resolvedLanguage ?? i18n.language ?? "en";
   const preferences = resolveScreenshotPreferences({
     ...userPreferences,
     ...overrides,
@@ -775,51 +490,6 @@ export function ScreenshotSettingsSection({
     await refreshFolderPath();
   };
 
-  const uploadLocal = async (screenshot: LocalScreenshot) => {
-    try {
-      const queued = await globalThis.window.electron.uploadLocalScreenshot(
-        screenshot.clientId,
-        {
-          isSpoiler: screenshot.isSpoiler,
-          visibility: screenshot.visibility,
-          customGameTitle: screenshot.customGameTitle,
-        }
-      );
-
-      if (!queued) {
-        showErrorToast(t("screenshots_settings_sign_in_to_upload"), {
-          fallbackVisual: "settings",
-        });
-      }
-    } catch (error) {
-      logger.error("Failed to queue the screenshot upload", error);
-      showErrorToast(t("screenshots_review_action_failed"), {
-        fallbackVisual: "settings",
-      });
-    }
-  };
-
-  const confirmDelete = async () => {
-    if (!deleting) return;
-
-    setIsDeleting(true);
-
-    try {
-      await globalThis.window.electron.deleteLocalScreenshot(deleting.clientId);
-      setDeleting(null);
-      showSuccessToast(t("screenshots_settings_deleted_local"), {
-        fallbackVisual: "settings",
-      });
-    } catch (error) {
-      logger.error("Failed to delete the local screenshot", error);
-      showErrorToast(t("screenshots_review_action_failed"), {
-        fallbackVisual: "settings",
-      });
-    } finally {
-      setIsDeleting(false);
-    }
-  };
-
   const gamepadOptions = useMemo<
     DropdownSelectOption<ScreenshotGamepadButton>[]
   >(
@@ -870,7 +540,6 @@ export function ScreenshotSettingsSection({
       buildScreenshotSettingsRows({
         isDefaultHotkey,
         hasCustomFolder,
-        localScreenshots,
         comboDraft: gamepadCombo.draft,
         canAddComboButton: gamepadCombo.canAdd,
         isDefaultCombo: gamepadCombo.isDefault,
@@ -885,7 +554,6 @@ export function ScreenshotSettingsSection({
       hasCustomFolder,
       isDefaultHotkey,
       isGamepadComboDisabled,
-      localScreenshots,
       settingsDisabled,
       userDetails,
     ]
@@ -1186,61 +854,6 @@ export function ScreenshotSettingsSection({
               </div>
             </HorizontalFocusGroup>
           </div>
-
-          <div className="screenshot-settings__local">
-            <span className="screenshot-settings__label">
-              {t("screenshots_settings_local_title")}
-            </span>
-            {userDetails ? null : (
-              <span className="screenshot-settings__hint">
-                {t("screenshots_settings_sign_in_to_upload")}
-              </span>
-            )}
-            {localScreenshots.length > 0 ? (
-              <ul className="screenshot-settings__local-list">
-                {localScreenshots.map((screenshot) => (
-                  <LocalScreenshotRow
-                    key={screenshot.clientId}
-                    screenshot={screenshot}
-                    isSignedIn={Boolean(userDetails)}
-                    language={language}
-                    navigation={navigation}
-                    onView={(target) => viewer.open(target.clientId)}
-                    onUpload={(target) => void uploadLocal(target)}
-                    onDelete={setDeleting}
-                  />
-                ))}
-              </ul>
-            ) : (
-              <span className="screenshot-settings__hint">
-                {t("screenshots_settings_local_empty")}
-              </span>
-            )}
-          </div>
-
-          <SettingsLocalScreenshotViewer
-            viewer={viewer}
-            count={localScreenshots.length}
-            language={language}
-            isSignedIn={Boolean(userDetails)}
-            isBlocked={Boolean(deleting)}
-            onUpload={(target) => void uploadLocal(target)}
-            onDelete={setDeleting}
-          />
-
-          <ScreenshotDialogPresence isOpen={Boolean(deleting)} />
-          <ConfirmationModal
-            visible={Boolean(deleting)}
-            backdropClassName="local-screenshot-viewer__confirmation-backdrop"
-            title={t("screenshots_settings_delete_local_title")}
-            description={t("screenshots_settings_delete_local_description")}
-            confirmLabel={t("screenshots_settings_delete_local")}
-            cancelLabel={t("screenshots_cancel")}
-            danger
-            loading={isDeleting}
-            onClose={() => setDeleting(null)}
-            onConfirm={confirmDelete}
-          />
         </div>
       </VerticalFocusGroup>
     </SettingsSection>

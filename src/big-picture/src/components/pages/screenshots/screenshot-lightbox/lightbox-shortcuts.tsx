@@ -1,18 +1,7 @@
-import {
-  useCallback,
-  useEffect,
-  useLayoutEffect,
-  useRef,
-  useState,
-} from "react";
+import { useCallback, useLayoutEffect, useRef, useState } from "react";
 
 import { useFocusLayerId } from "../../../context";
-import {
-  useGamepad,
-  useIsLayerOnTop,
-  useNavigationScreenActions,
-} from "../../../../hooks";
-import { GamepadButtonType } from "../../../../types";
+import { useIsLayerOnTop, useNavigationScreenActions } from "../../../../hooks";
 import { NavigationService } from "../../../../services";
 
 const navigationService = NavigationService.getInstance();
@@ -78,97 +67,4 @@ export function LightboxLayerReporter({
   }, [layerId, onLayerChange]);
 
   return null;
-}
-
-export interface LightboxShortcutsOptions {
-  isOpen: boolean;
-  canUseShortcuts: boolean;
-  hasLocalOverlay: boolean;
-  hasPrevious: boolean;
-  hasNext: boolean;
-  onPrevious: () => void;
-  onNext: () => void;
-  onClose: () => void;
-  isActiveLayer: () => boolean;
-}
-
-const isTypingInField = () => {
-  const activeElement = globalThis.document.activeElement;
-
-  return (
-    activeElement instanceof HTMLInputElement ||
-    activeElement instanceof HTMLTextAreaElement ||
-    (activeElement instanceof HTMLElement && activeElement.isContentEditable)
-  );
-};
-
-export function useLightboxShortcuts({
-  isOpen,
-  canUseShortcuts,
-  hasLocalOverlay,
-  hasPrevious,
-  hasNext,
-  onPrevious,
-  onNext,
-  onClose,
-  isActiveLayer,
-}: LightboxShortcutsOptions) {
-  const { onButtonPressed, isActiveGamepadEvent } = useGamepad();
-  const canGoPrevious = canUseShortcuts && hasPrevious;
-  const canGoNext = canUseShortcuts && hasNext;
-
-  useEffect(() => {
-    const removeLeft = onButtonPressed(
-      GamepadButtonType.LEFT_BUMPER,
-      (event) => {
-        if (canGoPrevious && isActiveGamepadEvent(event) && isActiveLayer())
-          onPrevious();
-      }
-    );
-    const removeRight = onButtonPressed(
-      GamepadButtonType.RIGHT_BUMPER,
-      (event) => {
-        if (canGoNext && isActiveGamepadEvent(event) && isActiveLayer())
-          onNext();
-      }
-    );
-
-    return () => {
-      removeLeft();
-      removeRight();
-    };
-  }, [
-    canGoNext,
-    canGoPrevious,
-    isActiveGamepadEvent,
-    isActiveLayer,
-    onButtonPressed,
-    onNext,
-    onPrevious,
-  ]);
-
-  useEffect(() => {
-    if (!isOpen || hasLocalOverlay) return;
-
-    const onKeyDown = (event: KeyboardEvent) => {
-      if (event.defaultPrevented || isTypingInField() || !isActiveLayer())
-        return;
-
-      if (event.key === "Escape") onClose();
-      if (event.key === "PageUp" && hasPrevious) onPrevious();
-      if (event.key === "PageDown" && hasNext) onNext();
-    };
-
-    globalThis.window.addEventListener("keydown", onKeyDown);
-    return () => globalThis.window.removeEventListener("keydown", onKeyDown);
-  }, [
-    hasLocalOverlay,
-    hasNext,
-    hasPrevious,
-    isActiveLayer,
-    isOpen,
-    onClose,
-    onNext,
-    onPrevious,
-  ]);
 }
