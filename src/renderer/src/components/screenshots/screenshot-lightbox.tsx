@@ -211,10 +211,19 @@ function ScreenshotLightboxModals({
   );
 }
 
-const getNeighbors = (items: ProfileScreenshot[], index: number) => ({
-  previousItem: index > 0 ? items[index - 1] : null,
-  nextItem: index >= 0 && index < items.length - 1 ? items[index + 1] : null,
-});
+const getNeighbors = (
+  items: ProfileScreenshot[],
+  screenshotId: string | null
+) => {
+  const index = screenshotId
+    ? items.findIndex((item) => item.id === screenshotId)
+    : -1;
+
+  return {
+    previousItem: index > 0 ? items[index - 1] : null,
+    nextItem: index >= 0 && index < items.length - 1 ? items[index + 1] : null,
+  };
+};
 
 const toOpener = (
   item: ProfileScreenshot | null,
@@ -328,19 +337,24 @@ function ScreenshotLightboxPlaceholder({
 
 interface ScreenshotLightboxProps {
   collection: ScreenshotCollection;
+  navigationItems?: ProfileScreenshot[];
 }
 
 export function ScreenshotLightbox({
   collection,
+  navigationItems,
 }: Readonly<ScreenshotLightboxProps>) {
   const { t } = useTranslation("screenshots");
   const { feed, actions, lightbox } = collection;
-  const { status, screenshot, index, open, close } = lightbox;
+  const { status, screenshot, open, close } = lightbox;
   const dialogRef = useRef<HTMLDialogElement>(null);
   const closeButtonRef = useRef<HTMLButtonElement>(null);
   const modals = useLightboxModals(close);
   const isOpen = status !== "closed";
-  const { previousItem, nextItem } = getNeighbors(feed.items, index);
+  const { previousItem, nextItem } = getNeighbors(
+    navigationItems ?? feed.items,
+    screenshot?.id ?? null
+  );
   const readyScreenshot = status === "ready" ? screenshot : null;
 
   useLightboxFocus(isOpen, closeButtonRef, `${screenshot?.id}:${status}`);

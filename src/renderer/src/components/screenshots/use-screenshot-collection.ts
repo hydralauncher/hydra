@@ -258,10 +258,6 @@ export function useScreenshotCollection({
     }
   }
 
-  const index = screenshot
-    ? feed.items.findIndex((item) => item.id === screenshot.id)
-    : -1;
-
   return {
     feed,
     actions,
@@ -270,7 +266,6 @@ export function useScreenshotCollection({
     lightbox: {
       status,
       screenshot,
-      index,
       open,
       openById,
       close,

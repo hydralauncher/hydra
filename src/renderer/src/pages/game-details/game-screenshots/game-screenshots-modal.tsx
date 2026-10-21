@@ -192,7 +192,10 @@ export function GameScreenshotsModal({
         </div>
       </Modal>
 
-      <ScreenshotLightbox collection={collection} />
+      <ScreenshotLightbox
+        collection={collection}
+        navigationItems={visibleItems}
+      />
     </>
   );
 }
