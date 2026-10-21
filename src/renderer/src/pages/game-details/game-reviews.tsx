@@ -100,10 +100,10 @@ export function GameReviews({
         class: "game-details__review-editor",
         "data-placeholder": t("write_review_placeholder"),
       },
-      handlePaste: (view, event) =>
+      handlePaste: (view, _event, slice) =>
         pasteWithinRichTextLimit(
           view,
-          event,
+          slice,
           MAX_REVIEW_CHARS,
           measureRichTextDocText
         ),
