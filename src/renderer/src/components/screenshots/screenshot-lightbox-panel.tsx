@@ -1,18 +1,16 @@
-import { useId, useState } from "react";
+import { useId } from "react";
 import { useTranslation } from "react-i18next";
 import {
   CopyIcon,
   EyeClosedIcon,
   HeartFillIcon,
   HeartIcon,
-  ImageIcon,
   ReportIcon,
   TrashIcon,
 } from "@primer/octicons-react";
 import cn from "classnames";
 import { Tooltip } from "react-tooltip";
 
-import { Avatar } from "../avatar/avatar";
 import { Link } from "../link/link";
 import { buildGameDetailsPath } from "@renderer/helpers";
 import { useDate, useFeature, useUserDetails } from "@renderer/hooks";
@@ -30,37 +28,17 @@ import "./screenshot-lightbox-panel.scss";
 
 type ScreenshotActions = ScreenshotCollection["actions"];
 
-function ScreenshotGameTag({
+function ScreenshotGameLink({
   screenshot,
   onNavigateAway,
 }: Readonly<{ screenshot: ProfileScreenshot; onNavigateAway: () => void }>) {
   const { t } = useTranslation("screenshots");
-  const [failedIconUrl, setFailedIconUrl] = useState<string | null>(null);
   const title = getScreenshotGameTitle(screenshot, t);
-  const hasIcon = Boolean(
-    screenshot.gameIconUrl && screenshot.gameIconUrl !== failedIconUrl
-  );
-  const icon = (
-    <span className="screenshot-lightbox__game-icon">
-      {hasIcon ? (
-        <img
-          src={screenshot.gameIconUrl ?? undefined}
-          alt=""
-          onError={() => setFailedIconUrl(screenshot.gameIconUrl)}
-        />
-      ) : (
-        <ImageIcon size={14} />
-      )}
-    </span>
-  );
 
   if (screenshot.isCustomGame || !screenshot.objectId) {
     return (
-      <span className="screenshot-lightbox__game screenshot-lightbox__game--custom">
-        {icon}
-        <span className="screenshot-lightbox__game-name" title={title}>
-          {title}
-        </span>
+      <span className="screenshot-lightbox__game">
+        {title}
         <span className="screenshot-lightbox__tag">{t("custom_game_tag")}</span>
       </span>
     );
@@ -68,7 +46,7 @@ function ScreenshotGameTag({
 
   return (
     <Link
-      className="screenshot-lightbox__game screenshot-lightbox__game--link"
+      className="screenshot-lightbox__game screenshot-lightbox__byline-link"
       to={buildGameDetailsPath({
         shop: screenshot.shop,
         objectId: screenshot.objectId,
@@ -76,43 +54,57 @@ function ScreenshotGameTag({
       })}
       onClick={onNavigateAway}
     >
-      {icon}
-      <span className="screenshot-lightbox__game-name" title={title}>
-        {title}
-      </span>
+      {title}
     </Link>
   );
 }
 
-interface ScreenshotPanelHeaderProps {
+interface ScreenshotPanelInfoProps {
   screenshot: ProfileScreenshot;
   onClose: () => void;
 }
 
-function ScreenshotPanelHeader({
+function ScreenshotPanelInfo({
   screenshot,
   onClose,
-}: Readonly<ScreenshotPanelHeaderProps>) {
+}: Readonly<ScreenshotPanelInfoProps>) {
   const { t } = useTranslation("screenshots");
   const { formatDateTime } = useDate();
 
   return (
-    <header className="screenshot-lightbox__header">
-      <Link
-        className="screenshot-lightbox__author"
-        to={`/profile/${encodeURIComponent(screenshot.owner.id)}`}
-        onClick={onClose}
-      >
-        <Avatar size={36} src={screenshot.owner.profileImageUrl} alt="" />
-        <span className="screenshot-lightbox__author-copy">
-          <strong>{screenshot.owner.displayName}</strong>
-          <time dateTime={new Date(screenshot.capturedAt).toISOString()}>
-            {t("captured_on", {
-              date: formatDateTime(screenshot.capturedAt),
-            })}
-          </time>
+    <header className="screenshot-lightbox__info">
+      {screenshot.description ? (
+        <h2 className="screenshot-lightbox__description">
+          {screenshot.description}
+        </h2>
+      ) : null}
+
+      <p className="screenshot-lightbox__byline">
+        <Link
+          className="screenshot-lightbox__author screenshot-lightbox__byline-link"
+          to={`/profile/${encodeURIComponent(screenshot.owner.id)}`}
+          onClick={onClose}
+        >
+          {screenshot.owner.displayName}
+        </Link>
+        <span className="screenshot-lightbox__separator" aria-hidden="true">
+          ·
         </span>
-      </Link>
+        <ScreenshotGameLink screenshot={screenshot} onNavigateAway={onClose} />
+        {screenshot.isSpoiler ? (
+          <span className="screenshot-lightbox__tag screenshot-lightbox__tag--spoiler">
+            <EyeClosedIcon size={12} />
+            {t("spoiler")}
+          </span>
+        ) : null}
+      </p>
+
+      <time
+        className="screenshot-lightbox__date"
+        dateTime={new Date(screenshot.capturedAt).toISOString()}
+      >
+        {t("captured_on", { date: formatDateTime(screenshot.capturedAt) })}
+      </time>
     </header>
   );
 }
@@ -244,7 +236,6 @@ export function ScreenshotLightboxPanel({
   onRequestDelete,
   onRequestReport,
 }: Readonly<ScreenshotLightboxPanelProps>) {
-  const { t } = useTranslation("screenshots");
   const { userDetails } = useUserDetails();
   const { isFeatureEnabled, Feature } = useFeature();
   const isOwner = userDetails?.id === screenshot.owner.id;
@@ -254,17 +245,7 @@ export function ScreenshotLightboxPanel({
 
   return (
     <aside className="screenshot-lightbox__panel">
-      <ScreenshotPanelHeader screenshot={screenshot} onClose={onClose} />
-
-      <div className="screenshot-lightbox__game-row">
-        <ScreenshotGameTag screenshot={screenshot} onNavigateAway={onClose} />
-        {screenshot.isSpoiler ? (
-          <span className="screenshot-lightbox__tag screenshot-lightbox__tag--spoiler">
-            <EyeClosedIcon size={12} />
-            {t("spoiler")}
-          </span>
-        ) : null}
-      </div>
+      <ScreenshotPanelInfo screenshot={screenshot} onClose={onClose} />
 
       <ScreenshotPanelActions
         screenshot={screenshot}
@@ -274,12 +255,6 @@ export function ScreenshotLightboxPanel({
         onRequestDelete={onRequestDelete}
         onRequestReport={onRequestReport}
       />
-
-      {screenshot.description ? (
-        <p className="screenshot-lightbox__description">
-          {screenshot.description}
-        </p>
-      ) : null}
 
       {isOwner ? (
         <ScreenshotOwnerControls

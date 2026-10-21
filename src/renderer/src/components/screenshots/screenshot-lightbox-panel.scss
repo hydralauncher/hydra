@@ -15,111 +15,58 @@
     overflow-y: auto;
   }
 
-  &__header {
-    position: sticky;
-    top: 0;
-    z-index: 2;
+  &__info {
     display: flex;
     flex-shrink: 0;
-    align-items: flex-start;
-    justify-content: space-between;
-    gap: globals.$spacing-unit;
-    margin: 0 calc(globals.$spacing-unit * -2);
-    padding: calc(globals.$spacing-unit * 2) calc(globals.$spacing-unit * 2)
-      globals.$spacing-unit;
-    background: globals.$background-color;
-  }
-
-  &__author {
-    display: flex;
-    min-width: 0;
-    align-items: center;
-    gap: globals.$spacing-unit;
-    color: globals.$muted-color;
-
-    &.link:hover {
-      text-decoration: none;
-    }
-
-    &:hover strong {
-      text-decoration: underline;
-    }
-  }
-
-  &__author-copy {
-    display: flex;
-    min-width: 0;
     flex-direction: column;
-    gap: 2px;
-
-    strong {
-      overflow: hidden;
-      text-overflow: ellipsis;
-      white-space: nowrap;
-    }
-
-    time {
-      overflow-wrap: anywhere;
-      color: globals.$body-color;
-      font-size: globals.$small-font-size;
-      opacity: 0.8;
-    }
+    gap: 6px;
+    padding-top: calc(globals.$spacing-unit * 2);
   }
 
-  &__game-row {
+  &__description {
+    color: globals.$muted-color;
+    font-size: calc(globals.$body-font-size + 4px);
+    font-weight: 600;
+    line-height: 1.35;
+    overflow-wrap: anywhere;
+  }
+
+  &__byline {
     display: flex;
     min-width: 0;
     flex-wrap: wrap;
     align-items: center;
-    gap: globals.$spacing-unit;
+    gap: 6px;
+    color: globals.$body-color;
+    font-size: globals.$body-font-size;
+  }
+
+  &__byline-link {
+    color: globals.$muted-color;
+    font-weight: 500;
+    overflow-wrap: anywhere;
+
+    &.link:hover {
+      text-decoration: underline;
+    }
   }
 
   &__game {
     display: inline-flex;
-    max-width: 100%;
     min-width: 0;
     align-items: center;
-    gap: globals.$spacing-unit;
-    color: globals.$muted-color;
-    font-weight: 500;
-
-    &.link:hover {
-      text-decoration: none;
-    }
-
-    &--link:hover .screenshot-lightbox__game-name {
-      border-bottom-color: currentColor;
-    }
+    gap: 6px;
   }
 
-  &__game-icon {
-    position: relative;
-    display: flex;
-    flex-shrink: 0;
-    align-items: center;
-    justify-content: center;
-    width: 24px;
-    height: 24px;
-    overflow: hidden;
-    border-radius: 4px;
-    background: globals.$border-color;
+  &__separator {
     color: globals.$body-color;
-
-    img {
-      position: absolute;
-      inset: 0;
-      width: 100%;
-      height: 100%;
-      object-fit: cover;
-    }
+    opacity: 0.6;
   }
 
-  &__game-name {
-    min-width: 0;
-    overflow: hidden;
-    border-bottom: 1px solid transparent;
-    text-overflow: ellipsis;
-    white-space: nowrap;
+  &__date {
+    color: globals.$body-color;
+    font-size: globals.$small-font-size;
+    opacity: 0.8;
   }
 
   &__tag {
@@ -270,13 +217,6 @@
 
   &__tooltip {
     z-index: 20;
-  }
-
-  &__description {
-    margin: 0;
-    color: globals.$muted-color;
-    line-height: 1.45;
-    overflow-wrap: anywhere;
   }
 
   &__description-form,
