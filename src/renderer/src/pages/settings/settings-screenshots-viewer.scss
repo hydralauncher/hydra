@@ -1,5 +1,7 @@
 @use "../../scss/globals.scss";
 
+$viewer-control-duration: 0.2s;
+
 .settings-screenshots-viewer {
   position: fixed;
   inset: 0;
@@ -126,8 +128,8 @@
     cursor: pointer;
     transform: translateY(-50%);
     transition:
-      background-color 0.2s ease,
-      opacity 0.2s ease;
+      background-color $viewer-control-duration ease,
+      opacity $viewer-control-duration ease;
 
     &:hover:not(:disabled) {
       background-color: rgba(255, 255, 255, 0.12);

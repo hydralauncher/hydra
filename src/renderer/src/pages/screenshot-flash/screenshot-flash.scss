@@ -1,3 +1,6 @@
+$screenshot-flash-duration: 650ms;
+$screenshot-flash-peak: 8%;
+
 .screenshot-flash {
   position: fixed;
   inset: 0;
@@ -14,7 +17,8 @@
       inset 0 0 48px 12px rgba(255, 255, 255, 0.35);
     opacity: 0;
     pointer-events: none;
-    animation: screenshot-flash-glow 650ms ease-out forwards;
+    animation: screenshot-flash-glow $screenshot-flash-duration ease-out
+      forwards;
     will-change: opacity;
   }
 }
@@ -24,7 +28,7 @@
     opacity: 0;
   }
 
-  8% {
+  #{$screenshot-flash-peak} {
     opacity: 1;
   }
 

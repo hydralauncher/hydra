@@ -1,5 +1,11 @@
 @use "../../scss/globals.scss";
 
+$review-hover-duration: 0.2s;
+$review-progress-duration: 0.2s;
+$review-menu-duration: 0.15s;
+$review-menu-offset: 4px;
+$review-outline-hover-overlay: rgba(255, 255, 255, 0.1);
+
 .screenshot-review {
   display: flex;
   flex-direction: column;
@@ -59,8 +65,8 @@
     color: globals.$muted-color;
     cursor: pointer;
     transition:
-      background-color 0.2s ease,
-      color 0.2s ease;
+      background-color $review-hover-duration ease,
+      color $review-hover-duration ease;
 
     &:hover {
       background-color: globals.$error-color;
@@ -133,8 +139,8 @@
     cursor: pointer;
     opacity: 0.7;
     transition:
-      opacity 0.2s ease,
-      border-color 0.2s ease;
+      opacity $review-hover-duration ease,
+      border-color $review-hover-duration ease;
 
     img {
       display: block;
@@ -396,30 +402,28 @@
     flex-direction: column;
     gap: calc(globals.$spacing-unit / 2);
     z-index: calc(globals.$modal-z-index + 1);
-    animation: screenshot-review-split-menu-in 0.15s ease-out;
+    animation: screenshot-review-split-menu-in $review-menu-duration ease-out;
   }
 
   &__menu-item {
     width: 100%;
     white-space: nowrap;
-    outline: none;
     user-select: none;
-  }
 
-  &__menu-item.button--outline {
-    background-color: globals.$dark-background-color;
-  }
+    &.button--primary[data-highlighted] {
+      background-color: #dadbe1;
+    }
 
-  &__menu-item.button--primary[data-highlighted] {
-    background-color: #dadbe1;
-  }
+    &.button--outline {
+      background-color: globals.$dark-background-color;
 
-  &__menu-item.button--outline[data-highlighted] {
-    background-color: #2a2a2a;
-  }
-
-  &__menu-item[data-highlighted] {
-    box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.24);
+      &[data-highlighted] {
+        background-image: linear-gradient(
+          $review-outline-hover-overlay,
+          $review-outline-hover-overlay
+        );
+      }
+    }
   }
 
   @media (prefers-reduced-motion: reduce) {
@@ -432,7 +436,7 @@
 @keyframes screenshot-review-split-menu-in {
   from {
     opacity: 0;
-    transform: translateY(4px);
+    transform: translateY($review-menu-offset);
   }
 
   to {
@@ -474,7 +478,7 @@
     height: 100%;
     background-color: globals.$muted-color;
     border-radius: 3px;
-    transition: width 0.2s ease;
+    transition: width $review-progress-duration ease;
   }
 
   &--success {

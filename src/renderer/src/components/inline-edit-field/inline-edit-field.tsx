@@ -68,8 +68,7 @@ export function InlineEditField({
   const triggerText = initialValue || placeholder;
 
   const startEditing = () => {
-    const width = rootRef.current?.offsetWidth;
-    setLockedWidth(width ? width : null);
+    setLockedWidth(rootRef.current?.offsetWidth || null);
     setValue(initialValue);
     isEditingRef.current = true;
     setIsEditing(true);
