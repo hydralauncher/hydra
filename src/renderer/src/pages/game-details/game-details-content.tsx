@@ -24,7 +24,12 @@ import { getCloudSaveVisibility } from "./cloud-save-visibility";
 import { SimilarGames } from "./similar-games/similar-games";
 import { GameScreenshots } from "./game-screenshots/game-screenshots";
 
-import { AuthPage, getDisplayedPlayTimeInMilliseconds } from "@shared";
+import {
+  AuthPage,
+  buildSteamContentWarning,
+  getDisplayedPlayTimeInMilliseconds,
+  isAdultGameContentWarning,
+} from "@shared";
 import { cloudSyncContext, gameDetailsContext } from "@renderer/context";
 
 import cloudIconAnimated from "@renderer/assets/icons/cloud-animated.gif";
@@ -94,6 +99,10 @@ export function GameDetailsContent() {
 
   const { userDetails } = useUserDetails();
   const { library } = useLibrary();
+  const isAdultGame = useMemo(
+    () => isAdultGameContentWarning(buildSteamContentWarning(shopDetails)),
+    [shopDetails]
+  );
 
   const { getGameArtifacts } = useContext(cloudSyncContext);
   const cloudSaveVisibility = game
@@ -525,6 +534,7 @@ export function GameDetailsContent() {
               <GameScreenshots
                 shop={catalogueGame.shop}
                 objectId={catalogueGame.objectId}
+                isAdultGame={isAdultGame}
               />
             )}
 

@@ -28,15 +28,19 @@ const SORT_OPTIONS: { value: ScreenshotSort; icon: typeof HistoryIcon }[] = [
   { value: "top", icon: FlameIcon },
 ];
 
-interface GameScreenshotsProps {
+interface GameScreenshotsSectionProps {
   shop: GameShop;
   objectId: string;
+}
+
+interface GameScreenshotsProps extends GameScreenshotsSectionProps {
+  isAdultGame: boolean;
 }
 
 function GameScreenshotsSection({
   shop,
   objectId,
-}: Readonly<GameScreenshotsProps>) {
+}: Readonly<GameScreenshotsSectionProps>) {
   const { t } = useTranslation("screenshots");
   const { userDetails } = useUserDetails();
   const viewerId = userDetails?.id ?? null;
@@ -182,10 +186,15 @@ function GameScreenshotsSection({
 export function GameScreenshots({
   shop,
   objectId,
+  isAdultGame,
 }: Readonly<GameScreenshotsProps>) {
   const { isFeatureEnabled, Feature } = useFeature();
 
-  if (shop === "custom" || !isFeatureEnabled(Feature.Screenshots)) {
+  if (
+    shop === "custom" ||
+    isAdultGame ||
+    !isFeatureEnabled(Feature.Screenshots)
+  ) {
     return null;
   }
 
