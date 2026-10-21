@@ -55,6 +55,7 @@ export function LeaderboardSection() {
     viewerUser,
     scope,
     metric,
+    dataMetric,
     retry,
   } = useGameLeaderboard({
     shop: catalogueGame.shop,
@@ -94,7 +95,7 @@ export function LeaderboardSection() {
       nudge.type === "leading"
         ? t("nudge_leading")
         : t("nudge_behind", {
-            amount: formatValue(metric, nudge.gap),
+            amount: formatValue(dataMetric, nudge.gap),
             name: nudge.target.displayName,
           });
 
@@ -183,7 +184,7 @@ export function LeaderboardSection() {
               <LeaderboardRow
                 key={row.entry.user.id}
                 row={row}
-                value={formatValue(metric, row.entry.value)}
+                value={formatValue(dataMetric, row.entry.value)}
                 showProgress={false}
               />
             ))}
@@ -203,12 +204,12 @@ export function LeaderboardSection() {
 
     return (
       <>
-        <ol className="leaderboard-section__list">
+        <ol className="leaderboard-section__list" aria-busy={isLoading}>
           {rows.map((row) => (
             <LeaderboardRow
               key={row.entry.user.id}
               row={row}
-              value={formatValue(metric, row.entry.value)}
+              value={formatValue(dataMetric, row.entry.value)}
             />
           ))}
         </ol>
@@ -280,7 +281,7 @@ export function LeaderboardSection() {
               onMetricChange={setSelectedMetric}
             />
           }
-          metric={metric}
+          metric={dataMetric}
           formatValue={formatValue}
         />
       )}
