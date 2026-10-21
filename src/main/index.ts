@@ -29,6 +29,7 @@ import { DownloadManager } from "./services/download/download-manager";
 import { db, gamesSublevel, levelKeys } from "./level";
 import { GameShop, UserPreferences } from "@types";
 import { launchGame, openClassicsGame } from "./helpers";
+import { flushScreenshotTelemetry } from "./services/screenshots";
 import { refreshPortableShortcutLauncher } from "./helpers/shortcut-launch";
 import { lookupCachedPlatform } from "./events/library/get-library";
 import { loadState } from "./main";
@@ -414,6 +415,8 @@ app.on("window-all-closed", () => {
   WindowManager.clearMainWindow();
 });
 
+const SCREENSHOT_TELEMETRY_QUIT_FLUSH_TIMEOUT_MS = 2_000;
+
 let canAppBeClosed = false;
 let isAppClosing = false;
 
@@ -448,6 +451,7 @@ app.on("before-quit", async (e) => {
       TorrentService.shutdown(),
       clearGamesPlaytime(),
       emulators.stopAllEmulatorSouvenirCaptureSessions(),
+      flushScreenshotTelemetry(SCREENSHOT_TELEMETRY_QUIT_FLUSH_TIMEOUT_MS),
     ]);
     for (const result of results) {
       if (result.status === "rejected") {

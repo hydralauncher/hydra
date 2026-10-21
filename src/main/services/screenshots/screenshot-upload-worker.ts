@@ -37,6 +37,10 @@ const THUMBNAIL_PROGRESS_SHARE = 0.07;
 const STATUS_POLL_INTERVAL_MS = 5 * 60_000;
 const STATUS_POLL_MAX_AGE_MS = 24 * 60 * 60_000;
 const MAX_STATUS_POLLS_PER_RUN = 10;
+const SETTLED_REFRESH_INTERVAL_MS = 2 * 60_000;
+const FAST_MODERATION_POLL_DELAYS_MS = [
+  10_000, 10_000, 15_000, 20_000, 30_000, 45_000, 60_000,
+];
 
 class UploadPutError extends Error {
   constructor(cause: unknown) {
@@ -133,6 +137,11 @@ class ScreenshotUploadWorker {
     controller: AbortController;
   } | null = null;
   private readonly gameWaits = new Map<string, number>();
+  private readonly fastModerationPolls = new Map<
+    string,
+    ReturnType<typeof setTimeout>
+  >();
+  private lastSettledRefreshAt = 0;
   private lastOwnerId: string | null = null;
   private authListenerRegistered = false;
 
@@ -142,7 +151,9 @@ class ScreenshotUploadWorker {
       HydraApi.onAuthContextChanged(() => this.handleAuthContextChange());
     }
     this.lastOwnerId = getCurrentOwnerId();
-    void this.resetInterruptedUploads().then(() => this.trigger());
+    void this.resetInterruptedUploads()
+      .then(() => this.trigger())
+      .then(() => this.refreshSettledModerationStatuses());
   }
 
   public async enqueue(
@@ -222,6 +233,8 @@ class ScreenshotUploadWorker {
   public stop() {
     if (this.retryTimer) clearTimeout(this.retryTimer);
     this.retryTimer = null;
+    for (const timer of this.fastModerationPolls.values()) clearTimeout(timer);
+    this.fastModerationPolls.clear();
     this.activeUpload?.controller.abort();
   }
 
@@ -363,12 +376,13 @@ class ScreenshotUploadWorker {
       );
 
       this.gameWaits.delete(clientId);
+      const moderationStatus = isModerationStatus(result?.moderationStatus)
+        ? result.moderationStatus
+        : "PENDING";
       await LocalScreenshotStore.update(clientId, {
         state: "uploaded",
         screenshotId: presign.id,
-        moderationStatus: isModerationStatus(result?.moderationStatus)
-          ? result.moderationStatus
-          : "PENDING",
+        moderationStatus,
         moderationReason: result?.moderationReason ?? null,
         uploadProgress: 1,
         uploadedAt: Date.now(),
@@ -376,6 +390,9 @@ class ScreenshotUploadWorker {
         lastError: null,
       });
       emitProgress({ clientId, state: "uploaded", progress: 1 });
+      if (moderationStatus === "PENDING") {
+        this.scheduleFastModerationPoll(clientId);
+      }
       ScreenshotTelemetry.record("upload", "uploaded", compressed.quality);
     } catch (error) {
       await this.handleFailure(screenshot, quality, attempt, error, controller);
@@ -480,46 +497,110 @@ class ScreenshotUploadWorker {
     ScreenshotTelemetry.record("upload", "failed", failure.code);
   }
 
-  private async pollModerationStatuses(
-    ownerId: string,
+  private async refreshModerationStatus(
+    screenshot: LocalScreenshot,
     authContext: HydraApiAuthContext
   ) {
+    if (!screenshot.screenshotId) return;
+
+    try {
+      const status = await HydraApi.get<ScreenshotModerationState>(
+        `/profile/screenshots/${encodeURIComponent(screenshot.screenshotId)}/status`,
+        undefined,
+        { authContext, timeout: REQUEST_TIMEOUT_MS }
+      );
+      if (!isModerationStatus(status?.moderationStatus)) return;
+
+      const moderationReason = status.moderationReason ?? null;
+      if (
+        status.moderationStatus === screenshot.moderationStatus &&
+        moderationReason === screenshot.moderationReason
+      ) {
+        return;
+      }
+
+      await LocalScreenshotStore.update(screenshot.clientId, {
+        moderationStatus: status.moderationStatus,
+        moderationReason,
+      });
+    } catch (error) {
+      logger.warn("Could not refresh the screenshot moderation status", {
+        clientId: screenshot.clientId,
+        error: error instanceof Error ? error.message : String(error),
+      });
+    }
+  }
+
+  private async pollModerationStatuses(
+    ownerId: string,
+    authContext: HydraApiAuthContext,
+    { includeBlocked = false }: { includeBlocked?: boolean } = {}
+  ) {
     const now = Date.now();
-    const pending = (await LocalScreenshotStore.list())
+    const candidates = (await LocalScreenshotStore.list())
       .filter(
         (screenshot) =>
           screenshot.ownerId === ownerId &&
           screenshot.state === "uploaded" &&
           screenshot.screenshotId &&
-          screenshot.moderationStatus === "PENDING" &&
-          now - (screenshot.uploadedAt ?? 0) < STATUS_POLL_MAX_AGE_MS
+          ((screenshot.moderationStatus === "PENDING" &&
+            now - (screenshot.uploadedAt ?? 0) < STATUS_POLL_MAX_AGE_MS) ||
+            (includeBlocked && screenshot.moderationStatus === "BLOCKED"))
       )
+      .toSorted((a, b) => (b.uploadedAt ?? 0) - (a.uploadedAt ?? 0))
       .slice(0, MAX_STATUS_POLLS_PER_RUN);
 
-    for (const screenshot of pending) {
+    for (const screenshot of candidates) {
       if (!HydraApi.isAuthContextCurrent(authContext)) return;
-      try {
-        const status = await HydraApi.get<ScreenshotModerationState>(
-          `/profile/screenshots/${encodeURIComponent(screenshot.screenshotId!)}/status`,
-          undefined,
-          { authContext, timeout: REQUEST_TIMEOUT_MS }
-        );
-        if (
-          isModerationStatus(status?.moderationStatus) &&
-          status.moderationStatus !== screenshot.moderationStatus
-        ) {
-          await LocalScreenshotStore.update(screenshot.clientId, {
-            moderationStatus: status.moderationStatus,
-            moderationReason: status.moderationReason ?? null,
-          });
-        }
-      } catch (error) {
-        logger.warn("Could not refresh the screenshot moderation status", {
-          clientId: screenshot.clientId,
-          error: error instanceof Error ? error.message : String(error),
-        });
-      }
+      await this.refreshModerationStatus(screenshot, authContext);
     }
+  }
+
+  public async refreshSettledModerationStatuses() {
+    if (Date.now() - this.lastSettledRefreshAt < SETTLED_REFRESH_INTERVAL_MS) {
+      return;
+    }
+    const authContext = HydraApi.getAuthContext();
+    if (!authContext || !HydraApi.isLoggedIn()) return;
+
+    this.lastSettledRefreshAt = Date.now();
+    await this.pollModerationStatuses(authContext.userId, authContext, {
+      includeBlocked: true,
+    });
+  }
+
+  private scheduleFastModerationPoll(clientId: string, step = 0) {
+    const existing = this.fastModerationPolls.get(clientId);
+    if (existing) clearTimeout(existing);
+    this.fastModerationPolls.delete(clientId);
+
+    const delay = FAST_MODERATION_POLL_DELAYS_MS[step];
+    if (delay === undefined) return;
+
+    const timer = setTimeout(() => {
+      this.fastModerationPolls.delete(clientId);
+      void this.runFastModerationPoll(clientId, step);
+    }, delay);
+    timer.unref?.();
+    this.fastModerationPolls.set(clientId, timer);
+  }
+
+  private async runFastModerationPoll(clientId: string, step: number) {
+    const screenshot = await LocalScreenshotStore.get(clientId);
+    const authContext = HydraApi.getAuthContext();
+    if (
+      !screenshot ||
+      !authContext ||
+      screenshot.ownerId !== authContext.userId ||
+      screenshot.state !== "uploaded" ||
+      screenshot.moderationStatus !== "PENDING" ||
+      !ScreenshotReviewWindows.isScreenshotWatched(clientId)
+    ) {
+      return;
+    }
+
+    await this.refreshModerationStatus(screenshot, authContext);
+    this.scheduleFastModerationPoll(clientId, step + 1);
   }
 
   private async scheduleNextRun() {

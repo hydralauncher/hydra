@@ -44,6 +44,7 @@ interface ReviewSession {
 const sessions = new Map<string, ReviewSession>();
 const reviewWindows = new Set<BrowserWindow>();
 const windowClosedListeners = new Set<() => void>();
+const bigPictureReviewClientIds = new Set<string>();
 
 const getWindowHandle = (window: BrowserWindow) => {
   const buffer = window.getNativeWindowHandle();
@@ -213,6 +214,7 @@ const handOffToBigPicture = (session: ReviewSession) => {
   if (!clientIds.length) return true;
 
   session.handedToBigPicture = true;
+  for (const clientId of clientIds) bigPictureReviewClientIds.add(clientId);
   for (const { window } of session.windows) {
     if (!window.isDestroyed()) window.destroy();
   }
@@ -317,6 +319,26 @@ export class ScreenshotReviewWindows {
     return () => {
       windowClosedListeners.delete(listener);
     };
+  }
+
+  public static isScreenshotWatched(clientId: string) {
+    const hasReviewWindow = [...sessions.values()].some((session) =>
+      session.windows.some(
+        ({ window, clientIds }) =>
+          !window.isDestroyed() && clientIds.includes(clientId)
+      )
+    );
+    if (hasReviewWindow) return true;
+
+    if (!WindowManager.bigPictureWindow) {
+      bigPictureReviewClientIds.clear();
+      return false;
+    }
+    return bigPictureReviewClientIds.has(clientId);
+  }
+
+  public static markBigPictureReview(clientId: string) {
+    bigPictureReviewClientIds.add(clientId);
   }
 
   public static getReviewItemsForSender(sender: Electron.WebContents) {

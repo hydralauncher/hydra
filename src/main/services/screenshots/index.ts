@@ -125,7 +125,22 @@ export const applyScreenshotsEnabledPreference = async (
   }
 };
 
-export const getLocalScreenshots = () => LocalScreenshotStore.list();
+export const getLocalScreenshots = () => {
+  void screenshotUploadWorker
+    .refreshSettledModerationStatuses()
+    .catch((error) => {
+      logger.warn("Could not refresh settled screenshot statuses", error);
+    });
+  return LocalScreenshotStore.list();
+};
+
+export const flushScreenshotTelemetry = (timeoutMs: number) =>
+  Promise.race([
+    ScreenshotTelemetry.flush(),
+    new Promise<void>((resolve) => {
+      setTimeout(resolve, timeoutMs).unref?.();
+    }),
+  ]);
 
 export const uploadLocalScreenshot = async (
   clientId: string,
@@ -137,6 +152,9 @@ export const uploadLocalScreenshot = async (
     (ScreenshotReviewWindows.isReviewWindowSender(sender) ||
       WindowManager.bigPictureWindow?.webContents === sender);
   if (isReviewOrigin) ScreenshotUploadNotifier.markReviewOrigin(clientId);
+  if (sender && WindowManager.bigPictureWindow?.webContents === sender) {
+    ScreenshotReviewWindows.markBigPictureReview(clientId);
+  }
 
   return screenshotUploadWorker.enqueue(clientId, options);
 };
