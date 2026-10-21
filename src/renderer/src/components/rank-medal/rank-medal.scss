@@ -109,6 +109,67 @@
   }
 }
 
+@property --rank-frame-angle {
+  syntax: "<angle>";
+  inherits: false;
+  initial-value: 0deg;
+}
+
+.rank-frame {
+  --rank-frame-color: var(--rank-gold-color, #{globals.$rank-gold-color});
+  --rank-frame-soft: #{rgba(globals.$rank-gold-color, 0.4)};
+
+  position: relative;
+
+  &::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    padding: 1.5px;
+    border-radius: inherit;
+    pointer-events: none;
+    background:
+      conic-gradient(
+        from var(--rank-frame-angle),
+        transparent 0deg,
+        transparent 190deg,
+        var(--rank-frame-color) 290deg,
+        #fff 315deg,
+        var(--rank-frame-color) 335deg,
+        transparent 360deg
+      ),
+      linear-gradient(var(--rank-frame-soft), var(--rank-frame-soft));
+    mask:
+      linear-gradient(#000 0 0) content-box exclude,
+      linear-gradient(#000 0 0);
+    animation: rank-frame-spin 4.5s linear infinite;
+  }
+
+  &--silver {
+    --rank-frame-color: var(--rank-silver-color, #{globals.$rank-silver-color});
+    --rank-frame-soft: #{rgba(globals.$rank-silver-color, 0.34)};
+
+    &::before {
+      animation-delay: -1.5s;
+    }
+  }
+
+  &--bronze {
+    --rank-frame-color: var(--rank-bronze-color, #{globals.$rank-bronze-color});
+    --rank-frame-soft: #{rgba(globals.$rank-bronze-color, 0.42)};
+
+    &::before {
+      animation-delay: -3s;
+    }
+  }
+}
+
+@keyframes rank-frame-spin {
+  to {
+    --rank-frame-angle: 360deg;
+  }
+}
+
 @keyframes rank-medal-shine {
   0%,
   62% {
@@ -122,7 +183,8 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .rank-medal__shine::before {
+  .rank-medal__shine::before,
+  .rank-frame::before {
     animation: none;
   }
 }
