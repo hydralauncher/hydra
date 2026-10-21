@@ -12,6 +12,7 @@ import {
   resumeSpoilerPaging,
   shouldAutoLoadSpoilerPage,
   trackSpoilerPaging,
+  type ScreenshotWriteBus,
 } from "@shared";
 import { logger } from "@renderer/logger";
 
@@ -146,6 +147,7 @@ export interface GameScreenshotsModalProps {
   visible: boolean;
   shop: GameShop;
   objectId: string;
+  writeBus?: ScreenshotWriteBus;
   onClose: () => void;
 }
 
@@ -153,6 +155,7 @@ export function GameScreenshotsModal({
   visible,
   shop,
   objectId,
+  writeBus,
   onClose,
 }: Readonly<GameScreenshotsModalProps>) {
   const { t } = useTranslation("big_picture");
@@ -177,6 +180,7 @@ export function GameScreenshotsModal({
     requestKey: visible ? `${shop}:${objectId}:${sort}:all` : null,
     buildPath,
     needsAuth: isSignedIn,
+    writeBus,
   });
   const visibleItems = useMemo(
     () => hideSpoilerScreenshots(feed.items, hideSpoilers),
@@ -189,6 +193,7 @@ export function GameScreenshotsModal({
     removeItem: feed.removeItem,
     getFetchedAt: feed.getFetchedAt,
     imageRefresher: feed.imageRefresher,
+    subscribeRemoteWrites: feed.subscribeRemoteWrites,
   });
   const canLoadMore = feed.hasMore && !feed.isLoadingMore && !feed.error;
   const { loadMore } = feed;

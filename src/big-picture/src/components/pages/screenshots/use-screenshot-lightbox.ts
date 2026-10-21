@@ -11,6 +11,7 @@ import { logger } from "@renderer/logger";
 
 import { pickNewerScreenshot } from "./helpers";
 import { useScreenshotImageRefresh } from "./use-screenshot-image-refresh";
+import type { RemoteScreenshotWriteListener } from "./use-screenshot-feed";
 
 import type {
   ScreenshotLightboxProps,
@@ -24,6 +25,9 @@ interface UseScreenshotLightboxOptions {
   removeItem: (screenshotId: string, ownerId: string) => void;
   getFetchedAt: (screenshotId: string) => number | null;
   imageRefresher?: ScreenshotImageRefresher;
+  subscribeRemoteWrites?: (
+    listener: RemoteScreenshotWriteListener
+  ) => () => void;
 }
 
 interface LightboxState {
@@ -43,6 +47,7 @@ export function useScreenshotLightbox({
   removeItem,
   getFetchedAt,
   imageRefresher,
+  subscribeRemoteWrites,
 }: UseScreenshotLightboxOptions) {
   const [state, setState] = useState<LightboxState | null>(null);
   const [standalone, setStandalone] = useState<StandaloneScreenshot | null>(
@@ -141,6 +146,33 @@ export function useScreenshotLightbox({
     },
     [updateItem]
   );
+
+  useEffect(() => {
+    if (!subscribeRemoteWrites) return;
+
+    return subscribeRemoteWrites(({ screenshotId, patch }) => {
+      if (patch === null) {
+        setStandalone((current) =>
+          current?.screenshot.id === screenshotId ? null : current
+        );
+        setState((current) =>
+          current?.screenshotId === screenshotId
+            ? { screenshotId, status: "unavailable" }
+            : current
+        );
+        return;
+      }
+
+      setStandalone((current) =>
+        current?.screenshot.id === screenshotId
+          ? {
+              ...current,
+              screenshot: applyScreenshotPatch(current.screenshot, patch),
+            }
+          : current
+      );
+    });
+  }, [subscribeRemoteWrites]);
 
   const refreshImage = useScreenshotImageRefresh(
     needsAuth,

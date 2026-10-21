@@ -12,7 +12,11 @@ import cn from "classnames";
 import { useCallback, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import type { GameShop, ProfileScreenshot } from "@types";
-import { buildGameScreenshotsPath, useScreenshotImageFallback } from "@shared";
+import {
+  buildGameScreenshotsPath,
+  createScreenshotWriteBus,
+  useScreenshotImageFallback,
+} from "@shared";
 
 import {
   Button,
@@ -267,6 +271,7 @@ export function GameCommunityScreenshots({
   const { userDetails } = useUserDetails();
   const { isFeatureEnabled } = useFeature();
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [writeBus] = useState(createScreenshotWriteBus);
   const isEnabled =
     isFeatureEnabled(Feature.Screenshots) && shop !== "custom" && !isAdultGame;
   const isSignedIn = Boolean(userDetails);
@@ -287,6 +292,7 @@ export function GameCommunityScreenshots({
     requestKey: isEnabled ? `${shop}:${objectId}:sidebar` : null,
     buildPath,
     needsAuth: isSignedIn,
+    writeBus,
   });
   const items = useMemo(
     () => feed.items.slice(0, SIDEBAR_SCREENSHOT_COUNT),
@@ -299,6 +305,7 @@ export function GameCommunityScreenshots({
     removeItem: feed.removeItem,
     getFetchedAt: feed.getFetchedAt,
     imageRefresher: feed.imageRefresher,
+    subscribeRemoteWrites: feed.subscribeRemoteWrites,
   });
 
   if (!isEnabled) return null;
@@ -335,6 +342,7 @@ export function GameCommunityScreenshots({
           visible={isModalOpen}
           shop={shop}
           objectId={objectId}
+          writeBus={writeBus}
           onClose={() => setIsModalOpen(false)}
         />
       </section>

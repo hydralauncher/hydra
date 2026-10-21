@@ -9,7 +9,9 @@ import {
   mergeScreenshotPages,
   type ScreenshotFeedWrite,
   type ScreenshotImageRefresher,
+  type ScreenshotBusWrite,
   type ScreenshotPatch,
+  type ScreenshotWriteBus,
 } from "@shared";
 import { logger } from "@renderer/logger";
 
@@ -28,12 +30,16 @@ interface UseScreenshotFeedOptions {
   requestKey: string | null;
   buildPath: (cursor: string | null) => string;
   needsAuth: boolean;
+  writeBus?: ScreenshotWriteBus;
 }
+
+export type RemoteScreenshotWriteListener = (write: ScreenshotBusWrite) => void;
 
 export function useScreenshotFeed({
   requestKey,
   buildPath,
   needsAuth,
+  writeBus,
 }: UseScreenshotFeedOptions) {
   const [items, setItems] = useState<ProfileScreenshot[]>([]);
   const [total, setTotal] = useState<number | null>(null);
@@ -238,7 +244,7 @@ export function useScreenshotFeed({
     []
   );
 
-  const updateItem = useCallback(
+  const applyItemPatch = useCallback(
     (screenshotId: string, update: ScreenshotPatch) => {
       recordWrite(screenshotId, update);
       if (isRelativeScreenshotPatch(update)) {
@@ -253,10 +259,21 @@ export function useScreenshotFeed({
     [recordWrite]
   );
 
+  const publishRef = useRef<((write: ScreenshotBusWrite) => void) | null>(null);
+  const remoteListenersRef = useRef(new Set<RemoteScreenshotWriteListener>());
+
+  const updateItem = useCallback(
+    (screenshotId: string, update: ScreenshotPatch) => {
+      applyItemPatch(screenshotId, update);
+      publishRef.current?.({ screenshotId, patch: update });
+    },
+    [applyItemPatch]
+  );
+
   const updateItemRef = useRef(updateItem);
   updateItemRef.current = updateItem;
 
-  const removeItem = useCallback(
+  const applyItemRemoval = useCallback(
     (screenshotId: string) => {
       recordWrite(screenshotId, null);
       fetchedAtRef.current.delete(screenshotId);
@@ -268,6 +285,41 @@ export function useScreenshotFeed({
       );
     },
     [recordWrite]
+  );
+
+  const removeItem = useCallback(
+    (screenshotId: string) => {
+      applyItemRemoval(screenshotId);
+      publishRef.current?.({ screenshotId, patch: null });
+    },
+    [applyItemRemoval]
+  );
+
+  useEffect(() => {
+    if (!writeBus) return;
+
+    const subscription = writeBus.subscribe((write) => {
+      if (write.patch === null) applyItemRemoval(write.screenshotId);
+      else applyItemPatch(write.screenshotId, write.patch);
+
+      for (const listener of remoteListenersRef.current) listener(write);
+    });
+    publishRef.current = subscription.publish;
+
+    return () => {
+      publishRef.current = null;
+      subscription.unsubscribe();
+    };
+  }, [applyItemPatch, applyItemRemoval, writeBus]);
+
+  const subscribeRemoteWrites = useCallback(
+    (listener: RemoteScreenshotWriteListener) => {
+      remoteListenersRef.current.add(listener);
+      return () => {
+        remoteListenersRef.current.delete(listener);
+      };
+    },
+    []
   );
 
   const imageRefresherRef = useRef<ScreenshotImageRefresher | null>(null);
@@ -300,6 +352,7 @@ export function useScreenshotFeed({
     updateItem,
     refreshImage,
     imageRefresher,
+    subscribeRemoteWrites,
     removeItem,
     getFetchedAt,
   };
