@@ -979,8 +979,6 @@
     "screenshots_settings_folder_reset": "Вернуть папку по умолчанию",
     "screenshots_settings_gamepad_combo": "Сочетание на геймпаде",
     "screenshots_settings_gamepad_enabled": "Делать скриншоты сочетанием кнопок геймпада",
-    "screenshots_settings_gamepad_first": "Первая кнопка",
-    "screenshots_settings_gamepad_second": "Вторая кнопка",
     "screenshots_settings_hotkey": "Сочетание клавиш",
     "screenshots_settings_hotkey_hint": "Выберите поле и нажмите новое сочетание на клавиатуре.",
     "screenshots_settings_hotkey_recording": "Нажмите клавишу...",
@@ -999,6 +997,11 @@
     "screenshots_retry": "Повторить",
     "screenshots_open_game": "Открыть страницу игры",
     "screenshots_open_profile": "Открыть профиль",
-    "screenshots_sign_in_to_vote": "Войдите, чтобы голосовать"
+    "screenshots_sign_in_to_vote": "Войдите, чтобы голосовать",
+    "screenshots_settings_gamepad_add": "Добавить кнопку",
+    "screenshots_settings_gamepad_duplicate": "Каждую кнопку можно использовать только один раз",
+    "screenshots_settings_gamepad_remove": "Убрать эту кнопку",
+    "screenshots_settings_gamepad_reset": "Сбросить по умолчанию",
+    "screenshots_settings_gamepad_slot": "Кнопка {{position}}"
   }
 }

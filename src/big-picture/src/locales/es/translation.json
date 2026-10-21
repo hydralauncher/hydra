@@ -954,8 +954,6 @@
     "screenshots_settings_folder_reset": "Restablecer la carpeta predeterminada",
     "screenshots_settings_gamepad_combo": "Combinación del mando",
     "screenshots_settings_gamepad_enabled": "Tomar capturas con una combinación del mando",
-    "screenshots_settings_gamepad_first": "Primer botón",
-    "screenshots_settings_gamepad_second": "Segundo botón",
     "screenshots_settings_hotkey": "Atajo de teclado",
     "screenshots_settings_hotkey_hint": "Selecciónalo y pulsa el nuevo atajo en tu teclado.",
     "screenshots_settings_hotkey_recording": "Pulsa una tecla...",
@@ -974,6 +972,11 @@
     "screenshots_retry": "Reintentar",
     "screenshots_open_game": "Abrir la página del juego",
     "screenshots_open_profile": "Abrir perfil",
-    "screenshots_sign_in_to_vote": "Inicia sesión para votar"
+    "screenshots_sign_in_to_vote": "Inicia sesión para votar",
+    "screenshots_settings_gamepad_add": "Añadir un botón",
+    "screenshots_settings_gamepad_duplicate": "Cada botón solo se puede usar una vez",
+    "screenshots_settings_gamepad_remove": "Quitar este botón",
+    "screenshots_settings_gamepad_reset": "Restablecer valores predeterminados",
+    "screenshots_settings_gamepad_slot": "Botón {{position}}"
   }
 }

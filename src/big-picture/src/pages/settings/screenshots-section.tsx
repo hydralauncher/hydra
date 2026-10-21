@@ -6,8 +6,11 @@ import {
   FolderOpenIcon,
   ImageIcon,
   KeyboardIcon,
+  PlusIcon,
   TrashIcon,
+  XIcon,
 } from "@phosphor-icons/react";
+import cn from "classnames";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import type {
@@ -18,12 +21,17 @@ import type {
   UserPreferences,
 } from "@types";
 import {
+  DEFAULT_SCREENSHOT_GAMEPAD_COMBO,
   DEFAULT_SCREENSHOT_HOTKEY,
   SCREENSHOT_GAMEPAD_BUTTONS,
+  SCREENSHOT_GAMEPAD_COMBO_MAX_BUTTONS,
+  SCREENSHOT_GAMEPAD_COMBO_MIN_BUTTONS,
   formatScreenshotHotkey,
+  isSameScreenshotGamepadCombo,
   isSameScreenshotHotkey,
   isScreenshotUploadRetryable,
   resolveScreenshotPreferences,
+  validateScreenshotGamepadCombo,
   validateScreenshotHotkey,
   type ScreenshotHotkeyError,
 } from "@shared";
@@ -48,6 +56,7 @@ import {
 import { resolveImageSource } from "../../helpers";
 import {
   useBigPictureToast,
+  useNavigation,
   useNavigationScreenActions,
   useUserDetails,
   useUserPreferences,
@@ -60,8 +69,8 @@ export const SCREENSHOT_SETTINGS_FOCUS_IDS = {
   hotkey: "screenshot-settings-hotkey",
   hotkeyReset: "screenshot-settings-hotkey-reset",
   gamepadEnabled: "screenshot-settings-gamepad-enabled",
-  gamepadFirst: "screenshot-settings-gamepad-first",
-  gamepadSecond: "screenshot-settings-gamepad-second",
+  gamepadAdd: "screenshot-settings-gamepad-add",
+  gamepadReset: "screenshot-settings-gamepad-reset",
   captureSound: "screenshot-settings-capture-sound",
   toast: "screenshot-settings-toast",
   borderFlash: "screenshot-settings-border-flash",
@@ -79,6 +88,11 @@ const HOTKEY_ERROR_KEYS: Record<ScreenshotHotkeyError, string> = {
   hotkey_unsupported_key: "screenshots_hotkey_error_unsupported",
 };
 const BLOCK_TARGET: FocusOverrideTarget = { type: "block" };
+
+const getGamepadSlotFocusId = (index: number) =>
+  `screenshot-settings-gamepad-slot:${index}`;
+const getGamepadRemoveFocusId = (index: number) =>
+  `screenshot-settings-gamepad-remove:${index}`;
 
 const getLocalUploadFocusId = (clientId: string) =>
   `screenshot-settings-local-upload:${clientId}`;
@@ -254,6 +268,56 @@ function useHotkeyRecorder(
   return { isRecording, setIsRecording };
 }
 
+const isSavableGamepadCombo = (combo: ScreenshotGamepadButton[]) =>
+  new Set(combo).size === combo.length &&
+  validateScreenshotGamepadCombo(combo).valid;
+
+function useGamepadComboDraft(
+  combo: ScreenshotGamepadButton[],
+  onSave: (combo: ScreenshotGamepadButton[]) => void
+) {
+  const [draft, setDraft] = useState<ScreenshotGamepadButton[]>(combo);
+
+  useEffect(() => {
+    setDraft((current) =>
+      isSameScreenshotGamepadCombo(current, combo) ? current : combo
+    );
+  }, [combo]);
+
+  const commit = (next: ScreenshotGamepadButton[]) => {
+    setDraft(next);
+    if (isSavableGamepadCombo(next)) onSave(next);
+  };
+
+  const unusedButton = SCREENSHOT_GAMEPAD_BUTTONS.find(
+    (button) => !draft.includes(button)
+  );
+
+  return {
+    draft,
+    hasDuplicates: new Set(draft).size !== draft.length,
+    isDefault: isSameScreenshotGamepadCombo(
+      draft,
+      DEFAULT_SCREENSHOT_GAMEPAD_COMBO
+    ),
+    canAdd:
+      draft.length < SCREENSHOT_GAMEPAD_COMBO_MAX_BUTTONS &&
+      unusedButton !== undefined,
+    select: (index: number, button: ScreenshotGamepadButton) =>
+      commit(
+        draft.map((current, position) =>
+          position === index ? button : current
+        )
+      ),
+    add: () => {
+      if (unusedButton) commit([...draft, unusedButton]);
+    },
+    remove: (index: number) =>
+      commit(draft.filter((_, position) => position !== index)),
+    reset: () => commit([...DEFAULT_SCREENSHOT_GAMEPAD_COMBO]),
+  };
+}
+
 function useScreenshotInputStatus() {
   const [status, setStatus] = useState<ScreenshotInputStatus | null>(null);
 
@@ -412,6 +476,7 @@ export function ScreenshotSettingsSection({
   const userPreferences = useUserPreferences();
   const { userDetails } = useUserDetails();
   const { showErrorToast, showSuccessToast } = useBigPictureToast();
+  const { setFocus } = useNavigation();
   const [overrides, setOverrides] = useState<ScreenshotPreferenceUpdate>({});
   const [folderPath, setFolderPath] = useState("");
   const [deleting, setDeleting] = useState<LocalScreenshot | null>(null);
@@ -571,21 +636,25 @@ export function ScreenshotSettingsSection({
     [t]
   );
 
-  const [firstButton, secondButton] = preferences.gamepadCombo;
+  const saveGamepadCombo = useCallback(
+    (screenshotGamepadCombo: ScreenshotGamepadButton[]) => {
+      void update({ screenshotGamepadCombo });
+    },
+    [update]
+  );
+  const gamepadCombo = useGamepadComboDraft(
+    preferences.gamepadCombo,
+    saveGamepadCombo
+  );
+  const isGamepadComboDisabled =
+    settingsDisabled || !preferences.gamepadEnabled;
 
-  const updateCombo = (position: 0 | 1, button: ScreenshotGamepadButton) => {
-    const combo: ScreenshotGamepadButton[] = [
-      firstButton ?? "back",
-      secondButton ?? "rb",
-    ];
-    const otherPosition = position === 0 ? 1 : 0;
-
-    if (combo[otherPosition] === button) {
-      combo[otherPosition] = combo[position];
-    }
-    combo[position] = button;
-
-    void update({ screenshotGamepadCombo: combo });
+  const resetHotkey = () => {
+    setIsRecording(false);
+    void update({ screenshotHotkey: { ...DEFAULT_SCREENSHOT_HOTKEY } });
+    globalThis.window.requestAnimationFrame(() =>
+      setFocus(SCREENSHOT_SETTINGS_FOCUS_IDS.hotkey)
+    );
   };
 
   const ids = SCREENSHOT_SETTINGS_FOCUS_IDS;
@@ -609,15 +678,24 @@ export function ScreenshotSettingsSection({
         : [getLocalDeleteFocusId(screenshot.clientId)]
     );
 
+    const comboRow = gamepadCombo.draft.flatMap((_, index) =>
+      index >= SCREENSHOT_GAMEPAD_COMBO_MIN_BUTTONS
+        ? [getGamepadSlotFocusId(index), getGamepadRemoveFocusId(index)]
+        : [getGamepadSlotFocusId(index)]
+    );
+    const comboActionsRow: string[] = [];
+    if (gamepadCombo.canAdd) comboActionsRow.push(ids.gamepadAdd);
+    if (!gamepadCombo.isDefault) comboActionsRow.push(ids.gamepadReset);
+
     const inactiveIds = new Set<string>();
     if (settingsDisabled) {
       inactiveIds.add(ids.hotkey);
       inactiveIds.add(ids.hotkeyReset);
       inactiveIds.add(ids.defaultVisibility);
     }
-    if (settingsDisabled || !preferences.gamepadEnabled) {
-      inactiveIds.add(ids.gamepadFirst);
-      inactiveIds.add(ids.gamepadSecond);
+    if (isGamepadComboDisabled) {
+      for (const focusId of [...comboRow, ...comboActionsRow])
+        inactiveIds.add(focusId);
     }
     if (!userDetails) {
       for (const screenshot of localScreenshots)
@@ -628,7 +706,8 @@ export function ScreenshotSettingsSection({
       [ids.enabled],
       hotkeyRow,
       [ids.gamepadEnabled],
-      [ids.gamepadFirst, ids.gamepadSecond],
+      comboRow,
+      comboActionsRow,
       [ids.captureSound],
       [ids.toast],
       [ids.borderFlash],
@@ -640,11 +719,14 @@ export function ScreenshotSettingsSection({
       .map((row) => row.filter((focusId) => !inactiveIds.has(focusId)))
       .filter((row) => row.length > 0);
   }, [
+    gamepadCombo.canAdd,
+    gamepadCombo.draft,
+    gamepadCombo.isDefault,
     hasCustomFolder,
     ids,
     isDefaultHotkey,
+    isGamepadComboDisabled,
     localScreenshots,
-    preferences.gamepadEnabled,
     settingsDisabled,
     userDetails,
   ]);
@@ -698,37 +780,44 @@ export function ScreenshotSettingsSection({
             <span className="screenshot-settings__label">
               {t("screenshots_settings_hotkey")}
             </span>
-            <HorizontalFocusGroup className="screenshot-settings__controls">
-              <Button
-                variant="secondary"
-                focusId={ids.hotkey}
-                disabled={settingsDisabled}
-                icon={<KeyboardIcon size={18} />}
-                className="screenshot-settings__hotkey"
-                focusNavigationOverrides={navigation[ids.hotkey]}
-                onClick={() => setIsRecording(!isRecording)}
-              >
-                {isRecording
-                  ? t("screenshots_settings_hotkey_recording")
-                  : formatScreenshotHotkey(preferences.hotkey)}
-              </Button>
-              {isDefaultHotkey ? null : (
-                <Button
-                  variant="secondary"
-                  size="icon"
-                  focusId={ids.hotkeyReset}
-                  disabled={settingsDisabled}
-                  icon={<ArrowCounterClockwiseIcon size={18} />}
-                  aria-label={t("screenshots_settings_hotkey_reset")}
-                  title={t("screenshots_settings_hotkey_reset")}
-                  focusNavigationOverrides={navigation[ids.hotkeyReset]}
-                  onClick={() =>
-                    void update({ screenshotHotkey: DEFAULT_SCREENSHOT_HOTKEY })
-                  }
+            <HorizontalFocusGroup asChild>
+              <div className="screenshot-settings__controls">
+                <FocusItem
+                  id={ids.hotkey}
+                  navigationState={settingsDisabled ? "disabled" : "active"}
+                  navigationOverrides={navigation[ids.hotkey]}
+                  asChild
                 >
-                  {null}
-                </Button>
-              )}
+                  <button
+                    type="button"
+                    className={cn("screenshot-settings__keycap", {
+                      "screenshot-settings__keycap--recording": isRecording,
+                    })}
+                    disabled={settingsDisabled}
+                    aria-pressed={isRecording}
+                    onClick={() => setIsRecording(!isRecording)}
+                  >
+                    <KeyboardIcon size={18} />
+                    <span>
+                      {isRecording
+                        ? t("screenshots_settings_hotkey_recording")
+                        : formatScreenshotHotkey(preferences.hotkey)}
+                    </span>
+                  </button>
+                </FocusItem>
+                {isDefaultHotkey ? null : (
+                  <Button
+                    variant="secondary"
+                    size="small"
+                    focusId={ids.hotkeyReset}
+                    disabled={settingsDisabled}
+                    focusNavigationOverrides={navigation[ids.hotkeyReset]}
+                    onClick={resetHotkey}
+                  >
+                    {t("screenshots_settings_hotkey_reset")}
+                  </Button>
+                )}
+              </div>
             </HorizontalFocusGroup>
             <span className="screenshot-settings__hint">
               {t(
@@ -752,35 +841,93 @@ export function ScreenshotSettingsSection({
             <span className="screenshot-settings__label">
               {t("screenshots_settings_gamepad_combo")}
             </span>
-            <HorizontalFocusGroup className="screenshot-settings__controls">
-              <DropdownSelect
-                className="screenshot-settings__select"
-                label={t("screenshots_settings_gamepad_first")}
-                hideLabel
-                ariaLabel={t("screenshots_settings_gamepad_first")}
-                value={firstButton ?? "back"}
-                options={gamepadOptions}
-                disabled={settingsDisabled || !preferences.gamepadEnabled}
-                focusId={ids.gamepadFirst}
-                focusNavigationOverrides={navigation[ids.gamepadFirst]}
-                onValueChange={(button) => updateCombo(0, button)}
-              />
-              <span className="screenshot-settings__plus" aria-hidden>
-                +
-              </span>
-              <DropdownSelect
-                className="screenshot-settings__select"
-                label={t("screenshots_settings_gamepad_second")}
-                hideLabel
-                ariaLabel={t("screenshots_settings_gamepad_second")}
-                value={secondButton ?? "rb"}
-                options={gamepadOptions}
-                disabled={settingsDisabled || !preferences.gamepadEnabled}
-                focusId={ids.gamepadSecond}
-                focusNavigationOverrides={navigation[ids.gamepadSecond]}
-                onValueChange={(button) => updateCombo(1, button)}
-              />
+            <HorizontalFocusGroup asChild>
+              <div className="screenshot-settings__controls">
+                {gamepadCombo.draft.map((button, index) => (
+                  <div
+                    key={`${index}-${button}`}
+                    className="screenshot-settings__combo-slot"
+                  >
+                    {index > 0 ? (
+                      <span className="screenshot-settings__plus" aria-hidden>
+                        +
+                      </span>
+                    ) : null}
+                    <DropdownSelect
+                      className="screenshot-settings__select"
+                      label={t("screenshots_settings_gamepad_slot", {
+                        position: index + 1,
+                      })}
+                      hideLabel
+                      ariaLabel={t("screenshots_settings_gamepad_slot", {
+                        position: index + 1,
+                      })}
+                      value={button}
+                      options={gamepadOptions}
+                      disabled={isGamepadComboDisabled}
+                      focusId={getGamepadSlotFocusId(index)}
+                      focusNavigationOverrides={
+                        navigation[getGamepadSlotFocusId(index)]
+                      }
+                      onValueChange={(next) => gamepadCombo.select(index, next)}
+                    />
+                    {index >= SCREENSHOT_GAMEPAD_COMBO_MIN_BUTTONS ? (
+                      <Button
+                        variant="secondary"
+                        size="icon"
+                        focusId={getGamepadRemoveFocusId(index)}
+                        disabled={isGamepadComboDisabled}
+                        icon={<XIcon size={18} />}
+                        aria-label={t("screenshots_settings_gamepad_remove")}
+                        title={t("screenshots_settings_gamepad_remove")}
+                        focusNavigationOverrides={
+                          navigation[getGamepadRemoveFocusId(index)]
+                        }
+                        onClick={() => gamepadCombo.remove(index)}
+                      >
+                        {null}
+                      </Button>
+                    ) : null}
+                  </div>
+                ))}
+              </div>
             </HorizontalFocusGroup>
+            {gamepadCombo.canAdd || !gamepadCombo.isDefault ? (
+              <HorizontalFocusGroup asChild>
+                <div className="screenshot-settings__controls">
+                  {gamepadCombo.canAdd ? (
+                    <Button
+                      variant="secondary"
+                      size="small"
+                      focusId={ids.gamepadAdd}
+                      disabled={isGamepadComboDisabled}
+                      icon={<PlusIcon size={18} />}
+                      focusNavigationOverrides={navigation[ids.gamepadAdd]}
+                      onClick={gamepadCombo.add}
+                    >
+                      {t("screenshots_settings_gamepad_add")}
+                    </Button>
+                  ) : null}
+                  {gamepadCombo.isDefault ? null : (
+                    <Button
+                      variant="secondary"
+                      size="small"
+                      focusId={ids.gamepadReset}
+                      disabled={isGamepadComboDisabled}
+                      focusNavigationOverrides={navigation[ids.gamepadReset]}
+                      onClick={gamepadCombo.reset}
+                    >
+                      {t("screenshots_settings_gamepad_reset")}
+                    </Button>
+                  )}
+                </div>
+              </HorizontalFocusGroup>
+            ) : null}
+            {gamepadCombo.hasDuplicates ? (
+              <span className="screenshot-settings__error" role="alert">
+                {t("screenshots_settings_gamepad_duplicate")}
+              </span>
+            ) : null}
           </div>
 
           {renderCheckbox(
@@ -832,47 +979,49 @@ export function ScreenshotSettingsSection({
             <span className="screenshot-settings__label">
               {t("screenshots_settings_folder")}
             </span>
-            <HorizontalFocusGroup className="screenshot-settings__controls">
-              <FocusItem
-                id={ids.folder}
-                actions={{ primary: () => void chooseFolder() }}
-                navigationOverrides={navigation[ids.folder]}
-                asChild
-              >
-                <button
-                  type="button"
-                  className="screenshot-settings__path"
-                  title={folderPath}
-                  onClick={() => void chooseFolder()}
+            <HorizontalFocusGroup asChild>
+              <div className="screenshot-settings__controls">
+                <FocusItem
+                  id={ids.folder}
+                  actions={{ primary: () => void chooseFolder() }}
+                  navigationOverrides={navigation[ids.folder]}
+                  asChild
                 >
-                  {folderPath}
-                </button>
-              </FocusItem>
-              {hasCustomFolder ? (
+                  <button
+                    type="button"
+                    className="screenshot-settings__path"
+                    title={folderPath}
+                    onClick={() => void chooseFolder()}
+                  >
+                    {folderPath}
+                  </button>
+                </FocusItem>
+                {hasCustomFolder ? (
+                  <Button
+                    variant="secondary"
+                    size="icon"
+                    focusId={ids.folderReset}
+                    icon={<ArrowCounterClockwiseIcon size={18} />}
+                    aria-label={t("screenshots_settings_folder_reset")}
+                    title={t("screenshots_settings_folder_reset")}
+                    focusNavigationOverrides={navigation[ids.folderReset]}
+                    onClick={() => void resetFolder()}
+                  >
+                    {null}
+                  </Button>
+                ) : null}
                 <Button
                   variant="secondary"
-                  size="icon"
-                  focusId={ids.folderReset}
-                  icon={<ArrowCounterClockwiseIcon size={18} />}
-                  aria-label={t("screenshots_settings_folder_reset")}
-                  title={t("screenshots_settings_folder_reset")}
-                  focusNavigationOverrides={navigation[ids.folderReset]}
-                  onClick={() => void resetFolder()}
+                  focusId={ids.folderOpen}
+                  icon={<FolderOpenIcon size={18} />}
+                  focusNavigationOverrides={navigation[ids.folderOpen]}
+                  onClick={() =>
+                    void globalThis.window.electron.openScreenshotsFolder()
+                  }
                 >
-                  {null}
+                  {t("screenshots_settings_folder_open")}
                 </Button>
-              ) : null}
-              <Button
-                variant="secondary"
-                focusId={ids.folderOpen}
-                icon={<FolderOpenIcon size={18} />}
-                focusNavigationOverrides={navigation[ids.folderOpen]}
-                onClick={() =>
-                  void globalThis.window.electron.openScreenshotsFolder()
-                }
-              >
-                {t("screenshots_settings_folder_open")}
-              </Button>
+              </div>
             </HorizontalFocusGroup>
           </div>
 
