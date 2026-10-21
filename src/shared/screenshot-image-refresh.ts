@@ -22,7 +22,7 @@ export function createScreenshotImageRefresher({
     refresh: () => Promise<void>
   ): Promise<void> => {
     const pending = inFlight.get(screenshotId);
-    if (pending) return pending;
+    if (pending !== undefined) return pending;
     if (isCoolingDown(screenshotId)) return Promise.resolve();
 
     lastStartedAt.set(screenshotId, now());
