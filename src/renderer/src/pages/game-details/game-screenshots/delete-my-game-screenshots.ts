@@ -8,6 +8,7 @@ import type { GameShop } from "@types";
 import {
   deleteLocalScreenshotsForGame,
   getPublishedScreenshotIdsForGame,
+  loadLocalScreenshotsForGame,
 } from "./my-screenshots-store";
 
 export type MyScreenshotsDeletion = "all" | "published" | "local";
@@ -34,16 +35,26 @@ export const deletePublishedScreenshotsForGame = async (
     }>(buildProfileGameScreenshotsPath({ shop, objectId }), {
       needsAuth: true,
     });
+    const ids = await getPublishedScreenshotIdsForGame(shop, objectId);
+    if (ids.length > 0) await window.electron.forgetPublishedScreenshots(ids);
     return response?.deleted ?? 0;
   }
 
   const ids = await getPublishedScreenshotIdsForGame(shop, objectId);
-  let deleted = 0;
-  for (const id of ids) {
-    await deletePublishedScreenshot(id);
-    deleted += 1;
+  const deletedIds: string[] = [];
+
+  try {
+    for (const id of ids) {
+      await deletePublishedScreenshot(id);
+      deletedIds.push(id);
+    }
+  } finally {
+    if (deletedIds.length > 0) {
+      await window.electron.forgetPublishedScreenshots(deletedIds);
+    }
   }
-  return deleted;
+
+  return deletedIds.length;
 };
 
 export const deleteMyGameScreenshots = async (
@@ -51,12 +62,16 @@ export const deleteMyGameScreenshots = async (
   shop: GameShop,
   objectId: string
 ) => {
-  let deleted = 0;
-  if (deletion !== "local") {
-    deleted += await deletePublishedScreenshotsForGame(shop, objectId);
+  if (deletion === "local") {
+    return deleteLocalScreenshotsForGame(shop, objectId);
   }
-  if (deletion !== "published") {
-    deleted += await deleteLocalScreenshotsForGame(shop, objectId);
+  if (deletion === "published") {
+    return deletePublishedScreenshotsForGame(shop, objectId);
   }
-  return deleted;
+
+  const localBefore = (await loadLocalScreenshotsForGame(shop, objectId))
+    .length;
+  const published = await deletePublishedScreenshotsForGame(shop, objectId);
+  await deleteLocalScreenshotsForGame(shop, objectId);
+  return published + localBefore;
 };
