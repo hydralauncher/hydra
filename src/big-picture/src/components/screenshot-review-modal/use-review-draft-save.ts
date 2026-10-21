@@ -45,7 +45,7 @@ export function useReviewDraftSave() {
   }, []);
 
   const flushAll = useCallback(() => {
-    for (const clientId of [...pendingRef.current.keys()]) save(clientId);
+    for (const clientId of pendingRef.current.keys()) save(clientId);
   }, [save]);
 
   useEffect(() => flushAll, [flushAll]);
