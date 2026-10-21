@@ -273,13 +273,34 @@ class ScreenshotUploadWorker {
 
   private async resetInterruptedUploads() {
     const screenshots = await LocalScreenshotStore.list();
-    for (const screenshot of screenshots) {
-      if (screenshot.state !== "uploading") continue;
-      await LocalScreenshotStore.update(screenshot.clientId, {
-        state: "queued",
-        uploadProgress: 0,
-      });
+    await Promise.all(
+      screenshots
+        .filter((screenshot) => screenshot.state === "uploading")
+        .map((screenshot) =>
+          LocalScreenshotStore.update(screenshot.clientId, {
+            state: "queued",
+            uploadProgress: 0,
+          })
+        )
+    );
+  }
+
+  private async processQueue(
+    queue: LocalScreenshot[],
+    ownerId: string,
+    authContext: HydraApiAuthContext
+  ): Promise<void> {
+    const [screenshot, ...rest] = queue;
+    if (!screenshot || !HydraApi.isAuthContextCurrent(authContext)) return;
+
+    if ((screenshot.nextUploadAttemptAt ?? 0) <= Date.now()) {
+      const current = await LocalScreenshotStore.get(screenshot.clientId);
+      if (current?.state === "queued" && current.ownerId === ownerId) {
+        await this.process(current, authContext);
+      }
     }
+
+    return this.processQueue(rest, ownerId, authContext);
   }
 
   private async run() {
@@ -296,15 +317,8 @@ class ScreenshotUploadWorker {
       )
       .toSorted((a, b) => a.capturedAt - b.capturedAt);
 
-    for (const screenshot of queued) {
-      if (!HydraApi.isAuthContextCurrent(authContext)) return;
-      if ((screenshot.nextUploadAttemptAt ?? 0) > Date.now()) continue;
-
-      const current = await LocalScreenshotStore.get(screenshot.clientId);
-      if (current?.state !== "queued" || current.ownerId !== ownerId) continue;
-
-      await this.process(current, authContext);
-    }
+    await this.processQueue(queued, ownerId, authContext);
+    if (!HydraApi.isAuthContextCurrent(authContext)) return;
 
     await ScreenshotUploadNotifier.refresh();
   }

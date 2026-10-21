@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { createPortal } from "react-dom";
 import { useTranslation } from "react-i18next";
 import {
@@ -11,6 +11,7 @@ import {
 } from "@primer/octicons-react";
 
 import { Button } from "@renderer/components";
+import { useFocusTrap } from "@renderer/hooks/use-focus-trap";
 import { toLocalScreenshotUrl } from "@shared";
 import type { LocalScreenshot } from "@types";
 
@@ -51,6 +52,9 @@ export function SettingsScreenshotsViewer({
 }: Readonly<SettingsScreenshotsViewerProps>) {
   const { t } = useTranslation(["settings", "modal", "game_details"]);
   const { t: tCapture } = useTranslation("screenshots_capture");
+  const dialogRef = useRef<HTMLDialogElement | null>(null);
+
+  useFocusTrap(dialogRef, screenshot !== null, isBlocked);
 
   useEffect(() => {
     if (!screenshot || isBlocked) return;
@@ -87,7 +91,9 @@ export function SettingsScreenshotsViewer({
       />
 
       <dialog
+        ref={dialogRef}
         className="settings-screenshots-viewer__dialog"
+        tabIndex={-1}
         open
         aria-label={title}
       >

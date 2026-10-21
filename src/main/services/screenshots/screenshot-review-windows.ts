@@ -121,11 +121,13 @@ const sendReviewItems = (entry: ReviewWindowEntry) => {
 };
 
 const releaseUnreviewedScreenshots = async (clientIds: string[]) => {
-  for (const clientId of clientIds) {
-    await LocalScreenshotStore.update(clientId, (current) =>
-      current.state === "reviewing" ? { state: "local" } : {}
-    );
-  }
+  await Promise.all(
+    clientIds.map((clientId) =>
+      LocalScreenshotStore.update(clientId, (current) =>
+        current.state === "reviewing" ? { state: "local" } : {}
+      )
+    )
+  );
 };
 
 const placeBelowGameWindow = (

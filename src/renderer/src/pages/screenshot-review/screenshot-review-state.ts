@@ -1,4 +1,3 @@
-import { toLocalScreenshotUrl } from "@shared";
 import type {
   LocalScreenshot,
   ProfileVisibility,
@@ -59,7 +58,7 @@ const EDITABLE_STATES = new Set<LocalScreenshotState>([
   "failed",
 ]);
 
-export const getLocalImageSource = toLocalScreenshotUrl;
+export { toLocalScreenshotUrl as getLocalImageSource } from "@shared";
 
 export const parseClientIds = (value: string | null) =>
   (value ?? "")
