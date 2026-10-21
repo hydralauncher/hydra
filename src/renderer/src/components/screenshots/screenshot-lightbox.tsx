@@ -1,4 +1,4 @@
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useRef, useState, type RefObject } from "react";
 import { createPortal } from "react-dom";
 import { useTranslation } from "react-i18next";
 import {
@@ -216,6 +216,116 @@ const getNeighbors = (items: ProfileScreenshot[], index: number) => ({
   nextItem: index >= 0 && index < items.length - 1 ? items[index + 1] : null,
 });
 
+const toOpener = (
+  item: ProfileScreenshot | null,
+  open: (screenshot: ProfileScreenshot) => void
+) => (item ? () => open(item) : null);
+
+function useLightboxModals(close: () => void) {
+  const [isDeleteConfirmationVisible, setIsDeleteConfirmationVisible] =
+    useState(false);
+  const [isReportModalVisible, setIsReportModalVisible] = useState(false);
+
+  const handleClose = useCallback(() => {
+    setIsDeleteConfirmationVisible(false);
+    setIsReportModalVisible(false);
+    close();
+  }, [close]);
+
+  return {
+    isDeleteConfirmationVisible,
+    isReportModalVisible,
+    isBlockingModalVisible: isDeleteConfirmationVisible || isReportModalVisible,
+    showDeleteConfirmation: () => setIsDeleteConfirmationVisible(true),
+    hideDeleteConfirmation: () => setIsDeleteConfirmationVisible(false),
+    showReportModal: () => setIsReportModalVisible(true),
+    hideReportModal: () => setIsReportModalVisible(false),
+    handleClose,
+  };
+}
+
+interface ScreenshotLightboxContentProps {
+  screenshot: ProfileScreenshot;
+  collection: ScreenshotCollection;
+  previousItem: ProfileScreenshot | null;
+  nextItem: ProfileScreenshot | null;
+  closeButtonRef: RefObject<HTMLButtonElement>;
+  onClose: () => void;
+  onRequestDelete: () => void;
+  onRequestReport: () => void;
+}
+
+function ScreenshotLightboxContent({
+  screenshot,
+  collection,
+  previousItem,
+  nextItem,
+  closeButtonRef,
+  onClose,
+  onRequestDelete,
+  onRequestReport,
+}: Readonly<ScreenshotLightboxContentProps>) {
+  const { actions, onPatch, lightbox } = collection;
+
+  return (
+    <>
+      <div className="screenshot-lightbox__media">
+        <ScreenshotMedia
+          key={screenshot.id}
+          screenshot={screenshot}
+          onImageError={(item) => void lightbox.refreshScreenshot(item)}
+        />
+        <ScreenshotLightboxNav
+          previousItem={previousItem}
+          nextItem={nextItem}
+          onOpen={lightbox.open}
+        />
+      </div>
+
+      <ScreenshotLightboxPanel
+        screenshot={screenshot}
+        actions={actions}
+        closeButtonRef={closeButtonRef}
+        onPatch={onPatch}
+        onFailure={lightbox.markFailure}
+        onClose={onClose}
+        onRequestDelete={onRequestDelete}
+        onRequestReport={onRequestReport}
+      />
+    </>
+  );
+}
+
+interface ScreenshotLightboxPlaceholderProps {
+  status: ScreenshotLightboxStateProps["status"];
+  closeButtonRef: RefObject<HTMLButtonElement>;
+  onClose: () => void;
+}
+
+function ScreenshotLightboxPlaceholder({
+  status,
+  closeButtonRef,
+  onClose,
+}: Readonly<ScreenshotLightboxPlaceholderProps>) {
+  const { t } = useTranslation("screenshots");
+
+  return (
+    <>
+      <button
+        ref={closeButtonRef}
+        type="button"
+        className="screenshot-lightbox__close screenshot-lightbox__close--floating"
+        onClick={onClose}
+        aria-label={t("close")}
+        title={t("close")}
+      >
+        <XIcon size={20} />
+      </button>
+      <ScreenshotLightboxState status={status} onClose={onClose} />
+    </>
+  );
+}
+
 interface ScreenshotLightboxProps {
   collection: ScreenshotCollection;
 }
@@ -224,37 +334,29 @@ export function ScreenshotLightbox({
   collection,
 }: Readonly<ScreenshotLightboxProps>) {
   const { t } = useTranslation("screenshots");
-  const { feed, actions, onPatch, lightbox } = collection;
-  const { status, screenshot, index, open, close, refreshScreenshot } =
-    lightbox;
+  const { feed, actions, lightbox } = collection;
+  const { status, screenshot, index, open, close } = lightbox;
   const dialogRef = useRef<HTMLDialogElement>(null);
   const closeButtonRef = useRef<HTMLButtonElement>(null);
-  const [isDeleteConfirmationVisible, setIsDeleteConfirmationVisible] =
-    useState(false);
-  const [isReportModalVisible, setIsReportModalVisible] = useState(false);
+  const modals = useLightboxModals(close);
   const isOpen = status !== "closed";
   const { previousItem, nextItem } = getNeighbors(feed.items, index);
-  const isBlockingModalVisible =
-    isDeleteConfirmationVisible || isReportModalVisible;
-
-  const handleClose = useCallback(() => {
-    setIsDeleteConfirmationVisible(false);
-    setIsReportModalVisible(false);
-    close();
-  }, [close]);
+  const readyScreenshot = status === "ready" ? screenshot : null;
 
   useLightboxFocus(isOpen, closeButtonRef, `${screenshot?.id}:${status}`);
   useLightboxKeyboard({
-    isEnabled: isOpen && !isBlockingModalVisible,
+    isEnabled: isOpen && !modals.isBlockingModalVisible,
     dialogRef,
-    onClose: handleClose,
-    onPrevious: previousItem ? () => open(previousItem) : null,
-    onNext: nextItem ? () => open(nextItem) : null,
+    onClose: modals.handleClose,
+    onPrevious: toOpener(previousItem, open),
+    onNext: toOpener(nextItem, open),
   });
 
   if (!isOpen) return null;
 
-  const readyScreenshot = status === "ready" ? screenshot : null;
+  const dialogLabel = readyScreenshot
+    ? getScreenshotGameTitle(readyScreenshot, t)
+    : t("screenshot");
 
   return createPortal(
     <>
@@ -262,7 +364,7 @@ export function ScreenshotLightbox({
         <button
           type="button"
           className="screenshot-lightbox__backdrop"
-          onClick={handleClose}
+          onClick={modals.handleClose}
           aria-label={t("close")}
           tabIndex={-1}
         />
@@ -274,55 +376,25 @@ export function ScreenshotLightbox({
             "screenshot-lightbox--state": !readyScreenshot,
           })}
           aria-modal="true"
-          aria-label={
-            readyScreenshot
-              ? getScreenshotGameTitle(readyScreenshot, t)
-              : t("screenshot")
-          }
+          aria-label={dialogLabel}
         >
           {readyScreenshot ? (
-            <>
-              <div className="screenshot-lightbox__media">
-                <ScreenshotMedia
-                  key={readyScreenshot.id}
-                  screenshot={readyScreenshot}
-                  onImageError={(item) => void refreshScreenshot(item)}
-                />
-                <ScreenshotLightboxNav
-                  previousItem={previousItem}
-                  nextItem={nextItem}
-                  onOpen={open}
-                />
-              </div>
-
-              <ScreenshotLightboxPanel
-                screenshot={readyScreenshot}
-                actions={actions}
-                closeButtonRef={closeButtonRef}
-                onPatch={onPatch}
-                onFailure={lightbox.markFailure}
-                onClose={handleClose}
-                onRequestDelete={() => setIsDeleteConfirmationVisible(true)}
-                onRequestReport={() => setIsReportModalVisible(true)}
-              />
-            </>
+            <ScreenshotLightboxContent
+              screenshot={readyScreenshot}
+              collection={collection}
+              previousItem={previousItem}
+              nextItem={nextItem}
+              closeButtonRef={closeButtonRef}
+              onClose={modals.handleClose}
+              onRequestDelete={modals.showDeleteConfirmation}
+              onRequestReport={modals.showReportModal}
+            />
           ) : (
-            <>
-              <button
-                ref={closeButtonRef}
-                type="button"
-                className="screenshot-lightbox__close screenshot-lightbox__close--floating"
-                onClick={handleClose}
-                aria-label={t("close")}
-                title={t("close")}
-              >
-                <XIcon size={20} />
-              </button>
-              <ScreenshotLightboxState
-                status={status === "ready" ? "loading" : status}
-                onClose={handleClose}
-              />
-            </>
+            <ScreenshotLightboxPlaceholder
+              status={status === "ready" ? "loading" : status}
+              closeButtonRef={closeButtonRef}
+              onClose={modals.handleClose}
+            />
           )}
         </dialog>
       </div>
@@ -331,13 +403,11 @@ export function ScreenshotLightbox({
         <ScreenshotLightboxModals
           screenshot={screenshot}
           actions={actions}
-          isDeleteConfirmationVisible={isDeleteConfirmationVisible}
-          isReportModalVisible={isReportModalVisible}
-          onCloseDeleteConfirmation={() =>
-            setIsDeleteConfirmationVisible(false)
-          }
-          onCloseReportModal={() => setIsReportModalVisible(false)}
-          onDeleted={handleClose}
+          isDeleteConfirmationVisible={modals.isDeleteConfirmationVisible}
+          isReportModalVisible={modals.isReportModalVisible}
+          onCloseDeleteConfirmation={modals.hideDeleteConfirmation}
+          onCloseReportModal={modals.hideReportModal}
+          onDeleted={modals.handleClose}
         />
       ) : null}
     </>,

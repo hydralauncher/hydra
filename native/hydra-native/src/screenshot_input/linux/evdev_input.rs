@@ -1,10 +1,10 @@
 use super::super::binding::{
-    is_linux_gamepad, is_linux_keyboard, linux_trigger_ranges, AxisRange, Backend, ComboMatcher,
-    HotkeyMatcher, LinuxGamepadState, ModifierTracker, TriggerSource,
+    evdev_codes, is_linux_gamepad, is_linux_keyboard, linux_trigger_ranges, AxisRange, Backend,
+    GamepadTracker, HotkeyMatcher, LinuxGamepadState, ModifierTracker, Modifiers, TriggerSource,
 };
 use super::super::Context;
 use super::{poll_fds, pollfd, WakePipe};
-use evdev::{AbsoluteAxisCode, Device, EventType, KeyCode};
+use evdev::{AbsoluteAxisCode, Device, KeyCode};
 use std::collections::HashSet;
 use std::ffi::CString;
 use std::fs;
@@ -121,8 +121,33 @@ pub struct Roles {
 struct Tracked {
     path: PathBuf,
     device: Device,
-    keyboard: bool,
-    gamepad: Option<(LinuxGamepadState, ComboMatcher)>,
+    keyboard: Option<ModifierTracker>,
+    gamepad: Option<GamepadTracker>,
+}
+
+fn held_keys(device: &Device) -> HashSet<u16> {
+    device
+        .get_key_state()
+        .map(|keys| keys.iter().map(|key| key.code()).collect())
+        .unwrap_or_default()
+}
+
+fn initial_gamepad_state(device: &Device, held: &HashSet<u16>) -> LinuxGamepadState {
+    let (left_trigger, right_trigger) = trigger_ranges(device);
+    let mut state = LinuxGamepadState {
+        left_trigger,
+        right_trigger,
+        ..LinuxGamepadState::default()
+    };
+    for code in held {
+        state.apply_key(*code, 1);
+    }
+    if let Ok(axes) = device.get_absinfo() {
+        for (axis, info) in axes {
+            state.apply_axis(axis.0, info.value());
+        }
+    }
+    state
 }
 
 struct Watcher {
@@ -130,7 +155,6 @@ struct Watcher {
     context: Arc<Context>,
     devices: Vec<Tracked>,
     ignored: HashSet<PathBuf>,
-    modifiers: ModifierTracker,
     hotkey: HotkeyMatcher,
     inotify: Option<OwnedFd>,
 }
@@ -142,10 +166,18 @@ impl Watcher {
             context,
             devices: Vec::new(),
             ignored: HashSet::new(),
-            modifiers: ModifierTracker::default(),
             hotkey: HotkeyMatcher::default(),
             inotify: watch_input_dir(),
         }
+    }
+
+    fn modifiers(&self) -> Modifiers {
+        self.devices
+            .iter()
+            .filter_map(|entry| entry.keyboard.as_ref())
+            .fold(Modifiers::default(), |combined, tracker| {
+                combined.union(tracker.current())
+            })
     }
 
     fn scan(&mut self) {
@@ -176,15 +208,13 @@ impl Watcher {
             return None;
         }
         device.set_nonblocking(true).ok()?;
+        let held = held_keys(&device);
+        let keyboard =
+            keyboard.then(|| ModifierTracker::from_held_keys(|code| held.contains(&code)));
         let gamepad = gamepad.then(|| {
-            let (left_trigger, right_trigger) = trigger_ranges(&device);
-            (
-                LinuxGamepadState {
-                    left_trigger,
-                    right_trigger,
-                    ..LinuxGamepadState::default()
-                },
-                ComboMatcher::default(),
+            GamepadTracker::new(
+                initial_gamepad_state(&device, &held),
+                self.context.binding().gamepad_mask,
             )
         });
         Some(Tracked {
@@ -211,10 +241,9 @@ impl Watcher {
     }
 
     fn read_device(&mut self, index: usize) -> bool {
-        let entry = &mut self.devices[index];
-        let events: Vec<(EventType, u16, i32)> = match entry.device.fetch_events() {
+        let events: Vec<(u16, u16, i32)> = match self.devices[index].device.fetch_events() {
             Ok(events) => events
-                .map(|event| (event.event_type(), event.code(), event.value()))
+                .map(|event| (event.event_type().0, event.code(), event.value()))
                 .collect(),
             Err(error) if error.kind() == io::ErrorKind::WouldBlock => return true,
             Err(_) => return false,
@@ -222,31 +251,22 @@ impl Watcher {
         let binding = self.context.binding();
 
         for (event_type, code, value) in events {
-            if event_type == EventType::KEY && entry.keyboard {
-                if self.modifiers.update(code, value != 0) {
-                    continue;
-                }
-                if let Some(hotkey) = binding.hotkey {
-                    if self
-                        .hotkey
-                        .on_key(code, value != 0, &hotkey, self.modifiers.current())
-                    {
-                        self.context.emit(TriggerSource::Keyboard, Backend::Evdev);
+            if event_type == evdev_codes::EV_KEY {
+                if let Some(tracker) = self.devices[index].keyboard.as_mut() {
+                    if !tracker.update(code, value != 0) {
+                        let modifiers = self.modifiers();
+                        if let Some(hotkey) = binding.hotkey {
+                            if self.hotkey.on_key(code, value != 0, &hotkey, modifiers) {
+                                self.context.emit(TriggerSource::Keyboard, Backend::Evdev);
+                            }
+                        }
                     }
                 }
             }
-            if let Some((state, _)) = entry.gamepad.as_mut() {
-                if event_type == EventType::KEY {
-                    state.apply_key(code, value);
-                } else if event_type == EventType::ABSOLUTE {
-                    state.apply_axis(code, value);
+            if let Some(gamepad) = self.devices[index].gamepad.as_mut() {
+                if gamepad.handle(event_type, code, value, binding.gamepad_mask) {
+                    self.context.emit(TriggerSource::Gamepad, Backend::Evdev);
                 }
-            }
-        }
-
-        if let Some((state, combo)) = entry.gamepad.as_mut() {
-            if combo.update(state.buttons, binding.gamepad_mask) {
-                self.context.emit(TriggerSource::Gamepad, Backend::Evdev);
             }
         }
         true
@@ -254,9 +274,19 @@ impl Watcher {
 
     fn remove(&mut self, index: usize) {
         let removed = self.devices.swap_remove(index);
-        if removed.keyboard {
-            self.modifiers = ModifierTracker::default();
-            self.hotkey = HotkeyMatcher::default();
+        if removed.keyboard.is_some() {
+            self.hotkey.reset();
+        }
+    }
+
+    fn report_stopped(&self) {
+        if self.roles.keyboard {
+            self.context
+                .report_stopped(TriggerSource::Keyboard, Backend::Evdev);
+        }
+        if self.roles.gamepad {
+            self.context
+                .report_stopped(TriggerSource::Gamepad, Backend::Evdev);
         }
     }
 
@@ -280,7 +310,10 @@ impl Watcher {
 
             let ready = match poll_fds(&mut fds, RESCAN_TIMEOUT_MS) {
                 Ok(ready) => ready,
-                Err(_) => return,
+                Err(_) => {
+                    self.report_stopped();
+                    return;
+                }
             };
             if fds[0].revents != 0 || self.context.is_stopped() {
                 return;
