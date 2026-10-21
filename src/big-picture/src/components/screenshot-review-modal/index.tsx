@@ -11,7 +11,11 @@ import {
 } from "@phosphor-icons/react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
-import type { LocalScreenshot, ProfileVisibility } from "@types";
+import type {
+  LocalScreenshot,
+  ProfileVisibility,
+  ScreenshotReviewRequest,
+} from "@types";
 import {
   SCREENSHOT_CUSTOM_GAME_TITLE_MAX_LENGTH,
   isScreenshotUploadRetryable,
@@ -254,9 +258,26 @@ export function ScreenshotReviewModal() {
   useEffect(() => {
     if (!IS_DESKTOP) return;
 
-    return globalThis.window.electron.onScreenshotReviewRequested((request) => {
+    let isSubscribed = true;
+    const enqueue = (request: ScreenshotReviewRequest) => {
       setQueueState((current) => enqueueReviewRequest(current, request));
-    });
+    };
+    const unsubscribe =
+      globalThis.window.electron.onScreenshotReviewRequested(enqueue);
+
+    globalThis.window.electron
+      .getPendingScreenshotReviewRequest()
+      .then((request) => {
+        if (isSubscribed && request) enqueue(request);
+      })
+      .catch((error: unknown) => {
+        logger.error("Failed to read the pending screenshot review", error);
+      });
+
+    return () => {
+      isSubscribed = false;
+      unsubscribe();
+    };
   }, []);
 
   const current = getCurrentReviewItem(queueState);
