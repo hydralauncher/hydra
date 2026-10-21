@@ -191,6 +191,13 @@
     }
   }
 
+  &__screenshots-loading {
+    display: block;
+    padding: calc(globals.$spacing-unit * 2);
+    color: globals.$body-color;
+    text-align: center;
+  }
+
   &__screenshots-hotkey {
     display: inline-block;
     margin: 0 4px;

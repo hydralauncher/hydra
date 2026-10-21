@@ -34,6 +34,8 @@
 
   &__sort {
     display: inline-flex;
+    min-width: 0;
+    margin: 0;
     padding: 2px;
     border: 1px solid globals.$border-color;
     border-radius: 8px;

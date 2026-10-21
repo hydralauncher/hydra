@@ -328,9 +328,9 @@ export function ScreenshotsTab({
       ) : null}
 
       {isInitialLoading ? (
-        <p className="profile-content__souvenirs-loading" role="status">
+        <output className="profile-content__screenshots-loading">
           {t("loading_screenshots")}
-        </p>
+        </output>
       ) : null}
 
       {!isInitialLoading && feed.items.length === 0 ? (
@@ -349,9 +349,9 @@ export function ScreenshotsTab({
           next={() => void feed.loadMore()}
           hasMore={feed.hasMore}
           loader={
-            <p className="profile-content__souvenirs-loading" role="status">
+            <output className="profile-content__screenshots-loading">
               {t("loading_screenshots")}
-            </p>
+            </output>
           }
           scrollThreshold={0.9}
           style={{ overflow: "visible" }}
