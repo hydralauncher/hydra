@@ -48,6 +48,7 @@ const UPLOAD_FAILURES: ScreenshotsDevUploadFailure[] = [
   "tier_limit",
   "disabled_for_game",
   "limit_reached",
+  "blocked_limit_reached",
   "game_not_found",
   "network",
   "already_uploaded",
