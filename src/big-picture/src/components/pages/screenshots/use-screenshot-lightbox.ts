@@ -30,6 +30,8 @@ interface UseScreenshotLightboxOptions {
   ) => () => void;
   hasMore?: boolean;
   loadMore?: () => Promise<void>;
+  hasLoadMoreError?: boolean;
+  retryLoadMore?: () => void;
 }
 
 interface LightboxState {
@@ -52,6 +54,8 @@ export function useScreenshotLightbox({
   subscribeRemoteWrites,
   hasMore = false,
   loadMore,
+  hasLoadMoreError = false,
+  retryLoadMore,
 }: UseScreenshotLightboxOptions) {
   const [state, setState] = useState<LightboxState | null>(null);
   const [pendingNextAfterId, setPendingNextAfterId] = useState<string | null>(
@@ -225,10 +229,14 @@ export function useScreenshotLightbox({
     if (!loadMore || !screenshot) return;
 
     setPendingNextAfterId(screenshot.id);
+    if (hasLoadMoreError) {
+      retryLoadMore?.();
+      return;
+    }
     loadMore().catch((error: unknown) => {
       logger.error("Failed to load more screenshots", error);
     });
-  }, [loadMore, screenshot]);
+  }, [hasLoadMoreError, loadMore, retryLoadMore, screenshot]);
 
   const lightboxProps = useMemo<ScreenshotLightboxProps>(
     () => ({
@@ -236,6 +244,7 @@ export function useScreenshotLightbox({
       screenshot: state?.status === "ready" ? screenshot : null,
       items,
       canLoadMore: canLoadMoreAtEnd,
+      hasLoadMoreError: canLoadMoreAtEnd && hasLoadMoreError,
       onSelect: (target: ProfileScreenshot) => open(target),
       onLoadMore: navigatePastEnd,
       onClose: close,
@@ -247,6 +256,7 @@ export function useScreenshotLightbox({
     [
       canLoadMoreAtEnd,
       close,
+      hasLoadMoreError,
       navigatePastEnd,
       refreshImage,
       items,

@@ -196,6 +196,8 @@ export function GameScreenshotsModal({
     subscribeRemoteWrites: feed.subscribeRemoteWrites,
     hasMore: feed.hasMore,
     loadMore: feed.loadMore,
+    hasLoadMoreError: feed.error === "page",
+    retryLoadMore: feed.retry,
   });
   const canLoadMore = feed.hasMore && !feed.isLoadingMore && !feed.error;
   const { loadMore } = feed;

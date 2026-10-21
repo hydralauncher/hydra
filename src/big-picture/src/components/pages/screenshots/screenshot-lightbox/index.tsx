@@ -1,5 +1,6 @@
 import "./styles.scss";
 
+import { ArrowClockwiseIcon } from "@phosphor-icons/react";
 import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
@@ -41,6 +42,7 @@ export interface ScreenshotLightboxProps {
   screenshot: ProfileScreenshot | null;
   items?: ProfileScreenshot[];
   canLoadMore?: boolean;
+  hasLoadMoreError?: boolean;
   onSelect?: (screenshot: ProfileScreenshot) => void;
   onLoadMore?: () => void;
   onClose: () => void;
@@ -127,6 +129,7 @@ interface ScreenshotViewerProps {
   screenshot: ProfileScreenshot;
   items: ProfileScreenshot[];
   canLoadMore: boolean;
+  hasLoadMoreError: boolean;
   viewerId: string | null;
   isOwner: boolean;
   showComments: boolean;
@@ -142,10 +145,30 @@ interface ScreenshotViewerProps {
   onNavigateAway: (path: string) => void;
 }
 
+function LoadMoreErrorNotice({ onRetry }: Readonly<{ onRetry?: () => void }>) {
+  const { t } = useTranslation("big_picture");
+
+  return (
+    <div className="screenshot-viewer__load-error" role="status">
+      <span>{t("screenshots_load_more_failed")}</span>
+      <button
+        type="button"
+        className="screenshot-viewer__reveal"
+        tabIndex={-1}
+        onClick={onRetry}
+      >
+        <ArrowClockwiseIcon size={18} />
+        {t("screenshots_retry")}
+      </button>
+    </div>
+  );
+}
+
 function ScreenshotViewer({
   screenshot,
   items,
   canLoadMore,
+  hasLoadMoreError,
   viewerId,
   isOwner,
   showComments,
@@ -203,21 +226,27 @@ function ScreenshotViewer({
       onClose={onClose}
       onStagePrimary={() => {
         if (isBlurred(screenshot)) revealSpoiler(screenshot.id);
+        else if (hasLoadMoreError) onLoadMore?.();
       }}
       renderImage={({ item, className, onLoad, onError }) => {
         const target = screenshotsById.get(item.id);
         if (!target) return null;
 
         return (
-          <ScreenshotStageImage
-            screenshot={target}
-            className={className}
-            isBlurred={isBlurred(target)}
-            onLoad={onLoad}
-            onError={onError}
-            onReveal={() => revealSpoiler(target.id)}
-            onRefreshImage={onRefreshImage}
-          />
+          <>
+            <ScreenshotStageImage
+              screenshot={target}
+              className={className}
+              isBlurred={isBlurred(target)}
+              onLoad={onLoad}
+              onError={onError}
+              onReveal={() => revealSpoiler(target.id)}
+              onRefreshImage={onRefreshImage}
+            />
+            {hasLoadMoreError && target.id === screenshot.id ? (
+              <LoadMoreErrorNotice onRetry={onLoadMore} />
+            ) : null}
+          </>
         );
       }}
       sidebar={
@@ -244,6 +273,7 @@ export function ScreenshotLightbox({
   screenshot,
   items = [],
   canLoadMore = false,
+  hasLoadMoreError = false,
   onSelect,
   onLoadMore,
   onClose,
@@ -296,6 +326,7 @@ export function ScreenshotLightbox({
         screenshot={screenshot}
         items={items}
         canLoadMore={canLoadMore}
+        hasLoadMoreError={hasLoadMoreError}
         viewerId={viewerId}
         isOwner={isOwner}
         showComments={isFeatureEnabled(Feature.ScreenshotComments)}

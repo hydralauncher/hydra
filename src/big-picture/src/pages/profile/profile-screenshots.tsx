@@ -277,6 +277,8 @@ export function useProfileScreenshotsSection({
     imageRefresher: state.imageRefresher,
     hasMore: state.hasMore,
     loadMore: state.loadMore,
+    hasLoadMoreError: state.error === "page",
+    retryLoadMore: state.retry,
   });
   const requestedScreenshot = searchParams.get("screenshot");
   const canOpenRequested = Boolean(
