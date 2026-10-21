@@ -108,7 +108,7 @@ export function useScreenshotFeed({
         setItems(merged.items);
         setTotal(
           typeof response?.total === "number"
-            ? Math.max(0, response.total - merged.removedCount)
+            ? Math.max(0, response.total + merged.netCountDelta)
             : null
         );
         setHiddenReason(response?.hiddenReason ?? null);
@@ -147,8 +147,9 @@ export function useScreenshotFeed({
 
       const merged = acceptPage(response?.items ?? [], read);
       setItems((current) => mergeScreenshotPages(current, merged.items));
-      if (typeof response?.total === "number")
-        setTotal(Math.max(0, response.total - merged.removedCount));
+      const incomingTotal = response?.total;
+      if (typeof incomingTotal === "number" && !merged.hasLaterWrites)
+        setTotal(incomingTotal);
       setNextCursor(response?.nextCursor ?? null);
     } catch (loadError) {
       logger.error("Failed to load more screenshots", loadError);

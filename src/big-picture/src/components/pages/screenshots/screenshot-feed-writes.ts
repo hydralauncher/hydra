@@ -12,15 +12,16 @@ export function applyScreenshotFeedWrites(
   sinceVersion: number
 ) {
   let result = items;
-  let removedCount = 0;
+  let netCountDelta = 0;
+  let hasLaterWrites = false;
 
   for (const write of writes) {
     if (write.version <= sinceVersion) continue;
+    hasLaterWrites = true;
 
     if (write.patch === null) {
-      const next = result.filter((item) => item.id !== write.screenshotId);
-      removedCount += result.length - next.length;
-      result = next;
+      result = result.filter((item) => item.id !== write.screenshotId);
+      netCountDelta -= 1;
       continue;
     }
 
@@ -30,7 +31,7 @@ export function applyScreenshotFeedWrites(
     );
   }
 
-  return { items: result, removedCount };
+  return { items: result, netCountDelta, hasLaterWrites };
 }
 
 export function pickNewerScreenshot(

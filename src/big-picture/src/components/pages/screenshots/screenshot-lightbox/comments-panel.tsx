@@ -157,7 +157,7 @@ function useScreenshotComments(
         true
       );
       setComments(merged.comments);
-      setTotal(Math.max(0, (response?.total ?? 0) + merged.totalDelta));
+      setTotal(Math.max(0, (response?.total ?? 0) + merged.netCountDelta));
       setNextCursor(response?.nextCursor ?? null);
       setStatus("ready");
     } catch (error) {
@@ -690,7 +690,11 @@ export function ScreenshotCommentsPanel({
         ),
         { needsAuth: true }
       );
-      recordWrite({ kind: "remove", commentId: deletingComment.id });
+      recordWrite({
+        kind: "remove",
+        commentId: deletingComment.id,
+        wasCounted: !deletingComment.isHidden,
+      });
       setComments((current) =>
         current.filter((comment) => comment.id !== deletingComment.id)
       );
