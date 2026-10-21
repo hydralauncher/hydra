@@ -26,6 +26,7 @@ export function applyScreenshotFeedWrites(
   let result = items;
   let netCountDelta = 0;
   let hasLaterWrites = false;
+  const recountIds = new Set<string>();
 
   for (const write of writes) {
     if (write.version <= sinceVersion) continue;
@@ -38,12 +39,18 @@ export function applyScreenshotFeedWrites(
     }
 
     const { patch } = write;
+    if (typeof patch === "function") {
+      if (result.some((item) => item.id === write.screenshotId))
+        recountIds.add(write.screenshotId);
+      continue;
+    }
+
     result = result.map((item) =>
       item.id === write.screenshotId ? applyScreenshotPatch(item, patch) : item
     );
   }
 
-  return { items: result, netCountDelta, hasLaterWrites };
+  return { items: result, netCountDelta, hasLaterWrites, recountIds };
 }
 
 export function pickNewerScreenshot(

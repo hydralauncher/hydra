@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { ProfileScreenshot, ScreenshotsHiddenReason } from "@types";
-import { mergeScreenshotPages } from "@shared";
+import { buildUserScreenshotPath, mergeScreenshotPages } from "@shared";
 import { logger } from "@renderer/logger";
 
 import {
@@ -42,12 +42,15 @@ export function useScreenshotFeed({
   const generationRef = useRef(0);
   const isLoadingMoreRef = useRef(false);
   const buildPathRef = useRef(buildPath);
+  const needsAuthRef = useRef(needsAuth);
+  needsAuthRef.current = needsAuth;
 
   const itemsRef = useRef(items);
   const writeVersionRef = useRef(0);
   const writesRef = useRef<ScreenshotFeedWrite[]>([]);
   const pendingReadsRef = useRef(0);
   const fetchedAtRef = useRef(new Map<string, number>());
+  const lastDeltaVersionRef = useRef(new Map<string, number>());
 
   const beginRead = () => {
     pendingReadsRef.current += 1;
@@ -62,6 +65,33 @@ export function useScreenshotFeed({
     if (pendingReadsRef.current === 0) writesRef.current = [];
   };
 
+  const recountItem = async (item: ProfileScreenshot) => {
+    const generation = generationRef.current;
+    const startedVersion = writeVersionRef.current;
+
+    try {
+      const fresh =
+        await globalThis.window.electron.hydraApi.get<ProfileScreenshot | null>(
+          buildUserScreenshotPath(item.owner.id, item.id),
+          { needsAuth: needsAuthRef.current }
+        );
+      if (!fresh || generationRef.current !== generation) return;
+
+      const lastDeltaVersion = lastDeltaVersionRef.current.get(item.id) ?? 0;
+      if (lastDeltaVersion > startedVersion) {
+        void recountItemRef.current(item);
+        return;
+      }
+
+      updateItemRef.current(item.id, { commentCount: fresh.commentCount });
+    } catch (error) {
+      logger.warn("Failed to refresh the screenshot comment count", error);
+    }
+  };
+
+  const recountItemRef = useRef(recountItem);
+  recountItemRef.current = recountItem;
+
   const acceptPage = (
     pageItems: ProfileScreenshot[],
     read: { sinceVersion: number; startedAt: number }
@@ -73,6 +103,9 @@ export function useScreenshotFeed({
     );
     for (const item of merged.items) {
       fetchedAtRef.current.set(item.id, read.startedAt);
+    }
+    for (const item of merged.items) {
+      if (merged.recountIds.has(item.id)) void recountItemRef.current(item);
     }
     return merged;
   };
@@ -203,6 +236,9 @@ export function useScreenshotFeed({
   const updateItem = useCallback(
     (screenshotId: string, update: ScreenshotPatch) => {
       recordWrite(screenshotId, update);
+      if (typeof update === "function") {
+        lastDeltaVersionRef.current.set(screenshotId, writeVersionRef.current);
+      }
       setItems((current) =>
         current.map((item) =>
           item.id === screenshotId ? applyScreenshotPatch(item, update) : item
@@ -211,6 +247,9 @@ export function useScreenshotFeed({
     },
     [recordWrite]
   );
+
+  const updateItemRef = useRef(updateItem);
+  updateItemRef.current = updateItem;
 
   const removeItem = useCallback(
     (screenshotId: string) => {
