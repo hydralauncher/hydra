@@ -80,15 +80,20 @@ export function ScreenshotReviewSplitButton({
               {menuActions.map((action) => (
                 <DropdownMenuPrimitive.Item
                   key={action.label}
-                  className={cn(
-                    "button",
-                    `button--${theme}`,
-                    "screenshot-review-split-button__menu-item"
-                  )}
+                  asChild
                   onSelect={action.onSelect}
                 >
-                  {action.icon}
-                  {action.label}
+                  <button
+                    type="button"
+                    className={cn(
+                      "button",
+                      `button--${theme}`,
+                      "screenshot-review-split-button__menu-item"
+                    )}
+                  >
+                    {action.icon}
+                    {action.label}
+                  </button>
                 </DropdownMenuPrimitive.Item>
               ))}
             </DropdownMenuPrimitive.Content>
