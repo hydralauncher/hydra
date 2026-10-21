@@ -57,6 +57,7 @@ export interface ScreenshotInputNativeConfig {
 }
 
 export interface ScreenshotInputNativeEvent {
+  kind: string;
   source: string;
   backend: string;
 }

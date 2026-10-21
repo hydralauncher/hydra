@@ -30,6 +30,8 @@ type ScreenshotTriggerListener = (source: ScreenshotTriggerSource) => void;
 type ScreenshotInputStatusListener = (status: ScreenshotInputStatus) => void;
 
 export const SCREENSHOT_TRIGGER_COOLDOWN_MS = 3_000;
+export const SCREENSHOT_INPUT_RESTART_DELAY_MS = 5_000;
+export const SCREENSHOT_INPUT_MAX_RESTARTS = 3;
 
 export interface ScreenshotInputSettings {
   enabled: boolean;
@@ -144,6 +146,8 @@ export class ScreenshotInputService {
   private static listening = false;
   private static gamesRunning = false;
   private static lastTriggerAt: number | null = null;
+  private static restartAttempts = 0;
+  private static restartTimer: ReturnType<typeof setTimeout> | null = null;
   private static unsubscribeGamesRunning: (() => void) | null = null;
 
   public static onTrigger(listener: ScreenshotTriggerListener) {
@@ -219,6 +223,7 @@ export class ScreenshotInputService {
 
   public static shutdown() {
     this.shuttingDown = true;
+    this.cancelRestart();
     this.unsubscribeGamesRunning?.();
     this.unsubscribeGamesRunning = null;
     this.stopListening();
@@ -243,6 +248,8 @@ export class ScreenshotInputService {
 
   private static reconcile(previous: ScreenshotInputSettings) {
     if (!this.shouldListen()) {
+      this.cancelRestart();
+      this.restartAttempts = 0;
       this.stopListening();
       return;
     }
@@ -311,8 +318,40 @@ export class ScreenshotInputService {
   }
 
   private static handleNativeEvent(event: ScreenshotInputNativeEvent) {
-    if (!this.listening || !isNativeTriggerSource(event.source)) return;
-    this.trigger(event.source);
+    if (!this.listening) return;
+
+    if (event.kind === "stopped") {
+      this.handleBackendStopped(event);
+      return;
+    }
+
+    if (isNativeTriggerSource(event.source)) this.trigger(event.source);
+  }
+
+  private static handleBackendStopped(event: ScreenshotInputNativeEvent) {
+    logger.warn("Screenshot input backend stopped unexpectedly", {
+      source: event.source,
+      backend: event.backend,
+      restartAttempts: this.restartAttempts,
+    });
+    this.stopListening();
+    this.refreshStatus();
+
+    if (this.restartAttempts >= SCREENSHOT_INPUT_MAX_RESTARTS) return;
+
+    this.restartAttempts += 1;
+    this.cancelRestart();
+    this.restartTimer = setTimeout(() => {
+      this.restartTimer = null;
+      this.reconcile(this.settings);
+    }, SCREENSHOT_INPUT_RESTART_DELAY_MS);
+    this.restartTimer.unref?.();
+  }
+
+  private static cancelRestart() {
+    if (!this.restartTimer) return;
+    clearTimeout(this.restartTimer);
+    this.restartTimer = null;
   }
 
   private static setStatus(status: ScreenshotInputStatus) {
