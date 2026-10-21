@@ -274,6 +274,17 @@ $leaderboard-ease: cubic-bezier(0.34, 1.4, 0.64, 1);
     filter: brightness(1.12);
   }
 
+  &#{&}--banner,
+  &--banner .rank-medal__number,
+  &--banner &__name,
+  &--banner &__value {
+    color: globals.$muted-color;
+  }
+
+  &--banner &__progress {
+    background-color: color-mix(in srgb, currentColor 28%, transparent);
+  }
+
   &--banner &__you {
     background-color: rgba(13, 13, 13, 0.55);
     backdrop-filter: blur(10px);
@@ -297,7 +308,7 @@ $leaderboard-ease: cubic-bezier(0.34, 1.4, 0.64, 1);
       width: 3px;
       height: 3px;
       border-radius: 999px;
-      background-color: rgba(255, 255, 255, 0.3);
+      background-color: color-mix(in srgb, currentColor 30%, transparent);
     }
   }
 
@@ -347,7 +358,7 @@ $leaderboard-ease: cubic-bezier(0.34, 1.4, 0.64, 1);
   &__progress {
     height: 3px;
     border-radius: 2px;
-    background-color: rgba(255, 255, 255, 0.1);
+    background-color: color-mix(in srgb, currentColor 16%, transparent);
     overflow: hidden;
   }
 
@@ -355,12 +366,12 @@ $leaderboard-ease: cubic-bezier(0.34, 1.4, 0.64, 1);
     display: block;
     height: 100%;
     border-radius: 2px;
-    background-color: rgba(255, 255, 255, 0.4);
+    background-color: color-mix(in srgb, currentColor 45%, transparent);
     transition: width 0.46s $leaderboard-ease;
   }
 
   &--viewer &__progress-fill {
-    background-color: globals.$muted-color;
+    background-color: color-mix(in srgb, currentColor 85%, transparent);
   }
 
   &__value {
