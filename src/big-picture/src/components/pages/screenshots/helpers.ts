@@ -75,6 +75,10 @@ export function getScreenshotErrorKey(code: string | null) {
       return "screenshots_error_report_rate_limited";
     case "screenshots/cannot-report-own":
       return "screenshots_error_cannot_report_own";
+    case "screenshots/comment-rate-limit-unavailable":
+      return "screenshots:comments_temporarily_unavailable";
+    case "screenshots/text-change-rate-limit-unavailable":
+      return "screenshots:text_changes_temporarily_unavailable";
     default:
       return "screenshots_error_generic";
   }
