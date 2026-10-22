@@ -8,6 +8,7 @@ export const getScreenshotCommentsPanelFocusIds = (screenshotId: string) => ({
   cancelEdit: `screenshot-comments-cancel-edit:${screenshotId}`,
   signIn: `screenshot-comments-sign-in:${screenshotId}`,
   loadMore: `screenshot-comments-load-more:${screenshotId}`,
+  retry: `screenshot-comments-retry:${screenshotId}`,
 });
 
 export type ScreenshotCommentsPanelFocusIds = ReturnType<

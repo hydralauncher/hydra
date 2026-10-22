@@ -1,4 +1,5 @@
 import {
+  ArrowClockwiseIcon,
   ArrowFatDownIcon,
   ArrowFatUpIcon,
   ChatCircleIcon,
@@ -209,6 +210,7 @@ function useScreenshotComments(
     hasMore: Boolean(nextCursor),
     isLoadingMore,
     loadMore,
+    retry: fetchFirstPage,
     recordWrite,
     setComments,
     setTotal,
@@ -379,11 +381,17 @@ function CommentItem({
 interface CommentsListStatusProps {
   status: CommentsStatus;
   isEmpty: boolean;
+  retryFocusId: string;
+  leftTarget?: FocusOverrideTarget;
+  onRetry: () => void;
 }
 
 function CommentsListStatus({
   status,
   isEmpty,
+  retryFocusId,
+  leftTarget,
+  onRetry,
 }: Readonly<CommentsListStatusProps>) {
   const { t } = useTranslation("big_picture");
 
@@ -397,9 +405,21 @@ function CommentsListStatus({
 
   if (status === "error") {
     return (
-      <p className="screenshot-comments__status">
-        {t("screenshots_comments_load_failed")}
-      </p>
+      <div className="screenshot-comments__status screenshot-comments__status--error">
+        <p>{t("screenshots_comments_load_failed")}</p>
+        <Button
+          variant="secondary"
+          size="small"
+          focusId={retryFocusId}
+          icon={<ArrowClockwiseIcon size={18} />}
+          focusNavigationOverrides={
+            leftTarget ? { left: leftTarget } : undefined
+          }
+          onClick={onRetry}
+        >
+          {t("screenshots_retry")}
+        </Button>
+      </div>
     );
   }
 
@@ -437,6 +457,7 @@ export function ScreenshotCommentsPanel({
     hasMore,
     isLoadingMore,
     loadMore,
+    retry: retryComments,
     recordWrite,
     setComments,
     setTotal,
@@ -733,7 +754,13 @@ export function ScreenshotCommentsPanel({
         </header>
 
         <div className="screenshot-comments__scroll">
-          <CommentsListStatus status={status} isEmpty={comments.length === 0} />
+          <CommentsListStatus
+            status={status}
+            isEmpty={comments.length === 0}
+            retryFocusId={focusIds.retry}
+            leftTarget={leftTarget}
+            onRetry={() => void retryComments()}
+          />
 
           {comments.length > 0 ? (
             <ul className="screenshot-comments__list">

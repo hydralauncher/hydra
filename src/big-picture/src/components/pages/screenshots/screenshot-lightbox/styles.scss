@@ -513,6 +513,17 @@ $screenshot-lightbox-hover-duration: 0.2s;
     text-align: center;
   }
 
+  &__status--error {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: calc(var(--spacing-unit) * 2);
+
+    p {
+      margin: 0;
+    }
+  }
+
   &__empty {
     display: flex;
     flex: 1;
