@@ -4,6 +4,7 @@ import {
   buildUserScreenshotsPath,
   isLocalScreenshotForGame,
   mergeMyScreenshots,
+  resolveMyGameScreenshotsStatus,
   selectPendingLocalScreenshots,
   subscribeMyGameScreenshotsChanged,
   type ScreenshotWriteBus,
@@ -31,19 +32,28 @@ function usePendingLocalScreenshots(
 ) {
   const [screenshots, setScreenshots] = useState<LocalScreenshot[]>([]);
   const [hasLoaded, setHasLoaded] = useState(false);
+  const [hasFailed, setHasFailed] = useState(false);
 
   const load = useCallback(() => {
     return myGameScreenshotsLocal
       .getLocalScreenshotsForGame(shop, objectId)
       .then((items) => {
         setScreenshots(items);
+        setHasFailed(false);
         setHasLoaded(true);
       })
       .catch((error: unknown) => {
         logger.error("Failed to load local screenshots for the game", error);
+        setHasFailed(true);
         setHasLoaded(true);
       });
   }, [objectId, shop]);
+
+  const retry = useCallback(() => {
+    setHasLoaded(false);
+    setHasFailed(false);
+    return load();
+  }, [load]);
 
   useEffect(() => {
     if (!isEnabled) return;
@@ -60,6 +70,8 @@ function usePendingLocalScreenshots(
         setScreenshots(
           items.filter((item) => isLocalScreenshotForGame(item, shop, objectId))
         );
+        setHasFailed(false);
+        setHasLoaded(true);
       }
     );
     const unsubscribeProgress =
@@ -86,7 +98,7 @@ function usePendingLocalScreenshots(
     [objectId, screenshots, shop]
   );
 
-  return { pending, hasLoaded, reload: load };
+  return { pending, hasLoaded, hasFailed, reload: load, retry };
 }
 
 export function useMyGameScreenshots({
@@ -151,16 +163,35 @@ export function useMyGameScreenshots({
     [feed.items, local.pending, sort]
   );
 
-  const hasLoaded =
-    local.hasLoaded &&
-    (!canFetchPublished || !feed.isLoading || feed.error === "initial");
+  const hasPublishedFailed = canFetchPublished && feed.error === "initial";
+  const status = resolveMyGameScreenshotsStatus({
+    local: { isLoaded: local.hasLoaded, hasFailed: local.hasFailed },
+    published: {
+      isEnabled: canFetchPublished,
+      isLoaded: !feed.isLoading,
+      hasFailed: hasPublishedFailed,
+    },
+  });
+  const hasEverySourceFailed =
+    local.hasFailed && (!canFetchPublished || hasPublishedFailed);
+  const isPartial = status === "failed" && !hasEverySourceFailed;
+  const retryLocal = local.retry;
+  const retry = useCallback(() => {
+    void retryLocal();
+    if (canFetchPublished) refresh();
+  }, [canFetchPublished, refresh, retryLocal]);
 
   return {
     feed,
     pendingLocal: local.pending,
     items,
-    hasLoaded,
+    status,
+    hasLoaded: status !== "loading",
+    hasFailed:
+      status === "failed" && (hasEverySourceFailed || items.length === 0),
+    isPartial: isPartial && items.length > 0,
     canFetchPublished,
+    retry,
   };
 }
 

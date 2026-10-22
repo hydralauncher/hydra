@@ -219,7 +219,7 @@ export function GameMyScreenshots({
           <Typography>{t("my_screenshots", { ns: "screenshots" })}</Typography>
         </div>
         <div className="game-my-screenshots__body">
-          {items.length > 0 ? (
+          {items.length > 0 && !mine.hasFailed ? (
             <MyScreenshotsGrid
               items={items}
               local={local}
@@ -231,13 +231,29 @@ export function GameMyScreenshots({
           ) : (
             <MyScreenshotsMessage
               isLoading={!mine.hasLoaded}
-              hasLoadError={
-                feed.error === "initial" && mine.pendingLocal.length === 0
-              }
+              hasLoadError={mine.hasFailed}
               leftTarget={leftTarget}
-              onRetry={feed.retry}
+              onRetry={mine.retry}
             />
           )}
+          {mine.isPartial ? (
+            <div className="game-my-screenshots__notice">
+              <span>{t("screenshots_load_failed")}</span>
+              <Button
+                variant="secondary"
+                size="small"
+                focusId={GAME_MY_SCREENSHOTS_RETRY_ID}
+                icon={<ArrowClockwiseIcon size={18} />}
+                focusNavigationOverrides={{
+                  left: leftTarget,
+                  right: BLOCK_TARGET,
+                }}
+                onClick={mine.retry}
+              >
+                {t("screenshots_retry")}
+              </Button>
+            </div>
+          ) : null}
           {canViewAll ? (
             <Button
               variant="secondary"
