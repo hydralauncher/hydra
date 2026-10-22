@@ -33,17 +33,20 @@ export function usePendingLocalScreenshots(
   const [screenshots, setScreenshots] = useState<LocalScreenshot[]>([]);
   const [hasLoaded, setHasLoaded] = useState(false);
   const [hasFailed, setHasFailed] = useState(false);
+  const snapshotVersionRef = useRef(0);
 
   const load = useCallback(() => {
+    const version = snapshotVersionRef.current;
     return myGameScreenshotsLocal
       .getLocalScreenshotsForGame(shop, objectId)
       .then((items) => {
-        setScreenshots(items);
+        if (snapshotVersionRef.current === version) setScreenshots(items);
         setHasFailed(false);
         setHasLoaded(true);
       })
       .catch((error: unknown) => {
         logger.error("Failed to load local screenshots for the game", error);
+        if (snapshotVersionRef.current !== version) return;
         setHasFailed(true);
         setHasLoaded(true);
       });
@@ -67,6 +70,7 @@ export function usePendingLocalScreenshots(
     const unsubscribeLocal = myGameScreenshotsLocal.onLocalScreenshotsChange(
       (items) => {
         if (!isCurrent) return;
+        snapshotVersionRef.current += 1;
         setScreenshots(
           items.filter((item) => isLocalScreenshotForGame(item, shop, objectId))
         );
