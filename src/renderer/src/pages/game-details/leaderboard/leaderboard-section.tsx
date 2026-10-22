@@ -138,7 +138,7 @@ export function LeaderboardSection() {
     return (
       <p className="leaderboard-section__nudge">
         <GraphIcon size={14} />
-        <span>{text}</span>
+        <span className="leaderboard-section__nudge-text">{text}</span>
       </p>
     );
   };
