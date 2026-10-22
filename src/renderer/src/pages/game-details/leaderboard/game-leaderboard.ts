@@ -52,6 +52,7 @@ export interface LeaderboardQuery {
   metric: LeaderboardMetric;
   isExtended: boolean;
   isLoggedIn: boolean;
+  viewerId: string | null;
 }
 
 export interface LeaderboardRequestOptions {
@@ -86,22 +87,25 @@ export type LeaderboardState =
   | "empty_friends";
 
 export interface LoadedLeaderboard {
-  gameKey: string;
+  boardKey: string;
   leaderboard: Leaderboard;
   period: LeaderboardPeriod;
   scope: LeaderboardScope;
   metric: LeaderboardMetric;
 }
 
-export const getLeaderboardGameKey = (shop: GameShop, objectId: string) =>
-  `${shop}:${objectId}`;
+export const getLeaderboardBoardKey = (
+  shop: GameShop,
+  objectId: string,
+  viewerId: string | null
+) => `${shop}:${objectId}:${viewerId ?? "anonymous"}`;
 
 export const selectLoadedLeaderboard = (
   loaded: LoadedLeaderboard | null,
-  gameKey: string,
+  boardKey: string,
   fallback: Pick<LoadedLeaderboard, "period" | "scope" | "metric">
 ) => {
-  if (!loaded || loaded.gameKey !== gameKey) {
+  if (!loaded || loaded.boardKey !== boardKey) {
     return { leaderboard: null, ...fallback };
   }
 
@@ -345,7 +349,7 @@ export const getLeaderboardCacheKey = (query: LeaderboardQuery) => {
     .sort()
     .join("&");
 
-  return `${path}?${params}|auth=${options.needsAuth}`;
+  return `${path}?${params}|viewer=${query.viewerId ?? "anonymous"}`;
 };
 
 export const createLeaderboardFetcher = (

@@ -771,6 +771,7 @@
     "enable_hydra_playtime_tracking": "Também contar o tempo de jogo no Hydra para este jogo",
     "steam_playtime_tracking_error": "Não foi possível atualizar a configuração de tempo de jogo",
     "steam_playtime_non_steam_executable_tooltip": "O executável selecionado não é da Steam, então o Hydra sempre conta o tempo de jogo. Esta opção só se aplica a jogos da Steam",
+    "show_more": "Mostrar mais",
     "show_less": "Mostrar menos",
     "reviews": "Avaliações",
     "leave_a_review": "Deixar uma Avaliação",
