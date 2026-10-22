@@ -351,6 +351,14 @@ export const getLeaderboardCacheKey = (query: LeaderboardQuery) => {
   return `${path}?${params}|viewer=${query.viewerId ?? "anonymous"}`;
 };
 
+const SIGNED_OUT_ERROR_NAME = "UserNotLoggedInError";
+const SIGNED_OUT_ERROR_MESSAGE = "user not logged in";
+
+export const isSignedOutError = (error: unknown) =>
+  error instanceof Error &&
+  (error.name === SIGNED_OUT_ERROR_NAME ||
+    error.message.includes(SIGNED_OUT_ERROR_MESSAGE));
+
 export const createLeaderboardFetcher = (
   get: LeaderboardGet,
   now: () => number = Date.now,
@@ -377,6 +385,10 @@ export const createLeaderboardFetcher = (
 
     const { path, options } = buildLeaderboardRequest(query);
     const request = get(path, options)
+      .catch((error: unknown) => {
+        if (!options.needsAuth || !isSignedOutError(error)) throw error;
+        return get(path, { ...options, needsAuth: false });
+      })
       .then((response) => {
         const leaderboard = normalizeLeaderboardResponse(response);
         cache.set(key, { at: now(), leaderboard });

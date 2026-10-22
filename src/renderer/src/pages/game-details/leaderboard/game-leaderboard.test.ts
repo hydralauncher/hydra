@@ -8,6 +8,7 @@ import {
   buildGameLeaderboardPath,
   getLeaderboardNudge,
   getLeaderboardState,
+  isSignedOutError,
   getLeaderboardBoardKey,
   normalizeLeaderboardResponse,
   selectLoadedLeaderboard,
@@ -508,6 +509,44 @@ describe("createLeaderboardFetcher", () => {
     assert.equal(calls.length, 4);
   });
 
+  it("retries without auth when the session is stale", async () => {
+    const auth: boolean[] = [];
+    const fetchLeaderboard = createLeaderboardFetcher(
+      async (_path, options) => {
+        auth.push(options.needsAuth);
+        if (options.needsAuth) {
+          throw new Error(
+            "Error invoking remote method: UserNotLoggedInError: user not logged in"
+          );
+        }
+        return response;
+      }
+    );
+
+    const result = await fetchLeaderboard(
+      query({ isExtended: true, isLoggedIn: true, viewerId: "a" })
+    );
+
+    assert.deepEqual(auth, [true, false]);
+    assert.equal(result.entries.length, 1);
+  });
+
+  it("does not retry other errors", async () => {
+    let calls = 0;
+    const fetchLeaderboard = createLeaderboardFetcher(async () => {
+      calls += 1;
+      throw new Error("boom");
+    });
+
+    await assert.rejects(
+      fetchLeaderboard(
+        query({ isExtended: true, isLoggedIn: true, viewerId: "a" })
+      ),
+      /boom/
+    );
+    assert.equal(calls, 1);
+  });
+
   it("does not cache failures", async () => {
     let attempt = 0;
     const fetchLeaderboard = createLeaderboardFetcher(async () => {
@@ -611,5 +650,20 @@ describe("getLeaderboardBoardKey", () => {
       getLeaderboardBoardKey("steam", "1", "a"),
       getLeaderboardBoardKey("steam", "1", "b")
     );
+  });
+});
+
+describe("isSignedOutError", () => {
+  it("matches the signed-out error by name or IPC message", () => {
+    const named = new Error("x");
+    named.name = "UserNotLoggedInError";
+
+    assert.equal(isSignedOutError(named), true);
+    assert.equal(
+      isSignedOutError(new Error("UserNotLoggedInError: user not logged in")),
+      true
+    );
+    assert.equal(isSignedOutError(new Error("boom")), false);
+    assert.equal(isSignedOutError("user not logged in"), false);
   });
 });
