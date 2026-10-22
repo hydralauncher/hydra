@@ -19,4 +19,6 @@ export const myGameScreenshotsLocal: MyGameScreenshotsLocalBridge = {
     window.electron.getPublishedScreenshotIdsForGame(shop, objectId),
   forgetPublishedScreenshots: (screenshotIds) =>
     window.electron.forgetPublishedScreenshots(screenshotIds),
+  onLocalScreenshotsChange: (callback) =>
+    window.electron.onLocalScreenshotsChange(callback),
 };

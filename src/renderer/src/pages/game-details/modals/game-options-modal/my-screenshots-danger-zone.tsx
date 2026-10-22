@@ -1,16 +1,14 @@
-import { useCallback, useEffect, useState } from "react";
+import { useState } from "react";
 import { useTranslation } from "react-i18next";
 
 import { Button, ConfirmationModal } from "@renderer/components";
 import { useToast, useUserDetails } from "@renderer/hooks";
 import { logger } from "@renderer/logger";
 import {
-  countPublishedScreenshotsForGame,
   deleteMyGameScreenshots,
-  isLocalScreenshotForGame,
   notifyMyGameScreenshotsChanged,
-  selectPendingLocalScreenshots,
-  subscribeMyGameScreenshotsChanged,
+  useMyGameScreenshotCounts,
+  type MyGameScreenshotCounts,
   type MyScreenshotsDeletion,
 } from "@shared";
 import type { GameShop } from "@types";
@@ -20,10 +18,8 @@ import {
   myGameScreenshotsLocal,
 } from "../../game-screenshots/my-game-screenshots-bridge";
 
-interface MyScreenshotsCounts {
-  local: number;
-  published: number;
-}
+const logCountError = (error: unknown) =>
+  logger.error("Failed to count screenshots for the game", error);
 
 const DELETIONS: MyScreenshotsDeletion[] = ["all", "published", "local"];
 
@@ -35,7 +31,7 @@ const DELETION_LABEL_KEYS: Record<MyScreenshotsDeletion, string> = {
 
 const hasSomethingToDelete = (
   deletion: MyScreenshotsDeletion,
-  counts: MyScreenshotsCounts
+  counts: MyGameScreenshotCounts
 ) => {
   if (deletion === "published") return counts.published > 0;
   if (deletion === "local") return counts.local > 0;
@@ -55,57 +51,16 @@ export function MyScreenshotsDangerZone({
   const { userDetails } = useUserDetails();
   const { showSuccessToast, showErrorToast } = useToast();
   const userId = userDetails?.id ?? null;
-  const [counts, setCounts] = useState<MyScreenshotsCounts>({
-    local: 0,
-    published: 0,
+  const counts = useMyGameScreenshotCounts({
+    userId,
+    shop,
+    objectId,
+    api: myGameScreenshotsApi,
+    local: myGameScreenshotsLocal,
+    onError: logCountError,
   });
   const [pending, setPending] = useState<MyScreenshotsDeletion | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
-
-  const refreshCounts = useCallback(async () => {
-    try {
-      const [localScreenshots, published] = await Promise.all([
-        myGameScreenshotsLocal.getLocalScreenshotsForGame(shop, objectId),
-        countPublishedScreenshotsForGame(
-          { shop, objectId },
-          userId,
-          myGameScreenshotsApi,
-          myGameScreenshotsLocal
-        ),
-      ]);
-      setCounts({
-        local: selectPendingLocalScreenshots(localScreenshots, {
-          shop,
-          objectId,
-        }).length,
-        published,
-      });
-    } catch (error) {
-      logger.error("Failed to count screenshots for the game", error);
-    }
-  }, [objectId, shop, userId]);
-
-  useEffect(() => {
-    void refreshCounts();
-    const unsubscribeLocal = window.electron.onLocalScreenshotsChange(
-      (screenshots) => {
-        const local = selectPendingLocalScreenshots(
-          screenshots.filter((screenshot) =>
-            isLocalScreenshotForGame(screenshot, shop, objectId)
-          ),
-          { shop, objectId }
-        ).length;
-        setCounts((current) => ({ ...current, local }));
-      }
-    );
-    const unsubscribeChanged = subscribeMyGameScreenshotsChanged(
-      () => void refreshCounts()
-    );
-    return () => {
-      unsubscribeLocal();
-      unsubscribeChanged();
-    };
-  }, [objectId, refreshCounts, shop]);
 
   const confirm = async () => {
     if (!pending) return;
