@@ -385,8 +385,16 @@ class SteamSyncOrchestrator {
       | SteamSnapshotPayload["games"][number]["achievements"]
       | undefined;
     try {
-      const communitySession = await readSteamCommunitySession();
-      if (communitySession.hasLoginCookie) {
+      const communitySession = await readSteamCommunitySession(signal);
+      const communityLogin = communitySession.login;
+      if (
+        communityLogin.status === "logged-in" &&
+        communityLogin.steamId64 !== token.steamId64
+      ) {
+        steamSyncLogger.log(
+          `Skipping Steam achievements for ${steamAppId}: Community session belongs to another account`
+        );
+      } else if (communityLogin.status !== "logged-out") {
         const achievementsByAppId = await this.fetchAchievements(
           token,
           communitySession,
@@ -988,9 +996,21 @@ class SteamSyncOrchestrator {
       const token = await this.resolveSteamSession(signal);
       throwIfAborted(signal);
 
-      const communitySession = await readSteamCommunitySession();
-      if (!communitySession.hasLoginCookie) {
+      const communitySession = await readSteamCommunitySession(signal);
+      const communityLogin = communitySession.login;
+      if (communityLogin.status === "logged-out") {
         throw new SteamSessionRequiredError();
+      }
+      if (
+        communityLogin.status === "logged-in" &&
+        communityLogin.steamId64 !== token.steamId64
+      ) {
+        steamSyncLogger.error(
+          "Steam Community session does not match linked SteamID64",
+          communityLogin.steamId64,
+          token.steamId64
+        );
+        throw new SteamAccountMismatchError();
       }
 
       const games = await this.fetchLibrary(token, signal);
